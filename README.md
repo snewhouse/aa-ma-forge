@@ -2,6 +2,16 @@
 
 Structured external memory for Claude Code, so your AI agent stops forgetting what it's done.
 
+[![License](https://img.shields.io/github/license/snewhouse/aa-ma-forge)](LICENSE)
+[![GitHub tag](https://img.shields.io/github/v/tag/snewhouse/aa-ma-forge?sort=semver)](https://github.com/snewhouse/aa-ma-forge/tags)
+[![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fsnewhouse%2Faa-ma-forge%2Fmain%2Fpyproject.toml)](https://github.com/snewhouse/aa-ma-forge)
+[![GitHub last commit](https://img.shields.io/github/last-commit/snewhouse/aa-ma-forge)](https://github.com/snewhouse/aa-ma-forge/commits/main)
+[![Security](https://github.com/snewhouse/aa-ma-forge/actions/workflows/security.yml/badge.svg)](https://github.com/snewhouse/aa-ma-forge/actions/workflows/security.yml)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
+[![Semantic Versioning](https://img.shields.io/badge/semver-2.0.0-blue)](https://semver.org/)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 ## The problem
 
 LLM agents lose context across sessions. They drift from plans, forget decisions, repeat work you've already covered. Every new conversation starts from scratch, and you're back to re-explaining the same architecture, the same constraints, the same goals. It's maddening.
@@ -47,6 +57,35 @@ Every AA-MA task lives in `.claude/dev/active/[task-name]/` and consists of:
 | `provenance.log` | Commit history, session checkpoints, audit trail |
 
 The separation matters. Reference holds things that don't change. Context-log holds why you chose what you chose. Tasks holds where you are right now. When an agent picks up a new session, it loads reference and tasks first, and only pulls in the rest when it needs to make a decision.
+
+## Typical workflow
+
+Here's what using AA-MA looks like day to day.
+
+**Planning:**
+```
+/ultraplan "build a REST API for user authentication"
+```
+
+Claude brainstorms with you, then creates the five AA-MA artefact files in `.claude/dev/active/auth-api/`.
+
+**Execution:**
+```
+/execute-aa-ma-milestone
+```
+
+The agent reads your plan, picks up the current milestone, works through each task, syncs the files after every step, and commits. HITL tasks pause for your input. AFK tasks run on their own.
+
+**Repeat** for each milestone until the work is done.
+
+**Archive:**
+```
+/archive-aa-ma auth-api
+```
+
+Moves completed artefacts to `.claude/dev/completed/` for future reference.
+
+For the full details, see the [team guide](docs/spec/aa-ma-team-guide.md) and [quick reference](docs/spec/aa-ma-quick-reference.md). A real-world example of completed artefacts is in [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
 
 ## Credits and inspirations
 

@@ -60,7 +60,11 @@ Matt Pocock's [skills repo](https://github.com/mattpocock/skills) inspired sever
 
 ## Supporting the project
 
-I have multiple sclerosis. Some days are better than others, but the work continues regardless. If AA-MA saves you time or sanity, consider donating to an MS charity like the [MS Society](https://www.mssociety.org.uk/) or [MS Trust](https://mstrust.org.uk/). Or buy a stranger a coffee. Or support a child protection organisation like the [NSPCC](https://www.nspcc.org.uk/). Small acts, big ripples.
+I have multiple sclerosis. Some days are better than others, but the work continues regardless. If AA-MA saves you time or sanity, consider donating to an MS charity like the [MS Society](https://www.mssociety.org.uk/) or [MS Trust](https://mstrust.org.uk/). Or support a child protection organisation like the [NSPCC](https://www.nspcc.org.uk/) or [NAPAC](https://napac.org.uk/), who support adult survivors of childhood abuse. If domestic abuse has touched your life, [Refuge](https://refuge.org.uk/) and the [ManKind Initiative](https://mankind.org.uk/) are there for women and men respectively. Or simply buy a stranger a coffee. Small acts, big ripples.
+
+## Fair warning
+
+This is a one-person project built around my own workflows. Maintenance and improvements will be sporadic. If I've gone quiet, I'm either deep in client work, arguing with an API, or the MS is having a louder day than usual. Pull requests welcome, but don't hold your breath on response times. You've been warned.
 
 ## Licence
 

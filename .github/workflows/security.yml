@@ -1,0 +1,49 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run ShellCheck on all .sh files
+        run: find . -name '*.sh' -exec shellcheck {} +
+
+  bandit:
+    name: Bandit (Python Security)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit on src/
+        run: bandit -r src/ -f json || true
+
+  ruff:
+    name: Ruff (Lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Run ruff check
+        run: uv run ruff check src/

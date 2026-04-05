@@ -1,3 +1,5 @@
 """Advanced Agentic Memory Architecture (AA-MA)."""
 
-__version__ = "0.1.0"
+from importlib.metadata import version
+
+__version__ = version("aa-ma")

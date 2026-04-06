@@ -139,6 +139,9 @@ This is a one-person project built around my own workflows. Maintenance and impr
 [Apache-2.0](LICENSE)
 
 ### A little request...
-_no obligations_: I have multiple sclerosis. Some days are better than others, but the work continues regardless. If AA-MA saves you time or sanity, consider donating to an MS charity like the [MS Society](https://www.mssociety.org.uk/) or [MS Trust](https://mstrust.org.uk/). Or support a child protection organisation like the [NSPCC](https://www.nspcc.org.uk/) or [NAPAC](https://napac.org.uk/), who support adult survivors of childhood abuse. If domestic abuse has touched your life, [Refuge](https://refuge.org.uk/) and the [ManKind Initiative](https://mankind.org.uk/) are there for women and men respectively. Or simply, hug your partner and child, or buy a stranger a coffee. Small acts, big ripples.
+
+I have multiple sclerosis. Some days are better than others, but the work continues regardless. If AA-MA saves you time or sanity, consider donating to an MS charity like the [MS Society](https://www.mssociety.org.uk/) or [MS Trust](https://mstrust.org.uk/).
+
+Other causes close to my heart: [NSPCC](https://www.nspcc.org.uk/) and [NAPAC](https://napac.org.uk/) for child protection, [Refuge](https://refuge.org.uk/) and [ManKind Initiative](https://mankind.org.uk/) for domestic abuse survivors. Or just hug someone who needs it. Small acts, big ripples.
 
 

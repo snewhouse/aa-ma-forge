@@ -28,12 +28,14 @@ docs/spec/          The specification (v2.1), quick reference, team guide,
 docs/narrative/     The origin story (how and why AA-MA exists)
 claude-code/        Commands, skill, agents, rules, hooks
                     (the operational layer that plugs into Claude Code)
-src/aa_ma/          Python package: validators, schemas, CLI (growing)
+src/aa_ma/          Python package (planned — package skeleton only)
 examples/           Real completed task artefacts (the five files in action)
 scripts/            install.sh / uninstall.sh
 ```
 
 ## Quick start
+
+Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and configured.
 
 ```bash
 git clone https://github.com/snewhouse/aa-ma-forge.git
@@ -43,6 +45,12 @@ scripts/install.sh            # deploy to ~/.claude/
 ```
 
 The installer creates symlinks from this repo into your `~/.claude/` directory. It backs up any existing files before touching them. Run `scripts/uninstall.sh` to reverse everything.
+
+Once installed, open Claude Code in any project directory and type:
+
+```
+/aa-ma-plan "describe your task"
+```
 
 ## The five files
 
@@ -69,14 +77,14 @@ Here's what using AA-MA looks like day to day.
 
 Claude brainstorms with you, then creates the five AA-MA artefact files in `.claude/dev/active/auth-api/`.
 
-> **Note:** As of April 2026, Anthropic ships a built-in planning feature also called "Ultraplan" in Claude Code. Our `/aa-ma-plan` command is a separate, AA-MA-specific structured planning workflow. The two are complementary — see [`docs/ultraplan-rename-rationale.md`](docs/ultraplan-rename-rationale.md).
+> **Note:** Anthropic now ships a built-in "Ultraplan" in Claude Code. We had ours first (November 2025), but naming collisions being what they are, we renamed to `/aa-ma-plan`. The two are unrelated — [details](docs/ultraplan-rename-rationale.md).
 
 **Execution:**
 ```
 /execute-aa-ma-milestone
 ```
 
-The agent reads your plan, picks up the current milestone, works through each task, syncs the files after every step, and commits. HITL tasks pause for your input. AFK tasks run on their own.
+The agent reads your plan, picks up the current milestone, works through each task, syncs the files after every step, and commits. HITL (human-in-the-loop) tasks pause for your input. AFK (away-from-keyboard) tasks run on their own.
 
 **Repeat** for each milestone until the work is done.
 
@@ -87,7 +95,18 @@ The agent reads your plan, picks up the current milestone, works through each ta
 
 Moves completed artefacts to `.claude/dev/completed/` for future reference.
 
-For the full details, see the [team guide](docs/spec/aa-ma-team-guide.md) and [quick reference](docs/spec/aa-ma-quick-reference.md). A real-world example of completed artefacts is in [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
+### All commands
+
+| Command | What it does |
+|---------|-------------|
+| `/aa-ma-plan` | Brainstorm and create a structured plan with all five artefact files |
+| `/execute-aa-ma-milestone` | Execute the current milestone with strict validation and auto-commit *(recommended)* |
+| `/execute-aa-ma-step` | Execute a single task with lightweight validation |
+| `/execute-aa-ma-full` | Execute the entire plan from current position to completion |
+| `/verify-plan` | Run adversarial verification against the plan before execution |
+| `/archive-aa-ma` | Move completed artefacts to `.claude/dev/completed/` |
+
+Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use — some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
 
 ## What else helped
 
@@ -111,10 +130,6 @@ Matt Pocock's [skills repo](https://github.com/mattpocock/skills) inspired sever
 
 The full story is in [how we got here](docs/narrative/how-we-got-here.md).
 
-## Supporting the project
-
-I have multiple sclerosis. Some days are better than others, but the work continues regardless. If AA-MA saves you time or sanity, consider donating to an MS charity like the [MS Society](https://www.mssociety.org.uk/) or [MS Trust](https://mstrust.org.uk/). Or support a child protection organisation like the [NSPCC](https://www.nspcc.org.uk/) or [NAPAC](https://napac.org.uk/), who support adult survivors of childhood abuse. If domestic abuse has touched your life, [Refuge](https://refuge.org.uk/) and the [ManKind Initiative](https://mankind.org.uk/) are there for women and men respectively. Or simply buy a stranger a coffee. Small acts, big ripples.
-
 ## Fair warning
 
 This is a one-person project built around my own workflows. Maintenance and improvements will be sporadic. If I've gone quiet, I'm either deep in client work, arguing with an API, or the MS is having a louder day than usual. Pull requests welcome, but don't hold your breath on response times. You've been warned.
@@ -122,3 +137,8 @@ This is a one-person project built around my own workflows. Maintenance and impr
 ## Licence
 
 [Apache-2.0](LICENSE)
+
+### A little request...
+_no obligations_: I have multiple sclerosis. Some days are better than others, but the work continues regardless. If AA-MA saves you time or sanity, consider donating to an MS charity like the [MS Society](https://www.mssociety.org.uk/) or [MS Trust](https://mstrust.org.uk/). Or support a child protection organisation like the [NSPCC](https://www.nspcc.org.uk/) or [NAPAC](https://napac.org.uk/), who support adult survivors of childhood abuse. If domestic abuse has touched your life, [Refuge](https://refuge.org.uk/) and the [ManKind Initiative](https://mankind.org.uk/) are there for women and men respectively. Or simply, hug your partner and child, or buy a stranger a coffee. Small acts, big ripples.
+
+

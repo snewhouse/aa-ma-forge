@@ -6,7 +6,7 @@
 
 ## The problem I was trying to solve
 
-I run professional services at a biomedical company. The work is regulatory, technical, and long-running: evidence chains across multiple databases, pharmacovigilance signal validation, data pipelines touching half a dozen APIs. These are not afternoon projects. They stretch across weeks, sometimes months, and they demand precision.
+I run professional services at a biotech company working accross little and large Pharma. The work is regulatory, technical, and long-running: evidence chains across multiple databases, pharmacovigilance signal validation, data pipelines touching half a dozen APIs. These are not afternoon projects. They stretch across weeks, sometimes months, and they demand precision.
 
 In late 2025 I started using Claude Code seriously. Not casually, not for one-off scripts. Properly. Multi-session projects with real complexity and real consequences.
 

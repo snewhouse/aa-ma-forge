@@ -68,7 +68,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `.claude/dev/active/[task-name]/` | Active tasks |
 | `.claude/dev/completed/` | Archived completed tasks |
 
-### Commands (6)
+### Commands (7)
 
 | Command | Purpose |
 |---------|---------|
@@ -77,13 +77,18 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/execute-aa-ma-full` | Execute complete plan from current position |
 | `/execute-aa-ma-step` | Execute single task with lightweight validation |
 | `/verify-plan` | Adversarial 6-angle verification |
+| `/grill-me` | Relentlessly interview about plans/designs until decisions are resolved |
 | `/archive-aa-ma` | Archive completed tasks to `dev/completed/` |
 
-### Skill (1)
+### Skills (5)
 
 | Skill | Purpose |
 |-------|---------|
 | `aa-ma-execution` | Orchestrates AA-MA workflow, auto-detects active tasks, handles context injection |
+| `plan-verification` | 6-angle adversarial plan verification (invoked by `/verify-plan` and `/aa-ma-plan`) |
+| `impact-analysis` | Pre-commit dependency and blast-radius analysis at milestone boundaries |
+| `system-mapping` | 5-point pre-flight check before modifying unfamiliar code |
+| `retro` | Weekly engineering retrospective (invoked by `/archive-aa-ma`) |
 
 ### Agents (2)
 

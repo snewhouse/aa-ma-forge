@@ -97,6 +97,12 @@ Multi-Session/Team  │   AA-MA     │   AA-MA
 # Initialize new AA-MA task
 /aa-ma-plan [description]
 
+# Stress-test a plan before executing
+/grill-me [artifact]
+
+# Adversarial 6-angle verification
+/verify-plan [task-name]
+
 # Execute single step (warnings only)
 /execute-aa-ma-step
 
@@ -105,6 +111,9 @@ Multi-Session/Team  │   AA-MA     │   AA-MA
 
 # Execute full plan (automation)
 /execute-aa-ma-full
+
+# Archive completed task
+/archive-aa-ma [task-name]
 ```
 
 ### Claude Code Directory Structure

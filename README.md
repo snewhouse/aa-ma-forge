@@ -91,7 +91,7 @@ For the full details, see the [team guide](docs/spec/aa-ma-team-guide.md) and [q
 
 Original work by Stephen J. Newhouse, November 2025 onwards. Built out of genuine frustration with context loss in agentic coding workflows.
 
-Early catalyst: a Reddit post on agentic memory patterns that crystallised the idea of separating mutable state from immutable facts.
+The spark came from [Diet-Coder's](https://dev.to/diet-code103/claude-code-is-a-beast-tips-from-6-months-of-hardcore-use-572n) brilliant "Dev Docs System" (also on [r/ClaudeCode](https://www.reddit.com/r/ClaudeCode/comments/1oivs81/claude_code_is_a_beast_tips_from_6_months_of/)): three files per task that give Claude structured memory. I took those three files and turned them into five. Massive thanks to Diet-Coder for planting the seed.
 
 Matt Pocock's [skills repo](https://github.com/mattpocock/skills) inspired several refinements to the command and skill structure. AA-MA predates it, but the cross-pollination was valuable.
 

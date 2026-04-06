@@ -26,17 +26,23 @@ First, the file grew unwieldy. Past a certain size, Claude couldn't prioritise w
 
 I experimented with the `.claude/` directory structure, with rules files, with different ways of organising instructions. Some of it stuck. The tiered loading model (always-loaded, auto-loaded, on-demand) was an early win. But the core problem remained: there was no structured memory for the work itself. I had a well-configured tool with amnesia.
 
-## The Reddit spark
+## The 3am spark
 
-Sometime in late November 2025, I came across a Reddit post about agentic memory. I can't find the exact link anymore, which is ironic given what came next. The post discussed separating mutable state from immutable facts when working with LLM agents. That distinction crystallised something I'd been groping towards.
+MS messes with sleep. Some nights you lie there and the brain won't switch off. One of those nights, early November 2025, I was scrolling through r/ClaudeCode at 3am instead of staring at the ceiling. I found a post linking to a dev.to article by [Diet-Coder](https://dev.to/diet-code103/claude-code-is-a-beast-tips-from-6-months-of-hardcore-use-572n): "Claude Code is a Beast: Tips from 6 Months of Hardcore Use."
 
-The insight was simple: agents don't need one big memory. They need categorised memory, where each category has different update rules and different priority levels. Facts shouldn't change. Decisions should be recorded but not re-opened. Current state should be immediately accessible. History should exist but stay out of the way until you need it.
+I read it, thought "that's smart," and parked it.
 
-That was the seed.
+A few days later, I was back in the same frustrated loop with Claude Code. Re-explaining the same architecture, re-stating the same constraints, watching context evaporate between sessions. I pulled Diet-Coder's article back up. The bit that grabbed me was the **Dev Docs System**: three files per task (`plan.md`, `context.md`, `tasks.md`), generated via a slash command, updated as work progressed. Simple. Practical. It was already solving the problem I kept hitting.
+
+That was the seed. Full credit to Diet-Coder for planting it.
 
 ## The five-file taxonomy
 
-By 25 November 2025, I had the first working version. Five files, each earning its place through a specific failure mode I'd experienced.
+The following Sunday night, I sat down with Claude Code and Gemini both open, a coffee, and Diet-Coder's three files as a starting point. What followed was a few hours of trial and error, bouncing ideas between two LLMs and my own tired brain.
+
+Diet-Coder had three files. I ended up with five. The jump was immediate, driven by intuition and a bit of brainstorming rather than weeks of gradual discovery. Three files weren't enough separation for the kind of work I do.
+
+Each of the five earned its place through a specific failure mode I'd experienced.
 
 **plan.md** exists because strategy and execution kept getting tangled. When the plan was embedded in the task list, Claude would lose sight of the "why" while grinding through the "what." Separating strategy from execution meant you could re-read the rationale without wading through status checkboxes.
 
@@ -72,7 +78,7 @@ In February 2026, Matt Pocock published his Claude Code skills repository. His s
 
 In April 2026, I researched Helix.ml's approach to spec-driven workflows. That research pushed me to formalise several things that had been informal: the HARD/SOFT gate classification for milestones (some gates are suggestions, some are hard stops requiring explicit approval), the optional `tests.yaml` file for machine-executable acceptance criteria, and the CHECKPOINT format for session recovery. These were v2.1 additions, refinements to an architecture that was already working.
 
-I want to be clear about provenance here. The five-file taxonomy, the separation principle, the sync discipline, the compaction hook, the operational commands, the agent architecture: original work, built from my own frustration with real projects. The refinements I've mentioned were genuine improvements from external inspiration, applied to a system that was already solving the problem.
+I want to be clear about provenance here. Diet-Coder's Dev Docs System gave me the starting point: three files, a slash command, and the idea that Claude needs structured memory, not just a big instruction file. The jump from three files to five, the separation principle, the sync discipline, the compaction hook, the operational commands, the agent architecture: that's my work, built from real frustrations with real projects. Matt Pocock and Helix.ml refined what was already running. But without Diet-Coder's post at 3am, I might still be fighting the same battle with a bloated CLAUDE.md.
 
 ## Where we are now
 

@@ -1,6 +1,10 @@
-# AA-MA Forge
+<p align="center">
+  <img src="docs/images/aa-ma-forge-banner.png" alt="AA-MA Forge" width="900">
+</p>
 
-Structured external memory for Claude Code, so your AI agent stops forgetting what it's done.
+<p align="center">
+  Structured external memory for Claude Code, so your AI agent stops forgetting what it's done.
+</p>
 
 [![License](https://img.shields.io/github/license/snewhouse/aa-ma-forge)](LICENSE)
 [![GitHub tag](https://img.shields.io/github/v/tag/snewhouse/aa-ma-forge?sort=semver)](https://github.com/snewhouse/aa-ma-forge/tags)
@@ -54,6 +58,10 @@ Once installed, open Claude Code in any project directory and type:
 
 ## The five files
 
+<p align="center">
+  <img src="docs/images/five-files.png" alt="The five AA-MA files" width="800">
+</p>
+
 Every AA-MA task lives in `.claude/dev/active/[task-name]/` and consists of:
 
 | File | What it holds |
@@ -69,6 +77,15 @@ The separation matters. Reference holds things that don't change. Context-log ho
 ## Typical workflow
 
 Here's what using AA-MA looks like day to day.
+
+```mermaid
+flowchart LR
+    A["/aa-ma-plan"] -->|Creates 5 files| B[Plan + Reference\n+ Context-Log\n+ Tasks + Provenance]
+    B --> C["/execute-aa-ma-milestone"]
+    C -->|Work · Sync · Commit| D{More\nmilestones?}
+    D -->|Yes| C
+    D -->|No| E["/archive-aa-ma"]
+```
 
 **Planning:**
 ```

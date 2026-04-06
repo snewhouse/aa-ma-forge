@@ -95,7 +95,7 @@ Multi-Session/Team  │   AA-MA     │   AA-MA
 
 ```bash
 # Initialize new AA-MA task
-/ultraplan [description]
+/aa-ma-plan [description]
 
 # Execute single step (warnings only)
 /execute-aa-ma-step

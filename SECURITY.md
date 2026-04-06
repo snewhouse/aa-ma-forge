@@ -8,7 +8,7 @@ The installer (`scripts/install.sh`) places files into `~/.claude/` so Claude Co
 
 **Symlinks created** (pointing from `~/.claude/` back into this repo):
 
-- 6 command files: `~/.claude/commands/*.md` (ultraplan, execute-aa-ma-milestone, execute-aa-ma-full, execute-aa-ma-step, verify-plan, archive-aa-ma)
+- 6 command files: `~/.claude/commands/*.md` (aa-ma-plan, execute-aa-ma-milestone, execute-aa-ma-full, execute-aa-ma-step, verify-plan, archive-aa-ma)
 - 1 skills directory: `~/.claude/skills/aa-ma-execution/`
 - 2 agent files: `~/.claude/agents/aa-ma-scribe.md`, `~/.claude/agents/aa-ma-validator.md`
 - 1 rules file: `~/.claude/rules/aa-ma.md`

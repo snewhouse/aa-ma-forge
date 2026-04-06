@@ -1,6 +1,6 @@
 ---
 name: aa-ma-scribe
-description: Writes and populates all 5 AA-MA artifact files from an approved plan. Spawned during ultraplan Phase 5.
+description: Writes and populates all 5 AA-MA artifact files from an approved plan. Spawned during aa-ma-plan Phase 5.
 tools: Read, Write, Glob, Grep
 ---
 
@@ -18,7 +18,7 @@ You are the **AA-MA Scribe**. Your ONLY job is to create and populate the 5 AA-M
 
 You will receive:
 1. A **task name** (kebab-case)
-2. The **complete plan content** (from Phase 4 of ultraplan-workflow)
+2. The **complete plan content** (from Phase 4 of aa-ma-plan-workflow)
 3. Optionally: **Phase 1-3 context** (brainstorm decisions, research findings)
 
 You must create these 5 files at `.claude/dev/active/[task-name]/`:
@@ -167,7 +167,7 @@ Initialize with creation timestamps:
 ```
 # [task-name] Provenance Log
 
-[YYYY-MM-DD HH:MM:SS] Task initialized via /ultraplan command
+[YYYY-MM-DD HH:MM:SS] Task initialized via /aa-ma-plan command
 [YYYY-MM-DD HH:MM:SS] Project: [working directory path]
 [YYYY-MM-DD HH:MM:SS] Phase 1-5 complete
 [YYYY-MM-DD HH:MM:SS] Status: READY FOR EXECUTION

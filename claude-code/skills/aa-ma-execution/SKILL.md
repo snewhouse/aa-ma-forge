@@ -140,11 +140,11 @@ done
 
 **If files missing or empty**:
 - **STOP** execution
-- **Report** to user: "AA-MA files incomplete. Run `/ultraplan` to initialize properly."
+- **Report** to user: "AA-MA files incomplete. Run `/aa-ma-plan` to initialize properly."
 
 ### 3.5 Pre-Flight System Mapping (First Milestone Only)
 
-If this is the **first milestone** being executed and it touches 3+ files or unfamiliar code, invoke `Skill(system-mapping)` for the 5-point pre-flight check before starting execution. Skip for subsequent milestones unless they shift to a completely different subsystem. Skip if system-mapping was already run during `/ultraplan`.
+If this is the **first milestone** being executed and it touches 3+ files or unfamiliar code, invoke `Skill(system-mapping)` for the 5-point pre-flight check before starting execution. Skip for subsequent milestones unless they shift to a completely different subsystem. Skip if system-mapping was already run during `/aa-ma-plan`.
 
 ### 4. Identify Current Task
 
@@ -966,7 +966,7 @@ Claude: [Executes milestone using this skill's workflow]
 AA-MA artifacts incomplete.
 
 Fix:
-1. Run /ultraplan to regenerate artifacts
+1. Run /aa-ma-plan to regenerate artifacts
 2. OR manually create missing files:
    touch .claude/dev/active/[task-name]/[task-name]-reference.md
 ```

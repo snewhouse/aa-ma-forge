@@ -62,7 +62,7 @@ The separation principle is the core of it: different types of knowledge have di
 
 A taxonomy is useless without tooling to enforce it. Over the following weeks I built the operational layer: Claude Code commands, skills, and agents that make the five-file system usable day-to-day.
 
-The `/ultraplan` command produces structured plans with 11 mandatory outputs, from executive summary through milestones, acceptance criteria, artefacts, tests, rollback strategy, to risks and next actions. Overkill for a one-off script. Essential for anything that runs longer than a single session.
+The `/aa-ma-plan` command produces structured plans with 11 mandatory outputs, from executive summary through milestones, acceptance criteria, artefacts, tests, rollback strategy, to risks and next actions. Overkill for a one-off script. Essential for anything that runs longer than a single session.
 
 Two specialised agents emerged. The **scribe agent** handles file maintenance: provenance entries, context-log updates, keeping the main conversation focussed on actual work. The **validator agent** checks plan quality against the specification. Separate agents for bookkeeping means the primary interaction isn't constantly interrupted by administrative overhead.
 

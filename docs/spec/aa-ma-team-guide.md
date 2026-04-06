@@ -370,7 +370,7 @@ _Last Updated: YYYY-MM-DD_
 
 Claude Code provides four slash commands for AA-MA:
 
-### `/ultraplan` - Initialize a New Task
+### `/aa-ma-plan` - Initialize a New Task
 
 **When to use**: Starting a complex, multi-session task
 
@@ -382,7 +382,7 @@ Claude Code provides four slash commands for AA-MA:
 
 **Example**:
 ```
-/ultraplan Build a REST API for user management with JWT authentication
+/aa-ma-plan Build a REST API for user management with JWT authentication
 ```
 
 ### `/execute-aa-ma-step` - Execute Single Task

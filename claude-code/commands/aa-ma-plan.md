@@ -1,9 +1,12 @@
 ---
-name: ultraplan
+name: aa-ma-plan
 description: Advanced planning workflow with AA-MA methodology, superpowers skills, Context7 MCP, and multi-agent coordination
 ---
 
-# /ultraplan - Ultra Planning Workflow
+<!-- Renamed from /ultraplan to /aa-ma-plan on 2026-04-06.
+     Reason: Anthropic shipped built-in "ultraplan" in Claude Code on 2026-04-04. -->
+
+# /aa-ma-plan - AA-MA Planning Workflow
 
 Comprehensive planning command that follows the Advanced Agentic Memory Architecture (AA-MA) methodology for complex software development tasks.
 
@@ -550,7 +553,7 @@ Create initial log entry:
 ```text
 # [task-name] Provenance Log
 
-[current-timestamp] Task initialized via /ultraplan
+[current-timestamp] Task initialized via /aa-ma-plan
 [current-timestamp] Commit: [git hash] — Phase: Planning
 [current-timestamp] AA-MA artifacts created
 ```
@@ -601,7 +604,7 @@ To begin implementation, load context with:
   </TASKS>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-/ultraplan workflow complete — Ready to implement
+/aa-ma-plan workflow complete — Ready to implement
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -662,7 +665,7 @@ User selects this text:
 Add user authentication with OAuth2 and JWT tokens
 ```
 
-Then runs: `/ultraplan`
+Then runs: `/aa-ma-plan`
 
 Command automatically:
 1. Uses selected text as feature request
@@ -672,7 +675,7 @@ Command automatically:
 
 **Example 2: Interactive prompt**
 
-User runs: `/ultraplan`
+User runs: `/aa-ma-plan`
 
 Command prompts:
 - "Describe the feature or change you want to plan:"
@@ -683,7 +686,7 @@ Command prompts:
 
 **Example 3: Complex research needs**
 
-User: `/ultraplan` → "Implement GraphQL API with subscriptions"
+User: `/aa-ma-plan` → "Implement GraphQL API with subscriptions"
 
 Command:
 1. Gathers context
@@ -700,7 +703,7 @@ Command:
 
 ## Integration with Other Commands
 
-**After /ultraplan completes:**
+**After /aa-ma-plan completes:**
 - Use `/commit-and-push` to commit the generated AA-MA files
 - Use `/git-status-smart` to review planning artifacts before commit
 

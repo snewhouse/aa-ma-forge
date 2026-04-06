@@ -25,7 +25,7 @@ _Last Updated: 2025-11-26_
 
 | Claude Code | Cursor | Purpose |
 |-------------|--------|---------|
-| `/ultraplan` | `npx cursor-bank init` | Initialize AA-MA structure |
+| `/aa-ma-plan` | `npx cursor-bank init` | Initialize AA-MA structure |
 | `/execute-aa-ma-step` | Plan mode → Act mode | Single task execution |
 | `/execute-aa-ma-milestone` | "Update memory bank" prompt | Complete milestone |
 | Context injection (XML) | `.cursor/rules/*.mdc` | Persistent instructions |
@@ -66,7 +66,7 @@ _Last Updated: 2025-11-26_
 ### Claude Code AA-MA
 - CLAUDE.md lines 87-307
 - aa-ma-execution skill: ~/.claude/skills/aa-ma-execution/SKILL.md
-- Commands: ~/.claude/commands/ultraplan.md
+- Commands: ~/.claude/commands/aa-ma-plan.md
 - Design doc: ~/.claude/docs/plans/2025-11-17-aa-ma-execution-commands-design.md
 
 ## Core Principles (5)

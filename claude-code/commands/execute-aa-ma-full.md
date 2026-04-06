@@ -57,7 +57,7 @@ Auto-recovery: Triggering Phase 5 artifact creation with scribe+validator agents
 3. Spawn `aa-ma-validator` agent to verify created files (5-dimension check)
 4. If validator reports PASS/WARN → continue execution
 5. If validator reports FAIL → retry once (re-scribe → re-validate)
-6. If still FAIL after retry → HALT and alert user: "Auto-recovery failed. Run `/ultraplan` to recreate artifacts."
+6. If still FAIL after retry → HALT and alert user: "Auto-recovery failed. Run `/aa-ma-plan` to recreate artifacts."
 7. If agent spawning unavailable → fallback: create files directly inline, then continue
 
 ### Tier 2: Content Validation (Thorough)
@@ -141,7 +141,7 @@ Spawn aa-ma-validator with:
 **If validation fails**:
 ```
 ERROR: [Specific issue]
-- Missing files → "AA-MA files incomplete. Run /ultraplan or check directory."
+- Missing files → "AA-MA files incomplete. Run /aa-ma-plan or check directory."
 - Malformed HTP → "tasks.md lacks proper HTP format."
 - No pending milestones → "All milestones complete."
 - Missing acceptance criteria → "One or more milestones lack acceptance criteria."

@@ -64,10 +64,12 @@ Here's what using AA-MA looks like day to day.
 
 **Planning:**
 ```
-/ultraplan "build a REST API for user authentication"
+/aa-ma-plan "build a REST API for user authentication"
 ```
 
 Claude brainstorms with you, then creates the five AA-MA artefact files in `.claude/dev/active/auth-api/`.
+
+> **Note:** As of April 2026, Anthropic ships a built-in planning feature also called "Ultraplan" in Claude Code. Our `/aa-ma-plan` command is a separate, AA-MA-specific structured planning workflow. The two are complementary — see [`docs/ultraplan-rename-rationale.md`](docs/ultraplan-rename-rationale.md).
 
 **Execution:**
 ```

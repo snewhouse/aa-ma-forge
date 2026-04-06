@@ -72,7 +72,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 
 | Command | Purpose |
 |---------|---------|
-| `/ultraplan` | Create detailed AA-MA plan with 11 mandatory outputs |
+| `/aa-ma-plan` | Create detailed AA-MA plan with 11 mandatory outputs |
 | `/execute-aa-ma-milestone` | Execute milestone with HITL/AFK mode dispatch and validation |
 | `/execute-aa-ma-full` | Execute complete plan from current position |
 | `/execute-aa-ma-step` | Execute single task with lightweight validation |

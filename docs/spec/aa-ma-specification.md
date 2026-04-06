@@ -343,7 +343,7 @@ Plan approval is a **formal gate** in the AA-MA workflow. No implementation may 
 * **Do not proceed** to implement until `Acceptance criteria` for the first milestone are clear and recorded.
 * **Gate classification**: When creating HTP nodes, classify each milestone's gate type. Default is `SOFT`. Use `HARD` for irreversible actions, architectural decisions, or production deployments.
 * **Test definitions**: When acceptance criteria can be expressed as executable commands, add them to `[task]-tests.yaml` alongside the plan.
-* **Automated flow**: `/ultraplan` -> paste plan into `[task]-plan.md` -> run `/aa-ma-plan-to-tasks` (or a short script) to auto-generate HTP nodes in `[task]-tasks.md` and extract immutable facts to `[task]-reference.md`.
+* **Automated flow**: `/aa-ma-plan` -> paste plan into `[task]-plan.md` -> run `/aa-ma-plan-to-tasks` (or a short script) to auto-generate HTP nodes in `[task]-tasks.md` and extract immutable facts to `[task]-reference.md`.
 
 ---
 

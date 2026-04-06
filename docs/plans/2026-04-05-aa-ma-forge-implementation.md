@@ -126,7 +126,7 @@ git commit -m "docs: import AA-MA specification v2.1, quick reference, and team 
 - Copy: `~/.claude/commands/execute-aa-ma-milestone.md` → `claude-code/commands/`
 - Copy: `~/.claude/commands/execute-aa-ma-step.md` → `claude-code/commands/`
 - Copy: `~/.claude/commands/archive-aa-ma.md` → `claude-code/commands/`
-- Copy: `~/.claude/commands/ultraplan.md` → `claude-code/commands/`
+- Copy: `~/.claude/commands/aa-ma-plan.md` → `claude-code/commands/`
 - Copy: `~/.claude/commands/verify-plan.md` → `claude-code/commands/`
 
 **Step 1: Copy all 6 command files**
@@ -136,7 +136,7 @@ cp ~/.claude/commands/execute-aa-ma-full.md claude-code/commands/
 cp ~/.claude/commands/execute-aa-ma-milestone.md claude-code/commands/
 cp ~/.claude/commands/execute-aa-ma-step.md claude-code/commands/
 cp ~/.claude/commands/archive-aa-ma.md claude-code/commands/
-cp ~/.claude/commands/ultraplan.md claude-code/commands/
+cp ~/.claude/commands/aa-ma-plan.md claude-code/commands/
 cp ~/.claude/commands/verify-plan.md claude-code/commands/
 ```
 
@@ -151,7 +151,7 @@ wc -l claude-code/commands/*.md
 
 ```bash
 git add claude-code/commands/
-git commit -m "feat: import 6 AA-MA commands (execute-full, execute-milestone, execute-step, archive, ultraplan, verify-plan)"
+git commit -m "feat: import 6 AA-MA commands (execute-full, execute-milestone, execute-step, archive, aa-ma-plan, verify-plan)"
 ```
 
 ---
@@ -345,7 +345,7 @@ Gather facts from:
 - Memory about inspirations (Reddit, Matt Pocock, Helix.ml)
 
 Key dates to establish:
-- Nov 2025: Earliest AA-MA completed tasks (ultraplan-enhancement, agent-token-optimization)
+- Nov 2025: Earliest AA-MA completed tasks (aa-ma-plan-enhancement, agent-token-optimization)
 - Dec 2025: Further refinements
 - Feb 2026: Matt Pocock's skills repo appears (AA-MA already exists)
 - Mar 2026: Team guide, workflow hardening, project index integration

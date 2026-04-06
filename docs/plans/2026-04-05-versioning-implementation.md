@@ -180,7 +180,7 @@ Initial release of AA-MA Forge.
 
 - AA-MA specification v2.1 (canonical spec, quick reference, team guide)
 - Claude Code foundations reference (built-in vs AA-MA layer mapping)
-- 6 AA-MA commands: execute-full, execute-milestone, execute-step, archive, ultraplan, verify-plan
+- 6 AA-MA commands: execute-full, execute-milestone, execute-step, archive, aa-ma-plan, verify-plan
 - AA-MA execution skill (1,187 lines)
 - 2 specialised agents: aa-ma-scribe (plan to artifacts), aa-ma-validator (read-only validation)
 - Operational rules (aa-ma.md) and compaction hook (pre-compact-aa-ma.sh)

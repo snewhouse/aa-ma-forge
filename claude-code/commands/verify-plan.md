@@ -41,7 +41,7 @@ test -f "${PLAN_FILE}" || echo "ERROR: No plan found"
 If plan doesn't exist, display error and exit:
 ```
 No plan found at ${PLAN_FILE}
-Run /ultraplan first to create a plan.
+Run /aa-ma-plan first to create a plan.
 ```
 
 ### Step 2: Load Plan Content
@@ -130,14 +130,14 @@ Next steps:
 ## Error Handling
 
 **Plan file not found:**
-- Display helpful message pointing to `/ultraplan`
+- Display helpful message pointing to `/aa-ma-plan`
 
 **Skill invocation fails:**
 - Fall back to manual verification prompt with the 6 angles listed
 - Note in output: "Skill unavailable, using fallback verification"
 
 **No active AA-MA tasks:**
-- Display: "No active tasks found. Run /ultraplan first."
+- Display: "No active tasks found. Run /aa-ma-plan first."
 
 ---
 
@@ -146,4 +146,4 @@ Next steps:
 - **Invokes:** `plan-verification` skill (core verification engine)
 - **Called by:** User directly, or recommended after plan revisions
 - **Produces:** `[task]-verification.md` in the AA-MA task directory
-- **Design doc:** `docs/plans/2026-03-08-ultraplan-verification-design.md`
+- **Design doc:** `docs/plans/2026-03-08-aa-ma-plan-verification-design.md`

@@ -149,7 +149,7 @@ The full story is in [how we got here](docs/narrative/how-we-got-here.md).
 
 ## Fair warning
 
-This is a one-person project built around my own workflows. Maintenance and improvements will be sporadic. If I've gone quiet, I'm either deep in client work, arguing with an API, or the MS is having a louder day than usual. Pull requests welcome, but don't hold your breath on response times. You've been warned.
+This is a one-person project built around my own workflows. It's provided as-is — take what's useful, fork it, adapt it, make it your own. Maintenance and improvements will be sporadic. If I've gone quiet, I'm either deep in client work, arguing with an API, or the MS is having a louder day than usual. Pull requests welcome, but don't hold your breath on response times. You've been warned.
 
 ## Licence
 

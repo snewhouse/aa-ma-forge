@@ -127,8 +127,11 @@ for f in "${REPO_ROOT}/claude-code/commands/"*.md; do
     collect_backup_target "${CLAUDE_HOME}/commands/$(basename "${f}")"
 done
 
-# Skills directory
-collect_backup_target "${CLAUDE_HOME}/skills/aa-ma-execution"
+# Skills directories (auto-discover all)
+for d in "${REPO_ROOT}/claude-code/skills/"*/; do
+    [ -d "${d}" ] || continue
+    collect_backup_target "${CLAUDE_HOME}/skills/$(basename "${d}")"
+done
 
 # Agents
 for f in "${REPO_ROOT}/claude-code/agents/"*.md; do
@@ -254,11 +257,13 @@ for f in "${REPO_ROOT}/claude-code/commands/"*.md; do
 done
 
 # ---------------------------------------------------------------------------
-# 2. Symlink skills directory
+# 2. Symlink skills directories (auto-discover all)
 # ---------------------------------------------------------------------------
 header "Linking skills..."
-create_symlink "${REPO_ROOT}/claude-code/skills/aa-ma-execution" \
-               "${CLAUDE_HOME}/skills/aa-ma-execution"
+for d in "${REPO_ROOT}/claude-code/skills/"*/; do
+    [ -d "${d}" ] || continue
+    create_symlink "${d%/}" "${CLAUDE_HOME}/skills/$(basename "${d}")"
+done
 
 # ---------------------------------------------------------------------------
 # 3. Symlink agents (each file individually)

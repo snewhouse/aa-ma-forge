@@ -121,6 +121,7 @@ Moves completed artefacts to `.claude/dev/completed/` for future reference.
 | `/execute-aa-ma-step` | Execute a single task with lightweight validation |
 | `/execute-aa-ma-full` | Execute the entire plan from current position to completion |
 | `/verify-plan` | Run adversarial verification against the plan before execution |
+| `/grill-me` | Relentlessly interview you about a plan or design until every decision is resolved |
 | `/archive-aa-ma` | Move completed artefacts to `.claude/dev/completed/` |
 
 Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use — some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
@@ -134,6 +135,18 @@ AA-MA is the structure, but a couple of Claude Code plugins earned their place a
 [double-check](https://claudecodecommands.directory/commands/double-check) is almost embarrassingly simple: it forces the agent to stop and ask itself "am I actually done?" before moving on. Define the angles, define what complete means, then check. It catches the false positives that slip through when agents optimistically claim a task is finished. Cheap, fast, and surprisingly effective.
 
 Neither is required for AA-MA to work. Both made it work better.
+
+## Optional extras
+
+Some AA-MA commands can use these third-party Claude Code plugins when available. Everything works without them — they just make it better.
+
+| Plugin | What it enhances | Install |
+|--------|-----------------|--------|
+| [superpowers](https://github.com/superpowers-marketplace/superpowers) | Brainstorming, structured planning, TDD workflows in `/aa-ma-plan` and execute commands | Claude Code plugin marketplace |
+| [gstack](https://github.com/anthropics/claude-code-marketplace) | Plan reviews (CEO, eng, design perspectives), QA testing, browser screenshots | Claude Code plugin marketplace |
+| [Context7](https://github.com/upstash/context7) | Library documentation lookup during planning and execution | MCP server setup |
+
+If a plugin isn't installed, the commands fall back to native tools or skip the optional step.
 
 ## Credits and inspirations
 

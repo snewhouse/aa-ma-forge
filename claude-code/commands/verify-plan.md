@@ -146,4 +146,4 @@ Next steps:
 - **Invokes:** `plan-verification` skill (core verification engine)
 - **Called by:** User directly, or recommended after plan revisions
 - **Produces:** `[task]-verification.md` in the AA-MA task directory
-- **Design doc:** `docs/plans/2026-03-08-aa-ma-plan-verification-design.md`
+- **Core skill:** `claude-code/skills/plan-verification/SKILL.md`

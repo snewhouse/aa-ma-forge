@@ -39,3 +39,12 @@ Renamed our command from `/ultraplan` to `/aa-ma-plan` to:
 3. Clearly signal AA-MA methodology ownership
 
 The skill was renamed from `ultraplan-workflow` to `aa-ma-plan-workflow`. All cross-references across commands, skills, agents, specs, and documentation were updated.
+
+## Migration for Existing Users
+
+If you previously ran `scripts/install.sh`, you'll have a dangling `~/.claude/commands/ultraplan.md` symlink. To update:
+
+```bash
+rm ~/.claude/commands/ultraplan.md  # remove old symlink
+./scripts/install.sh                 # creates new aa-ma-plan.md symlink
+```

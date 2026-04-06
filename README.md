@@ -89,6 +89,16 @@ Moves completed artefacts to `.claude/dev/completed/` for future reference.
 
 For the full details, see the [team guide](docs/spec/aa-ma-team-guide.md) and [quick reference](docs/spec/aa-ma-quick-reference.md). A real-world example of completed artefacts is in [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
 
+## What else helped
+
+AA-MA is the structure, but a couple of Claude Code plugins earned their place alongside it through trial and error.
+
+[claude-mem](https://github.com/thedotmack/claude-mem) gives Claude persistent memory across sessions. AA-MA files hold the plan and the state, but they live inside one conversation. claude-mem indexes everything — decisions, tool results, observations — into a searchable vector store that survives session boundaries. When you pick up a multi-week project on a Monday morning, it's the difference between starting cold and starting informed.
+
+[double-check](https://claudecodecommands.directory/commands/double-check) is almost embarrassingly simple: it forces the agent to stop and ask itself "am I actually done?" before moving on. Define the angles, define what complete means, then check. It catches the false positives that slip through when agents optimistically claim a task is finished. Cheap, fast, and surprisingly effective.
+
+Neither is required for AA-MA to work. Both made it work better.
+
 ## Credits and inspirations
 
 Original work by Stephen J. Newhouse, November 2025 onwards. Built out of genuine frustration with context loss in agentic coding workflows.

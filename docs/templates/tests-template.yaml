@@ -1,0 +1,51 @@
+# [task-name]-tests.yaml — Optional executable test definitions
+#
+# Machine-executable test stubs that bridge prose acceptance criteria
+# in tasks.md with actual verification. When present, the
+# /execute-aa-ma-milestone command (Step 6.4) auto-detects and runs
+# these tests at milestone boundaries.
+#
+# Design principles:
+# - Tests are scoped to milestones, matching the HTP structure in tasks.md
+# - Each test has a `name`, `command`, and either `expected` or `expected_pattern`
+# - Commands run in the PROJECT ROOT directory, not the AA-MA task directory
+# - This file is OPTIONAL — if absent, execution falls back to standard test behavior
+#
+# Fields:
+#   name:             Human-readable description of what the test verifies
+#   command:          Shell command to execute (runs from project root)
+#   expected:         Exact string match against command stdout (use for deterministic output)
+#   expected_pattern: Regex pattern match against command stdout (use for variable output)
+#
+# Use `expected` OR `expected_pattern` per test entry, not both.
+# Replace all [bracketed placeholders] with actual values.
+
+# ──────────────────────────────────────────────────────────────────────
+# Milestone 1: [Title matching tasks.md Milestone 1]
+# ──────────────────────────────────────────────────────────────────────
+milestone_1:
+  # Test 1: Example using exact match
+  # Use `expected` when the command produces deterministic output
+  # (e.g., HTTP status codes, version strings, exact counts)
+  - name: "[Descriptive test name — what is being verified]"
+    command: "[shell command to run from project root]"
+    expected: "[exact expected stdout]"
+
+  # Test 2: Example using regex pattern match
+  # Use `expected_pattern` when output varies but contains a known pattern
+  # (e.g., "N passed", test runner output, log messages)
+  - name: "[Descriptive test name]"
+    command: "[shell command to run from project root]"
+    expected_pattern: "[regex pattern to match against stdout]"
+
+# ──────────────────────────────────────────────────────────────────────
+# Milestone 2: [Title matching tasks.md Milestone 2]
+# ──────────────────────────────────────────────────────────────────────
+milestone_2:
+  - name: "[Descriptive test name]"
+    command: "[shell command to run from project root]"
+    expected: "[exact expected stdout]"
+
+  - name: "[Descriptive test name]"
+    command: "[shell command to run from project root]"
+    expected_pattern: "[regex pattern to match against stdout]"

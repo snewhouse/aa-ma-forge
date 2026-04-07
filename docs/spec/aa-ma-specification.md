@@ -90,6 +90,132 @@ Generated: [ISO-8601 timestamp] | Mode: [automated|interactive] | Revision: [N]
 - Revision history provides a full audit trail of plan improvements
 - The file is optional — its absence never blocks execution
 
+### Immutable Reference Store
+
+The `[task]-reference.md` file is Claude's **high-priority fact memory** — non-negotiable truths that do not change during normal execution. When context is constrained, this file loads first (see Section IV).
+
+**Purpose:** Prevent hallucination of facts (URLs, paths, versions) by grounding agents in verified, extracted data rather than recalled knowledge.
+
+**Categories:**
+
+| Category | Examples |
+|----------|----------|
+| API Endpoints | `https://api.example.com/v1/targets` |
+| File Paths | `src/pipeline/core.py`, `tests/integration/` |
+| Configuration | `DATABASE_URL=postgres://...`, `MAX_RETRIES=3` |
+| Dependencies | `pydantic>=2.0`, `httpx==0.27.0` |
+| Constants | Thresholds, limits, magic numbers from design decisions |
+| Schema Definitions | Field names, types, and constraints from API specs or data models |
+
+**Extraction rules** (applied by the AA-MA Scribe during artifact creation):
+- API endpoints: any URL with a path component (not bare domains)
+- File paths: strings matching `src/`, `tests/`, `.claude/`, or containing `/` with a file extension
+- Configuration: `KEY=value` patterns, environment variable references
+- Dependencies: `package==version` or `package>=version` patterns
+- Constants: numeric thresholds or limits stated as design decisions
+
+**When to update:**
+- At plan creation (initial extraction from the approved plan)
+- After plan revision (new facts from scope changes)
+- After research or implementation discovers new immutable facts
+- Never during routine task execution — facts are **append-only** unless correcting an error
+
+### Decision & Context History
+
+The `[task]-context-log.md` file captures the **reasoning trail** behind the plan's evolution — architectural decisions, trade-offs, gate approvals, and compaction summaries.
+
+**Purpose:** Enable any agent (or future session) to understand *why* the system is in its current state, not just *what* state it is in. Prevents re-litigating settled decisions after context compaction.
+
+**Entry types and formats:**
+
+**Decision (architectural or design):**
+```markdown
+## [YYYY-MM-DD] Decision AD-NNN: [Title]
+- **What:** [What was decided]
+- **Rationale:** [Why this option was chosen]
+- **Alternatives considered:** [Other approaches evaluated]
+- **Trade-offs:** [What was gained and what was sacrificed]
+```
+
+**Gate Approval (milestone boundary):**
+```markdown
+## [YYYY-MM-DD] GATE APPROVAL: [Milestone Title]
+- Gate: HARD | SOFT
+- Approved by: [user]
+- Criteria verified: [X/X]
+- Decision: APPROVED | REJECTED
+```
+
+**Compaction Summary (context window management):**
+```markdown
+## [YYYY-MM-DD] Compaction Summary
+- Key decisions since last compaction: [list]
+- Bugs resolved: [list or "None"]
+- Remaining issues: [list or "None"]
+- Active step at compaction: [step-id]
+```
+
+**Milestone Completion:**
+```markdown
+## [YYYY-MM-DD] Milestone Complete: [Title]
+- Criteria: [X/X] verified
+- Commit: [hash]
+- Key outcomes: [1-2 line summary]
+```
+
+**Bug Discovery / Research Finding:**
+```markdown
+## [YYYY-MM-DD] Bug: [Title] | Research: [Title]
+- Description: [What was found]
+- Impact: [How it affects the plan]
+- Resolution: [Action taken or "OPEN"]
+```
+
+**When to update:**
+- After every architectural or design decision
+- At every gate boundary (HARD or SOFT)
+- During context compaction (mandatory — this is the compaction target)
+- After milestone completion, bug discovery, or significant research findings
+
+### Execution Audit Trail
+
+The `[task]-provenance.log` file is an **immutable, append-only** log providing a machine-readable record of every significant execution event. It exists for debugging, auditing, and reliable session resume.
+
+**Purpose:** Answer "what happened and when" without relying on conversation history or context-log summaries. The CHECKPOINT entries (defined in Section XII) are the primary mechanism for cross-session continuity.
+
+**Entry types and exact formats:**
+
+```text
+# Initialization
+[YYYY-MM-DD HH:MM:SS] Task initialized via /aa-ma-plan command
+[YYYY-MM-DD HH:MM:SS] Project: /path/to/project
+[YYYY-MM-DD HH:MM:SS] Status: READY FOR EXECUTION
+
+# Commit (after every git commit during execution)
+[YYYY-MM-DD HH:MM] Commit [hash] — [conventional commit description]
+
+# Compaction (when context window is compacted)
+[YYYY-MM-DD HH:MM] Context compacted — [1-line summary of what was preserved]
+
+# Checkpoint (session boundary — see Section XII for full format)
+[YYYY-MM-DD HH:MM] CHECKPOINT — ActiveStep: [id] — NextAction: "[desc]" — ContextLoaded: [files] — TokenUsage: [%]
+
+# Milestone Complete
+[YYYY-MM-DD HH:MM] MILESTONE COMPLETE — [name] — Commit [hash] — Criteria: [N/N] verified
+
+# Session Resume
+[YYYY-MM-DD HH:MM] Session resumed — ActiveStep: [id] — From: CHECKPOINT
+```
+
+**When to update:**
+- At task initialization (automatic via AA-MA Scribe)
+- After every commit during plan execution
+- At every context compaction event
+- At session boundaries (CHECKPOINT on exit, session resume on entry)
+- At milestone completion
+
+**Immutability rule:** Entries are never edited or deleted. Corrections are appended as new entries with a note referencing the original.
+
 ### Optional: Executable Test Definitions
 
 The `[task]-tests.yaml` file provides machine-executable test stubs that bridge prose acceptance criteria in `tasks.md` with actual verification. When present, `/execute-aa-ma-milestone` Step 6.4 will auto-detect and run these tests.

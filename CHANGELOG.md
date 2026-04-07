@@ -15,6 +15,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - 4 supporting skills: `plan-verification`, `impact-analysis`, `system-mapping`, `retro`
 - 6 additional skills: `complexity-router`, `agent-teams` (with references and templates), `defense-in-depth`, `dispatching-parallel-agents`, `debugging-strategies`, `llm-evaluation`
 - verification.md documentation: anatomy in spec, template (`docs/templates/`), example (`examples/verification-example/`)
+- Standalone templates for all 7 AA-MA files in `docs/templates/` (plan, reference, context-log, tasks, provenance, tests, verification) with HTML comment instructions and placeholder syntax
+- Templates index (`docs/templates/README.md`) explaining how to use each template
+- Dedicated anatomy sections in spec for reference.md, context-log.md, and provenance.log (previously underdocumented)
+- tests.yaml example (`examples/aa-ma-team-guide/aa-ma-team-guide-tests.yaml`) completing the example set
 - Skills table in README (13 skills documented)
 - README banner image and five-files visual (green/orange, dark background)
 - Mermaid workflow lifecycle diagram in README

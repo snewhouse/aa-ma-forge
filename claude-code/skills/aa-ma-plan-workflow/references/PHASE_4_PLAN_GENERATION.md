@@ -10,7 +10,7 @@
 ## Skill Integration
 
 **Primary skill:** `superpowers:writing-plans`
-**Complexity routing:** `complexity-router` → `senior-architect` (for >= 80%)
+**Complexity routing:** `complexity-router` → deep architectural review (for >= 80%)
 **Quality scoring:** `llm-evaluation` (always, for plan quality assessment)
 
 ## The AA-MA Planning Standard (11 Required Elements)
@@ -41,7 +41,7 @@ Use `complexity-router` skill (or manual check):
 |------------|--------|
 | 0-59% | Proceed with standard planning |
 | 60-79% | Add extra validation, flag in plan |
-| **80-100%** | **MUST invoke `senior-architect` skill** |
+| **80-100%** | **Deep architectural review required** (human review, ultrathinking, or architecture skill) |
 
 **High complexity indicators (>= 80%):**
 - Architectural changes affecting multiple services
@@ -91,9 +91,10 @@ IF Skill(system-mapping) not invoked in Phase 3:
     → Capture: Architecture summary, dependency map
 ```
 
-#### Step 3: Invoke Senior-Architect Review
+#### Step 3: Deep Architectural Review
 ```
-Skill: senior-architect
+Trigger: complexity >= 80%
+Method: Human review, ultrathinking, or architecture skill if available
 ```
 
 Pass:

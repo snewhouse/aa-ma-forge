@@ -1,11 +1,11 @@
 ---
 name: complexity-router
-description: Estimate task complexity and route high-complexity tasks (>=80%) to senior-architect for review - use before plan generation
+description: Estimate task complexity and route high-complexity tasks (>=80%) to deep architectural review - use before plan generation
 ---
 
 # Complexity Router Skill
 
-Estimates task complexity using a weighted factor algorithm and routes high-complexity tasks (≥80%) to the `senior-architect` skill for architectural review.
+Estimates task complexity using a weighted factor algorithm and routes high-complexity tasks (≥80%) to deep architectural review (human review, ultrathinking, or a dedicated architecture skill if available).
 
 ## When to Use
 
@@ -88,7 +88,7 @@ Complexity = (Scope × 0.25) + (ArchImpact × 0.25) +
 | 0-29% | Low | Standard workflow, minimal review |
 | 30-59% | Medium | Standard workflow with validation |
 | 60-79% | High | Enhanced validation, flag in plan |
-| **80-100%** | **Critical** | **Route to senior-architect** |
+| **80-100%** | **Critical** | **Deep architectural review (human or dedicated skill)** |
 
 ## Auto-Trigger Indicators
 
@@ -191,7 +191,7 @@ ROUTING DECISION: [Action]
 This skill is invoked at the start of Phase 4:
 
 1. Complexity is assessed using this skill
-2. If complexity ≥80%, `senior-architect` skill is invoked
+2. If complexity ≥80%, deep architectural review is triggered (human review, ultrathinking, or a dedicated architecture skill)
 3. Routing decision recorded in provenance.log
 4. Plan generation proceeds with appropriate rigor
 
@@ -214,7 +214,7 @@ This skill is invoked at the start of Phase 4:
 - Recommend milestone-by-milestone execution
 
 ### Critical Complexity (80-100%)
-- **MUST invoke senior-architect**
+- **MUST trigger deep architectural review** (human review, ultrathinking, or a dedicated architecture skill if available)
 - Quality score must be ≥80%
 - All high-complexity steps require deep reasoning
 - Recommend human review before execution

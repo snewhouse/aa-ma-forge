@@ -83,7 +83,7 @@ Ready for Execution             → /execute-aa-ma-milestone
 | Phase 3 | `system-mapping` | 3+ files OR unfamiliar code |
 | Phase 3 | `impact-analysis` | Always (mandatory) |
 | Phase 4 | `complexity-router` | Always (determines routing) |
-| Phase 4 | `senior-architect` | Complexity ≥ 80% |
+| Phase 4 | Deep architectural review | Complexity ≥ 80% (human review, ultrathinking, or architecture skill) |
 | Phase 4 | `llm-evaluation` | Always (quality scoring) |
 | Phase 4.5 | `plan-verification` | Always (adversarial verification) |
 | Phase 3 | `agent-teams` | Complex research needing competing hypotheses |
@@ -112,7 +112,7 @@ See `references/VALIDATION_GATES.md` for detailed specifications.
 |------------|--------|
 | 0-59% | Standard workflow |
 | 60-79% | Enhanced validation, flag in plan |
-| **80-100%** | **MUST invoke senior-architect** |
+| **80-100%** | **Deep architectural review required** (human review, ultrathinking, or architecture skill) |
 
 See `references/COMPLEXITY_ROUTING.md` for estimation algorithm.
 
@@ -219,10 +219,10 @@ See `references/PHASE_3_RESEARCH.md` for details.
 
 **Objective:** Generate comprehensive plan with all 11 AA-MA elements.
 
-**Skills:** `complexity-router`, `senior-architect` (if ≥80%), `llm-evaluation`
+**Skills:** `complexity-router`, `llm-evaluation`, deep architectural review (if ≥80%)
 
 **Steps:**
-1. Check complexity (route to senior-architect if ≥80%)
+1. Check complexity (trigger deep architectural review if ≥80%)
 2. Invoke write-plan skill (or fallback prompt)
 3. Ensure all 11 AA-MA elements present
 4. Score plan quality (must be ≥70%)

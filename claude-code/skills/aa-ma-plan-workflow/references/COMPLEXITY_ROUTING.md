@@ -2,7 +2,7 @@
 
 ## Overview
 
-Complexity routing determines the appropriate level of review and planning rigor based on task complexity. Tasks with complexity >= 80% automatically route to `senior-architect` for architectural review.
+Complexity routing determines the appropriate level of review and planning rigor based on task complexity. Tasks with complexity >= 80% are automatically flagged for deep architectural review (human review, ultrathinking, or a dedicated architecture skill if available).
 
 ## Complexity Estimation Algorithm
 
@@ -76,7 +76,7 @@ Complexity = (Scope × 0.25) + (ArchImpact × 0.25) + (TechRisk × 0.20) + (Deps
 | 0-29% | Low | Standard workflow, minimal review |
 | 30-59% | Medium | Standard workflow with checklist validation |
 | 60-79% | High | Enhanced validation, flag in plan |
-| **80-100%** | **Critical** | **MUST route to senior-architect** |
+| **80-100%** | **Critical** | **Deep architectural review required** |
 
 ## High Complexity Indicators (Auto >= 80%)
 
@@ -131,39 +131,35 @@ The following indicators automatically set complexity >= 80%:
 ```
 1. Standard 5-phase workflow
 2. Full validation gates
-3. MUST invoke senior-architect after Phase 4
+3. MUST trigger deep architectural review after Phase 4
 4. Quality score must be >= 80%
 5. All high-complexity steps require deep reasoning
 6. Recommend human review before execution
 7. Auto-set execution mode to milestone-only
 ```
 
-## Integration with senior-architect
+## Deep Architectural Review Integration
 
-When complexity >= 80%, invoke senior-architect with:
+When complexity >= 80%, trigger deep architectural review. This can be fulfilled by a dedicated architecture skill (if available), human review, or ultrathinking with extended reasoning.
 
-```
-Skill: senior-architect
-
-Pass:
+**Pass to the reviewer:**
 - Generated plan (from Phase 4)
 - Complexity score and breakdown
 - High-complexity indicators triggered
 - Architectural concerns from research
 
-Senior-architect reviews:
+**Review should cover:**
 - Architectural soundness
 - Scalability implications
 - Security considerations
 - Performance impacts
 - Alternative approaches
 
-Returns:
+**Expected output:**
 - Approval or rejection
 - Required modifications
 - Risk assessments
 - Recommended safeguards
-```
 
 ## Complexity Override
 

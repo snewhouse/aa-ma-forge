@@ -56,7 +56,7 @@ Base: 30%
 Complexity < 40%  → Continue normally
 Complexity 40-60% → Enable ops-mode basics
 Complexity >= 60% → Full ops-mode activation mandatory
-Complexity >= 80% → Flag for senior-architect in Phase 4
+Complexity >= 80% → Flag for deep architectural review in Phase 4
 ```
 
 ### 0.3 Parallel Opportunity Scan
@@ -117,7 +117,7 @@ If `Skill(operational-constraints)` is unavailable:
 | Phase 1 | Complexity estimate informs question depth |
 | Phase 3 | `PARALLEL_RESEARCH` flag triggers agent dispatch |
 | Phase 3 | System-mapping trigger passed forward |
-| Phase 4 | Complexity >= 80% routes to senior-architect |
+| Phase 4 | Complexity >= 80% triggers deep architectural review |
 | All Phases | Ops-mode discipline maintained |
 
 ## Phase 0 Checklist

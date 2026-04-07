@@ -16,7 +16,7 @@ Skills are integrated into the aa-ma-plan workflow at specific decision points w
 | Phase 3 | `system-mapping` | 3+ files OR unfamiliar code | Pre-flight architecture understanding |
 | Phase 3 | `impact-analysis` | Always | Identify upstream callers, cascade risks |
 | Phase 4 | `complexity-router` | Always | Determine routing based on complexity |
-| Phase 4 | `senior-architect` | Complexity >= 80% | Architectural review, quality gate |
+| Phase 4 | Deep architectural review | Complexity >= 80% | Human review, ultrathinking, or architecture skill |
 | Phase 4 | `superpowers:writing-plans` | Always (primary) | Plan generation |
 | Phase 4 | `llm-evaluation` | Always | Plan quality scoring |
 | Phase 3 | `agent-teams` | Complex research needing competing hypotheses | Adversarial debate, hypothesis synthesis |
@@ -63,7 +63,7 @@ Routing:
   < 40%  → Standard mode
   40-60% → Enable ops-mode basics
   >= 60% → Full ops-mode mandatory
-  >= 80% → Flag for senior-architect (Phase 4)
+  >= 80% → Flag for deep architectural review (Phase 4)
 ```
 
 ### Phase 2: Brainstorming
@@ -237,11 +237,10 @@ Pass:
 Returns: Complexity score (0-100%), routing decision
 ```
 
-**senior-architect**
+**Deep architectural review** (human review, ultrathinking, or architecture skill)
 ```
 Trigger: complexity-router returns >= 80%
 
-Invoke: Skill: senior-architect
 Pass:
   - Generated plan draft
   - Complexity assessment
@@ -347,7 +346,7 @@ When a skill is unavailable:
 | `dispatching-parallel-agents` | Sequential agent dispatch |
 | `agent-teams` (Phase 3) | `dispatching-parallel-agents` (one-shot, no debate) |
 | `agent-teams` (Phase 5) | Direct artifact writing (manual procedure) |
-| `senior-architect` | Extra validation pass + user review flag |
+| Deep architectural review | Extra validation pass + user review flag |
 | `llm-evaluation` | Manual checklist validation |
 | `defense-in-depth` | Manual cross-file review |
 | `debugging-strategies` | Escalate to user |

@@ -125,6 +125,26 @@ Moves completed artefacts to `.claude/dev/completed/` for future reference.
 | `/ops-mode` | Activate disciplined execution mode (token efficiency, parallel eval, tool protocols) |
 | `/archive-aa-ma` | Move completed artefacts to `.claude/dev/completed/` |
 
+### Skills
+
+Skills are reusable procedures that plug into the planning and execution workflow. They live in `claude-code/skills/` and are symlinked by the installer.
+
+| Skill | What it does |
+|-------|-------------|
+| `aa-ma-plan-workflow` | The 5-phase planning engine behind `/aa-ma-plan` |
+| `aa-ma-execution` | Task execution contract used by the `/execute-aa-ma-*` commands |
+| `plan-verification` | Adversarial 6-angle verification for plans |
+| `impact-analysis` | Pre-change dependency and blast-radius analysis |
+| `system-mapping` | 5-point pre-flight checklist before code changes |
+| `operational-constraints` | Disciplined execution mode (token efficiency, tool protocols) |
+| `retro` | Weekly engineering retrospective generator |
+| `complexity-router` | Weighted complexity scoring that routes high-risk tasks to deeper review |
+| `agent-teams` | Multi-agent team orchestration with roles, debate, and shutdown protocols |
+| `defense-in-depth` | Four-layer validation pattern for making bugs structurally impossible |
+| `dispatching-parallel-agents` | Pattern for concurrent independent agent investigations |
+| `debugging-strategies` | Systematic debugging process with multi-language tooling |
+| `llm-evaluation` | Evaluation strategies for LLM applications (metrics, LLM-as-judge, A/B testing) |
+
 Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use — some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
 
 ## What else helped

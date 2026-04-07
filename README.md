@@ -173,5 +173,3 @@ This is a one-person project built around my own workflows. It's provided as-is 
 I have multiple sclerosis. Some days are better than others, but the work continues regardless. If AA-MA saves you time or sanity, consider donating to an MS charity like the [MS Society](https://www.mssociety.org.uk/) or [MS Trust](https://mstrust.org.uk/).
 
 Other causes close to my heart: [NSPCC](https://www.nspcc.org.uk/) and [NAPAC](https://napac.org.uk/) for child protection, [Refuge](https://refuge.org.uk/) and [ManKind Initiative](https://mankind.org.uk/) for domestic abuse survivors. Or just hug someone who needs it. Small acts, big ripples.
-
-

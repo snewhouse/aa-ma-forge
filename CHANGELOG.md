@@ -6,12 +6,33 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Added
+
+- `/grill-me` command: relentless plan/design interview (adapted from Matt Pocock's concept)
+- 4 supporting skills: `plan-verification`, `impact-analysis`, `system-mapping`, `retro`
+- README banner image and five-files visual (green/orange, dark background)
+- Mermaid workflow lifecycle diagram in README
+- "What else helped" section documenting claude-mem and double-check plugins
+- "Optional extras" section documenting superpowers, gstack, and Context7 MCP dependencies
+- Post-install bridge in Quick Start ("open Claude Code and type /aa-ma-plan")
+- Full command reference table in README (7 commands)
+
 ### Changed
 
 - Renamed `/ultraplan` command to `/aa-ma-plan` to avoid collision with Anthropic's built-in Ultraplan feature (shipped 2026-04-04)
 - Renamed `ultraplan-workflow` skill to `aa-ma-plan-workflow`
 - Updated all cross-references across commands, skills, agents, specs, and documentation
 - See `docs/ultraplan-rename-rationale.md` for full context and comparison
+- install.sh now auto-discovers all skills via loop (was hardcoded to aa-ma-execution only)
+- Expanded HITL/AFK acronyms inline in README
+- Marked Python package as skeleton-only in README (honest labelling)
+- Restructured charity section for clarity (MS leads, other causes get own paragraph)
+- Updated claude-code-foundations.md: 6→7 commands, 1→5 skills
+- Updated aa-ma-quick-reference.md: added /grill-me, /verify-plan, /archive-aa-ma to cheat sheet
+
+### Fixed
+
+- Broken doc reference in verify-plan.md (pointed to non-existent design doc)
 
 ## v0.1.0 (2026-04-05)
 

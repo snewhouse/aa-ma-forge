@@ -5,7 +5,7 @@ description: Use when invalid data causes failures deep in execution, requiring 
 
 # Defense-in-Depth Validation
 
-> **Origin:** Derived from a debugging session where an empty-string bug propagated through 4 layers of a workspace manager, proving that single-point validation is insufficient.
+> **Origin:** Derived from a debugging session where an empty-string bug propagated through 4 validation layers, proving that single-point validation is insufficient.
 
 ## Overview
 

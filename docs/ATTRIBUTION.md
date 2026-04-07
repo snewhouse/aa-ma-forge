@@ -73,7 +73,7 @@ This document maps every external influence on AA-MA Forge to what it shaped, wh
 The following are Stephen Newhouse's original contributions, not derived from external sources:
 
 - **The five-file separation principle** — reference (immutable facts) vs context-log (mutable decisions) vs tasks (execution state) vs provenance (audit trail), each with distinct update triggers and loading priority
-- **Hierarchical Task Planning (HTP)** — milestone/sub-step structure with Status, Dependencies, Complexity, Gate (HARD/SOFT), Mode (HITL/AFK), and Result Log fields
+- **Hierarchical Task Planning (HTP)** — the term echoes HTN (Hierarchical Task Networks) from classical AI planning literature, but the implementation is AA-MA-specific: milestone/sub-step structure with Status, Dependencies, Complexity, Gate (HARD/SOFT), Mode (HITL/AFK), and Result Log fields designed for LLM agent execution rather than automated planning
 - **The AA-MA specification (v2.1)** — 560+ line formal specification with 12 sections covering file taxonomy, context injection, planning standard, finalization protocol, and file templates
 - **Complexity routing** — weighted 5-factor algorithm (scope, architecture, risk, dependencies, uncertainty) with auto-trigger indicators and threshold-based review routing
 - **6-angle adversarial verification** — ground-truth audit, assumption challenge, impact analysis, acceptance criteria falsifiability, fresh-agent simulation, specialist domain audit

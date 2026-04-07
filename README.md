@@ -20,6 +20,10 @@
 
 LLM agents lose context across sessions. They drift from plans, forget decisions, repeat work you've already covered. Every new conversation starts from scratch, and you're back to re-explaining the same architecture, the same constraints, the same goals. It's maddening.
 
+<p align="center">
+  <img src="docs/images/aa-ma-forge-triptych.jpg" alt="Context Lost → The AA-MA Forge → Context Retained: a triptych showing the journey from session amnesia through structured memory forging to multi-session persistence" width="900">
+</p>
+
 ## What AA-MA is
 
 AA-MA (Advanced Agentic Memory Architecture) gives Claude Code a structured external memory built from five specialised files. Each file segments a different kind of knowledge: strategy, facts, decisions, execution state, and audit history. It's designed for long-horizon, multi-session tasks where context loss kills productivity.

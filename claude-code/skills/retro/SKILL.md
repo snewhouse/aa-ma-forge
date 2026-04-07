@@ -15,6 +15,8 @@ allowed-tools:
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
+> **Integration:** This skill uses [gstack](https://github.com/anthropics/claude-code-marketplace) for update checking, session tracking, and the "Boil the Lake" retrospective principle. If gstack is not installed, those features gracefully degrade.
+
 ## Preamble (run first)
 
 ```bash

@@ -19,6 +19,8 @@ This skill MUST be used when:
 DO NOT rationalize away using this skill. Complex tasks without proper planning lead to context drift, scope creep, and incomplete implementations.
 </EXTREMELY-IMPORTANT>
 
+> **Optional dependency:** Several phases invoke [superpowers](https://github.com/superpowers-marketplace/superpowers) skills (brainstorming, writing-plans, TDD). If superpowers is not installed, the workflow falls back to native Claude Code tools.
+
 ## Quick Reference
 
 | Resource | Location |

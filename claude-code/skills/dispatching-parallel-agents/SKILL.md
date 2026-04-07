@@ -9,6 +9,8 @@ context: AI-assisted development (Claude Code or similar)
 
 # Dispatching Parallel Agents
 
+> **Origin:** Derived from a real multi-agent debugging session where 6 test failures across 3 independent files were resolved concurrently (October 2025).
+
 ## Overview
 
 When you have multiple unrelated failures (different test files, different subsystems, different bugs), investigating them sequentially wastes time. Each investigation is independent and can happen in parallel.

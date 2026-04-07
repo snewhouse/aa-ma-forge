@@ -5,6 +5,8 @@ description: Master systematic debugging techniques, profiling tools, and root c
 
 # Debugging Strategies
 
+> **Origin:** Techniques refined through systematic debugging of concurrent test failures in a large TypeScript codebase (2025).
+
 Transform debugging from frustrating guesswork into systematic problem-solving with proven strategies, powerful tools, and methodical approaches.
 
 ## When to Use This Skill

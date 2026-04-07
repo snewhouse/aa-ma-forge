@@ -15,7 +15,11 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - 4 supporting skills: `plan-verification`, `impact-analysis`, `system-mapping`, `retro`
 - 6 additional skills: `complexity-router`, `agent-teams` (with references and templates), `defense-in-depth`, `dispatching-parallel-agents`, `debugging-strategies`, `llm-evaluation`
 - verification.md documentation: anatomy in spec, template (`docs/templates/`), example (`examples/verification-example/`)
+- `docs/ATTRIBUTION.md`: formal provenance mapping of all external influences (Diet-Coder, Matt Pocock, Helix.ml, gstack, superpowers, claude-mem, double-check, Context7) with "What's Original" section
 - Standalone templates for all 7 AA-MA files in `docs/templates/` (plan, reference, context-log, tasks, provenance, tests, verification) with HTML comment instructions and placeholder syntax
+- Attribution note in `retro/SKILL.md` crediting gstack integration
+- Dependency note in `aa-ma-plan-workflow/SKILL.md` documenting superpowers as optional dependency
+- Origin notes in 3 session-derived skills (dispatching-parallel-agents, defense-in-depth, debugging-strategies)
 - Templates index (`docs/templates/README.md`) explaining how to use each template
 - Dedicated anatomy sections in spec for reference.md, context-log.md, and provenance.log (previously underdocumented)
 - tests.yaml example (`examples/aa-ma-team-guide/aa-ma-team-guide-tests.yaml`) completing the example set

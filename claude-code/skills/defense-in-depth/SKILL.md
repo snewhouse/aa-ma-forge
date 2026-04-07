@@ -5,6 +5,8 @@ description: Use when invalid data causes failures deep in execution, requiring 
 
 # Defense-in-Depth Validation
 
+> **Origin:** Derived from a debugging session where an empty-string bug propagated through 4 layers of a workspace manager, proving that single-point validation is insufficient.
+
 ## Overview
 
 When you fix a bug caused by invalid data, adding validation at one place feels sufficient. But that single check can be bypassed by different code paths, refactoring, or mocks.

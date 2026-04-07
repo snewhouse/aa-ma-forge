@@ -122,6 +122,7 @@ Moves completed artefacts to `.claude/dev/completed/` for future reference.
 | `/execute-aa-ma-full` | Execute the entire plan from current position to completion |
 | `/verify-plan` | Run adversarial verification against the plan before execution |
 | `/grill-me` | Relentlessly interview you about a plan or design until every decision is resolved |
+| `/ops-mode` | Activate disciplined execution mode (token efficiency, parallel eval, tool protocols) |
 | `/archive-aa-ma` | Move completed artefacts to `.claude/dev/completed/` |
 
 Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use — some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).

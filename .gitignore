@@ -1,6 +1,7 @@
 # Claude Code
 CLAUDE.md
 .claude/
+PROJECT_INDEX.json
 
 # Python
 __pycache__/

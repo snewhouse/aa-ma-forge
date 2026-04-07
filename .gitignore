@@ -3,6 +3,7 @@ CLAUDE.md
 .claude/
 PROJECT_INDEX.json
 drafts/
+media/
 
 # Python
 __pycache__/

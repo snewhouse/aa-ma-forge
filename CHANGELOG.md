@@ -13,6 +13,9 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - `operational-constraints` skill: disciplined execution mode for complex tasks (mandatory for complexity >= 60%)
 - `/ops-mode` command: activate operational constraints
 - 4 supporting skills: `plan-verification`, `impact-analysis`, `system-mapping`, `retro`
+- 6 additional skills: `complexity-router`, `agent-teams` (with references and templates), `defense-in-depth`, `dispatching-parallel-agents`, `debugging-strategies`, `llm-evaluation`
+- verification.md documentation: anatomy in spec, template (`docs/templates/`), example (`examples/verification-example/`)
+- Skills table in README (13 skills documented)
 - README banner image and five-files visual (green/orange, dark background)
 - Mermaid workflow lifecycle diagram in README
 - "What else helped" section documenting claude-mem and double-check plugins
@@ -30,8 +33,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Expanded HITL/AFK acronyms inline in README
 - Marked Python package as skeleton-only in README (honest labelling)
 - Restructured charity section for clarity (MS leads, other causes get own paragraph)
-- Updated claude-code-foundations.md: 6→7 commands, 1→5 skills
-- Updated aa-ma-quick-reference.md: added /grill-me, /verify-plan, /archive-aa-ma to cheat sheet
+- Updated claude-code-foundations.md: 6→8 commands, 1→13 skills
+- Updated aa-ma-quick-reference.md: added /grill-me, /verify-plan, /archive-aa-ma, /ops-mode to cheat sheet
+- Full command table in README updated to 8 commands (added /ops-mode)
+- Replaced broken `senior-architect` references with "deep architectural review" in complexity-router and aa-ma-plan-workflow (senior-architect excluded as empty scaffold)
 
 ### Fixed
 

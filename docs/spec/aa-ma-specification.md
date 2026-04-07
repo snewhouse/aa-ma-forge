@@ -25,6 +25,70 @@ The system uses five specialised documents to segment knowledge, ensuring Claude
 | `[task]-tasks.md`       | Hierarchical execution roadmap, dependencies, and persistent state tracking (HTP).                | [6]      |
 | `[task]-provenance.log` | Machine-readable log of execution history and Git activity (Telemetry).                           | [7]      |
 | `[task]-tests.yaml`     | **Optional.** Machine-readable test definitions linked to milestone acceptance criteria.           | [8]      |
+| `[task]-verification.md` | **Optional.** Adversarial verification audit trail from 6 independent angles.                     | [9]      |
+
+### Optional: Adversarial Verification Report
+
+The `[task]-verification.md` file stores the results of structured adversarial verification run against the plan before execution begins. It is produced by the `/verify-plan` command or Phase 4.5 of the `/aa-ma-plan` workflow.
+
+**When it exists:**
+- Documents findings from 6 independent verification angles (ground-truth audit, assumption challenge, impact analysis, acceptance criteria falsifiability, fresh-agent simulation, specialist domain audit)
+- Classifies each finding as CRITICAL, WARNING, or INFO
+- Records the overall verdict (PASS, FAIL, or PASS WITH WARNINGS)
+- Tracks revision history when the plan is revised to address findings
+
+**When it is absent:**
+- The user chose to skip verification, or verification has not been run yet
+- No execution commands are blocked — verification is advisory, not a gate
+
+**Structure:**
+
+```markdown
+# Verification Report: [task-name]
+Generated: [ISO-8601 timestamp] | Mode: [automated|interactive] | Revision: [N]
+
+## Summary
+- CRITICAL: [N] findings ([M] resolved)
+- WARNING: [N] findings
+- INFO: [N] findings
+- Overall: [PASS | FAIL | PASS WITH WARNINGS | SKIPPED]
+
+## Angle 1: Ground-Truth Audit
+### Findings
+- [SEVERITY] Claim: "X" | Reality: "Y" | Source: file:line
+[or "No findings — all claims verified."]
+
+## Angle 2: Assumption Extraction & Challenge
+### Assumptions Identified
+1. [VERIFIED|WARNING|CRITICAL] "assumption text" — evidence/risk
+
+## Angle 3: Impact Analysis on Proposed Changes
+### Files Affected
+- [SEVERITY] file.py — [risk level]: [description]
+
+## Angle 4: Acceptance Criteria Falsifiability
+### Criteria Audit
+- [OK|WARNING] M[n]-S[n]: "criterion text" → assertion or rewrite
+### Score: [N]/[M] falsifiable ([X]%)
+
+## Angle 5: Fresh-Agent Simulation
+### Implementation Barriers
+- [SEVERITY] "[description of gap or ambiguity]"
+
+## Angle 6: Specialist Domain Audit
+### Specialists Dispatched: [list or "None — no domain keywords detected"]
+- [SEVERITY] [domain] risk/concern: "[description]"
+
+## Revision History
+- v[N]: [date] — [summary: N CRITICAL, N WARNING → result]
+```
+
+**Design principles:**
+- Each angle runs independently and catches a categorically different class of error
+- Findings are de-duplicated across angles (the most specific version is kept)
+- In automated mode, CRITICAL findings block plan artifact creation; in interactive mode, all findings are report-only
+- Revision history provides a full audit trail of plan improvements
+- The file is optional — its absence never blocks execution
 
 ### Optional: Executable Test Definitions
 
@@ -419,6 +483,47 @@ milestone_1:
     expected_pattern: "passed"
 ```
 
+### [task]-verification.md (Optional)
+
+```markdown
+# Verification Report: [task-name]
+Generated: <ISO-8601 timestamp> | Mode: <automated|interactive> | Revision: 1
+
+## Summary
+- CRITICAL: 0 findings (0 resolved)
+- WARNING: 0 findings
+- INFO: 0 findings
+- Overall: <PASS | FAIL | PASS WITH WARNINGS | SKIPPED>
+
+## Angle 1: Ground-Truth Audit
+### Findings
+No findings — all claims verified.
+
+## Angle 2: Assumption Extraction & Challenge
+### Assumptions Identified
+(numbered list of assumptions with verification status)
+
+## Angle 3: Impact Analysis on Proposed Changes
+### Files Affected
+(per-file findings with risk level)
+
+## Angle 4: Acceptance Criteria Falsifiability
+### Criteria Audit
+(per-criterion findings)
+### Score: N/M falsifiable (X%)
+
+## Angle 5: Fresh-Agent Simulation
+### Implementation Barriers
+(findings from fresh-agent perspective)
+
+## Angle 6: Specialist Domain Audit
+### Specialists Dispatched: <list or "None — no domain keywords detected">
+(per-specialist findings)
+
+## Revision History
+- v1: <date> — Initial verification: 0 CRITICAL, 0 WARNING → <result>
+```
+
 ### [task]-provenance.log
 
 ```text
@@ -452,3 +557,4 @@ This enables reliable session resume: the next session reads the latest CHECKPOI
 [6] Hierarchical Task Planning (HTP) methodologies.
 [7] Provenance and telemetry management in software pipelines.
 [8] Inspired by Helix.ml spec-driven workflows (infrastructure-enforced gates, executable test definitions). See research: `.claude/plans/witty-puzzling-sonnet.md`.
+[9] Adversarial plan verification. 6-angle structured review derived from lessons L-054, L-058, L-059, L-067, L-068, L-069. See skill: `claude-code/skills/plan-verification/SKILL.md`.

@@ -114,6 +114,9 @@ Multi-Session/Team  │   AA-MA     │   AA-MA
 
 # Archive completed task
 /archive-aa-ma [task-name]
+
+# Activate disciplined execution mode
+/ops-mode
 ```
 
 ### Claude Code Directory Structure

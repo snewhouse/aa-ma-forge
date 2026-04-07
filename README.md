@@ -34,7 +34,7 @@ docs/templates/     Ready-to-use templates (verification report)
 claude-code/        Commands, skills, agents, rules, hooks
                     (the operational layer that plugs into Claude Code)
 src/aa_ma/          Python package (planned — package skeleton only)
-examples/           Real completed task artefacts (the five files in action)
+examples/           Real completed task artefacts (five files plus optional tests)
 scripts/            install.sh / uninstall.sh
 ```
 

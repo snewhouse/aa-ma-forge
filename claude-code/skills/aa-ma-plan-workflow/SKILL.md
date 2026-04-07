@@ -86,7 +86,7 @@ Ready for Execution             → /execute-aa-ma-milestone
 | Phase 3 | `impact-analysis` | Always (mandatory) |
 | Phase 4 | `complexity-router` | Always (determines routing) |
 | Phase 4 | Deep architectural review | Complexity ≥ 80% (human review, ultrathinking, or architecture skill) |
-| Phase 4 | `llm-evaluation` | Always (quality scoring) |
+| Phase 4 | Plan quality scoring | Always (inline checklist or evaluation skill) |
 | Phase 4.5 | `plan-verification` | Always (adversarial verification) |
 | Phase 3 | `agent-teams` | Complex research needing competing hypotheses |
 | Phase 5 | `agent-teams` | Always (scribe+validator artifact creation) |
@@ -221,7 +221,7 @@ See `references/PHASE_3_RESEARCH.md` for details.
 
 **Objective:** Generate comprehensive plan with all 11 AA-MA elements.
 
-**Skills:** `complexity-router`, `llm-evaluation`, deep architectural review (if ≥80%)
+**Skills:** `complexity-router`, deep architectural review (if ≥80%)
 
 **Steps:**
 1. Check complexity (trigger deep architectural review if ≥80%)

@@ -11,7 +11,7 @@
 
 **Primary skill:** `superpowers:writing-plans`
 **Complexity routing:** `complexity-router` → deep architectural review (for >= 80%)
-**Quality scoring:** `llm-evaluation` (always, for plan quality assessment)
+**Quality scoring:** Inline plan quality checklist (always)
 
 ## The AA-MA Planning Standard (11 Required Elements)
 
@@ -186,9 +186,9 @@ When generating plan steps, apply these design constraints with actionable trigg
 
 ### 4.5 Plan Quality Scoring
 
-**Always invoke `llm-evaluation` skill:**
+**Score plan quality using this checklist:**
 
-Score plan on:
+Evaluate on:
 - Completeness (all 11 elements present)
 - Testability (acceptance criteria are verifiable)
 - Specificity (no vague steps)

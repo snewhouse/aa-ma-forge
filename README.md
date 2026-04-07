@@ -144,7 +144,6 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `defense-in-depth` | Four-layer validation pattern for making bugs structurally impossible |
 | `dispatching-parallel-agents` | Pattern for concurrent independent agent investigations |
 | `debugging-strategies` | Systematic debugging process with multi-language tooling |
-| `llm-evaluation` | Evaluation strategies for LLM applications (metrics, LLM-as-judge, A/B testing) |
 
 Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use — some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
 

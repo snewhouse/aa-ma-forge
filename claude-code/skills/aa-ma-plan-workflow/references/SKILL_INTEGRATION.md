@@ -18,7 +18,7 @@ Skills are integrated into the aa-ma-plan workflow at specific decision points w
 | Phase 4 | `complexity-router` | Always | Determine routing based on complexity |
 | Phase 4 | Deep architectural review | Complexity >= 80% | Human review, ultrathinking, or architecture skill |
 | Phase 4 | `superpowers:writing-plans` | Always (primary) | Plan generation |
-| Phase 4 | `llm-evaluation` | Always | Plan quality scoring |
+| Phase 4 | Plan quality checklist | Always | Inline quality scoring |
 | Phase 3 | `agent-teams` | Complex research needing competing hypotheses | Adversarial debate, hypothesis synthesis |
 | Phase 5 | `agent-teams` | Always | Scribe+Validator artifact creation |
 | Phase 5 | `defense-in-depth` | Always | Cross-file consistency validation |
@@ -249,14 +249,15 @@ Pass:
 Returns: Reviewed plan, recommendations
 ```
 
-**llm-evaluation**
+**Plan quality checklist**
 ```
 Trigger: Always (after plan generation)
 
-Invoke: Skill: llm-evaluation
-Pass:
-  - Generated plan
-  - Evaluation criteria (completeness, testability, specificity, achievability)
+Evaluate inline:
+  - Completeness (all 11 AA-MA elements present)
+  - Testability (acceptance criteria are falsifiable)
+  - Specificity (no vague steps or banned terms)
+  - Achievability (realistic scope for estimated effort)
 
 Returns: Quality score (0-100%)
 ```
@@ -347,7 +348,7 @@ When a skill is unavailable:
 | `agent-teams` (Phase 3) | `dispatching-parallel-agents` (one-shot, no debate) |
 | `agent-teams` (Phase 5) | Direct artifact writing (manual procedure) |
 | Deep architectural review | Extra validation pass + user review flag |
-| `llm-evaluation` | Manual checklist validation |
+| Plan quality checklist | Manual checklist validation |
 | `defense-in-depth` | Manual cross-file review |
 | `debugging-strategies` | Escalate to user |
 

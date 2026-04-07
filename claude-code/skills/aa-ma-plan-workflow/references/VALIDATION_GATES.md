@@ -146,7 +146,7 @@ Ensure acceptance criteria are testable, specific, and achievable.
 | G3.2 | Specificity | No criterion uses vague terms | Check for banned words |
 | G3.3 | Achievability | Each criterion is realistically achievable | Scope vs effort assessment |
 | G3.4 | Independence | Criteria don't have circular dependencies | Dependency graph analysis |
-| G3.5 | Quality Score | Plan quality score >= 70% | Check llm-evaluation output |
+| G3.5 | Quality Score | Plan quality score >= 70% | Inline quality checklist |
 
 ### Banned Vague Terms
 

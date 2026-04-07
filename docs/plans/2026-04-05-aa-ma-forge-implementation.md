@@ -315,10 +315,10 @@ Keep it under 150 lines. Link to `docs/narrative/how-we-got-here.md` for the ful
 
 **Step 2: Voice quality gate**
 
-Run the 3-step gate from stephen-newhouse-voice:
-1. Voice check: sounds like Stephen?
-2. De-AI check: scan 24 patterns
-3. Clarity check: Strunk's 6 rules
+Run the prose quality gate:
+1. Voice check: consistent tone and style?
+2. De-AI check: scan for AI writing patterns
+3. Clarity check: active voice, concise, specific
 
 **Step 3: Commit**
 
@@ -367,7 +367,7 @@ Target: 800-1500 words. Readable in 5-10 minutes.
 
 **Step 3: Voice quality gate**
 
-Full stephen-newhouse-voice 3-step gate.
+Full prose quality gate (voice, de-AI, clarity).
 
 **Step 4: Commit**
 

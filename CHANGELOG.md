@@ -13,7 +13,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - `operational-constraints` skill: disciplined execution mode for complex tasks (mandatory for complexity >= 60%)
 - `/ops-mode` command: activate operational constraints
 - 4 supporting skills: `plan-verification`, `impact-analysis`, `system-mapping`, `retro`
-- 6 additional skills: `complexity-router`, `agent-teams` (with references and templates), `defense-in-depth`, `dispatching-parallel-agents`, `debugging-strategies`, `llm-evaluation`
+- 5 additional skills: `complexity-router`, `agent-teams` (with references and templates), `defense-in-depth`, `dispatching-parallel-agents`, `debugging-strategies`
 - verification.md documentation: anatomy in spec, template (`docs/templates/`), example (`examples/verification-example/`)
 - `docs/ATTRIBUTION.md`: formal provenance mapping of all external influences (Diet-Coder, Matt Pocock, Helix.ml, gstack, superpowers, claude-mem, double-check, Context7) with "What's Original" section
 - Standalone templates for all 7 AA-MA files in `docs/templates/` (plan, reference, context-log, tasks, provenance, tests, verification) with HTML comment instructions and placeholder syntax

@@ -81,7 +81,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/ops-mode` | Activate full operational constraints for disciplined execution |
 | `/archive-aa-ma` | Archive completed tasks to `dev/completed/` |
 
-### Skills (13)
+### Skills (12)
 
 | Skill | Purpose |
 |-------|---------|
@@ -97,7 +97,6 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `defense-in-depth` | Four-layer validation pattern for making bugs structurally impossible |
 | `dispatching-parallel-agents` | Pattern for concurrent independent agent investigations |
 | `debugging-strategies` | Systematic debugging process with multi-language tooling |
-| `llm-evaluation` | Evaluation strategies for LLM applications (metrics, LLM-as-judge, A/B testing) |
 
 ### Agents (2)
 

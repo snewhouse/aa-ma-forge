@@ -2,6 +2,7 @@
 CLAUDE.md
 .claude/
 PROJECT_INDEX.json
+drafts/
 
 # Python
 __pycache__/

@@ -30,6 +30,7 @@ AA-MA (Advanced Agentic Memory Architecture) gives Claude Code a structured exte
 docs/spec/          The specification (v2.1), quick reference, team guide,
                     and Claude Code foundations reference
 docs/narrative/     The origin story (how and why AA-MA exists)
+docs/templates/     Ready-to-use templates (verification report)
 claude-code/        Commands, skills, agents, rules, hooks
                     (the operational layer that plugs into Claude Code)
 src/aa_ma/          Python package (planned — package skeleton only)

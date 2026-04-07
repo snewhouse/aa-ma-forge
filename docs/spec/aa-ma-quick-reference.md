@@ -231,4 +231,4 @@ npx cursor-bank init
 ---
 
 *Full guide: [aa-ma-team-guide.md](aa-ma-team-guide.md)*
-*Last updated: 2026-04-05*
+*Last updated: 2026-04-07*

@@ -21,7 +21,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - "What else helped" section documenting claude-mem and double-check plugins
 - "Optional extras" section documenting superpowers, gstack, and Context7 MCP dependencies
 - Post-install bridge in Quick Start ("open Claude Code and type /aa-ma-plan")
-- Full command reference table in README (7 commands)
+- Full command reference table in README (8 commands)
 
 ### Changed
 

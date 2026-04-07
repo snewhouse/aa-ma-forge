@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 
 - `/grill-me` command: relentless plan/design interview (adapted from Matt Pocock's concept)
+- `aa-ma-plan-workflow` skill: 5-phase planning workflow with references and templates (planning counterpart to aa-ma-execution)
 - 4 supporting skills: `plan-verification`, `impact-analysis`, `system-mapping`, `retro`
 - README banner image and five-files visual (green/orange, dark background)
 - Mermaid workflow lifecycle diagram in README

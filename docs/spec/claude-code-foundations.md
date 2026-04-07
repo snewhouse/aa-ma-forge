@@ -80,11 +80,12 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/grill-me` | Relentlessly interview about plans/designs until decisions are resolved |
 | `/archive-aa-ma` | Archive completed tasks to `dev/completed/` |
 
-### Skills (5)
+### Skills (6)
 
 | Skill | Purpose |
 |-------|---------|
-| `aa-ma-execution` | Orchestrates AA-MA workflow, auto-detects active tasks, handles context injection |
+| `aa-ma-plan-workflow` | 5-phase planning workflow: context → brainstorm → research → plan → artifacts |
+| `aa-ma-execution` | Orchestrates AA-MA execution, auto-detects active tasks, handles context injection |
 | `plan-verification` | 6-angle adversarial plan verification (invoked by `/verify-plan` and `/aa-ma-plan`) |
 | `impact-analysis` | Pre-commit dependency and blast-radius analysis at milestone boundaries |
 | `system-mapping` | 5-point pre-flight check before modifying unfamiliar code |

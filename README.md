@@ -124,7 +124,7 @@ Claude Code auto-compacts its context window when it fills up. Without intervent
 
 The five-file separation reinforces this. Reference and tasks are loaded first because they carry the highest-value context: immutable facts and current execution state. The context log and plan are loaded only when the agent needs to make a decision or review strategy. This **priority-based loading** means the agent gets the most important context even when tokens are tight.
 
-After every completed task, the agent syncs four of the five files (tasks, reference, context log, and provenance) and commits. No proceeding until the current state is recorded. It sounds bureaucratic. It's what keeps multi-week projects coherent when each session starts with a fresh context window.
+After every completed task, the agent syncs four of the five files (tasks, reference, context log, and provenance) and commits. The plan file stays untouched as a historical record. No proceeding until the current state is recorded. It sounds bureaucratic. It's what keeps multi-week projects coherent when each session starts with a fresh context window.
 
 ## Typical workflow
 

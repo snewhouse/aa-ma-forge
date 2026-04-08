@@ -34,7 +34,7 @@ AA-MA uses five files, each with a specific purpose:
 
 | File | Purpose | Update Frequency |
 |------|---------|------------------|
-| **plan.md** | Strategy, goals, rationale | Once at start, rarely updated |
+| **plan.md** | Strategy, goals, rationale | Once at start (historical record, not synced post-task) |
 | **reference.md** | Immutable facts (APIs, paths, constants) | Add new facts as discovered |
 | **context-log.md** | Decision history, trade-offs | After each major decision |
 | **tasks.md** | Current work, next steps | Every session |
@@ -127,7 +127,7 @@ AA-MA solves LLM amnesia by externalizing memory into files. Instead of relying 
 
 | File | Analogy | Changes When |
 |------|---------|--------------|
-| plan.md | Project charter | Rarely (scope changes) |
+| plan.md | Project charter | Rarely (scope changes only, not part of post-task sync) |
 | reference.md | Technical specs | New facts discovered |
 | context-log.md | Decision journal | Major decisions made |
 | tasks.md | Sprint board | Every session |

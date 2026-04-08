@@ -14,7 +14,7 @@
 
 | File | Purpose | Update When |
 |------|---------|-------------|
-| **plan.md** | Strategy & goals | Start of task |
+| **plan.md** | Strategy & goals | Start of task (historical, not synced post-task) |
 | **reference.md** | Facts (APIs, paths) | New facts found |
 | **context-log.md** | Decisions & why | After decisions |
 | **tasks.md** | Current work | Every session |

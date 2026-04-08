@@ -26,6 +26,8 @@ After completing every task and milestone, **immediately**:
 
 **Never proceed to next task until current task is fully synced and pushed.**
 
+> **Note:** `plan.md` is NOT part of the post-task sync. It is a historical record set once during planning. Only 4 files are synced: `tasks.md`, `reference.md`, `context-log.md`, and `provenance.log`. Update `plan.md` only for scope changes.
+
 ### Verification Report (Optional)
 
 When plan verification is run (via Phase 4.5 or `/verify-plan`), persist results as `[task]-verification.md`. This file:

@@ -307,6 +307,8 @@ When following AA-MA workflow, you **MUST**:
 
 **Never proceed to next task until current task is fully synced and pushed.**
 
+> **Note on `plan.md`:** The plan file is deliberately excluded from post-task sync. It is a historical record of the original strategy, set once during planning and only updated if the plan is formally revised (e.g., scope change or verification findings). The Finalization Protocol (Section VII, Step 2) confirms: `plan.md: No change (historical record)`. Only 4 files are actively synced after each task.
+
 ---
 
 ## VI. Commit Signature for Active Plans

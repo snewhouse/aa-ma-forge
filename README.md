@@ -83,17 +83,53 @@ The separation matters. Reference holds things that don't change. Context-log ho
 
 Most approaches to LLM memory boil down to "put more stuff in CLAUDE.md." AA-MA goes further. The five files are the foundation, but the real substance is in the planning, execution, and safety layers built on top.
 
+At a glance:
+
+- **11 mandatory planning outputs** per task, from executive summary through rollback strategy to risk register
+- **6-angle adversarial verification** that attacks the plan before a single line of code is written
+- **HITL/AFK task dispatch** so the agent knows which tasks need you and which it can run alone
+- **Compaction-safe memory** that survives Claude Code's context window resets
+
 ### Planning that doesn't hand-wave
 
-The `/aa-ma-plan` command produces structured plans with **11 mandatory outputs**: executive summary, stepwise implementation plan, milestones with measurable goals, acceptance criteria per step, required artefacts, tests to validate, rollback strategy, dependencies and assumptions, effort estimates with complexity scores, top 3 risks per milestone, and the concrete next action. Nothing gets left vague. If you can't write a pytest assertion from the acceptance criteria, they're not specific enough.
+"We'll figure it out as we go" is how projects die. Every AA-MA plan ships with a rollback strategy, risk register, and acceptance criteria you could turn into test assertions.
 
-Before execution begins, `/verify-plan` attacks the plan from **6 independent angles** using parallel agents: ground-truth audit (do the files and APIs actually exist?), assumption extraction and challenge, impact analysis on proposed changes, acceptance criteria falsifiability check, fresh-agent simulation (could an agent with no context execute this?), and specialist domain audit. CRITICALs block execution in automated mode. The verification report persists as an audit trail.
+The `/aa-ma-plan` command produces structured plans with **11 mandatory outputs**:
 
-Tasks with a **complexity score at or above 80%** (calculated from a weighted 5-factor algorithm covering scope, architectural impact, technical risk, dependencies, and requirements ambiguity) are automatically routed to deeper review: human sign-off, chain-of-thought reasoning, or both.
+1. Executive summary
+2. Stepwise implementation plan
+3. Milestones with measurable goals
+4. Acceptance criteria per step
+5. Required artefacts
+6. Tests to validate
+7. Rollback strategy
+8. Dependencies and assumptions
+9. Effort estimates with complexity scores
+10. Top 3 risks per milestone
+11. The concrete next action
+
+If you can't write a pytest assertion from the acceptance criteria, they're not specific enough.
+
+Before execution begins, `/verify-plan` attacks the plan from **6 independent angles** using parallel agents:
+
+- **Ground-truth audit**: do the files and APIs referenced in the plan actually exist?
+- **Assumption extraction and challenge**: what are we taking for granted, and what breaks if we're wrong?
+- **Impact analysis**: what ripples through the system when we change these files?
+- **Acceptance criteria falsifiability**: can each criterion be tested with a single assertion?
+- **Fresh-agent simulation**: could an agent with no prior context execute this plan?
+- **Specialist domain audit**: are there domain-specific risks the generalist missed?
+
+CRITICALs block execution in automated mode. The verification report persists as an audit trail.
+
+Tasks with a **complexity score at or above 80%** (calculated from a weighted 5-factor algorithm covering scope, architectural impact, technical risk, dependencies, and requirements ambiguity) automatically route to deeper review: human sign-off, chain-of-thought reasoning, or both.
+
+See a complete set of real plan artefacts in [examples/](examples/aa-ma-team-guide/).
 
 ### Execution that knows when to stop
 
-Every task in the execution roadmap carries a **mode**: HITL (human in the loop) or AFK (away from keyboard). The agent auto-dispatches AFK tasks without interruption. HITL tasks pause and wait for your input. Architectural decisions, scope changes, and irreversible actions are HITL. Implementation from clear specs, test writing, and mechanical refactoring are AFK. You decide which is which at planning time.
+The agent knows which tasks need you and which it can handle alone.
+
+Every task carries a **mode**: HITL (human in the loop) or AFK (away from keyboard). The agent auto-dispatches AFK tasks without interruption. HITL tasks pause and wait for your input. Architectural decisions, scope changes, and irreversible actions are HITL. Implementation from clear specs, test writing, and mechanical refactoring are AFK. You decide which is which at planning time.
 
 Milestones carry a **gate classification**: SOFT (convention-based, the agent seeks approval) or HARD (artefact-enforced, the execution command refuses to advance without a signed approval entry in the context log). Production deployments and architectural decisions get HARD gates. Routine milestones get SOFT.
 
@@ -120,11 +156,13 @@ Here's what a real execution roadmap looks like:
 
 ### Memory that survives compaction
 
-Claude Code auto-compacts its context window when it fills up. Without intervention, that compaction destroys whatever working memory the agent has accumulated. The **compaction hook** (`pre-compact-aa-ma.sh`) intercepts that moment, snapshots the current task state to a cache file, and writes compaction entries to the task's `provenance.log` and `context-log.md`. When a new session picks up the work, it reads the checkpoint and knows exactly where to resume.
+Claude Code compacts its context window when it fills up. Without intervention, your agent's working memory vanishes mid-task.
 
-The five-file separation reinforces this. Reference and tasks are loaded first because they carry the highest-value context: immutable facts and current execution state. The context log and plan are loaded only when the agent needs to make a decision or review strategy. This **priority-based loading** means the agent gets the most important context even when tokens are tight.
+Three mechanisms prevent that:
 
-After every completed task, the agent syncs four of the five files (tasks, reference, context log, and provenance) and commits. The plan file stays untouched as a historical record. No proceeding until the current state is recorded. It sounds bureaucratic. It's what keeps multi-week projects coherent when each session starts with a fresh context window.
+- **Compaction hook**: `pre-compact-aa-ma.sh` intercepts the compaction event, snapshots the current task state to a cache file, and writes checkpoint entries to the task's `provenance.log` and `context-log.md`. The next session reads those entries and knows exactly where to resume.
+- **Priority-based loading**: reference and tasks load first because they carry the highest-value context (immutable facts and current execution state). The context log and plan load only when the agent needs to make a decision or review strategy. The agent gets the most important context even when tokens are tight.
+- **Sync discipline**: after every completed task, the agent syncs four of the five files (tasks, reference, context log, and provenance) and commits. The plan file stays untouched as a historical record. No proceeding until the current state is recorded. It sounds bureaucratic. It's what keeps multi-week projects coherent.
 
 ## Typical workflow
 

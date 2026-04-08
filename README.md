@@ -26,7 +26,7 @@ LLM agents lose context across sessions. They drift from plans, forget decisions
 
 ## What AA-MA is
 
-AA-MA (Advanced Agentic Memory Architecture) gives Claude Code a structured external memory built from five specialised files. Each file segments a different kind of knowledge: strategy, facts, decisions, execution state, and audit history. It's designed for long-horizon, multi-session tasks where context loss kills productivity.
+AA-MA (Advanced Agentic Memory Architecture) gives Claude Code a structured external memory built from five specialised files. Each file segments a different kind of knowledge: strategy, facts, decisions, execution state, and audit history. Built for long-horizon, multi-session tasks where context loss kills productivity.
 
 ## What's in this repo
 
@@ -146,7 +146,7 @@ flowchart LR
 
 Claude brainstorms with you, then creates the five AA-MA artefact files in `.claude/dev/active/auth-api/`.
 
-> **Note:** Anthropic now ships a built-in "Ultraplan" in Claude Code. We had ours first (November 2025), but naming collisions being what they are, we renamed to `/aa-ma-plan`. The two are unrelated — [details](docs/ultraplan-rename-rationale.md).
+> **Note:** Anthropic now ships a built-in "Ultraplan" in Claude Code. We had ours first (November 2025), but naming collisions being what they are, we renamed to `/aa-ma-plan`. The two are unrelated. [Details here](docs/ultraplan-rename-rationale.md).
 
 **Execution:**
 ```
@@ -179,7 +179,7 @@ Moves completed artefacts to `.claude/dev/completed/` for future reference.
 
 ### Skills
 
-Skills are reusable procedures that plug into the planning and execution workflow. They live in `claude-code/skills/` and are symlinked by the installer.
+Skills are reusable procedures that plug into the planning and execution workflow. They live in `claude-code/skills/` and the installer symlinks them into `~/.claude/`.
 
 | Skill | What it does |
 |-------|-------------|
@@ -196,13 +196,13 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `dispatching-parallel-agents` | Pattern for concurrent independent agent investigations |
 | `debugging-strategies` | Systematic debugging process with multi-language tooling |
 
-Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use — some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
+Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use, so some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
 
 ## What else helped
 
 AA-MA is the structure, but a couple of Claude Code plugins earned their place alongside it through trial and error.
 
-[claude-mem](https://github.com/thedotmack/claude-mem) gives Claude persistent memory across sessions. AA-MA files hold the plan and the state, but they live inside one conversation. claude-mem indexes everything — decisions, tool results, observations — into a searchable vector store that survives session boundaries. When you pick up a multi-week project on a Monday morning, it's the difference between starting cold and starting informed.
+[claude-mem](https://github.com/thedotmack/claude-mem) gives Claude persistent memory across sessions. AA-MA files hold the plan and the state, but they live inside one conversation. claude-mem indexes everything (decisions, tool results, observations) into a searchable vector store that survives session boundaries. When you pick up a multi-week project on a Monday morning, it's the difference between starting cold and starting informed.
 
 [double-check](https://claudecodecommands.directory/commands/double-check) is almost embarrassingly simple: it forces the agent to stop and ask itself "am I actually done?" before moving on. Define the angles, define what complete means, then check. It catches the false positives that slip through when agents optimistically claim a task is finished. Cheap, fast, and surprisingly effective.
 
@@ -210,7 +210,7 @@ Neither is required for AA-MA to work. Both made it work better.
 
 ## Optional extras
 
-Some AA-MA commands can use these third-party Claude Code plugins when available. Everything works without them — they just make it better.
+Some AA-MA commands can use these third-party Claude Code plugins when available. Everything works without them. They just make it better.
 
 | Plugin | What it enhances | Install |
 |--------|-----------------|--------|
@@ -234,7 +234,7 @@ The full story is in [how we got here](docs/narrative/how-we-got-here.md).
 
 ## Fair warning
 
-This is a one-person project built around my own workflows. It's provided as-is — take what's useful, fork it, adapt it, make it your own. Maintenance and improvements will be sporadic. If I've gone quiet, I'm either deep in client work, arguing with an API, or the MS is having a louder day than usual. Pull requests welcome, but don't hold your breath on response times. You've been warned.
+This is a one-person project built around my own workflows. It's provided as-is. Take what's useful, fork it, adapt it, make it your own. Maintenance and improvements will be sporadic. If I've gone quiet, I'm either deep in client work, arguing with an API, or the MS is having a louder day than usual. Pull requests welcome, but don't hold your breath on response times. You've been warned.
 
 ## Licence
 

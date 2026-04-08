@@ -268,7 +268,7 @@ Matt Pocock's [skills repo](https://github.com/mattpocock/skills) inspired sever
 
 [Helix.ml](https://helix.ml) spec-driven workflow concepts informed the v2.1 specification, particularly around gate classification and session checkpoints.
 
-The full story is in [how we got here](docs/narrative/how-we-got-here.md).
+The full story is in [how we got here](docs/narrative/how-we-got-here.md), and the shorter version is on [dev.to](https://dev.to/snewhouse/my-ai-agent-keeps-forgetting-everything-3p2k).
 
 ## Fair warning
 

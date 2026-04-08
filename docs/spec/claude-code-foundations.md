@@ -115,7 +115,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 
 | Hook | Purpose |
 |------|---------|
-| `pre-compact-aa-ma.sh` | Snapshots AA-MA state before auto-compaction to prevent context loss |
+| `pre-compact-aa-ma.sh` | Snapshots AA-MA state before auto-compaction and writes compaction entries to task provenance.log and context-log.md |
 
 ### Operational protocols
 

@@ -120,7 +120,7 @@ Here's what a real execution roadmap looks like:
 
 ### Memory that survives compaction
 
-Claude Code auto-compacts its context window when it fills up. Without intervention, that compaction destroys whatever working memory the agent has accumulated. The **compaction hook** (`pre-compact-aa-ma.sh`) intercepts that moment and snapshots the current task state, reference facts, and recent decisions to a cache file before anything is lost. When a new session picks up the work, it reads the snapshot and knows exactly where to resume.
+Claude Code auto-compacts its context window when it fills up. Without intervention, that compaction destroys whatever working memory the agent has accumulated. The **compaction hook** (`pre-compact-aa-ma.sh`) intercepts that moment, snapshots the current task state to a cache file, and writes compaction entries to the task's `provenance.log` and `context-log.md`. When a new session picks up the work, it reads the checkpoint and knows exactly where to resume.
 
 The five-file separation reinforces this. Reference and tasks are loaded first because they carry the highest-value context: immutable facts and current execution state. The context log and plan are loaded only when the agent needs to make a decision or review strategy. This **priority-based loading** means the agent gets the most important context even when tokens are tight.
 

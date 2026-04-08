@@ -215,6 +215,23 @@ If this is the **first milestone** being executed and it touches 3+ files or unf
 1. **Start sub-task**:
    - Mark TodoWrite sub-task as `in_progress`
 
+1.5. **Mode Dispatch (HITL / AFK)**:
+   - Parse `Mode:` field from this sub-task in tasks.md
+   - If not present, inherit `Mode:` from the parent milestone
+   - If not present on milestone either, default to `HITL`
+   
+   **If Mode: HITL:**
+   Display task summary and acceptance criteria, then use `AskUserQuestion`:
+   - **Proceed**: Continue to step 2
+   - **Skip**: Mark `Status: SKIPPED — User skipped at HITL gate`, move to next sub-task
+   - **Abort**: Halt milestone execution, keep milestone `Status: ACTIVE`
+   
+   **If Mode: AFK:**
+   - Proceed directly to step 2 without pause
+   - Log in Result Log: `Mode: AFK — auto-dispatched`
+   
+   **Note:** HARD gates at milestone boundary (Section 7.1) always pause regardless of Mode.
+
 2. **Execute sub-task**:
    - Follow task instructions and acceptance criteria
    - Use agents, skills, Context7 MCP as appropriate for efficiency

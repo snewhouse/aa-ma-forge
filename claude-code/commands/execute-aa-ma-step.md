@@ -164,6 +164,12 @@ These principles apply DURING execution. Each has a trigger and skip condition.
 1. Update tasks.md: Change target task `Status: PENDING` → `Status: ACTIVE`
 2. Update TodoWrite: Mark corresponding todo as `in_progress`
 
+**Mode Dispatch (HITL / AFK)**:
+- Parse `Mode:` field from the target task in tasks.md
+- If not present, inherit from parent milestone; default to `HITL`
+- **HITL**: Display task summary and acceptance criteria, use `AskUserQuestion` [Proceed / Skip / Abort]. Only continue if Proceed.
+- **AFK**: Proceed directly to execution without pause
+
 **Execute the task**:
 - Follow task instructions and acceptance criteria
 - Use agents, skills, Context7 MCP as appropriate for efficiency

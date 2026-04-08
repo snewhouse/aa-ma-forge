@@ -227,6 +227,7 @@ If this is the **first milestone** and it touches 3+ files or unfamiliar code, i
 
 **For each sub-task in milestone**:
 1. Mark TodoWrite sub-task as `in_progress`
+1.5. **Mode Dispatch**: Parse `Mode:` from sub-task (inherit from milestone if absent, default HITL). HITL: display summary + criteria, `AskUserQuestion` [Proceed/Skip/Abort]. AFK: execute directly without pause.
 2. Execute sub-task (use agents, skills, Context7 MCP as needed)
 3. Verify result (guidance-based, trust your assessment)
 4. Update `Result Log:` in tasks.md

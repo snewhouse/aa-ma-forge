@@ -225,6 +225,36 @@ Proceed with execution? (yes/no/edit)
 - edit: Modify acceptance criteria or approach
 ```
 
+### 7. Mode-Based Execution Control (HITL / AFK Dispatch)
+
+Every task in `tasks.md` carries a `Mode:` field that controls execution behaviour.
+
+**Parsing Mode (precedence order):**
+1. Sub-step `Mode:` field (highest priority)
+2. Parent milestone `Mode:` field
+3. Default: `HITL` (safe default — pauses for human input)
+
+**When Mode: HITL (Human In The Loop):**
+- Display task summary and acceptance criteria
+- Use `AskUserQuestion` with three options:
+  - **Proceed** — execute the task
+  - **Skip** — mark `Status: SKIPPED — User skipped at HITL gate`, move to next task
+  - **Abort** — halt execution, keep milestone `Status: ACTIVE`
+- Wait for user response before executing any work
+
+**When Mode: AFK (Away From Keyboard):**
+- Execute task directly without pause
+- Log in Result Log: `Mode: AFK — auto-dispatched`
+- No user interaction unless the task fails or hits a HARD gate
+
+**HARD Gate Override:**
+HARD gates always pause for approval regardless of Mode. If a milestone has `Gate: HARD`, the finalization protocol (Section VI, Step 2.6) enforces user approval even for AFK tasks.
+
+**Display format:**
+```
+🔄 Task Mode: [HITL — pauses for input / AFK — auto-dispatch]
+```
+
 ## IV. Execution Workflows
 
 ### A. Step Execution (Single Task)
@@ -238,6 +268,11 @@ Proceed with execution? (yes/no/edit)
    ## Task Title
    - Status: ACTIVE  ← Update from PENDING
    ```
+
+1.5. **Mode Dispatch (HITL / AFK)**:
+   - Parse `Mode:` from this task (inherit from milestone if absent, default HITL)
+   - **HITL**: Display task summary and acceptance criteria, use `AskUserQuestion` [Proceed / Skip / Abort]. Only continue if Proceed.
+   - **AFK**: Proceed directly to step 2 without pause
 
 2. **Execute Task**:
    - Follow acceptance criteria exactly
@@ -320,6 +355,7 @@ Proceed with execution? (yes/no/edit)
 3. **Execute Milestone Tasks** (in dependency order):
    - For each task in milestone:
      - Mark ACTIVE
+     - **Mode Dispatch**: Parse `Mode:` from task (inherit from milestone if absent, default HITL). HITL: display summary + criteria, `AskUserQuestion` [Proceed/Skip/Abort]. AFK: execute directly.
      - Execute (following step workflow — **including step 3: Sync Result Log**)
      - **SUB-STEP SYNC GATE (L-080)**: Before proceeding to the next task, verify:
        - The just-completed sub-step has `Status: COMPLETE` (not PENDING)

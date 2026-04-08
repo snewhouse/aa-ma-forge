@@ -79,6 +79,53 @@ Every AA-MA task lives in `.claude/dev/active/[task-name]/` and consists of:
 
 The separation matters. Reference holds things that don't change. Context-log holds why you chose what you chose. Tasks holds where you are right now. When an agent picks up a new session, it loads reference and tasks first, and only pulls in the rest when it needs to make a decision.
 
+## What makes this different
+
+Most approaches to LLM memory boil down to "put more stuff in CLAUDE.md." AA-MA goes further. The five files are the foundation, but the real substance is in the planning, execution, and safety layers built on top.
+
+### Planning that doesn't hand-wave
+
+The `/aa-ma-plan` command produces structured plans with **11 mandatory outputs**: executive summary, stepwise implementation plan, milestones with measurable goals, acceptance criteria per step, required artefacts, tests to validate, rollback strategy, dependencies and assumptions, effort estimates with complexity scores, top 3 risks per milestone, and the concrete next action. Nothing gets left vague. If you can't write a pytest assertion from the acceptance criteria, they're not specific enough.
+
+Before execution begins, `/verify-plan` attacks the plan from **6 independent angles** using parallel agents: ground-truth audit (do the files and APIs actually exist?), assumption extraction and challenge, impact analysis on proposed changes, acceptance criteria falsifiability check, fresh-agent simulation (could an agent with no context execute this?), and specialist domain audit. CRITICALs block execution in automated mode. The verification report persists as an audit trail.
+
+Tasks with a **complexity score at or above 80%** (calculated from a weighted 5-factor algorithm covering scope, architectural impact, technical risk, dependencies, and requirements ambiguity) are automatically routed to deeper review: human sign-off, chain-of-thought reasoning, or both.
+
+### Execution that knows when to stop
+
+Every task in the execution roadmap carries a **mode**: HITL (human in the loop) or AFK (away from keyboard). The agent auto-dispatches AFK tasks without interruption. HITL tasks pause and wait for your input. Architectural decisions, scope changes, and irreversible actions are HITL. Implementation from clear specs, test writing, and mechanical refactoring are AFK. You decide which is which at planning time.
+
+Milestones carry a **gate classification**: SOFT (convention-based, the agent seeks approval) or HARD (artefact-enforced, the execution command refuses to advance without a signed approval entry in the context log). Production deployments and architectural decisions get HARD gates. Routine milestones get SOFT.
+
+Here's what a real execution roadmap looks like:
+
+```markdown
+## Milestone 2: Authentication API
+- Status: ACTIVE
+- Gate: HARD
+- Dependencies: Milestone 1
+- Complexity: 65%
+- Acceptance Criteria: JWT tokens issued on login, refresh flow works, tests pass
+
+### Task 2.1: Implement token endpoints
+- Status: COMPLETE
+- Mode: AFK
+- Result Log: Created /auth/login and /auth/refresh, 12 tests passing
+
+### Task 2.2: Review security model with user
+- Status: PENDING
+- Mode: HITL
+- Acceptance Criteria: User confirms token expiry policy and scope design
+```
+
+### Memory that survives compaction
+
+Claude Code auto-compacts its context window when it fills up. Without intervention, that compaction destroys whatever working memory the agent has accumulated. The **compaction hook** (`pre-compact-aa-ma.sh`) intercepts that moment and writes a session checkpoint to `provenance.log` before anything is lost. When a new session picks up the work, it reads the checkpoint and knows exactly where to resume.
+
+The five-file separation reinforces this. Reference and tasks are loaded first because they carry the highest-value context: immutable facts and current execution state. The context log and plan are loaded only when the agent needs to make a decision or review strategy. This **priority-based loading** means the agent gets the most important context even when tokens are tight.
+
+After every completed task, the agent syncs all five files and commits. No proceeding until the current state is recorded. It sounds bureaucratic. It's what keeps multi-week projects coherent when each session starts with a fresh context window.
+
 ## Typical workflow
 
 Here's what using AA-MA looks like day to day.

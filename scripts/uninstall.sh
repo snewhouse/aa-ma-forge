@@ -210,6 +210,28 @@ else
     header "Backup restore"
     info "Skipped (use --restore to restore from the most recent backup)."
 
+    # Remove SessionStart hook from settings.json (if registered)
+    SETTINGS_FILE="${CLAUDE_HOME}/settings.json"
+    HOOK_CMD="bash ${CLAUDE_HOME}/hooks/lib/aa-ma-session-start.sh"
+    if command -v jq &>/dev/null && [ -f "${SETTINGS_FILE}" ]; then
+        HAS_HOOK=$(jq -r \
+            --arg cmd "$HOOK_CMD" \
+            '.hooks.SessionStart // [] | map(select(.hooks[]?.command == $cmd)) | length' \
+            "${SETTINGS_FILE}" 2>/dev/null || echo "0")
+
+        if [ "${HAS_HOOK}" != "0" ]; then
+            if ${DRY_RUN}; then
+                info "Would remove SessionStart hook from settings.json"
+            else
+                jq --arg cmd "$HOOK_CMD" \
+                    '.hooks.SessionStart = [.hooks.SessionStart[] | select(.hooks | all(.command != $cmd))]' \
+                    "${SETTINGS_FILE}" > "${SETTINGS_FILE}.tmp" \
+                    && mv "${SETTINGS_FILE}.tmp" "${SETTINGS_FILE}"
+                info "Removed SessionStart hook from settings.json"
+            fi
+        fi
+    fi
+
     # Show available backups as a convenience
     BACKUP_BASE="${CLAUDE_HOME}/backups"
     if [ -d "${BACKUP_BASE}" ]; then

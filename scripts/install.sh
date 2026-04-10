@@ -287,6 +287,49 @@ create_symlink "${REPO_ROOT}/claude-code/rules/aa-ma.md" \
 header "Linking hooks..."
 create_symlink "${REPO_ROOT}/claude-code/hooks/pre-compact-aa-ma.sh" \
                "${CLAUDE_HOME}/hooks/lib/pre-compact-aa-ma.sh"
+create_symlink "${REPO_ROOT}/claude-code/hooks/aa-ma-session-start.sh" \
+               "${CLAUDE_HOME}/hooks/lib/aa-ma-session-start.sh"
+
+# ---------------------------------------------------------------------------
+# 5b. Register SessionStart hook in settings.json (idempotent)
+# ---------------------------------------------------------------------------
+# Hooks must be registered in settings.json to fire on Claude Code events.
+# Pattern inspired by RTK's rtk init (jq-based settings.json patching).
+SETTINGS_FILE="${CLAUDE_HOME}/settings.json"
+HOOK_CMD="bash ${CLAUDE_HOME}/hooks/lib/aa-ma-session-start.sh"
+
+if command -v jq &>/dev/null && [ -f "${SETTINGS_FILE}" ]; then
+    # Check if this hook is already registered
+    ALREADY_REGISTERED=$(jq -r \
+        --arg cmd "$HOOK_CMD" \
+        '.hooks.SessionStart // [] | map(select(.hooks[]?.command == $cmd)) | length' \
+        "${SETTINGS_FILE}" 2>/dev/null || echo "0")
+
+    if [ "${ALREADY_REGISTERED}" = "0" ]; then
+        if ${DRY_RUN}; then
+            info "Would register SessionStart hook in settings.json"
+        else
+            # Add the hook entry to the SessionStart array
+            jq --arg cmd "$HOOK_CMD" \
+                '.hooks.SessionStart = (.hooks.SessionStart // []) + [{
+                    "matcher": "",
+                    "hooks": [{
+                        "type": "command",
+                        "command": $cmd,
+                        "timeout": 5,
+                        "statusMessage": "Loading AA-MA context..."
+                    }]
+                }]' "${SETTINGS_FILE}" > "${SETTINGS_FILE}.tmp" \
+                && mv "${SETTINGS_FILE}.tmp" "${SETTINGS_FILE}"
+            info "Registered SessionStart hook in settings.json"
+        fi
+    else
+        info "SessionStart hook already registered in settings.json (skipping)"
+    fi
+elif ! command -v jq &>/dev/null; then
+    warn "jq not found — cannot register SessionStart hook in settings.json"
+    warn "Install jq and re-run, or manually add the hook entry"
+fi
 
 # ---------------------------------------------------------------------------
 # 6. Copy spec docs (NOT symlinks — shared directory with non-AA-MA files)

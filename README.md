@@ -37,7 +37,7 @@ docs/narrative/     The origin story (how and why AA-MA exists)
 docs/templates/     Ready-to-use templates for all 7 AA-MA file types
 claude-code/        Commands, skills, agents, rules, hooks
                     (the operational layer that plugs into Claude Code)
-src/aa_ma/          Python package (planned — package skeleton only)
+src/aa_ma/          Python package (package skeleton only, logic planned)
 examples/           Real completed task artefacts (five files plus optional tests)
 scripts/            install.sh / uninstall.sh
 ```

@@ -31,13 +31,11 @@ Comprehensive operational rules for disciplined Claude Code execution. This skil
 
 ### 1. Token & Context Efficiency
 
-**Principles:**
-- ALWAYS be mindful of current session token and context usage
-- Optimise token utilisation - load only essential context
-- Keep reasoning minimal and focused on the task
-- Compress verbose outputs; surface only essentials
+**Output compression:** Use `Skill(token-compression)` for response token reduction.
+Default level: `full`. During AA-MA execution, level is set automatically by task Mode
+(HITL→lite, AFK→ultra). See skill for intensity details and auto-clarity exceptions.
 
-**Actions:**
+**Context loading:**
 - When approaching 70% context usage, consider context compaction
 - Prefer loading REFERENCE and TASKS files over full history
 - Suppress verbose logs unless actively debugging
@@ -254,8 +252,8 @@ OR use Skill(dispatching-parallel-agents) for structured dispatch.
 
 ```
 TOKEN EFFICIENCY
+├── Skill(token-compression) for output reduction
 ├── Load only essential context
-├── Compress outputs
 └── No redundant confirmations
 
 TOOLS
@@ -291,7 +289,7 @@ When this skill is loaded, acknowledge with:
 OPERATIONAL CONSTRAINTS: ACTIVE
 
 Enforcing:
-- Token efficiency
+- Token compression (Skill: token-compression)
 - Tool protocols (Context7, GrepTool, ast-grep)
 - Parallel execution evaluation
 - TDD discipline

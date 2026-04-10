@@ -236,6 +236,7 @@ Every task in `tasks.md` carries a `Mode:` field that controls execution behavio
 
 **When Mode: HITL (Human In The Loop):**
 - Display task summary and acceptance criteria
+- Activate `Skill(token-compression)` at **lite** intensity (preserve clarity for human review)
 - Use `AskUserQuestion` with three options:
   - **Proceed** — execute the task
   - **Skip** — mark `Status: SKIPPED — User skipped at HITL gate`, move to next task
@@ -243,9 +244,14 @@ Every task in `tasks.md` carries a `Mode:` field that controls execution behavio
 - Wait for user response before executing any work
 
 **When Mode: AFK (Away From Keyboard):**
+- Activate `Skill(token-compression)` at **ultra** intensity (maximum compression for autonomous execution)
 - Execute task directly without pause
 - Log in Result Log: `Mode: AFK — auto-dispatched`
 - No user interaction unless the task fails or hits a HARD gate
+
+**Token Compression Override:**
+Manual override via `/compress lite|full|ultra` at any point during execution.
+See `Skill(token-compression)` for full intensity level details and auto-clarity exceptions.
 
 **HARD Gate Override:**
 HARD gates always pause for approval regardless of Mode. If a milestone has `Gate: HARD`, the finalization protocol (Section VI, Step 2.6) enforces user approval even for AFK tasks.

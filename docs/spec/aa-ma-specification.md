@@ -675,6 +675,41 @@ This enables reliable session resume: the next session reads the latest CHECKPOI
 
 ---
 
+## XIII. Cross-Task Search
+
+The `/aa-ma-search` command enables keyword search across all active and completed AA-MA task files.
+
+### Purpose
+
+As tasks accumulate in `.claude/dev/active/` and `.claude/dev/completed/`, finding past decisions, facts, and outcomes becomes increasingly important. Cross-task search provides this capability without adding runtime dependencies.
+
+### Scope
+
+| Flag | Searches | Default |
+|------|----------|---------|
+| `--active` | `.claude/dev/active/` only | Yes |
+| `--completed` | `.claude/dev/completed/` only | No |
+| `--all` | Both directories | No |
+
+### Target Files
+
+The command searches three file types per task (chosen for knowledge density):
+- `*-reference.md` — immutable facts (APIs, paths, constants)
+- `*-context-log.md` — architectural decisions and trade-offs
+- `*-tasks.md` — execution state and acceptance criteria
+
+Files excluded from search: `*-provenance.log` (machine telemetry), `*-plan.md` (duplicates reference + tasks content).
+
+### Limitations
+
+This is keyword search (grep-based). It finds exact word matches, not conceptual similarity. For example, searching "authentication" will not find entries about "OAuth2 PKCE flow" unless the word "authentication" appears in the text.
+
+### Future: Semantic Search
+
+When task volume exceeds ~100 files and keyword search becomes noisy, a vector-based semantic search layer may be added. This would use embeddings (e.g., ChromaDB with all-MiniLM-L6-v2) to enable concept-level retrieval. The architectural decision to defer this was made during planning (see Decision AD-003 in the token-stack-integration context log).
+
+---
+
 ## References
 
 [1] Context compaction and summarisation techniques.

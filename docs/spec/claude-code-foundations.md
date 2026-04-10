@@ -68,7 +68,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `.claude/dev/active/[task-name]/` | Active tasks |
 | `.claude/dev/completed/` | Archived completed tasks |
 
-### Commands (8)
+### Commands (9)
 
 | Command | Purpose |
 |---------|---------|
@@ -80,8 +80,9 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/grill-me` | Relentlessly interview about plans/designs until decisions are resolved |
 | `/ops-mode` | Activate full operational constraints for disciplined execution |
 | `/archive-aa-ma` | Archive completed tasks to `dev/completed/` |
+| `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
 
-### Skills (12)
+### Skills (13)
 
 | Skill | Purpose |
 |-------|---------|
@@ -90,7 +91,8 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `plan-verification` | 6-angle adversarial plan verification (invoked by `/verify-plan` and `/aa-ma-plan`) |
 | `impact-analysis` | Pre-commit dependency and blast-radius analysis at milestone boundaries |
 | `system-mapping` | 5-point pre-flight check before modifying unfamiliar code |
-| `operational-constraints` | Disciplined execution mode: token efficiency, parallel eval, tool hierarchy |
+| `operational-constraints` | Disciplined execution mode: token compression, parallel eval, tool hierarchy |
+| `token-compression` | Output token reduction with HITL/AFK intensity mapping (lite/full/ultra) |
 | `retro` | Weekly engineering retrospective (invoked by `/archive-aa-ma`) |
 | `complexity-router` | Weighted complexity scoring that routes high-risk tasks to deeper review |
 | `agent-teams` | Multi-agent team orchestration with roles, debate, and shutdown protocols |
@@ -111,11 +113,12 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 |------|---------|
 | `aa-ma.md` | Operational rules governing sync discipline, commit signatures, task modes, gate classification |
 
-### Hooks (1)
+### Hooks (2)
 
 | Hook | Purpose |
 |------|---------|
 | `pre-compact-aa-ma.sh` | Snapshots AA-MA state before auto-compaction and writes compaction entries to task provenance.log and context-log.md |
+| `aa-ma-session-start.sh` | Auto-detects active AA-MA tasks on session start and emits hidden context (task name, milestone, step) |
 
 ### Operational protocols
 

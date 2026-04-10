@@ -214,6 +214,7 @@ Moves completed artefacts to `.claude/dev/completed/` for future reference.
 | `/grill-me` | Relentlessly interview you about a plan or design until every decision is resolved |
 | `/ops-mode` | Activate disciplined execution mode (token efficiency, parallel eval, tool protocols) |
 | `/archive-aa-ma` | Move completed artefacts to `.claude/dev/completed/` |
+| `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
 
 ### Skills
 
@@ -233,6 +234,7 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `defense-in-depth` | Four-layer validation pattern for making bugs structurally impossible |
 | `dispatching-parallel-agents` | Pattern for concurrent independent agent investigations |
 | `debugging-strategies` | Systematic debugging process with multi-language tooling |
+| `token-compression` | Output token reduction with HITL/AFK intensity mapping (lite/full/ultra) |
 
 Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use, so some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
 
@@ -257,6 +259,35 @@ Some AA-MA commands can use these third-party Claude Code plugins when available
 | [Context7](https://github.com/upstash/context7) | Library documentation lookup during planning and execution | MCP server setup |
 
 If a plugin isn't installed, the commands fall back to native tools or skip the optional step.
+
+## Companion tools and the token stack
+
+AA-MA handles structured task memory. Three community tools handle the layers around it: CLI noise, output verbosity, and cross-session recall.
+
+```
+Layer 4: TASK MEMORY      AA-MA (structured files, priority loading, gates)
+Layer 3: SESSION MEMORY   MemPalace (ChromaDB, cross-session recall)
+Layer 2: OUTPUT TOKENS    Caveman (prompt compression, ~65% reduction)
+Layer 1: CLI TOKENS       RTK (CLI proxy, ~89% noise reduction)
+```
+
+| Tool | What it does |
+|------|-------------|
+| [RTK](https://github.com/rtk-ai/rtk) | Rust CLI proxy that sits between your shell and the context window. Intercepts git, cargo, pytest and strips the noise. 60-90% fewer tokens wasted on test pass lines and ANSI junk. |
+| [Caveman](https://github.com/JuliusBrussee/caveman) | Makes Claude talk like a smart caveman. Drops articles, filler, pleasantries. Technical accuracy stays. Token bill drops ~65%. |
+| [MemPalace](https://github.com/milla-jovovich/mempalace) | Local-first memory system with ChromaDB for semantic search across past sessions. 19 MCP tools, roughly 170 tokens to recall everything. |
+
+None are required. AA-MA works without any of them.
+
+### What we adopted
+
+Digging through these codebases led to real improvements in AA-MA Forge (April 2026):
+
+- **From Caveman**: output compression patterns, forked into the `token-compression` skill with intensity mapped to HITL/AFK execution modes
+- **From MemPalace**: temporal validity for facts, adapted as lightweight `[valid: date]` markers in reference.md
+- **From RTK and Caveman**: hook architecture patterns, used for the SessionStart hook that auto-detects active tasks
+
+Attribution lives in the relevant skill and spec files.
 
 ## Credits and inspirations
 

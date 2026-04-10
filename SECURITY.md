@@ -8,11 +8,11 @@ The installer (`scripts/install.sh`) places files into `~/.claude/` so Claude Co
 
 **Symlinks created** (pointing from `~/.claude/` back into this repo):
 
-- 8 command files: `~/.claude/commands/*.md` (aa-ma-plan, execute-aa-ma-milestone, execute-aa-ma-full, execute-aa-ma-step, verify-plan, archive-aa-ma, grill-me, ops-mode)
-- 12 skills directories: `~/.claude/skills/*/` (aa-ma-execution, aa-ma-plan-workflow, agent-teams, complexity-router, debugging-strategies, defense-in-depth, dispatching-parallel-agents, impact-analysis, operational-constraints, plan-verification, retro, system-mapping)
+- 9 command files: `~/.claude/commands/*.md` (aa-ma-plan, execute-aa-ma-milestone, execute-aa-ma-full, execute-aa-ma-step, verify-plan, archive-aa-ma, grill-me, ops-mode, aa-ma-search)
+- 13 skills directories: `~/.claude/skills/*/` (aa-ma-execution, aa-ma-plan-workflow, agent-teams, complexity-router, debugging-strategies, defense-in-depth, dispatching-parallel-agents, impact-analysis, operational-constraints, plan-verification, retro, system-mapping, token-compression)
 - 2 agent files: `~/.claude/agents/aa-ma-scribe.md`, `~/.claude/agents/aa-ma-validator.md`
 - 1 rules file: `~/.claude/rules/aa-ma.md`
-- 1 hook: `~/.claude/hooks/lib/pre-compact-aa-ma.sh`
+- 2 hooks: `~/.claude/hooks/lib/pre-compact-aa-ma.sh`, `~/.claude/hooks/lib/aa-ma-session-start.sh`
 
 **Files copied** (not symlinked, because `~/.claude/docs/` is a shared directory):
 

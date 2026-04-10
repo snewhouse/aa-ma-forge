@@ -4,25 +4,20 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## v0.3.0 (2026-04-10)
 
-### Added
+### Feat
 
-- `token-compression` skill: output token reduction with HITL/AFK intensity mapping (lite/full/ultra), forked from caveman prompt patterns
-- `aa-ma-session-start.sh` hook: auto-detects active AA-MA tasks on session start, emits hidden context
-- `/aa-ma-search` command: keyword search across active and completed AA-MA task files with scope flags
-- Temporal validity markers for reference.md: `[valid: date]`, `[valid: range]`, `[superseded: date by task]` convention
-- "Companion tools and the token stack" section in README documenting RTK, Caveman, MemPalace ecosystem
-- Section XIII (Cross-Task Search) in specification
-- SessionStart hook registration via `jq` in install.sh (pattern from RTK)
+- **spec**: add temporal validity markers for reference.md facts
+- **commands**: add /aa-ma-search cross-task keyword search command
+- **hooks**: add SessionStart hook with auto-detection and settings.json registration
+- **skills**: add token-compression skill with HITL/AFK intensity mapping
+- **execution**: implement HITL/AFK mode dispatch in execution skill and commands
 
-### Changed
+### Fix
 
-- `operational-constraints` skill: replaced vague token efficiency directives with pointer to `token-compression` skill
-- `aa-ma-execution` skill: added token-compression integration mapped to HITL/AFK modes
-- `aa-ma-scribe` agent: added temporal validity marker extraction rules
-- `install.sh`: added SessionStart hook symlink and settings.json registration
-- `uninstall.sh`: added SessionStart hook cleanup from settings.json
+- **hooks**: write compaction entries to task provenance.log and context-log.md
+- **docs**: correct two factual inaccuracies in README
 
 ## v0.2.0 (2026-04-07)
 

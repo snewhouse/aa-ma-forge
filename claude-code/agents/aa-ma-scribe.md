@@ -92,6 +92,12 @@ _Last Updated: [YYYY-MM-DD HH:MM]_
 - Dependencies: any `package==version` or `package>=version` pattern
 - Constants: any numeric threshold or limit mentioned as a design decision
 
+**Temporal validity markers (apply to all extracted facts):**
+- Add `[valid: YYYY-MM-DD]` to each fact using today's date (the date of extraction)
+- These markers are optional but recommended — they help future sessions assess fact freshness
+- Format: append the marker to the fact's Notes/Context column in tables, or inline after the fact
+- Example: `| Auth API | https://api.example.com/v1/auth | [valid: 2026-04-10] |`
+
 ### File 3: `[task-name]-context-log.md`
 
 Initialize with Phase 1-3 context:

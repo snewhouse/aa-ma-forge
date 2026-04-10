@@ -120,6 +120,22 @@ The `[task]-reference.md` file is Claude's **high-priority fact memory** — non
 - After research or implementation discovers new immutable facts
 - Never during routine task execution — facts are **append-only** unless correcting an error
 
+**Temporal Validity Markers (optional):**
+
+Facts may include optional date markers to express when they were established or when they became obsolete. Entries without markers are assumed always-valid (backward compatible).
+
+| Format | Meaning | Example |
+|--------|---------|---------|
+| `[valid: YYYY-MM-DD]` | Fact valid from this date onward | `[valid: 2026-04-10]` |
+| `[valid: YYYY-MM-DD to YYYY-MM-DD]` | Fact valid within a date range | `[valid: 2026-03-01 to 2026-04-15]` |
+| `[superseded: YYYY-MM-DD by task-name]` | Fact replaced by a newer task | `[superseded: 2026-04-10 by api-migration]` |
+
+**Usage guidance:**
+- The AA-MA Scribe applies `[valid: YYYY-MM-DD]` when extracting facts during artifact creation
+- When a fact becomes obsolete, add `[superseded: ...]` rather than deleting it — this preserves the audit trail
+- Cross-task search (`/aa-ma-search`) can use these markers to filter stale results in future enhancements
+- These markers are pure markdown conventions — no tooling change required
+
 ### Decision & Context History
 
 The `[task]-context-log.md` file captures the **reasoning trail** behind the plan's evolution — architectural decisions, trade-offs, gate approvals, and compaction summaries.

@@ -116,6 +116,28 @@ _Last Updated: [YYYY-MM-DD HH:MM]_
 |-------|------|----------|-------------|
 | [field_name] | [type] | [yes/no] | [purpose] |
 
+## Temporal Validity Convention
+
+<!-- OPTIONAL: Facts may include date markers to express when they were established -->
+<!-- or when they became obsolete. Entries without markers are assumed always-valid. -->
+<!-- -->
+<!-- Three formats: -->
+<!--   [valid: YYYY-MM-DD]                    — fact valid from this date onward -->
+<!--   [valid: YYYY-MM-DD to YYYY-MM-DD]      — fact valid within a date range -->
+<!--   [superseded: YYYY-MM-DD by task-name]   — fact replaced by a newer task -->
+<!-- -->
+<!-- The AA-MA Scribe applies [valid: date] when extracting new facts. -->
+<!-- When a fact becomes obsolete, add [superseded: ...] rather than deleting. -->
+
+**Examples:**
+
+| Fact | Marker |
+|------|--------|
+| Auth API: `https://api.example.com/v1/auth` | `[valid: 2026-04-10]` |
+| Legacy API: `https://old.example.com/v1/` | `[superseded: 2026-04-10 by api-migration]` |
+| Max retries: 3 | `[valid: 2026-03-01 to 2026-04-15]` |
+| Max retries: 5 | `[valid: 2026-04-15]` |
+
 ## External References
 
 <!-- URLs to documentation, specs, or resources that agents need during execution. -->

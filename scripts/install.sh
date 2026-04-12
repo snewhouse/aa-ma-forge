@@ -282,54 +282,140 @@ create_symlink "${REPO_ROOT}/claude-code/rules/aa-ma.md" \
                "${CLAUDE_HOME}/rules/aa-ma.md"
 
 # ---------------------------------------------------------------------------
-# 5. Symlink hooks
+# 5. Preflight: jq is required for settings.json registration
 # ---------------------------------------------------------------------------
-header "Linking hooks..."
-create_symlink "${REPO_ROOT}/claude-code/hooks/pre-compact-aa-ma.sh" \
-               "${CLAUDE_HOME}/hooks/lib/pre-compact-aa-ma.sh"
-create_symlink "${REPO_ROOT}/claude-code/hooks/aa-ma-session-start.sh" \
-               "${CLAUDE_HOME}/hooks/lib/aa-ma-session-start.sh"
+if ! command -v jq &>/dev/null; then
+    error "jq is required for hook registration but was not found in PATH."
+    error "  Ubuntu/WSL:  sudo apt-get install -y jq"
+    error "  macOS:       brew install jq"
+    exit 1
+fi
 
 # ---------------------------------------------------------------------------
-# 5b. Register SessionStart hook in settings.json (idempotent)
+# 5a. Symlink hooks + register in settings.json (idempotent, conditional)
 # ---------------------------------------------------------------------------
-# Hooks must be registered in settings.json to fire on Claude Code events.
-# Pattern inspired by RTK's rtk init (jq-based settings.json patching).
+# Each AA-MA hook is declared once below. Entries are processed in-order:
+#   1. Symlink the source file into ~/.claude/hooks/lib/ (only if source exists).
+#   2. Register the hook in ~/.claude/settings.json (only if source exists).
+#
+# The "only if source exists" rule makes install.sh idempotent across a
+# multi-milestone plan: re-running after new hook files land adds their
+# registrations without touching already-registered entries.
+#
+# Hook entries use a pipe-delimited schema:
+#   event|matcher|source_basename|timeout|statusMessage
+# Empty matcher = no tool-name match restriction (applies to SessionStart, etc.).
+
+AA_MA_HOOKS=(
+    "SessionStart||aa-ma-session-start.sh|5|Loading AA-MA context..."
+    "PreCompact||pre-compact-aa-ma.sh|5|"
+    "PreToolUse|Bash|aa-ma-commit-signature.sh|10|"
+    "SessionEnd||aa-ma-session-end-dirty.sh|5|"
+    "PostToolUse|Bash|aa-ma-commit-drift.sh|5|"
+)
+
 SETTINGS_FILE="${CLAUDE_HOME}/settings.json"
-HOOK_CMD="bash ${CLAUDE_HOME}/hooks/lib/aa-ma-session-start.sh"
+SETTINGS_BACKED_UP=false
 
-if command -v jq &>/dev/null && [ -f "${SETTINGS_FILE}" ]; then
-    # Check if this hook is already registered
-    ALREADY_REGISTERED=$(jq -r \
-        --arg cmd "$HOOK_CMD" \
-        '.hooks.SessionStart // [] | map(select(.hooks[]?.command == $cmd)) | length' \
+header "Linking hooks + registering in settings.json..."
+
+# Back up settings.json once before first mutation.
+backup_settings_once() {
+    ${SETTINGS_BACKED_UP} && return 0
+    if [ -f "${SETTINGS_FILE}" ] && ! ${FORCE}; then
+        if ${DRY_RUN}; then
+            info "Would back up ${SETTINGS_FILE} → ${SETTINGS_FILE}.bak"
+        else
+            cp -a "${SETTINGS_FILE}" "${SETTINGS_FILE}.bak"
+            info "Backed up ${SETTINGS_FILE} → ${SETTINGS_FILE}.bak"
+        fi
+    fi
+    SETTINGS_BACKED_UP=true
+}
+
+register_hook() {
+    local event="$1" matcher="$2" src_base="$3" timeout="$4" status_msg="$5"
+    local src_path="${REPO_ROOT}/claude-code/hooks/${src_base}"
+    local link_path="${CLAUDE_HOME}/hooks/lib/${src_base}"
+    local hook_cmd="bash ${link_path}"
+
+    # Skip if source file not yet authored (multi-milestone idempotence).
+    if [ ! -f "${src_path}" ]; then
+        info "Skipping ${src_base} — source not present (future milestone?)"
+        return 0
+    fi
+
+    # 1. Symlink.
+    create_symlink "${src_path}" "${link_path}"
+
+    # 2. Check idempotence in settings.json.
+    #    Idempotence normalises `bash <path>` and `<path>` forms: a manually-
+    #    registered plain-path entry and a script-registered `bash <path>`
+    #    entry should count as the same hook. We match on whether the link
+    #    path substring appears in any registered command for this event.
+    if [ ! -f "${SETTINGS_FILE}" ]; then
+        warn "${SETTINGS_FILE} not found — skipping registration for ${src_base}"
+        return 0
+    fi
+    local already
+    already=$(jq -r \
+        --arg event "$event" \
+        --arg link "$link_path" \
+        '(.hooks[$event] // []) | map(select(.hooks[]? | .command | test($link; "l"))) | length' \
         "${SETTINGS_FILE}" 2>/dev/null || echo "0")
 
-    if [ "${ALREADY_REGISTERED}" = "0" ]; then
-        if ${DRY_RUN}; then
-            info "Would register SessionStart hook in settings.json"
-        else
-            # Add the hook entry to the SessionStart array
-            jq --arg cmd "$HOOK_CMD" \
-                '.hooks.SessionStart = (.hooks.SessionStart // []) + [{
-                    "matcher": "",
-                    "hooks": [{
-                        "type": "command",
-                        "command": $cmd,
-                        "timeout": 5,
-                        "statusMessage": "Loading AA-MA context..."
-                    }]
-                }]' "${SETTINGS_FILE}" > "${SETTINGS_FILE}.tmp" \
-                && mv "${SETTINGS_FILE}.tmp" "${SETTINGS_FILE}"
-            info "Registered SessionStart hook in settings.json"
-        fi
-    else
-        info "SessionStart hook already registered in settings.json (skipping)"
+    if [ "${already}" != "0" ]; then
+        info "${event} [${src_base}] already registered in settings.json (skipping)"
+        return 0
     fi
-elif ! command -v jq &>/dev/null; then
-    warn "jq not found — cannot register SessionStart hook in settings.json"
-    warn "Install jq and re-run, or manually add the hook entry"
-fi
+
+    backup_settings_once
+
+    if ${DRY_RUN}; then
+        info "Would register ${event} [${src_base}] in settings.json"
+        return 0
+    fi
+
+    # 3. Atomic write: tempfile + jq empty validation + mv.
+    local tmp="${SETTINGS_FILE}.tmp.$$"
+    jq \
+        --arg event "$event" \
+        --arg matcher "$matcher" \
+        --arg cmd "$hook_cmd" \
+        --argjson timeout "$timeout" \
+        --arg status "$status_msg" \
+        '
+        .hooks[$event] = ((.hooks[$event] // []) + [(
+            {
+                matcher: $matcher,
+                hooks: [
+                    ({type: "command", command: $cmd, timeout: $timeout}
+                     + (if $status == "" then {} else {statusMessage: $status} end))
+                ]
+            }
+            | if $matcher == "" then del(.matcher) else . end
+        )])
+        ' "${SETTINGS_FILE}" > "${tmp}" || {
+            error "Failed to patch settings.json for ${event} [${src_base}]"
+            rm -f "${tmp}"
+            return 1
+        }
+
+    # Validate before atomic replace.
+    if ! jq empty "${tmp}" 2>/dev/null; then
+        error "Patched settings.json failed jq validation — reverting"
+        rm -f "${tmp}"
+        return 1
+    fi
+
+    mv "${tmp}" "${SETTINGS_FILE}"
+    info "Registered ${event} [${src_base}] in settings.json"
+}
+
+for entry in "${AA_MA_HOOKS[@]}"; do
+    IFS='|' read -r h_event h_matcher h_src h_timeout h_status <<< "${entry}"
+    register_hook "${h_event}" "${h_matcher}" "${h_src}" "${h_timeout}" "${h_status}"
+done
 
 # ---------------------------------------------------------------------------
 # 6. Copy spec docs (NOT symlinks — shared directory with non-AA-MA files)

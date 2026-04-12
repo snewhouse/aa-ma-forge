@@ -138,21 +138,21 @@ Convert plan steps to HTP (Hierarchical Task Planning) structure:
 _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone N: [Title from plan]
-- **Status:** PENDING
-- **Dependencies:** [List prerequisite milestone IDs or "None"]
-- **Complexity:** [X%] [+ "⚠️ HIGH COMPLEXITY" if ≥80%]
-- **Acceptance Criteria:**
+- Status: PENDING
+- Dependencies: [List prerequisite milestone IDs or "None"]
+- Complexity: [X%] [+ "⚠️ HIGH COMPLEXITY" if ≥80%]
+- Acceptance Criteria:
   - [Criterion 1 — must be testable and specific]
   - [Criterion 2]
 
 ### Step N.1: [Action from plan]
-- **Status:** PENDING
-- **Dependencies:** [Step IDs or "None"]
-- **Result Log:**
+- Status: PENDING
+- Dependencies: [Step IDs or "None"]
+- Result Log:
 
 ### Step N.2: [Next action]
-- **Status:** PENDING
-- **Result Log:**
+- Status: PENDING
+- Result Log:
 
 ---
 [Repeat for all milestones]

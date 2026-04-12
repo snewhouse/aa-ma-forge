@@ -210,27 +210,59 @@ else
     header "Backup restore"
     info "Skipped (use --restore to restore from the most recent backup)."
 
-    # Remove SessionStart hook from settings.json (if registered)
+    # ------------------------------------------------------------------
+    # Deregister all AA-MA hooks from settings.json (symmetric with install.sh).
+    # Uses path-substring match so both `<path>` and `bash <path>` forms are
+    # removed together. Idempotent: silently no-ops if a hook isn't registered.
+    # ------------------------------------------------------------------
     SETTINGS_FILE="${CLAUDE_HOME}/settings.json"
-    HOOK_CMD="bash ${CLAUDE_HOME}/hooks/lib/aa-ma-session-start.sh"
-    if command -v jq &>/dev/null && [ -f "${SETTINGS_FILE}" ]; then
-        HAS_HOOK=$(jq -r \
-            --arg cmd "$HOOK_CMD" \
-            '.hooks.SessionStart // [] | map(select(.hooks[]?.command == $cmd)) | length' \
-            "${SETTINGS_FILE}" 2>/dev/null || echo "0")
 
-        if [ "${HAS_HOOK}" != "0" ]; then
-            if ${DRY_RUN}; then
-                info "Would remove SessionStart hook from settings.json"
-            else
-                jq --arg cmd "$HOOK_CMD" \
-                    '.hooks.SessionStart = [.hooks.SessionStart[] | select(.hooks | all(.command != $cmd))]' \
-                    "${SETTINGS_FILE}" > "${SETTINGS_FILE}.tmp" \
-                    && mv "${SETTINGS_FILE}.tmp" "${SETTINGS_FILE}"
-                info "Removed SessionStart hook from settings.json"
-            fi
+    AA_MA_UNINSTALL_HOOKS=(
+        "SessionStart|aa-ma-session-start.sh"
+        "PreCompact|pre-compact-aa-ma.sh"
+        "PreToolUse|aa-ma-commit-signature.sh"
+        "SessionEnd|aa-ma-session-end-dirty.sh"
+        "PostToolUse|aa-ma-commit-drift.sh"
+    )
+
+    deregister_hook() {
+        local event="$1" src_base="$2"
+        local link_path="${CLAUDE_HOME}/hooks/lib/${src_base}"
+        if ! command -v jq &>/dev/null || [ ! -f "${SETTINGS_FILE}" ]; then
+            return 0
         fi
-    fi
+        local has
+        has=$(jq -r \
+            --arg event "$event" \
+            --arg link "$link_path" \
+            '(.hooks[$event] // []) | map(select(.hooks[]? | .command | test($link; "l"))) | length' \
+            "${SETTINGS_FILE}" 2>/dev/null || echo "0")
+        if [ "${has}" = "0" ]; then
+            return 0
+        fi
+        if ${DRY_RUN}; then
+            info "Would deregister ${event} [${src_base}] from settings.json"
+            return 0
+        fi
+        local tmp="${SETTINGS_FILE}.tmp.$$"
+        jq \
+            --arg event "$event" \
+            --arg link "$link_path" \
+            '.hooks[$event] = ((.hooks[$event] // []) | map(select(.hooks | all(.command | test($link; "l") | not))))' \
+            "${SETTINGS_FILE}" > "${tmp}" || { rm -f "${tmp}"; return 1; }
+        if ! jq empty "${tmp}" 2>/dev/null; then
+            rm -f "${tmp}"
+            error "Deregistration of ${event} [${src_base}] would produce invalid settings.json — aborting"
+            return 1
+        fi
+        mv "${tmp}" "${SETTINGS_FILE}"
+        info "Deregistered ${event} [${src_base}] from settings.json"
+    }
+
+    for entry in "${AA_MA_UNINSTALL_HOOKS[@]}"; do
+        IFS='|' read -r u_event u_src <<< "${entry}"
+        deregister_hook "${u_event}" "${u_src}"
+    done
 
     # Show available backups as a convenience
     BACKUP_BASE="${CLAUDE_HOME}/backups"

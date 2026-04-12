@@ -32,7 +32,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
      - PENDING: not yet started
      - ACTIVE: work in progress (only ONE milestone should be ACTIVE at a time)
      - COMPLETE: all sub-steps done and acceptance criteria verified -->
-- **Status:** PENDING
+- Status: PENDING
 
 <!-- Dependencies: list prerequisite milestone IDs, or "None" if this is the first.
      Example: "Milestone 1" or "Milestones 1, 2" -->
@@ -77,7 +77,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
      Sub-steps live under their parent milestone (### under ##). -->
 
 <!-- Status: PENDING | ACTIVE | COMPLETE -->
-- **Status:** PENDING
+- Status: PENDING
 
 <!-- Mode: HITL | AFK — inherited from milestone unless overridden.
      Override when a specific sub-step needs human input even though the
@@ -102,7 +102,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Result Log:**
 
 ### Sub-step 1.2: [Action description]
-- **Status:** PENDING
+- Status: PENDING
 - **Mode:** AFK
 - **Dependencies:** Step 1.1
 - **Acceptance Criteria:**
@@ -112,7 +112,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 ---
 
 ## Milestone 2: [Title]
-- **Status:** PENDING
+- Status: PENDING
 - **Dependencies:** Milestone 1
 - **Complexity:** [N%]
 - **Gate:** SOFT
@@ -122,7 +122,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - [Criterion 2]
 
 ### Sub-step 2.1: [Action description]
-- **Status:** PENDING
+- Status: PENDING
 - **Mode:** HITL
 - **Dependencies:** None
 - **Acceptance Criteria:**
@@ -130,7 +130,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Result Log:**
 
 ### Sub-step 2.2: [Action description]
-- **Status:** PENDING
+- Status: PENDING
 - **Mode:** AFK
 - **Dependencies:** Step 2.1
 - **Acceptance Criteria:**

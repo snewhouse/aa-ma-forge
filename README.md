@@ -301,6 +301,62 @@ Matt Pocock's [skills repo](https://github.com/mattpocock/skills) inspired sever
 
 The full story is in [how we got here](docs/narrative/how-we-got-here.md), and the shorter version is on [dev.to](https://dev.to/snewhouse/my-ai-agent-keeps-forgetting-everything-3p2k).
 
+## AA-MA hook troubleshooting
+
+AA-MA Forge ships five hooks. All honour a single master kill switch and carry explicit bypass mechanisms for the edge cases where they get in the way.
+
+**Master kill switch.** Something misbehaving? This disables every AA-MA hook immediately:
+
+```bash
+export AA_MA_HOOKS_DISABLE=1
+```
+
+Set it in your shell and everything goes quiet. Unset when you're done diagnosing.
+
+**Commit-signature hook.** When an AA-MA plan is active (`.claude/dev/active/` has content), the PreToolUse hook requires every `git commit` to reference the active plan. Two ways to pass:
+
+```
+git commit -m "feat: x
+
+[AA-MA Plan] my-task .claude/dev/active/my-task"
+```
+
+Or for genuinely unrelated commits (typo fixes, README tweaks), put the bypass marker on its own line:
+
+```
+git commit -m "fix: typo
+
+[ad-hoc]"
+```
+
+The marker is auditable — it stays in git log forever, unlike an environment-variable bypass.
+
+**Post-commit drift detector.** Warns if a commit lands without touching any `tasks.md`/`provenance.log` in an active task dir. Override on a single commit with `[no-sync-check]` on its own line.
+
+**Known scope limits** (by design, not bugs):
+
+- Bare `git commit` or `git commit --amend` (editor opens) — the hook can't see a message that doesn't exist yet, so it passes through. Forgetting the signature in the editor is on you.
+- `git commit -F /path/to/msg.txt` — marker in the file isn't visible in the command string. Accept false negatives.
+- `git commit -m "$MSG"` — the hook sees the literal `$MSG`, not its expansion. Pass through.
+
+**Installing bats locally.** The test harness is bats-core. CI uses `bats-core/bats-action@v4` so you don't need bats for PRs — only for local dev:
+
+```bash
+# Ubuntu / WSL
+sudo apt-get install -y bats
+
+# macOS
+brew install bats-core
+```
+
+**Emergency escape (hook itself is broken).** If a blocking hook is misfiring and you need to land a commit NOW:
+
+```bash
+AA_MA_HOOKS_DISABLE=1 git commit -m "fix: hook is broken"
+```
+
+Then diagnose. `bash -x ~/.claude/hooks/lib/aa-ma-commit-signature.sh` will trace.
+
 ## Fair warning
 
 This is a one-person project built around my own workflows. It's provided as-is. Take what's useful, fork it, adapt it, make it your own. Maintenance and improvements will be sporadic. If I've gone quiet, I'm either deep in client work, arguing with an API, or the MS is having a louder day than usual. Pull requests welcome, but don't hold your breath on response times. You've been warned.

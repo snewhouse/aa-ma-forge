@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- `claude-code/hooks/lib/aa-ma-parse.sh` shared helper library: 5 exports (`aa_ma_is_disabled`, `aa_ma_extract_active_milestone`, `aa_ma_extract_active_step`, `aa_ma_list_active_tasks`, `aa_ma_debug`); format-agnostic Status regex; HTML-comment false-positive guard
+- `tests/hooks/` bats test harness: fixture builder with self-tests, helper tests, hook integration tests. CI job via `bats-core/bats-action@v4`
+- feat(hooks): commit-signature enforcement hook (PreToolUse/Bash): blocks unsigned `git commit` when an AA-MA plan is active. `[ad-hoc]` marker on its own line bypasses (auditable in git log). Word-boundary match distinguishes `git commit-tree`/`commit-graph`. Pretty stderr block message naming top active task.
+- feat(hooks): SessionEnd dirty detector (`aa-ma-session-end-dirty.sh`): warns when AA-MA artifacts are git-dirty at session end. Advisory-only; silent in CI (`CLAUDE_CODE` unset).
+- feat(hooks): PostToolUse drift detector (`aa-ma-commit-drift.sh`): warns when a git commit lands without touching any active task's `tasks.md`/`provenance.log`. `[no-sync-check]` marker bypasses. `AA_MA_DRIFT_THRESHOLD` env var (default 1) tunes sensitivity.
+- `AA_MA_HOOKS_DISABLE=1` master kill switch: all AA-MA hooks early-exit 0 silently
+- `HOOK_DEBUG=1` diagnostic mode: verbose stderr traces from `aa_ma_debug`
+- README "AA-MA hook troubleshooting" section: kill switch, bypass markers, known scope limits, local bats install
+- install.sh now registers 5 hooks idempotently: SessionStart, PreCompact, PreToolUse(Bash), SessionEnd, PostToolUse(Bash) — only those whose source files exist, with path-substring idempotence (works with both `<path>` and `bash <path>` command forms)
+- install.sh preflight: fails cleanly with install instructions if `jq` missing
+- install.sh symlinks helper library `aa-ma-parse.sh` into `~/.claude/hooks/lib/` so hooks can source it from their installed sibling path
+
+### Changed
+
+- `aa-ma-session-start.sh`: now surfaces the most-recently-touched task (was alphabetical-last); emits absolute resolved path (was hardcoded relative fragment); appends `(N other active tasks: a, b, c and M more)` footer when >1 active task; sources shared helper
+- `pre-compact-aa-ma.sh`: now iterates both project-local AND `$HOME/.claude/dev/active/` (was HOME-only); project-first collision resolution; uses format-agnostic Status parser (was plain-only, missed bold-format templates); honours kill switch
+- `uninstall.sh`: extended to deregister all 5 AA-MA hooks (was SessionStart only); path-substring match normalises `<path>` and `bash <path>` forms
+- `docs/templates/tasks-template.md`: Status format canonicalised to plain `Status: X` (was bold `**Status:** X`) — helper tolerates both via defence-in-depth regex
+- `claude-code/agents/aa-ma-scribe.md`: template block Status format canonicalised to plain
+- All AA-MA hooks now resolve helper library via dual-layout probe (project subdir OR installed sibling), robust to symlink vs direct invocation
+
+### Fixed
+
+- Silent correctness bug in `pre-compact-aa-ma.sh`: previously `grep 'Status: ACTIVE'` never matched bold `**Status:** ACTIVE` template output — CHECKPOINT entries always emitted "active step: unknown"
+- Silent path-emission bug in `aa-ma-session-start.sh:72`: hardcoded `.claude/dev/active/` path even when task lived in `$HOME` — Claude would try to read non-existent project-local path
+- Silent mtime-ordering bug in `aa-ma-session-start.sh:34-38`: loop picked alphabetical-last task despite comment claiming "most recently modified"
+- Pre-existing `install.sh` gap: PreCompact hook symlinked but never registered in `settings.json` — fixed in the same multi-hook registration loop
+
 ## v0.3.0 (2026-04-10)
 
 ### Feat

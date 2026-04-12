@@ -319,6 +319,14 @@ SETTINGS_BACKED_UP=false
 
 header "Linking hooks + registering in settings.json..."
 
+# Helper library must be symlinked so hooks can source it from their
+# installed location (~/.claude/hooks/lib/<hook>.sh finds ./aa-ma-parse.sh
+# as a sibling).
+if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" ]; then
+    create_symlink "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" \
+                   "${CLAUDE_HOME}/hooks/lib/aa-ma-parse.sh"
+fi
+
 # Back up settings.json once before first mutation.
 backup_settings_once() {
     ${SETTINGS_BACKED_UP} && return 0

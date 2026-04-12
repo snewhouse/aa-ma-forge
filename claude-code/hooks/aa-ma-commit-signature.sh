@@ -26,10 +26,24 @@
 
 set -euo pipefail
 
-# shellcheck source=lib/aa-ma-parse.sh
+# Resolve helper across two layouts:
+#   - Project layout:  <repo>/claude-code/hooks/aa-ma-commit-signature.sh
+#                      helper at ../hooks/lib/aa-ma-parse.sh (subdir)
+#   - Installed layout: ~/.claude/hooks/lib/aa-ma-commit-signature.sh
+#                      helper at same dir (sibling)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck disable=SC1091
-. "${SCRIPT_DIR}/lib/aa-ma-parse.sh"
+if [ -f "${SCRIPT_DIR}/lib/aa-ma-parse.sh" ]; then
+    HELPER="${SCRIPT_DIR}/lib/aa-ma-parse.sh"
+elif [ -f "${SCRIPT_DIR}/aa-ma-parse.sh" ]; then
+    HELPER="${SCRIPT_DIR}/aa-ma-parse.sh"
+else
+    printf 'aa-ma-commit-signature: cannot find aa-ma-parse.sh helper (looked in %s/lib and %s)\n' \
+        "$SCRIPT_DIR" "$SCRIPT_DIR" >&2
+    exit 1
+fi
+# shellcheck source=lib/aa-ma-parse.sh
+# shellcheck disable=SC1090,SC1091
+. "$HELPER"
 
 # -----------------------------------------------------------------------------
 # 1. Kill switch.

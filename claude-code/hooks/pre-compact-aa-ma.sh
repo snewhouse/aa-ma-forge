@@ -11,10 +11,19 @@
 
 set -euo pipefail
 
-# shellcheck source=lib/aa-ma-parse.sh
+# Resolve helper across two layouts (project subdir OR installed sibling).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck disable=SC1091
-. "${SCRIPT_DIR}/lib/aa-ma-parse.sh"
+if [ -f "${SCRIPT_DIR}/lib/aa-ma-parse.sh" ]; then
+    HELPER="${SCRIPT_DIR}/lib/aa-ma-parse.sh"
+elif [ -f "${SCRIPT_DIR}/aa-ma-parse.sh" ]; then
+    HELPER="${SCRIPT_DIR}/aa-ma-parse.sh"
+else
+    printf 'pre-compact-aa-ma: cannot find aa-ma-parse.sh helper\n' >&2
+    exit 0  # PreCompact must never block compaction
+fi
+# shellcheck source=lib/aa-ma-parse.sh
+# shellcheck disable=SC1090,SC1091
+. "$HELPER"
 
 SNAPSHOT_DIR="$HOME/.claude/hooks/cache/compaction-snapshots"
 LOG_FILE="$HOME/.claude/hooks/cache/compaction.log"

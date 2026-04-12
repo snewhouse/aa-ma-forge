@@ -1,91 +1,103 @@
 #!/usr/bin/env bash
-# PreCompact hook: Snapshot AA-MA state before auto-compaction
-# Always exits 0 — never blocks compaction
+# PreCompact hook: snapshot AA-MA state before auto-compaction.
+#
+# Iterates ALL active task dirs (project-local .claude/dev/active/ first, then
+# $HOME/.claude/dev/active/, with project-first collision resolution) via the
+# shared aa-ma-parse helper. For each task, writes a snapshot file to
+# $HOME/.claude/hooks/cache/compaction-snapshots/ and appends checkpoint
+# entries to the task's provenance.log and context-log.md.
+#
+# Honours AA_MA_HOOKS_DISABLE=1 (master kill switch). Always exits 0.
+
 set -euo pipefail
 
-ACTIVE_DIR="$HOME/.claude/dev/active"
+# shellcheck source=lib/aa-ma-parse.sh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+. "${SCRIPT_DIR}/lib/aa-ma-parse.sh"
+
 SNAPSHOT_DIR="$HOME/.claude/hooks/cache/compaction-snapshots"
 LOG_FILE="$HOME/.claude/hooks/cache/compaction.log"
 
-# Ensure directories exist
+# POSIX date format (cross-platform; works on both GNU and BSD date).
+ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
 mkdir -p "$SNAPSHOT_DIR" "$(dirname "$LOG_FILE")"
 
-# Check for active AA-MA tasks
-if [ ! -d "$ACTIVE_DIR" ] || [ -z "$(ls -A "$ACTIVE_DIR" 2>/dev/null)" ]; then
-    echo "$(date -Iseconds) | PreCompact | No active AA-MA tasks" >> "$LOG_FILE"
+# Master kill switch honoured.
+if aa_ma_is_disabled; then
+    printf '%s | PreCompact | Disabled via AA_MA_HOOKS_DISABLE=1\n' "$(ts)" >> "$LOG_FILE"
     exit 0
 fi
 
-for task_dir in "$ACTIVE_DIR"/*/; do
-    [ -d "$task_dir" ] || continue
+# Collect all active task dirs (project-first, mtime-sorted, collision-resolved).
+mapfile -t TASKS < <(aa_ma_list_active_tasks)
+
+if [ "${#TASKS[@]}" -eq 0 ]; then
+    printf '%s | PreCompact | No active AA-MA tasks\n' "$(ts)" >> "$LOG_FILE"
+    exit 0
+fi
+
+for task_dir in "${TASKS[@]}"; do
     task_name=$(basename "$task_dir")
-    snapshot_file="$SNAPSHOT_DIR/${task_name}-snapshot.md"
+    snapshot_file="${SNAPSHOT_DIR}/${task_name}-snapshot.md"
 
     {
-        echo "# AA-MA Compaction Snapshot: ${task_name}"
-        echo "**Captured:** $(date -Iseconds)"
-        echo ""
+        printf '# AA-MA Compaction Snapshot: %s\n' "$task_name"
+        printf '**Captured:** %s\n\n' "$(ts)"
 
-        # Task status from tasks.md
-        if [ -f "${task_dir}${task_name}-tasks.md" ]; then
-            echo "## Task Status"
+        if [ -f "${task_dir}/${task_name}-tasks.md" ]; then
+            printf '## Task Status\n'
             grep -E '(Milestone|Status|COMPLETE|IN.PROGRESS|PENDING|\[x\]|\[ \])' \
-                "${task_dir}${task_name}-tasks.md" 2>/dev/null | head -30 || true
-            echo ""
+                "${task_dir}/${task_name}-tasks.md" 2>/dev/null | head -30 || true
+            printf '\n'
         fi
 
-        # Full reference.md (immutable facts — always preserved)
-        if [ -f "${task_dir}${task_name}-reference.md" ]; then
-            echo "## Reference (Full)"
-            cat "${task_dir}${task_name}-reference.md"
-            echo ""
+        if [ -f "${task_dir}/${task_name}-reference.md" ]; then
+            printf '## Reference (Full)\n'
+            cat "${task_dir}/${task_name}-reference.md"
+            printf '\n'
         fi
 
-        # Last 20 lines of context-log
-        if [ -f "${task_dir}${task_name}-context-log.md" ]; then
-            echo "## Context Log (Last 20 Lines)"
-            tail -20 "${task_dir}${task_name}-context-log.md"
-            echo ""
+        if [ -f "${task_dir}/${task_name}-context-log.md" ]; then
+            printf '## Context Log (Last 20 Lines)\n'
+            tail -20 "${task_dir}/${task_name}-context-log.md"
+            printf '\n'
         fi
 
-        # Last 10 lines of provenance
-        if [ -f "${task_dir}${task_name}-provenance.log" ]; then
-            echo "## Provenance (Last 10 Lines)"
-            tail -10 "${task_dir}${task_name}-provenance.log"
-            echo ""
+        if [ -f "${task_dir}/${task_name}-provenance.log" ]; then
+            printf '## Provenance (Last 10 Lines)\n'
+            tail -10 "${task_dir}/${task_name}-provenance.log"
+            printf '\n'
         fi
     } > "$snapshot_file"
 
-    echo "$(date -Iseconds) | PreCompact | Snapshot saved: ${task_name}" >> "$LOG_FILE"
+    printf '%s | PreCompact | Snapshot saved: %s\n' "$(ts)" "$task_name" >> "$LOG_FILE"
 
-    # --- Write compaction entries to task files (spec Section II, X) ---
-    prov_file="${task_dir}${task_name}-provenance.log"
-    ctx_file="${task_dir}${task_name}-context-log.md"
-    tasks_file="${task_dir}${task_name}-tasks.md"
-    ts="$(date '+%Y-%m-%d %H:%M')"
-
-    # Best-effort: extract the first ACTIVE step title from tasks.md
+    # Best-effort: extract active step for CHECKPOINT entry.
     active_step="unknown"
-    if [ -f "$tasks_file" ]; then
-        active_step=$(grep -B2 'Status: ACTIVE' "$tasks_file" 2>/dev/null \
-            | grep -E '^#{2,}' | tail -1 | sed 's/^#* *//' || echo "unknown")
-        [ -z "$active_step" ] && active_step="unknown"
+    if [ -f "${task_dir}/${task_name}-tasks.md" ]; then
+        s=$(aa_ma_extract_active_step "${task_dir}/${task_name}-tasks.md")
+        [ -n "$s" ] && active_step="$s"
     fi
 
-    # Append provenance entry + CHECKPOINT (spec Section II: Execution Audit Trail)
+    prov_file="${task_dir}/${task_name}-provenance.log"
+    ctx_file="${task_dir}/${task_name}-context-log.md"
+
     if [ -f "$prov_file" ]; then
         printf '[%s] Context compacted — Snapshot saved, active step: %s\n' \
-            "$ts" "$active_step" >> "$prov_file" 2>/dev/null || true
+            "$(ts)" "$active_step" >> "$prov_file" 2>/dev/null || true
         printf '[%s] CHECKPOINT — ActiveStep: %s — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A\n' \
-            "$ts" "$active_step" >> "$prov_file" 2>/dev/null || true
+            "$(ts)" "$active_step" >> "$prov_file" 2>/dev/null || true
     fi
 
-    # Append context-log compaction summary (spec Section II: Decision & Context History)
     if [ -f "$ctx_file" ]; then
-        printf '\n## [%s] Compaction Summary (auto-generated by hook)\n' "$ts" >> "$ctx_file" 2>/dev/null || true
-        printf -- '- Active step at compaction: %s\n' "$active_step" >> "$ctx_file" 2>/dev/null || true
-        printf -- '- Snapshot saved to: %s\n' "$snapshot_file" >> "$ctx_file" 2>/dev/null || true
-        printf -- '- Note: Context compacted. Reload AA-MA files to resume.\n' >> "$ctx_file" 2>/dev/null || true
+        {
+            printf '\n## [%s] Compaction Summary (auto-generated by hook)\n' "$(ts)"
+            printf -- '- Active step at compaction: %s\n' "$active_step"
+            printf -- '- Snapshot saved to: %s\n' "$snapshot_file"
+            printf -- '- Note: Context compacted. Reload AA-MA files to resume.\n'
+        } >> "$ctx_file" 2>/dev/null || true
     fi
 done
 

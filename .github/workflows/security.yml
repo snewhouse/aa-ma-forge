@@ -47,3 +47,14 @@ jobs:
 
       - name: Run ruff check
         run: uv run ruff check src/
+
+  bats:
+    name: Bats (Hook Tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bats-core/bats-action@v4
+
+      - name: Run bats on tests/hooks/
+        run: bats --recursive tests/hooks/

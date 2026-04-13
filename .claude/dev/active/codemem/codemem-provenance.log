@@ -1,0 +1,27 @@
+# codemem — Provenance Log
+
+# Plain-text execution telemetry. Append-only. Entries use ISO8601 UTC timestamps.
+
+2026-04-13T10:00:00Z TASK_INIT — codemem plan created via /aa-ma-plan
+2026-04-13T10:00:15Z PROJECT — aa-ma-forge (https://github.com/snewhouse/aa-ma-forge)
+2026-04-13T10:00:30Z COMMIT — d44c1c8 (branch base; expt/code_mem_store_what just-created from main)
+2026-04-13T10:05:00Z PHASE_BRAINSTORM — feature request captured: "improve and build on /index, borrow best ideas from repowise + mempalace, KISS/DRY/SOLID/SOC, performant lightweight, minimal heavy dependencies"
+2026-04-13T10:30:00Z PHASE_PLANNING — 8 grill-me Qs answered (Q1 location, Q2 ast-grep delivery, Q3 index format, Q4 tool count, Q5 embeddings, Q6 incremental strategy, Q7 milestone structure, Q8 integration surface)
+2026-04-13T10:45:00Z PHASE_RESEARCH — 3 research agents dispatched (ast-grep landscape, SQLite hot config, 2026 code-intel competitors)
+2026-04-13T11:30:00Z PHASE_RESEARCH_COMPLETE — findings: ast-grep-cli 0.42.1 on PyPI with wheels; SQLite WAL+mmap256MB canonical; git-mining + AA-MA-coupling uncontested; Aider repomap + /index pagerank.py as prior art
+2026-04-13T12:00:00Z PHASE_PLAN_GENERATION — codemem-plan.md v1 written (11 AA-MA planning elements, 4 milestones)
+2026-04-13T12:45:00Z PHASE_REVIEW_CEO — /plan-ceo-review verdict SELECTIVE-EXPAND; 6 findings (moat=AA-MA coupling, demo+zero-config, embeddings exit criterion, dual-distribution, public kill criteria, pre-flight reading); all adopted
+2026-04-13T13:15:00Z PHASE_REVIEW_ENG — /plan-eng-review verdict NEEDS-WORK; 3 CRITICAL + 6 WARNING findings; all 9 adopted (dual-WAL ordering, explicit DDL, SCIP grammar, process lock, import-linter, testable ACs, perf enforcement, hook cleanup + WAL rotation, ARCHITECTURE.md as deliverable)
+2026-04-13T13:30:00Z PHASE_REPLAN — codemem-plan.md v2 written incorporating CEO+Eng findings
+2026-04-13T13:45:00Z PHASE_VERIFICATION — adversarial verification (Interactive mode) executed: 6-angle audit
+2026-04-13T14:00:00Z PHASE_VERIFICATION_RESULT — PASS WITH WARNINGS; 14 findings (3 CRITICAL + 11 WARN/INFO); falsifiability 26/30 pre-fix → 30/30 post-fix; spot-check simulations confirmed ambiguity in Steps 2.3 and 3.7
+2026-04-13T14:15:00Z PHASE_REPLAN_V3 — codemem-plan.md v3 written with all CRITICALs + high-impact WARNs closed inline (V1 anchor pivot, V2 ast-grep pin, V3 /index pagerank reconciliation, V4 aa_ma_context extraction rule, V5 path traversal, V6 git hook wiring, V7 .gitignore, V8 packaging spike to Step 1.0, V9 replay state diagram, V10 Windows lock portability); 3 items (V8/V9/V10) deferred to M1 Step 1.0 / Step 1.12 / Step 2.7 implementation
+2026-04-13T14:25:00Z PHASE_VERIFICATION_SIGNOFF — plan v3 cleared for Phase 5 execution
+2026-04-13T14:30:00Z PHASE_ARTIFACTS — AA-MA Scribe dispatched; 6 artifact files being written to .claude/dev/active/codemem/
+2026-04-13T14:30:00Z ARTIFACT_CREATED — codemem-plan.md (368 lines, v3 frozen)
+2026-04-13T14:31:00Z ARTIFACT_CREATED — codemem-reference.md (immutable facts)
+2026-04-13T14:32:00Z ARTIFACT_CREATED — codemem-context-log.md (initial context + decision history)
+2026-04-13T14:33:00Z ARTIFACT_CREATED — codemem-tasks.md (HTP roadmap; 40 tasks across 4 milestones)
+2026-04-13T14:34:00Z ARTIFACT_CREATED — codemem-provenance.log (this file)
+2026-04-13T14:35:00Z ARTIFACT_CREATED — codemem-verification.md (adversarial verification audit trail)
+2026-04-13T14:36:00Z STATUS — READY FOR EXECUTION; next action = M1 Task 1.0 (pre-flight reading + packaging spike + design scratchpad)

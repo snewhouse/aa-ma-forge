@@ -1,0 +1,113 @@
+# codemem — Context Log
+
+_Decision history, trade-offs, gate approvals, and compaction summaries. This file is loaded when making decisions — do not use as primary memory (use `codemem-reference.md` for that)._
+
+---
+
+## 2026-04-13 — Initial Context (plan genesis through v3)
+
+### Feature Request (Phase 1, verbatim)
+
+> "improve and build on /index, borrow best ideas from repowise + mempalace, KISS/DRY/SOLID/SOC, performant lightweight, minimal heavy dependencies"
+
+Invoked via `/aa-ma-plan`. Target is a successor to `~/.claude-code-project-index/` with a git-mining differentiator and a tight dependency footprint.
+
+### Phase 2 — Grill-Me: 8 Locked Decisions
+
+| ID | Question | Decision | Rationale |
+|---|---|---|---|
+| **AD-Q1** | Where does codemem live? | Sibling tool in `aa-ma-forge`; supersedes `/index` after proven | Leverages existing plugin infrastructure (install.sh, rules/, commands/); avoids new-repo overhead; `/index` stays unchanged until codemem is battle-tested. Alternative (new standalone repo) rejected as splitting user attention. |
+| **AD-Q2** | How do we ship ast-grep? | Required Python dep `ast-grep-cli` (not PATH binary) | Research confirms PyPI wheels for Linux+macOS+Windows manylinux/musllinux at ~15–25MB; wheel-install avoids "install ast-grep first" onboarding cliff. Alternative (PATH binary) rejected: bootstrap failure mode + version drift. |
+| **AD-Q3** | Canonical index format? | SQLite canonical + ~50KB JSON projection (Aider-style PageRank-ranked) | Decouples index size from context budget; enables incremental updates; SQLite is stdlib. Alternative (JSON canonical) rejected: couples size to context. Alternative (LanceDB) rejected: heavy dep, embeddings-centric. |
+| **AD-Q4** | How many MCP tools? | 12 tools (6 ported + 5 git-mining + 1 AA-MA-native) | Covers existing `/index` surface + uncontested 2026 differentiator (git quintet) + unique moat (aa_ma_context). Alternative (6 tools like /index) rejected: no differentiation. Alternative (20+ tools) rejected: surface bloat. |
+| **AD-Q5** | Semantic search / embeddings in v1? | NO — with explicit exit criterion (§8) | Embeddings add 50–500MB footprint (ONNX/sentence-transformers); exact-match + PageRank handles the common case; competitors differentiate here so we differentiate elsewhere. Exit: reconsider when opt-in telemetry shows >20% zero-result queries over 30 days OR competitor reproducibly wins on 3 reference repos with <50MB model. |
+| **AD-Q6** | Incremental update strategy? | Symbol-level diff cache + WAL JSONL journal with post-commit ack + idempotent replay keys | Audit-grade recovery; enables `codemem replay --from-wal`; ack-marker pattern closes the "crash between WAL append and SQLite commit" window. Eng E1 sharpened this from original "WAL JSONL journal" to add the post-commit ack. |
+| **AD-Q7** | Milestone structure? | 4 milestones: Foundation → Incremental/WAL → Git-intel + AA-MA hook → Polish | Each milestone shippable; git intel (the moat) in M3 after cache is proven; polish isolated so we can ship M1–M3 and defer M4 if needed. |
+| **AD-Q8** | Integration surface? | `/codemem` slash command + MCP server + post-commit hook | Three entry points match Claude Code's model: interactive (slash), agent-facing (MCP), automatic (hook). |
+
+### Phase 2.5 — Later Locked Decisions (from reviews)
+
+| ID | Source | Decision | Rationale |
+|---|---|---|---|
+| **AD-Q12** | CEO review | AA-MA-native coupling is the moat — added `aa_ma_context()` as 12th MCP tool + Step 3.7 | CEO surfaced that competitors can copy git-mining but NOT AA-MA-native context. This is the uncopyable differentiator. Pinned extraction rule to prevent drift across reimplementations. |
+| **AD-Q13** | CEO review | Dual-distribution: aa-ma-forge plugin AND `pip install codemem-mcp` standalone | CEO argued the generic code-intel user base is larger than aa-ma-forge adopters; gated by CI wheel build on Linux+macOS. Adds complexity in packaging (Step 1.0 spike) but widens moat. |
+| **AD-E9** | Eng review | ARCHITECTURE.md as M1 deliverable with 5 mandatory sections | Eng surfaced that the dual-WAL ordering + symbol ID grammar + layering contract need a single authoritative doc. Placeholders in M1; finalized in M4. |
+
+### Phase 3 — Research Agent Findings
+
+**Agent 1: ast-grep landscape**
+- `ast-grep-cli` on PyPI at 0.42.1 as of 2026-04-13; wheels for Linux+macOS+Windows.
+- JSON streaming mode (`sg run --json=stream`) is the right subprocess surface.
+- Batching per-language across N files amortizes ~50ms/invocation overhead.
+- `languageGlobs` needed for `.ts` ↔ `.tsx` disambiguation.
+- YAML rule files for `function_definition`, `class_definition`, `method_definition`, `import_statement`, `call_expression` cover our needs.
+
+**Agent 2: SQLite for code intel at our scale**
+- WAL mode + `synchronous=NORMAL` + `mmap_size=256MB` is the canonical hot config.
+- Recursive CTE on edges table is fast IF both `(src, dst, kind)` and `(dst, kind, src)` indexes exist.
+- `PRAGMA user_version` is the standard forward-only migration pattern.
+- `application_id` should be set for `file(1)` identification.
+- FK + CASCADE on `symbols.file_id` + `edges.src_symbol_id` gives us automatic cleanup on file delete.
+
+**Agent 3: 2026 code-intel landscape**
+- Saturated: tree-sitter call-graph + MCP (GitNexus 19k stars, Axon, Codegraph, jCodeMunch, CodeMCP, RemembrallMCP, DevSwarm, Code Pathfinder, Kiro CLI).
+- **Uncontested:** git-mining combo (hot_spots + co_changes + owners + symbol_history + layers) AND AA-MA-native coupling.
+- `/index` itself ships a file-level PageRank in `scripts/pagerank.py` — our differentiation must be symbol-level edge-weighted PageRank with SCIP-shaped IDs and token-budget binary search (Aider-style).
+- Aider's `aider/repomap.py` is the reference for PageRank-budgeted repo-map.
+- `repowise`'s `symbol_diff` Jaccard threshold = 0.7 is the empirically defensible default.
+
+### Phase 4.2 — Plan Reviews
+
+**CEO Review: Verdict SELECTIVE-EXPAND (6 findings adopted)**
+- C1: AA-MA coupling is the real moat → adopted as **AD-Q12** (Step 3.7 + tool #12).
+- C2: Need a 60-second demo + zero-config install → adopted as Step 4.8.
+- C3: Embeddings rejection needs an exit criterion → adopted in §8.
+- C4: Ship standalone `pip install codemem-mcp` for non-aa-ma-forge users → adopted as **AD-Q13** + Step 1.1 dual-distribution.
+- C5: Kill criteria must be public → adopted as §12 + `docs/codemem/kill-criteria.md` (Step 4.10).
+- C6: Pre-flight reading of Aider / `/index` pagerank / repowise symbol_diff → adopted as Step 1.0.
+
+**Eng Review: Verdict NEEDS-WORK (3 CRITICAL + 6 WARNING, all 9 adopted)**
+- E1 (CRITICAL): dual-WAL ordering between JSONL append and SQLite commit — **post-commit ack marker + idempotent replay keys** → Step 2.3 contract rewritten.
+- E2 (CRITICAL): schema needs explicit DDL with FKs/indexes/cascades → Step 1.2 pinned the SQL verbatim.
+- E3 (CRITICAL): SCIP grammar underspecified → Step 1.2b added with kind-markers, examples, fixtures.
+- E4 (WARN): concurrent refresh needs process-level lock → Step 2.7.
+- E5 (WARN): import-linter enforcement for layer boundary → Step 1.11 CI rule.
+- E6 (WARN): several ACs untestable → M1/M2/M3 acceptance criteria rewritten as falsifiable tests.
+- E7 (WARN): perf budgets stated but not enforced → Step 1.13 `pytest-benchmark` + CI fail-on-regress.
+- E8 (WARN): post-commit hook will leak zombies on rapid amend → Step 2.5 setsid + PID file + WAL rotation Step 2.8.
+- E9 (WARN): no architectural doc → **AD-E9** ARCHITECTURE.md as M1 deliverable (Step 1.12).
+
+### Phase 4.5 — Adversarial Verification
+
+**Verdict: PASS WITH WARNINGS** (14 findings). Interactive mode. All CRITICALs + high-impact WARNs addressed inline in plan v3.
+
+Falsifiability audit: **26/30 → 30/30** after v3 fixes (M3 "reasonable"/"human-readable" ACs rewritten with concrete thresholds and golden-file comparisons).
+
+Fresh-agent simulation spot-checks:
+- **Step 1.2** (schema DDL): passed — two agents would produce identical SQL.
+- **Step 2.3** (WAL replay): initially ambiguous → embedded state diagram resolves it.
+- **Step 3.7** (`aa_ma_context`): initially ambiguous → pinned regexes + golden fixture resolve it.
+
+Findings and resolutions: see `codemem-verification.md` for the full 14-row table.
+
+Schema migration off-by-one (W3) fixed in §7. Java inner-class fixture added to M1 risk #3 mitigation.
+
+### Deferred Investigation Items (tracked to M1 Step 1.0)
+
+Three items intentionally deferred to the M1 pre-flight spike rather than over-specified at plan time:
+
+1. **V8 — Packaging structure choice.** Three candidates: hatchling workspace, `packages/codemem-mcp/` subdir, hatch build hook. Decision at end of Step 1.0; trade-offs captured in `docs/codemem/design-scratchpad.md`.
+2. **V10 — Windows fcntl portability.** `fcntl.lockf` on POSIX, `msvcrt.locking` on Windows; fallback to optional `portalocker` under `[windows]` extra if pure-stdlib is ugly. Final shape decided during Step 2.7 implementation.
+3. **V9 — Replay state diagram refinement.** Diagram embedded in Step 2.3 is the starting contract; ARCHITECTURE.md §Dual-WAL-Semantics (written in Step 1.12, refined in Step 4.9) may tighten the invariants once we write the property tests.
+
+### Remaining Questions / Unresolved Issues
+
+None outstanding at plan sign-off. All Phase 4.2 + Phase 4.5 findings have been either adopted inline (CRITICAL + high-impact WARN) or acknowledged in the deferred list above.
+
+### Plan Revision History
+
+- **v1** (2026-04-13, pre-review): drafted from grill-me + research findings.
+- **v2** (2026-04-13, post CEO+Eng): CEO 6 + Eng 9 findings folded in.
+- **v3** (2026-04-13, post adversarial verification): 14 findings addressed; all CRITICALs closed; cleared for Phase 5.
+
+Plan file: `.claude/dev/active/codemem/codemem-plan.md` — treat as frozen unless scope changes.

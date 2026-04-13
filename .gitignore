@@ -1,6 +1,15 @@
 # Claude Code
 CLAUDE.md
-.claude/
+# aa-ma-forge IS the AA-MA framework — its own AA-MA task artifacts
+# (.claude/dev/active/, .claude/dev/completed/) are intentional deliverables
+# and MUST be version-controlled. The rest of .claude/ (session state, memory,
+# local caches, per-project auto-memory) remains ignored via explicit child
+# exclusions — excluding .claude/ wholesale blocks git from descending into it.
+.claude/*
+!.claude/dev/
+.claude/projects/
+.claude/cache/
+.claude/memory/
 PROJECT_INDEX.json
 drafts/
 media/

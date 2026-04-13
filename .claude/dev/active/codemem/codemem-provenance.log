@@ -28,3 +28,4 @@
 2026-04-13T20:07:09+01:00 MILESTONE M1 Task 1.0 COMPLETE — packaging=uv_workspace — 14 AF findings — plan v3→v4
 2026-04-13T20:22:26+01:00 MILESTONE M1 Task 1.1 COMPLETE — dual-distribution wheel built + standalone install verified
 2026-04-13T20:58:57+01:00 MILESTONE M1 Task 1.2 COMPLETE — schema+db helpers+16 tests passing; application_id overflow fixed (0xC0DE3E33→0x434D454D)
+2026-04-13T21:02:34+01:00 MILESTONE M1 Task 1.2b COMPLETE — SCIP grammar doc v1 pinned, 7 languages with worked examples

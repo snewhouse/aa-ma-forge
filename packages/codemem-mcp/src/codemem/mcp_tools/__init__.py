@@ -1,1 +1,386 @@
-"""codemem.mcp_tools — placeholder for M1 implementation."""
+"""codemem MCP tools — 6 ported from /index, public surface for the MCP server.
+
+Each tool is a plain Python function returning a JSON-serialisable dict
+so the MCP server layer (Task 1.10) can register them via FastMCP with
+no extra glue. Every tool validates its args via
+:mod:`~codemem.mcp_tools.sanitizers` BEFORE any SQL runs — adversarial
+inputs return structured ``{"error": "..."}`` dicts, not exceptions.
+
+Tools:
+    who_calls         — upstream callers (BFS via canonical CTE)
+    blast_radius      — downstream callees (transitive)
+    dead_code         — symbols with zero incoming call edges
+    dependency_chain  — shortest path from source to target
+    search_symbols    — substring name search
+    file_summary      — per-file symbol listing
+"""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+from pathlib import Path
+from typing import Any
+
+from ..storage import db
+from .queries import BLAST_RADIUS_CTE, WHO_CALLS_CTE
+from .sanitizers import ValidationError, sanitize_path_arg, sanitize_symbol_arg
+
+
+__all__ = [
+    "blast_radius",
+    "dead_code",
+    "dependency_chain",
+    "file_summary",
+    "search_symbols",
+    "who_calls",
+]
+
+
+_DEFAULT_BUDGET = 8_000
+# Conservative char-per-token heuristic. 1 token ≈ 4 chars for English+code.
+_CHARS_PER_TOKEN = 4
+
+
+# ---------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------
+
+def _budget_chars(budget_tokens: int) -> int:
+    return max(budget_tokens, 1) * _CHARS_PER_TOKEN
+
+
+def _exceeds_budget(payload: Any, budget_tokens: int) -> bool:
+    return len(json.dumps(payload, default=str)) > _budget_chars(budget_tokens)
+
+
+def _open_ro(db_path: Path) -> sqlite3.Connection:
+    conn = db.connect(db_path, read_only=True)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _resolve_symbol_ids_by_name(
+    conn: sqlite3.Connection, name: str
+) -> list[int]:
+    """Return ALL symbol IDs for symbols with this unqualified name."""
+    rows = conn.execute("SELECT id FROM symbols WHERE name = ?", (name,)).fetchall()
+    return [r["id"] for r in rows]
+
+
+def _symbol_info_row(row: sqlite3.Row) -> dict:
+    return {
+        "scip_id": row["scip_id"],
+        "name": row["name"],
+        "kind": row["kind"],
+        "file": row["path"],
+        "line": row["line"],
+    }
+
+
+# ---------------------------------------------------------------------
+# who_calls
+# ---------------------------------------------------------------------
+
+def who_calls(
+    db_path: Path,
+    name: str,
+    *,
+    max_depth: int = 3,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """Return upstream callers of ``name`` (by unqualified symbol name)."""
+    try:
+        clean = sanitize_symbol_arg(name)
+    except ValidationError as exc:
+        return {"error": str(exc), "target": name, "callers": []}
+
+    with _open_ro(db_path) as conn:
+        target_ids = _resolve_symbol_ids_by_name(conn, clean)
+        if not target_ids:
+            return {"target": clean, "callers": [], "truncated": False, "error": None}
+
+        caller_ids: set[int] = set()
+        for tid in target_ids:
+            rows = conn.execute(
+                WHO_CALLS_CTE, {"target": tid, "max_depth": max_depth}
+            ).fetchall()
+            caller_ids.update(r["sid"] for r in rows)
+
+        callers: list[dict] = []
+        for cid in caller_ids:
+            row = conn.execute(
+                """
+                SELECT s.scip_id, s.name, s.kind, s.line, f.path
+                FROM symbols s JOIN files f ON s.file_id = f.id
+                WHERE s.id = ?
+                """,
+                (cid,),
+            ).fetchone()
+            if row:
+                callers.append(_symbol_info_row(row))
+
+    callers.sort(key=lambda c: (c["file"], c["line"], c["name"]))
+    return _truncate(
+        {"target": clean, "callers": callers, "error": None},
+        list_key="callers",
+        budget=budget,
+    )
+
+
+# ---------------------------------------------------------------------
+# blast_radius
+# ---------------------------------------------------------------------
+
+def blast_radius(
+    db_path: Path,
+    name: str,
+    *,
+    max_depth: int = 3,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """Return downstream callees of ``name`` transitively."""
+    try:
+        clean = sanitize_symbol_arg(name)
+    except ValidationError as exc:
+        return {"error": str(exc), "target": name, "downstream": []}
+
+    with _open_ro(db_path) as conn:
+        target_ids = _resolve_symbol_ids_by_name(conn, clean)
+        if not target_ids:
+            return {"target": clean, "downstream": [], "truncated": False, "error": None}
+
+        dst_ids: set[int] = set()
+        for tid in target_ids:
+            rows = conn.execute(
+                BLAST_RADIUS_CTE, {"target": tid, "max_depth": max_depth}
+            ).fetchall()
+            dst_ids.update(r["sid"] for r in rows)
+
+        downstream: list[dict] = []
+        for did in dst_ids:
+            row = conn.execute(
+                """
+                SELECT s.scip_id, s.name, s.kind, s.line, f.path
+                FROM symbols s JOIN files f ON s.file_id = f.id
+                WHERE s.id = ?
+                """,
+                (did,),
+            ).fetchone()
+            if row:
+                downstream.append(_symbol_info_row(row))
+
+    downstream.sort(key=lambda d: (d["file"], d["line"], d["name"]))
+    return _truncate(
+        {"target": clean, "downstream": downstream, "error": None},
+        list_key="downstream",
+        budget=budget,
+    )
+
+
+# ---------------------------------------------------------------------
+# dead_code
+# ---------------------------------------------------------------------
+
+def dead_code(
+    db_path: Path,
+    *,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """Return function/method symbols with zero incoming call edges."""
+    with _open_ro(db_path) as conn:
+        rows = conn.execute(
+            """
+            SELECT s.scip_id, s.name, s.kind, s.line, f.path
+            FROM symbols s
+            JOIN files f ON s.file_id = f.id
+            LEFT JOIN edges e ON e.dst_symbol_id = s.id AND e.kind = 'call'
+            WHERE s.kind IN ('function', 'method', 'async_function', 'async_method')
+              AND e.dst_symbol_id IS NULL
+            ORDER BY f.path, s.line
+            """
+        ).fetchall()
+    symbols = [_symbol_info_row(r) for r in rows]
+    return _truncate(
+        {"symbols": symbols, "error": None}, list_key="symbols", budget=budget
+    )
+
+
+# ---------------------------------------------------------------------
+# dependency_chain
+# ---------------------------------------------------------------------
+
+_CHAIN_CTE = """
+WITH RECURSIVE chain(sid, depth, path) AS (
+    SELECT id, 0, CAST(id AS TEXT)
+    FROM symbols WHERE id = :source
+    UNION
+    SELECT e.dst_symbol_id, c.depth + 1, c.path || '->' || e.dst_symbol_id
+    FROM edges e
+    JOIN chain c ON e.src_symbol_id = c.sid
+    WHERE c.depth < :max_depth
+      AND e.kind = 'call'
+      AND e.dst_symbol_id IS NOT NULL
+      AND c.path NOT LIKE '%->' || e.dst_symbol_id
+      AND c.path NOT LIKE '%->' || e.dst_symbol_id || '->%'
+      AND CAST(e.dst_symbol_id AS TEXT) != c.path
+)
+SELECT path, depth FROM chain WHERE sid = :target ORDER BY depth LIMIT 1
+"""
+
+
+def dependency_chain(
+    db_path: Path,
+    source: str,
+    target: str,
+    *,
+    max_depth: int = 5,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """Shortest call-graph path from ``source`` to ``target``."""
+    try:
+        src_clean = sanitize_symbol_arg(source)
+        tgt_clean = sanitize_symbol_arg(target)
+    except ValidationError as exc:
+        return {"error": str(exc), "chain": None}
+
+    with _open_ro(db_path) as conn:
+        src_ids = _resolve_symbol_ids_by_name(conn, src_clean)
+        tgt_ids = _resolve_symbol_ids_by_name(conn, tgt_clean)
+        if not src_ids or not tgt_ids:
+            return {"chain": None, "error": None}
+
+        best_chain: list[int] | None = None
+        for sid in src_ids:
+            for tid in tgt_ids:
+                row = conn.execute(
+                    _CHAIN_CTE,
+                    {"source": sid, "target": tid, "max_depth": max_depth},
+                ).fetchone()
+                if row:
+                    ids = [int(x) for x in row["path"].split("->")]
+                    if best_chain is None or len(ids) < len(best_chain):
+                        best_chain = ids
+
+        if best_chain is None:
+            return {"chain": None, "error": None}
+
+        placeholders = ",".join("?" for _ in best_chain)
+        rows = conn.execute(
+            f"""
+            SELECT s.id, s.scip_id, s.name, s.kind, s.line, f.path
+            FROM symbols s JOIN files f ON s.file_id = f.id
+            WHERE s.id IN ({placeholders})
+            """,
+            best_chain,
+        ).fetchall()
+        by_id = {r["id"]: r for r in rows}
+        chain_rows = [_symbol_info_row(by_id[i]) for i in best_chain if i in by_id]
+
+    return _truncate(
+        {"chain": chain_rows, "error": None}, list_key="chain", budget=budget
+    )
+
+
+# ---------------------------------------------------------------------
+# search_symbols
+# ---------------------------------------------------------------------
+
+def search_symbols(
+    db_path: Path,
+    query: str,
+    *,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """Substring match on symbols.name. Orders by exact > prefix > contains."""
+    try:
+        clean = sanitize_symbol_arg(query)
+    except ValidationError as exc:
+        return {"error": str(exc), "matches": []}
+
+    with _open_ro(db_path) as conn:
+        like = f"%{clean}%"
+        rows = conn.execute(
+            """
+            SELECT s.scip_id, s.name, s.kind, s.line, f.path
+            FROM symbols s JOIN files f ON s.file_id = f.id
+            WHERE s.name LIKE ?
+            ORDER BY
+                CASE
+                    WHEN s.name = ?       THEN 0
+                    WHEN s.name LIKE ?    THEN 1
+                    ELSE 2
+                END,
+                s.name, f.path, s.line
+            """,
+            (like, clean, f"{clean}%"),
+        ).fetchall()
+    matches = [_symbol_info_row(r) for r in rows]
+    return _truncate(
+        {"matches": matches, "error": None}, list_key="matches", budget=budget
+    )
+
+
+# ---------------------------------------------------------------------
+# file_summary
+# ---------------------------------------------------------------------
+
+def file_summary(
+    db_path: Path,
+    path: str,
+    *,
+    budget: int = _DEFAULT_BUDGET,
+    repo_root: Path | None = None,
+) -> dict:
+    """List symbols in ``path`` ordered by source line."""
+    try:
+        sanitize_symbol_arg(path)
+        if repo_root is not None:
+            sanitize_path_arg(path, repo_root)
+    except ValidationError as exc:
+        return {"error": str(exc), "symbols": []}
+
+    with _open_ro(db_path) as conn:
+        rows = conn.execute(
+            """
+            SELECT s.scip_id, s.name, s.kind, s.line, s.signature, f.path
+            FROM symbols s JOIN files f ON s.file_id = f.id
+            WHERE f.path = ?
+            ORDER BY s.line
+            """,
+            (path,),
+        ).fetchall()
+    symbols: list[dict] = []
+    for r in rows:
+        info = _symbol_info_row(r)
+        info["signature"] = r["signature"]
+        symbols.append(info)
+    return _truncate(
+        {"symbols": symbols, "error": None}, list_key="symbols", budget=budget
+    )
+
+
+# ---------------------------------------------------------------------
+# Token-budget enforcement
+# ---------------------------------------------------------------------
+
+def _truncate(payload: dict, *, list_key: str, budget: int) -> dict:
+    """Trim ``payload[list_key]`` until JSON size fits the budget.
+
+    Adds a ``truncated: bool`` field to the payload either way so
+    callers can detect whether results were capped.
+    """
+    items = payload.get(list_key, [])
+    if not _exceeds_budget(payload, budget):
+        return {**payload, "truncated": False}
+
+    lo, hi = 0, len(items)
+    # Binary-search the largest prefix that fits the budget.
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        candidate = {**payload, list_key: items[:mid], "truncated": True}
+        if _exceeds_budget(candidate, budget):
+            hi = mid - 1
+        else:
+            lo = mid
+    return {**payload, list_key: items[:lo], "truncated": True}

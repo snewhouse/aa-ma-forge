@@ -2,7 +2,7 @@
 
 _This file is the highest-priority AA-MA memory artifact. Load FIRST when resuming this task. Facts below are extracted from `codemem-plan.md` v3 and are non-negotiable unless the plan itself is revised._
 
-_Last Updated: 2026-04-13 (Task 1.6)_
+_Last Updated: 2026-04-13 (Task 1.7)_
 
 ---
 
@@ -428,6 +428,30 @@ Module: `codemem.resolver`
 - **Resolver output**: one row per (caller_symbol_id, matched_target_symbol_id, kind); when a callee name matches N targets in N resolved target files, N edges emit (over-emit acceptable per parser grammar v1 ambiguity policy).
 - **Unresolved persistence**: when no target resolves OR no target's symbols match the callee name, the edge is persisted with `dst_unresolved` = callee name string. Schema CHECK guarantees at least one of `dst_symbol_id` / `dst_unresolved` is non-null.
 - **Build-stats counters**: `cross_file_resolved` counts upgraded edges; `cross_file_unresolved` counts dangling ones. Total `edges_inserted = intra_file + cross_file_resolved + cross_file_unresolved`.
+
+---
+
+## MCP Tools Public Surface (pinned, Step 1.7)
+
+Module: `codemem.mcp_tools` — 6 tool functions returning JSON-serialisable dicts.
+
+```python
+who_calls(db_path, name, *, max_depth=3, budget=8000) -> dict
+blast_radius(db_path, name, *, max_depth=3, budget=8000) -> dict
+dead_code(db_path, *, budget=8000) -> dict
+dependency_chain(db_path, source, target, *, max_depth=5, budget=8000) -> dict
+search_symbols(db_path, query, *, budget=8000) -> dict
+file_summary(db_path, path, *, budget=8000, repo_root=None) -> dict
+```
+
+**Contract invariants:**
+- **Read-only**: every tool opens SQLite with `mode=ro`. No tool mutates state.
+- **Sanitization first**: every string arg passes through `sanitize_symbol_arg` or `sanitize_path_arg` BEFORE any SQL. Failure returns `{"error": str, ...}` — never raises.
+- **Budget enforcement**: JSON char-count heuristic (1 token ≈ 4 chars). Binary-search truncation on the primary list; adds `truncated: bool` to payload.
+- **Canonical CTEs**: `who_calls` and `blast_radius` use the pinned CTEs in `codemem.mcp_tools.queries` (WHO_CALLS_CTE, BLAST_RADIUS_CTE). These use the covering indexes (`idx_edges_dst`, `idx_edges_src`) — empirically verified via EXPLAIN QUERY PLAN.
+- **Name resolution policy**: bare-name args resolve to ALL symbols with that name (methods on different classes, overloads across files). `who_calls`/`blast_radius` merge results; `dependency_chain` picks the shortest path across the Cartesian product.
+- **Kind filter for `dead_code`**: only `function`/`method`/`async_function`/`async_method` — classes/type-aliases never flagged dead.
+- **Zero exceptions on bad input**: the adversarial test suite (path traversal, 10KB unicode, SQL injection, regex metachars) returns structured errors; no tool raises under untrusted input.
 
 ---
 

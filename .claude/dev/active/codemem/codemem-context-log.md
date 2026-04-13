@@ -242,3 +242,29 @@ Getting the PRAGMA inside the `with` block would have silently enforced FKs duri
 **No ast-grep import extraction yet**: ast-grep rule files include `*-import` matches but the wrapper doesn't extract module names from them. Reason: parsing import-statement text per language is a separate effort (Go `"fmt"` vs TS `from "react"` vs Rust `use foo::bar::{A, B}`), and it's not on the M1 critical path — the M1 AC only requires `who_calls` on the Python anchor symbol. Deferred explicitly to a v2 ast-grep enhancement; tracked as non-blocking in plan §10 risk #3 ("per-language import handling").
 
 **Unresolved issues**: None blocking. Future: ast-grep import extraction per-language (see above), SequenceMatcher-based callee-name matching for renames (→ Task 2.1).
+
+---
+
+## [2026-04-13] Milestone M1 Task 1.7: 6 MCP tools + sanitization + canonical CTE — COMPLETE
+
+**Decision**: Tools are plain Python functions taking `db_path: Path` (no MCP-server coupling yet). The MCP wrapper in Task 1.10 will adapt their signatures for FastMCP.
+
+**Rationale**: Decoupling the query logic from the MCP protocol means: (a) unit-testable without spinning up a server, (b) callable from the CLI (`codemem query <tool> <args>`), (c) the MCP wrapper becomes a thin signature-adapter, not a reimplementation. KISS + SoC — the transport is not the tool.
+
+**Budget-enforcement heuristic**: JSON char count with 1:4 char-to-token ratio, binary-search truncation. Alternatives considered:
+- `tiktoken` for exact token counts: rejected — new dep (tiktoken has a Rust binary, conflicts with our pure-Python/SQLite stance in plan §2). Adds ~5MB to the wheel for one optional cap.
+- Size-sorted with fixed row cap: rejected — a 200-row result with short rows can weigh less than a 10-row result with verbose ones; row count isn't a reliable proxy for token cost.
+
+**Binary search for truncation**: the naive loop (`while _exceeds_budget: items.pop()`) is O(n·serialize-cost) when the budget-exceeded result has many rows. Binary-search is O(log n·serialize-cost). For a 10k-row result at 8000-token budget, this is the difference between seconds and milliseconds per call. Matters for the M1 `who_calls < 100ms` SLO.
+
+**Canonical CTE verification**: I ran `EXPLAIN QUERY PLAN` manually against a probe DB (/tmp/cte-probe2/repo) as a sanity check — the plan shows `SEARCH edges USING COVERING INDEX idx_edges_dst` at both the SETUP and RECURSIVE STEP, and the only SCAN entries are against in-memory CTE cursors (`SCAN c`, `SCAN callers`). This satisfies the AC's "no table scan" condition — the index is covering, meaning even the scan-shaped `SELECT DISTINCT sid` terminal step never touches the edges row body. The pinned CTE text in `queries.WHO_CALLS_CTE` is byte-equivalent to the reference.md v3 pin.
+
+**Name resolution policy**: When a caller passes a bare name `"run"` and N symbols share that name (e.g. `A.run`, `B.run`, `C.run`), the tool merges upstream/downstream results across all N. This can over-emit but matches v1's "parser over-emits, query layer may dedupe" contract (see Task 1.3 context-log). A future MCP tool option `--disambiguate=scip-id` could let callers pin a specific target, but v1 ships with the merged behaviour — it's the common case for exploratory agent queries.
+
+**Read-only connection strictness**: All six tools open SQLite with `mode=ro`. No accidental writes possible even under exploitation — the DB file itself enforces via the URI. This is belt-and-braces alongside the sanitization layer: even if a sanitization bypass were found, the read-only connection would block mutation.
+
+**`dependency_chain` SRC×TGT search**: When both source and target names are ambiguous, we Cartesian-iterate. For typical call chains in M1 this is bounded (<5×5); if it becomes a hotspot, Task 2.2 can add a `dedup_by_shortest_prefix` pre-pass.
+
+**`dead_code` kind filter**: Restricted to `function` / `method` / `async_function` / `async_method`. Classes and type aliases are deliberately NOT flagged dead — they're instantiated/imported, and detecting "unused class" needs a different signal (import edges, which M2 adds when we extend the resolver for ast-grep languages).
+
+**Unresolved issues**: None blocking. Task 1.7's canonical CTE is the contract for every future call-graph walker (M3's `hot_spots` et al. will reuse it).

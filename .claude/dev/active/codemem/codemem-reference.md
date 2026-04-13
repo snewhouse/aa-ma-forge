@@ -2,7 +2,7 @@
 
 _This file is the highest-priority AA-MA memory artifact. Load FIRST when resuming this task. Facts below are extracted from `codemem-plan.md` v3 and are non-negotiable unless the plan itself is revised._
 
-_Last Updated: 2026-04-13 (Task 1.7)_
+_Last Updated: 2026-04-13 (Task 1.8)_
 
 ---
 
@@ -452,6 +452,41 @@ file_summary(db_path, path, *, budget=8000, repo_root=None) -> dict
 - **Name resolution policy**: bare-name args resolve to ALL symbols with that name (methods on different classes, overloads across files). `who_calls`/`blast_radius` merge results; `dependency_chain` picks the shortest path across the Cartesian product.
 - **Kind filter for `dead_code`**: only `function`/`method`/`async_function`/`async_method` — classes/type-aliases never flagged dead.
 - **Zero exceptions on bad input**: the adversarial test suite (path traversal, 10KB unicode, SQL injection, regex metachars) returns structured errors; no tool raises under untrusted input.
+
+---
+
+## PROJECT_INTEL.json Schema v1 (pinned, Step 1.8)
+
+Schema header: `codemem/project-intel@1`. Writer: `codemem.pagerank.write_project_intel`.
+
+```json
+{
+  "_meta": {
+    "schema": "codemem/project-intel@1",
+    "budget": 1024,
+    "damping": 0.85,
+    "total_symbols": 321,
+    "written_symbols": 89
+  },
+  "symbols": [
+    {
+      "scip_id": "codemem . /packages/.../foo.py#bar",
+      "name": "bar",
+      "kind": "function",
+      "file": "packages/.../foo.py",
+      "line": 42,
+      "rank": 0.07321
+    }
+  ]
+}
+```
+
+**Contract invariants:**
+- Serialised with `separators=(",", ":"), sort_keys=True` for byte-level determinism.
+- Primary sort: descending `rank`. Secondary tie-break: `_KIND_PRIORITY` (function=0, method=1, class=2, type_alias=3) → file → line → name.
+- `symbols` list is truncated via binary search over char count ≤ `budget × 4` (1:4 token:char).
+- Trailing newline always present (POSIX text-file convention, git-friendly).
+- Schema version bump (v1→v2) required for any change to the `symbols` entry shape or `_meta` keys.
 
 ---
 

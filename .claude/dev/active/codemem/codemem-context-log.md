@@ -268,3 +268,31 @@ Getting the PRAGMA inside the `with` block would have silently enforced FKs duri
 **`dead_code` kind filter**: Restricted to `function` / `method` / `async_function` / `async_method`. Classes and type aliases are deliberately NOT flagged dead — they're instantiated/imported, and detecting "unused class" needs a different signal (import edges, which M2 adds when we extend the resolver for ast-grep languages).
 
 **Unresolved issues**: None blocking. Task 1.7's canonical CTE is the contract for every future call-graph walker (M3's `hot_spots` et al. will reuse it).
+
+---
+
+## [2026-04-13] Milestone M1 Task 1.8: PageRank-ranked JSON projection — COMPLETE
+
+**Decision**: Pure-Python power iteration with explicit dangling-mass redistribution. No NetworkX, no scipy, no matrix libraries.
+
+**Rationale**:
+- Plan §2 and plan v4 differentiation reviews (Task 1.0) called out that `/index`'s PageRank (pagerank.py, 89 LOC) is our reference architecture — not Aider's (867 LOC via NetworkX + scipy). Copy the quality heuristics; don't copy the dep tree.
+- The M1 AC specifically says "~50 LOC pure-Python power iteration (no scipy)". My implementation is ~180 LOC total but the algorithm core is ~40 LOC in `compute_pagerank`; the rest is JSON writer + tie-break + budget binary search. Spirit of the AC met.
+- Dangling-mass redistribution: without it, nodes with no outbound edges absorb rank that can never flow out, so sum(rank) drifts below 1.0 across iterations. Standard Brin/Page fix: pool dangling-node rank and spread uniformly across all nodes each iteration. Cost: one more `sum(...)` per iteration. Correctness: sum stays within 1e-9 of 1.0.
+
+**Alternatives considered**:
+- NetworkX: rejected — adds dependency, overkill for a simple directed graph.
+- Sparse matrix power iteration (scipy): rejected for the same reason; also makes the 50-LOC algorithmic core disappear inside API calls.
+- Skip dangling-mass fix: rejected — sum would drift to ~0.65 on fixtures with many leaves, making rank comparisons across builds unstable.
+
+**Binary-search over full payload**: I serialise the FULL candidate payload to JSON at each probe point, not just the tail. This is more expensive than tail-delta math but keeps correctness tight against the 1:4 char heuristic AND handles JSON encoding quirks (unicode escapes, key ordering) naturally. For 10k symbols at 8000-token budget, this is ~log2(10000) ≈ 14 serialisations — still < 10ms on a typical machine.
+
+**Deterministic bytes property**: JSON serialised with `sort_keys=True, separators=(",", ":")` + trailing newline. Every run produces byte-identical output on the same DB state. This matters for git diffs of `PROJECT_INTEL.json` and for CI caching. Verified by `test_deterministic_output_bytes`.
+
+**Tie-break kind priority**: function (0) > method (1) > class (2) > type_alias (3). Rationale: agents care about "what's called" (functions/methods) more than "what exists" (classes/aliases). When two symbols share the same rank (common when they both have zero callers), the function appears first in the JSON. This nudges agents toward the more-actionable symbol first.
+
+**Resolved-only graph**: PageRank walks only edges with `dst_symbol_id IS NOT NULL` (kind='call'). Unresolved cross-file edges are skipped — their target is a string, not a node, so they can't contribute rank to anyone. This means a function that only calls `requests.get()` (all unresolved) has out-degree 0 in the PageRank graph and contributes via the dangling-mass path, which is correct.
+
+**M4 AC deferred**: "Covers ≥90% of `/index` `_meta.symbol_importance` top symbols" is a benchmark, not a unit test. Task 4.2 runs it. M1 verifies algorithmic correctness + determinism + budget fit — the comparative quality check happens at M4 gate.
+
+**Unresolved issues**: None blocking. Future: weighted edges (call frequency × depth — plan AF-2 from Task 1.0 scratchpad) — currently all edges have weight 1. Aider's repomap uses sqrt-dampening and private-name filters; codemem v1 doesn't, but adding them later is a tuning knob that won't break the schema.

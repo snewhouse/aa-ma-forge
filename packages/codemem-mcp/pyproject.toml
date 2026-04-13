@@ -1,0 +1,51 @@
+[project]
+name = "codemem-mcp"
+version = "0.1.0.dev0"
+description = "Lightweight codebase intelligence MCP tool for Claude Code — 12 MCP tools, pure-Python + ast-grep + SQLite, no embeddings."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [
+    { name = "Stephen J Newhouse", email = "stephen.j.newhouse@gmail.com" },
+]
+keywords = ["mcp", "claude-code", "code-intelligence", "ast-grep", "codebase-search"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Topic :: Software Development",
+]
+
+dependencies = [
+    "ast-grep-cli>=0.42,<0.43",
+    "fastmcp>=2.0",
+]
+
+[project.scripts]
+codemem = "codemem.cli:main"
+codemem-cli = "codemem.cli:main"
+codemem-mcp-server = "codemem.mcp_server:serve"
+
+[project.urls]
+Homepage = "https://github.com/snewhouse/aa-ma-forge"
+Repository = "https://github.com/snewhouse/aa-ma-forge"
+Issues = "https://github.com/snewhouse/aa-ma-forge/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/codemem"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/codemem/**",
+    "pyproject.toml",
+    "README.md",
+    "LICENSE",
+]

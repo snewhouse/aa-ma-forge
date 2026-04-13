@@ -62,7 +62,7 @@ This plan evolves `/index`'s strengths and adopts targeted ideas from `repowise`
   PRAGMA cache_size=-65536;
   PRAGMA mmap_size=268435456;
   PRAGMA temp_store=MEMORY;
-  PRAGMA application_id=0xC0DE3E33;
+  PRAGMA application_id=0x434D454D;  -- 'CMEM' ASCII (was 0xC0DE3E33 in plan v3; signed-int32 overflow caught during Task 1.2 test)
 
   CREATE TABLE files (
     id INTEGER PRIMARY KEY,

@@ -64,7 +64,7 @@ PRAGMA busy_timeout=5000;
 PRAGMA cache_size=-65536;
 PRAGMA mmap_size=268435456;
 PRAGMA temp_store=MEMORY;
-PRAGMA application_id=0xC0DE3E33;
+PRAGMA application_id=0x434D454D;  -- 'CMEM' ASCII, fits signed int32 (was 0xC0DE3E33 in plan draft — overflowed, corrected at Task 1.2 implementation)
 ```
 
 Read-side MCP connections use `sqlite://…?mode=ro`.

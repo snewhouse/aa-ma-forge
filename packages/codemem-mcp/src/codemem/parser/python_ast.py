@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterable
 
 
@@ -72,6 +72,13 @@ class CallEdge:
 class ParseResult:
     symbols: list[Symbol]
     edges: list[CallEdge]
+    # Module names imported at file-top (Task 1.6 cross-file resolver input).
+    # For ``import a.b`` / ``from a.b import c`` both emit ``a.b``.
+    imports: list[str] = field(default_factory=list)
+    # Cross-file call candidates: edges whose target isn't a same-file symbol.
+    # ``dst_unresolved`` is populated; ``dst_scip_id`` is ``None``. The
+    # resolver (Task 1.6) consumes these and upgrades what it can match.
+    unresolved_edges: list[CallEdge] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------
@@ -100,6 +107,17 @@ def extract_python_signatures(
         tree = ast.parse(source)
     except SyntaxError:
         return ParseResult(symbols=[], edges=[])
+
+    # Extract imports from the module top-level. ``import a.b`` and
+    # ``from a.b import c`` both contribute the dotted module ``a.b``.
+    imports: list[str] = []
+    for node in tree.body:
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imports.append(alias.name)
+        elif isinstance(node, ast.ImportFrom):
+            if node.module:
+                imports.append(node.module)
 
     symbols: list[Symbol] = []
     # Preserve the original FunctionDef/AsyncFunctionDef AST node alongside
@@ -191,8 +209,10 @@ def extract_python_signatures(
 
     resolvable = set(name_to_ids)
     edges: list[CallEdge] = []
+    unresolved_edges: list[CallEdge] = []
     for func_node, src_scip_id in function_nodes:
-        for callee_name in _extract_call_names(func_node.body, resolvable):
+        intra, extra = _extract_call_names(func_node.body, resolvable)
+        for callee_name in intra:
             for dst_scip_id in name_to_ids[callee_name]:
                 edges.append(
                     CallEdge(
@@ -202,8 +222,22 @@ def extract_python_signatures(
                         kind="call",
                     )
                 )
+        for callee_name in extra:
+            unresolved_edges.append(
+                CallEdge(
+                    src_scip_id=src_scip_id,
+                    dst_scip_id=None,
+                    dst_unresolved=callee_name,
+                    kind="call",
+                )
+            )
 
-    return ParseResult(symbols=symbols, edges=edges)
+    return ParseResult(
+        symbols=symbols,
+        edges=edges,
+        imports=imports,
+        unresolved_edges=unresolved_edges,
+    )
 
 
 # ---------------------------------------------------------------------
@@ -304,23 +338,41 @@ def _build_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
 def _extract_call_names(
     body: Iterable[ast.stmt],
     resolvable: set[str],
-) -> set[str]:
-    """Return unique callee names referenced in ``body`` that match a
-    same-file symbol (filters built-ins for bare-name calls).
+) -> tuple[set[str], set[str]]:
+    """Return ``(intra, extra)`` unique callee names from ``body``.
+
+    * ``intra``: bare or attribute calls whose name matches a same-file
+      symbol. These become resolved intra-file edges.
+    * ``extra``: bare-name calls NOT in ``resolvable`` and NOT in the
+      built-in exclusion list. Attribute calls whose attr doesn't match
+      a same-file symbol are recorded ONLY when the receiver is a plain
+      Name (cross-module-attribute pattern like ``mod.func()``); unknown
+      method chains (``self.foo().bar()``) are not emitted because their
+      receiver type is ambiguous at parse time.
+
+    Both return sets filter out the ``_CALL_EXCLUDE`` built-ins for
+    bare-name calls — those are never emitted at either layer.
     """
-    names: set[str] = set()
+    intra: set[str] = set()
+    extra: set[str] = set()
     for node in ast.walk(ast.Module(body=list(body), type_ignores=[])):
         if not isinstance(node, ast.Call):
             continue
         func = node.func
         if isinstance(func, ast.Name):
             n = func.id
-            if n in resolvable and n not in _CALL_EXCLUDE:
-                names.add(n)
+            if n in _CALL_EXCLUDE:
+                continue
+            if n in resolvable:
+                intra.add(n)
+            else:
+                extra.add(n)
         elif isinstance(func, ast.Attribute):
-            # ``self.helper()`` / ``cls.helper()`` / ``module.helper()`` —
-            # resolve by attribute name against same-file symbols.
             n = func.attr
             if n in resolvable:
-                names.add(n)
-    return names
+                intra.add(n)
+            elif isinstance(func.value, ast.Name):
+                # ``module.func()`` — receiver is a plain name. The
+                # resolver can try to match against imported modules.
+                extra.add(n)
+    return intra, extra

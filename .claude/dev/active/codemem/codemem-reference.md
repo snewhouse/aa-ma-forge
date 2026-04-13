@@ -2,7 +2,7 @@
 
 _This file is the highest-priority AA-MA memory artifact. Load FIRST when resuming this task. Facts below are extracted from `codemem-plan.md` v3 and are non-negotiable unless the plan itself is revised._
 
-_Last Updated: 2026-04-13 (Task 1.5)_
+_Last Updated: 2026-04-13 (Task 1.6)_
 
 ---
 
@@ -414,6 +414,20 @@ Module: `codemem.indexer`
 - **Discovery fallback**: `git ls-files` is preferred (free `.gitignore` respect); rglob fallback for non-git directories. Unsupported extensions are filtered at discovery, never passed to the parsers.
 - **File paths**: `files.path` stores the POSIX-normalized path relative to repo_root. This is the join key across queries, the idempotency key for re-index, and the input to SCIP-ID construction.
 - **Parser dispatch**: `.py` → stdlib `python_ast`; all other supported extensions → batched `ast_grep`. Python parse errors are counted in `BuildStats.python_parse_errors` (non-fatal).
+
+---
+
+## 4-Strategy Cross-File Resolver (pinned, Step 1.6)
+
+Module: `codemem.resolver`
+
+- **Strategy order**: direct → relative-to-source-dir → package-prefix (`src.`/`scripts.`/`lib.`/`app.`) → suffix-match. First-hit wins; never resolves to source file itself.
+- **Import map**: `file_paths` → `{dotted_name: file_path}`. Python-only for v1. `__init__.py` registers both `pkg.__init__` and `pkg` (package-level shortcut).
+- **Parser contract**: `ParseResult.imports` = dotted module names from `ast.Import` + `ast.ImportFrom`. `ParseResult.unresolved_edges` = cross-file call candidates (`dst_unresolved` populated, `dst_scip_id=None`). These are disjoint from `ParseResult.edges` (intra-file resolved).
+- **Built-in filter**: `_CALL_EXCLUDE` (print, len, str, ...) applied in `_extract_call_names` — never leaks to either edge list.
+- **Resolver output**: one row per (caller_symbol_id, matched_target_symbol_id, kind); when a callee name matches N targets in N resolved target files, N edges emit (over-emit acceptable per parser grammar v1 ambiguity policy).
+- **Unresolved persistence**: when no target resolves OR no target's symbols match the callee name, the edge is persisted with `dst_unresolved` = callee name string. Schema CHECK guarantees at least one of `dst_symbol_id` / `dst_unresolved` is non-null.
+- **Build-stats counters**: `cross_file_resolved` counts upgraded edges; `cross_file_unresolved` counts dangling ones. Total `edges_inserted = intra_file + cross_file_resolved + cross_file_unresolved`.
 
 ---
 

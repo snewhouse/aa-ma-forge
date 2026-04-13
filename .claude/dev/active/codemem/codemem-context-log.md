@@ -216,3 +216,29 @@ Getting the PRAGMA inside the `with` block would have silently enforced FKs duri
 **Alternative considered**: in-memory `sg run` with batched stdin via `--input=stdin`: rejected — ast-grep's stdin mode parses a single input, not a list of files. Sticking with file-args path dispatch.
 
 **Unresolved issues**: None blocking. The anchor symbol `extract_python_signatures` is now queryable via `SELECT * FROM symbols WHERE name = 'extract_python_signatures'` after `build_index`. Task 1.7 will wrap this as `who_calls(name)`.
+
+---
+
+## [2026-04-13] Milestone M1 Task 1.6: Cross-file edge resolution — COMPLETE
+
+**Decision**: Separate-field design for the ParseResult — add `imports: list[str]` + `unresolved_edges: list[CallEdge]` as NEW default-empty fields, rather than mixing cross-file candidates into the existing `edges` list.
+
+**Rationale**:
+- Backward compat: every existing test assertion like `result.edges == []` and `result.edges[0].dst_scip_id == "..."` keeps its contract. The intra-file call graph stays a first-class, cleanly-typed slice.
+- Separation of concerns: `edges` = resolved intra-file facts from the parser's local view; `unresolved_edges` = "parser saw a call; resolver go figure out where it lives." The two layers stay decoupled.
+- The resolver post-processes `unresolved_edges` exclusively — it never touches the already-resolved intra-file edges. This makes the resolver re-runnable (Task 2.2 incremental refresh can re-run the resolver without double-counting intra-file edges).
+
+**Alternatives considered**:
+- One `edges` list mixing resolved + unresolved: rejected — broke existing tests and blurred the parser/resolver boundary.
+- Resolver re-parses files to extract imports: rejected — wasteful. Parser already has the `ast.Module` tree in hand.
+- Strategy weights / confidence scores: rejected for v1 — `/index`'s first-hit-wins is simple, deterministic, and the M3 agents can query for ambiguity themselves if they care.
+
+**Trade-off**: Over-emission when a callee name matches multiple symbols across resolved target files (e.g. `foo` defined in both `a.py` AND `b.py`, and caller imports both — emits two edges). This matches the v1 parser policy of emitting one edge per same-named target. A future refinement could prefer the target matching the import statement that specifically names the callee (`from a import foo` vs `import a; import b`), but v1 over-emission is the safer default — query layer dedup is acceptable.
+
+**Built-in filter placement**: The `_CALL_EXCLUDE` filter moved into `_extract_call_names` (bare-name calls only; attribute calls like `list.append` go through). This means `print(x)` produces zero edges (no intra, no cross-file), as does `len(x)`, `range(10)`, etc. Previously the filter was applied after intra-file resolution; now it's at the call-extraction layer, so built-ins never leak to the resolver either. This correctly keeps `dst_unresolved='len'` from ever being persisted.
+
+**Receiver-filter for cross-file attribute calls**: Introduced `elif isinstance(func.value, ast.Name)` guard. Only emits cross-file candidates when the attribute-call receiver is a plain name (e.g. `requests.get()` — receiver `requests`). Chains like `self.foo().bar()` and `obj.method().other()` are skipped because the receiver type is ambiguous at parse time. Without this guard, every chained method call in the codebase would fire an unresolved edge, polluting the edge table.
+
+**No ast-grep import extraction yet**: ast-grep rule files include `*-import` matches but the wrapper doesn't extract module names from them. Reason: parsing import-statement text per language is a separate effort (Go `"fmt"` vs TS `from "react"` vs Rust `use foo::bar::{A, B}`), and it's not on the M1 critical path — the M1 AC only requires `who_calls` on the Python anchor symbol. Deferred explicitly to a v2 ast-grep enhancement; tracked as non-blocking in plan §10 risk #3 ("per-language import handling").
+
+**Unresolved issues**: None blocking. Future: ast-grep import extraction per-language (see above), SequenceMatcher-based callee-name matching for renames (→ Task 2.1).

@@ -23,6 +23,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import resolver as _resolver
 from .parser import ast_grep, python_ast
 from .parser.python_ast import ParseResult
 from .storage import db
@@ -45,6 +46,8 @@ class BuildStats:
     files_indexed: int = 0
     symbols_inserted: int = 0
     edges_inserted: int = 0
+    cross_file_resolved: int = 0
+    cross_file_unresolved: int = 0
     elapsed_seconds: float = 0.0
     python_parse_errors: int = 0
 
@@ -355,6 +358,9 @@ def build_index(
             symbols_inserted = _bulk_insert_symbols(conn, parses, path_to_fid)
             _resolve_parent_ids(conn, parses)
             edges_inserted = _bulk_insert_edges(conn, parses)
+            resolver_stats = _resolver.resolve_cross_file_edges(
+                conn, parses=parses
+            )
 
         # Re-enable FK enforcement and verify nothing slipped past.
         conn.execute("PRAGMA foreign_keys = ON")
@@ -372,7 +378,11 @@ def build_index(
     return BuildStats(
         files_indexed=len(parses),
         symbols_inserted=symbols_inserted,
-        edges_inserted=edges_inserted,
+        edges_inserted=edges_inserted
+        + resolver_stats["resolved"]
+        + resolver_stats["unresolved"],
+        cross_file_resolved=resolver_stats["resolved"],
+        cross_file_unresolved=resolver_stats["unresolved"],
         elapsed_seconds=time.monotonic() - t0,
         python_parse_errors=py_errors,
     )

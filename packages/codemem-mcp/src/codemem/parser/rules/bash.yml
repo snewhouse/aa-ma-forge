@@ -1,0 +1,11 @@
+# codemem Bash rules — Task 1.4 (M1)
+# Bash coverage is deliberately limited to function definitions per the
+# SCIP grammar v1 (symbol-id-grammar.md §Bash).
+#
+id: sh-function-def
+language: Bash
+rule:
+  kind: function_definition
+  has:
+    kind: word
+    pattern: $NAME

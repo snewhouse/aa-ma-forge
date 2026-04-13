@@ -1,0 +1,38 @@
+# codemem Go rules — Task 1.4 (M1)
+#
+id: go-function-def
+language: Go
+rule:
+  kind: function_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: go-method-def
+language: Go
+rule:
+  kind: method_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: go-struct-def
+language: Go
+rule:
+  kind: type_spec
+  has:
+    field: name
+    pattern: $NAME
+  all:
+    - has:
+        kind: struct_type
+---
+id: go-import
+language: Go
+rule:
+  kind: import_declaration
+---
+id: go-call
+language: Go
+rule:
+  kind: call_expression

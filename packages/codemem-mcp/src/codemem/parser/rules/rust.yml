@@ -1,0 +1,28 @@
+# codemem Rust rules — Task 1.4 (M1)
+# Macro definitions deliberately excluded — see symbol-id-grammar.md v1.
+#
+id: rs-function-def
+language: Rust
+rule:
+  kind: function_item
+  has:
+    field: name
+    pattern: $NAME
+---
+id: rs-struct-def
+language: Rust
+rule:
+  kind: struct_item
+  has:
+    field: name
+    pattern: $NAME
+---
+id: rs-import
+language: Rust
+rule:
+  kind: use_declaration
+---
+id: rs-call
+language: Rust
+rule:
+  kind: call_expression

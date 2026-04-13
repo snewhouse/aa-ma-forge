@@ -166,3 +166,25 @@ satisfies the pre-requisite for the M1 acceptance criterion
 `who_calls("extract_python_signatures") < 100ms` (tested in Task 1.7).
 
 **Unresolved issues**: None blocking. Deferred: nested function symbol emission (→ v2 grammar), signature-without-decorators alternative (→ M2 diff evaluation).
+
+---
+
+## [2026-04-13] Milestone M1 Task 1.4: ast-grep parser via subprocess + batching — COMPLETE
+
+**Decision**: Use `sg scan -r RULE --json=stream --include-metadata` rather than `sg run`. Probed real binary to confirm — `sg run` is pattern-based (single pattern via `-p`), `sg scan` accepts rule YAML files and supports multi-rule docs via `---` separators. The AC loosely says "sg run --json=stream" but the correct form for rule-file dispatch is scan.
+
+**Rationale**: Rule files are the only way to batch multiple kinds (function / class / method / import / call) in one invocation. `--include-metadata` is required to expose the `$NAME` metavariable capture; without it, only match text/range is returned and we'd have to re-parse the snippet to extract names.
+
+**Alternatives considered**:
+- One `sg scan` invocation per kind (5 per language = 35 total): rejected — subprocess overhead ~30ms each compounds on big repos.
+- `--inline-rules` instead of rule files: rejected — losing the ability to grep/review checked-in rules is a DX regression.
+- Emit call edges from ast-grep matches: rejected for Task 1.4 — ast-grep matches carry no parent-function-body scope, so resolving `foo()` to a definition at match-time is guess-work. Task 1.6 gets the full symbol table and can resolve deterministically.
+- Full YAML rule pack per language (annotations, docstrings, etc.): rejected — M1 AC is the 5 kinds, YAGNI for anything more until M3 tools need it.
+
+**Trade-off**: Orphan methods (e.g. TypeScript object-literal shorthand `{ render() {...} }`) are silently skipped. They'd need a separate kind discriminator (`property_identifier` in an `object_literal`) and we don't have a Symbol shape for "member of anonymous object." V2 can revisit if this produces noticeable recall misses in real repos.
+
+**languageGlobs handling**: The AC specifies `languageGlobs` for `.ts` ↔ `.tsx`. Implementation approach: treat TypeScript and Tsx as distinct ast-grep languages with separate rule files. Empirical probe of the v0.42.1 binary confirmed a TypeScript rule does NOT match a `.tsx` file (the sg grammar dispatch routes on filename extension → language → rule-language match). This satisfies the AC intent without us needing a custom `sgconfig.yml` globs block — the filename-based dispatch already does it.
+
+**Container-kind unification**: `class_declaration`, `interface_declaration`, `struct_item`, `module` (Ruby), `type_alias_declaration` all emit `Symbol.kind="class"` with the `#` SCIP marker. The wrapper's `_KIND_BY_RULE_SUFFIX` collapses them. Rationale: the edges/who_calls layer treats them identically — all are "things methods hang off of." Preserving per-language distinctions would bloat the symbols.kind vocabulary for zero query benefit.
+
+**Unresolved issues**: None blocking. Deferred: anonymous class synthetic `$N` naming (documented in grammar doc but not implemented — Java-only edge case, revisit if tests surface it), import/call edge emission (→ Task 1.6).

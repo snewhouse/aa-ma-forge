@@ -1,0 +1,35 @@
+# codemem JavaScript rules — Task 1.4 (M1)
+#
+id: js-function-def
+language: JavaScript
+rule:
+  kind: function_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: js-class-def
+language: JavaScript
+rule:
+  kind: class_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: js-method-def
+language: JavaScript
+rule:
+  kind: method_definition
+  has:
+    field: name
+    pattern: $NAME
+---
+id: js-import
+language: JavaScript
+rule:
+  kind: import_statement
+---
+id: js-call
+language: JavaScript
+rule:
+  kind: call_expression

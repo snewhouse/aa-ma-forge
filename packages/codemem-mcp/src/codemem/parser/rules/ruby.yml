@@ -1,0 +1,30 @@
+# codemem Ruby rules — Task 1.4 (M1)
+#
+id: rb-class-def
+language: Ruby
+rule:
+  kind: class
+  has:
+    field: name
+    pattern: $NAME
+---
+id: rb-module-def
+language: Ruby
+rule:
+  kind: module
+  has:
+    field: name
+    pattern: $NAME
+---
+id: rb-method-def
+language: Ruby
+rule:
+  kind: method
+  has:
+    field: name
+    pattern: $NAME
+---
+id: rb-call
+language: Ruby
+rule:
+  kind: call

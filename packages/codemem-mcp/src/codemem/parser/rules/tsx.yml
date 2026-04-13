@@ -1,0 +1,53 @@
+# codemem TSX rules — Task 1.4 (M1)
+# Identical shape to typescript.yml, distinct language (Tsx) so ast-grep's
+# tree-sitter-tsx grammar handles JSX syntax correctly.
+#
+id: tsx-function-def
+language: Tsx
+rule:
+  kind: function_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: tsx-class-def
+language: Tsx
+rule:
+  kind: class_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: tsx-interface-def
+language: Tsx
+rule:
+  kind: interface_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: tsx-type-alias
+language: Tsx
+rule:
+  kind: type_alias_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: tsx-method-def
+language: Tsx
+rule:
+  kind: method_definition
+  has:
+    field: name
+    pattern: $NAME
+---
+id: tsx-import
+language: Tsx
+rule:
+  kind: import_statement
+---
+id: tsx-call
+language: Tsx
+rule:
+  kind: call_expression

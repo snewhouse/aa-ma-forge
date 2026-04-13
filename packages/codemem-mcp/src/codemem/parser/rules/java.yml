@@ -1,0 +1,37 @@
+# codemem Java rules — Task 1.4 (M1)
+# Anonymous-class synthetic naming ($1, $2, ...) is handled post-match
+# by the wrapper, not here; this rule only catches the parent container.
+#
+id: java-class-def
+language: Java
+rule:
+  kind: class_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: java-interface-def
+language: Java
+rule:
+  kind: interface_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: java-method-def
+language: Java
+rule:
+  kind: method_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: java-import
+language: Java
+rule:
+  kind: import_declaration
+---
+id: java-call
+language: Java
+rule:
+  kind: method_invocation

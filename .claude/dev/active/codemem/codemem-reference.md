@@ -2,7 +2,7 @@
 
 _This file is the highest-priority AA-MA memory artifact. Load FIRST when resuming this task. Facts below are extracted from `codemem-plan.md` v3 and are non-negotiable unless the plan itself is revised._
 
-_Last Updated: 2026-04-13 (Task 1.3)_
+_Last Updated: 2026-04-13 (Task 1.4)_
 
 ---
 
@@ -387,6 +387,20 @@ def extract_python_signatures(
 - On ambiguous name match (same-named methods across sibling classes), emit one edge per target — v1 over-emits by design; query-layer dedupe acceptable.
 - `SyntaxError` → empty `ParseResult`. No regex fallback here; ast-grep wrapper (Task 1.4) handles broader cases.
 - Signature format is stable — any change to `_build_signature` invalidates M2 `signature_hash` diffing and requires a schema migration plan.
+
+---
+
+## ast-grep Wrapper Invariants (pinned, Step 1.4)
+
+Module: `codemem.parser.ast_grep`
+
+- **Subprocess form**: `sg scan -r <RULE_YAML> --json=stream --include-metadata <FILES...>`. `sg run` is pattern-based and reserved for ad-hoc queries; `sg scan` takes rule files.
+- **Per-language batching**: one subprocess per language. All files of that language pass as positional args in a single invocation. Empirically verified.
+- **`.ts` vs `.tsx` split**: TypeScript and Tsx are distinct ast-grep languages. Never combine their rules or files — a TypeScript rule does NOT match a `.tsx` file. Rule filenames and the `SUPPORTED_LANGUAGES` map must agree.
+- **Rule-id contract**: rules end with one of `-function-def`, `-class-def`, `-interface-def`, `-struct-def`, `-module-def`, `-type-alias`, `-method-def`, `-import`, `-call`. The wrapper's `_KIND_BY_RULE_SUFFIX` dispatches on these suffixes. Adding a new kind requires updating the map AND the grammar doc.
+- **Parent inference**: methods find their enclosing container by line-range containment (`pstart < m.line AND m.end_line <= pend`). Innermost wins. Orphan methods (no enclosing class) are skipped, not emitted with `None` parents.
+- **Edge emission**: `extract_with_ast_grep` returns `edges=[]` always. Imports + calls are deferred to Task 1.6 (cross-file resolver) because ast-grep matches carry no scope context for local-call resolution.
+- **SCIP language scope**: rule files ship for the 7 AC-declared languages (TypeScript, Tsx, JavaScript, Go, Rust, Java, Ruby, Bash). Adding a language requires: (a) `SUPPORTED_LANGUAGES` entry, (b) `_RULE_FILE_BY_LANG` entry, (c) new `rules/*.yml`, (d) grammar-doc example, (e) `TestRuleFilesShipped` parametrization.
 
 ---
 

@@ -1,0 +1,58 @@
+# codemem TypeScript rules — Task 1.4 (M1)
+# Covers AC kinds: function_definition, class_definition, method_definition,
+# import_statement, call_expression. Each rule captures the symbol NAME into
+# a $NAME metavariable so the wrapper can emit SCIP IDs.
+#
+# tree-sitter-typescript node-kind reference:
+#   function_declaration, class_declaration, method_definition,
+#   import_statement, call_expression.
+#
+id: ts-function-def
+language: TypeScript
+rule:
+  kind: function_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: ts-class-def
+language: TypeScript
+rule:
+  kind: class_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: ts-interface-def
+language: TypeScript
+rule:
+  kind: interface_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: ts-type-alias
+language: TypeScript
+rule:
+  kind: type_alias_declaration
+  has:
+    field: name
+    pattern: $NAME
+---
+id: ts-method-def
+language: TypeScript
+rule:
+  kind: method_definition
+  has:
+    field: name
+    pattern: $NAME
+---
+id: ts-import
+language: TypeScript
+rule:
+  kind: import_statement
+---
+id: ts-call
+language: TypeScript
+rule:
+  kind: call_expression

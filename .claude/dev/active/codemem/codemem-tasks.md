@@ -5,10 +5,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 ---
 
 ## Milestone M1: Foundation (shippable as v0.1)
-- Status: PENDING
+- Status: ACTIVE
 - Gate: SOFT
 - Dependencies: None
 - Complexity: 70%
+- Started: 2026-04-13
 - Acceptance Criteria (per plan §4 M1):
   - `codemem build` on aa-ma-forge produces SQLite DB + `PROJECT_INTEL.json` ≤ 5KB
   - `codemem build` on `~/.claude-code-project-index/` (~10k LOC Python) completes in < 30s cold cache, < 5s warm cache (enforced by `tests/perf/`)
@@ -22,11 +23,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
   - `.gitignore` contains `.codemem/` line
 
 ### Task 1.0: Pre-flight reading + packaging spike + design scratchpad
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria: `docs/codemem/design-scratchpad.md` committed capturing 5 readings (Aider repomap.py, `/index` pagerank.py, repowise symbol_diff, GitNexus last 30 days of issues, lessons.md L-052) + chosen packaging structure (one of: hatchling workspace / packages subdir / hatch build hook); packaging decision reflected in Step 1.1; any plan-altering findings flagged in `codemem-context-log.md`.
-- Result Log:
+- Result Log: COMPLETE 2026-04-13. All 5 readings done via 4 parallel research agents + local L-052 review. Packaging Option B chosen (uv workspace with `packages/codemem-mcp/`), prototype validated at `/tmp/codemem-spike/`. 14 plan-altering findings classified in `docs/codemem/design-scratchpad.md` (2 CRITICAL + 3 HIGH + 5 MED + 4 LOW/INFO). Plan v3 → v4 updates applied to §2 (differentiation rewritten around edge weighting + binary search + SCIP + no truncation; /index is already symbol-level) and Step 1.1 (new source tree structure). AF-7/8/9 (symbol-diff simplification), AF-11 (tool aliases), AF-3/12 deferred to target Steps' implementation. Moat UNCONTESTED — GitNexus 27k stars focused on PDG/type-resolution, zero git-mining signals. No kill triggers. Proceeding to Task 1.1.
 
 ### Task 1.1: Project scaffold + dual-distribution packaging
 - Status: PENDING

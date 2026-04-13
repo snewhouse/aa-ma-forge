@@ -109,5 +109,33 @@ None outstanding at plan sign-off. All Phase 4.2 + Phase 4.5 findings have been 
 - **v1** (2026-04-13, pre-review): drafted from grill-me + research findings.
 - **v2** (2026-04-13, post CEO+Eng): CEO 6 + Eng 9 findings folded in.
 - **v3** (2026-04-13, post adversarial verification): 14 findings addressed; all CRITICALs closed; cleared for Phase 5.
+- **v4** (2026-04-13, post M1 Task 1.0 pre-flight): 2 CRITICAL findings (AF-4 /index is already symbol-level; AF-13 source tree location) + 12 supporting findings addressed. Updated plan §2 (differentiation claim), Step 1.1 (packaging structure decided = uv workspace with `packages/codemem-mcp/`). Other AF findings (AF-7 symbol-diff simplification, AF-8/9 thresholds, AF-11 tool aliases) deferred to their target Steps' implementation.
 
 Plan file: `.claude/dev/active/codemem/codemem-plan.md` — treat as frozen unless scope changes.
+
+---
+
+## [2026-04-13] Milestone M1 Task 1.0: Pre-flight reading + packaging spike — COMPLETE
+
+**Deliverables produced:**
+- `docs/codemem/design-scratchpad.md` — full readings + synthesis (14 plan-altering findings classified)
+- Packaging decision: **Option B (uv workspace with `packages/codemem-mcp/`)** — prototype validated at `/tmp/codemem-spike/`
+- Plan v3 → v4 updates applied (§2 differentiation rewrite; Step 1.1 source tree correction)
+
+**Key findings (detailed in scratchpad):**
+1. **AF-4 CRITICAL** — `/index` is ALREADY symbol-level PageRank (not file-level as plan v3 claimed). Differentiation rewritten around edge weighting + binary-search budget + SCIP IDs + no top-k truncation, with implementation forking `/index`'s 89-LOC pure-Python algorithm (~150-200 LOC final, NOT NetworkX/scipy).
+2. **AF-13 CRITICAL** — Source tree lives at `packages/codemem-mcp/src/codemem/`, not `src/aa_ma/codemem/`. uv workspace binds the two package trees.
+3. **AF-1/AF-2** — Aider's PageRank uses NetworkX + scipy and is 867 LOC, not ~200. We copy its quality heuristics (sqrt dampening, private-name filter) without its dep tree.
+4. **AF-7/AF-8/AF-9** — repowise symbol-diff uses `difflib.SequenceMatcher` (not Jaccard), threshold 0.65 (not 0.7), ±5 line window (not ±2). Simpler than our plan; apply to Step 2.1 when it ships.
+5. **AF-10** — Git-mining moat UNCONTESTED; GitNexus (now 27k stars) is investing in PDG + type resolution, zero git-mining signals. Plan §12 kill criterion not triggered.
+6. **AF-11** — GitNexus uses different tool names (`impact`, `context`, `detect_changes`). Expand our Step 1.10 alias list accordingly.
+7. **AF-12** — GitNexus users complained about auto-injection of files. Our `aa_ma_context --write` flag must be opt-in only; README must make this explicit.
+8. **AF-14** — AA-MA integration glue lives inside codemem-mcp via optional-import guard (single source of truth for `aa_ma_context` tool).
+
+**Deferred to target Steps' implementation (not plan-blocking):**
+- AF-7/8/9 → Step 2.1
+- AF-11 → Step 1.10
+- AF-3 (Aider chat-file boost analog) → Step 1.8 design decision
+- AF-12 → Step 3.7 README copy + Step 4.4
+
+**No kill signals. Moat intact. Proceeding to Task 1.1.**

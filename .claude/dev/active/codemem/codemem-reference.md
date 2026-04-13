@@ -29,7 +29,7 @@ Source lives in `aa-ma-forge` repo. Two distribution channels:
 1. **aa-ma-forge plugin** — deployed via `scripts/install.sh` symlinks; full AA-MA integration active (`aa_ma_context` tool live).
 2. **`pip install codemem-mcp`** — standalone wheel; generic code intel only; `aa_ma_context` returns informative no-op message: `"AA-MA integration unavailable; install aa-ma-forge"`.
 
-Packaging structure is one of three candidates (decided at Step 1.0 spike): (i) hatchling workspace with two `[project]` blocks, (ii) `packages/codemem-mcp/` subdir with separate pyproject (uv workspace), (iii) hatch build hook. Standalone wheel MUST NOT depend on `aa_ma`.
+Packaging structure **decided in Task 1.0 (2026-04-13): Option B — `packages/codemem-mcp/` subdir with uv workspace**. Prototype validated at `/tmp/codemem-spike/`. Root `pyproject.toml` adds `[tool.uv.workspace] members = ["packages/codemem-mcp"]`; `packages/codemem-mcp/pyproject.toml` declares `name="codemem-mcp"`, own deps, own hatchling build. Standalone wheel MUST NOT depend on `aa_ma`.
 
 ---
 
@@ -85,14 +85,14 @@ Exact format documented in `docs/codemem/symbol-id-grammar.md`:
 ```
 SCIP-ID    := <scheme> ' ' <package> ' ' <descriptor>
 scheme     := 'codemem'            (shape only — NOT Sourcegraph SCIP wire format)
-package    := <repo-relative-dir>  (e.g. 'src/aa_ma/codemem')
+package    := <repo-relative-dir>  (e.g. 'packages/codemem-mcp/src/codemem')
 descriptor := <kind-marker><file>'#'<symbol-path>
 kind-marker:= '/' (term/def) | '#' (type) | '.' (member)
 ```
 
 Examples:
-- Python function: `codemem src/aa_ma/codemem /storage/db.py#init_db`
-- Python method:   `codemem src/aa_ma/codemem /storage/db.py#DBHelper.connect`
+- Python function: `codemem packages/codemem-mcp/src/codemem /storage/db.py#init_db`
+- Python method:   `codemem packages/codemem-mcp/src/codemem /storage/db.py#DBHelper.connect`
 - TS class:        `codemem src/web #app.tsx#UserCard`
 
 Mandatory fixture coverage in Step 1.2b acceptance: Python decorated method, Python class with metaclass, **Java inner class + anonymous class**, TS namespace symbol, Go method on receiver, Rust impl block.
@@ -124,23 +124,26 @@ Acceptance enforces: explain-plan uses indexes only (no table scan).
 
 ```
 aa-ma-forge/
-├── claude-code/codemem/
+├── pyproject.toml                   # Root aa-ma + [tool.uv.workspace]
+├── claude-code/codemem/             # User-facing plugin
 │   ├── commands/                    # /codemem slash command (codemem.md)
 │   ├── skills/                      # reusable procedures
 │   ├── hooks/
 │   │   └── post-commit.sh           # symlink-wired by install.sh
 │   └── mcp/
 │       └── server.py                # FastMCP server; 12 tool slots
-├── src/aa_ma/codemem/               # (route A — workspace re-export)
-│   ├── storage/                     # schema.sql, db.py
-│   ├── parser/                      # python_ast.py, ast_grep.py
-│   ├── diff/                        # symbol_diff.py         (M2)
-│   ├── journal/                     # wal.py                 (M2)
-│   ├── analysis/                    # git_mining.py          (M3)
-│   ├── mcp_tools/                   # public import boundary
-│   └── cli/                         # codemem-cli entry point
-├── packages/codemem-mcp/            # (route B — subdir, if chosen in 1.0)
-│   └── src/codemem/...
+├── src/aa_ma/                       # aa-ma package (unchanged by codemem)
+└── packages/codemem-mcp/            # codemem engine — standalone-installable
+    ├── pyproject.toml               # name="codemem-mcp", own deps
+    └── src/codemem/
+        ├── storage/                 # schema.sql, db.py
+        ├── parser/                  # python_ast.py, ast_grep.py
+        ├── diff/                    # symbol_diff.py         (M2)
+        ├── journal/                 # wal.py                 (M2)
+        ├── analysis/                # git_mining.py          (M3)
+        ├── mcp_tools/               # public import boundary
+        ├── aa_ma_integration.py     # Optional-import glue for aa_ma_context tool
+        └── cli/                     # codemem-cli entry point
 ├── docs/codemem/
 │   ├── ARCHITECTURE.md              # M1 deliverable, finalized M4
 │   ├── symbol-id-grammar.md         # M1
@@ -308,7 +311,7 @@ Pinned to prevent divergent implementations.
 ```
 where the file exists relative to repo root.
 
-- Match: `` `src/aa_ma/codemem/storage/db.py` ``, `` `tests/conftest.py` ``
+- Match: `` `packages/codemem-mcp/src/codemem/storage/db.py` ``, `` `tests/conftest.py` ``
 - No match: bare `src/foo.py` (no backticks), `` `not_a_real_file.py` `` (doesn't exist on disk)
 
 **Symbol mentions in `*-reference.md`:** any backticked identifier matching

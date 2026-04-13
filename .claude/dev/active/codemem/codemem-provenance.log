@@ -36,3 +36,4 @@
 2026-04-13T21:54:28+01:00 MILESTONE M1 Task 1.7 COMPLETE — 6 MCP tools + sanitizers + canonical CTE (covering index verified) + 33 tests; 131/131 codemem suite passing
 2026-04-13T21:58:32+01:00 MILESTONE M1 Task 1.8 COMPLETE — pagerank.py (~180 LOC) + 13 tests; pure-Python power iteration w/ dangling-mass fix, damping=0.85, binary-search budget; 144/144 codemem suite passing
 2026-04-13T21:59:43+01:00 MILESTONE M1 Task 1.9 COMPLETE — codemem.md slash command doc (5 subcommands: build/query/status + M2 placeholders refresh+replay)
+2026-04-13T22:02:23+01:00 MILESTONE M1 Task 1.10 COMPLETE — claude-code/codemem/mcp/server.py (~170 LOC) + 8 tests; 12 tool slots, M1 6 registered + 2 aliases (find_references, find_dead_code); 152/152 codemem suite passing

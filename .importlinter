@@ -1,0 +1,39 @@
+# codemem layer-boundary enforcement (M1 Task 1.11).
+#
+# Run locally: uv run lint-imports
+# Run in CI: GitHub Actions `security.yml` executes `lint-imports`
+# after the test step.
+#
+# Contracts:
+#
+# 1. Layered architecture inside the codemem package: storage is the
+#    leaf, parser sits above it, and the orchestrators + public API
+#    sit on top. storage must not know anything about parser; parser
+#    must not know anything about mcp_tools.
+#
+# 2. codemem.parser must not import from codemem.mcp_tools (back-edge
+#    forbidden — the parser layer is pure and must stay reusable).
+
+[importlinter]
+root_package = codemem
+
+[importlinter:contract:codemem-layers]
+name = codemem layered architecture
+type = layers
+layers =
+    codemem.mcp_tools : codemem.indexer : codemem.resolver : codemem.pagerank
+    codemem.parser
+    codemem.storage
+
+[importlinter:contract:parser-is-pure]
+name = parser must not depend on public API
+type = forbidden
+source_modules =
+    codemem.parser
+    codemem.parser.python_ast
+    codemem.parser.ast_grep
+forbidden_modules =
+    codemem.mcp_tools
+    codemem.indexer
+    codemem.resolver
+    codemem.pagerank

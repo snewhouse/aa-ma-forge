@@ -47,14 +47,16 @@ CLAUDE_HOME="${HOME}/.claude"
 # ---------------------------------------------------------------------------
 DRY_RUN=false
 FORCE=false
+WIRE_GIT_HOOK=false
 
 for arg in "$@"; do
     case "${arg}" in
-        --dry-run) DRY_RUN=true ;;
-        --force)   FORCE=true ;;
+        --dry-run)       DRY_RUN=true ;;
+        --force)         FORCE=true ;;
+        --wire-git-hook) WIRE_GIT_HOOK=true ;;
         *)
             error "Unknown flag: ${arg}"
-            echo "Usage: $0 [--dry-run] [--force]"
+            echo "Usage: $0 [--dry-run] [--force] [--wire-git-hook]"
             exit 1
             ;;
     esac
@@ -433,6 +435,74 @@ for f in "${REPO_ROOT}/docs/spec/"*.md; do
     [ -e "${f}" ] || continue
     copy_file "${f}" "${CLAUDE_HOME}/docs/$(basename "${f}")"
 done
+
+# ---------------------------------------------------------------------------
+# 7. codemem post-commit hook wiring (opt-in via --wire-git-hook)
+# ---------------------------------------------------------------------------
+# Task 1.11: two options to wire the codemem post-commit hook into the
+# caller's current repo. We pick option (a): append a guarded line to
+# .git/hooks/post-commit. Rationale:
+#
+#   (a) Append-to-.git/hooks/post-commit
+#       Pros: preserves the user's existing post-commit hooks (if any).
+#             Idempotent via a sentinel comment check.
+#       Cons: only wires the CURRENT repo. Users in multi-repo
+#             workflows must re-run --wire-git-hook per repo.
+#
+#   (b) git config core.hooksPath claude-code/codemem/hooks
+#       Pros: one flip, repo-wide.
+#       Cons: clobbers the user's hooksPath — if they already have
+#             a custom hooks path (Husky, lefthook, pre-commit), our
+#             config mutation silently disables theirs.
+#
+# We ship (a). Users who prefer (b) can set it manually — we document
+# both trade-offs here so the choice is transparent.
+
+if ${WIRE_GIT_HOOK}; then
+    header "Wiring codemem post-commit hook (option (a))..."
+
+    if ! git -C "${REPO_ROOT}" rev-parse --git-dir >/dev/null 2>&1; then
+        warn "Not a git repo at ${REPO_ROOT} — skipping --wire-git-hook"
+    else
+        GIT_DIR="$(git -C "${REPO_ROOT}" rev-parse --git-dir)"
+        # --git-dir prints a relative path when run from inside the
+        # worktree; anchor it to the worktree for absolute safety.
+        case "${GIT_DIR}" in
+            /*) ABS_GIT_DIR="${GIT_DIR}" ;;
+            *)  ABS_GIT_DIR="${REPO_ROOT}/${GIT_DIR}" ;;
+        esac
+        HOOK_FILE="${ABS_GIT_DIR}/hooks/post-commit"
+        SOURCE_HOOK="${REPO_ROOT}/claude-code/codemem/hooks/post-commit.sh"
+        SENTINEL="# codemem-post-commit-installed"
+
+        if [ ! -f "${SOURCE_HOOK}" ]; then
+            warn "Source hook missing: ${SOURCE_HOOK}"
+        elif [ -f "${HOOK_FILE}" ] && grep -qF "${SENTINEL}" "${HOOK_FILE}"; then
+            info "codemem post-commit hook already wired — ${HOOK_FILE}"
+        else
+            if ${DRY_RUN}; then
+                info "Would append codemem post-commit hook to ${HOOK_FILE}"
+            else
+                # Ensure the hook file exists and is executable.
+                if [ ! -f "${HOOK_FILE}" ]; then
+                    printf '#!/usr/bin/env bash\n' > "${HOOK_FILE}"
+                fi
+                chmod +x "${HOOK_FILE}"
+
+                # Append the guarded stanza. The sentinel comment lets
+                # re-runs detect prior installation and skip.
+                cat <<EOF >> "${HOOK_FILE}"
+
+${SENTINEL}
+if [ -x "${SOURCE_HOOK}" ]; then
+    "${SOURCE_HOOK}" || true
+fi
+EOF
+                info "Wired codemem post-commit hook → ${HOOK_FILE}"
+            fi
+        fi
+    fi
+fi
 
 # ---------------------------------------------------------------------------
 # Summary

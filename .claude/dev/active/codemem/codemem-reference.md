@@ -2,7 +2,7 @@
 
 _This file is the highest-priority AA-MA memory artifact. Load FIRST when resuming this task. Facts below are extracted from `codemem-plan.md` v3 and are non-negotiable unless the plan itself is revised._
 
-_Last Updated: 2026-04-13 (Task 1.4)_
+_Last Updated: 2026-04-13 (Task 1.5)_
 
 ---
 
@@ -401,6 +401,19 @@ Module: `codemem.parser.ast_grep`
 - **Parent inference**: methods find their enclosing container by line-range containment (`pstart < m.line AND m.end_line <= pend`). Innermost wins. Orphan methods (no enclosing class) are skipped, not emitted with `None` parents.
 - **Edge emission**: `extract_with_ast_grep` returns `edges=[]` always. Imports + calls are deferred to Task 1.6 (cross-file resolver) because ast-grep matches carry no scope context for local-call resolution.
 - **SCIP language scope**: rule files ship for the 7 AC-declared languages (TypeScript, Tsx, JavaScript, Go, Rust, Java, Ruby, Bash). Adding a language requires: (a) `SUPPORTED_LANGUAGES` entry, (b) `_RULE_FILE_BY_LANG` entry, (c) new `rules/*.yml`, (d) grammar-doc example, (e) `TestRuleFilesShipped` parametrization.
+
+---
+
+## Indexer Driver Contract (pinned, Step 1.5)
+
+Module: `codemem.indexer`
+
+- **Bulk-load ordering**: upsert_files → bulk_insert_symbols (parent_id NULL) → resolve_parent_ids (executemany UPDATE by scip_id) → bulk_insert_edges. This ordering matters: edges reference symbol IDs that only exist after symbols are inserted.
+- **FK PRAGMA discipline**: `PRAGMA foreign_keys = OFF` must be set OUTSIDE any transaction per SQLite docs — toggling inside a tx is silently ignored. Sequence: OFF → BEGIN → executemany → COMMIT → ON → foreign_key_check → integrity_check.
+- **Idempotency**: re-indexing the same file set deletes its rows first (`DELETE FROM files WHERE path IN (...)`) — CASCADE removes dependent symbols + edges — then re-inserts. Second run produces identical counts.
+- **Discovery fallback**: `git ls-files` is preferred (free `.gitignore` respect); rglob fallback for non-git directories. Unsupported extensions are filtered at discovery, never passed to the parsers.
+- **File paths**: `files.path` stores the POSIX-normalized path relative to repo_root. This is the join key across queries, the idempotency key for re-index, and the input to SCIP-ID construction.
+- **Parser dispatch**: `.py` → stdlib `python_ast`; all other supported extensions → batched `ast_grep`. Python parse errors are counted in `BuildStats.python_parse_errors` (non-fatal).
 
 ---
 

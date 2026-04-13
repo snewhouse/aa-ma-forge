@@ -188,3 +188,31 @@ satisfies the pre-requisite for the M1 acceptance criterion
 **Container-kind unification**: `class_declaration`, `interface_declaration`, `struct_item`, `module` (Ruby), `type_alias_declaration` all emit `Symbol.kind="class"` with the `#` SCIP marker. The wrapper's `_KIND_BY_RULE_SUFFIX` collapses them. Rationale: the edges/who_calls layer treats them identically — all are "things methods hang off of." Preserving per-language distinctions would bloat the symbols.kind vocabulary for zero query benefit.
 
 **Unresolved issues**: None blocking. Deferred: anonymous class synthetic `$N` naming (documented in grammar doc but not implemented — Java-only edge case, revisit if tests surface it), import/call edge emission (→ Task 1.6).
+
+---
+
+## [2026-04-13] Milestone M1 Task 1.5: File discovery + indexer driver — COMPLETE
+
+**Decision**: Parent-ID resolution as a dedicated UPDATE executemany pass after the symbol INSERT executemany, keyed on `scip_id`. Two passes, not one.
+
+**Rationale**: Single-row INSERT with `RETURNING id` + in-memory `scip_to_id` map is simpler (one pass) but costs one round-trip per symbol — ~10k round-trips on a medium repo. The two-pass approach (bulk insert + single bulk update) is two round-trips per file regardless of symbol count. For M1's sub-30s cold-build SLO this is the right trade-off.
+
+**FK-PRAGMA placement**: spent some cycles getting this right. SQLite docs explicitly state `PRAGMA foreign_keys` is ignored if issued inside an open transaction — it must be toggled with no tx active. The build sequence is:
+```
+conn.execute("PRAGMA foreign_keys = OFF")  # no tx
+with db.transaction(conn):                 # BEGIN here
+    # executemany (files, symbols, update parents, edges)
+                                           # COMMIT on exit
+conn.execute("PRAGMA foreign_keys = ON")   # no tx
+conn.execute("PRAGMA foreign_key_check")   # must return []
+conn.execute("PRAGMA integrity_check")     # must return [("ok",)]
+```
+Getting the PRAGMA inside the `with` block would have silently enforced FKs during bulk load, defeating the speed win.
+
+**Idempotency via DELETE+CASCADE rather than MERGE-style UPSERT**: the schema's ON DELETE CASCADE makes "delete the file row" atomically drop all its symbols and edges, which is equivalent to re-indexing that file from scratch. Alternative designs — diff-based (keep only changed symbols) — are what Task 2.2 (incremental refresh) ships. Task 1.5 is the cold-build path; no need for diff logic here.
+
+**Package default = "."**: the grammar allows this explicitly (`e.g. '.'  # if file is at repo root`). Simplest for M1 — users call `build_index(repo, db, package=".")` and get SCIP IDs like `codemem . /packages/codemem-mcp/src/codemem/parser/python_ast.py#extract_python_signatures`. Multi-package indexing is a future feature (one `build_index` call per package into the same DB, with scoped paths).
+
+**Alternative considered**: in-memory `sg run` with batched stdin via `--input=stdin`: rejected — ast-grep's stdin mode parses a single input, not a list of files. Sticking with file-args path dispatch.
+
+**Unresolved issues**: None blocking. The anchor symbol `extract_python_signatures` is now queryable via `SELECT * FROM symbols WHERE name = 'extract_python_signatures'` after `build_index`. Task 1.7 will wrap this as `who_calls(name)`.

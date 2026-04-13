@@ -10,8 +10,11 @@ Design notes (per Task 1.0 + Task 1.2):
 - Read-only MCP connections use `mode=ro` URI and get the same per-conn
   PRAGMAs (foreign_keys is a no-op on read paths but harmless).
 - Migration is forward-only via `PRAGMA user_version`.
-- `application_id=0xC0DE3E33` marks codemem DBs (detectable via `sqlite3
-  file cmd` or `PRAGMA application_id`).
+- `application_id=0x434D454D` ('CMEM' ASCII) marks codemem DBs (detectable
+  via `sqlite3 file cmd` or `PRAGMA application_id`). The plan-draft value
+  `0xC0DE3E33` was corrected during Task 1.2 implementation — that form
+  overflows SQLite's signed-int32 application_id column and silently
+  stored 0.
 - `dst_symbol_id OR dst_unresolved` CHECK lets unresolved imports be
   persisted; M1 Step 1.6 (cross-file edge resolution) can retry them.
 """

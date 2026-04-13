@@ -2,7 +2,7 @@
 
 _This file is the highest-priority AA-MA memory artifact. Load FIRST when resuming this task. Facts below are extracted from `codemem-plan.md` v3 and are non-negotiable unless the plan itself is revised._
 
-_Last Updated: 2026-04-13 14:30_
+_Last Updated: 2026-04-13 (Task 1.3)_
 
 ---
 
@@ -344,6 +344,49 @@ Adversarial test suite fixtures (M1 acceptance): `../../etc/passwd`, `/etc/passw
 - Only `aa_ma.codemem.mcp_tools` is a permitted import boundary.
 - CI job runs `import-linter`; violation fails the pipeline.
 - ARCHITECTURE.md §Layering-contract documents this invariant.
+
+---
+
+## Parser Public API (pinned, Step 1.3)
+
+Module: `codemem.parser.python_ast`
+
+```python
+@dataclass
+class Symbol:
+    scip_id: str
+    name: str
+    kind: str              # 'function'|'async_function'|'method'|'async_method'|'class'
+    line: int
+    signature: str | None   # decorators as '@name' lines, then '(params) -> return'
+    signature_hash: str | None  # sha256 hex of signature; None for classes in v1
+    docstring: str | None   # first line only
+    parent_scip_id: str | None  # string ref; driver (Task 1.5) resolves to FK
+
+@dataclass
+class CallEdge:
+    src_scip_id: str
+    dst_scip_id: str | None
+    dst_unresolved: str | None
+    kind: str = "call"
+
+@dataclass
+class ParseResult:
+    symbols: list[Symbol]
+    edges: list[CallEdge]
+
+def extract_python_signatures(
+    source: str, *, package: str, file_rel: str,
+) -> ParseResult: ...
+```
+
+**Contract invariants:**
+- Symbols emitted ONLY for: module-level functions, module-level classes, class-level methods, nested classes. No nested functions, lambdas, or comprehensions in v1.
+- `parent_scip_id` is a string reference resolved to FK `symbols.parent_id` at insert time by the Task 1.5 driver.
+- Call edges are intra-file ONLY (cross-file resolution = Task 1.6).
+- On ambiguous name match (same-named methods across sibling classes), emit one edge per target — v1 over-emits by design; query-layer dedupe acceptable.
+- `SyntaxError` → empty `ParseResult`. No regex fallback here; ast-grep wrapper (Task 1.4) handles broader cases.
+- Signature format is stable — any change to `_build_signature` invalidates M2 `signature_hash` diffing and requires a schema migration plan.
 
 ---
 

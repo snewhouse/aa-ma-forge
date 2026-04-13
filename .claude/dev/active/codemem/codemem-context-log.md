@@ -139,3 +139,30 @@ Plan file: `.claude/dev/active/codemem/codemem-plan.md` — treat as frozen unle
 - AF-12 → Step 3.7 README copy + Step 4.4
 
 **No kill signals. Moat intact. Proceeding to Task 1.1.**
+
+---
+
+## [2026-04-13] Milestone M1 Task 1.3: Python parser via stdlib `ast` — COMPLETE
+
+**Decision**: Port `/index`'s `extract_python_signatures_ast` as a stdlib-only parser, but reshape its output from nested dicts to flat `Symbol` + `CallEdge` dataclasses aligned with the SQLite schema rows.
+
+**Rationale**:
+- Nested dicts (`/index`'s shape) are convenient for JSON serialization but map awkwardly to relational rows. Flat dataclasses are one-to-one with `symbols`/`edges` tables, which is the canonical store.
+- `parent_scip_id` is a string reference, not an FK — the Task 1.5 driver resolves strings to integer FKs at bulk-insert time. This keeps the parser pure (no DB coupling).
+- Decorator metadata is collapsed into `signature` (as `@name` prefix lines) instead of a separate `decorators` field. Reason: schema v1 has one `signature` column; adding a `decorators` column now would require a v1 migration when the only M1 consumer (Aider-style PageRank, Task 1.8) treats decorators as display metadata anyway. Revisit at M2 if `signature_hash` diffing produces too many false positives on decorator-only edits.
+
+**Alternatives considered**:
+- Port `/index`'s regex fallback too: rejected for M1. The ast-grep wrapper (Task 1.4) already covers the malformed-source path via a robust non-stdlib parser. Two fallbacks is over-engineering.
+- Emit Symbols for nested functions: rejected for v1. `/index` doesn't, the grammar doc doesn't specify a nested-function ID form, and the marginal value (rarely-queried closures) doesn't justify a grammar extension.
+- Per-call edge emission (no dedup): rejected. A function that calls `helper()` 10 times would blow the edges PRIMARY KEY `(src, kind, dst, dst_unresolved)`; dedup at parser level is simpler than retry-on-integrity-error at insert time.
+
+**Trade-off**: Ambiguous method-name resolution (A.run vs B.run called bare) over-emits one edge per target. Query-layer dedupe is acceptable; type-inference to disambiguate is explicitly out of v1 scope (grammar doc §Open questions, MRO bullet).
+
+**Contract lock**: `codemem.parser.python_ast.__all__` = `{Symbol, CallEdge, ParseResult, extract_python_signatures}`. Test asserts exact equality — any new public export requires updating the test AND the reference.md pinned API block.
+
+**Anchor symbol live**: `extract_python_signatures` now exists at
+`codemem packages/codemem-mcp/src/codemem /parser/python_ast.py#extract_python_signatures` —
+satisfies the pre-requisite for the M1 acceptance criterion
+`who_calls("extract_python_signatures") < 100ms` (tested in Task 1.7).
+
+**Unresolved issues**: None blocking. Deferred: nested function symbol emission (→ v2 grammar), signature-without-decorators alternative (→ M2 diff evaluation).

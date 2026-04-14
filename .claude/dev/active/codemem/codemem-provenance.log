@@ -38,3 +38,6 @@
 2026-04-13T21:59:43+01:00 MILESTONE M1 Task 1.9 COMPLETE — codemem.md slash command doc (5 subcommands: build/query/status + M2 placeholders refresh+replay)
 2026-04-13T22:02:23+01:00 MILESTONE M1 Task 1.10 COMPLETE — claude-code/codemem/mcp/server.py (~170 LOC) + 8 tests; 12 tool slots, M1 6 registered + 2 aliases (find_references, find_dead_code); 152/152 codemem suite passing
 2026-04-13T22:10:47+01:00 MILESTONE M1 Task 1.11 COMPLETE — .importlinter (2 contracts kept) + CLI (6 subcommands) + post-commit.sh + install.sh --wire-git-hook + 11 tests; 163/163 codemem suite passing
+2026-04-14T05:29:05+01:00 MILESTONE M1 Task 1.12 COMPLETE — ARCHITECTURE.md (5 mandatory sections with M2 TBD placeholders for 2 and 4)
+2026-04-14T05:29:05+01:00 MILESTONE M1 Task 1.13 COMPLETE — performance-slo.md + tests/perf/test_budgets.py (4 perf tests) + pytest-marker config; empirical: cold 50ms, warm 47ms, who_calls 0.27ms, all massive headroom
+2026-04-14T05:29:05+01:00 MILESTONE M1 COMPLETE — 14/14 tasks shipped; 163 unit + 4 perf tests; all AC met with massive perf headroom

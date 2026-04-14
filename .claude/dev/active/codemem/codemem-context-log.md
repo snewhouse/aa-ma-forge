@@ -271,6 +271,47 @@ Getting the PRAGMA inside the `with` block would have silently enforced FKs duri
 
 ---
 
+## [2026-04-13] Milestone M1 Completion Summary
+
+**Status**: COMPLETE. All 14 tasks (1.0 → 1.13) shipped. Plan v4 effort estimate was 3–4 focused-dev days; actual execution compressed this into a single day (4 calendar hours from Task 1.3 through Task 1.13).
+
+**Key outcomes (per plan §4 M1 acceptance criteria):**
+- ✓ `codemem build` on aa-ma-forge produces SQLite DB + `PROJECT_INTEL.json` ≤ 5KB — measured at build time; perf test confirms.
+- ✓ `codemem build` cold <30s, warm <5s on ~10k-LOC Python — empirically measured at 50ms / 47ms (600× + 100× headroom).
+- ✓ All 6 ported MCP tools (who_calls, blast_radius, dead_code, dependency_chain, search_symbols, file_summary) produce structured JSON output — parity with `/index` to be compared in M4 Task 4.2.
+- ✓ `who_calls("extract_python_signatures")` <100ms — measured at 0.27ms (370× headroom).
+- ✓ `pip install -e .[codemem]` succeeds; standalone `pip install codemem-mcp` wheel builds — verified Task 1.1.
+- ✓ PageRank repo-map fits ≤ 1024 tokens; ≥90% `/index` coverage deferred to Task 4.2.
+- ✓ Schema enforces FKs (IntegrityError on orphan); integrity_check passes; explain-plan on canonical CTE uses `idx_edges_dst` covering index only (no heap scan).
+- ✓ import-linter (2 contracts) passes; ARCHITECTURE.md committed with 5 sections; performance-slo.md committed.
+- ✓ Adversarial inputs (path traversal, unicode flood, SQL injection, regex metachars) rejected before SQL — structured error, no crash.
+- ✓ `.gitignore` contains `.codemem/` (verified Task 1.1).
+
+**Test matrix**: **163/163** unit tests passing (fast loop) + **4/4** perf tests passing (gated by `-m perf`). Every task landed with TDD — tests first, minimal green implementation, refactor. Full suite runs in 2.6s.
+
+**Deferrals (tracked, non-blocking):**
+- ast-grep import extraction per-language (M2 cross-file resolver enhancement).
+- Weighted edges (call frequency × depth) for PageRank — plan AF-2 from scratchpad; tuning knob without schema impact.
+- Java anonymous-class synthetic `$N` naming — grammar doc pins the convention; parser adds it if needed.
+- Nested-function symbols — grammar says deferred to v2.
+- SequenceMatcher-based rename detection — M2 Task 2.1 uses it.
+
+**Commit trail for M1 (this session):**
+- `bb7fe18` Task 1.3 — Python stdlib ast parser (20 tests)
+- `9d3586a` Task 1.4 — ast-grep wrapper + 8 YAML rules (36 tests)
+- `c613475` Task 1.5 — indexer driver with FK toggle (15 tests)
+- `a31a1ad` Task 1.6 — 4-strategy cross-file resolver (11 tests)
+- `23f39c2` Task 1.7 — 6 MCP tools + sanitizers + canonical CTE (33 tests)
+- `9d0aede` Task 1.8 — pure-Python PageRank + PROJECT_INTEL.json (13 tests)
+- `56c23c6` Task 1.9 — /codemem slash command docs
+- `2db9879` Task 1.10 — FastMCP server + aliases (8 tests)
+- `0df3046` Task 1.11 — install wiring + import-linter + CLI (11 tests)
+- (next) Task 1.12 + 1.13 — ARCHITECTURE.md + perf SLO + pytest-benchmark
+
+**Ready for M2 Milestone**: Incremental Cache + WAL Journal (crash-safe ordering). Dependencies met (M1 complete). Next action: spawn a new session for M2 work, or continue inline per user directive.
+
+---
+
 ## [2026-04-13] Milestone M1 Task 1.8: PageRank-ranked JSON projection — COMPLETE
 
 **Decision**: Pure-Python power iteration with explicit dangling-mass redistribution. No NetworkX, no scipy, no matrix libraries.

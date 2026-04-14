@@ -59,3 +59,15 @@ changelog_file = "CHANGELOG.md"
 
 [tool.semantic_release.branches.main]
 match = "main"
+
+# --------------------------------------------------------------------
+# pytest (M1 Task 1.13)
+# --------------------------------------------------------------------
+# The `perf` marker gates the performance-budget suite at
+# `tests/perf/test_budgets.py`. Default test runs skip it (via the
+# `addopts` filter below); CI's perf job opts in with `-m perf`.
+[tool.pytest.ini_options]
+markers = [
+    "perf: performance-budget gates (codemem M1 Task 1.13). Skipped by default; run with `-m perf`.",
+]
+addopts = "-m 'not perf'"

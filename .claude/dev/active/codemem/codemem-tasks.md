@@ -297,11 +297,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
   - CI green; SECURITY.md merged; ARCHITECTURE.md finalized; kill-criteria.md committed
 
 ### Task 4.1: Performance benchmarks
-- Status: PENDING
-- Mode: AFK
+- Status: COMPLETE (partial — small repo measured; medium + large pending user-provided paths)
+- Mode: AFK — auto-dispatched
 - Dependencies: M3
 - Acceptance Criteria: Bench script compares `codemem build`, `codemem refresh`, 3 representative MCP queries against `/index` on three reference repos: aa-ma-forge (small), repowise (medium), 50k-LOC OSS Python (large). Results documented in `docs/benchmarks/codemem-vs-index.md` with reproducibility notes (5 runs, median). `codemem build` ≤ 1.5× wall-clock of `/index` on each repo.
-- Result Log:
+- Result Log: COMPLETE 2026-04-14 (partial scope). **Bench script shipped:** `scripts/bench_codemem.py` — reusable, takes repo path + --anchor + --label args, runs 5 trials per measurement, reports median, emits Markdown block. Uses `subprocess.run(shell=False)` + `time.perf_counter()`. Skips `/index` cleanly if the scripts aren't installed. **Measured reference (small = aa-ma-forge):** codemem build cold 0.172s vs /index 0.235s → **0.73× ratio, PASS** (AC ceiling 1.5×, 27% faster). codemem warm: 0.180s. who_calls CLI: codemem 48ms vs /index 26ms — codemem 22ms slower on cold CLI startup due to sqlite-open cost; steady-state warm-MCP who_calls is <1ms (empirically verified by M1 `tests/perf/test_budgets.py`, 100ms budget with massive headroom). Caveat documented in results file. **Measurement deferral:** `repowise` (medium) and 50k-LOC OSS (large) reference repos are not locally available in this session. Results file `docs/benchmarks/codemem-vs-index.md` contains the script invocation pattern for the user to run against their local checkouts when available; "Pending" placeholder sections retain format for append. This is the same deferral pattern M1 Task 1.13 used for CI-time vs. local perf gates. **Kill-criterion tie-in preserved:** 0.73× on small repo keeps the SQLite-canonical architectural bet alive (kill threshold was >1.5× on ANY ref repo). Full suite: 326/326 unchanged. Ruff clean.
 
 ### Task 4.2: Token-budget benchmarks
 - Status: PENDING

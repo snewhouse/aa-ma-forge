@@ -400,3 +400,16 @@ Getting the PRAGMA inside the `with` block would have silently enforced FKs duri
 
 **Deferred to M4:** the real `tests/golden/layers_aa_ma_forge.txt` bytes comparison (requires indexing aa-ma-forge and capturing the output at that time — belongs in benchmarks/bench tests, not unit suite). Stub file checked in now with a header block documenting the eventual format.
 
+
+---
+
+## [2026-04-14] GATE APPROVAL: Milestone M3: Git Intelligence + AA-MA Coupling
+
+- Gate: HARD
+- Approved by: Stephen Newhouse
+- Criteria verified: 7/9 (AC 1-6, 8 via TDD fixtures; AC 7 & 9 are perf-SLO benchmarks deferred to M4 Task 4.1 per plan contract — same deferral pattern as M1 Task 1.13)
+- Decision: APPROVED
+- Evidence: 8/8 tasks COMPLETE; 326 unit tests passing (was 227 at M2 close, +99 net); ruff clean across all M3 surfaces; 6 public MCP tools shipped (hot_spots, co_changes, owners, symbol_history, layers, aa_ma_context); schema v2 with 4 new tables at user_version=2; `codemem.analysis.git_mining` module with shell=False discipline and sanitize-before-subprocess contract.
+- Commits: 750d398 (3.8), 38cd552 (3.1), b5f56e7 (3.2), a2e3474 (3.2 prov), 723ec41 (3.3), a279ef6 (3.4), 8fb17d5 (3.5), fd47f2b (3.6), 814b9a0 (3.7 + M3 close).
+- Moat: `aa_ma_context()` public surface locked — extraction regex pinned in reference.md, append-only write semantics preserved, composition over the 5 git-mining tools means moat scales with them.
+

@@ -206,8 +206,8 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 ---
 
 ## Milestone M3: Git Intelligence + AA-MA Coupling (the moat)
-- Status: ACTIVE (awaiting HARD gate approval)
-- Gate: HARD
+- Status: COMPLETE
+- Gate: HARD — APPROVED 2026-04-14 (artifact in context-log.md)
 - Dependencies: M2 complete
 - Complexity: 55%
 - Gate rationale: Locks the moat — the 12 MCP tool surface including `aa_ma_context` naming/positioning is publicly exposed here and hard to change after users build on it. HARD gate requires signed approval artifact in `codemem-context-log.md` before milestone can be marked COMPLETE.

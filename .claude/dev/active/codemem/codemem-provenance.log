@@ -63,3 +63,16 @@
 2026-04-14T10:38:57+01:00 MILESTONE M3 COMPLETE — 8/8 tasks shipped; HARD gate approved by Stephen Newhouse; 326 unit tests passing (+99 over M2); 6 MCP tools + schema v2 + git_mining module; moat locked
 2026-04-14T10:55:01+01:00 MILESTONE M4 Task 4.1 COMPLETE (partial) — bench script shipped; aa-ma-forge 0.73× /index PASS; medium+large deferred to user-local run
 2026-04-14T11:10:46+01:00 MILESTONE M4 Task 4.7 COMPLETE — codemem-smoke job + ast-grep drift-warn; YAML validated; 326/326
+
+# ============================================================
+# SESSION CHECKPOINT — 2026-04-14T12:59:50+01:00
+# ============================================================
+2026-04-14T12:59:50+01:00 CHECKPOINT — Session: codemem-14.4.26 ending; resume later today
+2026-04-14T12:59:50+01:00 CHECKPOINT — ActiveStep: M4 Task 4.2 (next pending) — NextAction: "Decide path: draft factual HITLs (4.5/4.9/4.10) OR start at HITL voice work (4.3/4.4/4.8) OR run 4.2 if Aider available"
+2026-04-14T12:59:50+01:00 CHECKPOINT — State: M1 ✓ M2 ✓ M3 ✓ (HARD gate approved); M4 2/10 shipped (4.1 partial, 4.7 complete)
+2026-04-14T12:59:50+01:00 CHECKPOINT — Tests: 326 passed, 1 skipped, 1 deselected — no regressions since M2
+2026-04-14T12:59:50+01:00 CHECKPOINT — Branch: expt/code_mem_store_what at 7f1fbc2 — pushed to origin (snewhouse/aa-ma-forge)
+2026-04-14T12:59:50+01:00 CHECKPOINT — Working tree: clean (.claude/dev/completed/ untracked, unrelated to codemem)
+2026-04-14T12:59:50+01:00 CHECKPOINT — M4 remaining: 4.2 (Aider+repos), 4.3 (HITL), 4.4 (HITL voice), 4.5 (HITL), 4.6 (blocked on 4.4), 4.8 (HITL recording), 4.9 (HITL factual), 4.10 (HITL positioning)
+2026-04-14T12:59:50+01:00 CHECKPOINT — ContextLoaded: REFERENCE,TASKS,CONTEXT_LOG,PROVENANCE — TokenUsage: ~85%
+2026-04-14T12:59:50+01:00 CHECKPOINT — Resume hint: load REFERENCE.md FIRST then TASKS.md; skip PLAN.md unless reviewing strategy

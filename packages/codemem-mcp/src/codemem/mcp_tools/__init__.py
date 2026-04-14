@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import time
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,7 @@ __all__ = [
     "dead_code",
     "dependency_chain",
     "file_summary",
+    "hot_spots",
     "search_symbols",
     "who_calls",
 ]
@@ -357,6 +359,72 @@ def file_summary(
         symbols.append(info)
     return _truncate(
         {"symbols": symbols, "error": None}, list_key="symbols", budget=budget
+    )
+
+
+# ---------------------------------------------------------------------
+# hot_spots (M3 Task 3.2)
+# ---------------------------------------------------------------------
+
+def hot_spots(
+    db_path: Path,
+    *,
+    window_days: int = 90,
+    top_n: int = 10,
+    budget: int = _DEFAULT_BUDGET,
+    now: float | None = None,
+) -> dict:
+    """Return top-N files ranked by (commits in window) × (function_count).
+
+    Score breakdown is included per file (``commits_in_window``,
+    ``function_count``, ``score``). Only files with ≥1 of each appear.
+
+    ``now`` defaults to ``time.time()``; tests inject a fixed value.
+    """
+    cutoff = int((now if now is not None else time.time()) - window_days * 86400)
+    query = """
+        WITH fn_counts AS (
+            SELECT f.path AS path, COUNT(s.id) AS function_count
+              FROM files f
+              JOIN symbols s ON s.file_id = f.id
+             WHERE s.kind IN ('function','method','async_function','async_method')
+             GROUP BY f.path
+        ),
+        commit_counts AS (
+            SELECT cf.file_path AS path,
+                   COUNT(DISTINCT cf.commit_sha) AS commits_in_window
+              FROM commit_files cf
+              JOIN commits c ON c.sha = cf.commit_sha
+             WHERE c.author_time >= ?
+             GROUP BY cf.file_path
+        )
+        SELECT fn.path AS path,
+               cc.commits_in_window,
+               fn.function_count,
+               cc.commits_in_window * fn.function_count AS score
+          FROM fn_counts fn
+          JOIN commit_counts cc ON cc.path = fn.path
+         WHERE fn.function_count >= 1
+           AND cc.commits_in_window >= 1
+         ORDER BY score DESC, fn.path ASC
+         LIMIT ?
+    """
+    with _open_ro(db_path) as conn:
+        rows = conn.execute(query, (cutoff, top_n)).fetchall()
+
+    files = [
+        {
+            "path": r["path"],
+            "commits_in_window": r["commits_in_window"],
+            "function_count": r["function_count"],
+            "score": r["score"],
+        }
+        for r in rows
+    ]
+    return _truncate(
+        {"files": files, "window_days": window_days, "top_n": top_n, "error": None},
+        list_key="files",
+        budget=budget,
     )
 
 

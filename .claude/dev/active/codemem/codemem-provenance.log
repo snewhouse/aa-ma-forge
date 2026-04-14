@@ -43,3 +43,4 @@
 2026-04-14T05:29:05+01:00 MILESTONE M1 COMPLETE — 14/14 tasks shipped; 163 unit + 4 perf tests; all AC met with massive perf headroom
 2026-04-14T05:40:17+01:00 MILESTONE M2 Task 2.1 COMPLETE — symbol_diff.py (~170 LOC) + 14 tests; 2-phase Jaccard + line-proximity tiebreak + demotion log; 177/177 codemem suite passing
 2026-04-14T05:47:30+01:00 MILESTONE M2 Task 2.2 COMPLETE — incremental.py (~280 LOC) + 10 tests; content-hash dirty detection + git mv preservation + orphaned-sha fallback; 187/187 codemem suite passing
+2026-04-14T05:51:44+01:00 MILESTONE M2 Task 2.3 COMPLETE — journal/wal.py (~270 LOC) + 14 tests; O_APPEND atomicity + 4-branch replay state diagram + crash-injection gate; 201/201 codemem suite passing

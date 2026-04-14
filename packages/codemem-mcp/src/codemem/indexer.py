@@ -453,6 +453,9 @@ def build_index(
     if wal_path is not None and _pending_wal_acks:
         for entry_id in _pending_wal_acks:
             _wal.append_ack(wal_path, entry_id)
+        # M2 Task 2.8: rotate once per batch if the live WAL has grown
+        # past the threshold. Cheap size-check, no-op on small logs.
+        _wal.rotate_if_needed(wal_path)
 
     # Write last_sha so the NEXT refresh can take the incremental path
     # instead of falling back to a full rebuild. If the repo isn't a

@@ -131,11 +131,12 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 ---
 
 ## Milestone M2: Incremental Cache + WAL Journal (crash-safe ordering)
-- Status: ACTIVE
+- Status: COMPLETE
 - Gate: SOFT
 - Dependencies: M1 complete
 - Complexity: 75%
 - Started: 2026-04-14
+- Completed: 2026-04-14
 - Acceptance Criteria (per plan §4 M2):
   - `codemem refresh` after a 10-line edit completes in < 500ms (enforced by `tests/perf/`)
   - `codemem refresh` after `git mv` correctly classifies all symbols as moved (not added+removed)
@@ -196,11 +197,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 - Result Log: COMPLETE 2026-04-14. `packages/codemem-mcp/src/codemem/journal/lock.py` (~120 LOC) exposes `acquire_writer_lock(path: Path)` as a context manager yielding `True` when acquired / `False` when held by another process (caller no-ops — does not queue). POSIX: `fcntl.lockf(fd, LOCK_EX | LOCK_NB)` on a `O_CREAT|O_WRONLY` fd, release via `LOCK_UN`. Windows: `msvcrt.locking(fd, LK_NBLCK, 1)` / `LK_UNLCK` — branch guarded by `sys.platform == "win32"` check so the Linux/macOS pure-stdlib path works with zero extra deps (`portalocker` NOT added — the stdlib primitives are sufficient on both POSIX variants, aligning with plan v3/v4 preference). Lock file is `.codemem/db.lock`, deliberately SEPARATE from the M2 Task 2.5 `.codemem/refresh.pid` (the hook's process-tracking file) — different abstractions: lock is about the DB, pid is about the hook process. Read MCP paths (M1 Task 1.7 mcp_tools) all use `db.connect(..., read_only=True)` which opens `mode=ro` URI and never touches the lock. Wired into `refresh_index`: new outer context manager `acquire_writer_lock(db.lock)` — if not acquired, logs "refresh: skipped (another refresh holds db.lock)" to `.codemem/refresh.log` and returns `RefreshStats(skipped_locked=True)` immediately. Refactored the lock-acquired code into a `_refresh_locked` helper so the entry point stays clean. Tests: `tests/codemem/test_writer_lock.py` — 6 tests across 4 classes: TestAcquireBasics (3: fresh acquire returns True, same-process sequential acquires both succeed, nested same-process contexts both succeed since POSIX fcntl is per-FD), TestCrossProcessContention (2 — **the AC gate**: second process fails to acquire while first holds; second process succeeds after first releases), TestRefreshIndexLockIntegration (1: holder process + `refresh_index` returns `stats.skipped_locked=True` + log line appears). Uses `multiprocessing.Process` with `multiprocessing.Event` for deterministic cross-process synchronization. Full codemem suite: **217/217 passing** (+1 skipped, +1 deselected slow). Ruff clean.
 
 ### Task 2.8: WAL JSONL rotation
-- Status: PENDING
-- Mode: AFK
+- Status: COMPLETE
+- Mode: AFK — auto-dispatched
 - Dependencies: Task 2.3
 - Acceptance Criteria: `wal.jsonl` rotates at 10MB; last 3 retained as `wal.jsonl.1.gz`, `wal.jsonl.2.gz`, `wal.jsonl.3.gz`; older compressed. Replay tool reads seamlessly across rotation boundary (test verifies replay produces identical DB whether WAL is unrotated or spans 3 rotations).
-- Result Log:
+- Result Log: COMPLETE 2026-04-14. Extended `packages/codemem-mcp/src/codemem/journal/wal.py`: (1) Exports `ROTATION_THRESHOLD_BYTES=10*1024*1024` (10MB) and `ROTATION_RETAIN_COUNT=3`. (2) New `rotate_if_needed(wal_path, *, threshold_bytes=..., retain=...) -> bool`: size-gated rotation; if `wal.jsonl.{retain}.gz` exists it's unlinked (oldest dropped), then archives shifted up by one (N → N+1), then live `wal.jsonl` is chunked-copied (1MB chunks — memory-bounded for the 10MB ceiling) through `gzip.open` into `wal.jsonl.1.gz`, then the live file is O_TRUNC'd. No-op when size under threshold or file doesn't exist. (3) `_iter_lines` rewritten to walk ALL extant archives oldest-first (.3.gz → .2.gz → .1.gz → live via `_rotated_archive_paths` helper) so `read_entries` and `read_acked_ids` transparently span rotation boundaries. (4) `build_index` now calls `_wal.rotate_if_needed(wal_path)` once after ack-emission — rotation happens automatically when the log has grown past the ceiling, no manual triggering needed. Tests: `tests/codemem/test_wal_rotation.py` — 10 tests across 5 classes: TestRotationTrigger (3: under-threshold no-op, over-threshold rotates + archives + empties live, missing WAL no-op), TestRotationShift (2: four rotations with retain=3 drops oldest; retain=2 custom param respected), TestReadersSpanArchives (2: 6 entries across 2 rotations visible in chronological order via read_entries; acked_ids spans archives), TestReplayAcrossRotation (1 — **the AC gate**: replay of 4 entries unrotated vs. same 4 entries with 3 rotations produces identical DB state), TestConstants (2: retain=3 locked, threshold=10MB locked). Full codemem suite: **227/227 passing** (217 prior + 10 rotation). Ruff clean.
 
 ---
 

@@ -2,7 +2,7 @@
 
 _This file is the highest-priority AA-MA memory artifact. Load FIRST when resuming this task. Facts below are extracted from `codemem-plan.md` v3 and are non-negotiable unless the plan itself is revised._
 
-_Last Updated: 2026-04-13 (M1 COMPLETE — all 14 tasks shipped)_
+_Last Updated: 2026-04-14 (M2 COMPLETE — all 8 tasks shipped)_
 
 ---
 

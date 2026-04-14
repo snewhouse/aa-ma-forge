@@ -28,6 +28,7 @@ branch 2.
 
 from __future__ import annotations
 
+import gzip
 import json
 import os
 import sqlite3
@@ -42,6 +43,8 @@ from ..storage import db
 
 __all__ = [
     "ENTRY_SCHEMA_VERSION",
+    "ROTATION_THRESHOLD_BYTES",
+    "ROTATION_RETAIN_COUNT",
     "WALEntry",
     "ReplayConflict",
     "append_intent",
@@ -49,10 +52,18 @@ __all__ = [
     "read_entries",
     "read_acked_ids",
     "replay_wal",
+    "rotate_if_needed",
 ]
 
 
 ENTRY_SCHEMA_VERSION = 1
+
+# M2 Task 2.8: rotate the WAL once it crosses this size threshold.
+# Compressed archives after rotation: ``wal.jsonl.1.gz`` (most recent),
+# ``wal.jsonl.2.gz``, ``wal.jsonl.3.gz`` (oldest kept). Rotations
+# beyond the retain count are deleted.
+ROTATION_THRESHOLD_BYTES = 10 * 1024 * 1024  # 10 MB
+ROTATION_RETAIN_COUNT = 3
 
 
 @dataclass
@@ -126,20 +137,42 @@ def append_ack(wal_path: Path, entry_id: str) -> None:
 # Read helpers
 # ---------------------------------------------------------------------
 
+def _iter_lines_in(opener) -> Iterator[dict]:
+    """Parse JSONL lines from a file-like, tolerating truncated tails."""
+    for raw in opener:
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            yield json.loads(raw)
+        except json.JSONDecodeError:
+            # Truncated last line after a crash — stop rather than
+            # propagate; replay will rebuild safely.
+            continue
+
+
+def _rotated_archive_paths(wal_path: Path) -> list[Path]:
+    """Return ``wal.jsonl.N.gz`` archive paths that currently exist,
+    ordered oldest → newest (highest N first)."""
+    archives: list[Path] = []
+    for n in range(ROTATION_RETAIN_COUNT, 0, -1):
+        candidate = wal_path.with_name(f"{wal_path.name}.{n}.gz")
+        if candidate.exists():
+            archives.append(candidate)
+    return archives
+
+
 def _iter_lines(wal_path: Path) -> Iterator[dict]:
-    if not wal_path.exists():
-        return
-    with wal_path.open("r", encoding="utf-8") as fh:
-        for raw in fh:
-            raw = raw.strip()
-            if not raw:
-                continue
-            try:
-                yield json.loads(raw)
-            except json.JSONDecodeError:
-                # Truncated last line after a crash — stop rather than
-                # propagate; replay will rebuild safely.
-                continue
+    """Walk every WAL entry across rotated archives + live file,
+    oldest-first so replay semantics are preserved across rotation."""
+    # Archives first (.3.gz → .2.gz → .1.gz) — oldest to newest.
+    for archive in _rotated_archive_paths(wal_path):
+        with gzip.open(archive, "rt", encoding="utf-8") as fh:
+            yield from _iter_lines_in(fh)
+    # Then the live file.
+    if wal_path.exists():
+        with wal_path.open("r", encoding="utf-8") as fh:
+            yield from _iter_lines_in(fh)
 
 
 def read_entries(wal_path: Path) -> Iterator[dict]:
@@ -157,6 +190,64 @@ def read_acked_ids(wal_path: Path) -> set[str]:
         for obj in _iter_lines(wal_path)
         if obj.get("ack") is True and "id" in obj
     }
+
+
+# ---------------------------------------------------------------------
+# Rotation (M2 Task 2.8)
+# ---------------------------------------------------------------------
+
+def rotate_if_needed(
+    wal_path: Path,
+    *,
+    threshold_bytes: int = ROTATION_THRESHOLD_BYTES,
+    retain: int = ROTATION_RETAIN_COUNT,
+) -> bool:
+    """Rotate ``wal_path`` if it has grown past ``threshold_bytes``.
+
+    After rotation:
+        * ``wal.jsonl.<retain>.gz`` deleted if it existed (oldest)
+        * ``wal.jsonl.<retain-1>.gz`` → ``wal.jsonl.<retain>.gz``
+        * ... shift all by one
+        * ``wal.jsonl`` → gzipped to ``wal.jsonl.1.gz`` and truncated
+
+    Returns True if rotation happened, False otherwise. Callers can
+    safely call this at any time — it's a no-op when size is under
+    the threshold OR the file doesn't exist.
+    """
+    if not wal_path.exists():
+        return False
+    try:
+        current_size = wal_path.stat().st_size
+    except OSError:
+        return False
+    if current_size < threshold_bytes:
+        return False
+
+    # Shift existing archives: drop the oldest, shift the rest up by 1.
+    oldest = wal_path.with_name(f"{wal_path.name}.{retain}.gz")
+    if oldest.exists():
+        oldest.unlink()
+    for n in range(retain - 1, 0, -1):
+        src = wal_path.with_name(f"{wal_path.name}.{n}.gz")
+        dst = wal_path.with_name(f"{wal_path.name}.{n + 1}.gz")
+        if src.exists():
+            src.rename(dst)
+
+    # Compress the live WAL into slot .1.gz, then truncate.
+    target = wal_path.with_name(f"{wal_path.name}.1.gz")
+    with wal_path.open("rb") as fh_in, gzip.open(target, "wb") as fh_out:
+        # Chunked copy — keeps memory bounded for a 10MB file.
+        while True:
+            chunk = fh_in.read(1024 * 1024)
+            if not chunk:
+                break
+            fh_out.write(chunk)
+
+    # Reset the live WAL to empty. Use O_TRUNC so readers mid-stream
+    # don't see a half-state.
+    fd = os.open(wal_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+    os.close(fd)
+    return True
 
 
 # ---------------------------------------------------------------------

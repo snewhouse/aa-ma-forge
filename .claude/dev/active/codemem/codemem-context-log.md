@@ -356,3 +356,22 @@ Getting the PRAGMA inside the `with` block would have silently enforced FKs duri
 
 **Unresolved**: Task 3.1 writer must enforce the 500-commit cap — SQL has no size limit. Simple approach: after insert-batch, `DELETE FROM commits WHERE sha NOT IN (SELECT sha FROM commits ORDER BY author_time DESC LIMIT 500)`. Handled in Task 3.1.
 
+
+---
+
+## [2026-04-14] M3 Task 3.1 — Git mining base layer
+
+**Decision — record-separator at FRONT of git log pretty-format, not END.** `--pretty=format:X --name-only` emits `<format-X>\nfile_a\nfile_b\n\n<format-X>\n...`. If our record separator is at the END of format X, splitting on it gives fence-posted blocks: block[0] has only commit 1's header, block[1] has commit 1's files + commit 2's header, etc. Putting the RS at the FRONT makes every block self-contained (header + own files) — cleaner parsing, no fencepost.
+
+**Decision — `_last_cached_sha_in_head_lineage` instead of `MAX(author_time)` for incremental anchor.** SQLite has an *undefined* tie-break for `ORDER BY x DESC LIMIT 1` when multiple rows share x. Rapid-fire test commits (and real-world commit storms) routinely share `author_time` at 1-second granularity. Picking the "newest cached sha" by walking git's own topo-ordered log and finding the first cached match is (a) deterministic, (b) naturally detects rebased history (no cached sha in HEAD's lineage → fall back to full refresh), (c) robust to the tie-break issue by construction.
+
+**Decision — test fixture pins GIT_AUTHOR_DATE/GIT_COMMITTER_DATE.** Tests were flaky without this: all three seed commits fell into the same wall-clock second, SQLite's tiebreak varied, and the "newest sha" was sometimes the OLDEST physical commit. The fixture now passes `GIT_AUTHOR_DATE=@<unix_ts>` via env for each commit. Alongside the lineage-walk fix, this gives deterministic test behavior even on very fast machines. Worth the 6 lines of helper.
+
+**Decision — `get_blame` returns `{email: (line_count, percentage)}`, empty dict for missing files.** Alternatives considered: raise on missing file (matches `sanitize_path_arg` semantics), return `None`, return `{"error": ...}`. Empty dict wins because Task 3.4 (`owners()` MCP tool) will want to skip-and-continue for deleted files, binary files, and not-in-HEAD files without a try/except at the call site.
+
+**Decision — `INSERT OR REPLACE` for commits, `INSERT OR IGNORE` for junction.** Commits may need their message/email re-written (e.g. author changed their config). Junction rows are immutable by PK — (sha, file_path) is either there or not. Mixed OR-clauses keep intent explicit.
+
+**Decision — timeout=30s for `git log`, 5s for `merge-base`/`log HEAD`, 2s for `git blame`.** 500-commit log on a huge repo can take a few seconds; blame on a huge file can take longer but 2s matches Task 3.4's per-file timeout AC and lets callers iterate fast. Single-commit queries get the shortest budget.
+
+**Unresolved — `co_change_pairs` population.** Task 3.1 populates commits + commit_files. The materialized `co_change_pairs` table is populated by a derived view computation; Task 3.3 (`co_changes()` MCP tool) is responsible for calling it. Keeps 3.1 scope tight and 3.3 self-contained.
+

@@ -30,6 +30,7 @@ from .sanitizers import ValidationError, sanitize_path_arg, sanitize_symbol_arg
 
 __all__ = [
     "blast_radius",
+    "co_changes",
     "dead_code",
     "dependency_chain",
     "file_summary",
@@ -37,6 +38,8 @@ __all__ = [
     "search_symbols",
     "who_calls",
 ]
+
+_DEFAULT_CO_CHANGES_EXCLUDE: tuple[str, ...] = ("CHANGELOG.md", "README.md")
 
 
 _DEFAULT_BUDGET = 8_000
@@ -423,6 +426,111 @@ def hot_spots(
     ]
     return _truncate(
         {"files": files, "window_days": window_days, "top_n": top_n, "error": None},
+        list_key="files",
+        budget=budget,
+    )
+
+
+# ---------------------------------------------------------------------
+# co_changes (M3 Task 3.3)
+# ---------------------------------------------------------------------
+
+def co_changes(
+    db_path: Path,
+    file_path: str,
+    *,
+    threshold: int = 3,
+    exclude: tuple[str, ...] | None = None,
+    top_n: int = 50,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """Return files co-changing with ``file_path`` that lack an import edge.
+
+    Two filters on top of commit-co-occurrence:
+
+    1. Must share at least ``threshold`` commits with ``file_path``.
+    2. Must NOT be linked by an import/call edge in either direction — the
+       whole point of this tool is to surface *implicit* coupling that the
+       AST misses.
+
+    ``exclude`` defaults to :data:`_DEFAULT_CO_CHANGES_EXCLUDE`
+    (``("CHANGELOG.md", "README.md")``) which users routinely touch alongside
+    everything else; pass an empty tuple to disable.
+
+    Result order: ``count`` DESC, ``path`` ASC for deterministic tie-break.
+    """
+    try:
+        clean = sanitize_symbol_arg(file_path)
+    except ValidationError as exc:
+        return {"error": str(exc), "target": file_path, "files": []}
+
+    excludes = (
+        _DEFAULT_CO_CHANGES_EXCLUDE if exclude is None else tuple(exclude)
+    )
+
+    # Parameterised `NOT IN (?, ?, ...)` — build conditionally so empty
+    # excludes produces NO clause at all (a bare `NOT IN (NULL)` evaluates
+    # to NULL/unknown and filters out everything, SQL three-valued-logic gotcha).
+    exclude_clause = ""
+    if excludes:
+        exclude_clause = (
+            "AND co.path NOT IN ("
+            + ",".join("?" for _ in excludes)
+            + ")"
+        )
+    query = f"""
+        WITH target_commits AS (
+            SELECT commit_sha FROM commit_files WHERE file_path = ?
+        ),
+        co_counts AS (
+            SELECT cf.file_path AS path,
+                   COUNT(DISTINCT cf.commit_sha) AS c
+              FROM commit_files cf
+             WHERE cf.commit_sha IN (SELECT commit_sha FROM target_commits)
+               AND cf.file_path != ?
+             GROUP BY cf.file_path
+            HAVING COUNT(DISTINCT cf.commit_sha) >= ?
+        ),
+        linked AS (
+            SELECT f2.path AS path
+              FROM edges e
+              JOIN symbols s1 ON s1.id = e.src_symbol_id
+              JOIN symbols s2 ON s2.id = e.dst_symbol_id
+              JOIN files   f1 ON f1.id = s1.file_id
+              JOIN files   f2 ON f2.id = s2.file_id
+             WHERE f1.path = ? AND f2.path != ?
+            UNION
+            SELECT f1.path AS path
+              FROM edges e
+              JOIN symbols s1 ON s1.id = e.src_symbol_id
+              JOIN symbols s2 ON s2.id = e.dst_symbol_id
+              JOIN files   f1 ON f1.id = s1.file_id
+              JOIN files   f2 ON f2.id = s2.file_id
+             WHERE f2.path = ? AND f1.path != ?
+        )
+        SELECT co.path AS path, co.c AS count
+          FROM co_counts co
+         WHERE co.path NOT IN (SELECT path FROM linked)
+           {exclude_clause}
+         ORDER BY co.c DESC, co.path ASC
+         LIMIT ?
+    """
+    params: list[object] = [clean, clean, threshold, clean, clean, clean, clean]
+    if excludes:
+        params.extend(excludes)
+    params.append(top_n)
+
+    with _open_ro(db_path) as conn:
+        rows = conn.execute(query, params).fetchall()
+
+    files = [{"path": r["path"], "count": r["count"]} for r in rows]
+    return _truncate(
+        {
+            "files": files,
+            "target": clean,
+            "threshold": threshold,
+            "error": None,
+        },
         list_key="files",
         budget=budget,
     )

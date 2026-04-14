@@ -35,6 +35,7 @@ __all__ = [
     "dependency_chain",
     "file_summary",
     "hot_spots",
+    "owners",
     "search_symbols",
     "who_calls",
 ]
@@ -534,6 +535,167 @@ def co_changes(
         list_key="files",
         budget=budget,
     )
+
+
+# ---------------------------------------------------------------------
+# owners (M3 Task 3.4)
+# ---------------------------------------------------------------------
+
+def owners(
+    db_path: Path,
+    path: str,
+    *,
+    repo_root: Path | None = None,
+    refresh: bool = False,
+    skip: bool = False,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """Return per-author line-count percentages for a file or directory.
+
+    Mode:
+    * ``skip=True`` — honours the ``--no-owners`` flag; returns ``{"skipped": True, "authors": []}``.
+    * Path ends with ``/`` or matches multiple rows in the ``ownership`` table
+      prefix-wise — aggregated as a directory.
+    * Otherwise — single-file lookup.
+
+    Cache policy: reads from the ``ownership`` table unless ``refresh=True``,
+    in which case ``GitMiner.get_blame`` is invoked (per-file 2s timeout) and
+    the results persisted. When the cache is empty AND no ``repo_root`` is
+    provided, returns an empty ``authors`` list rather than erroring — there
+    is no way to compute ownership without git.
+
+    Output:
+        {"authors": [{"email","line_count","percentage"}, ...],
+         "path", "from_cache": bool, "skipped": bool, "error", "truncated"}
+    """
+    if skip:
+        return {
+            "skipped": True,
+            "authors": [],
+            "path": path,
+            "error": None,
+        }
+
+    try:
+        clean = sanitize_symbol_arg(path)
+    except ValidationError as exc:
+        return {"error": str(exc), "path": path, "authors": [], "skipped": False}
+
+    with _open_ro(db_path) as conn:
+        # If ``refresh`` is requested and repo_root is provided, refresh first
+        # then fall through to the normal cache read.
+        if refresh and repo_root is not None:
+            _refresh_ownership_cache(db_path, clean, repo_root=repo_root)
+
+        # Directory-style query when path ends in '/' or when there are no
+        # exact-match rows but prefix rows exist.
+        is_directory = clean.endswith("/")
+        if is_directory:
+            rows = conn.execute(
+                "SELECT author_email, SUM(line_count) AS line_count "
+                "FROM ownership WHERE file_path LIKE ? || '%' "
+                "GROUP BY author_email",
+                (clean,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT author_email, line_count FROM ownership WHERE file_path = ?",
+                (clean,),
+            ).fetchall()
+
+    if not rows:
+        return {
+            "authors": [],
+            "path": clean,
+            "from_cache": False,
+            "skipped": False,
+            "error": None,
+            "truncated": False,
+        }
+
+    total = sum(r["line_count"] for r in rows)
+    authors = [
+        {
+            "email": r["author_email"],
+            "line_count": r["line_count"],
+            "percentage": (r["line_count"] / total * 100.0) if total else 0.0,
+        }
+        for r in rows
+    ]
+    # Deterministic tie-break: percentage DESC, email ASC.
+    authors.sort(key=lambda a: (-a["percentage"], a["email"]))
+
+    return _truncate(
+        {
+            "authors": authors,
+            "path": clean,
+            "from_cache": True,
+            "skipped": False,
+            "error": None,
+        },
+        list_key="authors",
+        budget=budget,
+    )
+
+
+def _refresh_ownership_cache(
+    db_path: Path, path: str, *, repo_root: Path
+) -> None:
+    """Call ``GitMiner.get_blame`` for ``path`` (or the files under it when path
+    is a directory) and write results to the ``ownership`` table.
+
+    Per-file 2 second timeout matches the AC. Silently skips files that
+    blame refuses (binary, not-in-HEAD, deleted) — they just don't get
+    cache entries.
+    """
+    # Local import avoids circular dep if someone stubs mcp_tools before
+    # analysis in some future toplevel layout.
+    from codemem.analysis.git_mining import GitMiner
+
+    miner = GitMiner(repo_root=repo_root)
+
+    # Resolve the set of files to blame.
+    targets: list[str]
+    if path.endswith("/"):
+        conn = db.connect(db_path)
+        try:
+            rows = conn.execute(
+                "SELECT path FROM files WHERE path LIKE ? || '%'",
+                (path,),
+            ).fetchall()
+            targets = [r[0] for r in rows]
+        finally:
+            conn.close()
+    else:
+        targets = [path]
+
+    if not targets:
+        return
+
+    now = int(time.time())
+    conn = db.connect(db_path)
+    try:
+        with db.transaction(conn):
+            for t in targets:
+                try:
+                    result = miner.get_blame(t)
+                except Exception:
+                    continue
+                if not result:
+                    continue
+                # Replace any stale rows for this file.
+                conn.execute(
+                    "DELETE FROM ownership WHERE file_path = ?", (t,)
+                )
+                for email, (line_count, pct) in result.items():
+                    conn.execute(
+                        "INSERT INTO ownership "
+                        "(file_path, author_email, line_count, percentage, computed_at) "
+                        "VALUES (?, ?, ?, ?, ?)",
+                        (t, email, line_count, pct, now),
+                    )
+    finally:
+        conn.close()
 
 
 # ---------------------------------------------------------------------

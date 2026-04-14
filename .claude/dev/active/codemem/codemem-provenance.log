@@ -41,3 +41,4 @@
 2026-04-14T05:29:05+01:00 MILESTONE M1 Task 1.12 COMPLETE — ARCHITECTURE.md (5 mandatory sections with M2 TBD placeholders for 2 and 4)
 2026-04-14T05:29:05+01:00 MILESTONE M1 Task 1.13 COMPLETE — performance-slo.md + tests/perf/test_budgets.py (4 perf tests) + pytest-marker config; empirical: cold 50ms, warm 47ms, who_calls 0.27ms, all massive headroom
 2026-04-14T05:29:05+01:00 MILESTONE M1 COMPLETE — 14/14 tasks shipped; 163 unit + 4 perf tests; all AC met with massive perf headroom
+2026-04-14T05:40:17+01:00 MILESTONE M2 Task 2.1 COMPLETE — symbol_diff.py (~170 LOC) + 14 tests; 2-phase Jaccard + line-proximity tiebreak + demotion log; 177/177 codemem suite passing

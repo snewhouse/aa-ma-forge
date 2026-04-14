@@ -131,10 +131,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 ---
 
 ## Milestone M2: Incremental Cache + WAL Journal (crash-safe ordering)
-- Status: PENDING
+- Status: ACTIVE
 - Gate: SOFT
 - Dependencies: M1 complete
 - Complexity: 75%
+- Started: 2026-04-14
 - Acceptance Criteria (per plan §4 M2):
   - `codemem refresh` after a 10-line edit completes in < 500ms (enforced by `tests/perf/`)
   - `codemem refresh` after `git mv` correctly classifies all symbols as moved (not added+removed)
@@ -146,11 +147,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
   - Git history rewrite test: `git rebase -i` orphans `last_sha` → next refresh falls back to full rebuild with logged warning, no crash
 
 ### Task 2.1: Symbol-set diff algorithm
-- Status: PENDING
-- Mode: AFK
+- Status: COMPLETE
+- Mode: AFK — auto-dispatched
 - Dependencies: M1
 - Acceptance Criteria: `diff/symbol_diff.py` classifies (old_symbols, new_symbols) per file into added/removed/modified/renamed via RefactoringMiner-style heuristic (same-kind hard filter; signature Jaccard similarity; line proximity tiebreak; threshold 0.7 → rename). Conservative: demoted matches logged. `--no-rename-detection` escape hatch. ~150 LOC + unit tests covering: same name diff signature, similar name same signature, mass refactor.
-- Result Log:
+- Result Log: COMPLETE 2026-04-14. `packages/codemem-mcp/src/codemem/diff/symbol_diff.py` (~170 LOC) exposing `ChangeKind` (str enum: UNCHANGED/MODIFIED/ADDED/REMOVED/RENAMED), `SymbolChange` dataclass (kind + old + new + optional score), `DiffResult` dataclass (changes + demoted), and `diff_symbols(old, new, *, rename_threshold=0.7, detect_renames=True) -> DiffResult`. Two-phase algorithm: (1) **Exact-name pass** matches by `(kind, name)` → UNCHANGED if signatures equal, MODIFIED otherwise; (2) **Rename detection** (opt-in via `detect_renames`) computes signature Jaccard over `_TOKEN_RE` tokens (`[A-Za-z0-9_]+`) with same-kind hard filter; line-proximity tiebreak (`abs(old.line - new.line)`, smaller wins at equal score). Jaccard score ≥ `rename_threshold` emits RENAMED; any same-kind candidate below threshold (including score=0) logged to `demoted` for audit trail. Deterministic: symbols sorted by `(line, name)` before matching — stable across runs. `detect_renames=False` escape hatch bypasses phase 2, treats all remaining pairs as ADDED/REMOVED with empty `demoted` (AC explicit). Tests: `tests/codemem/test_symbol_diff.py` — **14 tests** across 5 classes: TestExactMatch (5: unchanged/modified/removed/added + kind-difference-not-match), TestRenameDetection (6: signature-match-above-threshold, identical-sig-score-one, below-threshold-demoted, same-kind-hard-filter, line-proximity-tiebreak, mass-refactor-deterministic), TestNoRenameDetection (1: escape hatch), TestDataTypes (2). Full codemem suite: **177/177 passing** (M1 163 + 14 diff). Ruff clean.
 
 ### Task 2.2: Incremental indexer driver
 - Status: PENDING

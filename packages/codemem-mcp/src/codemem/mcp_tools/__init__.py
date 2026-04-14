@@ -37,6 +37,7 @@ __all__ = [
     "hot_spots",
     "owners",
     "search_symbols",
+    "symbol_history",
     "who_calls",
 ]
 
@@ -696,6 +697,154 @@ def _refresh_ownership_cache(
                     )
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------------
+# symbol_history (M3 Task 3.5)
+# ---------------------------------------------------------------------
+
+_SYMHIST_PRETTY = "%H\x1f%at\x1f%ae\x1f%s\x1e"
+
+
+def symbol_history(
+    db_path: Path,
+    name: str,
+    *,
+    file_path: str | None = None,
+    repo_root: Path | None = None,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """Return ``git log -L:<name>:<file>`` summary per file containing ``name``.
+
+    If ``file_path`` is given, only that file is queried. Otherwise every file
+    that contains a symbol with unqualified name == ``name`` is queried. Each
+    per-file entry carries: first/last commit sha+message+timestamp, change
+    count, and list of distinct author emails.
+    """
+    try:
+        clean_name = sanitize_symbol_arg(name)
+    except ValidationError as exc:
+        return {"error": str(exc), "target": name, "files": []}
+
+    if repo_root is None:
+        return {
+            "error": "repo_root is required for symbol_history",
+            "target": clean_name,
+            "files": [],
+        }
+
+    # Resolve target files.
+    with _open_ro(db_path) as conn:
+        if file_path is not None:
+            try:
+                clean_file = sanitize_symbol_arg(file_path)
+            except ValidationError as exc:
+                return {"error": str(exc), "target": clean_name, "files": []}
+            rows = conn.execute(
+                "SELECT f.path FROM files f JOIN symbols s ON s.file_id=f.id "
+                "WHERE s.name = ? AND f.path = ?",
+                (clean_name, clean_file),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT DISTINCT f.path FROM files f JOIN symbols s ON s.file_id=f.id "
+                "WHERE s.name = ?",
+                (clean_name,),
+            ).fetchall()
+
+    target_files = [r["path"] for r in rows]
+    if not target_files:
+        return {
+            "target": clean_name,
+            "files": [],
+            "error": None,
+            "truncated": False,
+        }
+
+    # Import locally to avoid a hard top-level dep on analysis subpackage.
+    from codemem.analysis.git_mining import GitMiner
+
+    miner = GitMiner(repo_root=repo_root)
+    file_histories: list[dict] = []
+    for fp in target_files:
+        entries = _git_log_L(miner, name=clean_name, file_path=fp)
+        if not entries:
+            continue
+        # Entries sorted desc by author_time in git log output; we want asc.
+        entries.sort(key=lambda e: e["author_time"])
+        first, last = entries[0], entries[-1]
+        authors = sorted({e["author_email"] for e in entries})
+        file_histories.append(
+            {
+                "file": fp,
+                "change_count": len(entries),
+                "first_commit": first["sha"],
+                "first_commit_message": first["message"],
+                "first_commit_time": first["author_time"],
+                "last_commit": last["sha"],
+                "last_commit_message": last["message"],
+                "last_commit_time": last["author_time"],
+                "authors": authors,
+            }
+        )
+
+    # Deterministic ordering across files.
+    file_histories.sort(key=lambda fh: fh["file"])
+
+    return _truncate(
+        {
+            "target": clean_name,
+            "files": file_histories,
+            "error": None,
+        },
+        list_key="files",
+        budget=budget,
+    )
+
+
+def _git_log_L(miner, *, name: str, file_path: str) -> list[dict]:
+    """Run ``git log -L:<name>:<file> --pretty=format:... -s`` and parse.
+
+    ``-s`` suppresses the diff body; we only want the header per commit.
+    Returns a list of ``{sha, author_time, author_email, message}`` dicts.
+    """
+    # git's -L:ident:file syntax rejects shell metachars itself, but we've
+    # already sanitized via sanitize_symbol_arg so this is belt+braces.
+    proc = miner._git(
+        [
+            "log",
+            "-s",
+            f"-L:{name}:{file_path}",
+            f"--pretty=format:{_SYMHIST_PRETTY}",
+            "--",
+        ],
+        check=False,
+        timeout=10.0,
+    )
+    if proc.returncode != 0:
+        return []
+    out: list[dict] = []
+    for block in proc.stdout.split("\x1e"):
+        block = block.strip()
+        if not block:
+            continue
+        parts = block.split("\x1f")
+        if len(parts) != 4:
+            continue
+        sha, at, ae, subject = parts
+        try:
+            author_time = int(at)
+        except ValueError:
+            continue
+        out.append(
+            {
+                "sha": sha,
+                "author_time": author_time,
+                "author_email": ae,
+                "message": subject,
+            }
+        )
+    return out
 
 
 # ---------------------------------------------------------------------

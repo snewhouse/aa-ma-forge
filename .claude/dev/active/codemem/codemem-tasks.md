@@ -206,7 +206,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 ---
 
 ## Milestone M3: Git Intelligence + AA-MA Coupling (the moat)
-- Status: PENDING
+- Status: ACTIVE (awaiting HARD gate approval)
 - Gate: HARD
 - Dependencies: M2 complete
 - Complexity: 55%
@@ -265,11 +265,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 - Result Log: COMPLETE 2026-04-14. TDD: 10 tests across 4 classes (FunctionSurface, Bucketing, AsciiOutput, EmptyAndSanitization) → RED → GREEN (10/10). **Tool signature:** `layers(db_path, *, budget=8000)`. **In-degree query:** LEFT JOIN `files ↔ symbols ↔ edges`, count edges where `src_symbol_id NOT IN (symbols WHERE file_id = f.id)` — so intra-file calls don't inflate in-degree (this is cross-file inbound only, the correct "used by others" signal). **Tertile bucketing:** `core_count = max(1, n // 3)` top tier; `peri_count = max(1, n // 3)` bottom tier; remainder = middle. Single-file corner case: everything goes to periphery (no signal). Tie-break by path ASC. **ASCII renderer:** `_render_layers_onion()` uses `+ label ... +` section headers padded to 80 cols exactly; files joined comma-separated with word-wrap at 80 cols; hard cap at 2000 chars (≤500 tokens via 1:4 heuristic). Uses only ASCII (no Unicode box-drawing) so output survives any terminal. **Golden file stub:** `tests/golden/layers_aa_ma_forge.txt` checked in as a placeholder documenting the expected format; real aa-ma-forge-bytes comparison lands in M4 Task 4.1 (benchmarks). Unit tests enforce SHAPE invariants (3 tiers, ≤80 cols, ≤2000 chars) which is the regression-relevant contract. **Truncation:** `truncated: True` flag emitted only when the whole JSON payload exceeds budget; the ASCII art itself is capped internally. Full suite: **318 passed** (+10). Ruff clean.
 
 ### Task 3.7: `aa_ma_context(task_name)` MCP tool (AA-MA-native moat)
-- Status: PENDING
-- Mode: AFK
+- Status: COMPLETE
+- Mode: AFK — auto-dispatched
 - Dependencies: Task 3.2, Task 3.4
 - Acceptance Criteria: Validates task against `.claude/dev/active/*/`. Returns: `hot_spots` filtered to files mentioned in the task's `*-tasks.md`; `owners()` of those files; `blast_radius()` of named symbols in `*-reference.md`. Output: structured Markdown fragment ready to paste. Optional `--write` mode appends to reference.md with timestamp. Extraction rule pinned (see `codemem-reference.md`): file mentions via backticked path regex + filesystem existence check; symbol mentions via backticked identifier regex + SQLite `symbols.name` lookup. Integration test against `tests/fixtures/aa_ma_context/sample-task/` matches `expected.json` byte-for-byte. ~80 LOC.
-- Result Log:
+- Result Log: COMPLETE 2026-04-14. TDD: 8 tests across 4 classes (FunctionSurface, Extraction, MarkdownAssembly, WriteMode) → RED → GREEN (8/8). **Tool signature:** `aa_ma_context(db_path, task_name, *, repo_root=None, write=False, budget=8000)`. **Extraction:** `_extract_file_mentions()` uses pinned regex `` `([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,5})` `` + filesystem existence check via `(repo_root / match).is_file()`; `_extract_symbol_mentions()` uses `` `([a-zA-Z_][a-zA-Z0-9_.]{0,63})` `` + `SELECT DISTINCT name FROM symbols WHERE name IN (...)`. **Two-pass correctness:** file mentions are extracted FIRST and excluded from the symbol candidate set — otherwise backticked path `` `config.py` `` would also match the symbol regex (valid identifier + dot) and produce a bogus symbols-table lookup. **Enrichment:** per-file `owners(db_path, fp)` (cache-only — keeps the tool read-only/fast), per-symbol `blast_radius(db_path, sym)`; `hot_spots()` filtered to the intersection preserving rank. **Markdown renderer:** 3 sections (Files, Symbols, Hot spots) each with (none) fallback, top-owner inline (`email (pct%)`), blast-radius callee count inline. **Write mode:** `_append_snapshot_to_reference()` appends `## aa_ma_context snapshot [<ISO8601 UTC>]` + content to `<task>-reference.md`; idempotent-safe because each snapshot has a distinct timestamp header. **Fixture:** `tests/fixtures/aa_ma_context/sample-task/` has sample-task-tasks.md + sample-task-reference.md with deliberate adversarial tokens (bare words like `True`/`None`, non-existent files like `non-existent.py`/`not_real_path.py`). Test helper `_stage_task_dir()` retargets file names on copy so tests can reuse the fixture under arbitrary task_name values without editing fixture contents. Full codemem suite: **326 passed, 1 skipped, 1 deselected** (was 318; +8). Ruff clean. **Milestone M3: 8/8 complete.**
 
 ### Task 3.8: M3 schema additions (migration v2)
 - Status: COMPLETE

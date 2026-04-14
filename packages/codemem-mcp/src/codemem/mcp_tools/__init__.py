@@ -18,8 +18,10 @@ Tools:
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +31,7 @@ from .sanitizers import ValidationError, sanitize_path_arg, sanitize_symbol_arg
 
 
 __all__ = [
+    "aa_ma_context",
     "blast_radius",
     "co_changes",
     "dead_code",
@@ -974,6 +977,198 @@ def _render_layers_onion(
     if len(text) > _LAYER_MAX_CHARS:
         text = text[: _LAYER_MAX_CHARS - 4] + "\n..."
     return text
+
+
+# ---------------------------------------------------------------------
+# aa_ma_context (M3 Task 3.7 — the moat)
+# ---------------------------------------------------------------------
+
+# Extraction rules (verbatim contract from codemem-reference.md).
+_FILE_MENTION_RE = re.compile(r"`([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,5})`")
+_SYMBOL_MENTION_RE = re.compile(r"`([a-zA-Z_][a-zA-Z0-9_.]{0,63})`")
+
+
+def aa_ma_context(
+    db_path: Path,
+    task_name: str,
+    *,
+    repo_root: Path | None = None,
+    write: bool = False,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """Validate an AA-MA task and assemble a code-intel context pack.
+
+    Walks ``<repo_root>/.claude/dev/active/<task_name>/<task_name>-{tasks,reference}.md``,
+    extracts file + symbol mentions per the pinned extraction rules, then
+    enriches via :func:`owners` for files and :func:`blast_radius` for symbols.
+
+    With ``write=True`` the same content is appended to the task's
+    reference.md as an ``## aa_ma_context snapshot [<ISO>]`` section.
+    """
+    try:
+        clean = sanitize_symbol_arg(task_name)
+    except ValidationError as exc:
+        return {"error": str(exc), "task": task_name}
+
+    if repo_root is None:
+        return {"error": "repo_root is required for aa_ma_context", "task": clean}
+
+    task_dir = Path(repo_root) / ".claude" / "dev" / "active" / clean
+    if not task_dir.is_dir():
+        return {
+            "error": f"task not found: {clean} (expected at {task_dir})",
+            "task": clean,
+        }
+
+    tasks_md = task_dir / f"{clean}-tasks.md"
+    ref_md = task_dir / f"{clean}-reference.md"
+    text_blobs: list[str] = []
+    for p in (tasks_md, ref_md):
+        if p.is_file():
+            text_blobs.append(p.read_text(encoding="utf-8"))
+    corpus = "\n".join(text_blobs)
+
+    files = _extract_file_mentions(corpus, repo_root=Path(repo_root))
+    symbols = _extract_symbol_mentions(corpus, db_path=db_path)
+
+    # Owners per file (cache-only — don't trigger git subprocess here; the
+    # tool is read-only and fast by contract).
+    owners_by_file: dict[str, dict] = {}
+    for fp in files:
+        owners_by_file[fp] = owners(db_path, fp)
+
+    # Blast radius per symbol.
+    blast_by_symbol: dict[str, dict] = {}
+    for sym in symbols:
+        blast_by_symbol[sym] = blast_radius(db_path, sym)
+
+    # hot_spots filtered to just the mentioned files (intersection, preserving
+    # hot_spots' own ranking order).
+    hs = hot_spots(db_path)
+    mentioned_set = set(files)
+    hs_filtered = [f for f in hs.get("files", []) if f["path"] in mentioned_set]
+
+    markdown = _render_context_markdown(
+        task=clean,
+        files=files,
+        symbols=symbols,
+        owners_by_file=owners_by_file,
+        blast_by_symbol=blast_by_symbol,
+        hot_spots_filtered=hs_filtered,
+    )
+
+    if write:
+        _append_snapshot_to_reference(ref_md, markdown)
+
+    payload: dict[str, Any] = {
+        "task": clean,
+        "files": files,
+        "symbols": symbols,
+        "owners_by_file": owners_by_file,
+        "blast_radius_by_symbol": blast_by_symbol,
+        "hot_spots": hs_filtered,
+        "markdown": markdown,
+        "error": None,
+        "truncated": False,
+    }
+    if len(json.dumps(payload, default=str)) > _budget_chars(budget):
+        payload["truncated"] = True
+    return payload
+
+
+def _extract_file_mentions(corpus: str, *, repo_root: Path) -> list[str]:
+    """Backticked path tokens that also exist on disk under repo_root.
+
+    Deduplicates and preserves first-appearance order.
+    """
+    seen: dict[str, None] = {}
+    for match in _FILE_MENTION_RE.findall(corpus):
+        if match in seen:
+            continue
+        candidate = repo_root / match
+        if candidate.is_file():
+            seen[match] = None
+    return list(seen.keys())
+
+
+def _extract_symbol_mentions(corpus: str, *, db_path: Path) -> list[str]:
+    """Backticked identifiers that also appear in the ``symbols.name`` column.
+
+    Filters out anything matching a file-mention (those are files, not
+    symbols). Deduplicates and preserves first-appearance order.
+    """
+    file_hits = set(_FILE_MENTION_RE.findall(corpus))
+    candidates: list[str] = []
+    for m in _SYMBOL_MENTION_RE.findall(corpus):
+        if m in file_hits:
+            continue
+        if m not in candidates:
+            candidates.append(m)
+    if not candidates:
+        return []
+    placeholders = ",".join("?" for _ in candidates)
+    with _open_ro(db_path) as conn:
+        rows = conn.execute(
+            f"SELECT DISTINCT name FROM symbols WHERE name IN ({placeholders})",
+            candidates,
+        ).fetchall()
+    found = {r["name"] for r in rows}
+    return [c for c in candidates if c in found]
+
+
+def _render_context_markdown(
+    *,
+    task: str,
+    files: list[str],
+    symbols: list[str],
+    owners_by_file: dict[str, dict],
+    blast_by_symbol: dict[str, dict],
+    hot_spots_filtered: list[dict],
+) -> str:
+    """Assemble the pastable Markdown fragment."""
+    parts: list[str] = [f"# codemem aa_ma_context — {task}", ""]
+    parts.append("## Files mentioned")
+    if files:
+        for fp in files:
+            top_owner = ""
+            ownres = owners_by_file.get(fp, {})
+            authors = ownres.get("authors", [])
+            if authors:
+                top = authors[0]
+                top_owner = f" — {top['email']} ({top['percentage']:.1f}%)"
+            parts.append(f"- `{fp}`{top_owner}")
+    else:
+        parts.append("- (none)")
+    parts.append("")
+    parts.append("## Symbols mentioned")
+    if symbols:
+        for sym in symbols:
+            blast = blast_by_symbol.get(sym, {})
+            callees = blast.get("callees", [])
+            parts.append(f"- `{sym}` (blast-radius: {len(callees)} downstream)")
+    else:
+        parts.append("- (none)")
+    parts.append("")
+    parts.append("## Hot spots (filtered to mentioned files)")
+    if hot_spots_filtered:
+        for hs in hot_spots_filtered:
+            parts.append(
+                f"- `{hs['path']}` — score {hs['score']} "
+                f"({hs['commits_in_window']} commits × {hs['function_count']} fns)"
+            )
+    else:
+        parts.append("- (none)")
+    return "\n".join(parts) + "\n"
+
+
+def _append_snapshot_to_reference(ref_md: Path, markdown: str) -> None:
+    """Append ``## aa_ma_context snapshot [<ISO>]`` + content to reference.md."""
+    ts = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    block = f"\n\n## aa_ma_context snapshot [{ts}]\n\n{markdown}"
+    if ref_md.exists():
+        ref_md.write_text(ref_md.read_text(encoding="utf-8") + block, encoding="utf-8")
+    else:
+        ref_md.write_text(block, encoding="utf-8")
 
 
 # ---------------------------------------------------------------------

@@ -375,3 +375,28 @@ Getting the PRAGMA inside the `with` block would have silently enforced FKs duri
 
 **Unresolved — `co_change_pairs` population.** Task 3.1 populates commits + commit_files. The materialized `co_change_pairs` table is populated by a derived view computation; Task 3.3 (`co_changes()` MCP tool) is responsible for calling it. Keeps 3.1 scope tight and 3.3 self-contained.
 
+
+---
+
+## [2026-04-14] M3 Tasks 3.2–3.7 — Git intelligence + AA-MA moat
+
+**Pattern: all 6 MCP tools share the same envelope.** Every M3 tool returns a dict with at minimum `{<primary_list>, error, truncated}`. Error paths never raise — sanitization failures return `{"error": <reason>, ...}`. This matches the M1 tools' contract and means the MCP server layer needs no tool-specific exception handling.
+
+**Decision — `co_changes()` three-valued-logic fix.** `NOT IN (NULL)` evaluates to UNKNOWN (=FALSE) in SQL's three-valued logic, filtering EVERY row out. When `exclude=()` is passed we must OMIT the `NOT IN` clause from the SQL entirely, not emit `NOT IN (NULL)`. Cost: one `if excludes:` branch in the Python clause-builder; worth remembering for any future `NOT IN (user-empty-list)` pattern.
+
+**Decision — `owners()` aggregates by recomputing percentages from line_counts.** For directory queries, summing the cached per-file `percentage` column would double-count. Instead we sum `line_count` across the prefix and divide by the total. Cache column `percentage` is correct only for per-file queries.
+
+**Decision — `layers()` tertile bucketing.** Top `max(1, n // 3)` = core, bottom `max(1, n // 3)` = periphery, rest = middle. For n=1, everything is periphery (no signal to rank). Stable under any repo size, doesn't require z-scores or clustering.
+
+**Decision — `layers()` in-degree excludes intra-file edges.** `src_symbol_id NOT IN (SELECT id FROM symbols WHERE file_id = f.id)` — a file calling its own functions shouldn't inflate its "used by others" signal. This is the correct invariant even if it makes the query slightly hairier.
+
+**Decision — `aa_ma_context()` extracts files first, then excludes them from symbol candidates.** Backticked `config.py` matches both the file regex AND the symbol regex (valid identifier + dot). Two-pass extraction (files, then symbols minus files) removes the false-positive class by construction.
+
+**Decision — `aa_ma_context()` `write=True` appends, never overwrites.** Each snapshot header is `## aa_ma_context snapshot [<ISO8601 UTC>]` with distinct timestamps, so a user can safely call it many times per day without clobbering prior context packs in reference.md. The reference.md stays append-only except for manual human edits.
+
+**Decision — `aa_ma_context()` uses cache-only `owners()` (no git subprocess).** Per the MCP tool contract, these tools are read-only and fast. The refresh path exists in `owners(refresh=True)` for explicit use; `aa_ma_context` keeps it off so the tool is sub-second on any indexed repo.
+
+**Decision — `symbol_history()` uses `-s` to suppress diff body.** We only want commit-level metadata (sha, author, message), not the actual line-by-line diff that `-L` emits by default. This is a 10x-100x reduction in bytes we'd otherwise have to parse.
+
+**Deferred to M4:** the real `tests/golden/layers_aa_ma_forge.txt` bytes comparison (requires indexing aa-ma-forge and capturing the output at that time — belongs in benchmarks/bench tests, not unit suite). Stub file checked in now with a header block documenting the eventual format.
+

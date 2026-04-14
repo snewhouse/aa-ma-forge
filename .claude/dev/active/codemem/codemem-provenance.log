@@ -57,3 +57,5 @@
 2026-04-14T09:44:54+01:00 MILESTONE M3 Task 3.4 COMPLETE — mcp_tools.owners() + _refresh_ownership_cache() + 10 tests; 301/301
 2026-04-14T09:50:43+01:00 MILESTONE M3 Task 3.5 COMPLETE — mcp_tools.symbol_history() git log -L wrapper + RS/US parse + 7 tests; 308/308
 2026-04-14T09:55:35+01:00 MILESTONE M3 Task 3.6 COMPLETE — mcp_tools.layers() in-degree bucketing + ASCII onion + 10 tests + golden stub; 318/318
+2026-04-14T10:01:24+01:00 MILESTONE M3 Task 3.7 COMPLETE — mcp_tools.aa_ma_context() moat tool + fixture + 8 tests; 326/326
+2026-04-14T10:01:24+01:00 MILESTONE M3 ALL TASKS SHIPPED — 8/8 (3.8, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7); 326 unit tests; awaiting HARD gate approval

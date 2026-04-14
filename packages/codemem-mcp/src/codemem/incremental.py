@@ -39,6 +39,7 @@ from pathlib import Path
 from . import resolver as _resolver
 from .diff.symbol_diff import ChangeKind, diff_symbols
 from .indexer import build_index, parse_files, discover_files
+from .journal.lock import acquire_writer_lock
 from .parser.python_ast import Symbol
 from .storage import db
 
@@ -57,6 +58,9 @@ class RefreshStats:
     symbols_renamed: int = 0
     edges_rewired: int = 0
     full_rebuild: bool = False
+    # M2 Task 2.7: set when a concurrent refresh held the writer lock;
+    # this refresh no-opped rather than queued.
+    skipped_locked: bool = False
     elapsed_seconds: float = 0.0
 
 
@@ -77,7 +81,32 @@ def refresh_index(
 
     log_file = db_path.parent / "refresh.log"
     last_sha_file = db_path.parent / "last_sha"
+    lock_file = db_path.parent / "db.lock"
 
+    # M2 Task 2.7: single-writer lock. If another refresh holds it,
+    # no-op (don't queue) — the currently-running refresh will pick
+    # up our changes since it re-scans disk state.
+    with acquire_writer_lock(lock_file) as acquired:
+        if not acquired:
+            _log(log_file, "refresh: skipped (another refresh holds db.lock)")
+            return RefreshStats(
+                skipped_locked=True, elapsed_seconds=time.monotonic() - t0
+            )
+        return _refresh_locked(
+            repo_root, db_path, package=package,
+            log_file=log_file, last_sha_file=last_sha_file, t0=t0,
+        )
+
+
+def _refresh_locked(
+    repo_root: Path,
+    db_path: Path,
+    *,
+    package: str,
+    log_file: Path,
+    last_sha_file: Path,
+    t0: float,
+) -> RefreshStats:
     # ---- Fallback: no DB yet, no last_sha, or orphaned SHA ----------
     if not db_path.exists() or not last_sha_file.exists() or _sha_orphaned(
         repo_root, last_sha_file
@@ -201,6 +230,12 @@ def refresh_index(
                 # v1 re-resolves for every refresh to guarantee
                 # correctness after cross-file renames.
                 _resolver.resolve_cross_file_edges(conn, parses=parses)
+
+        # M2 Task 2.6: checkpoint SQLite WAL after a meaningful batch
+        # so -wal file size doesn't grow unbounded across many
+        # refreshes. Executed outside the transaction since
+        # wal_checkpoint is a PRAGMA.
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     finally:
         conn.close()
 

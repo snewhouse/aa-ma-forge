@@ -46,3 +46,5 @@
 2026-04-14T05:51:44+01:00 MILESTONE M2 Task 2.3 COMPLETE — journal/wal.py (~270 LOC) + 14 tests; O_APPEND atomicity + 4-branch replay state diagram + crash-injection gate; 201/201 codemem suite passing
 2026-04-14T05:58:49+01:00 MILESTONE M2 Task 2.4 COMPLETE — replay_wal restores files+symbols+edges; state-first semantics; CLI replay --from-wal; hypothesis 100-example property test; 205/205 default + 1/1 slow passing
 2026-04-14T06:03:39+01:00 MILESTONE M2 Task 2.5 COMPLETE — post-commit.sh setsid + PID-file + kill-prev-pgroup; storm test (5 rapid amends <1s → ≤1 active proc) passes; 208/208 codemem suite passing
+2026-04-14T06:35:49+01:00 MILESTONE M2 Task 2.6 COMPLETE — PRAGMA wal_checkpoint(TRUNCATE) in build_index+refresh_index + 3 tests (WAL size bounded); 211/211
+2026-04-14T06:35:49+01:00 MILESTONE M2 Task 2.7 COMPLETE — journal/lock.py (~120 LOC) fcntl/msvcrt single-writer lock + 6 tests incl cross-process gate; refresh_index skips when held; 217/217

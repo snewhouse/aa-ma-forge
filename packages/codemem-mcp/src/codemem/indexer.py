@@ -436,6 +436,12 @@ def build_index(
         integrity = conn.execute("PRAGMA integrity_check").fetchall()
         if integrity != [("ok",)]:
             raise RuntimeError(f"codemem SQLite integrity check failed: {integrity}")
+
+        # M2 Task 2.6: truncate the SQLite WAL after a large batch so
+        # -wal file size stays bounded. TRUNCATE is the strictest
+        # checkpoint mode — forces a full WAL→db merge and resets the
+        # wal file to zero bytes. Harmless no-op on an already-empty WAL.
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     finally:
         conn.close()
 

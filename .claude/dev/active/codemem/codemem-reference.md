@@ -2,7 +2,7 @@
 
 _This file is the highest-priority AA-MA memory artifact. Load FIRST when resuming this task. Facts below are extracted from `codemem-plan.md` v3 and are non-negotiable unless the plan itself is revised._
 
-_Last Updated: 2026-04-14 (M2 COMPLETE — all 8 tasks shipped)_
+_Last Updated: 2026-04-14 (M3 Task 3.8 COMPLETE — schema v2 migration shipped)_
 
 ---
 
@@ -72,9 +72,9 @@ Read-side MCP connections use `sqlite://…?mode=ro`.
 Schema version progression via `PRAGMA user_version`:
 - **v1** (M1): `files`, `symbols`, `edges` + indexes
 - **v1 unchanged** (M2): NO SQLite schema mutations — only filesystem journaling (`.codemem/wal.jsonl`) and runtime locking (`.codemem/db.lock`, `.codemem/refresh.pid`); user_version stays at 1
-- **v2** (M3): adds `commits`, `ownership`, `co_change_pairs`
+- **v2** (M3 Task 3.8, SHIPPED 2026-04-14): adds `commits`, `ownership`, `co_change_pairs` **+ supporting junction `commit_files`** (not named in original plan §4; required so hot_spots/co_changes/symbol_history can query file↔commit without per-query git subprocess calls). `CURRENT_SCHEMA_VERSION = 2`.
 
-Rollback granularity: M3→pre-M3 means `PRAGMA user_version=1` + drop the 3 new tables. Reconciled with plan §7 v3 revision (scribe-flagged inconsistency closed).
+Rollback granularity: M3→pre-M3 means `PRAGMA user_version=1` + `DROP TABLE commits, commit_files, ownership, co_change_pairs`. FK cascades on `commit_files` handle junction rows automatically when `commits` is dropped. Reconciled with plan §7 v3 revision.
 
 ---
 
@@ -487,6 +487,62 @@ Schema header: `codemem/project-intel@1`. Writer: `codemem.pagerank.write_projec
 - `symbols` list is truncated via binary search over char count ≤ `budget × 4` (1:4 token:char).
 - Trailing newline always present (POSIX text-file convention, git-friendly).
 - Schema version bump (v1→v2) required for any change to the `symbols` entry shape or `_meta` keys.
+
+---
+
+## V2 Schema DDL (pinned, Task 3.8)
+
+Source of truth: `packages/codemem-mcp/src/codemem/storage/db.py :: _MIGRATION_V2_GIT_MINING`. Contract invariants below are enforced by `tests/codemem/test_schema_v2.py` (27 tests) + the existing test_schema.py integrity/FK cases.
+
+```sql
+-- commits: one row per cached commit (writer enforces ≤500 retention policy per Task 3.1)
+CREATE TABLE commits (
+    sha           TEXT    PRIMARY KEY,
+    author_email  TEXT    NOT NULL,
+    author_time   INTEGER NOT NULL,  -- unix epoch, from `git log --pretty=%at`
+    message       TEXT    NOT NULL   -- subject line only (%s)
+);
+CREATE INDEX idx_commits_author_time ON commits(author_time);
+
+-- commit_files: junction — required for hot_spots/co_changes/symbol_history.
+-- Not named in plan §4 but documented as required implementation detail.
+CREATE TABLE commit_files (
+    commit_sha  TEXT NOT NULL REFERENCES commits(sha) ON DELETE CASCADE,
+    file_path   TEXT NOT NULL,     -- repo-relative; may reference a now-deleted file
+    PRIMARY KEY (commit_sha, file_path)
+);
+CREATE INDEX idx_commit_files_path ON commit_files(file_path);
+
+-- ownership: cached `git blame --line-porcelain` percentages
+CREATE TABLE ownership (
+    file_path    TEXT    NOT NULL,
+    author_email TEXT    NOT NULL,
+    line_count   INTEGER NOT NULL,
+    percentage   REAL    NOT NULL,   -- 0.0 .. 100.0
+    computed_at  INTEGER NOT NULL,   -- unix epoch — cache key
+    PRIMARY KEY (file_path, author_email)
+);
+CREATE INDEX idx_ownership_file ON ownership(file_path);
+
+-- co_change_pairs: materialised co-change counts. CHECK canonicalises ordering.
+CREATE TABLE co_change_pairs (
+    file_a       TEXT    NOT NULL,
+    file_b       TEXT    NOT NULL,
+    count        INTEGER NOT NULL,
+    last_commit  TEXT    REFERENCES commits(sha) ON DELETE SET NULL,
+    PRIMARY KEY (file_a, file_b),
+    CHECK (file_a < file_b)
+);
+CREATE INDEX idx_co_change_pairs_a ON co_change_pairs(file_a);
+CREATE INDEX idx_co_change_pairs_b ON co_change_pairs(file_b);
+```
+
+**Migration contract invariants:**
+- All DDL uses `CREATE TABLE/INDEX IF NOT EXISTS` — a crash between `executescript` and `PRAGMA user_version=2` leaves the DB still safely advanceable on retry.
+- `migrate(conn)` wraps each step in `with conn:` so SQLite auto-rolls-back on failure.
+- `CURRENT_SCHEMA_VERSION = 2` in `codemem.storage.db`. Fresh `apply_schema()` still produces v1 (schema.sql is frozen at v1); `migrate()` advances.
+- `co_change_pairs.last_commit` uses `ON DELETE SET NULL` (not CASCADE) — evicting a cached commit must not delete an otherwise-valid pair.
+- Ordering for co-change pair storage: caller MUST swap arguments if `a > b`. `tuple(sorted([a,b]))` is the canonical pattern.
 
 ---
 

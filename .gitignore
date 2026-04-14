@@ -17,6 +17,9 @@ media/
 # codemem local state — never commit
 .codemem/
 
+# Hypothesis property-test cache (test state, not source)
+.hypothesis/
+
 # Python
 __pycache__/
 *.py[cod]

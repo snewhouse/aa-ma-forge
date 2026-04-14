@@ -37,17 +37,71 @@ __all__ = [
 ]
 
 APPLICATION_ID = 0x434D454D  # 'CMEM' ASCII = 1129209165 (within signed int32, per SQLite application_id spec)
-CURRENT_SCHEMA_VERSION = 1  # M1 baseline; bumps to 2 in M3 Task 3.8
+CURRENT_SCHEMA_VERSION = 2  # M3 Task 3.8: git-mining tables (commits/ownership/co_change_pairs + commit_files junction)
 
 # Forward-only migrations. Each entry: (target_version, SQL_script_string).
 # The initial schema (v1) is provided by schema.sql; migrations here start at v2.
+# Migration scripts MUST be idempotent-safe via `IF NOT EXISTS` so a crash
+# between `executescript` and `PRAGMA user_version` does not wedge the DB.
+_MIGRATION_V2_GIT_MINING = """
+-- M3 Task 3.8: git intelligence tables.
+-- Adds commits, commit_files (junction), ownership, co_change_pairs.
+-- M2 introduced no schema changes — this is the first migration past v1.
+
+-- Commits cache (last 500 by Task 3.1 policy; table has no size limit,
+-- writer is responsible for eviction).
+CREATE TABLE IF NOT EXISTS commits (
+    sha           TEXT    PRIMARY KEY,
+    author_email  TEXT    NOT NULL,
+    author_time   INTEGER NOT NULL,   -- unix epoch, from `git log --pretty=%at`
+    message       TEXT    NOT NULL    -- subject line only, from `%s`
+);
+
+CREATE INDEX IF NOT EXISTS idx_commits_author_time ON commits(author_time);
+
+-- Junction: which files each cached commit touched.
+-- Not listed in the plan's 3-table summary but required by hot_spots,
+-- co_changes, symbol_history to avoid per-query git subprocess calls.
+-- ON DELETE CASCADE so evicting a commit purges its file attribution.
+CREATE TABLE IF NOT EXISTS commit_files (
+    commit_sha  TEXT NOT NULL REFERENCES commits(sha) ON DELETE CASCADE,
+    file_path   TEXT NOT NULL,              -- repo-relative; file may have been deleted since
+    PRIMARY KEY (commit_sha, file_path)
+);
+
+CREATE INDEX IF NOT EXISTS idx_commit_files_path ON commit_files(file_path);
+
+-- Per-file author percentages from `git blame --line-porcelain`.
+-- Cache; Task 3.4 recomputes on demand or via `codemem refresh --owners`.
+CREATE TABLE IF NOT EXISTS ownership (
+    file_path    TEXT    NOT NULL,
+    author_email TEXT    NOT NULL,
+    line_count   INTEGER NOT NULL,
+    percentage   REAL    NOT NULL,          -- 0.0 .. 100.0
+    computed_at  INTEGER NOT NULL,          -- unix epoch — cache freshness key
+    PRIMARY KEY (file_path, author_email)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ownership_file ON ownership(file_path);
+
+-- Pre-materialised co-change counts. Populated as a side-effect of commits
+-- cache refresh; query-time co_changes() reads this directly. The CHECK
+-- canonicalises ordering so (a,b) and (b,a) cannot both be stored.
+CREATE TABLE IF NOT EXISTS co_change_pairs (
+    file_a       TEXT    NOT NULL,
+    file_b       TEXT    NOT NULL,
+    count        INTEGER NOT NULL,
+    last_commit  TEXT    REFERENCES commits(sha) ON DELETE SET NULL,
+    PRIMARY KEY (file_a, file_b),
+    CHECK (file_a < file_b)
+);
+
+CREATE INDEX IF NOT EXISTS idx_co_change_pairs_a ON co_change_pairs(file_a);
+CREATE INDEX IF NOT EXISTS idx_co_change_pairs_b ON co_change_pairs(file_b);
+"""
+
 MIGRATIONS: list[tuple[int, str]] = [
-    # M3 Task 3.8 will append:
-    # (2, """
-    #   CREATE TABLE commits (...);
-    #   CREATE TABLE ownership (...);
-    #   CREATE TABLE co_change_pairs (...);
-    # """)
+    (2, _MIGRATION_V2_GIT_MINING),
 ]
 
 

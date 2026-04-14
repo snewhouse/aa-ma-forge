@@ -337,3 +337,22 @@ Getting the PRAGMA inside the `with` block would have silently enforced FKs duri
 **M4 AC deferred**: "Covers ≥90% of `/index` `_meta.symbol_importance` top symbols" is a benchmark, not a unit test. Task 4.2 runs it. M1 verifies algorithmic correctness + determinism + budget fit — the comparative quality check happens at M4 gate.
 
 **Unresolved issues**: None blocking. Future: weighted edges (call frequency × depth — plan AF-2 from Task 1.0 scratchpad) — currently all edges have weight 1. Aider's repomap uses sqrt-dampening and private-name filters; codemem v1 doesn't, but adding them later is a tuning knob that won't break the schema.
+
+---
+
+## [2026-04-14] M3 Task 3.8 — Schema v2 migration
+
+**Decision — add a supporting `commit_files` junction table beyond the 3 plan-named tables.** Plan §4 M3 lists only `commits`, `ownership`, `co_change_pairs` as the v2 additions, but implementing 3.1-3.7 without a commit↔file junction forces a `git show --name-only <sha>` subprocess per query — the exact O(N) pattern Task 3.1 sets out to cache. The clean SQL answer is a proper junction. `commit_files` is documented as an implementation-detail table alongside the 3 public ones.
+
+**Decision — execute 3.8 before 3.1.** Plan lists Task 3.8 dep as `Task 3.1` and Task 3.1 dep as `M2`. But 3.1's AC says "Caches last 500 commits in `commits` table" — that table doesn't exist until 3.8 runs. The plan's listed order is conceptual (git-mining-features first, schema last), not a strict dep DAG. Swapped execution order, noted in 3.8 Result Log. No other task affected.
+
+**Decision — `co_change_pairs.last_commit` uses ON DELETE SET NULL, not CASCADE.** When the commits-cache rolls off an old SHA (say commit #501 evicted when caching commit #1001), the co-change pair it once referenced is still a valid pair; it just no longer has a cached "last commit" pointer. CASCADE would wipe the pair, losing signal. SET NULL preserves the count while nulling the now-stale pointer.
+
+**Decision — `co_change_pairs` CHECK (file_a < file_b).** Prevents (x,y) and (y,x) being stored as separate rows. Caller always sorts inputs: `a, b = sorted([a, b])`. Enforced at DB level, not just by convention, because a lurking writer bug would otherwise split the co-change count silently.
+
+**Decision — migrate() is crash-safe without a rollback journal hack.** All migration DDL uses `CREATE TABLE/INDEX IF NOT EXISTS`. If `executescript` partially applies and then the process dies before `PRAGMA user_version=2`, the next `migrate()` run re-executes the idempotent script and then bumps user_version. No half-migrated state is possible because the version bump is the atomic commit point.
+
+**Test-flaw fixed in old test_schema.py**: `test_user_version_is_v1` asserted `fresh == CURRENT_SCHEMA_VERSION == 1` — a dual-invariant chain that was true in M1/M2 but broke the moment CURRENT_SCHEMA_VERSION moved to 2. Replaced with a single-invariant assertion (fresh apply_schema leaves v1). The old form encoded an implementation coincidence, not a contract.
+
+**Unresolved**: Task 3.1 writer must enforce the 500-commit cap — SQL has no size limit. Simple approach: after insert-batch, `DELETE FROM commits WHERE sha NOT IN (SELECT sha FROM commits ORDER BY author_time DESC LIMIT 500)`. Handled in Task 3.1.
+

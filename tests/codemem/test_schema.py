@@ -45,9 +45,11 @@ class TestSchemaApply:
         assert cur.fetchone()[0] == APPLICATION_ID
 
     def test_user_version_is_v1(self, fresh_db: sqlite3.Connection) -> None:
-        """Fresh DB after apply_schema is at v1 (M1 baseline)."""
+        """Fresh DB after apply_schema (before migrate) is at v1 — schema.sql
+        is frozen at v1 per M3 Task 3.8 contract; migrations advance from there.
+        """
         cur = fresh_db.execute("PRAGMA user_version")
-        assert cur.fetchone()[0] == CURRENT_SCHEMA_VERSION == 1
+        assert cur.fetchone()[0] == 1
 
     def test_journal_mode_is_wal(self, fresh_db: sqlite3.Connection) -> None:
         cur = fresh_db.execute("PRAGMA journal_mode")

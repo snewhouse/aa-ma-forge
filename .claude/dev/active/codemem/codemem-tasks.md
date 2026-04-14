@@ -272,11 +272,12 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 - Result Log:
 
 ### Task 3.8: M3 schema additions (migration v2)
-- Status: PENDING
-- Mode: AFK
+- Status: COMPLETE
+- Mode: AFK — auto-dispatched
 - Dependencies: Task 3.1
 - Acceptance Criteria: `schema.sql` + migration framework adds tables `commits`, `ownership`, `co_change_pairs` via `PRAGMA user_version` bump to 2 (M2 introduces no schema changes; user_version stays at 1 through M2). FKs and cascades per M1 contract. Migration from v1 → v2 tested round-trip.
-- Result Log:
+- Execution order note: Executed BEFORE Task 3.1 because 3.1 writes into the `commits` table that this migration creates. Plan's listed dep `Dependencies: Task 3.1` appears to be a plan-scribe error (3.1 AC explicitly caches into `commits` table which doesn't exist until v2 migration runs). Verified against plan §4 M3 bullet order and reference.md §SQLite which places v2 after M2.
+- Result Log: COMPLETE 2026-04-14. TDD cycle: wrote `tests/codemem/test_schema_v2.py` (27 tests across 7 classes) → confirmed RED (23 fail for expected reason: missing v2 tables / user_version=1) → implemented `MIGRATIONS[(2, _MIGRATION_V2_GIT_MINING)]` in `packages/codemem-mcp/src/codemem/storage/db.py` → confirmed GREEN (27/27 pass). One legitimate regression in `test_schema.py::test_user_version_is_v1` (old test conflated two invariants: `apply_schema()` leaves v1 AND `CURRENT_SCHEMA_VERSION==1`; these diverge now — test updated to assert the first invariant only; old assertion encoded an implementation coincidence, not a contract). **v2 schema:** `commits(sha PK, author_email, author_time, message)` + `idx_commits_author_time`; `commit_files(commit_sha FK→commits ON DELETE CASCADE, file_path, PK(both))` + `idx_commit_files_path`; `ownership(file_path, author_email, line_count, percentage, computed_at, PK(file_path,author_email))` + `idx_ownership_file`; `co_change_pairs(file_a, file_b, count, last_commit FK→commits ON DELETE SET NULL, PK(file_a,file_b), CHECK(file_a<file_b))` + `idx_co_change_pairs_{a,b}`. **Supporting junction table `commit_files` added** beyond the 3 plan-named tables; junction is required so hot_spots/co_changes/symbol_history can query file↔commit without per-query git subprocess calls. Documented in reference.md. **Migration idempotency:** all DDL uses `CREATE TABLE/INDEX IF NOT EXISTS`; `migrate()` wraps each step in `with conn:` so crash between `executescript` and `PRAGMA user_version` leaves the DB still advanceable. **Round-trip:** `TestRoundTripMigration::test_v1_data_survives_v2_migration` inserts files/symbols/edges at v1, migrates to v2, reads back identical — passes. **Rollback:** per reference.md §SQLite, rollback = `PRAGMA user_version=1` + `DROP TABLE commits, commit_files, ownership, co_change_pairs` (cascades handle junctions). Ruff clean. **Full codemem suite: 254 passed, 1 skipped, 1 deselected** (227 prior + 27 new).
 
 ---
 

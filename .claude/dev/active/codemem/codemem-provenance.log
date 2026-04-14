@@ -50,3 +50,4 @@
 2026-04-14T06:35:49+01:00 MILESTONE M2 Task 2.7 COMPLETE — journal/lock.py (~120 LOC) fcntl/msvcrt single-writer lock + 6 tests incl cross-process gate; refresh_index skips when held; 217/217
 2026-04-14T06:46:11+01:00 MILESTONE M2 Task 2.8 COMPLETE — wal rotation at 10MB, retain 3 archives, gzipped; read spans archives oldest-first; replay round-trip equal across rotation; 227/227
 2026-04-14T06:46:11+01:00 MILESTONE M2 COMPLETE — 8/8 tasks shipped; 227 unit tests + 1 slow property test passing; WAL crash-safety + rotation + writer lock + incremental refresh all green
+2026-04-14T08:10:45+01:00 MILESTONE M3 Task 3.8 COMPLETE — schema v2: commits/commit_files/ownership/co_change_pairs; CURRENT_SCHEMA_VERSION=2; v1→v2 round-trip test passes; 254/254

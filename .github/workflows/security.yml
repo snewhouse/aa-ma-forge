@@ -58,3 +58,46 @@ jobs:
 
       - name: Run bats on tests/hooks/
         run: bats --recursive tests/hooks/
+
+  codemem-smoke:
+    name: codemem smoke test
+    runs-on: ubuntu-latest
+    # Runs unconditionally on main + PRs; the steps themselves are fast
+    # (~5s end-to-end) so no path-filtering is needed. If the smoke ever
+    # exceeds a minute, gate this job behind a `paths` filter targeting
+    # packages/codemem-mcp/** and tests/codemem/**.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # git-mining tools need real history
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Sync workspace deps
+        run: uv sync
+
+      - name: ast-grep version drift check
+        # Warn (not fail) if installed ast-grep-cli is outside the declared
+        # >=0.42,<0.43 range. New point releases MAY land wheels with
+        # behaviour drift worth auditing against our rule fixtures.
+        run: |
+          INSTALLED=$(uv run python -c "from importlib.metadata import version; print(version('ast-grep-cli'))")
+          echo "installed ast-grep-cli: $INSTALLED"
+          case "$INSTALLED" in
+            0.42.*) echo "within declared range >=0.42,<0.43 — OK" ;;
+            *)      echo "::warning::ast-grep-cli $INSTALLED is outside declared range >=0.42,<0.43 — consider updating the pin" ;;
+          esac
+
+      - name: codemem build smoke (this repo as fixture)
+        run: uv run codemem build
+
+      - name: codemem query smoke (1 representative call)
+        run: uv run codemem query who_calls refresh_commits_cache
+
+      - name: codemem unit tests (fast tier)
+        run: uv run pytest tests/codemem/ -q -x --tb=short

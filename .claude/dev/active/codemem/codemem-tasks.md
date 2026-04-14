@@ -339,11 +339,12 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 - Result Log:
 
 ### Task 4.7: CI integration
-- Status: PENDING
-- Mode: AFK
+- Status: COMPLETE
+- Mode: AFK — auto-dispatched
 - Dependencies: Task 4.1
 - Acceptance Criteria: `.github/workflows/security.yml` extended to run `codemem` smoke test (build + 1 query) on PRs touching `src/aa_ma/codemem/`. ast-grep version drift check warns if installed version exceeds declared range.
-- Result Log:
+- Code-truth correction: actual codemem path is `packages/codemem-mcp/src/codemem/` (uv workspace), NOT `src/aa_ma/codemem/` as the plan AC states. Plan was written before Task 1.0's packaging decision finalised the workspace layout. Workflow's smoke job runs unconditionally (no path-filter) because the smoke is fast (~5s) — documented in the job's comment block with a guideline to add `paths` filter if smoke ever exceeds 1 minute.
+- Result Log: COMPLETE 2026-04-14. **Workflow:** `.github/workflows/security.yml` gained a `codemem-smoke` job (5 steps): checkout with `fetch-depth: 0` (git-mining needs history), setup-python 3.13, `pip install uv`, `uv sync`, ast-grep version drift check (case-statement warn-only, exits 0), `uv run codemem build`, `uv run codemem query who_calls refresh_commits_cache`, `uv run pytest tests/codemem/ -q -x --tb=short`. Runs on push to main + all PRs. **YAML validated:** `python -c "import yaml; yaml.safe_load(...)"` passes. **Security:** no untrusted GitHub-event interpolation (PreToolUse:Edit hook warning re: injection vectors — not applicable here; workflow reads only pyproject/installed-package metadata + runs sandboxed uv commands). **ast-grep drift check:** reads `importlib.metadata.version("ast-grep-cli")` and case-matches `0.42.*`; anything else emits `::warning::` annotation without failing the build. This protects against silent wheel upgrades while not gating on them. Suite: 326/326 unchanged (only workflow YAML touched, no code). Ruff clean.
 
 ### Task 4.8: 60-second demo + zero-config install snippet
 - Status: PENDING

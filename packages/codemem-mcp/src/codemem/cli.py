@@ -93,8 +93,31 @@ def _cmd_refresh(args: argparse.Namespace) -> int:
 
 
 def _cmd_replay(args: argparse.Namespace) -> int:
-    # M2 replaces this with the WAL JSONL replay tool (Task 2.4).
-    print("codemem replay: M1 placeholder (WAL replay ships in M2)")
+    """M2 Task 2.4: codemem replay --from-wal reconstructs SQLite from
+    the WAL JSONL journal using idempotency keys.
+    """
+    from .journal.wal import replay_wal
+
+    if not args.from_wal:
+        print(
+            "codemem replay: pass --from-wal to replay the JSONL journal",
+            file=sys.stderr,
+        )
+        return 2
+
+    db_path = Path(args.db) if args.db else _default_db_path()
+    wal_path = Path(args.wal) if args.wal else db_path.parent / "wal.jsonl"
+    if not wal_path.exists():
+        print(f"codemem replay: no WAL at {wal_path}", file=sys.stderr)
+        return 1
+
+    stats = replay_wal(wal_path, db_path)
+    print(
+        f"codemem replay: applied={stats['applied']} "
+        f"skipped_already_acked={stats['skipped_already_acked']} "
+        f"skipped_idempotent={stats['skipped_idempotent']} "
+        f"total={stats['total']} — db={db_path}"
+    )
     return 0
 
 
@@ -170,8 +193,12 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("status", help="Print current index summary")
     sub.add_parser("refresh", help="Incremental refresh (M2 placeholder)")
 
-    pr = sub.add_parser("replay", help="Replay from WAL (M2 placeholder)")
+    pr = sub.add_parser("replay", help="Replay from WAL JSONL journal")
     pr.add_argument("--from-wal", action="store_true")
+    pr.add_argument(
+        "--wal",
+        help="Path to WAL JSONL (default: <db_parent>/wal.jsonl)",
+    )
 
     pq = sub.add_parser("query", help="Invoke one of the 6 MCP tools")
     pq.add_argument(

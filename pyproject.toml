@@ -69,5 +69,6 @@ match = "main"
 [tool.pytest.ini_options]
 markers = [
     "perf: performance-budget gates (codemem M1 Task 1.13). Skipped by default; run with `-m perf`.",
+    "slow: long-running property tests (codemem M2 Task 2.4 roundtrip — 100 examples). Skipped by default; run with `-m slow`.",
 ]
-addopts = "-m 'not perf'"
+addopts = "-m 'not perf and not slow'"

@@ -193,18 +193,21 @@ def replay_wal(wal_path: Path, db_path: Path) -> dict[str, int]:
             stats["total"] += 1
             entry_id = obj.get("id", "")
 
-            # Branch 1: already acked
-            if entry_id in acked:
-                stats["skipped_already_acked"] += 1
-                continue
-
-            # Branch 2: DB state already matches target → idempotent
+            # State-first semantics (required by Task 2.4 round-trip):
+            # the DB is the source of truth, not the ack log. If DB
+            # state already matches the entry's target, no work is
+            # needed — just verify an ack exists (appending one if not).
             if _is_idempotent(conn, obj):
-                append_ack(wal_path, entry_id)
-                stats["skipped_idempotent"] += 1
+                if entry_id in acked:
+                    stats["skipped_already_acked"] += 1
+                else:
+                    # Branch 2: crash after commit, before ack append.
+                    append_ack(wal_path, entry_id)
+                    stats["skipped_idempotent"] += 1
                 continue
 
-            # Branch 3: user_version mismatch — non-recoverable
+            # State diverged from target. Before applying, sanity-check
+            # that the entry was written against a compatible schema.
             expected_uv = obj.get("prev_user_version", -1)
             if expected_uv != current_uv:
                 raise ReplayConflict(
@@ -212,9 +215,9 @@ def replay_wal(wal_path: Path, db_path: Path) -> dict[str, int]:
                     f"but DB is at {current_uv}"
                 )
 
-            # Branch 4: apply op + ack
             _apply_op(conn, obj)
-            append_ack(wal_path, entry_id)
+            if entry_id not in acked:
+                append_ack(wal_path, entry_id)
             stats["applied"] += 1
     finally:
         conn.close()
@@ -263,20 +266,25 @@ def _apply_op(conn: sqlite3.Connection, entry: dict) -> None:
 
 
 def _apply_file_upsert(conn: sqlite3.Connection, args: dict) -> None:
+    """Restore a file row + its symbols + its intra-file edges from the
+    WAL entry. Replay is file-atomic: we delete any prior rows for
+    this path (CASCADE cleans symbols+edges) and re-insert from the
+    serialised ``parse_result``.
+    """
     now = int(time.time())
+    path = args.get("path")
+
+    # Delete-then-insert keeps replay deterministic: regardless of
+    # whether the file row exists or not, the end state is exactly
+    # the WAL entry's payload.
+    conn.execute("DELETE FROM files WHERE path = ?", (path,))
     conn.execute(
         """
         INSERT INTO files (path, lang, mtime, size, content_hash, last_indexed)
         VALUES (?, ?, ?, ?, ?, ?)
-        ON CONFLICT(path) DO UPDATE SET
-            lang         = excluded.lang,
-            mtime        = excluded.mtime,
-            size         = excluded.size,
-            content_hash = excluded.content_hash,
-            last_indexed = excluded.last_indexed
         """,
         (
-            args.get("path"),
+            path,
             args.get("lang", "unknown"),
             args.get("mtime", 0),
             args.get("size", 0),
@@ -284,9 +292,69 @@ def _apply_file_upsert(conn: sqlite3.Connection, args: dict) -> None:
             now,
         ),
     )
-    # For v1 we only persist the file row from WAL replay — symbols +
-    # edges come from the parse_result blob, but re-inserting them
-    # here would duplicate the incremental driver's diff logic. Future
-    # iteration (post-M2) folds the symbol-level ops into the WAL
-    # vocabulary; v1 treats the refresh itself as atomic at file
-    # granularity, which is what the AC's crash test demands.
+    file_id = conn.execute(
+        "SELECT id FROM files WHERE path = ?", (path,)
+    ).fetchone()[0]
+
+    parse_result = args.get("parse_result") or {}
+    symbols = parse_result.get("symbols", [])
+    edges = parse_result.get("edges", [])
+
+    scip_to_id: dict[str, int] = {}
+
+    # Insert symbols; parent resolution is a second pass (parent may
+    # appear later in the source file — we don't assume order).
+    for sym in symbols:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO symbols
+                (file_id, scip_id, name, kind, line, signature,
+                 signature_hash, docstring, parent_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
+            """,
+            (
+                file_id,
+                sym["scip_id"],
+                sym["name"],
+                sym["kind"],
+                sym.get("line"),
+                sym.get("signature"),
+                sym.get("signature_hash"),
+                sym.get("docstring"),
+            ),
+        )
+        scip_to_id[sym["scip_id"]] = conn.execute(
+            "SELECT id FROM symbols WHERE file_id = ? AND scip_id = ?",
+            (file_id, sym["scip_id"]),
+        ).fetchone()[0]
+
+    # Resolve parent_id for symbols whose parent is in the same file.
+    for sym in symbols:
+        parent_scip = sym.get("parent_scip_id")
+        if not parent_scip or parent_scip not in scip_to_id:
+            continue
+        conn.execute(
+            "UPDATE symbols SET parent_id = ? WHERE id = ?",
+            (scip_to_id[parent_scip], scip_to_id[sym["scip_id"]]),
+        )
+
+    # Insert intra-file edges — cross-file edges are the resolver's
+    # job and get written when the ``resolve_cross_file_edges`` op
+    # runs (see below). For replay-from-scratch the caller should
+    # run the resolver op last, after all file_upserts.
+    for edge in edges:
+        src_id = scip_to_id.get(edge["src_scip_id"])
+        if src_id is None:
+            continue
+        dst_id = scip_to_id.get(edge.get("dst_scip_id"))
+        dst_unresolved = edge.get("dst_unresolved")
+        if dst_id is None and dst_unresolved is None:
+            continue
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO edges
+                (src_symbol_id, dst_symbol_id, dst_unresolved, kind)
+            VALUES (?, ?, ?, ?)
+            """,
+            (src_id, dst_id, dst_unresolved, edge.get("kind", "call")),
+        )

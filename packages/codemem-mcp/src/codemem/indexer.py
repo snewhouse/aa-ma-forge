@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import resolver as _resolver
+from .journal import wal as _wal
 from .parser import ast_grep, python_ast
 from .parser.python_ast import ParseResult
 from .storage import db
@@ -319,11 +320,49 @@ def _bulk_insert_edges(conn, parses: list[_FileParse]) -> int:
 # Public entry point
 # ---------------------------------------------------------------------
 
+def _parse_result_to_wal_args(fp) -> dict:
+    """Serialise a file parse for persistence as a WAL entry payload."""
+    return {
+        "path": fp.rel_to_repo,
+        "lang": fp.lang,
+        "mtime": fp.mtime,
+        "size": fp.size,
+        "content_hash_before": None,
+        "content_hash_after": fp.content_hash,
+        "parse_result": {
+            "symbols": [
+                {
+                    "scip_id": s.scip_id,
+                    "name": s.name,
+                    "kind": s.kind,
+                    "line": s.line,
+                    "signature": s.signature,
+                    "signature_hash": s.signature_hash,
+                    "docstring": s.docstring,
+                    "parent_scip_id": s.parent_scip_id,
+                }
+                for s in fp.result.symbols
+            ],
+            "edges": [
+                {
+                    "src_scip_id": e.src_scip_id,
+                    "dst_scip_id": e.dst_scip_id,
+                    "dst_unresolved": e.dst_unresolved,
+                    "kind": e.kind,
+                }
+                for e in fp.result.edges
+            ],
+            "imports": list(fp.result.imports),
+        },
+    }
+
+
 def build_index(
     repo_root: Path,
     db_path: Path,
     *,
     package: str = ".",
+    wal_path: Path | None = None,
 ) -> BuildStats:
     """Full build pipeline: discover → parse → bulk insert.
 
@@ -334,6 +373,7 @@ def build_index(
     repo_root = repo_root.resolve()
     db_path = db_path.resolve()
     db_path.parent.mkdir(parents=True, exist_ok=True)
+    _pending_wal_acks: list[str] = []
 
     files = discover_files(repo_root)
     parses, py_errors = parse_files(files, repo_root=repo_root, package=package)
@@ -367,6 +407,25 @@ def build_index(
                 conn, parses=parses
             )
 
+            # Append WAL entries for every file we just indexed — these
+            # serve as the bootstrap record for `codemem replay --from-wal`.
+            # Intent + ack are written in one pair each since the SQLite
+            # commit is happening immediately below (we're inside the
+            # transaction context).
+            if wal_path is not None:
+                for fp in parses:
+                    args = _parse_result_to_wal_args(fp)
+                    entry_id = _wal.append_intent(
+                        wal_path,
+                        op="file_upsert",
+                        args=args,
+                        prev_user_version=1,
+                        content_sha=args["content_hash_after"] or "",
+                    )
+                    # Track the id so we can ack after the transaction
+                    # commits; collect into a closure-side list.
+                    _pending_wal_acks.append(entry_id)
+
         # Re-enable FK enforcement and verify nothing slipped past.
         conn.execute("PRAGMA foreign_keys = ON")
         fk_violations = conn.execute("PRAGMA foreign_key_check").fetchall()
@@ -379,6 +438,15 @@ def build_index(
             raise RuntimeError(f"codemem SQLite integrity check failed: {integrity}")
     finally:
         conn.close()
+
+    # Emit WAL acks AFTER the transaction has committed. The intent
+    # lines were written inside the transaction context above; acking
+    # here means a crash between commit and ack-append produces the
+    # branch-2 "already applied, needs ack" state — which replay_wal
+    # handles idempotently.
+    if wal_path is not None and _pending_wal_acks:
+        for entry_id in _pending_wal_acks:
+            _wal.append_ack(wal_path, entry_id)
 
     # Write last_sha so the NEXT refresh can take the incremental path
     # instead of falling back to a full rebuild. If the repo isn't a

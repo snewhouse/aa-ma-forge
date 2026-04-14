@@ -141,10 +141,23 @@ def _fresh_db(tmp_path: Path) -> Path:
 
 
 class TestReplayStateDiagram:
-    def test_already_acked_entry_skipped(self, tmp_path: Path):
-        """State machine branch 1: entry.id in acked → continue."""
+    def test_already_acked_entry_with_matching_state_skipped(self, tmp_path: Path):
+        """State-first branch: DB matches target AND entry is acked →
+        skipped_already_acked. This is the normal steady-state replay
+        after a clean shutdown."""
         wal = tmp_path / "wal.jsonl"
         db_path = _fresh_db(tmp_path)
+
+        # Pre-populate DB to match the WAL's target state. In real use
+        # this is the result of build_index (which writes the row) then
+        # append_ack (which records the success).
+        with db.connect(db_path, read_only=False) as conn:
+            conn.execute(
+                "INSERT INTO files (path, lang, mtime, size, content_hash, last_indexed) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                ("a.py", "python", 0, 0, "h1", 0),
+            )
+            conn.commit()
 
         eid = append_intent(
             wal,

@@ -52,3 +52,4 @@
 2026-04-14T06:46:11+01:00 MILESTONE M2 COMPLETE — 8/8 tasks shipped; 227 unit tests + 1 slow property test passing; WAL crash-safety + rotation + writer lock + incremental refresh all green
 2026-04-14T08:10:45+01:00 MILESTONE M3 Task 3.8 COMPLETE — schema v2: commits/commit_files/ownership/co_change_pairs; CURRENT_SCHEMA_VERSION=2; v1→v2 round-trip test passes; 254/254
 2026-04-14T09:27:21+01:00 MILESTONE M3 Task 3.1 COMPLETE — analysis/git_mining.py (GitMiner + shell=False + path sanitization + RS-at-front parser + lineage-walk incremental anchor); 15 tests; 269/269
+2026-04-14T09:34:11+01:00 MILESTONE M3 Task 3.2 COMPLETE — mcp_tools.hot_spots() two-CTE query + score breakdown + 10 tests; 279/279

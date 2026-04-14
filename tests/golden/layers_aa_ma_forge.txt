@@ -1,0 +1,16 @@
+# Golden regression file for layers() against aa-ma-forge's own src/.
+# Populated by running `codemem build && codemem query layers` on this repo
+# at M4 bench time (Task 4.1). Structure is stable under this layout:
+#
+#   + core ---...---+
+#     <highest in-degree files>
+#   + middle ---...---+
+#     <middle tier>
+#   + periphery ---...---+
+#     <lowest / zero in-degree>
+#   +---...---+
+#
+# Until M4 populates this file with actual aa-ma-forge bytes, the unit
+# test suite in tests/codemem/test_layers.py enforces the SHAPE of
+# layers() output (3 tiers, ≤80 cols, ≤2000 chars). The real golden
+# comparison lands in M4 benchmarks/bench tests.

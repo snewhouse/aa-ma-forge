@@ -56,3 +56,4 @@
 2026-04-14T09:39:34+01:00 MILESTONE M3 Task 3.3 COMPLETE — mcp_tools.co_changes() 3-CTE query + empty-excludes NULL-fix + 12 tests; 291/291
 2026-04-14T09:44:54+01:00 MILESTONE M3 Task 3.4 COMPLETE — mcp_tools.owners() + _refresh_ownership_cache() + 10 tests; 301/301
 2026-04-14T09:50:43+01:00 MILESTONE M3 Task 3.5 COMPLETE — mcp_tools.symbol_history() git log -L wrapper + RS/US parse + 7 tests; 308/308
+2026-04-14T09:55:35+01:00 MILESTONE M3 Task 3.6 COMPLETE — mcp_tools.layers() in-degree bucketing + ASCII onion + 10 tests + golden stub; 318/318

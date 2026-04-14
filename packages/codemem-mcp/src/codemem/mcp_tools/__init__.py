@@ -35,6 +35,7 @@ __all__ = [
     "dependency_chain",
     "file_summary",
     "hot_spots",
+    "layers",
     "owners",
     "search_symbols",
     "symbol_history",
@@ -845,6 +846,134 @@ def _git_log_L(miner, *, name: str, file_path: str) -> list[dict]:
             }
         )
     return out
+
+
+# ---------------------------------------------------------------------
+# layers (M3 Task 3.6)
+# ---------------------------------------------------------------------
+
+_LAYER_MAX_COLS = 80          # AC: fits 80-col terminal without wrap
+_LAYER_MAX_CHARS = 2_000      # AC: ≤ 500 tokens × 4 chars/token heuristic
+
+
+def layers(
+    db_path: Path,
+    *,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """Bucket files into core/middle/periphery by in-degree and render onion.
+
+    In-degree here = count of incoming call edges targeting any symbol in
+    the file. A file only appears in a bucket if it has ≥1 indexed symbol;
+    files with zero in-degree still appear in the periphery.
+
+    Buckets use tertile cutoffs (top 1/3 by in-degree = core, middle 1/3 =
+    middle, bottom 1/3 = periphery) so the layering is stable even for tiny
+    repos. Equal scores tie-break lexicographically on path.
+    """
+    query = """
+        WITH file_in_degrees AS (
+            SELECT f.path AS path,
+                   COALESCE(SUM(CASE WHEN e.src_symbol_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS in_degree
+              FROM files f
+              LEFT JOIN symbols s ON s.file_id = f.id
+              LEFT JOIN edges   e ON e.dst_symbol_id = s.id
+                                  AND e.src_symbol_id NOT IN (
+                                      SELECT id FROM symbols WHERE file_id = f.id
+                                  )
+             GROUP BY f.path
+        )
+        SELECT path, in_degree FROM file_in_degrees ORDER BY in_degree DESC, path ASC
+    """
+    with _open_ro(db_path) as conn:
+        rows = conn.execute(query).fetchall()
+
+    files = [(r["path"], r["in_degree"]) for r in rows]
+    if not files:
+        return {
+            "layers": {"core": [], "middle": [], "periphery": []},
+            "ascii": "(no files indexed)",
+            "error": None,
+            "truncated": False,
+        }
+
+    # Tertile buckets. For n files, top ceil(n/3) = core, bottom ceil(n/3) = periphery,
+    # remainder = middle. For n=1 we want everything in periphery (zero signal).
+    n = len(files)
+    if n == 1:
+        core_count = 0
+        peri_count = 1
+    else:
+        core_count = max(1, n // 3)
+        peri_count = max(1, n // 3)
+    core = [p for p, _ in files[:core_count]]
+    periphery = [p for p, _ in files[n - peri_count:]]
+    middle = [p for p, _ in files[core_count : n - peri_count]]
+
+    ascii_art = _render_layers_onion(core, middle, periphery)
+    payload = {
+        "layers": {"core": core, "middle": middle, "periphery": periphery},
+        "ascii": ascii_art,
+        "error": None,
+    }
+    # No list_key truncation (layers dict is not a single list); rely on the
+    # ASCII cap enforced inside the renderer plus the normal budget check.
+    if len(json.dumps(payload, default=str)) > _budget_chars(budget):
+        payload["truncated"] = True
+    else:
+        payload["truncated"] = False
+    return payload
+
+
+def _render_layers_onion(
+    core: list[str], middle: list[str], periphery: list[str]
+) -> str:
+    """Render a tight 3-ring ASCII onion. Always ≤ 80 cols and ≤ 2000 chars.
+
+    Shape:
+        ┌─ core ────────────────────────────────────────────────────────┐
+          core/file/a.py, core/file/b.py
+        ├─ middle ──────────────────────────────────────────────────────┤
+          middle/file/c.py, middle/file/d.py
+        ├─ periphery ──────────────────────────────────────────────────┤
+          edge/e.py
+        └───────────────────────────────────────────────────────────────┘
+    """
+    lines: list[str] = []
+
+    def _wrap_files(files: list[str], prefix: str = "  ") -> list[str]:
+        """Wrap a comma-joined file list into ≤80-col lines."""
+        out: list[str] = []
+        current = prefix
+        for i, f in enumerate(files):
+            token = f + (", " if i < len(files) - 1 else "")
+            if len(current) + len(token) > _LAYER_MAX_COLS:
+                out.append(current.rstrip())
+                current = prefix + token
+            else:
+                current += token
+        if current.strip():
+            out.append(current.rstrip())
+        return out or [prefix + "(empty)"]
+
+    def _section_header(label: str) -> str:
+        raw = f"+ {label} "
+        pad = (_LAYER_MAX_COLS - len(raw) - 1) * "-"
+        return f"{raw}{pad}+"
+
+    lines.append(_section_header("core"))
+    lines.extend(_wrap_files(core))
+    lines.append(_section_header("middle"))
+    lines.extend(_wrap_files(middle))
+    lines.append(_section_header("periphery"))
+    lines.extend(_wrap_files(periphery))
+    lines.append("+" + "-" * (_LAYER_MAX_COLS - 2) + "+")
+
+    text = "\n".join(lines)
+    # Hard truncate if somehow overbudget; append an ellipsis marker.
+    if len(text) > _LAYER_MAX_CHARS:
+        text = text[: _LAYER_MAX_CHARS - 4] + "\n..."
+    return text
 
 
 # ---------------------------------------------------------------------

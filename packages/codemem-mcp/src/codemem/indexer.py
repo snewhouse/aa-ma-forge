@@ -62,6 +62,10 @@ def discover_files(repo_root: Path) -> list[Path]:
     Uses ``git ls-files`` when available so ``.gitignore`` is honoured
     for free. Falls back to ``Path.rglob`` when the target isn't a git
     repo or ``git`` isn't on PATH.
+
+    Files that git tracks but are missing from the working tree
+    (e.g. user deleted without ``git rm``) are filtered out — we
+    can't index what we can't read.
     """
     repo_root = repo_root.resolve()
     tracked = _git_tracked_files(repo_root)
@@ -71,7 +75,8 @@ def discover_files(repo_root: Path) -> list[Path]:
         candidates = [p for p in repo_root.rglob("*") if p.is_file()]
 
     return [
-        p for p in candidates if p.suffix.lower() in _INDEXABLE_EXTENSIONS
+        p for p in candidates
+        if p.suffix.lower() in _INDEXABLE_EXTENSIONS and p.is_file()
     ]
 
 
@@ -374,6 +379,22 @@ def build_index(
             raise RuntimeError(f"codemem SQLite integrity check failed: {integrity}")
     finally:
         conn.close()
+
+    # Write last_sha so the NEXT refresh can take the incremental path
+    # instead of falling back to a full rebuild. If the repo isn't a
+    # git repo (rglob fallback in discover_files), `git rev-parse HEAD`
+    # fails and we skip — next refresh will still do a full rebuild,
+    # which is acceptable for non-git trees.
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=False,
+        )
+        if result.returncode == 0:
+            last_sha_file = db_path.parent / "last_sha"
+            last_sha_file.write_text(result.stdout.strip() + "\n")
+    except FileNotFoundError:
+        pass  # git not on PATH — first refresh will full-rebuild too
 
     return BuildStats(
         files_indexed=len(parses),

@@ -466,3 +466,59 @@ Aider `0.86.2` installed via `uv tool install aider-chat --with audioop-lts --fo
 ### Unresolved
 
 None blocking Wave 1.
+
+---
+
+## 2026-04-17 — PLAN REVISION — Task 3.5.5 defect + AC rewrite
+
+**Trigger.** Fresh Claude Code session launched 2026-04-17 to execute Task 3.5.5 live verification (the three dogfood tool calls: `search_symbols`, `hot_spots`, `aa_ma_context`). First call resolved against `project-index`'s `search_symbols`, not codemem. Second call (`hot_spots`) returned "no such tool" — it doesn't exist in `project-index`. Investigation: the session's deferred tool list contained `mcp__project-index__*`, `mcp__galactic__*`, `mcp__plugin_claude-mem__*`, `mcp__plugin_context7__*` — **zero `mcp__codemem__*` entries**. The codemem server never attached.
+
+**Root cause (confirmed empirically).** Task 3.5.5's original AC and its "PREPARED" Result Log both called for registering codemem in `~/.claude/.mcp.json`. Claude Code does NOT read that path. Python-inspection of `~/.claude.json` showed its top-level `mcpServers` key contains exactly `project-index` + `galactic` — matching what attached — and no `codemem`. `projects[<aa-ma-forge>].mcpServers` was empty. `~/.claude/.mcp.json` (an aa-ma-forge install convention) had the correct-looking JSON but is an orphan file with no runtime effect. `project-index` + `galactic` attach because they ARE in `~/.claude.json`; `codemem` doesn't because it isn't.
+
+**Lesson filed.** L-244 in `docs/lessons.md` — distinguishes aa-ma-forge plugin dir (`~/.claude/`) from Claude Code user config (`~/.claude.json`) and names the three real locations Claude Code reads MCP servers from (project-local `.mcp.json`, `~/.claude.json` top-level `mcpServers`, `~/.claude.json` project-scoped `mcpServers`).
+
+**Revisions applied to tasks.md (this turn).**
+- Task 3.5.5 AC rewritten: 5 numbered criteria naming the two valid config paths explicitly (Option A user-scope / Option B project-scope); `~/.claude/.mcp.json` explicitly forbidden with pointer to L-244.
+- Task 3.5.5 Status: PREPARED → PENDING.
+- Task 3.5.5 Result Log: defect entry added at top; prior (defective) prep preserved below it for audit.
+- Milestone M3.5 AC at `tasks.md:295` rewritten to reference the correct config paths and point at L-244.
+
+**What is NOT revised.** Tasks 3.5.1, 3.5.2, 3.5.3, 3.5.4 stand as COMPLETE — their acceptance criteria were met. The defect is scoped to 3.5.5's install step and to the M3.5 milestone-level AC that described that install step. `build_server()`, the 14-tool integration matrix, auto-build-on-first-query, and the wheel-channel removal are all correct and unaffected.
+
+**What was NOT touched this turn (per user direction "write lesson + AC correction before touching config").** The stale `~/.claude/.mcp.json` write from the defective prep. It is an orphan file with no runtime effect; cleanup is part of the rewritten 3.5.5 AC (criterion 5) and should happen when the install is redone correctly.
+
+**Next step (open HITL decision).** Choose between Option A (user-scope `claude mcp add --scope user codemem ...`, writes to `~/.claude.json`) and Option B (project-scope `.mcp.json` at aa-ma-forge workspace root, doubles as M4's zero-config install snippet rehearsal). Both are valid. Decision pending.
+
+### Unresolved
+
+- **Task 3.5.5 config-path choice:** Option A vs Option B (awaiting user). Blocks M3.5 finalization.
+
+---
+
+## 2026-04-17 — Option B selected; `.mcp.json` authored; M4 ACs fixed concurrently
+
+**Decision.** User selected **Option B** (project-scope `.mcp.json` at aa-ma-forge repo root) for Task 3.5.5, and authorised concurrent fix of the parallel defect in M4 Task 4.8 ACs (which also said `settings.json` where they meant `.mcp.json`).
+
+**Facts verified before acting** (per user directive "make no assumptions and double check your work"):
+1. Claude Code docs (code.claude.com/docs/en/mcp) confirm project-scope uses `.mcp.json` at repo root with top-level `mcpServers` key. First fresh-session use prompts for approval; approvals stored in `~/.claude.json:projects[<abs>].enabledMcpjsonServers`; reset via `claude mcp reset-project-choices`.
+2. Env-var expansion in `.mcp.json` supports `${VAR}` and `${VAR:-default}` syntax in `command`, `args`, `env`, `url`, `headers` (documented).
+3. Scope precedence: local > project > user > plugin > connectors.
+4. codemem MCP server (`claude-code/codemem/mcp/server.py`) has CWD-based defaults already: `_default_db_path()` returns `Path.cwd()/".codemem"/"index.db"` when `CODEMEM_DB` is unset; `_default_repo_root()` returns `Path.cwd()` when `CODEMEM_REPO_ROOT` is unset. Explicit env vars in `.mcp.json` remove dependency on CWD-spawn assumptions.
+5. No pre-existing `.mcp.json` at repo root; `.mcp.json` not in `.gitignore` — safe to create and commit.
+
+**Actions this turn.**
+- **Authored `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge/.mcp.json`:** single `codemem` server entry; `command = "uv"`; `args = ["--directory", "${PWD}", "run", "python", "claude-code/codemem/mcp/server.py"]`; `env = { CODEMEM_REPO_ROOT: "${PWD}", CODEMEM_DB: "${PWD}/.codemem/index.db" }`. `${PWD}` is expanded by Claude Code at config-load from its own process env, so any machine that launches Claude Code from the aa-ma-forge workspace root gets correct absolute paths in the subprocess. No hardcoded `/home/sjnewhouse/` paths — safe to commit.
+- **Rewrote Milestone M4 AC line 360** (`tasks.md`): `paste 3-line settings.json snippet` → `ship a project-scope .mcp.json at the workspace root (top-level mcpServers.codemem) → on first fresh-session use Claude Code prompts for approval → first MCP query triggers build → returns answer in < 5s on aa-ma-forge`. Added L-244 note.
+- **Rewrote Task 4.8 AC line 418:** replaced both `settings.json` mentions with `.mcp.json`; added language about `${VAR:-default}` env expansion so the shipped snippet is portable; added L-244 note explaining the original wording was wrong.
+- **Updated Task 3.5.5:** Status PENDING → PREPARED v2 (authoring done, live verification remains). Appended new Result Log entry documenting the `.mcp.json` contents + verification evidence, the orphan-cleanup still-pending item, and the live-verification steps for the next fresh session.
+
+**What was NOT done this turn.**
+- **Orphan cleanup of `~/.claude/.mcp.json`:** the stale codemem entry from the 2026-04-17 defective prep is still there. It is a no-op at runtime (Claude Code doesn't read the file) but lingers as a trap for future readers. Deferred pending user confirm — asking before touching any other config file beyond the one Option B specifically requires.
+- **Live verification of the three tool calls:** requires a fresh Claude Code session. Cannot happen in this session because MCP servers attach at session start.
+
+**Scope expansion justification.** User granted "fix M4 now" authorisation explicitly. Without it, M4 Task 4.8's wrong wording would inherit the same defect and M4 would have to re-discover it. Fixing concurrently while the defect is fresh saves roundtrips.
+
+### Unresolved
+
+- **Live verification (3.5.5 AC criteria 3+4):** requires fresh Claude Code session with `.mcp.json` approval. Pending next session.
+- **Orphan `~/.claude/.mcp.json` codemem entry:** RESOLVED 2026-04-17. Removed via `jq 'del(.mcpServers.codemem)'` after timestamped backup. Post-state verified: `mcpServers` keys = `['galactic', 'project-index-query']` — matching pre-2026-04-17-defect baseline. AC criterion 5 satisfied.

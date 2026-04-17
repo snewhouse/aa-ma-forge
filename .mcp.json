@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "codemem": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "${PWD}",
+        "run",
+        "python",
+        "claude-code/codemem/mcp/server.py"
+      ],
+      "env": {
+        "CODEMEM_REPO_ROOT": "${PWD}",
+        "CODEMEM_DB": "${PWD}/.codemem/index.db"
+      }
+    }
+  }
+}

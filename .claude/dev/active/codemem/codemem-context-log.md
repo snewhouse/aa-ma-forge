@@ -556,3 +556,25 @@ Root cause (confirmed by reading DB + code): `.codemem/index.db` at `user_versio
 ### Unresolved
 
 - None for M3.5. Next milestone: **M4 (Polish, Demo, Differentiation)**.
+
+---
+
+## 2026-04-17 — M4 scope decision: Task 4.2 deferred post-ship
+
+**Decision.** Task 4.2 (Token-budget benchmarks vs Aider + jcodemunch) moved from PENDING → DEFERRED. M4 milestone AC bullet for token-budget benchmark struck through with DEFERRED marker. M4 will ship with 4.2 as unresolved-but-acknowledged scope gap rather than gated on it.
+
+**Rationale (user-driven; recorded for audit):**
+1. **Not ship-blocking.** The codemem moat claim (git-mining + AA-MA coupling + pure-Python + no embeddings) is established by M3 tools + M4 narrative docs (migration-from-index 4.3 + README 4.4 + ARCHITECTURE 4.9 + SECURITY 4.5). A token-budget benchmark against Aider is nice-to-have corroboration, not load-bearing evidence.
+2. **Unverified preconditions.** Before drafting the benchmark I flagged three open questions: (a) Aider's repo-map emits LLM-prose, not a structured symbol table — "top-ranked symbols" extraction method is undefined; (b) whether `--budget=1024` is a first-class CLI flag or requires internal-API reach-in; (c) whether PageRank top-K is comparable across Aider (weighted edges) / codemem (uniform edges) / jcodemunch (different ranking entirely). Running the comparison without resolving these would ship apples-to-oranges numbers.
+3. **User explicitly picked "Skip 4.2 for now — defer to post-M4 ship"** from a 4-option question at 2026-04-17. Other options were (a) research-first 20 min, (b) ship-as-partial like 4.1, (c) pick an OSS repo now. User's choice matches the session's existing pattern of surgical scope reduction over speculative work.
+
+**Implications.**
+- Task 4.2 Status: DEFERRED. Result Log carries the full resumption plan.
+- Milestone M4 AC for token-budget benchmark: struck through (`~~...~~`) with DEFERRED marker. Milestone can now complete on the remaining 7 AC bullets (performance, refresh <800ms, migration guide, README voice, zero-config install, install+demo transcript, CI/SECURITY/ARCH/kill-criteria).
+- M4 progress tracking: 4.2 out of the critical path; 6/10 tasks already COMPLETE; 3 pending (4.6, 4.8, 4.10).
+
+**Resumption trigger.** Re-open 4.2 when either (a) user has time to research Aider's output format, or (b) a third party requests the benchmark for publication/comparison purposes. Not automatic.
+
+### Unresolved
+
+- Task 4.2 resumption — no scheduled date.

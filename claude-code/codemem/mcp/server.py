@@ -19,9 +19,10 @@ for ``find_dead_code`` hit ``dead_code``.
 
 from __future__ import annotations
 
+import functools
 import os
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 from fastmcp import FastMCP
 
@@ -93,6 +94,19 @@ def build_server() -> FastMCP:
 
     db_path_factory = _default_db_path
     repo_root_factory = _default_repo_root
+
+    # ------------------------------------------------------------------
+    # Auto-build-on-first-query (M3.5 Task 3.5.3, 2026-04-17).
+    #
+    # The actual "build if missing" logic lives in
+    # :func:`codemem.mcp_tools.ensure_built` so the plugin surface
+    # (claude-code/codemem/mcp/server.py) stays on the mcp_tools-only
+    # layering contract. Every handler below runs this check first; on
+    # failure it returns the mcp_tools error dict unchanged.
+    # ------------------------------------------------------------------
+
+    def _ensure_built() -> dict | None:
+        return mcp_tools.ensure_built(db_path_factory(), repo_root_factory())
 
     # ------------------------------------------------------------------
     # M1 tool handlers — each a thin wrapper over codemem.mcp_tools.*
@@ -234,12 +248,29 @@ def build_server() -> FastMCP:
         "aa_ma_context": aa_ma_context,
     }
 
+    def _with_autobuild(handler: Callable[..., dict]) -> Callable[..., dict]:
+        """Decorator: run ``_ensure_built`` before the handler.
+
+        ``functools.wraps`` propagates the original signature via
+        ``__wrapped__`` so FastMCP's introspection (which uses
+        ``inspect.signature``) still sees the tool's real parameter list
+        — the ``**kwargs`` in the wrapper is the runtime dispatch surface.
+        """
+        @functools.wraps(handler)
+        def wrapper(**kwargs: Any) -> dict:
+            err = _ensure_built()
+            if err is not None:
+                return err
+            return handler(**kwargs)
+        return wrapper
+
     for handlers in (m1_handlers, m3_handlers):
         for canonical, handler in handlers.items():
-            server.tool(handler, name=canonical)
+            wrapped = _with_autobuild(handler)
+            server.tool(wrapped, name=canonical)
             _registered_names.append(canonical)
             for alias in ALIASES.get(canonical, []):
-                server.tool(handler, name=alias)
+                server.tool(wrapped, name=alias)
                 _registered_names.append(alias)
 
     return server

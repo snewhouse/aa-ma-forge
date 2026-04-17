@@ -36,6 +36,7 @@ __all__ = [
     "co_changes",
     "dead_code",
     "dependency_chain",
+    "ensure_built",
     "file_summary",
     "hot_spots",
     "layers",
@@ -56,6 +57,65 @@ _CHARS_PER_TOKEN = 4
 # ---------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------
+
+def ensure_built(db_path: Path, repo_root: Path) -> dict | None:
+    """Ensure the codemem index DB exists, building it if missing.
+
+    Callers (typically the MCP server's first-query path, M3.5 Task
+    3.5.3) use this to transparently provision the index before
+    dispatching to a tool. Returns ``None`` when the DB is ready, or a
+    structured ``{"error": ...}`` dict on failure — ANY exception
+    (invalid repo root, lockfile mkdir failure, indexer crash) is
+    caught so the caller's contract of "no raises, only error dicts"
+    is preserved.
+
+    Concurrency: guarded by the M2 single-writer advisory lock
+    (:func:`codemem.journal.lock.acquire_writer_lock`). If another
+    process holds the lock, polls for DB existence up to 10 seconds
+    (>2× the aa-ma-forge cold-build SLO of 5s). A timeout surfaces as
+    a "build in progress; timed out" error rather than stalling the
+    RPC call indefinitely.
+
+    This lives in :mod:`codemem.mcp_tools` (the declared public-API
+    layer) so ``claude-code/codemem/mcp/server.py`` doesn't have to
+    import from restricted layers (:mod:`codemem.indexer`,
+    :mod:`codemem.journal`) — the plugin-surface layering contract
+    forbids those direct imports.
+    """
+    if db_path.exists():
+        return None
+
+    try:
+        # Lazy imports: keep mcp_tools' cold-start cheap when the DB
+        # already exists (the common case after the first query).
+        from ..indexer import build_index
+        from ..journal.lock import acquire_writer_lock
+
+        lock_path = repo_root / ".codemem" / "db.lock"
+        with acquire_writer_lock(lock_path) as got_lock:
+            # Re-check inside the lock — another process may have built
+            # while we waited to open the lock file.
+            if db_path.exists():
+                return None
+            if got_lock:
+                build_index(repo_root, db_path)
+                return None
+            # Lock contended — exit context so we don't starve the
+            # real builder, then poll outside.
+
+        # Another process holds the lock; wait for them to finish.
+        for _ in range(100):
+            time.sleep(0.1)
+            if db_path.exists():
+                return None
+        return {
+            "error": (
+                "build in progress by another process; timed out after 10s"
+            )
+        }
+    except Exception as exc:  # noqa: BLE001 — tool-surface contract
+        return {"error": f"build failed: {exc.__class__.__name__}: {exc}"}
+
 
 def _budget_chars(budget_tokens: int) -> int:
     return max(budget_tokens, 1) * _CHARS_PER_TOKEN

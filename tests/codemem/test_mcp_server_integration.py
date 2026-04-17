@@ -191,6 +191,91 @@ class TestAllToolsCallableViaFastMCP:
         )
 
 
+class TestAutoBuildOnFirstQuery:
+    """M3.5 Task 3.5.3: when ``.codemem/index.db`` is missing on a
+    first tool call, the server triggers ``build_index`` synchronously
+    so the very first query gets a real answer."""
+
+    def test_first_query_builds_db(self, tmp_path: Path, monkeypatch, server_mod) -> None:
+        """Fresh git repo with no ``.codemem/`` dir → first tool call
+        must produce both (a) a non-error response and (b) a
+        populated DB on disk."""
+        repo_root = tmp_path
+        db_path = repo_root / ".codemem" / "index.db"
+        # Prove the precondition: no DB yet.
+        assert not db_path.exists()
+
+        # Minimal git repo with one Python file so the index has content.
+        (repo_root / "sample.py").write_text("def sample():\n    return 1\n")
+        subprocess.run(["git", "init", "-q"], cwd=repo_root, check=True)
+        subprocess.run(
+            ["git", "-c", "user.email=t@t.dev", "-c", "user.name=t",
+             "add", "sample.py"], cwd=repo_root, check=True,
+        )
+        subprocess.run(
+            ["git", "-c", "user.email=t@t.dev", "-c", "user.name=t",
+             "commit", "-q", "-m", "seed"],
+            cwd=repo_root, check=True,
+        )
+
+        monkeypatch.setenv("CODEMEM_DB", str(db_path))
+        monkeypatch.setenv("CODEMEM_REPO_ROOT", str(repo_root))
+
+        server = server_mod.build_server()
+        payload = _run_tool(server, "search_symbols", {"query": "sample"})
+
+        assert isinstance(payload, dict)
+        assert payload.get("error") in (None, ""), (
+            f"first query returned error: {payload.get('error')!r}"
+        )
+        # DB now exists — auto-build fired.
+        assert db_path.exists(), "auto-build did not create the DB"
+        # And the symbol we planted is queryable.
+        matches = payload.get("matches", [])
+        assert any(m.get("name") == "sample" for m in matches), (
+            f"sample symbol missing from search payload: {matches}"
+        )
+
+    def test_subsequent_query_skips_build(self, populated_env, server_mod) -> None:
+        """When the DB already exists (the ``populated_env`` fixture
+        creates one), ``_ensure_built`` must short-circuit — verified
+        by the DB's mtime staying constant across a second call."""
+        db_path = populated_env / ".codemem" / "index.db"
+        mtime_before = db_path.stat().st_mtime
+
+        server = server_mod.build_server()
+        _run_tool(server, "search_symbols", {"query": "foo"})
+
+        mtime_after = db_path.stat().st_mtime
+        assert mtime_after == mtime_before, (
+            "subsequent query unexpectedly re-built the DB"
+        )
+
+    def test_build_failure_returns_structured_error(
+        self, tmp_path: Path, monkeypatch, server_mod
+    ) -> None:
+        """Point ``CODEMEM_REPO_ROOT`` at a path that cannot be built
+        (a file, not a directory). The tool must return an
+        ``{"error": "build failed: ..."}`` dict rather than raising."""
+        # A plain file can't be a repo root — forces build_index to
+        # fail the ``repo_root.resolve()`` + ``rglob`` contract.
+        phony_root = tmp_path / "not-a-repo"
+        phony_root.write_text("this is a file not a directory")
+        db_path = tmp_path / ".codemem" / "index.db"
+
+        monkeypatch.setenv("CODEMEM_DB", str(db_path))
+        monkeypatch.setenv("CODEMEM_REPO_ROOT", str(phony_root))
+
+        server = server_mod.build_server()
+        payload = _run_tool(server, "search_symbols", {"query": "x"})
+
+        assert isinstance(payload, dict)
+        err = payload.get("error", "")
+        assert err.startswith("build failed:"), (
+            f"expected 'build failed:' prefix, got: {err!r}"
+        )
+
+
 class TestCanonicalSurfaceCoverage:
     """Guards against silent drift — every name in ``CANONICAL_TOOL_NAMES``
     plus every declared alias must appear in the parametrised test list.

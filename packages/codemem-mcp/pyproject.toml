@@ -28,7 +28,9 @@ dependencies = [
 [project.scripts]
 codemem = "codemem.cli:main"
 codemem-cli = "codemem.cli:main"
-codemem-mcp-server = "codemem.mcp_server:serve"
+# codemem-mcp-server entry removed 2026-04-17 per M3.5 Task 3.5.4
+# (AD-Q15): wheel MCP-server channel deferred to post-v1. The live
+# server lives at claude-code/codemem/mcp/server.py (plugin path).
 
 [project.urls]
 Homepage = "https://github.com/snewhouse/aa-ma-forge"

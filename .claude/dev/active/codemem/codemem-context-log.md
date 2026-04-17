@@ -413,3 +413,56 @@ Getting the PRAGMA inside the `with` block would have silently enforced FKs duri
 - Commits: 750d398 (3.8), 38cd552 (3.1), b5f56e7 (3.2), a2e3474 (3.2 prov), 723ec41 (3.3), a279ef6 (3.4), 8fb17d5 (3.5), fd47f2b (3.6), 814b9a0 (3.7 + M3 close).
 - Moat: `aa_ma_context()` public surface locked — extraction regex pinned in reference.md, append-only write semantics preserved, composition over the 5 git-mining tools means moat scales with them.
 
+
+
+---
+
+## [2026-04-17] PLAN REVISION: M3.5 insertion + M4 re-scope + dual-distribution removed
+
+### Trigger
+
+Session resumed after 3-day gap. Code-truth audit before M4 execution surfaced 5 integration gaps that M3's HARD gate missed. Decision: pause M4 execution, re-plan with Stephen to close gaps correctly rather than let M4 inherit integration debt disguised as polish.
+
+### Gaps identified (code-truth review 2026-04-17)
+
+1. **M3 tools not wired into FastMCP.** `claude-code/codemem/mcp/server.py` only registers 6 M1 tools. The 6 M3 tools (`hot_spots`, `co_changes`, `owners`, `symbol_history`, `layers`, `aa_ma_context`) exist in `codemem.mcp_tools.*` and pass 326/326 unit tests, but the FastMCP server never calls them. From an agent's perspective, the M3 moat is unreachable.
+2. **No auto-build-on-first-query.** Server blindly opens `.codemem/index.db`. M4 Task 4.8 AC "first MCP query triggers build → returns answer in < 5s" has no implementation.
+3. **Pip-wheel MCP server is a placeholder stub.** `packages/codemem-mcp/src/codemem/mcp_server.py` prints "not yet implemented" and returns exit 1. `pip install codemem-mcp` users get nothing.
+4. **Codemem plugin never installed locally.** `~/.claude/.mcp.json` has no codemem entry; no symlinks in `~/.claude/plugins/`. The dual-distribution claim in reference.md has never been exercised end-to-end.
+5. **Reference repos for 4.1/4.2 not locally present.** `repowise` + 50k-LOC OSS Python are not clonable checkouts on this machine.
+
+### M3 gate retrospective
+
+**What the HARD gate criteria missed:** unit test coverage (326/326) was checked but integration reachability was not. Gate criteria 1-6 all referenced unit-test properties; "M3 tools registered in the MCP server and callable end-to-end" was not in the checklist because the registration step was implicitly deferred to "obvious follow-up" — which is exactly how technical debt accrues.
+
+**Lesson for future HARD gates (L-codemem-01):** any milestone that adds MCP tools MUST include an AC of the form "tool X callable via `build_server()` and returns non-error dict against a populated fixture DB." Unit tests on the underlying function are necessary but not sufficient. Applied going forward to all tool-adding milestones in this plan and in lessons.md.
+
+**M3 status:** remains COMPLETE in the unit-test sense. M3.5 is added as a corrective completion milestone — NOT retroactively re-opening M3 — to preserve gate-signature integrity.
+
+### 4 Decisions (AskUserQuestion 2026-04-17)
+
+| ID | Question | Decision | Rationale |
+|---|---|---|---|
+| **AD-Q14** | M3 gap framing | Accept — create M3.5 milestone | Corrective completion preserves M3 gate signature; honest naming of the integration closeout. |
+| **AD-Q15** | Wheel channel | Plugin-only for v1 | Remove `[project.scripts] codemem-mcp-server`, delete stub, update reference §Distribution Model. Rationale: shipping an empty stub makes the dual-distribution claim a lie. Revisit wheel channel post-v1. |
+| **AD-Q16** | 4.2 methodology | aa-ma-forge + 1 cloned OSS repo | Removes `repowise` and large-OSS-path dependency from M4. Specific OSS repo deferred to Wave 4. |
+| **AD-Q17** | 4.8 scope | Install snippet + written transcript; no live recording | Recording session adds time project doesn't have. Written transcript regeneratable from running codemem. Live recording deferred to post-launch. |
+
+### M4 launch bar (confirmed)
+
+"Full plan" with the 4.8 scope reduction. M4 Done = M3.5 complete + 4.1 (partial, preserved) + 4.2 (new methodology) + 4.3 + 4.4 + 4.5 + 4.6 + 4.7 (already) + 4.8 (install-snippet + written transcript) + 4.9 + 4.10.
+
+### Execution waves
+
+1. **Wave 1 (this session, AFK):** M3.5 Tasks 3.5.1 → 3.5.2 → 3.5.3 → 3.5.4 → 3.5.5 (pauses at 3.5.5 HITL verification).
+2. **Wave 2 (next session, HITL draft):** 4.3, 4.5, 4.9, 4.10 (parallelizable).
+3. **Wave 3 (voice-led):** 4.4 README.
+4. **Wave 4 (post-4.4):** 4.2, 4.6, 4.8.
+
+### Environment change (pre-revision)
+
+Aider `0.86.2` installed via `uv tool install aider-chat --with audioop-lts --force` on 2026-04-17. Python 3.13 removed stdlib `audioop`; `audioop-lts` backport resolves Aider's `pydub` import. Unblocks 4.2 when Wave 4 begins.
+
+### Unresolved
+
+None blocking Wave 1.

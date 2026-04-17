@@ -2,7 +2,7 @@
 
 _This file is the highest-priority AA-MA memory artifact. Load FIRST when resuming this task. Facts below are extracted from `codemem-plan.md` v3 and are non-negotiable unless the plan itself is revised._
 
-_Last Updated: 2026-04-14 (M3 Task 3.8 COMPLETE — schema v2 migration shipped)_
+_Last Updated: 2026-04-17 (PLAN REVISION — M3.5 inserted, plugin-only distribution, 4.8 scope reduced)_
 
 ---
 
@@ -22,14 +22,17 @@ _Last Updated: 2026-04-14 (M3 Task 3.8 COMPLETE — schema v2 migration shipped)
 
 ---
 
-## Distribution Model (Dual)
+## Distribution Model (Plugin v1)
 
-Source lives in `aa-ma-forge` repo. Two distribution channels:
+**Revised 2026-04-17 per AD-Q15 (PLAN REVISION): v1 ships as plugin-only. Wheel MCP-server channel deferred to post-v1 decision.**
+
+Source lives in `aa-ma-forge` repo. Single supported distribution channel for v1:
 
 1. **aa-ma-forge plugin** — deployed via `scripts/install.sh` symlinks; full AA-MA integration active (`aa_ma_context` tool live).
-2. **`pip install codemem-mcp`** — standalone wheel; generic code intel only; `aa_ma_context` returns informative no-op message: `"AA-MA integration unavailable; install aa-ma-forge"`.
 
-Packaging structure **decided in Task 1.0 (2026-04-13): Option B — `packages/codemem-mcp/` subdir with uv workspace**. Prototype validated at `/tmp/codemem-spike/`. Root `pyproject.toml` adds `[tool.uv.workspace] members = ["packages/codemem-mcp"]`; `packages/codemem-mcp/pyproject.toml` declares `name="codemem-mcp"`, own deps, own hatchling build. Standalone wheel MUST NOT depend on `aa_ma`.
+**Removed from v1 scope (AD-Q15, 2026-04-17):** `pip install codemem-mcp` standalone wheel-channel MCP server. The `packages/codemem-mcp/pyproject.toml` wheel still exists (retained so uv workspace layout / internal imports / ast-grep resource files ship cleanly), but it no longer exposes a `codemem-mcp-server` console script and the `mcp_server.py` stub is deleted in M3.5 Task 3.5.4. `codemem` + `codemem-cli` console scripts remain for indexing/CLI use on any installation. Revisit wheel-channel MCP-server as post-v1 feature once plugin path is battle-tested.
+
+Packaging structure **decided in Task 1.0 (2026-04-13): Option B — `packages/codemem-mcp/` subdir with uv workspace**. Prototype validated at `/tmp/codemem-spike/`. Root `pyproject.toml` adds `[tool.uv.workspace] members = ["packages/codemem-mcp"]`; `packages/codemem-mcp/pyproject.toml` declares `name="codemem-mcp"`, own deps, own hatchling build. The `codemem-mcp` package MUST NOT depend on `aa_ma` (isolation preserved even though wheel MCP-server channel is unused in v1).
 
 ---
 
@@ -208,6 +211,8 @@ Registered in `mcp/server.py`. Aliases exposed for cross-tool discoverability vi
 | 12 | `aa_ma_context` | moat — validates task against `.claude/dev/active/*/`; optional `--write` mode |
 
 All tools enforce hard token budget (default 8000, configurable). M1 lights up 1–6; M3 adds 7–12.
+
+> **Registration status (as of 2026-04-17 PLAN REVISION):** tools 1–6 (M1) are registered in `claude-code/codemem/mcp/server.py::build_server()`. Tools 7–12 (M3) EXIST in `codemem.mcp_tools.*` and pass 326/326 unit tests, but are NOT YET WIRED INTO FastMCP — registration is delivered by M3.5 Task 3.5.1 (corrective completion). Until 3.5.1 lands, M3 tools are unreachable from a Claude Code agent session. Remove this note after 3.5.1 merges.
 
 ---
 

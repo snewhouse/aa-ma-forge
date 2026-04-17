@@ -281,19 +281,70 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 
 ---
 
-## Milestone M4: Polish, Demo, Differentiation
+## Milestone M3.5: Integration Closeout (corrective completion)
 - Status: PENDING
 - Gate: SOFT
 - Dependencies: M3 complete
+- Complexity: 35%
+- Rationale: See `codemem-context-log.md [2026-04-17] PLAN REVISION` — M3's HARD gate verified unit coverage but not integration reachability. This milestone closes the 3 integration gaps M3 owed (tools-registration, auto-build, wheel-channel decision) plus the never-exercised install path.
+- Acceptance Criteria:
+  - All 12 MCP tools (6 M1 + 6 M3) registered on `build_server()` and reachable via FastMCP stdio transport
+  - Integration test proves each of the 12 tools returns a non-error dict against a populated fixture DB
+  - First MCP query against a repo without `.codemem/index.db` triggers synchronous build; subsequent queries reuse it; build <5s on aa-ma-forge
+  - Wheel-channel decision executed per AD-Q15: `[project.scripts] codemem-mcp-server` removed from `packages/codemem-mcp/pyproject.toml`; `packages/codemem-mcp/src/codemem/mcp_server.py` deleted; `codemem-reference.md §Distribution Model` updated to plugin-only v1
+  - `scripts/install.sh` successfully deploys codemem into `~/.claude/`; `~/.claude/.mcp.json` updated with codemem MCP server entry; a live Claude Code session successfully invokes at least 3 tools including one M3 tool
+  - Full test suite green (≥326 unit tests + new integration tests); ruff clean
+
+### Task 3.5.1: Wire 6 M3 tools into the MCP server
+- Status: PENDING
+- Mode: AFK
+- Dependencies: M3 complete
+- Acceptance Criteria: `claude-code/codemem/mcp/server.py::build_server()` registers handlers for `hot_spots`, `co_changes`, `owners`, `symbol_history`, `layers`, `aa_ma_context` alongside the existing 6 M1 handlers. Each handler is a thin adapter that delegates straight to `codemem.mcp_tools.<name>` with the same sanitize-first / read-only-connection discipline as the M1 tools. Existing `TestTwelveSlots` contract preserved: `CANONICAL_TOOL_NAMES` count stays at 12. Existing `TestToolRegistration.test_m3_tools_not_registered_in_m1` will flip to a positive test after this task (renamed or replaced). No regressions in the existing 326 tests (with that one test updated).
+- Result Log:
+
+### Task 3.5.2: Integration test — all 12 tools reachable via FastMCP
+- Status: PENDING
+- Mode: AFK
+- Dependencies: Task 3.5.1
+- Acceptance Criteria: New test file `tests/codemem/test_mcp_server_integration.py` spins up `build_server()` against a populated fixture DB and calls each of the 12 tools (+ registered aliases). For each call: assert the response is a dict, `"error"` is None or absent, and the primary payload field (e.g. `"callers"`, `"files"`, `"authors"`) is present. Uses `server.get_tool(name)` or the equivalent FastMCP introspection API — NOT a full stdio subprocess (too slow for unit suite). Fixture reuses existing fixtures where possible to keep the test self-contained and <2s.
+- Result Log:
+
+### Task 3.5.3: Auto-build-on-first-query
+- Status: PENDING
+- Mode: AFK
+- Dependencies: Task 3.5.1
+- Acceptance Criteria: When any MCP tool is invoked and `.codemem/index.db` does not exist, the server synchronously triggers `codemem.indexer.build_index(repo_root)` before routing to the tool handler. On success the subsequent query returns a real answer. On failure the response is `{"error": "build failed: <reason>", ...}` — never raises. Idempotent: concurrent first-queries don't double-build (advisory lock via M2's `.codemem/db.lock`). New test `test_first_query_triggers_build` asserts the contract against a fresh tmp repo. Build <5s on aa-ma-forge confirmed manually.
+- Result Log:
+
+### Task 3.5.4: Remove wheel MCP-server channel (AD-Q15)
+- Status: PENDING
+- Mode: AFK
+- Dependencies: None (can run in parallel with 3.5.1–3.5.3)
+- Acceptance Criteria: `[project.scripts]` in `packages/codemem-mcp/pyproject.toml` loses the `codemem-mcp-server = "codemem.mcp_server:serve"` line; `codemem` + `codemem-cli` stay. `packages/codemem-mcp/src/codemem/mcp_server.py` deleted (the real server lives at `claude-code/codemem/mcp/server.py`). `codemem-reference.md §Distribution Model (Dual)` rewritten to §Distribution Model (Plugin v1) — single channel, wheel-channel deferred to post-v1 decision. Any documentation or test referencing the wheel entry point updated. `uv sync` + `uv run pytest tests/codemem/` still green.
+- Result Log:
+
+### Task 3.5.5: Install codemem locally + dogfood 3 tools live (HITL verification)
+- Status: PENDING
+- Mode: HITL
+- Dependencies: Tasks 3.5.1, 3.5.2, 3.5.3, 3.5.4
+- Acceptance Criteria: `scripts/install.sh` run and verified to symlink codemem into `~/.claude/`. `~/.claude/.mcp.json` updated with a `codemem` MCP server entry pointing at `claude-code/codemem/mcp/server.py` (invoked via `python3` or `uv run`). A live Claude Code session (fresh) successfully invokes: (a) one M1 tool (e.g. `search_symbols`), (b) one M3 git-mining tool (e.g. `hot_spots`), (c) the moat tool `aa_ma_context("codemem")`. Each call returns a plausible non-error response. Result Log captures the tool names called, the input repo (aa-ma-forge), and the first few lines of each response for audit.
+- Result Log:
+
+---
+
+## Milestone M4: Polish, Demo, Differentiation
+- Status: PENDING
+- Gate: SOFT
+- Dependencies: M3.5 complete
 - Complexity: 40%
-- Acceptance Criteria (per plan §4 M4):
+- Acceptance Criteria (per plan §4 M4, amended 2026-04-17 per PLAN REVISION):
   - Benchmark report shows `codemem build` ≤ 1.5× wall-clock of `/index` on each reference repo (enforced by `tests/perf/`)
   - `codemem refresh` median time < 800ms on medium repo
-  - Token-budget benchmark: `PROJECT_INTEL.json` ≤ Aider repo-map size at equal budget AND covers ≥ 90% of same top-ranked symbols
+  - Token-budget benchmark: `PROJECT_INTEL.json` ≤ Aider repo-map size at equal budget AND covers ≥ 90% of same top-ranked symbols (methodology revised 2026-04-17 per AD-Q16: aa-ma-forge + 1 cloned OSS Python repo, not `repowise` or 50k-LOC)
   - Migration guide: a `/index` user can switch in < 5 minutes (validated by walkthrough)
   - README passes `/stephen-newhouse-voice` review (no marketing-AI tone); MS charity + coffee callout present
-  - Zero-config install: paste 3-line `settings.json` snippet → first MCP query triggers build → returns answer in < 5s on aa-ma-forge
-  - Demo asciinema/GIF committed to `docs/demo/`; embedded in README
+  - Zero-config install: paste 3-line `settings.json` snippet → first MCP query triggers build → returns answer in < 5s on aa-ma-forge (auto-build delivered by M3.5 Task 3.5.3)
+  - Install snippet + README-embedded transcript of a real `co_changes("CLAUDE.md")` call committed to `docs/demo/` (scope reduced 2026-04-17 per AD-Q17: live asciinema/GIF recording deferred to post-launch)
   - CI green; SECURITY.md merged; ARCHITECTURE.md finalized; kill-criteria.md committed
 
 ### Task 4.1: Performance benchmarks
@@ -346,11 +397,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 - Code-truth correction: actual codemem path is `packages/codemem-mcp/src/codemem/` (uv workspace), NOT `src/aa_ma/codemem/` as the plan AC states. Plan was written before Task 1.0's packaging decision finalised the workspace layout. Workflow's smoke job runs unconditionally (no path-filter) because the smoke is fast (~5s) — documented in the job's comment block with a guideline to add `paths` filter if smoke ever exceeds 1 minute.
 - Result Log: COMPLETE 2026-04-14. **Workflow:** `.github/workflows/security.yml` gained a `codemem-smoke` job (5 steps): checkout with `fetch-depth: 0` (git-mining needs history), setup-python 3.13, `pip install uv`, `uv sync`, ast-grep version drift check (case-statement warn-only, exits 0), `uv run codemem build`, `uv run codemem query who_calls refresh_commits_cache`, `uv run pytest tests/codemem/ -q -x --tb=short`. Runs on push to main + all PRs. **YAML validated:** `python -c "import yaml; yaml.safe_load(...)"` passes. **Security:** no untrusted GitHub-event interpolation (PreToolUse:Edit hook warning re: injection vectors — not applicable here; workflow reads only pyproject/installed-package metadata + runs sandboxed uv commands). **ast-grep drift check:** reads `importlib.metadata.version("ast-grep-cli")` and case-matches `0.42.*`; anything else emits `::warning::` annotation without failing the build. This protects against silent wheel upgrades while not gating on them. Suite: 326/326 unchanged (only workflow YAML touched, no code). Ruff clean.
 
-### Task 4.8: 60-second demo + zero-config install snippet
+### Task 4.8: Install snippet + written demo transcript (scope revised 2026-04-17)
 - Status: PENDING
 - Mode: HITL
-- Dependencies: Task 4.4
-- Acceptance Criteria: `co_changes("CLAUDE.md")` demo recorded on a real repo (asciinema or GIF) showing non-obvious coupling; stored in `docs/demo/codemem-co-changes.{cast,gif}`. `docs/codemem/install-zero-config.md` authored with one-paste Claude Code `settings.json` snippet enabling the MCP server (no manual `/codemem build` — server auto-builds on first query). Snippet included in README. End-to-end: paste 3-line settings.json → first query returns answer in < 5s on aa-ma-forge.
+- Dependencies: Task 4.4, M3.5 (auto-build via 3.5.3)
+- Acceptance Criteria (revised per AD-Q17): `docs/codemem/install-zero-config.md` authored with one-paste Claude Code `settings.json` snippet enabling the codemem MCP server (no manual `/codemem build` — server auto-builds on first query, delivered by M3.5 Task 3.5.3). Snippet included in README. End-to-end: paste 3-line settings.json → first query returns answer in < 5s on aa-ma-forge. `docs/demo/codemem-co-changes-transcript.md` committed containing a real `co_changes("CLAUDE.md")` session transcript (input command + actual output) showing non-obvious coupling; regeneratable via running codemem against the repo. Live asciinema/GIF recording DEFERRED to post-launch (see context-log.md [2026-04-17] PLAN REVISION).
 - Result Log:
 
 ### Task 4.9: ARCHITECTURE.md final pass

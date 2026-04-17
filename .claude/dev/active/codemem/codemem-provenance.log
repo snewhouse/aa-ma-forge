@@ -76,3 +76,4 @@
 2026-04-14T12:59:50+01:00 CHECKPOINT — M4 remaining: 4.2 (Aider+repos), 4.3 (HITL), 4.4 (HITL voice), 4.5 (HITL), 4.6 (blocked on 4.4), 4.8 (HITL recording), 4.9 (HITL factual), 4.10 (HITL positioning)
 2026-04-14T12:59:50+01:00 CHECKPOINT — ContextLoaded: REFERENCE,TASKS,CONTEXT_LOG,PROVENANCE — TokenUsage: ~85%
 2026-04-14T12:59:50+01:00 CHECKPOINT — Resume hint: load REFERENCE.md FIRST then TASKS.md; skip PLAN.md unless reviewing strategy
+2026-04-17T11:41:29+01:00 PLAN REVISION — inserted M3.5 (Integration Closeout); M4 Task 4.8 scope reduced (no live recording); Distribution Model changed to plugin-only (AD-Q15); 4.2 methodology revised (AD-Q16); M3 gate retrospective logged to context-log.md; Aider 0.86.2 installed via uv tool install --with audioop-lts

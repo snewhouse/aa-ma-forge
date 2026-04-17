@@ -77,3 +77,4 @@
 2026-04-14T12:59:50+01:00 CHECKPOINT — ContextLoaded: REFERENCE,TASKS,CONTEXT_LOG,PROVENANCE — TokenUsage: ~85%
 2026-04-14T12:59:50+01:00 CHECKPOINT — Resume hint: load REFERENCE.md FIRST then TASKS.md; skip PLAN.md unless reviewing strategy
 2026-04-17T11:41:29+01:00 PLAN REVISION — inserted M3.5 (Integration Closeout); M4 Task 4.8 scope reduced (no live recording); Distribution Model changed to plugin-only (AD-Q15); 4.2 methodology revised (AD-Q16); M3 gate retrospective logged to context-log.md; Aider 0.86.2 installed via uv tool install --with audioop-lts
+2026-04-17T11:51:07+01:00 MILESTONE M3.5 Task 3.5.1 COMPLETE — wired 6 M3 tools into claude-code/codemem/mcp/server.py; flipped test_m3_tools_stubbed to test_m3_six_tools_registered; added test_all_twelve_canonical_tools_registered; 327/327 passing (+1 from 326); ruff clean; import-linter 2/2 kept

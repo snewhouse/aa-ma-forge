@@ -138,6 +138,82 @@ def build_server() -> FastMCP:
         )
 
     # ------------------------------------------------------------------
+    # M3 tool handlers (wired in M3.5 Task 3.5.1, 2026-04-17).
+    # ------------------------------------------------------------------
+
+    def hot_spots(
+        window_days: int = 90, top_n: int = 10, budget: int = 8_000
+    ) -> dict:
+        """Top-N files by (commits in window) × (function_count)."""
+        return mcp_tools.hot_spots(
+            db_path_factory(),
+            window_days=window_days,
+            top_n=top_n,
+            budget=budget,
+        )
+
+    def co_changes(
+        file_path: str,
+        threshold: int = 3,
+        top_n: int = 50,
+        budget: int = 8_000,
+    ) -> dict:
+        """Files co-changing with ``file_path`` that lack an import edge."""
+        return mcp_tools.co_changes(
+            db_path_factory(),
+            file_path,
+            threshold=threshold,
+            top_n=top_n,
+            budget=budget,
+        )
+
+    def owners(
+        path: str,
+        refresh: bool = False,
+        skip: bool = False,
+        budget: int = 8_000,
+    ) -> dict:
+        """Per-author line-count percentages for a file or directory."""
+        return mcp_tools.owners(
+            db_path_factory(),
+            path,
+            repo_root=repo_root_factory(),
+            refresh=refresh,
+            skip=skip,
+            budget=budget,
+        )
+
+    def symbol_history(
+        name: str,
+        file_path: str | None = None,
+        budget: int = 8_000,
+    ) -> dict:
+        """``git log -L:<name>:<file>`` summary per file containing ``name``."""
+        return mcp_tools.symbol_history(
+            db_path_factory(),
+            name,
+            file_path=file_path,
+            repo_root=repo_root_factory(),
+            budget=budget,
+        )
+
+    def layers(budget: int = 8_000) -> dict:
+        """Bucket files into core/middle/periphery by in-degree; render onion."""
+        return mcp_tools.layers(db_path_factory(), budget=budget)
+
+    def aa_ma_context(
+        task_name: str, write: bool = False, budget: int = 8_000
+    ) -> dict:
+        """Validate an AA-MA task; assemble a code-intel context pack."""
+        return mcp_tools.aa_ma_context(
+            db_path_factory(),
+            task_name,
+            repo_root=repo_root_factory(),
+            write=write,
+            budget=budget,
+        )
+
+    # ------------------------------------------------------------------
     # Register handlers under canonical names AND their aliases.
     # ------------------------------------------------------------------
     m1_handlers: dict[str, Callable[..., dict]] = {
@@ -149,20 +225,22 @@ def build_server() -> FastMCP:
         "file_summary": file_summary,
     }
 
-    for canonical, handler in m1_handlers.items():
-        server.tool(handler, name=canonical)
-        _registered_names.append(canonical)
-        for alias in ALIASES.get(canonical, []):
-            server.tool(handler, name=alias)
-            _registered_names.append(alias)
+    m3_handlers: dict[str, Callable[..., dict]] = {
+        "hot_spots": hot_spots,
+        "co_changes": co_changes,
+        "owners": owners,
+        "symbol_history": symbol_history,
+        "layers": layers,
+        "aa_ma_context": aa_ma_context,
+    }
 
-    # M3 tools (hot_spots, co_changes, owners, symbol_history, layers,
-    # aa_ma_context) are intentionally NOT registered here — Task 3.2+
-    # add them with git-mining logic. Listing them in
-    # CANONICAL_TOOL_NAMES preserves the "12 tool slots" contract while
-    # keeping the surface honest: if an agent calls one now, FastMCP
-    # returns a proper "tool not found" — not a stub that returns
-    # empty data.
+    for handlers in (m1_handlers, m3_handlers):
+        for canonical, handler in handlers.items():
+            server.tool(handler, name=canonical)
+            _registered_names.append(canonical)
+            for alias in ALIASES.get(canonical, []):
+                server.tool(handler, name=alias)
+                _registered_names.append(alias)
 
     return server
 

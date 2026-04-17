@@ -212,7 +212,7 @@ Registered in `mcp/server.py`. Aliases exposed for cross-tool discoverability vi
 
 All tools enforce hard token budget (default 8000, configurable). M1 lights up 1–6; M3 adds 7–12.
 
-> **Registration status (as of 2026-04-17 PLAN REVISION):** tools 1–6 (M1) are registered in `claude-code/codemem/mcp/server.py::build_server()`. Tools 7–12 (M3) EXIST in `codemem.mcp_tools.*` and pass 326/326 unit tests, but are NOT YET WIRED INTO FastMCP — registration is delivered by M3.5 Task 3.5.1 (corrective completion). Until 3.5.1 lands, M3 tools are unreachable from a Claude Code agent session. Remove this note after 3.5.1 merges.
+All 12 tools registered in `claude-code/codemem/mcp/server.py::build_server()` as of M3.5 Task 3.5.1 (2026-04-17). Handlers are thin adapters over `codemem.mcp_tools.*` — sanitization + SQL live in the underlying functions; the server is dumb by design. Tool-surface kwargs omit `hot_spots.now` (test-only injection) and `co_changes.exclude` (tuple param, defaults to `("CHANGELOG.md","README.md")`) — callers who need those use the CLI or call the `mcp_tools` functions directly.
 
 ---
 

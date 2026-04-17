@@ -75,17 +75,33 @@ class TestToolRegistration:
         assert "find_dead_code" in registered
         assert "find_references" in registered
 
-    def test_m3_tools_stubbed_not_registered_in_m1(self, server_mod):
-        """M3 tools shouldn't be live callable yet — they raise a
-        'not yet implemented' error if exercised."""
+    def test_m3_six_tools_registered(self, server_mod):
+        """M3.5 Task 3.5.1: all 6 M3 tools are wired into build_server().
+
+        Flipped 2026-04-17 from the M1-era ``test_m3_tools_stubbed_not_registered_in_m1``
+        that asserted the opposite. M3's HARD gate shipped the tool
+        implementations in ``codemem.mcp_tools.*``; this test now
+        verifies the corresponding FastMCP registration landed.
+        """
         registered = server_mod.list_registered_tool_names()
-        # Per plan, M1 registers 6 of 12 tool slots; M3 adds the rest.
-        # At minimum, the M3 tools should not appear in the M1 registration.
-        for m3_name in ("hot_spots", "co_changes", "owners",
-                        "symbol_history", "layers", "aa_ma_context"):
-            assert m3_name not in registered, (
-                f"{m3_name} is M3 — should not be registered in M1"
-            )
+        m3_canonical = {
+            "hot_spots", "co_changes", "owners",
+            "symbol_history", "layers", "aa_ma_context",
+        }
+        missing = m3_canonical - registered
+        assert not missing, (
+            f"M3 tools missing from server registration: {sorted(missing)}"
+        )
+
+    def test_all_twelve_canonical_tools_registered(self, server_mod):
+        """After M3.5 Task 3.5.1, every name in CANONICAL_TOOL_NAMES
+        must be reachable on the server."""
+        registered = server_mod.list_registered_tool_names()
+        canonical = set(server_mod.CANONICAL_TOOL_NAMES)
+        missing = canonical - registered
+        assert not missing, (
+            f"Canonical tools missing from registration: {sorted(missing)}"
+        )
 
 
 class TestReadOnlyConnectionPolicy:

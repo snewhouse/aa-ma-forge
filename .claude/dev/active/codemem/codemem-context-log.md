@@ -522,3 +522,37 @@ None blocking Wave 1.
 
 - **Live verification (3.5.5 AC criteria 3+4):** requires fresh Claude Code session with `.mcp.json` approval. Pending next session.
 - **Orphan `~/.claude/.mcp.json` codemem entry:** RESOLVED 2026-04-17. Removed via `jq 'del(.mcpServers.codemem)'` after timestamped backup. Post-state verified: `mcpServers` keys = `['galactic', 'project-index-query']` — matching pre-2026-04-17-defect baseline. AC criterion 5 satisfied.
+
+---
+
+## 2026-04-17 — Task 3.5.5 LIVE VERIFICATION + L-253 defect fix (closes M3.5)
+
+**Verified.** Live MCP dogfood in a fresh Claude Code session surfaced a production defect at the very first M3-tool invocation. Root cause, fix, and all four M3.5 integration gaps are now closed.
+
+**Live session evidence.**
+1. `mcp__codemem__search_symbols("build_server")` → non-error result; `build_server` at `claude-code/codemem/mcp/server.py:90`.
+2. `mcp__codemem__hot_spots()` → initially `no such table: commit_files`.
+3. `mcp__codemem__aa_ma_context("codemem")` → initially `no such table: ownership`.
+
+Root cause (confirmed by reading DB + code): `.codemem/index.db` at `user_version=1` with only M1 tables. `indexer.build_index`, `incremental.refresh_incrementally`, and `journal.wal.replay_wal` all called `db.apply_schema(conn)` but never `db.migrate(conn)`, so the M3 Task 3.8 v2 tables (`commits`, `commit_files`, `ownership`, `co_change_pairs`) never materialized in the field. M3 unit tests missed it because fixtures hand-crafted v2 tables directly (or called `migrate` manually in isolated tests).
+
+**Fix (added as new Task 3.5.6 under M3.5 scope):**
+1. New helper `db.ensure_schema(conn) -> int` = `apply_schema(conn)` + `migrate(conn)`. Single entry-point for all production writers. Exported from `storage/__init__.py`.
+2. Swapped three production call sites: `indexer.py::build_index`, `incremental.py::_refresh_locked`, `journal/wal.py::replay_wal`. `grep "db\.apply_schema" packages/codemem-mcp/src/codemem/` now returns zero production hits (only the helper's internal call).
+3. Fixed one downstream WAL producer: `indexer.py` was tagging intent entries with hardcoded `prev_user_version=1`; now uses `db.CURRENT_SCHEMA_VERSION`, so entries written against a v2 DB replay cleanly.
+4. Fixed three downstream test fixtures that were hardcoding `prev_user_version=1` in WAL entries that get replayed (`test_wal.py::test_unacked_entry_applied_and_acked`, `test_wal.py::test_kill_between_intent_and_commit_replay_recovers`, `test_wal_rotation.py::_emit_one_file_upsert`). The `test_wal.py:319` `prev_user_version=999` test deliberately uses a mismatched value to exercise `ReplayConflict` and was left alone.
+
+**TDD cycle.** Flipped `tests/codemem/test_indexer.py::TestBuildIndex::test_creates_db_and_applies_schema` (asserting `user_version == 1`) to `test_creates_db_at_current_schema_version` (asserting `user_version == db.CURRENT_SCHEMA_VERSION` AND `{"commits","commit_files","ownership","co_change_pairs"}.issubset(tables)`). Ran — confirmed `assert 1 == 2` failure for the expected reason. Implemented the fix. Re-ran — single test GREEN. Ran full codemem suite: `346 passed, 1 skipped, 1 deselected` (unchanged from pre-fix total — 6 WAL tests initially failed due to the hardcoded `prev_user_version=1` problem, all fixed in step 3+4). Ruff clean. Import-linter 2/2 contracts kept.
+
+**Live re-verification (in-session).** Backed up live v1 DB to `/tmp/codemem-bak/index.db.pre-v2migration-fix`. Deleted `.codemem/`. Rebuilt via fresh-code subprocess: `uv run python -c "from codemem.indexer import build_index; build_index(Path.cwd(), Path('.codemem/index.db'))"` → 68 files / 679 symbols / 1460 edges / 195 resolved / 1024 unresolved in 0.20s. Post-build DB at `user_version=2` with 7 tables (all 4 v2 tables present). Re-invoked the three MCP tools:
+- `search_symbols("build_server")` → unchanged — works.
+- `hot_spots()` → `{"files":[],"window_days":90,"top_n":10,"error":null,"truncated":false}` — schema error gone; empty because `codemem refresh` hasn't populated the `commits` cache yet. AC "non-error response" satisfied.
+- `aa_ma_context("codemem")` → 91KB structured JSON with populated `owners_by_file` (real git-blame data), `blast_radius_by_symbol`, `files`, `symbols`, `hot_spots=[]`, `markdown`, `error=null`. The AA-MA moat is live.
+
+**Lesson L-253 filed in `docs/lessons.md`.** Pins the `apply_schema`-without-`migrate` anti-pattern and the `ensure_schema` single-choke-point rule. Cross-references L-244 and L-245 — all three are "tests pass but production doesn't" from unexercised glue layers. Argues for every milestone AC to include at least one "dogfood from the outside" step.
+
+**Milestone M3.5 status.** All 6 ACs verified. All 6 tasks (3.5.1 through 3.5.6) COMPLETE. Status flipped PENDING → COMPLETE.
+
+### Unresolved
+
+- None for M3.5. Next milestone: **M4 (Polish, Demo, Differentiation)**.

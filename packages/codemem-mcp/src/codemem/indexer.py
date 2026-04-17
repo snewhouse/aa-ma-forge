@@ -380,7 +380,11 @@ def build_index(
 
     conn = db.connect(db_path, read_only=False)
     try:
-        db.apply_schema(conn)
+        # ensure_schema = apply_schema + migrate. Production writers MUST
+        # run migrations so a fresh DB lands at CURRENT_SCHEMA_VERSION and
+        # M3 tables (commits/commit_files/ownership/co_change_pairs) exist
+        # for the first MCP query that needs them (L-253).
+        db.ensure_schema(conn)
 
         # Drop FK enforcement for bulk load. PRAGMA foreign_keys must be set
         # OUTSIDE any transaction per SQLite docs — toggle before begin.
@@ -419,7 +423,11 @@ def build_index(
                         wal_path,
                         op="file_upsert",
                         args=args,
-                        prev_user_version=1,
+                        # Tag with the schema version the DB is at RIGHT NOW
+                        # (post ensure_schema). Hardcoding v1 here would make
+                        # every WAL entry replay-incompatible with the v2 DB
+                        # that just wrote it — L-253.
+                        prev_user_version=db.CURRENT_SCHEMA_VERSION,
                         content_sha=args["content_hash_after"] or "",
                     )
                     # Track the id so we can ack after the transaction

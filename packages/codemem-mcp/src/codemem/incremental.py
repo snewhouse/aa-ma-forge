@@ -200,7 +200,8 @@ def _refresh_locked(
     # ---- Apply mutations ---------------------------------------------
     conn = db.connect(db_path, read_only=False)
     try:
-        db.apply_schema(conn)  # idempotent — guarantees schema on first call
+        # apply_schema + migrate — see L-253 and db.ensure_schema docstring.
+        db.ensure_schema(conn)
         with db.transaction(conn):
             for old_path, new_path in moved:
                 conn.execute(

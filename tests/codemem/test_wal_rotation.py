@@ -169,7 +169,9 @@ def _emit_one_file_upsert(wal_path: Path, n: int) -> None:
         wal_path,
         op="file_upsert",
         args=args,
-        prev_user_version=1,
+        # Match the DB's actual user_version (CURRENT_SCHEMA_VERSION after
+        # ensure_schema lands migrations) — L-253.
+        prev_user_version=db.CURRENT_SCHEMA_VERSION,
         content_sha=f"hash_{n}",
     )
     append_ack(wal_path, eid)

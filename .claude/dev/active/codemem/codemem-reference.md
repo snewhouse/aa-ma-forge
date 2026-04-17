@@ -548,6 +548,8 @@ CREATE INDEX idx_co_change_pairs_b ON co_change_pairs(file_b);
 - `CURRENT_SCHEMA_VERSION = 2` in `codemem.storage.db`. Fresh `apply_schema()` still produces v1 (schema.sql is frozen at v1); `migrate()` advances.
 - `co_change_pairs.last_commit` uses `ON DELETE SET NULL` (not CASCADE) — evicting a cached commit must not delete an otherwise-valid pair.
 - Ordering for co-change pair storage: caller MUST swap arguments if `a > b`. `tuple(sorted([a,b]))` is the canonical pattern.
+- **Production writers MUST use `db.ensure_schema(conn)`** (= `apply_schema` + `migrate`), NEVER `apply_schema` alone. Enforced by construction: `indexer.build_index`, `incremental._refresh_locked`, `journal.wal.replay_wal` all call `db.ensure_schema(conn)`; `grep "db\.apply_schema" packages/codemem-mcp/src/codemem/` returns zero production hits. Rationale: `apply_schema` is deliberately separated from `migrate` so tests can exercise the v1 baseline in isolation — but that separation became a forgotten-to-wire trap (L-253). `ensure_schema` is the single choke-point where future schema-bring-up stages get added.
+- **WAL producers tag `prev_user_version` with `db.CURRENT_SCHEMA_VERSION`**, never a hardcoded `1`. A WAL entry written against a v2 DB but tagged `v=1` raises `ReplayConflict` on first replay. Enforced in `indexer.build_index` + all test fixtures that later invoke `replay_wal`.
 
 ---
 

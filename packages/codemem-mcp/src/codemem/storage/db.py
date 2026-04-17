@@ -33,6 +33,7 @@ __all__ = [
     "MIGRATIONS",
     "apply_schema",
     "connect",
+    "ensure_schema",
     "migrate",
 ]
 
@@ -186,6 +187,30 @@ def migrate(conn: sqlite3.Connection) -> int:
                 conn.execute(f"PRAGMA user_version = {target}")
             current = target
     return current
+
+
+def ensure_schema(conn: sqlite3.Connection) -> int:
+    """Apply initial schema and run all pending migrations.
+
+    Single entry point for production writers that create or open a
+    codemem DB — `indexer.build_index`, `incremental.refresh_incrementally`,
+    `journal.wal.replay`. Guarantees a fresh DB lands at
+    `CURRENT_SCHEMA_VERSION`, not at v1.
+
+    Idempotent: safe to call on every connect. `apply_schema` only
+    creates v1 tables `IF NOT EXISTS`; `migrate` only runs migrations
+    whose target > current `PRAGMA user_version`.
+
+    Returns the resulting user_version.
+
+    Regression guard — see L-253: separate `apply_schema` + `migrate`
+    calls at each writer site created an integration gap where M3 tools
+    (hot_spots, owners, aa_ma_context) silently queried missing tables
+    on DBs created in production. This helper is the single place to
+    change if the schema pipeline ever grows further stages.
+    """
+    apply_schema(conn)
+    return migrate(conn)
 
 
 @contextmanager

@@ -109,14 +109,32 @@ class TestBuildIndex:
         assert isinstance(stats, BuildStats)
         assert stats.files_indexed >= 2  # app.py + lib.ts at minimum
 
-    def test_creates_db_and_applies_schema(self, tiny_repo, tmp_path):
+    def test_creates_db_at_current_schema_version(self, tiny_repo, tmp_path):
+        # build_index must land the DB at CURRENT_SCHEMA_VERSION (not just v1)
+        # so M3 tools (hot_spots, co_changes, owners, symbol_history, aa_ma_context)
+        # can read their tables the moment a fresh DB is created — e.g. via
+        # Task 3.5.3's ensure_built auto-build path on first MCP query.
+        # Regression guard for L-253: apply_schema alone is NOT sufficient;
+        # migrate() must run too. Both must be wired via db.ensure_schema().
         db_path = tmp_path / ".codemem" / "index.db"
         build_index(tiny_repo, db_path, package=".")
         assert db_path.exists()
         with db.connect(db_path, read_only=True) as conn:
             assert db.is_codemem_db(conn)
-            # user_version should be at baseline
-            assert conn.execute("PRAGMA user_version").fetchone()[0] == 1
+            assert (
+                conn.execute("PRAGMA user_version").fetchone()[0]
+                == db.CURRENT_SCHEMA_VERSION
+            )
+            tables = {
+                r[0]
+                for r in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            # M3 Task 3.8 v2 tables must be present after build_index
+            assert {"commits", "commit_files", "ownership", "co_change_pairs"}.issubset(
+                tables
+            )
 
     def test_inserts_files_rows(self, tiny_repo, tmp_path):
         db_path = tmp_path / ".codemem" / "index.db"

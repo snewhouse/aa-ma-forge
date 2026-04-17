@@ -277,7 +277,8 @@ def replay_wal(wal_path: Path, db_path: Path) -> dict[str, int]:
 
     conn = db.connect(db_path, read_only=False)
     try:
-        db.apply_schema(conn)
+        # apply_schema + migrate — see L-253 and db.ensure_schema docstring.
+        db.ensure_schema(conn)
         current_uv = conn.execute("PRAGMA user_version").fetchone()[0]
 
         for obj in read_entries(wal_path):

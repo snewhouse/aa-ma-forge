@@ -190,7 +190,10 @@ class TestReplayStateDiagram:
                 "mtime": 0, "size": 10,
                 "parse_result": {"symbols": [], "edges": [], "imports": []},
             },
-            prev_user_version=1,
+            # _fresh_db now lands at CURRENT_SCHEMA_VERSION (v2+) via
+            # ensure_schema — WAL entry must match or replay raises
+            # ReplayConflict (L-253).
+            prev_user_version=db.CURRENT_SCHEMA_VERSION,
             content_sha="h1",
         )
 
@@ -271,7 +274,8 @@ class TestCrashInjection:
                 "mtime": 0, "size": 5,
                 "parse_result": {"symbols": [], "edges": [], "imports": []},
             },
-            prev_user_version=1,
+            # Match the DB's actual user_version after ensure_schema (L-253).
+            prev_user_version=db.CURRENT_SCHEMA_VERSION,
             content_sha="h_crash",
         )
 

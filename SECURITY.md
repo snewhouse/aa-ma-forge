@@ -38,6 +38,46 @@ The installer (`scripts/install.sh`) places files into `~/.claude/` so Claude Co
 
 It only reads and writes files under `~/.claude/`. It always exits 0, so it never blocks compaction. If there are no active tasks, it logs that fact and exits immediately.
 
+## codemem (optional subsystem)
+
+`codemem` is an optional code-intelligence subsystem shipped alongside AA-MA Forge. It parses your repo, indexes symbols and call edges into a local SQLite DB, and exposes 12 MCP tools to Claude Code. Installing it opts your repo into the additional behaviours below. If you haven't enabled the codemem MCP server in your `.mcp.json`, none of this applies.
+
+### What codemem reads
+
+On first MCP query against a repo without `.codemem/index.db`, codemem runs `git ls-files` and parses every tracked `.py`, `.ts`, `.tsx`, `.js`, `.go`, `.rs`, `.java`, `.rb`, and `.sh` file with either the Python stdlib `ast` module or the `ast-grep` binary. It reads full file contents into memory, computes SHA-256 hashes, and stores signatures plus intra- and cross-file call edges to `<repo>/.codemem/index.db` (SQLite).
+
+codemem does **not** transmit anything off the machine. All parsing is local. Subprocess calls to `git` and `ast-grep` use `shell=False` and `--` separators; no shell interpolation.
+
+### Trusted-environment recommendation
+
+Running codemem against a repo gives it read access to everything `git ls-files` returns. If your repo contains files you would not otherwise feed into a parser, audit before running. The general risk class is the one the LLM-tooling ecosystem learned from the litellm 2026 supply-chain incident: any tool that reads source into a process space inherits the source's blast radius. codemem is not immune.
+
+Practical guidance:
+
+- Don't run codemem against repos you don't trust enough to also `pip install -e .` from.
+- If you're evaluating an unknown dependency, run codemem in a disposable environment (a fresh container, a throwaway user account, or a VM).
+- codemem never executes code it indexes. But `ast-grep`'s parser runs on arbitrary input, and parsers have had CVEs before. Pin the `ast-grep-cli>=0.42,<0.43` range; review changelogs before bumping.
+
+### Input sanitization contract
+
+All 12 MCP tool arguments are sanitized before reaching SQL or `subprocess`:
+
+- **Symbol / name arguments** must match the allow-list regex `^[A-Za-z0-9_./\-]{1,256}$`. Non-matching input returns a structured error dict. No SQL escape; no shell escape — rejection happens before either layer is reached.
+- **File-path arguments** run the symbol check first, then resolve to an absolute path via `Path.resolve(strict=False)`, then verify the result is relative to the repo root. `../../etc/passwd`, `/etc/passwd`, and `foo/../../bar` all reject before any syscall.
+- The adversarial test suite (`tests/codemem/test_mcp_tools.py`) exercises 11 injection vectors including `'; DROP TABLE`, 10 KB unicode, and regex metachars.
+
+All MCP connections open SQLite via `file:...?mode=ro` URI — the tool surface is strictly non-mutating. The single writer is the indexer (`codemem build` / auto-build-on-first-query), gated by an `fcntl` / `msvcrt` lock at `<repo>/.codemem/db.lock`.
+
+Import-linter contracts enforce that the plugin-surface handlers in `claude-code/codemem/mcp/server.py` cannot bypass the sanitization layer by importing codemem internals directly. CI fails on boundary violations.
+
+### SQLite WAL file growth
+
+codemem uses SQLite journal mode WAL for crash safety. The WAL file (`<repo>/.codemem/index.db-wal`) can grow during bulk inserts. On a cold `codemem build` of a ~70-file repo the WAL stays under 100 KB; on 10k-LOC repos it typically reaches a few MB before a checkpoint.
+
+SQLite auto-checkpoints on connection close. If you kill the indexer mid-build the WAL can outlive its parent — re-running `codemem build` replays it cleanly. To flush manually: `sqlite3 .codemem/index.db "PRAGMA wal_checkpoint(TRUNCATE);"`.
+
+codemem also maintains a second write-ahead log in JSONL form (`<repo>/.codemem/wal.jsonl`) used for crash-safe incremental refresh. It rotates at 10 MB with 3 compressed archives retained — unbounded growth is not possible.
+
 ## Prompt files trust model
 
 The commands, skills, agents, and rules in this repo are declarative markdown files. They are not shell scripts or executables. Claude Code's runtime reads them as prompt instructions.

@@ -410,11 +410,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 - Result Log:
 
 ### Task 4.5: SECURITY.md update
-- Status: PENDING
-- Mode: HITL
+- Status: COMPLETE
+- Mode: HITL — user-approved wording as-drafted 2026-04-17
 - Dependencies: M3
 - Acceptance Criteria: `SECURITY.md` patch documents: SQLite WAL file growth caveats, `codemem` reads full repo (litellm 2026 supply-chain reference), trusted-environment recommendation, input sanitization contract.
-- Result Log:
+- Result Log: COMPLETE 2026-04-17. `SECURITY.md` gained a new `## codemem (optional subsystem)` section with 4 subsections matching the AC bullets, slotted between `## What the hook does` and `## Prompt files trust model` — codemem framed as an opt-in subsystem so users who don't enable the MCP server can ignore the whole section. **Subsections + AC mapping:** (1) `### What codemem reads` — enumerates the 9 file extensions parsed, names `git ls-files` as the source-of-truth file list, says parsing is local + subprocess is `shell=False` + `--` separator (addresses AC bullet 2: "reads full repo"). (2) `### Trusted-environment recommendation` — names the litellm 2026 supply-chain incident as the risk class, offers 3 practical-guidance bullets incl. the `ast-grep-cli>=0.42,<0.43` pin-and-review recommendation (addresses AC bullet 3). (3) `### Input sanitization contract` — documents the allow-list regex `^[A-Za-z0-9_./\-]{1,256}$`, the `resolve(strict=False)` + `relative_to(repo_root)` path chain, the 11 adversarial test vectors, the `file:...?mode=ro` read-only MCP-surface invariant, the `fcntl`/`msvcrt` single-writer lock, and the import-linter boundary-enforcement contract (addresses AC bullet 4). (4) `### SQLite WAL file growth` — empirical WAL growth numbers for ~70-file vs 10k-LOC repos, auto-checkpoint behaviour, manual `PRAGMA wal_checkpoint(TRUNCATE)` command, and the 10-MB/3-archive rotation on the secondary JSONL WAL (addresses AC bullet 1). **Voice match:** kept Stephen's existing direct-plainspoken tone — no marketing phrases, explicit limits, concrete commands the reader can run. No emojis added. Total addition: 40 lines, net +40/-0 diff on SECURITY.md. User approved wording as-drafted on review. 7 M4 tasks remain: 4.2 (AFK), 4.3 (HITL), 4.4 (HITL), 4.6 (AFK blocked on 4.4), 4.8 (HITL), 4.9 (HITL), 4.10 (HITL).
 
 ### Task 4.6: Doc-drift integration
 - Status: PENDING

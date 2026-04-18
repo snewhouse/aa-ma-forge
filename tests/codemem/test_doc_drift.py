@@ -22,6 +22,22 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "check_codemem_doc_drift.py"
 
 
+def _hermetic_git_env(tmp_path: Path) -> dict[str, str]:
+    """Return an env mapping that isolates ``git`` from the host config.
+
+    Pins ``HOME`` to ``tmp_path`` and blanks ``GIT_CONFIG_GLOBAL`` /
+    ``GIT_CONFIG_SYSTEM`` so host-level settings (``commit.gpgsign``,
+    custom ``core.hooksPath``, etc.) cannot leak into test runs.
+    """
+    import os as _os
+    return {
+        **_os.environ,
+        "HOME": str(tmp_path),
+        "GIT_CONFIG_GLOBAL": "/dev/null",
+        "GIT_CONFIG_SYSTEM": "/dev/null",
+    }
+
+
 def _run_script(repo_path: Path) -> tuple[int, list[dict]]:
     """Invoke the script inside ``repo_path``; return (exit_code, findings)."""
     r = subprocess.run(
@@ -29,6 +45,7 @@ def _run_script(repo_path: Path) -> tuple[int, list[dict]]:
         capture_output=True,
         text=True,
         check=False,
+        env=_hermetic_git_env(repo_path),
     )
     findings = json.loads(r.stdout) if r.stdout.strip() else []
     return r.returncode, findings
@@ -57,19 +74,27 @@ def _bootstrap_codemem_shaped_repo(tmp_path: Path, *, version: str = "0.1.0.dev0
     )
     (tmp_path / "CHANGELOG.md").write_text("# Changelog\n\n## [0.0.1] - prehistory\n")
     # Minimal git repo so Tier 2's `git describe` works.
-    subprocess.run(["git", "init", "-q", "-b", "main", str(tmp_path)], check=True)
+    env = _hermetic_git_env(tmp_path)
     subprocess.run(
-        ["git", "-C", str(tmp_path), "config", "user.email", "t@x"], check=True
+        ["git", "init", "-q", "-b", "main", str(tmp_path)], check=True, env=env,
     )
     subprocess.run(
-        ["git", "-C", str(tmp_path), "config", "user.name", "T"], check=True
-    )
-    subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
-    subprocess.run(
-        ["git", "-C", str(tmp_path), "commit", "-qm", "chore: initial"], check=True
+        ["git", "-C", str(tmp_path), "config", "user.email", "t@x"],
+        check=True, env=env,
     )
     subprocess.run(
-        ["git", "-C", str(tmp_path), "tag", "v0.0.1"], check=True
+        ["git", "-C", str(tmp_path), "config", "user.name", "T"],
+        check=True, env=env,
+    )
+    subprocess.run(
+        ["git", "-C", str(tmp_path), "add", "-A"], check=True, env=env,
+    )
+    subprocess.run(
+        ["git", "-C", str(tmp_path), "commit", "-qm", "chore: initial"],
+        check=True, env=env,
+    )
+    subprocess.run(
+        ["git", "-C", str(tmp_path), "tag", "v0.0.1"], check=True, env=env,
     )
     return tmp_path
 
@@ -127,6 +152,22 @@ class TestTier1VersionDrift:
         assert code == 1, findings
         assert any("0.1.0-dev" in f["message"] for f in findings), findings
 
+    def test_pep440_no_separator_alpha_fires(self, tmp_path):
+        """PEP 440 allows alpha/beta/rc/post suffixes WITHOUT a separator
+        (e.g. ``1.2.3a1``, ``1.2.3rc2``). The regex must capture these
+        as whole version tokens so drift against the canonical
+        ``0.1.0.dev0`` fires cleanly.
+        """
+        _bootstrap_codemem_shaped_repo(tmp_path, version="0.1.0.dev0")
+        readme = tmp_path / "claude-code" / "codemem" / "README.md"
+        readme.write_text(
+            readme.read_text()
+            + "\n\nThis was the codemem version during alpha: 0.1.0a1 release candidate.\n"
+        )
+        code, findings = _run_script(tmp_path)
+        assert code == 1, findings
+        assert any("0.1.0a1" in f["message"] for f in findings), findings
+
 
 # ---------------------------------------------------------------------
 # Tier 2 — CHANGELOG completeness
@@ -139,10 +180,13 @@ class TestTier2ChangelogCompleteness:
         new_file = tmp_path / "packages" / "codemem-mcp" / "src" / "codemem" / "x.py"
         new_file.parent.mkdir(parents=True)
         new_file.write_text("def x(): return 1\n")
-        subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
+        env = _hermetic_git_env(tmp_path)
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "add", "-A"], check=True, env=env,
+        )
         subprocess.run(
             ["git", "-C", str(tmp_path), "commit", "-qm", "feat(codemem): add x"],
-            check=True,
+            check=True, env=env,
         )
         code, findings = _run_script(tmp_path)
         assert code == 1, findings
@@ -161,10 +205,13 @@ class TestTier2ChangelogCompleteness:
         new_file = tmp_path / "packages" / "codemem-mcp" / "src" / "codemem" / "x.py"
         new_file.parent.mkdir(parents=True)
         new_file.write_text("def x(): return 1\n")
-        subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
+        env = _hermetic_git_env(tmp_path)
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "add", "-A"], check=True, env=env,
+        )
         subprocess.run(
             ["git", "-C", str(tmp_path), "commit", "-qm", "feat(codemem): add x"],
-            check=True,
+            check=True, env=env,
         )
         code, findings = _run_script(tmp_path)
         # Tier 2 should NOT fire; other tiers may be silent too.
@@ -178,10 +225,13 @@ class TestTier2ChangelogCompleteness:
         _bootstrap_codemem_shaped_repo(tmp_path)
         (tmp_path / "unrelated").mkdir()
         (tmp_path / "unrelated" / "note.md").write_text("unrelated\n")
-        subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
+        env = _hermetic_git_env(tmp_path)
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "add", "-A"], check=True, env=env,
+        )
         subprocess.run(
             ["git", "-C", str(tmp_path), "commit", "-qm", "feat(unrelated): add note"],
-            check=True,
+            check=True, env=env,
         )
         _code, findings = _run_script(tmp_path)
         tier_2 = [f for f in findings if "Tier 2" in f["tier"]]

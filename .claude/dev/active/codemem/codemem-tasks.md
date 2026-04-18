@@ -367,8 +367,8 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tas
 ---
 
 ## Milestone M4: Polish, Demo, Differentiation
-- Status: PENDING
-- Gate: SOFT
+- Status: COMPLETE (2026-04-18 — post-review-response patch)
+- Gate: SOFT — user approved review findings fix via "Apply all 5 fixes → re-run suite → then finalize M4"
 - Dependencies: M3.5 complete
 - Complexity: 40%
 - Acceptance Criteria (per plan §4 M4, amended 2026-04-17 per PLAN REVISION):

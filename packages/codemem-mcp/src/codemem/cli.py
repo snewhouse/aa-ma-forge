@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -106,8 +107,16 @@ def _cmd_refresh_commits(args: argparse.Namespace) -> int:
     pattern as L-253's ``db.ensure_schema``: a single named CLI
     choke-point users can run after install (or post-commit) to light
     up the M3 git-mining tools.
+
+    Acquires the same writer lock (``.codemem/db.lock``) that
+    ``incremental.py`` and ``mcp_tools`` use to serialise writers, so
+    running this concurrently with ``codemem build`` or a post-commit
+    refresh no-ops cleanly rather than racing on SQLite.
     """
+    import sqlite3
+
     from .analysis.git_mining import GitMiner
+    from .journal.lock import acquire_writer_lock
     from .storage import db as storage_db
 
     db_path = Path(args.db) if args.db else _default_db_path()
@@ -121,9 +130,42 @@ def _cmd_refresh_commits(args: argparse.Namespace) -> int:
         )
         return 1
 
-    miner = GitMiner(repo_root=repo_root)
-    with storage_db.connect(db_path) as conn:
-        inserted = miner.refresh_commits_cache(conn, limit=args.limit)
+    lock_file = db_path.parent / "db.lock"
+    try:
+        with acquire_writer_lock(lock_file) as acquired:
+            if not acquired:
+                print(
+                    "codemem refresh-commits: another writer holds "
+                    f"{lock_file} — skipped",
+                    file=sys.stderr,
+                )
+                return 0
+            miner = GitMiner(repo_root=repo_root)
+            with storage_db.connect(db_path) as conn:
+                inserted = miner.refresh_commits_cache(conn, limit=args.limit)
+    except FileNotFoundError as exc:
+        # `git` binary missing, or repo_root not a directory.
+        print(
+            f"codemem refresh-commits: required dependency missing: {exc}",
+            file=sys.stderr,
+        )
+        return 1
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"codemem refresh-commits: git subprocess failed "
+            f"(exit {exc.returncode}): {exc.stderr or exc}",
+            file=sys.stderr,
+        )
+        return 1
+    except sqlite3.Error as exc:
+        # Corrupt DB, schema mismatch, or no `commits` table (v1 DB
+        # predates M3 Task 3.8). Users fix by running `codemem build`.
+        print(
+            f"codemem refresh-commits: SQLite error: {exc} — try "
+            f"`codemem build` to re-create the DB at the current schema",
+            file=sys.stderr,
+        )
+        return 1
 
     print(
         f"codemem refresh-commits: inserted {inserted} commits "

@@ -197,28 +197,46 @@ class TestCLI:
         import sqlite3
 
         # Tiny git repo with two commits → ``git log`` returns rows.
+        # Hermetic env: no host gitconfig leakage, no global/system hooks.
+        hermetic = {
+            **os.environ,
+            "HOME": str(tmp_path),
+            "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_CONFIG_SYSTEM": "/dev/null",
+        }
         (tmp_path / ".gitignore").write_text(".codemem/\n")
         (tmp_path / "a.py").write_text("def a(): return 1\n")
-        subprocess.run(["git", "init", "-q", "-b", "main", str(tmp_path)], check=True)
         subprocess.run(
-            ["git", "-C", str(tmp_path), "config", "user.email", "t@x"], check=True
+            ["git", "init", "-q", "-b", "main", str(tmp_path)],
+            check=True, env=hermetic,
         )
         subprocess.run(
-            ["git", "-C", str(tmp_path), "config", "user.name", "T"], check=True
+            ["git", "-C", str(tmp_path), "config", "user.email", "t@x"],
+            check=True, env=hermetic,
         )
-        subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
         subprocess.run(
-            ["git", "-C", str(tmp_path), "commit", "-qm", "first"], check=True
+            ["git", "-C", str(tmp_path), "config", "user.name", "T"],
+            check=True, env=hermetic,
+        )
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "add", "-A"], check=True, env=hermetic,
+        )
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "commit", "-qm", "first"],
+            check=True, env=hermetic,
         )
         (tmp_path / "b.py").write_text("def b(): return 2\n")
-        subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
         subprocess.run(
-            ["git", "-C", str(tmp_path), "commit", "-qm", "second"], check=True
+            ["git", "-C", str(tmp_path), "add", "-A"], check=True, env=hermetic,
+        )
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "commit", "-qm", "second"],
+            check=True, env=hermetic,
         )
 
         db_path = tmp_path / ".codemem" / "index.db"
         env = {
-            **os.environ,
+            **hermetic,
             "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src"),
         }
 

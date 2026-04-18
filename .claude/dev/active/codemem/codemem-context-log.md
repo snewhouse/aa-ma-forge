@@ -669,3 +669,40 @@ User selected **Option B**. The full lazy-bootstrap is filed as an explicit post
 - Task 4.2 resumption — no scheduled date.
 - Post-M4 follow-up: lazy-bootstrap of git-mining cache inside `mcp_tools.co_changes` / `mcp_tools.hot_spots` (analogous to M3.5 Task 3.5.3's auto-build-on-first-query). Filed in reference.md §CLI Surface.
 - Post-M4 follow-up: when the user-level `~/.claude/skills/doc-drift-detection/SKILL.md` is extended next, consider surfacing `scripts/check_codemem_doc_drift.py` as a project-local override pattern other sub-packages can mirror.
+
+---
+
+## 2026-04-18 — M4 finalization: review-response patch + COMPLETE
+
+**Trigger.** User requested "review first" on the M4 finalization gate. Dispatched 3 parallel review agents (code-reuse, code-quality, efficiency) against `git diff ebda2f4^..5da9418` (the session's 3 commits). Three independent reviews returned **5 real findings worth fixing** before shipping.
+
+**Findings + resolution:**
+- **C1 CRITICAL — Dead Tier 6 in `check_codemem_doc_drift.py`.** Efficiency agent caught: `check_tool_count_drift` imports `codemem.mcp.server`, which does NOT exist as a Python module (the MCP server lives at `claude-code/codemem/mcp/server.py`, outside the package). The blanket `except Exception: return []` silently swallowed `ModuleNotFoundError` on every run — tests passed because they never exercised a non-empty result. Verified empirically via `uv run python -c "from codemem.mcp.server import build_server"` → `ModuleNotFoundError: No module named 'codemem.mcp'`. Resolution: deleted the function entirely + filed as post-M4 follow-up (reinstating needs `importlib.util.spec_from_file_location` on the server.py path, not a mid-milestone patch). Removed `sys` import (was only used in the dead code's `sys.path.insert`).
+- **C2 CRITICAL — `_cmd_refresh_commits` missing writer lock.** Code-quality agent caught: `incremental.py:89` and `mcp_tools/__init__.py:95` both `with acquire_writer_lock(".codemem/db.lock") as acquired:` before SQLite writes; my new CLI handler skipped it. Concurrent post-commit hook + manual `refresh-commits` would race on the DB. Resolution: wrapped the miner + connect block in `acquire_writer_lock(db_path.parent / "db.lock")`, with the same "skipped — another writer active" non-error exit path incremental.py uses.
+- **C3 CRITICAL — `_cmd_refresh_commits` no error handling.** Raw tracebacks to users when git missing / DB corrupt / schema mismatch. Resolution: `try/except` ladder covering `FileNotFoundError`, `subprocess.CalledProcessError`, `sqlite3.Error` — each returns exit 1 with a single-line stderr message. Schema-mismatch case explicitly suggests `codemem build` as the fix.
+- **W1 WARNING — Version regex missed no-separator PEP 440 forms.** `1.2.3a1` / `1.2.3rc2` would not match (regex required `.` or `-` before the suffix). Resolution: extended `VERSION_RE` with `[A-Za-z]+\d*` alternative. Regression test added: `test_pep440_no_separator_alpha_fires`. Initial fix added a trailing lookahead `(?=[^A-Za-z0-9._\-]|$)` that turned out to reject sentence-ending periods (broke `Version: 0.1.5.\n`) — discovered by `test_mismatched_version_in_codemem_readme_fires` failing. Lookahead removed; regex-engine greed on the optional group handles the "prefix of longer version" concern without the lookahead.
+- **W2 WARNING — Tests not hermetic against host `~/.gitconfig`.** A host `commit.gpgsign=true` or `core.hooksPath=...` would break CI on that machine. Resolution: `_hermetic_git_env(tmp_path)` helper pinning `HOME=tmp_path`, `GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_SYSTEM=/dev/null`; applied to every `subprocess.run` across `test_doc_drift.py` and the new test in `test_install_and_cli.py`.
+
+**INFO findings intentionally deferred:**
+- Conftest.py extraction for the git-init prelude (duplicated across 4 test files) — real cleanup, not milestone-blocking.
+- Tier 2 commit parser using `-z` null-separator for robustness on merge commits with newlines in subjects — current conventional-commit discipline avoids this.
+- Tier 1 window heuristic (40-char codemem/version keyword requirement) — design trade-off for noise reduction.
+
+**Post-fix verification.** `uv run pytest tests/codemem/ -q` → **357 passed, 1 skipped, 1 deselected** (+1 from W1 regression test, zero regressions). Ruff clean. Import-linter 2/2 kept. `uv run python scripts/check_codemem_doc_drift.py` → no findings on live repo.
+
+**Milestone M4 finalization.**
+- Sub-step audit: 10 sub-steps — 9 COMPLETE + 1 DEFERRED (4.2) + 0 PENDING ✓
+- AC verification: 7 of 7 applicable criteria met (bullet 3 struck through — Task 4.2 token-budget DEFERRED per 2026-04-17 user decision)
+- Gate: SOFT (no HARD-gate artefact required)
+- `codemem-tests.yaml`: not present (no-op)
+- User authorization: received via "Apply all 5 fixes → re-run suite → then finalize M4"
+
+**M4 milestone status: PENDING → COMPLETE.** Full codemem plan status: **M1 + M2 + M3 + M3.5 + M4 all COMPLETE**; Task 4.2 DEFERRED with resumption plan on file. Follow `/archive-aa-ma codemem` next to move artefacts to `.claude/dev/completed/`.
+
+### Unresolved (post-M4)
+
+- Task 4.2 resumption — no scheduled date (token-budget benchmarks vs Aider + jCodeMunch).
+- Lazy-bootstrap of git-mining cache inside `mcp_tools.co_changes` / `mcp_tools.hot_spots` (analogous to M3.5 Task 3.5.3's auto-build-on-first-query). Filed in reference.md §CLI Surface.
+- Reinstate Tier 6 tool-count drift check in `check_codemem_doc_drift.py` via `importlib.util.spec_from_file_location` on `claude-code/codemem/mcp/server.py`. Filed inline in the script docstring.
+- Promote git-init boilerplate to a shared `tests/codemem/conftest.py` fixture (duplicated across 4 test files per code-reuse review).
+- When the user-level `~/.claude/skills/doc-drift-detection/SKILL.md` is extended next, surface `scripts/check_codemem_doc_drift.py` as a project-local override pattern other sub-packages can mirror.

@@ -7,22 +7,28 @@ by ``Skill(doc-drift-detection)``. Use this from ``/commit-and-push``,
 on codemem-specific documentation drift rather than the whole-project
 pass.
 
-Three checks:
+Two checks:
 
 * **Tier 1 — codemem version strings.** Reads the canonical codemem
   version from ``packages/codemem-mcp/pyproject.toml`` (the workspace
   member's own ``[project].version``), scans codemem-specific markdown
   (``claude-code/codemem/README.md``, ``docs/codemem/*.md``,
-  ``docs/demo/codemem-*.md``) for ``X.Y.Z`` patterns that do not match,
-  and flags each occurrence.
+  ``docs/demo/codemem-*.md``) for PEP-440-shaped version strings that
+  do not match the canonical and appear in a ``codemem``/``version``
+  context window. Handles dotted (``1.2.3.dev0``), dashed
+  (``1.2.3-dev``), and no-separator (``1.2.3a1``, ``1.2.3rc1``)
+  suffix forms.
 * **Tier 2 — codemem CHANGELOG completeness.** Walks conventional
   commits (``feat:``, ``fix:``, ``BREAKING CHANGE``) since the last tag
   that touched any codemem path; fails if the repo has notable commits
   and ``CHANGELOG.md`` lacks an ``Unreleased`` section.
-* **Tool-count drift (Tier 6 analog).** Imports
-  ``codemem.mcp.server.list_registered_tool_names`` and greps prose
-  references to a specific integer ``N`` adjacent to the word ``tool``
-  in codemem docs when ``N`` differs from ``len(registered)``.
+
+Post-M4 follow-up: Tier-6-analog tool-count drift. Earlier draft
+imported ``codemem.mcp.server`` which doesn't exist as a Python module
+(the MCP server lives at ``claude-code/codemem/mcp/server.py``, outside
+the package). Reinstating the check requires ``importlib.util`` to load
+server.py by file path — filed as a post-M4 task rather than patched
+mid-milestone.
 
 Exits 0 on clean, 1 on any finding, 2 on malformed input.
 """
@@ -34,7 +40,6 @@ import json
 import os
 import re
 import subprocess
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -58,8 +63,23 @@ CODEMEM_PATH_PREFIXES = (
     "docs/demo/codemem-",
     "tests/codemem/",
 )
-VERSION_RE = re.compile(r"\b\d+\.\d+\.\d+(?:[.\-][A-Za-z0-9]+)*")
-TOOL_COUNT_RE = re.compile(r"\b(\d{1,3})\s+(?:codemem\s+)?(?:MCP\s+)?tools?\b", re.I)
+# PEP-440-compatible version matcher. Accepts:
+#   1.2.3                     (plain)
+#   1.2.3.dev0 / 1.2.3-dev    (dotted or dashed suffix separator)
+#   1.2.3a1 / 1.2.3rc1        (no-separator alpha/beta/rc/post forms)
+# Leading `\b` anchors the number; the two alternatives in the optional
+# non-capturing group cover all three suffix styles. Regex-engine greed
+# on the optional group handles the "prefix of longer version" concern
+# (e.g. scanning `0.1.0-dev` matches the whole `0.1.0-dev` in one step
+# rather than re-matching `0.1.0` as a standalone).
+VERSION_RE = re.compile(
+    r"\b\d+\.\d+\.\d+"
+    r"(?:"
+    r"[.\-][A-Za-z0-9]+"          # dotted or dashed suffix: .dev0 / -dev
+    r"|"
+    r"[A-Za-z]+\d*"                # no-separator PEP 440: a1 / rc1
+    r")?"
+)
 
 
 @dataclass
@@ -208,60 +228,6 @@ def check_tier_2_changelog_completeness(repo_root: Path) -> list[Finding]:
 
 
 # ---------------------------------------------------------------------
-# Tool-count drift (Tier 6 analog, codemem-specific)
-# ---------------------------------------------------------------------
-
-def check_tool_count_drift(repo_root: Path) -> list[Finding]:
-    try:
-        # Make sure the src tree is on sys.path for the import.
-        pkg_src = repo_root / "packages" / "codemem-mcp" / "src"
-        if str(pkg_src) not in sys.path:
-            sys.path.insert(0, str(pkg_src))
-        from codemem.mcp.server import list_registered_tool_names  # type: ignore[import-not-found]
-        from codemem.mcp.server import build_server  # type: ignore[import-not-found]
-    except Exception:
-        return []
-
-    # Trigger registration (decorators fire in build_server()).
-    try:
-        build_server(
-            db_path_factory=lambda: Path("/dev/null"),
-            repo_root_factory=lambda: repo_root,
-        )
-    except Exception:
-        return []
-
-    canonical = len(list_registered_tool_names())
-    if canonical == 0:
-        return []
-
-    findings: list[Finding] = []
-    for doc in _iter_codemem_docs(repo_root):
-        for lineno, line in enumerate(doc.read_text().splitlines(), start=1):
-            for m in TOOL_COUNT_RE.finditer(line):
-                n = int(m.group(1))
-                # Skip small coincidental numbers (e.g. "3 tools" in a snippet).
-                if n < 5 or n > 100:
-                    continue
-                if n == canonical:
-                    continue
-                # Accept '12 canonical + 2 alias = 14' style explanations.
-                around = line[max(0, m.start() - 60):m.end() + 60]
-                if "+" in around or "alias" in around.lower():
-                    continue
-                findings.append(Finding(
-                    tier="Tool-count Drift",
-                    severity="WARNING",
-                    file=str(doc.relative_to(repo_root)),
-                    line=lineno,
-                    message=(
-                        f"prose says '{n} tools' but server registers {canonical}"
-                    ),
-                ))
-    return findings
-
-
-# ---------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------
 
@@ -269,7 +235,6 @@ def run_checks(repo_root: Path) -> list[Finding]:
     return (
         check_tier_1_version_strings(repo_root)
         + check_tier_2_changelog_completeness(repo_root)
-        + check_tool_count_drift(repo_root)
     )
 
 

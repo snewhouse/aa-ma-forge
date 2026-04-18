@@ -232,6 +232,16 @@ All 12 tools registered in `claude-code/codemem/mcp/server.py::build_server()` a
 
 **Defect being addressed by `refresh-commits` (L-254 candidate):** the M2-placeholder `refresh` is wired into the post-commit hook and into the README's auto-refresh narrative, but it does NOT call `GitMiner.refresh_commits_cache`. Result: `co_changes`, `hot_spots`, and the cached portions of `owners`/`symbol_history` return empty until `refresh-commits` runs at least once. Test gate: `tests/codemem/test_install_and_cli.py::TestCLI::test_refresh_commits_populates_git_mining_cache`. Post-M4 follow-up: lazy-bootstrap from inside the MCP tools themselves so the first git-mining query auto-populates (analogous to how M3.5 Task 3.5.3 added auto-build-on-first-query).
 
+## Documentation Drift Hook (M4 Task 4.6)
+
+`scripts/check_codemem_doc_drift.py` — codemem-scoped Tier 1 + Tier 2 + tool-count drift checker. Invocation: `uv run python scripts/check_codemem_doc_drift.py [--json]`. Exit 0 clean / 1 findings / 2 malformed input.
+
+- **Tier 1 canonical version source:** `packages/codemem-mcp/pyproject.toml` `[project].version` (the workspace member, not root). Scans `claude-code/codemem/README.md`, `docs/codemem/*.md`, `docs/demo/codemem-*.md` for PEP-440-shaped version strings that don't match and appear near "codemem"/"version".
+- **Tier 2 codemem commit scope:** prefixes `packages/codemem-mcp/`, `claude-code/codemem/`, `docs/codemem/`, `docs/demo/codemem-`, `tests/codemem/`. Flags when `(feat|fix)(...)?:`/`BREAKING CHANGE` commits since `git describe --tags --abbrev=0` touch these prefixes but CHANGELOG.md has no `Unreleased`/`Upcoming` section.
+- **Tool-count drift:** imports `codemem.mcp.server.list_registered_tool_names` + calls `build_server()` to fire decorators; greps prose references to `N tools` that mismatch `len(registered)`.
+- **Frozen-doc exclusion:** `CODEMEM_DOC_EXCLUDE = ("docs/codemem/design-scratchpad.md",)`. Explicit, not glob-heuristic.
+- **CI gate:** `tests/codemem/test_doc_drift.py::TestLiveRepoSmoke::test_live_repo_is_clean` fails in CI if the live repo carries any finding — this is the "hooked" part of the AC.
+
 ---
 
 ## Performance SLO Targets

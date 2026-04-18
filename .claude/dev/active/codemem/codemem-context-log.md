@@ -640,3 +640,32 @@ User selected **Option B**. The full lazy-bootstrap is filed as an explicit post
 
 - Task 4.2 resumption — no scheduled date.
 - Post-M4 follow-up: lazy-bootstrap of git-mining cache inside `mcp_tools.co_changes` / `mcp_tools.hot_spots` (analogous to M3.5 Task 3.5.3's auto-build-on-first-query). Filed in reference.md §CLI Surface.
+
+---
+
+## 2026-04-18 — Task 4.6 complete: codemem doc-drift hook + test gate
+
+**What.** Shipped `scripts/check_codemem_doc_drift.py` (263 lines) — a codemem-scoped Tier 1 + Tier 2 + tool-count-drift checker — plus `tests/codemem/test_doc_drift.py` (228 lines, 9 test methods across 4 classes) proving the checks fire on synthetic drift and stay silent on clean state.
+
+**Interpretation call.** The AC says "Skill(doc-drift-detection) hooked so ... codemem ... stay in sync." The user-level skill at `~/.claude/skills/doc-drift-detection/SKILL.md` is NOT version-controlled in this repo and already globs all markdown — so codemem docs flow through `/commit-and-push`/`/pre-commit-full` integrations transparently. What was missing: (a) a codemem-scoped standalone invocation that users can run without the whole-project pass, (b) a programmatic test gate. Both shipped. The "hook" in the AC's sense is the script + the TestLiveRepoSmoke test — the latter is the CI gate that catches codemem-specific drift before it lands.
+
+**Scoping design decisions:**
+- **Tier 1 canonical source.** Reads from `packages/codemem-mcp/pyproject.toml` (the workspace member's own `[project].version`), not the root `pyproject.toml`. The two versions are deliberately decoupled per the uv-workspace layout chosen in Task 1.0 — codemem-mcp iterates independently from the aa-ma meta-package.
+- **Tier 2 scope.** Commit must touch a codemem path prefix (`packages/codemem-mcp/`, `claude-code/codemem/`, `docs/codemem/`, `docs/demo/codemem-`, `tests/codemem/`) AND use a conventional-commit type (`feat|fix|BREAKING CHANGE`). A feat commit that only touches `src/aa_ma/` won't trip the codemem-scoped Tier 2 (proven in `test_feat_commit_NOT_touching_codemem_does_not_fire_tier_2`).
+- **Frozen-doc exclusion.** Single-item allow-list at script scope: `docs/codemem/design-scratchpad.md` — retroactive drift updates would violate CLAUDE.md's "historical docs are frozen" rule. Explicit, not glob-heuristic, so every addition is a deliberate decision. The first script run against the live repo caught real drift in this exact file (`0.1.0-dev` vs canonical `0.1.0.dev0`), which both proves the detection works and justifies the explicit exclusion.
+
+**Regex regression pinned.** Initial Tier 1 regex `\b\d+\.\d+\.\d+(?:\.[A-Za-z0-9]+)?\b` allowed `0.1.0` to match as a prefix of `0.1.0-dev`. Tightened to `\b\d+\.\d+\.\d+(?:[.\-][A-Za-z0-9]+)*` so dashed and dotted PEP-440-suffix forms are parsed as whole-version tokens. Regression pinned in `test_pep440_normalised_vs_dashed_fires`.
+
+**Tool-count drift (Tier 6 analog).** Not in the AC's explicit enumeration but cheap to add once the harness exists. Script imports `codemem.mcp.server.list_registered_tool_names`, calls `build_server()` to trigger decorator registration, greps codemem docs for prose references to `N tools` or `N codemem MCP tools` where `N != len(registered)`. Ignores numbers <5 or >100 (coincidental) and "+"/`alias` contexts ("12 canonical + 2 alias = 14"). Currently silent on the live repo.
+
+**Verification.** Full codemem suite `uv run pytest tests/codemem/ -q` → **356 passed, 1 skipped, 1 deselected** (+10 tests added in M4 between Tasks 4.8 and 4.6, zero regressions). Ruff clean. Import-linter 2/2 kept. Script smoke against live repo: "no findings."
+
+**Net diff:** NEW `scripts/check_codemem_doc_drift.py` 263 lines; NEW `tests/codemem/test_doc_drift.py` 228 lines. No production codemem source touched. No existing tests touched.
+
+**M4 progress after 4.6:** **9/10 COMPLETE + 1 DEFERRED** → milestone ready for finalization per aa-ma-execution §VI (Integrity Check / Documentation Auto-Update / User Authorization / Status Change).
+
+### Unresolved
+
+- Task 4.2 resumption — no scheduled date.
+- Post-M4 follow-up: lazy-bootstrap of git-mining cache inside `mcp_tools.co_changes` / `mcp_tools.hot_spots` (analogous to M3.5 Task 3.5.3's auto-build-on-first-query). Filed in reference.md §CLI Surface.
+- Post-M4 follow-up: when the user-level `~/.claude/skills/doc-drift-detection/SKILL.md` is extended next, consider surfacing `scripts/check_codemem_doc_drift.py` as a project-local override pattern other sub-packages can mirror.

@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-04-18 13:10 -->
+<!-- Plan: codemem - COMPLETE -->
+<!-- Total Milestones: 5 (M1, M2, M3, M3.5, M4) | Duration: 2026-04-13 to 2026-04-18 -->
+
 # codemem — Tasks (HTP Execution Roadmap)
 
 _Hierarchical Task Planning roadmap with dependencies and state tracking. 40 tasks across 4 milestones. See `codemem-plan.md` §4 for full rationale and acceptance narrative._

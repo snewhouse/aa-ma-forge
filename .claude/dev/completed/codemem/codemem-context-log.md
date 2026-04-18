@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-04-18 13:10 -->
+<!-- Plan: codemem - COMPLETE -->
+<!-- Total Milestones: 5 (M1, M2, M3, M3.5, M4) | Duration: 2026-04-13 to 2026-04-18 -->
+
 # codemem — Context Log
 
 _Decision history, trade-offs, gate approvals, and compaction summaries. This file is loaded when making decisions — do not use as primary memory (use `codemem-reference.md` for that)._

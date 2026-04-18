@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-04-18 13:10 -->
+<!-- Plan: codemem - COMPLETE -->
+<!-- Total Milestones: 5 (M1, M2, M3, M3.5, M4) | Duration: 2026-04-13 to 2026-04-18 -->
+
 # codemem — Reference (Immutable Facts)
 
 _This file is the highest-priority AA-MA memory artifact. Load FIRST when resuming this task. Facts below are extracted from `codemem-plan.md` v3 and are non-negotiable unless the plan itself is revised._

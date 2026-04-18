@@ -185,6 +185,12 @@ codemem replay --from-wal       # rebuild DB from the JSONL WAL
 
 `codemem --help` enumerates the full surface. The CLI and the MCP server share the same underlying `codemem.mcp_tools.*` functions — no behaviour divergence.
 
+## What could make us abandon this
+
+Five measurable signals would cause us to kill or pivot codemem. Thresholds, rationale, and current status are in [`docs/codemem/kill-criteria.md`](../../docs/codemem/kill-criteria.md). As of April 2026, none have fired — the M1 speed gate cleared at 0.73× `/index` on the small reference repo, the M2 crash-recovery tests are deterministic on CI, and no competing tool has shipped comparable git-mining coverage. The one to watch is the moat-evaporated signal (GitNexus or Axon shipping three or more of our git-mining tools with comparable UX).
+
+We'd rather tell you up front what would make us walk away than have you find out from a stale repo.
+
 ## Fair warning
 
 This is a one-person project built around my own workflows. It's provided as-is. Take what's useful, fork it, adapt it, make it your own. Maintenance and improvements will be sporadic. If I've gone quiet, I'm either deep in client work, arguing with an API, or the MS is having a louder day than usual. Pull requests welcome, but don't hold your breath on response times. You've been warned.

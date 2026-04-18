@@ -578,3 +578,27 @@ Root cause (confirmed by reading DB + code): `.codemem/index.db` at `user_versio
 ### Unresolved
 
 - Task 4.2 resumption — no scheduled date.
+
+---
+
+## 2026-04-18 — Task 4.10 HITL approval: kill-criteria doc
+
+**Decision.** Task 4.10 (Kill criteria public doc) wording approved as-drafted. Plan §12's 5 signals transcribed verbatim into `docs/codemem/kill-criteria.md`; 5 `Status (2026-04-17)` annotations added per signal, each grounded in empirical artefacts (no fabrication). README `## What could make us abandon this` section inserted between `## CLI` and `## Fair warning` (sentence-case header per existing convention).
+
+**Artefact-grounding audit (the only non-transcription content):**
+- **Signal 1 (30-day signal):** Re-baselining note tied to AD-Q15 (M3.5 Task 3.5.4) — wheel channel removed, so "external installs of codemem-mcp" no longer maps cleanly onto a metric.
+- **Signal 2 (M1 architectural):** `0.73×` ratio from Task 4.1 Result Log; pointer to `docs/benchmarks/codemem-vs-index.md`; Aider comparison flagged DEFERRED per Task 4.2 decision (above).
+- **Signal 3 (M3 headline-tool):** Honest "not formally evaluated across 3 repos yet" — refuses to claim victory on the co_changes gate before the evaluation has run. Tied to same reference-repo blocker as Task 4.1 medium/large benchmarks.
+- **Signal 4 (moat-evaporated):** GitNexus (~27k stars, no git-mining) and Axon (graph+embeddings, different axis) both from Task 4.4 competitor WebSearch research. Called out as "the one to watch most closely."
+- **Signal 5 (M2 correctness-risk):** `journal/wal.py` crash-injection gate + `test_property_roundtrip_slow` hypothesis @ 100 examples; provenance-confirmed (M2 Task 2.3 COMPLETE 2026-04-14 at 201/201, Task 2.6 at 211/211).
+
+**Voice anchor.** Direct / plainspoken / no marketing — same voice established across Tasks 4.3 (migration guide), 4.4 (README), 4.5 (SECURITY), 4.9 (ARCHITECTURE). New doc's `## What this doc is not` section explicitly disavows any roadmap/SLA/competitor-comparison reading — pointers back at README + plan artefacts.
+
+**Net diff.** `docs/codemem/kill-criteria.md` NEW 71 lines. `claude-code/codemem/README.md` +6 (202 → 208 lines). No src/ touched. No test changes. No CI workflow touched.
+
+**M4 progress after 4.10: 7/10 COMPLETE + 1 DEFERRED + 2 PENDING** (4.6 AFK, 4.8 HITL). Next action per user order: Task 4.8 (install snippet + demo transcript, with `pyproject.toml` or `README.md` substituted for the gitignored `CLAUDE.md` target per 2026-04-18 Q2 decision).
+
+### Unresolved
+
+- Task 4.2 resumption — no scheduled date.
+- Task 4.8 target-file substitution (A/B/C question resolved in favour of A: tracked file substitution).

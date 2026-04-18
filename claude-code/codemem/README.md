@@ -31,7 +31,13 @@ EOF
 
 # 3. Open a fresh Claude Code session in that repo.
 #    Approve when prompted. The first tool call triggers an auto-build.
+
+# 4. (One-off, optional but recommended) populate the git-mining cache
+#    so co_changes / hot_spots / cached owners return non-empty.
+uv --directory /path/to/aa-ma-forge run codemem refresh-commits
 ```
+
+Full step-by-step (with what gets written where, alternative installs, and edge cases): [`docs/codemem/install-zero-config.md`](../../docs/codemem/install-zero-config.md). For a real example of what the git-mining tools return on this repo, see [`docs/demo/codemem-co-changes-transcript.md`](../../docs/demo/codemem-co-changes-transcript.md).
 
 Alternative — user-scope install (no per-repo `.mcp.json`):
 
@@ -177,6 +183,7 @@ Four-layer cake: the public tool surface in `codemem.mcp_tools` talks to `codeme
 ```bash
 codemem build                   # full index
 codemem refresh                 # incremental refresh since last SHA
+codemem refresh-commits         # populate git-mining cache (commits + commit_files)
 codemem status                  # counts + DB path + user_version
 codemem query <tool> [args...]  # invoke any of the 6 M1 tools directly
 codemem intel                   # write PROJECT_INTEL.json
@@ -184,6 +191,8 @@ codemem replay --from-wal       # rebuild DB from the JSONL WAL
 ```
 
 `codemem --help` enumerates the full surface. The CLI and the MCP server share the same underlying `codemem.mcp_tools.*` functions — no behaviour divergence.
+
+`codemem refresh-commits` exists because `co_changes`, `hot_spots`, and the cached portions of `owners`/`symbol_history` read from a separate `commits` + `commit_files` cache that the M2-placeholder `codemem refresh` does not populate. Run it once after install (and after batches of commits) to keep the git-mining tools alive. See [`docs/codemem/install-zero-config.md`](../../docs/codemem/install-zero-config.md) for the full sequence.
 
 ## What could make us abandon this
 

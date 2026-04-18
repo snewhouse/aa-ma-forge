@@ -216,6 +216,24 @@ All 12 tools registered in `claude-code/codemem/mcp/server.py::build_server()` a
 
 ---
 
+## CLI Surface
+
+`packages/codemem-mcp/src/codemem/cli.py` — argparse dispatcher; one `_cmd_<name>(args) -> int` per subcommand, registered in `_CMD_DISPATCH`. Heavy imports lazy. `--db` is a global flag before the subcommand.
+
+| Subcommand | Purpose | Status |
+|---|---|---|
+| `build` | Full repo index → SQLite | M1 production |
+| `status` | Print files/symbols/edges/schema-version counts | M1 production |
+| `refresh` | Background-refresh entry point for post-commit hook | **M2 placeholder — logs only, does NOT populate git-mining cache** |
+| `refresh-commits` | Populate `commits` + `commit_files` from `git log` (caps at 500 newest by `author_time`, `--limit N` to override) | **M4 Task 4.8 / L-254 — added 2026-04-18 to wire `GitMiner.refresh_commits_cache` into a user-facing path; mirrors L-253's `db.ensure_schema` minimal-wiring pattern** |
+| `replay --from-wal` | Reconstruct DB from WAL JSONL using idempotency keys | M2 production (Task 2.4) |
+| `query <tool> [args]` | Invoke any of the 6 M1 MCP tools via stdlib JSON | M1 production |
+| `intel` | Write `PROJECT_INTEL.json` (PageRank top-K at 1024-token budget) | M1 production |
+
+**Defect being addressed by `refresh-commits` (L-254 candidate):** the M2-placeholder `refresh` is wired into the post-commit hook and into the README's auto-refresh narrative, but it does NOT call `GitMiner.refresh_commits_cache`. Result: `co_changes`, `hot_spots`, and the cached portions of `owners`/`symbol_history` return empty until `refresh-commits` runs at least once. Test gate: `tests/codemem/test_install_and_cli.py::TestCLI::test_refresh_commits_populates_git_mining_cache`. Post-M4 follow-up: lazy-bootstrap from inside the MCP tools themselves so the first git-mining query auto-populates (analogous to how M3.5 Task 3.5.3 added auto-build-on-first-query).
+
+---
+
 ## Performance SLO Targets
 
 Enforced by `tests/perf/test_budgets.py` with `pytest-benchmark`. CI fails when any budget regresses by >10%.

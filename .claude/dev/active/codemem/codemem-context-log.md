@@ -602,3 +602,41 @@ Root cause (confirmed by reading DB + code): `.codemem/index.db` at `user_versio
 
 - Task 4.2 resumption — no scheduled date.
 - Task 4.8 target-file substitution (A/B/C question resolved in favour of A: tracked file substitution).
+
+---
+
+## 2026-04-18 — L-254 discovered and fixed (minimal-wiring Option B per user)
+
+**Trigger.** Task 4.8 demanded a real `co_changes("CLAUDE.md")` transcript. CLAUDE.md is `.gitignore`d in aa-ma-forge, so user approved substituting `README.md` (Q2 decision). Empirical probe before writing the demo surfaced a deeper defect.
+
+**Finding.** `packages/codemem-mcp/src/codemem/cli.py:75-92` — the public `codemem refresh` subcommand is an M2 placeholder that writes one line to `.codemem/refresh.log` and exits 0. Grepping the whole codebase for `refresh_commits_cache` returned callers only inside tests — **zero production code paths populate `commits` + `commit_files`**. The post-commit hook invokes `codemem refresh`, which is the same no-op. The README described auto-refresh semantics that weren't actually implemented in production. Same "tests pass, production doesn't" shape as L-253.
+
+**Scope decision (HITL, user picked B).** Three options presented:
+- **A: document the limit only** — install doc says "run this Python one-liner". Ugly UX.
+- **B: add `codemem refresh-commits` CLI subcommand** — mirrors L-253 `ensure_schema` minimal-wiring pattern. 1 test + 1 CLI handler + 1 dispatch entry. Clean user-facing surface.
+- **C: full lazy-bootstrap inside MCP tools** — auto-populate on first git-mining query. Bigger scope, better UX, but rewrites production paths mid-milestone for a one-off post-install ritual.
+
+User selected **Option B**. The full lazy-bootstrap is filed as an explicit post-M4 follow-up in reference.md's new `## CLI Surface` section.
+
+**TDD execution.** RED test first — `tests/codemem/test_install_and_cli.py::TestCLI::test_refresh_commits_populates_git_mining_cache` creates a 2-commit tmp git repo, runs `codemem build`, asserts both `commits` and `commit_files` are empty (the defect), calls `codemem refresh-commits`, asserts cache populated. Initial run: argparse rejected `refresh-commits` as unknown → `returncode=2` → confirmed RED. GREEN: added `_cmd_refresh_commits` to cli.py (38 LOC including docstring), opens writable `storage.db.connect`, instantiates `GitMiner`, calls `refresh_commits_cache(conn, limit=args.limit)`, prints insertion count. Registered subparser with `--limit` (default 500, matching `GitMiner` default) and `--repo-root` (default cwd). Re-ran: 1 passed. Full codemem suite: 347 passed (+1, zero regressions). Ruff clean. Import-linter 2/2 contracts kept.
+
+**Live end-to-end verification.** Cleared local `.codemem/` cache via `DELETE FROM commits`. Ran `uv run codemem refresh-commits` → inserted 128 commits. Re-ran → inserted 0 (idempotent — the `_last_cached_sha_in_head_lineage` logic correctly identified HEAD already cached). Ran `co_changes('README.md', threshold=2, top_n=10)` via `codemem.mcp_tools.co_changes` (the same function the MCP server uses) — got 10 files with real counts. Top 3: `docs/spec/claude-code-foundations.md` (5), `SECURITY.md` (4), `docs/spec/aa-ma-quick-reference.md` (3). The output tells a clean "editorial coupling" story — all 10 files are edited alongside README.md by human discipline, not by any import edge.
+
+**HITL approval.** User re-issued the `/execute-aa-ma-milestone` directive 2026-04-18 after seeing the full draft-for-approval summary — interpreted as Proceed. Wording approved as-drafted across all 4 modified + 2 new files.
+
+**L-254 filing.** Anti-pattern pinned for future reference: "a CLI subcommand that names an operation but does not perform it." Prevention rule: any CLI handler that accepts arguments a user might reasonably expect to do work MUST either do the work or return a non-zero exit code with a descriptive "not implemented" message — logging silently and returning 0 creates the false impression of a working pipeline. The lesson is also a reminder that `grep` on production call sites is a cheap and reliable audit — two lines of shell surfaced the defect that the test suite didn't (because tests called `refresh_commits_cache` directly rather than through the CLI). Lesson file: `/home/sjnewhouse/.claude/docs/lessons.md` L-254 to be added at post-M4 wrap-up.
+
+**Net diff for Task 4.8.**
+- `docs/codemem/install-zero-config.md` NEW 80 lines.
+- `docs/demo/codemem-co-changes-transcript.md` NEW 95 lines.
+- `packages/codemem-mcp/src/codemem/cli.py` +38 lines (+docstring update).
+- `tests/codemem/test_install_and_cli.py` +73 lines (the RED→GREEN test).
+- `claude-code/codemem/README.md` +9 lines (CLI block + Quick Start step 4 + cross-refs).
+- `.claude/dev/active/codemem/codemem-reference.md` +20 lines (new `## CLI Surface` section).
+
+**M4 progress after 4.8: 8/10 COMPLETE + 1 DEFERRED + 1 PENDING** (4.6 AFK). Next action: Task 4.6 (doc-drift integration) then M4 finalization per aa-ma-execution §VI.
+
+### Unresolved
+
+- Task 4.2 resumption — no scheduled date.
+- Post-M4 follow-up: lazy-bootstrap of git-mining cache inside `mcp_tools.co_changes` / `mcp_tools.hot_spots` (analogous to M3.5 Task 3.5.3's auto-build-on-first-query). Filed in reference.md §CLI Surface.

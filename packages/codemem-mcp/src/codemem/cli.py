@@ -2,13 +2,17 @@
 
 Minimal argparse dispatcher composing the M1 modules:
 
-* ``codemem build``    — :func:`codemem.indexer.build_index`
-* ``codemem status``   — prints file/symbol/edge counts from the DB
-* ``codemem refresh``  — M2 placeholder; logs and exits 0
-* ``codemem replay``   — M2 placeholder; logs and exits 0
-* ``codemem query``    — calls one of the six MCP tools via stdlib JSON
-* ``codemem intel``    — writes PROJECT_INTEL.json via the PageRank
-                          projection
+* ``codemem build``           — :func:`codemem.indexer.build_index`
+* ``codemem status``          — prints file/symbol/edge counts from the DB
+* ``codemem refresh``         — M2 placeholder; logs and exits 0
+* ``codemem refresh-commits`` — populate git-mining cache via
+                                  :meth:`GitMiner.refresh_commits_cache`
+                                  (M4 Task 4.8 / L-254 — the production
+                                  wiring missing from M3)
+* ``codemem replay``          — M2 placeholder; logs and exits 0
+* ``codemem query``           — calls one of the six MCP tools via stdlib JSON
+* ``codemem intel``           — writes PROJECT_INTEL.json via the PageRank
+                                  projection
 
 The CLI is what the post-commit hook runs; it must stay
 side-effect-safe (no mutation without explicit subcommand), fast to
@@ -88,6 +92,42 @@ def _cmd_refresh(args: argparse.Namespace) -> int:
     print(
         "codemem refresh: M1 placeholder (real incremental refresh "
         "ships in M2)"
+    )
+    return 0
+
+
+def _cmd_refresh_commits(args: argparse.Namespace) -> int:
+    """Populate ``commits`` + ``commit_files`` cache from ``git log``.
+
+    The default ``codemem refresh`` is an M2 placeholder that does NOT
+    populate the git-mining cache, so out of the box ``co_changes`` /
+    ``hot_spots`` / cached portions of ``owners``+``symbol_history``
+    return empty until this command runs once. Same minimal-wiring
+    pattern as L-253's ``db.ensure_schema``: a single named CLI
+    choke-point users can run after install (or post-commit) to light
+    up the M3 git-mining tools.
+    """
+    from .analysis.git_mining import GitMiner
+    from .storage import db as storage_db
+
+    db_path = Path(args.db) if args.db else _default_db_path()
+    repo_root = Path(args.repo_root) if args.repo_root else Path.cwd()
+
+    if not db_path.exists():
+        print(
+            f"codemem refresh-commits: no DB at {db_path}; "
+            f"run `codemem build` first",
+            file=sys.stderr,
+        )
+        return 1
+
+    miner = GitMiner(repo_root=repo_root)
+    with storage_db.connect(db_path) as conn:
+        inserted = miner.refresh_commits_cache(conn, limit=args.limit)
+
+    print(
+        f"codemem refresh-commits: inserted {inserted} commits "
+        f"(cap={args.limit}) — {db_path}"
     )
     return 0
 
@@ -193,6 +233,16 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("status", help="Print current index summary")
     sub.add_parser("refresh", help="Incremental refresh (M2 placeholder)")
 
+    prc = sub.add_parser(
+        "refresh-commits",
+        help="Populate git-mining cache (commits + commit_files) from git log",
+    )
+    prc.add_argument(
+        "--limit", type=int, default=500,
+        help="Max commits to keep in cache (newest by author_time, default 500)",
+    )
+    prc.add_argument("--repo-root", help="Repo root (default: cwd)")
+
     pr = sub.add_parser("replay", help="Replay from WAL JSONL journal")
     pr.add_argument("--from-wal", action="store_true")
     pr.add_argument(
@@ -222,12 +272,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 _CMD_DISPATCH = {
-    "build":   _cmd_build,
-    "status":  _cmd_status,
-    "refresh": _cmd_refresh,
-    "replay":  _cmd_replay,
-    "query":   _cmd_query,
-    "intel":   _cmd_intel,
+    "build":            _cmd_build,
+    "status":           _cmd_status,
+    "refresh":          _cmd_refresh,
+    "refresh-commits":  _cmd_refresh_commits,
+    "replay":           _cmd_replay,
+    "query":            _cmd_query,
+    "intel":            _cmd_intel,
 }
 
 

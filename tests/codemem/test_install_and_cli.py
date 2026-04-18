@@ -184,6 +184,81 @@ class TestCLI:
         assert r.returncode == 0
         assert "placeholder" in r.stdout.lower() or "m2" in r.stdout.lower()
 
+    def test_refresh_commits_populates_git_mining_cache(self, tmp_path):
+        """RED → GREEN gate for L-254 fix: ``codemem refresh-commits``
+        must populate ``commits`` + ``commit_files`` from ``git log``.
+
+        The default ``codemem refresh`` is an M2 placeholder and does NOT
+        populate the git-mining cache, so out of the box ``co_changes`` /
+        ``hot_spots`` / cached portions of ``owners``+``symbol_history``
+        return empty until a production code path runs
+        ``GitMiner.refresh_commits_cache``. This test pins that path.
+        """
+        import sqlite3
+
+        # Tiny git repo with two commits → ``git log`` returns rows.
+        (tmp_path / ".gitignore").write_text(".codemem/\n")
+        (tmp_path / "a.py").write_text("def a(): return 1\n")
+        subprocess.run(["git", "init", "-q", "-b", "main", str(tmp_path)], check=True)
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "config", "user.email", "t@x"], check=True
+        )
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "config", "user.name", "T"], check=True
+        )
+        subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "commit", "-qm", "first"], check=True
+        )
+        (tmp_path / "b.py").write_text("def b(): return 2\n")
+        subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "commit", "-qm", "second"], check=True
+        )
+
+        db_path = tmp_path / ".codemem" / "index.db"
+        env = {
+            **os.environ,
+            "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src"),
+        }
+
+        # Build → DB exists at v2 but commits cache empty.
+        r = subprocess.run(
+            [sys.executable, "-m", "codemem.cli", "--db", str(db_path),
+             "build", "--repo-root", str(tmp_path), "--package", "."],
+            capture_output=True, text=True, env=env, cwd=tmp_path,
+        )
+        assert r.returncode == 0, r.stderr
+
+        conn = sqlite3.connect(db_path)
+        try:
+            assert conn.execute("SELECT COUNT(*) FROM commits").fetchone()[0] == 0
+            assert conn.execute(
+                "SELECT COUNT(*) FROM commit_files"
+            ).fetchone()[0] == 0
+        finally:
+            conn.close()
+
+        # refresh-commits → cache populated.
+        r = subprocess.run(
+            [sys.executable, "-m", "codemem.cli", "--db", str(db_path),
+             "refresh-commits", "--repo-root", str(tmp_path)],
+            capture_output=True, text=True, env=env, cwd=tmp_path,
+        )
+        assert r.returncode == 0, r.stderr
+        assert "inserted" in r.stdout.lower()
+
+        conn = sqlite3.connect(db_path)
+        try:
+            n_commits = conn.execute("SELECT COUNT(*) FROM commits").fetchone()[0]
+            n_files = conn.execute(
+                "SELECT COUNT(*) FROM commit_files"
+            ).fetchone()[0]
+        finally:
+            conn.close()
+        assert n_commits == 2, f"expected 2 commits cached, got {n_commits}"
+        assert n_files >= 2, f"expected >=2 commit_files rows, got {n_files}"
+
 
 # ---------------------------------------------------------------------
 # Plugin-surface no-bypass (grep-based — supplements import-linter

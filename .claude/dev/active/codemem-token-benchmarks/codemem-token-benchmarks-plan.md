@@ -19,7 +19,7 @@ Execute the token-budget benchmark that was DEFERRED from the archived codemem p
 
 On 2026-04-17, Task 4.2 was DEFERRED because 3 preconditions were unverified: Aider's output format, `--budget=N` support across tools, and top-symbol ranking comparability. On 2026-04-18 three parallel research agents resolved all three — findings are in reference.md §Phase-3 Research Findings. The plan can now execute cleanly with tokenizer normalization as the key added constraint.
 
-Cross-reference: the M1-exit kill signal this benchmark feeds is defined in `.claude/dev/completed/codemem/codemem-plan.md` §12 (Signal 1).
+Cross-reference: the M1-exit kill signal this benchmark feeds is defined in `.claude/dev/completed/codemem/codemem-plan.md` §12 (M1-exit bullet → Signal 2 in kill-criteria.md numbering).
 
 ---
 
@@ -57,8 +57,8 @@ Cross-reference: the M1-exit kill signal this benchmark feeds is defined in `.cl
 **Mode:** HITL, **Gate:** SOFT, **Complexity:** 40%, **Effort:** ~1 focused-dev day
 **Dependencies:** M3 complete
 
-- **Task 4.1** — Draft `docs/benchmarks/codemem-vs-aider.md`. Structure: Methodology (with tokenizer-mismatch caveats PROMINENT) → Results Tables (2 repos × 4 budgets × 3 tools) → Per-signal verdict (size, top-symbol overlap, qualitative) → Implications for kill-criteria §1. Mode: HITL — user reviews wording.
-- **Task 4.2** — Update `docs/codemem/kill-criteria.md` Signal 1 status line: replace the 2026-04-17 "DID NOT trigger ... Aider comparison DEFERRED" with actual findings. Two cases: (a) codemem ≤ 1.5× → "DID NOT trigger, confirmed"; (b) codemem > 1.5× → "FIRED — architectural kill triggered". Mode: HITL.
+- **Task 4.1** — Draft `docs/benchmarks/codemem-vs-aider.md`. Structure: Methodology (with tokenizer-mismatch caveats PROMINENT) → Results Tables (2 repos × 4 budgets × 3 tools) → Per-signal verdict (size, top-symbol overlap, qualitative) → Implications for kill-criteria Signal 2 (M1 architectural kill). Mode: HITL — user reviews wording.
+- **Task 4.2** — Update `docs/codemem/kill-criteria.md` **Signal 2** (M1 architectural kill) status line: replace the 2026-04-17 "DID NOT trigger ... Aider comparison DEFERRED post-M4 ship" with the updated status including the Aider benchmark outcome. **Key nuance — AND logic matters:** Signal 2's trigger is `codemem build > 1.5× /index wall-clock ON reference repos AND PageRank projection doesn't beat Aider`. Task 4.1 already measured the first conjunct at 0.73× (PASS — first condition cannot fire). So regardless of the Aider-comparison outcome, **Signal 2 stays DID-NOT-TRIGGER at the composite level**. The benchmark outcome feeds the Aider-comparison sub-claim but does not flip the composite kill state. Two sub-cases: (a) codemem beats Aider at equal budget — "AND composite DID-NOT-TRIGGER, both conjuncts confirmed"; (b) codemem loses to Aider at equal budget — "AND composite DID-NOT-TRIGGER via 0.73× wall-clock; Aider sub-claim fails, noted as risk-signal to monitor". Mode: HITL.
 - **Task 4.3** — Commit with `[AA-MA Plan] codemem-token-benchmarks .claude/dev/active/codemem-token-benchmarks` signature. Mode: AFK.
 
 ---
@@ -70,7 +70,7 @@ Cross-reference: the M1-exit kill signal this benchmark feeds is defined in `.cl
 | M1 | All 3 tools installed at pinned versions; each emits non-empty output at `--budget=1024` on aa-ma-forge; HITL scope decision recorded |
 | M2 | `pytest tests/codemem/test_bench_harness.py` green; harness emits valid JSON with all 3 tools; ruff clean; import-linter still 2/2 |
 | M3 | Two JSON result files (aa-ma-forge + fastapi), each with 4 budgets × 3 tools = 12 measurements |
-| M4 | `docs/benchmarks/codemem-vs-aider.md` committed; kill-criteria Signal 1 updated to reflect actual measurement; CI green |
+| M4 | `docs/benchmarks/codemem-vs-aider.md` committed; kill-criteria **Signal 2** status updated to reflect actual measurement (with explicit treatment of the AND composite logic); CI green |
 
 ---
 
@@ -94,8 +94,8 @@ Cross-reference: the M1-exit kill signal this benchmark feeds is defined in `.cl
 
 ### M4 Acceptance Criteria
 - `docs/benchmarks/codemem-vs-aider.md` committed, passes stephen-newhouse-voice (no marketing, direct, honest about limits)
-- `docs/codemem/kill-criteria.md` Signal 1 status updated to reflect actual measurement
-- If Signal 1 fires: `context-log.md` records the architectural-kill event with a linked pointer to the root cause (tokenization inefficiency / algorithm choice / etc)
+- `docs/codemem/kill-criteria.md` **Signal 2** (M1 architectural kill) status updated to reflect actual measurement (with explicit preservation of the AND-composite DID-NOT-TRIGGER verdict via Task 4.1's 0.73× wall-clock)
+- If codemem loses the Aider sub-comparison: `context-log.md` records the event as a risk-signal (not a kill — Signal 2 composite stays DID-NOT-TRIGGER per 0.73× wall-clock) with a linked pointer to the root cause (tokenizer proxy / algorithm choice / etc)
 - Commit pushed; CI green
 
 ---
@@ -183,13 +183,14 @@ Cross-reference: the M1-exit kill signal this benchmark feeds is defined in `.cl
 2. **(R2)** tiktoken encoding mismatch with Aider/jCodeMunch's internal counting → reported counts diverge. Mitigation: report BOTH raw bytes AND tiktoken-normalized counts; document the proxy for codemem's 4-chars/token.
 3. **(R3)** jCodeMunch public-repo fixture requirement blocks self-exercise. Mitigation: seed the harness with a synthetic fixture OR run jCodeMunch only on the M3 OSS-repo run.
 
-### M3 Top 3 Risks
+### M3 Top 4 Risks
 1. **(R1)** fastapi repo is too large for jCodeMunch's indexer within the time budget. Mitigation: fall back to a smaller OSS Python repo (`click` candidate); record deviation.
-2. **(R2)** Results reveal codemem is 1.5× or worse — fires §12 M1-exit kill signal. Mitigation: that IS the point of the benchmark; honest recording goes into M4 report.
+2. **(R2)** Results reveal codemem is 1.5× or worse — updates the Aider sub-claim under §12 Signal 2 but cannot fire the composite kill (Task 4.1's 0.73× wall-clock remains the composite-AND blocker). Mitigation: framing handled in M4.2 per the AND-logic note; honest recording goes into M4 report either way.
 3. **(R3)** Non-deterministic outputs across runs (e.g. PageRank tie-breaks). Mitigation: run each measurement 3× and report median, matching Task 4.1 `scripts/bench_codemem.py` pattern.
+4. **(R4)** fastapi's async-heavy code + heavy type-hint usage may bias PageRank results toward parsers that handle those shapes well (both Aider tree-sitter and codemem's Python AST do — jCodeMunch's approach is less transparent). Mitigation: also run against one async-light Python repo (e.g. `requests` as supplementary baseline) if time permits; otherwise document the bias in M4.1 methodology.
 
 ### M4 Top 3 Risks
-1. **(R1)** Findings are ambiguous (codemem wins size but loses top-symbol overlap, or vice versa). Mitigation: report both signals separately; leave Signal 1 kill state in "provisional — see benchmark §X for discussion" rather than forcing a binary.
+1. **(R1)** Findings are ambiguous (codemem wins size but loses top-symbol overlap, or vice versa). Mitigation: report both signals separately; leave the Signal 2 Aider-sub-claim in "provisional — see benchmark §X for discussion" rather than forcing a binary. Composite Signal 2 stays DID-NOT-TRIGGER regardless (Task 4.1's 0.73× pins the first conjunct).
 2. **(R2)** Stephen-newhouse-voice review fails on first draft. Mitigation: HITL review + revision cycle, matching Task 4.4 pattern from the archived plan.
 3. **(R3)** M3 data has a subtle bug that the report surfaces late. Mitigation: M4 starts with 15-min sanity pass over M3 JSON before drafting; if a bug is found, cycle back to M2/M3.
 

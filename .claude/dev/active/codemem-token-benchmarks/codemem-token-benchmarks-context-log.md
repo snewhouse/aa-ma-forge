@@ -71,11 +71,11 @@ Full findings in reference.md §Phase-3 Research Findings. Summary:
 
 - **U-001 — jcodemunch-mcp pin version:** to be chosen at M1.1 when install probes upstream release list. Deferred as HITL if install fails on non-python-dev-env.
 - **U-002 — fastapi pinned commit:** to be chosen at M3.1 (target: stable recent release).
-- **U-003 — Kill-criteria Signal 1 binary vs provisional:** Plan M4 default is to report a binary verdict; if findings are ambiguous (codemem wins size but loses top-symbol overlap), switch to "provisional — see benchmark §X for discussion". Decision deferred to M4.2 HITL review based on M3 data.
+- **U-003 — Kill-criteria Signal 2 (M1 architectural kill) narrative framing:** The composite DID-NOT-TRIGGER verdict stays pinned by Task 4.1's 0.73× wall-clock (first conjunct of the AND). This benchmark only updates the Aider sub-claim state. If findings are ambiguous (codemem wins size but loses top-symbol overlap), M4.2 defaults to a "provisional — see benchmark §X" note on the Aider sub-claim while keeping the composite verdict unchanged.
 - **U-004 — fastapi too large for jCodeMunch:** Fallback to `pallets/click`; trigger condition is M3.3 wall-clock exceeding the 30-min docs-first budget. Recorded as a risk (M3 R1).
 
 ### Remaining Questions (for HITL gates)
 
 - **M1.3 gate:** Confirm scope = size+coverage (default) OR revise to size-only / qualitative / cancel.
 - **M4.1 gate:** Stephen-newhouse-voice review of `docs/benchmarks/codemem-vs-aider.md`.
-- **M4.2 gate:** Confirmation of Signal 1 kill-criteria status change (DID NOT trigger vs FIRED vs provisional).
+- **M4.2 gate:** Confirmation of **Signal 2** (M1 architectural kill) status-line wording — composite stays DID-NOT-TRIGGER; Aider sub-claim state (confirmed / provisional / fails) per M3 findings.

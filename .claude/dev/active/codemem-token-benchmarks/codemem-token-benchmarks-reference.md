@@ -83,7 +83,7 @@ _Non-negotiable facts extracted from the plan and research._
 | Path | Change | Milestone |
 |------|--------|-----------|
 | `pyproject.toml` | Add `tiktoken` dev dep | M2.1 [valid: 2026-04-18] |
-| `docs/codemem/kill-criteria.md` | Update Signal 1 status line | M4.2 [valid: 2026-04-18] |
+| `docs/codemem/kill-criteria.md` | Update **Signal 2** (M1 architectural kill) status line — composite DID-NOT-TRIGGER stays pinned by Task 4.1's 0.73× wall-clock; Aider sub-claim status updates per M3 findings | M4.2 [valid: 2026-04-18] |
 
 #### To Reference (read-only)
 | Path | Purpose | [valid] |
@@ -131,7 +131,8 @@ uv tool install jcodemunch-mcp  # pin version at M1.1 after discovering upstream
 
 | Constant | Value | Context | [valid] |
 |----------|-------|---------|---------|
-| Kill threshold (Signal 1) | `1.5×` | If codemem > 1.5× Aider output at equal budget → architectural kill | 2026-04-18 |
+| Signal 2 M1-exit trigger | `codemem build > 1.5× /index wall-clock AND PageRank doesn't beat Aider` | **AND composite.** Task 4.1 measured 0.73× for the first conjunct → Signal 2 composite cannot fire regardless of this benchmark's Aider-sub-claim outcome | 2026-04-18 |
+| Tokenizer-bias direction | codemem disadvantaged | At `requested_budget=1024`, codemem emits ≤4096 chars via its 4-char/token proxy, while Aider/jCodeMunch emit ≤1024 tiktoken tokens (~800-1200 chars). Without external normalization, codemem systematically emits less content at "equal" budget. Report BOTH raw-requested and tiktoken-equalized measurements in M4.1. | 2026-04-18 |
 | Budget sweep | `{512, 1024, 2048, 4096}` | M3 benchmark budgets | 2026-04-18 |
 | Top-N overlap metric | Jaccard against codemem's symbols | M2.5 harness metric | 2026-04-18 |
 | Codemem char/token proxy | `4 chars/token` | Internal to codemem; source of normalization need | 2026-04-18 |

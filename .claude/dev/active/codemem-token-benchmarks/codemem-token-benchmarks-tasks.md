@@ -31,11 +31,12 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - Status: PENDING
 - Mode: AFK
 - Dependencies: Task 1.1
-- Acceptance Criteria:
-  - Aider v0.86.2 behavior matches Phase-3 research findings (format, `--map-tokens` flag, ranking ordering)
-  - jCodeMunch MCP invocation shape matches documented userguide
-  - codemem PROJECT_INTEL schema matches the contract in reference.md (`{_meta, symbols[]}`, per-entry `{scip_id, name, kind, file, line, rank}`)
-  - Any divergence from Phase-3 findings is documented in context-log.md and triggers an M1 extension
+- Acceptance Criteria (falsifiable):
+  - `aider --help 2>&1 | grep -c "map-tokens"` returns `>= 1` (flag still exists)
+  - `aider --show-repo-map --map-tokens 1024` run from aa-ma-forge root emits stdout containing both `│def ` and `│class ` markers AND at least one `⋮` elision (prose format unchanged)
+  - `jcodemunch-mcp --help 2>&1` returns exit 0 AND mentions at least one of: `token_budget`, `search_symbols`, `get_ranked_context` (docs still describe the same tool surface)
+  - `uv run codemem intel --budget=1024 --out=/tmp/bench-intel-1024.json` produces JSON with `_meta.written_symbols >= 1` AND per-entry shape `{scip_id, name, kind, file, line, rank}` (schema unchanged)
+  - Any divergence triggers a `## 2026-MM-DD — M1.2 divergence` entry in context-log.md and extends M1 to re-research
 - Result Log:
 
 ### Task 1.3: HITL decision gate — confirm scope
@@ -195,8 +196,8 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - Effort: ~1 focused-dev day
 - Acceptance Criteria:
   - `docs/benchmarks/codemem-vs-aider.md` committed, passes stephen-newhouse-voice (no marketing, direct, honest about limits)
-  - `docs/codemem/kill-criteria.md` Signal 1 status updated to reflect actual measurement
-  - If Signal 1 fires: `context-log.md` records the architectural-kill event with a linked pointer to the root cause (tokenization inefficiency / algorithm choice / etc)
+  - `docs/codemem/kill-criteria.md` **Signal 2** (M1 architectural kill) status updated — note Signal 2's composite stays DID-NOT-TRIGGER via Task 4.1's 0.73× wall-clock; the Aider-sub-claim outcome updates that sub-statement only
+  - If codemem loses the Aider sub-comparison: `context-log.md` records the event as a **risk-signal, not a kill** (Signal 2 composite stays DID-NOT-TRIGGER) with a linked pointer to the root cause (tokenizer proxy / algorithm choice / etc)
   - Commit pushed; CI green
 
 ### Task 4.1: Draft docs/benchmarks/codemem-vs-aider.md
@@ -210,17 +211,17 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Committed `docs/benchmarks/results-codemem-vs-aider-2026-04-18.json` alongside
 - Result Log:
 
-### Task 4.2: Update docs/codemem/kill-criteria.md Signal 1 status line
+### Task 4.2: Update docs/codemem/kill-criteria.md Signal 2 (M1 architectural kill) status line
 - Status: PENDING
 - Mode: HITL
 - Dependencies: Task 4.1
 - Acceptance Criteria:
-  - Signal 1 status line replaces the 2026-04-17 "DID NOT trigger ... Aider comparison DEFERRED" text
+  - Signal 2 status line replaces the 2026-04-17 "Aider token-efficiency comparison is deferred post-M4-ship" text with the benchmark findings, while preserving the "DID NOT trigger" composite verdict (Task 4.1's 0.73× wall-clock kept the AND composite from firing regardless of this benchmark)
   - Status reflects actual measurement:
     - Case (a) codemem ≤ 1.5× → "DID NOT trigger, confirmed"
     - Case (b) codemem > 1.5× → "FIRED — architectural kill triggered"
     - Case (c) ambiguous → "provisional — see benchmark §X for discussion"
-  - If Signal 1 fires: architectural-kill event recorded in context-log.md with root-cause pointer
+  - If codemem loses Aider sub-comparison: risk-signal (not kill) recorded in context-log.md with root-cause pointer — Signal 2 composite stays DID-NOT-TRIGGER
 - Result Log:
 
 ### Task 4.3: Commit with AA-MA signature

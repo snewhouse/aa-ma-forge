@@ -107,7 +107,7 @@ _Non-negotiable facts extracted from the plan and research._
 |---------|---------|-------|---------|
 | `aider-chat` | `==0.86.2` (pinned) | dev-tool (uv tool install) | 2026-04-18 |
 | `jcodemunch-mcp` | `==1.59.1` (pinned, recorded at M1.1 install) | dev-tool (uv tool install) | 2026-04-19 |
-| `tiktoken` | latest from PyPI | dev-only (pyproject.toml) | 2026-04-18 |
+| `tiktoken` | `>=0.7` in pyproject.toml; resolved to `0.12.0` at install | dev-only (pyproject.toml) | 2026-04-19 |
 
 ### Install Commands (canonical)
 

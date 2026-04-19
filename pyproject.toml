@@ -28,6 +28,7 @@ dev-dependencies = [
     "import-linter>=2.0",      # M1 layer-boundary enforcement (Step 1.11)
     "python-semantic-release>=9.0",
     "ruff>=0.4",
+    "tiktoken>=0.7",           # codemem-token-benchmarks M2: external tokenizer for cross-tool normalization
 ]
 
 [tool.uv.workspace]

@@ -116,7 +116,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Import-linter still 2/2 (no changes to package boundaries)
 
 ### Task 2.1: Add `tiktoken` as dev dep in root pyproject.toml
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Milestone 1
 - Acceptance Criteria:
@@ -124,6 +124,19 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - `uv sync` succeeds
   - `uv run python -c "import tiktoken; print(tiktoken.encoding_for_model('gpt-4'))"` succeeds
 - Result Log:
+  ✅ COMPLETE 2026-04-19 — all 3 AC empirically satisfied.
+
+  **Empirical verification (2026-04-19):**
+  - **AC#1** — `pyproject.toml:31` now contains `"tiktoken>=0.7",  # codemem-token-benchmarks M2: external tokenizer for cross-tool normalization` in `[tool.uv] dev-dependencies`. Confirmed via file diff. ✅
+  - **AC#2** — `uv sync` completed successfully; tiktoken installed to project `.venv`. Resolved version: `0.12.0`. ✅
+  - **AC#3** — `uv run python -c "import tiktoken; print(tiktoken.encoding_for_model('gpt-4'))"` outputs `<Encoding 'cl100k_base'>`. ✅
+
+  **Cross-validation insight:** `gpt-4` → `cl100k_base` — which matches jCodeMunch's tokenizer per reference.md §jCodeMunch ("Unit: tiktoken cl100k_base"). This confirms the harness tokenizer is aligned with jCodeMunch's internal unit. Aider uses tiktoken-against-configured-model (may vary by OpenAI vs Anthropic config). Codemem uses a 4-char/token proxy. All three outputs will be re-tokenized at harness time via `cl100k_base` for apples-to-apples comparison (per plan's tokenizer-mismatch invariant).
+
+  **Reference.md updates (this commit):**
+  - Dependencies table: tiktoken `latest from PyPI` → `>=0.7 in pyproject.toml; resolved to 0.12.0 at install` + valid-date 2026-04-19
+
+  **Decisions:** None new. Used AD-001 (external tiktoken normalization).
 
 ### Task 2.2: TDD — write parser unit tests with golden Aider fixture
 - Status: PENDING

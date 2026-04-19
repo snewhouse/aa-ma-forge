@@ -40,7 +40,7 @@ _Three parallel research agents resolved all preconditions cited in the 2026-04-
 | **Ranking** | PageRank on import graph (per `get_symbol_importance`). Direct PageRank parity with codemem. [valid: 2026-04-18] |
 | **95% benchmark methodology** | Measured on `search_symbols(top 5) + get_symbol_source × 3` workflow, NOT semantic retrieval. Semantic search is opt-in (`semantic=true`). [valid: 2026-04-18] |
 | **Public-repo fixture requirement** | `index_repo` rejects local paths — requires GitHub `owner/repo` format. fastapi satisfies this. [valid: 2026-04-18] |
-| **Install command** | `uv tool install jcodemunch-mcp` (version pinning TBD at M1.1) [valid: 2026-04-18] |
+| **Install command** | `uv tool install jcodemunch-mcp==1.59.1` (pinned 2026-04-19; binaries installed: `gcm`, `jcodemunch-mcp`, `munch-bench`) [valid: 2026-04-19] |
 | **Userguide cache** | `/tmp/jcm_userguide.md` (Phase-3 research artifact) [valid: 2026-04-18] |
 
 ### codemem PROJECT_INTEL.json (empirical ground truth)
@@ -106,14 +106,14 @@ _Non-negotiable facts extracted from the plan and research._
 | Package | Version | Class | [valid] |
 |---------|---------|-------|---------|
 | `aider-chat` | `==0.86.2` (pinned) | dev-tool (uv tool install) | 2026-04-18 |
-| `jcodemunch-mcp` | TBD at M1.1 (pin on install) | dev-tool (uv tool install) | 2026-04-18 |
+| `jcodemunch-mcp` | `==1.59.1` (pinned, recorded at M1.1 install) | dev-tool (uv tool install) | 2026-04-19 |
 | `tiktoken` | latest from PyPI | dev-only (pyproject.toml) | 2026-04-18 |
 
 ### Install Commands (canonical)
 
 ```bash
 uv tool install aider-chat==0.86.2
-uv tool install jcodemunch-mcp  # pin version at M1.1 after discovering upstream releases
+uv tool install jcodemunch-mcp==1.59.1  # pinned at M1.1 (installed 2026-04-19, binaries: gcm, jcodemunch-mcp, munch-bench)
 ```
 
 ### Configuration
@@ -193,4 +193,4 @@ Required top-level keys in harness output:
 
 ---
 
-_Last Updated: 2026-04-18 12:00_
+_Last Updated: 2026-04-19_

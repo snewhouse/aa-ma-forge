@@ -17,7 +17,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - HITL decision recorded in context-log.md under heading `## 2026-MM-DD — M1.3 scope decision`
 
 ### Task 1.1: Install Aider + jCodeMunch in throwaway uv tool env (pinned versions)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: None
 - Acceptance Criteria:
@@ -26,6 +26,24 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - `aider --version` returns `0.86.2`
   - `jcodemunch-mcp --version` (or equivalent) returns pinned value recorded in reference.md
 - Result Log:
+  ✅ COMPLETE 2026-04-19 — all 4 acceptance criteria empirically satisfied.
+
+  **Empirical state at execution (2026-04-19):**
+  - `uv --version` → `uv 0.7.19`
+  - `uv tool list` shows `aider-chat v0.86.2` (binary: `aider`) — AC#1 satisfied
+  - `uv tool list` shows `jcodemunch-mcp v1.59.1` (binaries: `gcm`, `jcodemunch-mcp`, `munch-bench`) — AC#2 satisfied
+  - `aider --version` → `aider 0.86.2` — AC#3 satisfied
+  - `jcodemunch-mcp --version` → `jcodemunch-mcp 1.59.1` — AC#4 satisfied
+
+  **Divergence from plan:** Installs pre-existed from the Phase-3 research session (2026-04-18) where agents verified tool behavior to resolve the three original DEFERRED preconditions. The formal Task 1.1 closure was never written at that time — a sub-step drift (L-080) that surfaced when this execution cycle performed the empirical pre-flight check (`uv tool list`). Applied KISS: no reinstall (would add risk for zero signal since versions are exact match to plan's pin targets). Recorded findings into reference.md instead.
+
+  **Reference.md updates (this commit):**
+  - Dependencies table: `jcodemunch-mcp` version `TBD at M1.1 (pin on install)` → `==1.59.1 (pinned, recorded at M1.1 install)`
+  - Install commands block: added `==1.59.1` pin + binaries note
+  - jCodeMunch Phase-3 table row: install command updated with binaries + 2026-04-19 valid-date
+  - Last Updated: `2026-04-18 12:00` → `2026-04-19`
+
+  **Decisions/assumptions:** None new. Used pre-existing AD-003 (pin Aider at 0.86.2; pin jCodeMunch at M1.1 install time) — both satisfied.
 
 ### Task 1.2: Re-run each tool's smoke test; confirm Phase-3 findings still hold
 - Status: PENDING

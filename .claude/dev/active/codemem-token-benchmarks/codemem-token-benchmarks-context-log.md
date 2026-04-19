@@ -78,4 +78,4 @@ Full findings in reference.md §Phase-3 Research Findings. Summary:
 
 - **M1.3 gate:** Confirm scope = size+coverage (default) OR revise to size-only / qualitative / cancel.
 - **M4.1 gate:** Stephen-newhouse-voice review of `docs/benchmarks/codemem-vs-aider.md`.
-- **M4.2 gate:** Confirmation of **Signal 2** (M1 architectural kill) status-line wording — composite stays DID-NOT-TRIGGER; Aider sub-claim state (confirmed / provisional / fails) per M3 findings.
+- **M4.2 gate:** Confirmation of **Signal 2** (M1 architectural kill) status-line wording — composite remains PROVISIONAL DID-NOT-TRIGGER (condition (a) cleared on small repo only; medium+large wall-clock measurements are still pending per existing kill-criteria.md status); Aider sub-claim state (confirmed / provisional / fails) per M3 findings.

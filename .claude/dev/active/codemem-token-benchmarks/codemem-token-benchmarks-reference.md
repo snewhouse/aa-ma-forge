@@ -131,13 +131,14 @@ uv tool install jcodemunch-mcp  # pin version at M1.1 after discovering upstream
 
 | Constant | Value | Context | [valid] |
 |----------|-------|---------|---------|
-| Signal 2 M1-exit trigger | `codemem build > 1.5× /index wall-clock AND PageRank doesn't beat Aider` | **AND composite.** Task 4.1 measured 0.73× for the first conjunct → Signal 2 composite cannot fire regardless of this benchmark's Aider-sub-claim outcome | 2026-04-18 |
+| Signal 2 M1-exit trigger | `codemem build > 1.5× /index wall-clock ON reference repos AND PageRank doesn't beat Aider` | **AND composite.** Task 4.1 measured 0.73× for the first conjunct **on the small reference repo only** (medium-repo and 50k-LOC measurements still pending per the archived kill-criteria.md status). Composite therefore remains **PROVISIONAL DID-NOT-TRIGGER** — this benchmark updates the Aider sub-claim only; the composite verdict cannot be flipped to a pinned state until the pending wall-clock measurements land. | 2026-04-18 |
 | Tokenizer-bias direction | codemem disadvantaged | At `requested_budget=1024`, codemem emits ≤4096 chars via its 4-char/token proxy, while Aider/jCodeMunch emit ≤1024 tiktoken tokens (~800-1200 chars). Without external normalization, codemem systematically emits less content at "equal" budget. Report BOTH raw-requested and tiktoken-equalized measurements in M4.1. | 2026-04-18 |
 | Budget sweep | `{512, 1024, 2048, 4096}` | M3 benchmark budgets | 2026-04-18 |
 | Top-N overlap metric | Jaccard against codemem's symbols | M2.5 harness metric | 2026-04-18 |
 | Codemem char/token proxy | `4 chars/token` | Internal to codemem; source of normalization need | 2026-04-18 |
 | Parser LOC threshold | `100` LOC | If Aider parser > 100 LOC → split to `scripts/bench_aider_parser.py`; else inline | 2026-04-18 |
 | Run repetition | `3×` per measurement, report median | Matches Task 4.1 `bench_codemem.py` pattern | 2026-04-18 |
+| codemem CLI availability | `uv sync` required once in the aa-ma-forge project env | `codemem` is a workspace-member console script; every M1+ task that does `uv run codemem ...` assumes project deps are installed. Not a task step — implicit prerequisite. | 2026-04-18 |
 
 ### API / CLI Endpoints
 

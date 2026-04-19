@@ -196,8 +196,8 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - Effort: ~1 focused-dev day
 - Acceptance Criteria:
   - `docs/benchmarks/codemem-vs-aider.md` committed, passes stephen-newhouse-voice (no marketing, direct, honest about limits)
-  - `docs/codemem/kill-criteria.md` **Signal 2** (M1 architectural kill) status updated — note Signal 2's composite stays DID-NOT-TRIGGER via Task 4.1's 0.73× wall-clock; the Aider-sub-claim outcome updates that sub-statement only
-  - If codemem loses the Aider sub-comparison: `context-log.md` records the event as a **risk-signal, not a kill** (Signal 2 composite stays DID-NOT-TRIGGER) with a linked pointer to the root cause (tokenizer proxy / algorithm choice / etc)
+  - `docs/codemem/kill-criteria.md` **Signal 2** (M1 architectural kill) status updated — Signal 2's composite remains PROVISIONAL DID-NOT-TRIGGER (Task 4.1's 0.73× cleared condition (a) only on the small repo; medium+large pending); this benchmark updates the Aider sub-claim only
+  - If codemem loses the Aider sub-comparison: `context-log.md` records the event as a **risk-signal, not a kill** (Signal 2 composite remains PROVISIONAL) with a linked pointer to the root cause (tokenizer proxy / algorithm choice / etc)
   - Commit pushed; CI green
 
 ### Task 4.1: Draft docs/benchmarks/codemem-vs-aider.md
@@ -221,7 +221,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
     - Case (a) codemem ≤ 1.5× → "DID NOT trigger, confirmed"
     - Case (b) codemem > 1.5× → "FIRED — architectural kill triggered"
     - Case (c) ambiguous → "provisional — see benchmark §X for discussion"
-  - If codemem loses Aider sub-comparison: risk-signal (not kill) recorded in context-log.md with root-cause pointer — Signal 2 composite stays DID-NOT-TRIGGER
+  - If codemem loses Aider sub-comparison: risk-signal (not kill) recorded in context-log.md with root-cause pointer — Signal 2 composite remains PROVISIONAL DID-NOT-TRIGGER (small repo only; medium+large still pending per kill-criteria.md status)
 - Result Log:
 
 ### Task 4.3: Commit with AA-MA signature

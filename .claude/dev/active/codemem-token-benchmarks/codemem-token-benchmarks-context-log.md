@@ -102,3 +102,39 @@ Full findings in reference.md §Phase-3 Research Findings. Summary:
 - **Rationale:** Phase-3 findings on jCodeMunch functionality are intact; the plan's "extends M1 to re-research" rule was intended for functional regressions, not AC-wording bugs.
 - **Alternatives considered:** (a) full MCP-protocol empirical probe (start serve + send `tools/list` JSON-RPC) — higher complexity, introduces subprocess management; (b) skip AC#3 — loses the CLI sanity signal entirely; (c) halt & re-research — slows progress with no new signal.
 - **Trade-offs:** This decision trades AC-adherence-by-letter for AC-adherence-by-spirit. The reframed AC preserves the intent ("tool is installed and functional at CLI level") while aligning with CLI reality.
+
+---
+
+## 2026-04-19 — M1.3 scope decision
+
+**Decision AD-008:** Benchmark scope = **size + coverage** (AD-002 default, Phase-3 research-validated).
+
+- **Scope confirmed (HITL):** User selected `size+coverage` at the M1.3 HITL gate 2026-04-19. AD-002 moves from provisional to pinned.
+- **What this means operationally:**
+  - M2 harness (Task 2.5) MUST emit per-measurement `{raw_bytes, tiktoken_tokens, symbol_count}` (size axis) AND `overlap: {codemem_vs_aider, codemem_vs_jcodemunch, aider_vs_jcodemunch}` (coverage axis via top-N Jaccard)
+  - M3 execution sweeps both axes at budgets `{512, 1024, 2048, 4096}`
+  - M4 report presents a 2-axis comparison table, not 1-axis
+- **Alternatives considered and rejected at this gate:**
+  - `size-only`: would miss the "wins size, loses coverage" failure mode; rejected as weaker.
+  - `qualitative`: non-reproducible; rejected — cannot feed kill-criteria Signal 2 with hand-grades.
+  - `cancel`: rejected — benchmark still worth running given Phase-3 research investment.
+- **Rationale for recommended path:** Research-supported default; the slightly higher M2 harness complexity (Jaccard logic) is worth the stronger downstream conclusions. M2 AC already assumes this path (test matrix structured around `overlap` key).
+- **Downstream impact:** No changes to M2/M3/M4 task structure — they were authored against the default scope. Unblocks M2 start.
+- **Kill-criteria Signal 2 effect:** Continues to be updated by **Aider sub-claim only** per M4.2. Composite verdict remains PROVISIONAL DID-NOT-TRIGGER (condition (a) via Task 4.1 0.73× holds on small repo only; medium+large still pending per kill-criteria.md).
+
+---
+
+## 2026-04-19 Milestone Completion: M1 Environment Setup + Precondition Re-Verification
+
+- **Status:** COMPLETE (HITL-approved via AskUserQuestion 2026-04-19)
+- **Acceptance criteria:** 4/4 empirically verified
+  - ✅ `aider --version` returns `0.86.2` (pinned per AD-003)
+  - ✅ `jcodemunch-mcp --version` returns `1.59.1` (pinned this session per AD-003 + AD-006)
+  - ✅ `uv run codemem intel --budget=1024 --out=/tmp/bench-intel-1024.json` produces JSON with `_meta.written_symbols = 17` + PageRank-ranked `symbols[]` (per-entry schema exact match to plan)
+  - ✅ HITL decision AD-008 recorded under `## 2026-04-19 — M1.3 scope decision`
+- **Key outcome:** Pinned tool surface confirmed; codemem intel JSON schema stable; scope decision AD-008 = size+coverage pins AD-002.
+- **Artifacts:** 3 tasks closed with full Result Logs; 2 new decisions (AD-007 AC-reframe, AD-008 scope-pin); reference.md jcodemunch-mcp pin TBD → ==1.59.1 (+binary list).
+- **Tests:** N/A for M1 (setup milestone, no pytest; all AC were empirical shell verifications).
+- **Commits:** `767acb0` (T1.1), `deee7c5` (T1.1 provenance), `e334e42` (T1.2 + divergence), `e174635` (T1.2 provenance), [this commit] (T1.3 + M1 finalization).
+- **Divergences handled:** 1 (AC#3 CLI-vs-MCP-runtime category error → AC reframe, not research re-extension).
+- **Next Milestone:** M2 Harness + Parser (TDD) — AFK, SOFT gate, ~1.5-2 days, complexity 55%. Task 2.1: Add `tiktoken` as dev dep in root pyproject.toml.

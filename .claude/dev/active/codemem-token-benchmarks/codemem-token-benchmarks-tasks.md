@@ -5,7 +5,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 ---
 
 ## Milestone 1: Environment Setup + Precondition Re-Verification
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Gate: SOFT
 - Dependencies: None
@@ -72,7 +72,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   **Decisions this task:** AC#3 reframe approved via HITL gate (user chose "Reframe AC#3 & proceed" option 2026-04-19).
 
 ### Task 1.3: HITL decision gate — confirm scope
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Task 1.2
 - Acceptance Criteria:
@@ -80,6 +80,25 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Decision recorded in context-log.md under heading `## 2026-MM-DD — M1.3 scope decision`
   - Proceeding to M2 is blocked until this gate is recorded
 - Result Log:
+  ✅ COMPLETE 2026-04-19 — HITL scope decision recorded. All 3 AC satisfied.
+
+  **Empirical gate resolution:**
+  - User selected **`size+coverage` (AD-002 default)** at HITL gate via AskUserQuestion 2026-04-19.
+  - Decision recorded in context-log.md under `## 2026-04-19 — M1.3 scope decision` as **AD-008**. ✅
+  - M2 is now unblocked — M2 task structure already assumes size+coverage scope, no AC revisions needed. ✅
+
+  **Scope confirmed:**
+  - Size axis: raw bytes + tiktoken tokens + symbol count per tool per measurement
+  - Coverage axis: top-N Jaccard overlap on symbol sets across tool pairs
+  - Budget sweep: `{512, 1024, 2048, 4096}` (from reference.md Constants)
+  - Repos: aa-ma-forge + tiangolo/fastapi (fallback pallets/click per M3 R1)
+
+  **Alternatives presented at the gate (all rejected with rationale in AD-008):**
+  - size-only, qualitative, cancel
+
+  **Decisions:** AD-008 pins AD-002 (provisional → confirmed).
+
+  **Next:** M1 milestone finalization → M2 start (Task 2.1: Add tiktoken dev dep).
 
 ---
 

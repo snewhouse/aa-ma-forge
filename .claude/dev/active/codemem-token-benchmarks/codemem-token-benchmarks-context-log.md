@@ -4,6 +4,47 @@ _This log captures architectural decisions, trade-offs, and unresolved issues._
 
 ---
 
+## 2026-04-20 Milestone Completion: M3 Execute
+
+- **Status:** COMPLETE (SOFT gate)
+- **Acceptance criteria:** 3/3 empirically verified
+  - ✅ Two JSON result files on disk — `/tmp/bench-aa-ma-forge.json` and `/tmp/bench-fastapi.json`, each with 4 budget × 3 tools = 12 measurements
+  - ✅ No tool-invocation failures — Task 3.4 sanity verified 24/24 cells (16 status=ok, 8 status=skipped per AD-012 jCodeMunch stub)
+  - ✅ Quotable data points — budget=4096 aa-ma-forge cell is the headline signal for M4.1 (codemem 72 sym/5168 tok; aider 268 sym/8408 tok; aider is 2.3× more token-efficient per symbol; Jaccard=0.253)
+
+**Key empirical findings (consolidated across both repos):**
+
+| | aa-ma-forge (own repo) | fastapi 0.136.0 |
+|---|---|---|
+| Codemem token overshoot | +15% → +26% | +6% → +18% |
+| Aider token overshoot | +93% → +114% | +111% → +131% |
+| Aider overshoot relative to codemem | ~4-8× | ~5-20× |
+| Codemem determinism | all runs identical | all runs identical |
+| Aider determinism | trivial jitter at budget=4096 | larger jitter at budget=4096 (161/178/187 → median 178) |
+| Jaccard(cm, ai) range | 0.048 → 0.253 | 0.069 → 0.157 |
+
+**Tokenizer-mismatch invariant empirically confirmed** — the hypothesis that drove the entire plan. Codemem's 4-char proxy is consistently conservative (underreports tokens by ~15-25%); aider's cl100k_base is consistently aggressive (overreports by ~95-130% relative to requested budget). This means "equal requested budget" across the two tools is a ~2× apples-to-oranges comparison without normalization. The benchmark JSON captures both for parity.
+
+**Observation OBS-002 — codemem-build prereq (discovered during Task 3.3):**
+- `codemem intel` requires a pre-existing `.codemem/index.db` produced by `codemem build`.
+- Fresh clones (like `/tmp/bench-fastapi`) don't have this DB → `intel` fails with `sqlite3.OperationalError: unable to open database file`.
+- aa-ma-forge's sweep worked because the repo has a `.codemem/index.db` (676KB) from prior development.
+- **Fix applied for M3 execution:** manually ran `codemem build` inside `/tmp/bench-fastapi` once (1129 files, 4954 symbols, 0.89s) before re-running the sweep.
+- **Future improvement (out of this plan's scope):** `scripts/bench_sweep.py` could detect missing `.codemem/index.db` and invoke `codemem build` automatically. Idempotent (cheap no-op on existing DB). Logged here for eventual picking up.
+- **Impact on findings:** None — codemem data in both sweep JSONs was collected with a properly-built DB. The aa-ma-forge DB was warm from recent development (last_sha tracking); the fastapi DB was fresh from our one-shot build. Both conditions are representative of real benchmark use.
+
+**Decisions this milestone:** None new beyond AD-013 (U-002 pinned fastapi 0.136.0 at SHA 708606c9, recorded via Task 3.1 and reference.md).
+
+**Artifacts:**
+- `scripts/bench_sweep.py` (158 LOC, 8-test coverage) — committed
+- `/tmp/bench-aa-ma-forge.json`, `/tmp/bench-fastapi.json` — throwaway per reference.md §Temporary/Throwaway; feed M4.1
+
+**Commits this milestone:** `a4dd02f` (T3.1 + sweep), `c2d43ea` (T3.2 closure).
+
+**Next Milestone:** M4 Report + Integrate — HITL, SOFT gate, ~1 focused-dev day, complexity 40%. Tasks 4.1-4.3: draft `docs/benchmarks/codemem-vs-aider.md`, update `docs/codemem/kill-criteria.md` Signal 2 Aider sub-claim, commit. M4.1 is an HITL task — stephen-newhouse-voice review gate before drafting is approved.
+
+---
+
 ## 2026-04-20 Milestone Completion: M2 Harness + Parser (TDD)
 
 - **Status:** COMPLETE (SOFT gate — convention-based)

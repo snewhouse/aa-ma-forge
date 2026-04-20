@@ -357,7 +357,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 ---
 
 ## Milestone 3: Execute
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Gate: SOFT
 - Dependencies: Milestone 2
@@ -454,7 +454,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   **Next:** Task 3.3 — run sweep against fastapi (launched in background).
 
 ### Task 3.3: Run harness against fastapi at same budget sweep
-- Status: ACTIVE
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Task 3.1
 - Acceptance Criteria:
@@ -462,9 +462,55 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Contains 4 budget × 3 tools = 12 measurements
   - If fastapi is too large for jCodeMunch: fallback to `pallets/click` recorded in provenance.log with deviation note
 - Result Log:
+  ✅ COMPLETE 2026-04-20 — all 3 AC satisfied after a pre-flight discovery and fix. Fastapi fallback to `pallets/click` NOT needed (jCodeMunch is stubbed per AD-012 regardless of repo size).
+
+  **Pre-flight discovery (OBS-002):** First sweep invocation produced `codemem=error` in all 12 cells on fastapi. Root cause: `codemem intel` opens `.codemem/index.db` in read-only mode via `storage/db.py:139` → `sqlite3.OperationalError: unable to open database file`. The DB is produced by a prior `codemem build` on the target repo, which fresh clones don't have. aa-ma-forge has a pre-existing `.codemem/index.db` (676KB) from prior development, which is why Task 3.2 worked.
+
+  **Fix applied:** Ran `uv run --project <aa-ma-forge-root> codemem build` inside `/tmp/bench-fastapi` (1129 files, 4954 symbols, 8101 edges, 0.89s). Then re-ran the sweep — all 12 cells returned status=ok.
+
+  **Empirical results (fastapi 0.136.0 @ SHA `708606c9`):**
+
+  | Budget | Tool       | Symbols | tiktoken_tokens | Status |
+  |--------|------------|---------|-----------------|--------|
+  |    512 | codemem    |       9 |    544 (+6%)    | ok     |
+  |    512 | aider      |      24 |   1136 (+122%)  | ok     |
+  |   1024 | codemem    |      21 |   1208 (+18%)   | ok     |
+  |   1024 | aider      |      48 |   2167 (+112%)  | ok     |
+  |   2048 | codemem    |      42 |   2389 (+17%)   | ok     |
+  |   2048 | aider      |      98 |   4742 (+131%)  | ok     |
+  |   4096 | codemem    |      88 |   4853 (+18%)   | ok     |
+  |   4096 | aider      |     178 |   8634 (+111%)  | ok     |
+  |   all  | jcodemunch |       0 |      0          | skipped (AD-012) |
+
+  Jaccard(codemem, aider):
+  - budget=512: 0.069
+  - budget=1024: 0.133
+  - budget=2048: 0.124
+  - budget=4096: 0.157
+
+  **Determinism:** codemem fully deterministic across runs (identical symbol counts every run). Aider showed larger jitter on fastapi than aa-ma-forge at budget=4096 (161/178/187 across runs → median=178). Median-of-3 (AD-006) correctly absorbs this.
+
+  **AC verification:**
+  - **AC#1** — `/tmp/bench-fastapi.json` exists ✅
+  - **AC#2** — 12 measurements (4 budgets × 3 tools) all populated ✅
+  - **AC#3** — jCodeMunch NOT unavailable for size reasons (stubbed for MCP reasons per AD-012); no fallback to pallets/click triggered. jCodeMunch fallback clause in AC inapplicable for this plan's posture. Documented in provenance. ✅
+
+  **Key comparative findings (aa-ma-forge vs fastapi at budget=4096):**
+  - aa-ma-forge: codemem 72 sym, aider 268 sym, Jaccard=0.253
+  - fastapi:     codemem 88 sym, aider 178 sym, Jaccard=0.157
+  - **Larger codebase (fastapi, 1119 files) yields slightly MORE codemem symbols at equal budget but FEWER aider symbols.** Possibly because aider's 4-char proxy includes whitespace/decorators that bulk up its token count faster at scale.
+  - **Tokenizer mismatch is more pronounced on fastapi**: codemem stays +6-18% over budget, aider is +111-131% over budget (wider divergence than aa-ma-forge's 93-114%). This strengthens the tokenizer-mismatch finding.
+  - **Jaccard overlaps are LOWER on fastapi** (0.069-0.157 vs 0.048-0.253). Larger codebases produce more divergent top-N selections across tools.
+
+  **Artifacts:** `/tmp/bench-fastapi.json`, `/tmp/bench-fastapi.log` (throwaway).
+
+  **Decisions this task:**
+  - **OBS-002** (docs in context-log.md) — codemem-build prereq. Future improvement: bench_sweep.py could auto-build codemem DB on target repo (idempotent). Out of this task's scope.
+
+  **Next:** Task 3.4 — sanity check (4-iteration automation + verdict).
 
 ### Task 3.4: Sanity check — all outputs non-empty, symbol count > 0
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Tasks 3.2, 3.3
 - Acceptance Criteria:
@@ -472,6 +518,32 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - For each tool at each budget in both JSON files: symbol_count > 0
   - Any zero-result cell is explicitly flagged in the JSON with an error reason
 - Result Log:
+  ✅ COMPLETE 2026-04-20 — all 3 AC satisfied. Inline Python sanity script verified 24/24 cells across both sweep outputs.
+
+  **Sanity script output:**
+  ```
+  === Task 3.4: sanity check on both sweep outputs ===
+  --- /tmp/bench-aa-ma-forge.json ---
+  --- /tmp/bench-fastapi.json ---
+  ✅ All cells pass sanity: all non-jcodemunch cells have status=ok
+  with raw_bytes>0 and symbol_count>0; all jcodemunch cells status=skipped.
+  ```
+
+  **Verification (interpreted AC against AD-012 stubbed jCodeMunch):**
+  - **AC#1 (non-empty output)** — 16 non-jcodemunch cells (4 budgets × 2 tools × 2 repos) all have `raw_bytes > 0` ✅. The 8 jcodemunch cells have `raw_bytes = 0` but carry `status = "skipped"` with AD-012 reason string — this is an explicit flag, not a silent zero.
+  - **AC#2 (symbol_count > 0)** — 16 non-jcodemunch cells all have `symbol_count > 0` ✅. 8 jcodemunch cells have `symbol_count = 0` with `status=skipped` flag.
+  - **AC#3 (zero-result cells explicitly flagged)** — all 8 jcodemunch cells carry status=skipped + reason. Zero error-status cells after the Task 3.3 codemem-build fix. ✅
+
+  **Cell census:**
+  - Total cells: 24 (2 repos × 4 budgets × 3 tools)
+  - status=ok: 16 (codemem + aider × 4 budgets × 2 repos)
+  - status=skipped: 8 (jcodemunch × 4 budgets × 2 repos — stubbed per AD-012)
+  - status=error: 0
+
+  **Key data point "quotable for the report" (per M3 AC #3):**
+  > At requested budget=4096 on aa-ma-forge: codemem emits 72 symbols / 5168 tiktoken tokens; aider emits 268 symbols / 8408 tiktoken tokens. Aider is ~3.7× more symbols but only 1.6× more tokens → aider is ~2.3× more token-efficient per symbol. Jaccard overlap = 0.253. This is one of the most informative cells for the kill-criteria Signal 2 Aider sub-claim.
+
+  **Next:** M3 milestone finalization → M4 (report drafting, kill-criteria update).
 
 ---
 

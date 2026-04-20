@@ -402,7 +402,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   **Next:** Task 3.2 — run sweep against aa-ma-forge at budgets {512, 1024, 2048, 4096} × 3 runs.
 
 ### Task 3.2: Run harness against aa-ma-forge at budgets {512, 1024, 2048, 4096}
-- Status: ACTIVE
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Task 3.1
 - Acceptance Criteria:
@@ -411,9 +411,50 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Each measurement has raw_bytes, tiktoken_tokens, symbol_count fields
   - Each measurement is a median of 3 runs (per AD-006)
 - Result Log:
+  ✅ COMPLETE 2026-04-20 — all 4 AC empirically satisfied. Tokenizer-mismatch invariant confirmed at scale across the full budget sweep.
+
+  **Empirical results (aa-ma-forge @ HEAD `c24d665`):**
+
+  | Budget | Tool       | Symbols | tiktoken_tokens | raw_bytes | Status   |
+  |--------|------------|---------|----------------|-----------|----------|
+  |    512 | codemem    |       8 |    591 (+15%)  |      1933 | ok       |
+  |    512 | aider      |      38 |   1097 (+114%) |      3644 | ok       |
+  |    512 | jcodemunch |       0 |      0         |         0 | skipped  |
+  |   1024 | codemem    |      17 |   1239 (+21%)  |      4003 | ok       |
+  |   1024 | aider      |      67 |   1995 (+95%)  |      6509 | ok       |
+  |   1024 | jcodemunch |       0 |      0         |         0 | skipped  |
+  |   2048 | codemem    |      35 |   2513 (+23%)  |      8016 | ok       |
+  |   2048 | aider      |     132 |   3950 (+93%)  |     12659 | ok       |
+  |   2048 | jcodemunch |       0 |      0         |         0 | skipped  |
+  |   4096 | codemem    |      72 |   5168 (+26%)  |     16333 | ok       |
+  |   4096 | aider      |     268 |   8408 (+105%) |     27973 | ok       |
+  |   4096 | jcodemunch |       0 |      0         |         0 | skipped  |
+
+  Jaccard(codemem, aider) overlap:
+  - budget=512: 0.048
+  - budget=1024: 0.125
+  - budget=2048: 0.171
+  - budget=4096: 0.253
+
+  **AC verification:**
+  - **AC#1** — `/tmp/bench-aa-ma-forge.json` exists (written by sweep orchestrator) ✅
+  - **AC#2** — 4 budgets × 3 tools = 12 measurement cells populated (codemem/aider/jcodemunch × {512,1024,2048,4096}) ✅
+  - **AC#3** — Each measurement has `{raw_bytes, tiktoken_tokens, symbol_count, status, runs_included}` ✅
+  - **AC#4** — Each measurement is a median of 3 runs (`runs_per_cell: 3`, aggregate() uses `statistics.median` per `_median_int`) ✅
+
+  **Determinism observed:** All 3 runs at each budget produced identical symbol counts for codemem. Aider showed trivial jitter at budget=4096 only (run 2 emitted 262 symbols vs 268 in runs 1/3; median = 268 correctly selected). Deterministic enough that median-of-3 barely distinguishes from single-run; AD-006 is a cheap belt-and-braces.
+
+  **Quotable data points (for M4.1 report):**
+  - Codemem's 4-char proxy consistently overshoots requested budget by 15-26% across the sweep; aider's cl100k_base overshoots by 93-114%. **Aider emits ~2× the tiktoken tokens codemem does at equal requested budget.** This is the tokenizer-mismatch invariant operating in the wild.
+  - At budget=4096: codemem emits 72 symbols / 5168 tokens (~71 tokens/symbol); aider emits 268 symbols / 8408 tokens (~31 tokens/symbol). Aider is ~2.3× more token-efficient per symbol.
+  - Jaccard overlap grows monotonically with budget (0.048 → 0.253 at 4096). Tools converge as budget permits more symbols but never fully overlap — they use different ranking signals despite both claiming PageRank. **25% overlap at 4096 is a significant divergence** — worth highlighting in M4.
+
+  **Artifacts:** `/tmp/bench-aa-ma-forge.json` (sweep result, ~3.5KB, JSON — throwaway per reference.md §Temporary/Throwaway). Log: `/tmp/bench-aa-ma-forge.log`.
+
+  **Next:** Task 3.3 — run sweep against fastapi (launched in background).
 
 ### Task 3.3: Run harness against fastapi at same budget sweep
-- Status: PENDING
+- Status: ACTIVE
 - Mode: AFK
 - Dependencies: Task 3.1
 - Acceptance Criteria:

@@ -12,22 +12,33 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
 - Complexity: 30%
 - Effort: 0.5 day
 - Dependencies: None (pre-M1.0 archive step handles any AA-MA hook conflict with v1 plan)
-- Measurable goal: `codemem intel --budget=1024` on aa-ma-forge emits >= 17 symbols (v1 baseline) with `rank` rounded to 3 sig figs and budget enforced by cl100k_base; full test suite green.
+- Measurable goal: `codemem intel --budget=1024` on aa-ma-forge emits >= 12 symbols AND the actual tiktoken-token count of the output file is <= 1024; `rank` rounded to 3 sig figs; full test suite green.
 - Acceptance Criteria:
   - `grep -n "_CHARS_PER_TOKEN" packages/codemem-mcp/src/codemem/pagerank.py` returns zero occurrences after the fix.
   - `grep -n "tiktoken" packages/codemem-mcp/src/codemem/pagerank.py` returns >= 1.
   - `uv run python -c "import json; d=json.load(open('/tmp/post-m1-intel.json')); [print(s['rank']) for s in d['symbols'][:5]]"` emits values matching `/^[01]\.\d{1,3}(e-?\d+)?$/` (3 sig figs).
   - `uv run pytest tests/codemem/` returns green.
-  - `uv run codemem intel --budget=1024 --out=/tmp/post-m1-intel.json` on aa-ma-forge emits `_meta.written_symbols >= 17`.
+  - `uv run codemem intel --budget=1024 --out=/tmp/post-m1-intel.json` on aa-ma-forge emits `_meta.written_symbols >= 12` (20% floor below v1's 17-symbol baseline to catch catastrophic regression; a reduction is expected because the fix tightens budget enforcement).
+  - `uv run python -c "import tiktoken, json; t=tiktoken.get_encoding('cl100k_base'); print(len(t.encode(open('/tmp/post-m1-intel.json').read())))"` emits a value `<= 1024` (tiktoken honesty invariant, the point of the fix).
+  - Delta vs v1 17-symbol baseline logged in Result Log for transparency.
 
 ### Step M1.0: Archive v1 plan (pre-flight) if AA-MA hooks block cross-plan commits
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
   - If `aa-ma-commit-signature.sh` hook blocks commits tagged for v2 while v1 is still in `.claude/dev/active/`, run `/archive-aa-ma codemem-token-benchmarks`; v1 dir moves to `.claude/dev/completed/codemem-token-benchmarks/`.
   - Otherwise: proceed directly to M1.1 and defer archive to M4.
 - Result Log:
+  COMPLETE 2026-04-20. User direction after plan approval: "archive v1 first". Ran /archive-aa-ma codemem-token-benchmarks via the archive-aa-ma skill:
+  - 5 archive-header comments prepended (ARCHIVED date / Plan name / Total Milestones 4 / Duration 2026-04-18 to 2026-04-20).
+  - `git mv .claude/dev/active/codemem-token-benchmarks .claude/dev/completed/codemem-token-benchmarks` (100% rename similarity preserved git history).
+  - Two commits: 111feff (rename via git mv) + 21c395b (archive-header content modifications that git mv did not stage).
+  - Both pushed to origin/expt/code_mem_store_what.
+  - `.claude/dev/active/` now contains only `codemem-benchmark-fairness-v2/` (clean single-active-plan state).
+  - Commit-signature hook accepted the [ad-hoc] marker per git-conventions.md for both archive commits.
+
+  Decision: archived BEFORE M1.1 code work (not deferred to M4) to keep the hook surface clean during the rest of v2 execution. M4.2 (archive v1) is now redundant and should be marked SKIPPED at M4 finalisation.
 
 ### Step M1.1: Replace `_CHARS_PER_TOKEN` proxy with cl100k_base encoder in pagerank.py
 - Status: PENDING
@@ -63,8 +74,9 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
 - Mode: AFK
 - Dependencies: M1.3
 - Acceptance Criteria:
-  - `uv run codemem intel --budget=1024 --out=/tmp/post-m1-intel.json` on aa-ma-forge emits `_meta.written_symbols >= 17`.
-  - Delta vs v1 baseline (17 symbols) logged in Result Log.
+  - `uv run codemem intel --budget=1024 --out=/tmp/post-m1-intel.json` on aa-ma-forge emits `_meta.written_symbols >= 12` (20% floor below v1's 17, per AC amendment 2026-04-20).
+  - Actual tiktoken-count of the output file is `<= 1024` (honesty invariant).
+  - Delta vs v1 17-symbol baseline logged in Result Log.
   - `uv run pytest tests/codemem/` returns green.
 - Result Log:
 

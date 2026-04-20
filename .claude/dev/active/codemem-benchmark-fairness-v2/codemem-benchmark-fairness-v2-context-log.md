@@ -4,6 +4,23 @@ _This log captures architectural decisions, trade-offs, gate approvals, and unre
 
 ---
 
+## 2026-04-20, AC amendment: M1 symbol-count floor
+
+**Event:** During M1 TDD-RED preparation (reading pagerank.py + test_pagerank.py + v1 empirical data), discovered that the original M1 measurable goal (">= 17 symbols at budget=1024") was mathematically incompatible with the point of the fix.
+
+**Reasoning:** v1 measured 17 symbols at budget=1024 char-proxy, which equated to 1239 actual tiktoken tokens (21% overshoot per tokeniser-mismatch invariant in reference.md). Post-fix, budget=1024 means <=1024 actual tiktoken tokens. At ~72 tok/sym on aa-ma-forge, that fits ~14 symbols. Rank truncation saves a few tok/sym, bringing per-symbol cost to ~65, fitting ~15 symbols. So >= 17 is mathematically impossible under the honest budget.
+
+**Decision (HITL, via AskUserQuestion):** Replace the ">= 17" floor with "`>= 12 symbols AND <= 1024 actual tiktoken tokens`". Rationale:
+- 12 = 20% below v1 baseline; catches catastrophic regression but allows the expected honest reduction.
+- <= 1024 tiktoken is the CAUSE-level invariant the fix enforces; asserting it directly is the methodology-correct thing to do.
+- Per L-059 falsifiability: both numbers are pytest-assertion-compatible.
+
+**Scope:** Milestone 1 measurable goal + Step M1.4 AC updated in tasks.md. Step M1.1 and M1.2 code ACs unchanged. Plan file at ~/.claude/plans/ultrathink-and-grill-me-did-zazzy-creek.md unchanged (this is a post-approval execution-time AC refinement based on empirical math, not scope change).
+
+**Provenance:** Flagged in-session at 2026-04-20 before any pagerank.py edits, satisfying the "make no assumptions; code is truth" directive.
+
+---
+
 ## 2026-04-20: Plan genesis
 
 **Feature request (Phase 1):**

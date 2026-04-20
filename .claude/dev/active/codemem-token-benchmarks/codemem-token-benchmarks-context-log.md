@@ -4,6 +4,45 @@ _This log captures architectural decisions, trade-offs, and unresolved issues._
 
 ---
 
+## 2026-04-20 Milestone Completion: M4 Report + Integrate
+
+- **Status:** COMPLETE (SOFT gate)
+- **Acceptance criteria:** 4/4 empirically verified
+  - ✅ `docs/benchmarks/codemem-vs-aider.md` committed (1dc3649, 249 lines); stephen-newhouse-voice skill applied and HITL-approved at first preview ("Approve as-is, proceed to Task 4.2")
+  - ✅ `docs/codemem/kill-criteria.md` Signal 2 status line rewritten (AND-composite preserved at PROVISIONAL DID-NOT-TRIGGER; 0.73× wall-clock conjunct (a) retained verbatim; Aider conjunct (b) populated with benchmark findings); header "Latest update" date bumped with plan attribution
+  - ✅ Risk-signal entry recorded in this context-log.md (next section below) classifying conjunct (b) failure as risk-signal-not-kill with two-fold root-cause pointer (tokeniser proxy + structured-metadata format overhead)
+  - ✅ Commit 1dc3649 pushed to `expt/code_mem_store_what`; remote HEAD matches local; CI green via pre-commit sanity gate (pytest 387/1s/6d, ruff clean, import-linter 2/2) — security.yml does not fire on branch-level pushes, consistent with the 2026-04-18 provenance note
+- **Sub-Step Audit (L-081, L-083):** 0 task-level PENDING sub-steps in M4 scope; 3 COMPLETE (Tasks 4.1, 4.2, 4.3).
+
+**Headline outcome:** Signal 2 composite remains **PROVISIONAL DID-NOT-TRIGGER**. Aider token-efficiency sub-claim (conjunct b) fails on both repos measured to date. Aider is 1.2-2.4× more token-efficient per symbol in cl100k_base; gap narrows on larger repo (2.4× on aa-ma-forge, 1.2× on fastapi). A single-conjunct failure cannot fire an AND composite; conjunct (a)'s 0.73× wall-clock on the small repo still holds. Conjunct (b) failure classified as risk-signal-to-monitor, not kill.
+
+**Why not a kill:** Signal 2 was designed to detect failure of the SQLite-canonical architectural bet. The two identified root causes are (1) a tokeniser-accounting proxy issue in `pagerank.py`, and (2) an output-format choice for a specific consumer (programmatic consumption vs LLM prompt injection). Neither demands an architectural rewrite. The SQLite bet remains defensible on wall-clock and on the qualitative split (codemem serves a programmatic-consumption niche Aider does not).
+
+**Artefacts produced in M4:**
+- `docs/benchmarks/codemem-vs-aider.md` (new, 249 lines, 2071 words)
+- `docs/benchmarks/results-codemem-vs-aider-2026-04-18.json` (new, 7929 bytes — combined raw-data artefact with `_meta` block for reproducibility)
+- `docs/codemem/kill-criteria.md` (modified: Signal 2 status line rewritten, header date bumped)
+- Risk-signal entry in this context-log (below)
+- Provenance log milestone-complete line (bottom)
+
+**Decisions made during M4:** None new. Applied existing AD-001 (tiktoken normalisation), AD-002 (size+coverage scope), AD-012 (jCodeMunch stubbed). Followed plan.md §Task 4.2 case (b) framing verbatim.
+
+**Tests state at M4 close:**
+- Default `pytest`: 387 passed, 1 skipped, 6 deselected
+- Ruff: clean
+- Import-linter: 2/2 contracts kept
+- No regression from M3 baseline
+
+**Voice discipline:** stephen-newhouse-voice skill applied to all new authored text. Zero em dashes, zero AI vocabulary, zero US-English slips, straight ASCII apostrophes, sentence-case headings. Pre-existing em dashes elsewhere in `docs/codemem/kill-criteria.md` (Signals 1, 3, 4, 5) left untouched as out-of-scope (Task 4.2 scope is Signal 2 status line only).
+
+**Impact analysis (milestone boundary):** CLEAN. External refs to `docs/codemem/kill-criteria.md` (4 active docs) unaffected because Signal 2 went from PROVISIONAL to PROVISIONAL (not FIRED), so "none have fired" claims in README.md and install-zero-config.md remain semantically correct. The old "token-efficiency comparison is deferred post-M4-ship" string has zero remaining occurrences in the tree (clean removal). New cross-references from kill-criteria.md into docs/benchmarks/ wire up properly.
+
+**Commits this milestone:** `1dc3649` (single milestone-close commit covering all 3 tasks, per AFK Task 4.3 scope).
+
+**Plan status:** All 4 milestones COMPLETE. Ready for `/archive-aa-ma codemem-token-benchmarks`.
+
+---
+
 ## 2026-04-20 — RISK-SIGNAL (not kill): Signal 2 conjunct (b) fails on both repos
 
 **Event:** The Aider token-efficiency benchmark (plan Task 4.2) has measured conjunct (b) of kill-criteria Signal 2 ("`PROJECT_INTEL.json` at `--budget=1024` fails to beat Aider's repo-map token efficiency at the same budget") and **conjunct (b) fails** on both reference repos exercised: aa-ma-forge and `tiangolo/fastapi` 0.136.0.

@@ -318,7 +318,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   **Next:** Task 2.6 — integration test runs the harness end-to-end via pytest, asserts JSON shape, tolerates jCodeMunch skipped status.
 
 ### Task 2.6: Integration test — harness self-exercises against aa-ma-forge
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Task 2.5
 - Acceptance Criteria:
@@ -328,6 +328,31 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Test handles known edge case: jCodeMunch may require remote fixture (log and skip if unavoidable)
   - Import-linter contracts still 2/2
 - Result Log:
+  ✅ COMPLETE 2026-04-20 — GREEN. Integration test added, marked `@pytest.mark.slow`, passes end-to-end. Also performed opportunistic RED-state cleanup (conditional import removed now that Task 2.5 is GREEN).
+
+  **Empirical verification:**
+  - **AC#1 (runs harness against aa-ma-forge)** — `TestHarnessIntegration::test_harness_e2e_against_aa_ma_forge` subprocess-invokes `uv run python scripts/bench_codemem_vs_aider.py --repo <aa-ma-forge-root> --requested-budget 1024 --out <tmp>`. `uv run pytest -m slow tests/codemem/test_bench_harness.py` → 1 passed in 4.45s. ✅
+  - **AC#2 (all 3 tools under tools key)** — test asserts `set(data["tools"].keys()) == {"codemem", "aider", "jcodemunch"}`. Also asserts each tool has `{status, raw_bytes, tiktoken_tokens, symbol_count}`. ✅
+  - **AC#3 (requested_budget + overlap keys)** — test asserts `data["requested_budget"] == 1024` and `set(data["overlap"].keys()) == {codemem_vs_aider, codemem_vs_jcodemunch, aider_vs_jcodemunch}`. ✅
+  - **AC#4 (jCodeMunch tolerance)** — test asserts `data["tools"]["jcodemunch"]["status"] in {"ok", "skipped", "error"}`. Codemem and aider still asserted strict `status == "ok"` (harness sanity) and `symbol_count > 0`. Aligns with AD-012 (jCodeMunch MCP-only, stub-skipped at M2). ✅
+  - **AC#5 (import-linter 2/2)** — `uv run lint-imports` → "Contracts: 2 kept, 0 broken". ✅
+
+  **Opportunistic cleanup (not in Task 2.6 AC — done since I was editing the file):**
+  - Removed `try/except` conditional import of `measure_output` (leftover from Task 2.4 RED) — now that measure_output exists in Task 2.5 GREEN, the unconditional import is correct. Collapsed two import lines into `from bench_codemem_vs_aider import (measure_output, parse_aider_output,)`.
+  - Removed `_require_measure_output` autouse fixture from `TestMeasureOutput` — no longer needed; the import guarantee makes the tests runnable directly.
+  - Clears 9 pyright `Object of type None cannot be called` warnings. 1 pyright warning remains (`Import bench_codemem_vs_aider could not be resolved`) — this is a well-known Pyright limitation re pytest conftest.py sys.path injection; runtime import works (22/22 tests pass confirm this).
+
+  **Artifacts produced:**
+  - `tests/codemem/test_bench_harness.py` updated: +class `TestHarnessIntegration` (~75 LOC), cleanup of conditional-import block (-10 LOC net), docstring refreshed to describe the full scope of the file.
+
+  **State after Task 2.6:**
+  - Default `pytest`: 22 passed, 1 deselected (slow) — clean
+  - `pytest -m slow`: 1 passed (integration) — clean
+  - Full suite `pytest`: 370 passed, 1 skipped, 5 deselected (no regressions since OBS-001 fix)
+  - Ruff: clean
+  - Import-linter: 2/2
+
+  **Next:** M2 milestone finalization (all 6 tasks COMPLETE) → M3 execution (Tasks 3.1-3.4: budget sweeps on aa-ma-forge + fastapi).
 
 ---
 

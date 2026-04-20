@@ -1,32 +1,30 @@
-"""Tests for bench_codemem_vs_aider Aider prose parser — M2 Task 2.2 (TDD RED).
+"""Tests for bench_codemem_vs_aider — M2 Tasks 2.2, 2.4, 2.6.
 
-AC (per codemem-token-benchmarks-tasks.md M2.2):
-- Parser extracts (file, symbol_name, kind) rows from Aider `--show-repo-map` prose.
-- Golden fixture: tests/codemem/fixtures/aider_repo_map_aa-ma-forge.txt
-  (captured 2026-04-20 @ aa-ma-forge HEAD af10ec6 via aider 0.86.2
-   `aider --show-repo-map --map-tokens 1024`).
-- Kinds present in fixture: def, class, @ (decorator).
-- Aider preamble (lines 1-10) is CLI metadata and must be skipped.
+Scope:
+- TestParserSurface / TestParserBehavior / TestParserEdgeCases (Task 2.2/2.3):
+  parser API contract against the aider golden fixture.
+- TestMeasureOutput (Task 2.4/2.5): tiktoken normalization contract.
+- TestHarnessIntegration (Task 2.6): end-to-end pytest-driven CLI run against
+  aa-ma-forge. Marked @pytest.mark.slow (skipped by default; run with `-m slow`)
+  because aider subprocess takes ~60-120s.
 
-Expected RED: ModuleNotFoundError on `bench_codemem_vs_aider` until Task 2.3 GREEN
-implements scripts/bench_codemem_vs_aider.py with parse_aider_output.
+Fixtures:
+- tests/codemem/fixtures/aider_repo_map_aa-ma-forge.txt
+- tests/codemem/fixtures/codemem_intel_aa-ma-forge.json
 """
 
 from __future__ import annotations
 
+import json
+import subprocess
 from pathlib import Path
 
 import pytest
 
-from bench_codemem_vs_aider import parse_aider_output  # noqa: E402
-
-# measure_output is Task 2.5 GREEN. During Task 2.4 RED, the import fails and
-# the TestMeasureOutput class uses an autouse fixture to fail each test with a
-# readable message, WITHOUT breaking collection for the 13 parser tests above.
-try:
-    from bench_codemem_vs_aider import measure_output  # type: ignore[attr-defined]
-except ImportError:
-    measure_output = None  # type: ignore[assignment]
+from bench_codemem_vs_aider import (  # noqa: E402
+    measure_output,
+    parse_aider_output,
+)
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 GOLDEN_FIXTURE = FIXTURES_DIR / "aider_repo_map_aa-ma-forge.txt"
@@ -145,13 +143,6 @@ class TestMeasureOutput:
     structurally different input types without error.
     """
 
-    @pytest.fixture(autouse=True)
-    def _require_measure_output(self) -> None:
-        if measure_output is None:
-            pytest.fail(
-                "measure_output not yet implemented — Task 2.5 GREEN pending"
-            )
-
     def test_returns_dict_with_three_contract_keys(self) -> None:
         m = measure_output("hello world", symbol_count=0)
         assert set(m.keys()) == {"raw_bytes", "tiktoken_tokens", "symbol_count"}
@@ -221,3 +212,83 @@ class TestMeasureOutput:
         assert aider_tokens + codemem_tokens + jcm_tokens == sum(
             [aider_tokens, codemem_tokens, jcm_tokens]
         )
+
+
+# Project root — tests/codemem/test_bench_harness.py -> parents[2]
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+class TestHarnessIntegration:
+    """M2 Task 2.6 — end-to-end integration test.
+
+    Runs the harness as a subprocess against aa-ma-forge itself and asserts
+    the JSON output contract. Marked @pytest.mark.slow because aider takes
+    60-120s; skipped in the default `pytest` run (pyproject `addopts` has
+    `-m 'not perf and not slow'`). Run explicitly with `pytest -m slow`.
+
+    AC#4 (plan): "Test handles known edge case: jCodeMunch may require
+    remote fixture (log and skip if unavoidable)". We tolerate jcodemunch
+    status ∈ {ok, skipped, error} rather than requiring 'ok' — matches
+    AD-012 stub posture at Task 2.5.
+    """
+
+    @pytest.mark.slow
+    def test_harness_e2e_against_aa_ma_forge(self, tmp_path: Path) -> None:
+        out_path = tmp_path / "bench-integration.json"
+        result = subprocess.run(
+            [
+                "uv", "run", "python",
+                "scripts/bench_codemem_vs_aider.py",
+                "--repo", str(_PROJECT_ROOT),
+                "--requested-budget", "1024",
+                "--out", str(out_path),
+            ],
+            cwd=_PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        assert result.returncode == 0, (
+            f"harness failed (exit {result.returncode}): "
+            f"stderr={result.stderr[-500:]!r}"
+        )
+        assert out_path.exists(), f"harness produced no output file: {out_path}"
+
+        data = json.loads(out_path.read_text())
+
+        # AC#3: requested_budget present and correct
+        assert data.get("requested_budget") == 1024
+
+        # AC#2: all 3 tools present under tools key
+        assert "tools" in data
+        assert set(data["tools"].keys()) == {"codemem", "aider", "jcodemunch"}
+
+        # AC#3: overlap key present with all 3 pairs
+        assert "overlap" in data
+        assert set(data["overlap"].keys()) == {
+            "codemem_vs_aider",
+            "codemem_vs_jcodemunch",
+            "aider_vs_jcodemunch",
+        }
+
+        # Each tool measurement has the contract fields
+        for tool_name, m in data["tools"].items():
+            assert "status" in m, f"{tool_name} missing status"
+            assert "raw_bytes" in m, f"{tool_name} missing raw_bytes"
+            assert "tiktoken_tokens" in m, f"{tool_name} missing tiktoken_tokens"
+            assert "symbol_count" in m, f"{tool_name} missing symbol_count"
+
+        # AC#4: jcodemunch tolerated in ok/skipped/error (currently stub-skipped)
+        assert data["tools"]["jcodemunch"]["status"] in {"ok", "skipped", "error"}
+
+        # Sanity: codemem + aider should have produced non-empty output on
+        # our own repo — if this fails, the harness itself is broken, not
+        # jcodemunch's skip.
+        assert data["tools"]["codemem"]["status"] == "ok", (
+            f"codemem unexpectedly failed: {data['tools']['codemem']}"
+        )
+        assert data["tools"]["aider"]["status"] == "ok", (
+            f"aider unexpectedly failed: {data['tools']['aider']}"
+        )
+        assert data["tools"]["codemem"]["symbol_count"] > 0
+        assert data["tools"]["aider"]["symbol_count"] > 0

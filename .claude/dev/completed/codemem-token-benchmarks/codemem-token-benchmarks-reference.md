@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-04-20 16:27 -->
+<!-- Plan: codemem-token-benchmarks - COMPLETE -->
+<!-- Total Milestones: 4 | Duration: 2026-04-18 to 2026-04-20 -->
+
 # codemem-token-benchmarks Reference
 
 _Load-first priority file. Contains immutable facts, Phase-3 research findings, and the tokenizer-mismatch invariant. An agent resuming this task reads THIS FILE FIRST._

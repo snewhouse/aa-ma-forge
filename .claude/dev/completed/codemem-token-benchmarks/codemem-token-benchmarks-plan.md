@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-04-20 16:27 -->
+<!-- Plan: codemem-token-benchmarks - COMPLETE -->
+<!-- Total Milestones: 4 | Duration: 2026-04-18 to 2026-04-20 -->
+
 # codemem-token-benchmarks Plan
 
 **Objective:** Execute the DEFERRED codemem Task 4.2 token-budget benchmark comparing `PROJECT_INTEL.json` (codemem), Aider's repo-map, and jCodeMunch at equal budget on 2 reference repos, with tiktoken normalization.

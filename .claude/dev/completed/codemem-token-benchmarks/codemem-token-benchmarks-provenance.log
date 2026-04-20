@@ -1,3 +1,7 @@
+# ARCHIVED: 2026-04-20 16:27
+# Plan: codemem-token-benchmarks - COMPLETE
+# Total Milestones: 4 | Duration: 2026-04-18 to 2026-04-20
+
 # codemem-token-benchmarks — Provenance Log
 
 2026-04-18T12:00:00+01:00 PLAN CREATED — codemem-token-benchmarks — Task continues DEFERRED Task 4.2 from archived codemem plan (.claude/dev/completed/codemem/, commit 3ab0aa9) — 4 milestones (M1 research re-verify, M2 harness TDD, M3 execute, M4 report) — Complexity 50% — Parent plan Phase 3 findings inherited into reference.md — No deep-review gate (complexity under 80%) — Phase 4.5 skipped per user decision (zero production-code risk surface) — Branch: expt/code_mem_store_what

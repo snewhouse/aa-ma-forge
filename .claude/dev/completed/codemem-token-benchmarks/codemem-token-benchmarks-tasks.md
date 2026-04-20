@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-04-20 16:27 -->
+<!-- Plan: codemem-token-benchmarks - COMPLETE -->
+<!-- Total Milestones: 4 | Duration: 2026-04-18 to 2026-04-20 -->
+
 # codemem-token-benchmarks Tasks (HTP)
 
 _Hierarchical Task Planning roadmap with dependencies and state tracking._

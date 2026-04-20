@@ -22,3 +22,4 @@
 [2026-04-20 13:03] Commit 4d784e7 — TaskID: M2-T2.3 — Status: COMPLETE — TDD: GREEN verified (13/13 tests pass, parser 75 LOC inline per AD-005, ruff clean). OBS-001: pre-existing codemem-mcp editable-install points to different aa-ma-forge clone — NOT caused by this plan, out-of-scope fix suggested.
 [2026-04-20 13:39] OBS-001 RESOLVED — AD-011: added codemem-mcp to dev-deps. Full suite 370 passed (was 24 collection errors). uv run codemem intel works (17 symbols, 4003B — matches baseline). M3 prerequisite unblocked.
 [2026-04-20 13:45] TaskID: M2-T2.4 — Status: COMPLETE — TDD: RED verified (9 failing measure_output tests + 3 captured/synthetic fixtures; 13 parser tests preserved GREEN; full suite 370 passed + 9 intentional errors)
+[2026-04-20 13:49] TaskID: M2-T2.5 — Status: COMPLETE — GREEN: 22/22 tests pass; CLI end-to-end: cm=ok(17sym/1239tok), ai=ok(67sym/1995tok), jcm=skipped(AD-012); Jaccard cm_vs_ai=0.125; ruff clean; import-linter 2/2

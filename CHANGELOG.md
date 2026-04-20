@@ -28,6 +28,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - `docs/templates/tasks-template.md`: Status format canonicalised to plain `Status: X` (was bold `**Status:** X`) — helper tolerates both via defence-in-depth regex
 - `claude-code/agents/aa-ma-scribe.md`: template block Status format canonicalised to plain
 - All AA-MA hooks now resolve helper library via dual-layout probe (project subdir OR installed sibling), robust to symlink vs direct invocation
+- `claude-code/commands/execute-aa-ma-milestone.md`: new Section 7.2.5 Post-Completion Validator Dispatch. After Section 7.2 doc auto-update and before Section 7.3 user approval, auto-dispatches `aa-ma-validator` agent to audit the just-updated artifacts against 6 dimensions (existence, plan completeness, reference completeness, HTP structure, cross-file consistency, completeness-claim accuracy). Three-verdict handling: READY_FOR_ARCHIVE proceeds; WARNINGS_BUT_USABLE back-fills inline (avoiding a separate post-archive audit commit); GAPS_REQUIRE_FIX halts. Graceful-skip fallback when agent spawning unavailable. Rationale: catches Result Log placeholders, missing commit SHAs, and missing MERGE_TO_MAIN events in-flight instead of requiring back-fill commits post-archive. Pattern derived from go-biological-process-disease-support 2026-04-20 sprint audit (3 WARN items that required back-fill commit `d424ef8` before archive).
 
 ### Fixed
 

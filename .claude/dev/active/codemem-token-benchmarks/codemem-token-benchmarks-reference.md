@@ -155,7 +155,7 @@ uv tool install jcodemunch-mcp==1.59.1  # pinned at M1.1 (installed 2026-04-19, 
 | Repo | Clone path | Pinned commit | [valid] |
 |------|-----------|---------------|---------|
 | aa-ma-forge | `.` (working repo) | HEAD `3ab0aa9` or later | 2026-04-18 |
-| tiangolo/fastapi | `/tmp/bench-fastapi` | Pinned at M3.1 (TBD) | 2026-04-18 |
+| tiangolo/fastapi | `/tmp/bench-fastapi` | `0.136.0` → `708606c982cf35718cb2214c0bb9261cf548f042` (1119 .py files, 56MB) | 2026-04-20 |
 | Fallback | `pallets/click` | If fastapi too large for jCodeMunch | 2026-04-18 |
 
 ### Harness JSON Output Contract

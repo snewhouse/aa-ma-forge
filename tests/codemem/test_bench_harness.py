@@ -292,3 +292,88 @@ class TestHarnessIntegration:
         )
         assert data["tools"]["codemem"]["symbol_count"] > 0
         assert data["tools"]["aider"]["symbol_count"] > 0
+
+
+class TestSweepAggregate:
+    """M3 Task 3.2 — pin median-aggregation correctness before real sweeps.
+
+    Tests the pure aggregation logic in scripts/bench_sweep.py. The
+    I/O-heavy parts (subprocess.run, tempfiles) are exercised at actual
+    M3 sweep time, not here.
+    """
+
+    def _import(self):
+        from bench_sweep import _median_int, aggregate
+        return _median_int, aggregate
+
+    def test_median_int_empty(self) -> None:
+        median_int, _ = self._import()
+        assert median_int([]) == 0
+
+    def test_median_int_odd_count(self) -> None:
+        median_int, _ = self._import()
+        assert median_int([10, 20, 30]) == 20
+
+    def test_median_int_even_count_returns_int(self) -> None:
+        median_int, _ = self._import()
+        # statistics.median of [10, 20] is 15.0 — must coerce to int
+        assert median_int([10, 20]) == 15
+
+    def test_aggregate_empty_runs_returns_empty(self) -> None:
+        _, aggregate = self._import()
+        assert aggregate([]) == {}
+
+    def test_aggregate_single_run_passes_through(self) -> None:
+        _, aggregate = self._import()
+        runs = [{"tools": {
+            "codemem": {"status": "ok", "raw_bytes": 100,
+                        "tiktoken_tokens": 25, "symbol_count": 5},
+        }}]
+        out = aggregate(runs)
+        assert out["codemem"]["status"] == "ok"
+        assert out["codemem"]["raw_bytes"] == 100
+        assert out["codemem"]["tiktoken_tokens"] == 25
+        assert out["codemem"]["symbol_count"] == 5
+        assert out["codemem"]["runs_included"] == 1
+
+    def test_aggregate_three_runs_picks_median(self) -> None:
+        _, aggregate = self._import()
+        runs = [
+            {"tools": {"codemem": {"status": "ok", "raw_bytes": 90,
+                                   "tiktoken_tokens": 20, "symbol_count": 4}}},
+            {"tools": {"codemem": {"status": "ok", "raw_bytes": 100,
+                                   "tiktoken_tokens": 25, "symbol_count": 5}}},
+            {"tools": {"codemem": {"status": "ok", "raw_bytes": 110,
+                                   "tiktoken_tokens": 30, "symbol_count": 6}}},
+        ]
+        out = aggregate(runs)
+        assert out["codemem"]["raw_bytes"] == 100
+        assert out["codemem"]["tiktoken_tokens"] == 25
+        assert out["codemem"]["symbol_count"] == 5
+        assert out["codemem"]["runs_included"] == 3
+
+    def test_aggregate_status_precedence_error_wins(self) -> None:
+        """Any run with status=error drags the cell to error."""
+        _, aggregate = self._import()
+        runs = [
+            {"tools": {"codemem": {"status": "ok", "raw_bytes": 100,
+                                   "tiktoken_tokens": 25, "symbol_count": 5}}},
+            {"tools": {"codemem": {"status": "error", "raw_bytes": 0,
+                                   "tiktoken_tokens": 0, "symbol_count": 0}}},
+            {"tools": {"codemem": {"status": "ok", "raw_bytes": 100,
+                                   "tiktoken_tokens": 25, "symbol_count": 5}}},
+        ]
+        out = aggregate(runs)
+        assert out["codemem"]["status"] == "error"
+
+    def test_aggregate_status_precedence_skipped_over_ok(self) -> None:
+        """If no errors but at least one skipped → skipped (not ok)."""
+        _, aggregate = self._import()
+        runs = [
+            {"tools": {"jcodemunch": {"status": "ok", "raw_bytes": 1,
+                                      "tiktoken_tokens": 1, "symbol_count": 1}}},
+            {"tools": {"jcodemunch": {"status": "skipped", "raw_bytes": 0,
+                                      "tiktoken_tokens": 0, "symbol_count": 0}}},
+        ]
+        out = aggregate(runs)
+        assert out["jcodemunch"]["status"] == "skipped"

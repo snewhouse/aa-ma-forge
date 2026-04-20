@@ -369,7 +369,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - At least one clear data point — e.g. codemem's symbol count vs Aider's at budget=1024 — is quotable for the report
 
 ### Task 3.1: Clone fastapi at pinned commit into /tmp/bench-fastapi
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Milestone 2
 - Acceptance Criteria:
@@ -377,9 +377,32 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Pinned commit SHA recorded in provenance.log
   - `.git` present (for tool introspection if needed)
 - Result Log:
+  ✅ COMPLETE 2026-04-20 — fastapi 0.136.0 cloned at pinned SHA. All 3 AC satisfied.
+
+  **Empirical state:**
+  - Tag selected: `0.136.0` (latest stable tag from `git ls-remote --tags` enumerate, excluding `v0.1.16` which sorted first due to version-string peculiarities)
+  - Pinned SHA: `708606c982cf35718cb2214c0bb9261cf548f042`
+  - `git clone --depth 1 --branch 0.136.0 https://github.com/tiangolo/fastapi.git /tmp/bench-fastapi` succeeded (detached HEAD per shallow clone)
+  - `find /tmp/bench-fastapi -name '*.py'` → 1119 Python files
+  - `du -sh /tmp/bench-fastapi` → 56MB
+  - `.git` present (visible in `ls -la /tmp/bench-fastapi`)
+  - Pinned SHA recorded in provenance.log (via M3 T3.1 entry) and reference.md §Benchmark Target Repos
+
+  **Sibling work (bundled into same commit for cohesion):**
+  - Created `scripts/bench_sweep.py` (158 LOC) — M3 orchestrator implementing AD-006 (3-run median aggregation). Wraps `scripts/bench_codemem_vs_aider.py` subprocess-style; preserves M2 single-run contract unchanged.
+  - Added `TestSweepAggregate` class (8 tests) in test_bench_harness.py pinning `aggregate()` and `_median_int()` correctness: empty, odd-count, even-count-coerced-to-int, single-run, 3-run median, error-precedence, skipped-over-ok.
+
+  **Decisions:** U-002 pinned to `0.136.0` (autonomous choice per user's 2026-04-20 direction: "Proceed autonomously — I pick latest stable tiangolo/fastapi tag").
+
+  **State after Task 3.1:**
+  - pytest default suite: 30/30 green (22 original + 8 new sweep tests)
+  - pytest full suite: 378 passed, 1 skipped, 5 deselected (no regression)
+  - ruff: clean
+
+  **Next:** Task 3.2 — run sweep against aa-ma-forge at budgets {512, 1024, 2048, 4096} × 3 runs.
 
 ### Task 3.2: Run harness against aa-ma-forge at budgets {512, 1024, 2048, 4096}
-- Status: PENDING
+- Status: ACTIVE
 - Mode: AFK
 - Dependencies: Task 3.1
 - Acceptance Criteria:

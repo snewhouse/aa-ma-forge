@@ -178,7 +178,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   **TDD RED gate: verified.** Ready for Task 2.3 GREEN.
 
 ### Task 2.3: GREEN — implement Aider parser (inline unless > 100 LOC)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Task 2.2
 - Acceptance Criteria:
@@ -187,6 +187,34 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Parser handles `│def`, `│class`, `│@` prefixes and `⋮` elision marker
   - Ruff clean on new code
 - Result Log:
+  ✅ COMPLETE 2026-04-20 — TDD GREEN verified. All 4 AC empirically satisfied. 13/13 tests pass; parser inline at 75 LOC (AD-005 compliant).
+
+  **Empirical verification:**
+  - **AC#1** — `scripts/bench_codemem_vs_aider.py` created, 75 LOC total (parser function `parse_aider_output` ≈ 40 LOC). Inline per AD-005 (<100 LOC threshold). No split to `scripts/bench_aider_parser.py`. ✅
+  - **AC#2** — `uv run pytest tests/codemem/test_bench_harness.py -v` → 13 PASSED in 0.13s. All tests from Task 2.2 green. ✅
+  - **AC#3** — Parser regexes: `_DEF_RE = ^│\s*def\s+([A-Za-z_][A-Za-z0-9_]*)`, `_CLASS_RE = ^│\s*class\s+...`, `_DECORATOR_RE = ^│\s*@([A-Za-z_][A-Za-z0-9_.]*)`. `⋮` elision handled by no-match fall-through (not captured by any regex → no row emitted). Decorator kind string chosen: `"decorator"` (not `"@"`) — more readable, tests didn't pin this. ✅
+  - **AC#4** — `uv run ruff check scripts/bench_codemem_vs_aider.py tests/codemem/test_bench_harness.py tests/codemem/conftest.py` → "All checks passed!" ✅
+
+  **Design notes (KISS applied):**
+  - Strategy: line-by-line state machine tracking `current_file`. Emit `(current_file, name, kind)` when a `│def`/`│class`/`│@` line is matched.
+  - **File-header guard** (path-likeness): `line.endswith(":")` alone is insufficient — fixture line 18 `dict:` is a line-wrapped signature continuation. Guard requires `"/" in candidate OR _FILE_EXT_RE.search(candidate)`. Blocks `dict:`, `str:`, etc. from poisoning `current_file`.
+  - **Elision handling**: `⋮` lines simply don't match any regex → silently skipped.
+  - **Preamble handling**: lines 1-10 of `aider` stdout contain no `│`, and none are path-like → `current_file` stays `None`, no rows emitted.
+  - **No walrus operator** — classic `m = _RE.match(); if m:` for ruff-compatibility across versions.
+
+  **Artifacts produced:**
+  - `scripts/bench_codemem_vs_aider.py` (new, 75 LOC, parser + module docstring placeholder for Task 2.4/2.5)
+
+  **Regression check (scoped):**
+  - `pytest tests/codemem/test_bench_harness.py`: 13/13 PASS ✅
+  - **Pre-existing env drift discovered** (NOT caused by this task — verified via temporary conftest.py removal): `uv pip list` shows `codemem-mcp` editable-installed from `/home/sjnewhouse/github_private/aa-ma-forge/packages/codemem-mcp` rather than the current-working-dir copy at `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge/packages/codemem-mcp`. All `tests/codemem/test_*.py` modules that do `from codemem.X import ...` fail with `ModuleNotFoundError: No module named 'codemem'` — this predates Task 2.2 and is unrelated to the benchmark plan. Flagged as env observation OBS-001 in context-log.md for user decision (suggested fix: `uv sync --reinstall-package codemem-mcp` from current dir).
+  - Scoped verification: `mv tests/codemem/conftest.py .bak` → test_pagerank still fails identically → confirms conftest.py is NOT the cause. Restored after test.
+
+  **Decisions this task:**
+  - Decorator kind string: `"decorator"` (not `"@"`). Tests don't pin this; "decorator" is self-describing. Logged as AD-010.
+  - File-extension whitelist: 21 common source-code extensions (py, sh, md, toml, yaml, yml, json, txt, rs, go, ts, tsx, js, jsx, c, cpp, h, hpp, java, rb, php, swift, kt). Pragmatic — covers the fixture + common repos; can extend on demand.
+
+  **Next:** Task 2.4 — TDD tiktoken normalization test (TDD RED).
 
 ### Task 2.4: TDD — tiktoken normalization test
 - Status: PENDING

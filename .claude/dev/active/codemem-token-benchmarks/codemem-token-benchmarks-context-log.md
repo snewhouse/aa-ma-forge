@@ -4,6 +4,27 @@ _This log captures architectural decisions, trade-offs, and unresolved issues._
 
 ---
 
+## 2026-04-20 — Task 2.3 GREEN: parser implementation + env drift observation
+
+**Summary:** `parse_aider_output` implemented inline in `scripts/bench_codemem_vs_aider.py` (75 LOC total). All 13 Task 2.2 tests pass. Ruff clean. Two new decisions + one environmental observation logged below.
+
+**Decision AD-010 — Decorator kind string = `"decorator"`:**
+- **Rationale:** Task 2.2 tests don't pin the kind string for decorators. Choice is between `"@"` (terse, matches the prefix) and `"decorator"` (self-describing). Chose `"decorator"` — downstream consumers reading row tuples see a human-readable type; no information loss vs the terse form.
+- **Alternatives rejected:** `"@"` (opaque at the tuple-level, requires kind-key legend); `"deco"` (abbreviation with zero benefit).
+- **Trade-offs:** 6 extra chars per decorator row in the output. Negligible vs the readability gain.
+
+**Observation OBS-001 — Pre-existing environment drift in `.venv`:**
+- `uv pip list` reports `codemem-mcp 0.1.0.dev0` editable-installed from `/home/sjnewhouse/github_private/aa-ma-forge/packages/codemem-mcp`, but the current working directory is `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge/`.
+- Effect: `from codemem.X import ...` in `tests/codemem/test_*.py` modules fails with `ModuleNotFoundError: No module named 'codemem'` — the install location is a different (possibly stale) clone of aa-ma-forge.
+- Scope: all tests/codemem/test_*.py modules except `test_bench_harness.py` (the only file in this suite that imports from `scripts/` via conftest, not from `codemem`).
+- **Confirmed pre-existing**, not caused by this plan: temporarily renaming `tests/codemem/conftest.py` → `.bak` and re-running `pytest tests/codemem/test_pagerank.py` produces the same `ModuleNotFoundError`. Conftest.py cannot cause this — it only adds `scripts/` to sys.path, never shadows `codemem`.
+- **Suggested fix (NOT APPLIED — out of scope for this plan):** `uv sync --reinstall-package codemem-mcp` from the current-working-dir aa-ma-forge copy. This rebinds the editable install to the correct path. Deferring to user — running `uv sync` has side effects beyond this fix (may pull other dep updates).
+- **Impact on this benchmark plan:** None. The benchmark harness does not import from `codemem` — it invokes `codemem` via `uv run codemem intel ...` (subprocess) per reference.md §API/CLI Endpoints. Subprocess invocation uses the project-venv's `codemem` console script which resolves correctly regardless of the import-path drift.
+
+**Artifacts:** `scripts/bench_codemem_vs_aider.py` (new, 75 LOC, committed in the 2026-04-20 Task 2.3 commit).
+
+---
+
 ## 2026-04-18 — Plan genesis
 
 This plan is a direct continuation of the DEFERRED codemem Task 4.2. The original deferral (2026-04-17) cited 3 unverified preconditions. Those are now verified via 3 parallel research agents dispatched during the Phase 3 of THIS plan's authoring — findings pinned in reference.md §Phase-3 Research Findings.

@@ -15,6 +15,7 @@ source = { editable = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "codemem-mcp" },
     { name = "hypothesis" },
     { name = "import-linter" },
     { name = "pytest" },
@@ -28,6 +29,7 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "codemem-mcp", editable = "packages/codemem-mcp" },
     { name = "hypothesis", specifier = ">=6.0" },
     { name = "import-linter", specifier = ">=2.0" },
     { name = "pytest", specifier = ">=8.0" },

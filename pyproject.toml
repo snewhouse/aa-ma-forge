@@ -29,6 +29,7 @@ dev-dependencies = [
     "python-semantic-release>=9.0",
     "ruff>=0.4",
     "tiktoken>=0.7",           # codemem-token-benchmarks M2: external tokenizer for cross-tool normalization
+    "codemem-mcp",             # OBS-001 fix (2026-04-20): workspace member must be an explicit dep for `uv sync` to install it into .venv. Resolved via [tool.uv.sources] codemem-mcp = { workspace = true }. Required so `uv run codemem intel ...` resolves (M3 prerequisite).
 ]
 
 [tool.uv.workspace]

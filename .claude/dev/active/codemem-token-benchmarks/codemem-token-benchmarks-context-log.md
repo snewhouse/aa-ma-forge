@@ -4,6 +4,37 @@ _This log captures architectural decisions, trade-offs, and unresolved issues._
 
 ---
 
+## 2026-04-20 — OBS-001 RESOLVED via AD-011
+
+**Resolution:** Added `"codemem-mcp"` to root `[tool.uv] dev-dependencies` in `pyproject.toml`. `uv sync` then installed the workspace member editably into `.venv` with the correct current-dir path.
+
+**Root cause (full picture after deep investigation):**
+- User moved the repo from `/home/sjnewhouse/github_private/aa-ma-forge/` to `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge/` (confirmed by user 2026-04-20).
+- The conda env `bio312_07_25` (always active in this WSL shell) had an editable install of `codemem-mcp` pinned at the old path, so `codemem` CLI stopped working once the old path was gone.
+- The project's `.venv` had NEVER installed `codemem-mcp` as a Python package — workspace declaration (`[tool.uv.workspace] members = [...]` + `[tool.uv.sources] codemem-mcp = { workspace = true }`) does NOT cause installation by itself; uv only installs it if it's a declared dep.
+- Yesterday's Task 1.2 AC#4 (`uv run codemem intel ...`) succeeded because PATH fell through to the conda env's binary while the old path still existed.
+
+**Decision AD-011 — Workspace member as explicit dev-dependency:**
+- **Rationale:** Workspace membership declaration alone does not trigger installation in `uv sync`. For `import codemem` and `uv run codemem` to work reliably from this project's `.venv`, `codemem-mcp` must be a real dep. Dev-dep is the correct category (it's a runtime tool for the benchmark, not a shipped library dep of `aa_ma`).
+- **Alternatives considered:**
+  - (a) Add to `[project.dependencies]` — would pollute the public `aa_ma` package's deps. Rejected.
+  - (b) Leave it implicit and rely on ambient installs — exactly the fragile state OBS-001 exposed. Rejected.
+  - (c) Run `uv pip install -e packages/codemem-mcp` manually — imperative, not captured in version control, re-breaks on `.venv` recreation. Rejected.
+- **Trade-off:** The workspace's `aa_ma` package now has a dev-dep on its own workspace sibling. Slightly circular-looking, but idiomatic for uv workspaces and is what the uv docs recommend for workspace members you want auto-installed.
+
+**Empirical verification (post-fix, 2026-04-20):**
+- `uv run python -c "import codemem; print(codemem.__file__)"` → `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge/packages/codemem-mcp/src/codemem/__init__.py` ✅
+- `uv run codemem intel --budget=1024 --out=/tmp/obs001-resolved.json` → "wrote 17 symbols (4003B)" — matches Phase-3 + yesterday's baseline exactly ✅
+- `.venv/bin/codemem` now exists (PATH resolution of `uv run codemem` hits .venv first, bypasses the broken conda-env binary) ✅
+- Full test suite: **370 passed, 1 skipped, 5 deselected** (was 24 collection errors before fix) ✅
+- New Task 2.2/2.3 tests: 13/13 still pass (no regression) ✅
+
+**Knock-on positive effect:** 370 previously-uncollectable codemem tests now run green. This is retroactive evidence that the codemem package itself is healthy — the only break was the env-linkage.
+
+**Impact on plan:** M3 prerequisite unblocked. No changes to M2 task structure. Plan proceeds at Task 2.4 (TDD RED for tiktoken normalization).
+
+---
+
 ## 2026-04-20 — Task 2.3 GREEN: parser implementation + env drift observation
 
 **Summary:** `parse_aider_output` implemented inline in `scripts/bench_codemem_vs_aider.py` (75 LOC total). All 13 Task 2.2 tests pass. Ruff clean. Two new decisions + one environmental observation logged below.

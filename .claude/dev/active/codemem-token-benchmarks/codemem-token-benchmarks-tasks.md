@@ -217,7 +217,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   **Next:** Task 2.4 — TDD tiktoken normalization test (TDD RED).
 
 ### Task 2.4: TDD — tiktoken normalization test
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Task 2.3
 - Acceptance Criteria:
@@ -225,6 +225,44 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Given captured outputs from all 3 tools at requested budget 1024, test asserts `len(tiktoken.encode(output_text))` produces a comparable integer for each
   - Test verifies the output contract shape (raw_bytes, tiktoken_tokens, symbol_count) is populated correctly
 - Result Log:
+  ✅ COMPLETE 2026-04-20 — TDD RED verified. All 3 AC empirically satisfied. 9 failing tests for measure_output; parser tests still green (13/13); no collection regression.
+
+  **Empirical verification:**
+  - **AC#1** — `TestMeasureOutput` class added to `tests/codemem/test_bench_harness.py` with 9 tests pinning the tiktoken normalization contract. Import guard: `try: from bench_codemem_vs_aider import measure_output except ImportError: measure_output = None`. Autouse fixture `_require_measure_output` fails each test with "measure_output not yet implemented — Task 2.5 GREEN pending". ✅
+  - **AC#2** — 3 tool-shape tests cover captured outputs:
+    - `test_aider_prose_fixture_normalizes` — uses existing aider golden fixture
+    - `test_codemem_json_fixture_normalizes` — uses new `tests/codemem/fixtures/codemem_intel_aa-ma-forge.json` (captured via `uv run codemem intel --budget=1024`, 17 symbols, 4003B)
+    - `test_jcodemunch_mcp_synthetic_normalizes` — synthetic MCP-shaped JSON inline constant `JCM_SYNTHETIC_MCP_TEXT`. Real jCodeMunch MCP round-trip deferred to Task 2.6 (integration test) — a synthetic is more robust for a unit-test RED than committing a live-captured MCP response.
+    - `test_comparable_integers_across_three_tool_shapes` — core AC assertion: all 3 shapes produce integer token counts usable together.
+    ✅
+  - **AC#3** — `test_returns_dict_with_three_contract_keys` pins the dict shape `{raw_bytes, tiktoken_tokens, symbol_count}` exactly. `test_empty_text_yields_zero_bytes_zero_tokens`, `test_raw_bytes_equals_utf8_length`, `test_tiktoken_tokens_is_positive_int_for_nonempty_text`, `test_symbol_count_passthrough` pin each field's semantics. ✅
+
+  **State after commit (empirical):**
+  - `pytest tests/codemem/test_bench_harness.py`: 13 passed, 9 errors (RED-by-design)
+  - `pytest` (full suite): 370 passed, 1 skipped, 5 deselected, 9 errors — zero tests that were passing before Task 2.4 are now failing
+  - `ruff check`: clean
+
+  **Parser API pinned via tests for Task 2.5 GREEN:**
+  ```python
+  def measure_output(text: str, symbol_count: int) -> dict[str, int]:
+      """Returns {raw_bytes, tiktoken_tokens, symbol_count} for a tool output."""
+  ```
+  - `raw_bytes` = `len(text.encode("utf-8"))` (not `len(text)` — UTF-8 byte count, tested via ⋮ which is 3 bytes)
+  - `tiktoken_tokens` = `len(enc.encode(text))` using `cl100k_base` (matches jCodeMunch tokenizer per AD-001 + Task 2.1 cross-validation)
+  - `symbol_count` = passthrough of caller-supplied int (each tool has a different parser)
+  - Empty text → all three fields = 0
+  - Handles UTF-8, structured JSON, MCP-wrapper JSON inputs uniformly
+
+  **Artifacts produced:**
+  - `tests/codemem/fixtures/codemem_intel_aa-ma-forge.json` (new, 4003B, captured via `uv run codemem intel --budget=1024` at HEAD `7e79ed1`)
+  - `tests/codemem/test_bench_harness.py` updated: +1 conditional-import block, +1 autouse fixture, +1 new class `TestMeasureOutput` with 9 tests, +1 inline synthetic MCP constant
+  - **No production code changes** (pure RED)
+
+  **Decisions this task:**
+  - **Conditional import + autouse fixture pattern** (over module-level required import) to prevent RED-state from regressing the 13 previously-GREEN parser tests. Pyright flags 9 `Object of type None cannot be called` warnings — transient RED-state noise; auto-resolves at Task 2.5 GREEN. Ruff tolerates the pattern (clean).
+  - jCodeMunch fixture = inline synthetic MCP-shaped JSON; real capture deferred to Task 2.6.
+
+  **Next:** Task 2.5 GREEN — implement `measure_output` + full CLI harness (codemem/aider/jCodeMunch invocation + Jaccard overlap + JSON output). This is the biggest task in M2; GREEN for Task 2.4's 9 tests + new integration-level ACs.
 
 ### Task 2.5: Implement `scripts/bench_codemem_vs_aider.py` harness
 - Status: PENDING

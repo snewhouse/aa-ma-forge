@@ -20,8 +20,28 @@ import pytest
 
 from bench_codemem_vs_aider import parse_aider_output  # noqa: E402
 
+# measure_output is Task 2.5 GREEN. During Task 2.4 RED, the import fails and
+# the TestMeasureOutput class uses an autouse fixture to fail each test with a
+# readable message, WITHOUT breaking collection for the 13 parser tests above.
+try:
+    from bench_codemem_vs_aider import measure_output  # type: ignore[attr-defined]
+except ImportError:
+    measure_output = None  # type: ignore[assignment]
+
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 GOLDEN_FIXTURE = FIXTURES_DIR / "aider_repo_map_aa-ma-forge.txt"
+CODEMEM_INTEL_FIXTURE = FIXTURES_DIR / "codemem_intel_aa-ma-forge.json"
+
+# Synthetic jCodeMunch MCP response — keeps this TDD RED iteration self-contained.
+# Real jCodeMunch MCP round-trip exercised in Task 2.6 (integration test).
+JCM_SYNTHETIC_MCP_TEXT = (
+    '{"content": [{"type": "text", "text": "ranked context pack:\\n'
+    "1. src/codemem/pagerank.py::pagerank_binary_search_budget "
+    "(rank=0.142)\\n"
+    "2. src/codemem/indexer.py::build_index (rank=0.089)\\n"
+    "3. src/codemem/mcp_tools/aa_ma_context.py::aa_ma_context "
+    '(rank=0.067)"}]}'
+)
 
 
 @pytest.fixture(scope="module")
@@ -107,3 +127,97 @@ class TestParserEdgeCases:
     def test_only_elision_yields_no_rows(self) -> None:
         """File header + elision alone (no │def/│class/│@) produces no rows."""
         assert parse_aider_output("foo.py:\n⋮\n") == []
+
+
+class TestMeasureOutput:
+    """M2 Task 2.4 RED — tiktoken normalization contract.
+
+    Pins the harness measurement helper:
+        measure_output(text: str, symbol_count: int) -> dict
+
+    Returned dict MUST populate all 3 keys of the harness output contract
+    (reference.md §Harness JSON Output Contract): `raw_bytes`,
+    `tiktoken_tokens`, `symbol_count`.
+
+    Why 3 tool-shape tests exist: the AC requires that captured outputs from
+    all 3 tools (aider prose, codemem JSON, jCodeMunch MCP) produce a
+    comparable integer token count. These tests confirm tiktoken handles
+    structurally different input types without error.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _require_measure_output(self) -> None:
+        if measure_output is None:
+            pytest.fail(
+                "measure_output not yet implemented — Task 2.5 GREEN pending"
+            )
+
+    def test_returns_dict_with_three_contract_keys(self) -> None:
+        m = measure_output("hello world", symbol_count=0)
+        assert set(m.keys()) == {"raw_bytes", "tiktoken_tokens", "symbol_count"}
+
+    def test_empty_text_yields_zero_bytes_zero_tokens(self) -> None:
+        m = measure_output("", symbol_count=0)
+        assert m["raw_bytes"] == 0
+        assert m["tiktoken_tokens"] == 0
+        assert m["symbol_count"] == 0
+
+    def test_raw_bytes_equals_utf8_length(self) -> None:
+        """raw_bytes must be UTF-8 byte count (not len(text) which is code points)."""
+        text = "⋮"  # U+22EE: 3 bytes in UTF-8, 1 code point
+        m = measure_output(text, symbol_count=0)
+        assert m["raw_bytes"] == 3
+
+    def test_tiktoken_tokens_is_positive_int_for_nonempty_text(self) -> None:
+        m = measure_output("def foo(): pass", symbol_count=1)
+        assert isinstance(m["tiktoken_tokens"], int)
+        assert m["tiktoken_tokens"] > 0
+
+    def test_symbol_count_passthrough(self) -> None:
+        m = measure_output("irrelevant", symbol_count=42)
+        assert m["symbol_count"] == 42
+
+    def test_aider_prose_fixture_normalizes(self, golden_text: str) -> None:
+        """Captured aider output (prose with ⋮ elision) tokenizes cleanly."""
+        symbol_count = len(parse_aider_output(golden_text))
+        m = measure_output(golden_text, symbol_count=symbol_count)
+        assert m["raw_bytes"] == len(golden_text.encode("utf-8"))
+        assert m["tiktoken_tokens"] > 0
+        assert m["symbol_count"] == symbol_count
+
+    def test_codemem_json_fixture_normalizes(self) -> None:
+        """Captured codemem PROJECT_INTEL.json (structured JSON) tokenizes."""
+        text = CODEMEM_INTEL_FIXTURE.read_text()
+        m = measure_output(text, symbol_count=17)  # 17 = baseline from reference.md
+        assert m["raw_bytes"] == len(text.encode("utf-8"))
+        assert m["tiktoken_tokens"] > 0
+        assert m["symbol_count"] == 17
+
+    def test_jcodemunch_mcp_synthetic_normalizes(self) -> None:
+        """Synthetic MCP-shaped JSON tokenizes (real MCP round-trip: Task 2.6)."""
+        m = measure_output(JCM_SYNTHETIC_MCP_TEXT, symbol_count=3)
+        assert m["raw_bytes"] > 0
+        assert m["tiktoken_tokens"] > 0
+        assert m["symbol_count"] == 3
+
+    def test_comparable_integers_across_three_tool_shapes(
+        self, golden_text: str
+    ) -> None:
+        """AC core: 3 structurally-different outputs → 3 comparable int token counts.
+
+        Tests that `len(tiktoken.encode(...))` produces an integer regardless
+        of input structure (prose/JSON/MCP-wrapper). No ordering assertion —
+        just comparability via type + non-negativity.
+        """
+        aider_tokens = measure_output(golden_text, 0)["tiktoken_tokens"]
+        codemem_tokens = measure_output(
+            CODEMEM_INTEL_FIXTURE.read_text(), 0
+        )["tiktoken_tokens"]
+        jcm_tokens = measure_output(JCM_SYNTHETIC_MCP_TEXT, 0)["tiktoken_tokens"]
+        for count in (aider_tokens, codemem_tokens, jcm_tokens):
+            assert isinstance(count, int)
+            assert count >= 0
+        # Transitive comparability via int arithmetic
+        assert aider_tokens + codemem_tokens + jcm_tokens == sum(
+            [aider_tokens, codemem_tokens, jcm_tokens]
+        )

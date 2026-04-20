@@ -561,7 +561,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Commit pushed; CI green
 
 ### Task 4.1: Draft docs/benchmarks/codemem-vs-aider.md
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Milestone 3
 - Acceptance Criteria:
@@ -570,9 +570,31 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - User reviews wording, revision cycle applied until stephen-newhouse-voice approval
   - Committed `docs/benchmarks/results-codemem-vs-aider-2026-04-18.json` alongside
 - Result Log:
+  ✅ COMPLETE 2026-04-20 — all 4 AC satisfied. HITL-approved at first preview ("Approve as-is, proceed to Task 4.2").
+
+  **Empirical verification:**
+  - **AC#1** — Draft at `docs/benchmarks/codemem-vs-aider.md` (249 lines, 2071 words). Structure: Title + intro → Tokeniser-mismatch caveat (PROMINENT, top of doc) → Methodology → Results (3 subsections: aa-ma-forge table, fastapi table, top-symbol overlap table) → Per-signal verdict (Signal A size, Signal B coverage, Signal C qualitative) → Implications for kill-criteria Signal 2 → Reproducibility → Known gaps. All four AC-mandated structural elements present. ✅
+  - **AC#2** — 15-min sanity pass executed via inline Python over both `/tmp/bench-*.json` files before drafting. Output pinned: 24 cells (16 ok + 8 skipped), tokens-per-symbol computed, overshoot-vs-requested computed, Jaccard values verified against tasks.md records from Tasks 3.2 and 3.3. Zero data discrepancies. ✅
+  - **AC#3** — stephen-newhouse-voice skill loaded. Voice pass automated via grep over draft: zero em dashes, zero AI vocabulary (crucial/delve/leverage/landscape/tapestry/enhance/pivotal/testament/holistic), zero US-English slips (analyze/optimize/color/center/behavior/specialized/recognize), straight ASCII apostrophes only, sentence-case headings throughout. HITL-approved at first preview. ✅
+  - **AC#4** — `docs/benchmarks/results-codemem-vs-aider-2026-04-18.json` written (7929 bytes) — combined raw-data artefact containing both sweep outputs under `{repos: {aa-ma-forge, fastapi}}` plus `_meta` block with plan ID, measurement date, tool versions, tokeniser, runs-per-cell, and notes on AD-012 + OBS-002. Filename preserves plan-artefact date (2026-04-18) for traceability; actual measurement date (2026-04-20) recorded in `_meta.measured_date`. ✅ (will be committed in Task 4.3)
+
+  **Headline findings (as written in the report):**
+  - Tokeniser-mismatch invariant empirically confirmed at scale: codemem under-reports by 6-26%, Aider over-reports by 93-132% vs cl100k_base.
+  - Signal A (size): Aider 1.2-2.4× more token-efficient per symbol. Gap narrows on larger repo (fastapi 1.2×) vs small (aa-ma-forge 2.4×).
+  - Signal B (coverage): Jaccard overlap low (5-25% on aa-ma-forge, 7-16% on fastapi). Both tools claim PageRank but select largely different top-N symbols.
+  - Signal C (qualitative): outputs are not substitutes — codemem=structured JSON for programmatic use; Aider=prose for LLM prompt injection.
+  - Kill-criteria Signal 2 verdict: PROVISIONAL DID-NOT-TRIGGER preserved (conjunct (a) 0.73× holds; conjunct (b) fails on both repos but cannot fire AND composite alone). Conjunct (b) failure recorded as risk-signal with two-fold root cause (proxy under-reporting + format overhead).
+
+  **Artefacts produced:**
+  - `docs/benchmarks/codemem-vs-aider.md` (new, 249 lines)
+  - `docs/benchmarks/results-codemem-vs-aider-2026-04-18.json` (new, 7929 bytes — combined raw data)
+
+  **Decisions this task:** No new architectural decisions. Applied existing AD-001 (tiktoken normalisation), AD-002 (size+coverage scope), AD-012 (jCodeMunch stubbed). Follows plan §Task 4.2 case (b) framing: "codemem loses to Aider at equal budget — Aider sub-claim fails on small repo, noted as risk-signal to monitor".
+
+  **Next:** Task 4.2 — update docs/codemem/kill-criteria.md Signal 2 status line.
 
 ### Task 4.2: Update docs/codemem/kill-criteria.md Signal 2 (M1 architectural kill) status line
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Task 4.1
 - Acceptance Criteria:
@@ -583,6 +605,23 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
     - Case (c) ambiguous → "provisional — see benchmark §X for discussion"
   - If codemem loses Aider sub-comparison: risk-signal (not kill) recorded in context-log.md with root-cause pointer — Signal 2 composite remains PROVISIONAL DID-NOT-TRIGGER (small repo only; medium+large still pending per kill-criteria.md status)
 - Result Log:
+  ✅ COMPLETE 2026-04-20 — all 3 AC satisfied. HITL-approved ("Approve as-is, proceed to Task 4.3 commit"). Benchmark outcome matches plan §Task 4.2 case (b): Aider sub-claim fails → risk-signal (not kill) recorded.
+
+  **Empirical verification:**
+  - **AC#1** — Signal 2 status line in `docs/codemem/kill-criteria.md` rewritten. Old single-paragraph status with the 2026-04-17 "Aider token-efficiency comparison is deferred post-M4-ship" clause replaced by four structured paragraphs: top-level verdict, conjunct (a) wall-clock, conjunct (b) token-efficiency, composite verdict. The 0.73× wall-clock measurement preserved verbatim from conjunct (a). Header "Latest update" date bumped 2026-04-17 → 2026-04-20 with plan attribution. ✅
+  - **AC#2** — Actual measurement corresponds to plan case **(b) codemem loses to Aider at equal budget**: status reflects "FAILS on both repos exercised to date" for conjunct (b), with specific tokens-per-symbol numbers (72.8 vs 30.0 on aa-ma-forge; 57.5 vs 47.3 on fastapi) and cross-references to the benchmark report. Composite verdict line explicitly preserves PROVISIONAL DID-NOT-TRIGGER because conjunct (a) alone holds. The tasks.md AC wording about "codemem ≤ 1.5×" / "codemem > 1.5×" cases refers to wall-clock conjunct (a) which was not the axis this benchmark measured; applied plan.md §Task 4.2 framing instead (Aider-sub-claim sub-cases a/b/c). ✅
+  - **AC#3** — Risk-signal entry written to `codemem-token-benchmarks-context-log.md` under heading `## 2026-04-20 — RISK-SIGNAL (not kill): Signal 2 conjunct (b) fails on both repos`. Classification: RISK-SIGNAL not KILL. Composite verdict preserved as PROVISIONAL DID-NOT-TRIGGER. Two-fold root-cause pointer included: (1) tokeniser-proxy under-reporting, (2) structured-metadata format overhead. Monitoring action documented. Linked pointers into `docs/benchmarks/codemem-vs-aider.md` §"Implications for kill-criteria Signal 2" for the full root-cause analysis. ✅
+
+  **Voice-pass on new content:**
+  - Applied stephen-newhouse-voice skill to new Signal 2 text and context-log entry. New authored content is em-dash-free (grep confirmed); UK English spelling ("tokeniser"); sentence-case bolds; straight ASCII apostrophes. Pre-existing em dashes elsewhere in `docs/codemem/kill-criteria.md` (Signals 1, 3, 4, 5; methodology section) left untouched as out-of-scope for Task 4.2 (scope is Signal 2 status line only).
+
+  **Artefacts modified:**
+  - `docs/codemem/kill-criteria.md` — Signal 2 status line rewritten (~5 lines replaced with ~7 lines); header `Latest update` date bumped.
+  - `codemem-token-benchmarks-context-log.md` — new top-level heading for risk-signal classification (~25 lines added).
+
+  **Decisions this task:** No new architectural decisions. Applied plan.md §Task 4.2 case (b) framing verbatim. Scope discipline: edited only Signal 2 status line in kill-criteria.md; did not fix pre-existing voice issues (em dashes) in other signals to avoid scope creep.
+
+  **Next:** Task 4.3 — pre-commit sanity (pytest/ruff/import-linter), commit with AA-MA signature, push, verify CI green.
 
 ### Task 4.3: Commit with AA-MA signature
 - Status: PENDING

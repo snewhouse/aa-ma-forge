@@ -2,7 +2,7 @@
 
 Measurable, time-boxed signals that would cause us to abandon or pivot codemem. Public and honest — if any of these fires, we'll say so here rather than quietly walking away from the project.
 
-The thresholds are taken verbatim from the plan document's §12, which came out of the CEO-review step of AA-MA planning (Phase 4.2a). Status lines are added here as milestones close. Latest update: 2026-04-17.
+The thresholds are taken verbatim from the plan document's §12, which came out of the CEO-review step of AA-MA planning (Phase 4.2a). Status lines are added here as milestones close. Latest update: 2026-04-20 (Signal 2 Aider sub-claim folded in from the `codemem-token-benchmarks` plan).
 
 ## The 5 signals
 
@@ -24,7 +24,13 @@ The thresholds are taken verbatim from the plan document's §12, which came out 
 
 **Why:** The core speed-plus-efficiency claim is what justifies the schema complexity. Without it, the extra engineering isn't earning its keep.
 
-**Status (2026-04-17):** Did NOT trigger on the small reference repo (aa-ma-forge). Cold build measured at **0.73× `/index` wall-clock** — 27% faster, well inside the 1.5× ceiling. Full numbers in [`docs/benchmarks/codemem-vs-index.md`](../benchmarks/codemem-vs-index.md). Medium-repo and 50k-LOC benchmarks are pending user-provided reference repos; the reusable bench script is at [`scripts/bench_codemem.py`](../../scripts/bench_codemem.py). The Aider token-efficiency comparison is deferred post-M4-ship (Task 4.2) pending research into output-format comparability across Aider / codemem / jCodeMunch — the three tools rank symbols with different algorithms, so "equal budget" doesn't mean "comparable result sets" without harness work first.
+**Status (2026-04-20):** Composite verdict remains **PROVISIONAL DID-NOT-TRIGGER**. Updated 2026-04-20 to fold in the Aider token-efficiency benchmark (plan `codemem-token-benchmarks`, Task 4.2).
+
+**Conjunct (a), `codemem build` wall-clock:** cleared on the small reference repo (aa-ma-forge) at **0.73× `/index` wall-clock**, 27% faster and well inside the 1.5× ceiling. Full numbers in [`docs/benchmarks/codemem-vs-index.md`](../benchmarks/codemem-vs-index.md). Medium-repo and 50k-LOC wall-clock benchmarks are pending user-provided reference repos; the reusable bench script is at [`scripts/bench_codemem.py`](../../scripts/bench_codemem.py).
+
+**Conjunct (b), Aider token-efficiency:** **FAILS on both repos exercised to date**. Measured 2026-04-20 on aa-ma-forge (small reference repo) and `tiangolo/fastapi` 0.136.0 (secondary reference, not the user-to-provide medium repo that the kill-criteria matrix specifies). In `cl100k_base` tokens, Aider is 2.4× more token-efficient per symbol on aa-ma-forge (codemem 72.8 tok/sym vs Aider 30.0) and 1.2× more efficient on fastapi (codemem 57.5 vs Aider 47.3). Full methodology, tables across four budgets `{512, 1024, 2048, 4096}`, and root-cause analysis in [`docs/benchmarks/codemem-vs-aider.md`](../benchmarks/codemem-vs-aider.md).
+
+**Composite verdict:** The AND composite does not fire, because conjunct (a) holds on the only repo where it has been measured and a single-conjunct failure cannot trigger an AND. Conjunct (b)'s failure is recorded as a **risk-signal to monitor**, not a kill. The benchmark's "Implications for kill-criteria Signal 2" section identifies a two-fold root cause: (1) codemem's 4-chars-per-token proxy under-reports its own token use by ~20% versus `cl100k_base`, and (2) codemem's structured per-entry metadata (SCIP ID, file, line, kind, rank) is genuinely more verbose than Aider's signature-line format. Neither root cause demands an architectural rewrite of the SQLite-canonical bet, which is the failure mode Signal 2 was designed to detect. Medium-repo and 50k-LOC wall-clock measurements remain the gate on flipping the composite from PROVISIONAL to PINNED.
 
 ### 3. M3 headline-tool kill
 

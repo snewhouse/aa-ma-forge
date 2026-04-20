@@ -1,0 +1,288 @@
+{
+  "_meta": {
+    "plan_id": "codemem-token-benchmarks",
+    "plan_artefact_date": "2026-04-18",
+    "measured_date": "2026-04-20",
+    "branch": "expt/code_mem_store_what",
+    "harness_version": {
+      "bench_codemem_vs_aider.py": "M2.5 GREEN",
+      "bench_sweep.py": "M3.1 with AD-006 median-of-3 aggregator"
+    },
+    "tool_versions": {
+      "aider-chat": "0.86.2",
+      "jcodemunch-mcp": "1.59.1 (stubbed per AD-012)",
+      "tiktoken": "0.12.0"
+    },
+    "tokenizer": "cl100k_base",
+    "runs_per_cell": 3,
+    "budgets": [
+      512,
+      1024,
+      2048,
+      4096
+    ],
+    "notes": [
+      "jCodeMunch cells are stubbed (status=skipped) per AD-012: get_ranked_context is MCP-protocol only; live round-trip deferred.",
+      "codemem for /tmp/bench-fastapi required one-off 'codemem build' inside the clone (OBS-002) before sweep execution.",
+      "Median-of-3 protocol absorbs aider non-determinism at budget=4096 (AD-006)."
+    ]
+  },
+  "repos": {
+    "aa-ma-forge": {
+      "repo": "/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge",
+      "pinned_sha": "c24d665174cf3c2c93e5f7e6404ceab9eab2f121",
+      "runs_per_cell": 3,
+      "budgets": [
+        512,
+        1024,
+        2048,
+        4096
+      ],
+      "tokenizer": "cl100k_base",
+      "measurements": {
+        "budget_512": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 1933,
+            "tiktoken_tokens": 591,
+            "symbol_count": 8,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 3644,
+            "tiktoken_tokens": 1097,
+            "symbol_count": 38,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "skipped",
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        },
+        "budget_1024": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 4003,
+            "tiktoken_tokens": 1239,
+            "symbol_count": 17,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 6509,
+            "tiktoken_tokens": 1995,
+            "symbol_count": 67,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "skipped",
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        },
+        "budget_2048": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 8016,
+            "tiktoken_tokens": 2513,
+            "symbol_count": 35,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 12659,
+            "tiktoken_tokens": 3950,
+            "symbol_count": 132,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "skipped",
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        },
+        "budget_4096": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 16333,
+            "tiktoken_tokens": 5168,
+            "symbol_count": 72,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 27973,
+            "tiktoken_tokens": 8408,
+            "symbol_count": 268,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "skipped",
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        }
+      },
+      "overlap": {
+        "budget_512": {
+          "codemem_vs_aider": 0.047619047619047616,
+          "codemem_vs_jcodemunch": 0.0,
+          "aider_vs_jcodemunch": 0.0
+        },
+        "budget_1024": {
+          "codemem_vs_aider": 0.125,
+          "codemem_vs_jcodemunch": 0.0,
+          "aider_vs_jcodemunch": 0.0
+        },
+        "budget_2048": {
+          "codemem_vs_aider": 0.17142857142857143,
+          "codemem_vs_jcodemunch": 0.0,
+          "aider_vs_jcodemunch": 0.0
+        },
+        "budget_4096": {
+          "codemem_vs_aider": 0.2528301886792453,
+          "codemem_vs_jcodemunch": 0.0,
+          "aider_vs_jcodemunch": 0.0
+        }
+      }
+    },
+    "fastapi": {
+      "repo": "/tmp/bench-fastapi",
+      "pinned_sha": "708606c982cf35718cb2214c0bb9261cf548f042",
+      "runs_per_cell": 3,
+      "budgets": [
+        512,
+        1024,
+        2048,
+        4096
+      ],
+      "tokenizer": "cl100k_base",
+      "measurements": {
+        "budget_512": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 1856,
+            "tiktoken_tokens": 544,
+            "symbol_count": 9,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 4311,
+            "tiktoken_tokens": 1136,
+            "symbol_count": 24,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "skipped",
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        },
+        "budget_1024": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 4032,
+            "tiktoken_tokens": 1208,
+            "symbol_count": 21,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 8285,
+            "tiktoken_tokens": 2167,
+            "symbol_count": 48,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "skipped",
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        },
+        "budget_2048": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 8116,
+            "tiktoken_tokens": 2389,
+            "symbol_count": 42,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 18332,
+            "tiktoken_tokens": 4742,
+            "symbol_count": 98,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "skipped",
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        },
+        "budget_4096": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 16232,
+            "tiktoken_tokens": 4853,
+            "symbol_count": 88,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 33893,
+            "tiktoken_tokens": 8634,
+            "symbol_count": 178,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "skipped",
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        }
+      },
+      "overlap": {
+        "budget_512": {
+          "codemem_vs_aider": 0.06896551724137931,
+          "codemem_vs_jcodemunch": 0.0,
+          "aider_vs_jcodemunch": 0.0
+        },
+        "budget_1024": {
+          "codemem_vs_aider": 0.13333333333333333,
+          "codemem_vs_jcodemunch": 0.0,
+          "aider_vs_jcodemunch": 0.0
+        },
+        "budget_2048": {
+          "codemem_vs_aider": 0.12396694214876033,
+          "codemem_vs_jcodemunch": 0.0,
+          "aider_vs_jcodemunch": 0.0
+        },
+        "budget_4096": {
+          "codemem_vs_aider": 0.15706806282722513,
+          "codemem_vs_jcodemunch": 0.0,
+          "aider_vs_jcodemunch": 0.0
+        }
+      }
+    }
+  }
+}

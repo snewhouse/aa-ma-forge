@@ -4,6 +4,34 @@ _This log captures architectural decisions, trade-offs, and unresolved issues._
 
 ---
 
+## 2026-04-20 — RISK-SIGNAL (not kill): Signal 2 conjunct (b) fails on both repos
+
+**Event:** The Aider token-efficiency benchmark (plan Task 4.2) has measured conjunct (b) of kill-criteria Signal 2 ("`PROJECT_INTEL.json` at `--budget=1024` fails to beat Aider's repo-map token efficiency at the same budget") and **conjunct (b) fails** on both reference repos exercised: aa-ma-forge and `tiangolo/fastapi` 0.136.0.
+
+**Numbers (in `cl100k_base` tokens, tokens-per-symbol lower is better):**
+- aa-ma-forge: codemem 72.8 tok/sym vs Aider 30.0. Aider **2.4×** more token-efficient per symbol.
+- fastapi: codemem 57.5 tok/sym vs Aider 47.3. Aider **1.2×** more token-efficient per symbol.
+
+Full tables and methodology: [`docs/benchmarks/codemem-vs-aider.md`](../../../docs/benchmarks/codemem-vs-aider.md).
+
+**Classification: RISK-SIGNAL, NOT KILL.** The composite AND verdict for Signal 2 remains **PROVISIONAL DID-NOT-TRIGGER** because conjunct (a) (`codemem build` > 1.5× `/index` wall-clock) still holds at 0.73× on aa-ma-forge and a single-conjunct failure cannot trigger an AND composite. Medium-repo and 50k-LOC wall-clock measurements remain the gate on flipping the composite from PROVISIONAL to PINNED.
+
+**Root cause pointer:** the benchmark report's ["Implications for kill-criteria Signal 2"](../../../docs/benchmarks/codemem-vs-aider.md#implications-for-kill-criteria-signal-2) section identifies a two-fold root cause:
+
+1. **Tokeniser proxy under-reporting.** codemem's `pagerank.py` budget loop measures content in 4-chars-per-token, which systematically under-reports actual `cl100k_base` tokens by 6-26% across the sweep. Switching to a `cl100k_base` counter inside the budget loop would yield honest per-symbol budgets but would not, on its own, close the 2.4× per-symbol gap on the small repo.
+2. **Structured-metadata format overhead.** codemem's per-entry payload (SCIP ID + file + line + kind + rank) is genuinely more verbose than Aider's signature-line format. This is a design trade: codemem's output is structured for programmatic consumption; Aider's is shaped for LLM prompt injection. A condensed codemem output mode (e.g. `file:line name`) specifically for prompt-injection callers would close most of the gap without touching the core architecture.
+
+**Why this is not a kill:** Signal 2 was designed to detect failure of the **SQLite-canonical architectural bet** (is the schema complexity earning its keep on speed + efficiency?). The two root causes identified above are (1) a tokeniser-accounting bug and (2) an output-format choice for a specific consumer. Neither demands an architectural rewrite. The SQLite-canonical bet remains defensible on the wall-clock conjunct and the qualitative split (codemem serves a programmatic-consumption niche Aider does not).
+
+**Monitoring action:** medium-repo and 50k-LOC wall-clock measurements are the decisive data that would flip Signal 2 to PINNED (either DID-NOT-TRIGGER or FIRED). Until then, conjunct (b)'s failure is a live risk flag on future planning: any work that adds per-entry metadata to `PROJECT_INTEL.json` should weigh the tokens/symbol cost against the programmatic-consumption benefit.
+
+**Artefacts:**
+- `docs/benchmarks/codemem-vs-aider.md` (new, 249 lines, the report itself)
+- `docs/benchmarks/results-codemem-vs-aider-2026-04-18.json` (new, combined raw data)
+- `docs/codemem/kill-criteria.md` (Signal 2 status line rewritten; header date bumped)
+
+---
+
 ## 2026-04-20 Milestone Completion: M3 Execute
 
 - **Status:** COMPLETE (SOFT gate)

@@ -1,0 +1,6 @@
+# codemem-benchmark-fairness-v2 Provenance Log
+
+2026-04-20T10:00:00+01:00 PLAN CREATED: codemem-benchmark-fairness-v2, derived from /grill-me adversarial review of v1 codemem-token-benchmarks (completed 2026-04-20 at commit 7a335fc). 6 milestones (M1 proxy fix, M2a/b/c harness expansion for 5-tool panel, M3 report + Signal 2 re-baseline, M4 finalisation + archive v1). Complexity 55% overall, max 60% at M2a. No deep-review gate (under 80%). Branch: expt/code_mem_store_what.
+2026-04-20T10:00:01+01:00 Scribe-agent materialised 5 AA-MA artefacts from /home/sjnewhouse/.claude/plans/ultrathink-and-grill-me-did-zazzy-creek.md
+2026-04-20T10:00:02+01:00 Status: READY FOR EXECUTION, next action: M1 proxy fix (0.5d, AFK)
+2026-04-20T10:15:00+01:00 Scribe-remediation pass: applied Gate 4 fixes (voice gate em-dash strip + step-count footer 23->30 + plan.md "6 HITL"->"2 HITL")

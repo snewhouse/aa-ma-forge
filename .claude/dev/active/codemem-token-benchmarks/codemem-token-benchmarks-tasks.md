@@ -103,7 +103,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 ---
 
 ## Milestone 2: Harness + Parser (TDD)
-- Status: PENDING
+- Status: ACTIVE
 - Mode: AFK
 - Gate: SOFT
 - Dependencies: Milestone 1
@@ -139,7 +139,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   **Decisions:** None new. Used AD-001 (external tiktoken normalization).
 
 ### Task 2.2: TDD — write parser unit tests with golden Aider fixture
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Task 2.1
 - Acceptance Criteria:
@@ -148,6 +148,34 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Tests assert parser extracts `(file, symbol_name, kind)` rows from golden fixture
   - Test file follows project pytest conventions
 - Result Log:
+  ✅ COMPLETE 2026-04-20 — TDD RED verified. All 4 AC empirically satisfied. 12 failing tests collected; parser module intentionally absent.
+
+  **Empirical verification:**
+  - **AC#1** — `tests/codemem/fixtures/aider_repo_map_aa-ma-forge.txt` captured live via `aider --show-repo-map --map-tokens 1024` at aa-ma-forge HEAD `af10ec6` (aider 0.86.2). 257 lines (within Phase-3 drift tolerance of 253±15). Empirical counts: 59 symbol lines (│def/│class/│@), 78 elision markers (⋮), 22 naive "line ends with :" candidates (including 1 known wrapped-signature continuation `dict:` on line 18 — see AC#3 regression guard). ✅
+  - **AC#2** — `tests/codemem/test_bench_harness.py` created (12 tests across 3 classes). `uv run pytest tests/codemem/test_bench_harness.py -v` returns: `ModuleNotFoundError: No module named 'bench_codemem_vs_aider'` → 1 collection error, 0 tests passing. Correct RED: fails because production code (Task 2.3) doesn't exist, not because of typo / import-path bug. ✅
+  - **AC#3** — Tests assert `(file, symbol_name, kind)` extraction: `TestParserBehavior.test_row_shape_is_3_tuple`, `test_all_fields_are_nonempty_strings`, `test_extracts_def_kind`, `test_extracts_class_kind`, `test_elision_marker_absent_from_names`, `test_file_fields_look_path_like` (trap guard against line-18-`dict:`-continuation), `test_no_preamble_leakage` (guards against Aider CLI metadata lines 1-10 leaking as symbols). ✅
+  - **AC#4** — Test file follows project pytest conventions: module docstring, `from __future__ import annotations`, class-grouped `TestParserSurface` / `TestParserBehavior` / `TestParserEdgeCases`, module-scoped `golden_text` fixture. Pattern-matches `tests/codemem/test_ast_grep_parser.py`. ✅
+
+  **Artifacts produced:**
+  - `tests/codemem/fixtures/aider_repo_map_aa-ma-forge.txt` (committed, 257 lines)
+  - `tests/codemem/test_bench_harness.py` (12 failing tests)
+  - `tests/codemem/conftest.py` (1-line-of-logic sys.path injection, AD-005-compliant — parser stays inline in scripts/ per AD-005, not hoisted to a package)
+
+  **Parser API designed via failing tests (API contract for Task 2.3 GREEN):**
+  ```python
+  def parse_aider_output(text: str) -> list[tuple[str, str, str]]:
+      """Returns list of (file, symbol_name, kind) tuples. Empty input → []."""
+  ```
+  - `kind` ∈ {`"def"`, `"class"`, ...} — fixture shows def/class; edge-case tests don't yet pin decorator kind string (Task 2.3 free to choose `"@"` or `"decorator"`; tests don't constrain).
+  - Elision `⋮` never appears in symbol names
+  - Preamble (Using/Aider/Model/Git/Repo-map) never leaks as rows
+  - Wrapped-signature continuations (e.g., `dict:`) never mistaken as file headers
+
+  **Decisions this task:**
+  - **AD-009:** `scripts/` imported in tests via a scoped `tests/codemem/conftest.py` that adds `scripts/` to `sys.path`. Rationale: AD-005 requires parser inline in `scripts/bench_codemem_vs_aider.py` (not a package), but tests must still import it. Conftest is test infra, not production code — TDD-compliant. Alternatives rejected: (a) convert `scripts/` to a package — scope creep; (b) `importlib.util` boilerplate per-test — DRY violation; (c) hoist parser into a real package under `packages/codemem-mcp/src/codemem/parsers/` — contradicts AD-005.
+  - **No new facts for reference.md** — fixture HEAD SHA (`af10ec6`) and fixture line count (257) are task-local anchors; they're in tasks.md Result Log where they belong.
+
+  **TDD RED gate: verified.** Ready for Task 2.3 GREEN.
 
 ### Task 2.3: GREEN — implement Aider parser (inline unless > 100 LOC)
 - Status: PENDING

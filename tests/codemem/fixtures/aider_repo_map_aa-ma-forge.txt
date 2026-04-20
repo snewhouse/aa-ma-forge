@@ -1,0 +1,257 @@
+────────────────────────────────────────────────────────────────────────────────
+Using openrouter/deepseek/deepseek-r1:free model with API key from environment.
+Aider v0.86.2
+Model: openrouter/deepseek/deepseek-r1:free with diff edit format, prompt cache,
+infinite output
+Git repo: .git with 208 files
+Repo-map: using 1024 tokens, auto refresh
+Here are summaries of some files present in my git repository.
+Do not propose changes to these files, treat them as *read-only*.
+If you need to edit any of these files, ask me to *add them to the chat* first.
+
+claude-code/codemem/mcp/server.py:
+⋮
+│def build_server() -> FastMCP:
+│    """Construct a FastMCP server with the M1 tools + aliases registered."""
+⋮
+│    def blast_radius(name: str, max_depth: int = 3, budget: int = 8_000) -> 
+dict:
+⋮
+│    def hot_spots(
+│        window_days: int = 90, top_n: int = 10, budget: int = 8_000
+⋮
+
+packages/codemem-mcp/src/codemem/aa_ma_integration.py:
+⋮
+│def aa_ma_context_available() -> bool:
+⋮
+
+packages/codemem-mcp/src/codemem/analysis/git_mining.py:
+⋮
+│class GitMiner:
+⋮
+
+packages/codemem-mcp/src/codemem/diff/symbol_diff.py:
+⋮
+│@dataclass
+│class SymbolChange:
+⋮
+│@dataclass
+│class DiffResult:
+⋮
+│def diff_symbols(
+│    old: list[Symbol],
+│    new: list[Symbol],
+│    *,
+│    rename_threshold: float = DEFAULT_RENAME_THRESHOLD,
+│    detect_renames: bool = True,
+⋮
+
+packages/codemem-mcp/src/codemem/incremental.py:
+⋮
+│def refresh_index(
+│    repo_root: Path,
+│    db_path: Path,
+│    *,
+│    package: str = ".",
+⋮
+
+packages/codemem-mcp/src/codemem/indexer.py:
+⋮
+│def discover_files(repo_root: Path) -> list[Path]:
+⋮
+│def build_index(
+│    repo_root: Path,
+│    db_path: Path,
+│    *,
+│    package: str = ".",
+│    wal_path: Path | None = None,
+⋮
+
+packages/codemem-mcp/src/codemem/journal/lock.py:
+⋮
+│@contextmanager
+│def acquire_writer_lock(path: Path) -> Iterator[bool]:
+⋮
+│def _try_lock(fd: int) -> bool:
+⋮
+│def _try_lock_posix(fd: int) -> bool:
+⋮
+│def _unlock_posix(fd: int) -> None:
+⋮
+│def _try_lock_windows(fd: int) -> bool:  # pragma: no cover — POSIX CI
+⋮
+│def _unlock_windows(fd: int) -> None:  # pragma: no cover — POSIX CI
+⋮
+
+packages/codemem-mcp/src/codemem/journal/wal.py:
+⋮
+│class ReplayConflict(RuntimeError):
+⋮
+│def append_ack(wal_path: Path, entry_id: str) -> None:
+⋮
+│def read_entries(wal_path: Path) -> Iterator[dict]:
+⋮
+│def read_acked_ids(wal_path: Path) -> set[str]:
+⋮
+
+packages/codemem-mcp/src/codemem/mcp_tools/__init__.py:
+⋮
+│def blast_radius(
+│    db_path: Path,
+│    name: str,
+│    *,
+│    max_depth: int = 3,
+│    budget: int = _DEFAULT_BUDGET,
+⋮
+│def hot_spots(
+│    db_path: Path,
+│    *,
+│    window_days: int = 90,
+│    top_n: int = 10,
+│    budget: int = _DEFAULT_BUDGET,
+│    now: float | None = None,
+⋮
+
+packages/codemem-mcp/src/codemem/mcp_tools/sanitizers.py:
+⋮
+│class ValidationError(ValueError):
+⋮
+│def sanitize_symbol_arg(value: object) -> str:
+⋮
+│def sanitize_path_arg(value: object, repo_root: Path) -> Path:
+⋮
+
+packages/codemem-mcp/src/codemem/pagerank.py:
+⋮
+│def compute_pagerank(
+│    conn: sqlite3.Connection,
+│    *,
+│    damping: float = DEFAULT_DAMPING,
+│    max_iterations: int = DEFAULT_ITERATIONS,
+│    eps: float = DEFAULT_EPS,
+⋮
+
+packages/codemem-mcp/src/codemem/parser/ast_grep.py:
+⋮
+│def language_from_path(path: Path) -> str | None:
+⋮
+│def parse_sg_output(stream: str) -> list[_SgMatch]:
+⋮
+
+packages/codemem-mcp/src/codemem/parser/python_ast.py:
+⋮
+│@dataclass(eq=True)
+│class Symbol:
+⋮
+│@dataclass(eq=True)
+│class CallEdge:
+⋮
+│@dataclass
+│class ParseResult:
+⋮
+│def extract_python_signatures(
+│    source: str,
+│    *,
+│    package: str,
+│    file_rel: str,
+│) -> ParseResult:
+│    """Parse ``source`` into codemem Symbols and intra-file CallEdges.
+│
+│    Args:
+│        source: UTF-8 decoded Python source text.
+│        package: Repo-relative package directory (SCIP ``<package>``).
+│        file_rel: File path relative to ``package`` (SCIP ``<file>``).
+│
+│    Returns:
+│        A :class:`ParseResult`. On SyntaxError the result is empty —
+│        the ast-grep wrapper in Task 1.4 handles best-effort parsing
+⋮
+│    def _emit_function(
+│        node: ast.FunctionDef | ast.AsyncFunctionDef,
+│        parent_path: str | None,
+│        parent_scip_id: str | None,
+⋮
+│    def _emit_class(
+│        node: ast.ClassDef,
+│        parent_path: str | None,
+│        parent_scip_id: str | None,
+⋮
+│def _unparse(node: ast.AST) -> str:
+⋮
+
+packages/codemem-mcp/src/codemem/resolver.py:
+⋮
+│def build_import_map(file_paths: Iterable[str]) -> dict[str, str]:
+⋮
+│def _resolve_import(
+│    source_path: str,
+│    imp: str,
+│    import_map: dict[str, str],
+│    known_files: set[str],
+⋮
+
+packages/codemem-mcp/src/codemem/storage/db.py:
+⋮
+│def _apply_per_connection_pragmas(conn: sqlite3.Connection, *, read_only: bool)
+-> None:
+⋮
+│def connect(path: str | Path, *, read_only: bool = False) -> 
+sqlite3.Connection:
+⋮
+│def _load_initial_schema_sql() -> str:
+⋮
+│def apply_schema(conn: sqlite3.Connection) -> None:
+⋮
+│def _current_user_version(conn: sqlite3.Connection) -> int:
+⋮
+│def migrate(conn: sqlite3.Connection) -> int:
+⋮
+│def ensure_schema(conn: sqlite3.Connection) -> int:
+⋮
+
+scripts/bench_codemem.py:
+⋮
+│def run_trials(label: str, fn, n: int = TRIALS) -> list[float]:
+⋮
+
+scripts/check_codemem_doc_drift.py:
+⋮
+│def canonical_codemem_version(repo_root: Path) -> str | None:
+⋮
+│def check_tier_1_version_strings(repo_root: Path) -> list[Finding]:
+⋮
+│def check_tier_2_changelog_completeness(repo_root: Path) -> list[Finding]:
+⋮
+│def run_checks(repo_root: Path) -> list[Finding]:
+⋮
+
+tests/codemem/test_doc_drift.py:
+⋮
+│def _hermetic_git_env(tmp_path: Path) -> dict[str, str]:
+⋮
+│def _run_script(repo_path: Path) -> tuple[int, list[dict]]:
+⋮
+│def _bootstrap_codemem_shaped_repo(tmp_path: Path, *, version: str = 
+"0.1.0.dev0") -> Path:
+⋮
+
+tests/codemem/test_post_commit_storm.py:
+⋮
+│def _init_git_repo(root: Path) -> None:
+⋮
+
+tests/fixtures/codemem/symbol_ids/python_sample.py:
+⋮
+│def foo():
+⋮
+│class Bar:
+│    def baz(self):
+⋮
+│    @staticmethod
+│    def qux():
+⋮
+│class Outer:
+│    class Inner:
+⋮
+

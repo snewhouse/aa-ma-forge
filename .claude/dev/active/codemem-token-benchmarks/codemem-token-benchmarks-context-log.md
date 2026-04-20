@@ -124,6 +124,42 @@ Full findings in reference.md §Phase-3 Research Findings. Summary:
 
 ---
 
+## 2026-04-20 — AD-009: scripts/ test-import strategy (test infrastructure)
+
+**Decision AD-009:** Tests that need to import from `scripts/` (e.g., the bench harness with its inline parser) use a scoped `tests/codemem/conftest.py` that adds `scripts/` to `sys.path` at collection time.
+
+- **Rationale:** AD-005 pins the parser inline in `scripts/bench_codemem_vs_aider.py` (no split unless >100 LOC). But tests need to `from bench_codemem_vs_aider import parse_aider_output`. The scripts/ directory is not a Python package; making it one is scope creep. A 1-line-of-logic conftest is the minimal test-infrastructure change that satisfies both constraints.
+- **Scope:** Limited to `tests/codemem/` subtree (conftest.py autoloads in pytest for that directory's tests only). No effect on production imports or non-codemem tests.
+- **Alternatives considered:**
+  - (a) Convert `scripts/` to a package — would require `__init__.py`, affects all script files unrelated to this benchmark, unnecessary scope expansion.
+  - (b) `importlib.util.spec_from_file_location` inside each test — DRY violation, per-test boilerplate for a test-infra concern.
+  - (c) Hoist parser into `packages/codemem-mcp/src/codemem/parsers/aider_repomap.py` — contradicts AD-005 (which explicitly allows "inline OR scripts/bench_aider_parser.py if >100 LOC" — both options are in scripts/, not a real package).
+- **Trade-offs:** sys.path injection is a test-infra side effect. In exchange: AD-005 integrity preserved; imports are natural; no production code modifications.
+- **Verification pending:** Conftest correctness can only be proven transitively — when Task 2.3 GREEN creates the parser module and tests collect successfully, conftest is confirmed working. Before then, "parser module not found" is indistinguishable from "scripts/ not on sys.path".
+
+---
+
+## 2026-04-20 — Task 2.2 RED: parser API pinned via failing tests
+
+**What was done:** 12 failing pytest tests written against a live-captured Aider fixture, defining the `parse_aider_output(text: str) -> list[tuple[str, str, str]]` contract. TDD RED verified via `pytest` → `ModuleNotFoundError` (correct fail reason: production code intentionally absent).
+
+**Parser contract pinned (reviewed by Task 2.3 GREEN):**
+- Signature: `parse_aider_output(text: str) -> list[tuple[str, str, str]]`
+- Row shape: `(file, symbol_name, kind)` — all strings, non-empty
+- Empty input → `[]`
+- `kind` includes at minimum `"def"` and `"class"`; decorator kind-name left unconstrained
+- `⋮` never in symbol names (elision, not a symbol)
+- Preamble (lines 1-10 of fixture: `Aider`, `Model`, `Git`, `Repo-map`, `Using`) never leaks
+- Wrapped continuations (e.g., line 18 `dict:` from signature wrap) never mistaken for headers
+
+**Trap discovered at test-design time (before any code):** Naive regex `line ends with :` would match `dict:` on line 18 — a line-wrapped return type from `│def blast_radius(...) -> ` on line 17. Test `test_file_fields_look_path_like` is the permanent regression guard; Task 2.3's parser must handle this.
+
+**Fixture characteristics (empirical, HEAD af10ec6):** 257 lines; 59 symbol markers (43 `│def`, 10 `│class`, 6 `│@`-adjacent); 78 `⋮` elisions; 22 naive header-candidates (1 is the `dict:` trap).
+
+**Next:** Task 2.3 GREEN — implement `parse_aider_output` inline in `scripts/bench_codemem_vs_aider.py`. Target: all 12 tests green, <100 LOC parser (AD-005 inline clause).
+
+---
+
 ## 2026-04-19 Milestone Completion: M1 Environment Setup + Precondition Re-Verification
 
 - **Status:** COMPLETE (HITL-approved via AskUserQuestion 2026-04-19)

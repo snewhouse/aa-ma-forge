@@ -4,6 +4,48 @@ _This log captures architectural decisions, trade-offs, and unresolved issues._
 
 ---
 
+## 2026-04-20 Milestone Completion: M2 Harness + Parser (TDD)
+
+- **Status:** COMPLETE (SOFT gate — convention-based)
+- **Acceptance criteria:** 4/4 empirically verified
+  - ✅ `uv run pytest tests/codemem/test_bench_harness.py` → 22 passed, 1 deselected (slow integration)
+  - ✅ `uv run python scripts/bench_codemem_vs_aider.py --repo . --requested-budget 1024 --out /tmp/bench.json` → valid JSON: `{requested_budget, tools: {codemem, aider, jcodemunch}, overlap, tokenizer, repo}`
+  - ✅ `uv run ruff check` → clean on new files
+  - ✅ `uv run lint-imports` → "Contracts: 2 kept, 0 broken"
+- **Sub-Step Audit (L-081, L-083):** 0 PENDING sub-steps in M2 scope; 6 COMPLETE (Tasks 2.1-2.6).
+
+**Key outcomes:**
+- TDD RED/GREEN loops executed cleanly: Task 2.2 RED → Task 2.3 GREEN → Task 2.4 RED → Task 2.5 GREEN → Task 2.6 integration
+- Harness is live and working against aa-ma-forge. Live M2 smoke signal (budget=1024): codemem 17 sym / 1239 tok, aider 67 sym / 1995 tok, jCodeMunch stub-skipped, Jaccard cm-vs-aider = 0.125.
+- **Tokenizer-mismatch invariant empirically confirmed at M2 smoke time**: aider's cl100k_base count is ~95% over the requested 1024 budget; codemem's 4-char proxy yields ~21% over. M3's budget sweep {512,1024,2048,4096} × 2 repos will quantify the effect across the operating envelope.
+
+**Artifacts created during M2:**
+- `scripts/bench_codemem_vs_aider.py` (241 LOC; parser, measure_output, jaccard, 3 tool runners, CLI)
+- `tests/codemem/test_bench_harness.py` (~230 LOC; 4 classes, 23 tests — 22 default + 1 @slow)
+- `tests/codemem/fixtures/aider_repo_map_aa-ma-forge.txt` (golden fixture)
+- `tests/codemem/fixtures/codemem_intel_aa-ma-forge.json` (golden fixture)
+- `tests/codemem/conftest.py` (scoped sys.path injection for scripts/ imports)
+
+**Decisions made during M2:**
+- AD-009 — scripts/ test-import strategy (scoped conftest)
+- AD-010 — Decorator kind string `"decorator"` (not `"@"`)
+- AD-011 — codemem-mcp as explicit dev-dependency (OBS-001 fix)
+- AD-012 — jCodeMunch invocation stub in Task 2.5 (MCP-protocol only)
+
+**Unplanned blocker handled:** OBS-001 (pre-existing env drift — codemem-mcp editable install pointed at a moved repo path). Resolved in the middle of M2 via AD-011 — 1-line pyproject.toml change + `uv sync`. Retrospective positive: 24 previously-broken codemem tests now green.
+
+**Tests state at M2 close:**
+- Default `pytest`: 370 passed, 1 skipped, 5 deselected
+- `pytest -m slow`: 1 additional passed (integration)
+- Ruff: clean
+- Import-linter: 2/2
+
+**Commits this milestone:** `cea953f` (T2.1 tiktoken dep — yesterday), `edf9dcb` (T2.2 RED), `4d784e7` (T2.3 GREEN), `7e79ed1` (OBS-001 fix), `47d4e10` (T2.4 RED), `ab99bb3` (T2.5 GREEN), `f8aa1f2` (T2.6 integration).
+
+**Next Milestone:** M3 Execute — AFK, SOFT gate, ~1 focused-dev day, complexity 30%. Tasks 3.1–3.4: clone fastapi at pinned commit, run harness at budgets {512, 1024, 2048, 4096} on aa-ma-forge + fastapi, sanity-check outputs. Produces the data that M4 report will consume.
+
+---
+
 ## 2026-04-20 — OBS-001 RESOLVED via AD-011
 
 **Resolution:** Added `"codemem-mcp"` to root `[tool.uv] dev-dependencies` in `pyproject.toml`. `uv sync` then installed the workspace member editably into `.venv` with the correct current-dir path.

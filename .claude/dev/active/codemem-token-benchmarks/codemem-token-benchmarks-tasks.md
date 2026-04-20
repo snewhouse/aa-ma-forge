@@ -103,7 +103,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 ---
 
 ## Milestone 2: Harness + Parser (TDD)
-- Status: ACTIVE
+- Status: COMPLETE
 - Mode: AFK
 - Gate: SOFT
 - Dependencies: Milestone 1

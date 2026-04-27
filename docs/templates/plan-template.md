@@ -40,7 +40,9 @@
 - **Goal:** [What is achieved when this milestone completes]
 - **Effort:** [Estimated hours/days]
 - **Complexity:** [0-100%]
+- **Mode:** [AFK (auto-dispatchable to agents) | HITL (requires human-in-the-loop checkpoints)]
 - **Gate:** [SOFT (default) | HARD — use HARD for irreversible actions, architectural decisions, production deployments]
+- **Baseline:** [REQUIRED for milestones that touch an external API or backend service. Provide an empirical curl A/B command and the expected falsifier — e.g. for the list-param fix in fix-list-param-serialization M4.1: `curl -sS 'https://api.biorelate.com/relationships/9091.../documents?source=publications&limit=25' -H 'X-API-Key: $KEY' | jq '.data[].document_type'` expected to be `JournalArticle` for every item; if any item shows `Patent` the filter was silently dropped. For pure local-code milestones with no API exercised, use literally: `N/A — pure local code, no API exercised`. Hand-wavy "we'll know it works" entries do NOT satisfy this field.]
 
 <!-- Element 4: Acceptance criteria — one clear, testable criterion per step/milestone -->
 
@@ -93,11 +95,21 @@
 
 ---
 
-### Milestone 2: [Title]
+### Milestone 2: [Title — typically a refactor or local-code milestone]
 
 <!-- Repeat the full milestone structure above for each milestone. -->
-<!-- Include: Goal, Effort, Complexity, Gate, Acceptance Criteria, -->
+<!-- Include: Goal, Effort, Complexity, Mode, Gate, Baseline, Acceptance Criteria, -->
 <!-- Required Artefacts, Tests, Rollback Strategy, Risks, and Steps. -->
+<!--                                                                              -->
+<!-- THIS PLACEHOLDER ALSO SERVES AS THE LOCAL-CODE BASELINE EXAMPLE.             -->
+<!-- When a milestone does NOT touch an external API (e.g. a refactor, template   -->
+<!-- edit, doc rewrite, or local script change), the `Baseline:` field still      -->
+<!-- MUST be populated — but with the literal string below, NOT an empty value:   -->
+<!--                                                                              -->
+<!--     Baseline: N/A — pure local code, no API exercised                        -->
+<!--                                                                              -->
+<!-- Empty / "TBD" / hand-wavy entries do NOT satisfy Gate 3.5 in                 -->
+<!-- validation-checklist.md and will be flagged by /verify-plan.                 -->
 
 ---
 

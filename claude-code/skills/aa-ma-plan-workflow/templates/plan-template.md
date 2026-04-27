@@ -14,6 +14,9 @@
 ### Milestone 1: [Title]
 **Complexity:** [X]%
 **Dependencies:** None
+**Mode:** [AFK | HITL]
+**Gate:** [SOFT | HARD]
+**Baseline:** [Empirical curl A/B command + expected falsifier; or `N/A — pure local code, no API exercised`]
 
 #### Step 1.1: [Action]
 - **Acceptance Criteria:** [Testable criterion]
@@ -37,6 +40,9 @@
 ### Milestone 2: [Title]
 **Complexity:** [X]%
 **Dependencies:** Milestone 1
+**Mode:** [AFK | HITL]
+**Gate:** [SOFT | HARD]
+**Baseline:** [Empirical curl A/B command + expected falsifier; or `N/A — pure local code, no API exercised`]
 
 [Continue pattern...]
 

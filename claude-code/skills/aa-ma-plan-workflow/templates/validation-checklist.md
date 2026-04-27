@@ -41,6 +41,15 @@
 - [ ] No circular dependencies between criteria
 - [ ] Plan quality score >= 70%
 
+### Gate 3.5: Per-Milestone Field Discipline (Phase 4)
+*Each milestone in plan.md MUST carry these three fields. Tasks.md mirrors the values per HTP convention.*
+- [ ] **Mode:** populated for every milestone — `AFK` (auto-dispatchable) or `HITL` (requires user-in-the-loop). Source rule: `aa-ma.md`.
+- [ ] **Gate:** populated for every milestone — `SOFT` (convention-based approval) or `HARD` (artifact-enforced approval, requires signed entry in context-log.md before advancing). Source rule: `aa-ma.md`.
+- [ ] **Baseline:** populated for every milestone:
+  - For milestones that interact with an external API or backend service: a concrete curl A/B command (filtered vs unfiltered, or pre-fix vs post-fix) with the expected falsifier response field — e.g. `curl -sS '$URL?source=preprints' | jq '.data[].document_type'` expected to differ from unfiltered.
+  - For pure local-code milestones (template edits, refactors with no network call): explicit `N/A — pure local code, no API exercised`.
+  - Hand-wavy "we'll know it works" entries do NOT satisfy this gate. The discipline traces back to the M4/M4.4 sweep of `fix-list-param-serialization` (2026-04-25..27) where empirical curl A/B caught two incorrect falsifiers before they propagated into production tests.
+
 ### Gate 4: Cross-File Consistency (Phase 5)
 - [ ] All facts in reference.md appear in plan.md
 - [ ] All milestones in tasks.md match plan.md

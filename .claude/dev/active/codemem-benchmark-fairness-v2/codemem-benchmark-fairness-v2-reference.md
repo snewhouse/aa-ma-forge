@@ -27,7 +27,7 @@ After M1 lands, codemem itself uses cl100k_base at budget time, but the invarian
 
 | Aspect | Finding | [valid] |
 |---|---|---|
-| Proxy constant location | `_CHARS_PER_TOKEN = 4` at `packages/codemem-mcp/src/codemem/pagerank.py:32` | 2026-04-20 |
+| Proxy constant location | `_CHARS_PER_TOKEN = 4` at `packages/codemem-mcp/src/codemem/pagerank.py:33` (was line 32 in 2026-04-20 reference; 1-line drift corrected 2026-05-05). REMOVED in M1.1. | 2026-05-05 |
 | `_budget_chars` | `packages/codemem-mcp/src/codemem/pagerank.py:132-133` | 2026-04-20 |
 | `_fits` | `packages/codemem-mcp/src/codemem/pagerank.py:136-137` | 2026-04-20 |
 | Binary search | `packages/codemem-mcp/src/codemem/pagerank.py:187-194` | 2026-04-20 |
@@ -151,7 +151,7 @@ After M1 lands, codemem itself uses cl100k_base at budget time, but the invarian
 |---|---|---|---|---|
 | `aider-chat` | `==0.86.2` | Required (dev-tool) | carry-forward from v1 | 2026-04-18 |
 | `jcodemunch-mcp` | `==1.59.1` | Required (dev-tool) | carry-forward from v1 | 2026-04-19 |
-| `tiktoken` | `>=0.7` (resolved `0.12.0`) | Required (dev; may hoist to runtime in M1) | carry-forward from v1 | 2026-04-19 |
+| `tiktoken` | `>=0.7` (resolved `0.12.0`) | Required (RUNTIME of `codemem-mcp`; hoisted in M1.1 because `pagerank.py` imports at module scope). Also kept in parent dev-deps for harness/test access. | carry-forward from v1; hoisted 2026-05-05 | 2026-05-05 |
 | `mcp` | `>=1.27` | Required (dev-dep) | NEW in M2a | 2026-04-20 |
 | `rbo` | latest | Optional (test-only cross-reference) | NEW in M2a | 2026-04-20 |
 | `repomix` (npm) | TBD at install | Required (external tool via npm or npx) | NEW in M2b | 2026-04-20 |

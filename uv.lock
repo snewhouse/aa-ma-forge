@@ -360,12 +360,14 @@ source = { editable = "packages/codemem-mcp" }
 dependencies = [
     { name = "ast-grep-cli" },
     { name = "fastmcp" },
+    { name = "tiktoken" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "ast-grep-cli", specifier = ">=0.42,<0.43" },
     { name = "fastmcp", specifier = ">=2.0" },
+    { name = "tiktoken", specifier = ">=0.7" },
 ]
 
 [[package]]

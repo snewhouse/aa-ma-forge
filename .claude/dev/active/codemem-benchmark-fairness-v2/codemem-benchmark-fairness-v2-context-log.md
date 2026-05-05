@@ -4,6 +4,38 @@ _This log captures architectural decisions, trade-offs, gate approvals, and unre
 
 ---
 
+## 2026-05-05: M1 Milestone Completion
+
+**Status:** COMPLETE. Resumed after 15-day pause; review confirmed reference.md drift was 1 line on `_CHARS_PER_TOKEN` location (32 → 33), no semantic drift. TDD-RED → GREEN cycle clean.
+
+**Empirical validation of the v2 thesis:** at budget=1024 on aa-ma-forge:
+- v1 (proxy): 17 symbols, 1239 actual tiktoken tokens (21% overshoot vs claim)
+- v2 (encoder fix): 14 symbols, 960 actual tiktoken tokens (6% safety margin under budget)
+- Token delta: -22.5% — confirms the v1 retro estimate was correct within 1.5 percentage points
+
+**Discovered finding — `_CHARS_PER_TOKEN` sister bug (out of M1 scope):**
+
+A second `_CHARS_PER_TOKEN = 4` constant lives in `packages/codemem-mcp/src/codemem/mcp_tools/__init__.py:54`, used by `_exceeds_budget()` at line 121 to gate ALL MCP tool outputs (`aa_ma_context`, `blast_radius`, `co_changes`, `dependency_chain`, `who_calls`, etc.) — not just PROJECT_INTEL.json. Same biased proxy pattern, parallel code path. The fix is identical mechanically (~5 lines).
+
+This is **not** in v2's scope (M1 was specifically pagerank.py + PROJECT_INTEL.json budget; the v2 5-tool benchmark compares PROJECT_INTEL outputs, not raw MCP tool outputs). Logging here for future work:
+
+- **Recommended scope:** v2.x patch milestone or a v3 follow-up. Estimate: 0.5 day, including TDD-RED phase mirror of M1.
+- **Risk if deferred:** MCP tool surface honesty in client-facing operations. Not a v2 blocker.
+- **Decision rationale:** Avoid scope creep mid-execution; document and defer.
+
+**AC3 regex defect (documentation, not code):**
+
+The M1.2 acceptance criteria included regex `/^[01]\.\d{1,3}(e-?\d+)?$/` to validate 3-sig-fig rank emission. The regex assumes `f"{x:.3g}"` always produces forms like `0.123`, but Python's `:.3g` for small values uses decimals with leading zeros (`0.0153`, `0.00153`), which fail the regex despite being correct 3-sig-fig representations. The behavioural test `float(f"{x:.3g}") == x` is the correct semantic check; 14/14 ranks pass. Documented as a regex defect; tasks.md M1.2 AC annotated.
+
+**Files changed (M1 commit):**
+
+- `packages/codemem-mcp/src/codemem/pagerank.py` (~10 lines)
+- `packages/codemem-mcp/pyproject.toml` (+1 dep)
+- `tests/codemem/test_pagerank.py` (~50 lines: 1 deleted, 3 added)
+- AA-MA artefacts: tasks.md, reference.md, context-log.md, provenance.log
+
+---
+
 ## 2026-04-20, AC amendment: M1 symbol-count floor
 
 **Event:** During M1 TDD-RED preparation (reading pagerank.py + test_pagerank.py + v1 empirical data), discovered that the original M1 measurable goal (">= 17 symbols at budget=1024") was mathematically incompatible with the point of the fix.

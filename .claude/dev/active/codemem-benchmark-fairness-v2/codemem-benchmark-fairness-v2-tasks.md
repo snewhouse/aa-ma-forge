@@ -6,7 +6,7 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
 
 ## Milestone 1: Codemem proxy + rank truncation
 
-- Status: PENDING
+- Status: COMPLETE
 - Gate: SOFT
 - Mode (milestone-level dispatch): AFK
 - Complexity: 30%
@@ -41,7 +41,7 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   Decision: archived BEFORE M1.1 code work (not deferred to M4) to keep the hook surface clean during the rest of v2 execution. M4.2 (archive v1) is now redundant and should be marked SKIPPED at M4 finalisation.
 
 ### Step M1.1: Replace `_CHARS_PER_TOKEN` proxy with cl100k_base encoder in pagerank.py
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: M1.0
 - Acceptance Criteria:
@@ -49,18 +49,29 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - Module-level `_TIKTOKEN_ENCODER = tiktoken.get_encoding("cl100k_base")` cache added.
   - `_fits()` uses `len(_TIKTOKEN_ENCODER.encode(json.dumps(payload, ...))) <= budget_tokens`.
 - Result Log:
+  COMPLETE 2026-05-05. TDD-RED first: 2 new tests (`test_fits_uses_tiktoken_not_chars`, `test_rank_emitted_as_3_sig_figs`) failed on current code with clear diagnostics — `assert True is False` for proxy-vs-tiktoken divergence at budget=30, and `assert 0.467 == 0.4666...` for unrounded hub rank. Fix applied:
+  - Removed `_CHARS_PER_TOKEN = 4` constant (was at line 33, not 32 as reference.md claimed — small drift fixed).
+  - Removed `_budget_chars` helper (no longer used).
+  - Added module-level `_TIKTOKEN_ENCODER = tiktoken.get_encoding("cl100k_base")` cache + import.
+  - Rewrote `_fits()` to: `len(_TIKTOKEN_ENCODER.encode(json.dumps(payload, separators=(",",":"), sort_keys=True))) <= max(budget_tokens, 1)`.
+
+  Pyproject.toml change: hoisted `tiktoken>=0.7` from parent dev-deps into `packages/codemem-mcp/pyproject.toml` runtime `dependencies`. Required because pagerank.py now imports tiktoken at module scope; downstream consumers of codemem-mcp would have hit ImportError otherwise. `uv sync` clean.
+
+  Verification: 15/15 pagerank tests green. 389/389 codemem suite green. ruff clean. import-linter 2/2 contracts kept.
 
 ### Step M1.2: Round `rank` to 3 significant figures at emission
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: M1.1
 - Acceptance Criteria:
   - Emission at `packages/codemem-mcp/src/codemem/pagerank.py:171` rounds `rank` to 3 sig figs (e.g. `float(f"{rank:.3g}")` or equivalent).
   - `jq '.symbols[0].rank' /tmp/post-m1-intel.json` returns a value matching `/^[01]\.\d{1,3}(e-?\d+)?$/`.
+  - **AC defect noted 2026-05-05:** the regex `/^[01]\.\d{1,3}(e-?\d+)?$/` was authored 2026-04-20 assuming `:.3g` output looks like `0.123`. Python's `:.3g` for small values uses decimals with leading zeros (e.g., `0.0153`, `0.00153`) which fail the regex despite being correct 3-sig-fig representations. The behavioural test `float(f"{rank:.3g}") == rank` is the correct semantic check. 13/14 ranks fail the literal regex but 14/14 pass the behavioural check. Documented as a regex defect, not a code defect.
 - Result Log:
+  COMPLETE 2026-05-05. Single-line change at the symbol dict comprehension (was line 171, now 171-172): `"rank": float(f"{ranks.get(r['id'], 0.0):.3g}")` replaces `"rank": ranks.get(r["id"], 0.0)`. Verified on aa-ma-forge: hub rank emitted as `0.019` (was `0.46666683482772386` raw on hub_repo before fix). All 14 emitted ranks pass `float(f"{x:.3g}") == x` semantic check.
 
 ### Step M1.3: Update `test_pagerank.py` for tiktoken budget + rounded rank
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: M1.2
 - Acceptance Criteria:
@@ -68,9 +79,16 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - New test asserts `rank` emission pattern matches the 3-sig-fig regex.
   - `uv run pytest tests/codemem/test_pagerank.py` returns green.
 - Result Log:
+  COMPLETE 2026-05-05. Test file changes:
+  - **Deleted** `test_fits_budget` (lines 116-122 pre-edit). Its `assert size_chars <= 128 * 4 + 50` encoded the proxy formula; superseded by the two new tests below.
+  - **Added** `test_fits_uses_tiktoken_not_chars`: crafted ASCII payload (`{"name": " x" * 50}`, ~110 chars / ~55 tokens) where char ≤ proxy_ceiling but tokens > budget=30. RED on current code (proxy says fits), GREEN after fix.
+  - **Added** `test_rank_emitted_as_3_sig_figs`: behavioural assertion `float(f"{x:.3g}") == x` for every emitted rank (skip 0.0). Robust against the regex AC defect described in M1.2.
+  - **Added** `test_output_fits_tiktoken_budget`: hub_repo at budget=1024 → tiktoken-encoded output ≤ 1024. Sanity test (passes on small fixtures with both proxy and fix because hub_repo is well below either ceiling); the M1.4 smoke on aa-ma-forge is the real teeth.
+  - Imports: `tiktoken` and `_fits` added; unused `re` removed.
+  - 15/15 pagerank tests pass; 389/389 full codemem suite pass.
 
 ### Step M1.4: Smoke verify on aa-ma-forge + record delta
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: M1.3
 - Acceptance Criteria:
@@ -79,6 +97,28 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - Delta vs v1 17-symbol baseline logged in Result Log.
   - `uv run pytest tests/codemem/` returns green.
 - Result Log:
+  COMPLETE 2026-05-05. Smoke output `/tmp/post-m1-intel.json`:
+  - **Symbols written: 14** (PASS ≥12 floor; total in repo: 679)
+  - **Tiktoken tokens: 960** (PASS ≤1024 honesty invariant; 6% safety margin from binary-search)
+  - **Output bytes: 3132** (well under perf budget of 5KB)
+
+  **Delta vs v1 baseline:**
+  - Symbols: 17 → 14 (-17.6%)
+  - Actual tokens: 1239 → 960 (-22.5%)
+
+  The token delta empirically confirms the v1 retro estimate: the 4-char proxy was overshooting by ~21-22% at budget=1024 on aa-ma-forge. v2 enforces the budget honestly.
+
+  All 6 milestone-level ACs verified:
+  - AC1 `_CHARS_PER_TOKEN` removed: PASS (zero matches)
+  - AC2 `tiktoken` in pagerank.py: PASS (4 matches)
+  - AC3 rank 3-sig-figs regex: PARTIAL (1/14 match literal regex due to regex defect documented in M1.2; 14/14 pass behavioural check)
+  - AC4 pytest tests/codemem green: PASS (389 passed, 1 skipped, 2 deselected)
+  - AC5 written_symbols ≥12: PASS (14)
+  - AC6 tiktoken ≤1024: PASS (960)
+
+  Perf gates: 4/4 pass (cold-build <30s, warm-build <5s, who_calls <100ms, project_intel <5KB).
+
+  Discovered finding (out of M1 scope): a sister `_CHARS_PER_TOKEN = 4` constant in `packages/codemem-mcp/src/codemem/mcp_tools/__init__.py:54` gates all MCP tool outputs (not just PROJECT_INTEL.json). Same biased proxy pattern. Documented in context-log.md as future work for v2.x or v3.
 
 ### Step M1.5: Commit M1 with AA-MA signature
 - Status: PENDING

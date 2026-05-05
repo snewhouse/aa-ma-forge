@@ -16,6 +16,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+import tiktoken
+
 
 __all__ = [
     "DEFAULT_DAMPING",
@@ -30,7 +32,11 @@ DEFAULT_DAMPING = 0.85
 DEFAULT_ITERATIONS = 50
 DEFAULT_EPS = 1e-6
 DEFAULT_BUDGET_TOKENS = 1024
-_CHARS_PER_TOKEN = 4
+
+# Module-level tiktoken encoder cache. cl100k_base is the GPT-3.5/4 tokeniser
+# and the harness measurement standard (see codemem-benchmark-fairness-v2
+# reference.md). Caching at module scope avoids per-call construction cost.
+_TIKTOKEN_ENCODER = tiktoken.get_encoding("cl100k_base")
 
 # Kind → sort priority for tie-break (lower = ranked first).
 _KIND_PRIORITY: dict[str, int] = {
@@ -129,12 +135,16 @@ def _sort_key(entry: dict) -> tuple:
     )
 
 
-def _budget_chars(budget_tokens: int) -> int:
-    return max(budget_tokens, 1) * _CHARS_PER_TOKEN
-
-
 def _fits(payload: dict, budget_tokens: int) -> bool:
-    return len(json.dumps(payload, separators=(",", ":"), sort_keys=True)) <= _budget_chars(budget_tokens)
+    """Return True if the deterministic JSON encoding of ``payload`` fits
+    within ``budget_tokens`` cl100k_base tokens.
+
+    Replaces the old 4-chars-per-token proxy (v1) with a real tiktoken
+    encoding pass — the same tokeniser the v2 fair-benchmark harness uses
+    at the measurement boundary. See AD-V2-002.
+    """
+    encoded = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+    return len(_TIKTOKEN_ENCODER.encode(encoded)) <= max(budget_tokens, 1)
 
 
 def write_project_intel(
@@ -168,7 +178,9 @@ def write_project_intel(
             "kind": r["kind"],
             "file": r["path"],
             "line": r["line"],
-            "rank": ranks.get(r["id"], 0.0),
+            # 3 sig figs at emission for stable cross-run diffs (v2 M1.2).
+            # PageRank float jitter past the 4th digit is meaningless noise.
+            "rank": float(f"{ranks.get(r['id'], 0.0):.3g}"),
         }
         for r in rows
     ]

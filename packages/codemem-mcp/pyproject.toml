@@ -23,6 +23,7 @@ classifiers = [
 dependencies = [
     "ast-grep-cli>=0.42,<0.43",
     "fastmcp>=2.0",
+    "tiktoken>=0.7",  # codemem-benchmark-fairness-v2 M1.1: pagerank.py imports at module scope for honest budget enforcement.
 ]
 
 [project.scripts]

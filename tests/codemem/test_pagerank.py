@@ -7,9 +7,11 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import tiktoken
 
 from codemem.indexer import build_index
 from codemem.pagerank import (
+    _fits,
     compute_pagerank,
     write_project_intel,
 )
@@ -113,13 +115,36 @@ class TestProjectIntelJson:
         assert "budget" in payload["_meta"]
         assert stats["written_symbols"] > 0
 
-    def test_fits_budget(self, hub_repo, tmp_path):
-        _, db_path = hub_repo
-        out = tmp_path / "PROJECT_INTEL.json"
-        write_project_intel(db_path, out, budget=128)  # ~512 chars
-        size_chars = len(out.read_text())
-        # Budget tokens * 4 chars/token is the char ceiling.
-        assert size_chars <= 128 * 4 + 50  # small slack for JSON padding
+    def test_fits_uses_tiktoken_not_chars(self):
+        # The fix replaces a 4-char-per-token proxy with cl100k_base tokenisation.
+        # Construct a payload where char-count and tiktoken-count diverge:
+        # ASCII with frequent token boundaries gives ~0.5 tokens/char, so a
+        # ~110-char JSON encodes to ~55 tiktoken tokens. Pick a budget where
+        # the proxy says FITS but tiktoken says DOESN'T.
+        payload = {"name": " x" * 50}
+        json_str = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+        enc = tiktoken.get_encoding("cl100k_base")
+        n_chars = len(json_str)
+        n_tokens = len(enc.encode(json_str))
+
+        # Premise check: assertion only meaningful if proxy and tiktoken disagree
+        # at this budget. Both must hold for the test to discriminate.
+        budget = 30
+        assert n_chars <= budget * 4, (
+            f"test premise broken: payload is {n_chars} chars, exceeds proxy "
+            f"ceiling {budget * 4}; pick a denser payload"
+        )
+        assert n_tokens > budget, (
+            f"test premise broken: payload is only {n_tokens} tokens; "
+            f"pick a budget below {n_tokens}"
+        )
+
+        # Old proxy: chars ({n_chars}) ≤ {budget*4} → returns True (FITS).
+        # Fix: tokens ({n_tokens}) > {budget} → returns False (does not fit).
+        assert _fits(payload, budget_tokens=budget) is False, (
+            "budget enforcement still uses char proxy; "
+            "must use tiktoken cl100k_base encoder"
+        )
 
     def test_hub_ranks_first(self, hub_repo, tmp_path):
         _, db_path = hub_repo
@@ -166,6 +191,37 @@ class TestProjectIntelJson:
         # M1 AC: PROJECT_INTEL.json ≤ 5KB on aa-ma-forge. Hub repo is
         # a proxy — if it comes in under 5KB the real target will too.
         assert out.stat().st_size <= 5 * 1024
+
+    def test_rank_emitted_as_3_sig_figs(self, hub_repo, tmp_path):
+        # v2 AC: rank values rounded to 3 sig figs at emission for stable diffs.
+        # Behavioural assertion: float(f"{rank:.3g}") == rank for every emitted rank.
+        # Pre-fix code emits raw PageRank floats (full precision) → fails.
+        _, db_path = hub_repo
+        out = tmp_path / "PROJECT_INTEL.json"
+        write_project_intel(db_path, out, budget=1024)
+        payload = json.loads(out.read_text())
+        for sym in payload["symbols"]:
+            rank = sym["rank"]
+            if rank == 0.0:
+                continue  # zero is trivially 3-sig-fig
+            assert float(f"{rank:.3g}") == rank, (
+                f"rank {rank!r} for {sym['name']!r} not rounded to 3 sig figs"
+            )
+
+    def test_output_fits_tiktoken_budget(self, hub_repo, tmp_path):
+        # End-to-end honesty invariant: output's tiktoken-encoded length must
+        # not exceed the budget. With the 4-char proxy this is violated when
+        # tokens-per-char > 0.25 (e.g. emoji-heavy or symbol-heavy content);
+        # under the fix it is enforced directly at _fits() time.
+        enc = tiktoken.get_encoding("cl100k_base")
+        _, db_path = hub_repo
+        out = tmp_path / "PROJECT_INTEL.json"
+        budget = 1024
+        write_project_intel(db_path, out, budget=budget)
+        n_tokens = len(enc.encode(out.read_text()))
+        assert n_tokens <= budget, (
+            f"output is {n_tokens} tiktoken tokens, exceeds budget={budget}"
+        )
 
 
 # ---------------------------------------------------------------------

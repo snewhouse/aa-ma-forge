@@ -22,8 +22,11 @@ from pathlib import Path
 import pytest
 
 from bench_codemem_vs_aider import (  # noqa: E402
+    _parse_munch_gen1,
+    _run_aider,
     measure_output,
     parse_aider_output,
+    rbo_at_10,
 )
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -271,6 +274,17 @@ class TestHarnessIntegration:
             "aider_vs_jcodemunch",
         }
 
+        # M2a.6: each pair now emits BOTH jaccard and rbo_at_10
+        for pair_name, pair_data in data["overlap"].items():
+            assert isinstance(pair_data, dict), (
+                f"{pair_name} should be dict (post-M2a.6), got {type(pair_data).__name__}"
+            )
+            assert set(pair_data.keys()) == {"jaccard", "rbo_at_10"}, (
+                f"{pair_name} keys = {set(pair_data.keys())}, expected {{jaccard, rbo_at_10}}"
+            )
+            assert 0.0 <= pair_data["jaccard"] <= 1.0
+            assert 0.0 <= pair_data["rbo_at_10"] <= 1.0
+
         # Each tool measurement has the contract fields
         for tool_name, m in data["tools"].items():
             assert "status" in m, f"{tool_name} missing status"
@@ -278,8 +292,10 @@ class TestHarnessIntegration:
             assert "tiktoken_tokens" in m, f"{tool_name} missing tiktoken_tokens"
             assert "symbol_count" in m, f"{tool_name} missing symbol_count"
 
-        # AC#4: jcodemunch tolerated in ok/skipped/error (currently stub-skipped)
-        assert data["tools"]["jcodemunch"]["status"] in {"ok", "skipped", "error"}
+        # M2a.4 (post-pivot): jcodemunch must now succeed (no longer stubbed)
+        assert data["tools"]["jcodemunch"]["status"] == "ok", (
+            f"jcodemunch should succeed post-pivot: {data['tools']['jcodemunch']}"
+        )
 
         # Sanity: codemem + aider should have produced non-empty output on
         # our own repo — if this fails, the harness itself is broken, not
@@ -377,3 +393,256 @@ class TestSweepAggregate:
         ]
         out = aggregate(runs)
         assert out["jcodemunch"]["status"] == "skipped"
+
+
+JCM_FIXTURE = FIXTURES_DIR / "jcodemunch_symbol_importance_aa-ma-forge.txt"
+
+
+class TestJCodeMunchAdapter:
+    """M2a.4 — jCodeMunch MUNCH/gen1 parser tests (PIVOTED 2026-05-05).
+
+    Plan amendment AD-V2-008: pivoted from `get_ranked_context` to
+    `get_symbol_importance` after empirical probe revealed an encoder
+    bug in jcodemunch-mcp 1.59.1 where rc1-format tables emit empty
+    rows due to schema/return-key mismatch. `get_symbol_importance`
+    uses gen1 encoding which is correct and methodologically cleaner
+    (pure PageRank, no BM25 query bias) — apples-to-apples with codemem
+    and Aider.
+
+    These tests target the inline `_parse_munch_gen1` helper that
+    extracts (file, name) tuples from gen1-encoded responses.
+    The end-to-end MCP round-trip is exercised at M2a.7 smoke test
+    against the real jcodemunch-mcp subprocess.
+    """
+
+    def test_parse_minimal_synthetic(self) -> None:
+        """Minimal valid MUNCH/gen1 input: 1 legend, 1 row → 1 (file, name)."""
+        text = (
+            "#MUNCH/1 tool=get_symbol_importance enc=gen1\n"
+            "\n"
+            "@1=src/foo/\n"
+            "@2=function\n"
+            "\n"
+            "algorithm=pagerank iterations_to_converge=10 __tables=t:ranked_symbols:symbol_id|rank|score|in_degree|out_degree|kind\n"
+            "\n"
+            "t,@1bar.py::baz#function,1,0.5,2,0,@2\n"
+        )
+        rows = _parse_munch_gen1(text)
+        assert rows == [("src/foo/bar.py", "baz")]
+
+    def test_parse_longest_legend_match_wins(self) -> None:
+        """@11 must match before @1 to avoid prefix-collision bugs."""
+        text = (
+            "#MUNCH/1 tool=get_symbol_importance enc=gen1\n"
+            "\n"
+            "@1=src/\n"
+            "@11=tests/integration/\n"
+            "\n"
+            "__tables=t:ranked_symbols:symbol_id|rank|score|in_degree|out_degree|kind\n"
+            "\n"
+            "t,@11test_foo.py::test_a#function,1,0.5,1,0,function\n"
+            "t,@1main.py::main#function,2,0.4,1,0,function\n"
+        )
+        rows = _parse_munch_gen1(text)
+        assert ("tests/integration/test_foo.py", "test_a") in rows
+        assert ("src/main.py", "main") in rows
+
+    def test_parse_no_table_returns_empty(self) -> None:
+        """Header-only payload (no rows) yields empty list, no exceptions."""
+        text = "#MUNCH/1 tool=get_symbol_importance enc=gen1\n\n\n"
+        assert _parse_munch_gen1(text) == []
+
+    def test_parse_real_fixture_has_populated_rows(self) -> None:
+        """Live-captured aa-ma-forge fixture must produce >= 5 (file, name) rows."""
+        assert JCM_FIXTURE.exists(), f"Live fixture missing: {JCM_FIXTURE}"
+        rows = _parse_munch_gen1(JCM_FIXTURE.read_text())
+        assert len(rows) >= 5, f"only {len(rows)} rows; expected >= 5"
+        for file, name in rows:
+            assert isinstance(file, str) and file, f"bad file: {(file, name)!r}"
+            assert isinstance(name, str) and name, f"bad name: {(file, name)!r}"
+
+    def test_parse_real_fixture_files_path_like(self) -> None:
+        """Real fixture file fields must look path-like (contain / or known ext)."""
+        rows = _parse_munch_gen1(JCM_FIXTURE.read_text())
+        known_exts = (".py", ".sh", ".md", ".toml", ".yaml", ".yml", ".json", ".txt")
+        for file, _ in rows:
+            assert "/" in file or file.endswith(known_exts), (
+                f"file field not path-like: {file!r}"
+            )
+
+
+class TestRBOMetric:
+    """M2a.5 — Rank-Biased Overlap@10 (Webber, Moffat, Zobel 2010, p=0.9).
+
+    Extrapolated form (eq. 8 in the paper): RBO_ext for identical infinite
+    rankings = 1.0; for disjoint rankings = 0.0; for partial overlap with
+    rank disagreement, somewhere in between.
+
+    Tests use k=3 for hand-computation tractability; the production call
+    uses k=10 (the AC alias `rbo_at_10` keeps the function name
+    self-documenting).
+
+    Plan deviation 2026-05-05: AC requested cross-verification against the
+    `rbo` PyPI package. Skipped — third-party package can have its own bugs;
+    direct hand-computation against canonical formula is a stronger
+    validation. Documented in tasks.md M2a.5 result log.
+    """
+
+    def test_identical_short_lists_returns_one(self) -> None:
+        """RBO_ext of identical lists (length >= k) = 1.0 by construction.
+
+        Hand-computation k=3:
+          d=1: 1/1 * p^0 = 1.0
+          d=2: 2/2 * p^1 = 0.9
+          d=3: 3/3 * p^2 = 0.81
+          sum = 2.71
+          trunc = (1-p) * sum = 0.271
+          extrap tail = p^k * agreement_k = 0.729 * 1.0 = 0.729
+          total = 0.271 + 0.729 = 1.0
+        """
+        result = rbo_at_10(["a", "b", "c"], ["a", "b", "c"], p=0.9, k=3)
+        assert result == pytest.approx(1.0, abs=1e-9), f"identical → {result}, expected 1.0"
+
+    def test_disjoint_lists_returns_zero(self) -> None:
+        """RBO of disjoint lists = 0.0 (no agreement at any depth)."""
+        result = rbo_at_10(["a", "b", "c"], ["d", "e", "f"], p=0.9, k=3)
+        assert result == pytest.approx(0.0, abs=1e-9), f"disjoint → {result}, expected 0.0"
+
+    def test_reversed_lists_hand_computed(self) -> None:
+        """[a,b,c] vs [c,b,a] hand-computation k=3, p=0.9:
+
+        d=1: {a} ∩ {c}     = 0; agreement 0.0; weight p^0 = 1.00 → 0.000
+        d=2: {a,b} ∩ {c,b} = 1; agreement 0.5; weight p^1 = 0.90 → 0.450
+        d=3: {a,b,c}∩{c,b,a}=3; agreement 1.0; weight p^2 = 0.81 → 0.810
+        sum  = 1.260
+        trunc = 0.1 * 1.260                       = 0.126
+        extrap tail = p^3 * agreement_k = 0.729 * 1.0 = 0.729
+        total = 0.126 + 0.729                     = 0.855
+        """
+        result = rbo_at_10(["a", "b", "c"], ["c", "b", "a"], p=0.9, k=3)
+        assert result == pytest.approx(0.855, abs=1e-3), f"reversed → {result}, expected 0.855"
+
+    def test_output_in_unit_interval_for_random_input(self) -> None:
+        """RBO output must always be in [0, 1] regardless of input shape."""
+        cases = [
+            (["x"], ["y"]),
+            (list("abcdefghij"), list("jihgfedcba")),
+            (list("abcdef"), list("abcdef") + ["g", "h", "i", "j"]),
+            ([], ["a", "b"]),
+            ([], []),
+        ]
+        for s, t in cases:
+            result = rbo_at_10(s, t, p=0.9, k=10)
+            assert 0.0 <= result <= 1.0, f"RBO({s}, {t}) = {result} outside [0,1]"
+
+    def test_empty_both_returns_zero(self) -> None:
+        """RBO(empty, empty) = 0.0 by convention (matches our jaccard handler)."""
+        assert rbo_at_10([], [], p=0.9, k=10) == 0.0
+
+    def test_top_heavy_property(self) -> None:
+        """RBO is top-heavy: agreement at top weighs more than at bottom.
+
+        Two pairs sharing the same number of items but at different ranks:
+        - pair X: agree at rank 1 only          → high RBO
+        - pair Y: agree at rank 10 only         → low RBO
+        """
+        # Top-of-list agreement
+        x_a = ["match"] + [f"a{i}" for i in range(9)]
+        x_b = ["match"] + [f"b{i}" for i in range(9)]
+        # Bottom-of-list agreement
+        y_a = [f"a{i}" for i in range(9)] + ["match"]
+        y_b = [f"b{i}" for i in range(9)] + ["match"]
+        rbo_top = rbo_at_10(x_a, x_b, p=0.9, k=10)
+        rbo_bot = rbo_at_10(y_a, y_b, p=0.9, k=10)
+        assert rbo_top > rbo_bot, (
+            f"top-of-list RBO ({rbo_top:.4f}) should exceed "
+            f"bottom-of-list RBO ({rbo_bot:.4f})"
+        )
+
+
+class TestAiderModelOverride:
+    """M2a.3 — Aider --model gpt-3.5-turbo tokeniser-equalisation switch.
+
+    Aider has no `--tokenizer` flag; tokeniser is routed via litellm from
+    `--model`. Verified live (M2a.2 probe): `--show-repo-map --model gpt-3.5-turbo`
+    produces output with cl100k_base tokenisation without requiring
+    OPENAI_API_KEY (warning-only).
+
+    These tests assert the harness propagates the equalisation switch through
+    to the subprocess argv. We monkey-patch subprocess.run to capture the
+    invocation rather than spawning Aider — keeps tests fast and deterministic.
+    """
+
+    def test_default_invocation_omits_model_flag(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Without --aider-tokeniser-equalise, _run_aider must NOT pass --model."""
+        captured: dict = {}
+
+        def fake_run(args, **kwargs):
+            captured["args"] = list(args)
+
+            class Result:
+                returncode = 0
+                stdout = ""
+                stderr = ""
+            return Result()
+
+        monkeypatch.setattr("bench_codemem_vs_aider.subprocess.run", fake_run)
+        _run_aider(tmp_path, budget=256, tokeniser_equalise=False)
+        assert "--model" not in captured["args"], (
+            f"--model leaked into default invocation: {captured['args']}"
+        )
+
+    def test_equalise_flag_adds_model_gpt35turbo(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """With tokeniser_equalise=True, argv must contain `--model gpt-3.5-turbo`."""
+        captured: dict = {}
+
+        def fake_run(args, **kwargs):
+            captured["args"] = list(args)
+
+            class Result:
+                returncode = 0
+                stdout = ""
+                stderr = ""
+            return Result()
+
+        monkeypatch.setattr("bench_codemem_vs_aider.subprocess.run", fake_run)
+        _run_aider(tmp_path, budget=256, tokeniser_equalise=True)
+
+        # Must contain `--model gpt-3.5-turbo` as adjacent args (not interleaved)
+        args = captured["args"]
+        assert "--model" in args, f"--model missing: {args}"
+        idx = args.index("--model")
+        assert idx + 1 < len(args), f"--model has no value: {args}"
+        assert args[idx + 1] == "gpt-3.5-turbo", (
+            f"--model value is {args[idx + 1]!r}, expected 'gpt-3.5-turbo'"
+        )
+
+    def test_equalise_preserves_show_repo_map_and_map_tokens(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Equalisation must not break the existing repo-map invocation contract."""
+        captured: dict = {}
+
+        def fake_run(args, **kwargs):
+            captured["args"] = list(args)
+
+            class Result:
+                returncode = 0
+                stdout = ""
+                stderr = ""
+            return Result()
+
+        monkeypatch.setattr("bench_codemem_vs_aider.subprocess.run", fake_run)
+        _run_aider(tmp_path, budget=1024, tokeniser_equalise=True)
+
+        args = captured["args"]
+        assert "--show-repo-map" in args
+        assert "--map-tokens" in args
+        idx = args.index("--map-tokens")
+        assert args[idx + 1] == "1024", (
+            f"--map-tokens value not propagated: {args}"
+        )

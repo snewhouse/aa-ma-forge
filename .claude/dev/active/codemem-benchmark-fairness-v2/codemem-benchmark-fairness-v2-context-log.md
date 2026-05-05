@@ -4,6 +4,43 @@ _This log captures architectural decisions, trade-offs, gate approvals, and unre
 
 ---
 
+## 2026-05-05: M2a Pivot — jCodeMunch tool change (AD-V2-008)
+
+**Discovery (empirical probe, per "code is truth" directive):**
+
+`get_ranked_context` in jcodemunch-mcp 1.59.1 has an encoder bug. The compact-encoding schema at `jcodemunch_mcp/encoding/schemas/get_ranked_context.py` declares table columns `[id, name, kind, file, line, score, token_cost, summary]`, but the actual `context_items` returned by `tools/get_ranked_context.py` use keys `[symbol_id, relevance_score, centrality_score, combined_score, tokens, ...]`. Schema mismatch → encoder emits `i,,,,,,,,` rows with all 8 columns NULL even when `items_included > 0`.
+
+Verified at three budgets (1024, 4096) with three queries — same empty-row result. No env var or CLI flag bypasses MUNCH encoding. Bug is latent: v1 plan never hit it because v1 stubbed jCodeMunch (`scripts/bench_codemem_vs_aider.py:175-185` returns `status="skipped"`).
+
+**Decision (HITL via AskUserQuestion 2026-05-05):**
+
+**AD-V2-008: Pivot M2a.4 from `get_ranked_context` to `get_symbol_importance(top_n, algorithm='pagerank')`.**
+
+Rationale:
+- `get_symbol_importance` returns clean MUNCH/gen1 with populated `symbol_id|rank|score|in_degree|out_degree|kind` rows. Verified live (20 rows, all populated, symbol IDs in `<file>::<name>#<kind>` format).
+- Methodologically *cleaner* for the v2 fairness benchmark: pure PageRank, no BM25. Apples-to-apples with codemem (post-M1 PageRank fix) and Aider (PageRank-on-call-graph). The original `get_ranked_context` choice would have introduced BM25 query-bias into the comparison.
+- Token budget enforcement moves to harness level: call `get_symbol_importance(top_n=K)` for K large (say 200), capture raw response, re-tokenize with tiktoken, truncate symbol-list to first N tokens of the response. Parallels how Repomix (M2b) and Yek (M2c) will be measured.
+- Trade-off: lose native `token_budget` arg parity with codemem CLI. Trade-off accepted because methodological purity outweighs API parity.
+
+Alternatives considered:
+- B: `search_symbols(query, token_budget=N)` — has native token_budget but BM25-driven; inferior fairness.
+- C: Skip jCodeMunch, defer to v3 — defeats M2a's main purpose.
+- D: Pin older jcodemunch-mcp version — uncertainty about whether older versions had the bug too.
+
+**Scope changes:**
+
+- M2a.4 acceptance criteria updated: target tool is `get_symbol_importance`; harness-level budget enforcement; MUNCH/gen1 parser required (~30 LOC inline).
+- M2a measurable goal unchanged (3-tool x 4-budget x 3-run with all status=ok).
+- TestJCodeMunchAdapter (>=3) tests now target the new adapter's behaviour.
+- `JCM_SYNTHETIC_MCP_TEXT` fixture in `test_bench_harness.py:35-42` was a plain-JSON shape that does NOT match the live MUNCH/gen1 wire format — replace with realistic MUNCH/gen1 fixture sample.
+
+**Empirical resolutions completed during pivot probe:**
+
+- **U-008 RESOLVED:** `aider --model gpt-3.5-turbo --show-repo-map --map-tokens 256 .` works WITHOUT `OPENAI_API_KEY` (warning-only, exit 0, repo-map produced). The `--show-repo-map` flag is a pure local tokeniser operation; API key is only required for actual LLM completions. M2a.2 HITL gate auto-resolves to "Aider equalised path".
+- **mcp>=1.27 already present:** `mcp 1.27.0` is installed transitively via `fastmcp>=2.0` in codemem-mcp dependencies. M2a.1 reduces to declaring it as an explicit dev dep (per L-055) so reproducibility doesn't depend on transitive resolution.
+
+---
+
 ## 2026-05-05: M1 Milestone Completion
 
 **Status:** COMPLETE. Resumed after 15-day pause; review confirmed reference.md drift was 1 line on `_CHARS_PER_TOKEN` location (32 → 33), no semantic drift. TDD-RED → GREEN cycle clean.

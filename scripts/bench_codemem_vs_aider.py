@@ -113,6 +113,51 @@ def jaccard(a: set[tuple[str, str]], b: set[tuple[str, str]]) -> float:
     return len(a & b) / len(a | b)
 
 
+def rbo_at_10(
+    list_s: list, list_t: list, p: float = 0.9, k: int = 10
+) -> float:
+    """Rank-Biased Overlap, extrapolated form (Webber, Moffat, Zobel 2010).
+
+    Top-heavy similarity in [0, 1] for two ranked lists. Identical rankings
+    of length >= k → 1.0. Disjoint rankings → 0.0.
+
+    Formula (Webber 2010 eq. 8, truncated to depth k):
+        RBO_ext = (1-p) * Σ_{d=1..k} p^(d-1) * |S[:d] ∩ T[:d]| / d
+                + p^k * |S[:k] ∩ T[:k]| / k
+
+    The extrapolation tail (second term) assumes unobserved depths beyond k
+    agree at the same rate as the observed depth-k agreement. ``p=0.9``
+    weights the top of the list ~10x more than the bottom over a 10-deep
+    window; this is the convention in the original paper.
+
+    Args:
+        list_s, list_t: Ranked sequences. Items must be hashable.
+        p: Persistence parameter (top-heaviness). Default 0.9.
+        k: Truncation depth. Default 10.
+
+    Returns:
+        Float in [0.0, 1.0].
+    """
+    if not list_s and not list_t:
+        return 0.0
+
+    s_set: set = set()
+    t_set: set = set()
+    summation = 0.0
+    for d in range(1, k + 1):
+        if d <= len(list_s):
+            s_set.add(list_s[d - 1])
+        if d <= len(list_t):
+            t_set.add(list_t[d - 1])
+        agreement_d = len(s_set & t_set) / d
+        summation += (p ** (d - 1)) * agreement_d
+
+    rbo_truncated = (1.0 - p) * summation
+    agreement_k = len(s_set & t_set) / k
+    rbo_extrapolated = rbo_truncated + (p ** k) * agreement_k
+    return rbo_extrapolated
+
+
 def _run_codemem(repo: Path, budget: int) -> dict:
     """Invoke `uv run codemem intel --budget=N --out=FILE` and collect output."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -145,11 +190,25 @@ def _run_codemem(repo: Path, budget: int) -> dict:
         out_path.unlink(missing_ok=True)
 
 
-def _run_aider(repo: Path, budget: int) -> dict:
-    """Invoke `aider --show-repo-map --map-tokens N` and parse prose output."""
+def _run_aider(repo: Path, budget: int, *, tokeniser_equalise: bool = False) -> dict:
+    """Invoke `aider --show-repo-map --map-tokens N` and parse prose output.
+
+    When ``tokeniser_equalise=True`` (M2a.3, AD-V2-005), append
+    ``--model gpt-3.5-turbo`` so litellm routes Aider through cl100k_base —
+    the same tokeniser used by codemem (post-M1) and jCodeMunch. This makes
+    the requested-budget comparable across all 3 tools.
+
+    Verified live (M2a.2 probe): ``--show-repo-map --model gpt-3.5-turbo``
+    works without OPENAI_API_KEY (warning-only) because `--show-repo-map`
+    is a pure-local tokeniser operation; the API key is only needed for
+    actual LLM completions.
+    """
+    args = ["aider", "--show-repo-map", "--map-tokens", str(budget)]
+    if tokeniser_equalise:
+        args += ["--model", "gpt-3.5-turbo"]
     try:
         result = subprocess.run(
-            ["aider", "--show-repo-map", "--map-tokens", str(budget)],
+            args,
             cwd=repo, capture_output=True, text=True, timeout=120,
         )
         if result.returncode != 0:
@@ -172,16 +231,152 @@ def _run_aider(repo: Path, budget: int) -> dict:
         }
 
 
+def _parse_munch_gen1(text: str) -> list[tuple[str, str]]:
+    """Parse jCodeMunch MUNCH/gen1 response into (file, symbol_name) tuples.
+
+    The MUNCH on-wire format has 4 sections separated by blank lines:
+    header, legends (@N=value lines), scalars (key=value), tables (CSV-style
+    rows where the first field is a table tag).
+
+    Legend tokens are *prefix substitution*: ``@1foo.py`` means
+    ``<value-of-@1>`` concatenated with literal ``foo.py``. We must match
+    the longest @N first to avoid `@1` shadowing `@11`.
+
+    Returns ``[(file, name), ...]`` extracted from the ``ranked_symbols``
+    table emitted by ``get_symbol_importance``. The ``symbol_id`` field
+    has format ``<file>::<name>#<kind>`` per jcodemunch's contract.
+    """
+    sections = text.split("\n\n")
+    if len(sections) < 2:
+        return []
+
+    # Build legend dict from any section that has @N=value lines.
+    legends: dict[str, str] = {}
+    for sec in sections:
+        for line in sec.splitlines():
+            line = line.strip()
+            if line.startswith("@") and "=" in line:
+                handle, _, value = line.partition("=")
+                if handle[1:].isdigit():
+                    legends[handle] = value
+
+    # Sort handles longest-first for prefix-substitution
+    sorted_handles = sorted(legends.keys(), key=lambda h: -len(h))
+
+    def _decode(token: str) -> str:
+        if not token.startswith("@"):
+            return token
+        for handle in sorted_handles:
+            if token.startswith(handle):
+                return legends[handle] + token[len(handle):]
+        return token
+
+    rows: list[tuple[str, str]] = []
+    # Walk every line; rows are CSV starting with `t,`. Rows may live in
+    # any section; in practice they're in the last section.
+    import csv as _csv
+    from io import StringIO as _StringIO
+
+    for line in text.splitlines():
+        if not line.startswith("t,"):
+            continue
+        reader = _csv.reader(_StringIO(line))
+        for fields in reader:
+            if len(fields) < 2:
+                continue
+            # fields[0] = "t" tag; fields[1] = symbol_id_token
+            symbol_id = _decode(fields[1])
+            # Format: <file>::<name>#<kind>
+            if "::" not in symbol_id:
+                continue
+            file, _, name_kind = symbol_id.partition("::")
+            name = name_kind.partition("#")[0] if "#" in name_kind else name_kind
+            if file and name:
+                rows.append((file, name))
+    return rows
+
+
+_JCM_TOKENS_PER_ROW = 25  # cl100k_base envelope per ranked_symbols row
+
+
 def _run_jcodemunch(repo: Path, budget: int) -> dict:
-    """Stub: jCodeMunch is MCP-protocol only; real round-trip at Task 2.6."""
+    """Invoke jcodemunch-mcp via MCP stdio, call get_symbol_importance, parse.
+
+    Pivoted 2026-05-05 (AD-V2-008) from `get_ranked_context` (encoder bug
+    in jcodemunch-mcp 1.59.1's rc1 schema → empty data rows) to
+    `get_symbol_importance` which uses gen1 encoding correctly. Pure
+    PageRank, no BM25 — apples-to-apples with codemem's M1 fix.
+
+    Budget mapping: jCodeMunch's natural interface is ``top_n`` (symbol
+    count) not tokens. We map ``budget → top_n = max(10, budget // 25)``
+    using an empirical 25 tokens-per-row envelope for the gen1 encoded
+    ``ranked_symbols`` table. The harness re-tokenizes the response at
+    the measurement boundary (``measure_output``) so the actual reported
+    tiktoken count is honest regardless of slight over/under-shoot.
+    """
+    top_n = max(10, budget // _JCM_TOKENS_PER_ROW)
+    import asyncio
+    import json as _json
+
+    async def _call() -> tuple[str, list[tuple[str, str]]]:
+        from mcp import ClientSession, StdioServerParameters
+        from mcp.client.stdio import stdio_client
+
+        params = StdioServerParameters(
+            command="jcodemunch-mcp",
+            args=["serve", "--transport", "stdio"],
+            env=None,
+        )
+        async with stdio_client(params) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                idx = await session.call_tool(
+                    "index_folder",
+                    arguments={"path": str(repo)},
+                )
+                idx_data = _json.loads(idx.content[0].text)
+                if not idx_data.get("success", True):
+                    raise RuntimeError(f"index_folder failed: {idx_data}")
+                repo_id = idx_data["repo"]
+                result = await session.call_tool(
+                    "get_symbol_importance",
+                    arguments={
+                        "repo": repo_id,
+                        "top_n": top_n,
+                        "algorithm": "pagerank",
+                    },
+                )
+                response_text = result.content[0].text
+                rows = _parse_munch_gen1(response_text)
+                return response_text, rows
+
+    try:
+        text, rows = asyncio.run(asyncio.wait_for(_call(), timeout=120))
+        m = measure_output(text, len(rows))
+        return {"status": "ok", **m, "symbols": rows}
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"{type(e).__name__}: {str(e)[:200]}",
+            "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+            "symbols": [],
+        }
+
+
+def _pair_overlap(
+    list_a: list[tuple[str, str]],
+    list_b: list[tuple[str, str]],
+) -> dict[str, float]:
+    """Both Jaccard (set similarity) and RBO@10 (rank-aware similarity)
+    for a single tool-pair. Symmetric in arguments — Jaccard always is,
+    and RBO is treated as such by averaging both directions to remove
+    asymmetry-of-tail-extrapolation noise (Webber 2010 §4.2)."""
+    set_a, set_b = set(list_a), set(list_b)
+    rbo_ab = rbo_at_10(list_a, list_b, p=0.9, k=10)
+    rbo_ba = rbo_at_10(list_b, list_a, p=0.9, k=10)
     return {
-        "status": "skipped",
-        "reason": (
-            "jCodeMunch exposes get_ranked_context only via MCP protocol. "
-            "Real MCP round-trip is exercised in Task 2.6 integration test."
-        ),
-        "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
-        "symbols": [],
+        "jaccard": jaccard(set_a, set_b),
+        "rbo_at_10": (rbo_ab + rbo_ba) / 2.0,
     }
 
 
@@ -189,10 +384,15 @@ def _build_report(
     budget: int, repo: Path,
     codemem: dict, aider: dict, jcm: dict,
 ) -> dict:
-    """Assemble the harness JSON report."""
-    cm_syms = set(codemem.get("symbols", []))
-    ai_syms = set(aider.get("symbols", []))
-    jcm_syms = set(jcm.get("symbols", []))
+    """Assemble the harness JSON report.
+
+    M2a.6 (AD-V2-006): each overlap pair now emits both jaccard (set) and
+    rbo_at_10 (rank-aware) similarity. Shape changed from scalar-per-pair
+    to dict-per-pair.
+    """
+    cm_list = list(codemem.get("symbols", []))
+    ai_list = list(aider.get("symbols", []))
+    jcm_list = list(jcm.get("symbols", []))
     return {
         "requested_budget": budget,
         "repo": str(repo.resolve()),
@@ -203,9 +403,9 @@ def _build_report(
             "jcodemunch": {k: v for k, v in jcm.items() if k != "symbols"},
         },
         "overlap": {
-            "codemem_vs_aider": jaccard(cm_syms, ai_syms),
-            "codemem_vs_jcodemunch": jaccard(cm_syms, jcm_syms),
-            "aider_vs_jcodemunch": jaccard(ai_syms, jcm_syms),
+            "codemem_vs_aider": _pair_overlap(cm_list, ai_list),
+            "codemem_vs_jcodemunch": _pair_overlap(cm_list, jcm_list),
+            "aider_vs_jcodemunch": _pair_overlap(ai_list, jcm_list),
         },
     }
 
@@ -218,6 +418,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="Token budget for all 3 tools")
     parser.add_argument("--out", type=Path, required=True,
                         help="Output JSON path")
+    parser.add_argument(
+        "--aider-tokeniser-equalise", action="store_true",
+        help=("Run Aider with --model gpt-3.5-turbo so litellm routes through "
+              "cl100k_base, matching codemem (post-M1) and jCodeMunch. "
+              "Verified live: works without OPENAI_API_KEY (warning-only)."),
+    )
     args = parser.parse_args(argv)
 
     if not args.repo.is_dir():
@@ -225,7 +431,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     codemem = _run_codemem(args.repo, args.requested_budget)
-    aider = _run_aider(args.repo, args.requested_budget)
+    aider = _run_aider(
+        args.repo, args.requested_budget,
+        tokeniser_equalise=args.aider_tokeniser_equalise,
+    )
     jcm = _run_jcodemunch(args.repo, args.requested_budget)
     report = _build_report(args.requested_budget, args.repo, codemem, aider, jcm)
 

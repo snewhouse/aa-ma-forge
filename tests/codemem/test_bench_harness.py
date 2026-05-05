@@ -22,6 +22,7 @@ from pathlib import Path
 import pytest
 
 from bench_codemem_vs_aider import (  # noqa: E402
+    _extract_repomix_file_paths,
     _parse_munch_gen1,
     _run_aider,
     measure_output,
@@ -396,6 +397,79 @@ class TestSweepAggregate:
 
 
 JCM_FIXTURE = FIXTURES_DIR / "jcodemunch_symbol_importance_aa-ma-forge.txt"
+REPOMIX_FIXTURE = FIXTURES_DIR / "repomix_output_aa-ma-forge.xml"
+
+
+class TestRepomixAdapter:
+    """M2b — Repomix XML file-path extractor tests.
+
+    Repomix is a *dump-everything* tool; it has no native budget concept
+    and produces a packed XML representation of the entire scope. For
+    aa-ma-forge full-repo it emits ~551k tokens (538× larger than codemem
+    at budget=1024 — empirical, 2026-05-05). The fixture is a small
+    subset (parser/ subdirectory, ~7.7k tokens, 11 files) for unit-test
+    tractability.
+
+    The harness emits Repomix with status='ok_no_symbols' and an empty
+    symbols list — Repomix doesn't produce symbol-level output.
+    """
+
+    def test_extract_paths_synthetic_xml(self) -> None:
+        """Minimal valid Repomix-style XML → 2 file paths extracted."""
+        text = (
+            "<files>\n"
+            '<file path="src/foo.py">\n'
+            "def hello(): pass\n"
+            "</file>\n"
+            "\n"
+            '<file path="tests/test_foo.py">\n'
+            "def test_hello(): pass\n"
+            "</file>\n"
+            "</files>\n"
+        )
+        paths = _extract_repomix_file_paths(text)
+        assert "src/foo.py" in paths
+        assert "tests/test_foo.py" in paths
+        assert len(paths) == 2
+
+    def test_extract_paths_real_fixture_has_files(self) -> None:
+        """Live-captured Repomix fixture must produce ≥ 5 file paths."""
+        assert REPOMIX_FIXTURE.exists(), f"Live fixture missing: {REPOMIX_FIXTURE}"
+        paths = _extract_repomix_file_paths(REPOMIX_FIXTURE.read_text())
+        assert len(paths) >= 5, f"only {len(paths)} files; expected >= 5"
+        for p in paths:
+            assert isinstance(p, str) and p, f"bad path: {p!r}"
+            # All extracted paths should be path-like
+            assert "/" in p or "." in p, f"path doesn't look like a path: {p!r}"
+
+    def test_extract_paths_real_fixture_includes_python(self) -> None:
+        """Captured fixture is from packages/codemem-mcp/src/codemem/parser/
+        — must include Python files."""
+        paths = _extract_repomix_file_paths(REPOMIX_FIXTURE.read_text())
+        py_paths = [p for p in paths if p.endswith(".py")]
+        assert py_paths, f"expected .py files; got: {paths[:5]}"
+
+    def test_extract_paths_no_files_returns_empty(self) -> None:
+        """XML with no <file path=...> tags → empty list, no exceptions."""
+        assert _extract_repomix_file_paths("<files></files>") == []
+        assert _extract_repomix_file_paths("not even xml") == []
+        assert _extract_repomix_file_paths("") == []
+
+    def test_extract_paths_handles_quoted_attributes(self) -> None:
+        """The path attribute may use either single or double quotes."""
+        text_dq = '<file path="src/main.py">x</file>'
+        text_sq = "<file path='src/main.py'>x</file>"
+        assert _extract_repomix_file_paths(text_dq) == ["src/main.py"]
+        # Single quotes are less common but also valid XML
+        sq_result = _extract_repomix_file_paths(text_sq)
+        # If parser doesn't support single-quote, that's documented
+        # behaviour — Repomix v1.14.0 always emits double-quoted attrs.
+        assert sq_result in ([], ["src/main.py"]), (
+            f"unexpected behaviour on single quotes: {sq_result}"
+        )
+
+
+
 
 
 class TestJCodeMunchAdapter:

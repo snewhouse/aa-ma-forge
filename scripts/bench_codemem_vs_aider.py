@@ -380,28 +380,109 @@ def _pair_overlap(
     }
 
 
+_REPOMIX_FILE_PATH_RE = re.compile(
+    r"""<file\s+path\s*=\s*["']([^"']+)["']\s*>"""
+)
+
+
+def _extract_repomix_file_paths(text: str) -> list[str]:
+    """Extract file paths from Repomix XML output.
+
+    Repomix --style xml emits `<file path="<path>">...</file>` blocks.
+    File paths are the smallest semantic unit Repomix surfaces — there is
+    no symbol-level data. Returns the paths in document order.
+
+    Returns ``[]`` for empty/non-XML input rather than raising.
+    """
+    return _REPOMIX_FILE_PATH_RE.findall(text)
+
+
+def _run_repomix(repo: Path, budget: int) -> dict:
+    """Invoke pinned Repomix CLI via npx, capture XML, re-tokenize.
+
+    Pinned invocation (per reference.md):
+        npx -y repomix@1.14.0 --style xml --output FILE \\
+            --token-count-encoding cl100k_base <repo>
+
+    Repomix is a *dump-everything* tool with no native budget concept.
+    The harness reports the full output measurement honestly. The
+    ``budget`` parameter is unused at invocation time but the response
+    is re-tokenized with cl100k_base at measurement boundary for
+    cross-tool parity. Empirically (2026-05-05): aa-ma-forge full repo
+    produces ~551k cl100k_base tokens.
+
+    Returns ``status="ok_no_symbols"`` per plan AC: Repomix doesn't
+    produce symbol-level output; the empty symbols list is intentional.
+    """
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
+        out_path = Path(f.name)
+    try:
+        result = subprocess.run(
+            [
+                "npx", "-y", "repomix@1.14.0",
+                "--style", "xml",
+                "--output", str(out_path),
+                "--token-count-encoding", "cl100k_base",
+                str(repo),
+            ],
+            cwd=repo, capture_output=True, text=True, timeout=300,
+        )
+        if result.returncode != 0:
+            return {
+                "status": "error",
+                "error": f"repomix exit {result.returncode}: {result.stderr.strip()[-200:]}",
+                "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+                "symbols": [],
+            }
+        text = out_path.read_text()
+        paths = _extract_repomix_file_paths(text)
+        m = measure_output(text, symbol_count=0)
+        m["file_count"] = len(paths)
+        return {
+            "status": "ok_no_symbols",
+            **m,
+            "symbols": [],
+        }
+    except (subprocess.TimeoutExpired, OSError) as e:
+        return {
+            "status": "error", "error": f"{type(e).__name__}: {e}",
+            "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+            "symbols": [],
+        }
+    finally:
+        out_path.unlink(missing_ok=True)
+
+
 def _build_report(
     budget: int, repo: Path,
-    codemem: dict, aider: dict, jcm: dict,
+    codemem: dict, aider: dict, jcm: dict, repomix: dict | None = None,
 ) -> dict:
     """Assemble the harness JSON report.
 
     M2a.6 (AD-V2-006): each overlap pair now emits both jaccard (set) and
     rbo_at_10 (rank-aware) similarity. Shape changed from scalar-per-pair
     to dict-per-pair.
+
+    M2b: optional ``repomix`` argument adds a 4th tool to the tools dict.
+    Repomix has no symbol-level output; ``status="ok_no_symbols"`` and
+    an empty ``symbols`` list. Overlap stays 3-tool (codemem/aider/jcm)
+    until M2c full 5-tool sweep adds Yek and switches to 10-pair overlap.
     """
     cm_list = list(codemem.get("symbols", []))
     ai_list = list(aider.get("symbols", []))
     jcm_list = list(jcm.get("symbols", []))
+    tools = {
+        "codemem": {k: v for k, v in codemem.items() if k != "symbols"},
+        "aider": {k: v for k, v in aider.items() if k != "symbols"},
+        "jcodemunch": {k: v for k, v in jcm.items() if k != "symbols"},
+    }
+    if repomix is not None:
+        tools["repomix"] = {k: v for k, v in repomix.items() if k != "symbols"}
     return {
         "requested_budget": budget,
         "repo": str(repo.resolve()),
         "tokenizer": _TIKTOKEN_ENCODING,
-        "tools": {
-            "codemem": {k: v for k, v in codemem.items() if k != "symbols"},
-            "aider": {k: v for k, v in aider.items() if k != "symbols"},
-            "jcodemunch": {k: v for k, v in jcm.items() if k != "symbols"},
-        },
+        "tools": tools,
         "overlap": {
             "codemem_vs_aider": _pair_overlap(cm_list, ai_list),
             "codemem_vs_jcodemunch": _pair_overlap(cm_list, jcm_list),
@@ -424,6 +505,13 @@ def main(argv: list[str] | None = None) -> int:
               "cl100k_base, matching codemem (post-M1) and jCodeMunch. "
               "Verified live: works without OPENAI_API_KEY (warning-only)."),
     )
+    parser.add_argument(
+        "--include-repomix", action="store_true",
+        help=("Add Repomix to the tools panel (M2b). Repomix is a "
+              "dump-everything tool with no native budget; expect ~500k+ "
+              "tokens on aa-ma-forge. Disabled by default to keep the "
+              "default invocation fast."),
+    )
     args = parser.parse_args(argv)
 
     if not args.repo.is_dir():
@@ -436,13 +524,19 @@ def main(argv: list[str] | None = None) -> int:
         tokeniser_equalise=args.aider_tokeniser_equalise,
     )
     jcm = _run_jcodemunch(args.repo, args.requested_budget)
-    report = _build_report(args.requested_budget, args.repo, codemem, aider, jcm)
+    repomix = _run_repomix(args.repo, args.requested_budget) if args.include_repomix else None
+    report = _build_report(
+        args.requested_budget, args.repo, codemem, aider, jcm, repomix=repomix
+    )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2) + "\n")
-    print(f"wrote {args.out}  "
-          f"(cm={codemem['status']}, ai={aider['status']}, jcm={jcm['status']})",
-          file=sys.stderr)
+    statuses = (
+        f"cm={codemem['status']}, ai={aider['status']}, jcm={jcm['status']}"
+    )
+    if repomix is not None:
+        statuses += f", rpx={repomix['status']}"
+    print(f"wrote {args.out}  ({statuses})", file=sys.stderr)
     return 0
 
 

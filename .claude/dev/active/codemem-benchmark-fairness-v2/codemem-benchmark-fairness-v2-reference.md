@@ -63,8 +63,9 @@ After M1 lands, codemem itself uses cl100k_base at budget time, but the invarian
 
 | Tool | Finding | [valid] |
 |---|---|---|
-| Repomix | Not on PATH at plan time; install via `npm install -g repomix` OR `npx -y repomix` | 2026-04-20 |
-| Repomix invocation | `repomix --style xml --output /tmp/repomix-out.xml --token-count-encoding cl100k_base .` | 2026-04-20 |
+| Repomix | M2b (2026-05-05): version 1.14.0 confirmed via `npx -y repomix@1.14.0`. NOT installed globally — npx path used. AD-V2-009. | 2026-05-05 |
+| Repomix invocation | `npx -y repomix@1.14.0 --style xml --output FILE --token-count-encoding cl100k_base <repo>` | 2026-05-05 |
+| Repomix output size (aa-ma-forge full) | 560,974 cl100k_base tokens / 2,195,925 bytes / 244 files. 584× larger than codemem at budget=1024. Dump-everything tool, no native budget. | 2026-05-05 |
 | Yek | Not on PATH at plan time; install via `cargo install yek` OR pre-built | 2026-04-20 |
 | Yek flags | `--tokens N --json` (confirmed in README; verify exact flags via `yek --help` at M2c start) | 2026-04-20 |
 

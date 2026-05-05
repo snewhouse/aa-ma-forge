@@ -4,6 +4,28 @@ _This log captures architectural decisions, trade-offs, gate approvals, and unre
 
 ---
 
+## 2026-05-05: M2b Milestone Completion — Repomix adapter
+
+**Status:** COMPLETE.
+
+**Empirical finding (headline for M3 v2 report):** Repomix at full-repo emits 560,974 cl100k_base tokens for aa-ma-forge — **584× larger than codemem at budget=1024**. Repomix is a *dump-everything* tool with no native budget concept; the "compare at equal budget" framing breaks down. M3 must explicitly distinguish "budget-aware tools" (codemem, aider, jcodemunch, yek) from "dump-everything tools" (Repomix).
+
+**Implementation choices:**
+
+- **AD-V2-009 (decided 2026-05-05): Use `npx -y repomix@1.14.0` instead of global `npm install -g repomix`.** Empirical pre-flight showed npm 11.6.0 installed but Repomix not global. Per plan AC alternative path. Pinned via `@1.14.0` for reproducibility. No global state, faster CI provisioning, deterministic version.
+
+- **AD-V2-010: Repomix returns `status="ok_no_symbols"` with empty `symbols=[]`.** Repomix doesn't emit symbol-level data; per plan AC `symbol_count may be 0`. Excluded from 3-tool overlap (codemem/aider/jcodemunch). M2c will introduce file-level overlap if Repomix participates in the 5-tool sweep — file paths are the natural granularity for Repomix.
+
+- **AD-V2-011: `--include-repomix` is opt-in (default off).** Repomix is slow (~30-60s on full repo) and produces 2.2MB output. Default 3-tool invocation stays fast for development; M2c full sweep enables Repomix explicitly.
+
+**Files changed:**
+
+- `scripts/bench_codemem_vs_aider.py` (~80 LOC: `_extract_repomix_file_paths` regex parser, `_run_repomix` adapter via npx, `_build_report` 4th tool support, `--include-repomix` CLI flag)
+- `tests/codemem/test_bench_harness.py` (TestRepomixAdapter, 5 tests)
+- `tests/codemem/fixtures/repomix_output_aa-ma-forge.xml` (32KB fixture from `parser/` subdir, 11 files)
+
+---
+
 ## 2026-05-05: M2a Pivot — jCodeMunch tool change (AD-V2-008)
 
 **Discovery (empirical probe, per "code is truth" directive):**

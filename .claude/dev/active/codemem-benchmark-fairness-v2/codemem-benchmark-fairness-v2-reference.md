@@ -66,8 +66,10 @@ After M1 lands, codemem itself uses cl100k_base at budget time, but the invarian
 | Repomix | M2b (2026-05-05): version 1.14.0 confirmed via `npx -y repomix@1.14.0`. NOT installed globally — npx path used. AD-V2-009. | 2026-05-05 |
 | Repomix invocation | `npx -y repomix@1.14.0 --style xml --output FILE --token-count-encoding cl100k_base <repo>` | 2026-05-05 |
 | Repomix output size (aa-ma-forge full) | 560,974 cl100k_base tokens / 2,195,925 bytes / 244 files. 584× larger than codemem at budget=1024. Dump-everything tool, no native budget. | 2026-05-05 |
-| Yek | Not on PATH at plan time; install via `cargo install yek` OR pre-built | 2026-04-20 |
-| Yek flags | `--tokens N --json` (confirmed in README; verify exact flags via `yek --help` at M2c start) | 2026-04-20 |
+| Yek | M2c.1 (2026-05-08): version 0.22.1 installed via `cargo install yek` (199 deps compiled). Path: `/home/sjnewhouse/.cargo/bin/yek`. AD-V2-012. | 2026-05-08 |
+| Yek flags (confirmed) | `yek --tokens N --json <repo>` — `--tokens N` is COMBINED (enables token mode AND sets budget to N; not a boolean). `--json` emits JSON array to stdout (`--output-dir`/`--output-name` ignored in JSON mode). | 2026-05-08 |
+| Yek JSON schema | `[{"filename": str, "content": str}, ...]` — file-level only, no symbols. `filename` is RELATIVE to the input-dir arg (no full path prefix). | 2026-05-08 |
+| Yek behaviour | **Order-preserving**: at budget=1024 on aa-ma-forge `parser/` subdir (11 files, ~7,751 tokens), emits ONLY 1 file (`__init__.py`, 58 chars). Stops at first file that doesn't fit; does NOT skip ahead to fit smaller files. Order is git-importance per yek docs. | 2026-05-08 |
 
 ### tiktoken sanity
 
@@ -156,7 +158,7 @@ After M1 lands, codemem itself uses cl100k_base at budget time, but the invarian
 | `mcp` | `>=1.27` | Required (dev-dep) | NEW in M2a | 2026-04-20 |
 | `rbo` | latest | Optional (test-only cross-reference) | NEW in M2a | 2026-04-20 |
 | `repomix` (npm) | TBD at install | Required (external tool via npm or npx) | NEW in M2b | 2026-04-20 |
-| `yek` (cargo) | TBD at install | Required (external tool via cargo) | NEW in M2c | 2026-04-20 |
+| `yek` (cargo) | `0.22.1` (resolved at M2c.1) | Required (external tool via cargo) | NEW in M2c | 2026-05-08 |
 
 ### Install Commands (canonical)
 
@@ -186,8 +188,8 @@ cargo install yek                    # or use pre-built binary
 | `--transport` | `stdio` | jcodemunch-mcp serve mode | 2026-04-20 |
 | `--style xml` | (Repomix) | emits structured XML packed format | 2026-04-20 |
 | `--token-count-encoding cl100k_base` | (Repomix) | equalise tokeniser | 2026-04-20 |
-| `--tokens N` | (Yek) | token budget flag | 2026-04-20 |
-| `--json` | (Yek) | JSON output mode | 2026-04-20 |
+| `--tokens N` | (Yek) | combined: enables token mode AND sets budget (not a boolean toggle) | 2026-05-08 |
+| `--json` | (Yek) | emits JSON array to stdout; `--output-dir` silently ignored when used | 2026-05-08 |
 
 ### Constants
 
@@ -220,7 +222,7 @@ cargo install yek                    # or use pre-built binary
 | jCodeMunch (MCP) | `search_symbols(top=N)` | Symbol search | 2026-04-18 |
 | jCodeMunch (MCP) | `index_repo(owner/repo)` | Repo indexing (public GitHub only) | 2026-04-18 |
 | Repomix | `repomix --style xml --output FILE --token-count-encoding cl100k_base <dir>` | Packed XML repo output | 2026-04-20 |
-| Yek | `yek --tokens N --json <dir>` (verify exact flags at M2c start) | Git-importance-ordered packed output | 2026-04-20 |
+| Yek | `yek --tokens N --json <repo>` (writes JSON to stdout) | Git-importance-ordered packed output, file-level only, order-preserving | 2026-05-08 |
 
 ### Benchmark Target Repos
 
@@ -286,4 +288,4 @@ Tool `status` enum: `"ok"`, `"ok_no_symbols"`, `"skipped"`, `"error"`.
 
 ---
 
-_Last Updated: 2026-04-20_
+_Last Updated: 2026-05-08 (M2c.1 — Yek install + flag verification)_

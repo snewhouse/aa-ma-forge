@@ -4,6 +4,62 @@ _This log captures architectural decisions, trade-offs, gate approvals, and unre
 
 ---
 
+## 2026-05-08: M2c.1 — Yek install + flag deviation (AD-V2-012)
+
+**Status:** COMPLETE. Yek 0.22.1 installed at `/home/sjnewhouse/.cargo/bin/yek` via `cargo install yek` (199 transitive deps compiled). HITL gate (which install path) resolved by user via `AskUserQuestion`: "cargo install yek (Recommended)" chosen over pre-built script and "drop yek" alternatives.
+
+**AD-V2-012: Yek `--tokens N` is a combined flag, not a boolean toggle.**
+
+The plan-time reference.md (line 70 pre-edit) and §M2c claimed Yek invocation `yek --tokens N --json`. Empirical probe at M2c.1 revealed actual semantics:
+
+| Flag | Plan-time assumption | Actual semantics |
+|---|---|---|
+| `--tokens N` | Boolean `--tokens` + value `N` (two args) | COMBINED — enables token mode AND sets budget to N in one argument |
+| `--json` | JSON output (mode flag) | JSON to **stdout**; `--output-dir` / `--output-name` silently ignored |
+| Output schema | (unspecified) | `[{"filename": str, "content": str}, ...]` — file-level only, no symbols, `filename` relative to input-dir argument |
+
+The plan's invocation `yek --tokens N --json <repo>` works as intended *literally* (it's the right command), but the documented mental model behind it was wrong. Logging here so M2c.3 adapter design and M3 report methodology section reference correct semantics.
+
+**Empirical behaviour finding (relevant to M3 v2 report):**
+
+Yek is **order-preserving**, not budget-optimising. On `packages/codemem-mcp/src/codemem/parser/` (11 files):
+
+| Budget | Files emitted | Note |
+|---|---|---|
+| `--tokens 1024` | 1 (`__init__.py`, 58 chars) | Stops at first file that doesn't fit; does NOT skip ahead. Next file (`ast_grep.py`) is ~3,080 tokens. |
+| `--tokens 100000` | 11 | All files fit. |
+| byte mode (default 10MB) | 11 | Reference. |
+
+This is fourth tool-category behaviour for the v2 panel:
+- **codemem (post-M1)**: budget-aware, optimising — fits N best-rank symbols within budget.
+- **Aider**: budget-aware, overshooting — `--map-tokens 1024` produced 2016 actual cl100k_base tokens (97% overshoot, M2a empirical).
+- **jCodeMunch (M2a pivot)**: top_n heuristic + harness-level truncation — overshoots 31% on aa-ma-forge (M2a empirical).
+- **Repomix**: dump-everything, no budget concept — 584× over codemem at budget=1024 (M2b empirical).
+- **Yek**: budget-aware, order-preserving (NOT optimising) — small-leading-file repos fit more, large-leading-file repos truncate aggressively. NEW finding 2026-05-08.
+
+For M3, the headline "tools count budgets differently" thesis broadens to "tools ALSO ENFORCE budgets differently". The M3 methodology section needs a 5-row tool-category table.
+
+**Implementation impact on M2c.3:**
+
+`_run_yek` adapter shape mirrors `_run_repomix`:
+- Subprocess `yek --tokens N --json <repo>` → capture stdout
+- Parse JSON `[{filename, content}, ...]`
+- `status = "ok_no_symbols"` (yek is file-level like Repomix)
+- Concatenate `content` fields, re-tokenise via `_TIKTOKEN_ENCODER` for honest measurement
+- `file_count` as secondary metric
+- No symbol-level overlap with codemem/aider/jcodemunch — file-level only (M2c.4 introduces 10-pair overlap structure but Yek/Repomix overlap will be file-level vs symbol-level for the others; document as known asymmetry)
+
+**Files changed at M2c.1:**
+
+- `codemem-benchmark-fairness-v2-reference.md` (5 edits): Yek section (line 65-68), dependency table (line 159), CLI flags table (lines 188-189), API/CLI Endpoints (line 225), Last-Updated bump.
+- `codemem-benchmark-fairness-v2-tasks.md`: M2c.1 marked COMPLETE with full Result Log; cleaned up 2 stale duplicate M2a.6/M2a.7 PENDING stubs (plan-amendment leftovers within already-COMPLETE M2a milestone — would have tripped L-081 sub-step consistency check on re-validation).
+- `codemem-benchmark-fairness-v2-context-log.md`: this entry.
+- `codemem-benchmark-fairness-v2-provenance.log`: M2c.1 entry appended.
+
+No code changes at M2c.1 — pre-flight only. M2c.2 onwards introduces code.
+
+---
+
 ## 2026-05-05: M2b Milestone Completion — Repomix adapter
 
 **Status:** COMPLETE.

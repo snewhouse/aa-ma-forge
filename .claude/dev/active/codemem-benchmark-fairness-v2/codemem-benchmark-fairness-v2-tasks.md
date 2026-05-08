@@ -284,23 +284,11 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
 
   **Methodological finding (logged for M3 v2 report):** even with cl100k_base equalisation via `--model gpt-3.5-turbo`, Aider's output OVERSHOOTS budget=1024 by 97% (2016 actual tokens). The flag equalises model identity (and litellm tokeniser routing for budgeting), but Aider's *output* expansion appears to use a different internal counting. jCodeMunch overshoots 31% (top_n heuristic mapping). codemem is the only tool that honestly enforces budget post-M1 (94% utilisation). This empirical finding strengthens v2's "tokeniser mismatch" thesis: bias persists even after explicit equalisation.
 
-### Step M2a.6: Wire overlap block to emit both `jaccard` and `rbo_at_10` per pair
-- Status: PENDING
-- Mode: AFK
-- Dependencies: M2a.5
-- Acceptance Criteria:
-  - `overlap.budget_1024.<pair>` contains both `jaccard` and `rbo_at_10` keys for all three pairs.
-  - Existing v1 jaccard path unchanged.
-- Result Log:
-
-### Step M2a.7: Run single-budget 3-tool smoke + commit
-- Status: PENDING
-- Mode: AFK
-- Dependencies: M2a.6
-- Acceptance Criteria:
-  - `scripts/bench_codemem_vs_aider.py --repo . --requested-budget 1024 --out /tmp/v2a.json` passes the Phase-M2a assertions.
-  - Commit signature footer correct; push succeeds.
-- Result Log:
+<!-- Steps M2a.6 and M2a.7 above (Status: COMPLETE, 2026-05-05) are the canonical entries.
+     Two duplicate PENDING stubs that lived here previously were cleaned up 2026-05-08
+     during M2c.1; they were plan-amendment leftovers (AD-V2-006/007 wired into the same
+     milestone twice) and would have tripped the M2a sub-step consistency check (L-081)
+     if anyone re-ran milestone validation against the already-COMPLETE M2a. -->
 
 ---
 
@@ -419,7 +407,7 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - Full sweep wall-clock documented (expected 20-60 minutes per repo).
 
 ### Step M2c.1: Pre-flight, verify cargo / Yek install + confirm CLI flags
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: M2b.4
 - Acceptance Criteria:
@@ -427,6 +415,34 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - `cargo install yek` succeeds OR pre-built binary on PATH.
   - `yek --help` output captured; actual flags for token budget and JSON output confirmed.
 - Result Log:
+  COMPLETE 2026-05-08. Empirical pre-flight + install:
+  - `which cargo` → `/home/sjnewhouse/.cargo/bin/cargo`, version 1.88.0 ✓
+  - `which yek` → not found (initial state) ✓
+  - User-approved (AskUserQuestion) install path: `cargo install yek` (chosen over pre-built script and "drop yek" alternatives) ✓
+  - Install: `cargo install yek` succeeded; **yek 0.22.1**, 199 transitive deps compiled, exit 0 (background ID `byi363fq4`, `/tmp/yek-install.log`) ✓
+  - `which yek` → `/home/sjnewhouse/.cargo/bin/yek` (post-install) ✓
+  - `yek --help` captured, flags confirmed ✓
+
+  **Important deviation from plan-time assumption (logged as AD-V2-012, see context-log.md):**
+
+  The reference.md (line 70 pre-edit) and plan §M2c claimed Yek invocation `yek --tokens N --json`. Empirical probe revealed actual semantics:
+  - `--tokens N`: COMBINED flag — enables token mode AND sets budget to N in one argument. NOT a boolean toggle. Required value.
+  - `--json`: emits JSON array to stdout. `--output-dir` and `--output-name` are silently ignored when `--json` is used.
+  - JSON schema: `[{"filename": str, "content": str}, ...]` — file-level only (no symbols), `filename` relative to input-dir argument (no full path prefix).
+
+  **Empirical behaviour probe** (`packages/codemem-mcp/src/codemem/parser/`, 11 files, ~7,751 tokens per Repomix M2b reading):
+  - `yek --tokens 1024 --json parser/`: 1 file (`__init__.py`, 58 chars). Yek is **order-preserving**: it stops at the first file that doesn't fit; it does NOT skip ahead to fit smaller files. The next file (`ast_grep.py`, ~3,080 tokens) exceeds remaining budget → halt.
+  - `yek --tokens 100000 --json parser/`: 11 files (all of them).
+  - `yek --json parser/` (byte mode default 10MB): 11 files.
+
+  Implication for M2c.3 adapter design: `_run_yek` invocation is `yek --tokens N --json <repo>` capturing stdout (not a file). Mirror `_run_repomix` shape (`status="ok_no_symbols"`, file_count secondary metric, tiktoken re-measure of concatenated content). The order-preserving behaviour means Yek's symbol_count at low budgets will be biased toward small-leading-files repos.
+
+  Reference.md updated with confirmed facts (5 edits to Yek-relevant rows + Last-Updated bump). Plan §M2c.3 acceptance criteria still hold (status=ok, tiktoken_tokens > 0); the deviation is in the invocation flag semantics, not the contract.
+
+  AC verification:
+  - AC1 `which cargo` returns path: PASS (`/home/sjnewhouse/.cargo/bin/cargo`)
+  - AC2 `cargo install yek` succeeds: PASS (yek 0.22.1, exit 0)
+  - AC3 `yek --help` captured + flags confirmed: PASS (semantics empirically validated; AD-V2-012 documents the deviation from plan assumption)
 
 ### Step M2c.2: Capture golden JSON fixture
 - Status: PENDING

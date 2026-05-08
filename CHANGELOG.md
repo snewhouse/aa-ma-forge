@@ -4,38 +4,79 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## v0.4.0 (2026-05-08)
 
-### Added
+### Feat
 
-- `claude-code/hooks/lib/aa-ma-parse.sh` shared helper library: 5 exports (`aa_ma_is_disabled`, `aa_ma_extract_active_milestone`, `aa_ma_extract_active_step`, `aa_ma_list_active_tasks`, `aa_ma_debug`); format-agnostic Status regex; HTML-comment false-positive guard
-- `tests/hooks/` bats test harness: fixture builder with self-tests, helper tests, hook integration tests. CI job via `bats-core/bats-action@v4`
-- feat(hooks): commit-signature enforcement hook (PreToolUse/Bash): blocks unsigned `git commit` when an AA-MA plan is active. `[ad-hoc]` marker on its own line bypasses (auditable in git log). Word-boundary match distinguishes `git commit-tree`/`commit-graph`. Pretty stderr block message naming top active task.
-- feat(hooks): SessionEnd dirty detector (`aa-ma-session-end-dirty.sh`): warns when AA-MA artifacts are git-dirty at session end. Advisory-only; silent in CI (`CLAUDE_CODE` unset).
-- feat(hooks): PostToolUse drift detector (`aa-ma-commit-drift.sh`): warns when a git commit lands without touching any active task's `tasks.md`/`provenance.log`. `[no-sync-check]` marker bypasses. `AA_MA_DRIFT_THRESHOLD` env var (default 1) tunes sensitivity.
-- `AA_MA_HOOKS_DISABLE=1` master kill switch: all AA-MA hooks early-exit 0 silently
-- `HOOK_DEBUG=1` diagnostic mode: verbose stderr traces from `aa_ma_debug`
-- README "AA-MA hook troubleshooting" section: kill switch, bypass markers, known scope limits, local bats install
-- install.sh now registers 5 hooks idempotently: SessionStart, PreCompact, PreToolUse(Bash), SessionEnd, PostToolUse(Bash) — only those whose source files exist, with path-substring idempotence (works with both `<path>` and `bash <path>` command forms)
-- install.sh preflight: fails cleanly with install instructions if `jq` missing
-- install.sh symlinks helper library `aa-ma-parse.sh` into `~/.claude/hooks/lib/` so hooks can source it from their installed sibling path
+- **codemem**: yek adapter + 5-tool harness (M2c)
+- **codemem**: Repomix adapter (M2b)
+- **codemem**: live 3-tool fairness harness (M2a)
+- **aa-ma-plan-workflow**: add Mode/Gate/Baseline fields to plan template
+- **codemem-token-benchmarks**: M3 Task 3.1 COMPLETE — fastapi pinned + sweep orchestrator
+- **codemem-token-benchmarks**: M2 Task 2.6 GREEN — integration test
+- **codemem-token-benchmarks**: M2 Task 2.5 GREEN — full CLI benchmark harness
+- **codemem-token-benchmarks**: M2 Task 2.4 RED — tiktoken normalization tests
+- **codemem-token-benchmarks**: M2 Task 2.3 GREEN — inline Aider prose parser
+- **codemem-token-benchmarks**: M2 Task 2.2 RED — parser tests + golden Aider fixture
+- **execute-aa-ma-milestone**: add Section 7.2.5 Post-Completion Validator Dispatch
+- **codemem-token-benchmarks**: M2 Task 2.1 COMPLETE — add tiktoken dev dep
+- **codemem-token-benchmarks**: M1 COMPLETE — Task 1.3 scope decision + milestone finalization
+- **codemem-token-benchmarks**: M1 Task 1.2 COMPLETE — smoke tests + 1 AC reframe
+- **codemem-token-benchmarks**: M1 Task 1.1 COMPLETE — pinned tool installs verified
+- **aa-ma**: new plan — codemem-token-benchmarks (executes DEFERRED Task 4.2)
+- **codemem**: M4 COMPLETE — review-response patch (5 fixes) + milestone finalization
+- **codemem**: M4 Task 4.6 — codemem-scoped doc-drift hook + test gate
+- **codemem**: M4 Task 4.8 — zero-config install + co_changes demo (L-254 fix)
+- **codemem**: M3.5 COMPLETE — fix L-253 apply_schema-without-migrate defect
+- **codemem**: M3.5 Task 3.5.3 — auto-build-on-first-query
+- **codemem**: M3.5 Task 3.5.2 — integration tests prove 14 tools reachable via FastMCP
+- **codemem**: M3.5 Task 3.5.1 — wire 6 M3 tools into FastMCP server
+- **codemem**: M4 Task 4.7 — CI smoke test + ast-grep drift check
+- **codemem**: M4 Task 4.1 — perf bench script + aa-ma-forge measurements
+- **codemem**: M3 Task 3.7 — aa_ma_context() moat tool (326/326)
+- **codemem**: M3 Task 3.6 — layers() MCP tool (318/318)
+- **codemem**: M3 Task 3.5 — symbol_history() MCP tool (308/308)
+- **codemem**: M3 Task 3.4 — owners() MCP tool (301/301)
+- **codemem**: M3 Task 3.3 — co_changes() MCP tool (291/291)
+- **codemem**: M3 Task 3.2 — hot_spots() MCP tool (279/279)
+- **codemem**: M3 Task 3.1 — git mining base layer (269/269)
+- **codemem**: M3 Task 3.8 — schema v2 migration (254/254)
+- **codemem**: M2 Task 2.8 + M2 COMPLETE — WAL rotation (227/227)
+- **codemem**: M2 Tasks 2.6 + 2.7 — WAL checkpoint + writer lock (217/217)
+- **codemem**: M2 Task 2.5 — post-commit storm control + 4 tests (208/208)
+- **codemem**: M2 Task 2.4 — WAL replay + round-trip property test
+- **codemem**: M2 Task 2.3 — WAL JSONL journal + 14 tests (201/201)
+- **codemem**: M2 Task 2.2 — incremental refresh driver + 10 tests (187/187)
+- **codemem**: M2 Task 2.1 — symbol-set diff + 14 tests (177/177)
+- **codemem**: M1 Tasks 1.12 + 1.13 — ARCHITECTURE.md + perf SLOs (M1 COMPLETE)
+- **codemem**: M1 Task 1.11 — install wiring + import-linter + CLI + 11 tests
+- **codemem**: M1 Task 1.10 — FastMCP server + aliases + 8 tests (152/152)
+- **codemem**: M1 Task 1.8 — pure-Python PageRank + PROJECT_INTEL.json (144/144)
+- **codemem**: M1 Task 1.7 — 6 MCP tools + sanitizers + canonical CTE (131/131)
+- **codemem**: M1 Task 1.6 — 4-strategy cross-file resolver + 11 tests (98/98)
+- **codemem**: M1 Task 1.5 — indexer driver + 15 tests (87/87 suite green)
+- **codemem**: M1 Task 1.4 — ast-grep wrapper + 8 YAML rule files + 36 tests
+- **codemem**: M1 Task 1.3 — Python stdlib `ast` parser + 20 tests passing
+- **codemem**: M1 Task 1.2 — SQLite schema v1 + db.py + 16 tests passing
+- **codemem**: M1 Task 1.1 — scaffold + dual-distribution packaging verified
+- **codemem**: M1 Task 1.0 complete — packaging=uv_workspace, plan v3→v4
+- **codemem**: AA-MA plan v3 — 41 tasks across 4 milestones, 12 MCP tools
+- **hooks**: M5 post-commit drift detector — plan complete
+- **hooks**: M4 SessionEnd dirty AA-MA detector
+- **hooks**: M3 commit-signature + install.sh + docs + canonicalization
+- **hooks**: M2 fix shipped hooks (mtime + path + both-paths)
+- **hooks**: M1 foundations — bats harness + shared parser + CI
 
-### Changed
+### Fix
 
-- `aa-ma-session-start.sh`: now surfaces the most-recently-touched task (was alphabetical-last); emits absolute resolved path (was hardcoded relative fragment); appends `(N other active tasks: a, b, c and M more)` footer when >1 active task; sources shared helper
-- `pre-compact-aa-ma.sh`: now iterates both project-local AND `$HOME/.claude/dev/active/` (was HOME-only); project-first collision resolution; uses format-agnostic Status parser (was plain-only, missed bold-format templates); honours kill switch
-- `uninstall.sh`: extended to deregister all 5 AA-MA hooks (was SessionStart only); path-substring match normalises `<path>` and `bash <path>` forms
-- `docs/templates/tasks-template.md`: Status format canonicalised to plain `Status: X` (was bold `**Status:** X`) — helper tolerates both via defence-in-depth regex
-- `claude-code/agents/aa-ma-scribe.md`: template block Status format canonicalised to plain
-- All AA-MA hooks now resolve helper library via dual-layout probe (project subdir OR installed sibling), robust to symlink vs direct invocation
-- `claude-code/commands/execute-aa-ma-milestone.md`: new Section 7.2.5 Post-Completion Validator Dispatch. After Section 7.2 doc auto-update and before Section 7.3 user approval, auto-dispatches `aa-ma-validator` agent to audit the just-updated artifacts against 6 dimensions (existence, plan completeness, reference completeness, HTP structure, cross-file consistency, completeness-claim accuracy). Three-verdict handling: READY_FOR_ARCHIVE proceeds; WARNINGS_BUT_USABLE back-fills inline (avoiding a separate post-archive audit commit); GAPS_REQUIRE_FIX halts. Graceful-skip fallback when agent spawning unavailable. Rationale: catches Result Log placeholders, missing commit SHAs, and missing MERGE_TO_MAIN events in-flight instead of requiring back-fill commits post-archive. Pattern derived from go-biological-process-disease-support 2026-04-20 sprint audit (3 WARN items that required back-fill commit `d424ef8` before archive).
+- **codemem**: honest tiktoken budget enforcement (M1)
+- **codemem-token-benchmarks**: resolve OBS-001 — add codemem-mcp to dev-deps
+- **codemem**: M3.5 Task 3.5.5 — ship project-scope .mcp.json (Option B); L-244 files defect
+- **hooks**: resolve helper across symlinked + project layouts
 
-### Fixed
+### Refactor
 
-- Silent correctness bug in `pre-compact-aa-ma.sh`: previously `grep 'Status: ACTIVE'` never matched bold `**Status:** ACTIVE` template output — CHECKPOINT entries always emitted "active step: unknown"
-- Silent path-emission bug in `aa-ma-session-start.sh:72`: hardcoded `.claude/dev/active/` path even when task lived in `$HOME` — Claude would try to read non-existent project-local path
-- Silent mtime-ordering bug in `aa-ma-session-start.sh:34-38`: loop picked alphabetical-last task despite comment claiming "most recently modified"
-- Pre-existing `install.sh` gap: PreCompact hook symlinked but never registered in `settings.json` — fixed in the same multi-hook registration loop
+- **codemem**: M3.5 Task 3.5.4 — remove wheel MCP-server channel (AD-Q15)
 
 ## v0.3.0 (2026-04-10)
 

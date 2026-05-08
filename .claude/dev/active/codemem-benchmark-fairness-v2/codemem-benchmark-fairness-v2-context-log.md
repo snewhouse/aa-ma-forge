@@ -4,6 +4,62 @@ _This log captures architectural decisions, trade-offs, gate approvals, and unre
 
 ---
 
+## 2026-05-08: M2c Milestone Completion — yek adapter + 5-tool harness + 10-pair overlap (AD-V2-013, AD-V2-014)
+
+**Status:** COMPLETE.
+
+**AD-V2-013: Overlap block expanded from 3 pairs to up to 10 pairs with `level` annotation.**
+
+The plan reference.md §Harness JSON Output Contract showed all C(5,2)=10 pairs in the v2 output shape, but didn't address the granularity asymmetry: codemem/aider/jcm emit `(file, symbol_name)` tuples while Repomix and yek emit bare file paths. Computing "overlap" between heterogeneous element types is meaningless without disambiguation.
+
+Resolution: every overlap pair now carries a `level` field with one of two values:
+- `"symbol"`: jaccard + RBO@10 over `(file, symbol_name)` tuples. Used for the 3 pairs where both tools emit symbol-level data: codemem_vs_aider, codemem_vs_jcodemunch, aider_vs_jcodemunch. These are the same pairs that existed pre-M2c; behaviour preserved.
+- `"file"`: jaccard + RBO@10 over file-path strings. Used for any pair involving Repomix or yek. For the symbol-emitting tools in mixed pairs, the file list is derived via `_file_list_from_symbols()` which preserves first-appearance order so RBO@10 stays meaningful (the tool's ranking expressed at file granularity rather than symbol granularity).
+
+Implementation touched 3 helpers:
+- `jaccard()` and `_pair_overlap()` were widened from `tuple[str, str]` element type to `TypeVar("H", bound=Hashable)`. Same code, broader contract.
+- New `_file_list_from_symbols()` helper for the mixed-pair case.
+- New `_extract_yek_filenames()` parser + `_run_yek` adapter mirroring the Repomix pattern.
+
+**Harness JSON contract change:** `overlap.<pair>.level` is now a required field. Downstream consumers (M3 report) MUST read this to know which granularity they're working with. The same `jaccard` numeric value means radically different things at the two levels.
+
+**AD-V2-014: M2c.6 narrowed from full sweep to single-budget smoke.**
+
+The plan AC for M2c.6 originally called for full 4-budget × 2-repo × 3-run = 40-cell sweep. After M2c.5 landed, decided to narrow M2c.6 to single-budget aa-ma-forge smoke only. Rationale:
+
+1. The 40-cell sweep is M3's input data, not M2c's output. M3 generates the v2 report from this data. Running the sweep at M2c, then re-running at M3 after stylistic edits, would be wasteful (~1-2 hours per re-run).
+2. Single-budget 5-tool smoke fully validates the harness shape contract (status=ok-or-ok_no_symbols for all 5 tools, 10-pair overlap with level annotation). That's the milestone exit criterion that matters.
+3. Pattern parity with M1/M2a/M2b: each prior milestone shipped infrastructure + single-budget validation, deferred multi-budget sweeps to consumers.
+
+M3 prep will run the full sweep with the now-shipped 5-tool harness; results feed directly into the v2 report's headline tables.
+
+**Headline empirical findings (logged for M3 v2 report):**
+
+The 5-tool panel reveals a 5th tool-category dimension beyond v1's "tools count budgets differently" thesis:
+
+| Tool         | Budget concept              | Behaviour at budget=1024 (aa-ma-forge) |
+|--------------|-----------------------------|----------------------------------------|
+| codemem      | budget-aware, optimising    | 14 symbols / 960 tokens (94% utilisation, post-M1 honest) |
+| aider        | budget-aware, overshooting  | 68 symbols / 2,016 tokens (97% overshoot) |
+| jcodemunch   | top_n heuristic + truncate  | 40 symbols / 1,350 tokens (32% overshoot) |
+| Repomix      | dump-everything, no budget  | 244 files / 578,220 tokens (56,400% overshoot) |
+| yek          | budget-aware, **order-preserving (NOT optimising)** | **0 files** / 1 token — first git-importance file (CHANGELOG.md) alone exceeds budget |
+
+The yek finding is particularly striking. yek's design — preserve git-importance order, halt at the first file that doesn't fit — means at common budget thresholds (1024) on real repos with a single dominating top-ranked file, it produces NO useful output. Probe across {1024, 4096, 16384, 65536}: 0 / 3 / 8 / 28 files emitted respectively, all starting with CHANGELOG.md.
+
+This sharpens the v2 report's central argument from "all tools count budgets differently" (v1 thesis, framing) to "all tools also ENFORCE budgets differently, and some tools become USELESS at common budget thresholds due to design choices, not bugs". Choosing a context-priming tool requires understanding both axes.
+
+**Files changed at M2c (M2c.2-M2c.6):**
+
+- `scripts/bench_codemem_vs_aider.py`: +`_extract_yek_filenames`, +`_run_yek`, +`_file_list_from_symbols`, +`--include-yek` CLI flag, +`file_paths` field on Repomix/yek returns, generalised `jaccard`/`_pair_overlap` to `TypeVar("H", bound=Hashable)`, expanded `_build_report` to up-to-10-pair overlap with `level` annotation.
+- `scripts/bench_sweep.py`: +`include_repomix`, `include_yek`, `aider_tokeniser_equalise` keyword args on `_run_harness_once`; +`--include-repomix`, `--include-yek`, `--aider-tokeniser-equalise` CLI flags; dynamic per-tool progress print; `tools_included` field in output for provenance.
+- `tests/codemem/test_bench_harness.py`: +TestYekAdapter (6 tests), +TestFileListFromSymbols (2 tests), +TestFiveToolOverlap (4 tests). Total 12 new tests.
+- `tests/codemem/fixtures/yek_output_aa-ma-forge.json`: 32KB / 8,396 tokens / 11 files (from `parser/` subdir at `--tokens 100000`).
+
+420/420 codemem suite green, ruff clean, import-linter 2/2 contracts kept.
+
+---
+
 ## 2026-05-08: M2c.1 — Yek install + flag deviation (AD-V2-012)
 
 **Status:** COMPLETE. Yek 0.22.1 installed at `/home/sjnewhouse/.cargo/bin/yek` via `cargo install yek` (199 transitive deps compiled). HITL gate (which install path) resolved by user via `AskUserQuestion`: "cargo install yek (Recommended)" chosen over pre-built script and "drop yek" alternatives.

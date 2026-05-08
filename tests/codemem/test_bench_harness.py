@@ -22,7 +22,10 @@ from pathlib import Path
 import pytest
 
 from bench_codemem_vs_aider import (  # noqa: E402
+    _build_report,
     _extract_repomix_file_paths,
+    _extract_yek_filenames,
+    _file_list_from_symbols,
     _parse_munch_gen1,
     _run_aider,
     measure_output,
@@ -398,6 +401,7 @@ class TestSweepAggregate:
 
 JCM_FIXTURE = FIXTURES_DIR / "jcodemunch_symbol_importance_aa-ma-forge.txt"
 REPOMIX_FIXTURE = FIXTURES_DIR / "repomix_output_aa-ma-forge.xml"
+YEK_FIXTURE = FIXTURES_DIR / "yek_output_aa-ma-forge.json"
 
 
 class TestRepomixAdapter:
@@ -720,3 +724,214 @@ class TestAiderModelOverride:
         assert args[idx + 1] == "1024", (
             f"--map-tokens value not propagated: {args}"
         )
+
+
+class TestYekAdapter:
+    """M2c.5 — Yek JSON file-extractor tests.
+
+    Yek is a budget-aware-but-order-preserving tool (AD-V2-012, 2026-05-08):
+    at low budgets it stops at the first file that doesn't fit rather than
+    skipping ahead. Output schema is JSON array of {filename, content}
+    records — file-level only, no symbol-level data.
+
+    The fixture is captured at ``--tokens 100000`` (well above any plausible
+    test budget) so all 11 ``packages/codemem-mcp/src/codemem/parser/`` files
+    are present. This makes the fixture useful for multi-file parsing tests
+    without forcing tests to depend on the order-preserving budget behaviour.
+    """
+
+    def test_extract_filenames_synthetic_json(self) -> None:
+        """Minimal valid Yek-style JSON → 2 filenames extracted in order."""
+        text = json.dumps(
+            [
+                {"filename": "src/foo.py", "content": "def hello(): pass\n"},
+                {"filename": "tests/test_foo.py", "content": "x = 1\n"},
+            ]
+        )
+        names = _extract_yek_filenames(text)
+        assert names == ["src/foo.py", "tests/test_foo.py"]
+
+    def test_extract_filenames_real_fixture_has_files(self) -> None:
+        """Live-captured Yek fixture must produce ≥ 5 filenames, all str+truthy."""
+        assert YEK_FIXTURE.exists(), f"Live fixture missing: {YEK_FIXTURE}"
+        names = _extract_yek_filenames(YEK_FIXTURE.read_text())
+        assert len(names) >= 5, f"only {len(names)} filenames; expected >= 5"
+        for n in names:
+            assert isinstance(n, str) and n, f"bad filename: {n!r}"
+
+    def test_extract_filenames_real_fixture_includes_python(self) -> None:
+        """Captured fixture is from packages/codemem-mcp/src/codemem/parser/
+        — must include .py files."""
+        names = _extract_yek_filenames(YEK_FIXTURE.read_text())
+        py_names = [n for n in names if n.endswith(".py")]
+        assert py_names, f"expected .py files; got: {names[:5]}"
+
+    def test_extract_filenames_no_files_returns_empty(self) -> None:
+        """Empty array, non-JSON, and empty string → empty list (no exceptions)."""
+        assert _extract_yek_filenames("[]") == []
+        assert _extract_yek_filenames("not even json") == []
+        assert _extract_yek_filenames("") == []
+
+    def test_extract_filenames_preserves_nested_paths(self) -> None:
+        """Yek emits nested paths like 'rules/bash.yml' relative to input dir."""
+        names = _extract_yek_filenames(YEK_FIXTURE.read_text())
+        nested = [n for n in names if "/" in n]
+        assert nested, (
+            f"expected at least one nested path; got: {names}"
+        )
+
+    def test_extract_filenames_skips_malformed_records(self) -> None:
+        """Records without a string ``filename`` field are skipped, not raised."""
+        text = json.dumps(
+            [
+                {"filename": "src/good.py", "content": "ok"},
+                {"content": "no filename"},
+                {"filename": 42, "content": "bad type"},
+                "not a dict at all",
+                {"filename": "src/also-good.py", "content": "ok"},
+            ]
+        )
+        names = _extract_yek_filenames(text)
+        assert names == ["src/good.py", "src/also-good.py"]
+
+
+class TestFileListFromSymbols:
+    """M2c.4 — _file_list_from_symbols helper for file-level overlap derivation."""
+
+    def test_extracts_unique_files_in_first_appearance_order(self) -> None:
+        """Files appear in the order their first symbol appears."""
+        symbols = [
+            ("src/a.py", "fn1"),
+            ("src/b.py", "fn2"),
+            ("src/a.py", "fn3"),  # dup file, later position — preserved order
+            ("src/c.py", "fn4"),
+            ("src/b.py", "fn5"),  # dup file, later position
+        ]
+        assert _file_list_from_symbols(symbols) == [
+            "src/a.py", "src/b.py", "src/c.py",
+        ]
+
+    def test_empty_input_returns_empty(self) -> None:
+        """Empty symbol list → empty file list."""
+        assert _file_list_from_symbols([]) == []
+
+
+class TestFiveToolOverlap:
+    """M2c.4 — verify _build_report emits 10-pair overlap when all 5 tools present.
+
+    Each pair carries a ``level`` annotation: ``"symbol"`` for the 3 pairs
+    where both tools emit symbol data (codemem, aider, jcm), ``"file"``
+    for any pair involving Repomix or yek (file-level tools).
+    """
+
+    @staticmethod
+    def _stub_symbol_tool(symbols: list[tuple[str, str]]) -> dict:
+        return {
+            "status": "ok",
+            "raw_bytes": 100,
+            "tiktoken_tokens": 50,
+            "symbol_count": len(symbols),
+            "symbols": symbols,
+        }
+
+    @staticmethod
+    def _stub_file_tool(files: list[str]) -> dict:
+        return {
+            "status": "ok_no_symbols",
+            "raw_bytes": 100,
+            "tiktoken_tokens": 50,
+            "symbol_count": 0,
+            "file_count": len(files),
+            "symbols": [],
+            "file_paths": files,
+        }
+
+    def test_three_tool_baseline_has_3_pairs_all_symbol_level(self, tmp_path):
+        """Baseline (no repomix/yek): existing 3 pairs, all level='symbol'."""
+        cm = self._stub_symbol_tool([("src/a.py", "fn1")])
+        ai = self._stub_symbol_tool([("src/a.py", "fn1")])
+        jcm = self._stub_symbol_tool([("src/b.py", "fn2")])
+        report = _build_report(1024, tmp_path, cm, ai, jcm)
+        assert set(report["overlap"].keys()) == {
+            "codemem_vs_aider",
+            "codemem_vs_jcodemunch",
+            "aider_vs_jcodemunch",
+        }
+        for pair_data in report["overlap"].values():
+            assert pair_data["level"] == "symbol"
+            assert "jaccard" in pair_data
+            assert "rbo_at_10" in pair_data
+
+    def test_five_tool_full_panel_has_10_pairs_with_level_annotation(
+        self, tmp_path
+    ):
+        """All 5 tools → 10 pairs (C(5,2)). 3 are symbol-level, 7 are file-level."""
+        cm = self._stub_symbol_tool([
+            ("src/a.py", "fn1"), ("src/b.py", "fn2"),
+        ])
+        ai = self._stub_symbol_tool([("src/a.py", "fn1")])
+        jcm = self._stub_symbol_tool([("src/c.py", "fn3")])
+        rpx = self._stub_file_tool(["src/a.py", "src/d.py"])
+        yek = self._stub_file_tool(["src/b.py", "src/e.py"])
+
+        report = _build_report(1024, tmp_path, cm, ai, jcm, repomix=rpx, yek=yek)
+
+        assert set(report["overlap"].keys()) == {
+            # 3 symbol-level (existing baseline)
+            "codemem_vs_aider",
+            "codemem_vs_jcodemunch",
+            "aider_vs_jcodemunch",
+            # 3 file-level pairs with repomix
+            "codemem_vs_repomix",
+            "aider_vs_repomix",
+            "jcodemunch_vs_repomix",
+            # 3 file-level pairs with yek
+            "codemem_vs_yek",
+            "aider_vs_yek",
+            "jcodemunch_vs_yek",
+            # 1 file-level pair between repomix and yek
+            "repomix_vs_yek",
+        }
+        assert len(report["overlap"]) == 10
+
+        symbol_pairs = {
+            "codemem_vs_aider", "codemem_vs_jcodemunch", "aider_vs_jcodemunch",
+        }
+        for key, data in report["overlap"].items():
+            expected_level = "symbol" if key in symbol_pairs else "file"
+            assert data["level"] == expected_level, (
+                f"pair {key} level mismatch: {data['level']} != {expected_level}"
+            )
+            assert 0.0 <= data["jaccard"] <= 1.0
+            assert 0.0 <= data["rbo_at_10"] <= 1.0
+
+    def test_repomix_only_panel_has_6_pairs(self, tmp_path):
+        """4 tools (no yek): 3 symbol + 3 file-level with repomix = 6 pairs."""
+        cm = self._stub_symbol_tool([("src/a.py", "fn1")])
+        ai = self._stub_symbol_tool([("src/a.py", "fn1")])
+        jcm = self._stub_symbol_tool([("src/b.py", "fn2")])
+        rpx = self._stub_file_tool(["src/a.py"])
+        report = _build_report(1024, tmp_path, cm, ai, jcm, repomix=rpx)
+        assert len(report["overlap"]) == 6
+        assert "repomix_vs_yek" not in report["overlap"]
+        assert "codemem_vs_yek" not in report["overlap"]
+
+    def test_codemem_vs_repomix_jaccard_matches_file_intersection(
+        self, tmp_path
+    ):
+        """File-level Jaccard for codemem vs repomix on hand-computed input.
+
+        codemem files: {a.py, b.py}; repomix files: {a.py, c.py}.
+        Intersection: {a.py} (1). Union: {a.py, b.py, c.py} (3). Jaccard: 1/3.
+        """
+        cm = self._stub_symbol_tool([
+            ("a.py", "fn1"), ("b.py", "fn2"),
+        ])
+        ai = self._stub_symbol_tool([])
+        jcm = self._stub_symbol_tool([])
+        rpx = self._stub_file_tool(["a.py", "c.py"])
+        report = _build_report(1024, tmp_path, cm, ai, jcm, repomix=rpx)
+        assert report["overlap"]["codemem_vs_repomix"]["jaccard"] == pytest.approx(
+            1.0 / 3.0
+        )
+

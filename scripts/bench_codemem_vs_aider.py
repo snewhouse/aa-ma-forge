@@ -23,8 +23,14 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Hashable, TypeVar
 
 import tiktoken
+
+# Element type for overlap operations — narrowed only to "hashable" because
+# overlap pairs span two granularities: symbol-level uses (file, symbol_name)
+# tuples, file-level uses bare file-path strings (M2c AD-V2-013).
+H = TypeVar("H", bound=Hashable)
 
 # Known file extensions — guards file-header detection against line-wrapped
 # signature continuations (e.g., a standalone `dict:` line that is actually
@@ -106,8 +112,13 @@ def measure_output(text: str, symbol_count: int) -> dict[str, int]:
     }
 
 
-def jaccard(a: set[tuple[str, str]], b: set[tuple[str, str]]) -> float:
-    """Jaccard similarity on (file, symbol_name) tuples. Empty-empty → 0.0."""
+def jaccard(a: set[H], b: set[H]) -> float:
+    """Jaccard similarity on hashable elements. Empty-empty → 0.0.
+
+    Originally used for (file, symbol_name) tuples (M2a). Generalised in
+    M2c (AD-V2-013) so the same helper computes file-level overlap when
+    elements are bare file-path strings.
+    """
     if not a and not b:
         return 0.0
     return len(a & b) / len(a | b)
@@ -364,13 +375,20 @@ def _run_jcodemunch(repo: Path, budget: int) -> dict:
 
 
 def _pair_overlap(
-    list_a: list[tuple[str, str]],
-    list_b: list[tuple[str, str]],
+    list_a: list[H],
+    list_b: list[H],
 ) -> dict[str, float]:
     """Both Jaccard (set similarity) and RBO@10 (rank-aware similarity)
     for a single tool-pair. Symmetric in arguments — Jaccard always is,
     and RBO is treated as such by averaging both directions to remove
-    asymmetry-of-tail-extrapolation noise (Webber 2010 §4.2)."""
+    asymmetry-of-tail-extrapolation noise (Webber 2010 §4.2).
+
+    Element type is the TypeVar ``H`` (Hashable). Use ``tuple[str, str]``
+    for symbol-level overlap (file, symbol_name) — used in M2a's existing
+    3-pair codemem/aider/jcodemunch comparisons. Use ``str`` for
+    file-level overlap (file path) — used in M2c's mixed and
+    Repomix/yek-only pairs.
+    """
     set_a, set_b = set(list_a), set(list_b)
     rbo_ab = rbo_at_10(list_a, list_b, p=0.9, k=10)
     rbo_ba = rbo_at_10(list_b, list_a, p=0.9, k=10)
@@ -442,31 +460,159 @@ def _run_repomix(repo: Path, budget: int) -> dict:
             "status": "ok_no_symbols",
             **m,
             "symbols": [],
+            "file_paths": paths,
         }
     except (subprocess.TimeoutExpired, OSError) as e:
         return {
             "status": "error", "error": f"{type(e).__name__}: {e}",
             "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
             "symbols": [],
+            "file_paths": [],
         }
     finally:
         out_path.unlink(missing_ok=True)
 
 
+def _extract_yek_filenames(text: str) -> list[str]:
+    """Extract filenames from yek JSON output.
+
+    yek ``--json`` emits a JSON array of ``{"filename": str, "content": str}``
+    records (file-level only — yek surfaces no symbol data). Filenames are
+    relative to the input-dir argument, with no full-path prefix.
+
+    Returns names in document order (yek's git-importance ordering, AD-V2-012).
+    Records that are not dicts, or that lack a string ``filename`` field, are
+    silently skipped — defensive parsing keeps the harness robust against
+    future schema changes in yek upstream.
+
+    Returns ``[]`` for empty/non-JSON input rather than raising.
+    """
+    try:
+        data = json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        return []
+    if not isinstance(data, list):
+        return []
+    return [
+        item["filename"]
+        for item in data
+        if isinstance(item, dict) and isinstance(item.get("filename"), str)
+    ]
+
+
+def _run_yek(repo: Path, budget: int) -> dict:
+    """Invoke pinned yek CLI, capture JSON via stdout, re-tokenize.
+
+    Pinned invocation (per reference.md §AD-V2-012, 2026-05-08):
+
+        yek --tokens N --json <repo>
+
+    yek ``--tokens N`` is a COMBINED flag — it enables token mode AND sets
+    the budget to N in one argument (NOT a boolean toggle as plan-time
+    reference.md initially assumed). yek emits its JSON array to stdout;
+    ``--output-dir`` and ``--output-name`` are silently ignored when
+    ``--json`` is set.
+
+    yek is **order-preserving**, not budget-optimising — at low budgets it
+    stops at the first file that doesn't fit rather than skipping ahead to
+    fit smaller files. Empirical (M2c.1, parser/ subdir, 11 files):
+    ``--tokens 1024`` emits ONLY ``__init__.py`` (58 chars) because the
+    next file is ~3,080 tokens. This is a fourth tool-category for the
+    v2 panel and is documented in M3 methodology section.
+
+    Returns ``status="ok_no_symbols"`` per AD-V2-010 convention shared
+    with Repomix: yek is file-level only, so the empty ``symbols=[]`` is
+    intentional. ``file_count`` is the secondary metric for downstream
+    file-level overlap analysis.
+    """
+    try:
+        result = subprocess.run(
+            [
+                "yek",
+                "--tokens", str(budget),
+                "--json",
+                str(repo),
+            ],
+            cwd=repo, capture_output=True, text=True, timeout=120,
+        )
+        if result.returncode != 0:
+            return {
+                "status": "error",
+                "error": f"yek exit {result.returncode}: {result.stderr.strip()[-200:]}",
+                "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+                "symbols": [],
+            }
+        text = result.stdout
+        names = _extract_yek_filenames(text)
+        m = measure_output(text, symbol_count=0)
+        m["file_count"] = len(names)
+        return {
+            "status": "ok_no_symbols",
+            **m,
+            "symbols": [],
+            "file_paths": names,
+        }
+    except (subprocess.TimeoutExpired, OSError) as e:
+        return {
+            "status": "error", "error": f"{type(e).__name__}: {e}",
+            "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+            "symbols": [],
+            "file_paths": [],
+        }
+
+
+def _file_list_from_symbols(
+    symbol_list: list[tuple[str, str]],
+) -> list[str]:
+    """Reduce a [(file, symbol_name), ...] list to ordered unique files.
+
+    Used when computing file-level overlap between symbol-emitting tools
+    (codemem/aider/jcodemunch) and file-emitting tools (Repomix/yek).
+    Order is preserved by first-appearance: the first symbol's file
+    comes first, then later files in the order their first symbol
+    appears. This keeps RBO@10 meaningful — the file ordering reflects
+    the tool's ranking via its top-ranked symbols.
+    """
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for entry in symbol_list:
+        if not entry:
+            continue
+        f = entry[0] if isinstance(entry, tuple) else None
+        if not isinstance(f, str) or f in seen:
+            continue
+        seen.add(f)
+        ordered.append(f)
+    return ordered
+
+
 def _build_report(
     budget: int, repo: Path,
-    codemem: dict, aider: dict, jcm: dict, repomix: dict | None = None,
+    codemem: dict, aider: dict, jcm: dict,
+    repomix: dict | None = None, yek: dict | None = None,
 ) -> dict:
     """Assemble the harness JSON report.
 
-    M2a.6 (AD-V2-006): each overlap pair now emits both jaccard (set) and
-    rbo_at_10 (rank-aware) similarity. Shape changed from scalar-per-pair
-    to dict-per-pair.
+    M2a.6 (AD-V2-006): each overlap pair emits both jaccard (set) and
+    rbo_at_10 (rank-aware) similarity. Shape: dict-per-pair.
 
     M2b: optional ``repomix`` argument adds a 4th tool to the tools dict.
-    Repomix has no symbol-level output; ``status="ok_no_symbols"`` and
-    an empty ``symbols`` list. Overlap stays 3-tool (codemem/aider/jcm)
-    until M2c full 5-tool sweep adds Yek and switches to 10-pair overlap.
+    M2c (AD-V2-013, 2026-05-08): optional ``yek`` adds the 5th tool, and
+    the overlap block expands from 3 pairs to up to 10 (C(5,2)).
+
+    Each overlap pair carries a ``level`` field:
+    - ``"symbol"``: comparison is on (file, symbol_name) tuples. Used
+      for pairs where both tools emit symbol-level data (codemem,
+      aider, jcodemunch).
+    - ``"file"``: comparison is on file paths only. Used for any pair
+      involving Repomix or yek (file-level tools); for symbol-emitting
+      tools the file list is derived via ``_file_list_from_symbols``,
+      preserving first-appearance order so RBO@10 stays meaningful.
+
+    The ``level`` annotation is essential — the same ``jaccard`` key
+    means different things in the two cases, and downstream consumers
+    (M3 report) need to know which they're reading. Without ``level``,
+    cross-pair comparisons would silently mix granularities.
     """
     cm_list = list(codemem.get("symbols", []))
     ai_list = list(aider.get("symbols", []))
@@ -478,16 +624,41 @@ def _build_report(
     }
     if repomix is not None:
         tools["repomix"] = {k: v for k, v in repomix.items() if k != "symbols"}
+    if yek is not None:
+        tools["yek"] = {k: v for k, v in yek.items() if k != "symbols"}
+
+    overlap: dict = {
+        "codemem_vs_aider":      {**_pair_overlap(cm_list, ai_list), "level": "symbol"},
+        "codemem_vs_jcodemunch": {**_pair_overlap(cm_list, jcm_list), "level": "symbol"},
+        "aider_vs_jcodemunch":   {**_pair_overlap(ai_list, jcm_list), "level": "symbol"},
+    }
+
+    if repomix is not None or yek is not None:
+        cm_files = _file_list_from_symbols(cm_list)
+        ai_files = _file_list_from_symbols(ai_list)
+        jcm_files = _file_list_from_symbols(jcm_list)
+        rpx_files: list[str] = list(repomix.get("file_paths", [])) if repomix is not None else []
+        yek_files: list[str] = list(yek.get("file_paths", [])) if yek is not None else []
+
+        if repomix is not None:
+            overlap["codemem_vs_repomix"]    = {**_pair_overlap(cm_files,  rpx_files), "level": "file"}
+            overlap["aider_vs_repomix"]      = {**_pair_overlap(ai_files,  rpx_files), "level": "file"}
+            overlap["jcodemunch_vs_repomix"] = {**_pair_overlap(jcm_files, rpx_files), "level": "file"}
+
+        if yek is not None:
+            overlap["codemem_vs_yek"]    = {**_pair_overlap(cm_files,  yek_files), "level": "file"}
+            overlap["aider_vs_yek"]      = {**_pair_overlap(ai_files,  yek_files), "level": "file"}
+            overlap["jcodemunch_vs_yek"] = {**_pair_overlap(jcm_files, yek_files), "level": "file"}
+
+        if repomix is not None and yek is not None:
+            overlap["repomix_vs_yek"] = {**_pair_overlap(rpx_files, yek_files), "level": "file"}
+
     return {
         "requested_budget": budget,
         "repo": str(repo.resolve()),
         "tokenizer": _TIKTOKEN_ENCODING,
         "tools": tools,
-        "overlap": {
-            "codemem_vs_aider": _pair_overlap(cm_list, ai_list),
-            "codemem_vs_jcodemunch": _pair_overlap(cm_list, jcm_list),
-            "aider_vs_jcodemunch": _pair_overlap(ai_list, jcm_list),
-        },
+        "overlap": overlap,
     }
 
 
@@ -512,6 +683,13 @@ def main(argv: list[str] | None = None) -> int:
               "tokens on aa-ma-forge. Disabled by default to keep the "
               "default invocation fast."),
     )
+    parser.add_argument(
+        "--include-yek", action="store_true",
+        help=("Add yek to the tools panel (M2c). yek is budget-aware but "
+              "order-preserving — at low budgets it stops at the first "
+              "file that doesn't fit rather than skipping ahead. Disabled "
+              "by default to keep the default invocation fast."),
+    )
     args = parser.parse_args(argv)
 
     if not args.repo.is_dir():
@@ -525,8 +703,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     jcm = _run_jcodemunch(args.repo, args.requested_budget)
     repomix = _run_repomix(args.repo, args.requested_budget) if args.include_repomix else None
+    yek = _run_yek(args.repo, args.requested_budget) if args.include_yek else None
     report = _build_report(
-        args.requested_budget, args.repo, codemem, aider, jcm, repomix=repomix
+        args.requested_budget, args.repo, codemem, aider, jcm,
+        repomix=repomix, yek=yek,
     )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -536,6 +716,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     if repomix is not None:
         statuses += f", rpx={repomix['status']}"
+    if yek is not None:
+        statuses += f", yek={yek['status']}"
     print(f"wrote {args.out}  ({statuses})", file=sys.stderr)
     return 0
 

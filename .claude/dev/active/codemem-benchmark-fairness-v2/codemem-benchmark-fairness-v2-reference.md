@@ -69,7 +69,9 @@ After M1 lands, codemem itself uses cl100k_base at budget time, but the invarian
 | Yek | M2c.1 (2026-05-08): version 0.22.1 installed via `cargo install yek` (199 deps compiled). Path: `/home/sjnewhouse/.cargo/bin/yek`. AD-V2-012. | 2026-05-08 |
 | Yek flags (confirmed) | `yek --tokens N --json <repo>` — `--tokens N` is COMBINED (enables token mode AND sets budget to N; not a boolean). `--json` emits JSON array to stdout (`--output-dir`/`--output-name` ignored in JSON mode). | 2026-05-08 |
 | Yek JSON schema | `[{"filename": str, "content": str}, ...]` — file-level only, no symbols. `filename` is RELATIVE to the input-dir arg (no full path prefix). | 2026-05-08 |
-| Yek behaviour | **Order-preserving**: at budget=1024 on aa-ma-forge `parser/` subdir (11 files, ~7,751 tokens), emits ONLY 1 file (`__init__.py`, 58 chars). Stops at first file that doesn't fit; does NOT skip ahead to fit smaller files. Order is git-importance per yek docs. | 2026-05-08 |
+| Yek behaviour (subdir) | **Order-preserving**: at budget=1024 on aa-ma-forge `parser/` subdir (11 files, ~7,751 tokens), emits ONLY 1 file (`__init__.py`, 58 chars). Stops at first file that doesn't fit; does NOT skip ahead to fit smaller files. Order is git-importance per yek docs. | 2026-05-08 |
+| Yek behaviour (full repo) | At aa-ma-forge root the order-preserving design has dramatic effect: at budget=1024 yek emits **0 files** because the first git-importance file (CHANGELOG.md) alone exceeds the budget. Empirical sweep: budget {1024, 4096, 16384, 65536} → {0, 3, 8, 28} files, all starting with CHANGELOG.md. Headline v2-report finding (M2c.6 smoke). | 2026-05-08 |
+| Overlap pair `level` field | Each `overlap.<pair>` entry carries `level: "symbol"` (3 codemem/aider/jcm pairs) or `level: "file"` (7 pairs involving Repomix and/or yek). Required field as of AD-V2-013. Downstream consumers MUST read it — same `jaccard` value means different things at the two levels. | 2026-05-08 |
 
 ### tiktoken sanity
 
@@ -288,4 +290,4 @@ Tool `status` enum: `"ok"`, `"ok_no_symbols"`, `"skipped"`, `"error"`.
 
 ---
 
-_Last Updated: 2026-05-08 (M2c.1 — Yek install + flag verification)_
+_Last Updated: 2026-05-08 (M2c milestone close — yek adapter + 5-tool harness + 10-pair overlap with level annotation)_

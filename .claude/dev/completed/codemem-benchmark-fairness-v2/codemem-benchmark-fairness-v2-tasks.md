@@ -1,3 +1,6 @@
+<!-- ARCHIVED: 2026-05-08 12:40 -->
+<!-- Plan: codemem-benchmark-fairness-v2 - COMPLETE -->
+<!-- Total Milestones: 6 | Duration: 2026-04-20 to 2026-05-08 -->
 # codemem-benchmark-fairness-v2 Tasks (HTP)
 
 _Hierarchical Task Planning roadmap with dependencies, mode classification, and state tracking. All milestones are SOFT-gated (default). Max complexity 60% at M2a; no milestone reaches the 80% deep-review threshold._

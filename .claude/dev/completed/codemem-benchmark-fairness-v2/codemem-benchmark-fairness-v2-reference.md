@@ -1,3 +1,6 @@
+<!-- ARCHIVED: 2026-05-08 12:40 -->
+<!-- Plan: codemem-benchmark-fairness-v2 - COMPLETE -->
+<!-- Total Milestones: 6 | Duration: 2026-04-20 to 2026-05-08 -->
 # codemem-benchmark-fairness-v2 Reference
 
 _Load-first priority file. Contains immutable facts, v1 carry-forward invariants, Phase-3 research findings, and all external claim verifications. An agent resuming this task reads THIS FILE FIRST._

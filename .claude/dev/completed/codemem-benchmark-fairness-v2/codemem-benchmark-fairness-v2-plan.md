@@ -1,3 +1,6 @@
+<!-- ARCHIVED: 2026-05-08 12:40 -->
+<!-- Plan: codemem-benchmark-fairness-v2 - COMPLETE -->
+<!-- Total Milestones: 6 | Duration: 2026-04-20 to 2026-05-08 -->
 # codemem-benchmark-fairness-v2 Plan
 
 **Objective:** Re-run the codemem-vs-Aider benchmark with v1 methodology flaws corrected (proxy fix, tokeniser-equalised Aider, RBO, jCodeMunch live round-trip) and expand to a 5-tool panel (add Repomix + Yek), superseding v1 and re-baselining kill-criteria Signal 2.

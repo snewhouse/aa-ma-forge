@@ -1,3 +1,6 @@
+<!-- ARCHIVED: 2026-05-08 12:40 -->
+<!-- Plan: codemem-benchmark-fairness-v2 - COMPLETE -->
+<!-- Total Milestones: 6 | Duration: 2026-04-20 to 2026-05-08 -->
 # codemem-benchmark-fairness-v2 Context Log
 
 _This log captures architectural decisions, trade-offs, gate approvals, and unresolved issues for the v2 fair benchmark plan._

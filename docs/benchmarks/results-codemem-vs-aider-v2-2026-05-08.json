@@ -1,0 +1,788 @@
+{
+  "schema_version": "v2-2026-05-08",
+  "tokenizer": "cl100k_base",
+  "tools_panel": [
+    "codemem",
+    "aider",
+    "jcodemunch",
+    "repomix",
+    "yek"
+  ],
+  "overlap_pair_count": 10,
+  "overlap_pair_levels": {
+    "symbol": [
+      "codemem_vs_aider",
+      "codemem_vs_jcodemunch",
+      "aider_vs_jcodemunch"
+    ],
+    "file": [
+      "codemem_vs_repomix",
+      "aider_vs_repomix",
+      "jcodemunch_vs_repomix",
+      "codemem_vs_yek",
+      "aider_vs_yek",
+      "jcodemunch_vs_yek",
+      "repomix_vs_yek"
+    ]
+  },
+  "repos": {
+    "aa-ma-forge": {
+      "repo": "/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge",
+      "pinned_sha": "1cc2b0269e9ce85a1dc1de5d7e34ff20b67d216c",
+      "runs_per_cell": 3,
+      "budgets": [
+        512,
+        1024,
+        2048,
+        4096
+      ],
+      "tokenizer": "cl100k_base",
+      "tools_included": [
+        "codemem",
+        "aider",
+        "jcodemunch",
+        "repomix",
+        "yek"
+      ],
+      "measurements": {
+        "budget_512": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 1620,
+            "tiktoken_tokens": 495,
+            "symbol_count": 7,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 3553,
+            "tiktoken_tokens": 1094,
+            "symbol_count": 38,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "ok",
+            "raw_bytes": 1825,
+            "tiktoken_tokens": 734,
+            "symbol_count": 20,
+            "runs_included": 3
+          },
+          "repomix": {
+            "status": "ok",
+            "raw_bytes": 2277828,
+            "tiktoken_tokens": 582849,
+            "symbol_count": 0,
+            "runs_included": 3
+          },
+          "yek": {
+            "status": "ok",
+            "raw_bytes": 3,
+            "tiktoken_tokens": 1,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        },
+        "budget_1024": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 3132,
+            "tiktoken_tokens": 960,
+            "symbol_count": 14,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 6490,
+            "tiktoken_tokens": 2016,
+            "symbol_count": 68,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "ok",
+            "raw_bytes": 3282,
+            "tiktoken_tokens": 1350,
+            "symbol_count": 40,
+            "runs_included": 3
+          },
+          "repomix": {
+            "status": "ok",
+            "raw_bytes": 2277828,
+            "tiktoken_tokens": 582849,
+            "symbol_count": 0,
+            "runs_included": 3
+          },
+          "yek": {
+            "status": "ok",
+            "raw_bytes": 3,
+            "tiktoken_tokens": 1,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        },
+        "budget_2048": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 6535,
+            "tiktoken_tokens": 2045,
+            "symbol_count": 30,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 12509,
+            "tiktoken_tokens": 3935,
+            "symbol_count": 132,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "ok",
+            "raw_bytes": 5390,
+            "tiktoken_tokens": 2225,
+            "symbol_count": 70,
+            "runs_included": 3
+          },
+          "repomix": {
+            "status": "ok",
+            "raw_bytes": 2277828,
+            "tiktoken_tokens": 582849,
+            "symbol_count": 0,
+            "runs_included": 3
+          },
+          "yek": {
+            "status": "ok",
+            "raw_bytes": 3,
+            "tiktoken_tokens": 1,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        },
+        "budget_4096": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 12888,
+            "tiktoken_tokens": 4049,
+            "symbol_count": 60,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 27815,
+            "tiktoken_tokens": 8399,
+            "symbol_count": 263,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "ok",
+            "raw_bytes": 5390,
+            "tiktoken_tokens": 2225,
+            "symbol_count": 70,
+            "runs_included": 3
+          },
+          "repomix": {
+            "status": "ok",
+            "raw_bytes": 2277828,
+            "tiktoken_tokens": 582849,
+            "symbol_count": 0,
+            "runs_included": 3
+          },
+          "yek": {
+            "status": "ok",
+            "raw_bytes": 11973,
+            "tiktoken_tokens": 2952,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        }
+      },
+      "overlap": {
+        "budget_512": {
+          "codemem_vs_aider": {
+            "jaccard": 0.04878048780487805,
+            "rbo_at_10": 0.06693724343571428,
+            "level": "symbol"
+          },
+          "codemem_vs_jcodemunch": {
+            "jaccard": 0.038461538461538464,
+            "rbo_at_10": 0.03874204890000001,
+            "level": "symbol"
+          },
+          "aider_vs_jcodemunch": {
+            "jaccard": 0.12,
+            "rbo_at_10": 0.04352501790000001,
+            "level": "symbol"
+          },
+          "codemem_vs_repomix": {
+            "jaccard": 0.02857142857142857,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_repomix": {
+            "jaccard": 0.05714285714285714,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_repomix": {
+            "jaccard": 0.08163265306122448,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "codemem_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "repomix_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          }
+        },
+        "budget_1024": {
+          "codemem_vs_aider": {
+            "jaccard": 0.12857142857142856,
+            "rbo_at_10": 0.03874204890000001,
+            "level": "symbol"
+          },
+          "codemem_vs_jcodemunch": {
+            "jaccard": 0.038461538461538464,
+            "rbo_at_10": 0.08226706680000002,
+            "level": "symbol"
+          },
+          "aider_vs_jcodemunch": {
+            "jaccard": 0.10526315789473684,
+            "rbo_at_10": 0.04352501790000001,
+            "level": "symbol"
+          },
+          "codemem_vs_repomix": {
+            "jaccard": 0.036734693877551024,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_repomix": {
+            "jaccard": 0.08163265306122448,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_repomix": {
+            "jaccard": 0.16326530612244897,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "codemem_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "repomix_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          }
+        },
+        "budget_2048": {
+          "codemem_vs_aider": {
+            "jaccard": 0.14388489208633093,
+            "rbo_at_10": 0.0,
+            "level": "symbol"
+          },
+          "codemem_vs_jcodemunch": {
+            "jaccard": 0.02040816326530612,
+            "rbo_at_10": 0.08226706680000002,
+            "level": "symbol"
+          },
+          "aider_vs_jcodemunch": {
+            "jaccard": 0.08743169398907104,
+            "rbo_at_10": 0.0,
+            "level": "symbol"
+          },
+          "codemem_vs_repomix": {
+            "jaccard": 0.061224489795918366,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_repomix": {
+            "jaccard": 0.09795918367346938,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_repomix": {
+            "jaccard": 0.2857142857142857,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "codemem_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "repomix_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          }
+        },
+        "budget_4096": {
+          "codemem_vs_aider": {
+            "jaccard": 0.2037735849056604,
+            "rbo_at_10": 0.0,
+            "level": "symbol"
+          },
+          "codemem_vs_jcodemunch": {
+            "jaccard": 0.023622047244094488,
+            "rbo_at_10": 0.08226706680000002,
+            "level": "symbol"
+          },
+          "aider_vs_jcodemunch": {
+            "jaccard": 0.07516339869281045,
+            "rbo_at_10": 0.0,
+            "level": "symbol"
+          },
+          "codemem_vs_repomix": {
+            "jaccard": 0.07346938775510205,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_repomix": {
+            "jaccard": 0.1510204081632653,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_repomix": {
+            "jaccard": 0.2857142857142857,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "codemem_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "repomix_vs_yek": {
+            "jaccard": 0.012244897959183673,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          }
+        }
+      }
+    },
+    "fastapi": {
+      "repo": "/tmp/bench-fastapi",
+      "pinned_sha": "708606c982cf35718cb2214c0bb9261cf548f042",
+      "runs_per_cell": 3,
+      "budgets": [
+        512,
+        1024,
+        2048,
+        4096
+      ],
+      "tokenizer": "cl100k_base",
+      "tools_included": [
+        "codemem",
+        "aider",
+        "jcodemunch",
+        "repomix",
+        "yek"
+      ],
+      "measurements": {
+        "budget_512": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 1739,
+            "tiktoken_tokens": 507,
+            "symbol_count": 9,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 4998,
+            "tiktoken_tokens": 1330,
+            "symbol_count": 28,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "ok",
+            "raw_bytes": 1569,
+            "tiktoken_tokens": 629,
+            "symbol_count": 20,
+            "runs_included": 3
+          },
+          "repomix": {
+            "status": "ok",
+            "raw_bytes": 22304314,
+            "tiktoken_tokens": 8274204,
+            "symbol_count": 0,
+            "runs_included": 3
+          },
+          "yek": {
+            "status": "ok",
+            "raw_bytes": 890,
+            "tiktoken_tokens": 258,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        },
+        "budget_1024": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 3438,
+            "tiktoken_tokens": 1016,
+            "symbol_count": 19,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 9046,
+            "tiktoken_tokens": 2349,
+            "symbol_count": 47,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "ok",
+            "raw_bytes": 3079,
+            "tiktoken_tokens": 1209,
+            "symbol_count": 40,
+            "runs_included": 3
+          },
+          "repomix": {
+            "status": "ok",
+            "raw_bytes": 22304314,
+            "tiktoken_tokens": 8274204,
+            "symbol_count": 0,
+            "runs_included": 3
+          },
+          "yek": {
+            "status": "ok",
+            "raw_bytes": 890,
+            "tiktoken_tokens": 258,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        },
+        "budget_2048": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 6904,
+            "tiktoken_tokens": 2024,
+            "symbol_count": 39,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 18103,
+            "tiktoken_tokens": 4699,
+            "symbol_count": 95,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "ok",
+            "raw_bytes": 6946,
+            "tiktoken_tokens": 2544,
+            "symbol_count": 81,
+            "runs_included": 3
+          },
+          "repomix": {
+            "status": "ok",
+            "raw_bytes": 22304314,
+            "tiktoken_tokens": 8274204,
+            "symbol_count": 0,
+            "runs_included": 3
+          },
+          "yek": {
+            "status": "ok",
+            "raw_bytes": 890,
+            "tiktoken_tokens": 258,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        },
+        "budget_4096": {
+          "codemem": {
+            "status": "ok",
+            "raw_bytes": 13662,
+            "tiktoken_tokens": 4083,
+            "symbol_count": 81,
+            "runs_included": 3
+          },
+          "aider": {
+            "status": "ok",
+            "raw_bytes": 35596,
+            "tiktoken_tokens": 9180,
+            "symbol_count": 207,
+            "runs_included": 3
+          },
+          "jcodemunch": {
+            "status": "ok",
+            "raw_bytes": 13586,
+            "tiktoken_tokens": 5067,
+            "symbol_count": 163,
+            "runs_included": 3
+          },
+          "repomix": {
+            "status": "ok",
+            "raw_bytes": 22304314,
+            "tiktoken_tokens": 8274204,
+            "symbol_count": 0,
+            "runs_included": 3
+          },
+          "yek": {
+            "status": "ok",
+            "raw_bytes": 890,
+            "tiktoken_tokens": 258,
+            "symbol_count": 0,
+            "runs_included": 3
+          }
+        }
+      },
+      "overlap": {
+        "budget_512": {
+          "codemem_vs_aider": {
+            "jaccard": 0.029411764705882353,
+            "rbo_at_10": 0.0,
+            "level": "symbol"
+          },
+          "codemem_vs_jcodemunch": {
+            "jaccard": 0.03571428571428571,
+            "rbo_at_10": 0.04950372915000001,
+            "level": "symbol"
+          },
+          "aider_vs_jcodemunch": {
+            "jaccard": 0.045454545454545456,
+            "rbo_at_10": 0.0,
+            "level": "symbol"
+          },
+          "codemem_vs_repomix": {
+            "jaccard": 0.002500893176134334,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_repomix": {
+            "jaccard": 0.004287245444801715,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_repomix": {
+            "jaccard": 0.007145409074669525,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "codemem_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "repomix_vs_yek": {
+            "jaccard": 0.0007145409074669524,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          }
+        },
+        "budget_1024": {
+          "codemem_vs_aider": {
+            "jaccard": 0.14285714285714285,
+            "rbo_at_10": 0.0,
+            "level": "symbol"
+          },
+          "codemem_vs_jcodemunch": {
+            "jaccard": 0.05357142857142857,
+            "rbo_at_10": 0.04950372915000001,
+            "level": "symbol"
+          },
+          "aider_vs_jcodemunch": {
+            "jaccard": 0.024096385542168676,
+            "rbo_at_10": 0.0,
+            "level": "symbol"
+          },
+          "codemem_vs_repomix": {
+            "jaccard": 0.005001786352268668,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_repomix": {
+            "jaccard": 0.0057163272597356195,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_repomix": {
+            "jaccard": 0.01429081814933905,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "codemem_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "repomix_vs_yek": {
+            "jaccard": 0.0007145409074669524,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          }
+        },
+        "budget_2048": {
+          "codemem_vs_aider": {
+            "jaccard": 0.1391304347826087,
+            "rbo_at_10": 0.0,
+            "level": "symbol"
+          },
+          "codemem_vs_jcodemunch": {
+            "jaccard": 0.034482758620689655,
+            "rbo_at_10": 0.04950372915000001,
+            "level": "symbol"
+          },
+          "aider_vs_jcodemunch": {
+            "jaccard": 0.048484848484848485,
+            "rbo_at_10": 0.0,
+            "level": "symbol"
+          },
+          "codemem_vs_repomix": {
+            "jaccard": 0.007145409074669525,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_repomix": {
+            "jaccard": 0.010003572704537335,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_repomix": {
+            "jaccard": 0.028938906752411574,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "codemem_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "repomix_vs_yek": {
+            "jaccard": 0.0007145409074669524,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          }
+        },
+        "budget_4096": {
+          "codemem_vs_aider": {
+            "jaccard": 0.16363636363636364,
+            "rbo_at_10": 0.0,
+            "level": "symbol"
+          },
+          "codemem_vs_jcodemunch": {
+            "jaccard": 0.021739130434782608,
+            "rbo_at_10": 0.04950372915000001,
+            "level": "symbol"
+          },
+          "aider_vs_jcodemunch": {
+            "jaccard": 0.051515151515151514,
+            "rbo_at_10": 0.0,
+            "level": "symbol"
+          },
+          "codemem_vs_repomix": {
+            "jaccard": 0.011075384065737763,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_repomix": {
+            "jaccard": 0.01893533404787424,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_repomix": {
+            "jaccard": 0.05823508395855663,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "codemem_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "aider_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "jcodemunch_vs_yek": {
+            "jaccard": 0.0,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          },
+          "repomix_vs_yek": {
+            "jaccard": 0.0007145409074669524,
+            "rbo_at_10": 0.0,
+            "level": "file"
+          }
+        }
+      }
+    }
+  }
+}

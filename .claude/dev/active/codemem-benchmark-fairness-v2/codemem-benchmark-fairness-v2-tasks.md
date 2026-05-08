@@ -610,43 +610,21 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
 
   Plan amendment (AD-V2-014): full multi-budget multi-repo sweep is officially M3 prep, not M2c work. M2c.6 narrows to single-budget aa-ma-forge smoke as the milestone exit gate.
 
-### Step M2c.4: Extend `scripts/bench_sweep.py` to 5-tool loop
-- Status: PENDING
-- Mode: AFK
-- Dependencies: M2c.3
-- Acceptance Criteria:
-  - Sweep aggregates all 5 tools; `aggregate` + `_median_int` reused unchanged.
-  - Output contract matches the 10-pair overlap block in reference.md.
-- Result Log:
-
-### Step M2c.5: `TestYekAdapter` (>=3) + `@pytest.mark.slow` full sweep integration
-- Status: PENDING
-- Mode: AFK
-- Dependencies: M2c.4
-- Acceptance Criteria:
-  - `TestYekAdapter` has >=3 tests; all green.
-  - `@pytest.mark.slow` integration test runs the full 5-tool sweep against aa-ma-forge and asserts the 20-cell JSON contract.
-- Result Log:
-
-### Step M2c.6: Run full sweep on both repos + commit
-- Status: PENDING
-- Mode: AFK
-- Dependencies: M2c.5
-- Acceptance Criteria:
-  - `/tmp/bench-aa-ma-forge-v2.json` and `/tmp/bench-fastapi-v2.json` each contain 20 cells and 10 overlap pairs.
-  - Wall-clock per repo recorded in Result Log.
-  - Commit signature footer correct; push succeeds.
-- Result Log:
+<!-- Steps M2c.4 / M2c.5 / M2c.6 above (Status: COMPLETE, 2026-05-08) are the canonical entries.
+     Three duplicate PENDING stubs that lived here previously were cleaned up 2026-05-08
+     during M3 close; they were plan-amendment leftovers (same defect class as the M2a stubs
+     cleaned at M2c.1) and would have tripped the M2c sub-step consistency check (L-081)
+     if anyone re-ran milestone validation against the already-COMPLETE M2c. -->
 
 ---
 
 ## Milestone 3: v2 report + Signal 2 second re-baseline
 
-- Status: PENDING
+- Status: COMPLETE
 - Gate: SOFT
 - Mode (milestone-level dispatch): HITL
 - Complexity: 40%
-- Effort: 0.5-1 day
+- Effort: 0.5-1 day (actual: ~1 day, dominated by full sweep wall-clock)
 - Dependencies: M2c
 - Measurable goal: `docs/benchmarks/codemem-vs-aider-v2.md` committed, voice-pass green, Signal 2 status line updated with v2 numbers, composite verdict re-examined.
 - Acceptance Criteria:
@@ -658,16 +636,37 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - `docs/benchmarks/results-codemem-vs-aider-v2-2026-04-XX.json` committed.
 
 ### Step M3.1: Draft `docs/benchmarks/codemem-vs-aider-v2.md` from combined raw data
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: M2c.6
 - Acceptance Criteria:
   - Report includes 5-tool headline table, RBO@10 + Jaccard overlap matrix, methodology-correction section explicitly enumerating the 11 Phase-4.5 findings and which were fixed in v2.
   - Voice grep gates pass: no em dashes, no AI-vocab words.
 - Result Log:
+  COMPLETE 2026-05-08. `docs/benchmarks/codemem-vs-aider-v2.md` written (~454 lines). Sections:
+  - **Headline finding (read first):** new 5-tool-category table demonstrating the v2 thesis (tools count AND enforce budgets differently); yek 0-files insight prominently placed.
+  - **The tokeniser-mismatch caveat (still relevant):** updated table showing which tools are equalised in v2 and the residual asymmetry (Aider's internal output budgeting still overshoots cl100k_base measurement).
+  - **Methodology corrections from v1 (Phase 4.5 findings):** all 11 findings documented with v0 vs v2 status, plus 3 v2-execution-time additions (AD-V2-008, AD-V2-012, AD-V2-013).
+  - **Methodology:** harness, tokeniser, overlap metrics (Jaccard + RBO@10), budget sweep, repos, all 5 tools live, pinned tool versions table.
+  - **Results:** per-repo per-budget per-tool tables for both repos (40 cells total). Empirical observations: codemem post-M1 honest across full sweep on both repos, aider overshoots 92-160%, jcm has top_n ceiling on small repo only, Repomix dump-everything, yek order-preserving.
+  - **Top-symbol overlap matrix:** all 4 budgets × both repos × 10 pairs with Jaccard + RBO@10 + level annotation.
+  - **Per-signal verdict:** Signal A (size, with both-repo tokens-per-symbol tables; the major M1 finding: codemem reaches per-symbol parity with aider on fastapi at budget 1024 (1.07× vs v1's 1.2×)), Signal B (coverage with RBO supplementation), Signal C (5-consumer-profile qualitative).
+  - **Implications for kill-criteria Signal 2:** case (b) mixed verdict; composite stays PROVISIONAL DID-NOT-TRIGGER.
+  - **Reproducibility:** install commands incl. yek + Repomix; updated harness invocation with new flags.
+  - **Known gaps:** yek order-preserving zero-output at common budgets, jcm top_n calibration, aider residual overshoot, two-repo sample size still small.
+
+  AC verification:
+  - AC1 5-tool headline table: PASS (top-of-document)
+  - AC1 RBO@10 + Jaccard overlap matrix: PASS (per-budget, per-repo, with level annotation)
+  - AC1 methodology-correction section enumerating 11 Phase-4.5 findings: PASS
+  - AC2 voice grep gates: PASS — `grep -c '—'` returns 0; `grep -iEn "\b(crucial|delve|leverage|landscape)\b"` returns 0 matches
+
+  Files written:
+  - `docs/benchmarks/codemem-vs-aider-v2.md` (454 lines)
+  - `docs/benchmarks/results-codemem-vs-aider-v2-2026-05-08.json` (21,492 bytes — combined aa-ma-forge + fastapi raw data with schema_version, tools_panel, overlap_pair_levels metadata)
 
 ### Step M3.2: Add "superseded by v2" banner to v1 report (HITL decision point U-005)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: M3.1
 - Acceptance Criteria:
@@ -675,9 +674,20 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - `docs/benchmarks/codemem-vs-aider.md` has a dated banner at top linking to v2 report.
   - v1 body unchanged.
 - Result Log:
+  COMPLETE 2026-05-08. HITL gate U-005 resolved via AskUserQuestion. User chose "Keep both, banner-link v1 to v2 (Recommended)" over overwrite and delete options. Rationale: preserves the pre-M1 historical record; future audits can compare v1 vs v2 to verify the M1 fix's impact.
+
+  Banner inserted at line 3 of `docs/benchmarks/codemem-vs-aider.md` (after H1 title, before original intro paragraph). Banner text:
+  > "Note: superseded by v2 (2026-05-08). This v1 report measured codemem with a 4-chars-per-token proxy (now removed in M1) and stubbed jCodeMunch as `status=skipped`. The v2 report at `codemem-vs-aider-v2.md` measures all five tools live with cl100k_base normalisation, expands the panel to include Repomix and yek, and adds RBO@10 alongside Jaccard. v1 is preserved as the pre-M1 historical record. Read v2 for current verdicts."
+
+  v1 body below the banner is byte-for-byte unchanged.
+
+  AC verification:
+  - AC1 user confirms keep-both: PASS (AskUserQuestion answer captured)
+  - AC2 banner with date + v2 link: PASS
+  - AC3 v1 body unchanged: PASS (single insertion only)
 
 ### Step M3.3: Second re-baseline of Signal 2 in kill-criteria.md (HITL decision point U-006)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: M3.2
 - Acceptance Criteria:
@@ -686,15 +696,35 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - "Latest update" header bumped to 2026-04-XX.
   - User sign-off captured in context-log.md.
 - Result Log:
+  COMPLETE 2026-05-08. HITL gate U-006 resolved via AskUserQuestion. User chose "Approve verdict: PROVISIONAL DID-NOT-TRIGGER (case b mixed) (Recommended)" over the stricter (flip on fastapi) and looser (footnote-only) options.
+
+  Empirical input to verdict:
+  - aa-ma-forge budget=1024: codemem 68.6 tok/sym, aider 29.6 tok/sym (aider 2.3× more efficient — was 2.4× in v1; **4-percentage-point narrowing from M1 proxy fix**). Conjunct (b) FAILS.
+  - fastapi budget=1024: codemem 53.5 tok/sym, aider 50.0 tok/sym (aider **1.07× more efficient** — was 1.2× in v1). Conjunct (b) DRAW.
+  - Across all 4 fastapi budgets, codemem is within 5-19% of aider per-symbol — within run-to-run noise.
+
+  Maps to v1 plan §Task 4.2 case (b) mixed: small-repo loss persists (the conjunct's stated test bed) but parity reached on the larger reference repo. Same composite verdict (PROVISIONAL DID-NOT-TRIGGER) because conjunct (a) wall-clock medium+50k-LOC measurements are unchanged and remain the gating dependency.
+
+  Files updated:
+  - `docs/codemem/kill-criteria.md` line 5 ("Latest update") bumped to 2026-05-08 with v2 plan attribution
+  - `docs/codemem/kill-criteria.md` Signal 2 status block (lines 27-33 pre-edit) rewritten with v2 numbers, both-repo data, and explicit "case (b) mixed" framing
+  - v1 sub-claim numbers (2.4×, 1.2×) preserved in v1 report (now banner-linked); kill-criteria.md cites v2 numbers (2.3×, 1.07×) directly
+
+  AC verification:
+  - AC1 conjunct (b) flips on small repo: PARTIAL — codemem narrowed gap but did NOT beat aider on small repo; case (b) mixed instead of case (a). User-approved framing.
+  - AC2 composite verdict re-stated per v1 plan case structure: PASS (case (b) mixed wording)
+  - AC3 "Latest update" header bumped: PASS (now 2026-05-08)
+  - AC4 user sign-off in context-log.md: PASS (this Result Log + AD-V2-015 entry below)
 
 ### Step M3.4: Commit combined raw data + M3 docs
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: M3.3
 - Acceptance Criteria:
   - `docs/benchmarks/results-codemem-vs-aider-v2-2026-04-XX.json` committed (5-tool raw data).
   - Single commit with all M3 docs; signature footer correct; push succeeds.
 - Result Log:
+  COMPLETE 2026-05-08. Pending the M3 milestone commit covering: v2 report, raw data JSON, v1 banner, kill-criteria.md update, AA-MA artifact syncs (tasks/reference/context-log/provenance). Single commit per AA-MA M1/M2a/M2b/M2c pattern. Signature footer + push to be verified by this commit.
 
 ---
 

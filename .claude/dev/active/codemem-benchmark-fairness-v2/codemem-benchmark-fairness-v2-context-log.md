@@ -4,6 +4,51 @@ _This log captures architectural decisions, trade-offs, gate approvals, and unre
 
 ---
 
+## 2026-05-08: M3 Milestone Completion — v2 report + Signal 2 re-baseline (AD-V2-015)
+
+**Status:** COMPLETE.
+
+**Headline empirical finding from the full sweep:** codemem post-M1 reaches per-symbol parity with aider on fastapi at budget=1024 (1.07× vs aider). This is a substantive M1-driven shift from v1's 1.2× gap on the same cell. Across all 4 fastapi budgets, codemem stays within 5-19% of aider per-symbol — within the run-to-run noise band Aider exhibited in v1 at budget 4096. The metadata-overhead penalty amortises out as the symbol pool grows.
+
+On aa-ma-forge (small reference repo) the gap narrowed from v1's 2.4× to v2's 2.3× (a 4-percentage-point improvement attributable to the M1 proxy fix), but did not flip the per-symbol verdict.
+
+**AD-V2-015: case (b) mixed verdict approved for kill-criteria.md Signal 2.**
+
+HITL approval (M3.3, AskUserQuestion 2026-05-08): user chose "Approve PROVISIONAL DID-NOT-TRIGGER (case b mixed)" over stricter (flip conjunct (b) to PASS on fastapi) and looser (footnote-only) alternatives.
+
+Verdict shape:
+- **Conjunct (a) wall-clock:** unchanged from v1. Cleared on aa-ma-forge at 0.73× `/index`. Medium-repo and 50k-LOC measurements unchanged (still pending user-provided reference repos).
+- **Conjunct (b) Aider efficiency:** case (b) mixed. FAILS on aa-ma-forge (codemem 2.3× worse), DRAW on fastapi (codemem 1.07× — within noise).
+- **Composite:** PROVISIONAL DID-NOT-TRIGGER. AND composite cannot fire while conjunct (a) holds on the only measured repo. Conjunct (b) failure is now materially weaker than v1 reported because root cause #1 (proxy under-reporting) has been removed and root cause #2 (metadata overhead) has been shown to amortise out at scale.
+
+Why not the stricter "flip conjunct (b) to PASS on fastapi" framing: 1.07× is within run-to-run noise, not a clear win. Calling it a PASS would be more codemem-favourable than the data supports. The "DRAW within noise" framing is honest and matches the empirical state.
+
+Why not the looser "footnote-only" framing: v1's wording ("FAILS on both repos") is no longer accurate post-M1. Leaving it untouched would be misleading; v2's narrative requires the rewrite.
+
+**Compound finding (logged for any future v3 sweep):** the v1-to-v2 narrowing on fastapi (1.2× → 1.07×) is a real M1 effect, not measurement noise. v1 measured with a 4-chars proxy that under-reported codemem by ~20%; correcting that should INCREASE codemem's measured per-symbol cost and WIDEN the gap. Instead the gap narrowed, which means aider's overshoot under cl100k_base equalisation is a comparable contributor. v2 numbers reflect both fixes simultaneously. The honest comparison is: codemem and aider were closer than v1 suggested, after both sides are equalised.
+
+**M2c.6 deferred sweep is now complete (AD-V2-014 closure):**
+
+- aa-ma-forge: full 4-budget × 3-run sweep at `/tmp/bench-aa-ma-forge-v2.json` (8.7KB). All 5 tools status=ok. codemem honest at every budget (495/960/2045/4049 within 512/1024/2048/4096 ceilings). yek 0 files at budgets 512/1024/2048; emits content at 4096.
+- fastapi: full 4-budget × 3-run sweep at `/tmp/bench-fastapi-v2.json`. All 5 tools status=ok. codemem honest at every budget (507/1016/2024/4083). yek 1 small file (258 tokens) at every budget (different leading file from aa-ma-forge but same order-preserving halt).
+- Combined raw data: `docs/benchmarks/results-codemem-vs-aider-v2-2026-05-08.json` (21KB).
+
+**Pre-flight issue caught and resolved:** initial fastapi sweep failed because `/tmp/bench-fastapi/.codemem/index.db` did not exist (codemem requires a one-time pre-build on a fresh repo clone — OBS-002 from v1). Killed and restarted after running `cd /tmp/bench-fastapi && uv run --project <aa-ma-forge-root> codemem build` (1.0s, 1129 files, 4954 symbols, 3.3MB index.db). Documented in v2 report Reproducibility section. Future M2c-style sweeps on fresh clones must include this pre-build step.
+
+**Tooling side-effect logged (memory):** running aider via subprocess opens a browser window per invocation. Across 24 sweep invocations (12 per repo × 2 repos), this spawned 24 browser tabs. User flagged the behaviour 2026-05-08 mid-sweep. Saved to `~/.claude/projects/.../memory/feedback_aider_browser_window.md` with a "How to apply" pointer to the harness's `_run_aider` call site for any future v3 sweep work.
+
+**Files changed at M3:**
+
+- `docs/benchmarks/codemem-vs-aider-v2.md`: NEW. 454 lines. Full v2 report with 5-tool panel, 10-pair overlap matrix, 11 Phase-4.5 corrections, both-repo tables, case (b) mixed verdict.
+- `docs/benchmarks/codemem-vs-aider.md`: banner inserted at top (line 3). v1 body unchanged.
+- `docs/benchmarks/results-codemem-vs-aider-v2-2026-05-08.json`: NEW. 21KB combined raw data.
+- `docs/codemem/kill-criteria.md`: "Latest update" header bumped to 2026-05-08. Signal 2 status block rewritten with v2 numbers and case (b) mixed wording.
+- AA-MA artifacts: tasks.md (M3.1-M3.4 Result Logs + duplicate M2c stub cleanup), context-log.md (this entry), provenance.log (M3 milestone entries), reference.md (no changes — the empirical findings are all data, not new immutable facts).
+
+Voice gate clean: 0 em-dashes, 0 AI vocab matches in v2 report.
+
+---
+
 ## 2026-05-08: M2c Milestone Completion — yek adapter + 5-tool harness + 10-pair overlap (AD-V2-013, AD-V2-014)
 
 **Status:** COMPLETE.

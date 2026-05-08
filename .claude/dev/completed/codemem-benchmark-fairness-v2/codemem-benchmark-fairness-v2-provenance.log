@@ -1,3 +1,6 @@
+<!-- ARCHIVED: 2026-05-08 12:40 -->
+<!-- Plan: codemem-benchmark-fairness-v2 - COMPLETE -->
+<!-- Total Milestones: 6 | Duration: 2026-04-20 to 2026-05-08 -->
 # codemem-benchmark-fairness-v2 Provenance Log
 
 2026-04-20T10:00:00+01:00 PLAN CREATED: codemem-benchmark-fairness-v2, derived from /grill-me adversarial review of v1 codemem-token-benchmarks (completed 2026-04-20 at commit 7a335fc). 6 milestones (M1 proxy fix, M2a/b/c harness expansion for 5-tool panel, M3 report + Signal 2 re-baseline, M4 finalisation + archive v1). Complexity 55% overall, max 60% at M2a. No deep-review gate (under 80%). Branch: expt/code_mem_store_what.

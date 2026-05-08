@@ -68,20 +68,36 @@ def aggregate(runs: list[dict]) -> dict:
 
 
 def _run_harness_once(
-    project_root: Path, repo: Path, budget: int
+    project_root: Path, repo: Path, budget: int,
+    *, include_repomix: bool = False, include_yek: bool = False,
+    aider_tokeniser_equalise: bool = False,
 ) -> dict | None:
-    """Invoke the single-run harness, return parsed JSON or None on failure."""
+    """Invoke the single-run harness, return parsed JSON or None on failure.
+
+    M2c (AD-V2-013): the optional ``include_repomix`` and ``include_yek``
+    flags propagate to the underlying harness so a full 5-tool sweep can
+    be requested from the orchestrator without per-cell hand-edits. The
+    aider-tokeniser-equalise flag also propagates for cl100k_base
+    consistency across the panel.
+    """
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         out = Path(f.name)
     try:
+        argv = [
+            "uv", "run", "python",
+            "scripts/bench_codemem_vs_aider.py",
+            "--repo", str(repo),
+            "--requested-budget", str(budget),
+            "--out", str(out),
+        ]
+        if aider_tokeniser_equalise:
+            argv.append("--aider-tokeniser-equalise")
+        if include_repomix:
+            argv.append("--include-repomix")
+        if include_yek:
+            argv.append("--include-yek")
         r = subprocess.run(
-            [
-                "uv", "run", "python",
-                "scripts/bench_codemem_vs_aider.py",
-                "--repo", str(repo),
-                "--requested-budget", str(budget),
-                "--out", str(out),
-            ],
+            argv,
             cwd=project_root,
             capture_output=True, text=True, timeout=600,
         )
@@ -112,6 +128,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--project-root", type=Path,
                    default=Path(__file__).resolve().parents[1],
                    help="aa-ma-forge root (where bench_codemem_vs_aider lives)")
+    p.add_argument("--include-repomix", action="store_true",
+                   help="Add Repomix to the panel (M2b).")
+    p.add_argument("--include-yek", action="store_true",
+                   help="Add yek to the panel (M2c, AD-V2-013).")
+    p.add_argument("--aider-tokeniser-equalise", action="store_true",
+                   help="Pass --model gpt-3.5-turbo to Aider for cl100k_base.")
     args = p.parse_args(argv)
 
     budgets = [int(b.strip()) for b in args.budgets.split(",")]
@@ -121,6 +143,9 @@ def main(argv: list[str] | None = None) -> int:
         "runs_per_cell": args.runs,
         "budgets": budgets,
         "tokenizer": "cl100k_base",
+        "tools_included": ["codemem", "aider", "jcodemunch"]
+            + (["repomix"] if args.include_repomix else [])
+            + (["yek"] if args.include_yek else []),
         "measurements": {},
         "overlap": {},
     }
@@ -130,15 +155,24 @@ def main(argv: list[str] | None = None) -> int:
               file=sys.stderr)
         runs: list[dict] = []
         for i in range(args.runs):
-            run_json = _run_harness_once(args.project_root, args.repo, budget)
+            run_json = _run_harness_once(
+                args.project_root, args.repo, budget,
+                include_repomix=args.include_repomix,
+                include_yek=args.include_yek,
+                aider_tokeniser_equalise=args.aider_tokeniser_equalise,
+            )
             if run_json is not None:
                 runs.append(run_json)
-                cm = run_json["tools"]["codemem"]
-                ai = run_json["tools"]["aider"]
-                print(f"  run {i + 1}/{args.runs}: "
-                      f"cm={cm['status']}({cm['symbol_count']}sym) "
-                      f"ai={ai['status']}({ai['symbol_count']}sym)",
-                      file=sys.stderr)
+                # Dynamic per-tool status print so 3-tool / 4-tool / 5-tool
+                # sweeps all get readable progress (AD-V2-013).
+                tool_summary = " ".join(
+                    f"{name[:3]}={data['status']}({data['symbol_count']}sym)"
+                    for name, data in run_json["tools"].items()
+                )
+                print(
+                    f"  run {i + 1}/{args.runs}: {tool_summary}",
+                    file=sys.stderr,
+                )
         if runs:
             result["measurements"][f"budget_{budget}"] = aggregate(runs)
             # Overlap sets are deterministic given fixed inputs, so the first

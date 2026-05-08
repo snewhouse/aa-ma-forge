@@ -50,3 +50,4 @@
 2026-05-08T12:30:02+01:00 M4.2 SKIPPED — v1 already archived at M1.0 (commits 111feff + 21c395b on 2026-04-20).
 2026-05-08T12:30:03+01:00 M4.3 STATE SYNC — tasks.md M4 entries (Status COMPLETE/SKIPPED + Result Logs); zero PENDING entries across all 6 milestones. context-log.md AD-V2-016 entry. provenance entries (this set). reference.md unchanged (M4 introduces no new immutable facts).
 2026-05-08T12:30:04+01:00 SUB-STEP CONSISTENCY CHECK — `grep -c "Status: PENDING"` within milestone bodies returns 0. L-081 invariant holds.
+2026-05-08T12:35:00+01:00 MILESTONE 4 COMPLETE — Commit: 6948ac7 — Pushed to origin/expt/code_mem_store_what — Criteria: 4/4 verified (M4.2 SKIPPED per plan conditional) — TaskID: v2-M4 — Plan amendment: AD-V2-016 (schema-extension test sweep) — All 6 milestones COMPLETE — Plan ready for /archive-aa-ma

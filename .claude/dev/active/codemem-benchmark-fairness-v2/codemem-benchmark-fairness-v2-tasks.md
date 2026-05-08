@@ -121,7 +121,7 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   Discovered finding (out of M1 scope): a sister `_CHARS_PER_TOKEN = 4` constant in `packages/codemem-mcp/src/codemem/mcp_tools/__init__.py:54` gates all MCP tool outputs (not just PROJECT_INTEL.json). Same biased proxy pattern. Documented in context-log.md as future work for v2.x or v3.
 
 ### Step M1.5: Commit M1 with AA-MA signature
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: M1.4
 - Acceptance Criteria:
@@ -129,6 +129,7 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - `git push origin expt/code_mem_store_what` succeeds.
   - `provenance.log` contains the commit hash.
 - Result Log:
+  COMPLETE 2026-05-05 (back-filled at M4.3 — Status field was not flipped at the time the work shipped). M1 committed as `6fc2f06` "fix(codemem): honest tiktoken budget enforcement (M1)" with the full AA-MA signature footer; pushed to origin/expt/code_mem_store_what; provenance.log line 13 captures the commit hash. Subsequent `chore(aa-ma): record M1 commit hash in provenance log` (commit cb28ab7) also pushed. All three ACs met by the actual M1 close-out — only the tasks.md status flag was missing, fixed at M4.3 sweep.
 
 ---
 
@@ -446,7 +447,7 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - AC3 `yek --help` captured + flags confirmed: PASS (semantics empirically validated; AD-V2-012 documents the deviation from plan assumption)
 
 ### Step M2c.2: Capture golden JSON fixture
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: M2c.1
 - Acceptance Criteria:
@@ -730,11 +731,11 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
 
 ## Milestone 4: Finalization + archive v1
 
-- Status: PENDING
+- Status: COMPLETE
 - Gate: SOFT
 - Mode (milestone-level dispatch): AFK
 - Complexity: 10%
-- Effort: 1 hour
+- Effort: 1 hour (actual: ~30 min, dominated by stale-test fix)
 - Dependencies: M3
 - Measurable goal: M4 commit pushed; `/archive-aa-ma codemem-token-benchmarks` run (if not already done at M1.0); v2 AA-MA dir exists and is synced.
 - Acceptance Criteria:
@@ -744,7 +745,7 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - Pre-commit sanity green: `uv run pytest` (>=387 passed), `uv run ruff check`, `uv run lint-imports` (2/2 contracts).
 
 ### Step M4.1: Pre-commit sanity suite
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: M3.4
 - Acceptance Criteria:
@@ -753,18 +754,26 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - `uv run ruff check src/ scripts/ tests/` clean.
   - `uv run lint-imports` shows 2/2 contracts kept.
 - Result Log:
+  COMPLETE 2026-05-08. All 4 gates green:
+  - `uv run pytest -q`: **420 passed, 1 skipped, 6 deselected** (>=387 floor cleared by 33 tests; up from 414 at M2c due to TestYekAdapter+TestFiveToolOverlap+TestFileListFromSymbols additions)
+  - `uv run pytest -m slow tests/codemem/`: **2 passed** (TestHarnessIntegration::test_harness_e2e_against_aa_ma_forge + WAL property roundtrip — both >=2 floor)
+  - `uv run ruff check src/ scripts/ tests/`: clean
+  - `uv run lint-imports`: 2/2 contracts kept (codemem layered architecture; parser must not depend on public API)
+
+  **Stale-test fix applied during sanity:** `TestHarnessIntegration::test_harness_e2e_against_aa_ma_forge` was asserting `set(pair_data.keys()) == {"jaccard", "rbo_at_10"}` (M2a.6 contract). M2c.4 added a `level` field per AD-V2-013, breaking this assertion. Updated the test to expect `{jaccard, rbo_at_10, level}` and assert `level == "symbol"` for the default-panel pairs (no Repomix/yek). This was a missed M2c regression — the test is `@pytest.mark.slow` so only fires under explicit opt-in, which is why it wasn't caught at M2c.5. Documented for the L-080-style learning: when extending an output contract, sweep ALL test files (incl. opt-in markers) for the OLD shape, not just the suite that runs by default.
 
 ### Step M4.2: Archive v1 if not done at M1.0
-- Status: PENDING
+- Status: SKIPPED
 - Mode: AFK
 - Dependencies: M4.1
 - Acceptance Criteria:
   - `.claude/dev/active/codemem-token-benchmarks/` does NOT exist post-archive.
   - `.claude/dev/completed/codemem-token-benchmarks/` exists with all v1 artefacts.
 - Result Log:
+  SKIPPED 2026-05-08 — already archived at M1.0 per pre-flight decision (commits 111feff + 21c395b on 2026-04-20). Verified at M4.1: `.claude/dev/active/codemem-token-benchmarks/` does NOT exist; `.claude/dev/completed/codemem-token-benchmarks/` is populated. Both ACs met by the M1.0 pre-flight; M4.2 redundant per its own conditional ("skip if already archived in M1.0").
 
 ### Step M4.3: Sync v2 AA-MA state files + final commit
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: M4.2
 - Acceptance Criteria:
@@ -772,6 +781,20 @@ _Hierarchical Task Planning roadmap with dependencies, mode classification, and 
   - No `Status: PENDING` entries remain in any milestone.
   - Final commit signature footer correct; `git push origin expt/code_mem_store_what` succeeds.
 - Result Log:
+  COMPLETE 2026-05-08. State file sync:
+  - tasks.md: M4 milestone + 3 sub-steps marked COMPLETE/SKIPPED with full Result Logs (this entry); zero PENDING entries remain across all 6 milestones.
+  - context-log.md: AD-V2-016 entry below documents the M4 close + the stale-test fix lesson.
+  - provenance.log: M4 entries appended; M4 commit hash to be recorded after this commit.
+  - reference.md: no changes — M4 introduces no new immutable facts.
+
+  Final commit covers: stale-test fix in tests/codemem/test_bench_harness.py + AA-MA artifact syncs. Signature footer + push to be verified by this commit.
+
+---
+
+_Total milestones: 6 (M1, M2a, M2b, M2c, M3, M4). All COMPLETE 2026-05-08._
+_Total steps: 30. Max-step complexity: 60% (M2a, below deep-review threshold)._
+_Plan amendments during execution: AD-V2-006 (rbo_at_10 dict shape), AD-V2-007 (overlap dict shape), AD-V2-008 (jcm tool pivot), AD-V2-009 (Repomix npx path), AD-V2-010 (status=ok_no_symbols), AD-V2-011 (--include-repomix opt-in), AD-V2-012 (yek --tokens combined flag), AD-V2-013 (overlap level annotation), AD-V2-014 (M2c.6 sweep deferred to M3 prep), AD-V2-015 (case-b-mixed verdict), AD-V2-016 (M2c.4 schema-extension test sweep)._
+_Next action: `/archive-aa-ma codemem-benchmark-fairness-v2` to move plan to .claude/dev/completed/._
 
 ---
 

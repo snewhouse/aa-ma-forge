@@ -278,13 +278,21 @@ class TestHarnessIntegration:
             "aider_vs_jcodemunch",
         }
 
-        # M2a.6: each pair now emits BOTH jaccard and rbo_at_10
+        # M2a.6: each pair emits jaccard and rbo_at_10.
+        # M2c.4 (AD-V2-013): each pair also carries a "level" field
+        # ("symbol" for symbol-emitting tool pairs; "file" otherwise).
+        # The 3 default-panel pairs (no Repomix/yek) are all symbol-level.
         for pair_name, pair_data in data["overlap"].items():
             assert isinstance(pair_data, dict), (
                 f"{pair_name} should be dict (post-M2a.6), got {type(pair_data).__name__}"
             )
-            assert set(pair_data.keys()) == {"jaccard", "rbo_at_10"}, (
-                f"{pair_name} keys = {set(pair_data.keys())}, expected {{jaccard, rbo_at_10}}"
+            assert set(pair_data.keys()) == {"jaccard", "rbo_at_10", "level"}, (
+                f"{pair_name} keys = {set(pair_data.keys())}, "
+                "expected {jaccard, rbo_at_10, level}"
+            )
+            assert pair_data["level"] == "symbol", (
+                f"{pair_name} default-panel pair must be level=symbol, "
+                f"got {pair_data['level']!r}"
             )
             assert 0.0 <= pair_data["jaccard"] <= 1.0
             assert 0.0 <= pair_data["rbo_at_10"] <= 1.0

@@ -4,6 +4,58 @@ _This log captures architectural decisions, trade-offs, gate approvals, and unre
 
 ---
 
+## 2026-05-08: M4 Milestone Completion — finalisation + stale-test fix lesson (AD-V2-016)
+
+**Status:** COMPLETE. The codemem-benchmark-fairness-v2 plan is fully shipped.
+
+**AD-V2-016: when extending an output contract, sweep ALL test files (including opt-in markers) for the OLD shape.**
+
+The M4.1 pre-commit sanity caught a stale `TestHarnessIntegration::test_harness_e2e_against_aa_ma_forge` slow test that asserted `set(pair_data.keys()) == {"jaccard", "rbo_at_10"}`. M2c.4's AD-V2-013 added a `level` field to every overlap pair, which the test should have been updated to expect.
+
+The test is gated by `@pytest.mark.slow` and runs only on explicit opt-in (`pytest -m slow tests/codemem/`). The default M2c.5 test pass at 414/414 + the M3 default pass at 420/420 both skipped this test, so the regression sat undetected for ~6 hours of session work between M2c.4 landing and M4.1 catching it.
+
+**Lesson (logged for any future schema-extension task):** when extending a structured-output contract (adding fields to a dict shape), grep the entire test directory for the OLD key set and update every occurrence in the same change set, regardless of test-marker gating. The recipe:
+
+```bash
+# Before the schema extension
+git grep -F '"jaccard", "rbo_at_10"' tests/  # capture all OLD shape assertions
+# After: every match should be updated to include "level"
+```
+
+This is a parallel of L-080 (always sync Result Logs) applied to test contracts: deferring or batching schema-extension test updates is the source of the same kind of drift.
+
+**M4 sub-step outcomes:**
+- M4.1 (pre-commit sanity): 420 passed default + 2 passed slow + ruff clean + import-linter 2/2. The slow-test fix above was the only actual change at M4.
+- M4.2 (archive v1): SKIPPED — already done at M1.0 (commits 111feff + 21c395b on 2026-04-20).
+- M4.3 (state file sync + final commit): this entry + tasks.md M4 completion + provenance.log entries + final commit covering the test fix and artifact syncs.
+
+**Plan-level summary (all milestones):**
+
+| Milestone | Status | Headline shipped                                                  | Key amendment(s)         |
+|-----------|--------|-------------------------------------------------------------------|--------------------------|
+| M1        | DONE   | codemem cl100k_base honest budget enforcement (proxy removed)     | AC amendment (>=12 floor)|
+| M2a       | DONE   | 3-tool live harness with RBO@10 + cl100k_base equalisation        | AD-V2-008 (jcm pivot)    |
+| M2b       | DONE   | Repomix adapter (npx pinned, status=ok_no_symbols)                | AD-V2-009/010/011        |
+| M2c       | DONE   | yek adapter + 5-tool harness + 10-pair overlap with level         | AD-V2-012/013/014        |
+| M3        | DONE   | v2 report + Signal 2 case-b-mixed verdict + raw data              | AD-V2-015                |
+| M4        | DONE   | Pre-commit sanity + state sync + finalisation                     | AD-V2-016                |
+
+**Headline empirical claims (for archive):**
+1. codemem post-M1 honours its budget at every cell on both repos (495/960/2045/4049 ≤ 512/1024/2048/4096 on aa-ma-forge; 507/1016/2024/4083 on fastapi).
+2. codemem reaches per-symbol parity with aider on fastapi at budget=1024 (1.07× vs aider; was 1.2× in v1).
+3. yek emits 0 files at budgets 512/1024/2048 on aa-ma-forge because CHANGELOG.md alone exceeds those budgets in git-importance order.
+4. Aider overshoots cl100k_base by 92-160% even with `--model gpt-3.5-turbo` equalisation; Repomix ignores budgets entirely; jcodemunch hits a top_n ceiling on small repos.
+
+**Open follow-ups (out of v2 scope, logged for v3 or sibling work):**
+- Sister `_CHARS_PER_TOKEN = 4` proxy in `packages/codemem-mcp/src/codemem/mcp_tools/__init__.py:54` (gates all MCP tool outputs) — same biased pattern as the M1 fix; ~5 LOC change.
+- `--no-browser` style flag for aider subprocess invocation (per memory feedback_aider_browser_window.md).
+- jcodemunch top_n heuristic recalibration (`top_n = max(10, budget // 25)` saturates on small repos).
+- Medium-repo (5-20k LOC) and 50k-LOC reference repos for completing kill-criteria Signal 2's pinned verdict.
+
+**Next action:** `/archive-aa-ma codemem-benchmark-fairness-v2` to move the plan to `.claude/dev/completed/`. v2 is shipped.
+
+---
+
 ## 2026-05-08: M3 Milestone Completion — v2 report + Signal 2 re-baseline (AD-V2-015)
 
 **Status:** COMPLETE.

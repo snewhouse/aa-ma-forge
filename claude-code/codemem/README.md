@@ -1,10 +1,12 @@
 # codemem
 
-Git-history-aware code intelligence for Claude Code. Pure Python + SQLite. No embeddings, no graph DB, no cloud.
+Structured code memory for [AA-MA](../../docs/spec/aa-ma-specification.md) workflows in Claude Code. Pure Python + SQLite. No embeddings, no graph DB, no cloud.
 
 codemem parses your repo, indexes symbols and call edges into a local SQLite database, and exposes 12 MCP tools so Claude Code can answer questions like *"who calls this?"*, *"what changes together with `CLAUDE.md`?"*, and *"show me the context for this AA-MA task."* A fresh build on a 70-file repo takes 0.2 seconds.
 
-This README is the reference. If something here diverges from the code, the code wins — file an issue.
+**Positioning (post-v2 benchmark, 2026-05-08):** codemem's role is the data tier underneath AA-MA, not a "better aider repo-map." See [`docs/codemem/positioning.md`](../../docs/codemem/positioning.md) for the v2-empirical-driven decision. The 5-tool benchmark at [`docs/benchmarks/codemem-vs-aider-v2.md`](../../docs/benchmarks/codemem-vs-aider-v2.md) found that codemem and aider serve different consumer profiles (programmatic structured-data vs LLM prompt injection). Reaching per-symbol parity with aider on fastapi (1.07× at budget=1024) was the M1-fix payoff that closed the v2 chapter.
+
+This README is the reference. If something here diverges from the code, the code wins. File an issue.
 
 ## Quick start
 

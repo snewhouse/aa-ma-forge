@@ -57,6 +57,11 @@ Full methodology, tables across four budgets, RBO@10 + Jaccard 10-pair overlap, 
 
 **Status (2026-04-17):** Still alive. [GitNexus](https://github.com/abhigyanpatwari/GitNexus) (~27k stars, tree-sitter + MCP tool surface `impact` / `context` / `detect`) does not yet ship git-mining tools, per the landscape research recorded in Task 4.4. The [Axon](https://github.com/harshkedia177/axon) variants are graph-DB plus embeddings-focused and occupy a different tradeoff space (semantic retrieval rather than history-aware coupling). No entrant observed that combines git-mining breadth with comparable UX. This signal is the one to watch most closely.
 
+**90-day watch (set 2026-05-08, next review 2026-08-06):** Per the post-v2 positioning decision (`docs/codemem/positioning.md`), this signal becomes the primary gating risk for codemem's standalone framing. If GitNexus, Axon, or any new entrant ships git-mining coverage at parity before 2026-08-06, codemem consolidates fully under AA-MA's umbrella and the standalone "code-intel tool" framing drops entirely. If no entrant fires by 2026-08-06, hold positioning steady and re-set the watch for another 90 days. Concrete checks at the watch review:
+- Search GitNexus / Axon / repomix / yek release notes for any tool named or matching `hot_spots` / `co_changes` / `owners` / `symbol_history` / `layers` semantics
+- Search HN, awesome-lists, and Claude Code plugin index for new git-mining MCP tools
+- If 3+ of the differentiator-five are matched at comparable UX, fire the signal
+
 ### 5. M2 correctness-risk kill
 
 **Trigger:** The WAL-journal crash-injection test cannot be made deterministic — specifically, flaky or non-reproducible results across CI runs.

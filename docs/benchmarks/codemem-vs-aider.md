@@ -1,5 +1,7 @@
 # codemem vs Aider repo-map: token-budget benchmark
 
+> **Note: superseded by v2 (2026-05-08).** This v1 report measured codemem with a 4-chars-per-token proxy (now removed in M1) and stubbed jCodeMunch as `status=skipped`. The v2 report at [`codemem-vs-aider-v2.md`](./codemem-vs-aider-v2.md) measures all five tools live with cl100k_base normalisation, expands the panel to include Repomix and yek, and adds RBO@10 alongside Jaccard. v1 is preserved as the pre-M1 historical record. Read v2 for current verdicts.
+
 Comparative token-efficiency and top-symbol-overlap benchmark for the codemem
 `PROJECT_INTEL.json` rank-ordered context, [Aider](https://github.com/Aider-AI/aider)'s
 `--show-repo-map` output, and [jCodeMunch](https://github.com/jgravelle/jcodemunch-mcp)'s

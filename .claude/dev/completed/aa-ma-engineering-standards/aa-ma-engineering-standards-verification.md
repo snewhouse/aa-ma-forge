@@ -1,3 +1,8 @@
+<!-- ARCHIVED: 2026-05-09 18:05 -->
+<!-- Plan: aa-ma-engineering-standards - COMPLETE -->
+<!-- Total Milestones: 5 (M0-M4, all COMPLETE) | Duration: 2026-05-09 (single-day execution) -->
+<!-- Release: v0.5.0 (tag 9d16d09 -> commit e1cf4cb) on origin -->
+
 # Verification Report: aa-ma-engineering-standards
 
 **Generated:** 2026-05-09 ~16:00 UTC

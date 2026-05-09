@@ -65,3 +65,4 @@
 [2026-05-09 17:27:00 UTC] M3_TIER6_FINAL — `grep -rEn '11 elements|11 outputs|11 mandatory|11 required|/11 elements|11-element' claude-code/ docs/ README.md SECURITY.md` returned 0 hits outside allowlist; PASS
 [2026-05-09 17:28:00 UTC] M3_GATE_APPROVED — HARD gate approval artifact written to context-log.md; approved by user via /execute-aa-ma-milestone invocation in auto-mode session; 9/9 criteria verified
 [2026-05-09 17:30:00 UTC] M3_MILESTONE_COMPLETE — all 8 sub-steps COMPLETE; HARD gate satisfied; CRITICAL_PATH_REVIEW logged; commit pending
+[2026-05-09 17:31:00 UTC] M3_COMMITTED — Commit: d99703a — `feat(spec): bump Planning Standard 11 → 12 elements with grandfathering (M3)` — 15 files, 107 insertions/42 deletions; AA-MA Plan footer present

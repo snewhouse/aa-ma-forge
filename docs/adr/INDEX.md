@@ -20,7 +20,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 
 | ID | Title | Status | Date |
 |----|-------|--------|------|
-| [0001](0001-engineering-standards-architecture.md) | Engineering Standards Architecture for aa-ma-plan Workflows | Accepted | 2026-05-09 |
+| [0001](0001-engineering-standards-architecture.md) | Engineering Standards Architecture for aa-ma-plan Workflows | Implemented | 2026-05-09 |
 
 ## Statuses
 

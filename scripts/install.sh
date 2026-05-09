@@ -143,6 +143,7 @@ done
 
 # Rules
 collect_backup_target "${CLAUDE_HOME}/rules/aa-ma.md"
+collect_backup_target "${CLAUDE_HOME}/rules/engineering-standards.md"
 
 # Hooks
 collect_backup_target "${CLAUDE_HOME}/hooks/lib/pre-compact-aa-ma.sh"
@@ -282,6 +283,8 @@ done
 header "Linking rules..."
 create_symlink "${REPO_ROOT}/claude-code/rules/aa-ma.md" \
                "${CLAUDE_HOME}/rules/aa-ma.md"
+create_symlink "${REPO_ROOT}/claude-code/rules/engineering-standards.md" \
+               "${CLAUDE_HOME}/rules/engineering-standards.md"
 
 # ---------------------------------------------------------------------------
 # 5. Preflight: jq is required for settings.json registration

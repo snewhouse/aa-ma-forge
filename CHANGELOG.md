@@ -4,6 +4,99 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## v0.5.0 (2026-05-09)
+
+Engineering-standards doctrine + Planning Standard 11→12. Wires a 6-theme
+engineering doctrine into AA-MA workflow surfaces, introduces an ADR convention,
+and adds element #12 ("Engineering Standards Declaration") to the AA-MA Planning
+Standard. Pre-v0.5.0 plans are grandfathered automatically.
+
+### Feat
+
+- **rules**: ship `claude-code/rules/engineering-standards.md` (118 lines, 6 themes,
+  auto-loaded). Defines the canonical `Critical-Path:` enum (`auth-flow`, `data-xform`,
+  `external-api`, `version-pipeline`, `doc-count-drift`, `hook-modification`).
+- **commands**: `/aa-ma-plan` Phase 1 adds inline lessons scan
+  (`docs/lessons.md` + `git log --grep="revert\|fix\|hotfix"` + top-3 completed
+  context-logs; hard `timeout 30s`; `--skip-lessons` opt-out flag); Phase 2 adds
+  Engineering Standards Declaration prompt + `ENG_STANDARDS_DECLARED` provenance
+  entry; Phase 4 emits element #12 in plan output.
+- **commands**: `/execute-aa-ma-step` adds Section 6.2.5 — 7-item advisory
+  checklist (4 HARD defer to milestone gate, 3 SOFT request context-log declaration).
+- **commands**: `/execute-aa-ma-milestone` adds Section 6.7 Engineering Standards
+  HARD Gate with 5 conditions (clean git for AA-MA files, zero PENDING in milestone,
+  tests-pass evidence, impact-analysis evidence, Critical-Path/Prototype-Required
+  provenance evidence). Bypassable via `AA_MA_HOOKS_DISABLE=1`.
+- **skills**: `plan-verification` Angle 6 extended with Engineering Standards
+  Auditor (always-evaluated; structural check for element #12 + Critical-Path
+  canonical enum + theme/test consistency). Pre-v0.5.0 plans grandfathered.
+- **skills**: `operational-constraints` references engineering-standards rule
+  and element #12 emit (+3 net lines).
+- **agents**: `aa-ma-validator` Dimension 2 bumped 11→12 with grandfathering
+  SKIP semantic.
+- **templates**: new `docs/templates/engineering-standards-template.md` (optional
+  per-task artifact, one section per theme); `tasks-template.md` adds optional
+  `Critical-Path:` and `Prototype-Required:` fields at milestone + sub-step levels.
+- **docs**: introduce ADR convention at `docs/adr/`. Ships `INDEX.md`, `TEMPLATE.md`
+  (MADR format), and `0001-engineering-standards-architecture.md` capturing decisions
+  D1–D8.
+- **scripts**: `scripts/check_adr_index.sh` advisory ADR INDEX validator.
+- **spec**: Planning Standard bumps from 11 to 12 elements across `aa-ma.md`,
+  `aa-ma-specification.md`, `aa-ma-quick-reference.md` (no edits — already shape-based),
+  `claude-code-foundations.md` (Rules count 1→2), `aa-ma-plan-workflow/SKILL.md`,
+  `references/PHASE_4_PLAN_GENERATION.md`, `references/PHASE_5_ARTIFACT_CREATION.md`,
+  `aa-ma-validator.md`, `plan-template.md`, `README.md`.
+
+### Behavior change (soft-breaking)
+
+This release is **soft-breaking** for downstream consumers: re-running
+`scripts/install.sh` after upgrading creates a new auto-loaded rule symlink at
+`~/.claude/rules/engineering-standards.md` that affects every Claude Code
+session in projects using aa-ma-forge. The change is additive (no existing
+behavior is removed) but observable.
+
+**Opt-out paths:**
+
+- `export AA_MA_HOOKS_DISABLE=1` — master kill switch for all AA-MA hooks and
+  the Section 6.7 Engineering Standards HARD gate.
+- `rm ~/.claude/rules/engineering-standards.md` — remove the auto-loaded rule
+  while leaving other AA-MA mechanisms intact.
+- Project-local `claude-code/rules/engineering-standards.md` — overrides the
+  plugin-shipped copy when both are present.
+
+**Pre-v0.5.0 plans are grandfathered:** plans authored before v0.5.0 (without a
+`Created: YYYY-MM-DD` front-matter on-or-after the v0.5.0 release date) remain
+conformant under the prior standard. `Skill(plan-verification)` Angle 6 only
+flags missing element #12 for plans `Created:` on-or-after v0.5.0.
+
+### Rollback
+
+Three options documented in `docs/runbooks/rollback-v0.5.0.md`:
+
+1. **Soft revert:** `export AA_MA_HOOKS_DISABLE=1` (+ optional `rm` of the
+   symlink). Persists for the current shell.
+2. **Full revert from git:** `git checkout v0.4.0 -- claude-code/rules/
+   docs/spec/ docs/adr/ docs/templates/` then `scripts/install.sh`.
+3. **Clean uninstall + reinstall:** `scripts/uninstall.sh` then `git checkout
+   v0.4.0` then `scripts/install.sh`.
+
+Pre-v0.5.0 plans remain valid throughout — no plan migration needed.
+
+### Post-install smoke (manual)
+
+After `scripts/install.sh`, open a fresh Claude Code session and query "what
+engineering principles do you apply when developing?" — expect all 6 themes
+from `engineering-standards.md` to appear in the response. Programmatic check
+documented in `tests/smoke/aa-ma-engineering-standards-smoke.md`.
+
+### AA-MA plan provenance
+
+This release is the deliverable of AA-MA plan
+`aa-ma-engineering-standards` (M0–M4 across `feature/aa-ma-engineering-standards_001`
+branch). Five milestones; HARD gates on M0, M3, M4; full audit trail in
+`.claude/dev/active/aa-ma-engineering-standards/` (will move to
+`.claude/dev/completed/` post-archival).
+
 ## v0.4.0 (2026-05-08)
 
 ### Feat

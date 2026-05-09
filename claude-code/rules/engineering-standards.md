@@ -116,3 +116,24 @@ authored before v0.5.0.
   see [`aa-ma.md`](aa-ma.md) "Commit Signature" section.
 
 **See also:** [`aa-ma.md`](aa-ma.md); ADR-0001; doc-drift Tier 6 detector.
+
+## Opt-out
+
+These standards are opinionated. The plugin ships them as defaults to encourage
+discipline; consumers may opt out at any layer:
+
+- **Master kill switch:** `export AA_MA_HOOKS_DISABLE=1` disables all AA-MA
+  hooks and gate enforcement (the same env var that already controls
+  `aa-ma-commit-drift.sh` and the milestone HARD gate's Engineering Standards
+  Section 6.7).
+- **Per-rule removal:** delete the symlink at `~/.claude/rules/engineering-standards.md`
+  (created by `scripts/install.sh`) to stop auto-loading this rule on session
+  start. The plan-verification structural check still runs on `Created:`
+  on-or-after v0.5.0 plans; remove the engineering-standards section from
+  `claude-code/skills/plan-verification/SKILL.md` Angle 6 to fully disable.
+- **Project-local override:** projects with their own `claude-code/rules/`
+  may ship a stricter or laxer engineering-standards.md; the project-local
+  copy takes precedence over the plugin-shipped one when both are loaded.
+
+Pre-v0.5.0 plans are grandfathered automatically (no opt-out needed) — see
+the grandfathering note in [`aa-ma.md`](aa-ma.md) Planning Standard section.

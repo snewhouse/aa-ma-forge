@@ -499,8 +499,10 @@ if [[ "${DIRTY_AA_MA}" -ne 0 ]]; then
 fi
 
 # 2. Zero Status: PENDING within the milestone
+# Anchor to line-prefix to avoid false positives from "PENDING" in prose
+# (acceptance criteria, result logs, etc. that describe the gate itself).
 PENDING_IN_MILESTONE=$(awk "/^## Milestone.*${MILESTONE_TITLE}/,/^## Milestone/" \
-  "${TASK_DIR}/${TASK_NAME}-tasks.md" | grep -c "Status: PENDING" || true)
+  "${TASK_DIR}/${TASK_NAME}-tasks.md" | grep -cE "^- Status: PENDING|^Status: PENDING" || true)
 if [[ "${PENDING_IN_MILESTONE}" -gt 0 ]]; then
   echo "BLOCKED: ${PENDING_IN_MILESTONE} sub-step(s) still PENDING in milestone."
   # HALT

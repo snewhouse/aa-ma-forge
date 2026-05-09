@@ -312,7 +312,7 @@ RECOMMENDED: Start with milestone mode (/execute-aa-ma-milestone)
 
 - [ ] Task directory created at `.claude/dev/active/[task-name]/`
 - [ ] All 5 AA-MA files created and non-empty
-- [ ] plan.md populated with complete plan (11 elements)
+- [ ] plan.md populated with complete plan (12 elements)
 - [ ] reference.md populated with extracted immutable facts
 - [ ] context-log.md initialized with Phase 1-3 context
 - [ ] tasks.md converted to HTP structure (milestones + steps)

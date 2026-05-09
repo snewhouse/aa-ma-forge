@@ -112,10 +112,12 @@ This enables reliable session resume without relying solely on context-log.md su
 
 ## Planning Standard
 
-Every plan **MUST** include these 11 outputs:
+Every plan **MUST** include these 12 outputs:
 
-1. Executive summary (1-3 lines) | 2. Stepwise implementation plan | 3. Milestones with measurable goals | 4. Acceptance criteria per step | 5. Required artefacts | 6. Tests to validate | 7. Rollback strategy | 8. Dependencies & assumptions | 9. Effort estimate & Complexity (0-100%) | 10. Risks & mitigations (top 3 per milestone) | 11. Next action + AA-MA file to update
+1. Executive summary (1-3 lines) | 2. Stepwise implementation plan | 3. Milestones with measurable goals | 4. Acceptance criteria per step | 5. Required artefacts | 6. Tests to validate | 7. Rollback strategy | 8. Dependencies & assumptions | 9. Effort estimate & Complexity (0-100%) | 10. Risks & mitigations (top 3 per milestone) | 11. Next action + AA-MA file to update | 12. Engineering Standards Declaration (which themes from `claude-code/rules/engineering-standards.md` materially apply, with one-sentence rationale per theme)
 
 Steps with **Complexity >= 80%** require human review or Chain-of-Thought deep reasoning.
+
+**Grandfathering (v0.5.0 introduced element #12):** Plans authored before v0.5.0 (i.e., without an `Engineering Standards Declaration` and without a `Created: YYYY-MM-DD` front-matter on-or-after the v0.5.0 release date) are valid as-is — `Skill(plan-verification)` Angle 6 only flags missing element #12 for plans `Created:` on-or-after v0.5.0. Pre-v0.5.0 plans remain conformant under the prior standard (without element #12) they were authored against.
 
 Full standard with prompt template: [docs/aa-ma-specification.md#xi-planning-standard](../docs/aa-ma-specification.md#xi-planning-standard)

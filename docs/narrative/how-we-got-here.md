@@ -64,6 +64,8 @@ A taxonomy is useless without tooling to enforce it. Over the following weeks I 
 
 The `/aa-ma-plan` command produces structured plans with 11 mandatory outputs, from executive summary through milestones, acceptance criteria, artefacts, tests, rollback strategy, to risks and next actions. Overkill for a one-off script. Essential for anything that runs longer than a single session.
 
+> **Historical note (allowlisted from Tier 6 drift detector):** This narrative references the 11-element Planning Standard from before v0.5.0; the post-v0.5.0 standard is 12 elements (the 12th is "Engineering Standards Declaration"). See [ADR-0001](../adr/0001-engineering-standards-architecture.md). Frozen historical doc per CLAUDE.md "Historical docs are frozen".
+
 Two specialised agents emerged. The **scribe agent** handles file maintenance: provenance entries, context-log updates, keeping the main conversation focussed on actual work. The **validator agent** checks plan quality against the specification. Separate agents for bookkeeping means the primary interaction isn't constantly interrupted by administrative overhead.
 
 The compaction hook was a quiet but critical piece. Claude Code auto-compacts the context window when it fills up. Without intervention, that compaction destroys whatever working memory the agent has accumulated. The `pre-compact-aa-ma.sh` hook intercepts that moment and writes a session checkpoint to `provenance.log` before compaction happens. It's a small thing. It prevents a catastrophic failure mode.

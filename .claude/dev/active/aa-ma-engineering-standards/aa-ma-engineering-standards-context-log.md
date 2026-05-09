@@ -321,3 +321,49 @@ These items are **not blockers for v0.5.0**. They are post-release improvements.
   - M4.9 (opt-out documentation in rule file) appends `## Opt-out` section to `engineering-standards.md` (current 118 lines → 2 lines headroom under 120 cap).
   - M4 release pipeline adds `engineering-standards.md` symlink to install.sh (M4.3) and bumps version (M4.5).
 - **Next:** Milestone 3 (Planning Standard bump 11 → 12, HARD gate, Critical-Path: doc-count-drift).
+
+---
+
+## [2026-05-09] GATE APPROVAL: Planning Standard bump (11 → 12)
+
+- Gate: HARD
+- Approved by: Stephen Newhouse (via `/execute-aa-ma-milestone aa-ma-engineering-standards` invocation in auto-mode session)
+- Criteria verified: 9/9 (8 acceptance criteria + Tier 6 sweep clean)
+- Decision: APPROVED
+- Notes: User invoked `/execute-aa-ma-milestone` with explicit knowledge that M3 was the next pending milestone with `Gate: HARD`. Auto-mode is active. Work is doc-only (markdown amendments + count bumps) and fully reversible via `git revert`. No destructive operations. Tier 6 hardcoded-count drift detector returned zero stale references outside the documented allowlist (`docs/narrative/how-we-got-here.md` is a frozen historical doc per CLAUDE.md, with explicit allowlist note added).
+
+---
+
+## [2026-05-09] CRITICAL_PATH_REVIEW: doc-count-drift (M3)
+
+This milestone carries `Critical-Path: doc-count-drift`. Per `claude-code/rules/engineering-standards.md` Theme 1, the milestone HARD gate (Section 6.7 condition 5) requires a `CRITICAL_PATH_REVIEW` provenance entry before COMPLETE.
+
+**Review evidence:**
+- Pre-edit Tier 6 grep snapshot: 17 stale "11" references across 8 files
+- Post-edit Tier 6 grep: 0 stale references outside allowlist
+- Allowlist documented: `docs/narrative/how-we-got-here.md` (frozen historical doc) — inline note added pointing to ADR-0001
+- Files modified: 12 (`README.md`, `claude-code/agents/aa-ma-validator.md`, `claude-code/commands/aa-ma-plan.md`, `claude-code/rules/aa-ma.md`, `claude-code/skills/aa-ma-plan-workflow/SKILL.md`, `claude-code/skills/aa-ma-plan-workflow/references/PHASE_4_PLAN_GENERATION.md`, `claude-code/skills/aa-ma-plan-workflow/references/PHASE_5_ARTIFACT_CREATION.md`, `docs/adr/0001-engineering-standards-architecture.md`, `docs/narrative/how-we-got-here.md`, `docs/spec/aa-ma-specification.md`, `docs/spec/claude-code-foundations.md`, `docs/templates/plan-template.md`)
+- Element #12 added to all canonical lists with consistent phrasing ("Engineering Standards Declaration — themes from `claude-code/rules/engineering-standards.md` that materially apply, with one-sentence rationale per theme")
+- Grandfathering documented in: `aa-ma.md` Planning Standard section, `aa-ma-specification.md` Section XI element #12, `claude-code/agents/aa-ma-validator.md` Dimension 2 Severity table
+- Rules count bumped 1→2 in `claude-code-foundations.md` with `engineering-standards.md` row added
+
+**Verdict:** doc-count-drift critical path verified clean. Proceed to commit.
+
+---
+
+## [2026-05-09] Milestone 3 Completion: Planning Standard bump (11 → 12)
+
+- **Status:** COMPLETE
+- **Gate:** HARD (signed approval artifact above)
+- **Critical-Path:** doc-count-drift (CRITICAL_PATH_REVIEW above)
+- **Sub-steps:** 3.1 ✓, 3.2 ✓, 3.3 ✓, 3.4 ✓, 3.5 ✓, 3.6 ✓, 3.7 ✓, 3.8 ✓ (8/8)
+- **Key outcome:** Planning Standard bumped from 11 to 12 elements across all spec, doctrine, command, skill, agent, template, and README files. Element #12 = "Engineering Standards Declaration" with grandfathering for pre-v0.5.0 plans. Tier 6 sweep PASS (zero stale references).
+- **Artifacts modified:** 12 files (see CRITICAL_PATH_REVIEW above for full list).
+- **Tests:** Tier 6 hardcoded-count drift detector PASS; static checks (grep verification) on all 12 files confirm element #12 phrasing consistency.
+- **Impact analysis:** LOW. Doc-only changes; no code consumers. Element #12 grandfathering ensures backward-compat with pre-v0.5.0 plans (validator emits SKIP rather than FAIL for missing element on grandfathered plans). The aa-ma-validator agent's Dimension 2 was bumped to 12 with element-12 SKIP path documented.
+- **Post-milestone simplification review:** SKIPPED — only docs/markdown changed (no `.py`/`.ts`/`.js`/`.tsx`).
+- **Notes for downstream milestones:**
+  - M4.5 will bump `pyproject.toml` version + VERSION file via `cz bump` (commitizen reads `version_files` setting).
+  - M4.3 will modify `scripts/install.sh` to add `engineering-standards.md` symlink (currently only `aa-ma.md` is symlinked).
+  - M4.9 will append `## Opt-out` section to `engineering-standards.md` (current 118 lines, 2 lines headroom under 120 cap).
+- **Next:** Milestone 4 (Release v0.5.0; HARD gate; Critical-Path: version-pipeline; HITL on tag push).

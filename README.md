@@ -85,7 +85,7 @@ Most approaches to LLM memory boil down to "put more stuff in CLAUDE.md." AA-MA 
 
 At a glance:
 
-- **11 mandatory planning outputs** per task, from executive summary through rollback strategy to risk register
+- **12 mandatory planning outputs** per task, from executive summary through rollback strategy to engineering-standards declaration
 - **6-angle adversarial verification** that attacks the plan before a single line of code is written
 - **HITL/AFK task dispatch** so the agent knows which tasks need you and which it can run alone
 - **Compaction-safe memory** that survives Claude Code's context window resets
@@ -94,7 +94,7 @@ At a glance:
 
 "We'll figure it out as we go" is how projects die. Every AA-MA plan ships with a rollback strategy, risk register, and acceptance criteria you could turn into test assertions.
 
-The `/aa-ma-plan` command produces structured plans with **11 mandatory outputs**:
+The `/aa-ma-plan` command produces structured plans with **12 mandatory outputs**:
 
 1. Executive summary
 2. Stepwise implementation plan

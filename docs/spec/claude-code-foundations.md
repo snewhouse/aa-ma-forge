@@ -72,7 +72,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 
 | Command | Purpose |
 |---------|---------|
-| `/aa-ma-plan` | Create detailed AA-MA plan with 11 mandatory outputs |
+| `/aa-ma-plan` | Create detailed AA-MA plan with 12 mandatory outputs |
 | `/execute-aa-ma-milestone` | Execute milestone with HITL/AFK mode dispatch and validation |
 | `/execute-aa-ma-full` | Execute complete plan from current position |
 | `/execute-aa-ma-step` | Execute single task with lightweight validation |
@@ -107,11 +107,12 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `aa-ma-scribe` | Generates the 5-file artifact set from an approved plan |
 | `aa-ma-validator` | Read-only validation of artifact completeness and cross-file consistency |
 
-### Rules (1)
+### Rules (2)
 
 | Rule | Purpose |
 |------|---------|
 | `aa-ma.md` | Operational rules governing sync discipline, commit signatures, task modes, gate classification |
+| `engineering-standards.md` | 6-theme engineering doctrine (Verification & Truth, Development Principles, Reasoning & Planning, Safety & Continuity, Execution Checklist, Sync & Commit Discipline) — auto-loaded; defines `Critical-Path:` canonical enum |
 
 ### Hooks (2)
 
@@ -123,7 +124,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 ### Operational protocols
 
 - **Sync discipline** -- mark complete, extract facts, document decisions, commit+push after every task
-- **Planning standard** -- 11 mandatory outputs per plan
+- **Planning standard** -- 12 mandatory outputs per plan
 - **Commit signatures** -- `[AA-MA Plan] {task-name} .claude/dev/active/{task-name}`
 - **HITL/AFK task execution modes** -- human-in-the-loop vs autonomous dispatch per task
 - **HARD/SOFT milestone gate classification** -- artifact-enforced vs convention-based approval gates

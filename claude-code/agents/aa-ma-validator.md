@@ -43,9 +43,9 @@ Check that all 5 required files exist and are non-empty:
 - File exists but empty (0 lines) → FAIL
 - File exists but below minimum lines → WARN
 
-### Dimension 2: Plan Completeness (11 AA-MA Elements)
+### Dimension 2: Plan Completeness (12 AA-MA Elements)
 
-Verify `[task]-plan.md` contains all 11 required elements:
+Verify `[task]-plan.md` contains all 12 required elements:
 
 1. **Executive summary** — Look for "Executive Summary" heading or ≤3 line overview
 2. **Ordered steps** — Look for numbered steps or milestone headings
@@ -58,9 +58,11 @@ Verify `[task]-plan.md` contains all 11 required elements:
 9. **Effort estimates** — Look for hour/day estimates AND complexity percentages
 10. **Risks & mitigations** — Look for "Risk" section with mitigations
 11. **Next action** — Look for "Next Action" or "Next Step" section
+12. **Engineering Standards Declaration** — Look for "Engineering Standards Declaration" section listing themes from `claude-code/rules/engineering-standards.md` that materially apply (skip for plans `Created:` pre-v0.5.0 — grandfathered)
 
 **Severity:**
-- Element completely missing → FAIL (for elements 1-4, 11) or WARN (for elements 5-10)
+- Element completely missing → FAIL (for elements 1-4, 11) or WARN (for elements 5-10, 12)
+- Element 12 missing on plan `Created:` < v0.5.0 release date → SKIP (grandfathering)
 - Element present but vague → WARN
 
 ### Dimension 3: Reference Completeness
@@ -132,7 +134,7 @@ Timestamp: [YYYY-MM-DD HH:MM]
    ✓ [task]-tasks.md        ([N] lines) — PASS
    ✓ [task]-provenance.log  ([N] lines) — PASS
 
-2. PLAN COMPLETENESS (11 Elements)
+2. PLAN COMPLETENESS (12 Elements)
    ✓ Executive summary      — PASS
    ✓ Ordered steps          — PASS
    ✓ Milestones             — PASS ([N] found)
@@ -140,7 +142,8 @@ Timestamp: [YYYY-MM-DD HH:MM]
    ⚠ Tests                  — WARN (not specified for Milestone 3)
    ✓ Rollback strategies    — PASS
    ...
-   Score: [N]/11 elements present
+   ✓ Engineering Standards Declaration — PASS (or SKIP if grandfathered)
+   Score: [N]/12 elements present
 
 3. REFERENCE COMPLETENESS
    ✓ Facts extracted: [N] sections with content

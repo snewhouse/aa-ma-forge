@@ -326,7 +326,7 @@ Ensure plan includes ALL 12 required elements:
 **Step 4.3: Validate Plan Completeness**
 
 Check generated plan against AA-MA standard:
-- [ ] Contains all 11 required elements
+- [ ] Contains all 12 required elements
 - [ ] Steps have clear acceptance criteria
 - [ ] Complexity ≥80% steps are flagged
 - [ ] Rollback strategy defined for risky changes
@@ -542,7 +542,7 @@ Write the generated plan from Phase 4:
 [3-line overview from plan]
 
 ## Implementation Steps
-[Full plan content with all 11 elements]
+[Full plan content with all 12 elements]
 
 ## Next Action
 [Specific first step from plan]

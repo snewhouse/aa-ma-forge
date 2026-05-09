@@ -119,7 +119,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone 1: Doctrine
 
-- Status: COMPLETE (2026-05-09 ~16:35 UTC, commit 0cfb6ef)
+- Status: COMPLETE (2026-05-09 ~16:35 UTC, commit 1313598)
 - **Dependencies:** Milestone 0
 - **Complexity:** 25%
 - **Gate:** SOFT

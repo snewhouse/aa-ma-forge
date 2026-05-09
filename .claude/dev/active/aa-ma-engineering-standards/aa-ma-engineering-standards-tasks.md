@@ -4,7 +4,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone 0: AA-MA Workflow Setup + ADR + Plan-Verification
 
-- Status: ACTIVE
+- Status: COMPLETE (2026-05-09 ~16:10 UTC, commit 598b4b3)
 - **Dependencies:** None
 - **Complexity:** 35%
 - **Gate:** HARD
@@ -107,13 +107,13 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Result Log:** Cross-ref validation 2026-05-09 ~16:05 UTC. All `engineering-standards` references in `claude-code/`, `docs/`, and AA-MA artifact directory resolve to real files OR to forward-looking "Files to Create" entries (correctly noted in reference.md). All 6 AA-MA artifacts present (5 standard + verification.md). ADR set complete (INDEX.md, TEMPLATE.md, 0001-...md). Currently 15 stale "11 element" references exist on disk — these are KNOWN M3 scope, enumerated in M3 acceptance criteria after verification revisions, NOT M0 blockers. Verdict: PASS.
 
 ### Sub-step 0.7: Commit + push M0 deliverables
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Steps 0.4, 0.5, 0.6
 - **Acceptance Criteria:**
   - Single commit (or atomic series) on `feature/aa-ma-engineering-standards_001` with footer `[AA-MA Plan] aa-ma-engineering-standards .claude/dev/active/aa-ma-engineering-standards`.
   - Pushed to remote.
-- **Result Log:**
+- **Result Log:** Commit `598b4b3` `chore(aa-ma): set up workflow + ADR convention for engineering-standards plan (M0)` 2026-05-09 ~16:10 UTC. 9 files / 1816 insertions: 6 AA-MA artifacts in `.claude/dev/active/aa-ma-engineering-standards/` + 3 ADR files in `docs/adr/`. AA-MA Plan footer present (last line). Pushed to `origin/feature/aa-ma-engineering-standards_001` (new branch on remote). PR creation URL: https://github.com/snewhouse/aa-ma-forge/pull/new/feature/aa-ma-engineering-standards_001 (deferred — M0 is setup; PR opens after M4 release).
 
 ---
 

@@ -478,6 +478,78 @@ User must explicitly acknowledge to proceed. This prevents accidentally finalizi
 
 ---
 
+### 6.7 Engineering Standards HARD Gate
+
+Reference: `claude-code/rules/engineering-standards.md` (Themes 1, 4, 5, 6).
+This gate is structural — it refuses to mark COMPLETE when any of 5 conditions
+fails. Independent of `Gate: SOFT|HARD` in tasks.md (that controls the approval
+artifact in 7.1; THIS gate enforces engineering posture for every milestone).
+
+**Five conditions, evaluated in order:**
+
+```bash
+TASK_DIR=".claude/dev/active/${TASK_NAME}"
+
+# 1. AA-MA artifacts in sync (clean git for AA-MA files)
+DIRTY_AA_MA=$(git status --porcelain "${TASK_DIR}/" | wc -l | tr -d ' ')
+if [[ "${DIRTY_AA_MA}" -ne 0 ]]; then
+  echo "BLOCKED: AA-MA artifacts have uncommitted changes."
+  echo "Run sub-step Result Log discipline (L-080-082); commit and re-run."
+  # HALT
+fi
+
+# 2. Zero Status: PENDING within the milestone
+PENDING_IN_MILESTONE=$(awk "/^## Milestone.*${MILESTONE_TITLE}/,/^## Milestone/" \
+  "${TASK_DIR}/${TASK_NAME}-tasks.md" | grep -c "Status: PENDING" || true)
+if [[ "${PENDING_IN_MILESTONE}" -gt 0 ]]; then
+  echo "BLOCKED: ${PENDING_IN_MILESTONE} sub-step(s) still PENDING in milestone."
+  # HALT
+fi
+
+# 3. Tests-pass evidence (already enforced in 6.4; double-check Result Log mentions)
+# 4. Impact-analysis evidence (already enforced in 6.3; double-check Result Log mentions)
+
+# 5. Critical-Path / Prototype-Required provenance evidence (CONDITIONAL)
+# Absent-field semantic: skip check when field is absent on the task.
+# Only fires when field is PRESENT-but-without-evidence.
+
+CRITICAL_PATH_TASKS=$(awk "/^## Milestone.*${MILESTONE_TITLE}/,/^## Milestone/" \
+  "${TASK_DIR}/${TASK_NAME}-tasks.md" \
+  | grep -E "^- \*\*Critical-Path:\*\* \S" || true)
+if [[ -n "${CRITICAL_PATH_TASKS}" ]]; then
+  if ! grep -q "CRITICAL_PATH_REVIEW" "${TASK_DIR}/${TASK_NAME}-provenance.log"; then
+    echo "BLOCKED: Milestone has Critical-Path: tasks but no CRITICAL_PATH_REVIEW"
+    echo "entry in provenance.log."
+    # HALT
+  fi
+fi
+
+PROTOTYPE_TASKS=$(awk "/^## Milestone.*${MILESTONE_TITLE}/,/^## Milestone/" \
+  "${TASK_DIR}/${TASK_NAME}-tasks.md" \
+  | grep -E "^- \*\*Prototype-Required:\*\* YES" || true)
+if [[ -n "${PROTOTYPE_TASKS}" ]]; then
+  if ! grep -q "PROTOTYPE —" "${TASK_DIR}/${TASK_NAME}-provenance.log"; then
+    echo "BLOCKED: Milestone has Prototype-Required: YES tasks but no"
+    echo "PROTOTYPE — <verdict> entry in provenance.log."
+    # HALT
+  fi
+fi
+
+echo "ENG-STANDARDS-GATE: PASS (all 5 conditions satisfied)"
+```
+
+**Absent-field semantic** (M2.5 verification finding): when `Critical-Path:` or
+`Prototype-Required:` is **absent** from a task, the corresponding check is
+**skipped (no failure)**. Only present-but-without-evidence triggers a HALT.
+This preserves backward compat with `examples/` plans authored before v0.5.0.
+
+**Bypass:** to override this gate (e.g. for diagnostic runs), set
+`AA_MA_HOOKS_DISABLE=1` in the environment. The gate honors the master kill
+switch but logs the override to provenance.log:
+`[ts] ENG_STANDARDS_GATE: BYPASSED via AA_MA_HOOKS_DISABLE`.
+
+---
+
 ## 7. Finalization Protocol — MANDATORY
 
 Before marking the milestone COMPLETE and creating git checkpoint, execute this 4-step finalization protocol. **No exceptions.**

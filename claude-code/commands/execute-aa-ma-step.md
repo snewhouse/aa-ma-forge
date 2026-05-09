@@ -218,6 +218,36 @@ If the step has `Acceptance Criteria:` defined in tasks.md, verify each criterio
 
 This is lightweight — no formal verification matrix, just a quick pass/fail check per criterion.
 
+### 6.2.5 Engineering Standards Advisory Checklist
+
+Reference: `claude-code/rules/engineering-standards.md` Theme 5 (Execution Checklist).
+
+Before flipping `Status: COMPLETE`, the agent self-reports against this 7-item
+checklist. **HARD items are advisory at step level — final enforcement happens
+at the milestone HARD gate** in `/execute-aa-ma-milestone` (Section 6 boundary
+validation). Step-level reporting surfaces issues early without blocking atomic
+flow.
+
+| # | Item                                            | Tier | Step-level action                                                  |
+|---|-------------------------------------------------|------|--------------------------------------------------------------------|
+| 1 | Implementation tested with running code/API     | HARD | Note evidence in Result Log; verified at milestone gate            |
+| 2 | Tests written and passing                       | HARD | Note pass count in Result Log; verified at milestone gate          |
+| 3 | Non-breaking constraint verified                | HARD | Note any contract changes in Result Log; verified at milestone gate |
+| 4 | AA-MA artifacts in sync; git clean for AA-MA    | HARD | Note any drift in Result Log; verified at milestone gate           |
+| 5 | No assumptions left unvalidated                 | SOFT | **Declare in context-log.md** if any assumption remains untested   |
+| 6 | Relevant skills/subagents consulted             | SOFT | **Declare in context-log.md** which skills/subagents were used     |
+| 7 | Changes reviewed against past mistakes          | SOFT | **Declare in context-log.md** which lessons (Phase 1 scan) applied |
+
+**Conditional sub-items** (when present in tasks.md, surface evidence in Result Log):
+- `Critical-Path: <value>` → mention `CRITICAL_PATH_REVIEW` evidence (verified at milestone gate)
+- `Prototype-Required: YES` → mention `PROTOTYPE — <verdict>` evidence (verified at milestone gate)
+
+When `Critical-Path:` or `Prototype-Required:` is **absent** from the task, skip
+the corresponding check (no failure).
+
+This step-level checklist is advisory. Atomic step flow proceeds even if HARD
+items are partial — the milestone HARD gate is the structural enforcer.
+
 ### 6.3 Last-Step-of-Milestone Detection
 
 **After completing this step, check: are there any remaining PENDING steps in the current milestone?**

@@ -62,6 +62,21 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
      mechanical refactoring, documentation generation -->
 - **Mode:** AFK
 
+<!-- Critical-Path: OPTIONAL flag. When set to one of the canonical values
+     (auth-flow | data-xform | external-api | version-pipeline | doc-count-drift |
+     hook-modification — see claude-code/rules/engineering-standards.md Theme 1),
+     the milestone HARD gate requires a [ts] CRITICAL_PATH_REVIEW provenance entry
+     before COMPLETE. Leave blank or omit if no critical path applies.
+     Novel values are rejected by Skill(plan-verification) — add new values via
+     plan + ADR. -->
+- **Critical-Path:**
+
+<!-- Prototype-Required: OPTIONAL flag. When set to YES, the milestone HARD gate
+     requires a [ts] PROTOTYPE — <verdict> provenance entry before COMPLETE.
+     Use for milestones with material implementation uncertainty where a throwaway
+     POC is the right de-risking step. Leave blank or omit when not required. -->
+- **Prototype-Required:**
+
 <!-- Acceptance Criteria: measurable, falsifiable conditions that prove the milestone
      is complete. Each criterion MUST be testable — if you cannot write a single-line
      pytest assertion from it, the criterion is not specific enough.
@@ -88,6 +103,14 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
      or "None" if this is the first sub-step.
      Example: "Step 1.1" or "Steps 1.1, 1.2" -->
 - **Dependencies:** None
+
+<!-- Critical-Path: OPTIONAL flag at sub-step level. Same enum as milestone.
+     Use to flag a single high-stakes sub-step within an otherwise routine milestone. -->
+- **Critical-Path:**
+
+<!-- Prototype-Required: OPTIONAL flag at sub-step level. Same semantics as milestone.
+     Use to flag a single uncertain sub-step. -->
+- **Prototype-Required:**
 
 <!-- Acceptance Criteria: specific conditions for THIS sub-step.
      Optional at sub-step level if the milestone criteria are sufficient. -->

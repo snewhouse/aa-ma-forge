@@ -1,3 +1,8 @@
+<!-- ARCHIVED: 2026-05-09 18:05 -->
+<!-- Plan: aa-ma-engineering-standards - COMPLETE -->
+<!-- Total Milestones: 5 (M0-M4, all COMPLETE) | Duration: 2026-05-09 (single-day execution) -->
+<!-- Release: v0.5.0 (tag 9d16d09 -> commit e1cf4cb) on origin -->
+
 # aa-ma-engineering-standards Plan
 
 **Objective:** Codify six themes of engineering standards into aa-ma-forge so that every `/aa-ma-plan` and `/execute-aa-ma-*` invocation explicitly invokes and verifies them, shipping as v0.5.0.

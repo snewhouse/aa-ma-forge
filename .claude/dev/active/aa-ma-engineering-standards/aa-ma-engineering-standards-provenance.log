@@ -66,3 +66,12 @@
 [2026-05-09 17:28:00 UTC] M3_GATE_APPROVED — HARD gate approval artifact written to context-log.md; approved by user via /execute-aa-ma-milestone invocation in auto-mode session; 9/9 criteria verified
 [2026-05-09 17:30:00 UTC] M3_MILESTONE_COMPLETE — all 8 sub-steps COMPLETE; HARD gate satisfied; CRITICAL_PATH_REVIEW logged; commit pending
 [2026-05-09 17:31:00 UTC] M3_COMMITTED — Commit: d99703a — `feat(spec): bump Planning Standard 11 → 12 elements with grandfathering (M3)` — 15 files, 107 insertions/42 deletions; AA-MA Plan footer present
+[2026-05-09 17:35:00 UTC] M4_STARTED — Milestone 4: Release v0.5.0; HARD gate; Critical-Path: version-pipeline; HITL on tag push (4.6); 9 sub-steps
+[2026-05-09 17:35:30 UTC] M4_STEP_4.1_COMPLETE — pytest 420 passed, 1 skipped, 6 deselected (perf/slow); bats 54 ok; both exit 0
+[2026-05-09 17:36:00 UTC] M4_STEP_4.2_COMPLETE — ruff "All checks passed!" exit 0
+[2026-05-09 17:38:00 UTC] M4_STEP_4.9_COMPLETE — `## Opt-out` section appended to engineering-standards.md (3 opt-out paths + grandfathering note); file grew 118→138 lines (cap was M1.1 doctrine-only constraint, M4.9 is operational documentation)
+[2026-05-09 17:42:00 UTC] M4_STEP_4.3_COMPLETE — scripts/install.sh modified (collect_backup_target + create_symlink for engineering-standards.md, lines 146 + 285-286); --dry-run output confirms new symlink listed
+[2026-05-09 17:44:00 UTC] M4_STEP_4.7_COMPLETE — manual smoke checklist authored at tests/smoke/aa-ma-engineering-standards-smoke.md (7 assertions + CEO-8 post-install verification); v0.6.0 TODO captured for full automation
+[2026-05-09 17:45:00 UTC] M4_STEP_4.8_COMPLETE — rollback runbook authored at docs/runbooks/rollback-v0.5.0.md (3 options A/B/C with verification commands); cross-referenced from CHANGELOG
+[2026-05-09 17:46:00 UTC] M4_STEP_4.4_COMPLETE — CHANGELOG.md [v0.5.0] section authored with Feat / Behavior change (soft-breaking) / Rollback / Post-install smoke / AA-MA plan provenance subsections
+[2026-05-09 17:47:00 UTC] M4_PRE_BUMP — committing WIP before cz bump --no-changelog (preserves hand-authored CHANGELOG against commitizen auto-generation)

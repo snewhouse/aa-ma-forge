@@ -258,7 +258,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone 3: Planning Standard bump (11 → 12)
 
-- Status: COMPLETE (2026-05-09 ~17:30 UTC)
+- Status: COMPLETE (2026-05-09 ~17:30 UTC, commit d99703a)
 - **Dependencies:** Milestone 2
 - **Complexity:** 50%
 - **Gate:** HARD

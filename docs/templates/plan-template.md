@@ -3,7 +3,7 @@
 <!-- Copy this template to .claude/dev/active/[task-name]/[task-name]-plan.md -->
 <!-- Replace all [bracketed-values] with actual content -->
 <!-- The plan file is the strategic backbone of your AA-MA task. It captures -->
-<!-- the approved implementation strategy and all 11 mandatory planning elements. -->
+<!-- the approved implementation strategy and all 12 mandatory planning elements. -->
 <!-- This file is written once during planning (Phase 4) and rarely modified after approval. -->
 
 **Objective:** [1-line goal statement — what does "done" look like?]

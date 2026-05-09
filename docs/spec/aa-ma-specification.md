@@ -499,6 +499,7 @@ When asked to **PLAN** something you **MUST** follow this standard. Plans must b
 9. **Effort estimate & complexity** — rough effort (hours/days) per step and a `Complexity` score (0-100%). Mark steps with `Complexity >= 80%` to flag need for deep reasoning or human-in-the-loop review.
 10. **Risks & mitigations** — top 3 risks per milestone and proposed mitigations.
 11. **Next action** — the single concrete action required now (what to do first), and which AA-MA file to update (`REFERENCE`/`TASKS`).
+12. **Engineering Standards Declaration** — declare which themes from [`claude-code/rules/engineering-standards.md`](../../claude-code/rules/engineering-standards.md) materially apply to this plan, with one-sentence rationale per theme. The 6 themes are: (1) Verification & Truth, (2) Development Principles, (3) Reasoning & Planning, (4) Safety & Continuity, (5) Execution Checklist, (6) Sync & Commit Discipline. This element is captured during Phase 2 (Step 2.4) of `/aa-ma-plan` via the `ENG_STANDARDS_DECLARED: themes=[...]` provenance entry, and surfaced in Phase 4 plan output. **Grandfathering:** Plans authored before v0.5.0 (no `Created: YYYY-MM-DD` front-matter on-or-after v0.5.0 release date) are exempt from element #12 — `Skill(plan-verification)` Angle 6 only flags missing #12 for plans `Created:` on-or-after v0.5.0.
 
 ### Format & Mapping into AA-MA
 
@@ -523,6 +524,7 @@ Follow the AA-MA Planning Standard exactly. Provide:
 9. Effort estimate (hours/days) and Complexity (0-100%) per step — mark steps >=80% Complexity.
 10. Risks (top 3) and mitigations per milestone.
 11. ONE Next action the agent must perform now, and the AA-MA file(s) to update.
+12. Engineering Standards Declaration: themes from `claude-code/rules/engineering-standards.md` that materially apply, with one-sentence rationale per theme.
 
 Format outputs in Markdown. After the plan, provide a 1-2 line mapping instructing
 how to convert steps into [task]-tasks.md HTP nodes and which facts to add to

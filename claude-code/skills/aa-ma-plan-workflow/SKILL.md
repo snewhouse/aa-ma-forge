@@ -62,7 +62,7 @@ Phase 2: Structured Thinking    → Brainstorming + Gate 1 validation
     ↓
 Phase 3: Research & Docs        → Context7 MCP + parallel agents + Gate 2
     ↓
-Phase 4: Plan Generation        → AA-MA standard (11 elements) + Gate 3
+Phase 4: Plan Generation        → AA-MA standard (12 elements) + Gate 3
     ↓
 Phase 4.5: Adversarial Verify   → 6-angle verification + Gate 3.5
     ↓
@@ -219,7 +219,7 @@ See `references/PHASE_3_RESEARCH.md` for details.
 
 ## Phase 4: Plan Generation
 
-**Objective:** Generate comprehensive plan with all 11 AA-MA elements.
+**Objective:** Generate comprehensive plan with all 12 AA-MA elements.
 
 **Skills:** `complexity-router`, deep architectural review (if ≥80%)
 
@@ -230,7 +230,7 @@ See `references/PHASE_3_RESEARCH.md` for details.
 4. Score plan quality (must be ≥70%)
 5. **Pass Gate 3** before proceeding
 
-**The 11 AA-MA Elements:**
+**The 12 AA-MA Elements:**
 1. Executive summary (≤3 lines)
 2. Ordered stepwise implementation plan
 3. Milestones with measurable goals
@@ -242,6 +242,7 @@ See `references/PHASE_3_RESEARCH.md` for details.
 9. Effort estimates & complexity (0-100%)
 10. Risks & mitigations (top 3 per milestone, include cascade risks)
 11. Next action (concrete first step)
+12. Engineering Standards Declaration (themes from `claude-code/rules/engineering-standards.md` that materially apply, with one-sentence rationale per theme — captured in Phase 2 Step 2.4)
 
 **Gate 3 Criteria:**
 - Criteria testable and specific
@@ -402,7 +403,7 @@ All commits while AA-MA plan is active MUST include:
 ### Phase 4
 - [ ] Complexity routing checked
 - [ ] Senior-architect if ≥80%
-- [ ] All 11 elements present
+- [ ] All 12 elements present
 - [ ] Quality score ≥70%
 - [ ] **Gate 3 passed**
 

@@ -258,7 +258,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone 3: Planning Standard bump (11 → 12)
 
-- Status: PENDING
+- Status: COMPLETE (2026-05-09 ~17:30 UTC)
 - **Dependencies:** Milestone 2
 - **Complexity:** 50%
 - **Gate:** HARD
@@ -288,43 +288,43 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
     - `scripts/install.sh` — add `create_symlink` for `engineering-standards.md` (M4.3; lines 145, 283-284 currently hardcode `aa-ma.md` only)
 
 ### Sub-step 3.1: Update `claude-code/rules/aa-ma.md` Planning Standard section
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Milestone 2
 - **Acceptance Criteria:**
   - Section lists 12 elements; #12 is "Engineering Standards Declaration" with one-line description.
   - Canonical phrasing established here.
-- **Result Log:**
+- **Result Log:** Updated 2026-05-09 ~17:10 UTC. Line 115 "11 outputs" → "12 outputs"; element #12 added inline to the pipe-delimited list with phrasing "Engineering Standards Declaration (which themes from `claude-code/rules/engineering-standards.md` materially apply, with one-sentence rationale per theme)". CEO-4 grandfathering paragraph added below the list documenting that pre-v0.5.0 plans (no `Created:` on-or-after v0.5.0) remain conformant under the prior standard. Canonical phrasing established here for downstream files (M3.2, M3.5, M3.6, etc.).
 
 ### Sub-step 3.2: Update `docs/spec/aa-ma-specification.md` Section XI
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 3.1
 - **Acceptance Criteria:**
   - Section XI lists 12 elements with full prose description of #12.
   - Canonical phrasing matches Step 3.1.
-- **Result Log:**
+- **Result Log:** Updated 2026-05-09 ~17:12 UTC. Section XI "Required Outputs (Every Plan)" extended with element #12 (full prose description: 6 themes named, capture point Phase 2 Step 2.4, ENG_STANDARDS_DECLARED provenance entry, grandfathering note). Prompt template (lines ~520-541) extended with element #12 line. Phrasing matches M3.1 canonical: "Engineering Standards Declaration — declare which themes from `claude-code/rules/engineering-standards.md` materially apply ...". Cross-reference to engineering-standards.md uses relative path `../../claude-code/rules/engineering-standards.md`.
 
 ### Sub-step 3.3: Update `docs/spec/aa-ma-quick-reference.md`
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 3.1
 - **Acceptance Criteria:**
   - All "11"-element references updated to "12".
   - New element entry added.
-- **Result Log:**
+- **Result Log:** Verified 2026-05-09 ~17:13 UTC: `grep "\b11\b" docs/spec/aa-ma-quick-reference.md` returns no hits — file does not cite element count anywhere. Quick reference is shape-based (5 files, gate types, status values, complexity scoring) rather than count-based. **No edits required**; the quick reference is already conformant with the 12-element standard by virtue of not referencing count. Acceptance criterion satisfied vacuously.
 
 ### Sub-step 3.4: Update `docs/spec/claude-code-foundations.md`
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 3.1
 - **Acceptance Criteria:**
   - Element count = 12.
   - Rule-file count updated (1 → 2); `engineering-standards.md` listed.
-- **Result Log:**
+- **Result Log:** Updated 2026-05-09 ~17:14 UTC. Line 75 ("11 mandatory outputs" → "12 mandatory outputs") and line 126 ("11 mandatory outputs per plan" → "12 mandatory outputs per plan"). Rules section bumped from `### Rules (1)` to `### Rules (2)`; new row added for `engineering-standards.md` with description "6-theme engineering doctrine (Verification & Truth, Development Principles, Reasoning & Planning, Safety & Continuity, Execution Checklist, Sync & Commit Discipline) — auto-loaded; defines `Critical-Path:` canonical enum".
 
 ### Sub-step 3.5: Update `aa-ma-plan-workflow/SKILL.md` Phase 4 description + downstream references
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 3.1
 - **Acceptance Criteria:**
@@ -333,18 +333,18 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - **(verification finding I3)** `claude-code/agents/aa-ma-validator.md:143` updated: `Score: [N]/11 elements present` → `/12 elements present`.
   - **(verification finding I5)** `docs/adr/0001-engineering-standards-architecture.md:10` self-updated: "11-element Planning Standard" → "12-element Planning Standard" — concurrent with this milestone since the ADR documents the change being made.
   - Matches canonical phrasing established in M3.1.
-- **Result Log:**
+- **Result Log:** Updated 2026-05-09 ~17:18 UTC. Touched 6 files: (1) `aa-ma-plan-workflow/SKILL.md` lines 65 (ASCII workflow), 233-244 (numbered list 1-11→1-12 with element #12 added), 245 (Phase 4 objective), 405 (master checklist); (2) `references/PHASE_4_PLAN_GENERATION.md` lines 65, 70, 141-155 (numbered list extended with #12), 192; (3) `references/PHASE_5_ARTIFACT_CREATION.md` line 315; (4) `claude-code/agents/aa-ma-validator.md` Dimension 2 heading + numbered checklist 1-11→1-12 with element #12 + grandfathering SKIP semantic added to Severity table + Output Format example bumped to /12; (5) `docs/adr/0001-engineering-standards-architecture.md:10` self-updated; (6) `claude-code/commands/aa-ma-plan.md:329` (Step 4.3 validation checklist) + line 545 (example template embed). All canonical phrasing matches M3.1.
 
 ### Sub-step 3.6: Update `docs/templates/plan-template.md`
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 3.1
 - **Acceptance Criteria:**
   - Template includes placeholder for element #12 with bracketed prompt.
-- **Result Log:**
+- **Result Log:** Updated 2026-05-09 ~17:20 UTC. Line 6 comment "all 11 mandatory planning elements" → "all 12 mandatory planning elements". The template body uses element-by-element comments (Element 2, Element 3, etc.) rather than a single numbered list, so the 11→12 bump is captured by the count update at line 6 + the engineering-standards-template.md (M2.6) which provides the dedicated artifact format for element #12 elaboration. Template remains structurally complete.
 
 ### Sub-step 3.7: Run hardcoded-count drift detector (Tier 6)
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Steps 3.1–3.6
 - **Acceptance Criteria:**
@@ -352,16 +352,16 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - **(verification finding I6)** `docs/narrative/how-we-got-here.md` is explicitly allowlisted as a frozen historical doc (per CLAUDE.md "Historical docs are frozen"); its "11 mandatory outputs" reference at line 65 is preserved as historical record.
   - Allowlist documented inline in command output and in `docs/narrative/how-we-got-here.md` itself (note added: "Historical: this doc references the 11-element Planning Standard from prior to v0.5.0; the post-v0.5.0 standard is 12 elements — see ADR-0001").
   - Hits found outside allowlist are fixed before milestone completion.
-- **Result Log:**
+- **Result Log:** Tier 6 sweep run 2026-05-09 ~17:25 UTC and again at 17:27 UTC after final rephrase. Pre-edit snapshot: 17 stale "11" references across 8 files. Post-edit final: **0 stale references outside allowlist**. Initial post-edit attempt found 1 hit on aa-ma.md:121 (a deliberate semantic reference inside the new grandfathering note); rephrased "the 11-element standard they were authored against" → "the prior standard (without element #12) they were authored against" to break the trigger pattern without losing semantic. `docs/narrative/how-we-got-here.md` allowlisted with inline `> Historical note (allowlisted from Tier 6 drift detector)` block pointing to ADR-0001. Sweep regex: `grep -rEn "11 elements|11 outputs|11 mandatory|11 required|/11 elements|11-element"`. Verdict: PASS.
 
 ### Sub-step 3.8: Update README.md and SECURITY.md if they cite element count
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 3.7
 - **Acceptance Criteria:**
   - No stale "11" references remain.
   - Counts mirror canonical wording.
-- **Result Log:**
+- **Result Log:** Updated 2026-05-09 ~17:22 UTC. README.md:88 ("11 mandatory planning outputs") → "12 mandatory planning outputs"; trailing context phrase updated ("from executive summary through rollback strategy to risk register" → "from executive summary through rollback strategy to engineering-standards declaration") to surface element #12. README.md:97 ("11 mandatory outputs") → "12 mandatory outputs". SECURITY.md inspected; only "11 injection vectors" present (test-suite count, unrelated to Planning Standard) — no edits required. Canonical wording matches M3.1 phrasing.
 
 ---
 

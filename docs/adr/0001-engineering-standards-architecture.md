@@ -7,7 +7,7 @@
 
 ## Context and Problem Statement
 
-The aa-ma-forge plugin already has substantial workflow scaffolding for plan-driven development: 5-phase `/aa-ma-plan` command, 6-angle `plan-verification` skill (Phase 4.5, BLOCKING), 11-element Planning Standard, HARD/SOFT milestone gates, HITL/AFK execution modes. However, it is light on **codified engineering principles** that govern *how* a plan is executed once authored.
+The aa-ma-forge plugin already has substantial workflow scaffolding for plan-driven development: 5-phase `/aa-ma-plan` command, 6-angle `plan-verification` skill (Phase 4.5, BLOCKING), 12-element Planning Standard, HARD/SOFT milestone gates, HITL/AFK execution modes. However, it is light on **codified engineering principles** that govern *how* a plan is executed once authored.
 
 Engineering principles such as TDD, KISS, DRY, SOLID, SOC, first-principles thinking, Socratic questioning, empirical verification, prototype-first, and lessons-learned do appear in the plugin — but only as one-line mentions in `claude-code/commands/aa-ma-plan.md:30,116,756-761` (Phase 2 brainstorm namecheck) and `claude-code/skills/operational-constraints/SKILL.md`. They are not enforced gates, not consolidated into a single doctrine, not exposed as deliverables, and not verified during execution.
 

@@ -62,12 +62,12 @@ Skill: superpowers:writing-plans
 Pass to skill:
 - Refined requirements from Phase 2
 - Research findings from Phase 3
-- AA-MA Planning Standard requirements (11 elements above)
+- AA-MA Planning Standard requirements (12 elements above)
 - Project context and constraints
 
 The skill will:
 - Generate structured implementation plan
-- Ensure all 11 elements present
+- Ensure all 12 elements present
 - Create hierarchical milestone structure
 - Define clear acceptance criteria
 - Identify risks and rollback strategies
@@ -138,7 +138,7 @@ CONTEXT:
 - Research: [findings from Phase 3]
 - Constraints: [known limitations]
 
-Provide ALL 11 required elements:
+Provide ALL 12 required elements:
 
 1. Executive summary (≤3 lines)
 2. Ordered stepwise implementation plan
@@ -153,6 +153,7 @@ Provide ALL 11 required elements:
 10. Risks (top 3) and mitigations per milestone
     - Include **cascade risks** for shared/core module changes
 11. ONE Next action (what to do first) + which AA-MA file(s) to update
+12. Engineering Standards Declaration (themes from `claude-code/rules/engineering-standards.md` that materially apply, with one-sentence rationale per theme — captured in Phase 2 Step 2.4)
 
 Format in Markdown. Structure with:
 - ## for Milestones
@@ -189,7 +190,7 @@ When generating plan steps, apply these design constraints with actionable trigg
 **Score plan quality using this checklist:**
 
 Evaluate on:
-- Completeness (all 11 elements present)
+- Completeness (all 12 elements present)
 - Testability (acceptance criteria are verifiable)
 - Specificity (no vague steps)
 - Achievability (realistic scope)

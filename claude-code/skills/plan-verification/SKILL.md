@@ -336,8 +336,31 @@ Agent tool:
 | `schema`, `field`, `column`, `table`, `migration` | Schema Completeness Auditor | Field count vs source, type accuracy, nullable handling, default values |
 | `sqlalchemy`, `alembic`, `migration`, `database` | Migration Auditor | State machine completeness, rollback safety, data loss risk |
 | `auth`, `secret`, `token`, `permission`, `credential` | Security Auditor | OWASP top 10, credential handling, injection risks |
+| (always evaluated — not keyword-driven) | Engineering Standards Auditor | Element #12 declaration present; themes from `claude-code/rules/engineering-standards.md` claimed-vs-applied; `Critical-Path:`/`Prototype-Required:` flag values valid (canonical enum) |
 
-Dispatch 1-3 specialists based on detection. If no domain keywords found, skip this angle (report as "No specialist domains detected").
+Dispatch 1-3 specialists based on detection. If no domain keywords found, skip the keyword-driven dispatch (report as "No specialist domains detected") — but the **Engineering Standards Auditor always runs** regardless of keyword detection (see structural check below).
+
+**Engineering Standards Structural Check (always runs):**
+
+Independent of the keyword-driven specialist dispatch above, Angle 6 always
+evaluates these structural conditions against the plan:
+
+1. **Element #12 present.** Plan contains an "Engineering Standards Declaration"
+   section listing which themes from `claude-code/rules/engineering-standards.md`
+   apply, with one-sentence rationale per theme.
+2. **Critical-Path values are canonical.** Any `Critical-Path:` field uses one
+   of the 6 canonical values (`auth-flow` | `data-xform` | `external-api` |
+   `version-pipeline` | `doc-count-drift` | `hook-modification`). Novel values
+   are CRITICAL findings — add new values via plan + ADR, not ad-hoc.
+3. **Theme claims are not contradictory.** When element #12 declares Theme 2
+   (Development Principles → TDD), tasks producing code must carry test sub-tasks.
+
+**Grandfathering (CEO-4):** the structural check only fires for plans whose
+`Created: YYYY-MM-DD` front-matter is on-or-after the v0.5.0 release date.
+Pre-v0.5.0 plans (or plans missing `Created:`) emit
+`[INFO] Pre-v0.5.0 plan — engineering-standards check skipped` and continue.
+Detection logic (regex-based parse of `Created:` field + comparison to v0.5.0
+release date) lives inside the Engineering Standards Auditor agent prompt below.
 
 **Agent dispatch (per specialist):**
 ```

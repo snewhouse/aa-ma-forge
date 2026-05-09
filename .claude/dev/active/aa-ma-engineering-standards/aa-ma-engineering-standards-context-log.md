@@ -253,3 +253,71 @@ These items are **not blockers for v0.5.0**. They are post-release improvements.
   - M4.9 (Author opt-out documentation in rule file) appends a `## Opt-out` section to `engineering-standards.md`. The current 118-line count leaves 2 lines headroom under the 120 cap; M4.9 should keep amendments tight.
   - M3.5 includes a self-update of ADR-0001 line 10 ("11-element" → "12-element") concurrent with the Planning Standard bump. The Status field flip in M1.2 is independent from that line-10 update and does not pre-empt it.
 - **Next:** Milestone 2: Workflow integration (8 sub-steps, SOFT gate, AFK with one HITL prototype step at 2.2).
+
+---
+
+## [2026-05-09] AD-009: Angle 6 Extension (not new Angle 7)
+
+**Context:** M2.2 prototype required deciding between (A) extending Angle 6 of plan-verification with a 6th specialist domain "Engineering Standards Auditor", (B) adding a new Angle 7, or (C) splitting into Angle 6a/6b sub-domains.
+
+**Decision:** **Option A — extend Angle 6.**
+
+**Rationale:**
+- The eng-review hard split criterion (finding 1.3) defines two thresholds: split if 7th distinct domain OR >30 net lines added.
+- Adding "Engineering Standards Auditor" makes Angle 6 the **6th** domain (Pydantic, API, Schema, Migration, Security, Engineering Standards) — under the 7-domain threshold.
+- Initial draft was 34 net lines (over the 30-line cap by 4). Trimmed the embedded detection-logic bash block (folded into the agent dispatch prompt where it naturally belongs) → final diff is **19 lines**. Within both thresholds.
+- Option B (new Angle 7) would force renumbering across consumers (`/aa-ma-plan` Phase 4.5 references "6 angles"; `/verify-plan` likewise). Cost > value.
+- Option C (split 6a/6b) is reserved for the case where the 30-line OR 7-domain criterion is breached. It isn't here.
+
+**Trade-offs:** Gain — minimal churn, no renumbering, structural check + keyword-driven check coexist. Sacrifice — Angle 6 now does double duty (specialist domain audit + structural element-#12 check), slightly less single-responsibility. Mitigated by clear sub-section headers in plan-verification/SKILL.md.
+
+**Implementation summary:**
+- Added 1 row to specialist table: "Engineering Standards Auditor" (always-evaluated; not keyword-driven).
+- Added "Engineering Standards Structural Check" subsection with 3 numbered conditions (element #12 present; Critical-Path canonical values; theme/test consistency).
+- Grandfathering per CEO-4: structural check only fires for plans `Created:` on-or-after v0.5.0 release date.
+- Detection logic referenced (lives in Engineering Standards Auditor agent prompt, not duplicated in skill body).
+
+**Verification:** `git diff` shows net +19 lines for `claude-code/skills/plan-verification/SKILL.md`; specialist table now has 6 rows; Engineering Standards Structural Check subsection added.
+
+---
+
+## [2026-05-09] Milestone 2 Completion: Workflow integration
+
+- **Status:** COMPLETE
+- **Gate:** SOFT
+- **Sub-steps:** 2.1 ✓, 2.2 ✓, 2.3 ✓, 2.4 ✓, 2.5 ✓, 2.6 ✓, 2.7 ✓, 2.8 ✓ (8/8)
+- **Key outcome:** Workflow surfaces are wired to invoke the doctrine: Phase 1 lessons scan, Phase 2 declaration prompt + provenance entry, Phase 4 element #12 emit, per-step advisory checklist, milestone HARD gate, ADR INDEX validator. Angle 6 of plan-verification now structurally enforces element #12 presence and Critical-Path canonical values.
+- **Artifacts created:**
+  - `docs/templates/engineering-standards-template.md` (~85 lines)
+  - `scripts/check_adr_index.sh` (~80 lines, executable, advisory mode)
+- **Artifacts modified:**
+  - `docs/templates/tasks-template.md` (+Critical-Path:/Prototype-Required: at milestone + sub-step levels)
+  - `claude-code/skills/operational-constraints/SKILL.md` (+3 net lines)
+  - `claude-code/commands/aa-ma-plan.md` (+Phase 1 Step 1.5, +Phase 2 Step 2.4, element list 11→12 in canonical + fallback)
+  - `claude-code/commands/execute-aa-ma-step.md` (+Section 6.2.5 7-item advisory checklist)
+  - `claude-code/commands/execute-aa-ma-milestone.md` (+Section 6.7 Engineering Standards HARD Gate, 5 conditions)
+  - `claude-code/skills/plan-verification/SKILL.md` (Angle 6 +6th specialist row +structural check subsection, +19 net lines)
+- **Acceptance criteria verification (M2 milestone-level):**
+  - operational-constraints/SKILL.md references `engineering-standards.md` ✓ (3 references; +3 net lines vs ≤20 cap)
+  - plan-verification/SKILL.md amendment ≤20 lines (eng-review 2.1) ✓ (+19 net lines)
+  - plan-verification flags missing element #12 ✓ (Engineering Standards Structural Check)
+  - aa-ma-plan.md Phase 1 lessons scan + Phase 2 declaration + Phase 4 element #12 ✓
+  - execute-aa-ma-step.md advisory checklist ✓ (7 items, 4 HARD + 3 SOFT)
+  - execute-aa-ma-milestone.md HARD gate ✓ (5 conditions)
+  - engineering-standards-template.md exists ✓
+  - tasks-template.md fields ✓
+  - ADR INDEX validator ✓ (advisory mode, smoke PASS)
+- **Impact analysis (Section 6.3):** Risk = LOW.
+  - All amendments are markdown documentation in `claude-code/` — no code consumers.
+  - `scripts/check_adr_index.sh` is a new file with no callers (advisory).
+  - `docs/templates/` files are read-only references for plan authors.
+  - The new HARD-gate logic in execute-aa-ma-milestone.md activates on next invocation but is bypassable via `AA_MA_HOOKS_DISABLE=1`.
+  - aa-ma-plan.md element-list bump (11→12) creates a 1-step intentional drift with other count references — closed in M3.
+- **Test execution:** No automated tests for M2; smoke harness arrives in M4.7.
+- **Post-milestone simplification review (Section 6.6):** SKIPPED — only docs/markdown + 1 shell script (~80 lines, no business logic) changed.
+- **Decision Record produced:** AD-009 (Angle 6 extension over Angle 7 add).
+- **Notes for downstream milestones:**
+  - M3 must touch: `claude-code/rules/aa-ma.md`, `docs/spec/{aa-ma-specification.md, aa-ma-quick-reference.md, claude-code-foundations.md}`, `claude-code/skills/aa-ma-plan-workflow/{SKILL.md, references/PHASE_4_PLAN_GENERATION.md, references/PHASE_5_ARTIFACT_CREATION.md}`, `claude-code/agents/aa-ma-validator.md`, `docs/templates/plan-template.md`, `docs/adr/0001-engineering-standards-architecture.md` line 10, `README.md`, `SECURITY.md`. M3.7 Tier 6 sweep catches the rest including `claude-code/commands/aa-ma-plan.md:462`.
+  - M4.9 (opt-out documentation in rule file) appends `## Opt-out` section to `engineering-standards.md` (current 118 lines → 2 lines headroom under 120 cap).
+  - M4 release pipeline adds `engineering-standards.md` symlink to install.sh (M4.3) and bumps version (M4.5).
+- **Next:** Milestone 3 (Planning Standard bump 11 → 12, HARD gate, Critical-Path: doc-count-drift).

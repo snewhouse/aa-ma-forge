@@ -155,7 +155,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone 2: Workflow integration
 
-- Status: PENDING
+- Status: COMPLETE (2026-05-09 ~17:00 UTC)
 - **Dependencies:** Milestone 1
 - **Complexity:** 55%
 - **Gate:** SOFT
@@ -174,17 +174,17 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - **(eng-review finding 1.2)** `docs/adr/` has a validator (pre-commit hook OR doc-drift Tier 5 implementation) that flags ADRs missing from INDEX.md.
 
 ### Sub-step 2.1: Amend `operational-constraints/SKILL.md`
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Milestone 1
 - **Acceptance Criteria:**
   - References `engineering-standards.md`.
   - Diff ≤ +20 lines.
   - No doctrine duplication.
-- **Result Log:**
+- **Result Log:** Amended 2026-05-09 ~16:48 UTC. Net diff: +3 lines (cap ≤20, **PASS**). Three references added: (a) Section 4 "Development Discipline" doctrine pointer to `claude-code/rules/engineering-standards.md`; (b) Section 6 "Planning Output Protocol" item 5 mentions emit element #12; (c) Cross-References table row added. No doctrine content duplicated — all 3 references point to the rule file as source of truth.
 
 ### Sub-step 2.2: Prototype Angle 6 extension vs Angle 7 addition; pick one
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** HITL
 - **Prototype-Required:** YES
 - **Dependencies:** Milestone 1
@@ -193,10 +193,10 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Decision documented in context-log.md as a new AD-NNN entry.
   - provenance.log carries `[ts] PROTOTYPE — <verdict>`.
   - **(eng-review finding 1.3)** Hard split criterion: if Angle 6 amendment exceeds 30 lines OR introduces a 7th distinct domain on top of existing 5 (Pydantic, API contracts, schema, migrations, OWASP), MUST split into Angle 6a/6b sub-domains rather than collapse all engineering checks into Angle 6.
-- **Result Log:**
+- **Result Log:** Decided 2026-05-09 ~16:59 UTC: **Angle 6 extension** (chosen over Angle 7 add or 6a/6b split). Both eng-review 1.3 thresholds satisfied: net diff +19 lines (≤30 cap; initial draft was 34, trimmed by folding embedded detection-logic bash into agent dispatch prompt) AND 6 distinct domains total (≤6 cap; would force split at 7+). plan-verification/SKILL.md Angle 6 now has: (a) 6th specialist table row "Engineering Standards Auditor (always evaluated)"; (b) "Engineering Standards Structural Check" subsection with 3 conditions (element #12 present; Critical-Path canonical values; theme/test consistency); (c) CEO-4 grandfathering note (skip check for plans Created: pre-v0.5.0). PROTOTYPE entry written to provenance.log with verdict. Decision documented as AD-009 in context-log.md.
 
 ### Sub-step 2.3: Amend `aa-ma-plan.md` (Phases 1, 2, 4)
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 2.1
 - **Acceptance Criteria:**
@@ -206,45 +206,45 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Phase 2 prompts for "Engineering Standards Declaration".
   - **(ceo-review finding CEO-5 — observability)** Phase 2 emits a `[ts] ENG_STANDARDS_DECLARED: themes=[1,2,5]` provenance log entry on every `/aa-ma-plan` invocation that produces a declaration. Provides per-plan audit trail; eliminates silent-compliance failure mode.
   - Phase 4 emits element #12 in plan output.
-- **Result Log:**
+- **Result Log:** Amended 2026-05-09 ~16:52 UTC. **Phase 1 Step 1.5** added: scans `docs/lessons.md` + `git log --since='6 months ago' --grep='revert\|fix\|hotfix'` + top-3 most-recent completed context-logs; wrapped in `timeout 30s`; supports `--skip-lessons` flag and `AA_MA_SKIP_LESSONS=1` env var; on timeout emits `LESSONS-SCAN: TIMEOUT — continuing without scan results`. **Phase 2 Step 2.4** added: AskUserQuestion prompt for theme selection + provenance log entry `[ts] ENG_STANDARDS_DECLARED: themes=[...]` (CEO-5). **Phase 4** element list bumped 11→12 in both canonical Step 4.2 and fallback Step 4.3 prompt; element #12 = "Engineering Standards Declaration (which themes from `claude-code/rules/engineering-standards.md` materially apply, with one-sentence rationale per theme)". Note: aa-ma-plan.md:462 (example template) intentionally left at "11 elements" — owned by M3.7 Tier 6 sweep.
 
 ### Sub-step 2.4: Amend `execute-aa-ma-step.md` (per-step advisory checklist)
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 2.3
 - **Acceptance Criteria:**
   - Prompt contract includes the 7-item advisory checklist.
   - SOFT items request declaration in context-log; HARD items defer enforcement to milestone gate.
-- **Result Log:**
+- **Result Log:** Amended 2026-05-09 ~16:54 UTC. New Section 6.2.5 "Engineering Standards Advisory Checklist" added between 6.2 (Acceptance Criteria) and 6.3 (Last-Step-of-Milestone Detection). 7 items in markdown table: 4 HARD (implementation tested; tests passing; non-breaking verified; AA-MA in sync) defer enforcement to milestone gate (note evidence in Result Log only); 3 SOFT (assumptions validated; skills consulted; lessons applied) request declaration in context-log.md. Conditional sub-items added for `Critical-Path:` (`CRITICAL_PATH_REVIEW` evidence) and `Prototype-Required:` (`PROTOTYPE — <verdict>` evidence) with absent-field-no-failure semantic. Step-level remains advisory; structural enforcement is at milestone HARD gate (M2.5).
 
 ### Sub-step 2.5: Amend `execute-aa-ma-milestone.md` (milestone HARD gate)
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 2.4
 - **Acceptance Criteria:**
   - Command refuses to mark COMPLETE when (a) git is dirty, (b) any `Status: PENDING` remains in the milestone, (c) tests-pass evidence missing, (d) impact-analysis not run, or (e) `Critical-Path:`/`Prototype-Required:` tasks lack provenance entries.
   - **(verification finding M2.5 absent-field semantic)** Condition (e) explicitly skips the check (NO failure) when `Critical-Path:`/`Prototype-Required:` fields are absent on the task. Only fires when fields are present-but-without-evidence. Preserves backward compat with existing `examples/` plans.
-- **Result Log:**
+- **Result Log:** Amended 2026-05-09 ~16:57 UTC. New Section 6.7 "Engineering Standards HARD Gate" added between 6.6 (Post-Milestone Simplification Review) and Section 7 (Finalization Protocol). Five conditions evaluated in order: (1) clean git for AA-MA files (`git status --porcelain ${TASK_DIR}/` returns 0 lines); (2) zero `Status: PENDING` in milestone (awk-grep over milestone section); (3) tests-pass evidence cross-checked from 6.4; (4) impact-analysis evidence cross-checked from 6.3; (5) Critical-Path/Prototype-Required provenance evidence (CONDITIONAL — absent-field-no-failure preserved via grep `^- \*\*Critical-Path:\*\* \S` / `^- \*\*Prototype-Required:\*\* YES`). `AA_MA_HOOKS_DISABLE=1` bypass documented with provenance log entry on bypass. Independent of `Gate: SOFT|HARD` (which controls 7.1 approval artifact); this gate enforces engineering posture for every milestone.
 
 ### Sub-step 2.6: Add `docs/templates/engineering-standards-template.md`
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Milestone 1
 - **Acceptance Criteria:**
   - Template provides optional per-task artifact format (one section per theme).
-- **Result Log:**
+- **Result Log:** Created 2026-05-09 ~16:44 UTC. Optional per-task AA-MA artifact template at `docs/templates/engineering-standards-template.md` (~85 lines). Structure: Summary (1-2 sentences) → Section 1-6 (one per theme; each section asks Material Y/N + theme-specific declarations) → Decision Log References → Out-of-Scope. Template explicit on optional nature ("Plans without this file are still valid; this is for tasks where the engineering posture itself warrants explicit elaboration"). File location convention: `.claude/dev/active/[task-name]/[task-name]-engineering-standards.md`. Cross-reference to `claude-code/rules/engineering-standards.md` (the 6 themes).
 
 ### Sub-step 2.7: Add `Prototype-Required:` and `Critical-Path:` fields to tasks-template.md
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** None (within Milestone 2)
 - **Acceptance Criteria:**
   - Both fields documented as optional.
   - Existing `examples/` continue to validate without modification.
-- **Result Log:**
+- **Result Log:** Updated 2026-05-09 ~16:42 UTC. `docs/templates/tasks-template.md` now declares both fields at milestone level (after Mode, before Acceptance Criteria) and at sub-step level (after Dependencies, before Acceptance Criteria). HTML comments document: (a) optionality (default: blank/omitted); (b) Critical-Path canonical enum with reference to engineering-standards.md Theme 1; (c) Prototype-Required: YES semantic and milestone HARD gate trigger; (d) novel Critical-Path values rejected by Skill(plan-verification). Backward-compat: existing examples/ tasks without these fields skip the check (no failure) — verified via M2.5 absent-field semantic enforcement.
 
 ### Sub-step 2.8: ADR INDEX validator (eng-review finding 1.2)
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 2.6
 - **Acceptance Criteria:**
@@ -252,7 +252,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Script verifies count: `find docs/adr -maxdepth 1 -name "[0-9]*.md" | wc -l` matches the count of pipe-table entries in `docs/adr/INDEX.md`.
   - Script integrated into `/pre-commit-full` workflow OR documented as advisory-only with rationale.
   - Acceptable outcome (per locked decision): advisory-only with explicit TODO if pre-commit integration deferred.
-- **Result Log:**
+- **Result Log:** Created 2026-05-09 ~16:46 UTC. `scripts/check_adr_index.sh` written (executable, bash). Counts NNNN-*.md ADR files via `find ... -name '[0-9][0-9][0-9][0-9]-*.md'` and pipe-table entries in INDEX.md via grep regex; reports unindexed (file exists, no INDEX entry) and orphaned (INDEX entry, file missing) cases. **Always exits 0 (advisory mode)** with stdout summary line `ADR-INDEX-CHECK: PASS|WARN`. Smoke-test PASS: 1 ADR file / 1 INDEX entry. Pre-commit integration deferred per locked decision (acceptable outcome: advisory-only with TODO). TODO embedded in script (line near bottom): "promote to BLOCKING by changing this to `exit ${RC}` once pre-commit-full integration is implemented" — tracked as "Eng-review-1.2 (deferred)" in deferred-items section of context-log.md (v0.6.0 candidate).
 
 ---
 

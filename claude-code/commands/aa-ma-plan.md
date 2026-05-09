@@ -83,6 +83,47 @@ Use `AskUserQuestion` to clarify any remaining details:
 - Known constraints or requirements
 - Complexity estimate (simple/medium/complex)
 
+**Step 1.5: Lessons Scan**
+
+Inline cheap scan of past mistakes and validated approaches relevant to this task.
+Reference: `claude-code/rules/engineering-standards.md` Theme 4 (Safety & Continuity).
+
+**Skip flag:** if the user invoked `/aa-ma-plan` with `--skip-lessons` (or set
+`AA_MA_SKIP_LESSONS=1`), emit `LESSONS-SCAN: SKIPPED (--skip-lessons)` and proceed
+to the Phase 1 summary. Use this for fast iteration, CI smoke runs, or when
+re-planning a task whose lessons context has already been loaded.
+
+**Hard timeout:** the entire scan runs under `timeout 30s ...`. On timeout, emit
+`LESSONS-SCAN: TIMEOUT — continuing without scan results` and proceed. NEVER hang
+the planning workflow waiting for git or filesystem operations.
+
+```bash
+# Hard 30s timeout wraps the full scan.
+timeout 30s bash <<'SCAN'
+  # 1. docs/lessons.md (project-local, if present)
+  if [ -f docs/lessons.md ]; then
+    echo "LESSONS-FILE: docs/lessons.md present ($(wc -l < docs/lessons.md) lines)"
+    head -40 docs/lessons.md
+  fi
+
+  # 2. git log: last 6 months of revert/fix/hotfix commits — surfaces past mistakes
+  echo "LESSONS-GIT (last 6mo, revert|fix|hotfix):"
+  git log --since='6 months ago' --grep='revert\|fix\|hotfix' --oneline | head -20
+
+  # 3. Top-3 most-recent completed context-logs (validated approaches + corrections)
+  echo "LESSONS-CONTEXT (recent completed plans):"
+  ls -1t .claude/dev/completed/*/context-log.md 2>/dev/null | head -3 | while read -r f; do
+    echo "--- $f ---"
+    grep -E '^## \[' "$f" | tail -10
+  done
+SCAN
+RC=$?
+[ "$RC" -eq 124 ] && echo "LESSONS-SCAN: TIMEOUT — continuing without scan results"
+```
+
+Surface the scan output verbatim into Phase 2 brainstorming context (do NOT
+embed full scan in plan.md — declare *relevance* in element #12 instead).
+
 Display gathered context in a clean summary:
 
 ```
@@ -94,6 +135,7 @@ Objective: [summary]
 Complexity: [estimate]
 Project: [path]
 Commit: [hash]
+Lessons Scan: [N items found / SKIPPED / TIMEOUT]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -122,6 +164,45 @@ The brainstorm skill will:
 - Validate assumptions
 - Clarify ambiguities
 - Produce refined design concept
+
+**Step 2.4: Engineering Standards Declaration**
+
+Reference: `claude-code/rules/engineering-standards.md` (the 6 themes). This step
+produces element #12 of the AA-MA Planning Standard.
+
+Use `AskUserQuestion` to capture which themes materially apply and how:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ENGINEERING STANDARDS DECLARATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Which themes from engineering-standards.md materially apply to this task?
+  [1] Verification & Truth (empirical testing, prototype-first, critical paths)
+  [2] Development Principles (TDD, KISS, DRY, SOLID, SOC)
+  [3] Reasoning & Planning (first-principles, Socratic, skill assessment)
+  [4] Safety & Continuity (non-breaking, lessons learned, incremental)
+  [5] Execution Checklist (per-task HARD/SOFT enforcement)
+  [6] Sync & Commit Discipline (sub-step Result Log, milestone HARD gate)
+  [A] All themes apply
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Capture the user's selection plus a one-sentence rationale for each chosen theme.
+The declaration text becomes element #12 of the plan output (Phase 4).
+
+**Provenance entry (CEO-5):** every Phase 2 declaration writes a structured entry
+to the task's provenance.log, providing per-plan audit trail and eliminating the
+silent-compliance failure mode:
+
+```bash
+TS=$(date -Iseconds)
+THEMES="[1,2,5]"  # Whatever the user selected, comma-separated.
+echo "[${TS}] ENG_STANDARDS_DECLARED: themes=${THEMES}" \
+    >> .claude/dev/active/${TASK_NAME}/${TASK_NAME}-provenance.log
+```
+
+If the task directory does not yet exist (Phase 5 hasn't run), buffer the entry
+in memory and write it at Step 5.6 alongside the other initial provenance lines.
 
 **Fallback (if skill unavailable):**
 
@@ -228,7 +309,7 @@ Pass to skill:
 - Research findings from Phase 3
 - AA-MA Planning Standard requirements (from CLAUDE.md)
 
-Ensure plan includes ALL 11 required elements:
+Ensure plan includes ALL 12 required elements:
 1. Executive summary (≤3 lines)
 2. Ordered stepwise implementation plan
 3. Milestones with measurable goals
@@ -240,6 +321,7 @@ Ensure plan includes ALL 11 required elements:
 9. Effort estimate + Complexity (0-100%) per step
 10. Risks (top 3) and mitigations per milestone
 11. Next action (what to do first)
+12. Engineering Standards Declaration (which themes from `claude-code/rules/engineering-standards.md` materially apply, with one-sentence rationale per theme — captured in Phase 2 Step 2.4)
 
 **Step 4.3: Validate Plan Completeness**
 
@@ -274,6 +356,7 @@ Provide:
 9. Effort (hours/days) + Complexity (0-100%) per step
 10. Risks (top 3) + mitigations
 11. ONE Next action + which AA-MA file(s) to update
+12. Engineering Standards Declaration (themes from claude-code/rules/engineering-standards.md that materially apply; one-sentence rationale each)
 
 Format in Markdown for direct insertion into [task]-plan.md
 ```

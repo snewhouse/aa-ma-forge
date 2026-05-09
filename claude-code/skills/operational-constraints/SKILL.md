@@ -135,6 +135,8 @@ OR use Skill(dispatching-parallel-agents) for structured dispatch.
 
 ### 4. Development Discipline
 
+**Full doctrine:** [`claude-code/rules/engineering-standards.md`](../../rules/engineering-standards.md) (auto-loaded). The 6-theme doctrine is the source of truth; this section names it without duplicating content.
+
 **Core Principles:**
 - **KISS** - Keep It Simple, Stupid
 - **DRY** - Don't Repeat Yourself
@@ -196,6 +198,7 @@ OR use Skill(dispatching-parallel-agents) for structured dispatch.
    - Adjust/refine the plan
 3. **Create AA-MA artifacts** when approved for complex tasks
 4. **Identify the single next action** to take
+5. **Emit element #12 (Engineering Standards Declaration)** as part of the plan output — declare which themes from `engineering-standards.md` materially apply and how. See `Skill(plan-verification)` Angle 6 for the verification path.
 
 **Template:**
 ```
@@ -245,6 +248,7 @@ OR use Skill(dispatching-parallel-agents) for structured dispatch.
 | `Skill(ast-grep)` | Structural code search | Complex code analysis |
 | `/ops-mode` | Quick constraint activation | Session start |
 | `/aa-ma-plan` | Comprehensive planning | Major features |
+| `claude-code/rules/engineering-standards.md` | 6-theme doctrine (auto-loaded) | Always |
 
 ---
 

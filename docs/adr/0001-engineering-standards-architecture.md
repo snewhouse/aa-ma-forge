@@ -1,6 +1,6 @@
 # 0001. Engineering Standards Architecture for aa-ma-plan Workflows
 
-**Status:** Accepted
+**Status:** Implemented (2026-05-09)
 **Date:** 2026-05-09
 **Deciders:** Stephen Newhouse, Claude (grill-with-docs interview)
 **Tags:** `workflow`, `governance`, `aa-ma`, `release-v0.5.0`

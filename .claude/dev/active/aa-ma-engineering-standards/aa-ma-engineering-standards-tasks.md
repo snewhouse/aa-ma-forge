@@ -119,7 +119,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone 1: Doctrine
 
-- Status: PENDING
+- Status: COMPLETE (2026-05-09 ~16:35 UTC, commit 0cfb6ef)
 - **Dependencies:** Milestone 0
 - **Complexity:** 25%
 - **Gate:** SOFT
@@ -127,12 +127,12 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Critical-Path:**
 - **Prototype-Required:**
 - **Acceptance Criteria:**
-  - `claude-code/rules/engineering-standards.md` exists with sections `### 1.` through `### 6.`; `grep -E "^### [1-6]\." claude-code/rules/engineering-standards.md | wc -l` returns 6.
-  - File length ≤ 120 lines (principles, not procedures). **(verification finding — falsifiability)** Tilde dropped; assertion: `[ "$(wc -l < claude-code/rules/engineering-standards.md)" -le 120 ]` returns 0.
-  - `docs/adr/0001-engineering-standards-architecture.md` Status updated from `Accepted` to `Implemented` with timestamp.
+  - `claude-code/rules/engineering-standards.md` exists with sections `### 1.` through `### 6.`; `grep -E "^### [1-6]\." claude-code/rules/engineering-standards.md | wc -l` returns 6. **VERIFIED: 6.**
+  - File length ≤ 120 lines (principles, not procedures). **(verification finding — falsifiability)** Tilde dropped; assertion: `[ "$(wc -l < claude-code/rules/engineering-standards.md)" -le 120 ]` returns 0. **VERIFIED: 118 lines.**
+  - `docs/adr/0001-engineering-standards-architecture.md` Status updated from `Accepted` to `Implemented` with timestamp. **VERIFIED: line 3 reads "Implemented (2026-05-09)".**
 
 ### Sub-step 1.1: Write `claude-code/rules/engineering-standards.md`
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Milestone 0
 - **Acceptance Criteria:**
@@ -140,16 +140,16 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - File length ≤ 120 lines.
   - Cross-references (`first-principles-framework`, `operational-constraints`, `impact-analysis`, `aa-ma-commit-drift.sh`) resolve on disk.
   - **(eng-review finding 1.5)** Theme 1 defines `Critical-Path:` enum with 5–8 canonical values (e.g. `auth-flow`, `data-xform`, `external-api`, `version-pipeline`, `doc-count-drift`, `hook-modification`). Reject novel values via plan-verification or document escape hatch.
-- **Result Log:**
+- **Result Log:** Wrote `claude-code/rules/engineering-standards.md` 2026-05-09 ~16:30 UTC. **118 lines** (cap: ≤120). Six themed sections present (`### 1.` Verification & Truth → `### 6.` Sync & Commit Discipline; grep returns 6). Theme 1 defines Critical-Path enum table with all 6 canonical values (`auth-flow`, `data-xform`, `external-api`, `version-pipeline`, `doc-count-drift`, `hook-modification`). Theme 5 includes 9-row Execution Checklist (6 HARD + 3 SOFT) with `Critical-Path:`/`Prototype-Required:` absent-field semantic note. Cross-refs verified resolvable: `claude-code/rules/aa-ma.md`, `claude-code/skills/operational-constraints/`, `claude-code/skills/plan-verification/`, `claude-code/skills/impact-analysis/`, `claude-code/hooks/aa-ma-commit-drift.sh`, `docs/adr/0001-engineering-standards-architecture.md` (all OK). `first-principles-framework` referenced as `Skill(first-principles-framework)` — user-global skill, not shipped by this plugin (described inline as principle, no broken cross-ref). Note: M4.9 amends this file with `## Opt-out` section in Milestone 4 — kept out of M1.1 to maintain milestone atomicity.
 
 ### Sub-step 1.2: Update ADR-0001 Status: Accepted → Implemented
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 1.1
 - **Acceptance Criteria:**
   - ADR-0001 Status field reads `Implemented (YYYY-MM-DD)`.
   - INDEX.md mirrors the change.
-- **Result Log:**
+- **Result Log:** ADR-0001 Status flipped 2026-05-09 ~16:33 UTC. `docs/adr/0001-engineering-standards-architecture.md` line 3: `**Status:** Accepted` → `**Status:** Implemented (2026-05-09)`. `docs/adr/INDEX.md` row updated: `Accepted` → `Implemented`. Both edits use single-line in-place replacement; no other text disturbed. Cross-reference parity: INDEX.md status column matches ADR file Status field.
 
 ---
 

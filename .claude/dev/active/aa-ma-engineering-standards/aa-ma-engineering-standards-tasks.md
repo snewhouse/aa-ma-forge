@@ -155,7 +155,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone 2: Workflow integration
 
-- Status: COMPLETE (2026-05-09 ~17:00 UTC)
+- Status: COMPLETE (2026-05-09 ~17:00 UTC, commit 9b20e2e)
 - **Dependencies:** Milestone 1
 - **Complexity:** 55%
 - **Gate:** SOFT

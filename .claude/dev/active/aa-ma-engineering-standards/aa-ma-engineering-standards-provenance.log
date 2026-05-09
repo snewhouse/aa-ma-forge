@@ -75,3 +75,11 @@
 [2026-05-09 17:45:00 UTC] M4_STEP_4.8_COMPLETE — rollback runbook authored at docs/runbooks/rollback-v0.5.0.md (3 options A/B/C with verification commands); cross-referenced from CHANGELOG
 [2026-05-09 17:46:00 UTC] M4_STEP_4.4_COMPLETE — CHANGELOG.md [v0.5.0] section authored with Feat / Behavior change (soft-breaking) / Rollback / Post-install smoke / AA-MA plan provenance subsections
 [2026-05-09 17:47:00 UTC] M4_PRE_BUMP — committing WIP before cz bump --no-changelog (preserves hand-authored CHANGELOG against commitizen auto-generation)
+[2026-05-09 17:48:00 UTC] M4_WIP_COMMITTED — Commit: bdefa9c — `feat(release): v0.5.0 release prep — install.sh, CHANGELOG, runbook, smoke (M4 WIP)` — 7 files, 414 insertions/15 deletions
+[2026-05-09 17:50:00 UTC] M4_STEP_4.5_COMPLETE — manual bump (cz blocked by tag-format noise + update_changelog_on_bump interaction); pyproject.toml + VERSION both at 0.5.0; commit e1cf4cb
+[2026-05-09 17:54:00 UTC] M4_HITL_GATE — AskUserQuestion presented for tag push approval; user selected "Push tag now"
+[2026-05-09 17:55:00 UTC] M4_STEP_4.6_COMPLETE — annotated tag v0.5.0 created on commit e1cf4cb (tag sha 9d16d09); branch + tag pushed to origin
+[2026-05-09 17:56:00 UTC] CRITICAL_PATH_REVIEW — version-pipeline verified clean: pyproject.toml + VERSION at 0.5.0; bump commit e1cf4cb; tag v0.5.0 (9d16d09) on origin; pre-flight semantic-release check returned no auto-tag workflow; CHANGELOG hand-authored content preserved; tests + lint all green; rollback runbook authored
+[2026-05-09 17:57:00 UTC] M4_GATE_APPROVED — HARD gate approval artifact written to context-log.md; AskUserQuestion approval recorded; 9/9 acceptance criteria verified
+[2026-05-09 17:58:00 UTC] M4_MILESTONE_COMPLETE — all 9 sub-steps COMPLETE; HARD gate satisfied; CRITICAL_PATH_REVIEW logged; v0.5.0 release SHIPPED
+[2026-05-09 17:58:00 UTC] PLAN_COMPLETE — aa-ma-engineering-standards: ALL MILESTONES COMPLETE (M0-M4, 5/5); ready for /archive-aa-ma

@@ -367,7 +367,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone 4: Release
 
-- Status: ACTIVE (started 2026-05-09 ~17:35 UTC)
+- Status: COMPLETE (2026-05-09 ~17:55 UTC, bump commit e1cf4cb, tag v0.5.0)
 - **Dependencies:** Milestone 3
 - **Complexity:** 45%
 - **Gate:** HARD
@@ -425,7 +425,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Result Log:** Authored 2026-05-09 ~17:46 UTC. Hand-wrote `[v0.5.0]` section at top of CHANGELOG.md (above existing `## v0.4.0`). Sections: Feat (full feature inventory across rules/commands/skills/agents/templates/docs/scripts/spec), `### Behavior change (soft-breaking)` (CEO-2: re-running install.sh creates new auto-loaded rule symlink + 3 opt-out paths documented), `### Rollback` (CEO-6: 3 options summarized; pointer to detailed runbook), `### Post-install smoke (manual)` (CEO-8 6-themes verification), `### AA-MA plan provenance` (deliverable of aa-ma-engineering-standards plan; M0–M4 traceability). cz bump will be invoked with `--no-changelog` flag in M4.5 to preserve this hand-authored content (commitizen's auto-generation would otherwise overwrite based on conventional-commit parsing).
 
 ### Sub-step 4.5: Run `cz bump` → version 0.4.0 → 0.5.0
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 4.4
 - **Acceptance Criteria:**
@@ -433,10 +433,10 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - **(verification finding C-version)** `VERSION` file at repo root reads `__version__ = "0.5.0"` (cz `[tool.commitizen] version_files=["VERSION:__version__"]` should bump it automatically; explicit assertion: `grep -F '"0.5.0"' VERSION` returns 1 hit).
   - Commitizen commit created.
   - CHANGELOG line aligned.
-- **Result Log:**
+- **Result Log:** Version bumped via manual edit (cz blocked by tag-format noise from claude-checkpoint-* tags + update_changelog_on_bump=true config interaction). Both files updated: pyproject.toml line 3 and VERSION line 1, both now 0.5.0. Cz-style commit e1cf4cb created with message "bump: version 0.4.0 → 0.5.0". CHANGELOG already aligned (M4.4). Acceptance assertions all PASS via grep verification.
 
 ### Sub-step 4.6: Tag and push `v0.5.0`
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** HITL
 - **Dependencies:** Step 4.5
 - **Acceptance Criteria:**
@@ -444,7 +444,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - Tag `v0.5.0` exists locally and on origin.
   - `git push origin feature/aa-ma-engineering-standards_001 --tags` succeeds.
   - User confirmed before tag push.
-- **Result Log:**
+- **Result Log:** Tagged + pushed 2026-05-09 ~17:55 UTC. **Pre-flight semantic-release check:** `.github/workflows/` contains only `security.yml`; `grep -l "semantic_release\|semantic-release" .github/workflows/` returns no matches — no auto-tag workflow exists. **Tag created:** `git tag -a v0.5.0 -m "v0.5.0: engineering-standards doctrine + Planning Standard 11→12 ..."` on bump commit e1cf4cb. **HITL gate:** AskUserQuestion presented 3 options; user selected "Push tag now (recommended)". **Push:** `git push origin feature/aa-ma-engineering-standards_001` → fast-forward `0379711..e1cf4cb`; `git push origin v0.5.0` → `[new tag] v0.5.0 -> v0.5.0`. Annotated tag SHA: 9d16d09 → commit e1cf4cb. Tag and branch both visible on origin. **v0.5.0 RELEASE SHIPPED.**
 
 ### Sub-step 4.7: Automated E2E smoke harness for `/aa-ma-plan` (eng-review critical test gap)
 - Status: COMPLETE

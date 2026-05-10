@@ -97,6 +97,16 @@ Multi-Session/Team  │   AA-MA     │   AA-MA
 # Initialize new AA-MA task
 /aa-ma-plan [description]
 
+# Phase 1.3 grill-mode dispatch (v0.6.0+):
+#   --grill-mode=auto       (default) CONTEXT.md or docs/adr/ present → with-docs;
+#                                     else falls through to /grill-me
+#   --grill-mode=with-docs  force Skill(grill-with-docs) — see ADR-0002
+#   --grill-mode=simple     force the v0.5.0 /grill-me protocol
+#   --grill-mode=skip       bypass Phase 1.3 entirely
+# Env-var equivalent: AA_MA_GRILL_MODE
+# CLI > env > default. See scripts/grill-mode-resolver.sh for the canonical
+# resolver (8 branches, 13 unit tests).
+
 # Stress-test a plan before executing
 /grill-me [artifact]
 

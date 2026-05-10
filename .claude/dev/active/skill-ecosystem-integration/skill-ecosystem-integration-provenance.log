@@ -100,3 +100,12 @@
 [2026-05-10T16:14:26+01:00] TASK 2.7 COMPLETE — SECURITY.md updated 14→16; prototype at position 12, write-a-skill at position 16 (alphabetical); disk count 16 = doc count 16
 [2026-05-10T16:14:26+01:00] CRITICAL_PATH_REVIEW — doc-count-drift evidence (M2.7 — final M2 sweep): files updated this milestone = [SECURITY.md (M2.7), docs/spec/claude-code-foundations.md (M2.6), CLAUDE.md (M2.6, gitignored)]; grep gate evidence: 'grep -rn "14 skills" claude-code/ docs/ CLAUDE.md SECURITY.md README.md | grep -v "docs/lessons.md|docs/adr/"' → ZERO matches; frozen-narrative exclusions documented per CLAUDE.md "historical docs are frozen" rule (lessons.md + 4 time-anchored refs in ADR-0004); CHANGELOG.md correctly excluded from grep path by plan author
 [2026-05-10T16:18:32+01:00] TASK 2.8 COMPLETE — Created tests/skills/{test_prototype_frontmatter.py, test_write_a_skill_frontmatter.py} (4 new test cases) + extracted shared _helpers.py (DRY refactor); M1.7 grill-with-docs test refactored to use helper, REGRESSION-VERIFIED still passing; all 6 frontmatter tests PASS
+[2026-05-10T16:20:55+01:00] TASK 2.9 COMPLETE — Full M2 regression suite green
+[2026-05-10T16:20:55+01:00]   pytest: 439 passed, 1 skipped, 6 deselected in 8.55s (+2 net frontmatter tests vs M1.8)
+[2026-05-10T16:20:55+01:00]   ruff check src/ tests/: ALL CHECKS PASSED
+[2026-05-10T16:20:55+01:00]   bats: 58 passed across 7 .bats files (after inline fix to install_dry_run.bats — hardcoded 14 → dynamic disk-count compare)
+[2026-05-10T16:20:55+01:00]   /grill-me command file: UNCHANGED on M1+M2 branch (regression preserved)
+[2026-05-10T16:20:55+01:00]   Smoke: install.sh --dry-run announces prototype + write-a-skill + grill-with-docs symlinks ✓
+[2026-05-10T16:20:55+01:00]   Smoke: SKILL.md frontmatter for prototype + write-a-skill parses as valid YAML, name fields match dir names ✓
+[2026-05-10T16:20:55+01:00]   Smoke: prototype + write-a-skill discoverable via Claude Code skill list at session start ✓
+[2026-05-10T16:20:55+01:00]   In-flight improvement: install_dry_run.bats test 4 now compares against actual disk count (future-proof for all skill additions)

@@ -392,7 +392,7 @@
 
 ## Milestone M3: Audit Research Note + Version Bump
 
-- Status: PENDING
+- Status: ACTIVE
 - Mode: Mixed (HITL on terminology + version bump; AFK for synthesis)
 - Gate: HARD (because of version-pipeline Critical-Path)
 - Dependencies: M1 (uses grill-with-docs for glossary check), M2 (audit references new skills)
@@ -407,13 +407,21 @@
   - HARD gate evidence: clean git for AA-MA files, zero PENDING, version-pipeline CRITICAL_PATH_REVIEW
 
 ### Task 3.1: Verify and finalise inventory JSONs
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
   - Move/copy `inventory-{mattpocock,gstack,gsd}.json` from `.claude/dev/active/skill-ecosystem-integration/` (where they were drafted) to `docs/research/_inventories/`
   - Inventory files validated: each has `_meta.source_url`, `_meta.fetched_at`, `_meta.verifier_method`
   - Inventory files committed as-is (already verified during planning; no re-fetch needed unless > 7 days stale)
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:33 — Created `docs/research/_inventories/` directory
+  - 2026-05-10T16:33 — `git mv` (preserves history) for all 3 inventories with renamed-for-publication filenames:
+    - `.claude/dev/active/skill-ecosystem-integration/inventory-mattpocock.json` → `docs/research/_inventories/mattpocock-inventory.json` (6155B)
+    - `.claude/dev/active/skill-ecosystem-integration/inventory-gstack.json` → `docs/research/_inventories/gstack-inventory.json` (5947B)
+    - `.claude/dev/active/skill-ecosystem-integration/inventory-gsd.json` → `docs/research/_inventories/gsd-inventory.json` (6414B)
+  - 2026-05-10T16:33 — Post-move validation: all 3 files load as valid JSON; each has `_meta.source_url`, `_meta.fetched_at`, `_meta.verifier_method=gh-api`
+  - 2026-05-10T16:33 — Staleness check: all 3 fetched 2026-05-10 (0 days old, well under the 7-day threshold) — no re-fetch needed
+  - Acceptance Criteria: ALL 3 met ✓
 
 ### Task 3.2: Author audit research note
 - Status: PENDING

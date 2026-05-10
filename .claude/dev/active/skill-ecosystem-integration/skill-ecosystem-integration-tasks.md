@@ -464,13 +464,22 @@
   - Acceptance Criteria: ALL 3 met ✓ (Skill(grill-with-docs) invoked; 3 clusters resolved with canonical definitions; CONTEXT.md created since none existed)
 
 ### Task 3.4: Cross-reference + lineage documentation
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
   - For every recommendation: run `grep -rn <skill-name> claude-code/` to detect duplicates against aa-ma-forge's now 16-skill surface
   - Mark each as `Status: PROPOSED` / `SUPERSEDED-BY: <existing>` / `DERIVED-FROM: <upstream>`
   - Document confirmed lineages: `aa-ma-forge /grill-me ← mattpocock skills/productivity/grill-me`; `aa-ma-forge token-compression ← inspired by JuliusBrussee/caveman (NOT mattpocock/skills/productivity/caveman)`
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:43 — Programmatic grep loop: ran `grep -rln "\b<name>\b" claude-code/` against 20 M3+ candidates from audit doc Sections A+B+D
+  - 2026-05-10T16:43 — Result: ZERO skill-directory collisions across all 20 audited candidates. 4 soft hits (diagnose/triage/guard/investigate) are incidental verb/variable usage in unrelated files — no adoption blocker
+  - 2026-05-10T16:43 — Status canonicalisation per audit doc Section A tables (already baked in during M3.2): each candidate has a status from the canonical enum (ADOPTED-M<N> / PROPOSED-M3+ / DEFERRED-DIFF / DEFERRED-CONFLICT / SUPERSEDED-BY-EXISTING / DERIVED-FROM-UPSTREAM / EXCLUDED-*)
+  - 2026-05-10T16:43 — Confirmed lineages verified empirically:
+    - `claude-code/commands/grill-me.md` exists (42 lines) ← extends mattpocock's 4-line skill (DERIVED-FROM lineage)
+    - `claude-code/skills/token-compression/SKILL.md` cites JuliusBrussee/caveman at top (verified via grep) — NOT mattpocock's caveman (SUPERSEDED-BY-EXISTING lineage)
+  - 2026-05-10T16:43 — Extended `docs/research/skill-ecosystem-audit.md` with two new sections: Section E (Lineage Map — 5 confirmed lineages with upstream URL + verification notes); Section F (Cross-reference Audit — full grep-loop evidence table with disposition per candidate)
+  - 2026-05-10T16:43 — Audit doc grew 215 → 258 lines (+43 lines for Sections E + F)
+  - Acceptance Criteria: ALL 3 met ✓ (grep loop run for all candidates; statuses canonicalised in audit doc + CONTEXT.md; both confirmed lineages from acceptance criteria documented in Section E)
 
 ### Task 3.5: Version bump + comprehensive CHANGELOG
 - Status: PENDING

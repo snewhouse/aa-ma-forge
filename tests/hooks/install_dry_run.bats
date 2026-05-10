@@ -41,10 +41,13 @@ teardown() {
     [ ! -e "${BATS_FAKE_HOME}/.claude/skills/grill-with-docs" ]
 }
 
-@test "install.sh --dry-run announces all 14 plugin skills (M1 post-fork count)" {
+@test "install.sh --dry-run announces all plugin skills (current disk count)" {
     run env HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}" --dry-run
     [ "${status}" -eq 0 ]
     # Count "Would symlink: ... .claude/skills/<name> -> ... claude-code/skills/<name>" lines.
+    # Compare to actual disk count rather than hardcoding — survives future
+    # skill additions without doc-count-drift maintenance burden.
     skill_lines=$(echo "${output}" | grep -E "Would symlink: .+\.claude/skills/[^ ]+ -> .+/claude-code/skills/[^ ]+$" | wc -l)
-    [ "${skill_lines}" -eq 14 ]
+    disk_count=$(ls -d "${REPO_ROOT}/claude-code/skills/"*/ | wc -l)
+    [ "${skill_lines}" -eq "${disk_count}" ]
 }

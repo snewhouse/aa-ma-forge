@@ -23,13 +23,21 @@
   - HARD gate evidence in provenance.log: clean git for AA-MA files, zero PENDING in M1, impact-analysis evidence, doc-count-drift CRITICAL_PATH_REVIEW
 
 ### Task 1.1: Cut new branch + register AA-MA scaffold
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Acceptance Criteria:
-  - `[ad-hoc]` housekeeping commit on current branch lands AA-MA artifacts (this directory + inventory JSONs + docs/lessons.md)
-  - `git checkout main && git checkout -b feature/skill-ecosystem-integration`
-  - `git status` clean on new branch
-- Result Log: PENDING
+  - `[ad-hoc]` housekeeping commit on current branch lands AA-MA artifacts (this directory + inventory JSONs + docs/lessons.md) ✅
+  - C1 resolution path chosen by user: merge engineering-standards branch to main first (option A), then cut from updated main ✅
+  - C2 verification completed by reading pyproject.toml: commitizen `[tool.commitizen] update_changelog_on_bump = true` and `[tool.semantic_release]` confirms `cz bump` is canonical CHANGELOG mechanism ✅
+  - `git checkout main && git merge feature/aa-ma-engineering-standards_001 --ff-only` (FF clean: 51a9e4a → 27865ae) ✅
+  - `git checkout -b feature/skill-ecosystem-integration` from updated main (HEAD: 27865ae) ✅
+  - `git status` clean on new branch (only unrelated untracked .claude/dev/completed/* and .context/ remain — left alone) ✅
+- Result Log:
+  - 2026-05-10T11:36 — `[ad-hoc]` housekeeping commit landed: 27865ae (9 files, 1389 insertions)
+  - 2026-05-10T11:37 — main FF-merged from engineering-standards branch (LOCAL ONLY — no push to origin/main)
+  - 2026-05-10T11:38 — new branch `feature/skill-ecosystem-integration` cut from main HEAD 27865ae
+  - 2026-05-10T11:39 — C2 verification: `cz bump` will auto-update CHANGELOG.md per `update_changelog_on_bump = true`; M3.5 should NOT manually edit CHANGELOG headings
+  - Push to origin/main DEFERRED to user discretion (per CLAUDE.md "Hard-to-reverse operations" guidance — pushes to main require explicit confirmation)
 
 ### Task 1.2: Fork grill-with-docs into claude-code/skills/
 - Status: PENDING

@@ -72,13 +72,18 @@
   - Acceptance Criteria: ALL 5 met ✓
 
 ### Task 1.4: Author ADR-0002 (grill-with-docs adoption)
-- Status: PENDING
-- Mode: HITL
+- Status: COMPLETE
+- Mode: HITL (executed AFK under /effort max + Auto Mode + user blanket authorization; HARD gate at 1.9 is the user-approval point)
 - Acceptance Criteria:
   - `docs/adr/0002-grill-with-docs-adoption.md` follows `docs/adr/TEMPLATE.md`
   - Captures: context, decision (fork + Phase 1.3 wire), alternatives (replace /grill-me, reference upstream, skip), consequences
   - Registered in `docs/adr/INDEX.md`
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T15:21 — Created `docs/adr/0002-grill-with-docs-adoption.md` (150 lines, MADR-style matching ADR-0001 structure)
+  - 2026-05-10T15:21 — Sections present: Context+Problem Statement, 7 Decision Drivers, 4 Considered Options (incl. all 3 from acceptance criteria), Decision Outcome (Option 3 chosen), per-option Pros/Cons, 7 Sub-Decisions table, Consequences (positive/negative/neutral), Implementation Notes (file inventory + provenance verification), References
+  - 2026-05-10T15:21 — Registered in `docs/adr/INDEX.md` as row 2 (Implemented, 2026-05-10)
+  - 2026-05-10T15:21 — `bash scripts/check_adr_index.sh` → PASS (2 ADR files, 2 INDEX entries; counts match)
+  - Acceptance Criteria: ALL 3 met ✓
 
 ### Task 1.5: Update operational rules + skill list
 - Status: PENDING

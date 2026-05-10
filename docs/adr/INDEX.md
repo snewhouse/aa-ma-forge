@@ -21,6 +21,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | ID | Title | Status | Date |
 |----|-------|--------|------|
 | [0001](0001-engineering-standards-architecture.md) | Engineering Standards Architecture for aa-ma-plan Workflows | Implemented | 2026-05-09 |
+| [0002](0002-grill-with-docs-adoption.md) | Adopt `grill-with-docs` from mattpocock/skills and wire into /aa-ma-plan Phase 1.3 | Implemented | 2026-05-10 |
 
 ## Statuses
 

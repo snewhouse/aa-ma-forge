@@ -330,13 +330,21 @@
   - Acceptance Criteria: 2/2 met (criterion 1 verbatim ✓; criterion 2 satisfied modulo documented frozen-narrative exclusion ✓)
 
 ### Task 2.8: Add SKILL.md frontmatter tests for new skills
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
   - `tests/skills/test_prototype_frontmatter.py` parses SKILL.md, asserts `name == "prototype"`
   - `tests/skills/test_write_a_skill_frontmatter.py` parses SKILL.md, asserts `name == "write-a-skill"`
   - Both tests pass
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:23 — DRY refactor: extracted `split_frontmatter()` and new `assert_skill_frontmatter()` helper from M1.7's `test_grill_with_docs_frontmatter.py` into `tests/skills/_helpers.py` (single source of truth across all forked-skill frontmatter tests)
+  - 2026-05-10T16:23 — Refactored M1.7 test (`test_grill_with_docs_frontmatter.py`) to use the shared helper — REGRESSION-VERIFIED: M1.7 grill-with-docs test still PASSES after refactor (frontmatter check + companion-files check both PASS); non-breaking change confirmed
+  - 2026-05-10T16:23 — Created `tests/skills/test_prototype_frontmatter.py` — 2 test cases: prototype frontmatter validation (name + description + provenance) + LOGIC.md/UI.md companion-file existence + size sanity (>1KB each)
+  - 2026-05-10T16:23 — Created `tests/skills/test_write_a_skill_frontmatter.py` — 2 test cases: write-a-skill frontmatter validation + single-file structure check (verifies upstream's intentional single-SKILL.md shape — no incidental companion files added during fork)
+  - 2026-05-10T16:23 — `uv run pytest tests/skills/ -v` → **6 passed in 0.08s** (M1's 2 grill-with-docs cases + 2 prototype cases + 2 write-a-skill cases — ALL GREEN)
+  - 2026-05-10T16:23 — `uv run ruff check tests/skills/` → All checks passed; `ruff format --check` → 5 files already formatted
+  - 2026-05-10T16:23 — Pyright resolution noise (3 reportMissingImports diagnostics on relative `from ._helpers import ...`) suppressed via `# pyright: ignore[reportMissingImports]` per import line. Runtime works (pytest's rootdir-aware sys.path); Pyright's static path-resolution doesn't recognize the package layout without explicit `[tool.pyright]` config. Suppression is per-line scope, not project-wide.
+  - Acceptance Criteria: ALL 3 met ✓ (both new tests exist, both new tests pass, plus the DRY refactor improves maintainability)
 
 ### Task 2.9: Run full test suite + regression check
 - Status: PENDING

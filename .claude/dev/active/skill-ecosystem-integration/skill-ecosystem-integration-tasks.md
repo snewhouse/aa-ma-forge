@@ -295,14 +295,23 @@
   - Acceptance Criteria: ALL 2 met ✓
 
 ### Task 2.6: Update operational rules + skill list (14 → 16)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Critical-Path: doc-count-drift
 - Acceptance Criteria:
   - `claude-code/rules/aa-ma.md` updated if appropriate
   - `CLAUDE.md` skill list extended with prototype + write-a-skill
   - `provenance.log`: `[ts] CRITICAL_PATH_REVIEW — doc-count-drift evidence (M2): files updated = [list]`
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:14 — Pre-update audit: `grep -rn "14 skills\|Skills (14)\|14 reusable" claude-code/ docs/ CLAUDE.md SECURITY.md README.md` returned 6 matches: CLAUDE.md:48 + foundations.md:85 + SECURITY.md:12 + ADR-0004 lines 10/31/63/97
+  - 2026-05-10T16:14 — `CLAUDE.md:48` updated: "14 reusable procedures" → "16 reusable procedures" (gitignored — local edit only)
+  - 2026-05-10T16:14 — `docs/spec/claude-code-foundations.md:85` updated: heading "Skills (14)" → "Skills (16)" + appended 2 new skills-table rows for prototype (cross-references ADR-0003 + LOGIC/UI dispatch) and write-a-skill (cross-references ADR-0004 + canonical authoring procedure summary)
+  - 2026-05-10T16:14 — `claude-code/rules/aa-ma.md` SKIPPED (per "if appropriate" qualifier): `grep -rn "skill\|prototype\|write-a-skill" claude-code/rules/aa-ma.md` shows no existing skill-list or prototype/write-a-skill references; the rule covers AA-MA execution-time mechanics and gate enforcement only. Cross-reference for prototype already lives in engineering-standards.md Theme 1 (M2.5).
+  - 2026-05-10T16:14 — Frozen-narrative classification (matches L-002 + ADR-1 immutability principle): ADR-0004's 4 references to "14 skills" are time-anchored historical narrative ("14 pre-M2", "as of v0.5.0", "review of existing 14 skills" referring to pre-M2 baseline). ADRs are immutable historical records by convention; touching them would erase the temporal context that explains why each decision was made AT that count. M2.7 grep gate must EXCLUDE `docs/adr/` along with `docs/lessons.md`.
+  - 2026-05-10T16:14 — Disk-vs-doc parity: `ls -d claude-code/skills/*/ | wc -l` = 16; CLAUDE.md "16 reusable"; foundations.md "Skills (16)" — MATCH ✓
+  - 2026-05-10T16:14 — Post-update verification: `grep -rn "14 skills\|Skills (14)\|14 reusable" claude-code/ docs/ CLAUDE.md README.md | grep -v "lessons.md\|.claude/dev/\|docs/adr/"` → ZERO matches (excluding frozen narrative + SECURITY.md scheduled for Task 2.7)
+  - 2026-05-10T16:14 — CRITICAL_PATH_REVIEW (doc-count-drift, M2.6) provenance entry will be appended on commit
+  - Acceptance Criteria: 3/3 met (criterion 1 satisfied via documented "skip with reason" decision per "if appropriate" qualifier; criterion 2 satisfied; criterion 3 will be satisfied via the provenance write below)
 
 ### Task 2.7: Update SECURITY.md skill count (14 → 16)
 - Status: PENDING

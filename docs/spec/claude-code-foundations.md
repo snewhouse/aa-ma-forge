@@ -82,7 +82,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/archive-aa-ma` | Archive completed tasks to `dev/completed/` |
 | `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
 
-### Skills (14)
+### Skills (16)
 
 | Skill | Purpose |
 |-------|---------|
@@ -100,6 +100,8 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `dispatching-parallel-agents` | Pattern for concurrent independent agent investigations |
 | `debugging-strategies` | Systematic debugging process with multi-language tooling |
 | `grill-with-docs` | Glossary-aware grilling: challenges plans against `CONTEXT.md` / ADRs, sharpens terminology, updates docs inline (forked from mattpocock/skills, invoked by /aa-ma-plan Phase 1.3 when project state warrants) |
+| `prototype` | Throwaway-prototype dispatcher: routes between LOGIC (terminal TUI for state/business-logic questions, cross-language) and UI (web-frontend variants on a single route, switchable via `?variant=`) branches based on the question (forked from mattpocock/skills; operationalises engineering-standards Theme 1 `Prototype-Required: YES` flag — see ADR-0003) |
+| `write-a-skill` | Canonical skill-authoring procedure: gather requirements → draft SKILL.md → review with user; includes 1024-char description format, "Use when" trigger pattern, 100-line SKILL.md guidance, when-to-split-files heuristics (forked from mattpocock/skills — see ADR-0004) |
 
 ### Agents (2)
 

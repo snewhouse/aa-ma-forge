@@ -5,6 +5,63 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-004 (2026-05-10) — Mid-flight Edit failures leave AA-MA artefacts in split-brain state
+
+**Pattern:** During the M3.6 plan-close commit of skill-ecosystem-integration
+v1.2, a sequence of three Edit calls was issued in parallel: (1) GATE
+APPROVAL artifact append to `context-log.md`, (2) `## Milestone M3:
+... Status: ACTIVE → COMPLETE`, (3) `### Task 3.6: ... Status: PENDING →
+COMPLETE`. Edit (2) errored mid-flight with `claude-opus-4-7[1m] is
+temporarily unavailable`. Edits (1) and (3) succeeded. The plan-close
+commit (`2362903`) was created and pushed with the M3 milestone-line still
+showing `Status: ACTIVE` while every sub-task underneath showed
+`Status: COMPLETE` and the GATE APPROVAL artifact was present in
+context-log.md — split-brain state.
+
+**Symptom:** the next `/execute-aa-ma-milestone` invocation re-fired the
+M3 close protocol because its milestone-line scan found `Status: ACTIVE`
+(taking it as the next active milestone). User saw an unexpected re-run
+of the close workflow instead of "all milestones complete — nothing to do."
+
+**Root cause:** model-availability errors are not transactional across a
+batch of independent Edit calls. The harness's parallel-tool execution
+fans them out; partial failure silently leaves the artefact in an
+inconsistent state. There is no rollback: succeeded edits are committed
+to the working tree before the batch outcome is known.
+
+**Rule:** when a milestone-close commit must update both a
+milestone-level status field AND its closing sub-task's status field,
+batch the two writes into a SINGLE Edit call (or use MultiEdit) so partial
+failure leaves the artefact in a known state — either both edits land or
+neither does. The same applies to any closing-protocol writes that must
+either all succeed or all be retried together (e.g., milestone Status +
+Task close + provenance append for the same milestone).
+
+**How to apply:**
+- In `/execute-aa-ma-milestone` Section 7.4 (Transparent Status Change),
+  group the milestone-line and closing-task-line edits into one
+  MultiEdit — DO NOT issue them as separate parallel Edit calls.
+- Pre-flight: before the milestone-close commit, scan the artefact one
+  last time and verify status fields are consistent. If they're not,
+  HALT and remediate before commit.
+- Post-flight: after every milestone-close commit, run
+  `grep -B1 "^- Status:" tasks.md | grep -A1 "^## Milestone"` to
+  detect drift between milestone-line status and sub-task status.
+
+**Why this matters:** silent drift in plan artefacts undermines every
+downstream consumer — `/execute-aa-ma-milestone` re-fires unnecessarily,
+`/archive-aa-ma` may refuse to archive, the `aa-ma-validator` agent
+flags as inconsistent. The cost of one extra MultiEdit on the close
+commit is trivial; the cost of split-brain detection + corrective
+commit later is at least one extra commit (the actual fix in this case
+was `8d93879`).
+
+**Cross-ref:** L-080–L-082 sub-step sync rule (which this complements —
+L-080 ensures sub-step Result Logs are atomic; L-004 ensures
+milestone-status edits are atomic).
+
+---
+
 ## L-001 (2026-05-10) — External URL First Principle
 
 **Pattern:** During `/aa-ma-plan` for skill-ecosystem-integration, a Phase 3

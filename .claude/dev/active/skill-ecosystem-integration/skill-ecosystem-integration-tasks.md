@@ -139,7 +139,7 @@
   - Acceptance Criteria: ALL 3 met ✓ (h1 dir+__init__.py exists; pytest test parses SKILL.md and asserts name+description; bats test verifies install.sh --dry-run symlink line)
 
 ### Task 1.7a: Add Phase 1.3 grill-mode resolver unit tests (NEW v1.3 — addresses C4 test coverage gap)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
   - If `tests/commands/` directory does not exist, create it with `__init__.py`
@@ -154,7 +154,16 @@
     8. `--grill-mode=INVALID` (covers E1) → exit with stderr error message; treated as `skip` for safety
   - All 8 test cases pass; test infrastructure uses `mktemp -d` for isolated project-state simulation
   - Coverage of new logic raises plan-eng-review's "29% paths tested" baseline to >80%
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T15:36 — Created `tests/commands/__init__.py` (empty package marker)
+  - 2026-05-10T15:36 — Created `tests/commands/test_grill_mode_resolver.py` — pytest, uses subprocess + pytest's `tmp_path` fixture (equivalent to `mktemp -d` per acceptance criterion)
+  - 2026-05-10T15:36 — All 8 acceptance branches covered: branch_1 (auto+CONTEXT.md), branch_2 (auto+adr/readable), branch_3 (auto+adr/unreadable C3 fix — with `pytest.skip` if euid==0 since chmod 000 cannot block root), branch_4 (greenfield), branch_5 (force with-docs), branch_6 (force simple), branch_7 (skip), branch_8 (INVALID E1 — exit 2 + stderr ERROR + stdout safe-default "skip")
+  - 2026-05-10T15:36 — 5 bonus tests: existence/executable check, env var precedence, CLI overrides env var, space-separated flag form (`--grill-mode value`), no-flag-no-env default
+  - 2026-05-10T15:36 — `uv run pytest tests/commands/test_grill_mode_resolver.py -v` → **13 passed in 0.11s** (12 functional tests + 1 sanity check; all PASSED)
+  - 2026-05-10T15:36 — Combined run with M1.7 frontmatter tests: `uv run pytest tests/commands/ tests/skills/ -v` → **17 passed in 0.12s**
+  - 2026-05-10T15:36 — `uv run ruff check tests/commands/` → All checks passed (after one --fix pass for unused `shutil` import); `ruff format --check` → clean
+  - 2026-05-10T15:36 — Coverage assertion: 8/8 declared resolver branches now have direct test cases (100% — exceeds the >80% threshold from plan-eng-review baseline of 29%)
+  - Acceptance Criteria: ALL 3 met ✓ (tests/commands/ + __init__.py exists; all 8 branches covered with 13 PASSED test cases; mktemp-d-equivalent isolation via pytest tmp_path; coverage 100% of declared branches)
 
 ### Task 1.8: Run full test suite + regression check
 - Status: PENDING

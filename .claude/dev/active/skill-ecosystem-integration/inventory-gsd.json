@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "source_url": "https://github.com/gsd-build/get-shit-done",
+    "canonical_repo": "gsd-build/get-shit-done",
+    "fetched_at": "2026-05-10T11:12:00+01:00",
+    "verifier_method": "gh-api",
+    "stars": 61215,
+    "default_branch": "main",
+    "last_updated": "2026-05-10T09:31:43Z",
+    "description": "A light-weight and powerful meta-prompting, context engineering and spec-driven development system for Claude Code"
+  },
+  "user_decision": "INSPIRATION ONLY — extract patterns, ship nothing direct from gsd. Confirmed via AskUserQuestion at planning time.",
+  "structure": {
+    "root_dirs": ["agents", "assets", "bin", "commands", "docs", "get-shit-done", "hooks", "scripts", "sdk", "tests", ".changeset", ".githooks", ".github", ".out-of-scope", ".plans"],
+    "skills_root": "get-shit-done/",
+    "subdirs_under_skills_root": ["bin", "contexts", "references", "templates", "workflows"]
+  },
+  "workflows_count": 90,
+  "templates_count": 36,
+  "workflow_categories_extracted": {
+    "phase_management": ["new-milestone", "complete-milestone", "milestone-summary", "new-project", "transition", "graduation"],
+    "research_and_discovery": ["discovery-phase", "discuss-phase", "discuss-phase-assumptions", "discuss-phase-power", "research-phase", "explore", "scan", "ingest-docs"],
+    "planning": ["plan-phase", "plan-milestone-gaps", "plan-review-convergence", "ultraplan-phase", "spec-phase"],
+    "execution": ["execute-phase", "execute-plan", "do", "fast", "quick", "next", "autonomous", "thread"],
+    "verification": ["verify-phase", "verify-work", "validate-phase", "audit-uat", "audit-fix", "audit-milestone"],
+    "review": ["code-review", "code-review-fix", "review", "ui-review", "eval-review"],
+    "specialized_phases": ["ai-integration-phase", "secure-phase", "ui-phase", "mvp-phase"],
+    "session_management": ["pause-work", "resume-project", "session-report", "stats", "progress", "health"],
+    "templating_and_setup": ["new-workspace", "remove-workspace", "list-workspaces", "settings", "settings-advanced", "settings-integrations"],
+    "exploration_modes": ["sketch", "sketch-wrap-up", "spike", "spike-wrap-up", "plant-seed", "edit-phase", "insert-phase", "remove-phase"],
+    "code_intel": ["map-codebase", "analyze-dependencies", "diagnose-issues", "forensics"],
+    "tasks": ["add-todo", "check-todos", "add-tests", "add-backlog", "note", "inbox"],
+    "release": ["ship", "pr-branch", "reapply-patches", "extract-learnings", "docs-update"],
+    "infra": ["sync-skills", "node-repair", "manager", "cleanup", "import", "undo", "update", "help", "profile-user", "debug"]
+  },
+  "templates_relevant_to_aa_ma_forge_optional_artifacts": [
+    {"name": "AI-SPEC.md", "purpose": "Framework choice + eval contract", "aa_ma_fit": "Optional artifact for AI-integration milestones (new optional template at docs/templates/optional-specs/)"},
+    {"name": "DEBUG.md", "purpose": "Debug session structure", "aa_ma_fit": "Could complement debugging-strategies skill output"},
+    {"name": "SECURITY.md", "purpose": "Threat model + audit plan", "aa_ma_fit": "Pattern for security-focused milestones"},
+    {"name": "UAT.md", "purpose": "User acceptance criteria", "aa_ma_fit": "Optional addition to acceptance criteria element"},
+    {"name": "UI-SPEC.md", "purpose": "Design contract", "aa_ma_fit": "Optional artifact for UI milestones"},
+    {"name": "VALIDATION.md", "purpose": "Test sampling strategy", "aa_ma_fit": "Could enrich Tests-per-Milestone element"},
+    {"name": "state.md", "purpose": "Living project state digest (~100 lines)", "aa_ma_fit": "Could complement provenance.log CHECKPOINT entries with a forward-looking digest"},
+    {"name": "milestone-archive.md", "purpose": "Post-milestone archival format", "aa_ma_fit": "Pattern for /archive-aa-ma command"},
+    {"name": "retrospective.md", "purpose": "Post-milestone retro structure", "aa_ma_fit": "Could enrich aa-ma-forge retro skill"},
+    {"name": "verification-report.md", "purpose": "Post-execution verification format", "aa_ma_fit": "Already partially analogous to aa-ma-forge verification.md (optional 6th file)"}
+  ],
+  "patterns_for_aa_ma_inspiration": [
+    {"pattern": "Revision-loop with max-iteration escalation", "source": "ui-phase + ai-integration-phase + references/revision-loop.md", "aa_ma_fit": "Optional revision mode in /execute-aa-ma-step when verification fails N times"},
+    {"pattern": "Subagent triad (researcher → creator → checker)", "source": "plan-phase, ai-integration-phase, ui-phase", "aa_ma_fit": "Strengthen aa-ma-scribe + aa-ma-validator pair into a triad for high-complexity milestones"},
+    {"pattern": "Optional spec template library", "source": "templates/AI-SPEC, UI-SPEC, SECURITY, UAT, VALIDATION", "aa_ma_fit": "Add docs/templates/optional-specs/ with named optional templates"},
+    {"pattern": "Living state.md digest (forward-looking, ~100 lines)", "source": "templates/state.md", "aa_ma_fit": "Could complement provenance.log (backward-looking audit) with state.md (forward-looking next-action digest)"},
+    {"pattern": "Auto/headless execution flag (--auto)", "source": "workflows/autonomous.md, fast.md, quick.md", "aa_ma_fit": "Already partial in AA-MA via Mode: AFK field; could expand to /execute-aa-ma-full --mode auto"},
+    {"pattern": "Context-window-aware prompt sizing", "source": "execute-phase.md", "aa_ma_fit": "Detect CONTEXT_WINDOW; adapt subagent prompt richness accordingly"}
+  ],
+  "EXPLICITLY_DO_NOT_BORROW": [
+    {"item": "ROADMAP.md as root artifact", "reason": "AA-MA uses [task]-plan.md; ROADMAP language fragments lexicon"},
+    {"item": "Phase numbering (Phase 1, 2...)", "reason": "AA-MA uses Milestone M1, M2; mixing phase/milestone language confuses execution"},
+    {"item": "PLAN.md singular root convention", "reason": "AA-MA has 1 plan per task/branch; gsd has 1 PLAN per phase"},
+    {"item": "SUMMARY.md as execution journal", "reason": "AA-MA uses provenance.log; renaming would fragment customer expectations"},
+    {"item": "gsd-* agent names", "reason": "AA-MA has aa-ma-scribe, aa-ma-validator; importing gsd agent names creates registry collision"},
+    {"item": "ultraplan-phase workflow", "reason": "Direct terminology collision with aa-ma-forge's /aa-ma-plan (which was renamed FROM /ultraplan in 2026-04 because Anthropic shipped a built-in 'ultraplan' — we've already navigated this naming once)"}
+  ]
+}

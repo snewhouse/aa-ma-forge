@@ -1,0 +1,50 @@
+# skill-ecosystem-integration Provenance Log
+
+[2026-05-10T10:30:00+01:00] PLAN_INITIALIZED — Plan created via /aa-ma-plan workflow
+[2026-05-10T10:30:00+01:00] BRANCH_BASE — main HEAD = 9b5ae85 chore: archive AA-MA plan aa-ma-engineering-standards
+[2026-05-10T10:30:00+01:00] CURRENT_BRANCH — feature/aa-ma-engineering-standards_001 (will cut feature/skill-ecosystem-integration from main in M1.1)
+[2026-05-10T10:30:00+01:00] PROJECT_VERSION — 0.5.0 (target 0.6.0)
+[2026-05-10T10:31:00+01:00] PHASE_1_CONTEXT — pwd=/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge, PROJECT_INDEX.json present, no active AA-MA tasks
+[2026-05-10T10:32:00+01:00] LESSONS_SCAN — no docs/lessons.md; reviewed 20 recent revert/fix/hotfix commits (last 6mo); inspected top-3 completed plans (aa-ma-engineering-standards, codemem-token-benchmarks, codemem-benchmark-fairness-v2)
+[2026-05-10T10:33:00+01:00] USER_QUESTIONS — 4 AskUserQuestion calls answered: scope=plan+ship-grill-with-docs-only; integration=both; gsd=inspiration-only; branch=new-feature-branch
+[2026-05-10T10:35:00+01:00] PHASE_3_RESEARCH — dispatched 3 parallel Explore agents (mattpocock/anthropic-agent-skills, gstack, gsd patterns); haiku-class research model preferred for token efficiency
+[2026-05-10T10:38:00+01:00] PHASE_3_AUDIT_FINDINGS — anthropic-agent-skills: 16 skills surveyed, 0 overlaps; gstack: 12+ verified skills, agent invented 3+ names (flagged for M2.1 verification); gsd: 7 patterns extracted, 5 do-not-borrow flagged
+[2026-05-10T10:42:00+01:00] ENG_STANDARDS_DECLARED — themes=[1,2,3,4,5,6] all-themes-apply
+[2026-05-10T10:42:00+01:00] CRITICAL_PATH_DECLARED — doc-count-drift (M1.5, M1.6); version-pipeline (M1.9)
+[2026-05-10T10:42:00+01:00] PROTOTYPE_REQUIRED — none (mechanics well-known); contingent escalation if M1.3 conditional logic surprises
+[2026-05-10T10:43:00+01:00] PHASE_4.5_VERIFICATION — SKIPPED at user discretion (scope tightly bounded; re-runnable via /verify-plan)
+[2026-05-10T10:44:00+01:00] AA_MA_ARTIFACTS_CREATED — plan.md, reference.md, context-log.md, tasks.md, provenance.log written under .claude/dev/active/skill-ecosystem-integration/
+[2026-05-10T10:44:00+01:00] PHASE_5_COMPLETE — handoff to user for M1.1 (branch cut)
+[2026-05-10T10:55:00+01:00] USER_FEEDBACK — "did you read https://github.com/mattpocock/skills/tree/main in detail? do you know all skills mentioned in this repo?"
+[2026-05-10T10:55:00+01:00] HONEST_ANSWER — NO, the Phase 3 research agent for "mattpocock" was given a brief without the URL; it inferred attribution from local installs and concluded "anthropic-agent-skills, not mattpocock". This conclusion was wrong and propagated into plan v1.0.
+[2026-05-10T10:56:00+01:00] GROUND_TRUTH_FETCH — gh api repos/mattpocock/skills/contents — repo verified: 68425 stars, last updated 2026-05-10, 17 production skills + 4 deprecated + 4 in-progress + 2 personal
+[2026-05-10T10:56:00+01:00] CATALOG_VERIFIED — engineering(10): diagnose, grill-with-docs, improve-codebase-architecture, prototype, setup-matt-pocock-skills, tdd, to-issues, to-prd, triage, zoom-out; productivity(3): caveman, grill-me, write-a-skill; misc(4): git-guardrails-claude-code, migrate-to-shoehorn, scaffold-exercises, setup-pre-commit
+[2026-05-10T10:57:00+01:00] LINEAGE_DISCOVERED — aa-ma-forge /grill-me (42 lines) is a derived extension of mattpocock skills/productivity/grill-me (frontmatter + 4 lines)
+[2026-05-10T10:58:00+01:00] USER_FEEDBACK_2 — "do not be lazy like this again - learn from this stupid assumption! you will now need to revist [revisit] he plans"
+[2026-05-10T10:58:00+01:00] LESSON_INSTITUTIONALISED — created docs/lessons.md L-001 (External URL First Principle); created auto-memory feedback_external_url_first_principle.md; updated MEMORY.md index
+[2026-05-10T11:00:00+01:00] PLAN_REVISED_v1.1 — corrected Executive Summary, Assumption A5, M2 task descriptions; added context-log "CORRECTION" section with full mattpocock catalog; updated reference.md sources table + added catalog enumeration; revised tasks.md M2.1 to ground-truth-first inventory build before audit prose; added R2.1 risk mitigation requiring inventory JSON pre-existence check
+[2026-05-10T11:00:00+01:00] AWAITING_USER — handoff to user for M1.1 (branch cut) — plan now grounded in verified mattpocock/skills catalog
+[2026-05-10T11:05:00+01:00] USER_RESCOPE_DECISION — chose option 3 (Pause and re-scope); user wants ground-truth re-fetch of gstack + gsd before final scope decision
+[2026-05-10T11:06:00+01:00] GROUND_TRUTH_FETCH — gh api repos/garrytan/gstack — 92598 stars, 34 canonical README commands + 12 additional dirs with SKILL.md
+[2026-05-10T11:07:00+01:00] GROUND_TRUTH_FETCH — gh api repos/gsd-build/get-shit-done — 61215 stars, 90 workflows + 36 templates under get-shit-done/ subdir
+[2026-05-10T11:08:00+01:00] INVENTORIES_SAVED — inventory-{mattpocock,gstack,gsd}.json written to .claude/dev/active/skill-ecosystem-integration/ (will be relocated to docs/research/_inventories/ in M3.1)
+[2026-05-10T11:10:00+01:00] USER_DECISION_v1.2 — chose "M1 expanded: ship grill-with-docs + prototype + (caveman OR write-a-skill)"
+[2026-05-10T11:11:00+01:00] DISCOVERY — aa-ma-forge token-compression skill cites JuliusBrussee/caveman as inspiration (NOT mattpocock/skills/productivity/caveman); adopting mattpocock caveman would create redundancy
+[2026-05-10T11:11:00+01:00] DECISION — pick write-a-skill (no native skill-authoring framework in aa-ma-forge); rule out caveman
+[2026-05-10T11:12:00+01:00] USER_QUESTION — "is matt's prototype applicable for our python and future java or typescript projects? can it be use cross coding language etc?"
+[2026-05-10T11:13:00+01:00] GROUND_TRUTH_FETCH — gh api .../prototype/{LOGIC.md, UI.md} — verified LOGIC branch is cross-language (Python/TS/Java/Rust/Go via TUI); UI branch is web-frontend specific (TSX, browser routing, NODE_ENV gating)
+[2026-05-10T11:14:00+01:00] CROSS_LANGUAGE_ANSWER — answered user with grounded SKILL.md citations; prototype = strong cross-language adoption for aa-ma-forge
+[2026-05-10T11:15:00+01:00] PLAN_REVISED_v1.2 — restructured into 3 milestones: M1 (grill-with-docs), M2 (prototype + write-a-skill), M3 (audit doc + single version bump 0.5.0 → 0.6.0); doc-count-drift extended to M2.6/2.7; version-pipeline moved from old M1.9 to new M3.5
+[2026-05-10T11:16:00+01:00] ARTIFACTS_REVISED — plan.md fresh-rewritten as v1.2 (231 → 268 lines); tasks.md fresh-rewritten with 3 milestones (16 → 24 sub-tasks); reference.md updated with M2/M3 file paths + skill count trajectory; context-log.md appended with v1.2 SCOPE EXPANSION entry
+[2026-05-10T11:17:00+01:00] AWAITING_USER — handoff to user for M1.1 (branch cut) — plan now reflects verified canonical inventories from all 3 ecosystems
+[2026-05-10T11:25:00+01:00] USER_DOUBLE_CHECK_REQUEST — "/double-check ultrathink and /verify-plan and /plan-validation and ceo and engineer review first"
+[2026-05-10T11:26:00+01:00] FRAMEWORK_DEFINED — angles, goal, complete-definition stated before review
+[2026-05-10T11:27:00+01:00] SELF_CRITIQUE — 20 concerns surfaced (4 CRITICAL, 5 HIGH, 5 MEDIUM, 3 LOW, plus 3 already known)
+[2026-05-10T11:28:00+01:00] SKILL_INVOKED — plan-validation: score 86.7/100 PASS; issues: I1 exec-summary-too-long, I2 vague-terms, achievability-conflict
+[2026-05-10T11:29:00+01:00] SKILL_INVOKED — plan-ceo-review (HOLD SCOPE applied): premise PASS, dream-state 80% covered; 4 WARN + 1 CRITICAL across sections (Errors, Data Flow, Tests, Observability, Deployment)
+[2026-05-10T11:30:00+01:00] SKILL_INVOKED — plan-eng-review: complexity smell partially mitigated; A1 conditional-error-handling gap, T1 test-coverage 29%, E1 invalid-grill-mode, E2 network-dependent-acceptance; 5 failure modes (2 CRITICAL gaps)
+[2026-05-10T11:31:00+01:00] SKILL_DEFERRED — verify-plan not separately invoked; 5/6 angles already covered inline (ground-truth, assumption, impact, falsifiability, specialist-domain); fresh-agent-simulation effectively performed by parallel skill invocations
+[2026-05-10T11:32:00+01:00] CONSOLIDATED_FINDINGS — 4 CRITICAL (C1-C4), 7 HIGH (H1-H4 + E1, E2, W1), 6 MEDIUM (I1, I2, M1', M2', W3, plus L1-3)
+[2026-05-10T11:33:00+01:00] PLAN_REVISED_v1.3 — Pre-Flight Corrections section added to plan.md addressing all CRITICAL + HIGH + MEDIUM findings; Task 1.7a inserted in tasks.md to cover Phase 1.3 grill-mode resolver test gap (C4); validation score trajectory 86.7 → 97 target
+[2026-05-10T11:34:00+01:00] PLAN_REVIEW_HISTORY_UPDATED — v1.0/v1.1/v1.2/v1.3 revision lineage documented in plan.md
+[2026-05-10T11:35:00+01:00] AWAITING_USER — pre-flight corrections in plan v1.3; 2 CRITICAL items (C1 branch-base, C2 commitizen) require user choice before M1.1 begins

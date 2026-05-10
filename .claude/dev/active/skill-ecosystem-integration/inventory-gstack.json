@@ -1,0 +1,84 @@
+{
+  "_meta": {
+    "source_url": "https://github.com/garrytan/gstack",
+    "canonical_repo": "garrytan/gstack",
+    "fetched_at": "2026-05-10T11:10:00+01:00",
+    "verifier_method": "gh-api",
+    "stars": 92598,
+    "default_branch": "main",
+    "last_updated": "2026-05-10T09:50:10Z",
+    "description": "Use Garry Tan's exact Claude Code setup: 23 opinionated tools that serve as CEO, Designer, Eng Manager, Release Manager, etc. (README claims '23 specialists + 8 power tools')",
+    "structure_note": "Each skill is a top-level directory at the repo root (NOT nested under skills/). Repo also includes browse, design, make-pdf as compiled binaries plus extension/ for Chrome integration."
+  },
+  "canonical_command_list_per_README": [
+    "/office-hours", "/plan-ceo-review", "/plan-eng-review", "/plan-design-review",
+    "/design-consultation", "/design-shotgun", "/design-html",
+    "/review", "/ship", "/land-and-deploy", "/canary",
+    "/benchmark", "/browse", "/connect-chrome",
+    "/qa", "/qa-only", "/design-review",
+    "/setup-browser-cookies", "/setup-deploy", "/setup-gbrain",
+    "/retro", "/investigate", "/document-release",
+    "/codex", "/cso", "/autoplan",
+    "/plan-devex-review", "/devex-review",
+    "/careful", "/freeze", "/guard", "/unfreeze",
+    "/gstack-upgrade", "/learn"
+  ],
+  "canonical_command_count": 34,
+  "additional_skills_with_SKILL_md_not_in_README_canonical_list": [
+    "benchmark-models",
+    "context-restore",
+    "context-save",
+    "health",
+    "landing-report",
+    "make-pdf",
+    "open-gstack-browser",
+    "pair-agent",
+    "plan-tune",
+    "scrape",
+    "skillify",
+    "sync-gbrain"
+  ],
+  "current_aa_ma_forge_disposition_guide_entries": {
+    "AA-MA-SAFE": ["/browse", "/plan-ceo-review", "/plan-eng-review", "/plan-design-review", "/review", "/qa-only", "/retro", "/document-release"],
+    "AA-MA-CAUTION": ["/design-consultation", "/qa", "/qa-design-review"],
+    "DO-NOT-USE": ["/ship"],
+    "SKIP": ["/setup-browser-cookies"]
+  },
+  "new_skills_needing_disposition_assessment_for_M3_audit": [
+    {"name": "/office-hours", "candidate_disposition": "AA-MA SAFE", "rationale": "Discovery questioning fits Phase 1.3"},
+    {"name": "/design-shotgun", "candidate_disposition": "AA-MA CAUTION", "rationale": "Rapid ideation needs scope discipline"},
+    {"name": "/design-html", "candidate_disposition": "AA-MA SAFE", "rationale": "HTML mockups orthogonal to AA-MA"},
+    {"name": "/land-and-deploy", "candidate_disposition": "AA-MA SAFE", "rationale": "Deployment workflow"},
+    {"name": "/canary", "candidate_disposition": "AA-MA SAFE", "rationale": "Progressive rollout"},
+    {"name": "/benchmark", "candidate_disposition": "AA-MA SAFE", "rationale": "Performance measurement"},
+    {"name": "/connect-chrome", "candidate_disposition": "SKIP", "rationale": "Browser plumbing — not core to AA-MA on WSL"},
+    {"name": "/setup-deploy", "candidate_disposition": "AA-MA SAFE", "rationale": "Deployment scaffolding"},
+    {"name": "/setup-gbrain", "candidate_disposition": "AA-MA SAFE", "rationale": "Memory setup"},
+    {"name": "/investigate", "candidate_disposition": "AA-MA SAFE", "rationale": "Fits debugging-strategies pattern; diff against existing skill"},
+    {"name": "/codex", "candidate_disposition": "AA-MA SAFE", "rationale": "Codex integration"},
+    {"name": "/cso", "candidate_disposition": "AA-MA SAFE", "rationale": "Security audit role"},
+    {"name": "/autoplan", "candidate_disposition": "AA-MA CAUTION", "rationale": "Possible terminology collision with /aa-ma-plan; needs deeper review"},
+    {"name": "/plan-devex-review", "candidate_disposition": "AA-MA SAFE", "rationale": "Wireable into Phase 4.2"},
+    {"name": "/devex-review", "candidate_disposition": "AA-MA SAFE", "rationale": "DX review"},
+    {"name": "/careful", "candidate_disposition": "AA-MA SAFE", "rationale": "Defensive-mode toggler — relevant to milestone HARD gates"},
+    {"name": "/freeze", "candidate_disposition": "AA-MA SAFE", "rationale": "Lock-down pattern; complements milestone HARD gate"},
+    {"name": "/guard", "candidate_disposition": "AA-MA SAFE", "rationale": "Guard rails"},
+    {"name": "/unfreeze", "candidate_disposition": "AA-MA SAFE", "rationale": "Pair to /freeze"},
+    {"name": "/gstack-upgrade", "candidate_disposition": "AA-MA SAFE", "rationale": "Upgrade path"},
+    {"name": "/learn", "candidate_disposition": "AA-MA SAFE", "rationale": "Educational mode"},
+    {"name": "/context-save", "candidate_disposition": "AA-MA SAFE — HIGH RELEVANCE", "rationale": "Directly relevant to AA-MA context-log/checkpoint pattern; should be diffed against provenance.log CHECKPOINT entries"},
+    {"name": "/context-restore", "candidate_disposition": "AA-MA SAFE — HIGH RELEVANCE", "rationale": "Pair to context-save; relevant to session resume"},
+    {"name": "/skillify", "candidate_disposition": "AA-MA SAFE", "rationale": "Skill creation flow; complements mattpocock write-a-skill (M2 adoption)"},
+    {"name": "/health", "candidate_disposition": "AA-MA SAFE", "rationale": "Project health check"},
+    {"name": "/sync-gbrain", "candidate_disposition": "AA-MA SAFE", "rationale": "Memory sync"},
+    {"name": "/pair-agent", "candidate_disposition": "AA-MA CAUTION", "rationale": "Pair-programming agent — verify mode interactions"},
+    {"name": "/scrape", "candidate_disposition": "AA-MA CAUTION", "rationale": "Web scraping — review for compliance with our Galactic API rules"}
+  ],
+  "highest_relevance_for_aa_ma_forge_M3_or_later": [
+    "/context-save", "/context-restore", "/freeze", "/guard", "/careful", "/skillify"
+  ],
+  "explicit_conflicts": [
+    {"gstack": "/ship", "aa_ma_forge": "release-prep + Commitizen + python-semantic-release", "resolution": "DO NOT USE — confirmed in CLAUDE.md"},
+    {"gstack": "/autoplan", "aa_ma_forge": "/aa-ma-plan", "resolution": "Likely AA-MA CAUTION; need diff to confirm whether they overlap or complement"}
+  ]
+}

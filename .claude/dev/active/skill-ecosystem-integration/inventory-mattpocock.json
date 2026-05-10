@@ -1,0 +1,91 @@
+{
+  "_meta": {
+    "source_url": "https://github.com/mattpocock/skills",
+    "canonical_repo": "mattpocock/skills",
+    "fetched_at": "2026-05-10T11:05:00+01:00",
+    "verifier_method": "gh-api",
+    "stars": 68425,
+    "default_branch": "main",
+    "last_updated": "2026-05-10T09:41:10Z",
+    "description": "Skills for Real Engineers. Straight from my .claude directory."
+  },
+  "categories": {
+    "engineering": {
+      "count": 10,
+      "status": "production",
+      "skills": [
+        {"name": "diagnose", "path": "skills/engineering/diagnose", "files": ["SKILL.md"], "purpose": "Disciplined diagnosis loop (reproduce → minimise → hypothesise → instrument → fix → regression-test)"},
+        {"name": "grill-with-docs", "path": "skills/engineering/grill-with-docs", "files": ["SKILL.md", "CONTEXT-FORMAT.md", "ADR-FORMAT.md"], "purpose": "Grilling session that challenges plan against domain model + builds CONTEXT.md/ADRs inline", "aa_ma_status": "M1 ADOPTION TARGET"},
+        {"name": "improve-codebase-architecture", "path": "skills/engineering/improve-codebase-architecture", "files": ["SKILL.md"], "purpose": "Architecture refactoring loop"},
+        {"name": "prototype", "path": "skills/engineering/prototype", "files": ["SKILL.md", "LOGIC.md", "UI.md"], "purpose": "Throwaway prototype with two branches: LOGIC for state-machines, UI for visual variations", "aa_ma_status": "M2 ADOPTION TARGET — direct match to engineering-standards Prototype-Required: enum"},
+        {"name": "setup-matt-pocock-skills", "path": "skills/engineering/setup-matt-pocock-skills", "files": ["SKILL.md"], "purpose": "Configuration scaffolding (canonical install/config flow)"},
+        {"name": "tdd", "path": "skills/engineering/tdd", "files": ["SKILL.md"], "purpose": "TDD loop"},
+        {"name": "to-issues", "path": "skills/engineering/to-issues", "files": ["SKILL.md"], "purpose": "Breaking specs into tasks"},
+        {"name": "to-prd", "path": "skills/engineering/to-prd", "files": ["SKILL.md"], "purpose": "Converting discussions to requirements (PRD generation)"},
+        {"name": "triage", "path": "skills/engineering/triage", "files": ["SKILL.md"], "purpose": "Issue state machine workflow"},
+        {"name": "zoom-out", "path": "skills/engineering/zoom-out", "files": ["SKILL.md"], "purpose": "Contextual code explanation"}
+      ]
+    },
+    "productivity": {
+      "count": 3,
+      "status": "production",
+      "skills": [
+        {"name": "caveman", "path": "skills/productivity/caveman", "files": ["SKILL.md"], "purpose": "Token-compressed communication mode (~75% savings)", "aa_ma_status": "SUPERSEDED-BY aa-ma-forge token-compression skill (which is conceptually inspired by caveman, not mattpocock's caveman directly — cites github.com/JuliusBrussee/caveman)"},
+        {"name": "grill-me", "path": "skills/productivity/grill-me", "files": ["SKILL.md"], "purpose": "Relentless interview about plan/design (frontmatter + 4 lines of body)", "aa_ma_status": "DERIVED-FROM-UPSTREAM — aa-ma-forge /grill-me command (42 lines) is an extension of this canonical mattpocock skill"},
+        {"name": "write-a-skill", "path": "skills/productivity/write-a-skill", "files": ["SKILL.md"], "purpose": "Skill creation framework (canonical skill-authoring workflow)", "aa_ma_status": "M2 ADOPTION TARGET — aa-ma-forge has no native skill-authoring skill"}
+      ]
+    },
+    "misc": {
+      "count": 4,
+      "status": "production",
+      "skills": [
+        {"name": "git-guardrails-claude-code", "path": "skills/misc/git-guardrails-claude-code", "files": ["SKILL.md (presumed)"], "purpose": "Git safety hooks", "aa_ma_status": "DEFERRED — diff against aa-ma-forge commit-signature + commit-drift hooks before deciding"},
+        {"name": "migrate-to-shoehorn", "path": "skills/misc/migrate-to-shoehorn", "files": ["SKILL.md (presumed)"], "purpose": "Test migration utility (specific to mattpocock's tooling)"},
+        {"name": "scaffold-exercises", "path": "skills/misc/scaffold-exercises", "files": ["SKILL.md (presumed)"], "purpose": "Exercise structure generation"},
+        {"name": "setup-pre-commit", "path": "skills/misc/setup-pre-commit", "files": ["SKILL.md (presumed)"], "purpose": "Commit hook configuration", "aa_ma_status": "DEFERRED — diff against aa-ma-forge hooks before deciding"}
+      ]
+    },
+    "deprecated": {
+      "count": 4,
+      "status": "exclude",
+      "skills": [
+        {"name": "design-an-interface", "path": "skills/deprecated/design-an-interface"},
+        {"name": "qa", "path": "skills/deprecated/qa"},
+        {"name": "request-refactor-plan", "path": "skills/deprecated/request-refactor-plan"},
+        {"name": "ubiquitous-language", "path": "skills/deprecated/ubiquitous-language", "note": "Conceptual ancestor of grill-with-docs"}
+      ]
+    },
+    "in-progress": {
+      "count": 4,
+      "status": "exclude (not stable)",
+      "skills": [
+        {"name": "handoff", "path": "skills/in-progress/handoff"},
+        {"name": "writing-beats", "path": "skills/in-progress/writing-beats"},
+        {"name": "writing-fragments", "path": "skills/in-progress/writing-fragments"},
+        {"name": "writing-shape", "path": "skills/in-progress/writing-shape"}
+      ]
+    },
+    "personal": {
+      "count": 2,
+      "status": "exclude (not for general use)",
+      "skills": [
+        {"name": "edit-article", "path": "skills/personal/edit-article"},
+        {"name": "obsidian-vault", "path": "skills/personal/obsidian-vault"}
+      ]
+    }
+  },
+  "totals": {
+    "production": 17,
+    "deprecated": 4,
+    "in-progress": 4,
+    "personal": 2,
+    "all": 27
+  },
+  "aa_ma_forge_relationship_summary": {
+    "M1_target": ["grill-with-docs"],
+    "M2_targets": ["prototype", "write-a-skill"],
+    "derived_already": ["grill-me (mattpocock) → aa-ma-forge /grill-me (extended)"],
+    "superseded_by_existing": ["caveman → aa-ma-forge token-compression"],
+    "M3_or_later_candidates": ["diagnose (vs debugging-strategies)", "tdd", "to-prd (Phase 2.5 of /aa-ma-plan)", "to-issues", "triage", "improve-codebase-architecture", "zoom-out", "git-guardrails-claude-code (vs hooks)"]
+  }
+}

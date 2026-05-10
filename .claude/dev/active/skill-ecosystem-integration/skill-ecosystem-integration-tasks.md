@@ -392,7 +392,7 @@
 
 ## Milestone M3: Audit Research Note + Version Bump
 
-- Status: ACTIVE
+- Status: COMPLETE
 - Mode: Mixed (HITL on terminology + version bump; AFK for synthesis)
 - Gate: HARD (because of version-pipeline Critical-Path)
 - Dependencies: M1 (uses grill-with-docs for glossary check), M2 (audit references new skills)

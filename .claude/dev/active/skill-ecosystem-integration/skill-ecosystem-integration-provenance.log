@@ -94,3 +94,4 @@
 [2026-05-10T16:05:58+01:00] TASK 2.2 COMPLETE — Forked write-a-skill upstream into claude-code/skills/write-a-skill/SKILL.md; transcription typo (forks→forms) caught by diff verification step and fixed inline
 [2026-05-10T16:09:31+01:00] TASK 2.3 COMPLETE — Authored ADR-0003 (prototype adoption, 145 lines, MADR-style); LOGIC/UI cross-language constraint documented; INDEX.md row 3
 [2026-05-10T16:09:31+01:00] TASK 2.4 COMPLETE — Authored ADR-0004 (write-a-skill adoption, 147 lines, MADR-style); INDEX.md row 4; check_adr_index.sh PASS (4/4)
+[2026-05-10T16:10:38+01:00] TASK 2.5 COMPLETE — engineering-standards.md Theme 1 extended with Skill(prototype) cross-reference + ADR-0003 link + LOGIC/UI dispatch hint; SOFT cross-ref preserves HARD gate behavior

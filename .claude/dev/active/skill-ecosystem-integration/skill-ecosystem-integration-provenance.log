@@ -48,3 +48,12 @@
 [2026-05-10T11:33:00+01:00] PLAN_REVISED_v1.3 — Pre-Flight Corrections section added to plan.md addressing all CRITICAL + HIGH + MEDIUM findings; Task 1.7a inserted in tasks.md to cover Phase 1.3 grill-mode resolver test gap (C4); validation score trajectory 86.7 → 97 target
 [2026-05-10T11:34:00+01:00] PLAN_REVIEW_HISTORY_UPDATED — v1.0/v1.1/v1.2/v1.3 revision lineage documented in plan.md
 [2026-05-10T11:35:00+01:00] AWAITING_USER — pre-flight corrections in plan v1.3; 2 CRITICAL items (C1 branch-base, C2 commitizen) require user choice before M1.1 begins
+[2026-05-10T11:36:00+01:00] USER_CHOICE_C1 — option A: merge engineering-standards branch to main first, then cut new branch
+[2026-05-10T11:36:00+01:00] USER_CHOICE_C2 — option A: verify NOW (before M1.1)
+[2026-05-10T11:37:00+01:00] C2_RESOLVED — read pyproject.toml: [tool.commitizen] has update_changelog_on_bump=true; [tool.semantic_release] uses commit_message="chore(release): v{version}"; CONCLUSION: M3.5 should use `cz bump --increment minor` (NOT manual CHANGELOG.md edits); manual prose goes in conventional commit bodies which commitizen aggregates
+[2026-05-10T11:38:00+01:00] AD_HOC_COMMIT — 27865ae chore(aa-ma): scaffold skill-ecosystem-integration plan + lessons L-001 (9 files, 1389 insertions, on feature/aa-ma-engineering-standards_001 with [ad-hoc] marker bypassing AA-MA signature hook)
+[2026-05-10T11:39:00+01:00] FF_MERGE — git checkout main && git merge feature/aa-ma-engineering-standards_001 --ff-only — clean fast-forward 51a9e4a → 27865ae (LOCAL only, no push to origin/main)
+[2026-05-10T11:40:00+01:00] BRANCH_CUT — git checkout -b feature/skill-ecosystem-integration from main HEAD 27865ae
+[2026-05-10T11:40:00+01:00] M1_1_COMPLETE — Task 1.1 marked COMPLETE with concrete Result Log; C1+C2 resolved
+[2026-05-10T11:41:00+01:00] PUSH_DEFERRED — origin/main and origin/feature/skill-ecosystem-integration NOT pushed (CLAUDE.md "Hard-to-reverse operations" — pushes to main require explicit user confirmation)
+[2026-05-10T11:41:00+01:00] READY_FOR_M1_2 — next action: fork grill-with-docs into claude-code/skills/grill-with-docs/ (Task 1.2)

@@ -122,13 +122,21 @@
   - Acceptance Criteria: 2/2 met (criterion 1 verbatim ✓; criterion 2 satisfied modulo documented frozen-narrative exclusion ✓)
 
 ### Task 1.7: Add SKILL.md frontmatter test
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
   - If `tests/skills/` directory does not exist, create it with `__init__.py` (covers H1 fix)
   - `tests/skills/test_grill_with_docs_frontmatter.py` parses SKILL.md, asserts `name == "grill-with-docs"` and `description` non-empty
   - bats test verifies `bash scripts/install.sh --dry-run` outputs symlink line for grill-with-docs
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T15:32 — Created `tests/skills/__init__.py` (empty package marker, covers H1 fix)
+  - 2026-05-10T15:32 — Created `tests/skills/test_grill_with_docs_frontmatter.py` — pytest-based, uses PyYAML 6.0.3 (verified available in venv); 4 test cases: name match, description non-empty (≥50 chars), provenance comment references mattpocock/skills, companion files (CONTEXT-FORMAT.md + ADR-FORMAT.md) exist
+  - 2026-05-10T15:32 — `uv run pytest tests/skills/test_grill_with_docs_frontmatter.py -v` → **4 passed in 0.07s** (live execution evidence: all 4 tests PASSED)
+  - 2026-05-10T15:32 — `uv run ruff check tests/skills/` → All checks passed; `uv run ruff format --check tests/skills/` → 2 files already formatted (after one auto-format pass)
+  - 2026-05-10T15:32 — Created `tests/hooks/install_dry_run.bats` — 4 bats test cases: symlink-line-present, isolated-HOME-target-path, no-real-symlinks-side-effect, total-skill-count-equals-14
+  - 2026-05-10T15:32 — `bats tests/hooks/install_dry_run.bats` → **1..4 / ok 1 ok 2 ok 3 ok 4** (all 4 PASSED). Test uses isolated HOME via `mktemp -d`; hermetic against the real `~/.claude/`.
+  - 2026-05-10T15:32 — Total new test coverage: 4 pytest cases + 4 bats cases = 8 PASS for grill-with-docs surface
+  - Acceptance Criteria: ALL 3 met ✓ (h1 dir+__init__.py exists; pytest test parses SKILL.md and asserts name+description; bats test verifies install.sh --dry-run symlink line)
 
 ### Task 1.7a: Add Phase 1.3 grill-mode resolver unit tests (NEW v1.3 — addresses C4 test coverage gap)
 - Status: PENDING

@@ -20,8 +20,15 @@ materially apply to its work and how.
   count as evidence.
 - Prototype first on uncertain changes. Throwaway proofs-of-concept are cheap;
   shipping the wrong abstraction is expensive. When a task carries
-  `Prototype-Required: YES`, write a `[ts] PROTOTYPE — <verdict>` entry to
-  `provenance.log` before milestone COMPLETE.
+  `Prototype-Required: YES`, invoke `Skill(prototype)` (forked from
+  mattpocock/skills — see [ADR-0003](../../docs/adr/0003-prototype-adoption.md))
+  which routes between **LOGIC** (terminal TUI for state/business-logic
+  questions, fully cross-language) and **UI** (web-frontend variants
+  switchable via `?variant=` URL search param) branches based on the question.
+  Then write a `[ts] PROTOTYPE — <verdict>` entry to `provenance.log` before
+  milestone COMPLETE. The skill provides the *how*; this rule provides the
+  *when* — both must align before the gate (Section 6.7 condition 5) accepts
+  evidence.
 - Double-check critical paths. When a task carries `Critical-Path: <value>`,
   write a `[ts] CRITICAL_PATH_REVIEW — <evidence>` entry to `provenance.log`
   before milestone COMPLETE.

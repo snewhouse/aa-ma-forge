@@ -282,12 +282,17 @@
   - Acceptance Criteria: ALL 3 met ✓
 
 ### Task 2.5: Cross-reference prototype from engineering-standards.md
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
   - `claude-code/rules/engineering-standards.md` Theme 1 ("Verification & Truth") `Prototype-Required: YES` paragraph extended with: "When a task carries `Prototype-Required: YES`, invoke `Skill(prototype)` (forked from mattpocock/skills) which routes between LOGIC (terminal TUI) and UI (web variants) branches based on the question."
   - This is a SOFT cross-reference (not a behavior change to the gate itself)
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:11 — Located Theme 1 "Verification & Truth" `Prototype-Required: YES` paragraph in `claude-code/rules/engineering-standards.md` (between "Test empirically" and "Double-check critical paths" bullets)
+  - 2026-05-10T16:11 — Extended the paragraph with: (a) Skill(prototype) invocation directive, (b) ADR-0003 cross-reference, (c) LOGIC/UI dispatch hint with cross-language constraint disclosure, (d) explicit "skill provides the *how*; this rule provides the *when*" framing to delineate doctrine vs procedure, (e) Section 6.7 condition 5 cross-reference to make the gate-evidence loop explicit
+  - 2026-05-10T16:11 — SOFT cross-reference confirmed: no change to the actual HARD gate behavior. Section 6.7 condition 5 still fires only when `Prototype-Required: YES` is PRESENT-but-without-evidence (absent-field semantic preserved). The new sentence describes what evidence to produce, not when to require it.
+  - 2026-05-10T16:11 — No other rule files reference Prototype-Required (verified via `grep -rn "Prototype-Required" claude-code/rules/`); single point of cross-reference is sufficient.
+  - Acceptance Criteria: ALL 2 met ✓
 
 ### Task 2.6: Update operational rules + skill list (14 → 16)
 - Status: PENDING

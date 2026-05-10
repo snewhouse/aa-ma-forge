@@ -192,6 +192,49 @@ The existing `CLAUDE.md` global guide covers 12 entries. The full inventory is 3
 
 ---
 
+## E. Lineage Map (confirmed)
+
+These are the relationships between aa-ma-forge artefacts and their upstream sources, verified during M3.4. Future audits should preserve this map; new lineages should be added here when they emerge.
+
+| aa-ma-forge artefact | Lineage type | Upstream source | Verification |
+|----------------------|--------------|-----------------|--------------|
+| `claude-code/commands/grill-me.md` (42-line command) | **DERIVED-FROM** | [`mattpocock/skills/skills/productivity/grill-me`](https://github.com/mattpocock/skills/tree/main/skills/productivity/grill-me) (4-line canonical) | aa-ma-forge command extends upstream with explicit protocol numbering, constraint list, "Resolve don't just surface" rule, "Know when to stop" rule. Do NOT re-fork mattpocock's grill-me as a skill. |
+| `claude-code/skills/token-compression/SKILL.md` | **INSPIRED-BY (not forked)** | [`JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman) — NOT mattpocock's caveman | aa-ma-forge skill is strictly more capable (3 intensity levels mapped to HITL/AFK). Skill cites JuliusBrussee at top. Mattpocock's `caveman` is **SUPERSEDED-BY-EXISTING** (do not adopt). |
+| `claude-code/skills/grill-with-docs/{SKILL.md,CONTEXT-FORMAT.md,ADR-FORMAT.md}` | **FORKED** | [`mattpocock/skills/skills/engineering/grill-with-docs`](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs) | M1.2 (commit `426fd6e`); MD5-clean diff vs upstream modulo provenance comment. ADR-0002. |
+| `claude-code/skills/prototype/{SKILL.md,LOGIC.md,UI.md}` | **FORKED** | [`mattpocock/skills/skills/engineering/prototype`](https://github.com/mattpocock/skills/tree/main/skills/engineering/prototype) | M2.1 (commit `c374353`); MD5-clean diff. ADR-0003. |
+| `claude-code/skills/write-a-skill/SKILL.md` | **FORKED** | [`mattpocock/skills/skills/productivity/write-a-skill`](https://github.com/mattpocock/skills/tree/main/skills/productivity/write-a-skill) | M2.2 (commit `c374353`); MD5-clean diff (post transcription-typo fix). ADR-0004. |
+
+## F. Cross-reference Audit (M3.4 grep-loop evidence)
+
+Programmatic verification at M3.4 that no proposed Candidate name collides with an existing aa-ma-forge artefact (skill directory, command, agent, rule, hook, or skill-file content).
+
+**Method:** for each Candidate name, run `grep -rln "\b<name>\b" claude-code/` and inspect hits. Skill-directory collisions would block adoption; prose mentions in unrelated contexts are safe.
+
+| Candidate | Hits in claude-code/ | Disposition |
+|-----------|---------------------|-------------|
+| `tdd` | 0 | clean — adoption-safe |
+| `to-prd` | 0 | clean |
+| `diagnose` | 1 (in `agent-teams/references/ERROR_RECOVERY.md` — used as verb, not skill name) | clean — no directory collision |
+| `to-issues` | 0 | clean |
+| `triage` | 1 (in `retro/SKILL.md` — used as verb) | clean — no directory collision |
+| `improve-codebase-architecture` | 0 | clean |
+| `zoom-out` | 0 | clean |
+| `git-guardrails-claude-code` | 0 | clean |
+| `setup-pre-commit` | 0 | clean |
+| `context-save` | 0 | clean |
+| `context-restore` | 0 | clean |
+| `freeze` | 0 | clean |
+| `unfreeze` | 0 | clean |
+| `guard` | 1 (in `aa-ma-commit-drift.sh` — variable name, not skill) | clean — no directory collision |
+| `careful` | 0 | clean |
+| `skillify` | 0 | clean |
+| `investigate` | 5 (used as verb in multiple SKILL.md descriptions) | clean — no directory collision |
+| `autoplan` | 0 | clean — but see `explicit_conflicts` in gstack-inventory.json (terminology overlap with `/aa-ma-plan`); mark **DEFERRED-CONFLICT** even though no name hit |
+| `office-hours` | 0 | clean |
+| `canary` | 0 | clean |
+
+**Conclusion:** zero skill-directory collisions across all 20 audited candidates. Soft hits (4 cases) are all incidental verb/variable usage in unrelated files — no adoption blocker. Audit valid through 2026-Q3 (re-run grep loop if claude-code/ surface grows substantially before that).
+
 ## Provenance
 
 This audit synthesizes three canonical inventories fetched on 2026-05-10 via `gh api`:

@@ -82,7 +82,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/archive-aa-ma` | Archive completed tasks to `dev/completed/` |
 | `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
 
-### Skills (13)
+### Skills (14)
 
 | Skill | Purpose |
 |-------|---------|
@@ -99,6 +99,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `defense-in-depth` | Four-layer validation pattern for making bugs structurally impossible |
 | `dispatching-parallel-agents` | Pattern for concurrent independent agent investigations |
 | `debugging-strategies` | Systematic debugging process with multi-language tooling |
+| `grill-with-docs` | Glossary-aware grilling: challenges plans against `CONTEXT.md` / ADRs, sharpens terminology, updates docs inline (forked from mattpocock/skills, invoked by /aa-ma-plan Phase 1.3 when project state warrants) |
 
 ### Agents (2)
 

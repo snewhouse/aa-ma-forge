@@ -69,11 +69,83 @@ If `PROJECT_INDEX.json` exists, include its structural context in planning:
 - Read `_meta.symbol_importance` for key entry points
 - This pre-loads structural understanding so Phase 2-3 research is better targeted
 
-**Step 1.3: Grill-Me Protocol**
+**Step 1.3: Grill Protocol (mode-aware)**
 
-Before moving to structured thinking, apply the `/grill-me` discipline: interview the user relentlessly about every aspect of their request. Walk down each branch of the design/decision tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer. If a question can be answered by exploring the codebase, explore the codebase instead of asking.
+Phase 1.3 supports three grill protocols selected via the `--grill-mode` flag,
+the `AA_MA_GRILL_MODE` env var, or auto-detection from project state. Behaviour
+preserved from v0.5.0 for any project that did not have `CONTEXT.md` or
+`docs/adr/` (the auto resolution falls through to the original `/grill-me`
+discipline).
 
-Continue until all major decision branches are resolved. This prevents building plans on unresolved assumptions.
+**Modes:**
+
+| Mode | Behaviour |
+|------|-----------|
+| `auto` (default) | Detect project state. If `CONTEXT.md` exists OR `docs/adr/` exists and is readable → `with-docs`. Unreadable `docs/adr/` falls back to `simple` with a stderr WARN. Otherwise → `simple`. |
+| `with-docs` | Force `Skill(grill-with-docs)` regardless of project state. Creates `CONTEXT.md` / `docs/adr/` lazily as terms or decisions crystallise. |
+| `simple` | Force the existing `/grill-me` protocol (preserved verbatim from v0.5.0). |
+| `skip` | Bypass Phase 1.3 entirely. Parallel to `--skip-lessons` in Phase 1.5. |
+
+Invalid `--grill-mode` values exit with code 2 and a stderr error; the caller
+treats the response as `skip` for safety.
+
+**Mode resolution (inline bash — runs from the user's project root):**
+
+The logic below is functionally identical to `scripts/grill-mode-resolver.sh`
+in this plugin (the standalone script is the canonical implementation, exercised
+by `tests/commands/test_grill_mode_resolver.py`). Keep both copies in lock-step
+on changes.
+
+```bash
+# Honor CLI flag > env var > default 'auto'. Substitute the actual user-provided
+# arg here; in this command, parse "$@" for `--grill-mode=<value>`.
+GRILL_MODE="${AA_MA_GRILL_MODE:-auto}"
+# (parse "$@" here for --grill-mode=<value> override)
+
+case "$GRILL_MODE" in
+    auto|with-docs|simple|skip) ;;
+    *)
+        echo "ERROR: invalid --grill-mode value: '$GRILL_MODE' (valid: auto, with-docs, simple, skip)" >&2
+        echo "Treating as 'skip' for safety; Phase 1.3 will be bypassed." >&2
+        GRILL_MODE=skip
+        ;;
+esac
+
+if [ "$GRILL_MODE" = "auto" ]; then
+    if [ -f CONTEXT.md ]; then
+        echo "GRILL-MODE: with-docs (auto: CONTEXT.md found at $(pwd))" >&2
+        GRILL_MODE=with-docs
+    elif [ -d docs/adr ]; then
+        if [ -r docs/adr ] && [ -x docs/adr ]; then
+            echo "GRILL-MODE: with-docs (auto: docs/adr/ found and readable)" >&2
+            GRILL_MODE=with-docs
+        else
+            echo "WARN: docs/adr/ exists but is not readable; falling back to simple grill-me protocol" >&2
+            GRILL_MODE=simple
+        fi
+    else
+        echo "GRILL-MODE: simple (auto: no CONTEXT.md and no docs/adr/ at $(pwd))" >&2
+        GRILL_MODE=simple
+    fi
+fi
+```
+
+**Dispatch on resolved mode:**
+
+- **`with-docs`** — Invoke `Skill(grill-with-docs)`. The skill challenges the
+  plan against existing `CONTEXT.md` / ADRs, sharpens terminology, and updates
+  docs inline as decisions crystallise. Forked into this plugin under
+  `claude-code/skills/grill-with-docs/` (auto-discovered by `scripts/install.sh`,
+  symlinked to `~/.claude/skills/grill-with-docs/`).
+- **`simple`** — Apply the `/grill-me` discipline: interview the user
+  relentlessly about every aspect of their request. Walk down each branch of the
+  design/decision tree, resolving dependencies between decisions one-by-one. For
+  each question, provide your recommended answer. If a question can be answered
+  by exploring the codebase, explore the codebase instead of asking.
+- **`skip`** — Emit `GRILL-MODE: SKIPPED — proceeding to Step 1.4` and continue.
+
+Continue (when not skipped) until all major decision branches are resolved.
+This prevents building plans on unresolved assumptions.
 
 **Step 1.4: Ask Clarifying Questions**
 

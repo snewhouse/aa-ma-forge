@@ -6,13 +6,49 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## v0.6.0 (2026-05-10)
 
+Skill ecosystem integration — adopt 3 mattpocock/skills (grill-with-docs, prototype,
+write-a-skill) via fork+ADR+test pattern. Operationalises engineering-standards Theme 1
+`Prototype-Required: YES` flag (ADR-0003). Ships canonical skill-authoring procedure
+(ADR-0004). Adds `/aa-ma-plan` Phase 1.3 mode-aware grill protocol with `--grill-mode`
+flag + `AA_MA_GRILL_MODE` env var (ADR-0002). Skill count 13 → 16. Backward-compat
+preserved: greenfield projects (no `CONTEXT.md`, no `docs/adr/`) resolve auto → simple
+→ unchanged v0.5.0 `/grill-me` protocol.
+
 ### Feat
 
 - **skill-ecosystem-integration**: COMPLETE milestone M2 — prototype + write-a-skill adopted
 - **skills**: fork prototype + write-a-skill from mattpocock/skills upstream
 - **skill-ecosystem-integration**: COMPLETE milestone M1 — grill-with-docs adopted
-- **aa-ma-plan**: wire grill-with-docs into Phase 1.3 (mode-aware)
-- **skills**: fork grill-with-docs from mattpocock/skills upstream
+- **aa-ma-plan**: wire grill-with-docs into Phase 1.3 (mode-aware) — new `--grill-mode={auto,with-docs,simple,skip}` flag, `AA_MA_GRILL_MODE` env var, and 105-line `scripts/grill-mode-resolver.sh` (8 branches, 13 unit tests covering 100% of declared paths)
+- **skills**: fork grill-with-docs from mattpocock/skills upstream — auto-discovered by `scripts/install.sh`, all 3 forked files (SKILL.md, CONTEXT-FORMAT.md, ADR-FORMAT.md) MD5-clean against canonical with provenance comments
+
+### Docs
+
+- **adr**: ADR-0002 (grill-with-docs adoption — fork + Phase 1.3 wire), ADR-0003 (prototype adoption — operationalises Theme 1, LOGIC + UI branches), ADR-0004 (write-a-skill adoption — canonical authoring procedure)
+- **research**: `docs/research/skill-ecosystem-audit.md` (258 lines, 6 sections + lineage map + cross-reference audit) synthesising 3 canonical inventories (mattpocock + gstack + gsd) fetched via `gh api`; "valid through 2026-Q3" decay markers per recommendation
+- **research**: `docs/research/_inventories/{mattpocock,gstack,gsd}-inventory.json` — ground-truth canonical inventories with `_meta.{source_url, fetched_at, verifier_method}`
+- **context**: `CONTEXT.md` (83 lines) at repo root — canonical plan-authoring vocabulary (Repo / Catalog / Ecosystem; Fork / Adoption / Upstream; Candidate / Proposal / Status enum); aa-ma-forge now satisfies grill-with-docs auto-detection going forward
+- **rules**: `claude-code/rules/engineering-standards.md` Theme 1 cross-reference to `Skill(prototype)` (SOFT — no HARD gate behavior change; absent-field semantic preserved)
+- **spec**: `docs/spec/aa-ma-quick-reference.md` updated with `--grill-mode` flag documentation; `docs/spec/claude-code-foundations.md` skill table extended with prototype + write-a-skill rows + count 13 → 16
+- **lessons**: L-001 (External URL First Principle) + L-002 (per-milestone doc-count-drift) + L-003 (cz bump owns CHANGELOG headings — never manually edit `## vX.Y.Z`)
+
+### Chore
+
+- **security**: `SECURITY.md` skill count 13 → 16 with grill-with-docs + prototype + write-a-skill alphabetically inserted (positions 8, 12, 16 respectively)
+- **doc-count-drift**: 4 Tier-6 sweeps run (M1.5, M1.6, M2.6, M2.7) — each milestone's count transition independently discharged per L-002 ("doc-count-drift fires per milestone, not per plan")
+- **gitignore-aware**: discovered project's `CLAUDE.md` is gitignored (line 2) — local-only edits documented; tracked equivalent prose lives in `docs/spec/claude-code-foundations.md`
+
+### Test
+
+- **skills**: `tests/skills/{_helpers.py, test_grill_with_docs_frontmatter.py, test_prototype_frontmatter.py, test_write_a_skill_frontmatter.py}` — 6 frontmatter test cases sharing the DRY `_helpers.split_frontmatter` + `assert_skill_frontmatter` helper
+- **commands**: `tests/commands/test_grill_mode_resolver.py` — 13 test cases, 100% coverage of all 8 grill-mode-resolver branches (raised plan-eng-review's "29% paths tested" baseline to 100%)
+- **hooks**: `tests/hooks/install_dry_run.bats` — 4 cases verifying `install.sh --dry-run` symlink announcements; skill-count assertion made dynamic (compares against `ls -d claude-code/skills/*/ | wc -l`) — future-proof against all skill additions
+
+### Plan close
+
+- skill-ecosystem-integration v1.2: 3 milestones (M1: grill-with-docs; M2: prototype + write-a-skill; M3: audit + version bump) — full plan ship in single 0.5.0 → 0.6.0 minor bump
+- 11 commits in M1 + 9 commits in M2 + (this) commits in M3 — each task atomic with `[AA-MA Plan]` footer
+- Test posture: 439 pytest passed + 58 bats passed; ruff src/ + tests/ clean; /grill-me command unchanged on branch (regression preserved); engineering-standards Theme 1 SOFT cross-ref preserves HARD gate behavior
 
 ## v0.5.0 (2026-05-09)
 

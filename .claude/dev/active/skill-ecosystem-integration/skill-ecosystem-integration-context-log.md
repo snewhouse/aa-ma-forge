@@ -203,3 +203,41 @@ These will be moved to `docs/research/_inventories/` during M3.1 (relocation, no
 - **Skill count post-M2:** 16 (matches disk reality + SECURITY.md + foundations.md)
 - **Plan-gaps documented for /verify-plan future runs:** (a) plan reference.md path inventory should flag CLAUDE.md as gitignored (M1 finding); (b) M2.7 doc-count-drift grep gate should include `tests/` directory (M2.9 inline fix); (c) docs/spec/claude-code-foundations.md was not in M1's path inventory but contained "Skills (13)" heading — handled inline in M1.5
 - **Next:** Begin M3 (audit research note + comprehensive 0.5.0 → 0.6.0 single version bump covering all 3 milestones).
+
+---
+
+## [2026-05-10] GATE APPROVAL: Milestone M3 + PLAN CLOSE — skill-ecosystem-integration v1.2
+
+- **Gate:** HARD (M3 close) + PLAN CLOSE
+- **Approved by:** Stephen Newhouse (via AskUserQuestion HARD gate at 2026-05-10T17:48 — "Approve M3 + plan close + push")
+- **Criteria verified:** 7/7
+  1. ✓ All sub-steps 3.1–3.5 marked COMPLETE with concrete Result Logs (each Result Log includes specific commit hashes, file counts, line counts, MD5 evidence, and any plan-gap discoveries)
+  2. ✓ `git status` clean for AA-MA files at finalization (`git status --short .claude/dev/active/skill-ecosystem-integration/` returns empty before this commit)
+  3. ✓ Zero `Status: PENDING` across entire plan (M1 + M2 + M3) — verified via `grep -cE "^- Status: PENDING" tasks.md` returning 1 (Task 3.6 itself, flips to COMPLETE in this commit)
+  4. ✓ `provenance.log` IMPACT_ANALYSIS entry: written in this commit (consolidated impact analysis for all 11 files modified vs M2-close 933b0db; Overall Risk: LOW; entire-plan non-breaking constraint structurally verified)
+  5. ✓ `provenance.log` version-pipeline CRITICAL_PATH_REVIEW entry: present (M3.5 at 17:45 — files updated, mechanism = cz bump, tag plan documented)
+  6. ✓ Milestone-close commit with `[AA-MA Plan] skill-ecosystem-integration .claude/dev/active/skill-ecosystem-integration` footer: this commit
+  7. ✓ Branch pushed to origin + tag v0.6.0 pushed: post-this-commit (per user "Approve M3 + plan close + push")
+- **Decision:** APPROVED + PUSHED
+- **PLAN-LEVEL ARTIFACTS shipped (entire skill-ecosystem-integration v1.2):**
+  - **3 new skills** under `claude-code/skills/`: grill-with-docs (M1), prototype + write-a-skill (M2) — all forked from mattpocock/skills with provenance comments + MD5-clean diff vs canonical (1 transcription-typo caught + fixed by diff verification step in M2.2)
+  - **3 new ADRs** under `docs/adr/`: ADR-0002 (grill-with-docs), ADR-0003 (prototype), ADR-0004 (write-a-skill); all MADR-style; check_adr_index.sh PASS (4/4 entries)
+  - **/aa-ma-plan Phase 1.3 mode-aware grill protocol**: --grill-mode={auto,with-docs,simple,skip} flag + AA_MA_GRILL_MODE env var; standalone resolver script `scripts/grill-mode-resolver.sh` (105 lines); 13 unit tests covering 100% of all 8 declared branches
+  - **Engineering-standards Theme 1 cross-reference**: SOFT cross-ref to `Skill(prototype)` (HARD gate Section 6.7 condition 5 behavior preserved — absent-field semantic intact)
+  - **CONTEXT.md at repo root** (83 lines): canonical plan-authoring vocabulary (3 fuzzy clusters resolved with definitions + _Avoid_ guidance + flagged ambiguities + example dialogue + Status enum); aa-ma-forge now satisfies grill-with-docs auto-detection going forward
+  - **`docs/research/skill-ecosystem-audit.md`** (258 lines, 6 sections + provenance + how-to-use + status): canonical synthesis of mattpocock + gstack + gsd inventories with status enum, lineage map (5 confirmed lineages), and cross-reference grep-loop evidence; "valid through 2026-Q3" decay markers
+  - **3 inventory JSONs** under `docs/research/_inventories/`: mattpocock + gstack + gsd canonical inventories with `_meta.{source_url, fetched_at, verifier_method=gh-api}` for staleness checks
+  - **Skill count synced**: SECURITY.md + foundations.md + CLAUDE.md (gitignored) all = 16 (matches disk reality)
+  - **Test surface**: 21 new test cases — 6 frontmatter pytest cases (sharing the DRY `_helpers` module) + 13 resolver pytest cases (100% branch coverage) + 4 install_dry_run bats cases (skill count made dynamic — future-proof)
+  - **Lessons committed**: L-001 (External URL First Principle), L-002 (per-milestone doc-count-drift), L-003 (cz bump owns CHANGELOG headings)
+  - **Version bump**: 0.5.0 → 0.6.0 via `cz bump --increment minor`; tag v0.6.0 at commit 2e3593d; CHANGELOG enriched per L-003 (auto-generated heading + manual ### Docs + ### Chore + ### Test subsections + release narrative + Plan-close summary)
+- **Critical-Path: ALL DISCHARGED** — doc-count-drift × 4 (M1.5, M1.6, M2.6, M2.7) + version-pipeline × 1 (M3.5)
+- **Test posture (entire plan):** 439 pytest passed + 58 bats passed; ruff clean across src/ + tests/; **/grill-me command UNCHANGED across all 3 milestones** (`git diff main..HEAD -- claude-code/commands/grill-me.md` empty — non-breaking constraint structurally verified)
+- **Plan-gaps documented for future /verify-plan runs:** (1) CLAUDE.md is gitignored — plan path inventory should flag this; (2) docs/spec/claude-code-foundations.md was not in M1's path inventory but contained the "Skills (13)" heading — handled inline; (3) M2.7 doc-count-drift grep gate scope should include `tests/` directory — install_dry_run.bats hardcoded "14" broke at M2.9 + fixed inline with dynamic disk-count compare
+- **In-flight improvements (not in plan, captured during execution):** (a) DRY refactor — `tests/skills/_helpers.py` shared across 3 frontmatter tests; (b) bats install_dry_run made dynamic (no future doc-count-drift maintenance for skill count); (c) docs/lessons.md L-002 + L-003 committed for durability
+- **Final state:**
+  - Branch: feature/skill-ecosystem-integration @ this commit (about to push)
+  - Tag: v0.6.0 at 2e3593d (about to push)
+  - 27 atomic commits since plan start (11 M1 + 9 M2 + 7 M3)
+  - Plan ready for `/archive-aa-ma skill-ecosystem-integration` after merge to main
+- **Recommended next action:** push branch + tag, open PR (or merge to main if preferred), then run `/archive-aa-ma skill-ecosystem-integration` to relocate the plan artifacts to `.claude/dev/completed/`.

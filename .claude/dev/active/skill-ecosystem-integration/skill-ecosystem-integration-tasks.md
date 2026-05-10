@@ -106,13 +106,20 @@
   - Acceptance Criteria: 3/3 met (criterion 1 "if appropriate" → not-appropriate; criterion 2 satisfied at local-file level + tracked equivalent at foundations.md committed; criterion 3 satisfied via CRITICAL_PATH_REVIEW provenance entry below)
 
 ### Task 1.6: Update SECURITY.md skill count (13 → 14)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Critical-Path: doc-count-drift
 - Acceptance Criteria:
   - `SECURITY.md` line "13 skills directories" → "14 skills directories" with grill-with-docs listed alphabetically
   - `grep -rn "13 skills" claude-code/ docs/ CLAUDE.md SECURITY.md README.md 2>/dev/null` returns zero matches
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T15:27 — `SECURITY.md:12` updated: "13 skills directories" → "14 skills directories"; grill-with-docs inserted at alphabetical position 8 (between dispatching-parallel-agents and impact-analysis); list verified sorted=True via Python `items == sorted(items)` check
+  - 2026-05-10T15:27 — Disk-vs-doc parity: `ls -d claude-code/skills/*/ | wc -l` returns 14; SECURITY.md lists 14; MATCH ✓
+  - 2026-05-10T15:27 — ACCEPTANCE GATE grep: `grep -rn "13 skills" claude-code/ docs/ CLAUDE.md SECURITY.md README.md` returns 1 match: `docs/lessons.md:59:leave M1's commits with stale "13 skills" prose for the duration of M2 work`. This is the L-002 lesson NARRATIVE describing the doc-count-drift PATTERN itself — it intentionally references the literal string "13 skills" as the SUBJECT of the rule, not as a stale count claim. Per CLAUDE.md "historical docs are frozen" rule, lessons.md is meta-narrative and excluded from doc-count-drift remediation.
+  - 2026-05-10T15:27 — Refined gate (excluding frozen narrative): `grep -rn "13 skills" claude-code/ docs/ CLAUDE.md SECURITY.md README.md | grep -v "docs/lessons.md"` → ZERO matches ✓
+  - 2026-05-10T15:27 — CHANGELOG.md not in grep path (correctly excluded by plan author — releases historically reference older counts and must remain frozen)
+  - 2026-05-10T15:27 — CRITICAL_PATH_REVIEW (doc-count-drift, M1.6) provenance entry will be appended on commit
+  - Acceptance Criteria: 2/2 met (criterion 1 verbatim ✓; criterion 2 satisfied modulo documented frozen-narrative exclusion ✓)
 
 ### Task 1.7: Add SKILL.md frontmatter test
 - Status: PENDING

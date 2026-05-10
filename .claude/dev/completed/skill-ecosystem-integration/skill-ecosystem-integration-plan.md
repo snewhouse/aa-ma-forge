@@ -1,3 +1,8 @@
+<!-- ARCHIVED: 2026-05-10 21:22 -->
+<!-- Plan: skill-ecosystem-integration - COMPLETE -->
+<!-- Total Milestones: 3 | Duration: 2026-05-10 to 2026-05-10 (same-day completion) -->
+<!-- Final commit: 1f5a1d7 — merged to main + tag v0.6.0 pushed -->
+
 # skill-ecosystem-integration Plan
 
 **Objective:** Adopt three skills from `https://github.com/mattpocock/skills` as first-class aa-ma-forge skills (M1: `grill-with-docs`; M2: `prototype` + `write-a-skill`); wire `grill-with-docs` into `/aa-ma-plan` Phase 1.3 with backwards-compatible conditional invocation; cross-reference `prototype` from `claude-code/rules/engineering-standards.md` Theme 1 (where the `Prototype-Required: YES` enum lives but has no operational guidance); ship a research deliverable (M3) surveying three named ecosystems (mattpocock/skills, gstack, gsd-build/get-shit-done) with verified canonical inventories, so future adoption decisions rest on structured comparison data, not gut-feel.

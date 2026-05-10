@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## v0.6.0 (2026-05-10)
+
+### Feat
+
+- **skill-ecosystem-integration**: COMPLETE milestone M2 — prototype + write-a-skill adopted
+- **skills**: fork prototype + write-a-skill from mattpocock/skills upstream
+- **skill-ecosystem-integration**: COMPLETE milestone M1 — grill-with-docs adopted
+- **aa-ma-plan**: wire grill-with-docs into Phase 1.3 (mode-aware)
+- **skills**: fork grill-with-docs from mattpocock/skills upstream
+
 ## v0.5.0 (2026-05-09)
 
 Engineering-standards doctrine + Planning Standard 11→12. Wires a 6-theme

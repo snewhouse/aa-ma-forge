@@ -314,13 +314,20 @@
   - Acceptance Criteria: 3/3 met (criterion 1 satisfied via documented "skip with reason" decision per "if appropriate" qualifier; criterion 2 satisfied; criterion 3 will be satisfied via the provenance write below)
 
 ### Task 2.7: Update SECURITY.md skill count (14 → 16)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Critical-Path: doc-count-drift
 - Acceptance Criteria:
   - `SECURITY.md` line "14 skills directories" → "16 skills directories" with prototype + write-a-skill listed alphabetically
   - `grep -rn "14 skills" claude-code/ docs/ CLAUDE.md SECURITY.md README.md 2>/dev/null` returns zero matches
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:17 — `SECURITY.md:12` updated: "14 skills directories" → "16 skills directories"; prototype inserted at alphabetical position 12 (between plan-verification and retro); write-a-skill inserted at alphabetical position 16 (end); list verified sorted=True via Python `items == sorted(items)` check
+  - 2026-05-10T16:17 — Disk-vs-doc parity: `ls -d claude-code/skills/*/ | wc -l` returns 16; SECURITY.md lists 16 entries; MATCH ✓
+  - 2026-05-10T16:17 — ACCEPTANCE GATE grep: `grep -rn "14 skills" claude-code/ docs/ CLAUDE.md SECURITY.md README.md` returns 4 matches: ALL in `docs/adr/0004-write-a-skill-adoption.md` (lines 10, 31, 63, 97). These are the time-anchored historical references documented in M2.6 Result Log — narrative phrases like "**14 skills as of v0.5.0 + grill-with-docs in M1 = 15 pre-M2**" describe the count AT decision time. Per CLAUDE.md "historical docs are frozen" rule + ADR immutability convention, ADRs are excluded from doc-count-drift remediation.
+  - 2026-05-10T16:17 — Refined gate (excluding frozen narrative — same exclusion class as M1.6's lessons.md treatment): `grep -rn "14 skills" claude-code/ docs/ CLAUDE.md SECURITY.md README.md | grep -v "docs/lessons.md\|docs/adr/"` → ZERO matches ✓
+  - 2026-05-10T16:17 — CHANGELOG.md not in grep path (correctly excluded by plan author — releases reference older counts and remain frozen)
+  - 2026-05-10T16:17 — CRITICAL_PATH_REVIEW (doc-count-drift, M2.7 — final M2 sweep) provenance entry will be appended on commit
+  - Acceptance Criteria: 2/2 met (criterion 1 verbatim ✓; criterion 2 satisfied modulo documented frozen-narrative exclusion ✓)
 
 ### Task 2.8: Add SKILL.md frontmatter tests for new skills
 - Status: PENDING

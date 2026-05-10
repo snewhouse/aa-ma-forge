@@ -55,7 +55,7 @@
   - Acceptance Criteria: ALL 4 met ✓
 
 ### Task 1.3: Wire into /aa-ma-plan Phase 1.3
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
   - `claude-code/commands/aa-ma-plan.md` Phase 1.3 section updated with conditional grill-mode logic
@@ -63,7 +63,13 @@
   - `AA_MA_GRILL_MODE` env var documented
   - Default `--grill-mode=auto`: if `[ -f CONTEXT.md ] || [ -d docs/adr ]`, invoke grill-with-docs; else invoke /grill-me
   - Backward-compat: greenfield project (no CONTEXT.md, no docs/adr) behaves identically to v0.5.0
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T15:18 — Replaced `**Step 1.3: Grill-Me Protocol**` (4 lines, 1 protocol) with `**Step 1.3: Grill Protocol (mode-aware)**` (~75 lines, 4 modes); aa-ma-plan.md grew 6 → 920 lines (+~70 net)
+  - 2026-05-10T15:18 — Modes table renders: auto/with-docs/simple/skip with explicit dispatch behavior per mode; AA_MA_GRILL_MODE env var + --grill-mode CLI flag both documented
+  - 2026-05-10T15:18 — Inline bash heredoc replicates `scripts/grill-mode-resolver.sh` logic; both files include cross-reference comment for parity tracking ("Keep both copies in lock-step")
+  - 2026-05-10T15:18 — Greenfield backward-compat preserved: empty project resolves auto → simple → invokes verbatim-preserved /grill-me protocol prose (zero behavior change for any v0.5.0 project lacking CONTEXT.md/docs/adr)
+  - 2026-05-10T15:18 — Created `scripts/grill-mode-resolver.sh` (canonical implementation, executable bit set, 3146B); smoke-tested all 8 branches via mktemp project states — every branch returns expected stdout + stderr + exit code (test 1: with-docs/0, test 2: with-docs/0, test 3: WARN→simple/0, test 4: simple/0, test 5: with-docs/0, test 6: simple/0, test 7: skip/0, test 8: ERROR→skip/2). Env var precedence + CLI override of env var both verified.
+  - Acceptance Criteria: ALL 5 met ✓
 
 ### Task 1.4: Author ADR-0002 (grill-with-docs adoption)
 - Status: PENDING

@@ -57,3 +57,4 @@
 [2026-05-10T11:40:00+01:00] M1_1_COMPLETE — Task 1.1 marked COMPLETE with concrete Result Log; C1+C2 resolved
 [2026-05-10T11:41:00+01:00] PUSH_DEFERRED — origin/main and origin/feature/skill-ecosystem-integration NOT pushed (CLAUDE.md "Hard-to-reverse operations" — pushes to main require explicit user confirmation)
 [2026-05-10T11:41:00+01:00] READY_FOR_M1_2 — next action: fork grill-with-docs into claude-code/skills/grill-with-docs/ (Task 1.2)
+[2026-05-10T15:15:27+01:00] TASK 1.2 COMPLETE — Forked grill-with-docs upstream into claude-code/skills/grill-with-docs/ (3 files, MD5-verified clean diff)

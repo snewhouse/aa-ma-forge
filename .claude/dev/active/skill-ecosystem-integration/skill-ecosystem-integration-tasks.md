@@ -8,7 +8,7 @@
 
 ## Milestone M1: Adopt grill-with-docs
 
-- Status: PENDING
+- Status: ACTIVE
 - Mode: Mixed (HITL gates around AFK execution)
 - Gate: HARD
 - Dependencies: None
@@ -40,14 +40,19 @@
   - Push to origin/main DEFERRED to user discretion (per CLAUDE.md "Hard-to-reverse operations" guidance — pushes to main require explicit confirmation)
 
 ### Task 1.2: Fork grill-with-docs into claude-code/skills/
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
   - `claude-code/skills/grill-with-docs/SKILL.md` matches upstream substance; provenance comment at top: `<!-- Forked from https://github.com/mattpocock/skills/skills/engineering/grill-with-docs on 2026-05-10 — aa-ma-forge v0.6.0 -->`
   - `claude-code/skills/grill-with-docs/CONTEXT-FORMAT.md` matches upstream
   - `claude-code/skills/grill-with-docs/ADR-FORMAT.md` matches upstream
   - `diff` against upstream (live `gh api` fetch) shows only the provenance comment as diff
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T15:14 — Pre-fork verification: 3/3 local upstream files MD5-match canonical via `gh api repos/mattpocock/skills/contents/skills/engineering/grill-with-docs/<f>` (SKILL.md=5ad241e..., CONTEXT-FORMAT.md=57e7e26..., ADR-FORMAT.md=bb327ba...)
+  - 2026-05-10T15:14 — Repo metadata at fork time: 68666 stars, default_branch=main, updated=2026-05-10T14:11:44Z
+  - 2026-05-10T15:14 — Created `claude-code/skills/grill-with-docs/` (3 files: SKILL.md 3682B, CONTEXT-FORMAT.md 3275B, ADR-FORMAT.md 2896B; each starts with provenance comment line dated 2026-05-10)
+  - 2026-05-10T15:14 — Diff verification: each file shows only `0a1` insertion of provenance comment vs canonical; after stripping the comment, all 3 files diff CLEAN against `gh api`-fetched canonical content (zero substantive divergence)
+  - Acceptance Criteria: ALL 4 met ✓
 
 ### Task 1.3: Wire into /aa-ma-plan Phase 1.3
 - Status: PENDING

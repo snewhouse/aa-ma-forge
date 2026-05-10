@@ -255,22 +255,31 @@
   - Acceptance Criteria: ALL 3 met ✓ (after typo remediation)
 
 ### Task 2.3: Author ADR-0003 (prototype adoption)
-- Status: PENDING
-- Mode: HITL
+- Status: COMPLETE
+- Mode: HITL (executed AFK under /effort max + Auto Mode + user blanket authorization; HARD gate at 2.10 is the user-approval point)
 - Acceptance Criteria:
   - `docs/adr/0003-prototype-adoption.md` follows `docs/adr/TEMPLATE.md`
   - Captures: context (engineering-standards Theme 1 already has `Prototype-Required: YES` enum but no operational guidance), decision (fork mattpocock prototype to provide the "how"), alternatives (write our own, reference upstream, skip), consequences (LOGIC branch is cross-language; UI branch is web-frontend only — documented constraint)
   - Registered in `docs/adr/INDEX.md`
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:08 — Created `docs/adr/0003-prototype-adoption.md` (145 lines, MADR-style matching ADR-0001/ADR-0002 structure)
+  - 2026-05-10T16:08 — Sections: Context+Problem Statement (anchored to Theme 1 "operationalise existing doctrine"), 7 Decision Drivers, 4 Considered Options (fork+wire = chosen, plus write-our-own/reference-upstream/skip), Decision Outcome with rationale, per-option Pros/Cons, 5 Sub-Decisions table (D1-D5), Consequences split positive/negative/neutral, Implementation Notes (file inventory + MD5 verification + status transition rule), References
+  - 2026-05-10T16:08 — Documented LOGIC vs UI cross-language constraint explicitly (LOGIC fully cross-language; UI presupposes web-frontend with TSX/searchParams/process.env.NODE_ENV) — addresses planning conversation #5 (cross-language assessment)
+  - 2026-05-10T16:08 — Registered in INDEX.md as row 3 (Implemented, 2026-05-10); `bash scripts/check_adr_index.sh` → PASS (4 ADR files, 4 INDEX entries)
+  - Acceptance Criteria: ALL 3 met ✓
 
 ### Task 2.4: Author ADR-0004 (write-a-skill adoption)
-- Status: PENDING
-- Mode: HITL
+- Status: COMPLETE
+- Mode: HITL (executed AFK under /effort max + Auto Mode + user blanket authorization; HARD gate at 2.10 is the user-approval point)
 - Acceptance Criteria:
   - `docs/adr/0004-write-a-skill-adoption.md` follows template
   - Captures: context (no native skill-authoring framework in aa-ma-forge), decision (fork mattpocock write-a-skill), alternatives (rely on document-skills:skill-creator, reference gstack /skillify, write our own), consequences (lightweight skill at 3KB; canonical pattern for new skills going forward)
   - Registered in `docs/adr/INDEX.md`
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:08 — Created `docs/adr/0004-write-a-skill-adoption.md` (147 lines, MADR-style)
+  - 2026-05-10T16:08 — Sections: Context+Problem Statement (anchored to "no native skill-authoring procedure" gap; counts new skills since v0.5.0), 5 Decision Drivers, 5 Considered Options including all 3 listed alternatives (document-skills:skill-creator, gstack /skillify, write our own) plus skip — Option 4 (fork) chosen, Decision Outcome with rationale per alternative, per-option Pros/Cons, 5 Sub-Decisions (D1-D5 — including D5 noting that retro-audit of existing skill descriptions is out of scope), Consequences split, Implementation Notes (incl. transcription-typo capture), References
+  - 2026-05-10T16:08 — Registered in INDEX.md as row 4 (Implemented, 2026-05-10); `bash scripts/check_adr_index.sh` → PASS (4 ADR files, 4 INDEX entries)
+  - Acceptance Criteria: ALL 3 met ✓
 
 ### Task 2.5: Cross-reference prototype from engineering-standards.md
 - Status: PENDING

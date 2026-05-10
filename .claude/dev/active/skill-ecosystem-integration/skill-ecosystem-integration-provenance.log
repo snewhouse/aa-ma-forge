@@ -92,3 +92,5 @@
 [2026-05-10T15:40:34+01:00] MILESTONE M1 COMPLETE — skill-ecosystem-integration v1.2 / aa-ma-forge v0.6.0-dev (final version bump deferred to M3.5 per single-bump policy)
 [2026-05-10T16:05:58+01:00] TASK 2.1 COMPLETE — Forked prototype upstream into claude-code/skills/prototype/ (3 files: SKILL.md, LOGIC.md, UI.md; MD5-verified clean diff vs canonical)
 [2026-05-10T16:05:58+01:00] TASK 2.2 COMPLETE — Forked write-a-skill upstream into claude-code/skills/write-a-skill/SKILL.md; transcription typo (forks→forms) caught by diff verification step and fixed inline
+[2026-05-10T16:09:31+01:00] TASK 2.3 COMPLETE — Authored ADR-0003 (prototype adoption, 145 lines, MADR-style); LOGIC/UI cross-language constraint documented; INDEX.md row 3
+[2026-05-10T16:09:31+01:00] TASK 2.4 COMPLETE — Authored ADR-0004 (write-a-skill adoption, 147 lines, MADR-style); INDEX.md row 4; check_adr_index.sh PASS (4/4)

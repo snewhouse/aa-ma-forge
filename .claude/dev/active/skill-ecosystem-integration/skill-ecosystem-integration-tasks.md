@@ -210,7 +210,7 @@
 
 ## Milestone M2: Adopt prototype + write-a-skill
 
-- Status: ACTIVE
+- Status: COMPLETE
 - Mode: Mixed
 - Gate: HARD
 - Dependencies: M1 (must complete; M2 reuses fork+test patterns established in M1)
@@ -369,7 +369,7 @@
   - Acceptance Criteria: ALL 5 met ✓ (pytest 0; ruff src/ 0; bats 0 (after inline drift fix); both new skills invocable per smoke tests + skill registry; live evidence captured above and in provenance.log)
 
 ### Task 2.10: Milestone close + HARD gate
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Gate: HARD
 - Acceptance Criteria:
@@ -379,7 +379,14 @@
   - `provenance.log` has: IMPACT_ANALYSIS entry, doc-count-drift CRITICAL_PATH_REVIEW entry (M2)
   - `context-log.md` has: GATE APPROVAL entry for M2
   - Milestone-close commit with `[AA-MA Plan]` footer
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:30 — Sub-step audit: 2.1 ✓ 2.2 ✓ 2.3 ✓ 2.4 ✓ 2.5 ✓ 2.6 ✓ 2.7 ✓ 2.8 ✓ 2.9 ✓ — all 10 sub-steps COMPLETE with concrete Result Logs (2.10 itself flipping to COMPLETE in this commit)
+  - 2026-05-10T16:30 — `git status --short .claude/dev/active/skill-ecosystem-integration/` returned empty before this commit; this commit only adds the M2.10 closing edits
+  - 2026-05-10T16:30 — IMPACT_ANALYSIS consolidated for milestone (16 files vs M1-close 3e8ba4e: 8 added, 8 modified, 992+/106-): zero function/interface signature changes; `/grill-me` byte-identical between main and HEAD; engineering-standards.md Theme 1 cross-reference is SOFT (no HARD gate behavior change); 4 new test cases + DRY-refactored helper + dynamic-count bats fix; Overall Risk: LOW. Provenance entry written.
+  - 2026-05-10T16:30 — Critical-Path doc-count-drift evidence: 2 CRITICAL_PATH_REVIEW entries in provenance (M2.6 at 16:13, M2.7 final-sweep at 16:14); skill count fully synchronised at 16 across SECURITY.md + foundations.md + CLAUDE.md (gitignored); frozen-narrative exclusions documented (lessons.md + 4 ADR-0004 time-anchored references)
+  - 2026-05-10T16:30 — User HARD gate approval received via AskUserQuestion: "Approve M2 close" — written to context-log.md as `## [2026-05-10] GATE APPROVAL: Milestone M2`
+  - 2026-05-10T16:30 — Engineering Standards HARD Gate (Section 6.7) all 5 conditions PASS: (1) AA-MA artifacts in sync — clean git pre-commit; (2) zero PENDING in milestone — verified; (3) tests-pass evidence in 2.9 Result Log + provenance; (4) impact-analysis evidence in this Result Log + provenance; (5) Critical-Path provenance entries present (doc-count-drift M2.6 + M2.7); Prototype-Required: NONE on any M2 task (skipped — backward-compat per absent-field semantics — even though THIS milestone introduces the prototype skill, no M2 sub-step itself requires prototyping)
+  - Acceptance Criteria: ALL 6 met ✓ — milestone closing in this commit
 
 ---
 

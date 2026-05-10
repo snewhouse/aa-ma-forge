@@ -109,3 +109,21 @@
 [2026-05-10T16:20:55+01:00]   Smoke: SKILL.md frontmatter for prototype + write-a-skill parses as valid YAML, name fields match dir names ✓
 [2026-05-10T16:20:55+01:00]   Smoke: prototype + write-a-skill discoverable via Claude Code skill list at session start ✓
 [2026-05-10T16:20:55+01:00]   In-flight improvement: install_dry_run.bats test 4 now compares against actual disk count (future-proof for all skill additions)
+[2026-05-10T16:41:38+01:00] IMPACT_ANALYSIS — Milestone M2 (skill-ecosystem-integration v1.2)
+[2026-05-10T16:41:38+01:00]   Files: 16 changed vs M1-close 3e8ba4e (8 added + 8 modified, 992+/106- LOC)
+[2026-05-10T16:41:38+01:00]   Added: claude-code/skills/prototype/{SKILL.md, LOGIC.md, UI.md} (3 files, MD5-clean vs upstream)
+[2026-05-10T16:41:38+01:00]   Added: claude-code/skills/write-a-skill/SKILL.md (single file, MD5-clean vs upstream after transcription-typo fix)
+[2026-05-10T16:41:38+01:00]   Added: docs/adr/0003-prototype-adoption.md (145 lines) + 0004-write-a-skill-adoption.md (147 lines)
+[2026-05-10T16:41:38+01:00]   Added: tests/skills/_helpers.py (DRY shared helper) + test_prototype_frontmatter.py + test_write_a_skill_frontmatter.py (4 new test cases)
+[2026-05-10T16:41:38+01:00]   Modified: claude-code/rules/engineering-standards.md (Theme 1 SOFT cross-reference to Skill(prototype) + ADR-0003 link; HARD gate Section 6.7 condition 5 unchanged)
+[2026-05-10T16:41:38+01:00]   Modified: SECURITY.md, docs/spec/claude-code-foundations.md (skill count 14→16 + 2 new skill-table rows)
+[2026-05-10T16:41:38+01:00]   Modified: docs/adr/INDEX.md (rows 3 + 4); CLAUDE.md (line 48: 14→16, gitignored)
+[2026-05-10T16:41:38+01:00]   Modified: tests/hooks/install_dry_run.bats (hardcoded 14 → dynamic disk-count compare; future-proof)
+[2026-05-10T16:41:38+01:00]   Modified: tests/skills/test_grill_with_docs_frontmatter.py (DRY refactor — uses shared helper, regression-verified)
+[2026-05-10T16:41:38+01:00]   Modified: docs/lessons.md (L-002 + L-003 committed)
+[2026-05-10T16:41:38+01:00]   Non-breaking constraint VERIFIED: git diff main..HEAD -- claude-code/commands/grill-me.md is EMPTY across BOTH M1+M2
+[2026-05-10T16:41:38+01:00]   Theme 1 cross-reference is SOFT — no HARD gate behavior change; absent-field semantic preserved
+[2026-05-10T16:41:38+01:00]   Test regression: pytest 439 pass + bats 58 pass; ruff src/ + tests/ clean
+[2026-05-10T16:41:38+01:00]   Overall Risk: LOW (additive + tested + non-breaking + future-proof bats)
+[2026-05-10T16:41:38+01:00] GATE APPROVAL — Milestone M2 HARD gate APPROVED by Stephen Newhouse via AskUserQuestion at 2026-05-10T16:30
+[2026-05-10T16:41:38+01:00] MILESTONE M2 COMPLETE — skill-ecosystem-integration v1.2 / aa-ma-forge v0.6.0-dev (single version bump still deferred to M3.5)

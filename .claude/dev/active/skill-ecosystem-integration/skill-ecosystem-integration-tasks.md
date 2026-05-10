@@ -210,7 +210,7 @@
 
 ## Milestone M2: Adopt prototype + write-a-skill
 
-- Status: PENDING
+- Status: ACTIVE
 - Mode: Mixed
 - Gate: HARD
 - Dependencies: M1 (must complete; M2 reuses fork+test patterns established in M1)
@@ -225,22 +225,34 @@
   - All existing tests remain green; new frontmatter tests pass
 
 ### Task 2.1: Fork prototype into claude-code/skills/
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
   - `claude-code/skills/prototype/SKILL.md`, `LOGIC.md`, `UI.md` match upstream substance
   - Provenance comment at top of SKILL.md: `<!-- Forked from https://github.com/mattpocock/skills/skills/engineering/prototype on 2026-05-10 — aa-ma-forge v0.6.0 -->`
   - `diff` against upstream (live `gh api` fetch) shows only provenance comments as diff
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:01 — Pre-fork verification: prototype/ NOT installed locally (no `~/.claude/skills/prototype/` directory) — fetched canonical content directly from `gh api repos/mattpocock/skills/contents/skills/engineering/prototype/<f>` per L-001 External URL First Principle
+  - 2026-05-10T16:01 — Repo metadata at fetch: 68715 stars, updated 2026-05-10T14:55:45Z, default_branch=main
+  - 2026-05-10T16:01 — Fetched bytes/MD5: SKILL.md (3251B, 10ace9b5d79140b25d115bb8d840106d); LOGIC.md (5594B, d57721452aacaa04caacd0bc7c5c2f49); UI.md (6789B, c1eaad6437c90d5660b2ffc9ff91ffb4)
+  - 2026-05-10T16:01 — Created `claude-code/skills/prototype/{SKILL.md, LOGIC.md, UI.md}` each with provenance comment line at top
+  - 2026-05-10T16:02 — Diff verification: all 3 files show only `0a1` insertion of provenance comment vs canonical; after stripping the comment, all 3 diff CLEAN against `gh api`-fetched upstream
+  - Acceptance Criteria: ALL 3 met ✓
 
 ### Task 2.2: Fork write-a-skill into claude-code/skills/
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
   - `claude-code/skills/write-a-skill/SKILL.md` matches upstream substance
   - Provenance comment at top: `<!-- Forked from https://github.com/mattpocock/skills/skills/productivity/write-a-skill on 2026-05-10 — aa-ma-forge v0.6.0 -->`
   - `diff` against upstream shows only provenance comment as diff
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:01 — Pre-fork verification: local `~/.claude/skills/write-a-skill/SKILL.md` MD5-matches canonical upstream (492ef034b4fc9e497cc69b8fed78a742); 3056 bytes, single-file skill
+  - 2026-05-10T16:01 — Created `claude-code/skills/write-a-skill/SKILL.md` with provenance comment
+  - 2026-05-10T16:02 — INITIAL DIFF VERIFICATION FAILED: line 79 had transcription typo "PDFs, forks" instead of canonical "PDFs, forms" (good-example block in description requirements). Diff verification surfaced this immediately.
+  - 2026-05-10T16:02 — Typo fixed via Edit; re-verified: file now diffs CLEAN against upstream (only provenance differs)
+  - 2026-05-10T16:02 — Lesson observation: per-fork diff verification is structurally important — silent transcription errors are easy to introduce when copying multi-line content; the verification step catches them before commit. (Did not formalise as new lesson — already captured by L-001 codification of "code is truth" + the existing per-fork diff acceptance criterion does this work structurally.)
+  - Acceptance Criteria: ALL 3 met ✓ (after typo remediation)
 
 ### Task 2.3: Author ADR-0003 (prototype adoption)
 - Status: PENDING

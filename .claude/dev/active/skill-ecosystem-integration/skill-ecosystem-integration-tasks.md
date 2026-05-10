@@ -505,7 +505,7 @@
   - Acceptance Criteria: ALL 5 met ✓
 
 ### Task 3.6: Milestone close + HARD gate
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Gate: HARD
 - Acceptance Criteria:
@@ -516,4 +516,13 @@
   - `context-log.md` has: GATE APPROVAL entry for M3 (and overall plan close)
   - Branch pushed to origin; PR-ready or PR opened at user discretion
   - Milestone-close commit with `[AA-MA Plan]` footer
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T17:50 — Sub-step audit: 3.1 ✓ 3.2 ✓ 3.3 ✓ 3.4 ✓ 3.5 ✓ — all 6 sub-steps COMPLETE with concrete Result Logs (3.6 itself flipping to COMPLETE in this commit)
+  - 2026-05-10T17:50 — Plan-wide zero-PENDING audit: `grep -cE "^- Status: PENDING" tasks.md` returns 1 — Task 3.6 itself (the closing task), flips to COMPLETE in this commit. After commit: 0 PENDING across M1+M2+M3 entire plan.
+  - 2026-05-10T17:50 — `git status --short .claude/dev/active/skill-ecosystem-integration/` returned empty before this commit; this commit only adds the M3.6 + plan-close edits
+  - 2026-05-10T17:50 — IMPACT_ANALYSIS consolidated for milestone (11 files vs M2-close 933b0db: 3 added + 5 modified + 3 renamed, 465+/16-): NEW audit doc + CONTEXT.md + 3 inventories relocated; MODIFIED CHANGELOG.md + pyproject.toml + VERSION (cz bump) + quick-ref + AA-MA artifacts; Overall Risk: LOW. Provenance entry written.
+  - 2026-05-10T17:50 — Critical-Path version-pipeline evidence: M3.5 CRITICAL_PATH_REVIEW provenance entry at 17:45 — files updated, mechanism cz bump --increment minor (canonical per L-003), local tag v0.6.0 created at 2e3593d
+  - 2026-05-10T17:50 — User HARD gate approval received via AskUserQuestion: "Approve M3 + plan close + push" — written to context-log.md as `## [2026-05-10] GATE APPROVAL: Milestone M3 + PLAN CLOSE`
+  - 2026-05-10T17:50 — Engineering Standards HARD Gate (Section 6.7) all 5 conditions PASS: (1) AA-MA artifacts in sync — clean git pre-commit; (2) zero PENDING in milestone (and zero across entire plan) — verified; (3) tests-pass evidence in M3.5 + plan-wide via M2.9 (439 pytest + 58 bats); (4) impact-analysis evidence in this Result Log + provenance; (5) Critical-Path version-pipeline provenance entry present; Prototype-Required: NONE on any M3 task (skip per absent-field semantics)
+  - 2026-05-10T17:50 — Push will be executed after this commit per user authorization: `git push origin feature/skill-ecosystem-integration` + `git push origin v0.6.0`
+  - Acceptance Criteria: ALL 7 met ✓ — milestone + plan closing in this commit + push

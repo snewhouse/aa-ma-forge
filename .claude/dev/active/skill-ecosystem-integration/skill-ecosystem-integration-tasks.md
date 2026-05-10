@@ -443,13 +443,25 @@
   - Acceptance Criteria: ALL 5 met ✓
 
 ### Task 3.3: Glossary check via grill-with-docs (M1 deliverable in use!)
-- Status: PENDING
-- Mode: HITL
+- Status: COMPLETE
+- Mode: HITL (executed AFK under /effort max + Auto Mode + user blanket authorization; HARD gate at 3.6 is the user-approval point)
 - Acceptance Criteria:
   - Invoke `Skill(grill-with-docs)` against the audit doc draft (M1's grill-with-docs is now available)
   - Resolve canonical terms: "ecosystem" vs "catalog" vs "repo"; "adoption" vs "vendor" vs "fork"; "candidate" vs "proposal"
   - If `CONTEXT.md` does not exist at repo root and we introduce canonical terms, create it with definitions
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:39 — Invoked `Skill(grill-with-docs)` (M1's deliverable in productive use — first dogfood invocation since adoption); skill loaded SKILL.md, CONTEXT-FORMAT.md, ADR-FORMAT.md
+  - 2026-05-10T16:39 — Audited 3 fuzzy clusters from acceptance criteria via grep: ecosystem/catalog/repo (used inconsistently in audit doc); adoption/vendor/fork (mix of mechanical and workflow framing); candidate/proposal (PROPOSED-M3+ status tag plus prose use of "candidate")
+  - 2026-05-10T16:39 — Created `CONTEXT.md` at repo root (83 lines) — first CONTEXT.md for this repo (lazy creation per grill-with-docs protocol; no prior file existed)
+  - 2026-05-10T16:39 — CONTEXT.md sections: Language (3 clusters with canonical definitions + _Avoid_ guidance), Relationships (with cardinality + state transitions), Example dialogue (Plan author / Reviewer turn-taking demonstrating canonical use), Flagged ambiguities (3 documented past confusions including L-001 anchor), Provenance
+  - 2026-05-10T16:39 — Canonical resolutions:
+    - **Repo** (specific git URL, immutable identifier) ↔ **Catalog** (curated list, may span Repos) ↔ **Ecosystem** (Repo + adjacent infrastructure)
+    - **Fork** (file-level mechanical operation) ↔ **Adoption** (milestone-level workflow: fork + ADR + tests + cross-refs) ↔ **Upstream** (the producer)
+    - **Candidate** (subject of evaluation) ↔ **Proposal** (the documented case for adoption, with status tag); status enum canonicalised (10 values)
+  - 2026-05-10T16:39 — Banned informal vocabulary explicitly: "vendor" (ambiguous), "registry" (overloaded), "stack" (when meaning Ecosystem)
+  - 2026-05-10T16:39 — Audit doc cross-validated against new CONTEXT.md: zero "vendor" usage (clean); "Adopt" verb form retained as natural English (CONTEXT.md only bans the informal "vendor" usage); status tags in audit doc match CONTEXT.md's status enum
+  - 2026-05-10T16:39 — Side effect (intended): CONTEXT.md now exists at repo root, which means future `/aa-ma-plan --grill-mode=auto` invocations on aa-ma-forge will resolve to `with-docs` (since `[ -f CONTEXT.md ]` becomes true). This is the intended graduation: the project itself crossed the "mature project" threshold this milestone.
+  - Acceptance Criteria: ALL 3 met ✓ (Skill(grill-with-docs) invoked; 3 clusters resolved with canonical definitions; CONTEXT.md created since none existed)
 
 ### Task 3.4: Cross-reference + lineage documentation
 - Status: PENDING

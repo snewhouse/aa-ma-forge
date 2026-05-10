@@ -76,3 +76,17 @@
 [2026-05-10T15:36:19+01:00]   Smoke 1 (this repo, has docs/adr/): grill-mode-resolver auto → with-docs/0 ✓
 [2026-05-10T15:36:19+01:00]   Smoke 2 (--grill-mode=skip): → skip/0 with bypass message ✓
 [2026-05-10T15:36:19+01:00]   Smoke 3 (greenfield in mktemp): → simple/0 with auto fallthrough ✓
+[2026-05-10T15:40:34+01:00] IMPACT_ANALYSIS — Milestone M1 (skill-ecosystem-integration v1.2)
+[2026-05-10T15:40:34+01:00]   Files: 16 changed (10 added + 6 modified, 1010+/28- LOC)
+[2026-05-10T15:40:34+01:00]   Modified: claude-code/commands/aa-ma-plan.md (Phase 1.3 expanded; ADDITIVE — new --grill-mode flag, AA_MA_GRILL_MODE env var, default 'auto'; greenfield resolves to 'simple' = unchanged /grill-me protocol → backward compat preserved)
+[2026-05-10T15:40:34+01:00]   Modified: SECURITY.md, docs/spec/claude-code-foundations.md (prose-only count bumps 13→14)
+[2026-05-10T15:40:34+01:00]   Modified: docs/adr/INDEX.md (added ADR-0002 row; check_adr_index.sh PASS)
+[2026-05-10T15:40:34+01:00]   Added: claude-code/skills/grill-with-docs/{SKILL.md, CONTEXT-FORMAT.md, ADR-FORMAT.md} (forked, MD5-clean vs upstream)
+[2026-05-10T15:40:34+01:00]   Added: scripts/grill-mode-resolver.sh (105 lines, 8-branch coverage)
+[2026-05-10T15:40:34+01:00]   Added: docs/adr/0002-grill-with-docs-adoption.md (MADR-style, 150 lines)
+[2026-05-10T15:40:34+01:00]   Added: 21 new test cases across tests/skills/, tests/commands/, tests/hooks/install_dry_run.bats — ALL PASS
+[2026-05-10T15:40:34+01:00]   Non-breaking constraint VERIFIED: git diff main..HEAD -- claude-code/commands/grill-me.md is EMPTY
+[2026-05-10T15:40:34+01:00]   Test regression: pytest 437 pass + bats 58 pass; ruff src/ + tests/ clean
+[2026-05-10T15:40:34+01:00]   Overall Risk: LOW (additive + tested + non-breaking)
+[2026-05-10T15:40:34+01:00] GATE APPROVAL — Milestone M1 HARD gate APPROVED by Stephen Newhouse via AskUserQuestion at 2026-05-10T15:43
+[2026-05-10T15:40:34+01:00] MILESTONE M1 COMPLETE — skill-ecosystem-integration v1.2 / aa-ma-forge v0.6.0-dev (final version bump deferred to M3.5 per single-bump policy)

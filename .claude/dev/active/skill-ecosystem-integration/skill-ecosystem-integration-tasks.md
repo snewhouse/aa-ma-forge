@@ -8,7 +8,7 @@
 
 ## Milestone M1: Adopt grill-with-docs
 
-- Status: ACTIVE
+- Status: COMPLETE
 - Mode: Mixed (HITL gates around AFK execution)
 - Gate: HARD
 - Dependencies: None
@@ -187,7 +187,7 @@
   - Acceptance Criteria: ALL 6 met ✓ (pytest 0; ruff check 0; bats 0; /grill-me unchanged; resolver returns with-docs in this repo's state; live evidence captured above and in provenance.log)
 
 ### Task 1.9: Milestone close + HARD gate
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Gate: HARD
 - Acceptance Criteria:
@@ -197,7 +197,14 @@
   - `provenance.log` has: IMPACT_ANALYSIS entry, doc-count-drift CRITICAL_PATH_REVIEW entry
   - `context-log.md` has: GATE APPROVAL entry
   - Milestone-close commit with `[AA-MA Plan] skill-ecosystem-integration .claude/dev/active/skill-ecosystem-integration` footer
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T15:43 — Sub-step audit: 1.1 ✓ 1.2 ✓ 1.3 ✓ 1.4 ✓ 1.5 ✓ 1.6 ✓ 1.7 ✓ 1.7a ✓ 1.8 ✓ — all 9 sub-steps COMPLETE with concrete Result Logs (1.9 itself flipping to COMPLETE in this commit)
+  - 2026-05-10T15:43 — `git status --short .claude/dev/active/skill-ecosystem-integration/` returned empty before this commit (clean for AA-MA files); this commit only adds the M1.9 closing edits
+  - 2026-05-10T15:43 — IMPACT_ANALYSIS consolidated for milestone (16 files: 10 added, 6 modified, 1010+/28-): zero function/interface signature changes; /grill-me byte-identical between main and HEAD; greenfield backward-compat preserved; 21 new test cases all PASS; Overall Risk: LOW. Provenance entry written.
+  - 2026-05-10T15:43 — Critical-Path doc-count-drift evidence: 2 CRITICAL_PATH_REVIEW entries in provenance (M1.5 at 15:25, M1.6 final sweep at 15:29); skill count fully synchronised at 14 across SECURITY.md + foundations.md + CLAUDE.md (gitignored)
+  - 2026-05-10T15:43 — User HARD gate approval received via AskUserQuestion: "Approve M1 close" — written to context-log.md as `## [2026-05-10] GATE APPROVAL: Milestone M1`
+  - 2026-05-10T15:43 — Engineering Standards HARD Gate (Section 6.7) all 5 conditions PASS: (1) AA-MA artifacts in sync — clean git pre-commit; (2) zero PENDING in milestone — verified; (3) tests-pass evidence in 1.8 Result Log; (4) impact-analysis evidence in this Result Log + provenance; (5) Critical-Path provenance entries present; Prototype-Required: NONE on any M1 task (skipped — backward-compat per absent-field semantics)
+  - Acceptance Criteria: ALL 6 met ✓ — milestone closing in this commit
 
 ---
 

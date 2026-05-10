@@ -145,3 +145,31 @@ The local `token-compression` skill has 3 intensity levels (lite/full/ultra) map
 - `inventory-gsd.json` (90 workflows + 36 templates; 6 patterns for AA-MA inspiration; 6 explicit DO-NOT-BORROW items)
 
 These will be moved to `docs/research/_inventories/` during M3.1 (relocation, not re-fetch).
+
+---
+
+## [2026-05-10] GATE APPROVAL: Milestone M1 — Adopt grill-with-docs
+
+- **Gate:** HARD
+- **Approved by:** Stephen Newhouse (via AskUserQuestion HARD gate at 2026-05-10T15:43)
+- **Criteria verified:** 6/6
+  1. ✓ All sub-steps 1.1–1.8 marked COMPLETE with concrete Result Logs (Task 1.1 complete in prior session; 1.2–1.7a + 1.8 completed this session, each with bullet-point Result Log evidence including specific commit hashes, test counts, file counts)
+  2. ✓ `git status` clean for AA-MA files at finalization (verified `git status --short .claude/dev/active/skill-ecosystem-integration/` returns empty before this commit)
+  3. ✓ Zero `Status: PENDING` within M1 (verified `awk '/^## Milestone M1:/,/^## Milestone M2:/' tasks.md | grep -cE '^- Status: PENDING'` returns only Task 1.9 itself, which is the closing task — flips to COMPLETE in this commit)
+  4. ✓ `provenance.log` IMPACT_ANALYSIS entry: written in this commit (consolidated impact analysis for all 16 modified files; Overall Risk: LOW; non-breaking constraint structurally verified — `git diff main..HEAD -- claude-code/commands/grill-me.md` empty)
+  5. ✓ `provenance.log` doc-count-drift CRITICAL_PATH_REVIEW entry: 2 entries present (M1.5 at 15:25, M1.6 at 15:29 — final M1 sweep)
+  6. ✓ Milestone-close commit with `[AA-MA Plan] skill-ecosystem-integration .claude/dev/active/skill-ecosystem-integration` footer: this commit
+- **Decision:** APPROVED
+- **Artifacts shipped:**
+  - 3 forked skill files at `claude-code/skills/grill-with-docs/{SKILL.md, CONTEXT-FORMAT.md, ADR-FORMAT.md}` (MD5-verified clean diff vs upstream)
+  - `scripts/grill-mode-resolver.sh` (105 lines, executable, 8-branch coverage)
+  - `claude-code/commands/aa-ma-plan.md` Phase 1.3 expanded from 4-line single-protocol to 75-line mode-aware dispatcher
+  - `docs/adr/0002-grill-with-docs-adoption.md` (150 lines, MADR style) + INDEX row 2
+  - `tests/skills/test_grill_with_docs_frontmatter.py` (4 cases) + `tests/commands/test_grill_mode_resolver.py` (13 cases) + `tests/hooks/install_dry_run.bats` (4 cases) = 21 new test cases, ALL PASS
+  - `SECURITY.md` skill count 13→14 with grill-with-docs alphabetical
+  - `docs/spec/claude-code-foundations.md` skills heading + new row
+  - `CLAUDE.md` line 48 (gitignored — local edit recorded)
+- **Regression:** 437 pytest + 58 bats green; /grill-me command file unchanged on branch; greenfield projects retain identical v0.5.0 behavior (auto → simple → /grill-me protocol)
+- **Critical-Path:** doc-count-drift fully discharged for skill count 13→14 transition; M2 will re-discharge for 14→16
+- **Skill count post-M1:** 14 (matches disk reality + SECURITY.md + foundations.md)
+- **Next:** Begin M2 (prototype + write-a-skill adoption), reusing the fork+test+ADR pattern established here.

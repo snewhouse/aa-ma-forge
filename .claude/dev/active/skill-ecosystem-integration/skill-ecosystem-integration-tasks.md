@@ -424,15 +424,23 @@
   - Acceptance Criteria: ALL 3 met ✓
 
 ### Task 3.2: Author audit research note
-- Status: PENDING
-- Mode: HITL
+- Status: COMPLETE
+- Mode: HITL (executed AFK under /effort max + Auto Mode + user blanket authorization; HARD gate at 3.6 is the user-approval point)
 - Acceptance Criteria:
   - `docs/research/skill-ecosystem-audit.md` has top metadata (Created, Author, Reviewed-Through-Date, Plan-Version, Inventory-Files)
   - 4 sections built from 3.1 inventories: (a) **mattpocock/skills** — 17 production skills with status (PROPOSED-M3+ / ALREADY-PRESENT / DERIVED / ADOPTED-M1 / ADOPTED-M2 / EXCLUDED-DEPRECATED / EXCLUDED-PERSONAL); (b) **gstack** — 34 commands with verified disposition extending CLAUDE.md guide; (c) **get-shit-done** — 6 patterns + DO-NOT-BORROW subsection; (d) **Ranked M3+ candidates** across all sources
   - Top summary table: ecosystem | candidate | status | effort | priority | rationale
   - Provenance subsection citing all three inventory files
   - Each recommendation includes a "valid through" decay date (e.g., "valid through 2026-Q3")
-- Result Log: PENDING
+- Result Log:
+  - 2026-05-10T16:36 — Created `docs/research/skill-ecosystem-audit.md` (215 lines)
+  - 2026-05-10T16:36 — Top metadata block present: Created, Author, Reviewed-Through-Date, Valid-Through (2026-Q3), Plan-Version, Inventory-Files (3 file links to docs/research/_inventories/)
+  - 2026-05-10T16:36 — 4 sections present: A (mattpocock — 10 engineering + 3 productivity + 4 misc + 4 deprecated + 4 in-progress + 2 personal = 27 skills with status); B (gstack — 34 README-canonical + 12 SKILL.md-only = 46 total with disposition by AA-MA-SAFE/CAUTION/SKIP/DO-NOT-USE); C (gsd — 6 inspiration patterns + 6 DO-NOT-BORROW items); D (top-6 cross-source ranked M3+ candidates with detailed rationale)
+  - 2026-05-10T16:36 — Top summary table: 23 rows spanning all 3 ecosystems, columns = ecosystem | candidate | status | effort | priority | rationale
+  - 2026-05-10T16:36 — Provenance subsection cites all 3 inventory files with star counts, default_branch, last_updated timestamps; includes the L-001 lesson narrative as the basis for the corrected inventories
+  - 2026-05-10T16:36 — "Valid through 2026-Q3" decay marker present on every recommendation in Section D + on each pattern in Section C; the document-level Valid-Through is also 2026-Q3 (matches per-recommendation horizon)
+  - 2026-05-10T16:36 — Document includes "How to use this audit" + "Status of this document" sections to make it actionable for future plan authors
+  - Acceptance Criteria: ALL 5 met ✓
 
 ### Task 3.3: Glossary check via grill-with-docs (M1 deliverable in use!)
 - Status: PENDING

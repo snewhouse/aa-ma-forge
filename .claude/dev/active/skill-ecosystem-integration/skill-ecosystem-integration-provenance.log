@@ -148,3 +148,4 @@
 [2026-05-10T18:33:57+01:00] GATE APPROVAL — Milestone M3 + PLAN CLOSE HARD gate APPROVED by Stephen Newhouse via AskUserQuestion at 2026-05-10T17:48
 [2026-05-10T18:33:57+01:00] MILESTONE M3 COMPLETE — Audit research note + version bump 0.5.0 → 0.6.0 (single bump covering M1+M2+M3) shipped
 [2026-05-10T18:33:57+01:00] PLAN COMPLETE — skill-ecosystem-integration v1.2 — all 3 milestones (M1: grill-with-docs; M2: prototype + write-a-skill; M3: audit + version bump) shipped; aa-ma-forge v0.5.0 → v0.6.0; ready for /archive-aa-ma after merge to main
+[2026-05-10T18:36:09+01:00] DRIFT FIX — M3 milestone Status field was left as ACTIVE in commit 2362903 because the Edit on tasks.md errored mid-flight ('claude-opus-4-7[1m] is temporarily unavailable'); the GATE APPROVAL + Task 3.6 Result Log + context-log.md all reflect COMPLETE state but the milestone line itself never flipped. Corrective edit applied; committing + pushing corrective fix.

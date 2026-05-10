@@ -127,3 +127,4 @@
 [2026-05-10T16:41:38+01:00]   Overall Risk: LOW (additive + tested + non-breaking + future-proof bats)
 [2026-05-10T16:41:38+01:00] GATE APPROVAL — Milestone M2 HARD gate APPROVED by Stephen Newhouse via AskUserQuestion at 2026-05-10T16:30
 [2026-05-10T16:41:38+01:00] MILESTONE M2 COMPLETE — skill-ecosystem-integration v1.2 / aa-ma-forge v0.6.0-dev (single version bump still deferred to M3.5)
+[2026-05-10T16:44:42+01:00] TASK 3.1 COMPLETE — Relocated 3 inventory JSONs (mattpocock, gstack, gsd) from .claude/dev/active/ to docs/research/_inventories/ via git mv (history preserved); _meta validated; 0 days old (fresh)

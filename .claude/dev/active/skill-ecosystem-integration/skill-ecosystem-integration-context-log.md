@@ -173,3 +173,33 @@ These will be moved to `docs/research/_inventories/` during M3.1 (relocation, no
 - **Critical-Path:** doc-count-drift fully discharged for skill count 13→14 transition; M2 will re-discharge for 14→16
 - **Skill count post-M1:** 14 (matches disk reality + SECURITY.md + foundations.md)
 - **Next:** Begin M2 (prototype + write-a-skill adoption), reusing the fork+test+ADR pattern established here.
+
+---
+
+## [2026-05-10] GATE APPROVAL: Milestone M2 — Adopt prototype + write-a-skill
+
+- **Gate:** HARD
+- **Approved by:** Stephen Newhouse (via AskUserQuestion HARD gate at 2026-05-10T16:30)
+- **Criteria verified:** 6/6
+  1. ✓ All sub-steps 2.1–2.9 marked COMPLETE with concrete Result Logs (each Result Log includes specific commit hashes, file counts, test counts, MD5 verifications, plan-gap discoveries)
+  2. ✓ `git status` clean for AA-MA files at finalization (verified `git status --short .claude/dev/active/skill-ecosystem-integration/` returns empty before this commit)
+  3. ✓ Zero `Status: PENDING` within M2 (verified `awk '/^## Milestone M2:/,/^## Milestone M3:/' tasks.md | grep -cE '^- Status: PENDING'` returns 1 — Task 2.10 itself, which is the closing task — flips to COMPLETE in this commit)
+  4. ✓ `provenance.log` IMPACT_ANALYSIS entry: written in this commit (consolidated impact analysis for all 16 files modified vs M1-close commit 3e8ba4e; Overall Risk: LOW; non-breaking constraint structurally verified — `git diff main..HEAD -- claude-code/commands/grill-me.md` empty across both M1 + M2)
+  5. ✓ `provenance.log` doc-count-drift CRITICAL_PATH_REVIEW entry: 2 entries present (M2.6 at 16:13, M2.7 final-sweep at 16:14)
+  6. ✓ Milestone-close commit with `[AA-MA Plan] skill-ecosystem-integration .claude/dev/active/skill-ecosystem-integration` footer: this commit
+- **Decision:** APPROVED
+- **Artifacts shipped:**
+  - 4 forked skill files at `claude-code/skills/prototype/{SKILL.md, LOGIC.md, UI.md}` (3251B + 5594B + 6789B, MD5-verified clean diff vs upstream) + `claude-code/skills/write-a-skill/SKILL.md` (3057B post-typo-fix)
+  - `claude-code/rules/engineering-standards.md` Theme 1 extended with `Skill(prototype)` cross-reference + ADR-0003 link + LOGIC/UI dispatch hint (SOFT cross-ref; HARD gate Section 6.7 condition 5 behavior unchanged)
+  - `docs/adr/0003-prototype-adoption.md` (145 lines, MADR style — operationalises Theme 1 `Prototype-Required:` flag) + `docs/adr/0004-write-a-skill-adoption.md` (147 lines — meta-tooling for skill authoring)
+  - `tests/skills/_helpers.py` (DRY refactor: `split_frontmatter` + `assert_skill_frontmatter` shared helper) + 2 new frontmatter test files (`test_prototype_frontmatter.py`, `test_write_a_skill_frontmatter.py`); M1's `test_grill_with_docs_frontmatter.py` refactored to use helper (regression-verified)
+  - `SECURITY.md` skill count 14→16 with prototype + write-a-skill alphabetical
+  - `docs/spec/claude-code-foundations.md` heading "Skills (16)" + 2 new skills-table rows
+  - `CLAUDE.md` line 48 (gitignored — local edit only)
+  - `tests/hooks/install_dry_run.bats` skill-count assertion made dynamic (compares against actual disk count) — future-proof against all skill additions
+  - `docs/lessons.md` L-002 + L-003 committed (planning-output durability)
+- **Regression:** 439 pytest + 58 bats green; /grill-me command file UNCHANGED across BOTH M1 + M2; Engineering Standards Theme 1 cross-reference is SOFT (no HARD gate behavior change); greenfield projects retain identical v0.5.0 behavior via M1's auto → simple → unchanged /grill-me path
+- **Critical-Path:** doc-count-drift fully discharged for skill count 14→16 transition; M3 has no skill additions (audit doc + version bump only)
+- **Skill count post-M2:** 16 (matches disk reality + SECURITY.md + foundations.md)
+- **Plan-gaps documented for /verify-plan future runs:** (a) plan reference.md path inventory should flag CLAUDE.md as gitignored (M1 finding); (b) M2.7 doc-count-drift grep gate should include `tests/` directory (M2.9 inline fix); (c) docs/spec/claude-code-foundations.md was not in M1's path inventory but contained "Skills (13)" heading — handled inline in M1.5
+- **Next:** Begin M3 (audit research note + comprehensive 0.5.0 → 0.6.0 single version bump covering all 3 milestones).

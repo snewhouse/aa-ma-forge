@@ -60,3 +60,5 @@
 [2026-05-10T15:15:27+01:00] TASK 1.2 COMPLETE — Forked grill-with-docs upstream into claude-code/skills/grill-with-docs/ (3 files, MD5-verified clean diff)
 [2026-05-10T15:20:42+01:00] TASK 1.3 COMPLETE — Phase 1.3 mode-aware grill protocol; resolver script smoke-tested across all 8 branches
 [2026-05-10T15:23:23+01:00] TASK 1.4 COMPLETE — Authored ADR-0002 (150 lines, MADR-style); registered in INDEX.md; check_adr_index.sh PASS
+[2026-05-10T15:25:56+01:00] TASK 1.5 COMPLETE — Updated CLAUDE.md (line 48) + docs/spec/claude-code-foundations.md (heading + skills row); aa-ma.md skip-with-reason
+[2026-05-10T15:25:56+01:00] CRITICAL_PATH_REVIEW — doc-count-drift evidence (M1.5): files updated = [CLAUDE.md, docs/spec/claude-code-foundations.md]; remaining stale '13 skills' references after M1.5 = 1 (SECURITY.md, scheduled for Task 1.6); grep verification: 'grep -rn "13 skills\|Skills (13)" claude-code/ docs/ CLAUDE.md README.md' returns ZERO matches (lessons.md historical narrative excluded)

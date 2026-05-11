@@ -7,3 +7,8 @@
 [2026-05-11T13:30:00+01:00] M1_T1.4_COMPLETE — tests/plan_markers/test_fingerprint.py with 32 cases, red (ModuleNotFoundError)
 [2026-05-11T13:40:00+01:00] M1_T1.5_COMPLETE — src/aa_ma/plan_markers/fingerprint.py (235 lines); 50/50 plan_markers tests green; full repo suite 489 passed, 0 regressions; ruff clean
 [2026-05-11T13:40:00+01:00] M1_MILESTONE_COMPLETE — 5/5 tasks green; foundation layer ready for M2 hook
+[2026-05-11T14:00:00+01:00] M2_T2.1_COMPLETE — tests/hooks/aa-ma-plan-skip-warn.bats with 7 cases, red (exit 127 hook missing)
+[2026-05-11T14:10:00+01:00] M2_T2.2_COMPLETE — claude-code/hooks/aa-ma-plan-skip-warn.sh (90 lines, bash+jq, no Python shell-out); 7/7 bats green; shellcheck clean
+[2026-05-11T14:15:00+01:00] M2_T2.3_COMPLETE — claude-code/hooks/aa-ma-plan-marker.sh (79 lines) + 10 bats green; round-trip bash→Python parser verified
+[2026-05-11T14:20:00+01:00] M2_T2.4_COMPLETE — scripts/install.sh AA_MA_HOOKS extended; --dry-run shows both new registrations; install_dry_run.bats 4/4 green (no regressions)
+[2026-05-11T14:20:00+01:00] M2_MILESTONE_COMPLETE — 4/4 tasks green; advisory hook + marker helper deployed; M3 (command body integration) next

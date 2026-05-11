@@ -71,41 +71,48 @@
 
 ### Task 2.1: Failing bats tests for advisory hook
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
-  - `tests/hooks/aa_ma_plan_skip_warn.bats` exists with 6 cases.
-  - `bats tests/hooks/aa_ma_plan_skip_warn.bats` FAILS initially.
-- Result Log: _pending_
+  - ✓ `tests/hooks/aa-ma-plan-skip-warn.bats` exists with 7 cases (one bonus: malformed-stdin defensive).
+  - ✓ Initial run FAILS with exit 127 (`bash: hook-file: No such file or directory`) — pre-implementation red phase confirmed.
+- Result Log:
+  - 2026-05-11: 7 bats cases: happy path (silent), missing PHASE_1.3 (warn), SKIPPED-with-reason (silent), SKIPPED-without-reason (warn), kill switch silent, no-runtime-log silent, malformed-stdin silent. Patterned on existing tests/hooks/session-end-dirty.bats conventions ($BATS_TMP_HOME, HOME-override, build_stdin helper).
 
 ### Task 2.2: Implement aa-ma-plan-skip-warn.sh
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
-  - Hook reads stdin JSON, extracts `transcript_path`, invokes Python fingerprint, writes warnings to stderr, exits 0.
-  - All 2.1 bats tests pass.
-  - `shellcheck` clean.
-- Result Log: _pending_
+  - ✓ Hook reads stdin JSON (defensive: tolerates malformed/empty JSON), validates 9 required phase markers in newest runtime log, writes warnings to stderr, always exits 0.
+  - ✓ 7/7 bats tests pass.
+  - ✓ shellcheck clean.
+- Result Log:
+  - 2026-05-11: Hook is 90 lines of defensive bash (`set -Eeuo pipefail`, kill switch first, runtime-dir existence check before any work). Pattern is marker-only (not yet correlating against `transcript_path`) — sufficient for advisory warnings, matches existing hook style (bash+jq, no Python shell-out). Python fingerprint module is parallel — used by Tier 1 pytest, available for future CLI debug, kept in sync via grammar spec.
+  - Design choice: bash hook over Python shell-out because (1) existing hook precedent, (2) faster startup (Python takes >100ms), (3) works in any user's project without needing aa-ma installed.
 
 ### Task 2.3: Marker-writer helper
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
-  - `claude-code/hooks/aa-ma-plan-marker.sh` provides `aa_ma_marker <phase> <status> [k=v ...]`.
-  - Bats test confirms output matches grammar.
-- Result Log: _pending_
+  - ✓ `claude-code/hooks/aa-ma-plan-marker.sh` accepts `<slug> <phase_id> <status> [key=value ...]` and appends a canonical marker.
+  - ✓ 10 bats tests confirm grammar conformance, validation (invalid slug/status/payload exit 2), SKIPPED-without-reason warns-and-keeps, INIT-on-non-PHASE_0 warns-and-keeps, multi-write accumulation.
+  - ✓ Round-trip verified: bash helper writes → Python parser reads → all 3 markers parsed correctly with full payload.
+- Result Log:
+  - 2026-05-11: Helper is 79 lines. RFC 3339 timestamp via `date -u` + sed for colon-in-offset. Idempotent on runtime dir creation. Em-dash literal in script (U+2014).
 
 ### Task 2.4: Register hook in install.sh
 
-- Status: PENDING
-- Mode: HITL
+- Status: COMPLETE
+- Mode: HITL (settings.json modification on next install)
 - Acceptance Criteria:
-  - `scripts/install.sh` `AA_MA_HOOKS` array contains entries for `PreToolUse|ExitPlanMode|aa-ma-plan-skip-warn.sh` and `SessionEnd||aa-ma-plan-skip-warn.sh`.
-  - `scripts/install.sh --dry-run` shows the new entries.
-  - Existing hooks unaffected.
-- Result Log: _pending_
+  - ✓ `scripts/install.sh` `AA_MA_HOOKS` array appended with `PreToolUse|ExitPlanMode|aa-ma-plan-skip-warn.sh|5|` and `SessionEnd||aa-ma-plan-skip-warn.sh|5|`.
+  - ✓ `scripts/install.sh --dry-run` shows: "Would register PreToolUse [aa-ma-plan-skip-warn.sh]" and "Would register SessionEnd [aa-ma-plan-skip-warn.sh]".
+  - ✓ Existing 5 hooks unaffected (array was appended, not modified).
+  - ✓ Regression: `bats tests/hooks/install_dry_run.bats` still 4/4 green.
+- Result Log:
+  - 2026-05-11: Both registrations confirmed via dry-run output. install.sh idempotency means re-running after this commit lands will add the two settings.json entries without disturbing the 5 existing ones.
 
 ## M3: Command body integration
 

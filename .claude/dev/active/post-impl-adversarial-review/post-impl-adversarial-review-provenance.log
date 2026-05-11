@@ -1,0 +1,53 @@
+[2026-05-11T12:00:00+01:00] PLAN_CREATED — Created via /grill-with-docs grilling session; 8 decisions resolved (Q1-Q7b); ExitPlanMode approved by user; scribe dispatched for artifact creation
+[2026-05-11 12:00] TASK INITIALIZED — AA-MA directory created
+[2026-05-11 12:00] Project: /home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge
+[2026-05-11 12:00] Plan: post-impl-adversarial-review — Milestones: 6, Steps: 21
+[2026-05-11 12:00] Status: READY FOR EXECUTION
+[2026-05-11T15:30+01:00] M1 EXECUTION START — Audit-Profile: docs-only, Gate: SOFT, Critical-Path: doc-count-drift
+[2026-05-11T15:45+01:00] M1.1 COMPLETE — docs/adr/0005-post-impl-adversarial-review.md created (256 lines, Status: Accepted, mirrors ADR-0001 structure)
+[2026-05-11T15:46+01:00] M1.2 COMPLETE — docs/adr/INDEX.md updated to list ADR-0005
+[2026-05-11T15:55+01:00] M1.3 COMPLETE — docs/spec/aa-ma-specification.md gained "Optional: Post-Impl Adversarial Review Report" section (~90 lines) in §II File Taxonomy
+[2026-05-11T16:00+01:00] CRITICAL_PATH_REVIEW — doc-count-drift sweep: grep -rn "\b4 ADR\b|\bfour ADR\b|ADR-0004" docs/ README.md CLAUDE.md SECURITY.md — 3 hits, all legitimate citations of ADR-0004 (write-a-skill adoption), NOT stale counts. Verdict: PASS.
+[2026-05-11T16:00+01:00] M1 COMPLETE — All 3 acceptance criteria met; 3/3 sub-steps COMPLETE; doc-count-drift evidence logged; ready for commit.
+[2026-05-11T16:30+01:00] M2 EXECUTION START — Audit-Profile: code-only, Gate: HARD, Critical-Path: hook-modification, TDD-first
+[2026-05-11T16:40+01:00] M2.1 COMPLETE — tests/hooks/security-static-check.bats created with 21 RED test cases; runtime-assembled trigger tokens to keep bats source clean.
+[2026-05-11T17:15+01:00] M2.2 COMPLETE — claude-code/hooks/security-static-check.sh implemented; shellcheck-clean. Initial run 19/21 GREEN; case-insensitivity fix (API_KEY vs api_key) → final 21/21 GREEN.
+[2026-05-11T17:20+01:00] M2.3 COMPLETE — scripts/install.sh AA_MA_HOOKS array gained "PreToolUse|Bash|security-static-check.sh|10|" entry; verified via --dry-run symlink + settings.json registration messages.
+[2026-05-11T17:25+01:00] CRITICAL_PATH_REVIEW — hook-modification evidence: new hook is PreToolUse(Bash) blocking on git commit; bypassable via AA_MA_HOOKS_DISABLE=1 (master switch) and [security-bypass: <reason>] auditable marker; non-breaking (does not modify existing hooks; coexists with aa-ma-commit-signature.sh as a second PreToolUse|Bash filter); shellcheck pass; 21/21 bats cases GREEN. Verdict: PASS.
+[2026-05-11T17:25+01:00] M2 COMPLETE — 3/3 sub-steps COMPLETE; HARD gate conditions met (tests pass: 21/21 bats GREEN; non-breaking: existing hooks untouched; AA-MA artifacts clean post-commit; hook-modification evidence logged).
+[2026-05-11T17:35+01:00] M3 EXECUTION START — Audit-Profile: code-only, Gate: HARD, TDD-first
+[2026-05-11T17:45+01:00] M3.1 COMPLETE — tests/codemem/test_audit_profile_parser.py + test_tdd_waiver_parser.py: 39 pytest cases RED; pyright confirmed import-missing.
+[2026-05-11T18:10+01:00] M3.2 COMPLETE — src/aa_ma/plan_parsers.py implemented; initial 35/39 GREEN; case-strictness + bold-form regex fixes → 39/39 GREEN; ruff clean.
+[2026-05-11T18:20+01:00] M3.3 COMPLETE — claude-code/skills/plan-verification/SKILL.md Angle 6 gained checks #4 (Audit-Profile presence for v0.8.0+) and #5 (TDD-Waiver canonical values). Grandfathering documented for 3 cutover dates (v0.5.0, v0.8.0, any-date).
+[2026-05-11T18:30+01:00] M3.4 COMPLETE — tests/codemem/test_corpus_grandfathering.py: 19 parameterized cases against 9 completed plans; regex generalised to handle 4 heading variants (## Milestone N:, ## MN:, ## Milestone MN:, ## Milestone MN.N:); 19/19 GREEN → grandfathering verified.
+[2026-05-11T18:35+01:00] M3 COMPLETE — 4/4 sub-steps COMPLETE; HARD gate conditions met (tests pass: 547 total GREEN incl. 58 new; non-breaking: full suite passes; ruff clean; AA-MA artifacts will be clean post-commit; zero PENDING in M3).
+[2026-05-11T18:45+01:00] M4 EXECUTION START — Audit-Profile: full, Gate: HARD, HIGH COMPLEXITY 80%, Prototype-Required: YES
+[2026-05-11T19:10+01:00] M4.1 COMPLETE — claude-code/skills/verify-impl/SKILL.md created (165 lines); documents 3 trigger paths, Audit-Profile dispatch matrix, 8-step execution flow.
+[2026-05-11T19:40+01:00] M4.2 COMPLETE — 5 audit agents written: code-reviewer (L-005/L-006/L-007 mapping), security-auditor (semantic OWASP, separation from mechanical hook), tdd-sequence-auditor (PASS/FAIL/WAIVED 3-state verdict), context7-evidence-auditor (new-deps + MAJOR-bumps only, WARNING ceiling), future-proofing-auditor (Tier 6 proactive counterpart).
+[2026-05-11T19:50+01:00] M4.3 COMPLETE — docs/templates/impl-review-template.md created (~100 lines) mirroring verification-template.md structure.
+[2026-05-11T19:55+01:00] M4.4 COMPLETE — SKILL.md finalised with bypass mechanisms table, cross-references to ADR-0005, spec §6.8 anatomy, plan-verification Angle 6 #4/#5, src/aa_ma/plan_parsers.py.
+[2026-05-11T20:00+01:00] PROTOTYPE — verify-impl-skill — PASS: structural-validation 39 pytest cases GREEN (tests/skills/test_verify_impl_agents.py); initial 5 failures fixed (case-sensitive grandfathering + missing budget section in code-reviewer); install.sh --dry-run auto-discovers all 5 agents + skill.
+[2026-05-11T20:00+01:00] PROTOTYPE — code-reviewer — PASS: documented mandatory patterns #1/#2/#3 explicitly map to lessons L-007/L-005/L-006; structural-test verification confirms references present.
+[2026-05-11T20:00+01:00] PROTOTYPE — security-auditor — PASS: clean separation from mechanical layer (security-static-check.sh); cites OWASP class per finding.
+[2026-05-11T20:00+01:00] PROTOTYPE — tdd-sequence-auditor — PASS: 3-state verdict (PASS/FAIL/WAIVED) declared; canonical waiver values match parse_tdd_waiver enum.
+[2026-05-11T20:00+01:00] PROTOTYPE — context7-evidence-auditor — PASS: MAJOR-only scope documented; WARNING-only severity ceiling enforced.
+[2026-05-11T20:00+01:00] PROTOTYPE — future-proofing-auditor — PASS: Tier 6 coordination documented; 5 distinct checks specified.
+[2026-05-11T20:05+01:00] M4 COMPLETE — 4/4 sub-steps COMPLETE; HIGH COMPLEXITY (80%) milestone passed prototype gate; Prototype-Required evidence logged (6 PROTOTYPE entries above); HARD gate conditions met (tests 586 GREEN + 1 skipped + 6 deselected; ruff clean; non-breaking; AA-MA artifacts will be clean post-commit).
+[2026-05-11T20:15+01:00] M5 EXECUTION START — Audit-Profile: full, Gate: HARD, HIGH COMPLEXITY 80%, Critical-Path: doc-count-drift
+[2026-05-11T20:30+01:00] M5.1 COMPLETE — claude-code/commands/execute-aa-ma-milestone.md gained ~110-line §6.8 section between §6.7 and §7.1; documents 4-step dispatch logic, 3 verdict outcomes, override panel, 6 bypass mechanisms.
+[2026-05-11T20:32+01:00] M5.2 COMPLETE — CRITICAL override panel (accept/dispute/defer) folded into §6.8; defer emits new sub-task markdown stub; dispute logs to impl-review.md User Override Decisions table.
+[2026-05-11T20:40+01:00] M5.3 COMPLETE — claude-code/commands/execute-aa-ma-full.md gained §B.6 (21 lines) delegating to milestone §6.8; no logic duplication; documents BLOCKED-verdict halt behaviour for full-command auto-advance.
+[2026-05-11T20:55+01:00] M5.4 COMPLETE — tests/hooks/execute_aa_ma_milestone_phase_6_8.bats: 16 integration cases verify section structure, line ordering, all 5 agents named inline, 3 verdicts, override panel, 6 bypasses, defer behaviour, bash snippet syntax, full delegation. Initial 15/16 GREEN; 1 fix (added 5 agent names inline). Final 16/16 GREEN.
+[2026-05-11T21:00+01:00] CRITICAL_PATH_REVIEW — doc-count-drift sweep: grep -rnE "\bPhase 6\.[0-9]\b|\b7 phase|\beight phase|\bsection [0-9]\.[0-9]" --include="*.md" docs/ README.md CLAUDE.md SECURITY.md claude-code/rules/ — 1 hit (only the new §6.8 anatomy block in docs/spec/aa-ma-specification.md added by M1, not stale). Verdict: PASS.
+[2026-05-11T21:05+01:00] M5 COMPLETE — 4/4 sub-steps COMPLETE; HIGH COMPLEXITY (80%) milestone passes HARD gate; Critical-Path: doc-count-drift evidence logged; tests 586 pytest GREEN + 112 bats GREEN (96 existing + 16 new for §6.8); ruff clean; non-breaking (existing commands and hooks untouched in semantics).
+[2026-05-11T21:20+01:00] M6 EXECUTION START — Audit-Profile: infra, Gate: HARD, Critical-Path: version-pipeline + doc-count-drift
+[2026-05-11T21:25+01:00] M6.1 COMPLETE — SECURITY.md hardcoded counts refreshed: skills 16→17, agents 2→7, hooks 2→8, rules 1→2. Committed 45412a3. CLAUDE.md updated locally but .gitignored (project-local overlay).
+[2026-05-11T21:30+01:00] M6.2 COMPLETE — cz bump 0.7.0 → 0.8.0; commit 7db1280; tag v0.8.0; auto-generated CHANGELOG entry contained only 4 bare Feat bullets (no narrative, no Test/Docs/Chore/Plan-close subsections).
+[2026-05-11T21:45+01:00] M6.3 COMPLETE — L-006 protocol followed: identified bare cz bump output, amended CHANGELOG v0.8.0 entry with rich v0.7.0-style structure (narrative + 5 Feat + 5 Test + 6 Docs + 2 Chore + Plan close — 118 insertions). git commit --amend → 695f7b7; git tag -d v0.8.0 && git tag v0.8.0 retagged to amended commit. NOT yet pushed.
+[2026-05-11T21:50+01:00] M6.4 COMPLETE — scripts/install.sh --dry-run confirms 7 v0.8.0 symlinks (1 skill + 5 agents + 1 hook) + settings.json registration line for security-static-check.sh.
+[2026-05-11T21:55+01:00] CRITICAL_PATH_REVIEW — version-pipeline: cz bump executed cleanly; L-006 stripped-prose pattern reproduced and resolved by amend+retag BEFORE push; tag v0.8.0 points to amended commit 695f7b7 with rich CHANGELOG. Verdict: PASS.
+[2026-05-11T21:55+01:00] CRITICAL_PATH_REVIEW — doc-count-drift: SECURITY.md refreshed (4 stale counts → current); foundations.md + quick-reference.md + CLAUDE.md sweep clean; no stale references remain. Verdict: PASS.
+[2026-05-11T22:00+01:00] M6 STEPS 6.1-6.4 COMPLETE — Step 6.5 (push tag) pending user authorization per M6 plan's PAUSE protocol. AA-MA artifacts staged for sync commit.
+[2026-05-11T22:10+01:00] M6.5 COMPLETE — git push origin feature/workflow_additions_001 (9 commits) + git push origin v0.8.0 (new public tag) — user authorized via AskUserQuestion. Remote confirms "* [new tag]         v0.8.0 -> v0.8.0".
+[2026-05-11T22:10+01:00] M6 COMPLETE — All 5 sub-steps COMPLETE; v0.8.0 SHIPPED. Plan ready for archival via /archive-aa-ma post-impl-adversarial-review.
+[2026-05-11T22:10+01:00] PLAN COMPLETE — post-impl-adversarial-review (6/6 milestones, 21/21 sub-tasks). Final posture: 586 pytest + 112 bats GREEN; ruff + shellcheck clean; 9 commits on feature/workflow_additions_001; tag v0.8.0 → 695f7b7 public; ADR-0005 status Accepted; ready for /sole-dev-merge to main + /archive-aa-ma.

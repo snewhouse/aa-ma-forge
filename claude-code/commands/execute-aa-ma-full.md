@@ -325,6 +325,25 @@ Launch 3 parallel agents against milestone diff (reuse, quality, efficiency). CR
 
 **On failure:** Skip review, log to provenance. Do NOT block finalization.
 
+#### B.6. Post-Impl Adversarial Review (Phase 6.8 — NEW in v0.8.0)
+
+Reference: ADR-0005 + `/execute-aa-ma-milestone` Section 6.8 (full anatomy).
+
+**Skip if:** plan's `Created:` date is < v0.8.0 release tag commit date (grandfathered), OR `AA_MA_AUDIT_BUDGET=off`, OR `AA_MA_HOOKS_DISABLE=1`.
+
+Delegate to `/execute-aa-ma-milestone` Section 6.8 — same logic, same agents:
+the `verify-impl` skill orchestrator dispatches up to 5 audit agents
+(code-reviewer, security-auditor, tdd-sequence-auditor,
+context7-evidence-auditor, future-proofing-auditor) per the milestone's
+plan-declared `Audit-Profile:` field. Aggregated verdict written to
+`[task]-impl-review.md`.
+
+**Verdicts:**
+- `PASS` / `PASS_WITH_WARNINGS` → proceed to C (User Authorization)
+- `BLOCKED` (any CRITICAL accepted via override panel) → HALT this milestone, surface remediation to user. Do NOT auto-advance to next milestone. The user must fix the accepted CRITICAL, re-run `/execute-aa-ma-milestone` (which re-runs §6.8), and only when §6.8 passes clean can `/execute-aa-ma-full` resume.
+
+**Provenance:** §6.8 entry emitted by the milestone command itself. No duplicate entry from the full command — the delegation is logical, not physical.
+
 #### C. User Authorization (Approval Gate)
 
 Use AskUserQuestion to get explicit user approval:

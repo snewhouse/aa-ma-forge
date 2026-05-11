@@ -28,7 +28,7 @@ Field rules:
 |-------|------------|
 | `<ISO8601-timestamp>` | RFC 3339 / ISO 8601 with timezone offset, e.g. `2026-05-11T12:30:15+01:00` |
 | `<id>` | Letters, digits, underscore, and `.` for sub-phases. Examples: `0`, `1`, `1.3`, `4.5` |
-| `<STATUS>` | `DONE` or `SKIPPED` (uppercase, exactly) |
+| `<STATUS>` | `INIT`, `DONE`, or `SKIPPED` (uppercase, exactly). `INIT` is only valid on `PHASE_0` (session init); other phases use `DONE` or `SKIPPED` |
 | `<key>` | Lowercase ASCII, underscores allowed; `[a-z][a-z0-9_]*` |
 | `<value>` | Single shell-token. Spaces forbidden; use `_` instead. Quote-free. |
 | Separator | Em-dash `—` (U+2014) surrounded by single spaces |
@@ -37,10 +37,11 @@ Semantic rules:
 
 1. `SKIPPED` MUST include a `reason=<token>` payload.
 2. `DONE` SHOULD include payload describing what was accomplished.
-3. Each marker is one line. No multi-line markers.
-4. The runtime log is append-only during a plan run.
-5. Lines that do not match this grammar are warned and ignored (forward-compatibility).
-6. Unknown `PHASE_<id>` values produce a warning, not an error.
+3. `INIT` is only valid on `PHASE_0`; using `INIT` on other phase IDs emits a warning.
+4. Each marker is one line. No multi-line markers.
+5. The runtime log is append-only during a plan run.
+6. Lines that do not match this grammar are warned and ignored (forward-compatibility).
+7. Unknown `PHASE_<id>` values produce a warning, not an error.
 
 ## 9 Required Markers per `/aa-ma-plan` Run
 

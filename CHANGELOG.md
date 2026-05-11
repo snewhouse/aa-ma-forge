@@ -4,6 +4,81 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+Harden `/aa-ma-plan` against silent phase-skipping. Adds a structured runtime
+marker log (`~/.claude/runtime/aa-ma-plan-<slug>.log`) that records every phase
+as INIT, DONE, or SKIPPED-with-reason. New advisory hook
+`aa-ma-plan-skip-warn.sh` fires on `PreToolUse(ExitPlanMode)` and `SessionEnd`
+to warn about missing markers — without ever blocking. Fully additive: bypass
+via existing `AA_MA_HOOKS_DISABLE=1` master kill switch. All changes complete
+the design captured in `.claude/dev/completed/harden-aa-ma-plan/` and shipped
+TDD-first with 73 new automated tests (pytest + bats) plus 4 live empirical
+scenarios; Scenario 5 (compaction survival) deferred for next live session.
+
+### Feat
+
+- **plan-markers**: new `src/aa_ma/plan_markers/` Python package (parser +
+  fingerprint matcher, stdlib-only, frozen dataclasses, regex-driven).
+  Public API: `parse_log(text) -> list[Marker]`,
+  `correlate(markers, tool_calls) -> list[CorrelationResult]`,
+  `load_tool_calls(transcript_path) -> list[ToolCall]`.
+- **hooks**: new `claude-code/hooks/aa-ma-plan-skip-warn.sh` advisory hook
+  (bash + jq, 90 lines, shellcheck clean) — reads newest runtime log,
+  validates 9 required phase markers, warns to stderr, always exits 0.
+- **hooks**: new `claude-code/hooks/aa-ma-plan-marker.sh` marker-writer
+  helper (79 lines) — append a canonical em-dash-separated marker line
+  via `aa-ma-plan-marker.sh <slug> <phase> <status> [k=v ...]`.
+- **aa-ma-plan**: new Phase 0 "Runtime Log Initialization" section before
+  Phase 1 with slug derivation algorithm + marker-discipline reference
+  table covering all 10 phase boundaries.
+- **aa-ma-scribe**: Phase 5 close-out now writes `PHASE_5 DONE` marker and
+  moves the runtime log into the active task directory as
+  `<task>-plan-run.log` (permanent AA-MA artifact alongside the 5 standard
+  files).
+- **install.sh**: now registers `PreToolUse|ExitPlanMode|aa-ma-plan-skip-warn.sh`
+  and `SessionEnd||aa-ma-plan-skip-warn.sh` in `settings.json`; symlinks
+  `aa-ma-plan-marker.sh` to `~/.claude/hooks/lib/` so the command body can
+  invoke it from any project directory.
+
+### Test
+
+- **plan_markers**: 50 pytest cases — 18 parser (well-formed, multi-line,
+  malformed, dataclass contract) + 32 fingerprint (transcript-derived
+  correlation across all 9 phase predicates, SKIPPED override, MISSING
+  detection, JSONL nested-content handling).
+- **hooks**: 17 bats cases — 7 advisory-hook (happy, missing, skipped+reason,
+  skipped-no-reason, kill-switch, no-log, malformed-json) + 10 marker-helper
+  (grammar, validation, multi-write accumulation).
+- **integration**: 6 lifecycle bats — stub creation, 10-line accumulation in
+  stable order, Phase 5 move to task dir, hook silent on healthy log, hook
+  warns on missing marker, legitimate SKIPPED silences hook.
+- **smoke**: 4 live Tier-4 scenarios PASS (happy path, --skip-lessons,
+  user-choice skip of Phase 4.5, forced-skip negative); Scenario 5
+  (compaction survival) DEFERRED with reproduction note.
+
+### Docs
+
+- **spec**: `docs/spec/plan-marker-grammar.md` (192 lines) — canonical
+  contract covering grammar, 9 required markers, storage lifecycle,
+  fingerprint correlation, slug derivation, parser/hook contracts, version
+  policy, bypass mechanisms.
+- **spec**: `docs/spec/aa-ma-specification.md` adds "Phase Markers (v0.7.0+)"
+  section.
+- **spec**: `docs/spec/aa-ma-quick-reference.md` adds 9-line marker cheat
+  sheet.
+- **smoke**: `tests/smoke/aa-ma-plan-skip-detection.md` documents the 5
+  empirical scenarios for future regression cycles;
+  `tests/smoke/aa-ma-plan-skip-detection-findings.md` captures the 2026-05-11
+  autonomous run (4 PASS, 1 DEFERRED, full audit trail).
+
+### Chore
+
+- **install.sh**: helper-symlink rule generalised — non-event scripts under
+  `claude-code/hooks/` that need to be invoked from slash-command bodies
+  must be explicitly symlinked, mirroring the `aa-ma-parse.sh` pattern. Gap
+  discovered + fixed during M4 live testing.
+
 ## v0.6.0 (2026-05-10)
 
 Skill ecosystem integration — adopt 3 mattpocock/skills (grill-with-docs, prototype,

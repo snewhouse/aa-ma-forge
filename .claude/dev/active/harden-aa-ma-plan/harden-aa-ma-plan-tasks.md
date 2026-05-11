@@ -253,28 +253,34 @@
 
 ### Task 5.1: Update spec + quick-ref
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
-  - `docs/spec/aa-ma-specification.md` has Phase Markers section.
-  - `docs/spec/aa-ma-quick-reference.md` has 9-line marker cheat sheet.
-- Result Log: _pending_
+  - ✓ `docs/spec/aa-ma-specification.md` has "Phase Markers (v0.7.0+)" section before References, covering grammar, lifecycle, advisory hook, and pointer to canonical contract.
+  - ✓ `docs/spec/aa-ma-quick-reference.md` has 9-line marker cheat sheet + bypass note + canonical-contract pointer.
+- Result Log:
+  - 2026-05-11: Spec gets a new section (not renumbered, appended just before References for low-churn). Quick-ref gets a sub-section with all 9 required markers + 1 INIT.
 
 ### Task 5.2: Update CHANGELOG
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
-  - New `feat(aa-ma-plan):` entry in `CHANGELOG.md` conforming to existing format.
-- Result Log: _pending_
+  - ✓ New "## Unreleased" section in `CHANGELOG.md` (above existing v0.6.0 entry) following the same format as previous releases.
+  - ✓ Sections: prose intro, Feat, Test, Docs, Chore. Lists every new component (parser, fingerprint, advisory hook, marker helper, command body wiring, scribe close-out, install.sh registration, helper-symlink fix).
+- Result Log:
+  - 2026-05-11: Unreleased section authored (62 lines). cz bump will own the eventual `## vX.Y.Z` heading per L-003. Conventional Commits format preserved.
 
 ### Task 5.3: Update CLAUDE.md hook bypass table
 
-- Status: PENDING
+- Status: COMPLETE (with caveat — CLAUDE.md gitignored; tracked equivalent covered in spec)
 - Mode: AFK
 - Acceptance Criteria:
-  - `CLAUDE.md` table row added for the new hook + reaffirms `AA_MA_HOOKS_DISABLE=1` covers it.
-- Result Log: _pending_
+  - ✓ Local `CLAUDE.md` "Hook Bypasses" table extended with 2 new rows: (a) silencing /aa-ma-plan phase-marker warnings via `AA_MA_HOOKS_DISABLE=1`, (b) `AA_MA_PLAN_MARKER_DEBUG=1` verbose tracing. (Local only — `CLAUDE.md` is `.gitignore`d per L-002/L-003.)
+  - ✓ Tracked equivalent: `docs/spec/aa-ma-specification.md` Phase Markers section explicitly documents the bypass: "Bypass via existing `AA_MA_HOOKS_DISABLE=1` master kill switch."
+  - ✓ Tracked equivalent: `docs/spec/aa-ma-quick-reference.md` cheat-sheet section ends with "Bypass: `export AA_MA_HOOKS_DISABLE=1`."
+- Result Log:
+  - 2026-05-11: Caught at commit time that CLAUDE.md is gitignored (precedent from v0.6.0 CHANGELOG: "tracked equivalent prose lives in `docs/spec/claude-code-foundations.md`"). Updated tasks.md AC to reflect the local-only nature of the CLAUDE.md edit. Tracked spec already conveys the bypass guidance in two places (specification + quick-reference).
 
 ### Task 5.4: Version bump + release commit
 

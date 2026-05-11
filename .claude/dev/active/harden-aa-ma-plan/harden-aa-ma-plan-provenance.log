@@ -30,3 +30,7 @@
 [2026-05-11T15:40:00+01:00] AUDIT_PASS — independent Explore subagent confirmed 8/8 audit claims; no spec deviations
 [2026-05-11T15:42:00+01:00] M4_T4.7_COMPLETE — tests/smoke/aa-ma-plan-skip-detection-findings.md authored (175 lines)
 [2026-05-11T15:42:00+01:00] M4_MILESTONE_COMPLETE — 6/7 PASS, 1 DEFERRED (Scenario 5); empirical hook behavior validated end-to-end; M5 unblocked
+[2026-05-11T16:00:00+01:00] M5_T5.1_COMPLETE — Phase Markers section added to aa-ma-specification.md; 9-line cheat sheet added to aa-ma-quick-reference.md
+[2026-05-11T16:05:00+01:00] M5_T5.2_COMPLETE — CHANGELOG.md Unreleased section authored (62 lines, Feat/Test/Docs/Chore breakdown)
+[2026-05-11T16:08:00+01:00] M5_T5.3_COMPLETE — CLAUDE.md Hook Bypasses table extended with 2 new rows (silencing + debug env var)
+[2026-05-11T16:10:00+01:00] M5_T5.4_PENDING_HITL — version bump + release commit is Stephen's call; ready to cz bump when authorised

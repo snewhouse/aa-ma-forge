@@ -240,5 +240,31 @@ npx cursor-bank init
 
 ---
 
+### Phase Markers (v0.7.0+)
+
+`/aa-ma-plan` writes a runtime log at `~/.claude/runtime/aa-ma-plan-<slug>.log`
+recording every phase. The advisory hook `aa-ma-plan-skip-warn.sh` warns at
+`PreToolUse(ExitPlanMode)` / `SessionEnd` if any phase is missing or has a
+SKIPPED marker without a `reason=<token>`.
+
+**9 required markers** (plus PHASE_0 INIT):
+
+```
+PHASE_1   DONE — context_gathering=complete
+PHASE_1.3 DONE — grill_mode=<mode> branches_resolved=<N> questions_asked=<N>
+PHASE_1.5 DONE — lessons_loaded=<N> git_grep_hits=<N>
+PHASE_2   DONE — brainstorm_skill=invoked alternatives_considered=<N>
+PHASE_3   DONE — context7_calls=<N> web_fetches=<N>
+PHASE_4   DONE — complexity_score=<N>% plan_elements=<N>/12
+PHASE_4.2 DONE — reviews=<csv>             (or SKIPPED — reason=<token>)
+PHASE_4.5 DONE — verdict=<G|Y|R> ...       (or SKIPPED — reason=<token>)
+PHASE_5   DONE — artifacts=5 task_dir=<path>
+```
+
+**Bypass:** `export AA_MA_HOOKS_DISABLE=1` (existing master kill switch).
+**Canonical contract:** `docs/spec/plan-marker-grammar.md`.
+
+---
+
 *Full guide: [aa-ma-team-guide.md](aa-ma-team-guide.md)*
-*Last updated: 2026-04-07*
+*Last updated: 2026-05-11*

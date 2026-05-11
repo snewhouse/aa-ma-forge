@@ -349,7 +349,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Result Log:** `scripts/install.sh --dry-run` confirms 7 v0.8.0 symlinks: claude-code/skills/verify-impl/ → ~/.claude/skills/verify-impl, all 5 agent files → ~/.claude/agents/, security-static-check.sh → ~/.claude/hooks/lib/. Settings.json registration line `Would register PreToolUse [security-static-check.sh] in settings.json` confirms AA_MA_HOOKS array update. impl-review-template.md is in docs/templates/ (in-tree reference, not symlinked — matches project convention; install.sh does not symlink templates).
 
 ### Step 6.5: Push tag + release notes
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** HITL
 - **Dependencies:** Step 6.4
 - **Critical-Path:** version-pipeline
@@ -357,4 +357,4 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Complexity:** 30%
 - **Acceptance:** `git push origin v0.8.0` succeeds; GitHub/GitLab release notes link to ADR-0005
 - **Artefacts:** (release-only; no file changes)
-- **Result Log:**
+- **Result Log:** User authorized push via AskUserQuestion. `git push origin feature/workflow_additions_001` pushed 9 commits (scaffold → M6 sync). `git push origin v0.8.0` created new public tag (`* [new tag]         v0.8.0 -> v0.8.0`). Tag points to amended bump commit 695f7b7 with rich CHANGELOG entry. Branch ready to merge to main when user chooses (via `/sole-dev-merge` or manual PR).

@@ -5,6 +5,114 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-007 (2026-05-11) — `/sole-dev-merge` quality-check format pass may modify out-of-scope files
+
+**Pattern:** During harden-aa-ma-plan M5 merge step, `/sole-dev-merge` Step 2
+ran `uv run ruff format src/ tests/` which reformatted 29 pre-existing test
+files in `tests/codemem/` and `tests/perf/` — none of which were touched by
+the plan's work. The format step is a "with-fix" pass, meaning it mutates
+working-tree files as part of the merge ceremony.
+
+**Symptom:** After the format step, `git status --porcelain` listed 29
+modified files outside the plan's known scope. The default sole-dev-merge
+flow would have bundled them into the release merge, coupling the v0.7.0
+release commit to wholesale format drift unrelated to its declared scope.
+
+**Root cause:** `/sole-dev-merge` was designed as a quality gate, not a
+scope filter. It assumes the working tree is clean before invocation, but
+its own format-fix step can dirty the tree with whole-tree changes that
+weren't part of the feature branch's commits.
+
+**Rule:** During `/sole-dev-merge`, after the format-with-fix step, check
+`git status --porcelain` for modifications outside the plan's known scope.
+Reset out-of-scope changes with `git checkout -- <paths>` before proceeding
+to the merge. Whole-tree format passes should be their own dedicated
+`chore(format)` commit on a separate prep PR — NOT slipped in via a release
+merge ceremony. Failing to do this couples release scope to unrelated drift
+and violates the atomic-commit-per-logical-change convention.
+
+**Cross-ref:** sole-dev-merge skill (gstack) — the format-fix step is
+deliberate but assumes clean-tree start; this lesson captures the gap when
+the assumption breaks.
+
+---
+
+## L-006 (2026-05-11) — `cz bump` strips rich `## Unreleased` content to bare Feat/Fix — amend + retag to preserve prose
+
+**Pattern:** During harden-aa-ma-plan M5.4, a `## Unreleased` section was
+hand-authored with prose intro + Feat/Test/Docs/Chore subsections matching
+the v0.6.0 / v0.5.0 entry styles. `uv run cz bump` replaced that section
+with auto-generated bare Feat + Fix bullets only, losing the prose intro
+and the entire Test + Docs + Plan-close subsections.
+
+**Symptom:** v0.7.0 bump commit (00d6519, then amended to 480dd3f) landed
+with a CHANGELOG entry far weaker than v0.6.0 and v0.5.0 — no prose intro,
+no Test posture summary, no Docs additions list, no Plan close summary.
+Discovered by reading the post-bump CHANGELOG before pushing.
+
+**Root cause:** `cz_conventional_commits` default template emits only Feat
+and Fix bullets extracted from commit subjects. Prior rich CHANGELOG
+entries (v0.6.0, v0.5.0) were enriched manually post-bump — not generated
+by cz. The hand-authored `## Unreleased` content does not survive cz's
+section rewrite.
+
+**Rule:** After `uv run cz bump`, immediately review the generated
+CHANGELOG section. If it's missing prose intro + Test/Docs/Plan-close
+sections needed to match prior entries, edit them in, then
+`git commit --amend --no-edit && git tag -d vX.Y.Z && git tag vX.Y.Z` to
+retag at the amended commit BEFORE pushing. This preserves L-003 (cz owns
+the heading) while delivering substantive release notes. Do NOT push the
+tag until the CHANGELOG is acceptable — local-only retagging is reversible;
+pushed-tag retagging requires force-tag-push and breaks anyone who has
+already fetched.
+
+**Cross-ref:** L-003 (cz bump owns CHANGELOG headings — never manually
+edit `## vX.Y.Z`). This is its operational corollary: cz owns the
+heading, you own the contents under it.
+
+---
+
+## L-005 (2026-05-11) — `install.sh` symlinks only registered hook scripts — helpers invoked from slash-command bodies need explicit symlinks
+
+**Pattern:** During harden-aa-ma-plan M4 first install attempt, the
+`claude-code/hooks/aa-ma-plan-marker.sh` helper script was missing from
+`~/.claude/hooks/lib/` after running `scripts/install.sh`. The helper is
+invoked from the `/aa-ma-plan` command body as
+`bash ~/.claude/hooks/lib/aa-ma-plan-marker.sh <slug> <phase> <status> ...`
+but `register_hook` in `scripts/install.sh` only symlinks scripts that
+appear in the `AA_MA_HOOKS` event-registration array. Helper scripts
+(non-event, invoked-by-path) were silently skipped.
+
+**Symptom:** After install completed without error, any `/aa-ma-plan`
+invocation would hit
+`bash: /home/.../aa-ma-plan-marker.sh: No such file or directory` for every
+phase marker write. The event-registered hook script (aa-ma-plan-skip-warn.sh)
+was correctly symlinked, but the helper it expects to coexist wasn't.
+
+**Root cause:** `scripts/install.sh` has two distinct mechanisms for
+deploying files under `~/.claude/hooks/lib/`:
+(a) `register_hook` — auto-symlinks via the `AA_MA_HOOKS` array for
+event-registered hooks;
+(b) explicit `create_symlink` blocks — for helper libraries (precedent:
+`aa-ma-parse.sh` at install.sh:332-335).
+The harden-aa-ma-plan M2.4 task registered the event hook (path a) but
+forgot the explicit symlink block (path b) for the helper.
+
+**Rule:** When adding a helper script under `claude-code/hooks/` that is
+invoked by absolute path from any slash-command body or other hook, add an
+explicit `create_symlink` block in `scripts/install.sh` mirroring the
+existing `aa-ma-parse.sh` pattern (install.sh:329-335). Helpers must be
+reachable at `~/.claude/hooks/lib/<helper>.sh` regardless of which project
+the user invokes the command from. Validate with
+`scripts/install.sh --dry-run | grep <helper>` BEFORE running real install.
+
+**Cross-ref:** sole-dev-merge dry-run gate (catches this if a new helper's
+test asserts the symlink exists); future helpers should add a
+`tests/hooks/install_dry_run.bats` assertion confirming their symlink is
+announced.
+
+---
+
 ## L-004 (2026-05-10) — Mid-flight Edit failures leave AA-MA artefacts in split-brain state
 
 **Pattern:** During the M3.6 plan-close commit of skill-ecosystem-integration

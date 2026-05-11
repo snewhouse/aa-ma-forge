@@ -34,3 +34,6 @@
 [2026-05-11T16:05:00+01:00] M5_T5.2_COMPLETE — CHANGELOG.md Unreleased section authored (62 lines, Feat/Test/Docs/Chore breakdown)
 [2026-05-11T16:08:00+01:00] M5_T5.3_COMPLETE — CLAUDE.md Hook Bypasses table extended with 2 new rows (silencing + debug env var)
 [2026-05-11T16:10:00+01:00] M5_T5.4_PENDING_HITL — version bump + release commit is Stephen's call; ready to cz bump when authorised
+[2026-05-11T16:30:00+01:00] M5_T5.4_COMPLETE_LOCAL — cz bump 0.6.0 → 0.7.0; tag v0.7.0 created; CHANGELOG enriched post-cz to match v0.6.0 entry style (prose+Test+Docs+Plan-close); bump commit amended; tag retagged at amended commit; LOCAL ONLY — tag push awaits Stephen
+[2026-05-11T16:35:00+01:00] M5_MILESTONE_COMPLETE — 4/4 tasks shipped (Tasks 5.1, 5.2, 5.3 + 5.4 local); plan harden-aa-ma-plan ready for archival pending tag push
+[2026-05-11T16:35:00+01:00] PLAN_COMPLETE_LOCAL — all 5 milestones COMPLETE locally; awaiting: Stephen pushes tag + main-merge per release pipeline + /archive-aa-ma to move to .claude/dev/completed/

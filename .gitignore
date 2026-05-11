@@ -20,6 +20,9 @@ media/
 # Hypothesis property-test cache (test state, not source)
 .hypothesis/
 
+# /retro skill output — per-developer weekly retrospective JSON snapshots
+.context/
+
 # Python
 __pycache__/
 *.py[cod]

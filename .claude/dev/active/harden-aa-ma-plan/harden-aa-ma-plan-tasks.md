@@ -6,14 +6,17 @@
 
 ### Task 1.1: Write marker grammar spec (REFERENCE-grade)
 
-- Status: PENDING
-- Mode: HITL
+- Status: COMPLETE
+- Mode: HITL (awaiting Stephen's review of the contract before M1.2)
 - Owner: orchestrator
 - Acceptance Criteria:
-  - `docs/spec/plan-marker-grammar.md` exists.
-  - Contains: grammar, 9 required markers, fingerprint table, slug derivation.
-  - Cross-referenced by `harden-aa-ma-plan-reference.md`.
-- Result Log: _pending_
+  - ✓ `docs/spec/plan-marker-grammar.md` exists (190 lines, 10 H2 sections).
+  - ✓ Contains: grammar (§Marker Grammar), 9 required markers (§9 Required Markers), fingerprint table (§Fingerprint Correlation), slug derivation (§Slug Derivation).
+  - ✓ Cross-referenced by `harden-aa-ma-plan-{plan,reference,tasks}.md` (3 of 5 AA-MA files).
+- Result Log:
+  - 2026-05-11: `docs/spec/plan-marker-grammar.md` created with 10 H2 sections covering Purpose, Marker Grammar, 9 Required Markers, Storage Lifecycle, Fingerprint Correlation, Slug Derivation, Parser & Hook Implementation Contracts, Version, Bypass, Cross-References.
+  - Spec is the canonical contract; downstream tasks (1.2 parser tests, 1.4 fingerprint tests, 3.x command body) consume from this file.
+  - Awaiting HITL review before consuming in M1.2.
 
 ### Task 1.2: Failing pytest tests for marker parser
 

@@ -570,8 +570,12 @@ PLAN_CREATED=$(grep -m1 "^\*\*Created:\*\*\|^Created:" \
   "${TASK_DIR}/${TASK_NAME}-plan.md" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
 
 # v0.8.0 release tag commit date (cutover for §6.8)
-# When v0.8.0 actually ships, replace 2026-12-31 with the real tag date.
-V080_CUTOVER="2026-12-31"   # PLACEHOLDER until v0.8.0 tags ship
+# Tag v0.8.0 → commit 695f7b7, authored 2026-05-11 17:05:15 +0100.
+# Strict less-than: plans Created: < 2026-05-11 are grandfathered.
+# The post-impl-adversarial-review meta-plan (Created: 2026-05-11) sits at
+# the boundary — see ADR-0005 self-bootstrap note. Future plans will be
+# Created: 2026-05-12 or later and thus subject to §6.8.
+V080_CUTOVER="2026-05-11"
 
 if [[ -z "${PLAN_CREATED}" ]] || [[ "${PLAN_CREATED}" < "${V080_CUTOVER}" ]]; then
   echo "[$(date -Iseconds)] §6.8 SKIPPED — pre-v0.8.0 plan (grandfathered)" \

@@ -164,11 +164,16 @@
 
 ### Task 4.1: Document 5 scenarios
 
-- Status: PENDING
-- Mode: HITL
+- Status: COMPLETE
+- Mode: HITL (awaiting Stephen's review before live execution of Tasks 4.2-4.6)
 - Acceptance Criteria:
-  - `tests/smoke/aa-ma-plan-skip-detection.md` exists with 5 numbered scenarios (each has prompt, setup, expected markers, expected hook output, pass/fail criteria).
-- Result Log: _pending_
+  - ✓ `tests/smoke/aa-ma-plan-skip-detection.md` exists with 5 numbered scenarios.
+  - ✓ Each scenario has: prompt, setup, expected markers, expected hook output, pass/fail criteria, and recording path.
+  - ✓ Prerequisites section documents install.sh / settings.json / runtime-dir hygiene.
+  - ✓ Synthesis template specifies required structure for findings doc.
+- Result Log:
+  - 2026-05-11: Doc written (276 lines, 5 scenarios + prerequisites + synthesis template). Scenarios target: happy path (all DONE, hook silent), legitimate --skip-lessons skip, user-choice skip of Phase 4.5, forced-skip negative (sed-out PHASE_1.3 → hook warns), compaction survival.
+  - HITL gate: Stephen runs `scripts/install.sh` to deploy new hooks, then executes scenarios 1-5 manually. Recordings go to `tests/smoke/recordings/`.
 
 ### Task 4.2: Execute Scenario 1 — Happy path
 

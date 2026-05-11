@@ -728,6 +728,58 @@ When task volume exceeds ~100 files and keyword search becomes noisy, a vector-b
 
 ---
 
+## Phase Markers (v0.7.0+)
+
+Beginning with v0.7.0, `/aa-ma-plan` writes a structured runtime log
+that records every phase as it completes or is legitimately skipped.
+The log makes skip behavior **observable** and **falsifiable from
+session state** — the safety net against phases being silently skipped
+under context pressure.
+
+### What gets written
+
+A runtime log at `~/.claude/runtime/aa-ma-plan-<slug>.log` accumulates
+one line per phase boundary:
+
+```
+[<ISO8601-timestamp>] PHASE_<id> <STATUS> — <key>=<value> [<key>=<value> ...]
+```
+
+- 10 required lines per non-skipping run: `PHASE_0 INIT` plus
+  `PHASE_{1, 1.3, 1.5, 2, 3, 4, 4.2, 4.5, 5} DONE`.
+- Legitimate skips become `SKIPPED — reason=<token>` markers.
+- The em-dash (U+2014) is the canonical separator.
+
+### Lifecycle
+
+- **Phase 0:** `/aa-ma-plan` writes the stub log.
+- **Phases 1–4.5:** each phase appends its DONE/SKIPPED marker via
+  `bash ~/.claude/hooks/lib/aa-ma-plan-marker.sh`.
+- **Phase 5:** `aa-ma-scribe` writes the final `PHASE_5 DONE` line
+  and moves the runtime log into the active task directory as
+  `<task>-plan-run.log`, where it becomes a permanent AA-MA artifact
+  alongside the 5 standard files.
+
+### Advisory hook
+
+The `aa-ma-plan-skip-warn.sh` hook fires on `PreToolUse(ExitPlanMode)`
+and `SessionEnd`. It reads the newest runtime log and:
+
+- Warns to stderr if any required phase marker is missing.
+- Warns if a `SKIPPED` marker is missing its `reason=<token>` payload.
+- Stays silent if every required phase is accounted for (DONE or
+  SKIPPED-with-reason).
+- Always exits 0 — advisory only. Bypass via existing
+  `AA_MA_HOOKS_DISABLE=1` master kill switch.
+
+### Reference
+
+The canonical grammar contract — including the parser API, fingerprint
+table for transcript-derived correlation, and slug derivation algorithm —
+lives in `docs/spec/plan-marker-grammar.md`.
+
+---
+
 ## References
 
 [1] Context compaction and summarisation techniques.

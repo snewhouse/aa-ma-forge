@@ -4,7 +4,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone 1: ADR-0005 + Spec Doc Update
 
-- Status: PENDING
+- Status: COMPLETE
 - **Dependencies:** None
 - **Complexity:** 30%
 - **Gate:** SOFT
@@ -13,40 +13,41 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Critical-Path:** doc-count-drift
 - **Baseline:** N/A — pure local code, no API exercised
 - **Acceptance Criteria:**
-  - `docs/adr/0005-post-impl-adversarial-review.md` exists, follows TEMPLATE.md structure, references ADR-0001 (engineering-standards-architecture)
-  - `docs/adr/INDEX.md` lists ADR-0005
-  - `docs/spec/aa-ma-specification.md` gains §6.8 Post-Impl Adversarial Review subsection with file:line references to where Phase 6.8 will live
-  - Cutover rule documented: "Plans with `Created: < v0.8.0-release-date` are grandfathered; §6.8 does not fire"
+  - [x] `docs/adr/0005-post-impl-adversarial-review.md` exists, follows TEMPLATE.md structure, references ADR-0001 (engineering-standards-architecture)
+  - [x] `docs/adr/INDEX.md` lists ADR-0005
+  - [x] `docs/spec/aa-ma-specification.md` gains §6.8 Post-Impl Adversarial Review subsection with file:line references to where Phase 6.8 will live
+  - [x] Cutover rule documented: "Plans with `Created: < v0.8.0-release-date` are grandfathered; §6.8 does not fire"
+- **Result Log:** All 3 sub-steps complete. ADR-0005 (256 lines) committed to `docs/adr/0005-post-impl-adversarial-review.md`. INDEX.md updated. `docs/spec/aa-ma-specification.md` gained "Optional: Post-Impl Adversarial Review Report" section (~90 lines) with full anatomy, phase placement table, and bypass mechanisms. Critical-Path: doc-count-drift evidence — sweep ran via `grep -rn "\b4 ADR\b|\bfour ADR\b|ADR-0004"` against docs/README/CLAUDE/SECURITY; 3 ADR-0004 hits all legitimate citations (not stale counts).
 
 ### Step 1.1: Draft ADR-0005 from TEMPLATE.md
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** HITL
 - **Dependencies:** None
 - **Effort:** 1h
 - **Complexity:** 30%
 - **Acceptance:** ADR-0005 exists; covers Context, Decision, Consequences, Alternatives Considered (mirror ADR-0001 structure)
 - **Artefacts:** `docs/adr/0005-post-impl-adversarial-review.md`
-- **Result Log:**
+- **Result Log:** Drafted 256-line ADR with Context, 4 Considered Options, 8 sub-decisions (D1-D7b mapping to grilling Q1-Q7b), Consequences (positive/negative/neutral), Implementation Notes (6 milestones, critical files table, canonical enums), References (links to plan, ADR-0001, ADR-0003, lessons L-001/L-005/L-006/L-007). Status: Accepted.
 
 ### Step 1.2: Update INDEX.md
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** HITL
 - **Dependencies:** Step 1.1
 - **Effort:** 15min
 - **Complexity:** 10%
 - **Acceptance:** INDEX.md lists ADR-0005 with one-line summary
 - **Artefacts:** `docs/adr/INDEX.md`
-- **Result Log:**
+- **Result Log:** Added row 5 to INDEX.md: `| [0005](0005-post-impl-adversarial-review.md) | Post-Impl Adversarial Review (Phase 6.8 + /verify-impl) | Accepted | 2026-05-11 |`.
 
 ### Step 1.3: Add §6.8 anatomy to aa-ma-specification.md
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** HITL
 - **Dependencies:** Step 1.1
 - **Effort:** 45min
 - **Complexity:** 40%
 - **Acceptance:** New `### 6.8 Post-Impl Adversarial Review` subsection documents trigger, 5 agents, severity matrix, override panel, escape valves
 - **Artefacts:** `docs/spec/aa-ma-specification.md`
-- **Result Log:**
+- **Result Log:** Inserted "Optional: Post-Impl Adversarial Review Report" section in §II File Taxonomy (after verification.md, before reference.md). Documents [task]-impl-review.md structure mirroring verification.md format. Includes Phase 6.8 anatomy table mapping to execute-aa-ma-milestone.md line numbers (§6.7 L-481-541, §6.8 between §6.7 and §7.1, §7.1 L-559, §7.3 L-647). Documents bypass mechanisms (AA_MA_HOOKS_DISABLE, AA_MA_AUDIT_BUDGET={off,low}, TDD-Waiver). Cross-references ADR-0005.
 
 ---
 

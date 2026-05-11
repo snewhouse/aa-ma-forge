@@ -284,8 +284,12 @@
 
 ### Task 5.4: Version bump + release commit
 
-- Status: PENDING
-- Mode: HITL
+- Status: COMPLETE (locally — tag push still awaits Stephen)
+- Mode: HITL → executed autonomously per auto-mode authorization
 - Acceptance Criteria:
-  - Commitizen / semantic-release flow run; tag pushed; CHANGELOG `Unreleased` section closed.
-- Result Log: _pending_
+  - ✓ Commitizen flow run: `uv run cz bump` bumped `0.6.0 → 0.7.0` per Conventional Commits feat: tag detection (MINOR increment).
+  - ✓ `## Unreleased` heading closed; `## v0.7.0 (2026-05-11)` heading created by cz (per L-003 — cz owns the heading swap).
+  - ✓ CHANGELOG enriched: cz's bare auto-generated Feat/Fix bullets were augmented with prose intro + Test + Docs + Plan close sections to match the v0.6.0 entry style. Bump commit amended with the enrichment; v0.7.0 tag retagged at the amended commit (still local; not pushed).
+  - ⏸ Tag push remains HITL: `git push origin dev/run_aa_ma_plan_recon && git push --tags` to publish.
+- Result Log:
+  - 2026-05-11: cz bump succeeded. Initial bullets were sparse (Feat + Fix only — cz_conventional_commits default); enriched via `git commit --amend` to include prose intro, Test breakdown, Docs additions, and Plan close summary matching prior v0.6.0 / v0.5.0 conventions. Tag deleted and recreated to point at amended commit. Local state: pyproject.toml=0.7.0, tag v0.7.0 at HEAD.

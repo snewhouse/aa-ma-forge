@@ -317,6 +317,8 @@ AA_MA_HOOKS=(
     "PreToolUse|Bash|aa-ma-commit-signature.sh|10|"
     "SessionEnd||aa-ma-session-end-dirty.sh|5|"
     "PostToolUse|Bash|aa-ma-commit-drift.sh|5|"
+    "PreToolUse|ExitPlanMode|aa-ma-plan-skip-warn.sh|5|"
+    "SessionEnd||aa-ma-plan-skip-warn.sh|5|"
 )
 
 SETTINGS_FILE="${CLAUDE_HOME}/settings.json"

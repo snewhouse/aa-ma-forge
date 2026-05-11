@@ -315,6 +315,7 @@ AA_MA_HOOKS=(
     "SessionStart||aa-ma-session-start.sh|5|Loading AA-MA context..."
     "PreCompact||pre-compact-aa-ma.sh|5|"
     "PreToolUse|Bash|aa-ma-commit-signature.sh|10|"
+    "PreToolUse|Bash|security-static-check.sh|10|"
     "SessionEnd||aa-ma-session-end-dirty.sh|5|"
     "PostToolUse|Bash|aa-ma-commit-drift.sh|5|"
     "PreToolUse|ExitPlanMode|aa-ma-plan-skip-warn.sh|5|"

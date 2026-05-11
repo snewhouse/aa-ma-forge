@@ -334,6 +334,14 @@ if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" ]; then
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-parse.sh"
 fi
 
+# Marker-writer helper is invoked from the /aa-ma-plan command body — not a
+# registered hook event, but needs to live at the installed location so the
+# command's `bash ~/.claude/hooks/lib/aa-ma-plan-marker.sh ...` works.
+if [ -f "${REPO_ROOT}/claude-code/hooks/aa-ma-plan-marker.sh" ]; then
+    create_symlink "${REPO_ROOT}/claude-code/hooks/aa-ma-plan-marker.sh" \
+                   "${CLAUDE_HOME}/hooks/lib/aa-ma-plan-marker.sh"
+fi
+
 # Back up settings.json once before first mutation.
 backup_settings_once() {
     ${SETTINGS_BACKED_UP} && return 0

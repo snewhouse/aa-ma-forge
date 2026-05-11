@@ -1,0 +1,3 @@
+aa-ma-plan: 1 phase marker issue(s) detected in /home/sjnewhouse/.claude/runtime/aa-ma-plan-scenario4-20260511132409.log
+  - PHASE_1.3: marker missing from runtime log
+  (advisory only — bypass with AA_MA_HOOKS_DISABLE=1)

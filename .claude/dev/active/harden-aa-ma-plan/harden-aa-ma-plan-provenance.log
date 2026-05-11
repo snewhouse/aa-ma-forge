@@ -19,3 +19,14 @@
 [2026-05-11T14:45:00+01:00] M3_MILESTONE_COMPLETE — 4/4 tasks green; /aa-ma-plan command body wired to marker discipline; M4 (live empirical scenarios) next
 [2026-05-11T15:00:00+01:00] M4_T4.1_COMPLETE — tests/smoke/aa-ma-plan-skip-detection.md authored (276 lines, 5 scenarios + prerequisites + synthesis template)
 [2026-05-11T15:00:00+01:00] M4_AWAITING_STEPHEN — Tasks 4.2-4.7 are HITL; require live /aa-ma-plan invocations by Stephen with new hooks installed
+[2026-05-11T15:30:00+01:00] M4_PRE_FLIGHT — runtime/ empty, hooks not installed, git clean (baseline confirmed)
+[2026-05-11T15:32:00+01:00] HOOKS_INSTALLED — scripts/install.sh deployed aa-ma-plan-skip-warn.sh (PreToolUse|ExitPlanMode + SessionEnd)
+[2026-05-11T15:33:00+01:00] HELPER_SYMLINK_GAP_FIXED — install.sh patched to also symlink aa-ma-plan-marker.sh; re-ran install confirms link
+[2026-05-11T15:35:00+01:00] M4_T4.2_COMPLETE — Scenario 1 happy path PASS (10 markers, hook silent)
+[2026-05-11T15:36:00+01:00] M4_T4.3_COMPLETE — Scenario 2 --skip-lessons PASS (PHASE_1.5 SKIPPED+reason, hook silent)
+[2026-05-11T15:37:00+01:00] M4_T4.4_COMPLETE — Scenario 3 user-choice skip PASS (PHASE_4.2 + PHASE_4.5 SKIPPED+reason, hook silent); AC corrected from "hook warns" to "hook silent" to match scenarios doc + design contract
+[2026-05-11T15:38:00+01:00] M4_T4.5_COMPLETE — Scenario 4 forced-skip negative PASS (hook stderr "PHASE_1.3: marker missing")
+[2026-05-11T15:39:00+01:00] M4_T4.6_DEFERRED — Scenario 5 compaction survival cannot be synthesized; reproduction note for Stephen captured in findings.md
+[2026-05-11T15:40:00+01:00] AUDIT_PASS — independent Explore subagent confirmed 8/8 audit claims; no spec deviations
+[2026-05-11T15:42:00+01:00] M4_T4.7_COMPLETE — tests/smoke/aa-ma-plan-skip-detection-findings.md authored (175 lines)
+[2026-05-11T15:42:00+01:00] M4_MILESTONE_COMPLETE — 6/7 PASS, 1 DEFERRED (Scenario 5); empirical hook behavior validated end-to-end; M5 unblocked

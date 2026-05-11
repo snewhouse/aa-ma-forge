@@ -90,6 +90,94 @@ Generated: [ISO-8601 timestamp] | Mode: [automated|interactive] | Revision: [N]
 - Revision history provides a full audit trail of plan improvements
 - The file is optional — its absence never blocks execution
 
+### Optional: Post-Impl Adversarial Review Report
+
+The `[task]-impl-review.md` file stores the results of post-execution adversarial review run after implementation lands and before user authorization. It is produced by Phase 6.8 of the `/execute-aa-ma-milestone` command (and `/execute-aa-ma-full` via delegation) via the new `/verify-impl` skill. Symmetric to `[task]-verification.md` but operates on the implementation diff, not the plan. Introduced in v0.8.0; see [ADR-0005](../adr/0005-post-impl-adversarial-review.md).
+
+**When it exists:**
+- Generated when a milestone with `Created: >= v0.8.0` release tag and a populated `Audit-Profile` field reaches its close gate
+- Documents findings from up to 5 parallel audit agents (code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor) per the milestone's `Audit-Profile` (`full | code-only | docs-only | infra | custom`)
+- Classifies each finding as CRITICAL (blocks user approval), WARNING (logged only), or INFO (suppressed unless `--verbose`)
+- Records user-override decisions (accept / dispute / defer) per CRITICAL finding
+- Tracks budget-mode invocations when `AA_MA_AUDIT_BUDGET={low,off}` is set
+
+**When it is absent:**
+- The milestone's plan has `Created: < v0.8.0` release tag (grandfathered — §6.8 does not fire)
+- The milestone has no `Audit-Profile` declaration (caught by plan-verification Angle 6 structural check for post-v0.8.0 plans)
+- `AA_MA_AUDIT_BUDGET=off` was set for this milestone (logged to `provenance.log` as `[ts] AUDIT_BUDGET=off — bypassed §6.8`)
+- `AA_MA_HOOKS_DISABLE=1` was set (master kill switch)
+
+**Structure:**
+
+```markdown
+# Impl Review Report: [task-name] / Milestone [N]
+Generated: [ISO-8601 timestamp] | Audit-Profile: [profile] | Budget: [normal|low]
+
+## Summary
+- CRITICAL: [N] findings ([M] accepted, [P] disputed, [Q] deferred)
+- WARNING: [N] findings
+- INFO: [N] findings
+- Overall: [BLOCKED | PASS WITH WARNINGS | PASS]
+
+## Code Review (code-reviewer agent)
+### Findings
+- [SEVERITY] [pattern]: file:line — impact: "X" — suggested fix: "Y"
+[or "No findings — code review clean."]
+
+## Security (security-auditor agent)
+### Mechanical pre-check (security-static-check.sh): [PASS|BLOCKED]
+### Semantic findings
+- [SEVERITY] [OWASP class]: file:line — impact: "X" — suggested fix: "Y"
+
+## TDD Sequence (tdd-sequence-auditor agent)
+### Verdict: [PASS | FAIL | WAIVED]
+### Evidence
+- First tests/ commit: <sha> at <timestamp>
+- First src/ commit: <sha> at <timestamp>
+- TDD-Waiver: [value or "(none)"]
+
+## External Library Evidence (context7-evidence-auditor agent)
+### New PyPI dependencies in milestone diff
+- [package@version]: [PASS — Context7 evidence at provenance.log line N | WARNING — no Context7 evidence found]
+### Major version bumps in milestone diff
+- [package: old → new]: [PASS | WARNING]
+
+## Future-Proofing (future-proofing-auditor agent)
+### Findings
+- [SEVERITY] [hardcoded count|magic number|pinned version|premature abstraction]: file:line — suggested fix: "X"
+
+## User Override Decisions
+| Severity | Finding | Decision | Rationale |
+|---|---|---|---|
+| CRITICAL | [summary] | accept | [user note] |
+| CRITICAL | [summary] | dispute | [user note — fed back to next run as convention learned] |
+| CRITICAL | [summary] | defer | [new backlog task: tasks.md Step N.M] |
+```
+
+**Design principles:**
+- Each agent runs independently and catches a categorically different class of post-impl issue (symmetric to plan-verification's 6 angles)
+- Findings require **file:line + concrete impact + suggested fix** or auto-downgrade to WARNING (prevents agent waffle)
+- CRITICAL findings surface via `AskUserQuestion` accept/dispute/defer panel BEFORE §7.3 user authorization
+- Disputes are logged as "convention learned for this project" and fed back to next-run agent prompts to reduce false-positive rate over time
+- `Audit-Profile` per milestone caps token cost — `docs-only` runs 1 agent (future-proofing); `full` runs all 5
+- Grandfathered by `Created:` date (mirrors v0.5.0 cutover for Engineering Standards Declaration element #12)
+- The file is optional — absent on grandfathered plans, present on v0.8.0+ plans with non-bypassed `Audit-Profile`
+
+**Phase 6.8 anatomy (in `execute-aa-ma-milestone.md`):**
+
+| Phase | Location | What runs |
+|---|---|---|
+| §6.7 Engineering Standards HARD Gate | L-481-541 | git-clean, zero-PENDING, Critical-Path evidence (existing) |
+| **§6.8 Post-Impl Adversarial Review** | (NEW — inserted between §6.7 and §7.1) | Invoke `/verify-impl` with current milestone's `Audit-Profile`; aggregate findings; surface CRITICAL via AskUserQuestion |
+| §7.1 Integrity Check | L-559 | Existing checklist verification (unchanged) |
+| §7.3 User Authorization | L-647 | Existing approval gate (now post-§6.8) |
+
+**Bypass mechanisms (auditable):**
+- `AA_MA_HOOKS_DISABLE=1` — master switch; skips ALL aa-ma gates including §6.8
+- `AA_MA_AUDIT_BUDGET=off` — skips §6.8 specifically; logged to `provenance.log`
+- `AA_MA_AUDIT_BUDGET=low` — downgrades parallel→sequential and trims agent context for context-pressured sessions
+- `TDD-Waiver: <canonical-value>` per milestone — bypasses tdd-sequence-auditor with documented reason
+
 ### Immutable Reference Store
 
 The `[task]-reference.md` file is Claude's **high-priority fact memory** — non-negotiable truths that do not change during normal execution. When context is constrained, this file loads first (see Section IV).

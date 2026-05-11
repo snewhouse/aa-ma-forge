@@ -3,3 +3,9 @@
 [2026-05-11 12:00] Project: /home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge
 [2026-05-11 12:00] Plan: post-impl-adversarial-review — Milestones: 6, Steps: 21
 [2026-05-11 12:00] Status: READY FOR EXECUTION
+[2026-05-11T15:30+01:00] M1 EXECUTION START — Audit-Profile: docs-only, Gate: SOFT, Critical-Path: doc-count-drift
+[2026-05-11T15:45+01:00] M1.1 COMPLETE — docs/adr/0005-post-impl-adversarial-review.md created (256 lines, Status: Accepted, mirrors ADR-0001 structure)
+[2026-05-11T15:46+01:00] M1.2 COMPLETE — docs/adr/INDEX.md updated to list ADR-0005
+[2026-05-11T15:55+01:00] M1.3 COMPLETE — docs/spec/aa-ma-specification.md gained "Optional: Post-Impl Adversarial Review Report" section (~90 lines) in §II File Taxonomy
+[2026-05-11T16:00+01:00] CRITICAL_PATH_REVIEW — doc-count-drift sweep: grep -rn "\b4 ADR\b|\bfour ADR\b|ADR-0004" docs/ README.md CLAUDE.md SECURITY.md — 3 hits, all legitimate citations of ADR-0004 (write-a-skill adoption), NOT stale counts. Verdict: PASS.
+[2026-05-11T16:00+01:00] M1 COMPLETE — All 3 acceptance criteria met; 3/3 sub-steps COMPLETE; doc-count-drift evidence logged; ready for commit.

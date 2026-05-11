@@ -24,6 +24,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0002](0002-grill-with-docs-adoption.md) | Adopt `grill-with-docs` from mattpocock/skills and wire into /aa-ma-plan Phase 1.3 | Implemented | 2026-05-10 |
 | [0003](0003-prototype-adoption.md) | Adopt `prototype` from mattpocock/skills (LOGIC + UI branches) | Implemented | 2026-05-10 |
 | [0004](0004-write-a-skill-adoption.md) | Adopt `write-a-skill` from mattpocock/skills | Implemented | 2026-05-10 |
+| [0005](0005-post-impl-adversarial-review.md) | Post-Impl Adversarial Review (Phase 6.8 + /verify-impl) | Accepted | 2026-05-11 |
 
 ## Statuses
 

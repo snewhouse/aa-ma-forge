@@ -20,12 +20,15 @@
 
 ### Task 1.2: Failing pytest tests for marker parser
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
-  - `tests/plan_markers/test_parser.py` exists with cases: well-formed, missing reason on SKIPPED, malformed timestamp, multi-line log, empty log.
-  - `uv run pytest tests/plan_markers/ -q` exit code is non-zero (red).
-- Result Log: _pending_
+  - ✓ `tests/plan_markers/test_parser.py` exists with 16 test cases across 4 classes (WellFormedSingleLine, MultiLineLog, MalformedMarkers, MarkerDataclass).
+  - ✓ `uv run pytest tests/plan_markers/ -q` exits non-zero (red) — `ModuleNotFoundError: No module named 'aa_ma.plan_markers'` confirms parser not yet implemented.
+- Result Log:
+  - 2026-05-11: `tests/plan_markers/test_parser.py` written (171 lines). Tests cover: PHASE_0 INIT, DONE with payload, SKIPPED with reason, sub-phase IDs (1.3, 4.5), value variants (`42%`, `12/12`, paths), multi-line logs, empty logs, malformed timestamps, unknown status, unknown phase IDs (forward-compat), garbage lines, missing em-dash separator, marker immutability, dataclass field contract, payload dict-of-strings invariant.
+  - Discovered spec inconsistency: §Marker Grammar declared status as `{DONE, SKIPPED}` but §9 Required Markers used `INIT` for PHASE_0. Spec corrected: status set is now `{INIT, DONE, SKIPPED}` with `INIT` valid only on `PHASE_0`.
+  - Pytest run confirms red: collection error from missing module.
 
 ### Task 1.3: Implement marker parser
 

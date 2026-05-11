@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-05-11 16:45 -->
+<!-- Plan: harden-aa-ma-plan - COMPLETE -->
+<!-- Total Milestones: 5 (24 sub-tasks: 23 COMPLETE, 1 DEFERRED — Scenario 5 compaction survival) | Duration: 2026-05-11 12:50 to 16:35 (~4h) -->
+
 # Context Log: harden-aa-ma-plan
 
 ## 2026-05-11 — Plan origination via /grill-me + /double-check

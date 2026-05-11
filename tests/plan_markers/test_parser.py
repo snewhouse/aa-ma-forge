@@ -12,7 +12,7 @@ import pytest
 
 # This import will fail until Task 1.3 implements the parser.
 # That's intentional — the failing-import is what makes Task 1.2 red.
-from aa_ma.plan_markers.parser import Marker, parse_log  # noqa: E402
+from aa_ma.plan_markers.parser import parse_log
 
 
 # ---------------------------------------------------------------------------
@@ -188,4 +188,6 @@ class TestMarkerDataclass:
         line = "[2026-05-11T12:30:15+01:00] PHASE_4 DONE — complexity_score=42% plan_elements=12/12"
         m = parse_log(line)[0]
         assert isinstance(m.payload, dict)
-        assert all(isinstance(k, str) and isinstance(v, str) for k, v in m.payload.items())
+        assert all(
+            isinstance(k, str) and isinstance(v, str) for k, v in m.payload.items()
+        )

@@ -4,3 +4,6 @@
 [2026-05-11T13:00:00+01:00] M1_T1.1_COMPLETE — docs/spec/plan-marker-grammar.md authored (190 lines, 10 H2 sections); AC: file exists ✓, contains grammar+9 markers+fingerprint+slug ✓, cross-referenced by 3 AA-MA files ✓
 [2026-05-11T13:10:00+01:00] M1_T1.2_COMPLETE — tests/plan_markers/test_parser.py with 16 cases, pytest exits non-zero (red, ModuleNotFoundError); spec correction: status set now {INIT, DONE, SKIPPED}
 [2026-05-11T13:20:00+01:00] M1_T1.3_COMPLETE — src/aa_ma/plan_markers/parser.py (161 lines, stdlib-only); 18/18 tests green; ruff clean; format clean
+[2026-05-11T13:30:00+01:00] M1_T1.4_COMPLETE — tests/plan_markers/test_fingerprint.py with 32 cases, red (ModuleNotFoundError)
+[2026-05-11T13:40:00+01:00] M1_T1.5_COMPLETE — src/aa_ma/plan_markers/fingerprint.py (235 lines); 50/50 plan_markers tests green; full repo suite 489 passed, 0 regressions; ruff clean
+[2026-05-11T13:40:00+01:00] M1_MILESTONE_COMPLETE — 5/5 tasks green; foundation layer ready for M2 hook

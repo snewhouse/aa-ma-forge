@@ -45,21 +45,25 @@
 
 ### Task 1.4: Failing fingerprint matcher tests
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
-  - `tests/plan_markers/test_fingerprint.py` exists with cases per fingerprint table.
-  - Tests FAIL initially.
-- Result Log: _pending_
+  - ✓ `tests/plan_markers/test_fingerprint.py` exists with 32 cases across 13 classes.
+  - ✓ Tests FAIL initially: `ModuleNotFoundError: No module named 'aa_ma.plan_markers.fingerprint'`.
+- Result Log:
+  - 2026-05-11: 326-line test file written. Coverage: load_tool_calls (top-level + nested message.content forms, missing file, malformed JSONL); per-phase fingerprints for all 9 required phases including PHASE_1 (Agent OR src/Read), PHASE_1.3 (3+ AskUserQuestion OR grill-me/grill-with-docs), PHASE_1.5 (lessons.md OR git-log-grep), PHASE_2 (brainstorming), PHASE_3 (WebFetch/WebSearch/context7/Agent — parametrized), PHASE_4 (complexity-router), PHASE_4.2 (3 review skills — parametrized), PHASE_4.5 (plan-verification OR Agent verification), PHASE_5 (BOTH scribe AND validator); SKIPPED override semantics; MISSING marker detection; CorrelationResult dataclass contract.
 
 ### Task 1.5: Implement fingerprint matcher
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
-  - `src/aa_ma/plan_markers/fingerprint.py` reads JSONL transcript, returns `list[CorrelationResult]`.
-  - All Task 1.4 tests pass.
-- Result Log: _pending_
+  - ✓ `src/aa_ma/plan_markers/fingerprint.py` exports `correlate(markers, tool_calls) -> list[CorrelationResult]` + `load_tool_calls(transcript_path) -> list[ToolCall]`.
+  - ✓ All 32 Task 1.4 tests pass; combined plan_markers suite: 50/50 green.
+  - ✓ Full repo regression suite: 489 passed, 1 skipped, 6 deselected (no regressions).
+- Result Log:
+  - 2026-05-11: Fingerprint module implemented (235 lines after ruff format). Stdlib-only. Recursive `_yield_tool_uses` traverses nested CC transcript structure (message.content arrays) to find tool_use entries. Per-phase predicates encoded as 9 small functions in a dispatch table; correlation produces `CorrelationResult(phase_id, marker_status, evidence_found, warning)` with marker_status ∈ {INIT, DONE, SKIPPED, MISSING} and evidence_found ∈ {present, absent, skipped_with_reason, not_required}.
+  - SOC achieved: load_tool_calls (I/O) vs correlate (pure logic). Tests cover correlate in isolation with synthetic ToolCall lists; load_tool_calls tested separately against tmp_path JSONL fixtures.
 
 ## M2: Hook implementation (advisory)
 

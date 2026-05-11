@@ -17,3 +17,5 @@
 [2026-05-11T14:40:00+01:00] M3_T3.3_COMPLETE — aa-ma-scribe.md adds PHASE_5 marker write + runtime log mv to task dir
 [2026-05-11T14:45:00+01:00] M3_T3.4_COMPLETE — tests/integration/test_marker_lifecycle.bats with 6 scenarios; 81/81 bats green; 489/489 pytest green
 [2026-05-11T14:45:00+01:00] M3_MILESTONE_COMPLETE — 4/4 tasks green; /aa-ma-plan command body wired to marker discipline; M4 (live empirical scenarios) next
+[2026-05-11T15:00:00+01:00] M4_T4.1_COMPLETE — tests/smoke/aa-ma-plan-skip-detection.md authored (276 lines, 5 scenarios + prerequisites + synthesis template)
+[2026-05-11T15:00:00+01:00] M4_AWAITING_STEPHEN — Tasks 4.2-4.7 are HITL; require live /aa-ma-plan invocations by Stephen with new hooks installed

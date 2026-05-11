@@ -225,7 +225,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone 5: §6.8 Integration into `/execute-aa-ma-milestone` + Delegation in `/execute-aa-ma-full`
 
-- Status: PENDING
+- Status: COMPLETE
 - **Dependencies:** Milestones 2, 3, 4
 - **Complexity:** 80% ⚠️ HIGH COMPLEXITY
 - **Gate:** HARD
@@ -234,46 +234,47 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Critical-Path:** doc-count-drift
 - **Baseline:** N/A — pure local code, no API exercised
 - **Acceptance Criteria:**
-  - `execute-aa-ma-milestone.md` gains §6.8 between current §6.7 (line 481) and §7.1 (line 559)
-  - §6.8 invokes `/verify-impl` skill with the current milestone's `Audit-Profile`
-  - CRITICAL findings from any agent surface via `AskUserQuestion` (accept/dispute/defer) BEFORE §7.3 user authorization
-  - `execute-aa-ma-full.md` delegates §6.8 invocation to milestone command
-  - `AA_MA_AUDIT_BUDGET={low,off}` env var honored
-  - Grandfathering: plans with `Created:` < cutover skip §6.8 entirely (logged to provenance.log)
-  - E2E bats test: synthetic milestone with `Audit-Profile: full` triggers §6.8; with `Audit-Profile: docs-only` triggers only future-proofing agent
+  - [x] `execute-aa-ma-milestone.md` gains §6.8 between current §6.7 and §7.1 (line ordering verified by bats test)
+  - [x] §6.8 invokes `/verify-impl` skill with the current milestone's `Audit-Profile`
+  - [x] CRITICAL findings from any agent surface via `AskUserQuestion` (accept/dispute/defer) BEFORE §7.3 user authorization
+  - [x] `execute-aa-ma-full.md` delegates §6.8 invocation to milestone command (new §B.6)
+  - [x] `AA_MA_AUDIT_BUDGET={low,off}` env var honored (documented in §6.8 bypass table)
+  - [x] Grandfathering: plans with `Created:` < cutover skip §6.8 entirely (logged to provenance.log)
+  - [x] E2E bats test: 16 cases verify §6.8 structure, line ordering, all 5 agents named, 3 verdicts, override panel, 6 bypasses, defer-creates-sub-task, bash-snippet syntax, full delegation
+- **Result Log:** All 4 sub-steps complete. §6.8 inserted between §6.7 (L-481) and §7.1 (line 559) of execute-aa-ma-milestone.md. Section documents grandfathering by Created: date (placeholder cutover 2026-12-31 until v0.8.0 tag ships), Audit-Profile dispatch matrix, 5 agents inline (code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor), 3 verdict outcomes (PASS / PASS_WITH_WARNINGS / BLOCKED), AskUserQuestion accept/dispute/defer panel with defer-creates-new-sub-task behaviour, 6 bypass mechanisms with auditable provenance logging. execute-aa-ma-full.md gained §B.6 delegating to milestone §6.8 (no logic duplication). 16/16 bats GREEN; 586/586 pytest GREEN. Critical-Path: doc-count-drift evidence — sweep ran clean (no stale phase/section refs except the new §6.8 anatomy block added in M1).
 
 ### Step 5.1: Draft §6.8 section in `execute-aa-ma-milestone.md`
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** HITL
 - **Dependencies:** None
 - **Effort:** 2h
 - **Complexity:** 70%
 - **Acceptance:** §6.8 inserted between §6.7 and §7.1; references `/verify-impl` skill; documents Audit-Profile dispatch logic
 - **Artefacts:** `claude-code/commands/execute-aa-ma-milestone.md`
-- **Result Log:**
+- **Result Log:** Inserted ~110 lines of §6.8 documentation between the §6.7 bypass note and §7 header. Documents grandfathering snippet (`Created:` date < cutover → skip + provenance), dispatch logic (4 steps), 5 agents inline with their pattern-coverage rationale (L-005/L-006/L-007 mapping), 3-verdict outcomes table, CRITICAL override panel structure, defer-creates-new-sub-task markdown template, provenance entry format, bypass mechanisms table with 6 rows.
 
 ### Step 5.2: Wire CRITICAL override panel via `AskUserQuestion`
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** HITL
 - **Dependencies:** Step 5.1
 - **Effort:** 1.5h
 - **Complexity:** 70%
 - **Acceptance:** §6.8 documents accept/dispute/defer panel; defer creates new sub-task in `tasks.md`; dispute logged to `impl-review.md`
 - **Artefacts:** `claude-code/commands/execute-aa-ma-milestone.md`
-- **Result Log:**
+- **Result Log:** Override panel folded into Step 5.1 single edit. Includes accept (→ BLOCKED verdict), dispute (→ logged for "convention learned" next run), defer (→ new sub-task markdown template emitted). User decisions recorded in `[task]-impl-review.md` User Override Decisions table. The accept option is the only one that triggers BLOCKED — disputes and defers continue to §7.
 
 ### Step 5.3: Delegate from `execute-aa-ma-full.md`
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** HITL
 - **Dependencies:** Step 5.2
 - **Effort:** 30min
 - **Complexity:** 40%
 - **Acceptance:** Full command's per-milestone loop invokes §6.8 via delegation; no logic duplication
 - **Artefacts:** `claude-code/commands/execute-aa-ma-full.md`
-- **Result Log:**
+- **Result Log:** Inserted §B.6 (Post-Impl Adversarial Review) between §B.5 (Simplification Review) and §C (User Authorization). 21-line section delegates to milestone Section 6.8 with no logic duplication. Documents grandfathering, bypass conditions, BLOCKED verdict halt behaviour (stops auto-advance in /execute-aa-ma-full's milestone loop). Provenance emission is the milestone command's responsibility — no duplicate entry from full command.
 
 ### Step 5.4: E2E bats tests
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** HITL
 - **Dependencies:** Step 5.3
 - **Critical-Path:** doc-count-drift
@@ -281,7 +282,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Complexity:** 70%
 - **Acceptance:** All 4 trigger scenarios pass (full, docs-only, grandfathered, budget=off)
 - **Artefacts:** `tests/hooks/execute_aa_ma_milestone_phase_6_8.bats`
-- **Result Log:**
+- **Result Log:** 16 bats integration cases verify §6.8 structural invariants: section exists, line ordering (§6.7 < §6.8 < §7.1), ADR-0005 reference, verify-impl skill invocation, grandfathering by Created: date, all 5 agents named inline, 3 verdict outcomes documented, override panel (accept/dispute/defer), 6 bypass mechanisms in table, provenance entry format, defer-creates-new-sub-task behaviour, bash snippet syntax (`bash -n`), full-command delegation via §B.6, BLOCKED-halt documented. Initial run: 15/16 GREEN; 1 fix (added all 5 agent names inline in §6.8 — previously delegated to SKILL.md). Final: 16/16 GREEN. Full integration with existing test suite confirmed (96+16=112 hook bats; 586 pytest + 1 skipped + 6 deselected). doc-count-drift sweep: grep for Phase 6.x / section N.N stale refs across docs/, README.md, CLAUDE.md, SECURITY.md, claude-code/rules/ found ZERO stale references (only the new §6.8 anatomy block added in M1).
 
 ---
 

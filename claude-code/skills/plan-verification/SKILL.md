@@ -354,13 +354,37 @@ evaluates these structural conditions against the plan:
    are CRITICAL findings — add new values via plan + ADR, not ad-hoc.
 3. **Theme claims are not contradictory.** When element #12 declares Theme 2
    (Development Principles → TDD), tasks producing code must carry test sub-tasks.
+4. **Audit-Profile present per milestone (v0.8.0+).** For plans with
+   `Created:` on-or-after the v0.8.0 release tag commit date, every milestone
+   in `[task]-tasks.md` MUST declare `Audit-Profile:` with one of the 5
+   canonical values: `full` | `code-only` | `docs-only` | `infra` | `custom`.
+   Absent field on a post-v0.8.0 plan is a CRITICAL finding. Novel values are
+   CRITICAL findings — add new values via plan + ADR (per ADR-0005). The
+   field controls Phase 6.8 Post-Impl Adversarial Review trigger logic.
+5. **TDD-Waiver values are canonical when present.** Any `TDD-Waiver:` field
+   uses one of the 5 canonical values: `refactor` | `docs-only` | `prototype` |
+   `hotfix-emergency` | `tooling-config`. Novel values are CRITICAL findings.
+   Field-absence is permitted (most milestones have no waiver). Per ADR-0005.
 
-**Grandfathering (CEO-4):** the structural check only fires for plans whose
-`Created: YYYY-MM-DD` front-matter is on-or-after the v0.5.0 release date.
-Pre-v0.5.0 plans (or plans missing `Created:`) emit
-`[INFO] Pre-v0.5.0 plan — engineering-standards check skipped` and continue.
-Detection logic (regex-based parse of `Created:` field + comparison to v0.5.0
-release date) lives inside the Engineering Standards Auditor agent prompt below.
+Parsers for checks #4 and #5 live in `src/aa_ma/plan_parsers.py`
+(`parse_audit_profile`, `parse_tdd_waiver`, `CANONICAL_AUDIT_PROFILES`,
+`CANONICAL_TDD_WAIVERS`). Each parser returns `(value, is_valid, error)`;
+the audit reports `CRITICAL` when `is_valid is False`.
+
+**Grandfathering (CEO-4):**
+- Checks #1, #2, #3 fire only for plans whose `Created: YYYY-MM-DD`
+  front-matter is on-or-after the v0.5.0 release date.
+- Check #4 (Audit-Profile presence) fires only for plans whose `Created:`
+  is on-or-after the v0.8.0 release tag commit date.
+- Check #5 (TDD-Waiver canonical values) fires for any plan with a
+  `TDD-Waiver:` field, regardless of `Created:` date — validating values
+  that have been written cannot regress an older plan.
+- Pre-v0.5.0 plans emit `[INFO] Pre-v0.5.0 plan — engineering-standards
+  check skipped` and continue. Pre-v0.8.0 plans emit
+  `[INFO] Pre-v0.8.0 plan — Audit-Profile check skipped`.
+- Plans missing `Created:` are grandfathered (absence → pre-cutover).
+- Detection logic (regex parse of `Created:` field + comparison to release
+  dates) lives inside the Engineering Standards Auditor agent prompt below.
 
 **Agent dispatch (per specialist):**
 ```

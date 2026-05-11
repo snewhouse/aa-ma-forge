@@ -3,3 +3,4 @@
 [2026-05-11T12:55:00+01:00] TASKLIST_INITIALIZED — 5 milestone tasks created (#1-#5)
 [2026-05-11T13:00:00+01:00] M1_T1.1_COMPLETE — docs/spec/plan-marker-grammar.md authored (190 lines, 10 H2 sections); AC: file exists ✓, contains grammar+9 markers+fingerprint+slug ✓, cross-referenced by 3 AA-MA files ✓
 [2026-05-11T13:10:00+01:00] M1_T1.2_COMPLETE — tests/plan_markers/test_parser.py with 16 cases, pytest exits non-zero (red, ModuleNotFoundError); spec correction: status set now {INIT, DONE, SKIPPED}
+[2026-05-11T13:20:00+01:00] M1_T1.3_COMPLETE — src/aa_ma/plan_markers/parser.py (161 lines, stdlib-only); 18/18 tests green; ruff clean; format clean

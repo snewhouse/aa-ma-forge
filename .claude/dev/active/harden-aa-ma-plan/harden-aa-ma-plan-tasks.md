@@ -32,13 +32,16 @@
 
 ### Task 1.3: Implement marker parser
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
-  - `src/aa_ma/plan_markers/parser.py` exports `parse_log(text: str) -> list[Marker]`.
-  - All Task 1.2 tests pass.
-  - `uv run ruff check src/aa_ma/plan_markers/` exits 0.
-- Result Log: _pending_
+  - ✓ `src/aa_ma/plan_markers/parser.py` exports `parse_log(text: str) -> list[Marker]`.
+  - ✓ All Task 1.2 tests pass (18/18 green in 0.08s).
+  - ✓ `uv run ruff check src/aa_ma/plan_markers/` exits 0; format clean.
+- Result Log:
+  - 2026-05-11: Parser implemented (161 lines after ruff format). Stdlib-only (regex + dataclass + logging) — KISS, no Pydantic added. Frozen dataclass enforces immutability. Logger-based warnings for tolerant cases.
+  - Grammar coverage: ISO 8601 timestamps via `datetime.fromisoformat`, dotted phase IDs (1.3, 4.5), em-dash separator (regular hyphens rejected), 3-value status set {INIT, DONE, SKIPPED}, key=value payload via simple regex.
+  - Tolerance: malformed lines warned + dropped; SKIPPED-without-reason warned + kept; unknown phase IDs warned + kept (forward-compat); INIT on non-PHASE_0 warned + kept.
 
 ### Task 1.4: Failing fingerprint matcher tests
 

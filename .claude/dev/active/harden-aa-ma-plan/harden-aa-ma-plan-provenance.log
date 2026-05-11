@@ -12,3 +12,8 @@
 [2026-05-11T14:15:00+01:00] M2_T2.3_COMPLETE — claude-code/hooks/aa-ma-plan-marker.sh (79 lines) + 10 bats green; round-trip bash→Python parser verified
 [2026-05-11T14:20:00+01:00] M2_T2.4_COMPLETE — scripts/install.sh AA_MA_HOOKS extended; --dry-run shows both new registrations; install_dry_run.bats 4/4 green (no regressions)
 [2026-05-11T14:20:00+01:00] M2_MILESTONE_COMPLETE — 4/4 tasks green; advisory hook + marker helper deployed; M3 (command body integration) next
+[2026-05-11T14:30:00+01:00] M3_T3.1_COMPLETE — Phase 0 section added to claude-code/commands/aa-ma-plan.md (lines 47-78)
+[2026-05-11T14:35:00+01:00] M3_T3.2_COMPLETE — Marker discipline table embedded in Phase 0 Step 0.3 (10 rows + 3 SKIPPED examples); 13 marker invocations covering 10 distinct phase IDs
+[2026-05-11T14:40:00+01:00] M3_T3.3_COMPLETE — aa-ma-scribe.md adds PHASE_5 marker write + runtime log mv to task dir
+[2026-05-11T14:45:00+01:00] M3_T3.4_COMPLETE — tests/integration/test_marker_lifecycle.bats with 6 scenarios; 81/81 bats green; 489/489 pytest green
+[2026-05-11T14:45:00+01:00] M3_MILESTONE_COMPLETE — 4/4 tasks green; /aa-ma-plan command body wired to marker discipline; M4 (live empirical scenarios) next

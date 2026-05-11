@@ -179,6 +179,33 @@ Initialize with creation timestamps:
 [YYYY-MM-DD HH:MM:SS] Status: READY FOR EXECUTION
 ```
 
+### Phase 5 Marker + Runtime Log Move
+
+After the 5 standard files are written, perform two final actions to
+close out the `/aa-ma-plan` runtime log lifecycle (see
+`docs/spec/plan-marker-grammar.md` §Storage Lifecycle):
+
+1. **Append PHASE_5 DONE marker** to the runtime log. The slug passed
+   from the parent `/aa-ma-plan` invocation is available; use it:
+
+   ```bash
+   bash ~/.claude/hooks/lib/aa-ma-plan-marker.sh <slug> 5 DONE \
+       artifacts=5 task_dir=.claude/dev/active/<task-name>
+   ```
+
+2. **Move the runtime log** from `~/.claude/runtime/aa-ma-plan-<slug>.log`
+   into the active task directory as `<task-name>-plan-run.log`:
+
+   ```bash
+   mv ~/.claude/runtime/aa-ma-plan-<slug>.log \
+      .claude/dev/active/<task-name>/<task-name>-plan-run.log
+   ```
+
+   Once moved, the log becomes a permanent AA-MA artifact alongside the
+   5 standard files. The advisory hook will no longer find it under
+   `~/.claude/runtime/` (which is intentional — the runtime log only
+   lives there during an active plan-mode session).
+
 ## Completion Protocol
 
 When all 5 files are written, send a message to the team lead with:

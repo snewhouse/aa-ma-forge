@@ -1,6 +1,6 @@
 # 0005. Post-Impl Adversarial Review (Phase 6.8 + /verify-impl)
 
-**Status:** Accepted (2026-05-11)
+**Status:** Implemented (2026-05-11)
 **Date:** 2026-05-11
 **Deciders:** Stephen Newhouse, Claude (grill-with-docs interview)
 **Tags:** `workflow`, `verification`, `aa-ma`, `release-v0.8.0`
@@ -156,7 +156,7 @@ Novel values for any of the three enums require a plan + new ADR (matches the pa
 
 **Cutover:** Plans with `Created: < v0.8.0 release commit date` are grandfathered — §6.8 does not fire; `Audit-Profile` absence is not flagged by `plan-verification`. Mirrors the v0.5.0 cutover precedent for Engineering Standards Declaration element #12.
 
-**Status transitions:** This ADR will move from `Accepted` to `Implemented` once M5 (Phase 6.8 integration) ships in main.
+**Status transitions:** Moved from `Accepted` to `Implemented` on 2026-05-11 when M5 (Phase 6.8 integration) landed on main via merge commit `719537b` and tag `v0.8.0` (commit `695f7b7`) was pushed to remote.
 
 ## References
 

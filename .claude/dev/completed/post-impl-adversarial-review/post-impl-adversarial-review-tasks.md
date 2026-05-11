@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-05-11 22:20 -->
+<!-- Plan: post-impl-adversarial-review - COMPLETE -->
+<!-- Total Milestones: 6 (21 sub-tasks: 21 COMPLETE) | Duration: 2026-05-11 12:00 to 2026-05-11 22:10 (~10h) -->
+
 # post-impl-adversarial-review Tasks (HTP)
 
 _Hierarchical Task Planning roadmap with dependencies and state tracking._

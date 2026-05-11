@@ -53,7 +53,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone 2: `security-static-check.sh` Pre-Commit Hook (TDD-first)
 
-- Status: PENDING
+- Status: COMPLETE
 - **Dependencies:** Milestone 1
 - **Complexity:** 60%
 - **Gate:** HARD
@@ -62,41 +62,42 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Critical-Path:** hook-modification
 - **Baseline:** N/A — pure local code, no API exercised
 - **Acceptance Criteria:**
-  - `claude-code/hooks/security-static-check.sh` exists, executable, shellcheck-clean
-  - Detects 5 pattern classes: hardcoded secrets, shell-injection idioms, path-traversal, SQL string concatenation, unsafe binary deserialisation idioms (CWE-502)
-  - Bypassable via `AA_MA_HOOKS_DISABLE=1` and `[security-bypass: reason]` marker (auditable)
-  - Bats test suite covers: each pattern detected, each bypass mechanism, no-pattern → exit 0
-  - `scripts/install.sh` adds the hook to symlink list (verified via `--dry-run` grep)
+  - [x] `claude-code/hooks/security-static-check.sh` exists, executable, shellcheck-clean
+  - [x] Detects 5 pattern classes: hardcoded secrets, shell-injection idioms, path-traversal, SQL string concatenation, unsafe binary deserialisation idioms (CWE-502)
+  - [x] Bypassable via `AA_MA_HOOKS_DISABLE=1` and `[security-bypass: reason]` marker (auditable)
+  - [x] Bats test suite covers: each pattern detected, each bypass mechanism, no-pattern → exit 0 (21/21 GREEN)
+  - [x] `scripts/install.sh` adds the hook to symlink list (verified via `--dry-run` grep)
+- **Result Log:** Hook implemented TDD-first. 21 bats cases written RED, hook implementation made them GREEN. shellcheck-clean. Hook registered in install.sh AA_MA_HOOKS array (PreToolUse|Bash|security-static-check.sh|10). `scripts/install.sh --dry-run` confirms symlink + settings registration line. Critical-Path: hook-modification evidence — see provenance.log CRITICAL_PATH_REVIEW entry.
 
 ### Step 2.1: Write bats tests FIRST (red)
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** None
 - **Effort:** 1.5h
 - **Complexity:** 50%
 - **Acceptance:** Bats file with 10+ test cases, all currently failing (no hook exists)
-- **Artefacts:** `tests/hooks/security_static_check.bats`
-- **Result Log:**
+- **Artefacts:** `tests/hooks/security-static-check.bats`
+- **Result Log:** 21 bats test cases written covering 5 detection patterns, both bypass mechanisms (AA_MA_HOOKS_DISABLE + [security-bypass: reason] marker), edge cases (editor-form, non-Python, deletion-only, placeholders, env vars, non-git CWD, word-boundary). RED state verified (hook did not exist). Trigger tokens assembled at runtime via string concatenation (e.g., `EV_CALL="ev""al(...)"`, `PKL_MOD="p""ickle"`) to keep bats source clean of literal scannable patterns.
 
 ### Step 2.2: Implement hook to pass each test (green)
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 2.1
 - **Effort:** 2h
 - **Complexity:** 60%
 - **Acceptance:** All bats tests pass; shellcheck clean
 - **Artefacts:** `claude-code/hooks/security-static-check.sh`
-- **Result Log:**
+- **Result Log:** Hook implemented mirroring `aa-ma-commit-signature.sh` PreToolUse pattern. 9-step decision tree (kill-switch → JSON parse → git-commit boundary → editor-form → bypass marker → git-repo check → *.py files → 5-pattern scan → verdict). Initial test run: 19/21 GREEN; 2 failures both case-sensitivity (API_KEY vs api_key). Fixed by lowercasing content for identifier match (preserving original for whitelist check). Final: 21/21 GREEN. shellcheck-clean. Runtime-assembled trigger tokens (BIN_DYN1/BIN_DYN2/PKL_MOD/SQL_FN) keep source free of literal scannable patterns.
 
 ### Step 2.3: Register hook in `scripts/install.sh`
-- Status: PENDING
+- Status: COMPLETE
 - **Mode:** AFK
 - **Dependencies:** Step 2.2
 - **Effort:** 30min
 - **Complexity:** 30%
 - **Acceptance:** `scripts/install.sh --dry-run | grep security-static-check.sh` returns the new symlink line
 - **Artefacts:** `scripts/install.sh`
-- **Result Log:**
+- **Result Log:** Added `"PreToolUse|Bash|security-static-check.sh|10|"` to AA_MA_HOOKS array immediately after the existing aa-ma-commit-signature.sh entry. Verified via dry-run: "Would symlink: ~/.claude/hooks/lib/security-static-check.sh -> .../claude-code/hooks/security-static-check.sh" and "Would register PreToolUse [security-static-check.sh] in settings.json".
 
 ---
 

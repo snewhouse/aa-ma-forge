@@ -9,3 +9,9 @@
 [2026-05-11T15:55+01:00] M1.3 COMPLETE — docs/spec/aa-ma-specification.md gained "Optional: Post-Impl Adversarial Review Report" section (~90 lines) in §II File Taxonomy
 [2026-05-11T16:00+01:00] CRITICAL_PATH_REVIEW — doc-count-drift sweep: grep -rn "\b4 ADR\b|\bfour ADR\b|ADR-0004" docs/ README.md CLAUDE.md SECURITY.md — 3 hits, all legitimate citations of ADR-0004 (write-a-skill adoption), NOT stale counts. Verdict: PASS.
 [2026-05-11T16:00+01:00] M1 COMPLETE — All 3 acceptance criteria met; 3/3 sub-steps COMPLETE; doc-count-drift evidence logged; ready for commit.
+[2026-05-11T16:30+01:00] M2 EXECUTION START — Audit-Profile: code-only, Gate: HARD, Critical-Path: hook-modification, TDD-first
+[2026-05-11T16:40+01:00] M2.1 COMPLETE — tests/hooks/security-static-check.bats created with 21 RED test cases; runtime-assembled trigger tokens to keep bats source clean.
+[2026-05-11T17:15+01:00] M2.2 COMPLETE — claude-code/hooks/security-static-check.sh implemented; shellcheck-clean. Initial run 19/21 GREEN; case-insensitivity fix (API_KEY vs api_key) → final 21/21 GREEN.
+[2026-05-11T17:20+01:00] M2.3 COMPLETE — scripts/install.sh AA_MA_HOOKS array gained "PreToolUse|Bash|security-static-check.sh|10|" entry; verified via --dry-run symlink + settings.json registration messages.
+[2026-05-11T17:25+01:00] CRITICAL_PATH_REVIEW — hook-modification evidence: new hook is PreToolUse(Bash) blocking on git commit; bypassable via AA_MA_HOOKS_DISABLE=1 (master switch) and [security-bypass: <reason>] auditable marker; non-breaking (does not modify existing hooks; coexists with aa-ma-commit-signature.sh as a second PreToolUse|Bash filter); shellcheck pass; 21/21 bats cases GREEN. Verdict: PASS.
+[2026-05-11T17:25+01:00] M2 COMPLETE — 3/3 sub-steps COMPLETE; HARD gate conditions met (tests pass: 21/21 bats GREEN; non-breaking: existing hooks untouched; AA-MA artifacts clean post-commit; hook-modification evidence logged).

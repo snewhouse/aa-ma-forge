@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-05-11 22:20 -->
+<!-- Plan: post-impl-adversarial-review - COMPLETE -->
+<!-- Total Milestones: 6 (21 sub-tasks: 21 COMPLETE) | Duration: 2026-05-11 12:00 to 2026-05-11 22:10 (~10h) -->
+
 # Plan: Post-Impl Adversarial Review (Phase 6.8 + /verify-impl)
 
 **Objective:** Close the post-execution discipline gap in aa-ma-forge by adding a Phase 6.8 *Post-Impl Adversarial Review* to `/execute-aa-ma-milestone` and `/execute-aa-ma-full`, plus a new `/verify-impl` skill symmetric to `/verify-plan`.

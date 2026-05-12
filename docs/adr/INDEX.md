@@ -25,6 +25,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0003](0003-prototype-adoption.md) | Adopt `prototype` from mattpocock/skills (LOGIC + UI branches) | Implemented | 2026-05-10 |
 | [0004](0004-write-a-skill-adoption.md) | Adopt `write-a-skill` from mattpocock/skills | Implemented | 2026-05-10 |
 | [0005](0005-post-impl-adversarial-review.md) | Post-Impl Adversarial Review (Phase 6.8 + /verify-impl) | Implemented | 2026-05-11 |
+| [0006](0006-understand-codebase-adoption.md) | Adopt `understand-codebase` onboarding skill + 4 worker agents + `/understand-codebase` into the AA-MA Forge ecosystem | Implemented | 2026-05-12 |
 
 ## Statuses
 

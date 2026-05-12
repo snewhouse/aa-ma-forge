@@ -68,7 +68,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `.claude/dev/active/[task-name]/` | Active tasks |
 | `.claude/dev/completed/` | Archived completed tasks |
 
-### Commands (9)
+### Commands (10)
 
 | Command | Purpose |
 |---------|---------|
@@ -81,8 +81,9 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/ops-mode` | Activate full operational constraints for disciplined execution |
 | `/archive-aa-ma` | Archive completed tasks to `dev/completed/` |
 | `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
+| `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered Quick/Standard/Deep); optionally authors/reviews `AGENTS.md`. Thin wrapper around `Skill(understand-codebase)`; see ADR-0006 |
 
-### Skills (16)
+### Skills (18)
 
 | Skill | Purpose |
 |-------|---------|
@@ -102,13 +103,24 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `grill-with-docs` | Glossary-aware grilling: challenges plans against `CONTEXT.md` / ADRs, sharpens terminology, updates docs inline (forked from mattpocock/skills, invoked by /aa-ma-plan Phase 1.3 when project state warrants) |
 | `prototype` | Throwaway-prototype dispatcher: routes between LOGIC (terminal TUI for state/business-logic questions, cross-language) and UI (web-frontend variants on a single route, switchable via `?variant=`) branches based on the question (forked from mattpocock/skills; operationalises engineering-standards Theme 1 `Prototype-Required: YES` flag — see ADR-0003) |
 | `write-a-skill` | Canonical skill-authoring procedure: gather requirements → draft SKILL.md → review with user; includes 1024-char description format, "Use when" trigger pattern, 100-line SKILL.md guidance, when-to-split-files heuristics (forked from mattpocock/skills — see ADR-0004) |
+| `verify-impl` | Post-impl adversarial review symmetric to `/verify-plan`: dispatches up to 5 parallel audit agents per the milestone's plan-declared `Audit-Profile`; CRITICAL findings surface via an accept/dispute/defer panel before §7.3 authorization (invoked by Phase 6.8 of `/execute-aa-ma-milestone` — see ADR-0005) |
+| `understand-codebase` | Tiered (Quick/Standard/Deep) codebase-onboarding workflow: reads/maps the repo, learns conventions/versioning/tests/stack/rules, produces a pros/cons verdict + "contribute safely" + "add a feature" playbooks → `ONBOARDING.md` + `.claude/onboarding/` deep-dives; Deep tier runs a `TeamCreate` agent-team; optionally authors/reviews `AGENTS.md` (see ADR-0006) |
 
-### Agents (2)
+### Agents (11)
 
 | Agent | Purpose |
 |-------|---------|
 | `aa-ma-scribe` | Generates the 5-file artifact set from an approved plan |
 | `aa-ma-validator` | Read-only validation of artifact completeness and cross-file consistency |
+| `code-reviewer` | Read-only fresh-eyes review of the milestone-window diff (KISS/SOLID/SOC/DRY, scope discipline, mechanism duplication, schema-breaking output regressions, dead code, magic numbers); CRITICAL → blocks user approval. Spawned by Phase 6.8 via `verify-impl` |
+| `security-auditor` | Read-only analytical security audit of the milestone diff — the reasoning layer complementing the mechanical `security-static-check.sh` hook. Spawned by Phase 6.8 via `verify-impl` |
+| `tdd-sequence-auditor` | Verifies the red→green→refactor sequencing of the milestone's commits; emits PASS/FAIL/WAIVED verdicts (honours plan-declared `TDD-Waiver`). Spawned by Phase 6.8 via `verify-impl` |
+| `context7-evidence-auditor` | Checks that external-library usage introduced/changed in the milestone is backed by current docs evidence (scoped to MAJOR version bumps; capped at WARNING severity). Spawned by Phase 6.8 via `verify-impl` |
+| `future-proofing-auditor` | Flags forward-looking risks: hardcoded counts (Tier-6 doc-drift surface), TODO/FIXME debt, brittle assumptions, deprecation exposure. Spawned by Phase 6.8 via `verify-impl` |
+| `codebase-onboarding-conventions` | Worker agent for `understand-codebase` (Deep tier; reusable standalone): code conventions validated against source, versioning/release/git workflow, all rules/agent-instruction files, domain glossary → writes `.claude/onboarding/06-conventions-versioning-git.md` + `07-rules-and-agent-instructions.md` |
+| `codebase-onboarding-health` | Worker agent for `understand-codebase` (Deep tier; reusable standalone): repo-health snapshot + pros/cons evidence — churn hotspots, contributors/bus-factor, ownership, doc drift, TODO/FIXME backlog, dependency health, coverage gaps, "here be dragons", security-posture signal (optional WebSearch CVE/version-currency pass) → writes `.claude/onboarding/09-repo-health-and-verdict.md` |
+| `codebase-onboarding-runbook` | Worker agent for `understand-codebase` (Deep tier; reusable standalone): how the repo is built/run/debugged/tested locally, CI gates, env & config (names only — no secrets), external integrations, observability, data model & migrations → writes `.claude/onboarding/04-build-run-debug.md`, `05-tests-ci.md`, `08-integrations-observability-security.md` |
+| `codebase-onboarding-synthesizer` | Synthesis agent for `understand-codebase` (Deep tier; reusable standalone): reads every per-dimension deep-dive + absorbed prior artifacts → writes the root `ONBOARDING.md`, `00-index.md`, the structural deep-dives (01-stack/02-architecture/03-structure), the pros/cons verdict, both playbooks, glossary, Provenance; handles the `AGENTS.md` decision (consent-gated; never overwrites an existing `AGENTS.md` or `CLAUDE.md`) |
 
 ### Rules (2)
 
@@ -117,12 +129,18 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `aa-ma.md` | Operational rules governing sync discipline, commit signatures, task modes, gate classification |
 | `engineering-standards.md` | 6-theme engineering doctrine (Verification & Truth, Development Principles, Reasoning & Planning, Safety & Continuity, Execution Checklist, Sync & Commit Discipline) — auto-loaded; defines `Critical-Path:` canonical enum |
 
-### Hooks (2)
+### Hooks (8)
 
 | Hook | Purpose |
 |------|---------|
 | `pre-compact-aa-ma.sh` | Snapshots AA-MA state before auto-compaction and writes compaction entries to task provenance.log and context-log.md |
 | `aa-ma-session-start.sh` | Auto-detects active AA-MA tasks on session start and emits hidden context (task name, milestone, step) |
+| `aa-ma-session-end-dirty.sh` | SessionEnd — warns when the session ends with uncommitted changes while an AA-MA plan is active |
+| `aa-ma-commit-signature.sh` | PreToolUse(Bash) — when an AA-MA plan is active, requires every `git commit` to carry the `[AA-MA Plan] {task} .claude/dev/active/{task}` footer (or an `[ad-hoc]` bypass marker); **BLOCKING** |
+| `aa-ma-commit-drift.sh` | post-commit — advisory; flags commits that land without touching any `tasks.md`/`provenance.log` in an active task dir (`[no-sync-check]` overrides). Always exits 0 |
+| `aa-ma-plan-skip-warn.sh` | PreToolUse(ExitPlanMode) + SessionEnd — advisory; checks the `/aa-ma-plan` runtime log for skipped phase markers. Never blocks |
+| `aa-ma-plan-marker.sh` | Library helper invoked by the `/aa-ma-plan` workflow to append phase markers to `~/.claude/runtime/aa-ma-plan-<slug>.log` (not a standalone event hook) |
+| `security-static-check.sh` | PreToolUse — mechanical, zero-token commit-time security checks (bandit / shellcheck class), mirroring the `aa-ma-commit-drift.sh` / `aa-ma-validator` mechanical-vs-analytical split; introduced v0.8.0 per ADR-0005; **BLOCKING** on findings |
 
 ### Operational protocols
 

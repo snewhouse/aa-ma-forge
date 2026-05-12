@@ -127,6 +127,9 @@ Multi-Session/Team  │   AA-MA     │   AA-MA
 
 # Activate disciplined execution mode
 /ops-mode
+
+# Onboard to a new / inherited / shared codebase (tiered)
+/understand-codebase [path] [--quick | --standard | --deep]
 ```
 
 ### Claude Code Directory Structure

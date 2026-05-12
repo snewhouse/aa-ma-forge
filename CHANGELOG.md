@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Feat
+
+- **skills**: vendor the `understand-codebase` onboarding skill (`SKILL.md` + 9
+  `references/` companions + `templates/onboarding-team.md`), its 4
+  `codebase-onboarding-*` worker agents (`conventions`, `health`, `runbook`,
+  `synthesizer`), and the `/understand-codebase` command into the AA-MA Forge
+  ecosystem — maintained here going forward (versioned, tested, CI-checked,
+  `install.sh`-deployed). Tiered (Quick / Standard / Deep); Deep tier runs a
+  `TeamCreate` agent-team; reuses (when present) `/index`, `gsd-map-codebase`,
+  `/codebase-deep-dive`, `system-mapping`, `impact-analysis` rather than
+  re-implementing them, degrading gracefully when those aren't installed. Full
+  rationale and dependency posture in
+  [ADR-0006](docs/adr/0006-understand-codebase-adoption.md).
+
+### Docs
+
+- **spec**: reconcile `docs/spec/claude-code-foundations.md` asset tables to
+  current reality — Commands 9→10, Skills 16→18 (also picks up the v0.8.0
+  `verify-impl` omission), Agents 2→11 (also picks up the five v0.8.0 audit
+  agents), Hooks 2→8 (also picks up the v0.7.0/v0.8.0 hooks). Bump asset counts
+  in `CLAUDE.md`, `SECURITY.md` (incl. the incidental "4→5 spec docs" fix),
+  `README.md`, and `docs/spec/aa-ma-quick-reference.md`.
+
 ## v0.8.0 (2026-05-11)
 
 Post-impl adversarial review symmetric to `/verify-plan` — closes the asymmetry

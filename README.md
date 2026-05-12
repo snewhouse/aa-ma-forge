@@ -215,6 +215,7 @@ Moves completed artefacts to `.claude/dev/completed/` for future reference.
 | `/ops-mode` | Activate disciplined execution mode (token efficiency, parallel eval, tool protocols) |
 | `/archive-aa-ma` | Move completed artefacts to `.claude/dev/completed/` |
 | `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
+| `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered: `--quick` / `--standard` / `--deep`); optionally authors or reviews `AGENTS.md` |
 
 ### Skills
 

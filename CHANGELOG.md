@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## v0.9.0 (2026-05-13)
 
 ### Feat
 
@@ -28,6 +28,11 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   agents), Hooks 2→8 (also picks up the v0.7.0/v0.8.0 hooks). Bump asset counts
   in `CLAUDE.md`, `SECURITY.md` (incl. the incidental "4→5 spec docs" fix),
   `README.md`, and `docs/spec/aa-ma-quick-reference.md`.
+- **readme**: reconcile pre-existing drift inherited from v0.8.0 —
+  `README.md:37` "templates for all 7 AA-MA file types" → "8 (5 standard + 3
+  optional)"; `README.md:307` "ships five hooks" → "ships eight hooks"; Skills
+  table append 5 missing rows (`grill-with-docs`, `prototype`,
+  `understand-codebase`, `verify-impl`, `write-a-skill` — 13 → 18 entries).
 
 ## v0.8.0 (2026-05-11)
 

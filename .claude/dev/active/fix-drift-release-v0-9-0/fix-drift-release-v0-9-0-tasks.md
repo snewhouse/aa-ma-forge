@@ -43,7 +43,7 @@
 ---
 
 ## Milestone 2: Commit drift + bookkeeping + push feature
-- Status: PENDING
+- Status: COMPLETE
 - Dependencies: M1
 - Gate: SOFT
 - Mode: AFK
@@ -54,22 +54,22 @@
   - `git push` succeeds; `git rev-parse origin/feature/understand-codebase-skill == HEAD`.
 
 ### Sub-step 2.1: Stage README + hook bookkeeping
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance: `git diff --cached --name-only` lists exactly `README.md` plus the 2 `understand-codebase-skill-{context-log,provenance.log}` files. No other files staged.
-- Result Log: [placeholder]
+- Result Log: 2026-05-13 — staged 8 files (deviation from original AC: also includes the 5 brand-new `fix-drift-release-v0-9-0/*.md`+`*.log` artifacts, which must land in the same commit since they are creates). `git diff --cached --name-only` matched exactly: README.md + 2 understand-codebase-skill bookkeeping + 5 fix-drift-release-v0-9-0 artifacts. AC essentially met; deviation justified (the plan's own AA-MA artifacts cannot pre-exist).
 
 ### Sub-step 2.2: Commit with `[AA-MA Plan]` footer
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance: commit succeeds (signature hook passes); commit message subject is conventional (`docs(readme): reconcile pre-existing drift (hooks 5→8, templates 7→8, skills table 13→18)`); footer line is `[AA-MA Plan] fix-drift-release-v0-9-0 .claude/dev/active/fix-drift-release-v0-9-0`.
-- Result Log: [placeholder]
+- Result Log: 2026-05-13 — commit `55cf7d8` landed (`docs(readme): reconcile pre-existing drift (hooks 5→8, templates 7→8, skills table 13→18)`); 8 files changed, +494/-2; footer present (`grep -c '\[AA-MA Plan\] fix-drift-release-v0-9-0' <(git log -1 --format=%B)` = 1); signature hook passed. AC met.
 
 ### Sub-step 2.3: Push to origin
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance: `git push origin feature/understand-codebase-skill` exits 0; remote tip matches local HEAD.
-- Result Log: [placeholder]
+- Result Log: 2026-05-13 — `git push origin feature/understand-codebase-skill` exit 0; `git rev-parse origin/feature/understand-codebase-skill` = `55cf7d820b83132aabc8f08c634b912999ad137d` = local HEAD. AC met.
 
 ---
 

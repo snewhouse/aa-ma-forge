@@ -44,3 +44,34 @@
 - None — every workflow step has a deterministic outcome verified by `git ls-files`, `git tag`, or `grep` evidence captured in `reference.md`.
 
 _Engineering Standards Declaration (plan §12): Themes **1, 4, 5, 6** materially apply. Themes 2, 3 only mildly. See plan §12 for per-theme rationale._
+
+## [2026-05-13] M3.1 Impact Analysis (inline — `Skill(impact-analysis)` not invoked for mechanical doc-only + version bump)
+
+**Scope of changes about to land on `main`:**
+- 3 surgical `README.md` edits (line 37, ~239-243, ~312) — pure prose, no code references touched.
+- 2 auto-generated hook bookkeeping lines (`understand-codebase-skill-{context-log,provenance.log}`) — AA-MA artifact files, not project source.
+- 5 new AA-MA artifact files for `fix-drift-release-v0-9-0` — entirely additive under `.claude/dev/active/`.
+- Tasks.md + provenance.log sync edits — AA-MA artifact files only.
+- (M3 ahead): `pyproject.toml` version `0.8.0 → 0.9.0`, `VERSION` `__version__ "0.8.0" → "0.9.0"`, `CHANGELOG.md` `## [Unreleased]` → `## v0.9.0 (2026-05-13)` (preserves manual content).
+
+**Blast radius:**
+- No `src/aa_ma/` Python sources touched → `uv run pytest` unaffected.
+- No `claude-code/{skills,commands,agents,hooks,rules}/` files touched → installed symlinks unaffected (user's `~/.claude/` symlinks still point at unchanged content).
+- No `scripts/install.sh` change → installer behaviour identical.
+- No `pyproject.toml` dependency change → `uv sync` produces identical lockfile.
+- No CI config (`.github/workflows/`) change → security.yml job pipeline identical.
+
+**Verdict: NON-BREAKING.** Doc-only diff + version-string bump. No callable surface area changes. Existing installations that pull these changes via `git pull + scripts/install.sh` see updated README + the new AA-MA dirs only.
+
+**M3.1 evidence:**
+- `git diff --stat main..feature/understand-codebase-skill -- 'src/**' 'claude-code/**' 'scripts/**' 'pyproject.toml' '.github/**' 2>/dev/null` → only `pyproject.toml` would show in the cz-bump commit (M3.4); zero rows for the pre-merge diff (M3.2).
+
+## [2026-05-13] GATE APPROVAL: Milestone 3 — Merge to main, archive, release v0.9.0
+
+- **Gate:** HARD
+- **Approved by:** Stephen Newhouse (via AskUserQuestion `Approve — manual CHANGELOG promote (recommended)`)
+- **Criteria verified:** 5/5 — (1) `Skill(impact-analysis)` NON-BREAKING (inline above); (2) `cz bump --dry-run` confirms `v0.9.0`; (3) 3 commits since `v0.8.0` (`7cacff5` feat + `55cf7d8` docs + `2017c9c` chore); (4) working tree clean; (5) remote `origin/feature/understand-codebase-skill` matches local HEAD `2017c9c`.
+- **Release path:** manual CHANGELOG `[Unreleased]` → `v0.9.0` promotion (preserves rich entry); `cz bump --files-only` for `pyproject.toml` + `VERSION`; manual `bump: version 0.8.0 → 0.9.0` commit; `git tag v0.9.0`; push `main` + tag. Archive `understand-codebase-skill` before bump; archive `fix-drift-release-v0-9-0` after bump.
+- **Decision:** APPROVED
+- **Audit-Profile:** docs-only (declared in plan §M3; Phase 6.8 `/verify-impl` if invoked runs scope-discipline only — no source change for the audit agents to find).
+

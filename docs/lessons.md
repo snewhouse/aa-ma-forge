@@ -5,6 +5,64 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-008 (2026-05-13) — `cz bump --files-only` exits 16 when CHANGELOG.md has been manually promoted; chain "manual promote + cz files-only" is broken
+
+**Pattern:** During v0.9.0 release prep (fix-drift-release-v0-9-0 M3.4),
+chose the manual-CHANGELOG-promote path to preserve the rich
+hand-written `## [Unreleased]` entry (per L-006's alternative-to-amend
+guidance). Step 1: manually edited `## [Unreleased]` → `## v0.9.0 (2026-05-13)`
+in CHANGELOG.md, keeping all the multi-paragraph Feat + Docs prose intact.
+Step 2: ran `uv run cz bump --files-only --yes` expecting it to bump only
+`pyproject.toml` (`version =`) + `VERSION` (`__version__ =`).
+
+**Symptom:** cz correctly computed the bump (`bump: version 0.8.0 → 0.9.0;
+tag to create: v0.9.0; increment detected: MINOR`) — but then exited
+with code 16 and the message "No tag found to do an incremental
+changelog". Version files were not modified. Despite the `--files-only`
+flag, cz appears to still execute CHANGELOG operations when
+`update_changelog_on_bump = true` is set in `[tool.commitizen]`, and
+it dies on the already-promoted CHANGELOG state (the section it tries
+to insert above already exists).
+
+**Root cause (suspected):** `cz_conventional_commits` interaction between
+`--files-only` semantics and `update_changelog_on_bump = true`. The flag
+should disable CHANGELOG ops; the config setting overrides it. Either
+order of operations works in isolation (cz bump with auto-regen, OR
+manual-everything), but the chain `manual promote → cz --files-only`
+doesn't.
+
+**Workaround used:** Abandoned cz for this bump. Did the 2-line manual
+edit directly:
+- `pyproject.toml`: `version = "0.8.0"` → `"0.9.0"` (one Edit).
+- `VERSION`: `__version__ = "0.8.0"` → `"0.9.0"` (one Edit).
+Then `git commit -m "bump: version 0.8.0 → 0.9.0"` (cz-style subject)
++ `git tag -a v0.9.0 -m "..."` + push tag. End-state byte-identical
+to what a successful `cz bump --files-only` would have produced.
+
+**Rule:** For aa-ma-forge releases where you want to preserve a rich
+hand-written `[Unreleased]` entry, pick ONE path — do NOT combine them:
+
+(a) **Per L-003**: run `cz bump --increment minor --yes` (or
+    `--increment patch`/`major`) end-to-end → cz regenerates CHANGELOG
+    terse → amend the CHANGELOG entry per L-006 → re-tag with
+    `git tag -f vX.Y.Z`. cz owns everything; you fix up at the end.
+
+(b) **Skip cz entirely**: manually promote `## [Unreleased]` →
+    `## vX.Y.Z (date)` + 2-line manual edit of `pyproject.toml` +
+    `VERSION` + `git commit -m "bump: version X → Y"` (cz-style
+    subject) + `git tag -a vX.Y.Z -m "..."`. Standard 8-tag cadence
+    preserved; no cz invocation in this bump.
+
+The chained "manually promote CHANGELOG + then `cz bump --files-only`"
+path is broken and will exit 16.
+
+**Cross-ref:** L-003 (cz bump owns CHANGELOG headings — never manually
+edit), L-006 (cz strips rich `[Unreleased]` content; amend after bump),
+`[tool.commitizen]` config in `pyproject.toml`, observed in commit
+`ed077f7` of feature/understand-codebase-skill (the v0.9.0 release).
+Global L-324 (the HARD-gate approval bootstrap problem encountered in
+the same session — different bug class, same release).
+
 ## L-007 (2026-05-11) — `/sole-dev-merge` quality-check format pass may modify out-of-scope files
 
 **Pattern:** During harden-aa-ma-plan M5 merge step, `/sole-dev-merge` Step 2

@@ -34,7 +34,7 @@ AA-MA (Advanced Agentic Memory Architecture) gives Claude Code a structured exte
 docs/spec/          The specification (v2.1), quick reference, team guide,
                     and Claude Code foundations reference
 docs/narrative/     The origin story (how and why AA-MA exists)
-docs/templates/     Ready-to-use templates for all 7 AA-MA file types
+docs/templates/     Ready-to-use templates for all 8 AA-MA file types (5 standard + 3 optional)
 claude-code/        Commands, skills, agents, rules, hooks
                     (the operational layer that plugs into Claude Code)
 src/aa_ma/          Python package (package skeleton only, logic planned)
@@ -236,6 +236,11 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `dispatching-parallel-agents` | Pattern for concurrent independent agent investigations |
 | `debugging-strategies` | Systematic debugging process with multi-language tooling |
 | `token-compression` | Output token reduction with HITL/AFK intensity mapping (lite/full/ultra) |
+| `grill-with-docs` | Plan-stress-test that updates `CONTEXT.md` and ADRs inline as decisions crystallise (Phase 1.3 `with-docs` mode) |
+| `prototype` | Throwaway-code prototyping that routes between a terminal LOGIC app and several swappable UI variations |
+| `understand-codebase` | Tiered codebase onboarding — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives; the engine behind `/understand-codebase` |
+| `verify-impl` | Post-impl adversarial review symmetric to `plan-verification`; dispatches up to 5 parallel audit agents at Phase 6.8 |
+| `write-a-skill` | Authoring template + checklist for new skills (frontmatter contract, references/ layout, `install.sh` auto-discovery) |
 
 Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use, so some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
 
@@ -304,7 +309,7 @@ The full story is in [how we got here](docs/narrative/how-we-got-here.md), and t
 
 ## AA-MA hook troubleshooting
 
-AA-MA Forge ships five hooks. All honour a single master kill switch and carry explicit bypass mechanisms for the edge cases where they get in the way.
+AA-MA Forge ships eight hooks. All honour a single master kill switch and carry explicit bypass mechanisms for the edge cases where they get in the way.
 
 **Master kill switch.** Something misbehaving? This disables every AA-MA hook immediately:
 

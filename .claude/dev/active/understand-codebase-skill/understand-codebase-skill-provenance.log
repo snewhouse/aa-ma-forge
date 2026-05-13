@@ -30,3 +30,5 @@
 [2026-05-12 16:36:00] MILESTONE 3 COMPLETE (Gate: HARD, approved). ALL 3 MILESTONES COMPLETE — PLAN COMPLETE.
 [2026-05-12 16:36:00] Deviations recorded: (1) CLAUDE.md edited locally but .gitignored in this repo → not committed; (2) foundations Hooks table reconciled 2→8 beyond the asked agent/skill/command scope (kept doc internally consistent); (3) foundations reconcile incidentally fixed pre-existing v0.7.0/v0.8.0 drift (verify-impl skill, 5 v0.8.0 audit agents, 6 hooks) + SECURITY.md "4→5 spec docs". No scope deviations affecting deliverables.
 [2026-05-12 16:36:00] Follow-up (not part of this plan): /archive-aa-ma understand-codebase-skill once feature/understand-codebase-skill lands on main.
+[2026-05-13T09:26:58Z] Context compacted — Snapshot saved, active step: Sub-step 1.6: Verify symlinks + backups
+[2026-05-13T09:26:58Z] CHECKPOINT — ActiveStep: Sub-step 1.6: Verify symlinks + backups — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A

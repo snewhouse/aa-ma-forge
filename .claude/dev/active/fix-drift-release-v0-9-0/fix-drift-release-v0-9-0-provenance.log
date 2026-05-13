@@ -20,3 +20,8 @@
 [2026-05-13T10:50:00Z] M1.4 done — drift sweep grep returns 0 lines
 [2026-05-13T10:50:00Z] M1.5 done — README.md now consistent with CLAUDE.md + SECURITY.md asset counts
 [2026-05-13T10:50:00Z] M1 milestone COMPLETE — Gate: SOFT
+[2026-05-13T10:55:00Z] M2.1 done — 8 files staged: README.md + 2 understand-codebase-skill bookkeeping + 5 fix-drift-release-v0-9-0 artifacts
+[2026-05-13T10:55:00Z] M2.2 done — commit 55cf7d8 (docs(readme): reconcile pre-existing drift …); footer verified present; signature hook passed
+[2026-05-13T10:55:00Z] M2.3 done — push origin feature/understand-codebase-skill exit 0; remote HEAD = local HEAD = 55cf7d8
+[2026-05-13T10:55:00Z] M2 milestone COMPLETE — Gate: SOFT
+[2026-05-13T10:55:00Z] PAUSING for M3 HARD HITL gate — requires user approval before merge → main + cz bump v0.9.0

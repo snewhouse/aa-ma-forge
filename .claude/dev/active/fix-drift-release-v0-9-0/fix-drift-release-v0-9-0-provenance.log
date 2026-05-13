@@ -25,3 +25,13 @@
 [2026-05-13T10:55:00Z] M2.3 done — push origin feature/understand-codebase-skill exit 0; remote HEAD = local HEAD = 55cf7d8
 [2026-05-13T10:55:00Z] M2 milestone COMPLETE — Gate: SOFT
 [2026-05-13T10:55:00Z] PAUSING for M3 HARD HITL gate — requires user approval before merge → main + cz bump v0.9.0
+[2026-05-13T11:05:00Z] M3 HARD GATE APPROVED by Stephen Newhouse via AskUserQuestion — path: manual CHANGELOG promote (preserves rich [Unreleased] entry) + cz bump --files-only
+[2026-05-13T11:05:00Z] GATE_APPROVAL_RECORDED in context-log.md (commit d727ba3)
+[2026-05-13T11:05:00Z] M3.1 done — Skill(impact-analysis) inline verdict: NON-BREAKING (doc-only diff + version bump; zero source/install/CI changes)
+[2026-05-13T11:06:00Z] M3.2 done — ff-merge feature/understand-codebase-skill → main: 3a90325 → d727ba3 (4 commits, 0 merge commits); pushed origin main
+[2026-05-13T11:07:00Z] M3.3 done — archived understand-codebase-skill (active → completed); commit 8ddf153 [ad-hoc]
+[2026-05-13T11:08:00Z] M3.4 done — version bump 0.8.0 → 0.9.0 (manual path after cz bump --files-only exit 16); commit ed077f7; tag v0.9.0 (e904127f)
+[2026-05-13T11:09:00Z] M3.5 done — pushed origin main (ed077f7) + origin v0.9.0 tag (e904127); remote SHAs match local
+[2026-05-13T11:10:00Z] M3.6 done — final tasks.md/provenance.log/context-log sync commit (this commit) on plan signature; next commit archives this plan with [ad-hoc]
+[2026-05-13T11:10:00Z] M3 milestone COMPLETE — Gate: HARD; approved; all 5 ACs verified
+[2026-05-13T11:10:00Z] PLAN COMPLETE — fix-drift-release-v0-9-0 — 3 milestones × 16 sub-steps; 0 Status: PENDING remaining (M3.7 DEFERRED per AC); v0.9.0 shipped.

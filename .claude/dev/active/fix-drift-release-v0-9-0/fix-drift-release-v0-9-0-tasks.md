@@ -74,58 +74,58 @@
 ---
 
 ## Milestone 3: Merge to main, archive, release v0.9.0
-- Status: PENDING
+- Status: COMPLETE
 - Dependencies: M2
 - Gate: HARD
 - Mode: HITL
 - Audit-Profile: docs-only
 - Complexity: 30%
 - Acceptance Criteria:
-  - `feature/understand-codebase-skill` merged into `main` as fast-forward (no merge commit).
-  - `.claude/dev/active/` no longer contains `understand-codebase-skill` nor `fix-drift-release-v0-9-0`.
-  - `.claude/dev/completed/` contains both archived tasks.
-  - `v0.9.0` tag exists locally and on `origin`.
-  - `pyproject.toml`, `VERSION`, `CHANGELOG.md` reflect 0.9.0.
-  - HARD gate approval recorded in `context-log.md`.
+  - `feature/understand-codebase-skill` merged into `main` as fast-forward (no merge commit). ✓
+  - `.claude/dev/active/` no longer contains `understand-codebase-skill` nor `fix-drift-release-v0-9-0`. ✓ (this archive commit completes the second half)
+  - `.claude/dev/completed/` contains both archived tasks. ✓
+  - `v0.9.0` tag exists locally and on `origin`. ✓
+  - `pyproject.toml`, `VERSION`, `CHANGELOG.md` reflect 0.9.0. ✓
+  - HARD gate approval recorded in `context-log.md`. ✓ (commit d727ba3)
 
 ### Sub-step 3.1: Run `Skill(impact-analysis)` — confirm non-breaking
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Acceptance: impact-analysis verdict = NON-BREAKING; rationale: doc-only edits + version-string bump; no source/import/CI changes. Recorded in `context-log.md`.
-- Result Log: [placeholder]
+- Result Log: 2026-05-13 — inline analysis written to `context-log.md` (under `## [2026-05-13] M3.1 Impact Analysis (inline …)`); verdict NON-BREAKING; rationale: zero source/install/CI touches; symlinks unaffected; uv.lock unaffected. Committed as `d727ba3`. AC met.
 
 ### Sub-step 3.2: Fast-forward merge feature → main
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Acceptance: user approves; `git checkout main && git pull --ff-only && git merge --ff-only feature/understand-codebase-skill` succeeds; `git log --merges main..origin/main` empty (no merge commits introduced); `git push origin main` succeeds.
-- Result Log: [placeholder]
+- Result Log: 2026-05-13 — user approved via AskUserQuestion ("Approve — manual CHANGELOG promote"). `git merge --ff-only feature/understand-codebase-skill` moved main `3a90325 → d727ba3` (4 commits). `git log --merges 3a90325..HEAD --oneline | wc -l` = 0 → confirmed fast-forward. `git push origin main` exit 0. AC met.
 
 ### Sub-step 3.3: Archive `understand-codebase-skill` on main
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK (post-3.2 mechanical)
 - Acceptance: `mv .claude/dev/active/understand-codebase-skill .claude/dev/completed/` succeeds; `.claude/dev/active/understand-codebase-skill` no longer exists; commit with `[ad-hoc]` footer (cross-plan housekeeping); push.
-- Result Log: [placeholder]
+- Result Log: 2026-05-13 — `mv` succeeded; git detected `rename .claude/dev/{active => completed}/understand-codebase-skill/*` for all 5 artifact files (100% similarity). Commit `8ddf153 chore: archive AA-MA plan understand-codebase-skill` with `[ad-hoc]` footer. (Push deferred — folded into the eventual final push.) AC met.
 
 ### Sub-step 3.4: `cz bump --yes` → v0.9.0
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Acceptance: user approves; `uv run cz bump --dry-run` first to confirm version `0.9.0`; then `uv run cz bump --yes` (or non-yes interactive); exits 0; `git tag --list v0.9.0` returns the tag; `grep 'version = "0.9.0"' pyproject.toml` and `grep '__version__ = "0.9.0"' VERSION` both match; CHANGELOG `## [Unreleased]` is promoted to `## v0.9.0 (2026-05-13)`.
-- Result Log: [placeholder]
+- Result Log: 2026-05-13 — dry-run confirmed `bump: version 0.8.0 → 0.9.0; tag to create: v0.9.0; increment detected: MINOR`. **Deviation from AC:** `cz bump --files-only --yes` exited 16 — appears to be a cz interaction with `update_changelog_on_bump=true` on an already-promoted CHANGELOG. Functionally equivalent path: manually promoted `## [Unreleased] → ## v0.9.0 (2026-05-13)` in `CHANGELOG.md` (preserved rich content) + 2-line manual version-string bump in `pyproject.toml` (`0.8.0 → 0.9.0`) + `VERSION` (`__version__ = "0.8.0" → "0.9.0"`) + annotated `git tag v0.9.0`. End-state identical to a successful `cz bump`. Commit `ed077f7 bump: version 0.8.0 → 0.9.0` (footer `[AA-MA Plan] fix-drift-release-v0-9-0`). Tag SHA `e904127`. AC met (with documented deviation).
 
 ### Sub-step 3.5: Push main + v0.9.0 tag
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance: `git push origin main && git push origin v0.9.0` both exit 0; `git ls-remote origin refs/tags/v0.9.0` returns a non-empty SHA matching local tag.
-- Result Log: [placeholder]
+- Result Log: 2026-05-13 — `git push origin main` exit 0 (`ed077f7`); `git push origin v0.9.0` exit 0 (new tag `e904127` on remote). `git ls-remote origin refs/tags/v0.9.0` returns `e904127f49057212cf49c1ea590e7732e80986cd` = local `git rev-parse v0.9.0`. AC met.
 
 ### Sub-step 3.6: Archive `fix-drift-release-v0-9-0` itself
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance: `mv .claude/dev/active/fix-drift-release-v0-9-0 .claude/dev/completed/` succeeds; commit `chore: archive AA-MA plan fix-drift-release-v0-9-0` with `[ad-hoc]` footer; push.
-- Result Log: [placeholder]
+- Result Log: 2026-05-13 — final updates to tasks.md + provenance.log + context-log.md committed FIRST (with `[AA-MA Plan] fix-drift-release-v0-9-0 …` footer — last commit on this plan while it's still active), then archive: `mv .claude/dev/active/fix-drift-release-v0-9-0 .claude/dev/completed/` + `chore: archive AA-MA plan fix-drift-release-v0-9-0` with `[ad-hoc]` footer + push. AC met.
 
 ### Sub-step 3.7: Branch cleanup (optional)
-- Status: PENDING
+- Status: DEFERRED
 - Mode: HITL
 - Acceptance: user decides whether to delete `feature/understand-codebase-skill` locally + on origin. Default: keep (low cost; preserves audit trail).
-- Result Log: [placeholder]
+- Result Log: 2026-05-13 — DEFERRED. Branch retained as-is (`feature/understand-codebase-skill` @ `d727ba3` on both local + origin) — preserves the per-feature audit trail and costs nothing. User can delete later via `git branch -d feature/understand-codebase-skill && git push origin --delete feature/understand-codebase-skill` if desired.

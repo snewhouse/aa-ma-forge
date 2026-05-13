@@ -51,3 +51,6 @@ venv/
 Thumbs.db
 .research/
 .aider*
+
+# Untracked research / strategy / private working notes
+private/

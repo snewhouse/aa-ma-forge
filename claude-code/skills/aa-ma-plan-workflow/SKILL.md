@@ -368,6 +368,14 @@ After aa-ma-plan completes, use aa-ma-execution skill:
 | Step | `/execute-aa-ma-step` | Fine-grained control |
 | Full | `/execute-aa-ma-full` | After validating 1-2 milestones |
 
+**Optional goal-synthesis (Claude Code v2.1.139+):** If the user intends to run
+`/execute-aa-ma-full` in AFK mode, the execution command's §2.5 will invoke
+`Skill(goal-condition-synthesis)` to produce a `/goal` condition from this
+plan's `Acceptance Criteria`. The synthesis is **decoupled from plan
+generation** — plan output remains the 5 standard files regardless. If goal
+synthesis is performed during the plan run (rare; usually deferred to execute
+time), emit the optional `PHASE_4.7` marker per `docs/spec/plan-marker-grammar.md`.
+
 **IMPORTANT - Commit Signature:**
 All commits while AA-MA plan is active MUST include:
 ```

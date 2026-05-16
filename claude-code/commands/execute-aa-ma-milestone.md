@@ -771,6 +771,47 @@ After auto-updating docs (7.2) and before requesting user approval (7.3), dispat
 
 **If agent spawning unavailable:** skip this step, log `validator dispatch skipped — agent unavailable` to provenance.log, continue to 7.3. Do NOT block finalization on validator unavailability.
 
+### 7.2.6 Haiku Adversary Check (Goal-Eval Pattern, Surfaced to User)
+
+**Purpose:** Give the user a second-opinion signal at the §7.3 approval gate, reusing the same Haiku evaluator pattern that Claude Code's `/goal` command uses internally. This is **synchronous and surfaced**, never gating — the user still approves at §7.3.
+
+**Skip if any of:**
+- Claude Code version < 2.1.139 (no Haiku evaluator available)
+- `AA_MA_HAIKU_ADVERSARY=off` environment variable set
+- `AA_MA_HOOKS_DISABLE=1` (master kill switch)
+
+**Otherwise:**
+
+1. Build a condition from the milestone's `Acceptance Criteria` (verbatim from tasks.md milestone block). Each criterion becomes one clause; conditions are conjoined.
+
+2. Invoke a synchronous evaluator call against Haiku with:
+   - The condition (built in step 1)
+   - The milestone block from `<task>-tasks.md` (verbatim)
+   - All sub-task Result Logs from this milestone (concatenated)
+   - `git diff <milestone-start-ref>..HEAD` truncated to 500 lines if longer
+
+3. Request a 3-way verdict + one-sentence reason:
+
+   ```
+   Verdict: MET | UNMET | UNCLEAR
+   Confidence: 0-100
+   Reason: <one sentence>
+   ```
+
+4. Append the verdict to provenance.log immediately:
+
+   ```
+   [TIMESTAMP] HAIKU_ADVERSARY — milestone=<id> verdict=<MET|UNMET|UNCLEAR> confidence=<N> reason='<short>'
+   ```
+
+5. Carry the verdict into §7.3 (User Authorization) for surface in the AskUserQuestion.
+
+**Verdict never gates approval.** A user can approve a milestone that the Haiku adversary flagged UNMET — the verdict is information, not a block. Conversely, a MET verdict does not auto-approve; the user still chooses.
+
+**Rationale for surface-not-gate:** aa-ma-forge already has 8 hard gates and an adversarial review at §6.8. A 9th gate would be redundant noise. But a synthesized Haiku second-opinion at the approval moment is high-signal context the user has not seen elsewhere in the protocol — it asks the **user-intent** question rather than the quality question.
+
+**If Haiku call fails:** log `HAIKU_ADVERSARY — milestone=<id> verdict=ERROR reason='<error>'` to provenance.log, surface `Haiku adversary: unavailable` in §7.3 instead of a verdict. Do NOT block.
+
 ### 7.3 User Authorization (Approval Gate)
 
 Use AskUserQuestion to get explicit user approval before changing status to COMPLETE:
@@ -781,9 +822,12 @@ Use AskUserQuestion to get explicit user approval before changing status to COMP
 
 Milestone: [Title]
 Acceptance Criteria: [X/X] verified ✓
+Haiku adversary verdict: [MET|UNMET|UNCLEAR|unavailable] — '[evaluator's one-line reason]'
 
 Ready to mark this milestone COMPLETE?
 ```
+
+The `Haiku adversary verdict:` line surfaces the §7.2.6 result. Omit the line entirely if §7.2.6 was skipped (kill switch, version gate, opt-out). The verdict is signal, not gate — present it as context, not as an authorization condition.
 
 **Options:**
 - **Approve** → "Proceed with status change and commit"
@@ -791,8 +835,8 @@ Ready to mark this milestone COMPLETE?
 - **Reject** → "Do not mark complete, keep as ACTIVE"
 
 **Behavior by choice:**
-- **Approve**: Proceed to Step 7.4 and git commit
-- **Review First**: Display full integrity checklist with evidence, then re-prompt
+- **Approve**: Proceed to Step 7.4 and git commit (regardless of Haiku verdict)
+- **Review First**: Display full integrity checklist with evidence (including the full Haiku reasoning if available), then re-prompt
 - **Reject**: HALT execution, keep `Status: ACTIVE`, ask user what needs fixing
 
 ### 7.4 Transparent Status Change
@@ -862,8 +906,16 @@ $TASKS_COMPLETED
 
 Tests: $TEST_STATUS
 
+[Goal Verdict] $HAIKU_VERDICT — confidence=$HAIKU_CONFIDENCE reason='$HAIKU_REASON'
+
 [AA-MA Plan] $TASK_NAME .claude/dev/active/$TASK_NAME"
 ```
+
+**`[Goal Verdict]` footer rules:**
+- Populated from §7.2.6 Haiku Adversary Check output.
+- Format: `[Goal Verdict] <MET|UNMET|UNCLEAR> — confidence=<0-100> reason='<one line>'`
+- If §7.2.6 was skipped (kill switch / version gate): emit `[Goal Verdict] NOT_RUN — reason='<token>'` instead. Do not omit the footer — its presence (even as NOT_RUN) is the audit signal that the check was considered.
+- Footer position: between `Tests:` and the `[AA-MA Plan]` signature line. Keeps the AA-MA signature as the absolute last line (commit-signature hook requirement).
 
 ### 8.3 Update Provenance Log
 

@@ -128,6 +128,55 @@ Spawn aa-ma-validator with:
 
 ---
 
+## 2.5 Goal Synthesis & Bind (Optional, Recommended for AFK Runs)
+
+`/execute-aa-ma-full` is the natural surface for Claude Code's `/goal` cross-turn driver. When the user runs full execution in AFK mode, binding a goal gives the run a measurable, Haiku-evaluable terminating condition — and a turn cap that acts as a cost ceiling.
+
+**Skip this section entirely if any of:**
+- The user passed `--no-goal` to the command.
+- Claude Code version is < 2.1.139 (no `/goal` support).
+- `disableAllHooks` or `allowManagedHooksOnly` is set in managed settings (`/goal` is implemented as a Stop-hook wrapper).
+
+**Otherwise execute:**
+
+1. **Invoke** `Skill(goal-condition-synthesis)` with:
+   - `task-name`: the active task slug
+   - `task-dir`: `.claude/dev/active/<task-name>`
+   - `mode`: `full-execute`
+
+2. **On `SYNTHESIS_FAILED`:** log the reason to `<task>-provenance.log` as `[TIMESTAMP] GOAL_SYNTHESIS_SKIPPED — reason=<token>`, continue to §3 without binding a goal.
+
+3. **On `SYNTHESIZED`:** present the proposed condition and turn cap to the user via `AskUserQuestion`:
+
+   ```
+   📍 Goal Synthesis Complete
+
+   Proposed condition:
+   <synthesized condition text>
+
+   Turn cap: <N>
+   Observable artifacts referenced: <list>
+
+   Bind this goal for the run?
+   ```
+
+   Options:
+   - **Bind** — invoke `/goal <condition>` immediately, then proceed to §3.
+   - **Edit condition** — display the condition, accept user edits, re-validate via the synthesis skill's Step 4 self-check, then re-prompt.
+   - **Skip /goal** — proceed to §3 without binding. Log `[TIMESTAMP] GOAL_BIND_DECLINED — user_choice` to `<task>-provenance.log`.
+
+4. **On bind success:** append `[TIMESTAMP] GOAL_BOUND — turn_cap=<N> condition_hash=<sha256-first-12>` to `<task>-provenance.log`. The condition itself is stored by `/goal`; the hash is for cross-reference.
+
+**Mid-run goal lifecycle:**
+
+- If `/goal` reports MET partway through the milestone loop in §5: continue execution to the next checkpoint, do **not** stop mid-milestone. The goal's job is to terminate at a clean boundary.
+- If `/goal` reports turn-cap exhausted: HALT after the current milestone finalizes. Surface the evaluator's last reason to the user. Do not auto-clear the goal — user owns the lifecycle.
+- The user can run `/goal clear` at any point to detach the goal; full execution continues without cross-turn drive.
+
+**Why this is opt-in:** Existing aa-ma-forge workflows pre-date `/goal` and complete fine without it. Goal binding adds Haiku evaluation cost per turn and a second termination signal that can interact with the milestone-status terminator. For users new to the integration, milestone-status termination is enough.
+
+---
+
 ## 3. Validate Loaded Context
 
 **Required checks**:
@@ -405,6 +454,8 @@ Tasks completed:
 
 Tests: [status]
 
+[Goal Verdict] [MET|UNMET|UNCLEAR|NOT_BOUND] — [if bound: confidence=N% reason='<one-line evaluator reason>']
+
 [AA-MA Plan] $TASK_NAME .claude/dev/active/$TASK_NAME"
 
 # Update provenance log
@@ -465,6 +516,11 @@ git push --tags
 ```bash
 TIMESTAMP=$(date -Iseconds)
 echo "[$TIMESTAMP] PLAN COMPLETE — Tag: ${TASK_NAME}-complete — All milestones COMPLETE" >> .claude/dev/active/$TASK_NAME/${TASK_NAME}-provenance.log
+
+# If a /goal was bound at §2.5, capture the final verdict.
+# Query /goal status (no args) and parse the evaluator's last reason.
+# Format: GOAL_FINAL — verdict=<MET|UNMET|TURN_CAP_HIT|CLEARED> turns=<N> reason='<short>'
+echo "[$TIMESTAMP] GOAL_FINAL — verdict=[MET|UNMET|TURN_CAP_HIT|CLEARED|NOT_BOUND] turns=[N] reason='[short]'" >> .claude/dev/active/$TASK_NAME/${TASK_NAME}-provenance.log
 
 # Commit provenance log
 git add .claude/dev/active/$TASK_NAME/${TASK_NAME}-provenance.log

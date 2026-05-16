@@ -10,10 +10,14 @@ Run structured adversarial verification against an AA-MA plan to catch factual e
 ## Usage
 
 ```
-/verify-plan [task-name]
+/verify-plan [task-name] [--iterate]
 ```
 
 If `task-name` is omitted, list active tasks and prompt for selection.
+
+**`--iterate` flag (opt-in, requires Claude Code v2.1.139+):** wraps the verification protocol with a `/goal` cross-turn driver that re-runs verification, ingests findings, edits plan files, and re-verifies until the Verdict is GREEN with zero Criticals, or 3 iterations are exhausted. Without the flag, behavior is unchanged: single-pass verification, generate report, exit.
+
+See Step 4.5 (Iterate Mode) for the full protocol.
 
 ## Instructions for AI
 
@@ -83,6 +87,43 @@ Pass to the skill:
 - **Project root:** Current working directory (pwd)
 - **Mode:** From user selection (skill will prompt if not provided)
 - **Previous findings:** From existing verification.md (if re-running)
+
+### Step 4.5: Iterate Mode (opt-in, --iterate flag only)
+
+**Skip this step entirely if `--iterate` was not passed.**
+
+When `--iterate` is active:
+
+1. **Synthesize the iteration goal** by invoking `Skill(goal-condition-synthesis)` with `mode: verify-iterate`. The skill returns a condition shaped like:
+
+   ```
+   <task>-verification.md latest "## Verdict" block shows GREEN with
+   0 Criticals AND every Critical from the previous Verdict block has a
+   "Resolution:" line in this block;
+   or stop after 3 iterations.
+   ```
+
+2. **Bind the goal** via `/goal <condition>`. Surface the condition and the 3-iteration cap to the user before binding (`AskUserQuestion` with [Bind / Edit / Skip iterate]).
+
+3. **On Bind:**
+   - The first verification pass runs as normal (Step 4 above).
+   - If the Verdict is GREEN with zero Criticals, `/goal` evaluates MET → run terminates cleanly. Proceed to Step 6.
+   - If not, the goal driver re-invokes verification next turn. Each iteration must:
+     - **Append** (not overwrite) a new `## Verdict — Revision N+1` block to `<task>-verification.md`. This preserves the audit trail.
+     - Add `Resolution:` lines under every Critical from the previous Verdict block, citing the plan edit that addressed it.
+     - Edit the plan files (`<task>-plan.md`, `<task>-reference.md`, etc.) to incorporate findings.
+     - Re-run only the affected verification angles (not the full 6-angle wave).
+   - After 3 iterations or first GREEN/0-Critical Verdict, the goal terminates.
+
+4. **On termination, clear the goal:** `/goal clear`. Surface the final Verdict, the iteration count, and the evaluator's final reason. Append to `<task>-provenance.log`:
+
+   ```
+   [TIMESTAMP] VERIFY_ITERATE — verdict=<GREEN|YELLOW|RED> iterations=<N> criticals=<N> outcome=<MET|EXHAUSTED|USER_HALTED>
+   ```
+
+5. **If goal binding fails or `/goal` is unavailable:** fall back to single-pass behavior, log `VERIFY_ITERATE_SKIPPED — reason=<token>` to provenance.log, do NOT block.
+
+**Why iterate at all?** Single-pass `/verify-plan` produces a report and leaves the operator to act on it. For plans that need revisions to clear Criticals, iterate-mode converts a manual loop into an autonomous one bounded by a cost ceiling. The append-only Verdict log preserves what was found at each pass — a richer audit trail than a single overwriting report.
 
 ### Step 5: Handle Results
 

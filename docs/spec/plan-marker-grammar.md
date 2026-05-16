@@ -82,7 +82,7 @@ Or, if synthesis was attempted and failed:
 PHASE_4.7 SKIPPED — reason={missing_plan|nothing_to_do|plan_incomplete|condition_too_long|user_declined}
 ```
 
-Fingerprint correlation: `name=Skill ∧ input.skill ~ /goal-condition-synthesis/`.
+Fingerprint correlation: `name=Skill ∧ input.skill = goal-condition-synthesis`.
 
 The marker is forward-compatible — older parsers will warn-and-ignore it per
 rule 7. Implementations that do support it can surface goal-synthesis evidence

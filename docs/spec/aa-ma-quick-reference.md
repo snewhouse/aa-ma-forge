@@ -71,15 +71,17 @@ Multi-Session/Team  │   AA-MA     │   AA-MA
 | `SOFT` (default) | Convention-based — agent warned |
 | `HARD` | Artifact-enforced — blocked without signed approval in context-log.md |
 
-### `/goal` Integration (Claude Code v2.1.139+, opt-in)
+### `/goal` Integration (Claude Code `/goal`, opt-in)
 
 | Surface | Mode | Skill |
 |---------|------|-------|
 | `/execute-aa-ma-full` §2.5 | Cross-turn driver; binds at start, terminates on plan acceptance | `goal-condition-synthesis` (full-execute) |
 | `/verify-plan --iterate` | Cross-turn driver; iterates plan revisions to GREEN/0-Criticals (cap 3) | `goal-condition-synthesis` (verify-iterate) |
-| `/execute-aa-ma-milestone` §7.2.6 | Synchronous Haiku adversary; surfaced (not gating) at §7.3 | — (inline Haiku call) |
 
-Conditions reference observable artifacts (provenance.log, tasks.md Status, git tags, test exit codes). Vague conditions are rejected at synthesis. Kill switches: `AA_MA_HOOKS_DISABLE=1`, `AA_MA_HAIKU_ADVERSARY=off`, `--no-goal` flag.
+Canonical observable-artefact list, verdict-token enum, and turn-cap formula
+live in `Skill(goal-condition-synthesis)`. Vague conditions are rejected at
+synthesis. Protocol toggles: `--no-goal` on `/execute-aa-ma-full`; omit
+`--iterate` from `/verify-plan`; `/goal clear` at any time.
 
 ### Optional Files
 

@@ -142,7 +142,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Complexity:** 40%
 - **Gate:** HARD
 - **Mode:** HITL
-- **Audit-Profile:** custom: code-reviewer, future-proofing-auditor
+- **Audit-Profile:** custom
 - **Critical-Path:**
 - **Prototype-Required:**
 - **Acceptance Criteria:**

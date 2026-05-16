@@ -499,34 +499,41 @@ When token limit approaches:
 - "Passwords are secure"
 - "Tests are good"
 
-## 2.7 AFK Mode + `/goal` Cookbook (Claude Code v2.1.139+)
+## 2.7 AFK Mode + `/goal` Cookbook
 
-Claude Code ships a built-in `/goal` command that drives the agent across turns until a Haiku-evaluated condition is met or a turn cap fires. aa-ma-forge integrates `/goal` at three surfaces:
+Claude Code ships a built-in `/goal` command that drives the agent across turns
+until a Haiku-evaluated condition is met or a turn cap fires (see
+https://code.claude.com/docs/en/goal.md). aa-ma-forge integrates `/goal` at two
+surfaces — both opt-in, both relying on observable artefacts so the evaluator
+can verdict from transcript context alone:
 
-1. **`/execute-aa-ma-full` §2.5** — the natural home for `/goal` in AFK runs. Synthesizes a condition from `plan.md` Acceptance Criteria, surfaces it for user approval, then binds.
-2. **`/verify-plan --iterate`** — bounded iteration loop that re-runs adversarial verification until the Verdict is GREEN with zero Criticals, or 3 iterations are exhausted.
-3. **`/execute-aa-ma-milestone` §7.2.6 Haiku Adversary Check** — synchronous, not cross-turn. Uses the same Haiku evaluator as a second-opinion signal surfaced (never gating) at the §7.3 user-approval prompt.
+1. **`/execute-aa-ma-full` §2.5** — the natural home for `/goal` in AFK runs.
+   Synthesises a condition from `plan.md` Acceptance Criteria, surfaces it for
+   user approval, then binds.
+2. **`/verify-plan --iterate`** — bounded iteration loop that re-runs
+   adversarial verification until the Verdict is GREEN with zero Criticals, or
+   3 iterations are exhausted.
+
+> Per-milestone Haiku second-opinion verdicts are deliberately out of scope at
+> v0.9.x — Claude Code does not document a synchronous Haiku evaluation API,
+> and `/goal` is cross-turn only. Track the deferred design in a follow-up.
 
 ### The Observable-Artifact Rule
 
-`/goal`'s Haiku evaluator only sees what aa-ma-forge has surfaced in the conversation transcript — it does not run tools. Good conditions reference observable artifacts:
-
-- `provenance.log` lines (especially `MILESTONE COMPLETE` and `[Goal Verdict]` footers)
-- `tasks.md` Status fields
-- Git tags from §6 of `/execute-aa-ma-full`
-- Test exit codes from `make ci`
-- `<task>-verification.md` Verdict blocks
-
-Bad conditions reference subjective states ("feature works", "looks right"). The `goal-condition-synthesis` skill rejects vague conditions at construction time.
+The canonical list of observable artefacts and the falsifiability ruleset
+(banned vague terms, minimum-2-artefact rule) lives in
+`Skill(goal-condition-synthesis)`. This guide does not restate it — see the
+synthesis skill for the authoritative table.
 
 ### Worked Example: AFK Full Run with `/goal`
 
 ```bash
-# Start an autonomous full run with goal binding
 /execute-aa-ma-full add-jwt-auth
 ```
 
-`/execute-aa-ma-full` §2.5 invokes `Skill(goal-condition-synthesis)`. The skill reads `add-jwt-auth-plan.md` (11 Acceptance Criteria) and `add-jwt-auth-tasks.md` (3 PENDING milestones), then proposes:
+`/execute-aa-ma-full` §2.5 invokes `Skill(goal-condition-synthesis)`. The skill
+reads `add-jwt-auth-plan.md` (11 Acceptance Criteria) and `add-jwt-auth-tasks.md`
+(3 PENDING milestones), then proposes:
 
 ```
 Proposed condition:
@@ -534,24 +541,25 @@ All remaining milestones in add-jwt-auth/tasks.md have Status: COMPLETE;
 add-jwt-auth-provenance.log contains a "MILESTONE COMPLETE" line for each;
 git tag add-jwt-auth-complete exists;
 `make ci` exits 0;
-each plan.md Acceptance Criterion has a "[Goal Verdict]" footer in its
-corresponding milestone commit citing the evidence;
 or stop after 5 turns.
 
-Turn cap: 5  (= ceil(3 pending milestones * 1.5))
+Turn cap: 5  (= max(4, ceil(3 pending milestones * 1.5)))
 ```
 
 User approves `[Bind]`. `/goal <condition>` is invoked. Provenance gets:
 
 ```
-[2026-05-16T10:42:01+01:00] GOAL_BOUND — turn_cap=5 condition_hash=a3f2b1c8d4e7
+[<ISO8601-ts>] GOAL_BOUND — turn_cap=5 condition_hash=<12-hex>
 ```
 
-Execution proceeds through milestones as normal. After each milestone commit, the Haiku evaluator checks the condition. When all milestones complete and the `add-jwt-auth-complete` tag is created in §6, evaluator returns MET. Run terminates cleanly. Provenance closes with:
+Execution proceeds through milestones as normal. After each milestone commit,
+the Haiku evaluator checks the condition. When all milestones complete and the
+`add-jwt-auth-complete` tag is created in §6, the evaluator returns MET. Run
+terminates cleanly. Provenance closes with:
 
 ```
-[2026-05-16T14:18:53+01:00] PLAN COMPLETE — Tag: add-jwt-auth-complete — All milestones COMPLETE
-[2026-05-16T14:18:53+01:00] GOAL_FINAL — verdict=MET turns=4 reason='all milestones complete, tag exists, ci passes'
+[<ISO8601-ts>] PLAN COMPLETE — Tag: add-jwt-auth-complete — All milestones COMPLETE
+[<ISO8601-ts>] GOAL_FINAL — verdict=MET turns=4 reason='all milestones complete, tag exists, ci passes'
 ```
 
 ### Anti-Patterns
@@ -559,37 +567,36 @@ Execution proceeds through milestones as normal. After each milestone commit, th
 | Pattern | Why it's wrong |
 |---|---|
 | Per-milestone or per-step `/goal` | `/goal` is one-per-session. Goals live at the **task** level. |
-| Making §7.2.6 Haiku verdict gate user approval | aa-ma-forge already has 8 hard gates; surface-not-gate is intentional. |
 | Goal conditions without a turn cap | AFK runs can burn tokens unnoticed. Cap is the cost ceiling. |
 | Auto-clearing `/goal` on Stop hooks | User owns the goal lifecycle. Don't silently mutate it. |
-| Subjective conditions ("feature is done") | Haiku can't evaluate. Synthesis skill rejects with `SYNTHESIS_FAILED`. |
+| Subjective conditions (`done`, `working`, `correct`, `good`, `ready`) | Haiku can't evaluate. Synthesis skill rejects with `SYNTHESIS_FAILED`. |
 
 ### When NOT to use `/goal`
 
-- **Single-milestone runs** (`/execute-aa-ma-milestone` alone): the human is already there. The §7.2.6 surfaced verdict is enough.
+- **Single-milestone runs** (`/execute-aa-ma-milestone` alone): the human is already there; no cross-turn drive needed.
 - **Exploratory `/execute-aa-ma-step`**: too granular; cross-turn drive adds nothing.
 - **`/aa-ma-plan` itself**: planning is bounded by Phase markers (1–5). No drive-to-completion problem to solve.
 
 ### Auditing Goal Activity
 
 ```bash
-# Full goal-integration audit for a task
-grep -E '^\[.*\] (GOAL_|HAIKU_|VERIFY_ITERATE)' \
+grep -E '^\[.*\] (GOAL_|VERIFY_ITERATE)' \
   .claude/dev/active/<task>/<task>-provenance.log
-
-# Cross-reference milestone verdicts in commit history
-git log --grep='\[Goal Verdict\]' --pretty=format:'%h %s%n%b%n---'
 ```
 
-### Kill Switches
+### Protocol Toggles
 
-| Setting | Effect |
+`AA_MA_HOOKS_DISABLE=1` controls aa-ma-forge's own hooks (commit-signature,
+drift detector, etc.) and does **not** intercept `/goal` itself — Claude Code's
+`/goal` is gated separately by managed-settings keys (`disableAllHooks`,
+`allowManagedHooksOnly`). The toggles below are honoured by the agent reading
+this protocol; they are not enforced by any aa-ma-forge hook.
+
+| Toggle | Effect |
 |---|---|
-| `AA_MA_HOOKS_DISABLE=1` | Master kill switch — disables all aa-ma-forge hooks including any goal-related hook integration |
-| `AA_MA_HAIKU_ADVERSARY=off` | Skip §7.2.6 Haiku Adversary Check specifically; rest of milestone protocol unaffected |
-| `--no-goal` flag on `/execute-aa-ma-full` | Skip §2.5 Goal Synthesis & Bind for this run only |
-| Omitting `--iterate` from `/verify-plan` | Single-pass verification; no `/goal` binding |
-| `/goal clear` at any time | User-owned detach; aa-ma-forge continues without cross-turn drive |
+| `--no-goal` flag on `/execute-aa-ma-full` | Skip §2.5 Goal Synthesis & Bind for one run |
+| Omitting `--iterate` from `/verify-plan` | Single-pass verification; no `/goal` binding (existing default) |
+| `/goal clear` at any time | User-owned detach; aa-ma-forge execution continues without cross-turn drive |
 
 ---
 

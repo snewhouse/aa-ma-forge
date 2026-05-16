@@ -8,18 +8,18 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Feat
 
-- **`/goal` integration (Claude Code v2.1.139+)** — opt-in cross-turn drive-to-completion across three surfaces:
-  - **`/execute-aa-ma-full` §2.5 Goal Synthesis & Bind** — synthesizes a Haiku-evaluable condition from `plan.md` Acceptance Criteria (referencing observable artifacts: `provenance.log`, `tasks.md` Status, git tags, test exit codes) with a turn-cap derived from milestone count (`ceil(min(pending * 1.5, 30))`). Surfaces condition + cap via `AskUserQuestion` [Bind / Edit / Skip] before binding `/goal`. Logs `GOAL_BOUND`, `GOAL_BIND_DECLINED`, or `GOAL_SYNTHESIS_SKIPPED` to provenance. Final `GOAL_FINAL` line at task completion.
+- **`/goal` integration (Claude Code)** — opt-in cross-turn drive-to-completion across two surfaces:
+  - **`/execute-aa-ma-full` §2.5 Goal Synthesis & Bind** — synthesises a Haiku-evaluable condition from `plan.md` Acceptance Criteria (referencing observable artefacts: `provenance.log`, `tasks.md` Status, git tags, test exit codes) with a turn-cap derived from milestone count (`max(4, ceil(min(pending * 1.5, 30)))`). Surfaces condition + cap via `AskUserQuestion` [Bind / Edit / Skip] before binding `/goal`. Logs `GOAL_BOUND`, `GOAL_BIND_DECLINED`, or `GOAL_SYNTHESIS_SKIPPED` to provenance. Final `GOAL_FINAL` line at task completion.
   - **`/verify-plan --iterate` Step 4.5 Iterate Mode** — bounded iteration loop (cap 3) that re-runs adversarial 6-angle verification, appends new Verdict blocks (audit trail preserved), revises plan files between iterations, terminates on GREEN-with-0-Criticals or cap exhaustion. Logs `VERIFY_ITERATE` to provenance.
-  - **`/execute-aa-ma-milestone` §7.2.6 Haiku Adversary Check** — synchronous, not cross-turn. Reuses Haiku evaluator pattern as a second-opinion signal **surfaced** in §7.3 AskUserQuestion (never gating). Verdict captured in `HAIKU_ADVERSARY` provenance line and `[Goal Verdict]` commit footer (between `Tests:` and `[AA-MA Plan]` signature).
-- **New skill `goal-condition-synthesis`** — produces falsifiable `/goal` conditions from AA-MA plan artifacts. Enforces observable-artifact rule, rejects vague conditions at construction time, validates turn-cap ≤ 30 and condition length ≤ 4,000 chars. Consumed by `/execute-aa-ma-full` §2.5 and `/verify-plan --iterate`.
-- **Optional `PHASE_4.7` plan-marker** — records goal-condition synthesis when performed during a plan run. Forward-compatible (older parsers warn-and-ignore). Fingerprint: `name=Skill ∧ input.skill ~ /goal-condition-synthesis/`.
+- **New skill `goal-condition-synthesis`** — produces falsifiable `/goal` conditions from AA-MA plan artefacts. Enforces observable-artefact rule (≥ 2 references), rejects vague conditions at construction time, validates turn-cap ≤ 30 and condition length ≤ 4 000 chars, owns the canonical verdict-token enum. Consumed by `/execute-aa-ma-full` §2.5 and `/verify-plan --iterate`.
+- **Python helper `aa_ma.goal_synthesis`** — testable reference implementation of the synthesis algorithm (`turn_cap`, `validate_condition`, `count_observable_artifacts`, `condition_hash`). Unit-tested in `tests/test_goal_synthesis.py`.
+- **Optional `PHASE_4.7` plan-marker** — records goal-condition synthesis when performed during a plan run. Forward-compatible (older parsers warn-and-ignore).
 
 ### Docs
 
-- **`docs/spec/aa-ma-team-guide.md` §2.7 AFK Mode + `/goal` Cookbook** — full integration walkthrough with worked example (`add-jwt-auth` autonomous run), observable-artifact rule, three condition templates, anti-patterns, when-NOT-to-use, audit one-liners, kill-switch table.
-- **`docs/spec/aa-ma-quick-reference.md`** — new "`/goal` Integration" table summarizing the three surfaces.
-- **`claude-code/skills/aa-ma-execution/SKILL.md` §IX.5 Goal-Condition Synthesis Patterns** — operator reference for the three templates, verdict logging discipline, anti-patterns.
+- **`docs/spec/aa-ma-team-guide.md` §2.7 AFK Mode + `/goal` Cookbook** — integration walkthrough with worked example (`add-jwt-auth` autonomous run), anti-patterns, when-NOT-to-use, audit one-liner, protocol-toggle table.
+- **`docs/spec/aa-ma-quick-reference.md`** — new "`/goal` Integration" table summarising the two surfaces; canonical references point to `Skill(goal-condition-synthesis)`.
+- **`claude-code/skills/aa-ma-execution/SKILL.md` §IX.5 Goal-Condition Synthesis Patterns** — operator reference; cites synthesis SKILL as the canonical source for templates, vocabulary, and observable artefacts.
 - **`docs/spec/claude-code-foundations.md`** — Skills 18 → 19, new `goal-condition-synthesis` row.
 - **`SECURITY.md`** — Skills 18 → 19, list updated.
 - **`README.md`** — capabilities bullet for goal-driven autonomous execution; Skills table appends `goal-condition-synthesis`.
@@ -28,16 +28,16 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 - `/goal` integration is **opt-in everywhere**. Existing AA-MA workflows that pre-date `/goal` are unaffected.
 - Goals live at the **task** level (one per session). aa-ma-forge does not attempt to make `/goal` milestone-scoped — that would conflict with Claude Code's one-goal-per-session model.
-- §7.2.6 is **surface-not-gate** by design. aa-ma-forge already has 8 milestone gates; a 9th would be redundant noise. The Haiku adversary asks the user-intent question ("did we achieve what the user actually wanted?") rather than another quality-gate question.
-- All goal-related state lands in `provenance.log` and commit footers. Audit: `grep -E '^\[.*\] (GOAL_|HAIKU_|VERIFY_ITERATE)' <task>-provenance.log`; `git log --grep='\[Goal Verdict\]'`.
+- A per-milestone Haiku adversary surface was prototyped and **deferred** — Claude Code does not document a synchronous Haiku evaluation API, and `/goal` is per-turn cross-turn only. Re-evaluate once either Claude Code ships such an API or aa-ma-forge defines its own `Skill(haiku-eval)` wrapper.
+- Synthesis is the canonical source of the verdict-token enum, the observable-artefact list, and the turn-cap formula. The execution SKILL and team-guide link back rather than restating, to avoid drift.
+- All goal-related state lands in `provenance.log`. Audit: `grep -E '^\[.*\] (GOAL_|VERIFY_ITERATE)' <task>-provenance.log`.
 
-### Kill switches
+### Protocol toggles (agent-honoured, not hook-enforced)
 
-- `AA_MA_HOOKS_DISABLE=1` — master, disables goal integration alongside other hooks
-- `AA_MA_HAIKU_ADVERSARY=off` — skip §7.2.6 specifically
 - `--no-goal` flag on `/execute-aa-ma-full` — skip §2.5 for one run
-- Omitting `--iterate` on `/verify-plan` — single-pass behavior unchanged
+- Omitting `--iterate` on `/verify-plan` — single-pass behaviour unchanged
 - `/goal clear` — user-owned detach at any time
+- `AA_MA_HOOKS_DISABLE=1` — disables aa-ma-forge **hooks** only (commit-signature, drift, etc.); it does **not** intercept `/goal` itself. Claude Code's `/goal` is gated separately by managed-settings keys (`disableAllHooks`, `allowManagedHooksOnly`).
 
 ## v0.9.0 (2026-05-13)
 

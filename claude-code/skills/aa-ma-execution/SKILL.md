@@ -958,84 +958,71 @@ For each criterion in acceptance criteria:
    Stashed work available: git stash pop
    ```
 
-## IX.5 Goal-Condition Synthesis Patterns (Optional, Claude Code v2.1.139+)
+## IX.5 Goal-Condition Synthesis Patterns (Optional, Claude Code `/goal`)
 
-Claude Code's built-in `/goal` command sets a cross-turn drive-to-completion condition that a Haiku evaluator checks after every turn. aa-ma-forge integrates this primitive at three surfaces:
+Claude Code's built-in `/goal` command sets a cross-turn drive-to-completion
+condition that a Haiku evaluator checks after every turn. aa-ma-forge integrates
+this primitive at two surfaces; both are **opt-in** and rely on observable
+artefacts so the evaluator can reach a verdict from transcript context alone.
 
 | Surface | Where | What `/goal` adds |
 |---|---|---|
 | `/execute-aa-ma-full` AFK runs | §2.5 Goal Synthesis & Bind | Terminating condition tied to user intent (plan acceptance criteria), turn-cap as cost ceiling |
 | `/verify-plan --iterate` | Step 4.5 Iterate Mode | Bounded iteration loop that converges on GREEN Verdict with 0 Criticals |
-| Milestone §7.2.6 Haiku Adversary Check | Synchronous, not cross-turn | Same Haiku evaluator pattern as a second-opinion signal surfaced at §7.3 user approval |
+
+Per-milestone Haiku second-opinion verdicts are **deliberately out of scope**
+at v0.9.x — Claude Code does not document a synchronous Haiku evaluation API,
+and `/goal` is per-turn cross-turn only. Re-evaluate once either Claude Code
+ships such an API or aa-ma-forge defines its own `Skill(haiku-eval)` wrapper.
 
 ### The Observable-Artifact Rule
 
-The Haiku evaluator only sees what aa-ma-forge has surfaced in the conversation transcript. It does **not** run tools. Goal conditions MUST reference artifacts aa-ma-forge already produces and prints during execution:
+The Haiku evaluator only sees what aa-ma-forge has surfaced in the conversation
+transcript. It does **not** run tools. The canonical list of observable
+artefacts lives in `Skill(goal-condition-synthesis)`; this section does not
+restate it. Conditions that reference vague success states (`done`, `working`,
+`correct`, `good`, `ready`) are rejected at construction time.
 
-- `provenance.log` lines (especially `MILESTONE COMPLETE` and `[Goal Verdict]` footers)
-- `tasks.md` Status fields (read into transcript at every milestone boundary)
-- Git tags from §6 of `/execute-aa-ma-full` (`<task-name>-complete`)
-- Test exit codes from `make ci` / project quality gate
-- `<task>-verification.md` Verdict blocks
-- Commit footers (the `[AA-MA Plan]` signature is itself observable)
+### Two Condition Templates
 
-Conditions that reference vague success states ("feature is done", "looks correct") will fail to evaluate reliably. The synthesis skill `goal-condition-synthesis` enforces this rule at construction time.
+The canonical templates and turn-cap arithmetic live in
+`Skill(goal-condition-synthesis)`. This section gives one-line summaries so
+operators know which template each surface uses:
 
-### Three Condition Templates
+- **`full-execute`** (cross-turn driver, §2.5 of `/execute-aa-ma-full`):
+  bound from plan Acceptance Criteria; turn cap
+  `max(4, ceil(min(pending_milestones * 1.5, 30)))`.
+- **`verify-iterate`** (cross-turn driver, `/verify-plan --iterate`):
+  bound from `<task>-verification.md` Verdict block; iteration cap fixed at 3
+  (heuristic, see synthesis SKILL).
 
-**Full-execute (cross-turn driver, §2.5 of `/execute-aa-ma-full`):**
+### Verdict & Event Vocabulary
 
+The canonical enum lives in `Skill(goal-condition-synthesis)` § "Verdict &
+event vocabulary". This skill does not restate the token set — if you add or
+rename a verdict token, edit the synthesis SKILL and re-grep call sites.
+
+Audit a task's goal-integration history:
+
+```bash
+grep -E '^\[.*\] (GOAL_|VERIFY_ITERATE)' \
+  .claude/dev/active/<task>/<task>-provenance.log
 ```
-All remaining milestones in <task>/tasks.md have Status: COMPLETE;
-<task>-provenance.log contains a "MILESTONE COMPLETE" line for each;
-git tag <task-name>-complete exists;
-`make ci` exits 0;
-each plan.md Acceptance Criterion has a "[Goal Verdict]" footer in its
-corresponding milestone commit citing the evidence;
-or stop after <turn_cap> turns.
-```
-
-Turn cap: `ceil(min(pending_milestones * 1.5, 30))`.
-
-**Verify-iterate (cross-turn driver, `/verify-plan --iterate`):**
-
-```
-<task>-verification.md latest "## Verdict" block shows GREEN with
-0 Criticals AND every Critical from the previous Verdict block has a
-"Resolution:" line in this block;
-or stop after 3 iterations.
-```
-
-Iteration cap fixed at 3.
-
-**Milestone adversary (synchronous, not /goal-wrapped, §7.2.6 of `/execute-aa-ma-milestone`):**
-
-Built from the milestone's verbatim `Acceptance Criteria` clauses, conjoined. Evaluated once against the milestone diff + Result Logs. Returns 3-way verdict (MET / UNMET / UNCLEAR) surfaced to the user at §7.3. Not a cross-turn driver — same evaluator, different invocation pattern.
-
-### Verdict Logging Discipline
-
-Every goal interaction lands in `<task>-provenance.log` and (for milestones) in the commit footer:
-
-| Event | provenance.log line | commit footer |
-|---|---|---|
-| Goal synthesized + bound (§2.5) | `GOAL_BOUND — turn_cap=<N> condition_hash=<sha>` | — |
-| Goal synthesis failed/skipped | `GOAL_SYNTHESIS_SKIPPED — reason=<token>` | — |
-| User declined to bind | `GOAL_BIND_DECLINED — user_choice` | — |
-| Milestone adversary verdict (§7.2.6) | `HAIKU_ADVERSARY — milestone=<id> verdict=<...> confidence=<N> reason='<short>'` | `[Goal Verdict] <MET\|UNMET\|UNCLEAR> — confidence=<N> reason='<short>'` |
-| Milestone adversary skipped | `HAIKU_ADVERSARY — milestone=<id> verdict=SKIPPED reason=<token>` | `[Goal Verdict] NOT_RUN — reason='<token>'` |
-| Final goal verdict at plan completion | `GOAL_FINAL — verdict=<...> turns=<N> reason='<short>'` | — |
-| Iterate run terminates | `VERIFY_ITERATE — verdict=<...> iterations=<N> criticals=<N> outcome=<...>` | — |
-
-`grep -E '^\[.*\] (GOAL_|HAIKU_|VERIFY_ITERATE)' <task>-provenance.log` returns the full goal-integration audit for any task.
 
 ### Anti-Patterns
 
-- **Per-step or per-sub-task goals:** `/goal` is one-per-session. Goals live at the **task** level. Don't try to make them milestone-scoped.
-- **Goals that gate user approval:** §7.2.6 is surface-not-gate by design. A 9th gate on top of aa-ma-forge's existing 8 would be redundant noise.
-- **Auto-clearing goals on Stop hooks:** let the user own the `/goal` lifecycle. aa-ma-forge appends to provenance and surfaces verdicts, never silently mutates goal state.
-- **Vague conditions:** if the condition does not reference at least 2 observable artifacts, the synthesis skill rejects it with `SYNTHESIS_FAILED — reason=condition_too_vague`.
+- **Per-step or per-sub-task goals:** `/goal` is one-per-session. Goals live
+  at the **task** level. Don't try to make them milestone-scoped.
+- **Auto-clearing goals on Stop hooks:** let the user own the `/goal`
+  lifecycle. aa-ma-forge appends to provenance, never silently mutates goal
+  state.
+- **Vague conditions:** if the condition does not reference at least 2
+  observable artefacts (per the synthesis skill's enumeration), construction
+  fails with `SYNTHESIS_FAILED — reason=condition_too_vague`.
 
-See `Skill(goal-condition-synthesis)` for the synthesis algorithm, validation rules, and failure modes.
+See `Skill(goal-condition-synthesis)` for the synthesis algorithm, validation
+rules, failure modes, the canonical observable-artefact table, and the
+canonical verdict-token enum.
 
 ## X. Integration with Slash Commands
 

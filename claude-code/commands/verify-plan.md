@@ -15,7 +15,15 @@ Run structured adversarial verification against an AA-MA plan to catch factual e
 
 If `task-name` is omitted, list active tasks and prompt for selection.
 
-**`--iterate` flag (opt-in, requires Claude Code v2.1.139+):** wraps the verification protocol with a `/goal` cross-turn driver that re-runs verification, ingests findings, edits plan files, and re-verifies until the Verdict is GREEN with zero Criticals, or 3 iterations are exhausted. Without the flag, behavior is unchanged: single-pass verification, generate report, exit.
+**`--iterate` flag (opt-in, requires Claude Code's built-in `/goal`):** wraps
+the verification protocol with a `/goal` cross-turn driver that re-runs
+verification, ingests findings, edits plan files, and re-verifies until the
+Verdict is GREEN with zero Criticals, or 3 iterations are exhausted. Without
+the flag, behaviour is unchanged: single-pass verification, generate report,
+exit. If `/goal` is unavailable (slash command errors, or managed-settings
+hook restrictions apply — see `Skill(goal-condition-synthesis)`), the command
+falls back to single-pass and logs `VERIFY_ITERATE_SKIPPED — reason=<token>`
+to provenance.
 
 See Step 4.5 (Iterate Mode) for the full protocol.
 
@@ -123,7 +131,24 @@ When `--iterate` is active:
 
 5. **If goal binding fails or `/goal` is unavailable:** fall back to single-pass behavior, log `VERIFY_ITERATE_SKIPPED — reason=<token>` to provenance.log, do NOT block.
 
-**Why iterate at all?** Single-pass `/verify-plan` produces a report and leaves the operator to act on it. For plans that need revisions to clear Criticals, iterate-mode converts a manual loop into an autonomous one bounded by a cost ceiling. The append-only Verdict log preserves what was found at each pass — a richer audit trail than a single overwriting report.
+**Why the cap of 3?** Empirically: more than 3 verification iterations on the
+same plan typically indicates the plan needs a human re-think, not another
+mechanical pass. The cap is heuristic, not load-bearing — adjust if your
+project's experience disagrees, but document the rationale in the synthesis
+SKILL alongside the formula.
+
+**Concurrency note:** If a sibling session is editing the same plan files
+(`<task>-plan.md`, `<task>-reference.md`), the iterate loop will race on
+writes. Run `--iterate` in a worktree (`git worktree add .worktrees/iterate-N
+<branch>`) when sibling sessions may be active. Per
+`plan-authoring-standards.md` L-066, one `--iterate` session at a time per
+plan.
+
+**Why iterate at all?** Single-pass `/verify-plan` produces a report and
+leaves the operator to act on it. For plans that need revisions to clear
+Criticals, iterate-mode converts a manual loop into an autonomous one bounded
+by a cost ceiling. The append-only Verdict log preserves what was found at
+each pass — a richer audit trail than a single overwriting report.
 
 ### Step 5: Handle Results
 

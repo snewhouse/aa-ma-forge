@@ -89,7 +89,7 @@ At a glance:
 - **6-angle adversarial verification** that attacks the plan before a single line of code is written
 - **HITL/AFK task dispatch** so the agent knows which tasks need you and which it can run alone
 - **Compaction-safe memory** that survives Claude Code's context window resets
-- **Goal-driven autonomous execution** (Claude Code v2.1.139+) that binds a Haiku-evaluated `/goal` condition synthesized from the plan's acceptance criteria, with a turn-cap cost ceiling — opt-in at `/execute-aa-ma-full` §2.5, `/verify-plan --iterate`, and as a surfaced (never gating) second opinion at milestone approval
+- **Goal-driven autonomous execution** that binds a Haiku-evaluated Claude Code `/goal` condition synthesised from the plan's acceptance criteria, with a turn-cap cost ceiling — opt-in at `/execute-aa-ma-full` §2.5 and `/verify-plan --iterate` (see `Skill(goal-condition-synthesis)` for the canonical algorithm)
 
 ### Planning that doesn't hand-wave
 

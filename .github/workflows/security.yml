@@ -54,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: bats-core/bats-action@v4.0.0
+      - uses: bats-core/bats-action@4.0.0
 
       - name: Run bats on tests/hooks/
         run: bats --recursive tests/hooks/

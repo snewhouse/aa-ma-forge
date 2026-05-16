@@ -101,7 +101,9 @@ def turn_cap(pending_milestones: int) -> int:
     of 30 is the cost ceiling for AFK runs.
     """
     if pending_milestones < 0:
-        raise ValueError(f"pending_milestones must be non-negative, got {pending_milestones}")
+        raise ValueError(
+            f"pending_milestones must be non-negative, got {pending_milestones}"
+        )
     raw = min(pending_milestones * 1.5, TURN_CAP_CEILING)
     return max(TURN_CAP_FLOOR, math.ceil(raw))
 
@@ -181,7 +183,10 @@ def validate_condition(condition: str, turn_cap_value: int) -> ValidationResult:
     whose ``reason`` is one of the canonical tokens.
     """
     if not isinstance(turn_cap_value, int) or isinstance(turn_cap_value, bool):
-        return ValidationError("turn_cap_out_of_range", f"expected int, got {type(turn_cap_value).__name__}")
+        return ValidationError(
+            "turn_cap_out_of_range",
+            f"expected int, got {type(turn_cap_value).__name__}",
+        )
     if turn_cap_value < 1 or turn_cap_value > TURN_CAP_CEILING:
         return ValidationError(
             "turn_cap_out_of_range",

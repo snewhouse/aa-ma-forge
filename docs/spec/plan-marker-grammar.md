@@ -64,6 +64,30 @@ record of stub creation, not counted in "9 required"):
 Any of markers 2, 3, 7, 8 may appear as `SKIPPED` instead of `DONE`,
 provided they include `reason=<token>`.
 
+### Optional marker: `PHASE_4.7` (goal-condition synthesis)
+
+Emitted **only** when the plan run also synthesizes a `/goal` condition for
+downstream execution (e.g., the user expects to run `/execute-aa-ma-full` or
+`/verify-plan --iterate` against this plan). The marker is **never required** —
+goal synthesis is opt-in and decoupled from plan generation. When present, it
+records that the condition was generated and bounded.
+
+```
+PHASE_4.7 DONE — goal_condition=synthesized turn_cap=<N> harness=haiku mode={full-execute|verify-iterate}
+```
+
+Or, if synthesis was attempted and failed:
+
+```
+PHASE_4.7 SKIPPED — reason={missing_plan|nothing_to_do|plan_incomplete|condition_too_long|user_declined}
+```
+
+Fingerprint correlation: `name=Skill ∧ input.skill ~ /goal-condition-synthesis/`.
+
+The marker is forward-compatible — older parsers will warn-and-ignore it per
+rule 7. Implementations that do support it can surface goal-synthesis evidence
+in the same advisory hook that checks the 9 required markers.
+
 Example complete log:
 
 ```

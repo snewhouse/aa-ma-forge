@@ -83,7 +83,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
 | `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered Quick/Standard/Deep); optionally authors/reviews `AGENTS.md`. Thin wrapper around `Skill(understand-codebase)`; see ADR-0006 |
 
-### Skills (18)
+### Skills (19)
 
 | Skill | Purpose |
 |-------|---------|
@@ -105,6 +105,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `write-a-skill` | Canonical skill-authoring procedure: gather requirements → draft SKILL.md → review with user; includes 1024-char description format, "Use when" trigger pattern, 100-line SKILL.md guidance, when-to-split-files heuristics (forked from mattpocock/skills — see ADR-0004) |
 | `verify-impl` | Post-impl adversarial review symmetric to `/verify-plan`: dispatches up to 5 parallel audit agents per the milestone's plan-declared `Audit-Profile`; CRITICAL findings surface via an accept/dispute/defer panel before §7.3 authorization (invoked by Phase 6.8 of `/execute-aa-ma-milestone` — see ADR-0005) |
 | `understand-codebase` | Tiered (Quick/Standard/Deep) codebase-onboarding workflow: reads/maps the repo, learns conventions/versioning/tests/stack/rules, produces a pros/cons verdict + "contribute safely" + "add a feature" playbooks → `ONBOARDING.md` + `.claude/onboarding/` deep-dives; Deep tier runs a `TeamCreate` agent-team; optionally authors/reviews `AGENTS.md` (see ADR-0006) |
+| `goal-condition-synthesis` | Synthesize a Claude Code `/goal` condition (v2.1.139+) from AA-MA plan artifacts: produces a falsifiable condition referencing observable artifacts (`provenance.log`, `tasks.md` Status, git tags, test exit codes) with a turn-cap cost ceiling derived from plan effort. Consumed by `/execute-aa-ma-full` §2.5 and `/verify-plan --iterate`; rejects vague conditions at construction time |
 
 ### Agents (11)
 

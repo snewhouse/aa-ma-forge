@@ -89,6 +89,7 @@ At a glance:
 - **6-angle adversarial verification** that attacks the plan before a single line of code is written
 - **HITL/AFK task dispatch** so the agent knows which tasks need you and which it can run alone
 - **Compaction-safe memory** that survives Claude Code's context window resets
+- **Goal-driven autonomous execution** (Claude Code v2.1.139+) that binds a Haiku-evaluated `/goal` condition synthesized from the plan's acceptance criteria, with a turn-cap cost ceiling — opt-in at `/execute-aa-ma-full` §2.5, `/verify-plan --iterate`, and as a surfaced (never gating) second opinion at milestone approval
 
 ### Planning that doesn't hand-wave
 
@@ -241,6 +242,7 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `understand-codebase` | Tiered codebase onboarding — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives; the engine behind `/understand-codebase` |
 | `verify-impl` | Post-impl adversarial review symmetric to `plan-verification`; dispatches up to 5 parallel audit agents at Phase 6.8 |
 | `write-a-skill` | Authoring template + checklist for new skills (frontmatter contract, references/ layout, `install.sh` auto-discovery) |
+| `goal-condition-synthesis` | Synthesize a Claude Code `/goal` condition from plan artifacts with a turn-cap cost ceiling; consumed by `/execute-aa-ma-full` §2.5 and `/verify-plan --iterate` |
 
 Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use, so some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
 

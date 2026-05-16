@@ -5,6 +5,55 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-009 (2026-05-16) — "Complete" must be verified against compliance, not just against local test results
+
+**Pattern:** During PR #1 review-fix execution (`/goal` integration cleanup),
+I declared work "complete" twice across two `/double-check` rounds, and was
+wrong both times. Each round caught a substantive miss the prior declaration
+had glossed over.
+
+**Symptom:**
+
+| Round | What I claimed | What was actually true |
+|---|---|---|
+| First declaration of "complete" | "47 tests pass; B1 resolved" | Tests passed *locally*. CI ran `pytest tests/codemem/` only — my new test file at `tests/test_goal_synthesis.py` was never exercised by any CI job. B1 was resolved on disk, not in the regression net. |
+| Second declaration of "complete" | "10/12 Importants resolved (I10 deferred)" | User's verbatim instruction had said "Apply I1/I2/I3, then I9–I11, then nits." Calling I10 deferred contradicted the explicit instruction list. Additionally, SKILL.md function signatures had silently drifted from the Python (`pending` vs `pending_milestones`; wrong return-type claim for `validate_condition`). |
+
+**Root cause:** Two anti-patterns combined:
+
+1. **Locality bias on test coverage.** I treated "tests pass" as equivalent to
+   "the change is regression-safe", without checking whether the CI pipeline
+   actually invokes the test file. The new test was at `tests/test_*.py` but
+   CI's pytest invocation narrows to `tests/codemem/`.
+2. **Silent deferral against an explicit "apply" instruction.** When I
+   reviewed the user's instruction, I read "Apply I9–I11" and decided I10 was
+   too design-heavy to address now — without surfacing that disagreement as a
+   pending question to the user.
+
+**Rule (apply at every "complete" declaration, especially after `/double-check`):**
+
+Before declaring work complete, run this 4-point compliance audit:
+
+1. **CI-scope check** — for every new test/check artefact, verify the CI
+   pipeline actually invokes it. `grep -nE "pytest|test_|bats|shellcheck"
+   .github/workflows/*.yml`. Test-file existence ≠ regression net coverage.
+2. **Verbatim-instruction audit** — re-read the user's original goal text
+   word-by-word. For each item the user said to "apply", show the diff that
+   applied it. If you're calling something "deferred", surface the conflict
+   to the user as a question, not as a finished-state summary.
+3. **Spec-vs-impl signature pass** — for any spec doc that documents
+   function signatures or return types, `grep` the signatures and diff them
+   against the actual source. Drift is silent until a reader trips on it.
+4. **Each new resolution claim names the file:line it was applied to.** No
+   resolution claim should be answerable only in prose. Pin to artefacts.
+
+`/double-check` is a forcing function; treat each invocation as evidence that
+the prior "complete" declaration was wrong, and re-audit the full compliance
+surface against the original user instruction — not just the most recent
+batch of fixes.
+
+---
+
 ## L-008 (2026-05-13) — `cz bump --files-only` exits 16 when CHANGELOG.md has been manually promoted; chain "manual promote + cz files-only" is broken
 
 **Pattern:** During v0.9.0 release prep (fix-drift-release-v0-9-0 M3.4),

@@ -21,10 +21,24 @@ Other surfaces (`aa-ma-execution` §IX.5, `aa-ma-team-guide` §2.7,
 **link back** to this SKILL rather than restating these values, to prevent
 drift.
 
-A reference Python implementation of the algorithm lives at
-`src/aa_ma/goal_synthesis.py` (unit-tested in `tests/test_goal_synthesis.py`).
-Treat the Python module as the executable spec and this SKILL.md as the
-operator-facing protocol.
+**Reference implementation for maintainer regression net:** the algorithm is
+mirrored as pure Python in `src/aa_ma/goal_synthesis.py` (unit-tested in
+`tests/test_goal_synthesis.py`). The module exists so the spec stays
+falsifiable for aa-ma-forge maintainers — **agents executing this skill
+follow the markdown protocol below; they do not need the Python module
+installed in the consuming project** (`scripts/install.sh` does not symlink
+`src/` into `~/.claude/`). When the SKILL and the Python disagree, file an
+issue — they are co-canonical.
+
+**Relationship to `Skill(plan-verification)` Angle 4 (falsifiability):**
+plan-verification audits **Acceptance Criteria phrases** in `plan.md` against
+its own banned-phrase list (e.g. `"handles edge cases gracefully"`,
+`"works as expected"` — see L-059 in `plan-authoring-standards.md`). This
+skill audits **`/goal` condition words** against `BANNED_VAGUE_TERMS`
+(`done`, `working`, `correct`, `good`, `ready`). The two lists are
+**complementary, not redundant** — different artefact types, different
+vagueness grammars. Do not merge them; do not delete either. If you need to
+extend one, document why the other does not need the same extension.
 
 ## When to Use This Skill
 
@@ -99,7 +113,7 @@ Ceiling of 30 is the cost ceiling for AFK runs.
 If user provided `<override-turn-cap>`, use that value (still validated as
 ≥ 1 and ≤ 30 by `validate_condition`).
 
-Reference implementation: `aa_ma.goal_synthesis.turn_cap(pending: int) -> int`.
+Reference implementation: `aa_ma.goal_synthesis.turn_cap(pending_milestones: int) -> int`.
 
 ### Step 3: Build the condition string
 
@@ -131,8 +145,10 @@ another mechanical pass).
 ### Step 4: Validate the condition
 
 Self-check before returning. The Python reference implementation is
-`aa_ma.goal_synthesis.validate_condition(condition: str, turn_cap: int)
--> (bool, reason_token | None)`. Checks:
+`aa_ma.goal_synthesis.validate_condition(condition: str, turn_cap_value: int)
+-> ValidationResult` where `ValidationResult = ValidationOk | ValidationError`
+(both are frozen dataclasses; `ValidationError.reason` is one of the canonical
+tokens listed under Failure Modes below). Checks:
 
 1. Condition references at least 2 distinct observable artefacts from the
    canonical table above. Detected via regex against artefact-signature

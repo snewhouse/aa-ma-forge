@@ -101,3 +101,9 @@ jobs:
 
       - name: codemem unit tests (fast tier)
         run: uv run pytest tests/codemem/ -q -x --tb=short
+
+      - name: aa_ma core unit tests (top-level)
+        # Covers tests/test_*.py at the top level under tests/.
+        # Currently exercises tests/test_goal_synthesis.py
+        # (Skill(goal-condition-synthesis) reference-impl regression net).
+        run: uv run pytest tests/test_goal_synthesis.py -q --tb=short

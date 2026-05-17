@@ -13,3 +13,7 @@
 [2026-05-17T12:41:33+01:00] PLAN_REVISED — revisions_applied=10 wave1_findings_resolved=5_critical+4_warning
 [2026-05-17T12:41:33+01:00] PHASE_5_INIT — task_dir=.claude/dev/active/aa-ma-tui-tracker artifacts=5+verification
 [2026-05-17T12:46:34+01:00] PHASE_5_VALIDATED — validator=aa-ma-validator verdict=PASS checks=8/8 fix_applied=m2_critical_path_documented
+[2026-05-17T20:18:00+01:00] MILESTONE_0_ACTIVE — milestone=Scaffolding gate=SOFT complexity=15 audit_profile=code-only
+[2026-05-17T20:18:00+01:00] DEPS_ADDED — direct=pydantic,textual,rich,watchfiles install=transitive_downgrade_safe
+[2026-05-17T20:18:00+01:00] SMOKE_PASSED — aa-ma-tui_version=0.9.0 exit=0 import=ok pytest=659_passed_1_skipped_6_deselected ruff=clean import_linter=2_contracts_kept
+[2026-05-17T20:18:00+01:00] MILESTONE_0_COMPLETE — sub_steps=6/6 acceptance=5/5 tests_pass=659 commit=[pending_at_commit_time]

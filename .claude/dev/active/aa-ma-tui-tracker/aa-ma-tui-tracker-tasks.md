@@ -7,12 +7,14 @@ Created: 2026-05-17
 ---
 
 ## Milestone 0: Scaffolding
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Gate: SOFT
 - Complexity: 15
 - Audit-Profile: code-only
+- TDD-Waiver: tooling-config
 - Dependencies: None
+- Result Log: All 6 sub-steps COMPLETE. 5/5 acceptance criteria verified empirically (--version exit 0, import succeeds, 4 deps resolved within constraints, [project] dependencies array present, lint-imports KEPT 2 contracts). No regressions (659 tests pass). TDD-Waiver applied at milestone level: scaffolding milestone, no behavior to test beyond smoke (no `tests/` commits expected for M0; tdd-sequence-auditor should honor this).
 - Acceptance Criteria:
   - `uv run aa-ma-tui --version` exits 0 with non-empty version string
   - `python -c "import aa_ma.tui"` succeeds
@@ -21,37 +23,37 @@ Created: 2026-05-17
   - `lint-imports` (import-linter) exits 0 (root_package is `codemem`, so `aa_ma.tui` is out of scope — trivially passes)
 
 ### Step 0.1: Create `[project] dependencies` array in pyproject.toml
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - TDD-Waiver: tooling-config
-- Result Log:
+- Result Log: Added `[project] dependencies = [...]` array at pyproject.toml:18-25 with 4 pinned runtime deps: `pydantic>=2,<3`, `textual>=0.80,<1.0`, `rich>=13,<14`, `watchfiles>=0.21,<1.0`. Each declared explicitly per L-055 (no implicit transitives for direct imports). Inline comments cite source lesson and target milestone. Verified via `sed -n '11,32p'`.
 
 ### Step 0.2: Add `[project.scripts] aa-ma-tui = "aa_ma.tui.__main__:main"` to pyproject.toml
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - TDD-Waiver: tooling-config
-- Result Log:
+- Result Log: Added `[project.scripts]` block at pyproject.toml:27-29 with `aa-ma-tui = "aa_ma.tui.__main__:main"`. Entry point will resolve once T0.4/T0.5 create the package files. Verified via `sed -n '11,32p'`.
 
 ### Step 0.3: Document deferred version-bump (M4 cz bump owns it)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - TDD-Waiver: tooling-config
-- Result Log:
+- Result Log: Added 4-line `# NOTE:` comment above pyproject.toml `version` field. Explicit warning "Do NOT hand-edit", points to commitizen as owner, names M4 ship vehicle (`cz bump --increment MINOR`), and cross-references context-log Decision 6. Preserves Wave-1 CRITICAL fix (no dual cz+semantic-release conflict).
 
 ### Step 0.4: Create `src/aa_ma/tui/__init__.py` (re-export `__version__`)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: Created `src/aa_ma/tui/__init__.py` (17 lines). Re-exports `__version__` from parent `aa_ma` (sourced via `importlib.metadata.version("aa-ma")`, so values cannot drift). Docstring lists M0 contract + which modules land in M1/M2/M3 per reference.md. `__all__` declared.
 
 ### Step 0.5: Create skeletal `src/aa_ma/tui/__main__.py` (argparse only; `main()` prints version, exits 0)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: Created `src/aa_ma/tui/__main__.py` (52 lines). Provides `main(argv=None) -> int` with argparse `--version` action (prints `aa-ma-tui {version}`, exits 0). `_build_parser()` factored out as M2/M3 extension point (SOLID Open/Closed). `if __name__ == "__main__"` block uses `sys.exit(main())` so `python -m aa_ma.tui` also works. No pydantic/textual/rich/watchfiles imports — those land in M1+.
 
 ### Step 0.6: `uv sync` + `uv run aa-ma-tui --version` smoke + commit
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: `uv sync` ran clean — resolver picked pydantic 2.12.5, textual 0.89.1, rich 13.9.4, watchfiles 0.24.0 (all within plan constraints). Re-resolution downgraded transitives `rich 14.3.3→13.9.4`, `watchfiles 1.1.1→0.24.0`, `python-semantic-release 10.5.3→9.21.0`, `python-gitlab 6.5.0→4.13.0` — verified safe: no `from rich`/`from watchfiles`/`from gitlab` in src/packages/scripts; semantic-release pin `>=9.0` still satisfied. Smoke: `uv run aa-ma-tui --version` → `aa-ma-tui 0.9.0` exit 0 ✓; `python -c "import aa_ma.tui"` ✓; full pytest 659 passed / 1 skipped / 6 deselected ✓; `ruff check src/aa_ma/tui/` clean ✓; `lint-imports` 2 contracts kept, 0 broken ✓. Commit pending in this turn.
 
 ---
 

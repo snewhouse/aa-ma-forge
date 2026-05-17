@@ -1,5 +1,9 @@
 [project]
 name = "aa-ma"
+# NOTE: version is owned by `uv run cz bump` (commitizen) per [tool.commitizen]
+# below. Do NOT hand-edit. aa-ma-tui-tracker M4 ships v0.10.0 via `cz bump
+# --increment MINOR`; M0 deliberately defers the bump to avoid commitizen vs.
+# semantic_release conflict. See aa-ma-tui-tracker-context-log.md (Decision 6).
 version = "0.9.0"
 description = "Advanced Agentic Memory Architecture - structured external memory for AI coding agents"
 readme = "README.md"
@@ -15,6 +19,18 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
+# Runtime dependencies — created in aa-ma-tui-tracker M0 T0.1 (2026-05-17).
+# Declared explicitly per L-055 (no implicit transitives for direct imports).
+dependencies = [
+    "pydantic>=2,<3",         # Typed model (Task/Milestone/Step). Promoted from transitive.
+    "textual>=0.80,<1.0",     # Interactive TUI framework (M3).
+    "rich>=13,<14",           # Snapshot mode + Textual renderer (M2). Declared explicitly per L-055.
+    "watchfiles>=0.21,<1.0",  # Async file-watch for live refresh (M3). Already transitive via fastmcp.
+]
+
+[project.scripts]
+# CLI entry point — created in aa-ma-tui-tracker M0 T0.2 (2026-05-17).
+aa-ma-tui = "aa_ma.tui.__main__:main"
 
 [build-system]
 requires = ["hatchling"]

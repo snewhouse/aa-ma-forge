@@ -40,6 +40,7 @@ build-backend = "hatchling.build"
 dev-dependencies = [
     "pytest>=8.0",
     "pytest-benchmark>=4.0",   # M1 perf budget enforcement (Step 1.13)
+    "pytest-cov>=5.0",         # aa-ma-tui-tracker M1 T1.10: coverage gate ≥90% on parser.py + model.py
     "hypothesis>=6.0",         # M2 property-based round-trip tests (Step 2.4)
     "import-linter>=2.0",      # M1 layer-boundary enforcement (Step 1.11)
     "python-semantic-release>=9.0",

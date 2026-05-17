@@ -58,7 +58,7 @@ Created: 2026-05-17
 ---
 
 ## Milestone 1: Parser foundation
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Gate: HARD
 - Complexity: 60
@@ -73,56 +73,57 @@ Created: 2026-05-17
   - Parser tolerates absent `Mode:` and `Gate:` (uses defaults `AFK` / `SOFT`)
   - Coverage ≥ 90% on `parser.py` + `model.py`
   - hypothesis round-trip property test passes
+- Result Log: All 7 acceptance criteria verified empirically. 30 tests added (29 unit + 1 hypothesis property, 50 examples). Coverage parser.py 91% / model.py 100%. Full suite 688+3 slow / 1 skipped — no regressions. HARD gate approved by user via AskUserQuestion. CRITICAL_PATH_REVIEW evidence in provenance.log. See context-log.md `[2026-05-17] Milestone Completion: M1 Parser foundation` for full summary.
 
 ### Step 1.1: TDD model.py — enum sets
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: wrote `tests/tui/test_model.py` (9 tests) covering all 5 enum sets + Pydantic model constructors + ParseError raisability. RED confirmed (ModuleNotFoundError × 9). Created `src/aa_ma/tui/model.py` (228 lines) with `MilestoneStatus` (5 values), `StepStatus` (4 values; ACTIVE coerced to IN_PROGRESS at parse time per spec), `Mode`, `Gate`, `AggregateStatus` (5 values, per-state docstring per L-065). Pydantic v2 models: `Step` frozen, `Milestone` frozen w/ defaults Gate.SOFT + Mode.AFK, `Task` mutable for derived field. GREEN: 9/9 PASS.
 
 ### Step 1.2: TDD parse_task_dir — happy path with playwright-skill fixture
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: wrote `test_parse_complete_task` asserting playwright-skill parses to ≥1 milestone, M1 = "Core Skill File (SKILL.md)" / status COMPLETE / complexity 45, S1.1 status COMPLETE / result_log contains "playwright-testing". RED confirmed (ModuleNotFoundError). Created `src/aa_ma/tui/parser.py` (347 lines) with regex-based grammar mirroring `plan_markers/parser.py` style, factored `_field_pattern()` helper for L-052 tolerance. GREEN: 1/1 PASS.
 
 ### Step 1.3: TDD parser tolerance — `**Status:**` variant
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: Added 3 tests: bold-pair `**Status:**`, absent-Status default→PENDING, blank-Result-Log→None. All PASSED on first run — `_field_pattern()` helper from T1.2 already covered the L-052 tolerance surface by design. Tests now serve as regression guards. Used fixtures: edge-bold-status, edge-no-status, edge-blank-result. GREEN: 3/3 PASS (4/4 total).
 
 ### Step 1.4: TDD discover_tasks — merges multiple roots
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: 3 tests — merges 2 roots, empty root returns [], nonexistent root silently skipped. RED confirmed (ImportError: discover_tasks). Added `discover_tasks(roots)` to parser.py with per-root sub-dir iteration + try/except for parse-error tolerance (T1.5 pre-built). Dedup via `seen: dict[Path, Task]` keyed on `child.resolve()`. GREEN: 3/3 PASS (7/7 total).
 
 ### Step 1.5: TDD discover_tasks — survives per-task parse errors (attaches `parse_error`)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: Added 2 tests: malformed-tasks-md fixture + missing-tasks-file dir. Both PASSED first run — T1.4 GREEN included the try/except path that constructs `Task(aggregate_status=ERROR, parse_error=str(exc))`. Used edge-malformed fixture (intentionally no `## Milestone N:` headers → parser raises ParseError → discover_tasks wraps). GREEN: 2/2 PASS (9/9 total).
 
 ### Step 1.6: TDD aggregate_status derivation (5 tests, one per state)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: 5 state-specific tests (PENDING/IN_PROGRESS/BLOCKED/COMPLETE/ERROR) + 1 end-to-end on playwright-skill fixture. RED confirmed (5/6 fail; only PENDING trivially passed since it's the default). Added `@model_validator(mode='after')` on Task to derive aggregate_status with precedence: parse_error→ERROR, any BLOCKED→BLOCKED, all COMPLETE→COMPLETE, any in-flight→IN_PROGRESS, else PENDING. Uses `object.__setattr__` to mutate (non-frozen Task model). GREEN: 6/6 PASS (15/15 total).
 
 ### Step 1.7: hypothesis round-trip property test
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: Created `tests/tui/test_parser_properties.py` (164 lines). Hypothesis strategy generates between 1-4 milestones, each with 0-3 steps, random plain/bold-pair `Status:` form (exercises L-052 surface). Marked `@pytest.mark.slow` per pyproject convention. `@settings(deadline=None, max_examples=50, suppress_health_check=[function_scoped_fixture])`. Round-trip assertions: parsed milestone count, status enum, gate, mode, complexity, step count, step status. 50 examples PASS in 0.26s. Run via `uv run pytest -m slow`.
 
 ### Step 1.8: TDD provenance_tail returns last N lines
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: 3 tests — playwright-skill real fixture has 11 non-blank prov-log lines, last 5 returned with "PLAN COMPLETE" terminal entry; missing log → []; short log (<5 lines) returns all. RED confirmed (`provenance_tail=[]` default fails for real fixture). Added `_provenance_tail(path, name, n=5)` helper + wired into `parse_task_dir` return. GREEN: 3/3 PASS.
 
 ### Step 1.9: TDD last_modified = max(file mtimes)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: 2 tests — explicit `os.utime` on 5 files asserts max wins; solo-tasks.md only asserts solo mtime returned. RED confirmed (`last_modified=None`). Added `_max_mtime(path, name)` helper iterating `_AA_MA_FILE_SUFFIXES` constant (DRY for the 5 canonical file names) + wired into `parse_task_dir` return. Returns timezone-aware UTC datetime. GREEN: 2/2 PASS.
 
 ### Step 1.10: Coverage gate — assert ≥ 90% on parser.py + model.py
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: Added `pytest-cov>=5.0` to dev-deps (was missing — plan gap, not declared at T0). Ran `uv run pytest tests/tui/ --cov=aa_ma.tui --cov-report=term-missing`: **model.py 100% (77/77 stmts), parser.py 91% (125/138 stmts)**. Both exceed 90% gate. Missing lines in parser.py are defensive ValueError fallbacks inside the `_extract_*` helpers (lines 88-89, 102, 105-106, 117-118, 129-130, 141-142, 236, 328) — unreachable from current fixtures but kept for robustness. `__main__.py` shows 0% (M0 scaffolding; M2/M3 will exercise). Full suite: 688/689 pass / 1 skipped (no regressions). Ruff clean, lint-imports KEPT 2 contracts.
 
 ---
 

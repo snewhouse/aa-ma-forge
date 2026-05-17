@@ -173,4 +173,36 @@ All values are canonical (per ADR-0005-style enum list in `plan_parsers.py`).
 
 Phase 4.5 ran on 2026-05-17. See `aa-ma-tui-tracker-verification.md` for full audit trail. All 5 CRITICALs addressed in plan revision; 4 of 7 WARNINGs addressed; 3 explicitly accepted (CI workflow, runtime-vs-extras dep, banned-term-prose).
 
+## M1 immutable facts (added 2026-05-17 at M1 completion)
+
+### Public API surface
+
+- `aa_ma.tui.model.MilestoneStatus`: 5 values (PENDING, ACTIVE, IN_PROGRESS, COMPLETE, BLOCKED)
+- `aa_ma.tui.model.StepStatus`: 4 values (PENDING, IN_PROGRESS, COMPLETE, BLOCKED) — no ACTIVE; coerced from real-world `Status: ACTIVE` on steps to IN_PROGRESS at parse time
+- `aa_ma.tui.model.Mode`: 2 values (HITL, AFK)
+- `aa_ma.tui.model.Gate`: 2 values (SOFT, HARD)
+- `aa_ma.tui.model.AggregateStatus`: 5 values (PENDING, IN_PROGRESS, BLOCKED, COMPLETE, ERROR) — last two terminal
+- `aa_ma.tui.model.ParseError`: Exception subclass
+- `aa_ma.tui.model.Step(number: str, title: str, status: StepStatus, result_log: str | None = None)` — frozen
+- `aa_ma.tui.model.Milestone(number: int, title: str, status: MilestoneStatus, gate: Gate = SOFT, mode: Mode = AFK, complexity: int | None = None, dependencies: str | None = None, acceptance_criteria: str | None = None, steps: list[Step] = [])` — frozen
+- `aa_ma.tui.model.Task(name: str, root: Path, milestones: list[Milestone] = [], aggregate_status: AggregateStatus = PENDING, last_modified: datetime | None = None, provenance_tail: list[str] = [], parse_error: str | None = None)` — mutable (model_validator mutates aggregate_status); aggregate_status DERIVED via @model_validator(mode='after')
+- `aa_ma.tui.parser.parse_task_dir(path: Path) -> Task` — raises ParseError on malformed input
+- `aa_ma.tui.parser.discover_tasks(roots: list[Path]) -> list[Task]` — never raises; wraps per-task failures
+
+### Module-private constants (M2/M3 may reuse)
+
+- `aa_ma.tui.parser._AA_MA_FILE_SUFFIXES` — canonical 5-file suffix tuple
+- `aa_ma.tui.parser._PROVENANCE_TAIL_DEFAULT = 5`
+- `aa_ma.tui.parser._field_pattern(field_name) -> re.Pattern` — L-052 tolerance helper
+
+### Test fixtures (committed at M1)
+
+`tests/tui/fixtures/tasks/`:
+- 3 real-world copies from `~/.claude/dev/completed/`: `playwright-skill`, `agent-token-optimization`, `security-quality-remediation`
+- 4 synthetic edges: `edge-no-status`, `edge-bold-status`, `edge-blank-result`, `edge-malformed`
+
+### Dev dep added in M1 (was missing from plan)
+
+- `pytest-cov>=5.0` (required for M1 AC #6 coverage gate)
+
 _Last Updated: 2026-05-17_

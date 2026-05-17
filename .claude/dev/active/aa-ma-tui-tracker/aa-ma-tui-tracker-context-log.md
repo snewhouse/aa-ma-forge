@@ -100,4 +100,35 @@ Start execution at **M0 T0.1**: CREATE the `[project] dependencies = [...]` arra
 
 ---
 
+## [2026-05-17] GATE APPROVAL: Milestone 1 — Parser foundation
+
+- Gate: HARD
+- Approved by: Stephen J Newhouse (user, via AskUserQuestion answer "Approve and finalize")
+- Criteria verified: 7/7
+  1. ✓ Task/Milestone/Step Pydantic models with documented enums (MilestoneStatus, StepStatus, Mode, Gate, AggregateStatus) — every value justified per L-065 (see model.py state-machine docstring + per-enum field docstrings)
+  2. ✓ `parse_task_dir(path) -> Task` raises ParseError on malformed input (verified via edge-malformed fixture in test_discover_tasks_survives_malformed)
+  3. ✓ `discover_tasks(roots) -> list[Task]` never raises; populates parse_error on per-task failure (test_discover_tasks_survives_malformed + test_discover_tasks_survives_missing_tasks_file)
+  4. ✓ Parser tolerates `- Status:` and `**Status:**` variants (test_parse_tolerates_bold_status + hypothesis property test exercises both forms across 50 examples)
+  5. ✓ Parser tolerates absent Mode/Gate (defaults AFK/SOFT via Milestone Pydantic field defaults; covered in test_parse_defaults_when_status_absent)
+  6. ✓ Coverage ≥ 90%: parser.py 91%, model.py 100% (target: ≥90% on both)
+  7. ✓ Hypothesis round-trip property test passes (50 examples, deadline=None, in 0.26s)
+- Decision: APPROVED
+
+## [2026-05-17] Milestone Completion: M1 Parser foundation
+
+- Status: COMPLETE
+- Gate: HARD — signed approval artifact above
+- Critical-Path: data-xform — CRITICAL_PATH_REVIEW entry in provenance.log
+- Key outcome: Pure parser from AA-MA task directory to typed Task model. No I/O coupling beyond reading files. 8 public functions (3 enums + 5 entry points) backed by 30 tests (29 unit + 1 hypothesis property).
+- Artifacts: `src/aa_ma/tui/model.py` (228 lines, Pydantic v2 + 5 enums + model_validator for aggregate_status), `src/aa_ma/tui/parser.py` (347 lines, regex grammar + extractors + parse_task_dir + discover_tasks + helpers), `tests/tui/test_model.py` (9 tests), `tests/tui/test_parser.py` (20 tests), `tests/tui/test_parser_properties.py` (1 hypothesis test), `tests/tui/conftest.py` (fixtures_dir fixture), `tests/tui/__init__.py`, `tests/tui/fixtures/tasks/{playwright-skill, agent-token-optimization, security-quality-remediation, edge-no-status, edge-bold-status, edge-blank-result, edge-malformed}/` (3 real copies of user-level completed/ tasks + 4 synthetic edges). pyproject.toml: added pytest-cov>=5.0 to dev-deps.
+- Tests: 688 default + 3 slow pass / 1 skipped (no regressions vs M0 baseline of 659). Hypothesis 50/50 examples in 0.26s.
+- Coverage: parser.py **91%** (138 stmts, 13 missing — defensive ValueError fallbacks in _extract_* helpers), model.py **100%** (77/77).
+- Lint: ruff clean, ruff-format clean (3 files auto-formatted post-impl), import-linter 2 contracts KEPT.
+- Notable design choice: ACTIVE on a step is coerced to IN_PROGRESS at parse time. Step status enum has 4 values (PENDING/IN_PROGRESS/COMPLETE/BLOCKED) per spec; milestone enum has 5 (adds ACTIVE). Coercion preserves L-052 tolerance for real-world data while keeping the typed contract narrow.
+- Notable design choice: aggregate_status is **derived** via model_validator, not set externally. Single source of truth (per L-005 mechanism-duplication avoidance). Empty milestones list + no parse_error honours caller's explicit value, allowing discover_tasks to set ERROR for missing-tasks-file dirs.
+- Pre-existing gap surfaced: plan/reference.md did not list pytest-cov in dev-deps even though M1 AC #6 requires coverage. Added during T1.10 with rationale comment.
+- Next: M2 Snapshot mode (Rich kanban + JSON). Inherits Critical-Path: data-xform from M1 (rendering pipeline extension).
+
+---
+
 _This log will be updated via context compaction as the task progresses._

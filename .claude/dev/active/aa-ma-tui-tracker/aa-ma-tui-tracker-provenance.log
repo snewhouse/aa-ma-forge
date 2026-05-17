@@ -16,4 +16,7 @@
 [2026-05-17T20:18:00+01:00] MILESTONE_0_ACTIVE — milestone=Scaffolding gate=SOFT complexity=15 audit_profile=code-only
 [2026-05-17T20:18:00+01:00] DEPS_ADDED — direct=pydantic,textual,rich,watchfiles install=transitive_downgrade_safe
 [2026-05-17T20:18:00+01:00] SMOKE_PASSED — aa-ma-tui_version=0.9.0 exit=0 import=ok pytest=659_passed_1_skipped_6_deselected ruff=clean import_linter=2_contracts_kept
-[2026-05-17T20:18:00+01:00] MILESTONE_0_COMPLETE — sub_steps=6/6 acceptance=5/5 tests_pass=659 commit=[pending_at_commit_time]
+[2026-05-17T20:18:00+01:00] MILESTONE_0_COMPLETE — sub_steps=6/6 acceptance=5/5 tests_pass=659 commit=7d170fa
+[2026-05-17T20:18:00+01:00] PHASE_6_8_INVOKED — audit_profile=code-only milestone_window=327c98e..7d170fa
+[2026-05-17T20:18:00+01:00] CONTEXT7 — pydantic@2.x — BaseModel (standard typed model usage; L-055 promotion only, no new API exploration)
+[2026-05-17T20:18:00+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: code-reviewer,tdd-sequence-auditor,context7-evidence-auditor,future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 1 WARNING / 13 INFO

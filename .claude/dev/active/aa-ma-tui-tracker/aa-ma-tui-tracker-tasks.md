@@ -132,6 +132,7 @@ Created: 2026-05-17
 - Critical-Path: data-xform
 - Audit-Profile: code-only
 - Dependencies: Milestone 1
+- Note: Critical-Path:data-xform shared with M1 — output rendering is a continuation of the parse→model→render pipeline; same evidence requirement (CRITICAL_PATH_REVIEW entry in provenance.log on completion).
 - Acceptance Criteria:
   - `aa-ma-tui --snapshot` renders 4-column Rich kanban
   - `aa-ma-tui --snapshot=tree --task NAME` renders Rich Tree

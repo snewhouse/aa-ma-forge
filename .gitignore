@@ -54,3 +54,10 @@ Thumbs.db
 
 # Untracked research / strategy / private working notes
 private/
+
+# Coverage build artifacts (added 2026-05-17 during aa-ma-tui-tracker M1
+# when pytest-cov landed as a dev dep)
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml

@@ -1,0 +1,14 @@
+# aa-ma-tui-tracker Provenance Log
+# Line grammar: [ISO-8601 timestamp] MARKER — key=value [key=value ...]
+# Em-dash separator (U+2014), per plan_markers/parser.py convention.
+
+[2026-05-17T12:41:33+01:00] TASK_INITIALIZED — task=aa-ma-tui-tracker repo=aa-ma-forge branch=main commit=0168d40
+[2026-05-17T12:41:33+01:00] PHASE_1_DONE — context_gathering=complete grill_mode=simple lessons_loaded=5
+[2026-05-17T12:41:33+01:00] PHASE_2_DONE — brainstorm_skill=invoked alternatives_considered=3 themes_applied=all_6
+[2026-05-17T12:41:33+01:00] ENG_STANDARDS_DECLARED — themes=[1,2,3,4,5,6]
+[2026-05-17T12:41:33+01:00] PHASE_3_DONE — context7_calls=3 web_fetches=0 libraries_researched=textual,watchfiles,rich,jiratui
+[2026-05-17T12:41:33+01:00] PHASE_4_DONE — complexity_score=75 plan_elements=12_of_12 plan_lines=550
+[2026-05-17T12:41:33+01:00] PHASE_4_2_SKIPPED — reason=embedded_in_design
+[2026-05-17T12:41:33+01:00] PHASE_4_5_DONE — verdict=YELLOW mode=interactive angles_run=4_of_6 criticals=5 warnings=7 all_criticals_addressed=true
+[2026-05-17T12:41:33+01:00] PLAN_REVISED — revisions_applied=10 wave1_findings_resolved=5_critical+4_warning
+[2026-05-17T12:41:33+01:00] PHASE_5_INIT — task_dir=.claude/dev/active/aa-ma-tui-tracker artifacts=5+verification

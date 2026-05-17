@@ -85,4 +85,19 @@ Start execution at **M0 T0.1**: CREATE the `[project] dependencies = [...]` arra
 
 ---
 
+## [2026-05-17] Milestone Completion: M0 Scaffolding
+
+- Status: COMPLETE
+- Gate: SOFT — convention-based approval, no signed artifact required
+- Key outcome: TUI sub-package scaffolded; runtime deps declared explicitly per L-055; CLI entry point `aa-ma-tui` registered and verified.
+- Artifacts: `src/aa_ma/tui/__init__.py` (new), `src/aa_ma/tui/__main__.py` (new), `pyproject.toml` (modified — added `[project] dependencies`, `[project.scripts]`, version-pin comment), `uv.lock` (re-resolved).
+- Tests: 659 passed / 1 skipped / 6 deselected. No regressions.
+- Smoke: `uv run aa-ma-tui --version` → `aa-ma-tui 0.9.0` exit 0 ✓.
+- TDD-Waiver applied: `tooling-config` — scaffolding milestone, no behavior to test (acceptance is the smoke result).
+- Notable resolver behaviour: adding `[project] dependencies` triggered transitive re-resolution. rich 14.3.3→13.9.4 + watchfiles 1.1.1→0.24.0 (driven by our explicit `<14` / `<1.0` upper pins) + cascade downgrade python-semantic-release 10.5.3→9.21.0 (pin `>=9.0` still satisfied) + python-gitlab 6.5.0→4.13.0 (no direct usage in src/). Verified safe via grep — no `from rich`/`from watchfiles`/`from gitlab` anywhere in src/packages/scripts.
+- Observation (pre-existing, out of scope for M0): `commitizen` is NOT installed in `.venv` despite `[tool.commitizen]` block in pyproject.toml. M4 T4.6 (`uv run cz bump`) will need to install or use a globally-available commitizen — flag for M4 prep.
+- Next: M1 Parser foundation. HARD gate, Critical-Path: data-xform. Will require pytest+hypothesis TDD discipline.
+
+---
+
 _This log will be updated via context compaction as the task progresses._

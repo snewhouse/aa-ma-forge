@@ -32,36 +32,74 @@ None.
 |---|---|---|---|
 | W1 | context7-evidence-auditor | `pydantic>=2,<3` promoted from transitive to direct dep without a dedicated Context7 entry in `Phase 3 Research`. Mitigating: standard `BaseModel` usage, no new API exploration; promotion driven by L-055 compliance (Phase 4.5 Critical #1), not new behavior. | RESOLVED — provenance stub added (`CONTEXT7 — pydantic@2.x — BaseModel (standard typed model usage; L-055 promotion only)`) |
 
+### Deferred Follow-ups (M0)
+
+| ID | Description | Target milestone |
+|---|---|---|
+| D-M0-1 | Replace module enumeration in `tui/__init__.py` docstring with pointer to plan.md | M3 close |
+| D-M0-2 | When M2 wires exit codes, extract `EXIT_*` constants instead of prose enumeration | M2 |
+
+---
+
+## Milestone 1: Parser foundation
+
+- **Run:** 2026-05-17T22:00:00+01:00
+- **Audit-Profile:** `code-only`
+- **Milestone diff window:** `7d170fa..80ed5fe`
+- **Aggregate verdict:** **PASS_WITH_WARNINGS**
+- **Totals:** 0 CRITICAL · 5 WARNING · 12 INFO
+- **Override panel triggered:** NO (no CRITICALs)
+- **HARD gate:** Approved by Stephen J Newhouse via AskUserQuestion ("Approve and finalize") prior to §6.8 dispatch.
+
+### Per-agent results
+
+| Agent | Verdict | C/W/I |
+|---|---|---|
+| `code-reviewer` | PASS_WITH_WARNINGS | 0/2/6 |
+| `tdd-sequence-auditor` | PASS (commit-granularity advisory only) | 0/0/1 |
+| `context7-evidence-auditor` | PASS_WITH_WARNINGS | 0/1/0 |
+| `future-proofing-auditor` | PASS_WITH_WARNINGS | 0/2/5 |
+
+### CRITICAL findings
+
+None.
+
+### WARNING findings
+
+| # | Source | Finding | Status |
+|---|---|---|---|
+| W1 | code-reviewer | Mechanism duplication: `src/aa_ma/tui/parser.py:53 _field_pattern` and `src/aa_ma/plan_parsers.py:99 _extract_field` both encode the L-052 `-? **Field**: VALUE` tolerance contract. Capture mode differs (token vs rest-of-line). Risk: future grammar tweaks must be applied to both or parsers diverge. | DEFERRED to M2 — extract shared `src/aa_ma/_field_grammar.py` when M2 adds more parser surface (snapshot wires same grammar). Tracked as **D-M1-1** below. Non-blocking: both parsers individually tested. |
+| W2 | code-reviewer | `object.__setattr__` idiom in `Task._derive_aggregate_status` (model.py lines 231, 244, 248, 264, 267) on a NOT-frozen Task model is confusing. A future reader may add `frozen=True` thinking the mutation is already safe. | **RESOLVED inline** — added `frozen=True` to `Task.model_config` + docstring note. The `object.__setattr__` calls now have a load-bearing reason (bypassing freeze for the derived field). 30/30 tests still pass. |
+| W3 | context7-evidence-auditor | No CONTEXT7 entry for `pytest-cov>=5.0`. Low risk (dev-only, thin coverage.py wrapper, no application import). | **RESOLVED inline** — provenance stub `CONTEXT7 — pytest-cov@5.0 — --cov CLI flag + coverage threshold gating (dev-only, no application import)` added. |
+| W4 | future-proofing-auditor | Enum-doc drift: `ACTIVE`→`IN_PROGRESS` step-status coercion is documented in three places (StepStatus docstring, parser.py module docstring, test_model.py note) but has **no direct test** exercising it. Hypothesis strategy excludes `ACTIVE` from STEP_STATUSES_RAW by construction. Future refactor could silently break the coercion and ship green. | **RESOLVED inline** — added `test_step_status_active_coerced_to_in_progress` in test_parser.py exercising both milestone-level ACTIVE (preserved) and step-level ACTIVE (coerced to IN_PROGRESS). 30/30 tests pass. |
+| W5 | future-proofing-auditor | `pytest-cov>=5.0` lacks an upper bound. Auditor notes this is consistent with sibling deps (`pytest-benchmark>=4.0`, `hypothesis>=6.0`) and adding `<6` would prematurely block patch upgrades on a dev tool. | ACCEPTED — no action; convention-consistent. |
+
 ### INFO findings (kept for future-self)
 
 From `code-reviewer`:
-- `__main__.py:55` placeholder `print()` is intentional M0 scaffolding (M2/M3 replace).
-- L-055 explicit declaration applied to all 4 deps with rationale comments.
-- `tui/__init__.py:15` `__version__` re-export prevents drift between `aa-ma-tui` and `aa-ma`.
-- No magic numbers, no dead code, no mechanism duplication, no schema-breaking output.
-- Scope discipline: only declared artefacts touched.
+- Scope discipline clean; all touched files declared in M1 plan.
+- No dead code; all 9 model classes + 13 parser functions reachable.
+- `_PROVENANCE_TAIL_DEFAULT = 5` named constant, parser-side location correct.
+- `_AA_MA_FILE_SUFFIXES` is the only Python-side definition of the 5-file suffix tuple.
+- L-065 state-machine docstring complete (5 AggregateStatus values, 2 terminal states justified).
+- N/A: no public output consumers yet (M2 introduces snapshot/JSON).
 
 From `tdd-sequence-auditor`:
-- Per ADR-0005, `tooling-config` is a canonical waiver class covering pyproject/CI/Dockerfile-only milestones; milestone-level waiver correctly extends to T0.4–T0.6 (package-creation mechanics).
-
-From `context7-evidence-auditor`:
-- textual/watchfiles/rich Context7 evidence confirmed in `context-log.md` lines 36-41 with library IDs, version ranges, snippet counts, and concrete API surface citations.
+- For future HARD-gate Critical-Path milestones, prefer **per-sub-step micro-commits** so mechanical git-only audit aligns with lived discipline. M1 used single-commit consolidation — defensible for solo work but weakens git forensics. Track as **convention recommendation**, not a finding.
 
 From `future-proofing-auditor`:
-- Docstring in `tui/__init__.py` enumerates future module names per milestone — accurate now but will drift when M1–M3 land. **Suggested fix (deferred to M3 close):** convert to a pointer ("see `aa-ma-tui-tracker-plan.md` for current module layout").
-- `__main__.py` docstring lists exit codes "0/2/3" inline. **Suggested fix (deferred to M2):** when M2 wires exit codes, extract constants (`EXIT_SNAPSHOT_PARSE_ERR = 2`) rather than re-quoting in prose.
-- All 4 dep pins are appropriately bounded (semver-major upper for pydantic/rich; pre-1.0 minor for textual/watchfiles which legitimately break on minors).
-- `_build_parser()` extension point is justified by named imminent consumers (M2 snapshot subcommand, M3 Textual default branch) — passes the "2+ implementations or documented imminent consumer" test.
+- `_PROVENANCE_TAIL_DEFAULT = 5` is well-named and overridable via `n` parameter.
+- Prose mentions of "5-file" in parser.py:201,229 could reference `len(_AA_MA_FILE_SUFFIXES)` to self-update; current state is aligned (acceptable).
+- Hypothesis strategy bounds (`min_size=3, max_size=15`, etc.) are test-only magic numbers; acceptable.
+- Hypothesis strategy excludes `ACTIVE` from step statuses by design — addresses W4 via W4's resolution.
 
 ### User Override Decisions
 
 None required — no CRITICALs surfaced.
 
-### Deferred Follow-ups
+### Deferred Follow-ups (M1)
 
 | ID | Description | Target milestone |
 |---|---|---|
-| D-M0-1 | Replace module enumeration in `tui/__init__.py` docstring with pointer to plan.md | M3 close (after final module layout settles) |
-| D-M0-2 | When M2 wires exit codes, extract `EXIT_*` constants instead of prose enumeration in `__main__.py` docstring | M2 |
-
-(These are INFO-level suggestions, not blocking. Captured here so M2/M3 reviewers see them.)
+| D-M1-1 | Extract shared `_field_grammar.py` (or `src/aa_ma/parsing.py`) helper from `parser.py::_field_pattern` and `plan_parsers.py::_extract_field`, parameterised by capture-mode (single-token vs rest-of-line). Both modules import. | M2 (when snapshot adds more parsing surface) |
+| D-M1-2 | Self-update the "5-file" prose mentions in `parser.py:201,229` to use `len(_AA_MA_FILE_SUFFIXES)` formatting, OR explicitly accept and add Tier 6 doc-drift watch. | M3 close (low priority — currently aligned) |

@@ -200,9 +200,14 @@ class Task(BaseModel):
     milestones are present (e.g. discover_tasks setting ERROR for tasks
     that couldn't be parsed). When milestones ARE present, the derivation
     takes precedence — single source of truth (per L-005).
+
+    Task is **frozen after construction** (logically immutable; the only
+    "mutation" is the model_validator setting aggregate_status, which
+    bypasses the freeze via `object.__setattr__`). This makes the model
+    safe to share across the read-only TUI without defensive copies.
     """
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
 
     name: str
     root: Path

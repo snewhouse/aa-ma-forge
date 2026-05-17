@@ -99,6 +99,35 @@ def test_parse_blank_result_log_returns_none(fixtures_dir: Path) -> None:
     assert m1.steps[1].result_log is None
 
 
+def test_step_status_active_coerced_to_in_progress(tmp_path: Path) -> None:
+    """Real-world `Status: ACTIVE` on a STEP coerces to IN_PROGRESS.
+
+    Documented contract (model.py StepStatus + parser.py _extract_step_status).
+    Caught by §6.8 future-proofing-auditor as load-bearing-but-untested.
+    Added in M1 close to prevent silent regression.
+    """
+    from aa_ma.tui.model import MilestoneStatus, StepStatus
+    from aa_ma.tui.parser import parse_task_dir
+
+    task_dir = tmp_path / "active-step"
+    task_dir.mkdir()
+    (task_dir / "active-step-tasks.md").write_text(
+        "# x\n\n"
+        "## Milestone 1: Demo\n"
+        "- Status: ACTIVE\n\n"
+        "### Step 1.1: Currently being worked on\n"
+        "- Status: ACTIVE\n"
+        "- Result Log: in flight\n",
+        encoding="utf-8",
+    )
+    t = parse_task_dir(task_dir)
+    m = t.milestones[0]
+    # Milestone-level ACTIVE is preserved
+    assert m.status == MilestoneStatus.ACTIVE
+    # Step-level ACTIVE coerces to IN_PROGRESS (per spec)
+    assert m.steps[0].status == StepStatus.IN_PROGRESS
+
+
 # =============================================================================
 # T1.4: discover_tasks merges multiple roots
 # =============================================================================

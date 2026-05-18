@@ -118,6 +118,56 @@ EOF
     [ "$PRE_SHA" = "$POST_SHA" ]
 }
 
+@test "Stage D B602 auto-fix is line-scoped — docstring with 'shell=True' survives" {
+    # Regression test addressing §6.8 audit HIGH findings 1-3:
+    # "Stage D's sed -i 's/shell=True/shell=False/g' rewrites EVERY occurrence
+    #  including docstrings, comments, # nosec, and test fixtures."
+    # Fix: drive auto-fix from $BANDIT_OUT JSON (exact line + test_id equality),
+    # apply line-scoped sed (only the EXACT line Bandit reports).
+
+    cd "$BATS_TMP"
+    sandbox_init
+    echo init > a.txt && git add a.txt
+    mkcommit "init"
+    git checkout -q -b feature
+
+    # File has TWO occurrences of `shell=True`:
+    #   line 1: docstring (must SURVIVE — Bandit doesn't flag it)
+    #   line 4: actual B602 call (must be FIXED — Bandit flags it on line 4)
+    cat > mixed.py <<'PY'
+"""Demo module: never use shell=True for untrusted input."""
+import subprocess
+def run_cmd(cmd):
+    return subprocess.run(cmd, shell=True)
+PY
+    git add mixed.py
+    mkcommit "feat: mixed"
+
+    : > "/tmp/sole-dev-merge-review-${SLUG}.md"
+    : > "/tmp/sole-dev-merge-security-${SLUG}.md"
+
+    export BASE_REF=main DEFAULT_BRANCH=main \
+           CHANGED_PY="mixed.py" CHANGED_SH=""
+    bash "$SC_SCRIPT" >/dev/null
+
+    # Sanity-check pre-Stage-D: both occurrences present
+    [ "$(grep -c 'shell=True' mixed.py)" -eq 2 ]
+
+    run bash "$SD_SCRIPT"
+    [ "$status" -eq 0 ]
+
+    # Post-Stage-D:
+    # - Docstring on line 1 SURVIVES (still contains "shell=True")
+    head -1 mixed.py | grep -q "shell=True"
+
+    # - Line 4 was rewritten (no longer contains "shell=True")
+    ! sed -n '4p' mixed.py | grep -q "shell=True"
+
+    # - Bandit re-scan finds 0 B602 issues
+    BANDIT_ISSUES=$(bandit -t B602 mixed.py 2>&1 | grep -c "Issue:" || true)
+    [ "$BANDIT_ISSUES" -eq 0 ]
+}
+
 @test "Stage D tags agent-emitted CRITICALs for user review (no auto-fix)" {
     cd "$BATS_TMP"
     sandbox_init

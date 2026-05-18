@@ -123,12 +123,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    # No mode flag → M0 placeholder (M3 replaces with Textual launch).
+    # No mode flag → launch interactive Textual app (M3).
     if args.snapshot is None and not args.json:
-        print(
-            "aa-ma-tui M0 scaffolding only. Snapshot modes land in M2; "
-            "interactive TUI in M3."
-        )
+        roots = _resolve_roots(args.root, args.include_completed)
+        tasks = discover_tasks(roots)
+        # Local import keeps Textual off the CLI hot path when only --snapshot / --json used.
+        from aa_ma.tui.app import AAMAApp
+
+        AAMAApp(initial_tasks=tasks, watch_roots=roots).run()
         return EXIT_OK
 
     # Discover tasks via the SINGLE canonical discover_tasks function

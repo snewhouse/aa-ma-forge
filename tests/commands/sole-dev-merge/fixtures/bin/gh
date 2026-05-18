@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# gh — PATH-shadowed stub for sole-dev-merge bats tests.
+#
+# Logs every invocation as one line to "$CLI_LOG" (env var; required).
+# Behaviour is controlled by:
+#   GH_PR_EXISTS=1 — `gh pr view ...` exits 0 + emits {"url":"…"} json so the
+#                    caller treats it as "existing PR".
+#   GH_PR_EXISTS=0 — `gh pr view ...` exits 1 (no PR found).
+# Default: GH_PR_EXISTS=0.
+#
+# All other subcommands exit 0 silently so the calling script's pipe-chain
+# stays alive. The test asserts via grep over "$CLI_LOG".
+
+set -eu
+
+LOG="${CLI_LOG:-/dev/null}"
+echo "gh $*" >> "$LOG"
+
+case "${1:-}" in
+    pr)
+        case "${2:-}" in
+            view)
+                if [[ "${GH_PR_EXISTS:-0}" == "1" ]]; then
+                    echo '{"url":"https://github.com/test/repo/pull/42"}'
+                    exit 0
+                else
+                    exit 1
+                fi
+                ;;
+            create|edit|merge|checks)
+                exit 0
+                ;;
+        esac
+        ;;
+    auth)
+        case "${2:-}" in
+            status)
+                # Honour GH_AUTH_OK=0 to simulate auth failure.
+                if [[ "${GH_AUTH_OK:-1}" == "0" ]]; then
+                    echo "You are not logged in" >&2
+                    exit 1
+                fi
+                echo "Logged in to github.com account test"
+                exit 0
+                ;;
+        esac
+        ;;
+    api)
+        # default echoes "true" for boolean queries used in M4
+        echo "true"
+        exit 0
+        ;;
+esac
+
+exit 0

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# glab — PATH-shadowed stub for sole-dev-merge bats tests.
+#
+# Symmetric to fixtures/bin/gh. Controlled by:
+#   GLAB_MR_EXISTS=1  → `glab mr view ...` exits 0 (existing MR).
+#   GLAB_MR_EXISTS=0  → `glab mr view ...` exits 1 (no MR).
+#   GLAB_AUTH_OK=0   → `glab auth status` exits non-zero.
+
+set -eu
+
+LOG="${CLI_LOG:-/dev/null}"
+echo "glab $*" >> "$LOG"
+
+case "${1:-}" in
+    mr)
+        case "${2:-}" in
+            view)
+                if [[ "${GLAB_MR_EXISTS:-0}" == "1" ]]; then
+                    echo "MR !42 — test"
+                    exit 0
+                else
+                    exit 1
+                fi
+                ;;
+            create|update|merge)
+                exit 0
+                ;;
+        esac
+        ;;
+    auth)
+        case "${2:-}" in
+            status)
+                if [[ "${GLAB_AUTH_OK:-1}" == "0" ]]; then
+                    echo "Not authenticated" >&2
+                    exit 1
+                fi
+                echo "Logged in to gitlab.com as test"
+                exit 0
+                ;;
+        esac
+        ;;
+    api)
+        echo '{"merge_method":"rebase_merge"}'
+        exit 0
+        ;;
+esac
+
+exit 0

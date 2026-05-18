@@ -46,3 +46,7 @@
 [2026-05-18T13:07:58+01:00] STEP_1.4 COMPLETE — stage_b_autocommit() inline; 3 scenarios verified (ad-hoc / plan-active / clean-tree); shellcheck clean
 [2026-05-18T13:07:58+01:00] FIELD_DISCOVERY — parent session aa-ma-commit-signature.sh PreToolUse hook blocks tmp-repo commits unless cmd includes [ad-hoc] standalone line; bats fixtures need bypass-marker heredoc
 [2026-05-18T13:07:58+01:00] STEP_1.5 START — Write bats test for Stage B (scope) — test_stage_b_scope.bats per plan §4 1.3 contract
+[2026-05-18T13:11:01+01:00] STEP_1.5 COMPLETE — test_stage_b_scope.bats with 5 @test cases; bats run: 5/5 pass
+[2026-05-18T13:11:01+01:00] STEP_1.6 START — Write test_stage_a_preflight.bats with 4 abort cases + happy path
+[2026-05-18T13:11:57+01:00] STEP_1.6 COMPLETE — test_stage_a_preflight.bats with 6 @test cases; combined bats run (A+B): 11/11 pass
+[2026-05-18T13:11:57+01:00] STEP_1.7 START — M1 HARD gate (Critical-Path: doc-count-drift)

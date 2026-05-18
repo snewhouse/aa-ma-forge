@@ -36,19 +36,19 @@
 - Result Log: PASS. `stage_b_autocommit()` added (~30 lines). Three scenarios verified empirically: (1) AD-HOC (no plan dir) → subject = `chore(scope): pre-PR auto-fixes`, tail-3 contains `[ad-hoc]`; (2) PLAN-ACTIVE (`.claude/dev/active/sole-dev-merge-pr-workflow/` present) → subject correct, tail-3 contains `[AA-MA Plan] sole-dev-merge-pr-workflow .claude/dev/active/sole-dev-merge-pr-workflow`; (3) CLEAN TREE → HEAD unchanged, function reports "no in-scope auto-fixes to commit". Stage A regression: 5/5 pass. ShellCheck (141 lines): 0 advisories. Field-discovery: parent session's commit-signature hook blocks tmp-repo commits unless cmd includes `[ad-hoc]` standalone line — bats fixtures will need a bypass-marker heredoc.
 
 ### Step 1.5: Write bats test for Stage B (scope)
-- Status: ACTIVE
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `bats tests/commands/sole-dev-merge/test_stage_b_scope.bats` passes; test plants out-of-scope + in-scope diffs and asserts L-007 reversion.
-- Result Log: _pending_
+- Result Log: PASS. `tests/commands/sole-dev-merge/test_stage_b_scope.bats` created with 5 @test cases. `bats tests/commands/sole-dev-merge/test_stage_b_scope.bats` → `1..5 / ok 1..5` (zero failures). Cases: (1) L-007 guard reverts out-of-scope drift + in-scope ruff fix lands [plan §4 1.3 canonical], (2) empty changeset no-op, (3) shell file scope detection, (4) in-scope formatter changes survive guard, (5) pytest exit-5 doesn't abort [regression for M1.3 bug fix]. Tests source stage functions via `load_stages.bash` (single source of truth).
 
 ### Step 1.6: Write bats test for Stage A (preflight)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `bats tests/commands/sole-dev-merge/test_stage_a_preflight.bats` passes; 4 cases exercise each abort branch.
-- Result Log: _pending_
+- Result Log: PASS. `tests/commands/sole-dev-merge/test_stage_a_preflight.bats` created with 6 @test cases (4 abort branches + happy path + distinctness check). Combined bats run (preflight + scope): `1..11 / ok 1..11` (zero failures). Plan §4.1.2 exact string verified for on-main case.
 
 ### Step 1.7: M1 HARD gate (sub-step closure check)
-- Status: PENDING
+- Status: ACTIVE
 - Mode: HITL
 - Acceptance Criteria: zero `Status: PENDING` in M1 sub-steps; `git status` clean for AA-MA files; CRITICAL_PATH_REVIEW for `doc-count-drift` entry in provenance.log; GATE APPROVAL recorded in context-log.md.
 - Result Log: _pending_

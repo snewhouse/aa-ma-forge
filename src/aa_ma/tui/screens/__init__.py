@@ -8,5 +8,6 @@ Public surface:
 from __future__ import annotations
 
 from aa_ma.tui.screens.dashboard import DashboardScreen
+from aa_ma.tui.screens.task_detail import TaskDetailScreen
 
-__all__ = ["DashboardScreen"]
+__all__ = ["DashboardScreen", "TaskDetailScreen"]

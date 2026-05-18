@@ -136,3 +136,68 @@ None required — no CRITICALs.
 |---|---|---|
 | D-M2-1 | Parser tolerance for `## Step N:` and `## M(\d+):` legacy milestone-header variants discovered in live smoke against `~/.claude/dev/completed/`. Two of the 8 corpus tasks fall to ERROR aggregate as a result. | v0.11.0 (M5 polish OR follow-up plan) |
 | D-M2-2 | Machine-enforce `SCHEMA_VERSION` bump policy via test that fails when JSON schema mutates without version bump | v0.11.0 |
+
+---
+
+## Milestone 3: Interactive Textual app
+
+- **Run:** 2026-05-18T08:45:00+01:00
+- **Audit-Profile:** `code-only`
+- **Milestone diff window:** `aec1b7f..63b5007` (12 commits across 9 sub-step landings + 1 housekeeping + 1 prototype-cleanup-pending-at-audit-time + 1 CRITICAL_PATH_REVIEW doc)
+- **Aggregate verdict:** **PASS_WITH_WARNINGS**
+- **Totals:** 0 CRITICAL · 9 WARNING · 7 INFO
+- **Override panel triggered:** NO (no CRITICALs)
+- **HARD gate:** Pending HITL approval at §7.3 (current step)
+
+### Per-agent results
+
+| Agent | Verdict | C/W/I |
+|---|---|---|
+| `code-reviewer` | PASS_WITH_WARNINGS | 0/5/3 |
+| `tdd-sequence-auditor` | PASS | 0/0/0 |
+| `context7-evidence-auditor` | PASS_WITH_WARNINGS | 0/1/0 |
+| `future-proofing-auditor` | PASS_WITH_WARNINGS | 0/3/4 |
+
+### CRITICAL findings
+
+None.
+
+### WARNING findings
+
+| # | Source | Finding | Status |
+|---|---|---|---|
+| W1-CR | code-reviewer | `_reload_tasks` + `action_reload` duplicate the pop+push refresh dance | **RESOLVED inline** — extracted `_swap_dashboard()` helper, both call it |
+| W2-CR | code-reviewer | `prototypes/m3_textual_watchfiles_spike.py` not deleted per Step 3.1 promise | **RESOLVED inline** — `git rm prototypes/m3_textual_watchfiles_spike.py` |
+| W3-CR | code-reviewer | Magic numbers (1.5s, 0.8s, 200ms) duplicated across test_watcher.py | **RESOLVED inline** — extracted `_WSL_INOTIFY_SETTLE_S`, `_DEBOUNCE_DRAIN_S`, `_TEST_DEBOUNCE_MS` module constants |
+| W4-CR | code-reviewer | SOC drift in `_reload_tasks` (mixes data recompute + Screen-isinstance guard + refresh) | DEFERRED (D-M3-1, M5 polish) — coupled with reactive in-place mutation; partial fix today reduces value |
+| W5-CR | code-reviewer | `action_quit` may leak @work watcher if blocked between iterations | DEFERRED (D-M3-2, M5 polish) — soft contract; clean shutdown observed in Step 3.11 smoke |
+| W1-C7 | context7-evidence-auditor | `pytest-textual-snapshot>=1.0` added without CONTEXT7 stub | **RESOLVED inline** — appended CONTEXT7 entry to provenance.log |
+| W1-FP | future-proofing-auditor | `_AAMA_SUFFIXES` in watcher.py duplicates `_AA_MA_FILE_SUFFIXES` in parser.py | **RESOLVED inline** — promoted parser constant to public `AAMA_FILE_SUFFIXES`, watcher imports it |
+| W2-FP | future-proofing-auditor | `f"{name}-tasks.md"` hardcoded in 3 sites (parser, watcher, app) | **RESOLVED inline** — extracted `TASKS_FILE_SUFFIX = "-tasks.md"` in parser.py; all sites use it |
+| W3-FP | future-proofing-auditor | prototype not deleted (duplicate of W2-CR) | **RESOLVED inline** (same fix as W2-CR) |
+
+### INFO findings (kept for future-self)
+
+From `code-reviewer`:
+- I1: `CallbackResult` / `Callback` type aliases publicly named but only used internally → **RESOLVED inline** (underscore prefix added).
+- I2: TYPE_CHECKING + top-level import pattern as replacement for local-import circular-avoidance — DEFERRED to M5 polish.
+- I3: pytest-textual-snapshot dev-dep traceability — context-log entry recorded via Step 3.10 Result Log and §6.8 INLINE_FIXES_APPLIED.
+
+From `future-proofing-auditor`:
+- I1: `_AAMA_SUFFIXES` docstring "5 canonical" was count-coupled → **RESOLVED inline** (rephrased count-free).
+- I2: "4-column kanban" in 3 docstrings — keep as-is; the snapshot.py module-level assert forces an explicit decision on enum growth (caught by §6.8 future-proofing in M2).
+- I3: "last 5 lines" in task_detail.py docstring drifted from parser default → **RESOLVED inline** (rephrased "last N lines — see parser._provenance_tail default").
+- I4: KanbanColumn DEFAULT_CSS pattern — DEFERRED to M5 (Textual idiomatic single-consumer styling at App level is fine for now).
+
+### User Override Decisions
+
+None required — no CRITICALs.
+
+### Deferred Follow-ups (M3)
+
+| ID | Description | Target milestone |
+|---|---|---|
+| D-M3-1 | W4-CR — Split `_reload_tasks` into pure `_recompute_task_state(affected)` + Screen-agnostic `_refresh_view()`; lifts DashboardScreen-isinstance guard out of data path | M5 polish (paired with reactive in-place mutation) |
+| D-M3-2 | W5-CR — Wrap `await watch_roots(...)` in `asyncio.shield` + cancel worker group from `action_quit`; ensures clean shutdown under heavy filesystem load | M5 polish |
+| D-M3-3 | I2-CR — TYPE_CHECKING pattern + top-level import for screens/dashboard.py → screens/task_detail.py reference (replaces local import inside `action_drill_in`) | M5 polish |
+| D-M3-4 | I4-FP — Move `KanbanColumn { width: 1fr; ... }` rule from App.CSS to `KanbanColumn.DEFAULT_CSS` (Textual-native pattern for re-usable widgets) | M5 polish |

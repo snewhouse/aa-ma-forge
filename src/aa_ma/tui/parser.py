@@ -198,14 +198,22 @@ def _split_step_blocks(milestone_block: str) -> list[tuple[str, str, str]]:
 
 _PROVENANCE_TAIL_DEFAULT = 5
 
-# Canonical 5-file AA-MA name suffixes, used by _max_mtime to scan the dir.
-_AA_MA_FILE_SUFFIXES = (
+# Canonical AA-MA name suffixes — used by _max_mtime here and by watcher.py's
+# AAMAFilter (single source of truth; §6.8 future-proofing W1 fix).
+AAMA_FILE_SUFFIXES = (
     "-tasks.md",
     "-plan.md",
     "-reference.md",
     "-context-log.md",
     "-provenance.log",
 )
+# Back-compat alias for the module-private name used by M1 internals.
+_AA_MA_FILE_SUFFIXES = AAMA_FILE_SUFFIXES
+
+# The "must exist" file that identifies a directory as an AA-MA task. Referenced
+# by parser.parse_task_dir + watcher.reduce_watch_event + app._find_and_parse_task
+# (single source of truth; §6.8 future-proofing W2 fix).
+TASKS_FILE_SUFFIX = "-tasks.md"
 
 
 def _provenance_tail(
@@ -260,7 +268,7 @@ def parse_task_dir(path: Path) -> Task:
         ParseError: tasks.md missing, or has zero `## Milestone N:` headers.
     """
     name = path.name
-    tasks_file = path / f"{name}-tasks.md"
+    tasks_file = path / f"{name}{TASKS_FILE_SUFFIX}"
     if not tasks_file.is_file():
         raise ParseError(f"missing tasks file: {tasks_file}")
 

@@ -307,4 +307,67 @@ class AAMAApp(App):
 
 - `prototypes/m3_textual_watchfiles_spike.py` — throwaway. Auto-driver mode (uses `app.run_test()` pilot) for headless terminal verdict capture. Verdict logged in provenance.log as `PROTOTYPE — verdict=PASS`.
 
-_Last Updated: 2026-05-18 (Step 3.1 PROTOTYPE PASS)_
+### Prototype file (DELETED at M3 close per LOGIC.md delete-or-absorb rule)
+
+- `prototypes/m3_textual_watchfiles_spike.py` — REMOVED at §6.8 inline fix (W2-CR/W3-FP). Reference in git history: commit `38cd6a5` (created), removed in M3 close commit. Verdict PASS captured in provenance.log `PROTOTYPE — verdict=PASS` entry.
+
+## M3 immutable facts (added 2026-05-18 at M3 close)
+
+### Public API surface (M3 additions)
+
+- `aa_ma.tui.parser.AAMA_FILE_SUFFIXES: tuple[str, ...]` — canonical 5-suffix tuple (single source of truth shared with `watcher.AAMAFilter`)
+- `aa_ma.tui.parser.TASKS_FILE_SUFFIX: str = "-tasks.md"` — the "must exist" file identifying an AA-MA task dir
+- `aa_ma.tui.model.Task.step_progress() -> tuple[int, int]` — (complete, total) across all milestones
+- `aa_ma.tui.model.Task.milestone_progress() -> tuple[int, int]` — (complete, total)
+- `aa_ma.tui.snapshot.BOARD_COLUMNS: tuple[AggregateStatus, ...]` — promoted from `_BOARD_COLUMNS` to public (shared with `DashboardScreen`)
+- `aa_ma.tui.watcher.AAMAFilter(DefaultFilter)` — whitelist filter
+- `aa_ma.tui.watcher.reduce_watch_event(state, changes) -> (state, affected_task_names)` — pure reducer
+- `aa_ma.tui.watcher.watch_roots(roots, callback, *, debounce=300, stop_event=None)` — async driver
+- `aa_ma.tui.widgets.TaskCard(Static)` — single-task card; `task_data` attr (not `task` — Worker collision)
+- `aa_ma.tui.widgets.KanbanColumn(VerticalScroll)` — `column_status` + filtered `column_tasks`, `header_text()`
+- `aa_ma.tui.screens.DashboardScreen(Screen)` — 4-column kanban; `current_task` + `BINDINGS=[Binding("enter", "drill_in", priority=True)]` + `action_drill_in()`
+- `aa_ma.tui.screens.TaskDetailScreen(Screen)` — single-task drill-in; `detail_task` + `selected_step` + `BINDINGS=[("escape", "app.pop_screen", "Back")]` + `on_tree_node_highlighted` handler
+- `aa_ma.tui.app.AAMAApp(App)` — orchestration App
+  - `__init__(*, initial_tasks=None, watch_roots=None)`
+  - `tracker_tasks: list[Task]` (plain attr; M5 polish target: reactive)
+  - `watch_roots_value: list[Path]`
+  - `BINDINGS = [Binding("r", "reload"), Binding("q", "quit")]`
+  - `@work(exclusive=True) watch_filesystem()` — drives `watch_roots()`
+  - `_reload_tasks(affected)` + `_swap_dashboard()` + `action_reload()` + `action_quit()`
+
+### Architecture invariants
+
+- **Pop+push dashboard refresh** is the M3 KISS pattern (single source: `_swap_dashboard()`); reactive in-place mutation deferred to M5 (D-M3-1).
+- **`tracker_tasks`** is a plain attr (NOT reactive) — M3 trades reactive-list correctness for the pop+push simplicity.
+- **`mutate_reactive(ClassName.attr)`** — Textual gotcha verified by Step 3.1 PROTOTYPE; must reference class-attr (not `self.attr`) for watch_* handler to fire on in-place mutation.
+- **AAMAFilter whitelist tuple** = `parser.AAMA_FILE_SUFFIXES` (NOT a local copy; §6.8 W1-FP fix).
+- **Tasks file suffix** = `parser.TASKS_FILE_SUFFIX` (NOT inline `f"{name}-tasks.md"` in 3 sites; §6.8 W2-FP fix).
+- **WSL inotify settle time** = 1.5s (constant `_WSL_INOTIFY_SETTLE_S` in test_watcher.py; required for subdir watches on WSL2).
+
+### Test infrastructure (M3 additions)
+
+- `tests/tui/_static_tasks.py::make_static_tasks()` — factored task builder used by `conftest.static_tasks` fixture AND `snapshot_apps/dashboard_static.py` (pytest fixtures can't be imported by snap_compare modules).
+- `tests/tui/snapshot_apps/dashboard_static.py` — module-level `app = AAMAApp(initial_tasks=make_static_tasks())` for SVG snapshot consumption.
+- `tests/tui/__snapshots__/test_app_smoke/{test_dashboard_svg,test_task_detail_svg}.raw` — golden SVGs (bootstrap via `--snapshot-update`).
+- Live awatch test timing constants: `_WSL_INOTIFY_SETTLE_S=1.5`, `_DEBOUNCE_DRAIN_S=0.8`, `_TEST_DEBOUNCE_MS=200`.
+
+### Dev dep added in M3
+
+- `pytest-textual-snapshot>=1.0` (also pulled syrupy 5.2.0 transitively). Used for SVG snapshot regression on AAMAApp screens. Per L-055: dev-only, no application import. CONTEXT7 entry: `pytest-textual-snapshot@1.0 — snap_compare(app_factory, terminal_size=, press=) fixture`.
+
+### Coverage at M3 close
+
+- tui package: **92%** (560 stmts / 43 missing) — exceeds 80% target
+- app.py: 59% (uncovered = watch_filesystem live branch + _reload_tasks; covered by Step 3.11 end-to-end inline smoke, not by pytest; Step 4.3 integration test will close this)
+- All other tui modules ≥ 91% (most 100%)
+
+### Live smoke result (Step 3.11)
+
+End-to-end pipeline verified programmatically (visual TTY inspection deferred to HARD-gate approval):
+1. CLI `--version`, `--help`, M2 modes still work
+2. `AAMAApp(initial_tasks=initial, watch_roots=[root])` with fake AA-MA task at IN_PROGRESS
+3. Modified `spike-tasks.md` to mark M1 COMPLETE
+4. `tracker_tasks` updated from `[IN_PROGRESS]` to `[COMPLETE]` within 0.8s of debounce drain
+5. Full pipeline: watchfiles → AAMAFilter → reduce_watch_event → AAMAApp._reload_tasks → _swap_dashboard
+
+_Last Updated: 2026-05-18 (M3 close)_

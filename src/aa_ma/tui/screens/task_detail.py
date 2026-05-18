@@ -27,7 +27,7 @@ class TaskDetailScreen(Screen):
         [Horizontal body]
             [milestone-tree]     Tree of milestones → steps (each leaf carries Step)
             [result-log-preview] Static showing selected step's result_log
-        [prov-tail]              joined provenance tail (last 5 lines)
+        [prov-tail]              joined provenance tail (last N lines — see parser._provenance_tail default)
     """
 
     BINDINGS = [("escape", "app.pop_screen", "Back")]

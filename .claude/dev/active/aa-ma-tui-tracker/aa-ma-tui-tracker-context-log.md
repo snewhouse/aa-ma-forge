@@ -167,3 +167,38 @@ _This log will be updated via context compaction as the task progresses._
 - Active step at compaction: Step 2.8: Re-run snapshot tests; regenerate goldens if needed
 - Snapshot saved to: /home/sjnewhouse/.claude/hooks/cache/compaction-snapshots/aa-ma-tui-tracker-snapshot.md
 - Note: Context compacted. Reload AA-MA files to resume.
+
+---
+
+## [2026-05-18] GATE APPROVAL: Milestone 3 — Interactive Textual app
+
+- Gate: HARD
+- Approved by: Stephen J Newhouse (user, via AskUserQuestion answer "Approve and finalize")
+- Criteria verified: 8/8
+  1. ✓ `aa-ma-tui` launches Textual app — Step 3.10 AAMAApp + Step 3.11 inline smoke (`uv run aa-ma-tui` no-flag default launches AAMAApp.run())
+  2. ✓ DashboardScreen 4-column kanban — test_screens_dashboard.py (6 tests verifying canonical column order + task distribution + Screen subclass + BOARD_COLUMNS shared with snapshot.py)
+  3. ✓ Keybindings (↑/↓/Enter/r/q/?//) — Enter (drill_in priority=True) + r (action_reload) + q (Textual default) wired on AAMAApp/DashboardScreen; Escape on TaskDetailScreen (pop_screen); ↑/↓ via Textual Tree + VerticalScroll defaults; ? and / explicitly deferred to M5 polish per plan
+  4. ✓ TaskDetailScreen drill-in — test_screens_task_detail.py (9 tests: stores task, header content, Tree milestones+steps, preview placeholder, prov-tail join + empty-placeholder, arrow nav selects step, Pilot mount via query_one)
+  5. ✓ File-watch via awatch — test_watcher.py (13 tests incl. 3 live awatch with WSL inotify timing) + Step 3.11 end-to-end smoke (full pipeline observed transitioning IN_PROGRESS → COMPLETE on file modification)
+  6. ✓ Malformed-input tolerance < 2s — test_app_smoke.py::test_aama_app_tolerates_parse_error_tasks_within_2s (size=(120,40) Pilot, ERROR-status task in input, mount completes < 2s)
+  7. ✓ pytest-textual-snapshot SVG regression — 2 goldens locked in tests/tui/__snapshots__/test_app_smoke/
+  8. ✓ Coverage ≥ 80% — tui package 92% (560 stmts / 43 missing); app.py 59% (gap = live watch_filesystem branch, will be closed by Step 4.3 integration test)
+- Decision: APPROVED
+
+## [2026-05-18] Milestone Completion: M3 Interactive Textual app
+
+- Status: COMPLETE
+- Gate: HARD — signed approval above
+- Critical-Path: external-api — CRITICAL_PATH_REVIEW entry in provenance.log (filesystem-watch contract validated 4 ways: prototype, test_watcher live tests, end-to-end smoke, AAMAApp @work+stop_event clean shutdown)
+- Prototype-Required: YES — PROTOTYPE — verdict=PASS entry in provenance.log (Step 3.1 spike validated awatch+@work+mutate_reactive+AAMAFilter integration; throwaway file deleted at §6.8 audit close per LOGIC.md delete-or-absorb rule)
+- Key outcome: Full interactive Textual TUI shipped: AAMAApp orchestrates DashboardScreen (4-column kanban by aggregate_status) + TaskDetailScreen (milestone Tree + Result Log preview + provenance tail). Live file-watch via watch_roots/AAMAFilter refreshes affected tasks. `uv run aa-ma-tui` with no flags launches the app; M2 snapshot/json modes still work for non-interactive use.
+- Artifacts (NEW): src/aa_ma/tui/app.py, watcher.py, screens/{__init__,dashboard,task_detail}.py, widgets/{__init__,task_card,kanban_column}.py + 5 new test files + tests/tui/_static_tasks.py + tests/tui/snapshot_apps/{__init__,dashboard_static}.py + 2 SVG goldens.
+- Artifacts (MODIFIED): src/aa_ma/tui/__main__.py (no-flag → AAMAApp.run()), model.py (step_progress/milestone_progress methods on Task), snapshot.py (BOARD_COLUMNS rename, removed _step_progress/_milestone_progress helpers — closed M2 §6.8 W1-CR), parser.py (AAMA_FILE_SUFFIXES + TASKS_FILE_SUFFIX public constants — closed §6.8 W1+W2-FP), conftest.py (factored to make_static_tasks), test_main_dispatch.py (no-flag test now monkeypatches AAMAApp.run).
+- Artifacts (DELETED): prototypes/m3_textual_watchfiles_spike.py (Step 3.1 throwaway; verdict captured in provenance.log).
+- Tests: 771 default + 3 slow pass / 1 skipped (+56 from M2 baseline of 715). 2 SVG snapshots passed. No regressions.
+- Coverage: tui package 92% (target ≥ 80%); model 100%, json_output 100%, snapshot 100%, task_card 100%, kanban_column 100%, task_detail 100%; parser 91%, dashboard 95%, watcher 97%, __main__ 96%, app 59% (live watch path covered by Step 3.11 inline smoke + future Step 4.3 integration test).
+- §6.8 audit: PASS_WITH_WARNINGS (0 CRITICAL / 9 WARNING / 7 INFO); 7 actionable warnings RESOLVED inline (DRY consolidation, magic numbers extracted, CONTEXT7 stub, prototype deletion, count-free docstrings, underscore privates); 4 INFO/deferred items logged as D-M3-1..D-M3-4 backlog targeting M5 polish (SOC split of _reload_tasks, asyncio.shield for clean worker cancellation, TYPE_CHECKING import pattern, KanbanColumn DEFAULT_CSS).
+- Design choice (KISS-justified): `_swap_dashboard()` helper does pop+push (NOT in-place reactive mutation). Trade-off — debuggable + deterministic for v0.10; reactive in-place is M5 polish target (D-M3-1).
+- Notable Textual gotcha verified: `mutate_reactive(ClassName.attr)` must reference the CLASS attribute (not `self.attr`) for `watch_*` handler to fire on in-place mutation (Step 3.1 PROTOTYPE finding; recorded in reference.md M3 facts).
+- Notable WSL inotify finding: subdir file-watch needs ≥ 1s for inotify registration on WSL2 (works immediately at root). Documented in test_watcher.py constants + reference.md.
+- Next: M4 ADR-0007 + docs + integration test + `cz bump --increment MINOR` → v0.10.0 release.

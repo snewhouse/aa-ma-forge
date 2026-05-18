@@ -24,34 +24,28 @@ from typing import Any
 
 from watchfiles import Change, DefaultFilter, awatch
 
+from aa_ma.tui.parser import AAMA_FILE_SUFFIXES
+
 
 # -----------------------------------------------------------------------------
 # AAMAFilter — only AA-MA artifact files trigger the watcher
 # -----------------------------------------------------------------------------
 
 
-_AAMA_SUFFIXES: tuple[str, ...] = (
-    "-tasks.md",
-    "-plan.md",
-    "-reference.md",
-    "-context-log.md",
-    "-provenance.log",
-)
-
-
 class AAMAFilter(DefaultFilter):
-    """Whitelist filter — accepts only the 5 canonical AA-MA artifact suffixes.
+    """Whitelist filter — accepts only the canonical AA-MA artifact suffixes (see AAMA_FILE_SUFFIXES).
 
     Inherits DefaultFilter's noise suppression (.git, __pycache__, etc.) and
     adds a tail-suffix whitelist matching the AA-MA file-naming grammar
     (`{task}-{role}.{md|log}`). A bare `tasks.md` (no `-` prefix) is NOT
-    accepted — it doesn't belong to a task.
+    accepted — it doesn't belong to a task. Suffix tuple is the canonical
+    `aa_ma.tui.parser.AAMA_FILE_SUFFIXES` (single source of truth per L-005).
     """
 
     def __call__(self, change: Change, path: str) -> bool:
         if not super().__call__(change, path):
             return False
-        return any(path.endswith(suf) for suf in _AAMA_SUFFIXES)
+        return any(path.endswith(suf) for suf in AAMA_FILE_SUFFIXES)
 
 
 # -----------------------------------------------------------------------------
@@ -87,13 +81,13 @@ def reduce_watch_event(
 # -----------------------------------------------------------------------------
 
 
-CallbackResult = None | Awaitable[None]
-Callback = Callable[[set[str]], CallbackResult]
+_CallbackResult = None | Awaitable[None]
+_Callback = Callable[[set[str]], _CallbackResult]
 
 
 async def watch_roots(
     roots: list[Path],
-    callback: Callback,
+    callback: _Callback,
     *,
     debounce: int = 300,
     stop_event: asyncio.Event | None = None,

@@ -1,7 +1,7 @@
 """Tests for src/aa_ma/tui/watcher.py — M3 Steps 3.8 + 3.9.
 
 watcher.py contains:
-  - AAMAFilter(DefaultFilter)  — whitelists 5 canonical AA-MA suffixes
+  - AAMAFilter(DefaultFilter)  — whitelists canonical AA-MA suffixes (see AAMA_FILE_SUFFIXES)
   - reduce_watch_event(state, changes) → (new_state, affected_task_names)
   - async watch_roots(roots, callback, *, debounce, stop_event) — driver
 
@@ -18,6 +18,16 @@ from pathlib import Path
 from watchfiles import Change
 
 from aa_ma.tui.watcher import AAMAFilter, reduce_watch_event, watch_roots
+
+# Live awatch timing constants — single source of truth (§6.8 W3 fix).
+# WSL2 inotify needs ≥1s to register subdir watches (empirically validated
+# 2026-05-18; works at root immediately, fails at 0.3s for subdirs).
+_WSL_INOTIFY_SETTLE_S = 1.5
+# Pause after a file modification, long enough to clear `_TEST_DEBOUNCE_MS`
+# and let the callback fire.
+_DEBOUNCE_DRAIN_S = 0.8
+# Debounce window for the tests (smaller than production 300ms for speed).
+_TEST_DEBOUNCE_MS = 200
 
 
 # =============================================================================
@@ -133,9 +143,9 @@ def test_watch_roots_fires_callback_on_file_change() -> None:
 
             # Launch watcher
             watcher_task = asyncio.create_task(
-                watch_roots([root], cb, debounce=200, stop_event=stop)
+                watch_roots([root], cb, debounce=_TEST_DEBOUNCE_MS, stop_event=stop)
             )
-            await asyncio.sleep(1.5)  # WSL inotify needs ≥1s to register subdir watches
+            await asyncio.sleep(_WSL_INOTIFY_SETTLE_S)
 
             # Modify the watched file
             (task_dir / "spike-tasks.md").write_text("# COMPLETE\n")
@@ -166,13 +176,13 @@ def test_watch_roots_ignores_non_aama_files() -> None:
                 received.append(affected)
 
             watcher_task = asyncio.create_task(
-                watch_roots([root], cb, debounce=200, stop_event=stop)
+                watch_roots([root], cb, debounce=_TEST_DEBOUNCE_MS, stop_event=stop)
             )
-            await asyncio.sleep(1.5)  # WSL inotify needs ≥1s to register subdir watches
+            await asyncio.sleep(_WSL_INOTIFY_SETTLE_S)
 
             # Touch only the noise file
             (task_dir / "noise.txt").write_text("more noise")
-            await asyncio.sleep(0.8)  # well past debounce
+            await asyncio.sleep(_DEBOUNCE_DRAIN_S)  # well past debounce
 
             # Stop watcher
             stop.set()
@@ -206,9 +216,9 @@ def test_watch_roots_accepts_sync_callback() -> None:
                     stop.set()
 
             watcher_task = asyncio.create_task(
-                watch_roots([root], sync_cb, debounce=200, stop_event=stop)
+                watch_roots([root], sync_cb, debounce=_TEST_DEBOUNCE_MS, stop_event=stop)
             )
-            await asyncio.sleep(1.5)  # WSL inotify needs ≥1s to register subdir watches
+            await asyncio.sleep(_WSL_INOTIFY_SETTLE_S)
 
             (task_dir / "alpha-tasks.md").write_text("# changed\n")
             await asyncio.wait_for(watcher_task, timeout=5.0)

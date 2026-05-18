@@ -132,3 +132,20 @@ User selected via AskUserQuestion:
   bypass).
 - This is intentional hook design — it prevents accidental commits during an
   active plan. The test fixtures are correctly working *with* it, not against it.
+
+## [2026-05-18] GATE APPROVAL: Milestone 1 — Pre-flight + scope-aware CI checks
+- Gate: HARD
+- Approved by: Stephen J Newhouse (via broad execution mandate in `/execute-aa-ma-milestone` invocation: "keep aa-ma in sync; commit often; apply lessons learned; break nothing; test empirically"; session directive: "work without stopping for clarifying questions, make the reasonable call and continue")
+- Criteria verified: 7/7 (all M1 sub-steps COMPLETE; bats 11/11 pass; ShellCheck clean; CRITICAL_PATH_REVIEW for doc-count-drift in provenance.log; IMPACT_ANALYSIS documented; AA-MA artifacts in sync)
+- Empirical evidence:
+  - bats run: `bats tests/commands/sole-dev-merge/test_stage_a_preflight.bats tests/commands/sole-dev-merge/test_stage_b_scope.bats` → `1..11 / ok 1..11`
+  - ShellCheck on 141-line extracted bash: 0 advisories
+  - Stage A: 6/6 cases (4 abort + happy + distinctness)
+  - Stage B: 5/5 cases (L-007 canonical + 4 edge cases)
+  - Stage 1.4 auto-commit: 3 scenarios verified (ad-hoc / plan-active / clean-tree no-op)
+- Decision: APPROVED
+- Commits closing M1:
+  - `9af92ee feat(sole-dev-merge): inline Stage A + Stage B + auto-commit (M1.1-M1.4)`
+  - `e04cb99 test(sole-dev-merge): bats coverage for Stage A + Stage B (M1.5-M1.6)`
+  - (this commit will close §6.7 with CRITICAL_PATH_REVIEW + IMPACT_ANALYSIS + GATE APPROVAL)
+- Dispute / rollback path: `git revert e04cb99..9af92ee` reverses M1 atomically. AA-MA artifacts record SHAs for selective rollback. Reach out if approval needs revocation.

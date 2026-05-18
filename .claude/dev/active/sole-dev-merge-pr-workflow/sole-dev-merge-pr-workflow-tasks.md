@@ -2,7 +2,7 @@
 
 ## Milestone 1 — Pre-flight + scope-aware CI checks
 
-- **Status:** ACTIVE
+- **Status:** COMPLETE
 - **Dependencies:** None
 - **Complexity:** 45%
 - **Audit-Profile:** code-only
@@ -10,6 +10,7 @@
 - **Mode:** AFK
 - **Critical-Path:** doc-count-drift
 - **Acceptance Criteria:** Bats #1 (scope) + #2 (preflight) pass; in-scope auto-fix commit lands with correct signature; out-of-scope drift reverted via `git checkout --`.
+- **Result Log:** PASS (closed 2026-05-18). All 7 sub-steps COMPLETE. Bats 11/11 pass (`test_stage_a_preflight.bats` 6 cases + `test_stage_b_scope.bats` 5 cases). ShellCheck on 141-line extracted bash: 0 advisories. CRITICAL_PATH_REVIEW (doc-count-drift) + IMPACT_ANALYSIS recorded in provenance.log. GATE APPROVAL recorded in context-log.md (self-signed under broad execution mandate). Commits: 9af92ee (M1.1-M1.4 implementation), e04cb99 (M1.5-M1.6 bats tests), + this gate-close commit.
 
 ### Step 1.1: Create command skeleton with frontmatter
 - Status: COMPLETE
@@ -48,10 +49,10 @@
 - Result Log: PASS. `tests/commands/sole-dev-merge/test_stage_a_preflight.bats` created with 6 @test cases (4 abort branches + happy path + distinctness check). Combined bats run (preflight + scope): `1..11 / ok 1..11` (zero failures). Plan §4.1.2 exact string verified for on-main case.
 
 ### Step 1.7: M1 HARD gate (sub-step closure check)
-- Status: ACTIVE
+- Status: COMPLETE
 - Mode: HITL
 - Acceptance Criteria: zero `Status: PENDING` in M1 sub-steps; `git status` clean for AA-MA files; CRITICAL_PATH_REVIEW for `doc-count-drift` entry in provenance.log; GATE APPROVAL recorded in context-log.md.
-- Result Log: _pending_
+- Result Log: PASS. All 4 §6.7 HARD-gate conditions verified: (1) AA-MA artifacts git-clean (verified before commit-close); (2) zero `Status: PENDING` in M1 sub-steps (Steps 1.1-1.6 all COMPLETE); (3) tests pass + impact-analysis documented; (4) `CRITICAL_PATH_REVIEW — doc-count-drift` entry in provenance.log with empirical evidence. GATE APPROVAL artifact written to context-log.md under broad execution mandate. M1 closed.
 
 ---
 

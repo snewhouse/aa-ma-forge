@@ -19,9 +19,10 @@ from pathlib import Path
 
 from textual import work
 from textual.app import App
+from textual.binding import Binding
 
 from aa_ma.tui.model import ParseError, Task
-from aa_ma.tui.parser import parse_task_dir
+from aa_ma.tui.parser import discover_tasks, parse_task_dir
 from aa_ma.tui.screens.dashboard import DashboardScreen
 from aa_ma.tui.watcher import watch_roots
 
@@ -46,6 +47,11 @@ class AAMAApp(App):
     DashboardScreen { layout: vertical; }
     KanbanColumn { width: 1fr; border: solid $primary; padding: 1; }
     """
+
+    BINDINGS = [
+        Binding("r", "reload", "Reload"),
+        Binding("q", "quit", "Quit"),
+    ]
 
     def __init__(
         self,
@@ -110,6 +116,20 @@ class AAMAApp(App):
             except ParseError as exc:
                 return Task(name=name, root=candidate, parse_error=str(exc))
         return None
+
+    async def action_reload(self) -> None:
+        """Re-run discover_tasks across watch_roots and refresh the dashboard.
+
+        Redundant when file-watch is active (auto-refresh handles it) but
+        kept per M3 AC #3 — useful when watch_roots is empty (static mode)
+        or after suspecting a missed event.
+        """
+        if not self.watch_roots_value:
+            return
+        self.tracker_tasks = discover_tasks(self.watch_roots_value)
+        if isinstance(self.screen, DashboardScreen):
+            self.pop_screen()
+            self.push_screen(DashboardScreen(self.tracker_tasks))
 
     async def action_quit(self) -> None:
         self._stop_event.set()

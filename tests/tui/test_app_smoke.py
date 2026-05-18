@@ -36,6 +36,41 @@ def test_aama_app_no_watch_roots_runs_without_watcher() -> None:
     assert app.watch_roots_value == []
 
 
+def test_aama_app_has_r_binding_for_reload() -> None:
+    """`r` keybinding is named in M3 AC #3 — explicit reload action."""
+    keys = [b.key for b in AAMAApp.BINDINGS]
+    assert "r" in keys
+
+
+def test_aama_app_r_binding_reloads_via_action(static_tasks, tmp_path) -> None:
+    """Pilot test: pressing `r` calls action_reload → re-discover from watch_roots."""
+
+    async def _run() -> None:
+        # Set up a fake AA-MA active dir so discover_tasks finds something.
+        task_dir = tmp_path / "foo"
+        task_dir.mkdir()
+        (task_dir / "foo-tasks.md").write_text(
+            "## Milestone 1: M\n- Status: COMPLETE\n\n### Step 1.1: S\n- Status: COMPLETE\n- Result Log: x\n"
+        )
+        (task_dir / "foo-plan.md").write_text("")
+        (task_dir / "foo-reference.md").write_text("")
+        (task_dir / "foo-context-log.md").write_text("")
+        (task_dir / "foo-provenance.log").write_text("")
+
+        app = AAMAApp(initial_tasks=[], watch_roots=[tmp_path])
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            # Initially empty (we passed initial_tasks=[]).
+            assert app.tracker_tasks == []
+            await pilot.press("r")
+            await pilot.pause(0.2)
+            # After reload, the foo task should be discovered.
+            names = [t.name for t in app.tracker_tasks]
+            assert "foo" in names
+
+    asyncio.run(_run())
+
+
 # -----------------------------------------------------------------------------
 # Launch — DashboardScreen pushed on mount
 # -----------------------------------------------------------------------------

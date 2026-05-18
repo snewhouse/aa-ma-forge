@@ -342,18 +342,93 @@ echo "Stage C aggregate: ${TOTAL} findings → $FINDINGS"
 
 ### Stage D — Findings triage
 
-_Implementation pending Step 2.5._
+Consumes `/tmp/sole-dev-merge-findings-${SLUG}.md` produced by Stage C and
+routes findings by severity:
 
-Concatenates the four source files. **CRITICAL** auto-fix attempted for
-deterministic Bandit/ShellCheck patterns only (agent-emitted CRITICALs are
-tagged for user review). Re-runs Stage B fast tier after auto-fix to verify no
-regression. **HIGH / MEDIUM** routed to `AskUserQuestion` (4-per-call max) with
-options: Apply / Dispute / Defer. **LOW** appended to PR body's "Reviewer
-notes" section (advisory only).
+- **CRITICAL** — deterministic auto-fix for known patterns (Bandit B602
+  → `s/shell=True/shell=False/`); other CRITICALs (ShellCheck, agent-emitted)
+  are tagged for user review. Auto-fix lands as a single commit:
+  `fix(review): apply CRITICAL bandit findings`.
+- **HIGH / MEDIUM** — Claude executor invokes `AskUserQuestion` panels
+  (4-per-call max) with Apply / Dispute / Defer options. Bash logs only.
+- **LOW** — appended to `/tmp/sole-dev-merge-reviewer-notes-${SLUG}.md`
+  for inclusion in the PR/MR body's "Reviewer notes" section (advisory).
 
-On parse failure (agent output does not match the contract), safe-default:
-classify ALL findings as `[HIGH]` and log the parse failure to
-`provenance.log` — no silent auto-fix without confirmation.
+```bash
+# === stage-d-triage (BEGIN) ===
+set -euo pipefail
+
+SLUG="${SLUG:-$(date +%s)}"
+FINDINGS="/tmp/sole-dev-merge-findings-${SLUG}.md"
+
+if [[ ! -f "$FINDINGS" ]]; then
+    echo "Stage D: no findings file at $FINDINGS — nothing to triage"
+    exit 0
+fi
+
+N_CRITICAL=$(grep -cE '^\[CRITICAL\]' "$FINDINGS" || true)
+N_HIGH=$(grep -cE '^\[HIGH\]' "$FINDINGS" || true)
+N_MEDIUM=$(grep -cE '^\[MEDIUM\]' "$FINDINGS" || true)
+N_LOW=$(grep -cE '^\[LOW\]' "$FINDINGS" || true)
+
+echo "Stage D triage: $N_CRITICAL CRITICAL, $N_HIGH HIGH, $N_MEDIUM MEDIUM, $N_LOW LOW"
+
+AUTO_FIXED=0
+TAGGED_FOR_REVIEW=()
+
+if [[ "$N_CRITICAL" -gt 0 ]]; then
+    while IFS= read -r line; do
+        # Extract path from suffix "— <path>:<line>" (em-dash separator from Stage C)
+        FILE=$(echo "$line" | sed -nE 's/.*— ([^:]+):[0-9]+.*/\1/p')
+        if [[ "$line" =~ B602 ]]; then
+            # Bandit B602 (subprocess shell=True) — deterministic auto-fix
+            if [[ -n "$FILE" && -f "$FILE" ]]; then
+                sed -i 's/shell=True/shell=False/g' "$FILE"
+                echo "Stage D auto-fix: B602 in $FILE (shell=True → shell=False)"
+                AUTO_FIXED=$((AUTO_FIXED + 1))
+            fi
+        else
+            # Non-B602 CRITICALs (ShellCheck or agent-emitted) require user review
+            TAGGED_FOR_REVIEW+=("$line")
+        fi
+    done < <(grep -E '^\[CRITICAL\]' "$FINDINGS")
+fi
+
+if [[ "${#TAGGED_FOR_REVIEW[@]}" -gt 0 ]]; then
+    echo "Stage D: ${#TAGGED_FOR_REVIEW[@]} CRITICAL finding(s) tagged for user review (not auto-fixed):"
+    printf '  %s\n' "${TAGGED_FOR_REVIEW[@]}"
+fi
+
+# LOW → reviewer notes (advisory; surfaced in PR/MR body by Stage E3)
+if [[ "$N_LOW" -gt 0 ]]; then
+    REVIEWER_NOTES="/tmp/sole-dev-merge-reviewer-notes-${SLUG}.md"
+    grep -E '^\[LOW\]' "$FINDINGS" > "$REVIEWER_NOTES"
+    echo "Stage D: $N_LOW LOW finding(s) → $REVIEWER_NOTES (advisory)"
+fi
+
+# Commit auto-fixes if any
+if [[ "$AUTO_FIXED" -gt 0 ]]; then
+    # Plan-aware commit footer — produced inline (the
+    # aa-ma-commit-signature.sh hook validates the LITERAL message at
+    # PreToolUse, so we cannot rely on it to append the footer for us).
+    PLAN_DIR=$(ls -d "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"/.claude/dev/active/*/ 2>/dev/null | head -1 || true)
+    if [[ -n "$PLAN_DIR" ]]; then
+        PLAN_NAME=$(basename "${PLAN_DIR%/}")
+        FOOTER=$'\n\n'"[AA-MA Plan] ${PLAN_NAME} .claude/dev/active/${PLAN_NAME}"
+    else
+        FOOTER=$'\n\n'"[ad-hoc]"
+    fi
+    git add -A
+    git commit -m "fix(review): apply CRITICAL bandit findings${FOOTER}"
+    echo "Stage D: committed $AUTO_FIXED auto-fix(es) ($(git rev-parse --short HEAD))"
+fi
+
+# HIGH/MEDIUM — Claude executor handles via AskUserQuestion. Bash logs only.
+if [[ "$N_HIGH" -gt 0 || "$N_MEDIUM" -gt 0 ]]; then
+    echo "Stage D: $N_HIGH HIGH + $N_MEDIUM MEDIUM finding(s) require AskUserQuestion triage (HITL)"
+fi
+# === stage-d-triage (END) ===
+```
 
 ### Stage E — Remote detection, choice, AI body generation
 

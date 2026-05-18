@@ -38,6 +38,9 @@ setup() {
 
 teardown() {
     rm -rf "$BATS_TMP" "$SCRIPT_DIR"
+    # Remove the migration-banner sentinel so successive tests don't see
+    # the "once per session" suppression effect.
+    rm -f "${TMPDIR:-/tmp}/sole-dev-merge-banner-shown"
 }
 
 # ---------------------------------------------------------------------------
@@ -90,6 +93,11 @@ teardown() {
     bash "$EXTRACT" stage-c-aggregate  "$COMMAND_MD" > "$SC"
     bash "$EXTRACT" stage-d-triage     "$COMMAND_MD" > "$SD"
     chmod +x "$SA" "$SB" "$SBC" "$SC" "$SD"
+
+    # Stage B-commit + Stage D source aa-ma-footer.sh via $AA_MA_FOOTER_HELPER
+    # env override (sandbox repo doesn't ship the helper).
+    export AA_MA_FOOTER_HELPER="${REPO_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh"
+    [[ -f "$AA_MA_FOOTER_HELPER" ]] || { echo "Missing helper at $AA_MA_FOOTER_HELPER" >&2; return 1; }
 
     cd "$BATS_TMP"
     sandbox_init

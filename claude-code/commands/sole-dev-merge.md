@@ -29,6 +29,41 @@ security rationale, and backward-compatibility strategy live there.
 
 ---
 
+## Migration banner (runs FIRST, before Stage A)
+
+The legacy user-local `/sole-dev-merge` (fast-merge) has been retired and
+replaced by this PR/MR workflow per ADR-0008. `scripts/install.sh` auto-
+backs-up the old command to `~/.claude/backups/aa-ma-forge-<ts>/` before
+symlinking the new one. The banner alerts the operator on first invocation
+post-deploy. Suppress with `AA_MA_SUPPRESS_MIGRATION_BANNER=1`.
+
+```bash
+# === stage-banner (BEGIN) ===
+set -euo pipefail
+
+# Migration banner per ADR-0008. Plan §5.7 falsifiable AC: env-var
+# suppression. "Once per session" is implemented via a /tmp sentinel so
+# subsequent invocations within the same login session stay silent.
+if [[ "${AA_MA_SUPPRESS_MIGRATION_BANNER:-0}" != "1" ]]; then
+    SENTINEL="${TMPDIR:-/tmp}/sole-dev-merge-banner-shown"
+    if [[ ! -f "$SENTINEL" ]]; then
+        cat <<'BANNER'
+NOTE: /sole-dev-merge has been updated to a PR/MR workflow with 3-source
+security review and idempotent auto-merge (ADR-0008). The legacy fast-merge
+path is retired; the user-local copy was auto-backed-up to
+~/.claude/backups/aa-ma-forge-<ts>/ on install.
+
+See docs/adr/0008-sole-dev-merge-pr-workflow.md for rationale, alternatives,
+and rollback paths. Set AA_MA_SUPPRESS_MIGRATION_BANNER=1 to silence.
+BANNER
+        : > "$SENTINEL"
+    fi
+fi
+# === stage-banner (END) ===
+```
+
+---
+
 ## Workflow stages
 
 The command runs sequentially through stages **A → G**. Each stage is

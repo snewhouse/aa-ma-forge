@@ -1,0 +1,8 @@
+beta-task (IN_PROGRESS)
+├── M1: Foundations [COMPLETE]
+│   ├── 1.1 design [COMPLETE] — approved
+│   └── 1.2 prototype [COMPLETE] — working
+└── M2: Implementation [IN_PROGRESS]
+    ├── 2.1 code [COMPLETE] — merged
+    ├── 2.2 test [IN_PROGRESS] — writing
+    └── 2.3 docs [PENDING]

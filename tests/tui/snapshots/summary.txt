@@ -1,0 +1,3 @@
+alpha-task  [COMPLETE]  4/4 steps  2/2 ms  · 2026-05-01
+beta-task  [IN_PROGRESS]  3/5 steps  1/2 ms  · 2026-05-01
+gamma-task  [BLOCKED]  2/3 steps  1/2 ms  · 2026-05-01

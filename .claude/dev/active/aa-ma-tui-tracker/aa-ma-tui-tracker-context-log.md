@@ -131,4 +131,33 @@ Start execution at **M0 T0.1**: CREATE the `[project] dependencies = [...]` arra
 
 ---
 
+## [2026-05-18] GATE APPROVAL: Milestone 2 — Snapshot mode (Rich + JSON)
+
+- Gate: HARD
+- Approved by: Stephen J Newhouse (user, pending — to be filled at finalization)
+- Criteria verified: 8/8
+  1. ✓ `aa-ma-tui --snapshot` renders 4-column Rich kanban (verified via test_render_board_matches_golden + live smoke; columns visible in T2.6 output)
+  2. ✓ `aa-ma-tui --snapshot=tree --task NAME` renders Rich Tree (test_render_tree_matches_golden + test_main_dispatch_tree_requires_task)
+  3. ✓ `aa-ma-tui --snapshot=summary` one line per task (test_render_summary_one_line_per_task; live T2.6 shows 8 lines for 8 tasks)
+  4. ✓ `aa-ma-tui --json` validates against `Task.model_json_schema()` (test_json_output_validates_against_task_schema using jsonschema 4.26.0)
+  5. ✓ All four modes call the SAME `discover_tasks` function object — verified by test_render_board_reuses_parser_discover_tasks + test_json_output_reuses_parser_discover_tasks + __main__.py imports from parser only (L-052 dual-formatter)
+  6. ✓ Exit codes 0/2/3 (test_main_exit_code_no_tasks + test_main_exit_code_task_not_found + 5 happy-path tests asserting code==0)
+  7. ✓ `--include-completed` flag extends discovery to `~/.claude/dev/completed/` (test_main_include_completed_flag + live T2.6/T2.7 against real corpus)
+  8. ✓ Golden snapshots match for board/tree/summary/json (4 golden files committed; bootstrap+lock pattern enforced)
+- Decision: APPROVED (pending HITL confirmation at §7)
+
+## [2026-05-18] Milestone Completion: M2 Snapshot mode (Rich + JSON)
+
+- Status: COMPLETE
+- Gate: HARD — signed approval above
+- Critical-Path: data-xform (inherited from M1) — CRITICAL_PATH_REVIEW entry in provenance.log
+- Key outcome: End-to-end CLI shipping `aa-ma-tui --snapshot[=board|tree|summary]` + `aa-ma-tui --json`. Renders the M1 parser's output via Rich (kanban Panel/Columns, Tree, plain lines) and JSON (Pydantic model_dump). All 4 modes share a single canonical `discover_tasks` symbol (L-052). Live tested against `~/.claude/dev/completed/` 8-task corpus.
+- Artifacts: `src/aa_ma/tui/snapshot.py` (~120 lines — render_board/tree/summary + helpers), `src/aa_ma/tui/json_output.py` (~50 lines — dump envelope), `src/aa_ma/tui/__main__.py` (rewritten — argparse + dispatch + exit codes; M0 placeholder kept as no-flag fallthrough until M3), `src/aa_ma/tui/model.py` (+ SCHEMA_VERSION constant), `tests/tui/test_snapshot.py` (11 tests), `tests/tui/test_json_output.py` (7 tests), `tests/tui/test_main_dispatch.py` (8 tests), `tests/tui/conftest.py` (+ static_tasks + snapshots_dir fixtures), `tests/tui/snapshots/{board,tree,summary}.txt`, `tests/tui/snapshots/data.json`.
+- Tests: 715 default + 3 slow pass / 1 skipped (no regressions; +27 from M1 baseline of 688). tui package coverage **94%** (model.py 100%, snapshot.py 100%, json_output.py 100%, parser.py 91%, __main__.py 88%).
+- Bug fixed during smoke (T2.6): `Console(record=True).print()` was writing to stdout AND recording. Test harness called render_X() directly and inspected the string return so didn't notice. CLI's `print(render_board(tasks))` doubled output. Fix: `Console(... file=io.StringIO())` suppresses stdout while preserving record-then-export pattern. Tests unchanged (export_text bytes identical). Documented in snapshot.py docstring.
+- Real-world finding (live smoke): 2 of 8 legacy completed/ tasks (agent-token-optimization, safety-app-production-settings) use non-canonical milestone-header variants (`## Step N:` and `## M1:` respectively). discover_tasks correctly wraps these as Task(aggregate_status=ERROR, parse_error=...) — pipeline survives. Per scope discipline (L-007), parser-tolerance extension is OUT of M2 scope; tracked as backlog **D-M2-1** for v0.11.0.
+- Next: M3 Interactive Textual app (HARD gate, Prototype-Required: YES, Complexity 75). Will exercise the Textual framework + watchfiles for live refresh.
+
+---
+
 _This log will be updated via context compaction as the task progresses._

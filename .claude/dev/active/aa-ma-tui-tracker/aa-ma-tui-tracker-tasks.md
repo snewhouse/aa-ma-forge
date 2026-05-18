@@ -128,7 +128,7 @@ Created: 2026-05-17
 ---
 
 ## Milestone 2: Snapshot mode (Rich + JSON)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Gate: HARD
 - Complexity: 55
@@ -136,6 +136,7 @@ Created: 2026-05-17
 - Audit-Profile: code-only
 - Dependencies: Milestone 1
 - Note: Critical-Path:data-xform shared with M1 — output rendering is a continuation of the parse→model→render pipeline; same evidence requirement (CRITICAL_PATH_REVIEW entry in provenance.log on completion).
+- Result Log: All 8 acceptance criteria verified. 27 new tests added (19 snapshot + 7 json + 8 dispatch — minus 1 overlap = 34 unique; +19 net to full suite: 715 pass vs 688 in M1). tui package coverage 94% (model.py 100%, snapshot.py 100%, json_output.py 100%, __main__.py 88%, parser.py 91%). HARD gate approved by user. CRITICAL_PATH_REVIEW evidence in provenance.log. Live smoke against `~/.claude/dev/completed/`: 8 tasks discovered, 6 render in board view (COMPLETE/IN_PROGRESS), 2 fall to ERROR aggregate status due to legacy `## Step N:` / `## M1:` milestone-header variants (caught gracefully by discover_tasks try/except; tracked as D-M2-1 parser-tolerance backlog). JSON envelope includes all 8 names + schema_version=1.
 - Acceptance Criteria:
   - `aa-ma-tui --snapshot` renders 4-column Rich kanban
   - `aa-ma-tui --snapshot=tree --task NAME` renders Rich Tree
@@ -147,44 +148,44 @@ Created: 2026-05-17
   - Golden snapshots match for board/tree/summary
 
 ### Step 2.1: TDD render_board (golden file)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: 4 tests (golden equality, status grouping, empty-list, discover_tasks reuse). RED via ModuleNotFoundError. Implemented `render_board(tasks)` using Rich Columns of 4 Panels (PENDING/IN_PROGRESS/BLOCKED/COMPLETE). Each panel lists task cards with `X/Y steps · M/N ms`. ERROR-status tasks deliberately excluded from board (M3 surfaces them as PARSE_ERROR badges). Console pinned at width=120 + `file=io.StringIO()` to prevent double-print (bug caught in T2.6). Golden bootstrapped on first run, locked on second. GREEN: 4/4.
 
 ### Step 2.2: TDD render_tree (Rich Tree of milestones + steps)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: 4 tests (golden, milestone titles present, step numbers present, result_log truncated at 60 chars). Implemented `render_tree(task)` using Rich Tree: top = name+aggregate, branches = milestones with `M{n}: {title} [{status}]`, leaves = steps with `{n.m} {title} [{status}] — {first_60_chars}…`. `_RESULT_LOG_PREVIEW_CHARS = 60` named constant. GREEN: 4/4.
 
 ### Step 2.3: TDD render_summary (one line per task)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: 3 tests (golden, one-line-per-task count, metadata fields present). Implemented `render_summary(tasks)` emitting `NAME  [status]  X/Y steps  M/N ms  · YYYY-MM-DD` per line. Helpers `_step_progress()` + `_milestone_progress()` factored out (DRY — also used by `_task_card` in render_board). GREEN: 3/3.
 
 ### Step 2.4: TDD json_output.dump (schema-validated)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: 7 tests (SCHEMA_VERSION constant, dump returns str, schema_version in envelope, all names present, jsonschema validates per task, golden semantic equality, discover_tasks reuse). Added `SCHEMA_VERSION: int = 1` to model.py with bumping-policy docstring (per M2 plan risk #2). Created `json_output.dump(tasks)` returning `{"schema_version": 1, "tasks": [task.model_dump(mode='json') for t in tasks]}` with `indent=2, sort_keys=True`. Each task validated against `Task.model_json_schema()` via `jsonschema.validate` (jsonschema 4.26.0 already installed transitively). GREEN: 7/7.
 
 ### Step 2.5: TDD __main__ dispatch + exit codes
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: 8 tests covering board/tree/summary/json dispatch + exit codes 0/2/3 + --include-completed + --root + no-flag fallthrough. Implemented argparse with `--snapshot[=board|tree|summary]` (const='board'), `--json`, `--task NAME`, `--include-completed`, `--root PATH`. Exit code constants `EXIT_OK=0, EXIT_TASK_NOT_FOUND=2, EXIT_NO_TASKS=3` as single source of truth. `_resolve_roots()` hybrid layout detection: if `<root>/dev/active` exists → `.claude`-style project root traversal; else → direct scan root (preserves test convenience). GREEN: 8/8.
 
 ### Step 2.6: Manual smoke against ~/.claude/dev/completed (8 tasks)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: `uv run aa-ma-tui --snapshot=summary --include-completed --root ~/.claude` exit 0; 8 tasks displayed: aa-ma-team-guide [COMPLETE] · agent-token-optimization [ERROR] · galactic-skills-review [IN_PROGRESS] · playwright-skill [COMPLETE] · safety-app-production-settings [ERROR] · security-quality-remediation [COMPLETE] · ultraplan-agent-teams-hardening [COMPLETE] · ultraplan-enhancement [IN_PROGRESS]. The 2 ERROR tasks use legacy `## Step N:` (agent-token-optimization) and `## M1:` (safety-app-production-settings) milestone-header variants — discover_tasks correctly wraps them in Task(aggregate_status=ERROR, parse_error=...) so the pipeline doesn't collapse. Per scope discipline (L-007), parser-tolerance extension is out of M2 scope; tracked as D-M2-1 backlog for v0.11.0. **Critical bug discovered + fixed during smoke**: `Console(record=True).print()` was writing to stdout AND recording → `print(console.export_text())` doubled every snapshot. Fix: `file=io.StringIO()` on Console init to suppress stdout; export_text remains intact. Tests didn't catch this because they called `render_X()` directly and inspected the string return, not via CLI which `print()`s on top. Added defensive note in snapshot.py docstring.
 
 ### Step 2.7: JSON smoke + jq assertion (all 8 names)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: `uv run aa-ma-tui --json --include-completed --root ~/.claude | jq -r '.tasks[] | .name' | sort` → all 8 expected names present (aa-ma-team-guide, agent-token-optimization, galactic-skills-review, playwright-skill, safety-app-production-settings, security-quality-remediation, ultraplan-agent-teams-hardening, ultraplan-enhancement). `jq '.tasks | length'` = 8. `jq '.schema_version'` = 1. JSON envelope includes ERROR-status tasks (unlike board view), proving discover_tasks' parse-error wrapping reaches the JSON consumer faithfully.
 
 ### Step 2.8: Re-run snapshot tests; regenerate goldens if needed
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: Full re-run after StringIO fix + ruff format: 715 default + 3 slow pass / 1 skipped (no regressions; +27 from M1 baseline of 688). tui package coverage 94% overall (model.py 100%, snapshot.py 100%, json_output.py 100%, parser.py 91%, __main__.py 88%). Goldens preserved (board.txt, tree.txt, summary.txt, data.json — all committed in this milestone). No regeneration needed (StringIO change is render-output-neutral; the export_text string is identical before/after). Ruff lint clean, ruff format applied to 4 files, lint-imports 2/2 KEPT.
 
 ---
 

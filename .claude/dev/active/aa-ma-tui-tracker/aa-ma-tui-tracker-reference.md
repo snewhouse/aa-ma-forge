@@ -205,4 +205,57 @@ Phase 4.5 ran on 2026-05-17. See `aa-ma-tui-tracker-verification.md` for full au
 
 - `pytest-cov>=5.0` (required for M1 AC #6 coverage gate)
 
-_Last Updated: 2026-05-17_
+## M2 immutable facts (added 2026-05-18 at M2 completion)
+
+### Public API surface (M2 additions)
+
+- `aa_ma.tui.model.SCHEMA_VERSION: int = 1` — JSON output contract version
+- `aa_ma.tui.snapshot.render_board(tasks: list[Task]) -> str` — 4-column kanban
+- `aa_ma.tui.snapshot.render_tree(task: Task) -> str` — single-task milestones+steps tree
+- `aa_ma.tui.snapshot.render_summary(tasks: list[Task]) -> str` — one line per task
+- `aa_ma.tui.snapshot.discover_tasks` — re-exported (L-052 dual-formatter)
+- `aa_ma.tui.json_output.dump(tasks: list[Task]) -> str` — JSON envelope `{"schema_version":1, "tasks":[...]}`
+- `aa_ma.tui.json_output.discover_tasks` — re-exported (L-052 dual-formatter)
+- `aa_ma.tui.__main__.main(argv) -> int` — CLI entry (exits 0/2/3); also exports `EXIT_OK=0`, `EXIT_TASK_NOT_FOUND=2`, `EXIT_NO_TASKS=3` constants
+
+### CLI flags (added in M2)
+
+- `--snapshot[=board|tree|summary]` (nargs='?', const='board')
+- `--json` (store_true)
+- `--task NAME` (required for `--snapshot=tree`)
+- `--include-completed` (extends to `<root>/dev/completed/`)
+- `--root PATH` (hybrid: project root with `dev/active` subdir OR direct scan root)
+
+### Render constants
+
+- `_RENDER_WIDTH = 120` — Console width for golden determinism
+- `_RESULT_LOG_PREVIEW_CHARS = 60` — render_tree Result Log truncation
+- `_BOARD_COLUMNS` tuple — fixed order (PENDING, IN_PROGRESS, BLOCKED, COMPLETE)
+
+### Golden files committed in M2
+
+- `tests/tui/snapshots/board.txt` — render_board(static_tasks) reference
+- `tests/tui/snapshots/tree.txt` — render_tree(beta-task) reference
+- `tests/tui/snapshots/summary.txt` — render_summary(static_tasks) reference
+- `tests/tui/snapshots/data.json` — json_output.dump(static_tasks) reference
+
+### Static-tasks fixture (in tests/tui/conftest.py)
+
+3 deterministic in-memory Tasks for golden determinism:
+- `alpha-task` — COMPLETE (4 steps, 2 milestones COMPLETE)
+- `beta-task` — IN_PROGRESS (5 steps mixed, 2 milestones COMPLETE+IN_PROGRESS)
+- `gamma-task` — BLOCKED (3 steps mixed, 2 milestones COMPLETE+BLOCKED)
+- All carry fixed `datetime(2026, 5, 1, 12, 0, 0, tz=UTC)` last_modified
+
+### Live smoke result (T2.6/T2.7)
+
+8 tasks discovered from `~/.claude/dev/completed/`:
+- 6 render in board view (4 COMPLETE: aa-ma-team-guide, playwright-skill, security-quality-remediation, ultraplan-agent-teams-hardening; 2 IN_PROGRESS: galactic-skills-review, ultraplan-enhancement)
+- 2 fall to ERROR aggregate: agent-token-optimization (`## Step N:` legacy), safety-app-production-settings (`## M1:` legacy)
+- JSON envelope includes all 8
+
+### Known parser-tolerance gap (backlog D-M2-1)
+
+Legacy milestone-header forms `## Step N:` and `## M(\d+):` are NOT accepted by the canonical parser regex `^## Milestone (\d+):`. Out of M2 scope (snapshot mode); tracked for v0.11.0 (M5 polish).
+
+_Last Updated: 2026-05-18_

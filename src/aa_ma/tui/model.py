@@ -135,6 +135,16 @@ class AggregateStatus(str, Enum):
 
 
 # -----------------------------------------------------------------------------
+# JSON output contract version (M2 T2.4)
+# -----------------------------------------------------------------------------
+
+SCHEMA_VERSION: int = 1
+"""JSON output schema version. Bump on any breaking change to the shape
+emitted by `aa-ma-tui --json`. Consumers should pin to a major and reject
+unknown versions. Documented in `aa_ma.tui.json_output.dump()`."""
+
+
+# -----------------------------------------------------------------------------
 # Errors
 # -----------------------------------------------------------------------------
 

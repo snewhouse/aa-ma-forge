@@ -190,7 +190,7 @@ Created: 2026-05-17
 ---
 
 ## Milestone 3: Interactive Textual app
-- Status: PENDING
+- Status: ACTIVE
 - Mode: AFK
 - Gate: HARD
 - Complexity: 75
@@ -208,9 +208,9 @@ Created: 2026-05-17
   - pytest-textual-snapshot smoke test of both screens
 
 ### Step 3.1: Prototype spike — Textual+watchfiles integration (LOGIC variant)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: Invoked `Skill(prototype)` LOGIC variant per engineering-standards §1 (Prototype-Required: YES). Built `prototypes/m3_textual_watchfiles_spike.py` (~200 lines) — single file with portable reducer (`AAMAFilter(DefaultFilter)` + `reduce_watch_event(state, changes) -> (state, affected)`) and throwaway Textual shell. Auto-driver uses `app.run_test()` pilot mode (headless WSL terminal). Run cmd: `uv run python prototypes/m3_textual_watchfiles_spike.py`. **VERDICT: PASS** — all 4 integration concerns validated empirically: (1) awatch ran inside @work without blocking; (2) `mutate_reactive(SpikeApp.events)` triggered watch_events handler — confirms class-attribute reference pattern; (3) AAMAFilter suppressed `ignored.txt` + `.hidden.md` noise (whitelist by 5 canonical suffixes from reference.md); (4) debounce=300ms coalesced 5-write burst into single event. Portable patterns lift directly into M3 production: AAMAFilter → `watcher.py`, reduce_watch_event → `watcher.py`, @work+mutate_reactive pattern → `app.py`. Prototype deletion deferred to M3 close (Step 3.12) per the LOGIC.md "delete-or-absorb" rule.
 
 ### Step 3.2: TDD TaskCard widget (progress + badges)
 - Status: PENDING

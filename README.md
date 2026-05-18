@@ -217,6 +217,7 @@ Moves completed artefacts to `.claude/dev/completed/` for future reference.
 | `/archive-aa-ma` | Move completed artefacts to `.claude/dev/completed/` |
 | `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
 | `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered: `--quick` / `--standard` / `--deep`); optionally authors or reviews `AGENTS.md` |
+| `/sole-dev-merge` | PR/MR-based merge workflow with scope-aware CI checks, 3-source security pass, idempotent PR/MR creation, 15-min CI poll, auto-merge + cleanup — see [ADR-0008](docs/adr/0008-sole-dev-merge-pr-workflow.md) |
 
 ### Skills
 

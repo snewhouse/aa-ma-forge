@@ -4,6 +4,58 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Feat — `/sole-dev-merge` PR/MR workflow
+
+- **`/sole-dev-merge` is now a plugin-shipped command** (`claude-code/commands/sole-dev-merge.md`)
+  replacing the legacy user-local fast-merge. The new workflow runs 9 stages end-to-end:
+  Stage A pre-flight (4 abort conditions) → Stage B scope-aware CI checks with **L-007 GUARD**
+  (porcelain walk + `git checkout --` reversion of out-of-scope drift) → Stage B-commit auto-fix
+  → Stage C 3-source security pass (code-reviewer + security-auditor agents + Bandit + ShellCheck,
+  unified severity contract) → Stage D triage with B602 auto-fix → Stage E0 auth pre-flight →
+  Stage E1 remote detection (github/gitlab/other) → Stage E2 dual-remote AUQ bridge with GitLab
+  default → Stage E3 deterministic body generator → Stage F idempotent push + PR/MR
+  (`gh pr view`/`glab mr view` detect → `edit`/`update` or `create`) → Stage G1 branch-protection
+  pre-check → Stage G2 15-min CI poll (GitHub `--watch`, GitLab JSON `while`) →
+  Stage G3 auto-merge or remote-aware recovery STATUS → Stage G4 post-merge cleanup
+  (`checkout main` + `pull --ff-only` + `fetch --prune` + summary).
+- **Architectural decision:** ADR-0008 captures rationale for command-only design (no
+  skill/lib pattern in repo precedent), 3-source security triangulation (single source
+  missing a finding caught by another), backward-compat via `install.sh` auto-backup +
+  migration banner (`AA_MA_SUPPRESS_MIGRATION_BANNER=1` silences).
+- **L-007 resolved structurally** (annotated in `docs/lessons.md` L-007 §Resolution):
+  the in-scope file set drives `ruff format`/`ruff check --fix`; the L-007 guard reverts
+  any out-of-scope drift before the auto-fix commit. The whole-tree format ceremony
+  that triggered the original L-007 incident cannot recur.
+- **Migration:** `scripts/install.sh` auto-backs-up the legacy user-local
+  `~/.claude/commands/sole-dev-merge.md` to `~/.claude/backups/aa-ma-forge-<ts>/`
+  before symlinking the new plugin-shipped version. Migration banner alerts the
+  operator on first invocation post-deploy.
+
+### Test — Bats coverage for sole-dev-merge (M1–M5)
+
+- New `tests/commands/sole-dev-merge/` directory with 60+ bats tests across 8 files:
+  `test_stage_a_preflight.bats`, `test_stage_b_scope.bats`, `test_stage_c_dispatch.bats`,
+  `test_stage_d_triage.bats`, `test_stage_e_remote.bats`, `test_stage_e3_body.bats`,
+  `test_stage_f_idempotent.bats`, `test_stage_g_poll.bats`, `test_stage_g_merge.bats`,
+  `test_smoke_e2e.bats`. PATH-shadowed `gh`/`glab` stubs at `fixtures/bin/` log every
+  invocation to `$CLI_LOG` for grep-based assertions. `extract_stage.sh` fixed-string
+  `awk index()` extractor enables per-stage unit testing.
+- **CI integration:** `.github/workflows/security.yml` bats job now runs both
+  `tests/hooks/` AND `tests/commands/sole-dev-merge/` so PRs that regress the workflow
+  block before merge.
+
+### Docs
+
+- `docs/adr/0008-sole-dev-merge-pr-workflow.md` — 210-line ADR following
+  ADR-0001..0007 template.
+- README.md `### All commands` table updated (10 → 11 commands).
+- CLAUDE.md architecture comment updated (10 → 11 commands; 18 → 19 skills).
+- SECURITY.md inline command list updated (10 → 11; `sole-dev-merge` added).
+- `docs/spec/aa-ma-quick-reference.md` Commands Cheat Sheet updated with `/sole-dev-merge`.
+- `docs/lessons.md` L-007 annotated with structural resolution reference.
+
 ## v0.10.0 (2026-05-18)
 
 ### Feat — `aa-ma-tui` tracker (M0-M4)

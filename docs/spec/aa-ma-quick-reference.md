@@ -142,6 +142,9 @@ synthesis. Protocol toggles: `--no-goal` on `/execute-aa-ma-full`; omit
 
 # Onboard to a new / inherited / shared codebase (tiered)
 /understand-codebase [path] [--quick | --standard | --deep]
+
+# PR/MR-based merge workflow with 3-source security pass + auto-merge
+/sole-dev-merge
 ```
 
 ### Claude Code Directory Structure

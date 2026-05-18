@@ -1,3 +1,9 @@
+<!-- ARCHIVED: 2026-05-18 11:30 -->
+<!-- Plan: aa-ma-tui-tracker - COMPLETE -->
+<!-- Total Milestones: 6 (M0 Scaffolding, M1 Parser, M2 Snapshot, M3 Textual app, M4 Release, M5 Polish-deferred) -->
+<!-- Duration: 2026-05-17 → 2026-05-18 (one development sprint) -->
+<!-- Release tag: v0.10.0 (commit 25d4fbe) -->
+
 # aa-ma-tui-tracker Context Log
 
 > Decision history. Trade-offs. Compaction summaries. Gate approvals.

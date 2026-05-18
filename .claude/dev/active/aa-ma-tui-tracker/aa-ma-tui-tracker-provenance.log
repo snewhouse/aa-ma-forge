@@ -40,3 +40,5 @@
 [2026-05-18T13:00:00+01:00] MILESTONE_2_COMPLETE — sub_steps=8/8 acceptance=8/8 tests_pass=715+3slow coverage=tui_94% commit=2def3ef
 [2026-05-18T13:30:00+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: code-reviewer,tdd-sequence-auditor,context7-evidence-auditor,future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 7 WARNING / 9 INFO
 [2026-05-18T13:30:00+01:00] §6.8 INLINE_FIXES_APPLIED — W1_task_card_dry=true W2_stringio_doc=true W4_dm1_redeferral_logged=true W6_board_columns_assert=true I3_width_div_uses_len=true — DEFERRED: W3 design,W5 historical,W7 schema_bump_enforcement(D-M2-2)
+[2026-05-18T05:21:30Z] Context compacted — Snapshot saved, active step: Step 2.8: Re-run snapshot tests; regenerate goldens if needed
+[2026-05-18T05:21:30Z] CHECKPOINT — ActiveStep: Step 2.8: Re-run snapshot tests; regenerate goldens if needed — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A

@@ -115,3 +115,4 @@
 [2026-05-18T15:22:44+01:00] STEP_2.8 EVIDENCE_PREP COMPLETE — context-log.md GATE APPROVAL recorded; impact-analysis logged
 [2026-05-18T15:23:52+01:00] STEP_2.8 COMPLETE — M2 HARD gate closed; all 4 §6.7 conditions PASS; GATE APPROVAL in context-log.md
 [2026-05-18T15:23:52+01:00] MILESTONE_2 COMPLETE — Review + 3-source security pass — Audit-Profile: full — bats 22/22 — B602 auto-fix verified end-to-end
+[2026-05-18T15:23:52+01:00] MILESTONE_2 commit: 2b826c8

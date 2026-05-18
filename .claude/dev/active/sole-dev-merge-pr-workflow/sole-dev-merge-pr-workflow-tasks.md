@@ -2,7 +2,7 @@
 
 ## Milestone 1 — Pre-flight + scope-aware CI checks
 
-- **Status:** PENDING
+- **Status:** ACTIVE
 - **Dependencies:** None
 - **Complexity:** 45%
 - **Audit-Profile:** code-only
@@ -12,31 +12,31 @@
 - **Acceptance Criteria:** Bats #1 (scope) + #2 (preflight) pass; in-scope auto-fix commit lands with correct signature; out-of-scope drift reverted via `git checkout --`.
 
 ### Step 1.1: Create command skeleton with frontmatter
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `claude-code/commands/sole-dev-merge.md` exists; frontmatter contains `description: PR/MR-based merge workflow with scope-aware CI checks, review, security pass, and auto-merge`; body has section placeholders A–G.
-- Result Log: _pending_
+- Result Log: PASS. File created (118 lines). Frontmatter `description:` verified by `grep -Fxq` (exact-match). All 7 stage headings (A–G) present (verified by `grep -E '^### Stage X —'`). Commands directory inventory: 10 → 11 (matches plan delta).
 
 ### Step 1.2: Implement Stage A (pre-flight checks)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: All 4 abort conditions (on-main, dirty-tree, no-remote, no-commits-ahead) produce distinct ABORT messages matching exact strings in plan §4.1.2.
-- Result Log: _pending_
+- Result Log: PASS. `stage_a_preflight()` added inline (52 lines). All 5 cases verified in isolated tmp git repos: on-main rc=1 + exact plan-§4.1.2 string match (`ABORT: Cannot run /sole-dev-merge from main branch`); dirty-tree rc=2 + `ABORT: Working tree is dirty`; no-remote rc=3 + `ABORT: No remote configured`; no-commits-ahead rc=4 + `ABORT: Branch has no commits ahead of main`; happy-path rc=0 + `Pre-flight OK`. ShellCheck of extracted bash: 0 advisories (after SC2034 disable for cross-stage `ORIGINAL_BRANCH`). Extraction helper `tests/commands/sole-dev-merge/fixtures/load_stages.bash` created (reusable by all bats tests).
 
 ### Step 1.3: Implement Stage B (scope-aware CI checks)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: Per plan §4 1.3 — out-of-scope file `tests/codemem/foo.py` shows zero `git diff` after Stage B AND in-scope file passes `ruff check`. L-007 guard active.
-- Result Log: _pending_
+- Result Log: PASS. `stage_b_scope()` added inline (~55 lines). Empirical test (isolated tmp git repo): planted in-scope `src/scope_test.py` with unused-imports + bad-spacing lint errors; planted out-of-scope dirty `tests/codemem/foo.py`. Post Stage B: `git diff tests/codemem/foo.py` = 0 bytes (L-007 guard reverted), `ruff check src/scope_test.py` exits 0 (in-scope fix applied). Stage B exit code 0. Caught real bug: pytest exit-5 (no tests collected) was being treated as failure → fixed by explicit `pytest_rc -ne 5` check. ShellCheck of 109-line extracted bash: 0 advisories. Stage A regression: 5/5 pass.
 
 ### Step 1.4: Auto-commit in-scope fixes (if any)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: Per plan §4 1.4 — if Stage B mutated files, `git log -1 --format=%s` returns `chore(scope): pre-PR auto-fixes` AND last 3 lines of body match `\[AA-MA Plan\]|\[ad-hoc\]`.
-- Result Log: _pending_
+- Result Log: PASS. `stage_b_autocommit()` added (~30 lines). Three scenarios verified empirically: (1) AD-HOC (no plan dir) → subject = `chore(scope): pre-PR auto-fixes`, tail-3 contains `[ad-hoc]`; (2) PLAN-ACTIVE (`.claude/dev/active/sole-dev-merge-pr-workflow/` present) → subject correct, tail-3 contains `[AA-MA Plan] sole-dev-merge-pr-workflow .claude/dev/active/sole-dev-merge-pr-workflow`; (3) CLEAN TREE → HEAD unchanged, function reports "no in-scope auto-fixes to commit". Stage A regression: 5/5 pass. ShellCheck (141 lines): 0 advisories. Field-discovery: parent session's commit-signature hook blocks tmp-repo commits unless cmd includes `[ad-hoc]` standalone line — bats fixtures will need a bypass-marker heredoc.
 
 ### Step 1.5: Write bats test for Stage B (scope)
-- Status: PENDING
+- Status: ACTIVE
 - Mode: AFK
 - Acceptance Criteria: `bats tests/commands/sole-dev-merge/test_stage_b_scope.bats` passes; test plants out-of-scope + in-scope diffs and asserts L-007 reversion.
 - Result Log: _pending_

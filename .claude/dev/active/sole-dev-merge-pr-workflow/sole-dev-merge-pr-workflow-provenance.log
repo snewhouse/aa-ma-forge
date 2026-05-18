@@ -32,3 +32,17 @@
 [2026-05-18T11:55:30Z] verification.md updated with v2 revision panel (PASS WITH WARNINGS)
 [2026-05-18T12:00:00Z] Phase 5 artifact creation: plan.md, reference.md, tasks.md, context-log.md, provenance.log, verification.md
 [2026-05-18T12:00:00Z] All 6 AA-MA files written to .claude/dev/active/sole-dev-merge-pr-workflow/
+[2026-05-18T11:46:21Z] Context compacted — Snapshot saved, active step: Step 1.1: Create command skeleton with frontmatter
+[2026-05-18T11:46:21Z] CHECKPOINT — ActiveStep: Step 1.1: Create command skeleton with frontmatter — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A
+[2026-05-18T12:53:16+01:00] MILESTONE_1 START — Pre-flight + scope-aware CI checks — Audit-Profile: code-only, Gate: HARD, Critical-Path: doc-count-drift
+[2026-05-18T12:53:16+01:00] ENG_STANDARDS_DECLARED: themes=[1,2,3,4,5,6] (deferred buffer from Phase 2 — see context-log.md)
+[2026-05-18T12:53:16+01:00] STEP_1.1 START — Create claude-code/commands/sole-dev-merge.md skeleton with frontmatter + section placeholders A-G
+[2026-05-18T12:54:49+01:00] STEP_1.1 COMPLETE — claude-code/commands/sole-dev-merge.md skeleton (118 lines); 3 acceptance checks PASS empirically
+[2026-05-18T12:54:49+01:00] STEP_1.2 START — Implement Stage A (pre-flight checks): 4 abort branches (on-main, dirty-tree, no-remote, no-commits-ahead)
+[2026-05-18T12:59:29+01:00] STEP_1.2 COMPLETE — stage_a_preflight() inline; 5/5 cases pass empirically (4 abort + happy); shellcheck clean
+[2026-05-18T12:59:29+01:00] STEP_1.3 START — Implement Stage B (scope-aware CI checks): 9 steps incl. L-007 guard
+[2026-05-18T13:02:53+01:00] STEP_1.3 COMPLETE — stage_b_scope() inline; L-007 reversion + in-scope ruff-fix verified; pytest-rc-5 false-positive caught and fixed; shellcheck clean
+[2026-05-18T13:02:53+01:00] STEP_1.4 START — Auto-commit in-scope fixes function; AA-MA signature detection from .claude/dev/active/
+[2026-05-18T13:07:58+01:00] STEP_1.4 COMPLETE — stage_b_autocommit() inline; 3 scenarios verified (ad-hoc / plan-active / clean-tree); shellcheck clean
+[2026-05-18T13:07:58+01:00] FIELD_DISCOVERY — parent session aa-ma-commit-signature.sh PreToolUse hook blocks tmp-repo commits unless cmd includes [ad-hoc] standalone line; bats fixtures need bypass-marker heredoc
+[2026-05-18T13:07:58+01:00] STEP_1.5 START — Write bats test for Stage B (scope) — test_stage_b_scope.bats per plan §4 1.3 contract

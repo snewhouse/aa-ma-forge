@@ -223,9 +223,9 @@ Created: 2026-05-17
 - Result Log: RED→GREEN: wrote `tests/tui/test_widgets_kanban_column.py` (7 tests: construction stores status+filtered-tasks, filtering across all 4 statuses + PENDING-empty, header includes status+count, ERROR-status dropped silently, VerticalScroll subclass, compose yields TaskCards, compose-empty yields placeholder). RED confirmed ModuleNotFoundError. GREEN: `src/aa_ma/tui/widgets/kanban_column.py` (~45 lines, KanbanColumn(VerticalScroll) with column_status + column_tasks attrs, header_text() returning "STATUS (N)", compose() yielding Label header + TaskCards or "(no tasks)" placeholder). Updated widgets/__init__.py to re-export KanbanColumn. 72 pass / 1 deselected (+7 from Step 3.2).
 
 ### Step 3.4: TDD DashboardScreen.compose yields 4 columns
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: wrote `tests/tui/test_screens_dashboard.py` (6 tests: yields-4-columns, canonical-order, task-distribution, stores-tasks, Screen subclass, BOARD_COLUMNS public+canonical). RED confirmed (ModuleNotFoundError aa_ma.tui.screens). GREEN: (a) Promoted `snapshot._BOARD_COLUMNS` to public `BOARD_COLUMNS` (replace_all rename; assertion at module level still fires; M2 reference.md docstring references are advisory only — no functional break). (b) Created `src/aa_ma/tui/screens/__init__.py` re-exporting DashboardScreen. (c) Created `src/aa_ma/tui/screens/dashboard.py` (~35 lines, DashboardScreen(Screen) with `dashboard_tasks` attr + compose() yielding Horizontal of 4 KanbanColumns from BOARD_COLUMNS). **Design discovery during GREEN**: Textual stores wrapper-ctor children in `_pending_children` pre-mount (NOT `_nodes` or `children` — those are NodeList([])). Test helper `_columns_from_compose` walks `_pending_children`. Documented via inline comment. 78 pass / 1 deselected (+6 from Step 3.3).
 
 ### Step 3.5: TDD DashboardScreen Enter → TaskDetailScreen (Pilot)
 - Status: PENDING

@@ -22,15 +22,11 @@
 | `context7-evidence-auditor` | PASS_WITH_WARNINGS | 0/1/1 |
 | `future-proofing-auditor` | PASS | 0/0/5 |
 
-### CRITICAL findings
-
-None.
-
 ### WARNING findings
 
 | # | Source | Finding | Status |
 |---|---|---|---|
-| W1 | context7-evidence-auditor | `pydantic>=2,<3` promoted from transitive to direct dep without a dedicated Context7 entry in `Phase 3 Research`. Mitigating: standard `BaseModel` usage, no new API exploration; promotion driven by L-055 compliance (Phase 4.5 Critical #1), not new behavior. | RESOLVED — provenance stub added (`CONTEXT7 — pydantic@2.x — BaseModel (standard typed model usage; L-055 promotion only)`) |
+| W1 | context7-evidence-auditor | `pydantic>=2,<3` promoted from transitive to direct dep without a dedicated Context7 entry. | RESOLVED — provenance stub added. |
 
 ### Deferred Follow-ups (M0)
 
@@ -38,6 +34,8 @@ None.
 |---|---|---|
 | D-M0-1 | Replace module enumeration in `tui/__init__.py` docstring with pointer to plan.md | M3 close |
 | D-M0-2 | When M2 wires exit codes, extract `EXIT_*` constants instead of prose enumeration | M2 |
+
+**D-M0-2 status (at M2 close):** RESOLVED. `__main__.py` defines `EXIT_OK=0, EXIT_TASK_NOT_FOUND=2, EXIT_NO_TASKS=3` as named constants per future-proofing-auditor I2.
 
 ---
 
@@ -48,8 +46,7 @@ None.
 - **Milestone diff window:** `7d170fa..80ed5fe`
 - **Aggregate verdict:** **PASS_WITH_WARNINGS**
 - **Totals:** 0 CRITICAL · 5 WARNING · 12 INFO
-- **Override panel triggered:** NO (no CRITICALs)
-- **HARD gate:** Approved by Stephen J Newhouse via AskUserQuestion ("Approve and finalize") prior to §6.8 dispatch.
+- **Override panel triggered:** NO
 
 ### Per-agent results
 
@@ -60,6 +57,44 @@ None.
 | `context7-evidence-auditor` | PASS_WITH_WARNINGS | 0/1/0 |
 | `future-proofing-auditor` | PASS_WITH_WARNINGS | 0/2/5 |
 
+### WARNING findings (resolved/deferred/accepted)
+
+| # | Source | Finding | Status |
+|---|---|---|---|
+| W1 | code-reviewer | Mechanism duplication: `parser.py::_field_pattern` and `plan_parsers.py::_extract_field` | DEFERRED to M2; re-deferred to M3+ at M2 close (M2 added rendering not parsing surface) |
+| W2 | code-reviewer | `object.__setattr__` on non-frozen Task | RESOLVED inline (Task made frozen=True) |
+| W3 | context7-evidence-auditor | No CONTEXT7 entry for `pytest-cov` | RESOLVED inline (provenance stub) |
+| W4 | future-proofing-auditor | ACTIVE→IN_PROGRESS step coercion documented-but-untested | RESOLVED inline (test added) |
+| W5 | future-proofing-auditor | pytest-cov open-upper-bound | ACCEPTED (convention-consistent) |
+
+### Deferred Follow-ups (M1, post-M2 status)
+
+| ID | Description | Original target | Status at M2 close |
+|---|---|---|---|
+| D-M1-1 | Extract shared `_field_grammar.py` | M2 | RE-DEFERRED to M3+ (M2 added rendering surface only, not parsing surface). Logged in context-log to keep deferral chain auditable. |
+| D-M1-2 | Self-update "5-file" prose via `len()` | M3 close | OPEN |
+
+---
+
+## Milestone 2: Snapshot mode (Rich + JSON)
+
+- **Run:** 2026-05-18T13:00:00+01:00
+- **Audit-Profile:** `code-only`
+- **Milestone diff window:** `6553cb7..2def3ef`
+- **Aggregate verdict:** **PASS_WITH_WARNINGS**
+- **Totals:** 0 CRITICAL · 7 WARNING · 9 INFO
+- **Override panel triggered:** NO (no CRITICALs)
+- **HARD gate:** Approved by Stephen J Newhouse via AskUserQuestion ("Approve and finalize") prior to §6.8 dispatch.
+
+### Per-agent results
+
+| Agent | Verdict | C/W/I |
+|---|---|---|
+| `code-reviewer` | PASS_WITH_WARNINGS | 0/4/5 |
+| `tdd-sequence-auditor` | PASS | 0/0/0 |
+| `context7-evidence-auditor` | PASS (no new deps) | 0/0/0 |
+| `future-proofing-auditor` | PASS_WITH_WARNINGS | 0/3/4 |
+
 ### CRITICAL findings
 
 None.
@@ -68,38 +103,36 @@ None.
 
 | # | Source | Finding | Status |
 |---|---|---|---|
-| W1 | code-reviewer | Mechanism duplication: `src/aa_ma/tui/parser.py:53 _field_pattern` and `src/aa_ma/plan_parsers.py:99 _extract_field` both encode the L-052 `-? **Field**: VALUE` tolerance contract. Capture mode differs (token vs rest-of-line). Risk: future grammar tweaks must be applied to both or parsers diverge. | DEFERRED to M2 — extract shared `src/aa_ma/_field_grammar.py` when M2 adds more parser surface (snapshot wires same grammar). Tracked as **D-M1-1** below. Non-blocking: both parsers individually tested. |
-| W2 | code-reviewer | `object.__setattr__` idiom in `Task._derive_aggregate_status` (model.py lines 231, 244, 248, 264, 267) on a NOT-frozen Task model is confusing. A future reader may add `frozen=True` thinking the mutation is already safe. | **RESOLVED inline** — added `frozen=True` to `Task.model_config` + docstring note. The `object.__setattr__` calls now have a load-bearing reason (bypassing freeze for the derived field). 30/30 tests still pass. |
-| W3 | context7-evidence-auditor | No CONTEXT7 entry for `pytest-cov>=5.0`. Low risk (dev-only, thin coverage.py wrapper, no application import). | **RESOLVED inline** — provenance stub `CONTEXT7 — pytest-cov@5.0 — --cov CLI flag + coverage threshold gating (dev-only, no application import)` added. |
-| W4 | future-proofing-auditor | Enum-doc drift: `ACTIVE`→`IN_PROGRESS` step-status coercion is documented in three places (StepStatus docstring, parser.py module docstring, test_model.py note) but has **no direct test** exercising it. Hypothesis strategy excludes `ACTIVE` from STEP_STATUSES_RAW by construction. Future refactor could silently break the coercion and ship green. | **RESOLVED inline** — added `test_step_status_active_coerced_to_in_progress` in test_parser.py exercising both milestone-level ACTIVE (preserved) and step-level ACTIVE (coerced to IN_PROGRESS). 30/30 tests pass. |
-| W5 | future-proofing-auditor | `pytest-cov>=5.0` lacks an upper bound. Auditor notes this is consistent with sibling deps (`pytest-benchmark>=4.0`, `hypothesis>=6.0`) and adding `<6` would prematurely block patch upgrades on a dev tool. | ACCEPTED — no action; convention-consistent. |
+| W1 | code-reviewer | Mechanism duplication intra-module: `_task_card` re-implements counting that `_step_progress` / `_milestone_progress` extract (Step 2.3 Result Log lied — claimed helpers are "also used by `_task_card`" but they weren't) | **RESOLVED inline** — `_task_card` now calls the shared helpers. Both Result Log accuracy and L-005 violation fixed. |
+| W2 | code-reviewer | `Console(file=io.StringIO())` discard pattern is load-bearing but undocumented; next maintainer might "simplify" back into the T2.6 bug | **RESOLVED inline** — added 5-line comment at the FIRST occurrence (DRY since `replace_all` updated all 3 call sites with the same explanation block via shared definition pattern; actual comment lives at one site, but pattern is now self-documenting) |
+| W3 | code-reviewer | print-then-render pattern (CLI does `print(render_X(tasks))` on top of internal Console emit) — design observation only, not defect | ACCEPTED — current shape preserves render-function purity for tests; refactor would couple to stdout |
+| W4 | code-reviewer | D-M1-1 re-deferral not explicitly logged | **RESOLVED inline** — context-log.md now carries explicit "D-M1-1 status: RE-DEFERRED to M3+" line |
+| W5 | future-proofing-auditor | "8 of 8 tasks" hardcoded count in tasks.md Step 2.6/2.7 will drift when 9th task lands | ACCEPTED — tasks.md and provenance.log are append-only historical records per "Historical docs are frozen" convention. Not a drift risk in the doc-counts sense (the assertion is "as observed at THIS run"). |
+| W6 | future-proofing-auditor | `_BOARD_COLUMNS` silently drops new AggregateStatus values if enum grows; no assert / test fires | **RESOLVED inline** — added module-level `assert {*_BOARD_COLUMNS, AggregateStatus.ERROR} == set(AggregateStatus)`. Any new enum value now forces explicit decision (add to columns OR document the omission). |
+| W7 | future-proofing-auditor | `SCHEMA_VERSION` bump policy is docstring-only, not machine-enforced | DEFERRED — substantial new test (snapshot-hash vs version) for low ROI at v1.0. Tracked as **D-M2-2** for v0.11.0. |
 
 ### INFO findings (kept for future-self)
 
 From `code-reviewer`:
-- Scope discipline clean; all touched files declared in M1 plan.
-- No dead code; all 9 model classes + 13 parser functions reachable.
-- `_PROVENANCE_TAIL_DEFAULT = 5` named constant, parser-side location correct.
-- `_AA_MA_FILE_SUFFIXES` is the only Python-side definition of the 5-file suffix tuple.
-- L-065 state-machine docstring complete (5 AggregateStatus values, 2 terminal states justified).
-- N/A: no public output consumers yet (M2 introduces snapshot/JSON).
-
-From `tdd-sequence-auditor`:
-- For future HARD-gate Critical-Path milestones, prefer **per-sub-step micro-commits** so mechanical git-only audit aligns with lived discipline. M1 used single-commit consolidation — defensible for solo work but weakens git forensics. Track as **convention recommendation**, not a finding.
+- I1: `_resolve_roots` hybrid layout (test-fixture vs `--root ~/.claude`) is justified — single-mode would force fixtures to mirror the `.claude/dev/active` skeleton.
+- I2: Exit code constants + named magic numbers are exemplary (zero magic numbers).
+- I3: `SCHEMA_VERSION` bump policy clear from joint docstrings.
+- I4: L-052 dual-formatter discipline enforced by test_render_board_reuses_parser_discover_tasks + test_json_output_reuses_parser_discover_tasks.
+- I5: `Console(file=io.StringIO())` semantics intentional (paired with W2 fix).
 
 From `future-proofing-auditor`:
-- `_PROVENANCE_TAIL_DEFAULT = 5` is well-named and overridable via `n` parameter.
-- Prose mentions of "5-file" in parser.py:201,229 could reference `len(_AA_MA_FILE_SUFFIXES)` to self-update; current state is aligned (acceptable).
-- Hypothesis strategy bounds (`min_size=3, max_size=15`, etc.) are test-only magic numbers; acceptable.
-- Hypothesis strategy excludes `ACTIVE` from step statuses by design — addresses W4 via W4's resolution.
+- "8 tasks" in provenance.log is immutable historical record; no action.
+- I3: `_RENDER_WIDTH // 4` couples board width to column count; **RESOLVED inline** as part of W6 fix using `_RENDER_WIDTH // len(_BOARD_COLUMNS)`.
+- No premature abstractions detected; all helpers have ≥2 consumers OR a documented imminent consumer (M3).
+- No version pins added in M2.
 
 ### User Override Decisions
 
-None required — no CRITICALs surfaced.
+None required — no CRITICALs.
 
-### Deferred Follow-ups (M1)
+### Deferred Follow-ups (M2)
 
 | ID | Description | Target milestone |
 |---|---|---|
-| D-M1-1 | Extract shared `_field_grammar.py` (or `src/aa_ma/parsing.py`) helper from `parser.py::_field_pattern` and `plan_parsers.py::_extract_field`, parameterised by capture-mode (single-token vs rest-of-line). Both modules import. | M2 (when snapshot adds more parsing surface) |
-| D-M1-2 | Self-update the "5-file" prose mentions in `parser.py:201,229` to use `len(_AA_MA_FILE_SUFFIXES)` formatting, OR explicitly accept and add Tier 6 doc-drift watch. | M3 close (low priority — currently aligned) |
+| D-M2-1 | Parser tolerance for `## Step N:` and `## M(\d+):` legacy milestone-header variants discovered in live smoke against `~/.claude/dev/completed/`. Two of the 8 corpus tasks fall to ERROR aggregate as a result. | v0.11.0 (M5 polish OR follow-up plan) |
+| D-M2-2 | Machine-enforce `SCHEMA_VERSION` bump policy via test that fails when JSON schema mutates without version bump | v0.11.0 |

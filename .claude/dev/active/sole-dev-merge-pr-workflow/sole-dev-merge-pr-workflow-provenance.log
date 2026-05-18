@@ -32,3 +32,5 @@
 [2026-05-18T11:55:30Z] verification.md updated with v2 revision panel (PASS WITH WARNINGS)
 [2026-05-18T12:00:00Z] Phase 5 artifact creation: plan.md, reference.md, tasks.md, context-log.md, provenance.log, verification.md
 [2026-05-18T12:00:00Z] All 6 AA-MA files written to .claude/dev/active/sole-dev-merge-pr-workflow/
+[2026-05-18T16:29:08+01:00] M1 INIT — Milestone 1 marked ACTIVE; sub-step Mode dispatch: 6 AFK (1.1-1.6) + 1 HITL (1.7)
+[2026-05-18T16:29:08+01:00] Step 1.1 COMPLETE — claude-code/commands/sole-dev-merge.md created (182 lines, 8106 bytes) — frontmatter description verified verbatim against plan §1.1 — 7 stage placeholders present — Mode: AFK

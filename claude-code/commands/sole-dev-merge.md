@@ -1,0 +1,182 @@
+---
+description: PR/MR-based merge workflow with scope-aware CI checks, review, security pass, and auto-merge
+---
+
+# /sole-dev-merge — PR/MR merge workflow (v2)
+
+PR/MR-based merge workflow for sole developers. Runs scope-aware local CI
+(closing L-007), dispatches code review + 3-source security pass
+(security-auditor agent + Bandit + ShellCheck), opens a PR via `gh` or MR via
+`glab` (default GitLab when both remotes present), polls CI to green, then
+auto-merges with `--rebase --delete-branch` for linear history.
+
+**Replaces:** the legacy fast-merge `/sole-dev-merge` user-local command. The
+plugin install (`scripts/install.sh`) creates a symlink at
+`~/.claude/commands/sole-dev-merge.md` after backing up the previous file to
+`~/.claude/backups/aa-ma-forge-<timestamp>/`.
+
+**Plan-of-record:** see ADR-0008 (`docs/adr/0008-sole-dev-merge-pr-workflow.md`)
+once landed. Rationale for command-only design (no skill/lib pattern), 3-source
+security rationale, and backward-compatibility strategy live there.
+
+**Assumptions** (enforced by Stage A / Stage E0):
+- One `/sole-dev-merge` invocation per repo at a time (no concurrency lock —
+  sole-developer assumption).
+- `gh auth status` / `glab auth status` succeed for the active remote.
+- `main` is the default branch.
+
+**Suppress migration banner:** `AA_MA_SUPPRESS_MIGRATION_BANNER=1`.
+
+---
+
+## Workflow stages
+
+The command runs sequentially through stages **A → G**. Each stage is
+self-contained (one reason to change, per SOC). Implementation lives in
+named inline bash blocks below; this section is the contract surface.
+
+### Stage A — Pre-flight checks
+
+_Implementation pending Step 1.2._
+
+Captures `ORIGINAL_BRANCH`; refuses if on `main`/`master`; refuses on
+uncommitted changes; requires at least one remote; requires
+`git rev-list --count main..HEAD > 0`. Exits with one of the four exact ABORT
+messages defined in the plan (§4.1.2) on failure; otherwise prints
+`Pre-flight OK`.
+
+### Stage B — Scope-aware CI checks (L-007 guard)
+
+_Implementation pending Step 1.3._
+
+Computes `CHANGED_FILES = git diff --name-only main...HEAD`, splits into
+`CHANGED_PY` / `CHANGED_SH`. Runs `ruff format` / `ruff check --fix` against
+in-scope `*.py` only. Best-effort `mypy` / `pytest -m "not perf and not slow"`
+/ `pre-commit run --files` when their config artefacts exist. After
+format/lint, runs the L-007 reversion guard: any file dirty after Stage B that
+is NOT in `$CHANGED_FILES` is reverted via `git checkout --`.
+
+### Stage B-commit — Auto-commit in-scope fixes
+
+_Implementation pending Step 1.4._
+
+If Stage B mutated in-scope files, commits as
+`chore(scope): pre-PR auto-fixes`. The `aa-ma-commit-signature.sh` hook
+appends the active-plan footer (`[AA-MA Plan] …`) or `[ad-hoc]` automatically.
+If `git status` is clean, this stage is a no-op.
+
+### Stage C — Code review + 3-source security pass
+
+_Implementation pending Steps 2.1 – 2.4 (parallel dispatch)._
+
+Four parallel sources, all writing severity-tagged findings to
+`/tmp/sole-dev-merge-{review,security,bandit,shellcheck}-<slug>.{md,json}`
+following the explicit `[CRITICAL]|[HIGH]|[MEDIUM]|[LOW]` contract from
+reference.md:
+
+- **C1** — `feature-dev:code-reviewer` agent (fallback: `code-reviewer`)
+- **C2** — `security-auditor` agent
+- **C3** — `bandit -f json -r $CHANGED_PY`
+- **C4** — `shellcheck -f json $CHANGED_SH`
+
+Severity mapping for static analysers is defined in reference.md.
+
+### Stage D — Findings triage
+
+_Implementation pending Step 2.5._
+
+Concatenates the four source files. **CRITICAL** auto-fix attempted for
+deterministic Bandit/ShellCheck patterns only (agent-emitted CRITICALs are
+tagged for user review). Re-runs Stage B fast tier after auto-fix to verify no
+regression. **HIGH / MEDIUM** routed to `AskUserQuestion` (4-per-call max) with
+options: Apply / Dispute / Defer. **LOW** appended to PR body's "Reviewer
+notes" section (advisory only).
+
+On parse failure (agent output does not match the contract), safe-default:
+classify ALL findings as `[HIGH]` and log the parse failure to
+`provenance.log` — no silent auto-fix without confirmation.
+
+### Stage E — Remote detection, choice, AI body generation
+
+_Implementation pending Steps 3.1 – 3.5._
+
+- **E0** (auth pre-flight) — `gh auth status` / `glab auth status` for the
+  candidate remotes; abort with `STATUS: AUTH_REQUIRED` on failure.
+- **E1** (remote detection) — parses `git remote -v`, classifies each remote
+  as `github` / `gitlab` / `other`, outputs counts.
+- **E2** (remote choice) — one remote → use it; both → `AskUserQuestion` with
+  GitLab as default; neither github+gitlab → abort.
+- **E3** (AI body generation) — writes body to absolute path
+  `/tmp/sole-dev-merge-body-<slug>.md`. Sections: `## Summary`,
+  `## Changes by area`, `## Test plan`, `## Reviewer notes`. Appends
+  `Plan context: <plan-dir>` footer when an AA-MA plan is active. Closing
+  footer: `<!-- Generated by /sole-dev-merge -->` for traceability.
+
+### Stage F — Push + PR/MR creation (idempotent)
+
+_Implementation pending Step 3.4._
+
+`git push -u origin HEAD`, then:
+
+- **GitHub** — `gh pr view --json url` to detect existing PR; reuse via
+  `gh pr edit --body-file "$BODY"` or create via
+  `gh pr create --title "$TITLE" --body-file "$BODY"`.
+- **GitLab** — `glab mr view` to detect existing MR; reuse via
+  `glab mr update --description "$(cat $BODY)"` or create via
+  `glab mr create --title "$TITLE" --description "$(cat $BODY)"` (NOT
+  `--description-file` — that flag is fabricated; see reference.md "WRONG
+  SYNTAX TO NEVER USE").
+
+Title is the topmost Conventional Commit subject, truncated to 70 chars.
+
+### Stage G — CI poll + auto-merge + cleanup
+
+_Implementation pending Steps 4.1 – 4.5._
+
+- **G1** (branch-protection pre-check) — `gh api repos/{owner}/{repo} --jq
+  .allow_rebase_merge` / `glab api /projects/:id --jq .merge_method`. Falls
+  back from `--rebase` to `--merge` if rebase merging is disabled.
+- **G2** (CI poll) — divergent paths:
+  - GitHub: `timeout 900s gh pr checks <num> --watch --interval 30 --fail-fast`.
+    Translates RC=124 → clean exit 0 + `STATUS: CI_TIMEOUT`.
+  - GitLab: `glab api /projects/:id/merge_requests/<iid>` polled every 30s in
+    a bash `while` loop with `(( $(date +%s) - start < 900 ))` guard.
+    Parses `.pipeline.status`. (NOT `glab ci status` — TTY UI, no scriptable
+    exit codes.)
+- **G3** (auto-merge) — `gh pr merge <num> --rebase --delete-branch` /
+  `glab mr merge <iid> --rebase --remove-source-branch --yes`. Falls back to
+  `--merge` per G1.
+- **G3-error** — on CI failure or timeout, exits cleanly (rc=0) with PR/MR URL
+  and recovery command (`gh pr merge … --auto --rebase` for timeout;
+  `gh pr checks …` for failure).
+- **G4** (cleanup) — `git checkout main`, `git pull --ff-only origin main`,
+  `git fetch --prune`. Prints final summary: branch, commits merged, merge
+  SHA, PR/MR URL.
+
+---
+
+## Exit-status contract
+
+| Status            | Meaning                                              |
+|-------------------|------------------------------------------------------|
+| `OK`              | Merged to main; branch deleted; main fast-forwarded. |
+| `ABORT: …`        | Pre-flight failure (Stage A); exit non-zero.         |
+| `STATUS: AUTH_REQUIRED` | Auth failed (Stage E0); exit 0 + recovery hint.  |
+| `STATUS: CI_TIMEOUT`    | 15-min poll exceeded (Stage G2); exit 0 + auto-merge recovery hint. |
+| `STATUS: CI_FAILED — see <URL>` | Required check failed (Stage G2); exit 0 + diagnostic. |
+
+Non-zero exits are reserved for Stage A pre-flight aborts. All other failures
+exit cleanly with a `STATUS: …` line so the workflow is safe to run unattended.
+
+---
+
+## Tests
+
+Bats suite lives in `tests/commands/sole-dev-merge/`. CI runs them via
+`.github/workflows/security.yml` (added in M5.6). See
+`docs/adr/0008-sole-dev-merge-pr-workflow.md` for full test inventory.
+
+---
+
+_Stages A–G are placeholders. Logic lands across Steps 1.2 – 4.5 of the
+[sole-dev-merge-pr-workflow](../../.claude/dev/active/sole-dev-merge-pr-workflow/sole-dev-merge-pr-workflow-plan.md) plan._

@@ -2,7 +2,7 @@
 
 ## Milestone 1 — Pre-flight + scope-aware CI checks
 
-- **Status:** PENDING
+- **Status:** ACTIVE
 - **Dependencies:** None
 - **Complexity:** 45%
 - **Audit-Profile:** code-only
@@ -12,10 +12,18 @@
 - **Acceptance Criteria:** Bats #1 (scope) + #2 (preflight) pass; in-scope auto-fix commit lands with correct signature; out-of-scope drift reverted via `git checkout --`.
 
 ### Step 1.1: Create command skeleton with frontmatter
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `claude-code/commands/sole-dev-merge.md` exists; frontmatter contains `description: PR/MR-based merge workflow with scope-aware CI checks, review, security pass, and auto-merge`; body has section placeholders A–G.
-- Result Log: _pending_
+- Result Log:
+  - File created: `claude-code/commands/sole-dev-merge.md` (8106 bytes, 182 lines).
+  - Frontmatter `description:` matches plan §1.1 verbatim (verified via `grep -Fxq`).
+  - All 7 stage placeholders present: Stage A (1×), Stage B (2× — split into B + B-commit per SOC for §1.3 vs §1.4), Stage C, D, E, F, G.
+  - Each placeholder explicitly marked `_Implementation pending Step N.M._` to make the contract surface vs. implementation gap unambiguous to readers and to the M1 HARD gate.
+  - Exit-status contract table included (OK / ABORT / AUTH_REQUIRED / CI_TIMEOUT / CI_FAILED) — preempts plan §4.1.2 and §4.4 ambiguity.
+  - No logic yet (per AC).
+  - Verification: `grep -Fxq` on description line → PASS; `grep -c "### Stage [A-G]"` → 7+ headings → PASS.
+  - Mode: AFK — auto-dispatched.
 
 ### Step 1.2: Implement Stage A (pre-flight checks)
 - Status: PENDING

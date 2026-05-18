@@ -6,23 +6,53 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## v0.10.0 (2026-05-18)
 
-### Feat
+### Feat — `aa-ma-tui` tracker (M0-M4)
 
-- **aa-ma-tui-tracker**: M4 Steps 4.3+4.4 — integration test + doc drift sweep
-- **aa-ma-tui-tracker**: close M3 — Interactive Textual app COMPLETE
-- **aa-ma-tui-tracker**: M3 Steps 3.11+3.12 — manual smoke + r binding + coverage gate
-- **aa-ma-tui-tracker**: M3 Step 3.10 — AAMAApp + SVG snapshot smoke
-- **aa-ma-tui-tracker**: M3 Steps 3.8+3.9 — watcher.py + AAMAFilter
-- **aa-ma-tui-tracker**: M3 Step 3.7 — TaskDetailScreen arrow nav selects step
-- **aa-ma-tui-tracker**: M3 Steps 3.5+3.6 — TaskDetailScreen + Enter drill-in
-- **aa-ma-tui-tracker**: M3 Step 3.4 — DashboardScreen + promote BOARD_COLUMNS
-- **aa-ma-tui-tracker**: M3 Step 3.3 — KanbanColumn widget (groups by aggregate_status)
-- **aa-ma-tui-tracker**: M3 Step 3.2 — TaskCard widget + Task counting methods
-- **aa-ma-tui-tracker**: M3 Step 3.1 — Textual+watchfiles integration prototype (PASS)
-- **aa-ma-tui-tracker**: complete M2 — snapshot mode (Rich + JSON)
-- **aa-ma-tui-tracker**: complete M1 — parser foundation (Pydantic + regex)
-- **aa-ma-tui-tracker**: complete M0 — scaffold tui sub-package + register CLI
-- **claude-code**: integrate Claude Code /goal across aa-ma-forge workflows
+- **`aa-ma-tui` — read-only Textual TUI + Rich snapshot for AA-MA task tracking** (ADR-0007). New `src/aa_ma/tui/` sub-package + `aa-ma-tui` CLI entry. Five sub-modules (`model`, `parser`, `snapshot`, `json_output`, `app`), two screens (DashboardScreen 4-column kanban + TaskDetailScreen milestone Tree + Result Log preview + provenance tail), two widgets (TaskCard + KanbanColumn), `watcher.py` driving `watchfiles.awatch(debounce=300)` + `AAMAFilter` via Textual `@work(exclusive=True)`. **Strictly read-only** — never writes to `*-tasks.md`, cannot race with `/execute-aa-ma-*` writers. CLI: interactive default · `--snapshot[=board|tree|summary]` · `--json` · `--task NAME` · `--include-completed` · `--root PATH`. Exit codes 0/2/3. Full architectural rationale in [ADR-0007](docs/adr/0007-aa-ma-tui-tracker.md).
+- **New runtime deps explicitly declared** (per L-055): `pydantic>=2,<3`, `textual>=0.80,<1.0`, `rich>=13,<14`, `watchfiles>=0.21,<1.0`. Promoted from transitive to direct.
+- **`Task.step_progress()` + `Task.milestone_progress()`** methods — single source of truth for counting.
+- **`AAMA_FILE_SUFFIXES` + `TASKS_FILE_SUFFIX` + `BOARD_COLUMNS`** public constants — shared between parser, watcher, and app layers.
+
+### Feat — `/goal` integration (Claude Code)
+
+- **`/goal` integration** — opt-in cross-turn drive-to-completion across two surfaces:
+  - **`/execute-aa-ma-full` §2.5 Goal Synthesis & Bind** — synthesises a Haiku-evaluable condition from `plan.md` Acceptance Criteria (referencing observable artefacts: `provenance.log`, `tasks.md` Status, git tags, test exit codes) with a turn-cap derived from milestone count (`max(4, ceil(min(pending * 1.5, 30)))`). Surfaces condition + cap via `AskUserQuestion` [Bind / Edit / Skip] before binding `/goal`. Logs `GOAL_BOUND`, `GOAL_BIND_DECLINED`, or `GOAL_SYNTHESIS_SKIPPED` to provenance. Final `GOAL_FINAL` line at task completion.
+  - **`/verify-plan --iterate` Step 4.5 Iterate Mode** — bounded iteration loop (cap 3) that re-runs adversarial 6-angle verification, appends new Verdict blocks (audit trail preserved), revises plan files between iterations, terminates on GREEN-with-0-Criticals or cap exhaustion. Logs `VERIFY_ITERATE` to provenance.
+- **New skill `goal-condition-synthesis`** — produces falsifiable `/goal` conditions from AA-MA plan artefacts.
+- **Python helper `aa_ma.goal_synthesis`** — testable reference implementation.
+
+### Docs
+
+- **`docs/adr/0007-aa-ma-tui-tracker.md`** — MADR-format ADR with 3 considered options, decision drivers, consequences, and 6 deferred polish items.
+- **`README.md`** — new `## Visualizing active tasks` section.
+- **`CLAUDE.md`** — `uv run aa-ma-tui` added to Build & Development Commands; Architecture block updated with full `src/aa_ma/` tree. (Note: `CLAUDE.md` is `.gitignored` at the repo level — this entry documents the local convention; downstream consumers see the same information in README and ADR-0007.)
+- **`docs/adr/INDEX.md`** — appended ADR-0007 row.
+- **`docs/spec/aa-ma-team-guide.md` §2.7** — AFK Mode + `/goal` Cookbook (walkthrough, anti-patterns, when-NOT-to-use).
+- **`docs/spec/aa-ma-quick-reference.md`** — new "`/goal` Integration" table.
+
+### Dev deps
+
+- `pytest-textual-snapshot>=1.0` (transitive: `syrupy 5.2.0`) — SVG regression on Textual screens.
+
+### Tests
+
+- **+60 new tests** across 6 new files (TaskCard, KanbanColumn, DashboardScreen, TaskDetailScreen, watcher, app smoke) + 9-test integration suite. 2 SVG goldens. Full suite **780 pass / 1 skipped / 7 deselected** (was 715 at v0.9.0). tui package coverage 93%.
+
+### Design notes
+
+- **Read-only** — the tracker cannot race with `/execute-aa-ma-*` writers (data corruption); it may observe torn reads if writers don't write atomically — accepted, since the parser tolerates partial input per L-052.
+- **KISS pop+push dashboard refresh** chosen over true reactive in-place mutation for v0.10. M5 polish target (`D-M3-1`) is the reactive replacement.
+- **`mutate_reactive(ClassName.attr)`** Textual convention — must reference the CLASS attribute (not `self.attr`) for `watch_*` handler to fire on in-place mutation.
+- **WSL2 inotify subdir-registration timing** ≥ 1 s — documented as test-module constant.
+- **L-052 dual-formatter rule** satisfied by construction — all 4 render modes (board/tree/summary + JSON) call the same `discover_tasks` function object.
+- **`/goal` integration is opt-in everywhere.** Existing AA-MA workflows that pre-date `/goal` are unaffected. Goals live at the **task** level (one per session).
+
+### Protocol toggles
+
+- `--no-goal` on `/execute-aa-ma-full` — skip §2.5 for one run.
+- Omitting `--iterate` on `/verify-plan` — single-pass behaviour unchanged.
+- `/goal clear` — user-owned detach at any time.
+- `AA_MA_HOOKS_DISABLE=1` — disables aa-ma-forge hooks only; does NOT intercept `/goal` (gated separately by Claude Code's managed-settings keys).
 
 ### Fix
 

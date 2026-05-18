@@ -260,7 +260,7 @@ aa-ma-tui --include-completed                # extend discovery to .claude/dev/c
 aa-ma-tui --root /path/to/.claude            # explicit root (default scans ./ and ~/)
 ```
 
-The tracker is **strictly read-only** — it never writes to `*-tasks.md` or any other AA-MA file, so it cannot race with `/execute-aa-ma-*` writers. Architectural rationale and trade-offs documented in [ADR-0007](docs/adr/0007-aa-ma-tui-tracker.md).
+The tracker is **strictly read-only** — it never writes to `*-tasks.md` or any other AA-MA file, so the data-corruption race against `/execute-aa-ma-*` writers is impossible. (Readers may briefly observe partial writes if the executor writes non-atomically; the parser tolerates partial input per L-052, so a partial-read just re-parses on the next debounced refresh.) Architectural rationale and trade-offs documented in [ADR-0007](docs/adr/0007-aa-ma-tui-tracker.md).
 
 ## What else helped
 

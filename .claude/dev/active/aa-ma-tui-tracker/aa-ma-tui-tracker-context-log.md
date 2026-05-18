@@ -202,3 +202,34 @@ _This log will be updated via context compaction as the task progresses._
 - Notable Textual gotcha verified: `mutate_reactive(ClassName.attr)` must reference the CLASS attribute (not `self.attr`) for `watch_*` handler to fire on in-place mutation (Step 3.1 PROTOTYPE finding; recorded in reference.md M3 facts).
 - Notable WSL inotify finding: subdir file-watch needs ≥ 1s for inotify registration on WSL2 (works immediately at root). Documented in test_watcher.py constants + reference.md.
 - Next: M4 ADR-0007 + docs + integration test + `cz bump --increment MINOR` → v0.10.0 release.
+
+---
+
+## [2026-05-18] GATE APPROVAL: Milestone 4 — ADR, docs, integration test, release
+
+- Gate: HARD
+- Approved by: Stephen J Newhouse (user, via AskUserQuestion "Approve and finalize")
+- Criteria verified: 8/8
+  1. ✓ `docs/adr/0007-aa-ma-tui-tracker.md` exists with full sections — MADR format, 3 considered options, decision drivers, consequences (positive/negative/neutral), implementation notes, 6 deferred polish items, references
+  2. ✓ `docs/adr/INDEX.md` contains ADR-0007 row — appended at row 8
+  3. ✓ `README.md` has `## Visualizing active tasks` section — 7-line CLI cheatsheet + torn-read caveat (security-auditor W1 inline fix) + ADR-0007 link
+  4. ✓ `CLAUDE.md` has one-line under `## Build & Development Commands` — `uv run aa-ma-tui` line added; CAVEAT: CLAUDE.md is `.gitignored` (intentional project design); downstream consumers see equivalent info in README + ADR-0007 (documented in CHANGELOG v0.10.0)
+  5. ✓ `CHANGELOG.md` `[0.10.0]` `### Feat` entry mentions `aa-ma-tui` — cz auto-generated entries SUPPLANTED by manual restoration that preserves both aa-ma-tui detail AND prior `/goal` integration prose (Design notes + Protocol toggles); future bumps must pre-snapshot Unreleased per L-006 lesson
+  6. ✓ Integration test green — `tests/tui/test_integration.py` 9/9 pass; exercises CLI surface via subprocess against seeded temp `.claude` root
+  7. ✓ `/doc-sync` reports 0 CRITICAL findings — manual drift sweep: skill 19, agent 11, command 10, hook 8 (+1 lib helper) all consistent; no Tier 1 version-context drift
+  8. ✓ `git tag -l v0.10.0` returns `v0.10.0` — remote-verified `25d4fbe938ef0ea20bb4314da87462f27e22c166 refs/tags/v0.10.0`
+- Decision: APPROVED
+
+## [2026-05-18] Milestone Completion: M4 ADR, docs, integration test, release v0.10.0
+
+- Status: COMPLETE
+- Gate: HARD — signed approval above
+- Critical-Path: version-pipeline — CRITICAL_PATH_REVIEW entry in provenance.log (4-way validation of release pipeline)
+- Key outcome: **v0.10.0 released** to origin. aa-ma-tui shipped as first-party feature with full architectural documentation (ADR-0007), user-facing README section, integration test coverage, and CHANGELOG entry. Coverage 93%, 780 tests pass.
+- Artifacts (NEW): `docs/adr/0007-aa-ma-tui-tracker.md`, `tests/tui/test_integration.py`.
+- Artifacts (MODIFIED): `docs/adr/INDEX.md` (added ADR-0007 row), `README.md` (new "Visualizing active tasks" section + torn-read caveat), `CLAUDE.md` (added `uv run aa-ma-tui` + Architecture tree update — LOCAL only, gitignored), `CHANGELOG.md` (cz auto-regenerated + manual restoration preserving /goal prose), `pyproject.toml` (0.9.0→0.10.0 via cz), `uv.lock` (re-resolved).
+- Tests: 780 pass / 1 skipped / 7 deselected (+9 from M3 baseline of 771). tui package coverage 93%. No regressions.
+- §6.8 full-profile audit (5 agents): PASS_WITH_WARNINGS (0 CRITICAL / 8 WARNING / 9 INFO). 6 of 8 warnings RESOLVED inline; 4 deferred as D-M4-1..D-M4-4 (M5 polish targets: uv-run speedup, --root trust boundary doc, mirror D-* IDs into tasks.md, ADR counts banner).
+- Notable: **cz bump CHANGELOG strip** (L-006 echo) — cz auto-regenerated CHANGELOG from commit-log, wiping the manually-curated `[Unreleased]` prose. Restored inline via direct CHANGELOG.md edit. Future plans authoring detailed CHANGELOG should either (a) ADR-front detail (cz won't touch ADRs) or (b) snapshot `[Unreleased]` to a temp file before `cz bump`. The aa-ma-tui detail is preserved in ADR-0007; the /goal detail had no ADR home, restored manually.
+- **Release artifact**: commit `25d4fbe`, tag `v0.10.0`, pushed to GitHub origin (snewhouse/aa-ma-forge). `aa-ma-tui --version` returns `aa-ma-tui 0.10.0` after `uv sync`.
+- Next: **All planned milestones M0-M4 COMPLETE**. M5 (Optional polish) is explicitly deferred to v0.11.0 backlog per plan. Run `/archive-aa-ma aa-ma-tui-tracker` to move task dir from `dev/active/` to `dev/completed/`.

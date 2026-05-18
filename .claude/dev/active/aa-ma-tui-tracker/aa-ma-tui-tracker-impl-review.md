@@ -201,3 +201,72 @@ None required — no CRITICALs.
 | D-M3-2 | W5-CR — Wrap `await watch_roots(...)` in `asyncio.shield` + cancel worker group from `action_quit`; ensures clean shutdown under heavy filesystem load | M5 polish |
 | D-M3-3 | I2-CR — TYPE_CHECKING pattern + top-level import for screens/dashboard.py → screens/task_detail.py reference (replaces local import inside `action_drill_in`) | M5 polish |
 | D-M3-4 | I4-FP — Move `KanbanColumn { width: 1fr; ... }` rule from App.CSS to `KanbanColumn.DEFAULT_CSS` (Textual-native pattern for re-usable widgets) | M5 polish |
+
+---
+
+## Milestone 4: ADR, docs, integration test, release v0.10.0
+
+- **Run:** 2026-05-18T10:30:00+01:00
+- **Audit-Profile:** `full` (5 agents incl. security-auditor)
+- **Milestone diff window:** `21780a2..ddc240c` (4 commits: docs/ADR + tests + cz bump + result-logs)
+- **Aggregate verdict:** **PASS_WITH_WARNINGS**
+- **Totals:** 0 CRITICAL · 8 WARNING · 9 INFO
+- **Override panel triggered:** NO (no CRITICALs)
+- **HARD gate:** Pending HITL approval at §7.3 (current step)
+
+### Per-agent results
+
+| Agent | Verdict | C/W/I |
+|---|---|---|
+| `code-reviewer` | PASS_WITH_WARNINGS | 0/4/3 |
+| `security-auditor` | PASS_WITH_WARNINGS | 0/2/3 |
+| `tdd-sequence-auditor` | PASS | 0/0/0 (vacuous — M4 ships no new src/) |
+| `context7-evidence-auditor` | PASS | 0/0/0 (no new deps) |
+| `future-proofing-auditor` | PASS_WITH_WARNINGS | 0/2/3 |
+
+### CRITICAL findings
+
+None.
+
+### WARNING findings
+
+| # | Source | Finding | Status |
+|---|---|---|---|
+| W1-CR | code-reviewer | `CLAUDE.md` is `.gitignored` (line 2) and not tracked — M4 AC "CLAUDE.md has one-line under Build & Development Commands" is local-only; downstream consumers don't see the update | **DOCUMENTED** — CHANGELOG v0.10.0 Docs section explicitly notes "(Note: `CLAUDE.md` is `.gitignored`... downstream consumers see the same information in README and ADR-0007.)". This is an intentional project-level design choice (the .gitignore comment block clarifies the convention); the M4 AC was written without knowledge of this. Reframing rather than reverting the gitignore. |
+| W2-CR | code-reviewer | cz auto-regenerated CHANGELOG wiped my detailed `[Unreleased]` prose, including the prior `/goal` integration design notes + protocol toggles — no `/goal` ADR exists to absorb this loss | **RESOLVED inline** — manually restored the `/goal` integration prose (Feat block, Docs section, Design notes, Protocol toggles) into the v0.10.0 section; also restructured the aa-ma-tui Feat block into a fuller prose form (this trades the cz-auto-derivation convention for prose-preservation; future bumps must pre-snapshot Unreleased) |
+| W3-CR | code-reviewer | `_run_cli` uses `uv run aa-ma-tui` which re-resolves the lockfile per invocation (~200-800ms cold × 9 tests) | DEFERRED — D-M4-1, M5 polish (switch to `subprocess.run([sys.executable, "-m", "aa_ma.tui", ...])` for ~5× speedup) |
+| W4-CR | code-reviewer | ADR-0007 Cons line "but that's a 1-line `pyproject.toml` change" is an unqualified precision claim (L-063 echo) | **RESOLVED inline** — rephrased to "small surface (entry-point rename + deprecation alias + docs sweep), not literally one line" |
+| W1-SA | security-auditor | README "cannot race with writers" overstates the guarantee — no-write prevents data-corruption races but readers may still observe torn-read of an in-flight write | **RESOLVED inline** — added one-line caveat to the README "Visualizing active tasks" section clarifying torn-read possibility + L-052 partial-input tolerance |
+| W2-SA | security-auditor | `--root` is a trust boundary — adversarial filesystem mount could force unbounded discover_tasks() via rapid create/delete | DEFERRED — D-M4-2, document trust boundary in ADR-0007 (M5 hardening; no privilege escalation today, only nuisance CPU) |
+| W1-FP | future-proofing-auditor | `timeout=30` magic number in `_run_cli` (will be copy-pasted by future tests) | **RESOLVED inline** — extracted `_CLI_TIMEOUT_S = 30` module constant |
+| W2-FP | future-proofing-auditor | Exit-code literals (2, 3) in test_integration.py — should reference named constants from `__main__` | **RESOLVED inline** — imported `EXIT_OK`, `EXIT_NO_TASKS`, `EXIT_TASK_NOT_FOUND` from `aa_ma.tui.__main__`; all assertions now use the named symbols |
+
+### INFO findings (kept for future-self)
+
+From `code-reviewer`:
+- I1: ADR-0007's D-M3-1..D-M3-4 backlog IDs are not mirrored in tasks.md M5 sub-steps — `/gsd-add-backlog` capture would be mechanical if mirrored. NOTED for v0.11.0 planning.
+- I2: `REPO_ROOT = Path(__file__).resolve().parents[2]` has a magic offset — **RESOLVED inline** (added `assert (REPO_ROOT / "pyproject.toml").exists()` defensive guard).
+- I3: 14 successive sub-step commit bullets in v0.10.0 CHANGELOG produce noise — superseded by the manual restoration in W2-CR fix.
+
+From `security-auditor`:
+- I1: subprocess.run safety — list args, no shell, bounded timeout, controlled cwd. Clean.
+- I2: `Path(root_arg).expanduser()` without `.resolve()` — `--root` is a trust boundary by design; user runs as themselves.
+- I3: cz auto-regen + commit-subject injection — not in this repo's threat model (committer is trusted).
+
+From `future-proofing-auditor`:
+- I1: README "PENDING/IN_PROGRESS/BLOCKED/COMPLETE" hardcodes the 4-status set; the closed enum per L-065 makes this safe today; flagged for Tier 6 if the enum ever grows.
+- I2: ADR-0007 carries hardcoded "5 enums", "30 tests" etc. — documentation-historical; ADR header could carry "Counts reflect state at ADR date" banner. M5 polish.
+- I3: REPO_ROOT magic offset — same finding as code-reviewer I2; already RESOLVED.
+
+### User Override Decisions
+
+None required — no CRITICALs.
+
+### Deferred Follow-ups (M4)
+
+| ID | Description | Target |
+|---|---|---|
+| D-M4-1 | W3-CR — switch `_run_cli` from `uv run aa-ma-tui` to `subprocess.run([sys.executable, "-m", "aa_ma.tui", ...])` for ~5× test speedup; removes uv binary dependency from test env | M5 polish |
+| D-M4-2 | W2-SA — document `--root` as an explicit trust boundary in ADR-0007 Consequences/Negative; user must not point at attacker-writable directories | v0.11.0 |
+| D-M4-3 | I1-CR — mirror ADR-0007 D-M3-1..D-M3-4 backlog IDs into tasks.md M5 sub-steps so `/gsd-add-backlog` capture is mechanical | v0.11.0 |
+| D-M4-4 | I2-FP — add "Counts reflect state at ADR date" banner template to docs/adr/TEMPLATE.md and back-fill ADR-0007 | M5 polish |

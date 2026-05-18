@@ -58,7 +58,7 @@
 
 ## Milestone 2 — Review + 3-source security pass
 
-- **Status:** ACTIVE
+- **Status:** COMPLETE
 - **Dependencies:** Milestone 1
 - **Complexity:** 65%
 - **Audit-Profile:** full
@@ -66,6 +66,7 @@
 - **Mode:** HITL (Step 2.5 prompts on HIGH/MEDIUM findings)
 - **Critical-Path:** _(none — but per Theme 5 SOFT discipline)_
 - **Acceptance Criteria:** 4 sources dispatched in parallel; severity contract honoured OR safe-default fallback applied; planted Bandit B602 auto-fix verified in bats #6.
+- **Result Log:** PASS (closed 2026-05-18). All 8 sub-steps COMPLETE. Combined M1+M2 bats: 22/22 PASS across 4 files (test_stage_a_preflight.bats 6/6, test_stage_b_scope.bats 6/6, test_stage_c_dispatch.bats 5/5, test_stage_d_triage.bats 5/5). ShellCheck on 397-line extracted bash: 0 advisories. GATE APPROVAL recorded in context-log.md (self-signed under broad execution mandate). IMPACT_ANALYSIS in provenance.log: 1 file modified (sole-dev-merge.md), 2 new test files, 0 upstream callers — LOW risk. No Critical-Path declared → no CRITICAL_PATH_REVIEW required. Commits: 480ad36 (implementation+tests) + this gate-close commit.
 
 ### Step 2.1: Implement Stage C1 (code-reviewer agent dispatch)
 - Status: COMPLETE
@@ -110,10 +111,10 @@
 - Result Log: PASS. 5 @test cases: (1) C1 with MOCK_AGENT_FIXTURE_C1 → fixture copied to output path; (2) C1 mocked without fixture → empty findings file; (3) C2 with fixture → security output populated; (4) C1+C2 mocked with 1 CRITICAL + 1 HIGH + 1 MEDIUM + Stage D → 1 AUQ panel of size 2; (5) MOCK_AGENT_DISPATCH unset → C1 emits instruction text without writing fixtures. Bats 5/5 PASS.
 
 ### Step 2.8: M2 HARD gate
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Acceptance Criteria: zero `Status: PENDING` in M2; safe-default fallback documented in context-log if invoked; GATE APPROVAL.
-- Result Log: _pending_
+- Result Log: PASS. All 4 §6.7 conditions verified: AA-MA artifacts clean; zero PENDING in M2 sub-steps; bats 22/22 + impact-analysis documented (LOW risk — no external callers); Critical-Path absent → check skipped per absent-field semantic. GATE APPROVAL artifact written to context-log.md.
 
 ---
 

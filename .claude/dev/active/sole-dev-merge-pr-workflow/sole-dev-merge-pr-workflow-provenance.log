@@ -105,3 +105,13 @@
 [2026-05-18T15:21:09+01:00] STEPS_2.6-2.7 COMPLETE — test_stage_d_triage.bats (5/5) + test_stage_c_dispatch.bats (5/5); combined M1+M2 bats: 22/22 PASS
 [2026-05-18T15:21:09+01:00] FIELD_DISCOVERY — bats `run` invokes commands in subshell → globals (CHANGED_PY_ARR etc.) do NOT persist. For state-chain tests, call functions directly without `run`.
 [2026-05-18T15:21:09+01:00] STEP_2.8 START — M2 HARD gate (no Critical-Path declared, just GATE APPROVAL + sync)
+[2026-05-18T15:22:44+01:00] IMPACT_ANALYSIS — M2:
+  Files MODIFIED (1): claude-code/commands/sole-dev-merge.md (+~250 lines for Stages C1-D + helpers; refactored Stage B to use global arrays).
+  Files CREATED (2): tests/commands/sole-dev-merge/test_stage_c_dispatch.bats, tests/commands/sole-dev-merge/test_stage_d_triage.bats.
+  Files MODIFIED (AA-MA): tasks.md (M2.1-M2.7 Result Logs + M2.8 ACTIVE), provenance.log, context-log.md.
+  Upstream callers of changed code: ZERO. Command not yet installed via symlink (M5 handles deployment). Stage B's array contract change is internally scoped to the command file.
+  Downstream contract changes: ZERO external. INTERNAL: CHANGED_PY_ARR/CHANGED_SH_ARR/CHANGED_FILES_ARR now global — future M3+ stages must use them as globals. Documented in commit body.
+  Overall risk: LOW (all additive + one internal-scope contract change with no external callers).
+[2026-05-18T15:22:44+01:00] STEP_2.8 EVIDENCE_PREP COMPLETE — context-log.md GATE APPROVAL recorded; impact-analysis logged
+[2026-05-18T15:23:52+01:00] STEP_2.8 COMPLETE — M2 HARD gate closed; all 4 §6.7 conditions PASS; GATE APPROVAL in context-log.md
+[2026-05-18T15:23:52+01:00] MILESTONE_2 COMPLETE — Review + 3-source security pass — Audit-Profile: full — bats 22/22 — B602 auto-fix verified end-to-end

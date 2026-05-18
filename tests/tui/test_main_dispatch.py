@@ -160,13 +160,20 @@ def test_main_include_completed_flag(
     assert "playwright-skill" in captured.out
 
 
-def test_main_no_flags_falls_through_to_placeholder(
-    capsys: pytest.CaptureFixture,
+def test_main_no_flags_launches_textual_app(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """No --snapshot / --json → M0 placeholder kept until M3 wires TUI."""
+    """No --snapshot / --json → constructs + runs AAMAApp (M3 Step 3.10)."""
+    from aa_ma.tui import app as app_module
     from aa_ma.tui.__main__ import main
 
+    launched: list[app_module.AAMAApp] = []
+    # Replace run() so the test doesn't actually start a Textual loop.
+    monkeypatch.setattr(
+        app_module.AAMAApp, "run", lambda self, *a, **kw: launched.append(self)
+    )
+
     code = main([])
-    captured = capsys.readouterr()
     assert code == 0
-    assert "M0 scaffolding" in captured.out or "M3" in captured.out
+    assert len(launched) == 1
+    assert isinstance(launched[0], app_module.AAMAApp)

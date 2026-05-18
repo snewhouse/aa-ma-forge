@@ -92,3 +92,8 @@ markers = [
     "slow: long-running property tests (codemem M2 Task 2.4 roundtrip — 100 examples). Skipped by default; run with `-m slow`.",
 ]
 addopts = "-m 'not perf and not slow'"
+
+[dependency-groups]
+dev = [
+    "pytest-textual-snapshot>=1.0",
+]

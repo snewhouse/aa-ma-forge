@@ -253,9 +253,9 @@ Created: 2026-05-17
 - Result Log: Covered alongside Step 3.8 in test_watcher.py (5 AAMAFilter tests): accepts `-tasks.md`, accepts all 5 canonical suffixes (-tasks/-plan/-reference/-context-log/-provenance), rejects unrelated extensions (.txt, .json), rejects bare `tasks.md` without `-` prefix, inherits DefaultFilter noise suppression (__pycache__, .git). GREEN via AAMAFilter(DefaultFilter) implementation. Same commit as Step 3.8.
 
 ### Step 3.10: TDD app_smoke (pytest-textual-snapshot SVG)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: (a) Installed `pytest-textual-snapshot>=1.0` as dev-dep via `uv add --group dev` (also pulled syrupy 5.2.0). (b) Wrote `tests/tui/test_app_smoke.py` (6 tests: AAMAApp stores initial_tasks, watch_roots empty default, pushes DashboardScreen on_mount via Pilot, malformed-input tolerance < 2s with size=(120,40), 2× SVG snapshots). RED confirmed (ModuleNotFoundError aa_ma.tui.app). GREEN: (i) Created `src/aa_ma/tui/app.py` (~120 lines) — AAMAApp(App) with `tracker_tasks` + `watch_roots_value` + `_stop_event` + on_mount pushing DashboardScreen + @work watch_filesystem driving watch_roots + _reload_tasks helper + _find_and_parse_task helper + action_quit. (ii) Factored `tests/tui/_static_tasks.py::make_static_tasks()` so the snapshot fixture app can import the same builder as the `static_tasks` pytest fixture. (iii) Refactored `tests/tui/conftest.py` — `static_tasks` fixture now wraps `make_static_tasks()` (single source of truth). (iv) Created `tests/tui/snapshot_apps/{__init__,dashboard_static}.py` — module-level `app = AAMAApp(initial_tasks=make_static_tasks())` for snap_compare consumption. (v) Wired `__main__.py` no-flag fallthrough to launch `AAMAApp(initial_tasks=tasks, watch_roots=roots).run()` (replaces M0 placeholder). (vi) Updated `test_main_no_flags_launches_textual_app` to monkeypatch AAMAApp.run and verify construction (replaces obsolete placeholder-text assertion). SVG goldens bootstrapped via `--snapshot-update`, locked on second run. 110 tui tests pass / 1 deselected. **Full project suite: 769 pass / 1 skipped / 7 deselected** (M2 baseline 715 + 54 new across Steps 3.2-3.10). No regressions.
 
 ### Step 3.11: Manual smoke — interactive TUI + cross-terminal file-touch
 - Status: PENDING

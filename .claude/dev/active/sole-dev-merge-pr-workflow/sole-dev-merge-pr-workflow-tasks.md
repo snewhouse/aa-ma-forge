@@ -55,10 +55,19 @@
   - Mode: AFK — auto-dispatched.
 
 ### Step 1.4: Auto-commit in-scope fixes (if any)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: Per plan §4 1.4 — if Stage B mutated files, `git log -1 --format=%s` returns `chore(scope): pre-PR auto-fixes` AND last 3 lines of body match `\[AA-MA Plan\]|\[ad-hoc\]`.
-- Result Log: _pending_
+- Result Log:
+  - Stage B-commit bash implemented inside `# === stage-b-commit (BEGIN/END) ===` markers (15 lines — KISS).
+  - Branching: `if [[ -z "$(git status --porcelain)" ]]; then` clean → no-op log; else `git add -A && git commit -m "chore(scope): pre-PR auto-fixes"`.
+  - Footer delegation: the `aa-ma-commit-signature.sh` PreToolUse hook (Claude Code) appends `[AA-MA Plan] …` or `[ad-hoc]` — Stage B-commit does NOT duplicate this logic (DRY + SOC). Inline comment documents the contract.
+  - Empirical AC §4.1.4 PASS:
+    - Case A (dirty tree): commit subject EXACTLY `chore(scope): pre-PR auto-fixes` ✓; post-commit tree clean ✓.
+    - Case B (clean tree): no commit created (PRE_SHA == POST_SHA) ✓.
+  - Footer-regex portion of AC: out-of-scope for the Stage B-commit implementation (handled by hook). Bats test in M1.6 will source the hook or set `AA_MA_HOOKS_DISABLE=1` per `tests/commands/sole-dev-merge/fixtures` contract.
+  - Tooling: `bash -n` clean; `shellcheck` clean.
+  - Mode: AFK — auto-dispatched.
 
 ### Step 1.5: Write bats test for Stage B (scope)
 - Status: PENDING

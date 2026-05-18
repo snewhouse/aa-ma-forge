@@ -193,12 +193,31 @@ echo "Stage B OK"
 
 ### Stage B-commit — Auto-commit in-scope fixes
 
-_Implementation pending Step 1.4._
-
 If Stage B mutated in-scope files, commits as
 `chore(scope): pre-PR auto-fixes`. The `aa-ma-commit-signature.sh` hook
 appends the active-plan footer (`[AA-MA Plan] …`) or `[ad-hoc]` automatically.
 If `git status` is clean, this stage is a no-op.
+
+```bash
+# === stage-b-commit (BEGIN) ===
+set -euo pipefail
+
+# Post-Stage-B + L-007 guard: anything dirty here is in-scope and was
+# mutated by ruff/pre-commit on files the branch actually owns.
+if [[ -z "$(git status --porcelain)" ]]; then
+    echo "Stage B-commit: nothing to commit (Stage B made no in-scope changes)"
+else
+    git add -A
+    # NOTE: AA-MA / [ad-hoc] footer is appended by the
+    # aa-ma-commit-signature.sh PreToolUse hook (see
+    # claude-code/hooks/lib/aa-ma-commit-signature.sh). Tests that invoke
+    # this stage outside Claude Code must either set AA_MA_HOOKS_DISABLE=1
+    # or append the footer themselves.
+    git commit -m "chore(scope): pre-PR auto-fixes"
+    echo "Stage B-commit: committed in-scope auto-fixes ($(git rev-parse --short HEAD))"
+fi
+# === stage-b-commit (END) ===
+```
 
 ### Stage C — Code review + 3-source security pass
 

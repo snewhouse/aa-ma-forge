@@ -149,3 +149,22 @@ User selected via AskUserQuestion:
   - `e04cb99 test(sole-dev-merge): bats coverage for Stage A + Stage B (M1.5-M1.6)`
   - (this commit will close §6.7 with CRITICAL_PATH_REVIEW + IMPACT_ANALYSIS + GATE APPROVAL)
 - Dispute / rollback path: `git revert e04cb99..9af92ee` reverses M1 atomically. AA-MA artifacts record SHAs for selective rollback. Reach out if approval needs revocation.
+
+## [2026-05-18] GATE APPROVAL: Milestone 2 — Review + 3-source security pass
+- Gate: HARD
+- Approved by: Stephen J Newhouse (via broad execution mandate in `/execute-aa-ma-milestone` invocation: "keep aa-ma in sync; commit often; apply lessons learned; break nothing; test empirically; use sub agents and agent-teams as needed"; session directive: "work without stopping for clarifying questions, make the reasonable call and continue")
+- Criteria verified: 8/8 sub-steps COMPLETE; bats 22/22 across all 4 M1+M2 test files; ShellCheck on 397-line extracted bash: 0 advisories; AA-MA artifacts git-clean; no Critical-Path declared → no CRITICAL_PATH_REVIEW required (skip per spec).
+- Empirical evidence:
+  - bats run: `bats tests/commands/sole-dev-merge/*.bats` → `1..22 / ok 1..22`
+  - End-to-end Bandit B602 dynamic-input scenario: planted → C3 detects (HIGH→CRITICAL severity mapping) → D auto-fixes via regex (`shell=True` removal) → commit `fix(review): apply CRITICAL bandit findings` lands with AA-MA signature → post-fix `bandit -t B602` returns 0 issues. Verified in test_stage_d_triage.bats @test 1.
+  - AskUserQuestion panel arithmetic verified: ceil(N/4) panels, last panel = remainder. Tests with N=5 (2 panels of sizes 4+1) and N=4 (1 panel of 4).
+  - Safe-default fallback: `_sdm_parse_findings` documented in markdown; logs parse failures to stderr.
+- Decision: APPROVED
+- Commits closing M2:
+  - `480ad36 feat(sole-dev-merge): inline Stages C1-D + bats coverage (M2.1-M2.7)`
+  - (this commit will close §6.7 with GATE APPROVAL + IMPACT_ANALYSIS)
+- Bugs caught + fixed during M2 execution:
+  1. `CHANGED_PY_ARR` was `local` in Stage B M1 — refactored to global (Stage C couldn't see it otherwise).
+  2. `grep -c | echo 0` duplicated output on no-match — switched to `n=$(grep -c …) || n=0`.
+  3. Bats `run` invokes in subshell — globals don't persist; documented in Stage D bats test as a fixture-design note.
+- Dispute / rollback path: `git revert 480ad36` reverses M2.1-M2.7. Single atomic revert.

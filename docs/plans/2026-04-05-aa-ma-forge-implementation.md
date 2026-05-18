@@ -1,3 +1,9 @@
+<!-- doc-drift-ignore-file -->
+<!-- M5.9 closure: historical implementation plan from 2026-04-05. The
+     "Expected: 0.1.0" snippets are frozen historical references, NOT
+     stale canonical-version claims. Per CLAUDE.md "Historical docs are
+     frozen" project rule. -->
+
 # aa-ma-forge Ecosystem Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

@@ -1,3 +1,9 @@
+<!-- doc-drift-ignore-file -->
+<!-- M5.9 closure: rollback runbook for v0.5.0. By design references v0.5.0
+     (the release being rolled back) and v0.4.0 (the rollback target). The
+     entire purpose of this document is to document those specific versions
+     — they are not stale canonical-version claims. -->
+
 # Rollback Runbook: v0.5.0
 
 **Affected release:** v0.5.0 (`feat`: engineering-standards doctrine + Planning

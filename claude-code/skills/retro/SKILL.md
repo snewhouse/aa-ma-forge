@@ -1,6 +1,6 @@
 ---
 name: retro
-version: 2.0.0
+version: 2.0.0  # doc-drift-ignore-version: per-skill semver, tracks the skill's own evolution (forked from external source), not the aa-ma-forge project version
 description: |
   Weekly engineering retrospective. Analyzes commit history, work patterns,
   and code quality metrics with persistent history and trend tracking.

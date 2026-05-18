@@ -1,3 +1,10 @@
+<!-- doc-drift-ignore-file -->
+<!-- M5.9 closure: historical implementation plan from 2026-04-05. The
+     "Expected: 0.x.0" snippets inside this doc document EXPECTED OUTPUT
+     of `mike` docs-versioning commands at the time the plan was authored
+     — they are frozen historical references, NOT stale canonical-version
+     claims. Per CLAUDE.md "Historical docs are frozen" project rule. -->
+
 # Versioning Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

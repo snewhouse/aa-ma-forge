@@ -17,6 +17,9 @@ media/
 # codemem local state — never commit
 .codemem/
 
+# git worktrees — sibling working trees for parallel feature work (L-066)
+.worktrees/
+
 # Hypothesis property-test cache (test state, not source)
 .hypothesis/
 

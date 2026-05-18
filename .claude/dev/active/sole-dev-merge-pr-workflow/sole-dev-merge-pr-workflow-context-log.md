@@ -86,3 +86,37 @@ User selected via AskUserQuestion:
 - Phase 5 — pending (proceeding now)
 
 **Next Action:** Phase 5 artifact creation complete with this file. Phase 5 marker to be written after all 5 AA-MA files exist.
+
+---
+
+## [2026-05-18] Milestone 1 Completion: Pre-flight + scope-aware CI checks
+
+- **Status:** COMPLETE
+- **Key outcome:** Implemented Stage A (4-branch pre-flight) + Stage B (scope-aware CI with L-007 GUARD) + Stage B-commit (auto-fix commit) inside `claude-code/commands/sole-dev-merge.md`; added 2 bats test files (10/10 tests PASS) + DRY `extract_stage.sh` helper. Structurally resolves L-007 (whole-tree ruff format drift).
+- **Artifacts:**
+  - `claude-code/commands/sole-dev-merge.md` (NEW — 311 lines; Stages A/B/B-commit implemented in markers; C–G are placeholders)
+  - `tests/commands/sole-dev-merge/test_stage_a_preflight.bats` (NEW — 6 tests)
+  - `tests/commands/sole-dev-merge/test_stage_b_scope.bats` (NEW — 4 tests)
+  - `tests/commands/sole-dev-merge/fixtures/extract_stage.sh` (NEW — extractor helper)
+- **Tests:** 10/10 bats PASS via `bats tests/commands/sole-dev-merge/`
+- **Commits:** 5914df4, a7a437b, b6342e0, 38b8b8b, dbad361
+- **§6.8 audit verdict:** PASS_WITH_WARNINGS (1 CRITICAL disputed, 14 LOW advisory) — see `[task]-impl-review.md`
+
+## [2026-05-18] GATE APPROVAL: Milestone 1 — Pre-flight + scope-aware CI checks
+
+- **Gate:** HARD
+- **Approved by:** Stephen J Newhouse (via /execute-aa-ma-milestone HITL Step 1.7)
+- **Criteria verified:** 4/4 acceptance criteria from M1 acceptance:
+  1. ✅ Bats #1 (scope) passes — 4/4 tests green incl. canonical L-007 scenario
+  2. ✅ Bats #2 (preflight) passes — 6/6 tests green incl. AC §4.1.2 verbatim match
+  3. ✅ In-scope auto-fix commit lands with correct signature — empirically verified subject = `chore(scope): pre-PR auto-fixes`; AA-MA footer applied by hook
+  4. ✅ Out-of-scope drift reverted via `git checkout --` — empirically verified zero-byte `git diff` on planted `tests/codemem/foo.py` post-Stage-B
+- **Engineering Standards HARD gate (§6.7):** all 5 conditions PASS
+  1. AA-MA artifacts in sync — `git status --porcelain .claude/dev/active/...` returns 0 dirty files (verified pre-this-commit)
+  2. Zero `Status: PENDING` in M1 — Step 1.7 transitions to COMPLETE with this approval
+  3. Tests pass — `bats tests/commands/sole-dev-merge/` 10/10 green
+  4. Critical-Path evidence — `CRITICAL_PATH_REVIEW — doc-count-drift` entry in provenance.log
+  5. Prototype-Required: absent → check skipped
+- **§6.8 Post-Impl Adversarial Review:** 5 agents dispatched (code-only profile = full slate); verdict PASS_WITH_WARNINGS post user-dispute on the single tdd-sequence CRITICAL; details in `[task]-impl-review.md`
+- **Decision:** APPROVED — proceed to M2
+

@@ -2,7 +2,7 @@
 
 ## Milestone 1 — Pre-flight + scope-aware CI checks
 
-- **Status:** ACTIVE
+- **Status:** COMPLETE
 - **Dependencies:** None
 - **Complexity:** 45%
 - **Audit-Profile:** code-only
@@ -10,6 +10,12 @@
 - **Mode:** AFK
 - **Critical-Path:** doc-count-drift
 - **Acceptance Criteria:** Bats #1 (scope) + #2 (preflight) pass; in-scope auto-fix commit lands with correct signature; out-of-scope drift reverted via `git checkout --`.
+- **Result Log:**
+  - All 4 ACs verified empirically (see `[task]-context-log.md` GATE APPROVAL entry for breakdown).
+  - 10/10 bats tests PASS (`bats tests/commands/sole-dev-merge/`).
+  - 5 commits landed on main: 5914df4, a7a437b, b6342e0, 38b8b8b, dbad361.
+  - §6.8 audit: 5 agents dispatched (code-only = full slate); verdict PASS_WITH_WARNINGS (1 CRITICAL disputed, 14 LOW advisory) — see `[task]-impl-review.md`.
+  - HARD gate approved 2026-05-18.
 
 ### Step 1.1: Create command skeleton with frontmatter
 - Status: COMPLETE
@@ -94,10 +100,16 @@
   - Mode: AFK — auto-dispatched.
 
 ### Step 1.7: M1 HARD gate (sub-step closure check)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Acceptance Criteria: zero `Status: PENDING` in M1 sub-steps; `git status` clean for AA-MA files; CRITICAL_PATH_REVIEW for `doc-count-drift` entry in provenance.log; GATE APPROVAL recorded in context-log.md.
-- Result Log: _pending_
+- Result Log:
+  - Zero `Status: PENDING` in M1 sub-steps (this entry transitions the last one).
+  - `git status --porcelain .claude/dev/active/...` clean pre-this-commit.
+  - CRITICAL_PATH_REVIEW for `doc-count-drift` written to `[task]-provenance.log` (evidence: new command file added but count assertions in README/CLAUDE.md/SECURITY.md DEFERRED to M5.4 atomic reconciliation per plan).
+  - GATE APPROVAL artifact written to `[task]-context-log.md` (Gate: HARD, approved 2026-05-18, all 4 ACs + all 5 §6.7 conditions verified).
+  - §6.8 audit dispatched (5 agents, code-only profile = full slate); PASS_WITH_WARNINGS verdict (1 CRITICAL disputed with documented rationale, 14 LOW advisory). Full report at `[task]-impl-review.md`.
+  - Mode: HITL — user approved gate via `/execute-aa-ma-milestone` override panel.
 
 ---
 

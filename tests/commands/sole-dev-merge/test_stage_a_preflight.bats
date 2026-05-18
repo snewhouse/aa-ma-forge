@@ -8,14 +8,14 @@
 # Test pattern: see test_stage_b_scope.bats header note (plumbing-only commits
 # to avoid the aa-ma-commit-signature.sh PreToolUse hook).
 
+load fixtures/helpers
+
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../../.." && pwd)"
     COMMAND_MD="${REPO_ROOT}/claude-code/commands/sole-dev-merge.md"
     EXTRACT="${REPO_ROOT}/tests/commands/sole-dev-merge/fixtures/extract_stage.sh"
 
-    # Keep the script OUTSIDE the sandbox to avoid an untracked file dirtying
-    # the porcelain output when Stage A runs.
-    SCRIPT_DIR="$(mktemp -d)"
+    SCRIPT_DIR="$(tmp_script_dir)"
     BATS_TMP="$(mktemp -d)"
     export BATS_TMP SCRIPT_DIR REPO_ROOT COMMAND_MD EXTRACT
 
@@ -31,23 +31,6 @@ setup() {
 teardown() {
     rm -rf "$BATS_TMP" "$SCRIPT_DIR"
 }
-
-# Helper: plumbing commit (bypasses commit-signature hook)
-mkcommit() {
-    local msg="$1"
-    local parent
-    parent=$(git rev-parse --verify -q HEAD 2>/dev/null || true)
-    local tree
-    tree=$(git write-tree)
-    local sha
-    if [[ -n "$parent" ]]; then
-        sha=$(echo "$msg" | git commit-tree "$tree" -p "$parent")
-    else
-        sha=$(echo "$msg" | git commit-tree "$tree")
-    fi
-    git update-ref HEAD "$sha"
-}
-export -f mkcommit
 
 @test "ABORT on main branch (AC §4.1.2 verbatim)" {
     cd "$BATS_TMP"

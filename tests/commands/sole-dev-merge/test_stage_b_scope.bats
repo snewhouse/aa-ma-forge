@@ -15,13 +15,14 @@
 #     aa-ma-commit-signature.sh PreToolUse hook
 #   - Stage A is sourced first so BASE_REF is set, then Stage B runs
 
+load fixtures/helpers
+
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../../.." && pwd)"
     COMMAND_MD="${REPO_ROOT}/claude-code/commands/sole-dev-merge.md"
     EXTRACT="${REPO_ROOT}/tests/commands/sole-dev-merge/fixtures/extract_stage.sh"
 
-    # Keep extracted scripts OUTSIDE the sandbox so they don't dirty porcelain.
-    SCRIPT_DIR="$(mktemp -d)"
+    SCRIPT_DIR="$(tmp_script_dir)"
     BATS_TMP="$(mktemp -d)"
     export BATS_TMP SCRIPT_DIR REPO_ROOT COMMAND_MD EXTRACT
 
@@ -32,23 +33,6 @@ setup() {
 teardown() {
     rm -rf "$BATS_TMP" "$SCRIPT_DIR"
 }
-
-# Helper: plumbing commit on current HEAD (avoids commit-signature hook)
-mkcommit() {
-    local msg="$1"
-    local parent
-    parent=$(git rev-parse --verify -q HEAD 2>/dev/null || true)
-    local tree
-    tree=$(git write-tree)
-    local sha
-    if [[ -n "$parent" ]]; then
-        sha=$(echo "$msg" | git commit-tree "$tree" -p "$parent")
-    else
-        sha=$(echo "$msg" | git commit-tree "$tree")
-    fi
-    git update-ref HEAD "$sha"
-}
-export -f mkcommit
 
 @test "Stage B reformats in-scope Python file" {
     cd "$BATS_TMP"

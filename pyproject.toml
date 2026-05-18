@@ -4,7 +4,7 @@ name = "aa-ma"
 # below. Do NOT hand-edit. aa-ma-tui-tracker M4 ships v0.10.0 via `cz bump
 # --increment MINOR`; M0 deliberately defers the bump to avoid commitizen vs.
 # semantic_release conflict. See aa-ma-tui-tracker-context-log.md (Decision 6).
-version = "0.9.0"
+version = "0.10.0"
 description = "Advanced Agentic Memory Architecture - structured external memory for AI coding agents"
 readme = "README.md"
 license = "Apache-2.0"

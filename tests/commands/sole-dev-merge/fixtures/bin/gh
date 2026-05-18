@@ -2,14 +2,16 @@
 # gh — PATH-shadowed stub for sole-dev-merge bats tests.
 #
 # Logs every invocation as one line to "$CLI_LOG" (env var; required).
-# Behaviour is controlled by:
-#   GH_PR_EXISTS=1 — `gh pr view ...` exits 0 + emits {"url":"…"} json so the
-#                    caller treats it as "existing PR".
-#   GH_PR_EXISTS=0 — `gh pr view ...` exits 1 (no PR found).
-# Default: GH_PR_EXISTS=0.
 #
-# All other subcommands exit 0 silently so the calling script's pipe-chain
-# stays alive. The test asserts via grep over "$CLI_LOG".
+# Behaviour env vars (defaults shown):
+#   GH_PR_EXISTS=0       — `gh pr view ...` exit 1 (no PR); =1 → exit 0 + JSON.
+#   GH_AUTH_OK=1         — `gh auth status` exit 0; =0 → exit 1 (auth failure).
+#   GH_WATCH_HANG=0      — `gh pr checks --watch` exits 0; =1 → hangs (sleeps
+#                           999s) so an outer `timeout Ns` triggers RC=124.
+#   GH_CHECKS_RC=0       — exit code for `gh pr checks` (when not hanging).
+#                           Use 0 for green, 1+ for failure. Ignored when HANG=1.
+#   GH_ALLOW_REBASE=true — `gh api repos/.../allow_rebase_merge` echoes this.
+#                           Set to "false" to simulate rebase-merge disabled.
 
 set -eu
 
@@ -27,7 +29,15 @@ case "${1:-}" in
                     exit 1
                 fi
                 ;;
-            create|edit|merge|checks)
+            checks)
+                # CI poll path — supports never-return mode for timeout tests.
+                if [[ "${GH_WATCH_HANG:-0}" == "1" ]]; then
+                    # Block until outer `timeout` kills us (RC=124).
+                    sleep 999
+                fi
+                exit "${GH_CHECKS_RC:-0}"
+                ;;
+            create|edit|merge)
                 exit 0
                 ;;
         esac
@@ -46,8 +56,10 @@ case "${1:-}" in
         esac
         ;;
     api)
-        # default echoes "true" for boolean queries used in M4
-        echo "true"
+        # M4 branch-protection check expects 'true'|'false' from --jq filter.
+        # M3 idempotency tests don't depend on this output (they only check
+        # PR-view behaviour), so changing default is safe.
+        echo "${GH_ALLOW_REBASE:-true}"
         exit 0
         ;;
 esac

@@ -40,7 +40,16 @@ case "${1:-}" in
         esac
         ;;
     api)
-        echo '{"merge_method":"rebase_merge"}'
+        # M4 GitLab branch-protection (.merge_method) + CI poll (.pipeline.status).
+        # Defaults to a green-rebase-allowed shape so M3 tests don't depend on it.
+        case "${GLAB_API_MODE:-merge_method}" in
+            merge_method)
+                echo "${GLAB_MERGE_METHOD:-rebase_merge}"
+                ;;
+            pipeline_status)
+                echo "${GLAB_PIPELINE_STATUS:-success}"
+                ;;
+        esac
         exit 0
         ;;
 esac

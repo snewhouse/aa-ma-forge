@@ -380,13 +380,14 @@
 
 ## Milestone 4 — CI poll + auto-merge + cleanup
 
-- **Status:** PENDING
+- **Status:** ACTIVE
 - **Dependencies:** Milestone 3
 - **Complexity:** 50%
 - **Audit-Profile:** code-only
 - **Gate:** SOFT
 - **Mode:** AFK
 - **Critical-Path:** version-pipeline
+- **TDD-Note:** Applying M2/M3 lesson — Steps 4.6 + 4.7 (bats tests) WRITTEN FIRST as RED, then Steps 4.1-4.5 (implementation) make tests GREEN. Same pattern that passed tdd-sequence-auditor in M2 + M3.
 - **Acceptance Criteria:** Poll respects 15-min timeout with clean exit code 0; rebase-merge dispatched once with correct flags; post-merge cleanup pulls main and prunes stale remote refs.
 
 ### Step 4.1: Implement Stage G1 (branch-protection pre-check)

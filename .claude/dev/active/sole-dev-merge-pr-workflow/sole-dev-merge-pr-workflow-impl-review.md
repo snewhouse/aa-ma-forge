@@ -91,3 +91,95 @@ All findings are correctness gaps within the sole-dev trust boundary — no expl
 - **Specifically deferred to M2**: helper extraction (`fixtures/helpers.bash`) when the 3rd bats file lands.
 - **No blocking findings** post-dispute.
 - **Provenance entry**: `§6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: 5 — verdict: PASS_WITH_WARNINGS — findings: 1 CRITICAL (disputed) / 0 WARNING / 14 LOW`.
+
+---
+
+## Milestone 2 — Review + 3-source security pass
+
+- **Audit window:** `de55cc3..HEAD` (7 implementation commits: f6f8497, 5d7ba98, 5feaf9c, bafa257, 814d57a, 245c662, 5d06a65)
+- **Audit-Profile:** full (5 agents)
+- **Date:** 2026-05-18
+
+### Summary
+
+| Agent | CRITICAL | HIGH | MEDIUM | LOW | Verdict |
+|---|:--:|:--:|:--:|:--:|---|
+| code-reviewer | 0 | 0 | 0 | 6 | PASS |
+| security-auditor | 0 | 3 | 3 | 4 | PASS_WITH_WARNINGS |
+| tdd-sequence-auditor | 0 | 0 | 0 | 0 | **PASS ✓** (M1 lesson applied) |
+| context7-evidence-auditor | 0 | 0 | 0 | 0 | PASS |
+| future-proofing-auditor | 1 | 2 | 2 | 2 | PASS_WITH_WARNINGS (post-fix) |
+| **TOTAL (initial)** | **1** | **5** | **5** | **12** | **BLOCKED** → User chose "Fix everything inline" |
+| **TOTAL (post-fix)** | **0** | **0** | **5** | **12** | **PASS_WITH_WARNINGS** |
+
+### Overall verdict
+
+**PASS_WITH_WARNINGS** — after user-directed inline fixes for the 1 CRITICAL + 4 of 5 HIGH findings. The 5th HIGH (footer duplication) was simultaneously fixed by the same shared-helper refactor.
+
+The 5 MEDIUM + 12 LOW findings are advisory and tracked here for future opportunistic cleanup.
+
+---
+
+## User Override Decisions (M2)
+
+| # | Severity | Finding | Decision | Recorded |
+|---|---|---|---|---|
+| 1 | CRITICAL | severity-table duplication between reference.md tables and inline python3 sev_map dicts | **fix inline** | 2026-05-18 |
+| 2 | HIGH | Stage D unguarded sed against agent-influenced $FILE | **fix inline** | 2026-05-18 |
+| 3 | HIGH | Stage D B602 substring matcher allows agent-induced false auto-fix | **fix inline** | 2026-05-18 |
+| 4 | HIGH | Non-contextual shell=True→shell=False corrupts docstrings/fixtures | **fix inline** | 2026-05-18 |
+| 5 | HIGH | AA-MA footer convention hand-built inline (drift risk) | **fix inline** | 2026-05-18 |
+| 6 | HIGH | B602 sed-replace fragility (overlap with #4 root cause) | **fix inline** (same fix as #4) | 2026-05-18 |
+
+### Inline-fix implementations (commit 5d06a65)
+
+**#1 (CRITICAL)** — Severity tables extracted to canonical `$BANDIT_SEV_JSON` / `$SHELLCHECK_SEV_JSON` env vars at the top of `stage-c-aggregate` bash block. python3 heredocs now load from `os.environ` instead of duplicating the dict. `reference.md` tables marked as "mirror; canonical source = command file".
+
+**#2-#4 + #6 (4 HIGH)** — Stage D refactored to drive auto-fix from `$BANDIT_OUT` JSON directly (trusted provenance). Changes:
+- Loop now iterates Bandit JSON results via python3 emitting `<filename>\t<line_number>` per B602 HIGH issue
+- Equality check (`test_id == "B602"` AND `issue_severity == "HIGH"`), no substring matching
+- Line-scoped sed: `sed -i "${LINE}s/shell=True/shell=False/"` (no `g` flag, exact line)
+- Empirically verified via regression test #18: docstring on line 1 containing `shell=True` SURVIVES Stage D auto-fix while line 4 (actual B602 call) is correctly rewritten.
+
+**#5 (HIGH)** — New shared helper `claude-code/hooks/lib/aa-ma-footer.sh::emit_aa_ma_footer()`. Both Stage B-commit and Stage D now `source` it and call `emit_aa_ma_footer`. Single source-of-truth eliminates drift risk. Bats override path via `AA_MA_FOOTER_HELPER` env var. Bonus: closes M1 production gap (Stage B-commit lacked footer and would block `aa-ma-commit-signature.sh` hook in real Claude Code execution).
+
+### Remaining LOW/MEDIUM findings (advisory)
+
+#### code-reviewer (6 LOW — none addressed)
+
+Deferred to opportunistic cleanup (no blocking impact):
+1. Two near-identical `while read` loops over `$CHANGED_PY` (ruff format + check) — could fuse
+2. `CHANGED_SH` / `N_SH` computed in Stage B but unused (consumed by Stage C4 in M2, but the comment could be more explicit)
+3. Porcelain parsing assumes unquoted paths (M1 carryover; bats fixture renames are rare)
+4. Magic offset `3` for porcelain XY prefix (could use a `read status path` form)
+5. KISS test-affordance `BASE_REF:-main` fallback in Stage B (test affordance, could be documented)
+6. `4-per-call max` AskUserQuestion limit hardcoded in doc prose
+
+#### security-auditor (3 MEDIUM + 4 LOW — 3 MEDIUM acknowledged, 4 LOW deferred)
+
+MEDIUM:
+1. `$FOOTER` constructed via `basename` on plan dir name — attacker-controlled in theory. Mitigated by sole-dev trust model + arg-not-eval; bash interpolation into double-quoted single-arg.
+2. Inline python3 JSON parse — no resource bounds (sole-dev: developer's own machine; bandit output is bounded).
+3. `bandit/shellcheck $CHANGED_PY` word-splits filenames with spaces/globs (SC2086 disabled intentionally; `|| true` swallows errors).
+
+LOW:
+1. Parse-failure safe-default appends untrusted line as `[HIGH] ... — (parse-failure: ...)` — not exploitable thanks to `-f $FILE` guard.
+2. L-007 guard porcelain parser drops rename rows silently.
+3. `SLUG=$(date +%s)` collision risk on rapid re-runs.
+4. `: > "$FINDINGS"` follows symlinks (/tmp symlink truncation pattern).
+
+#### future-proofing-auditor (2 MEDIUM + 2 LOW)
+
+MEDIUM:
+1. Hardcoded `"LOW"` fallback for unmapped severities — documented in reference.md fallback rows.
+2. B602-only auto-fix not advertised as extension point — could add `# extend with additional patterns here` marker. Deferred to M5 polish.
+
+LOW:
+1. Hardcoded `/tmp` prefix — could use `${TMPDIR:-/tmp}` (deferred to M5 polish).
+2. Magic line-number defaults to `0` when JSON field missing — could emit `:?` (deferred).
+
+### Disposition
+
+- **All MEDIUM + LOW findings**: tracked here; addressable during M5 polish work where the files are revisited.
+- **No blocking findings** post-inline-fix.
+- **Provenance entry (initial)**: `§6.8 POST_IMPL_REVIEW — Audit-Profile: full — agents: 5 — verdict: BLOCKED → PASS_WITH_WARNINGS (post-inline-fix) — findings: 1 CRITICAL (fixed) / 5 HIGH (fixed) / 5 MEDIUM (advisory) / 12 LOW (advisory)`.

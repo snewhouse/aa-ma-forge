@@ -120,3 +120,38 @@ User selected via AskUserQuestion:
 - **§6.8 Post-Impl Adversarial Review:** 5 agents dispatched (code-only profile = full slate); verdict PASS_WITH_WARNINGS post user-dispute on the single tdd-sequence CRITICAL; details in `[task]-impl-review.md`
 - **Decision:** APPROVED — proceed to M2
 
+---
+
+## [2026-05-18] Milestone 2 Completion: Review + 3-source security pass
+
+- **Status:** COMPLETE
+- **Key outcome:** Implemented Stage C (parallel agent dispatch contract + Bandit + ShellCheck aggregation with severity mapping) + Stage D (B602 auto-fix from Bandit JSON, line-precise + test_id equality; HIGH/MEDIUM HITL via AskUserQuestion; LOW → reviewer notes). Closed 1 CRITICAL + 4 HIGH §6.8 audit findings inline via 3 refactors: (1) severity tables to single source-of-truth, (2) Stage D refactor from agent-text to Bandit JSON, (3) shared aa-ma-footer.sh helper. Also closed M1 production gap (Stage B-commit footer).
+- **Artifacts:**
+  - `claude-code/commands/sole-dev-merge.md` (MODIFIED — Stage C + Stage D fully implemented; Stage B-commit refactored to use shared footer helper)
+  - `claude-code/hooks/lib/aa-ma-footer.sh` (NEW — shared footer-helper)
+  - `tests/commands/sole-dev-merge/test_stage_c_dispatch.bats` (NEW — 5 tests)
+  - `tests/commands/sole-dev-merge/test_stage_d_triage.bats` (NEW — 4 tests incl. docstring-survival regression)
+  - `tests/commands/sole-dev-merge/fixtures/helpers.bash` (NEW — extracted mkcommit, M1 cleanup)
+  - `.claude/dev/active/sole-dev-merge-pr-workflow/sole-dev-merge-pr-workflow-reference.md` (MODIFIED — severity tables marked as mirror; canonical-source pointer to command file)
+- **Tests:** 19/19 bats PASS (10 M1 + 5 Stage C + 4 Stage D)
+- **TDD-sequence-auditor verdict:** PASS ✓ (M1 lesson applied — tests committed before impl in both Stage C and Stage D pairs)
+- **§6.8 audit verdict:** PASS_WITH_WARNINGS (CRITICAL + 4 HIGH fixed inline; remaining LOW/MEDIUM noted in impl-review.md)
+- **Commits:** f6f8497, 5d7ba98, 5feaf9c, bafa257, 814d57a, 245c662, 5d06a65 (7 commits, TDD-strict order)
+
+## [2026-05-18] GATE APPROVAL: Milestone 2 — Review + 3-source security pass
+
+- **Gate:** HARD
+- **Approved by:** Stephen J Newhouse (via /execute-aa-ma-milestone HITL Step 2.8)
+- **Criteria verified:** 3/3 acceptance criteria from M2 acceptance:
+  1. ✅ 4 sources dispatched in parallel — Stage C documented as parallel Agent dispatch (C1, C2) + parallel-shell C3, C4; bats tests assert the aggregation contract
+  2. ✅ Severity contract honoured OR safe-default fallback applied — both paths tested empirically (tests 11, 14)
+  3. ✅ Planted Bandit B602 auto-fix verified — test 16 (canonical AC §4.2.5) + test 18 (docstring-survival regression) PASS
+- **Engineering Standards HARD gate (§6.7):** all 5 conditions PASS
+  1. AA-MA artifacts in sync — finalized in this commit
+  2. Zero `Status: PENDING` in M2 — Step 2.8 transitions to COMPLETE with this approval
+  3. Tests pass — 19/19 bats green
+  4. Critical-Path evidence — M2 has NO Critical-Path declaration (per plan: SOFT discipline only); check skipped (absent-field semantic)
+  5. Prototype-Required absent → check skipped
+- **§6.8 Post-Impl Adversarial Review:** 5 agents dispatched (full profile); initial verdict BLOCKED (1 CRITICAL + 5 HIGH); user chose "Fix everything inline"; CRITICAL + 4 HIGH refactored inline (3 root-cause fixes in 1 commit + footer helper); final verdict PASS_WITH_WARNINGS. Details in `[task]-impl-review.md`.
+- **Decision:** APPROVED — proceed to M3
+

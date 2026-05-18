@@ -1,3 +1,8 @@
+<!-- ARCHIVED: 2026-05-18 21:35 -->
+<!-- Plan: sole-dev-merge-pr-workflow - COMPLETE -->
+<!-- Total Milestones: 5 | Duration: 2026-05-18 (single intensive day) -->
+<!-- Commit window: e86a733..a3ba870 (28 commits, all TDD-strict order) -->
+
 # sole-dev-merge-pr-workflow Plan
 
 **Objective:** Replace the existing `/sole-dev-merge` fast-merge command with a PR/MR-based workflow that runs scope-aware CI checks, dispatches a local code review + 3-source security pass (security-auditor agent + Bandit + ShellCheck), opens a PR via `gh` or MR via `glab` (prompting when both remotes exist, default GitLab), polls CI to green, then auto-merges via `--rebase --delete-branch`.

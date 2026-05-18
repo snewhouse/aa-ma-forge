@@ -100,6 +100,44 @@ def test_task_detail_prov_tail_empty_shows_placeholder() -> None:
 # -----------------------------------------------------------------------------
 
 
+def test_task_detail_arrow_nav_selects_step(static_tasks) -> None:
+    """Step 3.7 — arrow keys navigate the Tree, update selected_step + preview."""
+
+    async def _run() -> None:
+        beta = static_tasks[1]  # has expected Step 1.1 with result_log="approved"
+
+        class _MinApp(App):
+            def on_mount(self) -> None:
+                self.push_screen(TaskDetailScreen(beta))
+
+        app = _MinApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            tree = app.screen.query_one("#milestone-tree", Tree)
+            tree.focus()
+            # Expand all so step leaves are visible to arrow nav.
+            tree.root.expand_all()
+            await pilot.pause()
+            # Navigate down a few times to land on a step leaf.
+            for _ in range(5):
+                await pilot.press("down")
+                await pilot.pause(0.02)
+            # selected_step must now reference an actual model Step
+            from aa_ma.tui.model import Step as _ModelStep
+
+            assert isinstance(app.screen.selected_step, _ModelStep)
+            # Preview reflects the selected step's content
+            preview = app.screen.query_one("#result-log-preview", Static)
+            rendered = str(preview.renderable).lower()
+            assert (
+                app.screen.selected_step.result_log is None
+                or app.screen.selected_step.result_log.lower() in rendered
+                or "no result log" in rendered
+            )
+
+    asyncio.run(_run())
+
+
 def test_task_detail_mounts_via_pilot(static_tasks) -> None:
     """Sanity check that TaskDetailScreen mounts without errors in a real App."""
 

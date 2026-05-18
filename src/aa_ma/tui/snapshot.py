@@ -35,7 +35,7 @@ from aa_ma.tui.parser import discover_tasks  # noqa: F401
 _RENDER_WIDTH = 120
 
 # Fixed column order — matches plan acceptance criterion #1.
-_BOARD_COLUMNS: tuple[AggregateStatus, ...] = (
+BOARD_COLUMNS: tuple[AggregateStatus, ...] = (
     AggregateStatus.PENDING,
     AggregateStatus.IN_PROGRESS,
     AggregateStatus.BLOCKED,
@@ -66,7 +66,7 @@ def _task_card(task: Task) -> str:
 def _group_by_aggregate(tasks: list[Task]) -> dict[AggregateStatus, list[Task]]:
     """Bucket tasks by aggregate_status (preserves input order within bucket)."""
     buckets: dict[AggregateStatus, list[Task]] = {
-        status: [] for status in _BOARD_COLUMNS
+        status: [] for status in BOARD_COLUMNS
     }
     for task in tasks:
         if task.aggregate_status in buckets:
@@ -88,8 +88,8 @@ _RESULT_LOG_PREVIEW_CHARS = 60
 # future ADR adds a 6th AggregateStatus value, the next assertion forces an
 # explicit decision (add to columns OR document the omission) — prevents the
 # silent-drop drift caught by §6.8 audit W2-FP.
-assert {*_BOARD_COLUMNS, AggregateStatus.ERROR} == set(AggregateStatus), (
-    "AggregateStatus enum changed without updating _BOARD_COLUMNS; "
+assert {*BOARD_COLUMNS, AggregateStatus.ERROR} == set(AggregateStatus), (
+    "AggregateStatus enum changed without updating BOARD_COLUMNS; "
     "decide explicitly whether the new value is a board column or "
     "(like ERROR) surfaced as a badge."
 )
@@ -155,7 +155,7 @@ def render_board(tasks: list[Task]) -> str:
     """
     buckets = _group_by_aggregate(tasks)
     panels = []
-    for status in _BOARD_COLUMNS:
+    for status in BOARD_COLUMNS:
         body_tasks = buckets[status]
         if body_tasks:
             body = "\n\n".join(_task_card(t) for t in body_tasks)
@@ -166,7 +166,7 @@ def render_board(tasks: list[Task]) -> str:
                 body,
                 title=status.value,
                 expand=True,
-                width=_RENDER_WIDTH // len(_BOARD_COLUMNS),
+                width=_RENDER_WIDTH // len(BOARD_COLUMNS),
             )
         )
 

@@ -8,6 +8,36 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Feat
 
+- **`aa-ma-tui` — Read-only Textual TUI + Rich snapshot for AA-MA task tracking** (ADR-0007). New `src/aa_ma/tui/` sub-package + `aa-ma-tui` CLI entry. Five sub-modules (`model`, `parser`, `snapshot`, `json_output`, `app`), 2 screens (`DashboardScreen` 4-column kanban + `TaskDetailScreen` milestone Tree + Result Log preview + provenance tail), 2 widgets (`TaskCard`, `KanbanColumn`), `watcher.py` driving `watchfiles.awatch(debounce=300)` + `AAMAFilter` via Textual `@work(exclusive=True)`. Strict read-only — never writes to `*-tasks.md`, cannot race with `/execute-aa-ma-*` writers. CLI: `aa-ma-tui` (interactive) · `--snapshot[=board|tree|summary]` · `--json` · `--task NAME` · `--include-completed` · `--root PATH`. Exit codes 0/2/3. JSON envelope `{"schema_version":1, "tasks":[...]}`.
+- **New runtime deps declared explicitly** (per L-055): `pydantic>=2,<3`, `textual>=0.80,<1.0`, `rich>=13,<14`, `watchfiles>=0.21,<1.0`. Two were already transitive (Rich via Textual; watchfiles via fastmcp), promoted to direct deps per policy.
+- **Pydantic v2 `Task` model** gains `step_progress()` and `milestone_progress()` methods — single source of truth for counting, consumed by both snapshot renderers and TUI widgets.
+- **`AAMA_FILE_SUFFIXES` and `TASKS_FILE_SUFFIX`** public constants in `aa_ma.tui.parser` — shared by `parser`, `watcher`, and `app` (L-005 mechanism-duplication consolidation).
+- **`BOARD_COLUMNS`** promoted from `snapshot._BOARD_COLUMNS` to public — shared by `snapshot.render_board` and `screens/dashboard.py`. Module-level assertion forces explicit decision when `AggregateStatus` enum grows.
+
+### Docs
+
+- **`docs/adr/0007-aa-ma-tui-tracker.md`** — MADR-format ADR documenting the read-only Textual+Rich tracker decision (3 considered options, decision drivers, consequences, implementation notes, 6 deferred polish items).
+- **`README.md`** — new `## Visualizing active tasks` section with 7-line CLI cheatsheet and link to ADR-0007.
+- **`CLAUDE.md`** — `uv run aa-ma-tui` added to Build & Development Commands; Architecture block updated with full `src/aa_ma/` tree (replaces obsolete "skeleton, no logic yet" line).
+- **`docs/adr/INDEX.md`** — appended ADR-0007 row.
+
+### Dev deps
+
+- `pytest-textual-snapshot>=1.0` (also pulled `syrupy 5.2.0` transitively) — used for SVG snapshot regression on DashboardScreen + TaskDetailScreen via `snap_compare`.
+
+### Tests
+
+- +60 new tests across 6 new files: `test_widgets_task_card.py` (9), `test_widgets_kanban_column.py` (7), `test_screens_dashboard.py` (10), `test_screens_task_detail.py` (9), `test_watcher.py` (13), `test_app_smoke.py` (8), `test_integration.py` (9 subprocess end-to-end). Plus 27 from M2 (snapshot/json/dispatch) + 30 from M1 (model/parser/hypothesis).
+- 2 SVG golden snapshots (`tests/tui/__snapshots__/test_app_smoke/`).
+- Full suite: **780 pass / 1 skipped / 7 deselected** (was 715 at v0.9.0).
+
+### Design notes
+
+- **KISS pop+push dashboard refresh** chosen over true reactive in-place mutation for v0.10. M5 polish target (`D-M3-1`) is the reactive replacement; current pattern is debuggable + deterministic.
+- **`mutate_reactive(ClassName.attr)`** Textual convention — must reference the CLASS attribute (not `self.attr`) for `watch_*` handler to fire on in-place mutation. Validated by Step 3.1 prototype.
+- **WSL2 inotify subdir-registration timing** ≥ 1 s — documented as test-module constant.
+- **L-052 dual-formatter rule** satisfied by construction — all 4 render modes (board/tree/summary + JSON) call the same `discover_tasks` function object, verified by `sys.modules` identity test.
+
 - **`/goal` integration (Claude Code)** — opt-in cross-turn drive-to-completion across two surfaces:
   - **`/execute-aa-ma-full` §2.5 Goal Synthesis & Bind** — synthesises a Haiku-evaluable condition from `plan.md` Acceptance Criteria (referencing observable artefacts: `provenance.log`, `tasks.md` Status, git tags, test exit codes) with a turn-cap derived from milestone count (`max(4, ceil(min(pending * 1.5, 30)))`). Surfaces condition + cap via `AskUserQuestion` [Bind / Edit / Skip] before binding `/goal`. Logs `GOAL_BOUND`, `GOAL_BIND_DECLINED`, or `GOAL_SYNTHESIS_SKIPPED` to provenance. Final `GOAL_FINAL` line at task completion.
   - **`/verify-plan --iterate` Step 4.5 Iterate Mode** — bounded iteration loop (cap 3) that re-runs adversarial 6-angle verification, appends new Verdict blocks (audit trail preserved), revises plan files between iterations, terminates on GREEN-with-0-Criticals or cap exhaustion. Logs `VERIFY_ITERATE` to provenance.

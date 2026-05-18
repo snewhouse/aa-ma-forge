@@ -142,6 +142,17 @@ and violates the atomic-commit-per-logical-change convention.
 deliberate but assumes clean-tree start; this lesson captures the gap when
 the assumption breaks.
 
+**Resolution (2026-05-18):** Resolved structurally by the
+`sole-dev-merge-pr-workflow` AA-MA plan, Step 1.3 (commit `b6342e0`). The
+new plugin-shipped `/sole-dev-merge` command implements an L-007 GUARD
+inside `stage-b-scope`: after Stage B's `ruff format` / `ruff check --fix`
+run on the in-scope file set, a `git status --porcelain` walk reverts any
+dirty path NOT in the changed-files set via `git checkout --`. The format
+step can no longer escape the branch's declared scope. See
+[ADR-0008](adr/0008-sole-dev-merge-pr-workflow.md) §Decision Drivers
+("Scope discipline structural fix") and `test_stage_b_scope.bats`
+test #2 (canonical L-007 scenario regression).
+
 ---
 
 ## L-006 (2026-05-11) — `cz bump` strips rich `## Unreleased` content to bare Feat/Fix — amend + retag to preserve prose

@@ -58,5 +58,5 @@
 [2026-05-18T10:30:00+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: full — agents: code-reviewer,security-auditor,tdd-sequence-auditor,context7-evidence-auditor,future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 8 WARNING / 9 INFO
 [2026-05-18T10:30:00+01:00] §6.8 INLINE_FIXES_APPLIED — W2_CR_changelog_goal_prose_restored=true W4_CR_adr_precision_claim=true W1_SA_readme_torn_read_caveat=true W1_FP_cli_timeout_constant=true W2_FP_exit_code_named_constants=true I2_CR_repo_root_guard=true — DEFERRED: W1_CR_claude_md_gitignored_documented, W3_CR_uv_run_speed(D-M4-1), W2_SA_root_trust_boundary(D-M4-2), I1_CR_mirror_d_ids(D-M4-3), I2_FP_adr_counts_banner(D-M4-4)
 [2026-05-18T11:00:00+01:00] HARD_GATE_APPROVED — milestone=ADR_docs_integration_test_release approver=Stephen_J_Newhouse channel=AskUserQuestion criteria_verified=8/8
-[2026-05-18T11:00:00+01:00] MILESTONE_4_COMPLETE — sub_steps=6/6 acceptance=8/8 tests_pass=780 coverage=tui_93% commit=[pending] release_tag=v0.10.0
+[2026-05-18T11:00:00+01:00] MILESTONE_4_COMPLETE — sub_steps=6/6 acceptance=8/8 tests_pass=780 coverage=tui_93% commit=ac8c89e release_tag=v0.10.0
 [2026-05-18T11:00:00+01:00] PLAN_COMPLETE — milestones_complete=5/5(M0-M4 + M5_explicitly_deferred) release=v0.10.0 archive_target=/archive-aa-ma_aa-ma-tui-tracker

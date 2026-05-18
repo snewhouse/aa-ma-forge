@@ -391,46 +391,98 @@
 - **Acceptance Criteria:** Poll respects 15-min timeout with clean exit code 0; rebase-merge dispatched once with correct flags; post-merge cleanup pulls main and prunes stale remote refs.
 
 ### Step 4.1: Implement Stage G1 (branch-protection pre-check)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: Per plan §4 4.1 — mocked `allow_rebase_merge=false` → merge dispatched with `--merge` instead of `--rebase`.
-- Result Log: _pending_
+- Result Log:
+  - Stage G1 bash implemented inside `# === stage-g1-protect (BEGIN/END) ===` markers (22 lines).
+  - GitHub branch: `gh api "repos/{owner}/{repo}" --jq '.allow_rebase_merge'` → exports `MERGE_STRATEGY=rebase` if `true`, fallback to `MERGE_STRATEGY=merge` with a user-facing warning otherwise.
+  - GitLab branch: `glab api "/projects/:id" --jq '.merge_method'` → fallback to `merge` if not `rebase_merge`.
+  - Empirical AC §4.4.1 PASS — 2/2 G1 tests green:
+    - `GH_ALLOW_REBASE=true` (default) → `MERGE_STRATEGY=rebase`
+    - `GH_ALLOW_REBASE=false` → `MERGE_STRATEGY=merge` + "fallback" warning emitted
+  - Mode: AFK — auto-dispatched.
 
 ### Step 4.2: Implement Stage G2 (CI poll — divergent paths)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: Per plan §4 4.2 — GitHub path translates RC=124 to clean exit 0 + STATUS:CI_TIMEOUT; GitLab path uses `glab api` JSON polling (NOT `glab ci status`).
-- Result Log: _pending_
+- Result Log:
+  - Stage G2 bash implemented inside `# === stage-g2-poll (BEGIN/END) ===` markers (48 lines).
+  - GitHub branch: `timeout $CI_POLL_TIMEOUT gh pr checks "$PR_NUM" --watch --interval 30 --fail-fast`; case-statement translates RC: 0→green, 124→timeout (STATUS:CI_TIMEOUT + recovery hint), other→failed (STATUS:CI_FAILED + diagnostic hint with PR URL). `CI_POLL_TIMEOUT="${CI_POLL_TIMEOUT:-900s}"` allows test override (canonical 900s for production, 2s for tests).
+  - GitLab branch: bash `while` loop polling `glab api /projects/:id/merge_requests/<iid> --jq '.pipeline.status'` every 30s with `(( $(date +%s) - start >= 900 ))` guard. Parses status: `success`→green, `failed|canceled`→failed, else continue. Explicitly NOT `glab ci status` (TTY UI with no scriptable exit codes — reference.md "WRONG SYNTAX TO NEVER USE").
+  - Exports `CI_STATE=green|timeout|failed` for downstream Stage G3.
+  - Empirical AC §4.4.2 PASS — 4/4 G2 tests green:
+    - `GH_CHECKS_RC=0` → `CI_STATE=green`, no STATUS line
+    - `GH_WATCH_HANG=1` + `CI_POLL_TIMEOUT=2s` (canonical AC §4.4.2) → `STATUS: CI_TIMEOUT` + `CI_STATE=timeout` + `gh pr merge --auto --rebase` recovery hint; outer `timeout 5s` doesn't fire (script completes at ~2s)
+    - `GH_CHECKS_RC=1` → `STATUS: CI_FAILED` + `CI_STATE=failed` + PR URL diagnostic
+    - Stub log contains `--watch --interval 30 --fail-fast` (canonical flag triple per reference.md)
+  - Mode: AFK — auto-dispatched.
 
 ### Step 4.3: Implement Stage G3 (auto-merge dispatch)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: Per plan §4 4.3 — green CI → exactly one call to `gh pr merge --rebase --delete-branch` (counted via mock).
-- Result Log: _pending_
+- Result Log:
+  - Stage G3 bash implemented inside `# === stage-g3-merge (BEGIN/END) ===` markers (38 lines). Folds plan §4.3 (green path) and §4.4 (error paths) into a single SOC-clean `case "$CI_STATE"` dispatcher (KISS — one block, three branches).
+  - Green branch: `gh pr merge "$PR_NUM" --"$MERGE_STRATEGY" --delete-branch` for GitHub; symmetric `glab mr merge --rebase --remove-source-branch --yes` (or non-rebase fallback) for GitLab. Exports `MERGE_DISPATCHED=1`.
+  - Timeout branch: re-emits `STATUS: CI_TIMEOUT` line + recovery hint (defensive duplication for operators running G3 in isolation); no merge call. Exports `MERGE_DISPATCHED=0`.
+  - Failed branch: emits `STATUS: CI_FAILED` line + `gh pr checks $PR_NUM` diagnostic hint; no merge call.
+  - Empirical AC §4.4.3 PASS — 4/4 G3 tests green:
+    - `CI_STATE=green MERGE_STRATEGY=rebase` → `grep -cE 'pr merge [0-9]+ --rebase --delete-branch' = 1` (regex tolerates positional PR num between `pr merge` and the flag pair; gh CLI takes PR_NUM as FIRST positional)
+    - `CI_STATE=green MERGE_STRATEGY=merge` → `'pr merge [0-9]+ --merge --delete-branch' = 1` AND `--rebase` count = 0 (AC §4.4.1 fallback enforced)
+    - `CI_STATE=timeout` → 0 merge calls + `STATUS: CI_TIMEOUT` + PR URL
+    - `CI_STATE=failed` → 0 merge calls + `STATUS: CI_FAILED` + PR URL
+  - Mode: AFK — auto-dispatched.
 
 ### Step 4.4: Implement Stage G3 error paths (timeout / CI failure)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: Per plan §4 4.4 — CI failure or timeout → clean exit 0 with PR URL + recovery command printed.
-- Result Log: _pending_
+- Result Log:
+  - Implementation folded into Step 4.3's `stage-g3-merge` block (`case` dispatcher on `CI_STATE` — green/timeout/failed branches). KISS — one block beats two for the same dispatch context.
+  - Empirical AC §4.4 PASS:
+    - Timeout path: clean exit 0, stdout contains `STATUS: CI_TIMEOUT — see <PR-URL>` AND recovery command `gh pr merge $PR_NUM --auto --rebase`
+    - Failed path: clean exit 0, stdout contains `STATUS: CI_FAILED — see <PR-URL>` AND diagnostic `gh pr checks $PR_NUM`
+  - Verified by tests 5 ("CI_STATE=timeout → no merge + STATUS:CI_TIMEOUT + recovery hint") and 6 ("CI_STATE=failed → no merge + STATUS:CI_FAILED + diagnostic") in test_stage_g_merge.bats.
+  - Mode: AFK — auto-dispatched.
 
 ### Step 4.5: Implement Stage G4 (post-merge cleanup)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: Post-merge: on main, main fast-forwarded from origin, `git fetch --prune` cleans deleted-branch ref.
-- Result Log: _pending_
+- Result Log:
+  - Stage G4 bash implemented inside `# === stage-g4-cleanup (BEGIN/END) ===` markers (19 lines).
+  - Sequence: `git checkout` $DEFAULT_BRANCH (defaults to `main`) → `git pull --ff-only origin $DEFAULT_BRANCH` (fast-forward only, safe) → `git fetch --prune` (clears stale remote-tracking refs for deleted branches) → `git branch -D $ORIGINAL_BRANCH` (best-effort local cleanup with `|| true` since server-side ref is already gone).
+  - Emits final summary: `Stage G4: cleanup OK — on $DEFAULT_BRANCH at $MERGE_SHA` and `Final: branch=$ORIGINAL_BRANCH merged into $DEFAULT_BRANCH (sha=…) — $PR_URL`. Closes with `STATUS: OK` (per exit-status contract).
+  - Empirical AC §4.5 PASS — 1/1 G4 test green:
+    - Pre-state: on feature branch, bare remote has feature ref + main; simulated post-merge by deleting bare remote's feature ref and fast-forwarding bare remote's main to feature's tip
+    - Post-G4: `git branch --show-current` returns `main` ✓; local main matches bare remote's main (fast-forwarded) ✓; output contains "OK" final summary ✓
+  - Mode: AFK — auto-dispatched.
 
 ### Step 4.6: Write bats test for Stage G poll
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `bats tests/commands/sole-dev-merge/test_stage_g_poll.bats` passes; never-returning watch mock with 5s timeout for test speed.
-- Result Log: _pending_
+- Result Log:
+  - Created `tests/commands/sole-dev-merge/test_stage_g_poll.bats` — 4 tests (RED commit 4ccf8e2 → GREEN via M4 GREEN commit).
+  - Test 2 is the canonical AC §4.4.2 verification: `GH_WATCH_HANG=1 CI_POLL_TIMEOUT=2s` plants the never-returning watch; outer `timeout 5s` wraps the script; assertion verifies `STATUS: CI_TIMEOUT` in stdout + clean exit 0 + `CI_STATE=timeout` + `gh pr merge --auto` recovery hint.
+  - Stub extensions added in same RED commit: `GH_WATCH_HANG=1` makes `gh pr checks --watch` sleep 999s (timeout trigger); `GH_CHECKS_RC=N` sets exit code; `GH_ALLOW_REBASE=true|false` for G1 branch-protection.
+  - **All 4 tests PASS** via `bats tests/commands/sole-dev-merge/test_stage_g_poll.bats`.
+  - TDD-strict ordering: RED commit 4ccf8e2 lands BEFORE any src/ change in M4 window.
+  - Mode: AFK — auto-dispatched.
 
 ### Step 4.7: Write bats test for Stage G merge dispatch
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `bats tests/commands/sole-dev-merge/test_stage_g_merge.bats` passes; gh stub logs args; one call with `pr merge --rebase --delete-branch`.
-- Result Log: _pending_
+- Result Log:
+  - Created `tests/commands/sole-dev-merge/test_stage_g_merge.bats` — 7 tests (RED commit 0d2eff0 → GREEN via M4 GREEN commit). Covers G1 (×2) + G3 dispatch (×4) + G4 cleanup (×1).
+  - Tests 3+4 are canonical AC §4.4.3 + §4.4.1: regex-based grep counts (`pr merge [0-9]+ --rebase --delete-branch` and `--merge --delete-branch` variants) — regex tolerates the positional PR-num between subcommand and flags (gh CLI's actual arg order).
+  - RED-fixup applied in same milestone: original literal-substring assertions wouldn't match the gh stub's `echo "gh $*"` log format (PR_NUM interleaved). Fix preserves AC intent (count = 1 rebase-merge-delete call) while matching the real CLI shape. Same TDD-RED-side iteration pattern used in M3 test 8.
+  - **All 7 tests PASS** via `bats tests/commands/sole-dev-merge/test_stage_g_merge.bats`.
+  - TDD-strict ordering: RED commit 0d2eff0 lands BEFORE any src/ change in M4 window.
+  - Mode: AFK — auto-dispatched.
 
 ### Step 4.8: M4 SOFT gate (per spec — SOFT means convention-based, not artifact-enforced)
 - Status: PENDING

@@ -97,24 +97,27 @@ _sandbox_with_pushed_feature() {
 # Stage G3 — auto-merge dispatch (incl. error paths from plan §4.4)
 # ---------------------------------------------------------------------------
 
-@test "G3: green CI + rebase → exactly 1 'pr merge --rebase --delete-branch' (AC §4.4.3)" {
+@test "G3: green CI + rebase → exactly 1 'pr merge ... --rebase --delete-branch' (AC §4.4.3)" {
     _sandbox_with_pushed_feature
     export CI_STATE=green MERGE_STRATEGY=rebase
 
     run bash "$G3_SCRIPT"
     [ "$status" -eq 0 ]
-    # AC §4.4.3 falsifiable
-    [ "$(grep -c 'pr merge --rebase --delete-branch' "$CLI_LOG")" -eq 1 ]
+    # AC §4.4.3 falsifiable — the gh CLI takes PR_NUM as a positional FIRST arg
+    # (`gh pr merge 42 --rebase --delete-branch`), so we use a regex that
+    # tolerates the positional between `pr merge` and the flag pair.
+    [ "$(grep -cE 'pr merge [0-9]+ --rebase --delete-branch' "$CLI_LOG")" -eq 1 ]
 }
 
-@test "G3: green CI + merge fallback → 'pr merge --merge --delete-branch' (NOT --rebase) — AC §4.4.1" {
+@test "G3: green CI + merge fallback → 'pr merge ... --merge --delete-branch' (NOT --rebase) — AC §4.4.1" {
     _sandbox_with_pushed_feature
     export CI_STATE=green MERGE_STRATEGY=merge
 
     run bash "$G3_SCRIPT"
     [ "$status" -eq 0 ]
-    [ "$(grep -c 'pr merge --merge --delete-branch' "$CLI_LOG")" -eq 1 ]
-    [ "$(grep -c 'pr merge --rebase' "$CLI_LOG")" -eq 0 ]
+    [ "$(grep -cE 'pr merge [0-9]+ --merge --delete-branch' "$CLI_LOG")" -eq 1 ]
+    # Negative assertion: no --rebase call landed
+    [ "$(grep -c -- '--rebase' "$CLI_LOG")" -eq 0 ]
 }
 
 @test "G3: CI_STATE=timeout → no merge + STATUS:CI_TIMEOUT + recovery hint" {

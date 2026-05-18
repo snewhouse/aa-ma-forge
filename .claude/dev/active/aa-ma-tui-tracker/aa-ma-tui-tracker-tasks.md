@@ -218,9 +218,9 @@ Created: 2026-05-17
 - Result Log: RED→GREEN: wrote `tests/tui/test_widgets_task_card.py` (9 tests covering: construction, Static-subclass, format-includes-name/status/step-progress/milestone-progress, Task.step_progress() exists, Task.milestone_progress() exists, empty-milestones safe). RED confirmed: `ModuleNotFoundError: No module named 'aa_ma.tui.widgets'`. GREEN: (a) Added `Task.step_progress()` + `Task.milestone_progress()` methods to model.py (single source of truth, closes M2 §6.8 W1-CR consolidation). (b) Refactored snapshot.py — removed `_step_progress` + `_milestone_progress` module helpers; `_task_card` + `render_summary` now call `task.step_progress()` / `task.milestone_progress()`. (c) Created `src/aa_ma/tui/widgets/{__init__,task_card}.py` (~50 lines). **Design correction during GREEN**: Textual's Widget class reserves `task` as Worker/@work integration name; renamed our attribute to `task_data`. Inline comment documents WHY. All 9 RED tests now GREEN. Full suite 724 pass / 1 skipped (+9 from M2 baseline of 715). No regressions in M1+M2 (snapshot.py output is bytewise-identical since the refactor is a pure delegate).
 
 ### Step 3.3: TDD KanbanColumn widget (groups by aggregate_status)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: wrote `tests/tui/test_widgets_kanban_column.py` (7 tests: construction stores status+filtered-tasks, filtering across all 4 statuses + PENDING-empty, header includes status+count, ERROR-status dropped silently, VerticalScroll subclass, compose yields TaskCards, compose-empty yields placeholder). RED confirmed ModuleNotFoundError. GREEN: `src/aa_ma/tui/widgets/kanban_column.py` (~45 lines, KanbanColumn(VerticalScroll) with column_status + column_tasks attrs, header_text() returning "STATUS (N)", compose() yielding Label header + TaskCards or "(no tasks)" placeholder). Updated widgets/__init__.py to re-export KanbanColumn. 72 pass / 1 deselected (+7 from Step 3.2).
 
 ### Step 3.4: TDD DashboardScreen.compose yields 4 columns
 - Status: PENDING

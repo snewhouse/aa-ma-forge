@@ -7,6 +7,7 @@ Public surface:
 
 from __future__ import annotations
 
+from aa_ma.tui.widgets.kanban_column import KanbanColumn
 from aa_ma.tui.widgets.task_card import TaskCard
 
-__all__ = ["TaskCard"]
+__all__ = ["KanbanColumn", "TaskCard"]

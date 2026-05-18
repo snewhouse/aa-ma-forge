@@ -228,14 +228,14 @@ Created: 2026-05-17
 - Result Log: RED→GREEN: wrote `tests/tui/test_screens_dashboard.py` (6 tests: yields-4-columns, canonical-order, task-distribution, stores-tasks, Screen subclass, BOARD_COLUMNS public+canonical). RED confirmed (ModuleNotFoundError aa_ma.tui.screens). GREEN: (a) Promoted `snapshot._BOARD_COLUMNS` to public `BOARD_COLUMNS` (replace_all rename; assertion at module level still fires; M2 reference.md docstring references are advisory only — no functional break). (b) Created `src/aa_ma/tui/screens/__init__.py` re-exporting DashboardScreen. (c) Created `src/aa_ma/tui/screens/dashboard.py` (~35 lines, DashboardScreen(Screen) with `dashboard_tasks` attr + compose() yielding Horizontal of 4 KanbanColumns from BOARD_COLUMNS). **Design discovery during GREEN**: Textual stores wrapper-ctor children in `_pending_children` pre-mount (NOT `_nodes` or `children` — those are NodeList([])). Test helper `_columns_from_compose` walks `_pending_children`. Documented via inline comment. 78 pass / 1 deselected (+6 from Step 3.3).
 
 ### Step 3.5: TDD DashboardScreen Enter → TaskDetailScreen (Pilot)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: appended 4 tests to test_screens_dashboard.py: current_task defaults to first task, current_task is None for empty list, Enter key in BINDINGS, **Pilot test** verifies pressing Enter from DashboardScreen pushes TaskDetailScreen with correct task. RED confirmed 4/4. GREEN: (a) Created stub `src/aa_ma/tui/screens/task_detail.py` (~30 lines, TaskDetailScreen(Screen) storing `detail_task` + `escape→pop_screen` binding; compose is empty generator deferred to Step 3.6). (b) Added `current_task: Task | None` + `BINDINGS = [Binding("enter", "drill_in", "Open task", priority=True)]` + `action_drill_in()` to DashboardScreen. Local import in action_drill_in avoids dashboard↔task_detail circular at module load. (c) Updated screens/__init__.py to re-export TaskDetailScreen. **Used asyncio.run(_run()) wrapper for Pilot test** — avoids pytest-asyncio dependency (deferred to Step 3.10 with pytest-textual-snapshot). All 4 RED tests now GREEN. 82 pass / 1 deselected (+4 from Step 3.4).
 
 ### Step 3.6: TDD TaskDetailScreen.compose (tree + preview pane)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: wrote `tests/tui/test_screens_task_detail.py` (8 tests covering: stores task, compose yields header+Horizontal+prov-tail, header contains name+status, Tree has milestones+steps with correct counts, preview default placeholder, prov-tail joins lines, empty prov-tail placeholder, Pilot mount via query_one verifies all 3 id'd widgets present post-mount). RED confirmed 7/8 (stub-construct test passed on M3 Step 3.5 work). GREEN: enriched TaskDetailScreen.compose with `_build_tree()` (Tree with milestones → step leaves, step instance attached via `data=step` for Step 3.7 nav), `_build_preview()` (Static placeholder "[dim](select a step)[/dim]"), `_build_prov_tail()` (joined provenance_tail or "(no provenance entries)" placeholder). `selected_step: Step | None = None` attribute prepared for Step 3.7's Tree.NodeHighlighted handler. 90 pass / 1 deselected (+8 from Step 3.5).
 
 ### Step 3.7: TDD TaskDetailScreen arrow nav selects step
 - Status: PENDING

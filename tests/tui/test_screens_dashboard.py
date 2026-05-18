@@ -69,6 +69,49 @@ def test_dashboard_screen_is_screen_subclass() -> None:
     assert issubclass(DashboardScreen, Screen)
 
 
+def test_dashboard_current_task_defaults_to_first_task(static_tasks) -> None:
+    """`current_task` is set at construction — needed by Enter binding."""
+    screen = DashboardScreen(static_tasks)
+    assert screen.current_task is static_tasks[0]
+
+
+def test_dashboard_current_task_is_none_when_empty() -> None:
+    """No tasks → current_task is None (action_drill_in must noop)."""
+    screen = DashboardScreen([])
+    assert screen.current_task is None
+
+
+def test_dashboard_has_enter_binding() -> None:
+    """Enter key bound to drill_in action."""
+    keys = [b.key for b in DashboardScreen.BINDINGS]
+    assert "enter" in keys
+
+
+def test_dashboard_enter_pushes_task_detail(static_tasks) -> None:
+    """Pilot test — pressing Enter from DashboardScreen pushes TaskDetailScreen."""
+    import asyncio
+
+    from textual.app import App
+
+    from aa_ma.tui.screens.task_detail import TaskDetailScreen
+
+    async def _run() -> None:
+        class _MinApp(App):
+            def on_mount(self) -> None:
+                self.push_screen(DashboardScreen(static_tasks))
+
+        app = _MinApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            assert isinstance(app.screen, DashboardScreen)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert isinstance(app.screen, TaskDetailScreen)
+            assert app.screen.detail_task is static_tasks[0]
+
+    asyncio.run(_run())
+
+
 def test_board_columns_is_public_and_canonical() -> None:
     """BOARD_COLUMNS is a public constant promoted from M2 _BOARD_COLUMNS.
 

@@ -1,3 +1,9 @@
+<!-- ARCHIVED: 2026-05-18 11:30 -->
+<!-- Plan: aa-ma-tui-tracker - COMPLETE -->
+<!-- Total Milestones: 6 (M0 Scaffolding, M1 Parser, M2 Snapshot, M3 Textual app, M4 Release, M5 Polish-deferred) -->
+<!-- Duration: 2026-05-17 → 2026-05-18 (one development sprint) -->
+<!-- Release tag: v0.10.0 (commit 25d4fbe) -->
+
 # aa-ma-tui-tracker Tasks (HTP)
 
 > Hierarchical Task Plan. Update `Status:` and `Result Log:` immediately after each sub-step (L-080–082). HARD gates refuse milestone completion while any PENDING sub-step remains.
@@ -322,12 +328,13 @@ Created: 2026-05-17
 ---
 
 ## Milestone 5: Optional polish (DEFERRED — backlog for v0.11.0)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Gate: SOFT
 - Complexity: 30
 - Audit-Profile: code-only
 - Dependencies: Milestone 4
+- Result Log: **Disposition: DEFERRED to v0.11.0** as the milestone title declares. No sub-steps were authored at plan time and none were added during execution — the plan's design always treated this as a backlog placeholder rather than a v0.10.0 deliverable. Backlog captured in `aa-ma-tui-tracker-impl-review.md`: D-M2-1 (parser tolerance for legacy `## Step N:` / `## M(\d+):`), D-M2-2 (machine-enforce SCHEMA_VERSION bump policy), D-M3-1..D-M3-4 (SOC split of `_reload_tasks`, asyncio.shield for clean worker cancellation, TYPE_CHECKING import pattern, `KanbanColumn.DEFAULT_CSS`), D-M4-1..D-M4-4 (uv-run subprocess speedup, --root trust-boundary doc, mirror D-* IDs into M5 sub-steps, ADR "Counts reflect state" banner). Status marked COMPLETE because the milestone's disposition (defer) is itself a decided outcome — distinct from "incomplete work" which would block archive. To convert the backlog into a v0.11.0 plan, run `/aa-ma-plan "aa-ma-tui v0.11.0 polish"` and seed it from the D-* IDs above.
 - Acceptance Criteria:
   - Help modal on `?`
   - Fuzzy filter on `/`

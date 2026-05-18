@@ -22,7 +22,7 @@ from textual.app import App
 from textual.binding import Binding
 
 from aa_ma.tui.model import ParseError, Task
-from aa_ma.tui.parser import discover_tasks, parse_task_dir
+from aa_ma.tui.parser import TASKS_FILE_SUFFIX, discover_tasks, parse_task_dir
 from aa_ma.tui.screens.dashboard import DashboardScreen
 from aa_ma.tui.watcher import watch_roots
 
@@ -100,22 +100,32 @@ class AAMAApp(App):
             else:
                 new_state.append(task)
         self.tracker_tasks = new_state
-        # Refresh the dashboard screen (M5 polish will swap this for reactive)
-        if isinstance(self.screen, DashboardScreen):
-            self.pop_screen()
-            self.push_screen(DashboardScreen(self.tracker_tasks))
+        self._swap_dashboard()
 
     def _find_and_parse_task(self, name: str) -> Task | None:
         """Locate <name>/ under any watch_root and parse it; ERROR-wrap on fail."""
         for root in self.watch_roots_value:
             candidate = root / name
-            if not (candidate / f"{name}-tasks.md").exists():
+            if not (candidate / f"{name}{TASKS_FILE_SUFFIX}").exists():
                 continue
             try:
                 return parse_task_dir(candidate)
             except ParseError as exc:
                 return Task(name=name, root=candidate, parse_error=str(exc))
         return None
+
+    def _swap_dashboard(self) -> None:
+        """Refresh the dashboard with current `tracker_tasks`.
+
+        Single source for the pop+push refresh dance — used by both
+        _reload_tasks (file-watch path) and action_reload (manual reload
+        path). M5 polish target: replace with reactive in-place mutation,
+        which would also lift the DashboardScreen-isinstance guard up to
+        a Screen-agnostic publish-subscribe pattern (§6.8 W1+W4 fix seam).
+        """
+        if isinstance(self.screen, DashboardScreen):
+            self.pop_screen()
+            self.push_screen(DashboardScreen(self.tracker_tasks))
 
     async def action_reload(self) -> None:
         """Re-run discover_tasks across watch_roots and refresh the dashboard.
@@ -127,9 +137,7 @@ class AAMAApp(App):
         if not self.watch_roots_value:
             return
         self.tracker_tasks = discover_tasks(self.watch_roots_value)
-        if isinstance(self.screen, DashboardScreen):
-            self.pop_screen()
-            self.push_screen(DashboardScreen(self.tracker_tasks))
+        self._swap_dashboard()
 
     async def action_quit(self) -> None:
         self._stop_event.set()

@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "tasks": [
+    {
+      "aggregate_status": "COMPLETE",
+      "last_modified": "2026-05-01T12:00:00Z",
+      "milestones": [
+        {
+          "acceptance_criteria": null,
+          "complexity": 20,
+          "dependencies": null,
+          "gate": "SOFT",
+          "mode": "AFK",
+          "number": 1,
+          "status": "COMPLETE",
+          "steps": [
+            {
+              "number": "1.1",
+              "result_log": "installed",
+              "status": "COMPLETE",
+              "title": "install deps"
+            },
+            {
+              "number": "1.2",
+              "result_log": "ok",
+              "status": "COMPLETE",
+              "title": "scaffold"
+            }
+          ],
+          "title": "Setup"
+        },
+        {
+          "acceptance_criteria": null,
+          "complexity": 45,
+          "dependencies": null,
+          "gate": "HARD",
+          "mode": "AFK",
+          "number": 2,
+          "status": "COMPLETE",
+          "steps": [
+            {
+              "number": "2.1",
+              "result_log": "all green",
+              "status": "COMPLETE",
+              "title": "run tests"
+            },
+            {
+              "number": "2.2",
+              "result_log": "v1.0 shipped",
+              "status": "COMPLETE",
+              "title": "release"
+            }
+          ],
+          "title": "Ship"
+        }
+      ],
+      "name": "alpha-task",
+      "parse_error": null,
+      "provenance_tail": [
+        "[2026-05-01T11:00] alpha M1 COMPLETE",
+        "[2026-05-01T11:55] alpha M2 COMPLETE",
+        "[2026-05-01T12:00] alpha SHIPPED"
+      ],
+      "root": "/tmp/fixtures/alpha-task"
+    },
+    {
+      "aggregate_status": "IN_PROGRESS",
+      "last_modified": "2026-05-01T12:00:00Z",
+      "milestones": [
+        {
+          "acceptance_criteria": null,
+          "complexity": 30,
+          "dependencies": null,
+          "gate": "SOFT",
+          "mode": "AFK",
+          "number": 1,
+          "status": "COMPLETE",
+          "steps": [
+            {
+              "number": "1.1",
+              "result_log": "approved",
+              "status": "COMPLETE",
+              "title": "design"
+            },
+            {
+              "number": "1.2",
+              "result_log": "working",
+              "status": "COMPLETE",
+              "title": "prototype"
+            }
+          ],
+          "title": "Foundations"
+        },
+        {
+          "acceptance_criteria": null,
+          "complexity": 70,
+          "dependencies": null,
+          "gate": "HARD",
+          "mode": "AFK",
+          "number": 2,
+          "status": "IN_PROGRESS",
+          "steps": [
+            {
+              "number": "2.1",
+              "result_log": "merged",
+              "status": "COMPLETE",
+              "title": "code"
+            },
+            {
+              "number": "2.2",
+              "result_log": "writing",
+              "status": "IN_PROGRESS",
+              "title": "test"
+            },
+            {
+              "number": "2.3",
+              "result_log": null,
+              "status": "PENDING",
+              "title": "docs"
+            }
+          ],
+          "title": "Implementation"
+        }
+      ],
+      "name": "beta-task",
+      "parse_error": null,
+      "provenance_tail": [
+        "[2026-05-01T11:30] beta M1 COMPLETE"
+      ],
+      "root": "/tmp/fixtures/beta-task"
+    },
+    {
+      "aggregate_status": "BLOCKED",
+      "last_modified": "2026-05-01T12:00:00Z",
+      "milestones": [
+        {
+          "acceptance_criteria": null,
+          "complexity": 15,
+          "dependencies": null,
+          "gate": "SOFT",
+          "mode": "AFK",
+          "number": 1,
+          "status": "COMPLETE",
+          "steps": [
+            {
+              "number": "1.1",
+              "result_log": "20 papers found",
+              "status": "COMPLETE",
+              "title": "literature review"
+            }
+          ],
+          "title": "Research"
+        },
+        {
+          "acceptance_criteria": null,
+          "complexity": 80,
+          "dependencies": null,
+          "gate": "HARD",
+          "mode": "HITL",
+          "number": 2,
+          "status": "BLOCKED",
+          "steps": [
+            {
+              "number": "2.1",
+              "result_log": "working",
+              "status": "COMPLETE",
+              "title": "prototype"
+            },
+            {
+              "number": "2.2",
+              "result_log": "vendor API down since 2026-04-30",
+              "status": "BLOCKED",
+              "title": "upstream-validation"
+            }
+          ],
+          "title": "Validate"
+        }
+      ],
+      "name": "gamma-task",
+      "parse_error": null,
+      "provenance_tail": [
+        "[2026-05-01T10:00] gamma BLOCKED on upstream API"
+      ],
+      "root": "/tmp/fixtures/gamma-task"
+    }
+  ]
+}

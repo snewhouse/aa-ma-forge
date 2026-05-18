@@ -49,19 +49,17 @@ _BOARD_COLUMNS: tuple[AggregateStatus, ...] = (
 
 
 def _task_card(task: Task) -> str:
-    """One-line task summary used inside board columns."""
-    n_milestones = len(task.milestones)
-    complete_milestones = sum(
-        1 for m in task.milestones if m.status.value == "COMPLETE"
-    )
-    total_steps = sum(len(m.steps) for m in task.milestones)
-    complete_steps = sum(
-        1 for m in task.milestones for s in m.steps if s.status.value == "COMPLETE"
-    )
+    """One-line task summary used inside board columns.
+
+    Uses the shared _step_progress / _milestone_progress helpers so the
+    board and the summary line cannot drift on counting semantics
+    (DRY — caught by §6.8 audit W1-CR after initial M2 commit).
+    """
+    s_done, s_total = _step_progress(task)
+    m_done, m_total = _milestone_progress(task)
     return (
         f"[bold]{task.name}[/bold]\n"
-        f"{complete_steps}/{total_steps} steps · "
-        f"{complete_milestones}/{n_milestones} ms"
+        f"{s_done}/{s_total} steps · {m_done}/{m_total} ms"
     )
 
 
@@ -86,6 +84,17 @@ def _group_by_aggregate(tasks: list[Task]) -> dict[AggregateStatus, list[Task]]:
 _RESULT_LOG_PREVIEW_CHARS = 60
 
 
+# All non-ERROR AggregateStatus values must appear as a board column. If a
+# future ADR adds a 6th AggregateStatus value, the next assertion forces an
+# explicit decision (add to columns OR document the omission) — prevents the
+# silent-drop drift caught by §6.8 audit W2-FP.
+assert {*_BOARD_COLUMNS, AggregateStatus.ERROR} == set(AggregateStatus), (
+    "AggregateStatus enum changed without updating _BOARD_COLUMNS; "
+    "decide explicitly whether the new value is a board column or "
+    "(like ERROR) surfaced as a badge."
+)
+
+
 def _step_progress(task: Task) -> tuple[int, int]:
     """Return (completed_steps, total_steps) across all milestones."""
     total = sum(len(m.steps) for m in task.milestones)
@@ -104,6 +113,11 @@ def _milestone_progress(task: Task) -> tuple[int, int]:
 
 def render_summary(tasks: list[Task]) -> str:
     """One line per task: `NAME  [status]  X/Y steps  M/N ms  · last update`."""
+    # `file=io.StringIO()` is load-bearing: Console(record=True) writes to BOTH
+    # `file` AND its internal record buffer. We feed `file` a /dev/null-like
+    # StringIO so render functions don't duplicate output when the CLI prints
+    # the returned string (T2.6 bug fix). `.export_text()` reads from the
+    # record buffer, not from the StringIO — that buffer is discarded.
     console = Console(width=_RENDER_WIDTH, record=True, file=io.StringIO())
     for task in tasks:
         s_done, s_total = _step_progress(task)
@@ -139,6 +153,11 @@ def render_tree(task: Task) -> str:
                 label = f"{label} — {preview}"
             m_branch.add(label)
 
+    # `file=io.StringIO()` is load-bearing: Console(record=True) writes to BOTH
+    # `file` AND its internal record buffer. We feed `file` a /dev/null-like
+    # StringIO so render functions don't duplicate output when the CLI prints
+    # the returned string (T2.6 bug fix). `.export_text()` reads from the
+    # record buffer, not from the StringIO — that buffer is discarded.
     console = Console(width=_RENDER_WIDTH, record=True, file=io.StringIO())
     console.print(tree)
     return console.export_text()
@@ -159,9 +178,19 @@ def render_board(tasks: list[Task]) -> str:
         else:
             body = "[dim](no tasks)[/dim]"
         panels.append(
-            Panel(body, title=status.value, expand=True, width=_RENDER_WIDTH // 4)
+            Panel(
+                body,
+                title=status.value,
+                expand=True,
+                width=_RENDER_WIDTH // len(_BOARD_COLUMNS),
+            )
         )
 
+    # `file=io.StringIO()` is load-bearing: Console(record=True) writes to BOTH
+    # `file` AND its internal record buffer. We feed `file` a /dev/null-like
+    # StringIO so render functions don't duplicate output when the CLI prints
+    # the returned string (T2.6 bug fix). `.export_text()` reads from the
+    # record buffer, not from the StringIO — that buffer is discarded.
     console = Console(width=_RENDER_WIDTH, record=True, file=io.StringIO())
     console.print(Columns(panels, equal=True, expand=True))
     return console.export_text()

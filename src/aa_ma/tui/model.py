@@ -227,6 +227,34 @@ class Task(BaseModel):
     provenance_tail: list[str] = Field(default_factory=list)
     parse_error: str | None = None
 
+    def step_progress(self) -> tuple[int, int]:
+        """Return (complete_steps, total_steps) across all milestones.
+
+        Single source of truth for step counting — consumed by snapshot
+        renderers and TUI widgets (per L-005 mechanism-duplication rule;
+        moved from snapshot._step_progress in M3 Step 3.2).
+        """
+        total = sum(len(m.steps) for m in self.milestones)
+        complete = sum(
+            1
+            for m in self.milestones
+            for s in m.steps
+            if s.status == StepStatus.COMPLETE
+        )
+        return complete, total
+
+    def milestone_progress(self) -> tuple[int, int]:
+        """Return (complete_milestones, total_milestones).
+
+        Same DRY rationale as step_progress(). Moved from
+        snapshot._milestone_progress in M3 Step 3.2.
+        """
+        total = len(self.milestones)
+        complete = sum(
+            1 for m in self.milestones if m.status == MilestoneStatus.COMPLETE
+        )
+        return complete, total
+
     @model_validator(mode="after")
     def _derive_aggregate_status(self) -> Task:
         """Derive aggregate_status from milestones + parse_error.

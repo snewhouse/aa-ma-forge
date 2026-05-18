@@ -51,12 +51,12 @@ _BOARD_COLUMNS: tuple[AggregateStatus, ...] = (
 def _task_card(task: Task) -> str:
     """One-line task summary used inside board columns.
 
-    Uses the shared _step_progress / _milestone_progress helpers so the
-    board and the summary line cannot drift on counting semantics
-    (DRY — caught by §6.8 audit W1-CR after initial M2 commit).
+    Delegates counting to Task.step_progress / Task.milestone_progress —
+    single source of truth shared with widgets/task_card.py (per L-005;
+    M3 Step 3.2 consolidation of the M2 §6.8 W1-CR finding).
     """
-    s_done, s_total = _step_progress(task)
-    m_done, m_total = _milestone_progress(task)
+    s_done, s_total = task.step_progress()
+    m_done, m_total = task.milestone_progress()
     return (
         f"[bold]{task.name}[/bold]\n"
         f"{s_done}/{s_total} steps · {m_done}/{m_total} ms"
@@ -95,22 +95,6 @@ assert {*_BOARD_COLUMNS, AggregateStatus.ERROR} == set(AggregateStatus), (
 )
 
 
-def _step_progress(task: Task) -> tuple[int, int]:
-    """Return (completed_steps, total_steps) across all milestones."""
-    total = sum(len(m.steps) for m in task.milestones)
-    complete = sum(
-        1 for m in task.milestones for s in m.steps if s.status.value == "COMPLETE"
-    )
-    return complete, total
-
-
-def _milestone_progress(task: Task) -> tuple[int, int]:
-    """Return (completed_milestones, total_milestones)."""
-    total = len(task.milestones)
-    complete = sum(1 for m in task.milestones if m.status.value == "COMPLETE")
-    return complete, total
-
-
 def render_summary(tasks: list[Task]) -> str:
     """One line per task: `NAME  [status]  X/Y steps  M/N ms  · last update`."""
     # `file=io.StringIO()` is load-bearing: Console(record=True) writes to BOTH
@@ -120,8 +104,8 @@ def render_summary(tasks: list[Task]) -> str:
     # record buffer, not from the StringIO — that buffer is discarded.
     console = Console(width=_RENDER_WIDTH, record=True, file=io.StringIO())
     for task in tasks:
-        s_done, s_total = _step_progress(task)
-        m_done, m_total = _milestone_progress(task)
+        s_done, s_total = task.step_progress()
+        m_done, m_total = task.milestone_progress()
         last = task.last_modified.date().isoformat() if task.last_modified else "—"
         console.print(
             f"{task.name}  [{task.aggregate_status.value}]  "

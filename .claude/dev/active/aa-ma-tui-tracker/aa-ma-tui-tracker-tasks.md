@@ -238,19 +238,19 @@ Created: 2026-05-17
 - Result Log: RED→GREEN: wrote `tests/tui/test_screens_task_detail.py` (8 tests covering: stores task, compose yields header+Horizontal+prov-tail, header contains name+status, Tree has milestones+steps with correct counts, preview default placeholder, prov-tail joins lines, empty prov-tail placeholder, Pilot mount via query_one verifies all 3 id'd widgets present post-mount). RED confirmed 7/8 (stub-construct test passed on M3 Step 3.5 work). GREEN: enriched TaskDetailScreen.compose with `_build_tree()` (Tree with milestones → step leaves, step instance attached via `data=step` for Step 3.7 nav), `_build_preview()` (Static placeholder "[dim](select a step)[/dim]"), `_build_prov_tail()` (joined provenance_tail or "(no provenance entries)" placeholder). `selected_step: Step | None = None` attribute prepared for Step 3.7's Tree.NodeHighlighted handler. 90 pass / 1 deselected (+8 from Step 3.5).
 
 ### Step 3.7: TDD TaskDetailScreen arrow nav selects step
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: appended `test_task_detail_arrow_nav_selects_step` Pilot test — focuses Tree, expands all, presses Down 5×, asserts selected_step is a Step instance + preview text reflects step content (or "no result log" placeholder for None result_log). RED confirmed: `selected_step` stayed None (no handler). GREEN: added `on_tree_node_highlighted(event)` handler — Textual auto-dispatches on cursor move; checks `event.node.data` is Step instance (milestone nodes have no data), updates `self.selected_step` + `#result-log-preview` Static via query_one. 91 pass / 1 deselected (+1 from Step 3.6).
 
 ### Step 3.8: TDD watcher.watch_roots — callback on file change
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: RED→GREEN: wrote `tests/tui/test_watcher.py` (13 tests covering AAMAFilter + reduce_watch_event + watch_roots). Step 3.8 tests: reduce_watch_event extracts task name from parent dir, coalesces multi-file batches per task, distinguishes multiple tasks, empty-batch handling, preserves existing state entries; live awatch driver fires callback on file change, accepts sync OR async callback. RED confirmed (ModuleNotFoundError). GREEN: `src/aa_ma/tui/watcher.py` (~120 lines) — AAMAFilter, reduce_watch_event (pure), watch_roots async driver wrapping awatch with stop_event support + sync/async callback via `inspect.isawaitable`. **WSL inotify discovery during GREEN**: live awatch tests timed out at 0.3s pre-watch sleep when files are in subdirs (works at root). Empirically validated 1.5s sleep is sufficient; documented in test comments. Architectural pattern matches Step 3.1 PROTOTYPE PASS (lifted directly from `prototypes/m3_textual_watchfiles_spike.py`). 13 watcher tests pass; 104 total tui tests pass / 1 deselected (+13 from Step 3.7).
 
 ### Step 3.9: TDD AAMAFilter — ignores unrelated files
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: Covered alongside Step 3.8 in test_watcher.py (5 AAMAFilter tests): accepts `-tasks.md`, accepts all 5 canonical suffixes (-tasks/-plan/-reference/-context-log/-provenance), rejects unrelated extensions (.txt, .json), rejects bare `tasks.md` without `-` prefix, inherits DefaultFilter noise suppression (__pycache__, .git). GREEN via AAMAFilter(DefaultFilter) implementation. Same commit as Step 3.8.
 
 ### Step 3.10: TDD app_smoke (pytest-textual-snapshot SVG)
 - Status: PENDING

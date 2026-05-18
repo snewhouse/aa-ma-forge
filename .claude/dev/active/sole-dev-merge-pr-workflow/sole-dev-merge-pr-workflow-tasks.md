@@ -58,7 +58,7 @@
 
 ## Milestone 2 — Review + 3-source security pass
 
-- **Status:** PENDING
+- **Status:** ACTIVE
 - **Dependencies:** Milestone 1
 - **Complexity:** 65%
 - **Audit-Profile:** full
@@ -68,46 +68,46 @@
 - **Acceptance Criteria:** 4 sources dispatched in parallel; severity contract honoured OR safe-default fallback applied; planted Bandit B602 auto-fix verified in bats #6.
 
 ### Step 2.1: Implement Stage C1 (code-reviewer agent dispatch)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: Agent dispatched with explicit severity contract; output written to `/tmp/sole-dev-merge-review-<slug>.md`; parser regex returns matches OR safe-default-all-HIGH fallback triggers.
-- Result Log: _pending_
+- Result Log: PASS. `stage_c1_review_dispatch()` added with MOCK_AGENT_DISPATCH=1 short-circuit pattern. Production path emits AI-instructions for invoking feature-dev:code-reviewer with severity contract; output goes to `/tmp/sole-dev-merge-review-${SOLE_DEV_MERGE_SLUG}.md`. Helper `_sdm_parse_findings` implements safe-default-all-HIGH fallback for parse failures (logs to stderr + provenance).
 
 ### Step 2.2: Implement Stage C2 (security-auditor agent dispatch)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: Parallel to C1, same contract, output to `/tmp/sole-dev-merge-security-<slug>.md`. Agent path verified at `~/.claude/agents/security-auditor.md`.
-- Result Log: _pending_
+- Result Log: PASS. `stage_c2_security_dispatch()` added; symmetric to C1; same MOCK pattern via `MOCK_AGENT_FIXTURE_C2`. Output to `$SDM_SECURITY_OUT`. Agent path verified existing.
 
 ### Step 2.3: Implement Stage C3 (Bandit on changed Python)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `bandit -f json -r $CHANGED_PY` produces parseable JSON; severity mapped per reference.md table; appended to findings buffer.
-- Result Log: _pending_
+- Result Log: PASS. `stage_c3_bandit()` runs `bandit -f json` on `CHANGED_PY_ARR` (now global per fix in this milestone — original `local` declaration broke downstream consumption). Empirical: planted B404 + B602(dynamic) → 2 findings produced with correct severity mapping (B404 LOW→MEDIUM, B602 HIGH→CRITICAL). jq-based JSON parsing.
 
 ### Step 2.4: Implement Stage C4 (ShellCheck on changed shell)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `shellcheck -f json $CHANGED_SH` produces parseable JSON; severity mapped per reference.md table; appended to findings buffer.
-- Result Log: _pending_
+- Result Log: PASS. `stage_c4_shellcheck()` runs `shellcheck -f json` on `CHANGED_SH_ARR`. Empirical: planted SC2128 + 2×SC2086 → 3 findings produced (SC2128 warning→HIGH, SC2086 info→MEDIUM per reference.md mapping). jq-based JSON parsing.
 
 ### Step 2.5: Implement Stage D (findings triage)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Acceptance Criteria: Per plan §4 2.5 — Bandit B602 fixture auto-fix commit exists; post-fix `bandit -t B602` returns zero `Issue:` lines; HIGH/MEDIUM panel logged correct count of AUQ_DISPATCH events.
-- Result Log: _pending_
+- Result Log: PASS. `stage_d_triage()` aggregates all 4 sources; counts by severity. `_sdm_apply_b602_autofix()` runs deterministic regex-based fix (`s/,?\s*shell\s*=\s*True//g`) and commits with `fix(review): apply CRITICAL bandit findings` + AA-MA signature. `_sdm_log_auq_dispatches()` logs `AUQ_DISPATCH n_options=N` lines to `$AUQ_LOG` (one panel per 4 HIGH+MEDIUM findings, ceiling). LOW findings → PR-body advisory file. Empirical end-to-end: planted dynamic B602 → CRITICAL → auto-fix commit landed (07bd72f in tmp repo) → `bandit -t B602` post-fix = 0 issues. ShellCheck on 397 extracted lines: 0 advisories.
 
 ### Step 2.6: Write bats test for Stage D (triage with planted B602)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `bats tests/commands/sole-dev-merge/test_stage_d_triage.bats` passes; planted B602 in changed file; post-Stage-D verification per §4 2.5.
-- Result Log: _pending_
+- Result Log: PASS. 5 @test cases: (1) dynamic-input B602 → CRITICAL auto-fix commit subject `fix(review): apply CRITICAL bandit findings` + post-fix `bandit -t B602` returns 0 Issue lines + src/danger.py no longer contains `shell=True`; (2) 5 HIGH → ceil(5/4)=2 panels of sizes 4+1; (3) zero HIGH/MEDIUM → zero AUQ events; (4) 3 LOW → PR-body advisory file populated, no auto-fix, no AUQ; (5) 4 MEDIUM → 1 panel of size 4. Bats 5/5 PASS. Field-discovery: bats `run` invokes commands in subshell → globals like `CHANGED_PY_ARR` don't persist; for state-chain tests call functions directly (no `run`).
 
 ### Step 2.7: Write bats test for Stage C (agent dispatch mocking)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `bats tests/commands/sole-dev-merge/test_stage_c_dispatch.bats` passes; uses `MOCK_AGENT_DISPATCH=1` env var to stub agent output.
-- Result Log: _pending_
+- Result Log: PASS. 5 @test cases: (1) C1 with MOCK_AGENT_FIXTURE_C1 → fixture copied to output path; (2) C1 mocked without fixture → empty findings file; (3) C2 with fixture → security output populated; (4) C1+C2 mocked with 1 CRITICAL + 1 HIGH + 1 MEDIUM + Stage D → 1 AUQ panel of size 2; (5) MOCK_AGENT_DISPATCH unset → C1 emits instruction text without writing fixtures. Bats 5/5 PASS.
 
 ### Step 2.8: M2 HARD gate
 - Status: PENDING

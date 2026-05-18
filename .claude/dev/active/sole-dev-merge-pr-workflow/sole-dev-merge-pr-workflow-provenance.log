@@ -97,3 +97,11 @@
 [2026-05-18T13:21:50+01:00] §6.8 COMPLETE — verdict: PASS_WITH_WARNINGS — proceeding to M2.0 prep then M2 (Review + 3-source security pass)
 [2026-05-18T13:27:03+01:00] M2.0_HARDENING START — addressing §6.8 defer items: main-only consistency, null-delimited paths via bash arrays, mypy signal visibility
 [2026-05-18T13:27:03+01:00] M2.0_HARDENING COMPLETE — Stage A abort-1 main-only; Stage B uses git -z + arrays + assoc-array L-007; mypy emits issue count; new whitespace regression bats test added; bats 12/12 pass; shellcheck clean
+[2026-05-18T15:10:56+01:00] MILESTONE_2 START — Review + 3-source security pass — Audit-Profile: full, Gate: HARD, Mode: HITL (2.5)
+[2026-05-18T15:10:56+01:00] STEP_2.1 START — Stage C1 (code-reviewer agent dispatch contract)
+[2026-05-18T15:15:13+01:00] STEPS_2.1-2.5 COMPLETE — Stages C1-C4 + D triage inline; end-to-end B602 auto-fix verified; AUQ logging verified; bats 12/12 regression pass; shellcheck clean (397 lines)
+[2026-05-18T15:15:13+01:00] FIELD_DISCOVERY — Stage B's CHANGED_*_ARR were 'local' (M1) breaking downstream Stage C consumption; refactored to global. M3+ stages will need same global-array contract.
+[2026-05-18T15:15:13+01:00] STEPS_2.6 START — bats test_stage_d_triage.bats (B602 auto-fix fixture)
+[2026-05-18T15:21:09+01:00] STEPS_2.6-2.7 COMPLETE — test_stage_d_triage.bats (5/5) + test_stage_c_dispatch.bats (5/5); combined M1+M2 bats: 22/22 PASS
+[2026-05-18T15:21:09+01:00] FIELD_DISCOVERY — bats `run` invokes commands in subshell → globals (CHANGED_PY_ARR etc.) do NOT persist. For state-chain tests, call functions directly without `run`.
+[2026-05-18T15:21:09+01:00] STEP_2.8 START — M2 HARD gate (no Critical-Path declared, just GATE APPROVAL + sync)

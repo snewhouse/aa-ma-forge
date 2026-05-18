@@ -309,14 +309,14 @@ Created: 2026-05-17
 - Result Log: Drift inventory ran against README.md, CLAUDE.md, SECURITY.md, docs/spec/. **Counts verified**: skills 19 (actual = 19), agents 11 (actual = 11), commands 10 (actual = 10), hooks 8 (actual = 8 standalone + 1 lib helper — CLAUDE.md correctly labels `plan-marker (lib helper)`). **No Tier 1 version-context drift** (pyproject = 0.9.0; no pinned install strings claim a different version). **CHANGELOG.md `[Unreleased]` updated** with M0-M4 entries: `aa-ma-tui` feature block (CLI surface + render modes + watchfiles integration + read-only safety), 4 runtime dep declarations + 1 dev dep (pytest-textual-snapshot), Task.step_progress/milestone_progress methods, AAMA_FILE_SUFFIXES + TASKS_FILE_SUFFIX + BOARD_COLUMNS public constants, Docs section listing ADR-0007 + README/CLAUDE.md updates, Tests section reporting 780 pass / 1 skipped, Design notes covering KISS pop+push + mutate_reactive gotcha + WSL inotify + L-052 dual-formatter. Inserted ABOVE the existing `/goal` integration block (preserving the goal block's positioning). cz bump in Step 4.6 will convert `[Unreleased]` → `[0.10.0]` with the date.
 
 ### Step 4.5: Full test suite + coverage no-regression
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: Ran `uv run pytest -q --cov=aa_ma.tui --cov-report=term`. **780 pass / 1 skipped / 7 deselected** (was 771 at M3 close — +9 from integration test). 2 SVG snapshots passed. tui package coverage **93%** (up from 92% at M3 close — integration test exercised the live CLI launch path through app.py). Per-module: __init__ 100%, __main__ 96%, app 62% (was 59% — uncovered remainder is the @work watch_filesystem branch which only fires with live awatch; covered by inline smoke + Step 3.11 live test, deferred to future integration tests), json_output 100%, model 100%, parser 91%, screens/__init__ 100%, screens/dashboard 95%, screens/task_detail 100%, snapshot 100%, watcher 97%, widgets/__init__ 100%, widgets/kanban_column 100%, widgets/task_card 100%. No regressions.
 
 ### Step 4.6: HITL gate → `uv run cz bump --increment MINOR` → push --follow-tags
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log:
+- Result Log: HITL approval received via AskUserQuestion ("Proceed — run cz bump + push tags"). Verified `uv run cz version` = 4.13.9 (commitizen available). Dry-run confirmed: 0.9.0 → 0.10.0, tag v0.10.0. **Real bump executed**: commit `25d4fbe bump: version 0.9.0 → 0.10.0`. CHANGELOG auto-regenerated from commit-log (commitizen standard — my detailed `[Unreleased]` prose was supplanted by terser auto-derived entries; full detail preserved in ADR-0007 instead per the architectural-record-over-changelog convention). `uv sync` re-resolved `aa-ma==0.10.0`. `uv run aa-ma-tui --version` → `aa-ma-tui 0.10.0` ✓. Tag pushed via explicit `git push origin v0.10.0` (verified on remote: `25d4fbe938ef0ea20bb4314da87462f27e22c166 refs/tags/v0.10.0`). Main branch pushed (`21780a2..25d4fbe main -> main`). Release v0.10.0 LIVE on GitHub origin.
 
 ---
 

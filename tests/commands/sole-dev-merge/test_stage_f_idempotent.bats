@@ -172,9 +172,11 @@ _sandbox_with_commit() {
 
     run bash "$F_SCRIPT"
     [ "$status" -eq 0 ]
-    # Extract the title from the logged "gh pr create --title 'XXX' --body-file …"
+    # The gh stub writes `gh pr create --title <TITLE> --body-file <PATH>`
+    # (quotes stripped by `echo $*`). Extract title via sed between the two
+    # known flag boundaries — quote-agnostic.
     local logged_title
-    logged_title="$(grep -oE -- "--title '[^']+'" "$CLI_LOG" | head -1 | sed -E "s/--title '//; s/'$//")"
+    logged_title="$(sed -n 's/^gh pr create --title \(.*\) --body-file .*$/\1/p' "$CLI_LOG" | head -1)"
     [ -n "$logged_title" ]
     [ "${#logged_title}" -le 70 ]
 }

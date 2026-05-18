@@ -668,6 +668,10 @@ echo "PR_TITLE=$PR_TITLE"
 # subsequent invocations fast-forward.
 git push -u origin HEAD
 
+PR_NUM=0
+PR_URL=""
+MR_IID=0
+
 if [[ "$REMOTE_CHOICE" == "github" ]]; then
     if gh pr view --json url >/dev/null 2>&1; then
         echo "PR_OP=edit"
@@ -676,6 +680,11 @@ if [[ "$REMOTE_CHOICE" == "github" ]]; then
         echo "PR_OP=create"
         gh pr create --title "$PR_TITLE" --body-file "$PR_BODY_FILE"
     fi
+    # §6.8 M4 CRITICAL-1 fix: extract PR identifiers for Stage G consumption.
+    # Real gh CLI supports `--jq` filter on the json output; tests' gh stub
+    # honours these filters explicitly.
+    PR_URL=$(gh pr view --json url    --jq '.url'    2>/dev/null || echo "")
+    PR_NUM=$(gh pr view --json number --jq '.number' 2>/dev/null || echo "0")
 elif [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
     if glab mr view >/dev/null 2>&1; then
         echo "MR_OP=update"
@@ -684,9 +693,19 @@ elif [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
         echo "MR_OP=create"
         glab mr create --title "$PR_TITLE" --description "$(cat "$PR_BODY_FILE")"
     fi
+    # §6.8 M4 CRITICAL-1 fix: GitLab MR identifiers for Stage G.
+    PR_URL=$(glab mr view --jq '.web_url' 2>/dev/null || echo "")
+    MR_IID=$(glab mr view --jq '.iid'     2>/dev/null || echo "0")
+    # Stage G2/G3 also reads PR_NUM for cross-remote symmetry; alias to MR_IID
+    # on the GitLab branch so downstream stages can use one variable name.
+    PR_NUM="$MR_IID"
 fi
 
-export PR_TITLE
+echo "PR_NUM=$PR_NUM"
+echo "PR_URL=$PR_URL"
+[[ "$REMOTE_CHOICE" == "gitlab" ]] && echo "MR_IID=$MR_IID"
+
+export PR_TITLE PR_NUM PR_URL MR_IID
 # === stage-f-push (END) ===
 ```
 
@@ -781,7 +800,12 @@ elif [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
     # JSON polling (NOT `glab ci status` — TTY UI without scriptable exit codes).
     MR_IID="${MR_IID:-$PR_NUM}"
     START=$(date +%s)
-    TIMEOUT_S=900
+    # §6.8 M4 HIGH-5 fix: parse `${CI_POLL_TIMEOUT%s}` so the env-override the
+    # GitHub branch honours also applies here. Falls back to 900 when unset
+    # or non-numeric after stripping the 's' suffix.
+    TIMEOUT_S="${CI_POLL_TIMEOUT%s}"
+    [[ "$TIMEOUT_S" =~ ^[0-9]+$ ]] || TIMEOUT_S=900
+    CI_POLL_INTERVAL="${CI_POLL_INTERVAL:-30}"
     while true; do
         STATUS=$(GLAB_API_MODE=pipeline_status glab api \
             "/projects/:id/merge_requests/${MR_IID}" --jq '.pipeline.status' 2>/dev/null \
@@ -794,6 +818,17 @@ elif [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
                 echo "STATUS: CI_FAILED — see $PR_URL"
                 echo "  diagnostic: glab ci view $MR_IID"
                 break ;;
+            manual|skipped)
+                # §6.8 M4 HIGH-2 fix: GitLab pipeline-status terminal states
+                # OTHER than success/failed — `manual` (waiting on operator)
+                # and `skipped` (pipeline intentionally bypassed). Without
+                # this arm, both fall through to "keep polling" and burn the
+                # full 15-min CI_POLL_TIMEOUT (the M3 §6.8 future-proofing
+                # auditor flagged this enum-coverage gap).
+                CI_STATE=blocked
+                echo "STATUS: CI_BLOCKED — pipeline status=$STATUS — see $PR_URL"
+                echo "  diagnostic: glab ci view $MR_IID"
+                break ;;
         esac
         if (( $(date +%s) - START >= TIMEOUT_S )); then
             CI_STATE=timeout
@@ -801,7 +836,7 @@ elif [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
             echo "  recovery: glab mr merge $MR_IID --when-pipeline-succeeds"
             break
         fi
-        sleep 30
+        sleep "$CI_POLL_INTERVAL"
     done
 fi
 
@@ -838,19 +873,37 @@ case "$CI_STATE" in
         echo "Stage G3: merged $PR_NUM (strategy=$MERGE_STRATEGY)"
         ;;
     timeout)
-        # STATUS line already emitted by G2; re-emit recovery here for the
-        # operator who runs G3 in isolation (defensive duplication is cheap).
+        # §6.8 M4 HIGH-1 fix: remote-aware recovery hints. G2 already emitted
+        # the correct STATUS line; G3's defensive re-emission must NOT
+        # hardcode `gh pr merge` when the operator chose GitLab.
         echo "STATUS: CI_TIMEOUT — see $PR_URL"
-        echo "  recovery: gh pr merge $PR_NUM --auto --rebase"
+        if [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
+            echo "  recovery: glab mr merge ${MR_IID:-$PR_NUM} --when-pipeline-succeeds"
+        else
+            echo "  recovery: gh pr merge $PR_NUM --auto --rebase"
+        fi
         export MERGE_DISPATCHED=0
         ;;
     failed)
+        # §6.8 M4 HIGH-1 fix (failed branch): remote-aware diagnostic hint.
         echo "STATUS: CI_FAILED — see $PR_URL"
-        echo "  diagnostic: gh pr checks $PR_NUM"
+        if [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
+            echo "  diagnostic: glab ci view ${MR_IID:-$PR_NUM}"
+        else
+            echo "  diagnostic: gh pr checks $PR_NUM"
+        fi
+        export MERGE_DISPATCHED=0
+        ;;
+    blocked)
+        # §6.8 M4 HIGH-2 fix: G2's `manual|skipped` GitLab enum hand-off.
+        # No merge; G2 already emitted the STATUS:CI_BLOCKED line.
         export MERGE_DISPATCHED=0
         ;;
     *)
-        echo "Stage G3: unknown CI_STATE='$CI_STATE' — skipping merge"
+        # §6.8 M4 MED-1 fix: emit a STATUS line for the unknown catchall so
+        # downstream tooling parsing for `STATUS:` doesn't miss this terminal
+        # state. REMOTE_CHOICE included for diagnostic context.
+        echo "STATUS: CI_UNKNOWN — CI_STATE='$CI_STATE' REMOTE_CHOICE='$REMOTE_CHOICE'"
         export MERGE_DISPATCHED=0
         ;;
 esac
@@ -894,13 +947,15 @@ echo "STATUS: OK"
 
 | Status            | Meaning                                              |
 |-------------------|------------------------------------------------------|
-| `OK`              | Merged to main; branch deleted; main fast-forwarded. |
+| `STATUS: OK`      | Merged to main; branch deleted; main fast-forwarded (Stage G4). |
 | `ABORT: …` (Stage A)   | Pre-flight failure: on-main, dirty tree, no remote, no commits ahead; exit non-zero. |
 | `ABORT: only github.com and gitlab.com remotes supported` (Stage E2) | Remote configuration unsupportable (zero github + zero gitlab remotes — semantically a pre-flight gate); exit non-zero. |
 | `ABORT: Stage F requires non-empty body file …` (Stage F) | Stage E3 skipped or body file empty; exit non-zero. |
 | `STATUS: AUTH_REQUIRED` | Auth failed (Stage E0); exit 0 + recovery hint.  |
-| `STATUS: CI_TIMEOUT`    | 15-min poll exceeded (Stage G2); exit 0 + auto-merge recovery hint. |
-| `STATUS: CI_FAILED — see <URL>` | Required check failed (Stage G2); exit 0 + diagnostic. |
+| `STATUS: CI_TIMEOUT — see <URL>` | CI poll cap exceeded (Stage G2); exit 0 + remote-aware auto-merge recovery hint. |
+| `STATUS: CI_FAILED — see <URL>` | Required check failed (Stage G2); exit 0 + remote-aware diagnostic. |
+| `STATUS: CI_BLOCKED — pipeline status=<state> — see <URL>` | GitLab pipeline state is `manual` or `skipped` (Stage G2); exit 0 + diagnostic. No merge dispatched. |
+| `STATUS: CI_UNKNOWN — CI_STATE='<state>' REMOTE_CHOICE='<remote>'` | Stage G2 produced an unknown CI_STATE (Stage G3 catchall); exit 0. No merge dispatched. |
 
 Non-zero exits are reserved for **pre-flight-class aborts** (Stages A, E2, F).
 All runtime failures (auth, CI, merge race) exit cleanly with a `STATUS: …`

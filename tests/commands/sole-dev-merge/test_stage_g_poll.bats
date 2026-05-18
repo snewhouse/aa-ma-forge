@@ -101,3 +101,51 @@ teardown() {
     grep -q -- '--interval 30' "$CLI_LOG"
     grep -q -- '--fail-fast' "$CLI_LOG"
 }
+
+# ---------------------------------------------------------------------------
+# §6.8 M4 GitLab-branch coverage (MED-3 fix) — three tests covering the
+# JSON-poll path that was previously 0% covered. Also exercises HIGH-2
+# (manual/skipped enum) and HIGH-5 (CI_POLL_TIMEOUT env-override).
+# ---------------------------------------------------------------------------
+
+@test "G2 gitlab: pipeline status=success → CI_STATE=green (MED-3 coverage)" {
+    export REMOTE_CHOICE=gitlab MR_IID=42
+    export GLAB_API_MODE=pipeline_status GLAB_PIPELINE_STATUS=success
+    # Override sleep so the loop is instant even on first iteration.
+    export CI_POLL_INTERVAL=0
+
+    run bash "$G2_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"CI_STATE=green"* ]]
+    [[ "$output" != *"STATUS: CI_TIMEOUT"* ]]
+    [[ "$output" != *"STATUS: CI_FAILED"* ]]
+    [[ "$output" != *"STATUS: CI_BLOCKED"* ]]
+}
+
+@test "G2 gitlab: pipeline status=failed → STATUS:CI_FAILED + glab recovery (MED-3 coverage)" {
+    export REMOTE_CHOICE=gitlab MR_IID=42
+    export GLAB_API_MODE=pipeline_status GLAB_PIPELINE_STATUS=failed
+    export CI_POLL_INTERVAL=0
+
+    run bash "$G2_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: CI_FAILED"* ]]
+    [[ "$output" == *"CI_STATE=failed"* ]]
+    # Remote-aware diagnostic — glab, NOT gh
+    [[ "$output" == *"glab ci view"* ]]
+}
+
+@test "G2 gitlab: pipeline status=manual → STATUS:CI_BLOCKED (HIGH-2 fix regression)" {
+    export REMOTE_CHOICE=gitlab MR_IID=42
+    export GLAB_API_MODE=pipeline_status GLAB_PIPELINE_STATUS=manual
+    export CI_POLL_INTERVAL=0
+
+    run bash "$G2_SCRIPT"
+    [ "$status" -eq 0 ]
+    # HIGH-2: manual pipelines are terminal (waiting on operator), NOT runnable
+    # — previously would have burned the full 900s and emitted CI_TIMEOUT.
+    [[ "$output" == *"STATUS: CI_BLOCKED"* ]]
+    [[ "$output" == *"pipeline status=manual"* ]]
+    [[ "$output" == *"CI_STATE=blocked"* ]]
+    [[ "$output" != *"STATUS: CI_TIMEOUT"* ]]
+}

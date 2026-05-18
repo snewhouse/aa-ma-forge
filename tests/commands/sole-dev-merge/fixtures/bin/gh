@@ -22,6 +22,16 @@ case "${1:-}" in
     pr)
         case "${2:-}" in
             view)
+                # §6.8 M4 CRITICAL-1 fix: Stage F now queries `--jq '.url'` and
+                # `--jq '.number'` to extract PR_URL + PR_NUM. Honour both
+                # filters even when PR_EXISTS=0 (post-create-the-PR-exists).
+                if [[ "$*" == *"--jq .url"* || "$*" == *"--jq '.url'"* ]]; then
+                    echo "https://github.com/test/repo/pull/42"
+                    exit 0
+                elif [[ "$*" == *"--jq .number"* || "$*" == *"--jq '.number'"* ]]; then
+                    echo "42"
+                    exit 0
+                fi
                 if [[ "${GH_PR_EXISTS:-0}" == "1" ]]; then
                     echo '{"url":"https://github.com/test/repo/pull/42"}'
                     exit 0
@@ -37,7 +47,13 @@ case "${1:-}" in
                 fi
                 exit "${GH_CHECKS_RC:-0}"
                 ;;
-            create|edit|merge)
+            create|edit)
+                # §6.8 M4 CRITICAL-1 fix: real gh prints the new/updated PR URL
+                # to stdout (last line); Stage F captures it. Mirror that.
+                echo "https://github.com/test/repo/pull/42"
+                exit 0
+                ;;
+            merge)
                 exit 0
                 ;;
         esac

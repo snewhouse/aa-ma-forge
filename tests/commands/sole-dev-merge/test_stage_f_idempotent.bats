@@ -195,3 +195,37 @@ _sandbox_with_commit() {
     # The bare remote should now have a ref to the feature branch.
     [ -n "$(git --git-dir="$BARE_REMOTE" for-each-ref refs/heads/feature)" ]
 }
+
+# ---------------------------------------------------------------------------
+# §6.8 M4 CRITICAL-1 regression: Stage F MUST export PR_NUM + PR_URL (+ MR_IID
+# for GitLab) so downstream Stage G2/G3/G4 can consume them. Previously these
+# env vars were declared as G-stage inputs but never produced by F — tests
+# masked the gap by pre-setting them in setup().
+# ---------------------------------------------------------------------------
+
+@test "F (CRITICAL-1 regression): github → exports PR_NUM=42 + PR_URL via --jq" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=0
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"PR_NUM=42"* ]]
+    [[ "$output" == *"PR_URL=https://github.com/test/repo/pull/42"* ]]
+    # Stub log must include the --jq queries (proves they ran post-create).
+    grep -q 'pr view --json url --jq' "$CLI_LOG"
+    grep -q 'pr view --json number --jq' "$CLI_LOG"
+}
+
+@test "F (CRITICAL-1 regression): gitlab → exports PR_NUM=MR_IID=42 + PR_URL via --jq" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=gitlab GLAB_MR_EXISTS=0
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"PR_NUM=42"* ]]
+    [[ "$output" == *"MR_IID=42"* ]]
+    [[ "$output" == *"PR_URL=https://gitlab.com/test/repo/-/merge_requests/42"* ]]
+    grep -q 'mr view --jq .web_url\|mr view --jq .iid' "$CLI_LOG"
+}

@@ -15,6 +15,15 @@ case "${1:-}" in
     mr)
         case "${2:-}" in
             view)
+                # §6.8 M4 CRITICAL-1 fix: Stage F now queries `--jq .web_url`
+                # and `--jq .iid` to extract PR_URL + MR_IID. Honour both.
+                if [[ "$*" == *"--jq .web_url"* || "$*" == *"--jq '.web_url'"* ]]; then
+                    echo "https://gitlab.com/test/repo/-/merge_requests/42"
+                    exit 0
+                elif [[ "$*" == *"--jq .iid"* || "$*" == *"--jq '.iid'"* ]]; then
+                    echo "42"
+                    exit 0
+                fi
                 if [[ "${GLAB_MR_EXISTS:-0}" == "1" ]]; then
                     echo "MR !42 — test"
                     exit 0
@@ -22,7 +31,12 @@ case "${1:-}" in
                     exit 1
                 fi
                 ;;
-            create|update|merge)
+            create|update)
+                # Real glab prints the new/updated MR URL to stdout.
+                echo "https://gitlab.com/test/repo/-/merge_requests/42"
+                exit 0
+                ;;
+            merge)
                 exit 0
                 ;;
         esac

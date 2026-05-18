@@ -168,3 +168,56 @@ _sandbox_with_pushed_feature() {
     # Final summary line emitted
     [[ "$output" == *"merged"* || "$output" == *"OK"* ]]
 }
+
+# ---------------------------------------------------------------------------
+# §6.8 M4 GitLab-branch coverage (MED-3 fix) — G1 + G3 GitLab paths
+# previously had 0% test coverage despite full stub support.
+# ---------------------------------------------------------------------------
+
+@test "G1 gitlab: merge_method=ff → MERGE_STRATEGY=merge (MED-3 coverage)" {
+    _sandbox_with_pushed_feature
+    export REMOTE_CHOICE=gitlab
+    export GLAB_API_MODE=merge_method GLAB_MERGE_METHOD=ff
+
+    run bash "$G1_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"MERGE_STRATEGY=merge"* ]]
+    [[ "$output" == *"merge_method=ff"* ]]
+}
+
+@test "G3 gitlab: green+rebase → glab mr merge --rebase --remove-source-branch --yes (MED-3 coverage)" {
+    _sandbox_with_pushed_feature
+    export REMOTE_CHOICE=gitlab CI_STATE=green MERGE_STRATEGY=rebase
+    export MR_IID=42
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    # Canonical GitLab rebase-merge invocation per reference.md
+    [ "$(grep -cE 'mr merge 42 --rebase --remove-source-branch --yes' "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]  # never touches gh
+}
+
+@test "G3 gitlab: CI_STATE=timeout → STATUS:CI_TIMEOUT + glab recovery (HIGH-1 fix regression)" {
+    _sandbox_with_pushed_feature
+    export REMOTE_CHOICE=gitlab CI_STATE=timeout MR_IID=42
+    export PR_URL="https://gitlab.com/test/repo/-/merge_requests/42"
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: CI_TIMEOUT"* ]]
+    # HIGH-1 fix: recovery hint is glab (NOT hardcoded gh)
+    [[ "$output" == *"glab mr merge 42 --when-pipeline-succeeds"* ]]
+    [[ "$output" != *"gh pr merge"* ]]
+}
+
+@test "G3: CI_STATE=unknown → STATUS:CI_UNKNOWN catchall (MED-1 fix regression)" {
+    _sandbox_with_pushed_feature
+    export REMOTE_CHOICE=github CI_STATE=mystery_value
+    # MED-1: previously the catchall said "skipping merge" but emitted NO
+    # STATUS line — downstream tooling parsing STATUS missed the terminal state.
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: CI_UNKNOWN"* ]]
+    [[ "$output" == *"CI_STATE='mystery_value'"* ]]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
+}

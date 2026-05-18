@@ -173,3 +173,30 @@ User selected via AskUserQuestion:
 - **§6.8 Post-Impl Adversarial Review (Audit-Profile: full):** 5 agents dispatched → initial verdict BLOCKED (1 CRITICAL + 3 HIGH + 8 MED + 11 LOW). User-directed inline fixes via override panel addressed CRITICAL-1 (reviewer-notes path mismatch — 3 agents converged on same root cause), HIGH-1 (AA_MA_PLAN_DIR markdown injection — CWE-117), MED-1 (ABORT vs STATUS contract widening), MED-2 (Stage F body-file guard). HIGH-3 (UTF-8 truncation) + 6×MED DEFERRED with documented rationale in impl-review.md. Final verdict: PASS_WITH_WARNINGS. **TDD-sequence-auditor PASS** ✓ (4 RED commits → GREEN, 10m04s delta — M2 lesson applied successfully again).
 - **Decision:** APPROVED
 - **Commits in M3 window:** a2e3635..HEAD (RED-1, RED-2, RED-3, RED-2 fixup, GREEN, IA/CPR evidence, §6.8 fixes)
+
+## [2026-05-18] GATE APPROVAL: Milestone 4 — CI poll + auto-merge + cleanup
+
+- **Gate:** SOFT (convention-based per spec; signed artifact recorded anyway for audit-trail symmetry with M1/M2/M3)
+- **Approved by:** Stephen J Newhouse (via /execute-aa-ma-milestone — autonomous-mode directive)
+- **Criteria verified:** 3/3 acceptance criteria from M4 acceptance:
+  1. ✅ Poll respects 15-min timeout with clean exit code 0 — `test_stage_g_poll.bats` test 2 (AC §4.4.2 canonical): `GH_WATCH_HANG=1 CI_POLL_TIMEOUT=2s` produces `STATUS: CI_TIMEOUT` + clean exit 0 within 5s outer timeout. GitLab path symmetric via `${CI_POLL_TIMEOUT%s}` env-override (HIGH-5 fix verified by tests 8-10).
+  2. ✅ Rebase-merge dispatched once with correct flags — `test_stage_g_merge.bats` test 3 (AC §4.4.3 canonical): `grep -cE 'pr merge [0-9]+ --rebase --delete-branch' = 1`. Test 4 verifies AC §4.4.1 fallback to `--merge` when `GH_ALLOW_REBASE=false`. GitLab symmetric merge via test 9: `glab mr merge 42 --rebase --remove-source-branch --yes` exactly once.
+  3. ✅ Post-merge cleanup pulls main and prunes stale remote refs — `test_stage_g_merge.bats` test 7: post-G4, `git branch --show-current` = `main` AND local main matches bare-remote main (fast-forwarded). `git fetch --prune` invoked.
+- **Engineering Standards HARD gate (§6.7):** all 5 conditions PASS
+  1. AA-MA artifacts in sync — `git status --porcelain .claude/dev/active/...` returns 0 dirty files (verified pre-this-commit)
+  2. Zero `Status: PENDING` in M4 — Step 4.8 transitions to COMPLETE with this approval
+  3. Tests pass — `bats tests/commands/sole-dev-merge/` 65/65 green (56 pre-§6.8-fix + 9 new §6.8 regression); `uv run pytest --tb=short -q` 782 passed, 1 skipped, 7 deselected
+  4. Impact-analysis evidence — IMPACT_ANALYSIS M4 entry in provenance.log (Risk: LOW; 5 files; no contract changes pre-fix; cross-refs to stage-g[1-4]- markers all in expected paths)
+  5. Critical-Path evidence — CRITICAL_PATH_REVIEW — version-pipeline entry in provenance.log (6 evidence points: canonical merge count = 1, AC §4.4.1 fallback enforced, G4 main fast-forwarded, timeout/failed skip merge, GitLab JSON-poll uses glab api NOT glab ci status, RC=124 → clean exit 0 + STATUS:CI_TIMEOUT); Prototype-Required absent → check skipped (absent-field semantic)
+- **§6.8 Post-Impl Adversarial Review (Audit-Profile: code-only = full 5-agent slate per project precedent):** initial verdict BLOCKED (1 CRITICAL + 5 HIGH + 7 MED + 11 LOW). User-directed inline fixes addressed:
+  - CRITICAL-1: Stage F now exports PR_NUM/PR_URL/MR_IID (closes cross-milestone L-006 contract gap that 3 agents independently flagged)
+  - HIGH-1: G3 timeout/failed branches use REMOTE_CHOICE-aware recovery hints (was hardcoded `gh pr merge` regardless of remote)
+  - HIGH-2: G2 GitLab `manual|skipped` → STATUS:CI_BLOCKED (was burning 900s on manual gates)
+  - HIGH-3+4: Exit-status contract table sync with emitted STATUS lines (write-time drift caught by future-proofing-auditor)
+  - HIGH-5: GitLab branch honours `CI_POLL_TIMEOUT` via `${CI_POLL_TIMEOUT%s}` (was hardcoded 900, breaking M5 GitLab smoke test)
+  - MED-1: G3 catchall emits STATUS:CI_UNKNOWN
+  - MED-3 (partial): 9 new regression tests added covering GitLab branches + CRITICAL-1 + HIGH-1 + HIGH-2 + MED-1
+  - DEFERRED: security TOCTOU (M3 carry-over, M5 backlog), magic-30s interval (M5 reference.md consolidation)
+  - Final verdict: PASS_WITH_WARNINGS. **TDD-sequence-auditor PASS** ✓ (4 RED commits → GREEN → §6.8 fix, 6m17s delta — M2/M3 lesson applied successfully again).
+- **Decision:** APPROVED
+- **Commits in M4 window:** 4ccf8e2..HEAD (RED-1, RED-2, GREEN, IA/CPR evidence, §6.8 fixes, this finalization)

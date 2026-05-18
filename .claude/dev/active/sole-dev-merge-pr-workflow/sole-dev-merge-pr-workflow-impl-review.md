@@ -298,3 +298,99 @@ All 11 LOW findings acknowledged. Tracked via standard backlog. Highlights:
 
 **Provenance entry (final):** `§6.8 POST_IMPL_REVIEW — Audit-Profile: full — agents: 5 — initial verdict: BLOCKED (1 CRITICAL + 2 HIGH) — user-directed inline fixes via override panel → final verdict: PASS_WITH_WARNINGS — fixes: reviewer-notes SLUG-namespaced (CRITICAL) + AA_MA_PLAN_DIR control-char strip (HIGH) + Stage E2 contract widening (MED-1) + Stage F body-file guard (MED-2) + D→E3 regression test`.
 
+
+---
+
+## Milestone 4 — CI poll + auto-merge + cleanup
+
+_Audit-Profile: code-only (= full 5-agent slate per project precedent). Plan **Created:** 2026-05-18, post-v0.8.0 cutover → §6.8 fires._
+
+### Agent verdicts
+
+| Agent | Verdict | C / H / M / L |
+|---|---|---|
+| code-reviewer | **BLOCKED** | **1** / 2 / 3 / 3 |
+| security-auditor | PASS_WITH_WARNINGS | 0 / 0 / 1 / 4 |
+| **tdd-sequence-auditor** | **PASS** | 0 / 0 / 0 / 0 |
+| context7-evidence-auditor | SKIP_NO_DEPS | 0 / 0 / 0 / 0 |
+| future-proofing-auditor | PASS_WITH_WARNINGS | 0 / 3 / 3 / 4 |
+
+**Aggregate (initial):** 1 CRITICAL, 5 HIGH, 7 MEDIUM, 11 LOW
+**Aggregate (post-fix):** 0 CRITICAL, 0 HIGH, 3 MEDIUM (deferred), 11 LOW
+
+### TDD-sequence: PASS (mechanical evidence)
+
+```
+First tests/ commit: 4ccf8e2 2026-05-18T19:34:33+01:00
+First src/  commit:  598085c 2026-05-18T19:40:50+01:00
+Delta:               tests_before_src by 6m17s
+```
+
+Two RED test commits (4ccf8e2, 0d2eff0) precede the single GREEN impl commit (598085c). Stub-extension changes inside `tests/.../fixtures/bin/` correctly counted as tests-only (test infrastructure, not src/). M2/M3 lesson applied successfully again.
+
+### CRITICAL Findings — User Override Decisions
+
+#### CRITICAL-1 (code-reviewer): Stage F never exports PR_NUM / PR_URL / MR_IID
+
+**Pattern:** L-006 schema-breaking output (cross-milestone — same class as M3 CRITICAL-1 reviewer-notes path).
+
+**Evidence:** Stages G2/G3/G4 declare "Inputs from Stage F: PR_NUM, PR_URL" and use them at:
+- `claude-code/commands/sole-dev-merge.md:757-758` (G2 `gh pr checks "$PR_NUM"`)
+- `claude-code/commands/sole-dev-merge.md:820-821, :886` (G3/G4 `STATUS: CI_TIMEOUT — see $PR_URL`, final summary)
+
+But Stage F (M3 commit 259072b) **never** extracts PR_NUM / PR_URL / MR_IID from `gh pr create` / `gh pr view` / `glab mr create` output. Production: defaults `PR_NUM:-0` polls PR #0 (wrong PR), blank-URL STATUS lines mislead operators. Tests pass only because they pre-set env vars in setup().
+
+**User Override Decision:** **ACCEPT** — inline fix in M4 fix-commit. Stage F must capture PR_URL via `gh pr view --json url --jq '.url'` (and `.number` for PR_NUM); symmetric for GitLab (glab mr view).
+
+### HIGH Findings — Fix Decisions
+
+| ID | Source | Title | Decision | Notes |
+|---|---|---|---|---|
+| HIGH-1 | code-reviewer | G3 hardcodes `gh` recovery hints regardless of REMOTE_CHOICE | **ACCEPT** | Mirror G2's remote-aware STATUS emission in G3 |
+| HIGH-2 | code-reviewer | GitLab pipeline-status enum gap (manual/skipped) | **ACCEPT** | Add `manual\|skipped) CI_STATE=blocked; STATUS: CI_BLOCKED` arm |
+| HIGH-3 | future-proofing | Contract table `OK` vs emitted `STATUS: OK` | **ACCEPT** | Update table row to `STATUS: OK` |
+| HIGH-4 | future-proofing | Contract table `STATUS: CI_TIMEOUT` missing `— see <URL>` | **ACCEPT** | Update table row to match emitted form |
+| HIGH-5 | future-proofing | GitLab branch hardcodes 900 (ignores CI_POLL_TIMEOUT) | **ACCEPT** | Parse `${CI_POLL_TIMEOUT%s}` in GitLab branch |
+
+### MEDIUM Findings — Fix Decisions
+
+| ID | Source | Title | Decision | Notes |
+|---|---|---|---|---|
+| MED-1 | code-reviewer | G3 catchall missing STATUS line on unknown CI_STATE | **ACCEPT** | Emit `STATUS: CI_UNKNOWN` in catchall |
+| MED-2 | code-reviewer | DRY violation 900s vs TIMEOUT_S=900 | **CLOSED** | Resolved by HIGH-5 fix |
+| MED-3 | code-reviewer | Zero GitLab-branch test coverage | **ACCEPT (partial)** | Add 5 GitLab tests covering HIGH-1/HIGH-2/HIGH-5 + G1 + G3 |
+| MED-4 | security | Auth TOCTOU carry-over amplified by 15-min poll | **DEFER** | M3 deferred this; M4 amplifies; track for M5 hardening backlog (defense-in-depth, not a real exploit) |
+| MED-5 | future-proofing | GitLab pipeline-status enum coverage | **CLOSED** | Resolved by HIGH-2 fix |
+| MED-6 | future-proofing | Magic-number 30 (3 occurrences) | **DEFER** | Low-impact; cosmetic; track for M5 reference.md consolidation |
+| MED-7 | future-proofing | Magic-number 900 (4 prose+code sites) | **CLOSED** | Resolved by HIGH-5 single-env-knob fix |
+
+### LOW Findings (acknowledged informational)
+
+All 11 LOW findings acknowledged. Highlights:
+- Magic-number duplication in code (covered by HIGH fixes)
+- MR_IID derivation duplicated G2↔G3 (closed by CRITICAL-1 fix which moves to Stage F)
+- Wall-clock dependency on `date +%s` (sole-developer threat model — acceptance)
+- Test-stub permissiveness (M3 carry-over — same mitigation, per-test `CLI_LOG` grep)
+- PR_URL injection risk if downstream tooling eval's STATUS lines (downstream's bug)
+- GLAB_API_MODE magic strings (test-infra only)
+
+Tracked via standard backlog.
+
+### Post-fix verification (expected)
+
+- `bats tests/commands/sole-dev-merge/` → 61+ PASS (56 pre-fix + 5+ new GitLab tests + 1 G3 unknown test + 1 F integration test for exports)
+- `bash -n` + `shellcheck` re-run clean on all bash blocks
+- Contract table strings match emitted STATUS lines (grep-verifiable)
+
+### Final verdict
+
+**PASS_WITH_WARNINGS** post-fix:
+- 1 CRITICAL → ACCEPTED + fixed (Stage F PR_NUM/PR_URL/MR_IID export)
+- 5 HIGH → all 5 ACCEPTED + fixed
+- 7 MEDIUM → 2 ACCEPTED + fixed, 3 CLOSED (covered by HIGH fixes), 2 DEFERRED (security TOCTOU, magic-30s) with rationale
+- 11 LOW → acknowledged informational
+
+SOFT gate authorization unblocked.
+
+**Provenance entry (final):** `§6.8 POST_IMPL_REVIEW M4 — Audit-Profile: code-only — agents: 5 — initial verdict: BLOCKED (1 CRITICAL + 5 HIGH + 7 MED + 11 LOW) — user-directed inline fixes via override panel addressed CRITICAL-1 + 5 HIGH + 2 MED; 2 MED deferred; final verdict: PASS_WITH_WARNINGS — fixes: Stage F PR_NUM/PR_URL/MR_IID exports + G3 remote-aware recovery hints + G2 GitLab manual/skipped enum + contract table sync + GitLab branch env-override + G3 CI_UNKNOWN STATUS + 5 new GitLab bats tests + 1 F-export regression`.
+

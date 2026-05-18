@@ -202,18 +202,21 @@ If `git status` is clean, this stage is a no-op.
 # === stage-b-commit (BEGIN) ===
 set -euo pipefail
 
+# Source the shared AA-MA footer helper. The aa-ma-commit-signature.sh
+# PreToolUse hook validates the LITERAL `-m` argument, so we MUST emit
+# the footer ourselves — the hook cannot append it retroactively.
+# Single source-of-truth: claude-code/hooks/lib/aa-ma-footer.sh.
+_HELPER_PATH="${AA_MA_FOOTER_HELPER:-$(git rev-parse --show-toplevel)/claude-code/hooks/lib/aa-ma-footer.sh}"
+source "$_HELPER_PATH"
+
 # Post-Stage-B + L-007 guard: anything dirty here is in-scope and was
 # mutated by ruff/pre-commit on files the branch actually owns.
 if [[ -z "$(git status --porcelain)" ]]; then
     echo "Stage B-commit: nothing to commit (Stage B made no in-scope changes)"
 else
     git add -A
-    # NOTE: AA-MA / [ad-hoc] footer is appended by the
-    # aa-ma-commit-signature.sh PreToolUse hook (see
-    # claude-code/hooks/lib/aa-ma-commit-signature.sh). Tests that invoke
-    # this stage outside Claude Code must either set AA_MA_HOOKS_DISABLE=1
-    # or append the footer themselves.
-    git commit -m "chore(scope): pre-PR auto-fixes"
+    FOOTER=$(emit_aa_ma_footer)
+    git commit -m "chore(scope): pre-PR auto-fixes${FOOTER}"
     echo "Stage B-commit: committed in-scope auto-fixes ($(git rev-parse --short HEAD))"
 fi
 # === stage-b-commit (END) ===
@@ -256,6 +259,17 @@ FINDINGS="/tmp/sole-dev-merge-findings-${SLUG}.md"
 
 : > "$FINDINGS"  # truncate / create
 
+# === CANONICAL severity-mapping tables (single source-of-truth) ===
+# These JSON literals are the AUTHORITATIVE mapping for unifying Bandit and
+# ShellCheck severities into the [CRITICAL]/[HIGH]/[MEDIUM]/[LOW] contract.
+# reference.md mirrors these tables for human consumption; the runtime
+# source is HERE. When Bandit or ShellCheck adds a new severity tier,
+# update these two literals AND the corresponding tables in reference.md
+# in the SAME commit.
+export BANDIT_SEV_JSON='{"HIGH": "CRITICAL", "MEDIUM": "HIGH", "LOW": "MEDIUM"}'
+export SHELLCHECK_SEV_JSON='{"error": "CRITICAL", "warning": "HIGH", "info": "MEDIUM", "style": "LOW"}'
+# === END canonical severity-mapping tables ===
+
 SEVERITY_RE='^\[(CRITICAL|HIGH|MEDIUM|LOW)\][[:space:]]+'
 
 # parse_agent_file: append contract-conforming lines from agent output.
@@ -287,16 +301,15 @@ if [[ -n "${CHANGED_PY:-}" ]]; then
     # shellcheck disable=SC2086  # intentional word-splitting for multi-file arg
     bandit -f json $CHANGED_PY > "$BANDIT_OUT" 2>/dev/null || true
     if [[ -s "$BANDIT_OUT" ]]; then
-        # Severity mapping per reference.md §"Bandit JSON → unified scheme":
-        # HIGH → [CRITICAL] ; MEDIUM → [HIGH] ; LOW → [MEDIUM]
+        # Severity mapping loaded from $BANDIT_SEV_JSON (canonical above).
         python3 - "$BANDIT_OUT" >> "$FINDINGS" <<'PY' || true
-import json, sys
+import json, os, sys
 try:
     with open(sys.argv[1]) as f:
         data = json.load(f)
 except (json.JSONDecodeError, FileNotFoundError):
     sys.exit(0)
-sev_map = {"HIGH": "CRITICAL", "MEDIUM": "HIGH", "LOW": "MEDIUM"}
+sev_map = json.loads(os.environ["BANDIT_SEV_JSON"])
 for r in data.get("results", []):
     sev = sev_map.get(r.get("issue_severity", ""), "LOW")
     msg = r.get("issue_text", "(no msg)")
@@ -313,16 +326,15 @@ if [[ -n "${CHANGED_SH:-}" ]]; then
     # shellcheck disable=SC2086  # intentional word-splitting for multi-file arg
     shellcheck -f json $CHANGED_SH > "$SHELLCHECK_OUT" 2>/dev/null || true
     if [[ -s "$SHELLCHECK_OUT" ]]; then
-        # Severity mapping per reference.md §"ShellCheck JSON → unified scheme":
-        # error → [CRITICAL] ; warning → [HIGH] ; info → [MEDIUM] ; style → [LOW]
+        # Severity mapping loaded from $SHELLCHECK_SEV_JSON (canonical above).
         python3 - "$SHELLCHECK_OUT" >> "$FINDINGS" <<'PY' || true
-import json, sys
+import json, os, sys
 try:
     with open(sys.argv[1]) as f:
         data = json.load(f)
 except (json.JSONDecodeError, FileNotFoundError):
     sys.exit(0)
-sev_map = {"error": "CRITICAL", "warning": "HIGH", "info": "MEDIUM", "style": "LOW"}
+sev_map = json.loads(os.environ["SHELLCHECK_SEV_JSON"])
 items = data if isinstance(data, list) else data.get("comments", [])
 for r in items:
     sev = sev_map.get(r.get("level", ""), "LOW")
@@ -358,8 +370,13 @@ routes findings by severity:
 # === stage-d-triage (BEGIN) ===
 set -euo pipefail
 
+# Single source-of-truth for the AA-MA commit footer (shared with Stage B-commit).
+_HELPER_PATH="${AA_MA_FOOTER_HELPER:-$(git rev-parse --show-toplevel)/claude-code/hooks/lib/aa-ma-footer.sh}"
+source "$_HELPER_PATH"
+
 SLUG="${SLUG:-$(date +%s)}"
 FINDINGS="/tmp/sole-dev-merge-findings-${SLUG}.md"
+BANDIT_OUT="/tmp/sole-dev-merge-bandit-${SLUG}.json"
 
 if [[ ! -f "$FINDINGS" ]]; then
     echo "Stage D: no findings file at $FINDINGS — nothing to triage"
@@ -374,23 +391,44 @@ N_LOW=$(grep -cE '^\[LOW\]' "$FINDINGS" || true)
 echo "Stage D triage: $N_CRITICAL CRITICAL, $N_HIGH HIGH, $N_MEDIUM MEDIUM, $N_LOW LOW"
 
 AUTO_FIXED=0
-TAGGED_FOR_REVIEW=()
 
+# === B602 AUTO-FIX (driven from $BANDIT_OUT JSON — trusted provenance) ===
+# §6.8 audit fix (security HIGH 1-3 + future-proofing HIGH #4):
+# Auto-fix the EXACT line Bandit reports, with test_id equality (not
+# substring). Source of truth = Bandit's structured JSON output, NOT the
+# stringified findings.md (which mixes agent-influenced text).
+if [[ -s "$BANDIT_OUT" ]]; then
+    while IFS=$'\t' read -r FILE LINE; do
+        [[ -z "$FILE" || -z "$LINE" ]] && continue
+        if [[ -f "$FILE" && "$LINE" =~ ^[0-9]+$ && "$LINE" -gt 0 ]]; then
+            # Line-scoped sed: rewrite ONLY the exact line Bandit flagged.
+            # Docstrings, comments, and unrelated occurrences SURVIVE.
+            sed -i "${LINE}s/shell=True/shell=False/" "$FILE"
+            echo "Stage D auto-fix: B602 at $FILE:$LINE"
+            AUTO_FIXED=$((AUTO_FIXED + 1))
+        fi
+    done < <(python3 - "$BANDIT_OUT" <<'PY'
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        data = json.load(f)
+except (json.JSONDecodeError, FileNotFoundError):
+    sys.exit(0)
+for r in data.get("results", []):
+    # Equality match on test_id + severity — no substring matching
+    if r.get("test_id") == "B602" and r.get("issue_severity") == "HIGH":
+        print(f"{r.get('filename', '')}\t{r.get('line_number', 0)}")
+PY
+    )
+fi
+
+# Tag non-auto-fixable CRITICALs (ShellCheck + agent-emitted) for user review.
+# B602 lines are excluded — we've handled them via the JSON-driven path above.
+TAGGED_FOR_REVIEW=()
 if [[ "$N_CRITICAL" -gt 0 ]]; then
     while IFS= read -r line; do
-        # Extract path from suffix "— <path>:<line>" (em-dash separator from Stage C)
-        FILE=$(echo "$line" | sed -nE 's/.*— ([^:]+):[0-9]+.*/\1/p')
-        if [[ "$line" =~ B602 ]]; then
-            # Bandit B602 (subprocess shell=True) — deterministic auto-fix
-            if [[ -n "$FILE" && -f "$FILE" ]]; then
-                sed -i 's/shell=True/shell=False/g' "$FILE"
-                echo "Stage D auto-fix: B602 in $FILE (shell=True → shell=False)"
-                AUTO_FIXED=$((AUTO_FIXED + 1))
-            fi
-        else
-            # Non-B602 CRITICALs (ShellCheck or agent-emitted) require user review
-            TAGGED_FOR_REVIEW+=("$line")
-        fi
+        [[ "$line" == *"B602"* ]] && continue  # already auto-fixed
+        TAGGED_FOR_REVIEW+=("$line")
     done < <(grep -E '^\[CRITICAL\]' "$FINDINGS")
 fi
 
@@ -406,18 +444,9 @@ if [[ "$N_LOW" -gt 0 ]]; then
     echo "Stage D: $N_LOW LOW finding(s) → $REVIEWER_NOTES (advisory)"
 fi
 
-# Commit auto-fixes if any
+# Commit auto-fixes if any (footer from shared helper for drift-resistance)
 if [[ "$AUTO_FIXED" -gt 0 ]]; then
-    # Plan-aware commit footer — produced inline (the
-    # aa-ma-commit-signature.sh hook validates the LITERAL message at
-    # PreToolUse, so we cannot rely on it to append the footer for us).
-    PLAN_DIR=$(ls -d "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"/.claude/dev/active/*/ 2>/dev/null | head -1 || true)
-    if [[ -n "$PLAN_DIR" ]]; then
-        PLAN_NAME=$(basename "${PLAN_DIR%/}")
-        FOOTER=$'\n\n'"[AA-MA Plan] ${PLAN_NAME} .claude/dev/active/${PLAN_NAME}"
-    else
-        FOOTER=$'\n\n'"[ad-hoc]"
-    fi
+    FOOTER=$(emit_aa_ma_footer)
     git add -A
     git commit -m "fix(review): apply CRITICAL bandit findings${FOOTER}"
     echo "Stage D: committed $AUTO_FIXED auto-fix(es) ($(git rev-parse --short HEAD))"

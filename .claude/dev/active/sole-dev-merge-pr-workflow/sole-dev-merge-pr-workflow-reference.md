@@ -108,6 +108,12 @@ Parser regex: `^\[(CRITICAL|HIGH|MEDIUM|LOW)\]\s+(.+?)\s+—\s+(.+?):(\d+)$`
 
 ## Static analyzer severity mapping
 
+**Canonical source:** the JSON literals `BANDIT_SEV_JSON` and `SHELLCHECK_SEV_JSON`
+defined at the top of the `stage-c-aggregate` bash block in
+`claude-code/commands/sole-dev-merge.md` (M2 §6.8 fix — single source-of-truth).
+The tables below MIRROR those literals for human consumption; when Bandit or
+ShellCheck adds a new severity tier, update both sites in the SAME commit.
+
 ### Bandit JSON → unified scheme
 
 | Bandit `issue_severity` | Mapped to |
@@ -115,7 +121,7 @@ Parser regex: `^\[(CRITICAL|HIGH|MEDIUM|LOW)\]\s+(.+?)\s+—\s+(.+?):(\d+)$`
 | `HIGH` | `[CRITICAL]` |
 | `MEDIUM` | `[HIGH]` |
 | `LOW` | `[MEDIUM]` |
-| (undefined) | `[LOW]` |
+| (undefined) | `[LOW]` (fallback) |
 
 ### ShellCheck JSON → unified scheme
 
@@ -125,6 +131,7 @@ Parser regex: `^\[(CRITICAL|HIGH|MEDIUM|LOW)\]\s+(.+?)\s+—\s+(.+?):(\d+)$`
 | `warning` | `[HIGH]` |
 | `info` | `[MEDIUM]` |
 | `style` | `[LOW]` |
+| (undefined) | `[LOW]` (fallback) |
 
 ## Engineering Standards canonical values
 

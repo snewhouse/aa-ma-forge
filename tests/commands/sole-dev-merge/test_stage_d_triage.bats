@@ -38,7 +38,10 @@ setup() {
         { echo "stage-d-triage not yet implemented in $COMMAND_MD" >&2; return 1; }
     chmod +x "$SD_SCRIPT"
 
-    export SC_SCRIPT SD_SCRIPT
+    # Point Stage D at the REAL helper (the sandbox's `git rev-parse` would
+    # otherwise return the sandbox path, not the aa-ma-forge repo).
+    AA_MA_FOOTER_HELPER="${REPO_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh"
+    export SC_SCRIPT SD_SCRIPT AA_MA_FOOTER_HELPER
 }
 
 teardown() {

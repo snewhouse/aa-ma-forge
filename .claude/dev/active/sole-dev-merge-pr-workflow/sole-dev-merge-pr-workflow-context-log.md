@@ -155,3 +155,21 @@ User selected via AskUserQuestion:
 - **§6.8 Post-Impl Adversarial Review:** 5 agents dispatched (full profile); initial verdict BLOCKED (1 CRITICAL + 5 HIGH); user chose "Fix everything inline"; CRITICAL + 4 HIGH refactored inline (3 root-cause fixes in 1 commit + footer helper); final verdict PASS_WITH_WARNINGS. Details in `[task]-impl-review.md`.
 - **Decision:** APPROVED — proceed to M3
 
+
+## [2026-05-18] GATE APPROVAL: Milestone 3 — PR/MR creation with idempotency
+
+- **Gate:** HARD
+- **Approved by:** Stephen J Newhouse (via /execute-aa-ma-milestone HITL Step 3.8)
+- **Criteria verified:** 3/3 acceptance criteria from M3 acceptance:
+  1. ✅ Three-fixture remote-detect test passes — `test_stage_e_remote.bats` 8/8 PASS incl. AC §4.3.1 (github-only, gitlab-only, dual-remote) + fetch/push dedupe regression
+  2. ✅ PR idempotency verified by mock — `test_stage_f_idempotent.bats` 9/9 PASS incl. canonical AC §4.3.4 (planted-PR → gh pr edit count=1, gh pr create count=0) + GitLab symmetric path + --description (NOT fabricated --description-file) guard
+  3. ✅ AI body generation produces deterministic structure when AA-MA plan active — `test_stage_e3_body.bats` 9/9 PASS incl. AC §4.3.3 (≥5 bullets, `## Test plan` heading, `Plan context: …/.claude/dev/active/…` line) + §6.8 D→E3 integration regression + HIGH-1 control-char-strip regression
+- **Engineering Standards HARD gate (§6.7):** all 5 conditions PASS
+  1. AA-MA artifacts in sync — `git status --porcelain .claude/dev/active/...` returns 0 dirty files (verified pre-this-commit)
+  2. Zero `Status: PENDING` in M3 — Step 3.8 transitions to COMPLETE with this approval
+  3. Tests pass — `bats tests/commands/sole-dev-merge/` 45/45 green (42 + 3 new §6.8 regression); `uv run pytest --tb=short -q` 782 passed, 1 skipped, 7 deselected
+  4. Impact-analysis evidence — IMPACT_ANALYSIS M3 entry in provenance.log (Risk: LOW; 8 files; no contract changes; 0 external refs)
+  5. Critical-Path evidence — CRITICAL_PATH_REVIEW — external-api entry in provenance.log (gh/glab CLI surface; 9 idempotency tests with PATH-shadowed stubs; fabricated-flag guard for `--description-file`; title truncation; AUTH_REQUIRED contract honoured); Prototype-Required absent → check skipped (absent-field semantic)
+- **§6.8 Post-Impl Adversarial Review (Audit-Profile: full):** 5 agents dispatched → initial verdict BLOCKED (1 CRITICAL + 3 HIGH + 8 MED + 11 LOW). User-directed inline fixes via override panel addressed CRITICAL-1 (reviewer-notes path mismatch — 3 agents converged on same root cause), HIGH-1 (AA_MA_PLAN_DIR markdown injection — CWE-117), MED-1 (ABORT vs STATUS contract widening), MED-2 (Stage F body-file guard). HIGH-3 (UTF-8 truncation) + 6×MED DEFERRED with documented rationale in impl-review.md. Final verdict: PASS_WITH_WARNINGS. **TDD-sequence-auditor PASS** ✓ (4 RED commits → GREEN, 10m04s delta — M2 lesson applied successfully again).
+- **Decision:** APPROVED
+- **Commits in M3 window:** a2e3635..HEAD (RED-1, RED-2, RED-3, RED-2 fixup, GREEN, IA/CPR evidence, §6.8 fixes)

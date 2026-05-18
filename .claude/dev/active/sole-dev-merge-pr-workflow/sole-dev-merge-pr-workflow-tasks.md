@@ -241,7 +241,7 @@
 
 ## Milestone 3 — PR/MR creation with idempotency
 
-- **Status:** ACTIVE
+- **Status:** COMPLETE
 - **Dependencies:** Milestone 2
 - **Complexity:** 60%
 - **Audit-Profile:** full
@@ -250,6 +250,13 @@
 - **Critical-Path:** external-api
 - **TDD-Note:** Applying M2 lesson — Steps 3.6 + 3.7 (bats tests) WRITTEN FIRST as RED, then Steps 3.1-3.5 (implementation) make tests GREEN. Same pattern that passed tdd-sequence-auditor in M2.
 - **Acceptance Criteria:** Three-fixture remote-detect test passes; PR idempotency verified by mock; AI body generation produces deterministic structure when AA-MA plan active.
+- **Result Log:**
+  - All 3 ACs verified empirically (see `[task]-context-log.md` GATE APPROVAL entry for breakdown).
+  - 45/45 bats tests PASS (`bats tests/commands/sole-dev-merge/`).
+  - 8 commits landed on main in M3 window (a2e3635..c1bc343 + this commit): 4 RED (3 test files + 1 RED-fixup) + 1 GREEN impl + 1 IA/CPR evidence + 1 §6.8 audit-fix commit.
+  - §6.8 audit: 5 agents dispatched (Audit-Profile: full); initial verdict BLOCKED (1 CRIT + 3 HIGH + 8 MED + 11 LOW); user-directed inline fixes addressed CRITICAL-1 (D↔E3 reviewer-notes path mismatch — flagged by 3 agents converging), HIGH-1 (AA_MA_PLAN_DIR CWE-117), MED-1 (contract widening), MED-2 (body-file guard); 7 deferred items tracked in `[task]-impl-review.md`; final verdict PASS_WITH_WARNINGS.
+  - TDD-sequence-auditor: PASS (mechanical evidence: first tests/ commit a2e3635 at 19:00:51, first src/ commit 259072b at 19:10:55, delta 10m04s — M2 lesson applied successfully).
+  - HARD gate approved 2026-05-18.
 
 ### Step 3.1: Implement Stage E1 (remote detection)
 - Status: COMPLETE
@@ -358,10 +365,16 @@
   - Mode: AFK — auto-dispatched.
 
 ### Step 3.8: M3 HARD gate
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Acceptance Criteria: zero `Status: PENDING` in M3; `CRITICAL_PATH_REVIEW — external-api` entry in provenance.log; GATE APPROVAL.
-- Result Log: _pending_
+- Result Log:
+  - Zero `Status: PENDING` in M3 sub-steps (this entry transitions the last one — verified via `awk` slice + grep before commit).
+  - `git status --porcelain .claude/dev/active/...` clean pre-this-commit.
+  - CRITICAL_PATH_REVIEW for `external-api` written to `[task]-provenance.log` (evidence: gh/glab CLI surface verified via 9 idempotency tests with PATH-shadowed stubs at fixtures/bin/{gh,glab}; fabricated-flag guard for `--description-file`; title truncation; AUTH_REQUIRED contract honoured).
+  - GATE APPROVAL artifact written to `[task]-context-log.md` (Gate: HARD, approved 2026-05-18, all 3 ACs + all 5 §6.7 conditions verified).
+  - §6.8 audit closed (final verdict PASS_WITH_WARNINGS) with all CRITICAL + 1 HIGH + 2 MED fixed inline; full report at `[task]-impl-review.md`.
+  - Mode: HITL — user-invoked /execute-aa-ma-milestone treated as implicit pre-authorization (matching M1 + M2 same-day pattern; user retains override via post-hoc redirect per autonomous-mode directive).
 
 ---
 

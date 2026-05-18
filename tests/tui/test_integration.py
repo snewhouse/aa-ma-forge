@@ -15,7 +15,17 @@ import json
 import subprocess
 from pathlib import Path
 
+from aa_ma.tui.__main__ import EXIT_NO_TASKS, EXIT_OK, EXIT_TASK_NOT_FOUND
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
+# Defensive guard — if test file moves, REPO_ROOT silently breaks (W2-FP fix).
+assert (REPO_ROOT / "pyproject.toml").exists(), (
+    f"REPO_ROOT={REPO_ROOT!r} does not contain pyproject.toml — "
+    "test file moved? Update parents[2] offset."
+)
+
+# Single source of truth for subprocess timeout (W1-FP fix).
+_CLI_TIMEOUT_S = 30
 
 
 def _seed_fake_claude_root(tmp_path: Path, n_tasks: int = 2) -> Path:
@@ -57,7 +67,7 @@ def _run_cli(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess
         cwd=cwd or REPO_ROOT,
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=_CLI_TIMEOUT_S,
         check=False,
     )
 
@@ -130,25 +140,27 @@ def test_cli_json_envelope_well_formed(tmp_path: Path) -> None:
 
 
 def test_cli_exit_3_when_no_tasks_discovered(tmp_path: Path) -> None:
-    """EXIT_NO_TASKS = 3 when no tasks under any root."""
+    """EXIT_NO_TASKS when no tasks under any root."""
     empty_claude = tmp_path / ".claude"
     (empty_claude / "dev" / "active").mkdir(parents=True)
     result = _run_cli("--snapshot", "--root", str(empty_claude))
-    assert result.returncode == 3, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    assert result.returncode == EXIT_NO_TASKS, (
+        f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
 
 
 def test_cli_exit_2_when_task_not_found(tmp_path: Path) -> None:
-    """EXIT_TASK_NOT_FOUND = 2 when --task NAME doesn't match any task."""
+    """EXIT_TASK_NOT_FOUND when --task NAME doesn't match any task."""
     claude = _seed_fake_claude_root(tmp_path, n_tasks=1)
     result = _run_cli(
         "--snapshot=tree", "--task", "nonexistent", "--root", str(claude)
     )
-    assert result.returncode == 2
+    assert result.returncode == EXIT_TASK_NOT_FOUND
 
 
 def test_cli_version_exits_0() -> None:
     result = _run_cli("--version")
-    assert result.returncode == 0
+    assert result.returncode == EXIT_OK
     assert "aa-ma-tui" in result.stdout
 
 

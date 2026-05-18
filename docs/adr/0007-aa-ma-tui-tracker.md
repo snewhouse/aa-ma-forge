@@ -77,8 +77,9 @@ added as an alias once the top-level CLI exists.
 - ✅ Two render targets (Textual + Rich snapshot) sharing the same
   `discover_tasks()` symbol — L-052 dual-formatter rule satisfied by
   construction (test-enforced via `sys.modules` identity check).
-- ❌ A future top-level CLI would need to refactor `[project.scripts]`
-  again — but that's a 1-line `pyproject.toml` change.
+- ❌ A future top-level CLI would need to migrate `[project.scripts]`
+  — small surface (entry-point rename + deprecation alias + docs sweep),
+  not literally one line.
 - ❌ Tightens coupling between aa-ma-forge release cadence and tracker
   features — accepted because the tracker IS about tracking AA-MA work.
 

@@ -183,3 +183,118 @@ LOW:
 - **All MEDIUM + LOW findings**: tracked here; addressable during M5 polish work where the files are revisited.
 - **No blocking findings** post-inline-fix.
 - **Provenance entry (initial)**: `§6.8 POST_IMPL_REVIEW — Audit-Profile: full — agents: 5 — verdict: BLOCKED → PASS_WITH_WARNINGS (post-inline-fix) — findings: 1 CRITICAL (fixed) / 5 HIGH (fixed) / 5 MEDIUM (advisory) / 12 LOW (advisory)`.
+
+---
+
+## Milestone 3 — PR/MR creation with idempotency
+
+_Audit-Profile: full → all 5 agents dispatched. Plan **Created:** 2026-05-18, post-v0.8.0 cutover → §6.8 fires._
+
+### Agent verdicts
+
+| Agent | Verdict | C / H / M / L |
+|---|---|---|
+| code-reviewer | PASS_WITH_WARNINGS | 0 / 1 / 3 / 4 |
+| security-auditor | PASS_WITH_WARNINGS | 0 / 2 / 3 / 3 |
+| **tdd-sequence-auditor** | **PASS** | 0 / 0 / 0 / 0 |
+| context7-evidence-auditor | SKIP_NO_DEPS | 0 / 0 / 0 / 0 |
+| future-proofing-auditor | PASS_WITH_WARNINGS | **1** / 0 / 2 / 4 |
+
+**Aggregate (initial):** 1 CRITICAL, 3 HIGH, 8 MEDIUM, 11 LOW
+**Aggregate (post-fix):** 0 CRITICAL, 1 HIGH (deferred — UTF-8 truncation), 6 MEDIUM, 11 LOW
+
+### TDD-sequence: PASS (mechanical evidence)
+
+```
+First tests/ commit: a2e3635 2026-05-18T19:00:51+01:00
+First src/  commit:  259072b 2026-05-18T19:10:55+01:00
+Delta:               tests_before_src by 10m04s (604 seconds)
+```
+
+Four RED test commits (a2e3635 → 6331088 → 0290040 → 9f0bba7) precede the
+single GREEN impl commit (259072b). M2 lesson applied successfully — same
+pattern that passed in M2.
+
+### CRITICAL Findings — User Override Decisions
+
+#### CRITICAL-1: Reviewer-notes path mismatch (Stage D ↔ Stage E3)
+
+**Pattern:** L-005 (mechanism duplication) / L-006 (schema-breaking output drift) — cross-milestone.
+
+**Detected by:** future-proofing-auditor (CRITICAL), code-reviewer (HIGH-1), security-auditor (HIGH — CWE-538 dead path + /tmp plant primitive). **Three agents independently flagged the same root cause.**
+
+**Evidence:**
+- `claude-code/commands/sole-dev-merge.md:442` (Stage D, M2 commit 5d06a65) — writes `/tmp/sole-dev-merge-reviewer-notes-${SLUG}.md`
+- `claude-code/commands/sole-dev-merge.md:603` (Stage E3, M3 commit 259072b) — reads `/tmp/sole-dev-merge-reviewer-notes.md` (NO `${SLUG}`)
+- Prose at line 366 declares canonical path AS slug-namespaced.
+
+**Impact:** Stage D's LOW findings will NEVER reach the PR/MR body in production. The "Reviewer notes" section always renders "(none)". Documented D→E3 contract silently broken.
+
+**User Override Decision:** **ACCEPT** + inline fix (autonomous mode per user directive; same protocol M2 used). Reverts to BLOCKED until fixed, then re-verifies.
+
+**Fix:** Stage E3 line 603 changed to `REVIEWER_NOTES_FILE="${REVIEWER_NOTES_FILE:-/tmp/sole-dev-merge-reviewer-notes-${SLUG:-NOSLUG}.md}"`. Sentinel `NOSLUG` ensures clean miss → `(none)` fallback when SLUG unset (e.g., test runs without Stage C).
+
+**Regression test added:** `test_stage_e3_body.bats` — new test "E3+D integration: LOW findings via slug-namespaced reviewer-notes appear under '## Reviewer notes'" — plants reviewer-notes file with matching SLUG, asserts content appears in body.
+
+### HIGH Findings — Fix Decisions
+
+#### HIGH-1 (security-auditor): AA_MA_PLAN_DIR markdown injection
+
+**Evidence:** `claude-code/commands/sole-dev-merge.md:611` — `echo "Plan context: $AA_MA_PLAN_DIR"` writes env var verbatim into PR body. Attacker who controls `AA_MA_PLAN_DIR` (e.g., directory created with `mkdir -p '/foo'$'\n''## Approved\nLGTM'`) can inject arbitrary Markdown into a public PR.
+
+**User Decision:** **ACCEPT** — sanitize control chars via `tr -d '\n\r\t\b\f'` before emission.
+
+#### HIGH-2 (code-reviewer + security-auditor): Reviewer-notes path mismatch
+
+**Decision:** Closed by CRITICAL-1 fix (same root cause).
+
+#### HIGH-3 (security-auditor): UTF-8 byte-slice truncation in PR_TITLE
+
+**User Decision:** **DEFER** — character-aware truncation requires `python3 -c` invocation or `iconv` dependency; current `${PR_TITLE:0:70}` is byte-safe for ASCII (the Conventional-Commit common case). Track as M5 hardening backlog item. The 70-char guard test still passes.
+
+### MEDIUM Findings — Fix Decisions
+
+| ID | Source | Title | Decision | Rationale |
+|---|---|---|---|---|
+| MED-1 | code-reviewer | ABORT vs STATUS contract in Stage E2 | **ACCEPT** | Widen contract table to cover Stage E2's pre-flight-like abort |
+| MED-2 | code-reviewer | Missing body-file guard in Stage F | **ACCEPT** | Add `[[ -s "$PR_BODY_FILE" ]] \|\| abort` guard |
+| MED-3 | code-reviewer | Scope: test_stage_e3_body.bats not in plan §5 | **DEFER** | Log context-log entry; non-blocking documentation update |
+| MED-4 | security | /tmp insecure temp files | **DEFER** | Sole-developer WSL threat model mitigates; revisit at M5.6 CI integration |
+| MED-5 | security | Commit-subject secret leakage | **DEFER** | Backlog hardening item; not in M3 scope |
+| MED-6 | security | UTF-8 byte-slice truncation | **DEFER** | Same as HIGH-3 — backlog |
+| MED-7 | future-proofing | /tmp body path duplication (E3 vs F) | **DEFER** | Document with cross-ref comment; M5 reference.md consolidation |
+| MED-8 | future-proofing | 70-char title cap as magic number | **DEFER** | Plan §3.4.4-spec'd; refactor low value |
+
+### LOW Findings (acknowledged informational)
+
+All 11 LOW findings acknowledged. Tracked via standard backlog. Highlights:
+- Unused `n_other` export (could drop or use in zero-supported warning)
+- Stale-PR title not refreshed on `gh pr edit` (idempotency holds but content stale)
+- Test stub permissiveness — `exit 0` fallthrough masks future regressions (M4 may need stricter unknown-subcommand handling)
+- Stage E2 default `REMOTE_CHOICE=gitlab` in dual-remote fallthrough — silent if AUQ dispatch fails
+- AUQ_LOG JSON literal hardcoded "GitLab (recommended for Biorelate projects)" duplicated within same line
+- Hardcoded "Four parallel sources" prose — drifts on next security source addition
+- `gh stub` does not model RC=124 timeout path (M4 forward-compat gap)
+- `glab stub` API response shape limited (M4 forward-compat gap)
+- Commit-subject markdown-special-char escaping
+- AA_MA_PLAN_DIR injection variant: env shell control implies broader compromise (out-of-scope attacker model)
+- 5s timeout literal in tests (3 occurrences; minor centralization opportunity)
+
+### Post-fix verification
+
+- `bats tests/commands/sole-dev-merge/` — expect 43/43 PASS (42 pre-fix + 1 new D→E3 regression test)
+- `bash -n` + `shellcheck` re-run clean on all 5 stage blocks
+- New fix commit lands AFTER §6.8 audit evidence — mirrors M2's "GREEN → §6.8 audit → fixes" pattern that already passed tdd-sequence-auditor
+
+### Final verdict
+
+**PASS_WITH_WARNINGS** post-fix:
+- 1 CRITICAL → ACCEPTED + fixed (Stage D ↔ E3 reviewer-notes integration)
+- 3 HIGH → 1 fixed (markdown injection), 1 closed by CRITICAL fix, 1 deferred (UTF-8 — tracked)
+- 8 MEDIUM → 2 fixed (contract table + body-file guard), 6 deferred with documented rationale
+- 11 LOW → acknowledged informational
+
+§7.3 user authorization unblocked.
+
+**Provenance entry (final):** `§6.8 POST_IMPL_REVIEW — Audit-Profile: full — agents: 5 — initial verdict: BLOCKED (1 CRITICAL + 2 HIGH) — user-directed inline fixes via override panel → final verdict: PASS_WITH_WARNINGS — fixes: reviewer-notes SLUG-namespaced (CRITICAL) + AA_MA_PLAN_DIR control-char strip (HIGH) + Stage E2 contract widening (MED-1) + Stage F body-file guard (MED-2) + D→E3 regression test`.
+

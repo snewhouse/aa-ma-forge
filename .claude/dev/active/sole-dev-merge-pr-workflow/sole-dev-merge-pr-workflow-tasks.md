@@ -115,13 +115,14 @@
 
 ## Milestone 2 — Review + 3-source security pass
 
-- **Status:** PENDING
+- **Status:** ACTIVE
 - **Dependencies:** Milestone 1
 - **Complexity:** 65%
 - **Audit-Profile:** full
 - **Gate:** HARD
 - **Mode:** HITL (Step 2.5 prompts on HIGH/MEDIUM findings)
 - **Critical-Path:** _(none — but per Theme 5 SOFT discipline)_
+- **TDD-Note:** Executed in TDD-strict order — Steps 2.7 + 2.6 (bats tests) WRITTEN FIRST and verified RED, then Steps 2.1-2.5 (implementation) WRITTEN to make tests GREEN. Applies M1 lesson L-007.
 - **Acceptance Criteria:** 4 sources dispatched in parallel; severity contract honoured OR safe-default fallback applied; planted Bandit B602 auto-fix verified in bats #6.
 
 ### Step 2.1: Implement Stage C1 (code-reviewer agent dispatch)

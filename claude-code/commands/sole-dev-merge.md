@@ -221,19 +221,124 @@ fi
 
 ### Stage C — Code review + 3-source security pass
 
-_Implementation pending Steps 2.1 – 2.4 (parallel dispatch)._
-
 Four parallel sources, all writing severity-tagged findings to
 `/tmp/sole-dev-merge-{review,security,bandit,shellcheck}-<slug>.{md,json}`
 following the explicit `[CRITICAL]|[HIGH]|[MEDIUM]|[LOW]` contract from
-reference.md:
+reference.md.
 
-- **C1** — `feature-dev:code-reviewer` agent (fallback: `code-reviewer`)
-- **C2** — `security-auditor` agent
-- **C3** — `bandit -f json -r $CHANGED_PY`
-- **C4** — `shellcheck -f json $CHANGED_SH`
+**Step 1 — Dispatch in parallel (instructions to Claude executor):**
 
-Severity mapping for static analysers is defined in reference.md.
+1. Pick a `SLUG` (e.g., `SLUG=$(date +%s)`). Export it so the bash aggregator
+   below can find the output paths.
+2. Dispatch **C1** and **C2** in a SINGLE message with two `Agent` tool calls:
+   - **C1** — `feature-dev:code-reviewer` agent (fallback: `code-reviewer`).
+     Prompt: review `git diff ${BASE_REF}...HEAD`. Emit findings using
+     EXACTLY the severity-prefix contract:
+     `[CRITICAL]|[HIGH]|[MEDIUM]|[LOW] <one-line> — <path>:<line>`. Write
+     output to `/tmp/sole-dev-merge-review-${SLUG}.md`.
+   - **C2** — `security-auditor` agent (`~/.claude/agents/security-auditor.md`).
+     Same severity contract; output to `/tmp/sole-dev-merge-security-${SLUG}.md`.
+     Focus: input validation, auth/secrets, command injection, path traversal,
+     hardcoded creds, OWASP top-10.
+
+**Step 2 — C3 (Bandit) + C4 (ShellCheck) + aggregation (single bash block):**
+
+```bash
+# === stage-c-aggregate (BEGIN) ===
+set -euo pipefail
+
+SLUG="${SLUG:-$(date +%s)}"
+REVIEW_OUT="/tmp/sole-dev-merge-review-${SLUG}.md"
+SECURITY_OUT="/tmp/sole-dev-merge-security-${SLUG}.md"
+BANDIT_OUT="/tmp/sole-dev-merge-bandit-${SLUG}.json"
+SHELLCHECK_OUT="/tmp/sole-dev-merge-shellcheck-${SLUG}.json"
+FINDINGS="/tmp/sole-dev-merge-findings-${SLUG}.md"
+
+: > "$FINDINGS"  # truncate / create
+
+SEVERITY_RE='^\[(CRITICAL|HIGH|MEDIUM|LOW)\][[:space:]]+'
+
+# parse_agent_file: append contract-conforming lines from agent output.
+# Safe-default per plan §M2 risk #1: if file has content but ZERO lines match
+# the contract, classify ALL content as [HIGH] (forces user review) and log
+# the parse failure to stdout.
+parse_agent_file() {
+    local file="$1" source_name="$2"
+    [[ ! -s "$file" ]] && return 0
+    if grep -qE "$SEVERITY_RE" "$file"; then
+        grep -E "$SEVERITY_RE" "$file" >> "$FINDINGS"
+    else
+        echo "Stage C: parse failure on $source_name — applying safe-default [HIGH]"
+        while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            echo "[HIGH]     ${line} — (parse-failure: $source_name)" >> "$FINDINGS"
+        done < "$file"
+    fi
+}
+
+# C1 — code-reviewer agent output
+parse_agent_file "$REVIEW_OUT" "code-reviewer"
+
+# C2 — security-auditor agent output
+parse_agent_file "$SECURITY_OUT" "security-auditor"
+
+# C3 — Bandit on changed Python (only if any)
+if [[ -n "${CHANGED_PY:-}" ]]; then
+    # shellcheck disable=SC2086  # intentional word-splitting for multi-file arg
+    bandit -f json $CHANGED_PY > "$BANDIT_OUT" 2>/dev/null || true
+    if [[ -s "$BANDIT_OUT" ]]; then
+        # Severity mapping per reference.md §"Bandit JSON → unified scheme":
+        # HIGH → [CRITICAL] ; MEDIUM → [HIGH] ; LOW → [MEDIUM]
+        python3 - "$BANDIT_OUT" >> "$FINDINGS" <<'PY' || true
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        data = json.load(f)
+except (json.JSONDecodeError, FileNotFoundError):
+    sys.exit(0)
+sev_map = {"HIGH": "CRITICAL", "MEDIUM": "HIGH", "LOW": "MEDIUM"}
+for r in data.get("results", []):
+    sev = sev_map.get(r.get("issue_severity", ""), "LOW")
+    msg = r.get("issue_text", "(no msg)")
+    path = r.get("filename", "?")
+    line = r.get("line_number", 0)
+    test_id = r.get("test_id", "?")
+    print(f"[{sev}]     {test_id} {msg} — {path}:{line}")
+PY
+    fi
+fi
+
+# C4 — ShellCheck on changed shell (only if any)
+if [[ -n "${CHANGED_SH:-}" ]]; then
+    # shellcheck disable=SC2086  # intentional word-splitting for multi-file arg
+    shellcheck -f json $CHANGED_SH > "$SHELLCHECK_OUT" 2>/dev/null || true
+    if [[ -s "$SHELLCHECK_OUT" ]]; then
+        # Severity mapping per reference.md §"ShellCheck JSON → unified scheme":
+        # error → [CRITICAL] ; warning → [HIGH] ; info → [MEDIUM] ; style → [LOW]
+        python3 - "$SHELLCHECK_OUT" >> "$FINDINGS" <<'PY' || true
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        data = json.load(f)
+except (json.JSONDecodeError, FileNotFoundError):
+    sys.exit(0)
+sev_map = {"error": "CRITICAL", "warning": "HIGH", "info": "MEDIUM", "style": "LOW"}
+items = data if isinstance(data, list) else data.get("comments", [])
+for r in items:
+    sev = sev_map.get(r.get("level", ""), "LOW")
+    msg = r.get("message", "(no msg)")
+    path = r.get("file", "?")
+    line = r.get("line", 0)
+    code = r.get("code", 0)
+    print(f"[{sev}]     SC{code} {msg} — {path}:{line}")
+PY
+    fi
+fi
+
+TOTAL=$(grep -cE "^\[(CRITICAL|HIGH|MEDIUM|LOW)\]" "$FINDINGS" || true)
+echo "Stage C aggregate: ${TOTAL} findings → $FINDINGS"
+# === stage-c-aggregate (END) ===
+```
 
 ### Stage D — Findings triage
 

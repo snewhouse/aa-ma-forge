@@ -37,13 +37,70 @@ named inline bash blocks below; this section is the contract surface.
 
 ### Stage A — Pre-flight checks
 
-_Implementation pending Step 1.2._
+Captures `ORIGINAL_BRANCH` and `BASE_REF`; aborts with one of four exact
+messages on failure; otherwise prints `Pre-flight OK`.
 
-Captures `ORIGINAL_BRANCH`; refuses if on `main`/`master`; refuses on
-uncommitted changes; requires at least one remote; requires
-`git rev-list --count main..HEAD > 0`. Exits with one of the four exact ABORT
-messages defined in the plan (§4.1.2) on failure; otherwise prints
-`Pre-flight OK`.
+| Branch condition | ABORT string |
+|------------------|--------------|
+| On `main`/`master` | `ABORT: Cannot run /sole-dev-merge from $ORIGINAL_BRANCH branch` |
+| Uncommitted changes | `ABORT: Uncommitted changes detected (commit or stash first)` |
+| No git remote | `ABORT: No git remote configured (need github.com or gitlab.com remote)` |
+| No commits ahead of base | `ABORT: No commits ahead of $DEFAULT_BRANCH (nothing to merge)` |
+
+ABORT exits non-zero (rc=1). `Pre-flight OK` exits zero and exports
+`ORIGINAL_BRANCH`, `BASE_REF`, `DEFAULT_BRANCH` for downstream stages.
+
+```bash
+# === stage-a-preflight (BEGIN) ===
+set -euo pipefail
+
+# 1. Capture original branch
+ORIGINAL_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+
+# 2. Refuse if on default branch (main/master)
+if [[ "$ORIGINAL_BRANCH" == "main" || "$ORIGINAL_BRANCH" == "master" ]]; then
+    echo "ABORT: Cannot run /sole-dev-merge from $ORIGINAL_BRANCH branch"
+    exit 1
+fi
+
+# 3. Refuse on uncommitted changes (modified or untracked)
+if [[ -n "$(git status --porcelain)" ]]; then
+    echo "ABORT: Uncommitted changes detected (commit or stash first)"
+    exit 1
+fi
+
+# 4. Require at least one remote configured
+if [[ -z "$(git remote)" ]]; then
+    echo "ABORT: No git remote configured (need github.com or gitlab.com remote)"
+    exit 1
+fi
+
+# 5. Resolve default branch (prefer origin/HEAD, fall back to "main")
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null \
+    | sed 's@^refs/remotes/origin/@@' || true)
+DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+
+# Resolve a usable base ref (prefer local, fall back to remote tracking)
+if git rev-parse --verify -q "$DEFAULT_BRANCH" >/dev/null; then
+    BASE_REF="$DEFAULT_BRANCH"
+elif git rev-parse --verify -q "origin/$DEFAULT_BRANCH" >/dev/null; then
+    BASE_REF="origin/$DEFAULT_BRANCH"
+else
+    echo "ABORT: Cannot resolve $DEFAULT_BRANCH or origin/$DEFAULT_BRANCH"
+    exit 1
+fi
+
+# 6. Require at least one commit ahead of base
+AHEAD=$(git rev-list --count "${BASE_REF}..HEAD")
+if [[ "$AHEAD" -eq 0 ]]; then
+    echo "ABORT: No commits ahead of $DEFAULT_BRANCH (nothing to merge)"
+    exit 1
+fi
+
+export ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH
+echo "Pre-flight OK (branch=$ORIGINAL_BRANCH, base=$BASE_REF, ahead=$AHEAD)"
+# === stage-a-preflight (END) ===
+```
 
 ### Stage B — Scope-aware CI checks (L-007 guard)
 

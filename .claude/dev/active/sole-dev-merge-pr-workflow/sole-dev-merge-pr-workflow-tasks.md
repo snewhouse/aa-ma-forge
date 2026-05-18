@@ -40,10 +40,19 @@
   - Mode: AFK — auto-dispatched.
 
 ### Step 1.3: Implement Stage B (scope-aware CI checks)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: Per plan §4 1.3 — out-of-scope file `tests/codemem/foo.py` shows zero `git diff` after Stage B AND in-scope file passes `ruff check`. L-007 guard active.
-- Result Log: _pending_
+- Result Log:
+  - Stage B bash implemented inside `# === stage-b-scope (BEGIN/END) ===` markers (66 lines).
+  - 6 ordered phases: scope detection (triple-dot diff) → per-file `ruff format` → per-file `ruff check --fix` → optional `mypy` (when `[tool.mypy]` configured) → optional `pytest -m "not perf and not slow"` (when `tests/` exists) → optional `pre-commit run --files` (when `.pre-commit-config.yaml` exists) → **L-007 GUARD** (porcelain walk + `git checkout --` reversion of out-of-scope drift).
+  - L-007 guard uses associative array `IN_SCOPE` for O(1) lookup of changed-file set; iterates `git status --porcelain` rows, strips 3-char status prefix, reverts via `git checkout --` when path is NOT in `IN_SCOPE`.
+  - Empirical L-007 scenario (canonical AC §4.1.3):
+    - Sandbox: main has `tests/codemem/foo.py` + `src/already_there.py`; feature adds `src/new_file.py` with `import os` (unused) and `def hello( )` (lint-fixable); planted out-of-scope drift to `tests/codemem/foo.py`.
+    - Stage B output: "Stage B scope: 1 file(s) — 1 Python, 0 shell"; "1 file reformatted"; "1 error (1 fixed, 0 remaining)"; "L-007 guard: reverted 1 out-of-scope file(s): tests/codemem/foo.py"; "Stage B OK".
+    - Post-Stage-B: `git diff tests/codemem/foo.py | wc -c` → 0 ✓; `ruff check src/new_file.py` → 0 errors ✓; `def hello():` present (reformatted) ✓.
+  - Tooling: `bash -n` clean; `shellcheck` clean (SC2015 instances refactored to explicit `if … then … fi` blocks; SC2086 explicitly disabled on `pre-commit run --files` for intentional word-splitting on multi-file arg).
+  - Mode: AFK — auto-dispatched.
 
 ### Step 1.4: Auto-commit in-scope fixes (if any)
 - Status: PENDING

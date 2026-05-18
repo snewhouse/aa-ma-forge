@@ -104,14 +104,92 @@ echo "Pre-flight OK (branch=$ORIGINAL_BRANCH, base=$BASE_REF, ahead=$AHEAD)"
 
 ### Stage B — Scope-aware CI checks (L-007 guard)
 
-_Implementation pending Step 1.3._
-
-Computes `CHANGED_FILES = git diff --name-only main...HEAD`, splits into
+Computes `CHANGED_FILES = git diff --name-only ${BASE_REF}...HEAD` (triple-dot
+symmetric difference — only files this branch introduced); splits into
 `CHANGED_PY` / `CHANGED_SH`. Runs `ruff format` / `ruff check --fix` against
-in-scope `*.py` only. Best-effort `mypy` / `pytest -m "not perf and not slow"`
-/ `pre-commit run --files` when their config artefacts exist. After
-format/lint, runs the L-007 reversion guard: any file dirty after Stage B that
-is NOT in `$CHANGED_FILES` is reverted via `git checkout --`.
+in-scope `*.py` only (NOT whole-tree — that's the L-007 fix). Best-effort
+`mypy` / `pytest -m "not perf and not slow"` / `pre-commit run --files` only
+when their config artefacts exist. After all mutations, the **L-007 guard**
+reverts any dirty file NOT in `$CHANGED_FILES` via `git checkout --`.
+
+```bash
+# === stage-b-scope (BEGIN) ===
+set -euo pipefail
+
+# Stage A exports BASE_REF; defensive fallback in case Stage B is run alone
+BASE_REF="${BASE_REF:-main}"
+
+# Triple-dot: files this branch introduced (NOT files that drifted on base since)
+CHANGED_FILES=$(git diff --name-only "${BASE_REF}...HEAD" || true)
+CHANGED_PY=$(echo "$CHANGED_FILES" | grep '\.py$' || true)
+CHANGED_SH=$(echo "$CHANGED_FILES" | grep '\.sh$' || true)
+
+N_TOTAL=$(echo "$CHANGED_FILES" | grep -c . || true)
+N_PY=$(echo "$CHANGED_PY" | grep -c . || true)
+N_SH=$(echo "$CHANGED_SH" | grep -c . || true)
+echo "Stage B scope: $N_TOTAL file(s) — $N_PY Python, $N_SH shell"
+
+# 1. Format Python (in-scope only)
+if [[ -n "$CHANGED_PY" ]]; then
+    while IFS= read -r f; do
+        if [[ -f "$f" ]]; then
+            ruff format "$f" || true
+        fi
+    done <<< "$CHANGED_PY"
+fi
+
+# 2. Lint with fix (in-scope only). Tolerant — unfixable errors surface in Stage D.
+if [[ -n "$CHANGED_PY" ]]; then
+    while IFS= read -r f; do
+        if [[ -f "$f" ]]; then
+            ruff check --fix "$f" || true
+        fi
+    done <<< "$CHANGED_PY"
+fi
+
+# 3. Typecheck (best-effort, only when [tool.mypy] is configured)
+if [[ -f pyproject.toml ]] && grep -q '^\[tool\.mypy\]' pyproject.toml; then
+    uv run mypy src/ 2>&1 || true
+fi
+
+# 4. Pytest fast tier (best-effort, only when tests/ exists)
+if [[ -d tests ]]; then
+    uv run pytest -m "not perf and not slow" || true
+fi
+
+# 5. Pre-commit (only when configured; in-scope files only)
+if [[ -f .pre-commit-config.yaml && -n "$CHANGED_FILES" ]]; then
+    # shellcheck disable=SC2086  # Intentional word-splitting for multi-file arg
+    pre-commit run --files $CHANGED_FILES || true
+fi
+
+# 6. L-007 GUARD — revert any out-of-scope mutations introduced by 1-5
+declare -A IN_SCOPE=()
+while IFS= read -r f; do
+    [[ -n "$f" ]] && IN_SCOPE["$f"]=1
+done <<< "$CHANGED_FILES"
+
+REVERTED=()
+while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    # porcelain row: "XY path" where XY is 2-char status + space; strip the 3-char prefix
+    path="${line:3}"
+    if [[ -z "${IN_SCOPE[$path]:-}" ]]; then
+        if git checkout -- "$path" 2>/dev/null; then
+            REVERTED+=("$path")
+        fi
+    fi
+done < <(git status --porcelain)
+
+if [[ ${#REVERTED[@]} -gt 0 ]]; then
+    echo "L-007 guard: reverted ${#REVERTED[@]} out-of-scope file(s): ${REVERTED[*]}"
+else
+    echo "L-007 guard: clean (no out-of-scope drift)"
+fi
+
+echo "Stage B OK"
+# === stage-b-scope (END) ===
+```
 
 ### Stage B-commit — Auto-commit in-scope fixes
 

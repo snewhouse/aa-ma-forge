@@ -70,16 +70,28 @@
   - Mode: AFK — auto-dispatched.
 
 ### Step 1.5: Write bats test for Stage B (scope)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `bats tests/commands/sole-dev-merge/test_stage_b_scope.bats` passes; test plants out-of-scope + in-scope diffs and asserts L-007 reversion.
-- Result Log: _pending_
+- Result Log:
+  - Created `tests/commands/sole-dev-merge/test_stage_b_scope.bats` — 4 test cases.
+  - Created `tests/commands/sole-dev-merge/fixtures/extract_stage.sh` — DRY helper that pulls a named stage's bash from `claude-code/commands/sole-dev-merge.md` via `awk index()` fixed-string match (no regex escaping pitfalls).
+  - Test cases: (1) Stage B reformats in-scope Python file; (2) **canonical L-007 scenario** — plants out-of-scope drift to `tests/codemem/foo.py` + in-scope `src/new_file.py` with lint-fixable issues, asserts `git diff tests/codemem/foo.py | wc -c == 0` AND in-scope passes `ruff check`; (3) clean-tree reports "L-007 guard: clean"; (4) zero-Python branch (only `.md` changes) → Stage B OK with `0 Python` in scope output.
+  - Test pattern: SCRIPT_DIR (extracted scripts) kept OUTSIDE BATS_TMP (sandbox repo) — prevents helper-script files from dirtying `git status --porcelain` and tripping Stage A's dirty-tree check (debugging discovery worth remembering for future bats fixtures).
+  - Plumbing-only commits (`git commit-tree` + `git update-ref`) — avoids `aa-ma-commit-signature.sh` PreToolUse hook.
+  - **All 4 tests PASS** via `bats tests/commands/sole-dev-merge/test_stage_b_scope.bats`.
+  - Mode: AFK — auto-dispatched.
 
 ### Step 1.6: Write bats test for Stage A (preflight)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `bats tests/commands/sole-dev-merge/test_stage_a_preflight.bats` passes; 4 cases exercise each abort branch.
-- Result Log: _pending_
+- Result Log:
+  - Created `tests/commands/sole-dev-merge/test_stage_a_preflight.bats` — 6 test cases (4 plan-required + 2 bonus).
+  - Plan-required cases: on-main ABORT (verbatim AC §4.1.2 match), dirty-tree ABORT, no-remote ABORT, no-commits-ahead ABORT.
+  - Bonus cases: on-master ABORT (symmetric handling test — plan §1.2 mentioned but AC §4.1.2 didn't), happy path (Pre-flight OK + branch/ahead exports verified).
+  - **All 6 tests PASS** via `bats tests/commands/sole-dev-merge/test_stage_a_preflight.bats`.
+  - Mode: AFK — auto-dispatched.
 
 ### Step 1.7: M1 HARD gate (sub-step closure check)
 - Status: PENDING

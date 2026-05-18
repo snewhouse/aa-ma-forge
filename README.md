@@ -246,6 +246,22 @@ Skills are reusable procedures that plug into the planning and execution workflo
 
 Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use, so some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
 
+## Visualizing active tasks
+
+Once you have one or more active AA-MA plans, run `aa-ma-tui` for a live kanban view of the portfolio. The interactive TUI groups tasks by aggregate status (`PENDING` / `IN_PROGRESS` / `BLOCKED` / `COMPLETE`), highlights the next step inside each task, and refreshes automatically when the executor writes a Result Log.
+
+```bash
+aa-ma-tui                                    # interactive kanban (q to quit, r to reload, Enter to drill in)
+aa-ma-tui --snapshot                         # one-shot kanban to stdout (good for commits + CI)
+aa-ma-tui --snapshot=summary                 # one line per task
+aa-ma-tui --snapshot=tree --task NAME        # full milestone+step tree for one task
+aa-ma-tui --json                             # JSON envelope; pipe to jq / scripts
+aa-ma-tui --include-completed                # extend discovery to .claude/dev/completed/
+aa-ma-tui --root /path/to/.claude            # explicit root (default scans ./ and ~/)
+```
+
+The tracker is **strictly read-only** — it never writes to `*-tasks.md` or any other AA-MA file, so it cannot race with `/execute-aa-ma-*` writers. Architectural rationale and trade-offs documented in [ADR-0007](docs/adr/0007-aa-ma-tui-tracker.md).
+
 ## What else helped
 
 AA-MA is the structure, but a couple of Claude Code plugins earned their place alongside it through trial and error.

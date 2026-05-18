@@ -27,6 +27,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0005](0005-post-impl-adversarial-review.md) | Post-Impl Adversarial Review (Phase 6.8 + /verify-impl) | Implemented | 2026-05-11 |
 | [0006](0006-understand-codebase-adoption.md) | Adopt `understand-codebase` onboarding skill + 4 worker agents + `/understand-codebase` into the AA-MA Forge ecosystem | Implemented | 2026-05-12 |
 | [0007](0007-aa-ma-tui-tracker.md) | `aa-ma-tui` — Read-Only Textual TUI + Rich Snapshot for AA-MA Task Tracking | Implemented | 2026-05-18 |
+| [0008](0008-sole-dev-merge-pr-workflow.md) | `/sole-dev-merge` — PR/MR Workflow with 3-Source Security + Idempotent Auto-Merge | Implemented | 2026-05-18 |
 
 ## Statuses
 

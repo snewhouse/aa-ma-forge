@@ -506,7 +506,7 @@
 
 ## Milestone 5 — Docs + ADR + drift + smoke + CI integration
 
-- **Status:** PENDING
+- **Status:** ACTIVE
 - **Dependencies:** Milestone 4
 - **Complexity:** 45%
 - **Audit-Profile:** docs-only

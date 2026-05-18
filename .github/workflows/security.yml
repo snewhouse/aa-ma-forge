@@ -49,7 +49,7 @@ jobs:
         run: uv run ruff check src/
 
   bats:
-    name: Bats (Hook Tests)
+    name: Bats (Hook + Command Tests)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +58,11 @@ jobs:
 
       - name: Run bats on tests/hooks/
         run: bats --recursive tests/hooks/
+
+      - name: Run bats on tests/commands/sole-dev-merge/
+        # M5.6: adds the M1-M5 sole-dev-merge bats suite to CI so the 60+
+        # stage-level + smoke-E2E tests block PRs that regress the workflow.
+        run: bats tests/commands/sole-dev-merge/
 
   codemem-smoke:
     name: codemem smoke test

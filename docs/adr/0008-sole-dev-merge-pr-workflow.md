@@ -212,19 +212,22 @@ short-circuited via env vars (`CI_POLL_TIMEOUT=0s`, `MOCK_AGENT_DISPATCH=1`,
 
 ## Validation
 
-Empirically validated by 60+ bats tests (`tests/commands/sole-dev-merge/`)
-covering every stage's canonical AC across all 5 milestones:
+Empirically validated by 69 bats tests across 10 files
+(`tests/commands/sole-dev-merge/`) covering every stage's canonical AC
+across all 5 milestones. Verify via `grep -cE '^@test'
+tests/commands/sole-dev-merge/*.bats` (the canonical source-of-truth):
 
 - **M1:** test_stage_a_preflight.bats (6) + test_stage_b_scope.bats (4)
-- **M2:** test_stage_c_dispatch.bats (5) + test_stage_d_triage.bats (3)
+- **M2:** test_stage_c_dispatch.bats (5) + test_stage_d_triage.bats (4)
 - **M3:** test_stage_e_remote.bats (8) + test_stage_e3_body.bats (9) +
   test_stage_f_idempotent.bats (11)
-- **M4:** test_stage_g_poll.bats (7) + test_stage_g_merge.bats (12)
-- **M5:** test_smoke_e2e.bats (chained-stage smoke)
+- **M4:** test_stage_g_poll.bats (7) + test_stage_g_merge.bats (11)
+- **M5:** test_smoke_e2e.bats (4 — banner + chained-stage smoke)
 
-Plus ShellCheck on all 9 stage bash blocks (clean), pytest regression
-(0 failures across 782 tests), and 5-agent §6.8 post-impl audit at each
-milestone close.
+Plus ShellCheck on all 15 stage bash markers (8 top-level stages A–G;
+G splits into G1/G2/G3/G4 sub-stages; banner runs before A) — all clean,
+pytest regression (0 failures across 782 tests), and 5-agent §6.8
+post-impl audit at each milestone close.
 
 ## References
 

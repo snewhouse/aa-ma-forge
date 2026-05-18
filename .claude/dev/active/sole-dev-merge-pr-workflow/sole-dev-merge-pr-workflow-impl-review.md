@@ -394,3 +394,101 @@ SOFT gate authorization unblocked.
 
 **Provenance entry (final):** `§6.8 POST_IMPL_REVIEW M4 — Audit-Profile: code-only — agents: 5 — initial verdict: BLOCKED (1 CRITICAL + 5 HIGH + 7 MED + 11 LOW) — user-directed inline fixes via override panel addressed CRITICAL-1 + 5 HIGH + 2 MED; 2 MED deferred; final verdict: PASS_WITH_WARNINGS — fixes: Stage F PR_NUM/PR_URL/MR_IID exports + G3 remote-aware recovery hints + G2 GitLab manual/skipped enum + contract table sync + GitLab branch env-override + G3 CI_UNKNOWN STATUS + 5 new GitLab bats tests + 1 F-export regression`.
 
+
+---
+
+## Milestone 5 — Docs + ADR + drift + smoke + CI integration (FINAL)
+
+_Audit-Profile: docs-only (project precedent: full 5-agent slate). Plan **Created:** 2026-05-18 → §6.8 fires._
+
+### Agent verdicts
+
+| Agent | Verdict | C / H / M / L |
+|---|---|---|
+| code-reviewer | PASS_WITH_WARNINGS | 0 / **1** / 3 / 2 |
+| security-auditor | PASS_WITH_WARNINGS | 0 / 0 / 1 / 4 |
+| **tdd-sequence-auditor** | **PASS** | 0 / 0 / 0 / 0 |
+| context7-evidence-auditor | SKIP_NO_DEPS | 0 / 0 / 0 / 0 |
+| future-proofing-auditor | PASS_WITH_WARNINGS | 0 / **1** / 3 / 2 |
+
+**Aggregate (initial):** 0 CRITICAL, 2 HIGH, 7 MEDIUM, 8 LOW
+**Aggregate (post-fix):** 0 CRITICAL, 0 HIGH, 4 MEDIUM (deferred or out-of-scope), 8 LOW
+
+### TDD-sequence: PASS (mechanical evidence)
+
+```
+First tests/ commit: d9a9339 2026-05-18T21:14:41+01:00
+First src/  commit:  1f4347a 2026-05-18T21:17:09+01:00
+Delta:               tests_before_src by 2m28s
+```
+
+RED commit (smoke E2E + CI step) preceded GREEN commit (stage-banner block) by 2m28s. M2/M3/M4 pattern applied again — 4 milestones of clean TDD discipline.
+
+### HIGH Findings — User Override Decisions
+
+#### HIGH-1 (code-reviewer): YAML frontmatter parse-break in §5.9 suppression-marker fix
+
+**Pattern:** L-005 (mechanism duplication) — I introduced TWO mechanisms in the SAME milestone for the same problem (YAML-frontmatter version suppression). `retro/SKILL.md` used correct `# YAML comment` syntax; `dispatching-parallel-agents/SKILL.md` used wrong `<!-- HTML comment -->` syntax INSIDE YAML frontmatter, breaking `yaml.safe_load`. Agent verified empirically.
+
+**Evidence:** `claude-code/skills/dispatching-parallel-agents/SKILL.md:5` had `version: 1.1.0  <!-- doc-drift-ignore-version: ... -->` — YAML parser raised `ScannerError`.
+
+**Impact:** Skill discovery, plan-verification skill catalogue, IDE plugins, future TUI — all would fail to parse this skill's metadata.
+
+**User Override Decision:** **ACCEPT** — fixed inline (HTML comment → `#` YAML comment to match retro/SKILL.md).
+
+**Fix:** Single-character fix — `<!--` → `#`, drop trailing `-->`. Empirical verification: both SKILL.md files now parse cleanly via `yaml.safe_load` (version=1.1.0 and version=2.0.0 respectively).
+
+#### HIGH-2 (future-proofing): docs/spec/claude-code-foundations.md missed the M5.4 atomic update
+
+**Pattern:** L-007 scope discipline + Tier 6 doc-count-drift — the exact failure class M5 was meant to prevent. M5.4 atomically updated 4 of 5 count-surfaces listed in CLAUDE.md "Key Constraints" (`README.md`, `CHANGELOG.md`, `SECURITY.md`, `docs/spec/aa-ma-quick-reference.md`) but missed the 5th (`docs/spec/claude-code-foundations.md`).
+
+**Evidence:** Foundations.md:71 still said `### Commands (10)` with a 10-row table missing `/sole-dev-merge`.
+
+**Impact:** The canonical spec doc for asset inventory was internally inconsistent with the rest of the project (which all said 11 commands).
+
+**User Override Decision:** **ACCEPT** — fixed inline. Updated `Commands (10)` → `Commands (11)` and added a `/sole-dev-merge` row matching the existing row style with ADR-0008 reference.
+
+### MEDIUM Findings — Fix Decisions
+
+| ID | Source | Title | Decision | Notes |
+|---|---|---|---|---|
+| MED-1 | code-reviewer | Scope discipline: 5 suppression-marker files out of plan §5 | **ACKNOWLEDGE** | §5.9 AC forced the closure; commit 50acf8a documents rationale per file |
+| MED-2 | code-reviewer | Smoke test `source $SC \|\| true` swallows Stage C errors | **DEFER** | Test still asserts Stage C output post-source; tolerance addresses known Bandit-nuances; track as M5+1 test-hardening backlog |
+| MED-3 | code-reviewer | ADR-0008 + CHANGELOG stale test counts | **ACCEPT** | Fixed inline — updated to "69 bats across 10 files" + per-file counts from `grep -cE '^@test'` source-of-truth |
+| MED-4 | security | /tmp/sole-dev-merge-banner-shown sentinel (insecure temp file class) | **DEFER** | Same class as M3 deferred; sole-developer threat model on WSL mitigates; append to M3 §6.8 accepted-residuals ledger |
+| MED-5 | future-proofing | Stage count internal inconsistency ("9 stages" vs 15 markers) | **ACCEPT** | Fixed inline — ADR-0008 §Validation now says "15 stage bash markers (8 top-level stages A–G; G splits into G1/G2/G3/G4; banner runs before A)" |
+| MED-6 | future-proofing | ADR-0008 per-file test count drift | **ACCEPT** | Closed by MED-3 fix (same root cause; same fix) |
+| MED-7 | future-proofing | CHANGELOG "8 files" enumerates 10 (internal contradiction) | **ACCEPT** | Closed by MED-3 fix (same line edited) |
+
+### LOW Findings (acknowledged informational)
+
+- `AA_MA_SUPPRESS_MIGRATION_BANNER` strict `=1` check (could accept `true|yes|on`) — operator-trap risk; doc enhancement deferred.
+- CI bats step lacks `timeout-minutes` — defense-in-depth; M5+1 hardening.
+- Smoke E2E `/tmp` filenames use `$$` only — bounded by single-tenant CI runners.
+- gh/glab stub glob match on `$*` — bounded to test-PATH scope.
+- README v0.10.0 reference not auto-rewritten by `cz bump` — M5+1 release-prep checklist enhancement.
+- ADR `60+` prose vs ladder sums to ~69 — closed by MED-3 fix.
+- 2 DRY-suppress-banner duplications in command md prose — cosmetic.
+- ADR §Reversibility number "5 milestone commits" — closed by MED-3 fix (now refers to provenance.log).
+
+### Post-fix verification
+
+- `bats tests/commands/sole-dev-merge/` → 69/69 PASS
+- `yaml.safe_load` cleanly parses both SKILL.md files (HIGH-1 verified)
+- foundations.md now has 11 commands + sole-dev-merge row (HIGH-2 verified)
+- ADR-0008 + CHANGELOG counts match `grep -cE '^@test'` source-of-truth (MED-3/5/6/7 verified)
+- pytest 782 passed (zero regressions)
+- shellcheck clean on stage-banner block
+
+### Final verdict
+
+**PASS_WITH_WARNINGS** post-fix:
+- 0 CRITICAL → n/a
+- 2 HIGH → both ACCEPTED + fixed (YAML parse-break + foundations.md count surface)
+- 7 MEDIUM → 4 ACCEPTED + fixed (test counts in 2 files + stage count + L-006-class internal-contradiction), 1 ACKNOWLEDGED (5.9 scope expansion), 2 DEFERRED (security TOCTOU class, smoke `|| true`)
+- 8 LOW → acknowledged informational
+
+HARD gate authorization unblocked. M5 is the FINAL milestone — plan ready for archival via `/archive-aa-ma sole-dev-merge-pr-workflow` post-COMPLETE.
+
+**Provenance entry (final):** `§6.8 POST_IMPL_REVIEW M5 — Audit-Profile: docs-only — agents: 5 — initial verdict: BLOCKED_BY_HIGH (0 CRITICAL + 2 HIGH + 7 MED + 8 LOW) — user-directed inline fixes via override panel addressed HIGH-1 (YAML parse-break in dispatching-parallel-agents/SKILL.md, fixed by replacing HTML comment with # YAML comment to match retro/SKILL.md) + HIGH-2 (foundations.md Commands count 10→11 + /sole-dev-merge row added) + 4 MED (ADR-0008 + CHANGELOG counts corrected to 69 bats across 10 files; 15 stage markers documented); 3 MED deferred/acknowledged with rationale; final verdict: PASS_WITH_WARNINGS`.
+

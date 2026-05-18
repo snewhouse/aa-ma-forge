@@ -68,7 +68,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `.claude/dev/active/[task-name]/` | Active tasks |
 | `.claude/dev/completed/` | Archived completed tasks |
 
-### Commands (10)
+### Commands (11)
 
 | Command | Purpose |
 |---------|---------|
@@ -82,6 +82,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/archive-aa-ma` | Archive completed tasks to `dev/completed/` |
 | `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
 | `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered Quick/Standard/Deep); optionally authors/reviews `AGENTS.md`. Thin wrapper around `Skill(understand-codebase)`; see ADR-0006 |
+| `/sole-dev-merge` | PR/MR-based merge workflow: scope-aware CI checks (L-007 guard) + 3-source security pass + idempotent PR/MR creation + 15-min CI poll + auto-merge + cleanup. See ADR-0008 |
 
 ### Skills (19)
 

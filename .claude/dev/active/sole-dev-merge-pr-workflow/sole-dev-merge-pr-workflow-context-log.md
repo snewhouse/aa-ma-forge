@@ -200,3 +200,28 @@ User selected via AskUserQuestion:
   - Final verdict: PASS_WITH_WARNINGS. **TDD-sequence-auditor PASS** ✓ (4 RED commits → GREEN → §6.8 fix, 6m17s delta — M2/M3 lesson applied successfully again).
 - **Decision:** APPROVED
 - **Commits in M4 window:** 4ccf8e2..HEAD (RED-1, RED-2, GREEN, IA/CPR evidence, §6.8 fixes, this finalization)
+
+## [2026-05-18] GATE APPROVAL: Milestone 5 — Docs + ADR + drift + smoke + CI integration (FINAL)
+
+- **Gate:** HARD
+- **Approved by:** Stephen J Newhouse (via /execute-aa-ma-milestone HITL Step 5.10 — autonomous-mode directive)
+- **Criteria verified:** 5/5 acceptance criteria from M5 acceptance:
+  1. ✅ All 7 doc updates land atomically — M5.4 atomic commit (d4eb797) covers README + CHANGELOG + SECURITY + docs/spec/aa-ma-quick-reference.md. M5.5 (621d499) covers docs/lessons.md L-007 annotation. M5.9 (50acf8a) covers 5 suppression-marker files + README v0.10.0 reference. Post-§6.8 fix (THIS commit) covers docs/spec/claude-code-foundations.md (HIGH-2). CLAUDE.md is .gitignore'd (per-user) — updated locally.
+  2. ✅ ADR-0008 lands — `docs/adr/0008-sole-dev-merge-pr-workflow.md` (236 lines, follows ADR-0001..0007 template); INDEX.md updated with row 0008.
+  3. ✅ Smoke E2E passes — `test_smoke_e2e.bats` 4/4 PASS (banner ×3 + chained-stage 3-defect E2E ×1). Canonical AC §5.8 satisfied: out-of-scope dummy.py reverted (L-007 guard), in-scope auto-fix commit landed (chore(scope): pre-PR auto-fixes), Stage C emits [CRITICAL] B602, Stage D auto-fix commit subject matches ^fix(review): apply CRITICAL bandit, post-D dummy.py still matches main.
+  4. ✅ Bats CI step added — `.github/workflows/security.yml` bats job now runs both `tests/hooks/` AND `tests/commands/sole-dev-merge/` so PRs that regress the workflow block before merge.
+  5. ✅ Doc-drift detector clean — Tier 1 returns 0 CRITICAL findings post-§5.9 closure (8 legitimate non-canonical references suppressed via doc-drift-ignore-file/version markers); Tier 2 has Unreleased section present in CHANGELOG.md; Tier 6 silently skips (no project doc-counts.sh config). Foundations.md count surface (HIGH-2) closed in §6.8 fix.
+- **Engineering Standards HARD gate (§6.7):** all 5 conditions PASS
+  1. AA-MA artifacts in sync — `git status --porcelain .claude/dev/active/...` returns 0 dirty files (verified pre-this-commit)
+  2. Zero `Status: PENDING` in M5 — Step 5.10 transitions to COMPLETE with this approval
+  3. Tests pass — `bats tests/commands/sole-dev-merge/` 69/69 green; `uv run pytest --tb=short -q` 782 passed, 1 skipped, 7 deselected
+  4. Impact-analysis evidence — IMPACT_ANALYSIS M5 entry in provenance.log (Risk: LOW; 11 files; additive only)
+  5. Critical-Path evidence — CRITICAL_PATH_REVIEW — doc-count-drift entry in provenance.log (M5.4 atomic + §6.8 HIGH-2 foundations.md fix); Prototype-Required absent → skip per absent-field semantic
+- **§6.8 Post-Impl Adversarial Review (Audit-Profile: docs-only):** 5 agents dispatched (project precedent: full slate). Initial verdict BLOCKED_BY_HIGH (0 CRITICAL + 2 HIGH + 7 MED + 8 LOW). User-directed inline fixes addressed:
+  - HIGH-1: YAML parse-break in dispatching-parallel-agents/SKILL.md (`<!-- ... -->` inside YAML frontmatter caused `yaml.safe_load` to fail; replaced with `#` YAML-comment matching retro/SKILL.md — verified empirically via `yaml.safe_load`)
+  - HIGH-2: docs/spec/claude-code-foundations.md missed by M5.4 atomic (still said "Commands (10)" with 10-row table) — fixed: 10→11, /sole-dev-merge row added
+  - MED-3/5/6/7: ADR-0008 + CHANGELOG stale test counts ("60+ bats", "8 files", "9 stage blocks", per-file counts) → corrected to "69 bats across 10 files" + "15 stage markers" + per-file counts derived from `grep -cE '^@test'` source-of-truth
+  - DEFERRED: security TOCTOU /tmp class (M3 carry-over, M5+1 backlog), smoke test `source || true` tolerance (M5+1 test hardening), 5.9 scope expansion ACKNOWLEDGED (forced by AC)
+  - Final verdict: PASS_WITH_WARNINGS. **TDD-sequence-auditor PASS** ✓ (2m28s tests-before-src delta — M2/M3/M4 lesson applied for 4th consecutive milestone).
+- **Decision:** APPROVED
+- **Commits in M5 window:** b72a8f6..HEAD (Phase A ADR + verify, RED smoke+CI, GREEN banner+smoke, M5.4 atomic, M5.5 lessons, M5.9 tier-1 closure, §6.8 fix-and-finalize)

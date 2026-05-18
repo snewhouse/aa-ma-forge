@@ -35,13 +35,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Test — Bats coverage for sole-dev-merge (M1–M5)
 
-- New `tests/commands/sole-dev-merge/` directory with 60+ bats tests across 8 files:
-  `test_stage_a_preflight.bats`, `test_stage_b_scope.bats`, `test_stage_c_dispatch.bats`,
-  `test_stage_d_triage.bats`, `test_stage_e_remote.bats`, `test_stage_e3_body.bats`,
-  `test_stage_f_idempotent.bats`, `test_stage_g_poll.bats`, `test_stage_g_merge.bats`,
-  `test_smoke_e2e.bats`. PATH-shadowed `gh`/`glab` stubs at `fixtures/bin/` log every
-  invocation to `$CLI_LOG` for grep-based assertions. `extract_stage.sh` fixed-string
-  `awk index()` extractor enables per-stage unit testing.
+- New `tests/commands/sole-dev-merge/` directory with 69 bats tests across 10 files:
+  `test_stage_a_preflight.bats` (6), `test_stage_b_scope.bats` (4),
+  `test_stage_c_dispatch.bats` (5), `test_stage_d_triage.bats` (4),
+  `test_stage_e_remote.bats` (8), `test_stage_e3_body.bats` (9),
+  `test_stage_f_idempotent.bats` (11), `test_stage_g_poll.bats` (7),
+  `test_stage_g_merge.bats` (11), `test_smoke_e2e.bats` (4). PATH-shadowed
+  `gh`/`glab` stubs at `fixtures/bin/` log every invocation to `$CLI_LOG` for
+  grep-based assertions. `extract_stage.sh` fixed-string `awk index()` extractor
+  enables per-stage unit testing.
 - **CI integration:** `.github/workflows/security.yml` bats job now runs both
   `tests/hooks/` AND `tests/commands/sole-dev-merge/` so PRs that regress the workflow
   block before merge.

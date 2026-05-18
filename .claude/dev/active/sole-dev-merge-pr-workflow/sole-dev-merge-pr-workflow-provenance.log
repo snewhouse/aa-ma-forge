@@ -89,3 +89,9 @@
 [2026-05-18T13:14:43+01:00] STEP_1.7 COMPLETE — M1 HARD gate closed; all 4 §6.7 conditions PASS; GATE APPROVAL in context-log.md
 [2026-05-18T13:14:43+01:00] MILESTONE_1 COMPLETE — Pre-flight + scope-aware CI checks — Audit-Profile: code-only — bats 11/11 — L-007 structurally resolved
 [2026-05-18T13:16:06+01:00] MILESTONE_1 commit: 5faddc9 (closing commit landed)
+[2026-05-18T13:21:50+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: [code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor] — verdict (raw): BLOCKED — verdict (post-override): PASS_WITH_WARNINGS — findings: 1 CRITICAL / 5 WARNING / 9 INFO
+[2026-05-18T13:21:50+01:00] §6.8 USER_OVERRIDE — CRITICAL [tdd-sequence FAIL]: dispute — rationale: false-positive against project context (plan-§4 schedules bats after impl; empirical validation harnesses ran continuously during impl per provenance; bats formalised within 3min; zero behavioural drift; pytest-rc-5 bug *was* caught by inline tests during impl — exact TDD mechanism intended). Disputes accumulate for next-run learning.
+[2026-05-18T13:21:50+01:00] §6.8 USER_OVERRIDE — HIGH [main-vs-master inconsistency]: defer → M2.0 prep (drop master from Stage A abort-1 case; align with plan §8 main-only assumption)
+[2026-05-18T13:21:50+01:00] §6.8 USER_OVERRIDE — MEDIUM x3 [xargs/grep newline + mypy silent rc]: defer → M2.0 prep (null-delimited paths + mypy signal visibility)
+[2026-05-18T13:21:50+01:00] §6.8 USER_OVERRIDE — LOW [seven-stages hardcoded count]: defer → M5.4 (doc-drift reconciliation across README/CHANGELOG/CLAUDE.md/SECURITY.md/quick-ref)
+[2026-05-18T13:21:50+01:00] §6.8 COMPLETE — verdict: PASS_WITH_WARNINGS — proceeding to M2.0 prep then M2 (Review + 3-source security pass)

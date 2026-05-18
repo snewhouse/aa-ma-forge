@@ -258,4 +258,53 @@ Phase 4.5 ran on 2026-05-17. See `aa-ma-tui-tracker-verification.md` for full au
 
 Legacy milestone-header forms `## Step N:` and `## M(\d+):` are NOT accepted by the canonical parser regex `^## Milestone (\d+):`. Out of M2 scope (snapshot mode); tracked for v0.11.0 (M5 polish).
 
-_Last Updated: 2026-05-18_
+## M3 immutable facts (added 2026-05-18 at Step 3.1 PROTOTYPE PASS)
+
+### Validated integration pattern (lifts into production code)
+
+```python
+# In src/aa_ma/tui/app.py
+class AAMAApp(App):
+    tasks: reactive[list[Task]] = reactive(list, recompose=False)
+
+    def __init__(self, root: Path) -> None:
+        super().__init__()
+        self.root = root
+        self._stop_event = asyncio.Event()
+
+    def on_mount(self) -> None:
+        self.watch_filesystem()  # @work-decorated; fire-and-forget
+
+    @work(exclusive=True)
+    async def watch_filesystem(self) -> None:
+        async for changes in awatch(
+            self.root, debounce=300,
+            stop_event=self._stop_event,
+            watch_filter=AAMAFilter(),
+        ):
+            _, affected = reduce_watch_event(self._state, changes)
+            for name in affected:
+                self._reload_task(name)  # re-parses with parse_task_dir
+            # CRITICAL: class-attr reference, not self.tasks
+            self.mutate_reactive(AAMAApp.tasks)
+```
+
+### Critical gotchas verified
+
+- `mutate_reactive(ClassName.attr)` — must reference the CLASS attribute, not `self.attr`. Without this the `watch_*` handler silently does not fire on in-place mutation.
+- `awatch(debounce=300)` yields `set[tuple[Change, str]]` (NOT list); iterate as `for change_type, path in changes`.
+- `AAMAFilter(DefaultFilter)` whitelist by tuple of 5 canonical suffixes:
+  ```python
+  _AAMA_SUFFIXES = ("-tasks.md", "-plan.md", "-reference.md", "-context-log.md", "-provenance.log")
+  ```
+- `_stop_event = asyncio.Event()` passed to `awatch(stop_event=...)` enables clean shutdown from `action_quit`.
+
+### M3-only dev dep (still to add)
+
+- `pytest-textual-snapshot>=1.0` — will be added in Step 3.10 (when first needed)
+
+### Prototype file (DELETE at Step 3.12)
+
+- `prototypes/m3_textual_watchfiles_spike.py` — throwaway. Auto-driver mode (uses `app.run_test()` pilot) for headless terminal verdict capture. Verdict logged in provenance.log as `PROTOTYPE — verdict=PASS`.
+
+_Last Updated: 2026-05-18 (Step 3.1 PROTOTYPE PASS)_

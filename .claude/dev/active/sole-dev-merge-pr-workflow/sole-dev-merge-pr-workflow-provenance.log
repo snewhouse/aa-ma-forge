@@ -88,3 +88,4 @@
   Overall risk: LOW (additive only; reversible via `git revert`).
 [2026-05-18T13:14:43+01:00] STEP_1.7 COMPLETE — M1 HARD gate closed; all 4 §6.7 conditions PASS; GATE APPROVAL in context-log.md
 [2026-05-18T13:14:43+01:00] MILESTONE_1 COMPLETE — Pre-flight + scope-aware CI checks — Audit-Profile: code-only — bats 11/11 — L-007 structurally resolved
+[2026-05-18T13:16:06+01:00] MILESTONE_1 commit: 5faddc9 (closing commit landed)

@@ -116,3 +116,10 @@
 [2026-05-18T15:23:52+01:00] STEP_2.8 COMPLETE — M2 HARD gate closed; all 4 §6.7 conditions PASS; GATE APPROVAL in context-log.md
 [2026-05-18T15:23:52+01:00] MILESTONE_2 COMPLETE — Review + 3-source security pass — Audit-Profile: full — bats 22/22 — B602 auto-fix verified end-to-end
 [2026-05-18T15:23:52+01:00] MILESTONE_2 commit: 2b826c8
+[2026-05-18T15:27:32+01:00] §6.8 POST_IMPL_REVIEW M2 — Audit-Profile: full — agents: [code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor] — verdict (raw): BLOCKED — verdict (post-override): PASS_WITH_WARNINGS — findings: 1 CRITICAL / 7 WARNING / 12 INFO
+[2026-05-18T15:27:32+01:00] §6.8 USER_OVERRIDE M2 — CRITICAL [tdd-sequence FAIL]: dispute — rationale: project convention established in M1 §6.8 (auditor itself acknowledged dispute precedent); empirical inline harnesses caught bugs during impl
+[2026-05-18T15:27:32+01:00] §6.8 USER_OVERRIDE M2 — WARNING [dead code _sdm_parse_findings + duplication + regex mismatch]: defer → M3.0 prep — single Stage D refactor resolves all 3
+[2026-05-18T15:27:32+01:00] §6.8 USER_OVERRIDE M2 — WARNING [magic number 4 ×4 in _sdm_log_auq_dispatches]: defer → M3.0 prep (extract AUQ_MAX_OPTIONS constant)
+[2026-05-18T15:27:32+01:00] §6.8 USER_OVERRIDE M2 — LOW [B602 regex over-matches string literals]: acknowledge — documented narrow scope per plan §2.5; AST upgrade out of scope
+[2026-05-18T15:27:32+01:00] §6.8 USER_OVERRIDE M2 — INFO [hardcoded counts 3-source/4-sources]: defer → M5.4 doc-drift reconciliation
+[2026-05-18T15:27:32+01:00] §6.8 COMPLETE M2 — verdict: PASS_WITH_WARNINGS — proceeding to M3.0 prep before M3.1

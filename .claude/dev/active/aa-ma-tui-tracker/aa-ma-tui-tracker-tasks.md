@@ -299,14 +299,14 @@ Created: 2026-05-17
 - Result Log: (a) `docs/adr/INDEX.md` — appended ADR-0007 row (Implemented, 2026-05-18). (b) `README.md` — added new `## Visualizing active tasks` section after the existing AA-MA quick-reference paragraph and before `## What else helped`. Includes 7-line CLI cheatsheet (interactive + 6 flag variants), strict read-only safety claim, and link to ADR-0007. (c) `CLAUDE.md` — added 1-line `uv run aa-ma-tui` entry under `## Build & Development Commands`; updated `## Architecture` block — replaced obsolete "src/aa_ma/ — Python package skeleton (metadata only, no logic yet)" line with full tree showing plan_markers, plan_parsers, tui/ subpackage and all M3 modules. All 3 doc updates internally consistent + cross-reference ADR-0007.
 
 ### Step 4.3: Write integration test (subprocess against temp active dir)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: Created `tests/tui/test_integration.py` (~180 lines, 9 tests). Helpers: `_seed_fake_claude_root(tmp_path, n_tasks)` creates `.claude/dev/active/<name>/<name>-{tasks,plan,reference,context-log}.md + .log`; `_run_cli(*args)` invokes `uv run aa-ma-tui` via subprocess with 30s timeout. Coverage of CLI contract: snapshot=summary/board/tree, JSON envelope (schema_version=1 + tasks list + per-task fields), exit codes (0/2/3 — test_cli_exit_3_when_no_tasks_discovered + test_cli_exit_2_when_task_not_found), --version, --include-completed (with/without flag yields different task counts). **All 9 tests pass in 1.39s** — exercises the live CLI launch path that wasn't covered by unit tests (closes part of app.py coverage gap from M3).
 
 ### Step 4.4: /doc-sync (or Skill(doc-drift-detection)) + fix drift
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: Drift inventory ran against README.md, CLAUDE.md, SECURITY.md, docs/spec/. **Counts verified**: skills 19 (actual = 19), agents 11 (actual = 11), commands 10 (actual = 10), hooks 8 (actual = 8 standalone + 1 lib helper — CLAUDE.md correctly labels `plan-marker (lib helper)`). **No Tier 1 version-context drift** (pyproject = 0.9.0; no pinned install strings claim a different version). **CHANGELOG.md `[Unreleased]` updated** with M0-M4 entries: `aa-ma-tui` feature block (CLI surface + render modes + watchfiles integration + read-only safety), 4 runtime dep declarations + 1 dev dep (pytest-textual-snapshot), Task.step_progress/milestone_progress methods, AAMA_FILE_SUFFIXES + TASKS_FILE_SUFFIX + BOARD_COLUMNS public constants, Docs section listing ADR-0007 + README/CLAUDE.md updates, Tests section reporting 780 pass / 1 skipped, Design notes covering KISS pop+push + mutate_reactive gotcha + WSL inotify + L-052 dual-formatter. Inserted ABOVE the existing `/goal` integration block (preserving the goal block's positioning). cz bump in Step 4.6 will convert `[Unreleased]` → `[0.10.0]` with the date.
 
 ### Step 4.5: Full test suite + coverage no-regression
 - Status: PENDING

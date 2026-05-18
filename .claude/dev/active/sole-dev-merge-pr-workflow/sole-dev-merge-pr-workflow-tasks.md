@@ -241,13 +241,14 @@
 
 ## Milestone 3 — PR/MR creation with idempotency
 
-- **Status:** PENDING
+- **Status:** ACTIVE
 - **Dependencies:** Milestone 2
 - **Complexity:** 60%
 - **Audit-Profile:** full
 - **Gate:** HARD
 - **Mode:** HITL (Step 3.2 prompts when dual remotes exist)
 - **Critical-Path:** external-api
+- **TDD-Note:** Applying M2 lesson — Steps 3.6 + 3.7 (bats tests) WRITTEN FIRST as RED, then Steps 3.1-3.5 (implementation) make tests GREEN. Same pattern that passed tdd-sequence-auditor in M2.
 - **Acceptance Criteria:** Three-fixture remote-detect test passes; PR idempotency verified by mock; AI body generation produces deterministic structure when AA-MA plan active.
 
 ### Step 3.1: Implement Stage E1 (remote detection)

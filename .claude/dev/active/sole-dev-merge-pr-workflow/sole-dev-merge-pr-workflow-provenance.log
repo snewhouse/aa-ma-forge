@@ -95,3 +95,5 @@
 [2026-05-18T13:21:50+01:00] §6.8 USER_OVERRIDE — MEDIUM x3 [xargs/grep newline + mypy silent rc]: defer → M2.0 prep (null-delimited paths + mypy signal visibility)
 [2026-05-18T13:21:50+01:00] §6.8 USER_OVERRIDE — LOW [seven-stages hardcoded count]: defer → M5.4 (doc-drift reconciliation across README/CHANGELOG/CLAUDE.md/SECURITY.md/quick-ref)
 [2026-05-18T13:21:50+01:00] §6.8 COMPLETE — verdict: PASS_WITH_WARNINGS — proceeding to M2.0 prep then M2 (Review + 3-source security pass)
+[2026-05-18T13:27:03+01:00] M2.0_HARDENING START — addressing §6.8 defer items: main-only consistency, null-delimited paths via bash arrays, mypy signal visibility
+[2026-05-18T13:27:03+01:00] M2.0_HARDENING COMPLETE — Stage A abort-1 main-only; Stage B uses git -z + arrays + assoc-array L-007; mypy emits issue count; new whitespace regression bats test added; bats 12/12 pass; shellcheck clean

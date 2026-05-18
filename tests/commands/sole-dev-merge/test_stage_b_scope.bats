@@ -93,6 +93,43 @@ teardown() {
   [[ "$output" == *"src/y.py"* ]]
 }
 
+@test "Stage B: L-007 guard handles filenames with spaces (M2.0 regression)" {
+  # Regression check for the §6.8 security-auditor MEDIUM (xargs whitespace
+  # injection) and code-reviewer MEDIUM (grep -Fxq newline fragility) findings.
+  # After M2.0 hardening, Stage B uses git -z + bash arrays + associative-array
+  # lookup → filenames with spaces must be correctly classified as in-scope or
+  # out-of-scope, never mis-reverted.
+  #
+  # Override the bats setup baseline: rebuild main with a spaced-name file
+  # so we can plant out-of-scope drift on it from a feat branch.
+  git checkout main -q
+  mkdir -p "tests/has dir"
+  printf 'def x(): return 1\n' > "tests/has dir/baseline.py"
+  git add "tests/has dir/baseline.py"
+  git commit -q -m "baseline-space-on-main"
+
+  git checkout -b feat-space -q
+
+  # In-scope file with a space; needs reformatting
+  printf 'import os\ndef hi():\n    return    "hi"\n' > "src/has space.py"
+  git add "src/has space.py"
+  git commit -q -m "feat-space"
+
+  # Plant out-of-scope drift on the spaced-name file already on main
+  printf 'def x(): return "DRIFT"\n' > "tests/has dir/baseline.py"
+
+  run stage_b_scope
+  [ "$status" -eq 0 ]
+
+  # Acceptance: out-of-scope reverted despite the space in path
+  bytes=$(git diff "tests/has dir/baseline.py" | wc -c)
+  [ "$bytes" -eq 0 ]
+
+  # Acceptance: in-scope file (also with space) was reformatted, still dirty
+  run git diff --name-only HEAD
+  [[ "$output" == *"src/has space.py"* ]]
+}
+
 @test "Stage B: pytest exit-5 (no tests collected) does NOT abort" {
   # Plant a `tests/` directory with no test files at all. Stage B's pytest
   # invocation should exit 5 (no tests collected) which we now treat as skip.

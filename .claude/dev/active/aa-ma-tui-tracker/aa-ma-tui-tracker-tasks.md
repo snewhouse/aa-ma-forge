@@ -271,7 +271,7 @@ Created: 2026-05-17
 ---
 
 ## Milestone 4: ADR, docs, integration test, release
-- Status: PENDING
+- Status: ACTIVE
 - Mode: HITL
 - Gate: HARD
 - Complexity: 40
@@ -289,14 +289,14 @@ Created: 2026-05-17
   - `git tag -l v0.10.0` returns `v0.10.0`
 
 ### Step 4.1: Draft ADR-0007
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log:
+- Result Log: Drafted `docs/adr/0007-aa-ma-tui-tracker.md` (~140 lines) following TEMPLATE.md MADR structure. Sections: Context (5-file overload problem); Decision Drivers (no-race, parser-reuse, KISS, two-renders-one-model, malformed-tolerance, release-vehicle); 3 Considered Options (chosen: standalone aa-ma-tui in aa-ma-forge; rejected: top-level aa-ma CLI, two binaries); Decision Outcome (Option 1) + Pros/Cons each; Consequences (positive/negative/neutral) — explicitly documents the 4 new runtime deps, 1 dev dep, and the M3 KISS pop+push refresh trade-off; Implementation Notes summarising M0-M4; CLI contract frozen at v0.10.0; 6 open polish items deferred to v0.11.0 with D-M2-1, D-M2-2, D-M3-1..D-M3-4 IDs. References cite L-052/L-055/L-065/L-080-082 lessons + JiraTUI precedent + Context7 sources. Per user autonomous-mode directive, drafted without pausing for HITL discussion (HARD gate at milestone close provides user review opportunity).
 
 ### Step 4.2: Update INDEX.md + README.md + CLAUDE.md
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log:
+- Result Log: (a) `docs/adr/INDEX.md` — appended ADR-0007 row (Implemented, 2026-05-18). (b) `README.md` — added new `## Visualizing active tasks` section after the existing AA-MA quick-reference paragraph and before `## What else helped`. Includes 7-line CLI cheatsheet (interactive + 6 flag variants), strict read-only safety claim, and link to ADR-0007. (c) `CLAUDE.md` — added 1-line `uv run aa-ma-tui` entry under `## Build & Development Commands`; updated `## Architecture` block — replaced obsolete "src/aa_ma/ — Python package skeleton (metadata only, no logic yet)" line with full tree showing plan_markers, plan_parsers, tui/ subpackage and all M3 modules. All 3 doc updates internally consistent + cross-reference ADR-0007.
 
 ### Step 4.3: Write integration test (subprocess against temp active dir)
 - Status: PENDING

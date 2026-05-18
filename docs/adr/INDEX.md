@@ -26,6 +26,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0004](0004-write-a-skill-adoption.md) | Adopt `write-a-skill` from mattpocock/skills | Implemented | 2026-05-10 |
 | [0005](0005-post-impl-adversarial-review.md) | Post-Impl Adversarial Review (Phase 6.8 + /verify-impl) | Implemented | 2026-05-11 |
 | [0006](0006-understand-codebase-adoption.md) | Adopt `understand-codebase` onboarding skill + 4 worker agents + `/understand-codebase` into the AA-MA Forge ecosystem | Implemented | 2026-05-12 |
+| [0007](0007-aa-ma-tui-tracker.md) | `aa-ma-tui` — Read-Only Textual TUI + Rich Snapshot for AA-MA Task Tracking | Implemented | 2026-05-18 |
 
 ## Statuses
 

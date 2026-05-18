@@ -77,13 +77,11 @@ stage_a_preflight() {
   # shellcheck disable=SC2034  # consumed by later stages (G4 cleanup)
   ORIGINAL_BRANCH="$original_branch"
 
-  # Abort 1: on main/master
-  case "$original_branch" in
-    main|master)
-      echo "ABORT: Cannot run /sole-dev-merge from main branch"
-      return 1
-      ;;
-  esac
+  # Abort 1: on main (plan §8 documents main as the default branch)
+  if [ "$original_branch" = "main" ]; then
+    echo "ABORT: Cannot run /sole-dev-merge from main branch"
+    return 1
+  fi
 
   # Abort 2: dirty working tree
   if [ -n "$(git status --porcelain)" ]; then
@@ -130,37 +128,50 @@ Order:
 6. **L-007 guard:** revert any tracked file that is currently dirty but not in the scope set.
 
 ```bash
-# Stage B: Scope-aware CI checks (M1.3)
+# Stage B: Scope-aware CI checks (M1.3, hardened in M2.0 per §6.8 review)
+#
+# Uses null-delimited paths (`git diff -z --name-only`) and bash arrays
+# throughout — robust against filenames containing spaces, tabs, or literal
+# newlines (legal in git). Membership test for the L-007 guard is an
+# associative-array lookup (O(1) per file) rather than newline-scan.
 stage_b_scope() {
-  local changed_files changed_py changed_sh
-  changed_files=$(git diff --name-only main...HEAD 2>/dev/null || true)
-  changed_py=$(echo "$changed_files" | grep '\.py$' || true)
-  changed_sh=$(echo "$changed_files" | grep '\.sh$' || true)
+  # 1. Compute scope set into bash arrays (null-delimited from git)
+  local -a CHANGED_FILES_ARR=() CHANGED_PY_ARR=() CHANGED_SH_ARR=()
+  local f
+  while IFS= read -r -d '' f; do
+    CHANGED_FILES_ARR+=("$f")
+    case "$f" in
+      *.py) CHANGED_PY_ARR+=("$f") ;;
+      *.sh) CHANGED_SH_ARR+=("$f") ;;
+    esac
+  done < <(git diff -z --name-only main...HEAD 2>/dev/null || true)
 
-  # Export for downstream stages (D triage, F PR body, G poll)
+  # Export array names for later stages (Bash 4.3+ `declare -n` indirect).
+  # Downstream stages source the same markdown so they see the arrays directly.
   # shellcheck disable=SC2034  # consumed by later stages
-  CHANGED_FILES="$changed_files"
-  # shellcheck disable=SC2034
-  CHANGED_PY="$changed_py"
-  # shellcheck disable=SC2034
-  CHANGED_SH="$changed_sh"
+  CHANGED_FILES_COUNT=${#CHANGED_FILES_ARR[@]}
+  local n_py=${#CHANGED_PY_ARR[@]}
+  local n_sh=${#CHANGED_SH_ARR[@]}
+  echo "Stage B scope: ${CHANGED_FILES_COUNT} file(s) — py=${n_py}, sh=${n_sh}"
 
-  local n_total n_py n_sh
-  n_total=$(echo "$changed_files" | grep -c . || true)
-  n_py=$(echo "$changed_py" | grep -c . || true)
-  n_sh=$(echo "$changed_sh" | grep -c . || true)
-  echo "Stage B scope: ${n_total} file(s) — py=${n_py}, sh=${n_sh}"
-
-  # 2. Format + lint Python in-scope only (the L-007 fix)
-  if [ -n "$changed_py" ] && command -v ruff >/dev/null 2>&1; then
-    echo "$changed_py" | xargs -r ruff format
-    echo "$changed_py" | xargs -r ruff check --fix
+  # 2. Format + lint Python in-scope only (the L-007 fix). Pass arrays
+  # directly to ruff — no xargs, no shell-splitting.
+  if [ "$n_py" -gt 0 ] && command -v ruff >/dev/null 2>&1; then
+    ruff format "${CHANGED_PY_ARR[@]}"
+    ruff check --fix "${CHANGED_PY_ARR[@]}"
   fi
 
-  # 3. Typecheck (best-effort, project-wide; non-fatal)
+  # 3. Typecheck (best-effort, project-wide). Capture rc + count so the
+  # user has visible signal even when non-fatal.
   if [ -f pyproject.toml ] && grep -q '^\[tool\.mypy\]' pyproject.toml 2>/dev/null \
        && command -v uv >/dev/null 2>&1; then
-    uv run mypy src/ 2>&1 || true
+    local mypy_out mypy_rc mypy_err_count
+    mypy_out=$(uv run mypy src/ 2>&1)
+    mypy_rc=$?
+    if [ "$mypy_rc" -ne 0 ]; then
+      mypy_err_count=$(printf '%s\n' "$mypy_out" | grep -cE ':[0-9]+: (error|note)' || true)
+      echo "Stage B: mypy reported ${mypy_err_count} issue(s) (non-fatal — see plan §6)"
+    fi
   fi
 
   # 4. Pytest fast tier (project-wide, fatal on failure).
@@ -175,23 +186,25 @@ stage_b_scope() {
     fi
   fi
 
-  # 5. Pre-commit (in-scope files only)
-  if [ -f .pre-commit-config.yaml ] && [ -n "$changed_files" ] \
+  # 5. Pre-commit (in-scope files only). Pass array directly.
+  if [ -f .pre-commit-config.yaml ] && [ "${CHANGED_FILES_COUNT}" -gt 0 ] \
        && command -v pre-commit >/dev/null 2>&1; then
-    echo "$changed_files" | xargs -r pre-commit run --files
+    pre-commit run --files "${CHANGED_FILES_ARR[@]}"
   fi
 
-  # 6. L-007 guard: revert any out-of-scope drift
-  local dirty f reverted=0
-  dirty=$(git diff --name-only HEAD 2>/dev/null || true)
-  while IFS= read -r f; do
-    [ -z "$f" ] && continue
-    if ! echo "$changed_files" | grep -Fxq "$f"; then
+  # 6. L-007 guard: associative-array O(1) membership test. Use git's
+  # null-delimited output so filenames with whitespace/newlines work.
+  local -A in_scope=()
+  for f in "${CHANGED_FILES_ARR[@]}"; do in_scope["$f"]=1; done
+
+  local reverted=0
+  while IFS= read -r -d '' f; do
+    if [ -z "${in_scope[$f]+x}" ]; then
       git checkout HEAD -- "$f" 2>/dev/null
       echo "L-007 guard: reverted out-of-scope file: $f"
       reverted=$((reverted+1))
     fi
-  done <<< "$dirty"
+  done < <(git diff -z --name-only HEAD 2>/dev/null || true)
 
   echo "Stage B OK (in-scope auto-fixes possibly applied; out-of-scope reverted: ${reverted})"
   return 0

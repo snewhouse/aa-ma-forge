@@ -131,12 +131,30 @@ SUMMARY: 0 CRITICAL, 1 WARNING, 3 INFO
 
 ## Follow-up Tasks Created (Defer Decisions)
 
-To be addressed in **M2.0** (pre-M2 prep commit, before Stage C1 implementation):
+### M2.0 — pre-M2 hardening (RESOLVED — see commit history)
 
-1. **Main-only consistency fix** — Stage A abort-1 case: drop `master` from the pattern (keep `main` only); align with plan §8 assumption.
-2. **Null-delimited paths** — Stage B `xargs -r` → `git diff -z --name-only ... | xargs -0 -r`; rewrite `grep -Fxq` membership test as bash associative-array lookup; both findings share this fix.
-3. **mypy signal visibility** — `uv run mypy src/ 2>&1` capture rc and emit count, even when non-fatal. Defer until any consumer project enables `[tool.mypy]`.
+The 3 deferred findings were addressed in a single M2.0 hardening commit
+before M2.1 begins:
 
-To be addressed in **M5.4** (doc-drift reconciliation):
+1. **Main-only consistency fix** — RESOLVED. Stage A abort-1 changed from
+   `case "$original_branch" in main|master) …` to `if [ "$original_branch"
+   = "main" ]`. Aligns with plan §8 (`main` is the documented default).
+2. **Null-delimited paths** — RESOLVED. Stage B fully rewritten to use
+   `git diff -z --name-only` + bash arrays (`CHANGED_FILES_ARR`,
+   `CHANGED_PY_ARR`, `CHANGED_SH_ARR`) + associative-array O(1) membership
+   lookup (`declare -A in_scope`). No more `xargs -r` against
+   newline-separated strings.
+3. **mypy signal visibility** — RESOLVED. mypy now runs with `rc` captured,
+   error count parsed from output, and a `Stage B: mypy reported N issue(s)
+   (non-fatal)` line emitted to stdout so the user has visible signal.
 
-4. **"seven stages" prose count** — rephrase to drop the redundant cardinal ("stages A-G" already conveys count); or move to a generated count.
+Regression coverage: new bats test
+"Stage B: L-007 guard handles filenames with spaces (M2.0 regression)" —
+plants both in-scope and out-of-scope files whose paths contain spaces and
+asserts the L-007 guard correctly classifies them. Combined bats run:
+12/12 pass.
+
+### M5.4 — doc-drift reconciliation (DEFERRED)
+
+4. **"seven stages" prose count** — rephrase to drop the redundant cardinal
+   ("stages A-G" already conveys count); or move to a generated count.

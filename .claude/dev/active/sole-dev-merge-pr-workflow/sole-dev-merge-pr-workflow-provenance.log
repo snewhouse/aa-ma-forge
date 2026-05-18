@@ -1,0 +1,34 @@
+# sole-dev-merge-pr-workflow Provenance Log
+
+[2026-05-18T10:54:15Z] PHASE_0 INIT: slug=sole-dev-merge-ci-pr-20260518105415
+[2026-05-18T10:54:30Z] Phase 1 context gathering started
+[2026-05-18T10:55:10Z] Verified gh v2.92.0 installed, glab v1.80.4 installed
+[2026-05-18T10:55:15Z] Verified origin remote = github.com only (no GitLab remote on aa-ma-forge)
+[2026-05-18T10:55:20Z] Confirmed sole-dev-merge.md exists at ~/.claude/commands/ (user-local, 407 lines, NOT in plugin git)
+[2026-05-18T10:55:25Z] Confirmed no Makefile, no .pre-commit-config.yaml
+[2026-05-18T10:55:30Z] Confirmed pyproject.toml has ruff but no mypy config
+[2026-05-18T10:58:00Z] Phase 1 DONE marker written (context_gathering=complete)
+[2026-05-18T10:58:00Z] Phase 1.3 SKIPPED marker written (reason=user_passed)
+[2026-05-18T11:05:00Z] Phase 1.5 lessons scan: docs/lessons.md (380 lines), L-007 directly relevant
+[2026-05-18T11:08:00Z] Phase 1.5 DONE marker (lessons_loaded=3, git_grep_hits=10)
+[2026-05-18T11:08:00Z] Phase 2 brainstorming: 5 AskUserQuestion rounds consolidated; Engineering Standards Declaration decided ALL 6 themes apply
+[2026-05-18T11:08:00Z] ENG_STANDARDS_DECLARED: themes=[1,2,3,4,5,6]
+[2026-05-18T11:15:00Z] Phase 2 DONE marker (brainstorm_skill=invoked, alternatives_considered=12)
+[2026-05-18T11:15:00Z] Phase 3 DONE marker (context7_calls=0, web_fetches=0 — local CLI docs sufficient)
+[2026-05-18T11:25:00Z] Phase 4 plan generation: 12-element plan written to plan.md (v1, ~960 lines)
+[2026-05-18T11:25:00Z] Phase 4 DONE marker (complexity_score=51%, plan_elements=12/12 v1)
+[2026-05-18T11:25:30Z] Phase 4.2 SKIPPED marker (reason=user_passed on optional reviews)
+[2026-05-18T11:26:00Z] Phase 4.5 verification invoked, mode=automated
+[2026-05-18T11:26:00Z] Wave 1 dispatched: 4 parallel agents (Explore + 3 general-purpose)
+[2026-05-18T11:33:00Z] Wave 1 complete: A1=2 CRITICAL, A2=6 CRITICAL+8 WARNING, A3=3 CRITICAL+6 WARNING, A4=0 CRITICAL+2 WARNING
+[2026-05-18T11:33:00Z] Wave 2 dispatched: Fresh-agent simulation + Specialist domain audit (API+Standards)
+[2026-05-18T11:38:00Z] Wave 2 complete: A5=4 CRITICAL+5 WARNING+2 INFO, A6=6 CRITICAL+4 WARNING+1 INFO
+[2026-05-18T11:38:00Z] Verification v1 result: FAIL (17 CRITICAL, 23 WARNING, 5 INFO) — blocks artifact creation
+[2026-05-18T11:38:30Z] Phase 4.5 DONE marker (verdict=RED, criticals=17, warnings=23)
+[2026-05-18T11:39:00Z] verification.md v1 written
+[2026-05-18T11:40:00Z] AskUserQuestion: revise direction (pattern + security source); user chose command-only + 3-source security
+[2026-05-18T11:50:00Z] Plan v2 written (addresses all 17 CRITICALs)
+[2026-05-18T11:55:00Z] Spot-check verification v2: all 17 CRITICALs RESOLVED (evidence: 16/16 grep assertions passed)
+[2026-05-18T11:55:30Z] verification.md updated with v2 revision panel (PASS WITH WARNINGS)
+[2026-05-18T12:00:00Z] Phase 5 artifact creation: plan.md, reference.md, tasks.md, context-log.md, provenance.log, verification.md
+[2026-05-18T12:00:00Z] All 6 AA-MA files written to .claude/dev/active/sole-dev-merge-pr-workflow/

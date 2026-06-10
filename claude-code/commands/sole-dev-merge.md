@@ -563,9 +563,8 @@ fi
 
 if (( n_github >= 1 && n_gitlab >= 1 )); then
     # Dual remote — write AUQ-bridge JSON for the Claude executor to dispatch
-    # the real AskUserQuestion. GitLab is the default per Biorelate convention
-    # (see plan §3.2 + bk_<project>.md / bk_<project>.md
-    # / bk_<project>.md).
+    # the real AskUserQuestion. GitLab is the default per project convention
+    # (see plan §3.2 + your project's per-repo bk_<project>.md backup-rules file).
     cat > "$AUQ_LOG" <<'JSON'
 {"call":1,"n_options":2,"labels":["GitLab (recommended for Biorelate projects)","GitHub"],"default":"GitLab (recommended for Biorelate projects)"}
 JSON

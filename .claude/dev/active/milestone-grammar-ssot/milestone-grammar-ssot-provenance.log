@@ -1,0 +1,19 @@
+# milestone-grammar-ssot Provenance Log
+
+[2026-08-09T14:25:15+01:00] Task initialized via /aa-ma-plan
+[2026-08-09T14:25:15+01:00] Project: /home/sjnewhouse/projects/github_private/aa-ma-forge
+[2026-08-09T14:25:15+01:00] Commit: b11c46d — Phase: Planning
+[2026-08-09T14:25:15+01:00] ENG_STANDARDS_DECLARED: themes=[1,2,3,4,6]
+[2026-08-09T14:25:15+01:00] PHASE_1.3 GRILL — mode=simple branches_resolved=3 (grammar strategy, scope, shellcheck handling)
+[2026-08-09T14:25:15+01:00] PHASE_1.5 LESSONS — docs/lessons.md 391 lines; git fix/revert scan 12 hits
+[2026-08-09T14:25:15+01:00] PHASE_4.2 REVIEW — plan-eng-review: 1 scope reduction (aa-ma-parse.sh rewrite -> regression test), 1 code-quality finding, 2 decisions (D1 full corpus coverage, D2 new grammar.py)
+[2026-08-09T14:25:15+01:00] PHASE_4.5 VERIFY loop 1 — 6 angles, 6 CRITICAL -> FAIL. Agents: Explore(ground-truth), general-purpose(assumptions), general-purpose(impact), general-purpose(falsifiability)
+[2026-08-09T14:25:15+01:00] PHASE_4.5 VERIFY loop 2 — angles 5-6, 5 CRITICAL -> FAIL. Agents: general-purpose(fresh-agent), general-purpose(pydantic+eng-standards)
+[2026-08-09T14:25:15+01:00] PLAN REVISION 3 — all 11 CRITICAL addressed; each fix verified against running code
+[2026-08-09T14:25:15+01:00] EMPIRICAL — separator fix: '### Step 1.1-alpha:' rejects, corpus still 65 milestones / 368 steps, zero unparsed, zero false positives
+[2026-08-09T14:25:15+01:00] EMPIRICAL — aa-ma-tui --root . = 23 junk entries; --root .claude = 14 correct tasks
+[2026-08-09T14:25:15+01:00] EMPIRICAL — parse_audit_profile: mid-line+backticked -> (None,True,None); own-line bare -> ('code-only',True,None)
+[2026-08-09T14:25:15+01:00] EMPIRICAL — pydantic 2.12.5 rejects int for str field; coerce_numbers_to_str=True -> '1'
+[2026-08-09T14:25:15+01:00] EMPIRICAL — shellcheck 0.11.0 PRESENT; C4 passes alone and 3/3 full-suite runs; failure is intermittent
+[2026-08-09T14:25:15+01:00] EMPIRICAL — CI awk extractor returns 0 at b11c46d, 1 with install step spliced in
+[2026-08-09T14:25:15+01:00] AA-MA artifacts created (6 files)

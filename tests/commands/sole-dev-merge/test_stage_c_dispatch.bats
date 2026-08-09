@@ -42,11 +42,7 @@ setup() {
 
 teardown() {
     rm -rf "$BATS_TMP" "$SCRIPT_DIR"
-    rm -f "/tmp/sole-dev-merge-review-${SLUG}.md" \
-          "/tmp/sole-dev-merge-security-${SLUG}.md" \
-          "/tmp/sole-dev-merge-bandit-${SLUG}.json" \
-          "/tmp/sole-dev-merge-shellcheck-${SLUG}.json" \
-          "/tmp/sole-dev-merge-findings-${SLUG}.md"
+    sweep_slug_tmp
 }
 
 @test "aggregator parses agent severity contract and consolidates" {
@@ -116,6 +112,15 @@ PY
 }
 
 @test "C4 maps ShellCheck error to [CRITICAL]" {
+    # Guard the external dependency. Without this the absence of shellcheck is
+    # laundered by the aggregator's `|| true` into an empty findings file, and
+    # the test dies on an opaque string-match assertion 20 lines below that says
+    # nothing about the real cause. Same shape as the guard in
+    # tests/hooks/security-static-check.bats.
+    if ! command -v "${SHELLCHECK_BIN:-shellcheck}" >/dev/null 2>&1; then
+        skip "shellcheck not installed (SHELLCHECK_BIN=${SHELLCHECK_BIN:-shellcheck})"
+    fi
+
     cd "$BATS_TMP"
     sandbox_init
     echo init > a.txt && git add a.txt

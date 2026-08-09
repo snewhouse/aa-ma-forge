@@ -34,3 +34,17 @@ sandbox_init() {
 tmp_script_dir() {
     mktemp -d
 }
+
+# sweep_slug_tmp — remove every /tmp artefact owned by this test's SLUG.
+#
+# A glob sweep, not an enumerated list. Three teardowns each hardcoded the same
+# five filenames; when Stage D grew a sixth (reviewer-notes) none of them
+# learned about it, and 25 suite runs left 29 files behind in /tmp. The glob
+# cannot fall behind the code that writes the files.
+#
+# The SLUG guard is load-bearing: an empty SLUG would widen the pattern to
+# every sole-dev-merge file on the machine, including another run's.
+sweep_slug_tmp() {
+    [[ -n "${SLUG:-}" ]] || return 0
+    rm -f "/tmp/sole-dev-merge-"*"-${SLUG}."*
+}

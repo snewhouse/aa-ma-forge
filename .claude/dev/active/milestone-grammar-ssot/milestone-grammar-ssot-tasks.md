@@ -128,7 +128,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ## Milestone 3: Fix the flaky C4 test
 
-- Status: PENDING
+- Status: ACTIVE
 - Gate: SOFT
 - Mode: AFK
 - Dependencies: None
@@ -143,14 +143,14 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Status: PENDING
 - Mode: AFK
 - Action: `Skill(systematic-debugging)`. Run the suite in a loop until C4 fails; capture the failing output. shellcheck is present (0.11.0) — the missing-binary theory is already disproven.
-- Result Log: _pending_
+- Result Log: REPRODUCED, but not by looping. A 25-run loop with `shellcheck` on PATH produced 0 failures, which is itself the finding: the flake is not resident in the test's own state. Reproduced deterministically instead by removing **only** `shellcheck` from PATH (shadow dir of symlinks to /usr/local/bin + /usr/bin + /bin minus shellcheck, so git/grep/python3 stay resolvable). Signature matches the reported failure exactly: `not ok 1 C4 maps ShellCheck error to [CRITICAL]` … `line 147: [[ "$FINDINGS" == *"[CRITICAL]"* ]] || [[ "$FINDINGS" == *"[HIGH]"* ]]' failed`. Mechanism: `sole-dev-merge.md:362` runs `shellcheck -f json $CHANGED_SH > "$SHELLCHECK_OUT" 2>/dev/null || true`; absent binary → empty file → `[[ -s ]]` false → zero findings → opaque assertion failure instead of a skip. With shellcheck present the tool output is deterministic (`info SC1009`, `error SC1073/SC1080/SC1072` → 3 × CRITICAL), so there is no ambiguity on the happy path. Note: `python3` at `sole-dev-merge.md:344,364` is a second unguarded dependency with the identical silent-swallow signature.
 
 ### Sub-step 3.2: Test the SLUG-collision hypothesis
 
 - Status: PENDING
 - Mode: AFK
 - Action: `test_stage_c_dispatch.bats:30` builds `SLUG="bats-$$-$(date +%s%N | tail -c 6)"`; three files share `/tmp/sole-dev-merge-shellcheck-${SLUG}.json`. Confirm or refute before fixing.
-- Result Log: _pending_
+- Result Log: **REFUTED — measured, not reasoned.** Built a 2-file / 10-test probe replicating the SLUG derivation verbatim under `bats@1.11.0 --recursive`. Every `setup()` observed a *distinct* `$$` (612456, 612463, 612470, 612477, 612484, 612526, 612557, 612581, 612589, 612596): bats forks a fresh subshell per **test**, not per file, so the PID component alone guarantees uniqueness. Duplicate SLUGs across the run: **0**. A collision would additionally require PID reuse *and* a matching 5-digit nanosecond suffix inside one run. The shared `/tmp` path is therefore not the flake. Recorded as a finding, not a failure, per plan §3 M3 acceptance 5. Sub-step 3.3 still proceeds — a real cleanup leak was found independently (see 3.3).
 
 ### Sub-step 3.3: Isolate temp state
 

@@ -50,3 +50,5 @@
 [2026-08-09T15:32:47+01:00] §6.8 CRITICAL — lint false-negative closed: a tasks.md the reader cannot parse yielded zero violations. test_active_plans_use_canonical_headings now asserts >=1 parsed milestone first
 [2026-08-09T15:32:47+01:00] TESTS M2 — uv run pytest: 842 passed, 1 skipped, 7 deselected, 0 failed. bats --recursive tests/hooks/: 119 ok. ruff clean
 [2026-08-09T18:26:54+01:00] MILESTONE 2 COMPLETE — Commit: 7a6102d (RED) + 15a8f37 (GREEN) — Criteria: 4/4 verified — Gate: SOFT
+[2026-08-09T17:31:48Z] Context compacted — Snapshot saved, active step: Sub-step 2.4: Verify this plan's own artifacts pass
+[2026-08-09T17:31:48Z] CHECKPOINT — ActiveStep: Sub-step 2.4: Verify this plan's own artifacts pass — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A

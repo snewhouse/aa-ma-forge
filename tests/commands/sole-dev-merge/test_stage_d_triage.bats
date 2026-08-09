@@ -46,11 +46,7 @@ setup() {
 
 teardown() {
     rm -rf "$BATS_TMP" "$SCRIPT_DIR"
-    rm -f "/tmp/sole-dev-merge-review-${SLUG}.md" \
-          "/tmp/sole-dev-merge-security-${SLUG}.md" \
-          "/tmp/sole-dev-merge-bandit-${SLUG}.json" \
-          "/tmp/sole-dev-merge-shellcheck-${SLUG}.json" \
-          "/tmp/sole-dev-merge-findings-${SLUG}.md"
+    sweep_slug_tmp
 }
 
 @test "Stage D auto-fixes planted Bandit B602 (AC §4.2.5)" {

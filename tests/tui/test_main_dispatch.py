@@ -99,7 +99,7 @@ def test_main_dispatch_json(
 
     assert code == 0
     parsed = json.loads(captured.out)
-    assert parsed["schema_version"] == 1
+    assert parsed["schema_version"] == 2
     names = [t["name"] for t in parsed["tasks"]]
     assert "playwright-skill" in names
 

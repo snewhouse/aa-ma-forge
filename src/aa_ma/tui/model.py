@@ -138,10 +138,14 @@ class AggregateStatus(str, Enum):
 # JSON output contract version (M2 T2.4)
 # -----------------------------------------------------------------------------
 
-SCHEMA_VERSION: int = 1
+SCHEMA_VERSION: int = 2
 """JSON output schema version. Bump on any breaking change to the shape
 emitted by `aa-ma-tui --json`. Consumers should pin to a major and reject
-unknown versions. Documented in `aa_ma.tui.json_output.dump()`."""
+unknown versions. Documented in `aa_ma.tui.json_output.dump()`.
+
+v2 (milestone-grammar-ssot M1): `milestones[].number` changed from JSON
+number to string, so letter-suffixed and dotted milestone numbers
+(`2a`, `3.5`) survive round-tripping."""
 
 
 # -----------------------------------------------------------------------------
@@ -187,7 +191,10 @@ class Milestone(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    number: int
+    # str, not int: the corpus contains `## Milestone 2a:` and `## Milestone 3.5:`.
+    # `int("2a")` raises ValueError — which is not ParseError, so it escapes
+    # discover_tasks and crashes the TUI. Matches `Step.number: str`.
+    number: str
     title: str
     status: MilestoneStatus
     gate: Gate = Gate.SOFT

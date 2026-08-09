@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "tasks": [
     {
       "aggregate_status": "COMPLETE",
@@ -11,7 +11,7 @@
           "dependencies": null,
           "gate": "SOFT",
           "mode": "AFK",
-          "number": 1,
+          "number": "1",
           "status": "COMPLETE",
           "steps": [
             {
@@ -35,7 +35,7 @@
           "dependencies": null,
           "gate": "HARD",
           "mode": "AFK",
-          "number": 2,
+          "number": "2",
           "status": "COMPLETE",
           "steps": [
             {
@@ -73,7 +73,7 @@
           "dependencies": null,
           "gate": "SOFT",
           "mode": "AFK",
-          "number": 1,
+          "number": "1",
           "status": "COMPLETE",
           "steps": [
             {
@@ -97,7 +97,7 @@
           "dependencies": null,
           "gate": "HARD",
           "mode": "AFK",
-          "number": 2,
+          "number": "2",
           "status": "IN_PROGRESS",
           "steps": [
             {
@@ -139,7 +139,7 @@
           "dependencies": null,
           "gate": "SOFT",
           "mode": "AFK",
-          "number": 1,
+          "number": "1",
           "status": "COMPLETE",
           "steps": [
             {
@@ -157,7 +157,7 @@
           "dependencies": null,
           "gate": "HARD",
           "mode": "HITL",
-          "number": 2,
+          "number": "2",
           "status": "BLOCKED",
           "steps": [
             {

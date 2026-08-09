@@ -28,7 +28,7 @@ def test_parse_complete_task(fixtures_dir: Path) -> None:
     assert len(task.milestones) >= 1, "playwright-skill has at least one milestone"
 
     m1 = task.milestones[0]
-    assert m1.number == 1
+    assert m1.number == "1"
     assert m1.title == "Core Skill File (SKILL.md)"
     assert m1.status == MilestoneStatus.COMPLETE
     assert m1.complexity == 45
@@ -239,7 +239,7 @@ def _make_task(milestones, parse_error=None):
             Step(number=f"{i}.{j}", title=f"step {j}", status=s)
             for j, s in enumerate(step_statuses, start=1)
         ]
-        ms.append(Milestone(number=i, title=f"m{i}", status=m_status, steps=steps))
+        ms.append(Milestone(number=str(i), title=f"m{i}", status=m_status, steps=steps))
     return Task(
         name="t",
         root=Path("/tmp/t"),

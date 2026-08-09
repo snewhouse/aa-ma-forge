@@ -5,7 +5,7 @@ Created in aa-ma-tui-tracker M2 T2.4 (2026-05-18).
 Emits a stable JSON envelope:
 
     {
-      "schema_version": 1,
+      "schema_version": 2,
       "tasks": [<Task.model_dump(mode='json') for each task>]
     }
 

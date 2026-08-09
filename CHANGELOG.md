@@ -6,6 +6,34 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### BREAKING — `aa-ma-tui --json` schema_version 1 → 2
+
+- `milestones[].number` is now a **JSON string**, not a number. The corpus contains
+  `## Milestone 2a:` and `## Milestone 3.5:`, which cannot be represented as an int —
+  `int("2a")` raised `ValueError` (not `ParseError`), escaping `discover_tasks` and
+  crashing the TUI. `Milestone.number` is now `str`, matching `Step.number`.
+  Consumers pinning `schema_version == 1` or treating `number` as numeric must update.
+
+### Feat — shared milestone/step grammar (`src/aa_ma/grammar.py`)
+
+- Single source of truth for AA-MA heading structure, replacing three divergent
+  regexes (`tui/parser.py`, `tests/codemem/test_corpus_grandfathering.py`).
+  Tolerant reader: accepts `## Milestone N:`, `## Milestone MN:`, `## MN:`,
+  `## Milestone N — Title`, letter suffixes (`2a`), and `Step`/`Task`/`Sub-step`
+  keywords with number shapes `1.1`, `3.5.1`, `1.11`, `2.7b`, `1.1.bis`, `M2.1`, `M2a.1`.
+- **Fixes silent data loss in `aa-ma-tui`:** 4 of 14 archived plans previously parsed
+  as `ParseError`/0 milestones and 6 more showed 0 steps. Corpus visibility goes from
+  44 to 65 milestones and 94 to 368 steps.
+- The separator accepts a colon or a **space-delimited** dash; a bare hyphen is
+  excluded, so `### Step 1.1-alpha:` no longer parses as number `1.1` title `alpha:`.
+- Fenced code blocks are stripped before matching, so headings inside them are not
+  parsed as real headings.
+
+### Fix — vacuous corpus test
+
+- `test_tdd_waiver_canonical_or_absent_for_corpus` had no non-empty assertion and
+  passed silently on zero parsed milestones.
+
 ### Feat — `/sole-dev-merge` PR/MR workflow
 
 - **`/sole-dev-merge` is now a plugin-shipped command** (`claude-code/commands/sole-dev-merge.md`)

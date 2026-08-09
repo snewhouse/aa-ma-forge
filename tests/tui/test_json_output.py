@@ -33,10 +33,10 @@ def _check_or_bootstrap_golden_json(actual: str, golden_path: Path) -> None:
 
 
 def test_schema_version_constant() -> None:
-    """aa_ma.tui.model.SCHEMA_VERSION is exposed and == 1."""
+    """aa_ma.tui.model.SCHEMA_VERSION is exposed and == 2."""
     from aa_ma.tui.model import SCHEMA_VERSION
 
-    assert SCHEMA_VERSION == 1
+    assert SCHEMA_VERSION == 2
 
 
 def test_json_output_dump_returns_string(static_tasks: list) -> None:
@@ -50,7 +50,7 @@ def test_json_output_dump_returns_string(static_tasks: list) -> None:
 
 
 def test_json_output_includes_schema_version(static_tasks: list) -> None:
-    """Top-level JSON object carries `schema_version: 1`."""
+    """Top-level JSON object carries `schema_version` matching `model.SCHEMA_VERSION`."""
     from aa_ma.tui.json_output import dump
     from aa_ma.tui.model import SCHEMA_VERSION
 

@@ -15,11 +15,11 @@ plans during the v0.8.0 cutover transition.
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 import pytest
 
+from aa_ma.grammar import split_milestones
 from aa_ma.plan_parsers import parse_audit_profile, parse_tdd_waiver
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -33,33 +33,11 @@ def _list_completed_tasks_files() -> list[Path]:
     return sorted(COMPLETED_DIR.glob("*/*-tasks.md"))
 
 
-def _split_milestones(tasks_md_text: str) -> list[str]:
-    """Split a tasks.md file into individual milestone blocks.
-
-    Accepts both heading conventions seen in the corpus:
-      - Long form: `## Milestone 1: Title`
-      - Short form: `## M1: Title`
-    """
-    blocks: list[str] = []
-    matches = list(
-        re.finditer(
-            r"^## (?:Milestone\s+)?M?\d+(?:\.\d+)?:.+?$",
-            tasks_md_text,
-            re.MULTILINE,
-        )
-    )
-    for i, m in enumerate(matches):
-        start = m.start()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(tasks_md_text)
-        blocks.append(tasks_md_text[start:end])
-    return blocks
-
-
 @pytest.mark.parametrize("tasks_file", _list_completed_tasks_files(), ids=lambda p: p.parent.name)
 def test_audit_profile_absence_is_valid_for_pre_v080_corpus(tasks_file: Path) -> None:
     """For every milestone in every completed plan, `Audit-Profile:` is absent → (None, True, None)."""
     text = tasks_file.read_text(encoding="utf-8")
-    milestones = _split_milestones(text)
+    milestones = [block for _, _, block in split_milestones(text)]
     assert milestones, f"No milestones found in {tasks_file} — possible parser issue"
     for i, block in enumerate(milestones, start=1):
         value, is_valid, error = parse_audit_profile(block)
@@ -77,7 +55,9 @@ def test_audit_profile_absence_is_valid_for_pre_v080_corpus(tasks_file: Path) ->
 def test_tdd_waiver_canonical_or_absent_for_corpus(tasks_file: Path) -> None:
     """For every milestone in every completed plan, `TDD-Waiver:` is absent OR canonical."""
     text = tasks_file.read_text(encoding="utf-8")
-    milestones = _split_milestones(text)
+    milestones = [block for _, _, block in split_milestones(text)]
+    # Without this, the test passes vacuously when the grammar fails to split.
+    assert milestones, f"No milestones found in {tasks_file} — possible parser issue"
     for i, block in enumerate(milestones, start=1):
         value, is_valid, error = parse_tdd_waiver(block)
         # Field absence is always valid; presence must be canonical.

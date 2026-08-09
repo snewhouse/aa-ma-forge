@@ -3,8 +3,12 @@
 Created in aa-ma-tui-tracker M1 (2026-05-17).
 
 Grammar tolerated (per reference.md `tasks.md grammar`):
-    - Milestone line: `^## Milestone (\\d+): (.+)$`
-    - Step line:      `^### Step (\\d+\\.\\d+): (.+)$`
+    - Milestone line: see `aa_ma.grammar.MILESTONE_RE` — accepts
+                      `## Milestone N:`, `## Milestone MN:`, `## MN:`,
+                      `## Milestone N — Title` and letter suffixes (`2a`).
+    - Step line:      see `aa_ma.grammar.STEP_RE` — accepts `Step`, `Task`
+                      and `Sub-step` keywords with number shapes `1.1`,
+                      `3.5.1`, `1.11`, `2.7b`, `1.1.bis`, `M2.1`, `M2a.1`.
     - Status:         `^[- ]*(\\*\\*)?Status:?(\\*\\*)?\\s*VALUE`  (covers
                       plain, bold-pair, split-bold forms)
     - Mode/Gate:      same shape as Status
@@ -20,7 +24,7 @@ Tolerance contract (per L-052):
 
 Failure modes:
     - No `{name}-tasks.md` in the directory → ParseError.
-    - tasks.md file present but contains zero `## Milestone N:` headers
+    - tasks.md file present but contains zero recognised Milestone headers
       → ParseError. discover_tasks() catches and attaches `parse_error`.
 """
 
@@ -30,6 +34,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+from aa_ma.grammar import split_milestones, split_steps
 from aa_ma.tui.model import (
     AggregateStatus,
     Gate,
@@ -46,8 +51,8 @@ from aa_ma.tui.model import (
 # Regex grammar
 # -----------------------------------------------------------------------------
 
-_MILESTONE_RE = re.compile(r"^## Milestone (\d+):\s*(.+?)\s*$", re.MULTILINE)
-_STEP_RE = re.compile(r"^### Step (\d+\.\d+):\s*(.+?)\s*$", re.MULTILINE)
+# Milestone/step heading grammar lives in `aa_ma.grammar` — one shared
+# implementation for the TUI and the corpus tests (milestone-grammar-ssot M1).
 
 
 def _field_pattern(field_name: str) -> re.Pattern[str]:
@@ -156,41 +161,6 @@ def _extract_result_log(block: str) -> str | None:
 # -----------------------------------------------------------------------------
 
 
-def _split_milestone_blocks(text: str) -> list[tuple[int, str, str]]:
-    """Yield (number, title, block_text) for each ## Milestone N: heading.
-
-    Block text spans from the milestone header through to the next
-    milestone header (or EOF).
-    """
-    matches = list(_MILESTONE_RE.finditer(text))
-    if not matches:
-        return []
-    blocks: list[tuple[int, str, str]] = []
-    for i, m in enumerate(matches):
-        start = m.start()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        number = int(m.group(1))
-        title = m.group(2).strip()
-        blocks.append((number, title, text[start:end]))
-    return blocks
-
-
-def _split_step_blocks(milestone_block: str) -> list[tuple[str, str, str]]:
-    """Yield (number, title, block_text) for each ### Step N.M: heading
-    inside a milestone block."""
-    matches = list(_STEP_RE.finditer(milestone_block))
-    if not matches:
-        return []
-    blocks: list[tuple[str, str, str]] = []
-    for i, m in enumerate(matches):
-        start = m.start()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(milestone_block)
-        number = m.group(1)
-        title = m.group(2).strip()
-        blocks.append((number, title, milestone_block[start:end]))
-    return blocks
-
-
 # -----------------------------------------------------------------------------
 # File helpers (T1.8 + T1.9)
 # -----------------------------------------------------------------------------
@@ -273,14 +243,14 @@ def parse_task_dir(path: Path) -> Task:
         raise ParseError(f"missing tasks file: {tasks_file}")
 
     text = tasks_file.read_text(encoding="utf-8")
-    milestone_blocks = _split_milestone_blocks(text)
+    milestone_blocks = split_milestones(text)
     if not milestone_blocks:
-        raise ParseError(f"no `## Milestone N:` headers found in {tasks_file}")
+        raise ParseError(f"no recognised Milestone heading found in {tasks_file} (see aa_ma.grammar.MILESTONE_RE)")
 
     milestones: list[Milestone] = []
     for number, title, block in milestone_blocks:
         steps: list[Step] = []
-        for s_number, s_title, s_block in _split_step_blocks(block):
+        for s_number, s_title, s_block in split_steps(block):
             steps.append(
                 Step(
                     number=s_number,

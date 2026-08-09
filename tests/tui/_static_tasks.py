@@ -35,7 +35,7 @@ def make_static_tasks() -> list[Task]:
         ],
         milestones=[
             Milestone(
-                number=1,
+                number="1",
                 title="Setup",
                 status=MilestoneStatus.COMPLETE,
                 gate=Gate.SOFT,
@@ -47,7 +47,7 @@ def make_static_tasks() -> list[Task]:
                 ],
             ),
             Milestone(
-                number=2,
+                number="2",
                 title="Ship",
                 status=MilestoneStatus.COMPLETE,
                 gate=Gate.HARD,
@@ -68,7 +68,7 @@ def make_static_tasks() -> list[Task]:
         provenance_tail=["[2026-05-01T11:30] beta M1 COMPLETE"],
         milestones=[
             Milestone(
-                number=1,
+                number="1",
                 title="Foundations",
                 status=MilestoneStatus.COMPLETE,
                 gate=Gate.SOFT,
@@ -80,7 +80,7 @@ def make_static_tasks() -> list[Task]:
                 ],
             ),
             Milestone(
-                number=2,
+                number="2",
                 title="Implementation",
                 status=MilestoneStatus.IN_PROGRESS,
                 gate=Gate.HARD,
@@ -102,7 +102,7 @@ def make_static_tasks() -> list[Task]:
         provenance_tail=["[2026-05-01T10:00] gamma BLOCKED on upstream API"],
         milestones=[
             Milestone(
-                number=1,
+                number="1",
                 title="Research",
                 status=MilestoneStatus.COMPLETE,
                 gate=Gate.SOFT,
@@ -113,7 +113,7 @@ def make_static_tasks() -> list[Task]:
                 ],
             ),
             Milestone(
-                number=2,
+                number="2",
                 title="Validate",
                 status=MilestoneStatus.BLOCKED,
                 gate=Gate.HARD,

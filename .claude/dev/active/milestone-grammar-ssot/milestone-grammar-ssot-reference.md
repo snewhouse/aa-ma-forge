@@ -8,7 +8,7 @@ Immutable facts. Every figure measured at **b11c46d** by executing the real code
 - **Base commit:** `b11c46d`
 - **Setup:** `uv sync`
 - **Suite baseline:** `783 passed, 1 failed, 1 skipped, 7 deselected`. The single failure is `tests/codemem/test_corpus_grandfathering.py::test_audit_profile_absence_is_valid_for_pre_v080_corpus[sole-dev-merge-pr-workflow]`.
-- **bats counts:** `tests/hooks/` 112 · `tests/commands/sole-dev-merge/` 69
+- **bats counts, as of b11c46d:** `tests/hooks/` **112 non-recursive, 118 recursive** (`tests/hooks/fixtures/build_active_dir.bats` holds 6; CI uses `--recursive`) · `tests/commands/sole-dev-merge/` 69. After M1's added case: **113 / 119**. Counts are `@test` lines; runs executed via `npx bats@1.11.0` (bats is not installed locally).
 
 ## Tooling present / absent
 
@@ -45,6 +45,7 @@ Two consumers, two requirements. Both must hold or the gate reads empty.
 |---|---|---|
 | `Audit-Profile` | `- Audit-Profile: code-only` — own line, **unbackticked** | `plan_parsers._extract_field` anchors `^[ \t]*-?[ \t]*` |
 | `Critical-Path` | `- **Critical-Path:** data-xform` — own line, **bold**, unbackticked | `execute-aa-ma-milestone.md:520` greps `^- \*\*Critical-Path:\*\* \S` |
+| `Prototype-Required` | `- **Prototype-Required:** YES` — own line, **bold** | `execute-aa-ma-milestone.md:531` greps `^- \*\*Prototype-Required:\*\* YES` |
 
 Measured: mid-line + backticked → `(None, True, None)`; own line + backticked → `('`code-only`', False, "Non-canonical…")`; own line + bare → `('code-only', True, None)`.
 
@@ -54,7 +55,9 @@ Measured: mid-line + backticked → `(None, True, None)`; own line + backticked 
 - `TDD-Waiver`: `refactor | docs-only | prototype | hotfix-emergency | tooling-config` (`plan_parsers.CANONICAL_TDD_WAIVERS`)
 - `Critical-Path`: `auth-flow | data-xform | external-api | version-pipeline | doc-count-drift | hook-modification` — **no `CANONICAL_CRITICAL_PATHS` constant exists in code**; this check is manual-only today (M4 adds it).
 
-## Corpus baseline — 14 repo tasks, `aa-ma-tui --root .claude --json --include-completed`
+## Corpus baseline — 14 repo tasks measured at b11c46d
+
+`aa-ma-tui --root .claude --json --include-completed`. **This table is the gate.** Task dirs created after b11c46d (including `milestone-grammar-ssot` itself) add rows and are out of scope: the criterion is *every listed row matches*, not *the row count is 14*.
 
 `--root .` returns **23 junk entries** (every top-level directory) — `_resolve_roots` (`__main__.py:85-117`) falls through to a direct scan. Always use `--root .claude`.
 
@@ -75,7 +78,9 @@ Measured: mid-line + backticked → `(None, True, None)`; own line + backticked 
 | token-stack-integration | 5 / 12 / COMPLETE | 5 / 12 | none |
 | understand-codebase-skill | 3 / 0 / COMPLETE | 3 / 20 | steps |
 
-**Totals: 44 → 65 milestones, 135 → 368 steps.** Zero unparsed headings, zero false positives on 9 negatives. Only 3 of 14 tasks unchanged — the gate is *"every delta is one we predicted"*, not *"no deltas"*.
+**Totals: 44 → 65 milestones, 94 → 368 steps.**
+
+The 94 is *TUI-reachable* steps — those inside a parsed milestone block, which is what the per-file column above reports. A raw `^### Step (\d+\.\d+):` scan across the same files returns **135**, because 41 of them sit in `sole-dev-merge-pr-workflow`, whose milestones the old grammar could not parse at all. Both figures are correct answers to different questions; the gate uses the per-file table, not either total. Zero unparsed headings, zero false positives on 9 negatives. Only 3 of 14 tasks unchanged — the gate is *"every delta is one we predicted"*, not *"no deltas"*.
 
 The 4 ERROR tasks raise `ParseError` (`parser.py:277`) → `aggregate_status=ERROR` (`parser.py:341-347`). `model.py:27-30` documents ERROR as **terminal**, so restoring them moves kanban columns.
 
@@ -110,5 +115,12 @@ Unaffected: `.txt` and SVG snapshots — built from hand-constructed `Task` obje
 ## Out of repo (not CI-reproducible)
 
 `agent-token-optimization` and `safety-app-production-settings` live in `~/.claude/dev/completed/`. `__main__.py:113-118` scans `cwd()` **and** `home()`, which is why they appear in an unscoped run. `agent-token-optimization` uses `## Step N:` at H2 and unnumbered `### Sub-step:` — the grammar does **not** match it by design.
+
+## Canonical lint candidate selection (M2)
+
+A heading is a *candidate* for the canonical lint only if it matches the tolerant
+`grammar.MILESTONE_RE` / `grammar.STEP_RE`. It is a *violation* if it is a candidate but does
+not also match `CANONICAL_M` / `CANONICAL_S`. Without this rule a plain `## Summary Counts`
+heading would be flagged, and this plan's own tasks.md would fail M2 acceptance #4.
 
 _Last updated: 2026-08-09_

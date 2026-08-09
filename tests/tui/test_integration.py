@@ -114,7 +114,7 @@ def test_cli_json_against_temp_root(tmp_path: Path) -> None:
     result = _run_cli("--json", "--root", str(claude))
     assert result.returncode == 0, result.stderr
     envelope = json.loads(result.stdout)
-    assert envelope["schema_version"] == 1
+    assert envelope["schema_version"] == 2
     assert isinstance(envelope["tasks"], list)
     assert len(envelope["tasks"]) == 3
     names = sorted(t["name"] for t in envelope["tasks"])

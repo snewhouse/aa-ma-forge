@@ -72,7 +72,7 @@ def test_milestone_model_construction_with_defaults() -> None:
     """Milestone defaults: Gate.SOFT, Mode.AFK, no complexity/deps/criteria, empty steps."""
     from aa_ma.tui.model import Gate, Milestone, MilestoneStatus, Mode
 
-    m = Milestone(number=1, title="Test", status=MilestoneStatus.PENDING)
+    m = Milestone(number="1", title="Test", status=MilestoneStatus.PENDING)
     assert m.gate == Gate.SOFT
     assert m.mode == Mode.AFK
     assert m.complexity is None

@@ -158,7 +158,7 @@ Implementation landed across 5 milestones in plan
   `discover_tasks`); 30 tests including a hypothesis round-trip property
   test; coverage 91%/100%.
 - **M2 (snapshot mode)** — `snapshot.py` (Rich kanban / tree / summary)
-  + `json_output.py` (`schema_version=1` envelope); 27 tests; goldens
+  + `json_output.py` (`schema_version=1` envelope (bumped to 2 by milestone-grammar-ssot M1)); 27 tests; goldens
   locked.
 - **M3 (interactive Textual app)** — `app.py` + `watcher.py` + 2 screens
   + 2 widgets; live file-watch via `awatch(debounce=300)` +
@@ -181,7 +181,7 @@ aa-ma-tui --root PATH                      # explicit root (default scans ./ and
 
 Exit codes: `0` normal · `2` `--task` not found · `3` no tasks
 discovered. JSON envelope shape:
-`{"schema_version": 1, "tasks": [Task.model_dump(mode="json"), ...]}`.
+`{"schema_version": 2, "tasks": [Task.model_dump(mode="json"), ...]}`.
 
 Open polish items (deferred to v0.11.0 — `M5` backlog):
 

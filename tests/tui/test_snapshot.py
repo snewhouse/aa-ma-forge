@@ -141,7 +141,7 @@ def test_render_tree_truncates_result_log_to_60_chars(static_tasks: list) -> Non
         root=Path("/tmp/long"),
         milestones=[
             Milestone(
-                number=1,
+                number="1",
                 title="m",
                 status=MilestoneStatus.IN_PROGRESS,
                 gate=Gate.SOFT,

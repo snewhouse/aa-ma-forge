@@ -55,3 +55,32 @@ Other findings that changed the plan materially:
 
 - Whether the `aa-ma-parse.sh` over-tolerance (`## Status: COMPLETE` parsing as a milestone heading) deserves its own fix. Deliberately not pinned as a contract in M1's bats case so a future correctness fix isn't blocked as a "regression".
 - Whether `hook-modification` should formally cover shipped commands and skills, not just `hooks/*.sh`. M4 Sub-step 4.4 widens it; if that's rejected, this plan's own M4 Critical-Path value is out of scope for the rule.
+
+## [2026-08-09] GATE APPROVAL: Milestone 1 — Shared grammar, type fix and TUI rewire
+
+- **Gate:** HARD
+- **Approved by:** Stephen J Newhouse (via /execute-aa-ma-milestone §7.3)
+- **Criteria verified:** 9/9
+  1. ✅ `pytest tests/codemem/ tests/tui/ tests/test_grammar.py` exit 0 — the originally-failing `test_audit_profile_absence_is_valid_for_pre_v080_corpus[sole-dev-merge-pr-workflow]` now passes
+  2. ✅ `pytest -m slow tests/tui/` exit 0 (scoped — `test_bench_harness` fails on the clean baseline, a third pre-existing failure)
+  3. ✅ 15 positive / 12 negative cases, negatives asserted through the splitters
+  4. ✅ `grep -rnE "\b_split_milestones\b" src/ tests/` empty
+  5. ✅ Per-file counts match every b11c46d row of the reference table
+  6. ✅ `discover_tasks([active, completed])` → 15 tasks, no `ValueError`
+  7. ✅ 4 blind tasks restored: codemem 5/47, harden-aa-ma-plan 5/24, skill-ecosystem-integration 3/26, sole-dev-merge-pr-workflow 5/42; zero tasks report 0 milestones
+  8. ✅ `SCHEMA_VERSION == 2` + CHANGELOG BREAKING entry
+  9. ✅ `bats -F tap --recursive tests/hooks/` → 119 ok, 0 not ok
+- **§6.7 Engineering Standards gate:** 5/5 PASS — artifacts synced, zero PENDING in M1, tests pass, IMPACT_ANALYSIS + CRITICAL_PATH_REVIEW (data-xform) in provenance; `Prototype-Required` absent on M1 → skipped per absent-field semantic
+- **§6.8 Post-Impl Adversarial Review:** initial 6 CRITICAL / 22 WARNING / 11 INFO → all CRITICAL fixed inline → **PASS_WITH_WARNINGS**. Detail in `impl-review.md`
+- **Decision: APPROVED**
+
+### What the §6.8 slate caught that I had already declared verified
+
+Worth recording, because the pattern repeated from the planning phase: claims I *reasoned* to failed; claims I *measured* held.
+
+- `coerce_numbers_to_str=True` is model-wide, not field-scoped — it silently laundered `title=42` into `"42"` and masked six unmigrated call sites. Dropped; migration completed properly.
+- Flat fence pairing emitted **phantom milestones** from nested code blocks, and headings inside HTML comments parsed as real. The templates this project ships are full of both.
+- The fence regex was **O(n²)** — 78 KiB → 5.15 s. Meanwhile the ReDoS I *suspected* (`(?:\.\d+)*`) measured strictly linear. I had the risk in the wrong place.
+- My own AC#7 verification silently `jq`-filtered out the 15th task — the row that would have failed the "matches exactly" criterion I wrote.
+
+**Lesson for the remaining milestones:** a verification command that filters its own input is not verification. Pin the filter in the criterion, or assert on the unfiltered set.

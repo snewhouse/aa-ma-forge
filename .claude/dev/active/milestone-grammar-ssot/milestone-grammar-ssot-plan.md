@@ -122,14 +122,14 @@ def split_steps(milestone_block: str) -> list[Block]: ...
 
 **Acceptance**
 1. `uv run pytest tests/codemem/ tests/tui/ tests/test_grammar.py -q` exits 0 — **`tests/tui/` included deliberately**; excluding it was how revision 2 would have passed green over a broken suite.
-2. `uv run pytest -m slow -q` exits 0 (catches `test_parser_properties.py:152`, invisible to the default run).
+2. `uv run pytest -m slow tests/tui/ -q` exits 0 (catches `test_parser_properties.py:152`, invisible to the default run). Scoped to `tests/tui/` because `tests/codemem/test_bench_harness.py::test_harness_e2e_against_aa_ma_forge` fails on the clean baseline — a third pre-existing failure, unrelated to this work.
 3. `assert len(POSITIVE_CASES) == 15 and len(NEGATIVE_CASES) == 9`, and every negative returns `[]` from the splitters.
 4. `grep -rn "_split_milestones" src/ tests/` empty (scoped — a repo-wide grep walks `.worktrees/`).
 5. New per-file `(milestones, steps, aggregate_status)` equals the `reference.md` table from Sub-step 1.0 **exactly**.
 6. `uv run python -c "from pathlib import Path; from aa_ma.tui.parser import discover_tasks; discover_tasks([Path('.claude/dev/active'), Path('.claude/dev/completed')])"` exits 0. (`discover_tasks` takes `list[Path]`; revisions 1–2 passed a bare `Path` → `TypeError` before and after, gating nothing.)
 7. `aa-ma-tui --root .claude --json --include-completed` yields exactly codemem 5/47, harden-aa-ma-plan 5/24, skill-ecosystem-integration 3/26, sole-dev-merge-pr-workflow 5/42, and no task reports 0 milestones (14/14).
 8. `SCHEMA_VERSION == 2`; CHANGELOG breaking entry present.
-9. `bats -F tap --recursive tests/hooks/` → exactly 113 `^ok`, zero `^not ok`.
+9. `bats -F tap --recursive tests/hooks/` → exactly **119** `^ok`, zero `^not ok` (recursive baseline 118 — `fixtures/build_active_dir.bats` adds 6 — plus this milestone's one case; 113 non-recursive).
 
 **Rollback:** one commit; `git revert`. `grammar.py` is additive and may stay.
 
@@ -208,18 +208,18 @@ Legitimising `## M1:` and em-dash styles while grammar #5 stays blind leaves the
 
 | M | Command | Expected |
 |---|---|---|
-| M1 | `uv run pytest tests/codemem/ tests/tui/ tests/test_grammar.py -q`; `uv run pytest -m slow -q`; `aa-ma-tui --root .claude --json`; `bats -F tap tests/hooks/` | exit 0; exit 0; 14 tasks, 0 blind; 113 ok |
+| M1 | see M1 Acceptance 1-9 — the per-milestone block is the single source of truth for commands and expected values |
 | M2 | `uv run pytest tests/test_active_plans_canonical.py -q` | exit 0; fixture → 4 violations |
 | M3 | 20× `bats -F tap tests/commands/sole-dev-merge/` | 69 ok × 20 |
 | M4 | `bats -F tap --recursive tests/hooks/` | all green incl. new cases |
 | ALL | `uv run pytest --tb=short -q` | below |
 
-**Baseline pinned:** b11c46d = **783 passed, 1 failed, 1 skipped, 7 deselected**. On completion: `failed == 0 and errors == 0 and skipped == 1 and deselected == 7 and passed == 784 + N_new`, where `N_new` is the sum of the per-milestone `New-Tests:` counts declared in `tasks.md` (M1: 26, M2: 2, M3: 0 python, M4: 0 python). The gate computes `N_new` from those declarations — it is not a second hardcoded number to drift.
+**Baseline pinned:** b11c46d = **783 passed, 1 failed, 1 skipped, 7 deselected**. On completion: `failed == 0 and errors == 0 and skipped == 1 and deselected == 7 and passed == 784 + N_new`, where `N_new` is the sum of the per-milestone `New-Tests:` counts declared in `tasks.md`. No second copy of those numbers lives here — that is the whole mechanism. The gate computes `N_new` from those declarations — it is not a second hardcoded number to drift.
 
 ## 5. Artefacts
 
 **New:** `src/aa_ma/grammar.py`, `tests/test_grammar.py`, `tests/test_active_plans_canonical.py`, `tests/fixtures/canonical/malformed-task/`.
-**Modified:** `src/aa_ma/tui/parser.py`, `src/aa_ma/tui/model.py`, `src/aa_ma/tui/json_output.py` (docstring), `tests/codemem/test_corpus_grandfathering.py`, `tests/tui/_static_tasks.py`, `tests/tui/test_parser.py`, `tests/tui/test_parser_properties.py`, `tests/tui/test_model.py`, `tests/tui/test_snapshot.py`, `tests/tui/test_json_output.py`, `tests/tui/test_integration.py`, `tests/tui/test_main_dispatch.py`, `tests/tui/snapshots/data.json` (regenerate), `tests/commands/sole-dev-merge/test_stage_c_dispatch.bats` (+ `test_stage_d_triage.bats`, `test_smoke_e2e.bats`), `.github/workflows/security.yml`, `claude-code/rules/aa-ma.md`, `claude-code/rules/engineering-standards.md`, `claude-code/commands/execute-aa-ma-milestone.md`, `claude-code/skills/verify-impl/SKILL.md`, `src/aa_ma/plan_parsers.py`, `docs/adr/0007-aa-ma-tui-tracker.md`, `CHANGELOG.md`, `CLAUDE.md`.
+**Modified:** `src/aa_ma/tui/parser.py`, `src/aa_ma/tui/model.py`, `src/aa_ma/tui/json_output.py` (docstring), `tests/codemem/test_corpus_grandfathering.py`, `tests/tui/_static_tasks.py`, `tests/tui/test_parser.py`, `tests/tui/test_parser_properties.py`, `tests/tui/test_model.py`, `tests/tui/test_snapshot.py`, `tests/tui/test_json_output.py`, `tests/tui/test_integration.py`, `tests/tui/test_main_dispatch.py`, `tests/tui/snapshots/data.json` (regenerate), `tests/hooks/aa-ma-parse.bats`, `tests/commands/sole-dev-merge/test_stage_c_dispatch.bats` (+ `test_stage_d_triage.bats`, `test_smoke_e2e.bats`), `.github/workflows/security.yml`, `claude-code/rules/aa-ma.md`, `claude-code/rules/engineering-standards.md`, `claude-code/commands/execute-aa-ma-milestone.md`, `claude-code/skills/verify-impl/SKILL.md`, `src/aa_ma/plan_parsers.py`, `docs/adr/0007-aa-ma-tui-tracker.md`, `CHANGELOG.md`, `CLAUDE.md`.
 
 ## 6. Rollback
 

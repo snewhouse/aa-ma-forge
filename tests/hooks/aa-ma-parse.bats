@@ -174,3 +174,27 @@ EOF
     [[ "${tasks[1]}" == *"/task-2" ]]
     [[ "${tasks[2]}" == *"/task-3" ]]
 }
+
+@test "aa_ma_extract_active_milestone reads an em-dash milestone heading" {
+    # milestone-grammar-ssot M1 Sub-step 1.8. The Python grammar was widened to
+    # accept `## Milestone N — Title`; this pins that the bash/awk helper already
+    # did, so a future tightening cannot silently regress it.
+    #
+    # Deliberately does NOT pin the helper's over-tolerance (it treats any `^## `
+    # heading, e.g. `## Status: COMPLETE`, as a milestone). That is a known wart,
+    # not a contract — pinning it would block a future correctness fix.
+    load_helper
+    local tasks="$BATS_TMP/em-dash-tasks.md"
+    cat > "$tasks" <<'EOF'
+## Milestone 1 — Pre-flight + scope-aware CI checks
+
+- Status: ACTIVE
+
+### Sub-step 1.1: Something
+
+- Status: PENDING
+EOF
+    run aa_ma_extract_active_milestone "$tasks"
+    [ "$status" -eq 0 ]
+    [ "$output" = "Milestone 1 — Pre-flight + scope-aware CI checks" ]
+}

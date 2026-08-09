@@ -149,7 +149,7 @@ def test_parser_roundtrip_status_fields(
 
     assert len(task.milestones) == len(expected)
     for parsed, exp in zip(task.milestones, expected, strict=True):
-        assert parsed.number == exp["number"]
+        assert parsed.number == str(exp["number"])
         # Status enum value comparison
         assert parsed.status == MilestoneStatus(exp["status"])
         assert parsed.gate.value == exp["gate"]

@@ -357,9 +357,19 @@ PY
 fi
 
 # C4 — ShellCheck on changed shell (only if any)
+#
+# SHELLCHECK_BIN is a seam, not a feature. The `|| true` below cannot tell
+# "scanner ran and found nothing" from "scanner was never installed", and the
+# second silently reports a clean bill of health on shell nobody reviewed —
+# a false negative in a security stage. Say which one happened.
+SHELLCHECK_BIN="${SHELLCHECK_BIN:-shellcheck}"
 if [[ -n "${CHANGED_SH:-}" ]]; then
+    if ! command -v "$SHELLCHECK_BIN" >/dev/null 2>&1; then
+        echo "Stage C: WARNING — '${SHELLCHECK_BIN}' not found; C4 did not run." \
+             "Shell findings are UNKNOWN, not zero."
+    else
     # shellcheck disable=SC2086  # intentional word-splitting for multi-file arg
-    shellcheck -f json $CHANGED_SH > "$SHELLCHECK_OUT" 2>/dev/null || true
+    "$SHELLCHECK_BIN" -f json $CHANGED_SH > "$SHELLCHECK_OUT" 2>/dev/null || true
     if [[ -s "$SHELLCHECK_OUT" ]]; then
         # Severity mapping loaded from $SHELLCHECK_SEV_JSON (canonical above).
         python3 - "$SHELLCHECK_OUT" >> "$FINDINGS" <<'PY' || true
@@ -379,6 +389,7 @@ for r in items:
     code = r.get("code", 0)
     print(f"[{sev}]     SC{code} {msg} — {path}:{line}")
 PY
+    fi
     fi
 fi
 

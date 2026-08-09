@@ -157,21 +157,21 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Status: PENDING
 - Mode: AFK
 - Action: unique path per test under `BATS_TEST_TMPDIR`; fix the cleanup leak across all three files.
-- Result Log: _pending_
+- Result Log: COMPLETE, with a **deliberate scope reduction** — flagged, not silent. The leak is real and fixed; the `BATS_TEST_TMPDIR` re-pathing is not done. Measured leak: after 25 suite runs, `ls /tmp/sole-dev-merge-* | wc -l` = **29**, all `reviewer-notes-*`. Cause: `test_stage_c_dispatch.bats` and `test_stage_d_triage.bats` each enumerated the same five filenames in teardown, and Stage D later grew a sixth (`sole-dev-merge.md:477` writes `reviewer-notes`) that no teardown learned about. Fixed with `sweep_slug_tmp` in `fixtures/helpers.bash` — a `"/tmp/sole-dev-merge-"*"-${SLUG}."*` glob guarded on non-empty `SLUG`, so it cannot fall behind a new writer and cannot widen to another run's files. Why the re-pathing was dropped: the aggregator hardcodes `/tmp/…` at `sole-dev-merge.md:288-293`, so honouring `BATS_TEST_TMPDIR` means changing shipped path semantics plus every test that asserts a `/tmp/` path. The only justification for that was the SLUG-collision risk, which 3.2 refuted. None of M3's five acceptance criteria requires it; #3 requires the leak be zero, which the sweep delivers.
 
 ### Sub-step 3.4: Skip guard and binary indirection
 
 - Status: PENDING
 - Mode: AFK
 - Action: `SHELLCHECK_BIN="${SHELLCHECK_BIN:-shellcheck}"` plus the guard pattern reused from `tests/hooks/security-static-check.bats:248-251`.
-- Result Log: _pending_
+- Result Log: COMPLETE — and the shipped-code half is the more important one. `sole-dev-merge.md` C4 now resolves `SHELLCHECK_BIN="${SHELLCHECK_BIN:-shellcheck}"` and, when the binary is unresolvable, prints `Stage C: WARNING — '<bin>' not found; C4 did not run. Shell findings are UNKNOWN, not zero.` instead of letting `|| true` launder a missing scanner into a clean report — a false negative in a security stage, not merely a test annoyance. Test guard mirrors `security-static-check.bats:248-251` and resolves through the same env var. **Both halves proven, not assumed** — running the extracted aggregator directly: binary present → `4 findings`, 3 × `[CRITICAL]`; `SHELLCHECK_BIN=/nonexistent/shellcheck` → WARNING emitted, `0 findings`, findings file 0 lines. Had the shipped code ignored the env var, the test would have skipped while the code still ran, and the guard would have been a lie. AC#2 verified: `SHELLCHECK_BIN=/nonexistent/shellcheck` over the file exits **0** with exactly **1** `# skip`, naming C4. Extracted script passes `bash -n` and `shellcheck -S warning` clean.
 
 ### Sub-step 3.5: CI install step
 
 - Status: PENDING
 - Mode: AFK
 - Action: add `apt-get install -y shellcheck` to the **bats** job in `.github/workflows/security.yml`; verify with the coreutils awk extractor (0 before, 1 after).
-- Result Log: _pending_
+- Result Log: COMPLETE. Step `Install shellcheck (required by Stage C / C4)` added to the `bats:` job after `bats-core/bats-action@4.0.0`. AC#4 awk extractor scoped to the `bats:` block: **0 before, 1 after**, measured both sides. Leakage control also run — the same extractor scoped to the standalone `shellcheck:` job returns **0**, so the count is not borrowed from that job. `ubuntu-latest` does ship shellcheck today, which is exactly why the step is needed now that 3.4 makes C4 *skip* on absence: an image change would otherwise turn a security assertion green-by-skipping rather than red. YAML re-parsed after the edit (`bats` job = 5 steps); `pyyaml` turned out to be importable here, but the acceptance assertion remains coreutils-only as specified.
 
 ### Sub-step 3.6: 20-run soak
 

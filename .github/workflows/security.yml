@@ -56,6 +56,14 @@ jobs:
 
       - uses: bats-core/bats-action@4.0.0
 
+      # ubuntu-latest currently ships shellcheck, but C4 in
+      # tests/commands/sole-dev-merge/test_stage_c_dispatch.bats now skips
+      # rather than fails when it is missing — so an image change would turn
+      # a security assertion green-by-skipping instead of red. Install it
+      # explicitly so the skip path can never be reached silently in CI.
+      - name: Install shellcheck (required by Stage C / C4)
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
       - name: Run bats on tests/hooks/
         run: bats --recursive tests/hooks/
 

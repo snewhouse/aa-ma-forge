@@ -75,7 +75,7 @@ Every task entry in `tasks.md` MUST include a `Mode:` field:
 
 **Format in tasks.md:**
 ```
-### Task 1.1: [Title]
+### Sub-step 1.1: [Title]
 - Status: PENDING
 - Mode: AFK
 - Acceptance Criteria: [...]

@@ -34,7 +34,7 @@ Immutable facts. Every figure measured at **b11c46d** by executing the real code
 
 - **Writer (canonical):** `## Milestone N: Title` / `### Sub-step N.N: Title`
   Source: `docs/templates/tasks-template.md:26,89,127,147,155`; `docs/spec/aa-ma-specification.md:697,704`.
-  `claude-code/rules/aa-ma.md:78` contradicts with `### Task 1.1:` — the file to fix.
+  **Eleven** shipped files write or teach a tasks.md heading. At b11c46d only `docs/templates/tasks-template.md` was canonical; the other ten were fixed in M2 (see tasks.md Sub-step 2.3 Result Log). The authoritative list is `WRITER_TEMPLATES` in `tests/test_active_plans_canonical.py`, each covered by a mutation guard.
 - **Reader (tolerant):** keywords `Sub-step|Step|Task`; separator `(?::|[ \t]+[–—-][ \t]+)` — a **space-delimited** dash, never a bare hyphen.
 
 ## Field format `tasks.md` MUST use

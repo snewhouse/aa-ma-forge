@@ -152,13 +152,13 @@ Parse `[task-name]-tasks.md` to find the current ACTIVE task:
 
 **HTP Node Structure**:
 ```markdown
-## Task Title
+## Milestone N: Title
 - Status: PENDING | ACTIVE | COMPLETE
 - Dependencies: [List of prerequisite Task IDs]
 - Complexity: [0-100%]
 - Acceptance Criteria: [Clear, testable criteria]
 
-### Sub-step: [Action]
+### Sub-step N.M: [Action]
 - Result Log: [MANDATORY — must be populated before proceeding to next step]
 ```
 
@@ -301,7 +301,7 @@ HARD gates always pause for approval regardless of Mode. If a milestone has `Gat
    - If NOT met: **WARN** user but allow to proceed
    - Log warnings in Result Log:
      ```markdown
-     ### Sub-step: [Action]
+     ### Sub-step N.M: [Action]
      - Result Log:
        ⚠️ Acceptance criteria not fully met:
        - [Unmet criterion 1]
@@ -736,13 +736,13 @@ If this was the FINAL milestone (all milestones now COMPLETE), add:
 
 **After each sub-step (not each milestone — EACH SUB-STEP):**
 ```markdown
-## Task Title
+## Milestone N: Title
 - Status: COMPLETE  ← Update from ACTIVE
 - Dependencies: [...]
 - Complexity: [...]
 - Acceptance Criteria: [...]
 
-### Sub-step: [Action]
+### Sub-step N.M: [Action]
 - Result Log:
   ✅ COMPLETE [YYYY-MM-DD HH:MM]
 

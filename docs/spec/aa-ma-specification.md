@@ -515,7 +515,7 @@ This moves the task directory from `active/` to `completed/` with completion hea
 Replace the simple checklist in `[task]-tasks.md` with structured HTP using nested Markdown headers to model dependencies and control flow.[3, 4]
 
 * **High-Level Node Structure:**
-  `## Task Title`
+  `## Milestone N: Title`
 
   * `Status:` (PENDING/ACTIVE/COMPLETE)
   * `Dependencies:` (List required prerequisite Task IDs)
@@ -523,7 +523,7 @@ Replace the simple checklist in `[task]-tasks.md` with structured HTP using nest
   * `Gate:` (HARD/SOFT — default SOFT) [8]
 
 * **Low-Level Action:**
-  `### Sub-step: [Action]`
+  `### Sub-step N.M: [Action]`
 
   * `Result Log:` (Placeholder for agent output)
 

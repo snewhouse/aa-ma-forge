@@ -84,3 +84,47 @@ Worth recording, because the pattern repeated from the planning phase: claims I 
 - My own AC#7 verification silently `jq`-filtered out the 15th task — the row that would have failed the "matches exactly" criterion I wrote.
 
 **Lesson for the remaining milestones:** a verification command that filters its own input is not verification. Pin the filter in the criterion, or assert on the unfiltered set.
+
+
+## [2026-08-09] D8 — M2 scope expanded from 1 writer to 11
+
+Plan §3 M2 scoped a single file, `claude-code/rules/aa-ma.md:78`. That was wrong,
+and the §6.8 review on M1 predicted it.
+
+Surveying the actual writer surface found **eleven** shipped files that write or
+teach a tasks.md heading, of which exactly one — `docs/templates/tasks-template.md`
+— was already canonical. Fixing only `rules/aa-ma.md` would have left the scribe,
+the `/aa-ma-plan` Phase 5 template, the spec, the team guide and the README all
+emitting a form the new lint rejects: writer and linter disagreeing by
+construction, with the next authored plan failing on arrival.
+
+Two of those were worse than merely non-canonical. `docs/spec/aa-ma-specification.md:518,526`
+and `claude-code/skills/aa-ma-execution/SKILL.md` taught **unnumbered** forms
+(`## Task Title`, `### Sub-step: [Action]`) that match neither the tolerant reader
+nor the canonical writer — so a plan authored from the spec parsed as zero
+milestones and zero steps while passing the lint silently. `examples/aa-ma-team-guide/`
+had the same shape. That is the failure class M1 existed to kill, shipped in the
+spec itself.
+
+**Plan §3 M2 and §5 Artefacts are amended accordingly** — per `rules/aa-ma.md`,
+scope change is one of the few legitimate reasons to edit plan.md.
+
+### The more important correction
+
+The first version of the writer guard was **inert**. `find_non_canonical` calls
+`sanitize()`, which strips fenced blocks — and every writer template lives inside
+a ```markdown fence. Both §6.8 agents caught it independently; the
+future-proofing agent mutation-tested it and found 4 of 5 checks passing green
+against the exact drift they existed to catch. The Sub-step 2.4 Result Log had
+already claimed divergence "cannot silently return".
+
+Fixed by linting fenced-block *contents* (`grammar.iter_fenced_blocks`), and —
+because a documentation file's own `### Step 3: Dispatch agents` section is prose
+rather than tasks.md content — linting **only** inside fences when fences exist.
+Every writer now carries `test_writer_check_is_not_vacuous`, which corrupts the
+file and asserts a violation appears. Re-verified by mutation: 5/5 caught, where
+4/5 were previously missed.
+
+**Lesson, and it is the same one as M1:** a guard that has never been observed to
+fail is not a guard. Assert the positive case — corrupt the input and require the
+check to complain — or the green tick means nothing.

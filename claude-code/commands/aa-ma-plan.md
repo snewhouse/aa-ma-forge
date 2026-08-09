@@ -745,11 +745,11 @@ Convert plan steps into Hierarchical Task Planning format:
 - Complexity: [%]
 - Acceptance Criteria: [from plan]
 
-### Step 1.1: [action]
+### Sub-step 1.1: [action]
 - Status: PENDING
 - Result Log: [placeholder]
 
-### Step 1.2: [action]
+### Sub-step 1.2: [action]
 - Status: PENDING
 - Result Log: [placeholder]
 

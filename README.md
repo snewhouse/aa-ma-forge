@@ -146,12 +146,12 @@ Here's what a real execution roadmap looks like:
 - Complexity: 65%
 - Acceptance Criteria: JWT tokens issued on login, refresh flow works, tests pass
 
-### Task 2.1: Implement token endpoints
+### Sub-step 2.1: Implement token endpoints
 - Status: COMPLETE
 - Mode: AFK
 - Result Log: Created /auth/login and /auth/refresh, 12 tests passing
 
-### Task 2.2: Review security model with user
+### Sub-step 2.2: Review security model with user
 - Status: PENDING
 - Mode: HITL
 - Acceptance Criteria: User confirms token expiry policy and scope design

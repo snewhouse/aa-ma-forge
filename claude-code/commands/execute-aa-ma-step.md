@@ -322,7 +322,7 @@ Issue: [specific blocker]
 
 Actions taken:
 - Set Status: BLOCKED in tasks.md
-- Created new sub-task: "### Sub-step: Resolve [blocker]"
+- Created new sub-task: "### Sub-step N.M: Resolve [blocker]"
 
 Suggested resolution:
 [remediation steps]

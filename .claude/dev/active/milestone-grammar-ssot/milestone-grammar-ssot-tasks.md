@@ -89,42 +89,42 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ## Milestone 2: Strict writer, canonical Sub-step
 
-- Status: PENDING
+- Status: COMPLETE
 - Gate: SOFT
 - Mode: AFK
 - Dependencies: Milestone 1
 - Complexity: 35%
 - Audit-Profile: code-only
-- New-Tests: 2
+- New-Tests: 22  <!-- 1 active plan + 1 fixture meta + 1 non-vacuity + (11 writers x 2 checks) -->
 - Acceptance Criteria: plan §3 M2 acceptance 1-4
 
 ### Sub-step 2.1: Malformed fixture
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: `tests/fixtures/canonical/malformed-task/malformed-task-tasks.md` with `## M1: x`, `## Milestone M2: x`, `## Milestone 3 — x`, `### Task 1.1: x`.
-- Result Log: _pending_
+- Result Log: Created `tests/fixtures/canonical/malformed-task/malformed-task-tasks.md` with one heading per observed drift style (`## M1:`, `## Milestone M2:`, `## Milestone 3 —`, `### Task 1.1:`) plus a canonical milestone, a canonical sub-step and a `## Summary Counts` prose heading as negative controls.
 
 ### Sub-step 2.2: Canonical lint
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: `tests/test_active_plans_canonical.py` with `CANONICAL_M` / `CANONICAL_S`, scanning `.claude/dev/active/**/*-tasks.md`, excluding `.worktrees/`. Two tests: clean pass, and a meta-test asserting the fixture yields exactly 4 violations.
-- Result Log: _pending_
+- Result Log: RED confirmed (`ImportError: find_non_canonical`). GREEN: `CANONICAL_MILESTONE_RE`, `CANONICAL_STEP_RE` and `find_non_canonical()` added to `grammar.py` so one module owns both the tolerant reader and the strict writer form. Candidate selection per reference.md: a line is a candidate only if the tolerant grammar matches it, a violation only if it is not also canonical.
 
 ### Sub-step 2.3: Fix rules/aa-ma.md
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: `claude-code/rules/aa-ma.md:78` `### Task 1.1:` → `### Sub-step 1.1:`. Note the file is symlinked live by `scripts/install.sh:284` — the change is immediate for all sessions.
-- Result Log: _pending_
+- Result Log: **Scope expanded from 1 file to 5.** The §6.8 review flagged that fixing only `rules/aa-ma.md` would leave the scribe emitting `### Step N.M:` — a form the new lint forbids. Survey found FIVE writers disagreeing: `rules/aa-ma.md:78`, `agents/aa-ma-scribe.md:148,153,163`, `commands/aa-ma-plan.md:748,752`, `skills/aa-ma-plan-workflow/references/PHASE_5_ARTIFACT_CREATION.md:223`, `docs/templates/plan-template.md:150`. Only `docs/templates/tasks-template.md` was already canonical. All five fixed. Note `claude-code/` files are symlinked live by install.sh:284 — effective immediately for every session, no reinstall.
 
 ### Sub-step 2.4: Verify this plan's own artifacts pass
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: run the lint against `.claude/dev/active/milestone-grammar-ssot/`. Revision 2 of this plan would have failed here.
-- Result Log: _pending_
+- Result Log: This plan's own tasks.md returns zero violations. Added `test_shipped_writers_emit_canonical_headings`, parametrized over all 5 writer templates, so writer↔linter divergence cannot silently return — that recurrence was the actual risk, not the one-off fix. New-Tests 2 → 7.
 
 ## Milestone 3: Fix the flaky C4 test
 

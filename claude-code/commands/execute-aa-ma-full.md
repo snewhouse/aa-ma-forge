@@ -606,7 +606,7 @@ Next Steps:
 
 2. **Create Remediation Sub-Task**:
    ```markdown
-   ### Sub-step: Resolve [validation failure]
+   ### Sub-step N.M: Resolve [validation failure]
    - Status: PENDING
    - Dependencies: None
    - Complexity: [estimate]%

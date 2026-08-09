@@ -332,11 +332,11 @@ _Last Updated: YYYY-MM-DD_
   - [Testable criterion 1]
   - [Testable criterion 2]
 
-### Step 1.1: [Action]
+### Sub-step 1.1: [Action]
 - Status: COMPLETE
 - Result Log: [What happened]
 
-### Step 1.2: [Action]
+### Sub-step 1.2: [Action]
 - Status: ACTIVE
 - Result Log:
 

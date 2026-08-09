@@ -6,9 +6,8 @@ TUI parser and the corpus tests. Field-value parsing (``Audit-Profile``,
 
 Tolerant reader, strict writer. The corpus accumulated four milestone styles
 and three step keywords before this module existed, so the readers below
-accept all of them. (milestone-grammar-ssot M2 will add
-``tests/test_active_plans_canonical.py`` to enforce a single canonical form on
-new plans; that file does not exist yet.)
+accept all of them. ``tests/test_active_plans_canonical.py`` enforces the
+canonical form on ``.claude/dev/active/**``; completed plans are grandfathered.
 
 Accepted (measured against the 14-plan corpus: 65 milestones, 368 steps)::
 
@@ -123,6 +122,40 @@ def strip_fenced_blocks(text: str) -> str:
     return "".join(out)
 
 
+def iter_fenced_blocks(text: str) -> list[str]:
+    """Return the *contents* of each fenced code block — the inverse of stripping.
+
+    Needed because the shipped writer templates document the tasks.md form
+    *inside* a ```` ```markdown ```` fence. Linting their sanitized text checks
+    nothing at all: the §6.8 review mutation-tested this and found 4 of 5 writer
+    checks inert, passing green against the exact drift they were added to catch.
+    """
+    blocks: list[str] = []
+    current: list[str] | None = None
+    fence: tuple[str, int] | None = None
+    for line in text.splitlines(keepends=True):
+        match = _FENCE_RE.match(line)
+        if fence is None:
+            if match:
+                marker = match.group("marker")
+                fence, current = (marker[0], len(marker)), []
+            continue
+        char, length = fence
+        if (
+            match
+            and match.group("marker")[0] == char
+            and len(match.group("marker")) >= length
+        ):
+            blocks.append("".join(current or []))
+            fence, current = None, None
+            continue
+        if current is not None:
+            current.append(line)
+    if current:  # unterminated fence
+        blocks.append("".join(current))
+    return blocks
+
+
 def sanitize(text: str) -> str:
     """Strip everything that can look like a heading without being one.
 
@@ -167,3 +200,33 @@ def split_steps(milestone_block: str) -> list[Block]:
     Sanitising is idempotent and linear, so the double pass is cheap.
     """
     return _split(milestone_block, STEP_RE)
+
+
+# -----------------------------------------------------------------------------
+# Strict writer — the single form new plans must use
+# -----------------------------------------------------------------------------
+#
+# The readers above are deliberately tolerant because the archived corpus is
+# frozen. Anything being authored now gets exactly one form. Source:
+# `docs/templates/tasks-template.md` and `docs/spec/aa-ma-specification.md`.
+
+CANONICAL_MILESTONE_RE = re.compile(r"^## Milestone (?P<number>\d+): (?P<title>\S.*)$")
+CANONICAL_STEP_RE = re.compile(r"^### Sub-step (?P<number>\d+\.\d+): (?P<title>\S.*)$")
+
+
+def find_non_canonical(text: str) -> list[str]:
+    """Return headings the tolerant reader accepts but the writer form forbids.
+
+    Candidate selection is the whole subtlety: a line is a *candidate* only if
+    :data:`MILESTONE_RE` or :data:`STEP_RE` recognises it, and a candidate is a
+    *violation* only if it is not also canonical. Linting every ``##`` line
+    instead would flag ordinary prose headings like ``## Summary Counts``.
+    """
+    violations: list[str] = []
+    for line in sanitize(text).splitlines():
+        if MILESTONE_RE.match(line):
+            if not CANONICAL_MILESTONE_RE.match(line):
+                violations.append(line.strip())
+        elif STEP_RE.match(line) and not CANONICAL_STEP_RE.match(line):
+            violations.append(line.strip())
+    return violations

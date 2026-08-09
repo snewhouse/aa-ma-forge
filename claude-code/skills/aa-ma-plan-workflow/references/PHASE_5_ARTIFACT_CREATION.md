@@ -220,7 +220,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - [Criterion 1 from plan]
   - [Criterion 2 from plan]
 
-### Step 1.1: [Action from plan]
+### Sub-step 1.1: [Action from plan]
 - **Status:** PENDING
 - **Result Log:** [Will be filled during execution]
 ```

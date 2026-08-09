@@ -651,7 +651,7 @@ rate drops.
 milestone if specified):
 
 ```markdown
-### Step N.M: [DEFERRED from §6.8 impl review] <pattern> <file:line>
+### Sub-step N.M: [DEFERRED from §6.8 impl review] <pattern> <file:line>
 - Status: PENDING
 - Mode: AFK
 - Acceptance: Address the deferred CRITICAL finding from impl-review.md
@@ -948,7 +948,7 @@ Update tasks.md: Change milestone `Status: ACTIVE` → `Status: BLOCKED`
 
 Add new sub-task under milestone:
 ```markdown
-### Sub-step: Resolve [validation failure]
+### Sub-step N.M: Resolve [validation failure]
 - Status: PENDING
 - Dependencies: None
 - Complexity: [estimate]%

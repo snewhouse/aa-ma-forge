@@ -145,12 +145,12 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - [Criterion 1 — must be testable and specific]
   - [Criterion 2]
 
-### Step N.1: [Action from plan]
+### Sub-step N.1: [Action from plan]
 - Status: PENDING
 - Dependencies: [Step IDs or "None"]
 - Result Log:
 
-### Step N.2: [Next action]
+### Sub-step N.2: [Next action]
 - Status: PENDING
 - Result Log:
 
@@ -160,7 +160,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 **HTP conversion rules:**
 - Plan milestones → `## Milestone N: [Title]`
-- Plan steps within milestone → `### Step N.M: [Action]`
+- Plan steps within milestone → `### Sub-step N.M: [Action]`
 - Always include: Status, Dependencies, Complexity, Acceptance Criteria at milestone level
 - Always include: Status, Result Log at step level
 - All statuses start as `PENDING`

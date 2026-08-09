@@ -147,7 +147,7 @@
 <!-- Instructions for converting this plan into the other AA-MA files. -->
 <!-- The scribe agent or human operator uses this section. -->
 
-- **tasks.md:** Convert each Milestone to `## Milestone N` and each Step to `### Step N.M` with Status: PENDING
+- **tasks.md:** Convert each Milestone to `## Milestone N` and each Step to `### Sub-step N.M` with Status: PENDING
 - **reference.md:** Extract all file paths, API endpoints, config values, dependency versions, and constants
 - **context-log.md:** Log the plan approval as the first entry
 - **provenance.log:** Record task initialization timestamp

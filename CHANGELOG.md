@@ -14,6 +14,17 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   crashing the TUI. `Milestone.number` is now `str`, matching `Step.number`.
   Consumers pinning `schema_version == 1` or treating `number` as numeric must update.
 
+### Feat — canonical tasks.md heading form, enforced
+
+- `### Sub-step N.M: Title` is now the single canonical step form, matching what
+  `docs/templates/tasks-template.md` has always shipped. Eleven shipped writers
+  disagreed with it (the scribe, `/aa-ma-plan`, the spec, the team guide, the
+  README and more) — all corrected. Archived plans are grandfathered; the lint
+  applies only to `.claude/dev/active/`.
+- Two writers taught **unnumbered** forms (`## Task Title`, `### Sub-step: [Action]`)
+  that matched neither the tolerant reader nor the canonical writer, so plans
+  authored from them parsed as zero milestones and zero steps. Fixed.
+
 ### Feat — shared milestone/step grammar (`src/aa_ma/grammar.py`)
 
 - Single source of truth for AA-MA heading structure, replacing three divergent

@@ -147,15 +147,15 @@ CANONICAL_M = re.compile(r"^## Milestone (\d+): \S.*$")
 CANONICAL_S = re.compile(r"^### Sub-step (\d+\.\d+): \S.*$")
 ```
 Tolerant reader, strict writer: no letter suffixes, no `.bis`, no em-dash, exactly one space after the colon.
-- Fix `claude-code/rules/aa-ma.md:78` `### Task 1.1:` → `### Sub-step 1.1:`. **Symlinked live** by `scripts/install.sh:284` — the edit changes the auto-loaded ruleset for every subsequent session with no reinstall.
+- Fix **all eleven** shipped writers of tasks.md headings (scope expanded from 1 during execution — see context-log D8). The authoritative list is `WRITER_TEMPLATES` in `tests/test_active_plans_canonical.py`; only `docs/templates/tasks-template.md` was already canonical. **Symlinked live** by `scripts/install.sh:284` — the edit changes the auto-loaded ruleset for every subsequent session with no reinstall.
 - `tests/test_active_plans_canonical.py` lints `.claude/dev/active/**/*-tasks.md`, excluding `.worktrees/`.
 - Fixture: `tests/fixtures/canonical/malformed-task/malformed-task-tasks.md` with `## M1: x`, `## Milestone M2: x`, `## Milestone 3 — x`, `### Task 1.1: x`.
 
 **Acceptance**
 1. `uv run pytest tests/test_active_plans_canonical.py -q` exits 0.
 2. `check_canonical(FIXTURE)` returns exactly 4 violations (meta-test — a test that "fails against a fixture" cannot live in the suite).
-3. `grep -c "### Task" claude-code/rules/aa-ma.md` = 0 (guard the exit code; `grep -c` returns 1 on zero matches).
-4. **This plan's own `tasks.md` passes the lint.** The scribe writes from `tasks-template.md` (`### Sub-step N.N:`) — consistent by construction. Note this `plan.md`'s own `### M1 —` headings use two outlawed forms; harmless here (no grammar scans `plan.md`) but the scribe must not carry the style into `tasks.md`.
+3. No shipped writer emits a non-canonical tasks.md heading — enforced by `test_shipped_writers_emit_canonical_headings` across all 11, not by a single-file grep.
+4. **This plan's own `tasks.md` passes the lint**, and every writer carries a mutation guard (`test_writer_check_is_not_vacuous`) proving the check is not inert. The original rationale — "the scribe writes from tasks-template.md, consistent by construction" — was **refuted**: the scribe carries its own template at `agents/aa-ma-scribe.md:148,153,163`. Consistency is enforced by test, not by construction. Note this `plan.md`'s own `### M1 —` headings use two outlawed forms; harmless here (no grammar scans `plan.md`) but the scribe must not carry the style into `tasks.md`.
 
 ### M3 — Fix the flaky C4 test
 - **Gate:** SOFT
@@ -219,7 +219,9 @@ Legitimising `## M1:` and em-dash styles while grammar #5 stays blind leaves the
 ## 5. Artefacts
 
 **New:** `src/aa_ma/grammar.py`, `tests/test_grammar.py`, `tests/test_active_plans_canonical.py`, `tests/fixtures/canonical/malformed-task/`.
-**Modified:** `src/aa_ma/tui/parser.py`, `src/aa_ma/tui/model.py`, `src/aa_ma/tui/json_output.py` (docstring), `tests/codemem/test_corpus_grandfathering.py`, `tests/tui/_static_tasks.py`, `tests/tui/test_parser.py`, `tests/tui/test_parser_properties.py`, `tests/tui/test_model.py`, `tests/tui/test_snapshot.py`, `tests/tui/test_json_output.py`, `tests/tui/test_integration.py`, `tests/tui/test_main_dispatch.py`, `tests/tui/snapshots/data.json` (regenerate), `tests/hooks/aa-ma-parse.bats`, `tests/commands/sole-dev-merge/test_stage_c_dispatch.bats` (+ `test_stage_d_triage.bats`, `test_smoke_e2e.bats`), `.github/workflows/security.yml`, `claude-code/rules/aa-ma.md`, `claude-code/rules/engineering-standards.md`, `claude-code/commands/execute-aa-ma-milestone.md`, `claude-code/skills/verify-impl/SKILL.md`, `src/aa_ma/plan_parsers.py`, `docs/adr/0007-aa-ma-tui-tracker.md`, `CHANGELOG.md`, `CLAUDE.md`.
+**Modified (M2 writers):** `claude-code/rules/aa-ma.md`, `claude-code/agents/aa-ma-scribe.md`, `claude-code/commands/aa-ma-plan.md`, `claude-code/commands/execute-aa-ma-milestone.md`, `claude-code/commands/execute-aa-ma-full.md`, `claude-code/commands/execute-aa-ma-step.md`, `claude-code/skills/aa-ma-execution/SKILL.md`, `claude-code/skills/aa-ma-plan-workflow/references/PHASE_5_ARTIFACT_CREATION.md`, `docs/templates/plan-template.md`, `docs/spec/aa-ma-team-guide.md`, `docs/spec/aa-ma-specification.md`, `README.md`, `examples/aa-ma-team-guide/aa-ma-team-guide-tasks.md`.
+
+**Modified (M1):** `src/aa_ma/tui/parser.py`, `src/aa_ma/tui/model.py`, `src/aa_ma/tui/json_output.py` (docstring), `tests/codemem/test_corpus_grandfathering.py`, `tests/tui/_static_tasks.py`, `tests/tui/test_parser.py`, `tests/tui/test_parser_properties.py`, `tests/tui/test_model.py`, `tests/tui/test_snapshot.py`, `tests/tui/test_json_output.py`, `tests/tui/test_integration.py`, `tests/tui/test_main_dispatch.py`, `tests/tui/snapshots/data.json` (regenerate), `tests/hooks/aa-ma-parse.bats`, `tests/commands/sole-dev-merge/test_stage_c_dispatch.bats` (+ `test_stage_d_triage.bats`, `test_smoke_e2e.bats`), `.github/workflows/security.yml`, `claude-code/rules/aa-ma.md`, `claude-code/rules/engineering-standards.md`, `claude-code/commands/execute-aa-ma-milestone.md`, `claude-code/skills/verify-impl/SKILL.md`, `src/aa_ma/plan_parsers.py`, `docs/adr/0007-aa-ma-tui-tracker.md`, `CHANGELOG.md`, `CLAUDE.md`.
 
 ## 6. Rollback
 

@@ -566,7 +566,7 @@ if (( n_github >= 1 && n_gitlab >= 1 )); then
     # the real AskUserQuestion. GitLab is the default per project convention
     # (see plan §3.2 + your project's per-repo bk_<project>.md backup-rules file).
     cat > "$AUQ_LOG" <<'JSON'
-{"call":1,"n_options":2,"labels":["GitLab (recommended for Biorelate projects)","GitHub"],"default":"GitLab (recommended for Biorelate projects)"}
+{"call":1,"n_options":2,"labels":["GitLab (recommended)","GitHub"],"default":"GitLab (recommended)"}
 JSON
     echo "DUAL_REMOTE_PROMPT default=GitLab labels=GitLab,GitHub"
     # Until the Claude executor updates REMOTE_CHOICE post-AUQ, default to

@@ -12,7 +12,7 @@ Claude Code displays warning at startup: `Large cumulative agent descriptions wi
 
 ### Key Decisions Made
 1. **Approach:** Minimal changes - consolidate only obvious duplicates
-2. **Preserve:** All 5 Galactic skills, most agents intact
+2. **Preserve:** All 5 client skills, most agents intact
 3. **Tracking:** Full AA-MA artifacts for progress tracking
 
 ### Duplicates Identified

@@ -90,7 +90,7 @@ A single new file `claude-code/commands/sole-dev-merge.md` REPLACES the user-loc
 - **3.1** Stage E1 (Remote detection) — inline bash. Parses `git remote -v` (stripping fetch/push duplicates) into associative arrays. Classifies each remote: `github` if URL matches `github.com`, `gitlab` if matches `gitlab.com`, `other` else. Outputs counts: `n_github`, `n_gitlab`, `n_other`. No JSON envelope — bash-internal state.
 - **3.2** Stage E2 (Remote choice) — decision logic:
   - 1 remote total → use it
-  - github + gitlab (both present) → `AskUserQuestion` with default option "GitLab" (per Biorelate convention from `bk_<project>.md`, `bk_<project>.md`, `bk_<project>.md`)
+  - github + gitlab (both present) → `AskUserQuestion` with default option "GitLab" (per project convention from `bk_<project>.md`, `bk_<project>.md`, `bk_<project>.md`)
   - zero github + zero gitlab → fail with actionable error ("only github.com and gitlab.com remotes supported")
 - **3.3** Stage E3 (AI body generation) — inline bash + Agent tool with Haiku-class model. Writes body to absolute path `/tmp/sole-dev-merge-body-<slug>.md`. Body contains:
   - `## Summary` (1-3 sentence narrative AI-generated from `git diff main...HEAD --stat` + commit subjects)
@@ -222,7 +222,7 @@ A single new file `claude-code/commands/sole-dev-merge.md` REPLACES the user-loc
 
 - **M1:** `bats tests/commands/sole-dev-merge/test_stage_a_preflight.bats` + `test_stage_b_scope.bats` (≥ 2 bats files passing)
 - **M2:** `bats tests/commands/sole-dev-merge/test_stage_c_dispatch.bats` + `test_stage_d_triage.bats` (≥ 2 bats files passing) + manual: planted Bandit B602 → verify auto-fix commit
-- **M3:** `bats test_stage_e_remote.bats` + `test_stage_f_idempotent.bats` (≥ 2 bats files passing) + manual on aa-ma-forge (GitHub-only) + a Biorelate dual-remote project to confirm prompt
+- **M3:** `bats test_stage_e_remote.bats` + `test_stage_f_idempotent.bats` (≥ 2 bats files passing) + manual on aa-ma-forge (GitHub-only) + a dual-remote project to confirm prompt
 - **M4:** `bats test_stage_g_poll.bats` + `test_stage_g_merge.bats` (≥ 2 bats files passing) + manual: run against a real PR with quick CI (security.yml ~2 min)
 - **M5:** `bats test_smoke_e2e.bats` + `Skill(doc-drift-detection)` reports clean for tiers 1, 2, 6, 7 + `./scripts/install.sh --dry-run` succeeds + ShellCheck on new command markdown's bash blocks (extracted via skill or `bash -n`) + ADR-0008 lands
 

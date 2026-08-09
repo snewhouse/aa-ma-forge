@@ -29,7 +29,7 @@
   },
   "repos": {
     "aa-ma-forge": {
-      "repo": "/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge",
+      "repo": "/home/sjnewhouse/projects/github_private/aa-ma-forge",
       "pinned_sha": "c24d665174cf3c2c93e5f7e6404ceab9eab2f121",
       "runs_per_cell": 3,
       "budgets": [

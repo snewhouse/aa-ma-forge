@@ -18,7 +18,7 @@
 | Location | **aa-ma-forge plugin** at `claude-code/commands/` | Versioned, install.sh-managed, CI-covered |
 | Code review approach | **Local AI review BEFORE pushing PR + extra security pass** | Fast feedback, no GitHub API spend |
 | Auto-fix aggression | **CRITICAL auto-apply; ask on HIGH/MEDIUM** | Safe default, tight loop |
-| Remote detection | **Dual-remote aware; AskUserQuestion when both; default GitLab** | Matches Biorelate convention (gitlab=primary) |
+| Remote detection | **Dual-remote aware; AskUserQuestion when both; default GitLab** | Matches project convention (gitlab=primary) |
 | Pre-PR CI checks | **All 4: format+lint+fix, typecheck, pytest fast, pre-commit** | Catch all classes locally |
 | Post-PR-open behaviour | **Poll CI green (30s × 15min) then auto-merge** | End-to-end, sole-dev spirit |
 | Merge strategy | **Rebase + ff (linear history)** | Closest to existing /sole-dev-merge ff-only flavour |

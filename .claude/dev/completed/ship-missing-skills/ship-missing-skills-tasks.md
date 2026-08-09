@@ -44,8 +44,8 @@
 ### Task 1.6: Audit all copied assets
 - Status: COMPLETE
 - Mode: AFK
-- Acceptance Criteria: Zero grep hits for Biorelate, internal URLs, personal paths, API keys, client names
-- Result Log: Grep for biorelate/client-x/galactic/sjnewhouse/client/private/api_key/secret/password/credential: 0 hits. All assets clean for public repo.
+- Acceptance Criteria: Zero grep hits for employer/client names, internal URLs, personal paths, API keys, client names
+- Result Log: Grep for employer/client names/sjnewhouse/client/private/api_key/secret/password/credential: 0 hits. All assets clean for public repo.
 
 ## Milestone 2: Update install.sh and uninstall.sh
 - Status: COMPLETE

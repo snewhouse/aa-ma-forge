@@ -8,7 +8,7 @@
 
 Generated: 2026-05-17 | Mode: interactive | Revision: 1
 Plan source: `/home/sjnewhouse/.claude/plans/i-d-like-a-way-snappy-melody.md` (now copied to `aa-ma-tui-tracker-plan.md`)
-Project root verified against: `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge`
+Project root verified against: `/home/sjnewhouse/projects/github_private/aa-ma-forge`
 
 ## Summary
 

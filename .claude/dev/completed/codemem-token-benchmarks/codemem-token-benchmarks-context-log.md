@@ -163,7 +163,7 @@ Full tables and methodology: [`docs/benchmarks/codemem-vs-aider.md`](../../../do
 **Resolution:** Added `"codemem-mcp"` to root `[tool.uv] dev-dependencies` in `pyproject.toml`. `uv sync` then installed the workspace member editably into `.venv` with the correct current-dir path.
 
 **Root cause (full picture after deep investigation):**
-- User moved the repo from `/home/sjnewhouse/github_private/aa-ma-forge/` to `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge/` (confirmed by user 2026-04-20).
+- User moved the repo from `/home/sjnewhouse/github_private/aa-ma-forge/` to `/home/sjnewhouse/projects/github_private/aa-ma-forge/` (confirmed by user 2026-04-20).
 - The conda env `bio312_07_25` (always active in this WSL shell) had an editable install of `codemem-mcp` pinned at the old path, so `codemem` CLI stopped working once the old path was gone.
 - The project's `.venv` had NEVER installed `codemem-mcp` as a Python package — workspace declaration (`[tool.uv.workspace] members = [...]` + `[tool.uv.sources] codemem-mcp = { workspace = true }`) does NOT cause installation by itself; uv only installs it if it's a declared dep.
 - Yesterday's Task 1.2 AC#4 (`uv run codemem intel ...`) succeeded because PATH fell through to the conda env's binary while the old path still existed.
@@ -177,7 +177,7 @@ Full tables and methodology: [`docs/benchmarks/codemem-vs-aider.md`](../../../do
 - **Trade-off:** The workspace's `aa_ma` package now has a dev-dep on its own workspace sibling. Slightly circular-looking, but idiomatic for uv workspaces and is what the uv docs recommend for workspace members you want auto-installed.
 
 **Empirical verification (post-fix, 2026-04-20):**
-- `uv run python -c "import codemem; print(codemem.__file__)"` → `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge/packages/codemem-mcp/src/codemem/__init__.py` ✅
+- `uv run python -c "import codemem; print(codemem.__file__)"` → `/home/sjnewhouse/projects/github_private/aa-ma-forge/packages/codemem-mcp/src/codemem/__init__.py` ✅
 - `uv run codemem intel --budget=1024 --out=/tmp/obs001-resolved.json` → "wrote 17 symbols (4003B)" — matches Phase-3 + yesterday's baseline exactly ✅
 - `.venv/bin/codemem` now exists (PATH resolution of `uv run codemem` hits .venv first, bypasses the broken conda-env binary) ✅
 - Full test suite: **370 passed, 1 skipped, 5 deselected** (was 24 collection errors before fix) ✅
@@ -199,7 +199,7 @@ Full tables and methodology: [`docs/benchmarks/codemem-vs-aider.md`](../../../do
 - **Trade-offs:** 6 extra chars per decorator row in the output. Negligible vs the readability gain.
 
 **Observation OBS-001 — Pre-existing environment drift in `.venv`:**
-- `uv pip list` reports `codemem-mcp 0.1.0.dev0` editable-installed from `/home/sjnewhouse/github_private/aa-ma-forge/packages/codemem-mcp`, but the current working directory is `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge/`.
+- `uv pip list` reports `codemem-mcp 0.1.0.dev0` editable-installed from `/home/sjnewhouse/github_private/aa-ma-forge/packages/codemem-mcp`, but the current working directory is `/home/sjnewhouse/projects/github_private/aa-ma-forge/`.
 - Effect: `from codemem.X import ...` in `tests/codemem/test_*.py` modules fails with `ModuleNotFoundError: No module named 'codemem'` — the install location is a different (possibly stale) clone of aa-ma-forge.
 - Scope: all tests/codemem/test_*.py modules except `test_bench_harness.py` (the only file in this suite that imports from `scripts/` via conftest, not from `codemem`).
 - **Confirmed pre-existing**, not caused by this plan: temporarily renaming `tests/codemem/conftest.py` → `.bak` and re-running `pytest tests/codemem/test_pagerank.py` produces the same `ModuleNotFoundError`. Conftest.py cannot cause this — it only adds `scripts/` to sys.path, never shadows `codemem`.
@@ -251,7 +251,7 @@ Execute the token-budget benchmark DEFERRED as Task 4.2 from the archived codeme
 
 - **Decision AD-004:** Use `fastapi` (tiangolo/fastapi) as the OSS benchmark repo; fallback `pallets/click`.
   - **Rationale:** fastapi is a well-known Python project with sufficient symbol density to stress all 3 tools. Public GitHub repo satisfies jCodeMunch's `index_repo` constraint. Click is the fallback if fastapi is too large for jCodeMunch's indexer.
-  - **Alternatives Considered:** Internal biorelate repos (too client-sensitive); synthetic fixtures (don't exercise real-world ranking signal).
+  - **Alternatives Considered:** Internal client repos (too sensitive); synthetic fixtures (don't exercise real-world ranking signal).
   - **Trade-offs:** First-run cost (initial clone + index) vs real-world signal.
 
 - **Decision AD-005:** Inline the Aider output parser unless it grows beyond 100 LOC.

@@ -112,7 +112,7 @@ teardown() {
     [[ "$output" == *"DUAL_REMOTE_PROMPT"* ]]
 
     [ -f "$AUQ_LOG" ]
-    # Default label is GitLab (Biorelate convention).
+    # Default label is GitLab (project convention).
     grep -qE '"default"\s*:\s*"GitLab[^"]*"' "$AUQ_LOG"
     # options[0].label matches ^GitLab — single source-of-truth: the labels
     # array order. Using jq if present, fall back to grep.

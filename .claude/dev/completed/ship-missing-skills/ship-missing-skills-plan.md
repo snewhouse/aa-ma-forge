@@ -48,7 +48,7 @@ The AA-MA commands reference 5 custom assets (grill-me command, plan-verificatio
 - Mode: AFK
 
 ### Task 1.6: Audit all copied assets for public-readiness
-- Grep for: Biorelate, internal URLs, personal paths, API keys, client names
+- Grep for: employer/client names, internal URLs, personal paths, API keys, client names
 - Fix any findings
 - Mode: AFK
 

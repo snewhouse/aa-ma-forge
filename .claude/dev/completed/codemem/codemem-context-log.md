@@ -475,9 +475,9 @@ None blocking Wave 1.
 
 ## 2026-04-17 — PLAN REVISION — Task 3.5.5 defect + AC rewrite
 
-**Trigger.** Fresh Claude Code session launched 2026-04-17 to execute Task 3.5.5 live verification (the three dogfood tool calls: `search_symbols`, `hot_spots`, `aa_ma_context`). First call resolved against `project-index`'s `search_symbols`, not codemem. Second call (`hot_spots`) returned "no such tool" — it doesn't exist in `project-index`. Investigation: the session's deferred tool list contained `mcp__project-index__*`, `mcp__galactic__*`, `mcp__plugin_claude-mem__*`, `mcp__plugin_context7__*` — **zero `mcp__codemem__*` entries**. The codemem server never attached.
+**Trigger.** Fresh Claude Code session launched 2026-04-17 to execute Task 3.5.5 live verification (the three dogfood tool calls: `search_symbols`, `hot_spots`, `aa_ma_context`). First call resolved against `project-index`'s `search_symbols`, not codemem. Second call (`hot_spots`) returned "no such tool" — it doesn't exist in `project-index`. Investigation: the session's deferred tool list contained `mcp__project-index__*`, `mcp__client_kg__*`, `mcp__plugin_claude-mem__*`, `mcp__plugin_context7__*` — **zero `mcp__codemem__*` entries**. The codemem server never attached.
 
-**Root cause (confirmed empirically).** Task 3.5.5's original AC and its "PREPARED" Result Log both called for registering codemem in `~/.claude/.mcp.json`. Claude Code does NOT read that path. Python-inspection of `~/.claude.json` showed its top-level `mcpServers` key contains exactly `project-index` + `galactic` — matching what attached — and no `codemem`. `projects[<aa-ma-forge>].mcpServers` was empty. `~/.claude/.mcp.json` (an aa-ma-forge install convention) had the correct-looking JSON but is an orphan file with no runtime effect. `project-index` + `galactic` attach because they ARE in `~/.claude.json`; `codemem` doesn't because it isn't.
+**Root cause (confirmed empirically).** Task 3.5.5's original AC and its "PREPARED" Result Log both called for registering codemem in `~/.claude/.mcp.json`. Claude Code does NOT read that path. Python-inspection of `~/.claude.json` showed its top-level `mcpServers` key contains exactly `project-index` + `client-kg` — matching what attached — and no `codemem`. `projects[<aa-ma-forge>].mcpServers` was empty. `~/.claude/.mcp.json` (an aa-ma-forge install convention) had the correct-looking JSON but is an orphan file with no runtime effect. `project-index` + `client-kg` attach because they ARE in `~/.claude.json`; `codemem` doesn't because it isn't.
 
 **Lesson filed.** L-244 in `docs/lessons.md` — distinguishes aa-ma-forge plugin dir (`~/.claude/`) from Claude Code user config (`~/.claude.json`) and names the three real locations Claude Code reads MCP servers from (project-local `.mcp.json`, `~/.claude.json` top-level `mcpServers`, `~/.claude.json` project-scoped `mcpServers`).
 
@@ -511,7 +511,7 @@ None blocking Wave 1.
 5. No pre-existing `.mcp.json` at repo root; `.mcp.json` not in `.gitignore` — safe to create and commit.
 
 **Actions this turn.**
-- **Authored `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge/.mcp.json`:** single `codemem` server entry; `command = "uv"`; `args = ["--directory", "${PWD}", "run", "python", "claude-code/codemem/mcp/server.py"]`; `env = { CODEMEM_REPO_ROOT: "${PWD}", CODEMEM_DB: "${PWD}/.codemem/index.db" }`. `${PWD}` is expanded by Claude Code at config-load from its own process env, so any machine that launches Claude Code from the aa-ma-forge workspace root gets correct absolute paths in the subprocess. No hardcoded `/home/sjnewhouse/` paths — safe to commit.
+- **Authored `/home/sjnewhouse/projects/github_private/aa-ma-forge/.mcp.json`:** single `codemem` server entry; `command = "uv"`; `args = ["--directory", "${PWD}", "run", "python", "claude-code/codemem/mcp/server.py"]`; `env = { CODEMEM_REPO_ROOT: "${PWD}", CODEMEM_DB: "${PWD}/.codemem/index.db" }`. `${PWD}` is expanded by Claude Code at config-load from its own process env, so any machine that launches Claude Code from the aa-ma-forge workspace root gets correct absolute paths in the subprocess. No hardcoded `/home/sjnewhouse/` paths — safe to commit.
 - **Rewrote Milestone M4 AC line 360** (`tasks.md`): `paste 3-line settings.json snippet` → `ship a project-scope .mcp.json at the workspace root (top-level mcpServers.codemem) → on first fresh-session use Claude Code prompts for approval → first MCP query triggers build → returns answer in < 5s on aa-ma-forge`. Added L-244 note.
 - **Rewrote Task 4.8 AC line 418:** replaced both `settings.json` mentions with `.mcp.json`; added language about `${VAR:-default}` env expansion so the shipped snippet is portable; added L-244 note explaining the original wording was wrong.
 - **Updated Task 3.5.5:** Status PENDING → PREPARED v2 (authoring done, live verification remains). Appended new Result Log entry documenting the `.mcp.json` contents + verification evidence, the orphan-cleanup still-pending item, and the live-verification steps for the next fresh session.
@@ -525,7 +525,7 @@ None blocking Wave 1.
 ### Unresolved
 
 - **Live verification (3.5.5 AC criteria 3+4):** requires fresh Claude Code session with `.mcp.json` approval. Pending next session.
-- **Orphan `~/.claude/.mcp.json` codemem entry:** RESOLVED 2026-04-17. Removed via `jq 'del(.mcpServers.codemem)'` after timestamped backup. Post-state verified: `mcpServers` keys = `['galactic', 'project-index-query']` — matching pre-2026-04-17-defect baseline. AC criterion 5 satisfied.
+- **Orphan `~/.claude/.mcp.json` codemem entry:** RESOLVED 2026-04-17. Removed via `jq 'del(.mcpServers.codemem)'` after timestamped backup. Post-state verified: `mcpServers` keys = `['client-kg', 'project-index-query']` — matching pre-2026-04-17-defect baseline. AC criterion 5 satisfied.
 
 ---
 

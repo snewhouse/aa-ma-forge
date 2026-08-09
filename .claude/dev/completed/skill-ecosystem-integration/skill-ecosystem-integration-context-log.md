@@ -140,7 +140,7 @@ The local `token-compression` skill has 3 intensity levels (lite/full/ultra) map
 **Cross-language assessment for prototype** (user asked: "is matt's prototype applicable for our python and future java or typescript projects?"):
 - LOGIC branch: **fully cross-language** — SKILL.md says "Pick the language: Use whatever the host project uses"; LOGIC.md shows ANSI escape examples for JS (`console.clear()`), Python (`print("\033[2J\033[H")`), and "equivalent"; run-command examples cover `pnpm`/`python`/`bun`/`Makefile`/`justfile`/`pyproject.toml`. Works for Python, TypeScript, Java, Rust, Go.
 - UI branch: **web-frontend specific** — uses TSX, `searchParams.get('variant')`, `process.env.NODE_ENV`. Works for any web framework but assumes a browser-renderable surface. Not for backend-only services or pure data pipelines.
-- For aa-ma-forge: LOGIC fits everywhere (Python codemem, future TS/Java backends); UI fits when prototyping web surfaces (galactic-agent UI, biorelate dashboards).
+- For aa-ma-forge: LOGIC fits everywhere (Python codemem, future TS/Java backends); UI fits when prototyping web surfaces (client web UIs, client dashboards).
 
 **Strategic fit insight:** prototype skill **directly operationalises** existing engineering-standards.md Theme 1 rule — we have the `Prototype-Required: YES` enum field but no prescribed "how". Adopting prototype means agents now have a structured branching skill to execute, not just an instruction. ADR-0003 will document the LOGIC-vs-UI constraint matrix.
 

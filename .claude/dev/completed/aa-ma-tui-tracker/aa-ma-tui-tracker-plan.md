@@ -17,13 +17,13 @@ Repo: aa-ma-forge
 
 **Architecture:** Read-only Pydantic-typed parser that consumes the existing AA-MA artifact format (5 files per task) and feeds two render targets sharing one in-memory model: a Textual interactive app (dashboard → drill-in) and a Rich one-shot stdout renderer. File-watch via `watchfiles.awatch()` with a debounced AA-MA-aware filter. Zero mutation of task files — strict separation from `/execute-aa-ma-*` writers.
 
-**Tech Stack:** Python 3.11+ · Textual ≥ 0.80 · Rich ≥ 13 · watchfiles ≥ 0.21 · Pydantic v2 · hatchling · uv · pytest + pytest-textual-snapshot · hypothesis (round-trip parser fixtures). Repo: `~/biorelate/projects/gitlab/github_private/aa-ma-forge`.
+**Tech Stack:** Python 3.11+ · Textual ≥ 0.80 · Rich ≥ 13 · watchfiles ≥ 0.21 · Pydantic v2 · hatchling · uv · pytest + pytest-textual-snapshot · hypothesis (round-trip parser fixtures). Repo: `~/projects/github_private/aa-ma-forge`.
 
 ---
 
 ## Context
 
-**Why this exists.** `~/.claude/dev/active/` is currently empty, while `~/.claude/dev/completed/` holds 8 prior tasks (`aa-ma-team-guide`, `agent-token-optimization`, `galactic-skills-review`, `playwright-skill`, `safety-app-production-settings`, `security-quality-remediation`, `ultraplan-agent-teams-hardening`, `ultraplan-enhancement`). The trigger is recurring: every time you start a multi-task workflow under `/aa-ma-plan` + `/execute-aa-ma-milestone`, active tasks accumulate and the only way to scan "what's blocked, what's in progress, what milestone is next" across the portfolio is to open each `*-tasks.md` by hand. The session-start briefing only checks the current working directory, so the global picture stays invisible. Today's empty-active state is the *quiet* moment to ship the tool — before the next sprint creates the same overload.
+**Why this exists.** `~/.claude/dev/active/` is currently empty, while `~/.claude/dev/completed/` holds 8 prior tasks (`aa-ma-team-guide`, `agent-token-optimization`, `client-skills-review`, `playwright-skill`, `safety-app-production-settings`, `security-quality-remediation`, `ultraplan-agent-teams-hardening`, `ultraplan-enhancement`). The trigger is recurring: every time you start a multi-task workflow under `/aa-ma-plan` + `/execute-aa-ma-milestone`, active tasks accumulate and the only way to scan "what's blocked, what's in progress, what milestone is next" across the portfolio is to open each `*-tasks.md` by hand. The session-start briefing only checks the current working directory, so the global picture stays invisible. Today's empty-active state is the *quiet* moment to ship the tool — before the next sprint creates the same overload.
 
 **Intended outcome.** One command — `aa-ma-tui` — gives a live kanban of all active tasks; `Enter` drills into one task's milestone tree with per-step status, progress bar, Mode/Gate badges, and the tail of `provenance.log`. A `--snapshot` mode renders the same information once to stdout (no Textual init) so it can be piped into commits, CI logs, AI prompts, or scripts. A `--include-completed` flag opens the same view onto historical tasks for retros, reuse, and pattern review (the historical view is also the v1 smoke-demo target while `active/` is empty).
 
@@ -192,7 +192,7 @@ Five milestones. Each has TDD-bite-sized steps. Vertical slicing where possible 
 - **T2.4** Write `test_json_output_validates_against_schema`. RED → implement `json_output.dump`. GREEN. Commit.
 - **T2.5** Write `test_main_dispatch_board_default`, `test_main_dispatch_tree_requires_task`, `test_main_exit_code_no_tasks`, `test_main_exit_code_task_not_found`. RED → wire dispatch in `__main__.py`. GREEN. Commit.
 - **T2.6** Manual smoke against the live `completed/` corpus (active/ is empty at v1 launch): `uv run aa-ma-tui --snapshot=board --include-completed --root ~/.claude` — eyeball output. Capture as `provenance.log` entry: `[ts] PROTOTYPE — board snapshot rendered against 8 completed tasks (active=0): OK`.
-- **T2.7** `uv run aa-ma-tui --json --include-completed --root ~/.claude | jq '.[] | .name'` — assert all 8 completed task names appear (`aa-ma-team-guide`, `agent-token-optimization`, `galactic-skills-review`, `playwright-skill`, `safety-app-production-settings`, `security-quality-remediation`, `ultraplan-agent-teams-hardening`, `ultraplan-enhancement`). Commit fixture if any anomaly found.
+- **T2.7** `uv run aa-ma-tui --json --include-completed --root ~/.claude | jq '.[] | .name'` — assert all 8 completed task names appear (`aa-ma-team-guide`, `agent-token-optimization`, `client-skills-review`, `playwright-skill`, `safety-app-production-settings`, `security-quality-remediation`, `ultraplan-agent-teams-hardening`, `ultraplan-enhancement`). Commit fixture if any anomaly found.
 - **T2.8** Regenerate golden files only if anomalies found; otherwise re-run all snapshot tests. Commit.
 
 **Tests-to-validate-milestone:**
@@ -411,7 +411,7 @@ Steps with Complexity ≥ 80%: **none individually**; M3 as a whole is the highe
 ## Next Action
 
 After plan approval (ExitPlanMode):
-1. `/aa-ma-plan` Phase 5 creates `.claude/dev/active/aa-ma-tui-tracker/` **in the `aa-ma-forge` repo** (`cd ~/biorelate/projects/gitlab/github_private/aa-ma-forge` first; this `clauding` directory is not a git repo). The 5 AA-MA files are populated from this revised plan.
+1. `/aa-ma-plan` Phase 5 creates `.claude/dev/active/aa-ma-tui-tracker/` **in the `aa-ma-forge` repo** (`cd ~/projects/github_private/aa-ma-forge` first; this `clauding` directory is not a git repo). The 5 AA-MA files are populated from this revised plan.
 2. Then start execution at **M0 Task T0.1** (create `[project] dependencies = [...]` array with the 4 runtime deps).
 3. AA-MA file to update first: `aa-ma-tui-tracker-tasks.md` (mark T0.1 IN_PROGRESS, write Result Log on completion per L-080–082 sub-step sync rule).
 
@@ -433,7 +433,7 @@ All six themes from `claude-code/rules/engineering-standards.md` materially appl
 ## Verification (how to test end-to-end after implementation)
 
 ```bash
-# from ~/biorelate/projects/gitlab/github_private/aa-ma-forge
+# from ~/projects/github_private/aa-ma-forge
 
 # 1. Install
 uv sync

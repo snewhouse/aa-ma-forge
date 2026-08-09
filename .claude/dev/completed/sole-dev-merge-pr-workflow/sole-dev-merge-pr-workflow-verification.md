@@ -36,7 +36,7 @@ Plan has substantial fact-grounding gaps + 1 unspecified-novel-architecture gap 
 - All file path existence claims correct (15/15)
 - All gh/glab CLI flag claims correct except as noted
 - gh v2.92.0 / glab v1.80.4 verified
-- Biorelate dual-remote pattern verified in `bk_*.md` rules
+- Dual-remote pattern verified in `bk_*.md` rules
 - L-007 in docs/lessons.md verified
 - aa-ma.md L-080/081/082 references verified
 

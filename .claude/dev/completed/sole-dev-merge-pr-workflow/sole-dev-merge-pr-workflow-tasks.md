@@ -286,7 +286,7 @@
   - Stage E2 bash implemented inside `# === stage-e2-choice (BEGIN/END) ===` markers (30 lines).
   - Decision tree: `n_github==0 && n_gitlab==0` → abort with "only github.com and gitlab.com remotes supported" (rc=1); dual → write AUQ-bridge JSON to `$AUQ_LOG` + emit `DUAL_REMOTE_PROMPT default=GitLab labels=GitLab,GitHub` signal on stdout; single → set `REMOTE_CHOICE` directly.
   - HITL bridge: the bash cannot invoke `AskUserQuestion` (that's a Claude tool); it writes the would-be-AUQ args as JSON per `reference.md` test-harness contract, and the Claude executor (in production) reads `$AUQ_LOG`, dispatches the real `AskUserQuestion`, then updates `REMOTE_CHOICE`.
-  - GitLab default rationale embedded in inline comment (Biorelate convention from `bk_<project>.md` / `bk_<project>.md` / `bk_<project>.md`).
+  - GitLab default rationale embedded in inline comment (project convention from `bk_<project>.md` / `bk_<project>.md` / `bk_<project>.md`).
   - Empirical AC §4.3.2 PASS — 4/4 E2 tests green:
     - dual remotes → `$AUQ_LOG` JSON has `options[0].label` matching `^GitLab` AND a label matching `^GitHub` elsewhere
     - single github → no `DUAL_REMOTE_PROMPT`, `REMOTE_CHOICE=github`, `$AUQ_LOG` NOT created

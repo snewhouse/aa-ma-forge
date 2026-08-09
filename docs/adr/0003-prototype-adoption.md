@@ -93,7 +93,7 @@ Both branches share six common rules (throwaway, one-command-runnable, no persis
 **Positive:**
 - `Prototype-Required: YES` is now operational — agents have a canonical procedure.
 - LOGIC branch generalises across Python (codemem and future packages), TypeScript, Java, Go, Rust — wherever the host project has a one-command task runner.
-- UI branch covers web-frontend prototyping for any consumer that builds web surfaces (current Galactic Agent UI work, future Biorelate dashboards).
+- UI branch covers web-frontend prototyping for any consumer that builds web surfaces (current client web-UI work, future client dashboards).
 - Engineering Standards Section 6.7 condition 5 ("PROTOTYPE — <verdict>" provenance evidence) gains a structured procedure to point at, rather than relying on freeform agent verdict text.
 - Skill(prototype) becomes a reusable artefact for any aa-ma-forge consumer once they `scripts/install.sh`.
 
@@ -143,3 +143,7 @@ Both branches share six common rules (throwaway, one-command-runnable, no persis
 - ADR-0002 (grill-with-docs adoption — companion fork): `docs/adr/0002-grill-with-docs-adoption.md`
 - Engineering Standards rule (Theme 1): `claude-code/rules/engineering-standards.md`
 - Lessons learned referenced during planning: `docs/lessons.md` L-001 (External URL First Principle)
+
+---
+
+*Editorial note (2026-08-09): employer/product names genericized post-departure. Technical rationale unchanged.*

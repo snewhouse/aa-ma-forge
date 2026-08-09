@@ -149,7 +149,7 @@ suppresses it.
   hint (`gh pr merge --auto --rebase`), letting the user re-trigger merge
   out-of-band when CI exceeds 15 minutes.
 - **Remote-aware** — single-github, single-gitlab, and dual-remote cases
-  all handled; GitLab default per Biorelate convention; AUQ bridge logs
+  all handled; GitLab default per project convention; AUQ bridge logs
   args for the Claude executor to dispatch real `AskUserQuestion`.
 - **Backward-compatible install** — `scripts/install.sh` auto-discovers
   via `for f in claude-code/commands/*.md` (lines 257-260); zero edit
@@ -237,3 +237,7 @@ post-impl audit at each milestone close.
 - Lessons: L-005, L-006, L-007, L-052, L-080-L-083 in `docs/lessons.md`
 - Related ADRs: ADR-0001 (engineering standards), ADR-0005 (§6.8 post-impl review),
   ADR-0007 (TUI tracker)
+
+---
+
+*Editorial note (2026-08-09): employer/product names genericized post-departure. Technical rationale unchanged.*

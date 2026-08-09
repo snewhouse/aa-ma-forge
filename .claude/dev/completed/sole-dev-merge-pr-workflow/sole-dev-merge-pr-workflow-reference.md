@@ -18,7 +18,7 @@ _Last Updated: 2026-05-18_
 
 ## Target paths
 
-- **Repo root:** `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge`
+- **Repo root:** `/home/sjnewhouse/projects/github_private/aa-ma-forge`
 - **New command file:** `claude-code/commands/sole-dev-merge.md`
 - **Replaces (user-local, NOT in plugin git):** `~/.claude/commands/sole-dev-merge.md`
 - **Tests directory:** `tests/commands/sole-dev-merge/`

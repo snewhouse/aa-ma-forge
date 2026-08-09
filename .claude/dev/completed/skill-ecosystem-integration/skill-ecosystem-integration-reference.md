@@ -13,7 +13,7 @@ _Last Updated: 2026-05-10_
 
 ## Repo & Branch
 
-- **Repo root:** `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge`
+- **Repo root:** `/home/sjnewhouse/projects/github_private/aa-ma-forge`
 - **Plan branch (to be cut from main):** `feature/skill-ecosystem-integration`
 - **Current main HEAD at planning:** `9b5ae85 chore: archive AA-MA plan aa-ma-engineering-standards`
 - **Current version (pre-plan):** `0.5.0` (in `pyproject.toml`)

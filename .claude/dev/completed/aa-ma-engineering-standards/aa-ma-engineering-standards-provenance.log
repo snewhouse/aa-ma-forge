@@ -11,7 +11,7 @@
 [2026-05-09 14:50:00 UTC] M0_STARTED — AA-MA artifact creation in progress
 [2026-05-09 14:51:00 UTC] AA_MA_SCRIBE_DISPATCHED — agent invoked to write 5 standard artifacts
 [2026-05-09 14:55:00 UTC] TASK INITIALIZED — AA-MA directory created at .claude/dev/active/aa-ma-engineering-standards/
-[2026-05-09 14:55:00 UTC] Project: /home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge
+[2026-05-09 14:55:00 UTC] Project: /home/sjnewhouse/projects/github_private/aa-ma-forge
 [2026-05-09 14:55:00 UTC] Plan: aa-ma-engineering-standards — Milestones: 5 (M0-M4), Steps: 26
 [2026-05-09 14:55:00 UTC] Status: M0 IN_PROGRESS — 5 standard artifacts written by scribe; ADR set + validator + verification + cross-ref grep + commit pending
 [2026-05-09 15:00:00 UTC] AA_MA_SCRIBE_COMPLETE — agent aa78673669071d39b returned: 5 files written (plan 470 lines, reference 177, context-log 99, tasks 370, provenance 11; total 1127 lines). Element #12 dogfooded in plan.md.

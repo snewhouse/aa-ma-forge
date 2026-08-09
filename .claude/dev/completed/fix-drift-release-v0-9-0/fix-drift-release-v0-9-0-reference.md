@@ -6,7 +6,7 @@
 
 ### Repo state (verified at plan time)
 
-- **Repo root:** `/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge`
+- **Repo root:** `/home/sjnewhouse/projects/github_private/aa-ma-forge`
 - **Current branch:** `feature/understand-codebase-skill`
 - **Current HEAD:** `7cacff5f0379b3c19b9f7a3f10c24dd3e73933b6` (commit `7cacff5 feat(skills): vendor understand-codebase skill + 4 onboarding agents + /understand-codebase command`)
 - **`origin/main`:** `3a903259a5852272d1f38ed60588e5ab2cddfbad` (`3a90325`)

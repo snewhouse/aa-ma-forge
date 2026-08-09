@@ -277,7 +277,7 @@ All 11 LOW findings acknowledged. Tracked via standard backlog. Highlights:
 - Stale-PR title not refreshed on `gh pr edit` (idempotency holds but content stale)
 - Test stub permissiveness — `exit 0` fallthrough masks future regressions (M4 may need stricter unknown-subcommand handling)
 - Stage E2 default `REMOTE_CHOICE=gitlab` in dual-remote fallthrough — silent if AUQ dispatch fails
-- AUQ_LOG JSON literal hardcoded "GitLab (recommended for Biorelate projects)" duplicated within same line
+- AUQ_LOG JSON literal hardcoded "GitLab (recommended)" duplicated within same line
 - Hardcoded "Four parallel sources" prose — drifts on next security source addition
 - `gh stub` does not model RC=124 timeout path (M4 forward-compat gap)
 - `glab stub` API response shape limited (M4 forward-compat gap)

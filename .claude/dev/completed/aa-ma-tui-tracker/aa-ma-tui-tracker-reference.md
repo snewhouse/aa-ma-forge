@@ -14,7 +14,7 @@ Created: 2026-05-17
 
 | Fact | Value |
 |---|---|
-| Repo | `~/biorelate/projects/gitlab/github_private/aa-ma-forge` |
+| Repo | `~/projects/github_private/aa-ma-forge` |
 | Branch (planning) | `main` (commit `0168d40`) |
 | Package name | `aa-ma` |
 | Current version | `0.9.0` (target: `0.10.0` after M4 cz-bump) |
@@ -256,7 +256,7 @@ Phase 4.5 ran on 2026-05-17. See `aa-ma-tui-tracker-verification.md` for full au
 ### Live smoke result (T2.6/T2.7)
 
 8 tasks discovered from `~/.claude/dev/completed/`:
-- 6 render in board view (4 COMPLETE: aa-ma-team-guide, playwright-skill, security-quality-remediation, ultraplan-agent-teams-hardening; 2 IN_PROGRESS: galactic-skills-review, ultraplan-enhancement)
+- 6 render in board view (4 COMPLETE: aa-ma-team-guide, playwright-skill, security-quality-remediation, ultraplan-agent-teams-hardening; 2 IN_PROGRESS: client-skills-review, ultraplan-enhancement)
 - 2 fall to ERROR aggregate: agent-token-optimization (`## Step N:` legacy), safety-app-production-settings (`## M1:` legacy)
 - JSON envelope includes all 8
 

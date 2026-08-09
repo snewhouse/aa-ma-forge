@@ -105,7 +105,7 @@ The existing `CLAUDE.md` global guide covers 12 entries. The full inventory is 3
 
 **AA-MA CAUTION (verify mode interactions):**
 - Per existing guide: `/design-consultation`, `/qa`, `/qa-design-review`.
-- New: `/design-shotgun` (rapid ideation needs scope discipline), `/pair-agent` (verify mode interactions), `/scrape` (review compliance with Galactic API rules).
+- New: `/design-shotgun` (rapid ideation needs scope discipline), `/pair-agent` (verify mode interactions), `/scrape` (review compliance with knowledge-graph API rules).
 
 **SKIP:**
 - Per existing guide: `/setup-browser-cookies` (macOS-specific; not relevant on WSL/Linux).

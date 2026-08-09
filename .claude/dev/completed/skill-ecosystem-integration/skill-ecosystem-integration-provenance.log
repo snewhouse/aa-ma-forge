@@ -5,7 +5,7 @@
 [2026-05-10T10:30:00+01:00] BRANCH_BASE — main HEAD = 9b5ae85 chore: archive AA-MA plan aa-ma-engineering-standards
 [2026-05-10T10:30:00+01:00] CURRENT_BRANCH — feature/aa-ma-engineering-standards_001 (will cut feature/skill-ecosystem-integration from main in M1.1)
 [2026-05-10T10:30:00+01:00] PROJECT_VERSION — 0.5.0 (target 0.6.0)
-[2026-05-10T10:31:00+01:00] PHASE_1_CONTEXT — pwd=/home/sjnewhouse/biorelate/projects/gitlab/github_private/aa-ma-forge, PROJECT_INDEX.json present, no active AA-MA tasks
+[2026-05-10T10:31:00+01:00] PHASE_1_CONTEXT — pwd=/home/sjnewhouse/projects/github_private/aa-ma-forge, PROJECT_INDEX.json present, no active AA-MA tasks
 [2026-05-10T10:32:00+01:00] LESSONS_SCAN — no docs/lessons.md; reviewed 20 recent revert/fix/hotfix commits (last 6mo); inspected top-3 completed plans (aa-ma-engineering-standards, codemem-token-benchmarks, codemem-benchmark-fairness-v2)
 [2026-05-10T10:33:00+01:00] USER_QUESTIONS — 4 AskUserQuestion calls answered: scope=plan+ship-grill-with-docs-only; integration=both; gsd=inspiration-only; branch=new-feature-branch
 [2026-05-10T10:35:00+01:00] PHASE_3_RESEARCH — dispatched 3 parallel Explore agents (mattpocock/anthropic-agent-skills, gstack, gsd patterns); haiku-class research model preferred for token efficiency

@@ -72,7 +72,7 @@
     {"name": "/health", "candidate_disposition": "AA-MA SAFE", "rationale": "Project health check"},
     {"name": "/sync-gbrain", "candidate_disposition": "AA-MA SAFE", "rationale": "Memory sync"},
     {"name": "/pair-agent", "candidate_disposition": "AA-MA CAUTION", "rationale": "Pair-programming agent — verify mode interactions"},
-    {"name": "/scrape", "candidate_disposition": "AA-MA CAUTION", "rationale": "Web scraping — review for compliance with our Galactic API rules"}
+    {"name": "/scrape", "candidate_disposition": "AA-MA CAUTION", "rationale": "Web scraping — review for compliance with our knowledge-graph API rules"}
   ],
   "highest_relevance_for_aa_ma_forge_M3_or_later": [
     "/context-save", "/context-restore", "/freeze", "/guard", "/careful", "/skillify"

@@ -38,6 +38,11 @@ setup() {
 
 teardown() {
     rm -rf "$BATS_TMP" "$SCRIPT_DIR"
+    # SLUG is set inside the test body, which teardown still sees. Sweeping here
+    # rather than at the end of the test is the point: an assertion that fails
+    # mid-test aborts before any in-body cleanup, so the old placement only ever
+    # cleaned up on the runs that had nothing to clean up after.
+    sweep_slug_tmp
     # Remove the migration-banner sentinel so successive tests don't see
     # the "once per session" suppression effect.
     rm -f "${TMPDIR:-/tmp}/sole-dev-merge-banner-shown"
@@ -210,11 +215,6 @@ PY
     # (L-007 guard's revert held through B-commit + C + D).
     cmp -s tests/codemem/dummy.py <(git show main:tests/codemem/dummy.py)
 
-    # Cleanup
-    rm -f "/tmp/sole-dev-merge-review-${SLUG}.md" \
-          "/tmp/sole-dev-merge-security-${SLUG}.md" \
-          "/tmp/sole-dev-merge-findings-${SLUG}.md" \
-          "/tmp/sole-dev-merge-bandit-${SLUG}.json" \
-          "/tmp/sole-dev-merge-shellcheck-${SLUG}.json" \
-          "/tmp/sole-dev-merge-reviewer-notes-${SLUG}.md"
+    # Cleanup runs in teardown() via sweep_slug_tmp — see the note there on why
+    # in-body cleanup could not be trusted.
 }

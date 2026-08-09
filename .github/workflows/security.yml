@@ -59,10 +59,28 @@ jobs:
       # ubuntu-latest currently ships shellcheck, but C4 in
       # tests/commands/sole-dev-merge/test_stage_c_dispatch.bats now skips
       # rather than fails when it is missing — so an image change would turn
-      # a security assertion green-by-skipping instead of red. Install it
-      # explicitly so the skip path can never be reached silently in CI.
+      # a security assertion green-by-skipping instead of red.
+      #
+      # Conditional: the common path costs nothing, and an apt outage still
+      # reds the job rather than silently proceeding to a skip.
       - name: Install shellcheck (required by Stage C / C4)
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
+        run: command -v shellcheck || (sudo apt-get update && sudo apt-get install -y shellcheck)
+
+      # Assert the guarantee the step above only claims. `bats` reports a
+      # skipped test as `ok N # skip` and exits 0, so without this a stray
+      # SHELLCHECK_BIN or a PATH change would let C4 evaporate while the job
+      # stayed green — the same green-by-skipping failure, one level up.
+      - name: Verify shellcheck is usable
+        run: shellcheck --version
+
+      # C3 has the same contract as C4 and the same failure mode. bandit is not
+      # a declared dependency of this repo, so nothing else in this job installs
+      # it, yet test_smoke_e2e.bats asserts a real B602 finding.
+      - name: Install bandit (required by Stage C / C3)
+        run: command -v bandit || pipx install bandit || pip install bandit
+
+      - name: Verify bandit is usable
+        run: bandit --version
 
       - name: Run bats on tests/hooks/
         run: bats --recursive tests/hooks/

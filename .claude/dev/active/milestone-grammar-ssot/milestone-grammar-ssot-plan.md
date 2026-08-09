@@ -167,6 +167,13 @@ Tolerant reader, strict writer: no letter suffixes, no `.bis`, no em-dash, exact
 
 Highest-complexity milestone with a named unproven hypothesis — Theme 1's prototype-first trigger. The 20× soak result lands as a `PROTOTYPE — <verdict>` provenance entry.
 
+**Scope amended 2026-08-09 (D9, user decision at the §6.8 panel):** extended from
+C4/shellcheck to **both Stage C scanners**. C3/bandit carried the identical
+silent-swallow defect on a scanner that is not a declared dependency and that
+drives Stage D's auto-remediation. Also amended: the `BATS_TEST_TMPDIR`
+re-pathing below is **dropped** — it existed only to defeat the SLUG-collision
+hypothesis, which Sub-step 3.2 refuted by measurement.
+
 Invoke `Skill(systematic-debugging)` — root cause before fix.
 - First hypothesis: `SLUG` collision + shared `/tmp/sole-dev-merge-shellcheck-${SLUG}.json` across the three `.bats` files.
 - Unique path per test under `BATS_TEST_TMPDIR`; fix the cleanup leak.

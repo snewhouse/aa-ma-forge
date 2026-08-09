@@ -6,6 +6,28 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Fix — `/sole-dev-merge` Stage C no longer reports a clean scan it did not perform
+
+- Both C3 (Bandit) and C4 (ShellCheck) ran `<scanner> -f json ... || true`, so a
+  scanner that never ran was indistinguishable from one that found nothing:
+  `$FINDINGS` stayed empty, `Stage C aggregate: 0 findings`, Stage D skipped
+  triage, and the PR body rendered a clean security narrative for code nobody
+  scanned. C3 was the worse of the two — `bandit` is not a declared dependency
+  of this repo, and `$BANDIT_OUT` drives Stage D's B602 auto-remediation, so a
+  missing scanner silently disabled detection *and* fixing.
+- The check is now on the **report**, not the binary — `command -v` answers a
+  different question, and `true`, `:` and a broken install all satisfy it.
+  A ShellCheck exit above 1, an empty report, or unparseable JSON now writes a
+  `[HIGH] … UNKNOWN … (scanner-unavailable)` line **into `$FINDINGS`**, mirroring
+  the safe-default `parse_agent_file` already applied to agent output. "0 findings"
+  is unrepresentable in a degraded state, so Stage D routes it to HITL review.
+- **New env vars `SHELLCHECK_BIN` / `BANDIT_BIN`** (defaults `shellcheck` /
+  `bandit`) select the binary, so the degraded path is testable without
+  uninstalling anything. Documented in `CLAUDE.md`.
+- CI now installs and version-asserts both scanners in the `bats` job. `bats`
+  reports a skipped test as `ok N # skip` and exits 0, so without the assertion
+  a missing scanner would have turned a security test green rather than red.
+
 ### BREAKING — `aa-ma-tui --json` schema_version 1 → 2
 
 - `milestones[].number` is now a **JSON string**, not a number. The corpus contains

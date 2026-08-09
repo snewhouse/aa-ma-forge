@@ -33,6 +33,10 @@ setup() {
 
 teardown() {
     rm -rf "$BATS_TMP" "$SCRIPT_DIR"
+    # Only the E3+D integration test sets SLUG; sweep_slug_tmp no-ops (loudly)
+    # for the rest. Placed here rather than in the test body so a failing
+    # assertion cannot skip the cleanup.
+    sweep_slug_tmp
 }
 
 # Build a 5-commit feature branch off main (AC §4.3.3 fixture spec).
@@ -135,8 +139,9 @@ NOTES
     # missed the file and fell back to the empty branch).
     ! grep -q '^(none)$' "$BODY_OUT"
 
-    rm -f "$notes_file"
-    unset SLUG
+    # $notes_file is swept by teardown()'s sweep_slug_tmp. SLUG is deliberately
+    # NOT unset here — teardown needs it, and each bats test runs in its own
+    # process, so the export cannot leak into the next one.
 }
 
 @test "E3+D integration: missing reviewer-notes → '(none)' fallback (no SLUG)" {

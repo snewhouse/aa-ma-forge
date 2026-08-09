@@ -8,7 +8,7 @@ Immutable facts. Every figure measured at **b11c46d** by executing the real code
 - **Base commit:** `b11c46d`
 - **Setup:** `uv sync`
 - **Suite baseline:** `783 passed, 1 failed, 1 skipped, 7 deselected`. The single failure is `tests/codemem/test_corpus_grandfathering.py::test_audit_profile_absence_is_valid_for_pre_v080_corpus[sole-dev-merge-pr-workflow]`.
-- **bats counts, as of b11c46d:** `tests/hooks/` **112 non-recursive, 118 recursive** (`tests/hooks/fixtures/build_active_dir.bats` holds 6; CI uses `--recursive`) · `tests/commands/sole-dev-merge/` 69. After M1's added case: **113 / 119**. Counts are `@test` lines; runs executed via `npx bats@1.11.0` (bats is not installed locally).
+- **bats counts, as of b11c46d:** `tests/hooks/` **112 non-recursive, 118 recursive** (`tests/hooks/fixtures/build_active_dir.bats` holds 6; CI uses `--recursive`) · `tests/commands/sole-dev-merge/` 69. After M1's added case: **113 / 119**. After M3's added case: `tests/commands/sole-dev-merge/` **70**. Counts are `@test` lines; runs executed via `npx bats@1.11.0` (bats is not installed locally).
 
 ## Tooling present / absent
 

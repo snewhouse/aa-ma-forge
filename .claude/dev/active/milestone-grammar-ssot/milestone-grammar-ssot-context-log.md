@@ -129,6 +129,102 @@ file and asserts a violation appears. Re-verified by mutation: 5/5 caught, where
 fail is not a guard. Assert the positive case — corrupt the input and require the
 check to complain — or the green tick means nothing.
 
+## [2026-08-09] M3 root cause — the C4 flake (plan §3 M3 acceptance 5)
+
+**The named hypothesis was wrong, and being wrong was cheap because it was
+tested first.**
+
+D5 recorded the C4 diagnosis as "flaky test, probably a SLUG collision on a
+shared `/tmp` path". Sub-step 3.2 measured it: a 10-test probe replicating the
+SLUG derivation verbatim showed `$$` **distinct on every single `setup()`**
+(612456, 612463, 612470, …). bats 1.11 forks a fresh subshell per *test*, not
+per file, so the PID component alone makes collision impossible; duplicates
+across the run: 0. Refuted.
+
+The real cause is not a flake in the ordinary sense — nothing about the test's
+own state varies. A 25-run loop with `shellcheck` present failed 0 times. What
+varies is whether the **binary resolves**, and that changed between invocations
+earlier in this session (one `command -v shellcheck` returned nothing, which is
+what produced the original "shellcheck isn't installed" misdiagnosis; it *is*
+installed, at `/usr/bin/shellcheck` 0.11.0).
+
+Confirmed by substitution rather than by waiting for a recurrence: a shadow PATH
+containing symlinks to everything in `/usr/local/bin`, `/usr/bin` and `/bin`
+**except** `shellcheck` — so `git`, `grep` and `python3` still resolve —
+reproduces the reported failure exactly, down to the line:
+
+```
+not ok 1 C4 maps ShellCheck error to [CRITICAL]
+# (in test file …/test_stage_c_dispatch.bats, line 147)
+#   `[[ "$FINDINGS" == *"[CRITICAL]"* ]] || [[ "$FINDINGS" == *"[HIGH]"* ]]' failed
+```
+
+**The defect was never really in the test.** `sole-dev-merge.md:362` ran
+`shellcheck -f json $CHANGED_SH > "$SHELLCHECK_OUT" 2>/dev/null || true`. That
+`|| true` cannot distinguish *scanner ran and found nothing* from *scanner was
+never installed*, and the second case makes Stage C report `0 findings` for
+shell code nobody scanned. For a stage whose entire purpose is a security
+review, that is a false negative shipped to users — the flaky test was the
+symptom, and the only reason we ever saw it.
+
+Fixed on both sides: the aggregator resolves `SHELLCHECK_BIN` and prints
+`WARNING — '<bin>' not found; C4 did not run. Shell findings are UNKNOWN, not
+zero.`; the test skips with the binary named instead of dying on a string match
+20 lines away; CI pins the install so the skip path cannot be reached silently.
+
+### Two things worth carrying forward
+
+1. **`skip=0` is the assertion, not `notok=0`.** Adding a skip guard is the
+   textbook way to make a red test green without fixing anything. The soak
+   records all three counts per run — 20/20 at `ok=69 notok=0 skip=0` — so the
+   evidence distinguishes "C4 passed" from "C4 was skipped 20 times".
+2. **The same lesson as M1 and M2, third variant.** Both halves of this fix were
+   verified in both directions before being believed: had the shipped code
+   ignored `SHELLCHECK_BIN`, the test would have skipped while the code happily
+   ran shellcheck anyway, and the guard would have been decorative. Measured:
+   binary present → 4 findings / 3 CRITICAL; `SHELLCHECK_BIN=/nonexistent` →
+   WARNING, 0 findings.
+
+**Scope reduction, declared:** Sub-step 3.3's `BATS_TEST_TMPDIR` re-pathing was
+**not** done. It existed only to defeat the collision that 3.2 refuted, and it
+would have meant changing hardcoded `/tmp/` semantics in shipped code plus every
+test asserting those paths. The half that was independently justified — a real
+cleanup leak, 29 files after 25 runs, caused by three teardowns enumerating five
+filenames while Stage D quietly grew a sixth — is fixed with a SLUG-keyed glob
+sweep that cannot fall behind its writer. No M3 acceptance criterion required
+the re-pathing.
+
+## [2026-08-09] D9 — M3 scope extended to C3/bandit (user decision at the §6.8 panel)
+
+Originally logged as "open, not actioned": `bandit` at `sole-dev-merge.md:337`
+and both `python3` heredocs carried the same unguarded-dependency shape. I
+deferred them as outside "fix the flaky C4 test" and surfaced the choice at the
+§6.8 CRITICAL override panel. **Ste chose to fix now, same pattern.**
+
+The auditors' case for treating this as the more serious half held up:
+
+- `bandit` is **not a declared dependency** — absent from `pyproject.toml`, not
+  installed by `uv sync`, and (before this change) not installed in the `bats`
+  CI job, even though `test_smoke_e2e.bats` asserts a real B602 finding.
+- `$BANDIT_OUT` is the trusted input to Stage D's B602 **auto-remediation**, so a
+  silently-missing scanner disabled detection *and* fixing.
+
+C3 now carries the identical contract to C4: `BANDIT_BIN` seam, `rc > 1 || empty
+report` as the degraded condition, a `[HIGH] … UNKNOWN … (scanner-unavailable)`
+sentinel written into `$FINDINGS`, and an unparseable-JSON sentinel in the
+parser. Verified across both scanners × three modes each; mutation-tested in
+both halves — reverting either sentinel to stdout-only fails the test by name.
+CI installs and **version-asserts** both scanners.
+
+Plan §3 M3 and §5 Artefacts amended accordingly.
+
+**Still open, deliberately:** `sev_map.get(level, "LOW")` fails open — an unknown
+severity from a future scanner version downgrades a real error to `[LOW]`, which
+Stage D triages as a reviewer note. One word to change, but it alters a mapping
+`reference.md` mirrors, so it wants its own change. Likewise the unpinned
+scanner versions in CI and the predictable `/tmp` paths
+(`SLUG="${SLUG:-$(date +%s)}"`, `: > "$FINDINGS"` with no `O_EXCL`).
+
 ## [2026-08-09T17:31:48Z] Compaction Summary (auto-generated by hook)
 - Active step at compaction: Sub-step 2.4: Verify this plan's own artifacts pass
 - Snapshot saved to: /home/sjnewhouse/.claude/hooks/cache/compaction-snapshots/milestone-grammar-ssot-snapshot.md

@@ -111,14 +111,74 @@ PY
     [[ "$FINDINGS" == *"B602"* ]] || [[ "$FINDINGS" == *"shell=True"* ]] || [[ "$FINDINGS" == *"subprocess"* ]]
 }
 
+@test "C3/C4 record UNKNOWN in findings when a scanner does not run" {
+    # The regression this milestone exists to prevent, and the only test in this
+    # file that needs no external binary — so it can never skip.
+    #
+    # A scanner that did not run must not be reported as one that found nothing.
+    # Three degraded modes are covered because `command -v` alone caught only
+    # the first: an absent binary, a resolvable binary that emits nothing
+    # (`true` — a broken install looks like this), and one that emits non-JSON.
+    #
+    # Asserting on $FINDINGS is the point. An earlier version of the fix warned
+    # on stdout only, which left the machine-readable artefact Stage D consumes
+    # byte-identical to a clean scan.
+    cd "$BATS_TMP"
+    sandbox_init
+    echo init > a.txt && git add a.txt
+    mkcommit "init"
+    git checkout -q -b feature
+    printf '#!/bin/bash\nif [ "$1" = "x"\necho "broken"\n' > buggy.sh
+    git add buggy.sh
+    mkcommit "feat: buggy"
+
+    printf 'import subprocess\nsubprocess.call("ls", shell=True)\n' > vuln.py
+    git add vuln.py
+    mkcommit "feat: vulnerable"
+
+    local findings="/tmp/sole-dev-merge-findings-${SLUG}.md"
+
+    # Both scanners, all three modes. C3/bandit matters at least as much as C4:
+    # bandit is not a declared dependency of this repo, and $BANDIT_OUT drives
+    # Stage D's B602 auto-remediation, so a silent miss disabled fixing too.
+    for scanner in SHELLCHECK BANDIT; do
+        for bin in /nonexistent/scanner true echo; do
+            : > "/tmp/sole-dev-merge-review-${SLUG}.md"
+            : > "/tmp/sole-dev-merge-security-${SLUG}.md"
+
+            if [[ "$scanner" == SHELLCHECK ]]; then
+                SHELLCHECK_BIN="$bin" BASE_REF=main DEFAULT_BRANCH=main \
+                    CHANGED_PY="" CHANGED_SH="buggy.sh" run bash "$SC_SCRIPT"
+            else
+                BANDIT_BIN="$bin" BASE_REF=main DEFAULT_BRANCH=main \
+                    CHANGED_PY="vuln.py" CHANGED_SH="" run bash "$SC_SCRIPT"
+            fi
+            [ "$status" -eq 0 ]
+
+            # The degraded state must reach $FINDINGS, not just stdout, and must
+            # carry a severity Stage D will actually triage.
+            grep -q '^\[HIGH\]' "$findings" \
+                || { echo "no [HIGH] sentinel for ${scanner}_BIN=$bin" >&2; false; }
+            grep -qi 'UNKNOWN' "$findings" \
+                || { echo "findings do not record UNKNOWN for ${scanner}_BIN=$bin" >&2; false; }
+
+            # And "0 findings" must be unrepresentable in this state — that count
+            # is what makes Stage D skip triage entirely.
+            [[ "$output" != *"aggregate: 0 findings"* ]] \
+                || { echo "reported 0 findings for ${scanner}_BIN=$bin" >&2; false; }
+        done
+    done
+}
+
 @test "C4 maps ShellCheck error to [CRITICAL]" {
-    # Guard the external dependency. Without this the absence of shellcheck is
-    # laundered by the aggregator's `|| true` into an empty findings file, and
-    # the test dies on an opaque string-match assertion 20 lines below that says
-    # nothing about the real cause. Same shape as the guard in
-    # tests/hooks/security-static-check.bats.
-    if ! command -v "${SHELLCHECK_BIN:-shellcheck}" >/dev/null 2>&1; then
-        skip "shellcheck not installed (SHELLCHECK_BIN=${SHELLCHECK_BIN:-shellcheck})"
+    # Guard the external dependency so its absence names itself instead of
+    # dying on an opaque string match 20 lines below. Same shape as the guard in
+    # tests/hooks/security-static-check.bats, but resolvability is not enough:
+    # `true` and `:` both satisfy `command -v` and neither can scan anything, so
+    # require the binary to identify itself. The degraded paths this guard skips
+    # are covered unconditionally by the test above.
+    if ! "${SHELLCHECK_BIN:-shellcheck}" --version 2>/dev/null | grep -qi 'shellcheck'; then
+        skip "shellcheck unusable (SHELLCHECK_BIN=${SHELLCHECK_BIN:-shellcheck})"
     fi
 
     cd "$BATS_TMP"

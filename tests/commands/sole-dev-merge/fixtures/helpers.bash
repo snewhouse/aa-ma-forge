@@ -35,16 +35,30 @@ tmp_script_dir() {
     mktemp -d
 }
 
-# sweep_slug_tmp — remove every /tmp artefact owned by this test's SLUG.
+# sweep_slug_tmp — remove every SLUG-namespaced /tmp artefact this test owns.
 #
-# A glob sweep, not an enumerated list. Three teardowns each hardcoded the same
-# five filenames; when Stage D grew a sixth (reviewer-notes) none of them
-# learned about it, and 25 suite runs left 29 files behind in /tmp. The glob
-# cannot fall behind the code that writes the files.
+# A glob sweep, not an enumerated list. Two teardowns
+# (test_stage_c_dispatch.bats, test_stage_d_triage.bats) each hardcoded the same
+# five filenames; when Stage D grew a sixth (reviewer-notes) neither learned
+# about it, and 25 suite runs left 29 files in /tmp.
 #
-# The SLUG guard is load-bearing: an empty SLUG would widen the pattern to
-# every sole-dev-merge file on the machine, including another run's.
+# Scope, stated precisely because the first version of this comment overclaimed:
+# the glob covers every artefact whose name embeds SLUG. It does NOT cover the
+# three un-slugged writers — sole-dev-merge.md's banner-shown marker, AUQ_LOG
+# (/tmp/sole-dev-merge-auq.json) and BODY_OUT (/tmp/sole-dev-merge-body.md).
+# Those are shared-name files; deleting them by glob could hit a concurrent run.
+#
+# The pattern deliberately has no "-" before SLUG and no "." after it: requiring
+# either made /tmp/sole-dev-merge-${SLUG}.md and extensionless names unmatchable.
+#
+# Over-deletion is not reachable: SLUG is quoted (so a literal "*" stays
+# literal), and a match would require another run's SLUG to contain ours as a
+# substring, which the "bats-$$-"/"smoke_$$"/"testslug_$$" prefixes prevent.
 sweep_slug_tmp() {
+    # No SLUG means the test wrote no SLUG-namespaced files — the common case in
+    # teardowns shared across a file where only one test sets it. Silent by
+    # design: warning here would fire on the 8 of 9 tests for which it is
+    # correct behaviour, and noise that always fires is noise nobody reads.
     [[ -n "${SLUG:-}" ]] || return 0
-    rm -f "/tmp/sole-dev-merge-"*"-${SLUG}."*
+    rm -f "/tmp/sole-dev-merge-"*"${SLUG}"*
 }

@@ -57,6 +57,34 @@ Reasons:
 - `tooling-config`: `pyproject.toml` / CI config / Dockerfile only
 """
 
+CANONICAL_CRITICAL_PATHS: frozenset[str] = frozenset(
+    {
+        "auth-flow",
+        "data-xform",
+        "external-api",
+        "version-pipeline",
+        "doc-count-drift",
+        "hook-modification",
+    }
+)
+"""Canonical `Critical-Path:` values per task.
+
+Mirrors the table in `claude-code/rules/engineering-standards.md` §1. Until this
+constant existed, `Skill(plan-verification)` Angle 6 check #2 ("Critical-Path
+values are canonical") had nothing to check against and was manual-only — a
+novel value passed silently.
+
+- `auth-flow`: authentication, authorization, session, token handling
+- `data-xform`: data transformations, schema migrations, format conversions
+- `external-api`: third-party API calls (rate limits, errors, contract surface)
+- `version-pipeline`: release, version-bump, tag-and-push, CHANGELOG mechanics
+- `doc-count-drift`: hardcoded counts in docs (Tier 6 detector domain)
+- `hook-modification`: changes to the shipped enforcement surface — hooks,
+  and the command/skill bodies that carry gate logic
+
+Adding a value requires a plan + ADR, per engineering-standards.md §1.
+"""
+
 # -----------------------------------------------------------------------------
 # Internal helpers
 # -----------------------------------------------------------------------------
@@ -168,3 +196,30 @@ def parse_tdd_waiver(text: str) -> tuple[str | None, bool, str | None]:
         ('refactor', True, None)
     """
     return _parse_canonical_field(text, "TDD-Waiver", CANONICAL_TDD_WAIVERS)
+
+
+def parse_critical_path(text: str) -> tuple[str | None, bool, str | None]:
+    """Parse `Critical-Path:` from a milestone block.
+
+    Exists so `Skill(plan-verification)` Angle 6 check #2 can be executed rather
+    than eyeballed — there was no `CANONICAL_CRITICAL_PATHS` in code, so a novel
+    value passed silently and the check was manual-only.
+
+    Note the shipped form is **bold** (`- **Critical-Path:** data-xform`),
+    because the §6.7 gate greps `^- \\*\\*Critical-Path:\\*\\* \\S`.
+    `_extract_field` accepts plain and bold alike, so the parser is tolerant
+    where the gate is strict; a plain-form value parses here but would not be
+    seen by the gate.
+
+    Args:
+        text: The full text of a milestone block from `[task]-tasks.md`.
+
+    Returns:
+        (value, is_valid, error). See module docstring for semantics.
+
+    Example:
+        >>> block = "## Milestone 4\\n- **Critical-Path:** hook-modification\\n"
+        >>> parse_critical_path(block)
+        ('hook-modification', True, None)
+    """
+    return _parse_canonical_field(text, "Critical-Path", CANONICAL_CRITICAL_PATHS)

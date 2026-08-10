@@ -97,6 +97,61 @@ aa_ma_extract_active_milestone() {
 }
 
 # -----------------------------------------------------------------------------
+# AA_MA_MILESTONE_ERE — bash-side mirror of src/aa_ma/grammar.py MILESTONE_RE.
+#
+# POSIX ERE, deliberately, so it behaves identically under gawk and mawk (the
+# Debian/Ubuntu default awk). Three choices are load-bearing:
+#   * [[:blank:]] not \s — mawk has no \s and matches NOTHING for it, silently.
+#     verify-impl's block extractor returned an empty block on any mawk host.
+#   * [.] not \. — a dynamic regex passed via -v makes gawk warn on \. and then
+#     treat it as "any character".
+#   * The dash alternation is (-|–|—), never a bracket class. The en/em dashes
+#     are multibyte; a bracket class of them is not portable to mawk, and a bare
+#     hyphen inside one made `### Step 1.1-alpha:` parse as number 1.1.
+# -----------------------------------------------------------------------------
+AA_MA_MILESTONE_ERE='^##[[:blank:]]+(Milestone[[:blank:]]+M?|M)[0-9]+[a-z]?([.][0-9]+)*(:|[[:blank:]]+(-|–|—)[[:blank:]]+)'
+
+# -----------------------------------------------------------------------------
+# aa_ma_extract_milestone_block <tasks-file> <milestone-title>
+#   Emits every line of the milestone whose heading contains <milestone-title>,
+#   from the heading up to (not including) the next milestone heading, or EOF.
+#   Emits nothing — rc 0 — when the file is missing, the title is empty, or no
+#   heading matches.
+#
+#   Replaces `awk "/^## Milestone.*$TITLE/,/^## Milestone/"`, which returned
+#   exactly ONE line for every milestone in every plan: the start line also
+#   matches the end pattern, and awk evaluates the end pattern on the same
+#   record, so the range closed immediately. Every field scan built on it —
+#   Status: PENDING counts, Critical-Path, Prototype-Required — read empty, and
+#   the §6.7 gate could not refuse anything.
+#
+#   Fails closed: an empty title matches nothing rather than everything.
+#
+#   Start and end conditions are deliberately ASYMMETRIC:
+#     * opens only on a heading matching AA_MA_MILESTONE_ERE (strict — prose
+#       like "## Summary Counts" must never open a milestone block);
+#     * closes on ANY H2 (tolerant — a milestone ends where the next level-2
+#       section begins, whatever that section is).
+#   Closing only on milestone headings looks symmetric and is wrong: the last
+#   milestone in a file then runs to EOF and swallows the trailing "## Summary
+#   Counts" section, whose prose contains literal "- Status: PENDING",
+#   "- Gate: HARD" and Critical-Path lines. Measured on this plan's own
+#   tasks.md, that inflated the last milestone's pending count by one and
+#   handed the gate a Critical-Path value from prose. Sub-steps are H3, so they
+#   are unaffected.
+# -----------------------------------------------------------------------------
+aa_ma_extract_milestone_block() {
+    local file="$1" title="$2"
+    [ -f "$file" ] || return 0
+    [ -n "$title" ] || return 0
+    _aa_ma_strip_html_comments "$file" | awk -v title="$title" -v mre="$AA_MA_MILESTONE_ERE" '
+        /^##[[:blank:]]/ { if (inblk) exit }
+        $0 ~ mre { if (index($0, title)) inblk = 1 }
+        inblk { print }
+    '
+}
+
+# -----------------------------------------------------------------------------
 # aa_ma_extract_active_step <tasks-file>
 #   Emits the active step heading (stripped of leading "### ").
 #   Preference order:

@@ -43,7 +43,7 @@ rejected by `Skill(plan-verification)`. Add new values via plan + ADR.):
 | `external-api`     | Third-party API calls (rate limits, error handling, contract surface) |
 | `version-pipeline` | Release, version-bump, tag-and-push, CHANGELOG mechanics            |
 | `doc-count-drift`  | Hardcoded counts in docs (Tier 6 detector domain)                   |
-| `hook-modification`| Changes to `claude-code/hooks/*.sh` (affect all sessions)           |
+| `hook-modification`| Changes to the shipped enforcement surface: `claude-code/hooks/**` (incl. `lib/`), and the gate/scan logic inside `claude-code/commands/**` and `claude-code/skills/**` (affect all sessions) |
 
 ### 2. Development Principles
 

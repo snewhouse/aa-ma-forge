@@ -498,11 +498,26 @@ if [[ "${DIRTY_AA_MA}" -ne 0 ]]; then
   # HALT
 fi
 
+# Shared bash-side milestone grammar. Symlinked to ~/.claude/hooks/lib/ by
+# scripts/install.sh, so it is present wherever this command is.
+#
+# Sourced rather than inlined because the previous inline form was
+# `awk "/^## Milestone.*${MILESTONE_TITLE}/,/^## Milestone/"`, which returned
+# exactly ONE line — the heading — for every milestone in every plan. The start
+# line also matches the end pattern and awk evaluates the end pattern on the
+# same record, so the range closed immediately. Conditions 2 and 5 below
+# therefore read empty for years and this gate could not refuse anything.
+# One implementation, one test surface: tests/hooks/aa-ma-gate-scans.bats.
+. "${HOME}/.claude/hooks/lib/aa-ma-parse.sh"
+
+MILESTONE_BLOCK=$(aa_ma_extract_milestone_block \
+  "${TASK_DIR}/${TASK_NAME}-tasks.md" "${MILESTONE_TITLE}")
+
 # 2. Zero Status: PENDING within the milestone
 # Anchor to line-prefix to avoid false positives from "PENDING" in prose
 # (acceptance criteria, result logs, etc. that describe the gate itself).
-PENDING_IN_MILESTONE=$(awk "/^## Milestone.*${MILESTONE_TITLE}/,/^## Milestone/" \
-  "${TASK_DIR}/${TASK_NAME}-tasks.md" | grep -cE "^- Status: PENDING|^Status: PENDING" || true)
+PENDING_IN_MILESTONE=$(printf '%s\n' "${MILESTONE_BLOCK}" \
+  | grep -cE "^- Status: PENDING|^Status: PENDING" || true)
 if [[ "${PENDING_IN_MILESTONE}" -gt 0 ]]; then
   echo "BLOCKED: ${PENDING_IN_MILESTONE} sub-step(s) still PENDING in milestone."
   # HALT
@@ -515,8 +530,7 @@ fi
 # Absent-field semantic: skip check when field is absent on the task.
 # Only fires when field is PRESENT-but-without-evidence.
 
-CRITICAL_PATH_TASKS=$(awk "/^## Milestone.*${MILESTONE_TITLE}/,/^## Milestone/" \
-  "${TASK_DIR}/${TASK_NAME}-tasks.md" \
+CRITICAL_PATH_TASKS=$(printf '%s\n' "${MILESTONE_BLOCK}" \
   | grep -E "^- \*\*Critical-Path:\*\* \S" || true)
 if [[ -n "${CRITICAL_PATH_TASKS}" ]]; then
   if ! grep -q "CRITICAL_PATH_REVIEW" "${TASK_DIR}/${TASK_NAME}-provenance.log"; then
@@ -526,8 +540,7 @@ if [[ -n "${CRITICAL_PATH_TASKS}" ]]; then
   fi
 fi
 
-PROTOTYPE_TASKS=$(awk "/^## Milestone.*${MILESTONE_TITLE}/,/^## Milestone/" \
-  "${TASK_DIR}/${TASK_NAME}-tasks.md" \
+PROTOTYPE_TASKS=$(printf '%s\n' "${MILESTONE_BLOCK}" \
   | grep -E "^- \*\*Prototype-Required:\*\* YES" || true)
 if [[ -n "${PROTOTYPE_TASKS}" ]]; then
   if ! grep -q "PROTOTYPE —" "${TASK_DIR}/${TASK_NAME}-provenance.log"; then
@@ -688,8 +701,18 @@ Before marking the milestone COMPLETE and creating git checkpoint, execute this 
 **HARD Gate Check:** If the milestone has `Gate: HARD`, verify that a signed approval artifact exists in `[task]-context-log.md`:
 
 ```bash
-# Check for HARD gate approval
-GATE=$(grep -A1 "## Milestone.*${MILESTONE_TITLE}" "${TASK_DIR}/${TASK_NAME}-tasks.md" | grep -oP 'Gate: \K\w+')
+# Check for HARD gate approval.
+#
+# This previously read:
+#   GATE=$(grep -A1 "## Milestone.*${MILESTONE_TITLE}" ... | grep -oP 'Gate: \K\w+')
+# -A1 returns the heading plus ONE line, and a blank line separates the heading
+# from the field list — so `- Gate:` was never in the window and GATE was always
+# empty. `[[ "$GATE" == "HARD" ]]` was therefore never true and the HARD gate
+# never fired on any milestone. (`grep -oP` is also GNU-only.)
+. "${HOME}/.claude/hooks/lib/aa-ma-parse.sh"
+GATE=$(aa_ma_extract_milestone_block \
+  "${TASK_DIR}/${TASK_NAME}-tasks.md" "${MILESTONE_TITLE}" \
+  | grep -oE '^- Gate: [A-Za-z]+' | head -1 | awk '{print $3}')
 if [[ "$GATE" == "HARD" ]]; then
   if ! grep -q "GATE APPROVAL: ${MILESTONE_TITLE}" "${TASK_DIR}/${TASK_NAME}-context-log.md"; then
     echo "BLOCKED: Gate: HARD requires signed approval in context-log.md"

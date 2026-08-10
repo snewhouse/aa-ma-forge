@@ -218,14 +218,45 @@ load_helper() {
 # Regression guards on the shipped command file
 # ---------------------------------------------------------------------------
 
+# Executable lines only — the fixed command file *documents* both broken
+# patterns in comments so the next reader knows why they went. A guard that
+# greps the whole file would flag its own explanation.
+_exec_lines() {
+    awk '/^```bash$/{f=1;next} /^```$/{f=0;next} f' "$1" \
+        | grep -vE '^[[:space:]]*#'
+}
+
 @test "command file no longer uses the self-terminating awk range" {
     # /^## Milestone.../,/^## Milestone/ — the start line matches the end
     # pattern, so the range is one line and every field scan reads empty.
-    ! grep -nF ',/^## Milestone/' "$MILESTONE_CMD"
+    if _exec_lines "$MILESTONE_CMD" | grep -q -F ',/^## Milestone/'; then
+        echo "self-terminating awk range still live in $MILESTONE_CMD" >&2
+        false
+    fi
 }
 
 @test "command file no longer extracts Gate with grep -A1" {
-    ! grep -nE 'grep -A1 .*## Milestone' "$MILESTONE_CMD"
+    if _exec_lines "$MILESTONE_CMD" | grep -qE 'grep -A1 .*## Milestone'; then
+        echo "grep -A1 Gate extraction still live in $MILESTONE_CMD" >&2
+        false
+    fi
+}
+
+@test "the regression guards above are not vacuous" {
+    # Both guards passed trivially at one point because the patterns they hunt
+    # now appear in explanatory comments. Prove they still bite on live code.
+    local probe="$BATS_TMPDIR/probe-cmd.md"
+    {
+        printf '```bash\n'
+        printf '# a comment mentioning ,/^## Milestone/ and grep -A1 "## Milestone.*x"\n'
+        printf 'X=$(awk "/^## Milestone.*$T/,/^## Milestone/" f)\n'
+        printf 'G=$(grep -A1 "## Milestone.*$T" f)\n'
+        printf '```\n'
+    } > "$probe"
+    _exec_lines "$probe" | grep -q -F ',/^## Milestone/'
+    _exec_lines "$probe" | grep -qE 'grep -A1 .*## Milestone'
+    # ...and that the comment line alone would NOT trigger them.
+    [ "$(_exec_lines "$probe" | grep -c '^#')" -eq 0 ]
 }
 
 @test "command file delegates block extraction to the shared helper" {

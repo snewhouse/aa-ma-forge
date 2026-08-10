@@ -54,7 +54,7 @@ TASK_DIR=".claude/dev/active/$TASK_NAME"
 
 # Milestone block from tasks.md
 MILESTONE_ID="M$N"
-MILESTONE_BLOCK=$(awk "/^## (Milestone\s+)?M?$N(:|\s)/,/^## (Milestone\s+)?M?$((N+1))(:|\s)|^---$/" \
+MILESTONE_BLOCK=$(awk "/^## (Milestone[[:blank:]]+)?M?$N(:|[[:blank:]])/,/^## (Milestone[[:blank:]]+)?M?$((N+1))(:|[[:blank:]])|^---$/" \
                     "$TASK_DIR/$TASK_NAME-tasks.md")
 
 # Audit-Profile from the milestone block (use the shared parser)

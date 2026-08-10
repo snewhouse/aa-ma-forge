@@ -190,7 +190,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Complexity: 45%
 - **Critical-Path:** hook-modification
 - Audit-Profile: infra
-- New-Tests: 0
+- New-Tests: 15  <!-- python: test_critical_path_parser.py. Plus 20 bats cases in tests/hooks/aa-ma-gate-scans.bats. Declared 0 at planning; the plan assumed the scans only needed a regex widened. -->
 - Acceptance Criteria: plan §3 M4 acceptance 1-3
 
 ### Sub-step 4.1: RED — failing bats per scan point
@@ -202,24 +202,24 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.2: Align the gate scans
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: `execute-aa-ma-milestone.md:504,518,529,692` and `verify-impl/SKILL.md:57` to an ERE equivalent of `MILESTONE_RE`.
-- Result Log: _pending_
+- Result Log: COMPLETE — 20/20 green (was 2/19). Rather than repeat an ERE in five places, added `aa_ma_extract_milestone_block()` + `AA_MA_MILESTONE_ERE` to `claude-code/hooks/lib/aa-ma-parse.sh` (**additive only** — no existing function touched) and rewired all four `execute-aa-ma-milestone.md` scan points to it via `MILESTONE_BLOCK`. Same move M1 made on the Python side: one bash-side grammar, one test surface. `verify-impl/SKILL.md:57` keeps its own range but `\s` → `[[:blank:]]`; verified 3 lines under **both** gawk and mawk (was 0 under mawk). **Start/end conditions are asymmetric and that is the fix**: opens only on a milestone heading, closes on **any H2**. Closing on milestone headings only looked symmetric and was wrong — the last milestone then ran to EOF and swallowed `## Summary Counts`, whose prose contains literal `- Status: PENDING`, `- Gate: HARD` and a Critical-Path line. Caught by the fixture's negative controls, and it is not hypothetical: `## Summary Counts` follows the last milestone in this plan's own tasks.md. Portability choices measured, not assumed: `[[:blank:]]` not `\s` (mawk), `[.]` not `\.` (gawk warns then treats it as "any char"), `(-|–|—)` not a bracket class (multibyte). Mutation-verified both ways — reverting the end condition fails 2 cases, removing the empty-title guard fails the fail-closed case. Full suites: hooks bats **139 ok / 0 not ok**, pytest 842 passed, shellcheck clean.
 
 ### Sub-step 4.3: Add CANONICAL_CRITICAL_PATHS
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: add the 6-value constant to `plan_parsers.py` — it does not exist, so the check is manual-only today.
-- Result Log: _pending_
+- Result Log: COMPLETE — `CANONICAL_CRITICAL_PATHS` **plus `parse_critical_path()`**, because a constant nothing consumes is a guard that can never fire (L-1214). The parser is a thin reuse of `_parse_canonical_field`; `_extract_field` already tolerated the bold form, so no regex change was needed. 15 new tests in `tests/codemem/test_critical_path_parser.py`, of which three matter more than the happy path: `test_enum_matches_engineering_standards_table` scrapes the rule file and asserts the code constant is a subset — drift between the two is the exact silent-divergence failure this milestone exists to close, one layer up; `test_scrape_is_not_vacuous` pins the scrape at >=6 rows so an empty scrape cannot make the previous test pass trivially; and `test_this_plans_own_milestones_all_parse` dogfoods against the live tasks.md, asserting >=1 milestone parsed first. Backticked and wrong-case values are both rejected, matching the Audit-Profile precedent — a backticked value is what silently broke this plan's own artifacts during planning. Suite 842 → **857 passed**.
 
 ### Sub-step 4.4: Widen hook-modification scope
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: `claude-code/rules/engineering-standards.md` currently scopes `hook-modification` to `claude-code/hooks/*.sh`; widen to cover shipped commands and skills, or this milestone's own Critical-Path value reads as a violation.
-- Result Log: _pending_
+- Result Log: COMPLETE. `hook-modification` now reads "the shipped enforcement surface: `claude-code/hooks/**` (incl. `lib/`), and the gate/scan logic inside `claude-code/commands/**` and `claude-code/skills/**`". Verified against this milestone's own diff — all four changed `claude-code/` paths (`hooks/lib/aa-ma-parse.sh`, `commands/execute-aa-ma-milestone.md`, `skills/verify-impl/SKILL.md`, `rules/engineering-standards.md`) now fall inside the declared scope, where under the old wording only the first did. The `**` in the widened text also covers `hooks/lib/`, which the old `hooks/*.sh` glob excluded — the very file this milestone changed. Row keeps its backticked-token-in-leading-cell shape so `test_enum_matches_engineering_standards_table` still scrapes it.
 
 ### Sub-step 4.5: Verify and gate
 
@@ -232,5 +232,9 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 - Milestones: 4 (2 HARD, 2 SOFT)
 - Sub-steps: 25
-- New tests declared: 37 python (M1 35, M2 2) + bats cases in M1/M4
+- New tests declared: 73 python (M1 35, M2 22, M3 1, M4 15) + bats (M1 1, M4 20)
+  <!-- Was "37 python (M1 35, M2 2)" — stale from planning: M2 grew 2→22 when its
+       scope went from 1 writer to 11, M3 went 0→1 after §6.8 found an untested
+       branch, and M4 went 0→15. Recount from the per-milestone New-Tests fields,
+       never from this line. -->
 - Suite gate: `failed == 0 and errors == 0`, plus a **scoped** delta — `pytest tests/test_grammar.py -q` reports exactly `New-Tests` for M1. A whole-repo absolute total is self-invalidating: archiving this very plan adds 2 parametrized cases to `test_corpus_grandfathering`, and any unrelated test added before M4 breaks it.

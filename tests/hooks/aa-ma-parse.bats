@@ -223,3 +223,77 @@ EOF
     # And a symbol that is definitely absent must be detected as absent.
     ! printf '%s' "$header" | grep -qF "aa_ma_definitely_not_a_real_symbol"
 }
+
+# ---------------------------------------------------------------------------
+# aa_ma_extract_active_step — a sub-step block must end at the next H2
+#
+# The extractor opened a block on /^### / and never closed it, so the first
+# Status line after milestone N's last sub-step is milestone N+1's OWN
+# milestone-level status — and it was attributed to that trailing sub-step.
+#
+# Not hypothetical and not display-only: pre-compact-aa-ma.sh feeds this into
+# the `CHECKPOINT — ActiveStep:` line in provenance.log, which rules/aa-ma.md
+# designates as the session-resume signal. This repo's own log recorded
+# "Sub-step 2.4" and later "Sub-step 3.6" — in both cases the last sub-step of
+# the milestone BEFORE the one actually being worked on.
+# ---------------------------------------------------------------------------
+
+write_two_milestone_fixture() {
+    cat > "$BATS_TMP/steps.md" <<'EOF'
+## Milestone 1: Finished milestone
+
+- Status: COMPLETE
+
+### Sub-step 1.1: Done early
+
+- Status: COMPLETE
+
+### Sub-step 1.2: Last step of M1
+
+- Status: COMPLETE
+
+## Milestone 2: The one being worked on
+
+- Status: ACTIVE
+
+### Sub-step 2.1: The real next step
+
+- Status: PENDING
+EOF
+}
+
+@test "a milestone-level ACTIVE is not attributed to the previous milestone's last step" {
+    write_two_milestone_fixture
+    load_helper
+    result=$(aa_ma_extract_active_step "$BATS_TMP/steps.md")
+    [ "$result" != "Sub-step 1.2: Last step of M1" ]
+    [ "$result" = "Sub-step 2.1: The real next step" ]
+}
+
+@test "an ACTIVE sub-step still wins over the PENDING fallback" {
+    write_two_milestone_fixture
+    # Promote 2.1 to ACTIVE; it must be returned on its own merits.
+    sed -i 's/^- Status: PENDING$/- Status: ACTIVE/' "$BATS_TMP/steps.md"
+    load_helper
+    result=$(aa_ma_extract_active_step "$BATS_TMP/steps.md")
+    [ "$result" = "Sub-step 2.1: The real next step" ]
+}
+
+@test "a trailing prose H2 cannot become the active step" {
+    cat > "$BATS_TMP/prose.md" <<'EOF'
+## Milestone 1: All done
+
+- Status: COMPLETE
+
+### Sub-step 1.1: Done
+
+- Status: COMPLETE
+
+## Summary Counts
+
+- Status: PENDING
+EOF
+    load_helper
+    result=$(aa_ma_extract_active_step "$BATS_TMP/prose.md")
+    [ -z "$result" ]
+}

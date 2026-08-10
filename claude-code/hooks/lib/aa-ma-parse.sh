@@ -367,11 +367,29 @@ aa_ma_extract_milestone_block_by_number() {
 #     1. Step whose body contains Status: ACTIVE
 #     2. First step whose body contains Status: PENDING
 #   Empty string if neither found.
+#
+#   A step block ENDS at the next H2. Without that reset the first Status line
+#   after milestone N's last sub-step is milestone N+1's own milestone-level
+#   status, and it was attributed to that trailing sub-step — so the answer was
+#   always "the last sub-step of the milestone before the one being worked on".
+#   Measured in this repo's own provenance.log, which recorded `Sub-step 2.4`
+#   while M3 ran and `Sub-step 3.6` while M4 ran. It also stole the ACTIVE
+#   verdict outright: a genuinely ACTIVE sub-step was never reached, because
+#   awk exits on the first ACTIVE it sees and the milestone's own line came
+#   first. Not display-only — `pre-compact-aa-ma.sh` writes this into the
+#   `CHECKPOINT — ActiveStep:` line that rules/aa-ma.md makes the session-resume
+#   signal, so a wrong answer here resumes the next session on the wrong step.
 # -----------------------------------------------------------------------------
 aa_ma_extract_active_step() {
     local file="$1"
     [ -f "$file" ] || return 0
     _aa_ma_strip_html_comments "$file" | awk '
+        # Any H2 closes the current step block. Disjoint from /^### / below:
+        # "### x" has "#" where this pattern requires a blank.
+        /^## / {
+            current = ""
+            next
+        }
         /^### / {
             current = $0
             sub(/^### /, "", current)

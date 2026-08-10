@@ -279,3 +279,35 @@ M4 rejected once already. Left for user disposition.
 **Not actioned, still open:** `sev_map.get(level, "LOW")` fails open; scanner versions
 unpinned in CI; predictable `/tmp` paths in `/sole-dev-merge`; `.bash` files unlinted
 in CI; `test_this_plans_own_milestones_all_parse` self-disables on archive.
+
+## [2026-08-10] CORRECTION + DECISION: the step extractor was not display-only
+
+**I called it display-only when deferring it. That was wrong**, and the evidence was
+already in this plan's own provenance.log. `pre-compact-aa-ma.sh:89` feeds
+`aa_ma_extract_active_step` into the `CHECKPOINT — ActiveStep:` line, which
+`rules/aa-ma.md` designates as the session-resume signal. Two entries recorded the
+wrong step: `Sub-step 2.4` while M3 was running, `Sub-step 3.6` while M4 was running —
+in both cases the last sub-step of the milestone *before* the one being worked on,
+which is the defect's exact signature. A resumed session was being pointed at
+finished work.
+
+**Root cause, same family as 4.6/4.7.** A block that opens and never closes: the
+extractor opened on `/^### /` and had no rule for `^## `, so the first `Status:` line
+after milestone N's last sub-step was milestone N+1's own milestone-level status.
+
+**Second defect found by writing the test.** A genuinely `Status: ACTIVE` sub-step was
+also unreachable — awk exits on the first ACTIVE, and the milestone's line came first.
+So the function could never return an ACTIVE step that followed a completed milestone.
+I had predicted one failing case and got three.
+
+**Scope decision reversed, deliberately.** I deferred this rather than fold it into
+4.6/4.7, on the grounds that undeclared scope growth is what got M4 rejected. That
+reasoning holds — but "declare it and let the user decide" is the resolution, not
+"leave a known defect in a shipped hook". The user's answer was to fix it, so it went
+in as sub-step 4.8 with its own RED tests, corpus diff and mutation check rather than
+as a quiet amendment to the previous commit.
+
+**Verification standard held constant across 4.6/4.7/4.8:** measure the corpus before
+changing anything, run the real callers rather than reasoning about them, and mutate
+the fix to prove the guard is load-bearing. All 6 changed corpus rows were inspected
+individually; every one is a correction.

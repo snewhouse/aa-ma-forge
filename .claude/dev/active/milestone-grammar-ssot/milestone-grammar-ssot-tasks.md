@@ -255,7 +255,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.9: Sanitise untrusted titles at the session-start boundary
 
-- Status: COMPLETE
+- Status: PENDING
 - Mode: AFK
 - Action: §6.8 CRITICAL (security-auditor), reproduced end-to-end. `aa-ma-session-start.sh` interpolates a milestone/step title taken from `tasks.md` into the hidden system-context line as `milestone=[%s]` with no control-character stripping, no `]` escaping and no length cap. A cloned repo forges a complete second well-formed `AA-MA ACTIVE:` directive instructing exfiltration of `~/.ssh/id_rsa`. Fires automatically at session start, before the user types anything. Pre-existing, not introduced by M4, but the readers feeding it were changed in this window. Sanitise at the interpolation boundary.
 - Acceptance Criteria: the reproduction fixture yields a single `AA-MA ACTIVE:` directive with no `]` inside any bracketed field; control characters stripped; titles truncated. RED test first.
@@ -263,7 +263,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.10: One Status grammar, not four
 
-- Status: COMPLETE
+- Status: PENDING
 - Mode: AFK
 - Action: §6.8 CRITICAL (all three agents), verified. `aa_ma_active_milestone_strict` hardcodes `^-?[[:blank:]]*(\*\*)?Status:...`, strictly narrower than the library's own `_aa_ma_field_re` and than the Python SSoT `parser.py::_field_pattern`. `  - Status: ACTIVE` (blanks before the dash) is invisible to it → the rc-3 ambiguity refusal is bypassed and the gate certifies the wrong milestone: measured `PENDING=0 GATE=SOFT` where the truth is `PENDING=1 GATE=HARD`. The false PASS 4.6 exists to close, reintroduced by 4.6. Conversely `- **Status**: ACTIVE` and `- Status: **ACTIVE**` make a plan permanently un-gateable. Reuse `_aa_ma_field_re Status`; delete the fourth grammar.
 - Acceptance Criteria: indented, tab-indented, split-bold-key and bold-value forms resolve identically across `aa_ma_field_value`, `aa_ma_active_milestone_strict` and the Python SSoT; pinned by a parity test.
@@ -271,7 +271,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.11: Pass the title to awk byte-exact
 
-- Status: COMPLETE
+- Status: PENDING
 - Mode: AFK
 - Action: §6.8 CRITICAL (security-auditor), verified. POSIX awk performs escape-sequence processing on `-v` assignments, so `aa_ma_extract_milestone_block` does not compare the bytes the derivation emitted. Measured: `strict` names `Milestone 1: a\tb` (1 PENDING, HARD) and the block scan returns `Milestone 1: a<TAB>b` (COMPLETE, SOFT) → `PENDING=0 GATE=SOFT`. Benign corollary, equally real: a milestone titled `Fix \t handling in parser` gives `strict rc=0` then `block rc=1`, so the gate blocks a valid plan citing a milestone it derived itself. Pass via `ENVIRON[]` or `ARGV`, never `-v`.
 - Acceptance Criteria: titles containing `\t`, `\n`, `\\`, `\d` and `C:\dev\path` round-trip exactly; the two-milestone escape fixture refuses instead of certifying the clean one.
@@ -279,7 +279,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.12: One H2 predicate, and actually call the SSoT recogniser
 
-- Status: COMPLETE
+- Status: PENDING
 - Mode: AFK
 - Action: §6.8 WARNING ×2 (code-reviewer), verified. Four spellings of "is this an H2" now exist (`/^## /` ×2, `/^##[[:blank:]]/` ×2, `/^##[^#]/`). On a tab-separated `##\tMilestone 2:` the library contradicts itself: `strict` reads it correctly while `aa_ma_extract_active_step` returns `Sub-step 1.1: done` — the exact defect 4.8 claims to close — and `aa_ma_extract_active_milestone` returns the COMPLETE milestone. Separately, `aa_ma_is_milestone_heading` has **0 callers in shipped code**: 4.7's declared Action was "Rewire it to `aa_ma_is_milestone_heading`" and the implementation inlined its body as a fourth copy instead. Consolidate on `/^##[[:blank:]]/` and share one recognition body.
 - Acceptance Criteria: all four call sites agree on a shared edge-case table incl. tab-separated and bare `##`; `aa_ma_is_milestone_heading` has at least one shipped caller or its removal is recorded.
@@ -287,7 +287,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.13: Gate condition 1 must actually halt
 
-- Status: COMPLETE
+- Status: PENDING
 - Mode: AFK
 - Action: §6.8 WARNING (code-reviewer), verified. `execute-aa-ma-milestone.md:498` ends the git-dirty branch with `# HALT`, a comment. Measured against a dirty task dir: the gate prints `BLOCKED: AA-MA artifacts have uncommitted changes.` and then `ENG-STANDARDS-GATE: PASS (all 5 conditions satisfied)` with `EXIT=0` — it contradicts itself in one run and passes. Pre-existing and identical at `f2c83bc`, but it is condition 1 of the gate this milestone hardens, twelve lines above the four real `exit 1`s added in 4.6. Replace with `exit 1`.
 - Acceptance Criteria: a dirty AA-MA task dir exits non-zero with no `PASS` line.
@@ -295,7 +295,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.14: Tests that execute the gate, and mawk parity for the changed functions
 
-- Status: COMPLETE
+- Status: PENDING
 - Mode: AFK
 - Action: §6.8 WARNING ×2 (code-reviewer + future-proofing). The guard for 4.6's fix is an exact-literal negative grep over markdown that goes green if a future edit merely adds quotes, reinstating the defect. Nothing in the suite executes the §6.7 preamble, so the `case $?` dispatch, four `exit 1` paths and the rc-3 `printf | sed` are unguarded. Separately, the mawk parity loop covers only `aa_ma_extract_milestone_block`; none of the three functions changed in this window is pinned under mawk. Replace the literal guard with behavioural execution and extend parity coverage.
 - Acceptance Criteria: a bats case extracts the §6.7 fence and runs it against each fixture asserting exit status and message; mawk+gawk parity asserted for all three changed functions with the existing non-vacuity guard.
@@ -303,7 +303,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.15: Correct the count claims
 
-- Status: COMPLETE
+- Status: PENDING
 - Mode: AFK
 - Action: §6.8 CRITICAL ×2 (future-proofing), verified. `tasks.md:260` claims M4 added 15 python / 38 bats tests; measured 22 python (10+3 defs → 22 collected under parametrisation — `grep -c '^def test_'` was the wrong metric) and 41 bats (`aa-ma-gate-scans.bats` 0→36, `aa-ma-parse.bats` 17→22). 4.6's own Result Log says "8 new bats cases"; it was 9 — 8 went RED, one passed pre-fix. The `(36 in file)` parenthetical is self-invalidating and its sibling at `:81` has already drifted 17→22 inside this same plan. Nothing parses `New-Tests`, so these are pure rot surface: replace with the derivation command.
 - Acceptance Criteria: no hardcoded per-file test count remains in tasks.md; corrected figures stated once, with the command that reproduces them.

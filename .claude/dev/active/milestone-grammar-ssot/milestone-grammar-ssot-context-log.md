@@ -311,3 +311,70 @@ as a quiet amendment to the previous commit.
 changing anything, run the real callers rather than reasoning about them, and mutate
 the fix to prove the guard is load-bearing. All 6 changed corpus rows were inspected
 individually; every one is a correction.
+
+## [2026-08-10] DECISION: revert 4.9–4.15 and rebuild gate enforcement on the Python SSoT
+
+**The measurement that forced this.** Three §6.8 passes over three consecutive
+windows of the same milestone:
+
+| pass | window | distinct CRITICALs found |
+|------|--------|--------------------------|
+| 1st  | 4.1–4.5  | 8 |
+| 2nd  | 4.6–4.8  | 4 |
+| 3rd  | 4.9–4.15 (the remediation for those 4) | 9 |
+
+The remediation round produced more CRITICALs than it closed, and seven of the
+nine were introduced by the fixes themselves. That is a measured pattern across
+three rounds, not a run of bad luck.
+
+**What each round did.** 4.6 tightened the derivation and opened the indent
+bypass. 4.10 tightened Status matching and opened the annotated-value bypass
+(`- Status: ACTIVE (resumed after compaction)` — a form this repo's own corpus
+uses 17 times). 4.12 unified the H2 predicate and opened bare-`##` block
+truncation, hiding PENDING sub-steps, `Gate:` and `Critical-Path:` from three
+separate enforcement points. Each fix was correct about its target and wrong
+about the input space.
+
+**The common factor, stated plainly.** Every round is a hand-written markdown
+parser in awk, whose accepted-string set is decided by reasoning rather than by
+measuring the corpus. `_aa_ma_field_re` was a *prefix* match for a reason I
+never asked about; 4.10 replaced it with equality because equality felt more
+precise. Meanwhile a correct, tested parser already exists in
+`src/aa_ma/grammar.py` and is the declared SSoT of this very plan — and the
+only thing pinning bash to it is a test that re-implements the recogniser a
+third time in Python. Verified by mutation: two strong mutants (accept any
+`## ` heading; make non-headings non-empty) both leave
+`tests/test_grammar_parity.py` green at 7/7.
+
+**The landmine that settled it.** `aa_ma_ms_title` takes `mre` as an implicit
+awk global. Omitting `h2re` was loud — 25 test failures, fixed in minutes.
+Omitting `mre` is silent: unset is the empty regex, which matches every line,
+so `sub()` is a no-op and **every line becomes a milestone heading with a valid
+title, exit 0, no diagnostic**. A shared abstraction whose failure mode is
+"silently parse everything as a milestone", added to the file whose purpose is
+preventing silent wrong parses.
+
+**Decision.** Revert all of 4.9–4.15 to `d636824` and rebuild gate enforcement
+on the Python SSoT: `/execute-aa-ma-milestone` §6.7/§7.1 call into `src/aa_ma/`
+for the fields they enforce (which milestone is ACTIVE, PENDING count, `Gate:`,
+`Critical-Path:`). Bash keeps only the advisory display hooks, where a wrong
+answer is cosmetic rather than a false PASS. One parser, already tested, already
+declared the SSoT. The cost is a Python dependency at gate time, which this repo
+already has everywhere else.
+
+**What the revert restores, deliberately and with eyes open.** `d636824` carries
+four known, enumerated defects: the indent-bypass false PASS, the `awk -v`
+escape-decoding false PASS, prompt injection via the session-start context line,
+and `# HALT` being a comment so gate condition 1 prints BLOCKED then PASS with
+exit 0. The judgement is that four *known* defects are a better base for a
+rewrite than nine fresh ones — with one exception: the prompt injection is
+re-applied immediately, corrected, because the user directed it be fixed ahead
+of everything else and it fires automatically at session start.
+
+**Not reverted:** the AA-MA artifacts. The Result Logs for 4.9–4.15 record what
+was built and measured and stay as the audit trail; their `Status:` fields go
+back to `PENDING` because the code no longer exists. Deleting the record would
+lose the evidence that produced this decision.
+
+**Repo is single-maintainer**, which is why a live revert on `main` is
+acceptable rather than requiring a branch and a deprecation window.

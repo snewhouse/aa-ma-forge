@@ -495,12 +495,7 @@ DIRTY_AA_MA=$(git status --porcelain "${TASK_DIR}/" | wc -l | tr -d ' ')
 if [[ "${DIRTY_AA_MA}" -ne 0 ]]; then
   echo "BLOCKED: AA-MA artifacts have uncommitted changes."
   echo "Run sub-step Result Log discipline (L-080-082); commit and re-run."
-  # Was `# HALT` — a comment, not a statement. Measured against a dirty task
-  # dir, the gate printed this BLOCKED message and then
-  # "ENG-STANDARDS-GATE: PASS (all 5 conditions satisfied)" with exit 0,
-  # contradicting itself in a single run. Condition 1 of the gate had never
-  # refused anything.
-  exit 1
+  # HALT
 fi
 
 # --- Gate preamble: resolve the grammar, then LOCATE THE MILESTONE ------------

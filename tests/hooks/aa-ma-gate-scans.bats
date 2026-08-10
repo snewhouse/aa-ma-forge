@@ -347,3 +347,22 @@ _exec_lines() {
     run bash -n "$BATS_TMPDIR/snippets.sh"
     [ "$status" -eq 0 ]
 }
+
+@test "the block extractor accepts what aa_ma_extract_active_milestone returns" {
+    load_helper
+    # Integration seam, found by the gate refusing to certify M4 of its own plan:
+    # aa_ma_extract_active_milestone returns the heading minus "## "
+    # ("Milestone 4: Title"), the extractor was matching only the title portion,
+    # and the §6.7 preamble pipes one straight into the other. rc 1 -> BLOCKED.
+    # Under the old 0-and-empty contract this would have passed silently.
+    local heading title
+    heading=$(aa_ma_extract_active_milestone "$FIXTURE")
+    [ -n "$heading" ]
+    run aa_ma_extract_milestone_block "$FIXTURE" "$heading"
+    [ "$status" -eq 0 ]
+
+    # Both spellings must resolve to the same block.
+    title="${heading#*: }"
+    [ "$(aa_ma_extract_milestone_block "$FIXTURE" "$heading" | wc -l)" \
+      -eq "$(aa_ma_extract_milestone_block "$FIXTURE" "$title" | wc -l)" ]
+}

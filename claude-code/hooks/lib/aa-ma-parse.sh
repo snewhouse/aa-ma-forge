@@ -293,7 +293,17 @@ aa_ma_extract_milestone_block() {
             t = $0
             sub(mre, "", t)
             gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", t)
-            if (t == title) { n++; inblk = 1 }
+            # Accept either the title portion ("Close the gate blindness") or the
+            # whole heading minus "## " ("Milestone 4: Close the gate blindness").
+            # aa_ma_extract_active_milestone returns the latter, and passing it
+            # straight in is the obvious thing a caller does — it is what the
+            # §6.7 preamble does. Matching only the title made that combination
+            # return "no such milestone", which the new exit codes surfaced as a
+            # BLOCK rather than as a silent pass.
+            h = $0
+            sub(/^##[[:blank:]]+/, "", h)
+            gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", h)
+            if (t == title || h == title) { n++; inblk = 1 }
         }
         inblk { buf = buf $0 "\n" }
         END {

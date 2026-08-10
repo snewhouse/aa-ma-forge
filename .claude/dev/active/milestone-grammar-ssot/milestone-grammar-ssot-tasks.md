@@ -338,18 +338,26 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Gate: HARD
 - Mode: HITL
 - Dependencies: Milestone 1
-- Complexity: 55%
+- Complexity: 70%
 - **Critical-Path:** hook-modification
 - Audit-Profile: infra
 - New-Tests: derived — see Summary Counts
 - Acceptance Criteria: (1) every exploit fixture from all three §6.8 passes is a passing test; (2) §6.7/§7.1 obtain all four enforced fields from `src/aa_ma/`; (3) no bash function parses a milestone block for an enforcing decision; (4) the four known `d636824` defects are closed by construction, not by a new regex.
+
+### Sub-step 5.0: Strict, fail-closed field extraction for enforcement
+
+- Status: PENDING
+- Mode: AFK
+- Action: **the plan's original premise was wrong and this sub-step exists because the plan review measured it.** `tui/parser.py` fails OPEN on every enforced field: `- Gate: TYPO` -> `SOFT` (no approval artifact required), `- Gate: hard`/`**HARD**`/`HARD (per plan)` -> `SOFT`, `- Status: ACTIVE (resumed after compaction)` -> `PENDING`, and worst, `- Mode: TYPO` -> `AFK`, silently converting a human-in-the-loop step into an unattended one. Correct for a dashboard, catastrophic for a gate — reusing it unchanged would have ported the exact defect class of M4 into Python, and in one respect made it worse (bash uppercased `Gate`, so `- Gate: hard` worked there). No design invention needed: `plan_parsers.py` already implements the correct contract — `(value, is_valid, error)`, rejects `**bold**`, accepts trailing annotation (`infra (note)` -> `infra`) — so leading-token-plus-reject-bold is established house semantics, not a preference. Extend that pattern to `Status`, `Gate` and `Mode` for enforcement use only.
+- Acceptance Criteria: for each of Status/Gate/Mode, an unrecognised value returns `is_valid=False` with the offending text quoted, and NEVER a default; `tui/parser.py` behaviour is unchanged (its 864-test suite green, verified by running it); the 12-form table measured during plan review becomes a parametrised test with a decided expectation per row.
+- Result Log:
 
 ### Sub-step 5.1: RED — the gate contract as tests
 
 - Status: PENDING
 - Mode: AFK
 - Action: `tests/test_gate.py` asserting the contract before any implementation. The corpus is not invented: it is every fixture that broke bash across three §6.8 passes — one/two/no ACTIVE, `  - Status: ACTIVE` (indented), `- **Status**: ACTIVE`, `- Status: **ACTIVE**`, `- Status: ACTIVE (resumed after compaction)` (annotated — 17 in this repo), titles containing `\t` and `C:\dev\path`, a bare `##` mid-milestone, `##<TAB>` headings, CRLF line endings, NBSP separators, an unclosed code fence, and a `## Summary Counts` prose section carrying field-shaped lines.
-- Acceptance Criteria: every case asserts an exact expected verdict; the suite is RED before 5.2 exists.
+- Acceptance Criteria: every case asserts an exact expected verdict — decided in 5.0 against `plan_parsers.py` semantics rather than left open (the first draft listed inputs without deciding outputs, which is not RED-able); the suite is RED before 5.2 exists.
 - Result Log:
 
 ### Sub-step 5.2: GREEN — src/aa_ma/gate.py
@@ -357,7 +365,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Status: PENDING
 - Mode: AFK
 - Action: reuse, do not rewrite. `tui/parser.py` already ships `_field_pattern`, `_extract_milestone_status`, `_extract_gate`, `parse_task_dir`; `plan_parsers.py` ships `parse_critical_path`/`parse_audit_profile`/`parse_tdd_waiver`; `grammar.py` owns heading structure. `gate.py` answers only the four questions §6.7/§7.1 ask — which milestone is ACTIVE, how many sub-steps are PENDING within it, its `Gate:`, its `Critical-Path:` — and refuses on ambiguity rather than picking.
-- Acceptance Criteria: 5.1 green; `gate.py` adds no new regex for headings, status or fields — verified by grep for `re.compile` in the new module.
+- Acceptance Criteria: 5.1 green; and the no-second-parser claim is asserted BEHAVIOURALLY, not by grep — a test drives `gate.py` and the corresponding `tui/parser.py`/`plan_parsers.py` primitive over the same 12-form table and asserts identical field readings. (The original criterion, "verified by grep for `re.compile`", is vacuously satisfiable by `re.match(r'...')` — the same shape as the grep-based guards the Phase 6.8 panel rejected in 4.14.)
 - Result Log:
 
 ### Sub-step 5.3: CLI with fail-closed exit codes
@@ -365,7 +373,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Status: PENDING
 - Mode: AFK
 - Action: `aa-ma-gate` console script in `pyproject.toml`, emitting JSON on stdout. Exit codes mirror the contract the bash version converged on: 0 exactly-one ACTIVE / 1 none / 2 unreadable-or-missing / 3 ambiguous. Every non-zero prints why.
-- Acceptance Criteria: each code reachable from a fixture; JSON validates against a declared schema; `--help` documents the codes.
+- Acceptance Criteria: each code reachable from a fixture; JSON validates against a declared schema; `--help` documents the codes; **and the Python-unavailable path is tested** — with the interpreter absent the gate must refuse loudly with a distinct non-zero code, never skip enforcement. (This was a risk bullet in the plan and nothing tested it, which is the fail-open shape again.)
 - Result Log:
 
 ### Sub-step 5.4: Rewire §6.7 and §7.1

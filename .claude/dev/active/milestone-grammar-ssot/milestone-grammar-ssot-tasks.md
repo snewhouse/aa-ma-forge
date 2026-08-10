@@ -253,10 +253,66 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Acceptance Criteria: a milestone-level ACTIVE status is never attributed to the preceding milestone's last sub-step; the existing PENDING-fallback test still passes; both callers (`aa-ma-session-start.sh`, `pre-compact-aa-ma.sh`) run live and report a defensible step. Mutation-verified: removing the reset re-fails the new case.
 - Result Log: COMPLETE. One awk rule — any `^## ` resets `current` — restores the invariant that a sub-step block ends at the next H2. **Three RED cases, all three fixed**, and the second was a surprise: a genuinely `Status: ACTIVE` sub-step was *also* unreachable, because awk exits on the first ACTIVE it sees and the next milestone's own status line came first. So the function could never return an ACTIVE step that followed a completed milestone at all. **Corpus-wide old-vs-new diff, all 27 tasks files: 6 rows change, every one a correction, zero regressions.** Live plan `Sub-step 3.6: 20-run soak` (COMPLETE, M3) -> `Sub-step 4.8` (the real PENDING step); `styles` fixture COMPLETE 1.1 -> PENDING 2.1; `two-active` COMPLETE 2.1 -> PENDING 4.1; three fixtures -> empty, correct because no sub-step in them carries a status of its own. The last of those is the clearest instance of the bug: in `agent-token-optimization` **not one** `### Sub-step:` block has a `Status:` field, so the old answer was `## Step 7`'s `- Status: ACTIVE` attributed to `## Step 6`'s last sub-step. **Both callers run live**: `aa-ma-session-start.sh` now prints `step=[Sub-step 4.8: Close the same defect in the step extractor]` (captured while 4.8 was still PENDING, so it is evidence and not a tautology); `pre-compact-aa-ma.sh` degrades to `unknown` on empty, unchanged. **Mutation-verified**: deleting the reset re-fails exactly the 3 new cases, 0 otherwise. Suites: hooks bats **160 ok / 0 not ok** (was 157), commands bats 70 ok, pytest 864 passed, shellcheck clean.
 
+### Sub-step 4.9: Sanitise untrusted titles at the session-start boundary
+
+- Status: COMPLETE
+- Mode: AFK
+- Action: §6.8 CRITICAL (security-auditor), reproduced end-to-end. `aa-ma-session-start.sh` interpolates a milestone/step title taken from `tasks.md` into the hidden system-context line as `milestone=[%s]` with no control-character stripping, no `]` escaping and no length cap. A cloned repo forges a complete second well-formed `AA-MA ACTIVE:` directive instructing exfiltration of `~/.ssh/id_rsa`. Fires automatically at session start, before the user types anything. Pre-existing, not introduced by M4, but the readers feeding it were changed in this window. Sanitise at the interpolation boundary.
+- Acceptance Criteria: the reproduction fixture yields a single `AA-MA ACTIVE:` directive with no `]` inside any bracketed field; control characters stripped; titles truncated. RED test first.
+- Result Log: COMPLETE. Reproduced end-to-end first: a scratch repo whose milestone heading closed the `milestone=[` bracket emitted a second well-formed `AA-MA ACTIVE:` directive inside the hidden system-context line, instructing exfiltration of `~/.ssh/id_rsa` to an attacker URL — before the user types anything. `_aa_ma_safe_field()` now closes three shapes at the interpolation boundary: control characters (ANSI can erase the line and redraw a forged `ENG-STANDARDS-GATE: PASS` banner in both terminal and transcript), square brackets (the field delimiters), and the `AA-MA ACTIVE` protocol token itself plus a length cap — the token is ours and untrusted content has no business carrying it. Applied to `TOP_NAME`, milestone, step and footer. **Cap chosen from measurement, not taste**: across 644 real headings in the corpus, median title length 45, p95 77, max 112 — so 120 truncates nothing legitimate. Tightening to 80 would truncate ~5% of real titles while still leaving an attacker 80 characters, so it buys nothing; the structural neutralisation is the defence, not the cap. **Stated limitation**: this bounds structure, not semantics — 120 characters of attacker-chosen prose still reach the model, and the only way to remove that is to stop echoing untrusted titles, which would cost the briefing its purpose. RED 3/3 -> GREEN; exploit re-run live post-fix yields exactly one directive with the payload truncated and the token broken. hooks bats **163 ok / 0 not ok** (was 160), shellcheck clean.
+
+### Sub-step 4.10: One Status grammar, not four
+
+- Status: PENDING
+- Mode: AFK
+- Action: §6.8 CRITICAL (all three agents), verified. `aa_ma_active_milestone_strict` hardcodes `^-?[[:blank:]]*(\*\*)?Status:...`, strictly narrower than the library's own `_aa_ma_field_re` and than the Python SSoT `parser.py::_field_pattern`. `  - Status: ACTIVE` (blanks before the dash) is invisible to it → the rc-3 ambiguity refusal is bypassed and the gate certifies the wrong milestone: measured `PENDING=0 GATE=SOFT` where the truth is `PENDING=1 GATE=HARD`. The false PASS 4.6 exists to close, reintroduced by 4.6. Conversely `- **Status**: ACTIVE` and `- Status: **ACTIVE**` make a plan permanently un-gateable. Reuse `_aa_ma_field_re Status`; delete the fourth grammar.
+- Acceptance Criteria: indented, tab-indented, split-bold-key and bold-value forms resolve identically across `aa_ma_field_value`, `aa_ma_active_milestone_strict` and the Python SSoT; pinned by a parity test.
+- Result Log:
+
+### Sub-step 4.11: Pass the title to awk byte-exact
+
+- Status: PENDING
+- Mode: AFK
+- Action: §6.8 CRITICAL (security-auditor), verified. POSIX awk performs escape-sequence processing on `-v` assignments, so `aa_ma_extract_milestone_block` does not compare the bytes the derivation emitted. Measured: `strict` names `Milestone 1: a\tb` (1 PENDING, HARD) and the block scan returns `Milestone 1: a<TAB>b` (COMPLETE, SOFT) → `PENDING=0 GATE=SOFT`. Benign corollary, equally real: a milestone titled `Fix \t handling in parser` gives `strict rc=0` then `block rc=1`, so the gate blocks a valid plan citing a milestone it derived itself. Pass via `ENVIRON[]` or `ARGV`, never `-v`.
+- Acceptance Criteria: titles containing `\t`, `\n`, `\\`, `\d` and `C:\dev\path` round-trip exactly; the two-milestone escape fixture refuses instead of certifying the clean one.
+- Result Log:
+
+### Sub-step 4.12: One H2 predicate, and actually call the SSoT recogniser
+
+- Status: PENDING
+- Mode: AFK
+- Action: §6.8 WARNING ×2 (code-reviewer), verified. Four spellings of "is this an H2" now exist (`/^## /` ×2, `/^##[[:blank:]]/` ×2, `/^##[^#]/`). On a tab-separated `##\tMilestone 2:` the library contradicts itself: `strict` reads it correctly while `aa_ma_extract_active_step` returns `Sub-step 1.1: done` — the exact defect 4.8 claims to close — and `aa_ma_extract_active_milestone` returns the COMPLETE milestone. Separately, `aa_ma_is_milestone_heading` has **0 callers in shipped code**: 4.7's declared Action was "Rewire it to `aa_ma_is_milestone_heading`" and the implementation inlined its body as a fourth copy instead. Consolidate on `/^##[[:blank:]]/` and share one recognition body.
+- Acceptance Criteria: all four call sites agree on a shared edge-case table incl. tab-separated and bare `##`; `aa_ma_is_milestone_heading` has at least one shipped caller or its removal is recorded.
+- Result Log:
+
+### Sub-step 4.13: Gate condition 1 must actually halt
+
+- Status: PENDING
+- Mode: AFK
+- Action: §6.8 WARNING (code-reviewer), verified. `execute-aa-ma-milestone.md:498` ends the git-dirty branch with `# HALT`, a comment. Measured against a dirty task dir: the gate prints `BLOCKED: AA-MA artifacts have uncommitted changes.` and then `ENG-STANDARDS-GATE: PASS (all 5 conditions satisfied)` with `EXIT=0` — it contradicts itself in one run and passes. Pre-existing and identical at `f2c83bc`, but it is condition 1 of the gate this milestone hardens, twelve lines above the four real `exit 1`s added in 4.6. Replace with `exit 1`.
+- Acceptance Criteria: a dirty AA-MA task dir exits non-zero with no `PASS` line.
+- Result Log:
+
+### Sub-step 4.14: Tests that execute the gate, and mawk parity for the changed functions
+
+- Status: PENDING
+- Mode: AFK
+- Action: §6.8 WARNING ×2 (code-reviewer + future-proofing). The guard for 4.6's fix is an exact-literal negative grep over markdown that goes green if a future edit merely adds quotes, reinstating the defect. Nothing in the suite executes the §6.7 preamble, so the `case $?` dispatch, four `exit 1` paths and the rc-3 `printf | sed` are unguarded. Separately, the mawk parity loop covers only `aa_ma_extract_milestone_block`; none of the three functions changed in this window is pinned under mawk. Replace the literal guard with behavioural execution and extend parity coverage.
+- Acceptance Criteria: a bats case extracts the §6.7 fence and runs it against each fixture asserting exit status and message; mawk+gawk parity asserted for all three changed functions with the existing non-vacuity guard.
+- Result Log:
+
+### Sub-step 4.15: Correct the count claims
+
+- Status: PENDING
+- Mode: AFK
+- Action: §6.8 CRITICAL ×2 (future-proofing), verified. `tasks.md:260` claims M4 added 15 python / 38 bats tests; measured 22 python (10+3 defs → 22 collected under parametrisation — `grep -c '^def test_'` was the wrong metric) and 41 bats (`aa-ma-gate-scans.bats` 0→36, `aa-ma-parse.bats` 17→22). 4.6's own Result Log says "8 new bats cases"; it was 9 — 8 went RED, one passed pre-fix. The `(36 in file)` parenthetical is self-invalidating and its sibling at `:81` has already drifted 17→22 inside this same plan. Nothing parses `New-Tests`, so these are pure rot surface: replace with the derivation command.
+- Acceptance Criteria: no hardcoded per-file test count remains in tasks.md; corrected figures stated once, with the command that reproduces them.
+- Result Log:
+
 ## Summary Counts
 
 - Milestones: 4 (2 HARD, 2 SOFT)
-- Sub-steps: 28
+- Sub-steps: 35
 - New tests declared: 73 python (M1 35, M2 22, M3 1, M4 15) + bats (M1 1, M4 38)
   <!-- Was "37 python (M1 35, M2 2)" — stale from planning: M2 grew 2→22 when its
        scope went from 1 writer to 11, M3 went 0→1 after §6.8 found an untested

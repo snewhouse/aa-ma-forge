@@ -238,18 +238,45 @@ _aa_ma_field_re() {
     printf '^[-[:blank:]]*[*]{0,2}%s[*]{0,2}:[*]{0,2}[[:blank:]]+' "$1"
 }
 
+# -----------------------------------------------------------------------------
+# _AA_MA_VALUE_NORM — awk prelude defining aa_ma_norm(line, re).
+#
+# ONE definition of "given a field line and its pattern, what is the value".
+# Every consumer prepends this rather than re-inlining sub()+gsub(), because
+# each hand-rolled copy has drifted at least once: `aa_ma_active_milestone_strict`
+# shipped a matcher permitting a dash then blanks but not blanks then a dash,
+# so `  - Status: ACTIVE` was invisible to it while `_aa_ma_field_re` and the
+# Python SSoT both accepted it — walking straight past the rc-3 ambiguity
+# refusal and certifying the wrong milestone.
+#
+# The bold-pair strip is not cosmetic: `- Status: **PENDING**` is a form the
+# corpus carries, and an unstripped value never equals "PENDING", so the gate
+# counted zero pending sub-steps on a milestone that had them.
+#
+# Interval expressions `{0,2}` in _aa_ma_field_re are verified against mawk
+# 1.3.4 as well as gawk — measured 5/5 on the full form table, not assumed.
+# -----------------------------------------------------------------------------
+_AA_MA_VALUE_NORM='
+function aa_ma_norm(line, re,   v) {
+    v = line
+    sub(re, "", v)
+    gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", v)
+    if (v ~ /^[*][*].*[*][*]$/) {
+        v = substr(v, 3, length(v) - 4)
+        gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", v)
+    }
+    return v
+}'
+
 aa_ma_field_value() {
-    awk -v re="$(_aa_ma_field_re "$1")" '
-        $0 ~ re { v = $0; sub(re, "", v); gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", v); print v; exit }
+    awk -v re="$(_aa_ma_field_re "$1")" "${_AA_MA_VALUE_NORM}"'
+        $0 ~ re { print aa_ma_norm($0, re); exit }
     '
 }
 
 aa_ma_count_field() {
-    awk -v re="$(_aa_ma_field_re "$1")" -v want="$2" '
-        $0 ~ re {
-            v = $0; sub(re, "", v); gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", v)
-            if (v == want) c++
-        }
+    awk -v re="$(_aa_ma_field_re "$1")" -v want="$2" "${_AA_MA_VALUE_NORM}"'
+        $0 ~ re { if (aa_ma_norm($0, re) == want) c++ }
         END { print c + 0 }
     '
 }
@@ -485,7 +512,9 @@ aa_ma_list_active_tasks() {
 aa_ma_active_milestone_strict() {
     local file="${1:-}" out rc
     { [ -n "$file" ] && [ -f "$file" ] && [ -r "$file" ]; } || return 2
-    out=$(_aa_ma_sanitize "$file" | awk -v mre="$AA_MA_MILESTONE_ERE" '
+    out=$(_aa_ma_sanitize "$file" \
+        | awk -v mre="$AA_MA_MILESTONE_ERE" -v sre="$(_aa_ma_field_re Status)" \
+              "${_AA_MA_VALUE_NORM}"'
         /^##[^#]/ {
             current = ""; in_header = 0
             if ($0 ~ mre) {
@@ -501,8 +530,8 @@ aa_ma_active_milestone_strict() {
             next
         }
         /^###/ { in_header = 0; next }
-        in_header && /^-?[[:blank:]]*(\*\*)?Status:(\*\*)?[[:blank:]]+ACTIVE/ {
-            print current; n++; in_header = 0
+        in_header && $0 ~ sre {
+            if (aa_ma_norm($0, sre) == "ACTIVE") { print current; n++; in_header = 0 }
         }
         END { exit (n == 0 ? 1 : (n > 1 ? 3 : 0)) }
     ')

@@ -467,3 +467,54 @@ _exec_lines() {
     [ "$status" -eq 0 ]
     [ "$output" = "Milestone 2: The one being gated" ]
 }
+
+# ---------------------------------------------------------------------------
+# One Status grammar (sub-step 4.10)
+#
+# aa_ma_active_milestone_strict shipped its own Status matcher,
+# `^-?[[:blank:]]*(\*\*)?Status:...`, which permits a dash THEN blanks but not
+# blanks THEN a dash. `  - Status: ACTIVE` was therefore invisible to it while
+# _aa_ma_field_re and the Python SSoT both accept it — so the rc-3 ambiguity
+# refusal could be walked straight past. Measured false PASS: gate reported
+# PENDING=0 GATE=SOFT on a plan whose second ACTIVE milestone was 1 PENDING and
+# Gate: HARD. Found by all three Phase 6.8 agents.
+# ---------------------------------------------------------------------------
+
+@test "strict derivation reads every Status form _aa_ma_field_re accepts" {
+    load_helper
+    local f="${BATS_TEST_DIRNAME}/fixtures/gate-scans/statusforms-tasks.md"
+    run aa_ma_active_milestone_strict "$f"
+    [ "$status" -eq 0 ]
+    [ "$output" = "Milestone 2: Indented dash" ]
+}
+
+@test "strict derivation and aa_ma_field_value never disagree on a Status line" {
+    load_helper
+    local forms=(
+        "- Status: ACTIVE"
+        "  - Status: ACTIVE"
+        "	- Status: ACTIVE"
+        "- **Status**: ACTIVE"
+        "- **Status:** ACTIVE"
+        "- Status: **ACTIVE**"
+    )
+    local tested=0 form tmp
+    for form in "${forms[@]}"; do
+        tmp="$BATS_TMPDIR/form-$tested.md"
+        printf '## Milestone 1: T\n\n%s\n' "$form" > "$tmp"
+        # The permissive reader is the reference implementation.
+        [ "$(aa_ma_field_value Status < "$tmp")" = "ACTIVE" ]
+        run aa_ma_active_milestone_strict "$tmp"
+        [ "$status" -eq 0 ]
+        [ "$output" = "Milestone 1: T" ]
+        tested=$((tested + 1))
+    done
+    [ "$tested" -eq 6 ]
+}
+
+@test "a bold-value PENDING sub-step is still counted by the gate" {
+    load_helper
+    local f="${BATS_TEST_DIRNAME}/fixtures/gate-scans/statusforms-tasks.md"
+    [ "$(aa_ma_extract_milestone_block "$f" "Bold value" \
+        | aa_ma_count_field Status PENDING)" -eq 1 ]
+}

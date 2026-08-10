@@ -263,11 +263,11 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.10: One Status grammar, not four
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: §6.8 CRITICAL (all three agents), verified. `aa_ma_active_milestone_strict` hardcodes `^-?[[:blank:]]*(\*\*)?Status:...`, strictly narrower than the library's own `_aa_ma_field_re` and than the Python SSoT `parser.py::_field_pattern`. `  - Status: ACTIVE` (blanks before the dash) is invisible to it → the rc-3 ambiguity refusal is bypassed and the gate certifies the wrong milestone: measured `PENDING=0 GATE=SOFT` where the truth is `PENDING=1 GATE=HARD`. The false PASS 4.6 exists to close, reintroduced by 4.6. Conversely `- **Status**: ACTIVE` and `- Status: **ACTIVE**` make a plan permanently un-gateable. Reuse `_aa_ma_field_re Status`; delete the fourth grammar.
 - Acceptance Criteria: indented, tab-indented, split-bold-key and bold-value forms resolve identically across `aa_ma_field_value`, `aa_ma_active_milestone_strict` and the Python SSoT; pinned by a parity test.
-- Result Log:
+- Result Log: COMPLETE. The fourth Status grammar is deleted, not patched: `aa_ma_active_milestone_strict` now takes `_aa_ma_field_re Status` and compares the extracted value. Introduced `_AA_MA_VALUE_NORM`, one awk prelude defining `aa_ma_norm(line, re)`, and rewired `aa_ma_field_value` and `aa_ma_count_field` to it as well — each had its own inlined `sub()`+`gsub()` copy. **Checked the prerequisite instead of assuming it**: `_aa_ma_field_re` uses `{0,2}` interval expressions and this file's own comments warn about mawk, so before adopting it I measured the full form table under both awks — 5/5 gawk, 5/5 mawk. The normaliser also strips a surrounding bold pair, which closes a second Phase 6.8 finding: `- Status: **PENDING**` never equalled `PENDING`, so the gate counted zero pending sub-steps on a milestone that had them. **The original exploit re-run now returns rc=3 naming both milestones** (was rc=0 certifying the wrong one with PENDING=0 GATE=SOFT). Parity asserted across 6 forms — plain, indented, tab-indented, split-bold key, bold key, bold value — with `aa_ma_field_value` as the reference implementation and a non-vacuity guard. RED 3/3 -> GREEN. hooks bats **166 ok / 0 not ok** (was 163), commands bats 70 ok, pytest 864 passed, shellcheck clean.
 
 ### Sub-step 4.11: Pass the title to awk byte-exact
 

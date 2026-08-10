@@ -294,3 +294,55 @@ Sub-step 1.0: write the 14-row baseline table into `reference.md`. Then M1 RED: 
 - **Theme 3 — Reasoning & Planning:** strategic subagent use is load-bearing here — six verification angles found what three rounds of self-review did not. `Skill(systematic-debugging)` (M3) and `Skill(impact-analysis)` (M4) are named in the milestones; dispatches recorded in `provenance.log`.
 - **Theme 4 — Safety & Continuity:** the non-breaking constraint is enforced by an exact pinned table rather than a prose claim. M4 exists solely because widening the readers without widening the gate scans would weaken a live safety check.
 - **Theme 6 — Sync & Commit Discipline:** Result Log per sub-step immediately (L-080–L-082), HARD gates on M1 and M4, conventional commits with the `[AA-MA Plan]` footer, and the §2.5 field format so the gate can actually read what it is gating.
+
+---
+
+## Scope amendment (2026-08-10): M5 — gate enforcement reads the Python SSoT
+
+**Why the plan changed.** The plan's thesis was "one grammar, one source of
+truth". M1 delivered that for Python. M4 tried to deliver it for the bash gate
+by aligning a bash re-implementation with the Python one. Three §6.8 passes over
+three consecutive windows found **8, then 4, then 9** distinct CRITICALs, the
+third window being the remediation for the second — seven of its nine introduced
+by the fixes themselves. Alignment by hand does not converge.
+
+**The measured reason.** Each round decided the parser's accepted-string set by
+reasoning rather than by measuring the corpus. `_aa_ma_field_re` was a *prefix*
+match for a reason never asked about; tightening it to equality hid the
+annotated `Status: ACTIVE (…)` form that this repo uses 17 times. The bash and
+Python implementations were pinned only by a test that re-implements the
+recogniser a third time — mutation-verified as blind: two strong mutants leave
+`tests/test_grammar_parity.py` green at 7/7.
+
+**The amendment.** Enforcement moves to `src/aa_ma/`. Bash keeps the advisory
+display hooks, where a wrong answer is cosmetic rather than a false PASS. This is
+not new parser work: `tui/parser.py` already ships the field pattern and the
+status/gate extractors, `plan_parsers.py` the canonical-value parsers, and
+`grammar.py` the heading structure. `gate.py` is a thin question-answerer over
+them, and the exploit fixtures from all three §6.8 passes become its test corpus.
+
+**Rollback strategy.** M5 is additive until 5.5. Through 5.4 the bash helpers
+still exist and reverting the command-file rewire restores previous behaviour.
+5.5 (deleting the enforcing bash) is the irreversible step and is gated behind
+5.4's tests passing, including the mutation checks.
+
+**Dependencies and assumptions.** Assumes Python is available wherever
+`/execute-aa-ma-milestone` runs — true for every other part of this repo
+(`uv run pytest`, `aa-ma-tui`, the codemem MCP package), and the assumption is
+stated here rather than left implicit because it is the one real cost of the
+change.
+
+**Risks (top 3).** (1) Python-at-gate-time unavailable in some consumer
+environment → mitigated by an explicit, loud refusal rather than a silent skip.
+(2) The Python parser has its own untested edge cases → mitigated by seeding its
+test corpus with every fixture that broke bash. (3) Deleting the bash helpers
+breaks an unmeasured caller → mitigated by 5.5 measuring callers before deleting.
+
+**Engineering Standards Declaration (element #12) for M5.** Theme 1
+(Verification & Truth) — the whole amendment exists because in-model reasoning
+about accepted strings kept losing to measurement; every M5 acceptance criterion
+is an executed test. Theme 2 (TDD, DRY) — 5.1 is RED-first, and the milestone's
+purpose is deleting a duplicated parser. Theme 4 (Safety & Continuity) — the
+known `d636824` defects must be closed *by construction*, and 5.5 is gated behind
+caller measurement. Theme 6 (Sync & Commit Discipline) — per-sub-step Result Log,
+HARD gate.

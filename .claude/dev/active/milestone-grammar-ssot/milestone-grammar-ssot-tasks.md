@@ -183,7 +183,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ## Milestone 4: Close the HARD-gate scan blindness
 
-- Status: PENDING
+- Status: ACTIVE
 - Gate: HARD
 - Mode: HITL
 - Dependencies: Milestone 1
@@ -195,10 +195,10 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.1: RED — failing bats per scan point
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: fixtures using `## M1:` and `## Milestone 1 —`, each with one sub-step whose status field is the pending value, plus a `- **Critical-Path:** data-xform` line. Assert every scan finds them. Currently returns empty. (Deliberately avoids writing the literal pending-status string here — the HARD gate greps for it and would count a prose mention as a real pending sub-step.)
-- Result Log: _pending_
+- Result Log: RED confirmed — **17 fail / 2 pass** in `tests/hooks/aa-ma-gate-scans.bats` (19 cases) against `tests/hooks/fixtures/gate-scans/styles-tasks.md` (4 heading styles + 2 prose negative controls). The two passes are legitimate: the vacuity meta-test and `bash -n`. **The diagnosis in the plan was wrong, and understated.** The scans are not merely blind to `## M1:` / em-dash styles — they return nothing for *any* style, canonical included: `awk "/^## Milestone.*$T/,/^## Milestone/"` **self-terminates**, because the start line also matches the end pattern and awk evaluates the end pattern on the same record. Measured on this plan's own tasks.md: 1 line returned, `0` pending where 6 exist, `Critical-Path` empty on a milestone that declares it. Separately, `grep -A1 "## Milestone.*$T" | grep -oP 'Gate: \K\w+'` returns the heading plus a blank line, so `GATE` is always empty and **§7.1 has never enforced a HARD gate**. Fifth defect found: `verify-impl/SKILL.md:57` uses `\s`, a GNU extension mawk does not support — measured 0 lines under mawk (Debian/Ubuntu default awk), i.e. an empty milestone block, silently.
 
 ### Sub-step 4.2: Align the gate scans
 

@@ -271,11 +271,11 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.11: Pass the title to awk byte-exact
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: §6.8 CRITICAL (security-auditor), verified. POSIX awk performs escape-sequence processing on `-v` assignments, so `aa_ma_extract_milestone_block` does not compare the bytes the derivation emitted. Measured: `strict` names `Milestone 1: a\tb` (1 PENDING, HARD) and the block scan returns `Milestone 1: a<TAB>b` (COMPLETE, SOFT) → `PENDING=0 GATE=SOFT`. Benign corollary, equally real: a milestone titled `Fix \t handling in parser` gives `strict rc=0` then `block rc=1`, so the gate blocks a valid plan citing a milestone it derived itself. Pass via `ENVIRON[]` or `ARGV`, never `-v`.
 - Acceptance Criteria: titles containing `\t`, `\n`, `\\`, `\d` and `C:\dev\path` round-trip exactly; the two-milestone escape fixture refuses instead of certifying the clean one.
-- Result Log:
+- Result Log: COMPLETE. `aa_ma_extract_milestone_block` now receives the title through `ENVIRON["AA_MA_TITLE"]`, which POSIX does not escape-process, instead of `-v title=`, which does. Our own literal patterns (`mre`, `sre`) stay on `-v` — they contain no backslashes, so the transformation is a no-op for them and the narrower change is the honest one. Both halves of the defect now hold: the two-milestone escape fixture keeps `Gate: HARD` / `PENDING=1` with the derivation and the block scan agreeing, and four legitimate backslash titles (`Fix \t handling in parser`, `Windows C:\dev\path`, `Escape \\ pair`, `Regex \d digit`) now round-trip instead of producing a spurious BLOCK. `ENVIRON` confirmed present under mawk as well as gawk by running the real function through a PATH shim — mawk's support was verified, not assumed, because the whole point of this sub-step is that an awk feature behaved differently than expected. RED 2/2 -> GREEN. hooks bats **168 ok / 0 not ok** (was 166), shellcheck clean.
 
 ### Sub-step 4.12: One H2 predicate, and actually call the SSoT recogniser
 

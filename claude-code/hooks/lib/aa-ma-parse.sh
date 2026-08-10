@@ -325,7 +325,18 @@ aa_ma_extract_milestone_block() {
     local file="$1" title="$2"
     [ -f "$file" ] || return 2
     [ -n "$title" ] || return 2
-    _aa_ma_sanitize "$file" | awk -v title="$title" -v mre="$AA_MA_MILESTONE_ERE" '
+    # The title is FILE CONTENT and must reach awk byte-for-byte. POSIX awk
+    # performs escape-sequence processing on -v assignments, so `-v title="$title"`
+    # silently transforms it: a plan with `## Milestone 1: a\tb` (1 PENDING,
+    # Gate: HARD) and `## Milestone 1: a<TAB>b` (COMPLETE, SOFT) made the strict
+    # derivation name the first and this scan return the second — PENDING=0,
+    # GATE=SOFT, a false PASS. The benign half is just as real: a milestone
+    # titled `Fix \t handling in parser` produced rc 1 here, so the gate blocked
+    # a valid plan citing a milestone it had derived itself. ENVIRON is not
+    # escape-processed; -v remains fine for our own literal patterns.
+    AA_MA_TITLE="$title" _aa_ma_sanitize "$file" \
+        | AA_MA_TITLE="$title" awk -v mre="$AA_MA_MILESTONE_ERE" '
+        BEGIN { title = ENVIRON["AA_MA_TITLE"] }
         /^##[[:blank:]]/ { if (inblk) inblk = 0 }
         $0 ~ mre {
             t = $0

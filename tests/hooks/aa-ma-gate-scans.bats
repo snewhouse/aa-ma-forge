@@ -518,3 +518,42 @@ _exec_lines() {
     [ "$(aa_ma_extract_milestone_block "$f" "Bold value" \
         | aa_ma_count_field Status PENDING)" -eq 1 ]
 }
+
+# ---------------------------------------------------------------------------
+# Byte-exact title passing (sub-step 4.11)
+#
+# POSIX awk performs escape-sequence processing on -v assignments, so a title
+# passed that way is not compared as the bytes the derivation emitted. Measured
+# false PASS: strict named `Milestone 1: a\tb` (1 PENDING, Gate: HARD) and the
+# block scan returned `Milestone 1: a<TAB>b` (COMPLETE, SOFT). The benign case
+# is just as real — a milestone titled `Fix \t handling in parser` made the gate
+# block a valid plan citing a milestone it had derived itself.
+# ---------------------------------------------------------------------------
+
+@test "a backslash in a title does not redirect the block scan" {
+    load_helper
+    local f="$BATS_TMPDIR/esc-$$.md"
+    printf '## Milestone 1: a\\tb\n\n- Status: ACTIVE\n- Gate: HARD\n\n### Sub-step 1.1: x\n\n- Status: PENDING\n\n## Milestone 1: a\tb\n\n- Status: COMPLETE\n- Gate: SOFT\n' > "$f"
+    local title block
+    title=$(aa_ma_active_milestone_strict "$f")
+    block=$(aa_ma_extract_milestone_block "$f" "$title")
+    # The block must belong to the milestone the derivation named.
+    [ "$(printf '%s\n' "$block" | aa_ma_field_value Gate)" = "HARD" ]
+    [ "$(printf '%s\n' "$block" | aa_ma_count_field Status PENDING)" -eq 1 ]
+}
+
+@test "titles containing backslashes round-trip exactly" {
+    load_helper
+    local titles=('Fix \t handling in parser' 'Windows C:\dev\path' 'Escape \\ pair' 'Regex \d digit')
+    local tested=0 t f
+    for t in "${titles[@]}"; do
+        f="$BATS_TMPDIR/bs-$tested.md"
+        printf '## Milestone 1: %s\n\n- Status: ACTIVE\n- Gate: HARD\n\n### Sub-step 1.1: x\n\n- Status: PENDING\n' "$t" > "$f"
+        local d
+        d=$(aa_ma_active_milestone_strict "$f")
+        run aa_ma_extract_milestone_block "$f" "$d"
+        [ "$status" -eq 0 ]
+        tested=$((tested + 1))
+    done
+    [ "$tested" -eq 4 ]
+}

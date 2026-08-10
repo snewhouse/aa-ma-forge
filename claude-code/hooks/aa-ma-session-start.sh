@@ -90,8 +90,52 @@ if [ "$OTHER_COUNT" -gt 0 ]; then
     fi
 fi
 
-# Emit the hidden system-context line. Path is the ACTUAL resolved path, not a hardcoded fragment.
-printf 'AA-MA ACTIVE: task=[%s] milestone=[%s] step=[%s]. Load context: Read %s/%s-reference.md and %s-tasks.md before proceeding.%s' \
-    "$TOP_NAME" "$active_milestone" "$active_step" "$TOP_DIR" "$TOP_NAME" "$TOP_NAME" "$FOOTER"
+# -----------------------------------------------------------------------------
+# Untrusted input reaches this line from two independent sources: the milestone
+# and step TITLES (content of a tasks.md in whatever repo the user cloned) and
+# the task DIRECTORY NAME (a path component, equally attacker-chosen). The line
+# is hidden system context emitted before the user types anything, so an
+# unescaped value can close its own bracket and forge a second AA-MA directive.
+# Reproduced end-to-end via both vectors.
+#
+# The two sources need DIFFERENT treatment, which is the mistake worth not
+# repeating: an earlier fix ran the task name through the display sanitiser and
+# then built the file path from the result, so a legal directory
+# `fix-[urgent]-parser` produced `fix-(urgent)-parser-reference.md` — every
+# session start citing a file that does not exist.
+#
+#   * display fields  -> rewrite (they are prose; corrupting them is harmless)
+#   * the path        -> emit verbatim or not at all (rewriting it breaks it)
+#
+# Truncation uses bash substring, not `cut -c`: measured on this host, `cut -c`
+# is byte-oriented and splits a multibyte character, emitting invalid UTF-8 into
+# the transcript. The 120 cap clears the longest real heading in the corpus (112).
+# -----------------------------------------------------------------------------
+_aa_ma_display() {
+    local v
+    v=$(printf '%s' "$1" \
+        | tr -d '\000-\037\177' \
+        | sed -E 's/\[/(/g; s/]/)/g
+                  s/[Aa][Aa][-_[:space:]]*[Mm][Aa][[:space:]]*[Aa][Cc][Tt][Ii][Vv][Ee]/AA-MA_ACTIVE/g
+                  s/[Ll][Oo][Aa][Dd][[:space:]]+[Cc][Oo][Nn][Tt][Ee][Xx][Tt]:/load-context_/g')
+    printf '%s' "${v:0:120}"
+}
+
+# The path is trusted to be correct or it is not emitted. A sanitised path is
+# worse than no path: it sends the model to a file that does not exist.
+case "${TOP_DIR}/${TOP_NAME}" in
+    *[!A-Za-z0-9._/-]*)
+        PATH_CLAUSE="Load context: open this task's directory manually — its path contains characters unsafe to inline here." ;;
+    *)
+        PATH_CLAUSE="Load context: Read ${TOP_DIR}/${TOP_NAME}-reference.md and ${TOP_NAME}-tasks.md before proceeding." ;;
+esac
+
+# Emit the hidden system-context line.
+printf 'AA-MA ACTIVE: task=[%s] milestone=[%s] step=[%s]. %s%s' \
+    "$(_aa_ma_display "$TOP_NAME")" \
+    "$(_aa_ma_display "$active_milestone")" \
+    "$(_aa_ma_display "$active_step")" \
+    "$PATH_CLAUSE" \
+    "$(_aa_ma_display "$FOOTER")"
 
 exit 0

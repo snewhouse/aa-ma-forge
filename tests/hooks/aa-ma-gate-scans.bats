@@ -30,7 +30,10 @@ setup() {
     MILESTONE_CMD="${REPO_ROOT}/claude-code/commands/execute-aa-ma-milestone.md"
     VERIFY_IMPL="${REPO_ROOT}/claude-code/skills/verify-impl/SKILL.md"
     FIXTURE="${BATS_TEST_DIRNAME}/fixtures/gate-scans/styles-tasks.md"
-    export REPO_ROOT HELPER MILESTONE_CMD VERIFY_IMPL FIXTURE
+    FIX_ONE="${BATS_TEST_DIRNAME}/fixtures/gate-scans/one-active-tasks.md"
+    FIX_TWO="${BATS_TEST_DIRNAME}/fixtures/gate-scans/two-active-tasks.md"
+    FIX_NONE="${BATS_TEST_DIRNAME}/fixtures/gate-scans/no-active-tasks.md"
+    export REPO_ROOT HELPER MILESTONE_CMD VERIFY_IMPL FIXTURE FIX_ONE FIX_TWO FIX_NONE
 }
 
 teardown() {
@@ -365,4 +368,102 @@ _exec_lines() {
     title="${heading#*: }"
     [ "$(aa_ma_extract_milestone_block "$FIXTURE" "$heading" | wc -l)" \
       -eq "$(aa_ma_extract_milestone_block "$FIXTURE" "$title" | wc -l)" ]
+}
+
+# ---------------------------------------------------------------------------
+# Milestone DERIVATION — which milestone the gate believes it is certifying
+#
+# Sub-step 4.5 fixed the unset-MILESTONE_TITLE defect by wiring the gate to
+# aa_ma_extract_active_milestone. That function takes the FIRST match and has
+# no way to say "ambiguous", so with a stale second ACTIVE status the gate
+# derived the wrong milestone and reported PENDING=0 / GATE=SOFT for a
+# milestone that was 1 PENDING / Gate: HARD — a silent false PASS, which is
+# the one failure direction none of this milestone's other defects produced.
+#
+# aa_ma_active_milestone_strict is the fail-closed replacement:
+#   rc 0 -> exactly one ACTIVE milestone, heading (minus "## ") on stdout
+#   rc 1 -> none ACTIVE
+#   rc 2 -> file missing or unreadable
+#   rc 3 -> more than one ACTIVE, all of them on stdout so the caller can name
+#           them in the refusal
+# ---------------------------------------------------------------------------
+
+@test "strict derivation returns the single ACTIVE milestone" {
+    load_helper
+    run aa_ma_active_milestone_strict "$FIX_ONE"
+    [ "$status" -eq 0 ]
+    [ "$output" = "Milestone 2: The one being gated" ]
+}
+
+@test "strict derivation refuses when two milestones are ACTIVE" {
+    load_helper
+    run aa_ma_active_milestone_strict "$FIX_TWO"
+    [ "$status" -eq 3 ]
+    # Both must be named — a refusal that does not say which two is unactionable.
+    [[ "$output" == *"Milestone 2: Older milestone left ACTIVE"* ]]
+    [[ "$output" == *"Milestone 4: The one actually being gated"* ]]
+}
+
+@test "strict derivation refuses when no milestone is ACTIVE" {
+    load_helper
+    run aa_ma_active_milestone_strict "$FIX_NONE"
+    [ "$status" -eq 1 ]
+    # Specifically must NOT fall back to a prose H2.
+    [[ "$output" != *"Summary Counts"* ]]
+}
+
+@test "strict derivation refuses on a missing file" {
+    load_helper
+    run aa_ma_active_milestone_strict "$BATS_TMPDIR/does-not-exist-$$.md"
+    [ "$status" -eq 2 ]
+}
+
+@test "strict derivation ignores prose H2 sections entirely" {
+    load_helper
+    # The trailing "## Summary Counts" in FIX_ONE carries both a pending status
+    # and Gate: HARD. It must never be a derivation candidate.
+    run aa_ma_active_milestone_strict "$FIX_ONE"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"Summary"* ]]
+}
+
+@test "strict derivation output feeds the block extractor unchanged" {
+    load_helper
+    local heading
+    heading=$(aa_ma_active_milestone_strict "$FIX_ONE")
+    run aa_ma_extract_milestone_block "$FIX_ONE" "$heading"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Sub-step 2.1"* ]]
+    [[ "$output" != *"Summary Counts"* ]]
+}
+
+@test "the gate derives its milestone strictly, not from the tolerant reader" {
+    # The §6.7 preamble must not resolve MILESTONE_TITLE via the tolerant
+    # reader: that is what let it certify the wrong milestone.
+    grep -qF "aa_ma_active_milestone_strict" "$MILESTONE_CMD"
+    ! grep -qF 'MILESTONE_TITLE=$(aa_ma_extract_active_milestone' "$MILESTONE_CMD"
+}
+
+# ---------------------------------------------------------------------------
+# One milestone grammar in aa-ma-parse.sh (sub-step 4.7)
+#
+# aa_ma_extract_active_milestone opened a block on bare /^## /, the third
+# grammar in a file whose purpose after M1 is to hold one. Measured across the
+# repo's 27 tasks files it changed exactly one row, a TUI fixture using
+# "## Step N:" headings that grammar.py already matches 0 of 9 times.
+# ---------------------------------------------------------------------------
+
+@test "tolerant reader no longer treats a prose H2 as a milestone" {
+    load_helper
+    run aa_ma_extract_active_milestone "$FIX_NONE"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}
+
+@test "tolerant reader still finds a real milestone" {
+    load_helper
+    # Non-breaking: the session-start hook depends on this path.
+    run aa_ma_extract_active_milestone "$FIX_ONE"
+    [ "$status" -eq 0 ]
+    [ "$output" = "Milestone 2: The one being gated" ]
 }

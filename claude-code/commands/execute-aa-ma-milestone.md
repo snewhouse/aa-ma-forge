@@ -531,8 +531,28 @@ fi
 # MILESTONE_TITLE must be resolved HERE. It was previously first assigned in
 # §8.2 — 340 lines below its first use — so at gate time it was unset, the
 # extractor received an empty title, and every condition passed on empty input.
+#
+# The derivation is aa_ma_active_milestone_strict, NOT the tolerant
+# aa_ma_extract_active_milestone. The tolerant reader takes the first match and
+# always answers — right for a session briefing, wrong for a gate. Measured:
+# with a stale second `Status: ACTIVE`, it handed the gate the wrong milestone,
+# which then reported PENDING=0 / GATE=SOFT while certifying one that was
+# 1 PENDING / Gate: HARD. A gate that certifies the wrong subject is worse than
+# one that refuses, so ambiguity is a refusal.
 if [[ -z "${MILESTONE_TITLE:-}" ]]; then
-  MILESTONE_TITLE=$(aa_ma_extract_active_milestone "${TASK_DIR}/${TASK_NAME}-tasks.md")
+  MILESTONE_TITLE=$(aa_ma_active_milestone_strict "${TASK_DIR}/${TASK_NAME}-tasks.md")
+  case $? in
+    0) : ;;
+    1) echo "BLOCKED: no milestone is ACTIVE in ${TASK_NAME}-tasks.md."
+       echo "§5.1 sets the target milestone to ACTIVE before its sub-steps run."
+       exit 1 ;;
+    2) echo "BLOCKED: ${TASK_NAME}-tasks.md missing or unreadable."; exit 1 ;;
+    3) echo "BLOCKED: more than one milestone is ACTIVE — the gate cannot tell"
+       echo "which one it is certifying. Resolve the stale status first:"
+       printf '%s\n' "${MILESTONE_TITLE}" | sed 's/^/  - /'
+       exit 1 ;;
+    *) echo "BLOCKED: unexpected derivation status."; exit 1 ;;
+  esac
 fi
 if [[ -z "${MILESTONE_TITLE}" ]]; then
   echo "BLOCKED: cannot determine the active milestone in ${TASK_NAME}-tasks.md."

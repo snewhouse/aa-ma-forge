@@ -17,6 +17,7 @@
 #     aa_ma_extract_milestone_block_by_number <file> <num> -> block; rc 0/1/2/3
 #     aa_ma_field_value <name>   (stdin: block) -> first value, bold or plain
 #     aa_ma_count_field <name> <value> (stdin: block) -> count of matching lines
+#     aa_ma_active_milestone_strict <file>    -> the ONE ACTIVE milestone; rc 0/1/2/3
 #
 # This header is the discovery surface: it is the first thing anyone sourcing
 # the library reads, and a symbol missing from it gets reimplemented instead of
@@ -79,17 +80,27 @@ _aa_ma_strip_html_comments() {
 #     2. First milestone whose body contains Status: PENDING
 #   Emits empty string if neither found.
 # -----------------------------------------------------------------------------
+#   Recognises milestone headings via AA_MA_MILESTONE_ERE, NOT bare `^## `.
+#   The loose form was the third grammar in this file and it made a trailing
+#   prose section — `## Summary Counts`, which real plans carry and which
+#   contains field-shaped lines — a candidate active milestone. Measured across
+#   the repo's 27 tasks files the tightening changes exactly one row: a TUI
+#   fixture using `## Step N:` headings, which grammar.py already matches 0 of
+#   9 times. So this makes bash agree with the Python SSoT rather than losing
+#   information. `aa-ma-session-start.sh` degrades to "unknown" on empty, which
+#   is more truthful than naming a heading no gate can act on.
 aa_ma_extract_active_milestone() {
     local file="$1"
     [ -f "$file" ] || return 0
-    _aa_ma_strip_html_comments "$file" | awk '
-        # ^## Milestone heading starts a new milestone block
+    _aa_ma_strip_html_comments "$file" | awk -v mre="$AA_MA_MILESTONE_ERE" '
+        # A milestone heading opens a block; any other H2 closes one.
         /^## / {
-            current = $0
-            sub(/^## /, "", current)
-            found_pending = 0
-            # keep track of first-pending fallback
-            if (first_pending == "") first_pending_candidate = current
+            current = ""
+            if ($0 ~ mre) {
+                t = $0; sub(mre, "", t)
+                gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", t)
+                if (t != "") { current = $0; sub(/^## /, "", current) }
+            }
             next
         }
         # Status line: detect ACTIVE or PENDING within current milestone
@@ -427,6 +438,59 @@ aa_ma_list_active_tasks() {
             | sort -t$'\t' -k1,1rn -k2,2 \
             | awk -F'\t' 'NF==2 { print $2 }'
     fi
+}
+
+# -----------------------------------------------------------------------------
+# aa_ma_active_milestone_strict <tasks-file>
+#   Emits the ONE milestone whose own Status field is ACTIVE, heading text
+#   stripped of "## ". Exit codes:
+#     0  exactly one — the only case a gate may act on
+#     1  none ACTIVE
+#     2  file missing, unreadable, or no path given
+#     3  more than one ACTIVE; ALL of them are printed so the caller can name
+#        them in its refusal
+#
+# Why this exists alongside aa_ma_extract_active_milestone. That function is a
+# *display* helper: it takes the first match and falls back to the first
+# pending milestone, so it always answers, which is right for a session
+# briefing and wrong for a gate. Wiring the §6.7 gate to it (sub-step 4.5)
+# meant that with a stale second `Status: ACTIVE` the gate derived the WRONG
+# milestone: measured reporting PENDING=0 / GATE=SOFT while certifying a
+# milestone that was 1 PENDING / Gate: HARD. Every other defect this milestone
+# closed produced a false BLOCK; that one produced a false PASS.
+#
+# Only the milestone's OWN Status counts — fields between the `##` heading and
+# the first `###` sub-step. A sub-step left ACTIVE is normal mid-milestone and
+# must not make its parent a derivation candidate, nor make two milestones look
+# simultaneously active. Same first-block-wins convention as aa_ma_field_value.
+# -----------------------------------------------------------------------------
+aa_ma_active_milestone_strict() {
+    local file="${1:-}" out rc
+    { [ -n "$file" ] && [ -f "$file" ] && [ -r "$file" ]; } || return 2
+    out=$(_aa_ma_sanitize "$file" | awk -v mre="$AA_MA_MILESTONE_ERE" '
+        /^##[^#]/ {
+            current = ""; in_header = 0
+            if ($0 ~ mre) {
+                t = $0; sub(mre, "", t)
+                gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", t)
+                if (t != "") {
+                    current = $0
+                    sub(/^##[[:blank:]]+/, "", current)
+                    gsub(/[[:blank:]]+$/, "", current)
+                    in_header = 1
+                }
+            }
+            next
+        }
+        /^###/ { in_header = 0; next }
+        in_header && /^-?[[:blank:]]*(\*\*)?Status:(\*\*)?[[:blank:]]+ACTIVE/ {
+            print current; n++; in_header = 0
+        }
+        END { exit (n == 0 ? 1 : (n > 1 ? 3 : 0)) }
+    ')
+    rc=$?
+    [ -n "$out" ] && printf '%s\n' "$out"
+    return "$rc"
 }
 
 # -----------------------------------------------------------------------------

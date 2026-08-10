@@ -190,7 +190,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Complexity: 45%
 - **Critical-Path:** hook-modification
 - Audit-Profile: infra
-- New-Tests: 22  <!-- python: test_critical_path_parser.py (15) + test_grammar_parity.py (7). Plus bats: aa-ma-gate-scans.bats (26) and 2 added to aa-ma-parse.bats. Declared 0 at planning, then 15; the plan assumed the scans only needed a regex widened. -->
+- New-Tests: 22  <!-- python: test_critical_path_parser.py (15) + test_grammar_parity.py (7). Plus bats: aa-ma-gate-scans.bats (36 in file) and 2 added to aa-ma-parse.bats. Declared 0 at planning, then 15; the plan assumed the scans only needed a regex widened. The bats file grew 19->26->28 during 4.1-4.5 and 28->36 in 4.6/4.7; recount from the file, never from this comment. -->
 - Acceptance Criteria: plan §3 M4 acceptance 1-3
 
 ### Sub-step 4.1: RED — failing bats per scan point
@@ -228,11 +228,28 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Action: `bats -F tap --recursive tests/hooks/` green; `Skill(impact-analysis)` with HIGH findings resolved; `CRITICAL_PATH_REVIEW — hook-modification` in provenance; HARD gate approval in context-log.
 - Result Log: COMPLETE. hooks bats **147 ok / 0 not ok**, sole-dev-merge bats **70 ok / 0 skip**, pytest **864 passed**, shellcheck clean, ruff clean. §6.8 (`Audit-Profile: infra`) dispatched code-reviewer + security-auditor + future-proofing-auditor: **17 raw CRITICAL → 8 distinct, all fixed**, plus ~20 WARNINGs actioned. The review found my first M4 fix was *still* inert — `MILESTONE_TITLE` is assigned 347 lines after the gate consumes it, so the extractor got an empty title and every condition passed on empty input. My own dogfood check had set the variable by hand, so it verified the helper and not the shipped path. Also fixed: bold `- **Status:**`/`- **Gate:**` forms (22+24 in corpus, and the shipped Phase 5 writer emits them); substring title matching; fenced/multi-line-comment ghost headings truncating blocks; fail-open rc (now 0/1/2/3, callers refuse on all non-zero); `verify-impl`'s `$((N+1))` bash error on `2a`/`3.5`; file-global provenance greps; BRE title injection in the approval check; mixed-case `Gate:`. Four pre-existing dead `!` assertions elsewhere in the suite (POSIX exempts `! cmd` from `set -e`) repaired — two of them asserted a security vulnerability had been removed and could never fail. New guards: `tests/test_grammar_parity.py` pins the shell ERE against `grammar.py` (mutation-verified: dropping `|M` fails 6/7) and an Exports-header drift test in `aa-ma-parse.bats`, which immediately caught a symbol I had added minutes earlier and not documented.
 
+### Sub-step 4.6: Refuse an ambiguous milestone derivation
+
+- Status: COMPLETE
+- Mode: AFK
+- Action: 4.5 fixed the unset-`MILESTONE_TITLE` defect by wiring the gate to `aa_ma_extract_active_milestone`, the loosest grammar in `aa-ma-parse.sh` — which takes the *first* match and cannot signal ambiguity. Measured: with a stale second milestone left ACTIVE the gate derives the wrong milestone and reports `PENDING=0 GATE=SOFT` for a milestone that is 1 PENDING / `Gate: HARD` — a silent **false PASS**, the one direction none of this milestone's other defects could produce. Add a derivation that returns exactly-one-ACTIVE or refuses (rc 1 none / rc 3 many), and switch `execute-aa-ma-milestone.md` §6.7 to it.
+- Acceptance Criteria: two ACTIVE milestones → gate exits non-zero naming both; zero ACTIVE → exits non-zero; exactly one → unchanged behaviour. Mutation-verified: reverting the derivation re-fails the ambiguity case.
+- Result Log: COMPLETE. Added `aa_ma_active_milestone_strict` (rc 0 one / 1 none / 2 unreadable / 3 many, printing **all** ACTIVE headings on rc 3) and switched the §6.7 preamble to it. Only the milestone's **own** `Status:` counts — fields between the `##` heading and the first `###` — because a sub-step left ACTIVE is normal mid-milestone and would otherwise make its parent a candidate and two milestones look simultaneously active. **Dogfooded through the shipped text, not a hand-set variable**: the §6.7 preamble was extracted verbatim from the command file (47 lines) and run against four task dirs — `two-active` → exit 1 naming both milestones; `no-active` → exit 1; `one-active` → exit 0; the live plan → exit 0 `Milestone 4: Close the HARD-gate scan blindness`. That indirection is the whole lesson of 4.5, where a by-hand probe verified the helper and not the shipped path. **Mutation-verified**: swapping `aa_ma_active_milestone_strict` back to the tolerant reader and deleting the `case` reproduces the false PASS exactly — derives `Milestone 2: Older milestone left ACTIVE`, measures `PENDING=0 GATE=SOFT`, exit 0, on a fixture whose real subject is `PENDING=1 GATE=HARD`. 8 new bats cases (RED 8 fail / 28 pass → GREEN 36/36).
+
+
+### Sub-step 4.7: One milestone grammar in aa-ma-parse.sh
+
+- Status: COMPLETE
+- Mode: AFK
+- Action: `aa_ma_extract_active_milestone` still opens a block on bare `/^## /` — the third grammar in a file whose whole purpose after M1 is to hold one. It is the root cause of 4.6: measured returning `Summary Counts` as the active milestone on a plan with trailing prose. Rewire it to `aa_ma_is_milestone_heading`. Blast radius is real and must be measured, not assumed: the function is also read by `aa-ma-session-start.sh`.
+- Acceptance Criteria: a corpus-wide old-vs-new diff is recorded in the Result Log with every changed row explained; prose H2s no longer returned; `aa-ma-parse.bats` still green; the session-start hook still reports a milestone for every active plan in the repo.
+- Result Log: COMPLETE. `aa_ma_extract_active_milestone` now opens a block via `AA_MA_MILESTONE_ERE` + non-empty-title, matching `aa_ma_is_milestone_heading`; a non-milestone H2 closes the current block instead of opening one. **Measured before changing anything**, old vs new across all 27 tasks files in the repo: **exactly one row differs** — `tests/tui/fixtures/tasks/agent-token-optimization`, `Step 7: Verify & Commit` → empty. Decisive follow-up: `grammar.py::MILESTONE_RE` matches **0 of that fixture's 9 H2 headings**, so the bash function was the only thing in the codebase treating `## Step N:` as a milestone. The change makes bash agree with the Python SSoT rather than losing information — M1's thesis, one layer down. Sole non-test caller `aa-ma-session-start.sh:55` already degrades to `"unknown"` on empty, and was run live for real evidence rather than reasoned about: it still prints `milestone=[Milestone 4: Close the HARD-gate scan blindness]`. Full suites after both sub-steps: hooks bats **157 ok / 0 not ok** (was 148), commands bats **70 ok / 0 skip**, pytest **864 passed / 1 skipped**, shellcheck clean, `ruff check` clean.
+
 ## Summary Counts
 
 - Milestones: 4 (2 HARD, 2 SOFT)
-- Sub-steps: 25
-- New tests declared: 73 python (M1 35, M2 22, M3 1, M4 15) + bats (M1 1, M4 20)
+- Sub-steps: 27
+- New tests declared: 73 python (M1 35, M2 22, M3 1, M4 15) + bats (M1 1, M4 38)
   <!-- Was "37 python (M1 35, M2 2)" — stale from planning: M2 grew 2→22 when its
        scope went from 1 writer to 11, M3 went 0→1 after §6.8 found an untested
        branch, and M4 went 0→15. Recount from the per-milestone New-Tests fields,

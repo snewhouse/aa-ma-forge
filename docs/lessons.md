@@ -5,6 +5,125 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-012 (2026-08-09) — `/sole-dev-merge` Stage C reported a clean security review on code it never scanned
+
+**Pattern:** Both scanners in `claude-code/commands/sole-dev-merge.md`
+stage-c-aggregate ran as `<bin> -f json $CHANGED > "$OUT" 2>/dev/null || true`.
+An unavailable scanner therefore left a 0-byte report, the `[[ -s "$OUT" ]]`
+guard skipped the parse, `$FINDINGS` stayed empty, `TOTAL=0`, Stage D skipped
+triage entirely, and Stage E3 rendered a PR body asserting a clean review.
+
+This surfaced only as an intermittently-failing bats test
+(`C4 maps ShellCheck error to [CRITICAL]`). The test was the symptom; the
+shipped false negative was the defect.
+
+C3/bandit was the worse of the two:
+
+| | C4 / shellcheck | C3 / bandit |
+|---|---|---|
+| Declared dependency? | no (but usually preinstalled) | **no** — absent from `pyproject.toml`, not installed by `uv sync` |
+| Installed in the `bats` CI job? | no (was) | **no** — while `test_smoke_e2e.bats` asserts a real B602 finding |
+| Downstream consumer | findings triage | findings triage **+ B602 auto-remediation** |
+
+So a silently-missing bandit disabled detection *and* fixing together.
+
+**Rule:**
+
+1. Both scanners gate on the **result**, not on the binary:
+   `rc > 1 || ! -s "$OUT"` is the degraded condition (both tools exit 0 clean /
+   1 findings). `command -v` alone caught 1 of 4 degraded modes — `true`, `:`
+   and `/bin/false` all pass it.
+2. A degraded scanner writes
+   `[HIGH]     C{3,4} NOT RUN — ... UNKNOWN — (scanner-unavailable)` **into
+   `$FINDINGS`**, not merely to stdout — Stage D reads `$FINDINGS` and nothing
+   else. Unparseable JSON writes `(scanner-output-unparseable)` the same way.
+   `aggregate: 0 findings` must be unrepresentable when a scanner did not run.
+3. `SHELLCHECK_BIN` / `BANDIT_BIN` (defaults `shellcheck` / `bandit`) are the
+   test seams; the coverage test drives them and needs no external binary, so
+   it can never skip. Both sentinels are mutation-guarded.
+4. The `bats` CI job **installs and `--version`-asserts both scanners**. Without
+   the assertion a missing tool turns a security test into `ok N # skip`, exit 0.
+
+**Cross-ref:** Global L-1215 (`command -v` tests resolvability, not usability),
+L-1216 (warn where the consumer reads), L-1218 (count skips), L-1217
+(reproduce by substitution).
+
+---
+
+## L-011 (2026-08-09) — AA-MA field format is load-bearing and fails silently
+
+**Pattern:** While verifying the `milestone-grammar-ssot` plan, running the real
+parsers over the plan's own artifacts returned `parse_audit_profile(...) ==
+(None, True, None)` for all five milestones, and the HARD-gate `Critical-Path`
+scan read empty. The plan reproduced, in its own files, the exact scan blindness
+one of its milestones existed to fix. Cause: the fields were written mid-line and
+wrapped in backticks.
+
+Measured behaviour:
+
+| How written | Parser result |
+|---|---|
+| mid-line, backticked | `(None, True, None)` — **absent, and "valid"** |
+| own line, backticked | `('`code-only`', False, "Non-canonical…")` |
+| own line, bare | `('code-only', True, None)` ✓ |
+
+The first row is the trap: absence and validity are indistinguishable, so a
+milestone with a malformed field passes the gate that was meant to enforce it.
+
+**Rule:**
+
+- `Audit-Profile:` — own line, **unbackticked** (`plan_parsers._extract_field`
+  anchors `^[ \t]*-?[ \t]*`).
+- `Critical-Path:` / `Prototype-Required:` — own line, **bold**
+  (`- **Critical-Path:** data-xform`); the gate greps `^- \*\*Critical-Path:\*\* \S`.
+- Verify by **running the parsers over the artifact**, never by eye:
+  `python -c "from aa_ma.plan_parsers import parse_audit_profile; from aa_ma.grammar import split_milestones; ..."`.
+  A field the parser cannot see is a field that does not exist.
+
+**Cross-ref:** L-002 (Critical-Path fires per milestone, not per plan);
+global L-1214.
+
+---
+
+## L-010 (2026-08-09) — The canonical spec was itself the drift source
+
+**Pattern:** A single failing corpus test
+(`test_corpus_grandfathering[sole-dev-merge-pr-workflow]`) turned out to be the
+visible edge of **six divergent milestone/step grammars** — in `tui/parser.py`,
+the corpus test, `aa-ma-parse.sh`, `execute-aa-ma-milestone.md`,
+`verify-impl/SKILL.md` — against a spec mandating one.
+
+The worst offenders were the documents that *teach* the format.
+`docs/spec/aa-ma-specification.md` and `skills/aa-ma-execution/SKILL.md` shipped
+**unnumbered** forms (`## Task Title`, `### Sub-step: [Action]`) matching neither
+the tolerant reader nor the canonical writer — so a plan authored strictly from
+the canonical spec parsed as **0 milestones / 0 steps** in `aa-ma-tui`, silently,
+while passing every lint. `examples/aa-ma-team-guide/` had the same shape.
+
+Of eleven shipped files that write or teach a `tasks.md` heading, exactly one —
+`docs/templates/tasks-template.md` — was canonical. `aa-ma-tui` was blind to 4 of
+14 repo tasks and showed 0 steps for 6 more: 44 → 69 milestones, 94 → 393 steps
+once fixed.
+
+**Rule:**
+
+1. Heading grammar has one home: `src/aa_ma/grammar.py`. Readers are tolerant
+   (the archived corpus is frozen); the writer form is strict
+   (`## Milestone N: Title` / `### Sub-step N.M: Title`).
+2. **Every shipped writer is listed in
+   `tests/test_active_plans_canonical.py::WRITER_TEMPLATES`**, each with a
+   mutation guard (`test_writer_check_is_not_vacuous`). Adding a writer without
+   adding it to that list *is* the regression — the lint cannot find what it is
+   not pointed at.
+3. When a doc teaches a format the code parses, treat the doc as a code path:
+   grep it against the grammar, don't trust that it agrees.
+4. Lint fenced-block **contents** for these templates — `sanitize()` strips
+   fences, and every writer example lives inside one.
+
+**Cross-ref:** Global L-1214 (mutation-test the guard); ADR-0007.
+
+---
+
 ## L-009 (2026-05-16) — "Complete" must be verified against compliance, not just against local test results
 
 **Pattern:** During PR #1 review-fix execution (`/goal` integration cleanup),

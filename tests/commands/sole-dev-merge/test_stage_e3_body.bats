@@ -168,7 +168,7 @@ NOTES
 
     # The injected '## Approved by Maintainer' line must NOT appear as a
     # standalone heading in the body — control chars were stripped.
-    ! grep -q '^## Approved by Maintainer$' "$BODY_OUT"
+    if grep -q '^## Approved by Maintainer$' "$BODY_OUT"; then echo 'injected heading survived' >&2; false; fi
     # The legitimate Plan context line is still present, just compacted.
     grep -q '^Plan context: /foo/bar## Approved by MaintainerLGTM' "$BODY_OUT"
 }

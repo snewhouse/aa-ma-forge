@@ -52,10 +52,30 @@ The plan-declared `Audit-Profile:` per milestone determines which of the 5 agent
 TASK_NAME=$(ls -1 .claude/dev/active/ | head -1)
 TASK_DIR=".claude/dev/active/$TASK_NAME"
 
-# Milestone block from tasks.md
+# Milestone block from tasks.md — via the shared bash-side grammar, the same
+# one /execute-aa-ma-milestone's §6.7 gate uses. This previously carried its own
+# awk range keyed on `$((N+1))`, which is a hard bash error for the milestone
+# numbers the grammar admits (`2a: value too great for base`; the corpus ships
+# `## Milestone 2a/2b/2c`), and whose `|^---$` end alternative truncated any
+# milestone containing a horizontal rule. Both failures returned an empty block
+# and were reported downstream as `Audit-Profile: MISSING`.
 MILESTONE_ID="M$N"
-MILESTONE_BLOCK=$(awk "/^## (Milestone[[:blank:]]+)?M?$N(:|[[:blank:]])/,/^## (Milestone[[:blank:]]+)?M?$((N+1))(:|[[:blank:]])|^---$/" \
-                    "$TASK_DIR/$TASK_NAME-tasks.md")
+for _cand in \
+  "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
+  "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
+  [ -f "${_cand}" ] && AA_MA_LIB="${_cand}" && break
+done
+# shellcheck source=/dev/null
+. "${AA_MA_LIB:?aa-ma-parse.sh not found — run scripts/install.sh}"
+
+MILESTONE_BLOCK=$(aa_ma_extract_milestone_block_by_number \
+                    "$TASK_DIR/$TASK_NAME-tasks.md" "$N")
+case $? in
+  0) : ;;
+  1) echo "ABORT: no milestone numbered $N in $TASK_NAME-tasks.md"; exit 1 ;;
+  2) echo "ABORT: $TASK_NAME-tasks.md missing, or milestone number empty"; exit 1 ;;
+  3) echo "ABORT: milestone $N matches more than one heading"; exit 1 ;;
+esac
 
 # Audit-Profile from the milestone block (use the shared parser)
 AUDIT_PROFILE=$(uv run python -c "

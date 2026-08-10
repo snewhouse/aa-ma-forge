@@ -53,7 +53,27 @@ Measured: mid-line + backticked → `(None, True, None)`; own line + backticked 
 
 - `Audit-Profile`: `full | code-only | docs-only | infra | custom` (`plan_parsers.CANONICAL_AUDIT_PROFILES`)
 - `TDD-Waiver`: `refactor | docs-only | prototype | hotfix-emergency | tooling-config` (`plan_parsers.CANONICAL_TDD_WAIVERS`)
-- `Critical-Path`: `auth-flow | data-xform | external-api | version-pipeline | doc-count-drift | hook-modification` — **no `CANONICAL_CRITICAL_PATHS` constant exists in code**; this check is manual-only today (M4 adds it).
+- `Critical-Path`: `auth-flow | data-xform | external-api | version-pipeline | doc-count-drift | hook-modification` (`plan_parsers.CANONICAL_CRITICAL_PATHS`, added in M4, with `parse_critical_path()`; `plan-verification` Angle 6 check #2 now invokes it instead of eyeballing a prose list).
+
+## Bash-side grammar (added M4)
+
+`claude-code/hooks/lib/aa-ma-parse.sh` is the single bash-side implementation,
+mirroring `src/aa_ma/grammar.py` and pinned to it by `tests/test_grammar_parity.py`:
+
+| Symbol | Purpose |
+|---|---|
+| `AA_MA_MILESTONE_ERE` | prefix ERE mirroring `MILESTONE_RE`; POSIX-only so gawk and mawk agree |
+| `aa_ma_is_milestone_heading <line>` | recognition (ERE **plus** non-empty title — the ERE alone over-matches `## Milestone 5:`) |
+| `aa_ma_extract_milestone_block <file> <title>` | rc **0** found / **1** no match / **2** config error / **3** ambiguous |
+| `aa_ma_extract_milestone_block_by_number <file> <num>` | same, addressed by number (`2a`, `3.5`) |
+| `aa_ma_field_value <name>` / `aa_ma_count_field <name> <val>` | field reads tolerating `- X:` **and** `- **X:**` |
+
+Callers MUST refuse on non-zero rc. The old contract returned 0-and-empty for
+every failure, which the gate read as a clean milestone.
+
+Block extraction opens only on a milestone heading but closes on **any H2** —
+deliberately asymmetric, and deliberately different from `split_milestones`, so
+a trailing `## Summary Counts` section is not absorbed into the last milestone.
 
 ## Corpus baseline — 14 repo tasks measured at b11c46d
 

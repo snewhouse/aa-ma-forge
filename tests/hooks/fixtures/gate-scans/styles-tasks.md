@@ -57,3 +57,52 @@ strings a naive scan would latch onto:
 
 Second negative control: begins with the word "Milestone" but carries no number,
 so it is prose, not a heading the grammar recognises.
+
+## Milestone 5: Bold field forms
+
+Bold is not cosmetic: 22 `- **Status:**` and 24 `- **Gate:**` lines exist in the
+corpus, and the shipped Phase 5 writer emits the bold form — so a gate matching
+only the plain form left those milestones un-gateable.
+
+- **Status:** ACTIVE
+- **Gate:** HARD
+- **Critical-Path:** version-pipeline
+
+### Sub-step 5.1: Not started
+- **Status:** PENDING
+
+## Milestone 6: Ghost headings must not truncate
+
+- Status: ACTIVE
+- Gate: SOFT
+
+A fenced example and a multi-line comment, each containing something that looks
+like a milestone heading. Both closed the block early before `_aa_ma_sanitize`.
+
+```markdown
+## Milestone 98: Fenced ghost
+- Status: PENDING
+```
+
+<!-- commented-out template block
+## Milestone 99: Commented ghost
+- Status: PENDING
+-->
+
+### Sub-step 6.1: Reached only if neither ghost truncated
+- Status: PENDING
+
+## Milestone 7: Mixed case gate
+
+- Status: ACTIVE
+- Gate: Hard
+
+## Milestone 8: Duplicate title
+
+- Status: ACTIVE
+- Gate: SOFT
+
+## Milestone 9: Duplicate title
+
+- Status: ACTIVE
+- Gate: HARD

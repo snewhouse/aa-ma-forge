@@ -190,7 +190,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Complexity: 45%
 - **Critical-Path:** hook-modification
 - Audit-Profile: infra
-- New-Tests: 15  <!-- python: test_critical_path_parser.py. Plus 20 bats cases in tests/hooks/aa-ma-gate-scans.bats. Declared 0 at planning; the plan assumed the scans only needed a regex widened. -->
+- New-Tests: 22  <!-- python: test_critical_path_parser.py (15) + test_grammar_parity.py (7). Plus bats: aa-ma-gate-scans.bats (26) and 2 added to aa-ma-parse.bats. Declared 0 at planning, then 15; the plan assumed the scans only needed a regex widened. -->
 - Acceptance Criteria: plan §3 M4 acceptance 1-3
 
 ### Sub-step 4.1: RED — failing bats per scan point
@@ -223,10 +223,10 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.5: Verify and gate
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Action: `bats -F tap --recursive tests/hooks/` green; `Skill(impact-analysis)` with HIGH findings resolved; `CRITICAL_PATH_REVIEW — hook-modification` in provenance; HARD gate approval in context-log.
-- Result Log: _pending_
+- Result Log: COMPLETE. hooks bats **147 ok / 0 not ok**, sole-dev-merge bats **70 ok / 0 skip**, pytest **864 passed**, shellcheck clean, ruff clean. §6.8 (`Audit-Profile: infra`) dispatched code-reviewer + security-auditor + future-proofing-auditor: **17 raw CRITICAL → 8 distinct, all fixed**, plus ~20 WARNINGs actioned. The review found my first M4 fix was *still* inert — `MILESTONE_TITLE` is assigned 347 lines after the gate consumes it, so the extractor got an empty title and every condition passed on empty input. My own dogfood check had set the variable by hand, so it verified the helper and not the shipped path. Also fixed: bold `- **Status:**`/`- **Gate:**` forms (22+24 in corpus, and the shipped Phase 5 writer emits them); substring title matching; fenced/multi-line-comment ghost headings truncating blocks; fail-open rc (now 0/1/2/3, callers refuse on all non-zero); `verify-impl`'s `$((N+1))` bash error on `2a`/`3.5`; file-global provenance greps; BRE title injection in the approval check; mixed-case `Gate:`. Four pre-existing dead `!` assertions elsewhere in the suite (POSIX exempts `! cmd` from `set -e`) repaired — two of them asserted a security vulnerability had been removed and could never fail. New guards: `tests/test_grammar_parity.py` pins the shell ERE against `grammar.py` (mutation-verified: dropping `|M` fails 6/7) and an Exports-header drift test in `aa-ma-parse.bats`, which immediately caught a symbol I had added minutes earlier and not documented.
 
 ## Summary Counts
 

@@ -116,7 +116,7 @@ EOF
     HOME="$BATS_TMP_HOME" CLAUDE_CODE=1 run bash -c "echo '$stdin' | bash '$HOOK'"
     [ "$status" -eq 0 ]
     # Skips with reasons must not warn.
-    ! [[ "$output" == *"PHASE_1.5"* ]]
+    if [[ "$output" == *"PHASE_1.5"* ]]; then echo 'PHASE_1.5 warned unexpectedly' >&2; false; fi
     ! [[ "$output" == *"PHASE_4.2"* ]]
 }
 

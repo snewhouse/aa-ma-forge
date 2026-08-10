@@ -230,9 +230,28 @@ Legitimising `## M1:` and em-dash styles while grammar #5 stays blind leaves the
 
 **Modified (M1):** `src/aa_ma/tui/parser.py`, `src/aa_ma/tui/model.py`, `src/aa_ma/tui/json_output.py` (docstring), `tests/codemem/test_corpus_grandfathering.py`, `tests/tui/_static_tasks.py`, `tests/tui/test_parser.py`, `tests/tui/test_parser_properties.py`, `tests/tui/test_model.py`, `tests/tui/test_snapshot.py`, `tests/tui/test_json_output.py`, `tests/tui/test_integration.py`, `tests/tui/test_main_dispatch.py`, `tests/tui/snapshots/data.json` (regenerate), `tests/hooks/aa-ma-parse.bats`, `tests/commands/sole-dev-merge/test_stage_c_dispatch.bats` (+ `test_stage_d_triage.bats`, `test_smoke_e2e.bats`), `.github/workflows/security.yml`, `claude-code/rules/aa-ma.md`, `claude-code/rules/engineering-standards.md`, `claude-code/commands/execute-aa-ma-milestone.md`, `claude-code/skills/verify-impl/SKILL.md`, `src/aa_ma/plan_parsers.py`, `docs/adr/0007-aa-ma-tui-tracker.md`, `CHANGELOG.md`, `CLAUDE.md`.
 
+**Added during M4 (scope amendment, 2026-08-10):** `claude-code/hooks/lib/aa-ma-parse.sh`
+(new public functions — additive, no existing function altered),
+`tests/hooks/aa-ma-gate-scans.bats`, `tests/hooks/fixtures/gate-scans/styles-tasks.md`,
+`tests/codemem/test_critical_path_parser.py`, `tests/test_grammar_parity.py`,
+`claude-code/skills/plan-verification/SKILL.md`. The plan scoped M4 to "align the
+scans to an ERE equivalent"; the scans turned out to be structurally broken, not
+merely narrow, and the fix belonged in the shared bash library rather than
+duplicated across five call sites. That library is sourced by every AA-MA hook,
+which is a wider blast radius than §6 originally reasoned about — see below.
+
 ## 6. Rollback
 
 One commit per milestone; `git revert` each. M1 carries the only runtime behaviour change. M4 touches shipped, live-symlinked commands/skills — revert restores immediately, no reinstall. No data migration, no archive edits, no force-push.
+
+**M4 amendment:** M4 also modifies `claude-code/hooks/lib/aa-ma-parse.sh`, which
+is sourced by `aa-ma-commit-drift.sh`, `pre-compact-aa-ma.sh`,
+`aa-ma-session-start.sh` and `aa-ma-session-end-dirty.sh` — i.e. every commit and
+every compaction on any machine that ran `install.sh`. Changes there are additive
+(new functions and constants only; `git diff --numstat` shows zero deletions in
+pre-existing functions), and the 5 pre-existing hook suites stay green, but a
+revert of M4 must revert that file too or `execute-aa-ma-milestone.md` will call
+functions that no longer exist. Revert the whole M4 commit, never a subset.
 
 ## 7. Dependencies & assumptions
 

@@ -84,13 +84,65 @@ load_helper() {
 
 @test "PENDING count is correct in every heading style (was always 0)" {
     load_helper
-    # The bug this replaces reported 0 for all of them.
-    [ "$(aa_ma_extract_milestone_block "$FIXTURE" "Canonical form" \
-        | grep -cE '^- Status: PENDING')" -eq 0 ]
+    # Only non-zero expectations here. An `-eq 0` case cannot fail for the
+    # regression this test names: the broken extractor returned 0, and so does
+    # an empty block. The zero case lives in the bleed test below, where it is
+    # paired with evidence the block was actually read.
     [ "$(aa_ma_extract_milestone_block "$FIXTURE" "Bare-M form" \
-        | grep -cE '^- Status: PENDING')" -eq 1 ]
+        | aa_ma_count_field Status PENDING)" -eq 1 ]
     [ "$(aa_ma_extract_milestone_block "$FIXTURE" "Em-dash form" \
-        | grep -cE '^- Status: PENDING')" -eq 2 ]
+        | aa_ma_count_field Status PENDING)" -eq 2 ]
+    [ "$(aa_ma_extract_milestone_block "$FIXTURE" "Bold field forms" \
+        | aa_ma_count_field Status PENDING)" -eq 1 ]
+}
+
+@test "bold field forms are read — 22 Status / 24 Gate in the corpus use them" {
+    load_helper
+    # The shipped Phase 5 writer emits `- **Status:** PENDING`, so a
+    # plain-form-only gate made standard-path plans un-gateable.
+    run aa_ma_extract_milestone_block "$FIXTURE" "Bold field forms"
+    [ "$status" -eq 0 ]
+    [ "$(printf '%s\n' "$output" | aa_ma_field_value Gate)" = "HARD" ]
+    [ "$(printf '%s\n' "$output" | aa_ma_field_value Critical-Path)" = "version-pipeline" ]
+    [ "$(printf '%s\n' "$output" | aa_ma_count_field Status PENDING)" -eq 1 ]
+}
+
+@test "a heading inside a fence or a multi-line comment does not truncate" {
+    load_helper
+    run aa_ma_extract_milestone_block "$FIXTURE" "Ghost headings must not truncate"
+    [ "$status" -eq 0 ]
+    # Reached only if neither ghost closed the block early.
+    [[ "$output" == *"Sub-step 6.1"* ]]
+    # ...and the ghosts' own PENDING lines must not be counted.
+    [ "$(printf '%s\n' "$output" | aa_ma_count_field Status PENDING)" -eq 1 ]
+}
+
+@test "a duplicate milestone title is refused, not silently resolved" {
+    load_helper
+    run aa_ma_extract_milestone_block "$FIXTURE" "Duplicate title"
+    [ "$status" -eq 3 ]
+}
+
+@test "exit codes distinguish every not-found case from a clean milestone" {
+    load_helper
+    run aa_ma_extract_milestone_block "$FIXTURE" "Canonical form"; [ "$status" -eq 0 ]
+    run aa_ma_extract_milestone_block "$FIXTURE" "No such milestone"; [ "$status" -eq 1 ]
+    run aa_ma_extract_milestone_block "/nonexistent/tasks.md" "X"; [ "$status" -eq 2 ]
+    run aa_ma_extract_milestone_block "$FIXTURE" ""; [ "$status" -eq 2 ]
+    run aa_ma_extract_milestone_block "$FIXTURE" "Duplicate title"; [ "$status" -eq 3 ]
+}
+
+@test "by-number extraction survives 2a and 3.5 (bash arithmetic could not)" {
+    load_helper
+    # verify-impl used $((N+1)); `2a` is a hard bash error, and the corpus ships
+    # ## Milestone 2a/2b/2c.
+    local corpus="${REPO_ROOT}/.claude/dev/completed/codemem-benchmark-fairness-v2/codemem-benchmark-fairness-v2-tasks.md"
+    [ -f "$corpus" ] || skip "corpus plan not present"
+    run aa_ma_extract_milestone_block_by_number "$corpus" "2a"
+    [ "$status" -eq 0 ]
+    [ -n "$output" ]
+    run aa_ma_extract_milestone_block_by_number "$corpus" "99"
+    [ "$status" -eq 1 ]
 }
 
 @test "Critical-Path is found, and only in the milestone that declares it" {
@@ -118,10 +170,26 @@ load_helper() {
     # The replaced form was: grep -A1 "## Milestone.*TITLE" | grep -oP 'Gate: \K\w+'
     # -A1 returns the heading plus one blank line, so GATE was always empty and
     # the HARD gate never fired.
+    #
+    # Uses aa_ma_field_value — the same function the shipped gate calls. An
+    # earlier version of this test re-implemented the pipeline with `[A-Z]+`
+    # while the shipped code used `[A-Za-z]+`, so it did not exercise the
+    # shipped expression at all.
     [ "$(aa_ma_extract_milestone_block "$FIXTURE" "Em-dash form" \
-        | grep -oE '^- Gate: [A-Z]+' | head -1 | awk '{print $3}')" = "HARD" ]
+        | aa_ma_field_value Gate)" = "HARD" ]
     [ "$(aa_ma_extract_milestone_block "$FIXTURE" "Canonical form" \
-        | grep -oE '^- Gate: [A-Z]+' | head -1 | awk '{print $3}')" = "SOFT" ]
+        | aa_ma_field_value Gate)" = "SOFT" ]
+}
+
+@test "a mixed-case Gate value still fires the HARD gate" {
+    load_helper
+    # `- Gate: Hard` extracted as "Hard"; the shipped test is
+    # [[ "$GATE" == "HARD" ]], so without normalisation the HARD gate silently
+    # does not fire. The command file upper-cases before comparing.
+    raw=$(aa_ma_extract_milestone_block "$FIXTURE" "Mixed case gate" | aa_ma_field_value Gate)
+    [ "$raw" = "Hard" ]
+    [ "$(printf '%s' "$raw" | tr '[:lower:]' '[:upper:]')" = "HARD" ]
+    grep -qF "tr '[:lower:]' '[:upper:]'" "$MILESTONE_CMD"
 }
 
 # ---------------------------------------------------------------------------
@@ -134,28 +202,30 @@ load_helper() {
     # '- Gate: HARD' and a Critical-Path line. A scan that matched it would
     # report phantom pending sub-steps on a plan that has none.
     run aa_ma_extract_milestone_block "$FIXTURE" "Summary Counts"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [ -z "$output" ]
 }
 
 @test "'## Milestone Gate Types' — the word without a number — opens no block" {
     load_helper
     run aa_ma_extract_milestone_block "$FIXTURE" "Milestone Gate Types"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [ -z "$output" ]
 }
 
-@test "an empty title matches nothing rather than everything" {
+@test "an empty title is a configuration error, not a clean milestone" {
     load_helper
+    # rc 2, not 0. The first version returned 0-and-empty here, which the gate
+    # read as "no PENDING sub-steps" — fail-open.
     run aa_ma_extract_milestone_block "$FIXTURE" ""
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 2 ]
     [ -z "$output" ]
 }
 
-@test "a missing file is not an error and emits nothing" {
+@test "a missing file is a configuration error, not a clean milestone" {
     load_helper
     run aa_ma_extract_milestone_block "/nonexistent/tasks.md" "Canonical form"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 2 ]
     [ -z "$output" ]
 }
 
@@ -180,8 +250,11 @@ load_helper() {
         [ "$got" -eq 2 ] || { echo "$bin returned $got PENDING, expected 2" >&2; false; }
         tested=$((tested + 1))
     done
-    # Guard against the loop silently testing nothing.
-    [ "$tested" -ge 1 ]
+    # BOTH must have run. `-ge 1` let a gawk-only host pass a test named
+    # "identical results under mawk and gawk" having compared nothing across
+    # implementations — the same green-by-skipping shape hardened against in
+    # the Stage C CI job.
+    [ "$tested" -eq 2 ]
 }
 
 @test "no shipped awk pattern uses the GNU-only \\s escape" {
@@ -222,8 +295,13 @@ load_helper() {
 # patterns in comments so the next reader knows why they went. A guard that
 # greps the whole file would flag its own explanation.
 _exec_lines() {
-    awk '/^```bash$/{f=1;next} /^```$/{f=0;next} f' "$1" \
-        | grep -vE '^[[:space:]]*#'
+    # Accepts every fence tag the file uses — a snippet retagged ```sh would
+    # otherwise drop silently out of both regression guards below. Trailing
+    # comments are stripped too, so `X=1  # ,/^## Milestone/` is not a false
+    # positive.
+    awk '/^```(bash|sh|shell)$/{f=1;next} /^```$/{f=0;next} f' "$1" \
+        | grep -vE '^[[:space:]]*#' \
+        | sed 's/[[:space:]]#[^"'"'"']*$//'
 }
 
 @test "command file no longer uses the self-terminating awk range" {

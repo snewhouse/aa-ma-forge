@@ -198,3 +198,28 @@ EOF
     [ "$status" -eq 0 ]
     [ "$output" = "Milestone 1 — Pre-flight + scope-aware CI checks" ]
 }
+
+@test "every public symbol is listed in the Exports header" {
+    # The header is the discovery surface — the first thing anyone sourcing this
+    # library reads. A symbol missing from it gets reimplemented rather than
+    # reused, which is how this repo ended up with six milestone grammars.
+    # M4 added two functions and a constant and did not update the header.
+    HELPER_SRC="$HELPER"
+    header=$(awk '/^# Exports:/{f=1;next} /^#$/{if(f)exit} f' "$HELPER_SRC")
+    missing=""
+    while read -r sym; do
+        [ -n "$sym" ] || continue
+        printf '%s' "$header" | grep -qF "$sym" || missing="$missing $sym"
+    done <<< "$(grep -oE '^(aa_ma_[a-z_]+)\(\)' "$HELPER_SRC" | sed 's/()//'
+               grep -oE '^AA_MA_[A-Z_]+=' "$HELPER_SRC" | sed 's/=//')"
+    [ -z "$missing" ] || { echo "not in Exports header:$missing" >&2; false; }
+}
+
+@test "the Exports-header check is not vacuous" {
+    # If the header scrape returned empty, the test above passes for free.
+    header=$(awk '/^# Exports:/{f=1;next} /^#$/{if(f)exit} f' "$HELPER")
+    [ -n "$header" ]
+    printf '%s' "$header" | grep -qF "aa_ma_extract_milestone_block"
+    # And a symbol that is definitely absent must be detected as absent.
+    ! printf '%s' "$header" | grep -qF "aa_ma_definitely_not_a_real_symbol"
+}

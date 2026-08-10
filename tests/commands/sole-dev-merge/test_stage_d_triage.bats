@@ -160,7 +160,7 @@ PY
     head -1 mixed.py | grep -q "shell=True"
 
     # - Line 4 was rewritten (no longer contains "shell=True")
-    ! sed -n '4p' mixed.py | grep -q "shell=True"
+    if sed -n '4p' mixed.py | grep -q "shell=True"; then echo 'line 4 still has shell=True' >&2; false; fi
 
     # - Bandit re-scan finds 0 B602 issues
     BANDIT_ISSUES=$(bandit -t B602 mixed.py 2>&1 | grep -c "Issue:" || true)

@@ -138,3 +138,93 @@ observe the code it guarded, because the `SHELLCHECK_BIN` seam only landed in
 own failing row. M2: a lint that could not see inside the fences it was linting.
 M3: a fix proved by hand in both directions, written up in a Result Log, and
 shipped with no test. Prose evidence does not re-run.
+
+---
+
+# Milestone 4 — §6.8 Post-Impl Adversarial Review
+
+- **Audit-Profile:** infra → code-reviewer, security-auditor, future-proofing-auditor
+  (tdd-sequence-auditor and context7-evidence-auditor are not in the `infra` slate)
+- **Raw:** 17 CRITICAL / ~20 WARNING / 14 INFO across three agents → **8 distinct CRITICAL**
+- **Verdict: PASS_WITH_WARNINGS** after all 8 were fixed inline.
+
+## The finding that mattered
+
+My M4 fix was still inert, and my own verification had hidden it.
+
+`MILESTONE_TITLE` is assigned at line 869 — 347 lines *after* the §6.7 gate
+consumes it at 522. The extractor received an empty title, returned empty, and
+every condition passed. I had "dogfooded" the new logic against M4 and reported
+it working; that probe set `MILESTONE_TITLE` by hand. I verified the helper, not
+the shipped code path.
+
+The security auditor named the structural cause, which is worth more than any
+individual fix: **the gate's only refusal signal is *finding* something**, so
+wrong pattern, wrong milestone, truncated block, missing library and unset
+variable all converge on the same output as a clean milestone. Fixing them
+one at a time leaves the next undiscovered instance live. Hence exit codes.
+
+## The 8 distinct CRITICALs
+
+| # | Finding | Fix |
+|---|---|---|
+| 1 | `MILESTONE_TITLE` unset at gate time → empty title → PASS | Derived in the §6.7 preamble via `aa_ma_extract_active_milestone`; refuses if still empty |
+| 2 | Bold `- **Status:**` / `- **Gate:**` invisible. 22 and 24 in corpus; the shipped Phase 5 writer emits bold, so standard-path plans were born un-gateable | `aa_ma_field_value` / `aa_ma_count_field` accept both |
+| 3 | Fail-open: missing file, empty title and no-match all returned 0-and-empty | rc 0/1/2/3; every caller refuses on non-zero |
+| 4 | `index($0, title)` substring match returned the wrong milestone's block | Exact title match; duplicates return rc 3 |
+| 5 | `## Milestone` inside a fenced block truncated the block | `_aa_ma_sanitize` (CommonMark line scanner) |
+| 6 | Multi-line HTML comments truncated the block; the Python docstring falsely claimed parity | Same sanitizer; 3 corpus files carry multi-line comments today |
+| 7 | `verify-impl` kept a divergent extractor whose `$((N+1))` is a hard bash error on `2a` (corpus ships `2a/2b/2c`) | Migrated to `aa_ma_extract_milestone_block_by_number` |
+| 8 | Scope: `aa-ma-parse.sh` (sourced by every hook) was outside the plan's declared artefacts | plan §5 and §6 Rollback amended |
+
+## WARNINGs actioned
+
+- Provenance evidence greps were **file-global** — once any milestone wrote
+  `CRITICAL_PATH_REVIEW`, every later one was pre-satisfied. Now milestone-scoped.
+- `grep -q "GATE APPROVAL: $TITLE"` treated the title as a BRE; a title with `.`
+  matched another milestone's approval. Now `grep -qF --`.
+- `- Gate: Hard` extracted `Hard`, so `== "HARD"` silently skipped the HARD gate.
+- `${HOME}` hardcoded with no fallback, unlike every shipped hook; the guard's
+  `# HALT` was a comment, so control fell through into the failing `source`.
+  Now repo-local-first resolution and a real `exit 1`.
+- `parse_critical_path` had **zero** production callers — the constant got a
+  parser and the parser got no caller. `plan-verification` Angle 6 check #2 now
+  invokes it, and its prose copy of the enum was deleted rather than becoming a
+  third source of truth.
+- Test weaknesses, all mine: an `-eq 0` assertion that could not fail for the
+  regression it named; a `[A-Z]+` re-implementation that did not exercise the
+  shipped `[A-Za-z]+`; `_exec_lines` accepting only ```` ```bash ````; the
+  mawk/gawk parity loop passing with `-ge 1` on a gawk-only host.
+
+## Repo-wide: four dead assertions, none of them mine
+
+`! cmd` is exempt from `set -e` (POSIX: "-e shall be ignored when the command is
+the `!` reserved word"), so a **non-final** `! cmd` line in a bats test can never
+fail it. An audit found four, two of which asserted that a security vulnerability
+had been removed:
+
+- `test_smoke_e2e.bats:211` — `! grep -q 'shell=True' src/vuln.py`
+- `test_stage_d_triage.bats:163` — line-scoped B602 auto-fix check
+- `test_stage_e3_body.bats:171` — markdown-injection neutralisation check
+- `aa-ma-plan-skip-warn.bats:119` — first of two stacked `!` lines
+
+All four rewritten as explicit `if …; then false; fi`. Re-audit: 0 remaining.
+
+## New guards, both mutation-verified
+
+- `tests/test_grammar_parity.py` — pins `AA_MA_MILESTONE_ERE` against
+  `grammar.py::MILESTONE_RE` over the corpus plus an edge-case table, under every
+  awk on the host. The two were called mirrors with nothing checking. Dropping
+  `|M` from the ERE fails 6 of 7 cases. It also surfaced a real divergence
+  (`## Milestone 5:` — empty title), fixed by `aa_ma_is_milestone_heading`.
+- Exports-header drift test in `aa-ma-parse.bats` — caught
+  `aa_ma_is_milestone_heading`, which I had added minutes earlier and not
+  documented. The header is the discovery surface; a symbol missing from it gets
+  reimplemented, which is how this repo reached six milestone grammars.
+
+## Lesson, fourth variant
+
+M1: a verification command that filtered out its own failing row. M2: a lint
+blind to the fences it was linting. M3: a fix proved by hand and shipped with no
+test. M4: a dogfood probe that set the one variable the shipped path never sets.
+Each time the green tick was real and measured the wrong thing.

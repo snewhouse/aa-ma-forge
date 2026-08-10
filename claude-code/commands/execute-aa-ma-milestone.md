@@ -498,29 +498,68 @@ if [[ "${DIRTY_AA_MA}" -ne 0 ]]; then
   # HALT
 fi
 
-# Shared bash-side milestone grammar. Symlinked to ~/.claude/hooks/lib/ by
-# scripts/install.sh, so it is present wherever this command is.
+# --- Gate preamble: resolve the grammar, then LOCATE THE MILESTONE ------------
 #
-# Sourced rather than inlined because the previous inline form was
-# `awk "/^## Milestone.*${MILESTONE_TITLE}/,/^## Milestone/"`, which returned
-# exactly ONE line — the heading — for every milestone in every plan. The start
-# line also matches the end pattern and awk evaluates the end pattern on the
-# same record, so the range closed immediately. Conditions 2 and 5 below
-# therefore read empty for years and this gate could not refuse anything.
+# The old inline form was
+#   awk "/^## Milestone.*${MILESTONE_TITLE}/,/^## Milestone/"
+# which returned exactly ONE line — the heading — for every milestone in every
+# plan, because the start line also matches the end pattern and awk evaluates
+# the end pattern on the same record. Conditions 2 and 5 read empty for years.
+#
+# The deeper defect is that this gate's ONLY refusal signal is *finding*
+# something, so every failure to read — wrong pattern, wrong milestone, missing
+# library, unset title — produced the same output as a clean milestone. So the
+# extractor now returns distinct exit codes and we refuse on all of them.
 # One implementation, one test surface: tests/hooks/aa-ma-gate-scans.bats.
-. "${HOME}/.claude/hooks/lib/aa-ma-parse.sh"
+
+# Resolution order matches the shipped hooks (aa-ma-session-start.sh et al):
+# repo-local first so a clone that has not run install.sh still works.
+for _cand in \
+  "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
+  "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
+  [[ -f "${_cand}" ]] && AA_MA_LIB="${_cand}" && break
+done
+if [[ -z "${AA_MA_LIB:-}" ]]; then
+  echo "BLOCKED: aa-ma-parse.sh not found — run scripts/install.sh."
+  echo "Refusing to evaluate the gate with no way to read the milestone block:"
+  echo "a scan that cannot see the milestone reports zero problems."
+  exit 1
+fi
+# shellcheck source=/dev/null
+. "${AA_MA_LIB}"
+
+# MILESTONE_TITLE must be resolved HERE. It was previously first assigned in
+# §8.2 — 340 lines below its first use — so at gate time it was unset, the
+# extractor received an empty title, and every condition passed on empty input.
+if [[ -z "${MILESTONE_TITLE:-}" ]]; then
+  MILESTONE_TITLE=$(aa_ma_extract_active_milestone "${TASK_DIR}/${TASK_NAME}-tasks.md")
+fi
+if [[ -z "${MILESTONE_TITLE}" ]]; then
+  echo "BLOCKED: cannot determine the active milestone in ${TASK_NAME}-tasks.md."
+  exit 1
+fi
 
 MILESTONE_BLOCK=$(aa_ma_extract_milestone_block \
   "${TASK_DIR}/${TASK_NAME}-tasks.md" "${MILESTONE_TITLE}")
+case $? in
+  0) : ;;
+  1) echo "BLOCKED: no milestone titled '${MILESTONE_TITLE}' in ${TASK_NAME}-tasks.md."
+     echo "Refusing to certify a milestone this gate cannot read."; exit 1 ;;
+  2) echo "BLOCKED: ${TASK_NAME}-tasks.md missing, or milestone title empty."; exit 1 ;;
+  3) echo "BLOCKED: '${MILESTONE_TITLE}' matches more than one milestone heading."
+     echo "Rename one — the gate cannot tell which milestone it is certifying."; exit 1 ;;
+  *) echo "BLOCKED: unexpected extractor status."; exit 1 ;;
+esac
 
 # 2. Zero Status: PENDING within the milestone
-# Anchor to line-prefix to avoid false positives from "PENDING" in prose
-# (acceptance criteria, result logs, etc. that describe the gate itself).
+# aa_ma_count_field tolerates `- Status:` and `- **Status:**` alike. The corpus
+# carries 22 of the bold form and the shipped Phase 5 writer emits it, so a
+# plain-form-only grep made those milestones un-gateable.
 PENDING_IN_MILESTONE=$(printf '%s\n' "${MILESTONE_BLOCK}" \
-  | grep -cE "^- Status: PENDING|^Status: PENDING" || true)
+  | aa_ma_count_field Status PENDING)
 if [[ "${PENDING_IN_MILESTONE}" -gt 0 ]]; then
   echo "BLOCKED: ${PENDING_IN_MILESTONE} sub-step(s) still PENDING in milestone."
-  # HALT
+  exit 1
 fi
 
 # 3. Tests-pass evidence (already enforced in 6.4; double-check Result Log mentions)
@@ -530,23 +569,30 @@ fi
 # Absent-field semantic: skip check when field is absent on the task.
 # Only fires when field is PRESENT-but-without-evidence.
 
+# The evidence greps are MILESTONE-SCOPED. A bare `grep -q CRITICAL_PATH_REVIEW`
+# over the whole provenance.log means that once ANY milestone writes the token,
+# every later milestone's check is pre-satisfied — degrading a per-milestone
+# obligation into a once-per-plan one. Entries must therefore name the milestone:
+#   [ts] CRITICAL_PATH_REVIEW — <milestone-title> — <value> — <evidence>
 CRITICAL_PATH_TASKS=$(printf '%s\n' "${MILESTONE_BLOCK}" \
-  | grep -E "^- \*\*Critical-Path:\*\* \S" || true)
+  | aa_ma_field_value Critical-Path)
 if [[ -n "${CRITICAL_PATH_TASKS}" ]]; then
-  if ! grep -q "CRITICAL_PATH_REVIEW" "${TASK_DIR}/${TASK_NAME}-provenance.log"; then
-    echo "BLOCKED: Milestone has Critical-Path: tasks but no CRITICAL_PATH_REVIEW"
-    echo "entry in provenance.log."
-    # HALT
+  if ! grep -F -- "CRITICAL_PATH_REVIEW" "${TASK_DIR}/${TASK_NAME}-provenance.log" \
+       | grep -qF -- "${MILESTONE_TITLE}"; then
+    echo "BLOCKED: Milestone declares Critical-Path: ${CRITICAL_PATH_TASKS} but"
+    echo "provenance.log has no CRITICAL_PATH_REVIEW entry naming this milestone."
+    exit 1
   fi
 fi
 
 PROTOTYPE_TASKS=$(printf '%s\n' "${MILESTONE_BLOCK}" \
-  | grep -E "^- \*\*Prototype-Required:\*\* YES" || true)
-if [[ -n "${PROTOTYPE_TASKS}" ]]; then
-  if ! grep -q "PROTOTYPE —" "${TASK_DIR}/${TASK_NAME}-provenance.log"; then
-    echo "BLOCKED: Milestone has Prototype-Required: YES tasks but no"
-    echo "PROTOTYPE — <verdict> entry in provenance.log."
-    # HALT
+  | aa_ma_field_value Prototype-Required)
+if [[ "${PROTOTYPE_TASKS}" == "YES" ]]; then
+  if ! grep -F -- "PROTOTYPE —" "${TASK_DIR}/${TASK_NAME}-provenance.log" \
+       | grep -qF -- "${MILESTONE_TITLE}"; then
+    echo "BLOCKED: Milestone has Prototype-Required: YES but provenance.log has"
+    echo "no PROTOTYPE — <verdict> entry naming this milestone."
+    exit 1
   fi
 fi
 
@@ -709,15 +755,23 @@ Before marking the milestone COMPLETE and creating git checkpoint, execute this 
 # from the field list — so `- Gate:` was never in the window and GATE was always
 # empty. `[[ "$GATE" == "HARD" ]]` was therefore never true and the HARD gate
 # never fired on any milestone. (`grep -oP` is also GNU-only.)
-. "${HOME}/.claude/hooks/lib/aa-ma-parse.sh"
-GATE=$(aa_ma_extract_milestone_block \
-  "${TASK_DIR}/${TASK_NAME}-tasks.md" "${MILESTONE_TITLE}" \
-  | grep -oE '^- Gate: [A-Za-z]+' | head -1 | awk '{print $3}')
+# Reuses ${MILESTONE_BLOCK} resolved in the §6.7 preamble — do not re-extract,
+# or the two sites drift. §6.7 already refused on every unreadable-block case.
+#
+# `aa_ma_field_value` matches `- Gate:` and `- **Gate:**` alike: the corpus has
+# 24 of the bold form against 43 plain, so a plain-only match left a third of
+# all Gate declarations invisible and their HARD gates unenforced.
+GATE=$(printf '%s\n' "${MILESTONE_BLOCK}" | aa_ma_field_value Gate)
+GATE=$(printf '%s' "${GATE}" | tr '[:lower:]' '[:upper:]')
 if [[ "$GATE" == "HARD" ]]; then
-  if ! grep -q "GATE APPROVAL: ${MILESTONE_TITLE}" "${TASK_DIR}/${TASK_NAME}-context-log.md"; then
+  # -F: the title is data, not a pattern. Titles routinely contain '.' (version
+  # numbers), so a BRE match let "GATE APPROVAL: M4 v0X8X0" satisfy the gate for
+  # "M4 v0.8.0". A leading '-' would make grep misparse its own argument.
+  if ! grep -qF -- "GATE APPROVAL: ${MILESTONE_TITLE}" \
+       "${TASK_DIR}/${TASK_NAME}-context-log.md"; then
     echo "BLOCKED: Gate: HARD requires signed approval in context-log.md"
     echo "Required format: ## [date] GATE APPROVAL: ${MILESTONE_TITLE}"
-    # HALT — cannot proceed without approval artifact
+    exit 1
   fi
 fi
 ```

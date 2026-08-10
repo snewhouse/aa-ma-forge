@@ -208,7 +208,9 @@ PY
     # AC §5.8 part 3: CRITICAL Bandit B602 auto-fix commit landed on feature.
     [[ "$(git log -1 --format=%s)" =~ ^fix\(review\):\ apply\ CRITICAL\ bandit ]]
     # Verify the fix mutated src/vuln.py (shell=True → shell=False)
-    ! grep -q 'shell=True' src/vuln.py
+    # `! cmd` is exempt from set -e, so a non-final `!` line can never fail a
+    # bats test. This asserted the vulnerability was removed and could not.
+    if grep -q 'shell=True' src/vuln.py; then echo 'shell=True survived the auto-fix' >&2; false; fi
     grep -q 'shell=False' src/vuln.py
 
     # AC §5.8 part 4: out-of-scope tests/codemem/dummy.py is STILL clean

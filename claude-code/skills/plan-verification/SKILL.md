@@ -348,10 +348,21 @@ evaluates these structural conditions against the plan:
 1. **Element #12 present.** Plan contains an "Engineering Standards Declaration"
    section listing which themes from `claude-code/rules/engineering-standards.md`
    apply, with one-sentence rationale per theme.
-2. **Critical-Path values are canonical.** Any `Critical-Path:` field uses one
-   of the 6 canonical values (`auth-flow` | `data-xform` | `external-api` |
-   `version-pipeline` | `doc-count-drift` | `hook-modification`). Novel values
-   are CRITICAL findings — add new values via plan + ADR, not ad-hoc.
+2. **Critical-Path values are canonical.** Any `Critical-Path:` field must parse
+   against `CANONICAL_CRITICAL_PATHS`. Novel values are CRITICAL findings — add
+   new values via plan + ADR, not ad-hoc. **Run the parser; do not eyeball the
+   list.** The canonical values live in code and in
+   `claude-code/rules/engineering-standards.md` §1 — deliberately not repeated
+   here, because a third prose copy is what drifts:
+
+   ```bash
+   uv run python -c "
+   from aa_ma.plan_parsers import parse_critical_path
+   import sys
+   v, ok, err = parse_critical_path(sys.stdin.read())
+   print('OK' if ok else f'CRITICAL: {err}')
+   " <<< "$MILESTONE_BLOCK"
+   ```
 3. **Theme claims are not contradictory.** When element #12 declares Theme 2
    (Development Principles → TDD), tasks producing code must carry test sub-tasks.
 4. **Audit-Profile present per milestone (v0.8.0+).** For plans with
@@ -366,9 +377,9 @@ evaluates these structural conditions against the plan:
    `hotfix-emergency` | `tooling-config`. Novel values are CRITICAL findings.
    Field-absence is permitted (most milestones have no waiver). Per ADR-0005.
 
-Parsers for checks #4 and #5 live in `src/aa_ma/plan_parsers.py`
-(`parse_audit_profile`, `parse_tdd_waiver`, `CANONICAL_AUDIT_PROFILES`,
-`CANONICAL_TDD_WAIVERS`). Each parser returns `(value, is_valid, error)`;
+Parsers for checks #2, #4 and #5 live in `src/aa_ma/plan_parsers.py`
+(`parse_critical_path`, `parse_audit_profile`, `parse_tdd_waiver`, and their
+`CANONICAL_*` frozensets). Each parser returns `(value, is_valid, error)`;
 the audit reports `CRITICAL` when `is_valid is False`.
 
 **Grandfathering (CEO-4):**

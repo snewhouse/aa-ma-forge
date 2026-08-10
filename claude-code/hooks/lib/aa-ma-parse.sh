@@ -10,6 +10,18 @@
 #     aa_ma_extract_active_step <file>        -> stdout: active step heading text
 #     aa_ma_list_active_tasks                 -> stdout: mtime-sorted task-dir paths, one per line
 #     aa_ma_debug <msg...>                    -> stderr line iff HOOK_DEBUG=1
+#     AA_MA_PARSE_SH_LOADED                   -> set to 1 once sourced (re-source guard)
+#     AA_MA_MILESTONE_ERE                     -> ERE mirroring grammar.py MILESTONE_RE
+#     aa_ma_is_milestone_heading <line>       -> rc 0 if the line is a milestone heading
+#     aa_ma_extract_milestone_block <file> <title>   -> block; rc 0/1/2/3
+#     aa_ma_extract_milestone_block_by_number <file> <num> -> block; rc 0/1/2/3
+#     aa_ma_field_value <name>   (stdin: block) -> first value, bold or plain
+#     aa_ma_count_field <name> <value> (stdin: block) -> count of matching lines
+#
+# This header is the discovery surface: it is the first thing anyone sourcing
+# the library reads, and a symbol missing from it gets reimplemented instead of
+# reused. `tests/hooks/aa-ma-parse.bats` asserts every public symbol appears
+# here, so the list cannot drift from the definitions below.
 #
 # Implementation notes:
 #   - Format-agnostic Status regex: (\*\*)?Status:(\*\*)? +<WORD>
@@ -111,12 +123,145 @@ aa_ma_extract_active_milestone() {
 # -----------------------------------------------------------------------------
 AA_MA_MILESTONE_ERE='^##[[:blank:]]+(Milestone[[:blank:]]+M?|M)[0-9]+[a-z]?([.][0-9]+)*(:|[[:blank:]]+(-|–|—)[[:blank:]]+)'
 
+# aa_ma_is_milestone_heading <line> — rc 0 if the line is a milestone heading.
+#
+# AA_MA_MILESTONE_ERE alone is the *prefix* pattern (block extraction strips it
+# with `sub()` to recover the title, so it must not consume the title's first
+# character). Recognition additionally requires a non-empty title, matching
+# grammar.py's `(?P<title>.+?)`. Without this, `## Milestone 5:` is a heading in
+# bash and is not one in Python — measured, and the reason this predicate exists
+# rather than callers re-deriving it. `tests/test_grammar_parity.py` pins the
+# two implementations against each other through this function.
+# -----------------------------------------------------------------------------
+aa_ma_is_milestone_heading() {
+    printf '%s\n' "$1" | awk -v mre="$AA_MA_MILESTONE_ERE" '
+        $0 ~ mre {
+            t = $0
+            sub(mre, "", t)
+            gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", t)
+            if (t != "") { found = 1 }
+        }
+        END { exit found ? 0 : 1 }
+    '
+}
+
+# -----------------------------------------------------------------------------
+# _aa_ma_sanitize <file> — blank out everything that can look like markup
+# without being it: fenced code blocks and HTML comments, the latter multi-line.
+#
+# Deliberately separate from `_aa_ma_strip_html_comments`, which is single-line
+# only and is left untouched because `aa_ma_extract_active_milestone` and
+# `aa_ma_extract_active_step` are pinned to its behaviour by existing tests.
+#
+# Both classes were measured to truncate a milestone block, and the second is
+# live: three tasks.md files in this repo carry multi-line comments today, and
+# `docs/templates/tasks-template.md` ships ten. A commented-out or
+# fence-illustrated `## Milestone N:` line closed the block early, so the gate
+# read zero PENDING sub-steps on a milestone that had them.
+#
+# Written without regex interval expressions (`{0,3}`) or multibyte classes so
+# it behaves identically under gawk, mawk and busybox awk. Lines are blanked,
+# never dropped, so line numbering is preserved for callers that care.
+# -----------------------------------------------------------------------------
+_aa_ma_sanitize() {
+    awk '
+        function fence_marker(line,   ind, rest, ch, k) {
+            ind = 0
+            while (substr(line, ind + 1, 1) == " " && ind < 4) ind++
+            if (ind > 3) return ""
+            rest = substr(line, ind + 1)
+            ch = substr(rest, 1, 1)
+            if (ch != "`" && ch != "~") return ""
+            k = 0
+            while (substr(rest, k + 1, 1) == ch) k++
+            if (k < 3) return ""
+            return ch ":" k
+        }
+        {
+            line = $0
+            if (incomment) {
+                p = index(line, "-->")
+                if (p == 0) { print ""; next }
+                line = substr(line, p + 3)
+                incomment = 0
+            }
+            while ((s = index(line, "<!--")) > 0) {
+                e = index(substr(line, s + 4), "-->")
+                if (e == 0) { line = substr(line, 1, s - 1); incomment = 1; break }
+                line = substr(line, 1, s - 1) substr(line, s + 4 + e + 2)
+            }
+            m = fence_marker(line)
+            if (!infence) {
+                if (m != "") {
+                    split(m, a, ":"); fch = a[1]; fk = a[2] + 0
+                    infence = 1; print ""; next
+                }
+                print line; next
+            }
+            if (m != "") {
+                split(m, a, ":")
+                if (a[1] == fch && a[2] + 0 >= fk) infence = 0
+            }
+            print ""
+        }
+    ' "$1"
+}
+
+# -----------------------------------------------------------------------------
+# aa_ma_field_value <field-name>   — reads a milestone block on STDIN
+# aa_ma_count_field <field-name> <value>
+#
+#   Tolerate every field form the corpus actually uses. Measured across
+#   .claude/dev/**/*-tasks.md: 435 `- Status:` but 22 `- **Status:**`, and
+#   43 `- Gate:` against 24 `- **Gate:**`. The gate previously matched only the
+#   plain form, so 24 of 67 `Gate:` declarations were invisible to it — and the
+#   shipped Phase 5 writer
+#   (skills/aa-ma-plan-workflow/references/PHASE_5_ARTIFACT_CREATION.md) emits
+#   the BOLD form, so a plan authored through the standard path was born
+#   un-gateable.
+#
+#   `aa_ma_extract_active_milestone` above already used `(\*\*)?Status:(\*\*)?`
+#   — the library knew about bold; the gate did not.
+# -----------------------------------------------------------------------------
+_aa_ma_field_re() {
+    printf '^[-[:blank:]]*[*]{0,2}%s[*]{0,2}:[*]{0,2}[[:blank:]]+' "$1"
+}
+
+aa_ma_field_value() {
+    awk -v re="$(_aa_ma_field_re "$1")" '
+        $0 ~ re { v = $0; sub(re, "", v); gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", v); print v; exit }
+    '
+}
+
+aa_ma_count_field() {
+    awk -v re="$(_aa_ma_field_re "$1")" -v want="$2" '
+        $0 ~ re {
+            v = $0; sub(re, "", v); gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", v)
+            if (v == want) c++
+        }
+        END { print c + 0 }
+    '
+}
+
 # -----------------------------------------------------------------------------
 # aa_ma_extract_milestone_block <tasks-file> <milestone-title>
 #   Emits every line of the milestone whose heading contains <milestone-title>,
 #   from the heading up to (not including) the next milestone heading, or EOF.
-#   Emits nothing — rc 0 — when the file is missing, the title is empty, or no
-#   heading matches.
+#   EXIT CODES — the point of this function. A gate whose only refusal signal is
+#   *finding* something treats every parse failure as a clean milestone, so the
+#   caller must be able to tell "nothing to report" from "I could not read it":
+#     0  exactly one heading matched; block on stdout
+#     1  no milestone heading carries that title
+#     2  configuration error — file missing, or empty title
+#     3  ambiguous — more than one heading carries that title
+#   Callers MUST refuse on non-zero. Returning 0-and-empty for cases 1-3, as the
+#   first version did, is the fail-open shape this milestone exists to remove.
+#
+#   Title matching is EXACT on the heading's title portion, not a substring.
+#   `index($0, title)` took the first heading merely *containing* the title, so
+#   with "## Milestone 1: Gate scans and grammar" preceding
+#   "## Milestone 2: Gate scans", asking for "Gate scans" silently scanned
+#   milestone 1 — reporting its SOFT gate and zero PENDING for milestone 2.
 #
 #   Replaces `awk "/^## Milestone.*$TITLE/,/^## Milestone/"`, which returned
 #   exactly ONE line for every milestone in every plan: the start line also
@@ -124,8 +269,6 @@ AA_MA_MILESTONE_ERE='^##[[:blank:]]+(Milestone[[:blank:]]+M?|M)[0-9]+[a-z]?([.][
 #   record, so the range closed immediately. Every field scan built on it —
 #   Status: PENDING counts, Critical-Path, Prototype-Required — read empty, and
 #   the §6.7 gate could not refuse anything.
-#
-#   Fails closed: an empty title matches nothing rather than everything.
 #
 #   Start and end conditions are deliberately ASYMMETRIC:
 #     * opens only on a heading matching AA_MA_MILESTONE_ERE (strict — prose
@@ -142,12 +285,57 @@ AA_MA_MILESTONE_ERE='^##[[:blank:]]+(Milestone[[:blank:]]+M?|M)[0-9]+[a-z]?([.][
 # -----------------------------------------------------------------------------
 aa_ma_extract_milestone_block() {
     local file="$1" title="$2"
-    [ -f "$file" ] || return 0
-    [ -n "$title" ] || return 0
-    _aa_ma_strip_html_comments "$file" | awk -v title="$title" -v mre="$AA_MA_MILESTONE_ERE" '
-        /^##[[:blank:]]/ { if (inblk) exit }
-        $0 ~ mre { if (index($0, title)) inblk = 1 }
-        inblk { print }
+    [ -f "$file" ] || return 2
+    [ -n "$title" ] || return 2
+    _aa_ma_sanitize "$file" | awk -v title="$title" -v mre="$AA_MA_MILESTONE_ERE" '
+        /^##[[:blank:]]/ { if (inblk) inblk = 0 }
+        $0 ~ mre {
+            t = $0
+            sub(mre, "", t)
+            gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", t)
+            if (t == title) { n++; inblk = 1 }
+        }
+        inblk { buf = buf $0 "\n" }
+        END {
+            printf "%s", buf
+            if (n == 0) exit 1
+            if (n > 1) exit 3
+            exit 0
+        }
+    '
+}
+
+# -----------------------------------------------------------------------------
+# aa_ma_extract_milestone_block_by_number <tasks-file> <number>
+#   As above, but addressed by milestone number (`2`, `2a`, `3.5`) rather than
+#   title. Same exit codes.
+#
+#   Exists because `verify-impl` keyed its own range on arithmetic:
+#     awk "/^## ...M?$N(:|[[:blank:]])/,/^## ...M?$((N+1))(:|[[:blank:]])|^---$/"
+#   `$((N+1))` is a hard bash error for the milestone numbers M1 legitimised —
+#   `2a: value too great for base` — and the corpus ships `## Milestone 2a/2b/2c`.
+#   The `|^---$` alternative also truncated any milestone containing a
+#   horizontal rule. Neither failure was visible: the caller read an empty block
+#   and reported `MISSING`.
+# -----------------------------------------------------------------------------
+aa_ma_extract_milestone_block_by_number() {
+    local file="$1" number="$2" esc
+    [ -f "$file" ] || return 2
+    [ -n "$number" ] || return 2
+    # Literal-match the number; only `.` is an ERE metacharacter in this grammar.
+    esc=$(printf '%s' "$number" | sed 's/[.]/[.]/g')
+    _aa_ma_sanitize "$file" | awk \
+        -v mre="$AA_MA_MILESTONE_ERE" \
+        -v nre="^##[[:blank:]]+(Milestone[[:blank:]]+M?|M)${esc}(:|[[:blank:]]+(-|–|—)[[:blank:]]+)" '
+        /^##[[:blank:]]/ { if (inblk) inblk = 0 }
+        $0 ~ mre { if ($0 ~ nre) { n++; inblk = 1 } }
+        inblk { buf = buf $0 "\n" }
+        END {
+            printf "%s", buf
+            if (n == 0) exit 1
+            if (n > 1) exit 3
+            exit 0
+        }
     '
 }
 

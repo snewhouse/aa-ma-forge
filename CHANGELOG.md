@@ -6,6 +6,67 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### BREAKING (behavioural) — the AA-MA milestone gate now actually refuses
+
+**If you run `/execute-aa-ma-milestone`, expect it to start blocking milestones
+it previously waved through.** That is the fix, not a regression.
+
+Every scan in the §6.7 Engineering Standards gate and the §7.1 HARD gate was
+inoperative, and had been since they were written:
+
+- `awk "/^## Milestone.*$TITLE/,/^## Milestone/"` **self-terminates.** The start
+  line also matches the end pattern, and awk evaluates the end pattern on the
+  same record, so the range was one line — the heading. Condition 2 (`zero
+  Status: PENDING`) therefore counted 0 on every milestone in every plan, and
+  condition 5 never found a `Critical-Path:` or `Prototype-Required:` field.
+  Style-independent: it failed on canonical headings too.
+- §7.1 read `Gate:` with `grep -A1`, which stops at the blank line before the
+  field list. `GATE` was always empty, so `[[ "$GATE" == "HARD" ]]` was never
+  true and **the HARD gate has never fired on any milestone**.
+- `MILESTONE_TITLE` was first assigned 347 lines *after* the gate consumed it,
+  so the scans ran against an empty title even once the range was fixed.
+- The scans matched only `- Status:` / `- Gate:`, never the bold `- **Status:**`
+  form — which the shipped Phase 5 writer emits, and which 22 `Status` and 24
+  `Gate` lines in this repo's own corpus use. Those milestones were un-gateable.
+
+Block extraction now lives in one place, `aa_ma_extract_milestone_block()` in
+`claude-code/hooks/lib/aa-ma-parse.sh`, with **distinct exit codes** (0 found /
+1 no match / 2 config error / 3 ambiguous title) and callers that refuse on all
+of them. The old shape treated every failure to read as a clean milestone —
+which is why five separate defects all presented identically.
+
+Also fixed in the same surface:
+
+- Headings inside fenced code blocks and **multi-line** HTML comments no longer
+  truncate a milestone block (`_aa_ma_sanitize`). The previous stripper was
+  single-line; `docs/templates/tasks-template.md` ships ten multi-line comments.
+- Milestone titles match **exactly**, not by substring — `"Gate scans"` used to
+  silently return the block for `"Gate scans and grammar"`, reporting its SOFT
+  gate for a HARD milestone. Duplicate titles now refuse (rc 3) rather than
+  silently picking the first.
+- `verify-impl` keyed its own extractor on `$((N+1))`, a hard bash error for the
+  milestone numbers the grammar admits (`2a: value too great for base`; the
+  corpus ships `## Milestone 2a/2b/2c`). It now calls
+  `aa_ma_extract_milestone_block_by_number`.
+- `Critical-Path` / `Prototype-Required` evidence greps are **milestone-scoped**.
+  A bare file-wide `grep` meant that once any milestone wrote
+  `CRITICAL_PATH_REVIEW`, every later milestone was pre-satisfied. Provenance
+  entries must now name the milestone.
+- The HARD-gate approval check uses `grep -F`; a title containing `.` previously
+  matched approvals for other milestones.
+- `Gate:` values are compared case-insensitively (`- Gate: Hard` no longer
+  silently skips the HARD gate).
+
+**New public API.** `AA_MA_MILESTONE_ERE`, `aa_ma_is_milestone_heading`,
+`aa_ma_extract_milestone_block`, `aa_ma_extract_milestone_block_by_number`,
+`aa_ma_field_value`, `aa_ma_count_field` (shell); `parse_critical_path` and
+`CANONICAL_CRITICAL_PATHS` (Python) — the latter now actually invoked by
+`plan-verification` Angle 6 check #2, which had been eyeballing the list.
+
+`tests/test_grammar_parity.py` pins the shell ERE against
+`grammar.py::MILESTONE_RE` across the corpus and an edge-case table, under every
+awk on the host — the two were called mirrors with nothing checking.
+
 ### Fix — `/sole-dev-merge` Stage C no longer reports a clean scan it did not perform
 
 - Both C3 (Bandit) and C4 (ShellCheck) ran `<scanner> -f json ... || true`, so a

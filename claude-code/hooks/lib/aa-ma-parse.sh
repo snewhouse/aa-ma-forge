@@ -92,14 +92,16 @@ _aa_ma_strip_html_comments() {
 aa_ma_extract_active_milestone() {
     local file="$1"
     [ -f "$file" ] || return 0
-    _aa_ma_strip_html_comments "$file" | awk -v mre="$AA_MA_MILESTONE_ERE" '
+    _aa_ma_strip_html_comments "$file" \
+        | awk -v mre="$AA_MA_MILESTONE_ERE" -v h2re="$AA_MA_H2_ERE" \
+              "${_AA_MA_MILESTONE_AWK}"'
         # A milestone heading opens a block; any other H2 closes one.
-        /^## / {
+        $0 ~ h2re {
             current = ""
-            if ($0 ~ mre) {
-                t = $0; sub(mre, "", t)
-                gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", t)
-                if (t != "") { current = $0; sub(/^## /, "", current) }
+            if (aa_ma_ms_title($0) != "") {
+                current = $0
+                sub(/^##[[:blank:]]*/, "", current)
+                gsub(/[[:blank:]]+$/, "", current)
             }
             next
         }
@@ -134,6 +136,39 @@ aa_ma_extract_active_milestone() {
 # -----------------------------------------------------------------------------
 AA_MA_MILESTONE_ERE='^##[[:blank:]]+(Milestone[[:blank:]]+M?|M)[0-9]+[a-z]?([.][0-9]+)*(:|[[:blank:]]+(-|–|—)[[:blank:]]+)'
 
+# AA_MA_H2_ERE — "this line is an H2, so it closes whatever block is open".
+# Deliberately matches a bare `##` as well as `## x` and `##<TAB>x`: three
+# different spellings of this test had accumulated (`/^## /`, `/^##[[:blank:]]/`,
+# `/^##[^#]/`) and they disagreed. On a tab-separated heading the library
+# contradicted itself — the strict derivation read it while
+# `aa_ma_extract_active_step` returned the previous milestone's last sub-step,
+# reopening the defect 4.8 had just closed. `###` is excluded because the third
+# `#` is neither a blank nor end-of-line.
+AA_MA_H2_ERE='^##([[:blank:]]|$)'
+
+# -----------------------------------------------------------------------------
+# _AA_MA_MILESTONE_AWK — awk prelude defining aa_ma_ms_title(line).
+#
+# Returns the milestone title, or "" when the line is not a milestone heading.
+# Requires `mre` to be in scope (pass -v mre="$AA_MA_MILESTONE_ERE").
+#
+# ONE body for "is this a milestone heading, and what is its title". It existed
+# as a shell predicate (`aa_ma_is_milestone_heading`) whose own comment said it
+# was there "rather than callers re-deriving it" — and then every awk-based
+# reader re-derived it anyway, because a shell function cannot be called from
+# inside an awk program. Four copies resulted, and sub-step 4.7's declared
+# action ("rewire it to aa_ma_is_milestone_heading") shipped as a fifth. The
+# prelude is the form an awk program can actually share.
+# -----------------------------------------------------------------------------
+_AA_MA_MILESTONE_AWK='
+function aa_ma_ms_title(line,   t) {
+    if (line !~ mre) return ""
+    t = line
+    sub(mre, "", t)
+    gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", t)
+    return t
+}'
+
 # aa_ma_is_milestone_heading <line> — rc 0 if the line is a milestone heading.
 #
 # AA_MA_MILESTONE_ERE alone is the *prefix* pattern (block extraction strips it
@@ -145,13 +180,9 @@ AA_MA_MILESTONE_ERE='^##[[:blank:]]+(Milestone[[:blank:]]+M?|M)[0-9]+[a-z]?([.][
 # two implementations against each other through this function.
 # -----------------------------------------------------------------------------
 aa_ma_is_milestone_heading() {
-    printf '%s\n' "$1" | awk -v mre="$AA_MA_MILESTONE_ERE" '
-        $0 ~ mre {
-            t = $0
-            sub(mre, "", t)
-            gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", t)
-            if (t != "") { found = 1 }
-        }
+    printf '%s\n' "$1" | awk -v mre="$AA_MA_MILESTONE_ERE" \
+        "${_AA_MA_MILESTONE_AWK}"'
+        aa_ma_ms_title($0) != "" { found = 1 }
         END { exit found ? 0 : 1 }
     '
 }
@@ -335,13 +366,12 @@ aa_ma_extract_milestone_block() {
     # a valid plan citing a milestone it had derived itself. ENVIRON is not
     # escape-processed; -v remains fine for our own literal patterns.
     AA_MA_TITLE="$title" _aa_ma_sanitize "$file" \
-        | AA_MA_TITLE="$title" awk -v mre="$AA_MA_MILESTONE_ERE" '
+        | AA_MA_TITLE="$title" awk -v mre="$AA_MA_MILESTONE_ERE" \
+              -v h2re="$AA_MA_H2_ERE" "${_AA_MA_MILESTONE_AWK}"'
         BEGIN { title = ENVIRON["AA_MA_TITLE"] }
-        /^##[[:blank:]]/ { if (inblk) inblk = 0 }
-        $0 ~ mre {
-            t = $0
-            sub(mre, "", t)
-            gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", t)
+        $0 ~ h2re { if (inblk) inblk = 0 }
+        aa_ma_ms_title($0) != "" {
+            t = aa_ma_ms_title($0)
             # Accept either the title portion ("Close the gate blindness") or the
             # whole heading minus "## " ("Milestone 4: Close the gate blindness").
             # aa_ma_extract_active_milestone returns the latter, and passing it
@@ -383,10 +413,10 @@ aa_ma_extract_milestone_block_by_number() {
     [ -n "$number" ] || return 2
     # Literal-match the number; only `.` is an ERE metacharacter in this grammar.
     esc=$(printf '%s' "$number" | sed 's/[.]/[.]/g')
-    _aa_ma_sanitize "$file" | awk \
+    _aa_ma_sanitize "$file" | awk -v h2re="$AA_MA_H2_ERE" \
         -v mre="$AA_MA_MILESTONE_ERE" \
         -v nre="^##[[:blank:]]+(Milestone[[:blank:]]+M?|M)${esc}(:|[[:blank:]]+(-|–|—)[[:blank:]]+)" '
-        /^##[[:blank:]]/ { if (inblk) inblk = 0 }
+        $0 ~ h2re { if (inblk) inblk = 0 }
         $0 ~ mre { if ($0 ~ nre) { n++; inblk = 1 } }
         inblk { buf = buf $0 "\n" }
         END {
@@ -421,10 +451,10 @@ aa_ma_extract_milestone_block_by_number() {
 aa_ma_extract_active_step() {
     local file="$1"
     [ -f "$file" ] || return 0
-    _aa_ma_strip_html_comments "$file" | awk '
-        # Any H2 closes the current step block. Disjoint from /^### / below:
-        # "### x" has "#" where this pattern requires a blank.
-        /^## / {
+    _aa_ma_strip_html_comments "$file" | awk -v h2re="$AA_MA_H2_ERE" '
+        # Any H2 closes the current step block. AA_MA_H2_ERE excludes "###"
+        # because its third character is neither a blank nor end-of-line.
+        $0 ~ h2re {
             current = ""
             next
         }
@@ -525,18 +555,14 @@ aa_ma_active_milestone_strict() {
     { [ -n "$file" ] && [ -f "$file" ] && [ -r "$file" ]; } || return 2
     out=$(_aa_ma_sanitize "$file" \
         | awk -v mre="$AA_MA_MILESTONE_ERE" -v sre="$(_aa_ma_field_re Status)" \
-              "${_AA_MA_VALUE_NORM}"'
-        /^##[^#]/ {
+              -v h2re="$AA_MA_H2_ERE" "${_AA_MA_VALUE_NORM}${_AA_MA_MILESTONE_AWK}"'
+        $0 ~ h2re {
             current = ""; in_header = 0
-            if ($0 ~ mre) {
-                t = $0; sub(mre, "", t)
-                gsub(/^[[:blank:]]+|[[:blank:]]+$/, "", t)
-                if (t != "") {
-                    current = $0
-                    sub(/^##[[:blank:]]+/, "", current)
-                    gsub(/[[:blank:]]+$/, "", current)
-                    in_header = 1
-                }
+            if (aa_ma_ms_title($0) != "") {
+                current = $0
+                sub(/^##[[:blank:]]*/, "", current)
+                gsub(/[[:blank:]]+$/, "", current)
+                in_header = 1
             }
             next
         }

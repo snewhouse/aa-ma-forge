@@ -78,7 +78,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Status: COMPLETE
 - Mode: AFK
 - Action: pin only that `aa_ma_extract_active_milestone` returns `Milestone 1 — Pre-flight + scope-aware CI checks` rc 0 on the em-dash fixture. Do NOT pin its over-tolerance.
-- Result Log: Added `aa_ma_extract_active_milestone reads an em-dash milestone heading` to tests/hooks/aa-ma-parse.bats (17 in file). Pins only the em-dash behaviour; the helper's over-tolerance is explicitly NOT pinned, with a comment saying why.
+- Result Log: Added `aa_ma_extract_active_milestone reads an em-dash milestone heading` to tests/hooks/aa-ma-parse.bats. Pins only the em-dash behaviour; the helper's over-tolerance is explicitly NOT pinned, with a comment saying why.
 
 ### Sub-step 1.9: Verify and gate
 
@@ -190,7 +190,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Complexity: 45%
 - **Critical-Path:** hook-modification
 - Audit-Profile: infra
-- New-Tests: 22  <!-- python: test_critical_path_parser.py (15) + test_grammar_parity.py (7). Plus bats: aa-ma-gate-scans.bats (36 in file) and 2 added to aa-ma-parse.bats. Declared 0 at planning, then 15; the plan assumed the scans only needed a regex widened. The bats file grew 19->26->28 during 4.1-4.5 and 28->36 in 4.6/4.7; recount from the file, never from this comment. -->
+- New-Tests: see Summary Counts — this milestone's test count is derived, not declared. Declared 0 at planning; the plan assumed the scans only needed a regex widened.
 - Acceptance Criteria: plan §3 M4 acceptance 1-3
 
 ### Sub-step 4.1: RED — failing bats per scan point
@@ -234,7 +234,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Mode: AFK
 - Action: 4.5 fixed the unset-`MILESTONE_TITLE` defect by wiring the gate to `aa_ma_extract_active_milestone`, the loosest grammar in `aa-ma-parse.sh` — which takes the *first* match and cannot signal ambiguity. Measured: with a stale second milestone left ACTIVE the gate derives the wrong milestone and reports `PENDING=0 GATE=SOFT` for a milestone that is 1 PENDING / `Gate: HARD` — a silent **false PASS**, the one direction none of this milestone's other defects could produce. Add a derivation that returns exactly-one-ACTIVE or refuses (rc 1 none / rc 3 many), and switch `execute-aa-ma-milestone.md` §6.7 to it.
 - Acceptance Criteria: two ACTIVE milestones → gate exits non-zero naming both; zero ACTIVE → exits non-zero; exactly one → unchanged behaviour. Mutation-verified: reverting the derivation re-fails the ambiguity case.
-- Result Log: COMPLETE. Added `aa_ma_active_milestone_strict` (rc 0 one / 1 none / 2 unreadable / 3 many, printing **all** ACTIVE headings on rc 3) and switched the §6.7 preamble to it. Only the milestone's **own** `Status:` counts — fields between the `##` heading and the first `###` — because a sub-step left ACTIVE is normal mid-milestone and would otherwise make its parent a candidate and two milestones look simultaneously active. **Dogfooded through the shipped text, not a hand-set variable**: the §6.7 preamble was extracted verbatim from the command file (47 lines) and run against four task dirs — `two-active` → exit 1 naming both milestones; `no-active` → exit 1; `one-active` → exit 0; the live plan → exit 0 `Milestone 4: Close the HARD-gate scan blindness`. That indirection is the whole lesson of 4.5, where a by-hand probe verified the helper and not the shipped path. **Mutation-verified**: swapping `aa_ma_active_milestone_strict` back to the tolerant reader and deleting the `case` reproduces the false PASS exactly — derives `Milestone 2: Older milestone left ACTIVE`, measures `PENDING=0 GATE=SOFT`, exit 0, on a fixture whose real subject is `PENDING=1 GATE=HARD`. 8 new bats cases (RED 8 fail / 28 pass → GREEN 36/36).
+- Result Log: COMPLETE. Added `aa_ma_active_milestone_strict` (rc 0 one / 1 none / 2 unreadable / 3 many, printing **all** ACTIVE headings on rc 3) and switched the §6.7 preamble to it. Only the milestone's **own** `Status:` counts — fields between the `##` heading and the first `###` — because a sub-step left ACTIVE is normal mid-milestone and would otherwise make its parent a candidate and two milestones look simultaneously active. **Dogfooded through the shipped text, not a hand-set variable**: the §6.7 preamble was extracted verbatim from the command file (47 lines) and run against four task dirs — `two-active` → exit 1 naming both milestones; `no-active` → exit 1; `one-active` → exit 0; the live plan → exit 0 `Milestone 4: Close the HARD-gate scan blindness`. That indirection is the whole lesson of 4.5, where a by-hand probe verified the helper and not the shipped path. **Mutation-verified**: swapping `aa_ma_active_milestone_strict` back to the tolerant reader and deleting the `case` reproduces the false PASS exactly — derives `Milestone 2: Older milestone left ACTIVE`, measures `PENDING=0 GATE=SOFT`, exit 0, on a fixture whose real subject is `PENDING=1 GATE=HARD`. 9 new bats cases, of which 8 went RED and one (`tolerant reader still finds a real milestone`) passed pre-fix as the non-breaking guard — RED 8 fail / 28 pass → GREEN 36/36. (Originally written as "8 new bats cases"; corrected in 4.15 after the §6.8 future-proofing agent measured the file at 27→36 across the window.)
 
 
 ### Sub-step 4.7: One milestone grammar in aa-ma-parse.sh
@@ -279,43 +279,49 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 4.12: One H2 predicate, and actually call the SSoT recogniser
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: §6.8 WARNING ×2 (code-reviewer), verified. Four spellings of "is this an H2" now exist (`/^## /` ×2, `/^##[[:blank:]]/` ×2, `/^##[^#]/`). On a tab-separated `##\tMilestone 2:` the library contradicts itself: `strict` reads it correctly while `aa_ma_extract_active_step` returns `Sub-step 1.1: done` — the exact defect 4.8 claims to close — and `aa_ma_extract_active_milestone` returns the COMPLETE milestone. Separately, `aa_ma_is_milestone_heading` has **0 callers in shipped code**: 4.7's declared Action was "Rewire it to `aa_ma_is_milestone_heading`" and the implementation inlined its body as a fourth copy instead. Consolidate on `/^##[[:blank:]]/` and share one recognition body.
 - Acceptance Criteria: all four call sites agree on a shared edge-case table incl. tab-separated and bare `##`; `aa_ma_is_milestone_heading` has at least one shipped caller or its removal is recorded.
-- Result Log:
+- Result Log: COMPLETE. `AA_MA_H2_ERE` replaces three disagreeing spellings of "this line is an H2" (`/^## /` ×2, `/^##[[:blank:]]/` ×2, `/^##[^#]/`) and now also closes on a bare `##`. `_AA_MA_MILESTONE_AWK` gives the four readers one recognition body — `grep -c 'sub(mre, "", t)'` went 4 → **1**. The reason the shell predicate was never called is now recorded rather than left implied: a shell function cannot be invoked from inside an awk program, so 4.7's declared "rewire it" was not implementable as written; an awk prelude is the form these callers can actually share, and `aa_ma_is_milestone_heading` is now a thin wrapper over it. **I broke the suite doing this** — the block extractors referenced `h2re` before it was passed — and the tests caught it immediately: 146 ok / 25 not ok, repaired to 171 ok / 0 not ok. The tab-separated heading that defeated 4.7 and 4.8 now resolves identically in all three readers.
 
 ### Sub-step 4.13: Gate condition 1 must actually halt
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: §6.8 WARNING (code-reviewer), verified. `execute-aa-ma-milestone.md:498` ends the git-dirty branch with `# HALT`, a comment. Measured against a dirty task dir: the gate prints `BLOCKED: AA-MA artifacts have uncommitted changes.` and then `ENG-STANDARDS-GATE: PASS (all 5 conditions satisfied)` with `EXIT=0` — it contradicts itself in one run and passes. Pre-existing and identical at `f2c83bc`, but it is condition 1 of the gate this milestone hardens, twelve lines above the four real `exit 1`s added in 4.6. Replace with `exit 1`.
 - Acceptance Criteria: a dirty AA-MA task dir exits non-zero with no `PASS` line.
-- Result Log:
+- Result Log: COMPLETE. `# HALT` → `exit 1`, with the measurement kept in the comment so the next reader sees why a one-word change mattered. **Mutation-verified**: restoring `# HALT` fails the new dirty-task-dir case, so the guard is load-bearing rather than decorative.
 
 ### Sub-step 4.14: Tests that execute the gate, and mawk parity for the changed functions
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: §6.8 WARNING ×2 (code-reviewer + future-proofing). The guard for 4.6's fix is an exact-literal negative grep over markdown that goes green if a future edit merely adds quotes, reinstating the defect. Nothing in the suite executes the §6.7 preamble, so the `case $?` dispatch, four `exit 1` paths and the rc-3 `printf | sed` are unguarded. Separately, the mawk parity loop covers only `aa_ma_extract_milestone_block`; none of the three functions changed in this window is pinned under mawk. Replace the literal guard with behavioural execution and extend parity coverage.
 - Acceptance Criteria: a bats case extracts the §6.7 fence and runs it against each fixture asserting exit status and message; mawk+gawk parity asserted for all three changed functions with the existing non-vacuity guard.
-- Result Log:
+- Result Log: COMPLETE. The exact-literal grep guard is gone; four cases now **execute** the shipped §6.7 text — one-active → exit 0 with the derived title, two-active → non-zero naming both, no-active → non-zero, and a dirty task dir → non-zero with no `PASS` line. Mutation-verified in both directions: reverting the derivation to the tolerant reader fails the two-active case (the old grep would have caught that too only by exact spelling), and restoring `# HALT` fails the dirty case. mawk/gawk parity extended to all three functions changed in this window, keeping the `tested -eq 2` non-vacuity guard. **The mutation run then exposed a defect in my own new test**: it shimmed `awk` at `$BATS_TMPDIR/shim-$bin`, the same fixed path an existing test writes a wrapper script to — and since `BATS_TMPDIR` is `/tmp` here and persists between runs, the symlink made that test's `printf > $shim/awk` follow through to `/usr/bin/mawk` and die with EACCES. Three tests away from the one I was editing, and invisible in the single green run that preceded it. Fixed with `mktemp -d` plus cleanup; verified stable over three consecutive full runs and zero `/tmp/shim-*` left behind.
 
 ### Sub-step 4.15: Correct the count claims
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: §6.8 CRITICAL ×2 (future-proofing), verified. `tasks.md:260` claims M4 added 15 python / 38 bats tests; measured 22 python (10+3 defs → 22 collected under parametrisation — `grep -c '^def test_'` was the wrong metric) and 41 bats (`aa-ma-gate-scans.bats` 0→36, `aa-ma-parse.bats` 17→22). 4.6's own Result Log says "8 new bats cases"; it was 9 — 8 went RED, one passed pre-fix. The `(36 in file)` parenthetical is self-invalidating and its sibling at `:81` has already drifted 17→22 inside this same plan. Nothing parses `New-Tests`, so these are pure rot surface: replace with the derivation command.
 - Acceptance Criteria: no hardcoded per-file test count remains in tasks.md; corrected figures stated once, with the command that reproduces them.
-- Result Log:
+- Result Log: COMPLETE. The counts are **removed, not corrected** — `grep -rn "New-Tests" claude-code/ src/ tests/` returns zero hits, so nothing enforced them and they were pure rot surface. `Summary Counts` now carries the derivation commands; the milestone `New-Tests` field points at it; the `(17 in file)` and `(36 in file)` parentheticals are gone. The history is preserved in a comment rather than silently overwritten, including that `(17 in file)` had already drifted to 22 **inside this same plan** — which is the evidence that "recount from the file, never from this comment" is not a working mitigation. 4.6's own "8 new bats cases" corrected in place to 9, with the correction visible.
 
 ## Summary Counts
 
 - Milestones: 4 (2 HARD, 2 SOFT)
-- Sub-steps: 35
-- New tests declared: 73 python (M1 35, M2 22, M3 1, M4 15) + bats (M1 1, M4 38)
-  <!-- Was "37 python (M1 35, M2 2)" — stale from planning: M2 grew 2→22 when its
-       scope went from 1 writer to 11, M3 went 0→1 after §6.8 found an untested
-       branch, and M4 went 0→15. Recount from the per-milestone New-Tests fields,
-       never from this line. -->
+- Sub-steps: 15 in Milestone 4 alone; derive the total with `grep -c "^### Sub-step" *-tasks.md`
+- New tests declared: **derived, never transcribed.** Reproduce with:
+  `git diff --stat <milestone-base>..HEAD -- tests/` for the files touched, and
+  `grep -c '^@test' tests/hooks/*.bats` / `uv run pytest <files> --collect-only -q` for counts.
+  <!-- Every hardcoded total in this file has drifted at least once. The prior line
+       claimed M4 added 15 python and 38 bats tests; measured at the time, 22 python
+       (10+3 defs -> 22 collected under parametrisation, so `grep -c '^def test_'` was
+       the wrong metric) and 41 bats. The sibling `(17 in file)` annotation on
+       aa-ma-parse.bats had already drifted to 22 inside this same plan, and the
+       `(36 in file)` one was self-invalidating on the next @test added. Nothing parses
+       New-Tests — `grep -rn "New-Tests" claude-code/ src/ tests/` returns zero hits —
+       so these numbers were pure rot surface with no enforcement value. -->
 - Suite gate: `failed == 0 and errors == 0`, plus a **scoped** delta — `pytest tests/test_grammar.py -q` reports exactly `New-Tests` for M1. A whole-repo absolute total is self-invalidating: archiving this very plan adds 2 parametrized cases to `test_corpus_grandfathering`, and any unrelated test added before M4 breaks it.

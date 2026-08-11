@@ -144,3 +144,115 @@ not also match `CANONICAL_M` / `CANONICAL_S`. Without this rule a plain `## Summ
 heading would be flagged, and this plan's own tasks.md would fail M2 acceptance #4.
 
 _Last updated: 2026-08-09_
+
+## M5 enforcement contract (immutable once 5.1 is written)
+
+Added 2026-08-11 after the M5 plan review found two acceptance criteria citing a
+"12-form table" that existed only in conversation. This section IS that table.
+Every row was executed against the real extractors, not reasoned about.
+
+### Module layout (pinned — the review found three equally-valid readings)
+
+| Path | Contents |
+|------|----------|
+| `src/aa_ma/enforce.py` | strict, fail-closed field reads. NEW. |
+| `src/aa_ma/gate.py` | the seven gate questions + `main()` for the CLI. NEW. |
+| `src/aa_ma/tui/parser.py` | UNCHANGED. Tolerant, defaulting — correct for a dashboard. |
+| `src/aa_ma/grammar.py` | block-end rule changes to "any H2" (see below). |
+
+### Signatures (pinned)
+
+```python
+@dataclass(frozen=True)
+class FieldRead:
+    value: str | None      # normalised; None only when absent
+    present: bool          # field found at all
+    is_valid: bool         # False => caller MUST refuse; never a default
+    error: str | None      # quotes the offending text, plan_parsers style
+
+def read_enforced_field(block: str, field: str,
+                        canonical: frozenset[str] | None) -> FieldRead: ...
+```
+
+`value` is normalised in one place, for every enforced field: strip a surrounding
+bold pair, case-fold to upper, take the leading whitespace-delimited token. Then
+canonical membership is required when `canonical` is not None.
+
+**Why normalise rather than reject** — and this is a deliberate departure from
+`plan_parsers.py`, which today rejects `**infra**`: reading *intent* is the gate's
+job; enforcing that plans are *written* canonically is the M2 linter's job. Two
+mechanisms, two concerns. Conflating them is what made `- Gate: hard` a HARD gate
+in bash and a SOFT gate in Python.
+
+### Field semantics (pinned — absence differs per field, by design)
+
+| Field | Absent means | Canonical set |
+|-------|--------------|---------------|
+| `Status` (milestone) | **refuse** — a milestone a gate cannot read is not a clean milestone | PENDING/ACTIVE/IN_PROGRESS/COMPLETE/BLOCKED |
+| `Status` (step) | **refuse** | PENDING/IN_PROGRESS/COMPLETE/BLOCKED (no ACTIVE — the enums genuinely differ, so milestone and step reads are separate functions) |
+| `Gate` | `SOFT` — documented default in `claude-code/rules/aa-ma.md` | SOFT/HARD |
+| `Mode` | inherit parent, then `HITL` — documented default | HITL/AFK |
+| `Critical-Path` | valid, check skipped (absent-field semantic, §6.7 cond. 5) | the 6 in `plan_parsers.CANONICAL_CRITICAL_PATHS` |
+| `Prototype-Required` | valid, check skipped | YES/NO |
+| `Audit-Profile` | refuse for post-v0.8.0 plans (existing rule) | the 5 in `plan_parsers.CANONICAL_AUDIT_PROFILES` |
+
+### The form table — decided verdict per row
+
+Measured columns are what the code does TODAY; the verdict column is the contract.
+
+| # | Input | bash today | Python today | **Verdict** |
+|---|-------|-----------|--------------|-------------|
+| 1 | `- Status: ACTIVE` | ACTIVE | ACTIVE | ACTIVE |
+| 2 | `  - Status: ACTIVE` (indented) | miss | ACTIVE | ACTIVE |
+| 3 | `\t- Status: ACTIVE` | miss | ACTIVE | ACTIVE |
+| 4 | `- **Status:** ACTIVE` | ACTIVE | ACTIVE | ACTIVE |
+| 5 | `- **Status**: ACTIVE` | miss | ACTIVE | ACTIVE |
+| 6 | `- Status: **ACTIVE**` | miss | PENDING | ACTIVE (bold stripped) |
+| 7 | `- Status: ACTIVE (resumed…)` | miss | PENDING | ACTIVE (leading token) |
+| 8 | `- Status: COMPLETE (2026-05-09, commit …)` | COMPLETE | **PENDING** | COMPLETE — **24 real corpus lines** |
+| 9 | `* Status: ACTIVE` (asterisk bullet) | miss | PENDING | **refuse** — not a canonical bullet |
+| 10 | `- Status: ACTIVE` (NBSP) | miss | PENDING | **refuse** — invisible; silent "absent" is the fail-open shape |
+| 11 | `- Gate: hard` | HARD | SOFT | HARD (case-folded) |
+| 12 | `- Gate: TYPO` | not-HARD | SOFT | **refuse** |
+| 13 | `- Mode: TYPO` | n/a | **AFK** | **refuse** — AFK means auto-dispatch without asking |
+| 14 | `- Status: ACTIVE\r` (CRLF) | ACTIVE | ACTIVE, title keeps `\r` | normalise `\r` before parsing; title must not carry it into §7.1 greps |
+| 15 | unclosed ``` fence mid-milestone | hides sub-steps | hides sub-steps | **refuse (exit 2)** — measured to hide a PENDING sub-step, a false PASS |
+| 16 | bare `##` line | closes block | does not close | closes block |
+| 17 | `##<TAB>Milestone 2: T` | closes/parses | parses | parses |
+| 18 | trailing `## Summary Counts` w/ field-shaped lines | excluded ✓ | **absorbed ✗** (3 PENDING vs 2) | excluded |
+
+### Block-end rule (resolves the review's central contradiction)
+
+`grammar.py::split_milestones` closes a block only at the next milestone heading;
+bash closes on **any H2**, a fix sub-step 4.2 made after measuring it. Bash is
+right. `grammar.py` adopts "any H2 closes" — this is a **bug fix for both
+consumers**, not a gate-only concession: the TUI is wrong today too. Expect
+golden-snapshot regeneration and a `--json` behavioural change; both are declared
+work in M5, not surprises.
+
+### Exit codes (extended for the verify-impl caller)
+
+| Code | Meaning |
+|------|---------|
+| 0 | exactly one ACTIVE milestone; all enforced fields read cleanly |
+| 1 | no ACTIVE milestone |
+| 2 | unreadable — file missing, unclosed fence, or ANY enforced field `is_valid=False` |
+| 3 | ambiguous — 2+ ACTIVE, or duplicate milestone titles |
+| 4 | requested milestone number not found (by-number mode, `verify-impl`) |
+
+**File-level rule:** if any milestone's enforced field is invalid, the answer is
+2 — even when another milestone is cleanly ACTIVE. We cannot know the unreadable
+one was not the intended subject.
+
+### The seven questions `gate.py` must answer
+
+1. exact `MILESTONE_TITLE` string (consumed verbatim by §7.1's `grep -qF "GATE APPROVAL: …"`)
+2. which milestone is ACTIVE — refusing on 0 / 2+ / unreadable
+3. count of `Status: PENDING` sub-steps within that milestone
+4. `Gate:` → HARD/SOFT
+5. `Critical-Path:` value, present/absent
+6. `Prototype-Required:` == YES, present/absent
+7. milestone block **by number** + its `Audit-Profile:` (for `verify-impl`)
+
+Items 1, 6 and 7 were absent from the first draft of M5, which is why its
+acceptance criteria (2) and (3) contradicted each other.

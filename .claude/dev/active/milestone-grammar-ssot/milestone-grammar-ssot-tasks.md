@@ -183,7 +183,8 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ## Milestone 4: Close the HARD-gate scan blindness
 
-- Status: ACTIVE
+- Status: BLOCKED
+- Blocked-By: Milestone 5 — M4's acceptance is genuinely unmet and its remaining scope (4.10-4.15) is superseded by M5. BLOCKED rather than an invented status value: it is canonical in `MilestoneStatus`, and it leaves exactly one ACTIVE milestone once M5 starts, which the strict derivation requires.
 - Gate: HARD
 - Mode: HITL
 - Dependencies: Milestone 1
@@ -315,23 +316,6 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Acceptance Criteria: no hardcoded per-file test count remains in tasks.md; corrected figures stated once, with the command that reproduces them.
 - Result Log: COMPLETE. The counts are **removed, not corrected** — `grep -rn "New-Tests" claude-code/ src/ tests/` returns zero hits, so nothing enforced them and they were pure rot surface. `Summary Counts` now carries the derivation commands; the milestone `New-Tests` field points at it; the `(17 in file)` and `(36 in file)` parentheticals are gone. The history is preserved in a comment rather than silently overwritten, including that `(17 in file)` had already drifted to 22 **inside this same plan** — which is the evidence that "recount from the file, never from this comment" is not a working mitigation. 4.6's own "8 new bats cases" corrected in place to 9, with the correction visible.
 
-## Summary Counts
-
-- Milestones: 4 (2 HARD, 2 SOFT)
-- Sub-steps: 15 in Milestone 4 alone; derive the total with `grep -c "^### Sub-step" *-tasks.md`
-- New tests declared: **derived, never transcribed.** Reproduce with:
-  `git diff --stat <milestone-base>..HEAD -- tests/` for the files touched, and
-  `grep -c '^@test' tests/hooks/*.bats` / `uv run pytest <files> --collect-only -q` for counts.
-  <!-- Every hardcoded total in this file has drifted at least once. The prior line
-       claimed M4 added 15 python and 38 bats tests; measured at the time, 22 python
-       (10+3 defs -> 22 collected under parametrisation, so `grep -c '^def test_'` was
-       the wrong metric) and 41 bats. The sibling `(17 in file)` annotation on
-       aa-ma-parse.bats had already drifted to 22 inside this same plan, and the
-       `(36 in file)` one was self-invalidating on the next @test added. Nothing parses
-       New-Tests — `grep -rn "New-Tests" claude-code/ src/ tests/` returns zero hits —
-       so these numbers were pure rot surface with no enforcement value. -->
-- Suite gate: `failed == 0 and errors == 0`, plus a **scoped** delta — `pytest tests/test_grammar.py -q` reports exactly `New-Tests` for M1. A whole-repo absolute total is self-invalidating: archiving this very plan adds 2 parametrized cases to `test_corpus_grandfathering`, and any unrelated test added before M4 breaks it.
-
 ## Milestone 5: Gate enforcement reads the Python SSoT
 
 - Status: PENDING
@@ -342,68 +326,92 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - **Critical-Path:** hook-modification
 - Audit-Profile: infra
 - New-Tests: derived — see Summary Counts
-- Acceptance Criteria: (1) every exploit fixture from all three §6.8 passes is a passing test; (2) §6.7/§7.1 obtain all four enforced fields from `src/aa_ma/`; (3) no bash function parses a milestone block for an enforcing decision; (4) the four known `d636824` defects are closed by construction, not by a new regex.
+- Contract: `reference.md` "M5 enforcement contract" pins the module layout, signatures, per-field absence semantics, the 18-row form table with a decided verdict per row, the block-end rule, the exit codes, and the seven questions. Sub-steps cite it; they do not restate it.
+- Acceptance Criteria: (1) every row of the reference form table is a passing test; (2) §6.7/§7.1 and `verify-impl` obtain **all seven** contract answers from `src/aa_ma/`; (3) no bash function parses a milestone block for an enforcing decision; (4) the four defects live at `d636824` are closed and named individually in the Result Log, not counted.
 
-### Sub-step 5.0: Strict, fail-closed field extraction for enforcement
-
-- Status: PENDING
-- Mode: AFK
-- Action: **the plan's original premise was wrong and this sub-step exists because the plan review measured it.** `tui/parser.py` fails OPEN on every enforced field: `- Gate: TYPO` -> `SOFT` (no approval artifact required), `- Gate: hard`/`**HARD**`/`HARD (per plan)` -> `SOFT`, `- Status: ACTIVE (resumed after compaction)` -> `PENDING`, and worst, `- Mode: TYPO` -> `AFK`, silently converting a human-in-the-loop step into an unattended one. Correct for a dashboard, catastrophic for a gate — reusing it unchanged would have ported the exact defect class of M4 into Python, and in one respect made it worse (bash uppercased `Gate`, so `- Gate: hard` worked there). No design invention needed: `plan_parsers.py` already implements the correct contract — `(value, is_valid, error)`, rejects `**bold**`, accepts trailing annotation (`infra (note)` -> `infra`) — so leading-token-plus-reject-bold is established house semantics, not a preference. Extend that pattern to `Status`, `Gate` and `Mode` for enforcement use only.
-- Acceptance Criteria: for each of Status/Gate/Mode, an unrecognised value returns `is_valid=False` with the offending text quoted, and NEVER a default; `tui/parser.py` behaviour is unchanged (its 864-test suite green, verified by running it); the 12-form table measured during plan review becomes a parametrised test with a decided expectation per row.
-- Result Log:
-
-### Sub-step 5.1: RED — the gate contract as tests
+### Sub-step 5.0: Block-end rule — grammar.py closes on any H2
 
 - Status: PENDING
 - Mode: AFK
-- Action: `tests/test_gate.py` asserting the contract before any implementation. The corpus is not invented: it is every fixture that broke bash across three §6.8 passes — one/two/no ACTIVE, `  - Status: ACTIVE` (indented), `- **Status**: ACTIVE`, `- Status: **ACTIVE**`, `- Status: ACTIVE (resumed after compaction)` (annotated — 17 in this repo), titles containing `\t` and `C:\dev\path`, a bare `##` mid-milestone, `##<TAB>` headings, CRLF line endings, NBSP separators, an unclosed code fence, and a `## Summary Counts` prose section carrying field-shaped lines.
-- Acceptance Criteria: every case asserts an exact expected verdict — decided in 5.0 against `plan_parsers.py` semantics rather than left open (the first draft listed inputs without deciding outputs, which is not RED-able); the suite is RED before 5.2 exists.
+- Action: `split_milestones` closes a block only at the next milestone heading, so a trailing prose H2 carrying field-shaped lines is absorbed. Measured on `tests/hooks/fixtures/gate-scans/styles-tasks.md`: Python reads **3** line-anchored `Status: PENDING` in the em-dash milestone where bash reads **2**, and swallows both `## Summary Counts` and `## Milestone Gate Types`. Bash is right — 4.2 fixed this after measuring it — and `grammar.py` never got the fix. This is a bug fix for **both** consumers, so it lands in `grammar.py`, not in a gate-local copy.
+- Acceptance Criteria: the fixture yields 2, not 3; TUI golden snapshot regenerated and the delta explained line by line; `--json` behavioural change recorded in CHANGELOG with a `schema_version` decision made explicitly (bump or documented no-bump).
 - Result Log:
 
-### Sub-step 5.2: GREEN — src/aa_ma/gate.py
+### Sub-step 5.1: Strict, fail-closed field reads
 
 - Status: PENDING
 - Mode: AFK
-- Action: reuse, do not rewrite. `tui/parser.py` already ships `_field_pattern`, `_extract_milestone_status`, `_extract_gate`, `parse_task_dir`; `plan_parsers.py` ships `parse_critical_path`/`parse_audit_profile`/`parse_tdd_waiver`; `grammar.py` owns heading structure. `gate.py` answers only the four questions §6.7/§7.1 ask — which milestone is ACTIVE, how many sub-steps are PENDING within it, its `Gate:`, its `Critical-Path:` — and refuses on ambiguity rather than picking.
-- Acceptance Criteria: 5.1 green; and the no-second-parser claim is asserted BEHAVIOURALLY, not by grep — a test drives `gate.py` and the corresponding `tui/parser.py`/`plan_parsers.py` primitive over the same 12-form table and asserts identical field readings. (The original criterion, "verified by grep for `re.compile`", is vacuously satisfiable by `re.match(r'...')` — the same shape as the grep-based guards the Phase 6.8 panel rejected in 4.14.)
+- Action: `src/aa_ma/enforce.py` per the pinned contract — `FieldRead` + `read_enforced_field`, one normalisation (strip bold pair, case-fold, leading token) then canonical membership. `tui/parser.py` is not touched: its defaulting is correct for a dashboard and wrong only for a gate. Milestone and step Status are **separate functions** because `StepStatus` has no `ACTIVE` and one parser cannot serve both.
+- Acceptance Criteria: all 18 contract rows assert their decided verdict; every `is_valid=False` quotes the offending text; no enforced field can ever return a default; `uv run pytest` green including the untouched TUI suite.
 - Result Log:
 
-### Sub-step 5.3: CLI with fail-closed exit codes
+### Sub-step 5.2: RED — the gate contract as tests
 
 - Status: PENDING
 - Mode: AFK
-- Action: `aa-ma-gate` console script in `pyproject.toml`, emitting JSON on stdout. Exit codes mirror the contract the bash version converged on: 0 exactly-one ACTIVE / 1 none / 2 unreadable-or-missing / 3 ambiguous. Every non-zero prints why.
-- Acceptance Criteria: each code reachable from a fixture; JSON validates against a declared schema; `--help` documents the codes; **and the Python-unavailable path is tested** — with the interpreter absent the gate must refuse loudly with a distinct non-zero code, never skip enforcement. (This was a risk bullet in the plan and nothing tested it, which is the fail-open shape again.)
+- Action: `tests/test_gate.py`, written before `gate.py` exists. Corpus is not invented — it is every fixture that broke bash across three §6.8 passes, plus the contract's 18 rows, plus one/two/no ACTIVE, titles containing `\t` and `C:\dev\path`, CRLF, NBSP, unclosed fence, bare `##`, `##<TAB>`, and a trailing prose H2.
+- Acceptance Criteria: every case asserts a verdict taken from the reference table, not invented at test-writing time; suite RED before 5.3.
 - Result Log:
 
-### Sub-step 5.4: Rewire §6.7 and §7.1
+### Sub-step 5.3: GREEN — src/aa_ma/gate.py
 
 - Status: PENDING
 - Mode: AFK
-- Action: `execute-aa-ma-milestone.md` conditions 1–5 and the §7.1 approval check call `aa-ma-gate` and refuse on any non-zero. Condition 1's `# HALT` becomes `exit 1` (measured fails-open: prints BLOCKED then PASS with exit 0). Tests must EXECUTE the fence, not grep it.
-- Acceptance Criteria: bats extracts and runs the §6.7 fence against each fixture asserting exit status and message; mutation-verified in both directions.
+- Action: answer the seven contract questions over `grammar.py` + `enforce.py` + `plan_parsers.py`. Refuse on ambiguity rather than choosing.
+- Acceptance Criteria: 5.2 green; the no-second-parser claim asserted **behaviourally** — a test drives `gate.py` and the corresponding `grammar`/`enforce`/`plan_parsers` primitive over the same 18 rows and asserts identical readings. (The first draft's "grep for `re.compile`" is vacuously satisfiable via `re.match` — the shape the §6.8 panel rejected in 4.14.)
 - Result Log:
 
-### Sub-step 5.5: Rewire verify-impl and retire the enforcing bash
+### Sub-step 5.4: CLI with fail-closed exit codes
 
 - Status: PENDING
 - Mode: AFK
-- Action: `verify-impl/SKILL.md` block extraction moves to the CLI (its `case $?` also lacks a `*)` arm — fail-open on any unexpected code). Then measure callers and delete every bash helper that parses a milestone block for an enforcing decision. Display-only readers (`aa-ma-session-start.sh`, `pre-compact-aa-ma.sh`) keep theirs, where a wrong answer is cosmetic — but that boundary gets stated in the library header so the next contributor cannot repeat 4.5's mistake of wiring a gate to a display helper.
-- Acceptance Criteria: zero enforcing callers of the bash block extractors; the tolerant/strict boundary documented; hooks bats still green.
+- Action: `aa-ma-gate` console script (no name collision; `[project.scripts]` pattern matches `aa-ma-tui`), JSON on stdout, exit codes 0/1/2/3/4 per the contract — 4 exists because `verify-impl` needs by-number lookup, which has no notion of "ACTIVE".
+- Acceptance Criteria: each of the five codes reachable from a fixture; JSON validates against a declared schema; `--help` documents the codes; **and the interpreter-unavailable path is tested** — with Python absent the gate refuses loudly, never skips. (This was a risk bullet with nothing testing it, which is the fail-open shape again.)
 - Result Log:
 
-### Sub-step 5.6: Close the documentation debt in one pass
+### Sub-step 5.5: Rewire §6.7, §7.1 and verify-impl
 
 - Status: PENDING
 - Mode: AFK
-- Action: CHANGELOG has had no entry across three windows — including a security fix. Write the behavioural-change entries, then ADR-0009 recording the durable decision: `grammar.py` is the SSoT; gate enforcement calls Python; bash is display-only; file-derived data never crosses into awk via `-v` (POSIX escape-processes it); awk string-preludes are how awk programs share a grammar body.
-- Acceptance Criteria: CHANGELOG covers every public-symbol and behavioural change since `b11c46d`; ADR-0009 exists and is referenced from the library header.
+- Action: all seven answers come from the CLI. Condition 1's `# HALT` becomes `exit 1` — measured at HEAD to print BLOCKED and then PASS with exit 0. `verify-impl/SKILL.md` gains the `*)` arm its `case $?` lacks; it already calls `plan_parsers` from Python, so this extends an existing call site rather than introducing the first.
+- Acceptance Criteria: bats **executes** the §6.7 fence against each fixture asserting exit status and message — the current guard is an exact-literal negative grep that goes green if an edit merely adds quotes; mutation-verified in both directions.
 - Result Log:
 
-### Sub-step 5.7: Verify and gate
+### Sub-step 5.6: Mode — close the HITL bypass
+
+- Status: PENDING
+- Mode: AFK
+- Action: `- Mode: TYPO` resolves to `AFK`, silently converting a human-in-the-loop sub-step into one that auto-dispatches without asking the user. §5.3 dispatch is a different enforcement surface from the gate, and would have been left untouched by M5 as first scoped — the review caught that the milestone's most alarming justification was not in its own scope. Rewire §5.3 to `enforce.read_enforced_field`.
+- Acceptance Criteria: an unrecognised `Mode:` halts with the offending text quoted, never dispatches; absent `Mode:` still inherits parent then defaults `HITL` per the documented rule.
+- Result Log:
+
+### Sub-step 5.7: Retire the enforcing bash
+
+- Status: PENDING
+- Mode: AFK
+- Action: measure callers, then delete every bash helper that parses a milestone block for an enforcing decision (the seven sites enumerated by the ground-truth audit). Display readers keep theirs — `aa-ma-session-start.sh`, `pre-compact-aa-ma.sh` — where a wrong answer is cosmetic. `aa_ma_list_active_tasks` is neither display-only nor a block parser and stays. `aa_ma_is_milestone_heading` has zero shipped callers and goes. The tolerant/strict boundary gets stated in the library header so no future caller repeats 4.5's mistake of wiring a gate to a display helper.
+- Acceptance Criteria: zero enforcing callers remain; hooks bats green; the boundary documented.
+- Result Log:
+
+### Sub-step 5.8: Documentation debt, in one pass
+
+- Status: PENDING
+- Mode: AFK
+- Action: CHANGELOG has had no entry across three windows including a security fix. Then ADR-0009: `grammar.py` is the SSoT; enforcement calls Python; bash is display-only; reading intent (gate) and enforcing canonical form (M2 linter) are separate concerns; file-derived data never crosses into awk via `-v`.
+- Acceptance Criteria: CHANGELOG covers every public-symbol and behavioural change since `b11c46d`, including 5.0's `--json` change; ADR-0009 exists and is referenced from `aa-ma-parse.sh`'s header and `reference.md`.
+- Result Log:
+
+### Sub-step 5.9: Verify and gate
 
 - Status: PENDING
 - Mode: HITL
 - Action: full suites; `Skill(impact-analysis)`; `CRITICAL_PATH_REVIEW — hook-modification` in provenance; §6.8 pass on the M5 window; HARD gate approval in context-log.
 - Acceptance Criteria: all four M5 criteria verified with evidence; §6.8 CRITICALs resolved before approval is sought.
 - Result Log:
+
+## Summary Counts
+
+- Milestones: 5
+- Sub-steps: derive per milestone with `grep -c "^### Sub-step N\." *-tasks.md` from the task directory
+- New tests declared: derived, never transcribed. `grep -c '^@test' tests/hooks/*.bats` under-reports — use `find tests/hooks -name '*.bats' -exec grep -hc '^@test' {} \; | paste -sd+ | bc`, which mirrors what CI runs.
+- Suite gate: `failed == 0 and errors == 0`, plus a scoped delta per milestone. A whole-repo absolute total is self-invalidating.

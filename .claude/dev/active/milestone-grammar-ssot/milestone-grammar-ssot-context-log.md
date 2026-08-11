@@ -378,3 +378,50 @@ lose the evidence that produced this decision.
 
 **Repo is single-maintainer**, which is why a live revert on `main` is
 acceptable rather than requiring a branch and a deprecation window.
+
+## [2026-08-11] M5 rewritten after plan review; and a lesson earned four times in one sitting
+
+**Review outcome.** Ground-truth verified 12 of 16 factual claims; the fresh-agent
+simulation found M5 **not cold-executable** (5 CRITICAL, 8 WARNING). Corrections
+to claims I had made: "864-test suite" is the whole repo, not `tui/parser.py`
+(21 direct tests); "17 annotated instances" is 24 lines and **none are `ACTIVE`** —
+they are `COMPLETE (…)`, `DEFERRED — …`, `PASS (…)`; "fails open on every enforced
+field" is true of Status/Gate/Mode only, since `Critical-Path` is not read by
+`tui/parser.py` at all.
+
+The corrected finding is stronger than the original: `- Status: COMPLETE (2026-05-09,
+commit abc1234)` reads as **PENDING**, so a Python-backed gate would count finished
+sub-steps as pending and falsely block, across 24 real corpus lines.
+
+**The premise inverted.** `grammar.py::split_milestones` closes a block only at the
+next milestone heading, so a trailing prose H2 with field-shaped lines is absorbed —
+measured 3 PENDING against bash's correct 2 on the shipped fixture. Bash is right
+here; 4.2 fixed it after measuring, and `grammar.py` never got the fix. So "reuse,
+do not rewrite" was false as written: **each implementation is correct where the
+other is wrong.** Bash wins on block segmentation and Gate case-folding; Python wins
+on byte-exact titles and canonical-value rejection. Decision: `grammar.py` adopts
+"any H2 closes" as a bug fix for *both* consumers, accepting golden-snapshot and
+`--json` churn as declared work.
+
+**The contract now exists on disk.** Two acceptance criteria cited a "12-form table"
+that lived only in conversation — the artifact the AA-MA files exist to prevent.
+`reference.md` now pins module layout, signatures, per-field absence semantics, an
+18-row form table with a decided verdict per row, the block-end rule, five exit
+codes, and the seven questions. Sub-steps cite it rather than restating it.
+
+**M4 → BLOCKED** (canonical in `MilestoneStatus`; no value invented). Its acceptance
+is genuinely unmet and its remaining scope is M5's. This also leaves exactly one
+ACTIVE milestone once M5 starts, which the strict derivation requires — with both
+ACTIVE the gate returns rc 3 and refuses.
+
+**Lesson, demonstrated four times while editing this very file:** substring matching
+on structured text finds prose that *quotes* the structure. In one sitting:
+`str.count('- Status: PENDING')` over-counted by one; `'## Summary Counts' in body`
+reported absorption that was not happening; `s.index('## Summary Counts')` matched a
+backticked mention inside a Result Log and **deleted M2, M3 and M4** (recovered from
+git); and then the guard written to prevent exactly that fired spuriously because
+`'### Sub-step' not in removed` matched a quoted `grep -c "^### Sub-step"` inside a
+Summary Counts line. Line-anchor every structural match — `re.M` with `^` — including
+in the assertions that protect the edit. This is the same defect class as the
+milestone's entire subject, which is the point: it is not a bash problem, it is a
+matching-discipline problem, and Python is no more immune to it than awk.

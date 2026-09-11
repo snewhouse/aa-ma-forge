@@ -441,3 +441,15 @@ matching-discipline problem, and Python is no more immune to it than awk.
 
 ## [2026-09-11] LESSON — L-013 in docs/lessons.md
 "Acknowledged, not changed" is not a review outcome. Every WARNING is fixed or becomes a Status-bearing sub-task; INFOs describing a fail-open shape count as WARNINGs.
+
+## [2026-09-11] GATE APPROVAL: Milestone 4: Close the HARD-gate scan blindness
+- Gate: HARD
+- Approved by: user (Ste) — decision "Close M4 as delivered by M5"
+- Criteria verified: 3/3 (plan §3 M4 acceptance 1-3, evidence in the M4 Result Log)
+- Decision: APPROVED
+
+## [2026-09-11] DECISION: Milestone 4 closed as delivered by Milestone 5
+- M4 was BLOCKED (Blocked-By: Milestone 5) since 2026-08-11 with 4.10-4.15 PENDING after the revert of the awk remediation round. M5 replaced the awk with the Python gate, and M4's three acceptance criteria are satisfied by M5's tests and gates rather than by the sub-steps as written.
+- 4.10-4.15 are marked `SKIPPED — superseded by Milestone 5`, not COMPLETE and not deleted: the defects they name are closed, but not by the code they describe, and their Result Logs are the evidence that produced the revert decision.
+- Alternatives offered and declined: leave BLOCKED (un-archivable, every future run stops here); execute 4.10-4.15 as written (patches helpers that no longer exist).
+- Consequence: all 5 milestones COMPLETE; plan ready for `/archive-aa-ma milestone-grammar-ssot`.

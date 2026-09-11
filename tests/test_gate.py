@@ -333,16 +333,25 @@ def test_audit_profile_is_read_with_the_same_normalisation(tmp_path: Path) -> No
 
 
 def test_this_plans_own_tasks_file_is_gateable() -> None:
-    a = answer(
-        Path(
-            ".claude/dev/active/milestone-grammar-ssot/milestone-grammar-ssot-tasks.md"
-        )
-    )
+    """Dogfood on the plan that built the gate. By number, not ACTIVE mode:
+    the first version asserted M5 was ACTIVE and broke the day it completed
+    — a self-invalidating test. Finds the plan in active/ or completed/."""
+    name = "milestone-grammar-ssot"
+    candidates = [
+        Path(f".claude/dev/{where}/{name}/{name}-tasks.md")
+        for where in ("active", "completed")
+    ]
+    path = next((c for c in candidates if c.is_file()), None)
+    assert path is not None, "plan not found in active/ or completed/"
+    a = answer(path, number="5")
     assert a.exit_code == EXIT_OK, a.errors
+    assert a.milestone is not None
     assert a.milestone.heading.startswith("Milestone 5:")
+    assert a.milestone.status in {"ACTIVE", "COMPLETE"}
     assert a.milestone.gate == "HARD"
     assert a.milestone.critical_path == "hook-modification"
     assert a.milestone.audit_profile == "infra"
+    assert a.milestone.pending_steps == 0
 
 
 # --- CLI ---------------------------------------------------------------------

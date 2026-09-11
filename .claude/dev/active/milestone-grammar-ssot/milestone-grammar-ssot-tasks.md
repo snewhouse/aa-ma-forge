@@ -318,7 +318,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ## Milestone 5: Gate enforcement reads the Python SSoT
 
-- Status: ACTIVE
+- Status: COMPLETE
 - Gate: HARD
 - Mode: HITL
 - Dependencies: Milestone 1
@@ -397,12 +397,11 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 - Result Log: COMPLETE. Mode: AFK — auto-dispatched. **The premise was partly stale**: `Unreleased` already covered M1-M3 and the first M4 window; what was missing was the security fix, everything after the revert, and the fact that the M4 bash API it advertised no longer exists. Rewritten: the M4 section now says the awk was rebuilt and then replaced (the surviving findings kept, `_aa_ma_sanitize` -> `grammar.sanitize`, verify-impl -> `aa-ma-gate --milestone N`); the 'New public API' paragraph lists the bash symbols as added-then-removed within the same release; new **'Feat — gate enforcement reads the Python SSoT (ADR-0009)'** covering `gate.py`/`aa-ma-gate` (formats, all five exit codes), `enforce.py` (normalise-vs-refuse, SKIPPED/DEFERRED), the `split_milestones` any-H2 change with the explicit `schema_version` no-bump, the `aa-ma-parse.sh` retirement and launcher, `# HALT` -> `exit 1`, the §5.2 Mode fence, the vacuous plan-verification snippet, the executing bats suite, and the `jsonschema` dev dep; new **'Security'** entry for the session-start title/directory-name injection with the residual risk stated. `docs/adr/0009-gate-enforcement-python-ssot.md` (MADR: three options, drivers, the two contract decisions — normalise-not-reject, any-H2 — and the rule that file-derived data never crosses into awk via `-v`), indexed in `docs/adr/INDEX.md`; referenced from the library header (5.7) and `reference.md` (5.7). Local `CLAUDE.md` (git-ignored here) gains the `aa-ma-gate` command line and the two new modules in the architecture tree. No hardcoded asset counts changed (no command/skill/hook added or removed).
 ### Sub-step 5.9: Verify and gate
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Action: full suites; `Skill(impact-analysis)`; `CRITICAL_PATH_REVIEW — hook-modification` in provenance; §6.8 pass on the M5 window; HARD gate approval in context-log.
 - Acceptance Criteria: all four M5 criteria verified with evidence; §6.8 CRITICALs resolved before approval is sought.
-- Result Log:
-
+- Result Log: COMPLETE. Mode: HITL — user approved at the HARD gate (second ask; the first was rejected with "fix the CRITICAL and warnings now, don't wait" — every WARNING was then fixed, L-013). Suites at HEAD: pytest **973 passed**, hooks bats `--recursive` **171 ok / 0 not ok**, commands bats **70 ok**, ruff + shellcheck clean. `Skill(impact-analysis)`: 21 files, overall MEDIUM (deleted public bash symbols; behaviour change is the intended one), cascade complete — zero references to deleted symbols in shipped code. `CRITICAL_PATH_REVIEW — hook-modification` in provenance. §6.8 (`infra`: code-reviewer, security-auditor, future-proofing-auditor): raw 5/21/17, **4 distinct CRITICALs — all reproduced by the lead, all fixed with regression tests** (fence-close inside an HTML comment; invisible line separators; §7.1 trusting §6.7's variables; an unmeasured '24' in the ADR), then **every WARNING fixed** in a second pass (quadratic comment regex, `Decision: REJECTED` passing §7.1, guarded snippet duplication, exit-code prose, spec pointers). **The four M5 acceptance criteria, with evidence**: (1) all 18 contract rows are passing tests (`test_enforce.py` rows 1-14, `test_gate_parity.py` 14-row parity, `test_grammar.py`/`test_gate.py` rows 15-18); (2) §6.7, §7.1, §5.2, `verify-impl` and `plan-verification` obtain every answer from `aa-ma-gate` — the shipped fences are extracted and executed by `aa-ma-gate-python.bats` (30 cases), and on this plan §6.7 blocked on exactly the one PENDING sub-step and §7.1 on the missing approval; (3) no bash parses a milestone block for an enforcing decision — 8 helpers deleted after caller measurement, guard test asserts none are referenced, `aa-ma-parse.sh` header states the boundary; (4) the four `d636824` defects named: indent-bypass false PASS (rows 2/3 + conflicting-value refusal), `awk -v` escape decoding (byte-exact kv titles, pytest + bats), `# HALT` comment (`exit 1`, bats dirty-tree case), session-start prompt injection (closed in 4.9 post-revert `cd3aa6e`; C0 controls now refused file-wide too). Milestone COMPLETE approved 2026-09-11.
 ## Summary Counts
 
 - Milestones: 5

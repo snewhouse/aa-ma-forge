@@ -425,3 +425,19 @@ Summary Counts line. Line-anchor every structural match — `re.M` with `^` — 
 in the assertions that protect the edit. This is the same defect class as the
 milestone's entire subject, which is the point: it is not a bash problem, it is a
 matching-discipline problem, and Python is no more immune to it than awk.
+
+## [2026-09-11] GATE APPROVAL: Milestone 5: Gate enforcement reads the Python SSoT
+- Gate: HARD
+- Approved by: user (Ste), at the second ask — the first was rejected until every §6.8 WARNING was fixed
+- Criteria verified: 4/4
+- Decision: APPROVED
+
+## [2026-09-11] Milestone Completion: Milestone 5: Gate enforcement reads the Python SSoT
+- Status: COMPLETE
+- Key outcome: `/execute-aa-ma-milestone` §5.2/§6.7/§7.1, `verify-impl` and `plan-verification` read every enforcing answer from `src/aa_ma/gate.py` (via the `aa_ma_gate` launcher) instead of awk; the enforcing bash is deleted; the gate fails closed on every input class three reviews found (ambiguity, unreadable fields, unclosed/comment-hidden fences, invisible separators, duplicate numbers, non-UTF-8, oversized, cannot-run). Shipped fences are executed by bats. ADR-0009.
+- Artifacts: src/aa_ma/{enforce,gate}.py (new), grammar.py, plan_parsers.py, claude-code/hooks/lib/aa-ma-parse.sh, claude-code/commands/execute-aa-ma-milestone.md, claude-code/skills/{verify-impl,plan-verification}/SKILL.md, claude-code/rules/{aa-ma,engineering-standards}.md, docs/adr/0009-*.md, CHANGELOG.md, README.md, docs/spec/aa-ma-specification.md, tests/{test_enforce,test_gate,test_gate_parity,test_grammar}.py, tests/hooks/{aa-ma-gate-python,aa-ma-gate-scans,aa-ma-parse}.bats, pyproject.toml (aa-ma-gate script, jsonschema dev dep)
+- Tests: pytest 973 passed / 1 skipped; hooks bats 171 ok; commands bats 70 ok; ruff + shellcheck clean
+- Decisions recorded during execution: step Status set widened to SKIPPED/DEFERRED (measured); orphan sub-steps refuse; step Status scoped to the answered milestone; repeated field lines refuse only when they disagree; every fence self-sufficient (lib resolution duplicated, guarded identical); no python3 fallback for the launcher (uv is the toolchain).
+
+## [2026-09-11] LESSON — L-013 in docs/lessons.md
+"Acknowledged, not changed" is not a review outcome. Every WARNING is fixed or becomes a Status-bearing sub-task; INFOs describing a fail-open shape count as WARNINGs.

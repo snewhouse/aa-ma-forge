@@ -27,7 +27,9 @@ from aa_ma.gate import (
 )
 
 FIX = Path("tests/hooks/fixtures/gate-scans")
-STYLES, ONE, TWO, NONE = (FIX / f"{n}-tasks.md" for n in ("styles", "one-active", "two-active", "no-active"))
+STYLES, ONE, TWO, NONE = (
+    FIX / f"{n}-tasks.md" for n in ("styles", "one-active", "two-active", "no-active")
+)
 NBSP = "\u00a0"
 
 
@@ -44,9 +46,13 @@ def test_one_active_is_exit_0_with_the_exact_heading() -> None:
     a = answer(ONE)
     assert a.exit_code == EXIT_OK
     assert a.milestone is not None
-    assert a.milestone.heading == "Milestone 2: The one being gated"  # Q1, verbatim for §7.1
+    assert (
+        a.milestone.heading == "Milestone 2: The one being gated"
+    )  # Q1, verbatim for §7.1
     assert a.milestone.gate == "HARD"  # Q4
-    assert a.milestone.pending_steps == 0  # Q3 — trailing `## Summary Counts` excluded (row 18)
+    assert (
+        a.milestone.pending_steps == 0
+    )  # Q3 — trailing `## Summary Counts` excluded (row 18)
     assert a.milestone.critical_path is None  # Q5 absent => valid, check skipped
     assert a.milestone.prototype_required is False  # Q6
 
@@ -111,13 +117,19 @@ def test_by_number_not_found_is_exit_4() -> None:
 
 
 def test_by_number_survives_2a_and_3_5(tmp_path: Path) -> None:
-    p = _write(tmp_path, "## Milestone 2a: A\n- Status: COMPLETE\n- Audit-Profile: infra\n## Milestone 3.5: B\n- Status: COMPLETE\n- Audit-Profile: full\n")
+    p = _write(
+        tmp_path,
+        "## Milestone 2a: A\n- Status: COMPLETE\n- Audit-Profile: infra\n## Milestone 3.5: B\n- Status: COMPLETE\n- Audit-Profile: full\n",
+    )
     assert answer(p, number="2a").milestone.audit_profile == "infra"
     assert answer(p, number="3.5").milestone.audit_profile == "full"
 
 
 def test_by_number_duplicate_number_is_ambiguous(tmp_path: Path) -> None:
-    p = _write(tmp_path, "## Milestone 1: A\n- Status: COMPLETE\n## Milestone 1: B\n- Status: COMPLETE\n")
+    p = _write(
+        tmp_path,
+        "## Milestone 1: A\n- Status: COMPLETE\n## Milestone 1: B\n- Status: COMPLETE\n",
+    )
     assert answer(p, number="1").exit_code == EXIT_AMBIGUOUS
 
 
@@ -126,7 +138,12 @@ def test_by_number_duplicate_number_is_ambiguous(tmp_path: Path) -> None:
 
 def test_titles_with_backslashes_round_trip_byte_exact(tmp_path: Path) -> None:
     """The `awk -v` escape-decoding false PASS, closed by construction."""
-    for title in (r"Fix \t handling in parser", r"Windows C:\dev\path", r"Escape \\ pair", r"Regex \d digit"):
+    for title in (
+        r"Fix \t handling in parser",
+        r"Windows C:\dev\path",
+        r"Escape \\ pair",
+        r"Regex \d digit",
+    ):
         p = _write(tmp_path, f"## Milestone 1: {title}\n- Status: ACTIVE\n")
         a = answer(p)
         assert a.exit_code == EXIT_OK
@@ -134,7 +151,10 @@ def test_titles_with_backslashes_round_trip_byte_exact(tmp_path: Path) -> None:
 
 
 def test_crlf_is_normalised_and_the_heading_carries_no_cr(tmp_path: Path) -> None:
-    p = _write(tmp_path, "## Milestone 1: T\r\n- Status: ACTIVE\r\n- Gate: HARD\r\n### Sub-step 1.1: S\r\n- Status: PENDING\r\n")
+    p = _write(
+        tmp_path,
+        "## Milestone 1: T\r\n- Status: ACTIVE\r\n- Gate: HARD\r\n### Sub-step 1.1: S\r\n- Status: PENDING\r\n",
+    )
     a = answer(p)
     assert a.exit_code == EXIT_OK
     assert a.milestone.heading == "Milestone 1: T"
@@ -150,15 +170,29 @@ def test_crlf_is_normalised_and_the_heading_carries_no_cr(tmp_path: Path) -> Non
         "- Status:",
     ],
 )
-def test_unreadable_milestone_status_is_exit_2_quoting_the_line(tmp_path: Path, line: str) -> None:
+def test_unreadable_milestone_status_is_exit_2_quoting_the_line(
+    tmp_path: Path, line: str
+) -> None:
     a = answer(_write(tmp_path, f"## Milestone 1: T\n{line}\n"))
     assert a.exit_code == EXIT_UNREADABLE
     assert any(repr(line.strip()) in e for e in a.errors), a.errors
 
 
-def test_absent_milestone_status_is_refused(tmp_path: Path) -> None:
-    a = answer(_write(tmp_path, "## Milestone 1: T\n- Gate: SOFT\n"))
+def test_absent_milestone_status_is_refused_even_when_a_step_has_one(
+    tmp_path: Path,
+) -> None:
+    """Only the milestone's *own* fields (before its first `###`) count — a
+    sub-step's Status must never stand in for the milestone's. Mutation-found:
+    reading the whole block passed every other case because own fields come
+    first in every fixture."""
+    a = answer(
+        _write(
+            tmp_path,
+            "## Milestone 1: T\n- Gate: SOFT\n### Sub-step 1.1: s\n- Status: COMPLETE\n",
+        )
+    )
     assert a.exit_code == EXIT_UNREADABLE
+    assert any("no Status" in e for e in a.errors)
 
 
 def test_annotated_and_bold_values_read_their_intent(tmp_path: Path) -> None:
@@ -188,9 +222,14 @@ def test_mode_typo_on_a_step_or_milestone_is_exit_2(tmp_path: Path) -> None:
         assert answer(_write(tmp_path, body)).exit_code == EXIT_UNREADABLE
 
 
-def test_file_level_rule_an_unreadable_sibling_refuses_the_clean_active_one(tmp_path: Path) -> None:
+def test_file_level_rule_an_unreadable_sibling_refuses_the_clean_active_one(
+    tmp_path: Path,
+) -> None:
     """We cannot know the unreadable milestone was not the intended subject."""
-    p = _write(tmp_path, "## Milestone 1: A\n- Status: ACTIVE\n## Milestone 2: B\n- Status: DONE\n")
+    p = _write(
+        tmp_path,
+        "## Milestone 1: A\n- Status: ACTIVE\n## Milestone 2: B\n- Status: DONE\n",
+    )
     a = answer(p)
     assert a.exit_code == EXIT_UNREADABLE
     assert any("Milestone 2: B" in e for e in a.errors)
@@ -200,19 +239,35 @@ def test_step_status_is_scoped_to_the_answered_milestone(tmp_path: Path) -> None
     """A step in a *completed* milestone with no Status cannot change which
     milestone is active, so it does not refuse; the same gap in the ACTIVE
     milestone makes its PENDING count unknowable and does."""
-    ok = _write(tmp_path, "## Milestone 1: A\n- Status: COMPLETE\n### Sub-step 1.1: s\n## Milestone 2: B\n- Status: ACTIVE\n### Sub-step 2.1: t\n- Status: COMPLETE\n", "ok-tasks.md")
+    ok = _write(
+        tmp_path,
+        "## Milestone 1: A\n- Status: COMPLETE\n### Sub-step 1.1: s\n## Milestone 2: B\n- Status: ACTIVE\n### Sub-step 2.1: t\n- Status: COMPLETE\n",
+        "ok-tasks.md",
+    )
     assert answer(ok).exit_code == EXIT_OK
-    bad = _write(tmp_path, "## Milestone 2: B\n- Status: ACTIVE\n### Sub-step 2.1: t\n", "bad-tasks.md")
+    bad = _write(
+        tmp_path,
+        "## Milestone 2: B\n- Status: ACTIVE\n### Sub-step 2.1: t\n",
+        "bad-tasks.md",
+    )
     assert answer(bad).exit_code == EXIT_UNREADABLE
 
 
 def test_step_active_is_refused_because_steps_have_no_active(tmp_path: Path) -> None:
-    p = _write(tmp_path, "## Milestone 1: T\n- Status: ACTIVE\n### Sub-step 1.1: s\n- Status: ACTIVE\n")
+    p = _write(
+        tmp_path,
+        "## Milestone 1: T\n- Status: ACTIVE\n### Sub-step 1.1: s\n- Status: ACTIVE\n",
+    )
     assert answer(p).exit_code == EXIT_UNREADABLE
 
 
-def test_skipped_and_deferred_steps_are_readable_and_not_pending(tmp_path: Path) -> None:
-    p = _write(tmp_path, "## Milestone 1: T\n- Status: ACTIVE\n### Sub-step 1.1: s\n- Status: SKIPPED — User skipped at HITL gate\n### Sub-step 1.2: d\n- Status: DEFERRED — later\n")
+def test_skipped_and_deferred_steps_are_readable_and_not_pending(
+    tmp_path: Path,
+) -> None:
+    p = _write(
+        tmp_path,
+        "## Milestone 1: T\n- Status: ACTIVE\n### Sub-step 1.1: s\n- Status: SKIPPED — User skipped at HITL gate\n### Sub-step 1.2: d\n- Status: DEFERRED — later\n",
+    )
     a = answer(p)
     assert a.exit_code == EXIT_OK and a.milestone.pending_steps == 0
 
@@ -222,7 +277,10 @@ def test_skipped_and_deferred_steps_are_readable_and_not_pending(tmp_path: Path)
 
 def test_unclosed_fence_is_exit_2(tmp_path: Path) -> None:
     """Row 15: measured to hide a PENDING sub-step — a false PASS."""
-    p = _write(tmp_path, "## Milestone 1: T\n- Status: ACTIVE\n```python\n### Sub-step 1.1: hidden\n- Status: PENDING\n")
+    p = _write(
+        tmp_path,
+        "## Milestone 1: T\n- Status: ACTIVE\n```python\n### Sub-step 1.1: hidden\n- Status: PENDING\n",
+    )
     a = answer(p)
     assert a.exit_code == EXIT_UNREADABLE
     assert any("fence" in e for e in a.errors)
@@ -232,7 +290,10 @@ def test_bare_h2_closes_the_block_and_orphaned_steps_refuse(tmp_path: Path) -> N
     """Row 16: a bare `##` closes the block. Steps after it belong to no
     milestone; a sub-step the gate cannot attribute is unreadable (exit 2),
     which is what turns 'closes block' from a false PASS into a refusal."""
-    p = _write(tmp_path, "## Milestone 1: T\n- Status: ACTIVE\n##\n### Sub-step 1.1: orphan\n- Status: PENDING\n")
+    p = _write(
+        tmp_path,
+        "## Milestone 1: T\n- Status: ACTIVE\n##\n### Sub-step 1.1: orphan\n- Status: PENDING\n",
+    )
     a = answer(p)
     assert a.exit_code == EXIT_UNREADABLE
     assert any("orphan" in e for e in a.errors)
@@ -240,19 +301,31 @@ def test_bare_h2_closes_the_block_and_orphaned_steps_refuse(tmp_path: Path) -> N
 
 def test_tab_separated_h2_parses(tmp_path: Path) -> None:
     """Row 17: `##<TAB>Milestone 2:` is a milestone heading."""
-    p = _write(tmp_path, "## Milestone 1: A\n- Status: COMPLETE\n##\tMilestone 2: B\n- Status: ACTIVE\n")
+    p = _write(
+        tmp_path,
+        "## Milestone 1: A\n- Status: COMPLETE\n##\tMilestone 2: B\n- Status: ACTIVE\n",
+    )
     a = answer(p)
     assert a.exit_code == EXIT_OK and a.milestone.heading == "Milestone 2: B"
 
 
 def test_zero_milestone_headings_is_exit_2(tmp_path: Path) -> None:
-    assert answer(_write(tmp_path, "# Just a title\n\nno milestones here\n")).exit_code == EXIT_UNREADABLE
+    assert (
+        answer(_write(tmp_path, "# Just a title\n\nno milestones here\n")).exit_code
+        == EXIT_UNREADABLE
+    )
 
 
 def test_audit_profile_is_read_with_the_same_normalisation(tmp_path: Path) -> None:
-    p = _write(tmp_path, "## Milestone 1: T\n- Status: ACTIVE\n- Audit-Profile: infra\n")
+    p = _write(
+        tmp_path, "## Milestone 1: T\n- Status: ACTIVE\n- Audit-Profile: infra\n"
+    )
     assert answer(p).milestone.audit_profile == "infra"
-    p2 = _write(tmp_path, "## Milestone 1: T\n- Status: ACTIVE\n- Audit-Profile: bogus\n", "b-tasks.md")
+    p2 = _write(
+        tmp_path,
+        "## Milestone 1: T\n- Status: ACTIVE\n- Audit-Profile: bogus\n",
+        "b-tasks.md",
+    )
     assert answer(p2).exit_code == EXIT_UNREADABLE
 
 
@@ -260,7 +333,11 @@ def test_audit_profile_is_read_with_the_same_normalisation(tmp_path: Path) -> No
 
 
 def test_this_plans_own_tasks_file_is_gateable() -> None:
-    a = answer(Path(".claude/dev/active/milestone-grammar-ssot/milestone-grammar-ssot-tasks.md"))
+    a = answer(
+        Path(
+            ".claude/dev/active/milestone-grammar-ssot/milestone-grammar-ssot-tasks.md"
+        )
+    )
     assert a.exit_code == EXIT_OK, a.errors
     assert a.milestone.heading.startswith("Milestone 5:")
     assert a.milestone.gate == "HARD"
@@ -271,8 +348,17 @@ def test_this_plans_own_tasks_file_is_gateable() -> None:
 # --- CLI ---------------------------------------------------------------------
 
 
-def test_cli_json_validates_against_the_declared_schema(capsys: pytest.CaptureFixture[str]) -> None:
-    for argv, code in (([str(ONE)], 0), ([str(TWO)], 3), ([str(NONE)], 1), (["/nonexistent"], 2), ([str(STYLES), "--milestone", "99"], 4), ([str(STYLES), "--milestone", "4"], 0)):
+def test_cli_json_validates_against_the_declared_schema(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    for argv, code in (
+        ([str(ONE)], 0),
+        ([str(TWO)], 3),
+        ([str(NONE)], 1),
+        (["/nonexistent"], 2),
+        ([str(STYLES), "--milestone", "99"], 4),
+        ([str(STYLES), "--milestone", "4"], 0),
+    ):
         assert main(argv) == code, argv
         doc = json.loads(capsys.readouterr().out)
         jsonschema.validate(doc, GATE_JSON_SCHEMA)

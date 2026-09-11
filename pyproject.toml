@@ -31,6 +31,8 @@ dependencies = [
 [project.scripts]
 # CLI entry point — created in aa-ma-tui-tracker M0 T0.2 (2026-05-17).
 aa-ma-tui = "aa_ma.tui.__main__:main"
+# Gate questions from the Python SSoT — created in milestone-grammar-ssot M5 (2026-09-11).
+aa-ma-gate = "aa_ma.gate:main"
 
 [build-system]
 requires = ["hatchling"]

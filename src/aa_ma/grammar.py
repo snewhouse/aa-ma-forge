@@ -123,6 +123,27 @@ def strip_fenced_blocks(text: str) -> str:
     return "".join(out)
 
 
+def has_unterminated_fence(text: str) -> bool:
+    """True when a fence opens and never closes.
+
+    :func:`strip_fenced_blocks` follows CommonMark and lets such a fence run
+    to end of input — correct for rendering, but for a gate it means every
+    heading and field after the opener silently vanishes. Measured to hide a
+    ``Status: PENDING`` sub-step, a false PASS; the gate refuses instead.
+    """
+    fence: tuple[str, int] | None = None
+    for line in text.splitlines():
+        match = _FENCE_RE.match(line)
+        if not match:
+            continue
+        marker = match.group("marker")
+        if fence is None:
+            fence = (marker[0], len(marker))
+        elif marker[0] == fence[0] and len(marker) >= fence[1]:
+            fence = None
+    return fence is not None
+
+
 def iter_fenced_blocks(text: str) -> list[str]:
     """Return the *contents* of each fenced code block — the inverse of stripping.
 

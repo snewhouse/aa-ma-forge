@@ -143,7 +143,7 @@ A heading is a *candidate* for the canonical lint only if it matches the toleran
 not also match `CANONICAL_M` / `CANONICAL_S`. Without this rule a plain `## Summary Counts`
 heading would be flagged, and this plan's own tasks.md would fail M2 acceptance #4.
 
-_Last updated: 2026-08-09_
+_Last updated: 2026-09-11_
 
 ## M5 enforcement contract (immutable once 5.1 is written)
 
@@ -189,7 +189,7 @@ in bash and a SOFT gate in Python.
 | Field | Absent means | Canonical set |
 |-------|--------------|---------------|
 | `Status` (milestone) | **refuse** — a milestone a gate cannot read is not a clean milestone | PENDING/ACTIVE/IN_PROGRESS/COMPLETE/BLOCKED |
-| `Status` (step) | **refuse** | PENDING/IN_PROGRESS/COMPLETE/BLOCKED (no ACTIVE — the enums genuinely differ, so milestone and step reads are separate functions) |
+| `Status` (step) | **refuse** | PENDING/IN_PROGRESS/COMPLETE/BLOCKED/SKIPPED/DEFERRED (no ACTIVE — the enums genuinely differ, so milestone and step reads are separate functions). SKIPPED and DEFERRED added at 5.1 after measuring the corpus: `/execute-aa-ma-milestone` §5.2 itself writes `Status: SKIPPED — …` at a HITL skip and DEFERRED appears on 3 corpus lines; the enum as first pinned would have refused the command's own output. |
 | `Gate` | `SOFT` — documented default in `claude-code/rules/aa-ma.md` | SOFT/HARD |
 | `Mode` | inherit parent, then `HITL` — documented default | HITL/AFK |
 | `Critical-Path` | valid, check skipped (absent-field semantic, §6.7 cond. 5) | the 6 in `plan_parsers.CANONICAL_CRITICAL_PATHS` |

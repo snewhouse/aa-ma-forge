@@ -77,7 +77,9 @@ NEGATIVE_CASES: list[tuple[str, str]] = [
     POSITIVE_CASES,
     ids=[c[0][:38] for c in POSITIVE_CASES],
 )
-def test_positive_headings_parse(heading: str, number: str, title: str, kind: str) -> None:
+def test_positive_headings_parse(
+    heading: str, number: str, title: str, kind: str
+) -> None:
     """Every style observed in the real corpus parses to (number, title)."""
     regex = MILESTONE_RE if kind == "milestone" else STEP_RE
     match = regex.search(heading)
@@ -129,7 +131,9 @@ def test_case_counts_are_pinned() -> None:
 
 
 def test_strip_fenced_blocks_removes_fenced_headings() -> None:
-    cleaned = strip_fenced_blocks(f"## Milestone 1: real\n{FENCE}\n## Milestone 2: fake\n{FENCE}\n")
+    cleaned = strip_fenced_blocks(
+        f"## Milestone 1: real\n{FENCE}\n## Milestone 2: fake\n{FENCE}\n"
+    )
     assert "## Milestone 1: real" in cleaned
     assert "## Milestone 2: fake" not in cleaned
 

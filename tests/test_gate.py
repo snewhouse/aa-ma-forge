@@ -384,3 +384,84 @@ def test_gate_module_exposes_no_second_grammar() -> None:
     compiling heading or field regexes of its own."""
     src = Path(gate.__file__).read_text()
     assert "re.compile" not in src and "re.match" not in src and "re.search" not in src
+
+
+def test_kv_format_is_line_per_key_and_values_are_verbatim(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The shell callers read `sed -n 's/^heading=//p'`: everything after the
+    first `=` must be the value byte-for-byte, `=` and backslashes included."""
+    title = r"a=b \t C:\dev\path"
+    p = _write(
+        tmp_path,
+        f"## Milestone 1: {title}\n- Status: ACTIVE\n- **Prototype-Required:** YES\n",
+    )
+    assert main([str(p), "--format", "kv"]) == 0
+    out = capsys.readouterr().out
+    lines = dict(line.split("=", 1) for line in out.splitlines())
+    assert lines["heading"] == f"Milestone 1: {title}"
+    assert lines["exit_code"] == "0" and lines["prototype_required"] == "YES"
+    assert lines["critical_path"] == "" and lines["gate"] == "SOFT"
+    assert main([str(TWO), "--format", "kv"]) == 3
+    out = capsys.readouterr().out
+    assert out.count("error=") == 2 and "heading=" not in out
+
+
+# --- §5.3 Mode dispatch (M5 5.6): the HITL bypass ---------------------------
+
+
+MODE_DOC = (
+    "## Milestone 1: T\n- Status: ACTIVE\n- Mode: HITL\n"
+    "### Sub-step 1.1: own mode\n- Status: PENDING\n- Mode: AFK\n"
+    "### Sub-step 1.2: inherits\n- Status: PENDING\n"
+    "## Milestone 2: U\n- Status: COMPLETE\n"
+    "### Sub-step 2.1: defaults\n- Status: COMPLETE\n"
+)
+
+
+def test_step_mode_resolves_own_then_parent_then_hitl(tmp_path: Path) -> None:
+    p = _write(tmp_path, MODE_DOC)
+    own = answer(p, number="1", step="1.1")
+    assert own.exit_code == EXIT_OK and own.step is not None
+    assert (own.step.mode, own.step.mode_source) == ("AFK", "step")
+    inherited = answer(p, number="1", step="1.2")
+    assert (inherited.step.mode, inherited.step.mode_source) == ("HITL", "milestone")
+    default = answer(p, number="2", step="2.1")
+    assert (default.step.mode, default.step.mode_source) == ("HITL", "default")
+    assert default.step.heading == "Sub-step 2.1: defaults"
+
+
+def test_step_mode_typo_never_dispatches(tmp_path: Path) -> None:
+    """Row 13, at the dispatch site: TYPO must halt quoting the text, not run as AFK."""
+    p = _write(
+        tmp_path,
+        "## Milestone 1: T\n- Status: ACTIVE\n### Sub-step 1.1: s\n- Status: PENDING\n- Mode: TYPO\n",
+    )
+    a = answer(p, number="1", step="1.1")
+    assert a.exit_code == EXIT_UNREADABLE and a.step is None
+    assert any("TYPO" in e for e in a.errors)
+
+
+def test_step_not_found_is_exit_4(tmp_path: Path) -> None:
+    assert (
+        answer(_write(tmp_path, MODE_DOC), number="1", step="1.9").exit_code
+        == EXIT_NOT_FOUND
+    )
+
+
+def test_step_requires_milestone_number(tmp_path: Path) -> None:
+    with pytest.raises(ValueError):
+        answer(_write(tmp_path, MODE_DOC), step="1.1")
+
+
+def test_step_kv_and_json_carry_the_step(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    p = _write(tmp_path, MODE_DOC)
+    assert main([str(p), "--milestone", "1", "--step", "1.2", "--format", "kv"]) == 0
+    out = capsys.readouterr().out
+    assert "step_mode=HITL\n" in out and "step_mode_source=milestone\n" in out
+    assert main([str(p), "--milestone", "1", "--step", "1.2"]) == 0
+    doc = json.loads(capsys.readouterr().out)
+    jsonschema.validate(doc, GATE_JSON_SCHEMA)
+    assert doc["step"]["mode"] == "HITL"

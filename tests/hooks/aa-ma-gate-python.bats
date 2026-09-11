@@ -1,0 +1,272 @@
+#!/usr/bin/env bats
+# aa-ma-gate-python.bats — the §6.7 / §7.1 gate reads from the Python SSoT.
+#
+# milestone-grammar-ssot M5. Three §6.8 passes over the awk that used to
+# answer the gate's questions found 8, 4, then 9 CRITICALs; the remediation
+# round produced more than it closed. Enforcement now calls `aa-ma-gate`
+# (src/aa_ma/gate.py) through the `aa_ma_gate` launcher. These tests:
+#
+#   1. drive the launcher — kv output, exit codes, and the interpreter-
+#      unavailable path (a gate that cannot run must refuse, never skip);
+#   2. EXECUTE the §6.7 fence as shipped in the command file against each
+#      fixture, asserting exit status and message. Sub-step 4.14's lesson: an
+#      exact-literal grep over markdown goes green if an edit merely adds
+#      quotes; only running the text proves the shipped path.
+
+setup() {
+    REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
+    HELPER="${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh"
+    MILESTONE_CMD="${REPO_ROOT}/claude-code/commands/execute-aa-ma-milestone.md"
+    FIXDIR="${BATS_TEST_DIRNAME}/fixtures/gate-scans"
+    WORK="$(mktemp -d "${BATS_TMPDIR}/gate-py.XXXXXX")"
+    export REPO_ROOT HELPER MILESTONE_CMD FIXDIR WORK
+}
+
+teardown() {
+    rm -rf "$WORK"
+    unset AA_MA_PARSE_SH_LOADED 2>/dev/null || true
+}
+
+load_helper() {
+    # shellcheck disable=SC1090
+    . "$HELPER"
+}
+
+# The §6.7 fence, verbatim from the command file: the first ```bash block
+# after the 6.7 heading.
+_gate_fence() {
+    awk '/^### 6\.7 /{f=1} f && /^```bash$/{g=1; next} g && /^```$/{exit} g' "$MILESTONE_CMD"
+}
+
+# Build `.claude/dev/active/<name>/` from a fixture so the fence's own path
+# derivation is exercised, not bypassed. Runs from a fresh non-git dir so the
+# dirty-tree condition is not in play unless a test wants it.
+_task_dir_from() {  # <fixture> <task-name>
+    local dir="$WORK/$2/.claude/dev/active/$2"
+    mkdir -p "$dir"
+    cp "$FIXDIR/$1-tasks.md" "$dir/$2-tasks.md"
+    : > "$dir/$2-provenance.log"
+    : > "$dir/$2-context-log.md"
+    printf '%s\n' "$WORK/$2"
+}
+
+_run_fence() {  # <cwd> <task-name>
+    _gate_fence > "$WORK/fence.sh"
+    (cd "$1" && TASK_NAME="$2" bash "$WORK/fence.sh")
+}
+
+# ---------------------------------------------------------------------------
+# The launcher
+# ---------------------------------------------------------------------------
+
+@test "aa_ma_gate returns kv lines and the contract exit code" {
+    load_helper
+    run aa_ma_gate "$FIXDIR/one-active-tasks.md"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"heading=Milestone 2: The one being gated"* ]]
+    [[ "$output" == *"gate=HARD"* ]]
+    [[ "$output" == *"pending_steps=0"* ]]
+}
+
+@test "aa_ma_gate_field returns the value after the first '=' verbatim" {
+    load_helper
+    printf 'heading=Milestone 1: a=b \\t C:\\dev\\path\nheading=second\n' > "$WORK/kv"
+    run aa_ma_gate_field heading < "$WORK/kv"
+    [ "$output" = 'Milestone 1: a=b \t C:\dev\path' ]
+}
+
+@test "aa_ma_gate refuses loudly when uv is not on PATH" {
+    load_helper
+    # Coreutils stay reachable; only uv is gone. A PATH of nothing would fail
+    # for the wrong reason (no sed, no readlink).
+    local bin="$WORK/bin"; mkdir -p "$bin"
+    for t in bash sed grep head readlink dirname; do ln -s "$(command -v "$t")" "$bin/$t"; done
+    run -127 env PATH="$bin" bash -c ". '$HELPER'; aa_ma_gate '$FIXDIR/one-active-tasks.md'"
+    [[ "$output" == *"BLOCKED"* ]]
+    [[ "$output" != *"exit_code="* ]]
+}
+
+@test "aa_ma_gate refuses when uv is present but the tool does not start" {
+    load_helper
+    # `uv run` exits 2 when it cannot spawn the script — the same 2 the
+    # contract uses for "unreadable". The launcher must tell them apart.
+    local bin="$WORK/bin"; mkdir -p "$bin"
+    printf '#!/usr/bin/env bash\necho "error: Failed to spawn: aa-ma-gate" >&2\nexit 2\n' > "$bin/uv"
+    chmod +x "$bin/uv"
+    run -127 env PATH="$bin:$PATH" bash -c ". '$HELPER'; aa_ma_gate '$FIXDIR/one-active-tasks.md'"
+    [[ "$output" == *"did not run"* ]]
+}
+
+@test "the interpreter-unavailable guard is not vacuous" {
+    # The same call with uv present succeeds — so the failure above is the
+    # missing interpreter, not a broken fixture.
+    load_helper
+    run aa_ma_gate "$FIXDIR/one-active-tasks.md"
+    [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# The §6.7 fence, executed as shipped
+# ---------------------------------------------------------------------------
+
+@test "§6.7 fence: one ACTIVE, zero pending, no provenance obligations -> PASS" {
+    local cwd; cwd=$(_task_dir_from one-active one-active)
+    run _run_fence "$cwd" one-active
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"ENG-STANDARDS-GATE: PASS"* ]]
+}
+
+@test "§6.7 fence: two ACTIVE -> BLOCKED naming both" {
+    local cwd; cwd=$(_task_dir_from two-active two-active)
+    run _run_fence "$cwd" two-active
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"ambiguous"* ]]
+    [[ "$output" == *"Milestone 2: Older milestone left ACTIVE"* ]]
+    [[ "$output" == *"Milestone 4: The one actually being gated"* ]]
+    [[ "$output" != *"PASS"* ]]
+}
+
+@test "§6.7 fence: no ACTIVE -> BLOCKED" {
+    local cwd; cwd=$(_task_dir_from no-active no-active)
+    run _run_fence "$cwd" no-active
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"no milestone is ACTIVE"* ]]
+    [[ "$output" != *"PASS"* ]]
+}
+
+@test "§6.7 fence: PENDING sub-steps -> BLOCKED with the count" {
+    local cwd; cwd=$(_task_dir_from two-active pend)
+    # Leave only Milestone 4 ACTIVE; it has one PENDING sub-step.
+    sed -i '0,/^- Status: ACTIVE$/s//- Status: COMPLETE/' "$cwd/.claude/dev/active/pend/pend-tasks.md"
+    run _run_fence "$cwd" pend
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"1 sub-step(s) still PENDING"* ]]
+}
+
+@test "§6.7 fence: Critical-Path without a milestone-scoped review entry -> BLOCKED; with one -> PASS" {
+    local cwd; cwd=$(_task_dir_from one-active cp)
+    local tasks="$cwd/.claude/dev/active/cp/cp-tasks.md"
+    local prov="$cwd/.claude/dev/active/cp/cp-provenance.log"
+    sed -i 's/^- Gate: HARD$/- Gate: HARD\n- **Critical-Path:** data-xform/' "$tasks"
+    run _run_fence "$cwd" cp
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Critical-Path: data-xform"* ]]
+    # An entry naming a DIFFERENT milestone must not satisfy it.
+    echo "[ts] CRITICAL_PATH_REVIEW — Milestone 1: Done already — data-xform — x" >> "$prov"
+    run _run_fence "$cwd" cp
+    [ "$status" -ne 0 ]
+    echo "[ts] CRITICAL_PATH_REVIEW — Milestone 2: The one being gated — data-xform — x" >> "$prov"
+    run _run_fence "$cwd" cp
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"PASS"* ]]
+}
+
+@test "§6.7 fence: Gate: TYPO -> BLOCKED, never SOFT" {
+    local cwd; cwd=$(_task_dir_from one-active typo)
+    sed -i 's/^- Gate: HARD$/- Gate: TYPO/' "$cwd/.claude/dev/active/typo/typo-tasks.md"
+    run _run_fence "$cwd" typo
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"unreadable"* ]]
+    [[ "$output" == *"TYPO"* ]]
+}
+
+@test "§6.7 fence: a title with backslashes round-trips to the heading the gate derived" {
+    local cwd; cwd=$(_task_dir_from one-active bs)
+    local tasks="$cwd/.claude/dev/active/bs/bs-tasks.md"
+    local prov="$cwd/.claude/dev/active/bs/bs-provenance.log"
+    sed -i 's|^## Milestone 2: The one being gated$|## Milestone 2: Fix \\t handling in C:\\dev\\path|' "$tasks"
+    sed -i 's/^- Gate: HARD$/- Gate: HARD\n- **Critical-Path:** data-xform/' "$tasks"
+    printf '%s\n' '[ts] CRITICAL_PATH_REVIEW — Milestone 2: Fix \t handling in C:\dev\path — data-xform — x' >> "$prov"
+    run _run_fence "$cwd" bs
+    [ "$status" -eq 0 ]
+}
+
+@test "§6.7 fence: a dirty AA-MA task dir exits non-zero with no PASS line" {
+    local cwd; cwd=$(_task_dir_from one-active dirty)
+    (cd "$cwd" && git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -q -m init)
+    echo x >> "$cwd/.claude/dev/active/dirty/dirty-context-log.md"
+    run _run_fence "$cwd" dirty
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"uncommitted"* ]]
+    [[ "$output" != *"PASS"* ]]
+}
+
+@test "§6.7 fence: with uv missing the gate BLOCKs rather than passing" {
+    local cwd; cwd=$(_task_dir_from one-active nouv)
+    local bin="$WORK/bin"; mkdir -p "$bin"
+    for t in sed grep head readlink dirname git wc tr bash awk printf; do
+        p=$(command -v "$t" 2>/dev/null) && ln -sf "$p" "$bin/$t"
+    done
+    _gate_fence > "$WORK/fence.sh"
+    run env PATH="$bin" bash -c "cd '$cwd' && TASK_NAME=nouv bash '$WORK/fence.sh'"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"BLOCKED"* ]]
+    [[ "$output" != *"PASS"* ]]
+}
+
+@test "§6.7 fence: the live plan is gateable through the shipped text" {
+    # Runs in the real repo, so the dirty-tree condition applies: either a
+    # clean PASS/BLOCK on substance, or BLOCK on uncommitted AA-MA files.
+    # Never a bash error, never an empty subject.
+    _gate_fence > "$WORK/fence.sh"
+    run bash -c "cd '$REPO_ROOT' && TASK_NAME=milestone-grammar-ssot bash '$WORK/fence.sh'"
+    [[ "$output" == *"PASS"* || "$output" == *"BLOCKED"* ]]
+    [[ "$output" != *"command not found"* ]]
+}
+
+# ---------------------------------------------------------------------------
+# §5.2 Mode dispatch — the HITL bypass
+# ---------------------------------------------------------------------------
+
+_mode_fence() {
+    # The indented ```bash block under "1.5. **Mode Dispatch"; leading indent
+    # stripped so bash sees plain lines.
+    awk '/^1\.5\. \*\*Mode Dispatch/{f=1} f && /^   ```bash$/{g=1; next} g && /^   ```$/{exit} g' "$MILESTONE_CMD" \
+        | sed 's/^   //'
+}
+
+_run_mode() {  # <tasks.md> <milestone-number> <step-id>
+    _mode_fence > "$WORK/mode.sh"
+    AA_MA_LIB="$HELPER" TASKS_MD="$1" MILESTONE_NUMBER="$2" STEP_ID="$3" \
+        bash -c ". '$WORK/mode.sh'; echo \"MODE=\$MODE SOURCE=\$MODE_SOURCE\""
+}
+
+@test "§5.2 Mode: a step with Mode: TYPO is BLOCKED, never dispatched as AFK" {
+    printf '## Milestone 1: T\n- Status: ACTIVE\n### Sub-step 1.1: s\n- Status: PENDING\n- Mode: TYPO\n' > "$WORK/t-tasks.md"
+    run _run_mode "$WORK/t-tasks.md" 1 1.1
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"BLOCKED"* ]]
+    [[ "$output" == *"TYPO"* ]]
+    [[ "$output" != *"MODE=AFK"* ]]
+}
+
+@test "§5.2 Mode: own, inherited and default resolution through the shipped text" {
+    printf '## Milestone 1: T\n- Status: ACTIVE\n- Mode: HITL\n### Sub-step 1.1: own\n- Status: PENDING\n- Mode: AFK\n### Sub-step 1.2: inherits\n- Status: PENDING\n## Milestone 2: U\n- Status: COMPLETE\n### Sub-step 2.1: default\n- Status: COMPLETE\n' > "$WORK/t-tasks.md"
+    run _run_mode "$WORK/t-tasks.md" 1 1.1
+    [ "$status" -eq 0 ]; [[ "$output" == *"MODE=AFK SOURCE=step"* ]]
+    run _run_mode "$WORK/t-tasks.md" 1 1.2
+    [ "$status" -eq 0 ]; [[ "$output" == *"MODE=HITL SOURCE=milestone"* ]]
+    run _run_mode "$WORK/t-tasks.md" 2 2.1
+    [ "$status" -eq 0 ]; [[ "$output" == *"MODE=HITL SOURCE=default"* ]]
+}
+
+@test "the Mode fence extractor is not vacuous" {
+    _mode_fence | grep -q 'aa_ma_gate'
+    _mode_fence | grep -q -- '--step'
+}
+
+@test "the fence extractor is not vacuous" {
+    [ "$(_gate_fence | grep -c 'aa_ma_gate')" -ge 1 ]
+    _gate_fence | grep -q 'ENG-STANDARDS-GATE: PASS'
+}
+
+@test "no bash function parses a milestone block for an enforcing decision" {
+    # The enforcing sites are the §6.7/§7.1 fences and verify-impl Step 1.
+    # Every reading there must come from aa_ma_gate; the retired awk helpers
+    # must not be referenced.
+    for f in "$MILESTONE_CMD" "$REPO_ROOT/claude-code/skills/verify-impl/SKILL.md"; do
+        ! grep -qE 'aa_ma_(extract_milestone_block|field_value|count_field|active_milestone_strict|is_milestone_heading)' "$f"
+    done
+    grep -q 'aa_ma_gate' "$MILESTONE_CMD"
+    grep -q 'aa_ma_gate' "$REPO_ROOT/claude-code/skills/verify-impl/SKILL.md"
+}

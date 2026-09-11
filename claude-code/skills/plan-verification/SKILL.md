@@ -356,12 +356,19 @@ evaluates these structural conditions against the plan:
    here, because a third prose copy is what drifts:
 
    ```bash
-   uv run python -c "
-   from aa_ma.plan_parsers import parse_critical_path
-   import sys
-   v, ok, err = parse_critical_path(sys.stdin.read())
-   print('OK' if ok else f'CRITICAL: {err}')
-   " <<< "$MILESTONE_BLOCK"
+   # The Python SSoT gate validates every milestone's own fields file-wide
+   # (Critical-Path, Gate, Mode, Prototype-Required, Audit-Profile) on any
+   # call and exits 2 with one `error=` line per refusal. The previous
+   # snippet piped an undefined "$MILESTONE_BLOCK" into the parser, which
+   # read an empty block as OK — the check passed vacuously.
+   . "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"
+   GATE_KV=$(aa_ma_gate "$TASK_DIR/$TASK_NAME-tasks.md"); rc=$?
+   case $rc in
+     0|1) echo "OK" ;;                       # 1 = no ACTIVE yet, normal pre-execution
+     2)   echo "CRITICAL: unreadable fields:"; printf '%s\n' "$GATE_KV" | sed -n 's/^error=/  - /p' ;;
+     3)   echo "CRITICAL: ambiguous:";        printf '%s\n' "$GATE_KV" | sed -n 's/^error=/  - /p' ;;
+     *)   echo "CRITICAL: aa-ma-gate did not run (rc $rc) — cannot verify, refusing" ;;
+   esac
    ```
 3. **Theme claims are not contradictory.** When element #12 declares Theme 2
    (Development Principles → TDD), tasks producing code must carry test sub-tasks.

@@ -52,13 +52,15 @@ The plan-declared `Audit-Profile:` per milestone determines which of the 5 agent
 TASK_NAME=$(ls -1 .claude/dev/active/ | head -1)
 TASK_DIR=".claude/dev/active/$TASK_NAME"
 
-# Milestone block from tasks.md — via the shared bash-side grammar, the same
-# one /execute-aa-ma-milestone's §6.7 gate uses. This previously carried its own
-# awk range keyed on `$((N+1))`, which is a hard bash error for the milestone
-# numbers the grammar admits (`2a: value too great for base`; the corpus ships
-# `## Milestone 2a/2b/2c`), and whose `|^---$` end alternative truncated any
-# milestone containing a horizontal rule. Both failures returned an empty block
-# and were reported downstream as `Audit-Profile: MISSING`.
+# Milestone block by number — answered by the Python SSoT gate (src/aa_ma/
+# gate.py, milestone-grammar-ssot M5), the same tool /execute-aa-ma-milestone
+# §6.7 uses. This previously carried its own awk range keyed on `$((N+1))`, a
+# hard bash error for the milestone numbers the grammar admits (`2a`; the
+# corpus ships `## Milestone 2a/2b/2c`), then a bash helper that three §6.8
+# passes kept finding CRITICALs in. Exit codes: 0 found · 2 unreadable · 3 the
+# number matches more than one heading · 4 not found · 127 the gate could not
+# run. Every non-zero is an ABORT — an empty block was previously reported
+# downstream as `Audit-Profile: MISSING`, which is the fail-open shape.
 MILESTONE_ID="M$N"
 for _cand in \
   "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
@@ -68,22 +70,21 @@ done
 # shellcheck source=/dev/null
 . "${AA_MA_LIB:?aa-ma-parse.sh not found — run scripts/install.sh}"
 
-MILESTONE_BLOCK=$(aa_ma_extract_milestone_block_by_number \
-                    "$TASK_DIR/$TASK_NAME-tasks.md" "$N")
+GATE_KV=$(aa_ma_gate "$TASK_DIR/$TASK_NAME-tasks.md" --milestone "$N")
 case $? in
   0) : ;;
-  1) echo "ABORT: no milestone numbered $N in $TASK_NAME-tasks.md"; exit 1 ;;
-  2) echo "ABORT: $TASK_NAME-tasks.md missing, or milestone number empty"; exit 1 ;;
+  2) echo "ABORT: $TASK_NAME-tasks.md is unreadable to the gate:"
+     printf '%s\n' "$GATE_KV" | sed -n 's/^error=/  - /p'; exit 1 ;;
   3) echo "ABORT: milestone $N matches more than one heading"; exit 1 ;;
+  4) echo "ABORT: no milestone numbered $N in $TASK_NAME-tasks.md"; exit 1 ;;
+  *) echo "ABORT: aa-ma-gate did not run — Python + uv are required; refusing, not skipping"; exit 1 ;;
 esac
 
-# Audit-Profile from the milestone block (use the shared parser)
-AUDIT_PROFILE=$(uv run python -c "
-from aa_ma.plan_parsers import parse_audit_profile
-import sys
-v, ok, err = parse_audit_profile(sys.stdin.read())
-print(v if ok and v else 'MISSING' if not v else f'INVALID: {err}')
-" <<< "$MILESTONE_BLOCK")
+# Audit-Profile, read with the same normalisation as every other enforced
+# field. Absent -> MISSING (grandfathering by `Created:` is decided upstream);
+# a non-canonical value never reaches here — the gate already refused it.
+AUDIT_PROFILE=$(printf '%s\n' "$GATE_KV" | aa_ma_gate_field audit_profile)
+AUDIT_PROFILE=${AUDIT_PROFILE:-MISSING}
 
 # Milestone window — commits since the milestone start
 # Convention: the milestone's first commit is the one that matches its

@@ -18,6 +18,8 @@
 #     aa_ma_field_value <name>   (stdin: block) -> first value, bold or plain
 #     aa_ma_count_field <name> <value> (stdin: block) -> count of matching lines
 #     aa_ma_active_milestone_strict <file>    -> the ONE ACTIVE milestone; rc 0/1/2/3
+#     aa_ma_gate <file> [--milestone N]       -> kv lines from the Python SSoT gate; rc 0-4, 127 if it cannot run
+#     aa_ma_gate_field <key>  (stdin: kv)     -> value after the first `=`, verbatim
 #
 # This header is the discovery surface: it is the first thing anyone sourcing
 # the library reads, and a symbol missing from it gets reimplemented instead of
@@ -509,6 +511,51 @@ aa_ma_active_milestone_strict() {
     rc=$?
     [ -n "$out" ] && printf '%s\n' "$out"
     return "$rc"
+}
+
+# -----------------------------------------------------------------------------
+# aa_ma_gate <tasks-file> [--milestone N]
+#   Runs the Python SSoT gate (`src/aa_ma/gate.py`, console script
+#   `aa-ma-gate`) in kv format: one `key=value` per line, exit codes 0/1/2/3/4
+#   per the M5 contract. This is a LAUNCHER, not a parser — nothing in bash
+#   reads a milestone block for an enforcing decision any more (ADR-0009).
+#
+#   Fails CLOSED. If uv is not on PATH, or the tool does not start, the
+#   function prints a BLOCKED line on stderr and returns 127 without any
+#   kv output — a gate that cannot run must never look like a gate that
+#   passed. The tool's own output is checked for `exit_code=` so a spawn
+#   failure inside `uv run` (which also exits 2) is not mistaken for the
+#   contract's "unreadable" 2.
+#
+#   Repo resolution: this file is symlinked into ~/.claude/hooks/lib by
+#   install.sh, so `readlink -f` on it lands in the aa-ma-forge checkout,
+#   whichever repo the gate is being run from.
+# -----------------------------------------------------------------------------
+aa_ma_gate() {
+    local root out rc
+    root="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)"
+    if ! command -v uv >/dev/null 2>&1; then
+        echo "BLOCKED: aa-ma-gate needs uv on PATH and it is missing — refusing, not skipping" >&2
+        return 127
+    fi
+    out=$(uv run --quiet --project "$root" aa-ma-gate --format kv "$@")
+    rc=$?
+    if ! printf '%s\n' "$out" | grep -q '^exit_code='; then
+        echo "BLOCKED: aa-ma-gate did not run (uv rc ${rc}, project ${root}) — refusing, not skipping" >&2
+        return 127
+    fi
+    printf '%s\n' "$out"
+    return "$rc"
+}
+
+# -----------------------------------------------------------------------------
+# aa_ma_gate_field <key>   (stdin: kv output of aa_ma_gate)
+#   Everything after the first `=` on the first `key=` line, verbatim. No
+#   quoting or escaping is applied on either side, which is what lets a
+#   heading reach §7.1's `grep -F` byte-exact.
+# -----------------------------------------------------------------------------
+aa_ma_gate_field() {
+    sed -n "s/^$1=//p" | head -n 1
 }
 
 # -----------------------------------------------------------------------------

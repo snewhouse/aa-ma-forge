@@ -216,10 +216,27 @@ If this is the **first milestone** being executed and it touches 3+ files or unf
    - Mark TodoWrite sub-task as `in_progress`
 
 1.5. **Mode Dispatch (HITL / AFK)**:
-   - Parse `Mode:` field from this sub-task in tasks.md
-   - If not present, inherit `Mode:` from the parent milestone
-   - If not present on milestone either, default to `HITL`
-   
+   Resolve `Mode:` through the Python SSoT gate — the sub-step's own, else the
+   parent milestone's, else `HITL`. Do not read the field by eye or with grep:
+   the tolerant reader in `tui/parser.py` resolves `Mode: TYPO` to `AFK`, which
+   silently converts a human-in-the-loop sub-step into one that auto-dispatches
+   without asking. The gate refuses it instead, quoting the line.
+
+   ```bash
+   # MILESTONE_NUMBER is the `N` of `## Milestone N:`; STEP_ID the `N.M` of
+   # `### Sub-step N.M:`. AA_MA_LIB is resolved as in the §6.7 preamble.
+   . "${AA_MA_LIB}"
+   STEP_KV=$(aa_ma_gate "${TASKS_MD}" --milestone "${MILESTONE_NUMBER}" --step "${STEP_ID}")
+   STEP_RC=$?
+   if [[ "${STEP_RC}" -ne 0 ]]; then
+     echo "BLOCKED: cannot resolve Mode for sub-step ${STEP_ID} (gate rc ${STEP_RC}):"
+     printf '%s\n' "${STEP_KV}" | sed -n 's/^error=/  - /p'
+     exit 1   # never dispatch a sub-step whose Mode the gate could not read
+   fi
+   MODE=$(printf '%s\n' "${STEP_KV}" | aa_ma_gate_field step_mode)          # HITL | AFK
+   MODE_SOURCE=$(printf '%s\n' "${STEP_KV}" | aa_ma_gate_field step_mode_source)  # step | milestone | default
+   ```
+
    **If Mode: HITL:**
    Display task summary and acceptance criteria, then use `AskUserQuestion`:
    - **Proceed**: Continue to step 2
@@ -489,31 +506,33 @@ artifact in 7.1; THIS gate enforces engineering posture for every milestone).
 
 ```bash
 TASK_DIR=".claude/dev/active/${TASK_NAME}"
+TASKS_MD="${TASK_DIR}/${TASK_NAME}-tasks.md"
 
 # 1. AA-MA artifacts in sync (clean git for AA-MA files)
 DIRTY_AA_MA=$(git status --porcelain "${TASK_DIR}/" | wc -l | tr -d ' ')
 if [[ "${DIRTY_AA_MA}" -ne 0 ]]; then
   echo "BLOCKED: AA-MA artifacts have uncommitted changes."
   echo "Run sub-step Result Log discipline (L-080-082); commit and re-run."
-  # HALT
+  # Was `# HALT` — a comment. Measured against a dirty task dir: printed
+  # BLOCKED and then PASS with exit 0. The gate contradicted itself and passed.
+  exit 1
 fi
 
-# --- Gate preamble: resolve the grammar, then LOCATE THE MILESTONE ------------
+# --- Gate preamble: every reading below comes from the Python SSoT -----------
 #
-# The old inline form was
-#   awk "/^## Milestone.*${MILESTONE_TITLE}/,/^## Milestone/"
-# which returned exactly ONE line — the heading — for every milestone in every
-# plan, because the start line also matches the end pattern and awk evaluates
-# the end pattern on the same record. Conditions 2 and 5 read empty for years.
+# History, kept short because it is the reason this block looks the way it
+# does. Three §6.8 passes over the awk that used to live here found 8, then 4,
+# then 9 distinct CRITICALs — the remediation round produced more than it
+# closed, seven of its nine introduced by the fixes themselves. Each round was a
+# hand-written markdown parser whose accepted-string set was decided by
+# reasoning, not by measuring the corpus. Meanwhile the tested parser this plan
+# declared the SSoT already existed in src/aa_ma/. So: bash asks, Python
+# answers. `aa_ma_gate` is a launcher, not a parser; `aa-ma-gate` (src/aa_ma/
+# gate.py) answers all seven questions over grammar.py + enforce.py +
+# plan_parsers.py and refuses on ambiguity rather than choosing. ADR-0009.
 #
-# The deeper defect is that this gate's ONLY refusal signal is *finding*
-# something, so every failure to read — wrong pattern, wrong milestone, missing
-# library, unset title — produced the same output as a clean milestone. So the
-# extractor now returns distinct exit codes and we refuse on all of them.
-# One implementation, one test surface: tests/hooks/aa-ma-gate-scans.bats.
-
-# Resolution order matches the shipped hooks (aa-ma-session-start.sh et al):
-# repo-local first so a clone that has not run install.sh still works.
+# Resolution order matches the shipped hooks: repo-local first so a clone that
+# has not run install.sh still works.
 for _cand in \
   "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
   "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
@@ -521,64 +540,45 @@ for _cand in \
 done
 if [[ -z "${AA_MA_LIB:-}" ]]; then
   echo "BLOCKED: aa-ma-parse.sh not found — run scripts/install.sh."
-  echo "Refusing to evaluate the gate with no way to read the milestone block:"
-  echo "a scan that cannot see the milestone reports zero problems."
+  echo "Refusing to evaluate the gate with no way to run it:"
+  echo "a gate that cannot read the milestone reports zero problems."
   exit 1
 fi
 # shellcheck source=/dev/null
 . "${AA_MA_LIB}"
 
-# MILESTONE_TITLE must be resolved HERE. It was previously first assigned in
-# §8.2 — 340 lines below its first use — so at gate time it was unset, the
-# extractor received an empty title, and every condition passed on empty input.
-#
-# The derivation is aa_ma_active_milestone_strict, NOT the tolerant
-# aa_ma_extract_active_milestone. The tolerant reader takes the first match and
-# always answers — right for a session briefing, wrong for a gate. Measured:
-# with a stale second `Status: ACTIVE`, it handed the gate the wrong milestone,
-# which then reported PENDING=0 / GATE=SOFT while certifying one that was
-# 1 PENDING / Gate: HARD. A gate that certifies the wrong subject is worse than
-# one that refuses, so ambiguity is a refusal.
-if [[ -z "${MILESTONE_TITLE:-}" ]]; then
-  MILESTONE_TITLE=$(aa_ma_active_milestone_strict "${TASK_DIR}/${TASK_NAME}-tasks.md")
-  case $? in
-    0) : ;;
+# One call answers every question. Exit codes are the contract's and fail
+# closed: 0 one ACTIVE and every enforced field readable · 1 no ACTIVE ·
+# 2 unreadable (missing file, unclosed fence, invalid field, orphan sub-step) ·
+# 3 ambiguous (2+ ACTIVE, duplicate heading) · 127 the gate could not run.
+# `aa_ma_gate` prints nothing but a BLOCKED line for 127, so the `error=`
+# lines below are only ever the Python gate's own words.
+GATE_KV=$(aa_ma_gate "${TASKS_MD}")
+GATE_RC=$?
+if [[ "${GATE_RC}" -ne 0 ]]; then
+  case "${GATE_RC}" in
     1) echo "BLOCKED: no milestone is ACTIVE in ${TASK_NAME}-tasks.md."
-       echo "§5.1 sets the target milestone to ACTIVE before its sub-steps run."
-       exit 1 ;;
-    2) echo "BLOCKED: ${TASK_NAME}-tasks.md missing or unreadable."; exit 1 ;;
-    3) echo "BLOCKED: more than one milestone is ACTIVE — the gate cannot tell"
-       echo "which one it is certifying. Resolve the stale status first:"
-       printf '%s\n' "${MILESTONE_TITLE}" | sed 's/^/  - /'
-       exit 1 ;;
-    *) echo "BLOCKED: unexpected derivation status."; exit 1 ;;
+       echo "§5.1 sets the target milestone to ACTIVE before its sub-steps run." ;;
+    2) echo "BLOCKED: ${TASK_NAME}-tasks.md is unreadable to the gate:" ;;
+    3) echo "BLOCKED: ambiguous — the gate cannot tell which milestone it is certifying:" ;;
+    *) echo "BLOCKED: aa-ma-gate did not run (rc ${GATE_RC}). Python + uv are"
+       echo "required at gate time; a gate that cannot run must not pass." ;;
   esac
-fi
-if [[ -z "${MILESTONE_TITLE}" ]]; then
-  echo "BLOCKED: cannot determine the active milestone in ${TASK_NAME}-tasks.md."
+  printf '%s\n' "${GATE_KV}" | sed -n 's/^error=/  - /p'
   exit 1
 fi
 
-MILESTONE_BLOCK=$(aa_ma_extract_milestone_block \
-  "${TASK_DIR}/${TASK_NAME}-tasks.md" "${MILESTONE_TITLE}")
-case $? in
-  0) : ;;
-  1) echo "BLOCKED: no milestone titled '${MILESTONE_TITLE}' in ${TASK_NAME}-tasks.md."
-     echo "Refusing to certify a milestone this gate cannot read."; exit 1 ;;
-  2) echo "BLOCKED: ${TASK_NAME}-tasks.md missing, or milestone title empty."; exit 1 ;;
-  3) echo "BLOCKED: '${MILESTONE_TITLE}' matches more than one milestone heading."
-     echo "Rename one — the gate cannot tell which milestone it is certifying."; exit 1 ;;
-  *) echo "BLOCKED: unexpected extractor status."; exit 1 ;;
-esac
+# Question 1: the exact heading, consumed verbatim by §7.1's approval grep.
+MILESTONE_TITLE=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field heading)
+if [[ -z "${MILESTONE_TITLE}" ]]; then
+  echo "BLOCKED: gate returned 0 but no heading — refusing on an empty subject."
+  exit 1
+fi
 
-# 2. Zero Status: PENDING within the milestone
-# aa_ma_count_field tolerates `- Status:` and `- **Status:**` alike. The corpus
-# carries 22 of the bold form and the shipped Phase 5 writer emits it, so a
-# plain-form-only grep made those milestones un-gateable.
-PENDING_IN_MILESTONE=$(printf '%s\n' "${MILESTONE_BLOCK}" \
-  | aa_ma_count_field Status PENDING)
+# 2. Zero Status: PENDING sub-steps within the milestone (question 3)
+PENDING_IN_MILESTONE=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field pending_steps)
 if [[ "${PENDING_IN_MILESTONE}" -gt 0 ]]; then
-  echo "BLOCKED: ${PENDING_IN_MILESTONE} sub-step(s) still PENDING in milestone."
+  echo "BLOCKED: ${PENDING_IN_MILESTONE} sub-step(s) still PENDING in ${MILESTONE_TITLE}."
   exit 1
 fi
 
@@ -586,16 +586,14 @@ fi
 # 4. Impact-analysis evidence (already enforced in 6.3; double-check Result Log mentions)
 
 # 5. Critical-Path / Prototype-Required provenance evidence (CONDITIONAL)
-# Absent-field semantic: skip check when field is absent on the task.
-# Only fires when field is PRESENT-but-without-evidence.
-
+# Absent-field semantic: the gate reports an empty value when the field is
+# absent, and the check is skipped. Only present-but-without-evidence fires.
+#
 # The evidence greps are MILESTONE-SCOPED. A bare `grep -q CRITICAL_PATH_REVIEW`
 # over the whole provenance.log means that once ANY milestone writes the token,
-# every later milestone's check is pre-satisfied — degrading a per-milestone
-# obligation into a once-per-plan one. Entries must therefore name the milestone:
+# every later milestone's check is pre-satisfied. Entries must name the milestone:
 #   [ts] CRITICAL_PATH_REVIEW — <milestone-title> — <value> — <evidence>
-CRITICAL_PATH_TASKS=$(printf '%s\n' "${MILESTONE_BLOCK}" \
-  | aa_ma_field_value Critical-Path)
+CRITICAL_PATH_TASKS=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field critical_path)
 if [[ -n "${CRITICAL_PATH_TASKS}" ]]; then
   if ! grep -F -- "CRITICAL_PATH_REVIEW" "${TASK_DIR}/${TASK_NAME}-provenance.log" \
        | grep -qF -- "${MILESTONE_TITLE}"; then
@@ -605,8 +603,7 @@ if [[ -n "${CRITICAL_PATH_TASKS}" ]]; then
   fi
 fi
 
-PROTOTYPE_TASKS=$(printf '%s\n' "${MILESTONE_BLOCK}" \
-  | aa_ma_field_value Prototype-Required)
+PROTOTYPE_TASKS=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field prototype_required)
 if [[ "${PROTOTYPE_TASKS}" == "YES" ]]; then
   if ! grep -F -- "PROTOTYPE —" "${TASK_DIR}/${TASK_NAME}-provenance.log" \
        | grep -qF -- "${MILESTONE_TITLE}"; then
@@ -615,6 +612,9 @@ if [[ "${PROTOTYPE_TASKS}" == "YES" ]]; then
     exit 1
   fi
 fi
+
+# Question 4, carried to §7.1 — do not re-derive there, or the two sites drift.
+GATE=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field gate)
 
 echo "ENG-STANDARDS-GATE: PASS (all 5 conditions satisfied)"
 ```
@@ -769,20 +769,11 @@ Before marking the milestone COMPLETE and creating git checkpoint, execute this 
 ```bash
 # Check for HARD gate approval.
 #
-# This previously read:
-#   GATE=$(grep -A1 "## Milestone.*${MILESTONE_TITLE}" ... | grep -oP 'Gate: \K\w+')
-# -A1 returns the heading plus ONE line, and a blank line separates the heading
-# from the field list — so `- Gate:` was never in the window and GATE was always
-# empty. `[[ "$GATE" == "HARD" ]]` was therefore never true and the HARD gate
-# never fired on any milestone. (`grep -oP` is also GNU-only.)
-# Reuses ${MILESTONE_BLOCK} resolved in the §6.7 preamble — do not re-extract,
-# or the two sites drift. §6.7 already refused on every unreadable-block case.
-#
-# `aa_ma_field_value` matches `- Gate:` and `- **Gate:**` alike: the corpus has
-# 24 of the bold form against 43 plain, so a plain-only match left a third of
-# all Gate declarations invisible and their HARD gates unenforced.
-GATE=$(printf '%s\n' "${MILESTONE_BLOCK}" | aa_ma_field_value Gate)
-GATE=$(printf '%s' "${GATE}" | tr '[:lower:]' '[:upper:]')
+# ${GATE} and ${MILESTONE_TITLE} were both read by the Python gate in the §6.7
+# preamble — HARD/SOFT already case-folded, absent already defaulted to SOFT,
+# `Gate: TYPO` already refused there with exit 1. Do not re-derive either here,
+# or the two sites drift. (The awk that used to live here read GATE as empty on
+# every milestone, so no HARD gate ever fired; see the §6.7 preamble history.)
 if [[ "$GATE" == "HARD" ]]; then
   # -F: the title is data, not a pattern. Titles routinely contain '.' (version
   # numbers), so a BRE match let "GATE APPROVAL: M4 v0X8X0" satisfy the gate for

@@ -17,6 +17,8 @@ The questions (reference.md "M5 enforcement contract"):
 6. ``Prototype-Required:`` == YES, present or absent
 7. a milestone block **by number** plus its ``Audit-Profile:`` (verify-impl)
 
+Plus, for §5.3 dispatch, a sub-step's resolved ``Mode:`` (``--step``).
+
 Exit codes are the contract's and fail closed: 0 one ACTIVE and every enforced
 field readable · 1 no ACTIVE · 2 unreadable (missing file, unclosed fence,
 any invalid field, orphaned sub-step) · 3 ambiguous (2+ ACTIVE, duplicate
@@ -63,12 +65,29 @@ JSON_SCHEMA_ID = "aa-ma-gate/1"
 GATE_JSON_SCHEMA: dict = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
-    "required": ["schema", "exit_code", "errors", "milestone"],
+    "required": ["schema", "exit_code", "errors", "milestone", "step"],
     "additionalProperties": False,
     "properties": {
         "schema": {"const": JSON_SCHEMA_ID},
         "exit_code": {"type": "integer", "minimum": 0, "maximum": 4},
         "errors": {"type": "array", "items": {"type": "string"}},
+        "step": {
+            "oneOf": [
+                {"type": "null"},
+                {
+                    "type": "object",
+                    "required": ["number", "heading", "status", "mode", "mode_source"],
+                    "additionalProperties": False,
+                    "properties": {
+                        "number": {"type": "string"},
+                        "heading": {"type": "string"},
+                        "status": {"type": "string"},
+                        "mode": {"enum": ["HITL", "AFK"]},
+                        "mode_source": {"enum": ["step", "milestone", "default"]},
+                    },
+                },
+            ]
+        },
         "milestone": {
             "oneOf": [
                 {"type": "null"},
@@ -118,10 +137,24 @@ class MilestoneRead:
 
 
 @dataclass(frozen=True)
+class StepRead:
+    """One sub-step, for §5.3 Mode dispatch. `mode` is resolved: the step's
+    own, else its milestone's, else HITL — the documented rule. `Mode: TYPO`
+    never reaches here; the file is refused first (contract row 13)."""
+
+    number: str
+    heading: str
+    status: str
+    mode: str
+    mode_source: str  # step | milestone | default
+
+
+@dataclass(frozen=True)
 class GateAnswer:
     exit_code: int
     milestone: MilestoneRead | None
     errors: tuple[str, ...]
+    step: StepRead | None = None
 
     def to_json(self) -> dict:
         return {
@@ -129,7 +162,27 @@ class GateAnswer:
             "exit_code": self.exit_code,
             "errors": list(self.errors),
             "milestone": asdict(self.milestone) if self.milestone else None,
+            "step": asdict(self.step) if self.step else None,
         }
+
+    def to_kv(self) -> str:
+        """`key=value` lines for the bash callers, which have no JSON parser.
+
+        The value is everything after the first `=`, verbatim — a heading may
+        itself contain `=`, `\\` or `"`, and this is how it reaches §7.1's
+        approval grep byte-exact. Newlines cannot occur: every value is a
+        single line by construction. Booleans are YES/NO, null is empty.
+        """
+        lines = [f"exit_code={self.exit_code}"]
+        if self.milestone:
+            for key, value in asdict(self.milestone).items():
+                if isinstance(value, bool):
+                    value = "YES" if value else "NO"
+                lines.append(f"{key}={'' if value is None else value}")
+        if self.step:
+            lines.extend(f"step_{k}={v}" for k, v in asdict(self.step).items())
+        lines.extend(f"error={e}" for e in self.errors)
+        return "\n".join(lines) + "\n"
 
 
 def read_tasks_text(path: Path) -> str:
@@ -207,8 +260,40 @@ def _count_pending(block: Block, heading: str, errors: list[str]) -> int:
     return pending
 
 
-def answer(path: Path, number: str | None = None) -> GateAnswer:
-    """Answer the gate questions for the ACTIVE milestone, or by `number`."""
+def _read_step(
+    block: Block, step: str, read: MilestoneRead, errors: list[str]
+) -> StepRead | None:
+    hits = [s for s in split_steps(block.text) if s.number == step]
+    if not hits:
+        errors.append(f"{read.heading}: no sub-step numbered {step!r}")
+        return None
+    own = read_enforced_field(hits[0].text, "Mode", MODES)
+    parent = read_enforced_field(_own_text(block), "Mode", MODES)
+    if own.present:
+        mode, source = own.value, "step"
+    elif parent.present:
+        mode, source = parent.value, "milestone"
+    else:
+        mode, source = "HITL", "default"
+    return StepRead(
+        number=hits[0].number,
+        heading=_heading(hits[0]),
+        status=read_step_status(hits[0].text).value or "",
+        mode=mode or "HITL",
+        mode_source=source,
+    )
+
+
+def answer(
+    path: Path, number: str | None = None, step: str | None = None
+) -> GateAnswer:
+    """Answer the gate questions for the ACTIVE milestone, or by `number`.
+
+    With `step` (requires `number`) also resolve that sub-step's Mode for
+    §5.3 dispatch.
+    """
+    if step is not None and number is None:
+        raise ValueError("--step requires --milestone")
     errors: list[str] = []
     try:
         text = read_tasks_text(path)
@@ -278,9 +363,13 @@ def answer(path: Path, number: str | None = None) -> GateAnswer:
     pending = _count_pending(block, read.heading, errors)
     if errors:
         return GateAnswer(EXIT_UNREADABLE, None, tuple(errors))
-    return GateAnswer(
-        EXIT_OK, MilestoneRead(**{**asdict(read), "pending_steps": pending}), ()
-    )
+    milestone = MilestoneRead(**{**asdict(read), "pending_steps": pending})
+    step_read = None
+    if step is not None:
+        step_read = _read_step(block, step, read, errors)
+        if step_read is None:
+            return GateAnswer(EXIT_NOT_FOUND, None, tuple(errors))
+    return GateAnswer(EXIT_OK, milestone, (), step_read)
 
 
 _EPILOG = """\
@@ -305,10 +394,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--milestone", metavar="N", help="read milestone N instead of the ACTIVE one"
     )
+    parser.add_argument(
+        "--step",
+        metavar="N.M",
+        help="with --milestone: also resolve this sub-step's Mode",
+    )
+    parser.add_argument(
+        "--format",
+        choices=("json", "kv"),
+        default="json",
+        help="json (default) or kv: one key=value per line for shell callers",
+    )
     args = parser.parse_args(argv)
-    result = answer(Path(args.tasks_md), args.milestone)
-    json.dump(result.to_json(), sys.stdout, indent=2)
-    sys.stdout.write("\n")
+    result = answer(Path(args.tasks_md), args.milestone, args.step)
+    if args.format == "kv":
+        sys.stdout.write(result.to_kv())
+    else:
+        json.dump(result.to_json(), sys.stdout, indent=2)
+        sys.stdout.write("\n")
     return result.exit_code
 
 

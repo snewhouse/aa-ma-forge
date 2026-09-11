@@ -56,6 +56,31 @@ _Avoid_: using "proposal" for the Candidate itself; the Proposal is the *case fo
 - `EXCLUDED-PERSONAL` — upstream is producer-specific (not portable)
 - `EXCLUDED-CONFLICT` — explicit conflict with aa-ma-forge release pipeline (e.g., gstack `/ship`)
 
+### Plan artefact views (added 2026-09-11, plan-architecture-views grill)
+
+**Architecture View**:
+Plan element #13 of the AA-MA Planning Standard: the mermaid diagrams a plan carries so a cold agent can see the mechanism before reading the steps. Lives in `plan.md` §13 only; `reference.md` carries a one-line pointer. Required when `Audit-Profile` ∈ {full, code-only, infra}; absent otherwise via a canonical `Diagram-Waiver:` value.
+_Avoid_: "diagrams" unqualified (say which **View**), "architecture doc" (there is no separate file).
+
+**View**:
+One named mermaid block inside an **Architecture View**. Canonical kinds: **Component view** (what files/modules/hooks the plan touches and their dependencies — mandated), **Flow view** (the critical execution path being added or changed — mandated when `Critical-Path:` is present), **Data/State view** (only when the plan introduces a schema or state machine), **Milestone graph** (derived mechanically from `tasks.md` `Dependencies:` — never hand-authored).
+_Avoid_: "picture", "chart".
+
+**Contract block**:
+A fenced code block that pins the interface a milestone will produce or consume: file paths, function/CLI signatures, exit codes, field grammar. Required per code-touching milestone. Its purpose is cold-executability, not illustration — an implementer must not need to guess a signature.
+_Avoid_: "snippet", "example code" (those are illustrative, not binding), "implementation draft".
+
+**Render**:
+A derived, disposable HTML file produced from a markdown source (plan, ADR, spec doc) by the exporter. Never hand-edited, never committed; regenerated on demand. Markdown is the only source of truth.
+_Avoid_: "HTML version" (implies a peer source), "export" as a noun (it is the verb).
+
+**Share**:
+Publishing a **Render** as a private claude.ai Artifact link for someone outside the repo. A **Share** is a snapshot; it does not track later markdown edits.
+_Avoid_: "publish" (overloaded with release), "site".
+
+**Diagram-Waiver**:
+Canonical field on a plan (parallel to `TDD-Waiver:`) stating why no **Architecture View** is required. Accepted values are enumerated in the spec; novel values are rejected by `Skill(plan-verification)`.
+
 ## Relationships
 
 - A **Repo** has one or more **Skills** (and possibly other artifacts).
@@ -64,6 +89,8 @@ _Avoid_: using "proposal" for the Candidate itself; the Proposal is the *case fo
 - A **Candidate** has exactly one **Status** at any given time; the **Status** can transition (e.g., `PROPOSED-M3+` → `ADOPTED-M3` after a future plan).
 - A **Catalog** can index multiple **Repos**; an **Ecosystem** wraps one **Repo** plus its adjacent infrastructure.
 - An **Upstream** is the producer of a **Repo**.
+- A **Plan** carries at most one **Architecture View**, composed of one or more **Views**; a **Milestone** carries zero or more **Contract blocks**.
+- A **Render** is derived from exactly one markdown source; a **Share** is a snapshot of one **Render**.
 
 ## Example dialogue
 
@@ -79,5 +106,7 @@ _Avoid_: using "proposal" for the Candidate itself; the Proposal is the *case fo
 - **"M3+ candidate"** is a tagged Status, not a separate noun. The audit doc uses "M3+ candidates" as the heading of Section D — that's the *list of Candidates with Status PROPOSED-M3+*.
 
 ## Provenance
+
+Extended 2026-09-11 during Phase 1.3 (`grill-with-docs`) of `plan-architecture-views`: Architecture View / View / Contract block / Render / Share / Diagram-Waiver.
 
 Created 2026-05-10 during M3.3 of skill-ecosystem-integration v1.2 — invocation of `Skill(grill-with-docs)` (M1 deliverable, see ADR-0002) against `docs/research/skill-ecosystem-audit.md`. Crystallised the 3 fuzzy clusters from the M3.3 acceptance criteria: ecosystem/catalog/repo, adoption/vendor/fork, candidate/proposal.

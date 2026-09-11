@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 
 [manifest]
@@ -24,6 +24,7 @@ dev = [
     { name = "codemem-mcp" },
     { name = "hypothesis" },
     { name = "import-linter" },
+    { name = "jsonschema" },
     { name = "mcp" },
     { name = "pytest" },
     { name = "pytest-benchmark" },
@@ -47,6 +48,7 @@ dev = [
     { name = "codemem-mcp", editable = "packages/codemem-mcp" },
     { name = "hypothesis", specifier = ">=6.0" },
     { name = "import-linter", specifier = ">=2.0" },
+    { name = "jsonschema", specifier = ">=4" },
     { name = "mcp", specifier = ">=1.27" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-benchmark", specifier = ">=4.0" },

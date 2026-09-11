@@ -318,7 +318,7 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ## Milestone 5: Gate enforcement reads the Python SSoT
 
-- Status: PENDING
+- Status: ACTIVE
 - Gate: HARD
 - Mode: HITL
 - Dependencies: Milestone 1
@@ -331,12 +331,11 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 5.0: Block-end rule — grammar.py closes on any H2
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: `split_milestones` closes a block only at the next milestone heading, so a trailing prose H2 carrying field-shaped lines is absorbed. Measured on `tests/hooks/fixtures/gate-scans/styles-tasks.md`: Python reads **3** line-anchored `Status: PENDING` in the em-dash milestone where bash reads **2**, and swallows both `## Summary Counts` and `## Milestone Gate Types`. Bash is right — 4.2 fixed this after measuring it — and `grammar.py` never got the fix. This is a bug fix for **both** consumers, so it lands in `grammar.py`, not in a gate-local copy.
 - Acceptance Criteria: the fixture yields 2, not 3; TUI golden snapshot regenerated and the delta explained line by line; `--json` behavioural change recorded in CHANGELOG with a `schema_version` decision made explicitly (bump or documented no-bump).
-- Result Log:
-
+- Result Log: COMPLETE. Mode: AFK — auto-dispatched. RED 2/2 -> GREEN: `test_milestone_block_closes_on_any_h2` (em-dash milestone on the shipped fixture reads **2** line-anchored PENDING, was 3; `## Summary Counts` and `## Milestone Gate Types` no longer in its text) and `test_bare_h2_closes_block_and_tab_h2_still_parses` (contract rows 16/17). Fix is `_H2_RE = ^##(?:[ \t]|$)` as an optional `closer` on `_split`, bisected against heading starts — `split_steps` is untouched. **Golden delta is zero, and the reason was measured, not assumed**: `aa-ma-tui --root .claude --json --include-completed` before/after differs only in M5's own PENDING->ACTIVE flip; 5 corpus tasks files carry trailing prose H2s (`## Summary Counts`, `## Summary`, `## Completion Record`, …) but none carries a line-anchored `- Status:` line or a `### Step` heading after it, so no TUI-visible value moves. `schema_version` stays **2** — documented no-bump: the envelope shape is unchanged; only files with a field-bearing trailing H2 (the gate-scan fixture is the only one in the repo) read differently, and that reading was a bug. CHANGELOG entry deferred to 5.8 with the rest of the debt. pytest 865 -> **867 passed**, ruff clean.
 ### Sub-step 5.1: Strict, fail-closed field reads
 
 - Status: PENDING

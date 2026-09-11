@@ -40,6 +40,7 @@ before matching — see :func:`sanitize`.
 
 from __future__ import annotations
 
+import bisect
 import re
 from typing import NamedTuple
 
@@ -168,12 +169,26 @@ def sanitize(text: str) -> str:
     return strip_fenced_blocks(_strip_html_comments(text))
 
 
-def _split(text: str, regex: re.Pattern[str]) -> list[Block]:
+# Any H2 — a milestone heading or a prose one like `## Summary Counts`. A bare
+# `##` counts too (CommonMark: an empty ATX heading).
+_H2_RE = re.compile(r"^##(?:[ \t]|$)", re.MULTILINE)
+
+
+def _split(
+    text: str, regex: re.Pattern[str], closer: re.Pattern[str] | None = None
+) -> list[Block]:
     cleaned = sanitize(text)
     matches = list(regex.finditer(cleaned))
+    closers = [m.start() for m in closer.finditer(cleaned)] if closer else []
     blocks: list[Block] = []
     for i, match in enumerate(matches):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(cleaned)
+        if closers:
+            # Open only on a heading `regex` accepts; close on the next `closer`
+            # line, whether or not it is itself a heading `regex` accepts.
+            nxt = bisect.bisect_right(closers, match.start())
+            if nxt < len(closers):
+                end = min(end, closers[nxt])
         blocks.append(
             Block(
                 match.group("number"),
@@ -187,9 +202,14 @@ def _split(text: str, regex: re.Pattern[str]) -> list[Block]:
 def split_milestones(text: str) -> list[Block]:
     """Split a tasks.md into milestone blocks.
 
-    Text before the first heading is discarded.
+    Text before the first heading is discarded. A block opens on a milestone
+    heading and closes on the **next H2 of any kind** — deliberately
+    asymmetric, and the same rule the bash gate uses. Closing only on the
+    next *milestone* heading let the last milestone absorb a trailing prose
+    section such as `## Summary Counts`, whose field-shaped lines then read
+    as extra PENDING sub-steps (measured: 3 where 2 exist).
     """
-    return _split(text, MILESTONE_RE)
+    return _split(text, MILESTONE_RE, closer=_H2_RE)
 
 
 def split_steps(milestone_block: str) -> list[Block]:

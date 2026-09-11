@@ -12,6 +12,7 @@ the fenced case is only satisfiable at function level.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -171,3 +172,39 @@ def test_fence_stripping_is_linear_not_quadratic() -> None:
     large = elapsed(8000)
     # 4x the input. Quadratic would be ~16x; allow generous headroom for noise.
     assert large < max(small * 8, 0.5), f"superlinear: {small:.4f}s -> {large:.4f}s"
+
+
+# -----------------------------------------------------------------------------
+# Block-end rule (milestone-grammar-ssot M5 sub-step 5.0)
+# -----------------------------------------------------------------------------
+
+STYLES_FIXTURE = Path("tests/hooks/fixtures/gate-scans/styles-tasks.md")
+
+
+def _pending_lines(block: str) -> int:
+    # Line-anchored on purpose: prose *quoting* the field must not count.
+    return len(re.findall(r"^- Status: PENDING$", block, re.MULTILINE))
+
+
+def test_milestone_block_closes_on_any_h2() -> None:
+    """A trailing prose H2 must not be absorbed into the last milestone.
+
+    Measured before the fix on the shipped gate-scan fixture: the em-dash
+    milestone read 3 PENDING where bash (fixed in sub-step 4.2) reads 2,
+    because `## Summary Counts` carries field-shaped lines as a negative
+    control. The bash rule — open on a milestone heading, close on ANY H2 —
+    is the contract (reference.md "Block-end rule").
+    """
+    blocks = {b.title: b for b in split_milestones(STYLES_FIXTURE.read_text())}
+    em_dash = blocks["Em-dash form"]
+    assert _pending_lines(em_dash.text) == 2
+    assert not re.search(r"^## Summary Counts", em_dash.text, re.MULTILINE)
+    assert not re.search(r"^## Milestone Gate Types", em_dash.text, re.MULTILINE)
+
+
+def test_bare_h2_closes_block_and_tab_h2_still_parses() -> None:
+    """Contract rows 16 and 17: bare `##` closes; `##<TAB>Milestone` parses."""
+    text = "## Milestone 1: A\n- Status: ACTIVE\n##\n- Status: PENDING\n##\tMilestone 2: B\n- Status: COMPLETE\n"
+    blocks = split_milestones(text)
+    assert [(b.number, b.title) for b in blocks] == [("1", "A"), ("2", "B")]
+    assert "PENDING" not in blocks[0].text

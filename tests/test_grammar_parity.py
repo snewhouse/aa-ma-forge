@@ -54,7 +54,7 @@ EDGE_CASES: list[tuple[str, bool]] = [
     ("#### Milestone 1: Too deep", False),
     ("## Milestone 1-NoSpaceDash", False),
     ("Milestone 1: No hashes", False),
-    # Empty title. Measured divergence before aa_ma_is_milestone_heading existed:
+    # Empty title. Measured divergence before the non-empty-title clause existed:
     # python=0, awk=1, because the ERE is a prefix pattern with no title clause.
     ("## Milestone 5:", False),
     ("## M6:", False),
@@ -72,7 +72,7 @@ def _bash_ere() -> str:
 def _awk_matches(lines: list[str], awk_bin: str) -> list[bool]:
     """One awk subprocess for all lines; returns a parallel list of verdicts.
 
-    Mirrors `aa_ma_is_milestone_heading`, not the bare ERE. The ERE is the
+    Mirrors the display readers' recognition, not the bare ERE. The ERE is the
     *prefix* pattern — block extraction strips it with `sub()` to recover the
     title — so recognition additionally requires a non-empty title, exactly as
     `MILESTONE_RE`'s `(?P<title>.+?)` does. Comparing the bare ERE instead

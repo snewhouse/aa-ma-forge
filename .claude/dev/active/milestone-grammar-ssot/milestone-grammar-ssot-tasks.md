@@ -383,12 +383,11 @@ Headings use the canonical form this plan enforces (`## Milestone N:` / `### Sub
 
 ### Sub-step 5.7: Retire the enforcing bash
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Action: measure callers, then delete every bash helper that parses a milestone block for an enforcing decision (the seven sites enumerated by the ground-truth audit). Display readers keep theirs — `aa-ma-session-start.sh`, `pre-compact-aa-ma.sh` — where a wrong answer is cosmetic. `aa_ma_list_active_tasks` is neither display-only nor a block parser and stays. `aa_ma_is_milestone_heading` has zero shipped callers and goes. The tolerant/strict boundary gets stated in the library header so no future caller repeats 4.5's mistake of wiring a gate to a display helper.
 - Acceptance Criteria: zero enforcing callers remain; hooks bats green; the boundary documented.
-- Result Log:
-
+- Result Log: COMPLETE. Mode: AFK — auto-dispatched. **Callers measured before deleting**: after 5.5, `grep -rn` over `claude-code/ scripts/` for the seven enforcing symbols returned zero hits outside the library itself. Deleted 8 functions (`aa_ma_is_milestone_heading` — 0 shipped callers ever, `aa_ma_extract_milestone_block`, `_by_number`, `aa_ma_field_value`, `aa_ma_count_field`, `aa_ma_active_milestone_strict`, `_aa_ma_field_re`, `_aa_ma_sanitize` — dead once its only callers went): 516 -> 300 lines. Kept: the two display readers, `aa_ma_list_active_tasks`, `AA_MA_MILESTONE_ERE` (display readers open on it; parity test pins it). The tolerant/strict boundary is now in the library header — DISPLAY readers may not feed a decision that blocks or passes, ENFORCING reads are `aa_ma_gate` only, and 'do not add awk here' with the reason. `aa-ma-gate-scans.bats` rewritten from 40 cases about the deleted helpers to 10 that guard what is left (the two original defects never returning as executable lines, no `\\s`, **no executable awk at all** in the command file or verify-impl, display-reader mawk/gawk parity with the `mktemp` shim fix from 4.14). One over-reach caught and reverted: extending the `\\s` guard to the library flagged its own comment explaining `\\s`. Suites: hooks bats **161 ok / 0 not ok** (was 167 before the rewrite; 40 retired, 20 added in 5.4-5.6, net as measured), commands bats 70 ok, pytest 959 passed, shellcheck clean.
 ### Sub-step 5.8: Documentation debt, in one pass
 
 - Status: PENDING

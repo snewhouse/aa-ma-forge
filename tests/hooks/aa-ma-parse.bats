@@ -219,7 +219,7 @@ EOF
     # If the header scrape returned empty, the test above passes for free.
     header=$(awk '/^# Exports:/{f=1;next} /^#$/{if(f)exit} f' "$HELPER")
     [ -n "$header" ]
-    printf '%s' "$header" | grep -qF "aa_ma_extract_milestone_block"
+    printf '%s' "$header" | grep -qF "aa_ma_gate"
     # And a symbol that is definitely absent must be detected as absent.
     ! printf '%s' "$header" | grep -qF "aa_ma_definitely_not_a_real_symbol"
 }

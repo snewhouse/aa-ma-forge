@@ -55,25 +55,27 @@ Measured: mid-line + backticked → `(None, True, None)`; own line + backticked 
 - `TDD-Waiver`: `refactor | docs-only | prototype | hotfix-emergency | tooling-config` (`plan_parsers.CANONICAL_TDD_WAIVERS`)
 - `Critical-Path`: `auth-flow | data-xform | external-api | version-pipeline | doc-count-drift | hook-modification` (`plan_parsers.CANONICAL_CRITICAL_PATHS`, added in M4, with `parse_critical_path()`; `plan-verification` Angle 6 check #2 now invokes it instead of eyeballing a prose list).
 
-## Bash-side grammar (added M4)
+## Bash-side grammar (added M4, retired M5)
 
-`claude-code/hooks/lib/aa-ma-parse.sh` is the single bash-side implementation,
-mirroring `src/aa_ma/grammar.py` and pinned to it by `tests/test_grammar_parity.py`:
+`claude-code/hooks/lib/aa-ma-parse.sh` keeps **display readers only** —
+`aa_ma_extract_active_milestone`, `aa_ma_extract_active_step` (callers:
+`aa-ma-session-start.sh`, `pre-compact-aa-ma.sh`), `aa_ma_list_active_tasks`,
+and `AA_MA_MILESTONE_ERE` (pinned to `grammar.py` by `tests/test_grammar_parity.py`).
+
+Every enforcing read goes through one launcher:
 
 | Symbol | Purpose |
 |---|---|
-| `AA_MA_MILESTONE_ERE` | prefix ERE mirroring `MILESTONE_RE`; POSIX-only so gawk and mawk agree |
-| `aa_ma_is_milestone_heading <line>` | recognition (ERE **plus** non-empty title — the ERE alone over-matches `## Milestone 5:`) |
-| `aa_ma_extract_milestone_block <file> <title>` | rc **0** found / **1** no match / **2** config error / **3** ambiguous |
-| `aa_ma_extract_milestone_block_by_number <file> <num>` | same, addressed by number (`2a`, `3.5`) |
-| `aa_ma_field_value <name>` / `aa_ma_count_field <name> <val>` | field reads tolerating `- X:` **and** `- **X:**` |
+| `aa_ma_gate <file> [--milestone N] [--step N.M]` | runs `aa-ma-gate --format kv`; rc **0** one ACTIVE / **1** none / **2** unreadable / **3** ambiguous / **4** not found / **127** could not run (uv absent, or tool did not start) |
+| `aa_ma_gate_field <key>` (stdin: kv) | value after the first `=`, verbatim |
 
-Callers MUST refuse on non-zero rc. The old contract returned 0-and-empty for
-every failure, which the gate read as a clean milestone.
+Deleted in M5 sub-step 5.7 (zero callers after 5.5, measured): `aa_ma_is_milestone_heading`,
+`aa_ma_extract_milestone_block`, `aa_ma_extract_milestone_block_by_number`,
+`aa_ma_field_value`, `aa_ma_count_field`, `aa_ma_active_milestone_strict`,
+`_aa_ma_field_re`, `_aa_ma_sanitize`. The tolerant/strict boundary is stated in
+the library header. ADR-0009.
 
-Block extraction opens only on a milestone heading but closes on **any H2** —
-deliberately asymmetric, and deliberately different from `split_milestones`, so
-a trailing `## Summary Counts` section is not absorbed into the last milestone.
+Block-end rule now lives in `grammar.py::split_milestones` (any H2 closes — 5.0).
 
 ## Corpus baseline — 14 repo tasks measured at b11c46d
 

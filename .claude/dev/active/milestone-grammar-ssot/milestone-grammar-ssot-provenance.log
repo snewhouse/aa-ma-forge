@@ -98,3 +98,4 @@
 [2026-09-11T18:44:12+01:00] STEP 5.4 COMPLETE — aa-ma-gate console script, --format kv, aa_ma_gate launcher (127 on uv absent / tool not starting), schema-validated JSON, all five codes from fixtures.
 [2026-09-11T18:44:12+01:00] STEP 5.5 COMPLETE — §6.7/§7.1 and verify-impl rewired to aa_ma_gate; # HALT -> exit 1; plan-verification check #2 vacuous $MILESTONE_BLOCK snippet replaced. aa-ma-gate-python.bats executes the shipped §6.7 fence: 10 cases. Live plan: BLOCKED 6 PENDING (correct).
 [2026-09-11T18:44:12+01:00] STEP 5.6 COMPLETE — aa-ma-gate --step resolves Mode own->milestone->HITL; Mode: TYPO refused before dispatch; §5.2 fence executable and bats-executed.
+[2026-09-11T18:49:01+01:00] STEP 5.7 COMPLETE — 8 enforcing/dead bash helpers deleted after caller measurement (0 callers); library header states the DISPLAY/ENFORCING boundary; aa-ma-gate-scans.bats reduced to guards on what remains. hooks bats 161 ok, commands 70 ok, pytest 959, shellcheck clean.

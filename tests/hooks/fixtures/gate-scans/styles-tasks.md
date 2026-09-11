@@ -77,7 +77,7 @@ only the plain form left those milestones un-gateable.
 - Gate: SOFT
 
 A fenced example and a multi-line comment, each containing something that looks
-like a milestone heading. Both closed the block early before `_aa_ma_sanitize`.
+like a milestone heading. Both closed the block early before fences and comments were stripped.
 
 ```markdown
 ## Milestone 98: Fenced ghost

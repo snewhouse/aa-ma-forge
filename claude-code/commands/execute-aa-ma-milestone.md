@@ -802,10 +802,14 @@ if [[ "$GATE" == "HARD" ]]; then
   # -F: the title is data, not a pattern. Titles routinely contain '.' (version
   # numbers), so a BRE match let "GATE APPROVAL: M4 v0X8X0" satisfy the gate for
   # "M4 v0.8.0". A leading '-' would make grep misparse its own argument.
-  if ! grep -qF -- "GATE APPROVAL: ${MILESTONE_TITLE}" \
-       "${TASK_DIR}/${TASK_NAME}-context-log.md"; then
+  # The heading alone is not an approval: the artifact's `Decision:` line may
+  # say REJECTED, and a heading-only grep waved that through. Require
+  # `Decision: APPROVED` within the block (the spec's artifact is 4 lines).
+  if ! grep -A8 -F -- "GATE APPROVAL: ${MILESTONE_TITLE}" \
+       "${TASK_DIR}/${TASK_NAME}-context-log.md" | grep -qE '^-[[:blank:]]+(\*\*)?Decision:(\*\*)?[[:blank:]]+APPROVED'; then
     echo "BLOCKED: Gate: HARD requires signed approval in context-log.md"
     echo "Required format: ## [date] GATE APPROVAL: ${MILESTONE_TITLE}"
+    echo "                 ... followed by a line: - Decision: APPROVED"
     exit 1
   fi
 fi

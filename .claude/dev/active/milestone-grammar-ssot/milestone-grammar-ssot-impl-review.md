@@ -264,16 +264,20 @@ Raw: **5 CRITICAL, 21 WARNING, 17 INFO** (code-reviewer 3/6/5, security 1/3/4, f
 - **README omitted the `uv` requirement at gate time**; **`engineering-standards.md` `hook-modification` did not cover `src/aa_ma/{gate,enforce,grammar,plan_parsers}.py`** (extended under ADR-0009, which now says so); **`rules/aa-ma.md` still told the reader to `grep -c "Status: PENDING"`** (now: ask the gate); **`§5.3` cited three times in `gate.py`** (the fence is §5.2); **`grammar.py` docstring cited "the bash gate"** deleted in the same window; **8/4/9 narrative in code comments** trimmed to "see ADR-0009" in `gate.py`, `aa-ma-parse.sh` and the §6.7 preamble; **`(3 lines)` / `(42 such blocks)` live counts** removed from `enforce.py`; **`--step` missing from the launcher docblock**; **`bats_require_minimum_version 1.5.0`** added (BW02 silenced).
 - **Count claims in 5.2/5.7 Result Logs** (future-proofing): "33 cases" → 40; "516 → 300" → 563 → 290; "40 → 10" → 36 → 10; "161 (was 167)" → recursive count, 187 immediately pre-rewrite. Corrected in place with the measuring command; provenance CORRECTION entry appended.
 
-## Acknowledged, not changed (with reason)
+## Second pass — every remaining WARNING/INFO actioned (user direction: "fix the CRITICAL and warnings now, don't wait")
 
-- Exit-code meanings appear in ~10 places (future-proofing W). Bash consumers all use `*)` so a new code fails closed; the prose copies in the command/skill files were reduced to "codes per `aa-ma-gate --help`" where they were lists, but the `case` arms necessarily name them. Accepted.
-- Library resolution loop repeated in §5.2, §6.7, §7.1, verify-impl and plan-verification (both reviewers). Deliberate after C3: each fence must be runnable in a fresh shell, and a shared bootstrap file would itself need resolving. Recorded in ADR-0009.
-- `uv run --project` may sync the forge `.venv` while gating a consumer repo (code-reviewer INFO). `--no-sync` would turn a missing venv into a 127 on first use; auto-sync is the documented toolchain behaviour. Accepted.
-- `Block.heading` in grammar.py (INFO): `Block` is unpacked positionally in `tui/parser.py`; adding a field is a TUI change outside M5. `_heading` is a trim, pinned by parity. Deferred.
-- ESC in a heading reaches the terminal unescaped (security INFO): cosmetic; titles are already refused for C0 controls including ESC (`\x1b` is in the refused range), so this is now closed as a side effect of C2.
-- `docs/spec/aa-ma-specification.md` line pointers to §6.7/§7.1 were stale before M5 (INFO). Not touched — a line-number pointer into a living file is the drift surface; a follow-up should replace them with heading anchors.
-- Sourcing `aa-ma-parse.sh` from the *current* repo first is pre-existing RCE-by-design if the clone ships `claude-code/hooks/lib/` (security INFO). Noted in ADR-0009's "only tasks.md is untrusted" premise; out of window.
-- `- Decision: REJECTED` beneath a `GATE APPROVAL:` heading still satisfies §7.1 (security INFO, pre-existing). Out of window; worth a follow-up.
+- **Quadratic HTML-comment regex** (security W): `<!--[\s\S]*?-->` rescanned to EOF from every unclosed opener — measured **17 s** on 20k openers in 80 KiB. Replaced by a linear `str.find` scanner with the same semantics (unclosed opener left in place); test asserts sub-quadratic growth and the unclosed case.
+- **`Decision: REJECTED` under a `GATE APPROVAL:` heading satisfied §7.1** (security INFO, pre-existing): the check matched the heading line only. §7.1 now requires a `- Decision: APPROVED` line within the block; bats cases for REJECTED, heading-only, and a full artifact.
+- **Library resolution repeated in five fences** (both reviewers): kept — each fence must run in a fresh shell (C3) — but the duplication is now *guarded*: a bats case extracts all five snippets, normalises them and asserts they are byte-identical, so the divergence that plan-verification had already shown cannot recur silently.
+- **Exit-code prose copies**: `verify-impl`'s comment now points at `aa-ma-gate --help` instead of restating the codes; the `case` arms necessarily name them.
+- **Stale line pointers in `docs/spec/aa-ma-specification.md`** (INFO): replaced with heading anchors.
+- **ESC in a heading** (INFO): closed by C2 — `\x1b` is in the refused control range.
+
+## Still open, by design
+
+- `Block.heading` in grammar.py (INFO): `Block` is unpacked positionally in `tui/parser.py`; a TUI change, outside M5. `_heading` is a trim, pinned by the parity test.
+- `uv run --project` may sync the forge `.venv` (INFO): `--no-sync` would make a missing venv a 127 on first use; auto-sync is the documented toolchain.
+- Sourcing `aa-ma-parse.sh` from the current repo first (security INFO): pre-existing and by design (install.sh symlinks); noted in ADR-0009's premise.
 
 ## User Override Decisions
 

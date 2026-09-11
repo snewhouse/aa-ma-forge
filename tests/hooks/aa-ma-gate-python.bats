@@ -291,9 +291,26 @@ _run_approval() {  # <cwd> <task-name>
 
 @test "§7.1 fence: HARD gate with the exact approval artifact -> passes" {
     local cwd; cwd=$(_task_dir_from one-active hardok)
-    echo "## [2026-09-11] GATE APPROVAL: Milestone 2: The one being gated" >> "$cwd/.claude/dev/active/hardok/hardok-context-log.md"
+    printf '## [2026-09-11] GATE APPROVAL: Milestone 2: The one being gated\n- Gate: HARD\n- Approved by: user\n- Criteria verified: 4/4\n- Decision: APPROVED\n' >> "$cwd/.claude/dev/active/hardok/hardok-context-log.md"
     run _run_approval "$cwd" hardok
     [ "$status" -eq 0 ]
+}
+
+@test "§7.1 fence: an approval heading whose Decision is REJECTED does not pass" {
+    # Pre-existing fail-open found by the M5 §6.8 security audit: the check
+    # matched the heading line only.
+    local cwd; cwd=$(_task_dir_from one-active hardrej)
+    printf '## [2026-09-11] GATE APPROVAL: Milestone 2: The one being gated\n- Gate: HARD\n- Decision: REJECTED\n' >> "$cwd/.claude/dev/active/hardrej/hardrej-context-log.md"
+    run _run_approval "$cwd" hardrej
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Decision: APPROVED"* ]]
+}
+
+@test "§7.1 fence: a heading with no Decision line at all does not pass" {
+    local cwd; cwd=$(_task_dir_from one-active hardbare)
+    echo "## [2026-09-11] GATE APPROVAL: Milestone 2: The one being gated" >> "$cwd/.claude/dev/active/hardbare/hardbare-context-log.md"
+    run _run_approval "$cwd" hardbare
+    [ "$status" -ne 0 ]
 }
 
 @test "§7.1 fence: an approval for a different milestone does not satisfy it" {
@@ -352,4 +369,28 @@ _run_approval() {  # <cwd> <task-name>
     run bash -c "cd '$WORK/elsewhere' && . '$fake_home/hooks/lib/aa-ma-parse.sh' && aa_ma_gate '$FIXDIR/one-active-tasks.md'"
     [ "$status" -eq 0 ]
     [[ "$output" == *"heading=Milestone 2: The one being gated"* ]]
+}
+
+# ---------------------------------------------------------------------------
+# Library resolution is written into every fence on purpose (each must run in
+# a fresh shell — see the §7.1 history). Duplication is tolerable only while
+# the copies are identical; plan-verification's had already diverged once.
+# ---------------------------------------------------------------------------
+
+_resolution_snippets() {  # prints one normalised snippet per site
+    for f in "$MILESTONE_CMD" "$REPO_ROOT/claude-code/skills/verify-impl/SKILL.md" "$REPO_ROOT/claude-code/skills/plan-verification/SKILL.md"; do
+        awk '/^[[:space:]]*for _cand in \\$/{f=1} f{print} f && /aa-ma-parse.sh"; do$/{g=1} g && /^[[:space:]]*done$/{f=0; g=0; print "--"}' "$f" \
+            | sed -E 's/^[[:space:]]+//; s/\[\[ -f/[ -f/; s/\]\] &&/] \&\&/'
+    done
+}
+
+@test "every lib-resolution snippet is byte-identical after normalisation" {
+    local snippets; snippets=$(_resolution_snippets)
+    local n; n=$(printf '%s\n' "$snippets" | grep -c '^--$')
+    [ "$n" -ge 5 ] || { echo "expected >=5 resolution sites, found $n" >&2; false; }
+    local distinct; distinct=$(printf '%s\n' "$snippets" | awk 'BEGIN{RS="--\n"} NF{print}' | sort -u | wc -l)
+    # One canonical snippet (3 lines: for / cand1 / cand2 / done) => sort -u of
+    # the concatenated lines has exactly as many lines as one snippet.
+    local one; one=$(printf '%s\n' "$snippets" | awk 'BEGIN{RS="--\n"} NF{print; exit}' | wc -l)
+    [ "$distinct" -eq "$one" ] || { printf '%s\n' "$snippets" >&2; false; }
 }

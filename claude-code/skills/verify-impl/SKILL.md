@@ -57,10 +57,10 @@ TASK_DIR=".claude/dev/active/$TASK_NAME"
 # §6.7 uses. This previously carried its own awk range keyed on `$((N+1))`, a
 # hard bash error for the milestone numbers the grammar admits (`2a`; the
 # corpus ships `## Milestone 2a/2b/2c`), then a bash helper that three §6.8
-# passes kept finding CRITICALs in. Exit codes: 0 found · 2 unreadable · 3 the
-# number matches more than one heading · 4 not found · 127 the gate could not
-# run. Every non-zero is an ABORT — an empty block was previously reported
-# downstream as `Audit-Profile: MISSING`, which is the fail-open shape.
+# passes kept finding CRITICALs in (ADR-0009). Exit codes per
+# `aa-ma-gate --help`; 127 means the gate could not run. Every non-zero is an
+# ABORT — an empty block was previously reported downstream as
+# `Audit-Profile: MISSING`, which is the fail-open shape.
 MILESTONE_ID="M$N"
 for _cand in \
   "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \

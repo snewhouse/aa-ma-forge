@@ -13,6 +13,7 @@ the fenced case is only satisfiable at function level.
 from __future__ import annotations
 
 import re
+import time
 from pathlib import Path
 
 import pytest
@@ -223,3 +224,21 @@ def test_has_unterminated_fence_sees_what_sanitize_sees() -> None:
     assert not has_unterminated_fence("no fences at all\n")
     # An invisible separator is not a line end to the scanner either.
     assert not has_unterminated_fence("- a\x0c```\n- b\n")
+
+
+def test_html_comment_stripping_is_linear_and_keeps_an_unclosed_opener() -> None:
+    """The `<!--[\\s\\S]*?-->` regex rescanned to EOF from every unclosed
+    opener (17 s on 20k openers); the str.find scanner is linear."""
+    from aa_ma.plan_parsers import _strip_html_comments
+
+    assert _strip_html_comments("a<!-- x -->b<!--\nmulti\n-->c") == "abc"
+    assert _strip_html_comments("a<!-- never closed") == "a<!-- never closed"
+    small = "<!--" * 2000 + "x" * 8000
+    big = "<!--" * 4000 + "x" * 16000
+    t0 = time.perf_counter()
+    _strip_html_comments(small)
+    t_small = time.perf_counter() - t0
+    t0 = time.perf_counter()
+    _strip_html_comments(big)
+    t_big = time.perf_counter() - t0
+    assert t_big < max(4 * t_small, 0.05)

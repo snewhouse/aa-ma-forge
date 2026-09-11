@@ -167,10 +167,10 @@ Generated: [ISO-8601 timestamp] | Audit-Profile: [profile] | Budget: [normal|low
 
 | Phase | Location | What runs |
 |---|---|---|
-| §6.7 Engineering Standards HARD Gate | L-481-541 | git-clean, zero-PENDING, Critical-Path evidence (existing) |
+| §6.7 Engineering Standards HARD Gate | heading `### 6.7 Engineering Standards HARD Gate` | git-clean, zero-PENDING, Critical-Path / Prototype evidence — every reading from `aa-ma-gate` (ADR-0009) |
 | **§6.8 Post-Impl Adversarial Review** | (NEW — inserted between §6.7 and §7.1) | Invoke `/verify-impl` with current milestone's `Audit-Profile`; aggregate findings; surface CRITICAL via AskUserQuestion |
-| §7.1 Integrity Check | L-559 | Existing checklist verification (unchanged) |
-| §7.3 User Authorization | L-647 | Existing approval gate (now post-§6.8) |
+| §7.1 Integrity Check | heading `### 7.1 Integrity Check` | HARD-gate approval artifact check (asks `aa-ma-gate` itself; requires `Decision: APPROVED`) |
+| §7.3 User Authorization | heading `### 7.3 User Authorization` | Existing approval gate (now post-§6.8) |
 
 **Bypass mechanisms (auditable):**
 - `AA_MA_HOOKS_DISABLE=1` — master switch; skips ALL aa-ma gates including §6.8

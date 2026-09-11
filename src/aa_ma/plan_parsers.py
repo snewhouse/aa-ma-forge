@@ -21,6 +21,7 @@ Field-absence is treated as valid (None) because most milestones have no
 waiver, and grandfathering by `Created:` date is handled outside these
 parsers (in the plan-verification Angle 6 structural check).
 """
+
 from __future__ import annotations
 
 import re
@@ -89,16 +90,32 @@ Adding a value requires a plan + ADR, per engineering-standards.md §1.
 # Internal helpers
 # -----------------------------------------------------------------------------
 
-_HTML_COMMENT_RE = re.compile(r"<!--[\s\S]*?-->")
-
 
 def _strip_html_comments(text: str) -> str:
     """Remove HTML-comment blocks so commented-out examples don't trip the parser.
 
     Matches the behavior of `_aa_ma_strip_html_comments` in `aa-ma-parse.sh` —
-    intentionally tolerant of multi-line comments.
+    intentionally tolerant of multi-line comments. An unclosed `<!--` is left
+    in place, as the previous regex left it.
+
+    A `str.find` scan, not `<!--[\\s\\S]*?-->`: that regex rescanned to EOF from
+    every opener that never closes, O(n·openers) — measured 17 s on 20k
+    unclosed openers in 80 KiB — and `aa_ma.gate` now runs it on untrusted
+    input. This scanner is linear.
     """
-    return _HTML_COMMENT_RE.sub("", text)
+    out: list[str] = []
+    pos = 0
+    while True:
+        start = text.find("<!--", pos)
+        if start == -1:
+            out.append(text[pos:])
+            return "".join(out)
+        end = text.find("-->", start + 4)
+        if end == -1:
+            out.append(text[pos:])
+            return "".join(out)
+        out.append(text[pos:start])
+        pos = end + 3
 
 
 def _extract_field(text: str, field_name: str) -> str | None:

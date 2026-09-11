@@ -211,7 +211,7 @@ Measured columns are what the code does TODAY; the verdict column is the contrac
 | 5 | `- **Status**: ACTIVE` | miss | ACTIVE | ACTIVE |
 | 6 | `- Status: **ACTIVE**` | miss | PENDING | ACTIVE (bold stripped) |
 | 7 | `- Status: ACTIVE (resumed…)` | miss | PENDING | ACTIVE (leading token) |
-| 8 | `- Status: COMPLETE (2026-05-09, commit …)` | COMPLETE | **PENDING** | COMPLETE — **24 real corpus lines** |
+| 8 | `- Status: COMPLETE (2026-05-09, commit …)` | COMPLETE | **PENDING** | COMPLETE — **17 real corpus lines** (annotated `- Status: WORD …`; 12 of them `COMPLETE (`; was written as 24 without a counting command — corrected at the M5 §6.8 review, command in ADR-0009) |
 | 9 | `* Status: ACTIVE` (asterisk bullet) | miss | PENDING | **refuse** — not a canonical bullet |
 | 10 | `- Status: ACTIVE` (NBSP) | miss | PENDING | **refuse** — invisible; silent "absent" is the fail-open shape |
 | 11 | `- Gate: hard` | HARD | SOFT | HARD (case-folded) |

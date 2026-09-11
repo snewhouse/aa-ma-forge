@@ -361,14 +361,29 @@ evaluates these structural conditions against the plan:
    # call and exits 2 with one `error=` line per refusal. The previous
    # snippet piped an undefined "$MILESTONE_BLOCK" into the parser, which
    # read an empty block as OK — the check passed vacuously.
-   . "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"
-   GATE_KV=$(aa_ma_gate "$TASK_DIR/$TASK_NAME-tasks.md"); rc=$?
+   # TASK_NAME is the `/verify-plan [task-name]` argument (or the task being
+   # planned). Phase 4.5 of /aa-ma-plan runs BEFORE Phase 5 writes tasks.md,
+   # so on a fresh plan the file does not exist yet — that is a SKIP, not a
+   # CRITICAL; re-run /verify-plan once the artifacts exist.
+   TASKS_MD=".claude/dev/active/${TASK_NAME}/${TASK_NAME}-tasks.md"
+   if [ ! -f "$TASKS_MD" ]; then
+     echo "SKIP: $TASKS_MD not yet written (Phase 5) — re-run /verify-plan after artifacts exist"
+   else
+   for _cand in \
+     "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
+     "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
+     [ -f "${_cand}" ] && AA_MA_LIB="${_cand}" && break
+   done
+   # shellcheck source=/dev/null
+   . "${AA_MA_LIB:?aa-ma-parse.sh not found — run scripts/install.sh}"
+   GATE_KV=$(aa_ma_gate "$TASKS_MD"); rc=$?
    case $rc in
      0|1) echo "OK" ;;                       # 1 = no ACTIVE yet, normal pre-execution
      2)   echo "CRITICAL: unreadable fields:"; printf '%s\n' "$GATE_KV" | sed -n 's/^error=/  - /p' ;;
      3)   echo "CRITICAL: ambiguous:";        printf '%s\n' "$GATE_KV" | sed -n 's/^error=/  - /p' ;;
      *)   echo "CRITICAL: aa-ma-gate did not run (rc $rc) — cannot verify, refusing" ;;
    esac
+   fi
    ```
 3. **Theme claims are not contradictory.** When element #12 declares Theme 2
    (Development Principles → TDD), tasks producing code must carry test sub-tasks.

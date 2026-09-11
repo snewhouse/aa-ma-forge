@@ -37,11 +37,9 @@
 #     enforce.py + plan_parsers.py) and refuses on ambiguity instead of
 #     choosing. No bash in this file parses a milestone block for an enforcing
 #     decision any more. The awk helpers that used to (block extractors, field
-#     readers, the strict derivation) were deleted in M5 after three §6.8
-#     passes found 8, 4, then 9 CRITICALs in them — hand-aligning a second
-#     markdown parser with the first did not converge. If you need a new
-#     enforcing question answered, add it to gate.py and its tests; do not
-#     add awk here.
+#     readers, the strict derivation) were deleted in M5 — ADR-0009 records
+#     the measurements. If you need a new enforcing question answered, add it
+#     to gate.py and its tests; do not add awk here.
 #
 # Guard against double-sourcing: functions are idempotent but re-definition
 # is noisy under `set -u`/strict mode in consumers.
@@ -241,7 +239,7 @@ aa_ma_list_active_tasks() {
 }
 
 # -----------------------------------------------------------------------------
-# aa_ma_gate <tasks-file> [--milestone N]
+# aa_ma_gate <tasks-file> [--milestone N] [--step N.M]
 #   Runs the Python SSoT gate (`src/aa_ma/gate.py`, console script
 #   `aa-ma-gate`) in kv format: one `key=value` per line, exit codes 0/1/2/3/4
 #   per the M5 contract. This is a LAUNCHER, not a parser — nothing in bash

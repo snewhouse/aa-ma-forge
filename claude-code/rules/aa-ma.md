@@ -42,7 +42,7 @@ When plan verification is run (via Phase 4.5 or `/verify-plan`), persist results
 
 When the lead orchestrator executes steps directly (not via agent dispatch):
 1. **After EACH sub-step**: immediately write `Status: COMPLETE` and a concise `Result Log:` with specific evidence (IDs, counts, pass/fail verdicts) in tasks.md
-2. **Before marking any milestone COMPLETE**: verify zero `Status: PENDING` sub-steps remain within that milestone. Run: `grep -c "Status: PENDING"` within the milestone section.
+2. **Before marking any milestone COMPLETE**: verify zero `Status: PENDING` sub-steps remain within that milestone. Ask the gate, not grep (prose quoting the field over-counts, bold/indented forms under-count): `uv run aa-ma-gate <task>-tasks.md --format kv | grep ^pending_steps=`.
 3. **NEVER batch Result Log updates** to "end of milestone" — this is the #1 cause of sub-step drift.
 
 **Why this matters:** Agents auto-populate Result Logs via their prompt contract. The lead orchestrator has no forcing function — results exist in conversation context but never reach tasks.md unless explicitly written. Direct-execution steps are the high-risk ones for drift.

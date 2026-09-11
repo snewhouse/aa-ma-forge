@@ -224,8 +224,18 @@ If this is the **first milestone** being executed and it touches 3+ files or unf
 
    ```bash
    # MILESTONE_NUMBER is the `N` of `## Milestone N:`; STEP_ID the `N.M` of
-   # `### Sub-step N.M:`. AA_MA_LIB is resolved as in the §6.7 preamble.
-   . "${AA_MA_LIB}"
+   # `### Sub-step N.M:`. Self-sufficient on purpose: this runs ~300 lines
+   # before the §6.7 preamble, and a fence that depends on another fence's
+   # variables reads them as empty when run in a fresh shell (the awk gate
+   # failed exactly that way — "GATE was always empty").
+   TASKS_MD=".claude/dev/active/${TASK_NAME}/${TASK_NAME}-tasks.md"
+   for _cand in \
+     "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
+     "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
+     [[ -f "${_cand}" ]] && AA_MA_LIB="${_cand}" && break
+   done
+   # shellcheck source=/dev/null
+   . "${AA_MA_LIB:?aa-ma-parse.sh not found — run scripts/install.sh}"
    STEP_KV=$(aa_ma_gate "${TASKS_MD}" --milestone "${MILESTONE_NUMBER}" --step "${STEP_ID}")
    STEP_RC=$?
    if [[ "${STEP_RC}" -ne 0 ]]; then
@@ -520,16 +530,12 @@ fi
 
 # --- Gate preamble: every reading below comes from the Python SSoT -----------
 #
-# History, kept short because it is the reason this block looks the way it
-# does. Three §6.8 passes over the awk that used to live here found 8, then 4,
-# then 9 distinct CRITICALs — the remediation round produced more than it
-# closed, seven of its nine introduced by the fixes themselves. Each round was a
-# hand-written markdown parser whose accepted-string set was decided by
-# reasoning, not by measuring the corpus. Meanwhile the tested parser this plan
-# declared the SSoT already existed in src/aa_ma/. So: bash asks, Python
-# answers. `aa_ma_gate` is a launcher, not a parser; `aa-ma-gate` (src/aa_ma/
-# gate.py) answers all seven questions over grammar.py + enforce.py +
-# plan_parsers.py and refuses on ambiguity rather than choosing. ADR-0009.
+# The awk that used to live here was a hand-written markdown parser whose
+# accepted-string set was decided by reasoning, not measurement; ADR-0009
+# records what three reviews found in it. So: bash asks, Python answers.
+# `aa_ma_gate` is a launcher, not a parser; `aa-ma-gate` (src/aa_ma/gate.py)
+# answers all seven questions over grammar.py + enforce.py + plan_parsers.py
+# and refuses on ambiguity rather than choosing. Exit codes: `aa-ma-gate --help`.
 #
 # Resolution order matches the shipped hooks: repo-local first so a clone that
 # has not run install.sh still works.
@@ -612,9 +618,6 @@ if [[ "${PROTOTYPE_TASKS}" == "YES" ]]; then
     exit 1
   fi
 fi
-
-# Question 4, carried to §7.1 — do not re-derive there, or the two sites drift.
-GATE=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field gate)
 
 echo "ENG-STANDARDS-GATE: PASS (all 5 conditions satisfied)"
 ```
@@ -769,11 +772,32 @@ Before marking the milestone COMPLETE and creating git checkpoint, execute this 
 ```bash
 # Check for HARD gate approval.
 #
-# ${GATE} and ${MILESTONE_TITLE} were both read by the Python gate in the §6.7
-# preamble — HARD/SOFT already case-folded, absent already defaulted to SOFT,
-# `Gate: TYPO` already refused there with exit 1. Do not re-derive either here,
-# or the two sites drift. (The awk that used to live here read GATE as empty on
-# every milestone, so no HARD gate ever fired; see the §6.7 preamble history.)
+# Self-sufficient: this fence asks the Python gate itself rather than trusting
+# ${GATE} / ${MILESTONE_TITLE} left over from §6.7. Run in a fresh shell, those
+# are empty, `[[ "" == "HARD" ]]` is false, and the HARD gate is skipped with
+# rc 0 and no output — which is precisely how the awk it replaced failed
+# ("GATE was always empty; no HARD gate ever fired"). Two calls to one SSoT
+# cannot drift; two awks could, which is why the old comment forbade this.
+TASK_DIR=".claude/dev/active/${TASK_NAME}"
+TASKS_MD="${TASK_DIR}/${TASK_NAME}-tasks.md"
+for _cand in \
+  "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
+  "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
+  [[ -f "${_cand}" ]] && AA_MA_LIB="${_cand}" && break
+done
+# shellcheck source=/dev/null
+. "${AA_MA_LIB:?aa-ma-parse.sh not found — run scripts/install.sh}"
+GATE_KV=$(aa_ma_gate "${TASKS_MD}") || {
+  echo "BLOCKED: §7.1 cannot read the milestone (gate rc $?):"
+  printf '%s\n' "${GATE_KV}" | sed -n 's/^error=/  - /p'
+  exit 1
+}
+MILESTONE_TITLE=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field heading)
+GATE=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field gate)
+if [[ -z "${MILESTONE_TITLE}" || -z "${GATE}" ]]; then
+  echo "BLOCKED: §7.1 read an empty heading or gate — refusing on an empty subject."
+  exit 1
+fi
 if [[ "$GATE" == "HARD" ]]; then
   # -F: the title is data, not a pattern. Titles routinely contain '.' (version
   # numbers), so a BRE match let "GATE APPROVAL: M4 v0X8X0" satisfy the gate for

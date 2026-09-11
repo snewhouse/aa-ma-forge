@@ -1,8 +1,7 @@
 """The seven gate questions, answered from the Python SSoT.
 
 `/execute-aa-ma-milestone` §6.7 / §7.1 and `verify-impl` used to answer these
-with awk over `tasks.md`. Three §6.8 passes found 8, 4, then 9 CRITICALs in
-that awk; the remediation round produced more than it closed. This module
+with awk over `tasks.md`; ADR-0009 records why that stopped. This module
 answers the same questions over :mod:`aa_ma.grammar` (heading structure),
 :mod:`aa_ma.enforce` (field reads) and :mod:`aa_ma.plan_parsers` (canonical
 sets) — nothing here recognises a heading or a field on its own.
@@ -17,7 +16,7 @@ The questions (reference.md "M5 enforcement contract"):
 6. ``Prototype-Required:`` == YES, present or absent
 7. a milestone block **by number** plus its ``Audit-Profile:`` (verify-impl)
 
-Plus, for §5.3 dispatch, a sub-step's resolved ``Mode:`` (``--step``).
+Plus, for §5.2 dispatch, a sub-step's resolved ``Mode:`` (``--step``).
 
 Exit codes are the contract's and fail closed: 0 one ACTIVE and every enforced
 field readable · 1 no ACTIVE · 2 unreadable (missing file, unclosed fence,
@@ -40,9 +39,11 @@ from aa_ma.enforce import (
     MODES,
     PROTOTYPE_REQUIRED,
     FieldRead,
+    Unreadable,
     read_enforced_field,
     read_milestone_status,
     read_step_status,
+    read_tasks_text,
 )
 from aa_ma.grammar import (
     STEP_RE,
@@ -60,6 +61,8 @@ EXIT_UNREADABLE = 2
 EXIT_AMBIGUOUS = 3
 EXIT_NOT_FOUND = 4
 
+MODE_SOURCES = frozenset({"step", "milestone", "default"})
+
 JSON_SCHEMA_ID = "aa-ma-gate/1"
 
 GATE_JSON_SCHEMA: dict = {
@@ -69,7 +72,7 @@ GATE_JSON_SCHEMA: dict = {
     "additionalProperties": False,
     "properties": {
         "schema": {"const": JSON_SCHEMA_ID},
-        "exit_code": {"type": "integer", "minimum": 0, "maximum": 4},
+        "exit_code": {"type": "integer", "minimum": 0, "maximum": EXIT_NOT_FOUND},
         "errors": {"type": "array", "items": {"type": "string"}},
         "step": {
             "oneOf": [
@@ -82,8 +85,8 @@ GATE_JSON_SCHEMA: dict = {
                         "number": {"type": "string"},
                         "heading": {"type": "string"},
                         "status": {"type": "string"},
-                        "mode": {"enum": ["HITL", "AFK"]},
-                        "mode_source": {"enum": ["step", "milestone", "default"]},
+                        "mode": {"enum": sorted(MODES)},
+                        "mode_source": {"enum": sorted(MODE_SOURCES)},
                     },
                 },
             ]
@@ -110,7 +113,7 @@ GATE_JSON_SCHEMA: dict = {
                         "title": {"type": "string"},
                         "heading": {"type": "string"},
                         "status": {"type": "string"},
-                        "gate": {"enum": ["HARD", "SOFT"]},
+                        "gate": {"enum": sorted(GATES)},
                         "critical_path": {"type": ["string", "null"]},
                         "prototype_required": {"type": "boolean"},
                         "audit_profile": {"type": ["string", "null"]},
@@ -170,24 +173,26 @@ class GateAnswer:
 
         The value is everything after the first `=`, verbatim — a heading may
         itself contain `=`, `\\` or `"`, and this is how it reaches §7.1's
-        approval grep byte-exact. Newlines cannot occur: every value is a
-        single line by construction. Booleans are YES/NO, null is empty.
+        approval grep byte-exact. Headings and field values are single lines
+        by construction; error strings embed a *path* and an exception text,
+        which are not, so every value has `\\n` escaped — one value, one line,
+        or a crafted path could emit a forged `exit_code=` line. Booleans are
+        YES/NO, null is empty.
         """
-        lines = [f"exit_code={self.exit_code}"]
+
+        def kv(key: str, value: object) -> str:
+            if isinstance(value, bool):
+                value = "YES" if value else "NO"
+            text = "" if value is None else str(value)
+            return f"{key}={text.replace(chr(10), chr(92) + 'n')}"
+
+        lines = [kv("exit_code", self.exit_code)]
         if self.milestone:
-            for key, value in asdict(self.milestone).items():
-                if isinstance(value, bool):
-                    value = "YES" if value else "NO"
-                lines.append(f"{key}={'' if value is None else value}")
+            lines.extend(kv(k, v) for k, v in asdict(self.milestone).items())
         if self.step:
-            lines.extend(f"step_{k}={v}" for k, v in asdict(self.step).items())
-        lines.extend(f"error={e}" for e in self.errors)
+            lines.extend(kv(f"step_{k}", v) for k, v in asdict(self.step).items())
+        lines.extend(kv("error", e) for e in self.errors)
         return "\n".join(lines) + "\n"
-
-
-def read_tasks_text(path: Path) -> str:
-    """Read `tasks.md` with line endings normalised (contract row 14)."""
-    return path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
 
 
 def _heading(block: Block) -> str:
@@ -267,6 +272,12 @@ def _read_step(
     if not hits:
         errors.append(f"{read.heading}: no sub-step numbered {step!r}")
         return None
+    if len(hits) > 1:
+        errors.append(
+            f"{read.heading}: {len(hits)} sub-steps numbered {step!r}: "
+            + "; ".join(_heading(h) for h in hits)
+        )
+        return None
     own = read_enforced_field(hits[0].text, "Mode", MODES)
     parent = read_enforced_field(_own_text(block), "Mode", MODES)
     if own.present:
@@ -279,7 +290,7 @@ def _read_step(
         number=hits[0].number,
         heading=_heading(hits[0]),
         status=read_step_status(hits[0].text).value or "",
-        mode=mode or "HITL",
+        mode=mode,
         mode_source=source,
     )
 
@@ -290,17 +301,15 @@ def answer(
     """Answer the gate questions for the ACTIVE milestone, or by `number`.
 
     With `step` (requires `number`) also resolve that sub-step's Mode for
-    §5.3 dispatch.
+    §5.2 dispatch.
     """
     if step is not None and number is None:
         raise ValueError("--step requires --milestone")
     errors: list[str] = []
     try:
         text = read_tasks_text(path)
-    except OSError as exc:
-        return GateAnswer(
-            EXIT_UNREADABLE, None, (f"{path}: missing or unreadable ({exc})",)
-        )
+    except Unreadable as exc:
+        return GateAnswer(EXIT_UNREADABLE, None, (str(exc),))
     if has_unterminated_fence(text):
         return GateAnswer(
             EXIT_UNREADABLE,
@@ -340,9 +349,16 @@ def answer(
         block, read = hits[0]
     else:
         headings = [r.heading for r in reads]
+        numbers = [r.number for r in reads]
         dupes = sorted({h for h in headings if headings.count(h) > 1})
+        # Duplicate NUMBERS too: `Milestone 1: Foo` and `Milestone 1: Foo bar`
+        # have distinct headings, but §7.1's approval grep and §6.7's evidence
+        # grep are prefix matches, so one milestone's lines satisfied the other.
+        dupes += sorted({f"number {n!r}" for n in numbers if numbers.count(n) > 1})
         if dupes:
-            errors.append("duplicate milestone heading(s): " + "; ".join(dupes))
+            errors.append(
+                "duplicate milestone heading(s)/number(s): " + "; ".join(dupes)
+            )
         active = [(b, r) for b, r in zip(blocks, reads) if r.status == "ACTIVE"]
         if errors:
             return GateAnswer(
@@ -368,7 +384,12 @@ def answer(
     if step is not None:
         step_read = _read_step(block, step, read, errors)
         if step_read is None:
-            return GateAnswer(EXIT_NOT_FOUND, None, tuple(errors))
+            code = (
+                EXIT_AMBIGUOUS
+                if any("sub-steps numbered" in e for e in errors)
+                else EXIT_NOT_FOUND
+            )
+            return GateAnswer(code, None, tuple(errors))
     return GateAnswer(EXIT_OK, milestone, (), step_read)
 
 
@@ -406,7 +427,12 @@ def main(argv: list[str] | None = None) -> int:
         help="json (default) or kv: one key=value per line for shell callers",
     )
     args = parser.parse_args(argv)
-    result = answer(Path(args.tasks_md), args.milestone, args.step)
+    if args.step is not None and args.milestone is None:
+        parser.error("--step requires --milestone")
+    try:
+        result = answer(Path(args.tasks_md), args.milestone, args.step)
+    except Exception as exc:  # last resort: the envelope contract holds even here
+        result = GateAnswer(EXIT_UNREADABLE, None, (f"internal error: {exc!r}",))
     if args.format == "kv":
         sys.stdout.write(result.to_kv())
     else:

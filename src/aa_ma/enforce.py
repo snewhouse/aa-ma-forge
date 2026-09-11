@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
 from aa_ma.grammar import sanitize
 
@@ -39,8 +40,8 @@ STEP_STATUSES: frozenset[str] = frozenset(
     {"PENDING", "IN_PROGRESS", "COMPLETE", "BLOCKED", "SKIPPED", "DEFERRED"}
 )
 """No `ACTIVE` — steps are IN_PROGRESS. `SKIPPED` is what the HITL gate in
-`/execute-aa-ma-milestone` §5.2 writes and `DEFERRED` is in the corpus (3
-lines); refusing the command's own output would be a false BLOCK."""
+`/execute-aa-ma-milestone` §5.2 writes and `DEFERRED` appears in the corpus;
+refusing the command's own output would be a false BLOCK."""
 
 GATES: frozenset[str] = frozenset({"SOFT", "HARD"})
 MODES: frozenset[str] = frozenset({"HITL", "AFK"})
@@ -82,10 +83,25 @@ def read_enforced_field(
     candidate only when the field name (bold or plain) is the first thing on
     it after an optional bullet — prose *mentioning* `Status:` mid-line is not.
     """
-    match = _candidate_re(field).search(sanitize(block))
-    if match is None:
+    matches = list(_candidate_re(field).finditer(sanitize(block)))
+    if not matches:
         return FieldRead(None, False, True, None)
+    match = matches[0]
     line = match.group(0).strip()
+    # A second line for the same field is fine when it agrees — the command
+    # itself writes `- Mode: AFK — auto-dispatched` into Result Logs, so the
+    # corpus is full of them. When it disagrees, choosing the first is the
+    # stale-Status false PASS one level down from "two ACTIVE milestones".
+    values = {
+        m.group("raw").split()[0].strip("*").upper()
+        for m in matches
+        if m.group("raw").split()
+    }
+    if len(values) > 1:
+        quoted = "; ".join(m.group(0).strip() for m in matches)
+        return FieldRead(
+            None, True, False, f"{field}: conflicting values in {quoted!r}"
+        )
     if not _CANONICAL_LEAD_RE.match(match.group("lead")):
         return FieldRead(
             None,
@@ -111,6 +127,45 @@ def read_enforced_field(
         f"{field}: non-canonical value {tokens[0]!r} in {line!r}. "
         f"Canonical: {' | '.join(sorted(canonical))}",
     )
+
+
+class Unreadable(Exception):
+    """The file cannot be read as a tasks.md — always exit 2, never a guess."""
+
+
+MAX_TASKS_BYTES = 1 << 20  # 1 MiB; the largest corpus file is ~80 KiB
+
+# Characters that are invisible in a rendered plan but change what a line-
+# oriented scanner sees: C0 controls except \t/\n/\r, DEL, NEL, LS, PS, and
+# the C1 range. `str.splitlines()` breaks on several of these; no markdown
+# renderer does. Contract row 10 semantics: invisible => refuse, never absent.
+_INVISIBLE_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f\u2028\u2029]")
+
+
+def read_tasks_text(path: Path) -> str:
+    """Read `tasks.md` with line endings normalised (contract row 14), refusing
+    binary, oversized or control-character-bearing input outright."""
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        raise Unreadable(f"{path}: missing or unreadable ({exc})") from exc
+    if len(raw) > MAX_TASKS_BYTES:
+        raise Unreadable(
+            f"{path}: {len(raw)} bytes exceeds the {MAX_TASKS_BYTES} byte limit"
+        )
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise Unreadable(f"{path}: not UTF-8 ({exc})") from exc
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    bad = _INVISIBLE_RE.search(text)
+    if bad:
+        line = text.count("\n", 0, bad.start()) + 1
+        raise Unreadable(
+            f"{path}: invisible control character {bad.group()!r} on line {line} — "
+            "refusing; it changes what a scanner sees without changing what a reader sees"
+        )
+    return text
 
 
 def read_milestone_status(own_block: str) -> FieldRead:

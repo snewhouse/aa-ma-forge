@@ -228,3 +228,53 @@ M1: a verification command that filtered out its own failing row. M2: a lint
 blind to the fences it was linting. M3: a fix proved by hand and shipped with no
 test. M4: a dogfood probe that set the one variable the shipped path never sets.
 Each time the green tick was real and measured the wrong thing.
+
+---
+
+# §6.8 Post-Impl Adversarial Review — Milestone 5: Gate enforcement reads the Python SSoT
+
+Generated: 2026-09-11 · Audit-Profile: `infra` · Budget: normal · Window: `8c632bc..516fc4e`
+Agents dispatched: code-reviewer, security-auditor, future-proofing-auditor (infra slate; tdd-sequence and context7 skipped per profile — TDD sequence is visible in the window anyway: `e4d1433 test(gate): RED` precedes `e311666 feat(gate)`).
+
+## Verdict: PASS_WITH_WARNINGS (after inline fixes)
+
+Raw: **5 CRITICAL, 21 WARNING, 17 INFO** (code-reviewer 3/6/5, security 1/3/4, future-proofing 1/12/8). Deduplicated: **4 distinct CRITICAL — all reproduced by the lead before fixing, all fixed inline**, plus 12 WARNINGs actioned. pytest 959 → **972**, hooks bats 161 → **168**, both 0 failures.
+
+## CRITICAL — all fixed (each has a regression test that failed before the fix)
+
+| # | Finding (agent) | Reproduced | Fix |
+|---|---|---|---|
+| C1 | Fence-close inside an HTML comment: `has_unterminated_fence` ran on raw text, `split_milestones` on comment-stripped text — a ``` closer inside `<!-- -->` satisfied the check and then vanished, fence ran to EOF, PENDING sub-step hidden (code-reviewer) | `exit 0, pending 0` | One fence state machine, `grammar.scan_fences` → `FenceScan(stripped, blocks, unterminated)`; the three readers are views over it; `has_unterminated_fence` runs on `_strip_html_comments(text)`, the same input `sanitize` feeds. `test_fence_closed_only_inside_an_html_comment_is_still_unterminated` |
+| C2 | Invisible line separators (FF, VT, NEL, LS, PS, FS/GS/RS): `str.splitlines()` splits on them, no regex or renderer does — `- Status: ACTIVE\x0c```` opened a fence the reader never saw (security-auditor CRITICAL and code-reviewer C2, independently) | `exit 0, pending 0` for `\x0c`, `\x0b`, `\x85`, ` `, `\x1c` | Scanners split on `\n` only; `read_tasks_text` refuses any C0/C1/LS/PS control character with line number quoted (row-10 semantics: invisible ⇒ refuse). Parametrised test over 5 separators |
+| C3 | §7.1 fence trusted `${GATE}`/`${MILESTONE_TITLE}` from §6.7; run in a fresh shell both are empty, `[[ "" == HARD ]]` is false, the HARD gate is skipped with rc 0 and no output — the exact "GATE was always empty" failure of the awk it replaced; and no test executed §7.1 (code-reviewer) | rc 0, silent, no artifact | §7.1 is self-sufficient: resolves the lib, calls `aa_ma_gate` itself (two calls to one SSoT cannot drift), refuses on empty heading/gate. Six bats cases execute the shipped §7.1 text under `env -i` |
+| C4 | ADR-0009 stated "the corpus uses [the annotated form] 24 times" with no counting command; measured 17 line-anchored (future-proofing) | 17 | ADR and reference row 8 corrected to 17 with the grep recorded; the same number was wrong in context-log (left as history) |
+
+## WARNINGs actioned
+
+- **Duplicate milestone numbers in ACTIVE mode** (security): `Milestone 1: Foo` vs `Milestone 1: Foo bar` — distinct headings, but §7.1's `grep -F "GATE APPROVAL: Milestone 1: Foo"` is a prefix match. Now `exit 3` on duplicate numbers as well as headings. Test added.
+- **Duplicate step numbers** (code-reviewer): `--step 1.1` returned the first's Mode silently. Now `exit 3`. Test added.
+- **Uncaught `UnicodeDecodeError`** / `ValueError` broke the exit-code contract (security): now `Unreadable` → exit 2 with envelope; a last-resort `except` in `main` keeps "JSON is always written" true; `--step` without `--milestone` is an argparse usage error. 1 MiB size cap added (quadratic-regex hardening). Tests added.
+- **kv newline injection via path** (code-reviewer): `error=` embedded the raw path; a path containing `\nexit_code=0` forged kv lines. Every value now has `\n` escaped. Test added (line-anchored assertions — the first draft asserted a substring and was wrong).
+- **First-occurrence-wins hides a stale second value** (code-reviewer): measured the corpus first — 42 step blocks carry two `Mode:` candidate lines because the command itself writes `- Mode: AFK — auto-dispatched` into Result Logs — so the rule adopted is *refuse when candidates disagree*, not *refuse on >1*. Tests added both ways.
+- **Quadratic title regex** (security): `(?P<title>.+?)[ \t]*$` was O(n²) on a long whitespace run (20k spaces → 1 s); now `(?P<title>.*[^ \t\n])` — 200k spaces → 0.000 s. (`[^ \t]` without `\n` let the title swallow the newline; caught by the existing `test_match_does_not_span_lines`.)
+- **§5.2 fence could not run as shipped** (code-reviewer): it sourced `${AA_MA_LIB}` "resolved as in §6.7", 300 lines later; bats passed only because the harness injected it. Fence now resolves the lib itself; the injection is removed from the harness.
+- **plan-verification check #2 used undefined `$TASK_DIR/$TASK_NAME`** and Phase 4.5 runs before Phase 5 writes tasks.md → spurious CRITICAL on every fresh plan (code-reviewer). Inputs defined from the task name; missing file is a SKIP with a re-run instruction.
+- **Schema enums duplicated `enforce.GATES`/`MODES` as literals** (future-proofing): now `sorted(GATES)` / `sorted(MODES)` / new `MODE_SOURCES`; schema `maximum` tied to `EXIT_NOT_FOUND`; dead `mode or "HITL"` dropped.
+- **Symlinked-lib root resolution untested** (future-proofing): bats case sources the lib through a symlink from another directory and asserts kv output.
+- **README omitted the `uv` requirement at gate time**; **`engineering-standards.md` `hook-modification` did not cover `src/aa_ma/{gate,enforce,grammar,plan_parsers}.py`** (extended under ADR-0009, which now says so); **`rules/aa-ma.md` still told the reader to `grep -c "Status: PENDING"`** (now: ask the gate); **`§5.3` cited three times in `gate.py`** (the fence is §5.2); **`grammar.py` docstring cited "the bash gate"** deleted in the same window; **8/4/9 narrative in code comments** trimmed to "see ADR-0009" in `gate.py`, `aa-ma-parse.sh` and the §6.7 preamble; **`(3 lines)` / `(42 such blocks)` live counts** removed from `enforce.py`; **`--step` missing from the launcher docblock**; **`bats_require_minimum_version 1.5.0`** added (BW02 silenced).
+- **Count claims in 5.2/5.7 Result Logs** (future-proofing): "33 cases" → 40; "516 → 300" → 563 → 290; "40 → 10" → 36 → 10; "161 (was 167)" → recursive count, 187 immediately pre-rewrite. Corrected in place with the measuring command; provenance CORRECTION entry appended.
+
+## Acknowledged, not changed (with reason)
+
+- Exit-code meanings appear in ~10 places (future-proofing W). Bash consumers all use `*)` so a new code fails closed; the prose copies in the command/skill files were reduced to "codes per `aa-ma-gate --help`" where they were lists, but the `case` arms necessarily name them. Accepted.
+- Library resolution loop repeated in §5.2, §6.7, §7.1, verify-impl and plan-verification (both reviewers). Deliberate after C3: each fence must be runnable in a fresh shell, and a shared bootstrap file would itself need resolving. Recorded in ADR-0009.
+- `uv run --project` may sync the forge `.venv` while gating a consumer repo (code-reviewer INFO). `--no-sync` would turn a missing venv into a 127 on first use; auto-sync is the documented toolchain behaviour. Accepted.
+- `Block.heading` in grammar.py (INFO): `Block` is unpacked positionally in `tui/parser.py`; adding a field is a TUI change outside M5. `_heading` is a trim, pinned by parity. Deferred.
+- ESC in a heading reaches the terminal unescaped (security INFO): cosmetic; titles are already refused for C0 controls including ESC (`\x1b` is in the refused range), so this is now closed as a side effect of C2.
+- `docs/spec/aa-ma-specification.md` line pointers to §6.7/§7.1 were stale before M5 (INFO). Not touched — a line-number pointer into a living file is the drift surface; a follow-up should replace them with heading anchors.
+- Sourcing `aa-ma-parse.sh` from the *current* repo first is pre-existing RCE-by-design if the clone ships `claude-code/hooks/lib/` (security INFO). Noted in ADR-0009's "only tasks.md is untrusted" premise; out of window.
+- `- Decision: REJECTED` beneath a `GATE APPROVAL:` heading still satisfies §7.1 (security INFO, pre-existing). Out of window; worth a follow-up.
+
+## User Override Decisions
+
+None required — no CRITICAL was disputed or deferred; all four were accepted and fixed before this report was written.

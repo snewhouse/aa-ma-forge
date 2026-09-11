@@ -46,7 +46,7 @@ scripts/            install.sh / uninstall.sh
 
 ## Quick start
 
-Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and configured.
+Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and configured, and [`uv`](https://docs.astral.sh/uv/) on `PATH` — the `/execute-aa-ma-milestone` gate, `verify-impl` and `plan-verification` run `aa-ma-gate` from this checkout (ADR-0009) and refuse, rather than skip, when it cannot run.
 
 ```bash
 git clone https://github.com/snewhouse/aa-ma-forge.git

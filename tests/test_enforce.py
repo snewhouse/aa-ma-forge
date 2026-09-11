@@ -108,9 +108,18 @@ def test_no_canonical_set_means_upper_cased_leading_token() -> None:
     assert read_enforced_field("- Foo: bar baz\n", "Foo", None).value == "BAR"
 
 
-def test_first_occurrence_wins_and_prose_mentions_are_not_candidates() -> None:
-    block = "## Milestone 1: T\nThe Status: PENDING mention here is prose.\n- Status: ACTIVE\n- Status: COMPLETE\n"
+def test_prose_mentions_are_not_candidates_and_agreeing_repeats_are_fine() -> None:
+    block = "## Milestone 1: T\nThe Status: PENDING mention here is prose.\n- Status: ACTIVE\n  - Status: ACTIVE (resumed)\n"
     assert read_milestone_status(block).value == "ACTIVE"
+
+
+def test_disagreeing_repeats_are_refused_not_first_wins() -> None:
+    """A stale second value is the two-ACTIVE-milestones false PASS one level
+    down; choosing the first is choosing. Agreeing repeats stay valid because
+    the command itself writes `- Mode: AFK — auto-dispatched` into Result Logs."""
+    got = read_milestone_status("- Status: COMPLETE\n- Status: ACTIVE\n")
+    assert got.present and not got.is_valid
+    assert "COMPLETE" in (got.error or "") and "ACTIVE" in (got.error or "")
 
 
 def test_html_comments_and_fences_are_not_read() -> None:

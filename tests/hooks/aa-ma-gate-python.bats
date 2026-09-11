@@ -13,6 +13,8 @@
 #      exact-literal grep over markdown goes green if an edit merely adds
 #      quotes; only running the text proves the shipped path.
 
+bats_require_minimum_version 1.5.0
+
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     HELPER="${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh"
@@ -225,15 +227,27 @@ _mode_fence() {
         | sed 's/^   //'
 }
 
-_run_mode() {  # <tasks.md> <milestone-number> <step-id>
+_run_mode() {  # <task-root> <task-name> <milestone-number> <step-id>
+    # No variables injected beyond the three the command documents — the first
+    # version passed AA_MA_LIB in, so the shipped text (which did not resolve
+    # it) was not what was tested.
     _mode_fence > "$WORK/mode.sh"
-    AA_MA_LIB="$HELPER" TASKS_MD="$1" MILESTONE_NUMBER="$2" STEP_ID="$3" \
-        bash -c ". '$WORK/mode.sh'; echo \"MODE=\$MODE SOURCE=\$MODE_SOURCE\""
+    (cd "$1" && TASK_NAME="$2" MILESTONE_NUMBER="$3" STEP_ID="$4" \
+        bash -c ". '$WORK/mode.sh'; echo \"MODE=\$MODE SOURCE=\$MODE_SOURCE\"")
+}
+
+_task_dir_with() {  # <task-name> <tasks.md body>
+    local dir="$WORK/$1/.claude/dev/active/$1"
+    mkdir -p "$dir"
+    printf '%b' "$2" > "$dir/$1-tasks.md"
+    : > "$dir/$1-provenance.log"
+    : > "$dir/$1-context-log.md"
+    printf '%s\n' "$WORK/$1"
 }
 
 @test "§5.2 Mode: a step with Mode: TYPO is BLOCKED, never dispatched as AFK" {
-    printf '## Milestone 1: T\n- Status: ACTIVE\n### Sub-step 1.1: s\n- Status: PENDING\n- Mode: TYPO\n' > "$WORK/t-tasks.md"
-    run _run_mode "$WORK/t-tasks.md" 1 1.1
+    local cwd; cwd=$(_task_dir_with t '## Milestone 1: T\n- Status: ACTIVE\n### Sub-step 1.1: s\n- Status: PENDING\n- Mode: TYPO\n')
+    run _run_mode "$cwd" t 1 1.1
     [ "$status" -ne 0 ]
     [[ "$output" == *"BLOCKED"* ]]
     [[ "$output" == *"TYPO"* ]]
@@ -241,13 +255,71 @@ _run_mode() {  # <tasks.md> <milestone-number> <step-id>
 }
 
 @test "§5.2 Mode: own, inherited and default resolution through the shipped text" {
-    printf '## Milestone 1: T\n- Status: ACTIVE\n- Mode: HITL\n### Sub-step 1.1: own\n- Status: PENDING\n- Mode: AFK\n### Sub-step 1.2: inherits\n- Status: PENDING\n## Milestone 2: U\n- Status: COMPLETE\n### Sub-step 2.1: default\n- Status: COMPLETE\n' > "$WORK/t-tasks.md"
-    run _run_mode "$WORK/t-tasks.md" 1 1.1
+    local cwd; cwd=$(_task_dir_with t '## Milestone 1: T\n- Status: ACTIVE\n- Mode: HITL\n### Sub-step 1.1: own\n- Status: PENDING\n- Mode: AFK\n### Sub-step 1.2: inherits\n- Status: PENDING\n## Milestone 2: U\n- Status: COMPLETE\n### Sub-step 2.1: default\n- Status: COMPLETE\n')
+    run _run_mode "$cwd" t 1 1.1
     [ "$status" -eq 0 ]; [[ "$output" == *"MODE=AFK SOURCE=step"* ]]
-    run _run_mode "$WORK/t-tasks.md" 1 1.2
+    run _run_mode "$cwd" t 1 1.2
     [ "$status" -eq 0 ]; [[ "$output" == *"MODE=HITL SOURCE=milestone"* ]]
-    run _run_mode "$WORK/t-tasks.md" 2 2.1
+    run _run_mode "$cwd" t 2 2.1
     [ "$status" -eq 0 ]; [[ "$output" == *"MODE=HITL SOURCE=default"* ]]
+}
+
+# ---------------------------------------------------------------------------
+# §7.1 HARD-gate approval — executed as shipped, in a FRESH shell
+#
+# The §6.8 review of M5 found this fence relied on ${GATE} and
+# ${MILESTONE_TITLE} left over from §6.7; in a shell that had not run §6.7 it
+# skipped the approval check with rc 0 and no output. It now asks the gate
+# itself. These cases run it alone, with nothing inherited.
+# ---------------------------------------------------------------------------
+
+_approval_fence() {
+    awk '/^### 7\.1 /{f=1} f && /^```bash$/{g=1; next} g && /^```$/{exit} g' "$MILESTONE_CMD"
+}
+
+_run_approval() {  # <cwd> <task-name>
+    _approval_fence > "$WORK/approval.sh"
+    (cd "$1" && env -i PATH="$PATH" HOME="$HOME" TASK_NAME="$2" bash "$WORK/approval.sh")
+}
+
+@test "§7.1 fence: HARD gate with no approval artifact -> BLOCKED, in a fresh shell" {
+    local cwd; cwd=$(_task_dir_from one-active hard)
+    run _run_approval "$cwd" hard
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"GATE APPROVAL: Milestone 2: The one being gated"* ]]
+}
+
+@test "§7.1 fence: HARD gate with the exact approval artifact -> passes" {
+    local cwd; cwd=$(_task_dir_from one-active hardok)
+    echo "## [2026-09-11] GATE APPROVAL: Milestone 2: The one being gated" >> "$cwd/.claude/dev/active/hardok/hardok-context-log.md"
+    run _run_approval "$cwd" hardok
+    [ "$status" -eq 0 ]
+}
+
+@test "§7.1 fence: an approval for a different milestone does not satisfy it" {
+    local cwd; cwd=$(_task_dir_from one-active hardother)
+    echo "## [2026-09-11] GATE APPROVAL: Milestone 1: Done already" >> "$cwd/.claude/dev/active/hardother/hardother-context-log.md"
+    run _run_approval "$cwd" hardother
+    [ "$status" -ne 0 ]
+}
+
+@test "§7.1 fence: SOFT gate needs no artifact" {
+    local cwd; cwd=$(_task_dir_from one-active soft)
+    sed -i 's/^- Gate: HARD$/- Gate: SOFT/' "$cwd/.claude/dev/active/soft/soft-tasks.md"
+    run _run_approval "$cwd" soft
+    [ "$status" -eq 0 ]
+}
+
+@test "§7.1 fence: an unreadable plan is BLOCKED, never a skipped check" {
+    local cwd; cwd=$(_task_dir_from two-active amb)
+    run _run_approval "$cwd" amb
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"BLOCKED"* ]]
+}
+
+@test "the approval fence extractor is not vacuous" {
+    _approval_fence | grep -q 'aa_ma_gate'
+    _approval_fence | grep -q 'GATE APPROVAL'
 }
 
 @test "the Mode fence extractor is not vacuous" {
@@ -269,4 +341,15 @@ _run_mode() {  # <tasks.md> <milestone-number> <step-id>
     done
     grep -q 'aa_ma_gate' "$MILESTONE_CMD"
     grep -q 'aa_ma_gate' "$REPO_ROOT/claude-code/skills/verify-impl/SKILL.md"
+}
+
+@test "aa_ma_gate resolves the forge checkout through the install.sh symlink, from another directory" {
+    # The launcher derives --project from readlink -f on its own path. Both
+    # bats files source the in-repo lib directly, so until this case nothing
+    # exercised the symlinked-into-~/.claude shape a consumer actually runs.
+    local fake_home="$WORK/home"; mkdir -p "$fake_home/hooks/lib" "$WORK/elsewhere"
+    ln -s "$HELPER" "$fake_home/hooks/lib/aa-ma-parse.sh"
+    run bash -c "cd '$WORK/elsewhere' && . '$fake_home/hooks/lib/aa-ma-parse.sh' && aa_ma_gate '$FIXDIR/one-active-tasks.md'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"heading=Milestone 2: The one being gated"* ]]
 }

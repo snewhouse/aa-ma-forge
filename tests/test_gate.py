@@ -449,7 +449,7 @@ def test_step_not_found_is_exit_4(tmp_path: Path) -> None:
     )
 
 
-def test_step_requires_milestone_number(tmp_path: Path) -> None:
+def test_step_requires_milestone_number_at_the_api(tmp_path: Path) -> None:
     with pytest.raises(ValueError):
         answer(_write(tmp_path, MODE_DOC), step="1.1")
 
@@ -465,3 +465,94 @@ def test_step_kv_and_json_carry_the_step(
     doc = json.loads(capsys.readouterr().out)
     jsonschema.validate(doc, GATE_JSON_SCHEMA)
     assert doc["step"]["mode"] == "HITL"
+
+
+# --- §6.8 review of M5 (2026-09-11): every false PASS found, as a test ------
+
+
+def test_fence_closed_only_inside_an_html_comment_is_still_unterminated(
+    tmp_path: Path,
+) -> None:
+    """code-reviewer C1: the unterminated check ran on raw text while stripping
+    ran on comment-stripped text, so a ``` inside `<!-- -->` satisfied one and
+    was removed before the other. One scanner now; measured false PASS before."""
+    p = _write(
+        tmp_path,
+        "## Milestone 1: T\n- Status: ACTIVE\n```python\n<!--\n```\n-->\n### Sub-step 1.1: s\n- Status: PENDING\n",
+    )
+    a = answer(p)
+    assert a.exit_code == EXIT_UNREADABLE and any("fence" in e for e in a.errors)
+
+
+@pytest.mark.parametrize("sep", ["\x0c", "\x0b", "\x85", " ", "\x1c"])
+def test_invisible_line_separators_are_refused_not_scanned(
+    tmp_path: Path, sep: str
+) -> None:
+    """security CRITICAL / code-reviewer C2: `str.splitlines()` breaks on these,
+    regexes and renderers do not, so `- Status: ACTIVE<FF>``` opened a fence
+    the reader never saw and hid a PENDING sub-step. Refuse, quoting the line."""
+    p = _write(
+        tmp_path,
+        f"## Milestone 1: T\n- Status: ACTIVE{sep}```\n### Sub-step 1.1: hidden\n- Status: PENDING\n```\n",
+    )
+    a = answer(p)
+    assert a.exit_code == EXIT_UNREADABLE
+    assert any("line 2" in e and "control character" in e for e in a.errors), a.errors
+
+
+def test_duplicate_milestone_numbers_are_ambiguous_in_active_mode(
+    tmp_path: Path,
+) -> None:
+    """security WARNING: `Milestone 1: Foo` and `Milestone 1: Foo bar` have
+    distinct headings, but §7.1's `grep -F "GATE APPROVAL: Milestone 1: Foo"`
+    is satisfied by the other milestone's approval line by prefix."""
+    p = _write(
+        tmp_path,
+        "## Milestone 1: Foo bar\n- Status: COMPLETE\n## Milestone 1: Foo\n- Status: ACTIVE\n",
+    )
+    a = answer(p)
+    assert a.exit_code == EXIT_AMBIGUOUS and any("number '1'" in e for e in a.errors)
+
+
+def test_duplicate_step_numbers_are_ambiguous(tmp_path: Path) -> None:
+    p = _write(
+        tmp_path,
+        "## Milestone 1: T\n- Status: ACTIVE\n### Sub-step 1.1: a\n- Status: COMPLETE\n- Mode: AFK\n### Sub-step 1.1: b\n- Status: COMPLETE\n- Mode: HITL\n",
+    )
+    a = answer(p, number="1", step="1.1")
+    assert a.exit_code == EXIT_AMBIGUOUS and a.step is None
+
+
+def test_non_utf8_and_oversized_files_are_exit_2_with_an_envelope(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    bad = tmp_path / "bin-tasks.md"
+    bad.write_bytes(b"\xff\xfe## Milestone 1: T\n")
+    assert answer(bad).exit_code == EXIT_UNREADABLE
+    big = tmp_path / "big-tasks.md"
+    big.write_bytes(b"## Milestone 1: T\n- Status: ACTIVE\n" + b"x" * (1 << 20))
+    assert answer(big).exit_code == EXIT_UNREADABLE
+    assert main([str(bad), "--format", "kv"]) == 2
+    assert capsys.readouterr().out.startswith("exit_code=2\n")
+
+
+def test_kv_values_never_contain_a_raw_newline(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """code-reviewer W3: error strings embed the path; a path with a newline
+    forged `exit_code=0` / `heading=` lines."""
+    weird = tmp_path / "x\nexit_code=0\nheading=Injected"
+    assert main([str(weird), "--format", "kv"]) == 2
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+    assert sum(ln.startswith("exit_code=") for ln in lines) == 1
+    assert not any(ln.startswith("heading=") for ln in lines)
+    assert "\\n" in out  # escaped, not dropped
+
+
+def test_step_without_milestone_is_a_usage_error(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main([str(ONE), "--step", "1.1"])
+    assert exc.value.code == 2

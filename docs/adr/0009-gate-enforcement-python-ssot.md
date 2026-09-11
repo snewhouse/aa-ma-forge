@@ -24,7 +24,9 @@ being the remediation of the second, with seven of its nine introduced by the
 fixes themselves. Each fix was correct about its target and wrong about the
 input space: tightening the ACTIVE derivation opened an indent bypass;
 tightening Status matching to equality hid the annotated `Status: COMPLETE (…)`
-form the corpus uses 24 times; unifying the H2 predicate opened a bare-`##`
+form (17 line-anchored `- Status: WORD <annotation>` lines across the 30
+tasks.md files in the repo at the time of writing — a historical figure,
+re-measure with `grep -rhE '^[[:space:]]*-[[:space:]]+(\*\*)?Status:?(\*\*)?[[:space:]]+[A-Z_]+[[:space:]]+[^[:space:]]' --include='*tasks.md' .claude/dev tests examples | wc -l`); unifying the H2 predicate opened a bare-`##`
 truncation that hid PENDING sub-steps from three enforcement points; and an
 implicit awk global whose unset value is the empty regex made every line a
 milestone heading with exit 0 and no diagnostic.
@@ -144,8 +146,15 @@ Two contract decisions fell out of the review that follow the same principle:
   boundary. Rule: **file-derived data never crosses into awk via `-v`**, and
   no new awk is added for an enforcing question — add it to `gate.py`.
 - Callers: `/execute-aa-ma-milestone` §5.2 (Mode), §6.7 (preamble + conditions
-  1, 2, 5), §7.1 (reuses `${GATE}`); `verify-impl` Step 1;
-  `plan-verification` Angle 6 check #2.
+  1, 2, 5), §7.1 (asks the gate again — each fence is self-sufficient, because
+  a fence that reads another fence's variables reads them as empty in a fresh
+  shell, which is how the awk gate failed); `verify-impl` Step 1;
+  `plan-verification` Angle 6 check #2. Library resolution is deliberately
+  repeated in each fence for the same reason.
+- **`Critical-Path: hook-modification` now covers `src/aa_ma/{gate,enforce,grammar,plan_parsers}.py`** —
+  the enforcing logic moved there, so a change there is a change to the shipped
+  enforcement surface. `claude-code/rules/engineering-standards.md` §1 updated
+  under this ADR, per that rule's own "plan + ADR" requirement.
 - Contract (18-row form table, exit codes, seven questions):
   `.claude/dev/active/milestone-grammar-ssot/milestone-grammar-ssot-reference.md`
   "M5 enforcement contract", to be archived with the plan.

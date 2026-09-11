@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 
 from aa_ma.grammar import (
+    has_unterminated_fence,
     MILESTONE_RE,
     STEP_RE,
     split_milestones,
@@ -212,3 +213,13 @@ def test_bare_h2_closes_block_and_tab_h2_still_parses() -> None:
     blocks = split_milestones(text)
     assert [(b.number, b.title) for b in blocks] == [("1", "A"), ("2", "B")]
     assert "PENDING" not in blocks[0].text
+
+
+def test_has_unterminated_fence_sees_what_sanitize_sees() -> None:
+    """One fence scanner, one input: a ``` closer that exists only inside an
+    HTML comment does not close the fence, because sanitize removes it."""
+    assert has_unterminated_fence("```python\n<!--\n```\n-->\nx\n")
+    assert not has_unterminated_fence("```python\nx\n```\n")
+    assert not has_unterminated_fence("no fences at all\n")
+    # An invisible separator is not a line end to the scanner either.
+    assert not has_unterminated_fence("- a\x0c```\n- b\n")

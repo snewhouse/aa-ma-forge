@@ -25,7 +25,9 @@ Three deliberate choices:
   title ``alpha:``.
 * Line ends use ``[ \\t]*$``, never ``\\s*$`` — ``\\s`` matches newlines, so
   ``group(0)`` would run past the heading line whenever it has trailing
-  whitespace.
+  whitespace. The title is ``.*[^ \\t]`` rather than ``.+?``: the lazy form
+  was quadratic on a title made of a long whitespace run (20k spaces -> 1 s),
+  and the gate now runs on untrusted input.
 * Milestone and step numbers share one dotted-depth rule. An earlier revision
   capped milestones at a single dot, which silently dropped
   ``## Milestone 3.5.1:``.
@@ -70,13 +72,13 @@ _NUM_M = r"\d+[a-z]?(?:\.\d+)*"
 _NUM_S = r"M?\d+[a-z]?(?:\.\d+)*(?:\.[a-z]{2,}|[a-z])?"
 
 MILESTONE_RE = re.compile(
-    rf"^##[ \t]+(?:Milestone[ \t]+M?|M)(?P<number>{_NUM_M}){_SEP}[ \t]*(?P<title>.+?)[ \t]*$",
+    rf"^##[ \t]+(?:Milestone[ \t]+M?|M)(?P<number>{_NUM_M}){_SEP}[ \t]*(?P<title>.*[^ \t\n])[ \t]*$",
     re.MULTILINE,
 )
 
 STEP_RE = re.compile(
     rf"^###[ \t]+(?:Sub-step|Step|Task)[ \t]+(?P<number>{_NUM_S})"
-    rf"{_SEP}[ \t]*(?P<title>.+?)[ \t]*$",
+    rf"{_SEP}[ \t]*(?P<title>.*[^ \t\n])[ \t]*$",
     re.MULTILINE,
 )
 
@@ -84,8 +86,25 @@ STEP_RE = re.compile(
 _FENCE_RE = re.compile(r"^[ \t]{0,3}(?P<marker>`{3,}|~{3,})")
 
 
-def strip_fenced_blocks(text: str) -> str:
-    """Blank out fenced code blocks so headings inside them are not parsed.
+class FenceScan(NamedTuple):
+    """Result of the one fence state machine every fence-aware reader uses."""
+
+    stripped: str  # input with fenced lines blanked (positions preserved)
+    blocks: list[str]  # contents of each fenced block, in order
+    unterminated: bool  # a fence opened and never closed
+
+
+def _split_lines(text: str) -> list[str]:
+    # `\n` only. `str.splitlines()` also splits on FF, VT, NEL, LS, PS and
+    # FS/GS/RS, which no regex here (`re.MULTILINE` = `\n`) and no markdown
+    # renderer treats as a line end. Measured: `- Status: ACTIVE\x0c```` was
+    # one line to every field regex and two to the fence scanner, which opened
+    # a fence there and hid a PENDING sub-step — a false PASS.
+    return text.split("\n")
+
+
+def scan_fences(text: str) -> FenceScan:
+    """The single CommonMark fence scanner.
 
     Line-oriented, not a ``.*?`` DOTALL regex, for two reasons found in review:
 
@@ -97,51 +116,51 @@ def strip_fenced_blocks(text: str) -> str:
       opener drove a DOTALL scan to EOF. Measured 78 KiB -> 5.15 s through
       ``parse_task_dir``; this scanner is linear.
 
-    Follows CommonMark: a fence closes only on the same character with at least
-    the opening run length, and an unterminated fence runs to end of input.
-    Lines are blanked rather than dropped so line positions are preserved.
+    A fence closes only on the same character with at least the opening run
+    length; an unterminated fence runs to end of input. Lines are blanked
+    rather than dropped so line positions are preserved.
+
+    One scanner, three views (:func:`strip_fenced_blocks`,
+    :func:`iter_fenced_blocks`, :func:`has_unterminated_fence`) — the §6.8
+    review found three copies that could disagree, and one pair did: the
+    gate's unterminated check ran on raw text while stripping ran on
+    comment-stripped text, so a closing ```` ``` ```` inside an HTML comment
+    satisfied the check and was then removed before stripping. False PASS.
     """
     out: list[str] = []
+    blocks: list[str] = []
+    current: list[str] | None = None
     fence: tuple[str, int] | None = None
-    for line in text.splitlines(keepends=True):
+    for line in _split_lines(text):
         match = _FENCE_RE.match(line)
-        blank = "\n" if line.endswith("\n") else ""
         if fence is None:
             if match:
                 marker = match.group("marker")
-                fence = (marker[0], len(marker))
-                out.append(blank)
+                fence, current = (marker[0], len(marker)), []
+                out.append("")
                 continue
             out.append(line)
-        else:
-            char, length = fence
-            if match:
-                marker = match.group("marker")
-                if marker[0] == char and len(marker) >= length:
-                    fence = None
-            out.append(blank)
-    return "".join(out)
-
-
-def has_unterminated_fence(text: str) -> bool:
-    """True when a fence opens and never closes.
-
-    :func:`strip_fenced_blocks` follows CommonMark and lets such a fence run
-    to end of input — correct for rendering, but for a gate it means every
-    heading and field after the opener silently vanishes. Measured to hide a
-    ``Status: PENDING`` sub-step, a false PASS; the gate refuses instead.
-    """
-    fence: tuple[str, int] | None = None
-    for line in text.splitlines():
-        match = _FENCE_RE.match(line)
-        if not match:
             continue
-        marker = match.group("marker")
-        if fence is None:
-            fence = (marker[0], len(marker))
-        elif marker[0] == fence[0] and len(marker) >= fence[1]:
-            fence = None
-    return fence is not None
+        char, length = fence
+        out.append("")
+        if (
+            match
+            and match.group("marker")[0] == char
+            and len(match.group("marker")) >= length
+        ):
+            blocks.append("".join(current or []))
+            fence, current = None, None
+            continue
+        if current is not None:
+            current.append(line + "\n")
+    if current is not None:  # unterminated fence
+        blocks.append("".join(current))
+    return FenceScan("\n".join(out), blocks, fence is not None)
+
+
+def strip_fenced_blocks(text: str) -> str:
+    """Blank out fenced code blocks so headings inside them are not parsed."""
+    return scan_fences(text).stripped
 
 
 def iter_fenced_blocks(text: str) -> list[str]:
@@ -152,30 +171,18 @@ def iter_fenced_blocks(text: str) -> list[str]:
     nothing at all: the §6.8 review mutation-tested this and found 4 of 5 writer
     checks inert, passing green against the exact drift they were added to catch.
     """
-    blocks: list[str] = []
-    current: list[str] | None = None
-    fence: tuple[str, int] | None = None
-    for line in text.splitlines(keepends=True):
-        match = _FENCE_RE.match(line)
-        if fence is None:
-            if match:
-                marker = match.group("marker")
-                fence, current = (marker[0], len(marker)), []
-            continue
-        char, length = fence
-        if (
-            match
-            and match.group("marker")[0] == char
-            and len(match.group("marker")) >= length
-        ):
-            blocks.append("".join(current or []))
-            fence, current = None, None
-            continue
-        if current is not None:
-            current.append(line)
-    if current:  # unterminated fence
-        blocks.append("".join(current))
-    return blocks
+    return scan_fences(text).blocks
+
+
+def has_unterminated_fence(text: str) -> bool:
+    """True when a fence opens and never closes, **as :func:`sanitize` sees it**.
+
+    Runs on comment-stripped text — the same input stripping receives — so the
+    two cannot disagree. For a gate an unterminated fence means every heading
+    and field after the opener silently vanishes; measured to hide a
+    ``Status: PENDING`` sub-step, so the gate refuses instead.
+    """
+    return scan_fences(_strip_html_comments(text)).unterminated
 
 
 def sanitize(text: str) -> str:
@@ -225,7 +232,7 @@ def split_milestones(text: str) -> list[Block]:
 
     Text before the first heading is discarded. A block opens on a milestone
     heading and closes on the **next H2 of any kind** — deliberately
-    asymmetric, and the same rule the bash gate uses. Closing only on the
+    asymmetric, and the same rule the bash display readers use. Closing only on the
     next *milestone* heading let the last milestone absorb a trailing prose
     section such as `## Summary Counts`, whose field-shaped lines then read
     as extra PENDING sub-steps (measured: 3 where 2 exist).

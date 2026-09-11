@@ -29,25 +29,27 @@ inoperative, and had been since they were written:
   form — which the shipped Phase 5 writer emits, and which 22 `Status` and 24
   `Gate` lines in this repo's own corpus use. Those milestones were un-gateable.
 
-Block extraction now lives in one place, `aa_ma_extract_milestone_block()` in
-`claude-code/hooks/lib/aa-ma-parse.sh`, with **distinct exit codes** (0 found /
-1 no match / 2 config error / 3 ambiguous title) and callers that refuse on all
-of them. The old shape treated every failure to read as a clean milestone —
-which is why five separate defects all presented identically.
+The first fix rebuilt these scans as a bash-side milestone-block extractor
+with distinct exit codes. Three post-implementation reviews of that awk found
+8, then 4, then 9 CRITICALs — the remediation round producing more than it
+closed — so the awk was reverted and **enforcement now reads the Python
+SSoT** (see "Gate enforcement reads the Python SSoT" below). The historical
+findings that remain true of the *final* gate are listed here; the old shape
+treated every failure to read as a clean milestone, which is why five separate
+defects all presented identically.
 
 Also fixed in the same surface:
 
 - Headings inside fenced code blocks and **multi-line** HTML comments no longer
-  truncate a milestone block (`_aa_ma_sanitize`). The previous stripper was
+  truncate a milestone block (`grammar.sanitize`). The previous stripper was
   single-line; `docs/templates/tasks-template.md` ships ten multi-line comments.
 - Milestone titles match **exactly**, not by substring — `"Gate scans"` used to
   silently return the block for `"Gate scans and grammar"`, reporting its SOFT
-  gate for a HARD milestone. Duplicate titles now refuse (rc 3) rather than
+  gate for a HARD milestone. Duplicate headings now refuse (exit 3) rather than
   silently picking the first.
 - `verify-impl` keyed its own extractor on `$((N+1))`, a hard bash error for the
   milestone numbers the grammar admits (`2a: value too great for base`; the
-  corpus ships `## Milestone 2a/2b/2c`). It now calls
-  `aa_ma_extract_milestone_block_by_number`.
+  corpus ships `## Milestone 2a/2b/2c`). It now calls `aa-ma-gate --milestone N`.
 - `Critical-Path` / `Prototype-Required` evidence greps are **milestone-scoped**.
   A bare file-wide `grep` meant that once any milestone wrote
   `CRITICAL_PATH_REVIEW`, every later milestone was pre-satisfied. Provenance
@@ -57,15 +59,72 @@ Also fixed in the same surface:
 - `Gate:` values are compared case-insensitively (`- Gate: Hard` no longer
   silently skips the HARD gate).
 
-**New public API.** `AA_MA_MILESTONE_ERE`, `aa_ma_is_milestone_heading`,
-`aa_ma_extract_milestone_block`, `aa_ma_extract_milestone_block_by_number`,
-`aa_ma_field_value`, `aa_ma_count_field` (shell); `parse_critical_path` and
+**New public API.** `AA_MA_MILESTONE_ERE` (shell; used by the display readers
+only, pinned to `grammar.py::MILESTONE_RE` by `tests/test_grammar_parity.py`
+under every awk on the host); `parse_critical_path` and
 `CANONICAL_CRITICAL_PATHS` (Python) — the latter now actually invoked by
 `plan-verification` Angle 6 check #2, which had been eyeballing the list.
+The bash extractors and field readers added by the first fix
+(`aa_ma_extract_milestone_block`, `_by_number`, `aa_ma_field_value`,
+`aa_ma_count_field`, `aa_ma_is_milestone_heading`, `aa_ma_active_milestone_strict`)
+were removed again before release — see below.
 
-`tests/test_grammar_parity.py` pins the shell ERE against
-`grammar.py::MILESTONE_RE` across the corpus and an edge-case table, under every
-awk on the host — the two were called mirrors with nothing checking.
+### Feat — gate enforcement reads the Python SSoT (ADR-0009)
+
+- **`src/aa_ma/gate.py` + console script `aa-ma-gate`** answer every question
+  the `/execute-aa-ma-milestone` §6.7/§7.1 gate, its §5.2 Mode dispatch and
+  `verify-impl` ask: which milestone is ACTIVE (its exact heading), how many
+  sub-steps are PENDING, `Gate:`, `Critical-Path:`, `Prototype-Required:`,
+  `Audit-Profile:` by milestone number, and a sub-step's resolved `Mode:`.
+  JSON (`--format json`, schema `aa-ma-gate/1`) or `key=value` lines for shell
+  (`--format kv`). **Exit codes fail closed**: 0 one ACTIVE and every field
+  readable · 1 no ACTIVE · 2 unreadable (missing file, unclosed fence, any
+  invalid field, sub-step outside every milestone) · 3 ambiguous (2+ ACTIVE,
+  duplicate heading/number) · 4 requested milestone/step not found.
+- **`src/aa_ma/enforce.py`** — strict field reads (`FieldRead`,
+  `read_enforced_field`, `read_milestone_status`, `read_step_status`). Where
+  the TUI parser *defaults* on anything it cannot read (`Gate: TYPO` → SOFT,
+  `Mode: TYPO` → AFK, `Status: COMPLETE (2026-05-09, …)` → PENDING), these
+  reads either return a canonical value or refuse, quoting the line. Values
+  are normalised once (leading token, bold stripped, case-folded), so
+  `- Gate: hard`, `- Status: **ACTIVE**` and annotated statuses read their
+  intent; asterisk bullets, NBSP and empty values are found and refused rather
+  than reported absent. Step statuses admit `SKIPPED` and `DEFERRED`, which the
+  command itself writes.
+- **`grammar.split_milestones` closes a block on any H2**, not only the next
+  milestone heading. A trailing `## Summary Counts` section with field-shaped
+  lines was absorbed into the last milestone (measured: 3 PENDING where 2
+  exist). Repo corpus `--json` output is unchanged; `schema_version` stays 2.
+  New `grammar.has_unterminated_fence`.
+- **`aa-ma-parse.sh` keeps display readers only.** `aa_ma_gate` (launcher —
+  returns 127 with a BLOCKED line when `uv` is absent or the tool does not
+  start; never a silent skip) and `aa_ma_gate_field` are the only enforcing
+  entry points. The library header states the tolerant/strict boundary.
+- `/execute-aa-ma-milestone`: gate condition 1 (dirty AA-MA files) was
+  `# HALT`, a comment — it printed BLOCKED and then PASS with exit 0. Now
+  `exit 1`. §5.2 Mode dispatch is an executable fence that refuses an
+  unrecognised `Mode:` instead of dispatching it unattended.
+- `plan-verification` Angle 6 check #2 piped an undefined `$MILESTONE_BLOCK`
+  into `parse_critical_path`, which read an empty block as OK. Now a gate call.
+- `tests/hooks/aa-ma-gate-python.bats` **executes the shipped fences** against
+  fixtures (two ACTIVE, none, PENDING, missing review entry, `Gate: TYPO`,
+  backslash titles, dirty tree, `uv` missing); `tests/test_gate.py` and
+  `tests/test_gate_parity.py` drive every row of the enforcement contract
+  through the gate and the primitive it is built on.
+- Dev dependency: `jsonschema` (already transitive) declared for the schema test.
+
+### Security — untrusted tasks.md titles no longer reach session context unescaped
+
+- `aa-ma-session-start.sh` interpolated the milestone/step title **and the task
+  directory name** from `tasks.md` into the hidden `AA-MA ACTIVE:` context line
+  with no control-character stripping, `]` escaping or length cap, so a cloned
+  repo could forge a second well-formed directive at session start, before the
+  user typed anything. Display fields are now rewritten (control characters
+  stripped, brackets neutralised, truncated by character not byte, our own
+  directive vocabulary scrubbed case-insensitively); the file path is emitted
+  verbatim or not at all, since a sanitised path cites a file that does not
+  exist. ~120 characters of attacker prose can still reach the model; removing
+  that means not echoing untrusted titles at all.
 
 ### Fix — `/sole-dev-merge` Stage C no longer reports a clean scan it did not perform
 

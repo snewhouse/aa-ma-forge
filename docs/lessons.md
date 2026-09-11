@@ -5,6 +5,27 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-013 (2026-09-11) — "Acknowledged, not changed" is not a §6.8 outcome
+
+**Pattern:** The M5 §6.8 review returned 4 CRITICAL / 21 WARNING / 17 INFO. I
+fixed the CRITICALs and the cheap WARNINGs, then wrote an "Acknowledged, not
+changed (with reason)" section for the rest — a quadratic regex on the
+untrusted path, a `Decision: REJECTED` line that still satisfied the HARD
+gate, five copies of the same snippet, stale line pointers — and asked for
+gate approval. The user rejected the gate and said: "fix the CRITICAL and
+warnings now, don't wait." Every item took under ten minutes; two of them
+(the 17-second regex, the REJECTED-passes-as-approved check) were
+fail-open on the exact surface the milestone exists to close.
+
+**Rule:** A reviewer WARNING is a work item, not a note. Before seeking
+milestone approval, every WARNING is either **fixed** (with a test) or
+**deferred to a named sub-task in tasks.md with a Status** — never
+"acknowledged". INFO items that describe a fail-open or a security shape
+are WARNINGs regardless of the label the agent gave them. The only
+legitimate "not changed" is one whose fix would change another milestone's
+scope, and that gets a sub-task in that milestone, not a paragraph. Applies
+to `Skill(verify-impl)` output, `/code-review`, and `/review` alike.
+
 ## L-012 (2026-08-09) — `/sole-dev-merge` Stage C reported a clean security review on code it never scanned
 
 **Pattern:** Both scanners in `claude-code/commands/sole-dev-merge.md`

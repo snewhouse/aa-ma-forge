@@ -45,6 +45,19 @@ rejected by `Skill(plan-verification)`. Add new values via plan + ADR.):
 | `doc-count-drift`  | Hardcoded counts in docs (Tier 6 detector domain)                   |
 | `hook-modification`| Changes to the shipped enforcement surface: `claude-code/hooks/**` (incl. `lib/`), the gate/scan logic inside `claude-code/commands/**` and `claude-code/skills/**`, and the Python the gate reads — `src/aa_ma/{gate,enforce,grammar,plan_parsers}.py` (ADR-0009) (affect all sessions) |
 
+**Diagram-Waiver canonical values** (plan-level front-matter; planning-time only —
+read by `Skill(plan-verification)`, never by the milestone gate; novel values are
+rejected):
+
+| Value          | Meaning                                                                  |
+|----------------|--------------------------------------------------------------------------|
+| `none`         | Architecture View present (default when the field is absent)             |
+| `docs-only`    | No milestone touches `src/`, `claude-code/hooks/`, or CI                  |
+| `config-only`  | `pyproject.toml` / CI / dotfiles only                                     |
+| `single-file`  | Exactly one non-test file changes; a diagram would have one node          |
+
+A waiver is invalid when any milestone declares `Audit-Profile ∈ {full, code-only, infra}`.
+
 ### 2. Development Principles
 
 - **TDD** — write failing tests before implementation; cover happy path, edge
@@ -83,6 +96,10 @@ rejected by `Skill(plan-verification)`. Add new values via plan + ADR.):
   without scan results.
 - **Avoid repeated mistakes** — same scan; declare relevance in element #12 of
   the plan output.
+- **Diagram maintenance is part of the change** — when a step changes a file
+  named in the Architecture View, update the View in the same commit; stale
+  diagrams mislead more than absent ones (`aa-ma-lint-views`, M2 of
+  plan-architecture-views, reports `STALE_PATH`).
 - **Incremental validation** — verify each step before proceeding. The
   `aa-ma-commit-drift.sh` post-commit hook (advisory) flags drift between code
   and AA-MA artifacts; the milestone HARD gate refuses COMPLETE while git is

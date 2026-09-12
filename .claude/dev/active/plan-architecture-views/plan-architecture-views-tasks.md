@@ -22,9 +22,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 1.2: engineering-standards.md — Diagram-Waiver canonical table + maintenance rule
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. Diagram-Waiver table (4 values) inserted at engineering-standards.md:48 before §2; diagram-maintenance bullet at :99 in §4. `tests/codemem/test_critical_path_parser.py` 14 passed (table scrape is a subset check, second table is harmless).
 
 ### Sub-step 1.3: plan-template.md — add §12 (stale fix) and §13, Contract example
 

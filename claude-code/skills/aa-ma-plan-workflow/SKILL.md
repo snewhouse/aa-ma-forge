@@ -62,7 +62,7 @@ Phase 2: Structured Thinking    → Brainstorming + Gate 1 validation
     ↓
 Phase 3: Research & Docs        → Context7 MCP + parallel agents + Gate 2
     ↓
-Phase 4: Plan Generation        → AA-MA standard (12 elements) + Gate 3
+Phase 4: Plan Generation        → AA-MA standard (13 elements) + Gate 3
     ↓
 Phase 4.5: Adversarial Verify   → 6-angle verification + Gate 3.5
     ↓
@@ -219,14 +219,14 @@ See `references/PHASE_3_RESEARCH.md` for details.
 
 ## Phase 4: Plan Generation
 
-**Objective:** Generate comprehensive plan with all 12 AA-MA elements.
+**Objective:** Generate comprehensive plan with all 13 AA-MA elements.
 
 **Skills:** `complexity-router`, deep architectural review (if ≥80%)
 
 **Steps:**
 1. Check complexity (trigger deep architectural review if ≥80%)
 2. Invoke write-plan skill (or fallback prompt)
-3. Ensure all 11 AA-MA elements present
+3. Ensure all 13 AA-MA elements present
 4. Score plan quality (must be ≥70%)
 5. **Pass Gate 3** before proceeding
 
@@ -412,7 +412,7 @@ All commits while AA-MA plan is active MUST include:
 ### Phase 4
 - [ ] Complexity routing checked
 - [ ] Senior-architect if ≥80%
-- [ ] All 12 elements present
+- [ ] All 13 elements present
 - [ ] Quality score ≥70%
 - [ ] **Gate 3 passed**
 

@@ -6,7 +6,7 @@ Starter templates for every file in the AA-MA (Advanced Agentic Memory Architect
 
 | File | AA-MA Role | Standard / Optional | Description |
 |------|-----------|---------------------|-------------|
-| `plan-template.md` | `[task]-plan.md` | Standard | Strategy, rationale, high-level constraints, all 11 planning elements |
+| `plan-template.md` | `[task]-plan.md` | Standard | Strategy, rationale, high-level constraints, all 13 planning elements |
 | `reference-template.md` | `[task]-reference.md` | Standard | Immutable facts: APIs, file paths, config, dependencies, constants |
 | `context-log-template.md` | `[task]-context-log.md` | Standard | Decision history, trade-offs, compaction summaries, gate approvals |
 | `tasks-template.md` | `[task]-tasks.md` | Standard | HTP execution roadmap with milestones, sub-steps, and state tracking |

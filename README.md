@@ -97,7 +97,7 @@ At a glance:
 
 "We'll figure it out as we go" is how projects die. Every AA-MA plan ships with a rollback strategy, risk register, and acceptance criteria you could turn into test assertions.
 
-The `/aa-ma-plan` command produces structured plans with **12 mandatory outputs**:
+The `/aa-ma-plan` command produces structured plans with **13 mandatory outputs**:
 
 1. Executive summary
 2. Stepwise implementation plan
@@ -110,6 +110,8 @@ The `/aa-ma-plan` command produces structured plans with **12 mandatory outputs*
 9. Effort estimates with complexity scores
 10. Top 3 risks per milestone
 11. The concrete next action
+12. Engineering Standards Declaration
+13. Architecture View — mermaid Component view (Flow view when a `Critical-Path:` is declared) plus a pinned Contract block per code milestone
 
 If you can't write a pytest assertion from the acceptance criteria, they're not specific enough.
 

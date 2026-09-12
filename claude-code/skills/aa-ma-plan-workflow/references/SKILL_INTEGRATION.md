@@ -254,7 +254,7 @@ Returns: Reviewed plan, recommendations
 Trigger: Always (after plan generation)
 
 Evaluate inline:
-  - Completeness (all 11 AA-MA elements present)
+  - Completeness (all 13 AA-MA elements present)
   - Testability (acceptance criteria are falsifiable)
   - Specificity (no vague steps or banned terms)
   - Achievability (realistic scope for estimated effort)

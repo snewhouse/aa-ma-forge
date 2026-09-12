@@ -40,9 +40,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 1.5: PHASE_4, aa-ma-plan command, scribe and all 29 element-count sites — 13 elements everywhere
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. Gate grep re-run at HEAD: 29 hits → edited 14 files (assert-guarded replacements) → **0 hits**. Item 13 added to every enumerated list (rules/aa-ma.md inline list + v0.12.0 grandfathering paragraph, PHASE_4 + mermaid-notation note, aa-ma-plan.md ×2 + Step 5.3 pointer-line bullet, scribe list + extraction rule, validator Dimension 2 item 13 + severity 12-13 + /13, validation-checklist items 12-13, README items 12-13 — README previously said 12 but listed 11). `uv run pytest -q` 973 passed.
 
 ### Sub-step 1.6: plan-verification Angle 6 — checks #6 and #7 (hook-modification surface)
 

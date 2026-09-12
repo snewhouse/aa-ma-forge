@@ -62,12 +62,12 @@ Skill: superpowers:writing-plans
 Pass to skill:
 - Refined requirements from Phase 2
 - Research findings from Phase 3
-- AA-MA Planning Standard requirements (12 elements above)
+- AA-MA Planning Standard requirements (13 elements above)
 - Project context and constraints
 
 The skill will:
 - Generate structured implementation plan
-- Ensure all 12 elements present
+- Ensure all 13 elements present
 - Create hierarchical milestone structure
 - Define clear acceptance criteria
 - Identify risks and rollback strategies
@@ -138,7 +138,7 @@ CONTEXT:
 - Research: [findings from Phase 3]
 - Constraints: [known limitations]
 
-Provide ALL 12 required elements:
+Provide ALL 13 required elements:
 
 1. Executive summary (≤3 lines)
 2. Ordered stepwise implementation plan
@@ -154,6 +154,9 @@ Provide ALL 12 required elements:
     - Include **cascade risks** for shared/core module changes
 11. ONE Next action (what to do first) + which AA-MA file(s) to update
 12. Engineering Standards Declaration (themes from `claude-code/rules/engineering-standards.md` that materially apply, with one-sentence rationale per theme — captured in Phase 2 Step 2.4)
+13. Architecture View (mermaid Component view; Flow view iff `Critical-Path:` present; or a canonical `Diagram-Waiver`) and a `#### Contract` block per milestone with `Audit-Profile ∈ {full, code-only, infra}`
+
+Notation: mermaid is the canonical View. If Phase 4.2 plan-eng-review proposes ASCII diagrams, keep them as illustration; §13 must stay mermaid.
 
 Format in Markdown. Structure with:
 - ## for Milestones
@@ -190,7 +193,7 @@ When generating plan steps, apply these design constraints with actionable trigg
 **Score plan quality using this checklist:**
 
 Evaluate on:
-- Completeness (all 12 elements present)
+- Completeness (all 13 elements present)
 - Testability (acceptance criteria are verifiable)
 - Specificity (no vague steps)
 - Achievability (realistic scope)
@@ -254,7 +257,7 @@ PHASE 4 COMPLETE: Plan Generated
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✓ [N] implementation steps
 ✓ [N] milestones defined
-✓ All 11 AA-MA elements present
+✓ All 13 AA-MA elements present
 ✓ Acceptance criteria clear and testable
 ✓ Rollback strategies included
 ✓ [N] high-complexity steps flagged (≥80%)
@@ -272,7 +275,7 @@ PHASE 4 COMPLETE: Plan Generated
   - [ ] Deep reasoning documented
 - [ ] Planning skill invoked (or fallback used)
 - [ ] Plan generated in Markdown format
-- [ ] All 11 AA-MA elements validated as present
+- [ ] All 13 AA-MA elements validated as present
 - [ ] Plan quality scored (>= 70% required)
 - [ ] Acceptance criteria testable and specific
 - [ ] Complexity ≥80% steps flagged

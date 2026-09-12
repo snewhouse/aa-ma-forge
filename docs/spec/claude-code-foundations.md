@@ -72,7 +72,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 
 | Command | Purpose |
 |---------|---------|
-| `/aa-ma-plan` | Create detailed AA-MA plan with 12 mandatory outputs |
+| `/aa-ma-plan` | Create detailed AA-MA plan with 13 mandatory outputs |
 | `/execute-aa-ma-milestone` | Execute milestone with HITL/AFK mode dispatch and validation |
 | `/execute-aa-ma-full` | Execute complete plan from current position |
 | `/execute-aa-ma-step` | Execute single task with lightweight validation |
@@ -147,7 +147,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 ### Operational protocols
 
 - **Sync discipline** -- mark complete, extract facts, document decisions, commit+push after every task
-- **Planning standard** -- 12 mandatory outputs per plan
+- **Planning standard** -- 13 mandatory outputs per plan
 - **Commit signatures** -- `[AA-MA Plan] {task-name} .claude/dev/active/{task-name}`
 - **HITL/AFK task execution modes** -- human-in-the-loop vs autonomous dispatch per task
 - **HARD/SOFT milestone gate classification** -- artifact-enforced vs convention-based approval gates

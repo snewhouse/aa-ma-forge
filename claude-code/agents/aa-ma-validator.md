@@ -43,9 +43,9 @@ Check that all 5 required files exist and are non-empty:
 - File exists but empty (0 lines) → FAIL
 - File exists but below minimum lines → WARN
 
-### Dimension 2: Plan Completeness (12 AA-MA Elements)
+### Dimension 2: Plan Completeness (13 AA-MA Elements)
 
-Verify `[task]-plan.md` contains all 12 required elements:
+Verify `[task]-plan.md` contains all 13 required elements:
 
 1. **Executive summary** — Look for "Executive Summary" heading or ≤3 line overview
 2. **Ordered steps** — Look for numbered steps or milestone headings
@@ -59,9 +59,10 @@ Verify `[task]-plan.md` contains all 12 required elements:
 10. **Risks & mitigations** — Look for "Risk" section with mitigations
 11. **Next action** — Look for "Next Action" or "Next Step" section
 12. **Engineering Standards Declaration** — Look for "Engineering Standards Declaration" section listing themes from `claude-code/rules/engineering-standards.md` that materially apply (skip for plans `Created:` pre-v0.5.0 — grandfathered)
+13. **Architecture View** — Look for a `## 13. Architecture View` section with a `### Component view` mermaid fence (plus `### Flow view` when any milestone carries `Critical-Path:`), OR front-matter `**Diagram-Waiver:** <none|docs-only|config-only|single-file>`; and a `#### Contract` heading + fenced block under every milestone with `Audit-Profile ∈ {full, code-only, infra}` (skip for plans `Created:` before 2026-09-11 — grandfathered)
 
 **Severity:**
-- Element completely missing → FAIL (for elements 1-4, 11) or WARN (for elements 5-10, 12)
+- Element completely missing → FAIL (for elements 1-4, 11) or WARN (for elements 5-10, 12-13)
 - Element 12 missing on plan `Created:` < v0.5.0 release date → SKIP (grandfathering)
 - Element present but vague → WARN
 
@@ -143,7 +144,7 @@ Timestamp: [YYYY-MM-DD HH:MM]
    ✓ Rollback strategies    — PASS
    ...
    ✓ Engineering Standards Declaration — PASS (or SKIP if grandfathered)
-   Score: [N]/12 elements present
+   Score: [N]/13 elements present
 
 3. REFERENCE COMPLETENESS
    ✓ Facts extracted: [N] sections with content

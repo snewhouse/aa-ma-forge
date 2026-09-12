@@ -39,7 +39,7 @@ Write the complete plan with this structure:
 [3 lines max from plan]
 
 ## Implementation Steps
-[Full plan content with all 11 AA-MA elements:
+[Full plan content with all 13 AA-MA elements:
  1. Executive summary
  2. Ordered stepwise implementation plan
  3. Milestones with measurable goals
@@ -50,7 +50,9 @@ Write the complete plan with this structure:
  8. Dependencies & assumptions
  9. Effort estimates & complexity (0-100%)
  10. Risks & mitigations (top 3 per milestone)
- 11. Next action]
+ 11. Next action
+ 12. Engineering Standards Declaration
+ 13. Architecture View + Contract blocks (mermaid fences copied verbatim; never reflowed)]
 
 ## Next Action
 [Specific first step from plan]
@@ -91,6 +93,7 @@ _Last Updated: [YYYY-MM-DD HH:MM]_
 - Configuration: any `KEY=value` pattern or env var reference
 - Dependencies: any `package==version` or `package>=version` pattern
 - Constants: any numeric threshold or limit mentioned as a design decision
+- Pointer line: `Architecture View: see plan.md §13` (or `Architecture View: waived (<value>)` when the plan carries a `Diagram-Waiver`)
 
 **Temporal validity markers (apply to all extracted facts):**
 - Add `[valid: YYYY-MM-DD]` to each fact using today's date (the date of extraction)
@@ -234,7 +237,7 @@ Then mark your task as completed via TaskUpdate.
 
 Before reporting completion, verify:
 - [ ] All 5 files exist and are non-empty
-- [ ] plan.md contains all 11 AA-MA elements
+- [ ] plan.md contains all 13 AA-MA elements
 - [ ] reference.md has at least one fact extracted per non-empty category
 - [ ] context-log.md has initial context entry with decisions
 - [ ] tasks.md has correct HTP structure (## for milestones, ### for steps)

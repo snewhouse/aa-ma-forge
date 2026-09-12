@@ -61,7 +61,7 @@
 
 ### plan.md
 - [ ] Executive summary ≤ 3 lines
-- [ ] All 11 AA-MA elements present:
+- [ ] All 13 AA-MA elements present:
   1. [ ] Executive summary
   2. [ ] Ordered implementation steps
   3. [ ] Milestones with goals
@@ -73,6 +73,8 @@
   9. [ ] Effort estimates & complexity
   10. [ ] Risks & mitigations (top 3 per milestone)
   11. [ ] Next action identified
+  12. [ ] Engineering Standards Declaration
+  13. [ ] Architecture View (mermaid Component view; Flow view iff `Critical-Path:`) or canonical `Diagram-Waiver`; `#### Contract` block per code milestone
 
 ### reference.md
 - [ ] All API endpoints extracted

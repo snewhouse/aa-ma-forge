@@ -442,7 +442,7 @@ Pass to skill:
 - Research findings from Phase 3
 - AA-MA Planning Standard requirements (from CLAUDE.md)
 
-Ensure plan includes ALL 12 required elements:
+Ensure plan includes ALL 13 required elements:
 1. Executive summary (≤3 lines)
 2. Ordered stepwise implementation plan
 3. Milestones with measurable goals
@@ -455,11 +455,12 @@ Ensure plan includes ALL 12 required elements:
 10. Risks (top 3) and mitigations per milestone
 11. Next action (what to do first)
 12. Engineering Standards Declaration (which themes from `claude-code/rules/engineering-standards.md` materially apply, with one-sentence rationale per theme — captured in Phase 2 Step 2.4)
+13. Architecture View (mermaid Component view; Flow view iff `Critical-Path:` present; or a canonical `Diagram-Waiver`) and a `#### Contract` block per milestone with `Audit-Profile ∈ {full, code-only, infra}`
 
 **Step 4.3: Validate Plan Completeness**
 
 Check generated plan against AA-MA standard:
-- [ ] Contains all 12 required elements
+- [ ] Contains all 13 required elements
 - [ ] Steps have clear acceptance criteria
 - [ ] Complexity ≥80% steps are flagged
 - [ ] Rollback strategy defined for risky changes
@@ -490,6 +491,7 @@ Provide:
 10. Risks (top 3) + mitigations
 11. ONE Next action + which AA-MA file(s) to update
 12. Engineering Standards Declaration (themes from claude-code/rules/engineering-standards.md that materially apply; one-sentence rationale each)
+13. Architecture View + Contract blocks (mermaid; spec §XI item 13)
 
 Format in Markdown for direct insertion into [task]-plan.md
 ```
@@ -675,7 +677,7 @@ Write the generated plan from Phase 4:
 [3-line overview from plan]
 
 ## Implementation Steps
-[Full plan content with all 12 elements]
+[Full plan content with all 13 elements]
 
 ## Next Action
 [Specific first step from plan]
@@ -697,6 +699,7 @@ Parse the plan for immutable facts and write to reference:
 - Library versions
 - Database schemas
 - Model paths
+- Append the pointer line `Architecture View: see plan.md §13` (or `Architecture View: waived (<value>)`)
 
 _Last Updated: [date]_
 ```

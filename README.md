@@ -16,7 +16,7 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-**Current version:** v0.11.0 — see [CHANGELOG.md](CHANGELOG.md): the milestone gate now reads the Python SSoT and actually refuses (ADR-0009), plus the `/sole-dev-merge` PR/MR workflow (ADR-0008).
+**Current version:** v0.12.0 — plans carry a mermaid Architecture View (element #13, ADR-0010) checked by `aa-ma-lint-views`, shared with `/aa-ma-share`, rendered by `aa-ma-render`; releases are cut by `scripts/release.sh`.
 
 ## The problem
 

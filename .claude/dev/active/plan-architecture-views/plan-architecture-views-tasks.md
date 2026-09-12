@@ -65,7 +65,7 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ## Milestone 2: Lint — Diagram-Waiver parser, mermaid structural lint, aa-ma-lint-views
 
-- Status: PENDING
+- Status: ACTIVE
 - Gate: HARD
 - Mode: AFK
 - Dependencies: Milestone 1; milestone-grammar-ssot M5 merged (grammar.split_milestones trailing-H2 fix; aa_ma.enforce / aa_ma.gate exist)
@@ -76,9 +76,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 2.1: RED — parse_diagram_waiver
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. `tests/codemem/test_diagram_waiver_parser.py` written (15 cases: 4×2 canonical forms, 5 rejections, absent, backtick-wrapped). RED confirmed: `ImportError: cannot import name 'CANONICAL_DIAGRAM_WAIVERS'`.
 
 ### Sub-step 2.2: GREEN — parser
 

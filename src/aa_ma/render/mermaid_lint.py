@@ -45,8 +45,12 @@ PARSE_ERROR_SIGNATURES: tuple[str, ...] = ("Parse error on line", "UnknownDiagra
 
 _SECTION_RE = re.compile(r"^## (?:13\.?[ \t]+)?Architecture View[ \t]*$", re.M)
 _VIEW_RE = re.compile(r"^### (Component|Flow|Data/State) view[ \t]*$", re.M)
-_FENCE_RE = re.compile(r"^```mermaid[ \t]*\n(.*?)^```[ \t]*$", re.M | re.S)
-_LABEL_RE = re.compile(r"\[([^\]]*)\]")
+_FENCE_LINE_RE = re.compile(
+    r"^[ \t]{0,3}(`{3,}|~{3,})[ \t]*([^`\s]*)"
+)  # CommonMark opener/closer
+_MAX_TOKEN = (
+    256  # PATH_MAX-ish: _PATH_RE only sees a bounded token, so it cannot go quadratic
+)
 # exemption survives shape punctuation: [("x (new)")]
 _NEW_RE = re.compile(r"\(new\)\W*$")
 # lines a fence may open with before the diagram type: %% directives, --- front-matter
@@ -123,17 +127,79 @@ def _views(
     return out
 
 
+def _labels(line: str) -> list[str]:
+    """`[...]` labels via str.find — linear on a hostile line of 200 000 `[` where a
+    `\\[([^\\]]*)\\]` regex re-scanned to EOL from every opener (measured quadratic)."""
+    out: list[str] = []
+    i = line.find("[")
+    while i >= 0:
+        j = line.find("]", i + 1)
+        if j < 0:
+            break
+        out.append(line[i + 1 : j])
+        i = line.find("[", j + 1)
+    return out
+
+
+def _inside(repo_root: Path, rel: str) -> bool:
+    """A label path is a claim about *this* repo. Absolute paths and `..` would otherwise
+    turn the existence check into an oracle for arbitrary host files."""
+    try:
+        return (repo_root / rel).resolve().is_relative_to(repo_root.resolve())
+    except OSError:
+        return False
+
+
 def _stale_paths(src: str, repo_root: Path) -> list[tuple[int, str]]:
     """Path claims per [label]; a label ending in '(new)' is exempt, other labels on the line are not."""
     hits: list[tuple[int, str]] = []
     for ln, line in enumerate(src.splitlines(), start=1):
-        for label in _LABEL_RE.findall(line):
+        for label in _labels(line):
             if _NEW_RE.search(label):
                 continue
-            # [/x/] is a shape; a leading "/" would otherwise resolve from the filesystem root
-            paths = (q.lstrip("/") for q in _PATH_RE.findall(label))
-            hits += [(ln, q) for q in paths if not (repo_root / q).exists()]
+            for token in label.split():
+                if len(token) > _MAX_TOKEN:
+                    continue
+                for q in _PATH_RE.findall(token):
+                    # [/x/] is a shape; a leading "/" would otherwise resolve from the fs root
+                    q = q.lstrip("/")
+                    if not _inside(repo_root, q) or not (repo_root / q).exists():
+                        hits.append((ln, q))
     return hits
+
+
+def _mermaid_fences(body: str) -> list[tuple[int, str]]:
+    """(1-based line of first content line, source) per ```mermaid fence, one linear pass.
+
+    Mirrors the CommonMark rule in grammar.scan_fences (closer = same char, >= opener
+    length, no info string) rather than calling it: scan_fences returns block contents
+    but not their info strings or positions, and a lazy `^```mermaid\\n(.*?)^```` regex
+    re-scanned to EOF from every unclosed opener (measured 14.5 s at 18 000 openers).
+    """
+    lines = body.split("\n")
+    out: list[tuple[int, str]] = []
+    i = 0
+    while i < len(lines):
+        m = _FENCE_LINE_RE.match(lines[i])
+        if not m:
+            i += 1
+            continue
+        marker, info = m.group(1), m.group(2)
+        j = i + 1
+        while j < len(lines):
+            c = _FENCE_LINE_RE.match(lines[j])
+            if (
+                c
+                and c.group(1)[0] == marker[0]
+                and len(c.group(1)) >= len(marker)
+                and not c.group(2)
+            ):
+                break
+            j += 1
+        if info == "mermaid":
+            out.append((i + 2, "\n".join(lines[i + 1 : j])))
+        i = j + 1
+    return out
 
 
 def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintReport:
@@ -188,10 +254,7 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
     sources: list[str] = []
     for name, (idx, body) in views.items():
         vline = base + idx + 1
-        fences = [
-            (_line(body, fm.start(1)), fm.group(1)) for fm in _FENCE_RE.finditer(body)
-        ]
-        fences = [(ln, src) for ln, src in fences if src.strip()]
+        fences = [(ln, src) for ln, src in _mermaid_fences(body) if src.strip()]
         if not fences:
             out.append(
                 Finding(
@@ -208,7 +271,7 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
                     Finding(
                         "UNKNOWN_TYPE",
                         vline,
-                        f"{name} view: unknown diagram type '{first_word}'",
+                        f"{name} view: unknown diagram type {first_word!r}",
                     )
                 )
             out += [

@@ -88,9 +88,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 2.3: RED — structural lint fixtures and tests
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. `tests/render/{__init__,conftest}.py`, 17 fixtures derived programmatically from `plan_ok.md` (real `### Milestone` form), `test_mermaid_lint.py` (20 cases). RED confirmed: `ModuleNotFoundError: No module named 'aa_ma.render'`.
 
 ### Sub-step 2.4: GREEN — mermaid_lint.py
 

@@ -76,6 +76,24 @@ jobs:
       # C3 has the same contract as C4 and the same failure mode. bandit is not
       # a declared dependency of this repo, so nothing else in this job installs
       # it, yet test_smoke_e2e.bats asserts a real B602 finding.
+      # aa-ma-gate-python.bats (milestone-grammar-ssot M5) drives the shipped §6.7/§7.1
+      # fences, which call `uv run --project <root> aa-ma-gate`. Without uv the
+      # launcher returns 127 and 17 cases fail — the job had been red since 2026-09-11.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv and sync deps (aa-ma-gate is a project script)
+        run: pip install uv && uv sync
+
+      # The shipped fences and their tests call bare `ruff`, `aa-ma-gate`, `cz` the way a
+      # developer shell resolves them; expose the synced venv the same way.
+      - name: Put the project venv on PATH
+        run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Verify project tools are runnable
+        run: aa-ma-gate --help >/dev/null && ruff --version && cz version
+
       - name: Install bandit (required by Stage C / C3)
         run: command -v bandit || pipx install bandit || pip install bandit
 

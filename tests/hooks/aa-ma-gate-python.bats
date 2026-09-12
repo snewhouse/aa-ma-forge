@@ -21,7 +21,13 @@ setup() {
     MILESTONE_CMD="${REPO_ROOT}/claude-code/commands/execute-aa-ma-milestone.md"
     FIXDIR="${BATS_TEST_DIRNAME}/fixtures/gate-scans"
     WORK="$(mktemp -d "${BATS_TMPDIR}/gate-py.XXXXXX")"
-    export REPO_ROOT HELPER MILESTONE_CMD FIXDIR WORK
+    # The fences resolve the lib from the git toplevel, else ${CLAUDE_HOME:-~/.claude}.
+    # Fence tests run from a non-git temp dir, so give them a CLAUDE_HOME that holds the
+    # in-repo lib — otherwise they pass only on a machine that ran install.sh (CI had
+    # been red on exactly this since the file landed).
+    CLAUDE_HOME="$WORK/claude-home"
+    mkdir -p "$CLAUDE_HOME/hooks/lib" && ln -s "$HELPER" "$CLAUDE_HOME/hooks/lib/aa-ma-parse.sh"
+    export REPO_ROOT HELPER MILESTONE_CMD FIXDIR WORK CLAUDE_HOME
 }
 
 teardown() {
@@ -279,7 +285,7 @@ _approval_fence() {
 
 _run_approval() {  # <cwd> <task-name>
     _approval_fence > "$WORK/approval.sh"
-    (cd "$1" && env -i PATH="$PATH" HOME="$HOME" TASK_NAME="$2" bash "$WORK/approval.sh")
+    (cd "$1" && env -i PATH="$PATH" HOME="$HOME" CLAUDE_HOME="$CLAUDE_HOME" TASK_NAME="$2" bash "$WORK/approval.sh")
 }
 
 @test "§7.1 fence: HARD gate with no approval artifact -> BLOCKED, in a fresh shell" {

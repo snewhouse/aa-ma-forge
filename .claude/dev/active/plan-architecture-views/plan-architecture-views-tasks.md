@@ -174,9 +174,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 4.2: RED — render tests + golden
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. Created tests/render/test_html.py (7 tests, verbatim plan contract). `uv run pytest tests/render/test_html.py` → collection error `ModuleNotFoundError: No module named 'aa_ma.render.html'` (RED confirmed). Golden tests/golden/render_plan_ok.html deliberately absent until 4.3 freezes the first eyeballed GREEN output.
 
 ### Sub-step 4.3: GREEN — html.py, dep promotion, golden
 

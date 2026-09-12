@@ -86,8 +86,13 @@ jobs:
       - name: Install uv and sync deps (aa-ma-gate is a project script)
         run: pip install uv && uv sync
 
-      - name: Verify aa-ma-gate is runnable
-        run: uv run aa-ma-gate --help >/dev/null
+      # The shipped fences and their tests call bare `ruff`, `aa-ma-gate`, `cz` the way a
+      # developer shell resolves them; expose the synced venv the same way.
+      - name: Put the project venv on PATH
+        run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Verify project tools are runnable
+        run: aa-ma-gate --help >/dev/null && ruff --version && cz version
 
       - name: Install bandit (required by Stage C / C3)
         run: command -v bandit || pipx install bandit || pip install bandit

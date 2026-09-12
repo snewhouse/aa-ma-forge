@@ -126,7 +126,8 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ## Milestone 3: Share — /aa-ma-share publishes markdown as a private Artifact
 
-- Status: ACTIVE
+- Status: COMPLETE
+- Result Log: 3/3 sub-steps COMPLETE; acceptance 7/7 (frontmatter; install dry-run; live publish + render check from carmen-provenance-labs; bats 11/11; counts 12; SHARE line). Impact LOW; §6.7 PASS; §6.8 PASS (0C/1W fixed: CI + gitignored CLAUDE.md); doc-drift full (CLAUDE.md render/ fixed); HARD gate APPROVED 2026-09-12. pytest 1050 / bats ok / shellcheck clean. Commits 4a57590..b4b626a + close-out.
 - Gate: HARD
 - Mode: HITL
 - Dependencies: Milestone 1 (Milestone 2 recommended, not required)

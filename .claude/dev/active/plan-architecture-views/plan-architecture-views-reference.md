@@ -105,4 +105,13 @@ Excluded (frozen history, never edited): `docs/adr/0001-*.md:91`, `docs/narrativ
 - Hostile-input budget: 200 KB flood inputs lint in ≤0.04 s (`tests/render/test_hostile_input.py`, ceiling 2 s)
 - Angle 6 check #6 command: `AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/skills/plan-verification/SKILL.md)")/../../.." && pwd); uv run --project "$AA_MA_ROOT" aa-ma-lint-views <plan.md> --repo-root <root>` — verified from /tmp
 
+### M3 facts (landed 2026-09-12)
+- `/aa-ma-share` = `claude-code/commands/aa-ma-share.md` (command #12); allowlist `scripts/aa-ma-share-allow.sh` (rc 0/1; `*-plan.md|*docs/adr/*.md|*docs/spec/*.md`, any `..` segment refused); bats `tests/commands/aa-ma-share-allow.bats` (11)
+- **CLAUDE.md is gitignored** (`.gitignore:2`) — local-only; never a shipped count site. Shipped count sites: `SECURITY.md:11-13` (counts + name lists, pinned by `test_security_md_asset_lists_match_disk`), README `### All commands` rows (pinned)
+- CI (`security.yml`) now runs `uv run pytest tests/commands tests/render` (before M3 it ran only tests/codemem + test_goal_synthesis)
+- ADR-0010 Status: **Implemented** (M4 optional, does not gate it)
+- Exemplar artifact: https://claude.ai/code/artifact/454ea963-09c1-4870-90ce-7c11324c6eed — ADR-0010 renders 1 `flowchart-v2` svg (Example fences are inside a ````markdown block, so exactly 1)
+- Artifact viewer loads mermaid **11.16.1** (observed in the saved frame) — a pin for M4's `MERMAID_VERSION` decision
+- gstack `/browse` on BATS: private artifacts 404 when logged out (correct); handoff→resume drops the session on WSL — verify auth-gated pages via the user's saved iframe document (`_files/_t.html`). Playwright build 1208 satisfied by symlinks to 1234 in `~/.cache/ms-playwright`
+
 _Last Updated: 2026-09-12_

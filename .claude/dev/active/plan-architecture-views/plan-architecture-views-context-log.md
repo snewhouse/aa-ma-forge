@@ -98,3 +98,16 @@ Running `aa-ma-lint-views` on ADR-0010 (its own exemplar) reported NO_COMPONENT_
 ## [2026-09-12] Decision: CLAUDE.md is local-only; count pins live in SECURITY.md/README
 
 `CLAUDE.md` is gitignored (`.gitignore:2`) and untracked — a fresh clone has none. The plan's "CLAUDE.md:48" count site is therefore a local convenience, not a shipped artefact; tests skip it when absent and pin the shipped surfaces (SECURITY.md counts + name lists, README command rows) to the files on disk. Found by M3 §6.8; the same audit found CI ran neither tests/commands nor tests/render — both added to `security.yml`.
+
+## [2026-09-12] GATE APPROVAL: Milestone 3: Share — /aa-ma-share publishes markdown as a private Artifact
+- Gate: HARD
+- Approved by: Ste (Stephen J Newhouse)
+- Criteria verified: 7/7
+- Decision: APPROVED
+
+## [2026-09-12] Milestone Completion: Milestone 3 — Share
+- Status: COMPLETE
+- Key outcome: `/aa-ma-share` (command #12) publishes a plan/ADR/spec markdown as a private Artifact; the allowlist is a tested script (11 bats, `..` refused); live publish of ADR-0010 from another repo renders the Component view (1 flowchart-v2 svg, 0 errors). ADR-0010 Implemented. §6.8 surfaced two repo-level gaps fixed here: CLAUDE.md is gitignored (pins skip it), and CI never ran tests/commands or tests/render (now does).
+- Artifacts: claude-code/commands/aa-ma-share.md, scripts/aa-ma-share-allow.sh, tests/commands/aa-ma-share-allow.bats, tests/commands/test_aa_ma_share_command.py, SECURITY.md/README.md/CHANGELOG.md (+CLAUDE.md local), docs/adr/{0010,INDEX}.md, .github/workflows/security.yml, impl-review.md.
+- Tests: pytest 1050 passed; bats hooks 165 + share 11 ok; shellcheck clean.
+- Artifact: https://claude.ai/code/artifact/454ea963-09c1-4870-90ce-7c11324c6eed (private)

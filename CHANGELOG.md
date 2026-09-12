@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## v0.11.0 (2026-09-12)
 
 ### BREAKING (behavioural) — the AA-MA milestone gate now actually refuses
 

@@ -5,6 +5,23 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-014 (2026-09-12) — `git mv` after editing stages the old blob, not the edit
+
+**Pattern:** `/archive-aa-ma` prepends ARCHIVED headers (Step 3), then moves
+the directory (Step 4), then `git add .claude/dev/completed/<task>/` (Step 7).
+I replaced Step 4 + 7 with a single `git mv` and committed. `git mv` stages
+the rename with the *index* content; the just-written headers stayed
+unstaged (`RM` in `git status`), so the archive commit landed without them
+and needed a second commit. Caught by reading `git status --short` before
+reporting done — not by the commit succeeding.
+
+**Rule:** Never substitute `git mv` for "edit, move, `git add <dir>`". After
+any rename-plus-edit, the stage line is `git add <new-dir>/` and the check is
+`git status --short` showing no `M` in the second column before `git commit`.
+More generally: a workflow command's git steps are the script, not a
+suggestion — shortcuts that "obviously do the same thing" are where the
+index diverges from the worktree.
+
 ## L-013 (2026-09-11) — "Acknowledged, not changed" is not a §6.8 outcome
 
 **Pattern:** The M5 §6.8 review returned 4 CRITICAL / 21 WARNING / 17 INFO. I

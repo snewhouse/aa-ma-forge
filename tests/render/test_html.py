@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from aa_ma.render.html import MERMAID_VERSION, render_markdown
+from aa_ma.render.html import MERMAID_SRI, MERMAID_VERSION, render_markdown
 
 FIX = Path(__file__).parent / "fixtures" / "plan_ok.md"
 GOLDEN = Path(__file__).resolve().parents[1] / "golden" / "render_plan_ok.html"
@@ -19,9 +19,31 @@ def test_tables_are_enabled():
 
 def test_self_contained_and_pinned():
     out = render_markdown("# x\n", title="t")
-    assert f"mermaid@{MERMAID_VERSION}/dist/mermaid.esm.min.mjs" in out
+    assert (
+        f'src="https://cdn.jsdelivr.net/npm/mermaid@{MERMAID_VERSION}/dist/mermaid.min.js"'
+        in out
+    )
+    assert MERMAID_VERSION.startswith(
+        "11."
+    )  # plan rule: latest 11.x; the dist path may move at 12
     assert '<link rel="stylesheet"' not in out
     assert "<title>t</title>" in out and "prefers-color-scheme" in out
+
+
+def test_cdn_script_is_integrity_pinned_and_csp_locked():
+    """§6.8 M4 security WARNING (A08): the single-file UMD bundle carries SRI, so the hash covers
+    every byte that runs; a CSP meta confines scripts to that host + the hashed inline init."""
+    out = render_markdown("# x\n", title="t")
+    assert f'integrity="{MERMAID_SRI}" crossorigin="anonymous"' in out
+    assert MERMAID_SRI.startswith("sha384-") and len(MERMAID_SRI) == len("sha384-") + 64
+    csp = out.split('http-equiv="Content-Security-Policy" content="')[1].split('"')[0]
+    assert (
+        "default-src 'none'" in csp
+        and "script-src https://cdn.jsdelivr.net 'sha256-" in csp
+    )
+    assert (
+        "'unsafe-inline'" not in csp.split("style-src")[0]
+    )  # scripts are never unsafe-inline
 
 
 def test_html_comments_outside_fences_are_dropped():
@@ -35,7 +57,8 @@ def test_html_comments_inside_fences_are_kept():
 
 def test_raw_html_is_escaped_not_passed_through():
     out = render_markdown("<script>alert(1)</script>\n\ntext <b>x</b>\n", title="t")
-    assert "<script>" not in out and "&lt;script&gt;" in out and "&lt;b&gt;" in out
+    main = out.split("<main>")[1].split("</main>")[0]  # the skeleton's own init <script> sits outside
+    assert "<script>" not in main and "&lt;script&gt;" in main and "&lt;b&gt;" in main
 
 
 def test_golden():

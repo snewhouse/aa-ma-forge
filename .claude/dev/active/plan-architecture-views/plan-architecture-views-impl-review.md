@@ -1,3 +1,51 @@
+# Impl Review Report: plan-architecture-views / Milestone 4
+Generated: 2026-09-12T13:05:46Z | Audit-Profile: code-only | Budget: normal
+
+## Summary
+- CRITICAL: 2 findings (2 accepted → fixed in-window before approval; 0 disputed, 0 deferred)
+- WARNING: 5 findings (5 fixed)
+- INFO: 12 findings (5 applied, 7 accepted)
+- Overall: PASS (re-run clean after remediation commit)
+
+Window: de96c12..887a571 (+ remediation commit). Slate: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor (all 5, parallel). §6.6 (3 agents) ran first and its 1 CRITICAL / 3 WARNING were fixed in 887a571 — see provenance.
+
+## Code Review (code-reviewer agent) — 1 CRITICAL, 3 WARNING, 3 INFO
+- [CRITICAL] scope discipline (L-007): tests/render/test_cli.py:21-23,31-33, tests/render/test_hostile_input.py:58-60 — `ruff format` re-wrapped three pre-existing lines unrelated to M4 → **Fixed**: hunks reverted; base-vs-HEAD now removes only the intended import line.
+- [WARNING] error-path contract: src/aa_ma/render/cli.py — write-side OSError (`--out` is a file, unwritable dir) escaped as a traceback, exit 1 → **Fixed**: one `try` covers read + mkdir + write, exit 2 with stderr message; `test_render_out_is_a_file_exit_2` (RED reproduced FileExistsError first).
+- [WARNING] root-sensitive test: chmod-0 case passes as uid 0 → **Fixed**: `skipif(os.geteuid() == 0)`.
+- [WARNING] reference drift: reference.md M4 facts described pre-§6.6 `_raw_html` and test counts → **Fixed** (also the future-proofing CRITICAL below).
+- [INFO] magic offsets `j + 4`/`k + 3` → **Applied**: `_OPEN, _CLOSE` + `len()`. [INFO] function-local import in test_hostile_input.py → **Applied**: hoisted. [INFO] `return 2` ×3 matches lint_main convention → **Accepted**.
+
+## Security (security-auditor agent) — 0 CRITICAL, 1 WARNING, 4 INFO
+### Mechanical pre-check (security-static-check.sh): PASS (no `[security-bypass:` markers in the window)
+- [WARNING] A08 integrity: src/aa_ma/render/html.py — mermaid ESM loaded from cdn.jsdelivr.net with no integrity check and no CSP; SRI on the ESM entry would not cover its lazily imported chunks → **Fixed**: single-file UMD `dist/mermaid.min.js` with `integrity="<MERMAID_SRI>" crossorigin="anonymous"` (constant beside MERMAID_VERSION, bump command in the comment) + `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-<init-hash>'; style-src 'unsafe-inline'; img-src data: https:; font-src data:">`; `test_cdn_script_is_integrity_pinned_and_csp_locked`. Live: one CDN request (3 572 661 B), 2 svg / 1 table / 0 console errors under CSP; negative control with a tampered hash → browser refuses the script (0 svg, "Failed to find a valid digest"). Deviation from the plan Contract's ESM import recorded in context-log.
+- [INFO] A03 XSS surface verified clean (javascript:/data: URLs, autolinks off, attribute breakout, `</pre>` in fence, title) → **Accepted**. [INFO] mermaid `securityLevel: strict` cannot be downgraded by an in-diagram init directive (inspected bundle) → **Accepted**. [INFO] `--out` honoured verbatim / follows symlinks — same trust model as `cp` → **Accepted**. [INFO] hostile-input budgets all linear; `[` flood ~1.8 s at 200 KB sits near BUDGET_S — do not add that shape to the hostile tests → **Accepted** (noted in reference).
+
+## TDD Sequence (tdd-sequence-auditor agent)
+### Verdict: PASS
+- Milestone window: de96c12 .. 887a571 — first `tests/` commit ae66cb2 (2026-09-12T13:38:44+01:00) precedes first `src/` commit 67ddac3 (13:39:42+01:00) by 58 s. TDD-Waiver: (none).
+- Per-file pairing: html.py → test_html.py + test_hostile_input.py ✅; cli.py → test_cli.py ✅. Informational: 6804324 and 887a571 land src + tests together (RED runs recorded in Result Logs, not as separate commits).
+
+## External Library Evidence (context7-evidence-auditor agent) — 0 CRITICAL, 1 WARNING, 0 INFO
+- [WARNING] markdown-it-py@4.0.0 (`>=4,<5`, promoted from transitive) — API measured in .venv and prototyped, but no canonical-doc citation; Context7 timed out at planning and was not retried → **Fixed**: Context7 retried 2026-09-12 (/executablebooks/markdown-it-py, docs/using.md "Renderers" + "Adding a custom render rule") — confirms the rule signature and `.enable('table')`; CONTEXT7 line in provenance.
+- Major version bumps: none.
+
+## Future-Proofing (future-proofing-auditor agent) — 1 CRITICAL, 0 WARNING, 5 INFO
+- [CRITICAL] hardcoded count drift at write: reference.md M4 facts said test_html.py (7) / tests/render 60 in the commit that made them 9 / 65 → **Fixed**: counts updated (now 9+1 / 67 after the security fix), and the line now names files first.
+- [INFO] MERMAID_VERSION 11.x guard → **Applied**: `assert MERMAID_VERSION.startswith("11.")`. [INFO] ADR-0010:92 still said "optional … droppable" → **Applied**: "(shipped 2026-09-12)". [INFO] magic offsets → **Applied** (above). [INFO] golden size "1674 B" quoted in 2 sites → **Accepted** (historical Result Log; reference updated to 1972 B). [INFO] no test guards README "Sharing and rendering plans" / `[project.scripts]` — no shipped CLI count exists → **Accepted**.
+
+## User Override Decisions
+
+| Severity | Finding | Decision | Rationale |
+|---|---|---|---|
+| CRITICAL | ruff format re-wrapped 3 non-M4 test lines (L-007) | accept → fixed | reverted before the gate; no dispute |
+| CRITICAL | reference.md test counts stale at write | accept → fixed | corrected before the gate; no dispute |
+
+## Revision History
+- v1: 2026-09-12 — Initial impl review: 2 CRITICAL, 5 WARNING → both CRITICAL and all WARNING fixed in the remediation commit → PASS
+
+---
+
 # Impl Review Report: plan-architecture-views / Milestone 3
 Generated: 2026-09-12T12:15:43Z | Audit-Profile: docs-only | Budget: normal
 

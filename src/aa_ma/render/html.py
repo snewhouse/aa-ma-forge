@@ -2,12 +2,27 @@
 
 from __future__ import annotations
 
+import base64
 import functools
+import hashlib
 import html as _html
 
 from markdown_it import MarkdownIt
 
 MERMAID_VERSION = "11.17.2"  # latest 11.x at the 4.1 prototype (2026-09-12); single constant, bump deliberately
+# SRI of dist/mermaid.min.js at that version (single-file UMD, so the hash covers every byte that runs —
+# the ESM entry lazy-imports chunks SRI cannot reach). Bump together with MERMAID_VERSION:
+#   curl -sL https://cdn.jsdelivr.net/npm/mermaid@<V>/dist/mermaid.min.js | openssl dgst -sha384 -binary | openssl base64 -A
+MERMAID_SRI = "sha384-EOXBFmc3gx5mb+vn0vPvvGqACToJD24hhacX5Yx+8NUUQrHIle/Qi5Bg9o3zKwW2"
+_INIT_JS = (
+    'mermaid.initialize({ startOnLoad: true, theme: matchMedia("(prefers-color-scheme: dark)").matches'
+    ' ? "dark" : "default", securityLevel: "strict" });'
+)
+_INIT_SHA = base64.b64encode(hashlib.sha256(_INIT_JS.encode()).digest()).decode()
+_CSP = (  # defence in depth behind mermaid's DOMPurify; style-src must stay inline for mermaid's <style>
+    f"default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-{_INIT_SHA}'; "
+    "style-src 'unsafe-inline'; img-src data: https:; font-src data:"
+)
 _CSS = """
 :root{color-scheme:light dark;--fg:#1a1a1a;--bg:#fff;--muted:#f4f4f4;--line:#ddd}
 @media(prefers-color-scheme:dark){:root{--fg:#e6e6e6;--bg:#151515;--muted:#222;--line:#333}}
@@ -26,15 +41,18 @@ def _fence(self, tokens, idx, options, env):  # noqa: ANN001 — markdown-it-py 
     return self.fence(tokens, idx, options, env)
 
 
+_OPEN, _CLOSE = "<!--", "-->"
+
+
 def _strip_comments(s: str) -> str:
     """Drop every `<!-- … -->` span; an unterminated `<!--` eats the rest, as a browser would.
     str.find, not a lazy regex: `<!--.*?-->` re-scans to EOF per opener on hostile input."""
     out, i = [], 0
-    while (j := s.find("<!--", i)) != -1:
+    while (j := s.find(_OPEN, i)) != -1:
         out.append(s[i:j])
-        if (k := s.find("-->", j + 4)) == -1:
+        if (k := s.find(_CLOSE, j + len(_OPEN))) == -1:
             return "".join(out)
-        i = k + 3
+        i = k + len(_CLOSE)
     out.append(s[i:])
     return "".join(out)
 
@@ -57,11 +75,10 @@ def render_markdown(text: str, *, title: str) -> str:
     body = _md().render(text)
     return (
         '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+        f'<meta http-equiv="Content-Security-Policy" content="{_CSP}">\n'
         '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
         f"<title>{_html.escape(title)}</title>\n<style>{_CSS}</style>\n</head>\n<body>\n<main>\n{body}</main>\n"
-        '<script type="module">\n'
-        f'import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@{MERMAID_VERSION}/dist/mermaid.esm.min.mjs";\n'
-        'const dark = matchMedia("(prefers-color-scheme: dark)").matches;\n'
-        'mermaid.initialize({ startOnLoad: true, theme: dark ? "dark" : "default", securityLevel: "strict" });\n'
-        "</script>\n</body>\n</html>\n"
+        f'<script src="https://cdn.jsdelivr.net/npm/mermaid@{MERMAID_VERSION}/dist/mermaid.min.js" '
+        f'integrity="{MERMAID_SRI}" crossorigin="anonymous"></script>\n'
+        f"<script>{_INIT_JS}</script>\n</body>\n</html>\n"
     )

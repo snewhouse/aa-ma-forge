@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-6Vkxu+pYeyPsvc0xGyOf0ckXPBBrORhJ/Yn0zlFPa5k='; style-src 'unsafe-inline'; img-src data: https:; font-src data:">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>plan_ok</title>
 <style>
@@ -34,10 +35,7 @@ table{border-collapse:collapse;display:block;overflow-x:auto}td,th{border:1px so
 <li><strong>Critical-Path:</strong> data-xform</li>
 </ul>
 </main>
-<script type="module">
-import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.esm.min.mjs";
-const dark = matchMedia("(prefers-color-scheme: dark)").matches;
-mermaid.initialize({ startOnLoad: true, theme: dark ? "dark" : "default", securityLevel: "strict" });
-</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js" integrity="sha384-EOXBFmc3gx5mb+vn0vPvvGqACToJD24hhacX5Yx+8NUUQrHIle/Qi5Bg9o3zKwW2" crossorigin="anonymous"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default", securityLevel: "strict" });</script>
 </body>
 </html>

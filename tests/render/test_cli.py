@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -18,9 +19,7 @@ def test_findings_exit_1(capsys):
     assert "STALE_PATH" in capsys.readouterr().out
 
 
-@pytest.mark.parametrize(
-    "argv", [[], ["/nonexistent.md"], [str(FIX)]]
-)  # missing / not a file / dir
+@pytest.mark.parametrize("argv", [[], ["/nonexistent.md"], [str(FIX)]])  # missing / not a file / dir
 def test_usage_exit_2(argv, capsys):
     assert lint_main(argv) == 2
     assert "usage" in capsys.readouterr().err.lower()
@@ -28,9 +27,7 @@ def test_usage_exit_2(argv, capsys):
 
 def test_tasks_flag(tmp_path, capsys):
     plan = tmp_path / "foo.md"
-    plan.write_text(
-        (FIX / "plan_flow_required.md").read_text().split("### Milestone 1")[0]
-    )
+    plan.write_text((FIX / "plan_flow_required.md").read_text().split("### Milestone 1")[0])
     tasks = tmp_path / "t.md"
     tasks.write_text("## Milestone 1: X\n- **Critical-Path:** data-xform\n")
     assert lint_main([str(plan), "--repo-root", str(REPO), "--tasks", str(tasks)]) == 1
@@ -68,6 +65,7 @@ def test_render_duplicate_stems_refused(tmp_path, capsys):
     assert "plan.html" in capsys.readouterr().err and not out.exists()
 
 
+@pytest.mark.skipif(os.geteuid() == 0, reason="chmod 0 does not stop root")
 def test_render_unreadable_source_exit_2_writes_nothing(tmp_path, capsys):
     src = tmp_path / "locked.md"
     src.write_text("# x\n")
@@ -78,3 +76,10 @@ def test_render_unreadable_source_exit_2_writes_nothing(tmp_path, capsys):
     finally:
         src.chmod(0o644)
     assert "locked.md" in capsys.readouterr().err and not out.exists()  # all-or-nothing
+
+
+def test_render_out_is_a_file_exit_2(tmp_path, capsys):
+    out = tmp_path / "not-a-dir"
+    out.write_text("")
+    assert render_main([str(FIX / "plan_ok.md"), "--out", str(out)]) == 2
+    assert "not-a-dir" in capsys.readouterr().err

@@ -56,13 +56,13 @@ def render_main(argv: Sequence[str] | None = None) -> int:
         return 2
     try:  # read everything first: a bad source means no output at all, not a partial set
         texts = [s.read_text(encoding="utf-8") for s in a.sources]
-    except OSError as e:
+        a.out.mkdir(parents=True, exist_ok=True)
+        for src, name, text in zip(a.sources, names, texts, strict=True):
+            target = a.out / name
+            target.write_text(render_markdown(text, title=src.stem), encoding="utf-8")
+            print(target)
+    except OSError as e:  # unreadable source, --out is a file, unwritable dir: exit 2, never a traceback
         print(f"aa-ma-render: {e}", file=sys.stderr)
         p.print_usage(sys.stderr)
         return 2
-    a.out.mkdir(parents=True, exist_ok=True)
-    for src, name, text in zip(a.sources, names, texts, strict=True):
-        target = a.out / name
-        target.write_text(render_markdown(text, title=src.stem), encoding="utf-8")
-        print(target)
     return 0

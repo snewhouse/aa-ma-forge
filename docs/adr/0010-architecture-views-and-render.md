@@ -89,7 +89,7 @@ from text and renders everywhere plans are actually read.
   spec page as a private Artifact; the Artifact viewer renders mermaid
   natively. Rendering to HTML first would nest a document inside the viewer's
   own skeleton and initialise mermaid twice.
-- **Rendering (optional, last):** `aa-ma-render` (M4) turns markdown into one
+- **Rendering (optional, last; shipped 2026-09-12):** `aa-ma-render` (M4) turns markdown into one
   self-contained HTML file for the "attach a file" case, using markdown-it-py
   (already transitive via `rich`). It is derived output — never edited, never
   committed (`build/` is ignored). Droppable via a documented scope reduction.

@@ -5,6 +5,7 @@ forms measured 14-20 s at 200 KB, the linear forms well under a second."""
 import time
 from pathlib import Path
 
+from aa_ma.render.html import render_markdown
 from aa_ma.render.mermaid_lint import lint_text
 
 FIX = Path(__file__).parent / "fixtures"
@@ -55,9 +56,7 @@ def test_paths_outside_repo_root_are_never_probed_as_present(tmp_path: Path) -> 
     )
     rep = lint_text(_plan_with_component(body), repo)
     stale = [f.message for f in rep.findings if f.code == "STALE_PATH"]
-    assert len(stale) == 3, (
-        rep.findings
-    )  # absolute, parent-escape and plain-missing all reported
+    assert len(stale) == 3, rep.findings  # absolute, parent-escape and plain-missing all reported
 
 
 def test_unknown_type_message_never_carries_raw_control_chars() -> None:
@@ -68,8 +67,6 @@ def test_unknown_type_message_never_carries_raw_control_chars() -> None:
 
 
 def test_render_unterminated_comment_flood_is_linear() -> None:
-    from aa_ma.render.html import render_markdown
-
     body = (
         "<!--\n" * 50_000
     )  # one html_block, 50k openers, no closer (M4 comment stripper)

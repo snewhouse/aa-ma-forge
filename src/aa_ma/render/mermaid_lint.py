@@ -11,13 +11,22 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from aa_ma.grammar import split_milestones, strip_fenced_blocks
+from aa_ma.grammar import (
+    MILESTONE_RE,
+    H2_RE,
+    scan_fences,
+    split_milestones,
+    strip_fenced_blocks,
+)
 from aa_ma.plan_parsers import (
     parse_audit_profile,
     parse_critical_path,
     parse_diagram_waiver,
 )
 
+# Allowlist by policy, not a mermaid inventory: the views a plan is expected to hold.
+# A newer type (architecture-beta, mindmap, timeline...) is UNKNOWN_TYPE until added here
+# deliberately — the point is that a typo'd first line never renders as a diagram.
 KNOWN_TYPES: tuple[str, ...] = (
     "flowchart",
     "graph",
@@ -35,14 +44,19 @@ CODE_AUDIT_PROFILES: frozenset[str] = frozenset({"full", "code-only", "infra"})
 PARSE_ERROR_SIGNATURES: tuple[str, ...] = ("Parse error on line", "UnknownDiagramError")
 
 _SECTION_RE = re.compile(r"^## (?:13\.?[ \t]+)?Architecture View[ \t]*$", re.M)
-_H2_RE = re.compile(r"^## ", re.M)
 _VIEW_RE = re.compile(r"^### (Component|Flow|Data/State) view[ \t]*$", re.M)
 _FENCE_RE = re.compile(r"^```mermaid[ \t]*\n(.*?)^```[ \t]*$", re.M | re.S)
 _LABEL_RE = re.compile(r"\[([^\]]*)\]")
+# exemption survives shape punctuation: [("x (new)")]
+_NEW_RE = re.compile(r"\(new\)\W*$")
+# lines a fence may open with before the diagram type: %% directives, --- front-matter
+_DIRECTIVE_RE = re.compile(r"^%%[^\n]*\n", re.M)
+_FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\n.*?^---[ \t]*\n", re.M | re.S)
+# Labels scanned: the `[...]` family only (incl. shapes `[(...)]`, `[[...]]`, `[/.../]`);
+# `(...)`, `{...}` and `|edge|` labels are not path claims.
 _PATH_RE = re.compile(
     r"[A-Za-z0-9_./-]+/[A-Za-z0-9_.-]+\.(?:md|py|sh|yaml|yml|toml|json|bats)"
 )
-_PLAN_MILESTONE_H3 = re.compile(r"^###([ \t]+Milestone\b)", re.M)
 
 
 @dataclass(frozen=True)
@@ -71,7 +85,11 @@ def _milestone_facts(text: str) -> tuple[bool, bool, list[str]]:
     """
     code = crit = False
     errors: list[str] = []
-    normalised = _PLAN_MILESTONE_H3.sub(r"##\1", strip_fenced_blocks(text))
+    lines = strip_fenced_blocks(text).split("\n")
+    normalised = "\n".join(
+        ln[1:] if ln.startswith("###") and MILESTONE_RE.match(ln[1:]) else ln
+        for ln in lines
+    )
     for block in split_milestones(normalised):
         value, ok, err = parse_audit_profile(block.text)
         if not ok:
@@ -110,25 +128,29 @@ def _stale_paths(src: str, repo_root: Path) -> list[tuple[int, str]]:
     hits: list[tuple[int, str]] = []
     for ln, line in enumerate(src.splitlines(), start=1):
         for label in _LABEL_RE.findall(line):
-            label = label.strip().strip(
-                '"'
-            )  # mermaid quoted-label form: ["path (new)"]
-            if label.endswith("(new)"):
+            if _NEW_RE.search(label):
                 continue
-            hits += [
-                (ln, p) for p in _PATH_RE.findall(label) if not (repo_root / p).exists()
-            ]
+            # [/x/] is a shape; a leading "/" would otherwise resolve from the filesystem root
+            paths = (q.lstrip("/") for q in _PATH_RE.findall(label))
+            hits += [(ln, q) for q in paths if not (repo_root / q).exists()]
     return hits
 
 
 def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintReport:
     out: list[Finding] = []
     code_ms, has_crit, audit_errors = _milestone_facts(plan_text + "\n" + tasks_text)
-    out += [Finding("AUDIT_PROFILE_INVALID", 1, e) for e in audit_errors]
-    stripped = strip_fenced_blocks(
-        plan_text
-    )  # headings inside fences are content, not structure
-    front = stripped.split("\n## ", 1)[0]
+    out += [Finding("AUDIT_PROFILE_INVALID", 1, e) for e in dict.fromkeys(audit_errors)]
+    # One scan answers "unterminated?" and "stripped?", so the two cannot disagree.
+    # grammar.has_unterminated_fence strips HTML comments first (the gate's view): a
+    # literal "<!--" inside a code fence then pairs with a later "-->" and eats a fence
+    # closer — this very plan's M4 Contract does exactly that.
+    scan = scan_fences(plan_text)
+    if scan.unterminated:  # L-012: a fence to EOF hides §13; never lint as clean
+        out.append(Finding("UNTERMINATED_FENCE", 1, "a code fence is never closed"))
+        return LintReport(tuple(out), "UNKNOWN")
+    stripped = scan.stripped  # headings inside fences are content, not structure
+    first_h2 = H2_RE.search(stripped)
+    front = stripped[: first_h2.start()] if first_h2 else stripped
     waiver, ok, err = parse_diagram_waiver(front)
     waiver = waiver or "none"
     if not ok:
@@ -146,7 +168,7 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
         if ok and waiver == "none":
             out.append(Finding("NO_SECTION", 1, "missing '## 13. Architecture View'"))
         return LintReport(tuple(out), "UNKNOWN")
-    nxt = _H2_RE.search(stripped, m.end())
+    nxt = H2_RE.search(stripped, m.end())
     first = _line(stripped, m.start()) - 1  # 0-based line index of the section heading
     last = _line(stripped, nxt.start()) - 1 if nxt else None
     section_lines = plan_text.split("\n")[first:last]
@@ -178,7 +200,9 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
             )
             continue
         for fline, src in fences:
-            first_word = src.strip().splitlines()[0].split()[0]
+            head = _DIRECTIVE_RE.sub("", src.lstrip())
+            head = _FRONT_MATTER_RE.sub("", head).strip()
+            first_word = head.split()[0] if head else ""
             if first_word not in KNOWN_TYPES:
                 out.append(
                     Finding(
@@ -213,7 +237,7 @@ def lint_plan(
 
 
 def render_check(sources: Sequence[str], *, timeout_s: float = 90.0) -> str:
-    """PASS iff every source yields a non-empty SVG via MMDC_BIN; FAIL only on a mermaid parse
+    """timeout_s is per source, not total. PASS iff every source yields a non-empty SVG via MMDC_BIN; FAIL only on a mermaid parse
     error (stderr signature); UNKNOWN for everything else — mermaid-cli exits 1 for *all* errors,
     including a missing Chromium, so rc alone cannot distinguish a bad diagram from a bad install (L-012).
     """

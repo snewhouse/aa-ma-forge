@@ -31,6 +31,8 @@ def test_ok_plan_has_no_findings() -> None:
         ("plan_flow_required.md", "NO_FLOW_VIEW"),
         ("plan_two_fences.md", "UNKNOWN_TYPE"),
         ("plan_bad_audit.md", "AUDIT_PROFILE_INVALID"),
+        ("plan_unterminated.md", "UNTERMINATED_FENCE"),
+        ("plan_milestone_m_form.md", "WAIVER_NOT_ALLOWED"),  # `### M1:` is a MILESTONE_RE form
     ],
 )
 def test_finding_codes(name: str, code: str) -> None:
@@ -46,10 +48,20 @@ def test_finding_codes(name: str, code: str) -> None:
         "plan_section_last.md",
         "plan_heading_nodot.md",
         "plan_quoted_section.md",  # a fenced example quoting §13 must not be taken for §13
+        "plan_init_directive.md",  # %%{init}%% before the type word
+        "plan_yaml_frontmatter.md",  # --- title --- before the type word
+        "plan_shape_new.md",  # [("x (new)")] and [["x (new)"]] shapes keep the exemption
+        "plan_parallelogram.md",  # [/path/] shape must resolve under repo_root, not /
     ],
 )
 def test_clean_variants(name: str) -> None:
     assert codes(name) == set()
+
+
+def test_unterminated_fence_is_unknown_not_clean() -> None:
+    # L-012: a fence that swallows the rest of the file must not lint as clean.
+    rep = lint_plan(FIX / "plan_unterminated.md", REPO)
+    assert rep.render_status == "UNKNOWN" and "UNTERMINATED_FENCE" in {f.code for f in rep.findings}
 
 
 def test_stale_path_reports_line_number() -> None:

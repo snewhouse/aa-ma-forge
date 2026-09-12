@@ -200,6 +200,9 @@ def sanitize(text: str) -> str:
 # Any H2 — a milestone heading or a prose one like `## Summary Counts`. A bare
 # `##` counts too (CommonMark: an empty ATX heading).
 _H2_RE = re.compile(r"^##(?:[ \t]|$)", re.MULTILINE)
+H2_RE = (
+    _H2_RE  # public: the one "next H2 of any kind" predicate (render lint reuses it)
+)
 
 
 def _split(

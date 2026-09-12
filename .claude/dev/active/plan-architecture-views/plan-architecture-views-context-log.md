@@ -73,3 +73,11 @@ v0.11.0 was tagged at `758f125` (2026-09-12 06:21) by milestone-grammar-ssot bef
 - Artifacts: docs/spec/aa-ma-specification.md (§XI item 13, §II diagram); claude-code/rules/{aa-ma,engineering-standards}.md; docs/templates/plan-template.md; docs/adr/{TEMPLATE,INDEX,0010-architecture-views-and-render}.md; plan-verification SKILL.md; 12 workflow/agent/command prose files; README/CLAUDE/foundations counts; CHANGELOG Unreleased; tests/commands/test_plan_verification_angle6.py, test_planning_standard_count.py; impl-review.md.
 - Tests: pytest 978 passed / 2 skipped; bats tests/hooks 165 ok; 7/7 mermaid fences render; mutation checks on both new tests.
 - Reviews: Tier 2 validator WARN (5 → all fixed); §6.8 PASS_WITH_WARNINGS (0 CRITICAL; W1 fixed by test, W2 + 2 INFO deferred by name to Sub-step 2.7).
+
+## [2026-09-12] Decision: ADRs are in the lint's remit (Component view only)
+
+Running `aa-ma-lint-views` on ADR-0010 (its own exemplar) reported NO_COMPONENT_VIEW: the ADR template had `## Architecture View` with a bare mermaid fence and no `### Component view` subheading. Rather than special-case ADRs in the lint, the template and ADR-0010 gained the subheading (one line each, outside the M2 `Files:` list — recorded here per L-007). Consequence: `/aa-ma-share` (M3) can pre-lint an ADR with the same tool; the `(recommended)` suffix on the template heading is deliberately not matched (a template is not a document). No Flow view is ever required of an ADR (no milestones → no Critical-Path).
+
+## [2026-09-12] Decision: the lint's fence view is `scan_fences(plan_text)`, not `has_unterminated_fence`
+
+`grammar.has_unterminated_fence` strips HTML comments before scanning — correct for the gate, whose `sanitize` does the same. The lint never strips comments (a `<!-- -->` in §13 is content), and this plan's M4 Contract contains a literal `"<!--"` inside a Python fence that pairs with a `-->` 22 lines later under comment-stripping, eating a fence closer → false UNTERMINATED_FENCE. One `scan_fences` call now answers both "unterminated?" and "stripped?" so the lint cannot disagree with itself. The gate's behaviour is unchanged and out of scope.

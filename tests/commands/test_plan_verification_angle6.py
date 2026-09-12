@@ -7,7 +7,7 @@ so prose and code cannot drift — a value added to one side without the other f
 import re
 from pathlib import Path
 
-from aa_ma.plan_parsers import CANONICAL_DIAGRAM_WAIVERS
+from aa_ma.plan_parsers import CANONICAL_AUDIT_PROFILES, CANONICAL_DIAGRAM_WAIVERS
 from aa_ma.render.mermaid_lint import CODE_AUDIT_PROFILES
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -61,3 +61,11 @@ def test_prose_code_profile_sets_match_the_constant() -> None:
             values = {v.strip().strip("`") for v in m.group(1).split(",")}
             assert values == CODE_AUDIT_PROFILES, f"{rel}: {m.group(0)}"
     assert seen >= 5, f"expected the inline set at several sites, found {seen}"
+
+
+def test_every_canonical_audit_profile_is_classified_for_element_13() -> None:
+    """A new Audit-Profile value must be an explicit decision: code (needs a View/Contract)
+    or not. Silently landing outside CODE_AUDIT_PROFILES would let a Diagram-Waiver pass
+    on a code milestone."""
+    assert CODE_AUDIT_PROFILES < CANONICAL_AUDIT_PROFILES
+    assert CANONICAL_AUDIT_PROFILES - CODE_AUDIT_PROFILES == {"docs-only", "custom"}

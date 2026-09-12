@@ -47,12 +47,19 @@ forbidden_modules =
 [importlinter:contract:render-is-leaf]
 name = aa_ma.render is a leaf package
 type = forbidden
+# Every top-level aa_ma module except render. import-linter's `forbidden` type
+# refuses `source_modules = aa_ma` ("shared descendants"), so the list is explicit
+# and tests/render/test_leaf_contract.py fails when a module is added but not listed.
 source_modules =
-    aa_ma.tui
-    aa_ma.grammar
-    aa_ma.plan_parsers
-    aa_ma.plan_markers
+    aa_ma.cli
     aa_ma.enforce
     aa_ma.gate
+    aa_ma.goal_synthesis
+    aa_ma.grammar
+    aa_ma.plan_markers
+    aa_ma.plan_parsers
+    aa_ma.schemas
+    aa_ma.tui
+    aa_ma.validators
 forbidden_modules =
     aa_ma.render

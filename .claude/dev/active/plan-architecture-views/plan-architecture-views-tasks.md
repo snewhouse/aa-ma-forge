@@ -100,9 +100,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 2.5: mmdc seam tests (mutation-guarded)
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. 8 seam tests appended (fake `mmdc` shell scripts; conftest autouse pins /nonexistent/mmdc). tests/render 28 passed. Mutation guard, each restored after: rc≠0→always FAIL (1 failed), empty-svg passes (1 failed), no-sources passes (1 failed), timeout uncaught (1 failed) — every seam rule has a test that turns red.
 
 ### Sub-step 2.6: CLI + entry point + import-linter contract (mutation-checked)
 

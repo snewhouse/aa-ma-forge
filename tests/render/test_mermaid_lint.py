@@ -67,3 +67,57 @@ def test_tasks_override_supplies_critical_path(tmp_path: Path) -> None:
     tasks = tmp_path / "t.md"
     tasks.write_text("## Milestone 1: X\n- Audit-Profile: code-only\n- **Critical-Path:** data-xform\n")
     assert "NO_FLOW_VIEW" in {f.code for f in lint_plan(plan, REPO, tasks_path=tasks).findings}
+
+
+# --- mmdc seam (2.5): UNKNOWN unless a real parse signature; never PASS without SVG (L-012) ---
+import stat  # noqa: E402
+
+from aa_ma.render.mermaid_lint import render_check  # noqa: E402
+
+SRC = ["flowchart LR\n  A --> B\n"]
+
+
+def _fake(tmp_path: Path, body: str) -> str:
+    p = tmp_path / "mmdc"
+    p.write_text("#!/bin/sh\n" + body)
+    p.chmod(p.stat().st_mode | stat.S_IEXEC)
+    return str(p)
+
+
+@pytest.mark.parametrize("binary", ["/nonexistent/mmdc", "true"])
+def test_degraded_binaries_are_unknown(monkeypatch, binary):
+    monkeypatch.setenv("MMDC_BIN", binary)
+    assert render_check(SRC) == "UNKNOWN"
+
+
+def test_exit_1_without_parse_signature_is_unknown(monkeypatch, tmp_path):
+    # Real case measured on BATS: valid diagram, rc 1, "Could not find chrome-headless-shell".
+    monkeypatch.setenv(
+        "MMDC_BIN", _fake(tmp_path, 'echo "Could not find chrome-headless-shell" >&2\nexit 1\n')
+    )
+    assert render_check(SRC) == "UNKNOWN"
+
+
+def test_parse_error_signature_is_fail(monkeypatch, tmp_path):
+    monkeypatch.setenv("MMDC_BIN", _fake(tmp_path, 'echo "Parse error on line 2:" >&2\nexit 1\n'))
+    assert render_check(SRC) == "FAIL"
+
+
+def test_svg_output_is_pass(monkeypatch, tmp_path):
+    monkeypatch.setenv("MMDC_BIN", _fake(tmp_path, 'printf "<svg/>" > "$4"\nexit 0\n'))  # $4 = -o path
+    assert render_check(SRC) == "PASS"
+
+
+def test_rc0_empty_output_is_unknown(monkeypatch, tmp_path):
+    monkeypatch.setenv("MMDC_BIN", _fake(tmp_path, ': > "$4"\nexit 0\n'))
+    assert render_check(SRC) == "UNKNOWN"
+
+
+def test_timeout_is_unknown(monkeypatch, tmp_path):
+    monkeypatch.setenv("MMDC_BIN", _fake(tmp_path, "sleep 2\n"))
+    assert render_check(SRC, timeout_s=0.2) == "UNKNOWN"
+
+
+def test_no_sources_is_unknown(monkeypatch, tmp_path):
+    monkeypatch.setenv("MMDC_BIN", _fake(tmp_path, 'printf "<svg/>" > "$4"\n'))
+    assert render_check([]) == "UNKNOWN"

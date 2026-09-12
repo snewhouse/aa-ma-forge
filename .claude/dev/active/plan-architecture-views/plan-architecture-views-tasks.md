@@ -94,9 +94,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 2.4: GREEN — mermaid_lint.py
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. `src/aa_ma/render/{__init__,mermaid_lint}.py` per Contract (reuses grammar.split_milestones/strip_fenced_blocks + plan_parsers; H3→H2 promotion; per-label `(new)` exemption). tests/render 20 passed; ruff check + format clean; bandit B404/B603 (Low) annotated `# nosec` with reason (subprocess has no shell, args are own temp paths, binary from MMDC_BIN seam); full suite 1013 passed.
 
 ### Sub-step 2.5: mmdc seam tests (mutation-guarded)
 

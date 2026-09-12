@@ -398,6 +398,19 @@ evaluates these structural conditions against the plan:
    uses one of the 5 canonical values: `refactor` | `docs-only` | `prototype` |
    `hotfix-emergency` | `tooling-config`. Novel values are CRITICAL findings.
    Field-absence is permitted (most milestones have no waiver). Per ADR-0005.
+6. **Architecture View present or validly waived (v0.12.0+).** For plans `Created:`
+   on-or-after **2026-09-11**: either `## 13. Architecture View` exists with a
+   `### Component view` containing a non-empty ```` ```mermaid ```` fence (plus a
+   `### Flow view` when any milestone carries `Critical-Path:`), or the front-matter
+   carries `**Diagram-Waiver:** <value>` with a canonical value (`none`, `docs-only`,
+   `config-only`, `single-file`). A waiver alongside any milestone whose
+   `Audit-Profile` ∈ {full, code-only, infra} is CRITICAL. Novel waiver value is
+   CRITICAL. Until `aa-ma-lint-views` ships (plan-architecture-views M2), check by
+   grep: `grep -nE '^\*\*Diagram-Waiver:\*\* \S' plan.md`.
+7. **Contract block per code milestone (v0.12.0+).** Every milestone with
+   `Audit-Profile` ∈ {full, code-only, infra} has a `#### Contract` heading followed
+   by at least one fenced block. Missing → CRITICAL; the fresh-agent simulation
+   (Angle 5) treats an unpinned signature as a WARNING at minimum.
 
 Parsers for checks #2, #4 and #5 live in `src/aa_ma/plan_parsers.py`
 (`parse_critical_path`, `parse_audit_profile`, `parse_tdd_waiver`, and their
@@ -415,6 +428,10 @@ the audit reports `CRITICAL` when `is_valid is False`.
 - Pre-v0.5.0 plans emit `[INFO] Pre-v0.5.0 plan — engineering-standards
   check skipped` and continue. Pre-v0.8.0 plans emit
   `[INFO] Pre-v0.8.0 plan — Audit-Profile check skipped`.
+- Checks #6 and #7 fire only for plans whose `Created:` is on-or-after the
+  literal date **2026-09-11** (v0.12.0 cutover, written as a date so the check
+  never depends on a release tag); earlier plans emit
+  `[INFO] Pre-2026-09-11 plan — Architecture View check skipped`.
 - Plans missing `Created:` are grandfathered (absence → pre-cutover).
 - Detection logic (regex parse of `Created:` field + comparison to release
   dates) lives inside the Engineering Standards Auditor agent prompt below.

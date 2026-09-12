@@ -46,9 +46,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 1.6: plan-verification Angle 6 — checks #6 and #7 (hook-modification surface)
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. TDD: `tests/commands/test_plan_verification_angle6.py` written first → 2 failed; checks #6/#7 inserted after #5 (SKILL.md:396-409) + grandfathering bullet (literal 2026-09-11, labelled v0.12.0) → 2 passed; full suite 975 passed. Empirical: the check-#6 grep matches this plan's front-matter (`Diagram-Waiver: none`) and returns rc 1 on grammar-ssot's plan (no field, grandfathered). CRITICAL_PATH_REVIEW entry written to provenance.log naming Milestone 1.
 
 ### Sub-step 1.7: ADR-0010 exemplar + spec flow diagram + INDEX row
 

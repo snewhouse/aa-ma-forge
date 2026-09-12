@@ -192,9 +192,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 4.5: Docs + sync + finalization
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: HITL gate approved. README gains `## Sharing and rendering plans` (/aa-ma-share first, aa-ma-render second); CHANGELOG Unreleased gains aa-ma-render + markdown-it-py promotion bullet; ADR-0010 M4 notes → shipped 2026-09-12 (subgraph label, Implementation Notes); CLAUDE.md (local, gitignored) gains the aa-ma-render command line and html.py in the render/ tree. Verification: `uv run pytest -q` 1061 passed / 2 skipped; lint-imports 3 kept; bats hooks+commands 176 ok; ruff clean; bandit 1 pre-existing B101 (tui/snapshot.py, deliberate) / 0 in render/; `aa-ma-lint-views docs/adr/0010…` exit 0. AA-MA sync (reference M4 facts, context-log, provenance) in the milestone-close commit.
 
 ## Summary Counts
 

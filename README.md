@@ -268,6 +268,13 @@ aa-ma-tui --root /path/to/.claude            # explicit root (default scans ./ a
 
 The tracker is **strictly read-only** — it never writes to `*-tasks.md` or any other AA-MA file, so the data-corruption race against `/execute-aa-ma-*` writers is impossible. (Readers may briefly observe partial writes if the executor writes non-atomically; the parser tolerates partial input per L-052, so a partial-read just re-parses on the next debounced refresh.) Architectural rationale and trade-offs documented in [ADR-0007](docs/adr/0007-aa-ma-tui-tracker.md).
 
+## Sharing and rendering plans
+
+Plans, ADRs and spec pages carry a mermaid Architecture View ([ADR-0010](docs/adr/0010-architecture-views-and-render.md)). Two ways to hand one over without a clone:
+
+- `/aa-ma-share <path>` publishes the markdown itself as a private Artifact link — mermaid renders natively in the viewer. Allowlisted paths only (`*-plan.md`, `docs/adr/*.md`, `docs/spec/*.md`).
+- `uv run aa-ma-render <md>... [--out build/render]` writes one self-contained HTML file per source for the "attach a file" case — pinned mermaid ESM, light/dark via `prefers-color-scheme`, raw HTML escaped. `build/` is ignored; the markdown stays the only source.
+
 ## What else helped
 
 AA-MA is the structure, but a couple of Claude Code plugins earned their place alongside it through trial and error.

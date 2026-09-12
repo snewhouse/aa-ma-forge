@@ -177,7 +177,7 @@ flowchart LR
   subgraph M3[M3 Share]
     SHARE["claude-code/commands/aa-ma-share.md (new)"]
   end
-  subgraph M4[M4 Render — optional]
+  subgraph M4[M4 Render]
     HTML["src/aa_ma/render/html.py (new)"]
     HTML --> CLI
   end
@@ -227,8 +227,8 @@ sequenceDiagram
   `.importlinter` contract `render-is-leaf`.
 - Share (M3): `claude-code/commands/aa-ma-share.md`,
   `scripts/aa-ma-share-allow.sh`.
-- Render (M4, optional): `src/aa_ma/render/html.py`, CLI `aa-ma-render`.
-- Status **Implemented** at M3 close (2026-09-12): standard (M1), lint (M2) and share (M3) shipped; Render (M4) is optional and does not gate the decision.
+- Render (M4): `src/aa_ma/render/html.py`, CLI `aa-ma-render`; golden `tests/golden/render_plan_ok.html`.
+- Status **Implemented** at M3 close (2026-09-12): standard (M1), lint (M2) and share (M3) shipped; Render (M4) was optional and did not gate the decision — it shipped the same day (mermaid pin 11.17.2).
 
 ## References
 

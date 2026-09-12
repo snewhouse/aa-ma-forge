@@ -34,6 +34,12 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   inside the repo only), Diagram-Waiver validity; `render: PASS|FAIL|UNKNOWN` via an
   optional `mmdc` (`MMDC_BIN`), UNKNOWN unless a real parse error. `Diagram-Waiver`
   parser in `plan_parsers`. `render-is-leaf` import contract. Angle 6 check #6 runs it.
+- **`aa-ma-render`** (`src/aa_ma/render/html.py`) — markdown → one self-contained HTML
+  file per source (`--out build/render`, ignored). markdown-it-py `commonmark` +
+  tables; mermaid fences become `<pre class="mermaid">` drawn by a pinned mermaid
+  11.17.2 ESM with a `prefers-color-scheme` theme; raw HTML is escaped, comments
+  outside fences dropped. Golden test + `/browse` evidence. `markdown-it-py>=4,<5`
+  promoted from transitive (via `rich`) to an explicit dependency (L-055).
 
 ### Fixed
 

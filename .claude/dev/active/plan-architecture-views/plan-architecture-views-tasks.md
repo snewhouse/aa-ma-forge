@@ -28,9 +28,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 1.3: plan-template.md — add §12 (stale fix) and §13, Contract example
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. plan-template.md: `**Diagram-Waiver:** none` at :13; `#### Contract` block at :82 (before Step 1.1); `## 12.` at :149 and `## 13.` at :162 before Next Action. `grep -c "^## 1[23]\."` → 2.
 
 ### Sub-step 1.4: ADR template — recommended Architecture View + Example
 

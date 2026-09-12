@@ -10,6 +10,8 @@
 **Owner:** [person or "AI + User"]
 **Created:** [YYYY-MM-DD]
 **Last Updated:** [YYYY-MM-DD]
+**Diagram-Waiver:** none
+<!-- Element 13: `none` when §13 Architecture View is present; a canonical waiver (docs-only | config-only | single-file) is valid only when no milestone has Audit-Profile in {full, code-only, infra}. -->
 
 ## Executive Summary
 
@@ -74,6 +76,16 @@
 2. [Risk]: [Mitigation]
 3. [Risk]: [Mitigation]
 
+<!-- Element 13: Contract block — REQUIRED for every milestone with Audit-Profile in {full, code-only, infra}. -->
+<!-- Pins file paths, signatures, CLI shapes, exit codes and field grammar a fresh agent must not guess. Illustrative snippets are not Contract blocks. -->
+
+#### Contract
+```text
+# file: path/to/module.py
+def function(arg: Type) -> ReturnType
+# CLI: tool <arg> [--flag]   exit 0 ok / 1 findings / 2 usage
+```
+
 #### Step 1.1: [Action verb + specific deliverable]
 
 <!-- Element 2: Ordered stepwise implementation plan -->
@@ -133,6 +145,39 @@
 
 1. [Assumption]: [Impact if wrong]
 2. [Assumption]: [Impact if wrong]
+
+## 12. Engineering Standards Declaration
+
+<!-- Element 12: which themes from claude-code/rules/engineering-standards.md materially apply, one sentence each. -->
+
+| Theme | Applies | Rationale |
+|---|---|---|
+| 1 Verification & Truth | yes/no | [one sentence] |
+| 2 Development Principles | yes/no | [one sentence] |
+| 3 Reasoning & Planning | yes/no | [one sentence] |
+| 4 Safety & Continuity | yes/no | [one sentence] |
+| 5 Execution Checklist | yes/no | [one sentence] |
+| 6 Sync & Commit Discipline | yes/no | [one sentence] |
+
+## 13. Architecture View
+
+<!-- Element 13: mermaid only. A node label containing a repo path is a claim checked by aa-ma-lint-views unless the label ends with "(new)". -->
+<!-- Labels containing parentheses MUST use the quoted form B["path (new)"] — an unquoted (new) inside [...] is a mermaid parse error. -->
+
+### Component view
+```mermaid
+flowchart LR
+  A[path/to/existing.py] --> B["path/to/new_module.py (new)"]
+```
+
+### Flow view
+<!-- required iff any milestone carries Critical-Path: -->
+```mermaid
+sequenceDiagram
+  participant X
+  participant Y
+  X->>Y: call
+```
 
 ## Next Action
 

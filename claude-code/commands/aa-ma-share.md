@@ -11,8 +11,8 @@ page — as a **private Artifact** so it can be read (with its `## 13. Architect
 rendered) without cloning the repo. Introduced in plan-architecture-views M3 (ADR-0010).
 
 The Artifact tool wraps the file in its own document skeleton and renders ```` ```mermaid ````
-fences natively. **Publish the markdown file itself.** Never render to HTML first
-(`aa-ma-render` output would nest a document inside the viewer and initialise mermaid twice).
+fences natively. **Publish the markdown file itself.** Never render to HTML first — an
+HTML export would nest a document inside the viewer and initialise mermaid twice.
 
 ## Procedure
 

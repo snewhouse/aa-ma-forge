@@ -25,6 +25,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   Share and HTML Render (the exemplar ADR with its own Architecture View).
 - Spec §II gains a mermaid diagram of how the AA-MA files feed each other.
 - `docs/adr/TEMPLATE.md` gains recommended `## Architecture View` and `## Example`.
+- **`/aa-ma-share`** — publishes a plan, ADR or spec page as a private Artifact link
+  (the markdown itself; mermaid renders natively). Allowlist is a tested script
+  (`scripts/aa-ma-share-allow.sh`, 11 bats cases): `*-plan.md`, `docs/adr/*.md`,
+  `docs/spec/*.md`, no `..` segments. Command count 11 → 12.
+- **`aa-ma-lint-views`** (`src/aa_ma/render/`) — structural lint for §13: section and
+  view presence, empty fences, unknown diagram types, stale path labels (checked
+  inside the repo only), Diagram-Waiver validity; `render: PASS|FAIL|UNKNOWN` via an
+  optional `mmdc` (`MMDC_BIN`), UNKNOWN unless a real parse error. `Diagram-Waiver`
+  parser in `plan_parsers`. `render-is-leaf` import contract. Angle 6 check #6 runs it.
 
 ### Fixed
 

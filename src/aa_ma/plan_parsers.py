@@ -86,6 +86,17 @@ novel value passed silently.
 Adding a value requires a plan + ADR, per engineering-standards.md §1.
 """
 
+CANONICAL_DIAGRAM_WAIVERS: frozenset[str] = frozenset(
+    {"none", "docs-only", "config-only", "single-file"}
+)
+"""Canonical plan-level `Diagram-Waiver:` values (ADR-0010).
+
+Mirrors the table in `claude-code/rules/engineering-standards.md` §1. Planning-time
+only: read by `Skill(plan-verification)` Angle 6 check #6 and `aa-ma-lint-views`.
+Never read by the milestone gate (`aa_ma.enforce`) — making it a gate field
+needs its own ADR. `none` means "the Architecture View is present".
+"""
+
 # -----------------------------------------------------------------------------
 # Internal helpers
 # -----------------------------------------------------------------------------
@@ -240,3 +251,14 @@ def parse_critical_path(text: str) -> tuple[str | None, bool, str | None]:
         ('hook-modification', True, None)
     """
     return _parse_canonical_field(text, "Critical-Path", CANONICAL_CRITICAL_PATHS)
+
+
+def parse_diagram_waiver(text: str) -> tuple[str | None, bool, str | None]:
+    """Parse plan-level `Diagram-Waiver:` (front-matter of `[task]-plan.md`).
+
+    Planning-time only: read by `Skill(plan-verification)` Angle 6 and
+    `aa-ma-lint-views`. The milestone gate (`aa_ma.enforce`) does not read this
+    field — see ADR-0010. Absent → (None, True, None); the caller applies the
+    `none` default.
+    """
+    return _parse_canonical_field(text, "Diagram-Waiver", CANONICAL_DIAGRAM_WAIVERS)

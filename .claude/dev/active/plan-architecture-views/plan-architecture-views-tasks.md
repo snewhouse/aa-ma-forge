@@ -82,9 +82,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 2.2: GREEN — parser
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. `CANONICAL_DIAGRAM_WAIVERS` + `parse_diagram_waiver` appended to plan_parsers.py via `_parse_canonical_field` (no new grammar). 15 passed; `ruff check` clean; `ruff format --check` clean for plan_parsers.py (3 pre-existing tui/ drifts untouched, out of scope L-007); full suite 993 passed.
 
 ### Sub-step 2.3: RED — structural lint fixtures and tests
 

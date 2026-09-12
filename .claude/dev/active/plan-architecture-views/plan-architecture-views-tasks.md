@@ -112,10 +112,10 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 2.7: Angle 6 uses the lint; enum test wired to the parser; sync
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Deferred from M1 §6.8 (future-proofing WARNING/INFO, L-013): (a) pin `CODE_AUDIT_PROFILES` (= {full, code-only, infra}; `custom` excluded — context-log 2026-09-12) against the 8 prose sites that inline the set (aa-ma.md:117, engineering-standards.md:59, plan-verification SKILL.md:406/411, spec:604 ×2, plan-template.md:12/79) with a `test_enum_matches_*`-style test; (b) upgrade `test_angle6_lists_waiver_values` to `CANONICAL_DIAGRAM_WAIVERS` and extend it to the engineering-standards table; (c) spec:604 forward-references `plan_parsers.parse_diagram_waiver` — resolves when 2.2 lands; SKILL.md:415 "Parsers for checks #2, #4 and #5" gains #6.
-- Result Log: [placeholder]
+- Result Log: HITL gate approved. Angle 6 check #6 now runs `uv run --project "$AA_MA_ROOT" aa-ma-lint-views` (AA_MA_ROOT via `readlink -f` on the installed skill symlink — verified resolves to the checkout; run from /tmp → rc=0 `render: UNKNOWN`); grep stopgap removed; parser pointer names #6/`parse_diagram_waiver`/`CODE_AUDIT_PROFILES`. Deferred items closed: (a) `test_prose_code_profile_sets_match_the_constant` (5 files, ≥5 sites) — mutation `+custom` → 1 failed; (b) `test_angle6_lists_every_canonical_waiver_value` + `test_engineering_standards_table_matches_waiver_enum` import `CANONICAL_DIAGRAM_WAIVERS` — mutation (drop `single-file` row) → 1 failed; (c) spec forward reference resolved (parser exists), SKILL.md pointer updated. pytest 1031 passed; bats 0 not ok. CRITICAL_PATH_REVIEW (data-xform) written naming Milestone 2.
 
 ## Milestone 3: Share — /aa-ma-share publishes markdown as a private Artifact
 

@@ -405,16 +405,29 @@ evaluates these structural conditions against the plan:
    carries `**Diagram-Waiver:** <value>` with a canonical value (`none`, `docs-only`,
    `config-only`, `single-file`). A waiver alongside any milestone whose
    `Audit-Profile` ∈ {full, code-only, infra} is CRITICAL. Novel waiver value is
-   CRITICAL. Until `aa-ma-lint-views` ships (plan-architecture-views M2), check by
-   grep: `grep -nE '^\*\*Diagram-Waiver:\*\* \S' plan.md`.
+   CRITICAL. Run the lint rather than eyeballing the section:
+   ```bash
+   # Resolve the aa-ma-forge checkout from this skill's own installed symlink
+   # (install.sh symlinks claude-code/skills/* into ~/.claude/skills/).
+   AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/skills/plan-verification/SKILL.md)")/../../.." && pwd)
+   uv run --project "$AA_MA_ROOT" aa-ma-lint-views <plan.md> --repo-root <project-root>
+   ```
+   Exit 1 → one CRITICAL per finding line (`file:line: CODE: message`);
+   `render: FAIL` → CRITICAL (a mermaid parse error); `render: UNKNOWN` → INFO
+   (no working `mmdc`/Chromium — never read UNKNOWN as PASS, L-012); exit 2 →
+   CRITICAL (usage: plan path missing or not a file). Before `tasks.md` exists
+   the lint reads `### Milestone` blocks from the plan itself; pass `--tasks`
+   once it does.
 7. **Contract block per code milestone (v0.12.0+).** Every milestone with
    `Audit-Profile` ∈ {full, code-only, infra} has a `#### Contract` heading followed
    by at least one fenced block. Missing → CRITICAL; the fresh-agent simulation
    (Angle 5) treats an unpinned signature as a WARNING at minimum.
 
-Parsers for checks #2, #4 and #5 live in `src/aa_ma/plan_parsers.py`
-(`parse_critical_path`, `parse_audit_profile`, `parse_tdd_waiver`, and their
-`CANONICAL_*` frozensets). Each parser returns `(value, is_valid, error)`;
+Parsers for checks #2, #4, #5 and #6 live in `src/aa_ma/plan_parsers.py`
+(`parse_critical_path`, `parse_audit_profile`, `parse_tdd_waiver`,
+`parse_diagram_waiver`, and their `CANONICAL_*` frozensets); check #6/#7
+structure is `aa_ma.render.mermaid_lint` (`CODE_AUDIT_PROFILES` decides which
+milestones need a Contract block). Each parser returns `(value, is_valid, error)`;
 the audit reports `CRITICAL` when `is_valid is False`.
 
 **Grandfathering (CEO-4):**

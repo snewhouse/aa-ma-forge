@@ -29,6 +29,7 @@ _make_origin_and_clone() {
   printf '# aa-ma-forge\n\n**Current version:** v0.11.0 — old headline here.\n\nbody\n' > README.md
   printf '__version__ = "0.11.0"\n' > VERSION
   printf '[project]\nname = "aa-ma"\nversion = "0.11.0"\n' > pyproject.toml
+  printf 'version = 1\n\n[[package]]\nname = "aa-ma"\nversion = "0.11.0"\nsource = { editable = "." }\n\n[[package]]\nname = "other"\nversion = "0.11.0"\n' > uv.lock
   git add -A && git commit -q -m "init" && git tag v0.11.0 && git push -q -u origin main --tags
 }
 
@@ -44,6 +45,7 @@ if [[ "$*" == *"--get-next"* ]]; then echo "0.12.0"; exit 0; fi
 if [[ "$*" == *"--dry-run"* ]]; then echo "bump: version 0.11.0 → 0.12.0"; echo "tag to create: v0.12.0"; exit 0; fi
 if [[ "$1" == "bump" ]]; then
   sed -i 's/0\.11\.0/0.12.0/' VERSION pyproject.toml
+  [[ -n "${STUB_SKIP_LOCK:-}" ]] || sed -i '0,/^version = "0.11.0"/s//version = "0.12.0"/' uv.lock   # what pre_bump_hooks = ["uv lock"] does
   git commit -q -a -m "bump: version 0.11.0 → 0.12.0" -m "[ad-hoc]"
   git tag -a v0.12.0 -m "v0.12.0"
   exit 0
@@ -123,6 +125,7 @@ EOF
   git show --stat --format= HEAD | grep -q CHANGELOG.md
   git show --stat --format= HEAD | grep -q README.md
   git show --stat --format= HEAD | grep -q VERSION
+  git show --stat --format= HEAD | grep -q uv.lock                     # re-locked inside the bump commit
   [ "$(git cat-file -t v0.12.0)" = "tag" ]                              # annotated, not lightweight
   [ -z "$(git status --porcelain)" ]
   [ -z "$(git ls-remote --tags origin v0.12.0)" ]                       # nothing pushed
@@ -140,4 +143,10 @@ EOF
 @test "refuses when README lacks exactly one Current version line" {
   sed -i '/Current version/d' README.md && git commit -q -am x && git push -q
   run "$RELEASE" minor --headline h; [ "$status" -eq 1 ]; [[ "$output" == *"Current version"* ]]
+}
+
+@test "refuses to publish when uv.lock still records the old version" {
+  STUB_SKIP_LOCK=1 run "$RELEASE" minor --headline h --no-push
+  [ "$status" -eq 1 ]; [[ "$output" == *uv.lock* ]]
+  [ -z "$(git ls-remote --tags origin v0.12.0)" ]
 }

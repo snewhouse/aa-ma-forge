@@ -65,6 +65,11 @@ sed -i -E "s|${README_RE}.*|$(printf '%s' "$README_LINE" | sed 's/[&|]/\\&/g')|"
 "${CZ[@]}" bump --increment "${INC^^}" --yes
 [[ "$(git cat-file -t "v$NEW" 2>/dev/null)" == "tag" ]] || refuse "cz did not create an annotated tag v$NEW (set annotated_tag = true)"
 [[ -z "$(git status --porcelain)" ]] || refuse "tree dirty after cz bump — inspect before pushing"
+# uv.lock must carry the new version in the tagged tree (pre_bump_hooks = ["uv lock"]).
+if [[ -f uv.lock ]]; then
+  awk '/^name = "aa-ma"$/{f=1;next} f&&/^version = /{print;exit}' uv.lock | grep -qF "\"$NEW\"" \
+    || refuse "uv.lock still records the old version — is pre_bump_hooks = [\"uv lock\"] set in [tool.commitizen]?"
+fi
 echo "released v$NEW locally: $(git log --format='%h %s' -1)"
 [[ $NOPUSH -eq 0 ]] || { echo "--no-push: not pushed; rollback = git tag -d v$NEW && git reset --hard origin/main"; exit 0; }
 

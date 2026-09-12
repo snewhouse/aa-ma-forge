@@ -77,6 +77,9 @@ bump_message = "bump: version $current_version → $new_version\n\n[ad-hoc]"
 version_files = [
     "VERSION:__version__",
 ]
+# uv.lock records the project version; re-lock after cz writes version_files so the -a
+# commit (and the tag) carry a consistent lock. release.sh refuses to push otherwise.
+pre_bump_hooks = ["uv lock --quiet"]
 
 # --------------------------------------------------------------------
 # pytest (M1 Task 1.13)

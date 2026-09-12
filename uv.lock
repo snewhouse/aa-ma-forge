@@ -13,6 +13,7 @@ name = "aa-ma"
 version = "0.11.0"
 source = { editable = "." }
 dependencies = [
+    { name = "markdown-it-py" },
     { name = "pydantic" },
     { name = "rich" },
     { name = "textual" },
@@ -37,6 +38,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "markdown-it-py", specifier = ">=4,<5" },
     { name = "pydantic", specifier = ">=2,<3" },
     { name = "rich", specifier = ">=13,<14" },
     { name = "textual", specifier = ">=0.80,<1.0" },

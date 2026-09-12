@@ -180,9 +180,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 4.3: GREEN — html.py, dep promotion, golden
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. Created src/aa_ma/render/html.py (Contract verbatim: MERMAID_VERSION=11.17.2, _fence, _raw_html, _md, render_markdown); pyproject dependencies += markdown-it-py>=4,<5 (uv.lock +2 lines; .venv resolves 4.0.0). Golden tests/golden/render_plan_ok.html (1674 B) generated once, eyeballed in /browse: svg=2 (flowchart-v2 + sequence), title plan_ok, console errors 0 → frozen. `uv run pytest tests/render` 56 passed; ruff check/format clean; lint-imports 3 kept; bandit 0 issues.
 
 ### Sub-step 4.4: aa-ma-render CLI
 

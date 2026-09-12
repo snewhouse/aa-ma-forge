@@ -26,6 +26,7 @@ dependencies = [
     "textual>=0.80,<1.0",     # Interactive TUI framework (M3).
     "rich>=13,<14",           # Snapshot mode + Textual renderer (M2). Declared explicitly per L-055.
     "watchfiles>=0.21,<1.0",  # Async file-watch for live refresh (M3). Already transitive via fastmcp.
+    "markdown-it-py>=4,<5",   # Render (plan-architecture-views M4). Promoted from transitive via rich per L-055.
 ]
 
 [project.scripts]

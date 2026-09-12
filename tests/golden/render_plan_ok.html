@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>plan_ok</title>
+<style>
+:root{color-scheme:light dark;--fg:#1a1a1a;--bg:#fff;--muted:#f4f4f4;--line:#ddd}
+@media(prefers-color-scheme:dark){:root{--fg:#e6e6e6;--bg:#151515;--muted:#222;--line:#333}}
+body{margin:0;padding:1.5rem 1rem;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,sans-serif;max-width:56rem;margin-inline:auto}
+pre{background:var(--muted);padding:.8rem;overflow-x:auto;border:1px solid var(--line)}
+pre.mermaid{background:transparent;border:0;text-align:center}
+table{border-collapse:collapse;display:block;overflow-x:auto}td,th{border:1px solid var(--line);padding:.3rem .6rem}
+@media print{pre.mermaid{break-inside:avoid}a[href]::after{content:" (" attr(href) ")"}}
+</style>
+</head>
+<body>
+<main>
+<h1>Fixture Plan</h1>
+<p><strong>Created:</strong> 2026-09-11
+<strong>Diagram-Waiver:</strong> none</p>
+<h2>13. Architecture View</h2>
+<h3>Component view</h3>
+<pre class="mermaid">flowchart LR
+  A[src/aa_ma/plan_parsers.py] --&gt; B["src/aa_ma/render/mermaid_lint.py (new)"]
+</pre>
+<h3>Flow view</h3>
+<pre class="mermaid">sequenceDiagram
+  A-&gt;&gt;B: lint
+</pre>
+<h3>Milestone 1: Code</h3>
+<ul>
+<li>Audit-Profile: code-only</li>
+<li><strong>Critical-Path:</strong> data-xform</li>
+</ul>
+</main>
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.esm.min.mjs";
+const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+mermaid.initialize({ startOnLoad: true, theme: dark ? "dark" : "default", securityLevel: "strict" });
+</script>
+</body>
+</html>

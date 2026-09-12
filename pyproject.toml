@@ -1,9 +1,7 @@
 [project]
 name = "aa-ma"
-# NOTE: version is owned by `uv run cz bump` (commitizen) per [tool.commitizen]
-# below. Do NOT hand-edit. aa-ma-tui-tracker M4 ships v0.10.0 via `cz bump
-# --increment MINOR`; M0 deliberately defers the bump to avoid commitizen vs.
-# semantic_release conflict. See aa-ma-tui-tracker-context-log.md (Decision 6).
+# NOTE: version is owned by commitizen via scripts/release.sh (docs/runbooks/release.md).
+# Do NOT hand-edit.
 version = "0.11.0"
 description = "Advanced Agentic Memory Architecture - structured external memory for AI coding agents"
 readme = "README.md"
@@ -49,6 +47,7 @@ dev-dependencies = [
     "pytest-cov>=5.0",         # aa-ma-tui-tracker M1 T1.10: coverage gate ≥90% on parser.py + model.py
     "hypothesis>=6.0",         # M2 property-based round-trip tests (Step 2.4)
     "import-linter>=2.0",      # M1 layer-boundary enforcement (Step 1.11)
+    "commitizen>=4,<5",        # scripts/release.sh; pinned <5 (cz 5 removes --files-only and may change bump flags). Was only on PATH via a conda env (L-015).
     "python-semantic-release>=9.0",
     "ruff>=0.4",
     "tiktoken>=0.7",           # codemem-token-benchmarks M2: external tokenizer for cross-tool normalization
@@ -65,10 +64,17 @@ members = ["packages/codemem-mcp"]
 codemem-mcp = { workspace = true }
 
 [tool.commitizen]
+# Releases are cut by scripts/release.sh (docs/runbooks/release.md): it promotes the curated
+# `## Unreleased` CHANGELOG section and the README "Current version" line, then `cz bump`
+# updates version_files and commits everything (-a) under an annotated tag. cz never writes
+# the CHANGELOG — update_changelog_on_bump=true replaced curated notes with commit subjects
+# every release from v0.7.0 to v0.11.0 (lessons L-006/L-008).
 name = "cz_conventional_commits"
 version_provider = "pep621"
 tag_format = "v$version"
-update_changelog_on_bump = true
+update_changelog_on_bump = false
+annotated_tag = true
+bump_message = "bump: version $current_version → $new_version\n\n[ad-hoc]"
 version_files = [
     "VERSION:__version__",
 ]

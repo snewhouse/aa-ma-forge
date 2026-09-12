@@ -50,3 +50,31 @@ def test_render_writes_html(tmp_path, capsys):
 def test_render_usage_exit_2(argv, capsys):
     assert render_main(argv) == 2
     assert "usage" in capsys.readouterr().err.lower()
+
+
+def test_render_duplicate_stems_refused(tmp_path, capsys):
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    for d in ("a", "b"):
+        (tmp_path / d / "plan.md").write_text("# x\n")
+    out = tmp_path / "out"
+    argv = [
+        str(tmp_path / "a" / "plan.md"),
+        str(tmp_path / "b" / "plan.md"),
+        "--out",
+        str(out),
+    ]
+    assert render_main(argv) == 2  # never silently clobber a/plan.md with b/plan.md
+    assert "plan.html" in capsys.readouterr().err and not out.exists()
+
+
+def test_render_unreadable_source_exit_2_writes_nothing(tmp_path, capsys):
+    src = tmp_path / "locked.md"
+    src.write_text("# x\n")
+    src.chmod(0)
+    out = tmp_path / "out"
+    try:
+        assert render_main([str(FIX / "plan_ok.md"), str(src), "--out", str(out)]) == 2
+    finally:
+        src.chmod(0o644)
+    assert "locked.md" in capsys.readouterr().err and not out.exists()  # all-or-nothing

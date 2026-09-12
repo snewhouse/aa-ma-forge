@@ -40,3 +40,14 @@ def test_raw_html_is_escaped_not_passed_through():
 
 def test_golden():
     assert render_markdown(FIX.read_text(), title="plan_ok") == GOLDEN.read_text()
+
+
+def test_html_after_a_comment_on_the_same_block_survives_escaped():
+    out = render_markdown("<!-- c --> <div>keep</div>\ntext\n", title="t")
+    assert (
+        "&lt;div&gt;keep&lt;/div&gt;" in out and "<!--" not in out and " c " not in out
+    )
+
+
+def test_unterminated_comment_swallows_the_block_like_a_browser():
+    assert "gone" not in render_markdown("<!-- gone\n<b>gone</b>\n", title="t")

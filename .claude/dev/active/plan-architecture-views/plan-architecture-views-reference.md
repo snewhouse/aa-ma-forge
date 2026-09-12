@@ -114,4 +114,13 @@ Excluded (frozen history, never edited): `docs/adr/0001-*.md:91`, `docs/narrativ
 - Artifact viewer loads mermaid **11.16.1** (observed in the saved frame) — a pin for M4's `MERMAID_VERSION` decision
 - gstack `/browse` on BATS: private artifacts 404 when logged out (correct); handoff→resume drops the session on WSL — verify auth-gated pages via the user's saved iframe document (`_files/_t.html`). Playwright build 1208 satisfied by symlinks to 1234 in `~/.cache/ms-playwright`
 
+### M4 facts (landed 2026-09-12)
+- `src/aa_ma/render/html.py`: `MERMAID_VERSION = "11.17.2"` (latest 11.x on jsDelivr, re-measured at the 4.1 prototype); `render_markdown(text, *, title) -> str`; rules `_fence` (info == "mermaid" → `<pre class="mermaid">`), `_raw_html` (html_block/html_inline: comment → "", else `html.escape`), `_md()` builds `MarkdownIt("commonmark", {"html": True}).enable(["table", "strikethrough"])`
+- `render_main` in `src/aa_ma/render/cli.py`: `aa-ma-render <md>... [--out build/render]`; usage → stderr, exit 2; prints each written path; output name `<stem>.html`
+- `markdown-it-py>=4,<5` is now an explicit dependency (`.venv` 4.0.0; uv.lock unchanged beyond the edge)
+- Golden: `tests/golden/render_plan_ok.html` (1674 B) — regenerate deliberately with the one-liner in plan Sub-step 4.3 when `_CSS` or the skeleton changes
+- `/browse` recipe for rendered HTML: wait on `document.querySelectorAll('svg').length`, **not** `pre.mermaid[data-processed]` (set before paint — a screenshot at that instant showed an empty sequence diagram); dark mode needs playwright `emulateMedia({colorScheme:"dark"})` with `executablePath` = `~/.cache/ms-playwright/chromium_headless_shell-1234/…` (gstack's playwright wants build 1243, not installed)
+- ADR-0010 has no markdown table → the `table >= 1` goal is evidenced by the spec render (6 tables); ADR render: 1 svg (Example fences sit inside a ````markdown block)
+- Tests: `tests/render/test_html.py` (7), `tests/render/test_cli.py` (+4 → 8); `tests/render` total 60
+
 _Last Updated: 2026-09-12_

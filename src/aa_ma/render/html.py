@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import html as _html
 
 from markdown_it import MarkdownIt
@@ -25,12 +26,25 @@ def _fence(self, tokens, idx, options, env):  # noqa: ANN001 — markdown-it-py 
     return self.fence(tokens, idx, options, env)
 
 
+def _strip_comments(s: str) -> str:
+    """Drop every `<!-- … -->` span; an unterminated `<!--` eats the rest, as a browser would.
+    str.find, not a lazy regex: `<!--.*?-->` re-scans to EOF per opener on hostile input."""
+    out, i = [], 0
+    while (j := s.find("<!--", i)) != -1:
+        out.append(s[i:j])
+        if (k := s.find("-->", j + 4)) == -1:
+            return "".join(out)
+        i = k + 3
+    out.append(s[i:])
+    return "".join(out)
+
+
 def _raw_html(self, tokens, idx, options, env):  # noqa: ANN001
     """Comments vanish; every other raw-HTML token is rendered as escaped text. Never passthrough."""
-    content = tokens[idx].content
-    return "" if content.lstrip().startswith("<!--") else _html.escape(content)
+    return _html.escape(_strip_comments(tokens[idx].content))
 
 
+@functools.cache  # one parser per process; rules carry no per-render state
 def _md() -> MarkdownIt:
     md = MarkdownIt("commonmark", {"html": True}).enable(["table", "strikethrough"])
     md.add_render_rule("fence", _fence)

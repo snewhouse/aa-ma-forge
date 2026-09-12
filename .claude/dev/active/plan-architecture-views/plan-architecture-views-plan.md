@@ -5,7 +5,7 @@
 **Objective:** Make every new AA-MA plan carry a mermaid Architecture View (element #13) and pinned Contract blocks, lint them, share plans/ADRs as private Artifact links, and (last, optional) render markdown to a standalone HTML file.
 **Owner:** Ste (Stephen J Newhouse) + Claude Code
 **Created:** 2026-09-11
-**Last Updated:** 2026-09-12 (rev 4 + release retarget v0.12.0; rev 4 — after plan-eng-review D1–D12; verification pass 1: 6 CRITICAL fixed; pass 2: 2 CRITICAL + 1 WARNING fixed)
+**Last Updated:** 2026-09-12 (rev 4 + release retarget v0.12.0 — 4.5 release-prep label caught by Tier 2 at M4; rev 4 — after plan-eng-review D1–D12; verification pass 1: 6 CRITICAL fixed; pass 2: 2 CRITICAL + 1 WARNING fixed)
 **Diagram-Waiver:** none
 **Spec:** `docs/superpowers/specs/2026-09-11-plan-architecture-views-design.md` (spec §4.6 `inline_svg`, §4.7 "render → publish" and the M3/M4 order are superseded by this revision; see Plan Review History)
 **Target release:** v0.12.0 (from 0.11.0 — v0.11.0 was tagged at 758f125 on 2026-09-12 before M1 started; see context-log 2026-09-12 decision)
@@ -1062,7 +1062,7 @@ def render_main(argv: Sequence[str] | None = None) -> int:
 
 - [ ] `CLAUDE.md` Build & Development Commands: `uv run aa-ma-lint-views <plan.md> --repo-root .   # Lint §13 Architecture View` and `uv run aa-ma-render <md>... [--out build/render]   # Markdown → self-contained HTML`; architecture tree: `src/aa_ma/render/`. `README.md`: 6-line "Sharing and rendering plans" subsection (`/aa-ma-share` first, `aa-ma-render` second). `CHANGELOG.md` Unreleased.
 - [ ] `uv run pytest -q`; `uv run lint-imports`; `bats tests/hooks`.
-- [ ] Sync AA-MA files; commit `docs(aa-ma): M4 complete — HTML render`; then finalization protocol, `/archive-aa-ma plan-architecture-views`, `/release-prep` v0.11.0.
+- [ ] Sync AA-MA files; commit `docs(aa-ma): M4 complete — HTML render`; then finalization protocol, `/archive-aa-ma plan-architecture-views`, `/release-prep` v0.12.0.
 
 **Milestone 4 tests:** `test_html.py` (7), `test_cli.py` (+4), golden, `/browse` check in provenance.
 **Rollback:** revert M4 commits; drop the dep line and script entry; `uv sync`. Or drop it via the documented scope-reduction path (no invented status).

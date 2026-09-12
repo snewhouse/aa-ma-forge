@@ -55,7 +55,9 @@ def test_paths_outside_repo_root_are_never_probed_as_present(tmp_path: Path) -> 
     )
     rep = lint_text(_plan_with_component(body), repo)
     stale = [f.message for f in rep.findings if f.code == "STALE_PATH"]
-    assert len(stale) == 3, rep.findings  # absolute, parent-escape and plain-missing all reported
+    assert len(stale) == 3, (
+        rep.findings
+    )  # absolute, parent-escape and plain-missing all reported
 
 
 def test_unknown_type_message_never_carries_raw_control_chars() -> None:
@@ -63,3 +65,14 @@ def test_unknown_type_message_never_carries_raw_control_chars() -> None:
     rep = lint_text(_plan_with_component(body), REPO)
     msgs = [f.message for f in rep.findings if f.code == "UNKNOWN_TYPE"]
     assert msgs and "\x1b" not in msgs[0] and "\\x1b" in msgs[0]
+
+
+def test_render_unterminated_comment_flood_is_linear() -> None:
+    from aa_ma.render.html import render_markdown
+
+    body = (
+        "<!--\n" * 50_000
+    )  # one html_block, 50k openers, no closer (M4 comment stripper)
+    t0 = time.perf_counter()
+    render_markdown(body, title="t")
+    assert time.perf_counter() - t0 < BUDGET_S

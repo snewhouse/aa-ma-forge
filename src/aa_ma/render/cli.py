@@ -47,12 +47,22 @@ def render_main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("sources", nargs="*", type=Path)
     p.add_argument("--out", type=Path, default=Path("build/render"))
     a = p.parse_args(argv)
-    if not a.sources or any(not s.is_file() for s in a.sources):
+    if not a.sources:
+        p.print_usage(sys.stderr)
+        return 2
+    names = [f"{s.stem}.html" for s in a.sources]
+    if dupes := {n for n in names if names.count(n) > 1}:
+        print(f"aa-ma-render: output name collision: {sorted(dupes)}", file=sys.stderr)
+        return 2
+    try:  # read everything first: a bad source means no output at all, not a partial set
+        texts = [s.read_text(encoding="utf-8") for s in a.sources]
+    except OSError as e:
+        print(f"aa-ma-render: {e}", file=sys.stderr)
         p.print_usage(sys.stderr)
         return 2
     a.out.mkdir(parents=True, exist_ok=True)
-    for src in a.sources:
-        target = a.out / f"{src.stem}.html"
-        target.write_text(render_markdown(src.read_text(), title=src.stem))
+    for src, name, text in zip(a.sources, names, texts, strict=True):
+        target = a.out / name
+        target.write_text(render_markdown(text, title=src.stem), encoding="utf-8")
         print(target)
     return 0

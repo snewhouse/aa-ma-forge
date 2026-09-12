@@ -116,3 +116,9 @@ Running `aa-ma-lint-views` on ADR-0010 (its own exemplar) reported NO_COMPONENT_
 - Active step at compaction: Sub-step 4.1: Prototype (UI branch) — fence hook + html rules + mermaid ESM + theme
 - Snapshot saved to: /home/sjnewhouse/.claude/hooks/cache/compaction-snapshots/plan-architecture-views-snapshot.md
 - Note: Context compacted. Reload AA-MA files to resume.
+
+## [2026-09-12] Decision: build M4 (Render) — not dropped
+- Context: M3 checkpoint left "build or drop" open. `/execute-aa-ma-milestone … -> M4` invoked; at the 4.1 HITL gate the user chose **Proceed — build**.
+- Rationale: `/aa-ma-share` covers "read it as a link"; Render covers "attach a file" (offline reviewers, PDF via print). Cost was bounded (Contract pinned the whole surface; ~3.5 h). Prototype (4.1) returned GO with measured evidence before any production code.
+- Mermaid pin: `MERMAID_VERSION = "11.17.2"` — latest 11.x on jsDelivr, re-measured 2026-09-12. The Artifact viewer's 11.16.1 is noted but irrelevant to a self-contained file; the plan rule "latest 11.x at prototype time, never keep an older pin" wins.
+- Tier 2 (pre-execution, WARN 3/0): plan.md:1065 `/release-prep v0.11.0` → v0.12.0 (scope-change-class edit to plan.md, Last Updated bumped); tasks.md Summary Counts 23 → 24 sub-steps (2.8 added at M2); M4 test/golden paths pinned in reference.md. All fixed in the M4 sync commit.

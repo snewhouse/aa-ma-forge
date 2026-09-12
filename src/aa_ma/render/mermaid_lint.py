@@ -83,12 +83,25 @@ def _milestone_facts(text: str) -> tuple[bool, bool, list[str]]:
     return code, crit, errors
 
 
-def _views(section: str) -> dict[str, tuple[int, str]]:
-    heads = list(_VIEW_RE.finditer(section))
+def _views(
+    section_lines: list[str], stripped_lines: list[str]
+) -> dict[str, tuple[int, str]]:
+    """name -> (0-based heading line within the section, body text).
+
+    Headings are located on the fence-stripped lines (a `### Component view` quoted inside a
+    fenced example is content, not a view); bodies are sliced from the original lines so the
+    mermaid fences are intact. scan_fences blanks lines rather than dropping them, so the two
+    lists are line-aligned.
+    """
+    heads = [
+        (i, m.group(1))
+        for i, ln in enumerate(stripped_lines)
+        if (m := _VIEW_RE.match(ln))
+    ]
     out: dict[str, tuple[int, str]] = {}
-    for i, m in enumerate(heads):
-        end = heads[i + 1].start() if i + 1 < len(heads) else len(section)
-        out[m.group(1)] = (m.start(), section[m.end() : end])
+    for k, (i, name) in enumerate(heads):
+        end = heads[k + 1][0] if k + 1 < len(heads) else len(section_lines)
+        out[name] = (i, "\n".join(section_lines[i + 1 : end]))
     return out
 
 
@@ -112,7 +125,10 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
     out: list[Finding] = []
     code_ms, has_crit, audit_errors = _milestone_facts(plan_text + "\n" + tasks_text)
     out += [Finding("AUDIT_PROFILE_INVALID", 1, e) for e in audit_errors]
-    front = plan_text.split("\n## ", 1)[0]
+    stripped = strip_fenced_blocks(
+        plan_text
+    )  # headings inside fences are content, not structure
+    front = stripped.split("\n## ", 1)[0]
     waiver, ok, err = parse_diagram_waiver(front)
     waiver = waiver or "none"
     if not ok:
@@ -125,15 +141,18 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
                 f"Diagram-Waiver: {waiver} but a milestone has a code Audit-Profile",
             )
         )
-    m = _SECTION_RE.search(plan_text)
+    m = _SECTION_RE.search(stripped)
     if m is None:
         if ok and waiver == "none":
             out.append(Finding("NO_SECTION", 1, "missing '## 13. Architecture View'"))
         return LintReport(tuple(out), "UNKNOWN")
-    nxt = _H2_RE.search(plan_text, m.end())
-    section = plan_text[m.start() : nxt.start() if nxt else len(plan_text)]
-    base = _line(plan_text, m.start()) - 1
-    views = _views(section)
+    nxt = _H2_RE.search(stripped, m.end())
+    first = _line(stripped, m.start()) - 1  # 0-based line index of the section heading
+    last = _line(stripped, nxt.start()) - 1 if nxt else None
+    section_lines = plan_text.split("\n")[first:last]
+    stripped_lines = stripped.split("\n")[first:last]
+    base = first  # absolute line = base + 1-based line within the section
+    views = _views(section_lines, stripped_lines)
     if "Component" not in views:
         out.append(
             Finding("NO_COMPONENT_VIEW", base + 1, "missing '### Component view'")
@@ -145,9 +164,12 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
             )
         )
     sources: list[str] = []
-    for name, (pos, body) in views.items():
-        vline = base + _line(section, pos)
-        fences = [f for f in _FENCE_RE.findall(body) if f.strip()]
+    for name, (idx, body) in views.items():
+        vline = base + idx + 1
+        fences = [
+            (_line(body, fm.start(1)), fm.group(1)) for fm in _FENCE_RE.finditer(body)
+        ]
+        fences = [(ln, src) for ln, src in fences if src.strip()]
         if not fences:
             out.append(
                 Finding(
@@ -155,20 +177,20 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
                 )
             )
             continue
-        for src in fences:
-            first = src.strip().splitlines()[0].split()[0]
-            if first not in KNOWN_TYPES:
+        for fline, src in fences:
+            first_word = src.strip().splitlines()[0].split()[0]
+            if first_word not in KNOWN_TYPES:
                 out.append(
                     Finding(
                         "UNKNOWN_TYPE",
                         vline,
-                        f"{name} view: unknown diagram type '{first}'",
+                        f"{name} view: unknown diagram type '{first_word}'",
                     )
                 )
             out += [
                 Finding(
                     "STALE_PATH",
-                    vline + ln,
+                    vline + fline + ln - 1,
                     f"{p} not found (suffix the label with '(new)' if planned)",
                 )
                 for ln, p in _stale_paths(src, repo_root)

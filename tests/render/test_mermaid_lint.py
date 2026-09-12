@@ -45,6 +45,7 @@ def test_finding_codes(name: str, code: str) -> None:
         "plan_data_state.md",
         "plan_section_last.md",
         "plan_heading_nodot.md",
+        "plan_quoted_section.md",  # a fenced example quoting §13 must not be taken for §13
     ],
 )
 def test_clean_variants(name: str) -> None:

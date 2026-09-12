@@ -13,9 +13,15 @@
 #
 # 2. codemem.parser must not import from codemem.mcp_tools (back-edge
 #    forbidden — the parser layer is pure and must stay reusable).
+#
+# 3. aa_ma.render is a leaf: derived views (lint, HTML) may import the
+#    grammar and parsers, but nothing in aa_ma may import aa_ma.render
+#    (plan-architecture-views M2, ADR-0010).
 
 [importlinter]
-root_package = codemem
+root_packages =
+    codemem
+    aa_ma
 
 [importlinter:contract:codemem-layers]
 name = codemem layered architecture
@@ -37,3 +43,16 @@ forbidden_modules =
     codemem.indexer
     codemem.resolver
     codemem.pagerank
+
+[importlinter:contract:render-is-leaf]
+name = aa_ma.render is a leaf package
+type = forbidden
+source_modules =
+    aa_ma.tui
+    aa_ma.grammar
+    aa_ma.plan_parsers
+    aa_ma.plan_markers
+    aa_ma.enforce
+    aa_ma.gate
+forbidden_modules =
+    aa_ma.render

@@ -149,6 +149,7 @@ from text and renders everywhere plans are actually read.
 ## Architecture View
 
 <!-- Component view of this decision's footprint: M1 prompt/doc surface, M2 lint, M3 share, M4 render. -->
+### Component view
 ```mermaid
 flowchart LR
   subgraph M1[M1 Standard — prompt/doc surface]

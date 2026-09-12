@@ -28,7 +28,7 @@ class TestImportLinterContract:
         assert result.returncode == 0, (
             f"import-linter failed:\n{result.stdout}\n{result.stderr}"
         )
-        assert "Contracts: 2 kept, 0 broken." in result.stdout
+        assert "Contracts: 3 kept, 0 broken." in result.stdout
 
     def test_config_file_exists(self):
         cfg = REPO_ROOT / ".importlinter"

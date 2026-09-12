@@ -106,9 +106,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 2.6: CLI + entry point + import-linter contract (mutation-checked)
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED `tests/render/test_cli.py` (ModuleNotFoundError) → GREEN `src/aa_ma/render/cli.py`; plan code sent usage to stdout, test (correctly) expects stderr — code fixed (`print_usage(sys.stderr)`). `pyproject [project.scripts] aa-ma-lint-views`; `.importlinter` `root_packages = codemem, aa_ma` + `render-is-leaf`; `test_contracts_kept` → "3 kept". **Mutation:** `import aa_ma.render` appended to grammar.py → `aa_ma.render is a leaf package BROKEN / Contracts: 2 kept, 1 broken.`; removed → `KEPT / 3 kept, 0 broken.` **Live run found a lint bug:** `aa-ma-lint-views` on this plan reported STALE_PATH at plan.md:128 — a ````markdown fence in sub-step 1.3 *quoting* §13 was matched as the section. Fixed TDD (fixture `plan_quoted_section.md` RED → GREEN): section/view headings located on `strip_fenced_blocks` text, bodies sliced from original lines; fence line numbers now exact (injected stale path reported at 1151 = its true line). Live run on ADR-0010: NO_COMPONENT_VIEW — added `### Component view` to ADR-0010 and docs/adr/TEMPLATE.md; ADR-0010 now rc=0. Measurable goal: real plan rc=0 `render: UNKNOWN`; collect-only 50 tests (≥49); full suite 1028 passed.
 
 ### Sub-step 2.7: Angle 6 uses the lint; enum test wired to the parser; sync
 

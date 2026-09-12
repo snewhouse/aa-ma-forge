@@ -33,6 +33,8 @@ dependencies = [
 aa-ma-tui = "aa_ma.tui.__main__:main"
 # Gate questions from the Python SSoT — created in milestone-grammar-ssot M5 (2026-09-11).
 aa-ma-gate = "aa_ma.gate:main"
+# §13 Architecture View lint — created in plan-architecture-views M2 (2026-09-12).
+aa-ma-lint-views = "aa_ma.render.cli:lint_main"
 
 [build-system]
 requires = ["hatchling"]

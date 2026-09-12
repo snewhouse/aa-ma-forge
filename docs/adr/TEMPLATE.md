@@ -61,6 +61,7 @@
 
 <!-- Component view only: what this decision touches and how it depends. Delete if the decision has no structural footprint. -->
 <!-- Labels containing parentheses use the quoted form B["path (new)"]. -->
+### Component view
 ```mermaid
 flowchart LR
   A[existing/module.py] --> B["new/module.py (new)"]

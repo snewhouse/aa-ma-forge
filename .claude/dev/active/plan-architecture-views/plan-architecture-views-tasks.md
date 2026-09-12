@@ -186,9 +186,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 4.4: aa-ma-render CLI
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED: +4 tests in tests/render/test_cli.py (`ImportError: cannot import name 'render_main'`). GREEN: `render_main` in src/aa_ma/render/cli.py (Contract verbatim; usage → stderr, exit 2), `aa-ma-render = "aa_ma.render.cli:render_main"` in pyproject; `uv run pytest tests/render` 60 passed; ruff clean. Live: `uv run aa-ma-render docs/adr/0010-architecture-views-and-render.md --out build/render` → /browse svg=1 (ADR's only fence outside the ````markdown example), table=0 (ADR-0010 contains no markdown table), stylesheet links 0, console errors 0; `aa-ma-render docs/spec/aa-ma-specification.md` → svg=1, table=6, pre.mermaid=1, console errors 0. `git status --short | grep build` → empty (.gitignore:34).
 
 ### Sub-step 4.5: Docs + sync + finalization
 

@@ -36,6 +36,7 @@ aa-ma-tui = "aa_ma.tui.__main__:main"
 aa-ma-gate = "aa_ma.gate:main"
 # §13 Architecture View lint — created in plan-architecture-views M2 (2026-09-12).
 aa-ma-lint-views = "aa_ma.render.cli:lint_main"
+aa-ma-render = "aa_ma.render.cli:render_main"
 
 [build-system]
 requires = ["hatchling"]

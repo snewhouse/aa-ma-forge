@@ -7,6 +7,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from aa_ma.render.html import render_markdown
 from aa_ma.render.mermaid_lint import lint_plan
 
 
@@ -36,3 +37,22 @@ def lint_main(argv: Sequence[str] | None = None) -> int:
         print(f"{a.plan}:{f.line}: {f.code}: {f.message}")
     print(f"render: {rep.render_status}")
     return 1 if rep.findings else 0
+
+
+def render_main(argv: Sequence[str] | None = None) -> int:
+    """aa-ma-render <md>... [--out DIR] — writes DIR/<stem>.html per source; exit 0 ok / 2 usage."""
+    p = argparse.ArgumentParser(
+        prog="aa-ma-render", description="Render markdown to self-contained HTML"
+    )
+    p.add_argument("sources", nargs="*", type=Path)
+    p.add_argument("--out", type=Path, default=Path("build/render"))
+    a = p.parse_args(argv)
+    if not a.sources or any(not s.is_file() for s in a.sources):
+        p.print_usage(sys.stderr)
+        return 2
+    a.out.mkdir(parents=True, exist_ok=True)
+    for src in a.sources:
+        target = a.out / f"{src.stem}.html"
+        target.write_text(render_markdown(src.read_text(), title=src.stem))
+        print(target)
+    return 0

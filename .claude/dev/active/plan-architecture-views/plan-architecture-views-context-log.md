@@ -56,3 +56,7 @@ _This log will be updated via context compaction as the task progresses._
 ## [2026-09-12] Decision: target release is v0.12.0, not v0.11.0
 
 v0.11.0 was tagged at `758f125` (2026-09-12 06:21) by milestone-grammar-ssot before M1 started, and does not contain element #13. All new prose from this plan labels the feature `v0.12.0+`; the grandfathering cutover stays the literal date **2026-09-11** (plans `Created:` on-or-after it are checked — this plan included; grammar-ssot, Created 2026-08, is not). `CHANGELOG.md` `## Unreleased` must be re-created in 1.8 (cz bump consumed it).
+
+## [2026-09-12] Decision: `custom` is not a code Audit-Profile for element #13
+
+§6.8 future-proofing audit flagged that "Audit-Profile ∈ {full, code-only, infra}" is inlined at 8 prose sites while the enum also has `custom`. Decision: `CODE_AUDIT_PROFILES` (plan §M2 Contract, `plan_parsers.py`) stays `{full, code-only, infra}`; a `custom` milestone that dispatches code-reviewer via `Audit-Run:` is expected to declare its View/Contract voluntarily, and `custom` + `Diagram-Waiver` is not a lint error. Revisit via ADR if a `custom` code milestone ships without a View. Pinning the set against prose is deferred to Sub-step 2.7 (named there).

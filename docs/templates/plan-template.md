@@ -149,6 +149,7 @@ def function(arg: Type) -> ReturnType
 ## 12. Engineering Standards Declaration
 
 <!-- Element 12: which themes from claude-code/rules/engineering-standards.md materially apply, one sentence each. -->
+<!-- Keep the rows in sync with the `### N.` theme headings in engineering-standards.md. -->
 
 | Theme | Applies | Rationale |
 |---|---|---|

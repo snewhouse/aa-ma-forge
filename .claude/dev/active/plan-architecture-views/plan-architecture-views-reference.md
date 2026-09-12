@@ -25,6 +25,7 @@ Architecture View: see plan.md §13
 - plan.md milestones are `### Milestone N:`; tasks.md milestones are `## Milestone N:`; the lint promotes H3→H2 before `split_milestones`
 
 ### Paths / signatures (pinned)
+- M1 authoring surface (the seven files the M1 measurable goal greps for "Architecture View"): `docs/spec/aa-ma-specification.md` (§XI item 13, §II diagram), `claude-code/skills/plan-verification/SKILL.md` (Angle 6 checks #6/#7), `docs/templates/plan-template.md` (§12, §13, Contract), `docs/adr/TEMPLATE.md`, `claude-code/agents/aa-ma-scribe.md`, `claude-code/skills/aa-ma-plan-workflow/references/PHASE_4_PLAN_GENERATION.md`, `claude-code/commands/aa-ma-plan.md`; plus `claude-code/rules/{aa-ma,engineering-standards}.md` (auto-loaded) and `docs/adr/0010-architecture-views-and-render.md`
 - `src/aa_ma/plan_parsers.py`: `CANONICAL_DIAGRAM_WAIVERS`, `parse_diagram_waiver(text) -> (value, is_valid, error)` via `_parse_canonical_field`
 - `src/aa_ma/render/` (new, leaf): `__init__.py`, `mermaid_lint.py`, `cli.py` (M2); `html.py` (M4)
 - `lint_text(plan_text, repo_root, *, tasks_text="") -> LintReport`; `lint_plan(plan_path, repo_root, *, tasks_path=None)`; `render_check(sources, *, timeout_s=90.0) -> str`

@@ -5,10 +5,10 @@
 **Objective:** Make every new AA-MA plan carry a mermaid Architecture View (element #13) and pinned Contract blocks, lint them, share plans/ADRs as private Artifact links, and (last, optional) render markdown to a standalone HTML file.
 **Owner:** Ste (Stephen J Newhouse) + Claude Code
 **Created:** 2026-09-11
-**Last Updated:** 2026-09-11 (rev 4 — after plan-eng-review D1–D12; verification pass 1: 6 CRITICAL fixed; pass 2: 2 CRITICAL + 1 WARNING fixed)
+**Last Updated:** 2026-09-12 (rev 4 + release retarget v0.12.0; rev 4 — after plan-eng-review D1–D12; verification pass 1: 6 CRITICAL fixed; pass 2: 2 CRITICAL + 1 WARNING fixed)
 **Diagram-Waiver:** none
 **Spec:** `docs/superpowers/specs/2026-09-11-plan-architecture-views-design.md` (spec §4.6 `inline_svg`, §4.7 "render → publish" and the M3/M4 order are superseded by this revision; see Plan Review History)
-**Target release:** v0.11.0 (from 0.10.0)
+**Target release:** v0.12.0 (from 0.11.0 — v0.11.0 was tagged at 758f125 on 2026-09-12 before M1 started; see context-log 2026-09-12 decision)
 **Sequencing:** M1 may start now. M2 requires `milestone-grammar-ssot` M5 merged — not because M5 edits `plan_parsers.py` (it does not; it creates `enforce.py`/`gate.py` and edits `grammar.py`) but because M2 reuses `grammar.split_milestones`, whose trailing-H2 bug M5 fixes.
 
 ## 1. Executive Summary
@@ -209,7 +209,7 @@ def test_angle6_lists_waiver_values() -> None:
 - [ ] Insert after check #5 (line 378):
 
 ```markdown
-6. **Architecture View present or validly waived (v0.11.0+).** For plans `Created:`
+6. **Architecture View present or validly waived (v0.12.0+).** For plans `Created:`
    on-or-after **2026-09-11**: either `## 13. Architecture View` exists with a
    `### Component view` containing a non-empty ```` ```mermaid ```` fence (plus a
    `### Flow view` when any milestone carries `Critical-Path:`), or the front-matter
@@ -218,7 +218,7 @@ def test_angle6_lists_waiver_values() -> None:
    `Audit-Profile` ∈ {full, code-only, infra} is CRITICAL. Novel waiver value is
    CRITICAL. Until `aa-ma-lint-views` ships (plan-architecture-views M2), check by
    grep: `grep -nE '^\*\*Diagram-Waiver:\*\* \S' plan.md`.
-7. **Contract block per code milestone (v0.11.0+).** Every milestone with
+7. **Contract block per code milestone (v0.12.0+).** Every milestone with
    `Audit-Profile` ∈ {full, code-only, infra} has a `#### Contract` heading followed
    by at least one fenced block. Missing → CRITICAL; the fresh-agent simulation
    (Angle 5) treats an unpinned signature as a WARNING at minimum.
@@ -1206,6 +1206,6 @@ sequenceDiagram
 | Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | auto-skipped (no frontend) |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | not run |
 
-- **CROSS-MODEL:** outside voice disagreed on 3 points (Share input, M3 value, waiver ownership); all three resolved by the user in the outside voice's direction with review context added (M3 kept but last/optional).
+- **CROSS-MODEL:** outside voice disagreed on 3 points (Share input, M3 value, waiver ownership); all three resolved by the user in the outside voice's direction with review context added (M4 kept but last/optional).
 - **UNRESOLVED:** 0
 - **VERDICT:** ENG CLEARED — ready for Phase 4.5 verification

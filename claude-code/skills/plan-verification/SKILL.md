@@ -336,7 +336,7 @@ Agent tool:
 | `schema`, `field`, `column`, `table`, `migration` | Schema Completeness Auditor | Field count vs source, type accuracy, nullable handling, default values |
 | `sqlalchemy`, `alembic`, `migration`, `database` | Migration Auditor | State machine completeness, rollback safety, data loss risk |
 | `auth`, `secret`, `token`, `permission`, `credential` | Security Auditor | OWASP top 10, credential handling, injection risks |
-| (always evaluated — not keyword-driven) | Engineering Standards Auditor | Element #12 declaration present; themes from `claude-code/rules/engineering-standards.md` claimed-vs-applied; `Critical-Path:`/`Prototype-Required:` flag values valid (canonical enum) |
+| (always evaluated — not keyword-driven) | Engineering Standards Auditor | Element #12 declaration present; themes from `claude-code/rules/engineering-standards.md` claimed-vs-applied; `Critical-Path:`/`Prototype-Required:` flag values valid (canonical enum); Architecture View present or validly waived (`Diagram-Waiver` canonical) and Contract block per code milestone (checks #6/#7, plans `Created:` ≥ 2026-09-11) |
 
 Dispatch 1-3 specialists based on detection. If no domain keywords found, skip the keyword-driven dispatch (report as "No specialist domains detected") — but the **Engineering Standards Auditor always runs** regardless of keyword detection (see structural check below).
 

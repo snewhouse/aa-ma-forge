@@ -113,6 +113,7 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 - Status: PENDING
 - Mode: HITL
+- Deferred from M1 §6.8 (future-proofing WARNING/INFO, L-013): (a) pin `CODE_AUDIT_PROFILES` (= {full, code-only, infra}; `custom` excluded — context-log 2026-09-12) against the 8 prose sites that inline the set (aa-ma.md:117, engineering-standards.md:59, plan-verification SKILL.md:406/411, spec:604 ×2, plan-template.md:12/79) with a `test_enum_matches_*`-style test; (b) upgrade `test_angle6_lists_waiver_values` to `CANONICAL_DIAGRAM_WAIVERS` and extend it to the engineering-standards table; (c) spec:604 forward-references `plan_parsers.parse_diagram_waiver` — resolves when 2.2 lands; SKILL.md:415 "Parsers for checks #2, #4 and #5" gains #6.
 - Result Log: [placeholder]
 
 ## Milestone 3: Share — /aa-ma-share publishes markdown as a private Artifact

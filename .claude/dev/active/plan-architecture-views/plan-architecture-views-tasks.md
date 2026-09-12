@@ -4,7 +4,7 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ## Milestone 1: Standard — element #13, Contract blocks, verification, exemplar ADR
 
-- Status: PENDING
+- Status: ACTIVE
 - Gate: HARD
 - Mode: HITL
 - Dependencies: None
@@ -16,9 +16,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 1.1: Spec §XI — add element #13 and the Contract-block rule
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: HITL gate approved. Inserted item 13 after item 12 at docs/spec/aa-ma-specification.md:591 (text verbatim from plan). `grep -c "^13\. \*\*Architecture View" docs/spec/aa-ma-specification.md` → 1.
 
 ### Sub-step 1.2: engineering-standards.md — Diagram-Waiver canonical table + maintenance rule
 

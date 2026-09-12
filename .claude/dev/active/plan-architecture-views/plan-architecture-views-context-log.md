@@ -52,3 +52,7 @@ Pass 3: 3/3 resolved, 0 new. Residual accepted warnings: first Artifact-publishi
 **Remaining Questions:** none blocking. Open choice at M4 gate: build Render or drop it via scope reduction.
 
 _This log will be updated via context compaction as the task progresses._
+
+## [2026-09-12] Decision: target release is v0.12.0, not v0.11.0
+
+v0.11.0 was tagged at `758f125` (2026-09-12 06:21) by milestone-grammar-ssot before M1 started, and does not contain element #13. All new prose from this plan labels the feature `v0.12.0+`; the grandfathering cutover stays the literal date **2026-09-11** (plans `Created:` on-or-after it are checked — this plan included; grammar-ssot, Created 2026-08, is not). `CHANGELOG.md` `## Unreleased` must be re-created in 1.8 (cz bump consumed it).

@@ -5,7 +5,8 @@
 Architecture View: see plan.md §13
 
 ### Release / sequencing
-- Current version: `pyproject.toml` 0.10.0 → target v0.11.0
+- Current version: `pyproject.toml` **0.11.0** (tagged 2026-09-12 by milestone-grammar-ssot) → target **v0.12.0**. Every "v0.11.0+" label in this plan's new prose is written as v0.12.0; the literal cutover date 2026-09-11 is unchanged.
+- `CHANGELOG.md` has no `## Unreleased` section at HEAD (cz bump consumed it) — Sub-step 1.8 re-creates it above `## v0.11.0` (L-003: never edit version headings)
 - Angle 6 grandfathering cutover for checks #6/#7: literal date **2026-09-11** (not "release date")
 - M2 depends on `milestone-grammar-ssot` M5 (sub-step 5.0 fixes `grammar.split_milestones` trailing-H2; 5.1/5.3 create `src/aa_ma/enforce.py`, `src/aa_ma/gate.py`). M5 never edits `src/aa_ma/plan_parsers.py`.
 - ADR number for this plan: **0010** (0009 is reserved by grammar-ssot sub-step 5.8)

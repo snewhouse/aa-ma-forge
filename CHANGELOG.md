@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- **Planning-standard element #13 — Architecture View.** Every plan carries a
+  `## 13. Architecture View` with a mermaid `### Component view` (always) and
+  `### Flow view` (iff any milestone declares `Critical-Path:`), or a canonical
+  `**Diagram-Waiver:**` (`none | docs-only | config-only | single-file`) when no
+  milestone has a code `Audit-Profile`. Spec §XI item 13; `claude-code/rules/aa-ma.md`.
+- **Contract blocks.** Every milestone with `Audit-Profile ∈ {full, code-only, infra}`
+  carries a `#### Contract` heading + fenced block pinning paths, signatures,
+  exit codes and field grammar.
+- **`Diagram-Waiver` canonical table** and the *diagram maintenance is part of
+  the change* rule in `claude-code/rules/engineering-standards.md`.
+- **plan-verification Angle 6 checks #6 and #7** (Architecture View / waiver;
+  Contract block), grandfathered by the literal cutover date 2026-09-11;
+  pinned by `tests/commands/test_plan_verification_angle6.py`.
+- **ADR-0010** — architecture views, Contract blocks, mermaid lint, Artifact
+  Share and HTML Render (the exemplar ADR with its own Architecture View).
+- Spec §II gains a mermaid diagram of how the AA-MA files feed each other.
+- `docs/adr/TEMPLATE.md` gains recommended `## Architecture View` and `## Example`.
+
+### Fixed
+
+- `docs/templates/plan-template.md` had no `## 12. Engineering Standards
+  Declaration` section since v0.5.0 introduced element #12; added alongside §13.
+- All 29 live "11/12 planning elements" mentions now read 13 (README listed 11
+  under a "12 mandatory outputs" heading).
+
 ## v0.11.0 (2026-09-12)
 
 ### BREAKING (behavioural) — the AA-MA milestone gate now actually refuses

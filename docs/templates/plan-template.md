@@ -161,7 +161,7 @@ def function(arg: Type) -> ReturnType
 
 ## 13. Architecture View
 
-<!-- Element 13: mermaid only. A node label containing a repo path is a claim checked by aa-ma-lint-views unless the label ends with "(new)". -->
+<!-- Element 13: mermaid only. A node label containing a repo path is a claim checked by aa-ma-lint-views (M2) unless the label ends with "(new)". -->
 <!-- Labels containing parentheses MUST use the quoted form B["path (new)"] — an unquoted (new) inside [...] is a mermaid parse error. -->
 
 ### Component view

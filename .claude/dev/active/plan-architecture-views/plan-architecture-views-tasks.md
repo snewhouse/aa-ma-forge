@@ -58,9 +58,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 1.8: Counts, CHANGELOG, cross-reference check, install.sh re-run, sync
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: HITL gate approved (user installed bats). CHANGELOG `## Unreleased` re-created above `## v0.11.0` (Added ×7, Fixed ×2; no version heading, L-003). Cross-reference grep: every `aa-ma-lint-views|aa-ma-render|aa-ma-share` hit outside docs/superpowers and .claude/dev carries an M2/M3/M4 qualifier (3 added: spec item 13, plan-template:164, ADR-0010:68); no hardcoded command/skill count changed this milestone (M3 owns 11→12). `scripts/install.sh` re-run: 53 symlinks, 5 copied; `diff -q` installed spec copy matches. `uv run pytest -q` 975 passed; `bats tests/hooks` 165 ok / 0 not ok. Sync of reference/context-log/provenance + gate approval in the milestone-close commit.
 
 ## Milestone 2: Lint — Diagram-Waiver parser, mermaid structural lint, aa-ma-lint-views
 

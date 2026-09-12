@@ -65,7 +65,7 @@ from text and renders everywhere plans are actually read.
   path being changed. `### Data/State view` optional. The milestone dependency
   graph is derivable from `tasks.md` and is never hand-authored.
 - **Path labels are claims.** A node label containing a repo path is checked
-  for existence by `aa-ma-lint-views` unless the label ends with `(new)`.
+  for existence by `aa-ma-lint-views` (M2) unless the label ends with `(new)`.
   Labels containing parentheses use mermaid's quoted form
   (`B["src/new.py (new)"]`); unquoted `(new)` inside `[...]` is a parse error
   (measured, mermaid 11.17.2).

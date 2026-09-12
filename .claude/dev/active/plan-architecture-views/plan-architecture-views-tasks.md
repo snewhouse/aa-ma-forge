@@ -150,9 +150,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 3.3: Live check from another repo + ADR status + sync
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: HITL gate approved. `/aa-ma-share` invoked as a skill from /home/sjnewhouse/dev/carmen-provenance-labs against ADR-0010: target is-file ✓, AA_MA_ROOT resolved via readlink ✓, allowlist rc 0 ✓, lint skipped (not a plan) ✓, published → https://claude.ai/code/artifact/454ea963-09c1-4870-90ce-7c11324c6eed (private, favicon 📐), no task dir → no provenance write by the command ✓. **Live check:** headless `/browse` 404s on a private artifact (logged out) — correct behaviour; gstack handoff→resume dropped the session twice on WSL, so the measurement was taken from the logged-in viewer's iframe document (`Save Page As` → `_files/_t.html`, loads mermaid-11.16.1): **svg = 1** (`aria-roledescription="flowchart-v2"`, nodes M1–M4 + paths = the Component view; exactly 1 expected, the Example fences are inside a ````markdown block), **'Syntax error in text' = 0**, **page console errors = 0** (only a browser-extension lifeline line). ADR-0010 + INDEX → Implemented. `aa-ma-lint-views` on ADR-0010 rc=0. doc-drift full: T1 frozen-history only, T2/T5 clean, T4 → `render/` added to CLAUDE.md tree + CLI line. pytest 1049 passed; bats hooks+share 0 not ok; shellcheck clean. SHARE line in provenance.
 
 ## Milestone 4: Render (optional, last) — markdown to self-contained HTML, aa-ma-render
 

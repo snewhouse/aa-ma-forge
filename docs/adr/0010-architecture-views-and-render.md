@@ -1,6 +1,6 @@
 # 0010. Plans carry a mermaid Architecture View and pinned Contract blocks; markdown stays the only source
 
-**Status:** Accepted
+**Status:** Implemented
 **Date:** 2026-09-11
 **Deciders:** Stephen Newhouse (sole maintainer)
 **Tags:** `aa-ma`, `planning-standard`, `diagrams`, `mermaid`, `adr`, `share`, `render`
@@ -228,7 +228,7 @@ sequenceDiagram
 - Share (M3): `claude-code/commands/aa-ma-share.md`,
   `scripts/aa-ma-share-allow.sh`.
 - Render (M4, optional): `src/aa_ma/render/html.py`, CLI `aa-ma-render`.
-- Status moves to **Implemented** when M3 closes.
+- Status **Implemented** at M3 close (2026-09-12): standard (M1), lint (M2) and share (M3) shipped; Render (M4) is optional and does not gate the decision.
 
 ## References
 

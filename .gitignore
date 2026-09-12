@@ -67,3 +67,4 @@ coverage.xml
 
 # pytest-textual-snapshot failure report (regenerated on failure; never commit)
 snapshot_report.html
+.gstack/

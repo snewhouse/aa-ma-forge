@@ -34,9 +34,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 1.4: ADR template — recommended Architecture View + Example
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. docs/adr/TEMPLATE.md gained `## Architecture View (recommended)` and `## Example (recommended)` between Consequences and Implementation Notes.
 
 ### Sub-step 1.5: PHASE_4, aa-ma-plan command, scribe and all 29 element-count sites — 13 elements everywhere
 

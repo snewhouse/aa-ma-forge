@@ -57,6 +57,21 @@
 **Neutral:**
 - [What changes but is neither clearly good nor bad]
 
+## Architecture View (recommended)
+
+<!-- Component view only: what this decision touches and how it depends. Delete if the decision has no structural footprint. -->
+<!-- Labels containing parentheses use the quoted form B["path (new)"]. -->
+```mermaid
+flowchart LR
+  A[existing/module.py] --> B["new/module.py (new)"]
+```
+
+## Example (recommended)
+
+<!-- One fenced block showing the decision in use: a command, a config stanza, a signature. -->
+```text
+```
+
 ## Implementation Notes
 
 [Optional. Concrete pointers: file paths affected, commands to run, follow-up ADRs needed.]

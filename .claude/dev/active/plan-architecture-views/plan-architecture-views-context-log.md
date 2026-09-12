@@ -60,3 +60,16 @@ v0.11.0 was tagged at `758f125` (2026-09-12 06:21) by milestone-grammar-ssot bef
 ## [2026-09-12] Decision: `custom` is not a code Audit-Profile for element #13
 
 §6.8 future-proofing audit flagged that "Audit-Profile ∈ {full, code-only, infra}" is inlined at 8 prose sites while the enum also has `custom`. Decision: `CODE_AUDIT_PROFILES` (plan §M2 Contract, `plan_parsers.py`) stays `{full, code-only, infra}`; a `custom` milestone that dispatches code-reviewer via `Audit-Run:` is expected to declare its View/Contract voluntarily, and `custom` + `Diagram-Waiver` is not a lint error. Revisit via ADR if a `custom` code milestone ships without a View. Pinning the set against prose is deferred to Sub-step 2.7 (named there).
+
+## [2026-09-12] GATE APPROVAL: Milestone 1: Standard — element #13, Contract blocks, verification, exemplar ADR
+- Gate: HARD
+- Approved by: Ste (Stephen J Newhouse)
+- Criteria verified: 5/5
+- Decision: APPROVED
+
+## [2026-09-12] Milestone Completion: Milestone 1 — Standard
+- Status: COMPLETE
+- Key outcome: Planning standard gained element #13 (Architecture View + Contract blocks, `Diagram-Waiver` canonical values, literal cutover 2026-09-11) across spec, rules, templates, Phase 4/scribe/validator prompts and plan-verification Angle 6 (#6/#7); ADR-0010 is the exemplar; all 29 live element-count sites read 13 and are now pinned by a test.
+- Artifacts: docs/spec/aa-ma-specification.md (§XI item 13, §II diagram); claude-code/rules/{aa-ma,engineering-standards}.md; docs/templates/plan-template.md; docs/adr/{TEMPLATE,INDEX,0010-architecture-views-and-render}.md; plan-verification SKILL.md; 12 workflow/agent/command prose files; README/CLAUDE/foundations counts; CHANGELOG Unreleased; tests/commands/test_plan_verification_angle6.py, test_planning_standard_count.py; impl-review.md.
+- Tests: pytest 978 passed / 2 skipped; bats tests/hooks 165 ok; 7/7 mermaid fences render; mutation checks on both new tests.
+- Reviews: Tier 2 validator WARN (5 → all fixed); §6.8 PASS_WITH_WARNINGS (0 CRITICAL; W1 fixed by test, W2 + 2 INFO deferred by name to Sub-step 2.7).

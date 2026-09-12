@@ -84,4 +84,12 @@ Excluded (frozen history, never edited): `docs/adr/0001-*.md:91`, `docs/narrativ
 - Key entry points touched: `aa_ma.plan_parsers._parse_canonical_field`, `aa_ma.grammar.split_milestones`, `aa_ma.grammar.strip_fenced_blocks`, `aa_ma.tui.__main__.main` (argparse pattern)
 - Directory purposes: `claude-code/` (shipped prompt surface, symlinked), `src/aa_ma/` (Python SSoT: grammar, parsers, TUI), `tests/` (pytest + bats), `docs/spec/` (canonical spec, copied on install)
 
-_Last Updated: 2026-09-11_
+### M1 facts (landed 2026-09-12)
+- Spec §XI item 13 at `docs/spec/aa-ma-specification.md:604`; §II file-flow diagram at `:32`
+- Angle 6 checks #6/#7 at `claude-code/skills/plan-verification/SKILL.md:396-409`; grandfathering bullet ~`:432`; auditor remit line `:339`
+- `docs/adr/0010-architecture-views-and-render.md` — Status **Accepted** → flip to Implemented at M3 close
+- Element-count consistency: `tests/commands/test_planning_standard_count.py` (spec §XI count is the SSoT; supersedes the one-shot `1[12]` grep for future bumps)
+- Mermaid parse/render check without mmdc: playwright `chromium_headless_shell-1234` + mermaid 11.17.2 UMD (`$(npm root -g)/@mermaid-js/mermaid-cli/node_modules/mermaid/dist/mermaid.min.js`) — usable as a stronger local seam at M2.5
+- `bats` 1.13.0 now installed at `/usr/bin/bats`
+
+_Last Updated: 2026-09-12_

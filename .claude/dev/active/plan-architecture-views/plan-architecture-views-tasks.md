@@ -4,7 +4,8 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ## Milestone 1: Standard — element #13, Contract blocks, verification, exemplar ADR
 
-- Status: ACTIVE
+- Status: COMPLETE
+- Result Log: 8/8 sub-steps COMPLETE; acceptance 5/5 verified (7/7 authoring files; angle6 test 2 passed; ADR-0010 with rendered View; element-count grep 0; cutover literal). Gates: impact LOW; §6.7 PASS; §6.8 PASS_WITH_WARNINGS 0C/2W/5I (see impl-review.md); HARD gate APPROVED 2026-09-12 (context-log). pytest 978 / bats 165 ok. Release retargeted v0.12.0. Commits 543d014..b7c750c + close-out.
 - Gate: HARD
 - Mode: HITL
 - Dependencies: None

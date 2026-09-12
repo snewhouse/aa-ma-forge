@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Fixed
+
+- **`scripts/release.sh` re-locks inside the bump commit** — `[tool.commitizen] pre_bump_hooks = ["uv lock"]`
+  runs after cz writes the version files, so `uv.lock` carries the new version in the tagged tree; the
+  script refuses to push if it does not. v0.12.0's lock was synced one commit after its tag.
+- **CI Bats job actually runs** — it never installed Python/uv, so every gate test since 2026-09-11 (and
+  the sole-dev-merge + commands suites behind them) failed or were skipped; the job now installs uv,
+  exposes `.venv/bin`, and the fence tests bring their own `CLAUDE_HOME` instead of relying on `install.sh`.
+
 ## v0.12.0 (2026-09-12)
 
 ### Added

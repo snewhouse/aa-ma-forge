@@ -273,7 +273,7 @@ The tracker is **strictly read-only** — it never writes to `*-tasks.md` or any
 Plans, ADRs and spec pages carry a mermaid Architecture View ([ADR-0010](docs/adr/0010-architecture-views-and-render.md)). Two ways to hand one over without a clone:
 
 - `/aa-ma-share <path>` publishes the markdown itself as a private Artifact link — mermaid renders natively in the viewer. Allowlisted paths only (`*-plan.md`, `docs/adr/*.md`, `docs/spec/*.md`).
-- `uv run aa-ma-render <md>... [--out build/render]` writes one self-contained HTML file per source for the "attach a file" case — pinned mermaid ESM, light/dark via `prefers-color-scheme`, raw HTML escaped. `build/` is ignored; the markdown stays the only source.
+- `uv run aa-ma-render <md>... [--out build/render]` writes one self-contained HTML file per source for the "attach a file" case — mermaid loaded with Subresource Integrity behind a CSP, light/dark via `prefers-color-scheme`, raw HTML escaped. `build/` is ignored; the markdown stays the only source.
 
 ## What else helped
 

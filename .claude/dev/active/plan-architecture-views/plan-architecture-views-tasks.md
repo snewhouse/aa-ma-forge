@@ -157,7 +157,7 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ## Milestone 4: Render (optional, last) — markdown to self-contained HTML, aa-ma-render
 
-- Status: ACTIVE
+- Status: COMPLETE
 - Gate: HARD
 - Mode: AFK
 - Dependencies: Milestone 2
@@ -165,6 +165,7 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 - Audit-Profile: code-only
 - Prototype-Required: YES
 - Acceptance Criteria: plan §3 M4 measurable goal — `aa-ma-render` writes `build/render/<stem>.html`; `/browse` records `svg >= 1`, `table >= 1`, console errors == 0; golden green; `build/` untracked. Optional: dropped only via a documented scope reduction (context-log entry + this section removed) — `SKIPPED` is not a status.
+- Result Log: HARD gate APPROVED 2026-09-12 (7/7). aa-ma-render ships: html.py (render_markdown, MERMAID_VERSION 11.17.2 + MERMAID_SRI, CSP meta), render_main (exit 0/2, all-or-nothing writes), markdown-it-py explicit dep, golden. Prototype GO (4.1); §6.6 1C/3W fixed (887a571); §6.8 code-only 5 agents 2C/5W fixed (564f993), TDD PASS; impact LOW. /browse: ADR svg=1, spec svg=1 table=6, golden svg=2, console errors 0, tampered SRI refused; build/ untracked. pytest 1068 passed; tests/render 67. Contract deviation (SRI UMD + CSP instead of ESM import) recorded in context-log. Commits 9c01566 ae66cb2 67ddac3 6804324 57c73d5 887a571 564f993 + close commit.
 
 ### Sub-step 4.1: Prototype (UI branch) — fence hook + html rules + mermaid ESM + theme
 
@@ -182,7 +183,7 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 - Status: COMPLETE
 - Mode: AFK
-- Result Log: Mode: AFK — auto-dispatched. Created src/aa_ma/render/html.py (Contract verbatim: MERMAID_VERSION=11.17.2, _fence, _raw_html, _md, render_markdown); pyproject dependencies += markdown-it-py>=4,<5 (uv.lock +2 lines; .venv resolves 4.0.0). Golden tests/golden/render_plan_ok.html (1674 B) generated once, eyeballed in /browse: svg=2 (flowchart-v2 + sequence), title plan_ok, console errors 0 → frozen. `uv run pytest tests/render` 56 passed; ruff check/format clean; lint-imports 3 kept; bandit 0 issues.
+- Result Log: Mode: AFK — auto-dispatched. Created src/aa_ma/render/html.py (Contract verbatim: MERMAID_VERSION=11.17.2, _fence, _raw_html, _md, render_markdown); pyproject dependencies += markdown-it-py>=4,<5 (uv.lock +2 lines; .venv resolves 4.0.0). Golden tests/golden/render_plan_ok.html (1674 B; regenerated at 1972 B in 564f993 after the SRI/CSP fix) generated once, eyeballed in /browse: svg=2 (flowchart-v2 + sequence), title plan_ok, console errors 0 → frozen. `uv run pytest tests/render` 56 passed; ruff check/format clean; lint-imports 3 kept; bandit 0 issues.
 
 ### Sub-step 4.4: aa-ma-render CLI
 
@@ -194,7 +195,7 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 - Status: COMPLETE
 - Mode: HITL
-- Result Log: HITL gate approved. README gains `## Sharing and rendering plans` (/aa-ma-share first, aa-ma-render second); CHANGELOG Unreleased gains aa-ma-render + markdown-it-py promotion bullet; ADR-0010 M4 notes → shipped 2026-09-12 (subgraph label, Implementation Notes); CLAUDE.md (local, gitignored) gains the aa-ma-render command line and html.py in the render/ tree. Verification: `uv run pytest -q` 1061 passed / 2 skipped; lint-imports 3 kept; bats hooks+commands 176 ok; ruff clean; bandit 1 pre-existing B101 (tui/snapshot.py, deliberate) / 0 in render/; `aa-ma-lint-views docs/adr/0010…` exit 0. AA-MA sync (reference M4 facts, context-log, provenance) in the milestone-close commit. §6.6 review (3 agents): 1 CRITICAL (stem collision → exit 2) + 3 WARNING (comment-led html_block, per-call parser, TOCTOU) fixed with tests; tests/render now 65.
+- Result Log: HITL gate approved. README gains `## Sharing and rendering plans` (/aa-ma-share first, aa-ma-render second); CHANGELOG Unreleased gains aa-ma-render + markdown-it-py promotion bullet; ADR-0010 M4 notes → shipped 2026-09-12 (subgraph label, Implementation Notes); CLAUDE.md (local, gitignored) gains the aa-ma-render command line and html.py in the render/ tree. Verification: `uv run pytest -q` 1061 passed / 2 skipped; lint-imports 3 kept; bats hooks+commands 176 ok; ruff clean; bandit 1 pre-existing B101 (tui/snapshot.py, deliberate) / 0 in render/; `aa-ma-lint-views docs/adr/0010…` exit 0. AA-MA sync (reference M4 facts, context-log, provenance) in the milestone-close commit. §6.6 review (3 agents): 1 CRITICAL (stem collision → exit 2) + 3 WARNING (comment-led html_block, per-call parser, TOCTOU) fixed with tests; tests/render now 65. §6.8 review (5 agents, 564f993): 2 CRITICAL (L-007 re-wraps reverted; reference counts) + 5 WARNING (write-side OSError → exit 2, root-skip, reference drift, SRI-pinned UMD + CSP replacing the ESM import, Context7 evidence) fixed with tests; golden regenerated (1972 B); tests/render now 67; README/html.py wording aligned at the close commit.
 
 ## Summary Counts
 

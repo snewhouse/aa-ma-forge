@@ -128,3 +128,16 @@ Running `aa-ma-lint-views` on ADR-0010 (its own exemplar) reported NO_COMPONENT_
 - Decision: `<script src=".../dist/mermaid.min.js" integrity="sha384-…" crossorigin="anonymous">` (one file → the hash covers every byte that runs) + `<meta http-equiv="Content-Security-Policy">` with the inline init script hashed. `MERMAID_SRI` lives beside `MERMAID_VERSION`; both bump together (command in the comment).
 - Evidence: 1 CDN request (3.5 MB) instead of 11; 2 svg / 1 table / 0 console errors under CSP; tampered hash → refused. Trade-off accepted: the UMD bundle is ~3.5 MB vs ~600 KB of ESM chunks — one-off download per open, cached by the browser; correctness of the attestation wins for a file whose purpose is sharing.
 - Not done (YAGNI): inlining the bundle for offline/no-beacon use (~3.5 MB per HTML file). Add if a reviewer ever needs a fully offline file.
+
+## [2026-09-12] GATE APPROVAL: Milestone 4: Render (optional, last) — markdown to self-contained HTML, aa-ma-render
+- Gate: HARD
+- Approved by: Stephen Newhouse (user)
+- Criteria verified: 7/7
+- Decision: APPROVED
+
+## [2026-09-12] Milestone Completion: Milestone 4: Render (optional, last) — markdown to self-contained HTML, aa-ma-render
+- Status: COMPLETE
+- Key outcome: `aa-ma-render <md>... [--out build/render]` writes one self-contained HTML file per source — markdown-it-py commonmark + tables, mermaid fences drawn by an SRI-pinned mermaid 11.17.2 UMD bundle behind a CSP meta, light/dark via prefers-color-scheme, raw HTML escaped, comments outside fences dropped, no partial output on any OSError. Prototype (4.1) GO before any production code; §6.6 + §6.8 found 3 CRITICAL / 8 WARNING across 8 agents — every one fixed with a test before this gate.
+- Artifacts: src/aa_ma/render/html.py (new), src/aa_ma/render/cli.py (render_main), pyproject.toml (markdown-it-py>=4,<5 explicit; aa-ma-render script), uv.lock, tests/render/{test_html,test_cli,test_hostile_input}.py, tests/golden/render_plan_ok.html, README.md (Sharing and rendering plans), CHANGELOG.md, docs/adr/0010 (M4 shipped), impl-review.md M4 section; CLAUDE.md local.
+- Tests: pytest 1068 passed / 2 skipped; tests/render 67; lint-imports 3 kept; bats 176 ok; shellcheck/ruff clean; bandit 0 in render/.
+- /browse: ADR-0010 render svg=1, spec render svg=1 table=6, golden svg=2 — console errors 0 everywhere; tampered SRI hash refused.

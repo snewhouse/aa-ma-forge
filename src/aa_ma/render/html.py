@@ -1,4 +1,4 @@
-"""Markdown → one self-contained HTML file. markdown-it-py + pinned mermaid ESM; no other assets."""
+"""Markdown → one self-contained HTML file. markdown-it-py + SRI-pinned mermaid UMD bundle behind a CSP; no other assets."""
 
 from __future__ import annotations
 

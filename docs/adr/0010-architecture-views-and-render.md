@@ -92,7 +92,7 @@ from text and renders everywhere plans are actually read.
 - **Rendering (optional, last; shipped 2026-09-12):** `aa-ma-render` (M4) turns markdown into one
   self-contained HTML file for the "attach a file" case, using markdown-it-py
   (already transitive via `rich`). It is derived output — never edited, never
-  committed (`build/` is ignored). Droppable via a documented scope reduction.
+  committed (`build/` is ignored). Was droppable via a documented scope reduction; kept.
 - **Validation:** a pure-Python structural lint always runs; `mmdc` (Node +
   Chromium) is optional dev tooling. When it is absent or fails for a reason
   that is not a mermaid parse error, the result is `UNKNOWN`, never `PASS`

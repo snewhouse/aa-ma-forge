@@ -122,6 +122,6 @@ Excluded (frozen history, never edited): `docs/adr/0001-*.md:91`, `docs/narrativ
 - Golden: `tests/golden/render_plan_ok.html` (1972 B after the SRI/CSP fix) — regenerate deliberately with the one-liner in plan Sub-step 4.3 when `_CSS` or the skeleton changes
 - `/browse` recipe for rendered HTML: wait on `document.querySelectorAll('svg').length`, **not** `pre.mermaid[data-processed]` (set before paint — a screenshot at that instant showed an empty sequence diagram); dark mode needs playwright `emulateMedia({colorScheme:"dark"})` with `executablePath` = `~/.cache/ms-playwright/chromium_headless_shell-1234/…` (gstack's playwright wants build 1243, not installed)
 - ADR-0010 has no markdown table → the `table >= 1` goal is evidenced by the spec render (6 tables); ADR render: 1 svg (Example fences sit inside a ````markdown block)
-- Tests: `tests/render/test_html.py` (9), `tests/render/test_cli.py` (+7 cases → 11; the chmod-0 case skips as root), `tests/render/test_hostile_input.py` (+1 comment-flood); `tests/render` total 67. Do not add a `[` flood shape to the hostile tests — measured ~1.8 s at 200 KB, ~90% of BUDGET_S (linear, just markdown-it-py's constant factor)
+- Tests: `tests/render/test_html.py` (10), `tests/render/test_cli.py` (13 collected: 6 pre-M4 + 7; the chmod-0 case skips as root), `tests/render/test_hostile_input.py` (+1 comment-flood); `tests/render` total 67. Do not add a `[` flood shape to the hostile tests — measured ~1.8 s at 200 KB, ~90% of BUDGET_S (linear, just markdown-it-py's constant factor)
 
 _Last Updated: 2026-09-12_

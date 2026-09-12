@@ -92,4 +92,17 @@ Excluded (frozen history, never edited): `docs/adr/0001-*.md:91`, `docs/narrativ
 - Mermaid parse/render check without mmdc: playwright `chromium_headless_shell-1234` + mermaid 11.17.2 UMD (`$(npm root -g)/@mermaid-js/mermaid-cli/node_modules/mermaid/dist/mermaid.min.js`) — usable as a stronger local seam at M2.5
 - `bats` 1.13.0 now installed at `/usr/bin/bats`
 
+### M2 facts (landed 2026-09-12)
+- Lint finding codes now **10**: the 9 pinned above + `UNTERMINATED_FENCE` (render UNKNOWN, early return)
+- `grammar.H2_RE` is public (alias of `_H2_RE`, `^##(?:[ \t]|$)`); the lint uses it for the front-matter split and section end — never a private `^## `
+- Plan H3→H2 promotion: a `###` line is promoted only if `MILESTONE_RE` accepts it once promoted (so `### M1:` and `### Milestone 1:` both count)
+- Lint fence view = `scan_fences(plan_text)` (NOT `has_unterminated_fence`, which comment-strips first — this plan's M4 Contract has a literal `"<!--"` in a fence)
+- Label coverage: `[...]` family only (incl. `[(...)]`, `[[...]]`, `[/.../]`); `(new)` exemption is `\(new\)\W*$`; path claims must resolve inside repo_root; `_PATH_RE` runs only on whitespace tokens ≤256 chars; labels found by `str.find` (no `\[([^\]]*)\]` regex — quadratic)
+- Mermaid fences located by the line-based `_mermaid_fences` (mirrors CommonMark closer rule; no lazy `.*?` regex)
+- `%%` directive lines and a leading `---…---` block are skipped before the type word
+- `render-is-leaf` `source_modules` must list every top-level `aa_ma` module except `render` — pinned by `tests/render/test_leaf_contract.py`; import-linter refuses `source_modules = aa_ma` ("shared descendants")
+- `CODE_AUDIT_PROFILES ⊂ CANONICAL_AUDIT_PROFILES`; complement is exactly `{docs-only, custom}` (test)
+- Hostile-input budget: 200 KB flood inputs lint in ≤0.04 s (`tests/render/test_hostile_input.py`, ceiling 2 s)
+- Angle 6 check #6 command: `AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/skills/plan-verification/SKILL.md)")/../../.." && pwd); uv run --project "$AA_MA_ROOT" aa-ma-lint-views <plan.md> --repo-root <root>` — verified from /tmp
+
 _Last Updated: 2026-09-12_

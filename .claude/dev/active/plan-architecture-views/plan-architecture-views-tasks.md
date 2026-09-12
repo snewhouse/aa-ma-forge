@@ -65,7 +65,8 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ## Milestone 2: Lint — Diagram-Waiver parser, mermaid structural lint, aa-ma-lint-views
 
-- Status: ACTIVE
+- Status: COMPLETE
+- Result Log: 8/8 sub-steps COMPLETE (2.8 added for §6.8 remediation); acceptance 4/4 (plan rc=0 render UNKNOWN; 50 collected ≥49; lint-imports 3 kept + mutation BROKEN; test_contracts_kept 3). Impact LOW; §6.7 PASS; §6.8 PASS after remediation (4C/8W all fixed with tests, 0bd8987 + 167a57f); HARD gate APPROVED 2026-09-12. pytest 1046 / bats 165 ok / bandit 0. Commits d5f56ac..b861e25 + close-out.
 - Gate: HARD
 - Mode: AFK
 - Dependencies: Milestone 1; milestone-grammar-ssot M5 merged (grammar.split_milestones trailing-H2 fix; aa_ma.enforce / aa_ma.gate exist)

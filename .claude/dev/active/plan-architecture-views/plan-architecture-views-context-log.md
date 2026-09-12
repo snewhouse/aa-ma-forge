@@ -81,3 +81,16 @@ Running `aa-ma-lint-views` on ADR-0010 (its own exemplar) reported NO_COMPONENT_
 ## [2026-09-12] Decision: the lint's fence view is `scan_fences(plan_text)`, not `has_unterminated_fence`
 
 `grammar.has_unterminated_fence` strips HTML comments before scanning — correct for the gate, whose `sanitize` does the same. The lint never strips comments (a `<!-- -->` in §13 is content), and this plan's M4 Contract contains a literal `"<!--"` inside a Python fence that pairs with a `-->` 22 lines later under comment-stripping, eating a fence closer → false UNTERMINATED_FENCE. One `scan_fences` call now answers both "unterminated?" and "stripped?" so the lint cannot disagree with itself. The gate's behaviour is unchanged and out of scope.
+
+## [2026-09-12] GATE APPROVAL: Milestone 2: Lint — Diagram-Waiver parser, mermaid structural lint, aa-ma-lint-views
+- Gate: HARD
+- Approved by: Ste (Stephen J Newhouse)
+- Criteria verified: 4/4
+- Decision: APPROVED
+
+## [2026-09-12] Milestone Completion: Milestone 2 — Lint
+- Status: COMPLETE
+- Key outcome: `parse_diagram_waiver` (canonical enum via `_parse_canonical_field`), `src/aa_ma/render/` leaf package (structural lint reusing grammar + plan_parsers; fence-aware; mmdc seam UNKNOWN-unless-parse-error), `aa-ma-lint-views` CLI (0/1/2), `render-is-leaf` import contract (mutation-checked, pinned to the module set), Angle 6 check #6 runs the lint. Two lint bugs found by running it on this plan (quoted §13 in a fence; comment-stripped fence view) and fixed TDD. §6.8 found 4 CRITICAL / 8 WARNING — all fixed with tests before approval.
+- Artifacts: src/aa_ma/plan_parsers.py (+), src/aa_ma/grammar.py (+H2_RE alias), src/aa_ma/render/{__init__,mermaid_lint,cli}.py, .importlinter, pyproject.toml, tests/render/** (23 fixtures, 49 tests), tests/codemem/test_diagram_waiver_parser.py (15), tests/commands/test_plan_verification_angle6.py (6), plan-verification SKILL.md, docs/adr/{TEMPLATE,0010}.md, impl-review.md.
+- Tests: pytest 1046 passed / 2 skipped; bats 165 ok; lint-imports 3 kept; bandit 0; ruff clean.
+- Deferred M1 items (2.7 a/b/c): all closed.

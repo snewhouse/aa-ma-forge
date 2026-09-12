@@ -41,6 +41,16 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   theme; raw HTML is escaped, comments outside fences dropped. Golden test + `/browse` evidence. `markdown-it-py>=4,<5`
   promoted from transitive (via `rich`) to an explicit dependency (L-055).
 
+- **`scripts/release.sh`** — one deterministic release pass: promotes the curated `## Unreleased`
+  section and the README "Current version" line, then `cz bump` (annotated tag) commits everything,
+  pushes with tags and publishes a **GitHub Release** from the new section. 13 bats cases against a
+  bare temp origin. Runbook: `docs/runbooks/release.md`. `commitizen` is now a declared dev dep.
+
+### Removed
+
+- `[tool.semantic_release]` config and the `python-semantic-release` dev dependency — never used to
+  cut a release; commitizen via `scripts/release.sh` is the single owner of the version.
+
 ### Fixed
 
 - `docs/templates/plan-template.md` had no `## 12. Engineering Standards

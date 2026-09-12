@@ -5,6 +5,26 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-015 (2026-09-12) — `uv run <tool>` falls through to PATH; every release from v0.7.0 was cut with a tool the project never declared
+
+**Pattern:** `uv run cz bump` "worked" on this machine for five releases
+because `cz` lived in a conda env on PATH (`bio312_07_25`, 4.13.9) — it was
+never in `.venv` and never in `pyproject.toml`. A fresh clone could not
+release. In the same period three lessons (L-003, L-006, L-008) each
+documented a *workaround* for `update_changelog_on_bump = true` overwriting
+the curated `## Unreleased` (restore → amend → retag), and two tools
+(`[tool.semantic_release]`, commitizen) both claimed version ownership while
+only one ever ran. Fixed by `scripts/release.sh` + `commitizen>=4,<5` as a
+declared dev dep + semantic-release removed.
+
+**Rule:** A release procedure is repeatable only if a fresh clone can run
+it: every tool it calls is a declared dependency (check `.venv/bin/<tool>`
+exists, not that `uv run <tool>` succeeds — uv falls through to PATH), the
+procedure is one script with a `--dry-run`, and it is tested against a
+throwaway bare origin. When a lesson documents an amend-and-retag
+workaround, the config that forces the workaround is the bug — change the
+config, not the ritual.
+
 ## L-014 (2026-09-12) — `git mv` after editing stages the old blob, not the edit
 
 **Pattern:** `/archive-aa-ma` prepends ARCHIVED headers (Step 3), then moves
@@ -213,6 +233,8 @@ batch of fixes.
 
 ## L-008 (2026-05-13) — `cz bump --files-only` exits 16 when CHANGELOG.md has been manually promoted; chain "manual promote + cz files-only" is broken
 
+> **Superseded 2026-09-12 by `scripts/release.sh` (docs/runbooks/release.md):** `update_changelog_on_bump = false` — cz owns `pyproject.toml`/`VERSION` only; the script owns the `## vX.Y.Z` heading, the README line, the annotated tag, the push and the GitHub Release. No amend, no retag, no `--files-only`. See L-015.
+
 **Pattern:** During v0.9.0 release prep (fix-drift-release-v0-9-0 M3.4),
 chose the manual-CHANGELOG-promote path to preserve the rich
 hand-written `## [Unreleased]` entry (per L-006's alternative-to-amend
@@ -313,6 +335,8 @@ test #2 (canonical L-007 scenario regression).
 ---
 
 ## L-006 (2026-05-11) — `cz bump` strips rich `## Unreleased` content to bare Feat/Fix — amend + retag to preserve prose
+
+> **Superseded 2026-09-12 by `scripts/release.sh` (docs/runbooks/release.md):** `update_changelog_on_bump = false` — cz owns `pyproject.toml`/`VERSION` only; the script owns the `## vX.Y.Z` heading, the README line, the annotated tag, the push and the GitHub Release. No amend, no retag, no `--files-only`. See L-015.
 
 **Pattern:** During harden-aa-ma-plan M5.4, a `## Unreleased` section was
 hand-authored with prose intro + Feat/Test/Docs/Chore subsections matching
@@ -514,6 +538,8 @@ canonical Critical-Path enum in `claude-code/rules/engineering-standards.md`.
 ---
 
 ## L-003 (2026-05-10) — aa-ma-forge CHANGELOG.md is managed by `cz bump`; never manually edit `## vX.Y.Z` headings
+
+> **Superseded 2026-09-12 by `scripts/release.sh` (docs/runbooks/release.md):** `update_changelog_on_bump = false` — cz owns `pyproject.toml`/`VERSION` only; the script owns the `## vX.Y.Z` heading, the README line, the annotated tag, the push and the GitHub Release. No amend, no retag, no `--files-only`. See L-015.
 
 **Pattern:** `pyproject.toml` `[tool.commitizen]` has
 `update_changelog_on_bump = true`. `cz bump` automatically inserts the

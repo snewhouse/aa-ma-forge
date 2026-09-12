@@ -94,3 +94,7 @@ Running `aa-ma-lint-views` on ADR-0010 (its own exemplar) reported NO_COMPONENT_
 - Artifacts: src/aa_ma/plan_parsers.py (+), src/aa_ma/grammar.py (+H2_RE alias), src/aa_ma/render/{__init__,mermaid_lint,cli}.py, .importlinter, pyproject.toml, tests/render/** (23 fixtures, 49 tests), tests/codemem/test_diagram_waiver_parser.py (15), tests/commands/test_plan_verification_angle6.py (6), plan-verification SKILL.md, docs/adr/{TEMPLATE,0010}.md, impl-review.md.
 - Tests: pytest 1046 passed / 2 skipped; bats 165 ok; lint-imports 3 kept; bandit 0; ruff clean.
 - Deferred M1 items (2.7 a/b/c): all closed.
+
+## [2026-09-12] Decision: CLAUDE.md is local-only; count pins live in SECURITY.md/README
+
+`CLAUDE.md` is gitignored (`.gitignore:2`) and untracked — a fresh clone has none. The plan's "CLAUDE.md:48" count site is therefore a local convenience, not a shipped artefact; tests skip it when absent and pin the shipped surfaces (SECURITY.md counts + name lists, README command rows) to the files on disk. Found by M3 §6.8; the same audit found CI ran neither tests/commands nor tests/render — both added to `security.yml`.

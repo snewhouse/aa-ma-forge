@@ -1,3 +1,22 @@
+# Impl Review Report: plan-architecture-views / Milestone 3
+Generated: 2026-09-12T12:15:43Z | Audit-Profile: docs-only | Budget: normal
+
+## Summary
+- CRITICAL: 0
+- WARNING: 1 (fixed)
+- INFO: 3 (2 fixed, 1 accepted)
+- Overall: PASS
+
+Window: e212ab1..47ae344. Slate: future-proofing-auditor (check #1 only).
+
+## Future-Proofing (future-proofing-auditor agent) — 0 CRITICAL, 1 WARNING, 3 INFO
+- [WARNING] guard-reachability: `test_command_count_sites_match_disk` read CLAUDE.md, which is gitignored (local-only) → FileNotFoundError on a fresh clone; and CI ran only tests/codemem + test_goal_synthesis, so neither tests/commands nor tests/render executed in CI. → **Fixed**: CLAUDE.md site skipped when absent (mutation: file removed → 4 passed); `.github/workflows/security.yml` gains a `uv run pytest tests/commands tests/render` step (79 tests).
+- [INFO] SECURITY.md 12-name list unguarded → **Fixed**: `test_security_md_asset_lists_match_disk` pins command/skill/agent names and counts (mutation: name dropped → 1 failed).
+- [INFO] CHANGELOG "11 bats cases" / "11 → 12" → **Accepted** (release note, historical).
+- [INFO] CLAUDE.md skills/agents/hooks counts unguarded (pre-existing, local-only file) → **Accepted**; SECURITY.md's equivalents are now pinned.
+
+---
+
 # Impl Review Report: plan-architecture-views / Milestone 2
 Generated: 2026-09-12T11:42:48Z | Audit-Profile: code-only | Budget: normal
 

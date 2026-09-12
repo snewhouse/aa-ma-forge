@@ -138,3 +138,9 @@ jobs:
         # Currently exercises tests/test_goal_synthesis.py
         # (Skill(goal-condition-synthesis) reference-impl regression net).
         run: uv run pytest tests/test_goal_synthesis.py -q --tb=short
+
+      - name: command + render tests (plan-architecture-views M2/M3)
+        # tests/commands pins prompt-surface contracts (Angle 6 text, command
+        # counts, /aa-ma-share body); tests/render covers aa-ma-lint-views incl.
+        # the hostile-input wall-clock budgets. Neither ran in CI before M3 §6.8.
+        run: uv run pytest tests/commands tests/render -q --tb=short

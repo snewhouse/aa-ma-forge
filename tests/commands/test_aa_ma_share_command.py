@@ -42,17 +42,41 @@ def test_command_body_contract() -> None:
     assert "aa-ma-render" not in body
 
 
+def _count(sub: str, pattern: str) -> int:
+    return len([q for q in (REPO_ROOT / "claude-code" / sub).glob(pattern) if q.name != "README.md"])
+
+
 def test_command_count_sites_match_disk() -> None:
     n = len(list(COMMANDS.glob("*.md")))
     sites = {
-        "CLAUDE.md": r"commands/\s+(\d+) slash commands",
         "SECURITY.md": r"- (\d+) command files:",
+        "CLAUDE.md": r"commands/\s+(\d+) slash commands",  # gitignored, local-only: skipped when absent
     }
     for rel, pat in sites.items():
-        m = re.search(pat, (REPO_ROOT / rel).read_text(encoding="utf-8"))
+        f = REPO_ROOT / rel
+        if not f.exists():
+            assert rel == "CLAUDE.md", f"{rel} missing"
+            continue
+        m = re.search(pat, f.read_text(encoding="utf-8"))
         assert m, f"{rel}: count line not found"
         assert int(m.group(1)) == n, f"{rel} says {m.group(1)} commands, disk has {n}"
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     table = readme.split("### All commands", 1)[1].split("\n\n", 2)[1]
     rows = {m.group(1) for m in re.finditer(r"^\| `/([a-z0-9-]+)`", table, re.MULTILINE)}
     assert rows == {p.stem for p in COMMANDS.glob("*.md")}, rows ^ {p.stem for p in COMMANDS.glob("*.md")}
+
+
+def test_security_md_asset_lists_match_disk() -> None:
+    """SECURITY.md enumerates every shipped command/skill/agent/hook by name and count."""
+    text = (REPO_ROOT / "SECURITY.md").read_text(encoding="utf-8")
+    expected = {
+        "command files": ({p.stem for p in COMMANDS.glob("*.md")}, None),
+        "skills directories": ({d.name for d in (REPO_ROOT / "claude-code" / "skills").iterdir() if d.is_dir()}, None),
+        "agent files": ({p.stem for p in (REPO_ROOT / "claude-code" / "agents").glob("*.md")}, None),
+    }
+    for label, (names, _) in expected.items():
+        m = re.search(rf"- (\d+) {re.escape(label)}: `[^`]+` \(([^)]*)\)", text)
+        assert m, f"SECURITY.md: no '{label}' line"
+        listed = {x.strip() for x in m.group(2).split(",")}
+        assert int(m.group(1)) == len(names), f"{label}: says {m.group(1)}, disk {len(names)}"
+        assert listed == names, f"{label}: {sorted(listed ^ names)}"

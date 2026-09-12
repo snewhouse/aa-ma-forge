@@ -19,9 +19,11 @@ scripts/release.sh <major|minor|patch> --headline "<one-line theme>" [--dry-run]
    `**Current version:** vX.Y.Z — …` line; next version from `cz bump --get-next`; tag absent;
    `gh auth status` (unless `--no-push`/`--dry-run`).
 2. `## Unreleased` → `## vX.Y.Z (YYYY-MM-DD)`; README line → `**Current version:** vX.Y.Z — <headline>`.
-3. `uv run cz bump --increment <INC> --yes` — commitizen updates `pyproject.toml` + `VERSION`,
-   commits **everything** (`git commit -a`, message `bump: version A → B` + `[ad-hoc]`) and creates an
-   **annotated** tag. `update_changelog_on_bump = false`, so cz never touches the CHANGELOG.
+3. `uv run cz bump --increment <INC> --yes` — commitizen updates `pyproject.toml` + `VERSION`, runs
+   `pre_bump_hooks = ["uv lock"]` so `uv.lock` carries the new version, commits **everything**
+   (`git commit -a`, message `bump: version A → B` + `[ad-hoc]`) and creates an **annotated** tag.
+   `update_changelog_on_bump = false`, so cz never touches the CHANGELOG. The script refuses to push
+   if `uv.lock` still records the old version.
 4. `git push --follow-tags origin main`, then `gh release create vX.Y.Z --notes-file <the new section>`.
 
 ## Procedure

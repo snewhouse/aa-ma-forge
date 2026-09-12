@@ -126,7 +126,7 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ## Milestone 3: Share — /aa-ma-share publishes markdown as a private Artifact
 
-- Status: PENDING
+- Status: ACTIVE
 - Gate: HARD
 - Mode: HITL
 - Dependencies: Milestone 1 (Milestone 2 recommended, not required)
@@ -138,9 +138,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 3.1: Command file + allowlist script + bats
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: HITL gate approved. `tests/commands/aa-ma-share-allow.bats` written first → 10 not ok (127); `scripts/aa-ma-share-allow.sh` → 10 ok; shellcheck clean. Edge probe found a bypass: `docs/adr/../../.claude/dev/active/t/t-context-log.md` matched `*docs/adr/*.md` → 11th case RED → `..` segments refused → 11/11 ok. `claude-code/commands/aa-ma-share.md` written (frontmatter shape of understand-codebase.md; steps: resolve → allowlist script → optional lint → Artifact publish of the markdown itself, favicon 📐, title = H1 → `SHARE —` provenance line → URL; copied-not-symlinked fallback prints and skips lint). `scripts/install.sh --dry-run` lists aa-ma-share.
 
 ### Sub-step 3.2: Frontmatter test + counts + README table row
 

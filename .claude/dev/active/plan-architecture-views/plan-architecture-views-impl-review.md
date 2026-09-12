@@ -1,36 +1,57 @@
-# Impl Review Report: plan-architecture-views / Milestone 1
-Generated: 2026-09-12T10:11:29Z | Audit-Profile: docs-only | Budget: normal
+# Impl Review Report: plan-architecture-views / Milestone 2
+Generated: 2026-09-12T11:42:48Z | Audit-Profile: code-only | Budget: normal
+
+(Milestone 1 report — docs-only, 0C/2W/5I — is in git history at b7c750c.)
 
 ## Summary
-- CRITICAL: 0 findings (0 accepted, 0 disputed, 0 deferred)
-- WARNING: 2 findings (1 fixed with test, 1 deferred to Sub-step 2.7)
-- INFO: 5 findings (2 fixed inline, 2 deferred to Sub-step 2.7, 1 accepted)
-- Overall: PASS WITH WARNINGS
+- CRITICAL: 4 findings (4 fixed — 0 accepted, 0 disputed, 0 deferred)
+- WARNING: 8 findings (8 fixed)
+- INFO: 16 findings (5 fixed, 11 accepted with reason)
+- Overall: PASS (after remediation commits 0bd8987 + 167a57f; re-verified 1046 passed, real plan rc=0)
 
-Window: 758f125..6a35c51 (26 files; docs/prompt surface + 1 test). Slate per docs-only profile: future-proofing-auditor (check #1 only). code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor: not dispatched (profile matrix).
+Window: 7e82554..2cd25f0 (initial), remediation 0bd8987, 167a57f. Slate: all 5 agents (code-only).
 
 ---
 
-## Future-Proofing (future-proofing-auditor agent) — check #1: hardcoded counts
+## Code Review (code-reviewer agent) — 1 CRITICAL, 5 WARNING, 5 INFO
 
-Verified at 6a35c51: spec §XI items = 13, README list = 13, engineering-standards themes = 6, CANONICAL_AUDIT_PROFILES = {full, code-only, docs-only, infra, custom}, live "13 elements" sites = 29 (matches reference.md). No count wrong at write time.
+- [CRITICAL] UNKNOWN_TYPE false positive: `%%{init}%%` / `---` front-matter read as the type word → **Fixed** (`_DIRECTIVE_RE` + `_FRONT_MATTER_RE` skipped; fixtures plan_init_directive.md, plan_yaml_frontmatter.md).
+- [WARNING] `(new)` exemption lost on shape labels `[("x (new)")]` → **Fixed** (`_NEW_RE = \(new\)\W*$`; fixture plan_shape_new.md).
+- [WARNING] unterminated fence silently degrades → **Fixed** (UNTERMINATED_FENCE + render UNKNOWN; fixture plan_unterminated.md; uses the lint's own `scan_fences` — see context-log 2026-09-12 for why not `has_unterminated_fence`).
+- [WARNING] private heading grammars (`^## `, `split("\n## ")`, H3 promotion) → **Fixed** (`grammar.H2_RE` public alias, one additive line; H3 promotion defers to `MILESTONE_RE`; fixture plan_milestone_m_form.md).
+- [WARNING] L-007 scope: ADR template/0010 edits → **Fixed** (decision recorded in context-log: ADRs are in the lint's remit).
+- [WARNING] leading-slash label resolves from fs root → **Fixed** (`lstrip("/")` + repo-bounded check; fixture plan_parallelogram.md).
+- [INFO] duplicate `### Component view` last-wins → **Accepted** (malformed input; first view unlinted is visible in output).
+- [INFO] duplicate AUDIT_PROFILE_INVALID with tasks.md → **Fixed** (`dict.fromkeys`).
+- [INFO] timeout_s per source → **Fixed** (docstring).
+- [INFO] "3 kept" literal; CRLF → **Accepted** (self-correcting; consistent with grammar).
 
-### Findings
+## Security (security-auditor agent) — 2 CRITICAL, 2 WARNING, 3 INFO
+Mechanical pre-check (security-static-check.sh): PASS
 
-- [WARNING] hardcoded-set: "Audit-Profile ∈ {full, code-only, infra}" inlined at 8 live sites (aa-ma.md:117, engineering-standards.md:59, plan-verification SKILL.md:406/411, spec:604 ×2, plan-template.md:12/79) with no constant behind it; `custom` can dispatch code-reviewer via `Audit-Run:` and escapes the Contract rule. → **Deferred to Sub-step 2.7(a)**: `CODE_AUDIT_PROFILES` is already an M2 Contract deliverable (plan:290); `custom` exclusion decided in context-log 2026-09-12; enum-vs-prose test at 2.7.
-- [WARNING] hardcoded-count: "13 elements/outputs" at 29 live sites; the reference.md gate grep is one-shot (`1[12]`) and will not fire on #14. → **Fixed**: `tests/commands/test_planning_standard_count.py` (3 tests) asserts every prose site equals the spec §XI item count and the README list length equals its heading; mutation-checked (12 in aa-ma.md → 1 failed).
-- [INFO] hardcoded-list: Diagram-Waiver values at 5 sites, only SKILL.md pinned. → **Deferred to Sub-step 2.7(b)** (extend the enum test to the engineering-standards table).
-- [INFO] dangling-pin: spec:604 names `plan_parsers.parse_diagram_waiver` (M2 deliverable). → **Deferred to Sub-step 2.7(c)**; accepted forward reference until 2.2 lands.
-- [INFO] hardcoded-list: plan-template §12 hand-enumerates 6 themes. → **Fixed**: sync comment added pointing at the `### N.` headings.
-- [INFO] hardcoded-list: spec §II mermaid enumerates 8 file types beside the table listing the same 8. → **Accepted** (same drift class as the table it illustrates).
-- [INFO] consistency: SKILL.md:339 Engineering Standards Auditor remit omitted checks #6/#7. → **Fixed**: remit line now names Architecture View / Diagram-Waiver / Contract block; :415 "#6" lands with the parser at 2.7(c).
+- [CRITICAL] A04 ReDoS: `_LABEL_RE`/`_PATH_RE` quadratic on a 200 KB line (measured >20 s) → **Fixed** (str.find label scanner; `_PATH_RE` only on tokens ≤256; `test_bracket_flood_is_linear`, `test_slash_flood_is_linear` — 0.02–0.04 s).
+- [CRITICAL] A04 ReDoS: `_FENCE_RE` lazy `.*?` × unclosed openers (14.5 s) → **Fixed** (line-based `_mermaid_fences`; `test_fence_flood_is_linear`, `test_unclosed_opener_flood_is_linear`).
+- [WARNING] A01 existence oracle via absolute/`..` label paths → **Fixed** (`_inside`: resolve + is_relative_to; `test_paths_outside_repo_root_are_never_probed_as_present`).
+- [WARNING] A03 terminal escape in UNKNOWN_TYPE message → **Fixed** (`{first_word!r}`; `test_unknown_type_message_never_carries_raw_control_chars`).
+- [INFO] `# nosec` B404/B603 justified; SKILL.md bash quoting; test fakes confined → **Accepted**.
 
-Accepted, not flagged: v0.12.0 label, literal 2026-09-11 cutover, "29 sites" in CHANGELOG/reference.md, frozen ADR/narrative/runbook/plan history.
+## TDD Sequence (tdd-sequence-auditor agent) — PASS, 2 INFO
+- First tests/ commit d5f56ac (12:12:52) precedes first src/ commit cfdb6c6 (12:13:38); second pair 542789b → d353220 also ordered. All three src↔test pairs paired.
+- [INFO] 53ed877 bundles RED+GREEN (cli.py); RED evidence in tasks.md 2.6 Result Log → **Accepted**.
+- [INFO] 2.7 touches no src/ → **Accepted**.
+- Remediation commits 0bd8987/167a57f: tests written and run RED before each fix (Result Log 2.8).
 
-SUMMARY: 0 CRITICAL, 2 WARNING, 5 INFO
+## External Library Evidence (context7-evidence-auditor agent) — PASS, 0 findings
+Only a `[project.scripts]` entry in pyproject.toml; uv.lock untouched.
+
+## Future-Proofing (future-proofing-auditor agent) — 1 CRITICAL, 1 WARNING, 6 INFO
+- [CRITICAL] render-is-leaf listed 6 of 10 aa_ma modules; new modules silently exempt → **Fixed** (list completed; `tests/render/test_leaf_contract.py` pins it to `pkgutil.iter_modules`; mutation in `schemas/` → BROKEN. `source_modules = aa_ma` was tried and refused by import-linter: "Modules have shared descendants").
+- [WARNING] CODE_AUDIT_PROFILES unbound to CANONICAL_AUDIT_PROFILES → **Fixed** (`test_every_canonical_audit_profile_is_classified_for_element_13`).
+- [INFO] KNOWN_TYPES allowlist lacks a policy comment → **Fixed**.
+- [INFO] "3 kept" literal, `seen >= 5` floor, `_PATH_RE` extension under-coverage, `timeout_s=90.0`, PARSE_ERROR_SIGNATURES coupling → **Accepted** (self-correcting / fail-safe direction / single use).
 
 ---
 
 ## User Override Decisions
 
-None required (0 CRITICAL).
+None required: all 4 CRITICALs were fixed with tests before §7.3, so no accept/dispute/defer panel was raised.

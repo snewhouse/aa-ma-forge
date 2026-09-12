@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-09-12 16:57 -->
+<!-- Plan: plan-architecture-views - COMPLETE -->
+<!-- Total Milestones: 4 | Duration: 2026-09-11 to 2026-09-12 -->
+
 # plan-architecture-views Tasks (HTP)
 
 Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks and `Run:` expectations live in the plan; this file tracks state. Every sub-step carries `Mode:` (the scribe does not add it — set here per plan Global Constraints).

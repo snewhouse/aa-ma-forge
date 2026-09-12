@@ -157,7 +157,7 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ## Milestone 4: Render (optional, last) — markdown to self-contained HTML, aa-ma-render
 
-- Status: PENDING
+- Status: ACTIVE
 - Gate: HARD
 - Mode: AFK
 - Dependencies: Milestone 2
@@ -168,9 +168,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 4.1: Prototype (UI branch) — fence hook + html rules + mermaid ESM + theme
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: User chose build (HITL gate). Skill(prototype) UI branch: 35-line throwaway in scratchpad rendered plan_ok.md + probes (table, `<script>`, `<b>`, comment outside/inside fence) with markdown-it-py 4.0.0 (.venv), commonmark + table/strikethrough, fence→`<pre class="mermaid">`, html_block/html_inline → "" for comments else escaped, mermaid@11.17.2 ESM (re-measured latest 11.x). /browse light: svg=2, table=1, processed=2, script/b as text, fence comment kept, outside comment dropped, console errors 0, 11 CDN requests 200; playwright dark emulation: body rgb(21,21,21), mermaid dark theme, 0 errors; pdf 36 KB. Verdict GO → provenance PROTOTYPE line. Finding: `data-processed` is set before paint — /browse checks must wait on svg count.
 
 ### Sub-step 4.2: RED — render tests + golden
 

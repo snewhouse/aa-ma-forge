@@ -27,6 +27,19 @@ The system uses five specialised documents to segment knowledge, ensuring Claude
 | `[task]-tests.yaml`     | **Optional.** Machine-readable test definitions linked to milestone acceptance criteria.           | [8]      |
 | `[task]-verification.md` | **Optional.** Adversarial verification audit trail from 6 independent angles.                     | [9]      |
 
+How the files feed each other (load order for a cold agent: `reference.md` first, `tasks.md` second):
+
+```mermaid
+flowchart LR
+  PLAN[plan.md — strategy, §13 Architecture View] --> REF[reference.md — immutable facts, load FIRST]
+  PLAN --> TASKS[tasks.md — HTP roadmap, load SECOND]
+  TASKS --> LOG[context-log.md — decisions, gate approvals]
+  TASKS --> PROV[provenance.log — commits, checkpoints]
+  PLAN -. optional .-> VER[verification.md]
+  TASKS -. optional .-> TESTS[tests.yaml]
+  PROV -. optional .-> IMPL[impl-review.md]
+```
+
 ### Optional: Adversarial Verification Report
 
 The `[task]-verification.md` file stores the results of structured adversarial verification run against the plan before execution begins. It is produced by the `/verify-plan` command or Phase 4.5 of the `/aa-ma-plan` workflow.

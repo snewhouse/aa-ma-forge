@@ -52,9 +52,9 @@ Plan: `plan-architecture-views-plan.md` (rev 4). Sub-step detail, code blocks an
 
 ### Sub-step 1.7: ADR-0010 exemplar + spec flow diagram + INDEX row
 
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: HITL gate approved. Created `docs/adr/0010-architecture-views-and-render.md` (Accepted; Options A–D; `## Architecture View` = plan §13 Component view; `## Example` = front-matter + §13 snippet; Implementation Notes; References). INDEX.md row 0010 appended after 0009. Spec §II: file-flow mermaid diagram inserted under the taxonomy table (aa-ma-specification.md:32). preview: mmdc rc=1 (no chrome-headless-shell → UNKNOWN, as pinned); so parsed+rendered every new fence with mermaid 11.17.2 UMD in Playwright's headless Chromium — 7/7 PASS with non-empty SVG (ADR ×3, spec ×1, ADR TEMPLATE ×1, plan-template ×2). Script: scratchpad/parse_check.py (session-local).
 
 ### Sub-step 1.8: Counts, CHANGELOG, cross-reference check, install.sh re-run, sync
 

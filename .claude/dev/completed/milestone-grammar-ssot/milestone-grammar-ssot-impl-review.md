@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-09-12 06:16 -->
+<!-- Plan: milestone-grammar-ssot - COMPLETE -->
+<!-- Total Milestones: 5 | Duration: 2026-08-09 to 2026-09-11 -->
+
 # §6.8 Post-Impl Adversarial Review — Milestone 1
 
 Audit-Profile: `code-only` · Plan `Created: 2026-08-09` (post-v0.8.0 cutover) · Window: working tree vs `77e38d4`

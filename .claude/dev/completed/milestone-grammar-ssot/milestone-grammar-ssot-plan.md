@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-09-12 06:16 -->
+<!-- Plan: milestone-grammar-ssot - COMPLETE -->
+<!-- Total Milestones: 5 | Duration: 2026-08-09 to 2026-09-11 -->
+
 # milestone-grammar-ssot Plan (revision 3)
 
 **Objective:** Unify AA-MA milestone/step header parsing behind one shared grammar, restore TUI visibility for the tasks it silently drops, close the HARD-gate scan blindness that widening exposes, and fix the intermittent C4 bats failure.

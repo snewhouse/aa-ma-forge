@@ -34,6 +34,24 @@ _Avoid_: "integration" (overloaded with system integrations), "import" (same as 
 The producer of a Repo from which we Fork. Always a specific organization or person (e.g., "the upstream is mattpocock", "the gstack upstream is garrytan").
 _Avoid_: "the vendor" (ambiguous), "the source" (acceptable but less precise).
 
+### Fork lifecycle (added 2026-09-20, mattpocock-trio-adoption grill)
+
+**Re-fork**:
+A Fork applied to an existing fork directory: content replaced from Upstream, the provenance line's date and the ADR's recorded MD5s updated, the original ADR amended (no new ADR number). Same mechanical/atomic contract as Fork.
+_Avoid_: "sync"/"re-sync" (implies bidirectional), "update" (too generic), "refresh".
+
+**Drift**:
+A fork state: the Upstream file's MD5 no longer matches the MD5 recorded in the fork's ADR. Detected, not judged — Drift may be benign; the decision is Re-fork, keep as Derived, or retire.
+_Avoid_: "stale" (judgemental; reserve for docs that are wrong), "out of date".
+
+**Orphan**:
+A fork state: the Upstream path no longer exists (deleted or renamed). Forces a decision: Re-fork from the successor path, keep as **Derived** (`DERIVED-FROM-UPSTREAM`), or retire. An Orphan cannot Drift because there is nothing to compare against.
+_Avoid_: "abandoned" (implies neglect on our side), "dead".
+
+**Adaptation**:
+A concept borrowed from an Upstream with **no** files forked: we write our own files and an ADR; attribution reads "concept adapted from". Sits beside Adoption, not inside it — an Adaptation has no Fork, no provenance comment, no MD5, and cannot Drift or be Orphaned.
+_Avoid_: "port", "inspired by" (too weak for an ADR-backed decision), "adopt" (reserved for Fork-wrapping Adoption).
+
 ### Evaluation states
 
 **Candidate**:
@@ -91,6 +109,7 @@ Canonical field on a plan (parallel to `TDD-Waiver:`) stating why no **Architect
 - An **Upstream** is the producer of a **Repo**.
 - A **Plan** carries at most one **Architecture View**, composed of one or more **Views**; a **Milestone** carries zero or more **Contract blocks**.
 - A **Render** is derived from exactly one markdown source; a **Share** is a snapshot of one **Render**.
+- A **Fork** is in exactly one lifecycle state at a time: current, **Drift**, or **Orphan**; a **Re-fork** returns it to current. An **Adaptation** has no lifecycle state.
 
 ## Example dialogue
 
@@ -105,7 +124,12 @@ Canonical field on a plan (parallel to `TDD-Waiver:`) stating why no **Architect
 - **"the catalog"** vs **"the repo"** was the failure mode that produced L-001 (External URL First Principle): a research agent confused Anthropic's `agent-skills` Catalog with mattpocock's Repo. Resolved: a Catalog is not a Repo; always name the Repo explicitly when fetching ground truth.
 - **"M3+ candidate"** is a tagged Status, not a separate noun. The audit doc uses "M3+ candidates" as the heading of Section D — that's the *list of Candidates with Status PROPOSED-M3+*.
 
+- **"sync" / "re-sync"** was used in ADR-0011 to mean bringing the `prototype` fork current. Resolved: that is a **Re-fork**; "sync" is banned (AA-MA already uses "sync" for artifact discipline — `Sync Discipline` in `rules/aa-ma.md`).
+- **"adopt wayfinder"** was ambiguous between forking files and borrowing the concept. Resolved: charting is an **Adaptation**, not an Adoption.
+
 ## Provenance
+
+Extended 2026-09-20 during Phase 1.3 (`grill-with-docs`) of `mattpocock-trio-adoption`: Re-fork / Drift / Orphan / Adaptation.
 
 Extended 2026-09-11 during Phase 1.3 (`grill-with-docs`) of `plan-architecture-views`: Architecture View / View / Contract block / Render / Share / Diagram-Waiver.
 

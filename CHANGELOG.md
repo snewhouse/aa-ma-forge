@@ -6,6 +6,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Added
+
+- **Research + three Proposed ADRs for Matt Pocock's `wayfinder` / `prototype` / `research`** — `docs/research/mattpocock-trio-2026-09.md` (cited, upstream verified 2026-09-20) and ADR-0011 (prototype re-sync + Step 2.5 prototype decision + gate roll-up of sub-step `Prototype-Required`), ADR-0012 (`research` skill fork + Phase 3 writes `docs/research/`), ADR-0013 (charting: pre-plan decision map, wayfinder-lite, no tracker). Implementation deferred to `/aa-ma-plan mattpocock-trio-adoption`.
+
 ### Fixed
 
 - **`scripts/release.sh` re-locks inside the bump commit** — `[tool.commitizen] pre_bump_hooks = ["uv lock"]`

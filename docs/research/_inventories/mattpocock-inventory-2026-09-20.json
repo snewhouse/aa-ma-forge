@@ -1,0 +1,63 @@
+{
+  "_meta": {
+    "source_url": "https://github.com/mattpocock/skills",
+    "canonical_repo": "mattpocock/skills",
+    "fetched_at": "2026-09-20T11:30:00+01:00",
+    "verifier_method": "gh-api + raw.githubusercontent.com + local plugin cache 1.2.3",
+    "scope": "PARTIAL delta snapshot for three subject skills + renames since the 2026-05-10 full inventory; not a replacement for mattpocock-inventory.json",
+    "stars": 266141,
+    "default_branch": "main",
+    "last_push": "2026-09-18",
+    "latest_release": "v1.2.3 (2026-08-06)",
+    "plugin_json_version": "1.2.3",
+    "promoted_skill_count": 25,
+    "unreleased_changesets_on_main": 12,
+    "description": "Skills for Real Engineers. Straight from my .agents directory."
+  },
+  "subjects": {
+    "research": {
+      "path": "skills/engineering/research/SKILL.md",
+      "invocation": "model",
+      "added": "2026-07-01 (PR #409, v1.1.0)",
+      "last_substantive_change": "2026-07-01",
+      "md5_1_2_3": "506b3477669c57820d944af5766105cc",
+      "size_bytes": 794,
+      "known_issues": ["#530 self-nesting background agent", "no stopping criterion", "nothing auto-loads past research files", "#576 draft PRs from research/<name> branches"],
+      "aa_ma_forge_verdict": "ADOPT (fork + harden) — ADR-0012"
+    },
+    "prototype": {
+      "path": "skills/engineering/prototype/",
+      "files": ["SKILL.md", "LOGIC.md", "UI.md", "agents/openai.yaml"],
+      "invocation": "model (since 2026-06-29, 850873c)",
+      "last_substantive_change": "2026-07-17 (6bcbcb0: LOGIC branch -> single HTML demo)",
+      "md5_1_2_3": {
+        "SKILL.md": "f59e7362aa284dc8c6cf9cf7637da74c",
+        "LOGIC.md": "5a29fb2cdc2dfe75c2400a20a5777a89",
+        "UI.md": "0531f4c5365f312b7faad44b88adcf38"
+      },
+      "local_fork": "claude-code/skills/prototype/ (2026-05-10, ADR-0003) — MAJOR drift",
+      "aa_ma_forge_verdict": "RE-SYNC + planning gate — ADR-0011"
+    },
+    "wayfinder": {
+      "path": "skills/engineering/wayfinder/SKILL.md",
+      "invocation": "user (disable-model-invocation: true)",
+      "added": "2026-07-06 graduation from in-progress/decision-mapping; v1.1.0 2026-07-08",
+      "last_substantive_change": "2026-07-13 (2602257: research tickets burned down by subagents)",
+      "md5_1_2_3": "b3164e7be524d3621d7a83766205da30",
+      "size_bytes": 12190,
+      "dependencies": ["setup-matt-pocock-skills", "grilling", "domain-modeling", "research", "prototype", "issue tracker (gh/glab/local-markdown)"],
+      "upstream_positioning": "situational on-ramp, not the main entry flow (CHANGELOG v1.1, PR #464)",
+      "aa_ma_forge_verdict": "ADAPT concept as 'charting' (wayfinder-lite), no tracker — ADR-0013"
+    }
+  },
+  "renames_and_removals_since_2026_05_10": {
+    "diagnose": "diagnosing-bugs",
+    "to-prd": "to-spec",
+    "to-issues + to-plan": "to-tickets",
+    "write-a-skill": "REMOVED (1.0.0 -> writing-great-skills -> 1.2.0 writing-for-agents); local fork claude-code/skills/write-a-skill is orphaned",
+    "zoom-out": "REMOVED",
+    "grill-with-docs": "still exists but reduced to a one-line delegation to grilling + domain-modeling; CONTEXT-FORMAT.md / ADR-FORMAT.md moved to domain-modeling/"
+  },
+  "new_since_2026_05_10": ["research", "wayfinder", "implement", "code-review", "wizard", "wait-what", "grilling", "domain-modeling", "codebase-design", "resolving-merge-conflicts", "writing-for-agents", "ask-matt", "handoff", "teach", "to-questionnaire"],
+  "in_progress_not_in_plugin": ["loop-me", "writing-beats", "writing-fragments", "writing-shape", "claude-handoff", "setup-ts-deep-modules", "implement-spec", "pr", "retro"]
+}

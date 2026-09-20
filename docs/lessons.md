@@ -5,6 +5,28 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-016 (2026-09-20) — A bare `<!--` inside a criterion hides every later sub-step from the gate; `hooks/lib` helpers are never auto-linked
+
+**Pattern:** Two near-misses in one planning session. (a) An acceptance
+criterion quoted a shell snippet `grep -q '^<!-- Derived from'` inside
+backticks; `aa-ma-gate` strips HTML comments before parsing, so that
+unterminated `<!--` swallowed sub-steps 1.1–1.5 (`pending_steps=2` for a
+7-step milestone) with no error — a false "nearly done". (b) The plan said a
+new `claude-code/hooks/lib/` helper would be "symlinked by install.sh like
+`aa-ma-parse.sh`"; three verification angles proved `install.sh` links each
+lib helper by an explicit per-file block (`lib/aa-ma-footer.sh` exists in
+the repo and is not installed). That is L-005 recurring in planning prose.
+
+**Rule:** (a) Never write a literal `<!--` in tasks.md, reference.md or
+context-log.md unless `-->` closes it on the same line — describe the comment
+("an HTML comment starting `Derived from`") instead; after the scribe runs,
+always execute `aa-ma-gate <tasks> --milestone N --format kv` for every N and
+compare `pending_steps` to the sub-step count before calling Phase 5 done.
+(b) Any new file under `claude-code/hooks/**` or `hooks/lib/` needs an
+explicit `install.sh` `create_symlink` block AND an `install_dry_run.bats`
+case in the same milestone — write both into the plan's artefact list, never
+"like <existing helper>".
+
 ## L-015 (2026-09-12) — `uv run <tool>` falls through to PATH; every release from v0.7.0 was cut with a tool the project never declared
 
 **Pattern:** `uv run cz bump` "worked" on this machine for five releases

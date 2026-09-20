@@ -1,0 +1,13 @@
+# mattpocock-trio-adoption Provenance Log
+
+[2026-09-20T20:30:00+01:00] TASK INITIALIZED — AA-MA directory created via /aa-ma-plan mattpocock-trio-adoption
+[2026-09-20T20:30:00+01:00] Project: /home/sjnewhouse/projects/github_private/aa-ma-forge
+[2026-09-20T20:30:00+01:00] Commit c87135b — Phase: Planning (line anchors in plan.md quoted as of this commit)
+[2026-09-20T20:45:00+01:00] Inputs: docs/research/mattpocock-trio-2026-09.md · docs/superpowers/specs/2026-09-20-mattpocock-trio-adoption-design.md (D1–D9) · ADR-0011/0012/0013 (Proposed)
+[2026-09-20T20:50:00+01:00] ENG_STANDARDS_DECLARED: themes=[1,2,3,4,5,6] prototype=[M4,M5]
+[2026-09-20T20:55:00+01:00] PLAN_REVIEW eng=ran outside_voice=claude-subagent ceo=skipped design=auto-skipped
+[2026-09-20T21:05:00+01:00] VERIFICATION mode=automated revisions=2 criticals=9 resolved=9 result=PASS_WITH_WARNINGS
+[2026-09-20T21:10:00+01:00] AA-MA artifacts created (scribe) — plan.md, reference.md, context-log.md, tasks.md, provenance.log (+ verification.md from Phase 4.5)
+[2026-09-20T21:10:00+01:00] Plan: mattpocock-trio-adoption — Milestones: 5, Steps: 27 — HARD gates: M3, M5 — Critical-Path: M1/M2/M4 doc-count-drift, M3/M5 hook-modification — Prototype-Required: M4, M5
+[2026-09-20T21:10:00+01:00] Status: READY FOR EXECUTION — next: pre-M1 [ad-hoc] housekeeping commit, then /execute-aa-ma-milestone Milestone 1 at Step 1.1
+[2026-09-20T22:01:37+01:00] Phase 5 validated: aa-ma-gate pending_steps 7/3/6/6/5 = 27; validator 8/8 PASS after reference.md contract fix; lesson L-016 recorded

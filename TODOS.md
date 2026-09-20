@@ -26,4 +26,54 @@
 **Priority:** P3
 **Depends on:** plan-architecture-views M3 (the snippet)
 
+## mattpocock-trio-adoption follow-ups (eng review 2026-09-20)
+
+### Teach fingerprint._phase_3 about Skill(aa-ma-research) / aa-ma-researcher
+
+**What:** Add two disjuncts to `src/aa_ma/plan_markers/fingerprint.py::_phase_3` (`Skill` with `skill=^aa-ma-research$`, `Agent` with `subagent_type=^aa-ma-researcher$`), a `_tc(...)` case in `tests/plan_markers/test_fingerprint.py`, and the PHASE_3 row in `docs/spec/plan-marker-grammar.md`.
+
+**Why:** After mattpocock-trio-adoption M4, `/aa-ma-plan` Phase 3 delegates web/Context7 calls to the researcher agent, so the parent transcript has none of the tool calls `_phase_3` looks for. Nothing consumes the correlator yet (`aa-ma-plan-skip-warn.sh` is marker-only, hook :19-21), so this is spec debt, not a live bug.
+
+**Context:** Deferred in eng-review scope decision D1. Start at `fingerprint.py::_phase_3`; mirror the `_phase_1_3` regex style.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** mattpocock-trio-adoption M4
+
+### docs/research/README.md with the Valid-Through rule
+
+**What:** A short README in `docs/research/` stating: one file per question, the `Created / Author / Reviewed-Through-Date / Valid-Through / Sources` header, and that a file past its `Valid-Through` is re-verified against primary sources, never trusted.
+
+**Why:** M4 makes `/aa-ma-plan` write a research file per plan; readers need the convention in one place.
+
+**Context:** Deferred in eng-review D1 / TODO-2. Convention already exemplified by `docs/research/skill-ecosystem-audit.md:1-12` and `docs/research/mattpocock-trio-2026-09.md`.
+
+**Effort:** XS
+**Priority:** P3
+**Depends on:** —
+
+### Let /aa-ma-share publish charting maps
+
+**What:** Extend the allowlist in `scripts/aa-ma-share-allow.sh` (`*-plan.md|docs/adr/*.md|docs/spec/*.md`) with `*-map.md`; add a bats case in `tests/commands/aa-ma-share-allow.bats`; update `README.md` (share section) and `claude-code/commands/aa-ma-share.md`.
+
+**Why:** A charting map is the kind of document you would share for a second opinion. Today it is refused.
+
+**Context:** Found by the M5 impact analysis. Decide after the first real map exists — maps carry open questions and fog, so sharing half-formed thinking may not be the right default.
+
+**Effort:** XS
+**Priority:** P3
+**Depends on:** mattpocock-trio-adoption M5
+
+### Retire the dead global ~/.claude/skills/research
+
+**What:** Remove or rename `~/.claude/skills/research/` (outside this repo). Its body runs `/conduct-research`, which does not exist, and names `perplexity-researcher` agents that are not installed.
+
+**Why:** It advertises "do research" triggers that do nothing; once `aa-ma-research` exists the two names invite confusion.
+
+**Context:** Verified dead 2026-09-20. Check other projects' CLAUDE.md/hooks for references to the name before removing (eng-review OV1).
+
+**Effort:** XS
+**Priority:** P3
+**Depends on:** —
+
 ## Completed

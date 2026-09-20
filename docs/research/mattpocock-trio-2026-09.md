@@ -5,6 +5,7 @@
 **Reviewed-Through-Date:** 2026-09-20 (upstream HEAD 2026-09-18; plugin cache 1.2.3 installed 2026-07-30)
 **Valid-Through:** 2026-Q4 (re-fetch upstream if reviewing after this date; 12 unreleased changesets were pending on `main` at review time)
 **Plan-Version:** none yet — feeds ADR-0011 / ADR-0012 / ADR-0013 (Proposed) and a follow-up `/aa-ma-plan mattpocock-trio-adoption`
+**Sources:** https://github.com/mattpocock/skills @ c55ee46 (gh api, raw.githubusercontent.com) · X posts and Latent Space article linked inline · local plugin cache `~/.claude/plugins/cache/claude-plugins-official/mattpocock-skills/1.2.3` · this repo at `ecd4570` (path:line cites inline)
 **Inventory-Files:**
 - [`_inventories/mattpocock-inventory.json`](_inventories/mattpocock-inventory.json) — frozen 2026-05-10 snapshot (27 skills; predates all three subjects)
 - [`_inventories/mattpocock-inventory-2026-09-20.json`](_inventories/mattpocock-inventory-2026-09-20.json) — partial delta snapshot for the three subjects + renames since May

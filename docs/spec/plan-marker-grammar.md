@@ -55,7 +55,7 @@ record of stub creation, not counted in "9 required"):
 | 2 | `PHASE_1.3 DONE` | `grill_mode={auto\|with-docs\|simple\|skip}`, `branches_resolved=<N>`, `questions_asked=<N>` |
 | 3 | `PHASE_1.5 DONE` | `lessons_loaded=<N>`, `git_grep_hits=<N>` |
 | 4 | `PHASE_2 DONE` | `brainstorm_skill=invoked`, `alternatives_considered=<N>` |
-| 5 | `PHASE_3 DONE` | `context7_calls=<N>`, `web_fetches=<N>` |
+| 5 | `PHASE_3 DONE` | `context7_calls=<N>`, `web_fetches=<N>`, `research_files=<N>` (files written to `docs/research/` by `Skill(aa-ma-research)`; additive since v0.13.0 — absent in older logs) |
 | 6 | `PHASE_4 DONE` | `complexity_score=<N>%`, `plan_elements=<N>/12` |
 | 7 | `PHASE_4.2 DONE` | `reviews=<csv>` |
 | 8 | `PHASE_4.5 DONE` | `verdict={GREEN\|YELLOW\|RED}`, `criticals=<N>`, `warnings=<N>` |
@@ -96,7 +96,7 @@ Example complete log:
 [2026-05-11T12:32:10+01:00] PHASE_1.3 DONE — grill_mode=with-docs branches_resolved=7 questions_asked=12
 [2026-05-11T12:33:05+01:00] PHASE_1.5 DONE — lessons_loaded=12 git_grep_hits=4
 [2026-05-11T12:34:30+01:00] PHASE_2 DONE — brainstorm_skill=invoked alternatives_considered=3
-[2026-05-11T12:38:55+01:00] PHASE_3 DONE — context7_calls=3 web_fetches=1
+[2026-05-11T12:38:55+01:00] PHASE_3 DONE — context7_calls=3 web_fetches=1 research_files=1
 [2026-05-11T12:42:00+01:00] PHASE_4 DONE — complexity_score=42% plan_elements=12/12
 [2026-05-11T12:43:15+01:00] PHASE_4.2 SKIPPED — reason=user_passed
 [2026-05-11T12:48:00+01:00] PHASE_4.5 DONE — verdict=GREEN criticals=0 warnings=2

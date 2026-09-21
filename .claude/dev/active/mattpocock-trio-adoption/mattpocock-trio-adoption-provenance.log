@@ -93,3 +93,4 @@
 [2026-09-21T11:22:02+01:00] LIVE_CHECK — Milestone 4: Adopt `research` as `aa-ma-research` + `aa-ma-researcher` agent; Phase 3 writes files; release v0.13.0 — agent_hot_reload=LAZY (announced 2 turns after install.sh); proceeding with in-session dispatch
 [2026-09-21T11:29:25+01:00] PROTOTYPE — Milestone 4: Adopt `research` as `aa-ma-research` + `aa-ma-researcher` agent; Phase 3 writes files; release v0.13.0 — PASS: files=1 nested_agents=0; branch=n/a — docs/research/mattpocock-trio-adoption-install-backup.md header=5 cites=ok agent=acf2c08acd9784d96 tool_uses=4 claude_invocations=0
 [2026-09-21T11:29:25+01:00] STEP 4.3 COMPLETE — install + live aa-ma-researcher run; criterion reworded (jq tool_use filter replaces bare grep)
+[2026-09-21T11:31:45+01:00] STEP 4.4 COMPLETE — Phase 3 wiring (aa-ma-plan.md 3.3/3.4/5.3/5.4, marker grammar research_files=, PHASE_3_RESEARCH.md); plan_markers+commands 79 pass / 2 count-test fails owned by 4.5; skip-warn bats 7/7

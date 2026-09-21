@@ -11,7 +11,8 @@
 
 **Primary skill:** `dispatching-parallel-agents` (for 3+ research domains)
 **Supporting skills:**
-- `research-consolidation` (for cross-referencing)
+- `aa-ma-research` (primary-source questions → one cited file each in `docs/research/`)
+- `research-consolidation` (optional — cross-referencing when findings conflict)
 - `impact-analysis` (for change assessment)
 - `system-mapping` (for unfamiliar code areas)
 
@@ -21,6 +22,7 @@ When researching, use the right tool for the job:
 
 | Need | Primary Tool | Alternative |
 |------|--------------|-------------|
+| Primary-source question (one question → one cited file) | `Skill(aa-ma-research)` → `aa-ma-researcher` agent (non-nesting, writes `docs/research/<slug>-<topic>.md`) | WebSearch + WebFetch inline |
 | Library/API docs | Context7 MCP | WebSearch |
 | Current information | WebSearch | WebFetch |
 | 12-Factor compliance | `rules/env-var-drift.md` | WebSearch for 12-Factor patterns |
@@ -200,7 +202,7 @@ Action: [Proceed | Compact | Compact (mandatory)]
 
 ### 3.7 Consolidate Research Findings
 
-Use `research-consolidation` skill (or manual consolidation) to:
+Optionally use `research-consolidation` (or manual consolidation) to:
 - Cross-reference findings with requirements
 - Detect coverage gaps
 - Resolve conflicting information

@@ -85,7 +85,7 @@ of these are missing or if a SKIPPED marker lacks `reason=<token>`.
 | Step 1.3     | `... <slug> 1.3 DONE grill_mode=<mode> branches_resolved=<N> questions_asked=<N>` |
 | Step 1.5     | `... <slug> 1.5 DONE lessons_loaded=<N> git_grep_hits=<N>` |
 | Phase 2      | `... <slug> 2 DONE brainstorm_skill=invoked alternatives_considered=<N>` |
-| Phase 3      | `... <slug> 3 DONE context7_calls=<N> web_fetches=<N>` |
+| Phase 3      | `... <slug> 3 DONE context7_calls=<N> web_fetches=<N> research_files=<N>` |
 | Phase 4      | `... <slug> 4 DONE complexity_score=<N>% plan_elements=<N>/12` |
 | Phase 4.2    | `... <slug> 4.2 DONE reviews=<csv>` |
 | Phase 4.5    | `... <slug> 4.5 DONE verdict=<GREEN\|YELLOW\|RED> criticals=<N> warnings=<N>` |
@@ -430,21 +430,32 @@ mcp__context7__get-library-docs with resolved IDs
 
 **Step 3.3: Parallel Agent Dispatch (if needed)**
 
-For complex research across multiple domains, dispatch parallel agents:
+Two kinds of research question, two dispatch paths:
+
+1. **Primary-source questions** ("what does X actually do / say?" — a library
+   API, a script's behaviour, a spec clause) → `Skill(aa-ma-research)`. It
+   dispatches one `aa-ma-researcher` agent per question; the agent has no
+   Agent tool (cannot nest), answers only the stated question, and writes
+   **exactly one** cited file `docs/research/<slug>-<topic>.md` with the
+   `Created / Author / Reviewed-Through-Date / Valid-Through / Sources`
+   header. Its ≤10-line return carries `tools: web_fetches=<N> context7_calls=<N>`
+   — sum those into the Phase 3 marker.
+2. **Codebase exploration** ("where do we already do X?") → `Task(Explore)`.
 
 ```
-Task tool with multiple concurrent calls:
-- Agent 1: Explore codebase for similar patterns
-- Agent 2: Research architectural approach
-- Agent 3: Investigate dependencies/constraints
+Task tool with multiple concurrent calls (≤5 agents at a time):
+- Skill(aa-ma-research): "<question 1>"     → docs/research/<slug>-<topic>.md
+- Skill(aa-ma-research): "<question 2>"     → docs/research/<slug>-<topic>.md
+- Agent(subagent_type: "Explore"): codebase patterns / dependencies
 
-Use subagent_type: "Explore" for codebase investigation
-Use model: "haiku" to optimize token usage
+Use model: "haiku" for Explore agents to optimize token usage
 ```
 
 **Step 3.4: Consolidate Research Findings**
 
-Gather findings into structured summary (save to memory, show brief on screen):
+Gather findings into structured summary (save to memory, show brief on screen).
+`research_files` = the number of `docs/research/` files Phase 3 wrote; link
+each one from reference.md (Step 5.3) and context-log.md (Step 5.4).
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -453,8 +464,11 @@ PHASE 3 COMPLETE: Research Gathered
 ✓ [N] libraries documented
 ✓ [N] codebase patterns identified
 ✓ [N] constraints validated
+✓ [N] research files → docs/research/<slug>-*.md
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+Marker: `bash ~/.claude/hooks/lib/aa-ma-plan-marker.sh <slug> 3 DONE context7_calls=<N> web_fetches=<N> research_files=<N>`
 
 ---
 
@@ -730,6 +744,7 @@ Parse the plan for immutable facts and write to reference:
 - Library versions
 - Database schemas
 - Model paths
+- Research files: one `docs/research/<slug>-<topic>.md — <question> (Valid-Through: <date>)` line per Phase 3 file
 - Append the pointer line `Architecture View: see plan.md §13` (or `Architecture View: waived (<value>)`)
 
 _Last Updated: [date]_
@@ -758,7 +773,7 @@ Create initial log entry:
 - [Decision 2 from research phase]
 
 **Research Findings:**
-- [Summary from Phase 3]
+- [Summary from Phase 3 — link each `docs/research/<slug>-*.md` file it wrote]
 
 **Remaining Questions:**
 - [Any unresolved items]

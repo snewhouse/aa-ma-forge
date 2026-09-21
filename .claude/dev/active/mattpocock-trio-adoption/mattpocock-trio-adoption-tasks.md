@@ -375,7 +375,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Result Log: ✅ COMPLETE 2026-09-21 13:55 — Mode: AFK — auto-dispatched. `grep -c '^## Unreleased' CHANGELOG.md` = 1 (M5 entry seeded under `### Added`). `map-template.md` created (Destination/Notes/Decisions so far/Tickets/Not yet specified/Out of scope; ticket grammar in an HTML comment; `Claimed-at`/`Reclaimed` documented; `### Ticket N:` verified not to match `STEP_RE` in `grammar.py`). `aa-ma-chart.md` created: chart + work(+`--reclaim`) modes, 6 hard rules incl. `[ad-hoc]` footer, resolver table, `_cand` guard resolution, handoff section. Checks: template greps OK; `[ad-hoc]` grep OK; `_cand` literal count = 1; `tests/test_active_plans_canonical.py` 23 passed; `aa-ma-render … --out build/render` rc 0. Deviation: the `_cand` loop uses `done 2>/dev/null` (loop-level) instead of `2>/dev/null` inside the substitution so the AC's literal grep matches — see context-log AD-014.
 
 ### Sub-step 5.2: Guard helper + bats for the four refusal/reclaim cases
-- Status: PENDING
+- Status: IN_PROGRESS
 - Mode: AFK
 - Dependencies: Step 5.1
 - Effort: 60m · Complexity: 50%

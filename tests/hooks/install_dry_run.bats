@@ -51,3 +51,9 @@ teardown() {
     disk_count=$(ls -d "${REPO_ROOT}/claude-code/skills/"*/ | wc -l)
     [ "${skill_lines}" -eq "${disk_count}" ]
 }
+
+@test "install.sh --dry-run announces the hooks/lib/aa-ma-chart-guard.sh symlink (M5, L-005 pattern)" {
+    run env HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}" --dry-run
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"Would symlink:"*".claude/hooks/lib/aa-ma-chart-guard.sh"*"claude-code/hooks/lib/aa-ma-chart-guard.sh"* ]]
+}

@@ -326,3 +326,91 @@ None required (0 CRITICAL).
 ## Revision History
 
 - 2026-09-21 — M4 review run; 8/8 WARNING + 3/14 INFO fixed in 3c31c3c (red) / 252e690; 2 INFO deferred to TODOS.md; 9 acknowledged.
+
+---
+
+# Post-Impl Adversarial Review — Milestone 5
+
+**Milestone:** Milestone 5: Charting — `/aa-ma-chart` (Adaptation of wayfinder) + `--from-map`; release v0.14.0 · **Audit-Profile:** code-only · **Critical-Path:** hook-modification · **Prototype-Required:** YES · **Window:** 9319aed..cd8e54c (fixes: e42d9e7 red, 2bd406d) · **Date:** 2026-09-21 · **Budget:** normal
+
+## Summary
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer             |    0     |    5    |  5   | WARN    |
+| security-auditor          |    1     |    4    |  2   | BLOCKED → fixed |
+| tdd-sequence-auditor      |    0     |    0    |  1   | PASS    |
+| context7-evidence-auditor |    0     |    0    |  2   | PASS    |
+| future-proofing-auditor   |    1     |    4    |  5   | BLOCKED → fixed |
+| **TOTAL**                 |  **2**   | **13**  |**15**| **PASS_WITH_WARNINGS** (after fix set) |
+
+Disposition: 2/2 CRITICAL **accepted** and fixed; 13/13 WARNING fixed (red pins e42d9e7 → 2bd406d); 7/15 INFO fixed, 3 deferred to TODOS.md, 5 acknowledged. Security re-check on the fix commit: see Revision History. Code surface: one bash+awk helper (`hooks/lib/aa-ma-chart-guard.sh`), two command bodies with executable fences, install.sh block; no `src/` Python.
+
+## Code Review (code-reviewer agent)
+
+Mandatory checks: scope discipline CLEAN (27 diff files all declared in 5.1–5.5); mechanism duplication vs `aa-ma-parse.sh` CLEAN (reuses `aa_ma_is_disabled`; awk-over-markdown read documented as the ADR-0009 tension in the guard header); schema-breaking output CLEAN; dead code CLEAN; contract match ✓ (AD-014 `_cand` deviation accepted).
+
+### Findings
+- **[WARNING] KISS/DRY** `do_import` parsed the map three times with two count mechanisms — **FIXED** 2bd406d: one `do_from_map` capture, `n` from its `tickets=`.
+- **[WARNING] safety** untracked `mv` clobbered an existing `<task>-map.md` — **FIXED**: `[ -e "$dest" ]` refusal before either branch (bats 24).
+- **[WARNING] truthfulness** `claim` printed `claimed:` when no Status line was rewritten — **FIXED**: `set_status` exits 1 unless a Status line was replaced and `mv` succeeded; claim/reclaim refuse (bats 23).
+- **[WARNING] broken-reference** spec row cites `[10]`, list ends at `[9]` — **FIXED** (same as FP CRITICAL): `[10]` added.
+- **[WARNING] doc-drift** `MAP_IMPORTED` absent from the spec provenance-grammar block — **FIXED**: advisory line added beside LIVE_CHECK.
+- [INFO] duplicate `[ -n "$3" ] && [ -n "$4" ]` check — **FIXED** (single check in the dispatcher).
+- [INFO] `sed -n '2,10p'` usage tied to header lines — **FIXED**: heredoc `usage()`, pinned by bats 26.
+- [INFO] `_cand` resolver duplicated in two command bodies — acknowledged (contract-mandated; extract on a third consumer).
+- [INFO] third copy of the `if [ -f hooks/lib/X ]; then create_symlink` block in install.sh — **DEFERRED** → TODOS.md (loop over `hooks/lib/*.sh`, fixes L-005 at the root; ties to the existing install.sh backup entry).
+- [INFO] template comment said a block "ends at the next `###`/`##`" — **FIXED**: fields must precede `#### Question`.
+
+## Security (security-auditor agent)
+
+### Mechanical pre-check (security-static-check.sh): PASS (no `[security-bypass:` marker in the window)
+
+### Semantic findings
+- **[CRITICAL] A01 path traversal to a destructive sink** — `aa-ma-chart.md` fog-test fence ran `rm -rf "$(dirname "$MAP")"` on an unvalidated `<effort>` and on any non-zero guard exit (incl. usage rc 2); empty or `../` effort could delete other efforts' maps or a live task dir. **User decision: accept → FIXED** 2bd406d: `EFFORT` validated against `^[a-z0-9-]+$` (exit 2) in the guard-resolution fence; removal gated on rc 1 only and scoped to `rm -f -- "$MAP"; rmdir -- "$(dirname "$MAP")"`; guard `map_effort` refuses a non-slug header with exit 2 before `fog` runs. Both fences are now **executed** by bats 27–28 (`../other` and empty effort → exit 2, sibling map intact; fogless draft → exit 1, only its own file + empty dir removed).
+- **[WARNING] A01** `import <task>` unvalidated — **FIXED**: `slug_ok "$task"` → usage exit 2 (bats 21).
+- **[WARNING] A04** `AA_MA_HOOKS_DISABLE=1` no-op'd `import` (map silently orphaned, `/aa-ma-plan` reported success) — **FIXED**: the kill switch wraps only the enforcing legs; `import` always runs, skipping just the clear check (bats 25).
+- **[WARNING] A08** `claim` ignored `set_status` failure — **FIXED** (see code-review truthfulness); temp file removed on failure.
+- **[WARNING] A03 prompt injection via repo-tracked map content** — **FIXED**: `aa-ma-plan.md` Step 1.0 loads `$SEED` inside a `<MAP_SEED>` block with a data-not-instructions preamble (only `Decided with <user> <date>` lines count as settled); `aa-ma-chart.md` rule 4 caps a Notes override at `docs/**` and requires `AskUserQuestion` the first time a session acts on one; `task` tickets go AFK only via their own `Mode:` field inside rule-4 paths.
+- [INFO] A09 unvalidated map header flowed into `MAP_IMPORTED effort=` — **FIXED** by `map_effort` (slug or exit 2; `_KV_RE` contract in `plan_markers/parser.py` preserved).
+- [INFO] research note embeds `/home/sjnewhouse/...` paths — acknowledged (private repo; `aa-ma-share` allowlist refuses `docs/research/*` and `*-map.md`).
+
+Clean: no credential handling; `readlink -f` before `cd`; `mktemp` template; `ticket_num` digit-validates awk `-v` input.
+
+## TDD Sequence (tdd-sequence-auditor agent)
+
+### Verdict: PASS (no TDD-Waiver; tests side `tests/hooks/*.bats` + fixtures vs impl `hooks/lib/aa-ma-chart-guard.sh` + `scripts/install.sh`)
+- First tests commit b3ac7ee 13:52:34 precedes first implementation commit 50c8099 13:55:41 by 3m07s (L-017a honoured: RED on its own commit).
+- [INFO] 28c6844 changes the guard and adds its pinning bats case in one commit — not a sequence violation. The §6.8 fix set repeated the pattern properly: e42d9e7 (8 red cases) → 2bd406d.
+
+## External Library Evidence (context7-evidence-auditor agent)
+
+No `pyproject.toml`/`uv.lock` change; no Context7 trigger. awk portability verified empirically under mawk 1.3.4 with `awk` shimmed (`from-map`, `claim` identical to gawk).
+- [INFO] no mawk-shimmed bats case — **DEFERRED** → TODOS.md (skip-if-absent case).
+- [INFO] guard lacked a pointer to the `AA_MA_MILESTONE_ERE` portability rules — **FIXED** (header comment).
+
+## Future-Proofing (future-proofing-auditor agent)
+
+### Findings
+- **[CRITICAL] broken-ref** `docs/spec/aa-ma-specification.md` map row cites `[10]`; References ended at `[9]` — **User decision: accept → FIXED**: `[10] Charting — … ADR-0013` added.
+- **[WARNING] hook inventory** `SECURITY.md` "8 hooks" + foundations `### Hooks (8)` omit the 2 `hooks/lib/` helpers install.sh links — **FIXED**: explicit "2 library helpers (not event hooks)" line in both; count test still green (it reads the command/skill/agent lines only).
+- **[WARNING] version pin** `v0.14.0` written in 4 doc sites before the release exists — **FIXED**: dropped (ADR-0011/0012 style: milestone + date); CHANGELOG `## Unreleased` remains the only pre-release site and release.sh owns the number.
+- **[WARNING] local CLAUDE.md** "8 file types" + missing map row — **FIXED** (gitignored; local).
+- **[WARNING] magic-number** `sed -n '2,10p'` usage — **FIXED** (heredoc).
+- [INFO] hardcoded counts (13 / 5+4 / 9) currently correct; auditor stated no test asserts the command count — **disputed as stated**: `tests/commands/test_aa_ma_share_command.py::test_command_count_sites_match_disk` and `test_foundations_count_headings_match_disk` assert the command count against disk. The *template* count (9) has no test — **DEFERRED** → TODOS.md (extend to `docs/templates/*-template.*` vs the "N file types" sites).
+- [INFO] `awk 'NF==5'` coupled to the TSV width — **FIXED**: `grep -c .` on the rows.
+- [INFO] two timestamp formats in the guard — **FIXED**: documented on `ts()` (map stamps vs provenance grammar).
+- [INFO] "≤5 in parallel" fan-out cap with no source of truth — **FIXED**: tied to AD-006 (the Phase 1.3 sub-agent cap).
+- [INFO] `_cand` duplication — acknowledged (see code review).
+
+## User Override Decisions
+
+| # | Finding | Decision | Outcome |
+|---|---------|----------|---------|
+| 1 | security CRITICAL — `rm -rf` on unvalidated `<effort>` / any non-zero rc | accept | fixed 2bd406d, bats 21–22, 27–28 |
+| 2 | future-proofing CRITICAL — dangling `[10]` citation | accept | fixed 2bd406d |
+| — | 13 WARNINGs | fix all now (user choice) | fixed 2bd406d |
+
+## Revision History
+
+- 2026-09-21 — M5 review run (5 agents, parallel): 2 CRITICAL accepted; red pins e42d9e7 (8 bats cases, 2 fixtures) → fix set 2bd406d; 13/13 WARNING + 7/15 INFO fixed, 3 INFO deferred to TODOS.md, 5 acknowledged. Security re-check on 2bd406d: [pending — appended below when received].

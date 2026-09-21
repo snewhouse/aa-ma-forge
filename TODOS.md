@@ -65,6 +65,15 @@
 **Priority:** P3
 **Depends on:** mattpocock-trio-adoption M5
 
+### §6.8 M5 deferred INFOs — install.sh lib loop; mawk-shimmed bats; template-count test
+
+**What:** (a) `scripts/install.sh` now carries three copies of the `if [ -f hooks/lib/X ]; then create_symlink X; fi` block (`aa-ma-parse.sh`, `aa-ma-chart-guard.sh`, plus `aa-ma-plan-marker.sh` from `hooks/`); replace with one `for f in "${REPO_ROOT}"/claude-code/hooks/lib/*.sh` loop so a new helper can never be forgotten (fixes L-005/L-016 at the root; fold into the existing install.sh backup entry above). (b) `tests/hooks/aa-ma-chart-guard.bats` runs under whichever `awk` is on PATH — add one skip-if-absent case that prepends a mawk shim (the `AA_MA_MILESTONE_ERE` comment exists because a mawk-only breakage once went unnoticed). (c) No test asserts the "9 AA-MA file types / 5 standard + 4 optional" sites against `docs/templates/`; extend `tests/commands/test_aa_ma_share_command.py` (pattern: `test_command_count_sites_match_disk`) to count `*-template.*` and check README.md, CLAUDE.md, `docs/templates/README.md`, `claude-code/rules/aa-ma.md`, foundations, quick-ref.
+
+**Why:** Surfaced by the M5 §6.8 audit (code-reviewer, context7-evidence, future-proofing) as out-of-window hardening; none is M5 work.
+
+**Effort:** S
+**Priority:** P3
+
 ### Teach fingerprint._phase_3 about Skill(aa-ma-research) / aa-ma-researcher
 
 **What:** Add two disjuncts to `src/aa_ma/plan_markers/fingerprint.py::_phase_3` (`Skill` with `skill=^aa-ma-research$`, `Agent` with `subagent_type=^aa-ma-researcher$`), a `_tc(...)` case in `tests/plan_markers/test_fingerprint.py`, and the PHASE_3 row in `docs/spec/plan-marker-grammar.md`.

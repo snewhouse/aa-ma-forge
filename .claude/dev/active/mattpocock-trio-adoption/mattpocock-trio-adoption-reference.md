@@ -75,7 +75,7 @@ After Step 3.4: `prototype` → SAME. Only HTTP 404 maps to ORPHAN; 403/auth/net
 - `claude-code/agents/aa-ma-researcher.md`, `tests/agents/test_aa_ma_researcher_agent.py` (M4)
 - `docs/research/mattpocock-trio-adoption-install-backup.md` — M4 prototype-run output
 - `claude-code/commands/aa-ma-chart.md`, `claude-code/hooks/lib/aa-ma-chart-guard.sh`, `docs/templates/map-template.md` (M5)
-- `tests/hooks/aa-ma-chart-guard.bats`, `tests/hooks/fixtures/charting/{clear,open,claimed,fogless}-map.md` (M5)
+- `tests/hooks/aa-ma-chart-guard.bats`, `tests/hooks/fixtures/charting/{clear,open,claimed,fogless,nostatus,badheader}-map.md` (M5; the last two added by the §6.8 pins e42d9e7)
 - `.claude/dev/charting/writing-for-agents-eval/writing-for-agents-eval-map.md`, `docs/research/writing-for-agents-eval-*.md` — M5 prototype effort (kept; committed `[ad-hoc]`)
 
 ### Files to modify

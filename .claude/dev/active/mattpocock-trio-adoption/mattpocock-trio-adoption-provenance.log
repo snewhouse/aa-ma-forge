@@ -138,3 +138,21 @@
 [2026-09-21T20:14:09+01:00] CI: ShellCheck job red since 50c8099 (SC2015 info-level on CI's shellcheck, not locally) — fixed 3f83d36; waiting for green before release
 [2026-09-21T20:17:05+01:00] M5 Step 5.5 COMPLETE — v0.14.0 cut: bump b527241, tag ea6d7d1, GitHub Release published; CI 35643530138 success
 [2026-09-21T20:17:05+01:00] §7.2 DOC SYNC — tasks M5 COMPLETE + 9/9 AC ticked; context-log completion summary + AD-015..019; reference M5 as-built facts + Last Updated
+[2026-09-21T20:19:26+01:00] COMMIT aa53488 — feat(charting): /aa-ma-chart command + map template; re-add CHANGELOG Unreleased (M5.1)
+[2026-09-21T20:19:26+01:00] COMMIT b3ac7ee — test(charting): bats + fixtures for aa-ma-chart-guard.sh (RED, M5.2 commit 1)
+[2026-09-21T20:19:26+01:00] COMMIT 50c8099 — feat(charting): aa-ma-chart-guard.sh helper + install.sh symlink block (GREEN, M5.2 commit 2)
+[2026-09-21T20:19:26+01:00] COMMIT 61bf300 — feat(aa-ma-plan): --from-map <effort> [--dry-run] seeds Phase 1 from a cleared charting map (M5.4 flag leg)
+[2026-09-21T20:19:26+01:00] COMMIT 28c6844 — fix(charting): claim asks the one-at-a-time invariant before blocked-by (prototype-run finding)
+[2026-09-21T20:19:26+01:00] COMMIT 2ca0f04 — docs(charting): file taxonomy 5+4, commands 13, ATTRIBUTION, ADR-0013 Implemented, TODOS (M5.4 docs leg)
+[2026-09-21T20:19:26+01:00] COMMIT cd8e54c — docs(aa-ma): M5 §6.3 impact analysis LOW, CRITICAL_PATH_REVIEW, §6.4 tests; 5.5 in progress
+[2026-09-21T20:19:26+01:00] COMMIT e42d9e7 — test(charting): §6.8 M5 pins — slug refusals, no-Status claim, clobber, kill-switch import, usage text, chart fences executed (RED)
+[2026-09-21T20:19:26+01:00] COMMIT 2bd406d — fix(charting): §6.8 M5 fix set — 2 CRITICAL + 13 WARNING
+[2026-09-21T20:19:26+01:00] COMMIT 9a1e1fe — docs(aa-ma): M5 impl-review §6.8 (2 CRITICAL accepted+fixed, 13/13 WARNING fixed); TODOS: 3 deferred INFOs
+[2026-09-21T20:19:26+01:00] COMMIT 67020b1 — docs(aa-ma): M5 §6.8 verdict PASS_WITH_WARNINGS after security re-check; kill-switch notice in --from-map Step 1.0
+[2026-09-21T20:19:26+01:00] COMMIT f38983e — docs(aa-ma): M5 HARD gate approval (Decision: APPROVED)
+[2026-09-21T20:19:26+01:00] COMMIT 3f83d36 — fix(charting): drop two A && B || C forms the CI shellcheck flags (SC2015)
+[2026-09-21T20:19:26+01:00] COMMIT b527241 — bump: version 0.13.0 → 0.14.0
+[2026-09-21T20:19:26+01:00] COMMIT 11219a1 — docs(aa-ma): M5 §7.2 — milestone Result Log, completion summary + AD-015..019, reference as-built facts
+[2026-09-21T20:19:26+01:00] M5 Step 5.3 COMPLETE — prototype run: chart + 3 work sessions on writing-for-agents-eval; PROTOTYPE line above; artefacts 6bcef05 [ad-hoc]
+[2026-09-21T20:19:26+01:00] RELEASE — v0.14.0 — commit b527241 — tag ea6d7d1 — https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.14.0
+[2026-09-21T20:19:26+01:00] §7.2.5 VALIDATOR — WARNINGS_BUT_USABLE (0/4/5) → back-filled inline: COMMIT lines for M5 window, STEP 5.3 line, RELEASE line; M4 MILESTONE COMPLETE line's missing '— approved by user (§7.3)' suffix noted here (append-only log; tasks.md M4 Result Log records the approval)

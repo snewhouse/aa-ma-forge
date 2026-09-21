@@ -327,14 +327,14 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Result Log: ✅ COMPLETE 2026-09-21 — Mode: AFK — auto-dispatched. Counts skills 20→21 / agents 11→12: `SECURITY.md` lists (+`aa-ma-research`, +`aa-ma-researcher`), `README.md` skills row, foundations `### Skills (21)` / `### Agents (12)` + rows, `CLAUDE.md` tree (gitignored/local). ADR-0012 `Status: Implemented (2026-09-21 — M4)`; `docs/adr/INDEX.md` rows 0012 → Implemented **and 0011 → Implemented** (M3 had left the index row at Proposed — same-file drift fixed here). `docs/ATTRIBUTION.md` mattpocock entry: `aa-ma-research` Derived sentence + paths. `CHANGELOG.md` Unreleased: M4 bullet. `TODOS.md`: `_phase_3` and `docs/research/README.md` entries already present (D1) — no change. Tests: `uv run pytest tests/commands tests/skills tests/agents tests/plan_markers -q` 158 passed (count tests now green); full default suite 1097 passed / 2 skipped.
 
 ### Sub-step 4.6: Release v0.13.0
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Step 4.5
 - Effort: 20m · Complexity: 30%
 - Acceptance Criteria:
   - `scripts/release.sh minor --headline "fork manifest, grilling, prototype gate, research agent" --dry-run` clean; real run pushes tag `v0.13.0` and creates the GitHub Release; `uv.lock` in the tagged tree carries 0.13.0 (L-015 / release runbook).
 - Artefacts: tag `v0.13.0`, GitHub Release, `CHANGELOG.md` (via release script), `pyproject.toml` + `uv.lock` bump.
-- Result Log: [pending]
+- Result Log: ✅ COMPLETE 2026-09-21 — Mode: HITL — user approved "Proceed". Pre-flight: tree clean, CI on 006f80e all 5 jobs success (the 3750908 run had failed on the two count tests 4.5 fixed), dry-run clean (`0.12.0 → 0.13.0`, MINOR). CRITICAL_PATH_REVIEW (doc-count-drift) written first → bdfcf8f. `scripts/release.sh minor --headline "fork manifest, grilling, prototype gate, research agent"` → bump commit c27250b (`[ad-hoc]`; CHANGELOG.md, README.md, VERSION, pyproject.toml, uv.lock), annotated tag `v0.13.0` → c27250b pushed (remote tag object 68293fb), GitHub Release https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.13.0 (draft=false). Tagged tree: `pyproject.toml` 0.13.0, `uv.lock` package `aa-ma` 0.13.0 (L-015 ✓), CHANGELOG `## v0.13.0 (2026-09-21)`, README `**Current version:** v0.13.0 — fork manifest, grilling, prototype gate, research agent`.
 
 ---
 

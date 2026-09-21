@@ -96,3 +96,5 @@
 [2026-09-21T11:31:45+01:00] STEP 4.4 COMPLETE — Phase 3 wiring (aa-ma-plan.md 3.3/3.4/5.3/5.4, marker grammar research_files=, PHASE_3_RESEARCH.md); plan_markers+commands 79 pass / 2 count-test fails owned by 4.5; skip-warn bats 7/7
 [2026-09-21T11:33:39+01:00] STEP 4.5 COMPLETE — counts 21/12, ADR-0012 Implemented (+INDEX 0011/0012), ATTRIBUTION, CHANGELOG; full suite 1097 passed
 [2026-09-21T13:05:37+01:00] CRITICAL_PATH_REVIEW — Milestone 4: Adopt `research` as `aa-ma-research` + `aa-ma-researcher` agent; Phase 3 writes files; release v0.13.0 — doc-count-drift — disk skills=21 agents=12 commands=12 hooks=8; README/SECURITY/foundations/CLAUDE.md counts reconcile; test_security_md_asset_lists_match_disk + test_foundations_count_headings_match_disk green locally and in CI (006f80e all 5 jobs success)
+[2026-09-21T13:06:32+01:00] STEP 4.6 COMPLETE — v0.13.0 cut: bump c27250b, tag v0.13.0 pushed, GitHub Release published; uv.lock@tag 0.13.0
+[2026-09-21T13:06:32+01:00] RELEASE — v0.13.0 — commit c27250b — https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.13.0

@@ -169,6 +169,26 @@ _run_fence() {  # <cwd> <task-name>
     [[ "$output" == *"PASS"* ]]
 }
 
+@test "§6.7 fence: sub-step Prototype-Required: YES rolls up; no PROTOTYPE entry -> BLOCKED; milestone-scoped entry -> PASS" {
+    local cwd; cwd=$(_task_dir_from one-active proto)
+    local tasks="$cwd/.claude/dev/active/proto/proto-tasks.md"
+    local prov="$cwd/.claude/dev/active/proto/proto-provenance.log"
+    # The milestone itself carries no field; only its sub-step does (M3 roll-up).
+    sed -i 's/^### Sub-step 2.1: Something else$/&\n- Prototype-Required: YES/' "$tasks"
+    run _run_fence "$cwd" proto
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"milestone or one of its sub-steps"* ]]
+    [[ "$output" == *"PROTOTYPE"* ]]
+    # An entry naming a DIFFERENT milestone must not satisfy it.
+    echo "[ts] PROTOTYPE — Milestone 1: Done already — PASS: x" >> "$prov"
+    run _run_fence "$cwd" proto
+    [ "$status" -ne 0 ]
+    echo "[ts] PROTOTYPE — Milestone 2: The one being gated — PASS: x" >> "$prov"
+    run _run_fence "$cwd" proto
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"PASS"* ]]
+}
+
 @test "§6.7 fence: Gate: TYPO -> BLOCKED, never SOFT" {
     local cwd; cwd=$(_task_dir_from one-active typo)
     sed -i 's/^- Gate: HARD$/- Gate: TYPO/' "$cwd/.claude/dev/active/typo/typo-tasks.md"

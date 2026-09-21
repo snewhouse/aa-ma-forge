@@ -613,8 +613,8 @@ PROTOTYPE_TASKS=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field prototype_requir
 if [[ "${PROTOTYPE_TASKS}" == "YES" ]]; then
   if ! grep -F -- "PROTOTYPE —" "${TASK_DIR}/${TASK_NAME}-provenance.log" \
        | grep -qF -- "${MILESTONE_TITLE}"; then
-    echo "BLOCKED: Milestone has Prototype-Required: YES but provenance.log has"
-    echo "no PROTOTYPE — <verdict> entry naming this milestone."
+    echo "BLOCKED: the milestone or one of its sub-steps declares Prototype-Required: YES"
+    echo "but provenance.log has no PROTOTYPE — <verdict> entry naming this milestone."
     exit 1
   fi
 fi
@@ -983,8 +983,13 @@ Tests: $TEST_STATUS
 
 ### 8.3 Update Provenance Log
 
+The milestone commit above is the hash the record must name, so it is
+**final before this step runs** — never amended afterwards (L-018: `--amend`
+rewrites the hash, and M1/M2 of `mattpocock-trio-adoption` each recorded a
+pre-amend hash that no longer existed).
+
 ```bash
-# Get commit info
+# Get commit info — HEAD is the milestone commit and stays that commit.
 COMMIT_HASH=$(git rev-parse --short HEAD)
 TIMESTAMP=$(date -Iseconds)
 MILESTONE_ID="[milestone-id]"
@@ -1006,9 +1011,12 @@ echo "[$TIMESTAMP] CHECKPOINT — ActiveStep: $ACTIVE_STEP — NextAction: \"$NE
 ### 8.4 Commit Provenance Update
 
 ```bash
-# Add provenance log to same commit
+# A separate, small docs commit — NOT `--amend` (L-018). The milestone commit
+# keeps the hash that provenance.log now names.
 git add .claude/dev/active/$TASK_NAME/${TASK_NAME}-provenance.log
-git commit --amend --no-edit
+git commit -m "docs(aa-ma): provenance — MILESTONE COMPLETE $MILESTONE_ID ($COMMIT_HASH)
+
+[AA-MA Plan] $TASK_NAME .claude/dev/active/$TASK_NAME"
 ```
 
 ### 8.5 Push to Remote

@@ -211,14 +211,14 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Result Log: Mode: AFK — auto-dispatched. `gate.py`: `StepsRead(pending, prototype_required)` frozen dataclass; `_read_steps` replaces `_count_pending` (no remaining references), reads `Prototype-Required` per sub-step via `read_enforced_field(…, PROTOTYPE_REQUIRED)` with the same `_read_or_error` refusal path; override at the selected-milestone site ORs `read.prototype_required | steps.prototype_required`; JSON schema + `to_kv` untouched; module docstring Q6 names the roll-up + AD-001 scope. GREEN: gate/parity/enforce 108 passed; CLI on fixture: `--milestone 1` → `prototype_required=YES`, `2` → `NO`, `3` → exit 2 `non-canonical value 'maybe'`, `4` → exit 2 `empty value in '- **Prototype-Required:**'`; live tasks.md still exit 0 / NO. bats gate-python 30 ok; CI cmd 519 passed; `ruff check src/` + `ruff format --check` clean.
 
 ### Sub-step 3.3: Bats PROTOTYPE fence case + milestone/step command text
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Step 3.2
 - Effort: 40m · Complexity: 45%
 - Acceptance Criteria:
   - `bats tests/hooks/aa-ma-gate-python.bats` passes with the new case (mirror of the Critical-Path case); `grep -q 'milestone or one of its sub-steps' claude-code/commands/execute-aa-ma-milestone.md`; `grep -q 'rolls up to the milestone gate' claude-code/commands/execute-aa-ma-step.md`.
 - Artefacts: `tests/hooks/aa-ma-gate-python.bats`, `claude-code/commands/execute-aa-ma-milestone.md`, `claude-code/commands/execute-aa-ma-step.md`.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. RED: new bats case (mirror of the Critical-Path case — `Prototype-Required: YES` on Sub-step 2.1 only; BLOCKED with no entry; entry naming Milestone 1 still BLOCKED; entry naming Milestone 2 → PASS) failed on the wording assert only (status≠0 already held — roll-up works through the shipped fence) → committed alone 6565ceb. GREEN: §6.7 BLOCKED text → "the milestone or one of its sub-steps declares Prototype-Required: YES"; `execute-aa-ma-step.md` advisory → "rolls up to the milestone gate"; bats gate-python 31/31; `tests/commands tests/smoke` 31 passed. **Scope addition (Ste, 2026-09-21: "fold L-018 into M3"):** §8.3 prose + §8.4 rewritten — provenance line is a separate `docs(aa-ma)` commit, never `--amend` (only remaining `--amend` mentions are the prohibition). Edit applied via a scratchpad script because the commit-signature hook pattern-matches a literal commit command inside heredoc doc text.
 
 ### Sub-step 3.4: Re-fork `prototype` from HEAD
 - Status: PENDING

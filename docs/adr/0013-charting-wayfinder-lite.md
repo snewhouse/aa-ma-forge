@@ -1,6 +1,6 @@
 # 0013. Charting — a pre-plan decision map adapted from `wayfinder` (no issue tracker)
 
-**Status:** Proposed
+**Status:** Implemented (mattpocock-trio-adoption M5, v0.14.0, 2026-09-21)
 **Date:** 2026-09-20
 **Deciders:** Stephen Newhouse, Claude (research session 2026-09-20)
 **Tags:** `workflow`, `aa-ma`, `pre-plan`, `external-adaptation`, `file-taxonomy`
@@ -63,14 +63,16 @@ How do we give AA-MA a discovery memory with wayfinder's shape and AA-MA's stora
 ### Component view
 ```mermaid
 flowchart LR
-  C["claude-code/commands/aa-ma-chart.md (new)"] --> M[".claude/dev/charting/&lt;effort&gt;/&lt;effort&gt;-map.md (new)"]
-  C -->|research ticket, AFK, parallel| R[claude-code/skills/research]
+  C[claude-code/commands/aa-ma-chart.md] --> GU[claude-code/hooks/lib/aa-ma-chart-guard.sh]
+  GU -->|fog · claim · reclaim · from-map · import| M[".claude/dev/charting/&lt;effort&gt;/&lt;effort&gt;-map.md"]
+  C -->|research ticket, AFK, parallel| R[claude-code/skills/aa-ma-research]
   C -->|prototype ticket, HITL| P[claude-code/skills/prototype]
   C -->|grilling ticket, HITL| G[claude-code/skills/grill-with-docs]
-  R --> D["docs/research/&lt;effort&gt;-&lt;ticket&gt;.md"]
-  M -->|frontier ∧ fog empty| A["claude-code/commands/aa-ma-plan.md --from-map (new flag)"]
-  A --> T[".claude/dev/active/&lt;task&gt;/&lt;task&gt;-map.md (optional 9th file type)"]
-  T --> S[docs/spec/aa-ma-specification.md file taxonomy]
+  R --> D["docs/research/&lt;effort&gt;-&lt;topic&gt;.md"]
+  M -->|from-map clear| A[claude-code/commands/aa-ma-plan.md]
+  A -->|guard import| T[".claude/dev/active/&lt;task&gt;/&lt;task&gt;-map.md (optional file type)"]
+  T --> S[docs/spec/aa-ma-specification.md]
+  TP[docs/templates/map-template.md] -.-> M
 ```
 
 ### Flow view (Critical-Path absent — illustrative only)
@@ -135,14 +137,14 @@ See docs/research/codemem-v2-cold-start.md — yes, spec allows 10s.
 
 ## Implementation Notes
 
-To be executed as **M3** of `/aa-ma-plan mattpocock-trio-adoption` (`Audit-Profile: code-only`; `Prototype-Required: YES` — chart one real effort before freezing the template; depends on M1 and M2).
+Executed as **M5** of `/aa-ma-plan mattpocock-trio-adoption` (`Audit-Profile: code-only`; `Prototype-Required: YES` — proven on the real effort `writing-for-agents-eval`: 4 tickets, 4 resolved, 1 refused claim, handed to `/aa-ma-plan --from-map --dry-run`). As built: the enforcing checks live in `claude-code/hooks/lib/aa-ma-chart-guard.sh` (`fog | claim | reclaim | from-map | import`, bats-tested, symlinked by `install.sh`), not in the command prose; tickets carry `Claimed-at:` and `--reclaim` re-takes a dead session's claim; `import` moves the map through git and writes `MAP_IMPORTED`. Numbered notes below are the original proposal.
 
 1. `claude-code/commands/aa-ma-chart.md` — modes `chart <effort> "<idea>"` and `work <effort> [ticket]`. Chart: destination via `grill-with-docs`/`grill-me` + AskUserQuestion; breadth-first frontier grill; **no-fog early exit**; write map; create tickets then wire `Blocked-by:` in a second pass; dispatch `Skill(research)` per research ticket in parallel (Explore agents). Work: load map; pick named or first frontier ticket; set `Status: CLAIMED`; resolve by type (research → `Skill(research)`; prototype → `Skill(prototype)`, artefact on `prototype/<effort>-<ticket>` branch; grilling → `grill-with-docs` + AskUserQuestion — **never self-answer**; task → present a human checklist); write `#### Answer`, `Status: RESOLVED`, append to *Decisions so far*; graduate fog / rule out. **Hard rule:** one non-research ticket per session; charting never edits files outside `.claude/dev/charting/`, `docs/research/`, and `prototype/*` branches.
 2. `docs/templates/map-template.md` (+ `docs/templates/README.md` row). Ticket grammar: `### Ticket N: Title`, fields `Type: research|prototype|grilling|task`, `Mode: HITL|AFK` (same enum as `src/aa_ma/enforce.py:47`), `Status: OPEN|CLAIMED|RESOLVED|RULED_OUT`, `Blocked-by: N, N | —`, `#### Question`, `#### Answer`. Defaults: grilling/HITL. Keep headings distinct from `MILESTONE_RE`/`STEP_RE` (`src/aa_ma/grammar.py:74-82`) so the TUI parser ignores maps until taught.
 3. `aa-ma-plan.md` — new `--from-map <effort>` flag: Phase 1 reads *Decisions so far* + resolved Answers as pre-answered grill input; Phase 5 moves the map to `.claude/dev/active/<task>/<task>-map.md`; Step 5.3 extracts Answers into reference.md with `[valid: date]`; provenance line `MAP_IMPORTED effort=<effort> tickets=<N>`.
 4. `docs/spec/aa-ma-specification.md` file taxonomy (:16-41): optional `[task]-map.md`; `CLAUDE.md` table; `docs/spec/aa-ma-quick-reference.md`; `docs/spec/claude-code-foundations.md` command count (12 → 13); `README.md`, `SECURITY.md`, `CHANGELOG.md ## Unreleased`; `docs/ATTRIBUTION.md` — "concept adapted from wayfinder; no code forked".
 5. Tests: `tests/commands/` bats for the no-fog exit and the one-ticket-per-session refusal (fixture map); `aa-ma-lint-views` on this ADR's diagram.
-6. Follow-ups (not M3): TUI kanban for tickets (ADR-0007 extension); `aa-ma-gate` awareness of maps; retire or re-fork `grill-with-docs` per upstream's `grilling` + `domain-modeling` split.
+6. Follow-ups (not M5): TUI kanban for tickets (ADR-0007 extension); `aa-ma-gate` awareness of maps; retire or re-fork `grill-with-docs` per upstream's `grilling` + `domain-modeling` split.
 
 ## References
 

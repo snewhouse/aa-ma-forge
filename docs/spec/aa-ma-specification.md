@@ -27,6 +27,7 @@ The system uses five specialised documents to segment knowledge, ensuring Claude
 | `[task]-tests.yaml`     | **Optional.** Machine-readable test definitions linked to milestone acceptance criteria.           | [8]      |
 | `[task]-verification.md` | **Optional.** Adversarial verification audit trail from 6 independent angles.                     | [9]      |
 | `[task]-impl-review.md` | **Optional.** Post-impl adversarial review report (Phase 6.8; ADR-0005).                          | [9]      |
+| `[task]-map.md`         | **Optional.** Pre-plan charting map imported by `/aa-ma-plan --from-map` (typed decision tickets; ADR-0013). | [10]     |
 
 How the files feed each other (load order for a cold agent: `reference.md` first, `tasks.md` second):
 
@@ -39,6 +40,8 @@ flowchart LR
   PLAN -. optional .-> VER[verification.md]
   TASKS -. optional .-> TESTS[tests.yaml]
   PROV -. optional .-> IMPL[impl-review.md]
+  MAP[map.md — charting tickets from /aa-ma-chart]
+  MAP -. optional .-> PLAN
 ```
 
 ### Optional: Adversarial Verification Report

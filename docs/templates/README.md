@@ -14,6 +14,7 @@ Starter templates for every file in the AA-MA (Advanced Agentic Memory Architect
 | `verification-template.md` | `[task]-verification.md` | Optional | Adversarial verification report from 6 independent review angles |
 | `tests-template.yaml` | `[task]-tests.yaml` | Optional | Machine-executable test definitions linked to milestone acceptance criteria |
 | `impl-review-template.md` | `[task]-impl-review.md` | Optional | Post-impl adversarial review report from up to 5 audit agents (Phase 6.8) |
+| `map-template.md` | `[task]-map.md` | Optional | Pre-plan charting map: destination, typed decision tickets, fog, out-of-scope (`/aa-ma-chart`; ADR-0013) |
 | `engineering-standards-template.md` | plan element #12 | Optional | Engineering Standards Declaration — which themes materially apply and why |
 | `README.md` | — | — | This index page |
 
@@ -24,6 +25,6 @@ Starter templates for every file in the AA-MA (Advanced Agentic Memory Architect
 3. **Fill in** the bracketed placeholders (`[task-name]`, `[YYYY-MM-DD]`, etc.) and follow the HTML comment instructions inside each template
 4. **Delete** the HTML comments once the file is populated with real content
 
-The 5 standard files are required for every AA-MA task. The 3 optional files are created only when verification is run, when post-impl review runs (Phase 6.8), or when acceptance criteria benefit from executable test definitions.
+The 5 standard files are required for every AA-MA task. The 4 optional files are created only when verification is run, when post-impl review runs (Phase 6.8), when acceptance criteria benefit from executable test definitions, or when a plan was seeded from a charting map (`/aa-ma-plan --from-map`).
 
 For full documentation, see the [AA-MA Specification](../spec/aa-ma-specification.md).

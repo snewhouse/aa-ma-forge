@@ -46,6 +46,25 @@
 **Effort:** S
 **Priority:** P3
 
+### `/aa-ma-share` refuses `*-map.md` — decide whether charting maps are shareable
+
+**What:** `scripts/aa-ma-share-allow.sh` allowlists `*-plan.md`, `docs/adr/*.md`, `docs/spec/*.md`; a `[task]-map.md` / `.claude/dev/charting/<effort>/<effort>-map.md` is refused. Decide (maps hold decisions, not secrets — closer to a plan than to a context-log) and, if yes, add the glob + a bats case in `tests/commands/aa-ma-share-allow.bats`.
+
+**Why:** M5 risk 3 — recorded as a follow-up rather than silently widening the allowlist during the charting milestone.
+
+**Effort:** S
+**Priority:** P3
+
+### Teach fingerprint._phase_1_3 about grilling done in a charting session (`--from-map`)
+
+**What:** Under `/aa-ma-plan --from-map`, Phase 1.3 asks only what the map did not settle — often nothing — so the transcript carries no `grill-with-docs`/`grilling` Skill call and `src/aa_ma/plan_markers/fingerprint.py::_phase_1_3` sees Phase 1.3 as unevidenced. Add a disjunct for the `MAP_IMPORTED` provenance line (or a `--from-map` marker) so grilling evidenced in the map counts; test case in `tests/plan_markers/test_fingerprint.py`; row in `docs/spec/plan-marker-grammar.md`.
+
+**Why:** Same shape as the `_phase_3` entry below; surfaced while wiring `--from-map` (M5.4).
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** mattpocock-trio-adoption M5
+
 ### Teach fingerprint._phase_3 about Skill(aa-ma-research) / aa-ma-researcher
 
 **What:** Add two disjuncts to `src/aa_ma/plan_markers/fingerprint.py::_phase_3` (`Skill` with `skill=^aa-ma-research$`, `Agent` with `subagent_type=^aa-ma-researcher$`), a `_tc(...)` case in `tests/plan_markers/test_fingerprint.py`, and the PHASE_3 row in `docs/spec/plan-marker-grammar.md`.

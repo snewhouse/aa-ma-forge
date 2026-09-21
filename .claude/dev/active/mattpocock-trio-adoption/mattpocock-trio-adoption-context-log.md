@@ -186,5 +186,11 @@ Bring every mattpocock fork in `claude-code/skills/` to a known, detectable life
 
 - `scripts/install.sh` linked `~/.claude/skills/aa-ma-research` and `~/.claude/agents/aa-ma-researcher.md`; `~/.claude/skills/research` mtime unchanged (1763649209).
 - `Skill(aa-ma-research)` resolved in-session to `~/.claude/skills/aa-ma-research` (hot-reload, as the M2 observation predicted).
-- `Agent(subagent_type: aa-ma-researcher)` → "Agent type 'aa-ma-researcher' not found" — the agent registry is read at session start. The plan's original "fresh session after install.sh" wording for 4.3 stands for agent dispatch; reference.md row refined accordingly.
-- Decision: no code change; 4.3 resumes in a fresh session (CHECKPOINT written). 4.1/4.2 unaffected.
+- `Agent(subagent_type: aa-ma-researcher)` → "Agent type 'aa-ma-researcher' not found" on the same turn. **Corrected two turns later:** the harness announced "New agent types are now available: aa-ma-researcher" — the agent registry reloads lazily (turn boundary), not only at session start. Rule: after `install.sh` adds an agent, wait a turn before dispatching; a fresh session is the conservative form the plan wrote.
+- Decision: no code change; 4.3 continued in-session once the agent appeared. 4.1/4.2 unaffected.
+
+## [2026-09-21] 4.3 scope note — `claude -p` criterion was self-defeating
+
+- The M4/4.3 criterion `grep -c 'claude -p' <subagent.jsonl> = 0` can never pass: the 4.2 agent prompt is required to say "never run `claude` (no `claude -p` …)" and that prompt is echoed into the transcript (observed: bare grep = 2, both prompt text; actual Bash `tool_use` commands invoking `claude` = 0).
+- Decision (user, HITL): accept the run as PASS and reword the criterion to filter Bash `tool_use.input.command` with jq. Plan intent unchanged (no nested model runs); only the measurement changed. plan.md untouched (historical).
+- Relayed, out of scope: `claude-code/hooks/lib/aa-ma-footer.sh` is on disk but `install.sh` neither links nor backs it up — L-016 (b) pattern. Candidate for TODOS.md in 4.5.

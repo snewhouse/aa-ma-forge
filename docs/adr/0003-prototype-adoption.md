@@ -1,6 +1,6 @@
 # 0003. Adopt `prototype` from mattpocock/skills (LOGIC + UI branches)
 
-**Status:** Implemented (2026-05-10)
+**Status:** Implemented (2026-05-10; re-forked 2026-09-21)
 **Date:** 2026-05-10
 **Deciders:** Stephen Newhouse, Claude (planning + execution sessions)
 **Tags:** `workflow`, `aa-ma`, `skills`, `release-v0.6.0`, `external-fork`, `engineering-standards-theme-1`
@@ -128,12 +128,28 @@ Both branches share six common rules (throwaway, one-command-runnable, no persis
 
 **Provenance verification at fork time:**
 - Upstream URL: https://github.com/mattpocock/skills (68715 stars, default_branch=main, fetched 2026-05-10T14:55:45Z)
-- MD5 verification (canonical, byte-for-byte match modulo provenance comment):
+- MD5 verification (canonical, byte-for-byte match modulo provenance comment) — 2026-05-10 fork:
   - `SKILL.md` — `10ace9b5d79140b25d115bb8d840106d`
   - `LOGIC.md` — `d57721452aacaa04caacd0bc7c5c2f49`
   - `UI.md` — `c1eaad6437c90d5660b2ffc9ff91ffb4`
+  Superseded by the 2026-09-21 re-fork values in the Amendment below; `claude-code/skills/FORKS.json` is the live SSoT.
 
 **Status transition:** `Implemented` once Tasks 2.1, 2.5, 2.8 are COMPLETE and M2 HARD gate (Task 2.10) closes.
+
+## Amendment 2026-09-21 — Re-fork from HEAD `c55ee46`
+
+The 2026-05-10 fork had drifted (`scripts/fork-drift.sh --sha c55ee46` → DRIFT on all three
+files). Upstream had moved the LOGIC branch from a terminal TUI to a single self-contained HTML
+demo (state panel, free-play buttons, tabbed guided walkthroughs), kept the UI branch as
+`?variant=`-switchable variants on an existing route, and added rule 6: capture the prototype on
+a throwaway `prototype/<name>` branch — main keeps only the validated decision. This is a
+**Re-fork** (see `CONTEXT.md`): content replaced verbatim, provenance date updated, no new ADR.
+
+- `tail -n +2` md5s at `c55ee46`: `SKILL.md` `5c68a2867eb3b9b4cb3e9ad4ba2b5299`,
+  `LOGIC.md` `0c6daa140ef3e83ba9e6b5bfa5161408`, `UI.md` `e3c841746676a0e604c72b5cd459e7ba`
+  (`FORKS.json` `upstream_md5_source: gh-api@c55ee46`; detector → SAME).
+- Theme 1 of `claude-code/rules/engineering-standards.md` and the README / foundations rows are
+  reworded to match (ADR-0011, `mattpocock-trio-adoption` Milestone 3).
 
 ## References
 

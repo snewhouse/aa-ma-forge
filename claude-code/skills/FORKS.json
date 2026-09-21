@@ -19,21 +19,21 @@
   },
   "prototype": {
     "upstream": "skills/engineering/prototype",
-    "upstream_sha": null,
-    "forked_at": "2026-05-10",
+    "upstream_sha": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
+    "forked_at": "2026-09-21",
     "adr": "docs/adr/0003-prototype-adoption.md",
     "state": "current",
     "files": {
-      "SKILL.md": "10ace9b5d79140b25d115bb8d840106d",
-      "LOGIC.md": "d57721452aacaa04caacd0bc7c5c2f49",
-      "UI.md": "c1eaad6437c90d5660b2ffc9ff91ffb4"
+      "SKILL.md": "5c68a2867eb3b9b4cb3e9ad4ba2b5299",
+      "LOGIC.md": "0c6daa140ef3e83ba9e6b5bfa5161408",
+      "UI.md": "e3c841746676a0e604c72b5cd459e7ba"
     },
     "upstream_md5": {
-      "SKILL.md": "10ace9b5d79140b25d115bb8d840106d",
-      "LOGIC.md": "d57721452aacaa04caacd0bc7c5c2f49",
-      "UI.md": "c1eaad6437c90d5660b2ffc9ff91ffb4"
+      "SKILL.md": "5c68a2867eb3b9b4cb3e9ad4ba2b5299",
+      "LOGIC.md": "0c6daa140ef3e83ba9e6b5bfa5161408",
+      "UI.md": "e3c841746676a0e604c72b5cd459e7ba"
     },
-    "upstream_md5_source": "adr-0003"
+    "upstream_md5_source": "gh-api@c55ee46"
   },
   "write-a-skill": {
     "upstream": "skills/productivity/write-a-skill",

@@ -221,14 +221,14 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Result Log: Mode: AFK — auto-dispatched. RED: new bats case (mirror of the Critical-Path case — `Prototype-Required: YES` on Sub-step 2.1 only; BLOCKED with no entry; entry naming Milestone 1 still BLOCKED; entry naming Milestone 2 → PASS) failed on the wording assert only (status≠0 already held — roll-up works through the shipped fence) → committed alone 6565ceb. GREEN: §6.7 BLOCKED text → "the milestone or one of its sub-steps declares Prototype-Required: YES"; `execute-aa-ma-step.md` advisory → "rolls up to the milestone gate"; bats gate-python 31/31; `tests/commands tests/smoke` 31 passed. **Scope addition (Ste, 2026-09-21: "fold L-018 into M3"):** §8.3 prose + §8.4 rewritten — provenance line is a separate `docs(aa-ma)` commit, never `--amend` (only remaining `--amend` mentions are the prohibition). Edit applied via a scratchpad script because the commit-signature hook pattern-matches a literal commit command inside heredoc doc text.
 
 ### Sub-step 3.4: Re-fork `prototype` from HEAD
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: None
 - Effort: 25m · Complexity: 20%
 - Acceptance Criteria:
   - Three md5s match the Contract values; `test_prototype_frontmatter.py` green; `FORKS.json` `prototype` row `upstream_sha: c55ee46` (full sha), `forked_at` today, new local md5s and `upstream_md5`; manifest test green; `scripts/fork-drift.sh --sha c55ee46` reports `SAME` for prototype.
 - Artefacts: `claude-code/skills/prototype/{SKILL,LOGIC,UI}.md`, `FORKS.json`.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. Fetched `skills/engineering/prototype/{SKILL,LOGIC,UI}.md` @ c55ee46 via `gh api`; whole-file md5s `5c68a286…` / `0c6daa14…` / `e3c84174…` = Contract. Wrote provenance line `Forked from … @ c55ee46 on 2026-09-21 — aa-ma-forge v0.13.0` + verbatim bodies; `tail -n +2` md5s match. `test_local_md5_matches_manifest` fired as designed → FORKS.json `prototype`: `upstream_sha` full c55ee46…, `forked_at` 2026-09-21, `files` = `upstream_md5` = the three, `upstream_md5_source: gh-api@c55ee46`. `tests/skills` 61 passed (frontmatter test green throughout). Live `scripts/fork-drift.sh --sha c55ee46` → **prototype SAME** (grilling SAME; grill-with-docs/write-a-skill ORPHAN by design). ADR-0003: status `re-forked 2026-09-21`, old md5s marked superseded, `## Amendment 2026-09-21 — Re-fork from HEAD c55ee46` (Re-fork per glossary: original ADR amended, no new number).
 
 ### Sub-step 3.5: Step 2.5 in `/aa-ma-plan`, Theme 1 wording, spec grammar, template, ADR-0011
 - Status: PENDING

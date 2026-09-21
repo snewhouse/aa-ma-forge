@@ -98,3 +98,5 @@
 [2026-09-21T13:05:37+01:00] CRITICAL_PATH_REVIEW — Milestone 4: Adopt `research` as `aa-ma-research` + `aa-ma-researcher` agent; Phase 3 writes files; release v0.13.0 — doc-count-drift — disk skills=21 agents=12 commands=12 hooks=8; README/SECURITY/foundations/CLAUDE.md counts reconcile; test_security_md_asset_lists_match_disk + test_foundations_count_headings_match_disk green locally and in CI (006f80e all 5 jobs success)
 [2026-09-21T13:06:32+01:00] STEP 4.6 COMPLETE — v0.13.0 cut: bump c27250b, tag v0.13.0 pushed, GitHub Release published; uv.lock@tag 0.13.0
 [2026-09-21T13:06:32+01:00] RELEASE — v0.13.0 — commit c27250b — https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.13.0
+[2026-09-21T13:08:00+01:00] Post-milestone review: SKIPPED — M4 .py diff is two new test files only; §6.8 code-reviewer covers
+[2026-09-21T13:08:00+01:00] ENG_STANDARDS_GATE: PASS — Milestone 4 — cp=doc-count-drift prototype=YES pending=0 git=clean

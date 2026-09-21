@@ -5,6 +5,22 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-018 (2026-09-21) — `git commit --amend` after writing the hash into provenance records a hash that no longer exists
+
+**Pattern:** §8.3/8.4 of `execute-aa-ma-milestone` says: commit, read `HEAD`,
+append `MILESTONE COMPLETE — Commit: <hash>` to provenance, then `--amend`
+the commit to include that line. The amend rewrites the commit, so the
+recorded hash is the pre-amend one. M1 recorded `7464b5c` (real: `771bc25`);
+M2 repeated it minutes after the validator had flagged M1. Twice in one day.
+
+**Rule:** Never `--amend` a commit whose hash is already written into an
+artefact. Either (a) write the provenance line *without* the hash, commit,
+then append `COMMIT <hash>` in the next docs commit; or (b) compute the
+final hash first by committing everything else, then add the provenance
+line as its own small `docs(aa-ma)` commit. Option (b) is the default.
+The `§8.4` amend step in the command is the bug — fix the command, not the
+habit (follow-up: `execute-aa-ma-milestone.md` §8.3–8.4).
+
 ## L-017 (2026-09-21) — One milestone commit hides the RED from the TDD auditor; a process-substitution error is invisible to `set -e`
 
 **Pattern:** M1 of mattpocock-trio-adoption was executed test-first (provenance

@@ -50,5 +50,5 @@
 [2026-09-21T10:32:06+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: code-reviewer,security-auditor,tdd-sequence-auditor,context7-evidence-auditor,future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 4 WARNING / 9 INFO (4 WARNING + 2 INFO fixed same session; TDD PASS red→green +31s/+61s)
 [2026-09-21T10:32:06+01:00] Post-milestone review (§6.6): SKIPPED — code diff is 2 small test files (<20 lines); folded into §6.8 code-reviewer
 [2026-09-21T10:32:06+01:00] LIVE_CHECK — Milestone 2: Fork `grilling`; `grill-with-docs` becomes Derived — fork_drift_sha=c55ee46 grilling=SAME grill-with-docs=ORPHAN(by-design)
-[2026-09-21T10:33:27+01:00] MILESTONE COMPLETE — M2 — Commit: 7a5941d — Criteria: 6/6 verified — approved by user (§7.3)
-[2026-09-21T10:33:27+01:00] COMMIT 7a5941d — feat(mattpocock-trio-adoption): Complete Milestone 2
+[2026-09-21T10:33:27+01:00] MILESTONE COMPLETE — M2 — Commit: bac16db — Criteria: 6/6 verified — approved by user (§7.3)
+[2026-09-21T10:33:27+01:00] COMMIT bac16db — feat(mattpocock-trio-adoption): Complete Milestone 2 (hash corrected post-amend, L-018)

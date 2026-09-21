@@ -124,7 +124,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
   - [x] Counts: skills 19→20 in `SECURITY.md` list, `README.md` skills table (+1 row), `docs/spec/claude-code-foundations.md` `### Skills (20)` (+1 row); CLAUDE.md updated locally, not asserted; `test_aa_ma_share_command.py` green.
 - Tests: `uv run pytest tests/skills tests/plan_markers tests/commands -q`; `bats tests/hooks/install_dry_run.bats`.
 - Rollback: revert milestone commits; `grill-with-docs` returns to the faithful 2026-05-10 fork; remove `grilling` dir and manifest row.
-- Result Log: COMPLETE 2026-09-21 — approved by Ste at §7.3. 6/6 criteria verified (see sub-step logs). Commits 7542c30 → bc329d4 → 936fb1d → 7030200 → ba36187 → 5d2ff5d → 022e036 (+ milestone commit). Tests: 142 milestone cmd / 515 CI cmd / bats 4/4. §6.7 PASS; §6.8 PASS_WITH_WARNINGS (0C/4W/9I; 4W+2I fixed → AD-005, AD-006). Live: Skill(grilling) → ~/.claude/skills/grilling (ours), fork-drift grilling=SAME. Skills 19→20.
+- Result Log: COMPLETE 2026-09-21 — approved by Ste at §7.3. 6/6 criteria verified (see sub-step logs). Commits 7542c30 → bc329d4 → 936fb1d → 7030200 → ba36187 → 5d2ff5d → 022e036 → bac16db (milestone). Tests: 142 milestone cmd / 515 CI cmd / bats 4/4. §6.7 PASS; §6.8 PASS_WITH_WARNINGS (0C/4W/9I; 4W+2I fixed → AD-005, AD-006). Live: Skill(grilling) → ~/.claude/skills/grilling (ours), fork-drift grilling=SAME. Skills 19→20.
 
 ### Sub-step 2.1: Fork `grilling` from HEAD + frontmatter test
 - Status: COMPLETE

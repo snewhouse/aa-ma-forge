@@ -13,7 +13,9 @@ The questions (reference.md "M5 enforcement contract"):
 3. how many sub-steps are ``Status: PENDING`` within it
 4. ``Gate:`` → HARD/SOFT
 5. ``Critical-Path:`` value, present or absent
-6. ``Prototype-Required:`` == YES, present or absent
+6. ``Prototype-Required:`` == YES, present or absent — on the milestone **or
+   rolled up from any of its sub-steps** (AD-001: sub-step fields are read only
+   for the milestone being answered, never file-wide)
 7. a milestone block **by number** plus its ``Audit-Profile:`` (verify-impl)
 
 Plus, for §5.2 dispatch, a sub-step's resolved ``Mode:`` (``--step``).
@@ -251,8 +253,21 @@ def _read_milestone(block: Block, errors: list[str]) -> MilestoneRead:
     )
 
 
-def _count_pending(block: Block, heading: str, errors: list[str]) -> int:
+@dataclass(frozen=True)
+class StepsRead:
+    """What the answered milestone's sub-steps contribute: the PENDING count
+    (Q3) and whether any of them declares ``Prototype-Required: YES`` (Q6
+    roll-up). An invalid or empty token on any sub-step is a refusal, exactly
+    as at milestone level — the blank ``- **Prototype-Required:**`` slot the
+    old tasks-template emitted is ``empty value``, not ``NO``."""
+
+    pending: int
+    prototype_required: bool
+
+
+def _read_steps(block: Block, heading: str, errors: list[str]) -> StepsRead:
     pending = 0
+    prototype = False
     for step in split_steps(block.text):
         where = f"{heading} / {_heading(step)}"
         status = _read_or_error(read_step_status(step.text), where, errors)
@@ -261,8 +276,14 @@ def _count_pending(block: Block, heading: str, errors: list[str]) -> int:
                 f"{where}: no Status: field — its PENDING count is unknowable"
             )
         _read_or_error(read_enforced_field(step.text, "Mode", MODES), where, errors)
+        proto = _read_or_error(
+            read_enforced_field(step.text, "Prototype-Required", PROTOTYPE_REQUIRED),
+            where,
+            errors,
+        )
         pending += status.value == "PENDING"
-    return pending
+        prototype |= proto.value == "YES"
+    return StepsRead(pending=pending, prototype_required=prototype)
 
 
 def _read_step(
@@ -376,10 +397,16 @@ def answer(
             )
         block, read = active[0]
 
-    pending = _count_pending(block, read.heading, errors)
+    steps = _read_steps(block, read.heading, errors)
     if errors:
         return GateAnswer(EXIT_UNREADABLE, None, tuple(errors))
-    milestone = MilestoneRead(**{**asdict(read), "pending_steps": pending})
+    milestone = MilestoneRead(
+        **{
+            **asdict(read),
+            "pending_steps": steps.pending,
+            "prototype_required": read.prototype_required or steps.prototype_required,
+        }
+    )
     step_read = None
     if step is not None:
         step_read = _read_step(block, step, read, errors)

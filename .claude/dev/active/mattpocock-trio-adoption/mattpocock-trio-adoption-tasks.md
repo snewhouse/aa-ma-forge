@@ -169,7 +169,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 ---
 
 ## Milestone 3: `prototype` Re-fork + planning gate + gate roll-up
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 1
 - Complexity: 70%
 - Mode: HITL
@@ -191,24 +191,24 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Rollback: revert `gate.py` + fixture commit first (restores milestone-only semantics), then docs; the skill re-fork is independent and can stay.
 
 ### Sub-step 3.1: Fixture + failing gate tests
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: None
 - Effort: 40m · Complexity: 45%
 - Acceptance Criteria:
   - `uv run pytest tests/test_gate.py -q -k rollup` fails (M1 reads `NO`); fixture file exists as in the M3 Contract plus Milestone 3 (`- Prototype-Required: maybe` on a sub-step) and Milestone 4 (empty `- **Prototype-Required:**` on a sub-step), both asserted to exit 2.
 - Artefacts: `tests/hooks/fixtures/gate-scans/prototype-rollup-tasks.md`, `tests/test_gate.py` (4 new tests: rollup YES, no-flags NO, invalid sub-step exit 2, `test_empty_substep_prototype_slot_exits_2`).
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. Fixture written per M3 Contract + M3 (`Prototype-Required: maybe` on 3.1) + M4 (literal `- **Prototype-Required:**` on 4.1). 4 tests appended to `tests/test_gate.py` (`ROLLUP` path constant). RED: 3 failed (`rolls_up` → M1 reads False; `invalid_substep` → exit 0; `empty_slot` → exit 0), 1 passed (`no_flags_is_no`, regression guard). Adjacent suites unaffected: test_grammar 39 passed, gate-parity/enforce/active-plans green, bats gate-python 30 ok, gate-scans 10 ok (fixtures are named, not enumerated). Red committed alone: f762730 (L-017a).
 
 ### Sub-step 3.2: Implement `_read_steps` + override
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Step 3.1
 - Effort: 45m · Complexity: 60%
 - Acceptance Criteria:
   - M3 gate tests pass; full `tests/test_gate.py tests/test_gate_parity.py tests/test_enforce.py` green; `uv run ruff check src/; test $? -eq 0`; `grep -q 'sub-step' <(sed -n 1,30p src/aa_ma/gate.py)` (module docstring names the roll-up).
 - Artefacts: `src/aa_ma/gate.py` (`StepsRead` dataclass, `_read_steps` replacing `_count_pending`, selected-milestone override only — see context-log decision on roll-up scope).
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `gate.py`: `StepsRead(pending, prototype_required)` frozen dataclass; `_read_steps` replaces `_count_pending` (no remaining references), reads `Prototype-Required` per sub-step via `read_enforced_field(…, PROTOTYPE_REQUIRED)` with the same `_read_or_error` refusal path; override at the selected-milestone site ORs `read.prototype_required | steps.prototype_required`; JSON schema + `to_kv` untouched; module docstring Q6 names the roll-up + AD-001 scope. GREEN: gate/parity/enforce 108 passed; CLI on fixture: `--milestone 1` → `prototype_required=YES`, `2` → `NO`, `3` → exit 2 `non-canonical value 'maybe'`, `4` → exit 2 `empty value in '- **Prototype-Required:**'`; live tasks.md still exit 0 / NO. bats gate-python 30 ok; CI cmd 519 passed; `ruff check src/` + `ruff format --check` clean.
 
 ### Sub-step 3.3: Bats PROTOTYPE fence case + milestone/step command text
 - Status: PENDING

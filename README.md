@@ -16,7 +16,7 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-**Current version:** v0.12.0 — plans carry a mermaid Architecture View (element #13, ADR-0010) checked by `aa-ma-lint-views`, shared with `/aa-ma-share`, rendered by `aa-ma-render`; releases are cut by `scripts/release.sh`.
+**Current version:** v0.13.0 — fork manifest, grilling, prototype gate, research agent
 
 ## The problem
 

@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.**
 
-_Last Updated: 2026-09-21 (M3 complete; sub-step Prototype-Required AND Critical-Path roll up — AD-007)_
+_Last Updated: 2026-09-21 (M4 complete; aa-ma-research + aa-ma-researcher shipped, v0.13.0 cut — AD-010..013)_
 
 _Non-negotiable facts extracted from the plan, the design spec (D1–D9), the research note and the verification report. Anchors, not line numbers, locate edits (eng-review OV8). All facts `[valid: 2026-09-20]` unless marked otherwise._
 
@@ -300,7 +300,8 @@ tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, Write
 - Exactly one `## Unreleased` heading with ≥1 bullet; clean tree; HEAD == origin/main; `gh auth status` ok.
 - Does **not** re-create `## Unreleased` afterwards → Step 5.1 re-adds it before any M5 CHANGELOG edit.
 - Re-locks `uv.lock` inside the bump commit (`ea4005c`); tagged tree carries the new version (L-015).
-- Invocations: `scripts/release.sh minor --headline "fork manifest, grilling, prototype gate, research agent"` (v0.13.0, Step 4.6); `scripts/release.sh minor --headline "charting: pre-plan decision maps (/aa-ma-chart, --from-map)"` (v0.14.0, Step 5.5). Always `--dry-run` first. Runbook: `docs/runbooks/release.md`.
+- **v0.13.0 (cut 2026-09-21, Step 4.6):** bump commit `c27250b` (`[ad-hoc]`; CHANGELOG/README/VERSION/pyproject/uv.lock), annotated tag `v0.13.0` (object `68293fb`) → `c27250b`, GitHub Release https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.13.0. `uv.lock` package `aa-ma` 0.13.0 in the tagged tree.
+- Invocations: `scripts/release.sh minor --headline "fork manifest, grilling, prototype gate, research agent"` (v0.13.0, Step 4.6 — done); `scripts/release.sh minor --headline "charting: pre-plan decision maps (/aa-ma-chart, --from-map)"` (v0.14.0, Step 5.5). Always `--dry-run` first. Runbook: `docs/runbooks/release.md`.
 
 ## Conventions and constraints
 

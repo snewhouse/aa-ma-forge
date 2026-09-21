@@ -20,6 +20,26 @@
 [2026-09-21T09:55:08+01:00] STEP 1.7 COMPLETE — CHANGELOG Unreleased += M1; §6.1 6/6 criteria verified live; §6.3 impact LOW (12 files); §6.4 CI list 317 passed, bats 4/4, shellcheck clean
 [2026-09-21T09:55:08+01:00] CRITICAL_PATH_REVIEW — Milestone 1: Fork manifest, Drift/Orphan detector, Derived reclassifications, CI coverage — doc-count-drift — foundations headings 12/19/11 now pinned by test_foundations_count_headings_match_disk; SECURITY.md unchanged (no asset added); README write-a-skill row rewritten, tests/commands 'All commands' table check green; CHANGELOG Unreleased only
 [2026-09-21T10:09:10+01:00] CONTEXT7 — pyyaml@6.x — yaml.safe_load (declaration-only; API already in use in 4 test files pre-M1; no new surface)
+[2026-09-21T13:19:08+01:00] §6.1 CRITERIA — M4 7/7 verified (recipe md5 e1dd6af3…; FORKS derived/full sha; agent tools set; PROTOTYPE line; criterion-4 greps 2/2 + 2/2; symlink; counts 21/12 + ADR-0012; tag v0.13.0 + Release)
+[2026-09-21T13:19:08+01:00] §6.3 IMPACT_ANALYSIS — M4 LOW (19 files excl. .claude/dev/; no src/ Python; research_files= additive, 0 code consumers; FORKS.json additive row; M5 criteria untouched)
+[2026-09-21T13:19:08+01:00] §6.4 TESTS — M4 list: pytest tests/skills tests/agents tests/plan_markers tests/commands 158 passed (160 post-§6.8); bats aa-ma-plan-skip-warn 7/7; full suite 1099 passed / 2 skipped
+[2026-09-21T13:19:08+01:00] COMMIT 52dfe9d — test(skills): red frontmatter + verbatim-body tests for aa-ma-research (M4.1)
+[2026-09-21T13:19:08+01:00] COMMIT 6479d21 — feat(skills): fork research @ c55ee46 as aa-ma-research (Derived) (M4.1)
+[2026-09-21T13:19:08+01:00] COMMIT 3fb7bf6 — test(agents): red tests for aa-ma-researcher agent (M4.2)
+[2026-09-21T13:19:08+01:00] COMMIT 9ece1d4 — feat(agents): add aa-ma-researcher — non-nesting research worker (M4.2)
+[2026-09-21T13:19:08+01:00] COMMIT 0c41d2b — docs(aa-ma): M4 ACTIVE; 4.1/4.2 Result Logs, CHECKPOINT + STEP lines
+[2026-09-21T13:19:08+01:00] COMMIT ca0de90 — docs(aa-ma): 4.3 install done; agents do not hot-reload — CHECKPOINT
+[2026-09-21T13:19:08+01:00] COMMIT c877314 — docs(aa-ma): 4.3 COMPLETE — live aa-ma-researcher run PASS; claude-invocation criterion reworded (AD-013)
+[2026-09-21T13:19:08+01:00] COMMIT 3750908 — feat(commands): /aa-ma-plan Phase 3 dispatches Skill(aa-ma-research); PHASE_3 marker research_files= (M4.4)
+[2026-09-21T13:19:08+01:00] COMMIT 006f80e — docs: skills 21 / agents 12; ADR-0012 Implemented (+INDEX 0011/0012) (M4.5) — CI 5/5 success
+[2026-09-21T13:19:08+01:00] COMMIT bdfcf8f — docs(aa-ma): CRITICAL_PATH_REVIEW doc-count-drift for M4
+[2026-09-21T13:19:08+01:00] COMMIT c27250b — bump: version 0.12.0 → 0.13.0 (release.sh; [ad-hoc]; tag v0.13.0)
+[2026-09-21T13:19:08+01:00] COMMIT 0e92092 — docs(aa-ma): 4.6 COMPLETE — v0.13.0 released
+[2026-09-21T13:19:08+01:00] COMMIT d50772b — docs(aa-ma): provenance — §6.6 skipped; §6.7 gate PASS
+[2026-09-21T13:19:08+01:00] COMMIT 3c31c3c — test(agents): §6.8 M4 pins — red (L-017a)
+[2026-09-21T13:19:08+01:00] COMMIT 252e690 — fix(agents): §6.8 M4 fix set — 8 WARNINGs; post-fix: pytest 1099 passed, bats 14/14, fork-drift SAME
+[2026-09-21T13:19:08+01:00] COMMIT a74865d — docs(aa-ma): M4 impl-review §6.8 + TODOS deferred INFOs
+[2026-09-21T13:19:08+01:00] COMMIT d387e9f — docs(aa-ma): M4 §7.2 — milestone Result Log, completion summary, AD-010..013, reference facts
 [2026-09-21T10:10:16+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: code-reviewer,security-auditor,tdd-sequence-auditor,context7-evidence-auditor,future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 2 CRITICAL / 8 WARNING / 13 INFO (1 CRITICAL fixed, 1 disputed w/ provenance evidence; 5 WARNING + 4 INFO fixed; red test committed first d755920)
 [2026-09-21T10:10:16+01:00] Post-milestone review (§6.6): folded into §6.8 code-reviewer (KISS/DRY/efficiency findings above) — acknowledged/fixed
 [2026-09-21T10:13:18+01:00] COMMIT 8d91442 — M1 milestone commit (Steps 1.1–1.7)

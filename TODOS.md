@@ -28,6 +28,15 @@
 
 ## mattpocock-trio-adoption follow-ups (eng review 2026-09-20)
 
+### install.sh: back up every `hooks/lib/` target it replaces; `lib/aa-ma-footer.sh` is never linked
+
+**What:** `scripts/install.sh:149` backs up only `~/.claude/hooks/lib/pre-compact-aa-ma.sh`; the other seven `hooks/lib/` paths it `rm -rf`s (`aa-ma-parse.sh`, `aa-ma-plan-marker.sh`, the six `AA_MA_HOOKS` scripts at :314-323 via `register_hook` :373) get no backup. Loop the same list in the backup collector (:126-155). Separately decide whether `claude-code/hooks/lib/aa-ma-footer.sh` should be installed (it has no `create_symlink` block) or removed.
+
+**Why:** Found by the M4.3 `aa-ma-researcher` live run (`docs/research/mattpocock-trio-adoption-install-backup.md`) and confirmed by hand 2026-09-21. L-016 (b) pattern: `hooks/lib` helpers are per-file, not auto-discovered.
+
+**Effort:** S
+**Priority:** P3
+
 ### §6.8 M4 deferred INFOs — README skills-table test; `plan_elements=<N>/12` → `/13`
 
 **What:** (a) Extend `tests/commands/test_aa_ma_share_command.py::test_command_count_sites_match_disk` to the README skills table (split on the skills heading, regex `^\| \`([a-z0-9-]+)\``) so the row-set is asserted against `claude-code/skills/*/` like the commands table is. (b) `docs/spec/plan-marker-grammar.md:59` and `claude-code/commands/aa-ma-plan.md:89` still read `plan_elements=<N>/12`; the planning standard has had 13 elements since v0.12.0 (element #13, Architecture View). Update both and any fixture that carries `/12`.

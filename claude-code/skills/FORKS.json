@@ -41,8 +41,26 @@
     "forked_at": "2026-05-10",
     "adr": "docs/adr/0004-write-a-skill-adoption.md",
     "state": "derived",
-    "files": { "SKILL.md": "492ef034b4fc9e497cc69b8fed78a742" },
-    "upstream_md5": { "SKILL.md": null },
+    "files": {
+      "SKILL.md": "492ef034b4fc9e497cc69b8fed78a742"
+    },
+    "upstream_md5": {
+      "SKILL.md": null
+    },
     "upstream_md5_source": null
+  },
+  "grilling": {
+    "upstream": "skills/productivity/grilling",
+    "upstream_sha": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
+    "forked_at": "2026-09-21",
+    "adr": "docs/adr/0002-grill-with-docs-adoption.md",
+    "state": "current",
+    "files": {
+      "SKILL.md": "284efe9cf334900d08230e572fc6db90"
+    },
+    "upstream_md5": {
+      "SKILL.md": "284efe9cf334900d08230e572fc6db90"
+    },
+    "upstream_md5_source": "gh-api@c55ee46"
   }
 }

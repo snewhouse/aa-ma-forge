@@ -106,7 +106,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 ---
 
 ## Milestone 2: Fork `grilling`; `grill-with-docs` becomes Derived
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 1
 - Complexity: 40%
 - Mode: HITL
@@ -126,14 +126,14 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Rollback: revert milestone commits; `grill-with-docs` returns to the faithful 2026-05-10 fork; remove `grilling` dir and manifest row.
 
 ### Sub-step 2.1: Fork `grilling` from HEAD + frontmatter test
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: None
 - Effort: 30m · Complexity: 25%
 - Acceptance Criteria:
   - `md5sum <(tail -n +2 claude-code/skills/grilling/SKILL.md)` = `284efe9cf334900d08230e572fc6db90`; `uv run pytest tests/skills/test_grilling_frontmatter.py -q` passes.
 - Artefacts: `claude-code/skills/grilling/SKILL.md` (line 1 provenance + upstream body), `tests/skills/test_grilling_frontmatter.py`.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. RED: `test_grilling_frontmatter` failed (SKILL.md absent) → committed alone as 7542c30 (L-017a). Fetched `skills/productivity/grilling/SKILL.md` @ c55ee46 via `gh api`; whole-file md5 `284efe9cf334900d08230e572fc6db90` = reference. Wrote local file = provenance line + upstream body (28 lines); `tail -n +2 | md5sum` = `284efe9c…` ✓. GREEN: 1 passed; `disable-model-invocation` absent asserted. Pulled the `grilling` FORKS.json row forward from 2.3 (state current, upstream_sha c55ee46…, upstream_md5_source `gh-api@c55ee46`) so `test_every_fork_dir_is_in_manifest` stays green at this commit — `tests/skills` all green.
 
 ### Sub-step 2.2: Rewrite `grill-with-docs` as Derived delegator
 - Status: PENDING

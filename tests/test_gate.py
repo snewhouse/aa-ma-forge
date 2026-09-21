@@ -565,3 +565,35 @@ def test_step_without_milestone_is_a_usage_error(
     with pytest.raises(SystemExit) as exc:
         main([str(ONE), "--step", "1.1"])
     assert exc.value.code == 2
+
+
+# --- sub-step Prototype-Required rolls up to the selected milestone (M3, AD-001)
+
+
+ROLLUP = FIX / "prototype-rollup-tasks.md"
+
+
+def test_substep_prototype_required_rolls_up_to_the_milestone() -> None:
+    a = answer(ROLLUP, number="1")
+    assert a.exit_code == EXIT_OK, a.errors
+    assert a.milestone.prototype_required is True  # M1 has no own field; 1.2 says YES
+
+
+def test_rollup_no_flags_anywhere_is_no() -> None:
+    a = answer(ROLLUP, number="2")
+    assert a.exit_code == EXIT_OK, a.errors
+    assert a.milestone.prototype_required is False
+
+
+def test_invalid_substep_prototype_token_is_exit_2() -> None:
+    a = answer(ROLLUP, number="3")
+    assert a.exit_code == EXIT_UNREADABLE
+    assert any("Prototype-Required" in e and "maybe" in e for e in a.errors), a.errors
+
+
+def test_empty_substep_prototype_slot_exits_2() -> None:
+    # `- **Prototype-Required:**` is what tasks-template.md emitted; a blank
+    # value is a refusal, not "NO" — the template fix in M3 exists for this.
+    a = answer(ROLLUP, number="4")
+    assert a.exit_code == EXIT_UNREADABLE
+    assert any("empty value" in e for e in a.errors), a.errors

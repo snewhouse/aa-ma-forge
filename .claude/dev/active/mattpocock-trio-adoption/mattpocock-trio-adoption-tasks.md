@@ -242,14 +242,14 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Result Log: Mode: AFK — auto-dispatched. Theme 1 sentence replaced verbatim per AC (+ PROTOTYPE entry now names the milestone heading; sub-step roll-up sentence); Critical-Path table diffed before/after → IDENTICAL. `grep -c 'terminal TUI'` = 0 in all four files (smoke file had none). `?variant=` + `prototype/<name>` present. Spec provenance grammar: three `grep -F` criteria match (added under the Milestone Complete entry). Template: 4 blank slots removed (`grep -cE … = 0`), each comment carries "add `- <Field>: <value>` only when it applies; an empty value is a gate error (exit 2)". `aa-ma-plan.md`: `**Step 2.5: Prototype Decision**` inserted before the Phase 2 summary; `ENG_STANDARDS_DECLARED` gains `prototype=${PROTO}`; text states no `PHASE_2.5` marker is written. README + foundations prototype rows reworded. ADR-0011 → Implemented. CHANGELOG `## Unreleased` bullet (incl. L-018 §8.4). Tests: M3 list + codemem critical-path parser + active-plans + plan_markers + skills → 287 passed 1 skipped; ruff clean; bats gate-python 31/31; CI cmd 519 passed. Edits applied via scratchpad script (hook pattern-match, see 3.3).
 
 ### Sub-step 3.6: CRITICAL_PATH_REVIEW + impact analysis + HARD gate approval + sync
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Step 3.5
 - Effort: 30m · Complexity: 30%
 - Acceptance Criteria:
   - Provenance has `CRITICAL_PATH_REVIEW — Milestone 3: … — hook-modification — <evidence: test names + bats case>`; consolidated impact analysis in context-log; `## [date] GATE APPROVAL: Milestone 3 …` in context-log; commit + push.
 - Artefacts: `mattpocock-trio-adoption-context-log.md`, `mattpocock-trio-adoption-provenance.log`.
-- Result Log: [pending]
+- Result Log: Mode: HITL — Ste APPROVED the HARD gate (AskUserQuestion, 2026-09-21). Provenance: `CRITICAL_PATH_REVIEW — Milestone 3: … — hook-modification — <4 pytest names + bats case + parity + CI 519>`; §6.1/§6.3/§6.4 entries; `GATE APPROVAL` line. context-log: `## [2026-09-21] GATE APPROVAL: Milestone 3: …` with `- Decision: APPROVED` + consolidated impact analysis (MEDIUM: gate now refuses invalid/empty sub-step Prototype-Required; 0 active plans exposed; wire contract unchanged). Commit + push at milestone close.
 
 ---
 

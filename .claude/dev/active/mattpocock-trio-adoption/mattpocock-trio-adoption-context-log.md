@@ -153,3 +153,16 @@ Bring every mattpocock fork in `claude-code/skills/` to a known, detectable life
 - **AD-005** — `grill-with-docs` `<what-to-do>` deviates from the M2 Contract's verbatim text by one leading line ("First locate and read `CONTEXT.md` / `CONTEXT-MAP.md` / `docs/adr/` yourself…"). Rationale (code-reviewer W2): after delegation, `grilling`'s fact-finding sub-agents never see `<supporting-info>`, so glossary discovery must happen in the orchestrator's context before the interview starts. Still ≤6 lines, still names `grilling`; the ≤6-line assert now guards it.
 - **AD-006** — Fact-finding sub-agents dispatched by `grilling` inside `/aa-ma-plan` are scoped in plugin-owned text (`aa-ma-plan.md` with-docs bullet: at most 5 at once; read-only, repo-local; no external connectors or writes). Rationale (security-auditor W1): the verbatim upstream prompt must not define the lookup boundary. The fork stays byte-identical.
 - **Observation** — the "fresh session before a live criterion" rule in reference.md is falsified: the Skill listing hot-reloads after `install.sh`. M4's live criterion may run in-session.
+
+---
+
+## [2026-09-21] GATE APPROVAL: Milestone 3: `prototype` Re-fork + planning gate + gate roll-up
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion, 2026-09-21)
+- Criteria verified: 8/8
+- Decision: APPROVED
+
+### Impact Analysis (consolidated, Critical-Path: hook-modification)
+- 21 files (+297/−131). `src/aa_ma/gate.py`: wire contract unchanged (MilestoneRead / JSON schema / to_kv / exit codes); private `_count_pending` → `_read_steps` + `StepsRead`, 0 dangling refs; behavioural tightening — an invalid or empty sub-step `Prototype-Required` token on the answered milestone now exits 2 (was ignored). Exposure: 0 active plans / 0 examples carry a blank slot (2 archived completed/ plans do; never gated). 6 shipped CLI consumers unaffected on the wire. Risk MEDIUM, fully cascaded: +4 pytest on `prototype-rollup-tasks.md`, +1 bats fence case (31/31), parity suite, CI cmd 519 passed, ruff clean.
+- Commands: §6.7 BLOCKED text + §8.3/8.4 no-amend (L-018, folded in per Ste); step advisory; Step 2.5 in /aa-ma-plan (no PHASE_2.5 marker). Rules: Theme 1 sentence only, Critical-Path table byte-identical (codemem scraper green). Skill re-fork verbatim (detector SAME). Template: 4 blank slots removed; 2 test consumers green. Docs LOW.
+- Cross-milestone: M4/M5 tasks.md blocks carry no sub-step tokens; gate reads unaffected.

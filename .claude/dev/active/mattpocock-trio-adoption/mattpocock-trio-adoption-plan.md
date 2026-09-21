@@ -523,6 +523,7 @@ sequenceDiagram
   M->>G: --milestone N --format kv
   G->>T: read milestone fields
   G->>T: _read_steps: Status, Mode, Prototype-Required per sub-step
+  Note over G,T: (M3 §6.8, AD-007) also Critical-Path per sub-step — milestone wins, conflicts refuse
   G-->>M: prototype_required=YES (own YES or any sub-step YES)
   M->>P: grep "PROTOTYPE —" + milestone heading
   alt line present

@@ -169,7 +169,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 ---
 
 ## Milestone 3: `prototype` Re-fork + planning gate + gate roll-up
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 1
 - Complexity: 70%
 - Mode: HITL
@@ -179,16 +179,17 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Effort: 8h
 - Goal: Fork current with HEAD (HTML logic demo, capture-on-branch); `/aa-ma-plan` asks the prototype question; the gate honours sub-step `Prototype-Required`.
 - Acceptance Criteria:
-  - [ ] `claude-code/skills/prototype/{SKILL,LOGIC,UI}.md` bodies = HEAD (`tail -n +2` md5s `5c68a2867eb3b9b4cb3e9ad4ba2b5299`, `0c6daa140ef3e83ba9e6b5bfa5161408`, `e3c841746676a0e604c72b5cd459e7ba`); `test_prototype_frontmatter.py` green; `FORKS.json` row updated (`upstream_sha: c55ee46`, `upstream_md5` = those three).
-  - [ ] `uv run aa-ma-gate tests/hooks/fixtures/gate-scans/prototype-rollup-tasks.md --milestone 1 --format kv | grep -q '^prototype_required=YES$'` where Milestone 1 has **no** milestone-level field and Sub-step 1.2 has `Prototype-Required: YES`; `--milestone 2` (no flags anywhere) prints `NO`; a sub-step `Prototype-Required: maybe` → exit 2; **REGRESSION (eng-review §3):** a sub-step with the literal empty slot `- **Prototype-Required:**` (what `tasks-template.md` emits today) → exit 2 with `empty value` — this is the behaviour change the template fix exists for.
-  - [ ] `tests/hooks/aa-ma-gate-python.bats` has a PROTOTYPE fence case: milestone requiring a prototype with no `PROTOTYPE —` line → §6.7 BLOCKED text; with the line → passes.
-  - [ ] `claude-code/commands/aa-ma-plan.md` has `**Step 2.5: Prototype Decision**` between Step 2.4 and the Phase 2 summary; `test_planning_standard_count.py` and `test_active_plans_canonical.py` green.
-  - [ ] `grep -c 'terminal TUI' claude-code/rules/engineering-standards.md tests/smoke/aa-ma-engineering-standards-smoke.md README.md docs/spec/claude-code-foundations.md` = 0 for every file; `grep -q '?variant=' claude-code/rules/engineering-standards.md`; `grep -q 'prototype/<name>' claude-code/rules/engineering-standards.md`; the Critical-Path table in Theme 1 is byte-identical before/after (`tests/codemem/test_critical_path_parser.py` scrapes it).
-  - [ ] `grep -F 'PROTOTYPE — <milestone heading> — <verdict>[; branch=prototype/<name>]' docs/spec/aa-ma-specification.md` and `grep -F 'CRITICAL_PATH_REVIEW — <milestone heading> — <Critical-Path value> — <evidence>' docs/spec/aa-ma-specification.md` and `grep -F 'LIVE_CHECK — <milestone heading>' docs/spec/aa-ma-specification.md` all match in the provenance-grammar section (4-field CRITICAL_PATH_REVIEW form = `execute-aa-ma-milestone.md` §6.7).
-  - [ ] `grep -cE '^- \*\*(Prototype-Required|Critical-Path):\*\*\s*$' docs/templates/tasks-template.md` = 0 — all four blank slots (milestone-level and sub-step, both fields) are removed; each comment says "add `- <Field>: <value>` only when it applies; an empty value is a gate error (exit 2)".
-  - [ ] ADR-0011 Status → Implemented.
+  - [x] `claude-code/skills/prototype/{SKILL,LOGIC,UI}.md` bodies = HEAD (`tail -n +2` md5s `5c68a2867eb3b9b4cb3e9ad4ba2b5299`, `0c6daa140ef3e83ba9e6b5bfa5161408`, `e3c841746676a0e604c72b5cd459e7ba`); `test_prototype_frontmatter.py` green; `FORKS.json` row updated (`upstream_sha: c55ee46`, `upstream_md5` = those three).
+  - [x] `uv run aa-ma-gate tests/hooks/fixtures/gate-scans/prototype-rollup-tasks.md --milestone 1 --format kv | grep -q '^prototype_required=YES$'` where Milestone 1 has **no** milestone-level field and Sub-step 1.2 has `Prototype-Required: YES`; `--milestone 2` (no flags anywhere) prints `NO`; a sub-step `Prototype-Required: maybe` → exit 2; **REGRESSION (eng-review §3):** a sub-step with the literal empty slot `- **Prototype-Required:**` (what `tasks-template.md` emits today) → exit 2 with `empty value` — this is the behaviour change the template fix exists for.
+  - [x] `tests/hooks/aa-ma-gate-python.bats` has a PROTOTYPE fence case: milestone requiring a prototype with no `PROTOTYPE —` line → §6.7 BLOCKED text; with the line → passes.
+  - [x] `claude-code/commands/aa-ma-plan.md` has `**Step 2.5: Prototype Decision**` between Step 2.4 and the Phase 2 summary; `test_planning_standard_count.py` and `test_active_plans_canonical.py` green.
+  - [x] `grep -c 'terminal TUI' claude-code/rules/engineering-standards.md tests/smoke/aa-ma-engineering-standards-smoke.md README.md docs/spec/claude-code-foundations.md` = 0 for every file; `grep -q '?variant=' claude-code/rules/engineering-standards.md`; `grep -q 'prototype/<name>' claude-code/rules/engineering-standards.md`; the Critical-Path table in Theme 1 is byte-identical before/after (`tests/codemem/test_critical_path_parser.py` scrapes it).
+  - [x] `grep -F 'PROTOTYPE — <milestone heading> — <verdict>[; branch=prototype/<name>]' docs/spec/aa-ma-specification.md` and `grep -F 'CRITICAL_PATH_REVIEW — <milestone heading> — <Critical-Path value> — <evidence>' docs/spec/aa-ma-specification.md` and `grep -F 'LIVE_CHECK — <milestone heading>' docs/spec/aa-ma-specification.md` all match in the provenance-grammar section (4-field CRITICAL_PATH_REVIEW form = `execute-aa-ma-milestone.md` §6.7).
+  - [x] `grep -cE '^- \*\*(Prototype-Required|Critical-Path):\*\*\s*$' docs/templates/tasks-template.md` = 0 — all four blank slots (milestone-level and sub-step, both fields) are removed; each comment says "add `- <Field>: <value>` only when it applies; an empty value is a gate error (exit 2)".
+  - [x] ADR-0011 Status → Implemented.
 - Tests: `uv run pytest tests/test_gate.py tests/test_gate_parity.py tests/test_enforce.py tests/commands -q`; `bats tests/hooks/aa-ma-gate-python.bats`; `uv run ruff check src/`.
 - Rollback: revert `gate.py` + fixture commit first (restores milestone-only semantics), then docs; the skill re-fork is independent and can stay.
+- Result Log: COMPLETE 2026-09-21 — HARD gate APPROVED by Ste; §7.3 approved. 8/8 criteria (see sub-step logs). Commits f762730 → 1b1cabf → 6565ceb → c8cea54 → 20e2359 → 931c71b → 4cedc91 → 75aa6f7 → 0cb97a3 → 3c6f92f → f849d1c → <milestone commit, recorded in provenance>. Tests: CI cmd 523 / bats gate-python 32/32 / codemem CP parser green / ruff clean. §6.7 PASS; §6.8 PASS_WITH_WARNINGS (0C/5W/12I; all W fixed → AD-007 Critical-Path roll-up, AD-008 single ENG_STANDARDS_DECLARED echo, AD-009 UI-route auth rule). Scope additions: L-018 §8.3/8.4 no-amend (Ste), Critical-Path roll-up (Ste). Live fork-drift: prototype SAME.
 
 ### Sub-step 3.1: Fixture + failing gate tests
 - Status: COMPLETE

@@ -16,8 +16,8 @@ This document maps every external influence on AA-MA Forge to what it shaped, wh
 
 - **Source:** [github.com/mattpocock/skills](https://github.com/mattpocock/skills)
 - **What we took:** Directory-based skill structure (each skill as a folder with SKILL.md + references/). The concept of a relentless interview technique for forcing decisions
-- **What we changed:** Adapted the skill layout for AA-MA's command-skill-agent architecture. The `/grill-me` command was redesigned as an artifact-focused decision-forcing protocol rather than a general interview
-- **Where it lives:** `claude-code/skills/` directory structure, `claude-code/commands/grill-me.md`
+- **What we changed:** Adapted the skill layout for AA-MA's command-skill-agent architecture. The `/grill-me` command was redesigned as an artifact-focused decision-forcing protocol rather than a general interview. `grilling` (`skills/productivity/grilling` @ c55ee46) is forked verbatim; `grill-with-docs` is Derived — it keeps its name and domain block from the 2026-05-10 fork and delegates the interview to `grilling` (upstream split it into `grilling` + `domain-modeling` in 2026-07). Every fork is tracked in `claude-code/skills/FORKS.json`
+- **Where it lives:** `claude-code/skills/` directory structure, `claude-code/commands/grill-me.md`, `claude-code/skills/grilling/`, `claude-code/skills/grill-with-docs/`
 - **Credit:** README "Credits and inspirations", CHANGELOG
 
 ### Helix.ml

@@ -243,7 +243,8 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `dispatching-parallel-agents` | Pattern for concurrent independent agent investigations |
 | `debugging-strategies` | Systematic debugging process with multi-language tooling |
 | `token-compression` | Output token reduction with HITL/AFK intensity mapping (lite/full/ultra) |
-| `grill-with-docs` | Plan-stress-test that updates `CONTEXT.md` and ADRs inline as decisions crystallise (Phase 1.3 `with-docs` mode) |
+| `grilling` | Round-based frontier interview — whole frontier per round, numbered questions with recommended answers, sub-agents for facts (forked from mattpocock/skills @ c55ee46) |
+| `grill-with-docs` | Plan-stress-test that delegates the interview to `grilling` and updates `CONTEXT.md` and ADRs inline as decisions crystallise (Phase 1.3 `with-docs` mode; Derived) |
 | `prototype` | Throwaway-code prototyping that routes between a terminal LOGIC app and several swappable UI variations |
 | `understand-codebase` | Tiered codebase onboarding — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives; the engine behind `/understand-codebase` |
 | `verify-impl` | Post-impl adversarial review symmetric to `plan-verification`; dispatches up to 5 parallel audit agents at Phase 6.8 |

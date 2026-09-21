@@ -28,3 +28,7 @@
 [2026-09-21T10:13:18+01:00] COMMIT b5c4df6 — docs(aa-ma): M1 completion entry in context-log (AD-002..004)
 [2026-09-21T10:13:18+01:00] §7.2.5 VALIDATOR — verdict GAPS_REQUIRE_FIX → 5 back-fills applied inline (provenance COMMIT lines, reference.md md5 contradiction + CI row + M1 modified files + Last Updated, tasks 1.7 hashes, impl-review hash)
 [2026-09-21T10:14:01+01:00] MILESTONE COMPLETE — M1 — Commit: 7464b5c — Criteria: 6/6 verified — approved by user (§7.3)
+[2026-09-21T10:22:13+01:00] STEP 2.1 COMPLETE — grilling forked @ c55ee46 (tail -n +2 md5 284efe9c…); red test 7542c30, green bc329d4
+[2026-09-21T10:22:13+01:00] STEP 2.2 COMPLETE — grill-with-docs Derived delegator; red test 936fb1d, green 7030200; FORKS.json state derived
+[2026-09-21T10:22:13+01:00] STEP 2.3 PARTIAL — docs/counts/ADR-0002/CHANGELOG done; pytest 142 passed; bats install_dry_run ok; install.sh linked ~/.claude/skills/grilling
+[2026-09-21T10:22:13+01:00] CHECKPOINT — ActiveStep: 2.3 — NextAction: "Fresh session: run /aa-ma-plan --grill-mode=with-docs on 'add --json output to scripts/fork-drift.sh', stop after Phase 1.3; record Skill(grilling) resolved path + ❓/➡️ excerpt in 2.3 Result Log; write LIVE_CHECK line; then §6 gates" — ContextLoaded: REFERENCE,TASKS,CONTEXT_LOG(tail) — TokenUsage: ~12%

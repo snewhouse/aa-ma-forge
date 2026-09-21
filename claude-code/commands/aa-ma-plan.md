@@ -193,11 +193,15 @@ fi
 
 **Dispatch on resolved mode:**
 
-- **`with-docs`** — Invoke `Skill(grill-with-docs)`. The skill challenges the
-  plan against existing `CONTEXT.md` / ADRs, sharpens terminology, and updates
-  docs inline as decisions crystallise. Forked into this plugin under
-  `claude-code/skills/grill-with-docs/` (auto-discovered by `scripts/install.sh`,
-  symlinked to `~/.claude/skills/grill-with-docs/`).
+- **`with-docs`** — Invoke `Skill(grill-with-docs)`. The skill delegates the
+  interview to `Skill(grilling)` (round-based: the whole frontier of
+  answerable questions per round, each with a recommended answer) and layers
+  domain awareness on it — challenges the plan against existing `CONTEXT.md` /
+  ADRs, sharpens terminology, and updates docs inline as decisions crystallise.
+  `grilling` dispatches sub-agents for facts rather than asking the user; inside
+  this command that dispatch respects the ≤5 concurrent-agent cap. Both live
+  under `claude-code/skills/` (auto-discovered by `scripts/install.sh`,
+  symlinked to `~/.claude/skills/grill-with-docs/` and `~/.claude/skills/grilling/`).
 - **`simple`** — Apply the `/grill-me` discipline: interview the user
   relentlessly about every aspect of their request. Walk down each branch of the
   design/decision tree, resolving dependencies between decisions one-by-one. For

@@ -1,6 +1,6 @@
 # 0002. Adopt `grill-with-docs` from mattpocock/skills and wire into /aa-ma-plan Phase 1.3
 
-**Status:** Implemented (2026-05-10)
+**Status:** Implemented — Derived (2026-05-10; amended 2026-09-21)
 **Date:** 2026-05-10
 **Deciders:** Stephen Newhouse, Claude (planning + execution sessions)
 **Tags:** `workflow`, `aa-ma`, `skills`, `release-v0.6.0`, `external-fork`
@@ -136,6 +136,25 @@ aa-ma-forge has been accumulating `docs/adr/` records since v0.5.0 (ADR-0001 shi
   - `ADR-FORMAT.md` — `bb327bab674f400796f64b6e2ef5850c`
 
 **Status transition:** ADR is `Implemented` once Tasks 1.2–1.8 are COMPLETE and M1 HARD gate (Task 1.9) closes.
+
+## Amendment 2026-09-21 — Derived; grilling forked
+
+Upstream split `skills/engineering/grill-with-docs` in 2026-07 into `skills/productivity/grilling`
+(the round-based interview primitive) and `skills/engineering/domain-modeling` (the glossary /
+ADR layer). Our copy could not be re-forked from either without losing its name — `/aa-ma-plan`
+Phase 1.3 and `tests/plan_markers/test_fingerprint.py` depend on `grill-with-docs` — so:
+
+- `claude-code/skills/grilling/SKILL.md` is a new **Fork** of `grilling` @ `c55ee46` (verbatim body,
+  `tail -n +2` md5 `284efe9cf334900d08230e572fc6db90`; manifest row `state: current`).
+- `grill-with-docs` is now **Derived** (`state: derived`, `upstream_md5` null): line 1 carries the
+  `Derived from …` form, `<what-to-do>` is three lines that call `Skill(grilling)` and apply the
+  domain awareness below it, the glossary sentence is upstream `domain-modeling`'s ("totally devoid
+  of implementation details … a glossary and nothing else"), and `CONTEXT-FORMAT.md` records on
+  line 2 that it retains Relationships / Example dialogue / Flagged ambiguities (removed upstream).
+- The Drift/Orphan detector reports `grill-with-docs` ORPHAN by design; `grilling` is SAME.
+- The one-question-at-a-time discipline lives on in `/grill-me` (unchanged).
+
+Decided in `mattpocock-trio-adoption` Milestone 2.
 
 ## References
 

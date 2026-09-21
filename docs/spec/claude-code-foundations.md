@@ -86,7 +86,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered Quick/Standard/Deep); optionally authors/reviews `AGENTS.md`. Thin wrapper around `Skill(understand-codebase)`; see ADR-0006 |
 | `/sole-dev-merge` | PR/MR-based merge workflow: scope-aware CI checks (L-007 guard) + 3-source security pass + idempotent PR/MR creation + 15-min CI poll + auto-merge + cleanup. See ADR-0008 |
 
-### Skills (19)
+### Skills (20)
 
 | Skill | Purpose |
 |-------|---------|
@@ -103,7 +103,8 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `defense-in-depth` | Four-layer validation pattern for making bugs structurally impossible |
 | `dispatching-parallel-agents` | Pattern for concurrent independent agent investigations |
 | `debugging-strategies` | Systematic debugging process with multi-language tooling |
-| `grill-with-docs` | Glossary-aware grilling: challenges plans against `CONTEXT.md` / ADRs, sharpens terminology, updates docs inline (forked from mattpocock/skills, invoked by /aa-ma-plan Phase 1.3 when project state warrants) |
+| `grilling` | Round-based frontier interview: asks every currently-answerable question in one numbered round with a recommended answer, dispatches sub-agents for facts, recomputes the frontier until nothing is silently assumed (forked verbatim from mattpocock/skills `skills/productivity/grilling` @ c55ee46 — see ADR-0002 amendment) |
+| `grill-with-docs` | Glossary-aware grilling: delegates the interview to `Skill(grilling)` and layers domain awareness on it — challenges terms against `CONTEXT.md` / ADRs, sharpens terminology, updates docs inline (Derived from mattpocock/skills; invoked by /aa-ma-plan Phase 1.3 when project state warrants) |
 | `prototype` | Throwaway-prototype dispatcher: routes between LOGIC (terminal TUI for state/business-logic questions, cross-language) and UI (web-frontend variants on a single route, switchable via `?variant=`) branches based on the question (forked from mattpocock/skills; operationalises engineering-standards Theme 1 `Prototype-Required: YES` flag — see ADR-0003) |
 | `write-a-skill` | Canonical skill-authoring procedure: gather requirements → draft SKILL.md → review with user; includes 1024-char description format, "Use when" trigger pattern, 100-line SKILL.md guidance, when-to-split-files heuristics (forked from mattpocock/skills — see ADR-0004) |
 | `verify-impl` | Post-impl adversarial review symmetric to `/verify-plan`: dispatches up to 5 parallel audit agents per the milestone's plan-declared `Audit-Profile`; CRITICAL findings surface via an accept/dispute/defer panel before §7.3 authorization (invoked by Phase 6.8 of `/execute-aa-ma-milestone` — see ADR-0005) |

@@ -17,6 +17,11 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   `tests/skills/_helpers.assert_skill_frontmatter` derives the upstream path from the manifest when not given.
 - **`write-a-skill` reclassified Derived** — upstream removed in mattpocock/skills 1.0.0 (2026-06-17); line 1
   carries the `Derived from …` form, ADR-0004 amended, README row rewritten.
+- **`grilling` forked; `grill-with-docs` reclassified Derived (`mattpocock-trio-adoption` M2)** —
+  `claude-code/skills/grilling/` is a verbatim fork of mattpocock/skills `skills/productivity/grilling`
+  @ `c55ee46` (round-based frontier interview, model-invocable). `grill-with-docs` keeps its name and
+  domain block but its `<what-to-do>` now delegates the interview to `Skill(grilling)`; glossary
+  sentence taken from upstream `domain-modeling`; ADR-0002 amended; skills 19 → 20.
 - **CI runs the suites it had been skipping** — the pytest step now covers `tests/skills tests/agents
   tests/plan_markers tests/test_gate.py tests/test_enforce.py tests/test_gate_parity.py`; `pyyaml` is a
   declared dev dependency; `test_foundations_count_headings_match_disk` pins the three foundations headings.

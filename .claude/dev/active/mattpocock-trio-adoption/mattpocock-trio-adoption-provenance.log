@@ -32,3 +32,9 @@
 [2026-09-21T10:22:13+01:00] STEP 2.2 COMPLETE — grill-with-docs Derived delegator; red test 936fb1d, green 7030200; FORKS.json state derived
 [2026-09-21T10:22:13+01:00] STEP 2.3 PARTIAL — docs/counts/ADR-0002/CHANGELOG done; pytest 142 passed; bats install_dry_run ok; install.sh linked ~/.claude/skills/grilling
 [2026-09-21T10:22:13+01:00] CHECKPOINT — ActiveStep: 2.3 — NextAction: "Fresh session: run /aa-ma-plan --grill-mode=with-docs on 'add --json output to scripts/fork-drift.sh', stop after Phase 1.3; record Skill(grilling) resolved path + ❓/➡️ excerpt in 2.3 Result Log; write LIVE_CHECK line; then §6 gates" — ContextLoaded: REFERENCE,TASKS,CONTEXT_LOG(tail) — TokenUsage: ~12%
+[2026-09-21T10:26:07+01:00] LIVE_CHECK — Milestone 2: Fork `grilling`; `grill-with-docs` becomes Derived — grilling_rounds=1 resolved=~/.claude/skills/grilling
+[2026-09-21T10:26:07+01:00] STEP 2.3 COMPLETE — live criterion met (1 round, 6 questions); Skill(grilling) → ours, no rename
+[2026-09-21T10:27:28+01:00] §6.1 CRITERIA — M2 6/6 verified (md5 284efe9c…; Derived line1 + 3-line what-to-do; live check; fingerprint 2 passed; jq true; counts 20/20/20)
+[2026-09-21T10:27:28+01:00] §6.3 IMPACT_ANALYSIS — Milestone 2 — 15 files, Overall LOW (no src/hooks code; consumers: aa-ma-plan Phase 1.3, test_fingerprint, forks.py/_helpers via FORKS.json — all green)
+[2026-09-21T10:27:28+01:00] §6.4 TESTS — pytest tests/skills tests/plan_markers tests/commands 142 passed; CI cmd 515 passed; bats install_dry_run 4/4
+[2026-09-21T10:27:28+01:00] CRITICAL_PATH_REVIEW — Milestone 2: Fork `grilling`; `grill-with-docs` becomes Derived — doc-count-drift — skills 19→20 at SECURITY.md list / README table / foundations heading+row / local CLAUDE.md; sweep `grep -rnE '19 (reusable|skills)|Skills \(19\)'` over README/SECURITY/docs/spec/rules/commands → only frozen v0.x CHANGELOG history line; test_security_md_asset_lists_match_disk + test_foundations_count_headings_match_disk green

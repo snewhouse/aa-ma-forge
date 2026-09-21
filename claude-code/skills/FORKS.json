@@ -62,5 +62,19 @@
       "SKILL.md": "284efe9cf334900d08230e572fc6db90"
     },
     "upstream_md5_source": "gh-api@c55ee46"
+  },
+  "aa-ma-research": {
+    "upstream": "skills/engineering/research",
+    "upstream_sha": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
+    "forked_at": "2026-09-21",
+    "adr": "docs/adr/0012-research-skill-adoption.md",
+    "state": "derived",
+    "files": {
+      "SKILL.md": "6c3b1a496bde761fc08fb5f481582020"
+    },
+    "upstream_md5": {
+      "SKILL.md": "e1dd6af372a9e1d134eff7d8362fe3f7"
+    },
+    "upstream_md5_source": "gh-api@c55ee46"
   }
 }

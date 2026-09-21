@@ -125,8 +125,6 @@ aa-ma-forge has been accumulating `docs/adr/` records since v0.5.0 (ADR-0001 shi
 | Path | Change |
 |------|--------|
 | `claude-code/commands/aa-ma-plan.md` | Phase 1.3 expanded from 4-line single-protocol to ~75-line mode-aware dispatcher |
-| `claude-code/rules/aa-ma.md` | Phase 1.3 reference updated to mention grill-with-docs (Task 1.5) |
-| `CLAUDE.md` | Skill list 13 → 14 (Task 1.5) |
 | `SECURITY.md` | Skill count line 13 → 14 with grill-with-docs alphabetised (Task 1.6) |
 | `docs/adr/INDEX.md` | This ADR registered |
 

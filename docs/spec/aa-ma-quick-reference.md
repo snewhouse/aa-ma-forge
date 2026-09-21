@@ -89,6 +89,7 @@ synthesis. Protocol toggles: `--no-goal` on `/execute-aa-ma-full`; omit
 |------|---------|
 | `[task]-tests.yaml` | Machine-executable test definitions per milestone |
 | `[task]-verification.md` | Adversarial verification audit trail |
+| `[task]-impl-review.md` | Post-impl adversarial review report (Phase 6.8) |
 
 ### Complexity Scoring
 

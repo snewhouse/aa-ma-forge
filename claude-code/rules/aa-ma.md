@@ -3,7 +3,7 @@
 The **Advanced Agentic Memory Architecture** provides structured external memory for long-horizon tasks.
 Full specification: [docs/aa-ma-specification.md](../docs/aa-ma-specification.md) | Quick ref: [docs/aa-ma-quick-reference.md](../docs/aa-ma-quick-reference.md)
 
-## File System (5 standard + 2 optional)
+## File System (5 standard + 3 optional)
 
 | File | Purpose |
 |------|---------|
@@ -14,6 +14,7 @@ Full specification: [docs/aa-ma-specification.md](../docs/aa-ma-specification.md
 | `[task]-provenance.log` | Execution telemetry, commit history, **session checkpoints** |
 | `[task]-verification.md` | **Optional** — adversarial verification audit trail (via `/verify-plan` or Phase 4.5) |
 | `[task]-tests.yaml` | **Optional** — machine-executable test definitions linked to milestone acceptance criteria |
+| `[task]-impl-review.md` | **Optional** — post-impl adversarial review report (Phase 6.8 of `/execute-aa-ma-milestone`, v0.8.0+) |
 
 **Task directory:** `.claude/dev/active/[task-name]/`
 

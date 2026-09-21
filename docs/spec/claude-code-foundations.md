@@ -49,7 +49,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 
 ## AA-MA: what this project adds
 
-### File taxonomy (5 standard + 2 optional)
+### File taxonomy (5 standard + 3 optional)
 
 | File | Purpose |
 |------|---------|
@@ -60,6 +60,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `[task]-provenance.log` | Execution telemetry, commit history |
 | `[task]-verification.md` | Adversarial verification audit (optional) |
 | `[task]-tests.yaml` | Machine-executable test definitions (optional) |
+| `[task]-impl-review.md` | Post-impl adversarial review report (optional; Phase 6.8, v0.8.0+) |
 
 **Task directory structure:**
 
@@ -68,7 +69,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `.claude/dev/active/[task-name]/` | Active tasks |
 | `.claude/dev/completed/` | Archived completed tasks |
 
-### Commands (11)
+### Commands (12)
 
 | Command | Purpose |
 |---------|---------|
@@ -81,6 +82,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/ops-mode` | Activate full operational constraints for disciplined execution |
 | `/archive-aa-ma` | Archive completed tasks to `dev/completed/` |
 | `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
+| `/aa-ma-share` | Publish a plan, ADR or spec doc as a private Artifact link (allowlisted paths only — context-log, provenance, reference and tasks are never shared) |
 | `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered Quick/Standard/Deep); optionally authors/reviews `AGENTS.md`. Thin wrapper around `Skill(understand-codebase)`; see ADR-0006 |
 | `/sole-dev-merge` | PR/MR-based merge workflow: scope-aware CI checks (L-007 guard) + 3-source security pass + idempotent PR/MR creation + 15-min CI poll + auto-merge + cleanup. See ADR-0008 |
 

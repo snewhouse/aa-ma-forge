@@ -26,6 +26,7 @@ The system uses five specialised documents to segment knowledge, ensuring Claude
 | `[task]-provenance.log` | Machine-readable log of execution history and Git activity (Telemetry).                           | [7]      |
 | `[task]-tests.yaml`     | **Optional.** Machine-readable test definitions linked to milestone acceptance criteria.           | [8]      |
 | `[task]-verification.md` | **Optional.** Adversarial verification audit trail from 6 independent angles.                     | [9]      |
+| `[task]-impl-review.md` | **Optional.** Post-impl adversarial review report (Phase 6.8; ADR-0005).                          | [9]      |
 
 How the files feed each other (load order for a cold agent: `reference.md` first, `tasks.md` second):
 

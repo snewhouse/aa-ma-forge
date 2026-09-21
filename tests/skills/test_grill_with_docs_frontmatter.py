@@ -7,7 +7,8 @@ Acceptance criteria (M1.7):
   - the upstream provenance comment is present and references mattpocock/skills
 
 Provenance: forked from https://github.com/mattpocock/skills/skills/engineering/grill-with-docs
-on 2026-05-10 (aa-ma-forge v0.6.0). See ADR-0002.
+on 2026-05-10 (aa-ma-forge v0.6.0); Derived since 2026-09-21 — the interview is
+delegated to Skill(grilling). See ADR-0002 and its amendment.
 """
 
 from __future__ import annotations
@@ -21,6 +22,15 @@ UPSTREAM_PATH = "mattpocock/skills/skills/engineering/grill-with-docs"
 def test_grill_with_docs_frontmatter() -> None:
     """SKILL.md frontmatter is well-formed and matches plugin conventions."""
     assert_skill_frontmatter(SKILL_DIR_NAME, UPSTREAM_PATH)
+
+
+def test_grill_with_docs_is_derived_delegator() -> None:
+    """Line 1 is a Derived provenance comment; <what-to-do> delegates to grilling (M2.2)."""
+    text = (SKILLS_DIR / SKILL_DIR_NAME / "SKILL.md").read_text(encoding="utf-8")
+    first = text.splitlines()[0]
+    assert first.startswith("<!-- Derived from"), f"line 1 must be a Derived comment, got: {first!r}"
+    block = text.split("<what-to-do>", 1)[1].split("</what-to-do>", 1)[0]
+    assert "grilling" in block, "<what-to-do> must delegate to Skill(grilling)"
 
 
 def test_skill_directory_has_companion_format_files() -> None:

@@ -413,4 +413,4 @@ No `pyproject.toml`/`uv.lock` change; no Context7 trigger. awk portability verif
 
 ## Revision History
 
-- 2026-09-21 — M5 review run (5 agents, parallel): 2 CRITICAL accepted; red pins e42d9e7 (8 bats cases, 2 fixtures) → fix set 2bd406d; 13/13 WARNING + 7/15 INFO fixed, 3 INFO deferred to TODOS.md, 5 acknowledged. Security re-check on 2bd406d: [pending — appended below when received].
+- 2026-09-21 — M5 review run (5 agents, parallel): 2 CRITICAL accepted; red pins e42d9e7 (8 bats cases, 2 fixtures) → fix set 2bd406d; 13/13 WARNING + 7/15 INFO fixed, 3 INFO deferred to TODOS.md, 5 acknowledged. Security re-check on 2bd406d (read-only, bats 28/28 at that commit): all 5 items CLOSED; residual 0 CRITICAL / 0 WARNING / 2 INFO (kill-switch seeding notice — fixed with a one-line echo in Step 1.0; local paths in the research note — acknowledged). **Final verdict: PASS_WITH_WARNINGS** (all WARNINGs fixed; INFO residue only).

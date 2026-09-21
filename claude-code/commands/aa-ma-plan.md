@@ -129,6 +129,7 @@ MAP=".claude/dev/charting/${EFFORT}/${EFFORT}-map.md"
 
 # Refuse unless every ticket is RESOLVED|RULED_OUT and fog is empty (prints what blocks).
 CLEAR=$("$GUARD" from-map "$MAP") || { printf '%s\n' "$CLEAR"; exit 1; }
+[ -n "$CLEAR" ] || echo "--from-map: AA_MA_HOOKS_DISABLE is set — map NOT checked for open tickets/fog; seeding anyway"
 TICKETS=$(printf '%s\n' "$CLEAR" | sed -n 's/^clear: tickets=\([0-9]*\).*/\1/p')
 
 # The seed: Decisions so far + every ticket's Answer, verbatim from the map.

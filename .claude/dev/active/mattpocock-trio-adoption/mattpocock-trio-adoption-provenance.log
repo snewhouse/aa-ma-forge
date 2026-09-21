@@ -121,3 +121,4 @@
 [2026-09-21T13:08:00+01:00] Post-milestone review: SKIPPED — M4 .py diff is two new test files only; §6.8 code-reviewer covers
 [2026-09-21T13:08:00+01:00] ENG_STANDARDS_GATE: PASS — Milestone 4 — cp=doc-count-drift prototype=YES pending=0 git=clean
 [2026-09-21T13:15:31+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: code-reviewer,security-auditor,tdd-sequence-auditor,context7-evidence-auditor,future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 8 WARNING / 14 INFO — fixes: 3c31c3c (red) → 252e690; 2 INFO deferred → TODOS.md
+[2026-09-21T13:40:29+01:00] MILESTONE COMPLETE — M4 — Commit: fd82d40 — Criteria: 7/7 verified

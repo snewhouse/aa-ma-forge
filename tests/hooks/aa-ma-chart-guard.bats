@@ -235,3 +235,91 @@ _repo() {  # prints a fresh git repo holding the clear map at the charting path
     run bash "${CLAUDE_HOME}/hooks/lib/aa-ma-chart-guard.sh" from-map "$(_map clear)"
     [ "$status" -eq 0 ]
 }
+
+# --- §6.8 M5 pins (security CRITICAL + WARNINGs) --------------------------------
+
+@test "slug: import refuses a <task> that is not [a-z0-9-]+ (exit 2, nothing moved)" {
+    r="$(_repo)"
+    run bash -c "cd '$r' && bash '$GUARD' import .claude/dev/charting/demo-effort/demo-effort-map.md '../../x' .claude/dev/active/demo-task/demo-task-provenance.log"
+    [ "$status" -eq 2 ]
+    [ -e "$r/.claude/dev/charting/demo-effort/demo-effort-map.md" ]
+    [ ! -e "$r/.claude/dev/x-map.md" ] && [ ! -e "$r/x-map.md" ]
+}
+
+@test "slug: fog and import refuse a map whose '# Charting:' header is not a slug (exit 2)" {
+    map="$(_map badheader)"
+    run bash "$GUARD" fog "$map"
+    [ "$status" -eq 2 ]
+    r="$(_repo)"; cp "${FIXDIR}/badheader-map.md" "$r/.claude/dev/charting/demo-effort/demo-effort-map.md"
+    run bash -c "cd '$r' && bash '$GUARD' import .claude/dev/charting/demo-effort/demo-effort-map.md demo-task .claude/dev/active/demo-task/demo-task-provenance.log"
+    [ "$status" -eq 2 ]
+    [ -e "$r/.claude/dev/charting/demo-effort/demo-effort-map.md" ]
+}
+
+@test "claim: a ticket block with no Status line → exit 1 'could not write', map unchanged" {
+    map="$(_map nostatus)"
+    before="$(md5sum < "$map")"
+    run bash "$GUARD" claim "$map" ticket-1
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"could not write"* ]]
+    [ "$(md5sum < "$map")" = "$before" ]
+}
+
+@test "import: refuses to clobber an existing <task>-map.md (untracked path)" {
+    r="$(_repo)"
+    printf 'existing\n' > "$r/.claude/dev/active/demo-task/demo-task-map.md"
+    run bash -c "cd '$r' && bash '$GUARD' import .claude/dev/charting/demo-effort/demo-effort-map.md demo-task .claude/dev/active/demo-task/demo-task-provenance.log"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"already exists"* ]]
+    [ "$(cat "$r/.claude/dev/active/demo-task/demo-task-map.md")" = "existing" ]
+    [ -e "$r/.claude/dev/charting/demo-effort/demo-effort-map.md" ]
+}
+
+@test "AA_MA_HOOKS_DISABLE=1 disables enforcement only: import still moves the map and writes MAP_IMPORTED" {
+    r="$(_repo)"
+    cp "${FIXDIR}/open-map.md" "$r/.claude/dev/charting/demo-effort/demo-effort-map.md"   # not clear
+    run bash -c "cd '$r' && AA_MA_HOOKS_DISABLE=1 bash '$GUARD' import .claude/dev/charting/demo-effort/demo-effort-map.md demo-task .claude/dev/active/demo-task/demo-task-provenance.log"
+    [ "$status" -eq 0 ]
+    [ -f "$r/.claude/dev/active/demo-task/demo-task-map.md" ]
+    grep -q 'MAP_IMPORTED effort=open-effort tickets=3' "$r/.claude/dev/active/demo-task/demo-task-provenance.log"
+}
+
+@test "usage: the usage text names every check (not tied to header line numbers)" {
+    run bash "$GUARD"
+    [ "$status" -eq 2 ]
+    for c in fog claim reclaim from-map import; do [[ "$output" == *"$c"* ]]; done
+}
+
+# The /aa-ma-chart fences, executed as shipped (aa-ma-gate-python.bats pattern):
+# the guard-resolution fence (with <effort> substituted) followed by the fog-test fence.
+_chart_fences() {  # <effort>
+    local cmd="${REPO_ROOT}/claude-code/commands/aa-ma-chart.md"
+    { awk '/^## Guard resolution/{f=1} f && /^```bash$/{g=1; next} g && /^```$/{exit} g' "$cmd" | sed "s|^EFFORT=\"<effort>\"|EFFORT=\"$1\"|"
+      awk '/^3\. \*\*Fog test/{f=1} f && /^ *```bash$/{g=1; next} g && /^ *```$/{exit} g' "$cmd"; }
+}
+
+@test "chart fence: an effort outside [a-z0-9-]+ exits 2 before any rm can run" {
+    mkdir -p "${WORK}/proj/.claude/dev/charting/other" && printf 'keep\n' > "${WORK}/proj/.claude/dev/charting/other/other-map.md"
+    git -C "${WORK}/proj" init -q
+    _chart_fences '../other' > "${WORK}/fence.sh"
+    run bash -c "cd '${WORK}/proj' && bash '${WORK}/fence.sh'"
+    [ "$status" -eq 2 ]
+    [ -f "${WORK}/proj/.claude/dev/charting/other/other-map.md" ]
+    _chart_fences '' > "${WORK}/fence0.sh"
+    run bash -c "cd '${WORK}/proj' && bash '${WORK}/fence0.sh'"
+    [ "$status" -eq 2 ]
+    [ -f "${WORK}/proj/.claude/dev/charting/other/other-map.md" ]
+}
+
+@test "chart fence: a fogless draft removes only its own map + empty dir, exit 1; siblings untouched" {
+    mkdir -p "${WORK}/proj/.claude/dev/charting/other" "${WORK}/proj/.claude/dev/charting/fogless-effort"
+    printf 'keep\n' > "${WORK}/proj/.claude/dev/charting/other/other-map.md"
+    cp "${FIXDIR}/fogless-map.md" "${WORK}/proj/.claude/dev/charting/fogless-effort/fogless-effort-map.md"
+    git -C "${WORK}/proj" init -q
+    _chart_fences 'fogless-effort' > "${WORK}/fence.sh"
+    run bash -c "cd '${WORK}/proj' && bash '${WORK}/fence.sh'"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"no map needed"* ]]
+    [ ! -e "${WORK}/proj/.claude/dev/charting/fogless-effort" ]
+    [ -f "${WORK}/proj/.claude/dev/charting/other/other-map.md" ]
+}

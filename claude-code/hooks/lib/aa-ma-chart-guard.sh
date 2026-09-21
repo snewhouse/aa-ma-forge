@@ -52,7 +52,7 @@ EOU
 }
 
 CHECK="${1:-}"; MAP="${2:-}"
-[ -n "$CHECK" ] && [ -n "$MAP" ] && [ -r "$MAP" ] || usage
+if [ -z "$CHECK" ] || [ -z "$MAP" ] || [ ! -r "$MAP" ]; then usage; fi
 
 # slug_ok <value> — the only shape an effort or task name may have. Both are
 # interpolated into paths that get created, moved and (in the command fence)
@@ -250,6 +250,6 @@ case "$CHECK" in
     claim)    aa_ma_is_disabled && exit 0; do_claim   "$MAP" "$(ticket_num "${3:-}")" ;;
     reclaim)  aa_ma_is_disabled && exit 0; do_reclaim "$MAP" "$(ticket_num "${3:-}")" ;;
     from-map) aa_ma_is_disabled && exit 0; do_from_map "$MAP" ;;
-    import)   [ -n "${3:-}" ] && [ -n "${4:-}" ] || usage; do_import "$MAP" "$3" "$4" ;;
+    import)   if [ -z "${3:-}" ] || [ -z "${4:-}" ]; then usage; fi; do_import "$MAP" "$3" "$4" ;;
     *)        usage ;;
 esac

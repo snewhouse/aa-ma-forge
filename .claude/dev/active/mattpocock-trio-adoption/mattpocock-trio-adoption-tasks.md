@@ -227,7 +227,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Effort: 25m · Complexity: 20%
 - Acceptance Criteria:
   - Three md5s match the Contract values; `test_prototype_frontmatter.py` green; `FORKS.json` `prototype` row `upstream_sha: c55ee46` (full sha), `forked_at` today, new local md5s and `upstream_md5`; manifest test green; `scripts/fork-drift.sh --sha c55ee46` reports `SAME` for prototype.
-- Artefacts: `claude-code/skills/prototype/{SKILL,LOGIC,UI}.md`, `FORKS.json`.
+- Artefacts: `claude-code/skills/prototype/{SKILL,LOGIC,UI}.md`, `FORKS.json`, `docs/adr/0003-prototype-adoption.md` (Re-fork amendment — added at §6.8).
 - Result Log: Mode: AFK — auto-dispatched. Fetched `skills/engineering/prototype/{SKILL,LOGIC,UI}.md` @ c55ee46 via `gh api`; whole-file md5s `5c68a286…` / `0c6daa14…` / `e3c84174…` = Contract. Wrote provenance line `Forked from … @ c55ee46 on 2026-09-21 — aa-ma-forge v0.13.0` + verbatim bodies; `tail -n +2` md5s match. `test_local_md5_matches_manifest` fired as designed → FORKS.json `prototype`: `upstream_sha` full c55ee46…, `forked_at` 2026-09-21, `files` = `upstream_md5` = the three, `upstream_md5_source: gh-api@c55ee46`. `tests/skills` 61 passed (frontmatter test green throughout). Live `scripts/fork-drift.sh --sha c55ee46` → **prototype SAME** (grilling SAME; grill-with-docs/write-a-skill ORPHAN by design). ADR-0003: status `re-forked 2026-09-21`, old md5s marked superseded, `## Amendment 2026-09-21 — Re-fork from HEAD c55ee46` (Re-fork per glossary: original ADR amended, no new number).
 
 ### Sub-step 3.5: Step 2.5 in `/aa-ma-plan`, Theme 1 wording, spec grammar, template, ADR-0011

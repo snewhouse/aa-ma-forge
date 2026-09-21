@@ -25,7 +25,10 @@ materially apply to its work and how.
   which routes between **LOGIC** (a single self-contained HTML demo — state panel, free-play buttons, tabbed guided walkthroughs — for state/business-logic questions) and **UI** (structurally different variants on an existing route, switchable via `?variant=`) branches based on the question, and captures the result on a `prototype/<name>` branch — main keeps only the decision.
   Then write a `[ts] PROTOTYPE — <milestone heading> — <verdict>` entry to
   `provenance.log` before milestone COMPLETE. A sub-step's `Prototype-Required:
-  YES` rolls up to its milestone's gate (ADR-0011). The skill provides the *how*; this rule provides the
+  YES` rolls up to its milestone's gate (ADR-0011). A UI-branch throwaway route
+  sits behind the host app's existing auth middleware and reads stubs or
+  fixtures, never live records — the fork's "throwaway branch" rule is not an
+  access control. The skill provides the *how*; this rule provides the
   *when* — both must align before the gate (Section 6.7 condition 5) accepts
   evidence.
 - Double-check critical paths. When a task carries `Critical-Path: <value>`,
@@ -116,7 +119,7 @@ checklist. The HARD/SOFT column indicates milestone-level enforcement:
 | Non-breaking constraint verified                | HARD | `Skill(impact-analysis)` run; tests still pass                          |
 | AA-MA artifacts in sync; git clean              | HARD | `git status` clean for AA-MA files; zero `Status: PENDING` in milestone |
 | `Critical-Path:` evidence (when field present)  | HARD | `CRITICAL_PATH_REVIEW` entry in `provenance.log`                        |
-| `Prototype-Required:` evidence (when YES)       | HARD | `PROTOTYPE — <verdict>` entry in `provenance.log`                       |
+| `Prototype-Required:` evidence (when YES)       | HARD | `PROTOTYPE — <milestone heading> — <verdict>` entry in `provenance.log` |
 | No assumptions left unvalidated                 | SOFT | Declared in `context-log.md`                                            |
 | Relevant skills/subagents consulted             | SOFT | `provenance.log` shows skill invocations                                |
 | Changes reviewed against past mistakes          | SOFT | Declared in plan element #12                                            |

@@ -150,6 +150,9 @@ a throwaway `prototype/<name>` branch — main keeps only the validated decision
   (`FORKS.json` `upstream_md5_source: gh-api@c55ee46`; detector → SAME).
 - Theme 1 of `claude-code/rules/engineering-standards.md` and the README / foundations rows are
   reworded to match (ADR-0011, `mattpocock-trio-adoption` Milestone 3).
+- Known upstream gap (§6.8 security review, M3): `UI.md` sub-shape B creates a new route rendering
+  "real data" with no auth guidance — only the variant switcher is gated on `NODE_ENV`. Theme 1 adds
+  the local rule: such routes sit behind the host app's auth middleware and read stubs/fixtures.
 
 ## References
 

@@ -33,7 +33,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
 from aa_ma.enforce import (
@@ -400,12 +400,10 @@ def answer(
     steps = _read_steps(block, read.heading, errors)
     if errors:
         return GateAnswer(EXIT_UNREADABLE, None, tuple(errors))
-    milestone = MilestoneRead(
-        **{
-            **asdict(read),
-            "pending_steps": steps.pending,
-            "prototype_required": read.prototype_required or steps.prototype_required,
-        }
+    milestone = replace(
+        read,
+        pending_steps=steps.pending,
+        prototype_required=read.prototype_required or steps.prototype_required,
     )
     step_read = None
     if step is not None:

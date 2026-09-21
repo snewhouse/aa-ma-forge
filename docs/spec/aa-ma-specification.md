@@ -321,10 +321,12 @@ The `[task]-provenance.log` file is an **immutable, append-only** log providing 
 # Milestone Complete
 [YYYY-MM-DD HH:MM] MILESTONE COMPLETE — [name] — Commit [hash] — Criteria: [N/N] verified
 
-# Engineering-standards evidence (read by /execute-aa-ma-milestone §6.7; each names
-# the `## Milestone N: …` heading byte-for-byte so the check is milestone-scoped)
+# Engineering-standards evidence. PROTOTYPE and CRITICAL_PATH_REVIEW are read by
+# /execute-aa-ma-milestone §6.7; each names the milestone heading (the text after
+# `## `, as `aa-ma-gate` prints it) byte-for-byte so the check is milestone-scoped.
 [ts] PROTOTYPE — <milestone heading> — <verdict>[; branch=prototype/<name>]
 [ts] CRITICAL_PATH_REVIEW — <milestone heading> — <Critical-Path value> — <evidence>
+# Advisory (not gate-read): evidence for a HITL live criterion
 [ts] LIVE_CHECK — <milestone heading> — <key>=<value>…
 
 # Session Resume

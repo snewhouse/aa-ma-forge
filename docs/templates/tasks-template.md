@@ -66,13 +66,13 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
      (auth-flow | data-xform | external-api | version-pipeline | doc-count-drift |
      hook-modification — see claude-code/rules/engineering-standards.md Theme 1),
      the milestone HARD gate requires a [ts] CRITICAL_PATH_REVIEW provenance entry
-     before COMPLETE. Leave blank or omit if no critical path applies.
+     before COMPLETE. Omit if no critical path applies.
      Novel values are rejected by Skill(plan-verification) — add new values via
      plan + ADR. Add `- Critical-Path: <value>` only when it applies; an empty
      value is a gate error (exit 2). -->
 
 <!-- Prototype-Required: OPTIONAL flag. When set to YES, the milestone HARD gate
-     requires a [ts] PROTOTYPE — <verdict> provenance entry before COMPLETE.
+     requires a [ts] PROTOTYPE — <milestone heading> — <verdict> provenance entry before COMPLETE.
      Use for milestones with material implementation uncertainty where a throwaway
      POC is the right de-risking step. Add `- Prototype-Required: YES` only when
      it applies; an empty value is a gate error (exit 2). A sub-step's YES rolls

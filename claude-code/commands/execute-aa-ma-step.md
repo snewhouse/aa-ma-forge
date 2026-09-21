@@ -240,7 +240,7 @@ flow.
 
 **Conditional sub-items** (when present in tasks.md, surface evidence in Result Log):
 - `Critical-Path: <value>` → mention `CRITICAL_PATH_REVIEW` evidence (verified at milestone gate)
-- `Prototype-Required: YES` → mention `PROTOTYPE — <verdict>` evidence; a sub-step's YES rolls up to the milestone gate (§6.7 reads it via `aa-ma-gate`), so the entry must name the **milestone** heading
+- `Prototype-Required: YES` → mention `PROTOTYPE — <milestone heading> — <verdict>` evidence; a sub-step's YES rolls up to the milestone gate (§6.7 reads it via `aa-ma-gate`), so the entry must name the **milestone** heading
 
 When `Critical-Path:` or `Prototype-Required:` is **absent** from the task, skip
 the corresponding check (no failure).

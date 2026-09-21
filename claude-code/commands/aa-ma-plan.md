@@ -329,9 +329,11 @@ Which themes from engineering-standards.md materially apply to this task?
 Capture the user's selection plus a one-sentence rationale for each chosen theme.
 The declaration text becomes element #12 of the plan output (Phase 4).
 
-**Provenance entry (CEO-5):** every Phase 2 declaration writes a structured entry
-to the task's provenance.log, providing per-plan audit trail and eliminating the
-silent-compliance failure mode:
+**Provenance entry (CEO-5):** every Phase 2 declaration writes ONE structured
+entry to the task's provenance.log, providing per-plan audit trail and
+eliminating the silent-compliance failure mode. Capture `THEMES` here; the
+`echo` itself runs once, at the end of Step 2.5, when `PROTO` is also known
+(the log is append-only — never edit a line after writing it):
 
 ```bash
 TS=$(date -Iseconds)
@@ -376,10 +378,11 @@ Prototype-Required for <milestone>? YES / NO
 
 Record every YES: at Step 5.5 write `- Prototype-Required: YES` into that
 milestone (or the specific sub-step — a sub-step's YES rolls up to the
-milestone gate, ADR-0011) in tasks.md, and append `prototype=<M-list>` to the
-`ENG_STANDARDS_DECLARED` provenance line above (`prototype=none` when nothing
-is flagged). Never write the field with an empty value — the gate refuses it
-(exit 2). Milestones flagged YES run `Skill(prototype)` during execution and
+milestone gate, ADR-0011) in tasks.md, then write the single
+`ENG_STANDARDS_DECLARED` line from Step 2.4 with `prototype=<M-list>` — the
+list names the milestone a flagged sub-step rolls up to (`M2,M4`), or
+`prototype=none` when nothing is flagged. Never write the field with an empty
+value — the gate refuses it (exit 2). Milestones flagged YES run `Skill(prototype)` during execution and
 must leave a `[ts] PROTOTYPE — <milestone heading> — <verdict>` provenance
 entry before COMPLETE (§6.7 condition 5). This is a step inside Phase 2 —
 it writes no `PHASE_2.5` marker.

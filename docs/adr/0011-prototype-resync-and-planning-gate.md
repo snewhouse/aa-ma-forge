@@ -60,7 +60,7 @@ How do we bring the fork current, make the prototype decision a first-class plan
 
 **Negative:** three more places to keep in sync with upstream (SKILL/LOGIC/UI); a Step 2.5 in `/aa-ma-plan` adds one AskUserQuestion per uncertain milestone; gate schema consumers (TUI JSON, kv) see no field change but semantics widen.
 
-**Neutral:** `TDD-Waiver: prototype` (`src/aa_ma/plan_parsers.py:47-59`) unchanged. Provenance line stays `[ts] PROTOTYPE — <verdict>` and gains an optional `branch=prototype/<name>` suffix.
+**Neutral:** `TDD-Waiver: prototype` (`src/aa_ma/plan_parsers.py:47-59`) unchanged. Provenance line becomes `[ts] PROTOTYPE — <milestone heading> — <verdict>` (milestone-scoped, matching `CRITICAL_PATH_REVIEW`; amended 2026-09-21 at implementation) and gains an optional `; branch=prototype/<name>` suffix.
 
 ## Architecture View
 

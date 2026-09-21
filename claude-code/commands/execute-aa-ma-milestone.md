@@ -614,7 +614,7 @@ if [[ "${PROTOTYPE_TASKS}" == "YES" ]]; then
   if ! grep -F -- "PROTOTYPE —" "${TASK_DIR}/${TASK_NAME}-provenance.log" \
        | grep -qF -- "${MILESTONE_TITLE}"; then
     echo "BLOCKED: the milestone or one of its sub-steps declares Prototype-Required: YES"
-    echo "but provenance.log has no PROTOTYPE — <verdict> entry naming this milestone."
+    echo "but provenance.log has no PROTOTYPE — <milestone heading> — <verdict> entry naming this milestone."
     exit 1
   fi
 fi

@@ -1,17 +1,11 @@
-<!-- Forked from https://github.com/mattpocock/skills/skills/engineering/grill-with-docs on 2026-05-10 — aa-ma-forge v0.6.0 -->
+<!-- Derived from https://github.com/mattpocock/skills/skills/engineering/grill-with-docs (forked 2026-05-10; upstream split into grilling + domain-modeling 2026-07; name and domain block retained) — aa-ma-forge v0.13.0 -->
 ---
 name: grill-with-docs
 description: Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates documentation (CONTEXT.md, ADRs) inline as decisions crystallise. Use when user wants to stress-test a plan against their project's language and documented decisions.
 ---
 
 <what-to-do>
-
-Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
-
-Ask the questions one at a time, waiting for feedback on each question before continuing.
-
-If a question can be answered by exploring the codebase, explore the codebase instead.
-
+Call the Skill tool with "grilling" and run its round-based interview about this plan. During the session apply the domain awareness below: challenge terms against CONTEXT.md, sharpen language, update CONTEXT.md and ADRs inline.
 </what-to-do>
 
 <supporting-info>
@@ -74,7 +68,7 @@ When the user states how something works, check whether the code agrees. If you 
 
 When a term is resolved, update `CONTEXT.md` right there. Don't batch these up — capture them as they happen. Use the format in [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
 
-Don't couple `CONTEXT.md` to implementation details. Only include terms that are meaningful to domain experts.
+`CONTEXT.md` should be totally devoid of implementation details. Do not treat `CONTEXT.md` as a spec, a scratch pad, or a repository for implementation decisions. It is a glossary and nothing else.
 
 ### Offer ADRs sparingly
 

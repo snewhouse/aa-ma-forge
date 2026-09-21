@@ -1,4 +1,5 @@
 <!-- Forked from https://github.com/mattpocock/skills/skills/engineering/grill-with-docs on 2026-05-10 — aa-ma-forge v0.6.0 -->
+<!-- Derived: retains Relationships / Example dialogue / Flagged ambiguities (upstream removed 2026-07); still glossary-level, never implementation. -->
 # CONTEXT.md Format
 
 ## Structure

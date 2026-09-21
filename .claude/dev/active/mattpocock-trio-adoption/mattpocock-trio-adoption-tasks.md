@@ -136,14 +136,14 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Result Log: Mode: AFK — auto-dispatched. RED: `test_grilling_frontmatter` failed (SKILL.md absent) → committed alone as 7542c30 (L-017a). Fetched `skills/productivity/grilling/SKILL.md` @ c55ee46 via `gh api`; whole-file md5 `284efe9cf334900d08230e572fc6db90` = reference. Wrote local file = provenance line + upstream body (28 lines); `tail -n +2 | md5sum` = `284efe9c…` ✓. GREEN: 1 passed; `disable-model-invocation` absent asserted. Pulled the `grilling` FORKS.json row forward from 2.3 (state current, upstream_sha c55ee46…, upstream_md5_source `gh-api@c55ee46`) so `test_every_fork_dir_is_in_manifest` stays green at this commit — `tests/skills` all green.
 
 ### Sub-step 2.2: Rewrite `grill-with-docs` as Derived delegator
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Step 2.1
 - Effort: 30m · Complexity: 35%
 - Acceptance Criteria:
   - File matches the M2 Contract; under the `### Update CONTEXT.md inline` heading, the sentence beginning "Don't couple `CONTEXT.md` to implementation details" is replaced by upstream's ("`CONTEXT.md` should be totally devoid of implementation details… a glossary and nothing else"); `CONTEXT-FORMAT.md` line 2 = `<!-- Derived: retains Relationships / Example dialogue / Flagged ambiguities (upstream removed 2026-07); still glossary-level, never implementation. -->`; existing test green.
 - Artefacts: `claude-code/skills/grill-with-docs/SKILL.md`, `claude-code/skills/grill-with-docs/CONTEXT-FORMAT.md`.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. RED: `test_grill_with_docs_is_derived_delegator` (line-1 `Derived from` + `<what-to-do>` names `grilling`) failed → committed alone 936fb1d. Rewrote: line 1 = M2 Contract Derived comment; `<what-to-do>` = 3 lines (contract text verbatim); glossary sentence replaced by upstream domain-modeling's ("totally devoid of implementation details… a glossary and nothing else"); rest of `<supporting-info>` untouched (diff: 12 lines SKILL.md). `CONTEXT-FORMAT.md` line 2 = the Derived retention comment. `test_local_md5_matches_manifest` fired MD5_MISMATCH as designed → FORKS.json `grill-with-docs` → `state: derived`, `files` md5s recomputed (SKILL `73617465…`, CONTEXT-FORMAT `03e375e9…`, ADR-FORMAT unchanged `bb327bab…`), `upstream_md5` all null, `upstream_md5_source` null (write-a-skill precedent). GREEN: `tests/skills` + `tests/plan_markers` 110 passed; `test_satisfied_by_grill_with_docs` passes (no fingerprint change). jq M2 manifest criterion → `true`. Two `tests/commands` count tests red (19 vs 20 on disk) — owned by 2.3.
 
 ### Sub-step 2.3: Manifest rows, ADR-0002 amendment, `aa-ma-plan.md` note, counts, CHANGELOG, live check, sync
 - Status: PENDING

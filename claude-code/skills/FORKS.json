@@ -4,18 +4,18 @@
     "upstream_sha": null,
     "forked_at": "2026-05-10",
     "adr": "docs/adr/0002-grill-with-docs-adoption.md",
-    "state": "current",
+    "state": "derived",
     "files": {
-      "SKILL.md": "5ad241e49d5ffcd394eeff3a5ca46953",
-      "CONTEXT-FORMAT.md": "57e7e26a1a46884f8f952c67fb233af2",
+      "SKILL.md": "736174655db369df8b372493416b9d45",
+      "CONTEXT-FORMAT.md": "03e375e9bccdbcb234331b5105bb7229",
       "ADR-FORMAT.md": "bb327bab674f400796f64b6e2ef5850c"
     },
     "upstream_md5": {
-      "SKILL.md": "5ad241e49d5ffcd394eeff3a5ca46953",
-      "CONTEXT-FORMAT.md": "57e7e26a1a46884f8f952c67fb233af2",
-      "ADR-FORMAT.md": "bb327bab674f400796f64b6e2ef5850c"
+      "SKILL.md": null,
+      "CONTEXT-FORMAT.md": null,
+      "ADR-FORMAT.md": null
     },
-    "upstream_md5_source": "derived-from-local-fork"
+    "upstream_md5_source": null
   },
   "prototype": {
     "upstream": "skills/engineering/prototype",

@@ -7,6 +7,8 @@ setup() {
     SCRIPT="${REPO_ROOT}/scripts/fork-drift.sh"
     MANIFEST="${BATS_TEST_DIRNAME}/fixtures/forks/FORKS.json"
     WORK="$(mktemp -d "${BATS_TMPDIR}/fork-drift.XXXXXX")"
+    # The stub returns base64("Hello") for alpha; the fixture's upstream_md5 is md5("Hello").
+    HELLO_MD5="$(printf 'Hello' | md5sum | cut -d' ' -f1)"
 }
 
 teardown() { rm -rf "$WORK"; }
@@ -34,9 +36,9 @@ STUB
     make_stub "gh: Not Found (HTTP 404)"
     run env GH="$WORK/stub-gh" "$SCRIPT" --manifest "$MANIFEST" --sha c55ee46
     [ "$status" -eq 0 ]
-    [[ "$output" == *"alpha | SKILL.md | 8b1a9953c4611296a827abf8c47804d7 | 8b1a9953c4611296a827abf8c47804d7 | SAME"* ]]
+    [[ "$output" == *"alpha | SKILL.md | ${HELLO_MD5} | ${HELLO_MD5} | SAME"* ]]
     [[ "$output" == *"alpha | * | | | SAME"* ]]
-    [[ "$output" == *"beta | SKILL.md | 8b1a9953c4611296a827abf8c47804d7 | - | ORPHAN"* ]]
+    [[ "$output" == *"beta | SKILL.md | ${HELLO_MD5} | - | ORPHAN"* ]]
     [[ "$output" == *"beta | * | | | ORPHAN"* ]]
 }
 
@@ -51,4 +53,31 @@ STUB
 @test "unknown flag → exit 2 usage" {
     run "$SCRIPT" --bogus
     [ "$status" -eq 2 ]
+}
+
+@test "malformed manifest (row missing files) → exit 1 naming the key, no rows" {
+    make_stub "gh: Not Found (HTTP 404)"
+    printf '{"x": {"upstream": "skills/x"}}\n' > "$WORK/bad.json"
+    run env GH="$WORK/stub-gh" "$SCRIPT" --manifest "$WORK/bad.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"files"* ]]
+    [[ "$output" != *"| * |"* ]]
+}
+
+@test "--help prints the whole header comment and no code" {
+    run "$SCRIPT" --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"never reported ORPHAN"* ]]
+    [[ "$output" != *"set -euo"* ]]
+}
+
+@test "repo unreachable (404 on the repo itself) → exit 1, never ORPHAN" {
+    cat > "$WORK/stub-gh" <<'STUB'
+#!/usr/bin/env bash
+echo "gh: Not Found (HTTP 404)" >&2; exit 1
+STUB
+    chmod +x "$WORK/stub-gh"
+    run env GH="$WORK/stub-gh" "$SCRIPT" --manifest "$MANIFEST"
+    [ "$status" -eq 1 ]
+    [[ "$output" != *"ORPHAN"* ]]
 }

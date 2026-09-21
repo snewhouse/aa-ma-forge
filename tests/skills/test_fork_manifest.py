@@ -12,11 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from aa_ma.forks import ForkEntry, classify_fork, load_manifest
+from aa_ma.forks import ForkEntry, _cli, classify_fork, load_manifest
 
-from ._helpers import SKILLS_DIR, assert_skill_frontmatter  # pyright: ignore[reportMissingImports]
-
-MANIFEST = SKILLS_DIR / "FORKS.json"
+from ._helpers import FORKS_MANIFEST as MANIFEST, SKILLS_DIR, assert_skill_frontmatter  # pyright: ignore[reportMissingImports]
 FORK_LINE_PREFIXES = ("<!-- Forked from ", "<!-- Derived from ")
 
 
@@ -33,7 +31,8 @@ def _fork_dirs() -> set[str]:
 
 def _local_md5(path: Path) -> str:
     """md5 of `tail -n +2 <file>` — the manifest `files.<f>` recipe."""
-    body = path.read_bytes().split(b"\n", 1)[1] if b"\n" in path.read_bytes() else b""
+    data = path.read_bytes()
+    body = data.split(b"\n", 1)[1] if b"\n" in data else b""
     return hashlib.md5(body).hexdigest()  # noqa: S324 — integrity check, not security
 
 
@@ -97,3 +96,35 @@ def test_load_manifest_names_missing_key(tmp_path: Path) -> None:
 def test_helper_resolves_upstream_from_manifest() -> None:
     """Step 1.3: `expected_upstream_path=None` derives the path from FORKS.json."""
     assert_skill_frontmatter("prototype", expected_upstream_path=None)
+
+
+def test_cli_files_lists_manifest_rows(capsys: pytest.CaptureFixture[str]) -> None:
+    assert _cli(["files", "--manifest", str(MANIFEST)]) == 0
+    rows = [line.split("\t") for line in capsys.readouterr().out.splitlines()]
+    assert ["prototype", "skills/engineering/prototype", "SKILL.md"] in rows
+    assert all(len(r) == 3 for r in rows)
+
+
+def test_cli_classify_all_reads_stdin(capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    import io
+
+    proto = load_manifest(MANIFEST)["prototype"]
+    fetched = "\n".join(f"prototype\t{f}\t{md5}" for f, md5 in proto.upstream_md5.items()) + "\nwrite-a-skill\tSKILL.md\tnull\n"
+    monkeypatch.setattr("sys.stdin", io.StringIO(fetched))
+    assert _cli(["classify-all", "--manifest", str(MANIFEST)]) == 0
+    out = capsys.readouterr().out
+    assert "prototype | * | | | SAME" in out
+    assert "write-a-skill | * | | | ORPHAN" in out
+    assert "grill-with-docs | * | | | ORPHAN" in out  # absent from stdin → every file None
+
+
+def test_cli_usage_errors_exit_2(capsys: pytest.CaptureFixture[str]) -> None:
+    assert _cli(["classify", "no-such-skill", "{}"]) == 2
+    assert _cli(["classify", "prototype", "{}", "--manifest"]) == 2
+    assert _cli(["bogus"]) == 2
+
+
+def test_default_manifest_constant_is_shared() -> None:
+    from aa_ma.forks import DEFAULT_MANIFEST
+
+    assert DEFAULT_MANIFEST == MANIFEST

@@ -1,4 +1,5 @@
 {
+  "_comment": "upstream_md5 = md5('Hello') — matches the fork-drift.bats stub payload SGVsbG8=; extra keys are ignored on load",
   "alpha": {
     "upstream": "skills/engineering/alpha",
     "upstream_sha": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",

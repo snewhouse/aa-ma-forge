@@ -16,7 +16,7 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-**Current version:** v0.13.0 — fork manifest, grilling, prototype gate, research agent
+**Current version:** v0.14.0 — charting: pre-plan decision maps (/aa-ma-chart, --from-map)
 
 ## The problem
 

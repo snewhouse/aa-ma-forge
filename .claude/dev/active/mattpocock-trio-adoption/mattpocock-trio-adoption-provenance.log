@@ -122,3 +122,4 @@
 [2026-09-21T13:08:00+01:00] ENG_STANDARDS_GATE: PASS — Milestone 4 — cp=doc-count-drift prototype=YES pending=0 git=clean
 [2026-09-21T13:15:31+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: code-reviewer,security-auditor,tdd-sequence-auditor,context7-evidence-auditor,future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 8 WARNING / 14 INFO — fixes: 3c31c3c (red) → 252e690; 2 INFO deferred → TODOS.md
 [2026-09-21T13:40:29+01:00] MILESTONE COMPLETE — M4 — Commit: fd82d40 — Criteria: 7/7 verified
+[2026-09-21T13:50:17+01:00] M5 Step 5.1 COMPLETE — CHANGELOG Unreleased re-added; docs/templates/map-template.md + claude-code/commands/aa-ma-chart.md created; canonical test 23 passed; aa-ma-render rc 0

@@ -340,7 +340,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 ---
 
 ## Milestone 5: Charting — `/aa-ma-chart` (Adaptation of wayfinder) + `--from-map`; release v0.14.0
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestones 2, 3, 4
 - Complexity: 65%
 - Mode: HITL
@@ -365,14 +365,14 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Execution order note: the `--from-map` flag must exist before 5.3's dry-run leg — execute 5.1 → 5.2 → 5.4 (flag only) → 5.3 → 5.4 (docs) and record the split in the 5.4 Result Log.
 
 ### Sub-step 5.1: Re-add `## Unreleased`; `map-template.md` + `aa-ma-chart.md` command (chart + work modes)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: None (after v0.13.0 is tagged)
 - Effort: 150m · Complexity: 55%
 - Acceptance Criteria:
   - `grep -c '^## Unreleased' CHANGELOG.md` = 1 (re-added after v0.13.0); `grep -q '^## Not yet specified' docs/templates/map-template.md && grep -q '^## Out of scope' docs/templates/map-template.md && grep -q 'Claimed-at' docs/templates/map-template.md`; `grep -q '\[ad-hoc\]' claude-code/commands/aa-ma-chart.md`; `tests/test_active_plans_canonical.py` green; `uv run aa-ma-render claude-code/commands/aa-ma-chart.md --out build/render; test $? -eq 0`.
 - Artefacts: `CHANGELOG.md`, `docs/templates/map-template.md`, `claude-code/commands/aa-ma-chart.md`.
-- Result Log: [pending]
+- Result Log: ✅ COMPLETE 2026-09-21 13:55 — Mode: AFK — auto-dispatched. `grep -c '^## Unreleased' CHANGELOG.md` = 1 (M5 entry seeded under `### Added`). `map-template.md` created (Destination/Notes/Decisions so far/Tickets/Not yet specified/Out of scope; ticket grammar in an HTML comment; `Claimed-at`/`Reclaimed` documented; `### Ticket N:` verified not to match `STEP_RE` in `grammar.py`). `aa-ma-chart.md` created: chart + work(+`--reclaim`) modes, 6 hard rules incl. `[ad-hoc]` footer, resolver table, `_cand` guard resolution, handoff section. Checks: template greps OK; `[ad-hoc]` grep OK; `_cand` literal count = 1; `tests/test_active_plans_canonical.py` 23 passed; `aa-ma-render … --out build/render` rc 0. Deviation: the `_cand` loop uses `done 2>/dev/null` (loop-level) instead of `2>/dev/null` inside the substitution so the AC's literal grep matches — see context-log AD-014.
 
 ### Sub-step 5.2: Guard helper + bats for the four refusal/reclaim cases
 - Status: PENDING

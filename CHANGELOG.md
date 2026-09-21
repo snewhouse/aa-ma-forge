@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- **Charting — `/aa-ma-chart` + `--from-map` (`mattpocock-trio-adoption` M5)** — a pre-plan decision map
+  (`.claude/dev/charting/<effort>/<effort>-map.md`) with typed tickets (`research | prototype | grilling | task`)
+  resolved one per session, guarded by `claude-code/hooks/lib/aa-ma-chart-guard.sh` (claim-before-work,
+  ≤1 non-research ticket CLAIMED at a time, no-fog early exit), handed off via `/aa-ma-plan --from-map <effort>
+  [--dry-run]`. Concept adapted from mattpocock/skills `wayfinder` @ `c55ee46`; no files forked (ADR-0013).
+  New optional file type `[task]-map.md` (5 standard + 4 optional); commands 12 → 13.
+
 ## v0.13.0 (2026-09-21)
 
 ### Added

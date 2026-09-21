@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.**
 
-_Last Updated: 2026-09-20 21:10_
+_Last Updated: 2026-09-21 (M1 complete; §7.2.5 back-fill)_
 
 _Non-negotiable facts extracted from the plan, the design spec (D1–D9), the research note and the verification report. Anchors, not line numbers, locate edits (eng-review OV8). All facts `[valid: 2026-09-20]` unless marked otherwise._
 
@@ -40,7 +40,7 @@ _Non-negotiable facts extracted from the plan, the design spec (D1–D9), the re
 | Skill dir | ADR | State after plan | Notes |
 |---|---|---|---|
 | `claude-code/skills/grill-with-docs/` | `docs/adr/0002-grill-with-docs-adoption.md` | derived (M2) | forked 2026-05-10; **ADR-0002 has no md5 values** (prose "matches upstream byte-for-byte" only) → `upstream_md5.<f>` = local `tail -n +2 <f> \| md5sum`, `upstream_md5_source: derived-from-local-fork`; `CONTEXT-FORMAT.md` + `ADR-FORMAT.md` stay in the dir |
-| `claude-code/skills/prototype/` | `docs/adr/0003-prototype-adoption.md` | current, re-forked (M3) | forked 2026-05-10; ADR-0003 md5s under anchor `MD5 verification (canonical` — three values equal to local `tail -n +2` md5s (1.2.3-era: `f59e7362…`, `5a29fb2c…`, `0531f4c5…` per design spec) |
+| `claude-code/skills/prototype/` | `docs/adr/0003-prototype-adoption.md` | current, re-forked (M3) | forked 2026-05-10; ADR-0003 md5s under anchor `MD5 verification (canonical` — three values equal to local `tail -n +2` md5s — `10ace9b5d79140b25d115bb8d840106d` / `d57721452aacaa04caacd0bc7c5c2f49` / `c1eaad6437c90d5660b2ffc9ff91ffb4` (verified 2026-09-21; the design spec's `f59e7362…/5a29fb2c…/0531f4c5…` values were wrong — never appeared in ADR-0003) |
 | `claude-code/skills/write-a-skill/` | `docs/adr/0004-write-a-skill-adoption.md` | derived (M1) | forked 2026-05-10; upstream `skills/productivity/write-a-skill` deleted in 1.0.0; `upstream_sha: null`, `upstream_md5: {"SKILL.md": null}` |
 | `claude-code/skills/grilling/` (new, M2) | ADR-0002 amendment | current | upstream `skills/productivity/grilling` |
 | `claude-code/skills/aa-ma-research/` (new, M4) | `docs/adr/0012-*.md` | derived | upstream `skills/engineering/research`; renamed (OV1) |
@@ -80,7 +80,7 @@ After Step 3.4: `prototype` → SAME. Only HTTP 404 maps to ORPHAN; 403/auth/net
 
 ### Files to modify
 
-- `tests/skills/_helpers.py`, `.github/workflows/security.yml`, `pyproject.toml`, `uv.lock`, `tests/commands/test_aa_ma_share_command.py` (M1)
+- `tests/skills/_helpers.py`, `.github/workflows/security.yml`, `pyproject.toml`, `uv.lock`, `tests/commands/test_aa_ma_share_command.py`, `.importlinter` (render-is-leaf += `aa_ma.forks`), `docs/lessons.md` (L-017) (M1)
 - `claude-code/skills/write-a-skill/SKILL.md`, `docs/adr/0004-write-a-skill-adoption.md`, `docs/adr/0002-grill-with-docs-adoption.md`, `README.md` (M1)
 - `claude-code/skills/grill-with-docs/{SKILL,CONTEXT-FORMAT}.md`, `claude-code/commands/aa-ma-plan.md`, `docs/ATTRIBUTION.md` (M2)
 - `claude-code/skills/prototype/{SKILL,LOGIC,UI}.md`, `src/aa_ma/gate.py`, `tests/test_gate.py`, `tests/hooks/aa-ma-gate-python.bats` (M3)
@@ -312,7 +312,7 @@ tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, Write
 | "clean" | the named command exits 0 and prints no findings (`<cmd>; test $? -eq 0`) |
 | `CHANGELOG.md` | edit `## Unreleased` only (L-003); counts updated per milestone (L-002) |
 | Dev deps | `[dependency-groups] dev` in `pyproject.toml` (not `[tool.uv] dev-dependencies`); `pyyaml` declared explicitly (M1) |
-| CI pytest list (after M1) | `tests/commands tests/render tests/skills tests/agents tests/plan_markers tests/test_gate.py tests/test_enforce.py tests/test_gate_parity.py` |
+| CI pytest step (after M1, AD-003) | exclusion-based: `uv run pytest tests -q --tb=short --ignore=tests/codemem --ignore=tests/perf --ignore=tests/test_goal_synthesis.py` — never enumerate (L-017c) |
 | Gate exit codes | `aa-ma-gate` exit 0/1/2/3/4; empty or invalid `Prototype-Required` / `Critical-Path` value → exit 2 (milestone level today; sub-step level after M3) |
 | Vocabulary | Fork / Re-fork / Drift / Orphan / Adaptation / Adoption per `CONTEXT.md`; "sync", "vendor" banned |
 | Banned marker | never emit `PHASE_2.5` |

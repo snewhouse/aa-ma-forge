@@ -1,6 +1,6 @@
 # Impl Review Report: mattpocock-trio-adoption / Milestone 1
 Generated: 2026-09-21T09:05:00+01:00 | Audit-Profile: code-only | Budget: normal
-Window: c47e15b..8d91442 (M1 commit) · fixes landed in d755920 (red) + the following green commit
+Window: c47e15b..8d91442 (M1 commit) · fixes landed in d755920 (red) + 4144305 (green)
 
 ## Summary
 - CRITICAL: 2 findings (1 accepted → fixed, 1 disputed, 0 deferred)

@@ -100,7 +100,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Acceptance Criteria:
   - `CHANGELOG.md ## Unreleased` has M1 entries; new count test green against the pre-M1 baseline; commit + push with plan footer.
 - Artefacts: `CHANGELOG.md`, tasks/reference/context-log/provenance sync.
-- Result Log: Mode: AFK — auto-dispatched. `CHANGELOG.md ## Unreleased` += 3 M1 entries (manifest+detector, write-a-skill Derived, CI widening). `test_foundations_count_headings_match_disk` green against the pre-M1 baseline (12/19/11). §6.1 all 6 criteria verified live (tamper legs: `MISSING_IN_MANIFEST: prototype`, `MD5_MISMATCH: prototype/SKILL.md`; FORKS.json restored). Impact analysis: 12 files, overall LOW. Commit + push with plan footer — see provenance.
+- Result Log: Mode: AFK — auto-dispatched. `CHANGELOG.md ## Unreleased` += 3 M1 entries (manifest+detector, write-a-skill Derived, CI widening). `test_foundations_count_headings_match_disk` green against the pre-M1 baseline (12/19/11). §6.1 all 6 criteria verified live (tamper legs: `MISSING_IN_MANIFEST: prototype`, `MD5_MISMATCH: prototype/SKILL.md`; FORKS.json restored). Impact analysis: 12 files, overall LOW. Commits (plan footer): `8d91442` M1 → `d755920` red tests (§6.8 fix, committed first per L-017) → `4144305` green fixes → `b5c4df6` context-log entry; all pushed, CI green on 4144305.
 
 ---
 

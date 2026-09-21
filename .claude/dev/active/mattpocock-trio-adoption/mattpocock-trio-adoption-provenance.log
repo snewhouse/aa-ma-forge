@@ -22,3 +22,8 @@
 [2026-09-21T10:09:10+01:00] CONTEXT7 — pyyaml@6.x — yaml.safe_load (declaration-only; API already in use in 4 test files pre-M1; no new surface)
 [2026-09-21T10:10:16+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: code-reviewer,security-auditor,tdd-sequence-auditor,context7-evidence-auditor,future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 2 CRITICAL / 8 WARNING / 13 INFO (1 CRITICAL fixed, 1 disputed w/ provenance evidence; 5 WARNING + 4 INFO fixed; red test committed first d755920)
 [2026-09-21T10:10:16+01:00] Post-milestone review (§6.6): folded into §6.8 code-reviewer (KISS/DRY/efficiency findings above) — acknowledged/fixed
+[2026-09-21T10:13:18+01:00] COMMIT 8d91442 — M1 milestone commit (Steps 1.1–1.7)
+[2026-09-21T10:13:18+01:00] COMMIT d755920 — test(forks): red tests for §6.8 fixes (committed before implementation, L-017a)
+[2026-09-21T10:13:18+01:00] COMMIT 4144305 — fix(forks): §6.8 fixes green; post-fix state: pytest 513 passed (exclusion-based CI command), bats fork-drift 7/7, shellcheck clean, lint-imports 3 kept; CI run 35581802744 success (5/5 jobs)
+[2026-09-21T10:13:18+01:00] COMMIT b5c4df6 — docs(aa-ma): M1 completion entry in context-log (AD-002..004)
+[2026-09-21T10:13:18+01:00] §7.2.5 VALIDATOR — verdict GAPS_REQUIRE_FIX → 5 back-fills applied inline (provenance COMMIT lines, reference.md md5 contradiction + CI row + M1 modified files + Last Updated, tasks 1.7 hashes, impl-review hash)

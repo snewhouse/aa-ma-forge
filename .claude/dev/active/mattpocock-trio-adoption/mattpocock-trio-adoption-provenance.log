@@ -136,3 +136,5 @@
 [2026-09-21T16:36:59+01:00] §6.7 ENG-STANDARDS-GATE: PASS (fence executed verbatim; heading byte-exact; pending_steps=0; CRITICAL_PATH_REVIEW + PROTOTYPE lines present)
 [2026-09-21T18:09:00+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: code-reviewer,security-auditor,tdd-sequence-auditor,context7-evidence-auditor,future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 2 CRITICAL / 13 WARNING / 15 INFO (2/2 CRITICAL accepted → fixed e42d9e7+2bd406d; 13/13 WARNING fixed; 7 INFO fixed, 3 deferred TODOS, 5 acknowledged; security re-check 2bd406d residual 0/0/2)
 [2026-09-21T20:14:09+01:00] CI: ShellCheck job red since 50c8099 (SC2015 info-level on CI's shellcheck, not locally) — fixed 3f83d36; waiting for green before release
+[2026-09-21T20:17:05+01:00] M5 Step 5.5 COMPLETE — v0.14.0 cut: bump b527241, tag ea6d7d1, GitHub Release published; CI 35643530138 success
+[2026-09-21T20:17:05+01:00] §7.2 DOC SYNC — tasks M5 COMPLETE + 9/9 AC ticked; context-log completion summary + AD-015..019; reference M5 as-built facts + Last Updated

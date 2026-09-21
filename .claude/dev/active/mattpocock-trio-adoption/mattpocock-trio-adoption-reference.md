@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.**
 
-_Last Updated: 2026-09-21 (M4 complete; aa-ma-research + aa-ma-researcher shipped, v0.13.0 cut — AD-010..013)_
+_Last Updated: 2026-09-21 (M5 complete; charting shipped, v0.14.0 cut — AD-014..019)_
 
 _Non-negotiable facts extracted from the plan, the design spec (D1–D9), the research note and the verification report. Anchors, not line numbers, locate edits (eng-review OV8). All facts `[valid: 2026-09-20]` unless marked otherwise._
 
@@ -44,7 +44,7 @@ _Non-negotiable facts extracted from the plan, the design spec (D1–D9), the re
 | `claude-code/skills/write-a-skill/` | `docs/adr/0004-write-a-skill-adoption.md` | derived (M1) | forked 2026-05-10; upstream `skills/productivity/write-a-skill` deleted in 1.0.0; `upstream_sha: null`, `upstream_md5: {"SKILL.md": null}` |
 | `claude-code/skills/grilling/` (new, M2) | ADR-0002 amendment | current | upstream `skills/productivity/grilling` |
 | `claude-code/skills/aa-ma-research/` (new, M4) | `docs/adr/0012-*.md` | derived | upstream `skills/engineering/research`; renamed (OV1) |
-| charting (M5) | `docs/adr/0013-*.md` | Adaptation | concept from `wayfinder`; **no files forked**, no manifest row |
+| charting (M5) | `docs/adr/0013-charting-wayfinder-lite.md` | Adaptation (M5 ✓) | concept from `wayfinder`; **no files forked**, no manifest row; ADR Implemented 2026-09-21 |
 
 ### Expected `scripts/fork-drift.sh --sha c55ee46` verdicts (after Step 1.2, before M2/M3)
 
@@ -245,6 +245,13 @@ tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, Write
 #   Phase 1 seeded from Decisions so far + Answers; --dry-run prints the seed and exits before Phase 1.3;
 #   Step 5.x: guard `import` (see M5 Contract) moves the map to .claude/dev/active/<task>/<task>-map.md; provenance: [ts] MAP_IMPORTED effort=<effort> tickets=<N>
 ```
+
+### Milestone 5 as-built facts (2026-09-21)
+- Guard: `claude-code/hooks/lib/aa-ma-chart-guard.sh` — `fog|claim|reclaim|from-map|import`; exit 0 ok / 1 refused (stdout) / 2 usage (also: effort or task not `^[a-z0-9-]+$`, map header `# Charting: <effort>` not a slug). `AA_MA_HOOKS_DISABLE=1` → fog/claim/reclaim/from-map exit 0 no-op; **import always runs** (AD-016). `claim` checks the one-at-a-time invariant before `Blocked-by`; `set_status` returns 1 when no Status line was rewritten. `from-map` success line: `clear: tickets=<N> resolved=<R> ruled_out=<X>`. `import` refuses an existing `<task>-map.md`.
+- Sub-step Status enum has no `ACTIVE` — use `IN_PROGRESS` (gate exit 2 otherwise).
+- `/aa-ma-plan --from-map` dry-run first line: `--from-map dry-run: effort=<e> tickets=<N> — no task directory created`; seed is loaded in a `<MAP_SEED>` block (AD-018).
+- Release v0.14.0: bump commit `b527241`, tag object `ea6d7d1`, https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.14.0; CI run 35643530138 green. CI shellcheck runs at info severity (SC2015 `A && B || C` fails there) — run `shellcheck -S info` locally.
+- Charting artefacts: `.claude/dev/charting/writing-for-agents-eval/writing-for-agents-eval-map.md` (4 tickets, all RESOLVED), `docs/research/writing-for-agents-eval-overlap.md` (25 rule rows: 12 new / 9 partial / 1 dup / 3 conflicts) — commit `6bcef05` `[ad-hoc]`. Decisions locked there: fork `writing-for-agents` verbatim (model-invoked), retire `write-a-skill` (fold sections into `## In this repo`), scribe/Phase 5 do NOT invoke it.
 
 ## Provenance line grammars (used by this plan; added to the spec in M3)
 

@@ -172,3 +172,78 @@ None required (0 CRITICAL).
 ## Revision History
 
 - 2026-09-21 — M2 review run; 4 WARNING + 2 INFO fixed in the same session before §7.3; 7 INFO acknowledged.
+
+---
+
+# Impl Review Report: mattpocock-trio-adoption / Milestone 3
+
+**Milestone:** Milestone 3: `prototype` Re-fork + planning gate + gate roll-up · **Audit-Profile:** full · **Critical-Path:** hook-modification · **Window:** d87c16a..4cedc91 (fixes: 75aa6f7, 0cb97a3, 3c6f92f) · **Date:** 2026-09-21 · **Budget:** normal
+
+## Summary
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer             |    0     |    3    |  4   | WARN    |
+| security-auditor          |    0     |    2    |  4   | WARN    |
+| tdd-sequence-auditor      |    0     |    0    |  0   | PASS    |
+| context7-evidence-auditor |    0     |    0    |  0   | PASS    |
+| future-proofing-auditor   |    0     |    2    |  4   | WARN    |
+| **TOTAL (unique)**        |  **0**   |  **5**  |**12**| **PASS_WITH_WARNINGS** |
+
+Two WARNINGs were raised by both code-reviewer and future-proofing (template "Leave blank"; spec LIVE_CHECK header) → 7 raw, 5 unique. Disposition: 5/5 WARNING fixed; 6/12 INFO fixed; 6 acknowledged. No override panel (0 CRITICAL). Ste chose "roll it up now" for the security WARNING (AskUserQuestion).
+
+## Code Review (code-reviewer agent)
+
+Mandatory patterns: scope discipline CLEAN (ADR-0003 undeclared but mandated by the Re-fork glossary → added to 3.4 Artefacts); mechanism duplication CLEAN (`_read_steps` reuses `read_enforced_field` + `_read_or_error`; scoping difference is AD-001); schema-breaking output CLEAN (`to_kv`/JSON id untouched; `prototype_required` is a superset); dead code CLEAN (`_count_pending` 0 refs); magic numbers CLEAN.
+
+### Findings
+- [WARNING] doc-contradiction: `tasks-template.md` milestone Critical-Path comment "Leave blank or omit" two lines above "an empty value is a gate error". **FIXED** → "Omit if no critical path applies."
+- [WARNING] doc-accuracy: spec provenance-grammar header claimed §6.7 reads LIVE_CHECK (zero readers). **FIXED** → PROTOTYPE/CRITICAL_PATH_REVIEW gate-read; LIVE_CHECK marked advisory.
+- [WARNING] ordering: `ENG_STANDARDS_DECLARED` echo sat in Step 2.4 but needs `PROTO` from Step 2.5; "append to the line above" implied editing an append-only log. **FIXED** → THEMES captured in 2.4, the single echo runs at the end of 2.5 (or 5.6 when buffered).
+- [INFO] scope: ADR-0003 not in 3.4 Artefacts. **FIXED** (added).
+- [INFO] DRY: `_read_or_error(read_enforced_field(...))` triad at 6 sites. Acknowledged — pre-existing idiom; helper deferred.
+- [INFO] KISS: `MilestoneRead(**{**asdict(read), …})` → `dataclasses.replace`. **FIXED**.
+- [INFO] granularity: `prototype=<M-list>` has no sub-step notation. **FIXED** → prose states the list names the milestone a flagged sub-step rolls up to.
+
+## Security (security-auditor agent)
+
+### Mechanical pre-check (security-static-check.sh): PASS (no `[security-bypass:` markers in 7 commits)
+
+Verified: no fail-open path in `_read_steps` (absent → None; invalid/empty → exit 2; roll-up is OR-only, a crafted sub-step can only add a requirement); §8.3/8.4 no shell injection (`$COMMIT_HASH` hex, double-quoted `-m`); prototype re-fork pin independently re-fetched from raw.githubusercontent @ c55ee46 — md5s match FORKS.json and local `tail -n +2`, upstream main has no post-pin drift; LOGIC.md inline HTML only, no CDN/shell; fixture path handling constant.
+
+### Semantic findings
+- [WARNING] A04 sub-step `Critical-Path` advertised in the template but not read by the gate — a sub-step `auth-flow` passed the HARD gate with no review evidence; invalid value exited 0. **FIXED (user decision: roll it up now)** → `_read_steps` reads `Critical-Path` per sub-step; milestone value wins; disagreeing sub-steps refuse; invalid/empty refuse. Red tests 0cb97a3 → green 3c6f92f; fixture M5–M8; mirror bats fence case (32/32).
+- [WARNING] A01 `UI.md` sub-shape B route renders "real data" with no auth guidance (only the switcher is `NODE_ENV`-gated). **FIXED** in plugin-owned text: Theme 1 sentence — UI-branch throwaway routes sit behind the host app's auth middleware and read stubs/fixtures; ADR-0003 amendment records the upstream gap. Fork stays verbatim.
+- [INFO] §8.4 fence footer `[AA-MA Plan] $TASK_NAME` unexpanded → commit-signature hook BLOCKs (fail-closed, same shape as §8.2). Acknowledged.
+- [INFO] FORKS.json `files` is the banner-stripped hash, not on-disk `md5sum`. Acknowledged — by design (ADR-0003 "modulo provenance comment").
+- [INFO] fixture referenced via constant path; bats copies then `sed -i`s the copy. Acknowledged.
+- [INFO] HTML-commented `Prototype-Required: YES` reads as absent (pre-existing sanitize behaviour). Acknowledged.
+
+## TDD Sequence (tdd-sequence-auditor agent)
+
+### Verdict: PASS (strict src/ rule)
+First tests/ commit f762730 (10:37:13) precedes first src/ commit 1b1cabf (10:38:32) by 79s; red bats 6565ceb precedes commands c8cea54 by 70s. Only src/ touch in window is 1b1cabf. Post-review: red 0cb97a3 precedes 3c6f92f (Critical-Path roll-up). No TDD-Waiver.
+
+## External Library Evidence (context7-evidence-auditor agent)
+
+`pyproject.toml` / `uv.lock` unchanged; no dependency manifest in the 22-file window. PASS (not applicable).
+
+## Future-Proofing (future-proofing-auditor agent)
+
+Verified clean: bats count; gate.py "seven" enumerates 7; template slots 4→0; `_count_pending` 0 refs outside CHANGELOG; "terminal TUI" only in docs/research/; `StepsRead` contract-mandated and not misused; no magic numbers / pins / date literals.
+
+### Findings
+- [WARNING] template "Leave blank or omit" contradiction (same as code-reviewer W1). **FIXED**.
+- [WARNING] spec header names LIVE_CHECK as gate-read (same as code-reviewer W2). **FIXED**.
+- [INFO] grammar drift: template:75 and engineering-standards checklist row still `PROTOTYPE — <verdict>`. **FIXED** → `<milestone heading> — <verdict>` everywhere (0 stragglers incl. both commands).
+- [INFO] ADR-0011:63 "line stays `PROTOTYPE — <verdict>`" contradicts implementation. **FIXED** (amended in place).
+- [INFO] spec "`## Milestone N: …` byte-for-byte" — gate prints the heading without `## `. **FIXED** → "the text after `## `, as `aa-ma-gate` prints it".
+- [INFO] `prototype=<M-list>` token has no reader beyond the smoke test. Acknowledged.
+
+## User Override Decisions
+
+None required (0 CRITICAL). Non-panel decision: security W1 → "Roll it up now" (Ste, AskUserQuestion).
+
+## Revision History
+
+- 2026-09-21 — M3 review run; 5/5 WARNING + 6/12 INFO fixed in 75aa6f7 / 0cb97a3 (red) / 3c6f92f; 6 INFO acknowledged.

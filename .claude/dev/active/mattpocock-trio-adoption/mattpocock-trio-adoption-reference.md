@@ -86,7 +86,7 @@ After Step 3.4: `prototype` → SAME. Only HTTP 404 maps to ORPHAN; 403/auth/net
 - `claude-code/skills/prototype/{SKILL,LOGIC,UI}.md`, `claude-code/skills/FORKS.json`, `docs/adr/0003-prototype-adoption.md` (re-fork amendment), `src/aa_ma/gate.py`, `tests/test_gate.py`, `tests/hooks/aa-ma-gate-python.bats`, `tests/hooks/fixtures/gate-scans/prototype-rollup-tasks.md` (M3)
 - `claude-code/commands/{aa-ma-plan,execute-aa-ma-milestone,execute-aa-ma-step}.md`, `claude-code/rules/engineering-standards.md`, `tests/smoke/aa-ma-engineering-standards-smoke.md`, `docs/spec/aa-ma-specification.md`, `docs/templates/tasks-template.md`, `docs/adr/0011-*.md` (M3)
 - `docs/spec/plan-marker-grammar.md`, `claude-code/skills/aa-ma-plan-workflow/references/PHASE_3_RESEARCH.md`, `docs/adr/0012-*.md`, `TODOS.md` (M4)
-- `scripts/install.sh`, `tests/hooks/install_dry_run.bats`, `claude-code/rules/aa-ma.md`, `docs/spec/aa-ma-quick-reference.md`, `docs/spec/claude-code-foundations.md`, `docs/templates/README.md`, `docs/adr/0013-*.md` (M5)
+- `scripts/install.sh`, `tests/hooks/install_dry_run.bats`, `claude-code/commands/aa-ma-plan.md`, `claude-code/rules/aa-ma.md`, `docs/spec/aa-ma-specification.md`, `docs/spec/aa-ma-quick-reference.md`, `docs/spec/claude-code-foundations.md`, `docs/templates/README.md`, `README.md`, `SECURITY.md`, `docs/ATTRIBUTION.md`, `docs/adr/0013-*.md`, `CHANGELOG.md`, `TODOS.md` (M5)
 - Every milestone: `SECURITY.md`, `README.md`, `docs/spec/claude-code-foundations.md`, `CHANGELOG.md` (`## Unreleased` only), `CLAUDE.md` (local, gitignored)
 
 ### Key directories

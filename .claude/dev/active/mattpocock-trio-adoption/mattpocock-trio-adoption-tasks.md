@@ -189,7 +189,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
   - [x] ADR-0011 Status → Implemented.
 - Tests: `uv run pytest tests/test_gate.py tests/test_gate_parity.py tests/test_enforce.py tests/commands -q`; `bats tests/hooks/aa-ma-gate-python.bats`; `uv run ruff check src/`.
 - Rollback: revert `gate.py` + fixture commit first (restores milestone-only semantics), then docs; the skill re-fork is independent and can stay.
-- Result Log: COMPLETE 2026-09-21 — HARD gate APPROVED by Ste; §7.3 approved. 8/8 criteria (see sub-step logs). Commits f762730 → 1b1cabf → 6565ceb → c8cea54 → 20e2359 → 931c71b → 4cedc91 → 75aa6f7 → 0cb97a3 → 3c6f92f → f849d1c → <milestone commit, recorded in provenance>. Tests: CI cmd 523 / bats gate-python 32/32 / codemem CP parser green / ruff clean. §6.7 PASS; §6.8 PASS_WITH_WARNINGS (0C/5W/12I; all W fixed → AD-007 Critical-Path roll-up, AD-008 single ENG_STANDARDS_DECLARED echo, AD-009 UI-route auth rule). Scope additions: L-018 §8.3/8.4 no-amend (Ste), Critical-Path roll-up (Ste). Live fork-drift: prototype SAME.
+- Result Log: COMPLETE 2026-09-21 — HARD gate APPROVED by Ste; §7.3 approved. 8/8 criteria (see sub-step logs). Commits f762730 → 1b1cabf → 6565ceb → c8cea54 → 20e2359 → 931c71b → 4cedc91 → 75aa6f7 → 0cb97a3 → 3c6f92f → f849d1c → 4f1539f (milestone). Tests: CI cmd 523 / bats gate-python 32/32 / codemem CP parser green / ruff clean. §6.7 PASS; §6.8 PASS_WITH_WARNINGS (0C/5W/12I; all W fixed → AD-007 Critical-Path roll-up, AD-008 single ENG_STANDARDS_DECLARED echo, AD-009 UI-route auth rule). Scope additions: L-018 §8.3/8.4 no-amend (Ste), Critical-Path roll-up (Ste). Live fork-drift: prototype SAME.
 
 ### Sub-step 3.1: Fixture + failing gate tests
 - Status: COMPLETE

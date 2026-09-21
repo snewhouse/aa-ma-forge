@@ -74,3 +74,5 @@
 [2026-09-21T10:52:47+01:00] COMMIT 0cb97a3 — test(gate): red Critical-Path roll-up tests
 [2026-09-21T10:52:47+01:00] COMMIT 3c6f92f — feat(gate): sub-step Critical-Path roll-up
 [2026-09-21T10:52:47+01:00] CRITICAL_PATH_REVIEW — Milestone 3: `prototype` Re-fork + planning gate + gate roll-up — hook-modification — post-§6.8 addendum: Critical-Path roll-up covered by tests/test_gate.py::{test_substep_critical_path_rolls_up_when_milestone_has_none,test_conflicting_substep_critical_paths_refuse,test_milestone_critical_path_wins_over_substeps,test_invalid_substep_critical_path_is_exit_2} + bats "sub-step Critical-Path rolls up" (32/32); CI cmd 523 passed
+[2026-09-21T10:53:51+01:00] MILESTONE COMPLETE — M3 — Commit: 4f1539f — Criteria: 8/8 verified — HARD gate + §7.3 approved by user
+[2026-09-21T10:53:51+01:00] COMMIT 4f1539f — feat(mattpocock-trio-adoption): Complete Milestone 3

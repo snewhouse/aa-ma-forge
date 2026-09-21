@@ -126,7 +126,7 @@ Bring every mattpocock fork in `claude-code/skills/` to a known, detectable life
 ---
 
 ## [2026-09-21] Milestone Completion: Milestone 1 — Fork manifest, Drift/Orphan detector, Derived reclassifications, CI coverage
-- Status: COMPLETE (pending §7.3 approval at time of writing)
+- Status: COMPLETE — approved by Ste at §7.3, 2026-09-21
 - Key outcome: `claude-code/skills/FORKS.json` is the fork SSoT; `aa_ma.forks` is a pure SAME/DRIFT/ORPHAN classifier with `classify` / `files` / `classify-all` CLI; `scripts/fork-drift.sh` is the only fetcher and fails closed (bad manifest, hidden repo, 403, partial fetch → exit 1). Live `--sha c55ee46`: grill-with-docs ORPHAN, prototype DRIFT, write-a-skill ORPHAN — exactly as reference.md predicted. `write-a-skill` is Derived. CI pytest step is exclusion-based (was enumerated and silently missing 190 tests).
 - Artifacts: src/aa_ma/forks.py, claude-code/skills/FORKS.json, scripts/fork-drift.sh, tests/skills/test_fork_manifest.py, tests/skills/_helpers.py, tests/hooks/fork-drift.bats (+fixture), tests/commands/test_aa_ma_share_command.py, .github/workflows/security.yml, pyproject.toml, uv.lock, .importlinter, write-a-skill/SKILL.md, ADR-0004, README.md, CHANGELOG.md, docs/lessons.md (L-017), mattpocock-trio-adoption-impl-review.md
 - Commits: 8d91442 (M1), d755920 (red), 4144305 (green §6.8 fixes)

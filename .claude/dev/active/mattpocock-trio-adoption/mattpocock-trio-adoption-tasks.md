@@ -11,7 +11,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 ---
 
 ## Milestone 1: Fork manifest, Drift/Orphan detector, Derived reclassifications, CI coverage
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: None (pre-M1 `[ad-hoc]` housekeeping commit must land first)
 - Complexity: 45%
 - Mode: AFK
@@ -21,14 +21,15 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Effort: 6h
 - Goal: `FORKS.json` is the SSoT for every fork; a test detects local tampering (fail); a pure classifier + `scripts/fork-drift.sh` detect upstream Drift/Orphan against the fork's recorded `upstream_md5` (warn); `write-a-skill` is Derived; CI runs the suites it has been skipping.
 - Acceptance Criteria:
-  - [ ] `uv run pytest tests/skills/test_fork_manifest.py -q` passes; deleting the whole `prototype` row from `FORKS.json` makes `test_every_fork_dir_is_in_manifest` fail with `MISSING_IN_MANIFEST: prototype`; changing one `files` md5 makes `test_local_md5_matches_manifest` fail with `MD5_MISMATCH: prototype/SKILL.md`.
-  - [ ] `classify_fork(entry, fetched)` (pure, no I/O) returns `SAME` when every fetched md5 equals the entry's `upstream_md5`, `DRIFT` when any differs, `ORPHAN` when a fetch is `None`; `tests/skills/test_fork_manifest.py` proves all three with hand-built dicts — no plugin cache, no network (3A + OV2).
-  - [ ] `scripts/fork-drift.sh [--sha <ref>]` fetches each manifest file at `<ref>` (default `main`) via `gh api`, feeds `classify_fork`, prints `skill | file | upstream_md5 | fetched md5 | SAME|DRIFT|ORPHAN`; exit 0; exit 1 with a message when `gh` is absent. Expected verdicts at `--sha c55ee46` after Step 1.2 (record in reference.md): `grill-with-docs` → **ORPHAN** (its `CONTEXT-FORMAT.md`/`ADR-FORMAT.md` 404 upstream — moved to `domain-modeling/`; ORPHAN takes precedence over DRIFT per the classifier), `prototype` → DRIFT (all three files), `write-a-skill` → ORPHAN.
-  - [ ] `.github/workflows/security.yml` pytest step includes `tests/skills tests/agents tests/plan_markers tests/test_gate.py tests/test_enforce.py tests/test_gate_parity.py`; `grep -q '"pyyaml' pyproject.toml` inside `[dependency-groups] dev`; `uv lock --check` exits 0.
-  - [ ] `sed -n 1p claude-code/skills/write-a-skill/SKILL.md | grep -qF 'Derived from https://github.com/mattpocock/skills/skills/productivity/write-a-skill'`; ADR-0004 line 3 is exactly `**Status:** Implemented — Derived (2026-05-10; amended <fork-date>)`; `grep -q 'Authoring recipe: gather' README.md`.
-  - [ ] `tests/commands/test_aa_ma_share_command.py::test_foundations_count_headings_match_disk` asserts `docs/spec/claude-code-foundations.md` `### Commands (N)`/`### Skills (N)`/`### Agents (N)` against disk (SECURITY.md already covered by `test_security_md_asset_lists_match_disk`; CLAUDE.md excluded — gitignored).
+  - [x] `uv run pytest tests/skills/test_fork_manifest.py -q` passes; deleting the whole `prototype` row from `FORKS.json` makes `test_every_fork_dir_is_in_manifest` fail with `MISSING_IN_MANIFEST: prototype`; changing one `files` md5 makes `test_local_md5_matches_manifest` fail with `MD5_MISMATCH: prototype/SKILL.md`.
+  - [x] `classify_fork(entry, fetched)` (pure, no I/O) returns `SAME` when every fetched md5 equals the entry's `upstream_md5`, `DRIFT` when any differs, `ORPHAN` when a fetch is `None`; `tests/skills/test_fork_manifest.py` proves all three with hand-built dicts — no plugin cache, no network (3A + OV2).
+  - [x] `scripts/fork-drift.sh [--sha <ref>]` fetches each manifest file at `<ref>` (default `main`) via `gh api`, feeds `classify_fork`, prints `skill | file | upstream_md5 | fetched md5 | SAME|DRIFT|ORPHAN`; exit 0; exit 1 with a message when `gh` is absent. Expected verdicts at `--sha c55ee46` after Step 1.2 (record in reference.md): `grill-with-docs` → **ORPHAN** (its `CONTEXT-FORMAT.md`/`ADR-FORMAT.md` 404 upstream — moved to `domain-modeling/`; ORPHAN takes precedence over DRIFT per the classifier), `prototype` → DRIFT (all three files), `write-a-skill` → ORPHAN.
+  - [x] `.github/workflows/security.yml` pytest step includes `tests/skills tests/agents tests/plan_markers tests/test_gate.py tests/test_enforce.py tests/test_gate_parity.py`; `grep -q '"pyyaml' pyproject.toml` inside `[dependency-groups] dev`; `uv lock --check` exits 0.
+  - [x] `sed -n 1p claude-code/skills/write-a-skill/SKILL.md | grep -qF 'Derived from https://github.com/mattpocock/skills/skills/productivity/write-a-skill'`; ADR-0004 line 3 is exactly `**Status:** Implemented — Derived (2026-05-10; amended <fork-date>)`; `grep -q 'Authoring recipe: gather' README.md`.
+  - [x] `tests/commands/test_aa_ma_share_command.py::test_foundations_count_headings_match_disk` asserts `docs/spec/claude-code-foundations.md` `### Commands (N)`/`### Skills (N)`/`### Agents (N)` against disk (SECURITY.md already covered by `test_security_md_asset_lists_match_disk`; CLAUDE.md excluded — gitignored).
 - Tests: manifest test (red → green); `uv run pytest tests/skills tests/agents tests/plan_markers tests/test_gate.py tests/commands -q` all pass; `shellcheck scripts/fork-drift.sh` clean.
 - Rollback: `git revert` the milestone commits (pre-existing drift fixes are in the separate pre-M1 commit and survive); no runtime behaviour changes (tests + docs + one script + one pure module).
+- Result Log: COMPLETE 2026-09-21. 6/6 criteria verified live (§6.1). Commits 8d91442 → d755920 → 4144305 → b5c4df6 → 859ad6d, all pushed; CI run 35581802744 success. §6.7 PASS; §6.8 PASS_WITH_WARNINGS (2 CRITICAL: fail-open fixed via `aa_ma.forks` subcommands, TDD same-commit disputed with provenance evidence → L-017); §7.2.5 validator gaps back-filled. Live `fork-drift.sh --sha c55ee46`: grill-with-docs ORPHAN / prototype DRIFT / write-a-skill ORPHAN. Tests: 513 passed, bats 7/7, shellcheck clean, lint-imports 3 kept. Deviations from plan (all approved): CI step exclusion-based (AD-003), `.importlinter` += `aa_ma.forks`, contract addendum AD-002/AD-004.
 
 ### Sub-step 1.1: Write the failing manifest test
 - Status: COMPLETE

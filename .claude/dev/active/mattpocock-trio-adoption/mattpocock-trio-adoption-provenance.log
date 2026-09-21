@@ -27,3 +27,4 @@
 [2026-09-21T10:13:18+01:00] COMMIT 4144305 — fix(forks): §6.8 fixes green; post-fix state: pytest 513 passed (exclusion-based CI command), bats fork-drift 7/7, shellcheck clean, lint-imports 3 kept; CI run 35581802744 success (5/5 jobs)
 [2026-09-21T10:13:18+01:00] COMMIT b5c4df6 — docs(aa-ma): M1 completion entry in context-log (AD-002..004)
 [2026-09-21T10:13:18+01:00] §7.2.5 VALIDATOR — verdict GAPS_REQUIRE_FIX → 5 back-fills applied inline (provenance COMMIT lines, reference.md md5 contradiction + CI row + M1 modified files + Last Updated, tasks 1.7 hashes, impl-review hash)
+[2026-09-21T10:14:01+01:00] MILESTONE COMPLETE — M1 — Commit: 7464b5c — Criteria: 6/6 verified — approved by user (§7.3)

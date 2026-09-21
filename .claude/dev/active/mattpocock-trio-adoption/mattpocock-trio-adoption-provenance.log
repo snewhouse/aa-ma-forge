@@ -27,7 +27,7 @@
 [2026-09-21T10:13:18+01:00] COMMIT 4144305 — fix(forks): §6.8 fixes green; post-fix state: pytest 513 passed (exclusion-based CI command), bats fork-drift 7/7, shellcheck clean, lint-imports 3 kept; CI run 35581802744 success (5/5 jobs)
 [2026-09-21T10:13:18+01:00] COMMIT b5c4df6 — docs(aa-ma): M1 completion entry in context-log (AD-002..004)
 [2026-09-21T10:13:18+01:00] §7.2.5 VALIDATOR — verdict GAPS_REQUIRE_FIX → 5 back-fills applied inline (provenance COMMIT lines, reference.md md5 contradiction + CI row + M1 modified files + Last Updated, tasks 1.7 hashes, impl-review hash)
-[2026-09-21T10:14:01+01:00] MILESTONE COMPLETE — M1 — Commit: 7464b5c — Criteria: 6/6 verified — approved by user (§7.3)
+[2026-09-21T10:14:01+01:00] MILESTONE COMPLETE — M1 — Commit: 771bc25 (7464b5c was the pre-amend hash; corrected at M2 §7.2.5 back-fill) — Criteria: 6/6 verified — approved by user (§7.3)
 [2026-09-21T10:22:13+01:00] STEP 2.1 COMPLETE — grilling forked @ c55ee46 (tail -n +2 md5 284efe9c…); red test 7542c30, green bc329d4
 [2026-09-21T10:22:13+01:00] STEP 2.2 COMPLETE — grill-with-docs Derived delegator; red test 936fb1d, green 7030200; FORKS.json state derived
 [2026-09-21T10:22:13+01:00] STEP 2.3 PARTIAL — docs/counts/ADR-0002/CHANGELOG done; pytest 142 passed; bats install_dry_run ok; install.sh linked ~/.claude/skills/grilling
@@ -38,3 +38,15 @@
 [2026-09-21T10:27:28+01:00] §6.3 IMPACT_ANALYSIS — Milestone 2 — 15 files, Overall LOW (no src/hooks code; consumers: aa-ma-plan Phase 1.3, test_fingerprint, forks.py/_helpers via FORKS.json — all green)
 [2026-09-21T10:27:28+01:00] §6.4 TESTS — pytest tests/skills tests/plan_markers tests/commands 142 passed; CI cmd 515 passed; bats install_dry_run 4/4
 [2026-09-21T10:27:28+01:00] CRITICAL_PATH_REVIEW — Milestone 2: Fork `grilling`; `grill-with-docs` becomes Derived — doc-count-drift — skills 19→20 at SECURITY.md list / README table / foundations heading+row / local CLAUDE.md; sweep `grep -rnE '19 (reusable|skills)|Skills \(19\)'` over README/SECURITY/docs/spec/rules/commands → only frozen v0.x CHANGELOG history line; test_security_md_asset_lists_match_disk + test_foundations_count_headings_match_disk green
+[2026-09-21T10:28:28+01:00] COMMIT 859ad6d — docs(aa-ma): §7.2.5 back-fill (M1) [back-filled at M2]
+[2026-09-21T10:28:28+01:00] COMMIT 771bc25 — feat(mattpocock-trio-adoption): Complete Milestone 1 [back-filled at M2]
+[2026-09-21T10:28:28+01:00] COMMIT 7542c30 — test(skills): red grilling frontmatter test (M2.1)
+[2026-09-21T10:28:28+01:00] COMMIT bc329d4 — feat(skills): fork grilling @ c55ee46 (M2.1)
+[2026-09-21T10:28:28+01:00] COMMIT 936fb1d — test(skills): red Derived-delegator asserts (M2.2)
+[2026-09-21T10:28:28+01:00] COMMIT 7030200 — feat(skills): grill-with-docs Derived delegator (M2.2)
+[2026-09-21T10:28:28+01:00] COMMIT ba36187 — docs(skills): M2.3 ADR-0002 amendment, Phase 1.3 prose, counts 19→20
+[2026-09-21T10:28:28+01:00] COMMIT 5d2ff5d — docs(aa-ma): M2 live check evidence, §6 gate entries
+[2026-09-21T10:28:28+01:00] §7.2.5 VALIDATOR (pre-exec, Tier 2) — WARN ×3 → back-filled: reference.md M2 modify list, M1 hash 7464b5c→771bc25, COMMIT lines 859ad6d/771bc25
+[2026-09-21T10:32:06+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: code-reviewer,security-auditor,tdd-sequence-auditor,context7-evidence-auditor,future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 4 WARNING / 9 INFO (4 WARNING + 2 INFO fixed same session; TDD PASS red→green +31s/+61s)
+[2026-09-21T10:32:06+01:00] Post-milestone review (§6.6): SKIPPED — code diff is 2 small test files (<20 lines); folded into §6.8 code-reviewer
+[2026-09-21T10:32:06+01:00] LIVE_CHECK — Milestone 2: Fork `grilling`; `grill-with-docs` becomes Derived — fork_drift_sha=c55ee46 grilling=SAME grill-with-docs=ORPHAN(by-design)

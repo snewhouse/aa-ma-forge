@@ -147,8 +147,8 @@ Phase 1.3 and `tests/plan_markers/test_fingerprint.py` depend on `grill-with-doc
 - `claude-code/skills/grilling/SKILL.md` is a new **Fork** of `grilling` @ `c55ee46` (verbatim body,
   `tail -n +2` md5 `284efe9cf334900d08230e572fc6db90`; manifest row `state: current`).
 - `grill-with-docs` is now **Derived** (`state: derived`, `upstream_md5` null): line 1 carries the
-  `Derived from …` form, `<what-to-do>` is three lines that call `Skill(grilling)` and apply the
-  domain awareness below it, the glossary sentence is upstream `domain-modeling`'s ("totally devoid
+  `Derived from …` form, `<what-to-do>` is a short delegating block (read the glossary docs, then call `Skill(grilling)`, then apply the
+  domain awareness below it), the glossary sentence is upstream `domain-modeling`'s ("totally devoid
   of implementation details … a glossary and nothing else"), and `CONTEXT-FORMAT.md` records on
   line 2 that it retains Relationships / Example dialogue / Flagged ambiguities (removed upstream).
 - The Drift/Orphan detector reports `grill-with-docs` ORPHAN by design; `grilling` is SAME.

@@ -92,7 +92,7 @@ To be executed as **M2** of `/aa-ma-plan mattpocock-trio-adoption` (`Audit-Profi
 3. `aa-ma-plan.md` Phase 3.3: "dispatch via `Skill(research)` per domain"; Step 3.4: write the file(s), link from Step 5.3 (reference.md `[valid: …]` facts cite the file) and Step 5.4 (`**Research Findings:** see docs/research/…`); marker table row :88 gains `research_files=<N>`; `docs/spec/plan-marker-grammar.md` updated to match; `aa-ma-plan-skip-warn.sh` tolerant of the extra key (verify).
 4. `PHASE_3_RESEARCH.md`: tool hierarchy row for `research`; retire the `research-consolidation` references or mark as optional external.
 5. Install: check `scripts/install.sh` handling when `~/.claude/skills/research` is a real directory (backup vs refuse). Remove the dead PAI skill (or rename to `pai-research`) before install.
-6. Counts/docs: `SECURITY.md:12` (19 → 20 skills), `README.md`, `CHANGELOG.md ## Unreleased`, `docs/spec/claude-code-foundations.md`, `docs/spec/aa-ma-quick-reference.md`, `docs/ATTRIBUTION.md`.
+6. Counts/docs: `SECURITY.md:12` (20 → 21 skills), `README.md`, `CHANGELOG.md ## Unreleased`, `docs/spec/claude-code-foundations.md`, `docs/spec/aa-ma-quick-reference.md`, `docs/ATTRIBUTION.md`.
 
 ## References
 

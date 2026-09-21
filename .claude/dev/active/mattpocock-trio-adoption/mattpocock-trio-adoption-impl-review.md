@@ -103,3 +103,72 @@ Convention learned for this project: the milestone's *first* commit after a RED 
 
 - v1: 2026-09-21 — Initial impl review: 2 CRITICAL, 8 WARNING, 13 INFO → BLOCKED pending panel
 - v2: 2026-09-21 — Fix-now pass (1 accepted CRITICAL fixed, 1 disputed; 5 WARNING + 4 INFO fixed) → PASS WITH WARNINGS
+
+---
+
+# Impl Review Report: mattpocock-trio-adoption / Milestone 2
+
+**Milestone:** Milestone 2: Fork `grilling`; `grill-with-docs` becomes Derived · **Audit-Profile:** code-only · **Window:** 771bc25..5d2ff5d (+ post-review fix commit) · **Date:** 2026-09-21 · **Budget:** normal (parallel, full context)
+
+## Summary
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer             |    0     |    2    |  3   | WARN    |
+| security-auditor          |    0     |    1    |  3   | WARN    |
+| tdd-sequence-auditor      |    0     |    0    |  0   | PASS    |
+| context7-evidence-auditor |    0     |    0    |  0   | PASS    |
+| future-proofing-auditor   |    0     |    1    |  3   | WARN    |
+| **TOTAL**                 |  **0**   |  **4**  |**9** | **PASS_WITH_WARNINGS** |
+
+Disposition: 4/4 WARNING fixed; 2/9 INFO fixed; 7/9 INFO acknowledged. No override panel (0 CRITICAL).
+
+## Code Review (code-reviewer agent)
+
+Mandatory patterns: scope discipline CLEAN (15 files, all in Required Artefacts / AA-MA); mechanism duplication CLEAN (rounds vs one-at-a-time split documented in ADR-0002 amendment); schema-breaking output CLEAN; dead code CLEAN.
+
+### Findings
+- [WARNING] dangling-constant: `claude-code/commands/aa-ma-plan.md` — "the ≤5 concurrent-agent cap" referenced with a definite article but defined nowhere shipped. **FIXED** → direct instruction "dispatch at most 5 fact-finding sub-agents at once".
+- [WARNING] delegation-seam: `grill-with-docs/SKILL.md` — `<supporting-info>` assumed the orchestrator explores the codebase; after delegation, `grilling`'s fact sub-agents never see the domain block, so CONTEXT.md / docs/adr discovery might not fire. **FIXED** → `<what-to-do>` gains a first line: read `CONTEXT.md` / `CONTEXT-MAP.md` / `docs/adr/` yourself before calling grilling (block now 4 lines, ≤6 AC; Contract deviation recorded as AD-005).
+- [INFO] cosmetic-churn: `FORKS.json` write-a-skill row reformatted compact→expanded by the serialiser. Acknowledged.
+- [INFO] weak-assertion: `test_grill_with_docs_frontmatter.py` substring match + no ≤6-line assert. **FIXED** → asserts literal `Skill tool with "grilling"` and `len(lines) <= 6`.
+- [INFO] documented-split: `with-docs` interviews in rounds, `simple` stays one-at-a-time — already in ADR-0002 amendment. Acknowledged.
+
+## Security (security-auditor agent)
+
+### Mechanical pre-check (security-static-check.sh): PASS (no `[security-bypass:` marker in window)
+
+Verified clean: supply chain — fork pinned to `c55ee46`, agent re-fetched upstream, body byte-identical, md5 `284efe9c…` matches `files` + `upstream_md5`, integrity enforced by `test_local_md5_matches_manifest`; prompt-injection surface of the 29-line fork — none; credential/log flow — none; test path handling — constants + `yaml.safe_load`.
+
+### Semantic findings
+- [WARNING] A08 third-party prompt with session authority: `grilling/SKILL.md:27` "dispatch a sub-agent" — upstream text defines the lookup boundary; the agent cap bounds concurrency not scope. **FIXED** in plugin-owned text (`aa-ma-plan.md` with-docs bullet): sub-agents scoped to read-only, repo-local exploration (filesystem, git, Context7), never external connectors or writes. Fork stays verbatim.
+- [INFO] A08 name-based resolution `Skill("grilling")` — live check recorded resolution to ours. Acknowledged.
+- [INFO] A08 `grill-with-docs` drift tracking dropped by design — confirmed: live `fork-drift.sh --sha c55ee46` → grill-with-docs ORPHAN (by design), **grilling SAME**. Acknowledged.
+- [INFO] A09 absolute `/home/…` paths in context-log excerpt — private repo, consistent with existing artefacts. Acknowledged.
+
+## TDD Sequence (tdd-sequence-auditor agent)
+
+### Verdict: PASS
+No `TDD-Waiver`. Strict rule (src/): vacuous PASS (no src/ commits). Lead-directed rule (`claude-code/skills/` as impl tree): M2.1 red 7542c30 (10:17:54) → green bc329d4 (10:18:25), +31s; M2.2 red 936fb1d (10:18:48) → green 7030200 (10:19:49), +61s. Test commits pure; impl commits contain no tests. L-017a applied.
+
+## External Library Evidence (context7-evidence-auditor agent)
+
+`git diff 771bc25..5d2ff5d -- pyproject.toml uv.lock` empty. No new PyPI deps, no major bumps. PASS (not applicable).
+
+## Future-Proofing (future-proofing-auditor agent)
+
+Source-of-truth verified: 20 skill dirs; SECURITY.md / foundations / local CLAUDE.md all 20; count tests derive from disk (`is_dir()`), so FORKS.json correctly excluded.
+
+### Findings
+- [WARNING] hardcoded count drift caused by M2 outside the window: `docs/adr/0012-research-skill-adoption.md:95` said "19 → 20 skills" for M4. **FIXED** → "20 → 21 skills".
+- [INFO] undefined-referent "≤5 cap" (same as code-reviewer W1). **FIXED** (see above).
+- [INFO] `docs/adr/0002` amendment said "`<what-to-do>` is three lines". **FIXED** → "a short delegating block".
+- [INFO] source-of-truth trap: `ls claude-code/skills | wc -l` = 21 because FORKS.json lives there; use `find … -type d`. Acknowledged — noted in reference.md count-site table.
+
+## User Override Decisions
+
+None required (0 CRITICAL).
+
+## Revision History
+
+- 2026-09-21 — M2 review run; 4 WARNING + 2 INFO fixed in the same session before §7.3; 7 INFO acknowledged.

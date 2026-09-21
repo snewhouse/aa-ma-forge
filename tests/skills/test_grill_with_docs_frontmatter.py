@@ -30,7 +30,8 @@ def test_grill_with_docs_is_derived_delegator() -> None:
     first = text.splitlines()[0]
     assert first.startswith("<!-- Derived from"), f"line 1 must be a Derived comment, got: {first!r}"
     block = text.split("<what-to-do>", 1)[1].split("</what-to-do>", 1)[0]
-    assert "grilling" in block, "<what-to-do> must delegate to Skill(grilling)"
+    assert 'Skill tool with "grilling"' in block, "<what-to-do> must delegate to Skill(grilling)"
+    assert len(block.strip().splitlines()) <= 6, "<what-to-do> must stay a short delegator (M2 AC)"
 
 
 def test_skill_directory_has_companion_format_files() -> None:

@@ -6,7 +6,7 @@
     "adr": "docs/adr/0002-grill-with-docs-adoption.md",
     "state": "derived",
     "files": {
-      "SKILL.md": "736174655db369df8b372493416b9d45",
+      "SKILL.md": "e552cb8aad8b0a6c0fe0fcef7181bd71",
       "CONTEXT-FORMAT.md": "03e375e9bccdbcb234331b5105bb7229",
       "ADR-FORMAT.md": "bb327bab674f400796f64b6e2ef5850c"
     },

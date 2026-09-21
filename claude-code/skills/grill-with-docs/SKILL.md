@@ -5,7 +5,8 @@ description: Grilling session that challenges your plan against the existing dom
 ---
 
 <what-to-do>
-Call the Skill tool with "grilling" and run its round-based interview about this plan. During the session apply the domain awareness below: challenge terms against CONTEXT.md, sharpen language, update CONTEXT.md and ADRs inline.
+First locate and read `CONTEXT.md` / `CONTEXT-MAP.md` / `docs/adr/` yourself (if present) so the glossary is in your context — fact-finding sub-agents never see this file.
+Then call the Skill tool with "grilling" and run its round-based interview about this plan. During the session apply the domain awareness below: challenge terms against CONTEXT.md, sharpen language, update CONTEXT.md and ADRs inline.
 </what-to-do>
 
 <supporting-info>

@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.**
 
-_Last Updated: 2026-09-21 (M1 complete; §7.2.5 back-fill)_
+_Last Updated: 2026-09-21 (M2 complete; Skill(grilling) resolves to ours — no rename)_
 
 _Non-negotiable facts extracted from the plan, the design spec (D1–D9), the research note and the verification report. Anchors, not line numbers, locate edits (eng-review OV8). All facts `[valid: 2026-09-20]` unless marked otherwise._
 
@@ -82,7 +82,7 @@ After Step 3.4: `prototype` → SAME. Only HTTP 404 maps to ORPHAN; 403/auth/net
 
 - `tests/skills/_helpers.py`, `.github/workflows/security.yml`, `pyproject.toml`, `uv.lock`, `tests/commands/test_aa_ma_share_command.py`, `.importlinter` (render-is-leaf += `aa_ma.forks`), `docs/lessons.md` (L-017) (M1)
 - `claude-code/skills/write-a-skill/SKILL.md`, `docs/adr/0004-write-a-skill-adoption.md`, `docs/adr/0002-grill-with-docs-adoption.md`, `README.md` (M1)
-- `claude-code/skills/grill-with-docs/{SKILL,CONTEXT-FORMAT}.md`, `claude-code/commands/aa-ma-plan.md`, `docs/ATTRIBUTION.md` (M2)
+- `claude-code/skills/grill-with-docs/{SKILL,CONTEXT-FORMAT}.md`, `claude-code/skills/FORKS.json`, `tests/skills/test_grill_with_docs_frontmatter.py` (+2 asserts, 3B), `claude-code/commands/aa-ma-plan.md`, `docs/adr/0002-grill-with-docs-adoption.md`, `docs/ATTRIBUTION.md` (M2)
 - `claude-code/skills/prototype/{SKILL,LOGIC,UI}.md`, `src/aa_ma/gate.py`, `tests/test_gate.py`, `tests/hooks/aa-ma-gate-python.bats` (M3)
 - `claude-code/commands/{aa-ma-plan,execute-aa-ma-milestone,execute-aa-ma-step}.md`, `claude-code/rules/engineering-standards.md`, `tests/smoke/aa-ma-engineering-standards-smoke.md`, `docs/spec/aa-ma-specification.md`, `docs/templates/tasks-template.md`, `docs/adr/0011-*.md` (M3)
 - `docs/spec/plan-marker-grammar.md`, `claude-code/skills/aa-ma-plan-workflow/references/PHASE_3_RESEARCH.md`, `docs/adr/0012-*.md`, `TODOS.md` (M4)
@@ -265,7 +265,7 @@ tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, Write
 
 | Site | Anchor | Baseline → after plan |
 |---|---|---|
-| `SECURITY.md` | "N skills directories" line; skills list; agents list; commands list; "8 hooks" line (unchanged — guard is `lib/`) | skills 19→20 (M2)→21 (M4); agents 11→12 (M4); commands 12→13 (M5) |
+| `SECURITY.md` | "N skills directories" line (count dirs with `find claude-code/skills -mindepth 1 -maxdepth 1 -type d \| wc -l` — `FORKS.json` lives in that dir, so `ls \| wc -l` over-counts by 1); skills list; agents list; commands list; "8 hooks" line (unchanged — guard is `lib/`) | skills 19→20 (M2)→21 (M4); agents 11→12 (M4); commands 12→13 (M5) |
 | `docs/spec/claude-code-foundations.md` | `### Commands (N)` / `### Skills (N)` / `### Agents (N)` headings | Commands 11→12 (pre-M1 fix)→13 (M5); Skills 19→20→21; Agents 11→12; `(5 standard + 2 optional)` → `+ 3` (pre-M1) → `+ 4` (M5) |
 | `README.md` | "All commands" table (+`/aa-ma-chart` row, M5); skills table (+`grilling` M2, +`aa-ma-research` M4); `write-a-skill` row (M1); prototype row "terminal TUI" wording (M3) | asserted by `tests/commands/test_aa_ma_share_command.py` |
 | Taxonomy sites (5 standard + N optional) | `docs/spec/aa-ma-specification.md` §II table; `claude-code/rules/aa-ma.md` file-system table; `docs/spec/aa-ma-quick-reference.md` Optional Files table; `docs/templates/README.md`; `docs/spec/claude-code-foundations.md`; `README.md` | pre-M1: `+ 2` → `+ 3` with `impl-review`; M5: `+ 3` → `+ 4` with `map`. Verify: `grep -rl '+ 2 optional' docs claude-code README.md` empty (pre-M1); `grep -rl '+ 3 optional' …` empty (M5) |
@@ -305,7 +305,7 @@ tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, Write
 | Rule | Value |
 |---|---|
 | bats convention | tests target the repo file `HELPER="${REPO_ROOT}/claude-code/hooks/lib/<name>.sh"` with a fake `CLAUDE_HOME` symlink (as `tests/hooks/aa-ma-gate-python.bats`); never `~/.claude/...` (CI has none) |
-| Session restart rule | the Skill tool resolves only names in the session-start listing; after `install.sh` adds a skill dir (M2 `grilling`, M4 `aa-ma-research`) start a new session before any live criterion; record the resolved path (`~/.claude/skills/<name>` vs `mattpocock-skills:<name>`) in the Result Log |
+| Session restart rule | **Falsified in M2 (2026-09-21):** the Skill tool listing hot-reloads mid-session after `install.sh` adds a skill dir (the new entry appeared with our line-1 provenance as its description). Unprefixed `Skill(grilling)` resolved to `~/.claude/skills/grilling` (ours); the plugin copy is only reachable as `mattpocock-skills:grilling`. M4's `aa-ma-research` live criterion may run in-session; still record the resolved path in the Result Log |
 | `[ad-hoc]` | pre-M1 housekeeping commit; commits made *by* charting/research runs during this plan (`.claude/dev/charting/**`, `docs/research/*` from prototype runs) |
 | Plan footer | `[AA-MA Plan] mattpocock-trio-adoption .claude/dev/active/mattpocock-trio-adoption` (last footer line); `[no-sync-check]` never used |
 | Agent cap | ≤5 concurrent agents (applies inside `grilling` fact-dispatch and `aa-ma-research` parallel runs) |

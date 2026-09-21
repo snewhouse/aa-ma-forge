@@ -199,7 +199,9 @@ fi
   domain awareness on it — challenges the plan against existing `CONTEXT.md` /
   ADRs, sharpens terminology, and updates docs inline as decisions crystallise.
   `grilling` dispatches sub-agents for facts rather than asking the user; inside
-  this command that dispatch respects the ≤5 concurrent-agent cap. Both live
+  this command dispatch at most 5 fact-finding sub-agents at once, and scope
+  them to read-only, repo-local exploration (filesystem, git, Context7) — never
+  external connectors or writes. Both live
   under `claude-code/skills/` (auto-discovered by `scripts/install.sh`,
   symlinked to `~/.claude/skills/grill-with-docs/` and `~/.claude/skills/grilling/`).
 - **`simple`** — Apply the `/grill-me` discipline: interview the user

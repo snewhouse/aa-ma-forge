@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.**
 
-_Last Updated: 2026-09-21 (M2 complete; Skill(grilling) resolves to ours — no rename)_
+_Last Updated: 2026-09-21 (M3 complete; sub-step Prototype-Required AND Critical-Path roll up — AD-007)_
 
 _Non-negotiable facts extracted from the plan, the design spec (D1–D9), the research note and the verification report. Anchors, not line numbers, locate edits (eng-review OV8). All facts `[valid: 2026-09-20]` unless marked otherwise._
 
@@ -40,7 +40,7 @@ _Non-negotiable facts extracted from the plan, the design spec (D1–D9), the re
 | Skill dir | ADR | State after plan | Notes |
 |---|---|---|---|
 | `claude-code/skills/grill-with-docs/` | `docs/adr/0002-grill-with-docs-adoption.md` | derived (M2 ✓) | forked 2026-05-10; M1 state was `upstream_md5.<f>` = local md5 / `derived-from-local-fork`; **since M2 (7030200):** `state: derived`, `upstream_md5` all null, `upstream_md5_source` null (write-a-skill precedent); `files.SKILL.md` = `e552cb8a…` (post-AD-005), `CONTEXT-FORMAT.md` = `03e375e9…`, `ADR-FORMAT.md` unchanged; both companions stay in the dir |
-| `claude-code/skills/prototype/` | `docs/adr/0003-prototype-adoption.md` | current, re-forked (M3) | forked 2026-05-10; ADR-0003 md5s under anchor `MD5 verification (canonical` — three values equal to local `tail -n +2` md5s — `10ace9b5d79140b25d115bb8d840106d` / `d57721452aacaa04caacd0bc7c5c2f49` / `c1eaad6437c90d5660b2ffc9ff91ffb4` (verified 2026-09-21; the design spec's `f59e7362…/5a29fb2c…/0531f4c5…` values were wrong — never appeared in ADR-0003) |
+| `claude-code/skills/prototype/` | `docs/adr/0003-prototype-adoption.md` | current, re-forked (M3 ✓) | forked 2026-05-10; ADR-0003 md5s under anchor `MD5 verification (canonical` — three values equal to local `tail -n +2` md5s — `10ace9b5d79140b25d115bb8d840106d` / `d57721452aacaa04caacd0bc7c5c2f49` / `c1eaad6437c90d5660b2ffc9ff91ffb4` (verified 2026-09-21; the design spec's `f59e7362…/5a29fb2c…/0531f4c5…` values were wrong — never appeared in ADR-0003) **Since M3 (20e2359):** `forked_at` 2026-09-21, `upstream_sha` full c55ee46…, `files` = `upstream_md5` = `5c68a286…` / `0c6daa14…` / `e3c84174…`, `upstream_md5_source: gh-api@c55ee46`; ADR-0003 amended (old md5s marked superseded); detector SAME |
 | `claude-code/skills/write-a-skill/` | `docs/adr/0004-write-a-skill-adoption.md` | derived (M1) | forked 2026-05-10; upstream `skills/productivity/write-a-skill` deleted in 1.0.0; `upstream_sha: null`, `upstream_md5: {"SKILL.md": null}` |
 | `claude-code/skills/grilling/` (new, M2) | ADR-0002 amendment | current | upstream `skills/productivity/grilling` |
 | `claude-code/skills/aa-ma-research/` (new, M4) | `docs/adr/0012-*.md` | derived | upstream `skills/engineering/research`; renamed (OV1) |
@@ -83,7 +83,7 @@ After Step 3.4: `prototype` → SAME. Only HTTP 404 maps to ORPHAN; 403/auth/net
 - `tests/skills/_helpers.py`, `.github/workflows/security.yml`, `pyproject.toml`, `uv.lock`, `tests/commands/test_aa_ma_share_command.py`, `.importlinter` (render-is-leaf += `aa_ma.forks`), `docs/lessons.md` (L-017) (M1)
 - `claude-code/skills/write-a-skill/SKILL.md`, `docs/adr/0004-write-a-skill-adoption.md`, `docs/adr/0002-grill-with-docs-adoption.md`, `README.md` (M1)
 - `claude-code/skills/grill-with-docs/{SKILL,CONTEXT-FORMAT}.md`, `claude-code/skills/FORKS.json`, `tests/skills/test_grill_with_docs_frontmatter.py` (+2 asserts, 3B), `claude-code/commands/aa-ma-plan.md`, `docs/adr/0002-grill-with-docs-adoption.md`, `docs/ATTRIBUTION.md` (M2)
-- `claude-code/skills/prototype/{SKILL,LOGIC,UI}.md`, `src/aa_ma/gate.py`, `tests/test_gate.py`, `tests/hooks/aa-ma-gate-python.bats` (M3)
+- `claude-code/skills/prototype/{SKILL,LOGIC,UI}.md`, `claude-code/skills/FORKS.json`, `docs/adr/0003-prototype-adoption.md` (re-fork amendment), `src/aa_ma/gate.py`, `tests/test_gate.py`, `tests/hooks/aa-ma-gate-python.bats`, `tests/hooks/fixtures/gate-scans/prototype-rollup-tasks.md` (M3)
 - `claude-code/commands/{aa-ma-plan,execute-aa-ma-milestone,execute-aa-ma-step}.md`, `claude-code/rules/engineering-standards.md`, `tests/smoke/aa-ma-engineering-standards-smoke.md`, `docs/spec/aa-ma-specification.md`, `docs/templates/tasks-template.md`, `docs/adr/0011-*.md` (M3)
 - `docs/spec/plan-marker-grammar.md`, `claude-code/skills/aa-ma-plan-workflow/references/PHASE_3_RESEARCH.md`, `docs/adr/0012-*.md`, `TODOS.md` (M4)
 - `scripts/install.sh`, `tests/hooks/install_dry_run.bats`, `claude-code/rules/aa-ma.md`, `docs/spec/aa-ma-quick-reference.md`, `docs/spec/claude-code-foundations.md`, `docs/templates/README.md`, `docs/adr/0013-*.md` (M5)
@@ -186,6 +186,8 @@ def _read_steps(block: Block, heading: str, errors: list[str]) -> StepsRead   # 
 [ts] LIVE_CHECK — <milestone heading> — <key>=<value>…
 ```
 
+**M3 Contract addendum (§6.8 security review, 2026-09-21 — AD-007, additive):** `StepsRead` also carries `critical_path: str | None`; `_read_steps` reads `Critical-Path` per sub-step with `CANONICAL_CRITICAL_PATHS`, collects distinct values, and appends a `conflicting sub-step Critical-Path values` error when more than one is declared (exit 2). Override: `critical_path=read.critical_path or steps.critical_path` (milestone wins). Fixture Milestones 5–8 + 4 tests + bats "sub-step Critical-Path rolls up" cover it. `MilestoneRead` built with `dataclasses.replace`.
+
 ### Milestone 4 Contract
 ```text
 # file: claude-code/skills/aa-ma-research/SKILL.md
@@ -255,7 +257,7 @@ tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, Write
 | ENG_STANDARDS_DECLARED | `ENG_STANDARDS_DECLARED: themes=[…] prototype=<M-list>` | `prototype=` suffix added by Step 2.5 (M3) |
 | PHASE_3 marker | `PHASE_3 DONE context7_calls=<N> web_fetches=<N> research_files=<N>` | `research_files=` key added in M4 |
 
-`<milestone heading>` = the `## Milestone N: …` line from tasks.md byte-for-byte (the §6.7 grep depends on it). Never emit a `PHASE_2.5` marker (Step 2.5 is a step inside Phase 2).
+`<milestone heading>` = the text after `## ` on the `## Milestone N: …` line, byte-for-byte as `aa-ma-gate` prints `heading=` (the §6.7 grep depends on it; no `## ` prefix). Never emit a `PHASE_2.5` marker (Step 2.5 is a step inside Phase 2).
 
 ## Research-file header (M4/M5 and `aa-ma-research`)
 
@@ -313,7 +315,7 @@ tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, Write
 | `CHANGELOG.md` | edit `## Unreleased` only (L-003); counts updated per milestone (L-002) |
 | Dev deps | `[dependency-groups] dev` in `pyproject.toml` (not `[tool.uv] dev-dependencies`); `pyyaml` declared explicitly (M1) |
 | CI pytest step (after M1, AD-003) | exclusion-based: `uv run pytest tests -q --tb=short --ignore=tests/codemem --ignore=tests/perf --ignore=tests/test_goal_synthesis.py` — never enumerate (L-017c) |
-| Gate exit codes | `aa-ma-gate` exit 0/1/2/3/4; empty or invalid `Prototype-Required` / `Critical-Path` value → exit 2 (milestone level today; sub-step level after M3) |
+| Gate exit codes | `aa-ma-gate` exit 0/1/2/3/4; empty or invalid `Prototype-Required` / `Critical-Path` value → exit 2 at milestone level **and** on any sub-step of the answered milestone (since M3, 1b1cabf / 3c6f92f); sub-steps that disagree on `Critical-Path` → exit 2 |
 | Vocabulary | Fork / Re-fork / Drift / Orphan / Adaptation / Adoption per `CONTEXT.md`; "sync", "vendor" banned |
 | Banned marker | never emit `PHASE_2.5` |
 

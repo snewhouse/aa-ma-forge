@@ -76,3 +76,12 @@
 [2026-09-21T10:52:47+01:00] CRITICAL_PATH_REVIEW — Milestone 3: `prototype` Re-fork + planning gate + gate roll-up — hook-modification — post-§6.8 addendum: Critical-Path roll-up covered by tests/test_gate.py::{test_substep_critical_path_rolls_up_when_milestone_has_none,test_conflicting_substep_critical_paths_refuse,test_milestone_critical_path_wins_over_substeps,test_invalid_substep_critical_path_is_exit_2} + bats "sub-step Critical-Path rolls up" (32/32); CI cmd 523 passed
 [2026-09-21T10:53:51+01:00] MILESTONE COMPLETE — M3 — Commit: 4f1539f — Criteria: 8/8 verified — HARD gate + §7.3 approved by user
 [2026-09-21T10:53:51+01:00] COMMIT 4f1539f — feat(mattpocock-trio-adoption): Complete Milestone 3
+[2026-09-21T10:55:40+01:00] STEP 3.1 COMPLETE — fixture + 4 red tests (f762730)
+[2026-09-21T10:55:40+01:00] STEP 3.2 COMPLETE — StepsRead/_read_steps roll-up (1b1cabf); amended §6.8 Critical-Path roll-up (0cb97a3 → 3c6f92f)
+[2026-09-21T10:55:40+01:00] STEP 3.3 COMPLETE — bats fence case (6565ceb) + §6.7 wording, step advisory, §8.3-8.4 no-amend (c8cea54)
+[2026-09-21T10:55:40+01:00] STEP 3.4 COMPLETE — prototype re-fork @ c55ee46, FORKS.json, ADR-0003 amendment (20e2359)
+[2026-09-21T10:55:40+01:00] STEP 3.5 COMPLETE — Step 2.5, Theme 1, spec grammar, template slots, ADR-0011 (931c71b)
+[2026-09-21T10:55:40+01:00] STEP 3.6 COMPLETE — HARD gate approval, CRITICAL_PATH_REVIEW, impact analysis (4cedc91)
+[2026-09-21T10:55:40+01:00] COMMIT f849d1c — docs(aa-ma): M3 impl-review, completion entry (AD-007..009)
+[2026-09-21T10:55:40+01:00] COMMIT 51ec995 — docs(aa-ma): provenance — MILESTONE COMPLETE M3 (4f1539f)
+[2026-09-21T10:55:40+01:00] §7.2.5 VALIDATOR (post-completion) — WARNINGS_BUT_USABLE (0 FAIL / 4 WARN / 3 INFO) → back-filled inline: STEP 3.x lines + COMMIT f849d1c/51ec995; reference.md M3 Contract addendum (AD-007), exit-code row, heading note, prototype row, Files-to-modify; tasks 3.2 AD-007 amendment + green hashes; plan.md §13 Flow note

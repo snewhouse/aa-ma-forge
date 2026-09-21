@@ -14,4 +14,4 @@ Its job:
 ## In this repo
 - Dispatch the background agent as `aa-ma-researcher` (Agent tool, `subagent_type: aa-ma-researcher`). It has no Agent tool, so it cannot re-delegate.
 - Answer the stated question only. List threads you saw but did not follow under `## Not pursued`.
-- "Where the repo already keeps such notes" is `docs/research/<plan-slug>-<topic>.md`, with the header used by `docs/research/skill-ecosystem-audit.md` (Created / Author / Reviewed-Through-Date / Valid-Through / Sources).
+- "Where the repo already keeps such notes" is `docs/research/<plan-slug>-<topic>.md`, with the header used by `docs/research/skill-ecosystem-audit.md` (Created / Author / Reviewed-Through-Date / Valid-Through / Sources). Pass slug and topic as `[a-z0-9-]+` — no path separators — so the agent's single Write stays a direct child of `docs/research/`.

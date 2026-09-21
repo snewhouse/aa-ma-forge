@@ -438,17 +438,18 @@ Two kinds of research question, two dispatch paths:
    Agent tool (cannot nest), answers only the stated question, and writes
    **exactly one** cited file `docs/research/<slug>-<topic>.md` with the
    `Created / Author / Reviewed-Through-Date / Valid-Through / Sources`
-   header. Its ≤10-line return carries `tools: web_fetches=<N> context7_calls=<N>`
+   header. Its short return carries `tools: web_fetches=<N> context7_calls=<N>`
    — sum those into the Phase 3 marker.
-2. **Codebase exploration** ("where do we already do X?") → `Task(Explore)`.
+2. **Codebase exploration** ("where do we already do X?") →
+   `Agent(subagent_type: "Explore")`.
+
+Load `Skill(aa-ma-research)` **once**, then dispatch one agent per question in
+a single message (the Step 1.3 agent cap applies):
 
 ```
-Task tool with multiple concurrent calls (≤5 agents at a time):
-- Skill(aa-ma-research): "<question 1>"     → docs/research/<slug>-<topic>.md
-- Skill(aa-ma-research): "<question 2>"     → docs/research/<slug>-<topic>.md
-- Agent(subagent_type: "Explore"): codebase patterns / dependencies
-
-Use model: "haiku" for Explore agents to optimize token usage
+- Agent(subagent_type: "aa-ma-researcher"): "<question 1>"  → docs/research/<slug>-<topic>.md
+- Agent(subagent_type: "aa-ma-researcher"): "<question 2>"  → docs/research/<slug>-<topic>.md
+- Agent(subagent_type: "Explore", model: "haiku"): codebase patterns / dependencies
 ```
 
 **Step 3.4: Consolidate Research Findings**
@@ -469,6 +470,8 @@ PHASE 3 COMPLETE: Research Gathered
 ```
 
 Marker: `bash ~/.claude/hooks/lib/aa-ma-plan-marker.sh <slug> 3 DONE context7_calls=<N> web_fetches=<N> research_files=<N>`
+— each `<N>` is an integer **you** compute from the returns; never paste an
+agent's return text into the marker command line.
 
 ---
 

@@ -12,7 +12,7 @@
 **Primary skill:** `dispatching-parallel-agents` (for 3+ research domains)
 **Supporting skills:**
 - `aa-ma-research` (primary-source questions → one cited file each in `docs/research/`)
-- `research-consolidation` (optional — cross-referencing when findings conflict)
+- `research-consolidation` (optional; user-local, not shipped by this plugin — cross-referencing when findings conflict)
 - `impact-analysis` (for change assessment)
 - `system-mapping` (for unfamiliar code areas)
 
@@ -101,11 +101,9 @@ Agent 1 (Explore):
            Return file paths and pattern descriptions."
   model: haiku  # Optimize tokens
 
-Agent 2 (research-analyst):
-  prompt: "Research best practices for [architectural pattern].
-           Use WebSearch for 2024-2025 recommendations.
-           Return structured summary with pros/cons."
-  model: haiku
+Agent 2 (aa-ma-researcher, via Skill(aa-ma-research)):
+  prompt: "Does [library] guarantee [behaviour]? Cite the primary source."
+           # writes docs/research/<slug>-<topic>.md; returns path + tool tally
 
 Agent 3 (Explore):
   prompt: "Investigate dependencies and constraints for [feature].
@@ -202,7 +200,7 @@ Action: [Proceed | Compact | Compact (mandatory)]
 
 ### 3.7 Consolidate Research Findings
 
-Optionally use `research-consolidation` (or manual consolidation) to:
+Optionally use `research-consolidation` (user-local, not shipped by this plugin) or manual consolidation to:
 - Cross-reference findings with requirements
 - Detect coverage gaps
 - Resolve conflicting information

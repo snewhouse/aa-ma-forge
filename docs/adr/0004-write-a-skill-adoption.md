@@ -1,6 +1,6 @@
 # 0004. Adopt `write-a-skill` from mattpocock/skills
 
-**Status:** Implemented (2026-05-10)
+**Status:** Implemented — Derived (2026-05-10; amended 2026-09-21)
 **Date:** 2026-05-10
 **Deciders:** Stephen Newhouse, Claude (planning + execution sessions)
 **Tags:** `workflow`, `aa-ma`, `skills`, `release-v0.6.0`, `external-fork`, `meta-tooling`
@@ -136,6 +136,17 @@ There is no native skill-authoring procedure. When a new skill is needed, the au
 - Transcription typo caught at fork time: line 79 of the good-example block was initially mis-typed as "PDFs, forks" (should be "PDFs, forms"). Per-fork diff verification surfaced the regression immediately and it was fixed inline before commit (see M2.2 Result Log).
 
 **Status transition:** `Implemented` once Tasks 2.2, 2.8 are COMPLETE and M2 HARD gate (Task 2.10) closes.
+
+## Amendment 2026-09-21 — reclassified Derived
+
+Upstream `skills/productivity/write-a-skill` was renamed `writing-great-skills`, then
+`writing-for-agents`, and removed from mattpocock/skills in 1.0.0 (2026-06-17). There is
+no upstream file to re-fork from, so this skill is now **Derived** (see `CONTEXT.md`
+fork-lifecycle terms): we own it, and the Drift/Orphan detector reports it ORPHAN by
+design (`upstream_md5.SKILL.md: null` in `claude-code/skills/FORKS.json`). Line 1 of
+`SKILL.md` carries the `Derived from …` provenance form; the upstream path substring is
+kept so `tests/skills/test_write_a_skill_frontmatter.py` still resolves it. Decided in
+`mattpocock-trio-adoption` Milestone 1 (ADR-0011/0012/0013 context).
 
 ## References
 

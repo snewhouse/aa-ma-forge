@@ -53,6 +53,7 @@ type = forbidden
 source_modules =
     aa_ma.cli
     aa_ma.enforce
+    aa_ma.forks
     aa_ma.gate
     aa_ma.goal_synthesis
     aa_ma.grammar

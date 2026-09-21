@@ -32,6 +32,7 @@ dev = [
     { name = "pytest-benchmark" },
     { name = "pytest-cov" },
     { name = "pytest-textual-snapshot" },
+    { name = "pyyaml" },
     { name = "ruff" },
     { name = "tiktoken" },
 ]
@@ -57,6 +58,7 @@ dev = [
     { name = "pytest-benchmark", specifier = ">=4.0" },
     { name = "pytest-cov", specifier = ">=5.0" },
     { name = "pytest-textual-snapshot", specifier = ">=1.0" },
+    { name = "pyyaml", specifier = ">=6" },
     { name = "ruff", specifier = ">=0.4" },
     { name = "tiktoken", specifier = ">=0.7" },
 ]

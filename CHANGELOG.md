@@ -8,6 +8,18 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Fork manifest + Drift/Orphan detector (`mattpocock-trio-adoption` M1)** — `claude-code/skills/FORKS.json`
+  is the SSoT for every forked skill (upstream path, fork date, ADR, `tail -n +2` md5 per local file,
+  whole-file upstream md5). `src/aa_ma/forks.py` is a pure classifier (`classify_fork` → SAME/DRIFT/ORPHAN;
+  `python -m aa_ma.forks classify`). `scripts/fork-drift.sh [--sha <ref>]` is the only fetcher (`gh api`;
+  only HTTP 404 → ORPHAN, 403/auth/network exit 1). `tests/skills/test_fork_manifest.py` fails on a local
+  edit without a manifest update; `tests/hooks/fork-drift.bats` stubs `gh` via the `GH=` seam.
+  `tests/skills/_helpers.assert_skill_frontmatter` derives the upstream path from the manifest when not given.
+- **`write-a-skill` reclassified Derived** — upstream removed in mattpocock/skills 1.0.0 (2026-06-17); line 1
+  carries the `Derived from …` form, ADR-0004 amended, README row rewritten.
+- **CI runs the suites it had been skipping** — the pytest step now covers `tests/skills tests/agents
+  tests/plan_markers tests/test_gate.py tests/test_enforce.py tests/test_gate_parity.py`; `pyyaml` is a
+  declared dev dependency; `test_foundations_count_headings_match_disk` pins the three foundations headings.
 - **Research + three Proposed ADRs for Matt Pocock's `wayfinder` / `prototype` / `research`** — `docs/research/mattpocock-trio-2026-09.md` (cited, upstream verified 2026-09-20) and ADR-0011 (prototype re-sync + Step 2.5 prototype decision + gate roll-up of sub-step `Prototype-Required`), ADR-0012 (`research` skill fork + Phase 3 writes `docs/research/`), ADR-0013 (charting: pre-plan decision map, wayfinder-lite, no tracker). Implementation deferred to `/aa-ma-plan mattpocock-trio-adoption`.
 
 ### Fixed

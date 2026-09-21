@@ -1,0 +1,20 @@
+{
+  "alpha": {
+    "upstream": "skills/engineering/alpha",
+    "upstream_sha": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
+    "forked_at": "2026-05-10",
+    "adr": "docs/adr/0000-alpha.md",
+    "state": "current",
+    "files": { "SKILL.md": "5e2c51f0d3b7ad7c8b9b2d4b5f7e1a2c" },
+    "upstream_md5": { "SKILL.md": "8b1a9953c4611296a827abf8c47804d7" }
+  },
+  "beta": {
+    "upstream": "skills/engineering/beta",
+    "upstream_sha": null,
+    "forked_at": "2026-05-10",
+    "adr": "docs/adr/0000-beta.md",
+    "state": "current",
+    "files": { "SKILL.md": "5e2c51f0d3b7ad7c8b9b2d4b5f7e1a2c" },
+    "upstream_md5": { "SKILL.md": "8b1a9953c4611296a827abf8c47804d7" }
+  }
+}

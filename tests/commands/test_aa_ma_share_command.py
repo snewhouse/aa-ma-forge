@@ -80,3 +80,20 @@ def test_security_md_asset_lists_match_disk() -> None:
         listed = {x.strip() for x in m.group(2).split(",")}
         assert int(m.group(1)) == len(names), f"{label}: says {m.group(1)}, disk {len(names)}"
         assert listed == names, f"{label}: {sorted(listed ^ names)}"
+
+
+def test_foundations_count_headings_match_disk() -> None:
+    """docs/spec/claude-code-foundations.md `### Commands (N)` / `### Skills (N)` / `### Agents (N)` track disk.
+
+    SECURITY.md is covered by test_security_md_asset_lists_match_disk; CLAUDE.md is gitignored.
+    """
+    text = (REPO_ROOT / "docs" / "spec" / "claude-code-foundations.md").read_text(encoding="utf-8")
+    on_disk = {
+        "Commands": len(list(COMMANDS.glob("*.md"))),
+        "Skills": len([d for d in (REPO_ROOT / "claude-code" / "skills").iterdir() if d.is_dir()]),
+        "Agents": len(list((REPO_ROOT / "claude-code" / "agents").glob("*.md"))),
+    }
+    for label, n in on_disk.items():
+        m = re.search(rf"^### {label} \((\d+)\)$", text, re.MULTILINE)
+        assert m, f"foundations: no '### {label} (N)' heading"
+        assert int(m.group(1)) == n, f"foundations: {label} heading says {m.group(1)}, disk has {n}"

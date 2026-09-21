@@ -1,0 +1,48 @@
+{
+  "grill-with-docs": {
+    "upstream": "skills/engineering/grill-with-docs",
+    "upstream_sha": null,
+    "forked_at": "2026-05-10",
+    "adr": "docs/adr/0002-grill-with-docs-adoption.md",
+    "state": "current",
+    "files": {
+      "SKILL.md": "5ad241e49d5ffcd394eeff3a5ca46953",
+      "CONTEXT-FORMAT.md": "57e7e26a1a46884f8f952c67fb233af2",
+      "ADR-FORMAT.md": "bb327bab674f400796f64b6e2ef5850c"
+    },
+    "upstream_md5": {
+      "SKILL.md": "5ad241e49d5ffcd394eeff3a5ca46953",
+      "CONTEXT-FORMAT.md": "57e7e26a1a46884f8f952c67fb233af2",
+      "ADR-FORMAT.md": "bb327bab674f400796f64b6e2ef5850c"
+    },
+    "upstream_md5_source": "derived-from-local-fork"
+  },
+  "prototype": {
+    "upstream": "skills/engineering/prototype",
+    "upstream_sha": null,
+    "forked_at": "2026-05-10",
+    "adr": "docs/adr/0003-prototype-adoption.md",
+    "state": "current",
+    "files": {
+      "SKILL.md": "10ace9b5d79140b25d115bb8d840106d",
+      "LOGIC.md": "d57721452aacaa04caacd0bc7c5c2f49",
+      "UI.md": "c1eaad6437c90d5660b2ffc9ff91ffb4"
+    },
+    "upstream_md5": {
+      "SKILL.md": "10ace9b5d79140b25d115bb8d840106d",
+      "LOGIC.md": "d57721452aacaa04caacd0bc7c5c2f49",
+      "UI.md": "c1eaad6437c90d5660b2ffc9ff91ffb4"
+    },
+    "upstream_md5_source": "adr-0003"
+  },
+  "write-a-skill": {
+    "upstream": "skills/productivity/write-a-skill",
+    "upstream_sha": null,
+    "forked_at": "2026-05-10",
+    "adr": "docs/adr/0004-write-a-skill-adoption.md",
+    "state": "derived",
+    "files": { "SKILL.md": "492ef034b4fc9e497cc69b8fed78a742" },
+    "upstream_md5": { "SKILL.md": null },
+    "upstream_md5_source": null
+  }
+}

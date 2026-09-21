@@ -247,7 +247,7 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `prototype` | Throwaway-code prototyping that routes between a terminal LOGIC app and several swappable UI variations |
 | `understand-codebase` | Tiered codebase onboarding — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives; the engine behind `/understand-codebase` |
 | `verify-impl` | Post-impl adversarial review symmetric to `plan-verification`; dispatches up to 5 parallel audit agents at Phase 6.8 |
-| `write-a-skill` | Authoring template + checklist for new skills (frontmatter contract, references/ layout, `install.sh` auto-discovery) |
+| `write-a-skill` | Authoring recipe: gather → draft SKILL.md (+REFERENCE/EXAMPLES/scripts) → review; description rules, 100-line split, 6-item checklist (Derived — upstream removed in 1.0.0) |
 | `goal-condition-synthesis` | Synthesize a Claude Code `/goal` condition from plan artifacts with a turn-cap cost ceiling; consumed by `/execute-aa-ma-full` §2.5 and `/verify-plan --iterate` |
 
 Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use, so some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).

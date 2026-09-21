@@ -1,4 +1,4 @@
-<!-- Forked from https://github.com/mattpocock/skills/skills/productivity/write-a-skill on 2026-05-10 — aa-ma-forge v0.6.0 -->
+<!-- Derived from https://github.com/mattpocock/skills/skills/productivity/write-a-skill (forked 2026-05-10; upstream removed in 1.0.0, 2026-06-17) — aa-ma-forge v0.13.0 -->
 ---
 name: write-a-skill
 description: Create new agent skills with proper structure, progressive disclosure, and bundled resources. Use when user wants to create, write, or build a new skill.

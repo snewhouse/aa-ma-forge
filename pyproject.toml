@@ -97,6 +97,7 @@ addopts = "-m 'not perf and not slow'"
 [dependency-groups]
 dev = [
     "jsonschema>=4",          # tests/test_gate.py validates the aa-ma-gate JSON envelope (M5).
+    "pyyaml>=6",              # tests/skills/_helpers.py parses SKILL.md frontmatter; was only transitive (mattpocock-trio-adoption M1).
 
     "pytest-textual-snapshot>=1.0",
 ]

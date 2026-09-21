@@ -10,8 +10,11 @@ from pathlib import Path
 
 import yaml
 
+from aa_ma.forks import load_manifest
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_DIR = REPO_ROOT / "claude-code" / "skills"
+FORKS_MANIFEST = SKILLS_DIR / "FORKS.json"
 
 
 def split_frontmatter(text: str) -> tuple[str, dict]:
@@ -46,10 +49,13 @@ def split_frontmatter(text: str) -> tuple[str, dict]:
 
 def assert_skill_frontmatter(
     skill_dir_name: str,
-    expected_upstream_path: str,
+    expected_upstream_path: str | None = None,
     min_description_length: int = 50,
 ) -> tuple[str, dict]:
     """Common assertion bundle for forked-skill SKILL.md files.
+
+    When `expected_upstream_path` is None it is derived from FORKS.json as
+    "mattpocock/skills/" + entry.upstream (the manifest is the SSoT).
 
     Verifies:
       - SKILL.md exists at claude-code/skills/<skill_dir_name>/SKILL.md
@@ -59,6 +65,8 @@ def assert_skill_frontmatter(
 
     Returns (provenance_lines, frontmatter_dict) for further assertions.
     """
+    if expected_upstream_path is None:
+        expected_upstream_path = "mattpocock/skills/" + load_manifest(FORKS_MANIFEST)[skill_dir_name].upstream
     skill_path = SKILLS_DIR / skill_dir_name / "SKILL.md"
     assert skill_path.exists(), f"SKILL.md not found at {skill_path}"
 

@@ -11,7 +11,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 ---
 
 ## Milestone 1: Fork manifest, Drift/Orphan detector, Derived reclassifications, CI coverage
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: None (pre-M1 `[ad-hoc]` housekeeping commit must land first)
 - Complexity: 45%
 - Mode: AFK
@@ -31,37 +31,37 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Rollback: `git revert` the milestone commits (pre-existing drift fixes are in the separate pre-M1 commit and survive); no runtime behaviour changes (tests + docs + one script + one pure module).
 
 ### Sub-step 1.1: Write the failing manifest test
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: None
 - Effort: 45m · Complexity: 35%
 - Acceptance Criteria:
   - `uv run pytest tests/skills/test_fork_manifest.py -q` fails at collection with `ImportError`/`ModuleNotFoundError: aa_ma.forks` (the `FileNotFoundError` leg surfaces once the module exists).
 - Artefacts: `tests/skills/test_fork_manifest.py` (four tests per the M1 Contract; the classifier test builds `fetched` dicts by hand — no cache, no network).
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. RED confirmed: `uv run pytest tests/skills/test_fork_manifest.py -q` → `ModuleNotFoundError: No module named 'aa_ma.forks'` (1 error during collection). File holds the 4 Contract tests + `test_load_manifest_names_missing_key` + the Step 1.3 helper test (7 assertions across 6 tests); classifier test uses hand-built dicts incl. missing-key→ORPHAN and expected-None→SAME legs.
 
 ### Sub-step 1.2: Write `FORKS.json` and make the test pass
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Step 1.1
 - Effort: 30m · Complexity: 30%
 - Acceptance Criteria:
   - The four Contract tests pass (Step 1.3 adds a fifth); `uv run ruff check src/; test $? -eq 0`; `uv run python -m aa_ma.forks classify prototype '{"SKILL.md": null}'` prints an ORPHAN roll-up row.
 - Artefacts: `src/aa_ma/forks.py`; `claude-code/skills/FORKS.json` with rows `grill-with-docs` (current; `upstream_sha: null`, `forked_at: 2026-05-10`; ADR-0002 recorded no md5 values — the fork is byte-faithful, so `upstream_md5.<f>` = local `tail -n +2 <f> | md5sum`, and the row carries `"upstream_md5_source": "derived-from-local-fork"`; `adr: docs/adr/0002-grill-with-docs-adoption.md`), `prototype` (current; `forked_at: 2026-05-10`; `upstream_md5` from ADR-0003 under the anchor `MD5 verification (canonical` — three values, which equal the local `tail -n +2` md5s; `adr: docs/adr/0003-prototype-adoption.md`), `write-a-skill` (derived; `upstream_sha: null`, `upstream_md5: {"SKILL.md": null}`; `adr: docs/adr/0004-write-a-skill-adoption.md`); `understand-codebase` excluded (line 1 is the `Maintained in aa-ma-forge …` comment, not a Fork). `upstream_sha` is the full 40-char sha when non-null.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. GREEN: 5 passed, 1 failed (`test_helper_resolves_upstream_from_manifest` — the Step 1.3 leg, expected). `src/aa_ma/forks.py` (ForkEntry/load_manifest/classify_file/classify_fork + `classify` CLI, stdlib only); `claude-code/skills/FORKS.json` 3 rows — grill-with-docs (upstream_md5 derived-from-local-fork), prototype (upstream_md5 = ADR-0003 values `10ace9b5…`/`d5772145…`/`c1eaad64…`, verified equal to local `tail -n +2` md5s), write-a-skill (derived, upstream_md5 SKILL.md null). `upstream_sha: null` on all three — neither ADR-0002 nor ADR-0003 recorded a fork sha. `ruff check src/` clean; `python -m aa_ma.forks classify prototype '{"SKILL.md": null}'` → 3 per-file rows + `prototype | * | | | ORPHAN`.
 
 ### Sub-step 1.3: Point `_helpers.assert_skill_frontmatter` at the manifest
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Step 1.2
 - Effort: 20m · Complexity: 25%
 - Acceptance Criteria:
   - The `name == dir` assertion is untouched; the three existing `test_*_frontmatter.py` pass unchanged (explicit path); `tests/skills/test_fork_manifest.py::test_helper_resolves_upstream_from_manifest` (fifth test in that file) calls the helper with `expected_upstream_path=None` for `prototype` and passes.
 - Artefacts: `tests/skills/_helpers.py`.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `_helpers.py`: `expected_upstream_path: str | None = None`; None → `"mattpocock/skills/" + load_manifest(FORKS_MANIFEST)[skill].upstream`; `fm["name"] == skill_dir_name` assertion untouched. `uv run pytest tests/skills -q` → 55 passed (3 existing `test_*_frontmatter.py` unchanged with explicit paths; `test_helper_resolves_upstream_from_manifest` green for `prototype`).
 
 ### Sub-step 1.4: `scripts/fork-drift.sh`
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Step 1.2
 - Effort: 30m · Complexity: 35%
@@ -69,20 +69,20 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
   - `scripts/fork-drift.sh --sha c55ee46` prints per-file rows plus one roll-up row per skill with the expected verdicts (grill-with-docs ORPHAN, prototype DRIFT, write-a-skill ORPHAN); `shellcheck scripts/fork-drift.sh; test $? -eq 0`.
   - `bats tests/hooks/fork-drift.bats` (uses `--manifest tests/hooks/fixtures/forks/FORKS.json`, a 2-row fixture): (a) `GH=/nonexistent/gh` → exit 1 + message; (b) `GH=<tmp>/stub-gh` returning fixed base64 for one file and writing `gh: Not Found (HTTP 404)` to stderr + exit 1 for the other → rows `SAME` and `ORPHAN`; (c) stub writing `HTTP 403` → exit 1, no ORPHAN.
 - Artefacts: `scripts/fork-drift.sh` per the Contract (`GH` seam, 404-only → null, `cut -d' ' -f1`, `uv run --quiet --project`), `tests/hooks/fork-drift.bats`, `tests/hooks/fixtures/forks/FORKS.json`.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `scripts/fork-drift.sh --sha c55ee46` (live `gh api`) → grill-with-docs **ORPHAN** (SKILL.md DRIFT `2e333f0b…`, CONTEXT-FORMAT.md + ADR-FORMAT.md 404), prototype **DRIFT** (fetched `5c68a286…`/`0c6daa14…`/`e3c84174…` = reference.md values), write-a-skill **ORPHAN** — all three as predicted. `shellcheck scripts/fork-drift.sh` clean. `bats tests/hooks/fork-drift.bats` 4/4: (a) `GH=/nonexistent/gh` → exit 1 + `gh CLI not found`; (b) stub 404 → `alpha … SAME` + `beta … ORPHAN` rows; (c) stub 403 → exit 1, output contains no ORPHAN; (d) unknown flag → exit 2. Fixture `tests/hooks/fixtures/forks/FORKS.json` (2 rows).
 
 ### Sub-step 1.5: `write-a-skill` → Derived; ADR-0004 + ADR-0002 amendments
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Step 1.2
 - Effort: 30m · Complexity: 20%
 - Acceptance Criteria:
   - `write-a-skill/SKILL.md` line 1 = `<!-- Derived from https://github.com/mattpocock/skills/skills/productivity/write-a-skill (forked 2026-05-10; upstream removed in 1.0.0, 2026-06-17) — aa-ma-forge v0.13.0 -->`; `test_write_a_skill_frontmatter.py` passes (path substring still present); ADR-0004 Status + a `## Amendment <fork-date>` section; the `README.md` `write-a-skill` row rewritten to "Authoring recipe: gather → draft SKILL.md (+REFERENCE/EXAMPLES/scripts) → review; description rules, 100-line split, 6-item checklist".
 - Artefacts: `claude-code/skills/write-a-skill/SKILL.md`, `docs/adr/0004-write-a-skill-adoption.md`, `docs/adr/0002-grill-with-docs-adoption.md`, `README.md`.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `write-a-skill/SKILL.md` line 1 = Derived form (fork-date 2026-09-21; `tail -n +2` md5 unchanged so FORKS.json stays valid); ADR-0004 line 3 = `**Status:** Implemented — Derived (2026-05-10; amended 2026-09-21)` + `## Amendment 2026-09-21 — reclassified Derived` section; README `write-a-skill` row → `Authoring recipe: gather → …`. ADR-0002: its M1 change (never-true rows) already landed pre-M1 in `c47e15b`; the Derived amendment is Step 2.3. `uv run pytest tests/skills -q` → 55 passed (`test_write_a_skill_frontmatter` green — path substring retained).
 
 ### Sub-step 1.6: CI widening + `pyyaml` + count-site test extension
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Steps 1.3, 1.4
 - Effort: 40m · Complexity: 40%
@@ -90,17 +90,17 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
   - `uv run pytest tests/commands tests/render tests/skills tests/agents tests/plan_markers tests/test_gate.py tests/test_enforce.py tests/test_gate_parity.py -q --tb=short` passes locally; the `command + render tests` step in `security.yml` runs that exact list; `[dependency-groups] dev` includes `pyyaml`; `uv lock` then `uv lock --check; test $? -eq 0`.
   - `test_aa_ma_share_command.py` gains `test_foundations_count_headings_match_disk` covering only the three foundations headings (`test_security_md_asset_lists_match_disk` already covers SECURITY.md — do not duplicate).
 - Artefacts: `.github/workflows/security.yml`, `pyproject.toml`, `uv.lock`, `tests/commands/test_aa_ma_share_command.py`.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `security.yml` pytest step now runs the exact 8-path list (`tests/commands tests/render tests/skills tests/agents tests/plan_markers tests/test_gate.py tests/test_enforce.py tests/test_gate_parity.py`); `[dependency-groups] dev` += `pyyaml>=6`; `uv lock` (+2 lines) then `uv lock --check` rc 0. `test_foundations_count_headings_match_disk` added (3 headings only; Commands 12 / Skills 19 / Agents 11 vs disk). Unplanned but required: `.importlinter` render-is-leaf `source_modules` += `aa_ma.forks` (`tests/render/test_leaf_contract.py` enforces every new `aa_ma` module be listed; `lint-imports` 3 kept / 0 broken). Full list locally: **317 passed**.
 
 ### Sub-step 1.7: CHANGELOG + sync
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Steps 1.5, 1.6
 - Effort: 25m · Complexity: 20%
 - Acceptance Criteria:
   - `CHANGELOG.md ## Unreleased` has M1 entries; new count test green against the pre-M1 baseline; commit + push with plan footer.
 - Artefacts: `CHANGELOG.md`, tasks/reference/context-log/provenance sync.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `CHANGELOG.md ## Unreleased` += 3 M1 entries (manifest+detector, write-a-skill Derived, CI widening). `test_foundations_count_headings_match_disk` green against the pre-M1 baseline (12/19/11). §6.1 all 6 criteria verified live (tamper legs: `MISSING_IN_MANIFEST: prototype`, `MD5_MISMATCH: prototype/SKILL.md`; FORKS.json restored). Impact analysis: 12 files, overall LOW. Commit + push with plan footer — see provenance.
 
 ---
 

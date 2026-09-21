@@ -231,7 +231,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Result Log: Mode: AFK — auto-dispatched. Fetched `skills/engineering/prototype/{SKILL,LOGIC,UI}.md` @ c55ee46 via `gh api`; whole-file md5s `5c68a286…` / `0c6daa14…` / `e3c84174…` = Contract. Wrote provenance line `Forked from … @ c55ee46 on 2026-09-21 — aa-ma-forge v0.13.0` + verbatim bodies; `tail -n +2` md5s match. `test_local_md5_matches_manifest` fired as designed → FORKS.json `prototype`: `upstream_sha` full c55ee46…, `forked_at` 2026-09-21, `files` = `upstream_md5` = the three, `upstream_md5_source: gh-api@c55ee46`. `tests/skills` 61 passed (frontmatter test green throughout). Live `scripts/fork-drift.sh --sha c55ee46` → **prototype SAME** (grilling SAME; grill-with-docs/write-a-skill ORPHAN by design). ADR-0003: status `re-forked 2026-09-21`, old md5s marked superseded, `## Amendment 2026-09-21 — Re-fork from HEAD c55ee46` (Re-fork per glossary: original ADR amended, no new number).
 
 ### Sub-step 3.5: Step 2.5 in `/aa-ma-plan`, Theme 1 wording, spec grammar, template, ADR-0011
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Steps 3.3, 3.4
 - Effort: 60m · Complexity: 40%
@@ -239,7 +239,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
   - All remaining M3 criteria; `uv run pytest tests/commands tests/codemem/test_critical_path_parser.py -q` green.
   - Theme 1 replacement sentence (verbatim): "which routes between **LOGIC** (a single self-contained HTML demo — state panel, free-play buttons, tabbed guided walkthroughs — for state/business-logic questions) and **UI** (structurally different variants on an existing route, switchable via `?variant=`) branches based on the question, and captures the result on a `prototype/<name>` branch — main keeps only the decision." The Critical-Path table below it is untouched.
 - Artefacts: `claude-code/commands/aa-ma-plan.md`, `claude-code/rules/engineering-standards.md`, `docs/spec/aa-ma-specification.md`, `docs/templates/tasks-template.md`, `tests/smoke/aa-ma-engineering-standards-smoke.md`, `README.md` + `docs/spec/claude-code-foundations.md` prototype rows, `docs/adr/0011-*.md`, `CHANGELOG.md`.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. Theme 1 sentence replaced verbatim per AC (+ PROTOTYPE entry now names the milestone heading; sub-step roll-up sentence); Critical-Path table diffed before/after → IDENTICAL. `grep -c 'terminal TUI'` = 0 in all four files (smoke file had none). `?variant=` + `prototype/<name>` present. Spec provenance grammar: three `grep -F` criteria match (added under the Milestone Complete entry). Template: 4 blank slots removed (`grep -cE … = 0`), each comment carries "add `- <Field>: <value>` only when it applies; an empty value is a gate error (exit 2)". `aa-ma-plan.md`: `**Step 2.5: Prototype Decision**` inserted before the Phase 2 summary; `ENG_STANDARDS_DECLARED` gains `prototype=${PROTO}`; text states no `PHASE_2.5` marker is written. README + foundations prototype rows reworded. ADR-0011 → Implemented. CHANGELOG `## Unreleased` bullet (incl. L-018 §8.4). Tests: M3 list + codemem critical-path parser + active-plans + plan_markers + skills → 287 passed 1 skipped; ruff clean; bats gate-python 31/31; CI cmd 519 passed. Edits applied via scratchpad script (hook pattern-match, see 3.3).
 
 ### Sub-step 3.6: CRITICAL_PATH_REVIEW + impact analysis + HARD gate approval + sync
 - Status: PENDING

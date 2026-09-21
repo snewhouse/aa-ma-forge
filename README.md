@@ -245,7 +245,7 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `token-compression` | Output token reduction with HITL/AFK intensity mapping (lite/full/ultra) |
 | `grilling` | Round-based frontier interview — whole frontier per round, numbered questions with recommended answers, sub-agents for facts (forked from mattpocock/skills @ c55ee46) |
 | `grill-with-docs` | Plan-stress-test that delegates the interview to `grilling` and updates `CONTEXT.md` and ADRs inline as decisions crystallise (Phase 1.3 `with-docs` mode; Derived) |
-| `prototype` | Throwaway-code prototyping that routes between a terminal LOGIC app and several swappable UI variations |
+| `prototype` | Throwaway-code prototyping that routes between a self-contained HTML LOGIC demo and `?variant=`-switchable UI variations, captured on a `prototype/<name>` branch |
 | `understand-codebase` | Tiered codebase onboarding — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives; the engine behind `/understand-codebase` |
 | `verify-impl` | Post-impl adversarial review symmetric to `plan-verification`; dispatches up to 5 parallel audit agents at Phase 6.8 |
 | `write-a-skill` | Authoring recipe: gather → draft SKILL.md (+REFERENCE/EXAMPLES/scripts) → review; description rules, 100-line split, 6-item checklist (Derived — upstream removed in 1.0.0) |

@@ -321,6 +321,12 @@ The `[task]-provenance.log` file is an **immutable, append-only** log providing 
 # Milestone Complete
 [YYYY-MM-DD HH:MM] MILESTONE COMPLETE — [name] — Commit [hash] — Criteria: [N/N] verified
 
+# Engineering-standards evidence (read by /execute-aa-ma-milestone §6.7; each names
+# the `## Milestone N: …` heading byte-for-byte so the check is milestone-scoped)
+[ts] PROTOTYPE — <milestone heading> — <verdict>[; branch=prototype/<name>]
+[ts] CRITICAL_PATH_REVIEW — <milestone heading> — <Critical-Path value> — <evidence>
+[ts] LIVE_CHECK — <milestone heading> — <key>=<value>…
+
 # Session Resume
 [YYYY-MM-DD HH:MM] Session resumed — ActiveStep: [id] — From: CHECKPOINT
 ```

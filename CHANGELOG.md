@@ -22,6 +22,18 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   @ `c55ee46` (round-based frontier interview, model-invocable). `grill-with-docs` keeps its name and
   domain block but its `<what-to-do>` now delegates the interview to `Skill(grilling)`; glossary
   sentence taken from upstream `domain-modeling`; ADR-0002 amended; skills 19 → 20.
+- **`prototype` re-forked; sub-step `Prototype-Required` rolls up to the gate; Step 2.5 (`mattpocock-trio-adoption` M3)** —
+  `claude-code/skills/prototype/{SKILL,LOGIC,UI}.md` re-forked from mattpocock/skills @ `c55ee46`
+  (LOGIC is now a single HTML demo; results are captured on a `prototype/<name>` branch; ADR-0003
+  amended). `aa-ma-gate` reads `Prototype-Required` on every sub-step of the answered milestone and
+  ORs it into `prototype_required`; an invalid or empty sub-step token exits 2 (`StepsRead` /
+  `_read_steps` replace `_count_pending`; fixture `prototype-rollup-tasks.md`; bats fence case).
+  `/aa-ma-plan` gains **Step 2.5: Prototype Decision** (`prototype=<M-list>` on
+  `ENG_STANDARDS_DECLARED`); `tasks-template.md` drops its four blank `Critical-Path` /
+  `Prototype-Required` slots (an empty value is a gate error); the spec's provenance grammar lists
+  `PROTOTYPE` / `CRITICAL_PATH_REVIEW` / `LIVE_CHECK`; engineering-standards Theme 1 reworded.
+  §8.4 of `/execute-aa-ma-milestone` no longer `--amend`s the milestone commit after recording its
+  hash (L-018). ADR-0011 → Implemented.
 - **CI runs the suites it had been skipping** — the pytest step now covers `tests/skills tests/agents
   tests/plan_markers tests/test_gate.py tests/test_enforce.py tests/test_gate_parity.py`; `pyyaml` is a
   declared dev dependency; `test_foundations_count_headings_match_disk` pins the three foundations headings.

@@ -68,14 +68,15 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
      the milestone HARD gate requires a [ts] CRITICAL_PATH_REVIEW provenance entry
      before COMPLETE. Leave blank or omit if no critical path applies.
      Novel values are rejected by Skill(plan-verification) — add new values via
-     plan + ADR. -->
-- **Critical-Path:**
+     plan + ADR. Add `- Critical-Path: <value>` only when it applies; an empty
+     value is a gate error (exit 2). -->
 
 <!-- Prototype-Required: OPTIONAL flag. When set to YES, the milestone HARD gate
      requires a [ts] PROTOTYPE — <verdict> provenance entry before COMPLETE.
      Use for milestones with material implementation uncertainty where a throwaway
-     POC is the right de-risking step. Leave blank or omit when not required. -->
-- **Prototype-Required:**
+     POC is the right de-risking step. Add `- Prototype-Required: YES` only when
+     it applies; an empty value is a gate error (exit 2). A sub-step's YES rolls
+     up to the milestone gate. -->
 
 <!-- Acceptance Criteria: measurable, falsifiable conditions that prove the milestone
      is complete. Each criterion MUST be testable — if you cannot write a single-line
@@ -105,12 +106,14 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Dependencies:** None
 
 <!-- Critical-Path: OPTIONAL flag at sub-step level. Same enum as milestone.
-     Use to flag a single high-stakes sub-step within an otherwise routine milestone. -->
-- **Critical-Path:**
+     Use to flag a single high-stakes sub-step within an otherwise routine milestone.
+     Add `- Critical-Path: <value>` only when it applies; an empty value is a gate
+     error (exit 2). -->
 
 <!-- Prototype-Required: OPTIONAL flag at sub-step level. Same semantics as milestone.
-     Use to flag a single uncertain sub-step. -->
-- **Prototype-Required:**
+     Use to flag a single uncertain sub-step; its YES rolls up to the milestone
+     gate. Add `- Prototype-Required: YES` only when it applies; an empty value
+     is a gate error (exit 2). -->
 
 <!-- Acceptance Criteria: specific conditions for THIS sub-step.
      Optional at sub-step level if the milestone criteria are sufficient. -->

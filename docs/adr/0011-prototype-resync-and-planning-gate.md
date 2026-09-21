@@ -1,6 +1,6 @@
 # 0011. Re-sync `prototype` to upstream 1.2.3 and make the prototype decision explicit in planning
 
-**Status:** Proposed
+**Status:** Implemented (2026-09-21 — `mattpocock-trio-adoption` Milestone 3)
 **Date:** 2026-09-20
 **Deciders:** Stephen Newhouse, Claude (research session 2026-09-20)
 **Tags:** `workflow`, `aa-ma`, `skills`, `external-fork`, `engineering-standards-theme-1`, `hook-modification`

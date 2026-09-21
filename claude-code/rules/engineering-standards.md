@@ -22,11 +22,10 @@ materially apply to its work and how.
   shipping the wrong abstraction is expensive. When a task carries
   `Prototype-Required: YES`, invoke `Skill(prototype)` (forked from
   mattpocock/skills — see [ADR-0003](../../docs/adr/0003-prototype-adoption.md))
-  which routes between **LOGIC** (terminal TUI for state/business-logic
-  questions, fully cross-language) and **UI** (web-frontend variants
-  switchable via `?variant=` URL search param) branches based on the question.
-  Then write a `[ts] PROTOTYPE — <verdict>` entry to `provenance.log` before
-  milestone COMPLETE. The skill provides the *how*; this rule provides the
+  which routes between **LOGIC** (a single self-contained HTML demo — state panel, free-play buttons, tabbed guided walkthroughs — for state/business-logic questions) and **UI** (structurally different variants on an existing route, switchable via `?variant=`) branches based on the question, and captures the result on a `prototype/<name>` branch — main keeps only the decision.
+  Then write a `[ts] PROTOTYPE — <milestone heading> — <verdict>` entry to
+  `provenance.log` before milestone COMPLETE. A sub-step's `Prototype-Required:
+  YES` rolls up to its milestone's gate (ADR-0011). The skill provides the *how*; this rule provides the
   *when* — both must align before the gate (Section 6.7 condition 5) accepts
   evidence.
 - Double-check critical paths. When a task carries `Critical-Path: <value>`,

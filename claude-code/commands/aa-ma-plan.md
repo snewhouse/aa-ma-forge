@@ -336,7 +336,8 @@ silent-compliance failure mode:
 ```bash
 TS=$(date -Iseconds)
 THEMES="[1,2,5]"  # Whatever the user selected, comma-separated.
-echo "[${TS}] ENG_STANDARDS_DECLARED: themes=${THEMES}" \
+PROTO="M2,M4"     # Milestones flagged in Step 2.5 (or `none`).
+echo "[${TS}] ENG_STANDARDS_DECLARED: themes=${THEMES} prototype=${PROTO}" \
     >> .claude/dev/active/${TASK_NAME}/${TASK_NAME}-provenance.log
 ```
 
@@ -361,6 +362,27 @@ Analyze:
 
 Provide refined requirements in bullet format.
 ```
+
+**Step 2.5: Prototype Decision**
+
+Theme 1 ("prototype first on uncertain changes") is a planning-time question,
+not something to discover mid-execution. For each milestone whose design is
+genuinely uncertain — a state model nobody can reason about on paper, a UI
+whose shape is open, an abstraction that might be wrong — use `AskUserQuestion`:
+
+```
+Prototype-Required for <milestone>? YES / NO
+```
+
+Record every YES: at Step 5.5 write `- Prototype-Required: YES` into that
+milestone (or the specific sub-step — a sub-step's YES rolls up to the
+milestone gate, ADR-0011) in tasks.md, and append `prototype=<M-list>` to the
+`ENG_STANDARDS_DECLARED` provenance line above (`prototype=none` when nothing
+is flagged). Never write the field with an empty value — the gate refuses it
+(exit 2). Milestones flagged YES run `Skill(prototype)` during execution and
+must leave a `[ts] PROTOTYPE — <milestone heading> — <verdict>` provenance
+entry before COMPLETE (§6.7 condition 5). This is a step inside Phase 2 —
+it writes no `PHASE_2.5` marker.
 
 Display summary:
 

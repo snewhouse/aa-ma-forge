@@ -5,6 +5,24 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-019 (2026-09-21) — Local `shellcheck` passed while CI's failed for four commits; nobody looked at CI until the release pre-flight
+
+**Pattern:** M5's guard shipped `A && B || C` forms. Local shellcheck 0.11.0
+reported them once (as info) and then stopped after unrelated edits; CI's
+shellcheck fails on SC2015 at info severity. The ShellCheck job was red from
+`50c8099` through `f38983e` — five pushes — and was only noticed because the
+release pre-flight lists runs. Had the release run first, v0.14.0 would have
+been tagged on a red main.
+
+**Rule:** (a) Run `shellcheck -S info` (the CI severity) on every `.sh` a
+milestone touches before its commit — `find . -name '*.sh' -not -path './.git/*'
+-not -path './.venv/*' -exec shellcheck -S info {} +` is the CI command;
+match it, don't approximate it. (b) After every push inside a milestone,
+`gh run list --limit 1` is part of the sub-step Result Log evidence; a red
+run blocks the next sub-step, not the release. (c) The release pre-flight
+(`release.sh --dry-run`) keeps its CI check — it is the last net, not the
+first.
+
 ## L-018 (2026-09-21) — `git commit --amend` after writing the hash into provenance records a hash that no longer exists
 
 **Pattern:** §8.3/8.4 of `execute-aa-ma-milestone` says: commit, read `HEAD`,

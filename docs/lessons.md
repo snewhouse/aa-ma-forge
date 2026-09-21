@@ -5,6 +5,26 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-017 (2026-09-21) — One milestone commit hides the RED from the TDD auditor; a process-substitution error is invisible to `set -e`
+
+**Pattern:** M1 of mattpocock-trio-adoption was executed test-first (provenance
+records `RED: ModuleNotFoundError` before `forks.py` existed) but every sub-step
+was squashed into one milestone commit, so `tdd-sequence-auditor` — which may
+only weigh `git log` — returned FAIL on a same-timestamp tie. Separately, the
+first `fork-drift.sh` flattened the manifest with `python3 -c` inside
+`< <(…)`; a malformed manifest tracebacked and the script exited 0 with zero
+rows ("clean"). Both were caught by §6.8, not by me.
+
+**Rule:** (a) When a milestone produces `src/` code, commit the red test on its
+own (`test(...)` commit, plan footer) immediately after the RED run — before
+the implementation commit. §6.8's TDD criterion is mechanical; provenance
+prose is not admissible. (b) Never put a fallible command inside a process
+substitution or an unbuffered pipe feeding a classifier: materialise it
+(`rows="$(cmd)"`) so `set -e` sees the failure, and write the bats case
+"malformed input → exit 1" before the script. (c) A CI test list is
+exclusion-based (`--ignore=`), never enumerated — enumeration is the drift
+class the doc-count detector exists for.
+
 ## L-016 (2026-09-20) — A bare `<!--` inside a criterion hides every later sub-step from the gate; `hooks/lib` helpers are never auto-linked
 
 **Pattern:** Two near-misses in one planning session. (a) An acceptance

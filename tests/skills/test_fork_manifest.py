@@ -15,6 +15,7 @@ import pytest
 from aa_ma.forks import ForkEntry, _cli, classify_fork, load_manifest
 
 from ._helpers import FORKS_MANIFEST as MANIFEST, SKILLS_DIR, assert_skill_frontmatter  # pyright: ignore[reportMissingImports]
+
 FORK_LINE_PREFIXES = ("<!-- Forked from ", "<!-- Derived from ")
 
 
@@ -47,7 +48,9 @@ def test_manifest_entries_exist_on_disk() -> None:
     for name, entry in manifest.items():
         assert (SKILLS_DIR / name).is_dir(), f"MISSING_ON_DISK: {name}"
         for fname in entry.files:
-            assert (SKILLS_DIR / name / fname).is_file(), f"MISSING_ON_DISK: {name}/{fname}"
+            assert (SKILLS_DIR / name / fname).is_file(), (
+                f"MISSING_ON_DISK: {name}/{fname}"
+            )
 
 
 def test_local_md5_matches_manifest() -> None:
@@ -83,7 +86,9 @@ def test_classify_fork_same_drift_orphan() -> None:
     # A key missing from `fetched` counts as None → ORPHAN.
     assert classify_fork(entry, {"SKILL.md": "aaa"}) == "ORPHAN"
     # expected None (unknown upstream) → nothing to compare → SAME.
-    assert classify_fork(_entry(**{"SKILL.md": None}), {"SKILL.md": "anything"}) == "SAME"
+    assert (
+        classify_fork(_entry(**{"SKILL.md": None}), {"SKILL.md": "anything"}) == "SAME"
+    )
 
 
 def test_load_manifest_names_missing_key(tmp_path: Path) -> None:
@@ -105,17 +110,24 @@ def test_cli_files_lists_manifest_rows(capsys: pytest.CaptureFixture[str]) -> No
     assert all(len(r) == 3 for r in rows)
 
 
-def test_cli_classify_all_reads_stdin(capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_classify_all_reads_stdin(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
     import io
 
     proto = load_manifest(MANIFEST)["prototype"]
-    fetched = "\n".join(f"prototype\t{f}\t{md5}" for f, md5 in proto.upstream_md5.items()) + "\nwrite-a-skill\tSKILL.md\tnull\n"
+    fetched = (
+        "\n".join(f"prototype\t{f}\t{md5}" for f, md5 in proto.upstream_md5.items())
+        + "\nwrite-a-skill\tSKILL.md\tnull\n"
+    )
     monkeypatch.setattr("sys.stdin", io.StringIO(fetched))
     assert _cli(["classify-all", "--manifest", str(MANIFEST)]) == 0
     out = capsys.readouterr().out
     assert "prototype | * | | | SAME" in out
     assert "write-a-skill | * | | | ORPHAN" in out
-    assert "grill-with-docs | * | | | ORPHAN" in out  # absent from stdin → every file None
+    assert (
+        "grill-with-docs | * | | | ORPHAN" in out
+    )  # absent from stdin → every file None
 
 
 def test_cli_usage_errors_exit_2(capsys: pytest.CaptureFixture[str]) -> None:

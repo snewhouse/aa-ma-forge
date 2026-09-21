@@ -70,32 +70,65 @@ def classify_fork(entry: ForkEntry, fetched: Mapping[str, str | None]) -> Verdic
     return "SAME"
 
 
-def _cli(argv: list[str]) -> int:
-    # python -m aa_ma.forks classify <skill> '<json: {file: md5|null}>' [--manifest <path>]
-    if len(argv) < 3 or argv[0] != "classify":
-        print(
-            "usage: python -m aa_ma.forks classify <skill> '<json>' [--manifest <path>]",
-            file=sys.stderr,
-        )
-        return 2
-    skill, fetched = argv[1], json.loads(argv[2])
-    manifest_path = (
-        Path(argv[argv.index("--manifest") + 1])
-        if "--manifest" in argv
-        else _default_manifest()
-    )
-    entry = load_manifest(manifest_path)[skill]
+DEFAULT_MANIFEST = (
+    Path(__file__).resolve().parents[2] / "claude-code" / "skills" / "FORKS.json"
+)  # src/aa_ma/forks.py → repo root
+
+_USAGE = (
+    "usage: python -m aa_ma.forks classify <skill> '<json: {file: md5|null}>' [--manifest <path>]\n"
+    "       python -m aa_ma.forks files [--manifest <path>]           # skill<TAB>upstream<TAB>file rows\n"
+    "       python -m aa_ma.forks classify-all [--manifest <path>]    # stdin: skill<TAB>file<TAB>md5|null"
+)
+
+
+def _print_rows(
+    skill: str, entry: ForkEntry, fetched: Mapping[str, str | None]
+) -> None:
     for fname in entry.files:
         exp, got = entry.upstream_md5.get(fname), fetched.get(fname)
         print(
             f"{skill} | {fname} | {exp or '-'} | {got or '-'} | {classify_file(exp, got)}"
         )
     print(f"{skill} | * | | | {classify_fork(entry, fetched)}")
-    return 0
 
 
-def _default_manifest() -> Path:
-    return Path(__file__).resolve().parents[2] / "claude-code" / "skills" / "FORKS.json"
+def _cli(argv: list[str]) -> int:
+    args = list(argv)
+    manifest_path = DEFAULT_MANIFEST
+    if "--manifest" in args:
+        i = args.index("--manifest")
+        if i + 1 >= len(args):
+            print(_USAGE, file=sys.stderr)
+            return 2
+        manifest_path = Path(args[i + 1])
+        del args[i : i + 2]
+    cmd = args[0] if args else ""
+    if cmd == "files" and len(args) == 1:
+        for name, entry in load_manifest(manifest_path).items():
+            for fname in entry.files:
+                print(name, entry.upstream, fname, sep="\t")
+        return 0
+    if cmd == "classify-all" and len(args) == 1:
+        # Absent skills/files → None → ORPHAN, same rule as classify_fork.
+        fetched: dict[str, dict[str, str | None]] = {}
+        for line in sys.stdin:
+            skill, fname, md5 = line.rstrip("\n").split("\t")
+            fetched.setdefault(skill, {})[fname] = None if md5 == "null" else md5
+        for name, entry in load_manifest(manifest_path).items():
+            _print_rows(name, entry, fetched.get(name, {}))
+        return 0
+    if cmd == "classify" and len(args) == 3:
+        manifest = load_manifest(manifest_path)
+        if args[1] not in manifest:
+            print(
+                f"unknown skill {args[1]!r}; manifest has: {', '.join(manifest)}",
+                file=sys.stderr,
+            )
+            return 2
+        _print_rows(args[1], manifest[args[1]], json.loads(args[2]))
+        return 0
+    print(_USAGE, file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

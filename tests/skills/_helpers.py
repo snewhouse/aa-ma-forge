@@ -10,11 +10,11 @@ from pathlib import Path
 
 import yaml
 
-from aa_ma.forks import load_manifest
+from aa_ma.forks import DEFAULT_MANIFEST, load_manifest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_DIR = REPO_ROOT / "claude-code" / "skills"
-FORKS_MANIFEST = SKILLS_DIR / "FORKS.json"
+FORKS_MANIFEST = DEFAULT_MANIFEST
 
 
 def split_frontmatter(text: str) -> tuple[str, dict]:

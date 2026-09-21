@@ -162,8 +162,10 @@ jobs:
         # (Skill(goal-condition-synthesis) reference-impl regression net).
         run: uv run pytest tests/test_goal_synthesis.py -q --tb=short
 
-      - name: command + render + skills/agents/markers/gate tests (plan-architecture-views M2/M3; mattpocock-trio-adoption M1)
-        # tests/commands pins prompt-surface contracts (Angle 6 text, command
-        # counts, /aa-ma-share body); tests/render covers aa-ma-lint-views incl.
-        # the hostile-input wall-clock budgets. Neither ran in CI before M3 §6.8.
-        run: uv run pytest tests/commands tests/render tests/skills tests/agents tests/plan_markers tests/test_gate.py tests/test_enforce.py tests/test_gate_parity.py -q --tb=short
+      - name: pytest — everything not run by a dedicated step (mattpocock-trio-adoption M1 §6.8)
+        # Exclusion, not enumeration: a hand-listed set silently skipped
+        # tests/test_grammar*.py, tests/test_active_plans_canonical.py and
+        # tests/tui for months. codemem and goal_synthesis have their own steps
+        # above; perf/slow are opted out via addopts; *.bats live under tests/
+        # but pytest never collects them.
+        run: uv run pytest tests -q --tb=short --ignore=tests/codemem --ignore=tests/perf --ignore=tests/test_goal_synthesis.py

@@ -135,6 +135,8 @@ def assert_skill_frontmatter(skill_dir_name: str, expected_upstream_path: str | 
 #   then feeds {file: md5|null} to `python -m aa_ma.forks classify` and prints its rows (per-file verdict + skill roll-up row)
 ```
 
+**M1 Contract addendum (§6.8 impl review, 2026-09-21 — additive):** `aa_ma.forks` also exposes `DEFAULT_MANIFEST: Path` and two CLI subcommands — `files [--manifest <p>]` (prints `skill<TAB>upstream<TAB>file` rows after `load_manifest` validation) and `classify-all [--manifest <p>]` (reads `skill<TAB>file<TAB>md5|null` from stdin; prints the same per-file + roll-up rows for every manifest skill; absent skill/file → None → ORPHAN). `scripts/fork-drift.sh` is now `files` → gh fetch loop (buffered; any non-404 failure → exit 1 before classification) → `classify-all`; no inline `python3`, one manifest reader, no `${err}.json`. It pre-flights `gh api repos/mattpocock/skills` because GitHub returns 404 (not 403) for a repo the caller cannot see. Usage errors (`--manifest` without a path, unknown skill) exit 2. CI pytest step is exclusion-based: `pytest tests --ignore=tests/codemem --ignore=tests/perf --ignore=tests/test_goal_synthesis.py`.
+
 ### Milestone 2 Contract
 ```text
 # file: claude-code/skills/grilling/SKILL.md   (frontmatter: name: grilling; model-invocable)

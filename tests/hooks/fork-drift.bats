@@ -18,6 +18,7 @@ make_stub() {
     cat > "$WORK/stub-gh" <<STUB
 #!/usr/bin/env bash
 case "\$*" in
+  "api repos/mattpocock/skills --jq .full_name") echo mattpocock/skills ;;   # repo pre-flight
   *alpha/SKILL.md*) printf 'SGVsbG8=\n' ;;
   *beta/SKILL.md*)  echo "$1" >&2; exit 1 ;;
   *) echo "unexpected: \$*" >&2; exit 99 ;;

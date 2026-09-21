@@ -156,3 +156,4 @@
 [2026-09-21T20:19:26+01:00] M5 Step 5.3 COMPLETE — prototype run: chart + 3 work sessions on writing-for-agents-eval; PROTOTYPE line above; artefacts 6bcef05 [ad-hoc]
 [2026-09-21T20:19:26+01:00] RELEASE — v0.14.0 — commit b527241 — tag ea6d7d1 — https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.14.0
 [2026-09-21T20:19:26+01:00] §7.2.5 VALIDATOR — WARNINGS_BUT_USABLE (0/4/5) → back-filled inline: COMMIT lines for M5 window, STEP 5.3 line, RELEASE line; M4 MILESTONE COMPLETE line's missing '— approved by user (§7.3)' suffix noted here (append-only log; tasks.md M4 Result Log records the approval)
+[2026-09-21T20:21:28+01:00] MILESTONE COMPLETE — M5 — Commit: fa55f68 — Criteria: 9/9 verified — approved by user (§7.3)

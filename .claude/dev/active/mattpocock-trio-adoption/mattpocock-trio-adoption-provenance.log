@@ -85,3 +85,6 @@
 [2026-09-21T10:55:40+01:00] COMMIT f849d1c — docs(aa-ma): M3 impl-review, completion entry (AD-007..009)
 [2026-09-21T10:55:40+01:00] COMMIT 51ec995 — docs(aa-ma): provenance — MILESTONE COMPLETE M3 (4f1539f)
 [2026-09-21T10:55:40+01:00] §7.2.5 VALIDATOR (post-completion) — WARNINGS_BUT_USABLE (0 FAIL / 4 WARN / 3 INFO) → back-filled inline: STEP 3.x lines + COMMIT f849d1c/51ec995; reference.md M3 Contract addendum (AD-007), exit-code row, heading note, prototype row, Files-to-modify; tasks 3.2 AD-007 amendment + green hashes; plan.md §13 Flow note
+[2026-09-21T11:10:25+01:00] CHECKPOINT — ActiveStep: 4.1 — NextAction: "GREEN aa-ma-research SKILL.md + FORKS.json row; then 4.2 red test" — ContextLoaded: REFERENCE,TASKS,CONTEXT_LOG(M4 grep),PLAN(M4) — TokenUsage: ~5%
+[2026-09-21T11:11:10+01:00] STEP 4.1 COMPLETE — aa-ma-research Derived fork @ c55ee46 + FORKS.json row (RED 52dfe9d → GREEN 6479d21); tests/skills 64 passed; fork-drift SAME
+[2026-09-21T11:12:27+01:00] STEP 4.2 COMPLETE — aa-ma-researcher agent (RED 3fb7bf6 → GREEN 9ece1d4); tests/agents + tests/skills green

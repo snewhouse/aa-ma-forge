@@ -255,7 +255,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 ---
 
 ## Milestone 4: Adopt `research` as `aa-ma-research` + `aa-ma-researcher` agent; Phase 3 writes files; release v0.13.0
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestones 1, 2, 3
 - Complexity: 50%
 - Mode: HITL
@@ -277,24 +277,24 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Rollback: revert milestone commits; `scripts/uninstall.sh` removes the `~/.claude/skills/aa-ma-research` symlink. Release rollback per `docs/runbooks/release.md`.
 
 ### Sub-step 4.1: Fork `research` from HEAD as `aa-ma-research` (Derived) + frontmatter test (test committed first)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: None
 - Effort: 30m · Complexity: 25%
 - Acceptance Criteria:
   - File per the M4 Contract; `uv run pytest tests/skills/test_aa_ma_research_frontmatter.py -q` green; `FORKS.json` row (`state: derived`, `upstream_md5.SKILL.md` = HEAD whole-file md5 `e1dd6af372a9e1d134eff7d8362fe3f7`).
 - Artefacts: `claude-code/skills/aa-ma-research/SKILL.md`, `tests/skills/test_aa_ma_research_frontmatter.py`, `FORKS.json`.
-- Result Log: [pending]
+- Result Log: ✅ COMPLETE 2026-09-21 — Mode: AFK — auto-dispatched. RED 52dfe9d (3 failed, FileNotFoundError) → GREEN 6479d21. `claude-code/skills/aa-ma-research/SKILL.md`: Derived line 1 @ c55ee46, `name: aa-ma-research`, upstream body verbatim — recipe md5 `e1dd6af372a9e1d134eff7d8362fe3f7` ✓; `## In this repo` appended directly after upstream's last line (no blank line — the recipe forbids it). `FORKS.json` row: `state: derived`, full `upstream_sha`, `upstream_md5.SKILL.md` e1dd6af3…, `files.SKILL.md` `6c3b1a496bde761fc08fb5f481582020`, `upstream_md5_source: gh-api@c55ee46`. `uv run pytest tests/skills -q` 64 passed; `scripts/fork-drift.sh --sha c55ee46` → `aa-ma-research | * | SAME` (rc 0).
 
 ### Sub-step 4.2: `aa-ma-researcher` agent + test (test committed first, red against the missing file)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: None
 - Effort: 40m · Complexity: 35%
 - Acceptance Criteria:
   - `uv run pytest tests/agents/test_aa_ma_researcher_agent.py -q` green (YAML parse; `tools` set equality; `"Agent" not in tools`; prompt contains "exactly one file", "cite", "Not pursued", "never run `claude`").
 - Artefacts: `claude-code/agents/aa-ma-researcher.md`, `tests/agents/test_aa_ma_researcher_agent.py`.
-- Result Log: [pending]
+- Result Log: ✅ COMPLETE 2026-09-21 — Mode: AFK — auto-dispatched. RED 3fb7bf6 (3 failed, file absent) → GREEN 9ece1d4. `claude-code/agents/aa-ma-researcher.md`: frontmatter `tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, Write` (set equality asserted; `Agent` absent); prompt carries "exactly one file", "cite", "Not pursued", "never run `claude`", the 5-field research header, ≤10-line return incl. `tools: web_fetches= context7_calls=` for the PHASE_3 marker. `uv run pytest tests/agents tests/skills -q` all green.
 
 ### Sub-step 4.3: Install + prototype run (HITL)
 - Status: PENDING

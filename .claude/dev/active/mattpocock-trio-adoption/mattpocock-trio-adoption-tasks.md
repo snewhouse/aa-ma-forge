@@ -304,7 +304,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Acceptance Criteria:
   - `readlink ~/.claude/skills/aa-ma-research` = repo dir; `~/.claude/skills/research` unchanged; fresh session; live `Skill(aa-ma-research)` run yields `docs/research/mattpocock-trio-adoption-install-backup.md` + provenance PROTOTYPE line per the milestone criteria (agent tool tally with zero `Agent` calls; `claude -p` count 0 in the subagent transcript).
 - Artefacts: `docs/research/mattpocock-trio-adoption-install-backup.md`, `mattpocock-trio-adoption-provenance.log`.
-- Result Log: [pending]
+- Result Log: ⏸ IN PROGRESS 2026-09-21 — install.sh done: `readlink ~/.claude/skills/aa-ma-research` = repo dir ✓; `~/.claude/agents/aa-ma-researcher.md` linked ✓; `~/.claude/skills/research` mtime 1763649209 before and after ✓. `Skill(aa-ma-research)` resolved in-session (path `~/.claude/skills/aa-ma-research`). `Agent(subagent_type: aa-ma-researcher)` → not found: agent registry does not hot-reload. Live run deferred to a fresh session (see context-log observation).
 
 ### Sub-step 4.4: `/aa-ma-plan` Phase 3 wiring, marker grammar, PHASE_3_RESEARCH.md
 - Status: PENDING

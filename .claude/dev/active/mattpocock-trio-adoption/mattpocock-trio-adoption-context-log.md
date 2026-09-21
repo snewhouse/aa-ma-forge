@@ -181,3 +181,10 @@ Bring every mattpocock fork in `claude-code/skills/` to a known, detectable life
 - **AD-007** — Sub-step `Critical-Path` rolls up to the milestone by the same mechanism as `Prototype-Required`, with enum semantics: the milestone's own value wins; otherwise the single value the sub-steps agree on; sub-steps that disagree are a refusal (exit 2). Rationale (security W1): the template advertised the sub-step field but the gate ignored it — the exact silent-non-enforcement M3 fixed for the other field. Chosen by Ste over "drop the advertisement" / "defer". Existing plans keep byte-identical answers (no active plan has a sub-step Critical-Path).
 - **AD-008** — `ENG_STANDARDS_DECLARED` is written exactly once, at the end of Step 2.5 (or at 5.6 when buffered); provenance is append-only and never edited. Rationale (code-reviewer W3).
 - **AD-009** — The upstream `prototype` UI branch's unauthenticated-route gap is closed in plugin-owned text (Theme 1), not by editing the verbatim fork; recorded in ADR-0003 as a known upstream gap.
+
+## [2026-09-21] M4 Step 4.3 — Observation: agents do not hot-reload (skills do)
+
+- `scripts/install.sh` linked `~/.claude/skills/aa-ma-research` and `~/.claude/agents/aa-ma-researcher.md`; `~/.claude/skills/research` mtime unchanged (1763649209).
+- `Skill(aa-ma-research)` resolved in-session to `~/.claude/skills/aa-ma-research` (hot-reload, as the M2 observation predicted).
+- `Agent(subagent_type: aa-ma-researcher)` → "Agent type 'aa-ma-researcher' not found" — the agent registry is read at session start. The plan's original "fresh session after install.sh" wording for 4.3 stands for agent dispatch; reference.md row refined accordingly.
+- Decision: no code change; 4.3 resumes in a fresh session (CHECKPOINT written). 4.1/4.2 unaffected.

@@ -88,3 +88,5 @@
 [2026-09-21T11:10:25+01:00] CHECKPOINT — ActiveStep: 4.1 — NextAction: "GREEN aa-ma-research SKILL.md + FORKS.json row; then 4.2 red test" — ContextLoaded: REFERENCE,TASKS,CONTEXT_LOG(M4 grep),PLAN(M4) — TokenUsage: ~5%
 [2026-09-21T11:11:10+01:00] STEP 4.1 COMPLETE — aa-ma-research Derived fork @ c55ee46 + FORKS.json row (RED 52dfe9d → GREEN 6479d21); tests/skills 64 passed; fork-drift SAME
 [2026-09-21T11:12:27+01:00] STEP 4.2 COMPLETE — aa-ma-researcher agent (RED 3fb7bf6 → GREEN 9ece1d4); tests/agents + tests/skills green
+[2026-09-21T11:21:07+01:00] LIVE_CHECK — Milestone 4: Adopt `research` as `aa-ma-research` + `aa-ma-researcher` agent; Phase 3 writes files; release v0.13.0 — install=ok skill_resolved=~/.claude/skills/aa-ma-research agent_hot_reload=NO research_mtime=1763649209(unchanged)
+[2026-09-21T11:21:07+01:00] CHECKPOINT — ActiveStep: 4.3 — NextAction: "FRESH SESSION: /execute-aa-ma-milestone resumes 4.3 — dispatch Agent(subagent_type: aa-ma-researcher) via Skill(aa-ma-research) on the install-backup question; verify header=5, path:line cite, no Agent calls, claude -p count 0; write PROTOTYPE line" — ContextLoaded: REFERENCE,TASKS — TokenUsage: ~8%

@@ -16,7 +16,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-import yaml
+
+from tests.agents._helpers import split_frontmatter
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 AGENTS_DIR = REPO_ROOT / "claude-code" / "agents"
@@ -31,13 +32,7 @@ AGENT_NAMES = [
 
 
 def _frontmatter(path: Path) -> dict:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    assert lines and lines[0].strip() == "---", f"{path.name}: missing '---' frontmatter opener"
-    end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), None)
-    assert end is not None, f"{path.name}: unterminated frontmatter"
-    fm = yaml.safe_load("\n".join(lines[1:end]))
-    assert isinstance(fm, dict), f"{path.name}: frontmatter is not a mapping"
-    return fm
+    return split_frontmatter(path)[0]
 
 
 @pytest.mark.parametrize("agent", AGENT_NAMES)

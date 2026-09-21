@@ -1,6 +1,6 @@
 # 0013. Charting — a pre-plan decision map adapted from `wayfinder` (no issue tracker)
 
-**Status:** Implemented (mattpocock-trio-adoption M5, v0.14.0, 2026-09-21)
+**Status:** Implemented (mattpocock-trio-adoption M5, 2026-09-21)
 **Date:** 2026-09-20
 **Deciders:** Stephen Newhouse, Claude (research session 2026-09-20)
 **Tags:** `workflow`, `aa-ma`, `pre-plan`, `external-adaptation`, `file-taxonomy`

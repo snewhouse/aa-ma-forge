@@ -331,6 +331,8 @@ The `[task]-provenance.log` file is an **immutable, append-only** log providing 
 [ts] CRITICAL_PATH_REVIEW — <milestone heading> — <Critical-Path value> — <evidence>
 # Advisory (not gate-read): evidence for a HITL live criterion
 [ts] LIVE_CHECK — <milestone heading> — <key>=<value>…
+# Advisory: written only by `aa-ma-chart-guard.sh import` when /aa-ma-plan --from-map moves a charting map in
+[ts] MAP_IMPORTED effort=<effort> tickets=<N>
 
 # Session Resume
 [YYYY-MM-DD HH:MM] Session resumed — ActiveStep: [id] — From: CHECKPOINT
@@ -905,3 +907,4 @@ lives in `docs/spec/plan-marker-grammar.md`.
 [7] Provenance and telemetry management in software pipelines.
 [8] Inspired by Helix.ml spec-driven workflows (infrastructure-enforced gates, executable test definitions). See research: `.claude/plans/witty-puzzling-sonnet.md`.
 [9] Adversarial plan verification. 6-angle structured review derived from lessons L-054, L-058, L-059, L-067, L-068, L-069. See skill: `claude-code/skills/plan-verification/SKILL.md`.
+[10] Charting — pre-plan decision map with typed tickets, adapted from mattpocock/skills `wayfinder` (concept only, no files forked). See ADR-0013 and command: `claude-code/commands/aa-ma-chart.md`.

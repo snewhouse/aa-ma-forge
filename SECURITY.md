@@ -13,6 +13,7 @@ The installer (`scripts/install.sh`) places files into `~/.claude/` so Claude Co
 - 12 agent files: `~/.claude/agents/*.md` (aa-ma-researcher, aa-ma-scribe, aa-ma-validator, code-reviewer, codebase-onboarding-conventions, codebase-onboarding-health, codebase-onboarding-runbook, codebase-onboarding-synthesizer, context7-evidence-auditor, future-proofing-auditor, security-auditor, tdd-sequence-auditor)
 - 2 rules files: `~/.claude/rules/aa-ma.md`, `~/.claude/rules/engineering-standards.md`
 - 8 hooks: `~/.claude/hooks/lib/*.sh` (aa-ma-commit-drift, aa-ma-commit-signature, aa-ma-plan-marker, aa-ma-plan-skip-warn, aa-ma-session-end-dirty, aa-ma-session-start, pre-compact-aa-ma, security-static-check)
+- 2 library helpers in the same directory, not event hooks: `~/.claude/hooks/lib/aa-ma-parse.sh` (sourced by the hooks) and `~/.claude/hooks/lib/aa-ma-chart-guard.sh` (invoked from the `/aa-ma-chart` and `/aa-ma-plan --from-map` command bodies)
 
 **Files copied** (not symlinked, because `~/.claude/docs/` is a shared directory):
 

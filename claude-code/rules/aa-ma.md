@@ -15,7 +15,7 @@ Full specification: [docs/aa-ma-specification.md](../docs/aa-ma-specification.md
 | `[task]-verification.md` | **Optional** — adversarial verification audit trail (via `/verify-plan` or Phase 4.5) |
 | `[task]-tests.yaml` | **Optional** — machine-executable test definitions linked to milestone acceptance criteria |
 | `[task]-impl-review.md` | **Optional** — post-impl adversarial review report (Phase 6.8 of `/execute-aa-ma-milestone`, v0.8.0+) |
-| `[task]-map.md` | **Optional** — pre-plan charting map (`/aa-ma-chart`), imported by `/aa-ma-plan --from-map <effort>` (v0.14.0+, ADR-0013) |
+| `[task]-map.md` | **Optional** — pre-plan charting map (`/aa-ma-chart`), imported by `/aa-ma-plan --from-map <effort>` (ADR-0013) |
 
 **Task directory:** `.claude/dev/active/[task-name]/`
 

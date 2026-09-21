@@ -10,7 +10,8 @@ The map is an INDEX, not a store: a decision lives in exactly one ticket; the ma
 gists it and links. Delete these comments once the map is populated.
 
 Grammar the guard (`claude-code/hooks/lib/aa-ma-chart-guard.sh`) reads:
-  `### Ticket N: Title`  — one block per ticket, N unique, ends at the next `###`/`##`
+  `### Ticket N: Title`  — one block per ticket, N unique; the `- ` fields below MUST precede
+                           `#### Question` (any `#` heading ends the field run)
   `- Type:`   research | prototype | grilling | task        (default grilling)
   `- Mode:`   HITL | AFK    (research → AFK; prototype/grilling → HITL; task → either)
   `- Status:` OPEN | CLAIMED | RESOLVED | RULED_OUT
@@ -55,7 +56,7 @@ gate and TUI ignore maps.
 #### Question
 [What fact does a later decision wait on?]
 #### Answer
-[Gist + link: see docs/research/[effort]-[topic].md]
+[Gist + link: see docs/research/[effort]-[topic].md — HITL answers end with `Decided with <user> <date>`]
 
 ### Ticket 3: [Title]
 - Type: prototype

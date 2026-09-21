@@ -61,7 +61,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `[task]-verification.md` | Adversarial verification audit (optional) |
 | `[task]-tests.yaml` | Machine-executable test definitions (optional) |
 | `[task]-impl-review.md` | Post-impl adversarial review report (optional; Phase 6.8, v0.8.0+) |
-| `[task]-map.md` | Pre-plan charting map imported by `/aa-ma-plan --from-map` (optional; v0.14.0+, ADR-0013) |
+| `[task]-map.md` | Pre-plan charting map imported by `/aa-ma-plan --from-map` (optional; ADR-0013) |
 
 **Task directory structure:**
 
@@ -149,6 +149,8 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `aa-ma-commit-drift.sh` | post-commit — advisory; flags commits that land without touching any `tasks.md`/`provenance.log` in an active task dir (`[no-sync-check]` overrides). Always exits 0 |
 | `aa-ma-plan-skip-warn.sh` | PreToolUse(ExitPlanMode) + SessionEnd — advisory; checks the `/aa-ma-plan` runtime log for skipped phase markers. Never blocks |
 | `aa-ma-plan-marker.sh` | Library helper invoked by the `/aa-ma-plan` workflow to append phase markers to `~/.claude/runtime/aa-ma-plan-<slug>.log` (not a standalone event hook) |
+
+Two further `hooks/lib/` helpers are symlinked by `install.sh` but are not event hooks and not counted above: `aa-ma-parse.sh` (sourced by every hook; launches `aa-ma-gate`) and `aa-ma-chart-guard.sh` (charting checks `fog | claim | reclaim | from-map | import`, invoked from `/aa-ma-chart` and `/aa-ma-plan --from-map`).
 | `security-static-check.sh` | PreToolUse — mechanical, zero-token commit-time security checks (bandit / shellcheck class), mirroring the `aa-ma-commit-drift.sh` / `aa-ma-validator` mechanical-vs-analytical split; introduced v0.8.0 per ADR-0005; **BLOCKING** on findings |
 
 ### Operational protocols

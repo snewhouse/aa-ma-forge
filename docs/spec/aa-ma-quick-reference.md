@@ -111,7 +111,7 @@ synthesis. Protocol toggles: `--no-goal` on `/execute-aa-ma-full`; omit
 # Initialize new AA-MA task
 /aa-ma-plan [description]
 
-# Pre-plan charting (v0.14.0+, ADR-0013): decide before you plan
+# Pre-plan charting (ADR-0013): decide before you plan
 /aa-ma-chart chart <effort> "<loose idea>"      # writes .claude/dev/charting/<effort>/<effort>-map.md
 /aa-ma-chart work <effort> [ticket-N] [--reclaim]  # resolves ONE non-research ticket per session
 /aa-ma-plan --from-map <effort> [--dry-run]        # refused until every ticket is RESOLVED|RULED_OUT and fog is empty

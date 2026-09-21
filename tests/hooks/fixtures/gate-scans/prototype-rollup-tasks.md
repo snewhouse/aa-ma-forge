@@ -34,3 +34,36 @@ Milestones 3 and 4 carry deliberately bad sub-step tokens: they must refuse
 ### Sub-step 4.1: the slot tasks-template.md used to emit
 - Status: PENDING
 - **Prototype-Required:**
+
+## Milestone 5: Critical-Path on a sub-step only
+- Status: PENDING
+
+### Sub-step 5.1: the high-stakes one
+- Status: PENDING
+- Critical-Path: auth-flow
+
+## Milestone 6: Conflicting sub-step Critical-Path values
+- Status: PENDING
+
+### Sub-step 6.1: auth
+- Status: PENDING
+- Critical-Path: auth-flow
+
+### Sub-step 6.2: data
+- Status: PENDING
+- Critical-Path: data-xform
+
+## Milestone 7: Milestone value wins over sub-steps
+- Status: PENDING
+- Critical-Path: hook-modification
+
+### Sub-step 7.1: says something else
+- Status: PENDING
+- Critical-Path: auth-flow
+
+## Milestone 8: Invalid sub-step Critical-Path
+- Status: PENDING
+
+### Sub-step 8.1: bogus
+- Status: PENDING
+- Critical-Path: not-a-value

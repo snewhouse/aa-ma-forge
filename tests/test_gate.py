@@ -597,3 +597,30 @@ def test_empty_substep_prototype_slot_exits_2() -> None:
     a = answer(ROLLUP, number="4")
     assert a.exit_code == EXIT_UNREADABLE
     assert any("empty value" in e for e in a.errors), a.errors
+
+
+# --- sub-step Critical-Path rolls up too (M3 §6.8 security finding) ----------
+
+
+def test_substep_critical_path_rolls_up_when_milestone_has_none() -> None:
+    a = answer(ROLLUP, number="5")
+    assert a.exit_code == EXIT_OK, a.errors
+    assert a.milestone.critical_path == "auth-flow"
+
+
+def test_conflicting_substep_critical_paths_refuse() -> None:
+    a = answer(ROLLUP, number="6")
+    assert a.exit_code == EXIT_UNREADABLE
+    assert any("conflicting" in e and "Critical-Path" in e for e in a.errors), a.errors
+
+
+def test_milestone_critical_path_wins_over_substeps() -> None:
+    a = answer(ROLLUP, number="7")
+    assert a.exit_code == EXIT_OK, a.errors
+    assert a.milestone.critical_path == "hook-modification"
+
+
+def test_invalid_substep_critical_path_is_exit_2() -> None:
+    a = answer(ROLLUP, number="8")
+    assert a.exit_code == EXIT_UNREADABLE
+    assert any("Critical-Path" in e and "not-a-value" in e for e in a.errors), a.errors

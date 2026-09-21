@@ -23,6 +23,7 @@ Use this command when you need to:
 ## Key Features
 
 - **Multi-input support:** Accepts selected text, inline description, or interactive prompts
+- **`--from-map <effort> [--dry-run]`:** seed Phase 1 from a cleared `/aa-ma-chart` map (ADR-0013) — Decisions so far + every Answer are pre-answered grill input; `--dry-run` prints the seed and creates nothing
 - **Structured thinking:** Uses `/superpowers:brainstorming` for requirement refinement
 - **Research integration:** Context7 MCP with automatic fallback, parallel agent dispatch
 - **AA-MA compliance:** Auto-generates 6 files (plan, reference, context-log, tasks, provenance, verification)
@@ -106,6 +107,47 @@ Replace `<slug>` with the slug from Step 0.1.
 ---
 
 ### Phase 1: Context Gathering & Input Processing
+
+**Step 1.0: `--from-map <effort> [--dry-run]` (only when the flag is present)**
+
+A charting map (`/aa-ma-chart`, ADR-0013) is the feature request. The guard
+decides whether the way is clear; this command never re-implements that check.
+
+```bash
+# Parse "$@" for --from-map <effort> and --dry-run. Same `_cand` resolution as
+# /aa-ma-chart — never a literal ~/.claude path (fake-CLAUDE_HOME bats + non-installed checkouts).
+EFFORT="<effort>"
+for _cand in \
+  "$(git rev-parse --show-toplevel)/claude-code/hooks/lib/aa-ma-chart-guard.sh" \
+  "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-chart-guard.sh"; do
+  [ -f "$_cand" ] && GUARD="$_cand" && break
+done 2>/dev/null
+: "${GUARD:?aa-ma-chart-guard.sh not found — run scripts/install.sh}"
+MAP=".claude/dev/charting/${EFFORT}/${EFFORT}-map.md"
+[ -f "$MAP" ] || { echo "--from-map: no map at $MAP — run /aa-ma-chart chart ${EFFORT} first"; exit 1; }
+
+# Refuse unless every ticket is RESOLVED|RULED_OUT and fog is empty (prints what blocks).
+CLEAR=$("$GUARD" from-map "$MAP") || { printf '%s\n' "$CLEAR"; exit 1; }
+TICKETS=$(printf '%s\n' "$CLEAR" | sed -n 's/^clear: tickets=\([0-9]*\).*/\1/p')
+
+# The seed: Decisions so far + every ticket's Answer, verbatim from the map.
+SEED=$( { awk '/^## Decisions so far/{f=1} /^## Tickets/{f=0} f' "$MAP"
+          echo; echo "## Answers"
+          awk '/^### Ticket /{h=$0} /^#### Answer/{f=1; print ""; print h; next} /^#+ /{f=0} f' "$MAP"; } )
+
+if [[ " $* " == *" --dry-run "* ]]; then
+  echo "--from-map dry-run: effort=${EFFORT} tickets=${TICKETS} — no task directory created"
+  printf '%s\n' "$SEED"
+  exit 0            # before Phase 1.3; nothing written
+fi
+```
+
+Without `--dry-run`: the map's `## Destination` is the feature request (skip
+Step 1.1); `$SEED` is pre-answered input for Step 1.3 — the grill asks only what
+the map did not settle, and Phase 2 brainstorming starts from *Decisions so
+far* rather than from zero. Phase 5 imports the map (Step 5.1) and Step 5.3
+extracts each Answer into reference.md. Commits made by charting sessions
+before this point carried `[ad-hoc]`; from Phase 5 on they carry the plan footer.
 
 **Step 1.1: Detect Input Method**
 
@@ -709,6 +751,16 @@ touch "${TASK_NAME}-provenance.log"
 touch "${TASK_NAME}-verification.md"
 ```
 
+**`--from-map` only:** move the map in through the guard (git mv when tracked,
+mv + git add when not) and let it write the provenance line — the guard is
+the only writer of `MAP_IMPORTED`:
+
+```bash
+cd - > /dev/null   # back to the project root; the guard cds to the git toplevel itself
+"$GUARD" import "$MAP" "${TASK_NAME}" "${TASK_DIR}/${TASK_NAME}-provenance.log" || exit 1
+# → .claude/dev/active/<task>/<task>-map.md ; provenance: [ts] MAP_IMPORTED effort=<effort> tickets=<N>
+```
+
 **Step 5.2: Populate [task]-plan.md**
 
 Write the generated plan from Phase 4:
@@ -748,6 +800,7 @@ Parse the plan for immutable facts and write to reference:
 - Database schemas
 - Model paths
 - Research files: one `docs/research/<slug>-<topic>.md — <question> (Valid-Through: <date>)` line per Phase 3 file
+- `--from-map`: one line per RESOLVED ticket — `Ticket N: <title> — <Answer gist> [valid: <date>]` (source: `[task]-map.md`)
 - Append the pointer line `Architecture View: see plan.md §13` (or `Architecture View: waived (<value>)`)
 
 _Last Updated: [date]_
@@ -859,6 +912,7 @@ Files created:
   ✓ [task]-tasks.md        → HTP roadmap
   ✓ [task]-provenance.log  → Execution telemetry
   ✓ [task]-verification.md  → Plan verification audit trail (if run)
+  ✓ [task]-map.md           → Charting map (only with --from-map)
 
 Next Action: [specific step from plan]
 

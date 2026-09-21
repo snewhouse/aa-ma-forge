@@ -396,7 +396,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Result Log: [pending]
 
 ### Sub-step 5.4: `--from-map [--dry-run]` in `/aa-ma-plan` + taxonomy + counts + ATTRIBUTION + ADR-0013 + CHANGELOG + TODOS
-- Status: PENDING
+- Status: IN_PROGRESS
 - Mode: AFK
 - Dependencies: Step 5.2 (flag-only leg); Step 5.3 (docs leg)
 - Effort: 75m · Complexity: 40%
@@ -404,7 +404,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
   - Milestone criteria 4–9; count test green; `uv run aa-ma-lint-views <plan> --repo-root .; test $? -eq 0`; `TODOS.md` also gains the `_phase_1_3` + `grilling` fingerprint entry (grilling done in a charting session leaves Phase 1.3 unevidenced under `--from-map`).
   - Split recorded in the Result Log: flag leg (before 5.3) vs docs leg (after 5.3).
 - Artefacts: `claude-code/commands/aa-ma-plan.md`, `docs/spec/aa-ma-specification.md`, `claude-code/rules/aa-ma.md`, `docs/spec/aa-ma-quick-reference.md`, `docs/spec/claude-code-foundations.md`, `docs/templates/README.md`, `CLAUDE.md` (local), `README.md`, `SECURITY.md`, `docs/ATTRIBUTION.md`, `docs/adr/0013-*.md`, `CHANGELOG.md`, `TODOS.md`.
-- Result Log: [pending]
+- Result Log: **Split — flag leg (before 5.3) / docs leg (after 5.3).** ✅ Flag leg 2026-09-21 14:02 — Mode: AFK. `aa-ma-plan.md`: Key Features bullet; new **Step 1.0** (`_cand` guard resolution, `from-map` refusal passthrough, `TICKETS` from the guard's `clear:` line, `SEED` = Decisions so far + `## Answers`, `--dry-run` prints `--from-map dry-run: effort=<e> tickets=<N> — no task directory created` + seed and exits before 1.3); Step 5.1 `--from-map` import block (`"$GUARD" import …`); Step 5.3 reference line per RESOLVED ticket with `[valid: <date>]`; Step 5.8 summary row. Checks: `_cand` literal count = 1; `grep -q -- '--from-map <effort> \[--dry-run\]'` OK; `aa-ma-render` rc 0; **the Step 1.0 fence executed** (awk-extracted, `EFFORT=demo-effort`) in a temp git repo: clear fixture → first line exact + seed, rc 0, no `.claude/dev/active`; open fixture → guard's refusal listing, rc 1. Docs leg: [pending 5.3]
 
 ### Sub-step 5.5: CRITICAL_PATH_REVIEW, HARD gate approval, impact analysis, sync, release v0.14.0
 - Status: PENDING

@@ -106,7 +106,7 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 ---
 
 ## Milestone 2: Fork `grilling`; `grill-with-docs` becomes Derived
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 1
 - Complexity: 40%
 - Mode: HITL
@@ -116,14 +116,15 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Effort: 4h
 - Goal: Round-based frontier grilling available as `Skill(grilling)`; `grill-with-docs` keeps its name and dispatch contract but delegates the interview to `grilling`.
 - Acceptance Criteria:
-  - [ ] `claude-code/skills/grilling/SKILL.md` = upstream HEAD content (md5 of `tail -n +2` = `284efe9cf334900d08230e572fc6db90`), YAML frontmatter parses, `disable-model-invocation` absent.
-  - [ ] `grill-with-docs/SKILL.md` line 1 is Derived; its `<what-to-do>` block is ≤6 lines and names `grilling`; the `<supporting-info>` domain block is unchanged except the glossary sentence; `CONTEXT-FORMAT.md` + `ADR-FORMAT.md` still in the dir. `test_grill_with_docs_frontmatter.py` gains two asserts: line 1 is an HTML comment starting `Derived from` and the `<what-to-do>` block contains `"grilling"` (3B).
-  - [ ] **Live criterion (OV3):** in a fresh session after `install.sh`, run `/aa-ma-plan --grill-mode=with-docs` on the fixed idea "add `--json` output to `scripts/fork-drift.sh`" and stop after Phase 1.3. Proof: Result Log contains a fenced excerpt showing (a) the `Skill` tool call with `skill: grilling` and its resolved path, and (b) at least one `❓ Q1` block followed by a `➡️` line; provenance gains `[ts] LIVE_CHECK — Milestone 2: … — grilling_rounds=<N> resolved=~/.claude/skills/grilling`.
-  - [ ] `tests/plan_markers/test_fingerprint.py::test_satisfied_by_grill_with_docs` still passes (no fingerprint change).
-  - [ ] `jq -e '.grilling.state=="current" and .grilling.upstream_sha=="c55ee46073ed923f86ce59a5eb3b6d895095d1b7" and .grilling.upstream_md5["SKILL.md"]=="284efe9cf334900d08230e572fc6db90" and .["grill-with-docs"].state=="derived"' claude-code/skills/FORKS.json`; manifest test green.
-  - [ ] Counts: skills 19→20 in `SECURITY.md` list, `README.md` skills table (+1 row), `docs/spec/claude-code-foundations.md` `### Skills (20)` (+1 row); CLAUDE.md updated locally, not asserted; `test_aa_ma_share_command.py` green.
+  - [x] `claude-code/skills/grilling/SKILL.md` = upstream HEAD content (md5 of `tail -n +2` = `284efe9cf334900d08230e572fc6db90`), YAML frontmatter parses, `disable-model-invocation` absent.
+  - [x] `grill-with-docs/SKILL.md` line 1 is Derived; its `<what-to-do>` block is ≤6 lines and names `grilling`; the `<supporting-info>` domain block is unchanged except the glossary sentence; `CONTEXT-FORMAT.md` + `ADR-FORMAT.md` still in the dir. `test_grill_with_docs_frontmatter.py` gains two asserts: line 1 is an HTML comment starting `Derived from` and the `<what-to-do>` block contains `"grilling"` (3B).
+  - [x] **Live criterion (OV3):** in a fresh session after `install.sh`, run `/aa-ma-plan --grill-mode=with-docs` on the fixed idea "add `--json` output to `scripts/fork-drift.sh`" and stop after Phase 1.3. Proof: Result Log contains a fenced excerpt showing (a) the `Skill` tool call with `skill: grilling` and its resolved path, and (b) at least one `❓ Q1` block followed by a `➡️` line; provenance gains `[ts] LIVE_CHECK — Milestone 2: … — grilling_rounds=<N> resolved=~/.claude/skills/grilling`.
+  - [x] `tests/plan_markers/test_fingerprint.py::test_satisfied_by_grill_with_docs` still passes (no fingerprint change).
+  - [x] `jq -e '.grilling.state=="current" and .grilling.upstream_sha=="c55ee46073ed923f86ce59a5eb3b6d895095d1b7" and .grilling.upstream_md5["SKILL.md"]=="284efe9cf334900d08230e572fc6db90" and .["grill-with-docs"].state=="derived"' claude-code/skills/FORKS.json`; manifest test green.
+  - [x] Counts: skills 19→20 in `SECURITY.md` list, `README.md` skills table (+1 row), `docs/spec/claude-code-foundations.md` `### Skills (20)` (+1 row); CLAUDE.md updated locally, not asserted; `test_aa_ma_share_command.py` green.
 - Tests: `uv run pytest tests/skills tests/plan_markers tests/commands -q`; `bats tests/hooks/install_dry_run.bats`.
 - Rollback: revert milestone commits; `grill-with-docs` returns to the faithful 2026-05-10 fork; remove `grilling` dir and manifest row.
+- Result Log: COMPLETE 2026-09-21 — approved by Ste at §7.3. 6/6 criteria verified (see sub-step logs). Commits 7542c30 → bc329d4 → 936fb1d → 7030200 → ba36187 → 5d2ff5d → 022e036 (+ milestone commit). Tests: 142 milestone cmd / 515 CI cmd / bats 4/4. §6.7 PASS; §6.8 PASS_WITH_WARNINGS (0C/4W/9I; 4W+2I fixed → AD-005, AD-006). Live: Skill(grilling) → ~/.claude/skills/grilling (ours), fork-drift grilling=SAME. Skills 19→20.
 
 ### Sub-step 2.1: Fork `grilling` from HEAD + frontmatter test
 - Status: COMPLETE

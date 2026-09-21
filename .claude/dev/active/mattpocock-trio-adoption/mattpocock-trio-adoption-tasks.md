@@ -317,14 +317,14 @@ Before Milestone 1 starts, one `[ad-hoc]` commit fixes pre-existing count/taxono
 - Result Log: ✅ COMPLETE 2026-09-21 — Mode: AFK — auto-dispatched. Prose-only (parser `_KV_RE` is generic, `aa-ma-plan-skip-warn.sh` is marker-only → no Python change; TDD n/a). `aa-ma-plan.md`: marker table row + Step 3.3 rewritten (two dispatch paths: `Skill(aa-ma-research)` → non-nesting `aa-ma-researcher` writes one `docs/research/<slug>-<topic>.md`; `Task(Explore)` for codebase; ≤5 agents) + Step 3.4 `research_files` definition + marker invocation line; Step 5.3 reference bullet + Step 5.4 context-log line link `docs/research/`. `plan-marker-grammar.md`: row 5 + example line carry `research_files=`. `PHASE_3_RESEARCH.md`: `aa-ma-research` in Skill Integration + Tool Hierarchy row; `research-consolidation` marked optional (×2). Criterion 4 greps: `Skill(aa-ma-research)` ✓, `research_files=` count 2/2 ✓, `docs/research/` in 5.3–5.5 ✓, PHASE_3 names `aa-ma-research` ✓, consolidation "optional" ✓, `_phase_3` in TODOS.md ✓ (already present, D1). Tests: `uv run pytest tests/plan_markers tests/commands -q` → 79 passed, 2 failed — both `test_aa_ma_share_command.py` count tests (`skills: says 20, disk 21`), red since 4.1 created the dir, verified identical with 4.4 edits stashed; owned by 4.5. `bats tests/hooks/aa-ma-plan-skip-warn.bats` 7/7 ok (fixtures :32,87,108,131 untouched).
 
 ### Sub-step 4.5: Counts, ATTRIBUTION, ADR-0012, CHANGELOG, TODOS.md, sync
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Step 4.4
 - Effort: 30m · Complexity: 20%
 - Acceptance Criteria:
   - Count test green (skills 21, agents 12); ADR-0012 Implemented; `TODOS.md` carries the fingerprint `_phase_3` and `docs/research/README.md` entries; commit + push.
 - Artefacts: `SECURITY.md`, `README.md`, `docs/spec/claude-code-foundations.md`, `CLAUDE.md` (local), `docs/ATTRIBUTION.md`, `docs/adr/0012-*.md`, `CHANGELOG.md`, `TODOS.md`.
-- Result Log: [pending]
+- Result Log: ✅ COMPLETE 2026-09-21 — Mode: AFK — auto-dispatched. Counts skills 20→21 / agents 11→12: `SECURITY.md` lists (+`aa-ma-research`, +`aa-ma-researcher`), `README.md` skills row, foundations `### Skills (21)` / `### Agents (12)` + rows, `CLAUDE.md` tree (gitignored/local). ADR-0012 `Status: Implemented (2026-09-21 — M4)`; `docs/adr/INDEX.md` rows 0012 → Implemented **and 0011 → Implemented** (M3 had left the index row at Proposed — same-file drift fixed here). `docs/ATTRIBUTION.md` mattpocock entry: `aa-ma-research` Derived sentence + paths. `CHANGELOG.md` Unreleased: M4 bullet. `TODOS.md`: `_phase_3` and `docs/research/README.md` entries already present (D1) — no change. Tests: `uv run pytest tests/commands tests/skills tests/agents tests/plan_markers -q` 158 passed (count tests now green); full default suite 1097 passed / 2 skipped.
 
 ### Sub-step 4.6: Release v0.13.0
 - Status: PENDING

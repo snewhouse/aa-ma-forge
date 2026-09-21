@@ -35,6 +35,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   `PROTOTYPE` / `CRITICAL_PATH_REVIEW` / `LIVE_CHECK`; engineering-standards Theme 1 reworded.
   §8.4 of `/execute-aa-ma-milestone` no longer `--amend`s the milestone commit after recording its
   hash (L-018). ADR-0011 → Implemented.
+- **`research` adopted as `aa-ma-research` + non-nesting `aa-ma-researcher` agent; Phase 3 writes files (`mattpocock-trio-adoption` M4)** —
+  `claude-code/skills/aa-ma-research/SKILL.md` is Derived from mattpocock/skills `skills/engineering/research`
+  @ `c55ee46` (upstream body verbatim; renamed so the pre-existing `~/.claude/skills/research` is never backed
+  up or shadowed; `## In this repo` binds it to the agent and the `docs/research/` header). `claude-code/agents/
+  aa-ma-researcher.md` has no Agent tool, never runs `claude`, answers one question and writes exactly one cited
+  file. `/aa-ma-plan` Step 3.3 dispatches it for primary-source questions (Explore stays for codebase), Step 3.4
+  counts `research_files=<N>` into the `PHASE_3 DONE` marker (additive key; parser and hook unchanged), Steps
+  5.3/5.4 link the files. Live prototype run: `docs/research/mattpocock-trio-adoption-install-backup.md`
+  (header=5, `path:line` cites, 0 nested agents). Skills 20 → 21, agents 11 → 12. ADR-0012 → Implemented.
 - **CI runs the suites it had been skipping** — the pytest step now covers `tests/skills tests/agents
   tests/plan_markers tests/test_gate.py tests/test_enforce.py tests/test_gate_parity.py`; `pyyaml` is a
   declared dev dependency; `test_foundations_count_headings_match_disk` pins the three foundations headings.

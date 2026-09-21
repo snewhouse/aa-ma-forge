@@ -86,12 +86,13 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered Quick/Standard/Deep); optionally authors/reviews `AGENTS.md`. Thin wrapper around `Skill(understand-codebase)`; see ADR-0006 |
 | `/sole-dev-merge` | PR/MR-based merge workflow: scope-aware CI checks (L-007 guard) + 3-source security pass + idempotent PR/MR creation + 15-min CI poll + auto-merge + cleanup. See ADR-0008 |
 
-### Skills (20)
+### Skills (21)
 
 | Skill | Purpose |
 |-------|---------|
 | `aa-ma-plan-workflow` | 5-phase planning workflow: context → brainstorm → research → plan → artifacts |
 | `aa-ma-execution` | Orchestrates AA-MA execution, auto-detects active tasks, handles context injection |
+| `aa-ma-research` | Investigates one question against primary sources via the `aa-ma-researcher` agent and lands exactly one cited file in `docs/research/<slug>-<topic>.md`; dispatched by `/aa-ma-plan` Phase 3 (Derived from mattpocock/skills `research`) |
 | `plan-verification` | 6-angle adversarial plan verification (invoked by `/verify-plan` and `/aa-ma-plan`) |
 | `impact-analysis` | Pre-commit dependency and blast-radius analysis at milestone boundaries |
 | `system-mapping` | 5-point pre-flight check before modifying unfamiliar code |
@@ -111,10 +112,11 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `understand-codebase` | Tiered (Quick/Standard/Deep) codebase-onboarding workflow: reads/maps the repo, learns conventions/versioning/tests/stack/rules, produces a pros/cons verdict + "contribute safely" + "add a feature" playbooks → `ONBOARDING.md` + `.claude/onboarding/` deep-dives; Deep tier runs a `TeamCreate` agent-team; optionally authors/reviews `AGENTS.md` (see ADR-0006) |
 | `goal-condition-synthesis` | Synthesise a Claude Code `/goal` condition from AA-MA plan artefacts: produces a falsifiable condition referencing observable artefacts (`provenance.log`, `tasks.md` Status, git tags, test exit codes) with a turn-cap cost ceiling derived from plan effort. Owns the canonical verdict-token enum, observable-artefact list, and hashing contract; backed by a unit-tested Python reference module (`aa_ma.goal_synthesis`). Consumed by `/execute-aa-ma-full` §2.5 and `/verify-plan --iterate` |
 
-### Agents (11)
+### Agents (12)
 
 | Agent | Purpose |
 |-------|---------|
+| `aa-ma-researcher` | Writes exactly one cited Markdown file under `docs/research/` for one question; no Agent tool (cannot nest), never runs `claude`. Spawned by `Skill(aa-ma-research)` |
 | `aa-ma-scribe` | Generates the 5-file artifact set from an approved plan |
 | `aa-ma-validator` | Read-only validation of artifact completeness and cross-file consistency |
 | `code-reviewer` | Read-only fresh-eyes review of the milestone-window diff (KISS/SOLID/SOC/DRY, scope discipline, mechanism duplication, schema-breaking output regressions, dead code, magic numbers); CRITICAL → blocks user approval. Spawned by Phase 6.8 via `verify-impl` |

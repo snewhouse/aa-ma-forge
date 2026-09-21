@@ -1,6 +1,6 @@
 # 0012. Adopt `research` from mattpocock/skills and give `/aa-ma-plan` Phase 3 a file destination
 
-**Status:** Proposed
+**Status:** Implemented (2026-09-21 — `mattpocock-trio-adoption` Milestone 4)
 **Date:** 2026-09-20
 **Deciders:** Stephen Newhouse, Claude (research session 2026-09-20)
 **Tags:** `workflow`, `aa-ma`, `skills`, `external-fork`, `engineering-standards-theme-1`

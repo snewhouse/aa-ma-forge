@@ -232,6 +232,7 @@ Skills are reusable procedures that plug into the planning and execution workflo
 |-------|-------------|
 | `aa-ma-plan-workflow` | The 5-phase planning engine behind `/aa-ma-plan` |
 | `aa-ma-execution` | Task execution contract used by the `/execute-aa-ma-*` commands |
+| `aa-ma-research` | One question → one cited file in `docs/research/`, written by the non-nesting `aa-ma-researcher` agent; `/aa-ma-plan` Phase 3 dispatches it (Derived from mattpocock/skills `research` @ c55ee46) |
 | `plan-verification` | Adversarial 6-angle verification for plans |
 | `impact-analysis` | Pre-change dependency and blast-radius analysis |
 | `system-mapping` | 5-point pre-flight checklist before code changes |

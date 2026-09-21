@@ -30,8 +30,8 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0008](0008-sole-dev-merge-pr-workflow.md) | `/sole-dev-merge` — PR/MR Workflow with 3-Source Security + Idempotent Auto-Merge | Implemented | 2026-05-18 |
 | [0009](0009-gate-enforcement-python-ssot.md) | Gate enforcement reads the Python SSoT; bash keeps display readers only | Implemented | 2026-09-11 |
 | [0010](0010-architecture-views-and-render.md) | Architecture Views (element #13), Contract blocks, mermaid lint, Artifact Share and HTML Render | Implemented | 2026-09-11 |
-| [0011](0011-prototype-resync-and-planning-gate.md) | Re-sync `prototype` to upstream 1.2.3 and make the prototype decision explicit in planning | Proposed | 2026-09-20 |
-| [0012](0012-research-skill-adoption.md) | Adopt `research` from mattpocock/skills and give `/aa-ma-plan` Phase 3 a file destination | Proposed | 2026-09-20 |
+| [0011](0011-prototype-resync-and-planning-gate.md) | Re-sync `prototype` to upstream 1.2.3 and make the prototype decision explicit in planning | Implemented | 2026-09-20 |
+| [0012](0012-research-skill-adoption.md) | Adopt `research` from mattpocock/skills and give `/aa-ma-plan` Phase 3 a file destination | Implemented | 2026-09-20 |
 | [0013](0013-charting-wayfinder-lite.md) | Charting — a pre-plan decision map adapted from `wayfinder` (no issue tracker) | Proposed | 2026-09-20 |
 
 ## Statuses

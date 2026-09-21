@@ -52,3 +52,6 @@
 [2026-09-21T10:32:06+01:00] LIVE_CHECK — Milestone 2: Fork `grilling`; `grill-with-docs` becomes Derived — fork_drift_sha=c55ee46 grilling=SAME grill-with-docs=ORPHAN(by-design)
 [2026-09-21T10:33:27+01:00] MILESTONE COMPLETE — M2 — Commit: bac16db — Criteria: 6/6 verified — approved by user (§7.3)
 [2026-09-21T10:33:27+01:00] COMMIT bac16db — feat(mattpocock-trio-adoption): Complete Milestone 2 (hash corrected post-amend, L-018)
+[2026-09-21T10:34:36+01:00] COMMIT 022e036 — fix(skills): §6.8 M2 findings (scoped fact-finding, glossary read before grilling, ADR-0012 count, tighter test) [back-filled at §7.2.5]
+[2026-09-21T10:34:36+01:00] COMMIT cbae473 — docs(aa-ma): correct M2 milestone hash post-amend; add L-018
+[2026-09-21T10:34:36+01:00] §7.2.5 VALIDATOR (post-completion) — WARNINGS_BUT_USABLE (0 FAIL / 3 WARN / 1 INFO) → 3 back-fills applied inline (COMMIT 022e036 line + hashes in context-log/impl-review; 2.2 Result Log AD-005 amendment; reference.md grill-with-docs row); INFO noted: 022e036 bundled test tightening with impl — M3 keeps L-017a strict

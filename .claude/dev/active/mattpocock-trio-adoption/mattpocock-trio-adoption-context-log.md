@@ -145,7 +145,7 @@ Bring every mattpocock fork in `claude-code/skills/` to a known, detectable life
 - Status: COMPLETE (pending §7.3 approval at time of writing)
 - Key outcome: `claude-code/skills/grilling/` is a verbatim fork of upstream `skills/productivity/grilling` @ `c55ee46` (manifest `state: current`, live fork-drift → SAME). `grill-with-docs` keeps its name and domain block and is now Derived: `<what-to-do>` reads the glossary docs then delegates the interview to `Skill(grilling)`. Live criterion met in-session: unprefixed `Skill(grilling)` resolved to `~/.claude/skills/grilling` (ours) — no rename to `aa-ma-grilling` needed. Skills 19→20 at every count site.
 - Artifacts: claude-code/skills/grilling/SKILL.md, claude-code/skills/grill-with-docs/{SKILL,CONTEXT-FORMAT}.md, claude-code/skills/FORKS.json, tests/skills/test_grilling_frontmatter.py, tests/skills/test_grill_with_docs_frontmatter.py, claude-code/commands/aa-ma-plan.md, SECURITY.md, README.md, docs/spec/claude-code-foundations.md, docs/ATTRIBUTION.md, docs/adr/0002 (+amendment), docs/adr/0012 (count fix), CHANGELOG.md, impl-review.md (M2 section)
-- Commits: 7542c30 (red 2.1), bc329d4 (2.1), 936fb1d (red 2.2), 7030200 (2.2), ba36187 (2.3 docs), 5d2ff5d (gate evidence), + §6.8 fix commit
+- Commits: 7542c30 (red 2.1), bc329d4 (2.1), 936fb1d (red 2.2), 7030200 (2.2), ba36187 (2.3 docs), 5d2ff5d (gate evidence), 022e036 (§6.8 fixes), bac16db (milestone), cbae473 (hash fix + L-018)
 - Tests: 142 passed (milestone cmd); CI cmd 515 passed; bats install_dry_run 4/4; live fork-drift: grilling SAME
 - §6.8: PASS_WITH_WARNINGS — 0 CRITICAL, 4 WARNING (all fixed), 9 INFO (2 fixed, 7 acknowledged)
 

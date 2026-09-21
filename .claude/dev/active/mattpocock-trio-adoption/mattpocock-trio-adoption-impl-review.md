@@ -108,7 +108,7 @@ Convention learned for this project: the milestone's *first* commit after a RED 
 
 # Impl Review Report: mattpocock-trio-adoption / Milestone 2
 
-**Milestone:** Milestone 2: Fork `grilling`; `grill-with-docs` becomes Derived · **Audit-Profile:** code-only · **Window:** 771bc25..5d2ff5d (+ post-review fix commit) · **Date:** 2026-09-21 · **Budget:** normal (parallel, full context)
+**Milestone:** Milestone 2: Fork `grilling`; `grill-with-docs` becomes Derived · **Audit-Profile:** code-only · **Window:** 771bc25..5d2ff5d (fixes landed in 022e036) · **Date:** 2026-09-21 · **Budget:** normal (parallel, full context)
 
 ## Summary
 

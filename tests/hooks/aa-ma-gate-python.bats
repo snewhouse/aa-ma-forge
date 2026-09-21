@@ -189,6 +189,20 @@ _run_fence() {  # <cwd> <task-name>
     [[ "$output" == *"PASS"* ]]
 }
 
+@test "§6.7 fence: sub-step Critical-Path rolls up; needs a milestone-scoped review entry" {
+    local cwd; cwd=$(_task_dir_from one-active cps)
+    local tasks="$cwd/.claude/dev/active/cps/cps-tasks.md"
+    local prov="$cwd/.claude/dev/active/cps/cps-provenance.log"
+    sed -i 's/^### Sub-step 2.1: Something else$/&\n- Critical-Path: auth-flow/' "$tasks"
+    run _run_fence "$cwd" cps
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Critical-Path: auth-flow"* ]]
+    echo "[ts] CRITICAL_PATH_REVIEW — Milestone 2: The one being gated — auth-flow — x" >> "$prov"
+    run _run_fence "$cwd" cps
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"PASS"* ]]
+}
+
 @test "§6.7 fence: Gate: TYPO -> BLOCKED, never SOFT" {
     local cwd; cwd=$(_task_dir_from one-active typo)
     sed -i 's/^- Gate: HARD$/- Gate: TYPO/' "$cwd/.claude/dev/active/typo/typo-tasks.md"

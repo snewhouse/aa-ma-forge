@@ -106,9 +106,10 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Dependencies:** None
 
 <!-- Critical-Path: OPTIONAL flag at sub-step level. Same enum as milestone.
-     Use to flag a single high-stakes sub-step within an otherwise routine milestone.
-     Add `- Critical-Path: <value>` only when it applies; an empty value is a gate
-     error (exit 2). -->
+     Use to flag a single high-stakes sub-step within an otherwise routine milestone;
+     its value rolls up to the milestone gate (the milestone's own value wins; sub-steps
+     that disagree are a gate error). Add `- Critical-Path: <value>` only when it
+     applies; an empty value is a gate error (exit 2). -->
 
 <!-- Prototype-Required: OPTIONAL flag at sub-step level. Same semantics as milestone.
      Use to flag a single uncertain sub-step; its YES rolls up to the milestone

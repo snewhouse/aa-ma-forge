@@ -12,7 +12,8 @@ The questions (reference.md "M5 enforcement contract"):
 2. which milestone is ACTIVE — refusing on 0 / 2+ / unreadable
 3. how many sub-steps are ``Status: PENDING`` within it
 4. ``Gate:`` → HARD/SOFT
-5. ``Critical-Path:`` value, present or absent
+5. ``Critical-Path:`` value, present or absent — the milestone's own, else the
+   one its sub-steps agree on (disagreeing sub-steps refuse)
 6. ``Prototype-Required:`` == YES, present or absent — on the milestone **or
    rolled up from any of its sub-steps** (AD-001: sub-step fields are read only
    for the milestone being answered, never file-wide)
@@ -256,18 +257,23 @@ def _read_milestone(block: Block, errors: list[str]) -> MilestoneRead:
 @dataclass(frozen=True)
 class StepsRead:
     """What the answered milestone's sub-steps contribute: the PENDING count
-    (Q3) and whether any of them declares ``Prototype-Required: YES`` (Q6
-    roll-up). An invalid or empty token on any sub-step is a refusal, exactly
-    as at milestone level — the blank ``- **Prototype-Required:**`` slot the
-    old tasks-template emitted is ``empty value``, not ``NO``."""
+    (Q3), whether any of them declares ``Prototype-Required: YES`` (Q6
+    roll-up), and their ``Critical-Path`` value (Q5 roll-up — the milestone's
+    own value wins; sub-steps that disagree with each other are a refusal,
+    since the gate cannot know which review to demand). An invalid or empty
+    token on any sub-step is a refusal, exactly as at milestone level — the
+    blank ``- **Prototype-Required:**`` slot the old tasks-template emitted is
+    ``empty value``, not ``NO``."""
 
     pending: int
     prototype_required: bool
+    critical_path: str | None
 
 
 def _read_steps(block: Block, heading: str, errors: list[str]) -> StepsRead:
     pending = 0
     prototype = False
+    critical_paths: dict[str, str] = {}  # value -> first sub-step declaring it
     for step in split_steps(block.text):
         where = f"{heading} / {_heading(step)}"
         status = _read_or_error(read_step_status(step.text), where, errors)
@@ -281,9 +287,25 @@ def _read_steps(block: Block, heading: str, errors: list[str]) -> StepsRead:
             where,
             errors,
         )
+        critical = _read_or_error(
+            read_enforced_field(step.text, "Critical-Path", CANONICAL_CRITICAL_PATHS),
+            where,
+            errors,
+        )
         pending += status.value == "PENDING"
         prototype |= proto.value == "YES"
-    return StepsRead(pending=pending, prototype_required=prototype)
+        if critical.value is not None:
+            critical_paths[critical.value] = where
+    if len(critical_paths) > 1:
+        errors.append(
+            f"{heading}: conflicting sub-step Critical-Path values — "
+            + "; ".join(f"{v} ({w})" for v, w in critical_paths.items())
+        )
+    return StepsRead(
+        pending=pending,
+        prototype_required=prototype,
+        critical_path=next(iter(critical_paths), None),
+    )
 
 
 def _read_step(
@@ -404,6 +426,7 @@ def answer(
         read,
         pending_steps=steps.pending,
         prototype_required=read.prototype_required or steps.prototype_required,
+        critical_path=read.critical_path or steps.critical_path,
     )
     step_read = None
     if step is not None:

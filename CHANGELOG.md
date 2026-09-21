@@ -26,8 +26,9 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   `claude-code/skills/prototype/{SKILL,LOGIC,UI}.md` re-forked from mattpocock/skills @ `c55ee46`
   (LOGIC is now a single HTML demo; results are captured on a `prototype/<name>` branch; ADR-0003
   amended). `aa-ma-gate` reads `Prototype-Required` on every sub-step of the answered milestone and
-  ORs it into `prototype_required`; an invalid or empty sub-step token exits 2 (`StepsRead` /
-  `_read_steps` replace `_count_pending`; fixture `prototype-rollup-tasks.md`; bats fence case).
+  ORs it into `prototype_required`, and reads sub-step `Critical-Path` the same way (milestone value
+  wins; disagreeing sub-steps refuse); an invalid or empty sub-step token exits 2 (`StepsRead` /
+  `_read_steps` replace `_count_pending`; fixture `prototype-rollup-tasks.md`; two bats fence cases).
   `/aa-ma-plan` gains **Step 2.5: Prototype Decision** (`prototype=<M-list>` on
   `ENG_STANDARDS_DECLARED`); `tasks-template.md` drops its four blank `Critical-Path` /
   `Prototype-Required` slots (an empty value is a gate error); the spec's provenance grammar lists

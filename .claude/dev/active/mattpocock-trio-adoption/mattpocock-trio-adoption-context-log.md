@@ -211,3 +211,10 @@ Bring every mattpocock fork in `claude-code/skills/` to a known, detectable life
 
 ## [2026-09-21] M5 Step 5.1 — `_cand` literal vs. contract
 - **AD-014** — The `_cand` loop in `aa-ma-chart.md` (and, in 5.4, `aa-ma-plan.md`) writes `"$(git rev-parse --show-toplevel)/claude-code/hooks/lib/aa-ma-chart-guard.sh"` and silences the non-repo case with a loop-level `done 2>/dev/null`. Rationale: the M5 acceptance grep is the literal `git rev-parse --show-toplevel)/claude-code/hooks/lib/aa-ma-chart-guard.sh`, which the contract's `… --show-toplevel 2>/dev/null)/…` placement can never satisfy; the mechanical check wins over the illustrative snippet. Behaviour identical (outside a repo the first candidate is `/claude-code/…`, absent, skipped). Sub-step status enum has no `ACTIVE` — sub-steps use `IN_PROGRESS` (gate refused `ACTIVE` with exit 2).
+
+## [2026-09-21] GATE APPROVAL: Milestone 5: Charting — `/aa-ma-chart` (Adaptation of wayfinder) + `--from-map`; release v0.14.0
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion, "Approve + release")
+- Criteria verified: 8/9 at approval time; 9/9 once `scripts/release.sh minor` cuts v0.14.0 (authorised in the same decision)
+- Evidence: §6.7 ENG-STANDARDS-GATE PASS (fence executed); §6.8 PASS_WITH_WARNINGS (2 CRITICAL accepted → fixed 2bd406d, 13/13 WARNING fixed, security re-check 0/0/2); PROTOTYPE + CRITICAL_PATH_REVIEW lines present; pytest 1099 passed; bats 0 failures
+- Decision: APPROVED

@@ -124,3 +124,4 @@
 [2026-09-21T13:40:29+01:00] MILESTONE COMPLETE — M4 — Commit: fd82d40 — Criteria: 7/7 verified
 [2026-09-21T13:50:17+01:00] M5 Step 5.1 COMPLETE — CHANGELOG Unreleased re-added; docs/templates/map-template.md + claude-code/commands/aa-ma-chart.md created; canonical test 23 passed; aa-ma-render rc 0
 [2026-09-21T13:52:34+01:00] M5 Step 5.2 RED — bats tests/hooks/aa-ma-chart-guard.bats: 20 cases, 20 fail (guard absent, rc 127); install_dry_run.bats case 5 fails (no symlink block)
+[2026-09-21T13:55:41+01:00] M5 Step 5.2 GREEN — aa-ma-chart-guard.sh + install.sh block; bats aa-ma-chart-guard 19/19 (correction: the RED line above says 20; the file has 19 cases), install_dry_run 5/5, tests/hooks 194/194; shellcheck rc 0; installed symlink verified

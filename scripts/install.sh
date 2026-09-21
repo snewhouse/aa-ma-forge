@@ -335,6 +335,15 @@ if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" ]; then
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-parse.sh"
 fi
 
+# Charting guard is invoked from the /aa-ma-chart and /aa-ma-plan --from-map
+# command bodies via the `_cand` resolution (repo-local first, then
+# ${CLAUDE_HOME}/hooks/lib). Not a registered hook event; L-005 — helpers
+# are never auto-linked, so it gets its own block like aa-ma-parse.sh.
+if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-chart-guard.sh" ]; then
+    create_symlink "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-chart-guard.sh" \
+                   "${CLAUDE_HOME}/hooks/lib/aa-ma-chart-guard.sh"
+fi
+
 # Marker-writer helper is invoked from the /aa-ma-plan command body — not a
 # registered hook event, but needs to live at the installed location so the
 # command's `bash ~/.claude/hooks/lib/aa-ma-plan-marker.sh ...` works.

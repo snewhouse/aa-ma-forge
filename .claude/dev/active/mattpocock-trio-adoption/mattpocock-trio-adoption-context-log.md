@@ -122,3 +122,19 @@ Bring every mattpocock fork in `claude-code/skills/` to a known, detectable life
     2. Keep milestone-only semantics and forbid sub-step `Prototype-Required` — rejected: loses D6's ability to flag one uncertain sub-step.
   - **Trade-offs:** a bad token in a non-selected milestone is not reported until that milestone is gated (acceptable — that is when it matters); `tests/test_active_plans_canonical.py` still scans `active/` for template hygiene.
   - **Impact:** `src/aa_ma/gate.py`, `tests/test_gate.py`, `tests/hooks/fixtures/gate-scans/prototype-rollup-tasks.md`, `tests/hooks/aa-ma-gate-python.bats`, `execute-aa-ma-milestone.md` §6.7 BLOCKED text, `execute-aa-ma-step.md` advisory, ADR-0011. Milestone 3 (HARD gate, `Critical-Path: hook-modification`).
+
+---
+
+## [2026-09-21] Milestone Completion: Milestone 1 — Fork manifest, Drift/Orphan detector, Derived reclassifications, CI coverage
+- Status: COMPLETE (pending §7.3 approval at time of writing)
+- Key outcome: `claude-code/skills/FORKS.json` is the fork SSoT; `aa_ma.forks` is a pure SAME/DRIFT/ORPHAN classifier with `classify` / `files` / `classify-all` CLI; `scripts/fork-drift.sh` is the only fetcher and fails closed (bad manifest, hidden repo, 403, partial fetch → exit 1). Live `--sha c55ee46`: grill-with-docs ORPHAN, prototype DRIFT, write-a-skill ORPHAN — exactly as reference.md predicted. `write-a-skill` is Derived. CI pytest step is exclusion-based (was enumerated and silently missing 190 tests).
+- Artifacts: src/aa_ma/forks.py, claude-code/skills/FORKS.json, scripts/fork-drift.sh, tests/skills/test_fork_manifest.py, tests/skills/_helpers.py, tests/hooks/fork-drift.bats (+fixture), tests/commands/test_aa_ma_share_command.py, .github/workflows/security.yml, pyproject.toml, uv.lock, .importlinter, write-a-skill/SKILL.md, ADR-0004, README.md, CHANGELOG.md, docs/lessons.md (L-017), mattpocock-trio-adoption-impl-review.md
+- Commits: 8d91442 (M1), d755920 (red), 4144305 (green §6.8 fixes)
+- Tests: 513 passed (CI command), bats fork-drift 7/7, shellcheck clean, lint-imports 3 kept
+- §6.8: PASS_WITH_WARNINGS — 2 CRITICAL (1 fixed, 1 disputed: TDD same-commit tie, provenance RED→GREEN cited), 8 WARNING (5 fixed), 13 INFO (4 fixed)
+
+### Decisions
+- **AD-002** — `aa_ma.forks` owns all manifest reading (`files` / `classify-all` subcommands); the shell never parses FORKS.json. Rationale: two readers with different failure semantics was the root of the fail-open CRITICAL. Additive to the M1 Contract (reference.md addendum).
+- **AD-003** — CI pytest step is exclusion-based, never enumerated (L-017c). Supersedes Step 1.6's "exact list" AC wording (user-approved at §6.8 panel).
+- **AD-004** — fork-drift.sh pre-flights `gh api repos/mattpocock/skills` because GitHub returns 404 for hidden repos; only a file-level 404 may become ORPHAN.
+- **Process** — from M2 on, the red test is committed on its own before the implementation commit (L-017a) so the mechanical TDD criterion passes.

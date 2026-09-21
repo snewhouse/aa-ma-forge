@@ -126,10 +126,9 @@ do_claim() {  # <map> <N>
         [ "$st" = "CLAIMED" ] && echo "  (a dead session? re-take it with: reclaim <map> ticket-$n)"
         echo "frontier:"; frontier "$rows"; return 1
     fi
-    if ! unblocked "$rows" "$bl"; then
-        echo "refused: Ticket $n: $t is blocked by: $bl"
-        echo "frontier:"; frontier "$rows"; return 1
-    fi
+    # The session-wide invariant is asked before the ticket's own edges: "is a
+    # session already busy?" is the same answer whichever ticket was named, and
+    # the prototype run showed a blocked ticket otherwise hides that reason.
     if [ "$type" != "research" ]; then
         while IFS=$'\t' read -r cn ct ctype cst _; do
             if [ "$cst" = "CLAIMED" ] && [ "$ctype" != "research" ] && [ "$cn" != "$n" ]; then
@@ -138,6 +137,10 @@ do_claim() {  # <map> <N>
                 echo "frontier:"; frontier "$rows"; return 1
             fi
         done <<< "$rows"
+    fi
+    if ! unblocked "$rows" "$bl"; then
+        echo "refused: Ticket $n: $t is blocked by: $bl"
+        echo "frontier:"; frontier "$rows"; return 1
     fi
     set_status "$map" "$n" CLAIMED "$(ts)"
     echo "claimed: Ticket $n: $t ($type)"

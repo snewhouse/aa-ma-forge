@@ -74,6 +74,14 @@ _block() {  # <map> <N>
     [ "$(md5sum < "$map")" = "$before" ]    # a refusal never writes
 }
 
+@test "claim: the one-at-a-time refusal wins over blocked-by (prototype-run finding)" {
+    map="$(_map claimed)"
+    run bash "$GUARD" claim "$map" ticket-4        # blocked by 1 AND 1 is CLAIMED
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"at most one non-research ticket"* ]]
+    [[ "$output" != *"is blocked by"* ]]
+}
+
 @test "claim: a research ticket while a grilling ticket is CLAIMED → exit 0 (research runs in parallel)" {
     map="$(_map claimed)"
     run bash "$GUARD" claim "$map" ticket-2

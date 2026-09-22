@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-09-22 09:53 -->
+<!-- Plan: mattpocock-trio-adoption - COMPLETE -->
+<!-- Total Milestones: 5 | Duration: 2026-09-20 to 2026-09-21 -->
+
 # mattpocock-trio-adoption Reference
 
 **Immutable facts and constants for this task.**

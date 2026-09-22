@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-09-22 09:53 -->
+<!-- Plan: mattpocock-trio-adoption - COMPLETE -->
+<!-- Total Milestones: 5 | Duration: 2026-09-20 to 2026-09-21 -->
+
 # mattpocock-trio-adoption Plan
 
 **Objective:** Every mattpocock fork in a known, detectable lifecycle state; `grilling` forked behind the `grill-with-docs` name; `prototype` re-forked with an explicit planning gate; `research` adopted (as `aa-ma-research`) with a non-nesting agent; `wayfinder` adapted as pre-plan **charting**; `write-a-skill` reclassified Derived — shipped as v0.13.0 (M1–M4) and v0.14.0 (M5).

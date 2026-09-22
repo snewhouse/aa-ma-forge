@@ -29,6 +29,7 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 - [Ticket 5: Exact `PHANTOM_EDGE` grammar](#ticket-5-exact-phantom_edge-grammar): opt-in by sigil label `A -->|@import| B` (reserved `@import @call @skill @command @agent @hook`); unlabelled/prose edges never checked (a blanket import∪call check would fire on ~14 of 21 correct edges in a real committed view); unknown `@x` ⇒ `LABEL_UNKNOWN`; one `UNKNOWN`+reason policy for `(new)`/unparsed/`docs/`/stale-graph; absent-but-evaluable ⇒ `PHANTOM_EDGE`, exit 1.
 - [Ticket 11: Clickable drill-down — mechanics and where the HTML lives](#ticket-11-clickable-drill-down--mechanics-and-where-the-html-lives): delegated DOM listener with `securityLevel: 'strict'` unchanged (strict disables `click href` too, and `click` lines would pollute the committed fence); embedded-graph explorer deriving levels client-side, as the prototype proved; built by `aa-ma-render --explorer` in `aa_ma.render` reusing html.py's CSP/SRI/pin; Py+JS generators reconciled by a shared node-id/collapse fixture, not a golden render; `build/`-only, never committed.
 - [Ticket 14: Does `/aa-ma-plan` seed the §13 Component view from the generator?](#ticket-14-does-aa-ma-plan-seed-the-13-component-view-from-the-generator): yes — Phase 4 pastes the L2 cut into §13 with `@kind` sigils already attached (47% / 23% of nodes in real committed views are `(new)` and underivable, but seeded edges are the only route to a non-vacuous PHANTOM_EDGE); anchoring countered by an Angle 6 coverage rule (every `#### Contract` file path must appear as a §13 node), planning-time only; intended edges carry sigils, so the diagram becomes an acceptance criterion that flips from UNKNOWN to checked when the code lands.
+- [Ticket 12: Annotation layer — format and how the lint keeps it in sync](#ticket-12-annotation-layer--format-and-how-the-lint-keeps-it-in-sync): flat path-keyed JSON sidecar `{"@start": <path>, "<path>": "<prose>"}` read by both the Python emitter and the JS explorer generator (YAML ruled out — not a declared aa-ma dep; `%%` comments ruled out — invisible at render); zoom levels handled free by path keying; `ORPHAN_CAPTION` at STALE_PATH tier with prose never auto-deleted; edge rationale stays in prose, captions-only diffs are not drift.
 ## Tickets
 
 ### Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?
@@ -195,10 +196,30 @@ Decided: interaction = clickable mermaid in a self-contained HTML file (Q2, 2026
 ### Ticket 12: Annotation layer — format and how the lint keeps it in sync
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 2
 #### Question
 Decided: generated graph + authored captions (Q3, 2026-09-22). Open: where the prose lives (sidecar YAML next to the generated md, front-matter in it, or fenced `%%` mermaid comments), what it can say (cluster purpose, "start reading here", why an edge matters, deliberate ordering/colour hints), and the sync rule — a caption naming a node that no longer exists is what kind of finding (`ORPHAN_CAPTION`, STALE_PATH tier)? Does the emitter preserve captions across regeneration, and how does `--check` treat a captions-only diff?
+#### Answer
+**A flat, path-keyed JSON sidecar — `{"@start": <path>, "<path>": "<prose>"}` — read by both generators.** Grill round 9 with Ste, 2026-09-22.
+
+**Two of the three candidate locations fall to facts, not taste:**
+- **`%%` fenced comments are invisible to the reader.** Mermaid strips them at render, and this repo's lint already treats them as non-content (`_DIRECTIVE_RE`, `mermaid_lint.py:57`, applied at `:266`). A caption a newcomer cannot see fails the audience the Destination names.
+- **Sidecar YAML is ruled out by the Ticket 2 constraint.** `yaml` is importable in the dev venv (6.0.3, transitive) but is **not** a declared runtime dep of `aa-ma`; importing it would breach L-055 and declaring it would be exactly the new runtime dependency ADR-0010's driver forbids. **JSON costs nothing** — stdlib `json` in Python, native `JSON.parse` in the browser, and the explorer already embeds a JSON payload (`demo.html:120`) captions can ride along in.
+
+Anything stored *inside* the fence also dies on regeneration unless the emitter parses and re-emits it — which means it was structured data all along, stored in the worst place.
+
+**Decisions:**
+1. **Captions are structured data feeding both surfaces.** One authored JSON file; the Python emitter renders it into the living doc's markdown, the JS generator (Ticket 11) reads it for the explorer. Prose written loose around a fence would never reach the explorer — the thing with the clickable drill-down — so a living-doc-only annotation layer was rejected.
+2. **Keyed by path only, flat.** Zoom levels need no special handling: collapsed levels have directory node ids (`src/aa_ma/render/`) and file levels have file node ids (`src/aa_ma/render/graph.py`), so path keying yields per-level captions for free. One entry serves every view.
+3. **Schema is prose plus one reserved `@start` key** naming the repo's entry point. Both generators highlight that node (a `classDef`) and the explorer opens focused on it. The `@` prefix is already reserved by Ticket 5's sigils, so the convention is consistent. Nothing else: no per-view scoping, no colour or ordering hints (the generator owns layout).
+4. **`ORPHAN_CAPTION` at the STALE_PATH tier — a finding, exit 1 — and authored prose is never deleted by a tool.** The human rewords or drops it. A caption naming a `(new)` file reads `UNKNOWN` until it lands, mirroring Ticket 5's one policy. Auto-pruning was rejected: a rename in progress would destroy text that was about to be re-pointed.
+5. **Captions survive regeneration by construction** — they live outside the generated artifact, so the emitter only ever replaces the fence.
+
+**Follows without further decision:** "why an edge matters" has **no home** under path keying, because edges are not paths. Edge rationale stays in the living doc's surrounding prose, where it makes no claim to being checked — an honest boundary rather than a silent gap. A **captions-only diff is not diagram drift**: `--check` compares generated diagram content, which a caption edit does not change. **Ticket 8** owns where `--check` runs and inherits that rule.
+
+**Downstream:** **Ticket 14**'s seed stays caption-free at paste time — captions are authored afterwards against the node ids the seed produced.
+
 
 ### Ticket 13: Export formats and notation re-evaluation (re-admitted to scope)
 - Type: research

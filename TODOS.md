@@ -14,6 +14,18 @@
 **Priority:** P2
 **Depends on:** the diagram-generation plan's plugin-surface milestone
 
+### Fix the `edges` composite PK that never de-duplicates
+
+**What:** Replace `edges`' NULL-bearing composite `PRIMARY KEY` with two partial unique indexes, and de-duplicate the existing rows.
+
+**Why:** Measured on the live index 2026-09-22: **6516 rows, 3258 distinct — exactly 2x**. `schema.sql:62-69` declares `PRIMARY KEY(src_symbol_id, kind, dst_symbol_id, dst_unresolved)`, but SQLite treats NULLs as DISTINCT in the implicit unique index and does not enforce NOT NULL on PK columns of a rowid table. `dst_symbol_id` and `dst_unresolved` are mutually exclusive by design, so **every row carries a NULL in the key** and the index never matches — `INSERT OR IGNORE` (`resolver.py:159`, `indexer.py:310`, `journal/wal.py:447`) de-duplicates nothing. Every consumer that counts or weights edges is reading inflated numbers today.
+
+**Context:** Found by the Phase 4.5 adversarial verification of the diagram-generation plan (2026-09-22), which was about to copy the same DDL shape into a new `file_edges` table. That table now ships partial unique indexes instead — verified empirically: 3 identical inserts collapse to 1 row on both the resolved and unresolved paths. The diagram-generation plan deliberately does NOT repair `edges`: M2's `render/graph.py` reads `SELECT DISTINCT`, which makes the `@call` tier correct without a data migration over a rebuildable, gitignored index. Fixing it properly needs a v4 migration plus a one-time de-dupe. Copy the working DDL from that plan's M1.
+
+**Effort:** M
+**Priority:** P2
+**Depends on:** diagram-generation M1 (establishes the partial-unique-index pattern)
+
 ### Generate the milestone dependency graph from tasks.md
 
 **What:** `aa-ma-tui --graph` (or an `aa_ma.render` sub-command) emits a mermaid `flowchart` of milestones from their `Dependencies:` fields.

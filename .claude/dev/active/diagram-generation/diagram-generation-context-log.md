@@ -1,0 +1,113 @@
+# diagram-generation Context Log
+
+## [2026-09-22] Initial Context
+
+**Feature request:** `/aa-ma-plan --from-map diagram-generation` — seeded from a
+cleared charting map (19/19 tickets RESOLVED, fog empty, guard `clear:
+tickets=19`). The map's Destination is the request; charting had already run 15
+grill rounds and 4 research dispatches, so Phase 2 started from *Decisions so far*
+rather than from zero and Phase 3 was skipped (`reason=map_research_current`).
+
+**Decisions taken during planning** (the map did not settle these):
+
+1. **Plan shape — one plan, spine-first.** 14 milestones, ordered so M1–M6
+   (file_edges → sqlite seam → `codemem draw` → `docs/architecture/` + CI drift job)
+   is a releasable increment at `v0.15.0`, with `v0.16.0` at completion. Two
+   plans were considered and rejected: the tickets are too interdependent to split
+   cleanly and the tail risks never being planned.
+2. **`.codemem/` in a consumer repo's `.gitignore`** — append idempotently if
+   absent, declared up front in the skill's write footprint. Ticket 9 had already
+   accepted an uninvited `docs/architecture/` diff; this is smaller.
+3. **Node in CI** — added, so Ticket 11's Python↔JS contract fixture is real rather
+   than decorative.
+4. **Cross-plan `Dependencies:` exemption** — a slug-shaped hyphenated token
+   immediately preceding the reference marks it cross-plan. Keeps the resolver pure;
+   no filesystem lookup.
+5. **MCP diagram budget** — measure on `medical-research-skills` (2452 files, 16×
+   this repo) *first*, then reuse codemem's `_DEFAULT_BUDGET`/`_truncate`, auto-collapse
+   on overflow, always report counts. Ticket 17 deliberately shipped no default.
+6. **Glossary** — all 7 candidate terms land in CONTEXT.md at M14. *Explorer* is
+   load-bearing: CONTEXT.md defines *Render* as markdown-sourced, which the explorer
+   is not.
+7. **Three ADRs** — 0014 (graph source + seam + doors), 0015 (diagram as acceptance
+   criterion, and why `gate.py` is untouched), 0016 (living doc + CI contract).
+8. **`--check` uses a view registry**, not Ticket 8's hardcoded 4-path list. Refines
+   Ticket 8 without reopening it: `io.md` registering at M9 stops being a contract
+   change, so the spine can ship at M6 without a 3-of-4 gap.
+9. **Prototype-Required** — M9 and M13 at planning time; **M12 added during
+   verification** once the prototype claim was found false (below).
+
+## [2026-09-22] Phase 4.5 verification — 22 CRITICALs, 8 revisions
+
+Automated mode, 6 angles. The plan went 973 → 1530 lines. Full findings in
+`diagram-generation-verification.md`. The five that changed the plan's substance:
+
+- **Tests were written to `packages/codemem-mcp/tests/`, which does not exist.**
+  codemem tests live at `tests/codemem/`, and CI runs `pytest tests/codemem/` plus a
+  catch-all that explicitly `--ignore`s it. Nothing in CI reaches `packages/`. Local
+  `pytest` *would* collect them, so seven milestones of tests would have passed
+  locally and never run in CI — a silent gap, not a loud one.
+
+- **Gate fields lived only in `plan.md`.** `aa-ma-gate` takes one positional
+  argument, `tasks_md`. Three `Prototype-Required: YES` gates and six
+  `Critical-Path` reviews would have passed green while enforcing nothing. §2a is
+  now the mandatory transcription table, and it was verified by asking the gate
+  rather than by reading the file.
+
+- **The `edges` composite PK never de-duplicates, and the plan was about to copy
+  it.** Measured: 6516 rows / 3258 distinct, histogram `[(2, 3258)]` — every edge
+  stored exactly twice, zero singletons. SQLite treats NULLs as distinct in the
+  backing unique index and the two `dst` columns are mutually exclusive by design,
+  so the constraint never matches and `INSERT OR IGNORE` suppresses nothing.
+  `file_edges` now uses two partial unique indexes instead (verified: 3 identical
+  inserts → 1 row). The stored defect is recorded in `TODOS.md`; `SELECT DISTINCT`
+  in both `graph.py` and `draw/cut.py` contains it at all three doors.
+
+- **The prototype never validated the drill listener.** Charting recorded A3 as
+  "validated by `prototype/diagram-generation-3/demo.html`". It is not:
+  that file has three handlers, all `b.onclick` on control-panel buttons
+  (`:158-160`), and zero `addEventListener` / `.closest(` / SVG node handling. A
+  false *positive* in the trust record is worse than a false negative, because
+  nothing downstream re-checks it. M12 now carries `Prototype-Required: YES`.
+
+- **Element #2 was effectively absent.** Milestones were the smallest unit, while
+  §8 and two M4 criteria referenced sub-steps defined nowhere. Caught only by the
+  context-free fresh-agent angle — every other reviewer knew AA-MA puts sub-steps in
+  `tasks.md` and so read past the gap. 63 sub-steps added, TDD-ordered, 44 AFK / 19 HITL.
+
+**Two agent CRITICALs were refuted by testing**, both failing the same way — reading
+a comment as if it were behaviour. `.importlinter`'s "shared descendants" note does
+not forbid `source_modules = aa_ma` here (verified: `4 kept, 0 broken`); its caveat
+applies only when source and forbidden share a root.
+
+**One refutation of mine was itself wrong.** I claimed `schema.sql` had no
+`PRAGMA user_version` and that a v2 build could not downgrade a v3 DB. Line 17 *is*
+`PRAGMA user_version = 1;`, and the downgrade reproduces (3 → 2, table intact). My
+error was checking `migrate()` in isolation when `ensure_schema()` is the production
+path — the observation was true and the conclusion false. M1 now carries the
+reproduced transcript, an `apply_schema()` version guard, and `Critical-Path: data-xform`.
+
+## [2026-09-22] Decision: dogfooding forced M10's coverage rule to be redesigned
+
+M10 proposed an Angle 6 rule — "every file path in a milestone's `#### Contract`
+block must appear as a §13 node". Run against this plan it flagged **66 of 92
+paths**. Narrowed to `Create`/`Modify` outside `tests/` and `docs/` it was still 24.
+The rule now uses **directory-node collapse** — the same mechanism M3's emitter
+already builds — plus explicit `Test`/`Verify` and `tests/`/`docs/` exemptions. The
+plan satisfies its own rule: 48 in-scope paths, 0 uncovered, 57 nodes.
+
+A rule that fails its own author's plan gets `AA_MA_HOOKS_DISABLE=1`'d in week two,
+and then protects nothing.
+
+## [2026-09-22] Decision: widen `hook-modification` to cover CI workflows
+
+M2, M6 and M12 carry `Critical-Path: hook-modification` solely for editing
+`.github/workflows/security.yml`, which the engineering-standards §1 table does not
+list. The gate accepts it — `plan_parsers` validates the *value* against an enum and
+says nothing about scope — so this was doctrine drift, not a gate failure. Approved
+with Ste 2026-09-22: M11 amends the §1 row to name `.github/workflows/**`, aligning
+the shipped rule with the practice the charting map already established. Dropping
+the field from three milestones was the alternative and was rejected — it would lose
+the `CRITICAL_PATH_REVIEW` evidence step on every CI change.
+
+_Updated via context compaction as the task progresses._

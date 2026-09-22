@@ -24,6 +24,7 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 - [Ticket 4: How reliably can the plugin surface be extracted from `claude-code/**/*.md`?](#ticket-4-how-reliably-can-the-plugin-surface-be-extracted-from-claude-codemd): regex suffices — 4 syntaxes, 163 edges, 52/59 nodes, 0 FPs; node id = file stem; docs/ out; 3 allowlists; 4 dangling + 7 orphans found.
 - [Ticket 6: I/O-boundary sink catalogue per language](#ticket-6-io-boundary-sink-catalogue-per-language): feasible all 9, v1 = Py+TS/JS+Go; ast-grep `has: field: function` captures receivers (verified); wrapper ≈50 LOC; two confidence tiers; ≈55-row catalogue; CodeQL MaD reusable (MIT), Semgrep not.
 - [Ticket 3: What scoping makes a derived View readable?](#ticket-3-what-scoping-makes-a-derived-view-readable): layered zoom levels L0–L3, not one knob; tests excluded by default; PageRank ruled out as default (surfaces sinks, not entry points); bands 40/120/500.
+- [Ticket 13: Export formats and notation re-evaluation (re-admitted to scope)](#ticket-13-export-formats-and-notation-re-evaluation-re-admitted-to-scope): mermaid only (D2's layout edge expired — mermaid 12 bundles ELK); optional SVG/PNG via the existing `MMDC_BIN` seam; hosted renderers ruled out (source leaks); pin held at 11.17.2.
 ## Tickets
 
 ### Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?
@@ -145,11 +146,12 @@ Decided: generated graph + authored captions (Q3, 2026-09-22). Open: where the p
 ### Ticket 13: Export formats and notation re-evaluation (re-admitted to scope)
 - Type: research
 - Mode: AFK
-- Status: CLAIMED
-- Claimed-at: 2026-09-22T13:31
+- Status: RESOLVED
 - Blocked-by: —
 #### Question
 Ste re-admitted SVG/PNG export and non-mermaid notation on 2026-09-22. (a) Mermaid → SVG/PNG without a new *runtime* dependency: `mmdc` is already optional dev tooling in `mermaid_lint.py` (Node + Chromium) — what does it cost, what are the offline/CI failure modes, and is there a pure-Python or browser-free path? (b) Does D2 or excalidraw produce materially better *onboarding* layout than mermaid for a 13–40 node layered view — side-by-side examples from real published docs, not claims? (c) What would non-mermaid notation cost given ADR-0010 chose mermaid for its zero-toolchain GitHub render (amendment or superseding ADR?). Primary sources only.
+#### Answer
+**Stay on mermaid; add optional SVG/PNG via the existing `mmdc` seam; D2's case expired.** (a) **No browser-free mermaid renderer exists** — mermaid's own 12.0.0 note says "mermaid requires a browser". `mmdc` (MIT, Node+Chromium, already wired as the `MMDC_BIN` seam in `mermaid_lint.py:303-315`) is the only offline path that respects "no new *runtime* dependency"; hosted mermaid.ink / kroki.io put the repo's architecture in a third-party URL — ruled out in plan text, with the reason stated. (b) **D2's layout advantage expired 2026-09-10**: mermaid 12.0.0 bundles ELK as the *default* — the same engine D2 offers as an option — and D2 renders on neither GitHub, nor VS Code 1.121, nor the Artifact viewer. Its only surviving edge is browser-free PNG. Mermaid's own `architecture-beta` (fcose, overlap bug #6120) and `block` (manual columns) both lose to `flowchart` + `subgraph` at 13–40 nodes. (c) **Admitting D2 as an authoring notation breaks two ADR-0010 drivers and the `/aa-ma-share` premise outright → superseding ADR, not an amendment.** Optional SVG/PNG export is an amendment at most. **v1:** mermaid only, `flowchart`+`subgraph`, every zoom level; self-contained HTML as primary deliverable with the pin held at **11.17.2** (do not bump inside this effort — breaking, re-lays-out every diagram, +~500 kB, and mmdc would disagree); `--svg`/`--png` through `MMDC_BIN` reusing `render_check`'s UNKNOWN-never-PASS discipline; no `--iconPacks` (phones unpkg). **Later:** mermaid 12 + `layout: elk` once mermaid-cli ships a 12 line (cheapest remaining layout win — re-measure a 40-node L1 view); D2 as an *export* target only if a print artefact is ever required; never Excalidraw as a source format (`mermaid-to-excalidraw` converts one-way, cosmetic). See `docs/research/diagram-generation-export-and-notation.md`.
 
 ### Ticket 14: Does `/aa-ma-plan` seed the §13 Component view from the generator?
 - Type: grilling
@@ -161,6 +163,7 @@ Graduated from fog once Ticket 3 showed what generated output looks like (Q10 de
 
 ## Not yet specified
 
+- Bump to mermaid 12 + `layout: elk` — deferred out of this effort by Ticket 13; needs its own one-milestone decision once mermaid-cli ships a 12 line.
 - Type/schema-flow View (Pydantic/dataclass producers/consumers) — "both, I/O first" (Q6); graduates once codemem tracks class references.
 - MCP `diagram` tool budget/truncation behaviour on large consumer repos (codemem `_DEFAULT_BUDGET` pattern).
 - Does the forge's own living doc also carry a forge-specific AA-MA-artifact data-flow View (which modules/hooks read/write plan/tasks/reference/context-log/provenance/map), or only the generic I/O view?

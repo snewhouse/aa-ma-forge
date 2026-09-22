@@ -4,6 +4,8 @@
 
 The forge derives diagrams from code — module dependencies, call flow, data flow (I/O boundary), and the plugin's own markdown surface (commands→skills→agents→hooks) — for **two consumers**: (a) its own committed, CI-checked `docs/architecture/` living doc, and (b) **any project built with the plugin**, via one core in codemem exposed through three doors (MCP tool, `aa-ma-draw` CLI, `understand-codebase` Deep tier). Hand-authored §13 Component-view edges are verified against the derived graph (`PHANTOM_EDGE`, STALE_PATH tier), and the milestone graph is derived from a pinned `Dependencies:` grammar.
 
+**Audience (amended 2026-09-22):** the primary reader is a **new developer or reviewer onboarding to a codebase**, not only a cold planning agent. "Readable" therefore means *orienting*: a layered set of zoom levels, clickable drill-down in self-contained HTML, and authored captions over the derived graph. A diagram that passes an edge-count check but leaves a newcomer unable to say where to start has failed.
+
 ## Notes
 
 - **Origin:** `~/.claude/docs/handover-aa-ma-forge-diagram-generation-2026-09-22.md` (audit @ `53a4ec7`). Correction to it: `PROJECT_INDEX.json` `deps` already holds file→imports (Python only) and **codemem** (in-repo, `packages/codemem-mcp`) parses Python `ast` + 9 ast-grep languages with `call` edges + `compute_pagerank`; neither parses markdown.
@@ -21,6 +23,7 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 - [Ticket 10: Prior art — code→mermaid tools and their scoping heuristics](#ticket-10-prior-art--codemermaid-tools-and-their-scoping-heuristics): own emitter (no zero-dep reuse); heuristics = package collapse, 1–2 hop neighbourhood, regex filters, externals off; import-level for Component view; mermaid `maxEdges` 500.
 - [Ticket 4: How reliably can the plugin surface be extracted from `claude-code/**/*.md`?](#ticket-4-how-reliably-can-the-plugin-surface-be-extracted-from-claude-codemd): regex suffices — 4 syntaxes, 163 edges, 52/59 nodes, 0 FPs; node id = file stem; docs/ out; 3 allowlists; 4 dangling + 7 orphans found.
 - [Ticket 6: I/O-boundary sink catalogue per language](#ticket-6-io-boundary-sink-catalogue-per-language): feasible all 9, v1 = Py+TS/JS+Go; ast-grep `has: field: function` captures receivers (verified); wrapper ≈50 LOC; two confidence tiers; ≈55-row catalogue; CodeQL MaD reusable (MIT), Semgrep not.
+- [Ticket 3: What scoping makes a derived View readable?](#ticket-3-what-scoping-makes-a-derived-view-readable): layered zoom levels L0–L3, not one knob; tests excluded by default; PageRank ruled out as default (surfaces sinks, not entry points); bands 40/120/500.
 ## Tickets
 
 ### Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?
@@ -44,10 +47,22 @@ Options: (a) emitter in `codemem` (MCP tool `diagram` + CLI) and `aa_ma.render.m
 ### Ticket 3: What scoping makes a derived View readable?
 - Type: prototype
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: —
 #### Question
 725 call edges is a hairball. On branch `prototype/diagram-generation-3`, draw this repo three ways from the existing `call` edges: module-level collapse; pagerank top-N (`compute_pagerank`) with edges; `--scope <path>` entry-point call flow. Ste picks the shape by looking. Output: the decision + node/edge caps; main keeps only the decision.
+#### Answer
+**Not one scoping knob — a layered set of zoom levels, one mermaid block per level.** Prototype on branch `prototype/diagram-generation-3` (commit `1136dbe`, `prototype/diagram-generation-3/demo.html`, real codemem call edges at `c49d084`: 175 files, 1185 resolved call edges, 616 cross-file). Measured:
+
+| Level | Cut | Nodes / edges |
+|---|---|---|
+| L0 | top dirs (depth 1) | 4 / 3 |
+| L1 | dir depth 2 / 3 | 10 / 9 · 13 / 11 |
+| L2 | file level, one scope, 1 hop both (`src/aa_ma/render/`) | 5 / 4 |
+| L3 | symbol level, 1 hop down (`gate.py`) | 18 symbols / 27 |
+| — | raw file level, whole repo | 85 / 96 (25 / 27 without `tests/`) |
+
+Findings: (1) **tests dominate the raw graph** (96 → 27 edges when excluded) — exclude by default, but keep the tests→src coupling picture as its own L1 view, where weighted edges (`-- "170" -->`) read well. (2) **PageRank top-N is ruled out as the default**: its top-10 for this repo is `plan_parsers`, `grammar`, `tui/model`, `sanitizers` — most-depended-upon *sinks*, not entry points, so it answers "what is load-bearing", never "where do I start". Keep it as an optional annotation/ranking, not a scoping arm. (3) **Symbol level is dense even at 1 hop** (27 edges from one file) — reserve for a scoped Flow view. (4) Observed readability bands: ≤40 edges readable, ≤120 dense, mermaid `maxEdges` 500 the hard stop. (5) The interactive shell mattered as much as the cut: switching levels and watching node/edge counts is what made the trade-off visible — evidence for Ticket 11. Decided with Ste 2026-09-22.
 
 ### Ticket 4: How reliably can the plugin surface be extracted from `claude-code/**/*.md`?
 - Type: research
@@ -99,7 +114,7 @@ In the wild: `Dependencies: None` (52), `Milestone 1` (11), `Step 1.1` (9), `Tas
 - Status: OPEN
 - Blocked-by: 2
 #### Question
-Deep tier (`references/DIMENSIONS.md:52-56`, `DEEPDIVE-TEMPLATES.md:315-317`, `SKILL.md:181-182`) tells agents to "generate Mermaid" or link `/codebase-deep-dive` output — a command the plugin does not ship (gap 6). Replace with the three doors: which door, what the tier does when no codemem index exists (`UNKNOWN`, degrade to prose, or refuse), and whether `/codebase-deep-dive` references are deleted or kept as optional.
+Deep tier (`references/DIMENSIONS.md:52-56`, `DEEPDIVE-TEMPLATES.md:315-317`, `SKILL.md:181-182`) tells agents to "generate Mermaid" or link `/codebase-deep-dive` output — a command the plugin does not ship (gap 6). Replace with the three doors: which door, what the tier does when no codemem index exists (`UNKNOWN`, degrade to prose, or refuse), and whether `/codebase-deep-dive` references are deleted or kept as optional. **Amended 2026-09-22:** also decide whether the generated layered views land in the skill's `ONBOARDING.md` / `.claude/onboarding/02-architecture.md` as well as `docs/architecture/`, and which is the source of truth when both exist.
 
 ### Ticket 10: Prior art — code→mermaid tools and their scoping heuristics
 - Type: research
@@ -111,18 +126,52 @@ pydeps, pyan3, code2flow, dependency-cruiser, madge, Structurizr/C4 generators, 
 #### Answer
 **Write our own emitter over codemem's index; nothing is reusable zero-dep.** All tools emit DOT first; mermaid is native only in dependency-cruiser (`--output-type mermaid`), tach (`tach show --mermaid`), pyreverse (`-o mmd`). None can be imported by `aa_ma` without a new dependency (pydeps→stdlib_list+dot, tach→networkx+pydot, pyan3/pyreverse GPL, import-linter emits no graph, grimp dev-only). **Recurring scoping heuristics** (feed Ticket 3): (1) collapse to package depth (`--max-module-depth`, `--collapse`, `squash_module`); (2) hop-limited entry-point neighbourhood (`--max-bacon` default 2, `--focus-depth` default 1); (3) include/exclude regex; (4) externals off by default, typed edges; (5) cycle/reverse views. **PageRank top-N has no diagram-tool prior art** — only aider's repo-map budget (already ported into codemem) — so it is Ticket 3's novel arm. **Edge semantics:** import-level is the universal default for architecture views; call-level tools all carry "approximate" disclaimers → import-level for Component view, call-level only inside a scoped entry-point view (input to Ticket 5). **Ceilings:** only hard number is mermaid `maxEdges` default 500 (`maxTextSize` 50000); practical ceiling is tool defaults (1–2 hops, top-level package collapse). See `docs/research/diagram-generation-prior-art.md`.
 
+### Ticket 11: Clickable drill-down — mechanics and where the HTML lives
+- Type: grilling
+- Mode: HITL
+- Status: OPEN
+- Blocked-by: 2
+#### Question
+Decided: interaction = clickable mermaid in a self-contained HTML file (Q2, 2026-09-22). Open: mermaid `click` callback vs `click href` (security — `aa_ma/render/html.py` sets a CSP and `securityLevel`; `strict` blocks callbacks); does a node click drill to the next zoom level in-page (all levels inlined, as the prototype does) or open the file on GitHub/in the editor? Does this extend `aa-ma-render` or become a new `aa-ma-draw --html`? Is the interactive build committed or `build/`-only, given the markdown is the GitHub-rendered source of truth? Prototype `demo.html` is the reference shell.
+
+### Ticket 12: Annotation layer — format and how the lint keeps it in sync
+- Type: grilling
+- Mode: HITL
+- Status: OPEN
+- Blocked-by: 2
+#### Question
+Decided: generated graph + authored captions (Q3, 2026-09-22). Open: where the prose lives (sidecar YAML next to the generated md, front-matter in it, or fenced `%%` mermaid comments), what it can say (cluster purpose, "start reading here", why an edge matters, deliberate ordering/colour hints), and the sync rule — a caption naming a node that no longer exists is what kind of finding (`ORPHAN_CAPTION`, STALE_PATH tier)? Does the emitter preserve captions across regeneration, and how does `--check` treat a captions-only diff?
+
+### Ticket 13: Export formats and notation re-evaluation (re-admitted to scope)
+- Type: research
+- Mode: AFK
+- Status: CLAIMED
+- Claimed-at: 2026-09-22T13:31
+- Blocked-by: —
+#### Question
+Ste re-admitted SVG/PNG export and non-mermaid notation on 2026-09-22. (a) Mermaid → SVG/PNG without a new *runtime* dependency: `mmdc` is already optional dev tooling in `mermaid_lint.py` (Node + Chromium) — what does it cost, what are the offline/CI failure modes, and is there a pure-Python or browser-free path? (b) Does D2 or excalidraw produce materially better *onboarding* layout than mermaid for a 13–40 node layered view — side-by-side examples from real published docs, not claims? (c) What would non-mermaid notation cost given ADR-0010 chose mermaid for its zero-toolchain GitHub render (amendment or superseding ADR?). Primary sources only.
+
+### Ticket 14: Does `/aa-ma-plan` seed the §13 Component view from the generator?
+- Type: grilling
+- Mode: HITL
+- Status: OPEN
+- Blocked-by: 2, 11
+#### Question
+Graduated from fog once Ticket 3 showed what generated output looks like (Q10 deferred 2026-09-22). With the L2 cut (`--scope <files-to-modify> --hops 1 --dir both`) a plan's Component view is 5 nodes / 4 edges — small enough to seed. Decide: does Phase 4 call the generator and paste the result for the author to edit, offer it as a suggestion, or leave §13 hand-authored with `PHANTOM_EDGE` (Ticket 5) as the only net? If seeded, how does the author mark deliberate additions (`(new)` files have no edges yet) and does the seed carry captions (Ticket 12)?
+
 ## Not yet specified
 
-- Whether `/aa-ma-plan` seeds §13 Component view from the generator (scoped to files-to-modify) with the author editing after — decide after seeing Ticket 3 output (Q10).
 - Type/schema-flow View (Pydantic/dataclass producers/consumers) — "both, I/O first" (Q6); graduates once codemem tracks class references.
 - MCP `diagram` tool budget/truncation behaviour on large consumer repos (codemem `_DEFAULT_BUDGET` pattern).
 - Does the forge's own living doc also carry a forge-specific AA-MA-artifact data-flow View (which modules/hooks read/write plan/tasks/reference/context-log/provenance/map), or only the generic I/O view?
 - Multi-language consumer repos: one View per language, or merged with language subgraphs?
+- What a reviewer (as opposed to a new developer) needs that a newcomer does not — a diff-scoped "what changed in this PR" view?
+- Whether the layered views need a per-level narrative page (prose + diagram) rather than a diagram with captions.
 - Freshness of `PROJECT_INDEX.json`-based skills (`impact-analysis`, `understand-codebase` REUSE-MAP) once codemem is the graph source — retire or keep both?
 
 ## Out of scope
 
-- SVG/PNG/excalidraw export — mermaid text only; gstack `/diagram` already renders (default from Q11, unconfirmed).
-- Languages beyond codemem's 9 — no new parsers in this effort (default from Q11, unconfirmed).
-- `senior-architect` `architecture_diagram_generator.py` stub — global skill, not forge; note in TODOS (default from Q11, unconfirmed).
-- C4 / D2 / any non-mermaid notation — ADR-0010 chose mermaid (default from Q11, unconfirmed).
+- Languages beyond codemem's 9 — no new parsers in this effort (confirmed 2026-09-22).
+- `senior-architect` `architecture_diagram_generator.py` stub — global skill, not forge; note in TODOS (confirmed 2026-09-22).
+
+<!-- Re-admitted 2026-09-22 (Ste, Q4): SVG/PNG export and non-mermaid notation are back in scope as Ticket 13, because the onboarding audience may need formats mermaid cannot serve. ONBOARDING.md integration folded into Ticket 9. -->

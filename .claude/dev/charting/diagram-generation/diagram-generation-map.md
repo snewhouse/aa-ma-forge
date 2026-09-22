@@ -26,6 +26,7 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 - [Ticket 3: What scoping makes a derived View readable?](#ticket-3-what-scoping-makes-a-derived-view-readable): layered zoom levels L0–L3, not one knob; tests excluded by default; PageRank ruled out as default (surfaces sinks, not entry points); bands 40/120/500.
 - [Ticket 13: Export formats and notation re-evaluation (re-admitted to scope)](#ticket-13-export-formats-and-notation-re-evaluation-re-admitted-to-scope): mermaid only (D2's layout edge expired — mermaid 12 bundles ELK); optional SVG/PNG via the existing `MMDC_BIN` seam; hosted renderers ruled out (source leaks); pin held at 11.17.2.
 - [Ticket 2: Where does the mermaid emitter live, and how does `aa_ma.render` read the graph?](#ticket-2-where-does-the-mermaid-emitter-live-and-how-does-aa_marender-read-the-graph): direction (a) — `aa_ma.render` reads `.codemem/index.db` via stdlib `sqlite3` pinned at `user_version >= 3`; missing/stale ⇒ PHANTOM_EDGE tier `UNKNOWN`, never PASS; emitter and door are **`codemem draw`** (not `aa-ma-draw` — Destination amended); new `.importlinter` contract `aa-ma-never-imports-codemem` (verified: 4 kept, 0 broken).
+- [Ticket 5: Exact `PHANTOM_EDGE` grammar](#ticket-5-exact-phantom_edge-grammar): opt-in by sigil label `A -->|@import| B` (reserved `@import @call @skill @command @agent @hook`); unlabelled/prose edges never checked (a blanket import∪call check would fire on ~14 of 21 correct edges in a real committed view); unknown `@x` ⇒ `LABEL_UNKNOWN`; one `UNKNOWN`+reason policy for `(new)`/unparsed/`docs/`/stale-graph; absent-but-evaluable ⇒ `PHANTOM_EDGE`, exit 1.
 ## Tickets
 
 ### Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?
@@ -96,10 +97,28 @@ Inventory every reference syntax in commands/skills/agents/hooks/rules: `Skill(n
 ### Ticket 5: Exact `PHANTOM_EDGE` grammar
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 2, 4
 #### Question
 Decided: finding at STALE_PATH tier; escape hatch exists; no graph → `UNKNOWN`. Open: which edge kinds back an authored edge (import only, or import ∪ call)? Escape-hatch syntax — dotted `A -.-> B` vs label suffix `(intent)` vs both? Nodes the graph cannot see (`.md`, `.sh` without edges, `(new)` files) — per-edge `UNKNOWN` or silent skip? Subgraph edges? Does `Diagram-Waiver` interplay change?
+#### Answer
+**Opt-in by sigil label: `A -->|@import| B`.** Grill round 6 with Ste, 2026-09-22.
+
+**The framing was wrong, and the evidence says so.** The ticket assumed the question was "import only, or import ∪ call". Classifying all 21 edges of the committed Component view in `.claude/dev/completed/mattpocock-trio-adoption/mattpocock-trio-adoption-plan.md` against what any derived source could know: only ~7 are backable (plugin-surface `Skill()` / hook-literal edges from Ticket 4). The other ~14 encode relations **no graph models** — fork provenance (`UP -->|fork| GR`), CI-runs-test (`security.yml --> tests/test_gate.py`), reads-config (`FORKS.json --> forks.py`), paths with placeholders (`.claude/dev/charting/<effort>/…`), or point at `docs/`, which Ticket 4 put out of the graph. One is outright **reversed** by intent: the author drew `src/aa_ma/forks.py --> tests/skills/test_fork_manifest.py` ("is exercised by"), while the derived import edge runs test→src. A blanket check over import ∪ call would have fired on two-thirds of a diagram that is entirely correct.
+
+**Also load-bearing:** the lint has **no edge parser today** — `lint_text` only scans path-shaped tokens (`_PATH_RE`, `mermaid_lint.py:60-63`) and never reads `A --> B`. PHANTOM_EDGE is the first check that must parse mermaid edges. Authored plans today use `-->` (120) and zero `-.->`  / `==>`, so a dotted-arrow escape hatch would introduce a syntax nobody uses; `(new)` is already house style (31 uses, `mermaid_lint.py:281`).
+
+**Decisions:**
+1. **Eligibility is opt-in, not inferred.** An authored edge is checked **only** when its label carries the sigil. Unlabelled and prose-labelled edges are never checked and never reported — the author states the claim, the lint verifies exactly that claim and nothing else. False-positive rate on every diagram committed to date: zero.
+2. **Sigil syntax `@kind` inside the mermaid edge label** — `PL -->|@skill| GWD`. Reserved: **`@import` `@call` `@skill` `@command` `@agent` `@hook`**. `@import` reads `file_edges` (Ticket 1); `@call` reads `edges` (`kind='call'`, projected symbol→file); the other four read the plugin-surface edge set (Ticket 4), filtered on destination node kind. Prose labels (`|fork|`, `|runs|`, `|--from-map|`) never collide because they carry no sigil.
+3. **Typos are loud, not silent.** Any `@`-prefixed label that is not reserved is a **`LABEL_UNKNOWN`** finding. This is the whole reason for the sigil: opt-in checks otherwise fail silently (`|imports|` skips, and the author believes the edge was verified — false assurance is worse than no check). A closed enum in the house style of `Critical-Path` / `Diagram-Waiver` is impossible here, because free prose labels must stay legal.
+4. **One policy for anything unevaluable: `UNKNOWN` + a specific reason, informational, exit code unchanged.** Covers all four cases uniformly — endpoint marked `(new)` (planned, not built); endpoint in a language the graph never parses (`.sh`, `.yml`); endpoint under `docs/` (out of graph by Ticket 4); and graph missing / `user_version < 3` / stale (Ticket 2). No `LABEL_KIND_MISMATCH` tier: `@import` on a shell script is unevaluable, not wrong.
+5. **PHANTOM_EDGE keeps its teeth** in the one case that matters — claim is evaluable (both endpoints have graph nodes, graph fresh) and the derived edge is **absent** ⇒ `PHANTOM_EDGE` finding at the STALE_PATH tier, exit 1. Direction is significant here, because an opt-in `@import` claim is explicitly directional.
+
+**Follows without further decision:** a `subgraph` id is not a file path, so it is just another endpoint with no graph node ⇒ `UNKNOWN`, no special rule. A valid `Diagram-Waiver` means no Architecture View, hence no edges, hence the check never runs — no interplay change, and ADR-0009 keeps the waiver out of the gate regardless. The sigil applies in whichever View an author writes it; the Milestone graph is derived and never hand-authored (CONTEXT.md glossary), so it is exempt by definition.
+
+**Downstream constraints this sets:** every diagram committed to date has zero sigils, so the check verifies nothing until authored views adopt them — **Ticket 14** (does `/aa-ma-plan` seed the §13 Component view from the generator?) now also owns whether the generator *emits* `@kind` labels, which is what makes the check non-vacuous. **Ticket 12** (annotation layer) must not invent a second in-diagram annotation syntax; `@kind` edge labels are now taken.
+
 
 ### Ticket 6: I/O-boundary sink catalogue per language
 - Type: research

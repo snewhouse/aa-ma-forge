@@ -5,6 +5,62 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-022 (2026-09-22) — Tests written under `packages/` are collected locally and never run by CI
+
+**Pattern:** The `diagram-generation` plan routed every new codemem test to
+`packages/codemem-mcp/tests/` — a directory that does not exist. All codemem tests
+live at `tests/codemem/`; `packages/codemem-mcp/` holds only `README.md`,
+`pyproject.toml` and `src/`. CI runs `uv run pytest tests/codemem/`,
+`uv run pytest tests/test_goal_synthesis.py`, and a catch-all
+`uv run pytest tests --ignore=tests/codemem --ignore=tests/perf
+--ignore=tests/test_goal_synthesis.py` — none of which reaches `packages/`.
+Because `pyproject.toml` sets no `testpaths`, a local `uv run pytest` **would**
+collect them. Seven milestones of tests would therefore have gone green on the
+developer's machine and never executed in CI: a silent gap, discovered at release
+rather than at the failing commit. Caught by the Phase 4.5 impact-analysis angle,
+not by the author.
+
+**Rule:** All tests live under `tests/`, mirroring the package they cover
+(`tests/codemem/` for `packages/codemem-mcp/`). When a plan's Contract block names
+a new test path, confirm a step in `.github/workflows/security.yml` actually
+collects it BEFORE writing the Contract — and prefer asserting that the path is
+collected over asserting that the tests pass. A test that runs only locally is
+worse than no test: it buys confidence CI does not share.
+
+**Cross-ref:** global L-1256 (hand-enumerated CI test paths are a drift class) —
+the same drift class seen from the authoring side rather than the workflow side.
+
+---
+
+## L-021 (2026-09-22) — Gate fields written only in `plan.md` are never read; the gate takes `tasks.md` alone
+
+**Pattern:** The `diagram-generation` plan declared `Audit-Profile:`,
+`Critical-Path:` and `Prototype-Required:` inside `plan.md` `#### Contract`
+blocks — a natural place, next to the file list they describe. But `aa-ma-gate`
+takes **one positional argument, `tasks_md`** (`src/aa_ma/gate.py:462`), and
+`enforce.read_enforced_field` pulls those fields from `tasks.md` milestone and
+sub-step blocks (`gate.py:230,235,286,291`). A field the gate cannot see reads as
+ABSENT, not as an error, so three `Prototype-Required: YES` gates and six
+`Critical-Path` reviews would all have passed **green while enforcing nothing**.
+Milestone-level fields ARE honoured independently of sub-steps (`_own_text`,
+`gate.py:205-209`, OR'd with the sub-step roll-up at `:428`) — the problem was
+purely which FILE they lived in.
+
+**Rule:** Every gate field MUST be transcribed onto the matching milestone in
+`tasks.md`; `plan.md` may restate it for readers but is never the source. Verify
+the transcription by ASKING THE GATE — `uv run aa-ma-gate <tasks.md> --milestone N
+--format kv` and read back `audit_profile`, `critical_path`, `prototype_required`
+— never by eyeballing the file, because the failure mode is silence. Keep ONE
+source for the assignments (a table in the plan) and have every other mention
+reference it; a restated list desynchronises, and this one did so within a single
+editing session.
+
+**Cross-ref:** L-011 (AA-MA field format is load-bearing and fails silently) —
+same silent-failure family, different cause: wrong *file* rather than wrong
+*format*. Global L-1232 (empty optional fields are refused).
+
+---
+
 ## L-020 (2026-09-22) — Charted a diagram effort for three rounds before asking who reads the diagrams
 
 **Pattern:** `/aa-ma-chart diagram-generation` ran a full destination grill,

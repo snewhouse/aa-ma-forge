@@ -5,6 +5,31 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-020 (2026-09-22) — Charted a diagram effort for three rounds before asking who reads the diagrams
+
+**Pattern:** `/aa-ma-chart diagram-generation` ran a full destination grill,
+ten tickets and four research dispatches optimising *internal* properties —
+edge counts, PageRank cuts, mermaid's `maxEdges` ceiling — with the reader
+left implicit (a cold planning agent, inherited from ADR-0010's framing). The
+prototype then asked Ste to pick a scoping arm on those numbers. He answered
+with the actual intent: "a new dev or reviewer can easily understand the
+codebase by reading, viewing, interacting with professionally drawn diagrams."
+That reframe changed the answer (one scoping knob → layered zoom levels),
+re-admitted two Out-of-scope rulings, added four tickets and amended the
+Destination — after the research had already been scoped and spent.
+
+**Rule:** For any effort whose output a human reads — diagrams, docs, reports,
+dashboards, CLI output — the **first** grilling round establishes **audience**
+and **consumption mode** ("who reads this, where, and what must they be able
+to do after?") before any question about the artifact's internals. In
+`/aa-ma-chart chart` this belongs in step 1 alongside the Destination, and the
+Destination is not settled until it names the reader. A quality bar phrased as
+a metric ("under N edges", "under N lines") is a proxy; ask what the reader
+must be able to *do*, and keep the metric as evidence for that, never as the
+goal. When an existing ADR supplies the framing, check whether its audience is
+still the audience — ADR-0010's cold agent was correct for plan §13 and wrong
+for onboarding.
+
 ## L-019 (2026-09-21) — Local `shellcheck` passed while CI's failed for four commits; nobody looked at CI until the release pre-flight
 
 **Pattern:** M5's guard shipped `A && B || C` forms. Local shellcheck 0.11.0

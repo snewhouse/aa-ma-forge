@@ -20,6 +20,7 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 - [Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?](#ticket-1-can-codemem-persist-file-level-import-edges-and-qualified-external-callees): yes — new `file_edges` table (MIGRATIONS v3), Python ≈80 LOC, ast-grep +100-140 LOC; keep dotted callee ≈15 LOC.
 - [Ticket 10: Prior art — code→mermaid tools and their scoping heuristics](#ticket-10-prior-art--codemermaid-tools-and-their-scoping-heuristics): own emitter (no zero-dep reuse); heuristics = package collapse, 1–2 hop neighbourhood, regex filters, externals off; import-level for Component view; mermaid `maxEdges` 500.
 - [Ticket 4: How reliably can the plugin surface be extracted from `claude-code/**/*.md`?](#ticket-4-how-reliably-can-the-plugin-surface-be-extracted-from-claude-codemd): regex suffices — 4 syntaxes, 163 edges, 52/59 nodes, 0 FPs; node id = file stem; docs/ out; 3 allowlists; 4 dangling + 7 orphans found.
+- [Ticket 6: I/O-boundary sink catalogue per language](#ticket-6-io-boundary-sink-catalogue-per-language): feasible all 9, v1 = Py+TS/JS+Go; ast-grep `has: field: function` captures receivers (verified); wrapper ≈50 LOC; two confidence tiers; ≈55-row catalogue; CodeQL MaD reusable (MIT), Semgrep not.
 ## Tickets
 
 ### Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?
@@ -69,11 +70,12 @@ Decided: finding at STALE_PATH tier; escape hatch exists; no graph → `UNKNOWN`
 ### Ticket 6: I/O-boundary sink catalogue per language
 - Type: research
 - Mode: AFK
-- Status: CLAIMED
-- Claimed-at: 2026-09-22T10:41
+- Status: RESOLVED
 - Blocked-by: 1
 #### Question
 For the 9 codemem languages, a curated list of source/sink symbols by category (DB, HTTP, filesystem, subprocess, env/secrets, message queue) that a data-flow View would key on, and whether each language's parser output can match them qualified. Prior art: Semgrep taint sources/sinks, CodeQL flow sources. Output a table the emitter can ship as data.
+#### Answer
+**Feasible for all 9 languages; v1 = Python + TS/TSX/JS + Go.** Verified live with ast-grep 0.42.1: adding `has: {field: function, pattern: $CALLEE}` to the existing `*-call` rules yields full `fs.readFileSync` / `this.db.query` / `s.conn.Exec` / `std::fs::read_to_string`; Java and Ruby need two metavariables joined in the wrapper (Ruby also a no-receiver rule), Bash a new `kind: command` rule. Shared wrapper change ≈50 LOC (`ast_grep.py:119-123` + a `-call` branch with enclosing-function inference) + 3–12 LOC YAML per language. Python: Ticket 1's ≈15 LOC gives `mod.func` / `obj.method` / chained `self.conn.execute` via `ast.unparse`, **plus** an import-alias map (≈10 LOC; `asname` / `from X import Y` dropped at python_ast.py:113-120); `open` must leave `_CALL_EXCLUDE`; `os.environ[...]` / `process.env` are non-call nodes needing a separate visitor/rule. Receiver typing (`conn.execute` → sqlite3) is resolver work → ship a **qualified tier (high precision) + bare-method tier (low confidence)**. Catalogue ≈55 rows (9 langs × 7 categories) with official-doc URL per row; proposed YAML row shape `lang/category/match/symbol/tier/source`. Prior art: Semgrep Rules License v1.0 forbids redistribution (borrow vocabulary only); CodeQL is MIT and its Models-as-Data `*.model.yml` is reusable seed data for Java/JS (injection-scoped, under-covers plain I/O). See `docs/research/diagram-generation-io-sink-catalogue.md`.
 
 ### Ticket 7: Pin the `Dependencies:` grammar and where the Milestone graph surfaces
 - Type: grilling

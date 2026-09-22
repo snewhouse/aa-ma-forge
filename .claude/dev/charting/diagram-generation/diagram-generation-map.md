@@ -32,6 +32,7 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 - [Ticket 12: Annotation layer — format and how the lint keeps it in sync](#ticket-12-annotation-layer--format-and-how-the-lint-keeps-it-in-sync): flat path-keyed JSON sidecar `{"@start": <path>, "<path>": "<prose>"}` read by both the Python emitter and the JS explorer generator (YAML ruled out — not a declared aa-ma dep; `%%` comments ruled out — invisible at render); zoom levels handled free by path keying; `ORPHAN_CAPTION` at STALE_PATH tier with prose never auto-deleted; edge rationale stays in prose, captions-only diffs are not drift.
 - [Ticket 8: Living-doc contract and CI `--check`](#ticket-8-living-doc-contract-and-ci---check): `docs/architecture/{README,component,io,plugin-surface}.md`, all four 100% generated (captions render in from the Ticket 12 sidecar); `codemem draw --check` is regenerate-and-compare, exit 1 on diff, `UNKNOWN`+exit 0 when no graph; `<!-- generated … @ <sha> -->` line 1 excluded from the comparison (a byte check and a volatile stamp are otherwise mutually exclusive); dedicated `architecture-drift` CI job — CI already builds the index in 0.44s, so committing a JSON export has no case.
 - [Ticket 15: Does a §13 sigil edge still `UNKNOWN` at milestone COMPLETE reach the gate?](#ticket-15-does-a-13-sigil-edge-still-unknown-at-milestone-complete-reach-the-gate): not the gate — a HARD §6.7 Execution Checklist item enforced by the command (HARD ≠ `gate.py`, which takes only `tasks_md` while §13 lives in `plan.md`); opt-in, so a plan without sigils never triggers it; `UNKNOWN` refuses per L-012 with `codemem build` named as the 0.44s remedy; evidence is a `DIAGRAM_VERIFIED` provenance line.
+- [Ticket 9: `understand-codebase` Deep tier rewire](#ticket-9-understand-codebase-deep-tier-rewire): Deep tier always runs `codemem draw` in the target repo (uninvited-diff cost accepted over the consent-gated AGENTS.md-protocol alternative); `docs/architecture/` canonical, bundle links it, `.mmd` sidecars retired; only the ~4 assertive `/codebase-deep-dive` refs fixed of 45 (the rest are conditional reuse, a fall-through not a break); no-index is moot — `ensure_built` provisions in 0.44s; MCP door emits ASCII only today, so mermaid is new work through any door.
 ## Tickets
 
 ### Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?
@@ -168,10 +169,28 @@ In the wild: `Dependencies: None` (52), `Milestone 1` (11), `Step 1.1` (9), `Tas
 ### Ticket 9: `understand-codebase` Deep tier rewire
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 2
 #### Question
 Deep tier (`references/DIMENSIONS.md:52-56`, `DEEPDIVE-TEMPLATES.md:315-317`, `SKILL.md:181-182`) tells agents to "generate Mermaid" or link `/codebase-deep-dive` output — a command the plugin does not ship (gap 6). Replace with the three doors: which door, what the tier does when no codemem index exists (`UNKNOWN`, degrade to prose, or refuse), and whether `/codebase-deep-dive` references are deleted or kept as optional. **Amended 2026-09-22:** also decide whether the generated layered views land in the skill's `ONBOARDING.md` / `.claude/onboarding/02-architecture.md` as well as `docs/architecture/`, and which is the source of truth when both exist.
+#### Answer
+**Deep tier always runs `codemem draw`; `docs/architecture/` is canonical and the onboarding bundle links it; only the ~4 assertive `/codebase-deep-dive` references are fixed.** Grill round 12 with Ste, 2026-09-22. The first framing was rejected and reformulated — see below.
+
+**Two verifications that reshaped the question:**
+- **The MCP door cannot emit mermaid today.** The only renderer in the MCP surface is `_render_layers_onion` (`mcp_tools/__init__.py:991`) and it emits **ASCII**, ≤80 cols / ≤2000 chars. A mermaid-returning MCP tool is new work through any door, so this does not discriminate between options — it only removed a false advantage the first framing had assumed.
+- **There is no cold-start problem.** `ensure_built` (`mcp_tools/__init__.py:61`) provisions the index transparently, writer-lock guarded, against a 5s cold-build SLO. The ticket's "`UNKNOWN` / degrade to prose / refuse" trilemma is therefore false: the answer is **build it** (0.44s measured in Ticket 8).
+
+**Gap 6, measured:** 45 `/codebase-deep-dive` command references plus 16 output-dir references across **9 files** (6 in the skill; also `claude-code/skills/system-mapping/SKILL.md`, `agents/codebase-onboarding-health.md`, `agents/codebase-onboarding-synthesizer.md`). But most read *"reuse its `01-architecture-overview.md` if it ran"* — conditional on **output existing**, not on the command being invokable. A consumer without it hits a fall-through to the generate path, not a failure. Gap 6 is a documentation-honesty problem, not a functional break.
+
+**Decisions:**
+1. **Write scope — the Deep tier always writes `docs/architecture/` in the target repo**, via `codemem draw` (the CLI door; the Deep tier is a *consumer* of it rather than a third emitter). Every onboarded repo gains the Ticket 8 living doc and can `--check` it in CI. **Accepted cost, stated at decision time:** onboarding a repo you do not own produces four generated files in the first diff, uninvited. The consent-gated alternative — reusing this skill's own AGENTS.md SAFETY PROTOCOL shape (`SKILL.md:183-186`) — was offered and declined in favour of always delivering the living doc.
+2. **`docs/architecture/` is canonical; the bundle links it.** `.claude/onboarding/02-architecture.md` carries links, not copies, so drift between the two is impossible by construction. The bundle is no longer self-contained — a reader follows a link to see a diagram. This **retires the `.mmd` files**: the `diagrams/` section of `DEEPDIVE-TEMPLATES.md` and the 14 `.mmd` / `diagrams/` references across 6 files become obsolete, since the bundle now points at generated markdown rather than carrying `.mmd` sidecars that never rendered on GitHub anyway.
+3. **Minimal fix for gap 6 — ~4 edits, not 45.** Conditional "reuse if it ran" references stay: they are harmless and preserve a real reuse path for anyone who does have the output. Only the few that **assert the command is available** are fixed (e.g. `REUSE-MAP.md:67`, "invoke `Skill(codebase-deep-dive)` / the `/codebase-deep-dive` command"). A consumer is then never instructed to run something they do not have.
+
+**Follows without further decision:** no-index is not a failure mode — the tier builds the index before drawing (`ensure_built` semantics, 0.44s), so the ticket's UNKNOWN/degrade/refuse options are moot.
+
+**Flagged for the plan, not decided here:** `ensure_built` writes `.codemem/` into the target repo, which appears in that repo's `git status` unless ignored. Whether the tier appends `.codemem/` to the target's `.gitignore` is a write to a fourth user-owned file and needs an explicit call during planning. The skill should also declare its full write footprint up front, now that the footprint reaches outside the bundle.
+
 
 ### Ticket 10: Prior art — code→mermaid tools and their scoping heuristics
 - Type: research

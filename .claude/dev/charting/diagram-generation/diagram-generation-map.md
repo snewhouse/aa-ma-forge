@@ -36,6 +36,8 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 - [Ticket 7: Pin the `Dependencies:` grammar and where the Milestone graph surfaces](#ticket-7-pin-the-dependencies-grammar-and-where-the-milestone-graph-surfaces): canonical write mirrors the headings (`None` · `Milestone 2` · `Sub-step 1.1`, comma-separated), lenient read of all 383 legacy values across four noun forms — the lenient-read/canonical-write pattern `grammar.py` already uses for headings; graph generated into plan §13, closing CONTEXT.md's documented-undelivered Milestone graph promise; the only View needing no codemem; scribe already writes the field, only its template spelling changes; enforcement split out as Ticket 16.
 - [Ticket 16: Should `Dependencies:` enforce milestone ordering?](#ticket-16-should-dependencies-enforce-milestone-ordering): advisory warning only, never blocking — `aa-ma-gate` untouched; plus a planning-time `UNRESOLVED_DEPENDENCY` finding with cross-plan refs exempt. Measured: 276/278 refs already resolve (312 values, 59 `None`, 2 real problems). The hazard is the resolver, not the data — two naive implementations reported 30-36 false failures because headings carry `M` *inside* the step number (`### Step M1.0:`) and letter-suffixed milestones (`2a`); the plan must test those cases.
 - [Ticket 19: `PROJECT_INDEX.json` vs codemem — retire, keep both, or scope each?](#ticket-19-project_indexjson-vs-codemem--retire-keep-both-or-scope-each): keep both — codemem stated as default, `PROJECT_INDEX.json` an equivalent fallback when present; `/index` provisioning instructions repointed at `codemem build` (~3 edits, Ticket 9 precedent). Measured: codemem's 14 MCP tools are a strict superset of project-index's 6, same language set, and the only unique data (`dir_purposes`) is wrong on this repo. Cost accepted: two backends documented rather than one.
+- [Ticket 17: MCP `diagram` tool budget and truncation on large consumer repos](#ticket-17-mcp-diagram-tool-budget-and-truncation-on-large-consumer-repos): carried into the plan **with no default** — the tool does not exist yet, and every band this effort has was measured on a 175-file repo, so a prescribed default would be a guess. The plan decides budget source, overflow behaviour and count reporting; Ticket 3's readability bands are a separate constraint and do not answer it.
+- [Ticket 18: Multi-language consumer repos — one View or per-language?](#ticket-18-multi-language-consumer-repos--one-view-or-per-language): default is **one merged `io.md` with language subgraphs**, carried into the plan with a revision trigger. It is the only option leaving Ticket 8's fixed-path `--check` contract intact; revisit when a measured polyglot repo breaches Ticket 3's 120-edge dense band. Reasoned from contract, not from experience — this repo is effectively single-language.
 ## Tickets
 
 ### Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?
@@ -356,18 +358,36 @@ Nothing prevents out-of-order milestone execution today: the gate answers *which
 ### Ticket 17: MCP `diagram` tool budget and truncation on large consumer repos
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 2, 3
 #### Question
 Graduated from fog 2026-09-22. The MCP door must return a diagram inside an agent's context budget, and Ticket 9 established the surface cannot emit mermaid at all today (`_render_layers_onion` is ASCII). Ticket 3 fixed *readability* bands (≤40 edges readable, ≤120 dense, mermaid `maxEdges` 500 hard stop) but not *response* budget, which is a different constraint — codemem's existing tools use a `_DEFAULT_BUDGET` char cap with `_truncate`/`_exceeds_budget` helpers (`mcp_tools/__init__.py`). Decide: does the diagram tool reuse that budget pattern or get its own; what happens when the requested cut exceeds it — auto-collapse to a coarser level, truncate with a note, or refuse with guidance; and does the tool report the counts (nodes/edges/dropped) the prototype surfaced so a caller can re-ask at a coarser level? Measure against a repo materially larger than this one (175 files), since every band we have was measured here.
+#### Answer
+**Carried into the plan with no default — the plan owns this decision.** Ste, 2026-09-22.
+
+The charting question here is *"must this be settled before planning can start?"*, and the answer is no: the MCP `diagram` tool does not exist yet (Ticket 9 established the surface emits only ASCII), so its budget policy is decided while building it, not before. **No starting position is prescribed** — deliberately, because every band this effort has was measured on a 175-file repo and a default extrapolated from that would be a guess wearing the clothes of a decision.
+
+**What the plan inherits, verbatim:** decide whether the diagram tool reuses codemem's existing `_DEFAULT_BUDGET` / `_truncate` / `_exceeds_budget` helpers (`mcp_tools/__init__.py`) or takes its own budget; decide overflow behaviour — auto-collapse to a coarser level, truncate with a note, or refuse with guidance; decide whether the tool reports node/edge/dropped counts so a caller can re-ask at a coarser level. Ticket 3's **readability** bands (≤40 readable, ≤120 dense, mermaid `maxEdges` 500) are a separate constraint from **response** budget and do not answer this.
+
+**Open risk the plan must accept:** an implementer deciding budget policy mid-build is how inconsistent behaviour gets in. If that matters more than the missing measurement, the milestone should take a measurement on a materially larger repo first rather than choosing blind.
+
 
 ### Ticket 18: Multi-language consumer repos — one View or per-language?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 6, 8
 #### Question
 Graduated from fog 2026-09-22. Ticket 6 scoped the I/O sink catalogue to Python + TS/JS + Go for v1 (of codemem's 9 languages); Ticket 8 fixed the living-doc file set with a **singular** `io.md`, which implies one merged View — but that is an inference from a filename, not a decision anyone made. Decide for a polyglot repo: one merged View with language subgraphs, one file per language (`io-python.md`, `io-go.md`…), or a merged View that degrades to subgraphs past an edge threshold. Weigh against Ticket 3's bands (a merged polyglot graph will breach 120 edges sooner) and against Ticket 8's `--check` contract, since a per-language file set is variable and the check compares a fixed set of generated paths.
+#### Answer
+**Default: one merged `io.md` with languages as subgraphs. Carried into the plan with that default and an explicit revision trigger.** Ste, 2026-09-22.
+
+**Why this default rather than none:** Ticket 8 fixed the living-doc file set at `{README, component, io, plugin-surface}.md` with a **singular** `io.md`, and its `--check` is a regenerate-and-compare over a **fixed** set of generated paths. A per-language file set is variable by definition (`io-python.md`, `io-go.md`, …), so adopting it would require reopening Ticket 8's `--check` contract. The merged form is the only option that leaves an already-resolved decision intact, which is why it is the default rather than a coin-flip.
+
+**Revision trigger:** a measured polyglot repo whose merged I/O View breaches Ticket 3's **120-edge dense band**. At that point per-language files earn their complexity and Ticket 8's `--check` contract is revisited deliberately — not as a side effect.
+
+**Honest limitation:** this repo is effectively single-language, so the default is reasoned from an existing contract rather than from experience of a polyglot graph. The plan should treat the first genuinely polyglot consumer repo as the test of it.
+
 
 ### Ticket 19: `PROJECT_INDEX.json` vs codemem — retire, keep both, or scope each?
 - Type: grilling

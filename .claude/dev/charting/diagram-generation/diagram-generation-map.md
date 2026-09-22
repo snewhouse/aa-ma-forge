@@ -31,6 +31,7 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 - [Ticket 14: Does `/aa-ma-plan` seed the §13 Component view from the generator?](#ticket-14-does-aa-ma-plan-seed-the-13-component-view-from-the-generator): yes — Phase 4 pastes the L2 cut into §13 with `@kind` sigils already attached (47% / 23% of nodes in real committed views are `(new)` and underivable, but seeded edges are the only route to a non-vacuous PHANTOM_EDGE); anchoring countered by an Angle 6 coverage rule (every `#### Contract` file path must appear as a §13 node), planning-time only; intended edges carry sigils, so the diagram becomes an acceptance criterion that flips from UNKNOWN to checked when the code lands.
 - [Ticket 12: Annotation layer — format and how the lint keeps it in sync](#ticket-12-annotation-layer--format-and-how-the-lint-keeps-it-in-sync): flat path-keyed JSON sidecar `{"@start": <path>, "<path>": "<prose>"}` read by both the Python emitter and the JS explorer generator (YAML ruled out — not a declared aa-ma dep; `%%` comments ruled out — invisible at render); zoom levels handled free by path keying; `ORPHAN_CAPTION` at STALE_PATH tier with prose never auto-deleted; edge rationale stays in prose, captions-only diffs are not drift.
 - [Ticket 8: Living-doc contract and CI `--check`](#ticket-8-living-doc-contract-and-ci---check): `docs/architecture/{README,component,io,plugin-surface}.md`, all four 100% generated (captions render in from the Ticket 12 sidecar); `codemem draw --check` is regenerate-and-compare, exit 1 on diff, `UNKNOWN`+exit 0 when no graph; `<!-- generated … @ <sha> -->` line 1 excluded from the comparison (a byte check and a volatile stamp are otherwise mutually exclusive); dedicated `architecture-drift` CI job — CI already builds the index in 0.44s, so committing a JSON export has no case.
+- [Ticket 15: Does a §13 sigil edge still `UNKNOWN` at milestone COMPLETE reach the gate?](#ticket-15-does-a-13-sigil-edge-still-unknown-at-milestone-complete-reach-the-gate): not the gate — a HARD §6.7 Execution Checklist item enforced by the command (HARD ≠ `gate.py`, which takes only `tasks_md` while §13 lives in `plan.md`); opt-in, so a plan without sigils never triggers it; `UNKNOWN` refuses per L-012 with `codemem build` named as the 0.44s remedy; evidence is a `DIAGRAM_VERIFIED` provenance line.
 ## Tickets
 
 ### Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?
@@ -273,10 +274,24 @@ Graduated from fog once Ticket 3 showed what generated output looks like (Q10 de
 ### Ticket 15: Does a §13 sigil edge still `UNKNOWN` at milestone COMPLETE reach the gate?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 5, 14
 #### Question
 Ticket 14 made a `@kind` edge on a `(new)` node a promise that flips from `UNKNOWN` to checked once the file lands — "the diagram as an acceptance criterion". But nothing reads §13 at implementation time. Decide where, if anywhere, that promise is enforced: an eighth `aa-ma-gate` question (`src/aa_ma/gate.py` asks seven today; changing it is a `Critical-Path: hook-modification` change), a §6.7 Execution Checklist item at HARD tier, advisory output only, or an opt-in plan field (`Diagram-Promise:`) so a plan chooses whether its diagram binds. Weigh against ADR-0009, which deliberately keeps `Diagram-Waiver` out of the gate, and against Ticket 2's decision that the lint degrades to `UNKNOWN` rather than failing when the graph is missing — a gate question that can be `UNKNOWN` must fail closed (L-012).
+#### Answer
+**A HARD §6.7 Execution Checklist item, opt-in and enforced by the command — `aa-ma-gate` is not touched.** Grill round 11 with Ste, 2026-09-22.
+
+**The eighth-gate-question option was structurally more expensive than the ticket implied.** `aa-ma-gate` takes **one positional argument, `tasks_md`** (`gate.py:465`), and all seven questions are answered over `tasks.md` milestone blocks. §13 lives in **`plan.md` only** (CONTEXT.md glossary). An eighth question would need a second input file, a change to the JSON envelope schema (`gate.py:74-78`) and edits to every §6.7/§7.1 fence that shells out to it — all under `Critical-Path: hook-modification`.
+
+**The distinction that resolved it: HARD ≠ `gate.py`.** The §6.7 Execution Checklist already carries HARD items the gate never answers — tests passing, git clean, the `CRITICAL_PATH_REVIEW` provenance entry. Enforcement at HARD tier was available without touching the gate CLI at all, so ADR-0009's and ADR-0010's separation of diagram concerns from the gate binary survives intact.
+
+**Decisions:**
+1. **New HARD item in §6.7: "no `PHANTOM_EDGE` finding".** If the plan's §13 carries any sigil edges, `/execute-aa-ma-milestone` runs `aa-ma-lint-views` and refuses COMPLETE on a finding. **Opt-in all the way up** (Ticket 5's philosophy): a plan with no sigils has nothing to check and the item never applies. Enforced by the command; `gate.py`, its envelope and every calling fence are unchanged.
+2. **`UNKNOWN` refuses.** A HARD item cannot be satisfied by a check that did not run — L-012 holds. This does **not** contradict Ticket 2, which kept the *lint's exit code* non-blocking (`UNKNOWN` ⇒ exit 0) so CI and consumers are not punished; the §6.7 item is a separate, stricter reader of the same verdict. Unlike CI, a milestone executor is a developer inside the repo, so the refusal names the remedy — `codemem build`, measured at 0.44s in Ticket 8 — making it a ten-second fix rather than a wall.
+3. **Evidence is a provenance line: `[ts] DIAGRAM_VERIFIED — <milestone> — edges=<N> phantom=0`**, matching the shape of the existing evidence-bearing HARD items (`CRITICAL_PATH_REVIEW`, `PROTOTYPE`). Keeps the §6.7 table's Verification column uniform and leaves an audit trail.
+
+**Net effect:** Ticket 14's "the diagram is an acceptance criterion" now has teeth, and they bite only on plans that opted in by writing a sigil.
+
 
 ## Not yet specified
 

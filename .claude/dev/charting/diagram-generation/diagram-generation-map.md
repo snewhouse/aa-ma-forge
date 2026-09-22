@@ -2,7 +2,7 @@
 
 ## Destination
 
-The forge derives diagrams from code — module dependencies, call flow, data flow (I/O boundary), and the plugin's own markdown surface (commands→skills→agents→hooks) — for **two consumers**: (a) its own committed, CI-checked `docs/architecture/` living doc, and (b) **any project built with the plugin**, via one core in codemem exposed through three doors (MCP tool, `aa-ma-draw` CLI, `understand-codebase` Deep tier). Hand-authored §13 Component-view edges are verified against the derived graph (`PHANTOM_EDGE`, STALE_PATH tier), and the milestone graph is derived from a pinned `Dependencies:` grammar.
+The forge derives diagrams from code — module dependencies, call flow, data flow (I/O boundary), and the plugin's own markdown surface (commands→skills→agents→hooks) — for **two consumers**: (a) its own committed, CI-checked `docs/architecture/` living doc, and (b) **any project built with the plugin**, via one core in codemem exposed through three doors (MCP tool, `codemem draw` CLI, `understand-codebase` Deep tier). Hand-authored §13 Component-view edges are verified against the derived graph (`PHANTOM_EDGE`, STALE_PATH tier), and the milestone graph is derived from a pinned `Dependencies:` grammar.
 
 **Audience (amended 2026-09-22):** the primary reader is a **new developer or reviewer onboarding to a codebase**, not only a cold planning agent. "Readable" therefore means *orienting*: a layered set of zoom levels, clickable drill-down in self-contained HTML, and authored captions over the derived graph. A diagram that passes an edge-count check but leaves a newcomer unable to say where to start has failed.
 
@@ -25,6 +25,7 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 - [Ticket 6: I/O-boundary sink catalogue per language](#ticket-6-io-boundary-sink-catalogue-per-language): feasible all 9, v1 = Py+TS/JS+Go; ast-grep `has: field: function` captures receivers (verified); wrapper ≈50 LOC; two confidence tiers; ≈55-row catalogue; CodeQL MaD reusable (MIT), Semgrep not.
 - [Ticket 3: What scoping makes a derived View readable?](#ticket-3-what-scoping-makes-a-derived-view-readable): layered zoom levels L0–L3, not one knob; tests excluded by default; PageRank ruled out as default (surfaces sinks, not entry points); bands 40/120/500.
 - [Ticket 13: Export formats and notation re-evaluation (re-admitted to scope)](#ticket-13-export-formats-and-notation-re-evaluation-re-admitted-to-scope): mermaid only (D2's layout edge expired — mermaid 12 bundles ELK); optional SVG/PNG via the existing `MMDC_BIN` seam; hosted renderers ruled out (source leaks); pin held at 11.17.2.
+- [Ticket 2: Where does the mermaid emitter live, and how does `aa_ma.render` read the graph?](#ticket-2-where-does-the-mermaid-emitter-live-and-how-does-aa_marender-read-the-graph): direction (a) — `aa_ma.render` reads `.codemem/index.db` via stdlib `sqlite3` pinned at `user_version >= 3`; missing/stale ⇒ PHANTOM_EDGE tier `UNKNOWN`, never PASS; emitter and door are **`codemem draw`** (not `aa-ma-draw` — Destination amended); new `.importlinter` contract `aa-ma-never-imports-codemem` (verified: 4 kept, 0 broken).
 ## Tickets
 
 ### Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?
@@ -40,10 +41,27 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 ### Ticket 2: Where does the mermaid emitter live, and how does `aa_ma.render` read the graph?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 1
 #### Question
 Options: (a) emitter in `codemem` (MCP tool `diagram` + CLI) and `aa_ma.render.mermaid_lint` reads `.codemem/index.db` via stdlib `sqlite3` (no package import, `render-is-leaf` intact); (b) `aa_ma` gains a runtime dependency on `codemem` (workspace member — is that a "new runtime dependency" under ADR-0010?); (c) codemem exports a JSON graph file the lint and emitter both read. Decide direction, the CLI name (`aa-ma-draw`?), which package owns `pyproject` scripts, and the `.importlinter` contract changes.
+#### Answer
+**Direction (a), with the coupling made explicit rather than implicit.** Grill round 5 with Ste, 2026-09-22.
+
+**Corrections to the ticket's framing, from the code:**
+- `render-is-leaf` was never the constraint. `.importlinter:47-67` forbids only `aa_ma.* → aa_ma.render`; nothing there forbids `aa_ma.render → codemem`. All three options left it untouched.
+- ADR-0010's driver reads "must keep working with what `uv sync` already installs" (`docs/adr/0010-…:36-37`), and `uv sync` **does** install `codemem-mcp` today (`pyproject.toml:56` — dev-dep + workspace member, added so `uv run codemem intel` resolves). So (b) breaks that driver only for a consumer installing `aa-ma` without dev-deps — who would then pull `fastmcp` + `ast-grep-cli` + `tiktoken` (`packages/codemem-mcp/pyproject.toml:22-26`) in order to run a lint. That consumer cost killed (b), not the contract.
+- (c) already half-exists: `codemem intel` writes `PROJECT_INTEL.json` (`cli.py:249`, `pagerank.py`) — but it is PageRank-ranked, which Ticket 3 ruled out as default scoping.
+
+**Decisions:**
+1. **Graph read** — `aa_ma.render` opens `.codemem/index.db` with stdlib `sqlite3` (new `aa_ma/render/graph.py`). No new runtime dependency for `aa-ma`; the consumer install set is unchanged.
+2. **Schema coupling is pinned, not implicit** — the read asserts `PRAGMA user_version >= 3` (`storage/db.py:12,104,166`; `file_edges` is v3 per Ticket 1, `MIGRATIONS` is at v2 today). Staleness comes from `files.mtime` (`schema.sql:26`) vs on-disk mtime — no commit SHA needed, and none is stored.
+3. **Degradation contract** — DB missing, `user_version < 3`, or stale ⇒ the **PHANTOM_EDGE tier alone** reports `UNKNOWN` with the reason and the remedy (`run: codemem build`), never PASS (L-012). The existing structural checks (STALE_PATH, UNKNOWN_TYPE, render) run as today and keep owning the exit code. Mirrors the `render_status: PASS | FAIL | UNKNOWN` precedent at `mermaid_lint.py:76`. Exit codes unchanged: 0 / 1 / 2.
+4. **Emitter + CLI door** — the emitter lives in `codemem` (where the graph and the heavy deps already are) and the door is **`codemem draw`**: one `add_parser` on the existing subcommand CLI (`cli.py:269-309`), **not** `aa-ma-draw`. An `aa-ma-*` console script must be declared by a package that can import the emitter — either `codemem-mcp` (a package named codemem shipping an `aa-ma-*` binary) or `aa-ma` (= option (b), rejected). No `[project.scripts]` change in either package. **Destination amended accordingly.**
+5. **New `.importlinter` contract `aa-ma-never-imports-codemem`** (`type = forbidden`, `source_modules = aa_ma`, `forbidden_modules = codemem`) so the sqlite3 seam cannot later be "simplified" into an import. One-directional — `codemem → aa_ma` stays legal (`codemem/aa_ma_integration.py`). **Verified empirically** against a scratchpad copy of `.importlinter`: `Contracts: 4 kept, 0 broken` (it parses; the file's "shared descendants" caveat applies only when source and forbidden share a root package, which `aa_ma` and `codemem` do not).
+
+**Downstream constraints this sets:** Ticket 8's CI `--check` inherits a gitignored `.codemem/` (`.gitignore:17-18`) plus a lint that tolerates its absence — so CI must index before checking, or knowingly accept an `UNKNOWN` PHANTOM_EDGE tier. Ticket 5's `PHANTOM_EDGE` grammar must carry an `UNKNOWN` state with a reason string, not merely found/not-found.
+
 
 ### Ticket 3: What scoping makes a derived View readable?
 - Type: prototype

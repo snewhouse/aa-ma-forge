@@ -33,6 +33,7 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 - [Ticket 8: Living-doc contract and CI `--check`](#ticket-8-living-doc-contract-and-ci---check): `docs/architecture/{README,component,io,plugin-surface}.md`, all four 100% generated (captions render in from the Ticket 12 sidecar); `codemem draw --check` is regenerate-and-compare, exit 1 on diff, `UNKNOWN`+exit 0 when no graph; `<!-- generated … @ <sha> -->` line 1 excluded from the comparison (a byte check and a volatile stamp are otherwise mutually exclusive); dedicated `architecture-drift` CI job — CI already builds the index in 0.44s, so committing a JSON export has no case.
 - [Ticket 15: Does a §13 sigil edge still `UNKNOWN` at milestone COMPLETE reach the gate?](#ticket-15-does-a-13-sigil-edge-still-unknown-at-milestone-complete-reach-the-gate): not the gate — a HARD §6.7 Execution Checklist item enforced by the command (HARD ≠ `gate.py`, which takes only `tasks_md` while §13 lives in `plan.md`); opt-in, so a plan without sigils never triggers it; `UNKNOWN` refuses per L-012 with `codemem build` named as the 0.44s remedy; evidence is a `DIAGRAM_VERIFIED` provenance line.
 - [Ticket 9: `understand-codebase` Deep tier rewire](#ticket-9-understand-codebase-deep-tier-rewire): Deep tier always runs `codemem draw` in the target repo (uninvited-diff cost accepted over the consent-gated AGENTS.md-protocol alternative); `docs/architecture/` canonical, bundle links it, `.mmd` sidecars retired; only the ~4 assertive `/codebase-deep-dive` refs fixed of 45 (the rest are conditional reuse, a fall-through not a break); no-index is moot — `ensure_built` provisions in 0.44s; MCP door emits ASCII only today, so mermaid is new work through any door.
+- [Ticket 7: Pin the `Dependencies:` grammar and where the Milestone graph surfaces](#ticket-7-pin-the-dependencies-grammar-and-where-the-milestone-graph-surfaces): canonical write mirrors the headings (`None` · `Milestone 2` · `Sub-step 1.1`, comma-separated), lenient read of all 383 legacy values across four noun forms — the lenient-read/canonical-write pattern `grammar.py` already uses for headings; graph generated into plan §13, closing CONTEXT.md's documented-undelivered Milestone graph promise; the only View needing no codemem; scribe already writes the field, only its template spelling changes; enforcement split out as Ticket 16.
 ## Tickets
 
 ### Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?
@@ -139,10 +140,25 @@ For the 9 codemem languages, a curated list of source/sink symbols by category (
 ### Ticket 7: Pin the `Dependencies:` grammar and where the Milestone graph surfaces
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: —
 #### Question
 In the wild: `Dependencies: None` (52), `Milestone 1` (11), `Step 1.1` (9), `Task 3.1` (8), bold and plain forms. Canonical form for `grammar.py` (ADR-0009 SSoT), lenient parse of legacy, whether `aa-ma-gate` ever reads it (probably not — planning-time only, like `Diagram-Waiver`). Where the derived graph appears: `aa-ma-draw`, TUI TaskDetailScreen, plan §13, all three? Does the scribe write it?
+#### Answer
+**Canonical form mirrors the headings; the graph is generated into plan §13; enforcement split out as Ticket 16.** Grill round 13 with Ste, 2026-09-22.
+
+**`grammar.py` already solved this problem — for headings.** `MILESTONE_RE` accepts `Milestone N`, `Milestone MN` **and bare `MN`**; `STEP_RE` accepts `Sub-step | Step | Task` (`grammar.py:74-83`); and `CANONICAL_MILESTONE_RE` (`:264`) sits beside them as the strict write form. The **lenient-read / canonical-write** pattern is already codified, and the alternations it accepts are exactly the noun forms `Dependencies:` uses in the wild. Re-measured across **383 values**: `Step` 81, `None` 61, `Milestone` 55, `Task` 48, bare `M1`–`M4` 50, plus `Steps`/`Milestones`/`Tasks` plurals and bold/plain variants of all of them.
+
+**Structural fact that reframed "where does it surface":** the **Milestone graph is the only View that does not come from codemem**. It is derived from `tasks.md` via `grammar.py` — pure `aa_ma`, no SQLite, no index, no `ensure_built`. Today nothing parses it at all: `tui/model.py:203` carries `dependencies: str | None` as an opaque string.
+
+**Decisions:**
+1. **Canonical write form mirrors the heading vocabulary** — `Dependencies: None` · `Milestone 2` · `Milestone 2, Milestone 3` · `Sub-step 1.1`, comma-separated. One vocabulary covers headings and references alike, matching `CANONICAL_MILESTONE_RE`. Accepted cost: verbose once a list has three entries, and it promotes `Sub-step` over the `Step`/`Task` spellings that account for 129 of the 383 values today.
+2. **Lenient read of every legacy form**, reusing the existing heading alternations: all four nouns, singular and plural, bold and plain, and the bare `M<N>` prefix. No migration of existing `tasks.md` files is required — legacy parses, canonical is what new writes emit.
+3. **The derived graph is generated into plan §13.** This closes a promise CONTEXT.md has carried, documented and undelivered, since the glossary was written: "**Milestone graph** — derived mechanically from `tasks.md` `Dependencies:` — never hand-authored". It lands where a cold agent reads the plan. The TUI keeps its unparsed field for now; rendering it live was considered and deferred.
+4. **`aa-ma-gate` does not read `Dependencies:`** — enforcement is split out as **Ticket 16** rather than decided here.
+
+**Follows without further decision:** the scribe **already** writes the field (`aa-ma-scribe.md:145,153`: "Dependencies: [List prerequisite milestone IDs or \"None\"]" at milestone level, "[Step IDs or \"None\"]" at step level). Only its template text needs updating to the canonical spelling; the structure is in place. `docs/templates/tasks-template.md:37` carries the same instruction and needs the same edit.
+
 
 ### Ticket 8: Living-doc contract and CI `--check`
 - Type: grilling
@@ -311,6 +327,14 @@ Ticket 14 made a `@kind` edge on a `(new)` node a promise that flips from `UNKNO
 
 **Net effect:** Ticket 14's "the diagram is an acceptance criterion" now has teeth, and they bite only on plans that opted in by writing a sigil.
 
+
+### Ticket 16: Should `Dependencies:` enforce milestone ordering?
+- Type: grilling
+- Mode: HITL
+- Status: OPEN
+- Blocked-by: 7
+#### Question
+Nothing prevents out-of-order milestone execution today: the gate answers *which* milestone is ACTIVE, never whether its prerequisites are COMPLETE. Now that Ticket 7 gives `Dependencies:` a canonical grammar and a parser, decide whether anything enforces it — an eighth `aa-ma-gate` question refusing ACTIVE while a dependency is PENDING, an advisory warning from `/execute-aa-ma-milestone`, or nothing at all. Weigh three things. (a) ADR-0009 keeps planning-time concerns out of the gate. (b) **Unlike §13, this one is structurally available**: Ticket 15 rejected an eighth gate question partly because §13 lives in `plan.md` and the gate reads only `tasks.md` — but `Dependencies:` *is* in `tasks.md`, so no second input file is needed. The cost is still a JSON envelope schema change (`gate.py:74-78`) plus every calling fence, under `Critical-Path: hook-modification`. (c) **Data quality**: 383 `Dependencies:` values exist today across four noun forms and none has ever been validated, so enforcement would be only as trustworthy as a field nothing has yet checked.
 
 ## Not yet specified
 

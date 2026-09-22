@@ -34,6 +34,7 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 - [Ticket 15: Does a §13 sigil edge still `UNKNOWN` at milestone COMPLETE reach the gate?](#ticket-15-does-a-13-sigil-edge-still-unknown-at-milestone-complete-reach-the-gate): not the gate — a HARD §6.7 Execution Checklist item enforced by the command (HARD ≠ `gate.py`, which takes only `tasks_md` while §13 lives in `plan.md`); opt-in, so a plan without sigils never triggers it; `UNKNOWN` refuses per L-012 with `codemem build` named as the 0.44s remedy; evidence is a `DIAGRAM_VERIFIED` provenance line.
 - [Ticket 9: `understand-codebase` Deep tier rewire](#ticket-9-understand-codebase-deep-tier-rewire): Deep tier always runs `codemem draw` in the target repo (uninvited-diff cost accepted over the consent-gated AGENTS.md-protocol alternative); `docs/architecture/` canonical, bundle links it, `.mmd` sidecars retired; only the ~4 assertive `/codebase-deep-dive` refs fixed of 45 (the rest are conditional reuse, a fall-through not a break); no-index is moot — `ensure_built` provisions in 0.44s; MCP door emits ASCII only today, so mermaid is new work through any door.
 - [Ticket 7: Pin the `Dependencies:` grammar and where the Milestone graph surfaces](#ticket-7-pin-the-dependencies-grammar-and-where-the-milestone-graph-surfaces): canonical write mirrors the headings (`None` · `Milestone 2` · `Sub-step 1.1`, comma-separated), lenient read of all 383 legacy values across four noun forms — the lenient-read/canonical-write pattern `grammar.py` already uses for headings; graph generated into plan §13, closing CONTEXT.md's documented-undelivered Milestone graph promise; the only View needing no codemem; scribe already writes the field, only its template spelling changes; enforcement split out as Ticket 16.
+- [Ticket 16: Should `Dependencies:` enforce milestone ordering?](#ticket-16-should-dependencies-enforce-milestone-ordering): advisory warning only, never blocking — `aa-ma-gate` untouched; plus a planning-time `UNRESOLVED_DEPENDENCY` finding with cross-plan refs exempt. Measured: 276/278 refs already resolve (312 values, 59 `None`, 2 real problems). The hazard is the resolver, not the data — two naive implementations reported 30-36 false failures because headings carry `M` *inside* the step number (`### Step M1.0:`) and letter-suffixed milestones (`2a`); the plan must test those cases.
 ## Tickets
 
 ### Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?
@@ -331,10 +332,25 @@ Ticket 14 made a `@kind` edge on a `(new)` node a promise that flips from `UNKNO
 ### Ticket 16: Should `Dependencies:` enforce milestone ordering?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 7
 #### Question
 Nothing prevents out-of-order milestone execution today: the gate answers *which* milestone is ACTIVE, never whether its prerequisites are COMPLETE. Now that Ticket 7 gives `Dependencies:` a canonical grammar and a parser, decide whether anything enforces it — an eighth `aa-ma-gate` question refusing ACTIVE while a dependency is PENDING, an advisory warning from `/execute-aa-ma-milestone`, or nothing at all. Weigh three things. (a) ADR-0009 keeps planning-time concerns out of the gate. (b) **Unlike §13, this one is structurally available**: Ticket 15 rejected an eighth gate question partly because §13 lives in `plan.md` and the gate reads only `tasks.md` — but `Dependencies:` *is* in `tasks.md`, so no second input file is needed. The cost is still a JSON envelope schema change (`gate.py:74-78`) plus every calling fence, under `Critical-Path: hook-modification`. (c) **Data quality**: 383 `Dependencies:` values exist today across four noun forms and none has ever been validated, so enforcement would be only as trustworthy as a field nothing has yet checked.
+#### Answer
+**Advisory warning only — never blocking; plus a planning-time `UNRESOLVED_DEPENDENCY` finding.** Grill round 14 with Ste, 2026-09-22.
+
+**The data-quality worry in this ticket's own question was largely unfounded — measured, not assumed.** Across 312 `Dependencies:` values in `.claude/dev/**/*tasks.md` + `examples/`: 59 `None`, and **276 of the 278 remaining references resolve** to a real milestone or sub-step heading in the same file. Exactly two genuine problems exist, and both are instructive: one is prose in the field (`codemem-token-benchmarks`: "table: tiktoken `latest from …`"), the other is `Milestone 1; milestone-grammar-ssot M5` — a **cross-plan** reference, unresolvable within one file by design.
+
+**The hazard is the resolver, not the data.** Three resolvers were written during this session; the first reported 36 failures and the second 30 — **all false, on correct data**. Cause: `_NUM_M` permits `2a` (`## Milestone 2a:`) and `_NUM_S` permits an `M` *inside* the step number, so real headings read `### Step M1.0:` and `### Step M2a.1:`. A resolver that strips the `M` prefix fails to match every one of them. Putting that on a blocking path would refuse correct work.
+
+**Decisions:**
+1. **Advisory warning, never blocking.** `/execute-aa-ma-milestone` notes e.g. "Milestone 3 is ACTIVE but Milestone 2 (Dependencies) is PENDING" and leaves the exit code alone. `aa-ma-gate` is untouched — no eighth question, no envelope schema change (`gate.py:74-78`), no fence edits, no `Critical-Path: hook-modification` for this. A resolver bug or a cross-plan reference then costs one noisy line of output instead of a blocked milestone.
+2. **`UNRESOLVED_DEPENDENCY` is a planning-time finding**, alongside `ORPHAN_CAPTION` (Ticket 12) and `STALE_PATH`. On today's corpus it fires **twice out of 312** — near-silent, and it catches both real problems. **Cross-plan references are exempt, not flagged**: a reference qualified by another task's slug cannot resolve in-file and is legitimate.
+
+**Hard requirements this puts on the plan** — both learned the expensive way here:
+- The reference resolver **must be `M`-prefix aware**: `M2` may name Milestone 2 *or* be part of an `M`-numbered step id (`M1.0`), and milestone numbers may carry a letter suffix (`2a`). Resolve against `MILESTONE_RE`/`STEP_RE` captures from the same file, trying both the raw token and the `M`-stripped form. A test fixture must cover `M1.0`, `M2a.1` and `2a`, since a naive implementation passes every other case.
+- **Cross-plan reference detection** needs a rule: a reference qualified by a task slug (e.g. `milestone-grammar-ssot M5`) is cross-plan and exempt. Pin the shape during planning.
+
 
 ## Not yet specified
 

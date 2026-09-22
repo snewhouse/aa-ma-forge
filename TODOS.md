@@ -2,6 +2,18 @@
 
 ## AA-MA Tooling
 
+### Fail the build on a dangling plugin reference
+
+**What:** Generating `docs/architecture/plugin-surface.md` exits non-zero when a reference from `claude-code/` resolves nowhere — on disk or in the declared-external allowlist.
+
+**Why:** Three instances of one class surfaced during the diagram-generation charting: `/codebase-deep-dive` (Ticket 9), `/index` in `REUSE-MAP.md` (Ticket 19), and the `senior-architect` stub. Each is a shipped skill telling a consumer to run something only the author's machine has. Ticket 8's `codemem draw --check` will **not** catch them: it is a regenerate-and-compare, and a dangling reference does not change the generated output.
+
+**Context:** The detector already exists as a by-product — `docs/research/diagram-generation-plugin-surface-extraction.md` classifies 41 `Skill()` targets into 17 on-disk / 20 declared-external / 4 dangling, plus 7 orphans, in one regex pass. This is wiring, not new analysis. Needs the external allowlist the research already calls for (one of its three). Pairs with the three-valued reference contract now in `CLAUDE.md`. Belongs in the plugin-surface milestone of `/aa-ma-plan --from-map diagram-generation`.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** the diagram-generation plan's plugin-surface milestone
+
 ### Generate the milestone dependency graph from tasks.md
 
 **What:** `aa-ma-tui --graph` (or an `aa_ma.render` sub-command) emits a mermaid `flowchart` of milestones from their `Dependencies:` fields.

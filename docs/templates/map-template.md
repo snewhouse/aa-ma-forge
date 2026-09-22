@@ -19,6 +19,11 @@ Grammar the guard (`claude-code/hooks/lib/aa-ma-chart-guard.sh`) reads:
   `- Reclaimed: YYYY-MM-DDTHH:MM`    appended by `reclaim`; may repeat
   `- Blocked-by: N, N | —`            ticket numbers; `—` when unblocked
   `#### Question` / `#### Answer`     Answer present only when RESOLVED
+      A ticket asks "must this be settled *before planning starts*?" — so
+      "carried into the plan" (with or without a default) is a legitimate
+      RESOLVED shape, not a dodge and not RULED_OUT. Say so in the Answer and
+      name what the plan now owns; `--from-map` seeds Decisions so far + every
+      Answer, so the plan inherits it. There is deliberately no DEFERRED status.
 Fog = bullets under `## Not yet specified`. `## Out of scope` never graduates.
 Headings deliberately never match `## Milestone N:` / `### Sub-step N.M:` so the
 gate and TUI ignore maps.

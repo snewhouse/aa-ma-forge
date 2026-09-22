@@ -34,6 +34,20 @@ materially apply to its work and how.
 - Double-check critical paths. When a task carries `Critical-Path: <value>`,
   write a `[ts] CRITICAL_PATH_REVIEW — <evidence>` entry to `provenance.log`
   before milestone COMPLETE.
+- **References are three-valued, not binary.** A name invoked from shipped
+  plugin content is **on disk** (shipped by this repo), **declared-external**
+  (resolvable in `~/.claude/skills`, gstack, or another ecosystem — a
+  legitimate cross-ecosystem edge), or **dangling** (resolvable nowhere).
+  Only *dangling* is a defect; an external dependency is a design choice and
+  must be declared, not silently tolerated. A binary "everything referenced
+  must exist on disk" rule cannot be enforced: measured 2026-09-22 over 41
+  distinct `Skill()` targets in `claude-code/`, the split was 17 on disk, **20
+  declared-external**, 4 dangling — a binary rule is false in 20 places on day
+  one. Nor can a name-grep find a dangling reference, since the name *is*
+  mentioned; that is precisely the defect. Classification belongs to the
+  plugin-surface extractor, which resolves all three classes in one pass
+  (`docs/research/diagram-generation-plugin-surface-extraction.md`), against an
+  explicit allowlist declaring the external set.
 
 **Critical-Path canonical values** (the only accepted values; novel values are
 rejected by `Skill(plan-verification)`. Add new values via plan + ADR.):

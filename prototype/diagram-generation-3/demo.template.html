@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Scoping prototype</title>
+<meta name="description" content="PROTOTYPE — Ticket 3 of charting effort diagram-generation: which scoping makes a code-derived View readable?">
+<style>
+:root{--bg:#fafaf7;--fg:#1c1c1a;--muted:#6b6b66;--accent:#0b6e4f;--panel:#fff;--line:#e4e2dc;--warn:#b3261e}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#161615;--fg:#ececea;--muted:#9a9a94;--accent:#4fc39a;--panel:#1f1f1d;--line:#333}}
+:root[data-theme=dark]{--bg:#161615;--fg:#ececea;--muted:#9a9a94;--accent:#4fc39a;--panel:#1f1f1d;--line:#333}
+body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif;max-width:1400px;margin-inline:auto}
+h1{font-size:1.4rem;margin:0 0 4px}h2{font-size:1rem;margin:20px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.intro{color:var(--muted);margin-bottom:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px}
+.state{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 16px}
+.state b{display:block;font-size:.75rem;color:var(--muted);font-weight:600}.state span{font-size:1.1rem}
+.bad{color:var(--warn)}.ok{color:var(--accent)}
+.controls{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:end}
+label{display:flex;flex-direction:column;font-size:.8rem;color:var(--muted)}
+input,select,button{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--fg)}
+button{cursor:pointer}button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}.tabs button[aria-selected=true]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.steps button.done{opacity:.5}
+#out{overflow:auto;min-height:200px}#out svg{max-width:none}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;max-height:300px;font-size:.8rem}
+.note{font-size:.85rem;color:var(--muted)}
+</style></head><body>
+<h1>Which scoping makes a derived View readable?</h1>
+<p class="intro"><b>PROTOTYPE — throwaway.</b> Real call edges from this repo's codemem index (HEAD c49d084: 175 files, 1185 resolved call edges, 616 cross-file). Three ways to cut the graph down to something a cold agent can read: <b>collapse</b> files into directories, keep only the <b>top-N by PageRank</b>, or show the <b>neighbourhood of one entry point</b>. Push each through the walkthroughs and say which shape you'd trust in a plan.</p>
+
+<h2>Current view</h2>
+<div class="panel state" id="state"></div>
+
+<h2>Free play</h2>
+<div class="panel controls">
+  <label>Arm <select id="arm"><option value="raw">Raw (no scoping)</option><option value="collapse">Collapse to directory depth</option><option value="pagerank">PageRank top-N</option><option value="scope">Entry-point neighbourhood</option><option value="hybrid">Hybrid: neighbourhood + collapse</option></select></label>
+  <label>Depth (collapse) <input id="depth" type="number" min="1" max="8" value="2"></label>
+  <label>N (pagerank) <input id="topn" type="number" min="3" max="175" value="15"></label>
+  <label>Scope path (prefix) <input id="scope" value="src/aa_ma/gate.py" size="34"></label>
+  <label>Hops <input id="hops" type="number" min="1" max="5" value="1"></label>
+  <label>Direction <select id="dir"><option value="down">callees (down)</option><option value="up">callers (up)</option><option value="both">both</option></select></label>
+  <label>Level <select id="level"><option value="file">file</option><option value="symbol">symbol</option></select></label>
+  <label>Exclude (regex) <input id="exclude" value="^tests/" size="16"></label>
+  <label>Cluster by top dir <input id="cluster" type="checkbox" checked></label>
+  <button class="primary" id="run">Draw</button>
+</div>
+
+<h2>Guided walkthroughs</h2>
+<div class="panel"><div class="tabs" id="tabs" role="tablist"></div><p id="scenario" class="note"></p><div class="steps" id="steps"></div></div>
+
+<h2>Diagram</h2>
+<div class="panel" id="out"></div>
+<h2>Mermaid source <button id="copy">copy</button></h2>
+<pre id="src"></pre>
+
+<script id="graph" type="application/json">__GRAPH__</script>
+
+<script>
+// ===== Pure module: Scope — liftable; no DOM. =====
+const Scope = (() => {
+  const dir = (p, d) => p.split('/').slice(0, -1).slice(0, d).join('/') || p;   // directory of p, truncated to d segments
+  const fileEdges = (edges, keep) => {            // symbol edges -> Map "a|b" -> count, cross-file only
+    const m = new Map();
+    for (const [sf, , df] of edges) if (sf !== df && keep(sf) && keep(df)) m.set(sf + '|' + df, (m.get(sf + '|' + df) || 0) + 1);
+    return m;
+  };
+  const collapse = (fe, d) => {
+    const m = new Map();
+    for (const [k, c] of fe) { const [a, b] = k.split('|'); const A = dir(a, d), B = dir(b, d); if (A !== B) m.set(A + '|' + B, (m.get(A + '|' + B) || 0) + c); }
+    return m;
+  };
+  const pagerank = (fe, iters = 50, damp = 0.85) => {   // ponytail: plain power iteration, graph is tiny
+    const nodes = new Set(); for (const k of fe.keys()) k.split('|').forEach(n => nodes.add(n));
+    const out = new Map([...nodes].map(n => [n, []]));
+    for (const k of fe.keys()) { const [a, b] = k.split('|'); out.get(a).push(b); }
+    let pr = new Map([...nodes].map(n => [n, 1 / nodes.size]));
+    for (let i = 0; i < iters; i++) {
+      const nx = new Map([...nodes].map(n => [n, (1 - damp) / nodes.size]));
+      for (const [n, tgts] of out) { if (!tgts.length) continue; const share = damp * pr.get(n) / tgts.length; for (const t of tgts) nx.set(t, nx.get(t) + share); }
+      pr = nx;
+    }
+    return pr;
+  };
+  const topN = (fe, n) => {
+    const pr = pagerank(fe); const keep = new Set([...pr].sort((a, b) => b[1] - a[1]).slice(0, n).map(x => x[0]));
+    const m = new Map(); let dropped = 0;
+    for (const [k, c] of fe) { const [a, b] = k.split('|'); if (keep.has(a) && keep.has(b)) m.set(k, c); else dropped += c; }
+    return { edges: m, dropped, rank: pr };
+  };
+  const neighbourhood = (edges, scope, hops, direction, keep) => {   // symbol-level BFS from every symbol in scope
+    const id = (f, s) => f + '::' + s;
+    const down = new Map(), up = new Map();
+    for (const [sf, ss, df, ds] of edges) { if (!keep(sf) || !keep(df)) continue; const a = id(sf, ss), b = id(df, ds);
+      (down.get(a) || down.set(a, new Set()).get(a)).add(b); (up.get(b) || up.set(b, new Set()).get(b)).add(a); }
+    let frontier = new Set([...new Set([...down.keys(), ...up.keys()])].filter(n => n.startsWith(scope)));
+    const seen = new Set(frontier), es = new Set();
+    for (let h = 0; h < hops; h++) {
+      const next = new Set();
+      for (const n of frontier) {
+        if (direction !== 'up') for (const t of down.get(n) || []) { es.add(n + '|' + t); if (!seen.has(t)) { seen.add(t); next.add(t); } }
+        if (direction !== 'down') for (const s of up.get(n) || []) { es.add(s + '|' + n); if (!seen.has(s)) { seen.add(s); next.add(s); } }
+      }
+      frontier = next;
+    }
+    return { nodes: seen, edges: es };
+  };
+  const symToFile = (es) => { const m = new Map(); for (const k of es) { const [a, b] = k.split('|'); const A = a.split('::')[0], B = b.split('::')[0]; if (A !== B) m.set(A + '|' + B, (m.get(A + '|' + B) || 0) + 1); } return m; };
+  const mermaid = (em, { cluster, weights }) => {
+    const nodes = new Set(); for (const k of em.keys()) k.split('|').forEach(n => nodes.add(n));
+    const nid = n => 'n' + [...n].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7).toString(36);
+    let s = 'flowchart LR\n';
+    if (cluster) { const g = new Map(); for (const n of nodes) { const t = n.split('/')[0]; (g.get(t) || g.set(t, []).get(t)).push(n); }
+      for (const [t, ns] of g) { s += `  subgraph ${t}\n`; for (const n of ns) s += `    ${nid(n)}["${n}"]\n`; s += '  end\n'; } }
+    else for (const n of nodes) s += `  ${nid(n)}["${n}"]\n`;
+    for (const [k, c] of em) { const [a, b] = k.split('|'); s += weights && c > 1 ? `  ${nid(a)} -- "${c}" --> ${nid(b)}\n` : `  ${nid(a)} --> ${nid(b)}\n`; }
+    return { text: s, nodes: nodes.size, edges: em.size };
+  };
+  return { fileEdges, collapse, topN, neighbourhood, symToFile, mermaid, pagerank };
+})();
+
+// ===== Page shell (throwaway) =====
+const G = JSON.parse(document.getElementById('graph').textContent);
+const $ = id => document.getElementById(id);
+const MAX_EDGES = 500;   // mermaid 11 default maxEdges — the only hard ceiling prior art gave us
+function params() { return { arm: $('arm').value, depth: +$('depth').value, topn: +$('topn').value, scope: $('scope').value, hops: +$('hops').value, dir: $('dir').value, level: $('level').value, exclude: $('exclude').value, cluster: $('cluster').checked }; }
+function setParams(p) { for (const k in p) { const el = $(k); if (!el) continue; el.type === 'checkbox' ? el.checked = p[k] : el.value = p[k]; } }
+function compute(p) {
+  const rx = p.exclude ? new RegExp(p.exclude) : null, keep = f => !(rx && rx.test(f));
+  const fe = Scope.fileEdges(G.edges, keep); let em, note = '', dropped = 0;
+  if (p.arm === 'raw') em = fe;
+  else if (p.arm === 'collapse') em = Scope.collapse(fe, p.depth);
+  else if (p.arm === 'pagerank') { const r = Scope.topN(fe, p.topn); em = r.edges; dropped = r.dropped; note = `top ${p.topn} by PageRank; ${dropped} edges to dropped files hidden`; }
+  else { const nb = Scope.neighbourhood(G.edges, p.scope, p.hops, p.dir, keep);
+    if (p.level === 'symbol' && p.arm === 'scope') { em = new Map([...nb.edges].map(k => [k, 1])); }
+    else { em = Scope.symToFile(nb.edges); if (p.arm === 'hybrid') em = Scope.collapse(em, p.depth); }
+    note = `${nb.nodes.size} symbols reached from "${p.scope}" in ${p.hops} hop(s) ${p.dir}`; }
+  const mm = Scope.mermaid(em, { cluster: p.cluster && p.arm !== 'collapse', weights: p.arm !== 'scope' });
+  return { ...mm, note, over: mm.edges > MAX_EDGES };
+}
+let last = null;
+async function draw() {
+  const p = params(), r = compute(p); const t0 = performance.now();
+  $('src').textContent = r.text;
+  const changed = last ? `nodes ${last.nodes}→${r.nodes}, edges ${last.edges}→${r.edges}` : '—'; last = r;
+  let render = 'skipped (over ceiling)', ms = 0;
+  if (!r.over) { try { const { svg } = await mermaid.render('m' + Date.now(), r.text); $('out').innerHTML = svg; render = 'PASS'; ms = performance.now() - t0; } catch (e) { $('out').textContent = 'mermaid parse error: ' + e.message; render = 'FAIL'; } }
+  else $('out').textContent = `Not rendered: ${r.edges} edges exceeds mermaid maxEdges ${MAX_EDGES}.`;
+  const verdict = r.edges <= 40 ? 'readable' : r.edges <= 120 ? 'dense' : 'hairball';
+  $('state').innerHTML = [['Arm', p.arm], ['Nodes', r.nodes], ['Edges', r.edges], ['Readability', `<span class="${verdict === 'readable' ? 'ok' : 'bad'}">${verdict}</span>`], ['Mermaid ceiling (500)', r.over ? '<span class="bad">exceeded</span>' : '<span class="ok">ok</span>'], ['Render', render + (ms ? ` ${ms.toFixed(0)} ms` : '')], ['Changed', changed], ['Note', r.note || '—']].map(([k, v]) => `<div><b>${k}</b><span>${v}</span></div>`).join('');
+}
+const SCENARIOS = [
+  { title: 'Raw hairball', text: 'The whole repo, cross-file call edges, nothing hidden. Watch the edge count against mermaid\'s 500 ceiling and whether it renders at all.', steps: [['All files incl. tests', { arm: 'raw', exclude: '', cluster: true }], ['Exclude tests/', { arm: 'raw', exclude: '^tests/', cluster: true }]] },
+  { title: 'Collapse to directories', text: 'Same graph, files folded into directories. Depth 1 = top dirs, depth 4 = packages. Which depth is the first one you can actually read?', steps: [['Depth 1', { arm: 'collapse', depth: 1, exclude: '^tests/' }], ['Depth 2', { arm: 'collapse', depth: 2 }], ['Depth 3', { arm: 'collapse', depth: 3 }], ['Depth 4', { arm: 'collapse', depth: 4 }]] },
+  { title: 'PageRank top-N', text: 'Keep only the N most-called files (no prior art for this in diagram tools — it is the novel arm). Does it keep the files you care about, or drop them?', steps: [['N = 10', { arm: 'pagerank', topn: 10, exclude: '^tests/' }], ['N = 20', { arm: 'pagerank', topn: 20 }], ['N = 40', { arm: 'pagerank', topn: 40 }], ['N = 20, with tests', { arm: 'pagerank', topn: 20, exclude: '' }]] },
+  { title: 'Entry-point neighbourhood', text: 'Start from one file (the gate CLI) and walk the call graph outward. 1 hop is what dependency-cruiser and pydeps default to.', steps: [['gate.py → 1 hop down, file level', { arm: 'scope', scope: 'src/aa_ma/gate.py', hops: 1, dir: 'down', level: 'file', exclude: '^tests/' }], ['2 hops down', { hops: 2 }], ['Symbol level, 1 hop', { hops: 1, level: 'symbol' }], ['Who calls mermaid_lint? (up, 1 hop, incl. tests)', { scope: 'src/aa_ma/render/mermaid_lint.py', dir: 'up', level: 'file', exclude: '' }]] },
+  { title: 'A plan\'s Component view', text: 'What §13 would be seeded with for a plan whose footprint is src/aa_ma/render/. Compare 1 hop both directions (file level) vs hybrid collapse — this is the shape /aa-ma-plan would emit.', steps: [['render/ footprint, 1 hop both', { arm: 'scope', scope: 'src/aa_ma/render/', hops: 1, dir: 'both', level: 'file', exclude: '^tests/', cluster: true }], ['Same, hybrid collapse depth 3', { arm: 'hybrid', depth: 3 }], ['Same, with tests visible', { arm: 'scope', exclude: '' }]] },
+];
+let cur = 0, stepIdx = 0;
+function showScenario(i) { cur = i; stepIdx = 0; [...$('tabs').children].forEach((b, j) => b.setAttribute('aria-selected', j === i)); $('scenario').textContent = SCENARIOS[i].text; renderSteps(); }
+function renderSteps() { $('steps').innerHTML = ''; SCENARIOS[cur].steps.forEach(([label, p], j) => { const b = document.createElement('button'); b.textContent = `${j + 1}. ${label}`; b.className = j < stepIdx ? 'done' : ''; b.onclick = () => { setParams(p); stepIdx = j + 1; renderSteps(); draw(); }; $('steps').appendChild(b); }); }
+SCENARIOS.forEach((s, i) => { const b = document.createElement('button'); b.role = 'tab'; b.textContent = s.title; b.onclick = () => showScenario(i); $('tabs').appendChild(b); });
+$('run').onclick = draw; $('copy').onclick = () => navigator.clipboard.writeText($('src').textContent);
+</script>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: false, maxEdges: 500, maxTextSize: 200000, securityLevel: 'strict', theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default' });
+window.mermaid = mermaid; showScenario(0); draw();
+</script>
+</body></html>

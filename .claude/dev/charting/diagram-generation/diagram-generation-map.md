@@ -28,6 +28,7 @@ The forge derives diagrams from code — module dependencies, call flow, data fl
 - [Ticket 2: Where does the mermaid emitter live, and how does `aa_ma.render` read the graph?](#ticket-2-where-does-the-mermaid-emitter-live-and-how-does-aa_marender-read-the-graph): direction (a) — `aa_ma.render` reads `.codemem/index.db` via stdlib `sqlite3` pinned at `user_version >= 3`; missing/stale ⇒ PHANTOM_EDGE tier `UNKNOWN`, never PASS; emitter and door are **`codemem draw`** (not `aa-ma-draw` — Destination amended); new `.importlinter` contract `aa-ma-never-imports-codemem` (verified: 4 kept, 0 broken).
 - [Ticket 5: Exact `PHANTOM_EDGE` grammar](#ticket-5-exact-phantom_edge-grammar): opt-in by sigil label `A -->|@import| B` (reserved `@import @call @skill @command @agent @hook`); unlabelled/prose edges never checked (a blanket import∪call check would fire on ~14 of 21 correct edges in a real committed view); unknown `@x` ⇒ `LABEL_UNKNOWN`; one `UNKNOWN`+reason policy for `(new)`/unparsed/`docs/`/stale-graph; absent-but-evaluable ⇒ `PHANTOM_EDGE`, exit 1.
 - [Ticket 11: Clickable drill-down — mechanics and where the HTML lives](#ticket-11-clickable-drill-down--mechanics-and-where-the-html-lives): delegated DOM listener with `securityLevel: 'strict'` unchanged (strict disables `click href` too, and `click` lines would pollute the committed fence); embedded-graph explorer deriving levels client-side, as the prototype proved; built by `aa-ma-render --explorer` in `aa_ma.render` reusing html.py's CSP/SRI/pin; Py+JS generators reconciled by a shared node-id/collapse fixture, not a golden render; `build/`-only, never committed.
+- [Ticket 14: Does `/aa-ma-plan` seed the §13 Component view from the generator?](#ticket-14-does-aa-ma-plan-seed-the-13-component-view-from-the-generator): yes — Phase 4 pastes the L2 cut into §13 with `@kind` sigils already attached (47% / 23% of nodes in real committed views are `(new)` and underivable, but seeded edges are the only route to a non-vacuous PHANTOM_EDGE); anchoring countered by an Angle 6 coverage rule (every `#### Contract` file path must appear as a §13 node), planning-time only; intended edges carry sigils, so the diagram becomes an acceptance criterion that flips from UNKNOWN to checked when the code lands.
 ## Tickets
 
 ### Ticket 1: Can codemem persist file-level `import` edges and qualified external callees?
@@ -212,10 +213,34 @@ Ste re-admitted SVG/PNG export and non-mermaid notation on 2026-09-22. (a) Merma
 ### Ticket 14: Does `/aa-ma-plan` seed the §13 Component view from the generator?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 2, 11
 #### Question
 Graduated from fog once Ticket 3 showed what generated output looks like (Q10 deferred 2026-09-22). With the L2 cut (`--scope <files-to-modify> --hops 1 --dir both`) a plan's Component view is 5 nodes / 4 edges — small enough to seed. Decide: does Phase 4 call the generator and paste the result for the author to edit, offer it as a suggestion, or leave §13 hand-authored with `PHANTOM_EDGE` (Ticket 5) as the only net? If seeded, how does the author mark deliberate additions (`(new)` files have no edges yet) and does the seed carry captions (Ticket 12)?
+#### Answer
+**Yes — Phase 4 pastes the L2 cut into §13 with `@kind` sigils, and the author edits on top.** Grill round 8 with Ste, 2026-09-22.
+
+**What the measurement says.** A plan's §13 is about *intended change*; the generator knows only the *present*. Across the two committed Component views, **9/19** (`mattpocock-trio-adoption`) and **6/26** (`plan-architecture-views`) nodes are `(new)` — 47% and 23% — and no generator can draw them. Of the remainder, many are `.yml`, `.sh` or `docs/` files no derived source models (Ticket 4 put `docs/` out of the graph; Ticket 6's v1 languages are Py/TS/JS/Go). So a seed can only ever supply the *current neighbourhood* of the files about to change.
+
+**Why seed anyway.** A derived `@import` edge is trivially true the day it is pasted — and that is not the point. Its value is that it **fails later**, when someone deletes the import and the plan's diagram silently becomes a lie. Seeded edges are the only realistic route to `PHANTOM_EDGE` (Ticket 5) being non-vacuous: no committed diagram carries a sigil today, and hand-authors will not add them unprompted.
+
+**Decisions:**
+1. **Phase 4 seeds §13 directly.** It runs the L2 cut (`--scope <files-to-modify> --hops 1 --dir both`, ~5 nodes / 4 edges per Ticket 3) and writes the result into the Component view with `@kind` labels already attached. The author then adds `(new)` nodes and intended edges on top. Every plan therefore ships real, checkable edges from day one.
+2. **Anchoring is countered mechanically, not by exhortation.** `Skill(plan-verification)` Angle 6 gains a **coverage rule**: every file path named in a milestone's `#### Contract` block must appear as a node in §13, else a finding. A plan that creates three files and draws none of them is caught. This is **planning-time only** and never reaches the milestone gate — ADR-0009's separation holds.
+3. **Intended edges carry sigils too.** `A -->|@import| B["src/new.py (new)"]` reads `UNKNOWN: endpoint planned` while the file does not exist (Ticket 5's one policy), and becomes a real check the moment the file lands and `(new)` is dropped. **The plan's diagram thereby becomes an acceptance criterion for its own implementation**, with no test written.
+
+**Left to Ticket 12:** whether the seed carries captions, and in what format. Nothing here pre-empts that — the seed is caption-free until Ticket 12 decides.
+
+**New question this created — Ticket 15.** "Diagram as acceptance criterion" only bites if something reads it at implementation time, and nothing does today.
+
+
+### Ticket 15: Does a §13 sigil edge still `UNKNOWN` at milestone COMPLETE reach the gate?
+- Type: grilling
+- Mode: HITL
+- Status: OPEN
+- Blocked-by: 5, 14
+#### Question
+Ticket 14 made a `@kind` edge on a `(new)` node a promise that flips from `UNKNOWN` to checked once the file lands — "the diagram as an acceptance criterion". But nothing reads §13 at implementation time. Decide where, if anywhere, that promise is enforced: an eighth `aa-ma-gate` question (`src/aa_ma/gate.py` asks seven today; changing it is a `Critical-Path: hook-modification` change), a §6.7 Execution Checklist item at HARD tier, advisory output only, or an opt-in plan field (`Diagram-Promise:`) so a plan chooses whether its diagram binds. Weigh against ADR-0009, which deliberately keeps `Diagram-Waiver` out of the gate, and against Ticket 2's decision that the lint degrades to `UNKNOWN` rather than failing when the graph is missing — a gate question that can be `UNKNOWN` must fail closed (L-012).
 
 ## Not yet specified
 

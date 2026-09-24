@@ -53,7 +53,7 @@
 - Result Log: Mode: HITL — Ste approved (Proceed). CRITICAL_PATH_REVIEW (data-xform) written to provenance.log naming this milestone. Full suite 1122 passed / 2 skipped (baseline 1101 +21 new); ruff clean; tests/codemem/ collected by CI (security.yml:157). Same-tree base vs head: symbols + resolved call edges identical.
 
 ## Milestone 2: `aa_ma.render.graph` sqlite seam + import contract + ADR-0014
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 1
 - Gate: HARD
 - Audit-Profile: code-only
@@ -62,6 +62,7 @@
 - Effort: 1
 - Goal: `aa_ma` reads the graph without importing codemem, and the coupling is pinned so it cannot later be "simplified" into an import.
 - Acceptance Criteria: 7 criteria — see plan.md § Milestone 2
+- Result Log: COMPLETE 2026-09-24, HARD gate approved by Ste. 7/7 AC verified. `aa_ma.render.graph` read-only never-raising seam (live: OK, 163 import / 175 call edges); `aa-ma-never-imports-codemem` contract (mutation -> BROKEN) + `lint-imports` in CI for the first time; ADR-0014 Accepted. §6.8: 1 CRITICAL accepted+fixed (0dd464b, ae1e97a), re-run clean. Tests 1146 passed / 2 skipped. Commits ca90667 550312a 103aa7f 4fdb7d3 74dfcbb 2421e50 0dd464b ae1e97a c1c0b67 + milestone commit.
 
 ### Sub-step 2.1: [test] `test_graph.py` with stdlib-sqlite3-built v2/v3/missing/stale fixtures, RED
 - Status: COMPLETE

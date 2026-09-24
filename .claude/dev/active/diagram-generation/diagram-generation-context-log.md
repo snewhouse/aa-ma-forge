@@ -149,3 +149,9 @@ _Updated via context compaction as the task progresses._
 - Key outcome: aa_ma reads codemem's v3 graph read-only through a never-raising stdlib-sqlite3 seam; `aa-ma-never-imports-codemem` is enforced in CI for the first time along with the 3 pre-existing contracts.
 - Artifacts: src/aa_ma/render/graph.py; tests/render/test_graph.py; tests/codemem/test_file_edges.py (+seam-on-real-index); tests/codemem/test_install_and_cli.py; .importlinter; .github/workflows/security.yml; docs/adr/0014-derived-architecture-views.md; docs/adr/INDEX.md; docs/codemem/ARCHITECTURE.md
 - Tests: 1146 passed / 2 skipped; ruff clean; lint-imports 4 kept / 0 broken
+
+## [2026-09-24] GATE APPROVAL: Milestone 2: `aa_ma.render.graph` sqlite seam + import contract + ADR-0014
+- Gate: HARD
+- Approved by: Ste (Stephen J Newhouse)
+- Criteria verified: 7/7
+- Decision: APPROVED

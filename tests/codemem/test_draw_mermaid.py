@@ -75,3 +75,63 @@ def test_render_never_fails_on_hostile_labels() -> None:
     hostile = SAMPLE + [("x\"y#z<w>.py", "é/😀.py", "import")]
     text = to_mermaid(_cut(hostile))
     assert render_check([text]) != "FAIL", text
+
+
+# ---------------------------------------------------------------------
+# `codemem draw` CLI — exit 0 ok / 1 no graph / 2 usage
+# ---------------------------------------------------------------------
+
+import sqlite3  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+import pytest  # noqa: E402
+
+from codemem.cli import main  # noqa: E402
+from codemem.storage.db import connect, ensure_schema  # noqa: E402
+
+
+@pytest.fixture
+def db(tmp_path: Path) -> Path:
+    p = tmp_path / "idx.db"
+    conn = connect(p)
+    ensure_schema(conn)
+    a, b = (conn.execute("INSERT INTO files(path, lang, last_indexed) VALUES (?, 'python', 0)",
+                         (f,)).lastrowid for f in ("src/a.py", "lib/b.py"))
+    conn.execute("INSERT INTO file_edges(src_file_id, dst_file_id, kind) VALUES (?, ?, 'import')", (a, b))
+    conn.commit()
+    conn.close()
+    return p
+
+
+def test_cli_emits_mermaid_on_stdout(db: Path, capsys) -> None:
+    assert main(["--db", str(db), "draw", "--level", "L2"]) == 0
+    out, err = capsys.readouterr()
+    assert out.startswith("flowchart LR\n")
+    assert '-->|"@import"|' in out
+    assert "2 nodes / 1 edges" in err  # summary on stderr keeps stdout pure mermaid
+
+
+def test_cli_l0_default(db: Path, capsys) -> None:
+    assert main(["--db", str(db), "draw"]) == 0
+    assert '["src"]' in capsys.readouterr().out
+
+
+def test_cli_missing_graph_exits_1(tmp_path: Path, capsys) -> None:
+    assert main(["--db", str(tmp_path / "none.db"), "draw"]) == 1
+    assert "codemem build" in capsys.readouterr().err
+    assert not (tmp_path / "none.db").exists()
+
+
+def test_cli_old_schema_exits_1(tmp_path: Path, capsys) -> None:
+    p = tmp_path / "v2.db"
+    conn = sqlite3.connect(p)
+    conn.execute("PRAGMA user_version = 2")
+    conn.close()
+    assert main(["--db", str(p), "draw"]) == 1
+    assert "codemem build" in capsys.readouterr().err
+
+
+def test_cli_usage_error_exits_2(db: Path) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["--db", str(db), "draw", "--level", "L9"])
+    assert exc.value.code == 2

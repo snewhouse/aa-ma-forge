@@ -62,3 +62,4 @@
 [2026-09-24T14:37:02+01:00] AC6 manual observation — shipped §5.1 advisory fence on this plan (M7 ACTIVE, Dependencies: None): output 'rc=0' — silent, rc 0 as designed; fixture case asserted by bats + test_advisory_for_the_fixture
 [2026-09-24T14:44:29+01:00] MILESTONE COMPLETE — M7 — Commit: b5a958d — Criteria: 8/8 verified
 [2026-09-24T14:51:13+01:00] M8 START — Status ACTIVE; §5.1 advisory: ''; prototype: 23 @import claims on own §13 → 3 PHANTOM (1 wrong claim, 2 resolver gap), 19 UNKNOWN
+[2026-09-24T18:21:44+01:00] M8 8.4 — lint golden post: 24 files/34 findings (a5c31aee2912cd5c); diff vs pre only own-§13 PHANTOM (fixed by relabel) + new fixture; own plan lint exit 0

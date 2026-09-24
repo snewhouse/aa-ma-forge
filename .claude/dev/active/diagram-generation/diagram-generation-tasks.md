@@ -285,9 +285,9 @@
 - Result Log: Mode: AFK — auto-dispatched. `mermaid_lint.py`: `SIGILS`, `SIGIL_LABEL_RE`, per-fence `_node_labels` (+ `_unwrap`: `(new)`'s `)` survives), `_EDGE_RE` (one edge per line, inline `[...]` on the source), `_sigil_claims` → `PHANTOM_EDGE` / `LABEL_UNKNOWN` findings + `UNKNOWN` notes in new `LintReport.unknowns` (default `()`); graph loaded lazily once per lint via `render.graph` (+ `file_langs`). Evaluability is from the graph's own data: an endpoint is modelled for a sigil iff its `files.lang` has ≥1 such edge (`.sh` indexed for symbols but never an `@import` node → UNKNOWN; an isolated Python file → still PHANTOM). Plugin sigils → UNKNOWN (Ste). CLI prints `file:line: UNKNOWN: reason`, exit from findings only; plan-verification SKILL reads UNKNOWN as INFO. Found + fixed during GREEN: `(new)` stripping bug; `\[+` quadratic (15 s on 50k `[` → linear, regression test). codemem resolver (Ste): `from X import name` resolves `X.name` via `import_aliases` (bare names relative-only), parser records `from . import x` → +26 genuine import edges, cross-file resolved 836→952; docs regenerated (`draw --check` OK). Tests: render 123+ / phantom 39 / codemem 690 pass; full pytest 1421 passed / 2 skipped; bats 210/210; ruff clean; lint-imports 4/4.
 
 ### Sub-step 8.4: [verify] glob every completed `*-plan.md`: zero findings on sigil-free files
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. AC5 test globs every `.claude/dev/completed/**/*-plan.md` (parametrized; skips only files carrying a sigil — none do): zero PHANTOM_EDGE / LABEL_UNKNOWN / UNKNOWN. Golden before/after (scratch, render stubbed): 22 of 24 files byte-identical in findings; changes only (a) this plan's §13 — one real PHANTOM_EDGE `python_ast -->|@import| resolver` (neither imports the other; the two resolver-gap claims now resolve), (b) the new `sigil-edges.md` fixture (linted against its throwaway repo in tests). Ste: relabelled that §13 claim to prose `|feeds|` (plan.md line 279); `aa-ma-lint-views` on this plan → exit 0, render PASS, 2 INFO UNKNOWNs (`.sql` / directory nodes).
 
 ## Milestone 9: I/O-boundary view — `Prototype-Required: YES`
 - Status: PENDING

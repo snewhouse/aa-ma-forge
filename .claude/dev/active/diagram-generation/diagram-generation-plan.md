@@ -276,7 +276,7 @@ graph TD
     DOCS["docs/architecture/component.md (new)"]
     CAPJSON["docs/architecture.captions.json (new)"]
 
-    PY -->|"@import"| RES
+    PY -->|feeds| RES
     DB -->|"@import"| SQL
     CUT -->|"@import"| DB
     MM -->|"@import"| CUT

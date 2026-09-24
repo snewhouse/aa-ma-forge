@@ -5,7 +5,7 @@
 > field with an empty value; the gate refuses it (exit 2).
 
 ## Milestone 1: codemem `file_edges` (schema v3) + qualified callees
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: None
 - Gate: HARD
 - Audit-Profile: code-only
@@ -16,9 +16,10 @@
 - Acceptance Criteria: 8 criteria — see plan.md § Milestone 1
 
 ### Sub-step 1.1: [test] v3 migration + downgrade-guard tests, RED (`tests/codemem/test_schema_v2.py` v3 sibling; new `test_file_edges.py`)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Scope (widened 2026-09-24, validator WARN #3): 1.1 owns ALL `file_edges` tests — AC1, AC2, AC5/5b (refresh_index row-set idempotency), AC6 (downgrade guard), AC7 (CASCADE), and the 3x-insert dedup regression.
+- Result Log: Mode: AFK — auto-dispatched. New `tests/codemem/test_file_edges.py`, 14 tests: RED 12 failed / 2 passed (the passing 2 are pre-existing invariants: apply_schema-alone=v1, file_edges absent pre-migrate). Covers AC1, AC2, AC5, AC5b, AC6, AC7 + 3x-insert dedup. Baseline before M1: 1101 passed / 2 skipped @ f8e44ed.
 
 ### Sub-step 1.2: [impl] `_MIGRATION_V3_FILE_EDGES` + `CURRENT_SCHEMA_VERSION` 3 (`db.py:41,104`)
 - Status: PENDING

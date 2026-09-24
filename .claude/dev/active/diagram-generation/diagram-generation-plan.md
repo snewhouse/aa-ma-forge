@@ -466,8 +466,7 @@ Invariants:
    `apply_schema()` alone still leaves a fresh DB at **1** (the existing invariant
    must survive — `tests/codemem/test_schema_v2.py:57`).
 2. `SELECT count(*) FROM file_edges WHERE kind='import'` > 0 on this repo.
-3. In the **`edges`** table (NOT `file_edges` — that one is `CHECK (kind IN ('import'))`
-   and an import is not a call), at least one row has a dotted `dst_unresolved`.
+3. In the **`edges`** table (NOT `file_edges` — an import is not a call), at least one row has a dotted `dst_unresolved`.
    Pin the exact expected values on a fixture, not "e.g.":
      `import sqlite3; sqlite3.connect(x)`        -> `sqlite3.connect`
      `import numpy as np; np.array(x)`           -> `numpy.array`    (asname resolved)

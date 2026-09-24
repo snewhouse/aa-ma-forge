@@ -1,0 +1,1162 @@
+[
+ {
+  "level": 0,
+  "name": "claude-code",
+  "id": "n17swhnx"
+ },
+ {
+  "level": 0,
+  "name": "packages",
+  "id": "n1xuzeu4"
+ },
+ {
+  "level": 0,
+  "name": "scripts",
+  "id": "nqu8q49"
+ },
+ {
+  "level": 0,
+  "name": "src",
+  "id": "n1wgktcl"
+ },
+ {
+  "level": 0,
+  "name": "tests",
+  "id": "nfxok9e"
+ },
+ {
+  "level": 1,
+  "name": "claude-code/codemem",
+  "id": "n1oyvm3r"
+ },
+ {
+  "level": 1,
+  "name": "claude-code/hooks",
+  "id": "n13z9a33"
+ },
+ {
+  "level": 1,
+  "name": "packages/codemem-mcp",
+  "id": "nup6eip"
+ },
+ {
+  "level": 1,
+  "name": "scripts",
+  "id": "n1vz8ray"
+ },
+ {
+  "level": 1,
+  "name": "src/aa_ma",
+  "id": "nls5ntm"
+ },
+ {
+  "level": 1,
+  "name": "tests",
+  "id": "num2uhf"
+ },
+ {
+  "level": 1,
+  "name": "tests/agents",
+  "id": "nm50896"
+ },
+ {
+  "level": 1,
+  "name": "tests/assets",
+  "id": "nmbuiin"
+ },
+ {
+  "level": 1,
+  "name": "tests/codemem",
+  "id": "n94ieto"
+ },
+ {
+  "level": 1,
+  "name": "tests/commands",
+  "id": "n3500n8"
+ },
+ {
+  "level": 1,
+  "name": "tests/fixtures",
+  "id": "n6v6zpi"
+ },
+ {
+  "level": 1,
+  "name": "tests/hooks",
+  "id": "n11hi8ac"
+ },
+ {
+  "level": 1,
+  "name": "tests/perf",
+  "id": "n1k7d9yd"
+ },
+ {
+  "level": 1,
+  "name": "tests/plan_markers",
+  "id": "n1gk2kgv"
+ },
+ {
+  "level": 1,
+  "name": "tests/render",
+  "id": "nu5tqvm"
+ },
+ {
+  "level": 1,
+  "name": "tests/skills",
+  "id": "nuq33zy"
+ },
+ {
+  "level": 1,
+  "name": "tests/tui",
+  "id": "nr0mv2k"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/codemem/hooks/post-commit.sh",
+  "id": "nn0sr45"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/codemem/mcp/server.py",
+  "id": "n1g79hvc"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/hooks/aa-ma-commit-drift.sh",
+  "id": "n108z0px"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/hooks/aa-ma-commit-signature.sh",
+  "id": "n1f7ocqe"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/hooks/aa-ma-plan-marker.sh",
+  "id": "n26gs0"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/hooks/aa-ma-plan-skip-warn.sh",
+  "id": "nolxjqg"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/hooks/aa-ma-session-end-dirty.sh",
+  "id": "n1ye83id"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/hooks/aa-ma-session-start.sh",
+  "id": "neaoqrn"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/hooks/lib/aa-ma-chart-guard.sh",
+  "id": "ndix7ky"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/hooks/lib/aa-ma-footer.sh",
+  "id": "n166w5qr"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/hooks/lib/aa-ma-parse.sh",
+  "id": "nlcky9x"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/hooks/pre-compact-aa-ma.sh",
+  "id": "nuwgs8l"
+ },
+ {
+  "level": 2,
+  "name": "claude-code/hooks/security-static-check.sh",
+  "id": "n407yfg"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/__init__.py",
+  "id": "nzrc6bq"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/aa_ma_integration.py",
+  "id": "nfuljo0"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/analysis/__init__.py",
+  "id": "nqntz3p"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/analysis/git_mining.py",
+  "id": "n15x2rwo"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/cli.py",
+  "id": "n1qqv388"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/diff/__init__.py",
+  "id": "n1laeuxq"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/diff/symbol_diff.py",
+  "id": "nana3is"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/incremental.py",
+  "id": "n1qndr8e"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/indexer.py",
+  "id": "nn471i1"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/journal/__init__.py",
+  "id": "n14v8w8e"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/journal/lock.py",
+  "id": "n44kqyb"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/journal/wal.py",
+  "id": "n1eygstq"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/mcp_tools/__init__.py",
+  "id": "n12ip3u5"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/mcp_tools/queries.py",
+  "id": "nby6rkb"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/mcp_tools/sanitizers.py",
+  "id": "n10fbfir"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/pagerank.py",
+  "id": "ng0fem3"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/parser/__init__.py",
+  "id": "nxe473s"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/parser/ast_grep.py",
+  "id": "n15008dx"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/parser/python_ast.py",
+  "id": "n9hzf61"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/resolver.py",
+  "id": "n7xp1xs"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/storage/__init__.py",
+  "id": "n1wfftde"
+ },
+ {
+  "level": 2,
+  "name": "packages/codemem-mcp/src/codemem/storage/db.py",
+  "id": "ns1j8lg"
+ },
+ {
+  "level": 2,
+  "name": "scripts/aa-ma-share-allow.sh",
+  "id": "n1fdo58o"
+ },
+ {
+  "level": 2,
+  "name": "scripts/bench_codemem.py",
+  "id": "n1vgapiq"
+ },
+ {
+  "level": 2,
+  "name": "scripts/bench_codemem_vs_aider.py",
+  "id": "nh6b312"
+ },
+ {
+  "level": 2,
+  "name": "scripts/bench_sweep.py",
+  "id": "nc2fglq"
+ },
+ {
+  "level": 2,
+  "name": "scripts/check_adr_index.sh",
+  "id": "n191v0do"
+ },
+ {
+  "level": 2,
+  "name": "scripts/check_codemem_doc_drift.py",
+  "id": "nvvfr9z"
+ },
+ {
+  "level": 2,
+  "name": "scripts/fork-drift.sh",
+  "id": "n1q30e4x"
+ },
+ {
+  "level": 2,
+  "name": "scripts/grill-mode-resolver.sh",
+  "id": "n1certrq"
+ },
+ {
+  "level": 2,
+  "name": "scripts/install.sh",
+  "id": "n1vidpek"
+ },
+ {
+  "level": 2,
+  "name": "scripts/release.sh",
+  "id": "nrj0ttc"
+ },
+ {
+  "level": 2,
+  "name": "scripts/uninstall.sh",
+  "id": "n17if3n9"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/__init__.py",
+  "id": "nqxncj"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/cli/__init__.py",
+  "id": "n1qweqkk"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/enforce.py",
+  "id": "n1o3m0ll"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/forks.py",
+  "id": "nlu2mu2"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/gate.py",
+  "id": "nxzfv6g"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/goal_synthesis.py",
+  "id": "n1e9drkr"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/grammar.py",
+  "id": "n16alvok"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/plan_markers/__init__.py",
+  "id": "n1g8rj1r"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/plan_markers/fingerprint.py",
+  "id": "ndlwqvf"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/plan_markers/parser.py",
+  "id": "n1p4cio0"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/plan_parsers.py",
+  "id": "n51riw5"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/render/__init__.py",
+  "id": "nyj5s6a"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/render/cli.py",
+  "id": "nptipq4"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/render/graph.py",
+  "id": "napjvke"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/render/html.py",
+  "id": "npbdajr"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/render/mermaid_lint.py",
+  "id": "nacfyc9"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/schemas/__init__.py",
+  "id": "n103l5na"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/__init__.py",
+  "id": "n1kccq24"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/__main__.py",
+  "id": "n1kgb4kj"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/app.py",
+  "id": "n6tl7m9"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/json_output.py",
+  "id": "n17gxjru"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/model.py",
+  "id": "n1r93oy1"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/parser.py",
+  "id": "n19z0p6l"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/screens/__init__.py",
+  "id": "n1dxcrxg"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/screens/dashboard.py",
+  "id": "nmc6u2u"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/screens/task_detail.py",
+  "id": "n1qqb1tb"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/snapshot.py",
+  "id": "n1sg9xfc"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/watcher.py",
+  "id": "nixqzme"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/widgets/__init__.py",
+  "id": "nby6yks"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/widgets/kanban_column.py",
+  "id": "n1rlqg44"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/tui/widgets/task_card.py",
+  "id": "nil7v8o"
+ },
+ {
+  "level": 2,
+  "name": "src/aa_ma/validators/__init__.py",
+  "id": "n1ru1t7x"
+ },
+ {
+  "level": 2,
+  "name": "tests/__init__.py",
+  "id": "nxo08do"
+ },
+ {
+  "level": 2,
+  "name": "tests/agents/__init__.py",
+  "id": "n17js08x"
+ },
+ {
+  "level": 2,
+  "name": "tests/agents/_helpers.py",
+  "id": "nu3nuvf"
+ },
+ {
+  "level": 2,
+  "name": "tests/agents/test_aa_ma_researcher_agent.py",
+  "id": "nak65h2"
+ },
+ {
+  "level": 2,
+  "name": "tests/agents/test_codebase_onboarding_agents.py",
+  "id": "n13vc6u7"
+ },
+ {
+  "level": 2,
+  "name": "tests/assets/__init__.py",
+  "id": "n14k5o3a"
+ },
+ {
+  "level": 2,
+  "name": "tests/assets/test_understand_codebase_xrefs.py",
+  "id": "n1xq5xtn"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/conftest.py",
+  "id": "n1s4hgxr"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_aa_ma_context.py",
+  "id": "nb48azj"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_ast_grep_parser.py",
+  "id": "n1mh3jef"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_audit_profile_parser.py",
+  "id": "n1ta6n0z"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_bench_harness.py",
+  "id": "n17nlxc1"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_co_changes.py",
+  "id": "nlws7ks"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_corpus_grandfathering.py",
+  "id": "nnhcf4h"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_critical_path_parser.py",
+  "id": "n5qygsz"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_diagram_waiver_parser.py",
+  "id": "n1srixck"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_doc_drift.py",
+  "id": "nuglj6o"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_file_edges.py",
+  "id": "n1gcbv6h"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_git_mining.py",
+  "id": "nt227yn"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_hot_spots.py",
+  "id": "nymzcgz"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_incremental.py",
+  "id": "n1h2r0dk"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_indexer.py",
+  "id": "nbqtq03"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_install_and_cli.py",
+  "id": "ni60sz2"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_layers.py",
+  "id": "n10mdsga"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_mcp_server.py",
+  "id": "ni5r078"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_mcp_server_integration.py",
+  "id": "nowtfdb"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_mcp_tools.py",
+  "id": "n2rp0p8"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_owners.py",
+  "id": "n1sfur3g"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_pagerank.py",
+  "id": "ninis1d"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_post_commit_storm.py",
+  "id": "n17wbfxe"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_python_parser.py",
+  "id": "n1x9syqo"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_resolver.py",
+  "id": "naksfd2"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_schema.py",
+  "id": "n1plpmdn"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_schema_v2.py",
+  "id": "nfrqe7c"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_symbol_diff.py",
+  "id": "nefyg3a"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_symbol_history.py",
+  "id": "n39b9of"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_tdd_waiver_parser.py",
+  "id": "n1sldsyb"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_wal.py",
+  "id": "n16pai74"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_wal_hygiene.py",
+  "id": "n1dsqaty"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_wal_replay_roundtrip.py",
+  "id": "n1n7i41g"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_wal_rotation.py",
+  "id": "nphkt81"
+ },
+ {
+  "level": 2,
+  "name": "tests/codemem/test_writer_lock.py",
+  "id": "nd407hn"
+ },
+ {
+  "level": 2,
+  "name": "tests/commands/__init__.py",
+  "id": "nq0qcjf"
+ },
+ {
+  "level": 2,
+  "name": "tests/commands/sole-dev-merge/fixtures/extract_stage.sh",
+  "id": "n448qtp"
+ },
+ {
+  "level": 2,
+  "name": "tests/commands/sole-dev-merge/fixtures/helpers.bash",
+  "id": "ngf9xrb"
+ },
+ {
+  "level": 2,
+  "name": "tests/commands/test_aa_ma_share_command.py",
+  "id": "n1fyei2h"
+ },
+ {
+  "level": 2,
+  "name": "tests/commands/test_grill_mode_resolver.py",
+  "id": "n1vvyfw7"
+ },
+ {
+  "level": 2,
+  "name": "tests/commands/test_plan_verification_angle6.py",
+  "id": "n1d9016t"
+ },
+ {
+  "level": 2,
+  "name": "tests/commands/test_planning_standard_count.py",
+  "id": "ntzwykp"
+ },
+ {
+  "level": 2,
+  "name": "tests/commands/test_understand_codebase_command.py",
+  "id": "nf8nv1"
+ },
+ {
+  "level": 2,
+  "name": "tests/fixtures/codemem/symbol_ids/python_sample.py",
+  "id": "n5rxut3"
+ },
+ {
+  "level": 2,
+  "name": "tests/hooks/fixtures/build_active_dir.sh",
+  "id": "nptr81f"
+ },
+ {
+  "level": 2,
+  "name": "tests/perf/__init__.py",
+  "id": "n17v1f8c"
+ },
+ {
+  "level": 2,
+  "name": "tests/perf/test_budgets.py",
+  "id": "n1xnboiz"
+ },
+ {
+  "level": 2,
+  "name": "tests/plan_markers/__init__.py",
+  "id": "n1l5j7iu"
+ },
+ {
+  "level": 2,
+  "name": "tests/plan_markers/test_fingerprint.py",
+  "id": "n1qweufj"
+ },
+ {
+  "level": 2,
+  "name": "tests/plan_markers/test_parser.py",
+  "id": "n1paa2k"
+ },
+ {
+  "level": 2,
+  "name": "tests/render/__init__.py",
+  "id": "nkmtbrd"
+ },
+ {
+  "level": 2,
+  "name": "tests/render/conftest.py",
+  "id": "n1ekkrhf"
+ },
+ {
+  "level": 2,
+  "name": "tests/render/test_cli.py",
+  "id": "njuh6fa"
+ },
+ {
+  "level": 2,
+  "name": "tests/render/test_graph.py",
+  "id": "nnro3dk"
+ },
+ {
+  "level": 2,
+  "name": "tests/render/test_hostile_input.py",
+  "id": "n1uld3nl"
+ },
+ {
+  "level": 2,
+  "name": "tests/render/test_html.py",
+  "id": "n1h8du59"
+ },
+ {
+  "level": 2,
+  "name": "tests/render/test_leaf_contract.py",
+  "id": "n1sis1o3"
+ },
+ {
+  "level": 2,
+  "name": "tests/render/test_mermaid_lint.py",
+  "id": "n1mslmmn"
+ },
+ {
+  "level": 2,
+  "name": "tests/skills/__init__.py",
+  "id": "nwlohh1"
+ },
+ {
+  "level": 2,
+  "name": "tests/skills/_helpers.py",
+  "id": "nj5kc3j"
+ },
+ {
+  "level": 2,
+  "name": "tests/skills/test_aa_ma_research_frontmatter.py",
+  "id": "n1cmvvgq"
+ },
+ {
+  "level": 2,
+  "name": "tests/skills/test_fork_manifest.py",
+  "id": "n1rcyeyu"
+ },
+ {
+  "level": 2,
+  "name": "tests/skills/test_grill_with_docs_frontmatter.py",
+  "id": "n10kxkok"
+ },
+ {
+  "level": 2,
+  "name": "tests/skills/test_grilling_frontmatter.py",
+  "id": "n1x6xyjx"
+ },
+ {
+  "level": 2,
+  "name": "tests/skills/test_prototype_frontmatter.py",
+  "id": "n2cjnz9"
+ },
+ {
+  "level": 2,
+  "name": "tests/skills/test_understand_codebase_frontmatter.py",
+  "id": "nuezde0"
+ },
+ {
+  "level": 2,
+  "name": "tests/skills/test_verify_impl_agents.py",
+  "id": "nrkmi8l"
+ },
+ {
+  "level": 2,
+  "name": "tests/skills/test_write_a_skill_frontmatter.py",
+  "id": "n1xjbaxg"
+ },
+ {
+  "level": 2,
+  "name": "tests/test_active_plans_canonical.py",
+  "id": "nlfkatb"
+ },
+ {
+  "level": 2,
+  "name": "tests/test_enforce.py",
+  "id": "n101hsvb"
+ },
+ {
+  "level": 2,
+  "name": "tests/test_gate.py",
+  "id": "n7i4l16"
+ },
+ {
+  "level": 2,
+  "name": "tests/test_gate_parity.py",
+  "id": "neqmdu0"
+ },
+ {
+  "level": 2,
+  "name": "tests/test_goal_synthesis.py",
+  "id": "n1j9hl4t"
+ },
+ {
+  "level": 2,
+  "name": "tests/test_grammar.py",
+  "id": "ni8hnya"
+ },
+ {
+  "level": 2,
+  "name": "tests/test_grammar_parity.py",
+  "id": "n1qya5xc"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/__init__.py",
+  "id": "n18ter8l"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/_static_tasks.py",
+  "id": "n1yjp3j1"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/conftest.py",
+  "id": "n3q24zj"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/snapshot_apps/__init__.py",
+  "id": "nh6yacj"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/snapshot_apps/dashboard_static.py",
+  "id": "ng2sty2"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_app_smoke.py",
+  "id": "nrgxoep"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_integration.py",
+  "id": "n8ww1m6"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_json_output.py",
+  "id": "n12jgb4a"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_main_dispatch.py",
+  "id": "n1sfvdz6"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_model.py",
+  "id": "notdwjd"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_parser.py",
+  "id": "n1pyq64t"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_parser_properties.py",
+  "id": "nxjwsnj"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_screens_dashboard.py",
+  "id": "nhh0546"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_screens_task_detail.py",
+  "id": "n38y8sv"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_snapshot.py",
+  "id": "nixribs"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_watcher.py",
+  "id": "nhgw79i"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_widgets_kanban_column.py",
+  "id": "na5g3ec"
+ },
+ {
+  "level": 2,
+  "name": "tests/tui/test_widgets_task_card.py",
+  "id": "ndq16a0"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::GateAnswer",
+  "id": "nw6mlya"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::MilestoneRead",
+  "id": "n1yb0xu5"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::StepRead",
+  "id": "n13k4em3"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::StepsRead",
+  "id": "njaot8k"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::GateAnswer.to_json",
+  "id": "n1ui3i74"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::GateAnswer.to_kv",
+  "id": "nnvaov7"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::_heading",
+  "id": "n1v0p8v0"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::_own_text",
+  "id": "n1rkc3u4"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::_read_milestone",
+  "id": "nv5lc4t"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::_read_or_error",
+  "id": "n1fp4bm7"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::_read_step",
+  "id": "n10rtf1r"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::_read_steps",
+  "id": "n3gj2zo"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::answer",
+  "id": "n1g4682f"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/gate.py::main",
+  "id": "nl1ukya"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/render/graph.py::GraphHandle",
+  "id": "n1ex8kav"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/render/graph.py::GraphStatus",
+  "id": "n1keyj69"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/render/graph.py::_printable",
+  "id": "nc5ncpj"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/render/graph.py::_stale_paths",
+  "id": "n14poxg8"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/render/graph.py::call_edges",
+  "id": "nr6gdhg"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/render/graph.py::import_edges",
+  "id": "neq5nyj"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/render/graph.py::open_graph",
+  "id": "n6pklrc"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/render/graph.py::_fence",
+  "id": "nklyeo1"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/render/graph.py::_md",
+  "id": "n1er0vt3"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/render/graph.py::_raw_html",
+  "id": "n539jv6"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/render/graph.py::_strip_comments",
+  "id": "n10s84ob"
+ },
+ {
+  "level": 3,
+  "name": "src/aa_ma/render/graph.py::render_markdown",
+  "id": "n16vxm89"
+ },
+ {
+  "level": 2,
+  "name": "a (b)/c-d.py",
+  "id": "nxgx4tl"
+ },
+ {
+  "level": 2,
+  "name": "x\"y.py",
+  "id": "n1jb0o8l"
+ },
+ {
+  "level": 2,
+  "name": "é/ü.py",
+  "id": "n121gvta"
+ },
+ {
+  "level": 2,
+  "name": "emoji/😀.py",
+  "id": "n1ijwtbk"
+ },
+ {
+  "level": 2,
+  "name": "sp ace/f.py",
+  "id": "n193y1tf"
+ },
+ {
+  "level": 3,
+  "name": "a (b)/c-d.py::Cls.meth",
+  "id": "na7wkc8"
+ }
+]

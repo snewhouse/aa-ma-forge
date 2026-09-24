@@ -5,6 +5,29 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-024 (2026-09-24) — A measurement base you never validated, and a verdict that is always UNKNOWN, both hide defects
+
+**Pattern:** In `diagram-generation` M3 I measured draw cuts on the live
+`.codemem/index.db` and put those figures in a decision question to Ste. The index
+was corrupt — `build_index` had misattributed 2819 of 4462 symbols across rebuilds —
+so every "HEAD" number I quoted was wrong, and one cut showed edges the
+`render-is-leaf` import contract makes impossible. Separately, every mermaid render
+check had returned `UNKNOWN` for weeks (empty browser dirs in the puppeteer cache);
+L-012 correctly never counted UNKNOWN as PASS, but nothing ever asked why it was
+never anything else — and it was hiding a real parse error in the plan's own §13
+(bare `|@kind|` sigils).
+
+**Rule:** (1) Measure on a FRESH scratch build, never on a long-lived index, until
+that index is proven clean; when a result contradicts a known invariant (an import
+contract, a leaf rule), treat the data as suspect before the code. (2) A check that
+has only ever returned UNKNOWN is not a check — the first time a gate depends on it,
+fix the environment until it can return PASS or FAIL, and prove it can FAIL.
+
+**Cross-ref:** L-012 (UNKNOWN is never PASS) — this is its complement: UNKNOWN
+forever is a defect of its own.
+
+---
+
 ## L-023 (2026-09-24) — Replacing a test literal with the live constant inverts any test that monkeypatches that constant
 
 **Pattern:** Acting on a future-proofing WARNING in `diagram-generation` M1, a

@@ -125,11 +125,16 @@ def cut(
     return from_edges(edges, level)
 
 
-def from_edges(edges: set[tuple[str, str, str]], level: Level) -> Cut:
-    """Named ``(src, dst, kind)`` edges -> ``Cut``: sorted, capped at ``MAX_EDGES``, ids checked unique."""
+def from_edges(
+    edges: set[tuple[str, str, str]], level: Level, isolated: frozenset[str] = frozenset()
+) -> Cut:
+    """Named ``(src, dst, kind)`` edges -> ``Cut``: sorted, capped at ``MAX_EDGES``, ids checked unique.
+
+    ``isolated`` names nodes to draw even with no kept edge (the plugin surface's orphans).
+    """
     ordered = sorted(edges)
     kept = ordered[:MAX_EDGES]
-    names = {n for a, b, _ in kept for n in (a, b)}
+    names = {n for a, b, _ in kept for n in (a, b)} | isolated
     nodes = {node_id(n, level): n for n in names}
     if len(nodes) != len(names):
         raise ValueError(f"node_id collision at {level.name}; ids are not unique for this graph")

@@ -1173,12 +1173,12 @@
   ]
  },
  "orphans": [
-  "aa-ma-execution",
-  "aa-ma-search",
-  "aa-ma-session-end-dirty.sh",
-  "complexity-router",
-  "debugging-strategies",
-  "sole-dev-merge",
-  "write-a-skill"
+  "command:aa-ma-search",
+  "command:sole-dev-merge",
+  "hook:aa-ma-session-end-dirty.sh",
+  "skill:aa-ma-execution",
+  "skill:complexity-router",
+  "skill:debugging-strategies",
+  "skill:write-a-skill"
  ]
 }

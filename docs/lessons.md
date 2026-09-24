@@ -5,6 +5,27 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-023 (2026-09-24) — Replacing a test literal with the live constant inverts any test that monkeypatches that constant
+
+**Pattern:** Acting on a future-proofing WARNING in `diagram-generation` M1, a
+mechanical replace turned every `== 3` in `tests/codemem/test_file_edges.py` into
+`== db.CURRENT_SCHEMA_VERSION`. One test monkeypatches `CURRENT_SCHEMA_VERSION` to 2
+to simulate older code; after the replace, its asserts read the *patched* value and
+would have asserted the downgrade the test exists to forbid — and still passed on
+broken code. The same session's earlier regex replace also hit a symbol-count `== 2`
+instead of a version check. Both caught by reading context, not by the suite.
+
+**Rule:** Never bulk-replace assertion literals. For each site, check whether the
+test patches the constant; if so, capture the real value into a local *before*
+`monkeypatch.setattr` and assert against that. After any edit to a guard test,
+prove it still guards: disable the guarded line and confirm the test goes red
+(M1: removing the `apply_schema` guard -> 2 failed).
+
+**Cross-ref:** L-011 / L-021 (silent-failure family) — here the failure mode is a
+test that passes for the wrong reason.
+
+---
+
 ## L-022 (2026-09-22) — Tests written under `packages/` are collected locally and never run by CI
 
 **Pattern:** The `diagram-generation` plan routed every new codemem test to

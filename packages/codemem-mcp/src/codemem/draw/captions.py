@@ -34,30 +34,45 @@ class CaptionFinding:
 
 
 def load(repo_root: Path) -> dict[str, str]:
-    """The sidecar's mapping; an absent file means no captions, a malformed one is an error."""
+    """The sidecar's mapping; an absent file means no captions, a malformed one is an error.
+
+    Every failure is a ``ValueError`` naming the file: bad JSON, deep nesting, an
+    unreadable file, a duplicate key, an unknown ``@`` directive, an empty ``@start``.
+    """
     p = repo_root / CAPTIONS_PATH
     if not p.is_file():
         return {}
     try:
-        data = json.loads(p.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-        raise ValueError(f"{CAPTIONS_PATH}: not valid JSON ({exc})") from exc
+        data = json.loads(p.read_text(encoding="utf-8"), object_pairs_hook=_unique_keys)
+    except (ValueError, RecursionError, OSError) as exc:  # JSONDecodeError, UnicodeDecodeError are ValueErrors
+        raise ValueError(f"{CAPTIONS_PATH}: {type(exc).__name__}: {exc}") from exc
     if not isinstance(data, dict) or not all(isinstance(v, str) for v in data.values()):
         raise ValueError(f"{CAPTIONS_PATH}: must be a flat object of path -> string")
+    unknown = sorted(k for k in data if k.startswith("@") and k != START)
+    if unknown:
+        raise ValueError(f"{CAPTIONS_PATH}: unknown directive {unknown[0]!r}; only {START} exists")
+    if START in data and not data[START]:
+        raise ValueError(f"{CAPTIONS_PATH}: {START} is empty")
     return data
 
 
 def orphans(
     captions: dict[str, str], known_paths: set[str], planned_paths: set[str]
 ) -> list[CaptionFinding]:
-    """Captions whose path is gone. ``planned_paths`` is the plan's ``(new)`` set: UNKNOWN, not orphan."""
+    """Captions whose path is gone. ``planned_paths`` is the plan's ``(new)`` set: UNKNOWN, not orphan.
+
+    A symbol key (``a.py::f``) exists when its file does.
+    """
     findings = []
     for key, value in sorted(captions.items()):
         path = value if key == START else key
-        if _exists(path, known_paths):
+        file = path.split("::", 1)[0]
+        if _exists(file, known_paths):
             continue
-        if path in planned_paths or path.rstrip("/") in planned_paths:
+        if _exists(file, planned_paths) or file.rstrip("/") in planned_paths:
             findings.append(CaptionFinding(path, "UNKNOWN", "planned (new) in the plan; not on disk yet"))
+        elif not file.endswith("/") and _exists(file + "/", known_paths):
+            findings.append(CaptionFinding(path, "ORPHAN_CAPTION", "a directory: the key needs a trailing /"))
         else:
             findings.append(CaptionFinding(path, "ORPHAN_CAPTION", "path not in the repo"))
     return findings
@@ -79,9 +94,7 @@ def start_ids(c: Cut, captions: dict[str, str] | None) -> list[str]:
         return []
     return sorted(
         nid for nid, label in c.nodes.items()
-        if label == start.rstrip("/")
-        or start.startswith(label + "/")  # a collapsed directory holding it
-        or label.startswith(start if start.endswith("/") else start + "::")  # its files / symbols
+        if _names(start, label) or start.startswith(label + "/")  # or a collapsed dir holding it
     )
 
 
@@ -89,6 +102,13 @@ def _names(key: str, label: str) -> bool:
     if key.endswith("/"):  # the directory itself, or anything inside it — never an ancestor
         return label == key[:-1] or label.startswith(key)
     return label == key or label.startswith(key + "::")
+
+
+def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    keys = [k for k, _ in pairs]
+    if dup := next((k for k in keys if keys.count(k) > 1), None):
+        raise ValueError(f"duplicate key {dup!r}")
+    return dict(pairs)
 
 
 def _exists(path: str, known: set[str]) -> bool:

@@ -29,7 +29,7 @@ def escape_label(text: str) -> str:
     return "".join(c if c.isprintable() else "?" for c in text)
 
 
-def to_mermaid(c: Cut, captions: dict[str, str] | None = None) -> str:
+def to_mermaid(c: Cut, *, captions: dict[str, str] | None = None) -> str:
     """Deterministic ``flowchart LR``: nodes by label, then edges by (src, dst, kind) label.
 
     ``captions`` contributes only the ``@start`` highlight; caption prose stays outside the

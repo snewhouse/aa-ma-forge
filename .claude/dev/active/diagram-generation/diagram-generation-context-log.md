@@ -221,3 +221,9 @@ _Updated via context compaction as the task progresses._
 - Key outcome: `codemem.draw.plugin_surface.extract()` recovers the commands→skills→agents→hooks graph with three-valued classification; 42 Skill() targets = 17/21/4; 7 named orphans; golden pinned.
 - Artifacts: draw/plugin_surface.py, draw/surface_allowlist.py, draw/cut.py (from_edges), tests/codemem/test_plugin_surface.py, tests/golden/plugin-surface.json
 - Tests: 1216 passed / 2 skipped; 21 surface tests
+
+## [2026-09-24] M5 design reading (from map Ticket 12, not assumed)
+- Caption prose renders OUTSIDE the mermaid fence (map Ticket 12 decisions 1/5: the emitter renders captions into the living doc's markdown; `%%` comments are invisible; a caption-only diff is not drift). So `to_mermaid(c, captions=None)` uses captions ONLY for `@start` (`classDef start` + `class <id> start`), and `captions.for_cut(cut, captions)` returns the captions that apply to a cut's nodes, for M6's markdown and M12's explorer.
+- Matching: dir key `a/b/` ↔ node label `a/b` (collapsed levels); file key ↔ L2 label or L3 `path::symbol` file part. `@start` highlights the node that IS or CONTAINS the path, so collapsed levels still show where to start.
+- Contract Files lists only captions.py / sidecar / test, but AC1 needs the emitter and Rollback names "the emitter's captions argument", so `draw/mermaid.py` is modified (default None → byte-identical M3 output). The `codemem draw` CLI is not wired here: M6's view registry is the caller (YAGNI until then).
+- The "emitter refuses to write inside docs/architecture/" risk mitigation has no writer until M6; M5 pins the path constant outside that dir.

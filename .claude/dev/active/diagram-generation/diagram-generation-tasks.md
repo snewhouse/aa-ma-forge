@@ -149,7 +149,7 @@
 - Result Log: Mode: AFK — auto-dispatched. `extract(repo_root) -> Surface(cut, edges, orphans, hook_events, errors)` (API-shape resolution in context-log 2026-09-24 4.1). `surface_allowlist.EXTERNAL` = 21 skills / 3 agents / 1 hook, `HOOK_TABLE = scripts/install.sh`. `cut.from_edges()` extracted from `cut()` (DRY: sort, MAX_EDGES cap, id-collision check) — M3 behaviour unchanged (M3 suites green). GREEN: 13/13; src output byte-identical to the independent prototype's golden (regen → no diff). Full suite 1208 passed / 2 skipped; ruff clean; bandit clean; lint-imports 4 kept / 0 broken. Live: 80 nodes / 187 drawn edges / 0 dropped; `render_check` = PASS on the real renderer.
 
 ## Milestone 5: Captions sidecar
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 3
 - Gate: HARD
 - Audit-Profile: code-only
@@ -159,9 +159,9 @@
 - Acceptance Criteria: 4 criteria — see plan.md § Milestone 5
 
 ### Sub-step 5.1: [test] `test_captions.py` incl. ORPHAN vs UNKNOWN, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. 20 tests: load (absent → {}, flat mapping, 4 malformed shapes → ValueError naming the file, path outside docs/architecture/); orphans (existing file/dir keys silent, deleted → ORPHAN_CAPTION, planned → UNKNOWN, stale @start reported by its path, never mutates prose, authored sidecar clean against `git ls-files`); for_cut (dir caption at L0/L1, file caption at L2/L3); @start classDef at exact node and at the containing node at L0, no-captions output unchanged, caption-only edit not drift, render never FAIL. RED: ImportError (`codemem.draw.captions` absent).
 
 ### Sub-step 5.2: [impl] `draw/captions.py` + authored `docs/architecture.captions.json`
 - Status: PENDING

@@ -123,7 +123,7 @@
 - Result Log: Mode: AFK — Ste approved. ROOT CAUSE (read + reproduced): indexer.build_index sets `PRAGMA foreign_keys = OFF` (l.391) BEFORE `DELETE FROM files` (l.402) -> no cascade -> orphaned symbols/edges re-attached to reused file ids; closing foreign_key_check passes because orphans now have a parent. Repro: build {b,c}, add a.py, rebuild -> beta under a.py, gamma under b.py. FIX: full build explicitly clears edges, file_edges, symbols, files inside its transaction (git-mining tables path-keyed, untouched) — also drops disk-deleted files and self-heals corrupted indexes. RED fe90f6d (3 tests) -> GREEN. Live index healed: 4462 -> 1649 symbols, 2819 -> 0 misattributed; build 0.45s (unchanged). Healed-index call cuts now match the prototype exactly (L2 render 5/4, raw -tests 25/27). codemem 589 passed.
 
 ## Milestone 4: Plugin-surface extractor
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 3
 - Gate: HARD
 - Audit-Profile: code-only
@@ -131,6 +131,7 @@
 - Effort: 1
 - Goal: `claude-code/**/*.md` yields a commands→skills→agents→hooks graph with three-valued reference classification.
 - Acceptance Criteria: 5 criteria — see plan.md § Milestone 4
+- Result Log: 5/5 AC verified; HARD gate APPROVED (Ste, 2026-09-24). Commits e249695 (4.1), beec7c1 RED → c6346e7 GREEN, 29d1bd3 RED → 711e8b7 review fixes, 3a6c8c5 impl-review. §6.8: 1 CRITICAL accepted+fixed, re-review clean. 1216 passed; render PASS 84 nodes / 187 edges.
 
 ### Sub-step 4.1: [measure] re-measure the surface; identify the 42nd `Skill()` target
 - Status: COMPLETE

@@ -209,3 +209,15 @@ _Updated via context compaction as the task progresses._
 - Orphans are `kind:stem` (Ste). AC4's named set is unchanged; the test compares stripped stems and asserts no duplicates. Deviation from AC4's literal `set(result.orphans)` recorded here.
 - M14 scope widened (future-proofing WARNING): Sub-step 14.3 now includes `engineering-standards.md:44`. The 2026-09-22 "41" was a regex artefact (`:` excluded), not a count that later moved.
 - `cut.from_edges()` extracted from `cut()` and given `isolated=`; it is outside M4's Files list but preserves behaviour (M3 suites green).
+
+## [2026-09-24] GATE APPROVAL: Milestone 4: Plugin-surface extractor
+- Gate: HARD
+- Approved by: Ste (Stephen J Newhouse)
+- Criteria verified: 5/5
+- Decision: APPROVED
+
+## [2026-09-24] Milestone Completion: Plugin-surface extractor
+- Status: COMPLETE
+- Key outcome: `codemem.draw.plugin_surface.extract()` recovers the commands→skills→agents→hooks graph with three-valued classification; 42 Skill() targets = 17/21/4; 7 named orphans; golden pinned.
+- Artifacts: draw/plugin_surface.py, draw/surface_allowlist.py, draw/cut.py (from_edges), tests/codemem/test_plugin_surface.py, tests/golden/plugin-surface.json
+- Tests: 1216 passed / 2 skipped; 21 surface tests

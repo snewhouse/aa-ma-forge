@@ -70,7 +70,7 @@ Architecture View: see plan.md §13 (Component view + Flow view; `Diagram-Waiver
 
 ## Decay notices — re-measure before asserting
 
-- `Skill()` targets: **42** distinct as of 2026-09-22, while
+- `Skill()` targets: **42** distinct (M4 re-measured 2026-09-24: 17 ON_DISK / 21 DECLARED_EXTERNAL / 4 DANGLING; the 42nd is plugin-namespaced `feature-dev:feature-dev`, invisible to Ticket 4's `[A-Za-z0-9_-]+`), while
   `claude-code/rules/engineering-standards.md:44` still pins 41 (17/20/4). M4 identifies
   the 42nd; M14 reconciles the rule.
 - Plugin surface: 163 edges / 42 files / 52 of 59 nodes (13 cmd, 21 skill, 12 agent,
@@ -151,3 +151,11 @@ _Last Updated: 2026-09-22_
 | Build semantics | `build_index` clears edges/file_edges/symbols/files, then reloads (self-heals corrupted indexes) | M3 §3.5 |
 | Live bands @ M3 | L0 2/1; L2 render call 5/4; call -tests 25/27; +tests 94/107; L3 299/355 | M3 |
 | Local render env | mmdc 11.17.0 / mermaid 11.17.2; chrome-headless-shell 152.0.7977.75 in ~/.cache/puppeteer (manually extracted; no `unzip` on host); CI has no browser -> render UNKNOWN there | M3 |
+
+## M4 facts (plugin surface, 2026-09-24)
+- API: `codemem.draw.plugin_surface.extract(repo_root) -> Surface(cut, edges: list[SurfaceEdge], orphans, hook_events, errors)`; `SurfaceEdge(src, dst, kind, ref_class)`; `RefClass` ON_DISK | DECLARED_EXTERNAL | DANGLING; `as_json()` = golden shape.
+- Node ids are `kind:stem` (kind ∈ command|skill|agent|hook|rule); edge `kind` = DESTINATION kind (M6 sigils `@skill/@command/@agent/@hook` filter on it). Cut built with `Level.L2` as a namespace seed only; DANGLING edges not drawn; orphans drawn as isolated nodes.
+- Allowlist: `codemem.draw.surface_allowlist.EXTERNAL` (skill/agent/hook) and `HOOK_TABLE = scripts/install.sh`; an unreferenced entry fails `test_every_allowlisted_external_is_still_referenced`.
+- Golden: `tests/golden/plugin-surface.json`; regenerate with `uv run python tests/codemem/test_plugin_surface.py` and review the diff. Any `claude-code/` edit that changes references changes it — M10/M11/M14 must regenerate.
+- Live at 711e8b7: 191 edges (154 ON_DISK / 33 DECLARED_EXTERNAL / 4 DANGLING), 59 nodes, 7 orphans, 7 wired hooks, errors []. Measurements, not assertions.
+- `cut.from_edges(edges, level, isolated=frozenset())` is the shared edges→Cut step (sort, MAX_EDGES cap, collision check).

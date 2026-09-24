@@ -193,10 +193,10 @@
 - Result Log: Mode: AFK — auto-dispatched. d42cb50: `draw/views.py` — `ViewSpec(output_path, title, generator, level, scope, summary, applies)`, `VIEWS` = readme / component (L2) / plugin-surface (`applies` = `claude-code/` exists), `registered_paths`, `write_views` (all targets guard-checked before any write), `check_views` (DRIFT per stale/missing view, ORPHAN_CAPTION vs `git ls-files`, planned set empty). `cli.py`: `--write` / `--check` mutually exclusive, refuse `--level`/`--scope` (exit 2); `--level` default now None → L0 in stdout mode (bare `draw` unchanged, tested). No/pre-v3/unreadable index: `--check` UNKNOWN exit 0, `--write` exit 1. 17/18 draw-check tests GREEN (AC5 awaits 6.4); full suite 1280 passed / 2 skipped; ruff clean; bandit 2× B404 LOW (subprocess import, same as existing cli.py); lint-imports 4 kept.
 
 ### Sub-step 6.3: [impl] generate `docs/architecture/{README,component,plugin-surface}.md`
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Obligations (M5 §6.8): render `captions.for_cut()` prose outside the fence through `captions.escape_prose()` (built + tested 61eb4e4); decide and record whether the plugin-surface view (labels `kind:stem`, not paths) takes captions.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. 7f7bfae: fresh `codemem build` (191 files / 1770 symbols / 4168 edges, 0.45s) then `codemem draw --write` → README (11 lines), component (160 lines; L2 100 edges), plugin-surface (299 lines; 4 dangling refs + 7 orphans listed under the diagram). `--check` OK immediately after. Both fences `render_check` = PASS on the real renderer. Captions render inside the captions block via `escape_prose` (`->` → `-&gt;`, displays `->`). Plugin-surface takes no captions by construction (labels `kind:stem`) — recorded context-log 2026-09-24 #5. Full suite 1280 passed (AC5 test deselected until 6.4).
 
 ### Sub-step 6.4: [impl] `architecture-drift` job in `security.yml` (Critical-Path)
 - Status: PENDING

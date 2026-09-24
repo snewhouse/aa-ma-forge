@@ -5,6 +5,20 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-025 (2026-09-24) — A test that waits on a later sub-step turns CI red the moment you push
+
+**Pattern:** In `diagram-generation` M6 the RED test file included AC5 (the `architecture-drift`
+job exists in `security.yml`), which only sub-step 6.4 satisfies. After 6.2's GREEN commit I pushed
+with that one test still failing; `codemem-smoke` runs `pytest tests/codemem/ -x`, so CI went red on
+`91bdd5f` for a reason I already knew. Earlier milestones never hit this because their RED and GREEN
+landed in the same push.
+
+**Rule:** Before every push, run what CI runs (`uv run pytest -q` at minimum) and push only on zero
+failures. A test whose GREEN belongs to a later sub-step stays local until that sub-step lands — or
+the two sub-steps are pushed together. "Known RED" is not a reason to push red.
+
+---
+
 ## L-024 (2026-09-24) — A measurement base you never validated, and a verdict that is always UNKNOWN, both hide defects
 
 **Pattern:** In `diagram-generation` M3 I measured draw cuts on the live

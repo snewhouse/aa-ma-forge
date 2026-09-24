@@ -8,6 +8,7 @@ seam in ``aa_ma.render.mermaid_lint``. Edges carry the QUOTED kind sigil
 
 from __future__ import annotations
 
+from .captions import start_ids
 from .cut import MAX_EDGES, Cut
 
 __all__ = ["escape_label", "to_mermaid"]
@@ -28,8 +29,12 @@ def escape_label(text: str) -> str:
     return "".join(c if c.isprintable() else "?" for c in text)
 
 
-def to_mermaid(c: Cut) -> str:
-    """Deterministic ``flowchart LR``: nodes by label, then edges by (src, dst, kind) label."""
+def to_mermaid(c: Cut, captions: dict[str, str] | None = None) -> str:
+    """Deterministic ``flowchart LR``: nodes by label, then edges by (src, dst, kind) label.
+
+    ``captions`` contributes only the ``@start`` highlight; caption prose stays outside the
+    fence (``captions.for_cut``), so rewording a caption never changes this text.
+    """
     lines = ["flowchart LR"]
     if c.dropped:
         lines.append(f"%% {c.dropped} edges not shown: over mermaid maxEdges {MAX_EDGES}")
@@ -37,4 +42,7 @@ def to_mermaid(c: Cut) -> str:
         lines.append(f'  {nid}["{escape_label(label)}"]')
     for a, b, kind in sorted(c.edges, key=lambda e: (c.nodes[e[0]], c.nodes[e[1]], e[2])):
         lines.append(f'  {a} -->|"@{kind}"| {b}')
+    if start := start_ids(c, captions):
+        lines.append("  classDef start stroke-width:4px")
+        lines.append(f"  class {','.join(start)} start")
     return "\n".join(lines) + "\n"

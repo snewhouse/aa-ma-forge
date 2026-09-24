@@ -1,0 +1,5 @@
+{
+  "@start": "src/aa_ma/render/cli.py",
+  "src/aa_ma/render/": "Markdown -> HTML and view linting.",
+  "packages/codemem-mcp/src/codemem/draw/": "The emitter. Start here."
+}

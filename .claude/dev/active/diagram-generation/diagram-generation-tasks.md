@@ -47,9 +47,9 @@
 - Result Log: Mode: AFK — auto-dispatched. resolver.py `_persist_import_edges()`: per parsed file, explicit `DELETE FROM file_edges WHERE src_file_id=?` then INSERT OR IGNORE import rows (resolved -> dst_file_id, else dst_unresolved=module). Resolves against the DB-wide `files` set, not the parse set (refresh passes dirty files only — an import of an unchanged file must resolve). DEVIATION: invalidation placed in the resolver, not incremental.py — both writers (build_index, refresh_index) call it, so one site covers both; incremental.py unchanged. Known gap (pre-existing, same as call edges): WAL replay does not re-run the resolver, so replay-from-scratch leaves file_edges empty until next build. codemem: 544 passed / 2 skipped.
 
 ### Sub-step 1.7: [verify] `CRITICAL_PATH_REVIEW` (data-xform) + full codemem suite green
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: Mode: HITL — Ste approved (Proceed). CRITICAL_PATH_REVIEW (data-xform) written to provenance.log naming this milestone. Full suite 1122 passed / 2 skipped (baseline 1101 +21 new); ruff clean; tests/codemem/ collected by CI (security.yml:157). Same-tree base vs head: symbols + resolved call edges identical.
 
 ## Milestone 2: `aa_ma.render.graph` sqlite seam + import contract + ADR-0014
 - Status: PENDING

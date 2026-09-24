@@ -32,14 +32,14 @@ class GraphStatus(StrEnum):
 class GraphHandle:
     status: GraphStatus
     reason: str | None
-    conn: sqlite3.Connection | None
+    conn: sqlite3.Connection | None  # read-only; the caller owns it and closes it
 
 
 def open_graph(repo_root: Path) -> GraphHandle:
     """Open ``<repo_root>/.codemem/index.db`` read-only and classify it."""
-    db = Path(repo_root) / ".codemem" / "index.db"
-    conn = None
+    db = conn = None
     try:
+        db = Path(repo_root) / ".codemem" / "index.db"
         if not db.is_file():
             return GraphHandle(GraphStatus.MISSING, f"no codemem index at {db}; {_REMEDY}", None)
         conn = sqlite3.connect(f"{db.resolve().as_uri()}?mode=ro", uri=True)
@@ -60,7 +60,7 @@ def open_graph(repo_root: Path) -> GraphHandle:
             GraphStatus.MISSING, f"codemem index at {db} is unreadable ({exc}); {_REMEDY}", None
         )
     if stale:
-        shown = ", ".join(stale[:_MAX_SHOWN]) + (", ..." if len(stale) > _MAX_SHOWN else "")
+        shown = ", ".join(_printable(p) for p in stale[:_MAX_SHOWN]) + (", ..." if len(stale) > _MAX_SHOWN else "")
         return GraphHandle(
             GraphStatus.STALE,
             f"{len(stale)} file(s) changed since indexing ({shown}); {_REMEDY}",
@@ -72,25 +72,32 @@ def open_graph(repo_root: Path) -> GraphHandle:
 def _stale_paths(conn: sqlite3.Connection, repo_root: Path) -> list[str]:
     """Indexed paths that are newer on disk than recorded, gone, or unusable.
 
-    Paths come from the DB, which is data, not trusted input: a NULL, absolute,
-    or out-of-repo path (``../x``, a symlink leaving the tree) counts as stale
-    and is never stat'd outside ``repo_root``. Any OSError is stale too.
+    Paths come from the DB, which is data, not trusted input: a NULL, absolute
+    or ``..`` path is stale without touching the filesystem; a symlink leaving
+    the tree is stale and never stat'd. Any OSError or non-integer mtime is
+    stale too.
     """
     # ponytail: one stat per indexed file; cache per handle if M13 measures it hot.
     root = repo_root.resolve()
     stale: list[str] = []
     for path, mtime in conn.execute("SELECT path, mtime FROM files ORDER BY path"):
         try:
-            target = (root / path).resolve()
-            if Path(path).is_absolute() or not target.is_relative_to(root):
+            rel = Path(path)
+            if rel.is_absolute() or ".." in rel.parts:
                 raise ValueError("outside repo")
-            disk = int(target.stat().st_mtime)
+            target = (root / rel).resolve()
+            if not target.is_relative_to(root):
+                raise ValueError("symlink leaves repo")
+            if mtime is not None and int(target.stat().st_mtime) > int(mtime):
+                stale.append(path)
         except (OSError, RuntimeError, TypeError, ValueError):
             stale.append(str(path))
-            continue
-        if mtime is not None and disk > mtime:
-            stale.append(path)
     return stale
+
+
+def _printable(path: str) -> str:
+    """DB-sourced text is quoted into a human-facing reason; strip control chars."""
+    return "".join(c if c.isprintable() else "?" for c in path)
 
 
 def import_edges(h: GraphHandle) -> set[tuple[str, str]]:

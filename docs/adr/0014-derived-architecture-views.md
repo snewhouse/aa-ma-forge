@@ -91,9 +91,11 @@ rewrite of the plan.
   unreadable file is also `MISSING`; the `reason` distinguishes them. Split out an
   `UNREADABLE` status only if a caller needs to branch on it.
 - **The index file is data, not trusted input.** `files.path` values are confined to
-  the repo: NULL, absolute or out-of-tree paths (including symlinks leaving the tree)
-  count as `STALE` and are never stat'd; the connection runs with
-  `PRAGMA trusted_schema = OFF`.
+  the repo: NULL, absolute or `..` paths count as `STALE` without touching the
+  filesystem, and a symlink leaving the tree is `STALE` and never followed by `stat`.
+  Paths quoted in a `reason` have control characters replaced. The connection runs with
+  `PRAGMA trusted_schema = OFF`, and an `OK`/`STALE` handle's connection is owned
+  (and closed) by the caller.
 - **Known defect, not fixed here:** codemem's v1 `edges` table stores exact duplicate
   rows. Its composite primary key contains the two mutually-exclusive `dst` columns,
   one always NULL, and SQLite treats NULLs as distinct, so `INSERT OR IGNORE` never

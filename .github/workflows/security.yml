@@ -6,12 +6,18 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege: no job writes to the repo or calls a write API. Explicit so a
+# change to the repo's default token setting cannot widen it. Actions are pinned
+# by commit SHA (tag in the trailing comment); a moved tag cannot change what runs.
+permissions:
+  contents: read
+
 jobs:
   shellcheck:
     name: ShellCheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Run ShellCheck on all .sh files
         run: find . -name '*.sh' -exec shellcheck {} +
@@ -20,9 +26,9 @@ jobs:
     name: Bandit (Python Security)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.13'
 
@@ -36,9 +42,9 @@ jobs:
     name: Ruff (Lint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.13'
 
@@ -52,9 +58,9 @@ jobs:
     name: Bats (Hook + Command Tests)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: bats-core/bats-action@4.0.0
+      - uses: bats-core/bats-action@77d6fb60505b4d0d1d73e48bd035b55074bbfb43 # 4.0.0
 
       # ubuntu-latest currently ships shellcheck, but C4 in
       # tests/commands/sole-dev-merge/test_stage_c_dispatch.bats now skips
@@ -79,7 +85,7 @@ jobs:
       # aa-ma-gate-python.bats (milestone-grammar-ssot M5) drives the shipped §6.7/§7.1
       # fences, which call `uv run --project <root> aa-ma-gate`. Without uv the
       # launcher returns 127 and 17 cases fail — the job had been red since 2026-09-11.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.13'
 
@@ -121,11 +127,11 @@ jobs:
     # exceeds a minute, gate this job behind a `paths` filter targeting
     # packages/codemem-mcp/** and tests/codemem/**.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0    # git-mining tools need real history
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.13'
 

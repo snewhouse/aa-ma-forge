@@ -250,3 +250,20 @@ class TestPersistence:
         after = _file_edge_rows(db_path)
         assert set(after) < set(before)
         assert after == []
+
+
+class TestRenderSeamOnRealIndex:
+    """aa_ma.render.graph reads codemem's REAL schema (ADR-0014). The seam's own
+    tests use hand-built fixtures; this pins it to what codemem actually writes,
+    so a table/column rename fails here, not at lint time. (codemem tests may
+    import aa_ma — the contract forbids only the reverse.)"""
+
+    def test_readers_on_built_index(self, import_repo) -> None:
+        from aa_ma.render.graph import GraphStatus, call_edges, import_edges, open_graph
+
+        root, _ = import_repo
+        h = open_graph(root)
+        assert h.status is GraphStatus.OK, h.reason
+        assert import_edges(h) == {("a.py", "b.py")}
+        assert call_edges(h) == {("a.py", "b.py")}
+        h.conn.close()

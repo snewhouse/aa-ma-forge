@@ -11,9 +11,7 @@ from __future__ import annotations
 
 import configparser
 import os
-import shutil
 import sqlite3
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -23,7 +21,7 @@ from aa_ma.render.graph import GraphStatus, call_edges, import_edges, open_graph
 ROOT = Path(__file__).resolve().parents[2]
 
 _DDL = """
-CREATE TABLE files (id INTEGER PRIMARY KEY, path TEXT NOT NULL UNIQUE, mtime INTEGER);
+CREATE TABLE files (id INTEGER PRIMARY KEY, path TEXT UNIQUE, mtime INTEGER);  -- no NOT NULL: a hostile DB need not honour it
 CREATE TABLE symbols (id INTEGER PRIMARY KEY, file_id INTEGER NOT NULL, name TEXT);
 CREATE TABLE edges (src_symbol_id INTEGER, dst_symbol_id INTEGER,
                     dst_unresolved TEXT, kind TEXT);
@@ -67,6 +65,13 @@ def _repo(tmp_path: Path, *, version: int = 3) -> Path:
     conn.commit()
     conn.close()
     return tmp_path
+
+
+def _add_file_row(root: Path, path: str | None, mtime: int = 0) -> None:
+    conn = sqlite3.connect(root / ".codemem" / "index.db")
+    conn.execute("INSERT INTO files(path, mtime) VALUES (?, ?)", (path, mtime))
+    conn.commit()
+    conn.close()
 
 
 def _touch_forward(path: Path, seconds: int = 10) -> None:
@@ -120,6 +125,36 @@ class TestOpenGraph:
         assert h.reason
         assert h.conn is None
 
+    def test_directory_replaced_by_file_is_stale_not_raised(self, tmp_path: Path) -> None:
+        """NotADirectoryError (and any OSError) must become STALE, never escape."""
+        root = _repo(tmp_path)
+        _add_file_row(root, "pkg/x.py")
+        (root / "pkg").write_text("now a file\n")
+        h = open_graph(root)
+        assert h.status is GraphStatus.STALE
+        assert "pkg/x.py" in h.reason
+
+    @pytest.mark.parametrize("hostile", ["/etc/passwd", "../outside.py", "a/../../outside.py"])
+    def test_paths_outside_repo_are_stale_not_statted(
+        self, tmp_path: Path, hostile: str
+    ) -> None:
+        root = tmp_path / "repo"
+        root.mkdir()
+        (tmp_path / "outside.py").write_text("# exists, but not in the repo\n")
+        _repo(root)
+        # Far-future mtime: if the path were stat'd it would look fresh, so
+        # only confinement can make this STALE (L-023: no pass-for-wrong-reason).
+        _add_file_row(root, hostile, mtime=2**40)
+        h = open_graph(root)
+        assert h.status is GraphStatus.STALE
+        assert hostile in h.reason
+
+    def test_null_path_is_stale_not_raised(self, tmp_path: Path) -> None:
+        root = _repo(tmp_path)
+        _add_file_row(root, None)
+        h = open_graph(root)
+        assert h.status is GraphStatus.STALE
+
     def test_connection_is_read_only(self, tmp_path: Path) -> None:
         h = open_graph(_repo(tmp_path))
         with pytest.raises(sqlite3.OperationalError):
@@ -171,17 +206,3 @@ def test_never_imports_codemem_contract_declared() -> None:
     assert c["type"] == "forbidden"
     assert c["source_modules"].split() == ["aa_ma"]
     assert c["forbidden_modules"].split() == ["codemem"]
-
-
-@pytest.mark.skipif(shutil.which("uv") is None, reason="uv not on PATH")
-def test_lint_imports_keeps_named_contract() -> None:
-    out = subprocess.run(
-        ["uv", "run", "--no-sync", "lint-imports"],
-        cwd=ROOT, capture_output=True, text=True, check=False,
-    )
-    assert out.returncode == 0, out.stdout + out.stderr
-    assert any(
-        "aa_ma never imports codemem" in line and "KEPT" in line
-        for line in out.stdout.splitlines()
-    ), out.stdout
-    assert "0 broken" in out.stdout

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -30,8 +31,12 @@ class TestImportLinterContract:
         )
         # Named contracts + "0 broken", never the total: a total breaks on every
         # unrelated contract added elsewhere (diagram-generation M2 did exactly that).
-        assert "0 broken" in result.stdout
-        for name in ("codemem layered architecture", "parser must not depend on public API"):
+        assert re.search(r"\b0 broken", result.stdout), result.stdout
+        for name in (
+            "codemem layered architecture",
+            "parser must not depend on public API",
+            "aa_ma never imports codemem",  # diagram-generation M2, ADR-0014
+        ):
             assert any(
                 name in line and "KEPT" in line for line in result.stdout.splitlines()
             ), result.stdout

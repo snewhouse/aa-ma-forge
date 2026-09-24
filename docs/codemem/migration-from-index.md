@@ -149,7 +149,7 @@ Yes. It parses `.py` via the stdlib `ast` module and `.ts`, `.tsx`, `.js`, `.go`
 
 **Q: Can I migrate my `/index` shell habits — `python cli.py query who-calls foo --depth 2`?**
 
-codemem has a CLI too. Equivalent: `codemem query who_calls foo --max-depth 2`. The CLI sub-commands mirror the six M1 tools — `build`, `status`, `refresh`, `query <tool> [args...]`, `intel`. See `codemem --help`.
+codemem has a CLI too. Equivalent: `codemem query who_calls foo --max-depth 2`. The `query` sub-command mirrors the six M1 tools (`codemem query <tool> [args...]`); the full sub-command list, including `draw`, is `codemem --help`.
 
 **Q: I use the `-i` flag trick to auto-invoke `/index`. Does codemem have one?**
 

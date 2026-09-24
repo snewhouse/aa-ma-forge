@@ -13,7 +13,12 @@ from .cut import MAX_EDGES, Cut
 __all__ = ["escape_label", "to_mermaid"]
 
 # '#' first: the other replacements introduce '#...;' entities that must survive.
-_ENTITIES = (("#", "#35;"), ('"', "#quot;"), ("<", "#lt;"), (">", "#gt;"))
+# '%', '{', '}' stop a file name smuggling a `%%{init}%%` directive (it could
+# restyle the diagram and beacon via themeCSS); '`' blocks markdown-string mode.
+_ENTITIES = (
+    ("#", "#35;"), ('"', "#quot;"), ("<", "#lt;"), (">", "#gt;"),
+    ("%", "#37;"), ("{", "#123;"), ("}", "#125;"), ("`", "#96;"),
+)
 
 
 def escape_label(text: str) -> str:

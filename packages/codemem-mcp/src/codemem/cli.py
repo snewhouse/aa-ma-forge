@@ -255,10 +255,17 @@ def _cmd_intel(args: argparse.Namespace) -> int:
     return 0
 
 
+def _non_negative_int(text: str) -> int:
+    value = int(text)
+    if value < 0:
+        raise argparse.ArgumentTypeError(f"must be >= 0, got {value}")
+    return value
+
+
 def _cmd_draw(args: argparse.Namespace) -> int:
     import sqlite3
 
-    from .draw.cut import Level, cut
+    from .draw.cut import MIN_SCHEMA_VERSION, Level, cut
     from .draw.mermaid import to_mermaid
     from .storage.db import connect
 
@@ -269,17 +276,21 @@ def _cmd_draw(args: argparse.Namespace) -> int:
     conn = connect(db_path, read_only=True)
     try:
         version = conn.execute("PRAGMA user_version").fetchone()[0]
-        if version < 3:  # file_edges arrived in schema v3
+        if version < MIN_SCHEMA_VERSION:
             print(
-                f"codemem draw: index is schema v{version}, need v3; run `codemem build`",
+                f"codemem draw: index is schema v{version}, need v{MIN_SCHEMA_VERSION}; "
+                "run `codemem build`",
                 file=sys.stderr,
             )
             return 1
         level = Level[args.level]
-        c = cut(
-            conn, level, scope=args.scope, hops=args.hops,
-            include_tests=args.include_tests, direction=args.direction, kind=args.kind,
-        )
+        try:
+            c = cut(
+                conn, level, scope=args.scope, hops=args.hops,
+                include_tests=args.include_tests, direction=args.direction, kind=args.kind,
+            )
+        except ValueError as exc:
+            args._draw_parser.error(str(exc))  # usage error: message + exit 2
     except sqlite3.Error as exc:
         print(f"codemem draw: unreadable index {db_path} ({exc}); run `codemem build`",
               file=sys.stderr)
@@ -348,15 +359,19 @@ def build_parser() -> argparse.ArgumentParser:
     pi.add_argument("--out", help="Output path (default: PROJECT_INTEL.json)")
     pi.add_argument("--budget", type=int, default=1024)
 
-    pd = sub.add_parser("draw", help="Emit a mermaid diagram of the graph (L0-L3)")
-    pd.add_argument("--level", choices=["L0", "L1", "L2", "L3"], default="L0",
+    from .draw.cut import DIRECTIONS, KINDS, Level
+
+    pd = sub.add_parser("draw", help="Emit a mermaid diagram of the graph")
+    pd.add_argument("--level", choices=[lv.name for lv in Level], default=Level.L0.name,
                     help="L0 top dirs, L1 dirs depth 2, L2 files, L3 symbols (default L0)")
     pd.add_argument("--scope", help="Path prefix to centre the cut on")
-    pd.add_argument("--hops", type=int, default=1, help="Neighbourhood radius for --scope")
+    pd.add_argument("--hops", type=_non_negative_int, default=1,
+                    help="Neighbourhood radius for --scope")
     pd.add_argument("--include-tests", action="store_true", help="Keep tests/ (excluded by default)")
-    pd.add_argument("--direction", choices=["up", "down", "both"], default="both")
-    pd.add_argument("--kind", choices=["import", "call", "both"], default="both",
-                    help="Edge kinds at L0-L2 (L3 is always call)")
+    pd.add_argument("--direction", choices=DIRECTIONS, default="both")
+    pd.add_argument("--kind", choices=KINDS, default="both",
+                    help="Edge kinds at L0-L2 (L3 is calls only; --kind import is refused there)")
+    pd.set_defaults(_draw_parser=pd)
 
     return parser
 

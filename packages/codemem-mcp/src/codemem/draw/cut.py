@@ -23,11 +23,15 @@ from collections import defaultdict
 from dataclasses import dataclass
 from enum import IntEnum
 
-__all__ = ["MAX_EDGES", "Cut", "Level", "cut", "is_test_path", "node_id"]
+__all__ = [
+    "DIRECTIONS", "KINDS", "MAX_EDGES", "MIN_SCHEMA_VERSION",
+    "Cut", "Level", "cut", "is_test_path", "node_id",
+]
 
 MAX_EDGES = 500  # mermaid's default maxEdges — the one hard ceiling (Ticket 3)
-_DIRECTIONS = ("up", "down", "both")
-_KINDS = ("import", "call", "both")
+MIN_SCHEMA_VERSION = 3  # the first schema with file_edges — not CURRENT_SCHEMA_VERSION
+DIRECTIONS = ("up", "down", "both")
+KINDS = ("import", "call", "both")
 _COLLAPSE_DEPTH = {0: 1, 1: 2}
 
 
@@ -85,23 +89,26 @@ def cut(
     direction: str = "both",
     kind: str = "both",
 ) -> Cut:
-    if direction not in _DIRECTIONS:
-        raise ValueError(f"direction must be one of {_DIRECTIONS}, got {direction!r}")
-    if kind not in _KINDS:
-        raise ValueError(f"kind must be one of {_KINDS}, got {kind!r}")
+    if direction not in DIRECTIONS:
+        raise ValueError(f"direction must be one of {DIRECTIONS}, got {direction!r}")
+    if kind not in KINDS:
+        raise ValueError(f"kind must be one of {KINDS}, got {kind!r}")
     if hops < 0:
         raise ValueError(f"hops must be >= 0, got {hops}")
     level = Level(level)
+    if level is Level.L3 and kind == "import":
+        raise ValueError("L3 is symbol-level calls only; use --kind call or both")
 
     def keep(path: str) -> bool:
         return include_tests or not is_test_path(path)
 
     if level is Level.L3:
+        # Recursive calls stay as self-loops here: at symbol level they are information.
         edges = {
             (f"{sf}::{sp}", f"{df}::{dp}", "call")
             for sf, sp, df, dp in _symbol_calls(conn)
             if keep(sf) and keep(df)
-        } if kind != "import" else set()
+        }
     else:
         edges = {e for e in _file_edges(conn, kind) if keep(e[0]) and keep(e[1])}
 
@@ -136,20 +143,8 @@ def _dir(path: str, depth: int) -> str:
 def _file_edges(conn: sqlite3.Connection, kind: str) -> set[tuple[str, str, str]]:
     edges: set[tuple[str, str, str]] = set()
     if kind in ("call", "both"):
-        edges |= {
-            (a, b, "call")
-            for a, b in conn.execute(
-                """
-                SELECT DISTINCT sf.path, df.path
-                FROM edges e
-                JOIN symbols s ON s.id = e.src_symbol_id
-                JOIN symbols d ON d.id = e.dst_symbol_id
-                JOIN files sf ON sf.id = s.file_id
-                JOIN files df ON df.id = d.file_id
-                WHERE e.kind = 'call' AND sf.id <> df.id
-                """
-            )
-        }
+        # One call query for every level: L0-L2 project L3's symbol calls onto files.
+        edges |= {(sf, df, "call") for sf, _, df, _ in _symbol_calls(conn) if sf != df}
     if kind in ("import", "both"):
         edges |= {
             (a, b, "import")

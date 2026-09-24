@@ -625,7 +625,9 @@ API:
       edges: set[tuple[str, str, str]]   # (src_id, dst_id, kind)
       dropped: int
   def cut(conn, level: Level, *, scope: str | None = None, hops: int = 1,
-          include_tests: bool = False, direction: str = "both") -> Cut
+          include_tests: bool = False, direction: str = "both",
+          kind: str = "both") -> Cut          # kind added at M3 (Ste, 2026-09-24):
+                                              # import|call|both; L3 + import -> ValueError
 
   `cut()` reads `.codemem/index.db` DIRECTLY — it does NOT go through
   `aa_ma.render.graph`, so it does not inherit that module's DISTINCT. It must

@@ -94,6 +94,17 @@ shipped in Milestone M2.
 
 ---
 
+### `codemem draw [--level L0|L1|L2|L3] [--scope PATH] [--hops N] [--include-tests] [--direction up|down|both] [--kind import|call|both]`
+
+Emit a mermaid `flowchart` of the graph to stdout (a one-line node/edge summary goes
+to stderr, so stdout stays pure mermaid). Levels: **L0** top directories, **L1**
+directories at depth 2, **L2** files, **L3** symbols (calls only). `--scope` centres
+any level on a path prefix and walks `--hops` in `--direction`; `tests/` is excluded
+unless `--include-tests`. Edges carry their kind as a quoted sigil —
+`A -->|"@import"| B` — the form PHANTOM_EDGE checks read (a bare `|@import|` is a
+mermaid 11 parse error). Over 500 edges (mermaid's `maxEdges`) the rest are dropped
+and reported. Exit 0 ok, 1 no/old/unreadable index (run `codemem build`), 2 usage.
+
 ## Related documents
 
 - [`docs/codemem/symbol-id-grammar.md`](../../../docs/codemem/symbol-id-grammar.md)

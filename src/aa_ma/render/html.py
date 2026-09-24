@@ -9,6 +9,8 @@ import html as _html
 
 from markdown_it import MarkdownIt
 
+# Bumping this: re-check codemem draw's assumptions — MAX_EDGES (mermaid default
+# maxEdges 500) and the quoted `-->|"@kind"|` sigil (bare `|@kind|` fails on 11.17.2).
 MERMAID_VERSION = "11.17.2"  # latest 11.x at the 4.1 prototype (2026-09-12); single constant, bump deliberately
 # SRI of dist/mermaid.min.js at that version (single-file UMD, so the hash covers every byte that runs —
 # the ESM entry lazy-imports chunks SRI cannot reach). Bump together with MERMAID_VERSION:

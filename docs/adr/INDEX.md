@@ -33,6 +33,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0011](0011-prototype-resync-and-planning-gate.md) | Re-sync `prototype` to upstream 1.2.3 and make the prototype decision explicit in planning | Implemented | 2026-09-20 |
 | [0012](0012-research-skill-adoption.md) | Adopt `research` from mattpocock/skills and give `/aa-ma-plan` Phase 3 a file destination | Implemented | 2026-09-20 |
 | [0013](0013-charting-wayfinder-lite.md) | Charting — a pre-plan decision map adapted from `wayfinder` (no issue tracker) | Proposed | 2026-09-20 |
+| [0014](0014-derived-architecture-views.md) | Derived architecture views: `aa_ma` reads codemem's graph through a stdlib-sqlite3 seam | Accepted | 2026-09-24 |
 
 ## Statuses
 

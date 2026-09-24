@@ -79,9 +79,9 @@
 - Result Log: Mode: AFK — auto-dispatched. `.importlinter`: + `aa-ma-never-imports-codemem` (forbidden, source aa_ma, forbidden codemem) + header comment 4; corrected header claim that CI already ran lint-imports (it ran 0 times). security.yml codemem-smoke: + `uv run lint-imports` step directly after `uv sync`. lint-imports: 4 kept, 0 broken. MUTATION: `import codemem` in graph.py -> "aa_ma never imports codemem BROKEN ... aa_ma.render.graph -> codemem (l.13)", restored. YAML parses; tests/render collected by CI catch-all step. render suite 81 passed.
 
 ### Sub-step 2.4: [docs] ADR-0014
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: Mode: HITL — Ste approved "Proceed — Accepted". `docs/adr/0014-derived-architecture-views.md` (Status: Accepted; flip to Implemented when M3/M5 consumers ship): option 4 stdlib-sqlite3 seam over import / MCP / subprocess; extends ADR-0010, supersedes nothing (markdown = intent, graph = fact); never-raises status contract; v1 `edges` duplicate-row defect recorded, repair deferred to a separate effort. `docs/adr/INDEX.md` row added. No hardcoded ADR counts in README/CHANGELOG/SECURITY/spec.
 
 ## Milestone 3: `codemem draw` emitter, layered cuts L0–L3
 - Status: PENDING

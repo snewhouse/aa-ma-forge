@@ -105,9 +105,9 @@
 - Result Log: Mode: AFK — auto-dispatched. `codemem/draw/{__init__,cut}.py`: Level(IntEnum), frozen Cut, `node_id` (prototype hash incl. high-surrogate quirk), `is_test_path` (any dir component `tests`), `cut(conn, level, *, scope, hops, include_tests, direction, kind)` — SELECT DISTINCT on calls + imports, same-file dropped, scope neighbourhood BEFORE collapse, sorted truncation at MAX_EDGES=500 with `dropped`, node_id collision -> ValueError. test_draw_cut 28/28 incl. every Ticket 3 band on frozen data and 232/232 JS node ids. ruff clean; lint-imports 4 kept.
 
 ### Sub-step 3.3: [test] `test_draw_mermaid.py` incl. label escaping for `( ) -`, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `tests/codemem/test_draw_mermaid.py` (9 tests): header, node lines, QUOTED sigil edges `-->|"@kind"|` (bare form asserted absent), determinism, `( ) -` intact inside quotes, escape_label (`"`->#quot;, `#`->#35; first, `< >`->#lt;/#gt;, control chars->?), dropped reported as `%%` comment, empty cut header-only, render_check never FAIL on hostile labels (UNKNOWN in CI, PASS locally). RED: collection error (module absent). Precursor: local renderer fixed + sigil grammar corrected (88e8bbc).
 
 ### Sub-step 3.4: [impl] `draw/mermaid.py` + `codemem draw` subcommand (`cli.py:269-309`)
 - Status: PENDING

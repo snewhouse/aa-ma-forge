@@ -93,7 +93,7 @@ Architecture View: see plan.md §13 (Component view + Flow view; `Diagram-Waiver
 2. `aa_ma.render` reads `.codemem/index.db` via stdlib sqlite3; door is `codemem draw`; new `aa-ma-never-imports-codemem` contract
 3. Layered zoom L0–L3, not one knob; tests excluded by default; PageRank ruled out as default
 4. Regex suffices — 4 syntaxes, node id = file stem, `docs/` out, 3 allowlists
-5. `PHANTOM_EDGE` opt-in by sigil `A -->|@import| B`; unlabelled edges never checked; `LABEL_UNKNOWN` for typos
+5. `PHANTOM_EDGE` opt-in by QUOTED sigil `A -->|"@import"| B` (bare `|@import|` is a mermaid 11.17.2 parse error — `@` lexes as LINK_ID; corrected 2026-09-24, Ste); unlabelled edges never checked; `LABEL_UNKNOWN` for typos
 6. Sink catalogue feasible all 9 langs; v1 = Py + TS/TSX/JS + Go; two confidence tiers
 7. `Dependencies:` canonical write mirrors headings; lenient read of all legacy forms; graph into plan §13
 8. `docs/architecture/{README,component,io,plugin-surface}.md`, 100% generated; `--check` is regenerate-and-compare; line 1 stamp excluded

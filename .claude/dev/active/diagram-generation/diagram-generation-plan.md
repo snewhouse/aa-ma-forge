@@ -276,26 +276,26 @@ graph TD
     DOCS["docs/architecture/component.md (new)"]
     CAPJSON["docs/architecture.captions.json (new)"]
 
-    PY -->|@import| RES
-    DB -->|@import| SQL
-    CUT -->|@import| DB
-    MM -->|@import| CUT
-    REG -->|@import| MM
-    PS -->|@import| MM
-    IOS -->|@import| SINKS
-    CAP -->|@import| REG
-    CCLI -->|@import| REG
-    MCP -->|@import| CUT
+    PY -->|"@import"| RES
+    DB -->|"@import"| SQL
+    CUT -->|"@import"| DB
+    MM -->|"@import"| CUT
+    REG -->|"@import"| MM
+    PS -->|"@import"| MM
+    IOS -->|"@import"| SINKS
+    CAP -->|"@import"| REG
+    CCLI -->|"@import"| REG
+    MCP -->|"@import"| CUT
     REG -->|generates| DOCS
     CAP -->|reads| CAPJSON
 
     GRAPH -->|sqlite3 seam, never an import| DB
-    ML -->|@import| GRAPH
-    EXP -->|@import| GRAPH
-    EXP -->|@import| HTML
-    RCLI -->|@import| EXP
-    DEPS -->|@import| GR
-    ML -->|@import| DEPS
+    ML -->|"@import"| GRAPH
+    EXP -->|"@import"| GRAPH
+    EXP -->|"@import"| HTML
+    RCLI -->|"@import"| EXP
+    DEPS -->|"@import"| GR
+    ML -->|"@import"| DEPS
 
     PLAN -->|seeds section 13 via| CCLI
     PV -->|Angle 6 coverage rule| PLAN
@@ -305,12 +305,12 @@ graph TD
     YML -->|node contract test| EXP
     YML -->|lint-imports step| ILINT
     ILINT -->|forbids aa_ma to codemem| GRAPH
-    DINIT -->|@import| CUT
-    PS -->|@import| SALLOW
-    INCR -->|@import| DB
-    ASTG -->|@import| PRULES
-    IOS -->|@import| ASTG
-    SRV -->|@import| MCP
+    DINIT -->|"@import"| CUT
+    PS -->|"@import"| SALLOW
+    INCR -->|"@import"| DB
+    ASTG -->|"@import"| PRULES
+    IOS -->|"@import"| ASTG
+    SRV -->|"@import"| MCP
     EXP -->|emits| EXPJS
     EXEC -->|section 6.7 row| ESTD
     UC -->|reuses| IA
@@ -1000,9 +1000,9 @@ Invariants:
 ```
 
 **Acceptance criteria**
-1. A fence with `A -->|@import| B` where the import exists yields no finding.
+1. A fence with `A -->|"@import"| B` where the import exists yields no finding.
 2. The same edge with the import deleted yields exactly one `PHANTOM_EDGE`, exit 1.
-3. `A -->|@improt| B` yields `LABEL_UNKNOWN`, exit 1.
+3. `A -->|"@improt"| B` yields `LABEL_UNKNOWN`, exit 1.
 4. `A -->|fork| B` and `A --> B` yield nothing, on any graph state.
 5. Running the lint over **every** `*-plan.md` under `.claude/dev/completed/` yields zero
    `PHANTOM_EDGE` and zero `LABEL_UNKNOWN` findings for files containing no `@` sigil —

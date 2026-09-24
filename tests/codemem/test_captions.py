@@ -14,9 +14,19 @@ from pathlib import Path
 import pytest
 from aa_ma.render.mermaid_lint import render_check
 
-from codemem.draw.captions import CAPTIONS_PATH, CaptionFinding, for_cut, load, orphans
+from codemem.draw.captions import (
+    CAPTIONS_PATH,
+    MAX_SIDECAR_BYTES,
+    CaptionFinding,
+    check_generated_target,
+    escape_prose,
+    for_cut,
+    json_island,
+    load,
+    orphans,
+)
 from codemem.draw.cut import Level, from_edges, node_id
-from codemem.draw.mermaid import to_mermaid
+from codemem.draw.mermaid import START_STYLE, to_mermaid
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -87,6 +97,8 @@ def test_orphans_never_deletes_prose() -> None:
 
 
 def test_the_authored_sidecar_has_no_orphans() -> None:
+    """``planned_paths`` is empty: a caption for a not-yet-created file turns this red
+    until the file lands — author captions for planned paths only once they exist."""
     tracked = set(subprocess.run(
         ["git", "ls-files"], cwd=REPO, capture_output=True, text=True, check=True,
     ).stdout.split())
@@ -202,3 +214,46 @@ def test_captions_is_keyword_only() -> None:
     c = from_edges({("src/pkg/b.py", "src/a.py", "call")}, Level.L2)
     with pytest.raises(TypeError):
         to_mermaid(c, CAPS)  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------
+# Helpers M6/M12 consume (recorded obligations, built now — Ste "fix all now")
+# ---------------------------------------------------------------------
+
+@pytest.mark.parametrize(("raw", "safe"), [
+    ("Plain prose.", "Plain prose."),
+    ("two\nlines\r\n\there", "two lines here"),
+    ("```mermaid", "\\```mermaid"),
+    ("~~~ fence", "\\~~~ fence"),
+    ("# heading", "\\# heading"),
+    ("> quote", "\\> quote"),
+    ("- item", "\\- item"),
+    ("| cell", "\\| cell"),
+    ("a <img onerror=x> & b", "a &lt;img onerror=x&gt; &amp; b"),
+])
+def test_escape_prose_is_one_inert_markdown_line(raw: str, safe: str) -> None:
+    assert escape_prose(raw) == safe
+
+
+def test_json_island_cannot_close_its_script_tag() -> None:
+    out = json_island({"src/": "</script><img src=x onerror=alert(1)> & <!--"})
+    assert "<" not in out and ">" not in out and "&" not in out
+    assert json.loads(out) == {"src/": "</script><img src=x onerror=alert(1)> & <!--"}
+
+
+def test_generated_writes_are_confined_to_docs_architecture(tmp_path: Path) -> None:
+    check_generated_target(tmp_path, tmp_path / "docs/architecture/component.md")
+    for bad in (CAPTIONS_PATH, "docs/other.md", "docs/architecture/../x.md", "/etc/passwd"):
+        with pytest.raises(ValueError):
+            check_generated_target(tmp_path, tmp_path / bad)
+
+
+def test_oversized_sidecar_is_rejected(tmp_path: Path) -> None:
+    root = _sidecar(tmp_path, '{"src/": "' + "x" * MAX_SIDECAR_BYTES + '"}')
+    with pytest.raises(ValueError, match="architecture.captions.json"):
+        load(root)
+
+
+def test_start_style_is_one_named_constant() -> None:
+    c = from_edges({("src/pkg/b.py", "src/a.py", "call")}, Level.L2)
+    assert f"  classDef start {START_STYLE}" in to_mermaid(c, captions=CAPS).splitlines()

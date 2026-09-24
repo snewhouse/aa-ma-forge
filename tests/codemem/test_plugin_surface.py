@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from codemem.draw.cut import Level, node_id
-from codemem.draw.plugin_surface import RefClass, as_json, extract
+from codemem.draw.plugin_surface import NodeKind, RefClass, as_json, extract
 from codemem.draw.surface_allowlist import EXTERNAL
 
 REPO = Path(__file__).resolve().parents[2]
@@ -260,6 +260,52 @@ def test_missing_plugin_tree_is_an_error_not_an_empty_graph(tmp_path: Path) -> N
     (tmp_path / "scripts").mkdir()
     (tmp_path / "scripts/install.sh").write_text(INSTALL)
     assert "claude-code/: not found" in extract(tmp_path).errors
+
+
+# ---------------------------------------------------------------------
+# Remaining §6.8 INFO items (M4), fixed 2026-09-24 at Ste's "fix all now"
+# ---------------------------------------------------------------------
+
+def test_quoted_spaced_and_argument_skill_forms_are_references(tmp_path: Path) -> None:
+    s = extract(_tree(tmp_path, {
+        "claude-code/skills/alpha/SKILL.md": "",
+        "claude-code/agents/checker.md": "",
+        "claude-code/commands/run.md": (
+            'Skill("alpha") Skill( alpha ) Skill(alpha, args="x")\n'
+            "subagent_type: 'checker'\n"
+        ),
+    }))
+    assert {(e.dst, e.ref_class) for e in s.edges} == {
+        ("skill:alpha", RefClass.ON_DISK), ("agent:checker", RefClass.ON_DISK),
+    }
+
+
+def test_bold_markdown_after_a_command_is_not_a_glob(tmp_path: Path) -> None:
+    s = extract(_tree(tmp_path, {
+        "claude-code/commands/aa-ma-plan.md": "",
+        "claude-code/commands/aa-ma-plan-extra.md": "",
+        "claude-code/commands/run.md": "Use **/aa-ma-plan** first.\n",
+    }))
+    assert {e.dst for e in s.edges} == {"command:aa-ma-plan"}
+
+
+def test_two_hooks_with_one_name_are_an_error(tmp_path: Path) -> None:
+    s = extract(_tree(tmp_path, {"claude-code/hooks/lib/h-start.sh": ""}))
+    assert any("h-start.sh" in e and "more than one" in e for e in s.errors)
+
+
+def test_unowned_markdown_in_the_tree_is_reported(tmp_path: Path) -> None:
+    s = extract(_tree(tmp_path, {
+        "claude-code/commands/sub/nested.md": "Skill(alpha)\n",
+        "claude-code/hooks/README.md": "",
+    }))
+    assert "claude-code/commands/sub/nested.md: not a node (nested)" in s.errors
+    assert "claude-code/hooks/README.md: not a node (nested)" in s.errors
+
+
+def test_edge_kinds_are_the_node_kind_enum(surface) -> None:
+    assert {e.kind for e in surface.edges} <= set(NodeKind)
+    assert NodeKind.SKILL == "skill"  # a StrEnum: the golden's strings are unchanged
 
 
 if __name__ == "__main__":

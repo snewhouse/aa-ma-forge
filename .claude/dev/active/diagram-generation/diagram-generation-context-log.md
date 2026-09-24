@@ -203,3 +203,9 @@ _Updated via context compaction as the task progresses._
 - **Edge kind = destination kind** (skill|command|agent|hook) so M6's `@skill/@command/@agent/@hook` sigils filter on it directly. No `event` edge kind: M6 would report an unreserved `@event` sigil as LABEL_UNKNOWN. The install.sh table therefore feeds `hook_events` (metadata) plus an error for any wired hook missing on disk.
 - **Cut excludes DANGLING edges** (AC2: every drawn edge resolves on disk or is DECLARED_EXTERNAL); `edges` keeps all three classes (AC3).
 - **Orphans** = command/skill/agent/hook nodes with no inbound ON_DISK edge from another node; rules are entry points (auto-loaded), never orphans.
+
+## [2026-09-24] M4 §6.8 review decisions
+- CRITICAL (two node-identity rules) accepted by Ste and fixed: the node set is the owners of the walked files.
+- Orphans are `kind:stem` (Ste). AC4's named set is unchanged; the test compares stripped stems and asserts no duplicates. Deviation from AC4's literal `set(result.orphans)` recorded here.
+- M14 scope widened (future-proofing WARNING): Sub-step 14.3 now includes `engineering-standards.md:44`. The 2026-09-22 "41" was a regex artefact (`:` excluded), not a count that later moved.
+- `cut.from_edges()` extracted from `cut()` and given `isolated=`; it is outside M4's Files list but preserves behaviour (M3 suites green).

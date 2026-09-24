@@ -293,14 +293,13 @@ If this is the **first milestone** and it touches 3+ files or unfamiliar code, i
 
 ### 5.1 Pre-Flight Checks
 
-1. **Verify dependencies met**:
-   - Check `Dependencies:` field
-   - All dependency milestones must have `Status: COMPLETE`
-   - If unmet → HALT and alert user
-
-2. **Update status**:
+1. **Update status**:
    - Set milestone `Status: PENDING` → `Status: ACTIVE`
    - Update TodoWrite milestone todo to `in_progress`
+
+2. **Dependency advisory — never blocks** (map Ticket 16): run the fence from
+   `/execute-aa-ma-milestone` §5.1 step 3 (`aa_ma_deps advisory "${TASKS_MD}"`), show the
+   user any line it prints, log it to provenance.log, and continue.
 
 ### 5.2 Execute All Sub-Tasks
 
@@ -322,8 +321,8 @@ If this is the **first milestone** and it touches 3+ files or unfamiliar code, i
 - If ANY fails → set `Status: BLOCKED`, HALT, alert user
 
 #### B. Dependency Verification (for next milestone)
-- Check next milestone's `Dependencies:` field
-- Verify all dependencies have `Status: COMPLETE`
+- Advisory only: the next milestone's `Dependencies:` are reported by its own §5.1 step 2
+  when it becomes ACTIVE. Never halt on them.
 
 #### C. Impact Analysis Verification (REQUIRED)
 

@@ -34,7 +34,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from aa_ma.grammar import split_milestones, split_steps
+from aa_ma.grammar import field_pattern, split_milestones, split_steps
 from aa_ma.tui.model import (
     AggregateStatus,
     Gate,
@@ -55,22 +55,10 @@ from aa_ma.tui.model import (
 # implementation for the TUI and the corpus tests (milestone-grammar-ssot M1).
 
 
-def _field_pattern(field_name: str) -> re.Pattern[str]:
-    """Build a tolerant regex for a `- Field: VALUE` line.
-
-    Tolerates leading list bullet, bold-pair `**Field:**`, split-bold
-    `**Field**:`, and variable whitespace.
-    """
-    return re.compile(
-        rf"^[ \t]*-?[ \t]*\*{{0,2}}{re.escape(field_name)}\*{{0,2}}:\*{{0,2}}[ \t]*(\S.*?)\s*$",
-        re.MULTILINE,
-    )
-
-
-_STATUS_RE = _field_pattern("Status")
-_MODE_RE = _field_pattern("Mode")
-_GATE_RE = _field_pattern("Gate")
-_COMPLEXITY_RE = _field_pattern("Complexity")
+_STATUS_RE = field_pattern("Status")
+_MODE_RE = field_pattern("Mode")
+_GATE_RE = field_pattern("Gate")
+_COMPLEXITY_RE = field_pattern("Complexity")
 _RESULT_LOG_RE = re.compile(
     r"^-[ \t]*Result Log:[ \t]*(.*?)\s*$",
     re.MULTILINE,

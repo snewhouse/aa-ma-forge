@@ -293,7 +293,17 @@ aa_ma_gate_field() {
 aa_ma_deps() {
     local root
     root="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)"
-    uv run --quiet --project "$root" python -m aa_ma.deps "$@"
+    if ! command -v uv >/dev/null 2>&1; then
+        echo "aa_ma_deps: uv not on PATH — dependency check skipped" >&2
+        return 127
+    fi
+    # A padded tasks.md must not hang a command. coreutils `timeout` where present
+    # (stock macOS lacks it); AA_MA_DEPS_TIMEOUT seconds, default 30.
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "${AA_MA_DEPS_TIMEOUT:-30}" uv run --quiet --project "$root" python -m aa_ma.deps "$@"
+    else
+        uv run --quiet --project "$root" python -m aa_ma.deps "$@"
+    fi
 }
 
 # -----------------------------------------------------------------------------

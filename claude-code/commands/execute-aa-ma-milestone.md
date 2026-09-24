@@ -317,19 +317,13 @@ Acceptance Criteria Verification:
 - ✓ Environment variables loaded from .env: Verified via `echo $DATABASE_URL`, correct value
 ```
 
-### 6.2 Dependency Verification
+### 6.2 Dependency Verification (advisory — never blocks)
 
-**Check next milestone dependencies**:
-1. Read `Dependencies:` field of next milestone (if exists)
-2. Verify all dependency milestones have `Status: COMPLETE`
-3. If dependencies unmet → HALT and notify user
-
-**Example**:
-```
-Next Milestone: ## Step 3: Deploy to Staging
-Dependencies: Step 2
-Verification: Step 2 Status: COMPLETE ✓
-```
+Nothing to enforce here. The next milestone's `Dependencies:` are reported when it
+becomes ACTIVE — §5.1 step 3 runs `aa_ma_deps advisory` — and that report never stops
+execution (map Ticket 16; `aa-ma-gate` does not read the field). Name the next
+milestone's dependencies in the completion report so the user sees what comes next,
+e.g. `Next: Milestone 3 — Dependencies: Milestone 2` (canonical form).
 
 ### 6.3 Impact Analysis Verification (REQUIRED)
 

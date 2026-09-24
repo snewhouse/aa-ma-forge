@@ -49,6 +49,7 @@ from aa_ma.enforce import (
     read_tasks_text,
 )
 from aa_ma.grammar import (
+    own_text,
     STEP_RE,
     Block,
     has_unterminated_fence,
@@ -202,13 +203,6 @@ def _heading(block: Block) -> str:
     return block.text.split("\n", 1)[0].lstrip("#").strip()
 
 
-def _own_text(block: Block) -> str:
-    # Fields between the `##` heading and the first `###` are the milestone's
-    # own; a sub-step's `Status:` must never stand in for the milestone's.
-    steps = split_steps(block.text)
-    return block.text if not steps else block.text[: block.text.index(steps[0].text)]
-
-
 def _read_or_error(read: FieldRead, where: str, errors: list[str]) -> FieldRead:
     if not read.is_valid:
         errors.append(f"{where}: {read.error}")
@@ -218,7 +212,7 @@ def _read_or_error(read: FieldRead, where: str, errors: list[str]) -> FieldRead:
 def _read_milestone(block: Block, errors: list[str]) -> MilestoneRead:
     """Read one milestone's enforced fields; append every refusal to `errors`."""
     heading = _heading(block)
-    own = _own_text(block)
+    own = own_text(block)
     status = _read_or_error(read_milestone_status(own), heading, errors)
     if not status.present:
         errors.append(
@@ -322,7 +316,7 @@ def _read_step(
         )
         return None
     own = read_enforced_field(hits[0].text, "Mode", MODES)
-    parent = read_enforced_field(_own_text(block), "Mode", MODES)
+    parent = read_enforced_field(own_text(block), "Mode", MODES)
     if own.present:
         mode, source = own.value, "step"
     elif parent.present:

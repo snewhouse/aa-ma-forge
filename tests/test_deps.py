@@ -355,3 +355,7 @@ def test_own_text_is_one_helper_for_gate_and_deps() -> None:
     [b] = [b for b in split_milestones(FIXTURE) if b.number == "2"]
     assert grammar.own_text(b) == b.text[: b.text.index("### Step M2.1")]
     assert not hasattr(gate, "_own_text") and not hasattr(deps, "_head")
+
+
+def test_graph_labels_escape_angle_brackets() -> None:
+    assert '  M1("Milestone 1: a #lt;b#gt; c")\n' in milestone_graph("## Milestone 1: a <b> c\n")

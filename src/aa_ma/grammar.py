@@ -69,7 +69,8 @@ _SEP = r"(?::|[ \t]+[–—-][ \t]+)"
 # and a word suffix (`1.1.bis`). The suffix is generic — `.bis` was the only one
 # in the corpus, but hardcoding it silently dropped `.alt` / `.ter`.
 _NUM_M = r"\d+[a-z]?(?:\.\d+)*"
-_NUM_S = r"M?\d+[a-z]?(?:\.\d+)*(?:\.[a-z]{2,}|[a-z])?"
+NUMBER_BODY = r"\d+[a-z]?(?:\.\d+)*(?:\.[a-z]{2,}|[a-z])?"  # a step number after its optional `M`
+_NUM_S = rf"M?{NUMBER_BODY}"
 
 MILESTONE_RE = re.compile(
     rf"^##[ \t]+(?:Milestone[ \t]+M?|M)(?P<number>{_NUM_M}){_SEP}[ \t]*(?P<title>.*[^ \t\n])[ \t]*$",
@@ -241,6 +242,30 @@ def split_milestones(text: str) -> list[Block]:
     as extra PENDING sub-steps (measured: 3 where 2 exist).
     """
     return _split(text, MILESTONE_RE, closer=_H2_RE)
+
+
+def own_text(block: Block) -> str:
+    """A milestone's own lines: between its ``##`` heading and its first step heading.
+
+    A sub-step's ``Status:`` must never stand in for the milestone's. Shared by the gate
+    and :mod:`aa_ma.deps` so the two cannot disagree on where a milestone's fields end.
+    """
+    steps = split_steps(block.text)
+    return block.text if not steps else block.text[: block.text.index(steps[0].text)]
+
+
+def field_pattern(name: str) -> re.Pattern[str]:
+    """Tolerant ``- Field: value`` reader for DISPLAY and advisory reads (never the gate:
+    that is :func:`aa_ma.enforce.read_enforced_field`).
+
+    Accepts a leading bullet, ``**Field:**`` and ``**Field**:``. Linear by construction —
+    one optional bullet run and a greedy value ending on non-space; the earlier
+    ``[ \t]*-?[ \t]*`` + lazy ``(\S.*?)\s*$`` was quadratic on padded lines (14 s at 50k).
+    """
+    return re.compile(
+        rf"^[ \t]*(?:-[ \t]*)?\*{{0,2}}{re.escape(name)}\*{{0,2}}:\*{{0,2}}[ \t]*(\S(?:.*\S)?)[ \t\r]*$",
+        re.MULTILINE,
+    )
 
 
 def split_steps(milestone_block: str) -> list[Block]:

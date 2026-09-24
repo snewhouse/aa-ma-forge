@@ -150,7 +150,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `aa-ma-plan-skip-warn.sh` | PreToolUse(ExitPlanMode) + SessionEnd — advisory; checks the `/aa-ma-plan` runtime log for skipped phase markers. Never blocks |
 | `aa-ma-plan-marker.sh` | Library helper invoked by the `/aa-ma-plan` workflow to append phase markers to `~/.claude/runtime/aa-ma-plan-<slug>.log` (not a standalone event hook) |
 
-Two further `hooks/lib/` helpers are symlinked by `install.sh` but are not event hooks and not counted above: `aa-ma-parse.sh` (sourced by every hook; launches `aa-ma-gate`) and `aa-ma-chart-guard.sh` (charting checks `fog | claim | reclaim | from-map | import`, invoked from `/aa-ma-chart` and `/aa-ma-plan --from-map`).
+Two further `hooks/lib/` helpers are symlinked by `install.sh` but are not event hooks and not counted above: `aa-ma-parse.sh` (sourced by every hook; launches `aa-ma-gate` and the advisory `aa_ma_deps`) and `aa-ma-chart-guard.sh` (charting checks `fog | claim | reclaim | from-map | import`, invoked from `/aa-ma-chart` and `/aa-ma-plan --from-map`).
 | `security-static-check.sh` | PreToolUse — mechanical, zero-token commit-time security checks (bandit / shellcheck class), mirroring the `aa-ma-commit-drift.sh` / `aa-ma-validator` mechanical-vs-analytical split; introduced v0.8.0 per ADR-0005; **BLOCKING** on findings |
 
 ### Operational protocols

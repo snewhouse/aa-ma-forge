@@ -58,6 +58,7 @@ type = forbidden
 # and tests/render/test_leaf_contract.py fails when a module is added but not listed.
 source_modules =
     aa_ma.cli
+    aa_ma.deps
     aa_ma.enforce
     aa_ma.forks
     aa_ma.gate

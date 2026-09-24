@@ -237,14 +237,14 @@
 - Result Log: Mode: AFK — auto-dispatched. `tests/fixtures/deps-hazards.md` (headings `Step M1.0`, `Step M2a.1`, `Milestone 2a`, cross-plan value) + `tests/test_deps.py` (EXPECTED for the 4 hazards, `_naive_strip_m` mutant tied to real heading numbers, 22 lenient legacy forms, corpus ZERO findings per Ste, `Dependencies table:` not-a-field, canonical accept/refuse, graph exact string, §13 lint-clean, advisory exact string, CLI exit codes) + `test_active_plans_canonical.py` (active plans + 2 writer templates must write canonical `Dependencies:`). RED: collection ImportError (`aa_ma.deps`, `CANONICAL_DEPENDENCY_RE` absent). Committed locally, not pushed (L-025).
 
 ### Sub-step 7.2: [impl] `deps.py` parser/resolver + `CANONICAL_DEPENDENCY_RE` in `grammar.py`
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. Impact analysis first (grammar.py pure addition, LOW). `src/aa_ma/deps.py`: `DepRef`, `parse_dependencies`, `resolve`, `dependency_fields`, `check`, `milestone_graph` (round `("…")` nodes — §13 lint reads only `[...]` labels as path claims), `advisory`, `main` (`python -m aa_ma.deps graph|check|advisory`, exit 0/1/2). Number shape reused from `grammar._NUM_S`; one fix during GREEN: a number may end at `-<digit>` so `Milestones 1-3` is a range (corpus `Milestones 1-4` surfaced it). `grammar.CANONICAL_DEPENDENCY_RE` added (pure addition). Live: corpus 324 fields / 61 None / 1 cross-plan ref / 0 findings; this plan's graph 14 nodes 14 edges; `render_check` PASS on 3 graphs (pinned mermaid). tests/test_deps.py 69 passed.
 
 ### Sub-step 7.3: [impl] `.importlinter` gains `aa_ma.deps`; `test_leaf_contract.py` green
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. Before the entry: `test_leaf_contract` FAILED `add to .importlinter render-is-leaf: ['aa_ma.deps']` (AC8 trap fired as documented). After: 1 passed; `uv run lint-imports` 4 kept / 0 broken.
 
 ### Sub-step 7.4: [impl] Milestone graph into §13; scribe + template spelling
 - Status: PENDING

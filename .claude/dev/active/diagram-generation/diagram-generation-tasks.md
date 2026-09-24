@@ -53,7 +53,7 @@
 - Result Log: Mode: HITL — Ste approved (Proceed). CRITICAL_PATH_REVIEW (data-xform) written to provenance.log naming this milestone. Full suite 1122 passed / 2 skipped (baseline 1101 +21 new); ruff clean; tests/codemem/ collected by CI (security.yml:157). Same-tree base vs head: symbols + resolved call edges identical.
 
 ## Milestone 2: `aa_ma.render.graph` sqlite seam + import contract + ADR-0014
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 1
 - Gate: HARD
 - Audit-Profile: code-only
@@ -64,9 +64,9 @@
 - Acceptance Criteria: 7 criteria — see plan.md § Milestone 2
 
 ### Sub-step 2.1: [test] `test_graph.py` with stdlib-sqlite3-built v2/v3/missing/stale fixtures, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. New `tests/render/test_graph.py` (16 tests): stdlib-sqlite3 fixtures at v2/v3 + missing + corrupt + stale (touch AND delete); readers (resolved-only imports, DISTINCT call projection dropping same-file/unresolved, empty on non-OK, readable when STALE); read-only conn; contract stanza by name + `lint-imports` named-contract KEPT. RED: collection error (module absent). Baseline lint-imports: 3 kept, 0 broken.
 
 ### Sub-step 2.2: [impl] `render/graph.py`: `open_graph`, `import_edges`, `call_edges`
 - Status: PENDING

@@ -137,3 +137,17 @@ _Last Updated: 2026-09-22_
 | lint-imports in CI | `security.yml` codemem-smoke, step after `uv sync` | M2 |
 | Live counts @ M2 | ~~163 / 175~~ measured on a CORRUPTED index; corrected @ M3 (healed): import_edges 171, call_edges 107 | M2, corrected M3 |
 | ADR-0014 | Accepted; flip to Implemented when M3/M5 consumers ship | M2 |
+
+## M3 facts (2026-09-24)
+
+| Fact | Value | Source |
+|---|---|---|
+| CLI | `codemem [--db P] draw [--level L0..L3 (default L0)] [--scope] [--hops N>=0] [--include-tests] [--direction up/down/both] [--kind import/call/both (default both)]`; stdout mermaid, stderr summary; exit 0 / 1 no-old-unreadable index / 2 usage | M3 |
+| API | `codemem.draw.cut.cut(conn, level, *, scope, hops, include_tests, direction, kind) -> Cut(nodes, edges, dropped)`; `to_mermaid(cut)`; `node_id(name, level)`; `MIN_SCHEMA_VERSION = 3`; `MAX_EDGES = 500` | M3 |
+| Levels | L0 dir depth 1 · L1 dir depth 2 · L2 files · L3 `path::Class.method` (calls only; L3+import -> ValueError); scope neighbourhood BEFORE collapse | M3 |
+| Edge syntax | `A -->|"@import"| B` / `-->|"@call"|` (QUOTED; bare is a mermaid 11 parse error) | M3 |
+| Label escaping | `# " < > % { } \`` -> `#35; #quot; #lt; #gt; #37; #123; #125; #96;`; control chars -> `?` | M3 |
+| node_id | `"n" + base36(h)`, h = seed 7, h*31 + charCodeAt(0) per code point (non-BMP = high surrogate), uint32, over `L<level>:<name>`; fixture `tests/fixtures/draw-node-ids.json` from independent JS `draw-node-ids.gen.mjs` | M3 |
+| Build semantics | `build_index` clears edges/file_edges/symbols/files, then reloads (self-heals corrupted indexes) | M3 §3.5 |
+| Live bands @ M3 | L0 2/1; L2 render call 5/4; call -tests 25/27; +tests 94/107; L3 299/355 | M3 |
+| Local render env | mmdc 11.17.0 / mermaid 11.17.2; chrome-headless-shell 152.0.7977.75 in ~/.cache/puppeteer (manually extracted; no `unzip` on host); CI has no browser -> render UNKNOWN there | M3 |

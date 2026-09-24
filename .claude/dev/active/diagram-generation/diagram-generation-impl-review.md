@@ -123,3 +123,51 @@ No new deps; `import-linter>=2.0` pre-existing dev dep (pyproject.toml:49).
 
 ## Revision History
 - 2026-09-24: 1 CRITICAL accepted and fixed; targeted re-run clean of CRITICALs; all WARNINGs fixed or recorded.
+
+---
+
+# Impl Review Report: diagram-generation / Milestone 3
+
+**Milestone:** Milestone 3: `codemem draw` emitter, layered cuts L0–L3
+**Audit-Profile:** code-only (all 5 agents)
+**Window:** d985aa0..0e6966b (review; excludes 75f8d09 [ad-hoc] CI and 3d30b21, another session's docs) · fixes 8289371
+**Date:** 2026-09-24
+
+## Summary
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer (+§6.6)     |    0     |    4    |  5   | WARN → fixed |
+| security-auditor          |    0     |    1    |  4   | WARN → fixed (verified inert on real render) |
+| tdd-sequence-auditor      |    0     |    0    |  1   | PASS (3 RED→GREEN pairs) |
+| context7-evidence-auditor |    0     |    0    |  3   | PASS |
+| future-proofing-auditor   |    0     |    1    |  6   | WARN → fixed |
+| **TOTAL**                 |  **0**   |  **6**  |**19**| **PASS_WITH_WARNINGS** (all 6 WARNINGs fixed) |
+
+## Code Review
+- WARNING — `codemem draw --hops -1` / node-id collision raised a traceback. **FIXED**: argparse non-negative type; `ValueError` -> exit 2 via `parser.error`.
+- WARNING — cut.py duplicates aa_ma.render.graph SQL. **MITIGATED, not merged**: aa_ma may not import codemem (ADR-0014 contract), so one shared module is impossible by design. Added `TestDrawSeamParity` (tests/codemem/test_file_edges.py): draw L2 == graph.py readers on one real index. The claimed drift (self-import filter) cannot occur — `_resolve_import` never resolves a file to itself.
+- WARNING — two 4-way call joins in cut.py. **FIXED**: file-level calls projected from `_symbol_calls`.
+- WARNING — `--level L3 --kind import` silently empty. **FIXED**: ValueError -> exit 2.
+- INFO — `incremental.py:216` relies on cascade: **checked** — it uses `db.connect()` (FK ON) and never toggles it; not affected by the §3.5 defect.
+- INFO — plan Contract API lacked `kind=`: **FIXED** in plan.md. AC2 as measured is `--kind call` (default `both` gives 5/8): recorded below. L3 self-loops for recursion: **deliberate**, commented.
+
+## Security
+- WARNING — `%%{init}%%` directive injection via file-name labels (demonstrated: theme restyle; themeCSS `url()` beacon under the html CSP's `img-src https:`). **FIXED**: `% { } \`` entity-encoded. Real render of the payload: label shows literally, theme unchanged, URL appears only as visible label text, never in `<style>`.
+- INFO — no XSS (securityLevel protected keys held; click/href inert); node ids are hashes; edge kinds are literals; DELETE f-string over a fixed tuple.
+
+## TDD Sequence — PASS
+cut 32adf2c→e82add7 (68s) · mermaid+CLI d0b9564/5f5176d→b677fde (87s) · indexer fe90f6d→0e6966b (106s) · review fixes RED commit → 8289371.
+
+## External Library Evidence — PASS
+No new deps. Mermaid sigil + entity behaviour verified on mermaid 11.17.2 by bisection and SVG read-back (`q#quot;t#35;h#lt;a#gt;b.py` renders `q"t#h<a>b.py`).
+
+## Future-Proofing
+- WARNING — `codemem draw` missing from `claude-code/codemem/commands/codemem.md` and `docs/codemem/migration-from-index.md`. **FIXED** (reference section; migration doc points at `codemem --help` instead of a list).
+- INFO — CLI choices duplicated enums (**fixed**, derived from `Level`/`KINDS`/`DIRECTIONS`); bare `3` (**fixed**, `MIN_SCHEMA_VERSION`); mermaid-version coupling (**fixed**, note at `MERMAID_VERSION`).
+
+## User Override Decisions
+No CRITICAL findings — no override panel required.
+
+## Revision History
+- 2026-09-24: 6 WARNINGs, all fixed in 8289371 (RED-first); security fix verified on a real renderer.

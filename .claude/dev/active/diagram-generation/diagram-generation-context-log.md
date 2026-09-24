@@ -176,3 +176,11 @@ _Updated via context compaction as the task progresses._
 - **Invalidated figures:** the "HEAD" numbers quoted in the M3 edge-kind question (call 31/40, import 42/56, both 43/67; L2 render call 6/7, both 6/7) and M2's recorded live counts (import_edges 163, call_edges 175). The decisions made on them (edge kinds = both, tests excluded) stand on their own merits — Ste's choice did not hinge on the magnitudes.
 - **Corrected (healed index @ M3):** call-only L2 render 5/4 and raw -tests 25/27 — identical to the prototype; M2 seam live: import_edges 171, call_edges 107. M1 figures (694 import rows, 1784 dotted callees) were measured on fresh scratch builds and stand.
 - Lesson: a scratch fresh build is the only trustworthy measurement base until an index is known clean.
+
+## [2026-09-24] Milestone Completion: `codemem draw` emitter, layered cuts L0–L3
+- Status: COMPLETE (pending HARD-gate approval below)
+- Key outcome: `codemem draw` emits deterministic, renderer-verified mermaid at L0–L3 over import ∪ call edges with quoted kind sigils; the port reproduces every prototype band on the prototype's frozen data. Two pre-existing defects surfaced and fixed on the way: build_index misattributing symbols across rebuilds (§3.5) and the unparseable bare-sigil grammar (plan §13 corrected).
+- AC note: AC2's "5 nodes / 4 edges" holds for `--kind call` (the measured configuration); the default `--kind both` gives 5/8 (the same 4 file pairs, each carrying @import and @call). AC3's 27 -> 96 holds on the frozen prototype data; the live repo has grown to 27 -> 107.
+- Artifacts: codemem/draw/{__init__,cut,mermaid}.py; cli.py; indexer.py; tests/codemem/{test_draw_cut,test_draw_mermaid,test_indexer,test_file_edges}.py; tests/fixtures/draw-{node-ids.json,node-ids.gen.mjs,prototype-graph.json}; claude-code/codemem/commands/codemem.md; docs/codemem/migration-from-index.md; src/aa_ma/render/html.py (comment); plan.md (§13 sigils, API)
+- Tests: 1195 passed / 2 skipped; ruff clean; 4 contracts kept
+- Out-of-band (Ste request, [ad-hoc]): CI least-privilege + SHA pinning, 75f8d09, CI green.

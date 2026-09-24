@@ -106,14 +106,14 @@ def test_directory_caption_appears_at_collapsed_levels() -> None:
     l0 = from_edges({("src", "lib", "import")}, Level.L0)
     l1 = from_edges({("src/pkg", "lib/x", "import")}, Level.L1)
     assert for_cut(l0, CAPS) == {"src/": "Source."}
-    assert for_cut(l1, CAPS) == {"src/pkg/": "Package."}
+    assert for_cut(l1, CAPS) == {"src/": "Source.", "src/pkg/": "Package."}  # src/ contains src/pkg
 
 
 def test_file_caption_appears_at_file_and_symbol_levels() -> None:
     l2 = from_edges({("src/pkg/b.py", "src/a.py", "call")}, Level.L2)
     l3 = from_edges({("src/pkg/b.py::f", "src/pkg/b.py::g", "call")}, Level.L3)
-    assert for_cut(l2, CAPS) == {"src/pkg/b.py": "Start."}
-    assert for_cut(l3, CAPS) == {"src/pkg/b.py": "Start."}
+    inside = {"src/": "Source.", "src/pkg/": "Package.", "src/pkg/b.py": "Start."}
+    assert for_cut(l2, CAPS) == for_cut(l3, CAPS) == inside
 
 
 # ---------------------------------------------------------------------

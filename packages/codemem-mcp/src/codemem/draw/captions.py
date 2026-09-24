@@ -7,8 +7,9 @@ One flat, path-keyed JSON sidecar feeds both the living doc and the explorer::
 
 Prose renders OUTSIDE the mermaid fence (``%%`` comments are invisible at render), so
 a caption edit is never diagram drift; only ``@start`` reaches the mermaid, as a
-highlight. Path keying makes zoom levels free: a directory key (trailing ``/``) serves
-collapsed levels, a file key serves file and symbol levels. No tool deletes a caption.
+highlight. Path keying makes zoom levels free: a directory key (trailing ``/``) covers the
+node that is that directory and every node inside it; a file key covers its file and
+symbol nodes; nothing covers an ancestor. No tool deletes a caption.
 """
 
 from __future__ import annotations
@@ -85,8 +86,8 @@ def start_ids(c: Cut, captions: dict[str, str] | None) -> list[str]:
 
 
 def _names(key: str, label: str) -> bool:
-    if key.endswith("/"):
-        return label == key[:-1]
+    if key.endswith("/"):  # the directory itself, or anything inside it — never an ancestor
+        return label == key[:-1] or label.startswith(key)
     return label == key or label.startswith(key + "::")
 
 

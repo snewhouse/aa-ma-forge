@@ -1,8 +1,8 @@
 # codemem layer-boundary enforcement (M1 Task 1.11).
 #
 # Run locally: uv run lint-imports
-# Run in CI: GitHub Actions `security.yml` executes `lint-imports`
-# after the test step.
+# Run in CI: GitHub Actions `security.yml` (codemem-smoke job) runs
+# `uv run lint-imports` after `uv sync` (diagram-generation M2).
 #
 # Contracts:
 #
@@ -17,6 +17,12 @@
 # 3. aa_ma.render is a leaf: derived views (lint, HTML) may import the
 #    grammar and parsers, but nothing in aa_ma may import aa_ma.render
 #    (plan-architecture-views M2, ADR-0010).
+#
+# 4. aa_ma never imports codemem: aa_ma.render.graph reads codemem's SQLite
+#    file with stdlib sqlite3, so the coupling is the on-disk schema, not a
+#    Python API (diagram-generation M2, ADR-0014). `source_modules = aa_ma`
+#    is accepted here — the shared-descendants refusal noted in contract 3
+#    applies only when source and forbidden share a root package.
 
 [importlinter]
 root_packages =
@@ -64,3 +70,11 @@ source_modules =
     aa_ma.validators
 forbidden_modules =
     aa_ma.render
+
+[importlinter:contract:aa-ma-never-imports-codemem]
+name = aa_ma never imports codemem
+type = forbidden
+source_modules =
+    aa_ma
+forbidden_modules =
+    codemem

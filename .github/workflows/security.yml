@@ -135,6 +135,11 @@ jobs:
       - name: Sync workspace deps
         run: uv sync
 
+      - name: Import contracts (import-linter)
+        # Includes aa-ma-never-imports-codemem (ADR-0014): without this step
+        # every contract in .importlinter is local-only and a violation merges green.
+        run: uv run lint-imports
+
       - name: ast-grep version drift check
         # Warn (not fail) if installed ast-grep-cli is outside the declared
         # >=0.42,<0.43 range. New point releases MAY land wheels with

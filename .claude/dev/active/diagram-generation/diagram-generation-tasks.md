@@ -66,7 +66,7 @@
 ### Sub-step 2.1: [test] `test_graph.py` with stdlib-sqlite3-built v2/v3/missing/stale fixtures, RED
 - Status: COMPLETE
 - Mode: AFK
-- Result Log: Mode: AFK — auto-dispatched. New `tests/render/test_graph.py` (16 tests): stdlib-sqlite3 fixtures at v2/v3 + missing + corrupt + stale (touch AND delete); readers (resolved-only imports, DISTINCT call projection dropping same-file/unresolved, empty on non-OK, readable when STALE); read-only conn; contract stanza by name + `lint-imports` named-contract KEPT. RED: collection error (module absent). Baseline lint-imports: 3 kept, 0 broken.
+- Result Log: Mode: AFK — auto-dispatched. New `tests/render/test_graph.py` (14 tests): stdlib-sqlite3 fixtures at v2/v3 + missing + corrupt + stale (touch AND delete); readers (resolved-only imports, DISTINCT call projection dropping same-file/unresolved, empty on non-OK, readable when STALE); read-only conn; contract stanza by name + `lint-imports` named-contract KEPT. RED: collection error (module absent). Baseline lint-imports: 3 kept, 0 broken.
 
 ### Sub-step 2.2: [impl] `render/graph.py`: `open_graph`, `import_edges`, `call_edges`
 - Status: COMPLETE
@@ -74,9 +74,9 @@
 - Result Log: Mode: AFK — auto-dispatched. `src/aa_ma/render/graph.py`: GraphStatus(StrEnum) OK/MISSING/SCHEMA_TOO_OLD/STALE; frozen GraphHandle; open_graph (file: URI mode=ro, user_version >= 3, never raises — sqlite3.Error -> MISSING with reason); staleness = disk mtime > files.mtime OR file deleted (deletion added beyond plan: a vanished file is equally out of date); STALE handles keep conn (advisory); import_edges / call_edges both SELECT DISTINCT, call projection drops same-file. 12/14 graph tests green; 2 remaining are 2.3 contract tests. ruff clean.
 
 ### Sub-step 2.3: [impl] `.importlinter` contract + `uv run lint-imports` CI step
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `.importlinter`: + `aa-ma-never-imports-codemem` (forbidden, source aa_ma, forbidden codemem) + header comment 4; corrected header claim that CI already ran lint-imports (it ran 0 times). security.yml codemem-smoke: + `uv run lint-imports` step directly after `uv sync`. lint-imports: 4 kept, 0 broken. MUTATION: `import codemem` in graph.py -> "aa_ma never imports codemem BROKEN ... aa_ma.render.graph -> codemem (l.13)", restored. YAML parses; tests/render collected by CI catch-all step. render suite 81 passed.
 
 ### Sub-step 2.4: [docs] ADR-0014
 - Status: PENDING

@@ -267,3 +267,21 @@ class TestRenderSeamOnRealIndex:
         assert import_edges(h) == {("a.py", "b.py")}
         assert call_edges(h) == {("a.py", "b.py")}
         h.conn.close()
+
+
+class TestDrawSeamParity:
+    """codemem.draw and aa_ma.render.graph read the same tables with separate SQL
+    (aa_ma may not import codemem — ADR-0014). They must agree on one real index."""
+
+    def test_draw_l2_matches_render_graph(self, import_repo) -> None:
+        from aa_ma.render.graph import call_edges, import_edges, open_graph
+
+        from codemem.draw.cut import Level, cut
+
+        root, db_path = import_repo
+        h = open_graph(root)
+        c = cut(h.conn, Level.L2, include_tests=True)
+        drawn = {(c.nodes[a], c.nodes[b], k) for a, b, k in c.edges}
+        seam = {(a, b, "import") for a, b in import_edges(h)} | {(a, b, "call") for a, b in call_edges(h)}
+        h.conn.close()
+        assert drawn == seam

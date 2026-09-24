@@ -132,3 +132,29 @@ def test_cli_usage_error_exits_2(db: Path) -> None:
     with pytest.raises(SystemExit) as exc:
         main(["--db", str(db), "draw", "--level", "L9"])
     assert exc.value.code == 2
+
+
+# ---------------------------------------------------------------------
+# §6.8 review fixes (M3)
+# ---------------------------------------------------------------------
+
+def test_directive_injection_is_inert() -> None:
+    """A file name carrying `%%{init}%%` must not become a mermaid directive
+    (security review: it could restyle the diagram and beacon via themeCSS)."""
+    label = "a%%{init: {'theme':'forest'}}%%b`c`.py"
+    out = escape_label(label)
+    assert "%" not in out and "{" not in out and "}" not in out and "`" not in out
+    text = to_mermaid(_cut([(label, "src/x.py", "import")]))
+    assert "%%{" not in text
+    assert render_check([text]) != "FAIL"
+
+
+@pytest.mark.parametrize("argv", [
+    ["draw", "--hops", "-1"],
+    ["draw", "--level", "L3", "--kind", "import"],
+])
+def test_cli_rejects_invalid_combinations_with_exit_2(db: Path, argv, capsys) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["--db", str(db), *argv])
+    assert exc.value.code == 2
+    assert "Traceback" not in capsys.readouterr().err

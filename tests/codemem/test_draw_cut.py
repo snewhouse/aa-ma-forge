@@ -209,3 +209,9 @@ class TestSemantics:
 ])
 def test_is_test_path(path, expected) -> None:
     assert is_test_path(path) is expected
+
+
+def test_l3_import_kind_rejected(small) -> None:
+    """L3 is symbol-level calls only; asking for imports there is an error, not an empty diagram."""
+    with pytest.raises(ValueError):
+        cut(small, Level.L3, kind="import")

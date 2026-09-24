@@ -67,7 +67,7 @@ def _repo(tmp_path: Path, *, version: int = 3) -> Path:
     return tmp_path
 
 
-def _add_file_row(root: Path, path: str | None, mtime: int = 0) -> None:
+def _add_file_row(root: Path, path: str | None, mtime: int | str = 0) -> None:
     conn = sqlite3.connect(root / ".codemem" / "index.db")
     conn.execute("INSERT INTO files(path, mtime) VALUES (?, ?)", (path, mtime))
     conn.commit()
@@ -154,6 +154,50 @@ class TestOpenGraph:
         _add_file_row(root, None)
         h = open_graph(root)
         assert h.status is GraphStatus.STALE
+
+    def test_symlink_leaving_tree_is_stale(self, tmp_path: Path) -> None:
+        root = tmp_path / "repo"
+        root.mkdir()
+        (tmp_path / "outside.py").write_text("# outside\n")
+        _repo(root)
+        (root / "link.py").symlink_to(tmp_path / "outside.py")
+        _add_file_row(root, "link.py", mtime=2**40)
+        h = open_graph(root)
+        assert h.status is GraphStatus.STALE
+        assert "link.py" in h.reason
+
+    def test_symlink_loop_is_stale_not_raised(self, tmp_path: Path) -> None:
+        root = _repo(tmp_path)
+        (root / "loop.py").symlink_to(root / "loop.py")
+        _add_file_row(root, "loop.py", mtime=2**40)
+        assert open_graph(root).status is GraphStatus.STALE
+
+    def test_non_integer_mtime_marks_row_stale(self, tmp_path: Path) -> None:
+        """A hostile mtime is one stale row, not a MISSING index."""
+        root = _repo(tmp_path)
+        (root / "d.py").write_text("# d\n")
+        _add_file_row(root, "d.py", mtime="abc")
+        h = open_graph(root)
+        assert h.status is GraphStatus.STALE
+        assert "d.py" in h.reason
+
+    def test_control_chars_escaped_in_reason(self, tmp_path: Path) -> None:
+        root = _repo(tmp_path)
+        _add_file_row(root, "evil\x1b[31m.py")
+        h = open_graph(root)
+        assert h.status is GraphStatus.STALE
+        assert "\x1b" not in h.reason
+
+    @pytest.mark.skipif(os.geteuid() == 0, reason="root ignores permissions")
+    def test_unreadable_codemem_dir_never_raises(self, tmp_path: Path) -> None:
+        root = _repo(tmp_path)
+        (root / ".codemem").chmod(0)
+        try:
+            h = open_graph(root)
+        finally:
+            (root / ".codemem").chmod(0o755)
+        assert h.status is GraphStatus.MISSING
+        assert h.conn is None
 
     def test_connection_is_read_only(self, tmp_path: Path) -> None:
         h = open_graph(_repo(tmp_path))

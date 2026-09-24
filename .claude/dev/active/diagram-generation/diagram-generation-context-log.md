@@ -111,3 +111,18 @@ the field from three milestones was the alternative and was rejected — it woul
 the `CRITICAL_PATH_REVIEW` evidence step on every CI change.
 
 _Updated via context compaction as the task progresses._
+
+## [2026-09-24] Milestone 1 execution decisions
+- **Validator pre-exec WARN** (0 FAIL): fixed plan.md AC3 self-contradiction (`CHECK (kind IN ('import'))` parenthetical removed — the Contract deliberately has no kind CHECK); widened Sub-step 1.1 to own all `file_edges` tests (AC5/5b/7 + dedup), closing the TDD gap before 1.6.
+- **Invalidation lives in `resolver.py`, not `incremental.py`** (deviation from the Files list): both writers (`build_index`, `refresh_index`) call `resolve_cross_file_edges`, so one explicit `DELETE FROM file_edges WHERE src_file_id=?` covers both. `incremental.py` unchanged.
+- **Import resolution is DB-wide** (`SELECT path, id FROM files`), not parse-set: `refresh_index` passes only dirty files, and an import of an unchanged file must resolve. After impl-review, call-edge resolution reuses the same targets — on a full index identical (1227=1227); on incremental refresh, call edges into unchanged files now resolve (previously they could not). Intended correction.
+- **Callee lookup rule** (`_lookup_name`): dotted callees match on last segment only for bare names, single-Name receivers (pre-M1 behaviour), or receivers that are imported modules / alias targets. `self.conn.execute` stays unresolved — cannot bind to an unrelated `execute`. Chains through calls/subscripts are still not emitted.
+- **Intended output-shape change**: `edges.dst_unresolved` now holds dotted, alias-qualified callees. No query tool reads the column; `codemem build` unresolved count shifts upward (2109 -> 2349 on this repo).
+- **Known gap (pre-existing class)**: WAL replay-from-scratch does not re-run the resolver, so `file_edges` (like cross-file call edges) is empty until the next build. Pending WAL journals written at v2 hit ReplayConflict after the 3 bump — rebuild instead.
+- **`line` column** left NULL (`ParseResult.imports` carries no line numbers); populate if a consumer needs it.
+
+## [2026-09-24] Milestone Completion: codemem `file_edges` (schema v3) + qualified callees
+- Status: COMPLETE (pending HARD-gate approval below)
+- Key outcome: schema v3 `file_edges` persists 694 import edges on this repo (162 resolved, 0 dups); `apply_schema()` no longer downgrades newer DBs; call edges keep dotted, alias-qualified callees without changing the resolved call graph.
+- Artifacts: storage/db.py, parser/python_ast.py, resolver.py; tests/codemem/test_file_edges.py (new), test_resolver.py, test_schema_v2.py; docs/codemem/{migration-from-index,ARCHITECTURE}.md; impl-review.md
+- Tests: 1122 passed / 2 skipped (baseline 1101); ruff clean; tests/codemem/ collected by CI

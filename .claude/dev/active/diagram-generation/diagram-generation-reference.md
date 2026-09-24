@@ -22,7 +22,7 @@ Architecture View: see plan.md §13 (Component view + Flow view; `Diagram-Waiver
 | Readability bands | ≤40 readable · ≤120 dense · 500 hard stop | Ticket 3 |
 | Index build time | 0.44s (175 files / 1517 symbols) | Ticket 8 |
 | `.codemem/` db path | `Path.cwd()/".codemem"/"index.db"` — hardcoded, no env var | `cli.py:33`, `mcp_tools/__init__.py:94`; `--db` at `cli.py:265` |
-| Current schema version | `user_version = 2`; `CURRENT_SCHEMA_VERSION` at `db.py:41` | measured |
+| Current schema version | `user_version = 3` since M1 (was 2); `CURRENT_SCHEMA_VERSION` at `db.py:41` | M1 |
 | `PRAGMA foreign_keys` | ON for write connections | `db.py:120-122` |
 | MCP budget | `_DEFAULT_BUDGET = 8_000` tokens | `mcp_tools/__init__.py:52` |
 | CI jobs (5) | shellcheck · bandit · ruff · bats · codemem-smoke | `.github/workflows/security.yml` |
@@ -110,3 +110,16 @@ Architecture View: see plan.md §13 (Component view + Flow view; `Diagram-Waiver
 19. Keep both backends; codemem default, `PROJECT_INDEX.json` fallback; `/index` repointed at `codemem build`
 
 _Last Updated: 2026-09-22_
+
+## M1 facts (2026-09-24)
+
+| Fact | Value | Source |
+|---|---|---|
+| `file_edges` writer | `resolver._persist_import_edges()` — per-file DELETE + INSERT OR IGNORE, kind `'import'`; returns `{src_path: {target paths}}` | M1 |
+| Import resolution scope | DB-wide `files` set (not parse set) | M1 |
+| Dotted callee format | `edges.dst_unresolved` = `ast.unparse` chain, head via `ParseResult.import_aliases` (`np.array` -> `numpy.array`) | M1 |
+| `ParseResult.import_aliases` | `dict[str, str]`: `import a.b` -> `{a: a}`; `import x as y` -> `{y: x}`; `from m import n as k` -> `{k: m.n}` | M1 |
+| `apply_schema()` | restores a higher pre-existing `user_version` after running schema.sql | M1 |
+| `file_edges.line` | NULL (imports carry no line numbers) | M1 |
+| Live counts, this repo @ M1 | 694 import edges, 162 resolved, 0 dups; build 0.55s | M1 |
+| Renderer label safety | M3+ must escape/quote node labels; do not rely on parser identifier charset | M1 security INFO |

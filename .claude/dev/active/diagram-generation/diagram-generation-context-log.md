@@ -249,3 +249,11 @@ _Updated via context compaction as the task progresses._
 - Key outcome: one authored JSON sidecar feeds per-level captions (`for_cut`) and the `@start` highlight; ORPHAN_CAPTION vs UNKNOWN findings; prose never enters the mermaid.
 - Artifacts: draw/captions.py, draw/mermaid.py (captions=), docs/architecture.captions.json, tests/codemem/test_captions.py
 - Tests: 1245 passed / 2 skipped; 29 caption tests
+
+## [2026-09-24] M6 design decisions (Ste, before any code)
+Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on this repo (claude-code → packages → src); L2 whole repo (tests excluded) is 47 nodes / 91 edges both kinds, 62 import-only. codemem's indexer uses `git ls-files`, so local and CI builds see the same tracked set.
+1. **component.md = L2 whole repo, both kinds** (Ste).
+2. **CLI = `codemem draw --write` / `codemem draw --check`**; bare `codemem draw` stays M3's stdout emitter (nothing breaks). The remedy message names `codemem draw --write` (contains AC2's "codemem draw").
+3. **`--check` compares every line except line 1 (the stamp) and the lines inside a `<!-- captions -->` … `<!-- /captions -->` block** (Ste). This refines the M5 "fences only" decision, which contradicted AC2, the plan's line-2 risk test, and left README.md (no fence) unchecked. Caption prose edits remain non-drift; `@start` edits remain drift (the classDef is inside the fence).
+4. **`--check` planned set is empty**: `ORPHAN_CAPTION` (exit 1) for any caption naming a path not in `git ls-files`; author captions only for paths that exist (Ste). codemem has no aa_ma dependency and the lint's `(new)` parser is private.
+5. Derived (not assumed, recorded for review): plugin-surface is registered only when `claude-code/` exists (consumer repos have none); it takes no captions by construction — its labels are `kind:stem`, which no path key matches. `--check` with no/pre-v3 index prints UNKNOWN and exits 0 for all views (AC3), including plugin-surface.

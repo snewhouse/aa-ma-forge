@@ -170,7 +170,7 @@
 - Result Log: Mode: AFK — auto-dispatched. `captions.py`: `load`, `orphans -> list[CaptionFinding]`, `for_cut`, `start_ids`; `mermaid.to_mermaid(c, captions=None)` adds `classDef start` + `class <ids> start` only (None → M3 output byte-identical). Sidecar = the plan's three example entries verbatim (no invented prose). Live finding: M3 collapses L1 to depth 2, so the plan's depth-3 dir keys matched no node at any level; Ste chose equal-or-contained (dir caption covers the dir node and nodes inside it, never ancestors) — RED 405f46c → GREEN 8f9edd3. Live on a fresh index: L2 shows both dir captions, L3 (scope render/) shows `src/aa_ma/render/`, @start highlighted at L2/L3; every level render PASS. 20 caption tests (corrected by §6.8: pytest collects 20); full suite 1236 passed / 2 skipped; ruff/bandit clean; lint-imports 4 kept.
 
 ## Milestone 6: Living doc + `--check` + CI drift job + ADR-0016 → release `v0.15.0`
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 4, Milestone 5
 - Gate: HARD
 - Audit-Profile: full

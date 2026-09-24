@@ -227,3 +227,8 @@ _Updated via context compaction as the task progresses._
 - Matching: dir key `a/b/` ↔ node label `a/b` (collapsed levels); file key ↔ L2 label or L3 `path::symbol` file part. `@start` highlights the node that IS or CONTAINS the path, so collapsed levels still show where to start.
 - Contract Files lists only captions.py / sidecar / test, but AC1 needs the emitter and Rollback names "the emitter's captions argument", so `draw/mermaid.py` is modified (default None → byte-identical M3 output). The `codemem draw` CLI is not wired here: M6's view registry is the caller (YAGNI until then).
 - The "emitter refuses to write inside docs/architecture/" risk mitigation has no writer until M6; M5 pins the path constant outside that dir.
+
+## [2026-09-24] M5 decision — directory caption matching (Ste)
+- Measured: M3's L0/L1 collapse to depth 1/2, so the map's claim that collapsed levels have ids like `src/aa_ma/render/` is false; depth-3 dir keys named no node at any level.
+- Options: exact-only (re-key the sidecar to depth ≤ 2), equal-or-contained, or also ancestors. **Ste chose equal-or-contained**: a dir caption covers the node that IS the dir and every node INSIDE it, never an ancestor. AC2 holds for depth-1/2 keys; deeper keys surface at L2/L3.
+- `@start` highlights the node that is, contains, or is contained by the start path. At L0 on this repo `src` has no cross-dir edge, so nothing is highlighted there — correct: no node, no highlight.

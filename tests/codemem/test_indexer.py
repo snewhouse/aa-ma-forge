@@ -239,3 +239,82 @@ class TestBuildIndex:
             # file row exists, just no symbols for it
             paths = [r[0] for r in conn.execute("SELECT path FROM files")]
             assert any("broken.py" in p for p in paths)
+
+
+# ---------------------------------------------------------------------
+# Rebuild integrity (diagram-generation M3 Sub-step 3.5)
+#
+# build_index turned FK enforcement OFF before `DELETE FROM files`, so the
+# cascade never ran; orphaned symbols/edges were then re-attached to whatever
+# path reused their file id. Adding one early-sorting file was enough.
+# ---------------------------------------------------------------------
+
+def _git_repo(root: Path, files: dict[str, str]) -> None:
+    import subprocess
+    (root / ".gitignore").write_text(".codemem/\n")
+    for name, body in files.items():
+        (root / name).write_text(body)
+    run = lambda *a: subprocess.run(["git", "-C", str(root), *a], check=True, capture_output=True)  # noqa: E731
+    if not (root / ".git").exists():
+        run("init", "-q")
+        run("config", "user.email", "t@x")
+        run("config", "user.name", "T")
+    run("add", "-A")
+    run("commit", "-qm", "c", "--allow-empty")
+
+
+def _misattributed(db_path: Path) -> list[tuple[str, str]]:
+    """Symbols whose SCIP id names a different file than the row they hang off."""
+    with db.connect(db_path, read_only=True) as conn:
+        return [
+            (path, scip)
+            for path, scip in conn.execute(
+                "SELECT f.path, s.scip_id FROM symbols s JOIN files f ON f.id = s.file_id"
+            )
+            if f"{path}#" not in scip
+        ]
+
+
+class TestRebuildIntegrity:
+    B = "def beta():\n    return 1\n"
+    C = "from b import beta\n\ndef gamma():\n    return beta()\n"
+
+    def test_rebuild_after_adding_early_file_keeps_attribution(self, tmp_path: Path) -> None:
+        root, db_path = tmp_path / "r", tmp_path / "idx.db"
+        root.mkdir()
+        _git_repo(root, {"b.py": self.B, "c.py": self.C})
+        build_index(root, db_path, package=".")
+        _git_repo(root, {"a.py": "def alpha():\n    return 0\n"})  # sorts first: shifts ids
+        build_index(root, db_path, package=".")
+        assert _misattributed(db_path) == []
+        with db.connect(db_path, read_only=True) as conn:
+            assert conn.execute("SELECT count(*) FROM symbols").fetchone()[0] == 3
+
+    def test_rebuild_drops_files_deleted_from_disk(self, tmp_path: Path) -> None:
+        root, db_path = tmp_path / "r", tmp_path / "idx.db"
+        root.mkdir()
+        _git_repo(root, {"b.py": self.B, "c.py": self.C})
+        build_index(root, db_path, package=".")
+        (root / "c.py").unlink()
+        _git_repo(root, {})
+        build_index(root, db_path, package=".")
+        with db.connect(db_path, read_only=True) as conn:
+            assert [r[0] for r in conn.execute("SELECT path FROM files")] == ["b.py"]
+            assert conn.execute("SELECT count(*) FROM edges").fetchone()[0] == 0
+            assert conn.execute("SELECT count(*) FROM file_edges").fetchone()[0] == 0
+
+    def test_build_heals_already_corrupted_index(self, tmp_path: Path) -> None:
+        """An index corrupted by the old build is repaired by the next build."""
+        root, db_path = tmp_path / "r", tmp_path / "idx.db"
+        root.mkdir()
+        _git_repo(root, {"b.py": self.B, "c.py": self.C})
+        build_index(root, db_path, package=".")
+        with db.connect(db_path) as conn:  # plant an orphan attached to the wrong file
+            fid = conn.execute("SELECT id FROM files WHERE path = 'b.py'").fetchone()[0]
+            conn.execute(
+                "INSERT INTO symbols(file_id, scip_id, name, kind) "
+                "VALUES (?, 'codemem . /gone.py#ghost', 'ghost', 'function')", (fid,),
+            )
+        assert _misattributed(db_path)
+        build_index(root, db_path, package=".")
+        assert _misattributed(db_path) == []

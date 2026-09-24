@@ -89,6 +89,7 @@
 - Dependencies: Milestone 2
 - Gate: HARD
 - Audit-Profile: code-only
+- Critical-Path: data-xform
 - Complexity: 70%
 - Effort: 2
 - Goal: One command emits readable mermaid at four zoom levels from the codemem graph.
@@ -113,6 +114,12 @@
 - Status: COMPLETE
 - Mode: AFK
 - Result Log: Mode: AFK — auto-dispatched. `draw/mermaid.py`: `escape_label` (#->#35; first, "->#quot;, <>->#lt;/#gt;, control->?), `to_mermaid` deterministic flowchart LR with QUOTED sigil edges, dropped as `%%` comment. `cli.py`: `codemem draw --level L0..L3 (default L0) --scope --hops --include-tests --direction --kind` — stdout pure mermaid, summary on stderr; exit 1 on missing/v<3/unreadable index (never creates the file, read-only), argparse exit 2. `captions=` param deferred to M5 (Ticket 12 owns its semantics). test_draw_* 41/41; REAL render PASS (hostile + empty) locally; full suite 1187 passed / 2 skipped; ruff clean; 4 contracts kept.
+
+### Sub-step 3.5: [fix] `build_index` misattributes symbols across rebuilds (FK OFF before DELETE; file ids reused)
+- Status: PENDING
+- Mode: AFK
+- Added: 2026-09-24 (Ste approved, circuit-breaker re-plan) — pre-existing codemem defect found while verifying M3 cuts; live index held 4462 symbols vs 1643 real, 2819 misattributed.
+- Result Log: [pending]
 
 ## Milestone 4: Plugin-surface extractor
 - Status: PENDING

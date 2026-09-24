@@ -2,6 +2,7 @@
 
 - Date: 2026-09-24
 - Scope: how `Skill(impact-analysis)` and its relatives are wired across plan → prototype → execute → review, and whether their output is used.
+- Revised: 2026-09-24. Corrected counts and added gap 7 after an evidence-led double-check (see git history).
 - Method: read the shipped surfaces (`claude-code/skills/impact-analysis/SKILL.md`, `commands/execute-aa-ma-{step,milestone,full}.md`, `skills/plan-verification/SKILL.md`, `skills/aa-ma-plan-workflow/references/PHASE_3_RESEARCH.md`, `skills/prototype/SKILL.md`, `src/aa_ma/gate.py`, `docs/templates/*`). Then audited the evidence in 17 completed plans and 1 active plan under `.claude/dev/`. The strongest quotes were spot-checked by hand.
 - Status: report only. No code or skill was changed.
 
@@ -10,10 +11,10 @@
 | Question | Answer |
 |---|---|
 | Do we run impact analysis? | **Yes, at two points.** Once at plan time (Angle 3 of `/verify-plan`, plus Phase 3.5) and once after the code is written (§6.3 of `/execute-aa-ma-milestone`). |
-| Do we do anything with the report? | **Plan-time: yes.** Angle 3 found real problems in 8 of 9 plans, and every finding was written back into its plan. **Execution-time: no.** About 35 of 91 completed milestones persisted a report. None was rated HIGH, none stopped a milestone, and none caused a change the plan hadn't already scheduled. |
+| Do we do anything with the report? | **Plan-time: yes.** Of 9 plans with a verification.md, 7 of the 8 with an Angle 3 section had findings, and codemem closed equivalent "high-impact" items; every finding was written back into its plan. **Execution-time: no.** 27 of 79 completed milestones persisted anything (13 with a per-file breakdown, 14 one-liners). None was rated HIGH, none stopped a milestone, and none caused a change the plan hadn't already scheduled. |
 | Is it run at the right stage? | **Partly.** The skill is written as a check *before* each edit ("Before ANY code edit"). In practice it runs *after* the milestone's code already exists. At step level it is explicitly "lightweight, no blocking". |
-| Does it run with prototypes? | **No.** None of the 16 `PROTOTYPE` provenance entries mentions impact. The prototype skill has no hook for it. |
-| Anything obvious missing? | Yes. (1) Nothing checks the plan-time prediction against what actually happened. (2) The §6.8 HARD-tier claim isn't enforced. (3) The skill ignores this repo's own `codemem` tools. (4) The skill can't see the markdown/`Skill()` dependency graph, which is most of this repo's product surface. (5) The same agent grades its own finished work. |
+| Does it run with prototypes? | **No.** None of the 13 `PROTOTYPE —` verdict entries in provenance mentions impact. The prototype skill has no hook for it. |
+| Anything obvious missing? | Yes. (1) Nothing checks the plan-time prediction against what actually happened. (2) The §6.8 HARD-tier claim isn't enforced. (3) The skill ignores this repo's own `codemem` tools, and two connected MCP servers ship a `blast_radius` tool with opposite meanings. (4) The skill can't see the markdown/`Skill()` dependency graph, which is most of this repo's product surface. (5) The same agent grades its own finished work. |
 
 ## 1. Where it is wired today
 
@@ -39,13 +40,13 @@ Key facts, with sources:
 
 | Signal | Count |
 |---|---|
-| Completed milestones | ~91 |
-| Milestones with a persisted execution-time impact report (per-file or per-consumer breakdown) | ~18 real + ~17 one-liners ("LOW") |
-| Execution-time ratings of **HIGH** | **0** (checked by grepping every provenance.log and context-log.md) |
+| Completed milestones | 79 |
+| Milestones with a persisted execution-time impact report | 27: 13 with a per-file/per-consumer breakdown + 14 one-liners ("LOW") |
+| Execution-time ratings of **HIGH** | **0** (checked by grepping every provenance.log, context-log.md and tasks.md) |
 | Milestones halted, re-planned or given new tasks because of §6.3 | **0** |
-| Plans whose Angle 3 produced findings | 8 / 9 with verification.md |
-| Plans whose Angle 3 findings were written back into the plan | 8 / 8 |
-| PROTOTYPE entries that mention impact / callers / blast radius | 0 / 16 |
+| Plans whose Angle 3 produced findings | 7 of 8 with an Angle 3 section (9 verification.md files; codemem's has no Angle 3 heading but closed equivalent "high-impact" items) |
+| Plans whose Angle 3 (or equivalent) findings were written back into the plan | 8 / 8 (7 Angle 3 + codemem) |
+| PROTOTYPE verdict entries that mention impact / callers / blast radius | 0 / 13 |
 
 Representative quotes:
 
@@ -79,10 +80,11 @@ Right. The skill was designed to run before each edit, but it has been wired to 
 
 1. **Nothing compares the plan's prediction with what actually changed.** This is the most useful signal available, and it's mechanical: `git diff --name-only <milestone-window>` versus the file set Angle 3 predicted. A file that changed but wasn't predicted is the real warning sign (scope creep or an unplanned ripple). A file that was predicted but didn't change means a planned ripple was never handled.
 2. **A HARD claim with no enforcement.** engineering-standards §5 says the impact check is HARD. The gate ignores it. Either enforce it like `CRITICAL_PATH_REVIEW` (a milestone-scoped provenance token) or downgrade the doctrine to SOFT. As things stand, the doc overstates what's enforced.
-3. **The skill doesn't use this repo's own tooling.** `packages/codemem-mcp` ships `blast_radius`, `who_calls`, `co_changes`, `hot_spots` and `owners`. No skill or command references codemem. `co_changes` in particular finds coupling that no call graph shows, for example "every edit to X historically also edits README/CHANGELOG counts". That is exactly the stale-count drift CLAUDE.md warns about.
+3. **The skill doesn't use this repo's own tooling.** `packages/codemem-mcp` ships `blast_radius`, `who_calls`, `co_changes`, `hot_spots` and `owners`. Apart from codemem's own `/codemem` command (`claude-code/codemem/commands/codemem.md`), none of the impact-analysis skill, the execution commands or plan-verification references codemem. `co_changes` in particular finds coupling that no call graph shows, for example "every edit to X historically also edits README/CHANGELOG counts". That is exactly the stale-count drift CLAUDE.md warns about.
 4. **The skill can't see markdown/prompt dependencies.** The skill says documentation-only changes don't need it. In this repo, though, the commands and skills are markdown and they are the product. A change to `Skill(impact-analysis)`'s own output format has callers (`execute-aa-ma-milestone.md` §6.3, `execute-aa-ma-full.md` §C, `aa-ma-execution/SKILL.md`), and grep over imports can't find them. The plugin-surface extractor in engineering-standards §1 is the right source for these edges.
 5. **The agent grades its own work.** §6.8 uses fresh agents so the reviewer isn't the author. §6.3 doesn't. Its job partly overlaps with the `code-reviewer` agent's remit ("schema-breaking output regressions").
 6. **No link to prototypes** (Q3 above).
+7. **Two tools share the name `blast_radius` but point in opposite directions.** Codemem's returns **downstream callees**: its docstring reads "Return downstream callees of `name` transitively." (`packages/codemem-mcp/src/codemem/mcp_tools/__init__.py:213`). Project-index's returns **upstream callers**. Checked live on 2026-09-24 against `_read_milestone` in `src/aa_ma/gate.py`: codemem returned `_read_or_error`, `split_steps`, `read_enforced_field` and others (the functions it calls), while project-index returned `answer` at depth 1 and `main` at depth 2 (the functions that call it). The §6.3 pre-check (`execute-aa-ma-milestone.md:323`) and the skill's "Blast radius shortcut" both treat `blast_radius` as returning callers. If an agent uses the codemem version, it counts the wrong direction, and a high-fan-in symbol can look low-risk. Fix: name the server explicitly, or use `who_calls` for callers.
 
 ## 5. Recommendations (ordered by value per unit of effort; nothing implemented)
 
@@ -91,8 +93,8 @@ Right. The skill was designed to run before each edit, but it has been wired to 
 | R1 | **Predicted-vs-actual check.** Angle 3 writes an `Expected-Blast-Radius:` file list per milestone into the plan's `#### Contract` block (or reference.md). §6.3 becomes: diff actual changed files against that list, and require a one-line explanation for each unpredicted file. | S | Turns §6.3 from a self-report into a mechanical comparison. It reuses the plan-time analysis that already works. |
 | R2 | **Persist it and be honest about enforcement.** Add `- Impact: <risk> — <unpredicted files or "none">` to the §7.2 context-log template, plus a `[ts] IMPACT_ANALYSIS — <milestone> — <risk>` provenance token. Then **either** enforce the token in the gate (the same pattern as CRITICAL_PATH_REVIEW) **or** change engineering-standards §5 from HARD to SOFT. | S | Resolves the gap between what the doctrine claims and what the code enforces. It also gives future reviews something to audit. |
 | R3 | **Prototype verdict impact.** Add a required field to the `PROTOTYPE` provenance entry: `— verdict-changes-plan: YES/NO`. If YES, run an Angle-3-style check on the *decision delta* (not the throwaway code), and apply any updates to later milestones before the gate. | S | Covers the one place where a plan changes during execution without any review. |
-| R4 | **Pre-edit check at step level.** In `execute-aa-ma-step`, for files the step touches that have at least N dependents (codemem `who_calls` / `blast_radius`), print a one-line blast radius *before* editing. It stays non-blocking. | S–M | Puts the skill back at the point it was designed for, at little cost. |
-| R5 | **Teach the skill codemem plus the markdown graph.** Add `co_changes` and `hot_spots` rows to the skill's tool table. Treat `Skill()` / `/command` references as callers when changing files under `claude-code/`. | M | Fixes the blind spot that keeps caller counts low in this repo. |
+| R4 | **Pre-edit check at step level.** In `execute-aa-ma-step`, for files the step touches that have at least N dependents (codemem `who_calls`; *not* codemem `blast_radius`, which returns callees, see gap 7), print a one-line caller count *before* editing. It stays non-blocking. | S–M | Puts the skill back at the point it was designed for, at little cost. |
+| R5 | **Teach the skill codemem plus the markdown graph.** Add `co_changes` and `hot_spots` rows to the skill's tool table, and name the server for every `blast_radius` call (gap 7). Treat `Skill()` / `/command` references as callers when changing files under `claude-code/`. | M | Fixes the blind spot that keeps caller counts low in this repo. |
 | R6 | **Remove the self-grading.** Fold the §6.3 judgement into §6.8 as input to the fresh `code-reviewer` (pass it the R1 unpredicted-file list), and keep §6.3 as the mechanical diff only. | M | Addresses the pull towards a pass. Only worth doing after R1–R2 show whether the problem persists. |
 
 **Do not:** add another agent or another planning angle. Plan-time coverage is already sufficient; the gap is carrying its output forward.

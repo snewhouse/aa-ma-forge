@@ -42,9 +42,9 @@
 - Result Log: Mode: AFK — auto-dispatched. python_ast.py: `ParseResult.import_aliases: dict[str,str]` (asname-or-head for `import`, `module.name` for from-imports); attribute callees on a pure Name/Attribute chain emitted as `ast.unparse` dotted string with head rewritten via aliases; chains through calls/subscripts still dropped. resolver.py: `_lookup_name()` matches on the last segment only for bare / single-Name receivers (pre-M1 behaviour) or receivers that are imported modules — `self.conn.execute` cannot bind to an unrelated `execute`. Guard test caught the naive version (b.helper lookup). codemem: 541 passed / 3 failed (1.6 tests only); PageRank + symbol-count tests unchanged-green.
 
 ### Sub-step 1.6: [impl] persist import edges in `resolver.py:131-134`; invalidate in `incremental.py`
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. resolver.py `_persist_import_edges()`: per parsed file, explicit `DELETE FROM file_edges WHERE src_file_id=?` then INSERT OR IGNORE import rows (resolved -> dst_file_id, else dst_unresolved=module). Resolves against the DB-wide `files` set, not the parse set (refresh passes dirty files only — an import of an unchanged file must resolve). DEVIATION: invalidation placed in the resolver, not incremental.py — both writers (build_index, refresh_index) call it, so one site covers both; incremental.py unchanged. Known gap (pre-existing, same as call edges): WAL replay does not re-run the resolver, so replay-from-scratch leaves file_edges empty until next build. codemem: 544 passed / 2 skipped.
 
 ### Sub-step 1.7: [verify] `CRITICAL_PATH_REVIEW` (data-xform) + full codemem suite green
 - Status: PENDING

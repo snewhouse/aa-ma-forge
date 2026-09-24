@@ -105,6 +105,42 @@ def _lookup_name(callee: str, qualified_heads: set[str]) -> str | None:
     return None
 
 
+def _persist_import_edges(conn: sqlite3.Connection, parses: list) -> None:
+    """Replace each parsed file's ``file_edges`` import rows.
+
+    Resolves against EVERY indexed path, not just ``parses``: an
+    incremental refresh passes only the dirty files, and an import of an
+    unchanged file must still resolve. The explicit DELETE is what keeps
+    an edit-in-place idempotent — the ``files`` row survives an edit, so
+    ON DELETE CASCADE never fires.
+    """
+    # ponytail: call-edge resolution above still uses the parse-set map;
+    # switch it to this DB-wide map if incremental call edges need it.
+    path_to_fid: dict[str, int] = dict(conn.execute("SELECT path, id FROM files"))
+    import_map = build_import_map(path_to_fid)
+    known = set(path_to_fid)
+    rows: list[tuple[int, int | None, str | None]] = []
+    for fp in parses:
+        src_fid = path_to_fid.get(fp.rel_to_repo)
+        if src_fid is None:
+            continue
+        conn.execute("DELETE FROM file_edges WHERE src_file_id = ?", (src_fid,))
+        for imp in fp.result.imports:
+            target = _resolve_import(fp.rel_to_repo, imp, import_map, known)
+            if target is None:
+                rows.append((src_fid, None, imp))
+            else:
+                rows.append((src_fid, path_to_fid[target], None))
+    conn.executemany(
+        """
+        INSERT OR IGNORE INTO file_edges
+            (src_file_id, dst_file_id, dst_unresolved, kind)
+        VALUES (?, ?, ?, 'import')
+        """,
+        rows,
+    )
+
+
 def resolve_cross_file_edges(
     conn: sqlite3.Connection,
     *,
@@ -170,6 +206,8 @@ def resolve_cross_file_edges(
             else:
                 edge_rows.append((src_id, None, callee, ue.kind))
                 unresolved += 1
+
+    _persist_import_edges(conn, parses)
 
     if edge_rows:
         conn.executemany(

@@ -8,10 +8,16 @@ that verdict is recorded in provenance as an observation, not inferred from here
 
 from __future__ import annotations
 
+import sqlite3
+from pathlib import Path
+
+import pytest
 from aa_ma.render.mermaid_lint import render_check
 
+from codemem.cli import main
 from codemem.draw.cut import MAX_EDGES, Cut, Level, node_id
 from codemem.draw.mermaid import escape_label, to_mermaid
+from codemem.storage.db import connect, ensure_schema
 
 
 def _cut(names: list[tuple[str, str, str]], level: Level = Level.L2, dropped: int = 0) -> Cut:
@@ -80,15 +86,6 @@ def test_render_never_fails_on_hostile_labels() -> None:
 # ---------------------------------------------------------------------
 # `codemem draw` CLI — exit 0 ok / 1 no graph / 2 usage
 # ---------------------------------------------------------------------
-
-import sqlite3  # noqa: E402
-from pathlib import Path  # noqa: E402
-
-import pytest  # noqa: E402
-
-from codemem.cli import main  # noqa: E402
-from codemem.storage.db import connect, ensure_schema  # noqa: E402
-
 
 @pytest.fixture
 def db(tmp_path: Path) -> Path:

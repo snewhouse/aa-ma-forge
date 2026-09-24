@@ -110,9 +110,9 @@
 - Result Log: Mode: AFK — auto-dispatched. `tests/codemem/test_draw_mermaid.py` (9 tests): header, node lines, QUOTED sigil edges `-->|"@kind"|` (bare form asserted absent), determinism, `( ) -` intact inside quotes, escape_label (`"`->#quot;, `#`->#35; first, `< >`->#lt;/#gt;, control chars->?), dropped reported as `%%` comment, empty cut header-only, render_check never FAIL on hostile labels (UNKNOWN in CI, PASS locally). RED: collection error (module absent). Precursor: local renderer fixed + sigil grammar corrected (88e8bbc).
 
 ### Sub-step 3.4: [impl] `draw/mermaid.py` + `codemem draw` subcommand (`cli.py:269-309`)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `draw/mermaid.py`: `escape_label` (#->#35; first, "->#quot;, <>->#lt;/#gt;, control->?), `to_mermaid` deterministic flowchart LR with QUOTED sigil edges, dropped as `%%` comment. `cli.py`: `codemem draw --level L0..L3 (default L0) --scope --hops --include-tests --direction --kind` — stdout pure mermaid, summary on stderr; exit 1 on missing/v<3/unreadable index (never creates the file, read-only), argparse exit 2. `captions=` param deferred to M5 (Ticket 12 owns its semantics). test_draw_* 41/41; REAL render PASS (hostile + empty) locally; full suite 1187 passed / 2 skipped; ruff clean; 4 contracts kept.
 
 ## Milestone 4: Plugin-surface extractor
 - Status: PENDING

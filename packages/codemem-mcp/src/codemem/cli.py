@@ -255,6 +255,44 @@ def _cmd_intel(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_draw(args: argparse.Namespace) -> int:
+    import sqlite3
+
+    from .draw.cut import Level, cut
+    from .draw.mermaid import to_mermaid
+    from .storage.db import connect
+
+    db_path = Path(args.db) if args.db else _default_db_path()
+    if not db_path.is_file():
+        print(f"codemem draw: no index at {db_path}; run `codemem build`", file=sys.stderr)
+        return 1
+    conn = connect(db_path, read_only=True)
+    try:
+        version = conn.execute("PRAGMA user_version").fetchone()[0]
+        if version < 3:  # file_edges arrived in schema v3
+            print(
+                f"codemem draw: index is schema v{version}, need v3; run `codemem build`",
+                file=sys.stderr,
+            )
+            return 1
+        level = Level[args.level]
+        c = cut(
+            conn, level, scope=args.scope, hops=args.hops,
+            include_tests=args.include_tests, direction=args.direction, kind=args.kind,
+        )
+    except sqlite3.Error as exc:
+        print(f"codemem draw: unreadable index {db_path} ({exc}); run `codemem build`",
+              file=sys.stderr)
+        return 1
+    finally:
+        conn.close()
+    sys.stdout.write(to_mermaid(c))
+    dropped = f", {c.dropped} dropped over maxEdges" if c.dropped else ""
+    print(f"codemem draw: {level.name} {len(c.nodes)} nodes / {len(c.edges)} edges{dropped}",
+          file=sys.stderr)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="codemem",
@@ -310,6 +348,16 @@ def build_parser() -> argparse.ArgumentParser:
     pi.add_argument("--out", help="Output path (default: PROJECT_INTEL.json)")
     pi.add_argument("--budget", type=int, default=1024)
 
+    pd = sub.add_parser("draw", help="Emit a mermaid diagram of the graph (L0-L3)")
+    pd.add_argument("--level", choices=["L0", "L1", "L2", "L3"], default="L0",
+                    help="L0 top dirs, L1 dirs depth 2, L2 files, L3 symbols (default L0)")
+    pd.add_argument("--scope", help="Path prefix to centre the cut on")
+    pd.add_argument("--hops", type=int, default=1, help="Neighbourhood radius for --scope")
+    pd.add_argument("--include-tests", action="store_true", help="Keep tests/ (excluded by default)")
+    pd.add_argument("--direction", choices=["up", "down", "both"], default="both")
+    pd.add_argument("--kind", choices=["import", "call", "both"], default="both",
+                    help="Edge kinds at L0-L2 (L3 is always call)")
+
     return parser
 
 
@@ -321,6 +369,7 @@ _CMD_DISPATCH = {
     "replay":           _cmd_replay,
     "query":            _cmd_query,
     "intel":            _cmd_intel,
+    "draw":             _cmd_draw,
 }
 
 

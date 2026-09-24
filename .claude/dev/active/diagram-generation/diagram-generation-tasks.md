@@ -183,7 +183,7 @@
 ### Sub-step 6.1: [test] `test_draw_check.py`: line-slice compare, stamp regex, caption-only diff, RED
 - Status: PENDING
 - Mode: AFK
-- Obligations (M5 §6.8, Ste 2026-09-24): `--check` compares ONLY the ```mermaid fences (prose-only / caption edits are never drift; an `@start` edit IS drift — test both). Test the writer refuses any target outside `docs/architecture/` or equal to `captions.CAPTIONS_PATH`.
+- Obligations (M5 §6.8, Ste 2026-09-24): `--check` compares ONLY the ```mermaid fences (prose-only / caption edits are never drift; an `@start` edit IS drift — test both). Every write goes through `captions.check_generated_target()` (built + tested 61eb4e4); test the writer calls it.
 - Result Log: [pending]
 
 ### Sub-step 6.2: [impl] `draw/views.py` registry + `codemem draw --check`
@@ -195,7 +195,7 @@
 ### Sub-step 6.3: [impl] generate `docs/architecture/{README,component,plugin-surface}.md`
 - Status: PENDING
 - Mode: AFK
-- Obligations (M5 §6.8): render `captions.for_cut()` prose outside the fence through ONE escaping helper (single line; neutralise fence openers ``` / ~~~ and leading `# > - |`); decide and record whether the plugin-surface view (labels `kind:stem`, not paths) takes captions.
+- Obligations (M5 §6.8): render `captions.for_cut()` prose outside the fence through `captions.escape_prose()` (built + tested 61eb4e4); decide and record whether the plugin-surface view (labels `kind:stem`, not paths) takes captions.
 - Result Log: [pending]
 
 ### Sub-step 6.4: [impl] `architecture-drift` job in `security.yml` (Critical-Path)
@@ -272,7 +272,7 @@
 ### Sub-step 8.2: [test] `sigil-edges.md` fixture: clean/phantom/LABEL_UNKNOWN/unlabelled/UNKNOWN, RED
 - Status: PENDING
 - Mode: AFK
-- Obligations (M5 §6.8): include `classDef start ...` / `class <ids> start` lines in `sigil-edges.md` so the edge parser is shown to ignore them.
+- Obligations (M5 §6.8): include `classDef start <START_STYLE>` / `class <ids> start` lines in `sigil-edges.md` so the edge parser is shown to ignore them.
 - Result Log: [pending]
 
 ### Sub-step 8.3: [impl] edge parser + `PHANTOM_EDGE` tier
@@ -403,7 +403,7 @@
 ### Sub-step 12.2: [test] `explorer_contract.test.mjs` + `test_explorer_fixture.py` on the shared fixture, RED
 - Status: PENDING
 - Mode: AFK
-- Obligations (M5 §6.8): caption matching must equal Python's `captions.for_cut`/`start_ids` — embed per-level `for_cut` output in the JSON (preferred, no JS re-implementation) or add caption cases to the shared fixture; the JSON island escapes `<` `>` `&` (`\u003c`…), tested with a `</script>` caption; prose via `textContent`, never `innerHTML`.
+- Obligations (M5 §6.8): caption matching must equal Python's `captions.for_cut`/`start_ids` — embed per-level `for_cut` output in the JSON (preferred, no JS re-implementation) or add caption cases to the shared fixture; the JSON island is `captions.json_island()` (built + tested 61eb4e4: no `<` `>` `&` survive a `</script>` caption); prose via `textContent`, never `innerHTML`.
 - Result Log: [pending]
 
 ### Sub-step 12.3: [impl] `render/explorer.py` + `explorer.js` + `--explorer` flag

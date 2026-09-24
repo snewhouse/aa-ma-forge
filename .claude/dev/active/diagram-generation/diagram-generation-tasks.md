@@ -170,7 +170,7 @@
 - Result Log: Mode: AFK — auto-dispatched. `captions.py`: `load`, `orphans -> list[CaptionFinding]`, `for_cut`, `start_ids`; `mermaid.to_mermaid(c, captions=None)` adds `classDef start` + `class <ids> start` only (None → M3 output byte-identical). Sidecar = the plan's three example entries verbatim (no invented prose). Live finding: M3 collapses L1 to depth 2, so the plan's depth-3 dir keys matched no node at any level; Ste chose equal-or-contained (dir caption covers the dir node and nodes inside it, never ancestors) — RED 405f46c → GREEN 8f9edd3. Live on a fresh index: L2 shows both dir captions, L3 (scope render/) shows `src/aa_ma/render/`, @start highlighted at L2/L3; every level render PASS. 20 caption tests (corrected by §6.8: pytest collects 20); full suite 1236 passed / 2 skipped; ruff/bandit clean; lint-imports 4 kept.
 
 ## Milestone 6: Living doc + `--check` + CI drift job + ADR-0016 → release `v0.15.0`
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 4, Milestone 5
 - Gate: HARD
 - Audit-Profile: full
@@ -179,6 +179,7 @@
 - Effort: 1.5
 - Goal: `docs/architecture/` exists, is 100% generated, and CI fails when it drifts.
 - Acceptance Criteria: 7 criteria — see plan.md § Milestone 6
+- Result Log: 7/7 AC verified; HARD gate APPROVED (Ste, 2026-09-24). RED 552d663 → d42cb50 (views + CLI), 7f7bfae docs, 6fab78e CI job, 7beb92c ADR-0016, a8812c7 changelog; §6.8 RED 30d2c88 → f3ca3af; release b469b08 = v0.15.0. §6.8: 1 CRITICAL disputed, 9 WARNING fixed. 1288 passed; CI 6/6 on b469b08. Known RED 91bdd5f → L-025.
 
 ### Sub-step 6.1: [test] `test_draw_check.py`: line-slice compare, stamp regex, caption-only diff, RED
 - Status: COMPLETE

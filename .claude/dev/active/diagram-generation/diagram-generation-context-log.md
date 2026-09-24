@@ -262,3 +262,16 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - CRITICAL (lessons.md outside Files) **disputed** — convention: lesson commits are exempt from a milestone's Files list.
 - Fix all findings now; `--check` now also requires line 1 to have the stamp SHAPE and every captions-block line to be a generator shape. This refines decision 3 (masking stays, blind spot closed).
 - Regen duty: `scripts/regen-generated.sh` + standing obligation on M7–M14 + CONTRIBUTING "Generated files".
+
+## [2026-09-24] GATE APPROVAL: Milestone 6: Living doc + `--check` + CI drift job + ADR-0016 → release `v0.15.0`
+- Gate: HARD
+- Approved by: Ste (Stephen J Newhouse)
+- Criteria verified: 7/7
+- Decision: APPROVED
+
+## [2026-09-24] Milestone Completion: Living doc + --check + CI drift job + ADR-0016 → v0.15.0
+- Status: COMPLETE
+- Key outcome: `docs/architecture/` is generated (`codemem draw --write`) and drift-checked in CI (`architecture-drift`); v0.15.0 released.
+- Artifacts: draw/views.py, cli.py (--write/--check), indexer.git_tracked_files, captions guard hardening, docs/architecture/*, scripts/regen-generated.sh, security.yml job, ADR-0016, CONTRIBUTING/README/SECURITY/CHANGELOG.
+- Tests: 1288 passed / 2 skipped.
+- Note for M7: `## Unreleased` was consumed by the release; the next milestone that ships a user-facing change re-creates it (runbook).

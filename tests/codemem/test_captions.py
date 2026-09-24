@@ -142,3 +142,15 @@ def test_no_captions_leaves_the_emitter_output_unchanged() -> None:
 def test_a_caption_only_edit_is_not_diagram_drift() -> None:
     c = from_edges({("src/pkg/b.py", "src/a.py", "call")}, Level.L2)
     assert to_mermaid(c, CAPS) == to_mermaid(c, {**CAPS, "src/pkg/b.py": "Reworded."})
+
+
+def test_directory_caption_covers_nodes_inside_it_but_not_its_ancestors() -> None:
+    """Ste 2026-09-24: equal-or-contained. M3 collapses L1 to depth 2, so a deeper
+    directory key would otherwise name no node at any level."""
+    caps = {"src/pkg/": "Package."}
+    l2 = from_edges({("src/pkg/b.py", "src/a.py", "call")}, Level.L2)
+    l3 = from_edges({("src/pkg/b.py::f", "src/a.py::g", "call")}, Level.L3)
+    l0 = from_edges({("src", "lib", "import")}, Level.L0)
+    assert for_cut(l2, caps) == for_cut(l3, caps) == {"src/pkg/": "Package."}
+    assert for_cut(l0, caps) == {}
+    assert for_cut(from_edges({("src/pkgx.py", "src/a.py", "call")}, Level.L2), caps) == {}

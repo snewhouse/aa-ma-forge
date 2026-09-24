@@ -83,6 +83,17 @@ rewrite of the plan.
   additive, and the seam's tests build fixtures that mirror only the columns it reads.
 - **Bad:** staleness costs one `stat` per indexed file per `open_graph`. Measure on a
   large repo (M13) before caching.
+- **Known limits of `STALE`:** it detects edited and deleted indexed files, not
+  *new* files that were never indexed (a diagram can silently omit a new module), and
+  it compares whole seconds (codemem stores `int(st_mtime)`), so an edit in the same
+  second as indexing is missed.
+- **`MISSING` covers "unusable", not only "absent":** a corrupt, locked or otherwise
+  unreadable file is also `MISSING`; the `reason` distinguishes them. Split out an
+  `UNREADABLE` status only if a caller needs to branch on it.
+- **The index file is data, not trusted input.** `files.path` values are confined to
+  the repo: NULL, absolute or out-of-tree paths (including symlinks leaving the tree)
+  count as `STALE` and are never stat'd; the connection runs with
+  `PRAGMA trusted_schema = OFF`.
 - **Known defect, not fixed here:** codemem's v1 `edges` table stores exact duplicate
   rows. Its composite primary key contains the two mutually-exclusive `dst` columns,
   one always NULL, and SQLite treats NULLs as distinct, so `INSERT OR IGNORE` never

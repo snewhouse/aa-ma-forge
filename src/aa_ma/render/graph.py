@@ -18,6 +18,7 @@ __all__ = ["GraphHandle", "GraphStatus", "call_edges", "import_edges", "open_gra
 
 MIN_SCHEMA_VERSION = 3  # file_edges arrived in codemem schema v3
 _REMEDY = "run `codemem build`"
+_MAX_SHOWN = 3  # stale paths quoted in a reason
 
 
 class GraphStatus(StrEnum):
@@ -37,11 +38,12 @@ class GraphHandle:
 def open_graph(repo_root: Path) -> GraphHandle:
     """Open ``<repo_root>/.codemem/index.db`` read-only and classify it."""
     db = Path(repo_root) / ".codemem" / "index.db"
-    if not db.is_file():
-        return GraphHandle(GraphStatus.MISSING, f"no codemem index at {db}; {_REMEDY}", None)
     conn = None
     try:
+        if not db.is_file():
+            return GraphHandle(GraphStatus.MISSING, f"no codemem index at {db}; {_REMEDY}", None)
         conn = sqlite3.connect(f"{db.resolve().as_uri()}?mode=ro", uri=True)
+        conn.execute("PRAGMA trusted_schema = OFF")  # the file is data, not code
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version < MIN_SCHEMA_VERSION:
             conn.close()
@@ -51,14 +53,14 @@ def open_graph(repo_root: Path) -> GraphHandle:
                 None,
             )
         stale = _stale_paths(conn, Path(repo_root))
-    except sqlite3.Error as exc:
+    except Exception as exc:  # noqa: BLE001 — "never raises" is the contract (ADR-0014)
         if conn is not None:
             conn.close()
         return GraphHandle(
             GraphStatus.MISSING, f"codemem index at {db} is unreadable ({exc}); {_REMEDY}", None
         )
     if stale:
-        shown = ", ".join(stale[:3]) + (", ..." if len(stale) > 3 else "")
+        shown = ", ".join(stale[:_MAX_SHOWN]) + (", ..." if len(stale) > _MAX_SHOWN else "")
         return GraphHandle(
             GraphStatus.STALE,
             f"{len(stale)} file(s) changed since indexing ({shown}); {_REMEDY}",
@@ -68,14 +70,23 @@ def open_graph(repo_root: Path) -> GraphHandle:
 
 
 def _stale_paths(conn: sqlite3.Connection, repo_root: Path) -> list[str]:
-    """Indexed paths whose on-disk mtime is newer than recorded, or that are gone."""
+    """Indexed paths that are newer on disk than recorded, gone, or unusable.
+
+    Paths come from the DB, which is data, not trusted input: a NULL, absolute,
+    or out-of-repo path (``../x``, a symlink leaving the tree) counts as stale
+    and is never stat'd outside ``repo_root``. Any OSError is stale too.
+    """
     # ponytail: one stat per indexed file; cache per handle if M13 measures it hot.
+    root = repo_root.resolve()
     stale: list[str] = []
     for path, mtime in conn.execute("SELECT path, mtime FROM files ORDER BY path"):
         try:
-            disk = int((repo_root / path).stat().st_mtime)
-        except FileNotFoundError:
-            stale.append(path)
+            target = (root / path).resolve()
+            if Path(path).is_absolute() or not target.is_relative_to(root):
+                raise ValueError("outside repo")
+            disk = int(target.stat().st_mtime)
+        except (OSError, RuntimeError, TypeError, ValueError):
+            stale.append(str(path))
             continue
         if mtime is not None and disk > mtime:
             stale.append(path)

@@ -33,7 +33,8 @@ import from upper layers.
 ```
 
 **Enforcement**: [`.importlinter`](../../.importlinter) at the repo root
-defines two contracts:
+defines the codemem contracts below (the file also holds `aa_ma` contracts,
+including `aa-ma-never-imports-codemem` — ADR-0014):
 
 1. `codemem-layers` — the layered contract above (peers allowed within
    a layer, no upward imports).
@@ -41,8 +42,9 @@ defines two contracts:
    from importing any orchestrator/API module. Keeps the parser layer
    reusable in isolation.
 
-`uv run lint-imports` passes in CI; both contracts are also verified
-by `tests/codemem/test_install_and_cli.py::TestImportLinterContract`.
+`uv run lint-imports` runs in CI (`security.yml`, codemem-smoke job); the
+contracts are also verified by name in
+`tests/codemem/test_install_and_cli.py::TestImportLinterContract`.
 
 **Plugin surface (outside `codemem.*` package)**: the MCP server at
 `claude-code/codemem/mcp/server.py` MUST route ALL calls through

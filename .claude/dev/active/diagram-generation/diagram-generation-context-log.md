@@ -184,3 +184,9 @@ _Updated via context compaction as the task progresses._
 - Artifacts: codemem/draw/{__init__,cut,mermaid}.py; cli.py; indexer.py; tests/codemem/{test_draw_cut,test_draw_mermaid,test_indexer,test_file_edges}.py; tests/fixtures/draw-{node-ids.json,node-ids.gen.mjs,prototype-graph.json}; claude-code/codemem/commands/codemem.md; docs/codemem/migration-from-index.md; src/aa_ma/render/html.py (comment); plan.md (§13 sigils, API)
 - Tests: 1195 passed / 2 skipped; ruff clean; 4 contracts kept
 - Out-of-band (Ste request, [ad-hoc]): CI least-privilege + SHA pinning, 75f8d09, CI green.
+
+## [2026-09-24] GATE APPROVAL: Milestone 3: `codemem draw` emitter, layered cuts L0–L3
+- Gate: HARD
+- Approved by: Ste (Stephen J Newhouse)
+- Criteria verified: 5/5
+- Decision: APPROVED

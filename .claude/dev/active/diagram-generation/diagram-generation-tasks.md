@@ -85,7 +85,7 @@
 - Result Log: Mode: HITL — Ste approved "Proceed — Accepted". `docs/adr/0014-derived-architecture-views.md` (Status: Accepted; flip to Implemented when M3/M5 consumers ship): option 4 stdlib-sqlite3 seam over import / MCP / subprocess; extends ADR-0010, supersedes nothing (markdown = intent, graph = fact); never-raises status contract; v1 `edges` duplicate-row defect recorded, repair deferred to a separate effort. `docs/adr/INDEX.md` row added. No hardcoded ADR counts in README/CHANGELOG/SECURITY/spec.
 
 ## Milestone 3: `codemem draw` emitter, layered cuts L0–L3
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 2
 - Gate: HARD
 - Audit-Profile: code-only
@@ -94,6 +94,7 @@
 - Effort: 2
 - Goal: One command emits readable mermaid at four zoom levels from the codemem graph.
 - Acceptance Criteria: 5 criteria — see plan.md § Milestone 3
+- Result Log: COMPLETE 2026-09-24, HARD gate approved by Ste. 5/5 AC (AC2 = --kind call 5/4; default both 5/8; AC3 27->96 on frozen prototype data, live 27->107). `codemem draw` L0-L3 over import ∪ call with QUOTED sigils; every Ticket 3 band reproduced on frozen data; 232/232 node ids vs independent JS; real renders PASS at every level. Fixed en route (Ste-approved): build_index rebuild misattribution (§3.5, live 2819 -> 0), bare-sigil parse error (plan §13 quoted), local renderer. §6.8 0C/6W (all fixed 8289371). Tests 1195 passed / 2 skipped. Commits 32adf2c e82add7 88e8bbc d0b9564 5f5176d b677fde fe90f6d 0e6966b 8289371 870bc33 + milestone commit; [ad-hoc] 75f8d09 CI hardening.
 
 ### Sub-step 3.1: [test] `draw-node-ids.json` fixture + `test_draw_cut.py`, RED
 - Status: COMPLETE

@@ -199,9 +199,9 @@
 - Result Log: Mode: AFK — auto-dispatched. 7f7bfae: fresh `codemem build` (191 files / 1770 symbols / 4168 edges, 0.45s) then `codemem draw --write` → README (11 lines), component (160 lines; L2 100 edges), plugin-surface (299 lines; 4 dangling refs + 7 orphans listed under the diagram). `--check` OK immediately after. Both fences `render_check` = PASS on the real renderer. Captions render inside the captions block via `escape_prose` (`->` → `-&gt;`, displays `->`). Plugin-surface takes no captions by construction (labels `kind:stem`) — recorded context-log 2026-09-24 #5. Full suite 1280 passed (AC5 test deselected until 6.4).
 
 ### Sub-step 6.4: [impl] `architecture-drift` job in `security.yml` (Critical-Path)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: Mode: HITL — Ste approved the job as previewed. 6fab78e: `architecture-drift` appended to security.yml (pinned checkout v4.4.0 / setup-python v5.6.0, py 3.13, uv sync, `codemem build`, `codemem draw --check`; inherits top-level `permissions: contents: read`). YAML job diff before/after: added [architecture-drift], removed [], changed []. AC5 test GREEN (18/18). Local simulation in a fresh `--depth 1` clone of 6fab78e: build 191 files, `--check` OK; a line-2 hand-edit → rc 1 naming the remedy; restored → rc 0. No `.sh` touched in M6 (AC6 shellcheck: nothing to scan).
 
 ### Sub-step 6.5: [verify] CI green at this commit; `CRITICAL_PATH_REVIEW`
 - Status: PENDING

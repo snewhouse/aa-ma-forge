@@ -79,6 +79,10 @@ class ParseResult:
     # ``dst_unresolved`` is populated; ``dst_scip_id`` is ``None``. The
     # resolver (Task 1.6) consumes these and upgrades what it can match.
     unresolved_edges: list[CallEdge] = field(default_factory=list)
+    # Local binding -> canonical dotted name, from top-level imports:
+    # ``import numpy as np`` -> {"np": "numpy"}; ``from os import path as p``
+    # -> {"p": "os.path"}. Used to qualify dotted callees.
+    import_aliases: dict[str, str] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------
@@ -111,13 +115,24 @@ def extract_python_signatures(
     # Extract imports from the module top-level. ``import a.b`` and
     # ``from a.b import c`` both contribute the dotted module ``a.b``.
     imports: list[str] = []
+    import_aliases: dict[str, str] = {}
     for node in tree.body:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 imports.append(alias.name)
+                if alias.asname:
+                    import_aliases[alias.asname] = alias.name
+                else:
+                    head = alias.name.split(".")[0]
+                    import_aliases[head] = head
         elif isinstance(node, ast.ImportFrom):
             if node.module:
                 imports.append(node.module)
+                for alias in node.names:
+                    if alias.name != "*":
+                        import_aliases[alias.asname or alias.name] = (
+                            f"{node.module}.{alias.name}"
+                        )
 
     symbols: list[Symbol] = []
     # Preserve the original FunctionDef/AsyncFunctionDef AST node alongside
@@ -211,7 +226,7 @@ def extract_python_signatures(
     edges: list[CallEdge] = []
     unresolved_edges: list[CallEdge] = []
     for func_node, src_scip_id in function_nodes:
-        intra, extra = _extract_call_names(func_node.body, resolvable)
+        intra, extra = _extract_call_names(func_node.body, resolvable, import_aliases)
         for callee_name in intra:
             for dst_scip_id in name_to_ids[callee_name]:
                 edges.append(
@@ -237,6 +252,7 @@ def extract_python_signatures(
         edges=edges,
         imports=imports,
         unresolved_edges=unresolved_edges,
+        import_aliases=import_aliases,
     )
 
 
@@ -338,6 +354,7 @@ def _build_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
 def _extract_call_names(
     body: Iterable[ast.stmt],
     resolvable: set[str],
+    import_aliases: dict[str, str] | None = None,
 ) -> tuple[set[str], set[str]]:
     """Return ``(intra, extra)`` unique callee names from ``body``.
 
@@ -345,14 +362,17 @@ def _extract_call_names(
       symbol. These become resolved intra-file edges.
     * ``extra``: bare-name calls NOT in ``resolvable`` and NOT in the
       built-in exclusion list. Attribute calls whose attr doesn't match
-      a same-file symbol are recorded ONLY when the receiver is a plain
-      Name (cross-module-attribute pattern like ``mod.func()``); unknown
-      method chains (``self.foo().bar()``) are not emitted because their
-      receiver type is ambiguous at parse time.
+      a same-file symbol are recorded as the full dotted chain
+      (``sqlite3.connect``, ``self.conn.execute``) when the receiver is a
+      pure Name/Attribute chain, with the head rewritten through
+      ``import_aliases`` (``np.array`` -> ``numpy.array``). Chains through
+      a call or subscript (``self.foo().bar()``) are not emitted because
+      their receiver type is ambiguous at parse time.
 
     Both return sets filter out the ``_CALL_EXCLUDE`` built-ins for
     bare-name calls — those are never emitted at either layer.
     """
+    aliases = import_aliases or {}
     intra: set[str] = set()
     extra: set[str] = set()
     for node in ast.walk(ast.Module(body=list(body), type_ignores=[])):
@@ -371,8 +391,13 @@ def _extract_call_names(
             n = func.attr
             if n in resolvable:
                 intra.add(n)
-            elif isinstance(func.value, ast.Name):
-                # ``module.func()`` — receiver is a plain name. The
-                # resolver can try to match against imported modules.
-                extra.add(n)
+            elif _is_dotted_chain(func.value):
+                head, _, rest = ast.unparse(func).partition(".")
+                extra.add(f"{aliases.get(head, head)}.{rest}")
     return intra, extra
+
+
+def _is_dotted_chain(node: ast.expr) -> bool:
+    while isinstance(node, ast.Attribute):
+        node = node.value
+    return isinstance(node, ast.Name)

@@ -92,6 +92,19 @@ def _resolve_import(
     return None
 
 
+def _lookup_name(callee: str, qualified_heads: set[str]) -> str | None:
+    """Symbol name to match for ``callee``, or ``None`` if it is too
+    ambiguous to resolve. ``helper`` and ``mod.helper`` match ``helper``
+    (single-Name receiver, as before dotted callees were kept); a deeper
+    chain matches only when its receiver is an imported module
+    (``os.path.join``), so ``self.conn.execute`` never binds to an
+    unrelated ``execute``."""
+    head, dot, name = callee.rpartition(".")
+    if not dot or "." not in head or head in qualified_heads:
+        return name
+    return None
+
+
 def resolve_cross_file_edges(
     conn: sqlite3.Connection,
     *,
@@ -133,6 +146,7 @@ def resolve_cross_file_edges(
             if target is not None:
                 resolved_targets.add(target)
 
+        qualified_heads = set(fp.result.imports) | set(fp.result.import_aliases.values())
         for ue in fp.result.unresolved_edges:
             src_id = src_scip_to_id.get(ue.src_scip_id)
             if src_id is None:
@@ -141,9 +155,13 @@ def resolve_cross_file_edges(
             if callee is None:
                 continue
 
+            lookup_name = _lookup_name(callee, qualified_heads)
             matched_sids: list[int] = []
-            for target_path in resolved_targets:
-                matched_sids.extend(target_lookup.get(target_path, {}).get(callee, []))
+            if lookup_name is not None:
+                for target_path in resolved_targets:
+                    matched_sids.extend(
+                        target_lookup.get(target_path, {}).get(lookup_name, [])
+                    )
 
             if matched_sids:
                 for sid in matched_sids:

@@ -116,10 +116,10 @@
 - Result Log: Mode: AFK — auto-dispatched. `draw/mermaid.py`: `escape_label` (#->#35; first, "->#quot;, <>->#lt;/#gt;, control->?), `to_mermaid` deterministic flowchart LR with QUOTED sigil edges, dropped as `%%` comment. `cli.py`: `codemem draw --level L0..L3 (default L0) --scope --hops --include-tests --direction --kind` — stdout pure mermaid, summary on stderr; exit 1 on missing/v<3/unreadable index (never creates the file, read-only), argparse exit 2. `captions=` param deferred to M5 (Ticket 12 owns its semantics). test_draw_* 41/41; REAL render PASS (hostile + empty) locally; full suite 1187 passed / 2 skipped; ruff clean; 4 contracts kept.
 
 ### Sub-step 3.5: [fix] `build_index` misattributes symbols across rebuilds (FK OFF before DELETE; file ids reused)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Added: 2026-09-24 (Ste approved, circuit-breaker re-plan) — pre-existing codemem defect found while verifying M3 cuts; live index held 4462 symbols vs 1643 real, 2819 misattributed.
-- Result Log: [pending]
+- Result Log: Mode: AFK — Ste approved. ROOT CAUSE (read + reproduced): indexer.build_index sets `PRAGMA foreign_keys = OFF` (l.391) BEFORE `DELETE FROM files` (l.402) -> no cascade -> orphaned symbols/edges re-attached to reused file ids; closing foreign_key_check passes because orphans now have a parent. Repro: build {b,c}, add a.py, rebuild -> beta under a.py, gamma under b.py. FIX: full build explicitly clears edges, file_edges, symbols, files inside its transaction (git-mining tables path-keyed, untouched) — also drops disk-deleted files and self-heals corrupted indexes. RED fe90f6d (3 tests) -> GREEN. Live index healed: 4462 -> 1649 symbols, 2819 -> 0 misattributed; build 0.45s (unchanged). Healed-index call cuts now match the prototype exactly (L2 render 5/4, raw -tests 25/27). codemem 589 passed.
 
 ## Milestone 4: Plugin-surface extractor
 - Status: PENDING

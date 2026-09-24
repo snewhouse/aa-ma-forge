@@ -135,5 +135,5 @@ _Last Updated: 2026-09-22_
 | conn ownership | caller closes `h.conn` | M2 |
 | Import contracts | 4: codemem-layers, parser-is-pure, render-is-leaf, aa-ma-never-imports-codemem; asserted BY NAME | M2 |
 | lint-imports in CI | `security.yml` codemem-smoke, step after `uv sync` | M2 |
-| Live counts @ M2 | import_edges 163, call_edges (file-projected, no self-loops) 175 | M2 |
+| Live counts @ M2 | ~~163 / 175~~ measured on a CORRUPTED index; corrected @ M3 (healed): import_edges 171, call_edges 107 | M2, corrected M3 |
 | ADR-0014 | Accepted; flip to Implemented when M3/M5 consumers ship | M2 |

@@ -391,17 +391,16 @@ def build_index(
         conn.execute("PRAGMA foreign_keys = OFF")
 
         with db.transaction(conn):
-            # Strategy: delete stale rows for files we're re-indexing so the
-            # "ON CONFLICT DO UPDATE" semantics don't leave orphaned symbols
-            # from a previous build. We key on path, not full row compare —
-            # Task 2.2's mtime+size+hash-based dirty detection replaces this.
-            if parses:
-                placeholders = ",".join("?" for _ in parses)
-                paths = [fp.rel_to_repo for fp in parses]
-                conn.execute(
-                    f"DELETE FROM files WHERE path IN ({placeholders})", paths
-                )
-                # symbols + edges cascade-deleted via FK ON DELETE CASCADE
+            # A full build replaces the whole graph. Children are cleared
+            # EXPLICITLY: FK enforcement is OFF here, so `ON DELETE CASCADE`
+            # does not fire — deleting only `files` left symbols/edges orphaned,
+            # and the next insert re-attached them to whatever path reused the
+            # freed file id (diagram-generation M3 §3.5). Clearing every graph
+            # row (not just paths in this parse) also drops files deleted from
+            # disk and heals an index corrupted by the old behaviour. The
+            # git-mining tables are keyed by path and are left alone.
+            for table in ("edges", "file_edges", "symbols", "files"):
+                conn.execute(f"DELETE FROM {table}")  # nosec B608 — fixed table names
 
             path_to_fid = _upsert_files(conn, parses)
             symbols_inserted = _bulk_insert_symbols(conn, parses, path_to_fid)

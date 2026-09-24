@@ -71,6 +71,10 @@ All MCP connections open SQLite via `file:...?mode=ro` URI — the tool surface 
 
 Import-linter contracts enforce that the plugin-surface handlers in `claude-code/codemem/mcp/server.py` cannot bypass the sanitization layer by importing codemem internals directly. CI fails on boundary violations.
 
+### Generated architecture docs
+
+`codemem draw --write` writes only under `docs/architecture/`: every target is resolved and checked before any file is written, and the authored captions sidecar (`docs/architecture.captions.json`) can never be a target. Caption prose is escaped into one inert markdown line; mermaid labels entity-escape `" # < > % { }` and backtick, so a file name cannot inject a `%%{init}%%` directive. `codemem draw --check` is read-only.
+
 ### SQLite WAL file growth
 
 codemem uses SQLite journal mode WAL for crash safety. The WAL file (`<repo>/.codemem/index.db-wal`) can grow during bulk inserts. On a cold `codemem build` of a ~70-file repo the WAL stays under 100 KB; on 10k-LOC repos it typically reaches a few MB before a checkpoint.

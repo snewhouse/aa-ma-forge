@@ -278,6 +278,10 @@ Plans, ADRs and spec pages carry a mermaid Architecture View ([ADR-0010](docs/ad
 - `/aa-ma-share <path>` publishes the markdown itself as a private Artifact link — mermaid renders natively in the viewer. Allowlisted paths only (`*-plan.md`, `docs/adr/*.md`, `docs/spec/*.md`).
 - `uv run aa-ma-render <md>... [--out build/render]` writes one self-contained HTML file per source for the "attach a file" case — mermaid loaded with Subresource Integrity behind a CSP, light/dark via `prefers-color-scheme`, raw HTML escaped. `build/` is ignored; the markdown stays the only source.
 
+### The living architecture doc
+
+[`docs/architecture/`](docs/architecture/README.md) is generated from the code, never hand-edited ([ADR-0016](docs/adr/0016-living-architecture-doc.md)): a component view (every source file with its import and call edges) and the plugin surface (commands → skills → agents → hooks). Regenerate with `uv run codemem build && uv run codemem draw --write`; the `architecture-drift` CI job runs `codemem draw --check` and fails when the committed doc no longer matches the code. Authored prose lives in `docs/architecture.captions.json`.
+
 ## What else helped
 
 AA-MA is the structure, but a couple of Claude Code plugins earned their place alongside it through trial and error.

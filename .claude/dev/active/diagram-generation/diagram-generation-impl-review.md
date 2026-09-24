@@ -406,6 +406,7 @@ No manifest changed; deps.py is stdlib-only.
 - CRITICAL — label→path extraction duplicated and drifted (no `_inside`). **FIXED**: shared `_bracketed` / `_labels` / `_label_paths` used by STALE_PATH and sigil endpoints; endpoint outside the repo → `UNKNOWN: endpoint outside the repo: <p>`, never probed.
 - WARNING — relative level ignored; alias names suffix-matched. **FIXED** (above).
 - WARNING — `SIGIL_LABEL_RE` dead in production, AC5 test skipped sigil plans. **FIXED**: removed; AC5 now asserts every completed plan, no skip.
+- WARNING — dotted alias names suffix-matched independently (`from typing import Any` → in-repo `lib/typing/Any.py`). **FIXED**: submodules derive only from the module's own resolution.
 - INFO — quoted `|` inside a label: **FIXED**. Last declaration wins: **FIXED**. Graph queries on non-OK status: **FIXED** (early return).
 
 ## Security
@@ -413,7 +414,8 @@ No manifest changed; deps.py is stdlib-only.
 - WARNING — terminal escapes from `(new)` labels reach CLI output. **FIXED**: every printed message goes through `graph.printable` (now public); label truncated to `_MAX_TOKEN`.
 - WARNING — partial v3 index crashed `aa-ma-lint-views`. **FIXED**: `sqlite3.Error` → UNKNOWN "unreadable; run `codemem build`".
 - WARNING — quadratic `_node_labels` / `_unwrap`. **FIXED**: bounded look-back on `str.find` scanning; two-index peel. Hostile cases (node flood, 200k paren label) under budget.
-- INFO — SQL read path fixed-text; resolver has no filesystem access.
+- INFO — SQL read path is fixed text (no plan-sourced SQL); a huge `files` table loads fully (local only).
+- INFO — resolver/parser changes do no filesystem access.
 
 ## TDD Sequence — PASS
 e8e4cfe (33 RED) → d80e3d5 (58 green). Fix round: a674e78 (RED: 14 lint + 3 resolver) → fix commit. INFO: hostile/isolated tests landed with the fix.

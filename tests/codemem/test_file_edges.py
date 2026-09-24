@@ -285,3 +285,48 @@ class TestDrawSeamParity:
         seam = {(a, b, "import") for a, b in import_edges(h)} | {(a, b, "call") for a, b in call_edges(h)}
         h.conn.close()
         assert drawn == seam
+
+
+# ---------------------------------------------------------------------
+# `from pkg import submodule` (diagram-generation M8, Ste 2026-09-24)
+#
+# `from . import resolver` / `from .storage import db` resolved only to the package's
+# __init__.py (or to nothing), so a TRUE `@import` claim read as PHANTOM_EDGE.
+# ---------------------------------------------------------------------
+
+def _submodule_repo(root: Path) -> Path:
+    (root / ".gitignore").write_text(".codemem/\n")
+    (root / "pkg" / "store").mkdir(parents=True)
+    (root / "lib").mkdir()
+    (root / "pkg/__init__.py").write_text("def helper():\n    return 1\n")
+    (root / "pkg/sub.py").write_text("X = 1\n")
+    (root / "pkg/other.py").write_text("Y = 2\n")
+    (root / "pkg/store/__init__.py").write_text("")
+    (root / "pkg/store/db.py").write_text("Z = 3\n")
+    (root / "lib/elsewhere.py").write_text("W = 4\n")
+    (root / "pkg/a.py").write_text(
+        "from . import sub\nfrom .store import db\nfrom . import elsewhere\n"
+    )
+    (root / "main.py").write_text("from pkg import other\nfrom pkg import helper\n")
+    _init_commit(root)
+    build_index(root, root / ".codemem/index.db", package=".")
+    return root / ".codemem/index.db"
+
+
+def test_from_package_import_submodule_yields_the_submodule_edge(tmp_path: Path) -> None:
+    rows = {(s, d) for s, d, _, k in _file_edge_rows(_submodule_repo(tmp_path)) if d}
+    assert ("pkg/a.py", "pkg/sub.py") in rows  # from . import sub
+    assert ("pkg/a.py", "pkg/store/db.py") in rows  # from .store import db
+    assert ("main.py", "pkg/other.py") in rows  # from pkg import other
+    assert ("main.py", "pkg/__init__.py") in rows  # the package edge is kept
+
+
+def test_a_bare_relative_name_never_suffix_matches_another_package(tmp_path: Path) -> None:
+    rows = _file_edge_rows(_submodule_repo(tmp_path))
+    assert not any(s == "pkg/a.py" and d == "lib/elsewhere.py" for s, d, _, _ in rows)
+
+
+def test_an_imported_function_adds_no_edge_and_no_unresolved_row(tmp_path: Path) -> None:
+    rows = _file_edge_rows(_submodule_repo(tmp_path))
+    assert not any(u and "helper" in u for _, _, u, _ in rows)
+    assert {d for s, d, _, _ in rows if s == "main.py"} == {"pkg/__init__.py", "pkg/other.py"}

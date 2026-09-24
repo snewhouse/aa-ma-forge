@@ -274,10 +274,10 @@
 - Result Log: Mode: AFK — auto-dispatched. Golden (scratch, pre-change, render stubbed UNKNOWN): `lint_text` over 23 plan/fixture files = 26 findings, sha256 `63dd5fea1b1cf16a`. Impact: mermaid_lint upstream = render/cli.py + tests; contract additive (`LintReport.unknowns`, default ()); plan-verification SKILL must read `file:line: UNKNOWN:` as INFO. Resolver fix (Ste): `from X import name` also resolves `X.name` from `import_aliases` (bare names relative-only, no suffix match); parser records `from . import x` aliases; MEDIUM — more import edges → docs regen, call resolution sees more targets. Overall MEDIUM, cascade planned.
 
 ### Sub-step 8.2: [test] `sigil-edges.md` fixture: clean/phantom/LABEL_UNKNOWN/unlabelled/UNKNOWN, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Obligations (M5 §6.8): include `classDef start <START_STYLE>` / `class <ids> start` lines in `sigil-edges.md` so the edge parser is shown to ignore them.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `tests/fixtures/sigil-edges.md` (clean @import + @call, @improt typo, |fork| and bare edges, (new), non-graph .sh, @skill, label without a path, per-fence id scoping, classDef/class lines — obligation met) + `tests/render/test_phantom_edge.py` (AC1–AC6, stale graph, unquoted sigil, inline node decls, CLI UNKNOWN lines exit 0, AC5 glob over every completed plan) + 3 resolver tests in `tests/codemem/test_file_edges.py` (`from . import sub`, `from .store import db`, `from pkg import other` → submodule edges; bare relative name never suffix-matches; imported function adds nothing). RED: 31 lint failures (no `unknowns`/`SIGIL_LABEL_RE`), 2 resolver failures; suffix guard passes (regression pin). Committed locally, not pushed (L-025).
 
 ### Sub-step 8.3: [impl] edge parser + `PHANTOM_EDGE` tier
 - Status: PENDING

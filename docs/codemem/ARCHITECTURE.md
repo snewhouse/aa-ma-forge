@@ -379,4 +379,5 @@ reference repos and publishes the cross-tool numbers to
   — the pinned invariants that this architecture doc normalises, including
   the `db.ensure_schema` contract (L-253), the v2 schema tables added by
   M3 Task 3.8 (`commits`, `commit_files`, `ownership`, `co_change_pairs`),
+  the v3 `file_edges` table (file-level import edges, diagram-generation M1),
   and the WAL intent-tagging rule (`prev_user_version = db.CURRENT_SCHEMA_VERSION`).

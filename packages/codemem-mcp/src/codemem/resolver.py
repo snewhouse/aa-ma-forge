@@ -105,8 +105,11 @@ def _lookup_name(callee: str, qualified_heads: set[str]) -> str | None:
     return None
 
 
-def _persist_import_edges(conn: sqlite3.Connection, parses: list) -> None:
-    """Replace each parsed file's ``file_edges`` import rows.
+def _persist_import_edges(
+    conn: sqlite3.Connection, parses: list
+) -> dict[str, set[str]]:
+    """Replace each parsed file's ``file_edges`` import rows; return
+    ``{source_path: {resolved target paths}}`` for call-edge resolution.
 
     Resolves against EVERY indexed path, not just ``parses``: an
     incremental refresh passes only the dirty files, and an import of an
@@ -114,23 +117,29 @@ def _persist_import_edges(conn: sqlite3.Connection, parses: list) -> None:
     an edit-in-place idempotent — the ``files`` row survives an edit, so
     ON DELETE CASCADE never fires.
     """
-    # ponytail: call-edge resolution above still uses the parse-set map;
-    # switch it to this DB-wide map if incremental call edges need it.
     path_to_fid: dict[str, int] = dict(conn.execute("SELECT path, id FROM files"))
     import_map = build_import_map(path_to_fid)
     known = set(path_to_fid)
     rows: list[tuple[int, int | None, str | None]] = []
+    targets: dict[str, set[str]] = {}
+    src_fids: list[tuple[int]] = []
     for fp in parses:
-        src_fid = path_to_fid.get(fp.rel_to_repo)
-        if src_fid is None:
-            continue
-        conn.execute("DELETE FROM file_edges WHERE src_file_id = ?", (src_fid,))
+        src = fp.rel_to_repo
+        resolved = targets.setdefault(src, set())
+        src_fid = path_to_fid.get(src)
+        if src_fid is not None:
+            src_fids.append((src_fid,))
         for imp in fp.result.imports:
-            target = _resolve_import(fp.rel_to_repo, imp, import_map, known)
+            target = _resolve_import(src, imp, import_map, known)
+            if target is not None:
+                resolved.add(target)
+            if src_fid is None:
+                continue
             if target is None:
                 rows.append((src_fid, None, imp))
             else:
                 rows.append((src_fid, path_to_fid[target], None))
+    conn.executemany("DELETE FROM file_edges WHERE src_file_id = ?", src_fids)
     conn.executemany(
         """
         INSERT OR IGNORE INTO file_edges
@@ -139,6 +148,7 @@ def _persist_import_edges(conn: sqlite3.Connection, parses: list) -> None:
         """,
         rows,
     )
+    return targets
 
 
 def resolve_cross_file_edges(
@@ -150,8 +160,7 @@ def resolve_cross_file_edges(
     callees against imported target files. Returns stats:
     ``{"resolved": N, "unresolved": N}``.
     """
-    all_paths: set[str] = {fp.rel_to_repo for fp in parses}
-    import_map = build_import_map(all_paths)
+    targets_by_file = _persist_import_edges(conn, parses)
 
     # target_file → {symbol_name: [symbol_id, ...]}
     target_lookup: dict[str, dict[str, list[int]]] = {}
@@ -174,14 +183,7 @@ def resolve_cross_file_edges(
     unresolved = 0
 
     for fp in parses:
-        source_path = fp.rel_to_repo
-
-        resolved_targets: set[str] = set()
-        for imp in fp.result.imports:
-            target = _resolve_import(source_path, imp, import_map, all_paths)
-            if target is not None:
-                resolved_targets.add(target)
-
+        resolved_targets = targets_by_file[fp.rel_to_repo]
         qualified_heads = set(fp.result.imports) | set(fp.result.import_aliases.values())
         for ue in fp.result.unresolved_edges:
             src_id = src_scip_to_id.get(ue.src_scip_id)
@@ -206,8 +208,6 @@ def resolve_cross_file_edges(
             else:
                 edge_rows.append((src_id, None, callee, ue.kind))
                 unresolved += 1
-
-    _persist_import_edges(conn, parses)
 
     if edge_rows:
         conn.executemany(

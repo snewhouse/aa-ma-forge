@@ -354,7 +354,7 @@ def _build_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
 def _extract_call_names(
     body: Iterable[ast.stmt],
     resolvable: set[str],
-    import_aliases: dict[str, str] | None = None,
+    import_aliases: dict[str, str],
 ) -> tuple[set[str], set[str]]:
     """Return ``(intra, extra)`` unique callee names from ``body``.
 
@@ -372,7 +372,6 @@ def _extract_call_names(
     Both return sets filter out the ``_CALL_EXCLUDE`` built-ins for
     bare-name calls — those are never emitted at either layer.
     """
-    aliases = import_aliases or {}
     intra: set[str] = set()
     extra: set[str] = set()
     for node in ast.walk(ast.Module(body=list(body), type_ignores=[])):
@@ -393,7 +392,7 @@ def _extract_call_names(
                 intra.add(n)
             elif _is_dotted_chain(func.value):
                 head, _, rest = ast.unparse(func).partition(".")
-                extra.add(f"{aliases.get(head, head)}.{rest}")
+                extra.add(f"{import_aliases.get(head, head)}.{rest}")
     return intra, extra
 
 

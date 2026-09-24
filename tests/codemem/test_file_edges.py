@@ -94,12 +94,12 @@ class TestVersion:
                     conn.executescript(sql)
                     conn.execute(f"PRAGMA user_version = {target}")
         assert _user_version(conn) == 2
-        assert migrate(conn) == 3
-        assert _user_version(conn) == 3
+        assert migrate(conn) == db.CURRENT_SCHEMA_VERSION
+        assert _user_version(conn) == db.CURRENT_SCHEMA_VERSION
         conn.close()
 
     def test_ensure_schema_fresh_lands_at_v3(self, v3_db) -> None:
-        assert _user_version(v3_db) == 3
+        assert _user_version(v3_db) == db.CURRENT_SCHEMA_VERSION
         assert v3_db.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='file_edges'"
         ).fetchone()
@@ -126,15 +126,16 @@ class TestDowngradeGuard:
             (f,),
         )
         v3_db.commit()
+        newer = db.CURRENT_SCHEMA_VERSION
         monkeypatch.setattr(db, "CURRENT_SCHEMA_VERSION", 2)
         monkeypatch.setattr(db, "MIGRATIONS", [m for m in db.MIGRATIONS if m[0] <= 2])
-        assert ensure_schema(v3_db) == 3
-        assert _user_version(v3_db) == 3
+        assert ensure_schema(v3_db) == newer
+        assert _user_version(v3_db) == newer
         assert v3_db.execute("SELECT count(*) FROM file_edges").fetchone()[0] == 1
 
     def test_apply_schema_on_v3_db_keeps_v3(self, v3_db) -> None:
         apply_schema(v3_db)
-        assert _user_version(v3_db) == 3
+        assert _user_version(v3_db) == db.CURRENT_SCHEMA_VERSION
 
 
 # ---------------------------------------------------------------------
@@ -211,7 +212,7 @@ class TestPersistence:
             key=repr,
         )
         with db.connect(db_path, read_only=True) as conn:
-            assert _user_version(conn) == 3
+            assert _user_version(conn) == db.CURRENT_SCHEMA_VERSION
 
     def test_refresh_edit_in_place_is_idempotent(self, import_repo) -> None:
         """AC5 — edit a file (files row survives), refresh twice: row SET

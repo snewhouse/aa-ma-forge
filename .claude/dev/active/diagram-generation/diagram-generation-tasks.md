@@ -22,14 +22,14 @@
 - Result Log: Mode: AFK — auto-dispatched. New `tests/codemem/test_file_edges.py`, 14 tests: RED 12 failed / 2 passed (the passing 2 are pre-existing invariants: apply_schema-alone=v1, file_edges absent pre-migrate). Covers AC1, AC2, AC5, AC5b, AC6, AC7 + 3x-insert dedup. Baseline before M1: 1101 passed / 2 skipped @ f8e44ed.
 
 ### Sub-step 1.2: [impl] `_MIGRATION_V3_FILE_EDGES` + `CURRENT_SCHEMA_VERSION` 3 (`db.py:41,104`)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `_MIGRATION_V3_FILE_EDGES` (table + 2 partial UNIQUE + dst/src indexes, all IF NOT EXISTS, no kind CHECK) appended to MIGRATIONS; CURRENT_SCHEMA_VERSION 3; migrate() docstring corrected (DDL not rolled back). 4 v2 tests re-pointed at CURRENT_SCHEMA_VERSION (test_schema_v2.py). docs/codemem/migration-from-index.md:98 -> eight tables, user_version 3. WAL note: pending journals written at v2 now hit ReplayConflict (prev_user_version != 3) — rebuild instead.
 
 ### Sub-step 1.3: [impl] `apply_schema()` version guard so it honours its own docstring (`db.py:156-162`)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. apply_schema() captures prior user_version and restores it when schema.sql lowered it (4 lines). TestDowngradeGuard 2/2 green (v2-era ensure_schema on v3 DB -> 3, file_edges intact). codemem suite: 534 passed / 3 failed (the 3 are 1.6 persistence tests, expected).
 
 ### Sub-step 1.4: [test] dotted-callee + asname fixtures, RED (2 assertions flip in `test_resolver.py`)
 - Status: PENDING

@@ -95,7 +95,7 @@ Minified, ~100 KB on aa-ma-forge; auto-compressed if it exceeds a target size.
 
 ### codemem produces
 
-- `<repo>/.codemem/index.db` — SQLite database with seven tables: `files`, `symbols`, `edges` (v1 schema), plus `commits`, `commit_files`, `ownership`, `co_change_pairs` (v2, added with the git-mining tools). `user_version = 2`.
+- `<repo>/.codemem/index.db` — SQLite database with eight tables: `files`, `symbols`, `edges` (v1 schema), plus `commits`, `commit_files`, `ownership`, `co_change_pairs` (v2, added with the git-mining tools), plus `file_edges` (v3, file-level import edges). `user_version = 3`.
 - `<repo>/.codemem/wal.jsonl` — write-ahead log for crash-safe incremental refresh. Rotates at 10 MB with 3 compressed archives retained.
 - `<repo>/.codemem/last_sha` — HEAD commit SHA at last refresh (used for `git log $last..HEAD` on incremental refresh).
 - `<repo>/PROJECT_INTEL.json` (optional) — a PageRank-ranked 1024-token symbol index suitable for `@`-loading as model context.

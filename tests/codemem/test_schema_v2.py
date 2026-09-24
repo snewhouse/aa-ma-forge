@@ -23,7 +23,13 @@ from pathlib import Path
 
 import pytest
 
-from codemem.storage import apply_schema, connect, migrate, transaction
+from codemem.storage import (
+    CURRENT_SCHEMA_VERSION,
+    apply_schema,
+    connect,
+    migrate,
+    transaction,
+)
 
 
 @pytest.fixture
@@ -58,17 +64,17 @@ class TestVersionProgression:
         cur = v1_db.execute("PRAGMA user_version")
         assert cur.fetchone()[0] == 1
 
-    def test_migrate_bumps_to_v2(self, v2_db: sqlite3.Connection) -> None:
-        """migrate() must advance user_version to 2."""
+    def test_migrate_bumps_to_current(self, v2_db: sqlite3.Connection) -> None:
+        """migrate() must advance user_version past v1 to the current version."""
         cur = v2_db.execute("PRAGMA user_version")
-        assert cur.fetchone()[0] == 2
+        assert cur.fetchone()[0] == CURRENT_SCHEMA_VERSION
 
-    def test_migrate_idempotent_at_v2(self, v2_db: sqlite3.Connection) -> None:
-        """Re-running migrate on already-v2 DB is a no-op."""
+    def test_migrate_idempotent_at_current(self, v2_db: sqlite3.Connection) -> None:
+        """Re-running migrate on an already-migrated DB is a no-op."""
         version = migrate(v2_db)
-        assert version == 2
+        assert version == CURRENT_SCHEMA_VERSION
         cur = v2_db.execute("PRAGMA user_version")
-        assert cur.fetchone()[0] == 2
+        assert cur.fetchone()[0] == CURRENT_SCHEMA_VERSION
 
 
 # ---------------------------------------------------------------------------
@@ -350,7 +356,7 @@ class TestRoundTripMigration:
                 )
             # Migrate to v2
             version = migrate(conn)
-            assert version == 2
+            assert version == CURRENT_SCHEMA_VERSION
 
             # V1 rows must still be intact
             cur = conn.execute("SELECT path, lang FROM files")
@@ -372,8 +378,6 @@ class TestRoundTripMigration:
         cur = v2_db.execute("PRAGMA foreign_key_check")
         assert cur.fetchall() == []
 
-    def test_current_schema_version_constant_is_2(self) -> None:
-        """Python-side constant must track SQL user_version bump."""
-        from codemem.storage import CURRENT_SCHEMA_VERSION
-
-        assert CURRENT_SCHEMA_VERSION == 2
+    def test_current_schema_version_at_least_2(self) -> None:
+        """Python-side constant must include the v2 bump (v3 pinned in test_file_edges)."""
+        assert CURRENT_SCHEMA_VERSION >= 2

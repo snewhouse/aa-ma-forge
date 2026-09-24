@@ -38,7 +38,7 @@ __all__ = [
 ]
 
 APPLICATION_ID = 0x434D454D  # 'CMEM' ASCII = 1129209165 (within signed int32, per SQLite application_id spec)
-CURRENT_SCHEMA_VERSION = 2  # M3 Task 3.8: git-mining tables (commits/ownership/co_change_pairs + commit_files junction)
+CURRENT_SCHEMA_VERSION = 3  # v2: git-mining tables; v3: file_edges (diagram-generation M1)
 
 # Forward-only migrations. Each entry: (target_version, SQL_script_string).
 # The initial schema (v1) is provided by schema.sql; migrations here start at v2.
@@ -101,8 +101,32 @@ CREATE INDEX IF NOT EXISTS idx_co_change_pairs_a ON co_change_pairs(file_a);
 CREATE INDEX IF NOT EXISTS idx_co_change_pairs_b ON co_change_pairs(file_b);
 """
 
+_MIGRATION_V3_FILE_EDGES = """
+-- diagram-generation M1: file-level edges (Python imports today).
+-- No CHECK on kind: SQLite cannot ALTER a CHECK, and later kinds are expected.
+CREATE TABLE IF NOT EXISTS file_edges (
+    src_file_id    INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    dst_file_id    INTEGER          REFERENCES files(id) ON DELETE CASCADE,
+    dst_unresolved TEXT,
+    kind           TEXT    NOT NULL,
+    line           INTEGER,
+    CHECK (dst_file_id IS NOT NULL OR dst_unresolved IS NOT NULL)
+);
+
+-- Partial unique indexes, NOT a composite PK: SQLite treats NULLs as
+-- distinct in a unique key, so a PK over the two mutually-exclusive dst
+-- columns never matches and INSERT OR IGNORE de-duplicates nothing.
+CREATE UNIQUE INDEX IF NOT EXISTS file_edges_resolved
+    ON file_edges(src_file_id, kind, dst_file_id) WHERE dst_file_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS file_edges_unresolved
+    ON file_edges(src_file_id, kind, dst_unresolved) WHERE dst_unresolved IS NOT NULL;
+CREATE INDEX IF NOT EXISTS file_edges_dst ON file_edges(dst_file_id, kind, src_file_id);
+CREATE INDEX IF NOT EXISTS file_edges_src ON file_edges(src_file_id, kind, dst_file_id);
+"""
+
 MIGRATIONS: list[tuple[int, str]] = [
     (2, _MIGRATION_V2_GIT_MINING),
+    (3, _MIGRATION_V3_FILE_EDGES),
 ]
 
 
@@ -160,7 +184,12 @@ def apply_schema(conn: sqlite3.Connection) -> None:
     Does NOT overwrite a DB with a higher user_version — callers should
     branch between apply_schema (fresh) and migrate (existing).
     """
+    # schema.sql ends by setting user_version = 1; restore a newer version
+    # so a DB written by newer code is not walked back by older code.
+    prior = _current_user_version(conn)
     conn.executescript(_load_initial_schema_sql())
+    if prior > _current_user_version(conn):
+        conn.execute(f"PRAGMA user_version = {prior}")
 
 
 def _current_user_version(conn: sqlite3.Connection) -> int:
@@ -176,8 +205,11 @@ def migrate(conn: sqlite3.Connection) -> int:
     caller is expected to run `apply_schema()` first to reach v1; this
     function takes over from v1 upward.
 
-    Each migration runs in its own transaction. If a migration fails,
-    the transaction is rolled back and the user_version is unchanged.
+    Each migration runs in its own `with conn:` block. `executescript`
+    commits before running, so DDL is NOT rolled back on failure — the
+    user_version stays unchanged, but tables created before the error
+    remain. Migration scripts are therefore `IF NOT EXISTS`-safe so the
+    retry tolerates them.
     """
     current = _current_user_version(conn)
     for target, sql in MIGRATIONS:

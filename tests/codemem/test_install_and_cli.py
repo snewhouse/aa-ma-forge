@@ -28,7 +28,13 @@ class TestImportLinterContract:
         assert result.returncode == 0, (
             f"import-linter failed:\n{result.stdout}\n{result.stderr}"
         )
-        assert "Contracts: 3 kept, 0 broken." in result.stdout
+        # Named contracts + "0 broken", never the total: a total breaks on every
+        # unrelated contract added elsewhere (diagram-generation M2 did exactly that).
+        assert "0 broken" in result.stdout
+        for name in ("codemem layered architecture", "parser must not depend on public API"):
+            assert any(
+                name in line and "KEPT" in line for line in result.stdout.splitlines()
+            ), result.stdout
 
     def test_config_file_exists(self):
         cfg = REPO_ROOT / ".importlinter"

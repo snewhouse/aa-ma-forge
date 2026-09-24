@@ -269,21 +269,30 @@ def _cmd_draw(args: argparse.Namespace) -> int:
     from .draw.mermaid import to_mermaid
     from .storage.db import connect
 
+    views_mode = args.write or args.check
+    if views_mode and (args.level is not None or args.scope is not None):
+        args._draw_parser.error("--write/--check regenerate the registered views; --level/--scope do not apply")
+    who = "codemem draw --check" if args.check else "codemem draw"
     db_path = Path(args.db) if args.db else _default_db_path()
-    if not db_path.is_file():
-        print(f"codemem draw: no index at {db_path}; run `codemem build`", file=sys.stderr)
+
+    def no_graph(reason: str) -> int:
+        # --check cannot run without a graph: UNKNOWN, never PASS, and never a block (ADR-0016).
+        if args.check:
+            print(f"{who}: UNKNOWN — {reason}; run `codemem build`")
+            return 0
+        print(f"{who}: {reason}; run `codemem build`", file=sys.stderr)
         return 1
+
+    if not db_path.is_file():
+        return no_graph(f"no index at {db_path}")
     conn = connect(db_path, read_only=True)
     try:
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version < MIN_SCHEMA_VERSION:
-            print(
-                f"codemem draw: index is schema v{version}, need v{MIN_SCHEMA_VERSION}; "
-                "run `codemem build`",
-                file=sys.stderr,
-            )
-            return 1
-        level = Level[args.level]
+            return no_graph(f"index is schema v{version}, need v{MIN_SCHEMA_VERSION}")
+        if views_mode:
+            return _draw_views(args, conn)
+        level = Level[args.level or Level.L0.name]
         try:
             c = cut(
                 conn, level, scope=args.scope, hops=args.hops,
@@ -292,15 +301,35 @@ def _cmd_draw(args: argparse.Namespace) -> int:
         except ValueError as exc:
             args._draw_parser.error(str(exc))  # usage error: message + exit 2
     except sqlite3.Error as exc:
-        print(f"codemem draw: unreadable index {db_path} ({exc}); run `codemem build`",
-              file=sys.stderr)
-        return 1
+        return no_graph(f"unreadable index {db_path} ({exc})")
     finally:
         conn.close()
     sys.stdout.write(to_mermaid(c))
     dropped = f", {c.dropped} dropped over maxEdges" if c.dropped else ""
     print(f"codemem draw: {level.name} {len(c.nodes)} nodes / {len(c.edges)} edges{dropped}",
           file=sys.stderr)
+    return 0
+
+
+def _draw_views(args: argparse.Namespace, conn) -> int:
+    from .draw import views
+
+    repo_root = Path.cwd()
+    try:
+        if args.write:
+            for p in views.write_views(repo_root, conn):
+                print(f"codemem draw: wrote {p.relative_to(repo_root)}", file=sys.stderr)
+            return 0
+        findings = views.check_views(repo_root, conn)
+    except ValueError as exc:  # malformed captions sidecar, or a write outside docs/architecture/
+        print(f"codemem draw: {exc}", file=sys.stderr)
+        return 1
+    for f in findings:
+        print(f"codemem draw --check: {f}")
+    if findings:
+        print(f"codemem draw --check: {len(findings)} finding(s) — {views.REMEDY}")
+        return 1
+    print("codemem draw --check: OK")
     return 0
 
 
@@ -362,7 +391,12 @@ def build_parser() -> argparse.ArgumentParser:
     from .draw.cut import DIRECTIONS, KINDS, Level
 
     pd = sub.add_parser("draw", help="Emit a mermaid diagram of the graph")
-    pd.add_argument("--level", choices=[lv.name for lv in Level], default=Level.L0.name,
+    mode = pd.add_mutually_exclusive_group()
+    mode.add_argument("--write", action="store_true",
+                      help="Regenerate every registered view under docs/architecture/")
+    mode.add_argument("--check", action="store_true",
+                      help="Exit 1 if docs/architecture/ drifted from the code (UNKNOWN + 0 with no index)")
+    pd.add_argument("--level", choices=[lv.name for lv in Level], default=None,
                     help="L0 top dirs, L1 dirs depth 2, L2 files, L3 symbols (default L0)")
     pd.add_argument("--scope", help="Path prefix to centre the cut on")
     pd.add_argument("--hops", type=_non_negative_int, default=1,

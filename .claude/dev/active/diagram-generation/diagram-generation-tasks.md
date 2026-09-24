@@ -204,14 +204,14 @@
 - Result Log: Mode: HITL — Ste approved the job as previewed. 6fab78e: `architecture-drift` appended to security.yml (pinned checkout v4.4.0 / setup-python v5.6.0, py 3.13, uv sync, `codemem build`, `codemem draw --check`; inherits top-level `permissions: contents: read`). YAML job diff before/after: added [architecture-drift], removed [], changed []. AC5 test GREEN (18/18). Local simulation in a fresh `--depth 1` clone of 6fab78e: build 191 files, `--check` OK; a line-2 hand-edit → rc 1 naming the remedy; restored → rc 0. No `.sh` touched in M6 (AC6 shellcheck: nothing to scan).
 
 ### Sub-step 6.5: [verify] CI green at this commit; `CRITICAL_PATH_REVIEW`
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: Mode: HITL — Ste: Proceed. CI run 35999835675 on 716de43, commit-specific: 6/6 jobs success incl. `Architecture drift (docs/architecture)`. CRITICAL_PATH_REVIEW written to provenance naming the milestone heading. Known RED 91bdd5f recorded (AC5 test pushed before its job existed).
 
 ### Sub-step 6.6: [docs] ADR-0016
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: Mode: HITL — Ste: Accept as drafted. `docs/adr/0016-living-architecture-doc.md` (Accepted) + INDEX row; 0015 stays reserved for M11 (deliberate gap).
 
 ### Sub-step 6.7: [release] `scripts/release.sh minor --dry-run`, then cut v0.15.0
 - Status: PENDING

@@ -220,7 +220,7 @@
 - Result Log: Mode: HITL — Ste: Cut v0.15.0. Dry-run passed twice (a8812c7 and final tree). `scripts/release.sh minor --headline "living architecture docs generated from the code (codemem draw --write/--check)"` → bump commit b469b08, annotated tag v0.15.0 pushed, GitHub Release published (not draft). Verified: `git describe` = v0.15.0, `importlib.metadata.version('aa-ma')` = 0.15.0, README current-version line, CI on b469b08 6/6 success incl. Architecture drift. `docs/spec` unchanged v0.14.0..v0.15.0 → no install.sh re-run needed.
 
 ## Milestone 7: `Dependencies:` grammar + Milestone graph + advisory
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: None
 - Gate: HARD
 - Audit-Profile: code-only

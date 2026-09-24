@@ -123,7 +123,7 @@
 - Result Log: Mode: AFK — Ste approved. ROOT CAUSE (read + reproduced): indexer.build_index sets `PRAGMA foreign_keys = OFF` (l.391) BEFORE `DELETE FROM files` (l.402) -> no cascade -> orphaned symbols/edges re-attached to reused file ids; closing foreign_key_check passes because orphans now have a parent. Repro: build {b,c}, add a.py, rebuild -> beta under a.py, gamma under b.py. FIX: full build explicitly clears edges, file_edges, symbols, files inside its transaction (git-mining tables path-keyed, untouched) — also drops disk-deleted files and self-heals corrupted indexes. RED fe90f6d (3 tests) -> GREEN. Live index healed: 4462 -> 1649 symbols, 2819 -> 0 misattributed; build 0.45s (unchanged). Healed-index call cuts now match the prototype exactly (L2 render 5/4, raw -tests 25/27). codemem 589 passed.
 
 ## Milestone 4: Plugin-surface extractor
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 3
 - Gate: HARD
 - Audit-Profile: code-only
@@ -133,9 +133,9 @@
 - Acceptance Criteria: 5 criteria — see plan.md § Milestone 4
 
 ### Sub-step 4.1: [measure] re-measure the surface; identify the 42nd `Skill()` target
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. Scratch prototype (scratchpad/m4proto.py, not committed) at 27fa477. **42nd target = `Skill(feature-dev:feature-dev)`** (`claude-code/skills/understand-codebase/references/DIMENSIONS.md:252`) — plugin-namespaced; Ticket 4's `[A-Za-z0-9_-]+` cannot match `:`, so it counted 41. Resolves externally (`~/.claude/plugins/.../feature-dev/commands/feature-dev.md`) → DECLARED_EXTERNAL. With `[A-Za-z0-9_:-]+`: 42 distinct = 17 ON_DISK / 21 DECLARED_EXTERNAL (all 20 prior names verified in `~/.claude/skills` + feature-dev) / 4 DANGLING {aa-ma-plan, codebase-deep-dive, haiku-eval, index}. Node-level distinct edges: 191 (154 ON_DISK / 33 DECLARED_EXTERNAL / 4 DANGLING) from 57 source files; nodes 59 (13 cmd / 21 skill / 12 agent / 11 hook / 2 rule). Orphans = exactly AC4's 7. Agent externals {Explore, general-purpose, gsd-codebase-mapper}; hook external {aa-ma-share-allow.sh} (lives in scripts/). 163 (Ticket 4) vs 191: Ticket 4 excluded externals and counted differently; order of magnitude holds.
 
 ### Sub-step 4.2: [test] generate `tests/golden/plugin-surface.json`; rename-behaviour test, RED
 - Status: PENDING

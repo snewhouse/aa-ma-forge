@@ -232,3 +232,8 @@ _Updated via context compaction as the task progresses._
 - Measured: M3's L0/L1 collapse to depth 1/2, so the map's claim that collapsed levels have ids like `src/aa_ma/render/` is false; depth-3 dir keys named no node at any level.
 - Options: exact-only (re-key the sidecar to depth ≤ 2), equal-or-contained, or also ancestors. **Ste chose equal-or-contained**: a dir caption covers the node that IS the dir and every node INSIDE it, never an ancestor. AC2 holds for depth-1/2 keys; deeper keys surface at L2/L3.
 - `@start` highlights the node that is, contains, or is contained by the start path. At L0 on this repo `src` has no cross-dir edge, so nothing is highlighted there — correct: no node, no highlight.
+
+## [2026-09-24] M5 §6.8 decisions (Ste)
+- Fix all M5 findings now (done, 6f39194 → 185453c).
+- **M6 `--check` compares only the ```mermaid fences** — resolves M6's AC4 vs whole-file comparison contradiction; caption prose edits are never drift, an `@start` edit is. Recorded as a 6.1 obligation (plan.md stays historical).
+- **Scope change to future milestones** (tasks.md only): 6.1 fence-only compare + writer path guard; 6.2 `ORPHAN_CAPTION` wired into `--check` with `git ls-files` + plan §13 `(new)` set; 6.3 one escaping helper for prose + plugin-surface captions decision; 8.2 `classDef` lines in the fixture; 12.2 explorer caption parity + JSON-island escaping.

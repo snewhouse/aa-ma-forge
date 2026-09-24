@@ -229,3 +229,55 @@ No new PyPI dependency or version bump.
 
 ## Revision History
 - 2026-09-24: 1 CRITICAL accepted and fixed; all 9 WARNINGs and 6 INFOs fixed or recorded; golden diff = orphan ids only (edges unchanged).
+
+---
+
+# Impl Review Report: diagram-generation / Milestone 5
+
+**Milestone:** Milestone 5: Captions sidecar
+**Audit-Profile:** code-only (all 5 agents)
+**Window:** bbdc743..25d70fe (review) · fixes 6f39194 (RED) → 185453c
+**Date:** 2026-09-24
+
+## Summary
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer (+§6.6)     |    0     |    3    |  5   | WARN → fixed |
+| security-auditor          |    0     |    2    |  3   | WARN → fixed / recorded downstream |
+| tdd-sequence-auditor      |    0     |    0    |  3   | PASS (both REDs reproduced) |
+| context7-evidence-auditor |    0     |    0    |  0   | PASS (stdlib json only) |
+| future-proofing-auditor   |    0     |    6    |  5   | WARN → fixed / recorded downstream |
+| **TOTAL**                 |  **0**  | **11**  |**16**| **PASS_WITH_WARNINGS** |
+
+## Code Review
+- WARNING — slashless dir key reported as deleted. **FIXED**: finding reason "a directory: the key needs a trailing /".
+- WARNING — dir caption over planned `(new)` files read ORPHAN. **FIXED**: planned paths use the same containment rule → UNKNOWN.
+- WARNING — `start_ids` re-implemented `_names`. **FIXED**: `start_ids = _names(start, label) or ancestor`.
+- INFO — empty/unknown `@` keys, duplicate keys: **FIXED** in `load()`. Render test now asserts PASS or skips on UNKNOWN (**FIXED**). mermaid→captions coupling: kept (pure `start_ids` only). M8 fixture `classDef` line and plugin-surface captions: **recorded** as 8.2 / 6.3 obligations.
+
+## Security
+- WARNING — caption prose unescaped for M6/M12. **RECORDED** as 6.3 (one escaping helper outside the fence) and 12.2 (`<` JSON island, `textContent`, `</script>` test) obligations. No caption text reaches the mermaid: `class` lines carry hash ids only.
+- WARNING — `RecursionError`/`OSError` escaped `load()`. **FIXED** (tests: deep nesting, chmod 0).
+- INFO — duplicate keys (**FIXED**), no size cap (accepted: repo-committed file).
+
+## TDD Sequence — PASS
+1d6a3ec → 2a884e5 (130 s); 405f46c → 8f9edd3 (52 s); 6f39194 → 185453c. Widened expectations in 8f9edd3 are the recorded equal-or-contained spec change, still exact equality.
+
+## External Library Evidence — PASS
+No dependency change; stdlib `json` only.
+
+## Future-Proofing
+- WARNING W1 — M6 AC4 vs whole-file `--check`. **RESOLVED by Ste**: `--check` compares mermaid fences only; recorded in 6.1 with an `@start`-is-drift test.
+- WARNING W2 — explorer caption matching. **RECORDED** in 12.2.
+- WARNING W3 — `docs/architecture/` boundary unenforced. **RECORDED** in 6.1 (writer path guard, tested).
+- WARNING W4 — `ORPHAN_CAPTION` had no owner. **RECORDED** in 6.2 (`--check`, `git ls-files`, plan §13 `(new)` set).
+- WARNING W5 — prose escaping. **RECORDED** (see Security).
+- WARNING W6 — 5.2 Result Log said 21 tests. **FIXED** (20).
+- INFO — keyword-only `captions` (**FIXED**), `::` keys (**FIXED**), `4px` single use (accepted), forge test uses empty planned set (accepted: forge has no planned captions).
+
+## User Override Decisions
+No CRITICAL findings. Ste: fix all now; M6 `--check` = fences only; downstream obligations recorded in tasks.md.
+
+## Revision History
+- 2026-09-24: 11 WARNINGs — 6 fixed (RED-first), 5 recorded as named M6/M8/M12 obligations; 0 CRITICAL.

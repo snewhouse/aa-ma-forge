@@ -159,3 +159,9 @@ _Last Updated: 2026-09-22_
 - Golden: `tests/golden/plugin-surface.json`; regenerate with `uv run python tests/codemem/test_plugin_surface.py` and review the diff. Any `claude-code/` edit that changes references changes it — M10/M11/M14 must regenerate.
 - Live at 711e8b7: 191 edges (154 ON_DISK / 33 DECLARED_EXTERNAL / 4 DANGLING), 59 nodes, 7 orphans, 7 wired hooks, errors []. Measurements, not assertions.
 - `cut.from_edges(edges, level, isolated=frozenset())` is the shared edges→Cut step (sort, MAX_EDGES cap, collision check).
+
+## M5 facts (captions, 2026-09-24)
+- Sidecar: `docs/architecture.captions.json` (`captions.CAPTIONS_PATH`), flat JSON; only directive `@start`; absent → `{}`; any malformation → `ValueError` naming the file.
+- API: `load(repo_root)`, `orphans(captions, known_paths, planned_paths) -> list[CaptionFinding(path, code ∈ {ORPHAN_CAPTION, UNKNOWN}, reason)]`, `for_cut(cut, captions) -> {key: prose}`, `start_ids(cut, captions)`; `to_mermaid(c, *, captions=None)` adds only `classDef start stroke-width:4px` + `class <ids> start`.
+- Matching: dir key `a/b/` covers node `a/b` and every node inside it, never ancestors; file key covers its file and `file::symbol` nodes; symbol keys exist when their file does. `@start` also highlights a collapsed ancestor dir.
+- Prose is never in the mermaid; M6 `--check` compares fences only (Ste).

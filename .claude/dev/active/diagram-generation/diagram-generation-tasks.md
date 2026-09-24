@@ -166,7 +166,7 @@
 ### Sub-step 5.2: [impl] `draw/captions.py` + authored `docs/architecture.captions.json`
 - Status: COMPLETE
 - Mode: AFK
-- Result Log: Mode: AFK — auto-dispatched. `captions.py`: `load`, `orphans -> list[CaptionFinding]`, `for_cut`, `start_ids`; `mermaid.to_mermaid(c, captions=None)` adds `classDef start` + `class <ids> start` only (None → M3 output byte-identical). Sidecar = the plan's three example entries verbatim (no invented prose). Live finding: M3 collapses L1 to depth 2, so the plan's depth-3 dir keys matched no node at any level; Ste chose equal-or-contained (dir caption covers the dir node and nodes inside it, never ancestors) — RED 405f46c → GREEN 8f9edd3. Live on a fresh index: L2 shows both dir captions, L3 (scope render/) shows `src/aa_ma/render/`, @start highlighted at L2/L3; every level render PASS. 21 caption tests; full suite 1236 passed / 2 skipped; ruff/bandit clean; lint-imports 4 kept.
+- Result Log: Mode: AFK — auto-dispatched. `captions.py`: `load`, `orphans -> list[CaptionFinding]`, `for_cut`, `start_ids`; `mermaid.to_mermaid(c, captions=None)` adds `classDef start` + `class <ids> start` only (None → M3 output byte-identical). Sidecar = the plan's three example entries verbatim (no invented prose). Live finding: M3 collapses L1 to depth 2, so the plan's depth-3 dir keys matched no node at any level; Ste chose equal-or-contained (dir caption covers the dir node and nodes inside it, never ancestors) — RED 405f46c → GREEN 8f9edd3. Live on a fresh index: L2 shows both dir captions, L3 (scope render/) shows `src/aa_ma/render/`, @start highlighted at L2/L3; every level render PASS. 20 caption tests (corrected by §6.8: pytest collects 20); full suite 1236 passed / 2 skipped; ruff/bandit clean; lint-imports 4 kept.
 
 ## Milestone 6: Living doc + `--check` + CI drift job + ADR-0016 → release `v0.15.0`
 - Status: PENDING
@@ -182,16 +182,19 @@
 ### Sub-step 6.1: [test] `test_draw_check.py`: line-slice compare, stamp regex, caption-only diff, RED
 - Status: PENDING
 - Mode: AFK
+- Obligations (M5 §6.8, Ste 2026-09-24): `--check` compares ONLY the ```mermaid fences (prose-only / caption edits are never drift; an `@start` edit IS drift — test both). Test the writer refuses any target outside `docs/architecture/` or equal to `captions.CAPTIONS_PATH`.
 - Result Log: [pending]
 
 ### Sub-step 6.2: [impl] `draw/views.py` registry + `codemem draw --check`
 - Status: PENDING
 - Mode: AFK
+- Obligations (M5 §6.8): wire `captions.orphans()` into `--check` as the `ORPHAN_CAPTION` finding (exit 1; `UNKNOWN` never PASS), with `known_paths` from `git ls-files` and `planned_paths` from the active plan's §13 `(new)` entries; writer path guard per 6.1.
 - Result Log: [pending]
 
 ### Sub-step 6.3: [impl] generate `docs/architecture/{README,component,plugin-surface}.md`
 - Status: PENDING
 - Mode: AFK
+- Obligations (M5 §6.8): render `captions.for_cut()` prose outside the fence through ONE escaping helper (single line; neutralise fence openers ``` / ~~~ and leading `# > - |`); decide and record whether the plugin-surface view (labels `kind:stem`, not paths) takes captions.
 - Result Log: [pending]
 
 ### Sub-step 6.4: [impl] `architecture-drift` job in `security.yml` (Critical-Path)
@@ -268,6 +271,7 @@
 ### Sub-step 8.2: [test] `sigil-edges.md` fixture: clean/phantom/LABEL_UNKNOWN/unlabelled/UNKNOWN, RED
 - Status: PENDING
 - Mode: AFK
+- Obligations (M5 §6.8): include `classDef start ...` / `class <ids> start` lines in `sigil-edges.md` so the edge parser is shown to ignore them.
 - Result Log: [pending]
 
 ### Sub-step 8.3: [impl] edge parser + `PHANTOM_EDGE` tier
@@ -398,6 +402,7 @@
 ### Sub-step 12.2: [test] `explorer_contract.test.mjs` + `test_explorer_fixture.py` on the shared fixture, RED
 - Status: PENDING
 - Mode: AFK
+- Obligations (M5 §6.8): caption matching must equal Python's `captions.for_cut`/`start_ids` — embed per-level `for_cut` output in the JSON (preferred, no JS re-implementation) or add caption cases to the shared fixture; the JSON island escapes `<` `>` `&` (`\u003c`…), tested with a `</script>` caption; prose via `textContent`, never `innerHTML`.
 - Result Log: [pending]
 
 ### Sub-step 12.3: [impl] `render/explorer.py` + `explorer.js` + `--explorer` flag

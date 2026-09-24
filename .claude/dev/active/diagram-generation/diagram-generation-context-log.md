@@ -132,3 +132,20 @@ _Updated via context compaction as the task progresses._
 - Approved by: Ste (Stephen J Newhouse)
 - Criteria verified: 8/8
 - Decision: APPROVED
+
+## [2026-09-24] Milestone 2 execution decisions
+- **Tier 2 validation not re-run**: the pre-exec validator ran this session (WARN, 0 FAIL) over the whole plan; artifacts changed only by M1 sync since.
+- **Staleness counts deleted files** (beyond plan's mtime-only definition): a vanished indexed file is equally out of date.
+- **STALE is advisory**: the handle keeps its read-only connection; callers decide. Caller owns `conn`.
+- **`call_edges` drops same-file edges**: a file graph has no self-loops.
+- **Scope — `tests/codemem/test_install_and_cli.py` edited** (not in Files list): forced by the new contract — it asserted the total `Contracts: 3 kept`; now asserts contracts by name + `\b0 broken`. Exactly the total-vs-name hazard plan AC4 warned about; it would have turned CI red.
+- **`.importlinter` header corrected**: it claimed CI ran `lint-imports`; it ran zero times until this milestone.
+- **§6.8 CRITICAL accepted and fixed** (never-raises breach) — see impl-review.md. Hardening beyond the finding: path confinement (security WARNING), `trusted_schema = OFF`, control-char escaping, per-row mtime handling.
+- **ADR-0014 Status: Accepted** (Ste, HITL 2.4) — flip to Implemented when M3/M5 consumers ship.
+- **Deferred, out of scope**: `security.yml` lacks a top-level `permissions: contents: read`; actions pinned by tag not SHA (pre-existing).
+
+## [2026-09-24] Milestone Completion: `aa_ma.render.graph` sqlite seam + import contract + ADR-0014
+- Status: COMPLETE (pending HARD-gate approval below)
+- Key outcome: aa_ma reads codemem's v3 graph read-only through a never-raising stdlib-sqlite3 seam; `aa-ma-never-imports-codemem` is enforced in CI for the first time along with the 3 pre-existing contracts.
+- Artifacts: src/aa_ma/render/graph.py; tests/render/test_graph.py; tests/codemem/test_file_edges.py (+seam-on-real-index); tests/codemem/test_install_and_cli.py; .importlinter; .github/workflows/security.yml; docs/adr/0014-derived-architecture-views.md; docs/adr/INDEX.md; docs/codemem/ARCHITECTURE.md
+- Tests: 1146 passed / 2 skipped; ruff clean; lint-imports 4 kept / 0 broken

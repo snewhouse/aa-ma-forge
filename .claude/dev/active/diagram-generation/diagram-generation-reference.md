@@ -123,3 +123,17 @@ _Last Updated: 2026-09-22_
 | `file_edges.line` | NULL (imports carry no line numbers) | M1 |
 | Live counts, this repo @ M1 | 694 import edges, 162 resolved, 0 dups; build 0.55s | M1 |
 | Renderer label safety | M3+ must escape/quote node labels; do not rely on parser identifier charset | M1 security INFO |
+
+## M2 facts (2026-09-24)
+
+| Fact | Value | Source |
+|---|---|---|
+| Seam module | `src/aa_ma/render/graph.py` — `open_graph(repo_root) -> GraphHandle(status, reason, conn)`; `import_edges(h)`, `call_edges(h)` -> `set[(src_path, dst_path)]` | M2 |
+| GraphStatus | `OK`, `MISSING` (absent OR unreadable), `SCHEMA_TOO_OLD` (<3), `STALE` (advisory, conn kept) | M2 |
+| DB location | `<repo_root>/.codemem/index.db`, opened `file:...?mode=ro`, `trusted_schema = OFF` | M2 |
+| STALE definition | indexed file newer on disk (int seconds), deleted, or unusable path; does NOT detect never-indexed new files | M2 |
+| conn ownership | caller closes `h.conn` | M2 |
+| Import contracts | 4: codemem-layers, parser-is-pure, render-is-leaf, aa-ma-never-imports-codemem; asserted BY NAME | M2 |
+| lint-imports in CI | `security.yml` codemem-smoke, step after `uv sync` | M2 |
+| Live counts @ M2 | import_edges 163, call_edges (file-projected, no self-loops) 175 | M2 |
+| ADR-0014 | Accepted; flip to Implemented when M3/M5 consumers ship | M2 |

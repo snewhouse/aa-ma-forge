@@ -182,3 +182,11 @@ _Last Updated: 2026-09-24 (M1–M7 facts sections below)_
 - `grammar.py` additions: `CANONICAL_DEPENDENCY_RE` (`None` | `Milestone N` | `Sub-step N.N` | `<task-slug> Milestone N`, comma-separated), `NUMBER_BODY`, `own_text(block)` (gate + deps), `field_pattern(name)` (tui + deps; linear). [valid: 2026-09-24]
 - Surfaces: `/aa-ma-plan` Step 5.5 appends `### Milestone graph` to §13 and runs `check`; `/execute-aa-ma-milestone` §5.1 step 3 advisory (always rc 0); §6.2 and `/execute-aa-ma-full` defer to it — no HALT on `Dependencies:`. `aa-ma-gate` never reads the field. [valid: 2026-09-24]
 - Corpus (2026-09-24): 324 `Dependencies:` fields / 61 None / 1 cross-plan / 0 unresolved; naive M-stripping resolver: 29 false failures. [valid: 2026-09-24]
+
+## M8 facts (2026-09-24)
+
+- Sigils: `SIGILS = ("@import", "@call", "@skill", "@command", "@agent", "@hook")` in `src/aa_ma/render/mermaid_lint.py` (graph-backed `_EDGE_READERS` + `_PLUGIN_SIGILS`); pinned to codemem's emitter vocabulary by a test. [valid: 2026-09-24]
+- Tiers: `PHANTOM_EDGE` (evaluable claim absent from the graph) and `LABEL_UNKNOWN` (unreserved `@` label) are findings → exit 1; `LintReport.unknowns` holds `UNKNOWN` notes (`endpoint planned (new)`, `no repo path in node label`, `endpoint outside the repo`, `not in the codemem graph for @x (...)`, graph MISSING/SCHEMA_TOO_OLD/STALE/unreadable reason, `@skill…: plugin-surface edges are not in the codemem index`, `unparsed sigil edge form`), printed as `file:line: UNKNOWN: reason`, never the exit. [valid: 2026-09-24]
+- Parsed edge form: one whole line `ID[decl]? -->|label| ID[decl]?` (also `-.->`, `==>`); node ids scoped per fence, last declaration wins; `%%` lines skipped. Evaluability: endpoint `files.lang` has ≥1 edge of that kind (data, not a language list). [valid: 2026-09-24]
+- `aa_ma.render.graph`: `+file_langs(h)`, `printable` now public. [valid: 2026-09-24]
+- codemem: `ParseResult.from_imports` (module, level, [(name, local)]); `resolver._package_dir` / `_submodule`; `_persist_import_edges` returns `(targets, submodules)`; `sub.run()` binds only in `sub`. [valid: 2026-09-24]

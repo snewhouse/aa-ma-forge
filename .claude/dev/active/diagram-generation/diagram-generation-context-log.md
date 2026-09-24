@@ -310,3 +310,15 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - Evaluability = both endpoints are rows in the index `files` table and the graph status is OK (not MISSING / SCHEMA_TOO_OLD / STALE); otherwise UNKNOWN with the reason. No language list needed.
 - M8 8.4 (Ste): this plan's §13 line 279 `PY -->|"@import"| RES` relabelled `PY -->|feeds| RES` — the first PHANTOM_EDGE the new tier found in a live plan (python_ast.py and resolver.py import neither way; parser output reaches the resolver as data via indexer.py). The only plan.md edit; §13 is the live Architecture View.
 - M8 §6.8 (Ste): all 3 CRITICALs accepted and fixed — unparsed sigil forms now UNKNOWN (never a silent pass); submodule edges derived from the module's own resolution with correct relative level and receiver-scoped call binding (the reviewer's reproduced `y.run()`→x.py false edge is gone); one shared label→path rule with the `_inside` guard. All WARNINGs fixed; carry-forwards for M13 (plugin sigils) and M14 (engineering-standards + ADR-0010) written into tasks.md.
+
+## [2026-09-24] GATE APPROVAL: Milestone 8: `PHANTOM_EDGE` sigil grammar
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 6/6
+- Decision: APPROVED
+
+## [2026-09-24] Milestone Completion: Milestone 8: `PHANTOM_EDGE` sigil grammar
+- Status: COMPLETE
+- Key outcome: `aa-ma-lint-views` checks opt-in sigil edge claims against the codemem graph (`PHANTOM_EDGE`, `LABEL_UNKNOWN`, informational `UNKNOWN`); codemem now resolves `from pkg import submodule` from the module's own resolution with receiver-scoped call binding. First live catch: this plan's own §13 claim python_ast→resolver (relabelled).
+- Artifacts: src/aa_ma/render/{mermaid_lint,graph,cli}.py; packages/codemem-mcp/src/codemem/{resolver.py,parser/python_ast.py}; claude-code/skills/plan-verification/SKILL.md; CHANGELOG; plan.md §13 line 279; tests/render/test_phantom_edge.py, tests/fixtures/sigil-edges.md, tests/codemem/test_file_edges.py; docs/architecture regenerated.
+- Tests: pytest 1443 passed / 2 skipped; bats 210/210; lint-imports 4/4.

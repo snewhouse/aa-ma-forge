@@ -258,7 +258,7 @@
 - Result Log: Mode: AFK — auto-dispatched. Golden captured before any source edit at `dc4e90e` (33 tasks files incl. fixtures × default/kv/`--milestone N` = 205 invocations, sha256 `5444d16692fe1107`). Post-M7: current code (editable install, `CANONICAL_DEPENDENCY_RE` present) over the identical inputs via a scratch worktree at `dc4e90e` → `cmp` BYTE-IDENTICAL, same sha. `git diff dc4e90e..HEAD -- gate.py enforce.py plan_parsers.py` empty; `aa_ma_gate` launcher unchanged.
 
 ## Milestone 8: `PHANTOM_EDGE` sigil grammar
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 2, Milestone 4
 - Gate: HARD
 - Audit-Profile: code-only
@@ -267,6 +267,8 @@
 - Goal: The lint gains its first mermaid edge parser and verifies opt-in sigil edges against the derived graph.
 - Acceptance Criteria: 6 criteria — see plan.md § Milestone 8
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
+
+- Result Log: COMPLETE 2026-09-24. 6/6 criteria. Opt-in sigil edges checked against the codemem graph: PHANTOM_EDGE / LABEL_UNKNOWN (exit 1), UNKNOWN informational (planned, no/stale/unreadable index, non-modelled language, outside repo, unparsed form, plugin sigils). codemem submodule import edges (+28 genuine) with receiver-scoped call binding (Ste). Own §13 false claim caught + relabelled (Ste). §6.8: 3 CRITICAL accepted+fixed, 8 WARNING fixed. pytest 1443/2 skipped, bats 210/210. HARD gate approved by Ste.
 
 ### Sub-step 8.1: [analysis] `Skill(impact-analysis)` on `mermaid_lint.py`; golden current `lint_text` output
 - Status: COMPLETE

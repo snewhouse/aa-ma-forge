@@ -181,10 +181,10 @@
 - Acceptance Criteria: 7 criteria — see plan.md § Milestone 6
 
 ### Sub-step 6.1: [test] `test_draw_check.py`: line-slice compare, stamp regex, caption-only diff, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Obligations (M5 §6.8, Ste 2026-09-24): `--check` compares ONLY the ```mermaid fences (prose-only / caption edits are never drift; an `@start` edit IS drift — test both). Every write goes through `captions.check_generated_target()` (built + tested 61eb4e4); test the writer calls it.
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `tests/codemem/test_draw_check.py` (19 tests) on a committed tmp git repo with a real `build_index`: --write stamps every registered view (AC1 regex) and a rewrite changes only line 1; component = L2 with @start classDef and `escape_prose` captions; plugin-surface registered only where `claude-code/` exists; a rogue registry entry onto the sidecar is refused by `check_generated_target` and the sidecar is untouched; --check clean after write, line-2 hand-edit / missing view / README stray line = exit 1 naming `codemem draw --write` (AC2), line-1 edit not drift, no index / schema v2 = UNKNOWN exit 0 (AC3), caption prose edit exit 0 (AC4), @start edit = drift, ORPHAN_CAPTION = exit 1; --write/--check refuse --level/--scope/each other (exit 2); bare draw still stdout; security.yml `architecture-drift` job builds before --check (AC5). RED: ImportError (`codemem.draw.views` absent).
 
 ### Sub-step 6.2: [impl] `draw/views.py` registry + `codemem draw --check`
 - Status: PENDING

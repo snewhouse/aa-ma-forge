@@ -122,26 +122,29 @@ def test_file_caption_appears_at_file_and_symbol_levels() -> None:
 
 def test_start_is_a_classdef_highlighted_node() -> None:
     c = from_edges({("src/pkg/b.py", "src/a.py", "call")}, Level.L2)
-    text = to_mermaid(c, CAPS)
+    text = to_mermaid(c, captions=CAPS)
     assert "classDef start " in text
     assert f"  class {node_id('src/pkg/b.py', Level.L2)} start" in text.splitlines()
-    assert render_check([text]) != "FAIL"
+    verdict = render_check([text])
+    if verdict == "UNKNOWN":
+        pytest.skip("no mermaid renderer here (L-012: UNKNOWN is never PASS)")
+    assert verdict == "PASS"
 
 
 def test_start_highlights_its_containing_node_at_collapsed_levels() -> None:
     c = from_edges({("src", "lib", "import")}, Level.L0)
-    assert f"  class {node_id('src', Level.L0)} start" in to_mermaid(c, CAPS).splitlines()
+    assert f"  class {node_id('src', Level.L0)} start" in to_mermaid(c, captions=CAPS).splitlines()
 
 
 def test_no_captions_leaves_the_emitter_output_unchanged() -> None:
     c = from_edges({("src/pkg/b.py", "src/a.py", "call")}, Level.L2)
-    assert to_mermaid(c) == to_mermaid(c, None) == to_mermaid(c, {"src/a.py": "x"})
+    assert to_mermaid(c) == to_mermaid(c, captions=None) == to_mermaid(c, captions={"src/a.py": "x"})
     assert "classDef" not in to_mermaid(c)
 
 
 def test_a_caption_only_edit_is_not_diagram_drift() -> None:
     c = from_edges({("src/pkg/b.py", "src/a.py", "call")}, Level.L2)
-    assert to_mermaid(c, CAPS) == to_mermaid(c, {**CAPS, "src/pkg/b.py": "Reworded."})
+    assert to_mermaid(c, captions=CAPS) == to_mermaid(c, captions={**CAPS, "src/pkg/b.py": "Reworded."})
 
 
 def test_directory_caption_covers_nodes_inside_it_but_not_its_ancestors() -> None:
@@ -154,3 +157,48 @@ def test_directory_caption_covers_nodes_inside_it_but_not_its_ancestors() -> Non
     assert for_cut(l2, caps) == for_cut(l3, caps) == {"src/pkg/": "Package."}
     assert for_cut(l0, caps) == {}
     assert for_cut(from_edges({("src/pkgx.py", "src/a.py", "call")}, Level.L2), caps) == {}
+
+
+# ---------------------------------------------------------------------
+# §6.8 review fixes (M5)
+# ---------------------------------------------------------------------
+
+def test_directory_key_without_slash_gets_a_hint_not_a_false_deletion() -> None:
+    [f] = orphans({"src/pkg": "x"}, KNOWN, set())
+    assert f.code == "ORPHAN_CAPTION" and "trailing /" in f.reason
+
+
+def test_directory_caption_over_planned_files_is_unknown() -> None:
+    [f] = orphans({"src/new/": "x"}, KNOWN, {"src/new/x.py"})
+    assert f.code == "UNKNOWN"
+
+
+def test_symbol_key_exists_when_its_file_does() -> None:
+    assert orphans({"src/a.py::main": "x"}, KNOWN, set()) == []
+
+
+@pytest.mark.parametrize("bad", [
+    '{"@start": ""}',
+    '{"@Start": "src/a.py"}',
+    '{"src/a.py": "x", "src/a.py": "y"}',
+    "[" * 100000,
+], ids=["empty-start", "unknown-directive", "duplicate-key", "deep-nesting"])
+def test_load_rejects_ambiguous_or_hostile_sidecars(tmp_path: Path, bad: str) -> None:
+    with pytest.raises(ValueError, match="architecture.captions.json"):
+        load(_sidecar(tmp_path, bad))
+
+
+def test_unreadable_sidecar_is_a_valueerror(tmp_path: Path) -> None:
+    p = _sidecar(tmp_path, {"src/": "x"}) / CAPTIONS_PATH
+    p.chmod(0)
+    try:
+        with pytest.raises(ValueError, match="architecture.captions.json"):
+            load(tmp_path)
+    finally:
+        p.chmod(0o644)
+
+
+def test_captions_is_keyword_only() -> None:
+    c = from_edges({("src/pkg/b.py", "src/a.py", "call")}, Level.L2)
+    with pytest.raises(TypeError):
+        to_mermaid(c, CAPS)  # type: ignore[misc]

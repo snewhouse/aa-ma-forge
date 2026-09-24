@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-__all__ = ["GraphHandle", "GraphStatus", "call_edges", "import_edges", "open_graph"]
+__all__ = ["GraphHandle", "GraphStatus", "call_edges", "file_langs", "import_edges", "open_graph"]
 
 MIN_SCHEMA_VERSION = 3  # file_edges arrived in codemem schema v3
 _REMEDY = "run `codemem build`"
@@ -98,6 +98,13 @@ def _stale_paths(conn: sqlite3.Connection, repo_root: Path) -> list[str]:
 def _printable(path: str) -> str:
     """DB-sourced text is quoted into a human-facing reason; strip control chars."""
     return "".join(c if c.isprintable() else "?" for c in path)
+
+
+def file_langs(h: GraphHandle) -> dict[str, str]:
+    """``path -> lang`` for every indexed file (a file is a graph node iff it is here)."""
+    if h.conn is None:
+        return {}
+    return dict(h.conn.execute("SELECT path, lang FROM files"))
 
 
 def import_edges(h: GraphHandle) -> set[tuple[str, str]]:

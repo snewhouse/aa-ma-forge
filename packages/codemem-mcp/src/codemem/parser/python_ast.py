@@ -133,6 +133,10 @@ def extract_python_signatures(
                         import_aliases[alias.asname or alias.name] = (
                             f"{node.module}.{alias.name}"
                         )
+            else:  # `from . import sub`: each name may be a sibling module (M8)
+                for alias in node.names:
+                    if alias.name != "*":
+                        import_aliases[alias.asname or alias.name] = alias.name
 
     symbols: list[Symbol] = []
     # Preserve the original FunctionDef/AsyncFunctionDef AST node alongside

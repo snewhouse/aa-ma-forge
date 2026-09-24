@@ -35,6 +35,8 @@ def lint_main(argv: Sequence[str] | None = None) -> int:
     rep = lint_plan(a.plan, a.repo_root, tasks_path=a.tasks)
     for f in rep.findings:
         print(f"{a.plan}:{f.line}: {f.code}: {f.message}")
+    for f in rep.unknowns:  # informational: an unevaluable claim never sets the exit (L-012)
+        print(f"{a.plan}:{f.line}: UNKNOWN: {f.message}")
     print(f"render: {rep.render_status}")
     return 1 if rep.findings else 0
 

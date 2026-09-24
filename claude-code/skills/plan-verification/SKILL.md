@@ -412,7 +412,11 @@ evaluates these structural conditions against the plan:
    AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/skills/plan-verification/SKILL.md)")/../../.." && pwd)
    uv run --project "$AA_MA_ROOT" aa-ma-lint-views <plan.md> --repo-root <project-root>
    ```
-   Exit 1 → one CRITICAL per finding line (`file:line: CODE: message`);
+   Exit 1 → one CRITICAL per finding line (`file:line: CODE: message`), including
+   `PHANTOM_EDGE` (an `-->|"@import"|` / `-->|"@call"|` claim the codemem graph does not
+   hold) and `LABEL_UNKNOWN` (a typo'd `@` sigil); a `file:line: UNKNOWN: reason` line is
+   INFO — an unevaluable sigil claim (`(new)` endpoint, no/stale index, plugin sigil) that
+   never sets the exit code and is never read as PASS;
    `render: FAIL` → CRITICAL (a mermaid parse error); `render: UNKNOWN` → INFO
    (no working `mmdc`/Chromium — never read UNKNOWN as PASS, L-012); exit 2 →
    CRITICAL (usage: plan path missing or not a file). Before `tasks.md` exists

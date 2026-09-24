@@ -280,9 +280,9 @@
 - Result Log: Mode: AFK — auto-dispatched. `tests/fixtures/sigil-edges.md` (clean @import + @call, @improt typo, |fork| and bare edges, (new), non-graph .sh, @skill, label without a path, per-fence id scoping, classDef/class lines — obligation met) + `tests/render/test_phantom_edge.py` (AC1–AC6, stale graph, unquoted sigil, inline node decls, CLI UNKNOWN lines exit 0, AC5 glob over every completed plan) + 3 resolver tests in `tests/codemem/test_file_edges.py` (`from . import sub`, `from .store import db`, `from pkg import other` → submodule edges; bare relative name never suffix-matches; imported function adds nothing). RED: 31 lint failures (no `unknowns`/`SIGIL_LABEL_RE`), 2 resolver failures; suffix guard passes (regression pin). Committed locally, not pushed (L-025).
 
 ### Sub-step 8.3: [impl] edge parser + `PHANTOM_EDGE` tier
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `mermaid_lint.py`: `SIGILS`, `SIGIL_LABEL_RE`, per-fence `_node_labels` (+ `_unwrap`: `(new)`'s `)` survives), `_EDGE_RE` (one edge per line, inline `[...]` on the source), `_sigil_claims` → `PHANTOM_EDGE` / `LABEL_UNKNOWN` findings + `UNKNOWN` notes in new `LintReport.unknowns` (default `()`); graph loaded lazily once per lint via `render.graph` (+ `file_langs`). Evaluability is from the graph's own data: an endpoint is modelled for a sigil iff its `files.lang` has ≥1 such edge (`.sh` indexed for symbols but never an `@import` node → UNKNOWN; an isolated Python file → still PHANTOM). Plugin sigils → UNKNOWN (Ste). CLI prints `file:line: UNKNOWN: reason`, exit from findings only; plan-verification SKILL reads UNKNOWN as INFO. Found + fixed during GREEN: `(new)` stripping bug; `\[+` quadratic (15 s on 50k `[` → linear, regression test). codemem resolver (Ste): `from X import name` resolves `X.name` via `import_aliases` (bare names relative-only), parser records `from . import x` → +26 genuine import edges, cross-file resolved 836→952; docs regenerated (`draw --check` OK). Tests: render 123+ / phantom 39 / codemem 690 pass; full pytest 1421 passed / 2 skipped; bats 210/210; ruff clean; lint-imports 4/4.
 
 ### Sub-step 8.4: [verify] glob every completed `*-plan.md`: zero findings on sigil-free files
 - Status: PENDING

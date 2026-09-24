@@ -92,6 +92,26 @@ def _resolve_import(
     return None
 
 
+def _resolve_submodule(
+    source_path: str,
+    dotted: str,
+    import_map: dict[str, str],
+    known_files: set[str],
+) -> str | None:
+    """``from pkg import name`` where ``name`` is itself a module (diagram-generation M8).
+
+    A bare name (``from . import sub``) resolves only beside the importing file, never
+    by suffix: ``from . import utils`` must not bind to some other package's utils.py.
+    """
+    if "." in dotted:
+        return _resolve_import(source_path, dotted, import_map, known_files)
+    # ponytail: relative level (`from .. import x`) is ignored, as strategy 2 already does.
+    source_dir = Path(source_path).parent.as_posix()
+    prefix = f"{source_dir.replace('/', '.')}." if source_dir not in (".", "") else ""
+    target = import_map.get(f"{prefix}{dotted}")
+    return target if target in known_files and target != source_path else None
+
+
 def _lookup_name(callee: str, qualified_heads: set[str]) -> str | None:
     """Symbol name to match for ``callee``, or ``None`` if it is too
     ambiguous to resolve. ``helper`` and ``mod.helper`` match ``helper``
@@ -138,6 +158,16 @@ def _persist_import_edges(
             if target is None:
                 rows.append((src_fid, None, imp))
             else:
+                rows.append((src_fid, path_to_fid[target], None))
+        # `imports` carries only `pkg` for `from pkg import sub`; an imported name that is
+        # a module gets its own edge. One that is not (a function) adds nothing — no
+        # unresolved row, since `pkg` itself is already recorded.
+        for dotted in sorted(set(fp.result.import_aliases.values()) - set(fp.result.imports)):
+            target = _resolve_submodule(src, dotted, import_map, known)
+            if target is None:
+                continue
+            resolved.add(target)
+            if src_fid is not None:
                 rows.append((src_fid, path_to_fid[target], None))
     conn.executemany("DELETE FROM file_edges WHERE src_file_id = ?", src_fids)
     conn.executemany(

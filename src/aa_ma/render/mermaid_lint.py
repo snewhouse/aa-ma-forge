@@ -23,6 +23,7 @@ from aa_ma.plan_parsers import (
     parse_critical_path,
     parse_diagram_waiver,
 )
+from aa_ma.render.graph import GraphStatus, call_edges, file_langs, import_edges, open_graph
 
 # Allowlist by policy, not a mermaid inventory: the views a plan is expected to hold.
 # A newer type (architecture-beta, mindmap, timeline...) is UNKNOWN_TYPE until added here
@@ -74,6 +75,50 @@ class Finding:
 class LintReport:
     findings: tuple[Finding, ...]
     render_status: str  # PASS | FAIL | UNKNOWN
+    unknowns: tuple[Finding, ...] = ()  # unevaluable sigil claims (code UNKNOWN); never set the exit
+
+
+# Opt-in edge claims (diagram-generation M8, map Ticket 5). An edge is checked ONLY when its
+# label carries a reserved sigil; unlabelled and prose-labelled edges never are.
+SIGILS: tuple[str, ...] = ("@import", "@call", "@skill", "@command", "@agent", "@hook")
+_PLUGIN_SIGILS = frozenset({"@skill", "@command", "@agent", "@hook"})
+_PLUGIN_REASON = "plugin-surface edges are not in the codemem index"  # Ste 2026-09-24; M13
+SIGIL_LABEL_RE = re.compile(r'\|[ \t]*"?@')  # a plan opts in iff some edge label starts with @
+_NODE_RE = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[ \t]*\[")
+# `A -->|"@import"| B`, an inline `[...]` declaration allowed on the source; one edge per line.
+# One `[` opens the declaration (`[^\]\n]*` absorbs any more): `\[+` was quadratic on a `[` run.
+_EDGE_RE = re.compile(
+    r"^[ \t]*([A-Za-z_][\w-]*)(?:[ \t]*\[[^\]\n]*\]+)?[ \t]*(?:-->|-\.->|==>)[ \t]*"
+    r"\|([^|\n]*)\|[ \t]*([A-Za-z_][\w-]*)"
+)
+
+
+@dataclass(frozen=True)
+class _Graph:
+    status: GraphStatus
+    reason: str | None
+    edges: dict[str, set[tuple[str, str]]]  # sigil -> (src_path, dst_path)
+    langs: dict[str, str]  # indexed path -> language
+    edge_langs: dict[str, set[str]]  # sigil -> languages with at least one such edge
+
+    def models(self, sigil: str, path: str) -> bool:
+        """Can the graph hold this sigil's edge at ``path``? Data, not a language list: an
+        indexed file whose language has at least one such edge. codemem indexes `.sh` for
+        symbols but persists imports for Python only, so an `@import` on a shell script is
+        UNKNOWN, while an isolated Python file is still evaluable (and PHANTOM if absent)."""
+        return self.langs.get(path) in self.edge_langs[sigil]
+
+
+def _load_graph(repo_root: Path) -> _Graph:
+    h = open_graph(repo_root)
+    try:
+        edges = {"@import": import_edges(h), "@call": call_edges(h)}
+        langs = file_langs(h)
+        edge_langs = {s: {langs[p] for e in es for p in e if p in langs} for s, es in edges.items()}
+        return _Graph(h.status, h.reason, edges, langs, edge_langs)
+    finally:
+        if h.conn is not None:
+            h.conn.close()
 
 
 def _line(text: str, pos: int) -> int:
@@ -168,6 +213,76 @@ def _stale_paths(src: str, repo_root: Path) -> list[tuple[int, str]]:
     return hits
 
 
+def _node_labels(src: str) -> dict[str, str]:
+    """id -> `[...]` label per fence (first declaration wins); shape punctuation stripped."""
+    labels: dict[str, str] = {}
+    for line in src.split("\n"):
+        for m in _NODE_RE.finditer(line):
+            j = line.find("]", m.end())
+            if j >= 0:
+                labels.setdefault(m.group(1), _unwrap(line[m.end() : j]))
+    return labels
+
+
+def _unwrap(label: str) -> str:
+    """`("x (new)")` -> `x (new)`: peel matched shape pairs, then quotes — never a `)` of `(new)`."""
+    s = label.strip()
+    while len(s) > 1 and s[0] in "([/" and s[-1] in ")]/":
+        s = s[1:-1].strip()
+    return s.strip('"').strip()
+
+
+def _endpoint(node: str, labels: dict[str, str]) -> tuple[str | None, str | None]:
+    """(repo path, None) or (None, why it cannot be a graph node) — graph-independent part."""
+    label = labels.get(node)
+    if label is not None and _NEW_RE.search(label):
+        return None, f"endpoint planned (new): {label}"
+    paths = [q.lstrip("/") for t in (label or "").split() if len(t) <= _MAX_TOKEN for q in _PATH_RE.findall(t)]
+    return (paths[0], None) if paths else (None, f"no repo path in node label: {node}")
+
+
+def _sigil_claims(
+    src: str, first_line: int, repo_root: Path, graph: list[_Graph]
+) -> tuple[list[Finding], list[Finding]]:
+    """PHANTOM_EDGE / LABEL_UNKNOWN findings and UNKNOWN notes for one fence.
+
+    ``graph`` is a one-slot cache: the index is opened only when a claim needs it.
+    """
+    found: list[Finding] = []
+    unknown: list[Finding] = []
+    labels = _node_labels(src)
+    for ln, line in enumerate(src.split("\n")):
+        m = _EDGE_RE.match(line)
+        sigil = m.group(2).strip().strip('"').strip() if m else ""
+        if not sigil.startswith("@"):
+            continue  # unlabelled or prose: never checked, never reported
+        line_no = first_line + ln
+        if sigil not in SIGILS:
+            found.append(Finding("LABEL_UNKNOWN", line_no, f"unknown sigil {sigil!r}; reserved: {', '.join(SIGILS)}"))
+            continue
+        if sigil in _PLUGIN_SIGILS:
+            unknown.append(Finding("UNKNOWN", line_no, f"{sigil}: {_PLUGIN_REASON}"))
+            continue
+        (sp, s_why), (dp, d_why) = _endpoint(m.group(1), labels), _endpoint(m.group(3), labels)
+        if s_why or d_why:
+            unknown.append(Finding("UNKNOWN", line_no, s_why or d_why or ""))
+            continue
+        if not graph:
+            graph.append(_load_graph(repo_root))
+        g = graph[0]
+        if g.status is not GraphStatus.OK:  # missing, too old or stale: never PASS (L-012)
+            unknown.append(Finding("UNKNOWN", line_no, g.reason or g.status.value))
+            continue
+        outside = next((p for p in (sp, dp) if not g.models(sigil, p)), None)
+        if outside is not None:
+            why = "endpoint missing" if not (repo_root / outside).exists() else (
+                "unparsed language, isolated file or out of graph")
+            unknown.append(Finding("UNKNOWN", line_no, f"not in the codemem graph for {sigil} ({why}): {outside}"))
+        elif (sp, dp) not in g.edges[sigil]:
+            found.append(Finding("PHANTOM_EDGE", line_no, f"{sp} -->|{sigil}| {dp}: no such edge in the codemem graph"))
+    return found, unknown
+
+
 def _mermaid_fences(body: str) -> list[tuple[int, str]]:
     """(1-based line of first content line, source) per ```mermaid fence, one linear pass.
 
@@ -252,6 +367,8 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
             )
         )
     sources: list[str] = []
+    unknowns: list[Finding] = []
+    graph: list[_Graph] = []
     for name, (idx, body) in views.items():
         vline = base + idx + 1
         fences = [(ln, src) for ln, src in _mermaid_fences(body) if src.strip()]
@@ -282,8 +399,11 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
                 )
                 for ln, p in _stale_paths(src, repo_root)
             ]
+            claims, notes = _sigil_claims(src, vline + fline, repo_root, graph)
+            out += claims
+            unknowns += notes
             sources.append(src)
-    return LintReport(tuple(out), render_check(sources))
+    return LintReport(tuple(out), render_check(sources), tuple(unknowns))
 
 
 def lint_plan(

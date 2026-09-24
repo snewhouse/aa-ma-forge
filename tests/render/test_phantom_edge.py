@@ -48,6 +48,8 @@ def repo(tmp_path: Path) -> Path:
     (root / "src/app/__init__.py").write_text("")
     (root / "src/app/a.py").write_text("from app.b import helper\n\ndef run():\n    return helper()\n")
     (root / "src/app/b.py").write_text("def helper():\n    return 1\n")
+    # A second importer: deleting a.py's import must not leave Python with no edges at all.
+    (root / "src/app/c.py").write_text("from app.b import helper\n\ndef go():\n    return helper()\n")
     (root / "scripts/run.sh").write_text("#!/bin/sh\n")
     (root / "claude-code/skills/x/SKILL.md").write_text("# x\n")
     subprocess.run(["git", "init", "-q", "-b", "main", str(root)], check=True)
@@ -186,7 +188,8 @@ def test_cli_prints_unknowns_and_exits_on_findings_only(
     plan.write_text(FIXTURE.replace('    A -->|"@improt"| B\n', ""))
     assert cli.lint_main([str(plan), "--repo-root", str(repo)]) == 0
     out = capsys.readouterr().out
-    assert f"{plan}:{_line_of(plan.read_text(), 'A -->|\"@import\"| N')}: UNKNOWN: " in out
+    planned = _line_of(plan.read_text(), 'A -->|"@import"| N')
+    assert f"{plan}:{planned}: UNKNOWN: " in out
 
 
 # ---------------------------------------------------------------------
@@ -209,3 +212,28 @@ def test_sigil_free_completed_plans_get_no_sigil_findings(plan: Path) -> None:
     report = lint_text(text, REPO)
     assert not {"PHANTOM_EDGE", "LABEL_UNKNOWN"} & set(_codes(report))
     assert not report.unknowns
+
+
+@pytest.mark.parametrize("line", [
+    "A" + "[" * 50_000, "A -->|" + "x" * 50_000, "A" * 50_000 + " --> ", "A[" * 25_000,
+    "A" + " " * 50_000 + '-->|"@import"| B',
+])
+def test_edge_parsing_is_linear_on_hostile_lines(repo: Path, line: str) -> None:
+    import time
+
+    text = FIXTURE.replace("    A --> B\n", f"    {line}\n")
+    start = time.perf_counter()
+    lint_text(text, repo)
+    assert time.perf_counter() - start < 1.0
+
+
+def test_an_isolated_python_file_is_still_evaluable(repo: Path) -> None:
+    """Evaluability is by language, from the graph's own data: lonely.py has no edges
+    at all, but Python has import edges, so a false claim on it is PHANTOM, not UNKNOWN."""
+    (repo / "src/app/lonely.py").write_text("X = 1\n")
+    _git(repo, "add", "-A")  # codemem indexes `git ls-files`
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "lonely")
+    _build(repo)
+    text = FIXTURE.replace('    N["src/app/new.py (new)"]\n', '    N["src/app/lonely.py"]\n')
+    report = lint_text(text, repo)
+    assert [f.line for f in report.findings if f.code == "PHANTOM_EDGE"] == [_line_of(text, 'A -->|"@import"| N')]

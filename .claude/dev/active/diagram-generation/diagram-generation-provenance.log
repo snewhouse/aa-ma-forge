@@ -50,3 +50,4 @@
 [2026-09-24T13:50:32+01:00] Impact analysis M6: Overall MEDIUM — cli.py draw: --write/--check added, cut-option defaults → None (bare draw behaviour unchanged, tested); indexer._git_tracked_files → git_tracked_files (1 internal caller updated); captions.check_generated_target stricter (symlinks); views.py + docs/architecture + CI job new. All suites green.
 [2026-09-24T13:50:32+01:00] Skill invocations: ops-mode, impact-analysis (inline, MEDIUM), verify-impl (5 agents)
 [2026-09-24T13:54:35+01:00] RELEASE v0.15.0 — bump b469b08, annotated tag pushed, GitHub Release published; CI on b469b08 6/6 success
+[2026-09-24T13:55:21+01:00] MILESTONE COMPLETE — M6 — Commit: ce479d1 — Criteria: 7/7 verified

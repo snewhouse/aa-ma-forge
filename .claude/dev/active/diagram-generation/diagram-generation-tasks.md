@@ -269,9 +269,9 @@
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 8.1: [analysis] `Skill(impact-analysis)` on `mermaid_lint.py`; golden current `lint_text` output
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. Golden (scratch, pre-change, render stubbed UNKNOWN): `lint_text` over 23 plan/fixture files = 26 findings, sha256 `63dd5fea1b1cf16a`. Impact: mermaid_lint upstream = render/cli.py + tests; contract additive (`LintReport.unknowns`, default ()); plan-verification SKILL must read `file:line: UNKNOWN:` as INFO. Resolver fix (Ste): `from X import name` also resolves `X.name` from `import_aliases` (bare names relative-only, no suffix match); parser records `from . import x` aliases; MEDIUM — more import edges → docs regen, call resolution sees more targets. Overall MEDIUM, cascade planned.
 
 ### Sub-step 8.2: [test] `sigil-edges.md` fixture: clean/phantom/LABEL_UNKNOWN/unlabelled/UNKNOWN, RED
 - Status: PENDING

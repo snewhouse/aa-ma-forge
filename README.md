@@ -280,7 +280,7 @@ Plans, ADRs and spec pages carry a mermaid Architecture View ([ADR-0010](docs/ad
 
 ### The living architecture doc
 
-[`docs/architecture/`](docs/architecture/README.md) is generated from the code, never hand-edited ([ADR-0016](docs/adr/0016-living-architecture-doc.md)): a component view (every source file with its import and call edges) and the plugin surface (commands → skills → agents → hooks). Regenerate with `uv run codemem build && uv run codemem draw --write`; the `architecture-drift` CI job runs `codemem draw --check` and fails when the committed doc no longer matches the code. Authored prose lives in `docs/architecture.captions.json`.
+[`docs/architecture/`](docs/architecture/README.md) is generated from the code, never hand-edited ([ADR-0016](docs/adr/0016-living-architecture-doc.md)); its README lists the current views. The `architecture-drift` CI job runs `codemem draw --check` and fails when the committed doc no longer matches the code — regenerate with `scripts/regen-generated.sh` (see [CONTRIBUTING](CONTRIBUTING.md#generated-files)). Authored prose lives in `docs/architecture.captions.json`.
 
 ## What else helped
 

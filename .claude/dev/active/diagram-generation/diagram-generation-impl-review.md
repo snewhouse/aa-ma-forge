@@ -282,3 +282,57 @@ No CRITICAL findings. Ste: fix all now; M6 `--check` = fences only; downstream o
 ## Revision History
 - 2026-09-24: 11 WARNINGs — 6 fixed (RED-first), 5 recorded as named M6/M8/M12 obligations; 0 CRITICAL.
 - 2026-09-24 (post-gate, Ste "fix all now"): RED ddb0f40 → GREEN 61eb4e4. M5: `escape_prose`, `json_island`, `check_generated_target` built and tested for the M6/M12 obligations (those sub-steps now call them); 1 MiB sidecar cap; `START_STYLE` constant; forge-test docstring on planned captions. M4 INFOs: quoted/spaced/argument `Skill()` and quoted `subagent_type` forms; `**/cmd**` is not a glob; `NodeKind` StrEnum; duplicate hook names and nested un-owned files reported in `errors`. Golden unchanged; live errors []. Still open by necessity (the consuming code does not exist yet): `ORPHAN_CAPTION` wiring in M6 `--check` (6.2), the `classDef` line in M8's fixture (8.2), explorer caption parity (12.2). Kept by design: mermaid→captions import (pure `start_ids` only).
+
+---
+
+# Impl Review Report: diagram-generation / Milestone 6
+
+**Milestone:** Milestone 6: Living doc + `--check` + CI drift job + ADR-0016 → release `v0.15.0`
+**Audit-Profile:** full (all 5 agents)
+**Window:** 31446b3..153e8b9 (review) · fixes 30d2c88 (RED) → f3ca3af + docs
+**Date:** 2026-09-24
+
+## Summary
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer (+§6.6)     |    1     |    3    |  6   | CRITICAL disputed; WARN → fixed |
+| security-auditor          |    0     |    2    |  5   | WARN → fixed |
+| tdd-sequence-auditor      |    0     |    0    |  1   | PASS (RED reproduced; AC5 red at d42cb50 = L-025) |
+| context7-evidence-auditor |    0     |    0    |  0   | PASS (pyyaml already a dev dep; action pins reused) |
+| future-proofing-auditor   |    0     |    4    |  9   | WARN → fixed |
+| **TOTAL**                 |  **1**  |  **9**  |**21**| **PASS_WITH_WARNINGS** (CRITICAL disputed by Ste) |
+
+## Code Review
+- CRITICAL — scope: `docs/lessons.md` (L-025) outside M6 Files. **DISPUTED (Ste)**: lessons are mandated by the self-improvement rule; convention learned — lesson commits are exempt from a milestone's Files list.
+- WARNING — captions-block masking accepts any hand text. **FIXED**: every masked line must match `^(- |Start here: )[^<>]*$`.
+- WARNING — stamp never validated. **FIXED**: line 1 must match the stamp regex; sha/date still unchecked.
+- WARNING — duplicate `git ls-files` helper. **FIXED**: `indexer.git_tracked_files` (now public) reused.
+- INFO — views mode ignored `--hops/--direction/--kind/--include-tests`: **FIXED** (defaults None → any explicit value refused). ValueError prefix: **FIXED** (`who`). Repo root = cwd (`--repo-root` absent): **kept** — matches the default db location; recorded. Stale-index detection locally: **not pursued** (CI builds fresh; L-024 in CONTRIBUTING). CI UNKNOWN-as-pass: **not pursued** (build step precedes; low risk). `_head_sha` consolidation: **not pursued** (3 call sites, different error needs).
+
+## Security
+- WARNING — symlinked `docs/`/`docs/architecture` let `--write` escape the repo. **FIXED**: the generated dir is compared unresolved vs resolved; tests for both link points.
+- WARNING — hand edits on line 1 / captions block passed. **FIXED** (above).
+- INFO — plugin-surface names from file stems rendered raw. **FIXED**: `escape_prose`. CI supply chain: job fine (`pull_request`, read-only token, pinned); unpinned `pip install uv` is the existing pattern — recorded. Check-to-write TOCTOU: local-attacker only — recorded.
+
+## TDD Sequence — PASS
+552d663 → d42cb50 (144 s); AC5 satisfied by 6fab78e. Fixes: 30d2c88 (8 RED) → f3ca3af.
+
+## External Library Evidence — PASS
+
+## Future-Proofing
+- WARNING — no regeneration obligation after M6. **FIXED**: standing obligation line on M7–M14.
+- WARNING — two regenerations, remedy names one. **FIXED**: `scripts/regen-generated.sh` (build, `--write`, golden, `--check`); golden-test message and CONTRIBUTING point to it; codemem's own REMEDY stays generic for consumer repos.
+- WARNING — contributors never told. **FIXED**: CONTRIBUTING "Generated files".
+- WARNING — README hand-listed the views. **FIXED**: links the generated index.
+- INFO — `ViewSpec.scope` unused: **kept** (plan registry contract). L2 fallback: **FIXED** (level required). `NO_SHA`: **FIXED**. Stamp UTC / parent-sha semantics: **documented** in ADR-0016. ADR measured basis: **annotated**. M14.3 re-hardcoding: **reworded** to cite the generated doc. CI literal duplication / Dependabot: **not pursued** (existing pattern, out of scope).
+
+## User Override Decisions
+| Severity | Finding | Decision | Rationale |
+|---|---|---|---|
+| CRITICAL | docs/lessons.md outside Files (153e8b9) | dispute | Ste: lessons are rule-mandated process artefacts |
+| all WARNING/INFO | batch | fix all now | Ste |
+| WARNING | regen duty | one script + standing obligation | Ste |
+
+## Revision History
+- 2026-09-24: 1 CRITICAL disputed; 9 WARNINGs fixed (RED-first where code); docs regenerated by `scripts/regen-generated.sh`; golden unchanged.

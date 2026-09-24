@@ -228,6 +228,7 @@
 - Effort: 1.5
 - Goal: Close CONTEXT.md's documented-undelivered Milestone graph promise, with an `M`-prefix-aware resolver.
 - Acceptance Criteria: 8 criteria — see plan.md § Milestone 7
+- Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 7.1: [test] `deps-hazards.md` (`M1.0`, `M2a.1`, `2a`, cross-plan) + naive mutant, RED
 - Status: PENDING
@@ -263,6 +264,7 @@
 - Effort: 2
 - Goal: The lint gains its first mermaid edge parser and verifies opt-in sigil edges against the derived graph.
 - Acceptance Criteria: 6 criteria — see plan.md § Milestone 8
+- Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 8.1: [analysis] `Skill(impact-analysis)` on `mermaid_lint.py`; golden current `lint_text` output
 - Status: PENDING
@@ -295,6 +297,7 @@
 - Effort: 3
 - Goal: A merged `io.md` with language subgraphs showing where the code touches DB, HTTP, filesystem, subprocess, env and queues.
 - Acceptance Criteria: 6 criteria — see plan.md § Milestone 9
+- Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 9.1: [prototype] `Skill(prototype)` on this repo + `medical-research-skills`; `PROTOTYPE` provenance
 - Status: PENDING
@@ -326,6 +329,7 @@
 - Effort: 1
 - Goal: Every new plan ships real, checkable §13 edges, and a plan that creates files it does not draw is caught.
 - Acceptance Criteria: 5 criteria — see plan.md § Milestone 10
+- Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 10.1: [test] `seeded-plan.md` fixture + `test_angle6_coverage.py`, RED
 - Status: PENDING
@@ -357,6 +361,7 @@
 - Effort: 1
 - Goal: A §13 sigil edge still `UNKNOWN` at milestone COMPLETE blocks COMPLETE — without touching `gate.py`.
 - Acceptance Criteria: 7 criteria — see plan.md § Milestone 11
+- Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 11.1: [test] `test_diagram_verified.bats` against `aa-ma-lint-views`, RED
 - Status: PENDING
@@ -394,6 +399,7 @@
 - Effort: 2.5
 - Goal: `aa-ma-render --explorer` produces a self-contained, clickable, level-deriving HTML file in `build/`.
 - Acceptance Criteria: 8 criteria — see plan.md § Milestone 12
+- Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 12.1: [prototype] delegated listener against real mermaid SVG; `PROTOTYPE` provenance
 - Status: PENDING
@@ -432,6 +438,7 @@
 - Effort: 2
 - Goal: The third door works, and every skill that names a graph backend names the right one.
 - Acceptance Criteria: 9 criteria — see plan.md § Milestone 13
+- Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 13.1: [prototype] measure L0-L3 on `medical-research-skills`; `PROTOTYPE` provenance
 - Status: PENDING
@@ -468,6 +475,7 @@
 - Effort: 0.5
 - Goal: The vocabulary and the counts match what shipped.
 - Acceptance Criteria: 5 criteria — see plan.md § Milestone 14
+- Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 14.1: [docs] CONTEXT.md: 7 glossary terms
 - Status: PENDING
@@ -479,7 +487,7 @@
 - Mode: AFK
 - Result Log: [pending]
 
-### Sub-step 14.3: [docs] hardcoded counts in the 5 files CLAUDE.md names + `claude-code/rules/engineering-standards.md:44` (41 = 17/20/4 → 42 = 17/21/4, or cite the M4 golden instead of numbers); `Skill(doc-drift-detection)` clean
+### Sub-step 14.3: [docs] hardcoded counts in the 5 files CLAUDE.md names + `claude-code/rules/engineering-standards.md:44` (41 = 17/20/4 is stale; prefer citing the generated `docs/architecture/plugin-surface.md` / the M4 golden over re-hardcoding numbers); `Skill(doc-drift-detection)` clean
 - Status: PENDING
 - Mode: AFK
 - Result Log: [pending]

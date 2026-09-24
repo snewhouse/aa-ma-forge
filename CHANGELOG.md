@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   compares every line except the line-1 stamp and the `<!-- captions -->` block (exit 1 on drift, remedy
   `uv run codemem build && uv run codemem draw --write`), reports `ORPHAN_CAPTION`, and is `UNKNOWN` + exit 0
   without an index. New `architecture-drift` job in `security.yml`. Views are a registry (`codemem.draw.views.VIEWS`).
+  `scripts/regen-generated.sh` regenerates the docs and the plugin-surface golden in one command (see CONTRIBUTING).
 - **`codemem draw` (M3)** — mermaid emitter over layered cuts: L0/L1 (directories at depth 1/2), L2 (files),
   L3 (symbols); import and call edges labelled with quoted sigils (`-->|"@import"|`); `--scope/--hops/--direction/
   --kind/--include-tests`; capped at mermaid's 500 edges.

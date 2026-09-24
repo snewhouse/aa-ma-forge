@@ -1,9 +1,10 @@
 """codemem.draw.plugin_surface — the commands->skills->agents->hooks graph (diagram-generation M4).
 
 The golden is ONE regenerable snapshot of this repo's surface; no count is inlined
-here. After an intended change to ``claude-code/`` regenerate it with::
+here. After an intended change to ``claude-code/`` regenerate it (and the generated
+``docs/architecture/``) with one command::
 
-    uv run python tests/codemem/test_plugin_surface.py
+    scripts/regen-generated.sh
 
 and review the diff — it is the surface change.
 """
@@ -35,7 +36,7 @@ def surface():
 def test_matches_golden(surface) -> None:
     assert as_json(surface) == json.loads(GOLDEN.read_text()), (
         "plugin surface drifted from tests/golden/plugin-surface.json — "
-        "regenerate: uv run python tests/codemem/test_plugin_surface.py, then review the diff"
+        "run scripts/regen-generated.sh, then review the diff"
     )
 
 

@@ -1,0 +1,1184 @@
+{
+ "edges": [
+  {
+   "dst": "skill:aa-ma-research",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "agent:aa-ma-researcher"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "agent:aa-ma-scribe"
+  },
+  {
+   "dst": "hook:aa-ma-plan-marker.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "agent:aa-ma-scribe"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "agent:code-reviewer"
+  },
+  {
+   "dst": "command:execute-aa-ma-milestone",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "agent:code-reviewer"
+  },
+  {
+   "dst": "skill:understand-codebase",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "agent:codebase-onboarding-conventions"
+  },
+  {
+   "dst": "skill:doc-drift-detection",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "agent:codebase-onboarding-health"
+  },
+  {
+   "dst": "skill:understand-codebase",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "agent:codebase-onboarding-health"
+  },
+  {
+   "dst": "skill:understand-codebase",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "agent:codebase-onboarding-runbook"
+  },
+  {
+   "dst": "skill:understand-codebase",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "agent:codebase-onboarding-synthesizer"
+  },
+  {
+   "dst": "hook:security-static-check.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "agent:security-auditor"
+  },
+  {
+   "dst": "skill:plan-verification",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "agent:tdd-sequence-auditor"
+  },
+  {
+   "dst": "skill:prototype",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "agent:tdd-sequence-auditor"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-chart"
+  },
+  {
+   "dst": "command:aa-ma-share",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-chart"
+  },
+  {
+   "dst": "hook:aa-ma-chart-guard.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-chart"
+  },
+  {
+   "dst": "skill:aa-ma-research",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-chart"
+  },
+  {
+   "dst": "skill:grill-with-docs",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-chart"
+  },
+  {
+   "dst": "skill:grilling",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-chart"
+  },
+  {
+   "dst": "skill:prototype",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-chart"
+  },
+  {
+   "dst": "agent:Explore",
+   "kind": "agent",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "agent:aa-ma-researcher",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "command:aa-ma-chart",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "command:grill-me",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "command:verify-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "hook:aa-ma-chart-guard.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "hook:aa-ma-plan-marker.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "hook:aa-ma-plan-skip-warn.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "skill:aa-ma-research",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "skill:grill-with-docs",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "skill:grilling",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "skill:plan-ceo-review",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "skill:plan-design-review",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "skill:plan-eng-review",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "skill:prototype",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-plan"
+  },
+  {
+   "dst": "hook:aa-ma-share-allow.sh",
+   "kind": "hook",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:aa-ma-share"
+  },
+  {
+   "dst": "skill:retro",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:archive-aa-ma"
+  },
+  {
+   "dst": "agent:aa-ma-validator",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-full"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-full"
+  },
+  {
+   "dst": "command:archive-aa-ma",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-full"
+  },
+  {
+   "dst": "command:execute-aa-ma-milestone",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-full"
+  },
+  {
+   "dst": "skill:goal-condition-synthesis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-full"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-full"
+  },
+  {
+   "dst": "skill:system-mapping",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-full"
+  },
+  {
+   "dst": "agent:aa-ma-validator",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "command:archive-aa-ma",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "command:execute-aa-ma-full",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "hook:security-static-check.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:browse",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:qa-only",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:system-mapping",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:verify-impl",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-step"
+  },
+  {
+   "dst": "command:execute-aa-ma-full",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-step"
+  },
+  {
+   "dst": "command:execute-aa-ma-milestone",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-step"
+  },
+  {
+   "dst": "skill:ast-grep",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:ops-mode"
+  },
+  {
+   "dst": "skill:dispatching-parallel-agents",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:ops-mode"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:ops-mode"
+  },
+  {
+   "dst": "skill:operational-constraints",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:ops-mode"
+  },
+  {
+   "dst": "skill:system-mapping",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:ops-mode"
+  },
+  {
+   "dst": "skill:test-driven-development",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:ops-mode"
+  },
+  {
+   "dst": "hook:aa-ma-commit-signature.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "command:sole-dev-merge"
+  },
+  {
+   "dst": "hook:aa-ma-footer.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "command:sole-dev-merge"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:understand-codebase"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:understand-codebase"
+  },
+  {
+   "dst": "skill:system-mapping",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:understand-codebase"
+  },
+  {
+   "dst": "skill:understand-codebase",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:understand-codebase"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:verify-plan"
+  },
+  {
+   "dst": "command:execute-aa-ma-milestone",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:verify-plan"
+  },
+  {
+   "dst": "skill:goal-condition-synthesis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:verify-plan"
+  },
+  {
+   "dst": "command:aa-ma-chart",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-chart-guard.sh"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-chart-guard.sh"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-chart-guard.sh"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-commit-drift.sh"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-commit-signature.sh"
+  },
+  {
+   "dst": "hook:aa-ma-commit-signature.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-footer.sh"
+  },
+  {
+   "dst": "hook:aa-ma-session-start.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-parse.sh"
+  },
+  {
+   "dst": "hook:pre-compact-aa-ma.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-parse.sh"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-plan-marker.sh"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-plan-skip-warn.sh"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-session-end-dirty.sh"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-session-start.sh"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:pre-compact-aa-ma.sh"
+  },
+  {
+   "dst": "hook:aa-ma-commit-signature.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:security-static-check.sh"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:security-static-check.sh"
+  },
+  {
+   "dst": "command:aa-ma-chart",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "rule:aa-ma"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "rule:aa-ma"
+  },
+  {
+   "dst": "command:archive-aa-ma",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "rule:aa-ma"
+  },
+  {
+   "dst": "command:execute-aa-ma-milestone",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "rule:aa-ma"
+  },
+  {
+   "dst": "command:verify-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "rule:aa-ma"
+  },
+  {
+   "dst": "skill:plan-verification",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:aa-ma"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "rule:engineering-standards"
+  },
+  {
+   "dst": "command:execute-aa-ma-milestone",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "rule:engineering-standards"
+  },
+  {
+   "dst": "command:execute-aa-ma-step",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "rule:engineering-standards"
+  },
+  {
+   "dst": "hook:aa-ma-commit-drift.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "rule:engineering-standards"
+  },
+  {
+   "dst": "skill:first-principles-framework",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "rule:engineering-standards"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:engineering-standards"
+  },
+  {
+   "dst": "skill:operational-constraints",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:engineering-standards"
+  },
+  {
+   "dst": "skill:plan-verification",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:engineering-standards"
+  },
+  {
+   "dst": "skill:prototype",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:engineering-standards"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "command:archive-aa-ma",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "command:execute-aa-ma-full",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "command:execute-aa-ma-milestone",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "command:execute-aa-ma-step",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "command:verify-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "skill:goal-condition-synthesis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "skill:haiku-eval",
+   "kind": "skill",
+   "ref_class": "DANGLING",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "skill:system-mapping",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "skill:token-compression",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "agent:aa-ma-scribe",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "agent:aa-ma-validator",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "command:execute-aa-ma-full",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "command:execute-aa-ma-milestone",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "command:execute-aa-ma-step",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "skill:aa-ma-research",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "skill:api-spec-workflow",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "skill:ast-grep",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "skill:goal-condition-synthesis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "skill:operational-constraints",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "skill:spec-driven-development",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "skill:system-mapping",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "agent:aa-ma-researcher",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-research"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:goal-condition-synthesis"
+  },
+  {
+   "dst": "command:archive-aa-ma",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:goal-condition-synthesis"
+  },
+  {
+   "dst": "command:execute-aa-ma-full",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:goal-condition-synthesis"
+  },
+  {
+   "dst": "command:verify-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:goal-condition-synthesis"
+  },
+  {
+   "dst": "skill:plan-verification",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:goal-condition-synthesis"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:operational-constraints"
+  },
+  {
+   "dst": "command:ops-mode",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:operational-constraints"
+  },
+  {
+   "dst": "skill:ast-grep",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:operational-constraints"
+  },
+  {
+   "dst": "skill:dispatching-parallel-agents",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:operational-constraints"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:operational-constraints"
+  },
+  {
+   "dst": "skill:plan-verification",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:operational-constraints"
+  },
+  {
+   "dst": "skill:system-mapping",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:operational-constraints"
+  },
+  {
+   "dst": "skill:test-driven-development",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:operational-constraints"
+  },
+  {
+   "dst": "skill:token-compression",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:operational-constraints"
+  },
+  {
+   "dst": "agent:Explore",
+   "kind": "agent",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:plan-verification"
+  },
+  {
+   "dst": "agent:general-purpose",
+   "kind": "agent",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:plan-verification"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:plan-verification"
+  },
+  {
+   "dst": "command:execute-aa-ma-milestone",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:plan-verification"
+  },
+  {
+   "dst": "command:verify-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:plan-verification"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:plan-verification"
+  },
+  {
+   "dst": "skill:aa-ma-plan-workflow",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:system-mapping"
+  },
+  {
+   "dst": "skill:ast-grep",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:system-mapping"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:system-mapping"
+  },
+  {
+   "dst": "skill:operational-constraints",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:system-mapping"
+  },
+  {
+   "dst": "agent:Explore",
+   "kind": "agent",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "agent:code-reviewer",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "agent:codebase-onboarding-conventions",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "agent:codebase-onboarding-health",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "agent:codebase-onboarding-runbook",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "agent:codebase-onboarding-synthesizer",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "agent:general-purpose",
+   "kind": "agent",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "agent:gsd-codebase-mapper",
+   "kind": "agent",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "command:understand-codebase",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
+   "ref_class": "DANGLING",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:agent-teams",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:code-intelligence",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:code-intelligence-index",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:codebase-deep-dive",
+   "kind": "skill",
+   "ref_class": "DANGLING",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:defense-in-depth",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:doc-drift-detection",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:feature-dev:feature-dev",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:gsd-intel",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:gsd-map-codebase",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:gsd-scan",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:improve-codebase-architecture",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:index",
+   "kind": "skill",
+   "ref_class": "DANGLING",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:python-testing-patterns",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:retro",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:secrets-management",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:system-mapping",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:ubiquitous-language",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "agent:code-reviewer",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  },
+  {
+   "dst": "agent:context7-evidence-auditor",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  },
+  {
+   "dst": "agent:future-proofing-auditor",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  },
+  {
+   "dst": "agent:security-auditor",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  },
+  {
+   "dst": "agent:tdd-sequence-auditor",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  },
+  {
+   "dst": "command:execute-aa-ma-full",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  },
+  {
+   "dst": "command:execute-aa-ma-milestone",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  },
+  {
+   "dst": "command:verify-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  },
+  {
+   "dst": "hook:security-static-check.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  }
+ ],
+ "errors": [],
+ "hook_events": {
+  "aa-ma-commit-drift.sh": [
+   "PostToolUse:Bash"
+  ],
+  "aa-ma-commit-signature.sh": [
+   "PreToolUse:Bash"
+  ],
+  "aa-ma-plan-skip-warn.sh": [
+   "PreToolUse:ExitPlanMode",
+   "SessionEnd"
+  ],
+  "aa-ma-session-end-dirty.sh": [
+   "SessionEnd"
+  ],
+  "aa-ma-session-start.sh": [
+   "SessionStart"
+  ],
+  "pre-compact-aa-ma.sh": [
+   "PreCompact"
+  ],
+  "security-static-check.sh": [
+   "PreToolUse:Bash"
+  ]
+ },
+ "orphans": [
+  "aa-ma-execution",
+  "aa-ma-search",
+  "aa-ma-session-end-dirty.sh",
+  "complexity-router",
+  "debugging-strategies",
+  "sole-dev-merge",
+  "write-a-skill"
+ ]
+}

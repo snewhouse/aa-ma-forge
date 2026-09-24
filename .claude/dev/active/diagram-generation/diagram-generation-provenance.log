@@ -43,3 +43,4 @@
 [2026-09-24T12:42:28+01:00] Impact analysis M5: Overall LOW — mermaid.to_mermaid gains keyword-only captions=None (M3 output byte-identical); captions.py + sidecar new, no production consumers until M6/M12
 [2026-09-24T12:42:28+01:00] Skill invocations: impact-analysis (inline, LOW), verify-impl (5 agents)
 [2026-09-24T12:42:54+01:00] MILESTONE COMPLETE — M5 — Commit: 93c59de — Criteria: 4/4 verified
+[2026-09-24T12:47:41+01:00] AD-HOC (outside plan): f3eb91c fix(test) — build_active_dir.sh read the clock per task; equal mtime offsets straddled a second boundary and flaked 'alphabetical tiebreak' (CI red on 56fe2bb, a provenance-only commit). Clock read once; 15/15 local repeats + full bats 0 failures; CI green all jobs

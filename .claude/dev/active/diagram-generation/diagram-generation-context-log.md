@@ -237,3 +237,15 @@ _Updated via context compaction as the task progresses._
 - Fix all M5 findings now (done, 6f39194 → 185453c).
 - **M6 `--check` compares only the ```mermaid fences** — resolves M6's AC4 vs whole-file comparison contradiction; caption prose edits are never drift, an `@start` edit is. Recorded as a 6.1 obligation (plan.md stays historical).
 - **Scope change to future milestones** (tasks.md only): 6.1 fence-only compare + writer path guard; 6.2 `ORPHAN_CAPTION` wired into `--check` with `git ls-files` + plan §13 `(new)` set; 6.3 one escaping helper for prose + plugin-surface captions decision; 8.2 `classDef` lines in the fixture; 12.2 explorer caption parity + JSON-island escaping.
+
+## [2026-09-24] GATE APPROVAL: Milestone 5: Captions sidecar
+- Gate: HARD
+- Approved by: Ste (Stephen J Newhouse)
+- Criteria verified: 4/4
+- Decision: APPROVED
+
+## [2026-09-24] Milestone Completion: Captions sidecar
+- Status: COMPLETE
+- Key outcome: one authored JSON sidecar feeds per-level captions (`for_cut`) and the `@start` highlight; ORPHAN_CAPTION vs UNKNOWN findings; prose never enters the mermaid.
+- Artifacts: draw/captions.py, draw/mermaid.py (captions=), docs/architecture.captions.json, tests/codemem/test_captions.py
+- Tests: 1245 passed / 2 skipped; 29 caption tests

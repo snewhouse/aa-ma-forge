@@ -149,7 +149,7 @@
 - Result Log: Mode: AFK — auto-dispatched. `extract(repo_root) -> Surface(cut, edges, orphans, hook_events, errors)` (API-shape resolution in context-log 2026-09-24 4.1). `surface_allowlist.EXTERNAL` = 21 skills / 3 agents / 1 hook, `HOOK_TABLE = scripts/install.sh`. `cut.from_edges()` extracted from `cut()` (DRY: sort, MAX_EDGES cap, id-collision check) — M3 behaviour unchanged (M3 suites green). GREEN: 13/13; src output byte-identical to the independent prototype's golden (regen → no diff). Full suite 1208 passed / 2 skipped; ruff clean; bandit clean; lint-imports 4 kept / 0 broken. Live: 80 nodes / 187 drawn edges / 0 dropped; `render_check` = PASS on the real renderer.
 
 ## Milestone 5: Captions sidecar
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 3
 - Gate: HARD
 - Audit-Profile: code-only
@@ -157,6 +157,7 @@
 - Effort: 0.5
 - Goal: Authored prose reaches both the markdown emitter and the explorer from one file.
 - Acceptance Criteria: 4 criteria — see plan.md § Milestone 5
+- Result Log: 4/4 AC verified; HARD gate APPROVED (Ste, 2026-09-24). Commits 1d6a3ec RED → 2a884e5, 405f46c RED → 8f9edd3 (equal-or-contained), 6f39194 RED → 185453c (§6.8 fixes), 4051113 records. §6.8: 0 CRITICAL / 11 WARNING (6 fixed, 5 recorded as M6/M8/M12 obligations). 1245 passed.
 
 ### Sub-step 5.1: [test] `test_captions.py` incl. ORPHAN vs UNKNOWN, RED
 - Status: COMPLETE

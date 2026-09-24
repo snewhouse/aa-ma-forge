@@ -270,8 +270,9 @@ def _cmd_draw(args: argparse.Namespace) -> int:
     from .storage.db import connect
 
     views_mode = args.write or args.check
-    if views_mode and (args.level is not None or args.scope is not None):
-        args._draw_parser.error("--write/--check regenerate the registered views; --level/--scope do not apply")
+    cut_options = (args.level, args.scope, args.hops, args.direction, args.kind)
+    if views_mode and (any(o is not None for o in cut_options) or args.include_tests):
+        args._draw_parser.error("--write/--check regenerate the registered views; cut options do not apply")
     who = "codemem draw --check" if args.check else "codemem draw"
     db_path = Path(args.db) if args.db else _default_db_path()
 
@@ -295,8 +296,9 @@ def _cmd_draw(args: argparse.Namespace) -> int:
         level = Level[args.level or Level.L0.name]
         try:
             c = cut(
-                conn, level, scope=args.scope, hops=args.hops,
-                include_tests=args.include_tests, direction=args.direction, kind=args.kind,
+                conn, level, scope=args.scope, hops=1 if args.hops is None else args.hops,
+                include_tests=args.include_tests, direction=args.direction or "both",
+                kind=args.kind or "both",
             )
         except ValueError as exc:
             args._draw_parser.error(str(exc))  # usage error: message + exit 2
@@ -314,6 +316,7 @@ def _cmd_draw(args: argparse.Namespace) -> int:
 def _draw_views(args: argparse.Namespace, conn) -> int:
     from .draw import views
 
+    who = "codemem draw --check" if args.check else "codemem draw"
     repo_root = Path.cwd()
     try:
         if args.write:
@@ -321,8 +324,8 @@ def _draw_views(args: argparse.Namespace, conn) -> int:
                 print(f"codemem draw: wrote {p.relative_to(repo_root)}", file=sys.stderr)
             return 0
         findings = views.check_views(repo_root, conn)
-    except ValueError as exc:  # malformed captions sidecar, or a write outside docs/architecture/
-        print(f"codemem draw: {exc}", file=sys.stderr)
+    except ValueError as exc:  # malformed sidecar, a refused write target, or an ill-formed view
+        print(f"{who}: {exc}", file=sys.stderr)
         return 1
     for f in findings:
         print(f"codemem draw --check: {f}")
@@ -399,12 +402,12 @@ def build_parser() -> argparse.ArgumentParser:
     pd.add_argument("--level", choices=[lv.name for lv in Level], default=None,
                     help="L0 top dirs, L1 dirs depth 2, L2 files, L3 symbols (default L0)")
     pd.add_argument("--scope", help="Path prefix to centre the cut on")
-    pd.add_argument("--hops", type=_non_negative_int, default=1,
-                    help="Neighbourhood radius for --scope")
+    pd.add_argument("--hops", type=_non_negative_int, default=None,
+                    help="Neighbourhood radius for --scope (default 1)")
     pd.add_argument("--include-tests", action="store_true", help="Keep tests/ (excluded by default)")
-    pd.add_argument("--direction", choices=DIRECTIONS, default="both")
-    pd.add_argument("--kind", choices=KINDS, default="both",
-                    help="Edge kinds at L0-L2 (L3 is calls only; --kind import is refused there)")
+    pd.add_argument("--direction", choices=DIRECTIONS, default=None, help="default both")
+    pd.add_argument("--kind", choices=KINDS, default=None,
+                    help="Edge kinds at L0-L2, default both (L3 is calls only; --kind import is refused there)")
     pd.set_defaults(_draw_parser=pd)
 
     return parser

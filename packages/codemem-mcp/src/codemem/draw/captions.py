@@ -131,10 +131,13 @@ def json_island(obj: object) -> str:
 def check_generated_target(repo_root: Path, target: Path) -> None:
     """Refuse a generated write outside ``docs/architecture/`` or onto the authored sidecar."""
     root = repo_root.resolve()
+    generated = root / GENERATED_DIR  # built, never followed: a symlinked docs/ must not move it
+    if (root / GENERATED_DIR).resolve() != generated:
+        raise ValueError(f"refusing to write: {GENERATED_DIR} (or a parent) is a symlink")
     resolved = target.resolve()
-    if resolved == (root / CAPTIONS_PATH).resolve():
+    if resolved == root / CAPTIONS_PATH:
         raise ValueError(f"refusing to overwrite the authored sidecar {CAPTIONS_PATH}")
-    if not resolved.is_relative_to((root / GENERATED_DIR).resolve()):
+    if not resolved.is_relative_to(generated):
         raise ValueError(f"refusing to write {target}: generated files live under {GENERATED_DIR}")
 
 

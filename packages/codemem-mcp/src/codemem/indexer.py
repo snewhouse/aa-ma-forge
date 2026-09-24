@@ -69,7 +69,7 @@ def discover_files(repo_root: Path) -> list[Path]:
     can't index what we can't read.
     """
     repo_root = repo_root.resolve()
-    tracked = _git_tracked_files(repo_root)
+    tracked = git_tracked_files(repo_root)
     if tracked is not None:
         candidates = tracked
     else:
@@ -81,7 +81,7 @@ def discover_files(repo_root: Path) -> list[Path]:
     ]
 
 
-def _git_tracked_files(repo_root: Path) -> list[Path] | None:
+def git_tracked_files(repo_root: Path) -> list[Path] | None:
     """Return git-tracked files (absolute paths), or ``None`` if not a git repo."""
     try:
         result = subprocess.run(

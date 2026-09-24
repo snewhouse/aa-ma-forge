@@ -126,3 +126,9 @@ _Updated via context compaction as the task progresses._
 - Key outcome: schema v3 `file_edges` persists 694 import edges on this repo (162 resolved, 0 dups); `apply_schema()` no longer downgrades newer DBs; call edges keep dotted, alias-qualified callees without changing the resolved call graph.
 - Artifacts: storage/db.py, parser/python_ast.py, resolver.py; tests/codemem/test_file_edges.py (new), test_resolver.py, test_schema_v2.py; docs/codemem/{migration-from-index,ARCHITECTURE}.md; impl-review.md
 - Tests: 1122 passed / 2 skipped (baseline 1101); ruff clean; tests/codemem/ collected by CI
+
+## [2026-09-24] GATE APPROVAL: Milestone 1: codemem `file_edges` (schema v3) + qualified callees
+- Gate: HARD
+- Approved by: Ste (Stephen J Newhouse)
+- Criteria verified: 8/8
+- Decision: APPROVED

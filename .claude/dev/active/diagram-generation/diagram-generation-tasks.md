@@ -5,7 +5,7 @@
 > field with an empty value; the gate refuses it (exit 2).
 
 ## Milestone 1: codemem `file_edges` (schema v3) + qualified callees
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: None
 - Gate: HARD
 - Audit-Profile: code-only
@@ -14,6 +14,7 @@
 - Effort: 2
 - Goal: `file_edges` holds file→file `import` rows for Python, and `dst_unresolved` keeps the dotted callee (`sqlite3.connect`, `self.conn.execute`).
 - Acceptance Criteria: 8 criteria — see plan.md § Milestone 1
+- Result Log: COMPLETE 2026-09-24, HARD gate approved by Ste. 8/8 AC verified. schema v3 `file_edges` (694 import edges on this repo, 162 resolved, 0 dups); apply_schema downgrade guard; dotted alias-qualified callees; resolved call graph unchanged (1227=1227 same tree). Tests 1122 passed / 2 skipped. §6.8 PASS_WITH_WARNINGS (0C/3W/15I; 2W fixed cbf0564). Commits 7925b38 e6026d4 567dba8 3787633 e4dd3be 9f72847 cbf0564 80c2d34 + milestone commit.
 
 ### Sub-step 1.1: [test] v3 migration + downgrade-guard tests, RED (`tests/codemem/test_schema_v2.py` v3 sibling; new `test_file_edges.py`)
 - Status: COMPLETE

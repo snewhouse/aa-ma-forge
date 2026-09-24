@@ -14,16 +14,24 @@ symbol nodes; nothing covers an ancestor. No tool deletes a caption.
 
 from __future__ import annotations
 
+import html
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from .cut import Cut
 
-__all__ = ["CAPTIONS_PATH", "START", "CaptionFinding", "for_cut", "load", "orphans", "start_ids"]
+__all__ = [
+    "CAPTIONS_PATH", "GENERATED_DIR", "MAX_SIDECAR_BYTES", "START", "CaptionFinding",
+    "check_generated_target", "escape_prose", "for_cut", "json_island", "load", "orphans", "start_ids",
+]
 
 CAPTIONS_PATH = "docs/architecture.captions.json"  # beside, never inside, the generated dir
+GENERATED_DIR = "docs/architecture/"  # 100% generated (M6); nothing authored lives here
+MAX_SIDECAR_BYTES = 1 << 20  # authored prose; a megabyte is already absurd
 START = "@start"
+_BLOCK_START = re.compile(r"^(```|~~~|[#|+*-])")  # `>` is already `&gt;` by then
 
 
 @dataclass(frozen=True)
@@ -43,6 +51,8 @@ def load(repo_root: Path) -> dict[str, str]:
     if not p.is_file():
         return {}
     try:
+        if p.stat().st_size > MAX_SIDECAR_BYTES:
+            raise ValueError(f"larger than {MAX_SIDECAR_BYTES} bytes")
         data = json.loads(p.read_text(encoding="utf-8"), object_pairs_hook=_unique_keys)
     except (ValueError, RecursionError, OSError) as exc:  # JSONDecodeError, UnicodeDecodeError are ValueErrors
         raise ValueError(f"{CAPTIONS_PATH}: {type(exc).__name__}: {exc}") from exc
@@ -96,6 +106,36 @@ def start_ids(c: Cut, captions: dict[str, str] | None) -> list[str]:
         nid for nid, label in c.nodes.items()
         if _names(start, label) or start.startswith(label + "/")  # or a collapsed dir holding it
     )
+
+
+def escape_prose(text: str) -> str:
+    """A caption as ONE inert markdown line, for M6's living doc (outside the fence).
+
+    Whitespace runs (incl. newlines) collapse to a space; ``< > &`` become entities; a
+    leading fence opener or block marker (```` ``` ~~~ # | + * - ````) is backslash-escaped
+    (a leading ``>`` is already the inert ``&gt;``).
+    """
+    line = html.escape(" ".join(text.split()), quote=False)
+    return _BLOCK_START.sub(r"\\\1", line)
+
+
+def json_island(obj: object) -> str:
+    """JSON safe inside ``<script type="application/json">`` (M12): no ``< > &`` survive,
+    so a caption holding ``</script>`` or ``<!--`` cannot end the island."""
+    return (
+        json.dumps(obj, ensure_ascii=False, sort_keys=True)
+        .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+    )
+
+
+def check_generated_target(repo_root: Path, target: Path) -> None:
+    """Refuse a generated write outside ``docs/architecture/`` or onto the authored sidecar."""
+    root = repo_root.resolve()
+    resolved = target.resolve()
+    if resolved == (root / CAPTIONS_PATH).resolve():
+        raise ValueError(f"refusing to overwrite the authored sidecar {CAPTIONS_PATH}")
+    if not resolved.is_relative_to((root / GENERATED_DIR).resolve()):
+        raise ValueError(f"refusing to write {target}: generated files live under {GENERATED_DIR}")
 
 
 def _names(key: str, label: str) -> bool:

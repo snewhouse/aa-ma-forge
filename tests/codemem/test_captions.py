@@ -226,7 +226,7 @@ def test_captions_is_keyword_only() -> None:
     ("```mermaid", "\\```mermaid"),
     ("~~~ fence", "\\~~~ fence"),
     ("# heading", "\\# heading"),
-    ("> quote", "\\> quote"),
+    ("> quote", "&gt; quote"),  # the entity already defeats the blockquote
     ("- item", "\\- item"),
     ("| cell", "\\| cell"),
     ("a <img onerror=x> & b", "a &lt;img onerror=x&gt; &amp; b"),

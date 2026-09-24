@@ -11,7 +11,9 @@ from __future__ import annotations
 from .captions import start_ids
 from .cut import MAX_EDGES, Cut
 
-__all__ = ["escape_label", "to_mermaid"]
+__all__ = ["START_STYLE", "escape_label", "to_mermaid"]
+
+START_STYLE = "stroke-width:4px"  # the @start highlight; M12's explorer reuses it
 
 # '#' first: the other replacements introduce '#...;' entities that must survive.
 # '%', '{', '}' stop a file name smuggling a `%%{init}%%` directive (it could
@@ -43,6 +45,6 @@ def to_mermaid(c: Cut, *, captions: dict[str, str] | None = None) -> str:
     for a, b, kind in sorted(c.edges, key=lambda e: (c.nodes[e[0]], c.nodes[e[1]], e[2])):
         lines.append(f'  {a} -->|"@{kind}"| {b}')
     if start := start_ids(c, captions):
-        lines.append("  classDef start stroke-width:4px")
+        lines.append(f"  classDef start {START_STYLE}")
         lines.append(f"  class {','.join(start)} start")
     return "\n".join(lines) + "\n"

@@ -28,16 +28,26 @@ from pathlib import Path
 from .cut import MAX_EDGES, Cut, Level, from_edges
 from .surface_allowlist import EXTERNAL, HOOK_TABLE
 
-__all__ = ["RefClass", "Surface", "SurfaceEdge", "as_json", "extract"]
+__all__ = ["NodeKind", "RefClass", "Surface", "SurfaceEdge", "as_json", "extract"]
 
-_DIRS = {"commands": "command", "skills": "skill", "agents": "agent", "hooks": "hook", "rules": "rule"}
-_SKILL = re.compile(r"Skill\(([A-Za-z0-9_:-]+)\)")  # ':' — plugin-namespaced names
-_AGENT = re.compile(r'subagent_type\s*[=:]\s*"?([A-Za-z0-9_:-]+)')
+_DIRS = {"commands": "command", "skills": "skill", "agents": "agent", "hooks": "hook", "rules": "rule"}  # dir -> NodeKind value
+# ':' — plugin-namespaced names; also Skill("x"), Skill( x ), Skill(x, args).
+_SKILL = re.compile(r"""Skill\(\s*["']?([A-Za-z0-9_:-]+)["']?\s*[,)]""")
+_AGENT = re.compile(r"""subagent_type\s*[=:]\s*["']?([A-Za-z0-9_:-]+)""")
 _HOOK_CONVENTION = r"(?:aa-ma-|pre-compact-aa-ma|security-static-check)[a-z0-9-]{0,64}\.sh"
 # Lookbehind/ahead keep path fragments out (`/tmp/x-y.log`) but let a sentence end: `Run /x.`
-_COMMAND = re.compile(r"(?<![A-Za-z0-9_./~-])/([a-z][a-z0-9-]*)(\*?)(?![A-Za-z0-9_/-]|\.[A-Za-z0-9_])")
+# `/x-*` is a glob; `**/x**` is bold markdown around /x, not a glob.
+_COMMAND = re.compile(r"(?<![A-Za-z0-9_./~-])/([a-z][a-z0-9-]*)(\*(?!\*))?(?![A-Za-z0-9_/-]|\.[A-Za-z0-9_])")
 _HOOK_BLOCK = re.compile(r"AA_MA_HOOKS=\((.*?)\n\)", re.DOTALL)
 _HOOK_ROW = re.compile(r'"([A-Za-z]+)\|([^"]*?)\|([A-Za-z0-9_.-]+\.sh)\|')
+
+
+class NodeKind(StrEnum):
+    COMMAND = "command"
+    SKILL = "skill"
+    AGENT = "agent"
+    HOOK = "hook"
+    RULE = "rule"
 
 
 class RefClass(StrEnum):
@@ -50,7 +60,7 @@ class RefClass(StrEnum):
 class SurfaceEdge:
     src: str  # "<kind>:<stem>"
     dst: str
-    kind: str  # destination kind: skill|command|agent|hook
+    kind: NodeKind  # the DESTINATION's kind
     ref_class: RefClass
 
 
@@ -66,8 +76,19 @@ class Surface:
 def extract(repo_root: Path) -> Surface:
     cc = repo_root / "claude-code"
     errors: list[str] = [] if cc.is_dir() else ["claude-code/: not found"]
-    owned = [(f, o) for top in _DIRS for f in sorted((cc / top).rglob("*")) if (o := _owner(cc, f))]
+    walked = [f for top in _DIRS for f in sorted((cc / top).rglob("*"))]
+    owned = [(f, o) for f in walked if (o := _owner(cc, f))]
     nodes = {o for _, o in owned}
+    errors += [
+        f"claude-code/{f.relative_to(cc)}: not a node (nested)"
+        for f in walked
+        if f.suffix in (".md", ".sh") and f.is_file() and not f.is_symlink() and not _owner(cc, f)
+    ]
+    hook_owners = [o for _, o in owned if o.startswith("hook:")]
+    errors += [
+        f"claude-code/hooks: more than one {_stem(h)} — hook names must be unique"
+        for h in sorted(set(hook_owners)) if hook_owners.count(h) > 1
+    ]
     commands = [_stem(n) for n in nodes if n.startswith("command:")]
     hook_names = sorted({_stem(n) for n in nodes if n.startswith("hook:")} | EXTERNAL["hook"])
     hook_rx = re.compile(
@@ -77,7 +98,7 @@ def extract(repo_root: Path) -> Surface:
     found: set[SurfaceEdge] = set()
     for f, src in owned:
         text = f.read_text(encoding="utf-8", errors="replace")
-        for kind, rx in (("skill", _SKILL), ("agent", _AGENT), ("hook", hook_rx)):
+        for kind, rx in ((NodeKind.SKILL, _SKILL), (NodeKind.AGENT, _AGENT), (NodeKind.HOOK, hook_rx)):
             for name in rx.findall(text):
                 found.add(SurfaceEdge(src, f"{kind}:{name}", kind, _classify(kind, name, nodes)))
         for name, glob in _COMMAND.findall(text):
@@ -85,7 +106,7 @@ def extract(repo_root: Path) -> Surface:
                 hits = [c for c in commands if c.startswith(name)]
             else:
                 hits = [name] if name in commands else []
-            found |= {SurfaceEdge(src, f"command:{c}", "command", RefClass.ON_DISK) for c in hits}
+            found |= {SurfaceEdge(src, f"command:{c}", NodeKind.COMMAND, RefClass.ON_DISK) for c in hits}
     edges = sorted(e for e in found if e.src != e.dst)
 
     inbound = {e.dst for e in edges if e.ref_class is RefClass.ON_DISK}
@@ -101,7 +122,10 @@ def extract(repo_root: Path) -> Surface:
 def as_json(s: Surface) -> dict:
     """The golden's shape; ``cut`` is omitted because it is derived from ``edges``."""
     return {
-        "edges": [{"src": e.src, "dst": e.dst, "kind": e.kind, "ref_class": e.ref_class.value} for e in s.edges],
+        "edges": [
+            {"src": e.src, "dst": e.dst, "kind": e.kind.value, "ref_class": e.ref_class.value}
+            for e in s.edges
+        ],
         "orphans": s.orphans,
         "hook_events": s.hook_events,
         "errors": s.errors,

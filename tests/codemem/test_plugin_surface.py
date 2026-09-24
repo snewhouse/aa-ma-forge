@@ -3,7 +3,7 @@
 The golden is ONE regenerable snapshot of this repo's surface; no count is inlined
 here. After an intended change to ``claude-code/`` regenerate it with::
 
-    uv run python -c "from codemem.draw.plugin_surface import write_golden; write_golden()"
+    uv run python tests/codemem/test_plugin_surface.py
 
 and review the diff — it is the surface change.
 """
@@ -16,9 +16,10 @@ from pathlib import Path
 import pytest
 
 from codemem.draw.cut import Level, node_id
-from codemem.draw.plugin_surface import GOLDEN, RefClass, as_json, extract
+from codemem.draw.plugin_surface import RefClass, as_json, extract
 
 REPO = Path(__file__).resolve().parents[2]
+GOLDEN = REPO / "tests/golden/plugin-surface.json"
 
 
 @pytest.fixture(scope="module")
@@ -33,7 +34,7 @@ def surface():
 def test_matches_golden(surface) -> None:
     assert as_json(surface) == json.loads(GOLDEN.read_text()), (
         "plugin surface drifted from tests/golden/plugin-surface.json — "
-        "regenerate with write_golden() and review the diff"
+        "regenerate: uv run python tests/codemem/test_plugin_surface.py, then review the diff"
     )
 
 
@@ -190,3 +191,7 @@ def test_missing_install_sh_is_an_error_not_silence(tmp_path: Path) -> None:
     root = _tree(tmp_path, {})
     (root / "scripts/install.sh").unlink()
     assert any("install.sh" in e for e in extract(root).errors)
+
+
+if __name__ == "__main__":
+    GOLDEN.write_text(json.dumps(as_json(extract(REPO)), indent=1, sort_keys=True) + "\n")

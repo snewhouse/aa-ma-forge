@@ -25,7 +25,7 @@ from enum import IntEnum
 
 __all__ = [
     "DIRECTIONS", "KINDS", "MAX_EDGES", "MIN_SCHEMA_VERSION",
-    "Cut", "Level", "cut", "is_test_path", "node_id",
+    "Cut", "Level", "cut", "from_edges", "is_test_path", "node_id",
 ]
 
 MAX_EDGES = 500  # mermaid's default maxEdges — the one hard ceiling (Ticket 3)
@@ -122,6 +122,11 @@ def cut(
             if _dir(a, depth) != _dir(b, depth)
         }
 
+    return from_edges(edges, level)
+
+
+def from_edges(edges: set[tuple[str, str, str]], level: Level) -> Cut:
+    """Named ``(src, dst, kind)`` edges -> ``Cut``: sorted, capped at ``MAX_EDGES``, ids checked unique."""
     ordered = sorted(edges)
     kept = ordered[:MAX_EDGES]
     names = {n for a, b, _ in kept for n in (a, b)}

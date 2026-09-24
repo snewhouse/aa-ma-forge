@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-__all__ = ["GraphHandle", "GraphStatus", "call_edges", "file_langs", "import_edges", "open_graph"]
+__all__ = ["GraphHandle", "GraphStatus", "call_edges", "file_langs", "import_edges", "open_graph", "printable"]
 
 MIN_SCHEMA_VERSION = 3  # file_edges arrived in codemem schema v3
 _REMEDY = "run `codemem build`"
@@ -60,7 +60,7 @@ def open_graph(repo_root: Path) -> GraphHandle:
             GraphStatus.MISSING, f"codemem index at {db} is unreadable ({exc}); {_REMEDY}", None
         )
     if stale:
-        shown = ", ".join(_printable(p) for p in stale[:_MAX_SHOWN]) + (", ..." if len(stale) > _MAX_SHOWN else "")
+        shown = ", ".join(printable(p) for p in stale[:_MAX_SHOWN]) + (", ..." if len(stale) > _MAX_SHOWN else "")
         return GraphHandle(
             GraphStatus.STALE,
             f"{len(stale)} file(s) changed since indexing ({shown}); {_REMEDY}",
@@ -95,7 +95,7 @@ def _stale_paths(conn: sqlite3.Connection, repo_root: Path) -> list[str]:
     return stale
 
 
-def _printable(path: str) -> str:
+def printable(path: str) -> str:
     """DB-sourced text is quoted into a human-facing reason; strip control chars."""
     return "".join(c if c.isprintable() else "?" for c in path)
 

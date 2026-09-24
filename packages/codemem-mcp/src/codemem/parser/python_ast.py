@@ -83,6 +83,10 @@ class ParseResult:
     # ``import numpy as np`` -> {"np": "numpy"}; ``from os import path as p``
     # -> {"p": "os.path"}. Used to qualify dotted callees.
     import_aliases: dict[str, str] = field(default_factory=dict)
+    # ``from <module> import <name> [as <local>]`` exactly as written: (module or None,
+    # relative level, [(name, local)]). A name may itself be a submodule; the resolver
+    # decides that from the module's own resolution (diagram-generation M8).
+    from_imports: list[tuple[str | None, int, list[tuple[str, str]]]] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------
@@ -116,6 +120,7 @@ def extract_python_signatures(
     # ``from a.b import c`` both contribute the dotted module ``a.b``.
     imports: list[str] = []
     import_aliases: dict[str, str] = {}
+    from_imports: list[tuple[str | None, int, list[tuple[str, str]]]] = []
     for node in tree.body:
         if isinstance(node, ast.Import):
             for alias in node.names:
@@ -126,17 +131,12 @@ def extract_python_signatures(
                     head = alias.name.split(".")[0]
                     import_aliases[head] = head
         elif isinstance(node, ast.ImportFrom):
+            names = [(a.name, a.asname or a.name) for a in node.names if a.name != "*"]
+            from_imports.append((node.module, node.level, names))
             if node.module:
                 imports.append(node.module)
-                for alias in node.names:
-                    if alias.name != "*":
-                        import_aliases[alias.asname or alias.name] = (
-                            f"{node.module}.{alias.name}"
-                        )
-            else:  # `from . import sub`: each name may be a sibling module (M8)
-                for alias in node.names:
-                    if alias.name != "*":
-                        import_aliases[alias.asname or alias.name] = alias.name
+                for name, local in names:
+                    import_aliases[local] = f"{node.module}.{name}"
 
     symbols: list[Symbol] = []
     # Preserve the original FunctionDef/AsyncFunctionDef AST node alongside
@@ -257,6 +257,7 @@ def extract_python_signatures(
         imports=imports,
         unresolved_edges=unresolved_edges,
         import_aliases=import_aliases,
+        from_imports=from_imports,
     )
 
 

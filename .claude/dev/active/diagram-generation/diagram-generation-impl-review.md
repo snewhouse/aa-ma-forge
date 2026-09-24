@@ -383,3 +383,54 @@ No manifest changed; deps.py is stdlib-only.
 
 ## Revision History
 - 2026-09-24: CRITICAL accepted and fixed; 6 WARNINGs fixed RED-first (ecf5323); gate output re-verified byte-identical (205 invocations, sha 5444d16692fe1107); pytest 1379 / 2 skipped, bats 210/210.
+
+---
+
+# Milestone 8 — `PHANTOM_EDGE` sigil grammar
+
+**Window:** 54c2354..038c212 · **Audit-Profile:** code-only · **Agents:** code-reviewer (incl. §6.6), security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor · **Verdict:** PASS_WITH_WARNINGS (after fixes)
+
+## Summary
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 3 | 3 | 3 | CRITICALs accepted → fixed |
+| security-auditor | 0 | 4 | 2 | WARN → fixed |
+| tdd-sequence-auditor | 0 | 0 | 2 | PASS |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS |
+| future-proofing-auditor | 0 | 1 | 5 | WARN → fixed |
+| **TOTAL** | **3** | **8** | **12** | **PASS_WITH_WARNINGS** |
+
+## Code Review
+- CRITICAL — sigil claims silently skipped (chained, `&`, `-- "@x" -->`, `--->`, `<-->`, `--o`, trailing `& D`). **FIXED**: `_EDGE_RE` must consume the whole line; any line with an `@` in an edge-label slot it cannot parse → `UNKNOWN: unparsed sigil edge form`; `%%` comments skipped. 8 parametrized forms tested.
+- CRITICAL — false call edges: `from . import x, y; y.run()` bound to x.py:run too (reproduced). **FIXED**: parser records `from_imports` (module, level, names); submodules derive from the module's OWN resolution (package dir), `from .. import x` climbs a level; `sub.run()` binds only in `sub`. Tests: receiver scoping, parent level, no independent suffix match.
+- CRITICAL — label→path extraction duplicated and drifted (no `_inside`). **FIXED**: shared `_bracketed` / `_labels` / `_label_paths` used by STALE_PATH and sigil endpoints; endpoint outside the repo → `UNKNOWN: endpoint outside the repo: <p>`, never probed.
+- WARNING — relative level ignored; alias names suffix-matched. **FIXED** (above).
+- WARNING — `SIGIL_LABEL_RE` dead in production, AC5 test skipped sigil plans. **FIXED**: removed; AC5 now asserts every completed plan, no skip.
+- INFO — quoted `|` inside a label: **FIXED**. Last declaration wins: **FIXED**. Graph queries on non-OK status: **FIXED** (early return).
+
+## Security
+- WARNING — host-file existence oracle via `../` endpoint. **FIXED** (`_inside`).
+- WARNING — terminal escapes from `(new)` labels reach CLI output. **FIXED**: every printed message goes through `graph.printable` (now public); label truncated to `_MAX_TOKEN`.
+- WARNING — partial v3 index crashed `aa-ma-lint-views`. **FIXED**: `sqlite3.Error` → UNKNOWN "unreadable; run `codemem build`".
+- WARNING — quadratic `_node_labels` / `_unwrap`. **FIXED**: bounded look-back on `str.find` scanning; two-index peel. Hostile cases (node flood, 200k paren label) under budget.
+- INFO — SQL read path fixed-text; resolver has no filesystem access.
+
+## TDD Sequence — PASS
+e8e4cfe (33 RED) → d80e3d5 (58 green). Fix round: a674e78 (RED: 14 lint + 3 resolver) → fix commit. INFO: hostile/isolated tests landed with the fix.
+
+## External Library Evidence — PASS
+
+## Future-Proofing
+- WARNING — sigil vocabulary spelled in two packages, untested. **FIXED**: test pins codemem `KINDS` ∪ `NodeKind`−RULE ⊆ `SIGILS`; generated `docs/architecture/*.md` lint with no LABEL_UNKNOWN. `SIGILS` built from `_EDGE_READERS` + `_PLUGIN_SIGILS` (one spelling each).
+- INFO — timing threshold named `_LINEAR_BUDGET_S`. M13 carry-forward (delete plugin UNKNOWN branch) and M14 carry-forward (engineering-standards + ADR-0010) written into tasks.md. CHANGELOG `## Unreleased` M8 entry added.
+
+## User Override Decisions
+| Severity | Finding | Decision | Rationale |
+|---|---|---|---|
+| CRITICAL | unparsed sigil forms silently pass | accept → fixed | Ste; L-012 |
+| CRITICAL | false call edges via submodule targets | accept → fixed | Ste |
+| CRITICAL | duplicated label→path extraction / oracle | accept → fixed | Ste |
+| all WARNING/INFO | batch | fix all now | Ste |
+
+## Revision History
+- 2026-09-24: 3 CRITICAL accepted and fixed; all WARNINGs fixed RED-first (a674e78); import edges vs pre-M8: +28, all genuine, none lost; pytest 1443 / 2 skipped, bats 210/210, lint-imports 4/4, `draw --check` OK.

@@ -441,6 +441,7 @@
 - Goal: The third door works, and every skill that names a graph backend names the right one.
 - Acceptance Criteria: 9 criteria — see plan.md § Milestone 13
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
+- Carry-forward (M8 §6.8, 2026-09-24): if the index gains plugin-surface edges here, delete `_PLUGIN_SIGILS` / `_PLUGIN_REASON` in `src/aa_ma/render/mermaid_lint.py` together and evaluate `@skill/@command/@agent/@hook` like `@import`.
 
 ### Sub-step 13.1: [prototype] measure L0-L3 on `medical-research-skills`; `PROTOTYPE` provenance
 - Status: PENDING
@@ -478,6 +479,7 @@
 - Goal: The vocabulary and the counts match what shipped.
 - Acceptance Criteria: 5 criteria — see plan.md § Milestone 14
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
+- Carry-forward (M8 §6.8, 2026-09-24): document `PHANTOM_EDGE` / `LABEL_UNKNOWN` / sigil `UNKNOWN` also in `claude-code/rules/engineering-standards.md` ("Diagram maintenance" bullet names only STALE_PATH) and `docs/adr/0010-architecture-views-and-render.md`, beside the spec/README/CHANGELOG already listed.
 
 ### Sub-step 14.1: [docs] CONTEXT.md: 7 glossary terms
 - Status: PENDING

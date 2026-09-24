@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import sqlite3
 import subprocess  # nosec B404 — optional mmdc render seam, never shell=True
 import tempfile
 from collections.abc import Sequence
@@ -80,17 +81,18 @@ class LintReport:
 
 # Opt-in edge claims (diagram-generation M8, map Ticket 5). An edge is checked ONLY when its
 # label carries a reserved sigil; unlabelled and prose-labelled edges never are.
-SIGILS: tuple[str, ...] = ("@import", "@call", "@skill", "@command", "@agent", "@hook")
-_PLUGIN_SIGILS = frozenset({"@skill", "@command", "@agent", "@hook"})
-_PLUGIN_REASON = "plugin-surface edges are not in the codemem index"  # Ste 2026-09-24; M13
-SIGIL_LABEL_RE = re.compile(r'\|[ \t]*"?@')  # a plan opts in iff some edge label starts with @
-_NODE_RE = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[ \t]*\[")
-# `A -->|"@import"| B`, an inline `[...]` declaration allowed on the source; one edge per line.
-# One `[` opens the declaration (`[^\]\n]*` absorbs any more): `\[+` was quadratic on a `[` run.
+_EDGE_READERS = {"@import": import_edges, "@call": call_edges}  # graph-backed sigils
+_PLUGIN_SIGILS = ("@skill", "@command", "@agent", "@hook")  # UNKNOWN until the index holds them (M13)
+SIGILS: tuple[str, ...] = (*_EDGE_READERS, *_PLUGIN_SIGILS)
+_PLUGIN_REASON = "plugin-surface edges are not in the codemem index"
+_ID = r"[A-Za-z_][\w-]*"
+_DECL = r"(?:[ \t]*\[[^\]\n]*\]+)?"  # inline `[...]`; ONE `[` opens it (`\[+` was quadratic)
+# One whole line: `A["x"] -->|"@import"| B["y"]`. Anything else carrying a sigil is UNKNOWN.
 _EDGE_RE = re.compile(
-    r"^[ \t]*([A-Za-z_][\w-]*)(?:[ \t]*\[[^\]\n]*\]+)?[ \t]*(?:-->|-\.->|==>)[ \t]*"
-    r"\|([^|\n]*)\|[ \t]*([A-Za-z_][\w-]*)"
+    rf'^[ \t]*({_ID}){_DECL}[ \t]*(?:-->|-\.->|==>)[ \t]*\|("[^"\n]*"|[^|\n]*)\|[ \t]*({_ID}){_DECL}[ \t]*;?[ \t]*$'
 )
+_SIGIL_SLOT_RE = re.compile(r'(?:\||--|==)[ \t]*"?@[\w-]')  # an `@` where an edge label sits
+_ID_TAIL_RE = re.compile(rf"({_ID})[ \t]*$")
 
 
 @dataclass(frozen=True)
@@ -111,14 +113,20 @@ class _Graph:
 
 def _load_graph(repo_root: Path) -> _Graph:
     h = open_graph(repo_root)
+    empty = {s: set() for s in _EDGE_READERS}
     try:
-        edges = {"@import": import_edges(h), "@call": call_edges(h)}
+        if h.status is not GraphStatus.OK:  # its claims are UNKNOWN anyway: read nothing
+            return _Graph(h.status, h.reason, empty, {}, dict(empty))
+        edges = {s: read(h) for s, read in _EDGE_READERS.items()}
         langs = file_langs(h)
-        edge_langs = {s: {langs[p] for e in es for p in e if p in langs} for s, es in edges.items()}
-        return _Graph(h.status, h.reason, edges, langs, edge_langs)
+    except sqlite3.Error as exc:  # a v3 index missing tables/columns: UNKNOWN, never a crash
+        reason = f"codemem index is unreadable ({type(exc).__name__}); run `codemem build`"
+        return _Graph(GraphStatus.MISSING, reason, empty, {}, dict(empty))
     finally:
         if h.conn is not None:
             h.conn.close()
+    edge_langs = {s: {langs[p] for e in es for p in e if p in langs} for s, es in edges.items()}
+    return _Graph(h.status, h.reason, edges, langs, edge_langs)
 
 
 def _line(text: str, pos: int) -> int:
@@ -172,18 +180,31 @@ def _views(
     return out
 
 
-def _labels(line: str) -> list[str]:
-    """`[...]` labels via str.find — linear on a hostile line of 200 000 `[` where a
-    `\\[([^\\]]*)\\]` regex re-scanned to EOL from every opener (measured quadratic)."""
-    out: list[str] = []
+def _bracketed(line: str) -> list[tuple[int, str]]:
+    """(index of `[`, contents) per `[...]` via str.find — linear on a hostile line of
+    200 000 `[` where a `\\[([^\\]]*)\\]` regex re-scanned to EOL from every opener."""
+    out: list[tuple[int, str]] = []
     i = line.find("[")
     while i >= 0:
         j = line.find("]", i + 1)
         if j < 0:
             break
-        out.append(line[i + 1 : j])
+        out.append((i, line[i + 1 : j]))
         i = line.find("[", j + 1)
     return out
+
+
+def _labels(line: str) -> list[str]:
+    return [label for _, label in _bracketed(line)]
+
+
+def _label_paths(label: str) -> list[str]:
+    """Repo-path claims in one `[...]` label; none when it is planned `(new)`. The one rule
+    STALE_PATH and sigil endpoints share (§6.8 M8 found two copies, one without `_inside`)."""
+    if _NEW_RE.search(label):
+        return []
+    # [/x/] is a shape; a leading "/" would otherwise resolve from the fs root
+    return [q.lstrip("/") for t in label.split() if len(t) <= _MAX_TOKEN for q in _PATH_RE.findall(t)]
 
 
 def _inside(repo_root: Path, rel: str) -> bool:
@@ -200,45 +221,49 @@ def _stale_paths(src: str, repo_root: Path) -> list[tuple[int, str]]:
     hits: list[tuple[int, str]] = []
     for ln, line in enumerate(src.splitlines(), start=1):
         for label in _labels(line):
-            if _NEW_RE.search(label):
-                continue
-            for token in label.split():
-                if len(token) > _MAX_TOKEN:
-                    continue
-                for q in _PATH_RE.findall(token):
-                    # [/x/] is a shape; a leading "/" would otherwise resolve from the fs root
-                    q = q.lstrip("/")
-                    if not _inside(repo_root, q) or not (repo_root / q).exists():
-                        hits.append((ln, q))
+            for q in _label_paths(label):
+                if not _inside(repo_root, q) or not (repo_root / q).exists():
+                    hits.append((ln, q))
     return hits
 
 
 def _node_labels(src: str) -> dict[str, str]:
-    """id -> `[...]` label per fence (first declaration wins); shape punctuation stripped."""
+    """id -> `[...]` label per fence; the LAST declaration wins, as in mermaid."""
     labels: dict[str, str] = {}
     for line in src.split("\n"):
-        for m in _NODE_RE.finditer(line):
-            j = line.find("]", m.end())
-            if j >= 0:
-                labels.setdefault(m.group(1), _unwrap(line[m.end() : j]))
+        for i, content in _bracketed(line):
+            m = _ID_TAIL_RE.search(line, max(0, i - _MAX_TOKEN), i)  # bounded look-back: linear
+            if m:
+                labels[m.group(1)] = _unwrap(content)
     return labels
 
 
 def _unwrap(label: str) -> str:
-    """`("x (new)")` -> `x (new)`: peel matched shape pairs, then quotes — never a `)` of `(new)`."""
-    s = label.strip()
-    while len(s) > 1 and s[0] in "([/" and s[-1] in ")]/":
-        s = s[1:-1].strip()
-    return s.strip('"').strip()
+    """`("x (new)")` -> `x (new)`: peel matched shape pairs, then quotes — never a `)` of
+    `(new)`. Two indices, one slice: re-slicing per peel was quadratic."""
+    i, k = 0, len(label)
+    while True:
+        while i < k and label[i] in " \t":
+            i += 1
+        while k > i and label[k - 1] in " \t":
+            k -= 1
+        if k - i > 1 and label[i] in "([/" and label[k - 1] in ")]/":
+            i, k = i + 1, k - 1
+            continue
+        return label[i:k].strip('"').strip()
 
 
-def _endpoint(node: str, labels: dict[str, str]) -> tuple[str | None, str | None]:
+def _endpoint(node: str, labels: dict[str, str], repo_root: Path) -> tuple[str | None, str | None]:
     """(repo path, None) or (None, why it cannot be a graph node) — graph-independent part."""
-    label = labels.get(node)
-    if label is not None and _NEW_RE.search(label):
-        return None, f"endpoint planned (new): {label}"
-    paths = [q.lstrip("/") for t in (label or "").split() if len(t) <= _MAX_TOKEN for q in _PATH_RE.findall(t)]
-    return (paths[0], None) if paths else (None, f"no repo path in node label: {node}")
+    label = labels.get(node, "")
+    if _NEW_RE.search(label):
+        return None, f"endpoint planned (new): {label[:_MAX_TOKEN]}"
+    paths = _label_paths(label)
+    if not paths:
+        return None, f"no repo path in node label: {node}"
+    if not _inside(repo_root, paths[0]):  # never probed: existence outside is not ours to report
+        return None, f"endpoint outside the repo: {paths[0]}"
+    return paths[0], None
 
 
 def _sigil_claims(
@@ -252,18 +277,24 @@ def _sigil_claims(
     unknown: list[Finding] = []
     labels = _node_labels(src)
     for ln, line in enumerate(src.split("\n")):
+        if line.lstrip().startswith("%%"):
+            continue  # a mermaid comment is not a claim
+        line_no = first_line + ln
         m = _EDGE_RE.match(line)
-        sigil = m.group(2).strip().strip('"').strip() if m else ""
+        if m is None:
+            if _SIGIL_SLOT_RE.search(line):  # chained, `&`, `-- "@x" -->`, `--o`...: never a silent pass
+                unknown.append(Finding("UNKNOWN", line_no, "unparsed sigil edge form"))
+            continue
+        sigil = m.group(2).strip().strip('"').strip()
         if not sigil.startswith("@"):
             continue  # unlabelled or prose: never checked, never reported
-        line_no = first_line + ln
         if sigil not in SIGILS:
             found.append(Finding("LABEL_UNKNOWN", line_no, f"unknown sigil {sigil!r}; reserved: {', '.join(SIGILS)}"))
             continue
         if sigil in _PLUGIN_SIGILS:
             unknown.append(Finding("UNKNOWN", line_no, f"{sigil}: {_PLUGIN_REASON}"))
             continue
-        (sp, s_why), (dp, d_why) = _endpoint(m.group(1), labels), _endpoint(m.group(3), labels)
+        (sp, s_why), (dp, d_why) = _endpoint(m.group(1), labels, repo_root), _endpoint(m.group(3), labels, repo_root)
         if s_why or d_why:
             unknown.append(Finding("UNKNOWN", line_no, s_why or d_why or ""))
             continue
@@ -275,7 +306,7 @@ def _sigil_claims(
             continue
         outside = next((p for p in (sp, dp) if not g.models(sigil, p)), None)
         if outside is not None:
-            why = "endpoint missing" if not (repo_root / outside).exists() else (
+            why = "endpoint missing" if not (repo_root / outside).exists() else (  # inside: checked
                 "unparsed language, isolated file or out of graph")
             unknown.append(Finding("UNKNOWN", line_no, f"not in the codemem graph for {sigil} ({why}): {outside}"))
         elif (sp, dp) not in g.edges[sigil]:

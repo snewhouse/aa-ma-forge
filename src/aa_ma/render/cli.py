@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from aa_ma.render.html import render_markdown
+from aa_ma.render.graph import printable
 from aa_ma.render.mermaid_lint import lint_plan
 
 
@@ -34,9 +35,9 @@ def lint_main(argv: Sequence[str] | None = None) -> int:
         return 2
     rep = lint_plan(a.plan, a.repo_root, tasks_path=a.tasks)
     for f in rep.findings:
-        print(f"{a.plan}:{f.line}: {f.code}: {f.message}")
+        print(f"{a.plan}:{f.line}: {f.code}: {printable(f.message)}")
     for f in rep.unknowns:  # informational: an unevaluable claim never sets the exit (L-012)
-        print(f"{a.plan}:{f.line}: UNKNOWN: {f.message}")
+        print(f"{a.plan}:{f.line}: UNKNOWN: {printable(f.message)}")
     print(f"render: {rep.render_status}")
     return 1 if rep.findings else 0
 

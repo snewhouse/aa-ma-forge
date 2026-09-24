@@ -15,6 +15,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   `/aa-ma-plan` Step 5.5 appends the generated **Milestone graph** to plan §13 and reports
   `UNRESOLVED_DEPENDENCY`; `/execute-aa-ma-milestone` §5.1 prints an advisory ("Milestone 3 is ACTIVE but
   Milestone 2 (Dependencies) is PENDING") that never blocks. `aa-ma-gate` does not read the field.
+- **`PHANTOM_EDGE` sigil grammar (`diagram-generation` M8)** — `aa-ma-lint-views` checks opt-in §13 edge claims
+  against the codemem graph: `A -->|"@import"| B` / `-->|"@call"|` absent from the graph → `PHANTOM_EDGE` (exit 1);
+  a typo'd `@` label → `LABEL_UNKNOWN` (exit 1). Unlabelled and prose-labelled edges are never checked. Anything
+  unevaluable — a `(new)` endpoint, no/stale/unreadable index, a file whose language the graph holds no such edge
+  for, an endpoint outside the repo, an unparsed edge form, the plugin sigils `@skill/@command/@agent/@hook` — prints
+  `file:line: UNKNOWN: reason` and never changes the exit code.
+- **codemem: `from pkg import submodule` edges** — the submodule now gets its own import edge (derived from the
+  module's own resolution; `from .. import x` climbs a level), and `sub.run()` binds only inside `sub`.
 - **Canonical `Dependencies:` write form** — `grammar.CANONICAL_DEPENDENCY_RE`: `None` · `Milestone 2` ·
   `Milestone 2, Milestone 3` · `Sub-step 1.1` · `<task-slug> Milestone 5`; enforced on active plans and taught by
   the scribe and `docs/templates/tasks-template.md`.

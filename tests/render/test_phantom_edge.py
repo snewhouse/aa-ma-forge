@@ -22,6 +22,7 @@ from aa_ma.render.mermaid_lint import lint_text
 from codemem.indexer import build_index
 
 REPO = Path(__file__).resolve().parents[2]
+_LINEAR_BUDGET_S = 1.0  # generous: the quadratic forms measured 15 s at the same sizes
 FIXTURE = (REPO / "tests/fixtures/sigil-edges.md").read_text(encoding="utf-8")
 
 
@@ -205,11 +206,10 @@ def test_there_are_completed_plans_to_check() -> None:
 
 
 @pytest.mark.parametrize("plan", _completed_plans(), ids=lambda p: p.parent.name)
-def test_sigil_free_completed_plans_get_no_sigil_findings(plan: Path) -> None:
-    text = plan.read_text(encoding="utf-8")
-    if mermaid_lint.SIGIL_LABEL_RE.search(text):
-        pytest.skip("carries a sigil — AC5 covers sigil-free plans only")
-    report = lint_text(text, REPO)
+def test_completed_plans_get_no_sigil_findings(plan: Path) -> None:
+    """No skip: a completed plan with a stray `|"@..."|` prose label is exactly the one that
+    could newly go red (code-reviewer §6.8). Today none carries a sigil at all."""
+    report = lint_text(plan.read_text(encoding="utf-8"), REPO)
     assert not {"PHANTOM_EDGE", "LABEL_UNKNOWN"} & set(_codes(report))
     assert not report.unknowns
 
@@ -217,14 +217,16 @@ def test_sigil_free_completed_plans_get_no_sigil_findings(plan: Path) -> None:
 @pytest.mark.parametrize("line", [
     "A" + "[" * 50_000, "A -->|" + "x" * 50_000, "A" * 50_000 + " --> ", "A[" * 25_000,
     "A" + " " * 50_000 + '-->|"@import"| B',
-])
+    "a[" * 100_000 + "]",  # security-auditor: node flood (unbounded `]` search per match)
+    'N["' + "(" * 100_000 + "x" + ")" * 100_000 + '"]',  # security-auditor: `_unwrap` re-slicing
+], ids=["brackets", "pipe", "ids", "decls", "spaces", "node-flood", "paren-label"])
 def test_edge_parsing_is_linear_on_hostile_lines(repo: Path, line: str) -> None:
     import time
 
     text = FIXTURE.replace("    A --> B\n", f"    {line}\n")
     start = time.perf_counter()
     lint_text(text, repo)
-    assert time.perf_counter() - start < 1.0
+    assert time.perf_counter() - start < _LINEAR_BUDGET_S
 
 
 def test_an_isolated_python_file_is_still_evaluable(repo: Path) -> None:
@@ -237,3 +239,90 @@ def test_an_isolated_python_file_is_still_evaluable(repo: Path) -> None:
     text = FIXTURE.replace('    N["src/app/new.py (new)"]\n', '    N["src/app/lonely.py"]\n')
     report = lint_text(text, repo)
     assert [f.line for f in report.findings if f.code == "PHANTOM_EDGE"] == [_line_of(text, 'A -->|"@import"| N')]
+
+
+# ---------------------------------------------------------------------
+# §6.8 M8 fixes (Ste: CRITICALs accepted, "fix all now")
+# ---------------------------------------------------------------------
+
+@pytest.mark.parametrize("edge", [
+    'A --> B -->|"@import"| N',
+    'A & B -->|"@import"| N',
+    'A -- "@import" --> N',
+    'A --->|"@import"| N',
+    'A <-->|"@import"| N',
+    'A --o|"@import"| N',
+    'A -->|"@import"| B & N',
+    'A -->|"@import"| B -->|"@import"| N',
+])
+def test_an_unparsed_sigil_edge_is_unknown_never_silent(repo: Path, edge: str) -> None:
+    """code-reviewer CRITICAL: these forms produced no finding and no UNKNOWN — a silent PASS."""
+    text = FIXTURE.replace("    A --> B\n", f"    {edge}\n")
+    report = lint_text(text, repo)
+    line = _line_of(text, edge)
+    assert [f.message for f in report.unknowns if f.line == line] == ["unparsed sigil edge form"]
+    assert not [f for f in report.findings if f.line == line]
+
+
+def test_a_sigil_in_a_mermaid_comment_is_not_a_claim(repo: Path) -> None:
+    text = FIXTURE.replace("    A --> B\n", '    %% A -->|"@import"| N\n')
+    report = lint_text(text, repo)
+    assert not [f for f in (*report.findings, *report.unknowns) if f.line == _line_of(text, "%%")]
+
+
+def test_a_pipe_inside_a_quoted_label_is_part_of_the_label(repo: Path) -> None:
+    text = FIXTURE.replace("    A --> B\n", '    A -->|"@import | x"| B\n')
+    [f] = [f for f in lint_text(text, repo).findings if f.line == _line_of(text, "@import | x")]
+    assert f.code == "LABEL_UNKNOWN"
+
+
+def test_the_last_node_declaration_wins(repo: Path) -> None:
+    """Mermaid relabels a node on redeclaration; B becomes c.py, which a.py never imports."""
+    text = FIXTURE.replace('    A -->|"@call"| B\n', '    B["src/app/c.py"]\n    A -->|"@call"| B\n')
+    phantoms = [f for f in lint_text(text, repo).findings if f.code == "PHANTOM_EDGE"]
+    assert phantoms and "src/app/c.py" in phantoms[0].message
+
+
+@pytest.mark.parametrize("exists", [True, False])
+def test_an_endpoint_outside_the_repo_is_never_probed(repo: Path, tmp_path: Path, exists: bool) -> None:
+    """security-auditor + code-reviewer: `../x` leaked host-file existence via two reasons."""
+    if exists:
+        (tmp_path / "secret.py").write_text("S = 1\n")
+    text = FIXTURE.replace('    N["src/app/new.py (new)"]\n', '    N["../secret.py"]\n')
+    [f] = [f for f in lint_text(text, repo).unknowns if f.line == _line_of(text, 'A -->|"@import"| N')]
+    assert f.message == "endpoint outside the repo: ../secret.py"
+
+
+def test_terminal_escapes_never_reach_the_cli_output(repo: Path, tmp_path: Path, capsys) -> None:
+    plan = tmp_path / "p-plan.md"
+    plan.write_text(FIXTURE.replace('"src/app/new.py (new)"', '"\x1b[2Jfake src/app/new.py (new)"'))
+    cli.lint_main([str(plan), "--repo-root", str(repo)])
+    assert "\x1b" not in capsys.readouterr().out
+
+
+def test_a_partial_index_is_unknown_not_a_crash(repo: Path) -> None:
+    import sqlite3
+
+    db = repo / ".codemem/index.db"
+    db.unlink()
+    conn = sqlite3.connect(db)
+    conn.executescript("CREATE TABLE files(id INTEGER PRIMARY KEY, path TEXT, mtime INTEGER); PRAGMA user_version = 3;")
+    conn.close()
+    report = lint_text(FIXTURE, repo)
+    [f] = [f for f in report.unknowns if f.line == _line_of(FIXTURE, 'A -->|"@import"| B')]
+    assert "codemem build" in f.message
+
+
+def test_the_lint_knows_every_sigil_the_emitter_writes() -> None:
+    """future-proofing: two packages that may not import each other each spell the vocabulary."""
+    from codemem.draw.cut import KINDS
+    from codemem.draw.plugin_surface import NodeKind
+
+    emitted = {f"@{k}" for k in KINDS if k != "both"} | {f"@{k}" for k in NodeKind if k is not NodeKind.RULE}
+    assert emitted <= set(mermaid_lint.SIGILS)
+
+
+def test_the_generated_architecture_docs_lint_with_no_label_unknown() -> None:
+    for page in sorted((REPO / "docs/architecture").glob("*.md")):
+        text = "## 13. Architecture View\n\n### Component view\n\n" + page.read_text(encoding="utf-8")
+        assert "LABEL_UNKNOWN" not in _codes(lint_text(text, REPO)), page

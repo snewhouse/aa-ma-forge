@@ -118,6 +118,7 @@ def test_unresolvable_references_are_returned() -> None:
     ("Task 2.2.1 live verification (which surfaced the defect)", [("step", "2.2.1")]),
     ("Step 1.1 (flag-only leg); Step 1.2 (docs leg)", [("step", "1.1"), ("step", "1.2")]),
     ("Milestone 1; milestone-grammar-ssot M5 merged", [("milestone", "1"), ("cross-plan", "5")]),
+    ("Milestone 1, milestone-grammar-ssot Milestone 5", [("milestone", "1"), ("cross-plan", "5")]),
     ("table: tiktoken `latest from PyPI` → `>=0.7`", []),
 ])
 def test_legacy_forms_read_leniently(value: str, expected: list[tuple[str, str | None]]) -> None:
@@ -177,6 +178,7 @@ def test_fields_inside_fences_are_not_read() -> None:
 
 @pytest.mark.parametrize("value", [
     "None", "Milestone 2", "Milestone 2, Milestone 3", "Sub-step 1.1", "Milestone 2, Sub-step 1.1",
+    "Milestone 1, milestone-grammar-ssot Milestone 5",
 ])
 def test_canonical_form_accepts(value: str) -> None:
     assert CANONICAL_DEPENDENCY_RE.match(value)
@@ -184,7 +186,7 @@ def test_canonical_form_accepts(value: str) -> None:
 
 @pytest.mark.parametrize("value", [
     "Step 1.1", "M2", "Milestones 1, 2", "Task 1.1", "milestone 2", "Milestone 2,Milestone 3",
-    "None (later)", "Milestone 2a", "", "Milestone 2, ",
+    "None (later)", "Milestone 2a", "", "Milestone 2, ", "milestone-grammar-ssot M5", "grammar Milestone 5",
 ])
 def test_canonical_form_refuses(value: str) -> None:
     assert not CANONICAL_DEPENDENCY_RE.match(value)

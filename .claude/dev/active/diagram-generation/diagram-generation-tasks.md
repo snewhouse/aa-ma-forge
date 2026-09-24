@@ -232,9 +232,9 @@
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 7.1: [test] `deps-hazards.md` (`M1.0`, `M2a.1`, `2a`, cross-plan) + naive mutant, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `tests/fixtures/deps-hazards.md` (headings `Step M1.0`, `Step M2a.1`, `Milestone 2a`, cross-plan value) + `tests/test_deps.py` (EXPECTED for the 4 hazards, `_naive_strip_m` mutant tied to real heading numbers, 22 lenient legacy forms, corpus ZERO findings per Ste, `Dependencies table:` not-a-field, canonical accept/refuse, graph exact string, §13 lint-clean, advisory exact string, CLI exit codes) + `test_active_plans_canonical.py` (active plans + 2 writer templates must write canonical `Dependencies:`). RED: collection ImportError (`aa_ma.deps`, `CANONICAL_DEPENDENCY_RE` absent). Committed locally, not pushed (L-025).
 
 ### Sub-step 7.2: [impl] `deps.py` parser/resolver + `CANONICAL_DEPENDENCY_RE` in `grammar.py`
 - Status: PENDING

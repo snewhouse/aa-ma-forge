@@ -161,3 +161,40 @@ def test_active_dir_scan_is_not_vacuous() -> None:
             "signal; the parametrized test above would show nothing at all."
         )
     assert _active_tasks_files()
+
+
+# ---------------------------------------------------------------------
+# `Dependencies:` — the same strict-writer rule (diagram-generation M7, Ticket 7)
+# ---------------------------------------------------------------------
+
+from aa_ma.deps import dependency_fields  # noqa: E402
+from aa_ma.grammar import CANONICAL_DEPENDENCY_RE  # noqa: E402
+
+
+@pytest.mark.parametrize(
+    "tasks_file", _active_tasks_files(), ids=lambda p: p.parent.name
+)
+def test_active_plans_write_canonical_dependencies(tasks_file: Path) -> None:
+    """`None` · `Milestone 2` · `Milestone 2, Milestone 3` · `Sub-step 1.1` — nothing else."""
+    fields = dependency_fields(tasks_file.read_text(encoding="utf-8"))
+    assert fields, f"{tasks_file}: no Dependencies: field read — the check would pass vacuously"
+    bad = [f"{owner}: {value}" for owner, value in fields if not CANONICAL_DEPENDENCY_RE.match(value)]
+    assert not bad, f"{tasks_file} has non-canonical Dependencies:\n  " + "\n  ".join(bad)
+
+
+# The two files that teach the scribe what to write in `Dependencies:`.
+DEPENDENCY_WRITERS = ["docs/templates/tasks-template.md", "claude-code/agents/aa-ma-scribe.md"]
+_LEGACY_NOUN_RE = re.compile(r"(?<!Sub-)\b(?:Steps?|Tasks?)\b|\bM\d|IDs")
+
+
+@pytest.mark.parametrize("rel_path", DEPENDENCY_WRITERS)
+def test_writers_teach_the_canonical_dependencies_spelling(rel_path: str) -> None:
+    text = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
+    blocks = iter_fenced_blocks(text) or [text]
+    values = [v for b in blocks for _, v in dependency_fields(b)]
+    assert values, f"{rel_path}: no Dependencies: field found — the check is inert"
+    bad = [
+        v for v in values
+        if not (CANONICAL_DEPENDENCY_RE.match(v) or (v.startswith("[") and not _LEGACY_NOUN_RE.search(v)))
+    ]
+    assert not bad, f"{rel_path} teaches non-canonical Dependencies: {bad}"

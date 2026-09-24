@@ -142,7 +142,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ## Milestone N: [Title from plan]
 - Status: PENDING
-- Dependencies: [List prerequisite milestone IDs or "None"]
+- Dependencies: ["None", or "Milestone N" / "Milestone N, Milestone M"; another plan: "<task-slug> Milestone N"]
 - Complexity: [X%] [+ "⚠️ HIGH COMPLEXITY" if ≥80%]
 - Acceptance Criteria:
   - [Criterion 1 — must be testable and specific]
@@ -150,7 +150,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 ### Sub-step N.1: [Action from plan]
 - Status: PENDING
-- Dependencies: [Step IDs or "None"]
+- Dependencies: ["None", or "Sub-step N.M" / "Sub-step N.M, Sub-step N.K"]
 - Result Log:
 
 ### Sub-step N.2: [Next action]

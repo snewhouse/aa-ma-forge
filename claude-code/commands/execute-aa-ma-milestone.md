@@ -207,6 +207,23 @@ If this is the **first milestone** being executed and it touches 3+ files or unf
 
 1. Update tasks.md: Change target milestone `Status: PENDING` → `Status: ACTIVE`
 2. Update TodoWrite: Mark milestone todo as `in_progress`
+3. **Dependency advisory — never blocks** (map Ticket 16). Show the user any line it
+   prints, e.g. `Milestone 3 is ACTIVE but Milestone 2 (Dependencies) is PENDING`, and
+   log it to provenance.log. It never halts and never changes an exit code; `aa-ma-gate`
+   does not read `Dependencies:`.
+
+```bash
+TASKS_MD=".claude/dev/active/${TASK_NAME}/${TASK_NAME}-tasks.md"
+for _cand in \
+  "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
+  "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
+  [[ -f "${_cand}" ]] && AA_MA_LIB="${_cand}" && break
+done
+# shellcheck source=/dev/null
+[[ -n "${AA_MA_LIB:-}" ]] && . "${AA_MA_LIB}"
+aa_ma_deps advisory "${TASKS_MD}" 2>/dev/null || echo "(dependency advisory unavailable — continuing)"
+true
+```
 
 ### 5.2 Execute All Sub-Tasks
 

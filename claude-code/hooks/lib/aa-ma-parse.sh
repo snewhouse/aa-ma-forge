@@ -14,6 +14,7 @@
 #     AA_MA_MILESTONE_ERE                     -> ERE mirroring grammar.py MILESTONE_RE (display readers only)
 #     aa_ma_gate <file> [--milestone N] [--step N.M] -> kv lines from the Python SSoT gate; rc 0-4, 127 if it cannot run  (ENFORCING)
 #     aa_ma_gate_field <key>  (stdin: kv)     -> value after the first `=`, verbatim
+#     aa_ma_deps <graph|check|advisory> <tasks.md> -> `python -m aa_ma.deps` output; rc passed through  (ADVISORY — never a gate)
 #
 # This header is the discovery surface: it is the first thing anyone sourcing
 # the library reads, and a symbol missing from it gets reimplemented instead of
@@ -281,6 +282,18 @@ aa_ma_gate() {
 # -----------------------------------------------------------------------------
 aa_ma_gate_field() {
     sed -n "s/^$1=//p" | head -n 1
+}
+
+# -----------------------------------------------------------------------------
+# aa_ma_deps <graph|check|advisory> <tasks.md>
+#   `python -m aa_ma.deps` from the plugin checkout, located as aa_ma_gate does.
+#   Planning-time and advisory only (diagram-generation M7, map Ticket 16): the
+#   exit code is passed through and the CALLER decides; nothing here blocks.
+# -----------------------------------------------------------------------------
+aa_ma_deps() {
+    local root
+    root="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)"
+    uv run --quiet --project "$root" python -m aa_ma.deps "$@"
 }
 
 # -----------------------------------------------------------------------------

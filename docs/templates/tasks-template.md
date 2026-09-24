@@ -35,7 +35,8 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - Status: PENDING
 
 <!-- Dependencies: list prerequisite milestone IDs, or "None" if this is the first.
-     Example: "Milestone 1" or "Milestones 1, 2" -->
+     Canonical form: "Milestone 1" or "Milestone 1, Milestone 2"; another plan's
+     milestone is "<task-slug> Milestone 5". -->
 - **Dependencies:** None
 
 <!-- Complexity: 0-100%. Measures implementation difficulty.
@@ -102,7 +103,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 
 <!-- Dependencies: list prerequisite sub-step IDs within this milestone,
      or "None" if this is the first sub-step.
-     Example: "Step 1.1" or "Steps 1.1, 1.2" -->
+     Canonical form: "Sub-step 1.1" or "Sub-step 1.1, Sub-step 1.2" -->
 - **Dependencies:** None
 
 <!-- Critical-Path: OPTIONAL flag at sub-step level. Same enum as milestone.
@@ -131,7 +132,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 ### Sub-step 1.2: [Action description]
 - Status: PENDING
 - **Mode:** AFK
-- **Dependencies:** Step 1.1
+- **Dependencies:** Sub-step 1.1
 - **Acceptance Criteria:**
   - [Specific condition for this sub-step]
 - **Result Log:**
@@ -159,7 +160,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 ### Sub-step 2.2: [Action description]
 - Status: PENDING
 - **Mode:** AFK
-- **Dependencies:** Step 2.1
+- **Dependencies:** Sub-step 2.1
 - **Acceptance Criteria:**
   - [Specific condition for this sub-step]
 - **Result Log:**

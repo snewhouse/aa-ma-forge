@@ -53,3 +53,18 @@ _advisory_fence() {
     [ "$status" -eq 0 ]
     [[ "$output" == *"advisory unavailable"* ]]
 }
+
+@test "the shipped /aa-ma-plan Step 5.5 fence prints the Milestone graph and checks it" {
+    PLAN_CMD="${REPO_ROOT}/claude-code/commands/aa-ma-plan.md"
+    awk '/^Write `Dependencies:` in the canonical form only/{f=1} f && /^```bash$/{g=1; next} g && /^```$/{exit} g' \
+        "$PLAN_CMD" > "$WORK/plan-fence.sh"
+    [ -s "$WORK/plan-fence.sh" ]
+    run bash -c "cd '$WORK/t' && TASK_DIR=.claude/dev/active/t TASK_NAME=t bash '$WORK/plan-fence.sh'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"### Milestone graph"* ]]
+    [[ "$output" == *"  M2a --> M3"* ]]
+    sed -i 's/Dependencies: Step M2a.1/Dependencies: Milestone 9/' "$WORK/t/.claude/dev/active/t/t-tasks.md"
+    run bash -c "cd '$WORK/t' && TASK_DIR=.claude/dev/active/t TASK_NAME=t bash '$WORK/plan-fence.sh'"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"UNRESOLVED_DEPENDENCY Sub-step M3.1: Milestone 9"* ]]
+}

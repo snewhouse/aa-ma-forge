@@ -157,6 +157,12 @@
    "src": "command:aa-ma-plan"
   },
   {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "command:aa-ma-plan"
+  },
+  {
    "dst": "hook:aa-ma-plan-marker.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",

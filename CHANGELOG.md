@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- **`Dependencies:` grammar + Milestone graph (`diagram-generation` M7)** — `aa_ma.deps` reads every legacy
+  `Dependencies:` form (`Milestone|Step|Sub-step|Task`, plurals, bold, bare `M2`, ranges `1-3`) with an
+  `M`-prefix-aware resolver (`### Step M2a.1:`), and exempts cross-plan references (`<task-slug> M5`).
+  `python -m aa_ma.deps graph|check|advisory <tasks.md>`, launched as `aa_ma_deps` from `aa-ma-parse.sh`:
+  `/aa-ma-plan` Step 5.5 appends the generated **Milestone graph** to plan §13 and reports
+  `UNRESOLVED_DEPENDENCY`; `/execute-aa-ma-milestone` §5.1 prints an advisory ("Milestone 3 is ACTIVE but
+  Milestone 2 (Dependencies) is PENDING") that never blocks. `aa-ma-gate` does not read the field.
+- **Canonical `Dependencies:` write form** — `grammar.CANONICAL_DEPENDENCY_RE`: `None` · `Milestone 2` ·
+  `Milestone 2, Milestone 3` · `Sub-step 1.1` · `<task-slug> Milestone 5`; enforced on active plans and taught by
+  the scribe and `docs/templates/tasks-template.md`.
+
 ## v0.15.0 (2026-09-24)
 
 ### Added

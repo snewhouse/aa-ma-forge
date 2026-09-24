@@ -881,6 +881,24 @@ Convert plan steps into Hierarchical Task Planning format:
 [Continue for all milestones/steps from plan]
 ```
 
+Write `Dependencies:` in the canonical form only: `None`, `Milestone 2`,
+`Milestone 2, Milestone 3`, `Sub-step 1.1`; another plan's milestone is
+`<task-slug> Milestone 5` (cross-plan, exempt). Then generate the **Milestone
+graph** — derived from tasks.md, never hand-authored — append it to plan.md's
+`## 13. Architecture View`, and fix every `UNRESOLVED_DEPENDENCY` before Step 5.7:
+
+```bash
+for _cand in \
+  "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
+  "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
+  [[ -f "${_cand}" ]] && AA_MA_LIB="${_cand}" && break
+done
+# shellcheck source=/dev/null
+. "${AA_MA_LIB:?aa-ma-parse.sh not found — run scripts/install.sh}"
+aa_ma_deps graph "${TASK_DIR}/${TASK_NAME}-tasks.md"   # prints '### Milestone graph' + mermaid → append to §13
+aa_ma_deps check "${TASK_DIR}/${TASK_NAME}-tasks.md"   # UNRESOLVED_DEPENDENCY lines; exit 1 on any
+```
+
 **Step 5.6: Initialize [task]-provenance.log**
 
 Create initial log entry:

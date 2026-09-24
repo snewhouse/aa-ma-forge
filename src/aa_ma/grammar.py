@@ -265,9 +265,10 @@ CANONICAL_MILESTONE_RE = re.compile(r"^## Milestone (?P<number>\d+): (?P<title>\
 CANONICAL_STEP_RE = re.compile(r"^### Sub-step (?P<number>\d+\.\d+): (?P<title>\S.*)$")
 
 # `Dependencies:` values mirror the heading vocabulary (diagram-generation M7, map Ticket 7):
-# `None` | `Milestone 2` | `Milestone 2, Milestone 3` | `Sub-step 1.1`. The tolerant reader
-# of every legacy form is `aa_ma.deps`; the gate never reads this field (Ticket 16).
-_CANONICAL_DEP = r"(?:Milestone \d+|Sub-step \d+\.\d+)"
+# `None` | `Milestone 2` | `Milestone 2, Milestone 3` | `Sub-step 1.1`, and another plan's
+# milestone as `<task-slug> Milestone 5` (cross-plan: exempt from resolution). The tolerant
+# reader of every legacy form is `aa_ma.deps`; the gate never reads this field (Ticket 16).
+_CANONICAL_DEP = r"(?:(?:[a-z0-9]+(?:-[a-z0-9]+)+ )?Milestone \d+|Sub-step \d+\.\d+)"
 CANONICAL_DEPENDENCY_RE = re.compile(rf"^(?:None|{_CANONICAL_DEP}(?:, {_CANONICAL_DEP})*)$")
 
 

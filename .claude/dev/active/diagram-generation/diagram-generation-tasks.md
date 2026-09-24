@@ -247,9 +247,9 @@
 - Result Log: Mode: AFK — auto-dispatched. Before the entry: `test_leaf_contract` FAILED `add to .importlinter render-is-leaf: ['aa_ma.deps']` (AC8 trap fired as documented). After: 1 passed; `uv run lint-imports` 4 kept / 0 broken.
 
 ### Sub-step 7.4: [impl] Milestone graph into §13; scribe + template spelling
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. RED first (`tests/hooks/aa-ma-deps.bats` 127 / cross-plan canonical case failing), then: `aa_ma_deps` launcher in `aa-ma-parse.sh` (locates the plugin checkout like `aa_ma_gate`, which is untouched; listed in the Exports header — the existing guard caught the omission); `/aa-ma-plan` Step 5.5 self-sufficient fence (graph → §13, `check` exit 1 on UNRESOLVED_DEPENDENCY) + canonical-form instruction; `/execute-aa-ma-milestone` §5.1 step 3 advisory fence (always rc 0, "advisory unavailable" with no uv); spec §XI item 13 sentence; scribe (2 lines) + tasks-template (2 comments, 2 examples) canonical spelling; `CANONICAL_DEPENDENCY_RE` gains `<task-slug> Milestone N` (cross-plan). CHANGELOG `## Unreleased` re-created. Regen: component.md +deps.py node, plugin-surface +1 edge (aa-ma-plan → aa-ma-parse.sh), golden +1 edge; `draw --check` OK. Verified: bats 207/207 (4 new, fences executed as shipped), pytest 1364 passed / 2 skipped, ruff clean, shellcheck clean, lint-imports 4/4.
 
 ### Sub-step 7.5: [verify] `aa-ma-gate` output byte-identical to the pre-M7 golden
 - Status: PENDING

@@ -252,9 +252,9 @@
 - Result Log: Mode: AFK — auto-dispatched. RED first (`tests/hooks/aa-ma-deps.bats` 127 / cross-plan canonical case failing), then: `aa_ma_deps` launcher in `aa-ma-parse.sh` (locates the plugin checkout like `aa_ma_gate`, which is untouched; listed in the Exports header — the existing guard caught the omission); `/aa-ma-plan` Step 5.5 self-sufficient fence (graph → §13, `check` exit 1 on UNRESOLVED_DEPENDENCY) + canonical-form instruction; `/execute-aa-ma-milestone` §5.1 step 3 advisory fence (always rc 0, "advisory unavailable" with no uv); spec §XI item 13 sentence; scribe (2 lines) + tasks-template (2 comments, 2 examples) canonical spelling; `CANONICAL_DEPENDENCY_RE` gains `<task-slug> Milestone N` (cross-plan). CHANGELOG `## Unreleased` re-created. Regen: component.md +deps.py node, plugin-surface +1 edge (aa-ma-plan → aa-ma-parse.sh), golden +1 edge; `draw --check` OK. Verified: bats 207/207 (4 new, fences executed as shipped), pytest 1364 passed / 2 skipped, ruff clean, shellcheck clean, lint-imports 4/4.
 
 ### Sub-step 7.5: [verify] `aa-ma-gate` output byte-identical to the pre-M7 golden
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. Golden captured before any source edit at `dc4e90e` (33 tasks files incl. fixtures × default/kv/`--milestone N` = 205 invocations, sha256 `5444d16692fe1107`). Post-M7: current code (editable install, `CANONICAL_DEPENDENCY_RE` present) over the identical inputs via a scratch worktree at `dc4e90e` → `cmp` BYTE-IDENTICAL, same sha. `git diff dc4e90e..HEAD -- gate.py enforce.py plan_parsers.py` empty; `aa_ma_gate` launcher unchanged.
 
 ## Milestone 8: `PHANTOM_EDGE` sigil grammar
 - Status: PENDING

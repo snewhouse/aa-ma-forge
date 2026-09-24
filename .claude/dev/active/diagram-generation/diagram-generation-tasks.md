@@ -258,7 +258,7 @@
 - Result Log: Mode: AFK — auto-dispatched. Golden captured before any source edit at `dc4e90e` (33 tasks files incl. fixtures × default/kv/`--milestone N` = 205 invocations, sha256 `5444d16692fe1107`). Post-M7: current code (editable install, `CANONICAL_DEPENDENCY_RE` present) over the identical inputs via a scratch worktree at `dc4e90e` → `cmp` BYTE-IDENTICAL, same sha. `git diff dc4e90e..HEAD -- gate.py enforce.py plan_parsers.py` empty; `aa_ma_gate` launcher unchanged.
 
 ## Milestone 8: `PHANTOM_EDGE` sigil grammar
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 2, Milestone 4
 - Gate: HARD
 - Audit-Profile: code-only

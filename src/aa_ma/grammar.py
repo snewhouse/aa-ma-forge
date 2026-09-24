@@ -264,6 +264,12 @@ def split_steps(milestone_block: str) -> list[Block]:
 CANONICAL_MILESTONE_RE = re.compile(r"^## Milestone (?P<number>\d+): (?P<title>\S.*)$")
 CANONICAL_STEP_RE = re.compile(r"^### Sub-step (?P<number>\d+\.\d+): (?P<title>\S.*)$")
 
+# `Dependencies:` values mirror the heading vocabulary (diagram-generation M7, map Ticket 7):
+# `None` | `Milestone 2` | `Milestone 2, Milestone 3` | `Sub-step 1.1`. The tolerant reader
+# of every legacy form is `aa_ma.deps`; the gate never reads this field (Ticket 16).
+_CANONICAL_DEP = r"(?:Milestone \d+|Sub-step \d+\.\d+)"
+CANONICAL_DEPENDENCY_RE = re.compile(rf"^(?:None|{_CANONICAL_DEP}(?:, {_CANONICAL_DEP})*)$")
+
 
 def find_non_canonical(text: str) -> list[str]:
     """Return headings the tolerant reader accepts but the writer form forbids.

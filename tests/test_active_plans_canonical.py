@@ -190,7 +190,8 @@ _LEGACY_NOUN_RE = re.compile(r"(?<!Sub-)\b(?:Steps?|Tasks?)\b|\bM\d|IDs")
 @pytest.mark.parametrize("rel_path", DEPENDENCY_WRITERS)
 def test_writers_teach_the_canonical_dependencies_spelling(rel_path: str) -> None:
     text = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
-    blocks = iter_fenced_blocks(text) or [text]
+    normalised = _normalise_placeholders(text)  # `## Milestone N:` -> a heading the reader sees
+    blocks = iter_fenced_blocks(normalised) or [normalised]
     values = [v for b in blocks for _, v in dependency_fields(b)]
     assert values, f"{rel_path}: no Dependencies: field found — the check is inert"
     bad = [

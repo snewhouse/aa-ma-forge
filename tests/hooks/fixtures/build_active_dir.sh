@@ -72,6 +72,9 @@ if [ -n "$MTIME_OFFSETS" ]; then
     [ "${#MTIME_ARRAY[@]}" -eq "$TASK_COUNT" ] \
         || die "mtime_offsets count (${#MTIME_ARRAY[@]}) must match task_count ($TASK_COUNT)"
 fi
+# One clock read for every offset: reading `date` per task let equal offsets
+# straddle a second boundary and yield unequal mtimes (flaky tiebreak test).
+NOW_EPOCH=$(date +%s)
 
 # ---- format helpers -------------------------------------------------------
 
@@ -158,7 +161,7 @@ for i in $(seq 1 "$TASK_COUNT"); do
         case "$offset" in
             ''|*[!0-9-]*) die "mtime offset must be an integer, got: $offset" ;;
         esac
-        target_epoch=$(( $(date +%s) + offset ))
+        target_epoch=$(( NOW_EPOCH + offset ))
         # touch -d requires a date string; use POSIX-portable @epoch form
         touch -d "@${target_epoch}" "$task_dir/${task_name}-tasks.md"
     fi

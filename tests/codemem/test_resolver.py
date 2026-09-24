@@ -129,10 +129,26 @@ class TestCrossFileResolution:
             # `requests.get()` → attribute call → `get` is the callee name.
             # Not resolvable (requests not indexed) → dst_unresolved populated.
             has_unresolved_get = any(
-                dst_id is None and dst_unresolved == "get"
+                dst_id is None and dst_unresolved == "requests.get"
                 for dst_id, dst_unresolved in rows
             )
             assert has_unresolved_get, rows
+
+    def test_module_attribute_call_still_resolves(self, tmp_path):
+        """``import b; b.helper()`` resolves on the last dotted segment."""
+        (tmp_path / ".gitignore").write_text(".codemem/\n")
+        (tmp_path / "a.py").write_text("import b\ndef caller(): return b.helper()\n")
+        (tmp_path / "b.py").write_text("def helper(): return 1\n")
+        _init_commit(tmp_path)
+        db_path = tmp_path / "out" / "index.db"
+        build_index(tmp_path, db_path, package=".")
+        with db.connect(db_path, read_only=True) as conn:
+            rows = conn.execute(
+                "SELECT src.name, dst.name FROM edges e "
+                "JOIN symbols src ON src.id = e.src_symbol_id "
+                "JOIN symbols dst ON dst.id = e.dst_symbol_id"
+            ).fetchall()
+            assert ("caller", "helper") in rows
 
     def test_relative_import_strategy(self, tmp_path):
         # Strategy 2: source dir + imp
@@ -208,4 +224,38 @@ class TestPythonParserExposesImports:
         # Was 0 before Task 1.6; now we emit the unresolved candidate.
         assert pr.edges == []  # intra-file still empty
         names = {e.dst_unresolved for e in pr.unresolved_edges}
-        assert "get" in names
+        assert "requests.get" in names
+
+    @pytest.mark.parametrize(
+        ("source", "expected"),
+        [
+            ("import sqlite3\ndef f(x):\n    return sqlite3.connect(x)\n", "sqlite3.connect"),
+            ("import numpy as np\ndef f(x):\n    return np.array(x)\n", "numpy.array"),
+            ("class C:\n    def f(self, q):\n        return self.conn.execute(q)\n", "self.conn.execute"),
+            ("from os import path as p\ndef f(x):\n    return p.join(x)\n", "os.path.join"),
+        ],
+    )
+    def test_dotted_callee_kept(self, source, expected):
+        from codemem.parser.python_ast import extract_python_signatures
+        pr = extract_python_signatures(source, package=".", file_rel="x.py")
+        names = {e.dst_unresolved for e in pr.unresolved_edges}
+        assert expected in names, names
+
+    def test_import_aliases_map(self):
+        from codemem.parser.python_ast import extract_python_signatures
+        pr = extract_python_signatures(
+            "import numpy as np\nimport sqlite3\nimport a.b\nfrom os import path as p\n",
+            package=".", file_rel="x.py",
+        )
+        assert pr.import_aliases == {
+            "np": "numpy", "sqlite3": "sqlite3", "a": "a", "p": "os.path",
+        }
+
+    def test_call_chain_through_call_not_emitted(self):
+        """Receivers that are not a pure dotted chain stay ambiguous."""
+        from codemem.parser.python_ast import extract_python_signatures
+        pr = extract_python_signatures(
+            "def f():\n    return g().bar()\n", package=".", file_rel="x.py",
+        )
+        names = {e.dst_unresolved for e in pr.unresolved_edges}
+        assert not any(n and "(" in n for n in names), names

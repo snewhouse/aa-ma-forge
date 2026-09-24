@@ -32,9 +32,9 @@
 - Result Log: Mode: AFK — auto-dispatched. apply_schema() captures prior user_version and restores it when schema.sql lowered it (4 lines). TestDowngradeGuard 2/2 green (v2-era ensure_schema on v3 DB -> 3, file_edges intact). codemem suite: 534 passed / 3 failed (the 3 are 1.6 persistence tests, expected).
 
 ### Sub-step 1.4: [test] dotted-callee + asname fixtures, RED (2 assertions flip in `test_resolver.py`)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. test_resolver.py: 2 assertions flipped get -> requests.get; + parametrized dotted-callee (sqlite3.connect, numpy.array via asname, self.conn.execute, os.path.join via from-import asname), import_aliases map shape, and 2 guards (import b; b.helper() still resolves; g().bar() not emitted). RED 7 failed / 11 passed (guards pass pre-change by design).
 
 ### Sub-step 1.5: [impl] `ast.unparse` callee + `import_aliases` map (`python_ast.py:113-120,370-377`)
 - Status: PENDING

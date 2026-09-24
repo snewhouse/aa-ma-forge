@@ -68,3 +68,23 @@ _advisory_fence() {
     [ "$status" -eq 1 ]
     [[ "$output" == *"UNRESOLVED_DEPENDENCY Sub-step M3.1: Milestone 9"* ]]
 }
+
+@test "aa_ma_deps says so on stderr when uv is missing" {
+    # shellcheck disable=SC1090
+    . "$HELPER"
+    PATH=/usr/bin:/bin run -127 --separate-stderr aa_ma_deps advisory "$WORK/t/.claude/dev/active/t/t-tasks.md"
+    [[ "$stderr" == *"aa_ma_deps: uv not on PATH"* ]]
+}
+
+@test "§6.2 (next-milestone dependencies) defers to the §5.1 advisory — it never halts" {
+    run bash -c "awk '/^### 6\\.2 /,/^### 6\\.3 /' '$MILESTONE_CMD'"
+    [[ "$output" == *"§5.1"* ]]
+    [[ "$output" != *"HALT"* ]]
+}
+
+@test "/execute-aa-ma-full never halts on Dependencies either" {
+    FULL_CMD="${REPO_ROOT}/claude-code/commands/execute-aa-ma-full.md"
+    grep -q "aa_ma_deps advisory" "$FULL_CMD"
+    run bash -c "grep -i -A3 'dependenc' '$FULL_CMD' | grep HALT"
+    [ "$status" -ne 0 ]
+}

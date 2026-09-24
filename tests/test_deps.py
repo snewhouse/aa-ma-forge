@@ -277,3 +277,81 @@ def test_cli_advisory_always_exits_0() -> None:
 @pytest.mark.parametrize("args", [(), ("graph",), ("nope", "x"), ("graph", "/no/such/tasks.md")])
 def test_cli_usage_errors_exit_2(args: tuple[str, ...]) -> None:
     assert _run(*args).returncode == 2
+
+
+# ---------------------------------------------------------------------
+# §6.8 M7 review fixes (Ste: CRITICAL accepted, "Fix all now")
+# ---------------------------------------------------------------------
+
+import time  # noqa: E402
+
+from aa_ma import grammar  # noqa: E402
+
+_PAD = 50_000
+
+
+@pytest.mark.parametrize("line", [
+    " " * _PAD + "x",
+    "- Dependencies: x" + " " * _PAD + "y",
+    "- Status: ACTIVE" + " " * _PAD,
+])
+def test_field_reads_are_linear_on_padded_lines(line: str) -> None:
+    """security-auditor: `[ \\t]*-?[ \\t]*` + lazy value was quadratic (14 s at 50k)."""
+    text = f"## Milestone 1: x\n{line}\n## Milestone 2: y\n- Status: ACTIVE\n- Dependencies: Milestone 1\n"
+    start = time.perf_counter()
+    check(text)
+    advisory(text)
+    assert time.perf_counter() - start < 0.5
+
+
+def test_a_huge_range_is_not_expanded() -> None:
+    start = time.perf_counter()
+    refs = parse_dependencies("Milestones 1-99999999")
+    assert time.perf_counter() - start < 0.5
+    assert [r.number for r in refs] == ["1", "99999999"]
+    assert check("## Milestone 1: x\n- Dependencies: Milestones 1-99999999\n") == [
+        "UNRESOLVED_DEPENDENCY Milestone 1: 99999999"
+    ]
+
+
+def test_a_range_within_the_cap_still_expands() -> None:
+    assert len(parse_dependencies(f"Milestones 1-{deps.MAX_SPAN + 1}")) == deps.MAX_SPAN + 1
+
+
+def test_cli_check_caps_its_output(tmp_path: Path) -> None:
+    bad = tmp_path / "t-tasks.md"
+    many = ", ".join(f"Milestone {n}" for n in range(100, 100 + deps.MAX_FINDINGS + 7))
+    bad.write_text(f"## Milestone 1: x\n- Dependencies: {many}\n")
+    r = _run("check", str(bad))
+    lines = r.stdout.splitlines()
+    assert r.returncode == 1 and len(lines) == deps.MAX_FINDINGS + 1
+    assert lines[-1] == "… 7 more UNRESOLVED_DEPENDENCY findings"
+
+
+@pytest.mark.parametrize(("value", "expected"), [
+    ("see docs/M2.md", []),
+    ("Milestone 2, and 3", [("milestone", "2"), ("milestone", "3")]),
+])
+def test_parser_edge_shapes(value: str, expected: list[tuple[str, str]]) -> None:
+    assert [(r.kind, r.number) for r in parse_dependencies(value)] == expected
+
+
+@pytest.mark.parametrize("line", ["- Status: ACTIVE", "  -  **Status:** ACTIVE  ", "**Status**: ACTIVE\r", "-Status: ACTIVE"])
+def test_shared_field_pattern_reads_every_bullet_and_bold_form(line: str) -> None:
+    m = grammar.field_pattern("Status").search(line)
+    assert m and m.group(1) == "ACTIVE"
+
+
+def test_tui_and_deps_share_one_field_pattern() -> None:
+    from aa_ma.tui import parser as tui_parser
+
+    assert not hasattr(tui_parser, "_field_pattern")
+    assert not hasattr(deps, "_field_re")
+
+
+def test_own_text_is_one_helper_for_gate_and_deps() -> None:
+    from aa_ma import gate
+
+    [b] = [b for b in split_milestones(FIXTURE) if b.number == "2"]
+    assert grammar.own_text(b) == b.text[: b.text.index("### Step M2.1")]
+    assert not hasattr(gate, "_own_text") and not hasattr(deps, "_head")

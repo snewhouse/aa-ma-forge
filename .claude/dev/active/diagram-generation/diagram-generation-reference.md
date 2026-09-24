@@ -174,3 +174,11 @@ _Last Updated: 2026-09-22_
 - Stamp: sha = HEAD at regeneration (parent of the carrying commit), UTC date.
 - Regenerate everything: `scripts/regen-generated.sh` (build → draw --write → plugin-surface golden → --check). CI job: `architecture-drift` in security.yml.
 - ADR-0016 Accepted; ADR-0015 reserved for M11.
+
+## M7 facts (2026-09-24)
+
+- `src/aa_ma/deps.py`: `DepRef(raw, kind: Kind, number, task_slug)`, `Kind = Literal["milestone","step","none","cross-plan"]`; `parse_dependencies`, `resolve` (unresolved only), `dependency_fields`, `check` → `UNRESOLVED_DEPENDENCY <owner>: <ref>`, `milestone_graph` (round `M<n>("Milestone N: title")` nodes; `"`/`<`/`>` → `#quot;`/`#lt;`/`#gt;`), `advisory` → `Milestone X is ACTIVE but Milestone Y (Dependencies) is <STATUS>`; `MAX_SPAN = 100`, `MAX_FINDINGS = 200`. [valid: 2026-09-24]
+- CLI: `python -m aa_ma.deps {graph|check|advisory} <tasks.md>` — exit 0 / 1 (check findings) / 2 (usage, unreadable). Shell: `aa_ma_deps` in `claude-code/hooks/lib/aa-ma-parse.sh` (uv notice rc 127; `timeout ${AA_MA_DEPS_TIMEOUT:-30}` when available). [valid: 2026-09-24]
+- `grammar.py` additions: `CANONICAL_DEPENDENCY_RE` (`None` | `Milestone N` | `Sub-step N.N` | `<task-slug> Milestone N`, comma-separated), `NUMBER_BODY`, `own_text(block)` (gate + deps), `field_pattern(name)` (tui + deps; linear). [valid: 2026-09-24]
+- Surfaces: `/aa-ma-plan` Step 5.5 appends `### Milestone graph` to §13 and runs `check`; `/execute-aa-ma-milestone` §5.1 step 3 advisory (always rc 0); §6.2 and `/execute-aa-ma-full` defer to it — no HALT on `Dependencies:`. `aa-ma-gate` never reads the field. [valid: 2026-09-24]
+- Corpus (2026-09-24): 324 `Dependencies:` fields / 61 None / 1 cross-plan / 0 unresolved; naive M-stripping resolver: 29 false failures. [valid: 2026-09-24]

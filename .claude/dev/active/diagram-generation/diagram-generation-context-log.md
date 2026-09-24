@@ -289,3 +289,15 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - Pre-M7 `aa-ma-gate` golden: 33 files / 205 invocations, sha256 prefix `5444d16692fe1107`, base `dc4e90e` (scratch copy; 7.5 re-runs on identical inputs).
 - 7.4 scope addition (recorded, KISS): `CANONICAL_DEPENDENCY_RE` also accepts `<task-slug> Milestone N`. Without it the canonical form could not express a cross-plan dependency at all, and the active-plans lint would have refused the one legitimate cross-plan shape the corpus holds (`plan-architecture-views` M2). `aa_ma_deps` launcher added to `aa-ma-parse.sh` (hooks/lib — inside `hook-modification`) so consumer repos reach the plugin's Python exactly as the gate does; `aa_ma_gate` itself unchanged.
 - M7 §6.8 (Ste): CRITICAL accepted — `execute-aa-ma-milestone.md` §6.2 and `execute-aa-ma-full.md` no longer HALT on `Dependencies:`; §6.2 defers to the §5.1 advisory (at §6.2 the next milestone is still PENDING, so running the advisory there would only repeat §5.1's line). All WARNINGs fixed: shared `grammar.field_pattern` (linear; tui + deps) and `grammar.own_text` (gate + deps), `MAX_SPAN=100`, `MAX_FINDINGS=200`, launcher timeout + uv notice. Recorded, not fixed: hyphenated-word false cross-plan exemption (advisory only).
+
+## [2026-09-24] GATE APPROVAL: Milestone 7: `Dependencies:` grammar + Milestone graph + advisory
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 8/8 (AC2 as amended by Ste: zero corpus findings)
+- Decision: APPROVED
+
+## [2026-09-24] Milestone Completion: Milestone 7: `Dependencies:` grammar + Milestone graph + advisory
+- Status: COMPLETE
+- Key outcome: `aa_ma.deps` reads every legacy `Dependencies:` form with an M-prefix-aware resolver; the Milestone graph is generated into plan §13 by `/aa-ma-plan`, `UNRESOLVED_DEPENDENCY` is a planning-time finding, and the advisory never blocks (§5.1; §6.2 and execute-aa-ma-full no longer HALT). `aa-ma-gate` output byte-identical.
+- Artifacts: src/aa_ma/deps.py, grammar.py (CANONICAL_DEPENDENCY_RE, NUMBER_BODY, own_text, field_pattern), gate.py + tui/parser.py (shared helpers), aa-ma-parse.sh (aa_ma_deps), commands aa-ma-plan / execute-aa-ma-milestone / execute-aa-ma-full, scribe, tasks-template, spec §XI 13, foundations, CHANGELOG Unreleased, .importlinter, tests (test_deps.py, test_active_plans_canonical.py, hooks/aa-ma-deps.bats, fixtures/deps-hazards.md).
+- Tests: pytest 1379 passed / 2 skipped; bats 210/210; lint-imports 4/4.

@@ -220,7 +220,7 @@
 - Result Log: Mode: HITL — Ste: Cut v0.15.0. Dry-run passed twice (a8812c7 and final tree). `scripts/release.sh minor --headline "living architecture docs generated from the code (codemem draw --write/--check)"` → bump commit b469b08, annotated tag v0.15.0 pushed, GitHub Release published (not draft). Verified: `git describe` = v0.15.0, `importlib.metadata.version('aa-ma')` = 0.15.0, README current-version line, CI on b469b08 6/6 success incl. Architecture drift. `docs/spec` unchanged v0.14.0..v0.15.0 → no install.sh re-run needed.
 
 ## Milestone 7: `Dependencies:` grammar + Milestone graph + advisory
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: None
 - Gate: HARD
 - Audit-Profile: code-only
@@ -230,6 +230,7 @@
 - Goal: Close CONTEXT.md's documented-undelivered Milestone graph promise, with an `M`-prefix-aware resolver.
 - Acceptance Criteria: 8 criteria — see plan.md § Milestone 7
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
+- Result Log: COMPLETE 2026-09-24. 8/8 criteria (AC2 amended by Ste: zero corpus findings). `aa_ma.deps` + `python -m aa_ma.deps graph|check|advisory` via `aa_ma_deps`; Milestone graph into /aa-ma-plan §13; advisory in §5.1, never halts (§6.2/full rewritten after §6.8 CRITICAL). aa-ma-gate byte-identical (205 invocations). §6.8: 1 CRITICAL accepted+fixed, 6 WARNING fixed. pytest 1379/2 skipped, bats 210/210. HARD gate approved by Ste.
 
 ### Sub-step 7.1: [test] `deps-hazards.md` (`M1.0`, `M2a.1`, `2a`, cross-plan) + naive mutant, RED
 - Status: COMPLETE

@@ -375,9 +375,9 @@
 - Result Log: Mode: AFK — auto-dispatched. RED: `tests/hooks/test_diagram_verified.bats` 13/13 fail (3 lint: AC1/AC2/AC3 fail only on the missing `sigils:` line — PHANTOM_EDGE/`codemem build` assertions already hold; 10 execute the second §6.7 fence, still absent). Python 7 RED: `test_cli.py` (edges=0 opt-out; unterminated §13 → `sigils: UNKNOWN`), `test_phantom_edge.py` (fixture counts edges=7 phantom=1 unknown=4; phantoms; no/stale/partial index → index-unknown=3). 71 existing render tests still pass.
 
 ### Sub-step 11.2: [verify] capture pre-edit §6.7 awk extraction output
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. Captured at execute-aa-ma-milestone.md unchanged since 6037f62: extractor `awk '/^### 6\.7 /{f=1} f && /^```bash$/{g=1; next} g && /^```$/{exit} g'` → 105 lines, sha256 17be760b02d79a79b55b0a8423ef204f30ff8b8704fb40b0163b536424299eeb (first line `TASK_DIR=".claude/dev/active/${TASK_NAME}"`, last `echo "ENG-STANDARDS-GATE: PASS (all 5 conditions satisfied)"`). Bats before: aa-ma-gate-python 32, aa-ma-gate-scans 10, execute_aa_ma_milestone_phase_6_8 16 = 58/58; full tests/hooks 210/210. `aa-ma-gate --format kv` over 33 corpus tasks.md: 187 lines (scratch `m11-gate-kv-corpus.pre`).
 
 ### Sub-step 11.3: [impl] checklist row + fence **after** the existing gate fence (Critical-Path)
 - Status: PENDING

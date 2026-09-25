@@ -309,9 +309,9 @@
 - Result Log: HITL Proceed (Ste). Skill(prototype) LOGIC: single-file demo + throwaway scanner (Python `ast` + alias map; `sg` `has: field: function` for JS/TS/Go), committed on LOCAL-ONLY branch `prototype/diagram-generation-io` @ bdccfda (external paths; push blocked, Ste: never push). Measured non-test edges — aa-ma-forge@d31e301: file 18 qualified / 44 q+bare, L1 10; medical-research-skills@efafac2 (540 py + 19 js on disk; 1893 committed node_modules files deleted in its worktree): file 186 q / 285 q+b, with `open()` 381 / 436, L1 24. Breach is single-language → per-language split cannot fix it. mmdc 11.17: edge ids + `class eN bare` render `stroke-dasharray:4 4`; `:::` is node-only. Verdict REVISE: auto level (file if ≤120 else L1), AC4 → edge ids + class lines, AC5 N=5, AC6 records file-level 285 OVER. plan.md M9 amended. Provenance `PROTOTYPE — Milestone 9 — REVISE` written.
 
 ### Sub-step 9.2: [test] per-language sink fixtures (Py/TS/TSX/JS/Go), RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `tests/codemem/test_io_sinks.py` (new): committed fixture tree with one I/O file per v1 language + `opener.py` (open-only) + `repo.py` (bare `self.db.execute`) + `tests/` (excluded); covers the catalogue (load/validate incl. YAML-1.1 `on`, duplicates, https source), `classify`, the Python Name-alias rewrite, the ast-grep `-call` edges (enclosing fn, chained callee dropped), AC2 (5 langs qualified), AC5 (`open` excluded, fs ≤ 5), tier merge, auto level (file vs L1), AC1/AC4 (two classDefs, edge ids in exactly one class line), subgraphs, escaping, AC3 (`io` registered, `--check` DRIFT), band line 120/121, AC6 script byte-identity + read-only. RED: collection ImportError (`codemem.draw.io_sinks` absent). Local commit only until GREEN (L-025). Decisions: PyYAML declared (Ste); AC6 builds from `git archive <sha>` (worktree not sha-pinned; external efafac2 tracks 1918 node_modules files); `match` field dropped from the row shape (call is the only v1 node class).
 
 ### Sub-step 9.3: [impl] `ast_grep.py` wrapper + 4 rule YAMLs + `draw/sinks.yaml`
 - Status: PENDING

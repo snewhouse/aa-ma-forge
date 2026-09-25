@@ -342,3 +342,15 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - Fixed RED-first: script works from any cwd (`uv run --project`), linear column-precise enclosing-function sweep, renderer free of yaml (`CATEGORY_LABEL` → mermaid.py, `IoEdge` under TYPE_CHECKING), Contract Files amended, 285/289 note, `DENSE_BAND`-derived tests, band-line sanitising, extra-key message.
 - Deferred (Ste): arrow-function / function-expression callables → M13 carry-forward; io.md prose discloses the gap.
 - CI red on 83b6dbf was a process defect (regen before `git add`), not code: L-026; the regen script now refuses untracked sources.
+
+## [2026-09-25] GATE APPROVAL: Milestone 9: I/O-boundary view — `Prototype-Required: YES`
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 6/6
+- Decision: APPROVED
+
+## [2026-09-25] Milestone Completion: Milestone 9: I/O-boundary view — `Prototype-Required: YES`
+- Status: COMPLETE
+- Key outcome: generated `docs/architecture/io.md` — per-file (else L1) arrows into language-subgraph sink categories, qualified solid / bare dashed via edge-id classes, classified at render time from `draw/sinks.yaml`; TS/TSX/JS/Go call edges now stored with receivers; AC6 band line for medical-research-skills@efafac2 = 289 OVER.
+- Artifacts: codemem/draw/{io_sinks.py,sinks.yaml,mermaid.py,views.py,cut.py}, parser/{ast_grep.py,python_ast.py,rules/*.yml}, scripts/{measure_io_band.sh,regen-generated.sh}, pyproject (+pyyaml), src/aa_ma/render/html.py (comment), docs/architecture/io.md, tests/codemem/test_io_sinks.py, CHANGELOG, docs/lessons.md L-026.
+- Tests: pytest 1485 passed / 2 skipped; bats 210/210; lint-imports 4/4; ruff + shellcheck clean; CI green on c136ac2.

@@ -292,7 +292,7 @@
 - Result Log: Mode: AFK — auto-dispatched. AC5 test globs every `.claude/dev/completed/**/*-plan.md` (parametrized; skips only files carrying a sigil — none do): zero PHANTOM_EDGE / LABEL_UNKNOWN / UNKNOWN. Golden before/after (scratch, render stubbed): 22 of 24 files byte-identical in findings; changes only (a) this plan's §13 — one real PHANTOM_EDGE `python_ast -->|@import| resolver` (neither imports the other; the two resolver-gap claims now resolve), (b) the new `sigil-edges.md` fixture (linted against its throwaway repo in tests). Ste: relabelled that §13 claim to prose `|feeds|` (plan.md line 279); `aa-ma-lint-views` on this plan → exit 0, render PASS, 2 INFO UNKNOWNs (`.sql` / directory nodes).
 
 ## Milestone 9: I/O-boundary view — `Prototype-Required: YES`
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 6
 - Gate: HARD
 - Audit-Profile: code-only
@@ -301,6 +301,7 @@
 - Effort: 3
 - Goal: A merged `io.md` with language subgraphs showing where the code touches DB, HTTP, filesystem, subprocess, env and queues.
 - Acceptance Criteria: 6 criteria — see plan.md § Milestone 9
+- Result Log: COMPLETE 2026-09-25, HARD gate APPROVED (Ste). 6/6 AC: PROTOTYPE REVISE line + exactly two classDefs; 5 langs qualified on fixture; `io` registered, `check_views` unchanged; edge ids in exactly one tier class line, dasharray differs; `open` excluded, fs ≤ 5; `IO_DENSE_BAND repo=medical-research-skills sha=efafac2… edges=289 OVER` reproduced byte-identically. §6.7 PASS; §6.8 PASS_WITH_WARNINGS 0/7/18 (6 W fixed, arrow-fn gap → M13). Commits cb12024 (RED) → 598f749 → 83b6dbf → eb1495f (drift fix, L-026) → c136ac2 (§6.8 fixes). pytest 1485/2 skipped; CI green.
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 9.1: [prototype] `Skill(prototype)` on this repo + `medical-research-skills`; `PROTOTYPE` provenance

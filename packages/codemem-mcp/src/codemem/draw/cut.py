@@ -83,7 +83,7 @@ def cut(
     conn: sqlite3.Connection,
     level: Level,
     *,
-    scope: str | None = None,
+    scope: str | tuple[str, ...] | None = None,
     hops: int = 1,
     include_tests: bool = False,
     direction: str = "both",
@@ -197,9 +197,9 @@ def _symbol_path(scip_id: str) -> str:
 
 
 def _neighbourhood(
-    edges: set[tuple[str, str, str]], scope: str, hops: int, direction: str
+    edges: set[tuple[str, str, str]], scope: str | tuple[str, ...], hops: int, direction: str
 ) -> set[tuple[str, str, str]]:
-    """Edges reached within ``hops`` from every node whose name starts with ``scope``."""
+    """Edges reached within ``hops`` from every node whose name starts with ``scope`` (any of them)."""
     down: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
     up: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
     for e in edges:

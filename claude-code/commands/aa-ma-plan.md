@@ -561,6 +561,30 @@ Ensure plan includes ALL 13 required elements:
 12. Engineering Standards Declaration (which themes from `claude-code/rules/engineering-standards.md` materially apply, with one-sentence rationale per theme — captured in Phase 2 Step 2.4)
 13. Architecture View (mermaid Component view; Flow view iff `Critical-Path:` present; or a canonical `Diagram-Waiver`) and a `#### Contract` block per milestone with `Audit-Profile ∈ {full, code-only, infra}`
 
+**Step 4.2b: Seed §13 from the code graph**
+
+The Component view starts from the code, not from memory. Run one cut over every
+**existing** file the plan will `Modify` (Phase 3 found them) and paste its output under
+`### Component view` unchanged: node labels are repo paths and edges carry the quoted
+`@import` / `@call` sigils, so `aa-ma-lint-views` checks each one (`PHANTOM_EDGE`). Then
+add what does not exist yet — `(new)` nodes and the intended edges, with prose labels
+(`-->|will call|`), never a sigil. The seed is caption-free. A plan that only creates files
+skips the cut. Phase 4.5 check 8 (`aa-ma-lint-views --coverage`) flags any `Create` /
+`Modify` path the view leaves undrawn.
+
+```bash
+# The aa-ma-forge checkout, from this command's installed symlink (scripts/install.sh).
+AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/commands/aa-ma-plan.md)")/../.." && pwd)
+SCOPES=()
+for f in <each existing path the plan will Modify>; do SCOPES+=(--scope "$f"); done
+# Run from the project root: codemem reads ./.codemem/index.db.
+if ! uv run --project "${AA_MA_ROOT}" codemem draw --level L2 "${SCOPES[@]}" --hops 1 --direction both; then
+  # codemem has printed why (no index / schema too old / unreadable) on stderr.
+  echo "§13 seed unavailable (reason above): run \`codemem build\` in the project root and re-seed."
+  echo "An empty seed is not 'nothing to draw'."
+fi
+```
+
 **Step 4.3: Validate Plan Completeness**
 
 Check generated plan against AA-MA standard:
@@ -595,7 +619,7 @@ Provide:
 10. Risks (top 3) + mitigations
 11. ONE Next action + which AA-MA file(s) to update
 12. Engineering Standards Declaration (themes from claude-code/rules/engineering-standards.md that materially apply; one-sentence rationale each)
-13. Architecture View + Contract blocks (mermaid; spec §XI item 13)
+13. Architecture View + Contract blocks (mermaid; spec §XI item 13; seed the Component view per Step 4.2b)
 
 Format in Markdown for direct insertion into [task]-plan.md
 ```

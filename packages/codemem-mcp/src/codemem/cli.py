@@ -296,7 +296,7 @@ def _cmd_draw(args: argparse.Namespace) -> int:
         level = Level[args.level or Level.L0.name]
         try:
             c = cut(
-                conn, level, scope=args.scope, hops=1 if args.hops is None else args.hops,
+                conn, level, scope=tuple(args.scope) if args.scope else None, hops=1 if args.hops is None else args.hops,
                 include_tests=args.include_tests, direction=args.direction or "both",
                 kind=args.kind or "both",
             )
@@ -401,7 +401,10 @@ def build_parser() -> argparse.ArgumentParser:
                       help="Exit 1 if docs/architecture/ drifted from the code (UNKNOWN + 0 with no index)")
     pd.add_argument("--level", choices=[lv.name for lv in Level], default=None,
                     help="L0 top dirs, L1 dirs depth 2, L2 files, L3 symbols (default L0)")
-    pd.add_argument("--scope", help="Path prefix to centre the cut on")
+    pd.add_argument(
+        "--scope", action="append",
+        help="Path prefix to centre the cut on; repeat for several (their union)",
+    )
     pd.add_argument("--hops", type=_non_negative_int, default=None,
                     help="Neighbourhood radius for --scope (default 1)")
     pd.add_argument("--include-tests", action="store_true", help="Keep tests/ (excluded by default)")

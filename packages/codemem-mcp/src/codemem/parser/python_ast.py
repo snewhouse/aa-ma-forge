@@ -366,7 +366,8 @@ def _extract_call_names(
     * ``intra``: bare or attribute calls whose name matches a same-file
       symbol. These become resolved intra-file edges.
     * ``extra``: bare-name calls NOT in ``resolvable`` and NOT in the
-      built-in exclusion list. Attribute calls whose attr doesn't match
+      built-in exclusion list, qualified through ``import_aliases``
+      (``from subprocess import run`` -> ``subprocess.run``). Attribute calls whose attr doesn't match
       a same-file symbol are recorded as the full dotted chain
       (``sqlite3.connect``, ``self.conn.execute``) when the receiver is a
       pure Name/Attribute chain, with the head rewritten through
@@ -390,7 +391,7 @@ def _extract_call_names(
             if n in resolvable:
                 intra.add(n)
             else:
-                extra.add(n)
+                extra.add(import_aliases.get(n, n))  # `from subprocess import run` -> subprocess.run
         elif isinstance(func, ast.Attribute):
             n = func.attr
             if n in resolvable:

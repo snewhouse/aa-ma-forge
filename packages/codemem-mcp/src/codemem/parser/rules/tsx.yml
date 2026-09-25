@@ -51,3 +51,6 @@ id: tsx-call
 language: Tsx
 rule:
   kind: call_expression
+  has:
+    field: function
+    pattern: $CALLEE

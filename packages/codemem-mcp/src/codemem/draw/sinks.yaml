@@ -1,0 +1,226 @@
+# I/O sink catalogue for the io view (diagram-generation M9; research:
+# docs/research/diagram-generation-io-sink-catalogue.md, Ticket 6).
+#
+# Rows are written from each library's official docs (`source`). Semgrep rules are
+# NOT a source: the Semgrep Rules License v1.0 forbids redistribution.
+#
+# tier: qualified — `symbol` is the whole callee as codemem stores it (python heads
+#                   are rewritten through the import-alias map; JS/TS/Go use the
+#                   conventional local name, e.g. `fs`, `http`, `os`).
+#       bare      — `symbol` is a method name; it matches the LAST segment of a
+#                   callee that has a receiver whose type codemem does not know
+#                   (`conn.execute`). Low confidence: drawn dashed.
+# lang and symbol may each be a list. Python's builtin `open` is deliberately
+# absent: it stays in python_ast._CALL_EXCLUDE (M9 AC5).
+# Non-call boundaries (`os.environ[...]`, `process.env.X`) are out of v1.
+
+# --- python ---------------------------------------------------------------------------
+- lang: python
+  category: db
+  tier: qualified
+  symbol: [sqlite3.connect, psycopg.connect, psycopg2.connect, duckdb.connect]
+  source: https://docs.python.org/3/library/sqlite3.html
+- lang: python
+  category: db
+  tier: qualified
+  symbol: [sqlalchemy.create_engine, sqlalchemy.create_async_engine]
+  source: https://docs.sqlalchemy.org/en/20/core/engines.html
+- lang: python
+  category: db
+  tier: qualified
+  symbol: [pymongo.MongoClient]
+  source: https://pymongo.readthedocs.io/en/stable/api/pymongo/mongo_client.html
+- lang: python
+  category: db
+  tier: bare
+  symbol: [execute, executemany, executescript, fetchall, fetchone, fetchmany]
+  source: https://docs.python.org/3/library/sqlite3.html#cursor-objects
+- lang: python
+  category: http
+  tier: qualified
+  symbol: [requests.get, requests.post, requests.put, requests.patch, requests.delete, requests.head, requests.request, requests.Session]
+  source: https://requests.readthedocs.io/en/latest/api/
+- lang: python
+  category: http
+  tier: qualified
+  symbol: [httpx.get, httpx.post, httpx.put, httpx.patch, httpx.delete, httpx.request, httpx.Client, httpx.AsyncClient]
+  source: https://www.python-httpx.org/api/
+- lang: python
+  category: http
+  tier: qualified
+  symbol: [urllib.request.urlopen, urllib.request.Request, http.client.HTTPConnection, http.client.HTTPSConnection, http.server.HTTPServer]
+  source: https://docs.python.org/3/library/urllib.request.html
+- lang: python
+  category: http
+  tier: qualified
+  symbol: [aiohttp.ClientSession]
+  source: https://docs.aiohttp.org/en/stable/client_reference.html
+- lang: python
+  category: http
+  tier: qualified
+  symbol: [flask.Flask, fastapi.FastAPI, uvicorn.run]
+  source: https://flask.palletsprojects.com/en/stable/api/
+- lang: python
+  category: fs
+  tier: qualified
+  symbol: [io.open, os.remove, os.rename, os.replace, os.mkdir, os.makedirs, os.listdir, os.walk, os.scandir, os.unlink, os.rmdir]
+  source: https://docs.python.org/3/library/os.html
+- lang: python
+  category: fs
+  tier: qualified
+  symbol: [shutil.copy, shutil.copy2, shutil.copyfile, shutil.copytree, shutil.move, shutil.rmtree]
+  source: https://docs.python.org/3/library/shutil.html
+- lang: python
+  category: fs
+  tier: qualified
+  symbol: [glob.glob, tempfile.mkdtemp, tempfile.NamedTemporaryFile, tempfile.TemporaryDirectory]
+  source: https://docs.python.org/3/library/tempfile.html
+- lang: python
+  category: fs
+  tier: bare
+  symbol: [read_text, write_text, read_bytes, write_bytes, iterdir, rglob, mkdir, unlink, rmdir, touch]
+  source: https://docs.python.org/3/library/pathlib.html
+- lang: python
+  category: subprocess
+  tier: qualified
+  symbol: [subprocess.run, subprocess.Popen, subprocess.call, subprocess.check_call, subprocess.check_output, os.system, os.popen, os.execv, os.execvp, asyncio.create_subprocess_exec, asyncio.create_subprocess_shell]
+  source: https://docs.python.org/3/library/subprocess.html
+- lang: python
+  category: subprocess
+  tier: bare
+  symbol: [communicate]
+  source: https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
+- lang: python
+  category: env
+  tier: qualified
+  symbol: [os.getenv, os.environ.get, os.putenv]
+  source: https://docs.python.org/3/library/os.html#os.getenv
+- lang: python
+  category: env
+  tier: qualified
+  symbol: [dotenv.load_dotenv, dotenv.dotenv_values]
+  source: https://saurabh-kumar.com/python-dotenv/
+- lang: python
+  category: queue
+  tier: qualified
+  symbol: [redis.Redis, redis.StrictRedis, redis.from_url]
+  source: https://redis.readthedocs.io/en/stable/connections.html
+- lang: python
+  category: queue
+  tier: qualified
+  symbol: [pika.BlockingConnection, kafka.KafkaProducer, kafka.KafkaConsumer, confluent_kafka.Producer, confluent_kafka.Consumer]
+  source: https://kafka-python.readthedocs.io/en/master/apidoc/KafkaProducer.html
+- lang: python
+  category: queue
+  tier: bare
+  symbol: [basic_publish, basic_consume, xadd]
+  source: https://pika.readthedocs.io/en/stable/modules/channel.html
+
+# --- javascript / typescript / tsx --------------------------------------------------------
+- lang: [javascript, typescript, tsx]
+  category: db
+  tier: qualified
+  symbol: [mysql.createConnection, mysql2.createConnection, mysql2.createPool, mongoose.connect, knex]
+  source: https://sidorares.github.io/node-mysql2/docs
+- lang: [javascript, typescript, tsx]
+  category: db
+  tier: bare
+  symbol: [query, $queryRaw, $executeRaw]
+  source: https://node-postgres.com/apis/client
+- lang: [javascript, typescript, tsx]
+  category: http
+  tier: qualified
+  symbol: [fetch, axios, axios.get, axios.post, axios.put, axios.patch, axios.delete, axios.request, axios.create]
+  source: https://developer.mozilla.org/en-US/docs/Web/API/fetch
+- lang: [javascript, typescript, tsx]
+  category: http
+  tier: qualified
+  symbol: [http.get, http.request, https.get, https.request, http.createServer, https.createServer, undici.request, undici.fetch]
+  source: https://nodejs.org/api/http.html
+- lang: [javascript, typescript, tsx]
+  category: http
+  tier: qualified
+  symbol: [express, fastify, got]
+  source: https://expressjs.com/en/4x/api.html
+- lang: [javascript, typescript, tsx]
+  category: fs
+  tier: qualified
+  symbol: [fs.readFile, fs.readFileSync, fs.writeFile, fs.writeFileSync, fs.appendFile, fs.appendFileSync, fs.unlink, fs.unlinkSync, fs.mkdir, fs.mkdirSync, fs.readdir, fs.readdirSync, fs.stat, fs.statSync, fs.existsSync, fs.rm, fs.rmSync, fs.createReadStream, fs.createWriteStream, fs.promises.readFile, fs.promises.writeFile]
+  source: https://nodejs.org/api/fs.html
+- lang: [javascript, typescript, tsx]
+  category: subprocess
+  tier: qualified
+  symbol: [child_process.exec, child_process.execSync, child_process.execFile, child_process.execFileSync, child_process.spawn, child_process.spawnSync, child_process.fork, execa, shelljs.exec]
+  source: https://nodejs.org/api/child_process.html
+- lang: [javascript, typescript, tsx]
+  category: env
+  tier: qualified
+  symbol: [dotenv.config, Deno.env.get]
+  source: https://github.com/motdotla/dotenv#readme
+- lang: [javascript, typescript, tsx]
+  category: queue
+  tier: qualified
+  symbol: [redis.createClient, amqplib.connect, amqp.connect]
+  source: https://github.com/redis/node-redis#readme
+- lang: [javascript, typescript, tsx]
+  category: queue
+  tier: bare
+  symbol: [sendToQueue]
+  source: https://amqp-node.github.io/amqplib/channel_api.html
+
+# --- go -----------------------------------------------------------------------------------
+- lang: go
+  category: db
+  tier: qualified
+  symbol: [sql.Open, pgx.Connect, pgxpool.New, gorm.Open]
+  source: https://pkg.go.dev/database/sql
+- lang: go
+  category: db
+  tier: bare
+  symbol: [Query, QueryRow, QueryContext, QueryRowContext, Exec, ExecContext]
+  source: https://pkg.go.dev/database/sql#DB.Query
+- lang: go
+  category: http
+  tier: qualified
+  symbol: [http.Get, http.Post, http.PostForm, http.Head, http.NewRequest, http.NewRequestWithContext, http.ListenAndServe, http.ListenAndServeTLS, http.HandleFunc, http.Handle]
+  source: https://pkg.go.dev/net/http
+- lang: go
+  category: http
+  tier: qualified
+  symbol: [gin.Default, gin.New, echo.New, chi.NewRouter, fiber.New]
+  source: https://pkg.go.dev/github.com/gin-gonic/gin
+- lang: go
+  category: http
+  tier: bare
+  symbol: [Do]
+  source: https://pkg.go.dev/net/http#Client.Do
+- lang: go
+  category: fs
+  tier: qualified
+  symbol: [os.Open, os.OpenFile, os.Create, os.ReadFile, os.WriteFile, os.Remove, os.RemoveAll, os.Mkdir, os.MkdirAll, os.ReadDir, os.Stat, os.Rename, filepath.Walk, filepath.WalkDir]
+  source: https://pkg.go.dev/os
+- lang: go
+  category: subprocess
+  tier: qualified
+  symbol: [exec.Command, exec.CommandContext, os.StartProcess, syscall.Exec]
+  source: https://pkg.go.dev/os/exec
+- lang: go
+  category: subprocess
+  tier: bare
+  symbol: [CombinedOutput]
+  source: https://pkg.go.dev/os/exec#Cmd.CombinedOutput
+- lang: go
+  category: env
+  tier: qualified
+  symbol: [os.Getenv, os.LookupEnv, os.Setenv, os.Environ, os.ExpandEnv, godotenv.Load, viper.GetString, viper.AutomaticEnv]
+  source: https://pkg.go.dev/os#Getenv
+- lang: go
+  category: queue
+  tier: qualified
+  symbol: [redis.NewClient, kafka.NewWriter, kafka.NewReader, sarama.NewSyncProducer, sarama.NewConsumerGroup, amqp.Dial]
+  source: https://pkg.go.dev/github.com/redis/go-redis/v9
+- lang: go
+  category: queue
+  tier: bare
+  symbol: [WriteMessages, ReadMessage, PublishWithContext]
+  source: https://pkg.go.dev/github.com/segmentio/kafka-go

@@ -36,3 +36,6 @@ id: go-call
 language: Go
 rule:
   kind: call_expression
+  has:
+    field: function
+    pattern: $CALLEE

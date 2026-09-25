@@ -23,6 +23,7 @@ classifiers = [
 dependencies = [
     "ast-grep-cli>=0.42,<0.43",
     "fastmcp>=2.0",
+    "pyyaml>=6,<7",  # diagram-generation M9: draw/sinks.yaml, yaml.safe_load only.
     "tiktoken>=0.7",  # codemem-benchmark-fairness-v2 M1.1: pagerank.py imports at module scope for honest budget enforcement.
 ]
 

@@ -33,3 +33,6 @@ id: js-call
 language: JavaScript
 rule:
   kind: call_expression
+  has:
+    field: function
+    pattern: $CALLEE

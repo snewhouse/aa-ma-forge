@@ -56,3 +56,6 @@ id: ts-call
 language: TypeScript
 rule:
   kind: call_expression
+  has:
+    field: function
+    pattern: $CALLEE

@@ -97,6 +97,7 @@ class _SgMatch:
     line: int      # 1-indexed
     end_line: int  # 1-indexed
     text: str
+    callee: str | None = None  # $CALLEE of a ``*-call`` rule (diagram-generation M9)
 
 
 def parse_sg_output(stream: str) -> list[_SgMatch]:
@@ -121,6 +122,7 @@ def parse_sg_output(stream: str) -> list[_SgMatch]:
             if key in meta:
                 name = meta[key].get("text")
                 break
+        callee = meta.get("CALLEE", {}).get("text")
 
         rng = j.get("range", {})
         start = rng.get("start", {}).get("line", 0)
@@ -134,6 +136,7 @@ def parse_sg_output(stream: str) -> list[_SgMatch]:
                 line=start + 1,
                 end_line=end + 1,
                 text=j.get("text", ""),
+                callee=callee,
             )
         )
     return matches
@@ -224,6 +227,8 @@ def _build_parse_result(
     # containers: (name, start_line, end_line, scip_id) — used to infer the
     # enclosing parent for methods via line-range containment.
     containers: list[tuple[str, int, int, str]] = []
+    # callables: (start_line, end_line, scip_id) — the enclosing-function lookup for calls.
+    callables: list[tuple[int, int, str]] = []
     symbols: list[Symbol] = []
 
     def _enclosing_container(m: _SgMatch) -> tuple[str | None, str | None]:
@@ -268,6 +273,7 @@ def _build_parse_result(
                 continue
             symbol_path = f"{parent_name}.{m.name}"
             scip_id = f"codemem {package} .{file_rel}#{symbol_path}"
+            callables.append((m.line, m.end_line, scip_id))
             symbols.append(
                 Symbol(
                     scip_id=scip_id,
@@ -283,6 +289,7 @@ def _build_parse_result(
 
         elif suffix == "-function-def":
             scip_id = f"codemem {package} /{file_rel}#{m.name}"
+            callables.append((m.line, m.end_line, scip_id))
             symbols.append(
                 Symbol(
                     scip_id=scip_id,
@@ -296,14 +303,33 @@ def _build_parse_result(
                 )
             )
 
-    # Task 1.6 handles cross-file edge resolution. For now ast-grep parser
-    # emits no edges — keeping it symmetric with python_ast's intra-file
-    # policy would require call-site → def resolution by name within file,
-    # which the Python parser gets for free from full AST; ast-grep's shape
-    # doesn't carry function-body scope. Defer.
+    # No intra-file edges: ast-grep carries no function-body scope, so a same-file
+    # callee cannot be bound by name the way python_ast does. Calls are emitted
+    # unresolved, keyed on the innermost enclosing function (diagram-generation M9).
     edges: list[CallEdge] = []
+    unresolved: dict[tuple[str, str], CallEdge] = {}
+    for m in matches_sorted:
+        callee = _callee(m)
+        if callee is None:
+            continue
+        spans = [c for c in callables if c[0] <= m.line and m.end_line <= c[1]]
+        if not spans:
+            continue  # top-level call: no symbol to hang it on, as in python_ast
+        src = min(spans, key=lambda c: c[1] - c[0])[2]
+        unresolved.setdefault((src, callee), CallEdge(src, None, callee, "call"))
 
-    return ParseResult(symbols=symbols, edges=edges)
+    return ParseResult(symbols=symbols, edges=edges, unresolved_edges=list(unresolved.values()))
+
+
+def _callee(m: _SgMatch) -> str | None:
+    """``fs.readFileSync`` from a ``*-call`` match; ``None`` for anything else.
+
+    A callee chained through a call (``fetch(url).then``) is dropped, as in
+    python_ast: its receiver is ambiguous. The inner call is its own match.
+    """
+    if not m.rule_id.endswith("-call") or not m.callee or "(" in m.callee:
+        return None
+    return "".join(m.callee.split())
 
 
 # ---------------------------------------------------------------------

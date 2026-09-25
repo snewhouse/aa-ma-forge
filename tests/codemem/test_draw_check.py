@@ -65,7 +65,7 @@ def _files(root: Path) -> dict[Path, str]:
 def test_write_generates_every_registered_view_with_a_stamp(repo: Path) -> None:
     assert _draw("--write") == 0
     paths = views.registered_paths(repo)
-    assert {p.name for p in paths} == {"README.md", "component.md"}  # no claude-code/ here
+    assert {p.name for p in paths} == {"README.md", "component.md", "io.md"}  # no claude-code/ here
     for p in paths:
         assert p.is_relative_to(repo / "docs/architecture")
         assert STAMP.match(p.read_text().splitlines()[0]), p

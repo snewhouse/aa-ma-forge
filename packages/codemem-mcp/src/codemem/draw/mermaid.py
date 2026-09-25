@@ -9,11 +9,15 @@ seam in ``aa_ma.render.mermaid_lint``. Edges carry the QUOTED kind sigil
 from __future__ import annotations
 
 from .captions import start_ids
-from .cut import MAX_EDGES, Cut
+from .cut import MAX_EDGES, Cut, Level, node_id
+from .io_sinks import CATEGORY_LABEL, IoEdge
 
-__all__ = ["START_STYLE", "escape_label", "to_mermaid"]
+__all__ = ["START_STYLE", "TIER_STYLE", "escape_label", "io_to_mermaid", "to_mermaid"]
 
 START_STYLE = "stroke-width:4px"  # the @start highlight; M12's explorer reuses it
+# I/O tiers (M9 AC4): mermaid has no `:::class` on edges, so edges get ids and
+# `class e0,e3 qualified` lines. Space-separated dasharray: a comma would split the style.
+TIER_STYLE = {"qualified": "stroke-width:2px,stroke-dasharray:0", "bare": "stroke-dasharray:4 4"}
 
 # '#' first: the other replacements introduce '#...;' entities that must survive.
 # '%', '{', '}' stop a file name smuggling a `%%{init}%%` directive (it could
@@ -47,4 +51,31 @@ def to_mermaid(c: Cut, *, captions: dict[str, str] | None = None) -> str:
     if start := start_ids(c, captions):
         lines.append(f"  classDef start {START_STYLE}")
         lines.append(f"  class {','.join(start)} start")
+    return "\n".join(lines) + "\n"
+
+
+def io_to_mermaid(edges: list[IoEdge], level: Level) -> str:
+    """The I/O view: languages as subgraphs of sink categories, one numbered edge per arrow.
+
+    Edge labels are ``IoEdge.calls``; edge ids ``e0..`` follow the sorted edge order, so
+    the text is deterministic. Always exactly two ``classDef`` lines (M9 AC1).
+    """
+    edges = sorted(edges)
+    kept = edges[:MAX_EDGES]
+    lines = ["flowchart LR"]
+    if len(edges) > len(kept):
+        lines.append(f"%% {len(edges) - len(kept)} edges not shown: over mermaid maxEdges {MAX_EDGES}")
+    for lang in sorted({e.lang for e in kept}):
+        lines.append(f'  subgraph io_{lang}["{lang}"]')
+        for category in sorted({e.category for e in kept if e.lang == lang}):
+            lines.append(f'    io_{lang}_{category}[("{CATEGORY_LABEL[category]}")]')
+        lines.append("  end")
+    for src in sorted({e.src for e in kept}):
+        lines.append(f'  {node_id(src, level)}["{escape_label(src)}"]')
+    tiers: dict[str, list[str]] = {t: [] for t in TIER_STYLE}
+    for i, e in enumerate(kept):
+        lines.append(f'  {node_id(e.src, level)} e{i}@-->|"{e.calls}"| io_{e.lang}_{e.category}')
+        tiers[e.tier].append(f"e{i}")
+    lines += [f"  classDef {t} {style}" for t, style in TIER_STYLE.items()]
+    lines += [f"  class {','.join(ids)} {t}" for t, ids in tiers.items() if ids]
     return "\n".join(lines) + "\n"

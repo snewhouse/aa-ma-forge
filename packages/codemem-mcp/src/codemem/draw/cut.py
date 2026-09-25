@@ -25,7 +25,7 @@ from enum import IntEnum
 
 __all__ = [
     "DIRECTIONS", "KINDS", "MAX_EDGES", "MIN_SCHEMA_VERSION",
-    "Cut", "Level", "cut", "from_edges", "is_test_path", "node_id",
+    "Cut", "Level", "collapse", "cut", "from_edges", "is_test_path", "node_id",
 ]
 
 MAX_EDGES = 500  # mermaid's default maxEdges — the one hard ceiling (Ticket 3)
@@ -143,6 +143,11 @@ def from_edges(
         edges={(node_id(a, level), node_id(b, level), k) for a, b, k in kept},
         dropped=len(ordered) - len(kept),
     )
+
+
+def collapse(path: str, level: Level) -> str:
+    """``path`` as the L0/L1 directory node it collapses into (the I/O view reuses the rule)."""
+    return _dir(path, _COLLAPSE_DEPTH[level])
 
 
 def _dir(path: str, depth: int) -> str:

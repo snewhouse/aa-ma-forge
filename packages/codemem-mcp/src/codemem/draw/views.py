@@ -19,8 +19,9 @@ from pathlib import Path
 
 from .. import indexer
 from . import captions as cap
+from . import io_sinks
 from .cut import Level, cut
-from .mermaid import to_mermaid
+from .mermaid import io_to_mermaid, to_mermaid
 from .plugin_surface import RefClass, extract
 
 __all__ = [
@@ -154,6 +155,19 @@ def _plugin_surface(repo_root: Path, conn: sqlite3.Connection, captions: dict[st
     return _diagram_page(spec, s.cut, captions, extra)
 
 
+def _io(repo_root: Path, conn: sqlite3.Connection, captions: dict[str, str], spec: ViewSpec) -> str:
+    level, edges = io_sinks.choose_level(io_sinks.io_edges(conn, io_sinks.load_catalogue()))
+    unit = "file" if level is Level.L2 else "L1 folder (per-file arrows exceed the dense band)"
+    lines = [
+        f"# {spec.title}", "", spec.summary, "",
+        f"One arrow per {unit}, labelled with its call count. Solid: a catalogued call "
+        "(`sqlite3.connect`). Dashed: a catalogued method on a receiver of unknown type "
+        "(`conn.execute`) — low confidence. Catalogue: `codemem/draw/sinks.yaml`.", "",
+        "```mermaid", io_to_mermaid(edges, level).rstrip("\n"), "```",
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def _readme(repo_root: Path, conn: sqlite3.Connection, captions: dict[str, str], spec: ViewSpec) -> str:
     start = captions.get(cap.START)
     landing = []
@@ -199,6 +213,10 @@ VIEWS: dict[str, ViewSpec] = {
     "component": ViewSpec(
         "docs/architecture/component.md", "Component view", _component, level=Level.L2,
         summary="Every source file and its import/call edges (L2; tests excluded).",
+    ),
+    "io": ViewSpec(
+        "docs/architecture/io.md", "I/O boundary", _io,
+        summary="Where the code touches databases, HTTP, files, subprocesses, env and queues (tests excluded).",
     ),
     "plugin-surface": ViewSpec(
         "docs/architecture/plugin-surface.md", "Plugin surface", _plugin_surface,

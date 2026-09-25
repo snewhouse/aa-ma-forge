@@ -21,6 +21,16 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   unevaluable — a `(new)` endpoint, no/stale/unreadable index, a file whose language the graph holds no such edge
   for, an endpoint outside the repo, an unparsed edge form, the plugin sigils `@skill/@command/@agent/@hook` — prints
   `file:line: UNKNOWN: reason` and never changes the exit code.
+- **I/O-boundary view (`diagram-generation` M9)** — `docs/architecture/io.md` is generated from the codemem
+  graph: one arrow per file (per L1 folder once per-file arrows exceed the 120-edge dense band) into database /
+  HTTP / filesystem / subprocess / environment / queue nodes, languages as subgraphs. Calls are classified at render
+  time against `codemem/draw/sinks.yaml` (Python, TS/TSX/JS, Go; official-doc source per row): a catalogued callee
+  is drawn solid (`qualified`), a catalogued method on an untyped receiver dashed (`bare`, low confidence).
+  `scripts/measure_io_band.sh <repo> <sha>` prints the `IO_DENSE_BAND` evidence line from `git archive <sha>`.
+- **codemem: TS/TSX/JS/Go call edges** — the ast-grep wrapper now stores each call's callee with its receiver
+  (`fs.readFileSync`, `this.db.query`, `os.ReadFile`) as an unresolved call from the enclosing function; Python
+  qualifies an imported bare name through the import-alias map (`from subprocess import run` → `subprocess.run`),
+  which also resolves aliased imports (`dump as json_dump`). New dependency: `pyyaml>=6,<7` (already locked).
 - **codemem: `from pkg import submodule` edges** — the submodule now gets its own import edge (derived from the
   module's own resolution; `from .. import x` climbs a level), and `sub.run()` binds only inside `sub`.
 - **Canonical `Dependencies:` write form** — `grammar.CANONICAL_DEPENDENCY_RE`: `None` · `Milestone 2` ·

@@ -14,6 +14,8 @@ from __future__ import annotations
 import ast
 import re
 import subprocess
+import time
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -218,3 +220,131 @@ def test_seeded_fixture_has_no_phantom_edges_and_every_claim_is_evaluated(seed_r
     assert [f for f in rep.findings if f.code == "PHANTOM_EDGE"] == []
     assert [u for u in rep.unknowns if "@" in u.message] == []  # evaluated, not skipped
     assert coverage.coverage_findings(SEEDED.read_text(encoding="utf-8")) == []
+
+
+# --- §6.8 follow-ups (fail closed, bounded, prose tied to code) ----------------------------
+
+
+@pytest.mark.parametrize(
+    ("row", "path"),
+    [
+        ("  Modify  .importlinter", ".importlinter"),
+        ("  Modify  Makefile", "Makefile"),
+        ("  Modify  docker/Dockerfile", "docker/Dockerfile"),
+        ("  Modify  `src/x.py`", "src/x.py"),
+        ("  Modify  src/x.py:12-40", "src/x.py"),
+        ("  Modify  src/x.py (append)", "src/x.py"),
+        ("  - Modify src/x.py", "src/x.py"),
+        ("  | Modify | src/x.py |", "src/x.py"),
+        ("  Create: src/x.py", "src/x.py"),
+    ],
+)
+def test_every_contract_token_is_a_path(row, path):  # fail closed: a dropped path passes silently
+    assert _codes(_plan(row + "\n")) == [path]
+
+
+def test_brace_expansion_is_bounded():
+    wide = "# file: src/" + "{a,b}" * 25 + ".py\n"  # 2**25 paths if expanded
+    deep = "# file: src/" + "{" * 3000 + "a" + "}" * 3000 + ".py\n"  # recursion depth 3000
+    start = time.perf_counter()
+    assert len(coverage.coverage_findings(_plan(wide))) == 1
+    assert len(coverage.coverage_findings(_plan(deep))) == 1
+    assert time.perf_counter() - start < 1.0
+
+
+def test_small_brace_lists_still_expand():
+    assert _codes(_plan("  Modify  src/{a,b}/{c,d}.py\n")) == ["src/a/c.py", "src/a/d.py", "src/b/c.py", "src/b/d.py"]
+
+
+def test_a_lone_slash_in_a_label_draws_nothing():
+    text = _plan("# file: /etc/x.conf\n", '  S["a / b"]\n')
+    assert _codes(text) == ["/etc/x.conf"]
+
+
+def test_cli_crash_is_unknown_not_findings(tmp_path, monkeypatch, capsys):
+    p = tmp_path / "x-plan.md"
+    p.write_text(_plan(THREE))
+
+    def boom(_):
+        raise RecursionError("hostile plan")
+
+    monkeypatch.setattr("aa_ma.render.cli.coverage_findings", boom)
+    assert lint_main([str(p), "--repo-root", str(tmp_path), "--coverage"]) == 2
+    assert "UNKNOWN: coverage could not run" in capsys.readouterr().out
+
+
+def test_skill_names_every_exemption_the_code_applies():
+    text = SKILL.read_text(encoding="utf-8")
+    check_8 = text[text.index("8. **Contract paths drawn in §13"): text.index("Parsers for checks")]
+    for name in (*coverage.EXEMPT_DIRS, *sorted(coverage.ROOT_DOCS), *sorted(coverage.MANIFESTS), "*.lock"):
+        assert name.removesuffix(".md") in check_8, name
+
+
+def test_cutover_prose_matches_the_constant():
+    assert coverage.COVERAGE_CUTOVER in SKILL.read_text(encoding="utf-8")
+    assert coverage.COVERAGE_CUTOVER in SPEC.read_text(encoding="utf-8")
+    before = (date.fromisoformat(coverage.COVERAGE_CUTOVER) - timedelta(days=1)).isoformat()
+    assert coverage.coverage_findings(_plan(THREE, created=before)) == []
+    assert coverage.coverage_findings(_plan(THREE, created=coverage.COVERAGE_CUTOVER))
+
+
+def test_every_check_list_names_check_8():
+    rule = (ROOT / "claude-code/rules/aa-ma.md").read_text(encoding="utf-8")
+    assert "#8" in rule.split("Grandfathering (v0.12.0", 1)[1].split("\n\n", 1)[0]
+    routing = next(ln for ln in SKILL.read_text(encoding="utf-8").splitlines() if "Engineering Standards Auditor |" in ln)
+    assert "check #8" in routing
+
+
+# --- the shipped fences, executed ----------------------------------------------------------------
+
+
+def _fence(md: Path, anchor: str) -> str:
+    text = md.read_text(encoding="utf-8")
+    body = text[text.index(anchor):]
+    return body.split("```bash\n", 1)[1].split("\n```", 1)[0]
+
+
+@pytest.fixture
+def home(tmp_path: Path) -> Path:
+    """A ~/.claude that symlinks this checkout, as scripts/install.sh would."""
+    h = tmp_path / "home"
+    for rel in ("commands/aa-ma-plan.md", "skills/plan-verification/SKILL.md"):
+        (h / ".claude" / rel).parent.mkdir(parents=True, exist_ok=True)
+        (h / ".claude" / rel).symlink_to(ROOT / "claude-code" / rel)
+    return h
+
+
+def _stub_uv(tmp_path: Path, rc: int) -> Path:
+    bin_ = tmp_path / "bin"
+    bin_.mkdir(exist_ok=True)
+    (bin_ / "uv").write_text(f'#!/bin/sh\nfor a in "$@"; do printf "%s\\n" "$a"; done > "{tmp_path}/uv-args"\nexit {rc}\n')
+    (bin_ / "uv").chmod(0o755)
+    return bin_
+
+
+def _run(script: str, home: Path, bin_: Path, cwd: Path) -> str:
+    env = {"HOME": str(home), "PATH": f"{bin_}:/usr/bin:/bin"}
+    return subprocess.run(["bash", "-c", script], cwd=cwd, env=env, capture_output=True, text=True).stdout
+
+
+def test_seed_fence_skips_the_cut_with_no_existing_paths(tmp_path, home):
+    bin_ = _stub_uv(tmp_path, 0)
+    script = _fence(PLAN_CMD, "**Step 4.2b").replace("<one existing path per line>\n", "")
+    out = _run(script, home, bin_, tmp_path)
+    assert "seed skipped" in out
+    assert not (tmp_path / "uv-args").exists()
+
+
+def test_seed_fence_passes_each_path_as_one_scope(tmp_path, home):
+    bin_ = _stub_uv(tmp_path, 0)
+    script = _fence(PLAN_CMD, "**Step 4.2b").replace("<one existing path per line>", "src/a b.py\nsrc/$(touch pwned).py\nsrc/*.py")
+    _run(script, home, bin_, tmp_path)
+    args = (tmp_path / "uv-args").read_text().splitlines()
+    assert [args[i + 1] for i, a in enumerate(args) if a == "--scope"] == ["src/a b.py", "src/$(touch pwned).py", "src/*.py"]
+    assert not (tmp_path / "pwned").exists()
+
+
+def test_check_8_fence_never_reads_a_failed_run_as_clean(tmp_path, home):
+    bin_ = _stub_uv(tmp_path, 127)
+    script = _fence(SKILL, "8. **Contract paths drawn in §13").replace("<plan.md>", "p.md").replace("<project-root>", ".")
+    assert "CRITICAL: check 8 could not run" in _run(script, home, bin_, tmp_path)

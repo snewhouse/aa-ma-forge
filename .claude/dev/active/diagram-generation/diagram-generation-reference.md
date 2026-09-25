@@ -109,7 +109,7 @@ Architecture View: see plan.md §13 (Component view + Flow view; `Diagram-Waiver
 18. One merged `io.md` with language subgraphs; revision trigger = 120-edge dense band
 19. Keep both backends; codemem default, `PROJECT_INDEX.json` fallback; `/index` repointed at `codemem build`
 
-_Last Updated: 2026-09-25 (M1–M9 facts sections below)_
+_Last Updated: 2026-09-25 (M1–M10 facts sections below)_
 
 ## M1 facts (2026-09-24)
 
@@ -203,3 +203,12 @@ IO_DENSE_BAND repo=medical-research-skills sha=efafac209f3690c02f1ffc0f297f91c89
 - Registry: `views.VIEWS["io"]` → `docs/architecture/io.md` ("I/O boundary"), no captions block. `cut.collapse(path, level)` is the public L0/L1 folder rule. [valid: 2026-09-25]
 - Parser: ast-grep `*-call` rules (ts/tsx/js/go) capture `$CALLEE`; the wrapper emits one unresolved `CallEdge` per (innermost enclosing function/method, callee); top-level calls and call-chained callees (`fetch(x).then`) are dropped. Enclosing function = one sorted sweep over `(line, col)` spans (`_SgMatch.col/end_col`), linear. Go methods are still skipped as orphans (M1 behaviour), so calls inside them are lost. Python: `from m import n [as k]; k()` is stored as `m.n`. [valid: 2026-09-25]
 - `scripts/measure_io_band.sh` runs `uv run --project <its own checkout>`, so it works from any cwd. `scripts/regen-generated.sh` refuses (rc 1) while untracked files with an indexable extension exist (L-026). [valid: 2026-09-25]
+
+## M10 facts (2026-09-25)
+
+- `aa_ma.render.coverage`: `coverage_findings(plan_text) -> list[Finding("UNDRAWN_PATH", line, "<path>: …")]`; `contract_paths(plan_text, stripped) -> [(line, path)]`; `drawn_paths(plan_text, stripped) -> set | None`; `COVERAGE_CUTOVER = "2026-09-11"`. Not applicable (→ `[]`): `Created:` absent or earlier (`**Created:**` or `Created:` before the first H2), unterminated fence, no §13. [valid: 2026-09-25]
+- Contract grammar read: the fences directly under `#### Contract` (the scan stops at the first line outside a fence); `Create`/`Modify` rows (text before `#`, comma lists, `{a,b}` expansion) and `# file: <path>` lines. Exempt: `Test`/`Verify` rows, `tests/`, `docs/`, README/CHANGELOG/SECURITY/CONTEXT.md, `pyproject.toml`, `package.json`, `*.lock`. Covered = a §13 `[...]` node label (after `(new)` is stripped) equals the path or is a directory above it. [valid: 2026-09-25]
+- CLI: `aa-ma-lint-views <plan> --repo-root R --coverage` adds UNDRAWN_PATH to the findings (exit 1). Opt-in: nothing at execution time passes it. `mermaid_lint.section_13(plan_text, stripped)` is the one §13 locator. [valid: 2026-09-25]
+- Skill: plan-verification check **8** (WARNING), grandfathered with #6/#7. AC4's proxy is scoped to check 8's text (check 2 calls the gate launcher since 38dfc82). [valid: 2026-09-25]
+- Seeding: `/aa-ma-plan` Step 4.2b; `codemem draw --scope` is `action="append"`, the union of prefixes (`cut()` already accepted a tuple). [valid: 2026-09-25]
+- Measured 2026-09-25: this plan 51 Contract paths / 0 undrawn (after drawing `coverage.py` + 2 `scripts/`); mattpocock-trio-adoption 8 / 0; plan-architecture-views (completed) 5 / 1. [valid: 2026-09-25]

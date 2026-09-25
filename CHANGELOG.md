@@ -21,6 +21,13 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   unevaluable — a `(new)` endpoint, no/stale/unreadable index, a file whose language the graph holds no such edge
   for, an endpoint outside the repo, an unparsed edge form, the plugin sigils `@skill/@command/@agent/@hook` — prints
   `file:line: UNKNOWN: reason` and never changes the exit code.
+- **§13 seeding + Angle 6 check 8 (`diagram-generation` M10)** — `/aa-ma-plan` Step 4.2b seeds the Component view
+  from `codemem draw --level L2 --scope <path>… --hops 1 --direction both` (`--scope` is now repeatable; the cut is
+  their union), so every seeded edge carries a checkable `@import`/`@call` sigil. `aa-ma-lint-views --coverage`
+  (planning time only; the milestone gate never passes it) reports `UNDRAWN_PATH` for each Contract `Create`/`Modify`
+  row or `# file:` line no §13 node covers — the path, a directory above it, or its `(new)` plan; `Test`/`Verify`
+  rows, `tests/`, `docs/`, root docs and dependency manifests/lockfiles are exempt. `plan-verification` runs it as
+  check 8 (WARNING) for plans `Created:` on-or-after 2026-09-11.
 - **I/O-boundary view (`diagram-generation` M9)** — `docs/architecture/io.md` is generated from the codemem
   graph: one arrow per file (per L1 folder once per-file arrows exceed the 120-edge dense band) into database /
   HTTP / filesystem / subprocess / environment / queue nodes, languages as subgraphs. Calls are classified at render

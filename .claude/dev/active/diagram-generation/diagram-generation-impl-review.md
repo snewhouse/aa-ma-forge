@@ -441,7 +441,7 @@ e8e4cfe (33 RED) → d80e3d5 (58 green). Fix round: a674e78 (RED: 14 lint + 3 re
 
 # Milestone 9 — I/O-boundary view
 
-**Window:** d31e301..83b6dbf (+ fix rounds eb1495f, this commit) · **Audit-Profile:** code-only · **Agents:** code-reviewer (incl. §6.6), security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor · **Verdict:** PASS_WITH_WARNINGS (after fixes)
+**Window:** d31e301..83b6dbf (+ fix rounds eb1495f, c136ac2) · **Audit-Profile:** code-only · **Agents:** code-reviewer (incl. §6.6), security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor · **Verdict:** PASS_WITH_WARNINGS (after fixes)
 
 ## Summary
 | Agent | CRITICAL | WARNING | INFO | Verdict |

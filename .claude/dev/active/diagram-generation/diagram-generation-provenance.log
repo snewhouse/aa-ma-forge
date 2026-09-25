@@ -78,3 +78,4 @@
 [2026-09-25T09:17:25+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 7 WARNING / 18 INFO (6 WARNING + 7 INFO fixed RED-first; arrow-fn recall gap disclosed + deferred to M13, Ste; §6.6 folded into code-reviewer)
 [2026-09-25T09:17:25+01:00] M9 CI — 83b6dbf architecture-drift FAILED (docs regenerated while io_sinks.py untracked); fixed eb1495f (CI success); L-026 + regen guard
 [2026-09-25T09:52:07+01:00] MILESTONE COMPLETE — M9 — Commit: 619bfcf — Criteria: 6/6 verified
+[2026-09-25T09:53:40+01:00] §7.2.5 aa-ma-validator M9 — WARNINGS_BUT_USABLE (4) — back-filled: plan sinks row-shape note, AC6 289 note, impl-review window sha, sub-step commit SHAs

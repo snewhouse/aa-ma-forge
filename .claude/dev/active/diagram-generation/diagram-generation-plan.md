@@ -1054,6 +1054,8 @@ Files:
   Modify  tests/codemem/test_draw_check.py, CHANGELOG.md, docs/architecture/*.md (regenerated)
 
 sinks.yaml row shape (~55 rows, 9 langs x 7 categories; v1 ships Py/TS/JS/Go):
+  # Shipped at M9 (2026-09-25): no `match` field (call is the only v1 node class);
+  # lang/symbol may be lists; 41 rows, 5 langs, 6 categories — see reference.md M9 facts.
   - lang: python
     category: db
     match: "sqlite3.connect"
@@ -1100,7 +1102,8 @@ View shape: ONE merged io.md, languages as mermaid subgraphs.
    sha. **Recording is not correctness** — `medical-research-skills` is an external repo
    that CI cannot re-derive, so the script plus the pinned sha is the evidence.
    `edges` is the FILE-level count (qualified + bare, `open` excluded, tests excluded) —
-   the trigger condition, not the drawn count (Ste, M9 prototype: 285 at efafac2, OVER).
+   the trigger condition, not the drawn count (Ste, M9 prototype: 285 at efafac2, OVER;
+   shipped pipeline: 289, see reference.md M9 facts — the band line is authoritative).
 
 **Tests:** `uv run pytest tests/codemem/test_io_sinks.py -v`; a fixture repo per v1 language.
 

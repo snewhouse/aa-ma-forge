@@ -1241,7 +1241,7 @@ Files:
   Modify  docs/adr/INDEX.md
   Modify  src/aa_ma/render/mermaid_lint.py    # LintReport sigil counts (amended 2026-09-25)
   Modify  src/aa_ma/render/cli.py             # `sigils:` summary line (amended 2026-09-25)
-  Test    tests/render/test_cli.py
+  Test    tests/render/{test_cli,test_phantom_edge}.py
   Test    tests/hooks/test_diagram_verified.bats (new)
   Verify  tests/hooks/aa-ma-gate-python.bats            # 32 tests — MUST stay green
   Verify  tests/hooks/aa-ma-gate-scans.bats             # 10 tests

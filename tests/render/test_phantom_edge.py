@@ -326,3 +326,50 @@ def test_the_generated_architecture_docs_lint_with_no_label_unknown() -> None:
     for page in sorted((REPO / "docs/architecture").glob("*.md")):
         text = "## 13. Architecture View\n\n### Component view\n\n" + page.read_text(encoding="utf-8")
         assert "LABEL_UNKNOWN" not in _codes(lint_text(text, REPO)), page
+
+
+# ---------------------------------------------------------------------
+# M11 — the `sigils:` summary line the §6.7 HARD item reads (ADR-0015)
+# ---------------------------------------------------------------------
+
+def _summary(repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture) -> str:
+    plan = tmp_path / "s-plan.md"
+    plan.write_text(FIXTURE)
+    cli.lint_main([str(plan), "--repo-root", str(repo)])
+    out = capsys.readouterr().out.splitlines()
+    [line] = [ln for ln in out if ln.startswith("sigils: ")]
+    assert out[-2:] == [line, out[-1]] and out[-1].startswith("render: ")  # just before render:
+    return line
+
+
+def test_summary_counts_every_sigil_claim(repo: Path, tmp_path: Path, capsys) -> None:
+    # 7 claims: 2 verified, @improt (LABEL_UNKNOWN counts as phantom), 4 per-claim UNKNOWN.
+    assert _summary(repo, tmp_path, capsys) == "sigils: edges=7 phantom=1 unknown=4 index-unknown=0"
+
+
+def test_summary_counts_phantoms(repo: Path, tmp_path: Path, capsys) -> None:
+    (repo / "src/app/a.py").write_text("def run():\n    return 1\n")
+    _build(repo)
+    assert _summary(repo, tmp_path, capsys) == "sigils: edges=7 phantom=3 unknown=4 index-unknown=0"
+
+
+def test_summary_without_an_index_counts_index_unknowns(repo: Path, tmp_path: Path, capsys) -> None:
+    """Only claims that reach the graph are index-unknown; `(new)`/plugin/path-less stay per-claim."""
+    shutil.rmtree(repo / ".codemem")
+    assert _summary(repo, tmp_path, capsys) == "sigils: edges=7 phantom=1 unknown=6 index-unknown=3"
+
+
+def test_summary_counts_a_stale_index_as_index_unknown(repo: Path, tmp_path: Path, capsys) -> None:
+    os.utime(repo / "src/app/b.py", (4_000_000_000, 4_000_000_000))
+    assert _summary(repo, tmp_path, capsys) == "sigils: edges=7 phantom=1 unknown=6 index-unknown=3"
+
+
+def test_summary_counts_a_partial_index_as_index_unknown(repo: Path, tmp_path: Path, capsys) -> None:
+    import sqlite3
+
+    db = repo / ".codemem/index.db"
+    db.unlink()
+    conn = sqlite3.connect(db)
+    conn.executescript("CREATE TABLE files(id INTEGER PRIMARY KEY, path TEXT, mtime INTEGER); PRAGMA user_version = 3;")
+    conn.close()
+    assert _summary(repo, tmp_path, capsys).endswith("index-unknown=3")

@@ -19,6 +19,21 @@ def test_findings_exit_1(capsys):
     assert "STALE_PATH" in capsys.readouterr().out
 
 
+def test_a_sigil_free_plan_reports_zero_sigil_edges(capsys):
+    """diagram-generation M11 AC1/AC8: edges=0 is the §6.7 HARD item's opt-out."""
+    assert lint_main([str(FIX / "plan_ok.md"), "--repo-root", str(REPO)]) == 0
+    assert "\nsigils: edges=0 phantom=0 unknown=0 index-unknown=0\nrender: " in "\n" + capsys.readouterr().out
+
+
+def test_an_unread_section_13_is_sigils_unknown_never_zero(tmp_path, capsys):
+    """L-012: an unterminated fence hides §13 — its sigil count is unknown, not 0 (not an opt-out)."""
+    plan = tmp_path / "u-plan.md"
+    plan.write_text('## 13. Architecture View\n\n### Component view\n\n```mermaid\ngraph TD\n  A -->|"@import"| B\n')
+    assert lint_main([str(plan), "--repo-root", str(REPO)]) == 1
+    out = capsys.readouterr().out
+    assert "sigils: UNKNOWN" in out and "sigils: edges=" not in out
+
+
 @pytest.mark.parametrize("argv", [[], ["/nonexistent.md"], [str(FIX)]])  # missing / not a file / dir
 def test_usage_exit_2(argv, capsys):
     assert lint_main(argv) == 2

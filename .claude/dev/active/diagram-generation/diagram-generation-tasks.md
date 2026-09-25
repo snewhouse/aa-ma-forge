@@ -370,9 +370,9 @@
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 11.1: [test] `test_diagram_verified.bats` against `aa-ma-lint-views`, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. RED: `tests/hooks/test_diagram_verified.bats` 13/13 fail (3 lint: AC1/AC2/AC3 fail only on the missing `sigils:` line — PHANTOM_EDGE/`codemem build` assertions already hold; 10 execute the second §6.7 fence, still absent). Python 7 RED: `test_cli.py` (edges=0 opt-out; unterminated §13 → `sigils: UNKNOWN`), `test_phantom_edge.py` (fixture counts edges=7 phantom=1 unknown=4; phantoms; no/stale/partial index → index-unknown=3). 71 existing render tests still pass.
 
 ### Sub-step 11.2: [verify] capture pre-edit §6.7 awk extraction output
 - Status: PENDING

@@ -328,3 +328,12 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - Active step at compaction: Sub-step 9.1: [prototype] `Skill(prototype)` on this repo + `medical-research-skills`; `PROTOTYPE` provenance
 - Snapshot saved to: /home/sjnewhouse/.claude/hooks/cache/compaction-snapshots/diagram-generation-snapshot.md
 - Note: Context compacted. Reload AA-MA files to resume.
+
+## [2026-09-25] M9 prototype verdict: REVISE (Ste)
+- Question: which merged `io.md` shape stays inside the 120-edge dense band? Measured with a throwaway scanner on aa-ma-forge@d31e301 and medical-research-skills@efafac2 (local-only branch `prototype/diagram-generation-io` @ bdccfda).
+- Finding 1: medical-research-skills breaches at file level (186 qualified / 285 with bare) and is 99% Python, so the plan's revision trigger (per-language files) cannot fix the breach. L1 folders fit (24). Decision: **auto level** — file when ≤120 edges, else L1. It is deterministic, so `--check` does not change.
+- Finding 2: `open()` alone takes file-level edges from 186 to 381. `open` stays in `_CALL_EXCLUDE` (AC5), N=5 on the fixture tree.
+- Finding 3: mermaid has no `:::class` on edges. Edge ids plus `class eN bare|qualified` are verified on mmdc 11.17. AC4 is amended.
+- AC6 records the FILE-level count (the trigger), 285 OVER, not the drawn count.
+- Prototype data holds external-repo paths, so the branch stays local and is never pushed (Ste).
+- Neither repo has any TS/Go I/O; v1 TS/TSX/JS/Go coverage is proven by fixtures only.

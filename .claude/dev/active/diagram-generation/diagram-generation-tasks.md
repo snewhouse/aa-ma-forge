@@ -292,7 +292,7 @@
 - Result Log: Mode: AFK — auto-dispatched. AC5 test globs every `.claude/dev/completed/**/*-plan.md` (parametrized; skips only files carrying a sigil — none do): zero PHANTOM_EDGE / LABEL_UNKNOWN / UNKNOWN. Golden before/after (scratch, render stubbed): 22 of 24 files byte-identical in findings; changes only (a) this plan's §13 — one real PHANTOM_EDGE `python_ast -->|@import| resolver` (neither imports the other; the two resolver-gap claims now resolve), (b) the new `sigil-edges.md` fixture (linted against its throwaway repo in tests). Ste: relabelled that §13 claim to prose `|feeds|` (plan.md line 279); `aa-ma-lint-views` on this plan → exit 0, render PASS, 2 INFO UNKNOWNs (`.sql` / directory nodes).
 
 ## Milestone 9: I/O-boundary view — `Prototype-Required: YES`
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 6
 - Gate: HARD
 - Audit-Profile: code-only
@@ -304,9 +304,9 @@
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 9.1: [prototype] `Skill(prototype)` on this repo + `medical-research-skills`; `PROTOTYPE` provenance
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: HITL Proceed (Ste). Skill(prototype) LOGIC: single-file demo + throwaway scanner (Python `ast` + alias map; `sg` `has: field: function` for JS/TS/Go), committed on LOCAL-ONLY branch `prototype/diagram-generation-io` @ bdccfda (external paths; push blocked, Ste: never push). Measured non-test edges — aa-ma-forge@d31e301: file 18 qualified / 44 q+bare, L1 10; medical-research-skills@efafac2 (540 py + 19 js on disk; 1893 committed node_modules files deleted in its worktree): file 186 q / 285 q+b, with `open()` 381 / 436, L1 24. Breach is single-language → per-language split cannot fix it. mmdc 11.17: edge ids + `class eN bare` render `stroke-dasharray:4 4`; `:::` is node-only. Verdict REVISE: auto level (file if ≤120 else L1), AC4 → edge ids + class lines, AC5 N=5, AC6 records file-level 285 OVER. plan.md M9 amended. Provenance `PROTOTYPE — Milestone 9 — REVISE` written.
 
 ### Sub-step 9.2: [test] per-language sink fixtures (Py/TS/TSX/JS/Go), RED
 - Status: PENDING

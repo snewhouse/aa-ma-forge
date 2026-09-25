@@ -1062,6 +1062,10 @@ NOTE — rules/ holds EIGHT files (bash, go, java, javascript, ruby, rust, tsx,
   work plus an import-alias map (~10 LOC), NOT from an ast-grep rule.
 View shape: ONE merged io.md, languages as mermaid subgraphs.
   Revision trigger: a measured polyglot repo breaching the 120-edge dense band.
+  REVISED by the M9 prototype (2026-09-25, Ste): arrows are drawn per file when
+  that fits <=120 edges, else per L1 folder (deterministic, so --check is
+  unchanged). medical-research-skills breached at file level while 99% Python,
+  so a per-language split could not have fixed it.
 ```
 
 **Prototype gate:** before implementation, `Skill(prototype)` produces a LOGIC-branch HTML demo of the I/O view shape on `prototype/diagram-generation-io`, measured on both this repo **and** `medical-research-skills` (2452 files). A `[ts] PROTOTYPE — Milestone 9 — <verdict>` provenance entry is required before COMPLETE (§6.7 condition 5).
@@ -1073,16 +1077,23 @@ View shape: ONE merged io.md, languages as mermaid subgraphs.
    ("Names the chosen styling" has no grammar and no target file — unassertable.)
 2. Python, TS/TSX, JS and Go each contribute at least one qualified-tier edge on a fixture tree.
 3. `io.md` registers in the M6 view registry and `codemem draw --check` covers it with no change to `--check` itself.
-4. Every bare-tier edge carries `:::bare` and every qualified-tier edge `:::qualified`,
-   and the two `classDef` lines differ in `stroke-dasharray`. (No test can assert
+4. Every I/O edge has an id (`src eN@-->|"n"| sink`) that appears in exactly one of
+   the `class … qualified` / `class … bare` lines, and the two `classDef` lines differ
+   in `stroke-dasharray`. (Amended at the M9 prototype, Ste 2026-09-25: mermaid has no
+   `:::class` on edges; edge ids + `class` verified on mmdc 11.17. No test can assert
    "visually distinguished".)
 5. `assert "open" in _CALL_EXCLUDE` (`parser/python_ast.py:30`), AND filesystem-category
    edges on the fixture tree number <= N, with N pinned by the prototype verdict.
+   Pinned: N = 5 — one filesystem edge per v1 fixture language (py, ts, tsx, js, go);
+   an extra Python fixture file whose only filesystem call is `open()` makes it 6 if
+   `open` leaks.
 6. `reference.md` carries a line in the fixed form
    `IO_DENSE_BAND repo=<name> sha=<40hex> edges=<int> threshold=120 verdict=<UNDER|OVER>`,
    and `scripts/measure_io_band.sh` (committed) regenerates it byte-identically at that
    sha. **Recording is not correctness** — `medical-research-skills` is an external repo
    that CI cannot re-derive, so the script plus the pinned sha is the evidence.
+   `edges` is the FILE-level count (qualified + bare, `open` excluded, tests excluded) —
+   the trigger condition, not the drawn count (Ste, M9 prototype: 285 at efafac2, OVER).
 
 **Tests:** `uv run pytest tests/codemem/test_io_sinks.py -v`; a fixture repo per v1 language.
 

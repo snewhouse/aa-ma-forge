@@ -67,3 +67,5 @@
 [2026-09-24T21:43:12+01:00] MILESTONE COMPLETE — M8 — Commit: 44611b6 — Criteria: 6/6 verified
 [2026-09-24T20:44:26Z] Context compacted — Snapshot saved, active step: Sub-step 9.1: [prototype] `Skill(prototype)` on this repo + `medical-research-skills`; `PROTOTYPE` provenance
 [2026-09-24T20:44:26Z] CHECKPOINT — ActiveStep: Sub-step 9.1: [prototype] `Skill(prototype)` on this repo + `medical-research-skills`; `PROTOTYPE` provenance — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A
+[2026-09-25T08:19:17+01:00] PROTOTYPE — Milestone 9 — REVISE
+[2026-09-25T08:19:17+01:00] PROTOTYPE — Milestone 9: I/O-boundary view — `Prototype-Required: YES` — REVISE — Skill(prototype) LOGIC; local-only branch prototype/diagram-generation-io @ bdccfda (contains external paths; never pushed, Ste); measured aa-ma-forge@d31e301 file 18q/44q+b, L1 10; medical-research-skills@efafac2 file 186q/285q+b (open() in: 381/436), L1 24; decisions: auto level (file if <=120 else L1), edge ids + class lines (AC4), AC6 records file-level 285 OVER, AC5 N=5

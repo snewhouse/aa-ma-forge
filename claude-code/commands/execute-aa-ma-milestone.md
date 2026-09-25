@@ -653,7 +653,7 @@ a sigil edge (`-->|"@import"|`, `-->|"@call"|`, …); a plan without one is a no
 |-----------|---------|
 | `edges=0` | not applicable — no evidence written |
 | `phantom>0` (`PHANTOM_EDGE` / `LABEL_UNKNOWN`) | BLOCKED — the diagram claims an edge the code does not hold |
-| `index-unknown>0` (no, stale, too-old or unreadable index) | BLOCKED — the check did not run (L-012); run `codemem build` (0.44s) and re-run |
+| `index-unknown>0` (no, stale, too-old or unreadable index) | BLOCKED — the check did not run (L-012); run `codemem build` and re-run |
 | no `sigils:` line / `sigils: UNKNOWN` / lint exit 2 | BLOCKED — §13 could not be read |
 | otherwise | PASS — appends `[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N phantom=0 unknown=K` |
 
@@ -706,7 +706,7 @@ elif [[ "${PHANTOM}" -gt 0 ]]; then
 elif [[ "${INDEX_UNKNOWN}" -gt 0 ]]; then
   echo "BLOCKED: the codemem index could not verify ${INDEX_UNKNOWN} §13 sigil edge(s):"
   printf '%s\n' "${LINT}" | grep -F 'codemem build' | head -n 1
-  echo "Run \`codemem build\` (0.44s on this repo), then re-run this check."
+  echo "Run \`codemem build\`, then re-run this check."
   exit 1
 else
   echo "[$(date -Iseconds)] DIAGRAM_VERIFIED — ${MILESTONE_TITLE} — edges=${EDGES} phantom=0 unknown=${UNKNOWN}" \

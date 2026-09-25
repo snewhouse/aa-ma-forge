@@ -385,9 +385,9 @@
 - Result Log: HITL Proceed (Ste). GREEN. `mermaid_lint`: `LintReport.sigil_edges` (None when an unterminated fence hides §13), index-class UNKNOWNs coded `UNKNOWN_INDEX` (still printed `UNKNOWN:`), `SIGIL_FINDINGS`; `cli`: `sigils: edges=N phantom=P unknown=K index-unknown=I` before `render:` (`sigils: UNKNOWN (§13 not read)` otherwise); exit codes unchanged. `execute-aa-ma-milestone.md` §6.7: verdict table + second ```bash fence after the Bypass paragraph (self-sufficient; canonical lib-resolution snippet; appends `DIAGRAM_VERIFIED — <heading> — edges=N phantom=0 unknown=K`). `engineering-standards.md`: §5 HARD row; §1 `hook-modification` names `.github/workflows/**` (AC6); absent-field note covers sigil-free §13. Evidence: test_diagram_verified.bats 13/13; pytest 1545 passed / 2 skipped (+7); bats 223/223; 58 protected tests 32/10/16; gate-fence extraction sha256 17be760b… unchanged (AC7); gate kv over 33 corpus files differs only in our own tasks.md PENDING→ACTIVE, gate/enforce/grammar/plan_parsers.py unchanged (AC4); ruff + lint-imports 4/4; regen = stamp-only; plugin-surface golden unchanged; own plan `--coverage` rc 0, `sigils: edges=23 phantom=0 unknown=19 index-unknown=0` (a whole-file grep counts 25 — 2 in AC prose).
 
 ### Sub-step 11.4: [verify] 58 bats tests green; extraction output unchanged; `CRITICAL_PATH_REVIEW`
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: HITL Proceed (Ste). 58/58 after the edit (32/10/16, identical to 11.2); gate-fence extraction sha256 17be760b… unchanged. Live on this repo: fence PASS (edges=23 phantom=0 unknown=19) → `touch src/aa_ma/render/graph.py` → BLOCKED rc 1 naming `codemem build` → rebuild (0.66s) → PASS; outputs in provenance.log. Live run exposed a false message ("0.44s on this repo" ships to consumer repos) — removed. `CRITICAL_PATH_REVIEW — Milestone 11: … — hook-modification` written.
 
 ### Sub-step 11.5: [docs] ADR-0015
 - Status: PENDING

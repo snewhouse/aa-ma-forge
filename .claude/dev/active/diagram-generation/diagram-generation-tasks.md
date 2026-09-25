@@ -325,7 +325,7 @@
 - Result Log: Mode: AFK — auto-dispatched. Commit 83b6dbf. `draw/io_sinks.py` (new: catalogue load/validate, classify, `io_edges`, `choose_level`, `band_line`, `band` CLI); `mermaid.io_to_mermaid` + `TIER_STYLE` (exactly two classDefs, edge ids + class lines); `views.VIEWS["io"]` → `docs/architecture/io.md`; `cut.collapse`; `scripts/measure_io_band.sh` (shellcheck clean). GREEN: test_io_sinks 35/35; full `uv run pytest -q` 1478 passed / 2 skipped; ruff clean; lint-imports 4/4 kept; `test_draw_check` registry pin +`io.md` (intended). `scripts/regen-generated.sh` → io.md (43 edges, file level) + component.md gains 2 real call edges (`mermaid → cut`; `tui/__main__ → tui/json_output`, the `dump as json_dump` alias now resolves); `codemem draw --check` OK; mmdc renders io.md (edge styles applied). AC6: `IO_DENSE_BAND repo=medical-research-skills sha=efafac209f… edges=289 threshold=120 verdict=OVER`, byte-identical over 2 runs, external status unchanged → reference.md. Own plan `aa-ma-lint-views` exit 0.
 
 ## Milestone 10: `/aa-ma-plan` §13 seeding + Angle 6 coverage rule
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 8
 - Gate: HARD
 - Audit-Profile: full
@@ -334,6 +334,7 @@
 - Effort: 1
 - Goal: Every new plan ships real, checkable §13 edges, and a plan that creates files it does not draw is caught.
 - Acceptance Criteria: 5 criteria — see plan.md § Milestone 10
+- Result Log: COMPLETE 2026-09-25, HARD gate APPROVED (Ste). 5/5 AC: 3 undrawn → 3 UNDRAWN_PATH; all drawn → none; grandfathered before 2026-09-11 (derived from COVERAGE_CUTOVER); AC4 proxy scoped to check 8 (amended, Ste) + coverage.py imports no gate; seeded fixture byte-identical to `codemem draw`, zero PHANTOM, every claim evaluated. §6.7 PASS + CRITICAL_PATH_REVIEW; §6.8 PASS_WITH_WARNINGS 0/10/14, all W fixed RED-first. Commits 6c7d3b6 (decisions) → d82d007 (RED) → 484f7d2 (10.2) → 9aaebf1 (10.3) → 05fa09f (10.4) → fd7da0b (CHANGELOG/reference) → 60f608d (§6.8 RED) → f1077cd (§6.8 fixes). pytest 1538 / 2 skipped; CI green.
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 10.1: [test] `seeded-plan.md` fixture + `test_angle6_coverage.py`, RED

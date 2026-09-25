@@ -363,3 +363,15 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - Coverage now fails closed: every Contract row token is a path; brace expansion is iterative and capped (MAX_EXPANSIONS = 256; past it the token stays whole); a crash is UNKNOWN (exit 2), and check 8's fence reads rc ∉ {0,1} as CRITICAL — never clean.
 - Step 4.2b reads paths from a quoted heredoc (spaces, globs and `$(...)` stay data), skips the draw when there are none, and refuses a non-checkout AA_MA_ROOT.
 - Both fences are executed by pytest against a stub `uv` under a fake `~/.claude` symlink tree, so the shipped text is tested, not paraphrased.
+
+## [2026-09-25] GATE APPROVAL: Milestone 10: `/aa-ma-plan` §13 seeding + Angle 6 coverage rule
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 5/5
+- Decision: APPROVED
+
+## [2026-09-25] Milestone Completion: Milestone 10: `/aa-ma-plan` §13 seeding + Angle 6 coverage rule
+- Status: COMPLETE
+- Key outcome: `/aa-ma-plan` Step 4.2b seeds §13 from `codemem draw` (repeatable `--scope`, quoted heredoc, skip when empty); Angle 6 check 8 = `aa-ma-lint-views --coverage` (`aa_ma.render.coverage`, UNDRAWN_PATH, WARNING, fail closed, planning time only).
+- Artifacts: src/aa_ma/render/{coverage,cli,mermaid_lint}.py, codemem {cli,draw/cut}.py, claude-code/commands/aa-ma-plan.md, claude-code/skills/plan-verification/SKILL.md, claude-code/rules/aa-ma.md, docs/spec/aa-ma-specification.md, tests/skills/test_angle6_coverage.py, tests/fixtures/seeded-plan.md, tests/codemem/test_draw_cut.py, CHANGELOG, plan §13.
+- Tests: pytest 1538 passed / 2 skipped; bats 210/210; lint-imports 4/4; CI green on f1077cd.

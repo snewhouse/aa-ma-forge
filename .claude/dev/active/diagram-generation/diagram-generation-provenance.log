@@ -69,3 +69,9 @@
 [2026-09-24T20:44:26Z] CHECKPOINT — ActiveStep: Sub-step 9.1: [prototype] `Skill(prototype)` on this repo + `medical-research-skills`; `PROTOTYPE` provenance — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A
 [2026-09-25T08:19:17+01:00] PROTOTYPE — Milestone 9 — REVISE
 [2026-09-25T08:19:17+01:00] PROTOTYPE — Milestone 9: I/O-boundary view — `Prototype-Required: YES` — REVISE — Skill(prototype) LOGIC; local-only branch prototype/diagram-generation-io @ bdccfda (contains external paths; never pushed, Ste); measured aa-ma-forge@d31e301 file 18q/44q+b, L1 10; medical-research-skills@efafac2 file 186q/285q+b (open() in: 381/436), L1 24; decisions: auto level (file if <=120 else L1), edge ids + class lines (AC4), AC6 records file-level 285 OVER, AC5 N=5
+[2026-09-25T08:36:45+01:00] M9 §5.1 dependency advisory: no output (Milestone 6 COMPLETE)
+[2026-09-25T08:36:45+01:00] M9 9.2–9.4 — RED cb12024 → 9.3 598f749 → 9.4 83b6dbf; pytest 1478 passed / 2 skipped; bats 210/210; lint-imports 4/4; ruff clean; draw --check OK; mmdc renders io.md
+[2026-09-25T08:36:45+01:00] M9 Context7 — /mermaid-js/mermaid (edge ids + class, stroke-dasharray), /yaml/pyyaml (safe_load, YAML 1.1 bools)
+[2026-09-25T08:36:45+01:00] M9 AC6 — scripts/measure_io_band.sh medical-research-skills efafac2 → edges=289 OVER, byte-identical x2, external status unchanged
+[2026-09-25T08:36:45+01:00] M9 §6.7 ENG-STANDARDS-GATE: PASS
+[2026-09-25T08:36:45+01:00] M9 §6.8 dispatch — code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor over d31e301..83b6dbf

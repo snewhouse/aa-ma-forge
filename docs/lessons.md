@@ -5,6 +5,21 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-026 (2026-09-25) — Generated docs regenerated before `git add` describe a tree nobody committed
+
+**Pattern:** In `diagram-generation` M9 I ran `scripts/regen-generated.sh` while the new
+`draw/io_sinks.py` was still untracked, then committed and pushed. codemem indexes
+`git ls-files`, so the index — and the committed `docs/architecture/` — lacked the new file.
+Local `draw --check` passed against that same index; CI built from the commit, saw the file,
+and `architecture-drift` went red on `83b6dbf`. L-025 ("run what CI runs") was followed
+in letter only: CI runs on the committed tree, not the working tree.
+
+**Rule:** Stage every new source file BEFORE regenerating anything derived from the index.
+`scripts/regen-generated.sh` now refuses (rc 1) while any untracked file with an indexable
+extension exists — do not bypass it; `git add` the file (or delete it) and re-run.
+
+---
+
 ## L-025 (2026-09-24) — A test that waits on a later sub-step turns CI red the moment you push
 
 **Pattern:** In `diagram-generation` M6 the RED test file included AC5 (the `architecture-drift`

@@ -496,7 +496,7 @@ pyyaml (Context7 /yaml/pyyaml, 9.3 Result Log in 598f749, provenance); mermaid e
 
 # Milestone 10 — `/aa-ma-plan` §13 seeding + Angle 6 coverage rule
 
-**Window:** 49b670b..05fa09f (+ fix round 60f608d RED → this commit) · **Audit-Profile:** full · **Critical-Path:** hook-modification · **Agents:** code-reviewer (incl. §6.6), security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor · **Verdict:** PASS_WITH_WARNINGS (after fixes)
+**Window:** 49b670b..05fa09f (+ fix round 60f608d RED → f1077cd) · **Audit-Profile:** full · **Critical-Path:** hook-modification · **Agents:** code-reviewer (incl. §6.6), security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor · **Verdict:** PASS_WITH_WARNINGS (after fixes)
 
 ## Summary
 | Agent | CRITICAL | WARNING | INFO | Verdict |

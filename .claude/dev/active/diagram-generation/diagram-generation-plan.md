@@ -267,6 +267,7 @@ graph TD
         UC["claude-code/skills/understand-codebase/"]
         AGENTS["claude-code/agents/"]
         ESTD["claude-code/rules/engineering-standards.md"]
+        AARULE["claude-code/rules/aa-ma.md"]
         IA["claude-code/skills/impact-analysis/SKILL.md"]
         SM["claude-code/skills/system-mapping/SKILL.md"]
         SRV["claude-code/codemem/mcp/server.py"]
@@ -303,6 +304,7 @@ graph TD
     PLAN -->|seeds section 13 via| CCLI
     PV -->|Angle 6 coverage rule| PLAN
     PV -->|check 8 runs --coverage| RCLI
+    AARULE -->|grandfathers checks 6-8| PV
     RCLI -->|"@import"| COV
     COV -->|"@import"| ML
     MIOB -->|git archive, then build + band| CCLI
@@ -1149,6 +1151,7 @@ Files:
   Modify  packages/codemem-mcp/src/codemem/{cli,draw/cut}.py   # repeatable --scope
   Create  tests/fixtures/seeded-plan.md
   # and this plan's own §13 gains coverage.py + both scripts/ nodes, so it passes its rule
+  Modify  claude-code/rules/aa-ma.md                  # §6.8: grandfathering line names check 8
 
 Decisions (Ste 2026-09-25, measured first):
   - Home: Python in aa_ma.render, opt-in `aa-ma-lint-views --coverage`; SKILL.md check 8 runs
@@ -1212,7 +1215,7 @@ Angle 6 coverage rule (planning-time ONLY, never reaches the gate — ADR-0009):
 | Risk | Mitigation |
 |---|---|
 | Seeding anchors the author to the present and suppresses `(new)` nodes | That is exactly what the Angle 6 coverage rule counters — mechanically, not by exhortation. |
-| Coverage rule leaks into the milestone gate | Test asserts `gate.py` is never called; ADR-0009's separation is restated in the ADR index. |
+| Coverage rule leaks into the milestone gate | (Superseded by the AC4 amendment: check 8's text names no gate; `coverage.py` imports no gate module; opt-in `--coverage`.) Test asserts `gate.py` is never called; ADR-0009's separation is restated in the ADR index. |
 | A plan with no codemem index gets an empty seed and the author assumes there is nothing to draw | Seeding prints the `GraphStatus` reason inline when it cannot run. |
 
 **Rollback:** revert both markdown files; seeding is a command-level step with no code dependency.

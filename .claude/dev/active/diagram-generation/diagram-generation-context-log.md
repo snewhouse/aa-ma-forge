@@ -375,3 +375,5 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - Key outcome: `/aa-ma-plan` Step 4.2b seeds §13 from `codemem draw` (repeatable `--scope`, quoted heredoc, skip when empty); Angle 6 check 8 = `aa-ma-lint-views --coverage` (`aa_ma.render.coverage`, UNDRAWN_PATH, WARNING, fail closed, planning time only).
 - Artifacts: src/aa_ma/render/{coverage,cli,mermaid_lint}.py, codemem {cli,draw/cut}.py, claude-code/commands/aa-ma-plan.md, claude-code/skills/plan-verification/SKILL.md, claude-code/rules/aa-ma.md, docs/spec/aa-ma-specification.md, tests/skills/test_angle6_coverage.py, tests/fixtures/seeded-plan.md, tests/codemem/test_draw_cut.py, CHANGELOG, plan §13.
 - Tests: pytest 1538 passed / 2 skipped; bats 210/210; lint-imports 4/4; CI green on f1077cd.
+
+- M10 validator back-fill: plan-architecture-views measured 6 / 6 by the throwaway prototype (it read the template placeholder inside an example fence); the shipped rule reads only the fences directly under `#### Contract`, giving 5 / 1. The §6.8 round also touched `claude-code/rules/aa-ma.md` (check 8 in the grandfathering line), now listed in the M10 Contract.

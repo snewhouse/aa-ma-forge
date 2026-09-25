@@ -215,3 +215,31 @@ def test_l3_import_kind_rejected(small) -> None:
     """L3 is symbol-level calls only; asking for imports there is an error, not an empty diagram."""
     with pytest.raises(ValueError):
         cut(small, Level.L3, kind="import")
+
+
+# ---------------------------------------------------------------------
+# Repeatable --scope (diagram-generation M10: /aa-ma-plan seeds §13 from several files)
+# ---------------------------------------------------------------------
+
+def test_several_scopes_are_one_union_cut(proto) -> None:
+    one = cut(proto, Level.L2, scope="src/aa_ma/render/", hops=1)
+    two = cut(proto, Level.L2, scope="src/aa_ma/gate.py", hops=1)
+    both = cut(proto, Level.L2, scope=("src/aa_ma/render/", "src/aa_ma/gate.py"), hops=1)
+    assert both.edges == one.edges | two.edges
+    assert set(both.nodes) == set(one.nodes) | set(two.nodes)
+
+
+def test_cli_scope_is_repeatable(proto, tmp_path, monkeypatch, capsys) -> None:
+    from codemem.cli import main
+
+    db = tmp_path / "p.db"
+    with sqlite3.connect(db) as out:
+        proto.backup(out)
+    args = ["--db", str(db), "draw", "--level", "L2", "--hops", "1"]
+    assert main([*args, "--scope", "src/aa_ma/render/", "--scope", "src/aa_ma/gate.py"]) == 0
+    both = capsys.readouterr().out
+    assert main([*args, "--scope", "src/aa_ma/render/"]) == 0
+    one = capsys.readouterr().out
+    assert main([*args, "--scope", "src/aa_ma/gate.py"]) == 0
+    two = capsys.readouterr().out
+    assert set(both.splitlines()) == set(one.splitlines()) | set(two.splitlines())

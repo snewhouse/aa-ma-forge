@@ -337,9 +337,9 @@
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 10.1: [test] `seeded-plan.md` fixture + `test_angle6_coverage.py`, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `tests/fixtures/seeded-plan.md`: §13 seed captured from the real `codemem draw --level L2 --scope src/app/a.py --hops 1 --direction both` on a throwaway committed repo (4 nodes / 5 sigil edges incl. `@import`) plus one author `(new)` node. `tests/skills/test_angle6_coverage.py` (new): AC1 (3 undrawn → 3 `UNDRAWN_PATH`), AC2 (all drawn → none), AC3 (2026-09-10 / absent → none; 2026-09-11 fires), finding line = Contract row, 12 exempt rows (Test/Verify, tests/, docs/, root docs, pyproject.toml, package.json, *.lock), directory-node coverage (and a non-component prefix does not cover), `# file:` + braces + comments + comma lists, Contract inside an example fence ignored, no §13 → not this check's finding, CLI `--coverage` opt-in, gate path never yields UNDRAWN_PATH, AC4 proxy (SKILL.md) + coverage module never imports the gate, check 8 appended after 7 with 6/7 literals intact, Phase 4 seeding text, spec item 13, this plan passes its own rule, AC5 (fixture seed byte-identical to the command; zero PHANTOM and every sigil claim evaluated). `tests/codemem/test_draw_cut.py`: +2 (union cut — already green: `cut()` accepts a tuple at runtime; CLI `--scope` repeatable — RED). RED: collection ImportError (`aa_ma.render.coverage` absent) + CLI scope assertion. Local only until GREEN (L-025).
 
 ### Sub-step 10.2: [impl] Phase 4 seeding in `aa-ma-plan.md` (Critical-Path)
 - Status: PENDING

@@ -426,6 +426,20 @@ evaluates these structural conditions against the plan:
    `Audit-Profile` ∈ {full, code-only, infra} has a `#### Contract` heading followed
    by at least one fenced block. Missing → CRITICAL; the fresh-agent simulation
    (Angle 5) treats an unpinned signature as a WARNING at minimum.
+8. **Contract paths drawn in §13 (v0.12.0+).** Every path a milestone's `#### Contract`
+   block creates or modifies — `Create` / `Modify` rows and template `# file: <path>`
+   lines — is covered by a §13 node: one naming the path, a directory above it, or the
+   planned `(new)` file. Exempt: `Test` / `Verify` rows, paths under `tests/` and `docs/`,
+   root docs (README, CHANGELOG, SECURITY, CONTEXT), and dependency manifests / lockfiles
+   (`pyproject.toml`, `package.json`, `*.lock`). Planning time only — the same lint as
+   check #6 with its opt-in flag, which nothing at execution time passes:
+   ```bash
+   uv run --project "$AA_MA_ROOT" aa-ma-lint-views <plan.md> --repo-root <project-root> --coverage \
+     | grep ': UNDRAWN_PATH: '
+   ```
+   One WARNING per `file:line: UNDRAWN_PATH: <path>: …` line — draw the path (the
+   `/aa-ma-plan` Step 4.2b seed already holds the existing files), or say in the plan why
+   it stays undrawn. The other lines of this run repeat check #6 and are read there.
 
 Parsers for checks #2, #4, #5 and #6 live in `src/aa_ma/plan_parsers.py`
 (`parse_critical_path`, `parse_audit_profile`, `parse_tdd_waiver`,
@@ -445,7 +459,7 @@ the audit reports `CRITICAL` when `is_valid is False`.
 - Pre-v0.5.0 plans emit `[INFO] Pre-v0.5.0 plan — engineering-standards
   check skipped` and continue. Pre-v0.8.0 plans emit
   `[INFO] Pre-v0.8.0 plan — Audit-Profile check skipped`.
-- Checks #6 and #7 fire only for plans whose `Created:` is on-or-after the
+- Checks #6, #7 and #8 fire only for plans whose `Created:` is on-or-after the
   literal date **2026-09-11** (v0.12.0 cutover, written as a date so the check
   never depends on a release tag); earlier plans emit
   `[INFO] Pre-2026-09-11 plan — Architecture View check skipped`.

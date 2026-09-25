@@ -8,12 +8,13 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from aa_ma.render.html import render_markdown
+from aa_ma.render.coverage import coverage_findings
 from aa_ma.render.graph import printable
 from aa_ma.render.mermaid_lint import lint_plan
 
 
 def lint_main(argv: Sequence[str] | None = None) -> int:
-    """aa-ma-lint-views <plan.md> [--repo-root DIR] [--tasks FILE] — exit 0 clean / 1 findings / 2 usage."""
+    """aa-ma-lint-views <plan.md> [--repo-root DIR] [--tasks FILE] [--coverage] — exit 0 clean / 1 findings / 2 usage."""
     p = argparse.ArgumentParser(
         prog="aa-ma-lint-views", description="Lint plan.md §13 Architecture View"
     )
@@ -25,6 +26,11 @@ def lint_main(argv: Sequence[str] | None = None) -> int:
         default=None,
         help="tasks.md to read Audit-Profile/Critical-Path from",
     )
+    p.add_argument(
+        "--coverage",
+        action="store_true",
+        help="Angle 6 check 8 (planning time only): every Contract Create/Modify path is drawn in §13",
+    )
     a = p.parse_args(argv)
     if (
         a.plan is None
@@ -34,12 +40,15 @@ def lint_main(argv: Sequence[str] | None = None) -> int:
         p.print_usage(sys.stderr)  # usage errors go to stderr; stdout is the report
         return 2
     rep = lint_plan(a.plan, a.repo_root, tasks_path=a.tasks)
-    for f in rep.findings:
+    findings = list(rep.findings)
+    if a.coverage:  # never passed by the milestone gate (ADR-0009)
+        findings += coverage_findings(a.plan.read_text(encoding="utf-8"))
+    for f in findings:
         print(f"{a.plan}:{f.line}: {f.code}: {printable(f.message)}")
     for f in rep.unknowns:  # informational: an unevaluable claim never sets the exit (L-012)
         print(f"{a.plan}:{f.line}: UNKNOWN: {printable(f.message)}")
     print(f"render: {rep.render_status}")
-    return 1 if rep.findings else 0
+    return 1 if findings else 0
 
 
 def render_main(argv: Sequence[str] | None = None) -> int:

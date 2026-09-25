@@ -158,6 +158,21 @@ def _milestone_facts(text: str) -> tuple[bool, bool, list[str]]:
     return code, crit, errors
 
 
+def section_13(plan_text: str, stripped: str) -> tuple[int, list[str], list[str]] | None:
+    """(0-based heading line, original lines, fence-stripped lines) of §13, or None.
+
+    ``stripped`` is ``scan_fences(plan_text).stripped``: a heading quoted inside a fence is
+    content. The lint and Angle 6 check 8 (``coverage``) locate the section this one way.
+    """
+    m = _SECTION_RE.search(stripped)
+    if m is None:
+        return None
+    nxt = H2_RE.search(stripped, m.end())
+    first = _line(stripped, m.start()) - 1
+    last = _line(stripped, nxt.start()) - 1 if nxt else None
+    return first, plan_text.split("\n")[first:last], stripped.split("\n")[first:last]
+
+
 def _views(
     section_lines: list[str], stripped_lines: list[str]
 ) -> dict[str, tuple[int, str]]:
@@ -375,17 +390,12 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
                 f"Diagram-Waiver: {waiver} but a milestone has a code Audit-Profile",
             )
         )
-    m = _SECTION_RE.search(stripped)
-    if m is None:
+    sec = section_13(plan_text, stripped)
+    if sec is None:
         if ok and waiver == "none":
             out.append(Finding("NO_SECTION", 1, "missing '## 13. Architecture View'"))
         return LintReport(tuple(out), "UNKNOWN")
-    nxt = H2_RE.search(stripped, m.end())
-    first = _line(stripped, m.start()) - 1  # 0-based line index of the section heading
-    last = _line(stripped, nxt.start()) - 1 if nxt else None
-    section_lines = plan_text.split("\n")[first:last]
-    stripped_lines = stripped.split("\n")[first:last]
-    base = first  # absolute line = base + 1-based line within the section
+    base, section_lines, stripped_lines = sec  # absolute line = base + 1-based line within the section
     views = _views(section_lines, stripped_lines)
     if "Component" not in views:
         out.append(

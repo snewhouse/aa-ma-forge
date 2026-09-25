@@ -257,6 +257,7 @@ graph TD
         GRAPH["src/aa_ma/render/graph.py (new)"]
         EXP["src/aa_ma/render/explorer.py (new)"]
         EXPJS["src/aa_ma/render/explorer.js (new)"]
+        COV["src/aa_ma/render/coverage.py"]
     end
 
     subgraph surface["shipped surface + CI"]
@@ -271,6 +272,8 @@ graph TD
         SRV["claude-code/codemem/mcp/server.py"]
         ILINT[".importlinter"]
         YML[".github/workflows/security.yml"]
+        MIOB["scripts/measure_io_band.sh"]
+        REGEN["scripts/regen-generated.sh"]
     end
 
     DOCS["docs/architecture/component.md (new)"]
@@ -299,6 +302,11 @@ graph TD
 
     PLAN -->|seeds section 13 via| CCLI
     PV -->|Angle 6 coverage rule| PLAN
+    PV -->|check 8 runs --coverage| RCLI
+    RCLI -->|"@import"| COV
+    COV -->|"@import"| ML
+    MIOB -->|git archive, then build + band| CCLI
+    REGEN -->|build, draw --write, draw --check| CCLI
     EXEC -->|section 6.7 HARD item| RCLI
     UC -->|Deep tier runs| CCLI
     YML -->|architecture-drift job| CCLI
@@ -1140,7 +1148,7 @@ Files:
   Modify  src/aa_ma/render/{cli,mermaid_lint}.py     # `aa-ma-lint-views --coverage`; shared §13 locator
   Modify  packages/codemem-mcp/src/codemem/{cli,draw/cut}.py   # repeatable --scope
   Create  tests/fixtures/seeded-plan.md
-  Modify  .claude/dev/active/diagram-generation/diagram-generation-plan.md §13  # draw scripts/ (own rule)
+  # and this plan's own §13 gains coverage.py + both scripts/ nodes, so it passes its rule
 
 Decisions (Ste 2026-09-25, measured first):
   - Home: Python in aa_ma.render, opt-in `aa-ma-lint-views --coverage`; SKILL.md check 8 runs
@@ -1189,7 +1197,10 @@ Angle 6 coverage rule (planning-time ONLY, never reaches the gate — ADR-0009):
 2. A plan drawing all its Contract paths produces none.
 3. The rule fires only for plans `Created:` on-or-after 2026-09-11 (existing grandfathering honoured).
 4. Proxy assertion, labelled as such: `grep -rn "aa-ma-gate\|aa_ma.gate"
-   claude-code/skills/plan-verification/SKILL.md` returns nothing. (A markdown skill
+   claude-code/skills/plan-verification/SKILL.md` returns nothing.
+   AMENDED (Ste 2026-09-25): scoped to check 8's own text — check 2 has legitimately
+   called the gate launcher since 38dfc82 (ADR-0009), so the file-wide grep was false
+   before M10 began; plus `src/aa_ma/render/coverage.py` imports no gate module. (A markdown skill
    invokes nothing observable from pytest, so "gate.py is never called" cannot be
    asserted directly; this plus M7's byte-identical gate golden is the available cover.)
 5. `tests/fixtures/seeded-plan.md` — a committed fixture, not "a real plan" — parses to

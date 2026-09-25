@@ -39,7 +39,7 @@ def _plan(contract: str, nodes: str = "", created: str | None = "2026-09-25") ->
 
 
 def _codes(text: str) -> list[str]:
-    return [f.message.split()[0] for f in coverage.coverage_findings(text)]
+    return [f.message.split(":")[0] for f in coverage.coverage_findings(text)]
 
 
 THREE = "  Modify  src/a.py\n  Create  src/b.py\n  Modify  scripts/run.sh\n"
@@ -107,7 +107,7 @@ def test_template_file_lines_braces_comments_and_suffixes():
 
 def test_a_contract_quoted_inside_an_example_fence_is_not_read():
     text = _plan("  Modify  src/a.py\n", '  A["src/a.py"]\n').replace(
-        "## 13.", "````markdown\n#### Contract\n```\n# file: path/to/module.py\n```\n````\n\n## 13.", 1
+        "## 13.", "- [ ] Add to the plan:\n\n````markdown\n#### Contract\n```\n# file: path/to/module.py\n```\n````\n\n## 13.", 1
     )
     assert coverage.coverage_findings(text) == []
 
@@ -133,8 +133,10 @@ def test_the_gate_never_computes_coverage():
 # --- AC4 (proxy, labelled as such) and the shipped prose ----------------------------------
 
 
-def test_skill_never_names_the_gate():  # AC4 proxy
-    assert not re.search(r"aa-ma-gate|aa_ma\.gate", SKILL.read_text(encoding="utf-8"))
+def test_check_8_never_names_the_gate():  # AC4 proxy, scoped to check 8 (Ste 2026-09-25)
+    text = SKILL.read_text(encoding="utf-8")
+    check_8 = text[text.index("8. **Contract paths drawn in §13"): text.index("Parsers for checks")]
+    assert not re.search(r"aa-ma-gate|aa_ma[._]gate", check_8)
 
 
 def test_coverage_module_never_imports_the_gate():

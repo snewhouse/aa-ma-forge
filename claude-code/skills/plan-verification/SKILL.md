@@ -336,7 +336,7 @@ Agent tool:
 | `schema`, `field`, `column`, `table`, `migration` | Schema Completeness Auditor | Field count vs source, type accuracy, nullable handling, default values |
 | `sqlalchemy`, `alembic`, `migration`, `database` | Migration Auditor | State machine completeness, rollback safety, data loss risk |
 | `auth`, `secret`, `token`, `permission`, `credential` | Security Auditor | OWASP top 10, credential handling, injection risks |
-| (always evaluated — not keyword-driven) | Engineering Standards Auditor | Element #12 declaration present; themes from `claude-code/rules/engineering-standards.md` claimed-vs-applied; `Critical-Path:`/`Prototype-Required:` flag values valid (canonical enum); Architecture View present or validly waived (`Diagram-Waiver` canonical) and Contract block per code milestone (checks #6/#7, plans `Created:` ≥ 2026-09-11) |
+| (always evaluated — not keyword-driven) | Engineering Standards Auditor | Element #12 declaration present; themes from `claude-code/rules/engineering-standards.md` claimed-vs-applied; `Critical-Path:`/`Prototype-Required:` flag values valid (canonical enum); Architecture View present or validly waived (`Diagram-Waiver` canonical) Contract block per code milestone, and Contract paths drawn in §13 (checks #6/#7, check #8 WARNING; plans `Created:` ≥ 2026-09-11) |
 
 Dispatch 1-3 specialists based on detection. If no domain keywords found, skip the keyword-driven dispatch (report as "No specialist domains detected") — but the **Engineering Standards Auditor always runs** regardless of keyword detection (see structural check below).
 
@@ -434,12 +434,19 @@ evaluates these structural conditions against the plan:
    (`pyproject.toml`, `package.json`, `*.lock`). Planning time only — the same lint as
    check #6 with its opt-in flag, which nothing at execution time passes:
    ```bash
-   uv run --project "$AA_MA_ROOT" aa-ma-lint-views <plan.md> --repo-root <project-root> --coverage \
-     | grep ': UNDRAWN_PATH: '
+   AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/skills/plan-verification/SKILL.md)")/../../.." && pwd)
+   out=$(uv run --project "$AA_MA_ROOT" aa-ma-lint-views <plan.md> --repo-root <project-root> --coverage)
+   rc=$?
+   case $rc in
+     0|1) printf '%s\n' "$out" | grep ': UNDRAWN_PATH: ' || echo "check 8: every Contract path is drawn" ;;
+     *)   echo "CRITICAL: check 8 could not run (rc $rc) — never read as clean"
+          printf '%s\n' "$out" | grep ': UNKNOWN: ' ;;
+   esac
    ```
    One WARNING per `file:line: UNDRAWN_PATH: <path>: …` line — draw the path (the
    `/aa-ma-plan` Step 4.2b seed already holds the existing files), or say in the plan why
-   it stays undrawn. The other lines of this run repeat check #6 and are read there.
+   it stays undrawn. Any other exit code (a crash is `UNKNOWN`, exit 2) is CRITICAL: a check
+   that did not run is not a clean one. Other finding lines repeat check #6 and are read there.
 
 Parsers for checks #2, #4, #5 and #6 live in `src/aa_ma/plan_parsers.py`
 (`parse_critical_path`, `parse_audit_profile`, `parse_tdd_waiver`,

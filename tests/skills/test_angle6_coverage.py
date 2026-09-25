@@ -14,6 +14,7 @@ from __future__ import annotations
 import ast
 import re
 import subprocess
+import textwrap
 import time
 from datetime import date, timedelta
 from pathlib import Path
@@ -299,9 +300,11 @@ def test_every_check_list_names_check_8():
 
 
 def _fence(md: Path, anchor: str) -> str:
-    text = md.read_text(encoding="utf-8")
-    body = text[text.index(anchor):]
-    return body.split("```bash\n", 1)[1].split("\n```", 1)[0]
+    """The first ```bash fence after ``anchor``, dedented, up to its own closer line."""
+    lines = md.read_text(encoding="utf-8")[md.read_text(encoding="utf-8").index(anchor):].splitlines()
+    start = next(i for i, ln in enumerate(lines) if ln.strip() == "```bash")
+    end = next(i for i in range(start + 1, len(lines)) if lines[i].strip() == "```")
+    return textwrap.dedent("\n".join(lines[start + 1 : end])) + "\n"
 
 
 @pytest.fixture

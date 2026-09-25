@@ -54,7 +54,7 @@ _MAX_TOKEN = (
     256  # PATH_MAX-ish: _PATH_RE only sees a bounded token, so it cannot go quadratic
 )
 # exemption survives shape punctuation: [("x (new)")]
-_NEW_RE = re.compile(r"\(new\)\W*$")
+NEW_RE = re.compile(r"\(new\)\W*$")
 # lines a fence may open with before the diagram type: %% directives, --- front-matter
 _DIRECTIVE_RE = re.compile(r"^%%[^\n]*\n", re.M)
 _FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\n.*?^---[ \t]*\n", re.M | re.S)
@@ -216,7 +216,7 @@ def _labels(line: str) -> list[str]:
 def _label_paths(label: str) -> list[str]:
     """Repo-path claims in one `[...]` label; none when it is planned `(new)`. The one rule
     STALE_PATH and sigil endpoints share (§6.8 M8 found two copies, one without `_inside`)."""
-    if _NEW_RE.search(label):
+    if NEW_RE.search(label):
         return []
     # [/x/] is a shape; a leading "/" would otherwise resolve from the fs root
     return [q.lstrip("/") for t in label.split() if len(t) <= _MAX_TOKEN for q in _PATH_RE.findall(t)]
@@ -242,7 +242,7 @@ def _stale_paths(src: str, repo_root: Path) -> list[tuple[int, str]]:
     return hits
 
 
-def _node_labels(src: str) -> dict[str, str]:
+def node_labels(src: str) -> dict[str, str]:
     """id -> `[...]` label per fence; the LAST declaration wins, as in mermaid."""
     labels: dict[str, str] = {}
     for line in src.split("\n"):
@@ -271,7 +271,7 @@ def _unwrap(label: str) -> str:
 def _endpoint(node: str, labels: dict[str, str], repo_root: Path) -> tuple[str | None, str | None]:
     """(repo path, None) or (None, why it cannot be a graph node) — graph-independent part."""
     label = labels.get(node, "")
-    if _NEW_RE.search(label):
+    if NEW_RE.search(label):
         return None, f"endpoint planned (new): {label[:_MAX_TOKEN]}"
     paths = _label_paths(label)
     if not paths:
@@ -290,7 +290,7 @@ def _sigil_claims(
     """
     found: list[Finding] = []
     unknown: list[Finding] = []
-    labels = _node_labels(src)
+    labels = node_labels(src)
     for ln, line in enumerate(src.split("\n")):
         if line.lstrip().startswith("%%"):
             continue  # a mermaid comment is not a claim
@@ -329,7 +329,7 @@ def _sigil_claims(
     return found, unknown
 
 
-def _mermaid_fences(body: str) -> list[tuple[int, str]]:
+def mermaid_fences(body: str) -> list[tuple[int, str]]:
     """(1-based line of first content line, source) per ```mermaid fence, one linear pass.
 
     Mirrors the CommonMark rule in grammar.scan_fences (closer = same char, >= opener
@@ -412,7 +412,7 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
     graph: list[_Graph] = []
     for name, (idx, body) in views.items():
         vline = base + idx + 1
-        fences = [(ln, src) for ln, src in _mermaid_fences(body) if src.strip()]
+        fences = [(ln, src) for ln, src in mermaid_fences(body) if src.strip()]
         if not fences:
             out.append(
                 Finding(

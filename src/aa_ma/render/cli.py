@@ -42,7 +42,11 @@ def lint_main(argv: Sequence[str] | None = None) -> int:
     rep = lint_plan(a.plan, a.repo_root, tasks_path=a.tasks)
     findings = list(rep.findings)
     if a.coverage:  # never passed by the milestone gate (ADR-0009)
-        findings += coverage_findings(a.plan.read_text(encoding="utf-8"))
+        try:
+            findings += coverage_findings(a.plan.read_text(encoding="utf-8"))
+        except Exception as e:  # a crash is UNKNOWN (exit 2), never "findings" or clean (L-012)
+            print(f"{a.plan}:1: UNKNOWN: coverage could not run: {printable(type(e).__name__)}")
+            return 2
     for f in findings:
         print(f"{a.plan}:{f.line}: {f.code}: {printable(f.message)}")
     for f in rep.unknowns:  # informational: an unevaluable claim never sets the exit (L-012)

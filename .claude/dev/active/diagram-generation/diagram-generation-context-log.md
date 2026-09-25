@@ -358,3 +358,8 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 ## [2026-09-25] M10 start — design decisions (Ste), measured first
 - Measured: the M10 Contract listed only markdown, yet AC1-AC3 need findings from a fixture — prose can't be run by pytest. Contract grammar differs across plans: this plan uses `Create`/`Modify` rows; the template (`docs/templates/plan-template.md:84`) and both other post-cutover plans use `# file: <path>`. A throwaway prototype (scratch `cov.py`) found: this plan 52 paths / 4 undrawn (pyproject.toml, uv.lock, 2 scripts — all from my M9 Contract amendment); mattpocock-trio-adoption 8 / 0; plan-architecture-views 6 / 6 (only when `# file:` is read). `codemem draw --scope` takes one prefix; a repeated flag silently keeps the last one.
 - Decided: executable rule in `aa_ma.render.coverage` behind the opt-in `aa-ma-lint-views --coverage` (gate path never passes it); read both row grammars; exemption (d) = pyproject.toml, package.json, *.lock; draw `scripts/` in this plan's §13; repeatable `--scope`.
+
+## [2026-09-25] M10 §6.8 — PASS_WITH_WARNINGS (0 C / 10 W / 14 I), all fixed (Ste)
+- Coverage now fails closed: every Contract row token is a path; brace expansion is iterative and capped (MAX_EXPANSIONS = 256; past it the token stays whole); a crash is UNKNOWN (exit 2), and check 8's fence reads rc ∉ {0,1} as CRITICAL — never clean.
+- Step 4.2b reads paths from a quoted heredoc (spaces, globs and `$(...)` stay data), skips the draw when there are none, and refuses a non-checkout AA_MA_ROOT.
+- Both fences are executed by pytest against a stub `uv` under a fake `~/.claude` symlink tree, so the shipped text is tested, not paraphrased.

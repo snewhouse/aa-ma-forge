@@ -122,6 +122,6 @@ Steps with **Complexity >= 80%** require human review or Chain-of-Thought deep r
 
 **Grandfathering (v0.5.0 introduced element #12):** Plans authored before v0.5.0 (i.e., without an `Engineering Standards Declaration` and without a `Created: YYYY-MM-DD` front-matter on-or-after the v0.5.0 release date) are valid as-is — `Skill(plan-verification)` Angle 6 only flags missing element #12 for plans `Created:` on-or-after v0.5.0. Pre-v0.5.0 plans remain conformant under the prior standard (without element #12) they were authored against.
 
-**Grandfathering (v0.12.0 introduced element #13):** `Skill(plan-verification)` Angle 6 checks #6 (Architecture View or valid `Diagram-Waiver`) and #7 (Contract block per code milestone) fire only for plans `Created:` on-or-after the literal date **2026-09-11**; earlier plans are conformant without element #13.
+**Grandfathering (v0.12.0 introduced element #13):** `Skill(plan-verification)` Angle 6 checks #6 (Architecture View or valid `Diagram-Waiver`), #7 (Contract block per code milestone) and #8 (Contract paths drawn in §13, WARNING) fire only for plans `Created:` on-or-after the literal date **2026-09-11**; earlier plans are conformant without element #13.
 
 Full standard with prompt template: [docs/aa-ma-specification.md#xi-planning-standard](../docs/aa-ma-specification.md#xi-planning-standard)

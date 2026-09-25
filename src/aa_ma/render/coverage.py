@@ -4,8 +4,10 @@ diagram-generation M10. Planning-time only: ``aa-ma-lint-views --coverage`` runs
 ``Skill(plan-verification)``; the milestone gate never passes ``--coverage`` (ADR-0009).
 
 Rows read (both grammars in use, Ste 2026-09-25): ``Create``/``Modify`` rows and template
-``# file: <path>`` lines, inside the fences under a ``#### Contract`` heading. ``{a,b}``
-lists expand. Exempt: ``Test``/``Verify`` rows, ``tests/`` and ``docs/``, root docs, and
+``# file: <path>`` lines, inside the fences under a ``#### Contract`` heading. Fail closed
+(§6.8): every token of a row is a path — only ``# comments`` and ``(parentheticals)`` are
+dropped, backticks and ``:12-40`` line ranges stripped — because a dropped path would pass
+silently. ``{a,b}`` lists expand, bounded: past ``MAX_EXPANSIONS`` the token stays whole. Exempt: ``Test``/``Verify`` rows, ``tests/`` and ``docs/``, root docs, and
 dependency manifests / lockfiles. A node covers its own path and — when it names a
 directory — everything beneath it; a ``(new)`` node covers the path it plans.
 """
@@ -16,25 +18,30 @@ import re
 
 from aa_ma.grammar import H2_RE, scan_fences
 from aa_ma.render.mermaid_lint import (
-    _NEW_RE,
+    NEW_RE,
     Finding,
-    _mermaid_fences,
-    _node_labels,
+    mermaid_fences,
+    node_labels,
     section_13,
 )
 
-__all__ = ["COVERAGE_CUTOVER", "contract_paths", "coverage_findings", "drawn_paths"]
+__all__ = [
+    "COVERAGE_CUTOVER", "EXEMPT_DIRS", "MANIFESTS", "MAX_EXPANSIONS", "ROOT_DOCS",
+    "contract_paths", "coverage_findings", "drawn_paths",
+]
 
 COVERAGE_CUTOVER = "2026-09-11"  # spec §XI item 13's cutover; a literal date, not a tag
 _CREATED_RE = re.compile(r"^(?:\*\*Created:\*\*|Created:)[ \t]*(\d{4}-\d{2}-\d{2})", re.M)
 _CONTRACT_RE = re.compile(r"^#### Contract[ \t]*$")
-_ROW_RE = re.compile(r"^[ \t]*(?:Create|Modify)[ \t]+([^#]+)")
+_ROW_RE = re.compile(r"^[ \t]*(?:[-*|][ \t]*)?(?:Create|Modify)[ \t]*:?[ \t|]+([^#]*)")
 _FILE_RE = re.compile(r"^[ \t]*#[ \t]*file:[ \t]*(\S+)")
-_TOKEN_RE = re.compile(r"[^\s,{}]*\{[^}]*\}[^\s,]*|[^\s,]+")  # keeps `a/{b,c}.py` whole
-_PATHLIKE_RE = re.compile(r"[\w.@*/-]+")
-_BRACES_RE = re.compile(r"\{([^{}]*)\}")
-_ROOT_DOCS = frozenset({"README.md", "CHANGELOG.md", "SECURITY.md", "CONTEXT.md"})
-_MANIFESTS = frozenset({"pyproject.toml", "package.json"})  # and every *.lock
+_PAREN_RE = re.compile(r"\([^()]*\)")
+_LINES_RE = re.compile(r":\d+(?:-\d+)?$")
+_BRACES_RE = re.compile(r"\{([^{}]*)\}")  # innermost group
+MAX_EXPANSIONS = 256  # `{a,b}` x 25 is 2**25 paths; past this the token is kept whole
+EXEMPT_DIRS = ("tests/", "docs/")
+ROOT_DOCS = frozenset({"README.md", "CHANGELOG.md", "SECURITY.md", "CONTEXT.md"})
+MANIFESTS = frozenset({"pyproject.toml", "package.json"})  # and every *.lock
 
 
 def coverage_findings(plan_text: str) -> list[Finding]:
@@ -85,12 +92,14 @@ def drawn_paths(plan_text: str, stripped: str) -> set[str] | None:
     if sec is None:
         return None
     body = "\n".join(sec[1])
+    # Every label token counts (`.importlinter`, `Makefile` are paths too); a prose word can
+    # only ever cover a Contract path that literally is, or starts with, that word.
     return {
         tok.rstrip("/")
-        for _, src in _mermaid_fences(body)
-        for label in _node_labels(src).values()
-        for tok in _NEW_RE.sub("", label).split()
-        if _pathlike(tok)
+        for _, src in mermaid_fences(body)
+        for label in node_labels(src).values()
+        for tok in NEW_RE.sub("", label).split()
+        if tok.rstrip("/")
     }
 
 
@@ -104,31 +113,44 @@ def _row_paths(line: str) -> list[str]:
     if m := _FILE_RE.match(line):
         tokens = [m.group(1)]
     elif m := _ROW_RE.match(line):
-        tokens = _TOKEN_RE.findall(m.group(1))
+        tokens = _split(_PAREN_RE.sub(" ", m.group(1)).replace("|", " "))
     else:
         return []
-    return [p for tok in tokens for p in _expand(tok) if _pathlike(p)]
+    paths = (_LINES_RE.sub("", tok.strip("`")) for tok in tokens)
+    return [p for path in paths if path for p in _expand(path)]
+
+
+def _split(text: str) -> list[str]:
+    """Whitespace/comma separated, except inside `{...}` (a brace list is one token)."""
+    out, cur, depth = [], [], 0
+    for ch in text:
+        depth += (ch == "{") - (ch == "}" and depth > 0)
+        if depth == 0 and (ch.isspace() or ch == ","):
+            out.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+    return [t for t in (*out, "".join(cur)) if t]
 
 
 def _expand(token: str) -> list[str]:
-    m = _BRACES_RE.search(token)
-    if m is None:
-        return [token]
-    head, tail = token[: m.start()], token[m.end():]
-    return [p for alt in m.group(1).split(",") for p in _expand(head + alt.strip() + tail)]
+    """`a/{b,c}.py` -> both paths; iterative (no recursion depth) and capped at MAX_EXPANSIONS."""
+    done, todo, steps = [], [token], 0
+    while todo:
+        cur = todo.pop()
+        m = _BRACES_RE.search(cur)
+        if m is None:
+            done.append(cur)
+            continue
+        steps += 1
+        alts = m.group(1).split(",")
+        if steps > MAX_EXPANSIONS or len(done) + len(todo) + len(alts) > MAX_EXPANSIONS:
+            return [token]  # unreadable as a path list: flag the token itself (fail closed)
+        todo += [cur[: m.start()] + a.strip() + cur[m.end():] for a in reversed(alts)]
+    return done
 
-
-def _pathlike(tok: str) -> bool:
-    """`src/x.py`, `uv.lock`, `claude-code/skills/u/` — not `(append)`, `§13` or `Files:`."""
-    name = tok.rstrip("/").rsplit("/", 1)[-1]
-    return bool(_PATHLIKE_RE.fullmatch(tok)) and ("/" in tok or "." in name[1:])
 
 
 def _exempt(path: str) -> bool:
     name = path.rsplit("/", 1)[-1]
-    return (
-        path.startswith(("tests/", "docs/"))
-        or path in _ROOT_DOCS
-        or name in _MANIFESTS
-        or name.endswith(".lock")
-    )
+    return path.startswith(EXEMPT_DIRS) or path in ROOT_DOCS or name in MANIFESTS or name.endswith(".lock")

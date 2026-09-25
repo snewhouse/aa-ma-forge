@@ -1144,7 +1144,7 @@ Files:
   Modify  docs/spec/aa-ma-specification.md                    # section XI item 13
   Test    tests/skills/test_angle6_coverage.py (new)
   # Amended at M10 start (Ste 2026-09-25): the rule is executable, not prose-only.
-  Create  src/aa_ma/render/coverage.py               # contract_paths / drawn_nodes / coverage_findings
+  Create  src/aa_ma/render/coverage.py               # contract_paths / drawn_paths / coverage_findings
   Modify  src/aa_ma/render/{cli,mermaid_lint}.py     # `aa-ma-lint-views --coverage`; shared §13 locator
   Modify  packages/codemem-mcp/src/codemem/{cli,draw/cut}.py   # repeatable --scope
   Create  tests/fixtures/seeded-plan.md

@@ -575,13 +575,23 @@ skips the cut. Phase 4.5 check 8 (`aa-ma-lint-views --coverage`) flags any `Crea
 ```bash
 # The aa-ma-forge checkout, from this command's installed symlink (scripts/install.sh).
 AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/commands/aa-ma-plan.md)")/../.." && pwd)
-SCOPES=()
-for f in <each existing path the plan will Modify>; do SCOPES+=(--scope "$f"); done
-# Run from the project root: codemem reads ./.codemem/index.db.
-if ! uv run --project "${AA_MA_ROOT}" codemem draw --level L2 "${SCOPES[@]}" --hops 1 --direction both; then
-  # codemem has printed why (no index / schema too old / unreadable) on stderr.
-  echo "§13 seed unavailable (reason above): run \`codemem build\` in the project root and re-seed."
-  echo "An empty seed is not 'nothing to draw'."
+if [[ ! -f "${AA_MA_ROOT}/packages/codemem-mcp/pyproject.toml" ]]; then
+  echo "§13 seed unavailable: ${AA_MA_ROOT} is not an aa-ma-forge checkout (run scripts/install.sh)."
+else
+  SCOPES=()
+  # One existing path per line. The quoted delimiter keeps every line literal: spaces,
+  # globs and $(...) in a file name are data, never shell.
+  while IFS= read -r f; do [[ -n "${f}" ]] && SCOPES+=(--scope "${f}"); done <<'PATHS'
+<one existing path per line>
+PATHS
+  if (( ${#SCOPES[@]} == 0 )); then
+    echo "No existing path to Modify: seed skipped (a scope-less draw is the whole repo)."
+  # Run from the project root: codemem reads ./.codemem/index.db.
+  elif ! uv run --project "${AA_MA_ROOT}" codemem draw --level L2 "${SCOPES[@]}" --hops 1 --direction both; then
+    # codemem has printed why (no index / schema too old / unreadable) on stderr.
+    echo "§13 seed unavailable (reason above): run \`codemem build\` in the project root and re-seed."
+    echo "An empty seed is not 'nothing to draw'."
+  fi
 fi
 ```
 

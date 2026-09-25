@@ -491,3 +491,52 @@ pyyaml (Context7 /yaml/pyyaml, 9.3 Result Log in 598f749, provenance); mermaid e
 
 ## Revision History
 - 2026-09-25: 0 CRITICAL; 6 WARNINGs + 7 INFOs fixed RED-first, 1 WARNING deferred; pytest 1485 / 2 skipped, lint-imports 4/4, ruff clean, shellcheck clean, `draw --check` OK; AC6 re-measured from /tmp: 289 OVER (unchanged).
+
+---
+
+# Milestone 10 — `/aa-ma-plan` §13 seeding + Angle 6 coverage rule
+
+**Window:** 49b670b..05fa09f (+ fix round 60f608d RED → this commit) · **Audit-Profile:** full · **Critical-Path:** hook-modification · **Agents:** code-reviewer (incl. §6.6), security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor · **Verdict:** PASS_WITH_WARNINGS (after fixes)
+
+## Summary
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 3 | 7 | WARN → fixed |
+| security-auditor | 0 | 4 | 4 | WARN → fixed |
+| tdd-sequence-auditor | 0 | 0 | 0 | PASS |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS (no new deps) |
+| future-proofing-auditor | 0 | 3 | 3 | WARN → fixed |
+| **TOTAL** | **0** | **10** | **14** | **PASS_WITH_WARNINGS** |
+
+## Code Review
+- WARNING — unbounded brace expansion / recursion (`{a,b}`×25 → 2^25; 1000+ nesting → RecursionError). **FIXED** (with security W1/W2): iterative `_expand`, `MAX_EXPANSIONS = 256` expansions and steps; past it the token is kept whole (one UNDRAWN_PATH, fail closed). Test: both hostile forms < 1 s, one finding each (RED hung first).
+- WARNING — real Contract paths silently dropped (`.importlinter`, `Makefile`, `Dockerfile`, backticked, `:12-40`). **FIXED**: every row token is a path (only `# comments` / `(parentheticals)` dropped; backticks and line ranges stripped); rows may be `- `/`| `-prefixed or `Create:`. Label side counts every token (the dotfile `.importlinter` label was not recognised as drawn — found by this plan's own rule).
+- WARNING — empty SCOPES → whole-repo seed. **FIXED**: the fence skips the draw with a message; executed in a test with a stub `uv` (never invoked).
+- INFO — private helpers imported. **FIXED**: `NEW_RE`, `mermaid_fences`, `node_labels` public. INFO — `''` from a lone `/` label. **FIXED**. INFO — row prefixes. **FIXED**. INFO — plan comment `drawn_nodes`. **FIXED**. INFO — paths with spaces / Windows paths, `Created:` spellings, scope-discipline notes: kept (documented grammar; all current plans conform).
+
+## Security
+- WARNING ×2 — exponential expansion, recursion crash. **FIXED** (above).
+- WARNING — check 8 fence piped the lint to grep: a crash read as clean. **FIXED**: self-contained fence, captures `rc`; rc ∉ {0,1} → `CRITICAL: check 8 could not run`; CLI crash in coverage → `UNKNOWN: coverage could not run` exit 2. Both tested (stub `uv` rc 127; monkeypatched RecursionError).
+- WARNING — Step 4.2b pasted paths as bare words. **FIXED**: one path per line into a quoted heredoc (`<<'PATHS'`); test: `src/a b.py`, `src/$(touch pwned).py`, `src/*.py` each reach `--scope` verbatim, nothing executed.
+- INFO — `AA_MA_ROOT` from a copied (not symlinked) command. **FIXED**: the seed fence refuses unless `packages/codemem-mcp/pyproject.toml` exists there. INFO — terminal escapes unreachable (`printable`); quadratic tokeniser on 200k-char lines (replaced by a linear splitter); `--scope` change sound.
+
+## TDD Sequence — PASS
+d82d007 (RED) 98 s before 484f7d2; RED verified in a worktree. Fix round: 60f608d RED (15 failures + a hang) → fixes.
+
+## External Library Evidence — PASS (no dependency change)
+
+## Future-Proofing
+- WARNING — `rules/aa-ma.md` grandfathering line and SKILL.md auditor routing row omitted check 8. **FIXED**; test asserts both.
+- WARNING — exemption list duplicated in prose. **FIXED**: `EXEMPT_DIRS`/`ROOT_DOCS`/`MANIFESTS` public; test asserts every name appears in check 8's text.
+- INFO — cutover date literals in tests. **FIXED**: derived from `COVERAGE_CUTOVER`, asserted present in SKILL.md and spec. INFO — `hops` default duplicated in codemem CLI: pre-existing, kept.
+
+## Process note
+- The first fence-execution tests sliced to `\n```` and ran past check 8's indented closer; they passed because bash printed CRITICAL before failing on prose. Fixed: `_fence` stops at the fence's own closer line and dedents; both extracted fences shellcheck clean.
+
+## User Override Decisions
+| Severity | Finding | Decision | Rationale |
+|---|---|---|---|
+| all WARNING + listed INFO | batch | fix all now | Ste |
+
+## Revision History
+- 2026-09-25: 0 CRITICAL; 10 WARNINGs + 9 INFOs fixed RED-first; pytest 1538 / 2 skipped, bats 210/210, lint-imports 4/4, ruff clean; both fences shellcheck clean and run live; own plan `--coverage` clean.

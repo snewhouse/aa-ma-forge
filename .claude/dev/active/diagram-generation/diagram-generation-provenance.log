@@ -79,3 +79,4 @@
 [2026-09-25T09:17:25+01:00] M9 CI — 83b6dbf architecture-drift FAILED (docs regenerated while io_sinks.py untracked); fixed eb1495f (CI success); L-026 + regen guard
 [2026-09-25T09:52:07+01:00] MILESTONE COMPLETE — M9 — Commit: 619bfcf — Criteria: 6/6 verified
 [2026-09-25T09:53:40+01:00] §7.2.5 aa-ma-validator M9 — WARNINGS_BUT_USABLE (4) — back-filled: plan sinks row-shape note, AC6 289 note, impl-review window sha, sub-step commit SHAs
+[2026-09-25T18:14:55+01:00] M10 ACTIVE — §5.1 dependency advisory: no output (Milestone 8 COMPLETE); design decisions recorded (Ste)

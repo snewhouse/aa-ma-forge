@@ -1135,6 +1135,21 @@ Files:
   Verify  tests/commands/test_planning_standard_count.py      # cross-checks 8 files
   Modify  docs/spec/aa-ma-specification.md                    # section XI item 13
   Test    tests/skills/test_angle6_coverage.py (new)
+  # Amended at M10 start (Ste 2026-09-25): the rule is executable, not prose-only.
+  Create  src/aa_ma/render/coverage.py               # contract_paths / drawn_nodes / coverage_findings
+  Modify  src/aa_ma/render/{cli,mermaid_lint}.py     # `aa-ma-lint-views --coverage`; shared §13 locator
+  Modify  packages/codemem-mcp/src/codemem/{cli,draw/cut}.py   # repeatable --scope
+  Create  tests/fixtures/seeded-plan.md
+  Modify  .claude/dev/active/diagram-generation/diagram-generation-plan.md §13  # draw scripts/ (own rule)
+
+Decisions (Ste 2026-09-25, measured first):
+  - Home: Python in aa_ma.render, opt-in `aa-ma-lint-views --coverage`; SKILL.md check 8 runs
+    it. The gate path never passes --coverage, so the rule cannot reach the gate (ADR-0009).
+  - Rows read: `Create`/`Modify` rows AND template-style `# file: <path>` lines (the template
+    and both other post-cutover plans use only the latter). Brace lists expand.
+  - Exemption (d): dependency manifests and lockfiles — pyproject.toml, package.json, *.lock.
+  - Seeding: `codemem draw --scope` becomes repeatable (any prefix matches) — one cut, no
+    text merging of several draws.
 
 Seeding: Phase 4 runs
   codemem draw --level L2 --scope <files-to-modify> --hops 1 --direction both

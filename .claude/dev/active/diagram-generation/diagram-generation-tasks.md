@@ -325,7 +325,7 @@
 - Result Log: Mode: AFK — auto-dispatched. Commit 83b6dbf. `draw/io_sinks.py` (new: catalogue load/validate, classify, `io_edges`, `choose_level`, `band_line`, `band` CLI); `mermaid.io_to_mermaid` + `TIER_STYLE` (exactly two classDefs, edge ids + class lines); `views.VIEWS["io"]` → `docs/architecture/io.md`; `cut.collapse`; `scripts/measure_io_band.sh` (shellcheck clean). GREEN: test_io_sinks 35/35; full `uv run pytest -q` 1478 passed / 2 skipped; ruff clean; lint-imports 4/4 kept; `test_draw_check` registry pin +`io.md` (intended). `scripts/regen-generated.sh` → io.md (43 edges, file level) + component.md gains 2 real call edges (`mermaid → cut`; `tui/__main__ → tui/json_output`, the `dump as json_dump` alias now resolves); `codemem draw --check` OK; mmdc renders io.md (edge styles applied). AC6: `IO_DENSE_BAND repo=medical-research-skills sha=efafac209f… edges=289 threshold=120 verdict=OVER`, byte-identical over 2 runs, external status unchanged → reference.md. Own plan `aa-ma-lint-views` exit 0.
 
 ## Milestone 10: `/aa-ma-plan` §13 seeding + Angle 6 coverage rule
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 8
 - Gate: HARD
 - Audit-Profile: full

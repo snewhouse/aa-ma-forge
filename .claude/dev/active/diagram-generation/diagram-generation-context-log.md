@@ -337,3 +337,8 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - AC6 records the FILE-level count (the trigger), 285 OVER, not the drawn count.
 - Prototype data holds external-repo paths, so the branch stays local and is never pushed (Ste).
 - Neither repo has any TS/Go I/O; v1 TS/TSX/JS/Go coverage is proven by fixtures only.
+
+## [2026-09-25] M9 §6.8 — PASS_WITH_WARNINGS (0 C / 7 W / 18 I)
+- Fixed RED-first: script works from any cwd (`uv run --project`), linear column-precise enclosing-function sweep, renderer free of yaml (`CATEGORY_LABEL` → mermaid.py, `IoEdge` under TYPE_CHECKING), Contract Files amended, 285/289 note, `DENSE_BAND`-derived tests, band-line sanitising, extra-key message.
+- Deferred (Ste): arrow-function / function-expression callables → M13 carry-forward; io.md prose discloses the gap.
+- CI red on 83b6dbf was a process defect (regen before `git add`), not code: L-026; the regen script now refuses untracked sources.

@@ -436,3 +436,58 @@ e8e4cfe (33 RED) → d80e3d5 (58 green). Fix round: a674e78 (RED: 14 lint + 3 re
 
 ## Revision History
 - 2026-09-24: 3 CRITICAL accepted and fixed; all WARNINGs fixed RED-first (a674e78); import edges vs pre-M8: +28, all genuine, none lost; pytest 1443 / 2 skipped, bats 210/210, lint-imports 4/4, `draw --check` OK.
+
+---
+
+# Milestone 9 — I/O-boundary view
+
+**Window:** d31e301..83b6dbf (+ fix rounds eb1495f, this commit) · **Audit-Profile:** code-only · **Agents:** code-reviewer (incl. §6.6), security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor · **Verdict:** PASS_WITH_WARNINGS (after fixes)
+
+## Summary
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 5 | 4 | WARN → 4 fixed, 1 disclosed + deferred |
+| security-auditor | 0 | 0 | 3 | PASS |
+| tdd-sequence-auditor | 0 | 0 | 1 | PASS |
+| context7-evidence-auditor | 0 | 0 | 4 | PASS |
+| future-proofing-auditor | 0 | 2 | 6 | WARN → fixed |
+| **TOTAL** | **0** | **7** | **18** | **PASS_WITH_WARNINGS** |
+
+## Code Review
+- WARNING — `measure_io_band.sh` only worked from this checkout's cwd (conda `codemem` picked up elsewhere; reproduced). **FIXED**: `uv run --project <script's repo>`; the test runs it from another cwd with the venv scrubbed from `PATH`/`VIRTUAL_ENV` (RED reproduced first).
+- WARNING — TS/JS calls in arrow functions bound at module scope (`const h = async () => fetch()`) give no edge. **DISCLOSED + DEFERRED** (Ste): io.md prose names the gap; M13 carry-forward adds arrow/function-expression callables with its own impact analysis (new symbols change component/dead_code/who_calls for every TS/JS repo).
+- WARNING — enclosing-function lookup quadratic (3000 fns = 2.36 s). **FIXED**: one sorted sweep with an open-callable stack; test: 5000 fns × 2 calls < 1 s.
+- WARNING — generic `mermaid.py` imported `io_sinks` (yaml + sqlite). **FIXED**: `IoEdge` imported under `TYPE_CHECKING`; `CATEGORY_LABEL` (presentation) moved to `mermaid.py`, keys pinned to `io_sinks.CATEGORIES`; subprocess test asserts importing the renderer leaves `yaml` unloaded.
+- WARNING — Contract `Files:` under-declared. **FIXED**: plan.md M9 Contract amended.
+- INFO — two functions on one line: call credited to the first. **FIXED**: `_SgMatch.col/end_col` from the sg range; spans compare `(line, col)`; unit + live-sg check (`function a(){} function b(){ fs.readFileSync() }` → `b`).
+- INFO — extra-key error said `missing []`. **FIXED**: reports `unexpected [...]`.
+- INFO — second CLI entry point (`python -m codemem.draw.io_sinks band`). Kept: one consumer (the script).
+- INFO — stringly-typed lang/category/tier. Kept: validated against tuples at load.
+
+## Security
+- INFO — `git archive | tar -x` extracts symlink entries into the temp tree; a user-chosen repo only, counts only. Kept (noted).
+- INFO — repo basename reaches the band line unescaped. **FIXED**: non-printables and whitespace → `?` (also keeps `repo=\S+`).
+- INFO — callee text stored raw in `edges.dst_unresolved`; never rendered today. M12 carry-forward: escape if the explorer shows callees.
+
+## TDD Sequence — PASS
+cb12024 (RED, collection ImportError) → 598f749 → 83b6dbf (35 green). Fix round RED-first: 5 new failing tests + the script test made genuinely RED by scrubbing the venv.
+
+## External Library Evidence — PASS
+pyyaml (Context7 /yaml/pyyaml, 9.3 Result Log in 598f749, provenance); mermaid edge ids (Context7 /mermaid-js/mermaid + live mmdc 11.17).
+
+## Future-Proofing
+- WARNING — 285 (prototype scanner) vs 289 (shipped pipeline) for one measurement. **FIXED**: reference.md states the band line is authoritative.
+- WARNING — tests hardcoded 120 thrice. **FIXED**: derived from `DENSE_BAND`, pinned once (`test_dense_band_is_ticket_3s`).
+- INFO — `FS_EDGE_CAP = len(io_sinks.LANGS)`. **FIXED**. Docstring "120-edge" → `DENSE_BAND`. **FIXED**. `MERMAID_VERSION` comment names the edge-id dependency. **FIXED**. "41 rows" / "43 edges" counts are sha-scoped history; registry pin in test_draw_check kept as a tripwire.
+
+## Process defect (not an agent finding)
+- CI `architecture-drift` red on 83b6dbf: docs regenerated while `io_sinks.py` was untracked, so the `git ls-files` index lacked it. Fixed in eb1495f; `regen-generated.sh` now refuses while untracked indexable files exist; L-026.
+
+## User Override Decisions
+| Severity | Finding | Decision | Rationale |
+|---|---|---|---|
+| WARNING | arrow-function recall gap | disclose + defer to M13 | Ste; symbol-table blast radius |
+| all other WARNING/INFO | batch | fix all now | Ste |
+
+## Revision History
+- 2026-09-25: 0 CRITICAL; 6 WARNINGs + 7 INFOs fixed RED-first, 1 WARNING deferred; pytest 1485 / 2 skipped, lint-imports 4/4, ruff clean, shellcheck clean, `draw --check` OK; AC6 re-measured from /tmp: 289 OVER (unchanged).

@@ -162,7 +162,9 @@ def _io(repo_root: Path, conn: sqlite3.Connection, captions: dict[str, str], spe
         f"# {spec.title}", "", spec.summary, "",
         f"One arrow per {unit}, labelled with its call count. Solid: a catalogued call "
         "(`sqlite3.connect`). Dashed: a catalogued method on a receiver of unknown type "
-        "(`conn.execute`) — low confidence. Catalogue: `codemem/draw/sinks.yaml`.", "",
+        "(`conn.execute`) — low confidence. Catalogue: `codemem/draw/sinks.yaml`. "
+        "Not seen: calls outside a named function or method — module scope, and TS/JS "
+        "arrow functions bound to a `const` — and `os.environ[...]` / `process.env`.", "",
         "```mermaid", io_to_mermaid(edges, level).rstrip("\n"), "```",
     ]
     return "\n".join(lines) + "\n"

@@ -98,6 +98,8 @@ class _SgMatch:
     end_line: int  # 1-indexed
     text: str
     callee: str | None = None  # $CALLEE of a ``*-call`` rule (diagram-generation M9)
+    col: int = 0  # 0-indexed start column; with end_col, places a call inside one of
+    end_col: int = 0  # several functions sharing a line (minified code)
 
 
 def parse_sg_output(stream: str) -> list[_SgMatch]:
@@ -137,6 +139,8 @@ def parse_sg_output(stream: str) -> list[_SgMatch]:
                 end_line=end + 1,
                 text=j.get("text", ""),
                 callee=callee,
+                col=rng.get("start", {}).get("column", 0),
+                end_col=rng.get("end", {}).get("column", 0),
             )
         )
     return matches
@@ -227,8 +231,8 @@ def _build_parse_result(
     # containers: (name, start_line, end_line, scip_id) — used to infer the
     # enclosing parent for methods via line-range containment.
     containers: list[tuple[str, int, int, str]] = []
-    # callables: (start_line, end_line, scip_id) — the enclosing-function lookup for calls.
-    callables: list[tuple[int, int, str]] = []
+    # callables: ((line, col), (end_line, end_col), scip_id) — the enclosing-function lookup.
+    callables: list[tuple[tuple[int, int], tuple[int, int], str]] = []
     symbols: list[Symbol] = []
 
     def _enclosing_container(m: _SgMatch) -> tuple[str | None, str | None]:
@@ -273,7 +277,7 @@ def _build_parse_result(
                 continue
             symbol_path = f"{parent_name}.{m.name}"
             scip_id = f"codemem {package} .{file_rel}#{symbol_path}"
-            callables.append((m.line, m.end_line, scip_id))
+            callables.append(((m.line, m.col), (m.end_line, m.end_col), scip_id))
             symbols.append(
                 Symbol(
                     scip_id=scip_id,
@@ -289,7 +293,7 @@ def _build_parse_result(
 
         elif suffix == "-function-def":
             scip_id = f"codemem {package} /{file_rel}#{m.name}"
-            callables.append((m.line, m.end_line, scip_id))
+            callables.append(((m.line, m.col), (m.end_line, m.end_col), scip_id))
             symbols.append(
                 Symbol(
                     scip_id=scip_id,
@@ -307,16 +311,21 @@ def _build_parse_result(
     # callee cannot be bound by name the way python_ast does. Calls are emitted
     # unresolved, keyed on the innermost enclosing function (diagram-generation M9).
     edges: list[CallEdge] = []
+    # One sorted sweep: syntax nests, so the innermost open callable is the stack top.
+    # Ties at a start position put callables before calls, outer callables first.
+    events = [(start, 0, end, sid) for start, end, sid in callables]
+    events += [((m.line, m.col), 1, (m.end_line, m.end_col), c) for m in matches if (c := _callee(m))]
+    events.sort(key=lambda ev: (ev[0], ev[1], (-ev[2][0], -ev[2][1])))
     unresolved: dict[tuple[str, str], CallEdge] = {}
-    for m in matches_sorted:
-        callee = _callee(m)
-        if callee is None:
-            continue
-        spans = [c for c in callables if c[0] <= m.line and m.end_line <= c[1]]
-        if not spans:
-            continue  # top-level call: no symbol to hang it on, as in python_ast
-        src = min(spans, key=lambda c: c[1] - c[0])[2]
-        unresolved.setdefault((src, callee), CallEdge(src, None, callee, "call"))
+    open_: list[tuple[tuple[int, int], str]] = []  # (end, scip_id)
+    for start, is_call, end, value in events:
+        while open_ and open_[-1][0] <= start:
+            open_.pop()
+        if not is_call:
+            open_.append((end, value))
+        elif open_:  # else a top-level call: no symbol to hang it on, as in python_ast
+            src = open_[-1][1]
+            unresolved.setdefault((src, value), CallEdge(src, None, value, "call"))
 
     return ParseResult(symbols=symbols, edges=edges, unresolved_edges=list(unresolved.values()))
 

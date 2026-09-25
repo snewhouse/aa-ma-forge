@@ -1045,6 +1045,13 @@ Files:
   Modify  packages/codemem-mcp/src/codemem/draw/views.py            # register `io`
   Create  docs/architecture/io.md                                    # generated
   Test    tests/codemem/test_io_sinks.py (new)
+  # Amended at M9 §6.8 (2026-09-25) — also touched, each a direct dependency or obligation:
+  Modify  packages/codemem-mcp/src/codemem/draw/{mermaid,cut}.py     # io_to_mermaid + CATEGORY_LABEL; public collapse()
+  Modify  packages/codemem-mcp/pyproject.toml, uv.lock               # pyyaml>=6,<7 (Ste)
+  Create  scripts/measure_io_band.sh                                 # AC6
+  Modify  scripts/regen-generated.sh                                 # refuses untracked sources (L-026)
+  Modify  src/aa_ma/render/html.py                                   # MERMAID_VERSION note: io view needs edge ids
+  Modify  tests/codemem/test_draw_check.py, CHANGELOG.md, docs/architecture/*.md (regenerated)
 
 sinks.yaml row shape (~55 rows, 9 langs x 7 categories; v1 ships Py/TS/JS/Go):
   - lang: python

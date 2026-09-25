@@ -7,7 +7,7 @@ catalogued symbol) and ``bare`` (a catalogued method name on a receiver whose ty
 unknown — low confidence, drawn dashed).
 
 Level (M9 prototype verdict, Ste 2026-09-25): one arrow per file when that fits the
-120-edge dense band, else one per L1 folder. Deterministic from the index, so
+dense band (``DENSE_BAND``), else one per L1 folder. Deterministic from the index, so
 ``codemem draw --check`` stays a plain regenerate-and-compare.
 """
 
@@ -23,7 +23,7 @@ import yaml
 from .cut import Level, collapse, is_test_path
 
 __all__ = [
-    "CATEGORIES", "CATEGORY_LABEL", "DENSE_BAND", "LANGS", "SINKS_PATH", "TIERS",
+    "CATEGORIES", "DENSE_BAND", "LANGS", "SINKS_PATH", "TIERS",
     "Catalogue", "IoEdge", "Sink", "band_line", "choose_level", "classify", "io_edges",
     "load_catalogue",
 ]
@@ -33,10 +33,6 @@ DENSE_BAND = 120  # Ticket 3's dense band; past it the view collapses to L1
 LANGS = ("python", "typescript", "tsx", "javascript", "go")  # v1 (Ticket 6)
 CATEGORIES = ("db", "http", "fs", "subprocess", "env", "queue")
 TIERS = ("qualified", "bare")
-CATEGORY_LABEL = {
-    "db": "database", "http": "HTTP", "fs": "filesystem", "subprocess": "subprocess",
-    "env": "environment", "queue": "queue / cache",
-}
 _ROW_KEYS = {"lang", "category", "symbol", "tier", "source"}
 
 
@@ -75,8 +71,11 @@ def load_catalogue(path: Path = SINKS_PATH) -> Catalogue:
     for i, row in enumerate(rows):
         where = f"{path}: row {i}"
         if not isinstance(row, dict) or set(row) != _ROW_KEYS:
-            missing = sorted(_ROW_KEYS - set(row)) if isinstance(row, dict) else []
-            raise ValueError(f"{where}: keys must be {sorted(_ROW_KEYS)}; missing {missing}")
+            keys = set(row) if isinstance(row, dict) else set()
+            raise ValueError(
+                f"{where}: keys must be {sorted(_ROW_KEYS)}; "
+                f"missing {sorted(_ROW_KEYS - keys)}, unexpected {sorted(keys - _ROW_KEYS)}"
+            )
         langs, symbols = _strs(row["lang"], where, "lang"), _strs(row["symbol"], where, "symbol")
         for field, value, allowed in (
             ("category", row["category"], CATEGORIES), ("tier", row["tier"], TIERS),
@@ -158,6 +157,8 @@ def choose_level(edges: list[IoEdge], threshold: int = DENSE_BAND) -> tuple[Leve
 def band_line(repo: str, sha: str, edges: int, threshold: int = DENSE_BAND) -> str:
     """The reference.md evidence line (M9 AC6); ``edges`` is the FILE-level count."""
     verdict = "UNDER" if edges <= threshold else "OVER"
+    # A directory name is caller data: keep the line one token per field and terminal-safe.
+    repo = "".join(c if c.isprintable() and not c.isspace() else "?" for c in repo)
     return f"IO_DENSE_BAND repo={repo} sha={sha} edges={edges} threshold={threshold} verdict={verdict}"
 
 

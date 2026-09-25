@@ -8,16 +8,24 @@ seam in ``aa_ma.render.mermaid_lint``. Edges carry the QUOTED kind sigil
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from .captions import start_ids
 from .cut import MAX_EDGES, Cut, Level, node_id
-from .io_sinks import CATEGORY_LABEL, IoEdge
 
-__all__ = ["START_STYLE", "TIER_STYLE", "escape_label", "io_to_mermaid", "to_mermaid"]
+if TYPE_CHECKING:  # the renderer stays free of io_sinks' yaml/sqlite imports (§6.8)
+    from .io_sinks import IoEdge
+
+__all__ = ["CATEGORY_LABEL", "START_STYLE", "TIER_STYLE", "escape_label", "io_to_mermaid", "to_mermaid"]
 
 START_STYLE = "stroke-width:4px"  # the @start highlight; M12's explorer reuses it
 # I/O tiers (M9 AC4): mermaid has no `:::class` on edges, so edges get ids and
 # `class e0,e3 qualified` lines. Space-separated dasharray: a comma would split the style.
 TIER_STYLE = {"qualified": "stroke-width:2px,stroke-dasharray:0", "bare": "stroke-dasharray:4 4"}
+CATEGORY_LABEL = {  # keys are io_sinks.CATEGORIES (pinned by a test)
+    "db": "database", "http": "HTTP", "fs": "filesystem", "subprocess": "subprocess",
+    "env": "environment", "queue": "queue / cache",
+}
 
 # '#' first: the other replacements introduce '#...;' entities that must survive.
 # '%', '{', '}' stop a file name smuggling a `%%{init}%%` directive (it could

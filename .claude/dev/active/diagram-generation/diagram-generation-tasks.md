@@ -404,6 +404,7 @@
 - Goal: `aa-ma-render --explorer` produces a self-contained, clickable, level-deriving HTML file in `build/`.
 - Acceptance Criteria: 8 criteria — see plan.md § Milestone 12
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
+- Carry-forward (M9 §6.8, 2026-09-25): `edges.dst_unresolved` holds callee text taken verbatim from untrusted source files. If the explorer ever displays callees, pass them through `codemem.draw.mermaid.escape_label` (or the HTML equivalent) first.
 
 ### Sub-step 12.1: [prototype] delegated listener against real mermaid SVG; `PROTOTYPE` provenance
 - Status: PENDING
@@ -444,6 +445,7 @@
 - Acceptance Criteria: 9 criteria — see plan.md § Milestone 13
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 - Carry-forward (M8 §6.8, 2026-09-24): if the index gains plugin-surface edges here, delete `_PLUGIN_SIGILS` / `_PLUGIN_REASON` in `src/aa_ma/render/mermaid_lint.py` together and evaluate `@skill/@command/@agent/@hook` like `@import`.
+- Carry-forward (M9 §6.8, Ste 2026-09-25): TS/TSX/JS calls inside arrow functions / function expressions bound at module scope (`const h = async () => fetch()`) produce no call edge, so io.md undercounts JS/TS I/O (disclosed in its prose). Add them as callables (`variable_declarator` → `arrow_function` | `function_expression`) with a fresh impact analysis: they become symbols, changing component view, dead_code and who_calls for every TS/JS repo. Re-measure the polyglot band after.
 
 ### Sub-step 13.1: [prototype] measure L0-L3 on `medical-research-skills`; `PROTOTYPE` provenance
 - Status: PENDING

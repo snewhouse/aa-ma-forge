@@ -1,7 +1,7 @@
 """The I/O-boundary view (diagram-generation M9).
 
 Decisions (context-log 2026-09-25, M9 prototype verdict REVISE, Ste):
-* arrows per FILE when that fits the 120-edge dense band, else per L1 folder;
+* arrows per FILE when that fits the dense band (``DENSE_BAND``), else per L1 folder;
 * two tiers — ``qualified`` (a catalogued ``mod.func``) and ``bare`` (a catalogued
   method name on an untyped receiver) — drawn as edge ids in ``class … qualified`` /
   ``class … bare`` lines (mermaid has no ``:::class`` on edges);
@@ -12,23 +12,27 @@ Decisions (context-log 2026-09-25, M9 prototype verdict REVISE, Ste):
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
+import sys
+import time
 from pathlib import Path
 
 import pytest
 
 from codemem.draw import io_sinks, views
 from codemem.draw.cut import Level
-from codemem.draw.mermaid import io_to_mermaid
+from codemem.draw.mermaid import CATEGORY_LABEL, io_to_mermaid
 from codemem.indexer import build_index
+from codemem.parser import ast_grep
 from codemem.parser.python_ast import _CALL_EXCLUDE, extract_python_signatures
 from codemem.storage.db import connect
 
 REPO = Path(__file__).resolve().parents[2]
 V1_LANGS = {"python", "typescript", "tsx", "javascript", "go"}
-FS_EDGE_CAP = 5  # N, pinned by the M9 prototype verdict
+FS_EDGE_CAP = len(io_sinks.LANGS)  # N = 5, pinned by the M9 prototype verdict: one fs edge per v1 language
 
 needs_sg = pytest.mark.skipif(shutil.which("sg") is None, reason="ast-grep binary not on PATH")
 
@@ -125,6 +129,13 @@ def test_catalogue_refuses_a_malformed_row(tmp_path: Path, row: str, why: str):
     p = tmp_path / "sinks.yaml"
     p.write_text(row + "\n")
     with pytest.raises(ValueError, match=why):
+        io_sinks.load_catalogue(p)
+
+
+def test_catalogue_names_an_unexpected_key(tmp_path: Path):
+    p = tmp_path / "sinks.yaml"
+    p.write_text("- {lang: python, category: db, symbol: x.y, tier: qualified, source: 'https://a', extra: 1}\n")
+    with pytest.raises(ValueError, match="unexpected.*extra"):
         io_sinks.load_catalogue(p)
 
 
@@ -298,14 +309,33 @@ def test_check_covers_io_md(io_repo: Path):  # AC3
 
 # --- the band line ------------------------------------------------------------------------------
 
-BAND = re.compile(r"^IO_DENSE_BAND repo=\S+ sha=[0-9a-f]{40} edges=\d+ threshold=120 verdict=(UNDER|OVER)$")
+BAND = re.compile(
+    rf"^IO_DENSE_BAND repo=\S+ sha=[0-9a-f]{{40}} edges=\d+ threshold={io_sinks.DENSE_BAND} verdict=(UNDER|OVER)$"
+)
 
 
-@pytest.mark.parametrize(("n", "verdict"), [(120, "UNDER"), (121, "OVER")])
+def test_dense_band_is_ticket_3s():
+    assert io_sinks.DENSE_BAND == 120
+
+
+@pytest.mark.parametrize(("n", "verdict"), [(io_sinks.DENSE_BAND, "UNDER"), (io_sinks.DENSE_BAND + 1, "OVER")])
 def test_band_line(n, verdict):
     line = io_sinks.band_line("r", "a" * 40, n)
     assert BAND.match(line)
-    assert line.endswith(f"edges={n} threshold=120 verdict={verdict}")
+    assert line.endswith(f"edges={n} threshold={io_sinks.DENSE_BAND} verdict={verdict}")
+
+
+def test_band_line_cannot_break_its_own_format_or_the_terminal():
+    line = io_sinks.band_line("my repo\x1b[31m", "a" * 40, 1)
+    assert BAND.match(line) and "\x1b" not in line
+
+
+def _outside_the_venv() -> dict[str, str]:
+    """The caller's shell, not pytest's: no active venv, so the script must find its own project."""
+    venv = os.environ.get("VIRTUAL_ENV", str(REPO / ".venv"))
+    env = {k: v for k, v in os.environ.items() if k not in ("VIRTUAL_ENV", "UV_PROJECT", "PYTHONPATH")}
+    env["PATH"] = os.pathsep.join(p for p in env["PATH"].split(os.pathsep) if not p.startswith(venv))
+    return env
 
 
 @needs_sg
@@ -314,10 +344,50 @@ def test_measure_script_regenerates_the_line_byte_identically(io_repo: Path):  #
     before = _git(io_repo, "status", "--porcelain", "--ignored")
     run = lambda: subprocess.run(  # noqa: E731
         ["bash", str(REPO / "scripts/measure_io_band.sh"), str(io_repo), sha],
-        cwd=REPO, check=True, capture_output=True, text=True,
+        cwd=io_repo.parent, env=_outside_the_venv(), check=True, capture_output=True, text=True,
     ).stdout
     first = run()
     assert BAND.match(first.strip()), first
     assert f"repo=r sha={sha} " in first
     assert first == run()
     assert _git(io_repo, "status", "--porcelain", "--ignored") == before  # read-only on the measured repo
+
+
+# --- §6.8 follow-ups ------------------------------------------------------------------------------
+
+
+def test_every_category_has_a_label():
+    assert set(CATEGORY_LABEL) == set(io_sinks.CATEGORIES)
+
+
+def test_the_generic_renderer_does_not_load_yaml():
+    code = "import sys, codemem.draw.mermaid; sys.exit('yaml' in sys.modules)"
+    assert subprocess.run([sys.executable, "-c", code]).returncode == 0
+
+
+def _sg(rule: str, line: int, col: int, end_line: int, end_col: int, **kw) -> ast_grep._SgMatch:
+    return ast_grep._SgMatch(Path("a.ts"), rule, kw.get("name"), line, end_line, "", kw.get("callee"), col, end_col)
+
+
+def test_enclosing_function_is_column_precise():
+    # `function a(){} function b(){ fs.readFileSync() }` — one line, two functions.
+    ms = [
+        _sg("ts-function-def", 1, 0, 1, 14, name="a"),
+        _sg("ts-function-def", 1, 15, 1, 48, name="b"),
+        _sg("ts-call", 1, 28, 1, 46, callee="fs.readFileSync"),
+    ]
+    r = ast_grep._build_parse_result(Path("a.ts"), ms, package=".", repo_root=Path("."))
+    assert [(e.src_scip_id.rsplit("#", 1)[1], e.dst_unresolved) for e in r.unresolved_edges] == [("b", "fs.readFileSync")]
+
+
+def test_enclosing_function_lookup_is_linear():
+    n = 5000  # quadratic took ~2.4 s at 3000 functions (§6.8); linear is milliseconds
+    ms = [m for i in range(n) for m in (
+        _sg("ts-function-def", 3 * i + 1, 0, 3 * i + 3, 1, name=f"f{i}"),
+        _sg("ts-call", 3 * i + 2, 2, 3 * i + 2, 20, callee="fs.readFileSync"),
+        _sg("ts-call", 3 * i + 2, 22, 3 * i + 2, 30, callee="fetch"),
+    )]
+    start = time.perf_counter()
+    r = ast_grep._build_parse_result(Path("a.ts"), ms, package=".", repo_root=Path("."))
+    assert time.perf_counter() - start < 1.0
+    assert len(r.unresolved_edges) == 2 * n

@@ -1239,6 +1239,9 @@ Files:
                                                              #   workflows to hook-modification
   Create  docs/adr/0015-diagram-as-acceptance-criterion.md
   Modify  docs/adr/INDEX.md
+  Modify  src/aa_ma/render/mermaid_lint.py    # LintReport sigil counts (amended 2026-09-25)
+  Modify  src/aa_ma/render/cli.py             # `sigils:` summary line (amended 2026-09-25)
+  Test    tests/render/test_cli.py
   Test    tests/hooks/test_diagram_verified.bats (new)
   Verify  tests/hooks/aa-ma-gate-python.bats            # 32 tests — MUST stay green
   Verify  tests/hooks/aa-ma-gate-scans.bats             # 10 tests
@@ -1257,11 +1260,19 @@ New HARD row in the section 6.7 Execution Checklist:
     `DIAGRAM_VERIFIED` entry in provenance.log |
 
 Provenance line:
-  [ts] DIAGRAM_VERIFIED — <milestone heading> — edges=<N> phantom=0
+  [ts] DIAGRAM_VERIFIED — <milestone heading> — edges=<N> phantom=0 unknown=<K>
 
 Invariants:
   - OPT-IN: a plan with no sigil in section 13 never triggers the item.
-  - UNKNOWN REFUSES (L-012). The refusal names `codemem build` (0.44s).
+  - INDEX UNKNOWN REFUSES (L-012). The refusal names `codemem build` (0.44s).
+    Amended 2026-09-25 (Ste): only an UNKNOWN from the index itself (missing,
+    schema too old, stale, unreadable) refuses — the check did not run. Per-claim
+    UNKNOWNs (`(new)` endpoint, path-less label, plugin sigil, unmodelled file)
+    pass and are counted as unknown=K in the evidence line.
+  - The fence reads one new lint stdout line, printed before `render:`:
+      sigils: edges=<N> phantom=<P> unknown=<K> index-unknown=<I>
+    edges = every sigil claim in section 13; phantom = PHANTOM_EDGE + LABEL_UNKNOWN;
+    index-unknown is a subset of unknown. Exit codes unchanged.
   - gate.py, its JSON envelope and every calling fence are UNCHANGED.
 ```
 
@@ -1271,9 +1282,10 @@ Invariants:
 2. `aa-ma-lint-views` on a fixture plan with a broken sigil edge exits 1 with a
    `PHANTOM_EDGE` line.
 3. With `.codemem/` removed, its output contains `codemem build` and the sigil tier
-   reads `UNKNOWN`.
-   **Scope note:** this milestone edits only markdown (2 command/rule files, an ADR,
-   an index) — it ships NO executable. "Refuses COMPLETE" is therefore a manual
+   reads `UNKNOWN` (`index-unknown` > 0), and the §6.7 fence refuses; a `(new)`
+   endpoint alone does not refuse (amended 2026-09-25, Ste).
+   **Scope note:** this milestone edits markdown plus one additive lint stdout line
+   (amended 2026-09-25: the fence needs a sigil count; `gate.py` untouched). "Refuses COMPLETE" is therefore a manual
    observation recorded in `provenance.log`, and `test_diagram_verified.bats` asserts
    the `aa-ma-lint-views` behaviour above, which is what the fence actually calls.
 4. `aa-ma-gate --format kv` output is byte-identical to before this milestone.
@@ -1293,6 +1305,9 @@ Invariants:
    dropping the field from three milestones.
 7. The first ```bash fence after `### 6.7 ` is still the gate fence (assert by
    running the extractor awk and diffing its output against the pre-edit capture).
+8. `aa-ma-lint-views` prints `sigils: edges=N phantom=P unknown=K index-unknown=I`
+   before `render:` on every run; `edges=0` on a sigil-free plan (the fence's
+   opt-out). Added 2026-09-25 (Ste).
 
 **Tests:** `uv run pytest`; `bats tests/hooks/test_diagram_verified.bats`; a live refusal observed and pasted into `provenance.log`.
 

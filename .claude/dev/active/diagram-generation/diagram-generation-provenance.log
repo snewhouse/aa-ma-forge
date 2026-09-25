@@ -85,3 +85,6 @@
 [2026-09-25T18:43:30+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: full — agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 10 WARNING / 14 INFO (all WARNINGs + 9 INFOs fixed RED-first, 60f608d; §6.6 folded into code-reviewer)
 [2026-09-25T18:50:49+01:00] MILESTONE COMPLETE — M10 — Commit: 0b8a55c — Criteria: 5/5 verified
 [2026-09-25T18:52:34+01:00] M10 commits not listed above: 6c7d3b6 (decisions), 05fa09f (10.4 + CRITICAL_PATH_REVIEW), fd7da0b (CHANGELOG/reference), 60f608d (§6.8 RED), f1077cd (§6.8 fixes); §7.2.5 validator WARNINGS_BUT_USABLE (4 W + 2 I) back-filled — own §13 gained claude-code/rules/aa-ma.md after the rule flagged it
+[2026-09-25T17:57:46Z] Context compacted — Snapshot saved, active step: Sub-step 11.1: [test] `test_diagram_verified.bats` against `aa-ma-lint-views`, RED
+[2026-09-25T17:57:46Z] CHECKPOINT — ActiveStep: Sub-step 11.1: [test] `test_diagram_verified.bats` against `aa-ma-lint-views`, RED — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A
+[2026-09-25T19:52:49+01:00] M11 ACTIVE — dependency advisory: silent (M10 COMPLETE); plan amended (index-only UNKNOWN refuses; lint `sigils:` summary line; AC3 amended, AC8 added — Ste)

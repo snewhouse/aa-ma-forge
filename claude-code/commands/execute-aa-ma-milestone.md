@@ -643,6 +643,78 @@ This preserves backward compat with `examples/` plans authored before v0.5.0.
 switch but logs the override to provenance.log:
 `[ts] ENG_STANDARDS_GATE: BYPASSED via AA_MA_HOOKS_DISABLE`.
 
+**§13 sigil edges verified — HARD, opt-in** (ADR-0015; Execution Checklist row in
+`engineering-standards.md` §5). HARD ≠ `gate.py`: `aa-ma-gate` reads only `tasks.md`,
+while §13 lives in `plan.md`, so this item is enforced here and the gate CLI, its kv
+envelope and the fence above are unchanged. It applies only when the plan's §13 carries
+a sigil edge (`-->|"@import"|`, `-->|"@call"|`, …); a plan without one is a no-op.
+
+| Lint says | Verdict |
+|-----------|---------|
+| `edges=0` | not applicable — no evidence written |
+| `phantom>0` (`PHANTOM_EDGE` / `LABEL_UNKNOWN`) | BLOCKED — the diagram claims an edge the code does not hold |
+| `index-unknown>0` (no, stale, too-old or unreadable index) | BLOCKED — the check did not run (L-012); run `codemem build` (0.44s) and re-run |
+| no `sigils:` line / `sigils: UNKNOWN` / lint exit 2 | BLOCKED — §13 could not be read |
+| otherwise | PASS — appends `[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N phantom=0 unknown=K` |
+
+A per-claim `UNKNOWN` — a planned `(new)` endpoint, a node label with no path, a plugin
+sigil, a file the graph does not model — cannot be checked yet and is counted in
+`unknown=K`, not refused. This fence must stay AFTER the gate fence above: three bats
+suites extract the *first* ```bash fence after the `### 6.7 ` heading.
+
+```bash
+# Self-sufficient, like §7.1's fence: a fresh shell has none of the variables above.
+TASK_DIR=".claude/dev/active/${TASK_NAME}"
+for _cand in \
+  "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
+  "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
+  [[ -f "${_cand}" ]] && AA_MA_LIB="${_cand}" && break
+done
+# shellcheck source=/dev/null
+. "${AA_MA_LIB:?aa-ma-parse.sh not found — run scripts/install.sh}"
+GATE_KV=$(aa_ma_gate "${TASK_DIR}/${TASK_NAME}-tasks.md") || {
+  echo "BLOCKED: cannot read the milestone to verify its §13 sigil edges (gate rc $?):"
+  printf '%s\n' "${GATE_KV}" | sed -n 's/^error=/  - /p'
+  exit 1
+}
+MILESTONE_TITLE=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field heading)
+[[ -n "${MILESTONE_TITLE}" ]] || { echo "BLOCKED: empty milestone heading."; exit 1; }
+
+# The plugin checkout that holds aa-ma-lint-views, located as aa_ma_gate locates it.
+AA_MA_ROOT=$(cd "$(dirname "$(readlink -f "${AA_MA_LIB}")")/../../.." && pwd)
+LINT=$(uv run --quiet --project "${AA_MA_ROOT}" aa-ma-lint-views \
+  "${TASK_DIR}/${TASK_NAME}-plan.md" --repo-root "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
+LINT_RC=$?
+SIGILS=$(printf '%s\n' "${LINT}" | sed -n 's/^sigils: //p' | head -n 1)
+SIGILS_RE='^edges=([0-9]+) phantom=([0-9]+) unknown=([0-9]+) index-unknown=([0-9]+)$'
+if [[ "${LINT_RC}" -gt 1 ]] || ! [[ "${SIGILS}" =~ ${SIGILS_RE} ]]; then
+  echo "BLOCKED: §13 sigil edges could not be checked (lint rc ${LINT_RC}, sigils: ${SIGILS:-absent})."
+  echo "A check that did not run is not a pass (L-012)."
+  printf '%s\n' "${LINT}" | grep -E ': (UNTERMINATED_FENCE|UNKNOWN):' | head -n 5
+  exit 1
+fi
+EDGES=${BASH_REMATCH[1]} PHANTOM=${BASH_REMATCH[2]}
+UNKNOWN=${BASH_REMATCH[3]} INDEX_UNKNOWN=${BASH_REMATCH[4]}
+
+if [[ "${EDGES}" -eq 0 ]]; then
+  echo "DIAGRAM-GATE: not applicable — §13 carries no sigil edge"
+elif [[ "${PHANTOM}" -gt 0 ]]; then
+  echo "BLOCKED: ${PHANTOM} §13 sigil edge(s) the code does not hold:"
+  printf '%s\n' "${LINT}" | grep -E ': (PHANTOM_EDGE|LABEL_UNKNOWN):'
+  echo "Fix the diagram (or the code) in this milestone, then re-run."
+  exit 1
+elif [[ "${INDEX_UNKNOWN}" -gt 0 ]]; then
+  echo "BLOCKED: the codemem index could not verify ${INDEX_UNKNOWN} §13 sigil edge(s):"
+  printf '%s\n' "${LINT}" | grep -F 'codemem build' | head -n 1
+  echo "Run \`codemem build\` (0.44s on this repo), then re-run this check."
+  exit 1
+else
+  echo "[$(date -Iseconds)] DIAGRAM_VERIFIED — ${MILESTONE_TITLE} — edges=${EDGES} phantom=0 unknown=${UNKNOWN}" \
+    >> "${TASK_DIR}/${TASK_NAME}-provenance.log"
+  echo "DIAGRAM-GATE: PASS — edges=${EDGES} phantom=0 unknown=${UNKNOWN}"
+fi
+```
+
 ---
 
 ### 6.8 Post-Impl Adversarial Review (NEW in v0.8.0)

@@ -59,7 +59,7 @@ rejected by `Skill(plan-verification)`. Add new values via plan + ADR.):
 | `external-api`     | Third-party API calls (rate limits, error handling, contract surface) |
 | `version-pipeline` | Release, version-bump, tag-and-push, CHANGELOG mechanics            |
 | `doc-count-drift`  | Hardcoded counts in docs (Tier 6 detector domain)                   |
-| `hook-modification`| Changes to the shipped enforcement surface: `claude-code/hooks/**` (incl. `lib/`), the gate/scan logic inside `claude-code/commands/**` and `claude-code/skills/**`, and the Python the gate reads — `src/aa_ma/{gate,enforce,grammar,plan_parsers}.py` (ADR-0009) (affect all sessions) |
+| `hook-modification`| Changes to the shipped enforcement surface: `claude-code/hooks/**` (incl. `lib/`), the CI workflows `.github/workflows/**`, the gate/scan logic inside `claude-code/commands/**` and `claude-code/skills/**`, and the Python the gate reads — `src/aa_ma/{gate,enforce,grammar,plan_parsers}.py` (ADR-0009) (affect all sessions) |
 
 **Diagram-Waiver canonical values** (plan-level front-matter; planning-time only —
 read by `Skill(plan-verification)`, never by the milestone gate; novel values are
@@ -134,12 +134,13 @@ checklist. The HARD/SOFT column indicates milestone-level enforcement:
 | AA-MA artifacts in sync; git clean              | HARD | `git status` clean for AA-MA files; zero `Status: PENDING` in milestone |
 | `Critical-Path:` evidence (when field present)  | HARD | `CRITICAL_PATH_REVIEW` entry in `provenance.log`                        |
 | `Prototype-Required:` evidence (when YES)       | HARD | `PROTOTYPE — <milestone heading> — <verdict>` entry in `provenance.log` |
+| `@kind` sigil edges verified (when §13 carries any) | HARD | `DIAGRAM_VERIFIED — <milestone heading> — edges=N phantom=0 unknown=K` entry in `provenance.log` (ADR-0015) |
 | No assumptions left unvalidated                 | SOFT | Declared in `context-log.md`                                            |
 | Relevant skills/subagents consulted             | SOFT | `provenance.log` shows skill invocations                                |
 | Changes reviewed against past mistakes          | SOFT | Declared in plan element #12                                            |
 
-When `Critical-Path:` or `Prototype-Required:` is **absent** from a task, the
-corresponding HARD check is skipped (no failure). Only present-but-without-
+When `Critical-Path:` or `Prototype-Required:` is **absent** from a task, or §13
+carries no sigil edge, the corresponding HARD check is skipped (no failure). Only present-but-without-
 evidence triggers a refusal — preserves backward-compatibility with plans
 authored before v0.5.0.
 

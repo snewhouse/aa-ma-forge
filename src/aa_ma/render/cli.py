@@ -10,7 +10,7 @@ from pathlib import Path
 from aa_ma.render.html import render_markdown
 from aa_ma.render.coverage import coverage_findings
 from aa_ma.render.graph import printable
-from aa_ma.render.mermaid_lint import lint_plan
+from aa_ma.render.mermaid_lint import INDEX_UNKNOWN, SIGIL_FINDINGS, LintReport, lint_plan
 
 
 def lint_main(argv: Sequence[str] | None = None) -> int:
@@ -51,8 +51,17 @@ def lint_main(argv: Sequence[str] | None = None) -> int:
         print(f"{a.plan}:{f.line}: {f.code}: {printable(f.message)}")
     for f in rep.unknowns:  # informational: an unevaluable claim never sets the exit (L-012)
         print(f"{a.plan}:{f.line}: UNKNOWN: {printable(f.message)}")
+    print(f"sigils: {_sigil_summary(rep)}")  # read by the §6.7 HARD item (ADR-0015)
     print(f"render: {rep.render_status}")
     return 1 if findings else 0
+
+
+def _sigil_summary(rep: LintReport) -> str:
+    if rep.sigil_edges is None:
+        return "UNKNOWN (§13 not read)"
+    phantom = sum(f.code in SIGIL_FINDINGS for f in rep.findings)
+    index = sum(f.code == INDEX_UNKNOWN for f in rep.unknowns)
+    return f"edges={rep.sigil_edges} phantom={phantom} unknown={len(rep.unknowns)} index-unknown={index}"
 
 
 def render_main(argv: Sequence[str] | None = None) -> int:

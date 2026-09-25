@@ -77,6 +77,13 @@ class LintReport:
     findings: tuple[Finding, ...]
     render_status: str  # PASS | FAIL | UNKNOWN
     unknowns: tuple[Finding, ...] = ()  # unevaluable sigil claims (code UNKNOWN); never set the exit
+    sigil_edges: int | None = 0  # sigil claims in §13; None: §13 was not read (never an opt-out)
+
+
+# The §6.7 HARD item (ADR-0015) refuses only when the INDEX could not answer — the check did
+# not run (L-012). Printed as `UNKNOWN:` like any other; the code only lets the CLI count it.
+INDEX_UNKNOWN = "UNKNOWN_INDEX"
+SIGIL_FINDINGS = ("PHANTOM_EDGE", "LABEL_UNKNOWN")  # a sigil claim the code does not back
 
 
 # Opt-in edge claims (diagram-generation M8, map Ticket 5). An edge is checked ONLY when its
@@ -283,14 +290,15 @@ def _endpoint(node: str, labels: dict[str, str], repo_root: Path) -> tuple[str |
 
 def _sigil_claims(
     src: str, first_line: int, repo_root: Path, graph: list[_Graph]
-) -> tuple[list[Finding], list[Finding]]:
-    """PHANTOM_EDGE / LABEL_UNKNOWN findings and UNKNOWN notes for one fence.
+) -> tuple[list[Finding], list[Finding], int]:
+    """PHANTOM_EDGE / LABEL_UNKNOWN findings, UNKNOWN notes and the sigil claim count for one fence.
 
     ``graph`` is a one-slot cache: the index is opened only when a claim needs it.
     """
     found: list[Finding] = []
     unknown: list[Finding] = []
     labels = node_labels(src)
+    claims = 0
     for ln, line in enumerate(src.split("\n")):
         if line.lstrip().startswith("%%"):
             continue  # a mermaid comment is not a claim
@@ -298,11 +306,13 @@ def _sigil_claims(
         m = _EDGE_RE.match(line)
         if m is None:
             if _SIGIL_SLOT_RE.search(line):  # chained, `&`, `-- "@x" -->`, `--o`...: never a silent pass
+                claims += 1
                 unknown.append(Finding("UNKNOWN", line_no, "unparsed sigil edge form"))
             continue
         sigil = m.group(2).strip().strip('"').strip()
         if not sigil.startswith("@"):
             continue  # unlabelled or prose: never checked, never reported
+        claims += 1
         if sigil not in SIGILS:
             found.append(Finding("LABEL_UNKNOWN", line_no, f"unknown sigil {sigil!r}; reserved: {', '.join(SIGILS)}"))
             continue
@@ -317,7 +327,7 @@ def _sigil_claims(
             graph.append(_load_graph(repo_root))
         g = graph[0]
         if g.status is not GraphStatus.OK:  # missing, too old or stale: never PASS (L-012)
-            unknown.append(Finding("UNKNOWN", line_no, g.reason or g.status.value))
+            unknown.append(Finding(INDEX_UNKNOWN, line_no, g.reason or g.status.value))
             continue
         outside = next((p for p in (sp, dp) if not g.models(sigil, p)), None)
         if outside is not None:
@@ -326,7 +336,7 @@ def _sigil_claims(
             unknown.append(Finding("UNKNOWN", line_no, f"not in the codemem graph for {sigil} ({why}): {outside}"))
         elif (sp, dp) not in g.edges[sigil]:
             found.append(Finding("PHANTOM_EDGE", line_no, f"{sp} -->|{sigil}| {dp}: no such edge in the codemem graph"))
-    return found, unknown
+    return found, unknown, claims
 
 
 def mermaid_fences(body: str) -> list[tuple[int, str]]:
@@ -374,7 +384,7 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
     scan = scan_fences(plan_text)
     if scan.unterminated:  # L-012: a fence to EOF hides §13; never lint as clean
         out.append(Finding("UNTERMINATED_FENCE", 1, "a code fence is never closed"))
-        return LintReport(tuple(out), "UNKNOWN")
+        return LintReport(tuple(out), "UNKNOWN", sigil_edges=None)
     stripped = scan.stripped  # headings inside fences are content, not structure
     first_h2 = H2_RE.search(stripped)
     front = stripped[: first_h2.start()] if first_h2 else stripped
@@ -409,6 +419,7 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
         )
     sources: list[str] = []
     unknowns: list[Finding] = []
+    sigil_edges = 0
     graph: list[_Graph] = []
     for name, (idx, body) in views.items():
         vline = base + idx + 1
@@ -440,11 +451,12 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
                 )
                 for ln, p in _stale_paths(src, repo_root)
             ]
-            claims, notes = _sigil_claims(src, vline + fline, repo_root, graph)
+            claims, notes, n = _sigil_claims(src, vline + fline, repo_root, graph)
             out += claims
             unknowns += notes
+            sigil_edges += n
             sources.append(src)
-    return LintReport(tuple(out), render_check(sources), tuple(unknowns))
+    return LintReport(tuple(out), render_check(sources), tuple(unknowns), sigil_edges)
 
 
 def lint_plan(

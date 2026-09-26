@@ -206,3 +206,35 @@ jobs:
         # Fix: uv run codemem build && uv run codemem draw --write,
         # then commit docs/architecture/.
         run: uv run codemem draw --check
+
+  explorer-contract:
+    # diagram-generation M12 / map Ticket 11. Its own job, so a red X names what broke:
+    # the explorer's JS drifted from codemem's node ids or collapse rule
+    # (tests/fixtures/draw-node-ids.json), or its CSP no longer admits its own script.
+    name: Explorer contract (node --test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Sync workspace deps
+        run: uv sync
+
+      - name: Build the codemem index and the explorer page
+        run: uv run codemem build && uv run aa-ma-render --explorer --out build
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          package-manager-cache: false    # no package.json; nothing to cache
+
+      - name: node --test (node ids, collapse rule, CSP hashes)
+        env:
+          EXPLORER_HTML: build/explorer.html
+        run: node --test tests/render/explorer_contract.test.mjs

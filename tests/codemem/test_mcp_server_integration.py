@@ -1,6 +1,6 @@
 """Integration tests for the FastMCP server — M3.5 Task 3.5.2.
 
-Unit tests in ``test_mcp_server.py`` verify that the 12 canonical tools
+Unit tests in ``test_mcp_server.py`` verify that the 13 canonical tools
 (plus aliases) are *registered* on ``build_server()``. This module
 verifies they are *callable end-to-end* — i.e. an MCP client looking up
 each tool via ``server.get_tool(name)`` and invoking ``tool.run(args)``
@@ -10,7 +10,7 @@ This is the integration tier that M3's HARD gate missed: the public
 surface (FastMCP registration + dispatch) is exercised against a
 populated fixture DB for every tool.
 
-One test file, one fixture, parameterised over all 14 reachable names.
+One test file, one fixture, parameterised over all 15 reachable names.
 Synchronous tests wrap async FastMCP calls via ``asyncio.run`` —
 avoids a new ``pytest-asyncio`` dev dep.
 """
@@ -164,6 +164,8 @@ _TOOL_CASES: list[tuple[str, dict[str, Any]]] = [
     ("layers",           {}),
     # M3 — AA-MA-native moat
     ("aa_ma_context",    {"task_name": "demo"}),
+    # diagram-generation M13 — the MCP door onto `codemem draw`
+    ("diagram",          {}),
     # Aliases (same handler wired under an alternate discoverability name)
     ("find_references",  {"name": "bar"}),   # → who_calls
     ("find_dead_code",   {}),                # → dead_code

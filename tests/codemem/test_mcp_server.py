@@ -43,11 +43,13 @@ class TestTwelveSlots:
             "symbol_history", "layers",
             # M3 AA-MA-native (12)
             "aa_ma_context",
+            # diagram-generation M13 (13)
+            "diagram",
         }
         assert set(server_mod.CANONICAL_TOOL_NAMES) == expected
 
-    def test_twelve_exact(self, server_mod):
-        assert len(server_mod.CANONICAL_TOOL_NAMES) == 12
+    def test_thirteen_exact(self, server_mod):
+        assert len(server_mod.CANONICAL_TOOL_NAMES) == 13
 
 
 class TestAliases:

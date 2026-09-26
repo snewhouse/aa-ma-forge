@@ -25,8 +25,8 @@ Architecture View: see plan.md §13 (Component view + Flow view; `Diagram-Waiver
 | Current schema version | `user_version = 3` since M1 (was 2); `CURRENT_SCHEMA_VERSION` at `db.py:41` | M1 |
 | `PRAGMA foreign_keys` | ON for write connections | `db.py:120-122` |
 | MCP budget | `_DEFAULT_BUDGET = 8_000` tokens | `mcp_tools/__init__.py:52` |
-| CI jobs (5) | shellcheck · bandit · ruff · bats · codemem-smoke | `.github/workflows/security.yml` |
-| `lint-imports` in CI | **absent** — 0 occurrences | measured; M2 adds it |
+| CI jobs (5 @ d4d657f; **7 @ M12**) | shellcheck · bandit · ruff · bats · codemem-smoke (+ architecture-drift M6, explorer-contract M12) | `.github/workflows/security.yml` |
+| `lint-imports` in CI | absent @ d4d657f; **runs since M2** (codemem-smoke) | M2 |
 | `.importlinter` contracts | 3: `codemem-layers`, `parser-is-pure`, `render-is-leaf` | `lint-imports` → `3 kept, 0 broken` |
 | Measurement repo | `medical-research-skills` — 2452 Py/TS/JS/Go files (16× this repo's 153) | M9, M13 |
 
@@ -111,7 +111,7 @@ Architecture View: see plan.md §13 (Component view + Flow view; `Diagram-Waiver
 18. One merged `io.md` with language subgraphs; revision trigger = 120-edge dense band
 19. Keep both backends; codemem default, `PROJECT_INDEX.json` fallback; `/index` repointed at `codemem build`
 
-_Last Updated: 2026-09-26 (M1–M11 facts sections below)_
+_Last Updated: 2026-09-26 (M1–M12 facts sections below)_
 
 ## M1 facts (2026-09-24)
 
@@ -222,7 +222,17 @@ IO_DENSE_BAND repo=medical-research-skills sha=efafac209f3690c02f1ffc0f297f91c89
 - Code: `LintReport.sigil_edges: int | None` (default None), `LintReport.sigil_checked`; constants `PHANTOM_EDGE`, `LABEL_UNKNOWN`, `SIGIL_FINDINGS`, `UNKNOWN_INDEX` (index missing/too old/stale/unreadable), `UNKNOWN_INVALID` (missing endpoint, stale `(new)` on an existing file, path-less label, unparsed form, outside the repo); all still print `UNKNOWN:`. `cli._sigil_summary`; the plan path is printed through `printable`. [valid: 2026-09-26]
 - Launcher: `aa_ma_lint_views` in `claude-code/hooks/lib/aa-ma-parse.sh` — rc 0/1 passed through, 127 when uv is missing or no `render:` line came back. [valid: 2026-09-26]
 - §6.7: the diagram fence is the SECOND ```bash fence after `### 6.7 ` (the first, the gate fence, sha256 17be760b… unchanged). Extract: `awk '/^### 6\.7 /{f=1} /^### 6\.8 /{f=0} f && /^```bash$/{n++; if (n == 2) {g=1; next}} g && /^```$/{exit} g'`. Refuses (exit 1): TASK_NAME not a plain slug, no ACTIVE milestone, lint rc>1, absent/UNKNOWN `sigils:` (last line wins), phantom>0, invalid>0, index-unknown>0. `edges=0` → "not applicable", no evidence. [valid: 2026-09-26]
-- Evidence: `[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K`, appended by the fence itself on PASS; the fence run is the check, nothing reads the line back. This plan after the §6.8 correction: edges=14 checked=11 phantom=0 unknown=3. [valid: 2026-09-26]
+- Evidence: `[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K`, appended by the fence itself on PASS; the fence run is the check, nothing reads the line back. This plan after the §6.8 correction: edges=14 checked=11 phantom=0 unknown=3 — superseded at M12 by edges=13 checked=13 unknown=0 (lazy-import edge relabelled in prose). [valid: 2026-09-26]
 - Known gap: codemem `file_edges` holds module-level imports only — a function-local import reads PHANTOM_EDGE; label such edges in prose (ADR-0015; carry-forward in tasks.md). [valid: 2026-09-26]
 - Tests: `tests/hooks/test_diagram_verified.bats` (21); `tests/render/test_{cli,phantom_edge}.py`. [valid: 2026-09-26]
 - ADR-0015 Implemented. `engineering-standards.md` §1 `hook-modification` names `.github/workflows/**`; §5 row "`@kind` sigil edges verified (when §13 carries any)". [valid: 2026-09-26]
+
+## M12 facts (2026-09-26)
+
+- `src/aa_ma/render/explorer.py`: `__all__ = ["MAX_EDGES", "build_explorer"]`; `MAX_EDGES = 500` (pinned to codemem's by `test_explorer_fixture.py`); `build_explorer(repo_root) -> (page, stale_reason | None)`; index not OK/STALE or `sqlite3.Error` → `ValueError` naming `codemem build`; import refused if `explorer.js` holds a script tag. Island `<script type="application/json" id="graph">` escapes `< > &`; payload `{"edges": [[src, dst, "import"|"call"]], "maxEdges", "stale"}`. [valid: 2026-09-26]
+- `html.py`: `sha256_b64(script)`, `csp(*script_hashes)`; `_INIT_SHA = sha256_b64(_INIT_JS)`, `_CSP = csp(_INIT_SHA)` (byte-identical to before). `MERMAID_VERSION` defined once (explorer.js carries no version). [valid: 2026-09-26]
+- `explorer.js` CJS exports: `nid, collapse, isTest, escapeLabel, displayPath, nodeIdOf, compute`. `nodeIdOf` = `/(?:^|-)flowchart-(n[0-9a-z]+)-\d+$/`. Init `startOnLoad: false, securityLevel: "strict", maxEdges`. mermaid 11.17.2 node element id: `<renderId>-flowchart-<nid>-<i>`, no `data-id`; pinned by `NODE_ID_SCHEME_PROVEN_ON = "11.17.2"` (test asserts == `MERMAID_VERSION`). [valid: 2026-09-26]
+- CLI: `aa-ma-render --explorer [--repo-root R] [--out DIR]` → `DIR/explorer.html`, DIR default `build`; missing/old/unreadable index exit 2, nothing written; stale → stderr warning + page banner; `--explorer` with sources → exit 2; explorer import is function-local (lint never loads it). [valid: 2026-09-26]
+- CI: job `explorer-contract` (`actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0`, Node 24): `codemem build` → `aa-ma-render --explorer --out build` → `EXPLORER_HTML=build/explorer.html node --test tests/render/explorer_contract.test.mjs` (14 cases). security.yml = 7 jobs. [valid: 2026-09-26]
+- Fixtures: `draw-node-ids.json` L2 rows carry `collapse: [L0, L1]` (generator `draw-node-ids.gen.mjs` requires explorer.js); `draw-label-rules.json` 19 escape + 7 is_test rows. [valid: 2026-09-26]
+

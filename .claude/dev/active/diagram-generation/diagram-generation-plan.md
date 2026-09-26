@@ -255,8 +255,8 @@ graph TD
         HTML["src/aa_ma/render/html.py"]
         RCLI["src/aa_ma/render/cli.py"]
         GRAPH["src/aa_ma/render/graph.py"]
-        EXP["src/aa_ma/render/explorer.py (new)"]
-        EXPJS["src/aa_ma/render/explorer.js (new)"]
+        EXP["src/aa_ma/render/explorer.py"]
+        EXPJS["src/aa_ma/render/explorer.js"]
         COV["src/aa_ma/render/coverage.py"]
     end
 

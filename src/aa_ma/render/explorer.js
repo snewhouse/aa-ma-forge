@@ -1,3 +1,107 @@
-// RED stub (diagram-generation M12.2) — replaced in 12.3.
-const todo = () => { throw new Error('not implemented'); };
-if (typeof module !== 'undefined') module.exports = { nid: todo, collapse: todo, compute: todo, escapeLabel: todo, nodeIdOf: todo };
+// The explorer's drill script (diagram-generation M12, map Ticket 11). Embedded verbatim
+// as the page's one inline script element, hashed into its CSP by explorer.py. The pure
+// functions are the JS twin of codemem.draw (node_id, collapse, escape_label); the shared
+// fixture tests/fixtures/draw-node-ids.json pins them to the Python, and
+// tests/render/explorer_contract.test.mjs runs them under `node --test`.
+'use strict';
+
+// codemem.draw.cut.node_id: seed 7, h*31 + c, uint32, base36 over `L<level>:<name>`;
+// c = charCodeAt(0) of each code point (the high surrogate beyond the BMP).
+function nid(name, level) {
+  let h = 7;
+  for (const ch of `L${level}:${name}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return 'n' + h.toString(36);
+}
+
+// codemem.draw.cut.collapse: L0 keeps 1 directory segment, L1 keeps 2; L2 is the file.
+function collapse(path, level) {
+  if (level >= 2) return path;
+  return path.split('/').slice(0, -1).slice(0, level + 1).join('/') || path;
+}
+
+function isTest(path) {
+  return path.split('/').slice(0, -1).includes('tests');
+}
+
+// codemem.draw.mermaid.escape_label: '#' first; '%{}' stop a smuggled %%{init}%%; '`'
+// blocks markdown-string mode; anything unprintable becomes '?'.
+const ENTITIES = [['#', '#35;'], ['"', '#quot;'], ['<', '#lt;'], ['>', '#gt;'],
+  ['%', '#37;'], ['{', '#123;'], ['}', '#125;'], ['`', '#96;']];
+function escapeLabel(text) {
+  for (const [raw, entity] of ENTITIES) text = text.split(raw).join(entity);
+  return text.replace(/[\p{C}\p{Zl}\p{Zp}]|[^\S ]/gu, '?');
+}
+
+// The pinned mermaid renders a flowchart node as <g class="node" id="<renderId>-flowchart-<nid>-<i>">
+// (no data-id) — proven by the M12.1 prototype against the real SVG.
+function nodeIdOf(elementId) {
+  const m = /(?:^|-)flowchart-(n[0-9a-z]+)-\d+$/.exec(elementId || '');
+  return m ? m[1] : null;
+}
+
+// One level of the embedded graph as mermaid text, plus the id -> name lookup the click
+// handler needs. A scope ending in '/' is a directory (prefix); otherwise one file (exact).
+// Deterministic: nodes and edges sorted by name.
+function compute(graph, { level, scope, tests }) {
+  const hit = (p) => (scope.endsWith('/') ? p.startsWith(scope) : p === scope);
+  const edges = new Map();
+  for (const [src, dst, kind] of graph.edges) {
+    if (!tests && (isTest(src) || isTest(dst))) continue;
+    if (scope && !hit(src) && !hit(dst)) continue;
+    const a = collapse(src, level);
+    const b = collapse(dst, level);
+    if (a !== b) edges.set(`${a}\u0000${b}\u0000${kind}`, [a, b, kind]);
+  }
+  const all = [...edges.values()].sort((x, y) => (x.join('\u0000') < y.join('\u0000') ? -1 : 1));
+  const kept = all.slice(0, graph.maxEdges);
+  const lookup = new Map();
+  for (const [a, b] of kept) for (const n of [a, b]) lookup.set(nid(n, level), n);
+  const lines = ['flowchart LR'];
+  if (all.length > kept.length) lines.push(`%% ${all.length - kept.length} edges not shown: over mermaid maxEdges ${graph.maxEdges}`);
+  for (const [id, n] of [...lookup].sort((x, y) => (x[1] < y[1] ? -1 : 1))) lines.push(`  ${id}["${escapeLabel(n)}"]`);
+  for (const [a, b, kind] of kept) lines.push(`  ${nid(a, level)} -->|"@${kind}"| ${nid(b, level)}`);
+  return { text: lines.join('\n') + '\n', lookup, edges: kept.length };
+}
+
+if (typeof module !== 'undefined') module.exports = { nid, collapse, isTest, escapeLabel, nodeIdOf, compute };
+
+if (typeof document !== 'undefined') {
+  const G = JSON.parse(document.getElementById('graph').textContent);
+  const $ = (id) => document.getElementById(id);
+  if (G.stale) { $('stale').hidden = false; $('stale').textContent = `Index is stale — ${G.stale}. Showing the graph as last indexed.`; }
+  const files = new Set(G.edges.flatMap(([src, dst]) => [src, dst]));
+  const trail = [{ level: 0, scope: '' }];
+  let lookup = new Map();
+  let seq = 0;
+  async function draw() {
+    const view = trail[trail.length - 1];
+    const r = compute(G, { ...view, tests: $('tests').checked });
+    lookup = r.lookup;
+    $('where').textContent = `L${view.level}${view.scope ? ' · ' + view.scope : ''} · ${lookup.size} nodes · ${r.edges} edges`;
+    $('up').disabled = trail.length === 1;
+    const out = $('out');
+    if (!r.edges) { out.textContent = 'No edges at this level.'; return; }
+    try {
+      const { svg } = await mermaid.render(`explorer-${++seq}`, r.text);
+      out.innerHTML = svg; // mermaid output under securityLevel "strict" (DOMPurify-sanitised)
+    } catch (e) {
+      out.textContent = `mermaid could not render this view: ${e.message}`;
+    }
+  }
+  // One delegated listener, attached once: it survives every re-render of #out.
+  $('out').addEventListener('click', (e) => {
+    const g = e.target.closest('g.node');
+    const name = g && lookup.get(nodeIdOf(g.id));
+    if (!name) return;
+    // A directory drills one level down inside it; a file shows its own neighbourhood.
+    const { level } = trail[trail.length - 1];
+    trail.push(files.has(name) ? { level: 2, scope: name } : { level: level + 1, scope: name + '/' });
+    draw();
+  });
+  $('up').addEventListener('click', () => { if (trail.length > 1) { trail.pop(); draw(); } });
+  $('top').addEventListener('click', () => { trail.length = 1; draw(); });
+  $('tests').addEventListener('change', draw);
+  mermaid.initialize({ startOnLoad: false, securityLevel: "strict", maxEdges: G.maxEdges,
+    theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default' });
+  draw();
+}

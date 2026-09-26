@@ -21,11 +21,25 @@ _INIT_JS = (
     'mermaid.initialize({ startOnLoad: true, theme: matchMedia("(prefers-color-scheme: dark)").matches'
     ' ? "dark" : "default", securityLevel: "strict" });'
 )
-_INIT_SHA = base64.b64encode(hashlib.sha256(_INIT_JS.encode()).digest()).decode()
-_CSP = (  # defence in depth behind mermaid's DOMPurify; style-src must stay inline for mermaid's <style>
-    f"default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-{_INIT_SHA}'; "
-    "style-src 'unsafe-inline'; img-src data: https:; font-src data:"
-)
+
+
+def sha256_b64(script: str) -> str:
+    """The CSP source value for one inline script: base64 of its UTF-8 sha256."""
+    return base64.b64encode(hashlib.sha256(script.encode()).digest()).decode()
+
+
+def csp(*script_hashes: str) -> str:
+    """The page CSP, admitting the mermaid CDN plus exactly these inline-script hashes.
+    Defence in depth behind mermaid's DOMPurify; style-src must stay inline for mermaid's <style>."""
+    hashes = " ".join(f"'sha256-{h}'" for h in script_hashes)
+    return (
+        f"default-src 'none'; script-src https://cdn.jsdelivr.net {hashes}; "
+        "style-src 'unsafe-inline'; img-src data: https:; font-src data:"
+    )
+
+
+_INIT_SHA = sha256_b64(_INIT_JS)
+_CSP = csp(_INIT_SHA)
 _CSS = """
 :root{color-scheme:light dark;--fg:#1a1a1a;--bg:#fff;--muted:#f4f4f4;--line:#ddd}
 @media(prefers-color-scheme:dark){:root{--fg:#e6e6e6;--bg:#151515;--muted:#222;--line:#333}}

@@ -7,6 +7,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from aa_ma.render.explorer import build_explorer
 from aa_ma.render.html import render_markdown
 from aa_ma.render.coverage import coverage_findings
 from aa_ma.render.graph import printable
@@ -72,13 +73,22 @@ def _sigil_summary(rep: LintReport) -> str:
 
 
 def render_main(argv: Sequence[str] | None = None) -> int:
-    """aa-ma-render <md>... [--out DIR] — writes DIR/<stem>.html per source; exit 0 ok / 2 usage."""
+    """aa-ma-render <md>... [--out DIR] — writes DIR/<stem>.html per source; exit 0 ok / 2 usage.
+    aa-ma-render --explorer [--repo-root R] [--out DIR] — writes DIR/explorer.html (DIR: build)."""
     p = argparse.ArgumentParser(
         prog="aa-ma-render", description="Render markdown to self-contained HTML"
     )
     p.add_argument("sources", nargs="*", type=Path)
-    p.add_argument("--out", type=Path, default=Path("build/render"))
+    p.add_argument("--out", type=Path, default=None, help="default build/render, or build with --explorer")
+    p.add_argument("--explorer", action="store_true", help="the codemem graph as one clickable page")
+    p.add_argument("--repo-root", type=Path, default=Path.cwd(), help="with --explorer: the indexed repo")
     a = p.parse_args(argv)
+    if a.explorer:
+        if a.sources:
+            p.print_usage(sys.stderr)
+            return 2
+        return _explorer(a.repo_root, a.out or Path("build"))
+    a.out = a.out or Path("build/render")
     if not a.sources:
         p.print_usage(sys.stderr)
         return 2
@@ -97,4 +107,23 @@ def render_main(argv: Sequence[str] | None = None) -> int:
         print(f"aa-ma-render: {e}", file=sys.stderr)
         p.print_usage(sys.stderr)
         return 2
+    return 0
+
+
+def _explorer(repo_root: Path, out: Path) -> int:
+    try:
+        page, stale = build_explorer(repo_root)
+    except ValueError as e:  # missing / too-old / unreadable index: nothing is written
+        print(f"aa-ma-render: {printable(str(e))}", file=sys.stderr)
+        return 2
+    if stale:
+        print(f"aa-ma-render: warning: index is stale — {printable(stale)}", file=sys.stderr)
+    try:
+        out.mkdir(parents=True, exist_ok=True)
+        target = out / "explorer.html"
+        target.write_text(page, encoding="utf-8")
+    except OSError as e:
+        print(f"aa-ma-render: {e}", file=sys.stderr)
+        return 2
+    print(target)
     return 0

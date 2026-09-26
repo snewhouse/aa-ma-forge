@@ -116,6 +116,7 @@ def test_the_page_reuses_html_py_security_unchanged(repo: Path) -> None:
 
 
 def test_a_hostile_file_name_cannot_end_the_island(repo: Path) -> None:
+    (repo / "src/app/x<").mkdir()  # a path segment cannot hold '/': the dir supplies `</`
     (repo / "src/app/x</script><!--.py").write_text("from app.b import helper\n")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-qm", "hostile")

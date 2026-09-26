@@ -11,7 +11,7 @@ For each axis: **Strong / OK / Weak / Unknown**, plus a one-line evidence-cited 
 
 | # | Axis | Strong looks like | Weak looks like | Evidence to cite |
 |---|---|---|---|---|
-| 1 | **Architecture clarity** | Named, consistent pattern; clear layer boundaries; new code obviously goes somewhere | "Big ball of mud"; circular deps; no obvious place for new code | the pattern name + `PROJECT_INDEX.json` dir purposes + any `import` cycles found |
+| 1 | **Architecture clarity** | Named, consistent pattern; clear layer boundaries; new code obviously goes somewhere | "Big ball of mud"; circular deps; no obvious place for new code | the pattern name + codemem `layers` / `diagram` (or `PROJECT_INDEX.json` dir purposes, codemem's fallback) + any `import` cycles found |
 | 2 | **Modularity / coupling** | Small focused modules; dependency direction respected; few god-files | A handful of 1000+-line files do everything | `git ls-files | xargs wc -l | sort -rn | head`; fan-in/fan-out from the index |
 | 3 | **Test safety net** | Fast suite runs in seconds; meaningful coverage; CI gates on it | Few/no tests; coverage unknown; tests don't run | test-file count vs source-file count; `pytest`/`go test` runs; coverage % if available; CI test step |
 | 4 | **Build / run ergonomics** | `git clone && make dev` just works; devcontainer; documented | Undocumented; many manual steps; "works on my machine" | the actual quick-start commands; presence of `Makefile`/`docker-compose`/`.devcontainer` + README setup section quality |
@@ -54,7 +54,7 @@ neither pristine nor dumpster fires; say where on the spectrum this one sits and
 ### Axis scores
 | Axis | Score | Evidence |
 |---|:--:|---|
-| Architecture clarity | Strong | Hexagonal; `domain/`, `adapters/`, `app/` cleanly split (PROJECT_INDEX dir_purposes); no import cycles found |
+| Architecture clarity | Strong | Hexagonal; `domain/`, `adapters/`, `app/` cleanly split (codemem `diagram` L1; PROJECT_INDEX dir_purposes as fallback); no import cycles found |
 | Modularity / coupling | OK | Mostly small modules; `services/report.py` is 1,240 lines and does too much |
 | Test safety net | Weak | 38 test files vs 210 source files; no coverage report; `pytest -m fast` passes in 4s but CI only runs unit tests |
 | … | | |

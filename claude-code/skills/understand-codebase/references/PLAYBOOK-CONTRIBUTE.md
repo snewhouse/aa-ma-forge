@@ -35,7 +35,7 @@ Fill the template below; delete anything that genuinely doesn't apply. Pull fact
 
 ### 3. The impact-analysis ritual (REQUIRED before touching shared/core code)
 Before editing anything imported by 2+ other modules (or anything under `<core/ shared/ common/ lib/>`):
-- Run `Skill(impact-analysis)` — or manually: who calls this? (`<PROJECT_INDEX.json` MCP `who_calls` / `sg run -p '<fn>($$$)'`> ) what's the blast radius? does the contract change? are the callers tested?
+- Run `Skill(impact-analysis)` — or manually: who calls this? (`<codemem MCP `who_calls` (or PROJECT_INDEX.json's, its fallback) / `sg run -p '<fn>($$$)'`> ) what's the blast radius? does the contract change? are the callers tested?
 - If the change is non-trivial / multi-file → consider `/aa-ma-plan` first (per `CLAUDE.md` workflow modes).
 - Resolve any HIGH-risk impact before opening the PR.
 

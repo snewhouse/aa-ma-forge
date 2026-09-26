@@ -71,13 +71,14 @@ Making changes to code?
 - [ ] Find entry points (CLI commands, API endpoints, scheduled jobs)
 - [ ] Document component relationships
 
-**Index-enhanced (preferred when PROJECT_INDEX.json exists):**
+**Index-enhanced (preferred — codemem; PROJECT_INDEX.json is codemem's fallback when present):**
 ```
-If PROJECT_INDEX.json exists:
-  - file_summary(file) → language, functions, classes, imports for each target file
-  - Read dir_purposes from index → inferred role of each directory
-  - Read tree from index → ASCII directory structure
-  - Read _meta.symbol_importance → top entry points by connectivity
+codemem MCP (builds its index on first query):
+  - file_summary(path) → symbols defined in each target file
+  - diagram(level="L1") → directory map; diagram(level="L2", scope=<dir>) → files + import/call edges
+  - layers() → core / middle / periphery by in-degree (top entry points)
+Fallback — PROJECT_INDEX.json exists and codemem is not configured:
+  - file_summary(file), dir_purposes, tree, _meta.symbol_importance
   This replaces manual Glob/LS for structural discovery.
 ```
 
@@ -131,12 +132,14 @@ sg run -p 'def $NAME($$$PARAMS):' -l python src/[module]/
 - [ ] Map error propagation paths
 - [ ] Note any state mutations
 
-**Index-enhanced (preferred when PROJECT_INDEX.json exists):**
+**Index-enhanced (preferred — codemem; PROJECT_INDEX.json is codemem's fallback when present):**
 ```
-If PROJECT_INDEX.json exists:
-  - who_calls(target_function, depth=3) → transitive call chain
-  - blast_radius(target_function) → callers at each depth level
+codemem MCP:
+  - who_calls(target_function, max_depth=3) → transitive callers (upstream)
+  - blast_radius(target_function, max_depth=3) → transitive callees (downstream)
+  - dependency_chain(source, target) → shortest call path between two symbols
   This gives the complete call graph without manual Grep.
+  Fallback: PROJECT_INDEX.json's tools of the same names (not codemem; its blast_radius = callers by depth).
 ```
 
 **Tools (fallback when no index):**
@@ -225,13 +228,14 @@ Grep: pattern="structlog|extra=|LogRecord" path="src/"
 - [ ] Check for version-sensitive dependencies
 - [ ] Find reverse dependencies (what imports this module)
 
-**Index-enhanced (preferred when PROJECT_INDEX.json exists):**
+**Index-enhanced (preferred — codemem; PROJECT_INDEX.json is codemem's fallback when present):**
 ```
-If PROJECT_INDEX.json exists:
-  - dependency_chain(file_path, depth=5) → transitive import tree
-  - Read deps from index → per-file import list
-  This gives the full forward dependency graph instantly.
-  For reverse deps (who imports this), still use Grep.
+codemem MCP:
+  - diagram(level="L2", scope=file_path, hops=2) → imports and calls within 2 hops, BOTH directions
+    (forward deps and reverse deps — who imports this — in one cut)
+Fallback — PROJECT_INDEX.json exists and codemem is not configured:
+  - dependency_chain(file_path, depth=5) → forward import tree; deps → per-file imports;
+    reverse deps still need Grep.
 ```
 
 **Tools (fallback when no index):**

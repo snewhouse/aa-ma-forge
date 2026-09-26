@@ -64,7 +64,8 @@ def test_every_skill_target_has_exactly_one_class_and_dangling_is_named(surface)
             classes.setdefault(e.dst, set()).add(e.ref_class)
     assert all(len(c) == 1 for c in classes.values()), classes
     dangling = {d.split(":", 1)[1] for d, c in classes.items() if c == {RefClass.DANGLING}}
-    assert dangling == {"aa-ma-plan", "codebase-deep-dive", "haiku-eval", "index"}
+    # M13 rewired understand-codebase off `Skill(codebase-deep-dive)` / `Skill(index)`: two fewer.
+    assert dangling == {"aa-ma-plan", "haiku-eval"}
     # The target Ticket 4's regex could not see (':' in a plugin-namespaced name).
     assert classes["skill:feature-dev:feature-dev"] == {RefClass.DECLARED_EXTERNAL}
 

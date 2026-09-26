@@ -1453,6 +1453,8 @@ Files:
   CONSTRAINT: content edits inside references/ are free; ADDING or REMOVING a file
   there breaks `test_companion_inventory_is_pinned`. Do neither in this milestone.
   Modify  claude-code/agents/codebase-onboarding-{health,synthesizer}.md
+  Modify  claude-code/skills/understand-codebase/templates/onboarding-team.md   # 13.4 amendment (Ste, 2026-09-26): the Deep tier's team script carried 3 of the 7 unshipped-command runs
+  Create  scripts/measure_mrs.sh                                    # AC1 regenerator
   Test    tests/codemem/test_mcp_diagram.py (new)
 
 MCP tool:

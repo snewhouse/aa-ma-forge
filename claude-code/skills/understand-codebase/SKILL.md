@@ -75,12 +75,12 @@ intent shapes how much weight the playbooks get.
 
 | Tier | ~Time | Agents | Reuses | Output |
 |---|---|---|---|---|
-| **Quick** | ~5 min | none (or 1 `Agent(subagent_type=Explore)`) | `/index` if no `PROJECT_INDEX.json`; read README, `CLAUDE.md`/`AGENTS.md`, package manifest, CI config, CHANGELOG, LICENSE | one-page `ONBOARDING.md` = the "10-minute orientation" only (≤ ~150 lines), no `.claude/onboarding/` |
-| **Standard** *(default)* | ~15–30 min | ~4 parallel `Agent(subagent_type=Explore)` + main-thread synthesis | `code-intelligence` / `PROJECT_INDEX.json`, `system-mapping`, `impact-analysis` heuristics; **absorbs** any prior `.planning/codebase/` or `.claude/reports/codebase-deep-dive-*/` | full `ONBOARDING.md` + `.claude/onboarding/00-index.md` … `09-*.md` + pros/cons verdict + both playbooks |
-| **Deep** | ~45 min+ | formal `TeamCreate` agent-team (see below) | **everything**: full `gsd-map-codebase` (`.planning/codebase/`), `/codebase-deep-dive` (`.claude/reports/` + Mermaid), `/index`; **WebSearch + Context7** for version-currency / EOL / CVE / framework best-practice checks | all of Standard + diagrams + version-currency report + reviewer-verified synthesis |
+| **Quick** | ~5 min | none (or 1 `Agent(subagent_type=Explore)`) | codemem if its index exists (`PROJECT_INDEX.json` an equivalent fallback when present); read README, `CLAUDE.md`/`AGENTS.md`, package manifest, CI config, CHANGELOG, LICENSE | one-page `ONBOARDING.md` = the "10-minute orientation" only (≤ ~150 lines), no `.claude/onboarding/` |
+| **Standard** *(default)* | ~15–30 min | ~4 parallel `Agent(subagent_type=Explore)` + main-thread synthesis | `code-intelligence` / codemem (or `PROJECT_INDEX.json` when present), `system-mapping`, `impact-analysis` heuristics; **absorbs** any prior `.planning/codebase/` or `.claude/reports/codebase-deep-dive-*/` | full `ONBOARDING.md` + `.claude/onboarding/00-index.md` … `09-*.md` + pros/cons verdict + both playbooks |
+| **Deep** | ~45 min+ | formal `TeamCreate` agent-team (see below) | **everything**: full `gsd-map-codebase` (`.planning/codebase/`), the living architecture doc (`codemem build` + `codemem draw --write` → `docs/architecture/`); **WebSearch + Context7** for version-currency / EOL / CVE / framework best-practice checks | all of Standard + `docs/architecture/` + version-currency report + reviewer-verified synthesis |
 
 `--deep` is opt-in. If `TeamCreate` is unavailable or the team fails to spawn, **fall back to an
-"enhanced Standard"** run (still invoke `gsd-map-codebase`, `/codebase-deep-dive`, web/Context7
+"enhanced Standard"** run (still invoke `gsd-map-codebase`, the living architecture doc, web/Context7
 via the worker agents directly) and note the downgrade in the Provenance block.
 
 ---
@@ -92,14 +92,14 @@ Before doing any analysis, detect and **absorb** prior work — do not redo it. 
 
 | If present | Do |
 |---|---|
-| `PROJECT_INDEX.json` (repo root) | Read it first — directory purposes, ASCII tree, symbol importance, call graph. Don't re-derive structure. If missing and tier ≥ Standard, run `/index` (`~/.claude-code-project-index/scripts/project_index.py`) first. |
+| codemem index (`.codemem/index.db`); `PROJECT_INDEX.json` (repo root) is an equivalent fallback when present | Query it first — codemem MCP `search_symbols`, `file_summary`, `who_calls`, `layers`, `diagram`: structure, symbol importance, call graph. Don't re-derive structure. The MCP tools build the index on first query; from the CLI, tier ≥ Standard runs `codemem build` first (`references/REUSE-MAP.md` B). |
 | `.planning/codebase/*.md` (gsd-map-codebase output) | Read `STACK.md ARCHITECTURE.md STRUCTURE.md INTEGRATIONS.md CONVENTIONS.md TESTING.md CONCERNS.md` and treat as authoritative for those dimensions; only refresh if stale (compare against `git log -1 --format=%cd`). |
 | `.planning/intel/*.json` (gsd-intel output) | Use `stack.json files.json apis.json deps.json` as fast lookups. |
-| `.claude/reports/codebase-deep-dive-*/` | Reuse `01-architecture-overview.md`, `04-code-quality-assessment.md`, `05-security-analysis.md`, `06-design-patterns.md`, the `diagrams/*.mmd`. Link them from `.claude/onboarding/`. |
+| `.claude/reports/codebase-deep-dive-*/` | Reuse `01-architecture-overview.md`, `04-code-quality-assessment.md`, `05-security-analysis.md`, `06-design-patterns.md` and its diagrams. Link them from `.claude/onboarding/`. |
 | Existing root `README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`, `docs/` | Read and quote them; cross-check against the code (note drift as a "con"). |
 
-Record what was absorbed in the Provenance block. **Only run a heavy tool (`gsd-map-codebase`,
-`/codebase-deep-dive`) when its output is absent or stale.**
+Record what was absorbed in the Provenance block. **Only run a heavy tool (`gsd-map-codebase`)
+when its output is absent or stale.**
 
 ---
 
@@ -135,8 +135,8 @@ Coverage must include **all** of these:
 
 ### Quick (~5 min)
 
-1. Step 0 (absorb). If no `PROJECT_INDEX.json` — *optionally* run `/index` (skip if it would
-   take too long on a huge repo).
+1. Step 0 (absorb). If no codemem index — *optionally* run `codemem build` (skip if it would
+   take too long on a huge repo); read `PROJECT_INDEX.json` instead if present (codemem's fallback).
 2. Read: `README*`, `CLAUDE.md`/`AGENTS.md` (head only if huge), the package manifest
    (`package.json` / `pyproject.toml` / `go.mod` / `Cargo.toml` / `pom.xml` / `Gemfile`),
    the primary CI file, `CHANGELOG*`, `LICENSE*`, top-level dir listing.
@@ -151,12 +151,12 @@ Coverage must include **all** of these:
 
 ### Standard (~15–30 min) — DEFAULT
 
-1. Step 0 (absorb). Ensure `PROJECT_INDEX.json` exists (run `/index` if not).
+1. Step 0 (absorb). Ensure a codemem index exists (`codemem build` if not; `PROJECT_INDEX.json` is codemem's equivalent fallback when present).
 2. Detect languages present (gate `sg`/ast-grep patterns accordingly; fall back to `Grep`).
 3. Launch **4 parallel `Agent(subagent_type=Explore)` calls in one message** — each owns a
    cluster and writes a structured summary back (NOT to disk; the main thread synthesizes):
    - **Agent S1 — Structure & Stack:** dimensions 1–4 + 12-integrations. Bootstrap from
-     `PROJECT_INDEX.json` / `.planning/codebase/STACK.md|ARCHITECTURE.md|STRUCTURE.md`. Use `sg`
+     codemem (or `PROJECT_INDEX.json` when present) / `.planning/codebase/STACK.md|ARCHITECTURE.md|STRUCTURE.md`. Use `sg`
      for entry points, class/struct defs, route decorators (patterns from `Skill(code-intelligence)`).
    - **Agent S2 — Build / run / test / CI / config:** dimensions 5–8. Find install/build/run/debug
      commands, test commands & tiers & pyramid, CI workflow contents, `.env.example` variable
@@ -177,9 +177,9 @@ Coverage must include **all** of these:
    `PLAYBOOK-ADD-FEATURE.md`) — both must cite **real files/commands from this repo**, not boilerplate.
 5. **Write**: `ONBOARDING.md` at the repo root (`references/ONBOARDING-TEMPLATE.md`) and
    `.claude/onboarding/00-index.md` … `09-repo-health-and-verdict.md`
-   (`references/DEEPDIVE-TEMPLATES.md`). If a `.claude/reports/codebase-deep-dive-*/` exists,
-   link its diagrams; otherwise generate a Mermaid architecture sketch into
-   `.claude/onboarding/diagrams/architecture.mmd`.
+   (`references/DEEPDIVE-TEMPLATES.md`). `02-architecture.md` links `docs/architecture/` when it
+   exists (a Deep run writes it); otherwise it embeds one ```mermaid block from codemem's `diagram`
+   MCP tool (default `level="L2"`) or `codemem draw --level L2` — never a hand-drawn sketch.
 6. **AGENTS.md decision** (dimension 19) — read `references/AGENTS-MD-TEMPLATE.md`; follow its
    SAFETY PROTOCOL: no `AGENTS.md` & no `CLAUDE.md` → `AskUserQuestion` to author one (or write
    `AGENTS.draft.md`); `AGENTS.md` exists → write `AGENTS.review.md`, never overwrite; only
@@ -195,8 +195,7 @@ Use `Skill(agent-teams)` machinery. Team template: `templates/onboarding-team.md
   build the task list, dispatch, collect confirmations only (keep your context lean).
 - **Mappers (reuse the known-working agent):** spawn `Agent(subagent_type="gsd-codebase-mapper")`
   ×4 focuses (`tech`, `arch`, `quality`, `concerns`) → they write `.planning/codebase/*.md`.
-  Also run `/codebase-deep-dive` (or its Phase 2–4 agents directly) → `.claude/reports/...` +
-  `diagrams/*.mmd`. Ensure `/index` has run.
+  Also write the living architecture doc (below).
 - **Human-layer workers (new agents):** spawn `Agent(subagent_type="codebase-onboarding-conventions")`,
   `Agent(subagent_type="codebase-onboarding-runbook")`, `Agent(subagent_type="codebase-onboarding-health")`
   in parallel — each writes its `.claude/onboarding/NN-*.md` deep-dive directly.
@@ -217,6 +216,25 @@ Use `Skill(agent-teams)` machinery. Team template: `templates/onboarding-team.md
 
 If any reused tool/agent is missing → skip that input, note it in Provenance, continue. Never hard-fail.
 
+#### Living architecture doc
+
+The Deep tier always writes `docs/architecture/` in the target repo — generated by `codemem draw`,
+100% regenerable, checkable in the target's CI with `codemem draw --check`. `.claude/onboarding/02-architecture.md`
+**links** these files; it never copies them, so the two cannot drift. Run from the target repo's root
+(codemem reads and writes `./.codemem/`). Idempotent: a second run adds no second `.gitignore` line.
+
+```bash
+# The aa-ma-forge checkout, from this skill's installed symlink (scripts/install.sh).
+AA_MA_ROOT=${AA_MA_ROOT:-$(cd "$(dirname "$(readlink -f ~/.claude/skills/understand-codebase/SKILL.md)")/../../.." && pwd)}
+# Keep the index out of the target's git status: one line, appended only if absent.
+grep -qxE '/?\.codemem/?' .gitignore 2>/dev/null || {
+  [[ -s .gitignore && -n "$(tail -c1 .gitignore)" ]] && echo  # never join the last line
+  echo '.codemem/'
+} >>.gitignore
+uv run --quiet --project "${AA_MA_ROOT}" codemem build >/dev/null
+uv run --quiet --project "${AA_MA_ROOT}" codemem draw --write
+```
+
 ---
 
 ## Hard constraints (restate verbatim in every spawned agent prompt)
@@ -228,10 +246,12 @@ If any reused tool/agent is missing → skip that input, note it in Provenance, 
   `gsd-codebase-mapper` rule.)
 - **Evidence or it didn't happen.** Every claim → a file path, a command, a git fact, a count, or
   an explicit "not found — gap". No vague assessments.
-- **Reuse before rebuild.** If `.planning/codebase/`, `.claude/reports/codebase-deep-dive-*/`, or
-  `PROJECT_INDEX.json` exist and are fresh, absorb them; do not re-run the heavy tool.
+- **Reuse before rebuild.** If `.planning/codebase/`, `.claude/reports/codebase-deep-dive-*/`, a codemem
+  index or `PROJECT_INDEX.json` (codemem's fallback) exist and are fresh, absorb them; do not re-run the heavy tool.
 - **Read-only on the target's code.** This skill writes only `ONBOARDING.md`, `.claude/onboarding/**`,
-  and (via reused tools) `PROJECT_INDEX.json` / `.planning/codebase/**` / `.claude/reports/**`.
+  and, in the Deep tier, the living architecture doc: `docs/architecture/` (generated files),
+  `.codemem/` (the index) and one `.codemem/` line appended to `.gitignore` if absent — plus, via
+  reused tools, `.planning/codebase/**`.
   It may *additionally* write `AGENTS.md` — **only if absent and only with explicit consent** —
   or `AGENTS.review.md` / `AGENTS.draft.md` (sidecars that never touch an existing `AGENTS.md`).
   It **never** edits an existing `AGENTS.md`, never edits `CLAUDE.md`, and never edits the target's source.
@@ -243,7 +263,7 @@ If any reused tool/agent is missing → skip that input, note it in Provenance, 
 | Situation | Behaviour |
 |---|---|
 | `AskUserQuestion` declined | Default: target = cwd, tier = Standard. Note assumptions in Provenance. |
-| `/index` unavailable or too slow | Skip; agents discover structure directly. Note in Provenance. |
+| `codemem build` fails or is too slow | Skip; read `PROJECT_INDEX.json` if present (codemem's fallback), else agents discover structure directly. Note in Provenance. |
 | `gsd-codebase-mapper` / `/codebase-deep-dive` unavailable | Deep → enhanced-Standard. Note. |
 | `TeamCreate` unavailable / team spawn fails | Deep → enhanced-Standard. Note. |
 | Context7 / WebSearch unavailable | Skip version-currency/CVE enrichment; note as a limitation. |

@@ -2,7 +2,7 @@
 name: codebase-onboarding-synthesizer
 description: >-
   Synthesis agent for the `understand-codebase` skill (Deep tier, and reusable standalone). Reads
-  every per-dimension deep-dive plus all absorbed prior artifacts (PROJECT_INDEX.json,
+  every per-dimension deep-dive plus all absorbed prior artifacts (codemem index / PROJECT_INDEX.json,
   .planning/codebase/*, .claude/reports/codebase-deep-dive-*/) plus any web/Context7 enrichment,
   and writes the human-facing ONBOARDING.md at the repo root, the .claude/onboarding/00-index.md,
   the structural deep-dives (01-stack, 02-architecture, 03-structure), the pros/cons verdict, the
@@ -28,20 +28,20 @@ If your prompt has a `<required_reading>` block, `Read` all of it first. Always 
 - `~/.claude/skills/understand-codebase/references/AGENTS-MD-TEMPLATE.md` — **its SAFETY PROTOCOL is binding** for anything `AGENTS.md`-related.
 - `~/.claude/skills/understand-codebase/references/DIMENSIONS.md` — for the full coverage list.
 - The worker outputs already on disk: `<repo>/.claude/onboarding/04-build-run-debug.md`, `05-tests-ci.md`, `06-conventions-versioning-git.md`, `07-rules-and-agent-instructions.md`, `08-integrations-observability-security.md`, `09-repo-health-and-verdict.md`.
-- Absorbed artifacts (if present): `<repo>/PROJECT_INDEX.json`, `<repo>/.planning/codebase/*.md`, `<repo>/.planning/intel/*.json`, `<repo>/.claude/reports/codebase-deep-dive-*/*` (esp. `00-executive-summary.md`, `01-architecture-overview.md`, `04`, `05`, `06`, `08`, `diagrams/*.mmd`).
+- Absorbed artifacts (if present): `<repo>/docs/architecture/` (the living doc, codemem-generated), the codemem index (`.codemem/`) or `<repo>/PROJECT_INDEX.json` (its fallback), `<repo>/.planning/codebase/*.md`, `<repo>/.planning/intel/*.json`, `<repo>/.claude/reports/codebase-deep-dive-*/*` (esp. `00-executive-summary.md`, `01-architecture-overview.md`, `04`, `05`, `06`, `08`).
 - The existing `<repo>/README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md` if present (quote them; note drift).
 
 ## Hard constraints (NON-NEGOTIABLE)
 - **NO SECRETS.** Never include a secret value in any file you write. `.env*` → variable names only. If a worker passed you a value that looks like a secret, redact it and flag it.
 - **Evidence or it didn't happen.** Every claim in `ONBOARDING.md` and the deep-dives → a `file:line` / command / git fact / count, or `not found — gap` / "open question". The playbooks MUST cite **real files and commands from this repo**, never generic boilerplate — if a playbook step's answer is unknown, write `not found — gap` (that's honest and useful).
-- **Reuse, don't re-derive.** If `PROJECT_INDEX.json` / `.planning/codebase/*` / a deep-dive report exists, build `01-03` and the architecture/stack sections from those + the worker outputs. Don't re-crawl the codebase unless something is missing or contradictory.
+- **Reuse, don't re-derive.** If codemem / `PROJECT_INDEX.json` / `.planning/codebase/*` / a deep-dive report exists, build `01-03` and the architecture/stack sections from those + the worker outputs. Don't re-crawl the codebase unless something is missing or contradictory.
 - **AGENTS.md / CLAUDE.md are owner-controlled.** Author `AGENTS.md` ONLY if (a) it's absent AND (b) the orchestrator's prompt explicitly tells you consent was given (`agents_md_action: write` / `write-draft`). If `AGENTS.md` exists → write `AGENTS.review.md` (a sidecar) — **never edit the original**. If only `CLAUDE.md` exists → do whatever the orchestrator's `agents_md_action` says (thin pointer / standalone / none) — **never edit `CLAUDE.md`**. If you have no explicit instruction, write only the `ONBOARDING.md` §17 note ("no `AGENTS.md`; run with consent to generate one") and skip writing any `AGENTS.*` file.
 - **Idempotent.** If `ONBOARDING.md` / `.claude/onboarding/*` already exist (a prior run), update them in place — refresh the Provenance block, don't create duplicates.
 - **WebSearch/Context7** only to fill the "Version currency" subsection (if the health worker didn't) and, in Deep tier, to confirm the current `AGENTS.md` convention before authoring one. Cite sources + dates.
 
 ## What to do
 1. **Gather.** Read all worker outputs + absorbed artifacts + project docs. Note contradictions (e.g. README says Python 3.10, `.python-version` says 3.12) — these become "cons"/"open questions".
-2. **Write the structural deep-dives** you own: `<repo>/.claude/onboarding/01-stack.md`, `02-architecture.md`, `03-structure.md` (per `DEEPDIVE-TEMPLATES.md` skeletons + standard headers) — synthesised from `PROJECT_INDEX.json` / `.planning/codebase/STACK.md|ARCHITECTURE.md|STRUCTURE.md` / `/codebase-deep-dive` `01-architecture-overview.md` + the runbook worker's data-model facts. If no architecture diagram exists anywhere, generate a Mermaid `graph TD`/`flowchart` into `<repo>/.claude/onboarding/diagrams/architecture.mmd`; otherwise link the existing one. Append the "Version currency" subsection to `01-stack.md` if the health worker didn't.
+2. **Write the structural deep-dives** you own: `<repo>/.claude/onboarding/01-stack.md`, `02-architecture.md`, `03-structure.md` (per `DEEPDIVE-TEMPLATES.md` skeletons + standard headers) — synthesised from codemem (or `PROJECT_INDEX.json`) / `.planning/codebase/STACK.md|ARCHITECTURE.md|STRUCTURE.md` / `/codebase-deep-dive` `01-architecture-overview.md` + the runbook worker's data-model facts. `02-architecture.md` links `<repo>/docs/architecture/` (the living doc); if it is absent, embed one ```mermaid block from codemem's `diagram` MCP tool (`level="L2"`) — never hand-draw one. Append the "Version currency" subsection to `01-stack.md` if the health worker didn't.
 3. **Write `00-index.md`** — the table of contents for `.claude/onboarding/` (per skeleton), with a one-line "key takeaway" for each deep-dive.
 4. **Build the verdict** (`PROS-CONS-RUBRIC.md`) — finalise the 10-axis table + the three columns (≥3 cited items each) + the trade-off + the bottom line, using the health worker's draft as the substance. This lives in `09-*.md` (refine what the health worker wrote) and a condensed copy in `ONBOARDING.md` §13.
 5. **Fill the playbooks** — `PLAYBOOK-CONTRIBUTE.md` (dimension 15) and `PLAYBOOK-ADD-FEATURE.md` (dimension 16). For the add-a-feature one, pick a real recent feature from `git log` as the worked example. Every step cites real files/commands. Include the suggested "good first PR" (a real `TODO`/`FIXME` with `file:line`, an open issue, or "add tests to `<the least-tested small module>`").

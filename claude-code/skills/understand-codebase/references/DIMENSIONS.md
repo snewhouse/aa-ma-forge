@@ -18,8 +18,8 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
 ## 1 — Read it / understand it / map it
 - **What:** what the project *is* and *does*; the repo tour; ASCII directory tree (top 3 levels);
   entry points; the 3–5 critical execution paths a newcomer must trace.
-- **Reuse:** `PROJECT_INDEX.json` (`dir_purposes`, ASCII tree, `symbol_importance`); `/index` if
-  absent; `.planning/codebase/STRUCTURE.md` & `ARCHITECTURE.md`; `Skill(system-mapping)` step 1–2;
+- **Reuse:** codemem (`layers`, `diagram` L0/L1, `search_symbols`; `codemem build` if no index) — or `PROJECT_INDEX.json` (`dir_purposes`, ASCII tree, `symbol_importance`), codemem's fallback, when present;
+  `.planning/codebase/STRUCTURE.md` & `ARCHITECTURE.md`; `Skill(system-mapping)` step 1–2;
   `Skill(code-intelligence)` patterns for entry points.
 - **Inspect:** `README*`; `git ls-files | head -200`; `find . -maxdepth 3 -type d`; entry-point
   globs — `main.*`, `index.*`, `cmd/*/main.go`, `**/__main__.py`, `manage.py`, `app.py`,
@@ -51,9 +51,9 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
   core components & inter-component comms (sync calls / queues / events / RPC); the data model &
   migration story; a diagram.
 - **Reuse:** `.planning/codebase/ARCHITECTURE.md`; `/codebase-deep-dive` `01-architecture-overview.md`,
-  `03-data-flow-analysis.md`, `06-design-patterns.md`, and its `diagrams/*.mmd` (link them — don't
-  redraw). If no diagram exists, generate Mermaid (`graph TD`/`flowchart LR`/`sequenceDiagram`) into
-  `.claude/onboarding/diagrams/architecture.mmd`. `Skill(code-intelligence)` for class/interface
+  `03-data-flow-analysis.md`, `06-design-patterns.md`, and its diagrams (link them — don't
+  redraw). The architecture diagram is `docs/architecture/` (Deep tier writes it via `codemem draw --write`);
+  otherwise embed codemem's `diagram` output (MCP, `level="L2"`) — never hand-draw one. `Skill(code-intelligence)` for class/interface
   hierarchies, DB-query/HTTP-client patterns.
 - **Inspect:** module/package boundaries; ORM models (`models.py`, `*/entity/*`, `schema.prisma`,
   `*.sql` migrations, `migrations/`, `alembic/`); message brokers (`kafka`, `rabbitmq`, `sqs`,
@@ -65,7 +65,7 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
 ## 4 — Directory map & structure
 - **What:** what every top-level (and key nested) directory is *for*; naming conventions for files
   and modules; **where new code goes** (prescriptive).
-- **Reuse:** `PROJECT_INDEX.json` `dir_purposes`; `.planning/codebase/STRUCTURE.md`.
+- **Reuse:** codemem `diagram(level="L1")` for the directory map (or `PROJECT_INDEX.json` `dir_purposes`, codemem's fallback, when present); `.planning/codebase/STRUCTURE.md`.
 - **Inspect:** `find . -maxdepth 3 -type d -not -path '*/.*' -not -path '*/node_modules/*'`; a
   sample of files in each dir to infer purpose; existing `CONTRIBUTING.md`/`docs/` for stated layout.
 - **Evidence:** annotated tree (`dir/ — purpose`); "to add X, put it in `path/` named `pattern`"

@@ -222,19 +222,19 @@ When editing code that later milestones depend on:
 
 ## Index-Enhanced Analysis
 
-When `PROJECT_INDEX.json` exists, use structured queries instead of manual Grep for checks 1-4:
+Use codemem's MCP tools for checks 1-4 instead of manual Grep — they build the index on first
+query. When codemem is not configured and `PROJECT_INDEX.json` exists, its project-index MCP tools are
+the equivalent fallback (same names; its `blast_radius` returns callers by depth, codemem's returns callees).
 
-| Check | Index Method | Fallback |
-|-------|-------------|----------|
-| 1. UPSTREAM | `who_calls(symbol, depth=2)` → transitive caller list | Grep for imports/calls |
-| 2. DOWNSTREAM | `dependency_chain(file_path)` → import tree by depth | Read imports in file |
-| 3. CONTRACTS | `file_summary(file)` → function signatures for comparison | Compare before/after |
-| 4. TEST COVERAGE | `search_symbols("test_.*target")` → find test functions | Find test files |
-| 5. SIDE EFFECTS | *(manual — not in index)* | Read function body |
+| Check | codemem (default) | Fallback |
+|-------|-------------------|----------|
+| 1. UPSTREAM | `who_calls(name, max_depth=2)` → transitive callers | Grep for imports/calls |
+| 2. DOWNSTREAM | `blast_radius(name, max_depth=3)` → transitive callees; `diagram(level="L2", scope=file)` → the file's import/call neighbourhood | Read imports in file |
+| 3. CONTRACTS | `file_summary(path)` → symbols for comparison | Compare before/after |
+| 4. TEST COVERAGE | `search_symbols("test_<target>")` (substring match) → test functions | Find test files |
+| 5. SIDE EFFECTS | *(manual — not in the index)* | Read function body |
 
-**Blast radius shortcut:** `blast_radius(symbol, max_depth=3)` gives callers at each depth level — maps directly to the risk assessment.
-
-**Freshness gate:** Check `_meta.at` timestamp. If >24h old, prepend warning to output but still use the data.
+**Freshness gate:** codemem — if files changed since the last `codemem build`, rebuild (≈0.5 s) or say the answer is stale; `PROJECT_INDEX.json` (codemem's fallback) — check `_meta.at`, and if >24h old prepend a warning but still use the data.
 
 ## Quick Reference
 

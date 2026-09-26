@@ -955,12 +955,6 @@
    "src": "skill:understand-codebase"
   },
   {
-   "dst": "agent:general-purpose",
-   "kind": "agent",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "skill:understand-codebase"
-  },
-  {
    "dst": "agent:gsd-codebase-mapper",
    "kind": "agent",
    "ref_class": "DECLARED_EXTERNAL",
@@ -1000,12 +994,6 @@
    "dst": "skill:code-intelligence-index",
    "kind": "skill",
    "ref_class": "DECLARED_EXTERNAL",
-   "src": "skill:understand-codebase"
-  },
-  {
-   "dst": "skill:codebase-deep-dive",
-   "kind": "skill",
-   "ref_class": "DANGLING",
    "src": "skill:understand-codebase"
   },
   {
@@ -1054,12 +1042,6 @@
    "dst": "skill:improve-codebase-architecture",
    "kind": "skill",
    "ref_class": "DECLARED_EXTERNAL",
-   "src": "skill:understand-codebase"
-  },
-  {
-   "dst": "skill:index",
-   "kind": "skill",
-   "ref_class": "DANGLING",
    "src": "skill:understand-codebase"
   },
   {

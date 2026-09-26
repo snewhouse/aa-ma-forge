@@ -68,7 +68,7 @@ overwriting, look at the target — if you didn't create it, surface that instea
 - Branch from `<base>`, name `<pattern>`.
 
 ## Architecture (one paragraph)
-<pattern + the layers + how a request flows>. Diagram: `<.claude/onboarding/diagrams/architecture.mmd or link>`.
+<pattern + the layers + how a request flows>. Diagram: `<link to docs/architecture/component.md>`.
 
 ## Don't touch / be careful (here be dragons)
 - `<vendored/generated/frozen path>` — <why; how to regenerate if generated, e.g. `make proto`>
@@ -104,7 +104,7 @@ For each row: verdict = ✅ accurate / ⚠️ stale / ❌ wrong/missing — with
 | Setup/run/test commands | actually run them (or check `Makefile`/`package.json` scripts they reference still exist) | |
 | Required tool versions | `.nvmrc`/`.python-version`/`.tool-versions`/`Dockerfile` | |
 | Lint/format/typecheck commands & configs | the config files exist; commands still valid | |
-| Project layout | current `find . -maxdepth 3 -type d` / `PROJECT_INDEX.json dir_purposes` | |
+| Project layout | current `find . -maxdepth 3 -type d` / codemem `diagram(level="L1")` / `PROJECT_INDEX.json dir_purposes` (codemem's fallback) | |
 | Conventions | sampled source files (dimension 9 "claimed vs observed") | |
 | Architecture description | dimension 3 findings | |
 | Dragons / don't-touch | `.gitattributes` vendored/generated marks, `# DO NOT EDIT`, dimension 13 | |

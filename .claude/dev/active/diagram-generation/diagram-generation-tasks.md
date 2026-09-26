@@ -455,9 +455,9 @@
 - Carry-forward (M9 §6.8, Ste 2026-09-25): TS/TSX/JS calls inside arrow functions / function expressions bound at module scope (`const h = async () => fetch()`) produce no call edge, so io.md undercounts JS/TS I/O (disclosed in its prose). Add them as callables (`variable_declarator` → `arrow_function` | `function_expression`) with a fresh impact analysis: they become symbols, changing component view, dead_code and who_calls for every TS/JS repo. Re-measure the polyglot band after.
 
 ### Sub-step 13.1: [prototype] measure L0-L3 on `medical-research-skills`; `PROTOTYPE` provenance
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: Ste: Proceed. Scratch index from `git archive efafac2` (26 s, 2481 files, 1918 vendored node_modules; 2461 under one top-level dir, skills at depth 3). Whole repo, tests excluded: L0 0n/0e, L1 0n/0e (every edge is intra-dir at depth ≤2), L2 69n/97e 9099 mermaid chars (json 9692), L3 calls 522n/500e dropped 2793, 77520 chars — budget 8000 tokens = 32000 json chars. Prototype `scripts/PROTOTYPE_mcp_diagram.py` compared the planned collapse with a guarded one: scoped L3 `scientific-skills/Academic Writing/` (482 edges) collapses to an EMPTY L2 under the plan; guarded stops and truncates L3 to 188 edges / 31898 json chars. aa-ma-forge @ main: identical under both (L2 54n/141e json 8164; L0/L1 3 edges). Verdict PROCEED with amendment (Ste): guarded collapse; default level L2 (L1 empty on MRS). Branch `prototype/diagram-generation-mcp` @ 99b0c36, local only. PROTOTYPE provenance written.
 
 ### Sub-step 13.2: [test] `test_mcp_diagram.py` + update tool-count pins 12 -> 13, RED
 - Status: PENDING

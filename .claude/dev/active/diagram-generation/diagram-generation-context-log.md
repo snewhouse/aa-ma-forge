@@ -434,3 +434,9 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - Active step at compaction: Sub-step 13.1: [prototype] measure L0-L3 on `medical-research-skills`; `PROTOTYPE` provenance
 - Snapshot saved to: /home/sjnewhouse/.claude/hooks/cache/compaction-snapshots/diagram-generation-snapshot.md
 - Note: Context compacted. Reload AA-MA files to resume.
+
+## [2026-09-26] M13 13.1 — prototype verdict: guarded collapse, default L2 (Ste)
+- Measured medical-research-skills @ efafac2: a one-top-level-dir monorepo (2461/2481 files under `scientific-skills/`, skills at depth 3, 97 cross-file edges). L0/L1 are empty; L2 fits (9.7k json chars); L3 overflows (77.5k even at the 500-edge cap).
+- Planned policy (collapse until it fits; truncate only if L0 overflows) turns a scoped L3 of 482 edges into an EMPTY L2 — the tool would answer an informative question with nothing.
+- Decision (Ste): guarded collapse — collapse only while the coarser level still has edges, else truncate at the current level (largest sorted edge prefix that fits; the rest counted in `dropped`). Default level L2, not L1. Plan Contract amended in place with a dated comment.
+- Rejected: truncate-only (drops AC2 `collapsed_from`); as-planned (empty results).

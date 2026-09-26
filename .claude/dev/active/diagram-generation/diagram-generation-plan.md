@@ -1458,6 +1458,10 @@ MCP tool:
   Budget: REUSES codemem's _DEFAULT_BUDGET / _budget_chars / _exceeds_budget.
   Overflow: AUTO-COLLAPSE to the next coarser level, repeat, then truncate
             with a note only if L0 still overflows.
+  # AMENDED at 13.1 (Ste, 2026-09-26, prototype on medical-research-skills):
+  #   default level="L2" (L1 is empty on a one-top-dir monorepo); collapse only
+  #   while the coarser level still has edges, else truncate the current level to
+  #   the largest sorted edge prefix that fits, counted in `dropped`.
   ALWAYS returns: {"mermaid": str, "level": str, "nodes": int,
                    "edges": int, "dropped": int, "collapsed_from": str|None}
 

@@ -24,12 +24,21 @@ function isTest(path) {
 }
 
 // codemem.draw.mermaid.escape_label: '#' first; '%{}' stop a smuggled %%{init}%%; '`'
-// blocks markdown-string mode; anything unprintable becomes '?'.
+// blocks markdown-string mode; anything unprintable becomes '?' (Python's str.isprintable).
+// Pinned by tests/fixtures/draw-label-rules.json. Known gap: code points assigned after
+// Unicode 15.1 are unprintable to Python 3.13 but printable here — graphic, not a risk.
+const UNPRINTABLE = /[\p{C}\p{Zl}\p{Zp}]|[^\S ]/gu;
 const ENTITIES = [['#', '#35;'], ['"', '#quot;'], ['<', '#lt;'], ['>', '#gt;'],
   ['%', '#37;'], ['{', '#123;'], ['}', '#125;'], ['`', '#96;']];
 function escapeLabel(text) {
   for (const [raw, entity] of ENTITIES) text = text.split(raw).join(entity);
-  return text.replace(/[\p{C}\p{Zl}\p{Zp}]|[^\S ]/gu, '?');
+  return text.replace(UNPRINTABLE, '?');
+}
+
+// A path shown as plain text (textContent): no markup risk, but controls and bidi overrides
+// could still spoof what the reader sees.
+function displayPath(text) {
+  return text.replace(UNPRINTABLE, '?');
 }
 
 // The pinned mermaid renders a flowchart node as <g class="node" id="<renderId>-flowchart-<nid>-<i>">
@@ -41,7 +50,8 @@ function nodeIdOf(elementId) {
 
 // One level of the embedded graph as mermaid text, plus the id -> name lookup the click
 // handler needs. A scope ending in '/' is a directory (prefix); otherwise one file (exact).
-// Deterministic: nodes and edges sorted by name.
+// Deterministic: nodes and edges sorted by name (UTF-16 order — codemem sorts by code point,
+// so the two can differ only for names beyond the BMP). Throws on a node-id collision.
 function compute(graph, { level, scope, tests }) {
   const hit = (p) => (scope.endsWith('/') ? p.startsWith(scope) : p === scope);
   const edges = new Map();
@@ -52,10 +62,17 @@ function compute(graph, { level, scope, tests }) {
     const b = collapse(dst, level);
     if (a !== b) edges.set(`${a}\u0000${b}\u0000${kind}`, [a, b, kind]);
   }
-  const all = [...edges.values()].sort((x, y) => (x.join('\u0000') < y.join('\u0000') ? -1 : 1));
+  const all = [...edges].sort(([k1], [k2]) => (k1 < k2 ? -1 : 1)).map(([, e]) => e);
   const kept = all.slice(0, graph.maxEdges);
   const lookup = new Map();
-  for (const [a, b] of kept) for (const n of [a, b]) lookup.set(nid(n, level), n);
+  for (const [a, b] of kept) {
+    for (const n of [a, b]) {
+      const id = nid(n, level);
+      const seen = lookup.get(id);
+      if (seen !== undefined && seen !== n) throw new Error(`node id collision: ${id} is both ${seen} and ${n}`);
+      lookup.set(id, n);
+    }
+  }
   const lines = ['flowchart LR'];
   if (all.length > kept.length) lines.push(`%% ${all.length - kept.length} edges not shown: over mermaid maxEdges ${graph.maxEdges}`);
   for (const [id, n] of [...lookup].sort((x, y) => (x[1] < y[1] ? -1 : 1))) lines.push(`  ${id}["${escapeLabel(n)}"]`);
@@ -63,7 +80,7 @@ function compute(graph, { level, scope, tests }) {
   return { text: lines.join('\n') + '\n', lookup, edges: kept.length };
 }
 
-if (typeof module !== 'undefined') module.exports = { nid, collapse, isTest, escapeLabel, nodeIdOf, compute };
+if (typeof module !== 'undefined') module.exports = { nid, collapse, isTest, escapeLabel, displayPath, nodeIdOf, compute };
 
 if (typeof document !== 'undefined') {
   const G = JSON.parse(document.getElementById('graph').textContent);
@@ -71,20 +88,31 @@ if (typeof document !== 'undefined') {
   if (G.stale) { $('stale').hidden = false; $('stale').textContent = `Index is stale — ${G.stale}. Showing the graph as last indexed.`; }
   const files = new Set(G.edges.flatMap(([src, dst]) => [src, dst]));
   const trail = [{ level: 0, scope: '' }];
-  let lookup = new Map();
+  let lookup = new Map(); // always the lookup of the SVG currently in #out
   let seq = 0;
   async function draw() {
+    const mine = ++seq; // a newer draw() supersedes this one, even mid-render
     const view = trail[trail.length - 1];
-    const r = compute(G, { ...view, tests: $('tests').checked });
-    lookup = r.lookup;
-    $('where').textContent = `L${view.level}${view.scope ? ' · ' + view.scope : ''} · ${lookup.size} nodes · ${r.edges} edges`;
-    $('up').disabled = trail.length === 1;
     const out = $('out');
-    if (!r.edges) { out.textContent = 'No edges at this level.'; return; }
+    $('up').disabled = trail.length === 1;
+    let r;
     try {
-      const { svg } = await mermaid.render(`explorer-${++seq}`, r.text);
-      out.innerHTML = svg; // mermaid output under securityLevel "strict" (DOMPurify-sanitised)
+      r = compute(G, { ...view, tests: $('tests').checked });
     } catch (e) {
+      lookup = new Map();
+      out.textContent = e.message;
+      return;
+    }
+    $('where').textContent = `L${view.level}${view.scope ? ' · ' + displayPath(view.scope) : ''} · ${r.lookup.size} nodes · ${r.edges} edges`;
+    if (!r.edges) { lookup = new Map(); out.textContent = 'No edges at this level.'; return; }
+    try {
+      const { svg } = await mermaid.render(`explorer-${mine}`, r.text);
+      if (mine !== seq) return; // stale: a later view is already drawn or drawing
+      out.innerHTML = svg; // mermaid output under securityLevel "strict" (DOMPurify-sanitised)
+      lookup = r.lookup;
+    } catch (e) {
+      if (mine !== seq) return;
+      lookup = new Map();
       out.textContent = `mermaid could not render this view: ${e.message}`;
     }
   }

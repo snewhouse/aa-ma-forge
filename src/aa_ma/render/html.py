@@ -10,7 +10,8 @@ import html as _html
 from markdown_it import MarkdownIt
 
 # Bumping this: re-check codemem draw's assumptions — MAX_EDGES (mermaid default
-# maxEdges 500) and the quoted `-->|"@kind"|` sigil (bare `|@kind|` fails on 11.17.2).
+# maxEdges 500) and the quoted `-->|"@kind"|` sigil (bare `|@kind|` fails on 11.17.2) — and
+# explorer.js nodeIdOf's element-id scheme (NODE_ID_SCHEME_PROVEN_ON in the explorer tests).
 MERMAID_VERSION = "11.17.2"  # latest 11.x at the 4.1 prototype (2026-09-12); single constant, bump deliberately
 # codemem's io view needs flowchart edge ids (`n1 e0@--> n2` + `class e0 bare`), verified at 11.17.
 # SRI of dist/mermaid.min.js at that version (single-file UMD, so the hash covers every byte that runs —

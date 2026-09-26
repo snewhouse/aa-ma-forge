@@ -282,6 +282,8 @@ Plans, ADRs and spec pages carry a mermaid Architecture View ([ADR-0010](docs/ad
 
 [`docs/architecture/`](docs/architecture/README.md) is generated from the code, never hand-edited ([ADR-0016](docs/adr/0016-living-architecture-doc.md)); its README lists the current views. The `architecture-drift` CI job runs `codemem draw --check` and fails when the committed doc no longer matches the code — regenerate with `scripts/regen-generated.sh` (see [CONTRIBUTING](CONTRIBUTING.md#generated-files)). Authored prose lives in `docs/architecture.captions.json`.
 
+To explore the whole graph instead, `uv run codemem build && uv run aa-ma-render --explorer` writes `build/explorer.html`: one page that embeds the graph and drills on click — a directory opens one level down inside it, a file shows its neighbourhood (import and call edges; tests behind a toggle). Same CDN pin, SRI and CSP as the markdown render; mermaid stays at `securityLevel: "strict"`. A missing or too-old index is refused with the remedy; a stale one is shown with a banner. The `explorer-contract` CI job keeps its JavaScript in step with `codemem draw` through a shared fixture.
+
 ## What else helped
 
 AA-MA is the structure, but a couple of Claude Code plugins earned their place alongside it through trial and error.

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import html as _html
 import json
+import sqlite3
 from pathlib import Path
 
 from aa_ma.render.graph import GraphStatus, call_edges, import_edges, open_graph
@@ -52,6 +53,8 @@ def build_explorer(repo_root: Path) -> tuple[str, str | None]:
         edges = sorted(
             {(s, d, "import") for s, d in import_edges(h)} | {(s, d, "call") for s, d in call_edges(h)}
         )
+    except sqlite3.Error as e:  # a schema-v3 file missing tables: unreadable, never a traceback
+        raise ValueError(f"codemem index is unreadable ({type(e).__name__}); run `codemem build`") from e
     finally:
         if h.conn is not None:
             h.conn.close()

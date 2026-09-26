@@ -28,6 +28,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   row or `# file:` line no §13 node covers — the path, a directory above it, or its `(new)` plan; `Test`/`Verify`
   rows, `tests/`, `docs/`, root docs and dependency manifests/lockfiles are exempt. `plan-verification` runs it as
   check 8 (WARNING) for plans `Created:` on-or-after 2026-09-11.
+- **Explorer (`diagram-generation` M12)** — `aa-ma-render --explorer [--repo-root R] [--out DIR]` writes
+  `DIR/explorer.html` (default `build/`, never committed): the codemem graph (import + call edges) embedded as JSON,
+  levels L0–L2 derived in the browser, one delegated click listener drilling a directory one level down or a file
+  to its neighbourhood, `up`/`top`, tests behind a toggle. Reuses `html.py`'s CDN pin, SRI and `securityLevel:
+  "strict"`; its CSP is composed by the new `html.csp(*hashes)` (`_CSP` unchanged). Missing/too-old/unreadable
+  index → exit 2 naming `codemem build`; stale → a banner and a warning. New CI job `explorer-contract` runs
+  `node --test tests/render/explorer_contract.test.mjs`: the JS's node ids, collapse rule, label escaping and tests
+  rule must equal codemem's (`tests/fixtures/draw-node-ids.json`, `draw-label-rules.json`), and the built page's
+  inline script must be hash-allowed by its CSP.
 - **§13 sigil edges as a HARD acceptance criterion (`diagram-generation` M11, ADR-0015)** — `/execute-aa-ma-milestone`
   §6.7 gains a second fence, after the gate fence: when plan §13 carries a sigil edge, it refuses COMPLETE on a
   `PHANTOM_EDGE`/`LABEL_UNKNOWN`, on an authoring error (an edge to a missing file, a stale `(new)`, a path-less

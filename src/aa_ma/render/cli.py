@@ -7,7 +7,6 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from aa_ma.render.explorer import build_explorer
 from aa_ma.render.html import render_markdown
 from aa_ma.render.coverage import coverage_findings
 from aa_ma.render.graph import printable
@@ -111,6 +110,10 @@ def render_main(argv: Sequence[str] | None = None) -> int:
 
 
 def _explorer(repo_root: Path, out: Path) -> int:
+    # Imported here, not at module top: this module also hosts aa-ma-lint-views, which the
+    # §6.7 HARD item runs, and a broken explorer must never take the lint down with it.
+    from aa_ma.render.explorer import build_explorer
+
     try:
         page, stale = build_explorer(repo_root)
     except ValueError as e:  # missing / too-old / unreadable index: nothing is written
@@ -123,7 +126,7 @@ def _explorer(repo_root: Path, out: Path) -> int:
         target = out / "explorer.html"
         target.write_text(page, encoding="utf-8")
     except OSError as e:
-        print(f"aa-ma-render: {e}", file=sys.stderr)
+        print(f"aa-ma-render: {printable(str(e))}", file=sys.stderr)
         return 2
     print(target)
     return 0

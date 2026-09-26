@@ -298,7 +298,7 @@ graph TD
     ML -->|"@import"| GRAPH
     EXP -->|"@import"| GRAPH
     EXP -->|"@import"| HTML
-    RCLI -->|"@import"| EXP
+    RCLI -->|imports inside a function| EXP
     DEPS -->|"@import"| GR
 
     PLAN -->|seeds section 13 via| CCLI
@@ -1354,6 +1354,9 @@ Files:
   Create  tests/render/explorer_contract.test.mjs
   Modify  .github/workflows/security.yml         # + node job
   Test    tests/fixtures/draw-node-ids.json      # SHARED with M3 — single source
+  # §6.8 amendment 2026-09-26 (Ste): + tests/fixtures/draw-node-ids.gen.mjs (emits the
+  #   collapse pins via explorer.js), tests/fixtures/draw-label-rules.json (escape + tests
+  #   rule, both sides), README.md + CHANGELOG.md (--explorer, explorer-contract job).
 
 Mechanism (Ticket 11). WARNING: only the items marked [proven] were actually
 exercised by prototype/diagram-generation-3/demo.html. The drill listener was NOT.

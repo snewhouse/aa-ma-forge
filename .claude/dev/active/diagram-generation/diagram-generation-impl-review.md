@@ -584,3 +584,55 @@ Dropping the 13 stale `(new)` marks turned 17 edges into checked claims, and 8 w
 
 ## Revision History
 - 2026-09-25/26: RED 15b0e8c (17 Python + 8 bats failing for the stated reasons; two vacuous passes made to fail first). Fixes GREEN: pytest 1559 / 2 skipped; bats 231/231; 58 protected tests 32/10/16; gate-fence sha256 17be760b… unchanged; both fences shellcheck clean; ruff + lint-imports 4/4; regen stamp-only.
+
+---
+
+# Milestone 12 — Explorer + Node CI job
+
+Window fccc22f..d4df253, Audit-Profile full, Prototype-Required YES, 5 agents in parallel (§6.6 angles folded into code-reviewer).
+
+## Summary
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 4 | 5 | WARN → fixed |
+| security-auditor | 0 | 0 | 6 | PASS (26 hostile names × 101 headless views, CSP on and off: nothing executed) |
+| tdd-sequence-auditor | 1 | 0 | 1 | FAIL on a timestamp tie → disputed (Ste) |
+| context7-evidence-auditor | 0 | 0 | 1 | PASS (no dependency change; playwright never a dependency) |
+| future-proofing-auditor | 0 | 5 | 7 | WARN → fixed |
+| **TOTAL** | **1** | **8** (1 shared) | **20** | **PASS_WITH_WARNINGS after fixes; CRITICAL disputed** |
+
+## Code Review
+- WARNING — render race: `lookup` swapped before `await mermaid.render`, no staleness check. **FIXED**: `const mine = ++seq`; a superseded render never writes; `lookup` set only with its SVG. Verified headless: burst of 7 toggles + drill + up → drawn nodes == breadcrumb count; a later click drills correctly.
+- WARNING — `cli.py` (hosts `aa-ma-lint-views`, read by §6.7) imported `explorer`, which reads/validates explorer.js at import. **FIXED**: imported inside `_explorer()`; test blocks the module and imports `lint_main`.
+- WARNING — a schema-v3 DB missing tables raised `sqlite3.Error` → traceback, exit 1. **FIXED**: ValueError naming `codemem build` → exit 2, nothing written; test.
+- WARNING — gen.mjs dropped the collapse pins on regeneration. **FIXED** (shared with future-proofing #4).
+- INFO — node-id collision merged silently. **FIXED**: `compute` throws; the page shows the message; test uses a real colliding pair (`a/f80306.py` / `a/f4209080.py` → `ncab98h`). INFO — comparator rebuilt keys. **FIXED** (sort Map entries by key). INFO — OSError unprintable. **FIXED** (`printable`; test is a regression guard — Python's OSError already repr-escapes the path). INFO — UTF-16 vs code-point sort; Unicode >15.1 drift (9,988 code points, graphic). **Documented** in explorer.js. INFO — `--repo-root` ignored in markdown mode: kept.
+
+## Security
+- Clean. INFO — `&` not escaped (entity decoded once in the label; text only): **deferred** (cosmetic; would change codemem's escape and the committed docs). INFO — 32-bit id collisions: now refused (above). INFO — breadcrumb bidi spoof: **FIXED** (`displayPath`). INFO — CSP host-wide `cdn.jsdelivr.net`, no `base-uri`/`form-action` (pre-M12, html.py): **deferred** (Ste) — carry-forward. INFO — output follows symlinks (same as markdown render): kept. INFO — CI job adds no new exposure; uv unpinned / persist-credentials copied from existing jobs: kept.
+
+## TDD Sequence — FAIL (disputed)
+Tie: RED commit 842555f carried the tests AND throwing stubs, so first tests/ == first src/ timestamp. The auditor re-ran 842555f: 11 pytest + 10 node failures for the right reasons; the real implementation (68be4b1) came 3m36s later. One true defect: `test_a_hostile_file_name_cannot_end_the_island` failed at RED on its own setup (missing `x<` directory), fixed in GREEN — never genuinely red. Convention learned (L-028): stubs go in a separate commit after the tests-only RED. Applied at once: the §6.8 RED fc5a270 touched tests/ only.
+
+## External Library Evidence — PASS
+No manifest change. `actions/setup-node@8207627 # v7.0.0` checked against its README at that sha (only breaking change: ESM migration; `package-manager-cache: false`).
+
+## Future-Proofing
+- WARNING — nodeIdOf coupled to mermaid's element-id scheme, no guard on a bump. **FIXED**: `NODE_ID_SCHEME_PROVEN_ON = "11.17.2"` asserted equal to `MERMAID_VERSION` (message says re-run the M12.1 SVG check); html.py bump checklist names it.
+- WARNING ×2 — escape table and tests rule duplicated without a shared pin. **FIXED**: `tests/fixtures/draw-label-rules.json` (19 escape rows incl. controls, NBSP, U+2028, bidi, NUL, BOM, emoji; 7 tests-rule rows), expected values from codemem, asserted by pytest and node --test. Avoids code points assigned after Unicode 15.1.
+- WARNING — gen.mjs lost the collapse pins. **FIXED**: gen.mjs requires explorer.js (`nid`, `collapse`) and emits `collapse` for L2; pytest regenerates and compares byte-for-byte.
+- WARNING — README/CHANGELOG silent on `--explorer`. **FIXED**.
+- INFO — `11\.17\.2` literal in the AC4 test: **FIXED** (`re.escape(html.MERMAID_VERSION)`). INFO — test `maxEdges: 500` magic: **FIXED** (50). Others (node 24 EOL, PRAGMA 2, sigil twin, Unicode DB, gitignored CLAUDE.md): acknowledged.
+
+## Dogfooding
+The lazy import (code-review W2) made `cli.py → explorer.py` a function-local import; the M11 diagram item then reported our own §13 `RCLI -->|"@import"| EXP` as PHANTOM_EDGE — the ADR-0015 known gap, handled as it prescribes (prose label). Own plan: edges=13 checked=13 phantom=0.
+
+## User Override Decisions
+| Severity | Finding | Decision | Rationale |
+|---|---|---|---|
+| CRITICAL | TDD timestamp tie (stubs in the RED commit) | dispute | Ste — RED verified legitimate; convention L-028 |
+| WARNING ×8 + cheap INFOs | batch | fix all now | Ste |
+| INFO | CSP host-wide jsdelivr, no base-uri/form-action | defer | Ste — pre-M12, outside the Contract; carry-forward |
+
+## Revision History
+- 2026-09-26: RED fc5a270 (tests only: 3 pytest + 2 node failing for the stated reasons; escape/tests-rule rows already agreed — now pinned); GREEN 3635168. pytest 1578 / 2 skipped; render 188; node contract 14/14 with the built page; ruff + lint-imports 4/4.

@@ -5,6 +5,21 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-028 (2026-09-26) — Stubs committed with the RED tests tie the TDD auditor's clock
+
+**Pattern:** In `diagram-generation` M12.2 I committed throwing stubs (`explorer.py`,
+`explorer.js`) in the same commit as the RED tests, so failures would be assertion-level
+rather than import errors. The tdd-sequence-auditor reads "first tests/ commit before first
+src/ commit" — a same-commit tie is FAIL. RED was genuine, but the evidence could not show it,
+and one test failed at RED on its own setup bug instead of against the stub.
+
+**Rule:** The RED commit touches `tests/` (and fixtures) only. If assertion-level failures
+need stubs, commit them separately right after, in a `test:`-scoped or `chore:` commit that
+precedes the implementation. Before committing RED, read each failure: it must be the
+assertion under test, never the test's own setup.
+
+---
+
 ## L-027 (2026-09-26) — Hooks bypassed on a throwaway commit when the marker would have done
 
 **Pattern:** In `diagram-generation` M12.1 I committed the prototype branch with

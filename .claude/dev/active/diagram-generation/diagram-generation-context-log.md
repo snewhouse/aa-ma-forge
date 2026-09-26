@@ -393,3 +393,15 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - **"Index-only UNKNOWN refuses" tightened: authoring errors refuse too.** An edge to a missing non-`(new)` file, a stale `(new)` on an existing file, a path-less label, an unparsed edge form, a path outside the repo → `invalid`, refused. Still passing: a genuinely planned file, plugin sigils, unmodelled languages. `checked=C` in the summary and evidence.
 - **Launcher:** `aa_ma_lint_views` in `aa-ma-parse.sh` (Contract amended; drawn in §13 as `PARSE`).
 - **Own §13 corrected** (13 stale `(new)` dropped; 7 predicted-but-unbuilt `@import` edges fixed to the code; 1 function-local import relabelled in prose; `SQL`/`PRULES` prose). The first real use of the item found 8 false edges in the plan that built it.
+
+## [2026-09-26] GATE APPROVAL: Milestone 11: §6.7 HARD item + `DIAGRAM_VERIFIED` + ADR-0015
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 8/8
+- Decision: APPROVED
+
+## [2026-09-26] Milestone Completion: Milestone 11: §6.7 HARD item + `DIAGRAM_VERIFIED` + ADR-0015
+- Status: COMPLETE
+- Key outcome: a §13 sigil edge that is false, uncheckable by authoring error, or unanswerable by the index now refuses milestone COMPLETE through a second §6.7 fence (opt-in; `gate.py` untouched); a pass records `DIAGRAM_VERIFIED — <heading> — edges=N checked=C phantom=0 unknown=K`. Its first real use found 8 false edges in this plan's own §13.
+- Artifacts: src/aa_ma/render/{mermaid_lint,cli}.py; claude-code/commands/execute-aa-ma-milestone.md (§6.7); claude-code/hooks/lib/aa-ma-parse.sh (`aa_ma_lint_views`); claude-code/rules/engineering-standards.md (§1, §5); claude-code/skills/plan-verification/SKILL.md; docs/adr/0015-diagram-as-acceptance-criterion.md, docs/adr/INDEX.md; CHANGELOG.md; tests/hooks/test_diagram_verified.bats (new, 21); tests/render/test_{cli,phantom_edge}.py.
+- Tests: pytest 1559 passed / 2 skipped; bats 231/231 (58 protected 32/10/16 unchanged); lint-imports 4/4; ruff clean; gate-fence sha256 17be760b… unchanged.

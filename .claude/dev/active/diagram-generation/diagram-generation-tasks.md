@@ -358,7 +358,7 @@
 - Result Log: Commit 05fa09f. HITL Proceed with dry run (Ste). Pinned suites 9/9 passed (check 6/7 literals, `2026-09-11`, 13-element count across 8 files). Manual `/aa-ma-plan` dry run (scratch, not committed): feature "add --json to aa-ma-lint-views" — Step 4.2b fence extracted verbatim, `--scope src/aa_ma/render/cli.py` on the live index → 8 real sigil edges; Contract Modify cli.py / Create json_report.py / Test …; `--coverage` before author edits → 1 `UNDRAWN_PATH` (json_report.py), rc 1; after adding `J["…/json_report.py (new)"]` + prose edge → clean, rc 0, render PASS, zero UNKNOWN. Check 8 fence run as shipped from /tmp with `AA_MA_ROOT` resolved from the installed SKILL.md symlink → the UNDRAWN_PATH line.
 
 ## Milestone 11: §6.7 HARD item + `DIAGRAM_VERIFIED` + ADR-0015
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 10
 - Gate: HARD
 - Audit-Profile: full
@@ -367,6 +367,7 @@
 - Effort: 1
 - Goal: A §13 sigil edge still `UNKNOWN` at milestone COMPLETE blocks COMPLETE — without touching `gate.py`.
 - Acceptance Criteria: 8 criteria — see plan.md § Milestone 11 (AC3 amended, AC8 added 2026-09-25)
+- Result Log: COMPLETE 2026-09-26, HARD gate APPROVED (Ste). 8/8 AC: sigil-free → edges=0, exit 0, fence no-op (AC1); broken edge → exit 1 PHANTOM_EDGE (AC2); no index → `codemem build` + index-unknown, fence refuses, `(new)` alone passes; live stale-index refusal on this repo (AC3); gate/enforce/grammar/plan_parsers.py unchanged 6037f62..HEAD, kv corpus diff = own tasks.md only (AC4); 58 protected bats 32/10/16 before/after, 231/231 total (AC5); §1 names `.github/workflows/**` (AC6); gate-fence sha256 17be760b… unchanged (AC7); `sigils:` line on every run (AC8). §6.8: 2 CRITICAL / 5 WARNING / 13 INFO — all fixed RED-first (15b0e8c → ac66bd2); authoring errors refuse, `checked=`, `aa_ma_lint_views` (Ste). DIAGRAM_VERIFIED edges=14 checked=11 phantom=0 unknown=3. Commits: 3008afd, 9125296, 4a6fee5, adc3a0c, fa18c2f, 5d42edd, 15b0e8c, ac66bd2.
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 
 ### Sub-step 11.1: [test] `test_diagram_verified.bats` against `aa-ma-lint-views`, RED

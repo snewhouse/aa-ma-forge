@@ -1,0 +1,111 @@
+{
+ "_comment": "Label escaping and the tests rule, pinned for codemem (Python) and explorer.js. Expected values are codemem's; test_explorer_fixture.py + explorer_contract.test.mjs assert both. No code point assigned after Unicode 15.1: runtimes disagree on those (M12 §6.8).",
+ "escape": [
+  [
+   "plain.py",
+   "plain.py"
+  ],
+  [
+   "a\"b.py",
+   "a#quot;b.py"
+  ],
+  [
+   "<img src=x>.py",
+   "#lt;img src=x#gt;.py"
+  ],
+  [
+   "%%{init: {}}%%",
+   "#37;#37;#123;init: #123;#125;#125;#37;#37;"
+  ],
+  [
+   "`b`.py",
+   "#96;b#96;.py"
+  ],
+  [
+   "#35;.py",
+   "#35;35;.py"
+  ],
+  [
+   "a#b.py",
+   "a#35;b.py"
+  ],
+  [
+   "ok\u0007.py",
+   "ok?.py"
+  ],
+  [
+   "nb sp.py",
+   "nb?sp.py"
+  ],
+  [
+   "ls x.py",
+   "ls?x.py"
+  ],
+  [
+   "tab\tx.py",
+   "tab?x.py"
+  ],
+  [
+   "bidi‮x.py",
+   "bidi?x.py"
+  ],
+  [
+   "nul\u0000.py",
+   "nul?.py"
+  ],
+  [
+   "bom﻿.py",
+   "bom?.py"
+  ],
+  [
+   "é/ü.py",
+   "é/ü.py"
+  ],
+  [
+   "emoji/😀.py",
+   "emoji/😀.py"
+  ],
+  [
+   "x/y z.py",
+   "x/y z.py"
+  ],
+  [
+   "a]-->b[c.py",
+   "a]--#gt;b[c.py"
+  ],
+  [
+   "&lt;.py",
+   "&lt;.py"
+  ]
+ ],
+ "is_test": [
+  [
+   "tests/x.py",
+   true
+  ],
+  [
+   "a/tests/b.py",
+   true
+  ],
+  [
+   "tests.py",
+   false
+  ],
+  [
+   "src/testsuite/x.py",
+   false
+  ],
+  [
+   "tests",
+   false
+  ],
+  [
+   "a/b/tests/c/d.py",
+   true
+  ],
+  [
+   "src/test/x.py",
+   false
+  ]
+ ]
+}

@@ -22,11 +22,17 @@ import pytest
 
 from aa_ma.render import explorer, html
 from aa_ma.render.cli import render_main
-from codemem.draw.cut import MAX_EDGES, Level, collapse
+from codemem.draw.cut import MAX_EDGES, Level, collapse, is_test_path
+from codemem.draw.mermaid import escape_label
 from codemem.indexer import build_index
 
 REPO = Path(__file__).resolve().parents[2]
 FIXTURE = REPO / "tests/fixtures/draw-node-ids.json"
+RULES = REPO / "tests/fixtures/draw-label-rules.json"
+GEN = REPO / "tests/fixtures/draw-node-ids.gen.mjs"
+# The element-id scheme explorer.js's nodeIdOf parses was proven against the real SVG of this
+# mermaid version (M12.1 prototype). A bump must re-run that check before changing this.
+NODE_ID_SCHEME_PROVEN_ON = "11.17.2"
 CONTRACT = REPO / "tests/render/explorer_contract.test.mjs"
 EXPLORER_JS = REPO / "src/aa_ma/render/explorer.js"
 
@@ -45,6 +51,32 @@ def test_fixture_pins_the_collapse_rule() -> None:
     assert any("/" not in r["name"] for r in rows)  # a top-level file stays itself
     for r in rows:
         assert r["collapse"] == [collapse(r["name"], Level.L0), collapse(r["name"], Level.L1)], r
+
+
+def test_label_rules_are_codemems() -> None:
+    """The sibling fixture's expected values ARE codemem's; the JS suite asserts the same rows."""
+    rules = json.loads(RULES.read_text(encoding="utf-8"))
+    assert [[s, escape_label(s)] for s, _ in rules["escape"]] == rules["escape"]
+    assert [[p, is_test_path(p)] for p, _ in rules["is_test"]] == rules["is_test"]
+
+
+def test_the_generator_reproduces_the_fixture(tmp_path: Path) -> None:
+    """§6.8: regenerating draw-node-ids.json must keep the collapse pins, byte for byte."""
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node not installed — the explorer-contract CI job runs the JS side")
+    keys = json.dumps([[r["level"], r["name"]] for r in _rows()], ensure_ascii=False)
+    run = subprocess.run([node, str(GEN)], input=keys, capture_output=True, text=True, timeout=60)
+    assert run.returncode == 0, run.stderr
+    assert run.stdout == FIXTURE.read_text(encoding="utf-8")
+
+
+def test_a_mermaid_bump_re_proves_the_node_element_scheme() -> None:
+    assert html.MERMAID_VERSION == NODE_ID_SCHEME_PROVEN_ON, (
+        "MERMAID_VERSION moved: re-run the M12.1 SVG check (prototype/diagram-generation-explorer "
+        "drive.py) — explorer.js nodeIdOf parses `<renderId>-flowchart-<nid>-<i>` — then update "
+        "NODE_ID_SCHEME_PROVEN_ON."
+    )
 
 
 def test_explorer_edge_cap_is_codemems() -> None:
@@ -131,7 +163,7 @@ def test_mermaid_version_is_defined_once_and_never_in_the_js() -> None:
     hits = [ln for p in (REPO / "src").rglob("*.py") for ln in p.read_text().splitlines()
             if ln.startswith("MERMAID_VERSION =")]
     assert len(hits) == 1
-    assert not re.search(r"MERMAID_VERSION|11\.17\.2", EXPLORER_JS.read_text())
+    assert not re.search(rf"MERMAID_VERSION|{re.escape(html.MERMAID_VERSION)}", EXPLORER_JS.read_text())
     assert "MERMAID_VERSION" in (REPO / "src/aa_ma/render/explorer.py").read_text()
 
 
@@ -155,6 +187,34 @@ def test_a_too_old_index_refuses(repo: Path, capsys) -> None:
     assert render_main(["--explorer", "--repo-root", str(repo), "--out", str(repo / "out")]) == 2
     assert "codemem build" in capsys.readouterr().err
     assert not (repo / "out").exists()
+
+
+def test_an_unreadable_index_refuses_not_a_traceback(repo: Path, capsys) -> None:
+    """§6.8: a schema-v3 file missing tables is 'unreadable' — exit 2, nothing written."""
+    db = repo / ".codemem/index.db"
+    db.unlink()
+    conn = sqlite3.connect(db)
+    conn.executescript("CREATE TABLE files(id INTEGER PRIMARY KEY, path TEXT, mtime INTEGER, lang TEXT); PRAGMA user_version = 3;")
+    conn.close()
+    assert render_main(["--explorer", "--repo-root", str(repo), "--out", str(repo / "out")]) == 2
+    assert "codemem build" in capsys.readouterr().err
+    assert not (repo / "out").exists()
+
+
+def test_the_lint_never_depends_on_the_explorer() -> None:
+    """§6.8: cli.py hosts aa-ma-lint-views (read by the §6.7 HARD item); a broken explorer
+    must not break it, so explorer.py is imported only when --explorer runs."""
+    code = "import sys; sys.modules['aa_ma.render.explorer'] = None; from aa_ma.render.cli import lint_main"
+    run = subprocess.run(["uv", "run", "--quiet", "python", "-c", code], cwd=REPO, capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+
+
+def test_a_write_error_is_printable(repo: Path, tmp_path: Path, capsys) -> None:
+    blocker = tmp_path / "f"
+    blocker.write_text("")
+    assert render_main(["--explorer", "--repo-root", str(repo), "--out", str(blocker / "x\x1b[2Jy")]) == 2
+    err = capsys.readouterr().err
+    assert "\x1b" not in err and "aa-ma-render:" in err
 
 
 def test_a_stale_index_writes_a_banner_and_warns(repo: Path, capsys) -> None:

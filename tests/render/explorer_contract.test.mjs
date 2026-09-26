@@ -11,6 +11,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const X = require('../../src/aa_ma/render/explorer.js');
 const rows = JSON.parse(readFileSync(new URL('../fixtures/draw-node-ids.json', import.meta.url), 'utf8'));
+const rules = JSON.parse(readFileSync(new URL('../fixtures/draw-label-rules.json', import.meta.url), 'utf8'));
 
 test('node ids match the shared fixture (every level)', () => {
   const bad = rows.filter((r) => X.nid(r.name, r.level) !== r.id);
@@ -24,8 +25,28 @@ test('directory collapse matches the shared fixture', () => {
   assert.deepEqual(bad, []);
 });
 
+test("label escaping equals codemem's escape_label (sibling fixture)", () => {
+  assert.deepEqual(rules.escape.filter(([s, want]) => X.escapeLabel(s) !== want), []);
+});
+
+test("the tests rule equals codemem's is_test_path (sibling fixture)", () => {
+  assert.deepEqual(rules.is_test.filter(([p, want]) => X.isTest(p) !== want), []);
+});
+
+test('a node-id collision is refused, never merged into one node', () => {
+  // codemem's 32-bit hash: these two L2 paths share id ncab98h (found by birthday search).
+  const g = { maxEdges: 50, edges: [['a/f80306.py', 'b/x.py', 'import'], ['a/f4209080.py', 'b/x.py', 'import']] };
+  assert.equal(X.nid('a/f80306.py', 2), X.nid('a/f4209080.py', 2));
+  assert.throws(() => X.compute(g, { level: 2, scope: '', tests: false }), /node id collision/);
+});
+
+test('a displayed path cannot spoof with controls or bidi overrides', () => {
+  assert.equal(X.displayPath('src/\u202eyp.evil\u2028x/'), 'src/?yp.evil?x/');
+  assert.equal(X.displayPath('src/é/😀.py'), 'src/é/😀.py');
+});
+
 const G = {
-  maxEdges: 500,
+  maxEdges: 50,
   edges: [
     ['src/aa_ma/a.py', 'src/aa_ma/b/c.py', 'import'],
     ['packages/x/y.py', 'src/aa_ma/a.py', 'call'],

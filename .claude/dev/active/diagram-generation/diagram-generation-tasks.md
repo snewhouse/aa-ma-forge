@@ -437,7 +437,7 @@
 - Result Log: Ste in a desktop browser with DevTools: drill works (level/scope change on node click; up/top/tests), console clean — AC2(c), recorded in provenance. AC6 by mutation (seed 7→8 → test_draw_cut red; fixture regenerated → JS node-id test red). `CRITICAL_PATH_REVIEW — Milestone 12: …` written (security.yml additive, permissions unchanged, sha-pinned; html._CSP byte-identical).
 
 ## Milestone 13: MCP `diagram` tool + consumer rewire — `Prototype-Required: YES`
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 6
 - Gate: HARD
 - Audit-Profile: code-only

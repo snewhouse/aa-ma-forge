@@ -28,6 +28,17 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   row or `# file:` line no §13 node covers — the path, a directory above it, or its `(new)` plan; `Test`/`Verify`
   rows, `tests/`, `docs/`, root docs and dependency manifests/lockfiles are exempt. `plan-verification` runs it as
   check 8 (WARNING) for plans `Created:` on-or-after 2026-09-11.
+- **MCP `diagram` tool + `understand-codebase` on codemem (`diagram-generation` M13)** — codemem's 13th MCP tool,
+  `diagram(level="L2", scope=None, hops=1, budget=8000)`, returns the `codemem draw` cut as mermaid sized to the token
+  budget: over budget it collapses to the next coarser level (`collapsed_from`) only while that level still has edges,
+  otherwise it truncates the current level to the largest sorted edge prefix that fits; `nodes`, `edges` and `dropped`
+  are always reported. Policy measured first on a 2 481-file monorepo, where unguarded collapse returned an empty
+  diagram (`scripts/measure_mrs.sh` regenerates the recorded per-level sizes). `understand-codebase`'s Deep tier now
+  always writes the living architecture doc (`codemem build` + `codemem draw --write` → `docs/architecture/`, one
+  idempotent `.codemem/` line in `.gitignore`, footprint declared up front); the onboarding bundle links it and the
+  `.mmd` sidecars are retired. No skill instructs running `/codebase-deep-dive` or `/index` any more — `codemem build`
+  replaces the latter, with `PROJECT_INDEX.json` kept as an equivalent fallback; `impact-analysis` and
+  `system-mapping` name codemem as the default index.
 - **Explorer (`diagram-generation` M12)** — `aa-ma-render --explorer [--repo-root R] [--out DIR]` writes
   `DIR/explorer.html` (default `build/`, never committed): the codemem graph (import + call edges) embedded as JSON,
   levels L0–L2 derived in the browser, one delegated click listener drilling a directory one level down or a file

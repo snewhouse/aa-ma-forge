@@ -2,7 +2,7 @@
 
 Structured code memory for [AA-MA](../../docs/spec/aa-ma-specification.md) workflows in Claude Code. Pure Python + SQLite. No embeddings, no graph DB, no cloud.
 
-codemem parses your repo, indexes symbols and call edges into a local SQLite database, and exposes 12 MCP tools so Claude Code can answer questions like *"who calls this?"*, *"what changes together with `CLAUDE.md`?"*, and *"show me the context for this AA-MA task."* A fresh build on a 70-file repo takes 0.2 seconds.
+codemem parses your repo, indexes symbols and call edges into a local SQLite database, and exposes 13 MCP tools so Claude Code can answer questions like *"who calls this?"*, *"what changes together with `CLAUDE.md`?"*, and *"show me the context for this AA-MA task."* A fresh build on a 70-file repo takes 0.2 seconds.
 
 **Positioning (post-v2 benchmark, 2026-05-08):** codemem's role is the data tier underneath AA-MA, not a "better aider repo-map." See [`docs/codemem/positioning.md`](../../docs/codemem/positioning.md) for the v2-empirical-driven decision. The 5-tool benchmark at [`docs/benchmarks/codemem-vs-aider-v2.md`](../../docs/benchmarks/codemem-vs-aider-v2.md) found that codemem and aider serve different consumer profiles (programmatic structured-data vs LLM prompt injection). Reaching per-symbol parity with aider on fastapi (1.07× at budget=1024) was the M1-fix payoff that closed the v2 chapter.
 
@@ -51,9 +51,9 @@ claude mcp add --scope user codemem uv \
 
 After install, `/mcp` in a fresh session lists `codemem` as connected.
 
-## The 12 MCP tools
+## The 13 MCP tools
 
-Six are ports of Eric Buess's `/index` tools with the same names and closely-related semantics. Six are new.
+Six are ports of Eric Buess's `/index` tools with the same names and closely-related semantics. Seven are new.
 
 ### Ported from `/index` (M1)
 
@@ -78,6 +78,12 @@ These are the reason codemem exists.
 | `symbol_history(name, file_path=None)` | `git log -L:<name>:<file>` summary: first-seen, last-touched, authors, change count. |
 | `layers()` | Three-tier ASCII onion (core / middle / periphery) grouped by in-degree. Fits 80-column terminals. |
 | `aa_ma_context(task_name)` | For an AA-MA task: filtered hot-spots, owners of mentioned files, blast-radius of mentioned symbols. Opt-in write mode with `--write` appends to `<task>-reference.md`. |
+
+### Diagram (diagram-generation M13)
+
+| Tool | What it answers |
+|------|-----------------|
+| `diagram(level="L2", scope=None, hops=1)` | Mermaid flowchart of the graph: L0/L1 directories, L2 files, L3 symbols. Over the token budget it collapses to a coarser level (`collapsed_from`) while that level still has edges, else truncates; `nodes`, `edges`, `dropped` are always reported. Same cut as `codemem draw`. |
 
 Every tool takes a `budget` parameter (default 8000 tokens). Output over budget gets truncated with `truncated: true` in the response. No streaming; no unbounded payloads back into the context window.
 

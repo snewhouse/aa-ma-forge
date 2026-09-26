@@ -1,7 +1,7 @@
 [project]
 name = "codemem-mcp"
 version = "0.1.0.dev0"
-description = "Lightweight codebase intelligence MCP tool for Claude Code — 12 MCP tools, pure-Python + ast-grep + SQLite, no embeddings."
+description = "Lightweight codebase intelligence MCP tool for Claude Code — 13 MCP tools, pure-Python + ast-grep + SQLite, no embeddings."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"

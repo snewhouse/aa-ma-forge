@@ -460,14 +460,14 @@
 - Result Log: Ste: Proceed. Scratch index from `git archive efafac2` (26 s, 2481 files, 1918 vendored node_modules; 2461 under one top-level dir, skills at depth 3). Whole repo, tests excluded: L0 0n/0e, L1 0n/0e (every edge is intra-dir at depth ≤2), L2 69n/97e 9099 mermaid chars (json 9692), L3 calls 522n/500e dropped 2793, 77520 chars — budget 8000 tokens = 32000 json chars. Prototype `scripts/PROTOTYPE_mcp_diagram.py` compared the planned collapse with a guarded one: scoped L3 `scientific-skills/Academic Writing/` (482 edges) collapses to an EMPTY L2 under the plan; guarded stops and truncates L3 to 188 edges / 31898 json chars. aa-ma-forge @ main: identical under both (L2 54n/141e json 8164; L0/L1 3 edges). Verdict PROCEED with amendment (Ste): guarded collapse; default level L2 (L1 empty on MRS). Branch `prototype/diagram-generation-mcp` @ 99b0c36, local only. PROTOTYPE provenance written.
 
 ### Sub-step 13.2: [test] `test_mcp_diagram.py` + update tool-count pins 12 -> 13, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. RED 91562fe (tests only, L-028): tests/codemem/test_mcp_diagram.py (17: default L2 + all keys, AC2 L2→L1 collapsed_from, guarded no-empty-collapse, L0 still over → truncate at L0, sorted-prefix determinism, AC3 counts == mermaid over/under budget ×3 graphs, scope/hops, L3, bad args, pre-v3 names `codemem build`); test_mcp_server.py pins 12→13 + `diagram` in the name set; integration `_TOOL_CASES` + ("diagram", {}). 20 failed / 26 passed for the right reasons (AttributeError, `Unknown tool: diagram`).
 
 ### Sub-step 13.3: [impl] `diagram()` + registration in `claude-code/codemem/mcp/server.py`
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. `mcp_tools.diagram()` (reuses `_exceeds_budget`/`_DEFAULT_BUDGET`, `cut`/`from_edges`/`to_mermaid`; binary-search truncation) + server.py registration (13 canonical). 46/46 MCP tests; full pytest 1596 passed / 2 skipped; ruff clean; lint-imports 4 kept. Live over the MCP protocol (fastmcp Client, in-memory) on the MRS scratch index: 15 tools listed; `{}` → L2 69n/97e; `L3` → L2 collapsed_from L3; scoped L3 Academic Writing → L3 188e dropped 294 json 31913 ≤ 32000; `L1` → 0/0. AC1: `scripts/measure_mrs.sh` → 4 MRS_BUDGET lines, second run `cmp` byte-identical; lines + sha in reference.md. Tool counts 12→13 in SECURITY.md, claude-code/codemem/README.md (+ diagram table), packages/codemem-mcp/{README.md,pyproject.toml}, docs/codemem/install-zero-config.md. §13: `MCP -->|imports inside a function| CUT/MM`, `MMRS` node; lint sigils edges=13 checked=13 phantom=0. regen: stamps only.
 
 ### Sub-step 13.4: [impl] Deep tier rewire; `.gitignore` append; PROJECT_INDEX repoint
 - Status: PENDING

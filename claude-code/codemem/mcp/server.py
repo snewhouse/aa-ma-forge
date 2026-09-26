@@ -1,10 +1,10 @@
 """codemem MCP server (M1 Task 1.10).
 
-Registers 12 canonical tool slots on a FastMCP instance. M1 lights up
+Registers 13 canonical tool slots on a FastMCP instance. M1 lights up
 the first six (``who_calls``, ``blast_radius``, ``dead_code``,
-``dependency_chain``, ``search_symbols``, ``file_summary``); M3 fills
-in the remaining six (``hot_spots``, ``co_changes``, ``owners``,
-``symbol_history``, ``layers``, ``aa_ma_context``).
+``dependency_chain``, ``search_symbols``, ``file_summary``); M3 adds
+six more (``hot_spots``, ``co_changes``, ``owners``, ``symbol_history``,
+``layers``, ``aa_ma_context``); diagram-generation M13 adds ``diagram``.
 
 The server is a thin adapter: every handler delegates straight to the
 matching function in :mod:`codemem.mcp_tools`, which is where the
@@ -37,7 +37,7 @@ __all__ = [
 ]
 
 
-# 12 canonical slots — see codemem-reference.md §MCP Tools.
+# 13 canonical slots — see codemem-reference.md §MCP Tools (+ diagram, diagram-generation M13).
 CANONICAL_TOOL_NAMES: tuple[str, ...] = (
     # M1 — ported from /index
     "who_calls",
@@ -54,6 +54,8 @@ CANONICAL_TOOL_NAMES: tuple[str, ...] = (
     "layers",
     # M3 — AA-MA-native moat
     "aa_ma_context",
+    # diagram-generation M13 — the MCP door onto `codemem draw`
+    "diagram",
 )
 
 
@@ -227,6 +229,18 @@ def build_server() -> FastMCP:
             budget=budget,
         )
 
+    def diagram(
+        level: str = "L2", scope: str | None = None, hops: int = 1, budget: int = 8_000
+    ) -> dict:
+        """Mermaid flowchart of the code graph at L0-L3, sized to ``budget`` tokens.
+
+        Over budget it collapses to a coarser level (``collapsed_from``) while that
+        level still has edges, else truncates; ``dropped`` counts edges not drawn.
+        """
+        return mcp_tools.diagram(
+            db_path_factory(), level=level, scope=scope, hops=hops, budget=budget
+        )
+
     # ------------------------------------------------------------------
     # Register handlers under canonical names AND their aliases.
     # ------------------------------------------------------------------
@@ -246,6 +260,7 @@ def build_server() -> FastMCP:
         "symbol_history": symbol_history,
         "layers": layers,
         "aa_ma_context": aa_ma_context,
+        "diagram": diagram,
     }
 
     def _with_autobuild(handler: Callable[..., dict]) -> Callable[..., dict]:

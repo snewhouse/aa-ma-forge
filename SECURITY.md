@@ -41,7 +41,7 @@ It only reads and writes files under `~/.claude/`. It always exits 0, so it neve
 
 ## codemem (optional subsystem)
 
-`codemem` is an optional code-intelligence subsystem shipped alongside AA-MA Forge. It parses your repo, indexes symbols and call edges into a local SQLite DB, and exposes 12 MCP tools to Claude Code. Installing it opts your repo into the additional behaviours below. If you haven't enabled the codemem MCP server in your `.mcp.json`, none of this applies.
+`codemem` is an optional code-intelligence subsystem shipped alongside AA-MA Forge. It parses your repo, indexes symbols and call edges into a local SQLite DB, and exposes 13 MCP tools to Claude Code. Installing it opts your repo into the additional behaviours below. If you haven't enabled the codemem MCP server in your `.mcp.json`, none of this applies.
 
 ### What codemem reads
 
@@ -61,7 +61,7 @@ Practical guidance:
 
 ### Input sanitization contract
 
-All 12 MCP tool arguments are sanitized before reaching SQL or `subprocess`:
+All 13 MCP tool arguments are sanitized before reaching SQL or `subprocess`:
 
 - **Symbol / name arguments** must match the allow-list regex `^[A-Za-z0-9_./\-]{1,256}$`. Non-matching input returns a structured error dict. No SQL escape; no shell escape — rejection happens before either layer is reached.
 - **File-path arguments** run the symbol check first, then resolve to an absolute path via `Path.resolve(strict=False)`, then verify the result is relative to the repo root. `../../etc/passwd`, `/etc/passwd`, and `foo/../../bar` all reject before any syscall.

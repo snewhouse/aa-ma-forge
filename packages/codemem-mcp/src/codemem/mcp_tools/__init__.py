@@ -13,6 +13,7 @@ Tools:
     dependency_chain  — shortest path from source to target
     search_symbols    — substring name search
     file_summary      — per-file symbol listing
+    diagram           — mermaid cut of the graph, sized to the budget (M13)
 """
 
 from __future__ import annotations
@@ -36,6 +37,7 @@ __all__ = [
     "co_changes",
     "dead_code",
     "dependency_chain",
+    "diagram",
     "ensure_built",
     "file_summary",
     "hot_spots",
@@ -1046,6 +1048,63 @@ def _render_layers_onion(
 # Extraction rules (verbatim contract from codemem-reference.md).
 _FILE_MENTION_RE = re.compile(r"`([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,5})`")
 _SYMBOL_MENTION_RE = re.compile(r"`([a-zA-Z_][a-zA-Z0-9_.]{0,63})`")
+
+
+def diagram(
+    db_path: Path,
+    *,
+    level: str = "L2",
+    scope: str | None = None,
+    hops: int = 1,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """``codemem draw`` as a budgeted tool (diagram-generation M13).
+
+    Over budget, collapse to the next coarser level only while that level still has
+    edges; otherwise keep the current level and truncate it to the largest sorted edge
+    prefix that fits. Measured on a one-top-level-dir monorepo (13.1): unguarded
+    collapse answered a 482-edge L3 question with an empty L2. ``dropped`` counts every
+    edge not drawn (mermaid's ``maxEdges`` cap and budget truncation alike).
+    """
+    from ..draw.cut import MIN_SCHEMA_VERSION, Level, cut, from_edges
+    from ..draw.mermaid import to_mermaid
+
+    def out(c, lv, *, frm=None, dropped=0, error=None) -> dict:
+        return {
+            "mermaid": to_mermaid(c) if c else "", "level": lv,
+            "nodes": len(c.nodes) if c else 0, "edges": len(c.edges) if c else 0,
+            "dropped": dropped, "collapsed_from": frm, "error": error,
+        }
+
+    if level not in Level.__members__:
+        return out(None, level, error=f"level must be one of {list(Level.__members__)}, got {level!r}")
+    try:
+        with _open_ro(db_path) as conn:
+            version = conn.execute("PRAGMA user_version").fetchone()[0]
+            if version < MIN_SCHEMA_VERSION:
+                return out(None, level, error=f"index is schema v{version}, need v{MIN_SCHEMA_VERSION}; run `codemem build`")
+            requested = lv = Level[level]
+            c = cut(conn, lv, scope=scope, hops=hops)
+            while lv > Level.L0 and _exceeds_budget(out(c, lv.name, dropped=c.dropped), budget):
+                coarser = cut(conn, Level(lv - 1), scope=scope, hops=hops)
+                if not coarser.edges:
+                    break
+                lv, c = Level(lv - 1), coarser
+    except (ValueError, sqlite3.Error) as exc:
+        return out(None, level, error=str(exc))
+
+    frm = requested.name if lv is not requested else None
+    if not _exceeds_budget(out(c, lv.name, frm=frm, dropped=c.dropped), budget):
+        return out(c, lv.name, frm=frm, dropped=c.dropped)
+    named = sorted((c.nodes[a], c.nodes[b], k) for a, b, k in c.edges)
+    lo, hi = 0, len(named)
+    while lo < hi:  # binary search, as _truncate does for list payloads
+        mid = (lo + hi + 1) // 2
+        if _exceeds_budget(out(from_edges(set(named[:mid]), lv), lv.name, frm=frm, dropped=c.dropped + len(named) - mid), budget):
+            hi = mid - 1
+        else:
+            lo = mid
+    return out(from_edges(set(named[:lo]), lv), lv.name, frm=frm, dropped=c.dropped + len(named) - lo)
 
 
 def aa_ma_context(

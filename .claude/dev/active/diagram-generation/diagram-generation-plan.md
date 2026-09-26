@@ -275,6 +275,7 @@ graph TD
         ILINT[".importlinter"]
         YML[".github/workflows/security.yml"]
         MIOB["scripts/measure_io_band.sh"]
+        MMRS["scripts/measure_mrs.sh"]
         REGEN["scripts/regen-generated.sh"]
     end
 
@@ -290,7 +291,8 @@ graph TD
     IOS -->|loads| SINKS
     CAP -->|"@import"| CUT
     CCLI -->|imports inside a function| REG
-    MCP -->|will import, M13| CUT
+    MCP -->|imports inside a function| CUT
+    MCP -->|imports inside a function| MM
     REG -->|generates| DOCS
     CAP -->|reads| CAPJSON
 
@@ -308,6 +310,7 @@ graph TD
     RCLI -->|"@import"| COV
     COV -->|"@import"| ML
     MIOB -->|git archive, then build + band| CCLI
+    MMRS -->|git archive, then build + draw per level| CCLI
     REGEN -->|build, draw --write, draw --check| CCLI
     EXEC -->|section 6.7 HARD item| PARSE
     PARSE -->|aa_ma_lint_views launches| RCLI

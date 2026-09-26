@@ -396,7 +396,7 @@
 - Result Log: HITL Proceed, status Implemented (Ste). `docs/adr/0015-diagram-as-acceptance-criterion.md` opens with "HARD ≠ `gate.py`", weighs the eighth-gate-question option, records the verdict table and both 2026-09-25 amendments (index-only UNKNOWN refuses; count from the lint, 25-vs-23 measured); `docs/adr/INDEX.md` row added. CHANGELOG Unreleased entry; reference.md M11 facts.
 
 ## Milestone 12: Explorer + Node CI job
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 3
 - Gate: HARD
 - Audit-Profile: full
@@ -406,6 +406,7 @@
 - Effort: 2.5
 - Goal: `aa-ma-render --explorer` produces a self-contained, clickable, level-deriving HTML file in `build/`.
 - Acceptance Criteria: 8 criteria — see plan.md § Milestone 12
+- Result Log: COMPLETE 2026-09-26, HARD gate APPROVED (Ste). 8/8 AC: `aa-ma-render --explorer` → build/explorer.html exit 0 (AC1, AC2a); compute() differs L0 vs L2 under node --test (AC2b); Ste's browser drill, console clean (AC2c); strict + _CSP unchanged, inline script hash-allowed by its CSP (AC3); MERMAID_VERSION defined once, absent from explorer.js (AC4); pytest + node --test read the shared fixture, explorer-contract CI job green (AC5); node_id mutation → JS contract red (AC6); build/ ignored, nothing tracked (AC7); CSP composed by html.csp(), render golden unchanged (AC8). PROTOTYPE PROCEED (8e2a31f, local branch). §6.8: 1 CRITICAL (TDD timestamp tie) disputed, 8 WARNING + cheap INFOs fixed RED-first (fc5a270 → 3635168). DIAGRAM_VERIFIED edges=13 checked=13 phantom=0. Commits: 8360800, 1d47622, 842555f, 68be4b1, 7b9295e, d4df253, fc5a270, 3635168, 87eaa31.
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 - Carry-forward (M9 §6.8, 2026-09-25): `edges.dst_unresolved` holds callee text taken verbatim from untrusted source files. If the explorer ever displays callees, pass them through `codemem.draw.mermaid.escape_label` (or the HTML equivalent) first.
 

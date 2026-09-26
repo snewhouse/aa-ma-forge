@@ -417,3 +417,15 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - **TDD CRITICAL disputed:** the tie came from committing throwing stubs with the RED tests; RED re-verified legitimate by the auditor. Convention L-028: tests-only RED commit, stubs (if any) after. Applied to the §6.8 RED (fc5a270).
 - **Fix scope:** every WARNING (render race, lazy explorer import, unreadable index → exit 2, generator keeps collapse pins, label/tests-rule sibling fixture, mermaid-bump guard, README/CHANGELOG) + cheap INFOs (collision refused, key sort, printable OSError, displayPath, re.escape in the AC4 test).
 - **Deferred:** CSP tightening in html.py (exact bundle URL, `base-uri 'none'`, `form-action 'none'`) — pre-M12 and outside the Contract; `&` in escape_label (cosmetic, touches codemem + committed docs). Captions remain deferred (M12 decision).
+
+## [2026-09-26] GATE APPROVAL: Milestone 12: Explorer + Node CI job
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 8/8
+- Decision: APPROVED
+
+## [2026-09-26] Milestone Completion: Milestone 12: Explorer + Node CI job
+- Status: COMPLETE
+- Key outcome: `aa-ma-render --explorer` writes `build/explorer.html` — the codemem graph embedded as JSON, levels L0–L2 derived in the browser, one delegated click listener drilling under mermaid `securityLevel: "strict"` and an html.py-composed hash CSP; the `explorer-contract` CI job keeps the JS twin of codemem's node ids, collapse, escaping and tests rule in step via shared fixtures.
+- Artifacts: src/aa_ma/render/{explorer.py,explorer.js,html.py,cli.py}; .github/workflows/security.yml (explorer-contract); tests/render/{test_explorer_fixture.py,explorer_contract.test.mjs}; tests/fixtures/{draw-node-ids.json (+collapse), draw-node-ids.gen.mjs, draw-label-rules.json}; README.md; CHANGELOG.md; docs/lessons.md (L-027, L-028); prototype branch prototype/diagram-generation-explorer (local only).
+- Tests: pytest 1578 passed / 2 skipped; render 188; node contract 14/14; CI green (7 jobs) on 3635168 and 87eaa31.

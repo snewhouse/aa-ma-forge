@@ -410,9 +410,9 @@
 - Carry-forward (M9 §6.8, 2026-09-25): `edges.dst_unresolved` holds callee text taken verbatim from untrusted source files. If the explorer ever displays callees, pass them through `codemem.draw.mermaid.escape_label` (or the HTML equivalent) first.
 
 ### Sub-step 12.1: [prototype] delegated listener against real mermaid SVG; `PROTOTYPE` provenance
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: HITL Proceed; verdict PROCEED (Ste). Branch `prototype/diagram-generation-explorer` @ 8e2a31f, local only (build.py → demo.html; drive.py = headless Chromium via `uv run --no-project --with playwright`). Mermaid 11.17.2 node = `<g class="node" id="<renderId>-flowchart-<nid>-<i>">`, no `data-id`; one delegated listener + `/flowchart-(n[0-9a-z]+)-\d+$/` maps back; survives re-render; L0 3 → L1 2 → L2 26 nodes by real clicks; 0 CSP violations. JS nid matches draw-node-ids.json (`src`@L0 = n1wgktcl). Explorer init needs `startOnLoad:false`. PROTOTYPE provenance written. (Prototype commit bypassed hooks — L-027.)
 
 ### Sub-step 12.2: [test] `explorer_contract.test.mjs` + `test_explorer_fixture.py` on the shared fixture, RED
 - Status: PENDING

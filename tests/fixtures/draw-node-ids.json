@@ -112,892 +112,1604 @@
  {
   "level": 2,
   "name": "claude-code/codemem/hooks/post-commit.sh",
-  "id": "nn0sr45"
+  "id": "nn0sr45",
+  "collapse": [
+   "claude-code",
+   "claude-code/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "claude-code/codemem/mcp/server.py",
-  "id": "n1g79hvc"
+  "id": "n1g79hvc",
+  "collapse": [
+   "claude-code",
+   "claude-code/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "claude-code/hooks/aa-ma-commit-drift.sh",
-  "id": "n108z0px"
+  "id": "n108z0px",
+  "collapse": [
+   "claude-code",
+   "claude-code/hooks"
+  ]
  },
  {
   "level": 2,
   "name": "claude-code/hooks/aa-ma-commit-signature.sh",
-  "id": "n1f7ocqe"
+  "id": "n1f7ocqe",
+  "collapse": [
+   "claude-code",
+   "claude-code/hooks"
+  ]
  },
  {
   "level": 2,
   "name": "claude-code/hooks/aa-ma-plan-marker.sh",
-  "id": "n26gs0"
+  "id": "n26gs0",
+  "collapse": [
+   "claude-code",
+   "claude-code/hooks"
+  ]
  },
  {
   "level": 2,
   "name": "claude-code/hooks/aa-ma-plan-skip-warn.sh",
-  "id": "nolxjqg"
+  "id": "nolxjqg",
+  "collapse": [
+   "claude-code",
+   "claude-code/hooks"
+  ]
  },
  {
   "level": 2,
   "name": "claude-code/hooks/aa-ma-session-end-dirty.sh",
-  "id": "n1ye83id"
+  "id": "n1ye83id",
+  "collapse": [
+   "claude-code",
+   "claude-code/hooks"
+  ]
  },
  {
   "level": 2,
   "name": "claude-code/hooks/aa-ma-session-start.sh",
-  "id": "neaoqrn"
+  "id": "neaoqrn",
+  "collapse": [
+   "claude-code",
+   "claude-code/hooks"
+  ]
  },
  {
   "level": 2,
   "name": "claude-code/hooks/lib/aa-ma-chart-guard.sh",
-  "id": "ndix7ky"
+  "id": "ndix7ky",
+  "collapse": [
+   "claude-code",
+   "claude-code/hooks"
+  ]
  },
  {
   "level": 2,
   "name": "claude-code/hooks/lib/aa-ma-footer.sh",
-  "id": "n166w5qr"
+  "id": "n166w5qr",
+  "collapse": [
+   "claude-code",
+   "claude-code/hooks"
+  ]
  },
  {
   "level": 2,
   "name": "claude-code/hooks/lib/aa-ma-parse.sh",
-  "id": "nlcky9x"
+  "id": "nlcky9x",
+  "collapse": [
+   "claude-code",
+   "claude-code/hooks"
+  ]
  },
  {
   "level": 2,
   "name": "claude-code/hooks/pre-compact-aa-ma.sh",
-  "id": "nuwgs8l"
+  "id": "nuwgs8l",
+  "collapse": [
+   "claude-code",
+   "claude-code/hooks"
+  ]
  },
  {
   "level": 2,
   "name": "claude-code/hooks/security-static-check.sh",
-  "id": "n407yfg"
+  "id": "n407yfg",
+  "collapse": [
+   "claude-code",
+   "claude-code/hooks"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/__init__.py",
-  "id": "nzrc6bq"
+  "id": "nzrc6bq",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/aa_ma_integration.py",
-  "id": "nfuljo0"
+  "id": "nfuljo0",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/analysis/__init__.py",
-  "id": "nqntz3p"
+  "id": "nqntz3p",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/analysis/git_mining.py",
-  "id": "n15x2rwo"
+  "id": "n15x2rwo",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/cli.py",
-  "id": "n1qqv388"
+  "id": "n1qqv388",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/diff/__init__.py",
-  "id": "n1laeuxq"
+  "id": "n1laeuxq",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/diff/symbol_diff.py",
-  "id": "nana3is"
+  "id": "nana3is",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/incremental.py",
-  "id": "n1qndr8e"
+  "id": "n1qndr8e",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/indexer.py",
-  "id": "nn471i1"
+  "id": "nn471i1",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/journal/__init__.py",
-  "id": "n14v8w8e"
+  "id": "n14v8w8e",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/journal/lock.py",
-  "id": "n44kqyb"
+  "id": "n44kqyb",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/journal/wal.py",
-  "id": "n1eygstq"
+  "id": "n1eygstq",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/mcp_tools/__init__.py",
-  "id": "n12ip3u5"
+  "id": "n12ip3u5",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/mcp_tools/queries.py",
-  "id": "nby6rkb"
+  "id": "nby6rkb",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/mcp_tools/sanitizers.py",
-  "id": "n10fbfir"
+  "id": "n10fbfir",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/pagerank.py",
-  "id": "ng0fem3"
+  "id": "ng0fem3",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/parser/__init__.py",
-  "id": "nxe473s"
+  "id": "nxe473s",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/parser/ast_grep.py",
-  "id": "n15008dx"
+  "id": "n15008dx",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/parser/python_ast.py",
-  "id": "n9hzf61"
+  "id": "n9hzf61",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/resolver.py",
-  "id": "n7xp1xs"
+  "id": "n7xp1xs",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/storage/__init__.py",
-  "id": "n1wfftde"
+  "id": "n1wfftde",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "packages/codemem-mcp/src/codemem/storage/db.py",
-  "id": "ns1j8lg"
+  "id": "ns1j8lg",
+  "collapse": [
+   "packages",
+   "packages/codemem-mcp"
+  ]
  },
  {
   "level": 2,
   "name": "scripts/aa-ma-share-allow.sh",
-  "id": "n1fdo58o"
+  "id": "n1fdo58o",
+  "collapse": [
+   "scripts",
+   "scripts"
+  ]
  },
  {
   "level": 2,
   "name": "scripts/bench_codemem.py",
-  "id": "n1vgapiq"
+  "id": "n1vgapiq",
+  "collapse": [
+   "scripts",
+   "scripts"
+  ]
  },
  {
   "level": 2,
   "name": "scripts/bench_codemem_vs_aider.py",
-  "id": "nh6b312"
+  "id": "nh6b312",
+  "collapse": [
+   "scripts",
+   "scripts"
+  ]
  },
  {
   "level": 2,
   "name": "scripts/bench_sweep.py",
-  "id": "nc2fglq"
+  "id": "nc2fglq",
+  "collapse": [
+   "scripts",
+   "scripts"
+  ]
  },
  {
   "level": 2,
   "name": "scripts/check_adr_index.sh",
-  "id": "n191v0do"
+  "id": "n191v0do",
+  "collapse": [
+   "scripts",
+   "scripts"
+  ]
  },
  {
   "level": 2,
   "name": "scripts/check_codemem_doc_drift.py",
-  "id": "nvvfr9z"
+  "id": "nvvfr9z",
+  "collapse": [
+   "scripts",
+   "scripts"
+  ]
  },
  {
   "level": 2,
   "name": "scripts/fork-drift.sh",
-  "id": "n1q30e4x"
+  "id": "n1q30e4x",
+  "collapse": [
+   "scripts",
+   "scripts"
+  ]
  },
  {
   "level": 2,
   "name": "scripts/grill-mode-resolver.sh",
-  "id": "n1certrq"
+  "id": "n1certrq",
+  "collapse": [
+   "scripts",
+   "scripts"
+  ]
  },
  {
   "level": 2,
   "name": "scripts/install.sh",
-  "id": "n1vidpek"
+  "id": "n1vidpek",
+  "collapse": [
+   "scripts",
+   "scripts"
+  ]
  },
  {
   "level": 2,
   "name": "scripts/release.sh",
-  "id": "nrj0ttc"
+  "id": "nrj0ttc",
+  "collapse": [
+   "scripts",
+   "scripts"
+  ]
  },
  {
   "level": 2,
   "name": "scripts/uninstall.sh",
-  "id": "n17if3n9"
+  "id": "n17if3n9",
+  "collapse": [
+   "scripts",
+   "scripts"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/__init__.py",
-  "id": "nqxncj"
+  "id": "nqxncj",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/cli/__init__.py",
-  "id": "n1qweqkk"
+  "id": "n1qweqkk",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/enforce.py",
-  "id": "n1o3m0ll"
+  "id": "n1o3m0ll",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/forks.py",
-  "id": "nlu2mu2"
+  "id": "nlu2mu2",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/gate.py",
-  "id": "nxzfv6g"
+  "id": "nxzfv6g",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/goal_synthesis.py",
-  "id": "n1e9drkr"
+  "id": "n1e9drkr",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/grammar.py",
-  "id": "n16alvok"
+  "id": "n16alvok",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/plan_markers/__init__.py",
-  "id": "n1g8rj1r"
+  "id": "n1g8rj1r",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/plan_markers/fingerprint.py",
-  "id": "ndlwqvf"
+  "id": "ndlwqvf",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/plan_markers/parser.py",
-  "id": "n1p4cio0"
+  "id": "n1p4cio0",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/plan_parsers.py",
-  "id": "n51riw5"
+  "id": "n51riw5",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/render/__init__.py",
-  "id": "nyj5s6a"
+  "id": "nyj5s6a",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/render/cli.py",
-  "id": "nptipq4"
+  "id": "nptipq4",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/render/graph.py",
-  "id": "napjvke"
+  "id": "napjvke",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/render/html.py",
-  "id": "npbdajr"
+  "id": "npbdajr",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/render/mermaid_lint.py",
-  "id": "nacfyc9"
+  "id": "nacfyc9",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/schemas/__init__.py",
-  "id": "n103l5na"
+  "id": "n103l5na",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/__init__.py",
-  "id": "n1kccq24"
+  "id": "n1kccq24",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/__main__.py",
-  "id": "n1kgb4kj"
+  "id": "n1kgb4kj",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/app.py",
-  "id": "n6tl7m9"
+  "id": "n6tl7m9",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/json_output.py",
-  "id": "n17gxjru"
+  "id": "n17gxjru",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/model.py",
-  "id": "n1r93oy1"
+  "id": "n1r93oy1",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/parser.py",
-  "id": "n19z0p6l"
+  "id": "n19z0p6l",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/screens/__init__.py",
-  "id": "n1dxcrxg"
+  "id": "n1dxcrxg",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/screens/dashboard.py",
-  "id": "nmc6u2u"
+  "id": "nmc6u2u",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/screens/task_detail.py",
-  "id": "n1qqb1tb"
+  "id": "n1qqb1tb",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/snapshot.py",
-  "id": "n1sg9xfc"
+  "id": "n1sg9xfc",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/watcher.py",
-  "id": "nixqzme"
+  "id": "nixqzme",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/widgets/__init__.py",
-  "id": "nby6yks"
+  "id": "nby6yks",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/widgets/kanban_column.py",
-  "id": "n1rlqg44"
+  "id": "n1rlqg44",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/tui/widgets/task_card.py",
-  "id": "nil7v8o"
+  "id": "nil7v8o",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "src/aa_ma/validators/__init__.py",
-  "id": "n1ru1t7x"
+  "id": "n1ru1t7x",
+  "collapse": [
+   "src",
+   "src/aa_ma"
+  ]
  },
  {
   "level": 2,
   "name": "tests/__init__.py",
-  "id": "nxo08do"
+  "id": "nxo08do",
+  "collapse": [
+   "tests",
+   "tests"
+  ]
  },
  {
   "level": 2,
   "name": "tests/agents/__init__.py",
-  "id": "n17js08x"
+  "id": "n17js08x",
+  "collapse": [
+   "tests",
+   "tests/agents"
+  ]
  },
  {
   "level": 2,
   "name": "tests/agents/_helpers.py",
-  "id": "nu3nuvf"
+  "id": "nu3nuvf",
+  "collapse": [
+   "tests",
+   "tests/agents"
+  ]
  },
  {
   "level": 2,
   "name": "tests/agents/test_aa_ma_researcher_agent.py",
-  "id": "nak65h2"
+  "id": "nak65h2",
+  "collapse": [
+   "tests",
+   "tests/agents"
+  ]
  },
  {
   "level": 2,
   "name": "tests/agents/test_codebase_onboarding_agents.py",
-  "id": "n13vc6u7"
+  "id": "n13vc6u7",
+  "collapse": [
+   "tests",
+   "tests/agents"
+  ]
  },
  {
   "level": 2,
   "name": "tests/assets/__init__.py",
-  "id": "n14k5o3a"
+  "id": "n14k5o3a",
+  "collapse": [
+   "tests",
+   "tests/assets"
+  ]
  },
  {
   "level": 2,
   "name": "tests/assets/test_understand_codebase_xrefs.py",
-  "id": "n1xq5xtn"
+  "id": "n1xq5xtn",
+  "collapse": [
+   "tests",
+   "tests/assets"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/conftest.py",
-  "id": "n1s4hgxr"
+  "id": "n1s4hgxr",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_aa_ma_context.py",
-  "id": "nb48azj"
+  "id": "nb48azj",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_ast_grep_parser.py",
-  "id": "n1mh3jef"
+  "id": "n1mh3jef",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_audit_profile_parser.py",
-  "id": "n1ta6n0z"
+  "id": "n1ta6n0z",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_bench_harness.py",
-  "id": "n17nlxc1"
+  "id": "n17nlxc1",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_co_changes.py",
-  "id": "nlws7ks"
+  "id": "nlws7ks",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_corpus_grandfathering.py",
-  "id": "nnhcf4h"
+  "id": "nnhcf4h",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_critical_path_parser.py",
-  "id": "n5qygsz"
+  "id": "n5qygsz",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_diagram_waiver_parser.py",
-  "id": "n1srixck"
+  "id": "n1srixck",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_doc_drift.py",
-  "id": "nuglj6o"
+  "id": "nuglj6o",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_file_edges.py",
-  "id": "n1gcbv6h"
+  "id": "n1gcbv6h",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_git_mining.py",
-  "id": "nt227yn"
+  "id": "nt227yn",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_hot_spots.py",
-  "id": "nymzcgz"
+  "id": "nymzcgz",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_incremental.py",
-  "id": "n1h2r0dk"
+  "id": "n1h2r0dk",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_indexer.py",
-  "id": "nbqtq03"
+  "id": "nbqtq03",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_install_and_cli.py",
-  "id": "ni60sz2"
+  "id": "ni60sz2",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_layers.py",
-  "id": "n10mdsga"
+  "id": "n10mdsga",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_mcp_server.py",
-  "id": "ni5r078"
+  "id": "ni5r078",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_mcp_server_integration.py",
-  "id": "nowtfdb"
+  "id": "nowtfdb",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_mcp_tools.py",
-  "id": "n2rp0p8"
+  "id": "n2rp0p8",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_owners.py",
-  "id": "n1sfur3g"
+  "id": "n1sfur3g",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_pagerank.py",
-  "id": "ninis1d"
+  "id": "ninis1d",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_post_commit_storm.py",
-  "id": "n17wbfxe"
+  "id": "n17wbfxe",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_python_parser.py",
-  "id": "n1x9syqo"
+  "id": "n1x9syqo",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_resolver.py",
-  "id": "naksfd2"
+  "id": "naksfd2",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_schema.py",
-  "id": "n1plpmdn"
+  "id": "n1plpmdn",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_schema_v2.py",
-  "id": "nfrqe7c"
+  "id": "nfrqe7c",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_symbol_diff.py",
-  "id": "nefyg3a"
+  "id": "nefyg3a",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_symbol_history.py",
-  "id": "n39b9of"
+  "id": "n39b9of",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_tdd_waiver_parser.py",
-  "id": "n1sldsyb"
+  "id": "n1sldsyb",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_wal.py",
-  "id": "n16pai74"
+  "id": "n16pai74",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_wal_hygiene.py",
-  "id": "n1dsqaty"
+  "id": "n1dsqaty",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_wal_replay_roundtrip.py",
-  "id": "n1n7i41g"
+  "id": "n1n7i41g",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_wal_rotation.py",
-  "id": "nphkt81"
+  "id": "nphkt81",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/codemem/test_writer_lock.py",
-  "id": "nd407hn"
+  "id": "nd407hn",
+  "collapse": [
+   "tests",
+   "tests/codemem"
+  ]
  },
  {
   "level": 2,
   "name": "tests/commands/__init__.py",
-  "id": "nq0qcjf"
+  "id": "nq0qcjf",
+  "collapse": [
+   "tests",
+   "tests/commands"
+  ]
  },
  {
   "level": 2,
   "name": "tests/commands/sole-dev-merge/fixtures/extract_stage.sh",
-  "id": "n448qtp"
+  "id": "n448qtp",
+  "collapse": [
+   "tests",
+   "tests/commands"
+  ]
  },
  {
   "level": 2,
   "name": "tests/commands/sole-dev-merge/fixtures/helpers.bash",
-  "id": "ngf9xrb"
+  "id": "ngf9xrb",
+  "collapse": [
+   "tests",
+   "tests/commands"
+  ]
  },
  {
   "level": 2,
   "name": "tests/commands/test_aa_ma_share_command.py",
-  "id": "n1fyei2h"
+  "id": "n1fyei2h",
+  "collapse": [
+   "tests",
+   "tests/commands"
+  ]
  },
  {
   "level": 2,
   "name": "tests/commands/test_grill_mode_resolver.py",
-  "id": "n1vvyfw7"
+  "id": "n1vvyfw7",
+  "collapse": [
+   "tests",
+   "tests/commands"
+  ]
  },
  {
   "level": 2,
   "name": "tests/commands/test_plan_verification_angle6.py",
-  "id": "n1d9016t"
+  "id": "n1d9016t",
+  "collapse": [
+   "tests",
+   "tests/commands"
+  ]
  },
  {
   "level": 2,
   "name": "tests/commands/test_planning_standard_count.py",
-  "id": "ntzwykp"
+  "id": "ntzwykp",
+  "collapse": [
+   "tests",
+   "tests/commands"
+  ]
  },
  {
   "level": 2,
   "name": "tests/commands/test_understand_codebase_command.py",
-  "id": "nf8nv1"
+  "id": "nf8nv1",
+  "collapse": [
+   "tests",
+   "tests/commands"
+  ]
  },
  {
   "level": 2,
   "name": "tests/fixtures/codemem/symbol_ids/python_sample.py",
-  "id": "n5rxut3"
+  "id": "n5rxut3",
+  "collapse": [
+   "tests",
+   "tests/fixtures"
+  ]
  },
  {
   "level": 2,
   "name": "tests/hooks/fixtures/build_active_dir.sh",
-  "id": "nptr81f"
+  "id": "nptr81f",
+  "collapse": [
+   "tests",
+   "tests/hooks"
+  ]
  },
  {
   "level": 2,
   "name": "tests/perf/__init__.py",
-  "id": "n17v1f8c"
+  "id": "n17v1f8c",
+  "collapse": [
+   "tests",
+   "tests/perf"
+  ]
  },
  {
   "level": 2,
   "name": "tests/perf/test_budgets.py",
-  "id": "n1xnboiz"
+  "id": "n1xnboiz",
+  "collapse": [
+   "tests",
+   "tests/perf"
+  ]
  },
  {
   "level": 2,
   "name": "tests/plan_markers/__init__.py",
-  "id": "n1l5j7iu"
+  "id": "n1l5j7iu",
+  "collapse": [
+   "tests",
+   "tests/plan_markers"
+  ]
  },
  {
   "level": 2,
   "name": "tests/plan_markers/test_fingerprint.py",
-  "id": "n1qweufj"
+  "id": "n1qweufj",
+  "collapse": [
+   "tests",
+   "tests/plan_markers"
+  ]
  },
  {
   "level": 2,
   "name": "tests/plan_markers/test_parser.py",
-  "id": "n1paa2k"
+  "id": "n1paa2k",
+  "collapse": [
+   "tests",
+   "tests/plan_markers"
+  ]
  },
  {
   "level": 2,
   "name": "tests/render/__init__.py",
-  "id": "nkmtbrd"
+  "id": "nkmtbrd",
+  "collapse": [
+   "tests",
+   "tests/render"
+  ]
  },
  {
   "level": 2,
   "name": "tests/render/conftest.py",
-  "id": "n1ekkrhf"
+  "id": "n1ekkrhf",
+  "collapse": [
+   "tests",
+   "tests/render"
+  ]
  },
  {
   "level": 2,
   "name": "tests/render/test_cli.py",
-  "id": "njuh6fa"
+  "id": "njuh6fa",
+  "collapse": [
+   "tests",
+   "tests/render"
+  ]
  },
  {
   "level": 2,
   "name": "tests/render/test_graph.py",
-  "id": "nnro3dk"
+  "id": "nnro3dk",
+  "collapse": [
+   "tests",
+   "tests/render"
+  ]
  },
  {
   "level": 2,
   "name": "tests/render/test_hostile_input.py",
-  "id": "n1uld3nl"
+  "id": "n1uld3nl",
+  "collapse": [
+   "tests",
+   "tests/render"
+  ]
  },
  {
   "level": 2,
   "name": "tests/render/test_html.py",
-  "id": "n1h8du59"
+  "id": "n1h8du59",
+  "collapse": [
+   "tests",
+   "tests/render"
+  ]
  },
  {
   "level": 2,
   "name": "tests/render/test_leaf_contract.py",
-  "id": "n1sis1o3"
+  "id": "n1sis1o3",
+  "collapse": [
+   "tests",
+   "tests/render"
+  ]
  },
  {
   "level": 2,
   "name": "tests/render/test_mermaid_lint.py",
-  "id": "n1mslmmn"
+  "id": "n1mslmmn",
+  "collapse": [
+   "tests",
+   "tests/render"
+  ]
  },
  {
   "level": 2,
   "name": "tests/skills/__init__.py",
-  "id": "nwlohh1"
+  "id": "nwlohh1",
+  "collapse": [
+   "tests",
+   "tests/skills"
+  ]
  },
  {
   "level": 2,
   "name": "tests/skills/_helpers.py",
-  "id": "nj5kc3j"
+  "id": "nj5kc3j",
+  "collapse": [
+   "tests",
+   "tests/skills"
+  ]
  },
  {
   "level": 2,
   "name": "tests/skills/test_aa_ma_research_frontmatter.py",
-  "id": "n1cmvvgq"
+  "id": "n1cmvvgq",
+  "collapse": [
+   "tests",
+   "tests/skills"
+  ]
  },
  {
   "level": 2,
   "name": "tests/skills/test_fork_manifest.py",
-  "id": "n1rcyeyu"
+  "id": "n1rcyeyu",
+  "collapse": [
+   "tests",
+   "tests/skills"
+  ]
  },
  {
   "level": 2,
   "name": "tests/skills/test_grill_with_docs_frontmatter.py",
-  "id": "n10kxkok"
+  "id": "n10kxkok",
+  "collapse": [
+   "tests",
+   "tests/skills"
+  ]
  },
  {
   "level": 2,
   "name": "tests/skills/test_grilling_frontmatter.py",
-  "id": "n1x6xyjx"
+  "id": "n1x6xyjx",
+  "collapse": [
+   "tests",
+   "tests/skills"
+  ]
  },
  {
   "level": 2,
   "name": "tests/skills/test_prototype_frontmatter.py",
-  "id": "n2cjnz9"
+  "id": "n2cjnz9",
+  "collapse": [
+   "tests",
+   "tests/skills"
+  ]
  },
  {
   "level": 2,
   "name": "tests/skills/test_understand_codebase_frontmatter.py",
-  "id": "nuezde0"
+  "id": "nuezde0",
+  "collapse": [
+   "tests",
+   "tests/skills"
+  ]
  },
  {
   "level": 2,
   "name": "tests/skills/test_verify_impl_agents.py",
-  "id": "nrkmi8l"
+  "id": "nrkmi8l",
+  "collapse": [
+   "tests",
+   "tests/skills"
+  ]
  },
  {
   "level": 2,
   "name": "tests/skills/test_write_a_skill_frontmatter.py",
-  "id": "n1xjbaxg"
+  "id": "n1xjbaxg",
+  "collapse": [
+   "tests",
+   "tests/skills"
+  ]
  },
  {
   "level": 2,
   "name": "tests/test_active_plans_canonical.py",
-  "id": "nlfkatb"
+  "id": "nlfkatb",
+  "collapse": [
+   "tests",
+   "tests"
+  ]
  },
  {
   "level": 2,
   "name": "tests/test_enforce.py",
-  "id": "n101hsvb"
+  "id": "n101hsvb",
+  "collapse": [
+   "tests",
+   "tests"
+  ]
  },
  {
   "level": 2,
   "name": "tests/test_gate.py",
-  "id": "n7i4l16"
+  "id": "n7i4l16",
+  "collapse": [
+   "tests",
+   "tests"
+  ]
  },
  {
   "level": 2,
   "name": "tests/test_gate_parity.py",
-  "id": "neqmdu0"
+  "id": "neqmdu0",
+  "collapse": [
+   "tests",
+   "tests"
+  ]
  },
  {
   "level": 2,
   "name": "tests/test_goal_synthesis.py",
-  "id": "n1j9hl4t"
+  "id": "n1j9hl4t",
+  "collapse": [
+   "tests",
+   "tests"
+  ]
  },
  {
   "level": 2,
   "name": "tests/test_grammar.py",
-  "id": "ni8hnya"
+  "id": "ni8hnya",
+  "collapse": [
+   "tests",
+   "tests"
+  ]
  },
  {
   "level": 2,
   "name": "tests/test_grammar_parity.py",
-  "id": "n1qya5xc"
+  "id": "n1qya5xc",
+  "collapse": [
+   "tests",
+   "tests"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/__init__.py",
-  "id": "n18ter8l"
+  "id": "n18ter8l",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/_static_tasks.py",
-  "id": "n1yjp3j1"
+  "id": "n1yjp3j1",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/conftest.py",
-  "id": "n3q24zj"
+  "id": "n3q24zj",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/snapshot_apps/__init__.py",
-  "id": "nh6yacj"
+  "id": "nh6yacj",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/snapshot_apps/dashboard_static.py",
-  "id": "ng2sty2"
+  "id": "ng2sty2",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_app_smoke.py",
-  "id": "nrgxoep"
+  "id": "nrgxoep",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_integration.py",
-  "id": "n8ww1m6"
+  "id": "n8ww1m6",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_json_output.py",
-  "id": "n12jgb4a"
+  "id": "n12jgb4a",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_main_dispatch.py",
-  "id": "n1sfvdz6"
+  "id": "n1sfvdz6",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_model.py",
-  "id": "notdwjd"
+  "id": "notdwjd",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_parser.py",
-  "id": "n1pyq64t"
+  "id": "n1pyq64t",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_parser_properties.py",
-  "id": "nxjwsnj"
+  "id": "nxjwsnj",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_screens_dashboard.py",
-  "id": "nhh0546"
+  "id": "nhh0546",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_screens_task_detail.py",
-  "id": "n38y8sv"
+  "id": "n38y8sv",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_snapshot.py",
-  "id": "nixribs"
+  "id": "nixribs",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_watcher.py",
-  "id": "nhgw79i"
+  "id": "nhgw79i",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_widgets_kanban_column.py",
-  "id": "na5g3ec"
+  "id": "na5g3ec",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 2,
   "name": "tests/tui/test_widgets_task_card.py",
-  "id": "ndq16a0"
+  "id": "ndq16a0",
+  "collapse": [
+   "tests",
+   "tests/tui"
+  ]
  },
  {
   "level": 3,
@@ -1132,27 +1844,47 @@
  {
   "level": 2,
   "name": "a (b)/c-d.py",
-  "id": "nxgx4tl"
+  "id": "nxgx4tl",
+  "collapse": [
+   "a (b)",
+   "a (b)"
+  ]
  },
  {
   "level": 2,
   "name": "x\"y.py",
-  "id": "n1jb0o8l"
+  "id": "n1jb0o8l",
+  "collapse": [
+   "x\"y.py",
+   "x\"y.py"
+  ]
  },
  {
   "level": 2,
   "name": "é/ü.py",
-  "id": "n121gvta"
+  "id": "n121gvta",
+  "collapse": [
+   "é",
+   "é"
+  ]
  },
  {
   "level": 2,
   "name": "emoji/😀.py",
-  "id": "n1ijwtbk"
+  "id": "n1ijwtbk",
+  "collapse": [
+   "emoji",
+   "emoji"
+  ]
  },
  {
   "level": 2,
   "name": "sp ace/f.py",
-  "id": "n193y1tf"
+  "id": "n193y1tf",
+  "collapse": [
+   "sp ace",
+   "sp ace"
+  ]
  },
  {
   "level": 3,

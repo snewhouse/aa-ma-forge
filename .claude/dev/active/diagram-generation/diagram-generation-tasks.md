@@ -415,10 +415,10 @@
 - Result Log: HITL Proceed; verdict PROCEED (Ste). Branch `prototype/diagram-generation-explorer` @ 8e2a31f, local only (build.py → demo.html; drive.py = headless Chromium via `uv run --no-project --with playwright`). Mermaid 11.17.2 node = `<g class="node" id="<renderId>-flowchart-<nid>-<i>">`, no `data-id`; one delegated listener + `/flowchart-(n[0-9a-z]+)-\d+$/` maps back; survives re-render; L0 3 → L1 2 → L2 26 nodes by real clicks; 0 CSP violations. JS nid matches draw-node-ids.json (`src`@L0 = n1wgktcl). Explorer init needs `startOnLoad:false`. PROTOTYPE provenance written. (Prototype commit bypassed hooks — L-027.)
 
 ### Sub-step 12.2: [test] `explorer_contract.test.mjs` + `test_explorer_fixture.py` on the shared fixture, RED
-- Status: PENDING
 - Mode: AFK
-- Obligations (M5 §6.8): caption matching must equal Python's `captions.for_cut`/`start_ids` — embed per-level `for_cut` output in the JSON (preferred, no JS re-implementation) or add caption cases to the shared fixture; the JSON island is `captions.json_island()` (built + tested 61eb4e4: no `<` `>` `&` survive a `</script>` caption); prose via `textContent`, never `innerHTML`.
-- Result Log: [pending]
+- Obligations (M5 §6.8): caption matching must equal Python's `captions.for_cut`/`start_ids` — embed per-level `for_cut` output in the JSON (preferred, no JS re-implementation) or add caption cases to the shared fixture; the JSON island is `captions.json_island()` (built + tested 61eb4e4: no `<` `>` `&` survive a `</script>` caption); prose via `textContent`, never `innerHTML`. → Captions DEFERRED from the explorer (Ste 2026-09-26; `aa_ma` may not import codemem); the island escaping rule (no `< > &`) still applies, restated in explorer.py.
+- Status: COMPLETE
+- Result Log: Mode: AFK — auto-dispatched. Fixture: 183 L2 rows of draw-node-ids.json gain `collapse: [L0, L1]` from `codemem.draw.cut.collapse` (test_draw_cut 31/31 still green). RED: `tests/render/test_explorer_fixture.py` 11 fail / 2 pass (collapse pin + build/ ignored already true); `tests/render/explorer_contract.test.mjs` 10/10 fail — each on its own assertion (stubs `explorer.py`/`explorer.js` raise, so no import-time errors).
 
 ### Sub-step 12.3: [impl] `render/explorer.py` + `explorer.js` + `--explorer` flag
 - Status: PENDING

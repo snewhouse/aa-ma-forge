@@ -111,7 +111,7 @@ Architecture View: see plan.md §13 (Component view + Flow view; `Diagram-Waiver
 18. One merged `io.md` with language subgraphs; revision trigger = 120-edge dense band
 19. Keep both backends; codemem default, `PROJECT_INDEX.json` fallback; `/index` repointed at `codemem build`
 
-_Last Updated: 2026-09-25 (M1–M10 facts sections below)_
+_Last Updated: 2026-09-26 (M1–M11 facts sections below)_
 
 ## M1 facts (2026-09-24)
 

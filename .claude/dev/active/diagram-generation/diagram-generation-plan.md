@@ -3,7 +3,7 @@
 **Objective:** Derive architecture diagrams from code for two consumers — the forge's own CI-checked `docs/architecture/` living doc, and any plugin-built project via one core in codemem exposed through three doors.
 **Owner:** Stephen J Newhouse + AI
 **Created:** 2026-09-22
-**Last Updated:** 2026-09-22
+**Last Updated:** 2026-09-26
 **Source map:** `diagram-generation-map.md` (19/19 tickets RESOLVED, fog empty, guard clear)
 **Diagram-Waiver:** none
 
@@ -351,9 +351,10 @@ flowchart TD
     L -->|no| M["item N/A — opt-in never fires"]
     L -->|yes| N["aa-ma-lint-views"]
     N --> O{"verdict"}
-    O -->|PHANTOM_EDGE| P["REFUSE COMPLETE"]
-    O -->|UNKNOWN| Q["REFUSE — remedy: codemem build (0.44s)"]
-    O -->|clean| R["write DIAGRAM_VERIFIED provenance<br/>→ COMPLETE permitted"]
+    O -->|"PHANTOM_EDGE / LABEL_UNKNOWN"| P["REFUSE COMPLETE"]
+    O -->|"invalid: authoring error"| P
+    O -->|"index-unknown / not fully read"| Q["REFUSE — remedy: codemem build"]
+    O -->|"clean (planned / plugin UNKNOWN counted)"| R["write DIAGRAM_VERIFIED provenance<br/>→ COMPLETE permitted"]
 ```
 
 ---
@@ -1252,8 +1253,9 @@ FENCE-ORDER CONSTRAINT (hard):
   tests/hooks/aa-ma-gate-python.bats:46 extracts the gate with
     awk '/^### 6\.7 /{f=1} f && /^```bash$/{g=1; next} g && /^```$/{exit} g'
   i.e. the FIRST ```bash fence after the "### 6.7 " heading. Any new fence this
-  milestone adds MUST come AFTER the existing gate fence, or all 58 tests across
-  those three suites silently extract and execute the wrong block. The file's own
+  milestone adds MUST come AFTER the existing gate fence, or that suite silently
+  extracts and executes the wrong block. (Corrected by M11 §6.8, 2026-09-26: only
+  aa-ma-gate-python.bats extracts it; the other two suites were counted wrongly.) The file's own
   header comment records three prior section 6.8 passes over this same awk.
 
 New HARD row in the section 6.7 Execution Checklist:
@@ -1274,6 +1276,14 @@ Invariants:
       sigils: edges=<N> phantom=<P> unknown=<K> index-unknown=<I>
     edges = every sigil claim in section 13; phantom = PHANTOM_EDGE + LABEL_UNKNOWN;
     index-unknown is a subset of unknown. Exit codes unchanged.
+  - §6.8 AMENDMENT 2026-09-26 (Ste), superseding the two bullets above where they
+    differ: authoring errors refuse too (`invalid`: missing endpoint, stale `(new)`,
+    path-less label, unparsed form, outside the repo); the line is
+      sigils: edges=<N> checked=<C> phantom=<P> unknown=<K> invalid=<V> index-unknown=<I>
+    or `sigils: UNKNOWN` when any sigil in the plan's mermaid fences went unread; the
+    evidence line gains checked=<C>; the fence calls `aa_ma_lint_views`
+    (aa-ma-parse.sh). Contract also touched: claude-code/skills/plan-verification/
+    SKILL.md (check 6 names the `sigils:` line) and CHANGELOG.md.
   - gate.py, its JSON envelope and every calling fence are UNCHANGED.
 ```
 
@@ -1308,7 +1318,8 @@ Invariants:
    running the extractor awk and diffing its output against the pre-edit capture).
 8. `aa-ma-lint-views` prints `sigils: edges=N phantom=P unknown=K index-unknown=I`
    before `render:` on every run; `edges=0` on a sigil-free plan (the fence's
-   opt-out). Added 2026-09-25 (Ste).
+   opt-out). Added 2026-09-25 (Ste). §6.8 amendment 2026-09-26: the line carries
+   `checked=` and `invalid=` too, and reads `sigils: UNKNOWN` when not fully read.
 
 **Tests:** `uv run pytest`; `bats tests/hooks/test_diagram_verified.bats`; a live refusal observed and pasted into `provenance.log`.
 

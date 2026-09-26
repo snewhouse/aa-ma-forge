@@ -34,6 +34,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0012](0012-research-skill-adoption.md) | Adopt `research` from mattpocock/skills and give `/aa-ma-plan` Phase 3 a file destination | Implemented | 2026-09-20 |
 | [0013](0013-charting-wayfinder-lite.md) | Charting — a pre-plan decision map adapted from `wayfinder` (no issue tracker) | Proposed | 2026-09-20 |
 | [0014](0014-derived-architecture-views.md) | Derived architecture views: `aa_ma` reads codemem's graph through a stdlib-sqlite3 seam | Accepted | 2026-09-24 |
+| [0015](0015-diagram-as-acceptance-criterion.md) | The diagram as an acceptance criterion: a HARD §6.7 item, not a gate question | Implemented | 2026-09-25 |
 | [0016](0016-living-architecture-doc.md) | The living architecture doc: generated `docs/architecture/` checked for drift in CI | Accepted | 2026-09-24 |
 
 ## Statuses

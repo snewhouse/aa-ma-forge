@@ -390,9 +390,9 @@
 - Result Log: HITL Proceed (Ste). 58/58 after the edit (32/10/16, identical to 11.2); gate-fence extraction sha256 17be760b… unchanged. Live on this repo: fence PASS (edges=23 phantom=0 unknown=19) → `touch src/aa_ma/render/graph.py` → BLOCKED rc 1 naming `codemem build` → rebuild (0.66s) → PASS; outputs in provenance.log. Live run exposed a false message ("0.44s on this repo" ships to consumer repos) — removed. `CRITICAL_PATH_REVIEW — Milestone 11: … — hook-modification` written.
 
 ### Sub-step 11.5: [docs] ADR-0015
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: HITL Proceed, status Implemented (Ste). `docs/adr/0015-diagram-as-acceptance-criterion.md` opens with "HARD ≠ `gate.py`", weighs the eighth-gate-question option, records the verdict table and both 2026-09-25 amendments (index-only UNKNOWN refuses; count from the lint, 25-vs-23 measured); `docs/adr/INDEX.md` row added. CHANGELOG Unreleased entry; reference.md M11 facts.
 
 ## Milestone 12: Explorer + Node CI job
 - Status: PENDING

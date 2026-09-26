@@ -28,6 +28,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   row or `# file:` line no §13 node covers — the path, a directory above it, or its `(new)` plan; `Test`/`Verify`
   rows, `tests/`, `docs/`, root docs and dependency manifests/lockfiles are exempt. `plan-verification` runs it as
   check 8 (WARNING) for plans `Created:` on-or-after 2026-09-11.
+- **§13 sigil edges as a HARD acceptance criterion (`diagram-generation` M11, ADR-0015)** — `/execute-aa-ma-milestone`
+  §6.7 gains a second fence, after the gate fence: when plan §13 carries a sigil edge, it refuses COMPLETE on a
+  `PHANTOM_EDGE`/`LABEL_UNKNOWN` or on an index that could not answer (missing, stale, unreadable — the refusal names
+  `codemem build`), and otherwise records `DIAGRAM_VERIFIED — <milestone> — edges=N phantom=0 unknown=K` in
+  `provenance.log`. Per-claim `UNKNOWN`s (`(new)` endpoints, path-less labels, plugin sigils) are counted, not
+  refused; a plan without sigils is untouched. `aa-ma-lint-views` prints `sigils: edges=N phantom=P unknown=K
+  index-unknown=I` before `render:` (`sigils: UNKNOWN` when an unterminated fence hides §13); exit codes unchanged.
+  `aa-ma-gate` is untouched. `engineering-standards.md`: new §5 checklist row; `hook-modification` now names
+  `.github/workflows/**`.
 - **I/O-boundary view (`diagram-generation` M9)** — `docs/architecture/io.md` is generated from the codemem
   graph: one arrow per file (per L1 folder once per-file arrows exceed the 120-edge dense band) into database /
   HTTP / filesystem / subprocess / environment / queue nodes, languages as subgraphs. Calls are classified at render

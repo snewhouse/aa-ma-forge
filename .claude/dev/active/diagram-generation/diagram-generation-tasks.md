@@ -396,7 +396,7 @@
 - Result Log: HITL Proceed, status Implemented (Ste). `docs/adr/0015-diagram-as-acceptance-criterion.md` opens with "HARD ≠ `gate.py`", weighs the eighth-gate-question option, records the verdict table and both 2026-09-25 amendments (index-only UNKNOWN refuses; count from the lint, 25-vs-23 measured); `docs/adr/INDEX.md` row added. CHANGELOG Unreleased entry; reference.md M11 facts.
 
 ## Milestone 12: Explorer + Node CI job
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 3
 - Gate: HARD
 - Audit-Profile: full

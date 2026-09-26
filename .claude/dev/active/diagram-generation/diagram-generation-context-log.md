@@ -440,3 +440,9 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - Planned policy (collapse until it fits; truncate only if L0 overflows) turns a scoped L3 of 482 edges into an EMPTY L2 — the tool would answer an informative question with nothing.
 - Decision (Ste): guarded collapse — collapse only while the coarser level still has edges, else truncate at the current level (largest sorted edge prefix that fits; the rest counted in `dropped`). Default level L2, not L1. Plan Contract amended in place with a dated comment.
 - Rejected: truncate-only (drops AC2 `collapsed_from`); as-planned (empty results).
+
+## [2026-09-26] M13 13.4 — rewire edit set (Ste)
+- Measured: the Contract files hold exactly 4 `/codebase-deep-dive` references that instruct running it (REUSE-MAP.md:67, understand-codebase SKILL.md:80/83/198); `templates/onboarding-team.md:28/42/78` carry the same shape outside the Contract; `/index` provisioning instructions number ~10 (plan estimated ~3).
+- AC5 set (Ste): the 4 + onboarding-team.md's 3 — the test names all 7. Conditional "reuse if it ran" references untouched. system-mapping's menu mentions (:55, :420) left.
+- `/index` (Ste): every provisioning instruction in understand-codebase repoints at `codemem build`, PROJECT_INDEX.json named as the equivalent fallback.
+- Out of Contract (Ste): aa-ma-plan.md:181/184/857, execute-aa-ma-milestone.md:332, codebase-onboarding-{runbook,conventions} — left as-is (conditional), carried forward.

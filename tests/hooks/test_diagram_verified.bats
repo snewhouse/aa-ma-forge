@@ -3,9 +3,10 @@
 #
 # diagram-generation M11 (map Ticket 15). HARD ≠ gate.py: the item is a second
 # ```bash fence in §6.7 that runs `aa-ma-lint-views` on plan.md, reads its
-# `sigils:` summary line, and refuses COMPLETE on a PHANTOM_EDGE / LABEL_UNKNOWN or
-# on an index that could not answer (missing, stale, unreadable — L-012). On a pass
-# it appends `DIAGRAM_VERIFIED — <heading> — edges=N phantom=0 unknown=K` to
+# `sigils:` summary line, and refuses COMPLETE on a PHANTOM_EDGE / LABEL_UNKNOWN, on
+# an authoring error (missing endpoint, stale `(new)`, path-less label, unparsed
+# form), or on an index that could not answer (missing, stale, unreadable — L-012). On a pass
+# it appends `DIAGRAM_VERIFIED — <heading> — edges=N checked=C phantom=0 unknown=K` to
 # provenance.log. Opt-in: a plan with no sigil in §13 is a no-op.
 #
 # Like aa-ma-gate-python.bats, the fence is EXECUTED as shipped, never grepped.
@@ -96,7 +97,7 @@ _run_fence() {
     run _lint
     [ "$status" -eq 0 ]
     [[ "$output" != *PHANTOM_EDGE* ]]
-    [[ "$output" == *"sigils: edges=0 phantom=0 unknown=0 index-unknown=0"* ]]
+    [[ "$output" == *"sigils: edges=0 checked=0 phantom=0 unknown=0 invalid=0 index-unknown=0"* ]]
 }
 
 @test "AC2: a broken sigil edge exits 1 with a PHANTOM_EDGE line" {
@@ -104,7 +105,7 @@ _run_fence() {
     run _lint
     [ "$status" -eq 1 ]
     [[ "$output" == *": PHANTOM_EDGE: "* ]]
-    [[ "$output" == *"sigils: edges=1 phantom=1 unknown=0 index-unknown=0"* ]]
+    [[ "$output" == *"sigils: edges=1 checked=1 phantom=1 unknown=0 invalid=0 index-unknown=0"* ]]
 }
 
 @test "AC3: with .codemem removed the output names codemem build and the tier is UNKNOWN" {
@@ -113,7 +114,7 @@ _run_fence() {
     run _lint
     [ "$status" -eq 0 ]   # the lint's own exit stays non-blocking (map Ticket 2)
     [[ "$output" == *": UNKNOWN: "*"codemem build"* ]]
-    [[ "$output" == *"sigils: edges=1 phantom=0 unknown=1 index-unknown=1"* ]]
+    [[ "$output" == *"sigils: edges=1 checked=0 phantom=0 unknown=1 invalid=0 index-unknown=1"* ]]
 }
 
 # ---------------------------------------------------------------------------
@@ -139,7 +140,7 @@ _run_fence() {
     _plan '    A -->|"@import"| B'
     run _run_fence
     [ "$status" -eq 0 ]
-    grep -qF "DIAGRAM_VERIFIED — Milestone 2: The one being gated — edges=1 phantom=0 unknown=0" "$T/t-provenance.log"
+    grep -qF "DIAGRAM_VERIFIED — Milestone 2: The one being gated — edges=1 checked=1 phantom=0 unknown=0" "$T/t-provenance.log"
 }
 
 @test "a PHANTOM_EDGE refuses COMPLETE and writes no evidence" {
@@ -181,7 +182,7 @@ _run_fence() {
     _plan '    A -->|"@import"| N'
     run _run_fence
     [ "$status" -eq 0 ]
-    grep -qF "edges=1 phantom=0 unknown=1" "$T/t-provenance.log"
+    grep -qF "edges=1 checked=0 phantom=0 unknown=1" "$T/t-provenance.log"
 }
 
 @test "an unread §13 (unterminated fence) refuses — never an opt-out" {
@@ -198,4 +199,75 @@ _run_fence() {
     run _run_fence
     [ "$status" -eq 1 ]
     [[ "$output" == *BLOCKED* ]]
+}
+
+@test "§6.8: a misspelled §13 heading holding sigil edges refuses — never an opt-out" {
+    _plan '    A -->|"@import"| B'
+    sed -i 's/^## 13. Architecture View$/## 13. Architecture \& Diagrams/' "$T/t-plan.md"
+    run _run_fence
+    [ "$status" -eq 1 ]
+    [[ "$output" == *BLOCKED* ]]
+    ! grep -q DIAGRAM_VERIFIED "$T/t-provenance.log"
+}
+
+@test "§6.8: sigil edges under a prose 'Component view:' (no heading) refuse" {
+    _plan '    A -->|"@import"| B'
+    sed -i 's/^### Component view$/Component view:/' "$T/t-plan.md"
+    run _run_fence
+    [ "$status" -eq 1 ]
+    [[ "$output" == *BLOCKED* ]]
+}
+
+@test "§6.8: an edge to a file that does not exist (not (new)) refuses" {
+    _plan '    M["src/app/missing.py"]
+    A -->|"@import"| M'
+    run _run_fence
+    [ "$status" -eq 1 ]
+    [[ "$output" == *BLOCKED* && "$output" == *"endpoint missing"* ]]
+}
+
+@test "§6.8: a stale (new) on a file that exists refuses" {
+    _plan '    S["src/app/b.py (new)"]
+    A -->|"@import"| S'
+    run _run_fence
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"(new)"* ]]
+}
+
+@test "§6.8: a path-less node label on a sigil edge refuses" {
+    _plan '    G["group of things"]
+    A -->|"@import"| G'
+    run _run_fence
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"no repo path"* ]]
+}
+
+@test "aa_ma_lint_views refuses loudly when uv is not on PATH" {
+    local bin="$WORK/bin"; mkdir -p "$bin"
+    for t in bash sed grep head readlink dirname; do ln -s "$(command -v "$t")" "$bin/$t"; done
+    run -127 env PATH="$bin" bash -c ". '${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh'; aa_ma_lint_views '$T/t-plan.md'"
+    [[ "$output" == *BLOCKED* ]]
+    [[ "$output" != *"sigils:"* ]]
+}
+
+@test "aa_ma_lint_views refuses when uv is present but the tool does not start" {
+    local bin="$WORK/bin"; mkdir -p "$bin"
+    printf '#!/usr/bin/env bash\necho "error: Failed to spawn: aa-ma-lint-views" >&2\nexit 2\n' > "$bin/uv"
+    chmod +x "$bin/uv"
+    run -127 env PATH="$bin:$PATH" bash -c ". '${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh'; aa_ma_lint_views '$T/t-plan.md'"
+    [[ "$output" == *"did not run"* ]]
+}
+
+@test "a TASK_NAME that is not a plain slug refuses before anything is written" {
+    _plan '    A -->|"@import"| B'
+    # Make `../t` resolve (.claude/dev/active/../t/../t-*.md = .claude/dev/t-*.md), so a
+    # refusal here is the slug check itself, not a missing file.
+    mkdir -p "$R/.claude/dev/t"
+    cp "$T/t-plan.md" "$R/.claude/dev/t-plan.md"; cp "$T/t-tasks.md" "$R/.claude/dev/t-tasks.md"
+    : > "$R/.claude/dev/t-provenance.log"
+    _diagram_fence > "$WORK/fence.sh"
+    run bash -c "cd '$R' && TASK_NAME='../t' bash '$WORK/fence.sh'"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *BLOCKED* && "$output" == *TASK_NAME* ]]
+    [ ! -s "$R/.claude/dev/t-provenance.log" ]
 }

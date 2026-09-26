@@ -22,7 +22,7 @@ def test_findings_exit_1(capsys):
 def test_a_sigil_free_plan_reports_zero_sigil_edges(capsys):
     """diagram-generation M11 AC1/AC8: edges=0 is the §6.7 HARD item's opt-out."""
     assert lint_main([str(FIX / "plan_ok.md"), "--repo-root", str(REPO)]) == 0
-    assert "\nsigils: edges=0 phantom=0 unknown=0 index-unknown=0\nrender: " in "\n" + capsys.readouterr().out
+    assert "\nsigils: edges=0 checked=0 phantom=0 unknown=0 invalid=0 index-unknown=0\nrender: " in "\n" + capsys.readouterr().out
 
 
 def test_an_unread_section_13_is_sigils_unknown_never_zero(tmp_path, capsys):
@@ -32,6 +32,31 @@ def test_an_unread_section_13_is_sigils_unknown_never_zero(tmp_path, capsys):
     assert lint_main([str(plan), "--repo-root", str(REPO)]) == 1
     out = capsys.readouterr().out
     assert "sigils: UNKNOWN" in out and "sigils: edges=" not in out
+
+
+@pytest.mark.parametrize(
+    "section",
+    [
+        "## 13. Architecture & Diagrams\n\n### Component view\n\n",  # §13 not found: NO_SECTION
+        "## 13. Architecture View\n\nComponent view:\n\n",  # no view heading: fence never scanned
+        "## 13. Architecture View\n\n### Component view\n\n```mermaid\ngraph TD\n  X --> Y\n```\n\n## 14. Other\n\n",
+    ],
+)
+def test_sigils_the_view_scan_never_reached_are_unknown_never_zero(tmp_path, capsys, section):
+    """§6.8 M11 CRITICAL: a sigil edge in a mermaid fence §13's view scan did not count is not an opt-out."""
+    plan = tmp_path / "n-plan.md"
+    plan.write_text("# p\n\n" + section + '```mermaid\ngraph TD\n  A["src/aa_ma/gate.py"] -->|"@import"| B["src/aa_ma/deps.py"]\n```\n')
+    lint_main([str(plan), "--repo-root", str(REPO)])
+    out = capsys.readouterr().out
+    assert "sigils: UNKNOWN" in out and "sigils: edges=" not in out
+
+
+def test_the_plan_path_is_printed_printable(tmp_path, capsys):
+    """security INFO: a control character in the plan path never reaches stdout raw."""
+    plan = tmp_path / "e\x1b[2J-plan.md"
+    plan.write_text((FIX / "plan_stale_path.md").read_text())  # findings print the path
+    lint_main([str(plan), "--repo-root", str(REPO)])
+    assert "\x1b" not in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("argv", [[], ["/nonexistent.md"], [str(FIX)]])  # missing / not a file / dir

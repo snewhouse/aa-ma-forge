@@ -343,25 +343,26 @@ def _summary(repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture) -> str:
 
 
 def test_summary_counts_every_sigil_claim(repo: Path, tmp_path: Path, capsys) -> None:
-    # 7 claims: 2 verified, @improt (LABEL_UNKNOWN counts as phantom), 4 per-claim UNKNOWN.
-    assert _summary(repo, tmp_path, capsys) == "sigils: edges=7 phantom=1 unknown=4 index-unknown=0"
+    # 7 claims: 2 checked, @improt (LABEL_UNKNOWN counts as phantom), 4 per-claim UNKNOWN of
+    # which the path-less `G` label is an authoring error (invalid).
+    assert _summary(repo, tmp_path, capsys) == "sigils: edges=7 checked=2 phantom=1 unknown=4 invalid=1 index-unknown=0"
 
 
 def test_summary_counts_phantoms(repo: Path, tmp_path: Path, capsys) -> None:
     (repo / "src/app/a.py").write_text("def run():\n    return 1\n")
     _build(repo)
-    assert _summary(repo, tmp_path, capsys) == "sigils: edges=7 phantom=3 unknown=4 index-unknown=0"
+    assert _summary(repo, tmp_path, capsys) == "sigils: edges=7 checked=2 phantom=3 unknown=4 invalid=1 index-unknown=0"
 
 
 def test_summary_without_an_index_counts_index_unknowns(repo: Path, tmp_path: Path, capsys) -> None:
     """Only claims that reach the graph are index-unknown; `(new)`/plugin/path-less stay per-claim."""
     shutil.rmtree(repo / ".codemem")
-    assert _summary(repo, tmp_path, capsys) == "sigils: edges=7 phantom=1 unknown=6 index-unknown=3"
+    assert _summary(repo, tmp_path, capsys) == "sigils: edges=7 checked=0 phantom=1 unknown=6 invalid=1 index-unknown=3"
 
 
 def test_summary_counts_a_stale_index_as_index_unknown(repo: Path, tmp_path: Path, capsys) -> None:
     os.utime(repo / "src/app/b.py", (4_000_000_000, 4_000_000_000))
-    assert _summary(repo, tmp_path, capsys) == "sigils: edges=7 phantom=1 unknown=6 index-unknown=3"
+    assert _summary(repo, tmp_path, capsys) == "sigils: edges=7 checked=0 phantom=1 unknown=6 invalid=1 index-unknown=3"
 
 
 def test_summary_counts_a_partial_index_as_index_unknown(repo: Path, tmp_path: Path, capsys) -> None:
@@ -373,3 +374,50 @@ def test_summary_counts_a_partial_index_as_index_unknown(repo: Path, tmp_path: P
     conn.executescript("CREATE TABLE files(id INTEGER PRIMARY KEY, path TEXT, mtime INTEGER); PRAGMA user_version = 3;")
     conn.close()
     assert _summary(repo, tmp_path, capsys).endswith("index-unknown=3")
+
+
+def _one_edge(repo: Path, edge: str, *decls: str) -> str:
+    """Lint a one-edge §13 over the fixture's nodes; return the `sigils:` payload."""
+    text = FIXTURE.split("```mermaid")[0] + "```mermaid\ngraph TD\n" + "".join(
+        f"    {d}\n" for d in ('A["src/app/a.py"]', 'B["src/app/b.py"]', *decls)
+    ) + f"    {edge}\n```\n"
+    return cli._sigil_summary(lint_text(text, repo))
+
+
+@pytest.mark.parametrize(
+    ("edge", "decls"),
+    [
+        ('A -->|"@import"| M', ('M["src/app/missing.py"]',)),  # endpoint missing, not (new)
+        ('A -->|"@import"| S', ('S["src/app/b.py (new)"]',)),  # stale (new): the file exists
+        ('A -->|"@import"| G', ('G["group of things"]',)),  # no repo path in the label
+        ('A -->|"@import"| B & C', ()),  # unparsed sigil edge form
+        ('A -->|"@import"| O', ('O["/etc/passwd.py"]',)),  # endpoint outside the repo
+    ],
+)
+def test_authoring_errors_are_invalid(repo: Path, edge: str, decls: tuple[str, ...]) -> None:
+    """§6.8 M11 (Ste): a claim the diagram's author can fix now is refused, not passed as UNKNOWN."""
+    assert _one_edge(repo, edge, *decls) == "edges=1 checked=0 phantom=0 unknown=1 invalid=1 index-unknown=0"
+
+
+@pytest.mark.parametrize(
+    ("edge", "decls"),
+    [
+        ('A -->|"@import"| N', ('N["src/app/new.py (new)"]',)),  # genuinely planned
+        ('A -->|"@skill"| K', ('K["claude-code/skills/x/SKILL.md"]',)),  # plugin sigil (M13)
+        ('A -->|"@import"| SH', ('SH["scripts/run.sh"]',)),  # a language the graph does not model
+    ],
+)
+def test_claims_that_cannot_be_checked_yet_are_not_invalid(repo: Path, edge: str, decls: tuple[str, ...]) -> None:
+    assert _one_edge(repo, edge, *decls) == "edges=1 checked=0 phantom=0 unknown=1 invalid=0 index-unknown=0"
+
+
+def test_a_true_edge_is_checked(repo: Path) -> None:
+    assert _one_edge(repo, 'A -->|"@import"| B') == "edges=1 checked=1 phantom=0 unknown=0 invalid=0 index-unknown=0"
+
+
+def test_every_sigil_finding_code_is_counted_as_phantom(repo: Path) -> None:
+    """future-proofing: a new sigil finding the summary did not count would pass the §6.7 item."""
+    (repo / "src/app/a.py").write_text("def run():\n    return 1\n")
+    _build(repo)
+    codes = {f.code for f in lint_text(FIXTURE, repo).findings} - {"STALE_PATH"}
+    assert codes and codes <= set(mermaid_lint.SIGIL_FINDINGS)

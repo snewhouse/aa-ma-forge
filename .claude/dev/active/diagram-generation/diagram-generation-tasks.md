@@ -426,14 +426,14 @@
 - Result Log: Mode: AFK — auto-dispatched. GREEN. `html.py`: `sha256_b64()` + `csp(*hashes)`; `_CSP = csp(_INIT_SHA)` byte-identical (golden green). `explorer.py`: `build_explorer(repo_root) -> (page, stale)` over graph.py (import + call edges), JSON island with `< > &` escaped, one inline script (explorer.js, refused at import if it holds a script tag), CSP composed by `csp(sha256_b64(js))`, `MAX_EDGES = 500` pinned to codemem's by a test; missing/too-old index → ValueError naming `codemem build`. `explorer.js`: `nid`, `collapse`, `isTest`, `escapeLabel`, `nodeIdOf`, `compute` (CJS-exported for node --test) + a guarded browser section (one delegated listener, trail with up/top, tests toggle, stale banner, `startOnLoad:false`, `securityLevel: "strict"`). CLI: `aa-ma-render --explorer [--repo-root R] [--out DIR]` → DIR/explorer.html (DIR default build), exit 2 on missing/old index (nothing written), stderr warning on stale; exclusive with markdown sources. Evidence: test_explorer_fixture 13/13, node contract 10/10 (run from pytest), render 182, full pytest 1572 passed / 2 skipped; ruff + lint-imports 4/4; wheel ships explorer.js; live `aa-ma-render --explorer` on this repo (45 KB) driven headless: L0 → src/ L1 → src/aa_ma/ L2 (30 nodes/77 edges) → file neighbourhood → up → top → tests on; 0 console/CSP errors. Regen: component view gains explorer.py edges, io view cli.py fs 4→5. Own §13: explorer (new) marks dropped → `edges=14 checked=14 phantom=0`.
 
 ### Sub-step 12.4: [impl] node job in `security.yml` (Critical-Path)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: HITL Proceed (Ste: setup-node v7.0.0, Node 24). `explorer-contract` job appended to security.yml (7b9295e, 32 lines, additive only): checkout/setup-python pins reused, `uv sync`, `codemem build && aa-ma-render --explorer --out build`, `actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0` (node-version 24, package-manager-cache false per its README), `EXPLORER_HTML=build/explorer.html node --test tests/render/explorer_contract.test.mjs`. CI run 36247462754: all 7 jobs success; the new job 10 pass / 0 fail.
 
 ### Sub-step 12.5: [verify] manual browser drill observation; `CRITICAL_PATH_REVIEW`
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: Ste in a desktop browser with DevTools: drill works (level/scope change on node click; up/top/tests), console clean — AC2(c), recorded in provenance. AC6 by mutation (seed 7→8 → test_draw_cut red; fixture regenerated → JS node-id test red). `CRITICAL_PATH_REVIEW — Milestone 12: …` written (security.yml additive, permissions unchanged, sha-pinned; html._CSP byte-identical).
 
 ## Milestone 13: MCP `diagram` tool + consumer rewire — `Prototype-Required: YES`
 - Status: PENDING

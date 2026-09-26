@@ -5,6 +5,19 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-029 (2026-09-26) — Private-repo directory names written into a public repo's AA-MA files
+
+**Pattern:** In `diagram-generation` M13.1 I measured the private `medical-research-skills` repo and
+wrote its top-level and skill-category directory names into `tasks.md` Result Logs and
+`context-log.md`, then pushed. `snewhouse/aa-ma-forge` is PUBLIC. The standing rule was "aggregate
+counts only"; I applied it to `reference.md` (the file I was thinking of as the record) and not to
+the prose logs I wrote around it. Caught by the §6.8 security auditor, not by me.
+
+**Rule:** Before every commit that follows a measurement of an external private repo, run
+`git diff --cached | grep -F -f <(names of that repo's top-level and second-level dirs)` and
+refuse on any hit. Describe external structure by shape and count only ("one top-level dir",
+"one skill-category dir, 482 edges") — never by name — in EVERY file, logs included.
+
 ## L-028 (2026-09-26) — Stubs committed with the RED tests tie the TDD auditor's clock
 
 **Pattern:** In `diagram-generation` M12.2 I committed throwing stubs (`explorer.py`,

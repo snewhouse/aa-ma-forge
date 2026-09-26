@@ -653,17 +653,26 @@ a sigil edge (`-->|"@import"|`, `-->|"@call"|`, …); a plan without one is a no
 |-----------|---------|
 | `edges=0` | not applicable — no evidence written |
 | `phantom>0` (`PHANTOM_EDGE` / `LABEL_UNKNOWN`) | BLOCKED — the diagram claims an edge the code does not hold |
+| `invalid>0` — an edge to a missing file, a stale `(new)` on a file that exists, a path-less label, an unparsed edge form, a path outside the repo | BLOCKED — an authoring error the diagram can fix now |
 | `index-unknown>0` (no, stale, too-old or unreadable index) | BLOCKED — the check did not run (L-012); run `codemem build` and re-run |
-| no `sigils:` line / `sigils: UNKNOWN` / lint exit 2 | BLOCKED — §13 could not be read |
-| otherwise | PASS — appends `[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N phantom=0 unknown=K` |
+| no `sigils:` line / `sigils: UNKNOWN` (a sigil edge outside §13's views, an unterminated fence) / the lint did not run | BLOCKED — not every sigil edge could be read |
+| otherwise | PASS — appends `[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K` |
 
-A per-claim `UNKNOWN` — a planned `(new)` endpoint, a node label with no path, a plugin
-sigil, a file the graph does not model — cannot be checked yet and is counted in
-`unknown=K`, not refused. This fence must stay AFTER the gate fence above: three bats
-suites extract the *first* ```bash fence after the `### 6.7 ` heading.
+What still passes, counted in `unknown=K`: a claim that cannot be checked *yet* — a
+genuinely planned `(new)` file, a plugin sigil (`@skill`/`@command`/`@agent`/`@hook`), a
+language the graph does not model. `checked=C` is how many edges were actually compared
+with the code. The fence run is the check; the `DIAGRAM_VERIFIED` line is its record.
+This fence must stay AFTER the gate fence above: `tests/hooks/aa-ma-gate-python.bats`
+(`_gate_fence`) executes the *first* ```bash fence after the `### 6.7 ` heading, and
+`tests/hooks/test_diagram_verified.bats` asserts the order.
 
 ```bash
 # Self-sufficient, like §7.1's fence: a fresh shell has none of the variables above.
+# TASK_NAME builds the path this fence appends to: a plain slug only (no `/`, no `..`).
+if ! [[ "${TASK_NAME:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "${TASK_NAME}" != *..* ]]; then
+  echo "BLOCKED: TASK_NAME must be a plain task slug (got '${TASK_NAME:-}')."
+  exit 1
+fi
 TASK_DIR=".claude/dev/active/${TASK_NAME}"
 for _cand in \
   "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
@@ -680,21 +689,20 @@ GATE_KV=$(aa_ma_gate "${TASK_DIR}/${TASK_NAME}-tasks.md") || {
 MILESTONE_TITLE=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field heading)
 [[ -n "${MILESTONE_TITLE}" ]] || { echo "BLOCKED: empty milestone heading."; exit 1; }
 
-# The plugin checkout that holds aa-ma-lint-views, located as aa_ma_gate locates it.
-AA_MA_ROOT=$(cd "$(dirname "$(readlink -f "${AA_MA_LIB}")")/../../.." && pwd)
-LINT=$(uv run --quiet --project "${AA_MA_ROOT}" aa-ma-lint-views \
-  "${TASK_DIR}/${TASK_NAME}-plan.md" --repo-root "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
+LINT=$(aa_ma_lint_views "${TASK_DIR}/${TASK_NAME}-plan.md" \
+  --repo-root "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
 LINT_RC=$?
-SIGILS=$(printf '%s\n' "${LINT}" | sed -n 's/^sigils: //p' | head -n 1)
-SIGILS_RE='^edges=([0-9]+) phantom=([0-9]+) unknown=([0-9]+) index-unknown=([0-9]+)$'
+# The CLI prints its own summary last; any earlier `sigils:` line is not its.
+SIGILS=$(printf '%s\n' "${LINT}" | sed -n 's/^sigils: //p' | tail -n 1)
+SIGILS_RE='^edges=([0-9]+) checked=([0-9]+) phantom=([0-9]+) unknown=([0-9]+) invalid=([0-9]+) index-unknown=([0-9]+)$'
 if [[ "${LINT_RC}" -gt 1 ]] || ! [[ "${SIGILS}" =~ ${SIGILS_RE} ]]; then
   echo "BLOCKED: §13 sigil edges could not be checked (lint rc ${LINT_RC}, sigils: ${SIGILS:-absent})."
   echo "A check that did not run is not a pass (L-012)."
   printf '%s\n' "${LINT}" | grep -E ': (UNTERMINATED_FENCE|UNKNOWN):' | head -n 5
   exit 1
 fi
-EDGES=${BASH_REMATCH[1]} PHANTOM=${BASH_REMATCH[2]}
-UNKNOWN=${BASH_REMATCH[3]} INDEX_UNKNOWN=${BASH_REMATCH[4]}
+EDGES=${BASH_REMATCH[1]} CHECKED=${BASH_REMATCH[2]} PHANTOM=${BASH_REMATCH[3]}
+UNKNOWN=${BASH_REMATCH[4]} INVALID=${BASH_REMATCH[5]} INDEX_UNKNOWN=${BASH_REMATCH[6]}
 
 if [[ "${EDGES}" -eq 0 ]]; then
   echo "DIAGRAM-GATE: not applicable — §13 carries no sigil edge"
@@ -703,15 +711,20 @@ elif [[ "${PHANTOM}" -gt 0 ]]; then
   printf '%s\n' "${LINT}" | grep -E ': (PHANTOM_EDGE|LABEL_UNKNOWN):'
   echo "Fix the diagram (or the code) in this milestone, then re-run."
   exit 1
+elif [[ "${INVALID}" -gt 0 ]]; then
+  echo "BLOCKED: ${INVALID} §13 sigil edge(s) the diagram makes uncheckable:"
+  printf '%s\n' "${LINT}" | grep -E ': UNKNOWN: (marked \(new\) but exists|no repo path|endpoint outside|unparsed sigil|not in the codemem graph .*endpoint missing)'
+  echo "Fix the diagram in this milestone (drop a stale (new), label the node with its path), then re-run."
+  exit 1
 elif [[ "${INDEX_UNKNOWN}" -gt 0 ]]; then
   echo "BLOCKED: the codemem index could not verify ${INDEX_UNKNOWN} §13 sigil edge(s):"
   printf '%s\n' "${LINT}" | grep -F 'codemem build' | head -n 1
   echo "Run \`codemem build\`, then re-run this check."
   exit 1
 else
-  echo "[$(date -Iseconds)] DIAGRAM_VERIFIED — ${MILESTONE_TITLE} — edges=${EDGES} phantom=0 unknown=${UNKNOWN}" \
+  echo "[$(date -Iseconds)] DIAGRAM_VERIFIED — ${MILESTONE_TITLE} — edges=${EDGES} checked=${CHECKED} phantom=0 unknown=${UNKNOWN}" \
     >> "${TASK_DIR}/${TASK_NAME}-provenance.log"
-  echo "DIAGRAM-GATE: PASS — edges=${EDGES} phantom=0 unknown=${UNKNOWN}"
+  echo "DIAGRAM-GATE: PASS — edges=${EDGES} checked=${CHECKED} phantom=0 unknown=${UNKNOWN}"
 fi
 ```
 

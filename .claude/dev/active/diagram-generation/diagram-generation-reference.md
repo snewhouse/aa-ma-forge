@@ -54,8 +54,10 @@ Architecture View: see plan.md §13 (Component view + Flow view; `Diagram-Waiver
    `pkgutil.iter_modules(aa_ma.__path__) - {aa_ma.render}`. A new top-level
    `aa_ma` module must join `.importlinter` `render-is-leaf` in the same commit.
 6. **The §6.7 gate fence is extracted by position.**
-   `tests/hooks/aa-ma-gate-python.bats:46` takes the FIRST ```bash fence after
-   `### 6.7 `. 58 tests across three bats suites depend on it.
+   `tests/hooks/aa-ma-gate-python.bats:46` (`_gate_fence`) executes the FIRST ```bash
+   fence after `### 6.7 `; `test_diagram_verified.bats` (AC7) asserts the order.
+   (`aa-ma-gate-scans.bats` syntax-checks every fence; the §6.8 suite reads §6.8 only —
+   corrected by the M11 §6.8 review.)
 7. **`aa-ma-gate` reads `tasks.md` only** (`gate.py:462`, one positional arg).
    Milestone-level fields ARE honoured (`gate.py:205-209` `_own_text`, OR'd with the
    sub-step roll-up at `:428`). Fields living only in plan.md are never read.
@@ -214,11 +216,13 @@ IO_DENSE_BAND repo=medical-research-skills sha=efafac209f3690c02f1ffc0f297f91c89
 - Measured 2026-09-25: this plan 51 Contract paths / 0 undrawn (after drawing `coverage.py` + 2 `scripts/`); mattpocock-trio-adoption 8 / 0; plan-architecture-views (completed) 5 / 1. [valid: 2026-09-25]
 - §6.8 hardening (M10): every Contract row token is a path (fail closed; `# comments`, `(parentheticals)` dropped; backticks and `:12-40` stripped; `- `/`| `/`Create:` accepted); every §13 label token counts as drawn; `_expand` iterative, `MAX_EXPANSIONS = 256` (past it the token stays whole); `EXEMPT_DIRS`/`ROOT_DOCS`/`MANIFESTS` public and tied to SKILL.md by a test; `--coverage` crash → `UNKNOWN: coverage could not run` exit 2; check 8's fence reads rc ∉ {0,1} as CRITICAL; mermaid_lint helpers `NEW_RE`, `mermaid_fences`, `node_labels` now public. [valid: 2026-09-25]
 
-## M11 facts (2026-09-25)
+## M11 facts (2026-09-25, revised by §6.8 2026-09-26)
 
-- Lint stdout: `sigils: edges=<N> phantom=<P> unknown=<K> index-unknown=<I>` printed before `render:` on every run; `sigils: UNKNOWN (§13 not read)` when an unterminated fence hides §13. `edges` = every sigil claim in §13 (incl. unparsed forms and `LABEL_UNKNOWN`); `phantom` = `PHANTOM_EDGE` + `LABEL_UNKNOWN`; `index-unknown` ⊆ `unknown`. Exit codes unchanged. [valid: 2026-09-25]
-- Code: `LintReport.sigil_edges: int | None` (None = §13 not read); `mermaid_lint.INDEX_UNKNOWN = "UNKNOWN_INDEX"` (code on index-class unknowns; still printed `UNKNOWN:`); `mermaid_lint.SIGIL_FINDINGS = ("PHANTOM_EDGE", "LABEL_UNKNOWN")`; `cli._sigil_summary`. Index class = the one branch where `_Graph.status is not OK` (missing, schema too old, stale, unreadable). [valid: 2026-09-25]
-- §6.7: the diagram fence is the SECOND ```bash fence after `### 6.7 ` (the first is the gate fence, sha256 17be760b… unchanged). Extract: `awk '/^### 6\.7 /{f=1} /^### 6\.8 /{f=0} f && /^```bash$/{n++; if (n == 2) {g=1; next}} g && /^```$/{exit} g'`. Refuses (exit 1) on phantom>0, index-unknown>0, lint rc>1, absent/UNKNOWN `sigils:` line, no ACTIVE milestone; `edges=0` → "not applicable", no evidence. [valid: 2026-09-25]
-- Evidence: `[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N phantom=0 unknown=K` appended by the fence itself on PASS. This plan at M11: edges=23 phantom=0 unknown=19. [valid: 2026-09-25]
-- Tests: `tests/hooks/test_diagram_verified.bats` (13, executes the fence against a throwaway indexed repo); `tests/render/test_{cli,phantom_edge}.py` (+7). [valid: 2026-09-25]
-- ADR-0015 Implemented. `engineering-standards.md` §1 `hook-modification` names `.github/workflows/**`; §5 row "`@kind` sigil edges verified (when §13 carries any)". [valid: 2026-09-25]
+- Lint stdout: `sigils: edges=<N> checked=<C> phantom=<P> unknown=<K> invalid=<V> index-unknown=<I>` printed before `render:` on every run; `sigils: UNKNOWN (§13 not fully read)` when any sigil-slot line in the plan's ```mermaid fences went unread by the §13 view scan (unterminated fence, misspelled §13 heading, view without `###`). `edges` = sigil claims read; `checked` = compared with the graph (held or PHANTOM_EDGE); `phantom` = PHANTOM_EDGE + LABEL_UNKNOWN; `invalid`, `index-unknown` ⊆ `unknown`. Exit codes unchanged. [valid: 2026-09-26]
+- Code: `LintReport.sigil_edges: int | None` (default None), `LintReport.sigil_checked`; constants `PHANTOM_EDGE`, `LABEL_UNKNOWN`, `SIGIL_FINDINGS`, `UNKNOWN_INDEX` (index missing/too old/stale/unreadable), `UNKNOWN_INVALID` (missing endpoint, stale `(new)` on an existing file, path-less label, unparsed form, outside the repo); all still print `UNKNOWN:`. `cli._sigil_summary`; the plan path is printed through `printable`. [valid: 2026-09-26]
+- Launcher: `aa_ma_lint_views` in `claude-code/hooks/lib/aa-ma-parse.sh` — rc 0/1 passed through, 127 when uv is missing or no `render:` line came back. [valid: 2026-09-26]
+- §6.7: the diagram fence is the SECOND ```bash fence after `### 6.7 ` (the first, the gate fence, sha256 17be760b… unchanged). Extract: `awk '/^### 6\.7 /{f=1} /^### 6\.8 /{f=0} f && /^```bash$/{n++; if (n == 2) {g=1; next}} g && /^```$/{exit} g'`. Refuses (exit 1): TASK_NAME not a plain slug, no ACTIVE milestone, lint rc>1, absent/UNKNOWN `sigils:` (last line wins), phantom>0, invalid>0, index-unknown>0. `edges=0` → "not applicable", no evidence. [valid: 2026-09-26]
+- Evidence: `[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K`, appended by the fence itself on PASS; the fence run is the check, nothing reads the line back. This plan after the §6.8 correction: edges=14 checked=11 phantom=0 unknown=3. [valid: 2026-09-26]
+- Known gap: codemem `file_edges` holds module-level imports only — a function-local import reads PHANTOM_EDGE; label such edges in prose (ADR-0015; carry-forward in tasks.md). [valid: 2026-09-26]
+- Tests: `tests/hooks/test_diagram_verified.bats` (21); `tests/render/test_{cli,phantom_edge}.py`. [valid: 2026-09-26]
+- ADR-0015 Implemented. `engineering-standards.md` §1 `hook-modification` names `.github/workflows/**`; §5 row "`@kind` sigil edges verified (when §13 carries any)". [valid: 2026-09-26]

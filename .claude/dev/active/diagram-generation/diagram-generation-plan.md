@@ -234,15 +234,15 @@ graph TD
         DB["packages/codemem-mcp/src/codemem/storage/db.py"]
         CCLI["packages/codemem-mcp/src/codemem/cli.py"]
         MCP["packages/codemem-mcp/src/codemem/mcp_tools/__init__.py"]
-        CUT["packages/codemem-mcp/src/codemem/draw/cut.py (new)"]
-        MM["packages/codemem-mcp/src/codemem/draw/mermaid.py (new)"]
-        REG["packages/codemem-mcp/src/codemem/draw/views.py (new)"]
-        PS["packages/codemem-mcp/src/codemem/draw/plugin_surface.py (new)"]
-        IOS["packages/codemem-mcp/src/codemem/draw/io_sinks.py (new)"]
-        CAP["packages/codemem-mcp/src/codemem/draw/captions.py (new)"]
-        SINKS["packages/codemem-mcp/src/codemem/draw/sinks.yaml (new)"]
-        DINIT["packages/codemem-mcp/src/codemem/draw/__init__.py (new)"]
-        SALLOW["packages/codemem-mcp/src/codemem/draw/surface_allowlist.py (new)"]
+        CUT["packages/codemem-mcp/src/codemem/draw/cut.py"]
+        MM["packages/codemem-mcp/src/codemem/draw/mermaid.py"]
+        REG["packages/codemem-mcp/src/codemem/draw/views.py"]
+        PS["packages/codemem-mcp/src/codemem/draw/plugin_surface.py"]
+        IOS["packages/codemem-mcp/src/codemem/draw/io_sinks.py"]
+        CAP["packages/codemem-mcp/src/codemem/draw/captions.py"]
+        SINKS["packages/codemem-mcp/src/codemem/draw/sinks.yaml"]
+        DINIT["packages/codemem-mcp/src/codemem/draw/__init__.py"]
+        SALLOW["packages/codemem-mcp/src/codemem/draw/surface_allowlist.py"]
         INCR["packages/codemem-mcp/src/codemem/incremental.py"]
         ASTG["packages/codemem-mcp/src/codemem/parser/ast_grep.py"]
         PRULES["packages/codemem-mcp/src/codemem/parser/rules/"]
@@ -250,11 +250,11 @@ graph TD
 
     subgraph aa_ma["aa_ma — the verifier, never imports codemem"]
         GR["src/aa_ma/grammar.py"]
-        DEPS["src/aa_ma/deps.py (new)"]
+        DEPS["src/aa_ma/deps.py"]
         ML["src/aa_ma/render/mermaid_lint.py"]
         HTML["src/aa_ma/render/html.py"]
         RCLI["src/aa_ma/render/cli.py"]
-        GRAPH["src/aa_ma/render/graph.py (new)"]
+        GRAPH["src/aa_ma/render/graph.py"]
         EXP["src/aa_ma/render/explorer.py (new)"]
         EXPJS["src/aa_ma/render/explorer.js (new)"]
         COV["src/aa_ma/render/coverage.py"]
@@ -263,6 +263,7 @@ graph TD
     subgraph surface["shipped surface + CI"]
         PLAN["claude-code/commands/aa-ma-plan.md"]
         EXEC["claude-code/commands/execute-aa-ma-milestone.md"]
+        PARSE["claude-code/hooks/lib/aa-ma-parse.sh"]
         PV["claude-code/skills/plan-verification/SKILL.md"]
         UC["claude-code/skills/understand-codebase/"]
         AGENTS["claude-code/agents/"]
@@ -277,19 +278,19 @@ graph TD
         REGEN["scripts/regen-generated.sh"]
     end
 
-    DOCS["docs/architecture/component.md (new)"]
-    CAPJSON["docs/architecture.captions.json (new)"]
+    DOCS["docs/architecture/component.md"]
+    CAPJSON["docs/architecture.captions.json"]
 
     PY -->|feeds| RES
-    DB -->|"@import"| SQL
-    CUT -->|"@import"| DB
+    DB -->|loads| SQL
+    CUT -->|reads the index| DB
     MM -->|"@import"| CUT
     REG -->|"@import"| MM
-    PS -->|"@import"| MM
-    IOS -->|"@import"| SINKS
-    CAP -->|"@import"| REG
-    CCLI -->|"@import"| REG
-    MCP -->|"@import"| CUT
+    PS -->|"@import"| CUT
+    IOS -->|loads| SINKS
+    CAP -->|"@import"| CUT
+    CCLI -->|imports inside a function| REG
+    MCP -->|will import, M13| CUT
     REG -->|generates| DOCS
     CAP -->|reads| CAPJSON
 
@@ -299,7 +300,6 @@ graph TD
     EXP -->|"@import"| HTML
     RCLI -->|"@import"| EXP
     DEPS -->|"@import"| GR
-    ML -->|"@import"| DEPS
 
     PLAN -->|seeds section 13 via| CCLI
     PV -->|Angle 6 coverage rule| PLAN
@@ -309,17 +309,17 @@ graph TD
     COV -->|"@import"| ML
     MIOB -->|git archive, then build + band| CCLI
     REGEN -->|build, draw --write, draw --check| CCLI
-    EXEC -->|section 6.7 HARD item| RCLI
+    EXEC -->|section 6.7 HARD item| PARSE
+    PARSE -->|aa_ma_lint_views launches| RCLI
     UC -->|Deep tier runs| CCLI
     YML -->|architecture-drift job| CCLI
     YML -->|node contract test| EXP
     YML -->|lint-imports step| ILINT
     ILINT -->|forbids aa_ma to codemem| GRAPH
-    DINIT -->|"@import"| CUT
     PS -->|"@import"| SALLOW
     INCR -->|"@import"| DB
-    ASTG -->|"@import"| PRULES
-    IOS -->|"@import"| ASTG
+    ASTG -->|loads rules| PRULES
+    IOS -->|reads edges written by| ASTG
     SRV -->|"@import"| MCP
     EXP -->|emits| EXPJS
     EXEC -->|section 6.7 row| ESTD
@@ -1241,6 +1241,7 @@ Files:
   Modify  docs/adr/INDEX.md
   Modify  src/aa_ma/render/mermaid_lint.py    # LintReport sigil counts (amended 2026-09-25)
   Modify  src/aa_ma/render/cli.py             # `sigils:` summary line (amended 2026-09-25)
+  Modify  claude-code/hooks/lib/aa-ma-parse.sh # aa_ma_lint_views launcher (§6.8, 2026-09-25)
   Test    tests/render/{test_cli,test_phantom_edge}.py
   Test    tests/hooks/test_diagram_verified.bats (new)
   Verify  tests/hooks/aa-ma-gate-python.bats            # 32 tests — MUST stay green

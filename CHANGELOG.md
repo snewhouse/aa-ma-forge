@@ -30,12 +30,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   check 8 (WARNING) for plans `Created:` on-or-after 2026-09-11.
 - **§13 sigil edges as a HARD acceptance criterion (`diagram-generation` M11, ADR-0015)** — `/execute-aa-ma-milestone`
   §6.7 gains a second fence, after the gate fence: when plan §13 carries a sigil edge, it refuses COMPLETE on a
-  `PHANTOM_EDGE`/`LABEL_UNKNOWN` or on an index that could not answer (missing, stale, unreadable — the refusal names
-  `codemem build`), and otherwise records `DIAGRAM_VERIFIED — <milestone> — edges=N phantom=0 unknown=K` in
-  `provenance.log`. Per-claim `UNKNOWN`s (`(new)` endpoints, path-less labels, plugin sigils) are counted, not
-  refused; a plan without sigils is untouched. `aa-ma-lint-views` prints `sigils: edges=N phantom=P unknown=K
-  index-unknown=I` before `render:` (`sigils: UNKNOWN` when an unterminated fence hides §13); exit codes unchanged.
-  `aa-ma-gate` is untouched. `engineering-standards.md`: new §5 checklist row; `hook-modification` now names
+  `PHANTOM_EDGE`/`LABEL_UNKNOWN`, on an authoring error (an edge to a missing file, a stale `(new)`, a path-less
+  label, an unparsed edge form), or on an index that could not answer (missing, stale, unreadable — the refusal names
+  `codemem build`), and otherwise records `DIAGRAM_VERIFIED — <milestone> — edges=N checked=C phantom=0 unknown=K`
+  in `provenance.log`. A genuinely planned `(new)` file, a plugin sigil or an unmodelled language is counted, not
+  refused; a plan without sigils is untouched. `aa-ma-lint-views` prints `sigils: edges=N checked=C phantom=P
+  unknown=K invalid=V index-unknown=I` before `render:` (`sigils: UNKNOWN` when any sigil edge in the plan's mermaid
+  fences went unread); exit codes unchanged; launched as `aa_ma_lint_views` from `aa-ma-parse.sh`. `aa-ma-gate` is
+  untouched. `engineering-standards.md`: new §5 checklist row; `hook-modification` now names
   `.github/workflows/**`.
 - **I/O-boundary view (`diagram-generation` M9)** — `docs/architecture/io.md` is generated from the codemem
   graph: one arrow per file (per L1 folder once per-file arrows exceed the 120-edge dense band) into database /

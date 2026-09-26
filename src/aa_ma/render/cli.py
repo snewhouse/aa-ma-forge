@@ -10,7 +10,7 @@ from pathlib import Path
 from aa_ma.render.html import render_markdown
 from aa_ma.render.coverage import coverage_findings
 from aa_ma.render.graph import printable
-from aa_ma.render.mermaid_lint import INDEX_UNKNOWN, SIGIL_FINDINGS, LintReport, lint_plan
+from aa_ma.render.mermaid_lint import SIGIL_FINDINGS, UNKNOWN_INDEX, UNKNOWN_INVALID, LintReport, lint_plan
 
 
 def lint_main(argv: Sequence[str] | None = None) -> int:
@@ -47,21 +47,28 @@ def lint_main(argv: Sequence[str] | None = None) -> int:
         except Exception as e:  # a crash is UNKNOWN (exit 2), never "findings" or clean (L-012)
             print(f"{a.plan}:1: UNKNOWN: coverage could not run: {printable(type(e).__name__)}")
             return 2
+    where = printable(str(a.plan))
     for f in findings:
-        print(f"{a.plan}:{f.line}: {f.code}: {printable(f.message)}")
+        print(f"{where}:{f.line}: {f.code}: {printable(f.message)}")
     for f in rep.unknowns:  # informational: an unevaluable claim never sets the exit (L-012)
-        print(f"{a.plan}:{f.line}: UNKNOWN: {printable(f.message)}")
+        print(f"{where}:{f.line}: UNKNOWN: {printable(f.message)}")
     print(f"sigils: {_sigil_summary(rep)}")  # read by the §6.7 HARD item (ADR-0015)
     print(f"render: {rep.render_status}")
     return 1 if findings else 0
 
 
 def _sigil_summary(rep: LintReport) -> str:
+    """`edges=N checked=C phantom=P unknown=K invalid=V index-unknown=I`; invalid and
+    index-unknown are subsets of unknown. `UNKNOWN (…)` when not every sigil claim was read."""
     if rep.sigil_edges is None:
-        return "UNKNOWN (§13 not read)"
+        return "UNKNOWN (§13 not fully read)"
     phantom = sum(f.code in SIGIL_FINDINGS for f in rep.findings)
-    index = sum(f.code == INDEX_UNKNOWN for f in rep.unknowns)
-    return f"edges={rep.sigil_edges} phantom={phantom} unknown={len(rep.unknowns)} index-unknown={index}"
+    invalid = sum(f.code == UNKNOWN_INVALID for f in rep.unknowns)
+    index = sum(f.code == UNKNOWN_INDEX for f in rep.unknowns)
+    return (
+        f"edges={rep.sigil_edges} checked={rep.sigil_checked} phantom={phantom} "
+        f"unknown={len(rep.unknowns)} invalid={invalid} index-unknown={index}"
+    )
 
 
 def render_main(argv: Sequence[str] | None = None) -> int:

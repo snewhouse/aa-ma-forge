@@ -417,6 +417,8 @@ evaluates these structural conditions against the plan:
    hold) and `LABEL_UNKNOWN` (a typo'd `@` sigil); a `file:line: UNKNOWN: reason` line is
    INFO — an unevaluable sigil claim (`(new)` endpoint, no/stale index, plugin sigil) that
    never sets the exit code and is never read as PASS;
+   the `sigils: …` line is a count read by `/execute-aa-ma-milestone` §6.7 (ADR-0015) —
+   informational at planning time;
    `render: FAIL` → CRITICAL (a mermaid parse error); `render: UNKNOWN` → INFO
    (no working `mmdc`/Chromium — never read UNKNOWN as PASS, L-012); exit 2 →
    CRITICAL (usage: plan path missing or not a file). Before `tasks.md` exists

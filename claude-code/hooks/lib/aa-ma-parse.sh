@@ -15,6 +15,7 @@
 #     aa_ma_gate <file> [--milestone N] [--step N.M] -> kv lines from the Python SSoT gate; rc 0-4, 127 if it cannot run  (ENFORCING)
 #     aa_ma_gate_field <key>  (stdin: kv)     -> value after the first `=`, verbatim
 #     aa_ma_deps <graph|check|advisory> <tasks.md> -> `python -m aa_ma.deps` output; rc passed through  (ADVISORY — never a gate)
+#     aa_ma_lint_views <plan.md> [args...] -> `aa-ma-lint-views` output; rc 0/1 passed through, 127 if it cannot run  (read by the §6.7 diagram item)
 #
 # This header is the discovery surface: it is the first thing anyone sourcing
 # the library reads, and a symbol missing from it gets reimplemented instead of
@@ -304,6 +305,30 @@ aa_ma_deps() {
     else
         uv run --quiet --project "$root" python -m aa_ma.deps "$@"
     fi
+}
+
+# -----------------------------------------------------------------------------
+# aa_ma_lint_views <plan.md> [aa-ma-lint-views args...]
+#   `aa-ma-lint-views` from the plugin checkout, located as aa_ma_gate does. Its
+#   exit code passes through (0 clean / 1 findings); 127 — with nothing on stdout
+#   — when it could not run, told apart by the `render:` line every real run
+#   prints last. Read by the §6.7 HARD item for §13 sigil edges (ADR-0015).
+# -----------------------------------------------------------------------------
+aa_ma_lint_views() {
+    local root out rc
+    root="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)"
+    if ! command -v uv >/dev/null 2>&1; then
+        echo "BLOCKED: aa-ma-lint-views needs uv on PATH and it is missing — refusing, not skipping" >&2
+        return 127
+    fi
+    out=$(uv run --quiet --project "$root" aa-ma-lint-views "$@")
+    rc=$?
+    if ! printf '%s\n' "$out" | grep -q '^render: '; then
+        echo "BLOCKED: aa-ma-lint-views did not run (uv rc ${rc}, project ${root}) — refusing, not skipping" >&2
+        return 127
+    fi
+    printf '%s\n' "$out"
+    return "$rc"
 }
 
 # -----------------------------------------------------------------------------

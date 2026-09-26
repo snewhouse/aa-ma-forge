@@ -540,3 +540,47 @@ d82d007 (RED) 98 s before 484f7d2; RED verified in a worktree. Fix round: 60f608
 
 ## Revision History
 - 2026-09-25: 0 CRITICAL; 10 WARNINGs + 9 INFOs fixed RED-first; pytest 1538 / 2 skipped, bats 210/210, lint-imports 4/4, ruff clean; both fences shellcheck clean and run live; own plan `--coverage` clean.
+
+---
+
+# Milestone 11 — §6.7 HARD item + `DIAGRAM_VERIFIED` + ADR-0015
+
+Window 6037f62..5d42edd, Audit-Profile full, 5 agents in parallel (§6.6 angles folded into code-reviewer).
+
+## Summary
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 1 | 2 | 4 | CRITICAL accepted → fixed |
+| security-auditor | 0 | 1 | 4 | WARN → fixed |
+| tdd-sequence-auditor | 0 | 0 | 0 | PASS (9125296 RED 80 min before adc3a0c; RED verified in a worktree) |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS (no dependency change) |
+| future-proofing-auditor | 1 | 2 | 5 | fixed |
+| **TOTAL** | **2** | **5** | **13** | **PASS_WITH_WARNINGS after fixes** |
+
+## Code Review
+- CRITICAL — fail-open: §13 not found (`## 13. Architecture & Diagrams`) or a view without its `###` heading printed `sigils: edges=0`, and the fence passed as "not applicable" (reproduced). **FIXED**: `sigil_edges` defaults to None; the lint counts sigil-slot lines in every ```mermaid fence of the plan and reports `sigils: UNKNOWN (§13 not fully read)` when the view scan read fewer. Tests: 3 Python shapes + 2 bats.
+- WARNING — an edge to a missing non-`(new)` file counted as UNKNOWN → PASS. **FIXED** under Ste's "authoring errors refuse" decision (below).
+- WARNING — third copy of the launcher, without the lib's uv / did-not-run guards (L-005). **FIXED**: `aa_ma_lint_views` in `aa-ma-parse.sh` (Exports header updated); the fence calls it; bats covers uv missing and uv not spawning.
+- INFO — stale `DIAGRAM_VERIFIED` line: **documented** (the fence run is the check; the line is its record; nothing reads it back) in §6.7, §5 row, ADR. INFO — SKILL.md check 6 grammar missed `sigils:`: **FIXED**. INFO — index-unknown ⊆ unknown: **documented** (cli docstring, ADR). INFO — `INDEX_UNKNOWN = "UNKNOWN_INDEX"` naming: **FIXED** (`UNKNOWN_INDEX`, `UNKNOWN_INVALID`).
+
+## Security
+- WARNING — a per-claim UNKNOWN let `DIAGRAM_VERIFIED … phantom=0` stand for a diagram in which nothing was checked (split label, unparsed form, stale `(new)`; reproduced). **FIXED**: authoring errors are `invalid` and refuse; `checked=C` added to the summary and the evidence line.
+- INFO — `head -n 1` on `sigils:`: **FIXED** (`tail -n 1`: the CLI's own line is last). INFO — plan path printed raw / TASK_NAME unvalidated: **FIXED** (`printable(str(a.plan))`; the fence refuses a TASK_NAME that is not a plain slug — bats makes `../t` resolve so the refusal is the check itself). INFO — lib sourced from the working repo first: **kept** (same order as the gate fence and three other commands; pre-existing). INFO — heading stored verbatim: **kept** (control characters already refused by `aa-ma-gate`).
+
+## Future-Proofing
+- CRITICAL (rated a wrong comment, not an enforcement hole; fixed without a panel) — "three bats suites / 58 tests extract the first fence": only `aa-ma-gate-python.bats` does (`aa-ma-gate-scans` syntax-checks every fence; the §6.8 suite reads §6.8). The claim came from the plan's FENCE-ORDER note. **FIXED** in the command, the ADR drivers and reference.md item 6.
+- WARNING — same count as a current fact in the ADR. **FIXED**. WARNING — `SIGIL_FINDINGS` spelled apart from its creation sites. **FIXED**: `PHANTOM_EDGE`/`LABEL_UNKNOWN` constants used where the findings are made; test asserts every sigil finding code lands in `SIGIL_FINDINGS`.
+- INFO — "33-file corpus" dated in the ADR: **FIXED**. INFO — format/evidence strings in several places: tied by the bats that run the shipped fence against the real CLI; prose copies acknowledged. INFO — `/../../..` depth in the fence: gone with the launcher. INFO — fixture numbers and far-future dates in tests: kept.
+
+## Dogfooding: this plan's own §13 under the tightened rule
+Dropping the 13 stale `(new)` marks turned 17 edges into checked claims, and 8 were `PHANTOM_EDGE` — edges the plan predicted and the code never grew (`cut → db`, `plugin_surface → mermaid`, `captions → views`, `mcp_tools → cut`, `mermaid_lint → deps`, `draw/__init__ → cut`, `io_sinks → ast_grep`) plus one true import the graph cannot see (`codemem/cli.py` imports `draw.views` inside a function). All corrected to the code; `SQL`/`PRULES` (`@import` on files that are read, not imported) relabelled in prose. Result: `edges=14 checked=11 phantom=0 unknown=3 invalid=0 index-unknown=0`. Function-local imports recorded as a carry-forward and in ADR-0015.
+
+## User Override Decisions
+| Severity | Finding | Decision | Rationale |
+|---|---|---|---|
+| CRITICAL | unread §13 reads `edges=0` (code-reviewer) | accept — fixed | Ste |
+| WARNING ×2 | per-claim UNKNOWN passes a false diagram | tighten: authoring errors refuse, `checked=` added | Ste |
+| WARNING | launcher duplicated in the fence | add `aa_ma_lint_views` now | Ste |
+
+## Revision History
+- 2026-09-25/26: RED 15b0e8c (17 Python + 8 bats failing for the stated reasons; two vacuous passes made to fail first). Fixes GREEN: pytest 1559 / 2 skipped; bats 231/231; 58 protected tests 32/10/16; gate-fence sha256 17be760b… unchanged; both fences shellcheck clean; ruff + lint-imports 4/4; regen stamp-only.

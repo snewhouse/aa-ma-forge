@@ -134,7 +134,7 @@ checklist. The HARD/SOFT column indicates milestone-level enforcement:
 | AA-MA artifacts in sync; git clean              | HARD | `git status` clean for AA-MA files; zero `Status: PENDING` in milestone |
 | `Critical-Path:` evidence (when field present)  | HARD | `CRITICAL_PATH_REVIEW` entry in `provenance.log`                        |
 | `Prototype-Required:` evidence (when YES)       | HARD | `PROTOTYPE — <milestone heading> — <verdict>` entry in `provenance.log` |
-| `@kind` sigil edges verified (when §13 carries any) | HARD | `DIAGRAM_VERIFIED — <milestone heading> — edges=N phantom=0 unknown=K` entry in `provenance.log` (ADR-0015) |
+| `@kind` sigil edges verified (when §13 carries any) | HARD | §6.7 diagram fence passes; it records `DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K` in `provenance.log` (ADR-0015) |
 | No assumptions left unvalidated                 | SOFT | Declared in `context-log.md`                                            |
 | Relevant skills/subagents consulted             | SOFT | `provenance.log` shows skill invocations                                |
 | Changes reviewed against past mistakes          | SOFT | Declared in plan element #12                                            |

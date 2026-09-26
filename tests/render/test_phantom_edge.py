@@ -120,7 +120,7 @@ def test_unlabelled_and_prose_edges_are_never_reported(repo: Path, state: str) -
 
 def _unknown(report, needle: str) -> str:
     [f] = [f for f in report.unknowns if f.line == _line_of(FIXTURE, needle)]
-    assert f.code == "UNKNOWN"
+    assert f.code.startswith("UNKNOWN")  # printed `UNKNOWN:`; the suffix only classifies it (M11)
     return f.message
 
 

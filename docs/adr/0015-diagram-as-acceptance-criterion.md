@@ -33,8 +33,8 @@ COMPLETE, and where is that enforced?** (Map Ticket 15.)
 - L-012: a check that did not run is never a pass.
 - Opt-in all the way up (Ticket 5): a plan without sigils must never be touched.
 - A refusal must name its remedy; a wall with no door gets bypassed.
-- Three bats suites extract the *first* ```bash fence after `### 6.7 ` — any new fence
-  that lands before it silently changes what 58 tests execute.
+- `tests/hooks/aa-ma-gate-python.bats` executes the *first* ```bash fence after
+  `### 6.7 ` — any new fence that lands before it silently changes what that suite runs.
 
 ## Considered Options
 
@@ -54,21 +54,26 @@ placed after the gate fence. It resolves the ACTIVE milestone's heading through
 now prints before `render:`:
 
 ```
-sigils: edges=<N> phantom=<P> unknown=<K> index-unknown=<I>
+sigils: edges=<N> checked=<C> phantom=<P> unknown=<K> invalid=<V> index-unknown=<I>
 ```
+
+`checked` is how many edges were actually compared with the graph; `invalid` and
+`index-unknown` are subsets of `unknown`. The fence reaches the lint through the
+`aa_ma_lint_views` launcher in `aa-ma-parse.sh`, beside `aa_ma_gate`.
 
 | Lint says | Verdict |
 |-----------|---------|
 | `edges=0` | not applicable — no evidence written |
 | `phantom>0` (`PHANTOM_EDGE` + `LABEL_UNKNOWN`) | BLOCKED |
+| `invalid>0` — edge to a missing file, stale `(new)`, path-less label, unparsed form, path outside the repo | BLOCKED |
 | `index-unknown>0` — no, stale, too-old or unreadable index | BLOCKED; the refusal names `codemem build` |
-| no `sigils:` line, `sigils: UNKNOWN` (§13 hidden by an unterminated fence), lint exit 2 | BLOCKED |
-| otherwise | PASS; appends `[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N phantom=0 unknown=K` to `provenance.log` |
+| no `sigils:` line, `sigils: UNKNOWN` (a sigil edge in a mermaid fence §13's view scan never reached, or an unterminated fence), the lint did not run | BLOCKED |
+| otherwise | PASS; appends `[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K` to `provenance.log` |
 
 The evidence line has the shape of `CRITICAL_PATH_REVIEW` and `PROTOTYPE`, so the §5
 Verification column stays uniform.
 
-### Two amendments made at execution (Ste, 2026-09-25)
+### Three amendments made at execution (Ste, 2026-09-25)
 
 1. **Only an index UNKNOWN refuses.** The map said "`UNKNOWN` refuses". Measured on
    this plan's own §13 first: 23 sigil edges, 19 `UNKNOWN`, none from the index — 17
@@ -83,20 +88,35 @@ Verification column stays uniform.
    sigils where §13 holds 23 (two sit in acceptance-criteria prose), which would also
    make the opt-out wrong; a `python -c` over lint internals would ship untested code
    inside markdown. The lint already knows the answer, so it prints it. Exit codes
-   unchanged; `LintReport.sigil_edges` is `None` when §13 was not read, so an
-   unterminated fence can never pass as `edges=0`.
+   unchanged; `LintReport.sigil_edges` is `None` whenever a sigil edge in any of the
+   plan's mermaid fences went unread (an unterminated fence, a misspelled §13 heading, a
+   view without its `###` heading), so an unread diagram can never pass as `edges=0`.
+3. **Authoring errors refuse too** (post-implementation review). Amendment 1 let every
+   per-claim `UNKNOWN` pass, and the review reproduced `DIAGRAM_VERIFIED … phantom=0`
+   for diagrams in which nothing was checked: an edge to a file that does not exist, a
+   label split across lines, an unparsed edge form, a stale `(new)`. Those are errors the
+   diagram's author can fix now, so they are `invalid` and refuse. Only a claim that
+   cannot be checked *yet* — a genuinely planned file, a plugin sigil, an unmodelled
+   language — still passes, and `checked=C` in the evidence says how much was compared.
 
 ### Consequences
 
 - Good: the diagram is an acceptance criterion with teeth, and only for plans that
   opted in by writing a sigil. The refusal is a one-command fix.
 - Good: `gate.py` untouched — `aa-ma-gate --format kv` output over the 33-file corpus
-  is identical to before.
+  was identical before and after (measured 2026-09-25).
 - Bad: a second fence in §6.7 depends on fence order. Mitigated by
   `tests/hooks/test_diagram_verified.bats`, which executes the shipped fence and asserts
   the first fence is still the gate fence.
-- Bad: `(new)` endpoints stay unchecked until built. Accepted: they are counted, and
-  dropping `(new)` once a file exists turns the claim into a checked one.
+- Bad: `(new)` endpoints stay unchecked until built. Accepted: they are counted, and a
+  `(new)` left on a file that exists refuses, so the claim becomes a checked one.
+- Bad: codemem's import graph holds module-level imports only, so a true import made
+  inside a function (`codemem/cli.py` imports `draw.views` that way) reads as
+  `PHANTOM_EDGE` and refuses. Until the index records them, label such an edge in prose
+  (`-->|imports inside a function|`) rather than with `@import`. Found on this plan's own
+  §13, 2026-09-25.
+- The fence run is the check; `DIAGRAM_VERIFIED` is its record. Nothing reads the line
+  back, so a stale line cannot satisfy anything.
 
 ## More Information
 

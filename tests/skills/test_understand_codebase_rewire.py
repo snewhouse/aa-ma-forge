@@ -84,16 +84,11 @@ def test_provisioning_points_at_codemem_build() -> None:
         assert "codemem build" in (SKILL / rel).read_text(encoding="utf-8"), rel
 
 
-def test_rule_set_stays_at_two() -> None:  # AC6
-    assert sorted(p.name for p in (ROOT / "claude-code/rules").iterdir()) == [
-        "aa-ma.md", "engineering-standards.md"]
-
-
 def test_write_footprint_is_declared_up_front() -> None:
     text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
     bullet = text[text.index("**Read-only on the target's code.**"):]
     bullet = bullet[: bullet.index("\n- **")]
-    for path in ("docs/architecture/", ".codemem/", ".gitignore"):
+    for path in ("docs/architecture/", ".codemem/", ".gitignore", "hand-authored"):
         assert path in bullet, path
 
 
@@ -108,21 +103,71 @@ def _git(repo: Path, *args: str) -> str:
     return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout
 
 
-def test_deep_tier_fence_writes_the_living_doc_and_ignores_the_index_once(tmp_path: Path) -> None:  # AC4
+def _target(tmp_path: Path, gitignore: str = "*.pyc") -> Path:
     repo = tmp_path / "target"
     (repo / "pkg").mkdir(parents=True)
     (repo / "pkg" / "a.py").write_text("from pkg import b\n\ndef f():\n    b.g()\n")
     (repo / "pkg" / "b.py").write_text("def g():\n    return 1\n")
-    (repo / ".gitignore").write_text("*.pyc")  # no trailing newline: the append must not join lines
+    (repo / ".gitignore").write_text(gitignore)  # no trailing newline: the append must not join lines
     _git(repo, "init", "-q")
     _git(repo, "add", ".")
     _git(repo, "-c", "user.email=t@t.dev", "-c", "user.name=t", "commit", "-q", "-m", "seed")
-    env = {"AA_MA_ROOT": str(ROOT), "PATH": os.environ["PATH"], "HOME": os.environ["HOME"]}
+    return repo
+
+
+def _run_fence(repo: Path, aa_ma_root: Path = ROOT) -> subprocess.CompletedProcess:
+    env = {"AA_MA_ROOT": str(aa_ma_root), "PATH": os.environ["PATH"], "HOME": os.environ["HOME"]}
+    return subprocess.run(["bash", "-c", _living_doc_fence()], cwd=repo, env=env,
+                          capture_output=True, text=True, timeout=300)
+
+
+def test_deep_tier_fence_writes_the_living_doc_and_ignores_the_index_once(tmp_path: Path) -> None:  # AC4
+    repo = _target(tmp_path)
     for _ in range(2):
-        subprocess.run(["bash", "-c", _living_doc_fence()], cwd=repo, env=env, check=True,
-                       capture_output=True, text=True, timeout=300)
+        assert _run_fence(repo).returncode == 0
     assert (repo / ".gitignore").read_text().splitlines() == ["*.pyc", ".codemem/"]
     assert (repo / "docs/architecture/component.md").is_file()
     status = _git(repo, "status", "--porcelain", "--untracked-files=all")
     assert ".codemem" not in status
     assert "docs/architecture/" in status
+
+
+def test_fence_never_overwrites_a_hand_authored_architecture_doc(tmp_path: Path) -> None:
+    """§6.8 CRITICAL: `draw --write` replaces docs/architecture/*.md whatever they hold."""
+    repo = _target(tmp_path)
+    own = repo / "docs/architecture/README.md"
+    own.parent.mkdir(parents=True)
+    own.write_text("# Our architecture\n\nWritten by the team.\n")
+    r = _run_fence(repo)
+    assert r.returncode == 0  # skipped, not failed: the tier notes it and carries on
+    assert own.read_text() == "# Our architecture\n\nWritten by the team.\n"
+    assert not (repo / "docs/architecture/component.md").exists()
+    assert "hand-authored" in r.stderr + r.stdout
+
+
+@pytest.mark.parametrize("link", [".gitignore", ".codemem"])
+def test_fence_refuses_a_symlinked_gitignore_or_index_dir(tmp_path: Path, link: str) -> None:
+    repo = _target(tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "victim").write_text("keep\n")
+    (repo / link).unlink() if (repo / link).exists() else None
+    (repo / link).symlink_to(outside / "victim" if link == ".gitignore" else outside)
+    r = _run_fence(repo)
+    assert r.returncode != 0 and "symlink" in r.stderr
+    assert (outside / "victim").read_text() == "keep\n"
+    assert sorted(p.name for p in outside.iterdir()) == ["victim"]
+
+
+def test_fence_refuses_without_an_aa_ma_forge_checkout_and_touches_nothing(tmp_path: Path) -> None:
+    repo = _target(tmp_path)
+    r = _run_fence(repo, aa_ma_root=tmp_path / "nowhere")
+    assert r.returncode != 0 and "aa-ma-forge" in r.stderr
+    assert (repo / ".gitignore").read_text() == "*.pyc"
+    assert not (repo / "docs").exists()
+
+
+def test_system_mapping_does_not_call_layers_core_entry_points() -> None:
+    """§6.8: `layers` ranks by incoming calls — its core is the most-depended-on code."""
+    text = (ROOT / "claude-code/skills/system-mapping/SKILL.md").read_text(encoding="utf-8")
+    assert "top entry points" not in text

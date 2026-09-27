@@ -31,9 +31,9 @@ def server_mod():
     return _load_server_module()
 
 
-class TestTwelveSlots:
+class TestCanonicalSlots:
     def test_canonical_tool_names_declared(self, server_mod):
-        # The 12 canonical names per codemem-reference.md §12 MCP Tools.
+        # The canonical names: codemem-reference.md §12 MCP Tools + diagram (diagram-generation M13).
         expected = {
             # M1 (1–6)
             "who_calls", "blast_radius", "dead_code",
@@ -115,3 +115,20 @@ class TestReadOnlyConnectionPolicy:
         src = server_mod.__file__
         text = Path(src).read_text()
         assert "read_only" not in text or "read_only=False" not in text
+
+
+class TestBudgetDefault:
+    def test_every_budget_default_is_the_mcp_tools_constant(self, server_mod):
+        """One budget default: a handler literal would ignore a retuned mcp_tools._DEFAULT_BUDGET."""
+        import asyncio
+
+        from codemem import mcp_tools
+
+        async def _defaults():
+            tools = await server_mod.build_server().get_tools()
+            return {n: t.parameters["properties"]["budget"].get("default") for n, t in tools.items()
+                    if "budget" in t.parameters["properties"]}
+        defaults = asyncio.run(_defaults())
+        assert len(defaults) == len(server_mod.list_registered_tool_names())
+        assert set(defaults.values()) == {mcp_tools._DEFAULT_BUDGET}
+        assert "_DEFAULT_BUDGET" in Path(server_mod.__file__).read_text() and "8_000" not in Path(server_mod.__file__).read_text()

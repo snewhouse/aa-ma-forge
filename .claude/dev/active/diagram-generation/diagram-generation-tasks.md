@@ -496,9 +496,9 @@
 - Carry-forward (M8 §6.8, 2026-09-24): document `PHANTOM_EDGE` / `LABEL_UNKNOWN` / sigil `UNKNOWN` also in `claude-code/rules/engineering-standards.md` ("Diagram maintenance" bullet names only STALE_PATH) and `docs/adr/0010-architecture-views-and-render.md`, beside the spec/README/CHANGELOG already listed.
 
 ### Sub-step 14.1: [docs] CONTEXT.md: 7 glossary terms
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [pending]
+- Result Log: Ste: Proceed with the drafted wording. CONTEXT.md gains `### Derived architecture` with 6 entries covering the 7 terms (Derived View / Authored View is one paired entry, as planned), each term + definition + `_Avoid_:` (AC1, checked per entry). View entry's canonical kinds gain **I/O-boundary view** (AC2). Architecture View's `_Avoid_` no longer claims "there is no separate file" (false since M6). Relationships +2 lines; Provenance line. Definitions written from shipped code (Milestone graph is tasks.md-derived, so Derived = generated mechanically, not only from codemem). No implementation detail beyond names of the commands that produce each artifact.
 
 ### Sub-step 14.2: [docs] spec §XI body (no renumbering), quick-ref, foundations
 - Status: PENDING

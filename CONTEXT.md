@@ -78,10 +78,10 @@ _Avoid_: using "proposal" for the Candidate itself; the Proposal is the *case fo
 
 **Architecture View**:
 Plan element #13 of the AA-MA Planning Standard: the mermaid diagrams a plan carries so a cold agent can see the mechanism before reading the steps. Lives in `plan.md` §13 only; `reference.md` carries a one-line pointer. Required when `Audit-Profile` ∈ {full, code-only, infra}; absent otherwise via a canonical `Diagram-Waiver:` value.
-_Avoid_: "diagrams" unqualified (say which **View**), "architecture doc" (there is no separate file).
+_Avoid_: "diagrams" unqualified (say which **View**), "architecture doc" (that is the **Living architecture doc**, generated from the code; an Architecture View is the plan's own).
 
 **View**:
-One named mermaid block inside an **Architecture View**. Canonical kinds: **Component view** (what files/modules/hooks the plan touches and their dependencies — mandated), **Flow view** (the critical execution path being added or changed — mandated when `Critical-Path:` is present), **Data/State view** (only when the plan introduces a schema or state machine), **Milestone graph** (derived mechanically from `tasks.md` `Dependencies:` — never hand-authored).
+One named mermaid block inside an **Architecture View**. Canonical kinds: **Component view** (what files/modules/hooks the plan touches and their dependencies — mandated), **Flow view** (the critical execution path being added or changed — mandated when `Critical-Path:` is present), **Data/State view** (only when the plan introduces a schema or state machine), **Milestone graph** (derived mechanically from `tasks.md` `Dependencies:` — never hand-authored), **I/O-boundary view** (where code leaves the process — generated, in the **Living architecture doc**).
 _Avoid_: "picture", "chart".
 
 **Contract block**:
@@ -99,6 +99,32 @@ _Avoid_: "publish" (overloaded with release), "site".
 **Diagram-Waiver**:
 Canonical field on a plan (parallel to `TDD-Waiver:`) stating why no **Architecture View** is required. Accepted values are enumerated in the spec; novel values are rejected by `Skill(plan-verification)`.
 
+### Derived architecture (added 2026-09-27, diagram-generation)
+
+**Derived View / Authored View**:
+A **Derived View** is generated mechanically — from the codemem code graph, or from `tasks.md` for the **Milestone graph** — and never hand-edited: regenerate it, don't edit it. An **Authored View** is one a person writes in plan §13 to say what a plan intends; it may draw planned `(new)` files, and any edge it labels with a sigil (`@import`, `@call`, …) is checked against the code graph at the milestone gate.
+_Avoid_: "generated diagram" / "manual diagram" (say which **View**), "stale" for an Authored View that draws planned work.
+
+**Phantom edge**:
+A sigil-labelled edge in an **Authored View** that the code graph cannot back — the diagram claims an import or call the code does not hold (`PHANTOM_EDGE`). Unlabelled and prose-labelled edges are never checked, so they can never be phantom.
+_Avoid_: "broken edge", "wrong arrow" (say whether the edge is phantom — a false claim — or simply unchecked).
+
+**Plugin surface**:
+The graph of this plugin's own parts — commands → skills → agents → hooks — as their markdown references one another, each reference classed on disk, declared-external or dangling. Drawn in the **Living architecture doc** wherever a `claude-code/` tree exists.
+_Avoid_: "dependency graph" (that is the code graph), "skill map".
+
+**I/O-boundary view**:
+A **Derived View** of where code reaches outside its process — database, HTTP, filesystem, subprocess, environment, queue — as one merged view with a subgraph per language.
+_Avoid_: "side-effects diagram", "integrations view".
+
+**Living architecture doc**:
+The 100%-generated file set under `docs/architecture/` (README, Component view, **I/O-boundary view**, and the **Plugin surface** where one exists), rewritten by `codemem draw --write` and proven current by `codemem draw --check` in CI. A hand edit is drift; only its captions sidecar is authored.
+_Avoid_: "architecture docs" for hand-written material, "the diagrams folder".
+
+**Explorer**:
+An interactive HTML page of the whole code graph (`aa-ma-render --explorer`) that drills from directories to files in the browser. Graph-sourced, so it is NOT a **Render**: a Render comes from one markdown source. Disposable, never committed.
+_Avoid_: "HTML render of the graph", "diagram viewer".
+
 ## Relationships
 
 - A **Repo** has one or more **Skills** (and possibly other artifacts).
@@ -108,7 +134,8 @@ Canonical field on a plan (parallel to `TDD-Waiver:`) stating why no **Architect
 - A **Catalog** can index multiple **Repos**; an **Ecosystem** wraps one **Repo** plus its adjacent infrastructure.
 - An **Upstream** is the producer of a **Repo**.
 - A **Plan** carries at most one **Architecture View**, composed of one or more **Views**; a **Milestone** carries zero or more **Contract blocks**.
-- A **Render** is derived from exactly one markdown source; a **Share** is a snapshot of one **Render**.
+- A **Render** is derived from exactly one markdown source; a **Share** is a snapshot of one **Render**; the **Explorer** is derived from the code graph, never from markdown.
+- The **Living architecture doc** holds **Derived Views** only; an **Architecture View** holds **Authored Views** (plus the derived **Milestone graph**); a **Phantom edge** can only occur in an **Authored View**.
 - A **Fork** is in exactly one lifecycle state at a time: current, **Drift**, or **Orphan**; a **Re-fork** returns it to current. An **Adaptation** has no lifecycle state.
 
 ## Example dialogue
@@ -128,6 +155,8 @@ Canonical field on a plan (parallel to `TDD-Waiver:`) stating why no **Architect
 - **"adopt wayfinder"** was ambiguous between forking files and borrowing the concept. Resolved: charting is an **Adaptation**, not an Adoption.
 
 ## Provenance
+
+Extended 2026-09-27 during Milestone 14 of `diagram-generation`: Derived View / Authored View / Phantom edge / Plugin surface / I/O-boundary view / Living architecture doc / Explorer (terms approved 2026-09-22; wording approved by Ste).
 
 Extended 2026-09-20 during Phase 1.3 (`grill-with-docs`) of `mattpocock-trio-adoption`: Re-fork / Drift / Orphan / Adaptation.
 

@@ -8,6 +8,7 @@ subprocess mocking, and real-sg integration for TypeScript.
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 from pathlib import Path
 
@@ -307,3 +308,112 @@ class TestIntegration:
         assert "render" in syms and syms["render"].kind == "method"
         # Method parent correctly inferred
         assert syms["render"].parent_scip_id == syms["UserCard"].scip_id
+
+
+# ---------------------------------------------------------------------
+# Binary resolution — a foreign ``sg`` must never index to a silent zero
+# ---------------------------------------------------------------------
+
+# On Ubuntu ``/usr/bin/sg`` is util-linux's ``newgrp``, not ast-grep. This
+# stand-in answers ``--version`` the same way and rejects ``scan`` flags.
+_FOREIGN_SG = """#!/bin/sh
+if [ "$1" = "--version" ]; then echo "sg from util-linux 2.41.3"; exit 0; fi
+echo "sg: invalid option -- 'r'" >&2
+exit 1
+"""
+
+_REAL_AST_GREP = shutil.which("ast-grep")
+_LOGGER = "codemem.parser.ast_grep"
+_TS_SOURCE = "function greet(name: string): string {\n    return name;\n}\n"
+
+
+def _foreign_sg_dir(tmp_path: Path) -> Path:
+    bindir = tmp_path / "foreign-bin"
+    bindir.mkdir()
+    sg = bindir / "sg"
+    sg.write_text(_FOREIGN_SG)
+    sg.chmod(0o755)
+    return bindir
+
+
+def _ts_file(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    repo.mkdir(exist_ok=True)
+    f = repo / "a.ts"
+    f.write_text(_TS_SOURCE)
+    return f
+
+
+def _warnings(caplog) -> list[str]:
+    return [r.getMessage() for r in caplog.records
+            if r.name == _LOGGER and r.levelno >= logging.WARNING]
+
+
+class TestBinaryResolution:
+    def test_foreign_sg_on_path_warns_instead_of_silent_zero(self, tmp_path, monkeypatch, caplog):
+        monkeypatch.setenv("PATH", str(_foreign_sg_dir(tmp_path)))
+        f = _ts_file(tmp_path)
+        with caplog.at_level(logging.WARNING, logger=_LOGGER):
+            results = extract_with_ast_grep([f], package=".", repo_root=f.parent)
+        assert results[f].symbols == []
+        msgs = _warnings(caplog)
+        assert msgs, "a non-Python file indexed to zero symbols with no warning"
+        assert any("ast-grep" in m for m in msgs)
+
+    def test_foreign_sg_is_not_resolved(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("PATH", str(_foreign_sg_dir(tmp_path)))
+        assert ag.resolve_ast_grep_bin() is None
+
+    @pytest.mark.skipif(_REAL_AST_GREP is None, reason="ast-grep binary not on PATH")
+    def test_prefers_ast_grep_over_foreign_sg(self, tmp_path, monkeypatch, caplog):
+        foreign = _foreign_sg_dir(tmp_path)
+        real = tmp_path / "real-bin"
+        real.mkdir()
+        (real / "ast-grep").symlink_to(_REAL_AST_GREP)
+        monkeypatch.setenv("PATH", f"{foreign}:{real}")  # foreign sg wins a bare `sg` lookup
+        f = _ts_file(tmp_path)
+        with caplog.at_level(logging.WARNING, logger=_LOGGER):
+            results = extract_with_ast_grep([f], package=".", repo_root=f.parent)
+        assert {s.name for s in results[f].symbols} == {"greet"}
+        assert _warnings(caplog) == []
+
+    def test_failing_explicit_binary_is_logged_with_its_stderr(self, tmp_path, caplog):
+        sg = _foreign_sg_dir(tmp_path) / "sg"
+        f = _ts_file(tmp_path)
+        with caplog.at_level(logging.WARNING, logger=_LOGGER):
+            results = extract_with_ast_grep([f], package=".", repo_root=f.parent, sg_bin=str(sg))
+        assert results[f].symbols == []
+        msgs = _warnings(caplog)
+        assert any("exit 1" in m and "invalid option" in m for m in msgs)
+
+    def test_missing_explicit_binary_warns_and_does_not_raise(self, tmp_path, caplog):
+        f = _ts_file(tmp_path)
+        with caplog.at_level(logging.WARNING, logger=_LOGGER):
+            results = extract_with_ast_grep(
+                [f], package=".", repo_root=f.parent, sg_bin=str(tmp_path / "no-such-ast-grep"),
+            )
+        assert results[f].symbols == []
+        assert _warnings(caplog)
+
+    def test_no_supported_files_never_looks_for_a_binary(self, tmp_path, monkeypatch, caplog):
+        monkeypatch.setenv("PATH", str(_foreign_sg_dir(tmp_path)))
+        py = tmp_path / "a.py"
+        py.write_text("def f():\n    return 1\n")
+        with caplog.at_level(logging.WARNING, logger=_LOGGER):
+            assert extract_with_ast_grep([py], package=".", repo_root=tmp_path) == {}
+        assert _warnings(caplog) == []
+
+    def test_python_indexing_unaffected_when_ast_grep_missing(self, tmp_path, monkeypatch, caplog):
+        from codemem.indexer import parse_files
+
+        f = _ts_file(tmp_path)
+        py = f.parent / "app.py"
+        py.write_text("def greet(name):\n    return name\n")
+        monkeypatch.setenv("PATH", str(_foreign_sg_dir(tmp_path)))
+        with caplog.at_level(logging.WARNING, logger=_LOGGER):
+            parses, py_errors = parse_files([py, f], repo_root=f.parent, package=".")
+        by_lang = {p.lang: p for p in parses}
+        assert py_errors == 0
+        assert {s.name for s in by_lang["python"].result.symbols} == {"greet"}
+        assert by_lang["typescript"].result.symbols == []
+        assert _warnings(caplog)

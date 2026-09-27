@@ -75,6 +75,16 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   `Milestone 2, Milestone 3` · `Sub-step 1.1` · `<task-slug> Milestone 5`; enforced on active plans and taught by
   the scribe and `docs/templates/tasks-template.md`.
 
+### Changed
+
+- **Vocabulary and counts match what shipped (`diagram-generation` M14)** — `CONTEXT.md` defines Derived View /
+  Authored View, Phantom edge, Plugin surface, I/O-boundary view, Living architecture doc and Explorer (each with
+  `_Avoid_:`), and the View kinds gain the I/O-boundary view. Spec §XI element #13 documents sigil edges
+  (`PHANTOM_EDGE` / `LABEL_UNKNOWN` / `UNKNOWN`), the §6.7 `DIAGRAM_VERIFIED` item and Authored-vs-Derived; its prompt
+  template now lists all 13 outputs. The quick reference gains a diagrams CLI block. ADR-0014 and ADR-0016 are
+  Implemented. New `tests/test_doc_counts.py` fails when any command/skill/agent/rule/hook or MCP-tool count in
+  the living docs drifts from the tree.
+
 ## v0.15.0 (2026-09-24)
 
 ### Added

@@ -464,3 +464,15 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - Key outcome: codemem's 13th MCP tool `diagram` returns the draw cut as budget-sized mermaid (guarded collapse, measured first on a 2 481-file monorepo); understand-codebase's Deep tier writes the living architecture doc into the target (never over a hand-authored file) and no skill instructs running `/codebase-deep-dive` or `/index`; codemem is the named default index in impact-analysis and system-mapping.
 - Artifacts: packages/codemem-mcp/src/codemem/mcp_tools/__init__.py; claude-code/codemem/mcp/server.py; scripts/measure_mrs.sh; claude-code/skills/{understand-codebase/**,impact-analysis,system-mapping}; claude-code/agents/codebase-onboarding-synthesizer.md; tests/codemem/test_mcp_{diagram,server,server_integration}.py; tests/skills/test_understand_codebase_rewire.py; tests/codemem/test_plugin_surface.py + golden; SECURITY.md, codemem READMEs, CHANGELOG.md; docs/lessons.md (L-029); prototype branch prototype/diagram-generation-mcp (local only).
 - Tests: pytest 1636 passed / 2 skipped; ruff clean; lint-imports 4 kept; shellcheck clean on the fence and measure_mrs.sh.
+
+## [2026-09-27] GATE APPROVAL: Milestone 14: Glossary, spec, counts → release `v0.16.0`
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 5/5
+- Decision: APPROVED
+
+## [2026-09-27] Milestone Completion: Milestone 14: Glossary, spec, counts → release `v0.16.0`
+- Status: COMPLETE
+- Key outcome: the vocabulary (7 glossary terms), spec §XI element #13, quick reference and foundations now describe what diagram-generation shipped; asset and MCP-tool counts are guarded by a test instead of a sweep; v0.16.0 released.
+- Artifacts: CONTEXT.md; docs/spec/{aa-ma-specification,aa-ma-quick-reference,claude-code-foundations}.md; claude-code/rules/engineering-standards.md; docs/adr/{0010,0014,0016,INDEX}.md; CHANGELOG.md; tests/test_doc_counts.py; tests/commands/test_planning_standard_count.py; release v0.16.0 (a3d45a7).
+- Tests: pytest 1643 passed / 2 skipped; bats 256/256; lint-imports 4 kept; CI green.

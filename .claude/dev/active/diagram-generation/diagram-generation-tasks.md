@@ -483,7 +483,7 @@
 - Result Log: Mode: AFK — auto-dispatched. `tests/skills/test_understand_codebase_frontmatter.py` + `tests/assets/test_understand_codebase_xrefs.py` 6/6 passed; `git diff --name-status 1d10771 HEAD -- claude-code/skills/understand-codebase` = 9 × M, 0 A/D (references/ inventory intact). Live Deep-tier run on a scratch clone of medical-research-skills with the fence exactly as shipped (AA_MA_ROOT resolved through ~/.claude/skills symlink), run twice: `git status` = ` M .gitignore` + 3 × `?? docs/architecture/{README,component,io}.md` (no plugin-surface: no claude-code/ there); `.codemem/` lines in .gitignore = 1; `.codemem/` not in status; `codemem draw --check` in the clone: OK. Clone local only.
 
 ## Milestone 14: Glossary, spec, counts → release `v0.16.0`
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 13
 - Gate: HARD
 - Audit-Profile: docs-only
@@ -492,6 +492,7 @@
 - Effort: 0.5
 - Goal: The vocabulary and the counts match what shipped.
 - Acceptance Criteria: 5 criteria — see plan.md § Milestone 14
+- Result Log: COMPLETE 2026-09-27 — 5/5 AC (Ste approved, HARD). AC1/AC2 CONTEXT.md 7 terms with `_Avoid_:`, View kinds + I/O-boundary view (7f0aed7); spec §XI #13 + prompt template item 13, quick-ref CLI block, foundations, ADR-0014/0016 Implemented, M8 carry-forward (846100e); AC3 counts already true, AC4 met by tests/test_doc_counts.py (Ste — Tier 6 unconfigured here, a config flags ~130 frozen-history lines) (9727344); §6.8 docs-only 0C/2W/7I fixed (60f8351); AC5 v0.16.0 cut a3d45a7, annotated tag, GitHub Release, verified, install.sh re-run. DIAGRAM_VERIFIED 13/13 (1e8a1af). pytest 1643 / bats 256 / CI green. Commits: c03fa81 (ACTIVE), 7f0aed7, 846100e, 9727344, 4409953 (CHANGELOG), 60f8351, a3d45a7 (bump), 14.4 log, 1e8a1af.
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 - Carry-forward (M8 §6.8, 2026-09-24): document `PHANTOM_EDGE` / `LABEL_UNKNOWN` / sigil `UNKNOWN` also in `claude-code/rules/engineering-standards.md` ("Diagram maintenance" bullet names only STALE_PATH) and `docs/adr/0010-architecture-views-and-render.md`, beside the spec/README/CHANGELOG already listed.
 

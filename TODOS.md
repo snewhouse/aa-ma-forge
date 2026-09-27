@@ -26,18 +26,6 @@
 **Priority:** P2
 **Depends on:** diagram-generation M1 (establishes the partial-unique-index pattern)
 
-### Generate the milestone dependency graph from tasks.md
-
-**What:** `aa-ma-tui --graph` (or an `aa_ma.render` sub-command) emits a mermaid `flowchart` of milestones from their `Dependencies:` fields.
-
-**Why:** The planning standard (element #13, v0.11.0) says the milestone graph is never hand-authored because it is derivable. Today nothing derives it, so no plan has one.
-
-**Context:** Decided during the plan-architecture-views grill (2026-09-11). `src/aa_ma/tui/model.py` already carries `Milestone.dependencies`; `tui/parser.py::discover_tasks` loads every active plan. Start in `src/aa_ma/tui/snapshot.py` next to `render_tree`. Output goes to stdout as a fenced block so it can be pasted or rendered.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** milestone-grammar-ssot M5 (reliable `split_milestones`)
-
 ### Make aa-ma-tui runnable from any project
 
 **What:** Resolve the aa-ma-forge checkout from the install.sh symlink (`readlink -f ~/.claude/commands/<any>.md` → repo root) and run `uv run --project <root> aa-ma-tui`, via a thin wrapper or documented alias.
@@ -146,4 +134,47 @@
 **Priority:** P3
 **Depends on:** —
 
+## diagram-generation follow-ups (carried forward at archive, 2026-09-27)
+
+Each was deferred inside a milestone with Ste's agreement; the source line is in the archived
+`diagram-generation-tasks.md` (M<n> carry-forwards).
+
+### `codemem draw --write` refuses to overwrite a hand-authored view
+**What:** `codemem.draw.views.write_views` refuses a target whose line 1 lacks the generated stamp (`STAMP_RE`). **Why:** only the understand-codebase fence checks today (M13 §6.8 CRITICAL), so a bare `--write` in a consumer repo still overwrites a team's own `docs/architecture/README.md`. **Effort:** S · **Priority:** P2
+
+### Repoint the PROJECT_INDEX references outside the M13 rewire at codemem
+**What:** `claude-code/commands/aa-ma-plan.md:181,184,857`, `claude-code/commands/execute-aa-ma-milestone.md:332`, `claude-code/agents/codebase-onboarding-{runbook,conventions}.md` name codemem as default, PROJECT_INDEX.json as fallback; `aa-ma-plan.md:181` stops suggesting `/index`. **Why:** §6.3's blast-radius advice assumes project-index's upstream `blast_radius`; codemem's is downstream (callers are `who_calls`). The gate file is fence-position-tested — `Critical-Path: hook-modification`. **Effort:** S · **Priority:** P2
+
+### Tighten the render/explorer CSP
+**What:** `script-src` to the exact mermaid bundle URL (not the whole cdn.jsdelivr.net host); add `base-uri 'none'; form-action 'none'`; regenerate `tests/golden/render_plan_ok.html` (the explorer inherits via `html.csp()`). **Why:** M12 §6.8, deferred by Ste; pre-existing. **Effort:** S · **Priority:** P2
+
+### Record function-local imports in codemem
+**What:** persist imports made inside a function (flagged, e.g. `lazy=1`) in `file_edges`, then re-lint every plan's §13. **Why:** today a true `@import` on one reads `PHANTOM_EDGE` and the §6.7 diagram item refuses; ADR-0015 tells authors to label such edges in prose meanwhile. **Effort:** M · **Priority:** P2
+
+### TS/TSX/JS calls inside module-scope arrow functions
+**What:** treat `variable_declarator` → `arrow_function | function_expression` as callables so their calls produce edges. **Why:** io.md undercounts JS/TS I/O (disclosed in its prose). Fresh impact analysis needed — they become symbols (component view, dead_code, who_calls change for every TS/JS repo); re-measure the polyglot band after. **Effort:** M · **Priority:** P3
+
+### Plugin sigils checked like `@import`
+**What:** if the index gains plugin-surface edges, delete `_PLUGIN_SIGILS` / `_PLUGIN_REASON` in `src/aa_ma/render/mermaid_lint.py` together and evaluate `@skill/@command/@agent/@hook` against the graph. **Why:** they read `UNKNOWN` today. **Effort:** M · **Priority:** P3
+
+### Explorer captions
+**What:** JS `_names` / `@start` rule pinned by caption cases in the shared fixture; `&` → `#38;` in both `escape_label` twins if names ever carry entities; escape any `edges.dst_unresolved` callee shown in the explorer (untrusted source text). **Why:** deferred at M12 (Ste). **Effort:** S · **Priority:** P3
+
+### `cut._neighbourhood` early exit
+**What:** `if not frontier: break` in the hop loop. **Why:** efficiency only — `diagram()` already bounds `hops` at 10 (M13 §6.8). **Effort:** XS · **Priority:** P3
+
 ## Completed
+
+### Generate the milestone dependency graph from tasks.md
+
+**What:** `aa-ma-tui --graph` (or an `aa_ma.render` sub-command) emits a mermaid `flowchart` of milestones from their `Dependencies:` fields.
+
+**Why:** The planning standard (element #13, v0.11.0) says the milestone graph is never hand-authored because it is derivable. Today nothing derives it, so no plan has one.
+
+**Context:** Decided during the plan-architecture-views grill (2026-09-11). `src/aa_ma/tui/model.py` already carries `Milestone.dependencies`; `tui/parser.py::discover_tasks` loads every active plan. Start in `src/aa_ma/tui/snapshot.py` next to `render_tree`. Output goes to stdout as a fenced block so it can be pasted or rendered.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** milestone-grammar-ssot M5 (reliable `split_milestones`)
+
+**Done:** diagram-generation M7 (2026-09-24) — `python -m aa_ma.deps graph <tasks.md>` (launcher `aa_ma_deps`); `/aa-ma-plan` Step 5.5 appends it to §13.

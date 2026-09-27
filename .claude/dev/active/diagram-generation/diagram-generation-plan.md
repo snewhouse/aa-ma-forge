@@ -1560,7 +1560,7 @@ CONTEXT.md stays a GLOSSARY ONLY — no implementation detail.
 1. All 7 terms appear in CONTEXT.md with an `_Avoid_:` line each.
 2. The **View** entry's canonical-kind list gains I/O-boundary view.
 3. Hardcoded counts updated in README.md, CHANGELOG.md, SECURITY.md, `claude-code-foundations.md`, `aa-ma-quick-reference.md` (the five files CLAUDE.md names).
-4. `Skill(doc-drift-detection)` reports zero Tier 6 findings.
+4. `Skill(doc-drift-detection)` reports zero Tier 6 findings. *(Amended at 14.3, Ste 2026-09-27: met by `tests/test_doc_counts.py` — see the Contract row.)*
 5. `scripts/release.sh minor --headline "…" --dry-run` passes, then the real cut; GitHub Release created.
 
 **Tests:** `Skill(doc-drift-detection)`; `uv run pytest`; release dry-run.

@@ -476,3 +476,9 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - Key outcome: the vocabulary (7 glossary terms), spec §XI element #13, quick reference and foundations now describe what diagram-generation shipped; asset and MCP-tool counts are guarded by a test instead of a sweep; v0.16.0 released.
 - Artifacts: CONTEXT.md; docs/spec/{aa-ma-specification,aa-ma-quick-reference,claude-code-foundations}.md; claude-code/rules/engineering-standards.md; docs/adr/{0010,0014,0016,INDEX}.md; CHANGELOG.md; tests/test_doc_counts.py; tests/commands/test_planning_standard_count.py; release v0.16.0 (a3d45a7).
 - Tests: pytest 1643 passed / 2 skipped; bats 256/256; lint-imports 4 kept; CI green.
+
+## [2026-09-27] M14 decisions (Ste) — back-filled from the §7.2.5 validator
+- 14.1: glossary wording approved as drafted; Derived View = generated mechanically (the Milestone graph comes from tasks.md, not codemem).
+- 14.3 / AC4: doc-drift Tier 6 has no `doc-counts.sh` here, so it skips silently (vacuous, L-012); a prototype config flagged ~130 lines of frozen history. Ste chose a scoped pytest guard (`tests/test_doc_counts.py`) over configuring Tier 6 or accepting the skip. It also absorbs M13's MCP-tool-count carry-forward.
+- 14.4: release cut with the headline "Diagrams from the code: living architecture doc, sigil-checked §13, explorer, MCP diagram tool".
+- Archive prep: the 9 open carry-forwards move to TODOS.md "diagram-generation follow-ups"; TODOS "Generate the milestone dependency graph" moves to Completed (delivered by M7 `aa_ma.deps graph`).

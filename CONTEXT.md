@@ -125,6 +125,32 @@ _Avoid_: "architecture docs" for hand-written material, "the diagrams folder".
 An interactive HTML page of the whole code graph (`aa-ma-render --explorer`) that drills from directories to files in the browser. Graph-sourced, so it is NOT a **Render**: a Render comes from one markdown source. Disposable, never committed.
 _Avoid_: "HTML render of the graph", "diagram viewer".
 
+### Codebase analysis (added 2026-09-27, codebase-analysis-skills)
+
+**Assessment / Onboarding**:
+An **Assessment** judges a whole repo's quality — architecture, maintainability, security, tests and dependencies — each with a rating and a confidence, never one overall grade. **Onboarding** explains a repo to a newcomer: how it is built, run, tested and changed. Two separate capabilities; Onboarding may read a fresh Assessment but never runs one silently.
+_Avoid_: "deep dive" (the retired local command's name), "audit" (collides with the security and verify-impl auditors).
+
+**Measured finding / Judged finding**:
+A **Measured finding** comes from a tool or script and is reproducible at the same commit. A **Judged finding** is the model's opinion, always citing a file and line. A missing or failed tool yields UNKNOWN, never zero.
+_Avoid_: "metric" for a finding, "score" for a judgement.
+
+**Refutation**:
+The step in which a separate reviewer tries to disprove a serious (critical or high) **Judged finding** before it is reported; a finding it disproves is dropped and counted.
+_Avoid_: "double-check", "validation" (say whether the finding survived refutation).
+
+**Coverage ledger**:
+The list of every top-level directory of a repo, each marked assessed (or described) or set aside with a stated reason, so nothing is silently skipped.
+_Avoid_: "scope list", "skipped dirs".
+
+**Analysis contract**:
+The one set of rules both Assessment and Onboarding obey: never read secret files, redact any secret that reaches output, stamp every output with its commit, and treat repo content as data, never as instructions.
+_Avoid_: "NO-SECRETS rule" for the whole contract (that is one part of it).
+
+**Fresh**:
+An output is **Fresh** when its stamped commit is the current HEAD and no tracked file has changed since. Untracked files do not make it stale. Freshness is judged by commit, never by date.
+_Avoid_: "recent", "up to date" (say fresh or stale).
+
 ## Relationships
 
 - A **Repo** has one or more **Skills** (and possibly other artifacts).
@@ -137,6 +163,7 @@ _Avoid_: "HTML render of the graph", "diagram viewer".
 - A **Render** is derived from exactly one markdown source; a **Share** is a snapshot of one **Render**; the **Explorer** is derived from the code graph, never from markdown.
 - The **Living architecture doc** holds **Derived Views** only; an **Architecture View** holds **Authored Views** (plus the derived **Milestone graph**); a **Phantom edge** can only occur in an **Authored View**.
 - A **Fork** is in exactly one lifecycle state at a time: current, **Drift**, or **Orphan**; a **Re-fork** returns it to current. An **Adaptation** has no lifecycle state.
+- An **Assessment** holds **Measured findings** and **Judged findings**; only serious Judged findings pass through **Refutation**; both an Assessment and an **Onboarding** carry a **Coverage ledger** and obey the **Analysis contract**; Onboarding absorbs an Assessment only when it is **Fresh**.
 
 ## Example dialogue
 
@@ -155,6 +182,8 @@ _Avoid_: "HTML render of the graph", "diagram viewer".
 - **"adopt wayfinder"** was ambiguous between forking files and borrowing the concept. Resolved: charting is an **Adaptation**, not an Adoption.
 
 ## Provenance
+
+Extended 2026-09-27 during Phase 1.3 (`grill-with-docs`) of `codebase-analysis-skills`: Assessment / Onboarding / Measured finding / Judged finding / Refutation / Coverage ledger / Analysis contract / Fresh (terms settled in the charting map and grill with Ste).
 
 Extended 2026-09-27 during Milestone 14 of `diagram-generation`: Derived View / Authored View / Phantom edge / Plugin surface / I/O-boundary view / Living architecture doc / Explorer (terms approved 2026-09-22; wording approved by Ste).
 

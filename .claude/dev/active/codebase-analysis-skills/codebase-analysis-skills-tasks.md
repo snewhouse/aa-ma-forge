@@ -1,0 +1,311 @@
+# codebase-analysis-skills Tasks (HTP)
+
+> Gate fields below are the ones `aa-ma-gate` actually reads — it takes only
+> `tasks_md`. They mirror plan.md §2a, which is the single source. Never write a
+> field with an empty value; the gate refuses it (exit 2). Acceptance criteria
+> live in plan.md §5 (per milestone) and §5a (binding interface spec).
+
+## Milestone 1: Analysis contract + `aa_ma.analysis` core
+- Status: PENDING
+- Dependencies: None
+- Gate: HARD
+- Audit-Profile: full
+- Critical-Path: data-xform
+- Prototype-Required: YES
+- Complexity: 65%
+- Effort: 2
+- Goal: One tested, leaf Python core defines every machine-readable output and the secret gate; one contract document both skills obey.
+- Acceptance Criteria: 11 criteria — see plan.md § Milestone 1 and §5a
+
+### Sub-step 1.1: [prototype] schema shapes + ID stability demo on `prototype/cas-analysis-schemas`
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+### Sub-step 1.2: [impact] impact analysis on moving NO-SECRETS (SKILL.md:269-273, :173, 4 agents)
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 1.3: [test] tests/analysis + leaf-contract + EXPECTED_REFERENCES, RED (tests only)
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 1.4: [impl] models, stamp, ids, sarif, secrets, cli; project.scripts; importlinter contracts
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 1.5: [docs] ANALYSIS-CONTRACT.md; SKILL.md pointer; agent deny-lists; CHANGELOG bullet
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 1.6: [verify] regen, full suite, lint-imports, CRITICAL_PATH_REVIEW, PR via sole-dev-merge
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+## Milestone 2: Assess engine (CLI)
+- Status: PENDING
+- Dependencies: Milestone 1
+- Gate: HARD
+- Audit-Profile: full
+- Critical-Path: data-xform
+- Prototype-Required: YES
+- Complexity: 75%
+- Effort: 3
+- Goal: `aa-ma-analysis measure|run|finalize` turn a repo plus judged findings into the versioned report set, deterministically for everything measured.
+- Acceptance Criteria: 12 criteria — see plan.md § Milestone 2 and §5a
+
+### Sub-step 2.1: [prototype] run every tool row of §5a on the forge on `prototype/cas-assess-core`
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+### Sub-step 2.2: [test] fixture-repo builder + measure/finalize contract tests, RED
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 2.3: [test] codemem query 4 tools + who_calls round-trip + count pin, RED
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 2.4: [test] safe runner tests (argv gate, bypasses, env, timeout), RED
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 2.5: [impl] codemem CLI 4 tools, choices, help, docs
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 2.6: [impl] measure, run, finalize, report_md; CLI subcommands
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 2.7: [verify] live measure + finalize on forge; regen; CRITICAL_PATH_REVIEW; PR
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+## Milestone 3: `assess-codebase` skill + thin command
+- Status: PENDING
+- Dependencies: Milestone 2
+- Gate: HARD
+- Audit-Profile: full
+- Critical-Path: doc-count-drift
+- Complexity: 55%
+- Effort: 2
+- Goal: `/assess-codebase` runs Quick / Standard / Deep end to end on any repo, and every count, golden and README table agrees it exists.
+- Acceptance Criteria: 6 criteria — see plan.md § Milestone 3
+
+### Sub-step 3.1: [measure] re-verify A1 at HEAD; list every pin the new dirs move
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 3.2: [test] tests/skills/test_assess_codebase.py, RED
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 3.3: [impl] SKILL.md, RATING.md, AGENT-PROMPTS.md, commands/assess-codebase.md
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 3.4: [impl] claude-security installed-and-enabled guard
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 3.5: [impl] counts, SECURITY lists, foundations, README rows, local CLAUDE.md; regen
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 3.6: [verify] clean-room shingle check; live Standard run on forge; CRITICAL_PATH_REVIEW; PR
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+## Milestone 4: understand-codebase repoint + residuals
+- Status: PENDING
+- Dependencies: Milestone 3
+- Gate: HARD
+- Audit-Profile: code-only
+- Complexity: 45%
+- Effort: 1
+- Goal: understand-codebase points at `/assess-codebase`, judges freshness by SHA, reads assess's machine output, and residuals R1, R2, R5, R7, R8, N1 are closed test-first.
+- Acceptance Criteria: 7 criteria — see plan.md § Milestone 4
+
+### Sub-step 4.1: [impact] impact analysis; re-count the 29 mentions at HEAD
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 4.2: [test] rewire tests incl. KEPT move and dangling pin, RED
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 4.3: [impl] repoint + residual fixes across skill, references, template, command, agents
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 4.4: [verify] regen; frontmatter + xref tests; live Quick run absorbing M3 report; PR
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+## Milestone 5: understand-codebase v1 upgrades
+- Status: PENDING
+- Dependencies: Milestone 4
+- Gate: HARD
+- Audit-Profile: full
+- Critical-Path: data-xform
+- Prototype-Required: YES
+- Complexity: 70%
+- Effort: 3
+- Goal: Every generated onboarding claim is grounded in its cited source, documented commands carry a verified status, `onboarding.json` exists, and a re-run regenerates only what changed.
+- Acceptance Criteria: 6 criteria — see plan.md § Milestone 5 and §5a
+
+### Sub-step 5.1: [prototype] incremental regeneration on `prototype/cas-incremental-regen`
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+### Sub-step 5.2: [test] ground, changed, onboarding cases, skill-text tests, RED
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 5.3: [impl] ground.py, changed.py; CLI ground, changed-since
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 5.4: [impl] skill + references + runbook agent line 28
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 5.5: [verify] regen; CRITICAL_PATH_REVIEW; live Standard run on forge; PR
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+## Milestone 6: Plugin-surface extractor learns slash commands (R4)
+- Status: PENDING
+- Dependencies: Milestone 5
+- Gate: HARD
+- Audit-Profile: code-only
+- Complexity: 45%
+- Effort: 1
+- Goal: A backticked slash command that resolves nowhere is a DANGLING edge, none remain in shipped content, and no ON_DISK edge is lost.
+- Acceptance Criteria: 5 criteria — see plan.md § Milestone 6
+
+### Sub-step 6.1: [measure] re-measure on a fresh scratch index; pin both sets in context-log
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 6.2: [test] rule unit tests + named sets + no-lost-edge check, RED
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 6.3: [impl] unresolved backticked names to EXTERNAL or DANGLING; skills lookup; docstring
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 6.4: [impl] fix every remaining DANGLING slash-command mention
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 6.5: [verify] regen; architecture-drift green; PR
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+## Milestone 7: Evaluation (Ticket 10)
+- Status: PENDING
+- Dependencies: Milestone 5, Milestone 6
+- Gate: HARD
+- Audit-Profile: docs-only
+- TDD-Waiver: docs-only
+- Complexity: 60%
+- Effort: 2
+- Goal: Evidence, not opinion, that the new skills beat the local deep-dive on every repo, with zero secret leaks.
+- Acceptance Criteria: 7 criteria (pass bar) — see plan.md § Milestone 7
+
+### Sub-step 7.1: [setup] pin honojs/hono SHA; scratch clones
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+### Sub-step 7.2: [run] old side on forge + hono; private repo uses its existing report
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+### Sub-step 7.3: [run] new side on all 3 repos (R6 absorb in Provenance)
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+### Sub-step 7.4: [judge] 2 blinded fresh judges per repo, about 20 claims each
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 7.5: [docs] verdict file + CHANGELOG bullet; L-029 name gate before commit
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 7.6: [gate] Ste accepts the verdict or circuit-breaks
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+## Milestone 8: ADRs, docs, TODOS, release v0.17.0, retirement
+- Status: PENDING
+- Dependencies: Milestone 7
+- Gate: HARD
+- Audit-Profile: docs-only
+- Critical-Path: version-pipeline
+- TDD-Waiver: docs-only
+- Complexity: 35%
+- Effort: 0.5
+- Goal: Decisions recorded, docs agree, release cut on main, local copies retired by Ste.
+- Acceptance Criteria: 5 criteria — see plan.md § Milestone 8
+
+### Sub-step 8.1: [docs] ADR-0017 + ADR-0006 amendment + ADR index row
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+### Sub-step 8.2: [docs] spec, quick-ref, foundations; TODOS; final Unreleased curation; PR
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
+### Sub-step 8.3: [release] on main: release.sh dry-run, then cut v0.17.0
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]
+
+### Sub-step 8.4: [handoff] retirement checklist; outcome line in context-log
+- Status: PENDING
+- Mode: HITL
+- Result Log: [placeholder]

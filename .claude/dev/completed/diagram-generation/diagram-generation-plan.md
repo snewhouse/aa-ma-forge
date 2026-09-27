@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-09-27 07:48 -->
+<!-- Plan: diagram-generation - COMPLETE -->
+<!-- Total Milestones: 14 | Duration: 2026-09-22 to 2026-09-27 -->
+
 # diagram-generation Plan
 
 **Objective:** Derive architecture diagrams from code for two consumers — the forge's own CI-checked `docs/architecture/` living doc, and any plugin-built project via one core in codemem exposed through three doors.

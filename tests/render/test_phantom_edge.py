@@ -197,18 +197,27 @@ def test_cli_prints_unknowns_and_exits_on_findings_only(
 # AC5 — every completed plan without a sigil: zero new findings
 # ---------------------------------------------------------------------
 
-def _completed_plans() -> list[Path]:
-    return sorted(Path(p) for p in glob.glob(str(REPO / ".claude/dev/completed/**/*-plan.md"), recursive=True))
+def _completed_plans(*, with_sigils: bool = False) -> list[Path]:
+    """Archived plans are frozen history: one that draws sigil edges (diagram-generation, the
+    first) was verified against the code of its own milestones (DIAGRAM_VERIFIED) and must not
+    be re-judged against today's code or today's index — it could never be edited to comply."""
+    plans = sorted(Path(p) for p in glob.glob(str(REPO / ".claude/dev/completed/**/*-plan.md"), recursive=True))
+    return [p for p in plans if ('|"@' in p.read_text(encoding="utf-8")) is with_sigils]
 
 
 def test_there_are_completed_plans_to_check() -> None:
     assert _completed_plans()
 
 
+def test_sigil_bearing_completed_plans_are_the_named_set() -> None:
+    """The exclusion stays deliberate: a newly archived sigil plan must be named here."""
+    assert {p.parent.name for p in _completed_plans(with_sigils=True)} == {"diagram-generation"}
+
+
 @pytest.mark.parametrize("plan", _completed_plans(), ids=lambda p: p.parent.name)
 def test_completed_plans_get_no_sigil_findings(plan: Path) -> None:
-    """No skip: a completed plan with a stray `|"@..."|` prose label is exactly the one that
-    could newly go red (code-reviewer §6.8). Today none carries a sigil at all."""
+    """AC5 (M8): every completed plan WITHOUT a sigil gets zero findings and zero UNKNOWNs —
+    a stray `|"@..."|` prose label is exactly the one that could newly go red (§6.8)."""
     report = lint_text(plan.read_text(encoding="utf-8"), REPO)
     assert not {"PHANTOM_EDGE", "LABEL_UNKNOWN"} & set(_codes(report))
     assert not report.unknowns

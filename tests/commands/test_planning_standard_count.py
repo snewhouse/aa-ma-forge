@@ -55,3 +55,10 @@ def test_readme_list_length_matches_its_own_heading() -> None:
     n = int(re.search(r"\*\*(\d+) mandatory outputs\*\*", text).group(1))
     block = text.split("mandatory outputs**:", 1)[1].split("\n\n", 2)[1]
     assert len(re.findall(r"^\d+\. ", block, re.MULTILINE)) == n
+
+
+def test_prompt_template_lists_every_output() -> None:
+    """The §XI prompt template listed 12 outputs from v0.12.0 until diagram-generation M14."""
+    text = (ROOT / "docs/spec/aa-ma-specification.md").read_text(encoding="utf-8")
+    template = text.split("### Prompt Template for Claude", 1)[1].split("```", 2)[1]
+    assert len(re.findall(r"^\d+\. ", template, re.MULTILINE)) == _spec_count()

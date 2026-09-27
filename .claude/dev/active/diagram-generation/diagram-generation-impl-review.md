@@ -672,3 +672,16 @@ The lazy import (code-review W2) made `cli.py → explorer.py` a function-local 
 
 ### Carried forward (tasks.md M13)
 `views.write_views` stamp refusal; M14 MCP-tool-count guard test; `cut._neighbourhood` early exit; PROJECT_INDEX refs outside the Contract (13.4).
+
+## Milestone 14: Glossary, spec, counts → release `v0.16.0` — §6.8 (2026-09-27)
+
+- Audit-Profile: docs-only (TDD-Waiver: docs-only) · window 9a6b256..4409953 · agent: future-proofing-auditor (check #1 only), per the dispatch matrix.
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| future-proofing-auditor | 0 | 2 | 7 | PASS_WITH_WARNINGS |
+
+- W1 unguarded "13 outputs" count — already guarded by `tests/commands/test_planning_standard_count.py` (8 sites); the one gap, the §XI prompt template (drifted 12 since v0.12.0), gains `test_prompt_template_lists_every_output`.
+- W2 `test_doc_counts.py` floor `>= 5` over raw hits → every codemem doc must yield a claim; claims de-duplicated by (file, line, number).
+- INFO fixed: per-file carriers for plugin counts (a vanished SECURITY.md count line now fails — mutation checked); MemPalace exemption narrowed to its own `19 MCP tools` span; `exposes N tools` form; hooks comment corrected; spec no longer names mermaid's major version.
+- INFO declined, measured: widening count patterns to allow adjectives ("8 event hooks") — tried, it read "up to 5 parallel audit agents" as the agent total; exact phrasing kept and commented. CLAUDE.md counts are gitignored (CI cannot see them). Quick-ref `diagram(...)` defaults accepted as a convenience.

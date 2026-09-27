@@ -636,3 +636,39 @@ The lazy import (code-review W2) made `cli.py → explorer.py` a function-local 
 
 ## Revision History
 - 2026-09-26: RED fc5a270 (tests only: 3 pytest + 2 node failing for the stated reasons; escape/tests-rule rows already agreed — now pinned); GREEN 3635168. pytest 1578 / 2 skipped; render 188; node contract 14/14 with the built page; ruff + lint-imports 4/4.
+
+## Milestone 13: MCP `diagram` tool + consumer rewire — §6.8 (2026-09-27)
+
+- Audit-Profile: code-only · window 6085811..cc12bb4 (+ 5dc0922) · agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor (parallel).
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 1 | 4 | 4 | BLOCKED → fixed |
+| security-auditor | 1 | 3 | 5 | BLOCKED → fixed |
+| tdd-sequence-auditor | 0 | 0 | 1 | PASS (91562fe→1d10771, f9be158→33465fe; RED tests-only) |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS (no new deps) |
+| future-proofing-auditor | 0 | 5 | 6 | WARN |
+| **TOTAL** | **2** | **12** | **16** | **PASS_WITH_WARNINGS after fixes** |
+
+### CRITICAL findings
+1. **security — private-repo directory names in public tracked files** (tasks.md 13.1/13.3 Result Logs, context-log 13.1 entry; public since 913fddb; repo PUBLIC). Scrubbed and pushed at 4d0f27e before the panel; lesson L-029.
+2. **code-reviewer — the Deep-tier fence's `codemem draw --write` overwrites a target's hand-authored `docs/architecture/*.md`** (`check_generated_target` refuses only escapes and symlinks). Reproduced RED at ab189b6; fixed at 500f364: the fence asks codemem for `registered_paths` and skips (rc 0, names the file) when any exists without the generated stamp.
+
+### User Override Decisions (Ste, 2026-09-27)
+| # | Finding | Decision | Note |
+|---|---|---|---|
+| 1 | Private names in public history | accept | HEAD scrub only; no history rewrite or force-push |
+| 2 | Fence overwrites hand-authored docs | accept | fixed in the fence; `views.write_views` stamp check carried forward |
+
+### WARNINGs / INFOs — fixed (RED ab189b6 → GREEN 500f364)
+- hops unbounded (DoS) → 0..10; scope ≤1024 printable (symbol regex NOT applied: real dirs carry spaces; scope never reaches SQL).
+- fence fail-open: AA_MA_ROOT guard, `build` before the `.gitignore` append, symlinked `.gitignore`/`.codemem` refused.
+- system-mapping called `layers()`' core "top entry points" (it is most-depended-on) → reworded.
+- two binary searches → `_largest_prefix`, shared with `_truncate`.
+- `TestTwelveSlots` → `TestCanonicalSlots`; 13 handler `8_000` literals → `mcp_tools._DEFAULT_BUDGET` (asserted over the live FastMCP schema).
+- test magic numbers (4 → `_budget_chars`, 40 → `N`); AC6 rules pin retired from the permanent suite (no doc states a rule count).
+- INFOs: `truncated` key + `%% N edges not shown` note; measure_mrs.sh keeps build stderr, comment corrected; freshness gate names its check; SECURITY.md `diagram` bullet; `.venv` sync named in the footprint; 2 500-file timing recorded in reference.md; Contract note for derived files.
+- Scope-discipline WARNING (files outside Contract): Contract note added; SECURITY.md overlap with M14 recorded.
+
+### Carried forward (tasks.md M13)
+`views.write_views` stamp refusal; M14 MCP-tool-count guard test; `cut._neighbourhood` early exit; PROJECT_INDEX refs outside the Contract (13.4).

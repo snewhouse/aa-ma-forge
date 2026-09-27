@@ -10,10 +10,13 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 - **codemem no longer indexes non-Python files to a silent zero when `sg` is not ast-grep** — on Ubuntu
   `/usr/bin/sg` is util-linux `newgrp`; when it won PATH (codemem run from a venv not on PATH), every
-  `.ts`/`.js`/`.sh`/… file got no symbols and no warning. The ast-grep parser now resolves `ast-grep` first
-  (on PATH, then beside the running interpreter), accepts `sg` only if `sg --version` names ast-grep, and
-  logs a warning when no binary is found or a scan fails (non-zero exit, with the head of stderr; a binary
-  that cannot run no longer raises out of `codemem build`). Python indexing is unchanged.
+  `.ts`/`.js`/`.sh`/… file got no symbols and no warning. The ast-grep parser now resolves (once per
+  process) `ast-grep` beside the running interpreter, then on PATH, and accepts an `sg` only if its
+  `--version` names ast-grep. When no binary is found or a scan fails (it cannot run, or exits non-zero with
+  no output) it logs a warning with the head of stderr and leaves those files out of the parse instead of
+  storing them empty, so an incremental refresh keeps their indexed symbols and re-parses them once ast-grep
+  is back; a binary that cannot run no longer raises out of `codemem build`. Scans are chunked so a large
+  repo cannot overflow argv (E2BIG). Python indexing is unchanged.
 - **`codemem draw --write` never overwrites a hand-authored view** — an existing `docs/architecture/` target
   whose line 1 is not codemem's generated stamp (a team's own `README.md`, say) refuses the whole write,
   before anything is written, naming the file; `--check` reports it as not generated and says to move it

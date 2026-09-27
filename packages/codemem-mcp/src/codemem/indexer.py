@@ -123,7 +123,8 @@ def parse_files(
     package: str,
 ) -> tuple[list[_FileParse], int]:
     """Parse each file with the appropriate parser. Python uses the stdlib
-    parser one file at a time; other languages batch via ast-grep.
+    parser one file at a time; other languages batch via ast-grep. A file
+    ast-grep could not parse is absent from ``parses`` (not an empty parse).
 
     Returns ``(parses, python_parse_errors)`` — second value counts files
     whose Python parse returned an empty ParseResult (caller metric).
@@ -170,7 +171,13 @@ def parse_files(
             sg_files, package=package, repo_root=repo_root
         )
         for p in sg_files:
-            pr = sg_results.get(p, ParseResult(symbols=[], edges=[]))
+            pr = sg_results.get(p)
+            if pr is None:
+                # Not parsed (no ast-grep, or a failed scan — already logged).
+                # Skipping it, rather than storing an empty parse, keeps the
+                # file's indexed symbols and its old content_hash, so an
+                # incremental refresh re-parses it once ast-grep is back.
+                continue
             try:
                 source = p.read_text(encoding="utf-8", errors="replace")
             except OSError:

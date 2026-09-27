@@ -13,14 +13,17 @@ Cross-file edge resolution for imports and non-local calls is Task 1.6.
 
 from __future__ import annotations
 
+import errno
+import functools
 import json
 import logging
+import os
 import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Iterator
 
 from .python_ast import CallEdge, ParseResult, Symbol
 
@@ -62,6 +65,11 @@ _RULE_FILE_BY_LANG: dict[str, str] = {
     "Ruby":       "ruby.yml",
     "Bash":       "bash.yml",
 }
+
+# Max bytes of file-path arguments per ``sg scan``. A whole repo's files in one
+# argv can exceed ARG_MAX (E2BIG) and drop the language; 32 000 also stays
+# under Windows' 32 767-char command line, and costs only a few extra spawns.
+_ARGV_BUDGET = 32_000
 
 # Rule-id suffix → the Symbol.kind we emit. Rules are named
 # ``<langprefix>-function-def`` etc. (e.g. ``ts-function-def``).
@@ -168,26 +176,41 @@ def _rule_file_for_language(language: str) -> Path | None:
     return path if path.exists() else None
 
 
+@functools.cache
 def resolve_ast_grep_bin() -> str | None:
-    """Path to a working ast-grep binary, or ``None``.
+    """Path to a working ast-grep binary, or ``None``. Cached per process.
 
-    ``ast-grep`` is unambiguous and wins: first on PATH, then beside the
-    running interpreter, where the ``ast-grep-cli`` dependency installs it
-    when codemem runs from a venv that is not on PATH (pipx, an absolute
-    ``.venv/bin/codemem`` in an MCP config). A bare ``sg`` is accepted only
-    if its ``--version`` names ast-grep: on Ubuntu ``/usr/bin/sg`` is
-    util-linux ``newgrp``, and shelling out to it indexes every file to zero
-    symbols.
+    Each name is looked up beside the running interpreter first, where the
+    pinned ``ast-grep-cli`` dependency installs it (also when that venv is
+    not on PATH: pipx, an absolute ``.venv/bin/codemem`` in an MCP config),
+    then along PATH. ``ast-grep`` is unambiguous and wins. An ``sg`` is
+    accepted only if its ``--version`` names ast-grep: on Ubuntu
+    ``/usr/bin/sg`` is util-linux ``newgrp``, and shelling out to it indexes
+    every file to zero symbols. Every ``sg`` candidate is probed, so a
+    ``newgrp`` early on PATH does not hide ast-grep's ``sg`` later on it.
+
+    ``resolve_ast_grep_bin.cache_clear()`` forgets the answer (tests; a
+    long-lived process that has since installed ast-grep).
     """
-    found = shutil.which("ast-grep")
-    if not found and sys.executable:  # "" would make the lookup search the cwd
-        found = shutil.which("ast-grep", path=str(Path(sys.executable).parent))
-    if found:
+    for found in _candidates("ast-grep"):
         return found
-    found = shutil.which("sg")
-    if found and _is_ast_grep(found):
-        return found
+    for found in _candidates("sg"):
+        if _is_ast_grep(found):
+            return found
     return None
+
+
+def _candidates(name: str) -> Iterator[str]:
+    """Executables called ``name``: beside the interpreter, then along PATH."""
+    dirs = [d for d in os.environ.get("PATH", os.defpath).split(os.pathsep) if d]
+    if sys.executable:  # "" would make the lookup search the cwd
+        dirs.insert(0, str(Path(sys.executable).parent))
+    seen: set[str] = set()
+    for d in dirs:
+        found = shutil.which(name, path=d)
+        if found and found not in seen:
+            seen.add(found)
+            yield found
 
 
 def _is_ast_grep(binary: str) -> bool:
@@ -202,14 +225,34 @@ def _is_ast_grep(binary: str) -> bool:
     return "ast-grep" in out.stdout + out.stderr
 
 
-def _invoke_sg(rule_file: Path, files: list[Path], *, sg_bin: str) -> str:
+def _argv_batches(files: list[Path]) -> Iterator[list[Path]]:
+    """Split ``files`` so each invocation's path arguments fit ``_ARGV_BUDGET``."""
+    batch: list[Path] = []
+    size = 0
+    for f in files:
+        n = len(str(f)) + 1
+        if batch and size + n > _ARGV_BUDGET:
+            yield batch
+            batch, size = [], 0
+        batch.append(f)
+        size += n
+    if batch:
+        yield batch
+
+
+def _invoke_sg(rule_file: Path, files: list[Path], *, sg_bin: str) -> str | None:
     """Invoke ``sg scan`` for a batch of same-language files and return stdout.
 
-    A non-zero exit (sg returns non-zero when matches are found at severity
-    ``error`` — we use ``hint``, so this shouldn't fire) is logged with the
-    head of stderr, and whatever stdout we got is still used. A binary that
-    cannot be executed is logged and yields no matches rather than raising,
-    so the rest of the index (Python via the stdlib parser) still builds.
+    ``None`` means the batch was NOT parsed — the binary could not run, or it
+    exited non-zero with no output — as distinct from "parsed, no matches"
+    (``""``). Callers leave unparsed files out of their results so an index
+    keeps what it already holds for them. Either way a warning is logged
+    with the head of stderr, so the rest of the index (Python via the stdlib
+    parser) still builds and the gap is visible.
+
+    A non-zero exit WITH output (sg returns non-zero when matches are found
+    at severity ``error`` — we use ``hint``, so this shouldn't fire) is
+    logged and its output still used, as before.
     """
     cmd = [
         sg_bin, "scan",
@@ -226,17 +269,28 @@ def _invoke_sg(rule_file: Path, files: list[Path], *, sg_bin: str) -> str:
             check=False,
         )
     except OSError as exc:
-        logger.warning(
-            "codemem: cannot run ast-grep binary %r (%s); %d %s file(s) indexed with no symbols",
-            sg_bin, exc, len(files), rule_file.stem,
-        )
-        return ""
+        if exc.errno == errno.E2BIG:
+            logger.warning(
+                "codemem: argument list too long running %r on %d %s file(s); left unindexed",
+                sg_bin, len(files), rule_file.stem,
+            )
+        else:
+            logger.warning(
+                "codemem: cannot run ast-grep binary %r (%s); %d %s file(s) left unindexed",
+                sg_bin, exc, len(files), rule_file.stem,
+            )
+        return None
     if result.returncode != 0:
+        stderr_head = (result.stderr.strip().splitlines() or ["<no stderr>"])[0][:200]
+        if not result.stdout.strip():
+            logger.warning(
+                "codemem: %r scan failed (exit %d) for %d %s file(s), left unindexed: %s",
+                sg_bin, result.returncode, len(files), rule_file.stem, stderr_head,
+            )
+            return None
         logger.warning(
-            "codemem: %r scan exited %s (exit %d) for %d %s file(s): %s",
-            sg_bin, "with no output" if not result.stdout.strip() else "with partial output",
-            result.returncode, len(files), rule_file.stem,
-            (result.stderr.strip().splitlines() or ["<no stderr>"])[0][:200],
+            "codemem: %r scan exited with partial output (exit %d) for %d %s file(s): %s",
+            sg_bin, result.returncode, len(files), rule_file.stem, stderr_head,
         )
     return result.stdout
 
@@ -399,7 +453,7 @@ def _callee(m: _SgMatch) -> str | None:
 # Public entry point
 # ---------------------------------------------------------------------
 
-Invoker = Callable[[Path, list[Path]], str]
+Invoker = Callable[[Path, list[Path]], "str | None"]
 
 
 def extract_with_ast_grep(
@@ -408,20 +462,23 @@ def extract_with_ast_grep(
     package: str,
     repo_root: Path,
     sg_bin: str | None = None,
-    _invoker: Callable[..., str] | None = None,
+    _invoker: Callable[..., str | None] | None = None,
 ) -> dict[Path, ParseResult]:
-    """Parse ``files`` via ast-grep, batched per language.
+    """Parse ``files`` via ast-grep, batched per language (and per
+    ``_ARGV_BUDGET`` bytes of path arguments).
 
-    Returns a mapping from each file to its :class:`ParseResult`. Files whose
-    language is unsupported (e.g. ``.py`` — handled by the stdlib parser —
-    or ``.md``) are silently skipped.
+    Returns a mapping from each PARSED file to its :class:`ParseResult`.
+    Files whose language is unsupported (e.g. ``.py`` — handled by the
+    stdlib parser — or ``.md``) are silently skipped. Supported files that
+    could not be parsed — no binary, or a failed scan (see :func:`_invoke_sg`)
+    — are left out with a logged warning, so a caller never mistakes "not
+    parsed" for "parsed, zero symbols" and overwrites what an index holds.
 
     ``sg_bin`` is an explicit binary override, used as given. Left ``None``,
-    it is resolved by :func:`resolve_ast_grep_bin`; when none is found a
-    warning is logged and every supported file gets an empty ParseResult.
+    it is resolved by :func:`resolve_ast_grep_bin`.
 
     ``_invoker`` is an injection point for tests so subprocess behaviour can
-    be mocked deterministically.
+    be mocked deterministically; it does not affect binary selection.
     """
     invoker = _invoker or _invoke_sg
 
@@ -434,13 +491,14 @@ def extract_with_ast_grep(
         files_by_lang.setdefault(lang, []).append(f)
 
     all_matches: list[_SgMatch] = []
+    parsed: set[Path] = set()
     if files_by_lang:  # resolve only when there is something to parse
-        binary = sg_bin or ("sg" if _invoker else resolve_ast_grep_bin())
+        binary = sg_bin or resolve_ast_grep_bin()
         if binary is None:
             logger.warning(
                 "codemem: no ast-grep binary found (tried `ast-grep`, then `sg` "
-                "reporting itself as ast-grep); %d non-Python file(s) indexed with "
-                "no symbols. Install it with `pip install ast-grep-cli`.",
+                "reporting itself as ast-grep); %d non-Python file(s) left "
+                "unindexed. Install it with `pip install ast-grep-cli`.",
                 sum(len(v) for v in files_by_lang.values()),
             )
         else:
@@ -448,8 +506,12 @@ def extract_with_ast_grep(
                 rule = _rule_file_for_language(lang)
                 if rule is None:
                     continue
-                stream = invoker(rule, lang_files, sg_bin=binary)
-                all_matches.extend(parse_sg_output(stream))
+                for batch in _argv_batches(lang_files):
+                    stream = invoker(rule, batch, sg_bin=binary)
+                    if stream is None:
+                        continue  # not parsed: _invoke_sg has logged why
+                    parsed.update(batch)
+                    all_matches.extend(parse_sg_output(stream))
 
     matches_by_file: dict[Path, list[_SgMatch]] = {}
     for m in all_matches:
@@ -457,7 +519,7 @@ def extract_with_ast_grep(
 
     results: dict[Path, ParseResult] = {}
     for f in files_list:
-        if language_from_path(f) is None:
+        if f not in parsed:
             continue
         results[f] = _build_parse_result(
             f,

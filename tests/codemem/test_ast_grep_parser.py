@@ -375,10 +375,10 @@ def _warnings(caplog) -> list[str]:
 @pytest.fixture(autouse=True)
 def _fresh_resolver_cache():
     """The resolver is cached per process; each test sees its own PATH."""
-    clear = getattr(ag.resolve_ast_grep_bin, "cache_clear", lambda: None)
-    clear()
+    resolver = ag.resolve_ast_grep_bin  # the real one, even if a test monkeypatches it
+    resolver.cache_clear()
     yield
-    clear()
+    resolver.cache_clear()
 
 
 class TestBinaryResolution:

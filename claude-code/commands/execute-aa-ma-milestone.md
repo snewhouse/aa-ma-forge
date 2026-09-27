@@ -329,9 +329,11 @@ e.g. `Next: Milestone 3 — Dependencies: Milestone 2` (canonical form).
 
 **Before completing milestone, verify no breaking changes introduced:**
 
-**Index-enhanced (when PROJECT_INDEX.json exists):**
+**Index-enhanced (codemem by default; PROJECT_INDEX.json is codemem's fallback when present):**
 Before invoking the full impact-analysis skill, run a quick pre-check using the index:
-- For each modified file's key symbols, call `blast_radius(symbol, depth=2)` via MCP or CLI
+- For each modified file's key symbols, ask for its transitive callers: codemem `who_calls(name, max_depth=2)`
+  (with only PROJECT_INDEX.json, not codemem, the same question is its `blast_radius(symbol, depth=2)` —
+  codemem's `blast_radius` returns callees instead)
 - If any symbol has >10 transitive callers, flag it as HIGH risk early
 - This pre-check is **advisory only** — never blocks, just surfaces risk earlier
 - Skip silently if no index is available

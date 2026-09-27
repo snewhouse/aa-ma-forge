@@ -178,12 +178,14 @@ Check for user context in this priority order:
 pwd
 git rev-parse --short HEAD 2>/dev/null || echo "Not a git repo"
 ls -la .claude/dev/active/ 2>/dev/null || echo "No active tasks"
-ls PROJECT_INDEX.json 2>/dev/null && echo "Index available" || echo "No index (suggest /index for structural awareness)"
+if [[ -f .codemem/index.db ]]; then echo "codemem index available"
+elif [[ -f PROJECT_INDEX.json ]]; then echo "PROJECT_INDEX.json available (codemem's fallback)"
+else echo "No index yet: codemem's MCP tools build one on first query (CLI: codemem build)"; fi
 ```
 
-If `PROJECT_INDEX.json` exists, include its structural context in planning:
-- Read `dir_purposes` and `tree` for architecture overview
-- Read `_meta.symbol_importance` for key entry points
+Include the index's structural context in planning — codemem by default, `PROJECT_INDEX.json` as codemem's fallback when present:
+- Architecture overview: codemem `diagram(level="L1")` (fallback: `dir_purposes`, `tree`)
+- Key modules and entry points: codemem `layers()` core files, `search_symbols` / `file_summary` (fallback: `_meta.symbol_importance`)
 - This pre-loads structural understanding so Phase 2-3 research is better targeted
 
 **Step 1.3: Grill Protocol (mode-aware)**
@@ -854,11 +856,11 @@ Parse the plan for immutable facts and write to reference:
 _Last Updated: [date]_
 ```
 
-**Index-enhanced (when PROJECT_INDEX.json exists):**
+**Index-enhanced (codemem by default; PROJECT_INDEX.json is codemem's fallback when present):**
 Supplement the reference with structural facts from the index:
-- Entry points and key symbols from `_meta.symbol_importance` (top 10)
-- File→dependency mappings from `deps` for files in scope
-- Directory purposes from `dir_purposes` for relevant directories
+- Key symbols: codemem `layers()` core files + `file_summary` (fallback: `_meta.symbol_importance`, top 10)
+- File→dependency mappings for files in scope: codemem `diagram(level="L2", scope=<file>)` (fallback: `deps`)
+- Directory purposes for relevant directories: codemem `diagram(level="L1")` (fallback: `dir_purposes`)
 - These provide implementing agents with architectural context they would otherwise need to discover via Grep
 
 **Step 5.4: Initialize [task]-context-log.md**

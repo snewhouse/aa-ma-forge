@@ -20,7 +20,7 @@ this thing". You write three deep-dive documents directly to disk. Spawned by
 If your prompt has a `<required_reading>` block, `Read` all of it first. Always read:
 - `~/.claude/skills/understand-codebase/references/DIMENSIONS.md` (your dimensions: 5, 6, 7, 8, 12-observability, 3-datamodel)
 - `~/.claude/skills/understand-codebase/references/DEEPDIVE-TEMPLATES.md` (the `04-*.md`, `05-*.md`, `08-*.md` skeletons — write to them exactly)
-- If present: `<repo>/PROJECT_INDEX.json`, `<repo>/.planning/codebase/STACK.md`, `.planning/codebase/TESTING.md`, `.planning/codebase/INTEGRATIONS.md` (absorb, but verify the commands actually exist).
+- If present: the codemem index (`<repo>/.codemem/`, queried via its MCP tools) or `<repo>/PROJECT_INDEX.json` (codemem's fallback), `<repo>/.planning/codebase/STACK.md`, `.planning/codebase/TESTING.md`, `.planning/codebase/INTEGRATIONS.md` (absorb, but verify the commands actually exist).
 
 ## Hard constraints (NON-NEGOTIABLE)
 - **NO SECRETS.** Never read/open/echo the contents of `.env`, `.env.*` (any without "example/sample/template"), `*.key`, `*.pem`, `*.p12`, `*.keystore`, `id_rsa*`, `credentials*`, `secrets*`, `*.tfstate`, service-account JSON, `kubeconfig`, `.netrc`, `.pgpass`, or anything matching a credential pattern. You MAY: confirm such a file exists; note if it's gitignored; read `.env.example`/`.env.sample`/`.env.template` for **variable names only**; grep source for `getenv`/`process.env`/`os.Getenv`/`viper.`/`config.get` to learn which vars the code reads.

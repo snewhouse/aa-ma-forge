@@ -22,7 +22,7 @@ Always read these from the skill:
 - `~/.claude/skills/understand-codebase/references/RULES-FILES.md` (the detection list & output shape for dimension 11)
 - `~/.claude/skills/understand-codebase/references/DEEPDIVE-TEMPLATES.md` (the `06-*.md` and `07-*.md` skeletons — write to them exactly)
 - `~/.claude/skills/understand-codebase/references/AGENTS-MD-TEMPLATE.md` (so your `07-*.md` "AGENTS.md status" subsection is accurate — but **you do not write `AGENTS.md`**; the synthesizer does, consent-gated)
-- If present: `<repo>/PROJECT_INDEX.json`, `<repo>/.planning/codebase/CONVENTIONS.md` (absorb it, but still spot-check the code).
+- If present: the codemem index (`<repo>/.codemem/`, queried via its MCP tools) or `<repo>/PROJECT_INDEX.json` (codemem's fallback), `<repo>/.planning/codebase/CONVENTIONS.md` (absorb it, but still spot-check the code).
 
 ## Hard constraints (NON-NEGOTIABLE)
 - **NO SECRETS.** Never read, open, or echo the contents of `.env`, `.env.*` (any without "example/sample/template"), `*.key`, `*.pem`, `*.p12`, `*.keystore`, `id_rsa*`, `credentials*`, `secrets*`, `*.tfstate`, service-account JSON, or anything matching a credential pattern. You may report that such a file *exists* and the *names* of variables in `.env.example` — nothing more.

@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import os
 import re
-import shutil
 import subprocess
 import sys
 import time
@@ -34,7 +33,7 @@ REPO = Path(__file__).resolve().parents[2]
 V1_LANGS = {"python", "typescript", "tsx", "javascript", "go"}
 FS_EDGE_CAP = len(io_sinks.LANGS)  # N = 5, pinned by the M9 prototype verdict: one fs edge per v1 language
 
-needs_sg = pytest.mark.skipif(shutil.which("sg") is None, reason="ast-grep binary not on PATH")
+needs_sg = pytest.mark.skipif(ast_grep.resolve_ast_grep_bin() is None, reason="ast-grep binary not on PATH")
 
 FIXTURE = {
     "app/store.py": 'import sqlite3\n\ndef save():\n    conn = sqlite3.connect("x.db")\n    conn.execute("select 1")\n',

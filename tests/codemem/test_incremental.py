@@ -9,6 +9,7 @@ import pytest
 
 from codemem.incremental import RefreshStats, refresh_index
 from codemem.indexer import build_index
+from codemem.parser import ast_grep
 from codemem.storage import db
 
 
@@ -225,3 +226,49 @@ class TestIdempotency:
         assert s2.symbols_added == 0
         assert s2.symbols_removed == 0
         assert s2.symbols_modified == 0
+
+
+# ---------------------------------------------------------------------
+# ast-grep unavailable: "not parsed" must not overwrite indexed symbols
+# ---------------------------------------------------------------------
+
+@pytest.mark.skipif(ast_grep.resolve_ast_grep_bin() is None, reason="ast-grep binary not found")
+class TestAstGrepUnavailable:
+    def _ts_symbols(self, db_path: Path) -> tuple[set[str], str]:
+        with db.connect(db_path, read_only=True) as conn:
+            names = {r[0] for r in conn.execute(
+                "SELECT s.name FROM symbols s JOIN files f ON f.id = s.file_id "
+                "WHERE f.path = 'lib.ts'"
+            )}
+            (chash,) = conn.execute(
+                "SELECT content_hash FROM files WHERE path = 'lib.ts'"
+            ).fetchone()
+        return names, chash
+
+    def test_existing_symbols_survive_a_refresh_without_ast_grep(self, base_repo, monkeypatch):
+        root, db_path = base_repo
+        (root / "lib.ts").write_text("export function double(n: number) { return n * 2; }\n")
+        _commit(root, "add ts")
+        refresh_index(root, db_path, package=".")
+        before, hash_before = self._ts_symbols(db_path)
+        assert before == {"double"}
+
+        (root / "lib.ts").write_text(
+            "export function double(n: number) { return n * 2; }\n"
+            "export function triple(n: number) { return n * 3; }\n"
+        )
+        (root / "a.py").write_text("def helper():\n    return 1\n\ndef extra():\n    return 3\n")
+        _commit(root, "edit both")
+        monkeypatch.setattr(ast_grep, "resolve_ast_grep_bin", lambda: None)
+        refresh_index(root, db_path, package=".")
+
+        after, hash_after = self._ts_symbols(db_path)
+        assert after == {"double"}, "unparsed lib.ts lost its indexed symbols"
+        assert hash_after == hash_before, "unparsed lib.ts marked clean; it would never be re-parsed"
+        with db.connect(db_path, read_only=True) as conn:
+            py_names = {r[0] for r in conn.execute("SELECT name FROM symbols")}
+        assert "extra" in py_names  # Python refresh unaffected
+
+        monkeypatch.undo()
+        refresh_index(root, db_path, package=".")
+        assert self._ts_symbols(db_path)[0] == {"double", "triple"}  # healed once available

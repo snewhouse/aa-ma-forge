@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -13,6 +12,7 @@ from codemem.indexer import (
     build_index,
     discover_files,
 )
+from codemem.parser.ast_grep import resolve_ast_grep_bin
 from codemem.storage import db
 
 
@@ -158,7 +158,7 @@ class TestBuildIndex:
 
     def test_inserts_typescript_symbols(self, tiny_repo, tmp_path):
         # skip if sg binary unavailable
-        if shutil.which("sg") is None:
+        if resolve_ast_grep_bin() is None:
             pytest.skip("ast-grep not on PATH")
         db_path = tmp_path / ".codemem" / "index.db"
         build_index(tiny_repo, db_path, package=".")
@@ -167,7 +167,7 @@ class TestBuildIndex:
             assert {"double", "Counter", "inc"}.issubset(names)
 
     def test_parent_id_resolved_for_methods(self, tiny_repo, tmp_path):
-        if shutil.which("sg") is None:
+        if resolve_ast_grep_bin() is None:
             pytest.skip("ast-grep not on PATH")
         db_path = tmp_path / ".codemem" / "index.db"
         build_index(tiny_repo, db_path, package=".")

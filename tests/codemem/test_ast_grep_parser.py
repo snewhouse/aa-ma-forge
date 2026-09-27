@@ -281,7 +281,7 @@ class TestRuleFilesShipped:
 # Integration test — real sg on a real TypeScript fixture
 # ---------------------------------------------------------------------
 
-@pytest.mark.skipif(shutil.which("sg") is None, reason="ast-grep binary not on PATH")
+@pytest.mark.skipif(ag.resolve_ast_grep_bin() is None, reason="ast-grep binary not found")
 class TestIntegration:
     def test_real_sg_parses_typescript_file(self, tmp_path):
         ts_file = tmp_path / "sample.ts"
@@ -336,6 +336,18 @@ def _foreign_sg_dir(tmp_path: Path) -> Path:
     return bindir
 
 
+def _no_interpreter_bindir(tmp_path: Path, monkeypatch) -> None:
+    """Point sys.executable at a dir holding no ast-grep (the venv's bin has one)."""
+    empty = tmp_path / "interp-bin"
+    empty.mkdir()
+    monkeypatch.setattr(ag.sys, "executable", str(empty / "python"))
+
+
+def _only_foreign_sg(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("PATH", str(_foreign_sg_dir(tmp_path)))
+    _no_interpreter_bindir(tmp_path, monkeypatch)
+
+
 def _ts_file(tmp_path: Path) -> Path:
     repo = tmp_path / "repo"
     repo.mkdir(exist_ok=True)
@@ -351,7 +363,7 @@ def _warnings(caplog) -> list[str]:
 
 class TestBinaryResolution:
     def test_foreign_sg_on_path_warns_instead_of_silent_zero(self, tmp_path, monkeypatch, caplog):
-        monkeypatch.setenv("PATH", str(_foreign_sg_dir(tmp_path)))
+        _only_foreign_sg(tmp_path, monkeypatch)
         f = _ts_file(tmp_path)
         with caplog.at_level(logging.WARNING, logger=_LOGGER):
             results = extract_with_ast_grep([f], package=".", repo_root=f.parent)
@@ -361,7 +373,7 @@ class TestBinaryResolution:
         assert any("ast-grep" in m for m in msgs)
 
     def test_foreign_sg_is_not_resolved(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("PATH", str(_foreign_sg_dir(tmp_path)))
+        _only_foreign_sg(tmp_path, monkeypatch)
         assert ag.resolve_ast_grep_bin() is None
 
     @pytest.mark.skipif(_REAL_AST_GREP is None, reason="ast-grep binary not on PATH")
@@ -371,11 +383,22 @@ class TestBinaryResolution:
         real.mkdir()
         (real / "ast-grep").symlink_to(_REAL_AST_GREP)
         monkeypatch.setenv("PATH", f"{foreign}:{real}")  # foreign sg wins a bare `sg` lookup
+        _no_interpreter_bindir(tmp_path, monkeypatch)
         f = _ts_file(tmp_path)
         with caplog.at_level(logging.WARNING, logger=_LOGGER):
             results = extract_with_ast_grep([f], package=".", repo_root=f.parent)
         assert {s.name for s in results[f].symbols} == {"greet"}
         assert _warnings(caplog) == []
+
+    @pytest.mark.skipif(_REAL_AST_GREP is None, reason="ast-grep binary not on PATH")
+    def test_finds_ast_grep_beside_the_interpreter_when_not_on_path(self, tmp_path, monkeypatch):
+        # pipx / an absolute .venv/bin/codemem: the venv's bin dir is not on PATH.
+        venv_bin = tmp_path / "venv-bin"
+        venv_bin.mkdir()
+        (venv_bin / "ast-grep").symlink_to(_REAL_AST_GREP)
+        monkeypatch.setenv("PATH", str(_foreign_sg_dir(tmp_path)))
+        monkeypatch.setattr(ag.sys, "executable", str(venv_bin / "python"))
+        assert ag.resolve_ast_grep_bin() == str(venv_bin / "ast-grep")
 
     def test_failing_explicit_binary_is_logged_with_its_stderr(self, tmp_path, caplog):
         sg = _foreign_sg_dir(tmp_path) / "sg"
@@ -395,8 +418,19 @@ class TestBinaryResolution:
         assert results[f].symbols == []
         assert _warnings(caplog)
 
+    def test_unresolved_binary_never_reaches_the_invoker(self, tmp_path, monkeypatch, caplog):
+        calls: list[object] = []
+        monkeypatch.setattr(ag, "resolve_ast_grep_bin", lambda: None)
+        monkeypatch.setattr(ag, "_invoke_sg", lambda *a, **kw: calls.append(kw) or "")
+        f = _ts_file(tmp_path)
+        with caplog.at_level(logging.WARNING, logger=_LOGGER):
+            results = extract_with_ast_grep([f], package=".", repo_root=f.parent)
+        assert calls == []
+        assert results[f].symbols == []
+        assert any("no ast-grep binary found" in m for m in _warnings(caplog))
+
     def test_no_supported_files_never_looks_for_a_binary(self, tmp_path, monkeypatch, caplog):
-        monkeypatch.setenv("PATH", str(_foreign_sg_dir(tmp_path)))
+        _only_foreign_sg(tmp_path, monkeypatch)
         py = tmp_path / "a.py"
         py.write_text("def f():\n    return 1\n")
         with caplog.at_level(logging.WARNING, logger=_LOGGER):
@@ -409,7 +443,7 @@ class TestBinaryResolution:
         f = _ts_file(tmp_path)
         py = f.parent / "app.py"
         py.write_text("def greet(name):\n    return name\n")
-        monkeypatch.setenv("PATH", str(_foreign_sg_dir(tmp_path)))
+        _only_foreign_sg(tmp_path, monkeypatch)
         with caplog.at_level(logging.WARNING, logger=_LOGGER):
             parses, py_errors = parse_files([py, f], repo_root=f.parent, package=".")
         by_lang = {p.lang: p for p in parses}

@@ -8,6 +8,12 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **codemem no longer indexes non-Python files to a silent zero when `sg` is not ast-grep** — on Ubuntu
+  `/usr/bin/sg` is util-linux `newgrp`; when it won PATH (codemem run from a venv not on PATH), every
+  `.ts`/`.js`/`.sh`/… file got no symbols and no warning. The ast-grep parser now resolves `ast-grep` first
+  (on PATH, then beside the running interpreter), accepts `sg` only if `sg --version` names ast-grep, and
+  logs a warning when no binary is found or a scan fails (non-zero exit, with the head of stderr; a binary
+  that cannot run no longer raises out of `codemem build`). Python indexing is unchanged.
 - **`codemem draw --write` never overwrites a hand-authored view** — an existing `docs/architecture/` target
   whose line 1 is not codemem's generated stamp (a team's own `README.md`, say) refuses the whole write,
   before anything is written, naming the file; `--check` reports it as not generated and says to move it

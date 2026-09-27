@@ -26,6 +26,11 @@ REWIRED = [  # the Contract's files + the Deep tier's team template (Ste, 13.4)
     ROOT / "claude-code/skills/impact-analysis/SKILL.md",
     ROOT / "claude-code/skills/system-mapping/SKILL.md",
     ROOT / "claude-code/agents/codebase-onboarding-synthesizer.md",
+    # TODOS follow-up (2026-09-27): the PROJECT_INDEX references M13 left outside its Contract.
+    ROOT / "claude-code/commands/aa-ma-plan.md",
+    ROOT / "claude-code/commands/execute-aa-ma-milestone.md",
+    ROOT / "claude-code/agents/codebase-onboarding-runbook.md",
+    ROOT / "claude-code/agents/codebase-onboarding-conventions.md",
 ]
 
 # AC5 — the 7 instructions to run /codebase-deep-dive (4 in the Contract + 3 in the template).
@@ -184,6 +189,9 @@ ROUTES_TO_UNSHIPPED = [
     ("claude-code/skills/system-mapping/SKILL.md", "- `/codebase-deep-dive` - For comprehensive codebase audits"),
     ("claude-code/commands/understand-codebase.md", "no onboarding deliverable → `/codebase-deep-dive`; implementation"),
     ("claude-code/commands/understand-codebase.md", "just a structural index → `/index`;"),
+    ("claude-code/commands/aa-ma-plan.md", "suggest /index for structural awareness"),
+    # project-index's blast_radius is upstream, codemem's downstream: §6.3 must not ask for callers with it.
+    ("claude-code/commands/execute-aa-ma-milestone.md", "call `blast_radius(symbol, depth=2)` via MCP or CLI"),
 ]
 
 

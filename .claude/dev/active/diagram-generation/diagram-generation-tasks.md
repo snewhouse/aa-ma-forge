@@ -437,7 +437,7 @@
 - Result Log: Ste in a desktop browser with DevTools: drill works (level/scope change on node click; up/top/tests), console clean — AC2(c), recorded in provenance. AC6 by mutation (seed 7→8 → test_draw_cut red; fixture regenerated → JS node-id test red). `CRITICAL_PATH_REVIEW — Milestone 12: …` written (security.yml additive, permissions unchanged, sha-pinned; html._CSP byte-identical).
 
 ## Milestone 13: MCP `diagram` tool + consumer rewire — `Prototype-Required: YES`
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 6
 - Gate: HARD
 - Audit-Profile: code-only
@@ -447,6 +447,7 @@
 - Effort: 2
 - Goal: The third door works, and every skill that names a graph backend names the right one.
 - Acceptance Criteria: 9 criteria — see plan.md § Milestone 13
+- Result Log: COMPLETE 2026-09-27 — 9/9 AC (Ste approved, HARD). AC1 4 MRS_BUDGET lines + sha, `scripts/measure_mrs.sh` byte-identical ×3; AC2/AC3 test_mcp_diagram.py (guarded collapse, counts + `truncated` always); AC4 fence test + live scratch clone (1 line after 2 runs); AC5 7 named runs gone (REUSE-MAP.md:67 first); AC6 claude-code/rules = 2; AC7 every PROJECT_INDEX line in 12 rewired files names codemem; AC8 MCP server + integration tests at 13; AC9 integration case + live FastMCP Client round-trip. PROTOTYPE PROCEED (guarded collapse, default L2 — Ste); CRITICAL_PATH_REVIEW (impact-analysis index section only); DIAGRAM_VERIFIED edges=13 checked=13 phantom=0. §6.8: 2 CRITICAL accepted + fixed (private names scrubbed 4d0f27e, history kept — Ste; hand-authored overwrite RED ab189b6 → 500f364), all WARNINGs + cheap INFOs fixed; L-029. pytest 1636 passed / 2 skipped. Commits: ce8d6a1 (ACTIVE), 913fddb (13.1), 91562fe (RED), 1d10771 (13.3), df43bf2 + f9be158 (13.4 decisions, RED), 33465fe (13.4), cc12bb4 (13.5), 9055d4d (CRITICAL_PATH_REVIEW), 5dc0922 (CHANGELOG), 4d0f27e (scrub, L-029), 993ece7, ab189b6, 500f364, ab8aece (§6.8).
 - Obligations (M6 §6.8, Ste 2026-09-24): before every push, `scripts/regen-generated.sh` leaves `git diff` reviewed and committed, and `uv run pytest -q` is green (L-025); the architecture-drift and plugin-surface checks move with any change to imports/calls, `claude-code/` references or the install.sh hook table.
 - Carry-forward (M8 §6.8, 2026-09-24): if the index gains plugin-surface edges here, delete `_PLUGIN_SIGILS` / `_PLUGIN_REASON` in `src/aa_ma/render/mermaid_lint.py` together and evaluate `@skill/@command/@agent/@hook` like `@import`.
 - Carry-forward (M12 §6.8, Ste 2026-09-26): tighten html.py's CSP — `script-src` to the exact mermaid bundle URL (not the whole cdn.jsdelivr.net host), add `base-uri 'none'; form-action 'none'`; regenerate tests/golden/render_plan_ok.html; the explorer inherits it via `html.csp()`.

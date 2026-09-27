@@ -452,3 +452,15 @@ Measured first (fresh scratch index, L-024): L0 and L1 are 3 nodes / 2 edges on 
 - CRITICAL (security) — private-repo directory names in tasks.md/context-log.md, public since 913fddb: ACCEPTED. HEAD scrubbed and pushed at 4d0f27e before the panel; L-029 written. History: Ste chose "accept HEAD scrub only" — no rewrite, no force-push.
 - CRITICAL (code-reviewer) — the Deep-tier fence's `codemem draw --write` overwrites a target's hand-authored docs/architecture/*.md: ACCEPTED, fix in the fence (skip + say so when a target lacks the generated stamp); a stamp check inside `views.write_views` is a carry-forward (outside the Contract).
 - Fix scope (Ste): all WARNINGs + cheap INFOs — hops bounded 0..10; fence: AA_MA_ROOT guard, build && draw, .gitignore append only after a successful build, refuse symlinked .gitignore/.codemem; system-mapping layers() wording; one shared largest-prefix helper for `_truncate` and `diagram`; TestTwelveSlots → TestCanonicalSlots; handler budget defaults = `mcp_tools._DEFAULT_BUDGET`; test magic numbers; rules pin retired (AC6 verified at the gate by listing claude-code/rules/ — no doc states a rule count to keep it in step with); `%% N edges not shown` note + `truncated` key; measure_mrs stderr/comment; freshness-gate wording; SECURITY.md diagram bullet; Contract note for derived files. `scope` NOT forced through the symbol regex: real directory names contain spaces, and scope never reaches SQL or a subprocess — bounded to 1024 printable chars instead.
+
+## [2026-09-27] GATE APPROVAL: Milestone 13: MCP `diagram` tool + consumer rewire — `Prototype-Required: YES`
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 9/9
+- Decision: APPROVED
+
+## [2026-09-27] Milestone Completion: Milestone 13: MCP `diagram` tool + consumer rewire
+- Status: COMPLETE
+- Key outcome: codemem's 13th MCP tool `diagram` returns the draw cut as budget-sized mermaid (guarded collapse, measured first on a 2 481-file monorepo); understand-codebase's Deep tier writes the living architecture doc into the target (never over a hand-authored file) and no skill instructs running `/codebase-deep-dive` or `/index`; codemem is the named default index in impact-analysis and system-mapping.
+- Artifacts: packages/codemem-mcp/src/codemem/mcp_tools/__init__.py; claude-code/codemem/mcp/server.py; scripts/measure_mrs.sh; claude-code/skills/{understand-codebase/**,impact-analysis,system-mapping}; claude-code/agents/codebase-onboarding-synthesizer.md; tests/codemem/test_mcp_{diagram,server,server_integration}.py; tests/skills/test_understand_codebase_rewire.py; tests/codemem/test_plugin_surface.py + golden; SECURITY.md, codemem READMEs, CHANGELOG.md; docs/lessons.md (L-029); prototype branch prototype/diagram-generation-mcp (local only).
+- Tests: pytest 1636 passed / 2 skipped; ruff clean; lint-imports 4 kept; shellcheck clean on the fence and measure_mrs.sh.

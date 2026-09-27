@@ -74,7 +74,7 @@ Import-linter contracts enforce that the plugin-surface handlers in `claude-code
 
 ### Generated architecture docs
 
-`codemem draw --write` writes only under `docs/architecture/`: every target is resolved and checked before any file is written, and the authored captions sidecar (`docs/architecture.captions.json`) can never be a target. Caption prose is escaped into one inert markdown line; mermaid labels entity-escape `" # < > % { }` and backtick, so a file name cannot inject a `%%{init}%%` directive. `codemem draw --check` is read-only.
+`codemem draw --write` writes only under `docs/architecture/`: every target is resolved and checked before any file is written, the authored captions sidecar (`docs/architecture.captions.json`) can never be a target, and an existing file without codemem's generated stamp on line 1 — a team's own architecture doc — is never overwritten (the whole write is refused). Caption prose is escaped into one inert markdown line; mermaid labels entity-escape `" # < > % { }` and backtick, so a file name cannot inject a `%%{init}%%` directive. `codemem draw --check` is read-only.
 
 ### SQLite WAL file growth
 

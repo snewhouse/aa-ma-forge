@@ -139,9 +139,6 @@
 Each was deferred inside a milestone with Ste's agreement; the source line is in the archived
 `diagram-generation-tasks.md` (M<n> carry-forwards).
 
-### `codemem draw --write` refuses to overwrite a hand-authored view
-**What:** `codemem.draw.views.write_views` refuses a target whose line 1 lacks the generated stamp (`STAMP_RE`). **Why:** only the understand-codebase fence checks today (M13 §6.8 CRITICAL), so a bare `--write` in a consumer repo still overwrites a team's own `docs/architecture/README.md`. **Effort:** S · **Priority:** P2
-
 ### Repoint the PROJECT_INDEX references outside the M13 rewire at codemem
 **What:** `claude-code/commands/aa-ma-plan.md:181,184,857`, `claude-code/commands/execute-aa-ma-milestone.md:332`, `claude-code/agents/codebase-onboarding-{runbook,conventions}.md` name codemem as default, PROJECT_INDEX.json as fallback; `aa-ma-plan.md:181` stops suggesting `/index`. **Why:** §6.3's blast-radius advice assumes project-index's upstream `blast_radius`; codemem's is downstream (callers are `who_calls`). The gate file is fence-position-tested — `Critical-Path: hook-modification`. **Effort:** S · **Priority:** P2
 
@@ -178,3 +175,8 @@ Each was deferred inside a milestone with Ste's agreement; the source line is in
 **Depends on:** milestone-grammar-ssot M5 (reliable `split_milestones`)
 
 **Done:** diagram-generation M7 (2026-09-24) — `python -m aa_ma.deps graph <tasks.md>` (launcher `aa_ma_deps`); `/aa-ma-plan` Step 5.5 appends it to §13.
+
+### `codemem draw --write` refuses to overwrite a hand-authored view
+**What:** `codemem.draw.views.write_views` refuses a target whose line 1 lacks the generated stamp (`STAMP_RE`). **Why:** only the understand-codebase fence checks today (M13 §6.8 CRITICAL), so a bare `--write` in a consumer repo still overwrites a team's own `docs/architecture/README.md`. **Effort:** S · **Priority:** P2
+
+**Done:** 2026-09-27 — `views.write_views` refuses a stampless target before any write; `--check` names it and says move it aside (`tests/codemem/test_draw_check.py`).

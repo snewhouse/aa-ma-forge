@@ -37,6 +37,7 @@ CAPTIONS_CLOSE = "<!-- /captions -->"
 # The only line shapes the generator writes inside the block: escape_prose leaves no raw < or >.
 _CAPTION_LINE = re.compile(r"^(- |Start here: )[^<>]*$")
 REMEDY = "run `uv run codemem build && uv run codemem draw --write`"
+_NOT_OURS = "line 1 is not a codemem draw stamp, so it is not generated — move it aside, then --write"
 
 
 @dataclass(frozen=True)
@@ -58,7 +59,10 @@ def write_views(repo_root: Path, conn: sqlite3.Connection) -> list[Path]:
     """Regenerate every registered view; every target is guard-checked before any write."""
     specs = _registered(repo_root)
     for s in specs:
-        cap.check_generated_target(repo_root, repo_root / s.output_path)
+        target = repo_root / s.output_path
+        cap.check_generated_target(repo_root, target)
+        if target.is_file() and not _stamped(target):  # a team's own doc, never ours to replace
+            raise ValueError(f"refusing to overwrite {s.output_path}: {_NOT_OURS}")
     captions = cap.load(repo_root)
     stamp = STAMP.format(sha=_head_sha(repo_root), date=datetime.datetime.now(datetime.UTC).date())
     written = []
@@ -81,8 +85,8 @@ def check_views(repo_root: Path, conn: sqlite3.Connection) -> list[str]:
             continue
         actual = target.read_text(encoding="utf-8")
         expected = "\n" + s.generator(repo_root, conn, captions, s)  # line 1 is compared by shape only
-        if not STAMP_RE.match(actual.partition("\n")[0]):
-            findings.append(f"DRIFT {s.output_path}: line 1 is not a codemem draw stamp")
+        if not _stamped(target):
+            findings.append(f"DRIFT {s.output_path}: {_NOT_OURS}")
         elif not all(_CAPTION_LINE.match(line) for line in _captions_lines(actual)):
             findings.append(f"DRIFT {s.output_path}: hand-edited captions block")
         elif _comparable(actual) != _comparable(expected):
@@ -90,6 +94,11 @@ def check_views(repo_root: Path, conn: sqlite3.Connection) -> list[str]:
     # Planned set is empty by decision: caption only paths that exist.
     findings += [f"{f.code} {f.path}: {f.reason}" for f in cap.orphans(captions, _tracked(repo_root), set())]
     return findings
+
+
+def _stamped(path: Path) -> bool:
+    with path.open(encoding="utf-8", errors="replace") as f:
+        return bool(STAMP_RE.match(f.readline().rstrip("\n")))
 
 
 def _registered(repo_root: Path) -> list[ViewSpec]:

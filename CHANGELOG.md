@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Fixed
+
+- **`codemem draw --write` never overwrites a hand-authored view** — an existing `docs/architecture/` target
+  whose line 1 is not codemem's generated stamp (a team's own `README.md`, say) refuses the whole write,
+  before anything is written, naming the file; `--check` reports it as not generated and says to move it
+  aside. Previously only `understand-codebase`'s Deep-tier fence checked, so a bare `--write` in a
+  consumer repo replaced the team's file.
+
 ## v0.16.0 (2026-09-27)
 
 ### Added

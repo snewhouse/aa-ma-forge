@@ -1543,6 +1543,7 @@ Files:
   Modify  docs/spec/claude-code-foundations.md
   Modify  README.md, SECURITY.md, CHANGELOG.md
   Modify  docs/adr/INDEX.md
+  Create  tests/test_doc_counts.py   # 14.3 amendment (Ste, 2026-09-27): AC4 met by a scoped count guard — Tier 6 has no config here and a doc-counts.sh flags ~130 lines of frozen history
 
 Glossary terms (approved 2026-09-22):
   Explorer                          - graph-sourced interactive HTML; NOT a Render

@@ -44,7 +44,11 @@ materially apply to its work and how.
   distinct `Skill()` targets in `claude-code/`, the split was 17 on disk, **20
   declared-external**, 4 dangling — a binary rule is false in 20 places on day
   one. Nor can a name-grep find a dangling reference, since the name *is*
-  mentioned; that is precisely the defect. Classification belongs to the
+  mentioned; that is precisely the defect. (Those figures are the dated
+  measurement that motivated this rule, not a current count: the live split is
+  regenerated, never written here — `tests/golden/plugin-surface.json` and
+  `docs/architecture/plugin-surface.md`, via `scripts/regen-generated.sh`.)
+  Classification belongs to the
   plugin-surface extractor, which resolves all three classes in one pass
   (`docs/research/diagram-generation-plugin-surface-extraction.md`), against an
   explicit allowlist declaring the external set.

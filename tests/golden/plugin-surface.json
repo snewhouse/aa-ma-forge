@@ -427,6 +427,12 @@
    "src": "command:understand-codebase"
   },
   {
+   "dst": "skill:verify-impl",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:understand-codebase"
+  },
+  {
    "dst": "command:aa-ma-plan",
    "kind": "command",
    "ref_class": "ON_DISK",
@@ -1072,6 +1078,12 @@
    "dst": "skill:ubiquitous-language",
    "kind": "skill",
    "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:verify-impl",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
    "src": "skill:understand-codebase"
   },
   {

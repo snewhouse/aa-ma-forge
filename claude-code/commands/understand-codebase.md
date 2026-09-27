@@ -45,4 +45,4 @@ reader's intent (just understand · planning to contribute · planning to add a 
 **Use** when joining a new/inherited/shared codebase, or when asked "explain this repo / how do I
 contribute / how do I add a feature / is this codebase any good / write me an onboarding doc".
 
-**Don't use** — use the named alternative: editing code you already understand → `Skill(impact-analysis)`/`Skill(system-mapping)`; pure quality/security audit with no onboarding deliverable → `/codebase-deep-dive`; implementation planning → `/aa-ma-plan` or `/deep-analysis`; just a structural index → `/index`; trivial repo (< ~5 files) → just read it.
+**Don't use** — use the named alternative: editing code you already understand → `Skill(impact-analysis)`/`Skill(system-mapping)`; pure quality/security audit with no onboarding deliverable → not this command (no whole-repo audit ships here; to review a change, `Skill(verify-impl)`); implementation planning → `/aa-ma-plan` or `/deep-analysis`; just a structural index → `codemem build`; trivial repo (< ~5 files) → just read it.

@@ -52,7 +52,7 @@ Making changes to code?
 | Tool | Purpose | Depth | When |
 |------|---------|-------|------|
 | **system-mapping** | Pre-flight check | Focused | Before code changes |
-| `/codebase-deep-dive` | Comprehensive audit | Deep | New codebase, major refactor |
+| codemem `diagram` / `codemem draw` | Whole-repo structural map (L0–L3) | Broad | New codebase, major refactor |
 | `Skill(impact-analysis)` | Risk assessment | Moderate | After identifying changes |
 
 **Use system-mapping BEFORE you start, impact-analysis AFTER you plan changes.**
@@ -422,5 +422,5 @@ OUTPUT
 - `Skill(operational-constraints)` - Parent skill with full operational rules
 - `Skill(aa-ma-plan-workflow)` - Invokes system-mapping in Phase 3 when triggers match
 - `Skill(impact-analysis)` - Use AFTER system mapping to assess change risk
-- `/codebase-deep-dive` - For comprehensive codebase audits
+- codemem MCP `diagram` / `codemem draw` - Whole-repo structural map, directories down to symbols
 - `Skill(ast-grep)` - For structural code search during flow tracing

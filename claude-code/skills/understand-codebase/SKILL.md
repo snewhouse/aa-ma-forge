@@ -8,7 +8,7 @@ description: >-
   pros/cons verdict, a "contribute safely" playbook, and an "add a feature" playbook, written to
   ONBOARDING.md at the repo root plus a .claude/onboarding/ set of deep-dives — and optionally
   author an AGENTS.md if one is missing, or review and propose improvements to an existing one.
-  Tiered (Quick / Standard / Deep). Reuses /index, gsd-map-codebase, /codebase-deep-dive,
+  Tiered (Quick / Standard / Deep). Reuses codemem (index + diagrams), gsd-map-codebase,
   system-mapping, code-intelligence, impact-analysis rather than re-implementing them; Deep tier
   runs a TeamCreate agent-team. Keywords: new codebase, shared codebase, inherited code, onboard,
   understand this repo, how do I contribute, how do I add a feature, ramp up, get oriented,
@@ -61,9 +61,10 @@ touching anything `AGENTS.md`-related; its **SAFETY PROTOCOL** is binding.
 
 **Do NOT use this skill — use the named alternative instead:**
 - About to edit code you already understand → `Skill(impact-analysis)` / `Skill(system-mapping)`.
-- Pure quality/security audit with no onboarding deliverable → `/codebase-deep-dive`.
+- Pure quality/security audit with no onboarding deliverable → not this skill (this plugin ships no
+  whole-repo audit; to review a change, `Skill(verify-impl)`).
 - Implementation planning for a specific change → `/aa-ma-plan` or `/deep-analysis`.
-- You only need a structural index for tooling → `/index`.
+- You only need a structural index for tooling → `codemem build` (or codemem's MCP tools).
 - Trivial repo (< ~5 source files) → just read it; this skill is overkill.
 
 ## Tier selection (ask the user, default = Standard)
@@ -337,7 +338,7 @@ living_doc
 
 ## Related skills / commands (compose, don't duplicate)
 
-`/index` · `/codebase-deep-dive` · `Skill(gsd-map-codebase)` (+ `Skill(gsd-scan)`, `Skill(gsd-intel)`) ·
+codemem (`codemem draw`, MCP `diagram`) · `Skill(gsd-map-codebase)` (+ `Skill(gsd-scan)`, `Skill(gsd-intel)`) ·
 `Skill(system-mapping)` · `Skill(code-intelligence)` / `Skill(code-intelligence-index)` ·
 `Skill(impact-analysis)` · `Skill(doc-drift-detection)` · `Skill(agent-teams)` ·
 `Skill(improve-codebase-architecture)` (follow-on, once you understand it) ·

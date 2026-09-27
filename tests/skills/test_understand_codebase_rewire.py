@@ -171,3 +171,22 @@ def test_system_mapping_does_not_call_layers_core_entry_points() -> None:
     """§6.8: `layers` ranks by incoming calls — its core is the most-depended-on code."""
     text = (ROOT / "claude-code/skills/system-mapping/SKILL.md").read_text(encoding="utf-8")
     assert "top entry points" not in text
+
+
+# Double-check (2026-09-27): routing and related-tools lines that still sent readers to the
+# unshipped commands — the verdict's four plus three siblings of the same shape.
+ROUTES_TO_UNSHIPPED = [
+    ("claude-code/skills/understand-codebase/SKILL.md", "Reuses /index, gsd-map-codebase, /codebase-deep-dive,"),
+    ("claude-code/skills/understand-codebase/SKILL.md", "no onboarding deliverable → `/codebase-deep-dive`."),
+    ("claude-code/skills/understand-codebase/SKILL.md", "structural index for tooling → `/index`."),
+    ("claude-code/skills/understand-codebase/SKILL.md", "`/index` · `/codebase-deep-dive` ·"),
+    ("claude-code/skills/system-mapping/SKILL.md", "| `/codebase-deep-dive` | Comprehensive audit |"),
+    ("claude-code/skills/system-mapping/SKILL.md", "- `/codebase-deep-dive` - For comprehensive codebase audits"),
+    ("claude-code/commands/understand-codebase.md", "no onboarding deliverable → `/codebase-deep-dive`; implementation"),
+    ("claude-code/commands/understand-codebase.md", "just a structural index → `/index`;"),
+]
+
+
+@pytest.mark.parametrize("rel, text", ROUTES_TO_UNSHIPPED)
+def test_no_route_to_an_unshipped_command(rel: str, text: str) -> None:
+    assert text not in (ROOT / rel).read_text(encoding="utf-8")

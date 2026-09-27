@@ -20,11 +20,11 @@ trap 'rm -rf -- "${tmp}"' EXIT
 
 mkdir "${tmp}/src"
 git -C "${repo}" archive "${sha}" | tar -x -C "${tmp}/src"
-uv run --quiet --project "${root}" codemem --db "${tmp}/index.db" build --repo-root "${tmp}/src" >/dev/null 2>&1
+uv run --quiet --project "${root}" codemem --db "${tmp}/index.db" build --repo-root "${tmp}/src" >/dev/null
 for level in L0 L1 L2 L3; do
   uv run --quiet --project "${root}" codemem --db "${tmp}/index.db" draw --level "${level}" \
     >"${tmp}/out.mmd" 2>"${tmp}/err"
-  # stderr: `codemem draw: L2 69 nodes / 97 edges[ (+N dropped …)]`
+  # stderr: `codemem draw: L2 69 nodes / 97 edges[, N dropped over maxEdges]`
   read -r _ _ _ nodes _ _ edges _ <"${tmp}/err"
   printf 'MRS_BUDGET %s nodes=%s edges=%s chars=%s\n' "${level}" "${nodes}" "${edges}" \
     "$(LC_ALL=C.UTF-8 wc -m <"${tmp}/out.mmd" | tr -d ' ')"

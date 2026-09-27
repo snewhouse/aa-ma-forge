@@ -75,7 +75,7 @@ T2–T8 run in parallel once T1 is done. Spawn the mapper/worker agents with `Ag
 ## 7-phase mapping (for cross-reference with `Skill(agent-teams)`)
 1. **ANALYZE** — Step 0 absorb; detect languages; size the repo; decide which heavy tools to run vs absorb.
 2. **COMPOSE** — pick the roles above (drop some mappers if their output is being absorbed; `living-doc` always runs).
-3. **APPROVE** — `AskUserQuestion`: confirm Deep tier, target path, "OK to run `gsd-map-codebase` + `codemem draw --write` (writes to `.planning/`, `docs/architecture/`, `.codemem/` and one `.gitignore` line)?".
+3. **APPROVE** — `AskUserQuestion`: confirm Deep tier, target path, "OK to run `gsd-map-codebase` + `codemem draw --write` (writes to `.planning/`, `docs/architecture/`, `.codemem/` and one `.gitignore` line; a hand-authored `docs/architecture/` file is never overwritten — the living doc is skipped instead)?".
 4. **SPAWN** — `TeamCreate` → `TaskCreate` ×14 + deps → `Agent(... run_in_background)` for T2–T9.
 5. **COORDINATE** — poll `TaskList`; as tasks complete, unblock T11; run T10 enrichment; collect confirmations.
 6. **SHUTDOWN** — T11 synth → T12 AGENTS.md gate → T13 review + fixes → final chat summary.

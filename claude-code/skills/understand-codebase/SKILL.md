@@ -222,17 +222,43 @@ The Deep tier always writes `docs/architecture/` in the target repo — generate
 100% regenerable, checkable in the target's CI with `codemem draw --check`. `.claude/onboarding/02-architecture.md`
 **links** these files; it never copies them, so the two cannot drift. Run from the target repo's root
 (codemem reads and writes `./.codemem/`). Idempotent: a second run adds no second `.gitignore` line.
+It never overwrites a hand-authored file: if any view it would write already exists without codemem's
+generated stamp on line 1, it skips the living doc (exit 0) and says which file — link that file and note
+the skip in Provenance. Any other non-zero exit is a failure to note, never a reason to stop the tier.
 
 ```bash
 # The aa-ma-forge checkout, from this skill's installed symlink (scripts/install.sh).
 AA_MA_ROOT=${AA_MA_ROOT:-$(cd "$(dirname "$(readlink -f ~/.claude/skills/understand-codebase/SKILL.md)")/../../.." && pwd)}
-# Keep the index out of the target's git status: one line, appended only if absent.
-grep -qxE '/?\.codemem/?' .gitignore 2>/dev/null || {
-  [[ -s .gitignore && -n "$(tail -c1 .gitignore)" ]] && echo  # never join the last line
-  echo '.codemem/'
-} >>.gitignore
-uv run --quiet --project "${AA_MA_ROOT}" codemem build >/dev/null
-uv run --quiet --project "${AA_MA_ROOT}" codemem draw --write
+living_doc() {
+  if [[ ! -f "${AA_MA_ROOT}/packages/codemem-mcp/pyproject.toml" ]]; then
+    echo "living doc: no aa-ma-forge checkout at '${AA_MA_ROOT}' (run scripts/install.sh, or set AA_MA_ROOT)" >&2
+    return 1
+  fi
+  if [[ -L .gitignore || -L .codemem ]]; then  # the target's own symlink could point anywhere
+    echo "living doc refused: .gitignore or .codemem is a symlink; nothing written" >&2
+    return 1
+  fi
+  local codemem=(uv run --quiet --project "${AA_MA_ROOT}")
+  local own
+  own=$("${codemem[@]}" python -c 'from pathlib import Path; from codemem.draw.views import STAMP_RE, registered_paths
+r = Path.cwd()
+for p in registered_paths(r):
+    if p.is_file() and not STAMP_RE.match((p.read_text(encoding="utf-8", errors="replace").splitlines() or [""])[0]):
+        print(p.relative_to(r))') || return 1
+  if [[ -n "${own}" ]]; then
+    echo "living doc skipped: hand-authored, never overwritten: ${own//$'\n'/, }" >&2
+    return 0
+  fi
+  "${codemem[@]}" codemem build >/dev/null || return 1
+  # Keep the index out of the target's git status: one line, appended only if absent.
+  if ! grep -qxE '/?\.codemem/?' .gitignore 2>/dev/null; then
+    local sep=""
+    [[ -s .gitignore && -n "$(tail -c1 .gitignore)" ]] && sep=$'\n'  # never join the last line
+    printf '%s.codemem/\n' "${sep}" >>.gitignore
+  fi
+  "${codemem[@]}" codemem draw --write
+}
+living_doc
 ```
 
 ---
@@ -249,8 +275,10 @@ uv run --quiet --project "${AA_MA_ROOT}" codemem draw --write
 - **Reuse before rebuild.** If `.planning/codebase/`, `.claude/reports/codebase-deep-dive-*/`, a codemem
   index or `PROJECT_INDEX.json` (codemem's fallback) exist and are fresh, absorb them; do not re-run the heavy tool.
 - **Read-only on the target's code.** This skill writes only `ONBOARDING.md`, `.claude/onboarding/**`,
-  and, in the Deep tier, the living architecture doc: `docs/architecture/` (generated files),
-  `.codemem/` (the index) and one `.codemem/` line appended to `.gitignore` if absent — plus, via
+  and, in the Deep tier, the living architecture doc: `docs/architecture/` (generated files only —
+  a hand-authored file there is never overwritten; the doc is skipped instead), `.codemem/` (the
+  index) and one `.codemem/` line appended to `.gitignore` if absent; a symlinked `.gitignore` or
+  `.codemem` is refused. Running codemem also syncs the aa-ma-forge checkout's own `.venv`. Plus, via
   reused tools, `.planning/codebase/**`.
   It may *additionally* write `AGENTS.md` — **only if absent and only with explicit consent** —
   or `AGENTS.review.md` / `AGENTS.draft.md` (sidecars that never touch an existing `AGENTS.md`).

@@ -65,6 +65,7 @@ All 13 MCP tool arguments are sanitized before reaching SQL or `subprocess`:
 
 - **Symbol / name arguments** must match the allow-list regex `^[A-Za-z0-9_./\-]{1,256}$`. Non-matching input returns a structured error dict. No SQL escape; no shell escape — rejection happens before either layer is reached.
 - **File-path arguments** run the symbol check first, then resolve to an absolute path via `Path.resolve(strict=False)`, then verify the result is relative to the repo root. `../../etc/passwd`, `/etc/passwd`, and `foo/../../bar` all reject before any syscall.
+- **`diagram`** takes no symbol or path into SQL: `level` must be one of `L0`–`L3`, `hops` 0–10 (the neighbourhood walk loops that many times), and `scope` — a path prefix matched in Python only, spaces allowed — at most 1024 printable characters. Its labels are file and symbol names from the indexed repo: entity-escaped for mermaid, but still untrusted text for the agent that reads them.
 - The adversarial test suite (`tests/codemem/test_mcp_tools.py`) exercises 11 injection vectors including `'; DROP TABLE`, 10 KB unicode, and regex metachars.
 
 All MCP connections open SQLite via `file:...?mode=ro` URI — the tool surface is strictly non-mutating. The single writer is the indexer (`codemem build` / auto-build-on-first-query), gated by an `fcntl` / `msvcrt` lock at `<repo>/.codemem/db.lock`.

@@ -24,7 +24,7 @@ import sqlite3
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from ..storage import db
 from .queries import BLAST_RADIUS_CTE, WHO_CALLS_CTE
@@ -52,6 +52,8 @@ _DEFAULT_CO_CHANGES_EXCLUDE: tuple[str, ...] = ("CHANGELOG.md", "README.md")
 
 
 _DEFAULT_BUDGET = 8_000
+_MAX_HOPS = 10  # diagram(): a neighbourhood this wide is the whole graph on any real repo
+_MAX_SCOPE = 1024  # diagram(): a path prefix, matched in Python only (never SQL)
 # Conservative char-per-token heuristic. 1 token ≈ 4 chars for English+code.
 _CHARS_PER_TOKEN = 4
 
@@ -1064,20 +1066,29 @@ def diagram(
     edges; otherwise keep the current level and truncate it to the largest sorted edge
     prefix that fits. Measured on a one-top-level-dir monorepo (13.1): unguarded
     collapse answered a 482-edge L3 question with an empty L2. ``dropped`` counts every
-    edge not drawn (mermaid's ``maxEdges`` cap and budget truncation alike).
+    edge not drawn (mermaid's ``maxEdges`` cap and budget truncation alike); the mermaid
+    says so in a ``%%`` line, and ``truncated`` is true whenever the answer is partial.
     """
     from ..draw.cut import MIN_SCHEMA_VERSION, Level, cut, from_edges
     from ..draw.mermaid import to_mermaid
 
     def out(c, lv, *, frm=None, dropped=0, error=None) -> dict:
+        text = to_mermaid(c) if c else ""
+        if c and dropped > c.dropped:  # budget truncation: to_mermaid only notes its own maxEdges cap
+            text = text.replace("flowchart LR\n", f"flowchart LR\n%% {dropped} edges not shown: over the {budget}-token budget\n", 1)
         return {
-            "mermaid": to_mermaid(c) if c else "", "level": lv,
+            "mermaid": text, "level": lv,
             "nodes": len(c.nodes) if c else 0, "edges": len(c.edges) if c else 0,
-            "dropped": dropped, "collapsed_from": frm, "error": error,
+            "dropped": dropped, "collapsed_from": frm,
+            "truncated": dropped > 0 or frm is not None, "error": error,
         }
 
     if level not in Level.__members__:
         return out(None, level, error=f"level must be one of {list(Level.__members__)}, got {level!r}")
+    if not 0 <= hops <= _MAX_HOPS:  # the neighbourhood walk loops `hops` times
+        return out(None, level, error=f"hops must be 0..{_MAX_HOPS}, got {hops}")
+    if scope is not None and not (len(scope) <= _MAX_SCOPE and scope.isprintable()):
+        return out(None, level, error=f"scope must be at most {_MAX_SCOPE} printable characters")
     try:
         with _open_ro(db_path) as conn:
             version = conn.execute("PRAGMA user_version").fetchone()[0]
@@ -1097,14 +1108,11 @@ def diagram(
     if not _exceeds_budget(out(c, lv.name, frm=frm, dropped=c.dropped), budget):
         return out(c, lv.name, frm=frm, dropped=c.dropped)
     named = sorted((c.nodes[a], c.nodes[b], k) for a, b, k in c.edges)
-    lo, hi = 0, len(named)
-    while lo < hi:  # binary search, as _truncate does for list payloads
-        mid = (lo + hi + 1) // 2
-        if _exceeds_budget(out(from_edges(set(named[:mid]), lv), lv.name, frm=frm, dropped=c.dropped + len(named) - mid), budget):
-            hi = mid - 1
-        else:
-            lo = mid
-    return out(from_edges(set(named[:lo]), lv), lv.name, frm=frm, dropped=c.dropped + len(named) - lo)
+
+    def fitted(k: int) -> dict:
+        return out(from_edges(set(named[:k]), lv), lv.name, frm=frm, dropped=c.dropped + len(named) - k)
+
+    return fitted(_largest_prefix(len(named), lambda k: not _exceeds_budget(fitted(k), budget)))
 
 
 def aa_ma_context(
@@ -1294,6 +1302,18 @@ def _append_snapshot_to_reference(ref_md: Path, markdown: str) -> None:
 # Token-budget enforcement
 # ---------------------------------------------------------------------
 
+def _largest_prefix(n: int, fits: Callable[[int], bool]) -> int:
+    """Largest ``k <= n`` with ``fits(k)``, by binary search; ``fits`` must be monotone."""
+    lo, hi = 0, n
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if fits(mid):
+            lo = mid
+        else:
+            hi = mid - 1
+    return lo
+
+
 def _truncate(payload: dict, *, list_key: str, budget: int) -> dict:
     """Trim ``payload[list_key]`` until JSON size fits the budget.
 
@@ -1303,14 +1323,8 @@ def _truncate(payload: dict, *, list_key: str, budget: int) -> dict:
     items = payload.get(list_key, [])
     if not _exceeds_budget(payload, budget):
         return {**payload, "truncated": False}
-
-    lo, hi = 0, len(items)
-    # Binary-search the largest prefix that fits the budget.
-    while lo < hi:
-        mid = (lo + hi + 1) // 2
-        candidate = {**payload, list_key: items[:mid], "truncated": True}
-        if _exceeds_budget(candidate, budget):
-            hi = mid - 1
-        else:
-            lo = mid
-    return {**payload, list_key: items[:lo], "truncated": True}
+    keep = _largest_prefix(
+        len(items),
+        lambda k: not _exceeds_budget({**payload, list_key: items[:k], "truncated": True}, budget),
+    )
+    return {**payload, list_key: items[:keep], "truncated": True}

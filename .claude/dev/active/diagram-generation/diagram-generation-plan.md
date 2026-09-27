@@ -1455,6 +1455,10 @@ Files:
   Modify  claude-code/agents/codebase-onboarding-{health,synthesizer}.md
   Modify  claude-code/skills/understand-codebase/templates/onboarding-team.md   # 13.4 amendment (Ste, 2026-09-26): the Deep tier's team script carried 3 of the 7 unshipped-command runs
   Create  scripts/measure_mrs.sh                                    # AC1 regenerator
+  # Derived (§6.8 note, 2026-09-27): tool-count text 12→13 in SECURITY.md, claude-code/codemem/README.md,
+  #   packages/codemem-mcp/{README.md,pyproject.toml}, docs/codemem/install-zero-config.md (M14 still owns the
+  #   Tier 6 sweep); regenerated tests/golden/plugin-surface.json + docs/architecture/*.md; the DANGLING pin in
+  #   tests/codemem/test_plugin_surface.py.
   Test    tests/codemem/test_mcp_diagram.py (new)
 
 MCP tool:

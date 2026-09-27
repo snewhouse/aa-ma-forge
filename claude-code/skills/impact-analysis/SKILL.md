@@ -234,7 +234,7 @@ the equivalent fallback (same names; its `blast_radius` returns callers by depth
 | 4. TEST COVERAGE | `search_symbols("test_<target>")` (substring match) → test functions | Find test files |
 | 5. SIDE EFFECTS | *(manual — not in the index)* | Read function body |
 
-**Freshness gate:** codemem — if files changed since the last `codemem build`, rebuild (≈0.5 s) or say the answer is stale; `PROJECT_INDEX.json` (codemem's fallback) — check `_meta.at`, and if >24h old prepend a warning but still use the data.
+**Freshness gate:** codemem — if any tracked file is newer than `.codemem/index.db` (`git status --porcelain`, or a commit after the index's mtime), rebuild (sub-second on a small repo, tens of seconds on thousands of files) or say the answer is stale; `PROJECT_INDEX.json` (codemem's fallback) — check `_meta.at`, and if >24h old prepend a warning but still use the data.
 
 ## Quick Reference
 

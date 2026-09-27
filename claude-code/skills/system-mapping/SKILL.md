@@ -76,7 +76,8 @@ Making changes to code?
 codemem MCP (builds its index on first query):
   - file_summary(path) → symbols defined in each target file
   - diagram(level="L1") → directory map; diagram(level="L2", scope=<dir>) → files + import/call edges
-  - layers() → core / middle / periphery by in-degree (top entry points)
+  - layers() → core / middle / periphery by incoming calls (core = most depended-on; entry points
+    usually sit in periphery — find them with the sg/Grep step below)
 Fallback — PROJECT_INDEX.json exists and codemem is not configured:
   - file_summary(file), dir_purposes, tree, _meta.symbol_importance
   This replaces manual Glob/LS for structural discovery.

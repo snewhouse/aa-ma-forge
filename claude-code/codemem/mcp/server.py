@@ -114,37 +114,37 @@ def build_server() -> FastMCP:
     # M1 tool handlers — each a thin wrapper over codemem.mcp_tools.*
     # ------------------------------------------------------------------
 
-    def who_calls(name: str, max_depth: int = 3, budget: int = 8_000) -> dict:
+    def who_calls(name: str, max_depth: int = 3, budget: int = mcp_tools._DEFAULT_BUDGET) -> dict:
         """Return callers of a symbol (upstream traversal)."""
         return mcp_tools.who_calls(
             db_path_factory(), name, max_depth=max_depth, budget=budget
         )
 
-    def blast_radius(name: str, max_depth: int = 3, budget: int = 8_000) -> dict:
+    def blast_radius(name: str, max_depth: int = 3, budget: int = mcp_tools._DEFAULT_BUDGET) -> dict:
         """Return everything a symbol reaches (downstream transitive)."""
         return mcp_tools.blast_radius(
             db_path_factory(), name, max_depth=max_depth, budget=budget
         )
 
-    def dead_code(budget: int = 8_000) -> dict:
+    def dead_code(budget: int = mcp_tools._DEFAULT_BUDGET) -> dict:
         """Return function/method symbols with zero incoming call edges."""
         return mcp_tools.dead_code(db_path_factory(), budget=budget)
 
     def dependency_chain(
-        source: str, target: str, max_depth: int = 5, budget: int = 8_000
+        source: str, target: str, max_depth: int = 5, budget: int = mcp_tools._DEFAULT_BUDGET
     ) -> dict:
         """Shortest call-graph path from ``source`` to ``target``."""
         return mcp_tools.dependency_chain(
             db_path_factory(), source, target, max_depth=max_depth, budget=budget
         )
 
-    def search_symbols(query: str, budget: int = 8_000) -> dict:
+    def search_symbols(query: str, budget: int = mcp_tools._DEFAULT_BUDGET) -> dict:
         """Substring name search (exact > prefix > contains ranking)."""
         return mcp_tools.search_symbols(
             db_path_factory(), query, budget=budget
         )
 
-    def file_summary(path: str, budget: int = 8_000) -> dict:
+    def file_summary(path: str, budget: int = mcp_tools._DEFAULT_BUDGET) -> dict:
         """List symbols in a file, ordered by source line."""
         return mcp_tools.file_summary(
             db_path_factory(),
@@ -158,7 +158,7 @@ def build_server() -> FastMCP:
     # ------------------------------------------------------------------
 
     def hot_spots(
-        window_days: int = 90, top_n: int = 10, budget: int = 8_000
+        window_days: int = 90, top_n: int = 10, budget: int = mcp_tools._DEFAULT_BUDGET
     ) -> dict:
         """Top-N files by (commits in window) × (function_count)."""
         return mcp_tools.hot_spots(
@@ -172,7 +172,7 @@ def build_server() -> FastMCP:
         file_path: str,
         threshold: int = 3,
         top_n: int = 50,
-        budget: int = 8_000,
+        budget: int = mcp_tools._DEFAULT_BUDGET,
     ) -> dict:
         """Files co-changing with ``file_path`` that lack an import edge."""
         return mcp_tools.co_changes(
@@ -187,7 +187,7 @@ def build_server() -> FastMCP:
         path: str,
         refresh: bool = False,
         skip: bool = False,
-        budget: int = 8_000,
+        budget: int = mcp_tools._DEFAULT_BUDGET,
     ) -> dict:
         """Per-author line-count percentages for a file or directory."""
         return mcp_tools.owners(
@@ -202,7 +202,7 @@ def build_server() -> FastMCP:
     def symbol_history(
         name: str,
         file_path: str | None = None,
-        budget: int = 8_000,
+        budget: int = mcp_tools._DEFAULT_BUDGET,
     ) -> dict:
         """``git log -L:<name>:<file>`` summary per file containing ``name``."""
         return mcp_tools.symbol_history(
@@ -213,12 +213,12 @@ def build_server() -> FastMCP:
             budget=budget,
         )
 
-    def layers(budget: int = 8_000) -> dict:
+    def layers(budget: int = mcp_tools._DEFAULT_BUDGET) -> dict:
         """Bucket files into core/middle/periphery by in-degree; render onion."""
         return mcp_tools.layers(db_path_factory(), budget=budget)
 
     def aa_ma_context(
-        task_name: str, write: bool = False, budget: int = 8_000
+        task_name: str, write: bool = False, budget: int = mcp_tools._DEFAULT_BUDGET
     ) -> dict:
         """Validate an AA-MA task; assemble a code-intel context pack."""
         return mcp_tools.aa_ma_context(
@@ -230,7 +230,7 @@ def build_server() -> FastMCP:
         )
 
     def diagram(
-        level: str = "L2", scope: str | None = None, hops: int = 1, budget: int = 8_000
+        level: str = "L2", scope: str | None = None, hops: int = 1, budget: int = mcp_tools._DEFAULT_BUDGET
     ) -> dict:
         """Mermaid flowchart of the code graph at L0-L3, sized to ``budget`` tokens.
 

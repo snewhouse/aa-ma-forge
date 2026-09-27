@@ -483,7 +483,7 @@
 - Result Log: Mode: AFK — auto-dispatched. `tests/skills/test_understand_codebase_frontmatter.py` + `tests/assets/test_understand_codebase_xrefs.py` 6/6 passed; `git diff --name-status 1d10771 HEAD -- claude-code/skills/understand-codebase` = 9 × M, 0 A/D (references/ inventory intact). Live Deep-tier run on a scratch clone of medical-research-skills with the fence exactly as shipped (AA_MA_ROOT resolved through ~/.claude/skills symlink), run twice: `git status` = ` M .gitignore` + 3 × `?? docs/architecture/{README,component,io}.md` (no plugin-surface: no claude-code/ there); `.codemem/` lines in .gitignore = 1; `.codemem/` not in status; `codemem draw --check` in the clone: OK. Clone local only.
 
 ## Milestone 14: Glossary, spec, counts → release `v0.16.0`
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 13
 - Gate: HARD
 - Audit-Profile: docs-only

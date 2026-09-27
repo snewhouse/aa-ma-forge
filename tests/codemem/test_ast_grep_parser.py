@@ -7,9 +7,9 @@ subprocess mocking, and real-sg integration for TypeScript.
 
 from __future__ import annotations
 
+import errno
 import json
 import logging
-import shutil
 from pathlib import Path
 
 import pytest
@@ -322,17 +322,28 @@ echo "sg: invalid option -- 'r'" >&2
 exit 1
 """
 
-_REAL_AST_GREP = shutil.which("ast-grep")
+
+# ``--version`` like the ast-grep-cli wheel's ``sg``; scanning is never reached.
+_AST_GREP_SG = """#!/bin/sh
+echo "ast-grep 0.42.1"
+"""
+
+_REAL_AST_GREP = ag.resolve_ast_grep_bin()
 _LOGGER = "codemem.parser.ast_grep"
 _TS_SOURCE = "function greet(name: string): string {\n    return name;\n}\n"
 
 
+def _script(bindir: Path, name: str, body: str) -> Path:
+    bindir.mkdir(exist_ok=True)
+    p = bindir / name
+    p.write_text(body)
+    p.chmod(0o755)
+    return p
+
+
 def _foreign_sg_dir(tmp_path: Path) -> Path:
     bindir = tmp_path / "foreign-bin"
-    bindir.mkdir()
-    sg = bindir / "sg"
-    sg.write_text(_FOREIGN_SG)
-    sg.chmod(0o755)
+    _script(bindir, "sg", _FOREIGN_SG)
     return bindir
 
 
@@ -361,13 +372,22 @@ def _warnings(caplog) -> list[str]:
             if r.name == _LOGGER and r.levelno >= logging.WARNING]
 
 
+@pytest.fixture(autouse=True)
+def _fresh_resolver_cache():
+    """The resolver is cached per process; each test sees its own PATH."""
+    clear = getattr(ag.resolve_ast_grep_bin, "cache_clear", lambda: None)
+    clear()
+    yield
+    clear()
+
+
 class TestBinaryResolution:
     def test_foreign_sg_on_path_warns_instead_of_silent_zero(self, tmp_path, monkeypatch, caplog):
         _only_foreign_sg(tmp_path, monkeypatch)
         f = _ts_file(tmp_path)
         with caplog.at_level(logging.WARNING, logger=_LOGGER):
             results = extract_with_ast_grep([f], package=".", repo_root=f.parent)
-        assert results[f].symbols == []
+        assert f not in results, "an unparsed file must not look like a parsed, empty one"
         msgs = _warnings(caplog)
         assert msgs, "a non-Python file indexed to zero symbols with no warning"
         assert any("ast-grep" in m for m in msgs)
@@ -376,7 +396,7 @@ class TestBinaryResolution:
         _only_foreign_sg(tmp_path, monkeypatch)
         assert ag.resolve_ast_grep_bin() is None
 
-    @pytest.mark.skipif(_REAL_AST_GREP is None, reason="ast-grep binary not on PATH")
+    @pytest.mark.skipif(_REAL_AST_GREP is None, reason="ast-grep binary not found")
     def test_prefers_ast_grep_over_foreign_sg(self, tmp_path, monkeypatch, caplog):
         foreign = _foreign_sg_dir(tmp_path)
         real = tmp_path / "real-bin"
@@ -390,22 +410,65 @@ class TestBinaryResolution:
         assert {s.name for s in results[f].symbols} == {"greet"}
         assert _warnings(caplog) == []
 
-    @pytest.mark.skipif(_REAL_AST_GREP is None, reason="ast-grep binary not on PATH")
     def test_finds_ast_grep_beside_the_interpreter_when_not_on_path(self, tmp_path, monkeypatch):
         # pipx / an absolute .venv/bin/codemem: the venv's bin dir is not on PATH.
         venv_bin = tmp_path / "venv-bin"
-        venv_bin.mkdir()
-        (venv_bin / "ast-grep").symlink_to(_REAL_AST_GREP)
+        adjacent = _script(venv_bin, "ast-grep", _AST_GREP_SG)
         monkeypatch.setenv("PATH", str(_foreign_sg_dir(tmp_path)))
         monkeypatch.setattr(ag.sys, "executable", str(venv_bin / "python"))
-        assert ag.resolve_ast_grep_bin() == str(venv_bin / "ast-grep")
+        assert ag.resolve_ast_grep_bin() == str(adjacent)
+
+    def test_interpreter_adjacent_ast_grep_beats_one_on_path(self, tmp_path, monkeypatch):
+        # Review finding 2: the pinned ast-grep-cli dependency sits beside the
+        # interpreter; an unrelated ast-grep earlier on PATH must not win.
+        venv_bin = tmp_path / "venv-bin"
+        adjacent = _script(venv_bin, "ast-grep", _AST_GREP_SG)
+        _script(tmp_path / "path-bin", "ast-grep", _AST_GREP_SG)
+        monkeypatch.setenv("PATH", str(tmp_path / "path-bin"))
+        monkeypatch.setattr(ag.sys, "executable", str(venv_bin / "python"))
+        assert ag.resolve_ast_grep_bin() == str(adjacent)
+
+    def test_sg_fallback_probes_every_sg_on_path(self, tmp_path, monkeypatch):
+        # Review finding 7: newgrp's sg first on PATH must not hide ast-grep's sg.
+        foreign = _foreign_sg_dir(tmp_path)
+        good = _script(tmp_path / "good-bin", "sg", _AST_GREP_SG)
+        monkeypatch.setenv("PATH", f"{foreign}:{good.parent}")
+        _no_interpreter_bindir(tmp_path, monkeypatch)
+        assert ag.resolve_ast_grep_bin() == str(good)
+
+    def test_sg_fallback_probes_the_interpreter_adjacent_sg(self, tmp_path, monkeypatch):
+        venv_bin = tmp_path / "venv-bin"
+        good = _script(venv_bin, "sg", _AST_GREP_SG)
+        monkeypatch.setenv("PATH", str(_foreign_sg_dir(tmp_path)))
+        monkeypatch.setattr(ag.sys, "executable", str(venv_bin / "python"))
+        assert ag.resolve_ast_grep_bin() == str(good)
+
+    def test_resolution_is_cached_per_process(self, tmp_path, monkeypatch):
+        # Review finding 5: no repeated which/--version probes per call.
+        venv_bin = tmp_path / "venv-bin"
+        adjacent = _script(venv_bin, "ast-grep", _AST_GREP_SG)
+        monkeypatch.setenv("PATH", "")
+        monkeypatch.setattr(ag.sys, "executable", str(venv_bin / "python"))
+        assert ag.resolve_ast_grep_bin() == str(adjacent)
+        adjacent.unlink()
+        assert ag.resolve_ast_grep_bin() == str(adjacent)  # served from the cache
+        ag.resolve_ast_grep_bin.cache_clear()
+        assert ag.resolve_ast_grep_bin() is None
+
+    def test_invoker_seam_does_not_change_binary_selection(self, tmp_path, monkeypatch):
+        # Review finding 4: injecting _invoker must not fall back to a bare "sg".
+        monkeypatch.setattr(ag, "resolve_ast_grep_bin", lambda: "/resolved/ast-grep")
+        invoker = FakeInvoker({})
+        f = _ts_file(tmp_path)
+        extract_with_ast_grep([f], package=".", repo_root=f.parent, _invoker=invoker)
+        assert [c["sg_bin"] for c in invoker.calls] == ["/resolved/ast-grep"]
 
     def test_failing_explicit_binary_is_logged_with_its_stderr(self, tmp_path, caplog):
         sg = _foreign_sg_dir(tmp_path) / "sg"
         f = _ts_file(tmp_path)
         with caplog.at_level(logging.WARNING, logger=_LOGGER):
             results = extract_with_ast_grep([f], package=".", repo_root=f.parent, sg_bin=str(sg))
-        assert results[f].symbols == []
+        assert f not in results
         msgs = _warnings(caplog)
         assert any("exit 1" in m and "invalid option" in m for m in msgs)
 
@@ -415,7 +478,7 @@ class TestBinaryResolution:
             results = extract_with_ast_grep(
                 [f], package=".", repo_root=f.parent, sg_bin=str(tmp_path / "no-such-ast-grep"),
             )
-        assert results[f].symbols == []
+        assert f not in results
         assert _warnings(caplog)
 
     def test_unresolved_binary_never_reaches_the_invoker(self, tmp_path, monkeypatch, caplog):
@@ -426,7 +489,7 @@ class TestBinaryResolution:
         with caplog.at_level(logging.WARNING, logger=_LOGGER):
             results = extract_with_ast_grep([f], package=".", repo_root=f.parent)
         assert calls == []
-        assert results[f].symbols == []
+        assert f not in results
         assert any("no ast-grep binary found" in m for m in _warnings(caplog))
 
     def test_no_supported_files_never_looks_for_a_binary(self, tmp_path, monkeypatch, caplog):
@@ -449,5 +512,41 @@ class TestBinaryResolution:
         by_lang = {p.lang: p for p in parses}
         assert py_errors == 0
         assert {s.name for s in by_lang["python"].result.symbols} == {"greet"}
-        assert by_lang["typescript"].result.symbols == []
+        assert "typescript" not in by_lang, "unparsed file must be skipped, not stored empty"
         assert _warnings(caplog)
+
+
+# ---------------------------------------------------------------------
+# Batching — argv must stay bounded (review finding 3)
+# ---------------------------------------------------------------------
+
+class TestArgvBatching:
+    def test_large_batch_is_chunked_under_the_argv_budget(self, tmp_path):
+        long_dir = tmp_path / ("d" * 200)
+        files = [long_dir / f"file_{i:05d}.ts" for i in range(2000)]  # ~0.5 MB of paths
+        invoker = FakeInvoker({})
+        results = extract_with_ast_grep(
+            files, package=".", repo_root=tmp_path, sg_bin="sg", _invoker=invoker,
+        )
+        assert len(invoker.calls) > 1
+        for call in invoker.calls:
+            assert sum(len(p) + 1 for p in call["files"]) <= ag._ARGV_BUDGET
+        assert [p for c in invoker.calls for p in c["files"]] == [str(f) for f in files]
+        assert set(results) == set(files)
+
+    def test_small_batch_is_one_invocation(self, tmp_path):
+        files = [tmp_path / "a.ts", tmp_path / "b.ts"]
+        invoker = FakeInvoker({})
+        extract_with_ast_grep(files, package=".", repo_root=tmp_path, sg_bin="sg", _invoker=invoker)
+        assert len(invoker.calls) == 1
+
+    def test_e2big_is_reported_as_argv_too_long(self, tmp_path, monkeypatch, caplog):
+        def _raise(*_a, **_kw):
+            raise OSError(errno.E2BIG, "Argument list too long")
+
+        monkeypatch.setattr(ag.subprocess, "run", _raise)
+        f = _ts_file(tmp_path)
+        with caplog.at_level(logging.WARNING, logger=_LOGGER):
+            results = extract_with_ast_grep([f], package=".", repo_root=f.parent, sg_bin="sg")
+        assert f not in results
+        assert any("argument list too long" in m.lower() for m in _warnings(caplog))

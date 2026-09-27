@@ -136,7 +136,9 @@ from text and renders everywhere plans are actually read.
 - Every code plan costs one diagram and one Contract block per code milestone.
 - A diagram that names a file the plan later renames is a lie until fixed —
   hence the engineering-standards §4 rule: update the View in the same commit
-  (`STALE_PATH` from the lint).
+  (`STALE_PATH` from the lint). Since diagram-generation M8/M11 the lint also checks
+  opt-in sigil edges (`PHANTOM_EDGE`, `LABEL_UNKNOWN`, `UNKNOWN`) against the codemem
+  graph, and §6.7 enforces them at the milestone gate — see ADR-0015.
 - `mmdc` is an optional Node dependency; on machines without Chromium the
   render verdict is `UNKNOWN`, and people must not read that as PASS.
 

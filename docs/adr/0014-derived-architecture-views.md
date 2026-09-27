@@ -1,6 +1,6 @@
 # 0014. Derived architecture views: aa_ma reads codemem's graph through a stdlib-sqlite3 seam
 
-**Status:** Accepted
+**Status:** Implemented (seam shipped M2; consumers: codemem draw M3, PHANTOM_EDGE lint M8, explorer M12)
 **Date:** 2026-09-24
 **Deciders:** Stephen Newhouse (sole maintainer)
 **Tags:** `aa-ma`, `codemem`, `diagrams`, `render`, `import-linter`, `architecture`

@@ -115,7 +115,9 @@ A waiver is invalid when any milestone declares `Audit-Profile ∈ {full, code-o
 - **Diagram maintenance is part of the change** — when a step changes a file
   named in the Architecture View, update the View in the same commit; stale
   diagrams mislead more than absent ones (`aa-ma-lint-views`, M2 of
-  plan-architecture-views, reports `STALE_PATH`).
+  plan-architecture-views, reports `STALE_PATH`; a sigil edge the code no longer
+  holds is `PHANTOM_EDGE`, a mistyped sigil `LABEL_UNKNOWN`, and an uncheckable one
+  `UNKNOWN` — diagram-generation M8, ADR-0015).
 - **Incremental validation** — verify each step before proceeding. The
   `aa-ma-commit-drift.sh` post-commit hook (advisory) flags drift between code
   and AA-MA artifacts; the milestone HARD gate refuses COMPLETE while git is

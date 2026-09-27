@@ -501,9 +501,9 @@
 - Result Log: Ste: Proceed with the drafted wording. CONTEXT.md gains `### Derived architecture` with 6 entries covering the 7 terms (Derived View / Authored View is one paired entry, as planned), each term + definition + `_Avoid_:` (AC1, checked per entry). View entry's canonical kinds gain **I/O-boundary view** (AC2). Architecture View's `_Avoid_` no longer claims "there is no separate file" (false since M6). Relationships +2 lines; Provenance line. Definitions written from shipped code (Milestone graph is tasks.md-derived, so Derived = generated mechanically, not only from codemem). No implementation detail beyond names of the commands that produce each artifact.
 
 ### Sub-step 14.2: [docs] spec §XI body (no renumbering), quick-ref, foundations
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [pending]
+- Result Log: Mode: AFK — auto-dispatched. Measured first: spec/quick-ref/foundations had 0 mentions of PHANTOM_EDGE, DIAGRAM_VERIFIED, docs/architecture, explorer, the MCP diagram tool. Spec §XI element #13 body (no renumbering): sigil grammar (quoted form), PHANTOM_EDGE / LABEL_UNKNOWN / UNKNOWN tiers, prose label for function-local imports, the §6.7 HARD item + DIAGRAM_VERIFIED (ADR-0015), Authored vs Derived (Living architecture doc is no substitute for §13); prompt template gained item 13 (it listed 12 — drift since v0.12.0). Quick-ref: `### Diagrams & architecture (CLI)` block (codemem build/draw/--write/--check, aa-ma-lint-views [--coverage], aa-ma-render --explorer, MCP diagram, sigil form). Foundations: aa-ma-parse.sh also launches aa_ma_lint_views; 2 protocol bullets (diagram as acceptance criterion, living doc). M8 carry-forward done: engineering-standards.md Diagram-maintenance bullet names PHANTOM_EDGE/LABEL_UNKNOWN/UNKNOWN; ADR-0010 Consequences cross-ref ADR-0015. ADR-0014 + ADR-0016 Accepted → Implemented (code + CI job verified), INDEX updated. pytest 1636 passed; regen stamps only.
 
 ### Sub-step 14.3: [docs] hardcoded counts in the 5 files CLAUDE.md names + `claude-code/rules/engineering-standards.md:44` (41 = 17/20/4 is stale; prefer citing the generated `docs/architecture/plugin-surface.md` / the M4 golden over re-hardcoding numbers); `Skill(doc-drift-detection)` clean
 - Status: PENDING

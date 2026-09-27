@@ -1,6 +1,6 @@
 # 0016. The living architecture doc: generated `docs/architecture/` checked for drift in CI
 
-**Status:** Accepted
+**Status:** Implemented (M6: `codemem draw --write/--check`, CI job `architecture-drift`)
 **Date:** 2026-09-24
 **Deciders:** Stephen Newhouse (sole maintainer)
 **Tags:** `codemem`, `diagrams`, `docs`, `ci`, `architecture`

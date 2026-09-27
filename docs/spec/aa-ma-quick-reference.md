@@ -154,6 +154,18 @@ synthesis. Protocol toggles: `--no-goal` on `/execute-aa-ma-full`; omit
 /sole-dev-merge
 ```
 
+### Diagrams & architecture (CLI)
+
+```bash
+codemem build                                   # index the repo (.codemem/index.db)
+codemem draw --level L0|L1|L2|L3 [--scope P]... # mermaid cut: dirs, dirs, files, symbols
+codemem draw --write | --check                  # the living doc in docs/architecture/ (CI runs --check)
+aa-ma-lint-views <plan.md> --repo-root . [--coverage]  # §13 lint: STALE_PATH, PHANTOM_EDGE, sigils: line
+aa-ma-render --explorer                         # build/explorer.html — click to drill the whole graph
+# MCP: diagram(level="L2", scope=None, hops=1)  — budget-sized; collapses or truncates, reports dropped
+# §13 sigil edge: A -->|"@import"| B  (quoted; checked at the §6.7 gate → DIAGRAM_VERIFIED)
+```
+
 ### Claude Code Directory Structure
 
 ```

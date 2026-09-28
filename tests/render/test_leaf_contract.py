@@ -44,4 +44,6 @@ def test_analysis_is_leaf_names_every_other_aa_ma_module() -> None:
 def test_analysis_imports_no_other_aa_ma_module() -> None:
     """...and aa_ma.analysis imports only stdlib + pydantic (no other aa_ma module)."""
     assert _contract_list("analysis-is-self-contained") == {"aa_ma.analysis"}
-    assert _contract_list("analysis-is-self-contained", "forbidden_modules") == _all_but("aa_ma.analysis")
+    assert _contract_list(
+        "analysis-is-self-contained", "forbidden_modules"
+    ) == _all_but("aa_ma.analysis")

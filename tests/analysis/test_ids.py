@@ -10,7 +10,12 @@ import pytest
 
 from aa_ma.analysis import ids
 
-BASE = ("security", "security.sql_injection", "src/db.py", 'cur.execute("SELECT * FROM users WHERE id=" + uid)')
+BASE = (
+    "security",
+    "security.sql_injection",
+    "src/db.py",
+    'cur.execute("SELECT * FROM users WHERE id=" + uid)',
+)
 
 
 def _aws() -> str:
@@ -31,7 +36,12 @@ def test_matches_the_documented_formula() -> None:
 
 def test_line_number_is_not_an_input() -> None:
     """Same anchor at line 10 and line 15 → same ID: the anchor is text, never a position."""
-    assert list(inspect.signature(ids.finding_id).parameters) == ["dimension", "rule", "path", "anchor"]
+    assert list(inspect.signature(ids.finding_id).parameters) == [
+        "dimension",
+        "rule",
+        "path",
+        "anchor",
+    ]
     assert ids.assign_ids([BASE]) == ids.assign_ids([BASE])
 
 
@@ -58,7 +68,9 @@ def test_occurrence_counts_per_tuple_not_globally() -> None:
 
 
 def test_anchor_for_collapses_whitespace() -> None:
-    assert ids.anchor_for("    #   TODO:\thandle   retries   ") == "# TODO: handle retries"
+    assert (
+        ids.anchor_for("    #   TODO:\thandle   retries   ") == "# TODO: handle retries"
+    )
 
 
 def test_anchor_for_redacts_before_hashing() -> None:

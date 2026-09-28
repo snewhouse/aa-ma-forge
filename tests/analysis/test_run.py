@@ -14,6 +14,8 @@ import pytest
 
 from aa_ma.analysis.run import OFFLINE_ENV, run_approved
 
+from .conftest import stub_bin as stub
+
 FAKE_TOKEN = (
     "gh" + "p_" + "Z9" * 18
 )  # assembled at runtime; matches the github-token rule
@@ -26,12 +28,6 @@ def stubs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     d.mkdir()
     monkeypatch.setenv("PATH", f"{d}{os.pathsep}{os.environ['PATH']}")
     return d
-
-
-def stub(bindir: Path, name: str, body: str) -> None:
-    p = bindir / name
-    p.write_text("#!/bin/sh\n" + body + "\n", encoding="utf-8")
-    p.chmod(0o755)
 
 
 def statuses(checks) -> list[str]:

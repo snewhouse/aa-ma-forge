@@ -1,0 +1,350 @@
+"""finalize(): work dir → the versioned report set (M2 AC1, AC3–AC5, AC8, AC9, AC11 + §5a rules).
+
+Every test drives the real measure() on the fixture target with stub tools, then plays the main
+thread / judge agents by writing ratings.json, ledger.json and judged.jsonl into the work dir."""
+
+from __future__ import annotations
+
+import json
+import os
+from collections import Counter
+from pathlib import Path
+
+import pytest
+from jsonschema import Draft4Validator
+
+from aa_ma.analysis import cli
+from aa_ma.analysis.finalize import FinalizeError, finalize
+from aa_ma.analysis.ids import compare
+from aa_ma.analysis.measure import measure
+from aa_ma.analysis.models import Dimension, Finding, Summary
+from aa_ma.analysis.stamp import REPORTS_ROOT
+
+from .conftest import FAKE_TOKEN, commit_file, git, stub_bin
+
+ROOT = Path(__file__).resolve().parents[2]
+SARIF_SCHEMA = json.loads(
+    (ROOT / "tests/fixtures/sarif/sarif-schema-2.1.0.json").read_text(encoding="utf-8")
+)
+F1 = '2,20,10,1,2,"f1@1-2@src/calc.py","src/calc.py","f1","f1( x )",1,2\n'
+F2 = '2,30,10,1,2,"f2@5-6@src/calc.py","src/calc.py","f2","f2( y )",5,6\n'
+
+
+@pytest.fixture
+def lizard(tools: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A lizard stub reporting whatever the returned CSV file holds (f1 and f2 by default)."""
+    report = tools / "lizard.csv"
+    report.write_text(F1 + F2, encoding="utf-8")
+    monkeypatch.setenv("LIZARD_BIN", str(stub_bin(tools, "lizard", f"cat '{report}'")))
+    return report
+
+
+def judged(**overrides: object) -> dict:
+    base = {
+        "schema_version": 1,
+        "origin": "judged",
+        "dimension": "architecture",
+        "severity": "medium",
+        "confidence": "med",
+        "rule": "arch.layering",
+        "title": "calc reaches into config",
+        "path": "src/calc.py",
+        "line": 1,
+        "anchor": "def f1(x):",
+        "refutation": "not_required",
+        "evidence": "src/calc.py:1",
+    }
+    return base | overrides
+
+
+def ratings(**by_dim: str) -> list[dict]:
+    return [
+        {
+            "dimension": d.value,
+            "rating": by_dim.get(d.value, "adequate"),
+            "confidence": "med",
+            "inputs": [],
+            "capped": False,
+        }
+        for d in Dimension
+    ]
+
+
+def prepare(
+    target: Path,
+    *,
+    judged_lines: list[str] | None = None,
+    rate: list[dict] | None = None,
+) -> Path:
+    work = measure(target, "quick")
+    (work / "ratings.json").write_text(json.dumps(rate or ratings()))
+    (work / "ledger.json").write_text(
+        json.dumps([{"path": "src", "status": "assessed", "reason": "source"}])
+    )
+    (work / "judged.jsonl").write_text(
+        "".join(line + "\n" for line in (judged_lines or []))
+    )
+    return work
+
+
+def run(target: Path, **kw) -> Path:
+    return finalize(target, prepare(target, **kw))
+
+
+def findings(report: Path) -> list[Finding]:
+    return [
+        Finding.model_validate_json(line)
+        for line in (report / "findings.jsonl").read_text().splitlines()
+    ]
+
+
+def summary(report: Path) -> Summary:
+    return Summary.model_validate_json((report / "summary.json").read_text())
+
+
+def sarif(report: Path) -> dict:
+    return json.loads((report / "findings.sarif").read_text())
+
+
+# --- AC1: deterministic measured IDs; every output validates --------------------------------------
+
+
+def test_two_runs_at_one_commit_give_identical_measured_ids_and_valid_outputs(
+    target: Path, lizard: Path
+) -> None:
+    first = {f.id for f in findings(run(target)) if f.origin == "measured"}
+    report = run(target)
+    second = {f.id for f in findings(report) if f.origin == "measured"}
+    assert first == second and len(first) == 3  # f1, f2, the config secret
+    summary(report)
+    Draft4Validator(SARIF_SCHEMA).validate(sarif(report))
+    assert {
+        r["fingerprints"]["aaMaFindingId/v1"]
+        for r in sarif(report)["runs"][0]["results"]
+    } == second
+    assert (report / "report.md").is_file() and (report / "run.log").is_file()
+    assert all(d.value in (report / "report.md").read_text() for d in Dimension)
+
+
+# --- AC3: report dir naming -----------------------------------------------------------------------
+
+
+def test_report_dir_is_sha12_clean_and_dirty_with_an_edit_and_is_replaced(
+    target: Path, lizard: Path
+) -> None:
+    sha12 = git(target, "rev-parse", "HEAD")[:12]
+    root = target / REPORTS_ROOT
+    report = run(target)
+    assert report == root / sha12
+    (report / "stale-marker.md").write_text("old run\n")
+    assert run(target) == report and not (report / "stale-marker.md").exists()
+    (target / "src/calc.py").write_text("def f1(x):\n    return 2\n")
+    assert run(target) == root / f"{sha12}-dirty"
+    assert (root / ".gitignore").read_text() == "*\n"
+    assert git(target, "status", "--porcelain") == "M src/calc.py"
+
+
+# --- AC4: a quoted secret never reaches an output file --------------------------------------------
+
+
+def test_secret_quoted_by_a_judged_finding_never_reaches_any_output(
+    target: Path, lizard: Path
+) -> None:
+    line = json.dumps(
+        judged(
+            path="src/config.py",
+            anchor=f'TOKEN = "{FAKE_TOKEN}"',
+            evidence=f"leaks {FAKE_TOKEN}",
+        )
+    )
+    report = run(target, judged_lines=[line])
+    for f in report.rglob("*"):
+        if f.is_file():
+            assert FAKE_TOKEN not in f.read_text(errors="replace"), f
+    [j] = [f for f in findings(report) if f.origin == "judged"]
+    assert j.redacted is True
+    assert summary(report).counts.redacted >= 1
+
+
+# --- AC5: baseline --------------------------------------------------------------------------------
+
+
+def test_deleting_a_flagged_function_makes_its_finding_fixed(
+    target: Path, lizard: Path
+) -> None:
+    previous = [f.id for f in findings(run(target))]
+    commit_file(target, "src/calc.py", "def f1(x):\n    return x\n", "drop f2")
+    lizard.write_text(F1)
+    report = run(target)
+    current = [f.id for f in findings(report)]
+    expected = {"new": 0, "persisting": 0, "fixed": 0} | Counter(
+        compare(previous, current).values()
+    )
+    assert (
+        summary(report).baseline.model_dump()
+        == expected
+        == {"new": 0, "persisting": 2, "fixed": 1}
+    )
+    states = Counter(
+        r.get("baselineState") for r in sarif(report)["runs"][0]["results"]
+    )
+    assert states == {"unchanged": expected["persisting"], "absent": expected["fixed"]}
+
+
+# --- §5a rules: refutation, confidence cap, rating cap --------------------------------------------
+
+
+def test_refuted_findings_are_dropped_and_counted(target: Path, lizard: Path) -> None:
+    lines = [
+        json.dumps(judged(severity="high", refutation="refuted")),
+        json.dumps(judged(title="kept", anchor="def f2(y):")),
+    ]
+    report = run(target, judged_lines=lines)
+    assert [f.title for f in findings(report) if f.origin == "judged"] == ["kept"]
+    assert summary(report).counts.refuted == 1
+
+
+def test_judged_medium_and_low_confidence_is_capped_at_med(
+    target: Path, lizard: Path
+) -> None:
+    lines = [
+        json.dumps(judged(severity="low", confidence="high")),
+        json.dumps(
+            judged(
+                severity="high",
+                confidence="high",
+                refutation="survived",
+                anchor="def f2(y):",
+            )
+        ),
+    ]
+    got = {
+        f.severity: f.confidence
+        for f in findings(run(target, judged_lines=lines))
+        if f.origin == "judged"
+    }
+    assert got == {"low": "med", "high": "high"}
+
+
+def test_a_dimension_whose_core_input_did_not_run_cannot_be_strong(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    report = run(
+        target, rate=ratings(maintainability="strong", architecture="strong")
+    )  # lizard absent
+    dims = {d.dimension: d for d in summary(report).dimensions}
+    assert (dims["maintainability"].rating, dims["maintainability"].capped) == (
+        "adequate",
+        True,
+    )
+    assert (dims["architecture"].rating, dims["architecture"].capped) == (
+        "strong",
+        False,
+    )  # codemem ran
+
+
+# --- AC8: pending refutation blocks ---------------------------------------------------------------
+
+
+def test_pending_high_finding_blocks_finalize_naming_its_id(
+    target: Path, lizard: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    work = prepare(
+        target,
+        judged_lines=[json.dumps(judged(severity="critical", refutation="pending"))],
+    )
+    assert cli.main(["finalize", "--repo", str(target), "--work", str(work)]) == 1
+    err = capsys.readouterr().err
+    assert "F-" in err and "pending" in err and str(work) in err
+
+
+# --- AC9: untrusted judged input ------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("bad_path", ["/etc/passwd", "../../etc/x", "escape/x"])
+def test_judged_path_outside_the_repo_is_rejected_naming_the_line(
+    target: Path, lizard: Path, tmp_path: Path, bad_path: str
+) -> None:
+    work = prepare(
+        target, judged_lines=[json.dumps(judged()), json.dumps(judged(path=bad_path))]
+    )
+    os.symlink(
+        tmp_path, target / "escape"
+    )  # after measure; untracked, so the tree stays clean
+    with pytest.raises(FinalizeError, match=r"judged\.jsonl:2"):
+        finalize(target, work)
+
+
+def test_malformed_judged_line_is_rejected_naming_the_line(
+    target: Path, lizard: Path
+) -> None:
+    with pytest.raises(FinalizeError, match=r"judged\.jsonl:3"):
+        finalize(
+            target,
+            prepare(
+                target,
+                judged_lines=[
+                    json.dumps(judged()),
+                    json.dumps(judged(anchor="x")),
+                    "{not json",
+                ],
+            ),
+        )
+
+
+def test_missing_ratings_is_refused(target: Path, lizard: Path) -> None:
+    work = prepare(target)
+    (work / "ratings.json").unlink()
+    with pytest.raises(FinalizeError, match="ratings.json"):
+        finalize(target, work)
+
+
+def test_work_dir_outside_the_reports_root_is_refused(
+    target: Path, tmp_path: Path
+) -> None:
+    with pytest.raises(FinalizeError):
+        finalize(target, tmp_path)
+
+
+# --- AC11: the work dir lifecycle -----------------------------------------------------------------
+
+
+def test_success_removes_the_work_dir_and_failure_keeps_it(
+    target: Path, lizard: Path
+) -> None:
+    work = prepare(target)
+    finalize(target, work)
+    assert not work.exists()
+    work = prepare(target, judged_lines=["{bad"])
+    with pytest.raises(FinalizeError):
+        finalize(target, work)
+    assert (work / "measure.json").is_file()
+
+
+def test_crash_before_rename_leaves_no_report_and_keeps_the_work_dir(
+    target: Path, lizard: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    previous = run(target)
+    before = {p.name: p.read_bytes() for p in previous.iterdir()}
+    commit_file(target, "src/calc.py", "def f1(x):\n    return x\n", "drop f2")
+    work = prepare(target)
+    monkeypatch.setenv("AA_MA_FINALIZE_CRASH_BEFORE_RENAME", "1")
+    with pytest.raises(FinalizeError):
+        finalize(target, work)
+    assert not (target / REPORTS_ROOT / git(target, "rev-parse", "HEAD")[:12]).exists()
+    assert {p.name: p.read_bytes() for p in previous.iterdir()} == before
+    assert work.is_dir()
+    assert sorted(p.name for p in (target / REPORTS_ROOT).iterdir()) == sorted(
+        [".gitignore", previous.name, work.name]
+    )
+
+
+def test_cli_finalize_prints_the_report_dir(
+    target: Path, lizard: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    work = prepare(target)
+    assert cli.main(["finalize", "--repo", str(target), "--work", str(work)]) == 0
+    assert (
+        Path(capsys.readouterr().out.strip())
+        == target / REPORTS_ROOT / git(target, "rev-parse", "HEAD")[:12]
+    )

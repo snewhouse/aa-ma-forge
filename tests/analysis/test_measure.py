@@ -232,6 +232,18 @@ def test_gitleaks_hit_wins_over_the_regex_hit_on_the_same_line(
     ]
 
 
+def test_findings_on_untracked_paths_are_dropped(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """gitleaks and semgrep scan `.`, which includes an untracked .env — not the repo's code."""
+    (target / ".env").write_text(f"TOKEN={FAKE_TOKEN}\n")
+    leak = {"File": ".env", "StartLine": 1, "RuleID": "github-pat", "Secret": "REDACTED"}
+    monkeypatch.setenv("GITLEAKS_BIN", str(_gitleaks_stub(tools, [leak])))
+    d = doc(measure(target, "quick"))
+    assert d["stamp"]["tools"]["gitleaks"] == "ran"
+    assert [f["path"] for f in by_rule(d, "security.secret")] == ["src/config.py"]
+
+
 def test_gitleaks_nonzero_exit_is_unknown(
     target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -308,6 +320,7 @@ def _osv_report(target: Path) -> dict:
 def test_osv_vulns_found_exit_1_is_ran_with_relative_paths(
     target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    commit_file(target, "uv.lock", "version = 1\n")
     report = tools / "osv.json"
     report.write_text(json.dumps(_osv_report(target)))
     monkeypatch.setenv(

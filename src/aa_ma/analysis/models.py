@@ -238,6 +238,15 @@ class Onboarding(_Model):
     ]  # onboarding section → source paths it was written from
 
 
+class MeasureDoc(_Model):
+    """The work dir's measure.json, measure → finalize. Internal: not exported, no golden schema."""
+
+    schema_version: SchemaVersion
+    stamp: Stamp
+    metrics: dict[str, int | float | None]
+    measured: list[Finding]
+
+
 EXPORTED: dict[str, type[_Model]] = {
     "summary": Summary,
     "finding": Finding,

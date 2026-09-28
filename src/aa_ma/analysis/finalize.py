@@ -1,0 +1,293 @@
+"""finalize(): the work dir (measure.json + the judges' and main thread's files) → the report set.
+
+judged.jsonl is untrusted model output: every line is validated, every path must stay inside the
+repo, and a line that fails is refused by number without echoing it. The report is written to a
+temp dir, passed through the secret gate, re-validated, and only then renamed over
+`<sha12>[-dirty]`; a failure at any point leaves the previous report and the work dir as they were."""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import tempfile
+from collections import Counter
+from importlib import metadata
+from pathlib import Path
+
+from pydantic import TypeAdapter, ValidationError
+
+from . import report_md, sarif, secrets
+from .ids import anchor_for, assign_ids, compare
+from .measure import WORK_PREFIX
+from .models import (
+    SCHEMA_VERSION,
+    Baseline,
+    Confidence,
+    Counts,
+    Dimension,
+    DimensionResult,
+    Finding,
+    JudgedFinding,
+    LedgerEntry,
+    MeasureDoc,
+    Origin,
+    Rating,
+    Refutation,
+    Severity,
+    Summary,
+    ToolStatus,
+)
+from .stamp import REPORTS_ROOT, ensure_self_ignoring, head_stamp
+
+CRASH_SEAM = "AA_MA_FINALIZE_CRASH_BEFORE_RENAME"  # test seam: fail after the gate, before the rename
+REFUTE_REQUIRED = {Severity.CRITICAL, Severity.HIGH}
+CONFIDENCE_CAPPED = {
+    Severity.MEDIUM,
+    Severity.LOW,
+}  # judged findings of these severities: at most MED
+# A dimension whose core input did not run cannot rate Strong (mirrored in RATING.md). security and
+# tests_deps have Deep-only core tools, so outside Deep they rate at most Adequate — intended (V4).
+CORE_INPUTS = {
+    Dimension.ARCHITECTURE: ("codemem.layers",),
+    Dimension.MAINTAINABILITY: ("lizard",),
+    Dimension.SECURITY: ("semgrep",),
+    Dimension.TESTS_DEPS: ("osv-scanner", "pip-audit"),
+}
+REPORT_FILES = (
+    "summary.json",
+    "findings.jsonl",
+    "findings.sarif",
+    "report.md",
+    "run.log",
+)
+
+
+class FinalizeError(Exception):
+    pass
+
+
+def contained(repo: Path, rel: str) -> bool:
+    """Does repo/rel, symlinks resolved, stay inside the repo? (also used by ground, M5)"""
+    root = Path(repo).resolve()
+    return (root / rel).resolve().is_relative_to(root)
+
+
+def _read(work: Path, name: str) -> str:
+    path = work / name
+    if path.is_symlink() or not path.is_file():
+        raise FinalizeError(f"{path}: missing (the work dir needs {name})")
+    return path.read_text(encoding="utf-8")
+
+
+def _load(work: Path, name: str, adapter: TypeAdapter) -> list:
+    try:
+        return adapter.validate_json(_read(work, name))
+    except ValidationError as exc:
+        raise FinalizeError(f"{name}: invalid ({exc.error_count()} error(s))") from None
+
+
+def _judged(work: Path, repo: Path) -> list[JudgedFinding]:
+    if not (work / "judged.jsonl").exists():
+        return []  # Quick: no judge agents ran
+    out = []
+    for n, line in enumerate(_read(work, "judged.jsonl").split("\n"), 1):
+        if not line.strip():
+            continue
+        try:
+            judged = JudgedFinding.model_validate_json(line)
+        except ValidationError as exc:
+            # Error types only: pydantic's text quotes the input, which may hold a secret.
+            kinds = sorted({e["type"] for e in exc.errors(include_input=False)})
+            raise FinalizeError(
+                f"judged.jsonl:{n}: invalid judged finding ({', '.join(kinds)})"
+            ) from None
+        if not contained(repo, judged.path):
+            raise FinalizeError(f"judged.jsonl:{n}: path resolves outside the repo")
+        out.append(judged)
+    return out
+
+
+def _judged_fields(j: JudgedFinding) -> dict:
+    capped = j.severity in CONFIDENCE_CAPPED and j.confidence == Confidence.HIGH
+    return j.model_dump(mode="json") | {
+        "origin": Origin.JUDGED.value,
+        "redacted": False,
+        "confidence": (Confidence.MED if capped else j.confidence).value,
+        "anchor": anchor_for(j.anchor),  # redacted before hashing (R-1)
+    }
+
+
+def _cap(result: DimensionResult, tools: dict[str, ToolStatus]) -> DimensionResult:
+    ran = any(tools.get(t) == ToolStatus.RAN for t in CORE_INPUTS[result.dimension])
+    if result.rating == Rating.STRONG and not ran:
+        return result.model_copy(update={"rating": Rating.ADEQUATE, "capped": True})
+    return result
+
+
+def _previous(root: Path, current: str) -> list[Finding]:
+    """Findings of the newest other report dir (by its stamp), or [] when there is none."""
+    best = None
+    for d in root.iterdir():
+        if (
+            d.name == current
+            or d.name.startswith(".")
+            or d.is_symlink()
+            or not (d / "summary.json").is_file()
+        ):
+            continue
+        try:
+            when = Summary.model_validate_json(
+                (d / "summary.json").read_text(encoding="utf-8")
+            ).stamp.date_utc
+        except (ValidationError, UnicodeDecodeError):
+            continue
+        if best is None or when > best[0]:
+            best = (when, d)
+    if best is None:
+        return []
+    lines = (best[1] / "findings.jsonl").read_text(encoding="utf-8").splitlines()
+    return [Finding.model_validate_json(line) for line in lines if line.strip()]
+
+
+def _tool_version() -> str:
+    try:
+        return metadata.version("aa-ma")
+    except metadata.PackageNotFoundError:
+        return "0+unknown"
+
+
+def _write(
+    tmp: Path, summary: Summary, findings: list[Finding], sarif_doc: dict, work: Path
+) -> None:
+    (tmp / "summary.json").write_text(
+        summary.model_dump_json(indent=2) + "\n", encoding="utf-8"
+    )
+    (tmp / "findings.jsonl").write_text(
+        "".join(f.model_dump_json() + "\n" for f in findings), encoding="utf-8"
+    )
+    (tmp / "findings.sarif").write_text(
+        json.dumps(sarif_doc, indent=2) + "\n", encoding="utf-8"
+    )
+    (tmp / "report.md").write_text(
+        report_md.render(summary, findings), encoding="utf-8"
+    )
+    shutil.copyfile(work / "run.log", tmp / "run.log")
+
+
+def _gate(tmp: Path) -> None:
+    """Secret gate, then re-validate every output against the models and the SARIF invariants."""
+    try:
+        hits = secrets.scan(tmp).hits
+        if hits:
+            secrets.redact(tmp, hits)
+        findings = [
+            Finding.model_validate_json(x)
+            for x in (tmp / "findings.jsonl").read_text().splitlines()
+            if x
+        ]
+        summary = Summary.model_validate_json((tmp / "summary.json").read_text())
+        counts = summary.counts.model_copy(
+            update={"redacted": sum(f.redacted for f in findings)}
+        )
+        (tmp / "summary.json").write_text(
+            summary.model_copy(update={"counts": counts}).model_dump_json(indent=2)
+            + "\n"
+        )
+        if secrets.scan(tmp).hits:
+            raise FinalizeError("secret gate: hits remain after redaction")
+        Summary.model_validate_json((tmp / "summary.json").read_text())
+        sarif.verify(json.loads((tmp / "findings.sarif").read_text()))
+    except (secrets.GateError, ValidationError, ValueError) as exc:
+        raise FinalizeError(
+            f"output gate refused the report: {exc.__class__.__name__}: {exc}"
+        ) from None
+
+
+def finalize(repo: Path, workdir: Path) -> Path:
+    """Build `<sha12>[-dirty]` from the work dir; returns it. The work dir is removed on success."""
+    repo, work = Path(repo).absolute(), Path(workdir).absolute()
+    root = repo / REPORTS_ROOT
+    if (
+        work.parent != root
+        or not work.name.startswith(WORK_PREFIX)
+        or work.is_symlink()
+        or not work.is_dir()
+    ):
+        raise FinalizeError(f"{work}: not a work dir under {root}")
+    try:
+        measured = MeasureDoc.model_validate_json(_read(work, "measure.json"))
+    except ValidationError as exc:
+        raise FinalizeError(
+            f"measure.json: invalid ({exc.error_count()} error(s))"
+        ) from None
+    stamp = measured.stamp
+    if head_stamp(repo)[:2] != (stamp.sha12, stamp.dirty):
+        raise FinalizeError(
+            f"HEAD moved since measure (stamped {stamp.sha12}) — re-run measure"
+        )
+    judged = _judged(work, repo)
+    ratings = _load(work, "ratings.json", TypeAdapter(list[DimensionResult]))
+    ledger = _load(work, "ledger.json", TypeAdapter(list[LedgerEntry]))
+
+    kept = [_judged_fields(j) for j in judged if j.refutation != Refutation.REFUTED]
+    fields = [*(f.model_dump(mode="json") for f in measured.measured), *kept]
+    ids = assign_ids(
+        (f["dimension"], f["rule"], f["path"], f["anchor"]) for f in fields
+    )
+    current = [
+        Finding.model_validate_json(json.dumps(f | {"id": i}))
+        for f, i in zip(fields, ids, strict=True)
+    ]
+    pending = [
+        f.id
+        for f in current
+        if f.severity in REFUTE_REQUIRED and f.refutation == Refutation.PENDING
+    ]
+    if pending:
+        raise FinalizeError(
+            f"refutation pending for {', '.join(pending)} — run the refuter first"
+        )
+
+    name = f"{stamp.sha12}-dirty" if stamp.dirty else stamp.sha12
+    previous = _previous(root, name)
+    states = compare([f.id for f in previous], [f.id for f in current])
+    by_severity = Counter(f.severity.value for f in current)
+    summary = Summary(
+        schema_version=SCHEMA_VERSION,
+        stamp=stamp,
+        dimensions=[_cap(r, stamp.tools) for r in ratings],
+        ledger=ledger,
+        metrics=measured.metrics,
+        counts=Counts(
+            findings=len(current), refuted=len(judged) - len(kept), **by_severity
+        ),
+        baseline=Baseline(**Counter(states.values())),
+    )
+    fixed = [f for f in previous if states.get(f.id) == "fixed"]
+    baseline = {i: s for i, s in states.items() if s != "fixed"}
+    sarif_doc = sarif.to_sarif(current, _tool_version(), baseline, fixed)
+
+    ensure_self_ignoring(root)
+    tmp = Path(tempfile.mkdtemp(prefix=".tmp-", dir=root))
+    try:
+        _write(tmp, summary, current, sarif_doc, work)
+        _gate(tmp)
+        if os.environ.get(CRASH_SEAM) == "1":
+            raise FinalizeError(f"{CRASH_SEAM}=1: stopped before the rename")
+        target = root / name
+        if os.path.lexists(target):
+            if target.is_symlink() or not target.is_dir():
+                raise FinalizeError(
+                    f"{target}: refusing to replace a symlink or non-directory"
+                )
+            old = Path(tempfile.mkdtemp(prefix=".old-", dir=root))
+            os.replace(target, old / name)
+            os.rename(tmp, target)
+            shutil.rmtree(old)
+        else:
+            os.rename(tmp, target)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    shutil.rmtree(work)
+    return target

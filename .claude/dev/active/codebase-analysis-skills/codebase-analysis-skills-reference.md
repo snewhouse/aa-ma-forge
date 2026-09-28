@@ -58,6 +58,16 @@
 - codemem: `dead_code` needs a large `--budget` (default truncates); metric only. `owners` dir paths need a trailing `/`; returns emails (never stored). hot_spots `{files[{path,commits_in_window,function_count,score}]}`, co_changes `{files[{path,count}],target}`, layers `{layers{core,middle,periphery},ascii}`.
 - Bare `codemem` on BATS PATH is a broken conda stub; `uv run --project <forge>` puts `.venv/bin/codemem` first.
 
+### aa_ma.analysis engine (M2, as built)
+- CLI adds `measure [--repo R] --tier T [--tool-timeout 300]` (prints the work dir), `run [--repo R] [--timeout 300] --cmd C…` (JSON checks; exit 0 only if all verified), `finalize --work DIR [--repo R]` (prints the report dir; exit 1 + "work dir kept: …" on refusal).
+- Report dir files: `summary.json`, `findings.jsonl`, `findings.sarif`, `report.md`, `run.log` (`finalize.REPORT_FILES`). run.log: one tab-separated line per call — name, argv, rc, seconds, status (never tool output); `<tool>.version` lines carry the probed version; `tool-config:<path>` lines list target scanner configs.
+- Staging: `tempfile.mkdtemp(prefix="aa-ma-stage-")` (never inside the reports root — a `.gitignore` of `*` there hid everything from semgrep/osv/jscpd, found live 2.9). Tool majors pinned in `measure.TOOL_MAJOR`.
+- Metrics keys: `size.files|size.bytes|churn.90d|last_touch_days:<topdir>` (last-touch vs HEAD's commit time), `complexity.functions|ccn_max|over_15`, `duplication.pct|clones` (code formats), `secrets.findings`, `sast.findings`, `deps.vulns` (None if any contributing dep tool missed), `layers.core|middle|periphery`, `dead_code.candidates`, `hot_spot:<path>`, `co_change:<a>|<b>`, `owners.authors|top_pct:<dir>/`, `tool_config.overrides`, `suppressions.<tool>`, `findings.unreportable`.
+- `run` allowlist: `run.RUNNERS`, `RUNNER_SUBCOMMANDS`, `PY_MODULES`; env = PATH (absolute entries only), HOME, LANG, TMPDIR + OFFLINE_ENV.
+- Shared safe I/O in `stamp`: `find_binary` (`<NAME>_BIN` else absolute-only PATH), `safe_env`, `read_regular` (O_NOFOLLOW|O_NONBLOCK, regular only), `contained`, `REPORT_NAME`, `report_name`. Rating policy `models.CORE_INPUTS` / `NETWORK_TOOLS`.
+- finalize baseline: newest report dir by stamp that git does not track, read without symlinks, stamp not in the future; a same-commit re-run compares with the report it replaces.
+- Live forge Deep (2026-09-28, 2.9): 12.8 s wall-clock; 178 measured findings (66 deps.vuln, 54 duplication, 25 secret — test fixtures, 21 complexity, 12 sast).
+
 ### Research files
 - `docs/research/codebase-analysis-skills-prior-art.md` — Ticket 1 prior art (Valid-Through per header)
 - `docs/research/codebase-analysis-skills-codemem-coverage.md` — Ticket 2 codemem coverage

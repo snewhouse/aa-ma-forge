@@ -242,3 +242,64 @@ def test_every_git_call_ends_options(
         assert "--end-of-options" in argv, argv
         after = argv[argv.index("--end-of-options") + 1 :]
         assert not any(a.startswith("-") for a in after), argv
+
+
+# --- M2 2.9: one binary lookup, one safe reader, one naming pattern -------------------------------
+
+
+def _exe(path: Path, body: str = "exit 0") -> Path:
+    path.write_text("#!/bin/sh\n" + body + "\n", encoding="utf-8")
+    path.chmod(0o755)
+    return path
+
+
+def test_find_binary_ignores_relative_path_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Resolved after a chdir into the target, `.` or an empty entry finds a planted binary."""
+    _exe(tmp_path / "toolx")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PATH", f".{os.pathsep}{os.pathsep}/usr/bin{os.pathsep}/bin")
+    monkeypatch.delenv("TOOLX_BIN", raising=False)
+    assert stamp.find_binary("toolx") is None
+
+
+def test_find_binary_override_must_be_executable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("TOOLX_BIN", str(_exe(tmp_path / "ok")))
+    assert stamp.find_binary("toolx") == str(tmp_path / "ok")
+    (tmp_path / "noexec").write_text("x")
+    monkeypatch.setenv("TOOLX_BIN", str(tmp_path / "noexec"))
+    assert stamp.find_binary("toolx") is None
+
+
+def test_git_is_never_taken_from_a_relative_path_entry(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    marker = tmp_path / "planted-git-ran"
+    bindir = tmp_path / "hostile"
+    bindir.mkdir()
+    _exe(bindir / "git", f"touch '{marker}'; exit 1")
+    monkeypatch.chdir(bindir)
+    monkeypatch.setenv("PATH", f".{os.pathsep}{os.environ['PATH']}")
+    assert stamp.head_stamp(repo)[0]
+    assert not marker.exists()
+
+
+def test_read_regular_refuses_a_symlink_and_never_blocks_on_a_fifo(tmp_path: Path) -> None:
+    import signal
+
+    (tmp_path / "real").write_text("ok", encoding="utf-8")
+    os.symlink(tmp_path / "real", tmp_path / "link")
+    os.mkfifo(tmp_path / "fifo")
+    assert stamp.read_regular(tmp_path / "real") == "ok"
+    signal.alarm(5)  # a blocking open would hang here
+    try:
+        for name in ("link", "fifo"):
+            with pytest.raises(OSError):
+                stamp.read_regular(tmp_path / name)
+    finally:
+        signal.alarm(0)
+
+
+def test_the_report_name_pattern_is_the_naming_rule() -> None:
+    assert stamp.REPORT_NAME.fullmatch(stamp.report_name("0123456789ab", True))
+    assert stamp.REPORT_NAME.fullmatch(stamp.report_name("0123456789ab", False))
+    assert not stamp.REPORT_NAME.fullmatch(".work-0123456789ab")

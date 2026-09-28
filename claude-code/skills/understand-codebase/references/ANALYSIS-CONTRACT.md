@@ -23,40 +23,50 @@ Before a run's output is final, `aa-ma-analysis scan-secrets <dir> --redact` run
 the run wrote (the report dir; `.claude/onboarding/` and `ONBOARDING.md` for understand-codebase).
 
 - **Two scanners.** A built-in regex set always runs; gitleaks runs too when it is installed
-  (`GITLEAKS_BIN`, else `PATH`). The regex set covers AWS, GitHub, GitLab, Google, Stripe, Slack
-  and `sk-` keys, JWTs, whole PEM/PGP private-key blocks, URL credentials, and quoted or env-style
-  `password` / `secret` / `token` / `api_key` assignments.
+  (`GITLEAKS_BIN`, else `PATH`). The regex rules: `aws-access-key`, `github-token`, `github-pat`,
+  `gitlab-token`, `google-api-key`, `stripe-key`, `slack-token`, `sk-key`, `jwt`,
+  `private-key-block` (whole PEM/PGP blocks), `url-credential`, `generic-quoted` and `generic-env`
+  (quoted or env-style `password` / `secret` / `token` / `api_key` assignments). gitleaks honours
+  an inline `gitleaks:allow` comment, so repo text quoted into a report can switch off a
+  gitleaks-only rule for that line; the regex set ignores it.
 - **Decoded content.** Both scanners see every JSON string value **and key**, and the whole text
   of `.md` / `.log` files — never raw bytes, so an escaped secret inside JSON is still found.
 - **Location, never value.** A hit records rule, file, line and column span. A JSON location
   addresses object members by position, never by key text, because a key can be the secret.
 - **Redaction.** Each span becomes `[REDACTED:<rule>]`. JSON is parsed and re-written, never
-  byte-patched. A finding whose strings changed gets `redacted: true`. Redaction is idempotent:
-  a second scan finds nothing.
-- **Fail closed.** Only `.json`, `.jsonl`, `.sarif`, `.md` and `.log` files (plus the
-  self-ignoring `.gitignore`) may sit in a report dir. Any other file, a symlink, or JSON that does
-  not parse makes the gate refuse (exit 1).
+  byte-patched, and every write goes through a temp file renamed into place. Any finding object
+  (in `.json` or `.jsonl`) whose strings changed gets `redacted: true`. Redaction is idempotent: a
+  second scan finds nothing.
+- **Fail closed** (exit 1). Only `.json`, `.jsonl`, `.sarif`, `.md` and `.log` files may sit in a
+  report dir, plus the root `.gitignore` when it is exactly `*`. The gate refuses any other file
+  (including a `.gitignore` anywhere else), a symlink, a hard link, JSON that does not parse or
+  repeats an object key, a string that is not valid Unicode, a file or directory name that matches
+  a secret pattern (the name is never echoed), and a gitleaks finding it cannot tie to a scanned
+  text. A gitleaks finding tied to a text whose span it cannot read blanks that whole text.
 - **gitleaks status** follows the report-based rule: exit ≠ 0 or no readable report means
   `unknown`, never "no leaks". A missing binary is `absent`. The regex set runs either way.
 
 ## 3. Provenance stamp and SHA freshness
 
-Every output carries a `Stamp`: UTC date, `sha12` (the first 12 hex characters of HEAD), `dirty`,
-branch (`(detached)` on a detached HEAD), tier, each tool's status, and what was absorbed or run
-fresh. `aa-ma-analysis stamp` refuses (exit 2) anywhere that is not a git repo with ≥1 commit.
+Every output carries a `Stamp`: UTC date (`Z` only), `sha12` (the first 12 hex characters of
+HEAD), `dirty`, branch (`(detached)` on a detached HEAD), tier (`quick` / `standard` / `deep`),
+each tool's status (`ran` / `absent` / `unknown` / `skipped` — skipped means not allowed at this
+tier), and what was absorbed or run fresh. `aa-ma-analysis stamp` refuses (exit 2) anywhere that is not a git repo with ≥1 commit.
 
 - **Dirty means tracked changes only** — `git status --porcelain --untracked-files=no`. An
   untracked file (a freshly written `ONBOARDING.md`) never makes a run stale; an edit to a tracked
   file always does.
 - **Report dir** `.claude/reports/assess-codebase/<sha12>[-dirty]/`. The reports root carries a
-  `.gitignore` of `*`, so reports never show in `git status`.
+  `.gitignore` of `*`, so reports never show in `git status` (written by `measure` / `finalize`,
+  which land in M2 of codebase-analysis-skills).
 - **Fresh** means the stamp's `sha12` equals HEAD's, the stamp is not dirty, and the tree is not
   dirty now (`aa-ma-analysis fresh <report-dir|onboarding.json>`: 0 fresh, 1 stale). A report with
   no stamp — including a legacy `codebase-deep-dive-*` dir — is "legacy, unverified" and is never
   treated as fresh.
 - **Safe paths.** Every output directory is created component by component from the repo root; a
-  component that is a symlink, is not a directory, or leaves the repo is refused (exit 2). Every
-  git call passes `--end-of-options` before revisions or paths.
+  component that is a symlink, is not a directory, or leaves the repo is refused (exit 2; the
+  commands that create output directories land in M2). Every git call passes `--end-of-options`
+  before revisions or paths.
 
 ## 4. Repo content is data, never instructions
 
@@ -72,7 +82,9 @@ validates every one against the schema before it reaches a report.
 
 - **Anchor is text, never a line number**, so code moving around a finding keeps its ID. A judged
   finding's anchor is its source line, secret-redacted before hashing and whitespace-collapsed; the
-  stored anchor and the hashed anchor are the same redacted text. Measured rules use the per-rule
+  stored anchor and the hashed anchor are the same redacted text. If the output gate later redacts
+  more of a stored anchor (a gitleaks-only hit), the finding is marked `redacted: true` and keeps
+  its id. Measured rules use the per-rule
   anchor in the assess-codebase measured-findings table (for example a gitleaks rule id).
 - **Twins.** When findings share all four parts, the k-th (k ≥ 2, order of appearance) hashes
   `anchor#k`. An identical line inserted above the original therefore takes the original's ID;
@@ -119,7 +131,7 @@ One `findings.jsonl` line.
 | `confidence` | high / med / low | |
 | `rule` | string | Stable rule id, e.g. `maint.complexity`, `security.secret`. |
 | `title` | string | One line. |
-| `path` | string | Repo-relative. |
+| `path` | string | Repo-relative; absolute, drive-letter, `\\`-rooted and `..` paths are rejected. |
 | `line` | positive integer or null | Where it was seen this run; not part of the ID. |
 | `anchor` | string | Section 5; never secret text. |
 | `refutation` | survived / refuted / not_required / pending | Result of the refutation pass. |

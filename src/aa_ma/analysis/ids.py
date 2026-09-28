@@ -11,6 +11,7 @@ from collections import Counter
 from collections.abc import Iterable
 from typing import Literal
 
+from .models import HEX12
 from .secrets import redact_text
 
 State = Literal["new", "persisting", "fixed"]
@@ -20,7 +21,7 @@ def finding_id(dimension: str, rule: str, path: str, anchor: str) -> str:
     digest = hashlib.sha256(
         "\x1f".join([dimension, rule, path, anchor]).encode("utf-8")
     ).hexdigest()
-    return "F-" + digest[:12]
+    return "F-" + digest[:HEX12]
 
 
 def anchor_for(line: str) -> str:

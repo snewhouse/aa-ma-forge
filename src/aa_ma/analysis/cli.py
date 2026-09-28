@@ -47,7 +47,7 @@ def _cmd_fresh(args: argparse.Namespace) -> int:
         return 2
     try:
         s = _read_stamp(target)
-    except (json.JSONDecodeError, ValidationError) as exc:
+    except (json.JSONDecodeError, UnicodeDecodeError, ValidationError) as exc:
         print(f"{target}: unstamped (unreadable stamp: {exc.__class__.__name__})")
         return 1
     if s is None:
@@ -75,7 +75,11 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     if not path.is_file():
         _err(f"aa-ma-analysis validate: {path}: not found")
         return 2
-    text = path.read_text(encoding="utf-8")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        _err(f"{path}: invalid {args.kind}: not UTF-8")
+        return 1
     docs = (
         [(n, line) for n, line in enumerate(text.splitlines(), 1) if line.strip()]
         if args.kind in JSONL_KINDS
@@ -87,9 +91,14 @@ def _cmd_validate(args: argparse.Namespace) -> int:
             model.model_validate_json(doc)
         except ValidationError as exc:
             bad += 1
-            _err(
-                f"{path}:{n}: invalid {args.kind}: {exc.error_count()} error(s)\n{exc}"
-            )
+            _err(f"{path}:{n}: invalid {args.kind}: {exc.error_count()} error(s)")
+            # Location and reason only: pydantic's own text quotes the input, which may be a secret.
+            for e in exc.errors(
+                include_input=False, include_url=False, include_context=False
+            ):
+                _err(
+                    f"  {'.'.join(map(str, e['loc'])) or '(root)'}: {e['msg']} [{e['type']}]"
+                )
     return 1 if bad else 0
 
 
@@ -104,7 +113,7 @@ def _cmd_scan_secrets(args: argparse.Namespace) -> int:
             n = secrets.redact(root, result.hits)
             print(f"redacted {n} span(s)")
             result = secrets.scan(root)
-    except secrets.UnsupportedFile as exc:
+    except secrets.GateError as exc:
         _err(f"aa-ma-analysis scan-secrets: refused: {exc}")
         return 1
     _err(f"gitleaks: {result.tool_status}")
@@ -144,7 +153,11 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except stamp.UnsafePath as exc:
+        _err(f"aa-ma-analysis {args.cmd}: refused: {exc}")
+        return 2
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .models import Stamp, ToolStatus
+from .models import HEX12, Stamp, ToolStatus
 
 REPORTS_ROOT = Path(".claude/reports/assess-codebase")
 NOT_A_REPO = "not a git repo with ≥1 commit"
@@ -44,7 +44,7 @@ def head_stamp(repo: Path) -> tuple[str, bool, str]:
         raise NotAGitRepo(f"{repo}: git status failed: {status.stderr.strip()}")
     branch = _git(repo, "symbolic-ref", "--short", "-q", "--end-of-options", "HEAD")
     return (
-        head.stdout.strip()[:12],
+        head.stdout.strip()[:HEX12],
         bool(status.stdout.strip()),
         branch.stdout.strip() or "(detached)",
     )

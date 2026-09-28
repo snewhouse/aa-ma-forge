@@ -25,10 +25,12 @@ from .models import ToolStatus
 TEXT_SUFFIXES = {".md", ".log"}
 JSON_SUFFIXES = {".json", ".sarif"}
 JSONL_SUFFIXES = {".jsonl"}
-IGNORED_NAMES = {
-    ".gitignore"
-}  # the self-ignoring marker written by stamp.ensure_self_ignoring
+# The one file exempt from scanning: the reports root's own self-ignoring marker, byte for byte.
+SELF_IGNORE_NAME, SELF_IGNORE_TEXT = ".gitignore", "*\n"
 GITLEAKS_TIMEOUT_S = 300
+# gitleaks 8.18 columns (live-probed 2026-09-28): a token at 0-based index i, length L is reported
+# as StartColumn i+2, EndColumn i+L+1 — one lower on a file's first line. _widen absorbs either.
+GL_START_ADJ, GL_END_ADJ = 2, 1
 _NOT_REDACTED = r"(?!\[REDACTED:)"
 
 # (rule, pattern). A named group `secret` narrows the redacted span to the value; otherwise the whole
@@ -75,7 +77,11 @@ PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 ]
 
 
-class UnsupportedFile(Exception):
+class GateError(Exception):
+    """The gate cannot vouch for the report dir — callers must treat the output as not cleared."""
+
+
+class UnsupportedFile(GateError):
     """A file the gate cannot decode — the gate refuses rather than pass it unscanned."""
 
 
@@ -155,6 +161,24 @@ def redact_text(text: str) -> str:
 
 
 # --- decoding --------------------------------------------------------------------------------------
+# One place builds each location format, for both the scan and the redact walk.
+
+
+def _member_ptr(pointer: str, pos: int) -> str:
+    return f"{pointer}/@{pos}"
+
+
+def _item_ptr(pointer: str, index: int) -> str:
+    return f"{pointer}/{index}"
+
+
+def _line_ptr(line_no: int, pointer: str = "") -> str:
+    return f"{line_no}{pointer}"
+
+
+def _split_line_ptr(pointer: str) -> tuple[str, str]:
+    head, sep, rest = pointer.partition("/")
+    return head, sep + rest
 
 
 def _walk(node: Any, pointer: str) -> Iterator[tuple[str, str, bool]]:
@@ -162,43 +186,77 @@ def _walk(node: Any, pointer: str) -> Iterator[tuple[str, str, bool]]:
         yield pointer, node, False
     elif isinstance(node, dict):
         for pos, (key, value) in enumerate(node.items()):
-            child = f"{pointer}/@{pos}"
+            child = _member_ptr(pointer, pos)
             yield child, key, True
             yield from _walk(value, child)
     elif isinstance(node, list):
         for i, value in enumerate(node):
-            yield from _walk(value, f"{pointer}/{i}")
+            yield from _walk(value, _item_ptr(pointer, i))
+
+
+def _no_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    keys = [k for k, _ in pairs]
+    if len(set(keys)) != len(keys):
+        # json.loads would keep only the last value; the earlier ones would never be scanned.
+        raise ValueError("duplicate object key")
+    return dict(pairs)
+
+
+def _decode(path: Path, text: str, kind: str) -> Any:
+    try:
+        doc = json.loads(text, object_pairs_hook=_no_duplicate_keys)
+        for _, s, _ in _walk(doc, ""):
+            s.encode(
+                "utf-8"
+            )  # a lone surrogate cannot be written back or handed to gitleaks
+    except (json.JSONDecodeError, ValueError, UnicodeEncodeError) as exc:
+        raise UnsupportedFile(
+            f"{path}: not valid {kind} ({exc.__class__.__name__})"
+        ) from exc
+    return doc
+
+
+def _read(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise UnsupportedFile(f"{path}: not UTF-8 text") from exc
 
 
 def _load_json(path: Path) -> Any:
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise UnsupportedFile(
-            f"{path}: not valid JSON ({exc.__class__.__name__})"
-        ) from exc
+    return _decode(path, _read(path), "JSON")
 
 
 def _load_jsonl(path: Path) -> list[Any]:
-    try:
-        lines = path.read_text(encoding="utf-8").splitlines()
-        return [json.loads(line) if line.strip() else None for line in lines]
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise UnsupportedFile(
-            f"{path}: not valid JSON Lines ({exc.__class__.__name__})"
-        ) from exc
+    return [
+        _decode(path, line, "JSON Lines") if line.strip() else None
+        for line in _read(path).splitlines()
+    ]
 
 
 def _files(root: Path) -> list[Path]:
     out = []
     for p in sorted(root.rglob("*")):
+        if _regex_spans(str(p.relative_to(root))):
+            # Never echo the name: it is the thing that matched.
+            raise UnsupportedFile(
+                "a file or directory name in the report dir matches a secret pattern"
+            )
         if p.is_symlink():
             raise UnsupportedFile(f"{p}: symlink in report dir")
-        if not p.is_file() or p.name in IGNORED_NAMES:
+        if p.is_dir():
+            continue
+        if not p.is_file():
+            raise UnsupportedFile(f"{p}: not a regular file")
+        if p.stat().st_nlink != 1:
+            raise UnsupportedFile(
+                f"{p}: hard-linked file; redaction would rewrite its other names"
+            )
+        if p == root / SELF_IGNORE_NAME and p.read_bytes() == SELF_IGNORE_TEXT.encode():
             continue
         if p.suffix not in TEXT_SUFFIXES | JSON_SUFFIXES | JSONL_SUFFIXES:
             raise UnsupportedFile(
-                f"{p}: unsupported file type {p.suffix or '(none)'}; the secret gate fails closed"
+                f"{p}: unsupported file type; the secret gate fails closed"
             )
         out.append(p)
     return out
@@ -209,16 +267,13 @@ def _texts(root: Path) -> list[_Text]:
     for p in _files(root):
         rel = str(p)
         if p.suffix in TEXT_SUFFIXES:
-            try:
-                out.append(_Text(rel, p.read_text(encoding="utf-8")))
-            except UnicodeDecodeError as exc:
-                raise UnsupportedFile(f"{p}: not UTF-8 text") from exc
+            out.append(_Text(rel, _read(p)))
         elif p.suffix in JSON_SUFFIXES:
             out.extend(_Text(rel, s, ptr, k) for ptr, s, k in _walk(_load_json(p), ""))
         else:
             for n, doc in enumerate(_load_jsonl(p), 1):
                 out.extend(
-                    _Text(rel, s, f"{n}{ptr}", k) for ptr, s, k in _walk(doc, "")
+                    _Text(rel, s, _line_ptr(n, ptr), k) for ptr, s, k in _walk(doc, "")
                 )
     return out
 
@@ -236,6 +291,11 @@ def _hits_for(t: _Text, spans: list[tuple[str, int, int]]) -> list[Hit]:
     return hits
 
 
+def _whole(rule: str, t: _Text) -> Hit:
+    lines = t.text.split("\n")
+    return Hit(rule, t.path, 1, len(lines), 0, len(lines[-1]), t.pointer, t.is_key)
+
+
 def _gitleaks_bin() -> str | None:
     configured = os.environ.get("GITLEAKS_BIN")
     candidate = configured if configured is not None else shutil.which("gitleaks")
@@ -247,16 +307,15 @@ def _gitleaks_bin() -> str | None:
 
 
 def _widen(line: str, start: int, end: int) -> tuple[int, int]:
-    """gitleaks 8.18 columns are off by one; grow the span to the enclosing non-whitespace run."""
+    """Clamp, trim edge whitespace (an off-by-one start may sit on the gap before a token), then grow
+    the span to the enclosing non-whitespace run. An empty span blanks the whole line."""
     start, end = max(0, min(start, len(line))), max(0, min(end, len(line)))
-    while (
-        start < end and line[start].isspace()
-    ):  # an off-by-one start may sit on the gap before
+    while start < end and line[start].isspace():
         start += 1
     while end > start and line[end - 1].isspace():
         end -= 1
     if end <= start:
-        return 0, len(line)  # unknown span → blank the whole line
+        return 0, len(line)
     while start > 0 and not line[start - 1].isspace():
         start -= 1
     while end < len(line) and not line[end].isspace():
@@ -264,10 +323,7 @@ def _widen(line: str, start: int, end: int) -> tuple[int, int]:
     return start, end
 
 
-def _gitleaks(texts: list[_Text]) -> tuple[list[Hit], ToolStatus]:
-    binary = _gitleaks_bin()
-    if binary is None:
-        return [], ToolStatus.ABSENT
+def _run_gitleaks(binary: str, texts: list[_Text]) -> list[Any] | None:
     with (
         tempfile.TemporaryDirectory(prefix="aa-ma-gl-src-") as src,
         tempfile.TemporaryDirectory(prefix="aa-ma-gl-rep-") as rep,
@@ -303,46 +359,70 @@ def _gitleaks(texts: list[_Text]) -> tuple[list[Hit], ToolStatus]:
                 else None
             )
         except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
-            leaks = None
-    if not isinstance(leaks, list):
-        return [], ToolStatus.UNKNOWN
-    hits = []
-    for leak in leaks:
-        try:
-            t = texts[int(Path(leak["File"]).stem)]
-            lines = t.text.split("\n")
-            sl, el = int(leak["StartLine"]), int(leak["EndLine"])
-            first, last = lines[sl - 1], lines[el - 1]
-            if sl == el:
-                sc, ec = _widen(
-                    first, int(leak["StartColumn"]) - 2, int(leak["EndColumn"]) - 1
-                )
-            else:
-                sc, _ = _widen(first, int(leak["StartColumn"]) - 2, len(first))
-                _, ec = _widen(last, 0, int(leak["EndColumn"]) - 1)
-        except (KeyError, ValueError, IndexError, TypeError):
-            return [], ToolStatus.UNKNOWN  # a report we cannot map back is not a scan
-        hits.append(
-            Hit(
-                str(leak.get("RuleID", "gitleaks")),
-                t.path,
-                sl,
-                el,
-                sc,
-                ec,
-                t.pointer,
-                t.is_key,
-            )
+            return None
+    return leaks if isinstance(leaks, list) else None
+
+
+def _leak_hit(leak: Any, texts: list[_Text]) -> Hit:
+    try:
+        t = texts[int(Path(leak["File"]).stem)]
+    except (KeyError, ValueError, IndexError, TypeError) as exc:
+        raise GateError(
+            "gitleaks reported a finding that maps to no scanned text; refusing to clear"
+        ) from exc
+    rule = str(leak.get("RuleID", "gitleaks"))
+    try:
+        lines = t.text.split("\n")
+        sl, el = int(leak["StartLine"]), int(leak["EndLine"])
+        if not 1 <= sl <= el <= len(lines):
+            raise IndexError(sl)
+        first, last = lines[sl - 1], lines[el - 1]
+        start, end = (
+            int(leak["StartColumn"]) - GL_START_ADJ,
+            int(leak["EndColumn"]) - GL_END_ADJ,
         )
-    return hits, ToolStatus.RAN
+        if sl == el:
+            sc, ec = _widen(first, start, end)
+        else:
+            sc, _ = _widen(first, start, len(first))
+            _, ec = _widen(last, 0, end)
+    except (KeyError, ValueError, IndexError, TypeError):
+        return _whole(rule, t)  # known text, unknown span → blank the whole text
+    return Hit(rule, t.path, sl, el, sc, ec, t.pointer, t.is_key)
+
+
+def _gitleaks(texts: list[_Text]) -> tuple[list[Hit], ToolStatus]:
+    binary = _gitleaks_bin()
+    if binary is None:
+        return [], ToolStatus.ABSENT
+    leaks = _run_gitleaks(binary, texts)
+    if leaks is None:
+        return [], ToolStatus.UNKNOWN
+    return [_leak_hit(leak, texts) for leak in leaks], ToolStatus.RAN
+
+
+def _span_key(h: Hit) -> tuple[Any, ...]:
+    return (
+        h.path,
+        h.pointer,
+        h.is_key,
+        h.start_line,
+        h.end_line,
+        h.start_col,
+        h.end_col,
+    )
 
 
 def scan(root: Path) -> ScanResult:
+    """Raises GateError (incl. UnsupportedFile) when the dir cannot be cleared."""
     texts = _texts(Path(root))
     hits = [h for t in texts for h in _hits_for(t, _regex_spans(t.text))]
     extra, status = _gitleaks(texts)
-    known = set(hits)
-    hits.extend(h for h in extra if h not in known)
+    seen = {_span_key(h) for h in hits}
+    for h in extra:
+        if _span_key(h) not in seen:
+            seen.add(_span_key(h))
+            hits.append(h)
     return ScanResult(hits, status)
 
 
@@ -372,24 +452,23 @@ def _redact_node(
     if isinstance(node, list):
         out_list = []
         for i, value in enumerate(node):
-            new, n = _redact_node(value, f"{pointer}/{i}", by_ptr)
+            new, n = _redact_node(value, _item_ptr(pointer, i), by_ptr)
             out_list.append(new)
             count += n
         return out_list, count
     if isinstance(node, dict):
         out: dict[str, Any] = {}
         for pos, (key, value) in enumerate(node.items()):
-            child = f"{pointer}/@{pos}"
+            child = _member_ptr(pointer, pos)
             new_value, n = _redact_node(value, child, by_ptr)
-            new_key, m = (
-                _redact_string(key, by_ptr[(child, True)])
-                if (child, True) in by_ptr
-                else (key, 0)
-            )
+            key_hits = by_ptr.get((child, True))
+            new_key, m = _redact_string(key, key_hits) if key_hits else (key, 0)
             while new_key in out:
                 new_key += "#"
             out[new_key] = new_value
             count += n + m
+        if count and isinstance(out.get("redacted"), bool):
+            out["redacted"] = True  # a finding whose strings changed says so
         return out, count
     return node, 0
 
@@ -399,6 +478,36 @@ def _index(hits: list[Hit]) -> dict[tuple[str, bool], list[Hit]]:
     for h in hits:
         by_ptr.setdefault((h.pointer or "", h.is_key), []).append(h)
     return by_ptr
+
+
+def _replace(path: Path, text: str) -> None:
+    """Write beside the file and rename over it: the original is intact or fully replaced."""
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".aa-ma-redact-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+
+
+def _redact_jsonl(path: Path, file_hits: list[Hit]) -> tuple[str, int]:
+    by_line: dict[str, list[Hit]] = {}
+    for h in file_hits:
+        line_no, rest = _split_line_ptr(h.pointer or "")
+        by_line.setdefault(line_no, []).append(dataclasses.replace(h, pointer=rest))
+    total, lines = 0, []
+    for i, doc in enumerate(_load_jsonl(path), 1):
+        if doc is None:
+            lines.append("")
+            continue
+        line_hits = by_line.get(_line_ptr(i))
+        if line_hits:
+            doc, n = _redact_node(doc, "", _index(line_hits))
+            total += n
+        lines.append(json.dumps(doc, ensure_ascii=False))
+    return "\n".join(lines) + "\n", total
 
 
 def redact(root: Path, hits: list[Hit]) -> int:
@@ -412,34 +521,14 @@ def redact(root: Path, hits: list[Hit]) -> int:
         if Path(root).resolve() not in path.resolve().parents:
             raise UnsupportedFile(f"{path}: hit outside the report dir")
         if path.suffix in TEXT_SUFFIXES:
-            text, n = _redact_string(path.read_text(encoding="utf-8"), file_hits)
-            path.write_text(text, encoding="utf-8")
+            text, n = _redact_string(_read(path), file_hits)
         elif path.suffix in JSON_SUFFIXES:
             doc, n = _redact_node(_load_json(path), "", _index(file_hits))
-            path.write_text(
-                json.dumps(doc, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-            )
+            text = json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
         elif path.suffix in JSONL_SUFFIXES:
-            n, lines = 0, []
-            for i, doc in enumerate(_load_jsonl(path), 1):
-                line_hits = [
-                    h for h in file_hits if (h.pointer or "").split("/", 1)[0] == str(i)
-                ]
-                if doc is None:
-                    lines.append("")
-                    continue
-                if line_hits:
-                    stripped = [
-                        dataclasses.replace(h, pointer=(h.pointer or "")[len(str(i)) :])
-                        for h in line_hits
-                    ]
-                    doc, m = _redact_node(doc, "", _index(stripped))
-                    if m and isinstance(doc, dict) and "redacted" in doc:
-                        doc["redacted"] = True
-                    n += m
-                lines.append(json.dumps(doc, ensure_ascii=False))
-            path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            text, n = _redact_jsonl(path, file_hits)
         else:
             raise UnsupportedFile(f"{path}: unsupported file type")
+        _replace(path, text)
         total += n
     return total

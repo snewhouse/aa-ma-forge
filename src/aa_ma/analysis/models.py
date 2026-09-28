@@ -11,6 +11,7 @@ import json
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
+import re
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -19,12 +20,20 @@ from pydantic import (
     BeforeValidator,
     ConfigDict,
     Field,
+    NonNegativeInt,
     PositiveInt,
     field_serializer,
     field_validator,
 )
 
 SCHEMA_VERSION = 1
+HEX12 = 12  # hex digits in a stamp's sha12 and in a finding id's hash
+EVIDENCE_MAX = 2000  # chars in a finding's evidence
+NOTE_MAX = (
+    8000  # chars in a CommandCheck note (the last NOTE_TAIL_LINES lines of output)
+)
+NOTE_TAIL_LINES = 40
+_WINDOWS_DRIVE = re.compile(r"^[A-Za-z]:")
 
 
 def _not_bool(value: object) -> object:
@@ -90,13 +99,21 @@ class _Model(BaseModel):
 
 class Stamp(_Model):
     date_utc: AwareDatetime
-    sha12: str = Field(pattern=r"^[0-9a-f]{12}$")
+    sha12: str = Field(pattern=rf"^[0-9a-f]{{{HEX12}}}$")
     dirty: bool
     branch: str
     tier: Literal["quick", "standard", "deep"]
     tools: dict[str, ToolStatus]
     absorbed: list[str]
     fresh_run: list[str]
+
+    @field_validator("date_utc")
+    @classmethod
+    def _utc_only(cls, value: datetime) -> datetime:
+        offset = value.utcoffset()
+        if offset is None or offset.total_seconds() != 0:
+            raise ValueError("date_utc must be UTC (Z or +00:00)")
+        return value
 
     @field_serializer("date_utc")
     def _iso_z(self, value: datetime) -> str:
@@ -118,20 +135,20 @@ class DimensionResult(_Model):
 
 
 class Counts(_Model):
-    findings: int = 0
-    refuted: int = 0
-    redacted: int = 0
-    critical: int = 0
-    high: int = 0
-    medium: int = 0
-    low: int = 0
-    info: int = 0
+    findings: NonNegativeInt = 0
+    refuted: NonNegativeInt = 0
+    redacted: NonNegativeInt = 0
+    critical: NonNegativeInt = 0
+    high: NonNegativeInt = 0
+    medium: NonNegativeInt = 0
+    low: NonNegativeInt = 0
+    info: NonNegativeInt = 0
 
 
 class Baseline(_Model):
-    new: int = 0
-    persisting: int = 0
-    fixed: int = 0
+    new: NonNegativeInt = 0
+    persisting: NonNegativeInt = 0
+    fixed: NonNegativeInt = 0
 
 
 class Summary(_Model):
@@ -165,7 +182,23 @@ class _FindingFields(_Model):
     line: PositiveInt | None
     anchor: str  # whitespace-collapsed, secret-redacted source text or a per-rule anchor; never a line number
     refutation: Refutation
-    evidence: str = Field(max_length=2000)
+    evidence: str = Field(max_length=EVIDENCE_MAX)
+
+    @field_validator("path")
+    @classmethod
+    def _repo_relative(cls, value: str) -> str:
+        # Untrusted (judged) input flows into SARIF artifactLocation.uri: repo-relative only.
+        parts = re.split(r"[\\/]", value)
+        if (
+            not value
+            or value.startswith(("/", "\\"))
+            or _WINDOWS_DRIVE.match(value)
+            or ".." in parts
+        ):
+            raise ValueError(
+                "path must be repo-relative (no leading slash, drive letter or '..')"
+            )
+        return value
 
 
 class JudgedFinding(_FindingFields):
@@ -177,7 +210,7 @@ class JudgedFinding(_FindingFields):
 class Finding(_FindingFields):
     """One findings.jsonl line."""
 
-    id: str = Field(pattern=r"^F-[0-9a-f]{12}$")
+    id: str = Field(pattern=rf"^F-[0-9a-f]{{{HEX12}}}$")
     origin: Origin
     redacted: bool
 
@@ -185,7 +218,9 @@ class Finding(_FindingFields):
 class CommandCheck(_Model):
     command: str
     status: Literal["verified", "failed", "timeout", "not_run", "refused"]
-    note: str = Field(max_length=8000)  # last 40 output lines, secret-redacted
+    note: str = Field(
+        max_length=NOTE_MAX
+    )  # last NOTE_TAIL_LINES output lines, secret-redacted
 
 
 class Onboarding(_Model):

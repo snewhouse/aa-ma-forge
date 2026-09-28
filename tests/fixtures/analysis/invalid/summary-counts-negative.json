@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "stamp": {
+    "date_utc": "2026-09-28T12:00:00Z",
+    "sha12": "b40e8ef1a2c3",
+    "dirty": false,
+    "branch": "main",
+    "tier": "standard",
+    "tools": {
+      "lizard": "ran",
+      "jscpd": "absent",
+      "gitleaks": "ran",
+      "codemem": "ran",
+      "semgrep": "skipped",
+      "osv-scanner": "skipped"
+    },
+    "absorbed": [],
+    "fresh_run": [
+      "measure",
+      "judge",
+      "refute"
+    ]
+  },
+  "dimensions": [
+    {
+      "dimension": "architecture",
+      "rating": "adequate",
+      "confidence": "med",
+      "inputs": [
+        "codemem.layers"
+      ],
+      "capped": false
+    },
+    {
+      "dimension": "maintainability",
+      "rating": "adequate",
+      "confidence": "high",
+      "inputs": [
+        "lizard"
+      ],
+      "capped": false
+    },
+    {
+      "dimension": "security",
+      "rating": "weak",
+      "confidence": "med",
+      "inputs": [
+        "gitleaks",
+        "judge"
+      ],
+      "capped": true
+    },
+    {
+      "dimension": "tests_deps",
+      "rating": "unknown",
+      "confidence": "low",
+      "inputs": [],
+      "capped": true
+    }
+  ],
+  "ledger": [
+    {
+      "path": "src/",
+      "status": "assessed",
+      "reason": "source"
+    },
+    {
+      "path": "vendor/",
+      "status": "set_aside",
+      "reason": "vendored"
+    }
+  ],
+  "metrics": {
+    "size.files": 3,
+    "maint.max_ccn": 18,
+    "tests.coverage_pct": null,
+    "churn.ratio": 0.25
+  },
+  "counts": {
+    "findings": 2,
+    "refuted": 0,
+    "redacted": 1,
+    "critical": 0,
+    "high": -1,
+    "medium": 1,
+    "low": 0,
+    "info": 0
+  },
+  "baseline": {
+    "new": 1,
+    "persisting": 1,
+    "fixed": 0
+  }
+}

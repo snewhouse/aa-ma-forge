@@ -193,7 +193,7 @@ codemem build                   # full index
 codemem refresh                 # incremental refresh since last SHA
 codemem refresh-commits         # populate git-mining cache (commits + commit_files)
 codemem status                  # counts + DB path + user_version
-codemem query <tool> [args...]  # invoke any of the 6 M1 tools directly
+codemem query <tool> [args...]  # invoke 10 of the MCP tools directly
 codemem intel                   # write PROJECT_INTEL.json
 codemem replay --from-wal       # rebuild DB from the JSONL WAL
 ```

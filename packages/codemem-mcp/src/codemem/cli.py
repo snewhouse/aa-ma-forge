@@ -10,7 +10,7 @@ Minimal argparse dispatcher composing the M1 modules:
                                   (M4 Task 4.8 / L-254 — the production
                                   wiring missing from M3)
 * ``codemem replay``          — M2 placeholder; logs and exits 0
-* ``codemem query``           — calls one of the six MCP tools via stdlib JSON
+* ``codemem query``           — calls one of 10 MCP tools via stdlib JSON
 * ``codemem intel``           — writes PROJECT_INTEL.json via the PageRank
                                   projection
 
@@ -234,6 +234,19 @@ def _cmd_query(args: argparse.Namespace) -> int:
         result = mcp_tools.file_summary(
             db_path, args.positional[0], budget=args.budget
         )
+    elif tool == "hot_spots":
+        result = mcp_tools.hot_spots(db_path, budget=args.budget)
+    elif tool == "co_changes":
+        result = mcp_tools.co_changes(db_path, args.positional[0], budget=args.budget)
+    elif tool == "owners":
+        # With --repo-root the blame is computed (and cached); without it only the cache is read.
+        repo_root = Path(args.repo_root) if args.repo_root else None
+        result = mcp_tools.owners(
+            db_path, args.positional[0], repo_root=repo_root,
+            refresh=repo_root is not None, budget=args.budget,
+        )
+    elif tool == "layers":
+        result = mcp_tools.layers(db_path, budget=args.budget)
     else:
         print(f"codemem query: unknown tool '{tool}'", file=sys.stderr)
         return 2
@@ -373,12 +386,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to WAL JSONL (default: <db_parent>/wal.jsonl)",
     )
 
-    pq = sub.add_parser("query", help="Invoke one of the 6 MCP tools")
+    pq = sub.add_parser("query", help="Invoke one of 10 MCP tools from the CLI")
     pq.add_argument(
         "tool",
         choices=[
             "who_calls", "blast_radius", "dead_code",
             "dependency_chain", "search_symbols", "file_summary",
+            "hot_spots", "co_changes", "owners", "layers",
         ],
     )
     pq.add_argument(
@@ -386,6 +400,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     pq.add_argument("--max-depth", type=int, default=None)
     pq.add_argument("--budget", type=int, default=8000)
+    pq.add_argument("--repo-root", default=None, help="owners: compute blame from this repo")
 
     pi = sub.add_parser("intel", help="Write PROJECT_INTEL.json")
     pi.add_argument("--out", help="Output path (default: PROJECT_INTEL.json)")

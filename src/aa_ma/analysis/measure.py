@@ -5,10 +5,13 @@ Tools measure, the model judges, and this module never guesses. A tool that is n
 rule of /sole-dev-merge Stage C) and its metrics stay None — never zero. Rows, argv and parse
 shapes are the ones the 2.1 prototype confirmed on the forge (plan §5a, amended 2026-09-28).
 
-Only tracked regular files are read or handed to a tool, and a finding on any other path is
-dropped: a tracked symlink may point at a key outside the repo, and an untracked `.env` is not the
-repo's code. codemem always builds a fresh index in the work dir; the target's own `.codemem/` is
-never read or written."""
+Scanners never see the target itself: they run in a staging dir of hard links to its tracked
+regular files, without the scanner config and ignore files the target ships (those are recorded,
+not obeyed). So an untracked `.env` or `node_modules/` is never scanned, a tracked symlink is
+never followed, and no file name can become a tool option. codemem always builds a fresh index in
+the work dir, with cwd = the target; the target's own `.codemem/` is never read or written. Tools
+run concurrently, each into its own context, merged in a fixed order so the output is
+deterministic."""
 
 from __future__ import annotations
 
@@ -22,6 +25,7 @@ import stat
 import time
 from collections import Counter
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -30,6 +34,7 @@ from pydantic import ValidationError
 
 from .ids import anchor_for, assign_ids
 from .models import (
+    NETWORK_TOOLS,
     SCHEMA_VERSION,
     Confidence,
     Dimension,
@@ -57,14 +62,7 @@ from .stamp import (
 TOOL_TIMEOUT_S = 300
 VERSION_TIMEOUT_S = 60
 WORK_PREFIX = ".work-"
-NETWORK_TOOLS = ("semgrep", "osv-scanner", "pip-audit")  # Deep only (plan V4)
-# A dimension whose core input did not run cannot rate Strong (finalize; mirrored in RATING.md).
-CORE_INPUTS = {
-    Dimension.ARCHITECTURE: ("codemem.layers",),
-    Dimension.MAINTAINABILITY: ("lizard",),
-    Dimension.SECURITY: ("semgrep",),
-    Dimension.TESTS_DEPS: ("osv-scanner", "pip-audit"),
-}
+STAGE = "stage"
 # The parsers below were confirmed against these major versions (2.1 prototype); another major
 # is `unknown` rather than parsed into plausible-looking wrong values.
 TOOL_MAJOR = {
@@ -75,8 +73,10 @@ TOOL_MAJOR = {
     "osv-scanner": 2,
     "pip-audit": 2,
 }
-VERSION_ARGS = {"gitleaks": ["version"]}  # everything else answers --version
-# Config and ignore files a target can ship to quieten a scanner: recorded, never obeyed silently.
+# Everything else answers --version.
+VERSION_ARGS = {"gitleaks": ["version"]}
+# Scanner config and ignore files a target can ship to quieten a tool: recorded, left out of the
+# staging dir, so never obeyed.
 TOOL_CONFIGS = {
     ".gitleaks.toml",
     ".gitleaksignore",
@@ -85,9 +85,18 @@ TOOL_CONFIGS = {
     "whitelizard.txt",
     ".jscpd.json",
 }
+# Inline markers that silence one finding; counted, since the staging dir cannot remove them.
+SUPPRESSIONS = {
+    "semgrep": re.compile(r"nosemgrep"),
+    "gitleaks": re.compile(r"gitleaks:allow"),
+    "lizard": re.compile(r"#\s*lizard\s+forgives"),
+    "jscpd": re.compile(r"jscpd:ignore-start"),
+}
 CCN_FLAG, CCN_HIGH = 15, 25
 CHURN_DAYS = 90
-CO_CHANGE_FILES = 3  # hot files whose co-changes are recorded
+SECONDS_PER_DAY = 86400
+# Hot files whose co-changes are recorded.
+CO_CHANGE_FILES = 3
 # dead_code truncates at its default budget (2.1: 167 of 1500 symbols).
 DEAD_CODE_BUDGET = 10**9
 # ponytail: larger tracked files are skipped by the regex set (gitleaks still reads them).
@@ -105,14 +114,10 @@ PROSE_FORMATS = {
     "mermaid",
     "dot",
 }
-LIZARD_NLOC, LIZARD_CCN, LIZARD_FILE, LIZARD_FUNCTION, LIZARD_START = (
-    0,
-    1,
-    6,
-    7,
-    9,
-)  # headerless CSV
-OSV_NO_PACKAGES = 128  # osv-scanner 2.x: no lockfile or manifest found (empty stdout)
+# lizard --csv has no header row.
+LIZARD_NLOC, LIZARD_CCN, LIZARD_FILE, LIZARD_FUNCTION, LIZARD_START = 0, 1, 6, 7, 9
+# osv-scanner 2.x: no lockfile or manifest found (empty stdout).
+OSV_NO_PACKAGES = 128
 SEMGREP_SEVERITY = {
     "ERROR": Severity.HIGH, "CRITICAL": Severity.HIGH, "HIGH": Severity.HIGH,
     "WARNING": Severity.MEDIUM, "MEDIUM": Severity.MEDIUM,
@@ -150,33 +155,48 @@ Parsed = tuple[list[_Candidate], dict[str, int | float | None]]
 class _Ctx:
     repo: Path
     work: Path
+    stage: Path
     timeout: float
     files: list[str]
     tools: dict[str, ToolStatus] = field(default_factory=dict)
     metrics: dict[str, int | float | None] = field(default_factory=dict)
     found: list[_Candidate] = field(default_factory=list)
     log: list[str] = field(default_factory=list)
-    partial: set[str] = field(
-        default_factory=set
-    )  # shared metrics a contributing run missed
-    versions: dict[str, str | None] = field(default_factory=dict)
+    # Shared metrics a contributing run missed: unknown, never a partial count.
+    partial: set[str] = field(default_factory=set)
     _lines: dict[str, list[str]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.fileset = set(self.files)
+
+    def child(self) -> _Ctx:
+        """A fresh context for one concurrent job; merged back in a fixed order."""
+        return _Ctx(self.repo, self.work, self.stage, self.timeout, self.files)
+
+    def merge(self, other: _Ctx) -> None:
+        for name, status in other.tools.items():
+            self._status(name, status)
+        self.partial |= other.partial
+        self.add(other.found, other.metrics)
+        self.log += other.log
 
     def anchor(self, path: str, line: int, fallback: str) -> str:
         """The source line's text (redacted, whitespace-collapsed), or `fallback` if there is none."""
         if path not in self.fileset:
             return fallback
         if path not in self._lines:
-            try:  # read_regular: the file was a regular file when listed; it must still be one
+            try:  # it was a regular file when listed; it must still be one
                 self._lines[path] = read_regular(self.repo / path).splitlines()
             except (OSError, UnicodeDecodeError):
                 self._lines[path] = []
         lines = self._lines[path]
         text = anchor_for(lines[line - 1]) if 1 <= line <= len(lines) else ""
         return text or fallback
+
+    def _status(self, name: str, status: ToolStatus) -> None:
+        # A tool run several times keeps its worst.
+        if self.tools.get(name) != ToolStatus.UNKNOWN:
+            self.tools[name] = status
 
     def record(
         self,
@@ -186,22 +206,16 @@ class _Ctx:
         secs: float,
         status: ToolStatus,
     ) -> None:
-        if (
-            self.tools.get(name) != ToolStatus.UNKNOWN
-        ):  # a tool run several times keeps its worst
-            self.tools[name] = status
+        self._status(name, status)
         self.trail(name, argv, rc, secs, status)
 
     def trail(
         self, name: str, argv: list[str], rc: int | None, secs: float, status: str
     ) -> None:
         """One run.log line: name, argv, rc, seconds, status — never any tool output."""
-        shown = [a for a in argv if a not in self.fileset]
-        if len(shown) < len(argv):
-            shown.append(f"<{len(argv) - len(shown)} tracked files>")
         fields = [
             name,
-            " ".join(shown),
+            " ".join(argv),
             "-" if rc is None else str(rc),
             f"{secs:.2f}",
             status,
@@ -215,7 +229,8 @@ class _Ctx:
         self, found: list[_Candidate], metrics: dict[str, int | float | None]
     ) -> None:
         self.found += [c for c in found if c.path in self.fileset]
-        for key, value in metrics.items():  # the same metric from several runs adds up
+        # The same count from several runs (osv-scanner + pip-audit) adds up.
+        for key, value in metrics.items():
             old = self.metrics.get(key)
             self.metrics[key] = value if old is None or value is None else old + value
         for key in self.partial & metrics.keys():
@@ -228,16 +243,30 @@ class _Ctx:
 
 
 def _exec(
-    ctx: _Ctx, argv: list[str], timeout: float | None = None
+    ctx: _Ctx, argv: list[str], *, cwd: Path | None = None, timeout: float | None = None
 ) -> tuple[int | None, bytes, float]:
     t0 = time.monotonic()
     try:
         rc, out = spawn(
-            argv, ctx.repo, safe_env(), timeout or ctx.timeout, merge_stderr=False
+            argv,
+            cwd or ctx.stage,
+            safe_env(),
+            timeout or ctx.timeout,
+            merge_stderr=False,
         )
     except OSError:
         rc, out = None, b""
     return rc, out, time.monotonic() - t0
+
+
+def _version_ok(ctx: _Ctx, name: str, binary: str) -> bool:
+    """Probe the tool's version; recorded in run.log; only the confirmed major is parsed."""
+    argv = [binary, *VERSION_ARGS.get(name, ["--version"])]
+    rc, out, secs = _exec(ctx, argv, timeout=VERSION_TIMEOUT_S)
+    found = _VERSION.search(out.decode("utf-8", "replace")) if rc == 0 else None
+    version = found.group(0) if found else None
+    ctx.trail(f"{name}.version", argv, rc, secs, version or ToolStatus.UNKNOWN)
+    return version is not None and int(version.split(".")[0]) == TOOL_MAJOR[name]
 
 
 def _tool(
@@ -251,7 +280,8 @@ def _tool(
     ok: tuple[int, ...] = (0, 1),
     empty_ok: tuple[int, ...] = (),
 ) -> bool:
-    """Run one optional tool; its findings and metrics count only if its report parses."""
+    """Run one optional tool in the staging dir; its findings and metrics count only if its
+    report parses."""
     ctx.metrics.update({k: ctx.metrics.get(k) for k in metric_keys})
     binary = find_binary(name)
     if binary is None:
@@ -278,21 +308,11 @@ def _tool(
     return status == ToolStatus.RAN
 
 
-def _version_ok(ctx: _Ctx, name: str, binary: str) -> bool:
-    """Probe the tool's version once; recorded in run.log; only the confirmed major is parsed."""
-    if name not in ctx.versions:
-        argv = [binary, *VERSION_ARGS.get(name, ["--version"])]
-        rc, out, secs = _exec(ctx, argv, VERSION_TIMEOUT_S)
-        found = _VERSION.search(out.decode("utf-8", "replace")) if rc == 0 else None
-        ctx.versions[name] = found.group(0) if found else None
-        ctx.trail(
-            f"{name}.version", argv, rc, secs, ctx.versions[name] or ToolStatus.UNKNOWN
-        )
-    version = ctx.versions[name]
-    return version is not None and int(version.split(".")[0]) == TOOL_MAJOR[name]
+# --- parsers (2.1 shapes; paths are relative to the staging dir, i.e. repo-relative) -------------
 
 
-# --- parsers (2.1 shapes) --------------------------------------------------------------------------
+def _rel(path: str) -> str:
+    return os.path.normpath(path)
 
 
 def _lizard(ctx: _Ctx) -> Callable[[bytes], Parsed]:
@@ -301,7 +321,7 @@ def _lizard(ctx: _Ctx) -> Callable[[bytes], Parsed]:
         for row in csv.reader(io.StringIO(body.decode("utf-8"))):
             nloc, ccn = int(row[LIZARD_NLOC]), int(row[LIZARD_CCN])
             path, function, start = (
-                row[LIZARD_FILE],
+                _rel(row[LIZARD_FILE]),
                 row[LIZARD_FUNCTION],
                 int(row[LIZARD_START]),
             )
@@ -313,10 +333,11 @@ def _lizard(ctx: _Ctx) -> Callable[[bytes], Parsed]:
                     ctx.anchor(path, start, function), f"{function}: cyclomatic complexity {ccn}",
                     f"CCN {ccn}, NLOC {nloc}",
                 ))  # fmt: skip
+        over = sum(c > CCN_FLAG for c in ccns)
         return found, {
             "complexity.functions": len(ccns),
             "complexity.ccn_max": max(ccns, default=None),
-            COMPLEXITY_OVER: sum(c > CCN_FLAG for c in ccns),
+            COMPLEXITY_OVER: over,
         }
 
     return parse
@@ -327,16 +348,14 @@ def _jscpd(ctx: _Ctx) -> Callable[[bytes], Parsed]:
         doc, found = json.loads(body), []
         for dup in doc["duplicates"]:
             path, line = (
-                dup["firstFile"]["name"].rsplit(":", 1)[0],
+                _rel(dup["firstFile"]["name"].rsplit(":", 1)[0]),
                 dup["firstFile"]["startLoc"]["line"],
             )
             # A code block inside markdown is named by basename only, so it is no tracked path.
             if dup["format"] in PROSE_FORMATS or path not in ctx.fileset:
                 continue
-            other, other_line = (
-                dup["secondFile"]["name"].rsplit(":", 1)[0],
-                dup["secondFile"]["startLoc"]["line"],
-            )
+            other = _rel(dup["secondFile"]["name"].rsplit(":", 1)[0])
+            other_line = dup["secondFile"]["startLoc"]["line"]
             found.append(_Candidate(
                 "maint.duplication", Dimension.MAINTAINABILITY, Severity.LOW, path, line,
                 ctx.anchor(path, line, f"clone of {other}"),
@@ -366,22 +385,23 @@ def _secret(path: str, line: int, rule: str) -> _Candidate:
 
 def _gitleaks(body: bytes) -> Parsed:
     return [
-        _secret(os.path.normpath(leak["File"]), int(leak["StartLine"]), leak["RuleID"])
+        _secret(_rel(leak["File"]), int(leak["StartLine"]), leak["RuleID"])
         for leak in json.loads(body)
     ], {}
 
 
 def _semgrep(body: bytes) -> Parsed:
+    # The title is the rule id: semgrep messages can quote source.
     found = [
         _Candidate(
             "security.sast",
             Dimension.SECURITY,
             SEMGREP_SEVERITY.get(str(r["extra"]["severity"]).upper(), Severity.MEDIUM),
-            os.path.normpath(r["path"]),
+            _rel(r["path"]),
             int(r["start"]["line"]),
             r["check_id"],
             r["check_id"],
-        )  # fmt: skip — the title is the rule id: semgrep messages can quote source
+        )  # fmt: skip
         for r in json.loads(body)["results"]
     ]
     return found, {"sast.findings": len(found)}
@@ -397,16 +417,20 @@ def _vuln(
     )  # fmt: skip
 
 
+def _under(path: str, roots: tuple[Path, ...]) -> str:
+    """osv-scanner reports absolute paths: make them relative to whichever root holds them."""
+    resolved = Path(path).resolve()
+    for root in roots:
+        if resolved.is_relative_to(root.resolve()):
+            return resolved.relative_to(root.resolve()).as_posix()
+    raise ValueError("path outside the scanned tree")
+
+
 def _osv(ctx: _Ctx) -> Callable[[bytes], Parsed]:
     def parse(body: bytes) -> Parsed:
         found = []
         for result in (json.loads(body) if body.strip() else {}).get("results") or []:
-            source = (
-                Path(result["source"]["path"])
-                .resolve()
-                .relative_to(ctx.repo.resolve())
-                .as_posix()
-            )
+            source = _under(result["source"]["path"], (ctx.stage, ctx.repo))
             for pkg in result["packages"]:
                 p = pkg["package"]
                 for v in pkg.get("vulnerabilities") or []:
@@ -448,7 +472,7 @@ def _pip_audit(requirements: str) -> Callable[[bytes], Parsed]:
     return parse
 
 
-# --- rows ----------------------------------------------------------------------------------------
+# --- the tree -------------------------------------------------------------------------------------
 
 
 def _top(path: str) -> str:
@@ -467,6 +491,24 @@ def _tracked_regular_files(repo: Path) -> list[str]:
     return out
 
 
+def _stage(ctx: _Ctx) -> None:
+    """Hard-link every tracked regular file (copy across filesystems) into the staging dir,
+    except the scanner configs the target ships."""
+    for rel in ctx.files:
+        if Path(rel).name in TOOL_CONFIGS:
+            continue
+        dst = ctx.stage / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            os.link(ctx.repo / rel, dst, follow_symlinks=False)
+        except OSError:
+            shutil.copyfile(ctx.repo / rel, dst, follow_symlinks=False)
+        if not stat.S_ISREG(
+            os.lstat(dst).st_mode
+        ):  # swapped for a symlink since it was listed
+            dst.unlink()
+
+
 def _git_metrics(ctx: _Ctx) -> None:
     files, size = Counter(), Counter()
     for rel in ctx.files:
@@ -477,6 +519,7 @@ def _git_metrics(ctx: _Ctx) -> None:
         "log",
         f"--since={CHURN_DAYS} days ago",
         "--numstat",
+        "--no-renames",
         "--format=",
         "--end-of-options",
         "HEAD",
@@ -488,14 +531,17 @@ def _git_metrics(ctx: _Ctx) -> None:
             added, deleted, path = (line.split("\t") + ["", "", ""])[:3]
             if added.isdigit() and deleted.isdigit():
                 churn[_top(path)] += int(added) + int(deleted)
-    now = time.time()
+    # Days before HEAD's commit, not before now: the same commit always gives the same value.
+    head = run_git(
+        ctx.repo, "log", "-1", "--format=%ct", "--end-of-options", "HEAD"
+    ).stdout.strip()
     for top in files:
         ctx.metrics[f"size.files:{top}"] = files[top]
         ctx.metrics[f"size.bytes:{top}"] = size[top]
         ctx.metrics[f"churn.{CHURN_DAYS}d:{top}"] = (
             None if churn is None else churn[top]
         )
-        if top != ".":
+        if top != "." and head.isdigit():
             last = run_git(
                 ctx.repo,
                 "log",
@@ -505,22 +551,50 @@ def _git_metrics(ctx: _Ctx) -> None:
                 "HEAD",
                 "--",
                 top,
-            )
-            stamp = last.stdout.strip()
+            ).stdout.strip()
             ctx.metrics[f"last_touch_days:{top}"] = (
-                int((now - int(stamp)) // 86400) if stamp.isdigit() else None
+                (int(head) - int(last)) // SECONDS_PER_DAY if last.isdigit() else None
             )
 
 
 def _tool_configs(ctx: _Ctx) -> None:
-    """Record every scanner config/ignore file the target ships (they can quieten a tool)."""
+    """Record every scanner config/ignore file the target ships (not staged, so not obeyed)."""
     found = [rel for rel in ctx.files if Path(rel).name in TOOL_CONFIGS]
     for rel in found:
-        ctx.trail(f"tool-config:{rel}", [], None, 0.0, "present")
+        ctx.trail(f"tool-config:{rel}", [], None, 0.0, "present, not obeyed")
     ctx.metrics["tool_config.overrides"] = len(found)
 
 
-def _secrets(ctx: _Ctx) -> None:
+# --- jobs (each runs concurrently in its own context) --------------------------------------------
+
+
+def _job_lizard(ctx: _Ctx) -> None:
+    _tool(
+        ctx,
+        "lizard",
+        ["--csv", "."],
+        _lizard(ctx),
+        ("complexity.functions", "complexity.ccn_max", COMPLEXITY_OVER),
+    )
+
+
+def _job_jscpd(ctx: _Ctx) -> None:
+    out = ctx.work / "jscpd"
+    try:
+        args = ["--reporters", "json", "--output", str(out), "--silent", "."]
+        _tool(
+            ctx,
+            "jscpd",
+            args,
+            _jscpd(ctx),
+            ("duplication.pct", "duplication.clones"),
+            report=out / "jscpd-report.json",
+        )
+    finally:
+        shutil.rmtree(out, ignore_errors=True)
+
+
+def _job_gitleaks(ctx: _Ctx) -> None:
     report = ctx.work / "gitleaks.json"
     args = [
         "detect",
@@ -539,44 +613,15 @@ def _secrets(ctx: _Ctx) -> None:
         _tool(ctx, "gitleaks", args, _gitleaks, (), report=report, ok=(0,))
     finally:
         report.unlink(missing_ok=True)
-    seen = {(c.path, c.line) for c in ctx.found if c.rule == "security.secret"}
-    regex = []
-    for rel in ctx.files:
-        if os.lstat(ctx.repo / rel).st_size > SECRET_SCAN_MAX_BYTES:
-            continue
-        try:
-            text = read_regular(ctx.repo / rel)
-        except (OSError, UnicodeDecodeError):
-            continue
-        for rule, line in secret_lines(text):
-            if (
-                rel,
-                line,
-            ) not in seen:  # gitleaks first, then the first rule in PATTERNS order
-                seen.add((rel, line))
-                regex.append(_secret(rel, line, rule))
-    ctx.add(regex, {})
-    ctx.metrics["secrets.findings"] = sum(
-        c.rule == "security.secret" for c in ctx.found
-    )
 
 
-def _network(ctx: _Ctx, tier: Tier) -> None:
-    if tier != "deep":
-        for name in NETWORK_TOOLS:
-            ctx.record(name, [name], None, 0.0, ToolStatus.SKIPPED)
-        ctx.metrics.update({"sast.findings": None, "deps.vulns": None})
-        return
-    semgrep = [
-        "scan",
-        "--config",
-        "p/default",
-        "--metrics=off",
-        "--json",
-        "--quiet",
-        ".",
-    ]
-    _tool(ctx, "semgrep", semgrep, _semgrep, ("sast.findings",))
+def _job_semgrep(ctx: _Ctx) -> None:
+    args = ["scan", "--config", "p/default", "--metrics=off", "--json", "--quiet", "."]
+    _tool(ctx, "semgrep", args, _semgrep, ("sast.findings",))
+
+
+def _job_deps(ctx: _Ctx) -> None:
+    """osv-scanner and pip-audit share deps.vulns, so they run in one job, in order."""
     osv = ["scan", "source", "-r", "--format", "json", "."]
     _tool(
         ctx,
@@ -595,8 +640,13 @@ def _network(ctx: _Ctx, tier: Tier) -> None:
     if not requirements:
         ctx.record("pip-audit", ["pip-audit"], None, 0.0, ToolStatus.SKIPPED)
     for req in requirements:
-        pip_audit = ["-f", "json", "--no-deps", "--disable-pip", "-r", req]
-        _tool(ctx, "pip-audit", pip_audit, _pip_audit(req), ("deps.vulns",))
+        _tool(
+            ctx,
+            "pip-audit",
+            ["-f", "json", "--no-deps", "--disable-pip", "-r", req],
+            _pip_audit(req),
+            ("deps.vulns",),
+        )
 
 
 def _is_test(path: str, name: str) -> bool:
@@ -608,29 +658,23 @@ def _is_test(path: str, name: str) -> bool:
     )
 
 
-def _codemem(ctx: _Ctx) -> None:
-    """Every call: `codemem --db <work>/codemem.db …` with cwd = the target. Failure → unknown."""
-    ctx.tools.update(dict.fromkeys(CODEMEM_INPUTS, ToolStatus.UNKNOWN))
-    ctx.metrics.update(
-        dict.fromkeys([*(f"layers.{k}" for k in LAYERS), "dead_code.candidates"])
-    )
-    # codemem ships with the forge, so a missing one is `unknown`, never `absent` (AC12).
-    binary = find_binary("codemem")
-    if not binary:
-        ctx.trail("codemem.build", ["codemem"], None, 0.0, ToolStatus.UNKNOWN)
-        return
-    db = str(ctx.work / "codemem.db")
+class _Codemem:
+    """Every call: `codemem --db <work>/codemem.db …` with cwd = the target (AC12). codemem ships
+    with the forge, so a missing or failing one leaves its inputs `unknown`, never `absent`."""
 
-    def call(label: str, *args: str) -> bytes | None:
-        argv = [binary, "--db", db, *args]
-        rc, out, secs = _exec(ctx, argv)
-        ctx.trail(
+    def __init__(self, ctx: _Ctx, binary: str) -> None:
+        self.ctx, self.binary, self.db = ctx, binary, str(ctx.work / "codemem.db")
+
+    def call(self, label: str, *args: str) -> bytes | None:
+        argv = [self.binary, "--db", self.db, *args]
+        rc, out, secs = _exec(self.ctx, argv, cwd=self.ctx.repo)
+        self.ctx.trail(
             label, argv, rc, secs, ToolStatus.RAN if rc == 0 else ToolStatus.UNKNOWN
         )
         return out if rc == 0 else None
 
-    def query(tool: str, *args: str) -> dict[str, Any] | None:
-        out = call(f"codemem.{tool}", "query", tool, *args)
+    def query(self, tool: str, *args: str) -> dict[str, Any] | None:
+        out = self.call(f"codemem.{tool}", "query", tool, *args)
         try:
             doc = json.loads(out) if out else None
         except ValueError:
@@ -638,76 +682,130 @@ def _codemem(ctx: _Ctx) -> None:
         return doc if isinstance(doc, dict) and not doc.get("error") else None
 
     def ran(
-        tool: str, fill: Callable[[dict[str, Any]], None], doc: dict[str, Any] | None
+        self,
+        tool: str,
+        fill: Callable[[dict[str, Any]], dict[str, int | float | None]],
+        *args: str,
     ) -> bool:
-        if doc is None:
-            return False
+        """Query; `fill` turns the answer into metrics. Any malformed answer leaves it unknown."""
+        doc = self.query(tool, *args)
         try:
-            fill(doc)
-        except (KeyError, TypeError, ValueError):
+            metrics = fill(doc) if doc is not None else None
+        except (KeyError, TypeError, ValueError, IndexError):
+            metrics = None
+        if metrics is None:
             return False
-        ctx.tools[f"codemem.{tool}"] = ToolStatus.RAN
+        self.ctx.metrics.update(metrics)
+        self.ctx.tools[f"codemem.{tool}"] = ToolStatus.RAN
         return True
 
-    if call("codemem.build", "build", "--repo-root", str(ctx.repo)) is None:
-        return
-    commits = call(
-        "codemem.refresh-commits", "refresh-commits", "--repo-root", str(ctx.repo)
-    )
-    inserted = _INSERTED.search(commits.decode("utf-8", "replace")) if commits else None
 
-    def dead_code(d: dict[str, Any]) -> None:
-        if d["truncated"]:
-            raise ValueError("truncated")
-        ctx.metrics["dead_code.candidates"] = sum(
+def _dead_code(d: dict[str, Any]) -> dict[str, int | float | None]:
+    if d["truncated"]:
+        raise ValueError("truncated")
+    return {
+        "dead_code.candidates": sum(
             not _is_test(s["file"], s["name"]) for s in d["symbols"]
         )
+    }
 
-    def layers(d: dict[str, Any]) -> None:
-        ctx.metrics.update({f"layers.{k}": len(d["layers"][k]) for k in LAYERS})
 
-    ran("dead_code", dead_code, query("dead_code", "--budget", str(DEAD_CODE_BUDGET)))
-    ran("layers", layers, query("layers"))
+def _layers(d: dict[str, Any]) -> dict[str, int | float | None]:
+    return {f"layers.{k}": len(d["layers"][k]) for k in LAYERS}
+
+
+def _job_codemem(ctx: _Ctx) -> None:
+    ctx.tools.update(dict.fromkeys(CODEMEM_INPUTS, ToolStatus.UNKNOWN))
+    ctx.metrics.update(
+        dict.fromkeys([*(f"layers.{k}" for k in LAYERS), "dead_code.candidates"])
+    )
+    binary = find_binary("codemem")
+    if not binary:
+        ctx.trail("codemem.build", ["codemem"], None, 0.0, ToolStatus.UNKNOWN)
+        return
+    cm = _Codemem(ctx, binary)
+    if cm.call("codemem.build", "build", "--repo-root", str(ctx.repo)) is None:
+        return
+    commits = cm.call(
+        "codemem.refresh-commits", "refresh-commits", "--repo-root", str(ctx.repo)
+    )
+    cm.ran("dead_code", _dead_code, "--budget", str(DEAD_CODE_BUDGET))
+    cm.ran("layers", _layers)
+    inserted = _INSERTED.search(commits.decode("utf-8", "replace")) if commits else None
     if not inserted or int(inserted.group(1)) == 0:
         return  # no commit rows: the git-history inputs stay unknown, never zero
 
     hot: list[str] = []
 
-    def hot_spots(d: dict[str, Any]) -> None:
-        ctx.metrics.update({f"hot_spot:{f['path']}": f["score"] for f in d["files"]})
+    def hot_spots(d: dict[str, Any]) -> dict[str, int | float | None]:
         hot.extend(f["path"] for f in d["files"][:CO_CHANGE_FILES])
+        return {f"hot_spot:{f['path']}": f["score"] for f in d["files"]}
 
-    if ran("hot_spots", hot_spots, query("hot_spots")):
+    if cm.ran("hot_spots", hot_spots):
         pairs: dict[str, int | float | None] = {}
-
-        def co_changes(target: str) -> Callable[[dict[str, Any]], None]:
-            return lambda d: pairs.update(
-                {f"co_change:{target}|{f['path']}": f["count"] for f in d["files"]}
-            )
-
-        if all(ran("co_changes", co_changes(t), query("co_changes", t)) for t in hot):
+        for target in hot:
+            doc = cm.query("co_changes", target)
+            try:
+                pairs.update(
+                    {
+                        f"co_change:{target}|{f['path']}": f["count"]
+                        for f in doc["files"]
+                    }
+                )  # type: ignore[index]
+            except (KeyError, TypeError):
+                break
+        else:  # every hot file answered (also when there is none)
             ctx.metrics.update(pairs)
-            ctx.tools["codemem.co_changes"] = (
-                ToolStatus.RAN
-            )  # also when there is no hot file
-        else:
-            ctx.tools["codemem.co_changes"] = ToolStatus.UNKNOWN
+            ctx.tools["codemem.co_changes"] = ToolStatus.RAN
 
     owned: dict[str, int | float | None] = {}
     for top in sorted({_top(f) for f in ctx.files} - {"."}):
-        doc = query(
-            "owners", f"{top}/", "--repo-root", str(ctx.repo)
-        )  # a dir needs its trailing /
-        if doc is None:
+        # A directory needs its trailing /; counts and shares only — never an email.
+        doc = cm.query("owners", f"{top}/", "--repo-root", str(ctx.repo))
+        try:
+            authors = doc["authors"]  # type: ignore[index]
+            if authors:
+                owned[f"owners.authors:{top}/"] = len(authors)
+                owned[f"owners.top_pct:{top}/"] = round(
+                    float(authors[0]["percentage"]), 1
+                )
+        except (KeyError, TypeError, ValueError, IndexError):
             return
-        if doc.get("authors"):  # counts and shares only — never an email
-            owned[f"owners.authors:{top}/"] = len(doc["authors"])
-            owned[f"owners.top_pct:{top}/"] = round(
-                float(doc["authors"][0]["percentage"]), 1
-            )
     if owned:
         ctx.metrics.update(owned)
         ctx.tools["codemem.owners"] = ToolStatus.RAN
+
+
+def _skip_network(ctx: _Ctx) -> None:
+    for name in NETWORK_TOOLS:
+        ctx.record(name, [name], None, 0.0, ToolStatus.SKIPPED)
+    ctx.metrics.update({"sast.findings": None, "deps.vulns": None})
+
+
+def _regex_pass(ctx: _Ctx) -> None:
+    """The built-in secret patterns over every tracked file (after gitleaks, which wins a line),
+    counting inline suppression markers on the way."""
+    seen = {(c.path, c.line) for c in ctx.found if c.rule == "security.secret"}
+    found, markers = [], Counter()
+    for rel in ctx.files:
+        if os.lstat(ctx.repo / rel).st_size > SECRET_SCAN_MAX_BYTES:
+            continue
+        try:
+            text = read_regular(ctx.repo / rel)
+        except (OSError, UnicodeDecodeError):
+            continue
+        markers.update(
+            {tool: len(rx.findall(text)) for tool, rx in SUPPRESSIONS.items()}
+        )
+        for rule, line in secret_lines(text):
+            if (rel, line) not in seen:  # the first rule in PATTERNS order wins a line
+                seen.add((rel, line))
+                found.append(_secret(rel, line, rule))
+    ctx.add(found, {})
+    ctx.metrics["secrets.findings"] = sum(
+        c.rule == "security.secret" for c in ctx.found
+    )
+    ctx.metrics.update({f"suppressions.{tool}": markers[tool] for tool in SUPPRESSIONS})
 
 
 # --- entry ---------------------------------------------------------------------------------------
@@ -730,21 +828,11 @@ def _findings(ctx: _Ctx) -> list[Finding]:
 
 def _finding(c: _Candidate, fid: str) -> Finding:
     return Finding(
-            schema_version=SCHEMA_VERSION,
-            id=fid,
-            origin=Origin.MEASURED,
-            redacted=False,
-            dimension=c.dimension,
-            severity=c.severity,
-            confidence=Confidence.HIGH,
-            rule=c.rule,
-            title=c.title,
-            path=c.path,
-            line=c.line,
-            anchor=c.anchor,
-            refutation=Refutation.NOT_REQUIRED,
-            evidence=c.evidence,
-        )  # fmt: skip
+        schema_version=SCHEMA_VERSION, id=fid, origin=Origin.MEASURED, redacted=False,
+        dimension=c.dimension, severity=c.severity, confidence=Confidence.HIGH, rule=c.rule,
+        title=c.title, path=c.path, line=c.line, anchor=c.anchor,
+        refutation=Refutation.NOT_REQUIRED, evidence=c.evidence,
+    )  # fmt: skip
 
 
 def measure(repo: Path, tier: Tier, *, tool_timeout: float = TOOL_TIMEOUT_S) -> Path:
@@ -758,30 +846,22 @@ def measure(repo: Path, tier: Tier, *, tool_timeout: float = TOOL_TIMEOUT_S) -> 
         shutil.rmtree(safe_dir(repo, work_rel))
     work = safe_dir(repo, work_rel)
 
-    ctx = _Ctx(repo, work, tool_timeout, _tracked_regular_files(repo))
+    ctx = _Ctx(repo, work, work / STAGE, tool_timeout, _tracked_regular_files(repo))
+    _stage(ctx)
     _git_metrics(ctx)
     _tool_configs(ctx)
-    _tool(
-        ctx,
-        "lizard",
-        ["--csv", *ctx.files],
-        _lizard(ctx),
-        ("complexity.functions", "complexity.ccn_max", COMPLEXITY_OVER),
-    )
-    jscpd_out = work / "jscpd"
-    jscpd = ["--reporters", "json", "--output", str(jscpd_out), "--silent", *ctx.files]
-    _tool(
-        ctx,
-        "jscpd",
-        jscpd,
-        _jscpd(ctx),
-        ("duplication.pct", "duplication.clones"),
-        report=jscpd_out / "jscpd-report.json",
-    )
-    shutil.rmtree(jscpd_out, ignore_errors=True)
-    _secrets(ctx)
-    _network(ctx, tier)
-    _codemem(ctx)
+    jobs = [_job_lizard, _job_jscpd, _job_gitleaks, _job_codemem]
+    jobs += [_job_semgrep, _job_deps] if tier == "deep" else [_skip_network]
+    children = [ctx.child() for _ in jobs]
+    with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+        for future in [
+            pool.submit(job, child) for job, child in zip(jobs, children, strict=True)
+        ]:
+            future.result()
+    for child in children:  # fixed order: run.log and metric sums are deterministic
+        ctx.merge(child)
+    _regex_pass(ctx)
+    shutil.rmtree(ctx.stage, ignore_errors=True)
 
     doc = MeasureDoc(
         schema_version=SCHEMA_VERSION,

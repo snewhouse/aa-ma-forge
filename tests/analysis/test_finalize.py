@@ -577,7 +577,7 @@ def test_a_failed_restore_keeps_the_previous_report(
     real_replace = os.replace
 
     def replace(src, dst):  # moving the old report aside works; moving it back does not
-        if Path(dst).name == previous.name:
+        if Path(dst) == previous:  # the restore, not the move aside
             raise OSError("disk full")
         return real_replace(src, dst)
 

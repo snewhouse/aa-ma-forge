@@ -236,3 +236,15 @@ def test_redaction_keeps_file_mode(tmp_path: Path, no_gitleaks: None) -> None:
     f.chmod(0o644)
     secrets.redact(d, secrets.scan(d).hits)
     assert f.stat().st_mode & 0o777 == 0o644
+
+
+def test_key_containing_the_separator_does_not_shift_the_value_span(tmp_path: Path, no_gitleaks: None) -> None:
+    """§6.6 quality review: a key that itself contains '": "' moved the value offset into the key,
+    leaving part of the secret on disk after --redact."""
+    d = _dir(tmp_path)
+    value = "Sup3rS3cret" + "Value99"
+    (d / "s.json").write_text(json.dumps({'x": "y password': value}), encoding="utf-8")
+    secrets.redact(d, secrets.scan(d).hits)
+    text = (d / "s.json").read_text(encoding="utf-8")
+    assert value[:6] not in text and value[-6:] not in text
+    assert secrets.scan(d).hits == []

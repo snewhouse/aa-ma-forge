@@ -72,9 +72,9 @@
 - Result Log: Mode: HITL — Ste proceeded (absent tools ephemeral: uvx lizard 1.24.0, npx jscpd 5.3.3, osv-scanner 2.6.0 sha256-verified). `prototype/cas-assess-core` @ `efb0574` pushed: probe.py + SHAPES.md + shapes.forge.json; 11 rows run on the forge (730 files, ≈ 20 s); target `.codemem/` untouched. Verdict PASS as corrected (Ste): dead_code metric-only, jscpd code formats only, osv rc 128 = ran; 6 mechanical corrections. §5a table amended; facts in reference.md; PROTOTYPE entry in provenance.
 
 ### Sub-step 2.2: [test] fixture-repo builder + measure/finalize contract tests, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED `ccf0081` (tests only): conftest `target` fixture repo (calc.py f1/f2, config.py with a runtime-assembled fake token, README) + `tools` fixture (every optional *_BIN → /nonexistent, workspace codemem) + `stub_bin`; tests/analysis/test_measure.py (work dir + symlinked root refused, CLI exit 0/2, network tools skipped outside Deep, git size/churn, AC2 absent/unknown/ran, jscpd code-only + no fragment, regex/gitleaks secret de-dup + rc≠0 unknown, semgrep two-scale map, osv rc 1/128, pip-audit `--no-deps --disable-pip`, AC10 timeout + run.log, AC12 codemem seam/absent/planted index) and tests/analysis/test_finalize.py (AC1 determinism + model/SARIF-schema validation, AC3 naming/replace/dirty, AC4 quoted secret, AC5 baseline equation, refuted/confidence/rating caps, AC8 pending, AC9 abs/../symlink/malformed line, missing ratings, AC11 lifecycle + crash seam, CLI). Collection fails with ModuleNotFoundError (right reason). API refinement: `measure(repo, tier, *, tool_timeout=300) -> work dir` (tier replaces §5 `tools=None`: it decides which rows run).
 
 ### Sub-step 2.3: [test] codemem query 4 tools + who_calls round-trip + count pin, RED
 - Status: COMPLETE

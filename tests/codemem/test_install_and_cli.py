@@ -296,7 +296,7 @@ class TestCLI:
 # `codemem query` round-trips on a fixture index (codebase-analysis-skills M2 AC7)
 # ---------------------------------------------------------------------
 
-QUERY_TOOLS = [
+QUERY_TOOLS_PINNED = [
     "who_calls",
     "blast_radius",
     "dead_code",
@@ -405,8 +405,35 @@ class TestQueryRoundTrips:
         repo, _ = indexed_repo
         r = _cli("query", "--help", cwd=repo)
         assert r.returncode == 0
-        assert re.search(r"\{([a-z_,]+)\}", r.stdout).group(1).split(",") == QUERY_TOOLS
+        assert re.search(r"\{([a-z_,]+)\}", r.stdout).group(1).split(",") == QUERY_TOOLS_PINNED
         assert "10 MCP tools" in _cli("--help", cwd=repo).stdout
+
+
+QUERY_DOCS = [
+    "claude-code/codemem/README.md",
+    "claude-code/codemem/commands/codemem.md",
+    "docs/codemem/migration-from-index.md",
+    "packages/codemem-mcp/src/codemem/cli.py",
+]
+
+
+def test_query_tool_counts_in_docs_match_the_cli() -> None:
+    """Every "N of the MCP tools" / "one of N MCP tools" claim equals the CLI's query choices."""
+    from codemem.cli import QUERY_TOOLS
+
+    claims = [
+        (rel, int(n))
+        for rel in QUERY_DOCS
+        for n in re.findall(
+            r"\b(\d+) of the MCP tools\b|\bone of (\d+) MCP tools\b",
+            (REPO_ROOT / rel).read_text(encoding="utf-8"),
+        )
+        for n in n
+        if n
+    ]
+    assert {rel for rel, _ in claims} == set(QUERY_DOCS), claims
+    assert [c for c in claims if c[1] != len(QUERY_TOOLS)] == []
+    assert list(QUERY_TOOLS) == QUERY_TOOLS_PINNED
 
 
 # ---------------------------------------------------------------------

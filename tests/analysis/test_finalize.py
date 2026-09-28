@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft4Validator
 
-from aa_ma.analysis import cli
+from aa_ma.analysis import cli, finalize as finalize_mod
 from aa_ma.analysis.finalize import FinalizeError, finalize
 from aa_ma.analysis.ids import compare
 from aa_ma.analysis.measure import measure
@@ -163,7 +163,11 @@ def test_secret_quoted_by_a_judged_finding_never_reaches_any_output(
             assert FAKE_TOKEN not in f.read_text(errors="replace"), f
     [j] = [f for f in findings(report) if f.origin == "judged"]
     assert j.redacted is True
-    assert summary(report).counts.redacted >= 1
+    n = summary(report).counts.redacted
+    assert n >= 1
+    assert (
+        f"{n} redacted" in (report / "report.md").read_text()
+    )  # rendered after the gate
 
 
 # --- AC5: baseline --------------------------------------------------------------------------------
@@ -359,4 +363,164 @@ def test_cli_finalize_prints_the_report_dir(
     assert (
         Path(capsys.readouterr().out.strip())
         == target / REPORTS_ROOT / git(target, "rev-parse", "HEAD")[:12]
+    )
+
+
+# --- §6.8 remediation (sub-step 2.8) ----------------------------------------------------------------
+
+
+def _hostile_report(
+    root: Path,
+    name: str,
+    findings_target: Path | None,
+    when: str = "2099-01-01T00:00:00Z",
+) -> Path:
+    """A report dir a hostile target can plant: far-future stamp, findings.jsonl maybe a symlink."""
+    d = root / name
+    d.mkdir(parents=True)
+    stamp = {
+        "date_utc": when,
+        "sha12": "0" * 12,
+        "dirty": False,
+        "branch": "x",
+        "tier": "quick",
+        "tools": {},
+        "absorbed": [],
+        "fresh_run": [],
+    }
+    doc = {
+        "schema_version": 1,
+        "stamp": stamp,
+        "dimensions": ratings(),
+        "ledger": [],
+        "metrics": {},
+        "counts": {},
+        "baseline": {},
+    }
+    (d / "summary.json").write_text(json.dumps(doc))
+    if findings_target is None:
+        fake = judged(title="planted fixed finding") | {
+            "id": "F-" + "a" * 12,
+            "origin": "judged",
+            "redacted": False,
+        }
+        (d / "findings.jsonl").write_text(json.dumps(fake) + "\n")
+    else:
+        os.symlink(findings_target, d / "findings.jsonl")
+    return d
+
+
+@pytest.mark.parametrize("committed", [True, False])
+def test_a_symlinked_previous_report_is_never_read_or_echoed(
+    target: Path,
+    lizard: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    committed: bool,
+) -> None:
+    outside = tmp_path / "outside.txt"
+    outside.write_text("OUTSIDE-TEXT-" + "Z" * 40 + "\n")
+    _hostile_report(target / REPORTS_ROOT, "0123456789ab", outside)
+    if committed:
+        git(target, "add", "-f", "-A")
+        git(target, "commit", "-q", "-m", "planted report")
+    work = prepare(target)
+    assert cli.main(["finalize", "--repo", str(target), "--work", str(work)]) == 0
+    out = capsys.readouterr()
+    assert "OUTSIDE-TEXT" not in out.out + out.err
+    report = Path(out.out.strip())
+    assert summary(report).baseline.persisting == 0
+
+
+def test_a_committed_report_dir_is_not_a_baseline(target: Path, lizard: Path) -> None:
+    """A far-future planted report would otherwise win the newest-report pick and fake 'fixed'."""
+    _hostile_report(target / REPORTS_ROOT, "0123456789ab", None)
+    git(target, "add", "-f", "-A")
+    git(target, "commit", "-q", "-m", "planted report")
+    report = run(target)
+    assert summary(report).baseline.fixed == 0
+    assert "planted fixed finding" not in (report / "findings.sarif").read_text()
+
+
+def test_a_future_dated_previous_report_is_ignored(target: Path, lizard: Path) -> None:
+    _hostile_report(
+        target / REPORTS_ROOT, "0123456789ab", None
+    )  # untracked, stamp in 2099
+    assert summary(run(target)).baseline.fixed == 0
+
+
+def test_a_corrupt_previous_report_is_skipped(target: Path, lizard: Path) -> None:
+    first = run(target)
+    (first / "findings.jsonl").write_text("{not json\n")
+    commit_file(target, "src/other.py", "x = 1\n", "next")
+    assert summary(run(target)).baseline.model_dump() == {
+        "new": 3,
+        "persisting": 0,
+        "fixed": 0,
+    }
+
+
+def test_a_failed_rename_restores_the_previous_report(
+    target: Path, lizard: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    previous = run(target)
+    before = {p.name: p.read_bytes() for p in previous.iterdir()}
+    real_rename = os.rename
+
+    def failing(
+        src, dst
+    ):  # the new report's rename fails after the old one moved aside
+        if Path(src).name.startswith(".tmp-"):
+            raise OSError("disk full")
+        return real_rename(src, dst)
+
+    monkeypatch.setattr(finalize_mod.os, "rename", failing)
+    with pytest.raises(FinalizeError):
+        finalize(target, prepare(target))
+    assert {p.name: p.read_bytes() for p in previous.iterdir()} == before
+    assert not [
+        p
+        for p in (target / REPORTS_ROOT).iterdir()
+        if p.name.startswith((".old-", ".tmp-"))
+    ]
+
+
+def test_a_gate_error_never_echoes_report_text(
+    target: Path, lizard: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def corrupt(
+        root: Path, hits
+    ) -> int:  # a redaction that breaks a line, leaving a secret in it
+        (root / "findings.jsonl").write_text(json.dumps({"x": FAKE_TOKEN}) + "\n")
+        return 1
+
+    monkeypatch.setattr(finalize_mod.secrets, "redact", corrupt)
+    with pytest.raises(FinalizeError) as exc:
+        quoted = json.dumps(
+            judged(evidence=f"leaks {FAKE_TOKEN}")
+        )  # gives the gate a hit
+        finalize(target, prepare(target, judged_lines=[quoted]))
+    assert FAKE_TOKEN not in str(exc.value)
+
+
+def test_the_report_dir_holds_exactly_the_report_files(
+    target: Path, lizard: Path
+) -> None:
+    assert sorted(p.name for p in run(target).iterdir()) == sorted(
+        finalize_mod.REPORT_FILES
+    )
+
+
+def test_a_colon_inside_a_path_is_a_valid_sarif_uri(target: Path, lizard: Path) -> None:
+    commit_file(target, "src/a:b.py", "x = 1\n")
+    report = run(target, judged_lines=[json.dumps(judged(path="src/a:b.py"))])
+    assert "src/a:b.py" in (report / "findings.sarif").read_text()
+
+
+def test_report_name_is_the_one_naming_rule() -> None:
+    from aa_ma.analysis.stamp import report_name
+
+    assert (report_name("0123456789ab", False), report_name("0123456789ab", True)) == (
+        "0123456789ab",
+        "0123456789ab-dirty",
     )

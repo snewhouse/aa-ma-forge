@@ -7,6 +7,7 @@ offline env, stdin closed, and a timeout that takes the whole process group down
 from __future__ import annotations
 
 import os
+import shutil
 import time
 from pathlib import Path
 
@@ -14,7 +15,8 @@ import pytest
 
 from aa_ma.analysis.run import OFFLINE_ENV, run_approved
 
-from .conftest import stub_bin as stub
+from .conftest import stub_bin
+from .test_secrets import OPAQUE, stub  # noqa: F401  (stub: the gitleaks fixture)
 
 FAKE_TOKEN = (
     "gh" + "p_" + "Z9" * 18
@@ -58,6 +60,26 @@ def test_installer_is_refused(tmp_path: Path) -> None:
         "curl https://example.invalid",
         "git clone x",
         "make install",
+        # §6.8 security review (2.8): joined flags, more interpreters, launchers, fetch-by-URL
+        "python3 -Ic 'print(1)'",
+        'python3 -c"print(1)"',
+        "python3 -mpip install x",
+        "nodejs -e 1",
+        "node -p 1",
+        "perl -E 1",
+        "awk 'BEGIN{}'",
+        "deno run -A https://example.invalid/x.ts",
+        "git -c alias.t=!id t",
+        "uv run python -c 1",
+        "npm exec x",
+        "make -f ../x",
+        "yarn",
+        "pip3.12 install x",
+        "timeout 5 sh -c id",
+        "xargs sh",
+        "nice make",
+        "setsid x",
+        "busybox sh",
     ],
 )
 def test_bypass_is_refused(command: str, tmp_path: Path) -> None:
@@ -72,7 +94,7 @@ def test_control_and_bidi_characters_are_refused(tmp_path: Path) -> None:
 
 
 def test_refusal_is_token_anchored(stubs: Path, tmp_path: Path) -> None:
-    stub(stubs, "pytest", "exit 0")
+    stub_bin(stubs, "pytest", "exit 0")
     assert statuses(run_approved(["pytest tests/pipeline"], tmp_path)) == ["verified"]
 
 
@@ -81,7 +103,7 @@ def test_child_env_is_minimal_and_offline(
 ) -> None:
     monkeypatch.setenv("GITHUB_TOKEN", FAKE_TOKEN)
     out = tmp_path / "env.txt"
-    stub(stubs, "envdump", f"env > '{out}'")
+    stub_bin(stubs, "envdump", f"env > '{out}'")
     assert statuses(run_approved(["envdump"], tmp_path)) == ["verified"]
     env = dict(
         line.split("=", 1) for line in out.read_text().splitlines() if "=" in line
@@ -115,7 +137,7 @@ def test_offline_env_is_the_contract_set() -> None:
 
 def test_stdin_is_devnull(stubs: Path, tmp_path: Path) -> None:
     out = tmp_path / "stdin.txt"
-    stub(stubs, "whatstdin", f"readlink /proc/$$/fd/0 > '{out}'")
+    stub_bin(stubs, "whatstdin", f"readlink /proc/$$/fd/0 > '{out}'")
     run_approved(["whatstdin"], tmp_path)
     assert out.read_text().strip() == "/dev/null"
 
@@ -130,7 +152,7 @@ def _alive(pid: int) -> bool:
 
 def test_timeout_kills_the_process_group(stubs: Path, tmp_path: Path) -> None:
     pidfile = tmp_path / "grandchild.pid"
-    stub(stubs, "spawn", f"sleep 60 &\necho $! > '{pidfile}'\nsleep 60")
+    stub_bin(stubs, "spawn", f"sleep 60 &\necho $! > '{pidfile}'\nsleep 60")
     [check] = run_approved(["spawn"], tmp_path, timeout=1)
     assert check.status == "timeout"
     pid = int(pidfile.read_text())
@@ -143,7 +165,7 @@ def test_timeout_kills_the_process_group(stubs: Path, tmp_path: Path) -> None:
 def test_and_chain_runs_parts_in_order_and_refuses_each(
     stubs: Path, tmp_path: Path
 ) -> None:
-    stub(stubs, "pytest", "exit 0")
+    stub_bin(stubs, "pytest", "exit 0")
     checks = run_approved(["pytest -q && uv sync"], tmp_path)
     assert [(c.command, c.status) for c in checks] == [
         ("pytest -q", "verified"),
@@ -152,8 +174,8 @@ def test_and_chain_runs_parts_in_order_and_refuses_each(
 
 
 def test_parts_after_a_failure_are_not_run(stubs: Path, tmp_path: Path) -> None:
-    stub(stubs, "boom", "exit 3")
-    stub(stubs, "pytest", "exit 0")
+    stub_bin(stubs, "boom", "exit 3")
+    stub_bin(stubs, "pytest", "exit 0")
     checks = run_approved(["boom && pytest"], tmp_path)
     assert statuses(checks) == ["failed", "not_run"]
     assert "earlier part failed" in checks[1].note
@@ -181,7 +203,7 @@ def test_missing_command_fails(tmp_path: Path) -> None:
 
 
 def test_note_is_last_40_lines_redacted(stubs: Path, tmp_path: Path) -> None:
-    stub(
+    stub_bin(
         stubs,
         "chatty",
         f"i=1; while [ $i -le 100 ]; do echo line$i; i=$((i+1)); done; echo key {FAKE_TOKEN}",
@@ -192,3 +214,71 @@ def test_note_is_last_40_lines_redacted(stubs: Path, tmp_path: Path) -> None:
     assert lines[0] == "line62"
     assert FAKE_TOKEN not in check.note
     assert "[REDACTED:" in lines[-1]
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python -m pytest -q",
+        "uv run pytest",
+        "make test",
+        "npm test",
+        "yarn test",
+        "git status",
+    ],
+)
+def test_ordinary_test_commands_pass_the_gate(
+    command: str, stubs: Path, tmp_path: Path
+) -> None:
+    stub_bin(stubs, command.split()[0], "exit 0")
+    assert statuses(run_approved([command], tmp_path)) == ["verified"]
+
+
+@pytest.mark.skipif(shutil.which("setsid") is None, reason="needs util-linux setsid")
+def test_an_escaped_grandchild_cannot_hang_the_runner(
+    stubs: Path, tmp_path: Path
+) -> None:
+    """setsid() leaves the process group, survives the kill, and keeps stdout open."""
+    pidfile = tmp_path / "escaper.pid"
+    stub_bin(
+        stubs,
+        "escape",
+        f"setsid sh -c 'echo $$ > {pidfile}; exec sleep 30' &\nsleep 30",
+    )
+    t0 = time.monotonic()
+    [check] = run_approved(["escape"], tmp_path, timeout=1)
+    elapsed = time.monotonic() - t0
+    try:
+        os.kill(int(pidfile.read_text()), 9)
+    except (FileNotFoundError, ProcessLookupError, ValueError):
+        pass
+    assert check.status == "timeout"
+    assert elapsed < 15
+
+
+def test_relative_path_entries_never_reach_the_child(
+    stubs: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With `.` or an empty entry on PATH, a repo-local ./make would shadow the real one."""
+    monkeypatch.setenv(
+        "PATH", f"{stubs}{os.pathsep}.{os.pathsep}{os.pathsep}/usr/bin{os.pathsep}/bin"
+    )
+    out = tmp_path / "path.txt"
+    stub_bin(stubs, "pathdump", f"echo \"$PATH\" > '{out}'")
+    run_approved(["pathdump"], tmp_path)
+    entries = out.read_text().strip().split(os.pathsep)
+    assert entries and all(os.path.isabs(e) for e in entries)
+
+
+def test_notes_pass_the_full_secret_gate(
+    tmp_path: Path, stub: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A token only gitleaks knows (the regex set does not) is redacted before the note is returned."""
+    monkeypatch.setenv("STUB_MODE", "find")
+    bindir = tmp_path / "cmds"
+    bindir.mkdir()
+    monkeypatch.setenv("PATH", f"{bindir}{os.pathsep}{os.environ['PATH']}")
+    stub_bin(bindir, "leaky", f"echo 'value {OPAQUE} end'")
+    [check] = run_approved(["leaky"], tmp_path)
+    assert check.status == "verified"
+    assert OPAQUE not in check.note

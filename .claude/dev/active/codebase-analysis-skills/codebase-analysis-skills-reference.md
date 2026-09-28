@@ -48,6 +48,16 @@
 - `scan-secrets` exits 0 when the regex set is clean even if gitleaks is `unknown`; callers read the `gitleaks:` stderr line.
 - Import contracts: `analysis-is-leaf`, `analysis-is-self-contained` (names prefixed with the id so `lint-imports` prints it).
 
+### Tool facts (M2.1 prototype, live on BATS 2026-09-28 — `prototype/cas-assess-core` SHAPES.md)
+- lizard 1.24.0: headerless CSV, 11 cols `NLOC,CCN,token,PARAM,length,location,file,function,long_name,start,end` (`long_name` has commas → csv module); rc 0 even for missing/unparseable input.
+- jscpd 5.3.3: `{duplicates[{firstFile{name "path:format", startLoc{line}}, secondFile, format, fragment, lines, tokens}], statistics{total{percentage}}}`; `fragment` is source text (never copied). Findings for code formats only.
+- gitleaks 8.18 `--redact`: `Secret` and `Match` both `REDACTED`; `File` relative to `-s`.
+- semgrep 1.156: `results[{check_id,path,start{line},extra{severity}}]`, `errors[]` (partial parse ≠ failure); severity map ERROR/CRITICAL/HIGH→high, WARNING/MEDIUM→medium, INFO/LOW→low.
+- osv-scanner 2.6.0: rc 0 clean / 1 vulns / 127 error / 128 no packages (empty stdout → ran, zero); `results[{source{path(abs)},packages[{package{name,version,ecosystem},vulnerabilities[{id,affected[{ranges[{events[{fixed?}]}]}]}]}]}]`.
+- pip-audit 2.10: `-f json --no-deps --disable-pip -r <req>`; `{dependencies[{name,version,vulns[{id,fix_versions,aliases}]}]}`; rc 1 for vulns and for a missing file → status by report.
+- codemem: `dead_code` needs a large `--budget` (default truncates); metric only. `owners` dir paths need a trailing `/`; returns emails (never stored). hot_spots `{files[{path,commits_in_window,function_count,score}]}`, co_changes `{files[{path,count}],target}`, layers `{layers{core,middle,periphery},ascii}`.
+- Bare `codemem` on BATS PATH is a broken conda stub; `uv run --project <forge>` puts `.venv/bin/codemem` first.
+
 ### Research files
 - `docs/research/codebase-analysis-skills-prior-art.md` — Ticket 1 prior art (Valid-Through per header)
 - `docs/research/codebase-analysis-skills-codemem-coverage.md` — Ticket 2 codemem coverage

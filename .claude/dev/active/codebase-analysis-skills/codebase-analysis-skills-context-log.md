@@ -84,3 +84,11 @@ _This log will be updated via context compaction as the task progresses._
 - Active step at compaction: Sub-step 2.1: [prototype] run every tool row of §5a on the forge on `prototype/cas-assess-core`
 - Snapshot saved to: /home/sjnewhouse/.claude/hooks/cache/compaction-snapshots/codebase-analysis-skills-snapshot.md
 - Note: Context compacted. Reload AA-MA files to resume.
+
+## [2026-09-28] M2.1 PROTOTYPE verdict — §5a tool rows on the forge
+- Branch `prototype/cas-assess-core` @ `efb0574` (pushed): `prototype/cas-assess-core/{probe.py,SHAPES.md,shapes.forge.json}`; all rows ran on the forge (730 tracked files) in ≈ 20 s. Absent tools run ephemerally (Ste): `uvx lizard` 1.24.0, `npx --yes jscpd` 5.3.3, osv-scanner 2.6.0 release binary (sha256 verified).
+- Verdict (Ste): **PASS as corrected**. §5a table amended in plan.md.
+- Ste decisions: `maint.dead_code` → metric only (37/37 `src/` candidates were false positives: dispatch dicts, decorators, `Annotated` validators, Textual callbacks); jscpd findings for code formats only (263 clones: 125 markdown, 53 json, 23 text, 48 python); osv-scanner rc 128 (no packages, empty stdout) → `ran`, zero findings.
+- Mechanical corrections (no decision needed): pip-audit `--no-deps --disable-pip` (otherwise it pip-installs the target's requirements — runs repo code) and status by report (rc 1 = vulns AND missing file); semgrep severities include the new CRITICAL/HIGH/MEDIUM/LOW scale; codemem owners needs a trailing `/` on dirs (`src` → 0 authors silently) and returns emails (never stored); dead_code default budget truncates (167/1500); jscpd scans tracked files, drops `fragment` (source text), strips `:<format>` from names; osv paths absolute → relativise.
+- Environment: bare `codemem` on BATS PATH is a broken conda stub; under `uv run --project <forge>` `.venv/bin/codemem` resolves first (consumer invocation) — `measure` uses `CODEMEM_BIN` else PATH.
+- Built-in regex over repo source needs a text-scan entry: `secrets.scan` is report-dir only and fails closed on unknown suffixes.

@@ -67,9 +67,9 @@
 - Acceptance Criteria: 12 criteria — see plan.md § Milestone 2 and §5a
 
 ### Sub-step 2.1: [prototype] run every tool row of §5a on the forge on `prototype/cas-assess-core`
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: Mode: HITL — Ste proceeded (absent tools ephemeral: uvx lizard 1.24.0, npx jscpd 5.3.3, osv-scanner 2.6.0 sha256-verified). `prototype/cas-assess-core` @ `efb0574` pushed: probe.py + SHAPES.md + shapes.forge.json; 11 rows run on the forge (730 files, ≈ 20 s); target `.codemem/` untouched. Verdict PASS as corrected (Ste): dead_code metric-only, jscpd code formats only, osv rc 128 = ran; 6 mechanical corrections. §5a table amended; facts in reference.md; PROTOTYPE entry in provenance.
 
 ### Sub-step 2.2: [test] fixture-repo builder + measure/finalize contract tests, RED
 - Status: PENDING

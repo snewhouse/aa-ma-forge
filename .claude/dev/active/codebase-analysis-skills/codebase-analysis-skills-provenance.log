@@ -12,3 +12,7 @@
 [2026-09-28T09:36:50+01:00] DOUBLE_CHECK — verdict=Partially verified — gaps: plan not approved before commit; agent-cap ambiguity; §8 vs §5a; glossary wording; provenance hash; v5 unread
 [2026-09-28T09:36:50+01:00] Ste decisions 2026-09-28: plan treated as approved; agent cap = ≤5 concurrent; glossary wording → M8.1; fresh consistency read — yes
 [2026-09-28T09:36:50+01:00] Fresh consistency read of plan v5 (1 agent): 24 findings (13 contradictions, 8 missing, 3 stale) — all fixed in the follow-up sync; lesson L-030 added
+[2026-09-28T112815Z] DOUBLE_CHECK — status=Partially verified effort=quick report=.claude/reports/double-check/2026-09-28T112815Z-double-check-skill-report-feature.md
+[2026-09-28T113532Z] DOUBLE_CHECK — status=Partially verified effort=quick report=.claude/reports/double-check/2026-09-28T113532Z-double-check-skill-report-feature.md
+[2026-09-28T113711Z] DOUBLE_CHECK — status=Partially verified effort=quick report=.claude/reports/double-check/2026-09-28T113711Z-double-check-skill-report-feature.md
+[2026-09-28T12:47:45+01:00] M1 START — branch feat/cas-m1-analysis-core — Milestone 1 ACTIVE — pre-exec validator: WARN (0 FAIL, 6 WARN; #3 schema_version:true negative fixture → 1.3, #6 prototype refinements → context-log before RED)

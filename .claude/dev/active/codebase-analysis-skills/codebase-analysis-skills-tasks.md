@@ -6,7 +6,7 @@
 > live in plan.md §5 (per milestone) and §5a (binding interface spec).
 
 ## Milestone 1: Analysis contract + `aa_ma.analysis` core
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: None
 - Gate: HARD
 - Audit-Profile: full

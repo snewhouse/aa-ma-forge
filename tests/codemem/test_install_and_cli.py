@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -287,6 +290,123 @@ class TestCLI:
             conn.close()
         assert n_commits == 2, f"expected 2 commits cached, got {n_commits}"
         assert n_files >= 2, f"expected >=2 commit_files rows, got {n_files}"
+
+
+# ---------------------------------------------------------------------
+# `codemem query` round-trips on a fixture index (codebase-analysis-skills M2 AC7)
+# ---------------------------------------------------------------------
+
+QUERY_TOOLS = [
+    "who_calls",
+    "blast_radius",
+    "dead_code",
+    "dependency_chain",
+    "search_symbols",
+    "file_summary",
+    "hot_spots",
+    "co_changes",
+    "owners",
+    "layers",
+]
+
+
+def _cli(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
+    env = {
+        **os.environ,
+        "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src"),
+    }
+    return subprocess.run(
+        [sys.executable, "-m", "codemem.cli", *args],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+
+@pytest.fixture(scope="module")
+def indexed_repo(tmp_path_factory) -> tuple[Path, Path]:
+    """a.py calls b.helper; a.py and notes.md change together 3 times (no import edge between them)."""
+    repo = tmp_path_factory.mktemp("q") / "repo"
+    repo.mkdir()
+    genv = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "F",
+        "GIT_AUTHOR_EMAIL": "f@example.invalid",
+        "GIT_COMMITTER_NAME": "F",
+        "GIT_COMMITTER_EMAIL": "f@example.invalid",
+    }
+
+    def git(*a: str) -> None:
+        subprocess.run(
+            ["git", "-C", str(repo), *a], check=True, capture_output=True, env=genv
+        )
+
+    git("init", "-q")
+    (repo / "b.py").write_text("def helper():\n    return 1\n")
+    for i in range(3):
+        (repo / "a.py").write_text(
+            f"from b import helper\n\ndef main():\n    return helper() + {i}\n"
+        )
+        (repo / "notes.md").write_text(f"v{i}\n")
+        git("add", "-A")
+        git("commit", "-q", "-m", f"c{i}")
+    db = repo.parent / "index.db"
+    for step in (
+        ("build", "--repo-root", str(repo)),
+        ("refresh-commits", "--repo-root", str(repo)),
+    ):
+        r = _cli("--db", str(db), *step, cwd=repo)
+        assert r.returncode == 0, r.stderr
+    return repo, db
+
+
+class TestQueryRoundTrips:
+    def test_who_calls(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "query", "who_calls", "helper", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        assert "main" in json.dumps(json.loads(r.stdout))
+
+    def test_hot_spots(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "query", "hot_spots", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        assert "a.py" in {f["path"] for f in json.loads(r.stdout)["files"]}
+
+    def test_co_changes(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "query", "co_changes", "a.py", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        assert "notes.md" in {f["path"] for f in json.loads(r.stdout)["files"]}
+
+    def test_owners_with_repo_root_computes_blame(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli(
+            "--db",
+            str(db),
+            "query",
+            "owners",
+            "a.py",
+            "--repo-root",
+            str(repo),
+            cwd=repo,
+        )
+        assert r.returncode == 0, r.stderr
+        assert [a["line_count"] for a in json.loads(r.stdout)["authors"]] == [4]
+
+    def test_layers(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "query", "layers", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        assert set(json.loads(r.stdout)["layers"]) == {"core", "middle", "periphery"}
+
+    def test_query_exposes_exactly_ten_tools(self, indexed_repo):
+        repo, _ = indexed_repo
+        r = _cli("query", "--help", cwd=repo)
+        assert r.returncode == 0
+        assert re.search(r"\{([a-z_,]+)\}", r.stdout).group(1).split(",") == QUERY_TOOLS
+        assert "10 MCP tools" in _cli("--help", cwd=repo).stdout
 
 
 # ---------------------------------------------------------------------

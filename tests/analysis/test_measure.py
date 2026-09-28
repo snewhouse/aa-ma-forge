@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import time
 from pathlib import Path
 
@@ -601,3 +602,106 @@ def test_gitleaks_paths_are_normalised(
     assert [(f["path"], f["anchor"]) for f in by_rule(d, "security.secret")] == [
         ("src/config.py", "github-pat")
     ]
+
+
+# --- M2 2.9: staging dir, parallel tools, remaining correctness -------------------------------------
+
+
+def _recording_stub(tools: Path, name: str, extra: str = "exit 0") -> Path:
+    """A stub that records its argv and the files it can see under its cwd."""
+    body = f"echo \"$@\" > '{tools / (name + '.argv')}'\nfind . -type f | sort > '{tools / (name + '.seen')}'\n{extra}"
+    return stub_bin(tools, name, body)
+
+
+def test_scanners_see_tracked_files_only_and_no_target_config(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commit_file(target, ".gitleaks.toml", "[allowlist]\n")
+    (target / "untracked.env").write_text(f"TOKEN={FAKE_TOKEN}\n")
+    report = tools / "gl.json"
+    report.write_text("[]")
+    extra = f'while [ $# -gt 0 ]; do [ "$1" = -r ] && out=$2; shift; done\ncp \'{report}\' "$out"'
+    monkeypatch.setenv("GITLEAKS_BIN", str(_recording_stub(tools, "gitleaks", extra)))
+    measure(target, "quick")
+    seen = (tools / "gitleaks.seen").read_text().split()
+    assert "./src/calc.py" in seen
+    assert "./untracked.env" not in seen and "./.gitleaks.toml" not in seen
+
+
+def test_a_dash_named_tracked_file_is_never_a_tool_option(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commit_file(target, "-x*", "x = 1\n")
+    monkeypatch.setenv("LIZARD_BIN", str(_recording_stub(tools, "lizard", "exit 0")))
+    measure(target, "quick")
+    assert (tools / "lizard.argv").read_text().split() == ["--csv", "."]
+    assert "./-x*" in (tools / "lizard.seen").read_text().split()
+
+
+def test_tools_run_concurrently(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for name in ("lizard", "jscpd", "gitleaks"):
+        monkeypatch.setenv(
+            f"{name.upper()}_BIN", str(stub_bin(tools, name, "sleep 1\nexit 3"))
+        )
+    t0 = time.monotonic()
+    measure(target, "quick")
+    assert (
+        time.monotonic() - t0 < 2.8
+    )  # three 1 s tools back to back would take 3 s or more
+
+
+def test_a_malformed_owners_answer_is_unknown_not_a_crash(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    body = (
+        'case "$*" in *refresh-commits*) echo "codemem refresh-commits: inserted 5 commits";; '
+        '*owners*) echo \'{"authors": [{"email": "x"}], "error": null}\';; '
+        f"*query*) echo '{EMPTY_TOOL_JSON}';; *) echo built;; esac"
+    )
+    monkeypatch.setenv("CODEMEM_BIN", str(stub_bin(tools, "codemem", body)))
+    assert (
+        doc(measure(target, "quick"))["stamp"]["tools"]["codemem.owners"] == "unknown"
+    )
+
+
+def test_last_touch_days_is_measured_against_the_head_commit(
+    target: Path, tools: Path
+) -> None:
+    """Deterministic: the same commit gives the same value whatever today's date is."""
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "F",
+        "GIT_AUTHOR_EMAIL": "f@example.invalid",
+        "GIT_COMMITTER_NAME": "F",
+        "GIT_COMMITTER_EMAIL": "f@example.invalid",
+    }
+    for rel, when in (
+        ("old/a.py", "2020-01-01T00:00:00Z"),
+        ("src/new.py", "2020-01-11T00:00:00Z"),
+    ):
+        (target / rel).parent.mkdir(exist_ok=True)
+        (target / rel).write_text("x = 1\n")
+        dated = env | {"GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when}
+        subprocess.run(["git", "-C", str(target), "add", rel], check=True, env=dated)
+        subprocess.run(
+            ["git", "-C", str(target), "commit", "-q", "-m", rel], check=True, env=dated
+        )
+    m = doc(measure(target, "quick"))["metrics"]
+    assert (m["last_touch_days:old"], m["last_touch_days:src"]) == (10, 0)
+
+
+def test_inline_suppressions_are_counted(target: Path, tools: Path) -> None:
+    commit_file(
+        target,
+        "src/s.py",
+        "x = 1  # nosemgrep\ny = 2  # gitleaks:allow\n# lizard forgives\n",
+    )
+    m = doc(measure(target, "quick"))["metrics"]
+    assert (
+        m["suppressions.semgrep"],
+        m["suppressions.gitleaks"],
+        m["suppressions.lizard"],
+    ) == (1, 1, 1)
+    assert m["suppressions.jscpd"] == 0

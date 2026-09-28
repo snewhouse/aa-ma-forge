@@ -12,12 +12,13 @@ import re
 import shlex
 import signal
 import subprocess  # nosec B404 — argv lists only, never a shell
+import tempfile
 import unicodedata
 from collections.abc import Sequence
 from pathlib import Path
 
+from . import secrets
 from .models import NOTE_MAX, CommandCheck
-from .secrets import redact_text
 
 RUN_TIMEOUT_S = 300
 KILL_GRACE_S = 5
@@ -38,15 +39,24 @@ OFFLINE_ENV = {
 PASS_THROUGH = ("PATH", "HOME", "LANG", "TMPDIR")
 # `&&` is split into parts; anything else a shell would interpret means "run it by hand".
 COMPOUND = ("|", ";", ">", "<", "`", "$(", "&", "\n")
-LAUNCHERS = {"env", "sudo", "doas", "su", "sh", "bash", "zsh", "dash", "fish", "ksh"}
-INTERPRETER = re.compile(r"(python[0-9.]*|node|ruby|perl)")
-# argv[0] → refused whatever follows (None), or refused when any later token is one of these.
-REFUSED: dict[str, set[str] | None] = {
-    **dict.fromkeys(
-        "pip pip3 curl wget npx uvx pipx bunx conda gem bundle composer apt apt-get brew".split()
-    ),
+# argv[0] names refused whatever follows: shells, launchers that run another argv, fetchers.
+REFUSED_ALWAYS = set(
+    "env sudo doas su sh bash zsh dash fish ksh busybox timeout nice nohup setsid stdbuf xargs "
+    "find chroot ionice taskset exec command eval watch script awk gawk mawk nawk curl wget npx "
+    "uvx pipx bunx conda gem bundle composer apt apt-get brew".split()
+)
+PIP = re.compile(r"(ensure)?pip[0-9.]*")
+INTERPRETER = re.compile(
+    r"(python|pypy)[0-9.]*(-dbg)?|node(js)?|deno|bun|perl|ruby|php|lua|Rscript"
+)
+INLINE_FLAGS = set("ceEp")  # -c/-e/-E/-p: code on the command line
+INLINE_LONG = {"--eval", "--print", "--command", "--exec"}
+VALUE_FLAGS = {"-W", "-X", "-Q"}  # python options whose value is the next token
+FETCH = ("http://", "https://", "ftp://", "git+")
+# argv[0] → refused when any later token is one of these subcommands.
+REFUSED: dict[str, set[str]] = {
     "uv": {"install", "sync", "add", "pip"},
-    "npm": {"i", "install", "ci"},
+    "npm": {"i", "install", "ci", "exec", "x"},
     "pnpm": {"i", "install", "add", "dlx"},
     "yarn": {"install", "add", "dlx"},
     "bun": {"install", "add"},
@@ -59,9 +69,16 @@ REFUSED: dict[str, set[str] | None] = {
 }
 
 
+def absolute_path(path: str) -> str:
+    """PATH without `.`, empty or relative entries: resolved after the chdir, they would find a
+    binary the target repo planted."""
+    return os.pathsep.join(e for e in path.split(os.pathsep) if os.path.isabs(e))
+
+
 def minimal_env() -> dict[str, str]:
     """PATH, HOME, LANG, TMPDIR and the offline switches — no token or cloud key reaches repo code."""
-    return {k: os.environ[k] for k in PASS_THROUGH if k in os.environ} | OFFLINE_ENV
+    env = {k: os.environ[k] for k in PASS_THROUGH if k in os.environ} | OFFLINE_ENV
+    return env | {"PATH": absolute_path(env.get("PATH", ""))}
 
 
 def spawn(
@@ -87,7 +104,13 @@ def spawn(
         return proc.returncode, out
     except subprocess.TimeoutExpired:
         _kill_group(proc)
-        out, _ = proc.communicate()
+        try:
+            out, _ = proc.communicate(timeout=KILL_GRACE_S)
+        except subprocess.TimeoutExpired:
+            # A setsid() escaper still holds the pipe: stop reading rather than wait on it.
+            proc.stdout.close()  # type: ignore[union-attr]
+            proc.wait()
+            out = b""
         return None, out
 
 
@@ -105,31 +128,84 @@ def _kill_group(proc: subprocess.Popen[bytes]) -> None:
         pass
 
 
+def _interpreter_escape(args: list[str]) -> bool:
+    """Inline code or pip among an interpreter's own options — the ones before its script."""
+    skip = False
+    for i, token in enumerate(args):
+        if skip:
+            skip = False
+            continue
+        if token == "-" or not token.startswith("-"):
+            return False  # the script: what follows is its own argv
+        if token.startswith("--"):
+            if token.split("=", 1)[0] in INLINE_LONG:
+                return True
+            continue
+        letters = re.match(r"-([A-Za-z]*)", token).group(1)  # type: ignore[union-attr]
+        for j, flag in enumerate(letters):
+            if (
+                flag == "m"
+            ):  # -m MODULE / -mMODULE: pip is refused, anything else is the script
+                module = token[2 + j :] or (args[i + 1] if i + 1 < len(args) else "")
+                return bool(PIP.match(module))
+            if flag in INLINE_FLAGS:
+                return True
+        skip = token in VALUE_FLAGS
+    return False
+
+
 def _refusal(argv: list[str]) -> str | None:
-    name = os.path.basename(argv[0])
+    name, args = os.path.basename(argv[0]), argv[1:]
     if "=" in argv[0] and "/" not in argv[0]:
         return "environment assignment"
-    if name in LAUNCHERS:
-        return f"{name}: shell or privilege launcher"
-    if INTERPRETER.fullmatch(name) and (
-        {"-c", "-e"} & set(argv[1:]) or ["-m", "pip"] in _pairs(argv)
-    ):
+    if any(t.startswith(FETCH) for t in args):
+        return "fetches from a URL"
+    if name in REFUSED_ALWAYS or PIP.fullmatch(name):
+        return f"{name}: shell, launcher, interpreter of inline code, or fetcher"
+    if INTERPRETER.fullmatch(name) and _interpreter_escape(args):
         return f"{name}: inline code or pip"
-    if name in REFUSED:
-        subcommands = REFUSED[name]
-        if subcommands is None or subcommands & set(argv[1:]):
-            return f"{name}: installs or fetches"
+    if name == "git" and any(t.startswith(("-c", "--config")) for t in args):
+        return "git -c: config can run commands"
+    if name == "make" and any(
+        t.startswith(("-f", "--file", "--makefile")) for t in args
+    ):
+        return "make -f: a makefile from elsewhere"
+    if name == "yarn" and not [t for t in args if not t.startswith("-")]:
+        return "yarn: a bare yarn installs"
+    if name == "uv" and args[:1] == ["run"]:
+        rest = [t for t in args[1:] if not t.startswith("-")]
+        return _refusal(args[args.index(rest[0]) :]) if rest else None
+    if REFUSED.get(name, set()) & set(args):
+        return f"{name}: installs or fetches"
     return None
 
 
-def _pairs(argv: list[str]) -> list[list[str]]:
-    return [argv[i : i + 2] for i in range(len(argv) - 1)]
-
-
 def _note(output: bytes) -> str:
-    # Redact the whole output first: a secret block cut by the 40-line window would slip past.
-    lines = redact_text(output.decode("utf-8", "replace")).splitlines()
+    # Redact the whole output first: a secret block cut by the NOTE_LINES window would slip past.
+    lines = secrets.redact_text(output.decode("utf-8", "replace")).splitlines()
     return "\n".join(lines[-NOTE_LINES:])[-NOTE_MAX:]
+
+
+def _scrub(checks: list[CommandCheck]) -> list[CommandCheck]:
+    """Every note through the full output gate (regex set + gitleaks), not the regex set alone."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        for i, check in enumerate(checks):
+            (root / f"{i}.log").write_text(check.note, encoding="utf-8")
+        try:
+            hits = secrets.scan(root).hits
+            if hits:
+                secrets.redact(root, hits)
+        except secrets.GateError:
+            withheld = "(withheld: the secret gate could not scan this output)"
+            return [c.model_copy(update={"note": withheld}) for c in checks]
+        notes = [
+            (root / f"{i}.log").read_text(encoding="utf-8") for i in range(len(checks))
+        ]
+    return [
+        c.model_copy(update={"note": n[-NOTE_MAX:]})
+        for c, n in zip(checks, notes, strict=True)
+    ]
 
 
 def _run_part(part: str, cwd: Path, timeout: float) -> CommandCheck:
@@ -182,4 +258,4 @@ def run_approved(
                 continue
             checks.append(_run_part(part, cwd, timeout))
             failed = checks[-1].status != "verified"
-    return checks
+    return _scrub(checks)

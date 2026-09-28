@@ -203,6 +203,12 @@ def _cmd_replay(args: argparse.Namespace) -> int:
     return 0
 
 
+QUERY_TOOLS = (
+    "who_calls", "blast_radius", "dead_code", "dependency_chain", "search_symbols",
+    "file_summary", "hot_spots", "co_changes", "owners", "layers",
+)
+
+
 def _cmd_query(args: argparse.Namespace) -> int:
     from . import mcp_tools
 
@@ -386,15 +392,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to WAL JSONL (default: <db_parent>/wal.jsonl)",
     )
 
-    pq = sub.add_parser("query", help="Invoke one of 10 MCP tools from the CLI")
-    pq.add_argument(
-        "tool",
-        choices=[
-            "who_calls", "blast_radius", "dead_code",
-            "dependency_chain", "search_symbols", "file_summary",
-            "hot_spots", "co_changes", "owners", "layers",
-        ],
+    pq = sub.add_parser(
+        "query", help=f"Invoke one of {len(QUERY_TOOLS)} MCP tools from the CLI"
     )
+    pq.add_argument("tool", choices=QUERY_TOOLS)
     pq.add_argument(
         "positional", nargs="*", help="Positional args for the tool"
     )

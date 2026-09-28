@@ -60,7 +60,7 @@ def _cmd_fresh(args: argparse.Namespace) -> int:
         _err(f"aa-ma-analysis fresh: {args.repo}: {stamp.NOT_A_REPO}")
         return 2
     print(
-        f"{target}: {'fresh' if fresh else 'stale'} (stamp {s.sha12}{'-dirty' if s.dirty else ''})"
+        f"{target}: {'fresh' if fresh else 'stale'} (stamp {stamp.report_name(s.sha12, s.dirty)})"
     )
     return 0 if fresh else 1
 

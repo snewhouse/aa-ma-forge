@@ -258,12 +258,13 @@ def _jscpd(ctx: _Ctx) -> Callable[[bytes], Parsed]:
     def parse(body: bytes) -> Parsed:
         doc, found = json.loads(body), []
         for dup in doc["duplicates"]:
-            if dup["format"] in PROSE_FORMATS:
-                continue
             path, line = (
                 dup["firstFile"]["name"].rsplit(":", 1)[0],
                 dup["firstFile"]["startLoc"]["line"],
             )
+            # A code block inside markdown is named by basename only, so it is no tracked path.
+            if dup["format"] in PROSE_FORMATS or path not in ctx.fileset:
+                continue
             other, other_line = (
                 dup["secondFile"]["name"].rsplit(":", 1)[0],
                 dup["secondFile"]["startLoc"]["line"],

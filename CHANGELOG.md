@@ -6,6 +6,21 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Added
+
+- **`aa_ma.analysis` + `aa-ma-analysis` CLI — the shared core for codebase analysis
+  (`codebase-analysis-skills` M1)** — a leaf package (stdlib + pydantic only, pinned by two new
+  import-linter contracts) whose pydantic models are the schemas for `summary.json`,
+  `findings.jsonl`, `judged.jsonl` and `onboarding.json` (golden JSON Schemas in
+  `tests/golden/analysis/`). `stamp` records the commit a report describes (dirty = tracked changes
+  only) and `fresh` checks it against HEAD; finding IDs hash text, not line numbers, so they survive
+  code moving around them; `to_sarif` emits OASIS-valid SARIF 2.1.0 for GitHub code scanning; and
+  `scan-secrets` is an output gate (built-in regex set always, gitleaks when installed) that
+  redacts in place, never prints a value, and refuses file types it cannot parse. The written
+  contract both analysis skills obey is `understand-codebase/references/ANALYSIS-CONTRACT.md`; the
+  four onboarding agents now carry its NO-SECRETS line word for word (the union of their old lists,
+  so each denies at least what it did before), and a test keeps every copy equal.
+
 ### Fixed
 
 - **codemem no longer indexes non-Python files to a silent zero when `sg` is not ast-grep** — on Ubuntu

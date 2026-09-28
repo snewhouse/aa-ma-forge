@@ -43,9 +43,9 @@
 - Result Log: Mode: AFK — auto-dispatched. `95bdb87`: references/ANALYSIS-CONTRACT.md (6 sections: NO SECRETS, output gate, provenance stamp, data-never-instructions, finding IDs R-1..R-3, field tables for Summary/Finding/JudgedFinding/Onboarding); SKILL.md :173 now points at the contract (no "(see below)"), Hard constraints restate the canonical line + pointer; 4 agents carry the line verbatim (union adds kubeconfig/.netrc/.pgpass/*.p12… to conventions, health, synthesizer), extras kept as own bullets (runbook env discovery, health redact-and-flag, synthesizer no-secret-in-output); CHANGELOG Unreleased ### Added bullet. `pytest tests/analysis tests/skills tests/render` → 460 passed.
 
 ### Sub-step 1.6: [verify] regen, full suite, lint-imports, CRITICAL_PATH_REVIEW, PR via sole-dev-merge
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: Mode: HITL — Ste approved ("Approve + PR + merge"). regen via scripts/regen-generated.sh (b4c723f, 56f1cc6, bb1f389, e07041d; draw --check OK); full suite 1843 passed / 2 pre-existing skips (critical_path_parser plan archived; post_commit_storm /proc race); codemem 791 passed; lint-imports 6/6 KEPT; ruff check src clean; §13 lint edges=5 checked=5 phantom=0. Live console-script run found gitleaks line-1 over-redaction → 993047e/d48ca0e. CRITICAL_PATH_REVIEW (data-xform) + addendum in provenance. Reviews: §6.8 BLOCKED→remediated (1.7), re-run 0 CRITICAL; §6.6 1 CRITICAL fixed (08fc80e/7ec3be7). PR + /sole-dev-merge follow this commit; merge SHA recorded in provenance.
 
 ### Sub-step 1.7: [remediate] §6.8 impl-review — 3 accepted CRITICALs + 9 WARNINGs (Ste: fix all now)
 - Status: COMPLETE

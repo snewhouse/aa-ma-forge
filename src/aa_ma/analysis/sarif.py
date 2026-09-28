@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, Literal
 
-from .models import Finding
+from .models import SCHEME, Finding
 
 SCHEMA_URI = "https://json.schemastore.org/sarif-2.1.0.json"
 FINGERPRINT_KEY = "aaMaFindingId/v1"
@@ -110,7 +110,7 @@ def verify(doc: Mapping[str, Any]) -> None:
                 result["ruleId"] not in rules
                 or result["level"] not in LEVEL.values()
                 or not result["fingerprints"].get(FINGERPRINT_KEY, "").startswith("F-")
-                or any(u.startswith("/") or ":" in u for u in uris)
+                or any(u.startswith("/") or SCHEME.match(u) for u in uris)
             ):
                 raise ValueError(
                     f"result for rule {result['ruleId']!r} breaks a writer invariant"

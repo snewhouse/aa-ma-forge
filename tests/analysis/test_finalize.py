@@ -524,3 +524,32 @@ def test_report_name_is_the_one_naming_rule() -> None:
         "0123456789ab",
         "0123456789ab-dirty",
     )
+
+
+def test_a_committed_report_dir_with_a_past_stamp_is_not_a_baseline(
+    target: Path, lizard: Path
+) -> None:
+    """Isolates the tracked-dir rule: no future stamp, no symlink — only 'git tracks it'."""
+    _hostile_report(
+        target / REPORTS_ROOT, "0123456789ab", None, when="2000-01-01T00:00:00Z"
+    )
+    git(target, "add", "-f", "-A")
+    git(target, "commit", "-q", "-m", "planted report")
+    assert summary(run(target)).baseline.fixed == 0
+
+
+def test_a_symlink_to_a_valid_report_outside_is_not_followed(
+    target: Path, lizard: Path, tmp_path: Path
+) -> None:
+    """Isolates O_NOFOLLOW: the outside file parses, so only refusing the symlink keeps it out."""
+    outside = tmp_path / "planted.jsonl"
+    fake = judged(title="planted fixed finding") | {
+        "id": "F-" + "b" * 12,
+        "origin": "judged",
+        "redacted": False,
+    }
+    outside.write_text(json.dumps(fake) + "\n")
+    _hostile_report(
+        target / REPORTS_ROOT, "0123456789ab", outside, when="2000-01-01T00:00:00Z"
+    )
+    assert summary(run(target)).baseline.fixed == 0

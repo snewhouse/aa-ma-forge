@@ -42,6 +42,10 @@
 - Goldens regenerate with `uv run python -m aa_ma.analysis.models --write-schemas tests/golden/analysis`.
 - `Hit.pointer` addresses JSON object members as `/@<position>` (never key text); `.jsonl` prefixes the 1-based line number.
 - pydantic 2.12: `Literal[1]` accepts JSON `true` in strict mode → `SchemaVersion` BeforeValidator.
+- Secret gate fails closed (exit 1, `GateError`/`UnsupportedFile`) on: duplicate JSON keys; any `.gitignore` except root `.gitignore` == `*\n` (constant `stamp.SELF_IGNORE_*`); unmappable gitleaks entry (a known text with a bad span is blanked whole instead); hard links; symlinks; lone surrogates; nesting past the recursion limit; secret-shaped file/dir names (also with separators removed; never echoed); non-UTF-8; unknown suffix.
+- JSON string values are also scanned as `"key": "value"` context texts (offset = prefix length); hits map back to the value, keys stay readable. Identical texts are scanned once and fanned out (5000-finding report 10.84s → 0.92s).
+- `Finding.path` rejects absolute, `\\`-rooted, URI-scheme/drive-letter, `..`, `%` and control-character paths; `Stamp.date_utc` must be UTC; counts/baseline `NonNegativeInt`. field_validator rules are NOT in the golden JSON Schemas — non-Python consumers must use `aa-ma-analysis validate`.
+- `scan-secrets` exits 0 when the regex set is clean even if gitleaks is `unknown`; callers read the `gitleaks:` stderr line.
 - Import contracts: `analysis-is-leaf`, `analysis-is-self-contained` (names prefixed with the id so `lint-imports` prints it).
 
 ### Research files

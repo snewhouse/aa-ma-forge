@@ -6,7 +6,7 @@
 > live in plan.md §5 (per milestone) and §5a (binding interface spec).
 
 ## Milestone 1: Analysis contract + `aa_ma.analysis` core
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: None
 - Gate: HARD
 - Audit-Profile: full
@@ -16,6 +16,7 @@
 - Effort: 2
 - Goal: One tested, leaf Python core defines every machine-readable output and the secret gate; one contract document both skills obey.
 - Acceptance Criteria: 11 criteria — see plan.md § Milestone 1 and §5a
+- Result Log: COMPLETE 2026-09-28 — 11/11 ACs verified; 7 sub-steps (1.7 added by §6.8). aa_ma.analysis (models, stamp, ids, sarif, secrets, cli) + aa-ma-analysis CLI + ANALYSIS-CONTRACT.md; 1843 passed; lint-imports 6/6 KEPT; §6.8 re-run 0 CRITICAL; §6.6 fixed; HARD gate approved by Ste.
 
 ### Sub-step 1.1: [prototype] schema shapes + ID stability demo on `prototype/cas-analysis-schemas`
 - Status: COMPLETE

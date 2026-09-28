@@ -700,3 +700,16 @@ def test_inline_suppressions_are_counted(target: Path, tools: Path) -> None:
         m["suppressions.lizard"],
     ) == (1, 1, 1)
     assert m["suppressions.jscpd"] == 0
+
+
+def test_the_staging_dir_is_outside_any_git_work_tree(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Live 2.9 regression: staged under the self-ignoring reports root, every scanner that honours
+    .gitignore (semgrep, osv-scanner, jscpd) saw nothing and still reported `ran`."""
+    probe = tools / "inside"
+    body = f"git rev-parse --is-inside-work-tree > '{probe}' 2>/dev/null || echo outside > '{probe}'"
+    monkeypatch.setenv("LIZARD_BIN", str(stub_bin(tools, "lizard", body)))
+    work = measure(target, "quick")
+    assert probe.read_text().strip() == "outside"
+    assert not (work / "stage").exists()

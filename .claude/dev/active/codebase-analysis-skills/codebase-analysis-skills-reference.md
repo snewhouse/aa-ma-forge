@@ -30,12 +30,19 @@
 - Offline env: `UV_OFFLINE=1 UV_NO_SYNC=1 UV_PYTHON_DOWNLOADS=never PIP_NO_INDEX=1 npm_config_offline=true YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 CARGO_NET_OFFLINE=true GOPROXY=off GOTOOLCHAIN=local GOFLAGS=-mod=readonly`; child env = PATH, HOME, LANG, TMPDIR + these.
 - Network-reaching tools (semgrep, osv-scanner, pip-audit) run in Deep only, disclosed at the tier ask.
 - gitleaks (8.18 on BATS; no `dir` subcommand): `gitleaks detect --no-git --redact -s <src> -f json -r <tmp> --exit-code 0`; rc≠0 → unknown.
-- gitleaks 8.18 column convention (live-probed 2026-09-28): token at 0-based index i, length L → `StartColumn = i+2`, `EndColumn = i+L+1` (span = `line[sc-2:ec-1]`); redaction widens to the enclosing non-whitespace token. Bad `-s` path → rc 1, no report.
+- gitleaks 8.18 column convention (live-probed 2026-09-28): token at 0-based index i, length L → `StartColumn = i+2`, `EndColumn = i+L+1` (span = `line[sc-2:ec-1]`) — but on a file's FIRST line one lower (`i+1`, `i+L`); `secrets._widen` trims edge whitespace then widens to the enclosing non-whitespace token, correct for either offset. Bad `-s` path → rc 1, no report.
 - Vendored SARIF schema `tests/fixtures/sarif/sarif-schema-2.1.0.json`: sha256 `c3b4bb2d6093897483348925aaa73af03b3e3f4bd4ca38cef26dcb4212a2682e`, 112768 B.
 - Consumer invocation: `AA_MA_ROOT=${AA_MA_ROOT:-$(cd "$(dirname "$(readlink -f ~/.claude/skills/<skill>/SKILL.md)")/../../.." && pwd)}`; `uv run --quiet --project "${AA_MA_ROOT}" aa-ma-analysis …` (live-probed: cwd kept, forge codemem on PATH).
 - codemem CLI: `--db` is top-level (before `query`); `build` never fills commits tables → `refresh-commits`; `query` tools 6 → 10 after M2.
 - Import contracts: `aa-ma-never-imports-codemem` (`.importlinter:75-81`); `render-is-leaf` explicit list (`.importlinter:53-73`) pinned by `tests/render/test_leaf_contract.py`; new `analysis-is-leaf`.
 - Eval repo: `honojs/hono` (485 blobs on main at planning; SHA pinned at 7.1). Private Python repo: 154 tracked files, existing 2026-09-17 deep-dive report — described by shape/count only (L-029), never named.
+
+### aa_ma.analysis (built in M1)
+- CLI `aa-ma-analysis` (M1): `stamp --tier T [--repo R]`, `fresh <dir|onboarding.json> [--repo R]`, `validate summary|finding|judged_finding|onboarding <file>`, `scan-secrets <dir> [--redact]`.
+- Goldens regenerate with `uv run python -m aa_ma.analysis.models --write-schemas tests/golden/analysis`.
+- `Hit.pointer` addresses JSON object members as `/@<position>` (never key text); `.jsonl` prefixes the 1-based line number.
+- pydantic 2.12: `Literal[1]` accepts JSON `true` in strict mode → `SchemaVersion` BeforeValidator.
+- Import contracts: `analysis-is-leaf`, `analysis-is-self-contained` (names prefixed with the id so `lint-imports` prints it).
 
 ### Research files
 - `docs/research/codebase-analysis-skills-prior-art.md` — Ticket 1 prior art (Valid-Through per header)
@@ -65,4 +72,4 @@
 
 Architecture View: see plan.md §13
 
-_Last Updated: 2026-09-27_
+_Last Updated: 2026-09-28_

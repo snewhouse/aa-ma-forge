@@ -41,22 +41,25 @@ def commit_file(repo: Path, rel: str, text: str, msg: str = "c") -> str:
     return git(repo, "rev-parse", "HEAD")
 
 
+def make_repo(root: Path, files: dict[str, str]) -> Path:
+    """A git repo at `root` with one commit of `files`."""
+    root.mkdir()
+    git(root, "init", "-q")
+    for rel, text in files.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text, encoding="utf-8")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "init")
+    return root
+
+
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
     """A git repo with one commit of three tracked files."""
-    r = tmp_path / "repo"
-    r.mkdir()
-    git(r, "init", "-q")
-    for rel, text in {
-        "src/app.py": "print(1)\n",
-        "src/db.py": "x = 1\n",
-        "README.md": "# toy\n",
-    }.items():
-        (r / rel).parent.mkdir(parents=True, exist_ok=True)
-        (r / rel).write_text(text, encoding="utf-8")
-    git(r, "add", "-A")
-    git(r, "commit", "-q", "-m", "init")
-    return r
+    return make_repo(
+        tmp_path / "repo",
+        {"src/app.py": "print(1)\n", "src/db.py": "x = 1\n", "README.md": "# toy\n"},
+    )
 
 
 # --- M2: fixture target repo + tool seams ------------------------------------------------------
@@ -83,7 +86,11 @@ def stub_bin(bindir: Path, name: str, body: str, version: str | None = None) -> 
     """A /bin/sh stub; a tool stub also answers its version probe (default: the 2.1 version)."""
     path = bindir / name
     version = version or TOOL_VERSIONS.get(name)
-    probe = f'case "$1" in --version|version) echo "{version}"; exit 0;; esac\n' if version else ""
+    probe = (
+        f'case "$1" in --version|version) echo "{version}"; exit 0;; esac\n'
+        if version
+        else ""
+    )
     path.write_text("#!/bin/sh\n" + probe + body + "\n", encoding="utf-8")
     path.chmod(0o755)
     return path
@@ -92,19 +99,12 @@ def stub_bin(bindir: Path, name: str, body: str, version: str | None = None) -> 
 @pytest.fixture
 def target(tmp_path: Path) -> Path:
     """The M2 fixture repo: two source files (one holding a fake secret) and a README, one commit."""
-    r = tmp_path / "target"
-    r.mkdir()
-    git(r, "init", "-q")
-    for rel, text in {
+    files = {
         "src/calc.py": CALC,
         "src/config.py": f'TOKEN = "{FAKE_TOKEN}"\n',
         "README.md": "# fixture\n",
-    }.items():
-        (r / rel).parent.mkdir(parents=True, exist_ok=True)
-        (r / rel).write_text(text, encoding="utf-8")
-    git(r, "add", "-A")
-    git(r, "commit", "-q", "-m", "init")
-    return r
+    }
+    return make_repo(tmp_path / "target", files)
 
 
 @pytest.fixture
@@ -116,3 +116,18 @@ def tools(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     stubs = tmp_path / "stubs"
     stubs.mkdir()
     return stubs
+
+
+def lizard_row(
+    fn: str, ccn: int, start: int, end: int, path: str = "src/calc.py"
+) -> str:
+    """One row of `lizard --csv` (headerless, 11 columns)."""
+    return f'2,{ccn},10,1,2,"{fn}@{start}-{end}@{path}","{path}","{fn}","{fn}( x )",{start},{end}\n'
+
+
+def lizard_stub(stubs: Path, monkeypatch: pytest.MonkeyPatch, csv: str) -> Path:
+    """A lizard stub printing whatever the returned CSV file holds."""
+    report = stubs / "lizard.csv"
+    report.write_text(csv, encoding="utf-8")
+    monkeypatch.setenv("LIZARD_BIN", str(stub_bin(stubs, "lizard", f"cat '{report}'")))
+    return report

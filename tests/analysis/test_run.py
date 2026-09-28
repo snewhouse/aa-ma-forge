@@ -15,12 +15,8 @@ import pytest
 
 from aa_ma.analysis.run import OFFLINE_ENV, run_approved
 
-from .conftest import stub_bin
+from .conftest import FAKE_TOKEN, stub_bin
 from .test_secrets import OPAQUE, stub  # noqa: F401  (stub: the gitleaks fixture)
-
-FAKE_TOKEN = (
-    "gh" + "p_" + "Z9" * 18
-)  # assembled at runtime; matches the github-token rule
 
 
 @pytest.fixture

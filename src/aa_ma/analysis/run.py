@@ -107,12 +107,10 @@ PY_MODULES = {
     "compileall",
     "doctest",
 }
-PY_OPTION = re.compile(
-    r"-[BbdIiOqsSuv]+|-[WX]\S+"
-)  # interpreter options allowed before -m
-SCRIPT_NAME = re.compile(
-    r"[A-Za-z0-9_][A-Za-z0-9_:.-]*"
-)  # npm/yarn/pnpm/bun run <script>
+# Interpreter options allowed before -m.
+PY_OPTION = re.compile(r"-[BbdIiOqsSuv]+|-[WX]\S+")
+# npm/yarn/pnpm/bun run <script>
+SCRIPT_NAME = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_:.-]*")
 MAKE_ARG = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.:/-]*|-j[0-9]*|-k|-s")
 
 
@@ -162,9 +160,8 @@ def _kill_group(proc: subprocess.Popen[bytes]) -> None:
             proc.wait(timeout=KILL_GRACE_S)
         except subprocess.TimeoutExpired:
             pass
-        os.killpg(
-            proc.pid, signal.SIGKILL
-        )  # the leader may be gone while its children are not
+        # The leader may be gone while its children are not.
+        os.killpg(proc.pid, signal.SIGKILL)
     except ProcessLookupError:
         pass
 

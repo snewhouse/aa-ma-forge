@@ -20,3 +20,4 @@
 [2026-09-28T14:16:43+01:00] M1.2 COMPLETE — impact-analysis LOW; 5 consumers, 0 pinning tests; agent lines conventions:28 runbook:26 health:28 synthesizer:35
 [2026-09-28T14:22:45+01:00] M1.3 COMPLETE — RED f341108 (tests only); 6 modules ImportError + 3 pin assertions
 [2026-09-28T14:28:16+01:00] M1.4 COMPLETE — GREEN 9023e53; lint-imports 6 KEPT; 103 passed (12 contract-doc → 1.5)
+[2026-09-28T14:30:11+01:00] M1.5 COMPLETE — contract doc + verbatim deny-line in SKILL.md + 4 agents; 460 passed

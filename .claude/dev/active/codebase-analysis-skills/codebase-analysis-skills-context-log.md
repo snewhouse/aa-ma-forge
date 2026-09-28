@@ -74,3 +74,8 @@ _This log will be updated via context compaction as the task progresses._
 - Artifacts: src/aa_ma/analysis/*.py; tests/analysis/* (+ fixtures, goldens, vendored SARIF schema); references/ANALYSIS-CONTRACT.md; SKILL.md + 4 onboarding agents; .importlinter; pyproject.toml; CHANGELOG Unreleased; docs/architecture regenerated.
 - Tests: 1843 passed / 2 pre-existing skips; codemem 791 passed; lint-imports 6/6 KEPT; §6.7 ENG-STANDARDS + DIAGRAM gates PASS.
 - Next: Milestone 2 — Dependencies: Milestone 1.
+
+## [2026-09-28] §5a amendment — SARIF security-severity (Ste, /sole-dev-merge Stage D)
+- Finding (C1 code-reviewer, MEDIUM): §5a pinned critical "9.0" (GitHub buckets > 9.0 as critical, so it showed as high) and info "0.0" (outside GitHub's (0.0, 10.0]); and tagged every dimension, turning maintainability/architecture findings into GitHub security alerts. Our own research (sarif.md:78) already said so.
+- Decision: critical "9.5"; property only on `dimension == security` and severity above info. Fixed test-first (bdfa490 → GREEN). Plan §5a + reference.md amended.
+- Same pass (LOW, fixed): JSONL framing, list-item key context, baseline 'fixed' refused for current findings, orphan comment, nosec annotations. Disputed as false positives: Bandit B108 on a test literal safe_dir must refuse; 199 × B101 test asserts.

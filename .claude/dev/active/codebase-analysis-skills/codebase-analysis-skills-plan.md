@@ -1070,6 +1070,10 @@ Metrics only (no findings): size/churn per top-level dir (git), `hot_spots`, `co
 `layers` (codemem), test run result (Deep, via `run`). With `--exit-code 0` gitleaks rc 0 = ran, rc≠0 =
 error → `unknown` (report-based rule; rc=1 with no report when the source path is bad — tested).
 codemem runs against a fresh `<work>/codemem.db`; nothing is written outside the reports root.
+*(Amended 2026-09-28, M2 §6.8 round 2: scanners run concurrently on `.` in a **staging dir** — a
+system temp dir outside any git work tree, holding hard links/copies of the tracked regular files
+minus the target's scanner configs (recorded, not obeyed); each tool's version is probed and
+another major than the 2.1-confirmed one is `unknown`; inline suppressions are counted.)*
 
 **Secrets** (`secrets.py`): the regex set always runs (union with gitleaks hits, de-duplicated by
 path+line+span) over **decoded** content — every JSON string value AND key in `.json/.jsonl/.sarif`,
@@ -1100,7 +1104,11 @@ extension in the report dir → fail closed (exit 1); a Finding whose strings ch
 - `measure [--repo R] --tier T [--tool-timeout 300]` → prints the work-dir path.
 - `run [--repo R] [--timeout 300] --cmd "<c>" [--cmd …]` → JSON `list[CommandCheck]`, one per
   `&&`-part; parts after a failed part → `not_run` "earlier part failed"; the argv[0] gate and the
-  token-anchored refuse-list in the M2 Contract apply to every part.
+  token-anchored refuse-list in the M2 Contract apply to every part. *(Amended 2026-09-28, M2 §6.8
+  round 2 — Ste: the gate is an **allowlist** of test-runner/build/lint forms (`run.RUNNERS`,
+  `RUNNER_SUBCOMMANDS`, `python -m <PY_MODULES>`, `uv run <allowed>`, `make <targets>`); anything
+  else → `not_run` "not a known test-runner form — run by hand"; the refuse list only names reasons.
+  Three review rounds each found new denylist bypasses. Command text and notes pass the full secret gate.)*
 - `finalize --work <dir>` → prints the report dir; `scan-secrets <dir> [--redact]`.
 - `ground <md> [--repo R]`; `changed-since <sha12> [--repo R]` (M5).
 - SARIF `rules[]`: `id`, `shortDescription`, `fullDescription`, `help.text` per rule;

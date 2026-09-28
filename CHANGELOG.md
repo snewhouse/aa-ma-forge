@@ -32,10 +32,12 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   gate before an atomic rename. Each tool's version is probed and recorded, and a major version
   the parsers were not confirmed against counts as `unknown`; scanner config or ignore files the
   target ships are recorded; a report dir the target itself commits is never used as a baseline.
-  `run` executes approved repo commands without a shell, with a minimal offline environment and an
-  absolute-only PATH, stdin closed, installers, launchers and inline interpreters refused, output
-  passed through the secret gate, and a timeout that kills the process group (best-effort, stated
-  in the report).
+  Scanners run concurrently in a staging copy of the tracked files outside the target (untracked
+  trees are never scanned; the target's own scanner configs are recorded, not obeyed; inline
+  suppressions are counted). `run` executes only known test-runner, build and lint forms (anything
+  else is "run by hand"), without a shell, with a minimal offline environment and an absolute-only
+  PATH, stdin closed, output and command text passed through the secret gate, and a timeout that
+  kills the process group (best-effort, stated in the report).
 - **`codemem query` reaches 10 MCP tools** — `hot_spots`, `co_changes <file>`, `owners <path>
   [--repo-root R]` and `layers` join the six ports, so scripts get git-history and layering answers
   without an MCP server. `owners --repo-root` computes the blame; without it only the cache is read,

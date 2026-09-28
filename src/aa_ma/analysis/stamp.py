@@ -28,7 +28,7 @@ class UnsafePath(Exception):
     pass
 
 
-def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
+def run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(  # nosec B603 B607 — fixed `git` argv; --end-of-options before user values
         ["git", "-C", str(repo), *args], capture_output=True, text=True, check=False
     )
@@ -36,15 +36,15 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 def head_stamp(repo: Path) -> tuple[str, bool, str]:
     """(sha12, dirty, branch) for HEAD; branch is "(detached)" on a detached HEAD."""
-    head = _git(repo, "rev-parse", "--verify", "--end-of-options", "HEAD")
+    head = run_git(repo, "rev-parse", "--verify", "--end-of-options", "HEAD")
     if head.returncode != 0:
         raise NotAGitRepo(f"{repo}: {NOT_A_REPO}")
-    status = _git(
+    status = run_git(
         repo, "status", "--porcelain", "--untracked-files=no", "--end-of-options"
     )
     if status.returncode != 0:
         raise NotAGitRepo(f"{repo}: git status failed: {status.stderr.strip()}")
-    branch = _git(repo, "symbolic-ref", "--short", "-q", "--end-of-options", "HEAD")
+    branch = run_git(repo, "symbolic-ref", "--short", "-q", "--end-of-options", "HEAD")
     return (
         head.stdout.strip()[:HEX12],
         bool(status.stdout.strip()),

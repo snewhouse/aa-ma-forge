@@ -115,6 +115,13 @@ class _Text:
     text: str
     pointer: str | None = None
     is_key: bool = False
+    # > 0: a synthetic `"key": "value"` context text for the string value at `pointer`, which starts
+    # at this offset — so rules that need the key beside the value (generic-quoted, gitleaks'
+    # generic-api-key) see it. Hits are mapped back onto the value; the key is never redacted.
+    value_offset: int = 0
+
+    def value(self) -> _Text:
+        return _Text(self.path, self.text[self.value_offset : -1], self.pointer)
 
 
 # --- spans ---------------------------------------------------------------------------------------
@@ -194,6 +201,30 @@ def _walk(node: Any, pointer: str) -> Iterator[tuple[str, str, bool]]:
             yield from _walk(value, _item_ptr(pointer, i))
 
 
+def _contexts(node: Any, pointer: str) -> Iterator[tuple[str, str]]:
+    """(value pointer, `"key": "value"` text) for every object member whose value is a string."""
+    if isinstance(node, dict):
+        for pos, (key, value) in enumerate(node.items()):
+            child = _member_ptr(pointer, pos)
+            if isinstance(value, str):
+                yield child, f'"{key}": "{value}"'
+            yield from _contexts(value, child)
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            yield from _contexts(value, _item_ptr(pointer, i))
+
+
+def _doc_texts(rel: str, doc: Any, prefix: str) -> list[_Text]:
+    out = [
+        _Text(rel, s, prefix + ptr if prefix else ptr, k)
+        for ptr, s, k in _walk(doc, "")
+    ]
+    for ptr, text in _contexts(doc, ""):
+        key_len = text.index('": "') + 4
+        out.append(_Text(rel, text, prefix + ptr if prefix else ptr, False, key_len))
+    return out
+
+
 def _no_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     keys = [k for k, _ in pairs]
     if len(set(keys)) != len(keys):
@@ -209,7 +240,12 @@ def _decode(path: Path, text: str, kind: str) -> Any:
             s.encode(
                 "utf-8"
             )  # a lone surrogate cannot be written back or handed to gitleaks
-    except (json.JSONDecodeError, ValueError, UnicodeEncodeError) as exc:
+    except (
+        json.JSONDecodeError,
+        ValueError,
+        UnicodeEncodeError,
+        RecursionError,
+    ) as exc:
         raise UnsupportedFile(
             f"{path}: not valid {kind} ({exc.__class__.__name__})"
         ) from exc
@@ -230,14 +266,15 @@ def _load_json(path: Path) -> Any:
 def _load_jsonl(path: Path) -> list[Any]:
     return [
         _decode(path, line, "JSON Lines") if line.strip() else None
-        for line in _read(path).splitlines()
+        for line in _read(path).split("\n")
     ]
 
 
 def _files(root: Path) -> list[Path]:
     out = []
     for p in sorted(root.rglob("*")):
-        if _regex_spans(str(p.relative_to(root))):
+        rel = str(p.relative_to(root))
+        if _regex_spans(rel) or _regex_spans(rel.replace(os.sep, "")):
             # Never echo the name: it is the thing that matched.
             raise UnsupportedFile(
                 "a file or directory name in the report dir matches a secret pattern"
@@ -269,12 +306,10 @@ def _texts(root: Path) -> list[_Text]:
         if p.suffix in TEXT_SUFFIXES:
             out.append(_Text(rel, _read(p)))
         elif p.suffix in JSON_SUFFIXES:
-            out.extend(_Text(rel, s, ptr, k) for ptr, s, k in _walk(_load_json(p), ""))
+            out.extend(_doc_texts(rel, _load_json(p), ""))
         else:
             for n, doc in enumerate(_load_jsonl(p), 1):
-                out.extend(
-                    _Text(rel, s, _line_ptr(n, ptr), k) for ptr, s, k in _walk(doc, "")
-                )
+                out.extend(_doc_texts(rel, doc, _line_ptr(n)))
     return out
 
 
@@ -282,6 +317,16 @@ def _texts(root: Path) -> list[_Text]:
 
 
 def _hits_for(t: _Text, spans: list[tuple[str, int, int]]) -> list[Hit]:
+    if (
+        t.value_offset
+    ):  # clip context spans onto the value, then shift into its coordinates
+        lo, hi = t.value_offset, len(t.text) - 1
+        clipped = [
+            (r, max(s, lo) - lo, min(e, hi) - lo)
+            for r, s, e in spans
+            if min(e, hi) > max(s, lo)
+        ]
+        return _hits_for(t.value(), clipped)
     starts = _line_starts(t.text)
     hits = []
     for rule, start, end in spans:
@@ -365,12 +410,19 @@ def _run_gitleaks(binary: str, texts: list[_Text]) -> list[Any] | None:
 
 def _leak_hit(leak: Any, texts: list[_Text]) -> Hit:
     try:
-        t = texts[int(Path(leak["File"]).stem)]
+        index = int(Path(leak["File"]).stem)
+        if not 0 <= index < len(texts):
+            raise IndexError(index)
+        t = texts[index]
     except (KeyError, ValueError, IndexError, TypeError) as exc:
         raise GateError(
             "gitleaks reported a finding that maps to no scanned text; refusing to clear"
         ) from exc
     rule = str(leak.get("RuleID", "gitleaks"))
+    if t.value_offset:
+        return _whole(
+            rule, t.value()
+        )  # a context-text hit: blank the value, keep the key
     try:
         lines = t.text.split("\n")
         sl, el = int(leak["StartLine"]), int(leak["EndLine"])
@@ -416,10 +468,10 @@ def _span_key(h: Hit) -> tuple[Any, ...]:
 def scan(root: Path) -> ScanResult:
     """Raises GateError (incl. UnsupportedFile) when the dir cannot be cleared."""
     texts = _texts(Path(root))
-    hits = [h for t in texts for h in _hits_for(t, _regex_spans(t.text))]
+    found = [h for t in texts for h in _hits_for(t, _regex_spans(t.text))]
     extra, status = _gitleaks(texts)
-    seen = {_span_key(h) for h in hits}
-    for h in extra:
+    hits, seen = [], set()
+    for h in found + extra:
         if _span_key(h) not in seen:
             seen.add(_span_key(h))
             hits.append(h)
@@ -486,6 +538,7 @@ def _replace(path: Path, text: str) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(text)
+        os.chmod(tmp, path.stat().st_mode & 0o7777)  # mkstemp creates 0600
         os.replace(tmp, path)
     except BaseException:
         Path(tmp).unlink(missing_ok=True)

@@ -29,11 +29,9 @@ from pydantic import (
 SCHEMA_VERSION = 1
 HEX12 = 12  # hex digits in a stamp's sha12 and in a finding id's hash
 EVIDENCE_MAX = 2000  # chars in a finding's evidence
-NOTE_MAX = (
-    8000  # chars in a CommandCheck note (the last NOTE_TAIL_LINES lines of output)
-)
-NOTE_TAIL_LINES = 40
-_WINDOWS_DRIVE = re.compile(r"^[A-Za-z]:")
+NOTE_MAX = 8000  # chars in a CommandCheck note (the last 40 lines of output)
+# A URI scheme — or a Windows drive letter, which looks like one — makes a path absolute to a viewer.
+_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 
 
 def _not_bool(value: object) -> object:
@@ -192,11 +190,14 @@ class _FindingFields(_Model):
         if (
             not value
             or value.startswith(("/", "\\"))
-            or _WINDOWS_DRIVE.match(value)
+            or _SCHEME.match(value)
             or ".." in parts
+            or "%" in value
+            or any(ord(ch) < 32 or ord(ch) == 127 for ch in value)
         ):
             raise ValueError(
-                "path must be repo-relative (no leading slash, drive letter or '..')"
+                "path must be repo-relative: no leading slash, URI scheme or drive letter, "
+                "'..', percent-encoding or control characters"
             )
         return value
 
@@ -218,9 +219,7 @@ class Finding(_FindingFields):
 class CommandCheck(_Model):
     command: str
     status: Literal["verified", "failed", "timeout", "not_run", "refused"]
-    note: str = Field(
-        max_length=NOTE_MAX
-    )  # last NOTE_TAIL_LINES output lines, secret-redacted
+    note: str = Field(max_length=NOTE_MAX)  # last 40 output lines, secret-redacted
 
 
 class Onboarding(_Model):

@@ -106,6 +106,11 @@
 - Mode: AFK
 - Result Log: [placeholder]
 
+### Sub-step 2.9: [remediate] §6.8 re-run + §6.6 — allowlist gate, staging dir, correctness, perf, DRY (Ste: all now)
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
 ## Milestone 3: `assess-codebase` skill + thin command
 - Status: PENDING
 - Dependencies: Milestone 2

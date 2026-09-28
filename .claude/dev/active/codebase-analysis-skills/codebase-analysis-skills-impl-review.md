@@ -130,3 +130,24 @@ tdd: `test_findings_on_untracked_paths_are_dropped` landed with its implementati
 | 4 | W-F1–W-F4 drift, W8 last-touch | Fix all; add `last_touch_days:<dir>` metric |
 
 Overall verdict: **BLOCKED** until sub-step 2.8 lands and §6.8 re-runs clean.
+
+## Milestone 2 — §6.8 re-run + §6.6 (2026-09-28)
+| Agent | CRITICAL | WARNING | INFO |
+|---|:-:|:-:|:-:|
+| §6.8 code-reviewer (re-run) | 0 | 7 | 7 |
+| §6.8 security-auditor (re-run) | 0 | 2 | 5 |
+| §6.6 reuse | 0 | 3 | 7 |
+| §6.6 quality | 0 | 5 | 16 |
+| §6.6 efficiency | 0 | 3 | 7 |
+
+All first-round items verified closed (C1, W-S1, W-S4, W-S5, W-S6, W1, W2 (partial: restore-failure path), W4–W8, W-F1–F5). Open (deduplicated): argv denylist still bypassable (uv run value-taking options, node -r, php -r, poetry/pdm/hatch run, bun x, git push, …) and over-refuses (`python -Werror`, `cargo test --features fetch`); `-`-prefixed tracked names become lizard/jscpd options; owners parse not wrapped (crash); last_touch_days vs wall clock (non-deterministic); _swap deletes the old report if the restore also fails; sast/deps counts before the untracked filter; gitleaks/git resolved on raw PATH in secrets/stamp; overrides and unreportable not shown in report.md; gitleaks walks the untracked tree (11 s on the forge, `.venv`); REPORT_NAME second naming rule; command text not scrubbed; FIFO blocks `_read_regular`; DRY/tidy list (binary lookup ×3, gitleaks argv ×2, symlink-safe reader in the wrong module, CORE_INPUTS in measure, `_codemem` length, encodings, formatter-damaged comments, JSONL readers ×3, test helpers). Disputed: `REPORT_FILES` dead (quality W3) — it is asserted by `test_the_report_dir_holds_exactly_the_report_files`.
+
+### User Override Decisions (round 2)
+| Item | Decision (Ste) |
+|---|---|
+| run gate | **Allowlist** of known test-runner forms; everything else `not_run — run by hand` (§5a contract change) |
+| correctness fixes + gitleaks tracked-only | Fix all now |
+| DRY/tidy | Do them now |
+| inline suppressions, parallel tool runs, faster owners blame, huge-repo argv | All done in M2 |
+
+Design (orchestrator, first principles): one **staging dir** of hard-linked tracked regular files in the work dir, target scanner configs left out; lizard/jscpd/gitleaks/semgrep/osv/pip-audit run with cwd = staging on `.` — closes gitleaks' untracked walk, `-`-named files as options, argv size limits and config obedience in one change.

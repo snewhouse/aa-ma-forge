@@ -1058,15 +1058,15 @@ refine it, and any refinement is recorded in context-log before the RED commit.
 | rule | source (tier) | argv (confirm against `--help` in 2.1) | finding when | severity | anchor |
 |---|---|---|---|---|---|
 | `maint.complexity` | lizard (all) | `lizard --csv <tracked source files>` | CCN > 15 (> 25 → high) | medium/high | function's first source line |
-| `maint.duplication` | jscpd (all) | `jscpd --reporters json --output <work>/jscpd --silent <repo>` | each clone | low | first line of first fragment |
-| `maint.dead_code` | codemem `dead_code` (all) | `codemem --db <idx> query dead_code` | non-test symbol, zero callers | info | symbol qualified name |
+| `maint.duplication` | jscpd (all) | `jscpd --reporters json --output <work>/jscpd --silent <tracked files>` | each clone in a code format (not markdown/text/txt/json/yaml/toml/log/markup/mermaid/dot) | low | first line of first fragment |
+| ~~`maint.dead_code`~~ | codemem `dead_code` (all) | `codemem --db <idx> query dead_code --budget <large>` | **metric only** (`dead_code.candidates`, non-test; `truncated` → unknown) — no findings | — | — |
 | `security.secret` | gitleaks 8.x (all) | `gitleaks detect --no-git --redact -s <repo> -f json -r <work>/gitleaks.json --exit-code 0` (report deleted after parse) | each leak | high | gitleaks RuleID |
 | `security.secret` | built-in regex (all, always) | — | each hit not already reported by gitleaks | high | rule name |
-| `security.sast` | semgrep (Deep, network) | `semgrep scan --config p/default --metrics=off --json --quiet <repo>` | each result | map ERROR→high, WARNING→medium, INFO→low | semgrep check_id |
-| `deps.vuln` | osv-scanner (Deep, network) | `osv-scanner scan source -r --format json <repo>` | each vuln | high (medium if no fix) | `pkg@version:VULN-ID` |
-| `deps.vuln` | pip-audit (Deep, network) | `pip-audit -f json -r <req>` when a requirements/lock file exists | each vuln | as above | as above |
+| `security.sast` | semgrep (Deep, network) | `semgrep scan --config p/default --metrics=off --json --quiet <repo>` | each result | map ERROR/CRITICAL/HIGH→high, WARNING/MEDIUM→medium, INFO/LOW→low | semgrep check_id |
+| `deps.vuln` | osv-scanner (Deep, network) | `osv-scanner scan source -r --format json <repo>` (rc 0/1 = ran; rc 128 no packages = ran, zero; paths relativised) | each vuln | high (medium if no fix) | `pkg@version:VULN-ID` |
+| `deps.vuln` | pip-audit (Deep, network) | `pip-audit -f json --no-deps --disable-pip -r <req>` per tracked `requirements*.txt` (status by report, not rc) | each vuln | as above | as above |
 
-Metrics only (no findings): size/churn per top-level dir (git), `hot_spots`, `co_changes`, `owners`,
+Metrics only (no findings): size/churn per top-level dir (git), `hot_spots`, `co_changes`, `owners` (dirs passed with a trailing `/`; counts/percentages only, never emails), `dead_code` candidates,
 `layers` (codemem), test run result (Deep, via `run`). With `--exit-code 0` gitleaks rc 0 = ran, rc≠0 =
 error → `unknown` (report-based rule; rc=1 with no report when the source path is bad — tested).
 codemem runs against a fresh `<work>/codemem.db`; nothing is written outside the reports root.

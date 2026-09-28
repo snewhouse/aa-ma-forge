@@ -34,3 +34,4 @@
 [2026-09-28T16:07:43Z] Context compacted — Snapshot saved, active step: Sub-step 2.1: [prototype] run every tool row of §5a on the forge on `prototype/cas-assess-core`
 [2026-09-28T16:07:43Z] CHECKPOINT — ActiveStep: Sub-step 2.1: [prototype] run every tool row of §5a on the forge on `prototype/cas-assess-core` — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A
 [2026-09-28T17:09:46+01:00] MILESTONE ACTIVE — M2 Assess engine (CLI) — branch feat/cas-m2-assess-engine from main 256e58c — dependency advisory: clean
+[2026-09-28T20:53:51+01:00] PROTOTYPE — Milestone 2: Assess engine (CLI) — PASS as corrected (Ste; dead_code metric-only, jscpd code formats only, osv rc 128 = ran; pip-audit --no-deps --disable-pip; semgrep new severity scale; owners trailing / and no emails) — branch prototype/cas-assess-core @ efb0574

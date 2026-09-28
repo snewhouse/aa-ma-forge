@@ -91,6 +91,9 @@ class Dimension(StrEnum):
     TESTS_DEPS = "tests_deps"
 
 
+Tier = Literal["quick", "standard", "deep"]
+
+
 class _Model(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -100,7 +103,7 @@ class Stamp(_Model):
     sha12: str = Field(pattern=rf"^[0-9a-f]{{{HEX12}}}$")
     dirty: bool
     branch: str
-    tier: Literal["quick", "standard", "deep"]
+    tier: Tier
     tools: dict[str, ToolStatus]
     absorbed: list[str]
     fresh_run: list[str]

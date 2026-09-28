@@ -7,12 +7,13 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from typing import get_args
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from . import secrets, stamp
-from .models import EXPORTED, Stamp
+from .models import EXPORTED, Stamp, Tier
 
 JSONL_KINDS = {"finding", "judged_finding"}
 
@@ -130,7 +131,7 @@ def _parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("stamp", help="print the provenance Stamp for HEAD as JSON")
     p.add_argument("--repo", default=".")
-    p.add_argument("--tier", required=True, choices=["quick", "standard", "deep"])
+    p.add_argument("--tier", required=True, choices=get_args(Tier))
     p.set_defaults(func=_cmd_stamp)
     p = sub.add_parser(
         "fresh", help="is a report dir / onboarding.json stamped at the current HEAD?"

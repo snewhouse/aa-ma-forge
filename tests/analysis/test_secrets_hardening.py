@@ -248,3 +248,17 @@ def test_key_containing_the_separator_does_not_shift_the_value_span(tmp_path: Pa
     text = (d / "s.json").read_text(encoding="utf-8")
     assert value[:6] not in text and value[-6:] not in text
     assert secrets.scan(d).hits == []
+
+
+def test_identical_texts_are_each_redacted(tmp_path: Path, stub: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Guard for scanning each distinct text once: every occurrence still gets its own hit."""
+    monkeypatch.setenv("STUB_MODE", "find")
+    d = _dir(tmp_path)
+    lines = [json.dumps({"k": f"v {OPAQUE}", "n": i, "e": f"key {AWS}"}) for i in range(3)]
+    (d / "f.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (d / "a.md").write_text(f"v {OPAQUE}\n", encoding="utf-8")
+    result = secrets.scan(d)
+    assert len({(h.path, h.pointer) for h in result.hits}) == 7  # 3×k + 3×e + the md line
+    secrets.redact(d, result.hits)
+    text = (d / "f.jsonl").read_text(encoding="utf-8") + (d / "a.md").read_text(encoding="utf-8")
+    assert OPAQUE not in text and AWS not in text

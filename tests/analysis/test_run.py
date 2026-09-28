@@ -103,8 +103,8 @@ def test_child_env_is_minimal_and_offline(
 ) -> None:
     monkeypatch.setenv("GITHUB_TOKEN", FAKE_TOKEN)
     out = tmp_path / "env.txt"
-    stub_bin(stubs, "envdump", f"env > '{out}'")
-    assert statuses(run_approved(["envdump"], tmp_path)) == ["verified"]
+    stub_bin(stubs, "pytest", f"env > '{out}'")
+    assert statuses(run_approved(["pytest"], tmp_path)) == ["verified"]
     env = dict(
         line.split("=", 1) for line in out.read_text().splitlines() if "=" in line
     )
@@ -137,8 +137,8 @@ def test_offline_env_is_the_contract_set() -> None:
 
 def test_stdin_is_devnull(stubs: Path, tmp_path: Path) -> None:
     out = tmp_path / "stdin.txt"
-    stub_bin(stubs, "whatstdin", f"readlink /proc/$$/fd/0 > '{out}'")
-    run_approved(["whatstdin"], tmp_path)
+    stub_bin(stubs, "pytest", f"readlink /proc/$$/fd/0 > '{out}'")
+    run_approved(["pytest"], tmp_path)
     assert out.read_text().strip() == "/dev/null"
 
 
@@ -152,8 +152,8 @@ def _alive(pid: int) -> bool:
 
 def test_timeout_kills_the_process_group(stubs: Path, tmp_path: Path) -> None:
     pidfile = tmp_path / "grandchild.pid"
-    stub_bin(stubs, "spawn", f"sleep 60 &\necho $! > '{pidfile}'\nsleep 60")
-    [check] = run_approved(["spawn"], tmp_path, timeout=1)
+    stub_bin(stubs, "pytest", f"sleep 60 &\necho $! > '{pidfile}'\nsleep 60")
+    [check] = run_approved(["pytest"], tmp_path, timeout=1)
     assert check.status == "timeout"
     pid = int(pidfile.read_text())
     deadline = time.monotonic() + 3
@@ -174,9 +174,9 @@ def test_and_chain_runs_parts_in_order_and_refuses_each(
 
 
 def test_parts_after_a_failure_are_not_run(stubs: Path, tmp_path: Path) -> None:
-    stub_bin(stubs, "boom", "exit 3")
+    stub_bin(stubs, "tox", "exit 3")
     stub_bin(stubs, "pytest", "exit 0")
-    checks = run_approved(["boom && pytest"], tmp_path)
+    checks = run_approved(["tox && pytest"], tmp_path)
     assert statuses(checks) == ["failed", "not_run"]
     assert "earlier part failed" in checks[1].note
 
@@ -199,16 +199,16 @@ def test_compound_commands_are_not_run(command: str, tmp_path: Path) -> None:
 
 
 def test_missing_command_fails(tmp_path: Path) -> None:
-    assert statuses(run_approved(["no-such-command-xyz"], tmp_path)) == ["failed"]
+    assert statuses(run_approved(["vitest"], tmp_path)) == ["failed"]
 
 
 def test_note_is_last_40_lines_redacted(stubs: Path, tmp_path: Path) -> None:
     stub_bin(
         stubs,
-        "chatty",
+        "pytest",
         f"i=1; while [ $i -le 100 ]; do echo line$i; i=$((i+1)); done; echo key {FAKE_TOKEN}",
     )
-    [check] = run_approved(["chatty"], tmp_path)
+    [check] = run_approved(["pytest"], tmp_path)
     lines = check.note.splitlines()
     assert len(lines) == 40
     assert lines[0] == "line62"
@@ -220,11 +220,23 @@ def test_note_is_last_40_lines_redacted(stubs: Path, tmp_path: Path) -> None:
     "command",
     [
         "python -m pytest -q",
-        "uv run pytest",
+        "python -Werror -m pytest",
+        "python -X dev -m pytest",
+        "uv run pytest -x",
+        "uv run python -m pytest",
         "make test",
+        "make -j4 check",
         "npm test",
+        "npm run lint",
+        "pnpm test",
         "yarn test",
-        "git status",
+        "bun test",
+        "cargo test --features fetch",
+        "go test ./...",
+        "tox -e py312",
+        "node --test",
+        "ruff check .",
+        "mypy src",
     ],
 )
 def test_ordinary_test_commands_pass_the_gate(
@@ -242,11 +254,11 @@ def test_an_escaped_grandchild_cannot_hang_the_runner(
     pidfile = tmp_path / "escaper.pid"
     stub_bin(
         stubs,
-        "escape",
+        "pytest",
         f"setsid sh -c 'echo $$ > {pidfile}; exec sleep 30' &\nsleep 30",
     )
     t0 = time.monotonic()
-    [check] = run_approved(["escape"], tmp_path, timeout=1)
+    [check] = run_approved(["pytest"], tmp_path, timeout=1)
     elapsed = time.monotonic() - t0
     try:
         os.kill(int(pidfile.read_text()), 9)
@@ -264,8 +276,8 @@ def test_relative_path_entries_never_reach_the_child(
         "PATH", f"{stubs}{os.pathsep}.{os.pathsep}{os.pathsep}/usr/bin{os.pathsep}/bin"
     )
     out = tmp_path / "path.txt"
-    stub_bin(stubs, "pathdump", f"echo \"$PATH\" > '{out}'")
-    run_approved(["pathdump"], tmp_path)
+    stub_bin(stubs, "pytest", f"echo \"$PATH\" > '{out}'")
+    run_approved(["pytest"], tmp_path)
     entries = out.read_text().strip().split(os.pathsep)
     assert entries and all(os.path.isabs(e) for e in entries)
 
@@ -278,7 +290,53 @@ def test_notes_pass_the_full_secret_gate(
     bindir = tmp_path / "cmds"
     bindir.mkdir()
     monkeypatch.setenv("PATH", f"{bindir}{os.pathsep}{os.environ['PATH']}")
-    stub_bin(bindir, "leaky", f"echo 'value {OPAQUE} end'")
-    [check] = run_approved(["leaky"], tmp_path)
+    stub_bin(bindir, "pytest", f"echo 'value {OPAQUE} end'")
+    [check] = run_approved(["pytest"], tmp_path)
     assert check.status == "verified"
     assert OPAQUE not in check.note
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        # §6.8 re-run: denylist bypasses — under the allowlist none of these is executed
+        "uv run --python 3.12 python -c 1",
+        "uv run --with requests python -c 1",
+        "python3 --check-hash-based-pycs default -c 1",
+        "node -r fs -e 1",
+        "php -r 1",
+        "deno eval 1",
+        "poetry run x",
+        "pdm run x",
+        "hatch run x",
+        "pipenv run x",
+        "bun x cowsay",
+        "pnpm exec x",
+        "yarn exec x",
+        "git push",
+        "git submodule update --init",
+        "git status",
+        "/usr/bin/time ls",
+        "strace ls",
+        "ipython -c 1",
+        "ts-node -e 1",
+        "tcsh",
+        "make --eval=x all",
+        "make -f ../x",
+        "npm run https://example.invalid/x",
+        "ls",
+    ],
+)
+def test_anything_off_the_allowlist_is_never_executed(
+    command: str, stubs: Path, tmp_path: Path
+) -> None:
+    marker = tmp_path / "ran"
+    stub_bin(stubs, command.split()[0].rsplit("/", 1)[-1], f"touch '{marker}'")
+    [check, *_] = run_approved([command], tmp_path)
+    assert check.status in ("not_run", "refused")
+    assert not marker.exists()
+
+
+def test_the_command_text_is_scrubbed_too(tmp_path: Path) -> None:
+    [check] = run_approved([f"pytest --token {FAKE_TOKEN}"], tmp_path, timeout=5)
+    assert FAKE_TOKEN not in check.command

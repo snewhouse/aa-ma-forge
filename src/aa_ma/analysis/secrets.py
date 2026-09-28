@@ -13,7 +13,6 @@ import dataclasses
 import json
 import os
 import re
-import shutil
 import subprocess  # nosec B404 — gitleaks runs from an argv list, never a shell
 import tempfile
 from collections.abc import Iterator
@@ -21,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from .models import ToolStatus
-from .stamp import SELF_IGNORE_NAME, SELF_IGNORE_TEXT
+from .stamp import SELF_IGNORE_NAME, SELF_IGNORE_TEXT, find_binary
 
 TEXT_SUFFIXES = {".md", ".log"}
 JSON_SUFFIXES = {".json", ".sarif"}
@@ -357,13 +356,7 @@ def _whole(rule: str, t: _Text) -> Hit:
 
 
 def _gitleaks_bin() -> str | None:
-    configured = os.environ.get("GITLEAKS_BIN")
-    candidate = configured if configured is not None else shutil.which("gitleaks")
-    return (
-        candidate
-        if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK)
-        else None
-    )
+    return find_binary("gitleaks")
 
 
 def _widen(line: str, start: int, end: int) -> tuple[int, int]:

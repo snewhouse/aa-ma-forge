@@ -12,9 +12,11 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .models import HEX12, Stamp, ToolStatus
+from .models import HEX12, Stamp, Tier
 
 REPORTS_ROOT = Path(".claude/reports/assess-codebase")
+# The reports root's self-ignoring marker; the secret gate exempts exactly this file, byte for byte.
+SELF_IGNORE_NAME, SELF_IGNORE_TEXT = ".gitignore", "*\n"
 NOT_A_REPO = "not a git repo with ≥1 commit"
 
 
@@ -50,23 +52,17 @@ def head_stamp(repo: Path) -> tuple[str, bool, str]:
     )
 
 
-def build_stamp(
-    repo: Path,
-    tier: str,
-    tools: dict[str, ToolStatus] | None = None,
-    absorbed: list[str] | None = None,
-    fresh_run: list[str] | None = None,
-) -> Stamp:
+def build_stamp(repo: Path, tier: Tier) -> Stamp:
     sha12, dirty, branch = head_stamp(repo)
     return Stamp(
         date_utc=datetime.now(UTC).replace(microsecond=0),
         sha12=sha12,
         dirty=dirty,
         branch=branch,
-        tier=tier,  # type: ignore[arg-type]  # validated by the model
-        tools=tools or {},
-        absorbed=absorbed or [],
-        fresh_run=fresh_run or [],
+        tier=tier,
+        tools={},
+        absorbed=[],
+        fresh_run=[],
     )
 
 
@@ -103,11 +99,11 @@ def safe_dir(repo: Path, rel: str) -> Path:
 
 def ensure_self_ignoring(root: Path) -> None:
     """root/.gitignore = "*" so everything under the reports root stays out of `git status`."""
-    gitignore = root / ".gitignore"
+    gitignore = root / SELF_IGNORE_NAME
     if gitignore.is_symlink():
         raise UnsafePath(f"{gitignore}: refusing a symlinked .gitignore")
     fd = os.open(
         gitignore, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o644
     )
     with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        fh.write("*\n")
+        fh.write(SELF_IGNORE_TEXT)

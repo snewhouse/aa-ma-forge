@@ -21,12 +21,12 @@ from pathlib import Path
 from typing import Any
 
 from .models import ToolStatus
+from .stamp import SELF_IGNORE_NAME, SELF_IGNORE_TEXT
 
 TEXT_SUFFIXES = {".md", ".log"}
 JSON_SUFFIXES = {".json", ".sarif"}
 JSONL_SUFFIXES = {".jsonl"}
 # The one file exempt from scanning: the reports root's own self-ignoring marker, byte for byte.
-SELF_IGNORE_NAME, SELF_IGNORE_TEXT = ".gitignore", "*\n"
 GITLEAKS_TIMEOUT_S = 300
 # gitleaks 8.18 columns (live-probed 2026-09-28): a token at 0-based index i, length L is reported
 # as StartColumn i+2, EndColumn i+L+1 — one lower on a file's first line. _widen absorbs either.
@@ -201,13 +201,15 @@ def _walk(node: Any, pointer: str) -> Iterator[tuple[str, str, bool]]:
             yield from _walk(value, _item_ptr(pointer, i))
 
 
-def _contexts(node: Any, pointer: str) -> Iterator[tuple[str, str]]:
-    """(value pointer, `"key": "value"` text) for every object member whose value is a string."""
+def _contexts(node: Any, pointer: str) -> Iterator[tuple[str, str, int]]:
+    """(value pointer, `"key": "value"` text, value offset) for every string-valued object member.
+    The offset is the prefix length, never searched for — a key may itself contain '": "'."""
     if isinstance(node, dict):
         for pos, (key, value) in enumerate(node.items()):
             child = _member_ptr(pointer, pos)
             if isinstance(value, str):
-                yield child, f'"{key}": "{value}"'
+                prefix = f'"{key}": "'
+                yield child, f'{prefix}{value}"', len(prefix)
             yield from _contexts(value, child)
     elif isinstance(node, list):
         for i, value in enumerate(node):
@@ -215,13 +217,11 @@ def _contexts(node: Any, pointer: str) -> Iterator[tuple[str, str]]:
 
 
 def _doc_texts(rel: str, doc: Any, prefix: str) -> list[_Text]:
-    out = [
-        _Text(rel, s, prefix + ptr if prefix else ptr, k)
-        for ptr, s, k in _walk(doc, "")
+    out = [_Text(rel, s, prefix + ptr, k) for ptr, s, k in _walk(doc, "")]
+    out += [
+        _Text(rel, text, prefix + ptr, False, off)
+        for ptr, text, off in _contexts(doc, "")
     ]
-    for ptr, text in _contexts(doc, ""):
-        key_len = text.index('": "') + 4
-        out.append(_Text(rel, text, prefix + ptr if prefix else ptr, False, key_len))
     return out
 
 
@@ -236,10 +236,10 @@ def _no_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 def _decode(path: Path, text: str, kind: str) -> Any:
     try:
         doc = json.loads(text, object_pairs_hook=_no_duplicate_keys)
-        for _, s, _ in _walk(doc, ""):
-            s.encode(
-                "utf-8"
-            )  # a lone surrogate cannot be written back or handed to gitleaks
+        # Walk once here so the later scan and redact walks cannot fail: a lone surrogate cannot be
+        # written back or handed to gitleaks, and nesting deeper than the recursion limit is refused.
+        for _, value, _ in _walk(doc, ""):
+            value.encode("utf-8")
     except (
         json.JSONDecodeError,
         ValueError,
@@ -317,9 +317,10 @@ def _texts(root: Path) -> list[_Text]:
 
 
 def _hits_for(t: _Text, spans: list[tuple[str, int, int]]) -> list[Hit]:
-    if (
-        t.value_offset
-    ):  # clip context spans onto the value, then shift into its coordinates
+    if not spans:
+        return []
+    if t.value_offset:
+        # A context text: clip spans onto the value, then shift into the value's coordinates.
         lo, hi = t.value_offset, len(t.text) - 1
         clipped = [
             (r, max(s, lo) - lo, min(e, hi) - lo)
@@ -403,12 +404,16 @@ def _run_gitleaks(binary: str, texts: list[_Text]) -> list[Any] | None:
                 if proc.returncode == 0
                 else None
             )
-        except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        except (
+            OSError,
+            subprocess.TimeoutExpired,
+            ValueError,
+        ):  # ValueError: bad JSON / not UTF-8
             return None
     return leaks if isinstance(leaks, list) else None
 
 
-def _leak_hit(leak: Any, texts: list[_Text]) -> Hit:
+def _leak_hit(leak: Any, texts: list[_Text]) -> tuple[int, Hit]:
     try:
         index = int(Path(leak["File"]).stem)
         if not 0 <= index < len(texts):
@@ -420,9 +425,8 @@ def _leak_hit(leak: Any, texts: list[_Text]) -> Hit:
         ) from exc
     rule = str(leak.get("RuleID", "gitleaks"))
     if t.value_offset:
-        return _whole(
-            rule, t.value()
-        )  # a context-text hit: blank the value, keep the key
+        # A context-text hit: blank the value, keep the key.
+        return index, _whole(rule, t.value())
     try:
         lines = t.text.split("\n")
         sl, el = int(leak["StartLine"]), int(leak["EndLine"])
@@ -439,11 +443,12 @@ def _leak_hit(leak: Any, texts: list[_Text]) -> Hit:
             sc, _ = _widen(first, start, len(first))
             _, ec = _widen(last, 0, end)
     except (KeyError, ValueError, IndexError, TypeError):
-        return _whole(rule, t)  # known text, unknown span → blank the whole text
-    return Hit(rule, t.path, sl, el, sc, ec, t.pointer, t.is_key)
+        return index, _whole(rule, t)  # known text, unknown span → blank the whole text
+    return index, Hit(rule, t.path, sl, el, sc, ec, t.pointer, t.is_key)
 
 
-def _gitleaks(texts: list[_Text]) -> tuple[list[Hit], ToolStatus]:
+def _gitleaks(texts: list[_Text]) -> tuple[list[tuple[int, Hit]], ToolStatus]:
+    """(index into texts, hit) pairs — the index, not the location, says which text a hit is on."""
     binary = _gitleaks_bin()
     if binary is None:
         return [], ToolStatus.ABSENT
@@ -451,6 +456,13 @@ def _gitleaks(texts: list[_Text]) -> tuple[list[Hit], ToolStatus]:
     if leaks is None:
         return [], ToolStatus.UNKNOWN
     return [_leak_hit(leak, texts) for leak in leaks], ToolStatus.RAN
+
+
+def _move(h: Hit, t: _Text) -> Hit:
+    """The same span on another occurrence of the same text."""
+    return dataclasses.replace(
+        h, path=t.path, pointer=t.pointer, is_key=t.is_key and not t.value_offset
+    )
 
 
 def _span_key(h: Hit) -> tuple[Any, ...]:
@@ -467,11 +479,22 @@ def _span_key(h: Hit) -> tuple[Any, ...]:
 
 def scan(root: Path) -> ScanResult:
     """Raises GateError (incl. UnsupportedFile) when the dir cannot be cleared."""
-    texts = _texts(Path(root))
-    found = [h for t in texts for h in _hits_for(t, _regex_spans(t.text))]
-    extra, status = _gitleaks(texts)
+    # Scan each distinct text once (report keys and enum values repeat thousands of times), then
+    # give every occurrence its own hit.
+    groups: dict[tuple[str, int], list[_Text]] = {}
+    for t in _texts(Path(root)):
+        groups.setdefault((t.text, t.value_offset), []).append(t)
+    occurrences = list(groups.values())
+    found = [
+        _move(h, t)
+        for group in occurrences
+        for h in _hits_for(group[0], _regex_spans(group[0].text))
+        for t in group
+    ]
+    pairs, status = _gitleaks([group[0] for group in occurrences])
+    found += [_move(h, t) for i, h in pairs for t in occurrences[i]]
     hits, seen = [], set()
-    for h in found + extra:
+    for h in found:
         if _span_key(h) not in seen:
             seen.add(_span_key(h))
             hits.append(h)

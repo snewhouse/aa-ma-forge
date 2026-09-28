@@ -87,9 +87,9 @@
 - Result Log: Mode: AFK — auto-dispatched. RED `5145d04` (tests only): tests/analysis/test_run.py — `uv sync` refused; 16 parametrized bypasses (env/assignment prefix, sudo incl. absolute path, bash/sh -c, python/python3.12 -c, node -e, python -m pip, uvx, pnpm dlx, npm ci, curl, git clone, make install); control/bidi refused; `pytest tests/pipeline` verified (token-anchored); child env ⊆ MINIMAL, planted GITHUB_TOKEN absent, every offline var present; stdin /dev/null; timeout kills the grandchild (pid via /proc); `&&` order + refuse per part; not_run after a failure; 6 compound forms not_run; missing command failed; note = last 40 lines, redacted. Collection fails with ModuleNotFoundError (right reason).
 
 ### Sub-step 2.5: [impl] codemem CLI 4 tools, choices, help, docs
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. GREEN `89d3364`: `_cmd_query` branches + `choices` (10) + help "Invoke one of 10 MCP tools from the CLI" + docstring + `--repo-root` (owners: implies refresh — without it only the empty cache is read, live-probed); commands/codemem.md table +4 rows, README + migration doc wording, CHANGELOG Unreleased bullet. test_doc_counts caught "any of 10 MCP tools" as a registry-count claim (truth 13) → reworded "10 of the MCP tools". tests/codemem 797 passed; suite sans RED analysis 1687 passed / 2 skipped.
 
 ### Sub-step 2.6: [impl] measure, run, finalize, report_md; CLI subcommands
 - Status: PENDING

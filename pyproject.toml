@@ -35,6 +35,8 @@ aa-ma-gate = "aa_ma.gate:main"
 # §13 Architecture View lint — created in plan-architecture-views M2 (2026-09-12).
 aa-ma-lint-views = "aa_ma.render.cli:lint_main"
 aa-ma-render = "aa_ma.render.cli:render_main"
+# Codebase-analysis core (assess-codebase / understand-codebase) — created in codebase-analysis-skills M1 (2026-09-28).
+aa-ma-analysis = "aa_ma.analysis.cli:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -1,0 +1,207 @@
+{
+  "$defs": {
+    "CommandCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "note": {
+          "maxLength": 8000,
+          "title": "Note",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "verified",
+            "failed",
+            "timeout",
+            "not_run",
+            "refused"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "command",
+        "status",
+        "note"
+      ],
+      "title": "CommandCheck",
+      "type": "object"
+    },
+    "LedgerEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "assessed",
+            "set_aside"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "status",
+        "reason"
+      ],
+      "title": "LedgerEntry",
+      "type": "object"
+    },
+    "Stamp": {
+      "additionalProperties": false,
+      "properties": {
+        "absorbed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Absorbed",
+          "type": "array"
+        },
+        "branch": {
+          "title": "Branch",
+          "type": "string"
+        },
+        "date_utc": {
+          "format": "date-time",
+          "title": "Date Utc",
+          "type": "string"
+        },
+        "dirty": {
+          "title": "Dirty",
+          "type": "boolean"
+        },
+        "fresh_run": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fresh Run",
+          "type": "array"
+        },
+        "sha12": {
+          "pattern": "^[0-9a-f]{12}$",
+          "title": "Sha12",
+          "type": "string"
+        },
+        "tier": {
+          "enum": [
+            "quick",
+            "standard",
+            "deep"
+          ],
+          "title": "Tier",
+          "type": "string"
+        },
+        "tools": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ToolStatus"
+          },
+          "title": "Tools",
+          "type": "object"
+        }
+      },
+      "required": [
+        "date_utc",
+        "sha12",
+        "dirty",
+        "branch",
+        "tier",
+        "tools",
+        "absorbed",
+        "fresh_run"
+      ],
+      "title": "Stamp",
+      "type": "object"
+    },
+    "ToolStatus": {
+      "enum": [
+        "ran",
+        "absent",
+        "unknown",
+        "skipped"
+      ],
+      "title": "ToolStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "commands": {
+      "items": {
+        "$ref": "#/$defs/CommandCheck"
+      },
+      "title": "Commands",
+      "type": "array"
+    },
+    "entry_points": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Entry Points",
+      "type": "array"
+    },
+    "key_modules": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Key Modules",
+      "type": "array"
+    },
+    "ledger": {
+      "items": {
+        "$ref": "#/$defs/LedgerEntry"
+      },
+      "title": "Ledger",
+      "type": "array"
+    },
+    "rules_files": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Rules Files",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "sections": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Sections",
+      "type": "object"
+    },
+    "stamp": {
+      "$ref": "#/$defs/Stamp"
+    }
+  },
+  "required": [
+    "schema_version",
+    "stamp",
+    "commands",
+    "entry_points",
+    "key_modules",
+    "rules_files",
+    "ledger",
+    "sections"
+  ],
+  "title": "Onboarding",
+  "type": "object"
+}

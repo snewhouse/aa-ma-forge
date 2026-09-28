@@ -23,6 +23,10 @@
 #    Python API (diagram-generation M2, ADR-0014). `source_modules = aa_ma`
 #    is accepted here — the shared-descendants refusal noted in contract 3
 #    applies only when source and forbidden share a root package.
+#
+# 5. aa_ma.analysis is a leaf both ways (codebase-analysis-skills M1): nothing in aa_ma imports it,
+#    and it imports no other aa_ma module (stdlib + pydantic only). Both lists are explicit and
+#    pinned by tests/render/test_leaf_contract.py.
 
 [importlinter]
 root_packages =
@@ -57,6 +61,7 @@ type = forbidden
 # refuses `source_modules = aa_ma` ("shared descendants"), so the list is explicit
 # and tests/render/test_leaf_contract.py fails when a module is added but not listed.
 source_modules =
+    aa_ma.analysis
     aa_ma.cli
     aa_ma.deps
     aa_ma.enforce
@@ -79,3 +84,43 @@ source_modules =
     aa_ma
 forbidden_modules =
     codemem
+
+[importlinter:contract:analysis-is-leaf]
+name = analysis-is-leaf: aa_ma.analysis is a leaf package
+type = forbidden
+source_modules =
+    aa_ma.cli
+    aa_ma.deps
+    aa_ma.enforce
+    aa_ma.forks
+    aa_ma.gate
+    aa_ma.goal_synthesis
+    aa_ma.grammar
+    aa_ma.plan_markers
+    aa_ma.plan_parsers
+    aa_ma.render
+    aa_ma.schemas
+    aa_ma.tui
+    aa_ma.validators
+forbidden_modules =
+    aa_ma.analysis
+
+[importlinter:contract:analysis-is-self-contained]
+name = analysis-is-self-contained: aa_ma.analysis imports no other aa_ma module
+type = forbidden
+source_modules =
+    aa_ma.analysis
+forbidden_modules =
+    aa_ma.cli
+    aa_ma.deps
+    aa_ma.enforce
+    aa_ma.forks
+    aa_ma.gate
+    aa_ma.goal_synthesis
+    aa_ma.grammar
+    aa_ma.plan_markers
+    aa_ma.plan_parsers
+    aa_ma.render
+    aa_ma.schemas
+    aa_ma.tui
+    aa_ma.validators

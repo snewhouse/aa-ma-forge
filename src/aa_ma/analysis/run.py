@@ -1,9 +1,11 @@
-"""Run commands a user approved against a repo they do not control: no shell, a minimal offline env,
-stdin closed, and a timeout that kills the whole process group.
+"""Run commands a user approved against a repo they do not control: only known test-runner, build
+and lint forms, no shell, a minimal offline env, stdin closed, and a timeout that kills the whole
+process group.
 
-Best-effort, and the report says so: the argv gate stops the obvious installer and interpreter
-escapes, but an approved script can still do anything its user can, and a grandchild that calls
-setsid() leaves the process group and survives the kill (`unshare -rn` is the hardening option)."""
+The allowlist bounds the *argv*, not what it does: every allowed runner executes repo code, which
+can do anything its user can, and a grandchild that calls setsid() leaves the process group and
+survives the kill (`unshare -rn` is the hardening option). Best-effort, and the report says so.
+The refuse list only names the reason for the obviously dangerous; the allowlist is the gate."""
 
 from __future__ import annotations
 
@@ -52,6 +54,7 @@ INTERPRETER = re.compile(
 INLINE_FLAGS = set("ceEp")  # -c/-e/-E/-p: code on the command line
 INLINE_LONG = {"--eval", "--print", "--command", "--exec"}
 VALUE_FLAGS = {"-W", "-X", "-Q"}  # python options whose value is the next token
+VALUE_LETTERS = set("WXQ")  # ...or the rest of the same token (-Werror, -Xdev)
 FETCH = ("http://", "https://", "ftp://", "git+")
 # argv[0] → refused when any later token is one of these subcommands.
 REFUSED: dict[str, set[str]] = {
@@ -67,6 +70,49 @@ REFUSED: dict[str, set[str]] = {
     "docker": {"pull", "run"},
     "make": {"install"},
 }
+# The allowlist: the only argv forms `run` executes. Anything else is `not_run — run by hand`.
+RUNNERS = {
+    "pytest",
+    "py.test",
+    "tox",
+    "ruff",
+    "mypy",
+    "flake8",
+    "pylint",
+    "black",
+    "jest",
+    "vitest",
+    "eslint",
+    "tsc",
+}
+RUNNER_SUBCOMMANDS = {
+    "npm": {"test", "t", "run"},
+    "pnpm": {"test", "run"},
+    "yarn": {"test", "run"},
+    "bun": {"test", "run"},
+    "cargo": {"test", "build", "check", "clippy", "fmt"},
+    "go": {"test", "build", "vet"},
+    "node": {"--test"},
+}
+PYTHON = re.compile(r"(python|pypy)[0-9.]*")
+PY_MODULES = {
+    "pytest",
+    "unittest",
+    "mypy",
+    "ruff",
+    "black",
+    "flake8",
+    "pylint",
+    "compileall",
+    "doctest",
+}
+PY_OPTION = re.compile(
+    r"-[BbdIiOqsSuv]+|-[WX]\S+"
+)  # interpreter options allowed before -m
+SCRIPT_NAME = re.compile(
+    r"[A-Za-z0-9_][A-Za-z0-9_:.-]*"
+)  # npm/yarn/pnpm/bun run <script>
+MAKE_ARG = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.:/-]*|-j[0-9]*|-k|-s")
 
 
 def absolute_path(path: str) -> str:
@@ -143,9 +189,10 @@ def _interpreter_escape(args: list[str]) -> bool:
             continue
         letters = re.match(r"-([A-Za-z]*)", arg).group(1)  # type: ignore[union-attr]
         for j, flag in enumerate(letters):
-            if (
-                flag == "m"
-            ):  # -m MODULE / -mMODULE: pip is refused, anything else is the script
+            if flag in VALUE_LETTERS:
+                break  # the rest of the token is this option's value
+            # -m MODULE / -mMODULE: pip is refused, anything else is the script.
+            if flag == "m":
                 module = arg[2 + j :] or (args[i + 1] if i + 1 < len(args) else "")
                 return bool(PIP.match(module))
             if flag in INLINE_FLAGS:
@@ -175,9 +222,46 @@ def _refusal(argv: list[str]) -> str | None:
     if name == "uv" and args[:1] == ["run"]:
         rest = [t for t in args[1:] if not t.startswith("-")]
         return _refusal(args[args.index(rest[0]) :]) if rest else None
-    if REFUSED.get(name, set()) & set(args):
+    subcommand = next((t for t in args if not t.startswith("-")), "")
+    if subcommand in REFUSED.get(name, set()):
         return f"{name}: installs or fetches"
     return None
+
+
+def _allowed(argv: list[str]) -> bool:
+    """Is this one of the known test-runner, build or lint forms?"""
+    name, args = os.path.basename(argv[0]), argv[1:]
+    if name in RUNNERS:
+        return True
+    if (
+        name == "uv"
+    ):  # `uv run <allowed form>`, no uv options (they take values and change the env)
+        return (
+            args[:1] == ["run"]
+            and len(args) > 1
+            and not args[1].startswith("-")
+            and _allowed(args[1:])
+        )
+    if PYTHON.fullmatch(name):  # interpreter options, then -m <allowed module>
+        i = 0
+        while i < len(args) and args[i] != "-m":
+            if args[i] in VALUE_FLAGS and i + 1 < len(args):
+                i += 2
+            elif PY_OPTION.fullmatch(args[i]):
+                i += 1
+            else:
+                return False
+        return i + 1 < len(args) and args[i + 1] in PY_MODULES
+    if name == "make":
+        return all(MAKE_ARG.fullmatch(a) for a in args)
+    if name in RUNNER_SUBCOMMANDS:
+        first = args[0] if args else ""
+        if first not in RUNNER_SUBCOMMANDS[name]:
+            return False
+        return first != "run" or (
+            len(args) > 1 and SCRIPT_NAME.fullmatch(args[1]) is not None
+        )
+    return False
 
 
 def _note(output: bytes) -> str:
@@ -187,25 +271,32 @@ def _note(output: bytes) -> str:
 
 
 def _scrub(checks: list[CommandCheck]) -> list[CommandCheck]:
-    """Every note through the full output gate (regex set + gitleaks), not the regex set alone."""
+    """Every note and command text through the full output gate (regex set + gitleaks)."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         for i, check in enumerate(checks):
             (root / f"{i}.log").write_text(check.note, encoding="utf-8")
+            (root / f"{i}.command.log").write_text(check.command, encoding="utf-8")
         try:
             hits = secrets.scan(root).hits
             if hits:
                 secrets.redact(root, hits)
         except secrets.GateError:
             withheld = "(withheld: the secret gate could not scan this output)"
-            return [c.model_copy(update={"note": withheld}) for c in checks]
-        notes = [
-            (root / f"{i}.log").read_text(encoding="utf-8") for i in range(len(checks))
+            return [
+                c.model_copy(update={"command": withheld, "note": withheld})
+                for c in checks
+            ]
+        read = lambda name: (root / name).read_text(encoding="utf-8")  # noqa: E731
+        return [
+            c.model_copy(
+                update={
+                    "command": read(f"{i}.command.log"),
+                    "note": read(f"{i}.log")[-NOTE_MAX:],
+                }
+            )
+            for i, c in enumerate(checks)
         ]
-    return [
-        c.model_copy(update={"note": n[-NOTE_MAX:]})
-        for c, n in zip(checks, notes, strict=True)
-    ]
 
 
 def _run_part(part: str, cwd: Path, timeout: float) -> CommandCheck:
@@ -224,6 +315,12 @@ def _run_part(part: str, cwd: Path, timeout: float) -> CommandCheck:
     reason = _refusal(argv)
     if reason:
         return CommandCheck(command=part, status="refused", note=reason)
+    if not _allowed(argv):
+        return CommandCheck(
+            command=part,
+            status="not_run",
+            note="not a known test-runner form — run by hand",
+        )
     try:
         rc, out = spawn(argv, cwd, minimal_env(), timeout, merge_stderr=True)
     except OSError as exc:

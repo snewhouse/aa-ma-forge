@@ -3,13 +3,19 @@ secret gate runs, so it is redacted with everything else."""
 
 from __future__ import annotations
 
+from .measure import CORE_INPUTS, NETWORK_TOOLS
 from .models import Finding, Severity, Summary
+from .stamp import report_name
 
 ORDER = {s: i for i, s in enumerate(Severity)}
-DEEP_ONLY_NOTE = (
-    "security and tests_deps rate at most Adequate outside Deep: their core tools "
-    "(semgrep, osv-scanner / pip-audit) reach the network and run only in Deep."
-)
+
+
+def deep_only_note() -> str:
+    """Which dimensions cap at Adequate outside Deep, and why — from the constants, not prose."""
+    capped = {d: t for d, t in CORE_INPUTS.items() if set(t) <= set(NETWORK_TOOLS)}
+    dims = " and ".join(capped)
+    tools = " / ".join(t for ts in capped.values() for t in ts)
+    return f"{dims} rate at most Adequate outside Deep: their core tools ({tools}) reach the network and run only in Deep."
 
 
 def _cell(text: str) -> str:
@@ -19,7 +25,7 @@ def _cell(text: str) -> str:
 def render(summary: Summary, findings: list[Finding]) -> str:
     s = summary.stamp
     lines = [
-        f"# Codebase assessment — {s.sha12}{'-dirty' if s.dirty else ''}",
+        f"# Codebase assessment — {report_name(s.sha12, s.dirty)}",
         "",
         f"Tier **{s.tier}** · branch `{_cell(s.branch)}` · {s.date_utc.isoformat().replace('+00:00', 'Z')}",
         "",
@@ -34,7 +40,7 @@ def render(summary: Summary, findings: list[Finding]) -> str:
         "",
     ]
     if s.tier != "deep":
-        lines += [f"> {DEEP_ONLY_NOTE}", ""]
+        lines += [f"> {deep_only_note()}", ""]
     c, b = summary.counts, summary.baseline
     lines += [
         f"## Findings — {c.findings} ({c.refuted} refuted and dropped, {c.redacted} redacted)",

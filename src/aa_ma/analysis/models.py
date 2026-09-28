@@ -31,7 +31,7 @@ HEX12 = 12  # hex digits in a stamp's sha12 and in a finding id's hash
 EVIDENCE_MAX = 2000  # chars in a finding's evidence
 NOTE_MAX = 8000  # chars in a CommandCheck note (the last 40 lines of output)
 # A URI scheme — or a Windows drive letter, which looks like one — makes a path absolute to a viewer.
-_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 
 
 def _not_bool(value: object) -> object:
@@ -193,7 +193,7 @@ class _FindingFields(_Model):
         if (
             not value
             or value.startswith(("/", "\\"))
-            or _SCHEME.match(value)
+            or SCHEME.match(value)
             or ".." in parts
             or "%" in value
             or any(ord(ch) < 32 or ord(ch) == 127 for ch in value)

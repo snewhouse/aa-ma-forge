@@ -328,3 +328,25 @@ def test_identical_texts_are_each_redacted(
         encoding="utf-8"
     )
     assert OPAQUE not in text and AWS not in text
+
+
+# --- /sole-dev-merge Stage C (2026-09-28) ---------------------------------------------------------
+
+
+def test_jsonl_redaction_keeps_the_line_framing(tmp_path: Path, no_gitleaks: None) -> None:
+    d = _dir(tmp_path)
+    (d / "f.jsonl").write_text(json.dumps({"e": f"k {AWS}"}) + "\n" + json.dumps({"e": "ok"}) + "\n", encoding="utf-8")
+    for _ in range(2):
+        secrets.redact(d, secrets.scan(d).hits)
+    text = (d / "f.jsonl").read_text(encoding="utf-8")
+    assert text.endswith("}\n") and text.count("\n") == 2, repr(text)
+
+
+def test_list_items_get_their_key_as_context(tmp_path: Path, no_gitleaks: None) -> None:
+    d = _dir(tmp_path)
+    a, b = "Zx9Qw8Er" + "7Ty6Ui5Op4", "hunter2" + "hunter2"
+    (d / "s.json").write_text(json.dumps({"api_key": [a], "cfg": {"password": [b, "x"]}}), encoding="utf-8")
+    secrets.redact(d, secrets.scan(d).hits)
+    text = (d / "s.json").read_text(encoding="utf-8")
+    assert a not in text and b not in text
+    assert json.loads(text)["cfg"]["password"][1] == "x"

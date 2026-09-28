@@ -20,6 +20,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   contract both analysis skills obey is `understand-codebase/references/ANALYSIS-CONTRACT.md`; the
   four onboarding agents now carry its NO-SECRETS line word for word (the union of their old lists,
   so each denies at least what it did before), and a test keeps every copy equal.
+- **`codemem query` reaches 10 MCP tools** — `hot_spots`, `co_changes <file>`, `owners <path>
+  [--repo-root R]` and `layers` join the six ports, so scripts get git-history and layering answers
+  without an MCP server. `owners --repo-root` computes the blame; without it only the cache is read,
+  and a directory needs a trailing `/`.
 
 ### Fixed
 

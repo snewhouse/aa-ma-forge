@@ -166,6 +166,11 @@ def test_jscpd_reports_code_clones_only_and_never_copies_the_fragment(
         "firstFile": {"name": "src/calc.py:python", "startLoc": {"line": 5}},
         "secondFile": {"name": "src/calc.py:python", "startLoc": {"line": 1}},
     }
+    # jscpd names a code block inside markdown by basename only (live, forge 2.7): not a tracked path
+    embedded = {
+        **clone,
+        "firstFile": {"name": "plan.md:python", "startLoc": {"line": 3}},
+    }
     prose = {
         **clone,
         "format": "markdown",
@@ -174,7 +179,10 @@ def test_jscpd_reports_code_clones_only_and_never_copies_the_fragment(
     report = tools / "jscpd.json"
     report.write_text(
         json.dumps(
-            {"duplicates": [clone, prose], "statistics": {"total": {"percentage": 3.5}}}
+            {
+                "duplicates": [clone, prose, embedded],
+                "statistics": {"total": {"percentage": 3.5}},
+            }
         )
     )
     body = f'while [ $# -gt 0 ]; do [ "$1" = --output ] && out=$2; shift; done\nmkdir -p "$out"\ncp \'{report}\' "$out/jscpd-report.json"'
@@ -187,6 +195,7 @@ def test_jscpd_reports_code_clones_only_and_never_copies_the_fragment(
         for f in by_rule(d, "maint.duplication")
     ] == [("src/calc.py", 5, "low", "def f2(y):")]
     assert d["metrics"]["duplication.pct"] == 3.5
+    assert d["metrics"]["duplication.clones"] == 1
     assert "FRAGMENT-TEXT-MUST-NOT-LEAK" not in (work / "measure.json").read_text()
 
 
@@ -237,7 +246,12 @@ def test_findings_on_untracked_paths_are_dropped(
 ) -> None:
     """gitleaks and semgrep scan `.`, which includes an untracked .env — not the repo's code."""
     (target / ".env").write_text(f"TOKEN={FAKE_TOKEN}\n")
-    leak = {"File": ".env", "StartLine": 1, "RuleID": "github-pat", "Secret": "REDACTED"}
+    leak = {
+        "File": ".env",
+        "StartLine": 1,
+        "RuleID": "github-pat",
+        "Secret": "REDACTED",
+    }
     monkeypatch.setenv("GITLEAKS_BIN", str(_gitleaks_stub(tools, [leak])))
     d = doc(measure(target, "quick"))
     assert d["stamp"]["tools"]["gitleaks"] == "ran"

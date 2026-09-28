@@ -7,6 +7,7 @@ assumed to be `main` (plan §0; precedent tests/codemem/test_owners.py).
 from __future__ import annotations
 
 import os
+import sys
 import subprocess
 from pathlib import Path
 
@@ -56,3 +57,48 @@ def repo(tmp_path: Path) -> Path:
     git(r, "add", "-A")
     git(r, "commit", "-q", "-m", "init")
     return r
+
+
+# --- M2: fixture target repo + tool seams ------------------------------------------------------
+
+# Assembled at runtime; matches the github-token rule.
+FAKE_TOKEN = "gh" + "p_" + "Q7" * 18
+CALC = "def f1(x):\n    return x\n\n\ndef f2(y):\n    return y\n"
+OPTIONAL_TOOLS = ("LIZARD", "JSCPD", "GITLEAKS", "SEMGREP", "OSV_SCANNER", "PIP_AUDIT")
+CODEMEM = Path(sys.executable).with_name("codemem")
+
+
+def stub_bin(bindir: Path, name: str, body: str) -> Path:
+    path = bindir / name
+    path.write_text("#!/bin/sh\n" + body + "\n", encoding="utf-8")
+    path.chmod(0o755)
+    return path
+
+
+@pytest.fixture
+def target(tmp_path: Path) -> Path:
+    """The M2 fixture repo: two source files (one holding a fake secret) and a README, one commit."""
+    r = tmp_path / "target"
+    r.mkdir()
+    git(r, "init", "-q")
+    for rel, text in {
+        "src/calc.py": CALC,
+        "src/config.py": f'TOKEN = "{FAKE_TOKEN}"\n',
+        "README.md": "# fixture\n",
+    }.items():
+        (r / rel).parent.mkdir(parents=True, exist_ok=True)
+        (r / rel).write_text(text, encoding="utf-8")
+    git(r, "add", "-A")
+    git(r, "commit", "-q", "-m", "init")
+    return r
+
+
+@pytest.fixture
+def tools(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Every optional tool absent and the workspace codemem; returns an empty dir for stubs."""
+    for name in OPTIONAL_TOOLS:
+        monkeypatch.setenv(f"{name}_BIN", "/nonexistent")
+    monkeypatch.setenv("CODEMEM_BIN", str(CODEMEM))
+    stubs = tmp_path / "stubs"
+    stubs.mkdir()
+    return stubs

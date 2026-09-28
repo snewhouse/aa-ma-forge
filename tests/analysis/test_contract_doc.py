@@ -101,6 +101,7 @@ def test_contract_names_literal_values_and_limits() -> None:
         assert value in text
     assert "≤ 2000" in text and "≤ 8000" in text and "40 output lines" in text
     assert models.EVIDENCE_MAX == 2000 and models.NOTE_MAX == 8000
+    assert "serialised as `Z`" in text
 
 
 def test_contract_names_every_regex_rule() -> None:

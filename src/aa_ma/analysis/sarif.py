@@ -6,7 +6,7 @@ to github/codeql-action/upload-sarif."""
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any
+from typing import Any, Literal
 
 from .models import Finding
 
@@ -19,13 +19,10 @@ LEVEL = {
     "low": "note",
     "info": "note",
 }
-SECURITY_SEVERITY = {
-    "critical": "9.0",
-    "high": "7.0",
-    "medium": "4.0",
-    "low": "2.0",
-    "info": "0.0",
-}
+# GitHub reads a string in (0.0, 10.0] and buckets > 9.0 as critical; the property also turns a result
+# into a *security* result, so only security findings above info carry it
+# (docs/research/codebase-analysis-skills-sarif.md:78).
+SECURITY_SEVERITY = {"critical": "9.5", "high": "7.0", "medium": "4.0", "low": "2.0"}
 BASELINE_STATE = {"new": "new", "persisting": "unchanged", "fixed": "absent"}
 
 
@@ -39,8 +36,9 @@ def _result(f: Finding, state: str | None) -> dict[str, Any]:
         "message": {"text": f.title},
         "locations": [{"physicalLocation": location}],
         "fingerprints": {FINGERPRINT_KEY: f.id},
-        "properties": {"security-severity": SECURITY_SEVERITY[f.severity]},
     }
+    if f.dimension == "security" and f.severity in SECURITY_SEVERITY:
+        result["properties"] = {"security-severity": SECURITY_SEVERITY[f.severity]}
     if state is not None:
         result["baselineState"] = BASELINE_STATE[state]
     return result
@@ -60,10 +58,14 @@ def _rule(rule_id: str, example: Finding) -> dict[str, Any]:
 def to_sarif(
     findings: Sequence[Finding],
     tool_version: str,
-    baseline: Mapping[str, str] | None = None,
+    baseline: Mapping[str, Literal["new", "persisting"]] | None = None,
     fixed: Iterable[Finding] = (),
 ) -> dict[str, Any]:
     """`baseline` maps finding id → new|persisting; `fixed` findings are emitted with baselineState absent."""
+    if baseline is not None and "fixed" in baseline.values():
+        raise ValueError(
+            "a current finding cannot be 'fixed'; pass fixed findings via `fixed=`"
+        )
     fixed = list(fixed)
     results = [
         _result(f, None if baseline is None else baseline.get(f.id, "new"))

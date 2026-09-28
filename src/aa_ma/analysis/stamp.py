@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 import stat
-import subprocess
+import subprocess  # nosec B404 — git runs from an argv list, never a shell
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -29,7 +29,7 @@ class UnsafePath(Exception):
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return subprocess.run(  # nosec B603 B607 — fixed `git` argv; --end-of-options before user values
         ["git", "-C", str(repo), *args], capture_output=True, text=True, check=False
     )
 

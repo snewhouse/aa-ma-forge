@@ -5,16 +5,19 @@
       "properties": {
         "fixed": {
           "default": 0,
+          "minimum": 0,
           "title": "Fixed",
           "type": "integer"
         },
         "new": {
           "default": 0,
+          "minimum": 0,
           "title": "New",
           "type": "integer"
         },
         "persisting": {
           "default": 0,
+          "minimum": 0,
           "title": "Persisting",
           "type": "integer"
         }
@@ -36,41 +39,49 @@
       "properties": {
         "critical": {
           "default": 0,
+          "minimum": 0,
           "title": "Critical",
           "type": "integer"
         },
         "findings": {
           "default": 0,
+          "minimum": 0,
           "title": "Findings",
           "type": "integer"
         },
         "high": {
           "default": 0,
+          "minimum": 0,
           "title": "High",
           "type": "integer"
         },
         "info": {
           "default": 0,
+          "minimum": 0,
           "title": "Info",
           "type": "integer"
         },
         "low": {
           "default": 0,
+          "minimum": 0,
           "title": "Low",
           "type": "integer"
         },
         "medium": {
           "default": 0,
+          "minimum": 0,
           "title": "Medium",
           "type": "integer"
         },
         "redacted": {
           "default": 0,
+          "minimum": 0,
           "title": "Redacted",
           "type": "integer"
         },
         "refuted": {
           "default": 0,
+          "minimum": 0,
           "title": "Refuted",
           "type": "integer"
         }

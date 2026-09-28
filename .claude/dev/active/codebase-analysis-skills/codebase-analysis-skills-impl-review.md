@@ -63,3 +63,17 @@ PASS — 0 new PyPI deps, 0 major bumps (only a `[project.scripts]` entry).
 | 2 | Nested / altered `.gitignore` skipped (security) | **accept** — fix now | Ste | 2026-09-28 |
 | 3 | gitleaks unmappable entry fails open (code-review) | **accept** — fix now | Ste | 2026-09-28 |
 | — | All 9 WARNINGs + cheap INFOs | fix all now (before M2 consumes the schemas) | Ste | 2026-09-28 |
+
+## Re-run (post-remediation) — 2026-09-28, window `0ae6e8a..56f1cc6`, then `..bb1f389`
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer (re-run) | 0 | 2 | 5 | PASS WITH WARNINGS |
+| security-auditor (re-run, live vs gitleaks 8.18) | 0 | 2 | 4 | PASS WITH WARNINGS |
+
+- All 3 accepted CRITICALs verified CLOSED (live reproductions now exit 1).
+- Re-run WARNINGs, fixed in `84d4faa` (RED) → `f02431a` (GREEN): JSON key context blinded contextual rules (pre-existing); `validate` echoed key names; `Finding.path` accepted URI schemes / `%` / control chars; unused `NOTE_TAIL_LINES`.
+- Re-run INFOs fixed in the same pair: split-path name echo, JSONL `\n`-only split, deep-nesting → UnsupportedFile, gitleaks index range, file mode kept, contract wording (UTC, gitleaks status caveat).
+- Logged, not fixed (by design / M2): `gitleaks:allow` honoured (regex still runs); gitleaks `unknown` with clean regex exits 0 (documented; callers record tool status); field_validator rules not expressed in golden JSON Schemas (note for M2 consumers); decoded temp files survive SIGKILL; `safe_dir` check-then-use window; JSONL splitting in cli vs secrets.
+
+**Overall after re-run: PASS WITH WARNINGS (all fixed) — 0 open CRITICAL.**

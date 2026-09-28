@@ -47,3 +47,11 @@ _This log will be updated via context compaction as the task progresses._
 - "Use at most 5 agents" means **at most 5 subagents running at once** (not a total). Planning complied (peak 4). Rule written into plan §0 for execution; M7 judges run in waves.
 - CONTEXT.md *Codebase analysis* glossary (8 terms, my wording) stays; Ste approves the wording at M8.1 (M14 precedent).
 - A fresh read-only consistency pass over plan v5 was run before this sync; its findings are fixed in the same commit.
+
+## [2026-09-28] M1.1 Prototype verdict + §5a refinements (Ste) — recorded before the RED commit
+- Prototype: `prototype/cas-analysis-schemas` @ `9cbd29d` (`src/aa_ma/analysis/PROTOTYPE-analysis-schemas.html`); JS `findingId` == Python hashlib (`F-8eee32c533b2` for `security/security.secret/src/db.py/aws-access-token`).
+- Verdict: **PASS as specced** — §5a field set (Summary, Finding, JudgedFinding, SARIF shape) accepted unchanged.
+- Refinement R-1 (redact before hashing): a judged finding's anchor = whitespace-collapsed source line **after** the regex secret set has replaced each span with `[REDACTED:<rule>]`. `ids.anchor_for(line) -> str` does both; the stored and hashed anchor are the same redacted text, so IDs stay stable and no secret reaches `findings.jsonl`. `ids.py` may import `secrets.py` (intra-package).
+- Refinement R-2 (accepted edge): identical twins get `#k` by order of appearance (k ≥ 2 appends `#k` to the anchor before hashing); an inserted twin above the original takes the original's ID. Counts stay correct; the contract states it.
+- Refinement R-3 (accepted edge): path is part of the ID, so a file rename reads as fixed + new. Git rename detection deferred (TODOS in M8.2).
+- Validator WARN #3 folded into 1.3: negative fixture `schema_version: true` (strict mode must reject it).

@@ -36,7 +36,7 @@ def commit_file(repo: Path, rel: str, text: str, msg: str = "c") -> str:
     path = repo / rel
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
-    git(repo, "add", rel)
+    git(repo, "add", "--", rel)
     git(repo, "commit", "-q", "-m", msg)
     return git(repo, "rev-parse", "HEAD")
 

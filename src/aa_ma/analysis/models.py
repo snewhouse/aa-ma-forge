@@ -93,6 +93,17 @@ class Dimension(StrEnum):
 
 Tier = Literal["quick", "standard", "deep"]
 
+# Rating policy (finalize caps; report_md explains; RATING.md mirrors it). A dimension whose core
+# input did not run cannot rate Strong. The network tools run in Deep only (plan V4), so outside
+# Deep security and tests_deps rate at most Adequate — intended.
+NETWORK_TOOLS = ("semgrep", "osv-scanner", "pip-audit")
+CORE_INPUTS = {
+    Dimension.ARCHITECTURE: ("codemem.layers",),
+    Dimension.MAINTAINABILITY: ("lizard",),
+    Dimension.SECURITY: ("semgrep",),
+    Dimension.TESTS_DEPS: ("osv-scanner", "pip-audit"),
+}
+
 
 class _Model(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)

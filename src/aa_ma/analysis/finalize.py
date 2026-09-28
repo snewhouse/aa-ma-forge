@@ -20,8 +20,9 @@ from pydantic import TypeAdapter, ValidationError
 
 from . import report_md, sarif, secrets
 from .ids import anchor_for, assign_ids, compare
-from .measure import CORE_INPUTS, WORK_PREFIX
+from .measure import WORK_PREFIX
 from .models import (
+    CORE_INPUTS,
     SCHEMA_VERSION,
     Baseline,
     Confidence,
@@ -228,15 +229,20 @@ def _swap(root: Path, tmp: Path, target: Path) -> None:
     if target.is_symlink() or not target.is_dir():
         raise FinalizeError(f"{target}: refusing to replace a symlink or non-directory")
     old = Path(tempfile.mkdtemp(prefix=".old-", dir=root))
+    os.replace(target, old / target.name)
     try:
-        os.replace(target, old / target.name)
+        os.rename(tmp, target)
+    except OSError:
         try:
-            os.rename(tmp, target)
-        except OSError:
             os.replace(old / target.name, target)
-            raise
-    finally:
+        except OSError:
+            # Never delete the only copy: leave it where it is and say so.
+            raise FinalizeError(
+                f"could not install the report, and the previous one is kept in {old}"
+            ) from None
         shutil.rmtree(old, ignore_errors=True)
+        raise
+    shutil.rmtree(old, ignore_errors=True)
 
 
 def finalize(repo: Path, workdir: Path) -> Path:

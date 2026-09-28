@@ -1,10 +1,9 @@
-"""The human-readable report.md: ratings, findings, baseline, tool coverage. Written before the
-secret gate runs, so it is redacted with everything else."""
+"""The human-readable report.md: ratings, findings, baseline, tool coverage, and what the target
+did to its scanners. Rendered by finalize from the already-redacted outputs, then gated again."""
 
 from __future__ import annotations
 
-from .measure import CORE_INPUTS, NETWORK_TOOLS
-from .models import Finding, Severity, Summary
+from .models import CORE_INPUTS, NETWORK_TOOLS, Finding, Severity, Summary
 from .stamp import report_name
 
 ORDER = {s: i for i, s in enumerate(Severity)}
@@ -20,6 +19,33 @@ def deep_only_note() -> str:
 
 def _cell(text: str) -> str:
     return " ".join(text.split()).replace("|", "\\|")
+
+
+def _target_notes(m: dict[str, int | float | None]) -> list[str]:
+    """What the target did to its scanners, and findings that could not be reported."""
+    notes = []
+    configs = m.get("tool_config.overrides") or 0
+    if configs:
+        notes.append(
+            f"- {configs} scanner config file(s) shipped by the target: recorded in run.log, not obeyed."
+        )
+    marks = {
+        k.split(".", 1)[1]: v
+        for k, v in m.items()
+        if k.startswith("suppressions.") and v
+    }
+    if marks:
+        notes.append(
+            "- Inline suppressions the scanners still honour: "
+            + ", ".join(f"{k} {v}" for k, v in sorted(marks.items()))
+            + "."
+        )
+    dropped = m.get("findings.unreportable") or 0
+    if dropped:
+        notes.append(
+            f"- {dropped} finding(s) dropped: their file names cannot be reported safely."
+        )
+    return ["## What the target did to its scanners", "", *notes, ""] if notes else []
 
 
 def render(summary: Summary, findings: list[Finding]) -> str:
@@ -63,5 +89,6 @@ def render(summary: Summary, findings: list[Finding]) -> str:
         "",
         *(f"- {name}: {status}" for name, status in sorted(s.tools.items())),
         "",
+        *_target_notes(summary.metrics),
     ]
     return "\n".join(lines)

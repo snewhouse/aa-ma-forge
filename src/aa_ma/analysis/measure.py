@@ -41,9 +41,18 @@ from .models import (
     Tier,
     ToolStatus,
 )
-from .run import absolute_path, spawn
+from .run import spawn
 from .secrets import secret_lines
-from .stamp import REPORTS_ROOT, build_stamp, ensure_self_ignoring, run_git, safe_dir
+from .stamp import (
+    REPORTS_ROOT,
+    build_stamp,
+    ensure_self_ignoring,
+    find_binary,
+    read_regular,
+    run_git,
+    safe_dir,
+    safe_env,
+)
 
 TOOL_TIMEOUT_S = 300
 VERSION_TIMEOUT_S = 60
@@ -161,11 +170,10 @@ class _Ctx:
         if path not in self.fileset:
             return fallback
         if path not in self._lines:
-            self._lines[path] = (
-                (self.repo / path)
-                .read_text(encoding="utf-8", errors="replace")
-                .splitlines()
-            )
+            try:  # read_regular: the file was a regular file when listed; it must still be one
+                self._lines[path] = read_regular(self.repo / path).splitlines()
+            except (OSError, UnicodeDecodeError):
+                self._lines[path] = []
         lines = self._lines[path]
         text = anchor_for(lines[line - 1]) if 1 <= line <= len(lines) else ""
         return text or fallback
@@ -219,28 +227,13 @@ class _Ctx:
         self.metrics.update(dict.fromkeys(metric_keys))
 
 
-def _binary(name: str) -> str | None:
-    override = os.environ.get(f"{name.upper().replace('-', '_')}_BIN")
-    if override is not None:
-        return (
-            override
-            if os.path.isfile(override) and os.access(override, os.X_OK)
-            else None
-        )
-    return shutil.which(name, path=absolute_path(os.environ.get("PATH", "")))
-
-
-def _env() -> dict[str, str]:
-    return dict(os.environ) | {"PATH": absolute_path(os.environ.get("PATH", ""))}
-
-
 def _exec(
     ctx: _Ctx, argv: list[str], timeout: float | None = None
 ) -> tuple[int | None, bytes, float]:
     t0 = time.monotonic()
     try:
         rc, out = spawn(
-            argv, ctx.repo, _env(), timeout or ctx.timeout, merge_stderr=False
+            argv, ctx.repo, safe_env(), timeout or ctx.timeout, merge_stderr=False
         )
     except OSError:
         rc, out = None, b""
@@ -260,7 +253,7 @@ def _tool(
 ) -> bool:
     """Run one optional tool; its findings and metrics count only if its report parses."""
     ctx.metrics.update({k: ctx.metrics.get(k) for k in metric_keys})
-    binary = _binary(name)
+    binary = find_binary(name)
     if binary is None:
         ctx.record(name, [name, *args], None, 0.0, ToolStatus.ABSENT)
         ctx.miss(metric_keys)
@@ -552,8 +545,8 @@ def _secrets(ctx: _Ctx) -> None:
         if os.lstat(ctx.repo / rel).st_size > SECRET_SCAN_MAX_BYTES:
             continue
         try:
-            text = (ctx.repo / rel).read_text(encoding="utf-8")
-        except UnicodeDecodeError:
+            text = read_regular(ctx.repo / rel)
+        except (OSError, UnicodeDecodeError):
             continue
         for rule, line in secret_lines(text):
             if (
@@ -621,10 +614,8 @@ def _codemem(ctx: _Ctx) -> None:
     ctx.metrics.update(
         dict.fromkeys([*(f"layers.{k}" for k in LAYERS), "dead_code.candidates"])
     )
-    # Not _binary(): codemem ships with the forge, so a missing one is `unknown`, never `absent` (AC12).
-    binary = os.environ.get("CODEMEM_BIN") or shutil.which(
-        "codemem", path=absolute_path(os.environ.get("PATH", ""))
-    )
+    # codemem ships with the forge, so a missing one is `unknown`, never `absent` (AC12).
+    binary = find_binary("codemem")
     if not binary:
         ctx.trail("codemem.build", ["codemem"], None, 0.0, ToolStatus.UNKNOWN)
         return

@@ -20,6 +20,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from . import secrets
+from .stamp import absolute_path
 from .models import NOTE_MAX, CommandCheck
 
 RUN_TIMEOUT_S = 300
@@ -113,12 +114,6 @@ SCRIPT_NAME = re.compile(
     r"[A-Za-z0-9_][A-Za-z0-9_:.-]*"
 )  # npm/yarn/pnpm/bun run <script>
 MAKE_ARG = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.:/-]*|-j[0-9]*|-k|-s")
-
-
-def absolute_path(path: str) -> str:
-    """PATH without `.`, empty or relative entries: resolved after the chdir, they would find a
-    binary the target repo planted."""
-    return os.pathsep.join(e for e in path.split(os.pathsep) if os.path.isabs(e))
 
 
 def minimal_env() -> dict[str, str]:

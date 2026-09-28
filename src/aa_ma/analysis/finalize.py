@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
-import stat
 import shutil
 import tempfile
 from collections import Counter
@@ -40,14 +38,22 @@ from .models import (
     Summary,
     ToolStatus,
 )
-from .stamp import REPORTS_ROOT, ensure_self_ignoring, head_stamp, report_name, run_git
+from .stamp import (
+    REPORT_NAME,
+    REPORTS_ROOT,
+    contained,
+    ensure_self_ignoring,
+    head_stamp,
+    read_regular,
+    report_name,
+    run_git,
+)
 
 # Test seam: fail after the gate, before the rename.
 CRASH_SEAM = "AA_MA_FINALIZE_CRASH_BEFORE_RENAME"
 REFUTE_REQUIRED = {Severity.CRITICAL, Severity.HIGH}
 # Judged findings of these severities: confidence at most MED.
 CONFIDENCE_CAPPED = {Severity.MEDIUM, Severity.LOW}
-REPORT_NAME = re.compile(r"[0-9a-f]{12}(-dirty)?")
 REPORT_FILES = (
     "summary.json",
     "findings.jsonl",
@@ -61,24 +67,9 @@ class FinalizeError(Exception):
     pass
 
 
-def contained(repo: Path, rel: str) -> bool:
-    """Does repo/rel, symlinks resolved, stay inside the repo? (also used by ground, M5)"""
-    root = Path(repo).resolve()
-    return (root / rel).resolve().is_relative_to(root)
-
-
-def _read_regular(path: Path) -> str:
-    """A regular file's text, never through a symlink (OSError otherwise)."""
-    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
-    with os.fdopen(fd, encoding="utf-8") as fh:
-        if not stat.S_ISREG(os.fstat(fd).st_mode):
-            raise OSError(f"{path}: not a regular file")
-        return fh.read()
-
-
 def _read(work: Path, name: str) -> str:
     try:
-        return _read_regular(work / name)
+        return read_regular(work / name)
     except (OSError, UnicodeDecodeError):
         raise FinalizeError(
             f"{work / name}: missing or unreadable (the work dir needs {name})"
@@ -162,9 +153,9 @@ def _previous(repo: Path, root: Path) -> list[Finding]:
             continue
         try:
             when = Summary.model_validate_json(
-                _read_regular(d / "summary.json")
+                read_regular(d / "summary.json")
             ).stamp.date_utc
-            lines = _read_regular(d / "findings.jsonl").splitlines()
+            lines = read_regular(d / "findings.jsonl").splitlines()
             findings = [
                 Finding.model_validate_json(line) for line in lines if line.strip()
             ]

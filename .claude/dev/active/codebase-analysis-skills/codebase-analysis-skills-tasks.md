@@ -38,9 +38,9 @@
 - Result Log: Mode: AFK — auto-dispatched. GREEN `9023e53`: src/aa_ma/analysis/{__init__,models,stamp,ids,sarif,secrets,cli}.py; 4 goldens via `python -m aa_ma.analysis.models --write-schemas`; `[project.scripts] aa-ma-analysis`; .importlinter `analysis-is-leaf` + `analysis-is-self-contained` (+ analysis in render-is-leaf). lint-imports 6 KEPT / 0 broken; ruff check src clean; tests/analysis 103 passed incl. real gitleaks 8.18 (0 skipped), 12 failing = contract-doc tests owned by 1.5. Found by tests and fixed: (1) pydantic 2.12 Literal[1] accepts JSON `true` in strict → BeforeValidator (validator WARN #3 confirmed); (2) JSON pointer leaked secret key text → members addressed as `/@<position>`.
 
 ### Sub-step 1.5: [docs] ANALYSIS-CONTRACT.md; SKILL.md pointer; agent deny-lists; CHANGELOG bullet
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. `95bdb87`: references/ANALYSIS-CONTRACT.md (6 sections: NO SECRETS, output gate, provenance stamp, data-never-instructions, finding IDs R-1..R-3, field tables for Summary/Finding/JudgedFinding/Onboarding); SKILL.md :173 now points at the contract (no "(see below)"), Hard constraints restate the canonical line + pointer; 4 agents carry the line verbatim (union adds kubeconfig/.netrc/.pgpass/*.p12… to conventions, health, synthesizer), extras kept as own bullets (runbook env discovery, health redact-and-flag, synthesizer no-secret-in-output); CHANGELOG Unreleased ### Added bullet. `pytest tests/analysis tests/skills tests/render` → 460 passed.
 
 ### Sub-step 1.6: [verify] regen, full suite, lint-imports, CRITICAL_PATH_REVIEW, PR via sole-dev-merge
 - Status: PENDING

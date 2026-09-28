@@ -60,3 +60,10 @@ _This log will be updated via context compaction as the task progresses._
 - §6.8: 3 CRITICALs accepted by Ste and fixed (dup JSON keys, stray `.gitignore`, gitleaks unmappable entry fail-open); all WARNINGs fixed (Ste: "fix all now"); re-run 0 CRITICAL. Detail: `codebase-analysis-skills-impl-review.md`.
 - §6.6: a CRITICAL in the new key-context scan (value offset searched, not known) fixed test-first; distinct-text scanning gives ~12× on a 5000-finding report.
 - Decisions for M2 (logged, not done): batch gitleaks into one file per source (touches fail-closed mapping — needs its own tests); decide whether `--redact` keeps the full rescan; key SARIF maps by enums; golden JSON Schemas do not express field_validator rules (path, UTC) — non-Python consumers must use `aa-ma-analysis validate`.
+
+## [2026-09-28] GATE APPROVAL: Milestone 1: Analysis contract + `aa_ma.analysis` core
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion, 2026-09-28: "Approve + PR + merge")
+- Criteria verified: 11/11
+- Decision: APPROVED
+- Evidence: 1843 passed / 2 pre-existing skips; codemem 791 passed; lint-imports 6/6 KEPT; §6.8 re-run 0 CRITICAL; §6.6 CRITICAL fixed; TDD PASS; PROTOTYPE + CRITICAL_PATH_REVIEW in provenance.

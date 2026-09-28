@@ -67,3 +67,10 @@ _This log will be updated via context compaction as the task progresses._
 - Criteria verified: 11/11
 - Decision: APPROVED
 - Evidence: 1843 passed / 2 pre-existing skips; codemem 791 passed; lint-imports 6/6 KEPT; §6.8 re-run 0 CRITICAL; §6.6 CRITICAL fixed; TDD PASS; PROTOTYPE + CRITICAL_PATH_REVIEW in provenance.
+
+## [2026-09-28] Milestone Completion: Milestone 1 — Analysis contract + `aa_ma.analysis` core
+- Status: COMPLETE
+- Key outcome: a tested leaf package (`aa_ma.analysis`, CLI `aa-ma-analysis stamp|fresh|validate|scan-secrets`) defines every M1 output schema, the SHA stamp, stable finding IDs, SARIF 2.1.0 and a fail-closed secret gate; `ANALYSIS-CONTRACT.md` is the one contract both skills obey.
+- Artifacts: src/aa_ma/analysis/*.py; tests/analysis/* (+ fixtures, goldens, vendored SARIF schema); references/ANALYSIS-CONTRACT.md; SKILL.md + 4 onboarding agents; .importlinter; pyproject.toml; CHANGELOG Unreleased; docs/architecture regenerated.
+- Tests: 1843 passed / 2 pre-existing skips; codemem 791 passed; lint-imports 6/6 KEPT; §6.7 ENG-STANDARDS + DIAGRAM gates PASS.
+- Next: Milestone 2 — Dependencies: Milestone 1.

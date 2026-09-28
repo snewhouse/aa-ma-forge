@@ -23,9 +23,9 @@
 - Result Log: Mode: HITL — Ste proceeded. LOGIC demo on `prototype/cas-analysis-schemas` @ `9cbd29d` (pushed); JS/Python ID parity `F-8eee32c533b2`; node smoke: shift 6/6 persisting, reformat 6/6 persisting, twin +1 new, SQL edit 1 fixed+1 new, rename fixed+new. Verdict PASS as specced; refinements R-1..R-3 in context-log; PROTOTYPE entry in provenance.
 
 ### Sub-step 1.2: [impact] impact analysis on moving NO-SECRETS (SKILL.md:269-273, :173, 4 agents)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. Skill(impact-analysis): Risk LOW. Consumers: SKILL.md:173 + :267-273; agents conventions.md:28, runbook.md:26, health.md:28, synthesizer.md:35 (4 wordings; only runbook has kubeconfig/.netrc/.pgpass). Tests pinning the text today: 0 (grep tests/) — test_contract_doc.py becomes coverage. Canonical line = union (strictly tighter). Agent-specific extras (runbook MAY-clause, health redact-and-flag, synthesizer no-secret-in-output) kept as separate bullets. New SKILL.md→ANALYSIS-CONTRACT.md link moves plugin-surface golden → regen in 1.6.
 
 ### Sub-step 1.3: [test] tests/analysis + leaf-contract + EXPECTED_REFERENCES, RED (tests only)
 - Status: PENDING

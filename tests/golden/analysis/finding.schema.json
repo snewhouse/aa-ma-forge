@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "Confidence": {
+      "enum": [
+        "high",
+        "med",
+        "low"
+      ],
+      "title": "Confidence",
+      "type": "string"
+    },
+    "Dimension": {
+      "enum": [
+        "architecture",
+        "maintainability",
+        "security",
+        "tests_deps"
+      ],
+      "title": "Dimension",
+      "type": "string"
+    },
+    "Origin": {
+      "enum": [
+        "measured",
+        "judged"
+      ],
+      "title": "Origin",
+      "type": "string"
+    },
+    "Refutation": {
+      "enum": [
+        "survived",
+        "refuted",
+        "not_required",
+        "pending"
+      ],
+      "title": "Refutation",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low",
+        "info"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One findings.jsonl line.",
+  "properties": {
+    "anchor": {
+      "title": "Anchor",
+      "type": "string"
+    },
+    "confidence": {
+      "$ref": "#/$defs/Confidence"
+    },
+    "dimension": {
+      "$ref": "#/$defs/Dimension"
+    },
+    "evidence": {
+      "maxLength": 2000,
+      "title": "Evidence",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^F-[0-9a-f]{12}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "line": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Line"
+    },
+    "origin": {
+      "$ref": "#/$defs/Origin"
+    },
+    "path": {
+      "title": "Path",
+      "type": "string"
+    },
+    "redacted": {
+      "title": "Redacted",
+      "type": "boolean"
+    },
+    "refutation": {
+      "$ref": "#/$defs/Refutation"
+    },
+    "rule": {
+      "title": "Rule",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "dimension",
+    "severity",
+    "confidence",
+    "rule",
+    "title",
+    "path",
+    "line",
+    "anchor",
+    "refutation",
+    "evidence",
+    "id",
+    "origin",
+    "redacted"
+  ],
+  "title": "Finding",
+  "type": "object"
+}

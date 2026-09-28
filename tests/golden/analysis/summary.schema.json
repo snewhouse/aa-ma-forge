@@ -1,0 +1,298 @@
+{
+  "$defs": {
+    "Baseline": {
+      "additionalProperties": false,
+      "properties": {
+        "fixed": {
+          "default": 0,
+          "title": "Fixed",
+          "type": "integer"
+        },
+        "new": {
+          "default": 0,
+          "title": "New",
+          "type": "integer"
+        },
+        "persisting": {
+          "default": 0,
+          "title": "Persisting",
+          "type": "integer"
+        }
+      },
+      "title": "Baseline",
+      "type": "object"
+    },
+    "Confidence": {
+      "enum": [
+        "high",
+        "med",
+        "low"
+      ],
+      "title": "Confidence",
+      "type": "string"
+    },
+    "Counts": {
+      "additionalProperties": false,
+      "properties": {
+        "critical": {
+          "default": 0,
+          "title": "Critical",
+          "type": "integer"
+        },
+        "findings": {
+          "default": 0,
+          "title": "Findings",
+          "type": "integer"
+        },
+        "high": {
+          "default": 0,
+          "title": "High",
+          "type": "integer"
+        },
+        "info": {
+          "default": 0,
+          "title": "Info",
+          "type": "integer"
+        },
+        "low": {
+          "default": 0,
+          "title": "Low",
+          "type": "integer"
+        },
+        "medium": {
+          "default": 0,
+          "title": "Medium",
+          "type": "integer"
+        },
+        "redacted": {
+          "default": 0,
+          "title": "Redacted",
+          "type": "integer"
+        },
+        "refuted": {
+          "default": 0,
+          "title": "Refuted",
+          "type": "integer"
+        }
+      },
+      "title": "Counts",
+      "type": "object"
+    },
+    "Dimension": {
+      "enum": [
+        "architecture",
+        "maintainability",
+        "security",
+        "tests_deps"
+      ],
+      "title": "Dimension",
+      "type": "string"
+    },
+    "DimensionResult": {
+      "additionalProperties": false,
+      "properties": {
+        "capped": {
+          "title": "Capped",
+          "type": "boolean"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Confidence"
+        },
+        "dimension": {
+          "$ref": "#/$defs/Dimension"
+        },
+        "inputs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "rating": {
+          "$ref": "#/$defs/Rating"
+        }
+      },
+      "required": [
+        "dimension",
+        "rating",
+        "confidence",
+        "inputs",
+        "capped"
+      ],
+      "title": "DimensionResult",
+      "type": "object"
+    },
+    "LedgerEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "assessed",
+            "set_aside"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "status",
+        "reason"
+      ],
+      "title": "LedgerEntry",
+      "type": "object"
+    },
+    "Rating": {
+      "enum": [
+        "strong",
+        "adequate",
+        "weak",
+        "unknown"
+      ],
+      "title": "Rating",
+      "type": "string"
+    },
+    "Stamp": {
+      "additionalProperties": false,
+      "properties": {
+        "absorbed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Absorbed",
+          "type": "array"
+        },
+        "branch": {
+          "title": "Branch",
+          "type": "string"
+        },
+        "date_utc": {
+          "format": "date-time",
+          "title": "Date Utc",
+          "type": "string"
+        },
+        "dirty": {
+          "title": "Dirty",
+          "type": "boolean"
+        },
+        "fresh_run": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fresh Run",
+          "type": "array"
+        },
+        "sha12": {
+          "pattern": "^[0-9a-f]{12}$",
+          "title": "Sha12",
+          "type": "string"
+        },
+        "tier": {
+          "enum": [
+            "quick",
+            "standard",
+            "deep"
+          ],
+          "title": "Tier",
+          "type": "string"
+        },
+        "tools": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ToolStatus"
+          },
+          "title": "Tools",
+          "type": "object"
+        }
+      },
+      "required": [
+        "date_utc",
+        "sha12",
+        "dirty",
+        "branch",
+        "tier",
+        "tools",
+        "absorbed",
+        "fresh_run"
+      ],
+      "title": "Stamp",
+      "type": "object"
+    },
+    "ToolStatus": {
+      "enum": [
+        "ran",
+        "absent",
+        "unknown",
+        "skipped"
+      ],
+      "title": "ToolStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "baseline": {
+      "$ref": "#/$defs/Baseline"
+    },
+    "counts": {
+      "$ref": "#/$defs/Counts"
+    },
+    "dimensions": {
+      "items": {
+        "$ref": "#/$defs/DimensionResult"
+      },
+      "title": "Dimensions",
+      "type": "array"
+    },
+    "ledger": {
+      "items": {
+        "$ref": "#/$defs/LedgerEntry"
+      },
+      "title": "Ledger",
+      "type": "array"
+    },
+    "metrics": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Metrics",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "stamp": {
+      "$ref": "#/$defs/Stamp"
+    }
+  },
+  "required": [
+    "schema_version",
+    "stamp",
+    "dimensions",
+    "ledger",
+    "metrics",
+    "counts",
+    "baseline"
+  ],
+  "title": "Summary",
+  "type": "object"
+}

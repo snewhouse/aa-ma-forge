@@ -553,3 +553,39 @@ def test_a_symlink_to_a_valid_report_outside_is_not_followed(
         target / REPORTS_ROOT, "0123456789ab", outside, when="2000-01-01T00:00:00Z"
     )
     assert summary(run(target)).baseline.fixed == 0
+
+
+def test_report_md_says_what_the_target_did_to_its_scanners(
+    target: Path, lizard: Path
+) -> None:
+    commit_file(target, ".gitleaks.toml", "[allowlist]\n")
+    commit_file(target, "src/s.py", "x = 1  # nosemgrep\n")
+    text = (run(target) / "report.md").read_text()
+    assert "1 scanner config file" in text and "not obeyed" in text
+    assert "semgrep 1" in text
+
+
+def test_a_failed_restore_keeps_the_previous_report(
+    target: Path, lizard: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    previous = run(target)
+    before = {p.name: p.read_bytes() for p in previous.iterdir()}
+
+    def rename(src, dst):
+        raise OSError("disk full")
+
+    real_replace = os.replace
+
+    def replace(src, dst):  # moving the old report aside works; moving it back does not
+        if Path(dst).name == previous.name:
+            raise OSError("disk full")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(finalize_mod.os, "rename", rename)
+    monkeypatch.setattr(finalize_mod.os, "replace", replace)
+    with pytest.raises(FinalizeError, match=r"\.old-"):
+        finalize(target, prepare(target))
+    [kept] = [
+        p for p in (target / REPORTS_ROOT).iterdir() if p.name.startswith(".old-")
+    ]
+    assert {p.name: p.read_bytes() for p in (kept / previous.name).iterdir()} == before

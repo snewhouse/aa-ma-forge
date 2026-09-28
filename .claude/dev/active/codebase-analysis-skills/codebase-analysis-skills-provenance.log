@@ -31,3 +31,6 @@
 [2026-09-28T15:00:13+01:00] MILESTONE COMPLETE — M1 — Commit: 1c5238b — Criteria: 11/11 verified
 [2026-09-28T17:03:45+01:00] MERGED — M1 — PR #4 https://github.com/snewhouse/aa-ma-forge/pull/4 — /sole-dev-merge rebase-merge, CI green, STATUS: OK — main at 69b1238
 [2026-09-28T17:03:45+01:00] SHA MAP (rebase-merge rewrote branch SHAs; branch SHAs above are pre-merge) — milestone 1c5238b→8d00425; RED f341108→149b13e; GREEN 9023e53→b4b699f; contract 95bdb87→b2bdfb7; gitleaks-col 993047e→758df17 / d48ca0e→18d6721; §6.8 r1 7514a81→9f8a86e / 476fdfd→5ea6c23; §6.8 r2 84d4faa→d340c8a / f02431a→be65343; §6.6 08fc80e→93a5fe0 / 7ec3be7→7e59f4a; merge-review bdfa490→3c85ef8 / c527041→bf72262
+[2026-09-28T16:07:43Z] Context compacted — Snapshot saved, active step: Sub-step 2.1: [prototype] run every tool row of §5a on the forge on `prototype/cas-assess-core`
+[2026-09-28T16:07:43Z] CHECKPOINT — ActiveStep: Sub-step 2.1: [prototype] run every tool row of §5a on the forge on `prototype/cas-assess-core` — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A
+[2026-09-28T17:09:46+01:00] MILESTONE ACTIVE — M2 Assess engine (CLI) — branch feat/cas-m2-assess-engine from main 256e58c — dependency advisory: clean

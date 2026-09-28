@@ -376,6 +376,23 @@ def _widen(line: str, start: int, end: int) -> tuple[int, int]:
     return start, end
 
 
+def gitleaks_args(source: str, report: Path) -> list[str]:
+    """The one gitleaks 8.x invocation (measure uses it too): redacted JSON report, exit 0."""
+    return [
+        "detect",
+        "--no-git",
+        "--redact",
+        "-s",
+        source,
+        "-f",
+        "json",
+        "-r",
+        str(report),
+        "--exit-code",
+        "0",
+    ]
+
+
 def _run_gitleaks(binary: str, texts: list[_Text]) -> list[Any] | None:
     with (
         tempfile.TemporaryDirectory(prefix="aa-ma-gl-src-") as src,
@@ -384,20 +401,7 @@ def _run_gitleaks(binary: str, texts: list[_Text]) -> list[Any] | None:
         for i, t in enumerate(texts):
             Path(src, f"{i}.txt").write_text(t.text, encoding="utf-8")
         report = Path(rep, "report.json")
-        argv = [
-            binary,
-            "detect",
-            "--no-git",
-            "--redact",
-            "-s",
-            src,
-            "-f",
-            "json",
-            "-r",
-            str(report),
-            "--exit-code",
-            "0",
-        ]
+        argv = [binary, *gitleaks_args(src, report)]
         try:
             proc = subprocess.run(  # nosec B603 — binary from GITLEAKS_BIN/PATH, args are our temp paths
                 argv,

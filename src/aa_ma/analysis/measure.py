@@ -47,7 +47,7 @@ from .models import (
     ToolStatus,
 )
 from .run import spawn
-from .secrets import secret_lines
+from .secrets import gitleaks_args, secret_lines
 from .stamp import (
     REPORTS_ROOT,
     build_stamp,
@@ -596,21 +596,16 @@ def _job_jscpd(ctx: _Ctx) -> None:
 
 def _job_gitleaks(ctx: _Ctx) -> None:
     report = ctx.work / "gitleaks.json"
-    args = [
-        "detect",
-        "--no-git",
-        "--redact",
-        "-s",
-        ".",
-        "-f",
-        "json",
-        "-r",
-        str(report),
-        "--exit-code",
-        "0",
-    ]
     try:
-        _tool(ctx, "gitleaks", args, _gitleaks, (), report=report, ok=(0,))
+        _tool(
+            ctx,
+            "gitleaks",
+            gitleaks_args(".", report),
+            _gitleaks,
+            (),
+            report=report,
+            ok=(0,),
+        )
     finally:
         report.unlink(missing_ok=True)
 
@@ -714,6 +709,12 @@ def _layers(d: dict[str, Any]) -> dict[str, int | float | None]:
     return {f"layers.{k}": len(d["layers"][k]) for k in LAYERS}
 
 
+def _co_changes(
+    target: str, doc: dict[str, Any] | None
+) -> dict[str, int | float | None]:
+    return {f"co_change:{target}|{f['path']}": f["count"] for f in doc["files"]}  # type: ignore[index]
+
+
 def _job_codemem(ctx: _Ctx) -> None:
     ctx.tools.update(dict.fromkeys(CODEMEM_INPUTS, ToolStatus.UNKNOWN))
     ctx.metrics.update(
@@ -746,12 +747,7 @@ def _job_codemem(ctx: _Ctx) -> None:
         for target in hot:
             doc = cm.query("co_changes", target)
             try:
-                pairs.update(
-                    {
-                        f"co_change:{target}|{f['path']}": f["count"]
-                        for f in doc["files"]
-                    }
-                )  # type: ignore[index]
+                pairs.update(_co_changes(target, doc))
             except (KeyError, TypeError):
                 break
         else:  # every hot file answered (also when there is none)

@@ -89,7 +89,7 @@ def _load(work: Path, name: str, adapter: TypeAdapter) -> list:
     try:
         return adapter.validate_json(_read(work, name))
     except ValidationError as exc:
-        raise FinalizeError(f"{name}: invalid ({exc.error_count()} error(s))") from None
+        raise FinalizeError(f"{name}: invalid: {_describe(exc)}") from None
 
 
 def _judged(work: Path, repo: Path) -> list[JudgedFinding]:
@@ -199,22 +199,26 @@ def _gate(tmp: Path) -> None:
             secrets.redact(tmp, hits)
         findings = [
             Finding.model_validate_json(x)
-            for x in (tmp / "findings.jsonl").read_text().splitlines()
+            for x in (tmp / "findings.jsonl").read_text(encoding="utf-8").splitlines()
             if x
         ]
-        summary = Summary.model_validate_json((tmp / "summary.json").read_text())
+        summary = Summary.model_validate_json(
+            (tmp / "summary.json").read_text(encoding="utf-8")
+        )
         counts = summary.counts.model_copy(
             update={"redacted": sum(f.redacted for f in findings)}
         )
         summary = summary.model_copy(update={"counts": counts})
-        (tmp / "summary.json").write_text(summary.model_dump_json(indent=2) + "\n")
+        (tmp / "summary.json").write_text(
+            summary.model_dump_json(indent=2) + "\n", encoding="utf-8"
+        )
         (tmp / "report.md").write_text(
             report_md.render(summary, findings), encoding="utf-8"
         )
         if secrets.scan(tmp).hits:
             raise FinalizeError("secret gate: hits remain after redaction")
-        Summary.model_validate_json((tmp / "summary.json").read_text())
-        sarif.verify(json.loads((tmp / "findings.sarif").read_text()))
+        Summary.model_validate_json((tmp / "summary.json").read_text(encoding="utf-8"))
+        sarif.verify(json.loads((tmp / "findings.sarif").read_text(encoding="utf-8")))
     except (secrets.GateError, ValidationError, ValueError) as exc:
         raise FinalizeError(
             f"output gate refused the report: {_describe(exc)}"

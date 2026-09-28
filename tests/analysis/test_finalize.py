@@ -20,23 +20,19 @@ from aa_ma.analysis.measure import measure
 from aa_ma.analysis.models import Dimension, Finding, Summary
 from aa_ma.analysis.stamp import REPORTS_ROOT
 
-from .conftest import FAKE_TOKEN, commit_file, git, stub_bin
+from .conftest import FAKE_TOKEN, commit_file, git, lizard_row, lizard_stub
 
 ROOT = Path(__file__).resolve().parents[2]
 SARIF_SCHEMA = json.loads(
     (ROOT / "tests/fixtures/sarif/sarif-schema-2.1.0.json").read_text(encoding="utf-8")
 )
-F1 = '2,20,10,1,2,"f1@1-2@src/calc.py","src/calc.py","f1","f1( x )",1,2\n'
-F2 = '2,30,10,1,2,"f2@5-6@src/calc.py","src/calc.py","f2","f2( y )",5,6\n'
+F1, F2 = lizard_row("f1", 20, 1, 2), lizard_row("f2", 30, 5, 6)
 
 
 @pytest.fixture
 def lizard(tools: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """A lizard stub reporting whatever the returned CSV file holds (f1 and f2 by default)."""
-    report = tools / "lizard.csv"
-    report.write_text(F1 + F2, encoding="utf-8")
-    monkeypatch.setenv("LIZARD_BIN", str(stub_bin(tools, "lizard", f"cat '{report}'")))
-    return report
+    return lizard_stub(tools, monkeypatch, F1 + F2)
 
 
 def judged(**overrides: object) -> dict:

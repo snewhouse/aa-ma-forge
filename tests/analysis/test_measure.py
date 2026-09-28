@@ -15,7 +15,15 @@ from aa_ma.analysis import cli
 from aa_ma.analysis.measure import measure
 from aa_ma.analysis.stamp import REPORTS_ROOT, UnsafePath
 
-from .conftest import CODEMEM, FAKE_TOKEN, commit_file, git, stub_bin
+from .conftest import (
+    CODEMEM,
+    FAKE_TOKEN,
+    commit_file,
+    git,
+    lizard_row,
+    lizard_stub,
+    stub_bin,
+)
 
 NETWORK_TOOLS = ("semgrep", "osv-scanner", "pip-audit")
 CODEMEM_INPUTS = (
@@ -27,25 +35,12 @@ CODEMEM_INPUTS = (
 )
 
 
-def lizard_row(
-    fn: str, ccn: int, start: int, end: int, path: str = "src/calc.py"
-) -> str:
-    return f'2,{ccn},10,1,2,"{fn}@{start}-{end}@{path}","{path}","{fn}","{fn}( x )",{start},{end}\n'
-
-
 def doc(work: Path) -> dict:
     return json.loads((work / "measure.json").read_text(encoding="utf-8"))
 
 
 def by_rule(d: dict, rule: str) -> list[dict]:
     return [f for f in d["measured"] if f["rule"] == rule]
-
-
-def lizard_stub(stubs: Path, monkeypatch: pytest.MonkeyPatch, csv: str) -> Path:
-    report = stubs / "lizard.csv"
-    report.write_text(csv, encoding="utf-8")
-    monkeypatch.setenv("LIZARD_BIN", str(stub_bin(stubs, "lizard", f"cat '{report}'")))
-    return report
 
 
 # --- work dir -------------------------------------------------------------------------------------

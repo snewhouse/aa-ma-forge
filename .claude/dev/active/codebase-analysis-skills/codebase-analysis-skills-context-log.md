@@ -55,3 +55,8 @@ _This log will be updated via context compaction as the task progresses._
 - Refinement R-2 (accepted edge): identical twins get `#k` by order of appearance (k ≥ 2 appends `#k` to the anchor before hashing); an inserted twin above the original takes the original's ID. Counts stay correct; the contract states it.
 - Refinement R-3 (accepted edge): path is part of the ID, so a file rename reads as fixed + new. Git rename detection deferred (TODOS in M8.2).
 - Validator WARN #3 folded into 1.3: negative fixture `schema_version: true` (strict mode must reject it).
+
+## [2026-09-28] M1 review outcomes (§6.8 + §6.6)
+- §6.8: 3 CRITICALs accepted by Ste and fixed (dup JSON keys, stray `.gitignore`, gitleaks unmappable entry fail-open); all WARNINGs fixed (Ste: "fix all now"); re-run 0 CRITICAL. Detail: `codebase-analysis-skills-impl-review.md`.
+- §6.6: a CRITICAL in the new key-context scan (value offset searched, not known) fixed test-first; distinct-text scanning gives ~12× on a 5000-finding report.
+- Decisions for M2 (logged, not done): batch gitleaks into one file per source (touches fail-closed mapping — needs its own tests); decide whether `--redact` keeps the full rescan; key SARIF maps by enums; golden JSON Schemas do not express field_validator rules (path, UTC) — non-Python consumers must use `aa-ma-analysis validate`.

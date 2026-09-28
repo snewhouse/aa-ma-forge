@@ -350,3 +350,22 @@ def test_list_items_get_their_key_as_context(tmp_path: Path, no_gitleaks: None) 
     text = (d / "s.json").read_text(encoding="utf-8")
     assert a not in text and b not in text
     assert json.loads(text)["cfg"]["password"][1] == "x"
+
+
+def test_gitleaks_is_never_taken_from_a_relative_path_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """M2 2.9: the gate resolves gitleaks like measure does, on absolute PATH entries only."""
+    marker = tmp_path / "planted-gitleaks-ran"
+    hostile = tmp_path / "hostile"
+    hostile.mkdir()
+    fake = hostile / "gitleaks"
+    fake.write_text(f"#!/bin/sh\ntouch '{marker}'\nexit 0\n", encoding="utf-8")
+    fake.chmod(0o755)
+    d = _dir(tmp_path)
+    (d / "a.md").write_text("nothing here\n", encoding="utf-8")
+    monkeypatch.delenv("GITLEAKS_BIN", raising=False)
+    monkeypatch.chdir(hostile)
+    monkeypatch.setenv("PATH", f".{os.pathsep}/usr/bin{os.pathsep}/bin")
+    secrets.scan(d)
+    assert not marker.exists()

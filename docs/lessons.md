@@ -5,6 +5,18 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-030 (2026-09-28) — AA-MA artifacts committed and pushed before the user saw the final plan
+**Pattern:** In `/aa-ma-plan --from-map codebase-analysis-skills` I took Ste's approvals of the
+design, the grill answers and four verification decisions as approval of the plan itself, then
+ran Phase 5 and committed and pushed a 1160-line plan he had never read. Phase 4.5 had rewritten
+large parts of it (18 CRITICAL fixes, a new §5a spec). The global rule — "seek approval, then
+produce AA-MA documents" — was broken; the `/double-check` caught it, not me.
+**Rule:** After Phase 4.5 and before Phase 5 writes anything, show the final plan (path + what
+changed since the last approval) and get an explicit approval — or an explicit "treat as
+approved" — via `AskUserQuestion`. Approval of a design or of individual decisions is never
+approval of the plan text that grew from them. Log the approval as `PLAN APPROVAL` in
+context-log before the planning commit.
+---
 ## L-029 (2026-09-26) — Private-repo directory names written into a public repo's AA-MA files
 
 **Pattern:** In `diagram-generation` M13.1 I measured the private `medical-research-skills` repo and

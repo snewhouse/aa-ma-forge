@@ -160,9 +160,9 @@
 - Mode: AFK
 - Result Log: [placeholder]
 
-### Sub-step 4.4: [verify] regen; frontmatter + xref tests; live Quick run absorbing M3 report; PR
+### Sub-step 4.4: [verify] regen; tests; fresh assess at M4 HEAD; live Quick run absorbing it; PR
 - Status: PENDING
-- Mode: AFK
+- Mode: HITL
 - Result Log: [placeholder]
 
 ## Milestone 5: understand-codebase v1 upgrades
@@ -212,7 +212,7 @@
 - Goal: A backticked slash command that resolves nowhere is a DANGLING edge, none remain in shipped content, and no ON_DISK edge is lost.
 - Acceptance Criteria: 5 criteria — see plan.md § Milestone 6
 
-### Sub-step 6.1: [measure] re-measure on a fresh scratch index; pin both sets in context-log
+### Sub-step 6.1: [measure] impact analysis; re-measure on a fresh scratch index; pin both sets
 - Status: PENDING
 - Mode: AFK
 - Result Log: [placeholder]
@@ -273,7 +273,7 @@
 - Mode: AFK
 - Result Log: [placeholder]
 
-### Sub-step 7.6: [gate] Ste accepts the verdict or circuit-breaks
+### Sub-step 7.6: [gate] Ste accepts the verdict or circuit-breaks; on accept, PR
 - Status: PENDING
 - Mode: HITL
 - Result Log: [placeholder]
@@ -288,9 +288,9 @@
 - Complexity: 35%
 - Effort: 0.5
 - Goal: Decisions recorded, docs agree, release cut on main, local copies retired by Ste.
-- Acceptance Criteria: 5 criteria — see plan.md § Milestone 8
+- Acceptance Criteria: 6 criteria — see plan.md § Milestone 8
 
-### Sub-step 8.1: [docs] ADR-0017 + ADR-0006 amendment + ADR index row
+### Sub-step 8.1: [docs] ADR-0017 + ADR-0006 amendment + ADR index row + glossary wording approval
 - Status: PENDING
 - Mode: HITL
 - Result Log: [placeholder]

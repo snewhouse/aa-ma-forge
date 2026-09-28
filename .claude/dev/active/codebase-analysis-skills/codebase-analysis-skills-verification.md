@@ -66,3 +66,4 @@ Pre-verification reviews: CEO (HOLD SCOPE, 4 hardening ACs added) and Eng (4 iss
 - v1: 2026-09-27 — Wave 1 + Wave 2: 17 CRITICAL, ~45 WARNING → FAIL (automated)
 - v2 (loop 1): 2026-09-27 — 15/16 re-checked resolved; 1 new CRITICAL (multi-line block scan) + 11 consistency WARNINGs → FAIL
 - v3 (loop 2): 2026-09-27 — all fixed, lint clean, no leftover contradictions → PASS WITH WARNINGS
+- v5 fresh read: 2026-09-28 — one read-only agent after /double-check: 24 internal inconsistencies (Hit signature, ID uniqueness for rule-anchored findings, rating cap on any non-`ran` core input, work-dir writers, deny-list copy wording, CLI-absent behaviour, `uv run` claim, M4 freshness, prototype 2.1 deliverable, step modes, M6 impact step, leaf contract scope, `safe_dir`, M7 PR, orphan pin, `claude-security` allowlist, test paths, CLI/tier syntax) → all fixed; plan treated as approved by Ste

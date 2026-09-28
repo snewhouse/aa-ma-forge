@@ -8,3 +8,7 @@
 [2026-09-27T22:07:08+01:00] Verification: automated, 6 angles + 2 revision loops — 18 CRITICAL found/resolved; verdict PASS WITH WARNINGS
 [2026-09-27T22:07:08+01:00] Research files: docs/research/codebase-analysis-skills-sarif.md, docs/research/codebase-analysis-skills-offline-command-run.md (Phase 3); context7_calls=1
 [2026-09-27T22:07:08+01:00] AA-MA artifacts created (plan, reference, context-log, tasks, provenance, verification, map)
+[2026-09-28T09:36:50+01:00] Planning commit: bed5a2b (pushed to main; CI "Security Scanning" success)
+[2026-09-28T09:36:50+01:00] DOUBLE_CHECK — verdict=Partially verified — gaps: plan not approved before commit; agent-cap ambiguity; §8 vs §5a; glossary wording; provenance hash; v5 unread
+[2026-09-28T09:36:50+01:00] Ste decisions 2026-09-28: plan treated as approved; agent cap = ≤5 concurrent; glossary wording → M8.1; fresh consistency read — yes
+[2026-09-28T09:36:50+01:00] Fresh consistency read of plan v5 (1 agent): 24 findings (13 contradictions, 8 missing, 3 stale) — all fixed in the follow-up sync; lesson L-030 added

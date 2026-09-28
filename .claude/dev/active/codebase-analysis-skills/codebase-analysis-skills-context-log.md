@@ -37,3 +37,13 @@
 - None blocking. Residual verification WARNINGs are listed in `codebase-analysis-skills-verification.md` for the milestone that owns each.
 
 _This log will be updated via context compaction as the task progresses._
+
+## [2026-09-28] PLAN APPROVAL — treated as approved (Ste)
+- Gate: planning (post-/double-check)
+- Approved by: Ste — decision 2026-09-28: the design, grill, CEO/Eng and V1–V4 approvals suffice; plan at `bed5a2b` (+ this sync's corrections) is the approved baseline.
+- Context: the plan was committed before Ste read the final text (double-check finding; lesson L-030).
+
+## [2026-09-28] Decisions closing the /double-check (Ste)
+- "Use at most 5 agents" means **at most 5 subagents running at once** (not a total). Planning complied (peak 4). Rule written into plan §0 for execution; M7 judges run in waves.
+- CONTEXT.md *Codebase analysis* glossary (8 terms, my wording) stays; Ste approves the wording at M8.1 (M14 precedent).
+- A fresh read-only consistency pass over plan v5 was run before this sync; its findings are fixed in the same commit.

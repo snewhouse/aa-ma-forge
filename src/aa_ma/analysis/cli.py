@@ -81,7 +81,7 @@ def _cmd_validate(args: argparse.Namespace) -> int:
         _err(f"{path}: invalid {args.kind}: not UTF-8")
         return 1
     docs = (
-        [(n, line) for n, line in enumerate(text.splitlines(), 1) if line.strip()]
+        [(n, line) for n, line in enumerate(text.split("\n"), 1) if line.strip()]
         if args.kind in JSONL_KINDS
         else [(1, text)]
     )
@@ -97,7 +97,7 @@ def _cmd_validate(args: argparse.Namespace) -> int:
                 include_input=False, include_url=False, include_context=False
             ):
                 _err(
-                    f"  {'.'.join(map(str, e['loc'])) or '(root)'}: {e['msg']} [{e['type']}]"
+                    f"  {secrets.redact_text('.'.join(map(str, e['loc']))) or '(root)'}: {e['msg']} [{e['type']}]"
                 )
     return 1 if bad else 0
 

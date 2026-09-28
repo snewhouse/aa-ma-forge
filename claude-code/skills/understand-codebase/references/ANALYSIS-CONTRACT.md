@@ -29,12 +29,14 @@ the run wrote (the report dir; `.claude/onboarding/` and `ONBOARDING.md` for und
   (quoted or env-style `password` / `secret` / `token` / `api_key` assignments). gitleaks honours
   an inline `gitleaks:allow` comment, so repo text quoted into a report can switch off a
   gitleaks-only rule for that line; the regex set ignores it.
-- **Decoded content.** Both scanners see every JSON string value **and key**, and the whole text
-  of `.md` / `.log` files — never raw bytes, so an escaped secret inside JSON is still found.
+- **Decoded content.** Both scanners see every JSON string value **and key**, each string value
+  again beside its key (`"key": "value"`, so rules that need the key name still fire), and the
+  whole text of `.md` / `.log` files — never raw bytes, so an escaped secret inside JSON is still
+  found. Keys stay readable; only values are redacted from a key-context hit.
 - **Location, never value.** A hit records rule, file, line and column span. A JSON location
   addresses object members by position, never by key text, because a key can be the secret.
 - **Redaction.** Each span becomes `[REDACTED:<rule>]`. JSON is parsed and re-written, never
-  byte-patched, and every write goes through a temp file renamed into place. Any finding object
+  byte-patched, and every write goes through a temp file renamed into place (keeping the file's mode). Any finding object
   (in `.json` or `.jsonl`) whose strings changed gets `redacted: true`. Redaction is idempotent: a
   second scan finds nothing.
 - **Fail closed** (exit 1). Only `.json`, `.jsonl`, `.sarif`, `.md` and `.log` files may sit in a
@@ -44,11 +46,13 @@ the run wrote (the report dir; `.claude/onboarding/` and `ONBOARDING.md` for und
   a secret pattern (the name is never echoed), and a gitleaks finding it cannot tie to a scanned
   text. A gitleaks finding tied to a text whose span it cannot read blanks that whole text.
 - **gitleaks status** follows the report-based rule: exit ≠ 0 or no readable report means
-  `unknown`, never "no leaks". A missing binary is `absent`. The regex set runs either way.
+  `unknown`, never "no leaks". A missing binary is `absent`. The regex set runs either way, and
+  `scan-secrets` exits 0 when it is clean — so a caller that needs gitleaks coverage reads the
+  `gitleaks:` status line (stderr) and records `unknown` / `absent` in the stamp's `tools`.
 
 ## 3. Provenance stamp and SHA freshness
 
-Every output carries a `Stamp`: UTC date (`Z` only), `sha12` (the first 12 hex characters of
+Every output carries a `Stamp`: UTC date (serialised as `Z`; any other offset is rejected), `sha12` (the first 12 hex characters of
 HEAD), `dirty`, branch (`(detached)` on a detached HEAD), tier (`quick` / `standard` / `deep`),
 each tool's status (`ran` / `absent` / `unknown` / `skipped` — skipped means not allowed at this
 tier), and what was absorbed or run fresh. `aa-ma-analysis stamp` refuses (exit 2) anywhere that is not a git repo with ≥1 commit.
@@ -131,7 +135,7 @@ One `findings.jsonl` line.
 | `confidence` | high / med / low | |
 | `rule` | string | Stable rule id, e.g. `maint.complexity`, `security.secret`. |
 | `title` | string | One line. |
-| `path` | string | Repo-relative; absolute, drive-letter, `\\`-rooted and `..` paths are rejected. |
+| `path` | string | Repo-relative; absolute, `\\`-rooted, URI-scheme or drive-letter, `..`, percent-encoded and control-character paths are rejected. |
 | `line` | positive integer or null | Where it was seen this run; not part of the ID. |
 | `anchor` | string | Section 5; never secret text. |
 | `refutation` | survived / refuted / not_required / pending | Result of the refutation pass. |

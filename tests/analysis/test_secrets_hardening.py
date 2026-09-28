@@ -176,3 +176,63 @@ def test_fresh_on_non_utf8_summary_is_unstamped(tmp_path: Path) -> None:
     d = _dir(tmp_path)
     (d / "summary.json").write_bytes(b"\xff\xfe{}")
     assert cli.main(["fresh", str(d), "--repo", str(tmp_path)]) == 1
+
+
+# --- §6.8 re-run (0ae6e8a..56f1cc6) -----------------------------------------------------------------
+
+
+def test_json_key_context_reaches_the_contextual_rules(tmp_path: Path, no_gitleaks: None) -> None:
+    """{"password": "..."} in JSON must be caught like `password: "..."` in text."""
+    d = _dir(tmp_path)
+    value = "hunter2" + "hunter2hunter2"
+    (d / "summary.json").write_text(json.dumps({"password": value, "nested": {"api_key": "Zq8rT2vL" + "m9XwP4sK7nB3"}}), encoding="utf-8")
+    result = secrets.scan(d)
+    assert {h.rule for h in result.hits} >= {"generic-quoted"}
+    secrets.redact(d, result.hits)
+    doc = json.loads((d / "summary.json").read_text(encoding="utf-8"))
+    assert value not in json.dumps(doc) and "Zq8rT2vLm9XwP4sK7nB3" not in json.dumps(doc)
+    assert set(doc) == {"password", "nested"}, "keys stay readable; only the values are redacted"
+    assert secrets.scan(d).hits == []
+
+
+def test_validate_never_echoes_a_secret_key_name(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    doc = json.loads((ROOT / "tests/fixtures/analysis/valid/summary.json").read_text(encoding="utf-8"))
+    doc[GHP] = 1
+    bad = tmp_path / "s.json"
+    bad.write_text(json.dumps(doc), encoding="utf-8")
+    assert cli.main(["validate", "summary", str(bad)]) == 1
+    assert GHP not in capsys.readouterr().err
+
+
+def test_secret_split_across_path_components_is_not_echoed(
+    tmp_path: Path, no_gitleaks: None, capsys: pytest.CaptureFixture[str]
+) -> None:
+    d = _dir(tmp_path)
+    (d / AWS[:10]).mkdir()
+    (d / AWS[:10] / f"{AWS[10:]}.bin").write_text("x", encoding="utf-8")
+    assert cli.main(["scan-secrets", str(d)]) == 1
+    err = capsys.readouterr().err
+    assert AWS[10:] not in err and AWS[:10] not in err
+
+
+def test_jsonl_is_split_on_newlines_only(tmp_path: Path, no_gitleaks: None) -> None:
+    d = _dir(tmp_path)
+    (d / "f.jsonl").write_text('{"a": 1}\x0c{"b": "x"}\n', encoding="utf-8")
+    with pytest.raises(secrets.UnsupportedFile):  # one line, which is not one JSON document
+        secrets.scan(d)
+
+
+def test_deep_nesting_is_refused_cleanly(tmp_path: Path, no_gitleaks: None) -> None:
+    d = _dir(tmp_path)
+    (d / "deep.json").write_text("[" * 5000 + "]" * 5000, encoding="utf-8")
+    with pytest.raises(secrets.UnsupportedFile):
+        secrets.scan(d)
+
+
+def test_redaction_keeps_file_mode(tmp_path: Path, no_gitleaks: None) -> None:
+    d = _dir(tmp_path)
+    f = d / "a.md"
+    f.write_text(f"token {GHP}\n", encoding="utf-8")
+    f.chmod(0o644)
+    secrets.redact(d, secrets.scan(d).hits)
+    assert f.stat().st_mode & 0o777 == 0o644

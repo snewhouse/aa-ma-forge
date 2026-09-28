@@ -17,13 +17,9 @@ SCHEMA = json.loads(
     (ROOT / "tests/fixtures/sarif/sarif-schema-2.1.0.json").read_text(encoding="utf-8")
 )
 FIXTURE = ROOT / "tests/fixtures/analysis/valid/finding.jsonl"
-SEVERITY = {
-    "critical": "9.0",
-    "high": "7.0",
-    "medium": "4.0",
-    "low": "2.0",
-    "info": "0.0",
-}
+# GitHub: a string in (0.0, 10.0]; > 9.0 is critical; setting it makes a result a *security* result,
+# so only security findings above info carry it (docs/research/codebase-analysis-skills-sarif.md:78).
+SEVERITY = {"critical": "9.5", "high": "7.0", "medium": "4.0", "low": "2.0"}
 LEVEL = {
     "critical": "error",
     "high": "error",
@@ -88,8 +84,12 @@ def test_every_result_has_ruleid_uri_severity_and_fingerprint() -> None:
         assert res["ruleId"] == f.rule
         uri = res["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
         assert uri == f.path and not uri.startswith("/") and "://" not in uri
-        sev = res["properties"]["security-severity"]
-        assert isinstance(sev, str) and sev == SEVERITY[f.severity]
+        sev = res.get("properties", {}).get("security-severity")
+        if f.dimension == "security" and f.severity != "info":
+            assert isinstance(sev, str) and sev == SEVERITY[f.severity]
+            assert 0.0 < float(sev) <= 10.0
+        else:
+            assert sev is None, "non-security or info findings must not become GitHub security results"
         assert res["level"] == LEVEL[f.severity]
         assert res["fingerprints"] == {"aaMaFindingId/v1": f.id}
         assert "partialFingerprints" not in res, "left to upload-sarif"
@@ -137,3 +137,19 @@ def test_no_baseline_means_no_baseline_state() -> None:
 def test_output_is_plain_json() -> None:
     log = sarif.to_sarif(_findings(), "0.17.0")
     assert json.loads(json.dumps(log)) == log
+
+
+def test_critical_is_above_githubs_high_bucket() -> None:
+    assert float(sarif.SECURITY_SEVERITY["critical"]) > 9.0
+
+
+def test_non_security_dimension_is_not_a_security_result() -> None:
+    f = _findings()[0].model_copy(update={"dimension": "maintainability", "severity": "high"})
+    res = _results(sarif.to_sarif([f], "0.17.0"))[0]
+    assert "security-severity" not in res.get("properties", {})
+
+
+def test_current_findings_cannot_be_marked_fixed() -> None:
+    findings = _findings()
+    with pytest.raises(ValueError):
+        sarif.to_sarif(findings, "0.17.0", baseline={findings[0].id: "fixed"})

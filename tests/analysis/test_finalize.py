@@ -191,6 +191,18 @@ def test_deleting_a_flagged_function_makes_its_finding_fixed(
     assert states == {"unchanged": expected["persisting"], "absent": expected["fixed"]}
 
 
+def test_rerun_at_the_same_commit_compares_against_the_report_it_replaces(
+    target: Path, lizard: Path
+) -> None:
+    run(target)
+    report = run(target)
+    assert summary(report).baseline.model_dump() == {
+        "new": 0,
+        "persisting": 3,
+        "fixed": 0,
+    }
+
+
 # --- §5a rules: refutation, confidence cap, rating cap --------------------------------------------
 
 

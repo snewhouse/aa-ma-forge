@@ -1,0 +1,118 @@
+{
+  "lizard": {
+    "argv0": "lizard",
+    "rc": 0,
+    "secs": 2.23,
+    "report_bytes": 470001,
+    "rows": 2228,
+    "cols": 11,
+    "ccn_gt_15": 17,
+    "ccn_gt_25": 4
+  },
+  "jscpd": {
+    "argv0": "jscpd",
+    "rc": 0,
+    "secs": 2.81,
+    "report_bytes": 431270,
+    "keys": [
+      "duplicates",
+      "statistics"
+    ],
+    "dup_keys": [
+      "firstFile",
+      "format",
+      "fragment",
+      "isNew",
+      "kind",
+      "lines",
+      "secondFile",
+      "tokens"
+    ],
+    "clones": 263,
+    "formats": [
+      "bash",
+      "json",
+      "markdown",
+      "markup",
+      "mermaid",
+      "python",
+      "text",
+      "yaml"
+    ]
+  },
+  "gitleaks": {
+    "argv0": "gitleaks",
+    "rc": 0,
+    "secs": 0.7,
+    "report_bytes": 480,
+    "leaks": 1,
+    "keys": [
+      "Author",
+      "Commit",
+      "Date",
+      "Description",
+      "Email",
+      "EndColumn",
+      "EndLine",
+      "Entropy",
+      "File",
+      "Fingerprint",
+      "Match",
+      "Message",
+      "RuleID",
+      "Secret",
+      "StartColumn",
+      "StartLine",
+      "SymlinkFile",
+      "Tags"
+    ],
+    "secret_redacted": true
+  },
+  "semgrep": {
+    "argv0": "semgrep",
+    "rc": 0,
+    "secs": 9.78,
+    "report_bytes": 43422,
+    "results": 12,
+    "errors": 1,
+    "severities": [
+      "ERROR",
+      "MEDIUM",
+      "WARNING"
+    ]
+  },
+  "osv-scanner": {
+    "argv0": "osv-scanner",
+    "rc": 1,
+    "secs": 1.45,
+    "report_bytes": 502803,
+    "sources": 1,
+    "vulns": 66,
+    "no_fix": 2
+  },
+  "pip-audit": {
+    "status": "skipped",
+    "why": "no requirements*.txt tracked"
+  },
+  "codemem-build": {
+    "argv0": "/home/sjnewhouse/projects/github_private/aa-ma-forge/.venv/bin/codemem",
+    "rc": 0,
+    "secs": 0.71,
+    "report_bytes": 249
+  },
+  "codemem-refresh-commits": {
+    "argv0": "/home/sjnewhouse/projects/github_private/aa-ma-forge/.venv/bin/codemem",
+    "rc": 0,
+    "secs": 0.18,
+    "report_bytes": 199
+  },
+  "codemem-dead_code": {
+    "argv0": "/home/sjnewhouse/projects/github_private/aa-ma-forge/.venv/bin/codemem",
+    "rc": 0,
+    "secs": 0.06,
+    "report_bytes": 397829,
+    "symbols": 1500,
+    "truncated": false
+  },
+  "target_codemem_dir_touched": false
+}

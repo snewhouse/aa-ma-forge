@@ -77,9 +77,9 @@
 - Result Log: [placeholder]
 
 ### Sub-step 2.3: [test] codemem query 4 tools + who_calls round-trip + count pin, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED `7f469e6` (tests only, additions only — a whole-file ruff format was reverted as out of scope, L-007): `TestQueryRoundTrips` in tests/codemem/test_install_and_cli.py on a module-scoped 3-commit fixture index (build + refresh-commits via CLI) — hot_spots, co_changes a.py→notes.md, owners a.py --repo-root (4 lines), layers keys, exact 10-tool `choices` + "10 MCP tools" help; who_calls round-trip passes today (guards the six). 5 failed / 1 passed for the right reason (invalid choice).
 
 ### Sub-step 2.4: [test] safe runner tests (argv gate, bypasses, env, timeout), RED
 - Status: PENDING

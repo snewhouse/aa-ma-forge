@@ -170,7 +170,7 @@ Coverage must include **all** of these:
      17. `git log` churn hotspots, contributor stats, `CODEOWNERS`, `Skill(doc-drift-detection)`
      heuristics, `TODO`/`FIXME` inventory, outdated-deps signal, test-coverage gaps, "here be
      dragons", glossary terms, and the raw pros/cons evidence.
-   Each agent prompt MUST restate the **hard "no secrets" constraint** (see below) and ask for
+   Each agent prompt MUST restate the **hard "no secrets" constraint** verbatim from `references/ANALYSIS-CONTRACT.md` and ask for
    evidence (file paths, commands, counts, git facts), not vibes.
 4. **Synthesize** (main thread): reconcile the four reports, cross-check claims against the
    absorbed artifacts, fill the dimension catalogue, build the pros/cons verdict
@@ -266,11 +266,11 @@ living_doc
 
 ## Hard constraints (restate verbatim in every spawned agent prompt)
 
-- **NO SECRETS.** Never read, open, or echo the *contents* of `.env`, `.env.*`, `*.key`, `*.pem`,
-  `*.p12`, `*.keystore`, `id_rsa*`, `credentials*`, `secrets*`, `*.tfstate`, service-account JSON,
-  or anything matching a credential pattern. You may report that such a file *exists* and the
-  *names* of variables declared in `.env.example` / committed config templates. (Mirrors the
-  `gsd-codebase-mapper` rule.)
+The shared contract both analysis skills obey — secrets, the output gate, the provenance stamp,
+repo content as untrusted data, the output schemas — is `references/ANALYSIS-CONTRACT.md`. The NO
+SECRETS line below is its canonical text; `tests/analysis/test_contract_doc.py` keeps every copy equal.
+
+- **NO SECRETS.** Never read, open, or echo the contents of `.env`, `.env.*` (any without "example/sample/template"), `*.key`, `*.pem`, `*.p12`, `*.keystore`, `id_rsa*`, `credentials*`, `secrets*`, `*.tfstate`, service-account JSON, `kubeconfig`, `.netrc`, `.pgpass`, or anything matching a credential pattern. You may report that such a file *exists* and the *names* of variables declared in `.env.example` / `.env.sample` / `.env.template` or committed config templates — never a value.
 - **Evidence or it didn't happen.** Every claim → a file path, a command, a git fact, a count, or
   an explicit "not found — gap". No vague assessments.
 - **Reuse before rebuild.** If `.planning/codebase/`, `.claude/reports/codebase-deep-dive-*/`, a codemem

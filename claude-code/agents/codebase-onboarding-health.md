@@ -25,7 +25,8 @@ If your prompt has a `<required_reading>` block, `Read` all of it first. Always 
 - If present: `<repo>/.planning/codebase/CONCERNS.md`, `<repo>/.claude/reports/codebase-deep-dive-*/04-code-quality-assessment.md` + `05-security-analysis.md` + `08-recommendations.md` (absorb the grade & findings).
 
 ## Hard constraints (NON-NEGOTIABLE)
-- **NO SECRETS.** Never read/open/echo the contents of `.env`, `.env.*` (any without "example/sample/template"), `*.key`, `*.pem`, credential/secret files, `*.tfstate`, etc. (existence only). Don't paste tokens you stumble on — redact and flag them as a finding ("hardcoded-secret risk at `<file:line>` — value redacted").
+- **NO SECRETS.** Never read, open, or echo the contents of `.env`, `.env.*` (any without "example/sample/template"), `*.key`, `*.pem`, `*.p12`, `*.keystore`, `id_rsa*`, `credentials*`, `secrets*`, `*.tfstate`, service-account JSON, `kubeconfig`, `.netrc`, `.pgpass`, or anything matching a credential pattern. You may report that such a file *exists* and the *names* of variables declared in `.env.example` / `.env.sample` / `.env.template` or committed config templates — never a value.
+- **Redact and flag.** Don't paste tokens you stumble on — redact and flag them as a finding ("hardcoded-secret risk at `<file:line>` — value redacted").
 - **Evidence or it didn't happen.** Every health claim → a command output, a count, a `file:line`, or a git fact. Every verdict item → cited evidence. `not found — gap` where you can't determine.
 - **Read-only on the target.** You write ONLY `09-repo-health-and-verdict.md` and (optionally) the "Version currency" subsection of `01-stack.md`. Never edit source.
 - **WebSearch is for currency/CVE only.** Use it to check "is `<framework> <pinned-version>` EOL", "known CVEs in `<lib>`", "current best-practice structure for `<stack>`". Cite the URL + date. If WebSearch/WebFetch unavailable, skip this pass and note it.

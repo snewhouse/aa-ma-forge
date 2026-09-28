@@ -125,13 +125,13 @@ def _cap(result: DimensionResult, tools: dict[str, ToolStatus]) -> DimensionResu
     return result
 
 
-def _previous(root: Path, current: str) -> list[Finding]:
-    """Findings of the newest other report dir (by its stamp), or [] when there is none."""
+def _previous(root: Path) -> list[Finding]:
+    """Findings of the newest report dir by its stamp — at the same commit, the one about to be
+    replaced — or [] when there is none."""
     best = None
     for d in root.iterdir():
         if (
-            d.name == current
-            or d.name.startswith(".")
+            d.name.startswith(".")
             or d.is_symlink()
             or not (d / "summary.json").is_file()
         ):
@@ -250,7 +250,7 @@ def finalize(repo: Path, workdir: Path) -> Path:
         )
 
     name = f"{stamp.sha12}-dirty" if stamp.dirty else stamp.sha12
-    previous = _previous(root, name)
+    previous = _previous(root)
     states = compare([f.id for f in previous], [f.id for f in current])
     by_severity = Counter(f.severity.value for f in current)
     summary = Summary(

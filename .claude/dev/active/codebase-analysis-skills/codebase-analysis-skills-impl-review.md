@@ -1,12 +1,12 @@
 # Impl Review Report: codebase-analysis-skills / Milestone 1
-Generated: 2026-09-28T14:05:00Z | Audit-Profile: full | Budget: normal
+Generated: 2026-09-28T13:39:00Z (14:39 +01:00) | Audit-Profile: full | Budget: normal
 Window: `c9cfbe5..0ae6e8a` (branch `feat/cas-m1-analysis-core`)
 
 ## Summary
 - CRITICAL: 3 findings (3 accepted, 0 disputed, 0 deferred)
 - WARNING: 9 findings (all to be fixed in M1 — Ste, 2026-09-28)
 - INFO: 17 findings (cheap ones fixed with the warnings; rest logged)
-- Overall: **BLOCKED** until sub-step 1.7 lands the fixes and §6.8 re-runs clean
+- Overall: **BLOCKED** until sub-step 1.7 lands the fixes and §6.8 re-runs clean — *superseded: re-run PASS WITH WARNINGS, 0 CRITICAL (see Re-run section below)*
 
 | Agent | CRITICAL | WARNING | INFO | Verdict |
 |---|:-:|:-:|:-:|---|

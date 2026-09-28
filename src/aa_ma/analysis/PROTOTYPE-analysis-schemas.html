@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finding ID Prototype</title>
+<style>
+:root{--bg:#fbfbf9;--fg:#1d1d1b;--mut:#6b6b66;--line:#e3e2dc;--card:#fff;--acc:#2f5fd0;--new:#1f8a4c;--fix:#b3402a;--per:#6b6b66;--code:#f3f2ee}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161615;--fg:#ecebe6;--mut:#9d9c96;--line:#33322f;--card:#1e1e1c;--acc:#7fa2ff;--new:#5ccf8b;--fix:#f08a74;--per:#9d9c96;--code:#262624}}
+:root[data-theme="dark"]{--bg:#161615;--fg:#ecebe6;--mut:#9d9c96;--line:#33322f;--card:#1e1e1c;--acc:#7fa2ff;--new:#5ccf8b;--fix:#f08a74;--per:#9d9c96;--code:#262624}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:28px 0 8px}
+p{margin:6px 0}.mut{color:var(--mut)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:10px 0}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:6px 10px;margin:3px 4px 3px 0;cursor:pointer}
+button:hover{border-color:var(--acc)}button.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+button:disabled{opacity:.4;cursor:default}
+.tabs button.on{border-color:var(--acc);color:var(--acc)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+code,pre{font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code);padding:10px;border-radius:8px;overflow:auto;max-height:420px;margin:6px 0}
+.b{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;border:1px solid currentColor}
+.new{color:var(--new)}.fixed{color:var(--fix)}.persisting{color:var(--per)}
+.chg{background:color-mix(in srgb,var(--acc) 14%,transparent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+.src .ln{color:var(--mut);display:inline-block;width:2.5em;text-align:right;margin-right:10px;user-select:none}
+.src .hl{background:color-mix(in srgb,var(--acc) 18%,transparent)}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<h1>Finding ID prototype <span class="mut" style="font-size:14px">(PROTOTYPE — throwaway, codebase-analysis-skills M1.1)</span></h1>
+<p><b>Question:</b> do the M1 output shapes (<code>summary.json</code>, <code>findings.jsonl</code>, SARIF) hold together, and does a finding keep the <b>same ID</b> from one run to the next when code around it moves — while getting a <b>new ID</b> when the flagged line itself really changes?</p>
+<p class="mut">Rule under test: <code>id = "F-" + sha256(dimension ␟ rule ␟ path ␟ anchor)[:12]</code>. The anchor is the flagged source line with whitespace collapsed — never a line number. When two findings share all four parts, the 2nd, 3rd… get <code>#2</code>, <code>#3</code> appended to the anchor (order of appearance). Press <b>Take baseline</b>, change the toy repo, and read the new / persisting / fixed column.</p>
+
+<div class="card">
+  <b>Change the toy repo</b> <span class="mut">(each click is one "next run")</span><br>
+  <div id="actions"></div>
+</div>
+
+<div class="card">
+  <b>Guided walkthroughs</b>
+  <div class="tabs" id="tabs"></div>
+  <div id="tabbody"></div>
+</div>
+
+<h2>Findings this run</h2>
+<div class="card scroll"><table id="ftable"></table><p id="lastmsg" class="mut"></p></div>
+
+<h2>Toy repo (3 files)</h2>
+<div class="grid" id="src"></div>
+
+<h2>Outputs</h2>
+<div class="card">
+  <div class="tabs" id="otabs"></div>
+  <pre id="out"></pre>
+  <p class="mut" id="parity"></p>
+</div>
+</main>
+
+<script>
+// ---------- Pure, liftable module (no DOM) ----------
+const Core = (() => {
+  const enc = new TextEncoder();
+  const collapse = s => s.trim().replace(/\s+/g, " ");
+  async function sha256hex(s) {
+    const b = await crypto.subtle.digest("SHA-256", enc.encode(s));
+    return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+  }
+  async function findingId(dimension, rule, path, anchor) {
+    return "F-" + (await sha256hex([dimension, rule, path, anchor].join("\x1f"))).slice(0, 12);
+  }
+  // Occurrence suffix: k-th duplicate (k>=2) of the same 4-tuple hashes anchor + "#k".
+  async function assignIds(raw) {
+    const seen = new Map(), out = [];
+    for (const f of raw) {
+      const key = [f.dimension, f.rule, f.path, f.anchor].join("\x1f");
+      const k = (seen.get(key) || 0) + 1; seen.set(key, k);
+      const a = k === 1 ? f.anchor : `${f.anchor}#${k}`;
+      out.push({ ...f, id: await findingId(f.dimension, f.rule, f.path, a) });
+    }
+    return out;
+  }
+  // One vocabulary everywhere: new / persisting / fixed.
+  function compare(prevIds, cur) {
+    const curIds = new Set(cur.map(f => f.id)), prev = new Set(prevIds), r = {};
+    for (const f of cur) r[f.id] = prev.has(f.id) ? "persisting" : "new";
+    for (const id of prev) if (!curIds.has(id)) r[id] = "fixed";
+    return r;
+  }
+  const SARIF_STATE = { new: "new", persisting: "unchanged", fixed: "absent" };
+  const LEVEL = { critical: "error", high: "error", medium: "warning", low: "note", info: "note" };
+  const SEV = { critical: "9.0", high: "7.0", medium: "4.0", low: "2.0", info: "0.0" };
+  function toSarif(findings, states, toolVersion) {
+    const rules = [...new Set(findings.map(f => f.rule))].map(id => ({
+      id, shortDescription: { text: id }, fullDescription: { text: id }, help: { text: `See ANALYSIS-CONTRACT.md for ${id}` } }));
+    return {
+      version: "2.1.0",
+      $schema: "https://json.schemastore.org/sarif-2.1.0.json",
+      runs: [{
+        tool: { driver: { name: "aa-ma-analysis", version: toolVersion, rules } },
+        results: findings.map(f => ({
+          ruleId: f.rule, level: LEVEL[f.severity], message: { text: f.title },
+          locations: [{ physicalLocation: { artifactLocation: { uri: f.path }, region: f.line ? { startLine: f.line } : undefined } }],
+          fingerprints: { "aaMaFindingId/v1": f.id },
+          baselineState: states ? SARIF_STATE[states[f.id]] : undefined,
+          properties: { "security-severity": SEV[f.severity] },
+        })),
+      }],
+    };
+  }
+  const DIMS = ["architecture", "maintainability", "security", "tests_deps"];
+  function summary(stamp, findings, states, ratings) {
+    const c = { findings: findings.length, refuted: 0, redacted: findings.filter(f => f.redacted).length,
+                critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    findings.forEach(f => c[f.severity]++);
+    const b = { new: 0, persisting: 0, fixed: 0 };
+    if (states) Object.values(states).forEach(s => b[s]++);
+    return { schema_version: 1, stamp,
+      dimensions: DIMS.map(d => ({ dimension: d, ...ratings[d] })),
+      ledger: [{ path: "src/", status: "assessed", reason: "source" },
+               { path: "tests/", status: "assessed", reason: "tests" }],
+      metrics: { "size.files": 3, "maint.max_ccn": 18, "tests.coverage_pct": null },
+      counts: c, baseline: b };
+  }
+  return { collapse, findingId, assignIds, compare, toSarif, summary };
+})();
+
+// ---------- Throwaway page shell ----------
+const INITIAL = () => ({
+  files: {
+    "src/app.py": [
+      "from db import raw_conn  # bypasses the repository layer",
+      "",
+      "def handle(request):",
+      "    # TODO: handle retries",
+      "    if request.user:",
+      "        return raw_conn().get(request.id)",
+      "    return None",
+    ],
+    "src/db.py": [
+      "AWS_KEY = \"[REDACTED:aws-access-token]\"",
+      "",
+      "def get_user(cur, uid):",
+      "    cur.execute(\"SELECT * FROM users WHERE id=\" + uid)",
+      "    return cur.fetchone()",
+    ],
+    "tests/test_app.py": [
+      "def test_handle_none():",
+      "    assert handle(Req(user=None)) is None",
+    ],
+  },
+  // Each finding points at the line whose text starts with `match` (first/nth hit); the anchor is taken from that line.
+  specs: [
+    { origin: "judged", dimension: "architecture", rule: "arch.layer_bypass", severity: "medium", confidence: "med",
+      file: "src/app.py", match: "from db import raw_conn", title: "App imports the DB driver directly, skipping the repository layer" },
+    { origin: "measured", dimension: "maintainability", rule: "maint.complexity", severity: "medium", confidence: "high",
+      file: "src/app.py", match: "def handle(", title: "handle() cyclomatic complexity 18 (> 15)" },
+    { origin: "judged", dimension: "maintainability", rule: "maint.todo", severity: "low", confidence: "high",
+      file: "src/app.py", match: "# TODO: handle retries", all: true, title: "Unresolved TODO" },
+    { origin: "judged", dimension: "security", rule: "security.sql_injection", severity: "high", confidence: "high",
+      file: "src/db.py", match: "cur.execute(", title: "SQL built by string concatenation", refutation: "survived" },
+    { origin: "measured", dimension: "security", rule: "security.secret", severity: "high", confidence: "high",
+      file: "src/db.py", match: "AWS_KEY", anchorIsRule: "aws-access-token", title: "Hard-coded AWS access key (value redacted)", redacted: true },
+    { origin: "judged", dimension: "tests_deps", rule: "tests.untested_path", severity: "low", confidence: "med",
+      file: "tests/test_app.py", match: "def test_handle_none", title: "Only the None branch of handle() is tested" },
+  ],
+});
+let S = INITIAL(), baseline = null, prevIds = null, lastRun = [], lastChanged = new Set(), lastMsg = "";
+
+function rawFindings() {
+  const out = [];
+  for (const sp of S.specs) {
+    const lines = S.files[sp.file]; if (!lines) continue;
+    lines.forEach((t, i) => {
+      if (!Core.collapse(t).startsWith(Core.collapse(sp.match).slice(0, 40)) && !t.includes(sp.match)) return;
+      if (!sp.all && out.some(o => o._spec === sp)) return;
+      out.push({ _spec: sp, schema_version: 1, origin: sp.origin, dimension: sp.dimension, severity: sp.severity,
+        confidence: sp.confidence, rule: sp.rule, title: sp.title, path: sp.file, line: i + 1,
+        anchor: sp.anchorIsRule || Core.collapse(t), refutation: sp.refutation || (sp.severity === "high" ? "survived" : "not_required"),
+        evidence: `${sp.file}:${i + 1}`, redacted: !!sp.redacted });
+    });
+  }
+  return out;
+}
+async function run(msg) {
+  const before = new Map(lastRun.map(f => [f.id, f.line]));
+  const fs = (await Core.assignIds(rawFindings())).map(({ _spec, ...f }) => f);
+  lastChanged = new Set(fs.filter(f => before.has(f.id) && before.get(f.id) !== f.line).map(f => f.id));
+  lastRun = fs; lastMsg = msg || ""; render();
+}
+const ACTIONS = {
+  baseline: ["Take baseline (this run becomes \"previous run\")", () => { baseline = lastRun.map(f => f.id); run("Baseline taken: every current finding is the reference set."); }],
+  shift: ["Insert 3 lines at top of app.py (line numbers move)", () => { S.files["src/app.py"].unshift("import os", "import sys", ""); run("3 lines inserted above everything in src/app.py."); }],
+  reformat: ["Re-indent the TODO line (whitespace only)", () => { const L = S.files["src/app.py"]; const i = L.findIndex(t => t.includes("# TODO: handle retries")); L[i] = "    #   TODO:   handle   retries   "; run("Whitespace inside the TODO line changed; its text did not."); }],
+  editsql: ["Edit the SQL line (still unsafe)", () => { const L = S.files["src/db.py"]; const i = L.findIndex(t => t.includes("cur.execute(")); L[i] = "    cur.execute(\"SELECT id, name FROM users WHERE id=\" + uid)"; run("The flagged SQL line itself changed text."); }],
+  fixsql: ["Fix the SQL line (parameterised)", () => { const L = S.files["src/db.py"]; const i = L.findIndex(t => t.includes("cur.execute(")); L[i] = "    cur.run_safe(\"SELECT * FROM users WHERE id=%s\", (uid,))"; run("SQL fixed; the judge no longer reports it."); }],
+  dup: ["Add a 2nd identical TODO ABOVE the first", () => { const L = S.files["src/app.py"]; const i = L.findIndex(t => t.includes("def handle(")); L.splice(i, 0, "# TODO: handle retries"); run("A second identical TODO line now appears earlier in the same file."); }],
+  rename: ["Rename src/db.py → src/storage.py", () => { S.files["src/storage.py"] = S.files["src/db.py"]; delete S.files["src/db.py"]; S.specs.forEach(s => { if (s.file === "src/db.py") s.file = "src/storage.py"; }); run("File renamed; path is part of the ID."); }],
+  reset: ["Reset toy repo", () => { S = INITIAL(); baseline = null; lastRun = []; run("Reset."); }],
+};
+const WALKS = [
+  { name: "Code moves around it", text: "Take a baseline, then insert lines at the top of app.py. Every finding's line number changes, but every ID should stay the same — all findings read <b>persisting</b>.", steps: ["reset", "baseline", "shift"] },
+  { name: "Whitespace only", text: "Re-indenting the TODO line changes its bytes but not its collapsed text. Expect the TODO finding to stay <b>persisting</b>.", steps: ["reset", "baseline", "reformat"] },
+  { name: "The flagged line changes", text: "Editing the SQL line (still unsafe) gives a new anchor → the old ID reads <b>fixed</b> and a <b>new</b> one appears. That's the intended trade-off: IDs track the line's text, not the idea.", steps: ["reset", "baseline", "editsql"] },
+  { name: "Real fix", text: "Fixing the SQL removes the finding: its ID reads <b>fixed</b>, nothing new.", steps: ["reset", "baseline", "fixsql"] },
+  { name: "Identical twins (tricky)", text: "Two identical TODOs in one file share every ID part, so the 2nd gets <code>#2</code>. Adding the twin <b>above</b> the original makes the new line take the original's ID; the original becomes <code>#2</code>. Counts stay right (1 persisting, 1 new) but the <i>identity</i> swaps. Watch the Line column.", steps: ["reset", "baseline", "dup"] },
+  { name: "File rename", text: "Path is part of the ID, so renaming db.py makes its findings <b>fixed</b> + <b>new</b>. Acceptable for v1? (git rename-detection is a possible later upgrade.)", steps: ["reset", "baseline", "rename"] },
+];
+let walk = 0, step = 0, otab = "summary";
+function render() {
+  document.getElementById("actions").innerHTML = Object.entries(ACTIONS).map(([k, [l]]) =>
+    `<button class="${k === "baseline" ? "primary" : ""}" onclick="ACTIONS.${k}[1]()">${l}</button>`).join("");
+  document.getElementById("tabs").innerHTML = WALKS.map((w, i) => `<button class="${i === walk ? "on" : ""}" onclick="walk=${i};step=0;render()">${w.name}</button>`).join("");
+  const W = WALKS[walk];
+  document.getElementById("tabbody").innerHTML = `<p>${W.text}</p>` + W.steps.map((k, i) =>
+    `<button ${i !== step ? "disabled" : ""} class="${i === step ? "primary" : ""}" onclick="step++;ACTIONS.${k}[1]()">${i + 1}. ${ACTIONS[k][0]}</button>`).join("");
+  const states = baseline ? Core.compare(baseline, lastRun) : null;
+  const rows = lastRun.map(f => [f, states ? states[f.id] : "—"]);
+  if (states) for (const [id, s] of Object.entries(states)) if (s === "fixed") rows.push([{ id, path: "—", line: "", rule: "(gone)", anchor: "", title: "" }, s]);
+  document.getElementById("ftable").innerHTML = "<tr><th>ID</th><th>vs baseline</th><th>Rule</th><th>File</th><th>Line</th><th>Anchor (hashed)</th></tr>" +
+    rows.map(([f, s]) => `<tr class="${lastChanged.has(f.id) ? "chg" : ""}"><td><code>${f.id}</code></td><td><span class="b ${s}">${s}</span></td><td>${f.rule}</td><td>${f.path}</td><td>${f.line}${lastChanged.has(f.id) ? " ←moved" : ""}</td><td><code>${esc(f.anchor)}</code></td></tr>`).join("");
+  document.getElementById("lastmsg").textContent = lastMsg;
+  document.getElementById("src").innerHTML = Object.entries(S.files).map(([p, L]) => {
+    const hit = new Set(lastRun.filter(f => f.path === p).map(f => f.line));
+    return `<div class="card"><b>${p}</b><pre class="src">${L.map((t, i) => `<span class="${hit.has(i + 1) ? "hl" : ""}"><span class="ln">${i + 1}</span>${esc(t)}</span>`).join("\n")}</pre></div>`;
+  }).join("");
+  const stamp = { date_utc: "2026-09-28T12:00:00Z", sha12: "b40e8ef1a2c3", dirty: false, branch: "main", tier: "standard",
+    tools: { lizard: "ran", jscpd: "ran", gitleaks: "ran", codemem: "ran", semgrep: "skipped", "osv-scanner": "skipped" },
+    absorbed: [], fresh_run: ["measure", "judge", "refute"] };
+  const ratings = { architecture: { rating: "adequate", confidence: "med", inputs: ["codemem.layers"], capped: false },
+    maintainability: { rating: "adequate", confidence: "high", inputs: ["lizard", "jscpd"], capped: false },
+    security: { rating: "weak", confidence: "med", inputs: ["gitleaks", "judge"], capped: true },
+    tests_deps: { rating: "weak", confidence: "low", inputs: ["judge"], capped: true } };
+  const outs = {
+    "summary.json": JSON.stringify(Core.summary(stamp, lastRun, states, ratings), null, 2),
+    "findings.jsonl": lastRun.map(f => JSON.stringify(f)).join("\n"),
+    "results.sarif": JSON.stringify(Core.toSarif(lastRun, states, "0.17.0"), null, 2),
+  };
+  document.getElementById("otabs").innerHTML = Object.keys(outs).map(k => `<button class="${k === otab ? "on" : ""}" onclick="otab='${k}';render()">${k}</button>`).join("");
+  if (!outs[otab]) otab = "summary.json";
+  document.getElementById("out").textContent = outs[otab];
+}
+const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+otab = "summary.json";
+(async () => {
+  const pid = await Core.findingId("security", "security.secret", "src/db.py", "aws-access-token");
+  document.getElementById("parity").textContent = `Parity check: findingId("security","security.secret","src/db.py","aws-access-token") = ${pid} (Python hashlib must give the same).`;
+  run("Initial run.");
+})();
+</script>
+</body>
+</html>

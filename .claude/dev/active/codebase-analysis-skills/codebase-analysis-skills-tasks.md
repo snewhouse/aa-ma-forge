@@ -102,9 +102,9 @@
 - Result Log: [placeholder]
 
 ### Sub-step 2.8: [remediate] §6.8 impl-review — 1 accepted CRITICAL + 20 WARNINGs (Ste: fix all now)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED `29d7b9e` → GREEN `377a8e4` (run hardening, report_name, QUERY_TOOLS), `3c8fced` (measure: partial metrics None, code-only duplication, versions, configs, last-touch), `ceac469` (finalize: C1 baseline never read through symlinks/tracked/future, rollback, gated report.md, no input echo, ':' URIs) + 2 isolating tests after mutation testing showed the tracked-dir rule and O_NOFOLLOW were masked; `fc6846a` (B105 false positive renamed); `7ca99e9` CHANGELOG. C1 live repro before: rc 1 + outside text in a traceback; after: rc 0, no leak. Retroactive RED for the untracked-path filter confirmed. Round-2 review (§6.8 re-run + §6.6) verified every item closed; follow-ups → 2.9.
 
 ### Sub-step 2.9: [remediate] §6.8 re-run + §6.6 — allowlist gate, staging dir, correctness, perf, DRY (Ste: all now)
 - Status: PENDING

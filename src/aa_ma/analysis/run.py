@@ -131,26 +131,26 @@ def _kill_group(proc: subprocess.Popen[bytes]) -> None:
 def _interpreter_escape(args: list[str]) -> bool:
     """Inline code or pip among an interpreter's own options — the ones before its script."""
     skip = False
-    for i, token in enumerate(args):
+    for i, arg in enumerate(args):
         if skip:
             skip = False
             continue
-        if token == "-" or not token.startswith("-"):
+        if arg == "-" or not arg.startswith("-"):
             return False  # the script: what follows is its own argv
-        if token.startswith("--"):
-            if token.split("=", 1)[0] in INLINE_LONG:
+        if arg.startswith("--"):
+            if arg.split("=", 1)[0] in INLINE_LONG:
                 return True
             continue
-        letters = re.match(r"-([A-Za-z]*)", token).group(1)  # type: ignore[union-attr]
+        letters = re.match(r"-([A-Za-z]*)", arg).group(1)  # type: ignore[union-attr]
         for j, flag in enumerate(letters):
             if (
                 flag == "m"
             ):  # -m MODULE / -mMODULE: pip is refused, anything else is the script
-                module = token[2 + j :] or (args[i + 1] if i + 1 < len(args) else "")
+                module = arg[2 + j :] or (args[i + 1] if i + 1 < len(args) else "")
                 return bool(PIP.match(module))
             if flag in INLINE_FLAGS:
                 return True
-        skip = token in VALUE_FLAGS
+        skip = arg in VALUE_FLAGS
     return False
 
 

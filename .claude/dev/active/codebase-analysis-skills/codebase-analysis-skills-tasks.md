@@ -82,9 +82,9 @@
 - Result Log: Mode: AFK — auto-dispatched. RED `7f469e6` (tests only, additions only — a whole-file ruff format was reverted as out of scope, L-007): `TestQueryRoundTrips` in tests/codemem/test_install_and_cli.py on a module-scoped 3-commit fixture index (build + refresh-commits via CLI) — hot_spots, co_changes a.py→notes.md, owners a.py --repo-root (4 lines), layers keys, exact 10-tool `choices` + "10 MCP tools" help; who_calls round-trip passes today (guards the six). 5 failed / 1 passed for the right reason (invalid choice).
 
 ### Sub-step 2.4: [test] safe runner tests (argv gate, bypasses, env, timeout), RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED `5145d04` (tests only): tests/analysis/test_run.py — `uv sync` refused; 16 parametrized bypasses (env/assignment prefix, sudo incl. absolute path, bash/sh -c, python/python3.12 -c, node -e, python -m pip, uvx, pnpm dlx, npm ci, curl, git clone, make install); control/bidi refused; `pytest tests/pipeline` verified (token-anchored); child env ⊆ MINIMAL, planted GITHUB_TOKEN absent, every offline var present; stdin /dev/null; timeout kills the grandchild (pid via /proc); `&&` order + refuse per part; not_run after a failure; 6 compound forms not_run; missing command failed; note = last 40 lines, redacted. Collection fails with ModuleNotFoundError (right reason).
 
 ### Sub-step 2.5: [impl] codemem CLI 4 tools, choices, help, docs
 - Status: PENDING

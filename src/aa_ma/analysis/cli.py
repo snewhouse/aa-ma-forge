@@ -12,7 +12,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from . import secrets, stamp
+from . import finalize, measure, run, secrets, stamp
 from .models import EXPORTED, Stamp, Tier
 
 JSONL_KINDS = {"finding", "judged_finding"}
@@ -126,6 +126,36 @@ def _cmd_scan_secrets(args: argparse.Namespace) -> int:
     return 1 if result.hits else 0
 
 
+def _cmd_measure(args: argparse.Namespace) -> int:
+    try:
+        print(
+            measure.measure(Path(args.repo), args.tier, tool_timeout=args.tool_timeout)
+        )
+    except stamp.NotAGitRepo:
+        _err(f"aa-ma-analysis measure: {args.repo}: {stamp.NOT_A_REPO}")
+        return 2
+    return 0
+
+
+def _cmd_run(args: argparse.Namespace) -> int:
+    checks = run.run_approved(args.cmd, Path(args.repo), timeout=args.timeout)
+    print(json.dumps([c.model_dump(mode="json") for c in checks], indent=2))
+    return 0 if all(c.status == "verified" for c in checks) else 1
+
+
+def _cmd_finalize(args: argparse.Namespace) -> int:
+    try:
+        print(finalize.finalize(Path(args.repo), Path(args.work)))
+    except stamp.NotAGitRepo:
+        _err(f"aa-ma-analysis finalize: {args.repo}: {stamp.NOT_A_REPO}")
+        return 2
+    except finalize.FinalizeError as exc:
+        _err(f"aa-ma-analysis finalize: {exc}")
+        _err(f"work dir kept: {args.work}")
+        return 1
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="aa-ma-analysis", description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -149,6 +179,24 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("dir")
     p.add_argument("--redact", action="store_true")
     p.set_defaults(func=_cmd_scan_secrets)
+    p = sub.add_parser("measure", help="run the tool rows; print the work dir")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--tier", required=True, choices=get_args(Tier))
+    p.add_argument("--tool-timeout", type=float, default=measure.TOOL_TIMEOUT_S)
+    p.set_defaults(func=_cmd_measure)
+    p = sub.add_parser(
+        "run", help="run approved repo commands (no shell, offline env); JSON checks"
+    )
+    p.add_argument("--repo", default=".")
+    p.add_argument("--timeout", type=float, default=run.RUN_TIMEOUT_S)
+    p.add_argument("--cmd", action="append", required=True)
+    p.set_defaults(func=_cmd_run)
+    p = sub.add_parser(
+        "finalize", help="work dir → the report set; print the report dir"
+    )
+    p.add_argument("--work", required=True)
+    p.add_argument("--repo", default=".")
+    p.set_defaults(func=_cmd_finalize)
     return parser
 
 

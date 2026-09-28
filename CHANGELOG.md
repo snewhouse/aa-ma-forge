@@ -20,6 +20,18 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   contract both analysis skills obey is `understand-codebase/references/ANALYSIS-CONTRACT.md`; the
   four onboarding agents now carry its NO-SECRETS line word for word (the union of their old lists,
   so each denies at least what it did before), and a test keeps every copy equal.
+- **`aa-ma-analysis measure | run | finalize` — the assess engine (`codebase-analysis-skills` M2)** —
+  `measure` runs the tool rows (lizard, jscpd, gitleaks + the built-in secret patterns, and codemem
+  on a fresh per-run index; semgrep, osv-scanner and pip-audit in Deep only) over tracked regular
+  files and records each tool as ran, absent, unknown or skipped — a tool that fails or leaves no
+  readable report is `unknown`, never a zero. `finalize` turns the work dir plus the judges' output
+  into `summary.json`, `findings.jsonl`, `findings.sarif`, `report.md` and `run.log` under
+  `.claude/reports/assess-codebase/<sha12>[-dirty]/`: judged lines are validated and kept inside the
+  repo, High+ findings must be refuted first, a dimension whose core tool did not run cannot rate
+  Strong, the baseline marks findings new, persisting or fixed, and everything passes the secret
+  gate before an atomic rename. `run` executes approved repo commands without a shell, with a
+  minimal offline environment, stdin closed, installers and inline interpreters refused, and a
+  timeout that kills the process group (best-effort, stated in the report).
 - **`codemem query` reaches 10 MCP tools** — `hot_spots`, `co_changes <file>`, `owners <path>
   [--repo-root R]` and `layers` join the six ports, so scripts get git-history and layering answers
   without an MCP server. `owners --repo-root` computes the blame; without it only the cache is read,

@@ -91,3 +91,29 @@ def to_sarif(
             }
         ],
     }
+
+
+def verify(doc: Mapping[str, Any]) -> None:
+    """Re-check the writer's invariants after the secret gate rewrote the file; raises ValueError.
+    Full schema validation lives in the tests (jsonschema is a dev dependency only)."""
+    try:
+        [run] = doc["runs"]
+        if doc["version"] != "2.1.0" or doc["$schema"] != SCHEMA_URI:
+            raise ValueError("not a SARIF 2.1.0 document")
+        rules = {r["id"] for r in run["tool"]["driver"]["rules"]}
+        for result in run["results"]:
+            uris = [
+                loc["physicalLocation"]["artifactLocation"]["uri"]
+                for loc in result["locations"]
+            ]
+            if (
+                result["ruleId"] not in rules
+                or result["level"] not in LEVEL.values()
+                or not result["fingerprints"].get(FINGERPRINT_KEY, "").startswith("F-")
+                or any(u.startswith("/") or ":" in u for u in uris)
+            ):
+                raise ValueError(
+                    f"result for rule {result['ruleId']!r} breaks a writer invariant"
+                )
+    except (KeyError, TypeError) as exc:
+        raise ValueError(f"malformed SARIF: {exc!r}") from None

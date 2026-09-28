@@ -161,6 +161,15 @@ def _apply(text: str, spans: list[tuple[str, int, int]]) -> tuple[str, int]:
     return text, len(merged)
 
 
+def secret_lines(text: str) -> list[tuple[str, int]]:
+    """(rule, 1-based line) per built-in regex hit, in PATTERNS order — for repo source, which is
+    only reported on, never rewritten, so no span or value is kept."""
+    starts = _line_starts(text)
+    return [
+        (rule, _to_line_col(starts, start)[0]) for rule, start, _ in _regex_spans(text)
+    ]
+
+
 def redact_text(text: str) -> str:
     """Regex-only redaction of one string (used for finding anchors before hashing)."""
     return _apply(text, _regex_spans(text))[0]

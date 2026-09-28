@@ -92,9 +92,9 @@
 - Result Log: Mode: AFK — auto-dispatched. GREEN `89d3364`: `_cmd_query` branches + `choices` (10) + help "Invoke one of 10 MCP tools from the CLI" + docstring + `--repo-root` (owners: implies refresh — without it only the empty cache is read, live-probed); commands/codemem.md table +4 rows, README + migration doc wording, CHANGELOG Unreleased bullet. test_doc_counts caught "any of 10 MCP tools" as a registry-count claim (truth 13) → reworded "10 of the MCP tools". tests/codemem 797 passed; suite sans RED analysis 1687 passed / 2 skipped.
 
 ### Sub-step 2.6: [impl] measure, run, finalize, report_md; CLI subcommands
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. GREEN `5de4963` (run.py; stamp `_git`→`run_git`) + `f488b82` (measure.py, finalize.py, report_md.py, sarif.verify, secrets.secret_lines, models.MeasureDoc internal, CLI measure/run/finalize, CHANGELOG). Design additions (first principles, beyond the ACs): measure reads/hands tools **tracked regular files only** and drops findings on untracked paths (tracked symlink → key outside repo; untracked .env) — new test `test_findings_on_untracked_paths_are_dropped`, osv test commits its uv.lock; finalize refuses when HEAD/dirty moved since measure. tests/analysis 240 passed; mutation check (no redaction / no pending check / absent→ran / no rating cap / no --db) each fail the suite; full suite 1927 passed / 2 skipped; lint-imports 6/6 KEPT; ruff src clean; bandit 0 on aa_ma.analysis.
 
 ### Sub-step 2.7: [verify] live measure + finalize on forge; regen; CRITICAL_PATH_REVIEW; PR
 - Status: PENDING

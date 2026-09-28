@@ -71,9 +71,14 @@ def is_fresh(s: Stamp, repo: Path) -> bool:
     return s.sha12 == sha12 and not s.dirty and not dirty
 
 
+def report_name(sha12: str, dirty: bool) -> str:
+    """The one naming rule for a report dir: `<sha12>` or `<sha12>-dirty`."""
+    return f"{sha12}-dirty" if dirty else sha12
+
+
 def report_dir(repo: Path) -> Path:
     sha12, dirty, _ = head_stamp(repo)
-    return Path(repo) / REPORTS_ROOT / (f"{sha12}-dirty" if dirty else sha12)
+    return Path(repo) / REPORTS_ROOT / report_name(sha12, dirty)
 
 
 def safe_dir(repo: Path, rel: str) -> Path:

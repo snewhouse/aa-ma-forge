@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -237,3 +238,123 @@ class TestSanitization:
         result = owners(db_path, "$(rm -rf /tmp)")
         assert result["error"] is not None
         assert result["authors"] == []
+
+
+class TestConcurrentRefresh:
+    """Sub-step 2.9: the ownership refresh blames files concurrently, but the
+    rows it writes are exactly what a serial refresh would write."""
+
+    N_FILES = 10
+    BLAME_SLEEP_S = 0.2
+
+    @staticmethod
+    def _fake_blame_result(path: str) -> dict[str, tuple[int, float]]:
+        idx = int(path.split("_")[1].split(".")[0])
+        counts = {"alice@x": 10 + idx, f"dev{idx % 3}@x": 5, "bob@x": idx % 4}
+        counts = {e: c for e, c in counts.items() if c}
+        total = sum(counts.values())
+        return {e: (c, c / total * 100.0) for e, c in counts.items()}
+
+    @pytest.fixture
+    def indexed_db(self, tmp_path: Path) -> Path:
+        db_path = tmp_path / "conc.db"
+        conn = connect(db_path)
+        apply_schema(conn)
+        migrate(conn)
+        with transaction(conn):
+            for i in range(self.N_FILES):
+                conn.execute(
+                    "INSERT INTO files (path, lang, last_indexed) VALUES (?, 'python', 0)",
+                    (f"pkg/f_{i}.py",),
+                )
+            for name in ("boom", "empty"):
+                conn.execute(
+                    "INSERT INTO files (path, lang, last_indexed) VALUES (?, 'python', 0)",
+                    (f"pkg/{name}.py",),
+                )
+            # Stale rows for the two files whose blame fails: today's
+            # semantics leave them untouched.
+            conn.execute(
+                "INSERT INTO ownership VALUES ('pkg/boom.py', 'stale@x', 7, 100.0, 1)"
+            )
+            conn.execute(
+                "INSERT INTO ownership VALUES ('pkg/empty.py', 'stale@x', 3, 100.0, 1)"
+            )
+        conn.close()
+        return db_path
+
+    @pytest.fixture
+    def slow_fake_blame(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import codemem.mcp_tools as mcp_tools
+        from codemem.analysis.git_mining import GitMiner
+
+        sleep_s = self.BLAME_SLEEP_S
+        fake_result = self._fake_blame_result
+
+        def fake_get_blame(self, file_path: str, *, timeout: float = 2.0):
+            time.sleep(sleep_s)
+            if file_path.endswith("boom.py"):
+                raise subprocess.TimeoutExpired(cmd="git blame", timeout=timeout)
+            if file_path.endswith("empty.py"):
+                return {}
+            return fake_result(file_path)
+
+        monkeypatch.setattr(GitMiner, "get_blame", fake_get_blame)
+        # Pin the pool size so the timing bound does not depend on the host's
+        # CPU count.
+        monkeypatch.setattr(
+            mcp_tools, "_BLAME_MAX_WORKERS", self.N_FILES + 2, raising=False
+        )
+
+    def test_refresh_blames_files_concurrently(
+        self, indexed_db: Path, slow_fake_blame: None, tmp_path: Path
+    ) -> None:
+        from codemem.mcp_tools import owners
+
+        start = time.perf_counter()
+        owners(indexed_db, "pkg/", refresh=True, repo_root=tmp_path)
+        elapsed = time.perf_counter() - start
+        serial = (self.N_FILES + 2) * self.BLAME_SLEEP_S
+        assert elapsed < 1.0, (
+            f"refresh took {elapsed:.2f}s; serial blame would take {serial:.1f}s"
+        )
+
+    def test_refresh_rows_match_serial_computation(
+        self, indexed_db: Path, slow_fake_blame: None, tmp_path: Path
+    ) -> None:
+        from codemem.mcp_tools import owners
+
+        result = owners(indexed_db, "pkg/", refresh=True, repo_root=tmp_path)
+
+        # Serial reference: blame each file one after another.
+        expected_rows: set[tuple[str, str, int, float]] = {
+            ("pkg/boom.py", "stale@x", 7, 100.0),
+            ("pkg/empty.py", "stale@x", 3, 100.0),
+        }
+        totals: dict[str, int] = {"stale@x": 7 + 3}
+        for i in range(self.N_FILES):
+            path = f"pkg/f_{i}.py"
+            for email, (lc, pct) in self._fake_blame_result(path).items():
+                expected_rows.add((path, email, lc, pct))
+                totals[email] = totals.get(email, 0) + lc
+
+        conn = connect(indexed_db)
+        rows = conn.execute(
+            "SELECT file_path, author_email, line_count, percentage FROM ownership"
+        ).fetchall()
+        stamps = conn.execute(
+            "SELECT DISTINCT computed_at FROM ownership WHERE author_email != 'stale@x'"
+        ).fetchall()
+        conn.close()
+        assert {tuple(r) for r in rows} == expected_rows
+        assert len(stamps) == 1  # one refresh, one timestamp
+
+        grand = sum(totals.values())
+        expected_authors = sorted(
+            (
+                {"email": e, "line_count": c, "percentage": c / grand * 100.0}
+                for e, c in totals.items()
+            ),
+            key=lambda a: (-a["percentage"], a["email"]),
+        )
+        assert result["authors"] == expected_authors

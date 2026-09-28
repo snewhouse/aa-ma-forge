@@ -68,9 +68,23 @@ OPTIONAL_TOOLS = ("LIZARD", "JSCPD", "GITLEAKS", "SEMGREP", "OSV_SCANNER", "PIP_
 CODEMEM = Path(sys.executable).with_name("codemem")
 
 
-def stub_bin(bindir: Path, name: str, body: str) -> Path:
+# What each real tool prints for --version (gitleaks: `version`), as live-probed in 2.1.
+TOOL_VERSIONS = {
+    "lizard": "1.24.0",
+    "jscpd": "5.3.3",
+    "gitleaks": "8.18.0",
+    "semgrep": "1.156.0",
+    "osv-scanner": "osv-scanner version: 2.6.0",
+    "pip-audit": "pip-audit 2.10.0",
+}
+
+
+def stub_bin(bindir: Path, name: str, body: str, version: str | None = None) -> Path:
+    """A /bin/sh stub; a tool stub also answers its version probe (default: the 2.1 version)."""
     path = bindir / name
-    path.write_text("#!/bin/sh\n" + body + "\n", encoding="utf-8")
+    version = version or TOOL_VERSIONS.get(name)
+    probe = f'case "$1" in --version|version) echo "{version}"; exit 0;; esac\n' if version else ""
+    path.write_text("#!/bin/sh\n" + probe + body + "\n", encoding="utf-8")
     path.chmod(0o755)
     return path
 

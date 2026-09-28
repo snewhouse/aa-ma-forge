@@ -181,7 +181,15 @@ def test_jscpd_reports_code_clones_only_and_never_copies_the_fragment(
         json.dumps(
             {
                 "duplicates": [clone, prose, embedded],
-                "statistics": {"total": {"percentage": 3.5}},
+                # duplication.pct comes from the code formats only, not from `total`
+                "statistics": {
+                    "total": {"percentage": 99.0},
+                    "formats": {
+                        "python": {"lines": 150, "duplicatedLines": 6},
+                        "bash": {"lines": 50, "duplicatedLines": 1},
+                        "markdown": {"lines": 800, "duplicatedLines": 400},
+                    },
+                },
             }
         )
     )
@@ -194,7 +202,7 @@ def test_jscpd_reports_code_clones_only_and_never_copies_the_fragment(
         (f["path"], f["line"], f["severity"], f["anchor"])
         for f in by_rule(d, "maint.duplication")
     ] == [("src/calc.py", 5, "low", "def f2(y):")]
-    assert d["metrics"]["duplication.pct"] == 3.5
+    assert d["metrics"]["duplication.pct"] == 3.5  # 7 of 200 code lines
     assert d["metrics"]["duplication.clones"] == 1
     assert "FRAGMENT-TEXT-MUST-NOT-LEAK" not in (work / "measure.json").read_text()
 
@@ -497,3 +505,99 @@ def test_real_codemem_run_measures_and_never_touches_a_committed_index(
     assert any(k.startswith("hot_spot:") for k in m)
     assert "fixture@example.invalid" not in (work / "measure.json").read_text()
     assert CODEMEM.exists()
+
+
+# --- §6.8 remediation (sub-step 2.8) ----------------------------------------------------------------
+
+
+def test_a_partial_dependency_count_is_none_not_a_number(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """osv-scanner unknown + pip-audit ran: deps.vulns would be pip-audit's count alone."""
+    commit_file(target, "requirements.txt", "jinja2==3.1.2\n")
+    monkeypatch.setenv("OSV_SCANNER_BIN", str(stub_bin(tools, "osv-scanner", "exit 3")))
+    (tools / "pa.json").write_text(json.dumps({"dependencies": [], "fixes": []}))
+    monkeypatch.setenv(
+        "PIP_AUDIT_BIN", str(stub_bin(tools, "pip-audit", f"cat '{tools / 'pa.json'}'"))
+    )
+    d = doc(measure(target, "deep"))
+    assert (d["stamp"]["tools"]["osv-scanner"], d["stamp"]["tools"]["pip-audit"]) == (
+        "unknown",
+        "ran",
+    )
+    assert d["metrics"]["deps.vulns"] is None
+
+
+def test_an_unreportable_path_is_dropped_and_counted(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A hostile file name the Finding model refuses must not crash measure."""
+    commit_file(target, "src/100%.py", "def f():\n    return 1\n")
+    lizard_stub(
+        tools,
+        monkeypatch,
+        lizard_row("f", 40, 1, 2, "src/100%.py") + lizard_row("f1", 20, 1, 2),
+    )
+    d = doc(measure(target, "quick"))
+    assert [f["path"] for f in by_rule(d, "maint.complexity")] == ["src/calc.py"]
+    assert d["metrics"]["findings.unreportable"] == 1
+
+
+def test_last_touch_days_per_top_level_dir(target: Path, tools: Path) -> None:
+    assert doc(measure(target, "quick"))["metrics"]["last_touch_days:src"] == 0
+
+
+def test_tool_config_files_in_the_target_are_recorded(
+    target: Path, tools: Path
+) -> None:
+    """A repo can weaken a scanner with its own config; the run says so (no cap)."""
+    commit_file(target, ".gitleaks.toml", "[allowlist]\n")
+    commit_file(target, "sub/osv-scanner.toml", "\n")
+    work = measure(target, "quick")
+    assert doc(work)["metrics"]["tool_config.overrides"] == 2
+    log = (work / "run.log").read_text()
+    assert ".gitleaks.toml" in log and "sub/osv-scanner.toml" in log
+
+
+def test_an_unexpected_tool_major_version_is_unknown_and_not_parsed(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    report = tools / "lizard.csv"
+    report.write_text(lizard_row("f1", 20, 1, 2))
+    monkeypatch.setenv(
+        "LIZARD_BIN", str(stub_bin(tools, "lizard", f"cat '{report}'", version="2.0.0"))
+    )
+    work = measure(target, "quick")
+    d = doc(work)
+    assert d["stamp"]["tools"]["lizard"] == "unknown"
+    assert by_rule(d, "maint.complexity") == []
+    assert any(
+        line.startswith("lizard.version\t") and "2.0.0" in line
+        for line in (work / "run.log").read_text().splitlines()
+    )
+
+
+def test_tool_versions_are_recorded_in_run_log(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    lizard_stub(tools, monkeypatch, lizard_row("f1", 20, 1, 2))
+    lines = (measure(target, "quick") / "run.log").read_text().splitlines()
+    assert any(
+        line.startswith("lizard.version\t") and "1.24.0" in line for line in lines
+    )
+
+
+def test_gitleaks_paths_are_normalised(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    leak = {
+        "File": "./src/config.py",
+        "StartLine": 1,
+        "RuleID": "github-pat",
+        "Secret": "REDACTED",
+    }
+    monkeypatch.setenv("GITLEAKS_BIN", str(_gitleaks_stub(tools, [leak])))
+    d = doc(measure(target, "quick"))
+    assert [(f["path"], f["anchor"]) for f in by_rule(d, "security.secret")] == [
+        ("src/config.py", "github-pat")
+    ]

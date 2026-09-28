@@ -1104,7 +1104,7 @@ extension in the report dir → fail closed (exit 1); a Finding whose strings ch
 - `finalize --work <dir>` → prints the report dir; `scan-secrets <dir> [--redact]`.
 - `ground <md> [--repo R]`; `changed-since <sha12> [--repo R]` (M5).
 - SARIF `rules[]`: `id`, `shortDescription`, `fullDescription`, `help.text` per rule;
-  `security-severity` strings critical "9.0", high "7.0", medium "4.0", low "2.0", info "0.0".
+  `security-severity` strings critical "9.5", high "7.0", medium "4.0", low "2.0" — security dimension only, none for info. *(Amended 2026-09-28, M1 merge review: "9.0"/"0.0" contradicted GitHub's (0.0, 10.0] range and > 9.0 critical bucket — research sarif.md:78; Ste approved.)*
 
 **Contract doc & agents:** the canonical NO-SECRETS deny-list is the union of today's lists
 (incl. the runbook's kubeconfig, `.netrc`, `.pgpass`). Each onboarding agent keeps a **verbatim** copy

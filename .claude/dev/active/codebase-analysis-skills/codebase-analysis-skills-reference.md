@@ -24,7 +24,7 @@
 - Dimensions: architecture, maintainability, security, tests_deps. Ratings: strong/adequate/weak/unknown + confidence high/med/low; no overall grade.
 - ToolStatus: ran/absent/unknown/skipped (lowercase). Report-based UNKNOWN rule: `claude-code/commands/sole-dev-merge.md:342-431`.
 - Baseline vocabulary: new/persisting/fixed; SARIF map new→new, persisting→unchanged, fixed→absent.
-- SARIF: our ID in `result.fingerprints["aaMaFindingId/v1"]`; `security-severity` strings critical "9.0", high "7.0", medium "4.0", low "2.0", info "0.0".
+- SARIF: our ID in `result.fingerprints["aaMaFindingId/v1"]`; `security-severity` strings critical "9.5", high "7.0", medium "4.0", low "2.0" — only on security-dimension findings above info (amended 2026-09-28; §5a's "9.0"/"0.0" were off GitHub's spec).
 - Dirty = tracked changes only: `git status --porcelain --untracked-files=no`.
 - Tool timeout default 300 s; run timeout default 300 s; CommandCheck note = last 40 lines, redacted.
 - Offline env: `UV_OFFLINE=1 UV_NO_SYNC=1 UV_PYTHON_DOWNLOADS=never PIP_NO_INDEX=1 npm_config_offline=true YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 CARGO_NET_OFFLINE=true GOPROXY=off GOTOOLCHAIN=local GOFLAGS=-mod=readonly`; child env = PATH, HOME, LANG, TMPDIR + these.

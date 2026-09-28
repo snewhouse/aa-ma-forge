@@ -48,10 +48,10 @@
 - Result Log: [placeholder]
 
 ### Sub-step 1.7: [remediate] §6.8 impl-review — 3 accepted CRITICALs + 9 WARNINGs (Ste: fix all now)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: RED tests for each CRITICAL (duplicate JSON keys, non-root/altered `.gitignore`, gitleaks unmappable entry) and each testable WARNING, then fixes; §6.8 re-run shows 0 CRITICAL. Source: codebase-analysis-skills-impl-review.md User Override Decisions rows 1-3.
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. Round 1: RED `7514a81` (26 failing) → GREEN `476fdfd` (+ regen `56f1cc6`): 3 CRITICALs closed + 9 WARNINGs. §6.8 re-run (code-reviewer + security-auditor, live vs gitleaks 8.18): 0 CRITICAL, 4 WARNING, 9 INFO. Round 2: RED `84d4faa` (11 failing) → GREEN `f02431a` (+ regen `bb1f389`). Goldens changed once (NonNegativeInt minimums). Live: dup-key and nested .gitignore bypasses now exit 1; JSON {"password": …} redacted with keys kept. Full suite 1841 passed / 2 pre-existing skips; codemem 791 passed; lint-imports 6/6 KEPT; ruff clean; draw --check OK.
 
 ## Milestone 2: Assess engine (CLI)
 - Status: PENDING

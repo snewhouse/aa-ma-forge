@@ -18,9 +18,9 @@
 - Acceptance Criteria: 11 criteria — see plan.md § Milestone 1 and §5a
 
 ### Sub-step 1.1: [prototype] schema shapes + ID stability demo on `prototype/cas-analysis-schemas`
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: Mode: HITL — Ste proceeded. LOGIC demo on `prototype/cas-analysis-schemas` @ `9cbd29d` (pushed); JS/Python ID parity `F-8eee32c533b2`; node smoke: shift 6/6 persisting, reformat 6/6 persisting, twin +1 new, SQL edit 1 fixed+1 new, rename fixed+new. Verdict PASS as specced; refinements R-1..R-3 in context-log; PROTOTYPE entry in provenance.
 
 ### Sub-step 1.2: [impact] impact analysis on moving NO-SECRETS (SKILL.md:269-273, :173, 4 agents)
 - Status: PENDING

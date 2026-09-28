@@ -249,6 +249,12 @@ def _gitleaks_bin() -> str | None:
 def _widen(line: str, start: int, end: int) -> tuple[int, int]:
     """gitleaks 8.18 columns are off by one; grow the span to the enclosing non-whitespace run."""
     start, end = max(0, min(start, len(line))), max(0, min(end, len(line)))
+    while (
+        start < end and line[start].isspace()
+    ):  # an off-by-one start may sit on the gap before
+        start += 1
+    while end > start and line[end - 1].isspace():
+        end -= 1
     if end <= start:
         return 0, len(line)  # unknown span → blank the whole line
     while start > 0 and not line[start - 1].isspace():

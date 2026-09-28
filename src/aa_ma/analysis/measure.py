@@ -26,6 +26,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
 from .ids import anchor_for, assign_ids
 from .models import (
     SCHEMA_VERSION,
@@ -39,22 +41,48 @@ from .models import (
     Tier,
     ToolStatus,
 )
-from .run import spawn
+from .run import absolute_path, spawn
 from .secrets import secret_lines
 from .stamp import REPORTS_ROOT, build_stamp, ensure_self_ignoring, run_git, safe_dir
 
 TOOL_TIMEOUT_S = 300
+VERSION_TIMEOUT_S = 60
 WORK_PREFIX = ".work-"
 NETWORK_TOOLS = ("semgrep", "osv-scanner", "pip-audit")  # Deep only (plan V4)
+# A dimension whose core input did not run cannot rate Strong (finalize; mirrored in RATING.md).
+CORE_INPUTS = {
+    Dimension.ARCHITECTURE: ("codemem.layers",),
+    Dimension.MAINTAINABILITY: ("lizard",),
+    Dimension.SECURITY: ("semgrep",),
+    Dimension.TESTS_DEPS: ("osv-scanner", "pip-audit"),
+}
+# The parsers below were confirmed against these major versions (2.1 prototype); another major
+# is `unknown` rather than parsed into plausible-looking wrong values.
+TOOL_MAJOR = {
+    "lizard": 1,
+    "jscpd": 5,
+    "gitleaks": 8,
+    "semgrep": 1,
+    "osv-scanner": 2,
+    "pip-audit": 2,
+}
+VERSION_ARGS = {"gitleaks": ["version"]}  # everything else answers --version
+# Config and ignore files a target can ship to quieten a scanner: recorded, never obeyed silently.
+TOOL_CONFIGS = {
+    ".gitleaks.toml",
+    ".gitleaksignore",
+    ".semgrepignore",
+    "osv-scanner.toml",
+    "whitelizard.txt",
+    ".jscpd.json",
+}
 CCN_FLAG, CCN_HIGH = 15, 25
-CHURN_SINCE = "90 days ago"
+CHURN_DAYS = 90
 CO_CHANGE_FILES = 3  # hot files whose co-changes are recorded
-DEAD_CODE_BUDGET = (
-    10**9
-)  # dead_code truncates at its default budget (2.1: 167 of 1500 symbols)
-SECRET_SCAN_MAX_BYTES = (
-    5_000_000  # ponytail: larger tracked files are skipped by the regex set
-)
+# dead_code truncates at its default budget (2.1: 167 of 1500 symbols).
+DEAD_CODE_BUDGET = 10**9
+# ponytail: larger tracked files are skipped by the regex set (gitleaks still reads them).
+SECRET_SCAN_MAX_BYTES = 5_000_000
 # jscpd formats that are prose or data, not code (2.1: 201 of the forge's 263 clones).
 PROSE_FORMATS = {
     "markdown",
@@ -68,6 +96,14 @@ PROSE_FORMATS = {
     "mermaid",
     "dot",
 }
+LIZARD_NLOC, LIZARD_CCN, LIZARD_FILE, LIZARD_FUNCTION, LIZARD_START = (
+    0,
+    1,
+    6,
+    7,
+    9,
+)  # headerless CSV
+OSV_NO_PACKAGES = 128  # osv-scanner 2.x: no lockfile or manifest found (empty stdout)
 SEMGREP_SEVERITY = {
     "ERROR": Severity.HIGH, "CRITICAL": Severity.HIGH, "HIGH": Severity.HIGH,
     "WARNING": Severity.MEDIUM, "MEDIUM": Severity.MEDIUM,
@@ -80,6 +116,9 @@ CODEMEM_INPUTS = (
     "codemem.layers",
     "codemem.dead_code",
 )
+LAYERS = ("core", "middle", "periphery")
+COMPLEXITY_OVER = f"complexity.over_{CCN_FLAG}"
+_VERSION = re.compile(r"\d+(?:\.\d+)+")
 _INSERTED = re.compile(r"inserted (\d+) commits")
 
 
@@ -108,6 +147,10 @@ class _Ctx:
     metrics: dict[str, int | float | None] = field(default_factory=dict)
     found: list[_Candidate] = field(default_factory=list)
     log: list[str] = field(default_factory=list)
+    partial: set[str] = field(
+        default_factory=set
+    )  # shared metrics a contributing run missed
+    versions: dict[str, str | None] = field(default_factory=dict)
     _lines: dict[str, list[str]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -148,17 +191,16 @@ class _Ctx:
         shown = [a for a in argv if a not in self.fileset]
         if len(shown) < len(argv):
             shown.append(f"<{len(argv) - len(shown)} tracked files>")
-        rc_text = "-" if rc is None else str(rc)
+        fields = [
+            name,
+            " ".join(shown),
+            "-" if rc is None else str(rc),
+            f"{secs:.2f}",
+            status,
+        ]
+        # A git path may hold a tab or newline; neither may break the one-line-per-call format.
         self.log.append(
-            "\t".join(
-                [
-                    name,
-                    " ".join(shown).replace("\t", " "),
-                    rc_text,
-                    f"{secs:.2f}",
-                    status,
-                ]
-            )
+            "\t".join(f.replace("\t", " ").replace("\n", " ") for f in fields)
         )
 
     def add(
@@ -168,6 +210,13 @@ class _Ctx:
         for key, value in metrics.items():  # the same metric from several runs adds up
             old = self.metrics.get(key)
             self.metrics[key] = value if old is None or value is None else old + value
+        for key in self.partial & metrics.keys():
+            self.metrics[key] = None
+
+    def miss(self, metric_keys: tuple[str, ...]) -> None:
+        """A contributing run did not run: its shared metrics are unknown, never a partial count."""
+        self.partial.update(metric_keys)
+        self.metrics.update(dict.fromkeys(metric_keys))
 
 
 def _binary(name: str) -> str | None:
@@ -178,14 +227,20 @@ def _binary(name: str) -> str | None:
             if os.path.isfile(override) and os.access(override, os.X_OK)
             else None
         )
-    return shutil.which(name)
+    return shutil.which(name, path=absolute_path(os.environ.get("PATH", "")))
 
 
-def _exec(ctx: _Ctx, argv: list[str]) -> tuple[int | None, bytes, float]:
+def _env() -> dict[str, str]:
+    return dict(os.environ) | {"PATH": absolute_path(os.environ.get("PATH", ""))}
+
+
+def _exec(
+    ctx: _Ctx, argv: list[str], timeout: float | None = None
+) -> tuple[int | None, bytes, float]:
     t0 = time.monotonic()
     try:
         rc, out = spawn(
-            argv, ctx.repo, dict(os.environ), ctx.timeout, merge_stderr=False
+            argv, ctx.repo, _env(), timeout or ctx.timeout, merge_stderr=False
         )
     except OSError:
         rc, out = None, b""
@@ -208,6 +263,11 @@ def _tool(
     binary = _binary(name)
     if binary is None:
         ctx.record(name, [name, *args], None, 0.0, ToolStatus.ABSENT)
+        ctx.miss(metric_keys)
+        return False
+    if not _version_ok(ctx, name, binary):
+        ctx.record(name, [binary, *args], None, 0.0, ToolStatus.UNKNOWN)
+        ctx.miss(metric_keys)
         return False
     argv = [binary, *args]
     rc, out, secs = _exec(ctx, argv)
@@ -220,7 +280,23 @@ def _tool(
         except (ValueError, KeyError, TypeError, IndexError, AttributeError):
             pass
     ctx.record(name, argv, rc, secs, status)
+    if status != ToolStatus.RAN:
+        ctx.miss(metric_keys)
     return status == ToolStatus.RAN
+
+
+def _version_ok(ctx: _Ctx, name: str, binary: str) -> bool:
+    """Probe the tool's version once; recorded in run.log; only the confirmed major is parsed."""
+    if name not in ctx.versions:
+        argv = [binary, *VERSION_ARGS.get(name, ["--version"])]
+        rc, out, secs = _exec(ctx, argv, VERSION_TIMEOUT_S)
+        found = _VERSION.search(out.decode("utf-8", "replace")) if rc == 0 else None
+        ctx.versions[name] = found.group(0) if found else None
+        ctx.trail(
+            f"{name}.version", argv, rc, secs, ctx.versions[name] or ToolStatus.UNKNOWN
+        )
+    version = ctx.versions[name]
+    return version is not None and int(version.split(".")[0]) == TOOL_MAJOR[name]
 
 
 # --- parsers (2.1 shapes) --------------------------------------------------------------------------
@@ -230,12 +306,11 @@ def _lizard(ctx: _Ctx) -> Callable[[bytes], Parsed]:
     def parse(body: bytes) -> Parsed:
         found, ccns = [], []
         for row in csv.reader(io.StringIO(body.decode("utf-8"))):
-            nloc, ccn, path, function, start = (
-                int(row[0]),
-                int(row[1]),
-                row[6],
-                row[7],
-                int(row[9]),
+            nloc, ccn = int(row[LIZARD_NLOC]), int(row[LIZARD_CCN])
+            path, function, start = (
+                row[LIZARD_FILE],
+                row[LIZARD_FUNCTION],
+                int(row[LIZARD_START]),
             )
             ccns.append(ccn)
             if ccn > CCN_FLAG:
@@ -248,7 +323,7 @@ def _lizard(ctx: _Ctx) -> Callable[[bytes], Parsed]:
         return found, {
             "complexity.functions": len(ccns),
             "complexity.ccn_max": max(ccns, default=None),
-            "complexity.over_15": sum(c > CCN_FLAG for c in ccns),
+            COMPLEXITY_OVER: sum(c > CCN_FLAG for c in ccns),
         }
 
     return parse
@@ -274,7 +349,11 @@ def _jscpd(ctx: _Ctx) -> Callable[[bytes], Parsed]:
                 ctx.anchor(path, line, f"clone of {other}"),
                 f"{dup['lines']} duplicated lines, also at {other}:{other_line}",
             ))  # fmt: skip
-        pct = float(doc["statistics"]["total"]["percentage"])
+        code = [
+            v for k, v in doc["statistics"]["formats"].items() if k not in PROSE_FORMATS
+        ]
+        lines = sum(v["lines"] for v in code)
+        pct = 100.0 * sum(v["duplicatedLines"] for v in code) / lines if lines else None
         return found, {"duplication.pct": pct, "duplication.clones": len(found)}
 
     return parse
@@ -294,7 +373,7 @@ def _secret(path: str, line: int, rule: str) -> _Candidate:
 
 def _gitleaks(body: bytes) -> Parsed:
     return [
-        _secret(leak["File"], int(leak["StartLine"]), leak["RuleID"])
+        _secret(os.path.normpath(leak["File"]), int(leak["StartLine"]), leak["RuleID"])
         for leak in json.loads(body)
     ], {}
 
@@ -403,7 +482,7 @@ def _git_metrics(ctx: _Ctx) -> None:
     log = run_git(
         ctx.repo,
         "log",
-        f"--since={CHURN_SINCE}",
+        f"--since={CHURN_DAYS} days ago",
         "--numstat",
         "--format=",
         "--end-of-options",
@@ -416,10 +495,36 @@ def _git_metrics(ctx: _Ctx) -> None:
             added, deleted, path = (line.split("\t") + ["", "", ""])[:3]
             if added.isdigit() and deleted.isdigit():
                 churn[_top(path)] += int(added) + int(deleted)
+    now = time.time()
     for top in files:
         ctx.metrics[f"size.files:{top}"] = files[top]
         ctx.metrics[f"size.bytes:{top}"] = size[top]
-        ctx.metrics[f"churn.90d:{top}"] = None if churn is None else churn[top]
+        ctx.metrics[f"churn.{CHURN_DAYS}d:{top}"] = (
+            None if churn is None else churn[top]
+        )
+        if top != ".":
+            last = run_git(
+                ctx.repo,
+                "log",
+                "-1",
+                "--format=%ct",
+                "--end-of-options",
+                "HEAD",
+                "--",
+                top,
+            )
+            stamp = last.stdout.strip()
+            ctx.metrics[f"last_touch_days:{top}"] = (
+                int((now - int(stamp)) // 86400) if stamp.isdigit() else None
+            )
+
+
+def _tool_configs(ctx: _Ctx) -> None:
+    """Record every scanner config/ignore file the target ships (they can quieten a tool)."""
+    found = [rel for rel in ctx.files if Path(rel).name in TOOL_CONFIGS]
+    for rel in found:
+        ctx.trail(f"tool-config:{rel}", [], None, 0.0, "present")
+    ctx.metrics["tool_config.overrides"] = len(found)
 
 
 def _secrets(ctx: _Ctx) -> None:
@@ -486,8 +591,8 @@ def _network(ctx: _Ctx, tier: Tier) -> None:
         osv,
         _osv(ctx),
         ("deps.vulns",),
-        empty_ok=(128,),
-        ok=(0, 1, 128),
+        empty_ok=(OSV_NO_PACKAGES,),
+        ok=(0, 1, OSV_NO_PACKAGES),
     )
     requirements = [
         f
@@ -514,11 +619,15 @@ def _codemem(ctx: _Ctx) -> None:
     """Every call: `codemem --db <work>/codemem.db …` with cwd = the target. Failure → unknown."""
     ctx.tools.update(dict.fromkeys(CODEMEM_INPUTS, ToolStatus.UNKNOWN))
     ctx.metrics.update(
-        dict.fromkeys(
-            ("layers.core", "layers.middle", "layers.periphery", "dead_code.candidates")
-        )
+        dict.fromkeys([*(f"layers.{k}" for k in LAYERS), "dead_code.candidates"])
     )
-    binary = os.environ.get("CODEMEM_BIN") or shutil.which("codemem") or "codemem"
+    # Not _binary(): codemem ships with the forge, so a missing one is `unknown`, never `absent` (AC12).
+    binary = os.environ.get("CODEMEM_BIN") or shutil.which(
+        "codemem", path=absolute_path(os.environ.get("PATH", ""))
+    )
+    if not binary:
+        ctx.trail("codemem.build", ["codemem"], None, 0.0, ToolStatus.UNKNOWN)
+        return
     db = str(ctx.work / "codemem.db")
 
     def call(label: str, *args: str) -> bytes | None:
@@ -564,12 +673,7 @@ def _codemem(ctx: _Ctx) -> None:
         )
 
     def layers(d: dict[str, Any]) -> None:
-        ctx.metrics.update(
-            {
-                f"layers.{k}": len(d["layers"][k])
-                for k in ("core", "middle", "periphery")
-            }
-        )
+        ctx.metrics.update({f"layers.{k}": len(d["layers"][k]) for k in LAYERS})
 
     ran("dead_code", dead_code, query("dead_code", "--budget", str(DEAD_CODE_BUDGET)))
     ran("layers", layers, query("layers"))
@@ -592,6 +696,9 @@ def _codemem(ctx: _Ctx) -> None:
 
         if all(ran("co_changes", co_changes(t), query("co_changes", t)) for t in hot):
             ctx.metrics.update(pairs)
+            ctx.tools["codemem.co_changes"] = (
+                ToolStatus.RAN
+            )  # also when there is no hot file
         else:
             ctx.tools["codemem.co_changes"] = ToolStatus.UNKNOWN
 
@@ -615,11 +722,23 @@ def _codemem(ctx: _Ctx) -> None:
 # --- entry ---------------------------------------------------------------------------------------
 
 
-def _findings(found: list[_Candidate]) -> list[Finding]:
-    found = sorted(found, key=lambda c: (c.rule, c.path, c.line or 0, c.anchor))
+def _findings(ctx: _Ctx) -> list[Finding]:
+    """Findings with ids; one whose path the model refuses (a hostile file name) is dropped and
+    counted, never allowed to crash the run."""
+    found = sorted(ctx.found, key=lambda c: (c.rule, c.path, c.line or 0, c.anchor))
     ids = assign_ids((c.dimension, c.rule, c.path, c.anchor) for c in found)
-    return [
-        Finding(
+    out = []
+    for c, fid in zip(found, ids, strict=True):
+        try:
+            out.append(_finding(c, fid))
+        except ValidationError:
+            continue
+    ctx.metrics["findings.unreportable"] = len(found) - len(out)
+    return out
+
+
+def _finding(c: _Candidate, fid: str) -> Finding:
+    return Finding(
             schema_version=SCHEMA_VERSION,
             id=fid,
             origin=Origin.MEASURED,
@@ -635,8 +754,6 @@ def _findings(found: list[_Candidate]) -> list[Finding]:
             refutation=Refutation.NOT_REQUIRED,
             evidence=c.evidence,
         )  # fmt: skip
-        for c, fid in zip(found, ids, strict=True)
-    ]
 
 
 def measure(repo: Path, tier: Tier, *, tool_timeout: float = TOOL_TIMEOUT_S) -> Path:
@@ -652,12 +769,13 @@ def measure(repo: Path, tier: Tier, *, tool_timeout: float = TOOL_TIMEOUT_S) -> 
 
     ctx = _Ctx(repo, work, tool_timeout, _tracked_regular_files(repo))
     _git_metrics(ctx)
+    _tool_configs(ctx)
     _tool(
         ctx,
         "lizard",
         ["--csv", *ctx.files],
         _lizard(ctx),
-        ("complexity.functions", "complexity.ccn_max", "complexity.over_15"),
+        ("complexity.functions", "complexity.ccn_max", COMPLEXITY_OVER),
     )
     jscpd_out = work / "jscpd"
     jscpd = ["--reporters", "json", "--output", str(jscpd_out), "--silent", *ctx.files]
@@ -678,7 +796,7 @@ def measure(repo: Path, tier: Tier, *, tool_timeout: float = TOOL_TIMEOUT_S) -> 
         schema_version=SCHEMA_VERSION,
         stamp=stamp.model_copy(update={"tools": ctx.tools}),
         metrics=ctx.metrics,
-        measured=_findings(ctx.found),
+        measured=_findings(ctx),
     )
     (work / "measure.json").write_text(
         doc.model_dump_json(indent=2) + "\n", encoding="utf-8"

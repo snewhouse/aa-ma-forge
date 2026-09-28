@@ -14,7 +14,7 @@ import json
 import os
 import re
 import shutil
-import subprocess
+import subprocess  # nosec B404 — gitleaks runs from an argv list, never a shell
 import tempfile
 from collections.abc import Iterator
 from pathlib import Path
@@ -26,7 +26,6 @@ from .stamp import SELF_IGNORE_NAME, SELF_IGNORE_TEXT
 TEXT_SUFFIXES = {".md", ".log"}
 JSON_SUFFIXES = {".json", ".sarif"}
 JSONL_SUFFIXES = {".jsonl"}
-# The one file exempt from scanning: the reports root's own self-ignoring marker, byte for byte.
 GITLEAKS_TIMEOUT_S = 300
 # gitleaks 8.18 columns (live-probed 2026-09-28): a token at 0-based index i, length L is reported
 # as StartColumn i+2, EndColumn i+L+1 — one lower on a file's first line. _widen absorbs either.
@@ -207,9 +206,15 @@ def _contexts(node: Any, pointer: str) -> Iterator[tuple[str, str, int]]:
     if isinstance(node, dict):
         for pos, (key, value) in enumerate(node.items()):
             child = _member_ptr(pointer, pos)
+            prefix = f'"{key}": "'
             if isinstance(value, str):
-                prefix = f'"{key}": "'
                 yield child, f'{prefix}{value}"', len(prefix)
+            elif isinstance(
+                value, list
+            ):  # {"api_key": ["..."]}: each string item gets its key too
+                for i, item in enumerate(value):
+                    if isinstance(item, str):
+                        yield _item_ptr(child, i), f'{prefix}{item}"', len(prefix)
             yield from _contexts(value, child)
     elif isinstance(node, list):
         for i, value in enumerate(node):
@@ -392,7 +397,7 @@ def _run_gitleaks(binary: str, texts: list[_Text]) -> list[Any] | None:
             "0",
         ]
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosec B603 — binary from GITLEAKS_BIN/PATH, args are our temp paths
                 argv,
                 capture_output=True,
                 text=True,
@@ -583,7 +588,9 @@ def _redact_jsonl(path: Path, file_hits: list[Hit]) -> tuple[str, int]:
             doc, n = _redact_node(doc, "", _index(line_hits))
             total += n
         lines.append(json.dumps(doc, ensure_ascii=False))
-    return "\n".join(lines) + "\n", total
+    return "\n".join(
+        lines
+    ), total  # split("\n") kept the final "" — joining restores the framing
 
 
 def redact(root: Path, hits: list[Hit]) -> int:

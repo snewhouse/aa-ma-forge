@@ -56,7 +56,10 @@ def test_build_stamp_fields(repo: Path) -> None:
     s = stamp.build_stamp(repo, "deep")
     assert isinstance(s, Stamp)
     assert s.tier == "deep"
-    assert s.date_utc.utcoffset() is not None and s.date_utc.utcoffset().total_seconds() == 0
+    assert (
+        s.date_utc.utcoffset() is not None
+        and s.date_utc.utcoffset().total_seconds() == 0
+    )
     assert s.tools == {} and s.absorbed == [] and s.fresh_run == []
 
 
@@ -75,22 +78,30 @@ def test_detached_head_branch(repo: Path) -> None:
 
 def test_shallow_clone_stamps_head(repo: Path, tmp_path: Path) -> None:
     clone = tmp_path / "shallow"
-    subprocess.run(["git", "clone", "-q", "--depth", "1", f"file://{repo}", str(clone)], check=True)
+    subprocess.run(
+        ["git", "clone", "-q", "--depth", "1", f"file://{repo}", str(clone)], check=True
+    )
     assert stamp.head_stamp(clone)[0] == git(repo, "rev-parse", "HEAD")[:12]
 
 
-def test_non_git_dir_exits_2(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_non_git_dir_exits_2(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     assert cli.main(["stamp", "--repo", str(tmp_path), "--tier", "quick"]) == 2
     assert "not a git repo with ≥1 commit" in capsys.readouterr().err
 
 
-def test_zero_commit_repo_exits_2(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_zero_commit_repo_exits_2(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     git(tmp_path, "init", "-q")
     assert cli.main(["stamp", "--repo", str(tmp_path), "--tier", "quick"]) == 2
     assert "not a git repo with ≥1 commit" in capsys.readouterr().err
 
 
-def test_stamp_cli_prints_valid_stamp(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_stamp_cli_prints_valid_stamp(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     assert cli.main(["stamp", "--repo", str(repo), "--tier", "standard"]) == 0
     s = Stamp.model_validate_json(capsys.readouterr().out)
     assert s.sha12 == git(repo, "rev-parse", "HEAD")[:12]
@@ -103,7 +114,10 @@ def test_stamp_cli_requires_tier(repo: Path) -> None:
 
 
 def _write_summary_dir(repo: Path, s: Stamp) -> Path:
-    fixture = Path(__file__).resolve().parents[2] / "tests/fixtures/analysis/valid/summary.json"
+    fixture = (
+        Path(__file__).resolve().parents[2]
+        / "tests/fixtures/analysis/valid/summary.json"
+    )
     doc = json.loads(fixture.read_text(encoding="utf-8"))
     doc["stamp"] = json.loads(s.model_dump_json())
     d = repo / REPORTS / s.sha12
@@ -119,7 +133,9 @@ def test_fresh_cli(repo: Path) -> None:
     assert cli.main(["fresh", str(d), "--repo", str(repo)]) == 1
 
 
-def test_fresh_cli_legacy_dir_is_unverified(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_fresh_cli_legacy_dir_is_unverified(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     legacy = repo / ".claude/reports/codebase-deep-dive-2026-09-17"
     legacy.mkdir(parents=True)
     (legacy / "00-executive-summary.md").write_text("# old\n", encoding="utf-8")
@@ -128,7 +144,10 @@ def test_fresh_cli_legacy_dir_is_unverified(repo: Path, capsys: pytest.CaptureFi
 
 
 def test_fresh_cli_reads_onboarding_json(repo: Path) -> None:
-    fixture = Path(__file__).resolve().parents[2] / "tests/fixtures/analysis/valid/onboarding.json"
+    fixture = (
+        Path(__file__).resolve().parents[2]
+        / "tests/fixtures/analysis/valid/onboarding.json"
+    )
     doc = json.loads(fixture.read_text(encoding="utf-8"))
     doc["stamp"] = json.loads(stamp.build_stamp(repo, "quick").model_dump_json())
     target = repo / ".claude/onboarding/onboarding.json"
@@ -149,7 +168,9 @@ def test_ensure_self_ignoring_hides_reports(repo: Path) -> None:
     assert git(repo, "status", "--porcelain") == ""
 
 
-def test_ensure_self_ignoring_refuses_symlinked_gitignore(repo: Path, tmp_path: Path) -> None:
+def test_ensure_self_ignoring_refuses_symlinked_gitignore(
+    repo: Path, tmp_path: Path
+) -> None:
     root = stamp.safe_dir(repo, str(REPORTS))
     outside = tmp_path / "elsewhere"
     outside.write_text("keep\n", encoding="utf-8")
@@ -169,13 +190,19 @@ SYMLINKABLE = [
 
 
 @pytest.mark.parametrize("component", SYMLINKABLE)
-def test_safe_dir_refuses_a_symlinked_component(repo: Path, tmp_path: Path, component: str) -> None:
+def test_safe_dir_refuses_a_symlinked_component(
+    repo: Path, tmp_path: Path, component: str
+) -> None:
     outside = tmp_path / "outside"
     outside.mkdir()
     link = repo / component
     link.parent.mkdir(parents=True, exist_ok=True)
     link.symlink_to(outside, target_is_directory=True)
-    target = component if component.endswith((".work-0123456789ab", "onboarding")) else f"{component}/x"
+    target = (
+        component
+        if component.endswith((".work-0123456789ab", "onboarding"))
+        else f"{component}/x"
+    )
     with pytest.raises(stamp.UnsafePath):
         stamp.safe_dir(repo, target)
     assert list(outside.iterdir()) == [], "nothing may be written through the symlink"
@@ -196,7 +223,9 @@ def test_safe_dir_creates_and_returns(repo: Path) -> None:
 # --- git option injection (AC11) -------------------------------------------------------------
 
 
-def test_every_git_call_ends_options(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_every_git_call_ends_options(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     calls: list[list[str]] = []
     real = subprocess.run
 

@@ -38,7 +38,9 @@ def test_valid_fixture_validates(kind: str) -> None:
 
 
 @pytest.mark.parametrize("path", INVALID, ids=[p.name for p in INVALID])
-def test_negative_fixture_is_rejected(path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_negative_fixture_is_rejected(
+    path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     assert cli.main(["validate", _kind(path), str(path)]) == 1
     assert capsys.readouterr().err.strip(), "a rejection must say why on stderr"
 
@@ -61,7 +63,9 @@ def test_negative_fixtures_cover_the_named_cases() -> None:
 
 
 def test_validate_usage_errors_exit_2(tmp_path: Path) -> None:
-    assert cli.main(["validate", "bogus-kind", str(FIX / "valid" / "summary.json")]) == 2
+    assert (
+        cli.main(["validate", "bogus-kind", str(FIX / "valid" / "summary.json")]) == 2
+    )
     assert cli.main(["validate", "summary", str(tmp_path / "missing.json")]) == 2
 
 
@@ -96,17 +100,31 @@ def test_valid_fixture_passes_its_golden_schema(kind: str) -> None:
 def test_schema_version_2_fails_the_golden_schema_too() -> None:
     """Draft-04 ignores `const`; 2020-12 must reject schema_version 2 like the model does."""
     schema = json.loads((GOLDEN / "summary.schema.json").read_text(encoding="utf-8"))
-    doc = json.loads((FIX / "invalid" / "summary-schema-version-2.json").read_text(encoding="utf-8"))
+    doc = json.loads(
+        (FIX / "invalid" / "summary-schema-version-2.json").read_text(encoding="utf-8")
+    )
     assert not Draft202012Validator(schema).is_valid(doc)
 
 
 def test_write_schemas_module_entry_point(tmp_path: Path) -> None:
     subprocess.run(
-        [sys.executable, "-m", "aa_ma.analysis.models", "--write-schemas", str(tmp_path)], check=True, cwd=ROOT
+        [
+            sys.executable,
+            "-m",
+            "aa_ma.analysis.models",
+            "--write-schemas",
+            str(tmp_path),
+        ],
+        check=True,
+        cwd=ROOT,
     )
-    assert sorted(p.name for p in tmp_path.iterdir()) == sorted(f"{k}.schema.json" for k in KIND_FILES)
+    assert sorted(p.name for p in tmp_path.iterdir()) == sorted(
+        f"{k}.schema.json" for k in KIND_FILES
+    )
     for kind in KIND_FILES:
-        written = json.loads((tmp_path / f"{kind}.schema.json").read_text(encoding="utf-8"))
+        written = json.loads(
+            (tmp_path / f"{kind}.schema.json").read_text(encoding="utf-8")
+        )
         assert written == models.EXPORTED[kind].model_json_schema()
 
 
@@ -121,5 +139,7 @@ def test_sha12_rejects_option_like_value() -> None:
 def test_console_script_is_declared() -> None:
     import tomllib
 
-    scripts = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
+    scripts = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
+        "project"
+    ]["scripts"]
     assert scripts["aa-ma-analysis"] == "aa_ma.analysis.cli:main"

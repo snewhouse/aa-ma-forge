@@ -51,25 +51,37 @@ def test_understand_codebase_frontmatter() -> None:
     assert isinstance(description, str) and len(description.strip()) >= 50, (
         "description must be a substantive string explaining when/why to invoke the skill"
     )
-    assert any(token in description for token in ("onboard", "ONBOARDING.md", "AGENTS.md")), (
+    assert any(
+        token in description for token in ("onboard", "ONBOARDING.md", "AGENTS.md")
+    ), (
         "description should mention the onboarding deliverables (ONBOARDING.md / AGENTS.md)"
     )
 
     allowed_tools = fm.get("allowed-tools")
-    assert isinstance(allowed_tools, list) and allowed_tools, "allowed-tools must be a non-empty list"
+    assert isinstance(allowed_tools, list) and allowed_tools, (
+        "allowed-tools must be a non-empty list"
+    )
     for tool in ("Read", "Write", "Agent"):
-        assert tool in allowed_tools, f"expected {tool!r} in allowed-tools (the skill composes agents and writes files)"
+        assert tool in allowed_tools, (
+            f"expected {tool!r} in allowed-tools (the skill composes agents and writes files)"
+        )
 
 
 def test_referenced_companion_files_exist_and_are_substantive() -> None:
     """Every references/<X>.md and templates/<X>.md path named in SKILL.md is on disk and > 1 KB."""
     text = SKILL_MD.read_text(encoding="utf-8")
-    referenced = set(re.findall(r"\b((?:references|templates)/[A-Za-z0-9_.-]+\.md)\b", text))
-    assert referenced, "expected SKILL.md to reference its references/ and templates/ companion files"
+    referenced = set(
+        re.findall(r"\b((?:references|templates)/[A-Za-z0-9_.-]+\.md)\b", text)
+    )
+    assert referenced, (
+        "expected SKILL.md to reference its references/ and templates/ companion files"
+    )
     for rel in sorted(referenced):
         path = SKILL_DIR / rel
         assert path.exists(), f"SKILL.md references {rel!r} but {path} is missing"
-        assert path.stat().st_size > 1024, f"{rel} is suspiciously small (< 1 KB) — likely a stub, not the real file"
+        assert path.stat().st_size > 1024, (
+            f"{rel} is suspiciously small (< 1 KB) — likely a stub, not the real file"
+        )
 
 
 def test_companion_inventory_is_pinned() -> None:

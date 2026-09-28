@@ -22,7 +22,12 @@ GIT_ENV = {
 
 def git(repo: Path, *args: str) -> str:
     return subprocess.run(
-        ["git", *args], cwd=repo, env={**os.environ, **GIT_ENV}, check=True, capture_output=True, text=True
+        ["git", *args],
+        cwd=repo,
+        env={**os.environ, **GIT_ENV},
+        check=True,
+        capture_output=True,
+        text=True,
     ).stdout.strip()
 
 
@@ -41,7 +46,11 @@ def repo(tmp_path: Path) -> Path:
     r = tmp_path / "repo"
     r.mkdir()
     git(r, "init", "-q")
-    for rel, text in {"src/app.py": "print(1)\n", "src/db.py": "x = 1\n", "README.md": "# toy\n"}.items():
+    for rel, text in {
+        "src/app.py": "print(1)\n",
+        "src/db.py": "x = 1\n",
+        "README.md": "# toy\n",
+    }.items():
         (r / rel).parent.mkdir(parents=True, exist_ok=True)
         (r / rel).write_text(text, encoding="utf-8")
     git(r, "add", "-A")

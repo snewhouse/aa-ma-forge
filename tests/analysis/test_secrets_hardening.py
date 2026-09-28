@@ -35,7 +35,9 @@ def test_duplicate_json_key_is_refused(tmp_path: Path, no_gitleaks: None) -> Non
 
 def test_duplicate_key_in_jsonl_is_refused(tmp_path: Path, no_gitleaks: None) -> None:
     d = _dir(tmp_path)
-    (d / "f.jsonl").write_text('{"k": {"x": "' + AWS + '", "x": 1}}\n', encoding="utf-8")
+    (d / "f.jsonl").write_text(
+        '{"k": {"x": "' + AWS + '", "x": 1}}\n', encoding="utf-8"
+    )
     with pytest.raises(secrets.UnsupportedFile):
         secrets.scan(d)
 
@@ -51,14 +53,18 @@ def test_nested_gitignore_is_not_skipped(tmp_path: Path, no_gitleaks: None) -> N
         secrets.scan(d)
 
 
-def test_root_gitignore_other_than_star_is_not_skipped(tmp_path: Path, no_gitleaks: None) -> None:
+def test_root_gitignore_other_than_star_is_not_skipped(
+    tmp_path: Path, no_gitleaks: None
+) -> None:
     d = _dir(tmp_path)
     (d / ".gitignore").write_text(f"*\n# {AWS}\n", encoding="utf-8")
     with pytest.raises(secrets.UnsupportedFile):
         secrets.scan(d)
 
 
-def test_root_self_ignoring_gitignore_is_still_allowed(tmp_path: Path, no_gitleaks: None) -> None:
+def test_root_self_ignoring_gitignore_is_still_allowed(
+    tmp_path: Path, no_gitleaks: None
+) -> None:
     d = _dir(tmp_path)
     (d / ".gitignore").write_text("*\n", encoding="utf-8")
     assert secrets.scan(d).hits == []
@@ -67,7 +73,9 @@ def test_root_self_ignoring_gitignore_is_still_allowed(tmp_path: Path, no_gitlea
 # --- CRITICAL 3: gitleaks report that cannot be mapped back ---------------------------------------
 
 
-def test_unmappable_gitleaks_entry_fails_closed(tmp_path: Path, stub: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_unmappable_gitleaks_entry_fails_closed(
+    tmp_path: Path, stub: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("STUB_MODE", "find")
     monkeypatch.setenv("STUB_EXTRA", "nofile")
     d = _dir(tmp_path)
@@ -77,7 +85,9 @@ def test_unmappable_gitleaks_entry_fails_closed(tmp_path: Path, stub: Path, monk
     assert cli.main(["scan-secrets", str(d), "--redact"]) == 1
 
 
-def test_bad_span_blanks_the_text_and_keeps_other_hits(tmp_path: Path, stub: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bad_span_blanks_the_text_and_keeps_other_hits(
+    tmp_path: Path, stub: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     other = "zzsecond" + "-opaque-4b1e"
     monkeypatch.setenv("STUB_MODE", "find")
     monkeypatch.setenv("STUB_EXTRA", "badspan")
@@ -88,14 +98,20 @@ def test_bad_span_blanks_the_text_and_keeps_other_hits(tmp_path: Path, stub: Pat
     result = secrets.scan(d)
     assert result.tool_status == "ran"
     secrets.redact(d, result.hits)
-    assert OPAQUE not in (d / "a.md").read_text(encoding="utf-8"), "the mapped hit must survive a bad sibling"
-    assert other not in (d / "b.md").read_text(encoding="utf-8"), "unknown span → blank the whole text"
+    assert OPAQUE not in (d / "a.md").read_text(encoding="utf-8"), (
+        "the mapped hit must survive a bad sibling"
+    )
+    assert other not in (d / "b.md").read_text(encoding="utf-8"), (
+        "unknown span → blank the whole text"
+    )
 
 
 # --- WARNING: dedup by span, not by rule ---------------------------------------------------------
 
 
-def test_same_span_from_both_scanners_is_one_hit(tmp_path: Path, stub: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_same_span_from_both_scanners_is_one_hit(
+    tmp_path: Path, stub: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("STUB_MODE", "find")
     monkeypatch.setenv("STUB_TOKEN", AWS)
     d = _dir(tmp_path)
@@ -107,10 +123,19 @@ def test_same_span_from_both_scanners_is_one_hit(tmp_path: Path, stub: Path, mon
 # --- INFO: files the gate cannot handle cleanly ----------------------------------------------------
 
 
-def test_redacted_flag_set_in_json_documents_too(tmp_path: Path, no_gitleaks: None) -> None:
+def test_redacted_flag_set_in_json_documents_too(
+    tmp_path: Path, no_gitleaks: None
+) -> None:
     d = _dir(tmp_path)
     (d / "measure.json").write_text(
-        json.dumps({"measured": [{"evidence": f"key {AWS}", "redacted": False}, {"evidence": "clean", "redacted": False}]}),
+        json.dumps(
+            {
+                "measured": [
+                    {"evidence": f"key {AWS}", "redacted": False},
+                    {"evidence": "clean", "redacted": False},
+                ]
+            }
+        ),
         encoding="utf-8",
     )
     secrets.redact(d, secrets.scan(d).hits)
@@ -125,10 +150,14 @@ def test_hardlinked_file_is_refused(tmp_path: Path, no_gitleaks: None) -> None:
     os.link(outside, d / "linked.md")
     with pytest.raises(secrets.UnsupportedFile):
         secrets.scan(d)
-    assert GHP in outside.read_text(encoding="utf-8"), "nothing outside the dir may be rewritten"
+    assert GHP in outside.read_text(encoding="utf-8"), (
+        "nothing outside the dir may be rewritten"
+    )
 
 
-def test_unencodable_string_is_refused_cleanly(tmp_path: Path, no_gitleaks: None) -> None:
+def test_unencodable_string_is_refused_cleanly(
+    tmp_path: Path, no_gitleaks: None
+) -> None:
     d = _dir(tmp_path)
     (d / "s.json").write_text('{"a": "\\ud800"}', encoding="utf-8")
     with pytest.raises(secrets.UnsupportedFile):
@@ -149,7 +178,9 @@ def test_secret_in_a_file_name_is_refused_without_echo(
     assert AWS not in out.out and AWS not in out.err
 
 
-def test_redaction_leaves_no_partial_file_on_failure(tmp_path: Path, no_gitleaks: None) -> None:
+def test_redaction_leaves_no_partial_file_on_failure(
+    tmp_path: Path, no_gitleaks: None
+) -> None:
     """Writes go to a temp file and are renamed into place, so the original is intact or fully replaced."""
     d = _plant(tmp_path / "r")
     before = {p.name for p in d.iterdir()}
@@ -160,8 +191,14 @@ def test_redaction_leaves_no_partial_file_on_failure(tmp_path: Path, no_gitleaks
 # --- CLI ------------------------------------------------------------------------------------------
 
 
-def test_validate_never_echoes_rejected_values(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    doc = json.loads((ROOT / "tests/fixtures/analysis/valid/summary.json").read_text(encoding="utf-8"))
+def test_validate_never_echoes_rejected_values(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    doc = json.loads(
+        (ROOT / "tests/fixtures/analysis/valid/summary.json").read_text(
+            encoding="utf-8"
+        )
+    )
     doc["grade"] = AWS
     doc["stamp"]["branch"] = 7  # a type error whose input would also be echoed
     bad = tmp_path / "s.json"
@@ -181,22 +218,39 @@ def test_fresh_on_non_utf8_summary_is_unstamped(tmp_path: Path) -> None:
 # --- §6.8 re-run (0ae6e8a..56f1cc6) -----------------------------------------------------------------
 
 
-def test_json_key_context_reaches_the_contextual_rules(tmp_path: Path, no_gitleaks: None) -> None:
+def test_json_key_context_reaches_the_contextual_rules(
+    tmp_path: Path, no_gitleaks: None
+) -> None:
     """{"password": "..."} in JSON must be caught like `password: "..."` in text."""
     d = _dir(tmp_path)
     value = "hunter2" + "hunter2hunter2"
-    (d / "summary.json").write_text(json.dumps({"password": value, "nested": {"api_key": "Zq8rT2vL" + "m9XwP4sK7nB3"}}), encoding="utf-8")
+    (d / "summary.json").write_text(
+        json.dumps(
+            {"password": value, "nested": {"api_key": "Zq8rT2vL" + "m9XwP4sK7nB3"}}
+        ),
+        encoding="utf-8",
+    )
     result = secrets.scan(d)
     assert {h.rule for h in result.hits} >= {"generic-quoted"}
     secrets.redact(d, result.hits)
     doc = json.loads((d / "summary.json").read_text(encoding="utf-8"))
-    assert value not in json.dumps(doc) and "Zq8rT2vLm9XwP4sK7nB3" not in json.dumps(doc)
-    assert set(doc) == {"password", "nested"}, "keys stay readable; only the values are redacted"
+    assert value not in json.dumps(doc) and "Zq8rT2vLm9XwP4sK7nB3" not in json.dumps(
+        doc
+    )
+    assert set(doc) == {"password", "nested"}, (
+        "keys stay readable; only the values are redacted"
+    )
     assert secrets.scan(d).hits == []
 
 
-def test_validate_never_echoes_a_secret_key_name(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    doc = json.loads((ROOT / "tests/fixtures/analysis/valid/summary.json").read_text(encoding="utf-8"))
+def test_validate_never_echoes_a_secret_key_name(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    doc = json.loads(
+        (ROOT / "tests/fixtures/analysis/valid/summary.json").read_text(
+            encoding="utf-8"
+        )
+    )
     doc[GHP] = 1
     bad = tmp_path / "s.json"
     bad.write_text(json.dumps(doc), encoding="utf-8")
@@ -218,7 +272,9 @@ def test_secret_split_across_path_components_is_not_echoed(
 def test_jsonl_is_split_on_newlines_only(tmp_path: Path, no_gitleaks: None) -> None:
     d = _dir(tmp_path)
     (d / "f.jsonl").write_text('{"a": 1}\x0c{"b": "x"}\n', encoding="utf-8")
-    with pytest.raises(secrets.UnsupportedFile):  # one line, which is not one JSON document
+    with pytest.raises(
+        secrets.UnsupportedFile
+    ):  # one line, which is not one JSON document
         secrets.scan(d)
 
 
@@ -238,7 +294,9 @@ def test_redaction_keeps_file_mode(tmp_path: Path, no_gitleaks: None) -> None:
     assert f.stat().st_mode & 0o777 == 0o644
 
 
-def test_key_containing_the_separator_does_not_shift_the_value_span(tmp_path: Path, no_gitleaks: None) -> None:
+def test_key_containing_the_separator_does_not_shift_the_value_span(
+    tmp_path: Path, no_gitleaks: None
+) -> None:
     """§6.6 quality review: a key that itself contains '": "' moved the value offset into the key,
     leaving part of the secret on disk after --redact."""
     d = _dir(tmp_path)
@@ -250,15 +308,23 @@ def test_key_containing_the_separator_does_not_shift_the_value_span(tmp_path: Pa
     assert secrets.scan(d).hits == []
 
 
-def test_identical_texts_are_each_redacted(tmp_path: Path, stub: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_identical_texts_are_each_redacted(
+    tmp_path: Path, stub: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Guard for scanning each distinct text once: every occurrence still gets its own hit."""
     monkeypatch.setenv("STUB_MODE", "find")
     d = _dir(tmp_path)
-    lines = [json.dumps({"k": f"v {OPAQUE}", "n": i, "e": f"key {AWS}"}) for i in range(3)]
+    lines = [
+        json.dumps({"k": f"v {OPAQUE}", "n": i, "e": f"key {AWS}"}) for i in range(3)
+    ]
     (d / "f.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
     (d / "a.md").write_text(f"v {OPAQUE}\n", encoding="utf-8")
     result = secrets.scan(d)
-    assert len({(h.path, h.pointer) for h in result.hits}) == 7  # 3×k + 3×e + the md line
+    assert (
+        len({(h.path, h.pointer) for h in result.hits}) == 7
+    )  # 3×k + 3×e + the md line
     secrets.redact(d, result.hits)
-    text = (d / "f.jsonl").read_text(encoding="utf-8") + (d / "a.md").read_text(encoding="utf-8")
+    text = (d / "f.jsonl").read_text(encoding="utf-8") + (d / "a.md").read_text(
+        encoding="utf-8"
+    )
     assert OPAQUE not in text and AWS not in text

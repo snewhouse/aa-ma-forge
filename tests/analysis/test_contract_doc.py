@@ -82,3 +82,37 @@ def test_contract_states_the_freshness_and_id_rules() -> None:
     assert "#k" in text, "twin occurrence suffix (R-2)"
     assert "redact" in text.lower() and "before hashing" in text.lower(), "anchor redaction (R-1)"
     assert "fixed + new" in text or "fixed+new" in text, "rename behaviour (R-3)"
+
+
+ENUMS = [models.ToolStatus, models.Rating, models.Confidence, models.Severity, models.Origin,
+         models.Refutation, models.Dimension]  # fmt: skip
+
+
+@pytest.mark.parametrize("enum", ENUMS, ids=[e.__name__ for e in ENUMS])
+def test_contract_names_every_enum_value(enum: type) -> None:
+    text = _text(CONTRACT)
+    for member in enum:  # type: ignore[attr-defined]
+        assert str(member.value) in text, f"{enum.__name__}.{member.name} missing from the contract"
+
+
+def test_contract_names_literal_values_and_limits() -> None:
+    text = _text(CONTRACT)
+    for value in ("verified", "failed", "timeout", "not_run", "refused", "assessed", "set_aside", "quick", "standard", "deep"):
+        assert value in text
+    assert "≤ 2000" in text and "≤ 8000" in text and "40 output lines" in text
+    assert models.EVIDENCE_MAX == 2000 and models.NOTE_MAX == 8000
+
+
+def test_contract_names_every_regex_rule() -> None:
+    from aa_ma.analysis.secrets import PATTERNS
+
+    section = re.search(r"^## 2\. Output gate\n(.*?)(?=^## )", _text(CONTRACT), re.S | re.M)
+    assert section
+    for rule, _ in PATTERNS:
+        assert f"`{rule}`" in section.group(1), f"regex rule {rule} not named in contract §2"
+
+
+def test_contract_documents_gitleaks_allow_and_m2_enforcement() -> None:
+    text = _text(CONTRACT)
+    assert "gitleaks:allow" in text
+    assert "M2" in text, "claims not yet reachable from the M1 CLI are labelled as M2"

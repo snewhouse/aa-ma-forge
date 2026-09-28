@@ -54,6 +54,15 @@ STUB = textwrap.dedent(
                 out.append({"RuleID": "generic-api-key", "File": str(f), "StartLine": n, "EndLine": n,
                             "StartColumn": i + off, "EndColumn": i + len(token) + off - 1,
                             "Match": "REDACTED", "Secret": "REDACTED"})
+    extra = os.environ.get("STUB_EXTRA")
+    if extra == "nofile":  # an entry tied to no scanned text
+        out.append({"RuleID": "generic-api-key", "File": "/elsewhere/zz.txt", "StartLine": 1, "EndLine": 1,
+                    "StartColumn": 1, "EndColumn": 2, "Match": "REDACTED", "Secret": "REDACTED"})
+    if extra == "badspan":  # a known text but a span that does not fit it
+        for f in sorted(p for p in src.rglob("*") if p.is_file()):
+            if os.environ["STUB_BADSPAN_TOKEN"] in f.read_text(errors="replace"):
+                out.append({"RuleID": "generic-api-key", "File": str(f), "StartLine": 999, "EndLine": 999,
+                            "StartColumn": 1, "EndColumn": 2, "Match": "REDACTED", "Secret": "REDACTED"})
     report.write_text(json.dumps(out))
     """
 )

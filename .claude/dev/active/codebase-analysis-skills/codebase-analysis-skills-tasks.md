@@ -47,6 +47,12 @@
 - Mode: HITL
 - Result Log: [placeholder]
 
+### Sub-step 1.7: [remediate] §6.8 impl-review — 3 accepted CRITICALs + 9 WARNINGs (Ste: fix all now)
+- Status: PENDING
+- Mode: AFK
+- Acceptance Criteria: RED tests for each CRITICAL (duplicate JSON keys, non-root/altered `.gitignore`, gitleaks unmappable entry) and each testable WARNING, then fixes; §6.8 re-run shows 0 CRITICAL. Source: codebase-analysis-skills-impl-review.md User Override Decisions rows 1-3.
+- Result Log: [placeholder]
+
 ## Milestone 2: Assess engine (CLI)
 - Status: PENDING
 - Dependencies: Milestone 1

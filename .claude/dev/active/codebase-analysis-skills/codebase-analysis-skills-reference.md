@@ -30,6 +30,8 @@
 - Offline env: `UV_OFFLINE=1 UV_NO_SYNC=1 UV_PYTHON_DOWNLOADS=never PIP_NO_INDEX=1 npm_config_offline=true YARN_ENABLE_NETWORK=0 COREPACK_ENABLE_NETWORK=0 CARGO_NET_OFFLINE=true GOPROXY=off GOTOOLCHAIN=local GOFLAGS=-mod=readonly`; child env = PATH, HOME, LANG, TMPDIR + these.
 - Network-reaching tools (semgrep, osv-scanner, pip-audit) run in Deep only, disclosed at the tier ask.
 - gitleaks (8.18 on BATS; no `dir` subcommand): `gitleaks detect --no-git --redact -s <src> -f json -r <tmp> --exit-code 0`; rc≠0 → unknown.
+- gitleaks 8.18 column convention (live-probed 2026-09-28): token at 0-based index i, length L → `StartColumn = i+2`, `EndColumn = i+L+1` (span = `line[sc-2:ec-1]`); redaction widens to the enclosing non-whitespace token. Bad `-s` path → rc 1, no report.
+- Vendored SARIF schema `tests/fixtures/sarif/sarif-schema-2.1.0.json`: sha256 `c3b4bb2d6093897483348925aaa73af03b3e3f4bd4ca38cef26dcb4212a2682e`, 112768 B.
 - Consumer invocation: `AA_MA_ROOT=${AA_MA_ROOT:-$(cd "$(dirname "$(readlink -f ~/.claude/skills/<skill>/SKILL.md)")/../../.." && pwd)}`; `uv run --quiet --project "${AA_MA_ROOT}" aa-ma-analysis …` (live-probed: cwd kept, forge codemem on PATH).
 - codemem CLI: `--db` is top-level (before `query`); `build` never fills commits tables → `refresh-commits`; `query` tools 6 → 10 after M2.
 - Import contracts: `aa-ma-never-imports-codemem` (`.importlinter:75-81`); `render-is-leaf` explicit list (`.importlinter:53-73`) pinned by `tests/render/test_leaf_contract.py`; new `analysis-is-leaf`.

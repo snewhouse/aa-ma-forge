@@ -19,9 +19,11 @@ Tools:
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -707,6 +709,10 @@ def owners(
     )
 
 
+# Each blame is a ``git`` subprocess, so threads overlap the waiting.
+_BLAME_MAX_WORKERS = min(8, os.cpu_count() or 1)
+
+
 def _refresh_ownership_cache(
     db_path: Path, path: str, *, repo_root: Path
 ) -> None:
@@ -715,7 +721,8 @@ def _refresh_ownership_cache(
 
     Per-file 2 second timeout matches the AC. Silently skips files that
     blame refuses (binary, not-in-HEAD, deleted) — they just don't get
-    cache entries.
+    cache entries. Blames run concurrently on a bounded thread pool; only
+    the calling thread writes, in sorted file-path order.
     """
     # Local import avoids circular dep if someone stubs mcp_tools before
     # analysis in some future toplevel layout.
@@ -741,15 +748,21 @@ def _refresh_ownership_cache(
     if not targets:
         return
 
+    def _blame(target: str) -> dict[str, tuple[int, float]]:
+        try:
+            return miner.get_blame(target)
+        except Exception:
+            return {}
+
+    targets = sorted(targets)
+    with ThreadPoolExecutor(max_workers=_BLAME_MAX_WORKERS) as pool:
+        results = list(pool.map(_blame, targets))
+
     now = int(time.time())
     conn = db.connect(db_path)
     try:
         with db.transaction(conn):
-            for t in targets:
-                try:
-                    result = miner.get_blame(t)
-                except Exception:
-                    continue
+            for t, result in zip(targets, results):
                 if not result:
                     continue
                 # Replace any stale rows for this file.

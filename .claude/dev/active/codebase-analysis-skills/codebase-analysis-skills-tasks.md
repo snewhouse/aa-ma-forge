@@ -101,6 +101,11 @@
 - Mode: HITL
 - Result Log: [placeholder]
 
+### Sub-step 2.8: [remediate] §6.8 impl-review — 1 accepted CRITICAL + 20 WARNINGs (Ste: fix all now)
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
 ## Milestone 3: `assess-codebase` skill + thin command
 - Status: PENDING
 - Dependencies: Milestone 2

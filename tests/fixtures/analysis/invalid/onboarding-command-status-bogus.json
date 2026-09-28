@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "stamp": {
+    "date_utc": "2026-09-28T12:00:00Z",
+    "sha12": "b40e8ef1a2c3",
+    "dirty": false,
+    "branch": "main",
+    "tier": "quick",
+    "tools": {},
+    "absorbed": [],
+    "fresh_run": [
+      "measure",
+      "judge",
+      "refute"
+    ]
+  },
+  "commands": [
+    {
+      "command": "uv run pytest -q",
+      "status": "ok",
+      "note": "812 passed"
+    },
+    {
+      "command": "make deploy",
+      "status": "refused",
+      "note": "not on the approve list"
+    }
+  ],
+  "entry_points": [
+    "src/app.py"
+  ],
+  "key_modules": [
+    "src/db.py"
+  ],
+  "rules_files": [
+    "CLAUDE.md"
+  ],
+  "ledger": [
+    {
+      "path": "src/",
+      "status": "assessed",
+      "reason": "source"
+    }
+  ],
+  "sections": {
+    "04-build-run-debug.md": [
+      "Makefile",
+      "pyproject.toml"
+    ]
+  }
+}

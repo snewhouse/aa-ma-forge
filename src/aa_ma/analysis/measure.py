@@ -5,8 +5,8 @@ Tools measure, the model judges, and this module never guesses. A tool that is n
 rule of /sole-dev-merge Stage C) and its metrics stay None — never zero. Rows, argv and parse
 shapes are the ones the 2.1 prototype confirmed on the forge (plan §5a, amended 2026-09-28).
 
-Scanners never see the target itself: they run in a staging dir of hard links to its tracked
-regular files, without the scanner config and ignore files the target ships (those are recorded,
+Scanners never see the target itself: they run in a staging dir (a system temp dir, outside
+any git work tree, so no `.gitignore` hides it) of hard links or copies of its tracked regular files, without the scanner config and ignore files the target ships (those are recorded,
 not obeyed). So an untracked `.env` or `node_modules/` is never scanned, a tracked symlink is
 never followed, and no file name can become a tool option. codemem always builds a fresh index in
 the work dir, with cwd = the target; the target's own `.codemem/` is never read or written. Tools
@@ -22,6 +22,7 @@ import os
 import re
 import shutil
 import stat
+import tempfile
 import time
 from collections import Counter
 from collections.abc import Callable
@@ -62,7 +63,6 @@ from .stamp import (
 TOOL_TIMEOUT_S = 300
 VERSION_TIMEOUT_S = 60
 WORK_PREFIX = ".work-"
-STAGE = "stage"
 # The parsers below were confirmed against these major versions (2.1 prototype); another major
 # is `unknown` rather than parsed into plausible-looking wrong values.
 TOOL_MAJOR = {
@@ -842,22 +842,26 @@ def measure(repo: Path, tier: Tier, *, tool_timeout: float = TOOL_TIMEOUT_S) -> 
         shutil.rmtree(safe_dir(repo, work_rel))
     work = safe_dir(repo, work_rel)
 
-    ctx = _Ctx(repo, work, work / STAGE, tool_timeout, _tracked_regular_files(repo))
-    _stage(ctx)
-    _git_metrics(ctx)
-    _tool_configs(ctx)
-    jobs = [_job_lizard, _job_jscpd, _job_gitleaks, _job_codemem]
-    jobs += [_job_semgrep, _job_deps] if tier == "deep" else [_skip_network]
-    children = [ctx.child() for _ in jobs]
-    with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
-        for future in [
-            pool.submit(job, child) for job, child in zip(jobs, children, strict=True)
-        ]:
-            future.result()
-    for child in children:  # fixed order: run.log and metric sums are deterministic
-        ctx.merge(child)
-    _regex_pass(ctx)
-    shutil.rmtree(ctx.stage, ignore_errors=True)
+    stage = Path(tempfile.mkdtemp(prefix="aa-ma-stage-"))
+    try:
+        ctx = _Ctx(repo, work, stage, tool_timeout, _tracked_regular_files(repo))
+        _stage(ctx)
+        _git_metrics(ctx)
+        _tool_configs(ctx)
+        jobs = [_job_lizard, _job_jscpd, _job_gitleaks, _job_codemem]
+        jobs += [_job_semgrep, _job_deps] if tier == "deep" else [_skip_network]
+        children = [ctx.child() for _ in jobs]
+        with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+            for future in [
+                pool.submit(job, child)
+                for job, child in zip(jobs, children, strict=True)
+            ]:
+                future.result()
+        for child in children:  # fixed order: run.log and metric sums are deterministic
+            ctx.merge(child)
+        _regex_pass(ctx)
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
 
     doc = MeasureDoc(
         schema_version=SCHEMA_VERSION,

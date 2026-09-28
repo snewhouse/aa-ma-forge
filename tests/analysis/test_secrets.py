@@ -46,12 +46,13 @@ STUB = textwrap.dedent(
     args = sys.argv[1:]
     src, report = Path(args[args.index("-s") + 1]), Path(args[args.index("-r") + 1])
     token, out = os.environ["STUB_TOKEN"], []
+    off = int(os.environ.get("STUB_COL_OFFSET", "2"))  # real 8.18: +2, but +1 on a file's first line
     for f in sorted(p for p in src.rglob("*") if p.is_file()):
         for n, line in enumerate(f.read_text(errors="replace").splitlines(), 1):
             i = line.find(token)
             if i >= 0:
                 out.append({"RuleID": "generic-api-key", "File": str(f), "StartLine": n, "EndLine": n,
-                            "StartColumn": i + 2, "EndColumn": i + len(token) + 1,
+                            "StartColumn": i + off, "EndColumn": i + len(token) + off - 1,
                             "Match": "REDACTED", "Secret": "REDACTED"})
     report.write_text(json.dumps(out))
     """
@@ -184,6 +185,22 @@ def test_gitleaks_only_secret_is_redacted(tmp_path: Path, stub: Path, monkeypatc
     assert OPAQUE not in text, "a hit only gitleaks reports must still be redacted (md and json)"
     for value in PLANTED:
         assert value not in text
+
+
+def test_gitleaks_off_by_one_never_eats_neighbouring_words(
+    tmp_path: Path, stub: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Live 2026-09-28: gitleaks' line-1 columns are one less than on later lines; a span that starts
+    on the space before a token must not widen back over the word before it."""
+    monkeypatch.setenv("STUB_MODE", "find")
+    d = tmp_path / "r"
+    d.mkdir()
+    (d / "a.md").write_text(f"leaked: {OPAQUE} tail\n", encoding="utf-8")
+    for offset in ("1", "2", "3"):
+        monkeypatch.setenv("STUB_COL_OFFSET", offset)
+        (d / "a.md").write_text(f"leaked: {OPAQUE} tail\n", encoding="utf-8")
+        secrets.redact(d, secrets.scan(d).hits)
+        assert (d / "a.md").read_text(encoding="utf-8") == "leaked: [REDACTED:generic-api-key] tail\n", offset
 
 
 def test_gitleaks_invocation_and_report_location(tmp_path: Path, stub: Path, monkeypatch: pytest.MonkeyPatch) -> None:

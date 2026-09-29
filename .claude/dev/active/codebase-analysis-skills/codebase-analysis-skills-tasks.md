@@ -55,7 +55,7 @@
 - Result Log: Mode: AFK — auto-dispatched. Round 1: RED `7514a81` (26 failing) → GREEN `476fdfd` (+ regen `56f1cc6`): 3 CRITICALs closed + 9 WARNINGs. §6.8 re-run (code-reviewer + security-auditor, live vs gitleaks 8.18): 0 CRITICAL, 4 WARNING, 9 INFO. Round 2: RED `84d4faa` (11 failing) → GREEN `f02431a` (+ regen `bb1f389`). Goldens changed once (NonNegativeInt minimums). Live: dup-key and nested .gitignore bypasses now exit 1; JSON {"password": …} redacted with keys kept. Full suite 1841 passed / 2 pre-existing skips; codemem 791 passed; lint-imports 6/6 KEPT; ruff clean; draw --check OK.
 
 ## Milestone 2: Assess engine (CLI)
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 1
 - Gate: HARD
 - Audit-Profile: full
@@ -65,6 +65,7 @@
 - Effort: 3
 - Goal: `aa-ma-analysis measure|run|finalize` turn a repo plus judged findings into the versioned report set, deterministically for everything measured.
 - Acceptance Criteria: 12 criteria — see plan.md § Milestone 2 and §5a
+- Result Log: COMPLETE 2026-09-29 — 12/12 ACs verified (AC6 against the amended allowlist contract); 12 sub-steps (2.8–2.12 added by five §6.8 rounds). `aa-ma-analysis measure|run|finalize` + staging, strict run grammar, git-config allowlist, listed-file reads, report Scope; codemem query ×10 + parallel owners blame. 2125 passed / 2 skips; lint-imports 6/6; bandit 0 ≥Medium; final §6.8 regression pass 0 CRITICAL / 0 WARNING; live Deep run at the final HEAD 180 valid findings. HARD gate APPROVED (Ste).
 
 ### Sub-step 2.1: [prototype] run every tool row of §5a on the forge on `prototype/cas-assess-core`
 - Status: COMPLETE
@@ -97,9 +98,9 @@
 - Result Log: Mode: AFK — auto-dispatched. GREEN `5de4963` (run.py; stamp `_git`→`run_git`) + `f488b82` (measure.py, finalize.py, report_md.py, sarif.verify, secrets.secret_lines, models.MeasureDoc internal, CLI measure/run/finalize, CHANGELOG). Design additions (first principles, beyond the ACs): measure reads/hands tools **tracked regular files only** and drops findings on untracked paths (tracked symlink → key outside repo; untracked .env) — new test `test_findings_on_untracked_paths_are_dropped`, osv test commits its uv.lock; finalize refuses when HEAD/dirty moved since measure. tests/analysis 240 passed; mutation check (no redaction / no pending check / absent→ran / no rating cap / no --db) each fail the suite; full suite 1927 passed / 2 skipped; lint-imports 6/6 KEPT; ruff src clean; bandit 0 on aa_ma.analysis.
 
 ### Sub-step 2.7: [verify] live measure + finalize on forge; regen; CRITICAL_PATH_REVIEW; PR
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: Mode: HITL. Live evidence: Deep measure + finalize on forge worktrees (ext4) at 7712b4e and at the final HEAD (see CRITICAL_PATH_REVIEW in provenance): every tool ran, 180 findings valid (models + SARIF schema), work dir removed; regen after every contract change; DIAGRAM_VERIFIED edges=5 checked=5. PR: pending Ste's HARD gate approval.
+- Result Log: Mode: HITL. Live evidence: Deep measure + finalize on forge worktrees (ext4) at 7712b4e and at the final HEAD (see CRITICAL_PATH_REVIEW in provenance): every tool ran, 180 findings valid (models + SARIF schema), work dir removed; regen after every contract change; DIAGRAM_VERIFIED edges=5 checked=5. HARD gate APPROVED by Ste 2026-09-29; PR via /sole-dev-merge (SHA map in provenance).
 
 ### Sub-step 2.8: [remediate] §6.8 impl-review — 1 accepted CRITICAL + 20 WARNINGs (Ste: fix all now)
 - Status: COMPLETE

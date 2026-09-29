@@ -141,6 +141,7 @@ One `findings.jsonl` line.
 | `refutation` | survived / refuted / not_required / pending | Result of the refutation pass. |
 | `evidence` | string, ≤ 2000 chars | `file:line` citations, commands, counts. |
 | `redacted` | boolean | True when the output gate changed this finding. |
+| `refutation_reason` | string or null, ≤ 2000 chars | The refuter's reason when it decided `survived` or `refuted`; otherwise null. A refuted finding stays in `findings.jsonl` with its reason and is left out of counts, baseline, SARIF and the findings table (report.md lists it under Refuted). |
 
 ### JudgedFinding
 
@@ -159,8 +160,13 @@ a Finding.
 | `path` | string | |
 | `line` | positive integer or null | |
 | `anchor` | string | The cited line, as `aa_ma.analysis.ids.anchor_for` produces it. |
-| `refutation` | as Finding | |
+| `refutation` | as Finding | A judge writes `pending` for critical/high and `not_required` otherwise; finalize refuses anything else. |
 | `evidence` | string, ≤ 2000 chars | |
+
+The refuter's calls reach finalize as `verdicts.jsonl` in the work dir, one line per pending
+judged line: `{"line": <judged.jsonl line number>, "verdict": "survived" | "refuted", "reason": "…"}`.
+finalize refuses a verdict for a line that is not pending, a second verdict for one line, and a
+pending line with none.
 
 ### Onboarding
 

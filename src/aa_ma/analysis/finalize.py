@@ -34,6 +34,7 @@ from .models import (
     MeasureDoc,
     Origin,
     Rating,
+    RefuterVerdict,
     Refutation,
     Severity,
     Summary,
@@ -92,7 +93,9 @@ def _load(work: Path, name: str, adapter: TypeAdapter) -> list:
         raise FinalizeError(f"{name}: invalid: {_describe(exc)}") from None
 
 
-def _judged(work: Path, repo: Path) -> list[JudgedFinding]:
+def _judged(work: Path, repo: Path) -> list[tuple[int, JudgedFinding]]:
+    """(line number, finding). A judge never decides a refutation: critical/high are written
+    pending for the refuter, everything else not_required."""
     if not (work / "judged.jsonl").exists():
         return []  # Quick: no judge agents ran
     out = []
@@ -107,7 +110,43 @@ def _judged(work: Path, repo: Path) -> list[JudgedFinding]:
             ) from None
         if not contained(repo, judged.path):
             raise FinalizeError(f"judged.jsonl:{n}: path resolves outside the repo")
-        out.append(judged)
+        want = (
+            Refutation.PENDING
+            if judged.severity in REFUTE_REQUIRED
+            else Refutation.NOT_REQUIRED
+        )
+        if judged.refutation != want:
+            raise FinalizeError(
+                f"judged.jsonl:{n}: a judge writes critical/high as pending and the rest as "
+                "not_required — the refuter decides, through verdicts.jsonl"
+            )
+        out.append((n, judged))
+    return out
+
+
+def _verdicts(work: Path, pending: set[int]) -> dict[int, RefuterVerdict]:
+    """verdicts.jsonl, keyed by the judged.jsonl line each one decides."""
+    if not (work / "verdicts.jsonl").exists():
+        return {}
+    out: dict[int, RefuterVerdict] = {}
+    for n, line in enumerate(_read(work, "verdicts.jsonl").split("\n"), 1):
+        if not line.strip():
+            continue
+        try:
+            v = RefuterVerdict.model_validate_json(line)
+        except ValidationError as exc:
+            raise FinalizeError(
+                f"verdicts.jsonl:{n}: invalid verdict: {_describe(exc)}"
+            ) from None
+        if v.line not in pending:
+            raise FinalizeError(
+                f"verdicts.jsonl:{n}: line {v.line} is not a pending judged.jsonl line"
+            )
+        if v.line in out:
+            raise FinalizeError(
+                f"verdicts.jsonl:{n}: line {v.line} already has a verdict"
+            )
+        out[v.line] = v
     return out
 
 
@@ -278,8 +317,21 @@ def finalize(repo: Path, workdir: Path) -> Path:
     ratings = _load(work, "ratings.json", TypeAdapter(list[DimensionResult]))
     ledger = _load(work, "ledger.json", TypeAdapter(list[LedgerEntry]))
 
-    kept = [_judged_fields(j) for j in judged if j.refutation != Refutation.REFUTED]
-    fields = [*(f.model_dump(mode="json") for f in measured.measured), *kept]
+    verdicts = _verdicts(
+        work, {n for n, j in judged if j.refutation == Refutation.PENDING}
+    )
+    fields = [
+        *(f.model_dump(mode="json") for f in measured.measured),
+        *(
+            _judged_fields(j)
+            | (
+                {"refutation": v.verdict, "refutation_reason": v.reason}
+                if (v := verdicts.get(n))
+                else {}
+            )
+            for n, j in judged
+        ),
+    ]
     ids = assign_ids(
         (f["dimension"], f["rule"], f["path"], f["anchor"]) for f in fields
     )
@@ -297,9 +349,12 @@ def finalize(repo: Path, workdir: Path) -> Path:
             f"refutation pending for {', '.join(pending)} — run the refuter first"
         )
 
-    previous = _previous(repo, root)
-    states = compare([f.id for f in previous], [f.id for f in current])
-    by_severity = Counter(f.severity.value for f in current)
+    # Refuted findings stay in findings.jsonl with the refuter's reason (the audit trail) and
+    # are outside everything that ships: counts, baseline, SARIF, the findings table.
+    live = [f for f in current if f.refutation != Refutation.REFUTED]
+    previous = [f for f in _previous(repo, root) if f.refutation != Refutation.REFUTED]
+    states = compare([f.id for f in previous], [f.id for f in live])
+    by_severity = Counter(f.severity.value for f in live)
     summary = Summary(
         schema_version=SCHEMA_VERSION,
         stamp=stamp,
@@ -307,13 +362,13 @@ def finalize(repo: Path, workdir: Path) -> Path:
         ledger=ledger,
         metrics=measured.metrics,
         counts=Counts(
-            findings=len(current), refuted=len(judged) - len(kept), **by_severity
+            findings=len(live), refuted=len(current) - len(live), **by_severity
         ),
         baseline=Baseline(**Counter(states.values())),
     )
     fixed = [f for f in previous if states.get(f.id) == "fixed"]
     baseline = {i: s for i, s in states.items() if s != "fixed"}
-    sarif_doc = sarif.to_sarif(current, _tool_version(), baseline, fixed)
+    sarif_doc = sarif.to_sarif(live, _tool_version(), baseline, fixed)
 
     ensure_self_ignoring(root)
     tmp = Path(tempfile.mkdtemp(prefix=".tmp-", dir=root))

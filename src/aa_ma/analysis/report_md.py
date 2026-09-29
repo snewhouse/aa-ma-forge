@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import re
 
-from .models import CORE_INPUTS, NETWORK_TOOLS, Finding, Severity, Summary
+from .models import CORE_INPUTS, NETWORK_TOOLS, Finding, Refutation, Severity, Summary
 from .stamp import report_name
 
 ORDER = {s: i for i, s in enumerate(Severity)}
@@ -75,6 +75,10 @@ def _target_notes(m: dict[str, int | float | None]) -> list[str]:
     return ["## What the target did to its scanners", "", *notes, ""] if notes else []
 
 
+def _where(f: Finding) -> str:
+    return f"{f.path}:{f.line}" if f.line else f.path
+
+
 def render(summary: Summary, findings: list[Finding]) -> str:
     s = summary.stamp
     lines = [
@@ -96,20 +100,37 @@ def render(summary: Summary, findings: list[Finding]) -> str:
         lines += [f"> {deep_only_note()}", ""]
     c, b = summary.counts, summary.baseline
     lines += [
-        f"## Findings — {c.findings} ({c.refuted} refuted and dropped, {c.redacted} redacted)",
+        f"## Findings — {c.findings} ({c.refuted} refuted, listed below; {c.redacted} redacted)",
         "",
         f"Baseline: {b.new} new · {b.persisting} persisting · {b.fixed} fixed",
         "",
         "| severity | rule | where | title | id |",
         "|---|---|---|---|---|",
     ]
-    for f in sorted(
+    ordered = sorted(
         findings, key=lambda f: (ORDER[f.severity], f.rule, f.path, f.line or 0)
-    ):
-        where = f"{f.path}:{f.line}" if f.line else f.path
-        lines.append(
-            f"| {f.severity} | {f.rule} | {_cell(where)} | {_cell(f.title)} | {f.id} |"
-        )
+    )
+    refuted = [f for f in ordered if f.refutation == Refutation.REFUTED]
+    for f in ordered:
+        if f.refutation != Refutation.REFUTED:
+            lines.append(
+                f"| {f.severity} | {f.rule} | {_cell(_where(f))} | {_cell(f.title)} | {f.id} |"
+            )
+    if refuted:
+        lines += [
+            "",
+            f"## Refuted — {len(refuted)}",
+            "",
+            "Disproved by the refuter; not counted, not in SARIF, kept here with the reason.",
+            "",
+            "| severity | rule | where | title | reason | id |",
+            "|---|---|---|---|---|---|",
+            *(
+                f"| {f.severity} | {f.rule} | {_cell(_where(f))} | {_cell(f.title)} "
+                f"| {_cell(f.refutation_reason or '')} | {f.id} |"
+                for f in refuted
+            ),
+        ]
     lines += [
         "",
         "## Tools",

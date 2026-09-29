@@ -9,6 +9,18 @@ from .stamp import report_name
 ORDER = {s: i for i, s in enumerate(Severity)}
 
 
+# The threat model (M2 §6.8 round 5, Ste): hostile content at rest.
+SCOPE = [
+    "## Scope",
+    "",
+    "The repository was treated as untrusted content: its own git config, scanner configs and "
+    "symlinks were checked, not obeyed or followed. Not covered: a process changing the "
+    "repository while the analysis runs, and any approved test, build or lint command, which "
+    "runs the repository's code by design.",
+    "",
+]
+
+
 def deep_only_note() -> str:
     """Which dimensions cap at Adequate outside Deep, and why — from the constants, not prose."""
     capped = {d: t for d, t in CORE_INPUTS.items() if set(t) <= set(NETWORK_TOOLS)}
@@ -90,5 +102,6 @@ def render(summary: Summary, findings: list[Finding]) -> str:
         *(f"- {name}: {status}" for name, status in sorted(s.tools.items())),
         "",
         *_target_notes(summary.metrics),
+        *SCOPE,
     ]
     return "\n".join(lines)

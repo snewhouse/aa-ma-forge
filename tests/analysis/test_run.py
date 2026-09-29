@@ -374,30 +374,28 @@ def test_the_command_text_is_scrubbed_too(tmp_path: Path) -> None:
     assert FAKE_TOKEN not in check.command
 
 
-def _env_stub(stubs: Path, tmp_path: Path) -> Path:
-    out = tmp_path / "env.txt"
-    stub_bin(stubs, "python", f"env > '{out}'")
+def _argv_stub(stubs: Path, tmp_path: Path) -> Path:
+    out = tmp_path / "argv.txt"
+    stub_bin(stubs, "python", f'printf "%s\\n" "$@" > \'{out}\'')
     return out
 
 
-def test_a_lint_module_never_imports_from_the_target_dir(
-    stubs: Path, tmp_path: Path
-) -> None:
-    """`python -m mypy` put cwd first on sys.path: a planted ./mypy.py ran (§6.8 r4)."""
-    out = _env_stub(stubs, tmp_path)
-    run_approved(["python -m mypy"], tmp_path)
-    assert "PYTHONSAFEPATH=1" in out.read_text().splitlines()
+def test_a_lint_module_runs_with_safe_path(stubs: Path, tmp_path: Path) -> None:
+    """`python -m mypy` put cwd first on sys.path: a planted ./mypy.py ran (§6.8 r4). An explicit
+    -P, not PYTHONSAFEPATH: an interpreter older than 3.11 then fails instead of ignoring it."""
+    out = _argv_stub(stubs, tmp_path)
+    [check] = run_approved(["python -m mypy"], tmp_path)
+    assert out.read_text().splitlines() == ["-P", "-m", "mypy"]
+    assert check.command == "python -m mypy"  # the approved text, unchanged
 
 
 def test_a_test_module_keeps_the_target_dir_importable(
     stubs: Path, tmp_path: Path
 ) -> None:
     """`python -m pytest` users rely on cwd on sys.path; the test runner runs repo code anyway."""
-    out = _env_stub(stubs, tmp_path)
+    out = _argv_stub(stubs, tmp_path)
     run_approved(["python -m pytest -q"], tmp_path)
-    assert not any(
-        line.startswith("PYTHONSAFEPATH") for line in out.read_text().splitlines()
-    )
+    assert out.read_text().splitlines() == ["-m", "pytest", "-q"]
 
 
 @pytest.mark.skipif(shutil.which("python3") is None, reason="needs python3")

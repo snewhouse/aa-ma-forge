@@ -918,3 +918,24 @@ def test_a_fresh_stage_is_not_removed_as_stale(
     os.utime(old, (1, 1))
     measure(target, "quick")
     assert fresh.exists() and not old.exists()
+
+
+def test_reads_stop_at_the_scan_cap_even_if_a_file_grew(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The size check used the listed size, then read the whole file (§6.8 r5)."""
+    from aa_ma.analysis import measure as measure_mod
+
+    monkeypatch.setattr(measure_mod, "SECRET_SCAN_MAX_BYTES", 1000)
+    commit_file(target, "src/grow.py", "x = 1\n")
+    listed = measure_mod._tracked_regular_files
+
+    def listing_then_grow(repo: Path):
+        out = listed(repo)
+        with (target / "src" / "grow.py").open("a", encoding="utf-8") as fh:
+            fh.write("#" * 2000 + f'\nTOKEN = "{FAKE_TOKEN}"\n')
+        return out
+
+    monkeypatch.setattr(measure_mod, "_tracked_regular_files", listing_then_grow)
+    d = doc(measure(target, "quick"))
+    assert "src/grow.py" not in [f["path"] for f in by_rule(d, "security.secret")]

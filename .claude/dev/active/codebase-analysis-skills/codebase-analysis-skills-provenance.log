@@ -50,3 +50,4 @@
 [2026-09-29T09:56:22+01:00] CRITICAL_PATH_REVIEW — Milestone 2: Assess engine (CLI) — data-xform — final evidence @ 3c77d8a: live Deep measure on a forge worktree (ext4) 14.2 s, stage linked=736 copied=0 skipped=0, every tool ran (pip-audit skipped: no requirements file); finalize rc 0 → 5 report files, 180 findings validate against models + vendored SARIF 2.1.0 schema; report.md carries the Scope section; cache root left empty. Suite 2125 passed / 2 skipped; 13/13 earlier §6.8 findings re-verified by the final regression pass.
 [2026-09-29T09:56:22+01:00] DIAGRAM_VERIFIED — Milestone 2: Assess engine (CLI) — edges=5 checked=5 phantom=0 unknown=0
 [2026-09-29T10:13:17+01:00] GATE — Milestone 2: Assess engine (CLI) — HARD — APPROVED by Ste — 12/12 criteria
+[2026-09-29T10:14:38+01:00] MILESTONE COMPLETE — M2 — Commit: 8fdd298 — Criteria: 12/12 verified

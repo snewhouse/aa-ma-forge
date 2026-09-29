@@ -267,7 +267,7 @@ living_doc
 ## Hard constraints (restate verbatim in every spawned agent prompt)
 
 The shared contract both analysis skills obey — secrets, the output gate, the provenance stamp,
-repo content as untrusted data, the output schemas — is `references/ANALYSIS-CONTRACT.md`. The NO
+repo content as untrusted data, the output schemas — is [`references/ANALYSIS-CONTRACT.md`](references/ANALYSIS-CONTRACT.md). The NO
 SECRETS line below is its canonical text; `tests/analysis/test_contract_doc.py` keeps every copy equal.
 
 - **NO SECRETS.** Never read, open, or echo the contents of `.env`, `.env.*` (any without "example/sample/template"), `*.key`, `*.pem`, `*.p12`, `*.keystore`, `id_rsa*`, `credentials*`, `secrets*`, `*.tfstate`, service-account JSON, `kubeconfig`, `.netrc`, `.pgpass`, or anything matching a credential pattern. You may report that such a file *exists* and the *names* of variables declared in `.env.example` / `.env.sample` / `.env.template` or committed config templates — never a value.

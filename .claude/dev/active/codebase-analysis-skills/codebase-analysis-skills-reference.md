@@ -69,7 +69,7 @@
 - Threat model (round 5, Ste): hostile content at rest; a concurrent hostile process and code run by approved commands are out of scope — `report_md.SCOPE` says so in every report.md.
 - Shared safe I/O in `stamp`: `find_binary` (`<NAME>_BIN` else absolute-only PATH), `safe_env`, `read_regular` (O_NOFOLLOW|O_NONBLOCK, regular only), `contained`, `REPORT_NAME`, `report_name`. Rating policy `models.CORE_INPUTS` / `NETWORK_TOOLS`.
 - finalize baseline: newest report dir by stamp that git does not track, read without symlinks, stamp not in the future; a same-commit re-run compares with the report it replaces.
-- Live forge Deep (2026-09-28, 2.9): 12.8 s wall-clock; 178 measured findings (66 deps.vuln, 54 duplication, 25 secret — test fixtures, 21 complexity, 12 sast).
+- Live forge Deep (2026-09-28, 2.9): 12.8 s wall-clock; 178 measured findings (66 deps.vuln, 54 duplication, 25 secret — test fixtures, 21 complexity, 12 sast). Final (2026-09-29, M2 close, final HEAD): 14.2 s, 180 findings, stage linked=736.
 
 ### Research files
 - `docs/research/codebase-analysis-skills-prior-art.md` — Ticket 1 prior art (Valid-Through per header)
@@ -99,4 +99,4 @@
 
 Architecture View: see plan.md §13
 
-_Last Updated: 2026-09-28_
+_Last Updated: 2026-09-29_

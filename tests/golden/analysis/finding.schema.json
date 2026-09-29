@@ -112,6 +112,7 @@
       "title": "Refutation Reason"
     },
     "rule": {
+      "pattern": "^[a-z][a-z_]*\\.[a-z0-9][a-z0-9_.-]{0,63}$",
       "title": "Rule",
       "type": "string"
     },

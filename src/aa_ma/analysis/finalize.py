@@ -23,6 +23,7 @@ from .ids import anchor_for, assign_ids, compare
 from .measure import WORK_PREFIX
 from .models import (
     CORE_INPUTS,
+    RULE_PREFIXES,
     SCHEMA_VERSION,
     Baseline,
     Confidence,
@@ -110,6 +111,11 @@ def _judged(work: Path, repo: Path) -> list[tuple[int, JudgedFinding]]:
             ) from None
         if not contained(repo, judged.path):
             raise FinalizeError(f"judged.jsonl:{n}: path resolves outside the repo")
+        if judged.rule.split(".", 1)[0] not in RULE_PREFIXES[judged.dimension]:
+            raise FinalizeError(
+                f"judged.jsonl:{n}: rule prefix does not belong to its dimension "
+                f"(expected {' or '.join(RULE_PREFIXES[judged.dimension])})"
+            )
         want = (
             Refutation.PENDING
             if judged.severity in REFUTE_REQUIRED

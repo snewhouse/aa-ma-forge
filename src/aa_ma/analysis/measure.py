@@ -86,13 +86,28 @@ TOOL_CONFIGS = {
     "whitelizard.txt",
     ".jscpd.json",
 }
+# Also never staged: a tracked .gitignore hides force-added tracked files from the scanners that
+# honour it. Silent: it is git's, not a scanner's.
+UNSTAGED = TOOL_CONFIGS | {".gitignore"}
+# jscpd also obeys a `jscpd` key in the root package.json: staged as a copy without it.
+PACKAGE_JSON, JSCPD_KEY = "package.json", "jscpd"
+STAGE_DIR, STAGE_PREFIX = "aa-ma", "stage-"
+# A stage this old outlived its run (killed before cleanup): removed at the next start.
+STALE_STAGE_S = 86400
 # Inline markers that silence one finding; counted, since the staging dir cannot remove them.
+# Only in a comment (after an introducer on the same line) of a non-prose file.
+# ponytail: an introducer inside a string literal still counts; a tokenizer per language if it matters.
+COMMENT = r"(?:#|//|/\*|<!--|--)"
 SUPPRESSIONS = {
-    "semgrep": re.compile(r"nosemgrep"),
-    "gitleaks": re.compile(r"gitleaks:allow"),
-    "lizard": re.compile(r"#\s*lizard\s+forgives"),
-    "jscpd": re.compile(r"jscpd:ignore-start"),
+    tool: re.compile(rf"{COMMENT}.*?{marker}")
+    for tool, marker in {
+        "semgrep": r"nosemgrep",
+        "gitleaks": r"gitleaks:allow",
+        "lizard": r"lizard\s+forgives",
+        "jscpd": r"jscpd:ignore-start",
+    }.items()
 }
+PROSE_SUFFIXES = {".md", ".markdown", ".rst", ".txt", ".adoc"}
 CCN_FLAG, CCN_HIGH = 15, 25
 CHURN_DAYS = 90
 SECONDS_PER_DAY = 86400
@@ -502,22 +517,95 @@ def _tracked_regular_files(repo: Path) -> tuple[dict[str, int], int]:
     return files, escaping
 
 
+def _stage_root(repo: Path) -> Path | None:
+    """`$XDG_CACHE_HOME/aa-ma` (or ~/.cache/aa-ma) when it is ours, on the repo's filesystem (so
+    staging hard-links rather than copies) and outside any git work tree (whose .gitignore the
+    scanners would obey); else None. Stale stages from killed runs are removed from it."""
+    base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
+    root = Path(base) / STAGE_DIR
+    try:
+        root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        st = os.lstat(root)
+        if (
+            not stat.S_ISDIR(st.st_mode)
+            or st.st_uid != os.getuid()
+            or st.st_dev != os.stat(repo).st_dev
+            or run_git(root, "rev-parse", "--is-inside-work-tree").returncode == 0
+        ):
+            return None
+        cutoff = time.time() - STALE_STAGE_S
+        for old in root.glob(f"{STAGE_PREFIX}*"):
+            if os.lstat(old).st_mtime < cutoff:
+                shutil.rmtree(old, ignore_errors=True)
+    except OSError:
+        return None
+    return root
+
+
+def _make_stage(repo: Path) -> Path:
+    root = _stage_root(repo)
+    if root is None:
+        return Path(tempfile.mkdtemp(prefix=f"{STAGE_DIR}-{STAGE_PREFIX}"))
+    return Path(tempfile.mkdtemp(prefix=STAGE_PREFIX, dir=root))
+
+
+def _without_jscpd_key(src: Path) -> str | None:
+    """package.json as JSON without its `jscpd` key, or None when it has none."""
+    try:
+        doc = json.loads(read_regular(src))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(doc, dict) or JSCPD_KEY not in doc:
+        return None
+    del doc[JSCPD_KEY]
+    return json.dumps(doc, indent=2) + "\n"
+
+
 def _stage(ctx: _Ctx) -> None:
-    """Hard-link every tracked regular file (copy across filesystems) into the staging dir,
-    except the scanner configs the target ships."""
+    """Hard-link every tracked regular file (copy across filesystems) into the staging dir, minus
+    the scanner configs the target ships, which are recorded as present and not obeyed. A file
+    that changed or vanished since it was listed is skipped and counted."""
+    t0, overrides, done = time.monotonic(), 0, Counter()
     for rel in ctx.files:
-        if Path(rel).name in TOOL_CONFIGS:
+        name, src, dst = Path(rel).name, ctx.repo / rel, ctx.stage / rel
+        if name in UNSTAGED:
+            if name in TOOL_CONFIGS:
+                overrides += 1
+                ctx.trail(f"tool-config:{rel}", [], None, 0.0, "present, not obeyed")
             continue
-        dst = ctx.stage / rel
-        dst.parent.mkdir(parents=True, exist_ok=True)
         try:
-            os.link(ctx.repo / rel, dst, follow_symlinks=False)
-        except OSError:
-            shutil.copyfile(ctx.repo / rel, dst, follow_symlinks=False)
-        if not stat.S_ISREG(
-            os.lstat(dst).st_mode
-        ):  # swapped for a symlink since it was listed
-            dst.unlink()
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            stripped = _without_jscpd_key(src) if rel == PACKAGE_JSON else None
+            if stripped is not None:
+                dst.write_text(stripped, encoding="utf-8")
+                overrides += 1
+                ctx.trail(
+                    f"tool-config:{rel}#{JSCPD_KEY}",
+                    [],
+                    None,
+                    0.0,
+                    "present, not obeyed",
+                )
+                done["copied"] += 1
+                continue
+            try:
+                os.link(src, dst, follow_symlinks=False)
+                done["linked"] += 1
+            except OSError:
+                shutil.copyfile(src, dst, follow_symlinks=False)
+                done["copied"] += 1
+            if not stat.S_ISREG(
+                os.lstat(dst).st_mode
+            ):  # swapped for a symlink since listed
+                raise OSError(rel)
+        except OSError:  # shutil.SpecialFileError is one
+            if os.path.lexists(dst):
+                dst.unlink()
+            done["skipped"] += 1
+    counts = " ".join(f"{k}={done[k]}" for k in ("linked", "copied", "skipped"))
+    ctx.trail("stage", [], None, time.monotonic() - t0, counts)
+    ctx.metrics["tool_config.overrides"] = overrides
+    ctx.metrics["files.unstaged"] = done["skipped"]
 
 
 def _git_metrics(ctx: _Ctx) -> None:
@@ -566,14 +654,6 @@ def _git_metrics(ctx: _Ctx) -> None:
             ctx.metrics[f"last_touch_days:{top}"] = (
                 (int(head) - int(last)) // SECONDS_PER_DAY if last.isdigit() else None
             )
-
-
-def _tool_configs(ctx: _Ctx) -> None:
-    """Record every scanner config/ignore file the target ships (not staged, so not obeyed)."""
-    found = [rel for rel in ctx.files if Path(rel).name in TOOL_CONFIGS]
-    for rel in found:
-        ctx.trail(f"tool-config:{rel}", [], None, 0.0, "present, not obeyed")
-    ctx.metrics["tool_config.overrides"] = len(found)
 
 
 # --- jobs (each runs concurrently in its own context) --------------------------------------------
@@ -801,9 +881,10 @@ def _regex_pass(ctx: _Ctx) -> None:
             text = read_regular(ctx.repo / rel)
         except (OSError, UnicodeDecodeError):
             continue
-        markers.update(
-            {tool: len(rx.findall(text)) for tool, rx in SUPPRESSIONS.items()}
-        )
+        if Path(rel).suffix.lower() not in PROSE_SUFFIXES:
+            markers.update(
+                {tool: len(rx.findall(text)) for tool, rx in SUPPRESSIONS.items()}
+            )
         for rule, line in secret_lines(text):
             if (rel, line) not in seen:  # the first rule in PATTERNS order wins a line
                 seen.add((rel, line))
@@ -854,14 +935,13 @@ def measure(repo: Path, tier: Tier, *, tool_timeout: float = TOOL_TIMEOUT_S) -> 
         shutil.rmtree(safe_dir(repo, work_rel))
     work = safe_dir(repo, work_rel)
 
-    stage = Path(tempfile.mkdtemp(prefix="aa-ma-stage-"))
+    stage = _make_stage(repo)
     try:
         sizes, escaping = _tracked_regular_files(repo)
         ctx = _Ctx(repo, work, stage, tool_timeout, sizes)
         ctx.metrics["files.escaping"] = escaping
         _stage(ctx)
         _git_metrics(ctx)
-        _tool_configs(ctx)
         jobs = [_job_lizard, _job_jscpd, _job_gitleaks, _job_codemem]
         jobs += [_job_semgrep, _job_deps] if tier == "deep" else [_skip_network]
         children = [ctx.child() for _ in jobs]

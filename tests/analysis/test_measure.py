@@ -740,3 +740,104 @@ def test_a_symlinked_parent_dir_never_leads_outside_the_repo(
     d = doc(measure(target, "quick"))
     assert [f["path"] for f in by_rule(d, "security.secret")] == ["src/config.py"]
     assert d["metrics"]["files.escaping"] == 1
+
+
+# --- M2 2.10: staging fidelity -----------------------------------------------------------------------
+
+
+def test_staging_hard_links_on_the_targets_filesystem(
+    target: Path, tools: Path, cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = tools / "seen"
+    body = f"{{ pwd; stat -c %h src/calc.py; }} > '{seen}'"
+    monkeypatch.setenv("LIZARD_BIN", str(stub_bin(tools, "lizard", body)))
+    work = measure(target, "quick")
+    where, links = seen.read_text().split()
+    assert Path(where).parent == cache / "aa-ma" and int(links) >= 2
+    stage = [
+        line
+        for line in (work / "run.log").read_text().splitlines()
+        if line.startswith("stage\t")
+    ]
+    assert stage and stage[0].endswith("linked=3 copied=0 skipped=0")
+
+
+def test_a_stage_root_inside_a_git_work_tree_is_not_used(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Scanners honouring the enclosing tree's .gitignore would see nothing."""
+    monkeypatch.setenv("XDG_CACHE_HOME", str(target / "cache"))
+    seen = tools / "seen"
+    monkeypatch.setenv("LIZARD_BIN", str(stub_bin(tools, "lizard", f"pwd > '{seen}'")))
+    measure(target, "quick")
+    assert not seen.read_text().strip().startswith(str(target))
+
+
+def test_a_file_that_cannot_be_staged_is_skipped_and_counted(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import shutil as shutil_mod
+
+    from aa_ma.analysis import measure as measure_mod
+
+    real_link, real_copy = os.link, shutil_mod.copyfile
+
+    def link(src, dst, **kw):
+        if str(src).endswith("config.py"):
+            raise FileNotFoundError(src)
+        return real_link(src, dst, **kw)
+
+    def copy(src, dst, **kw):
+        if str(src).endswith("config.py"):
+            raise FileNotFoundError(src)
+        return real_copy(src, dst, **kw)
+
+    monkeypatch.setattr(measure_mod.os, "link", link)
+    monkeypatch.setattr(measure_mod.shutil, "copyfile", copy)
+    assert doc(measure(target, "quick"))["metrics"]["files.unstaged"] == 1
+
+
+def test_gitignore_files_are_not_staged(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A tracked .gitignore would hide force-added tracked files from .gitignore-honouring scanners."""
+    commit_file(target, ".gitignore", "*.py\n")
+    monkeypatch.setenv("LIZARD_BIN", str(_recording_stub(tools, "lizard")))
+    measure(target, "quick")
+    seen = (tools / "lizard.seen").read_text().split()
+    assert "./.gitignore" not in seen and "./src/calc.py" in seen
+
+
+def test_a_jscpd_key_in_package_json_is_recorded_and_not_obeyed(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commit_file(
+        target, "package.json", json.dumps({"name": "x", "jscpd": {"ignore": ["**"]}})
+    )
+    staged = tools / "package.staged.json"
+    body = f"cp package.json '{staged}'"
+    monkeypatch.setenv("JSCPD_BIN", str(stub_bin(tools, "jscpd", body)))
+    work = measure(target, "quick")
+    assert json.loads(staged.read_text()) == {"name": "x"}
+    assert doc(work)["metrics"]["tool_config.overrides"] == 1
+    assert "package.json" in (work / "run.log").read_text()
+
+
+def test_only_real_comment_suppressions_in_code_are_counted(
+    target: Path, tools: Path
+) -> None:
+    commit_file(target, "NOTES.md", "Use # nosemgrep to silence semgrep.\n")
+    commit_file(target, "src/m.py", 'MARK = "nosemgrep"\nx = 1  # nosemgrep\n')
+    assert doc(measure(target, "quick"))["metrics"]["suppressions.semgrep"] == 1
+
+
+def test_stale_stages_from_killed_runs_are_removed(
+    target: Path, tools: Path, cache: Path
+) -> None:
+    stale = cache / "aa-ma" / "stage-stale"
+    stale.mkdir(parents=True)
+    (stale / "held-inode").write_text("x")
+    old = time.time() - 3 * 86400
+    os.utime(stale, (old, old))
+    measure(target, "quick")
+    assert not stale.exists()

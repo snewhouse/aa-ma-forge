@@ -428,3 +428,14 @@ def test_cargo_is_refused_when_the_target_ships_cargo_config(
     [check] = run_approved(["cargo fmt --check"], cwd)
     assert check.status == "refused" and ".cargo" in check.note
     assert not marker.exists()
+
+
+def test_a_cargo_config_above_the_repo_root_is_the_users_own(
+    stubs: Path, tmp_path: Path
+) -> None:
+    stub_bin(stubs, "cargo", "exit 0")
+    (tmp_path / ".cargo").mkdir()
+    (tmp_path / ".cargo" / "config.toml").write_text("[build]\n", encoding="utf-8")
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    assert statuses(run_approved(["cargo test"], repo)) == ["verified"]

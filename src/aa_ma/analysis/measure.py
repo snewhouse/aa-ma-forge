@@ -92,7 +92,6 @@ UNSTAGED = TOOL_CONFIGS | {".gitignore"}
 # jscpd also obeys a `jscpd` key in the root package.json: staged as a copy without it.
 PACKAGE_JSON, JSCPD_KEY = "package.json", "jscpd"
 STAGE_DIR, STAGE_PREFIX = "aa-ma", "stage-"
-# A stage this old outlived its run (killed before cleanup): removed at the next start.
 # Inline markers that silence one finding; counted, since the staging dir cannot remove them.
 # Only in a comment (after an introducer on the same line) of a non-prose file.
 # ponytail: an introducer inside a string literal still counts; a tokenizer per language if it matters.
@@ -110,6 +109,7 @@ PROSE_SUFFIXES = {".md", ".markdown", ".rst", ".txt", ".adoc"}
 CCN_FLAG, CCN_HIGH = 15, 25
 CHURN_DAYS = 90
 SECONDS_PER_DAY = 86400
+# A stage this old outlived its run (killed before cleanup): removed at the next start.
 STALE_STAGE_S = SECONDS_PER_DAY
 # Hot files whose co-changes are recorded.
 CO_CHANGE_FILES = 3
@@ -608,9 +608,8 @@ def _stage(ctx: _Ctx) -> None:
                 if (linked.st_dev, linked.st_ino) != listed:
                     raise OSError(rel)
                 done["linked"] += 1
-            except (
-                OSError
-            ):  # another filesystem, or not the listed file: copy (verified)
+            # Another filesystem, or not the listed file: copy (verified).
+            except OSError:
                 if os.path.lexists(dst):
                     dst.unlink()
                 with open_regular(src, listed) as fin, open(dst, "xb") as fout:
@@ -675,7 +674,7 @@ def _git_metrics(ctx: _Ctx) -> None:
                 "--end-of-options",
                 "HEAD",
                 "--",
-                top,
+                f":(literal){top}",  # a dir named `*` is a name, not a glob
             ).stdout.strip()
             ctx.metrics[f"last_touch_days:{top}"] = (
                 (int(head) - int(last)) // SECONDS_PER_DAY if last.isdigit() else None
@@ -918,8 +917,11 @@ def _regex_pass(ctx: _Ctx) -> None:
                 seen.add((rel, line))
                 found.append(_secret(rel, line, rule))
     ctx.add(found, {})
-    ctx.metrics["secrets.findings"] = sum(
-        c.rule == "security.secret" for c in ctx.found
+    # Regex hits alone are a floor: without gitleaks the count is unknown, never partial.
+    ctx.metrics["secrets.findings"] = (
+        sum(c.rule == "security.secret" for c in ctx.found)
+        if ctx.tools.get("gitleaks") == ToolStatus.RAN
+        else None
     )
     ctx.metrics.update({f"suppressions.{tool}": markers[tool] for tool in SUPPRESSIONS})
 

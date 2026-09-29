@@ -43,6 +43,7 @@ GIT_OVERRIDES = (
     ("core.fsmonitor", "false"),
     ("core.hooksPath", "/dev/null"),
     ("log.showSignature", "false"),
+    ("core.quotePath", "false"),  # non-ASCII paths as-is, not C-quoted
 )
 # The only keys a target's own config (local, worktree or a submodule's) may hold: what a clone
 # and a user identity write. Anything else refuses the target — four review rounds each found a
@@ -172,7 +173,7 @@ def _is_worktree_of(root: str, git_dir: str, common: str) -> bool:
     )
 
 
-def _check_git_dir(repo: Path) -> None:
+def _check_git_dir(repo: Path) -> Path:
     """The git dir and common dir must be the repo's own: a `.git` file or `commondir` naming
     another repo would have us mine its history. A linked worktree of the user's repo is the
     one exception, proved by its git dir's `gitdir` file naming this worktree back."""
@@ -184,14 +185,15 @@ def _check_git_dir(repo: Path) -> None:
         "--git-common-dir",
         "--end-of-options",
     )
-    if out.returncode != 0:
-        return  # not a repo: head_stamp says so
+    lines = out.stdout.splitlines()  # rev-parse echoes --end-of-options as a last line
+    if out.returncode != 0 or len(lines) < 2:
+        raise UnsafeRepo(f"{repo}: cannot resolve its git dir — assess a fresh clone")
     root = os.path.realpath(repo)
-    git_dir, common = (os.path.realpath(p) for p in out.stdout.splitlines()[:2])
-    if _inside(root, git_dir) and _inside(root, common):
-        return
-    if _is_worktree_of(root, git_dir, common):
-        return
+    git_dir, common = (os.path.realpath(p) for p in lines[:2])
+    if (_inside(root, git_dir) and _inside(root, common)) or _is_worktree_of(
+        root, git_dir, common
+    ):
+        return Path(common)
     raise UnsafeRepo(f"{repo}: its git dir is outside the repo — assess a fresh clone")
 
 
@@ -203,26 +205,23 @@ def _config_keys(repo: Path, *args: str) -> list[str]:
     return [e.split("\n", 1)[0] for e in listed.stdout.split("\0") if e]
 
 
+def _key_class(key: str) -> str:
+    section, _, rest = key.partition(".")
+    return f"{section}.*.{rest.rsplit('.', 1)[1]}" if "." in rest else key
+
+
 def check_git_config(repo: Path) -> None:
     """Refuse a repo whose own git config — local, worktree or any submodule's — holds a key
     outside SAFE_GIT_CONFIG (names the keys, never values)."""
-    _check_git_dir(repo)
+    common_dir = _check_git_dir(repo)
     entries = _config_keys(repo, "--show-scope")
     found = {
         k for scope, k in zip(entries[::2], entries[1::2]) if scope in TARGET_SCOPES
     }
-    common = run_git(
-        repo,
-        "rev-parse",
-        "--path-format=absolute",
-        "--git-common-dir",
-        "--end-of-options",
-    )
-    # First line only: rev-parse echoes --end-of-options after the path.
-    common_dir = Path((common.stdout.splitlines() or ["."])[0])
     for module in common_dir.glob("modules/**/config"):
         found |= set(_config_keys(repo, "--file", str(module))) - SUBMODULE_KEYS
-    unsafe = sorted(k for k in found if not SAFE_GIT_CONFIG.fullmatch(k))
+    # Named by section and variable only: a subsection can hold a credential (url.<base>.insteadOf).
+    unsafe = sorted({_key_class(k) for k in found if not SAFE_GIT_CONFIG.fullmatch(k)})
     if unsafe:
         raise UnsafeRepo(
             f"{repo}: its git config sets keys outside the safe list ({', '.join(unsafe)})"

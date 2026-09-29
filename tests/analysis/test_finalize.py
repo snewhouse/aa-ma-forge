@@ -663,7 +663,7 @@ def test_finalize_refuses_a_target_whose_git_config_runs_commands(
     work = prepare(target)
     git(target, "config", "filter.x.clean", "cat")
     assert cli.main(["finalize", "--repo", str(target), "--work", str(work)]) == 2
-    assert "filter.x.clean" in capsys.readouterr().err
+    assert "filter.*.clean" in capsys.readouterr().err
 
 
 # --- pre-PR review (Stage C) ----------------------------------------------------------------------
@@ -695,6 +695,7 @@ def test_report_md_says_which_files_were_not_scanned(
     commit_file(target, "p/x.py", "x = 1\n")
     outside = tmp_path / "outside"
     outside.mkdir()
+    (outside / "x.py").write_text("x = 2\n")
     shutil.rmtree(target / "p")
     os.symlink(outside, target / "p")
     text = (run(target) / "report.md").read_text()

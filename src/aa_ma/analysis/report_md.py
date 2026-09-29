@@ -3,6 +3,8 @@ did to its scanners. Rendered by finalize from the already-redacted outputs, the
 
 from __future__ import annotations
 
+import re
+
 from .models import CORE_INPUTS, NETWORK_TOOLS, Finding, Severity, Summary
 from .stamp import report_name
 
@@ -29,8 +31,15 @@ def deep_only_note() -> str:
     return f"{dims} rate at most Adequate outside Deep: their core tools ({tools}) reach the network and run only in Deep."
 
 
+# Repo-derived text (branch, paths, tool titles) is written as inert Markdown: HTML entities
+# for & < >, a backslash before every Markdown punctuation mark — no span, link, image or tag.
+MD_SPECIAL = re.compile(r"([\\`*_{}\[\]()#+!|~-])")
+
+
 def _cell(text: str) -> str:
-    return " ".join(text.split()).replace("|", "\\|")
+    text = " ".join(text.split())
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return MD_SPECIAL.sub(r"\\\1", text)
 
 
 def _target_notes(m: dict[str, int | float | None]) -> list[str]:
@@ -52,6 +61,12 @@ def _target_notes(m: dict[str, int | float | None]) -> list[str]:
             + ", ".join(f"{k} {v}" for k, v in sorted(marks.items()))
             + "."
         )
+    unscanned = (m.get("files.unstaged") or 0) + (m.get("files.escaping") or 0)
+    if unscanned:
+        notes.append(
+            f"- {unscanned} tracked file(s) not scanned: changed after listing, or behind a"
+            " directory that is a symlink."
+        )
     dropped = m.get("findings.unreportable") or 0
     if dropped:
         notes.append(
@@ -65,7 +80,7 @@ def render(summary: Summary, findings: list[Finding]) -> str:
     lines = [
         f"# Codebase assessment — {report_name(s.sha12, s.dirty)}",
         "",
-        f"Tier **{s.tier}** · branch `{_cell(s.branch)}` · {s.date_utc.isoformat().replace('+00:00', 'Z')}",
+        f"Tier **{s.tier}** · branch {_cell(s.branch)} · {s.date_utc.isoformat().replace('+00:00', 'Z')}",
         "",
         "## Ratings",
         "",
@@ -93,7 +108,7 @@ def render(summary: Summary, findings: list[Finding]) -> str:
     ):
         where = f"{f.path}:{f.line}" if f.line else f.path
         lines.append(
-            f"| {f.severity} | {f.rule} | `{_cell(where)}` | {_cell(f.title)} | {f.id} |"
+            f"| {f.severity} | {f.rule} | {_cell(where)} | {_cell(f.title)} | {f.id} |"
         )
     lines += [
         "",

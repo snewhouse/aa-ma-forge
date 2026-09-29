@@ -71,6 +71,14 @@
 - finalize baseline: newest report dir by stamp that git does not track, read without symlinks, stamp not in the future; a same-commit re-run compares with the report it replaces.
 - Live forge Deep (2026-09-28, 2.9): 12.8 s wall-clock; 178 measured findings (66 deps.vuln, 54 duplication, 25 secret — test fixtures, 21 complexity, 12 sast). Final (2026-09-29, M2 close, final HEAD): 14.2 s, 180 findings, stage linked=736.
 
+### assess-codebase (M3, as built)
+- Counts after M3: 14 commands / 22 skills / **13 agents** (new read-only `codebase-assessor`, tools Read, Grep, Glob — judges + refuter; plan said 12, changed by §6.8 SEC-W5, Ste).
+- Skill steps: 0 preflight (`# assess:preflight`, refuses without forge checkout or uv) + stamp + fresh · 1 tier · 2 measure · 3 ledger.json (Quick → ratings.json → 7) · 4 Deep: `# assess:claude-security` guard (installed_plugins.json ∩ settings.json enabledPlugins) + gated test run · 5 judges → `judged/<dim>.jsonl` → `scan-secrets --redact` → `validate judged_finding` → judged.jsonl + ratings.json · 6 refuter → `verdicts.jsonl` · 7 finalize + scan-secrets. Tests execute both `# assess:` blocks.
+- Work dir adds `judged/` and `verdicts.jsonl` (`{"line", "verdict": survived|refuted, "reason"}`, `models.RefuterVerdict`, internal).
+- finalize (M3): judged critical/high must be `pending`, others `not_required`; verdict per pending physical line, once; refuted kept in findings.jsonl with `Finding.refutation_reason` (optional), out of counts/baseline/SARIF, report.md `## Refuted`. `rule` matches `models.RULE_PATTERN`; judged prefix ∈ `models.RULE_PREFIXES[dimension]` (arch / maint / security / tests|deps). report cells escape rule, strip bidi controls.
+- RATING.md `Inputs:` lines = metric keys, checked against a live measure (`tests/analysis/test_rating_keys.py`).
+- Live Standard on forge (2026-09-29): 742 files, 251 s end to end, 4 sonnet judges 34–49 s, 21 judged lines; lizard/jscpd absent on BATS.
+
 ### Research files
 - `docs/research/codebase-analysis-skills-prior-art.md` — Ticket 1 prior art (Valid-Through per header)
 - `docs/research/codebase-analysis-skills-codemem-coverage.md` — Ticket 2 codemem coverage

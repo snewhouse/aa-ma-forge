@@ -53,6 +53,15 @@ def make_repo(root: Path, files: dict[str, str]) -> Path:
     return root
 
 
+@pytest.fixture(autouse=True)
+def cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """The stage root measure prefers: per test, on the same filesystem as the targets, outside
+    any git work tree — never the real ~/.cache."""
+    root = tmp_path / "cache"
+    monkeypatch.setenv("XDG_CACHE_HOME", str(root))
+    return root
+
+
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
     """A git repo with one commit of three tracked files."""

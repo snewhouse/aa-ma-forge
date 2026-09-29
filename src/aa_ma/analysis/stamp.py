@@ -20,9 +20,8 @@ REPORTS_ROOT = Path(".claude/reports/assess-codebase")
 # The reports root's self-ignoring marker; the secret gate exempts exactly this file, byte for byte.
 SELF_IGNORE_NAME, SELF_IGNORE_TEXT = ".gitignore", "*\n"
 NOT_A_REPO = "not a git repo with ≥1 commit"
-REPORT_NAME = re.compile(
-    rf"[0-9a-f]{{{HEX12}}}(-dirty)?"
-)  # what report_name() produces
+# What report_name() produces.
+REPORT_NAME = re.compile(rf"[0-9a-f]{{{HEX12}}}(-dirty)?")
 
 
 class NotAGitRepo(Exception):

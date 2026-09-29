@@ -221,3 +221,36 @@ SUMMARY: 0 CRITICAL / 0 WARNING / 4 INFO. All 13 earlier findings re-reproduced 
 - Bandit: B613 = the deliberate U+202E in the bidi-refusal test → written as an escape; B608 ×3 in codemem SQL predate this branch (git blame) → not this PR; B108/B105/B101/B603/B607/B404 → disputed, test-fixture false positives (Ste).
 - LOWs: 5 bugs + 2 comments + 2 test gaps **fixed** (Ste); 2 → backlog.
 - Out-of-scope: Stage B's auto-fix commit reformatted untouched lines of touched files → dropped before push; lesson L-031.
+
+---
+
+# Milestone 3 — post-impl review (§6.8, Audit-Profile: full) — 2026-09-29
+
+Window `d13e790..6dc9b4f`. Agents: code-reviewer (+ §6.6 reuse/quality/efficiency folded in), security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor.
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 6 | 7 | WARN |
+| security-auditor | 0 | 5 | 3 | WARN |
+| tdd-sequence-auditor | 0 | 1 | 2 | PASS |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS |
+| future-proofing-auditor | 0 | 2 | 7 | WARN |
+| **TOTAL** | **0** | **14** | **19** | **PASS_WITH_WARNINGS** |
+
+**WARNINGs**
+- CR-1 SKILL.md Step 6 (Deep extras) runs after judges/ratings/refuter — claude-security evidence and new Critical/High never reach the refuter; test result never folded into ratings.json.
+- CR-2 SKILL.md:39-40 "only the CLI writes" contradicts main-thread writes (ledger, ratings, judged.jsonl).
+- CR-3 SKILL.md:34 "restate verbatim" claims all 4 constraints; prompts restate only NO SECRETS verbatim.
+- CR-4 AGENT-PROMPTS.md tests_deps names "last-touch age" — metric is `last_touch_days:<dir>` (exists; wording vague) / owners keys missing from RATING.md.
+- CR-5 AGENT-PROMPTS.md refuter "You may write exactly one file: none — you write no file."
+- CR-6 AGENT-PROMPTS.md judge tail copied 4× (DRY).
+- SEC-W1 A judge can pre-set refutation `refuted`/`survived` on its own Critical/High → silently dropped or never attacked; finalize only refuses `pending`.
+- SEC-W2 Refuted findings/reasons leave no audit trail (count only).
+- SEC-W3 Deep test command chosen from untrusted repo docs; `npm run`/`make`/pytest run repo code with HOME + network; consent shows argv only.
+- SEC-W4 Judge text not secret-gated before the refuter prompt / session transcript; work dir kept on failure.
+- SEC-W5 Judges/refuter are general-purpose (Bash/Write) while reading hostile content; read-only is prompt-only.
+- TDD-W1 same-second test/fix timestamps (4621f54/ccac6bb) — in-session evidence: new test run against the old text failed (1 failed) before the fix commit.
+- FP-W1 "at most 2000 chars" restates `models.EVIDENCE_MAX` untested.
+- FP-W2 RATING.md `complexity.over_15` / "~25" restate `measure.CCN_FLAG`/`CCN_HIGH` untested.
+
+**INFO (selected):** stamp tier hardcoded in Step 0; `[path]` never applied (`--repo .`); `{PENDING}` missing from placeholder list; test checks subcommand names not flags; `Explore` alternative dead in test; judges' `uv run validate` may sync; AA_MA_ROOT env trust (no new boundary); `fresh` shows a planted untracked same-SHA report; orphan pin removed in M4.

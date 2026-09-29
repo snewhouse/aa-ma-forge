@@ -173,6 +173,12 @@
 - Mode: HITL
 - Result Log: Mode: HITL — Ste proceeded. Clean-room: 0 shared 12-word shingles (count only, provenance CLEAN_ROOM). Live Standard run on forge per SKILL.md (provenance LIVE_RUN): preflight refused unset root (AC6 live) / passed with AA_MA_ROOT; 4 sonnet judges → 21 valid judged lines, 0 Critical/High; finalize correctly refused a moved HEAD, re-measured, report `7ff33a0cfb29/` — summary + findings validate, 4 ratings with inputs, ledger = every top-level path, scan-secrets rc 0 + gitleaks 0 leaks. Live run found a prompt defect (judges told null metrics "are already measured") → RED `4621f54` → fix `ccac6bb` (+ test tightening `7ff33a0`). CRITICAL_PATH_REVIEW (doc-count-drift) logged. PR follows the §6 gates + HARD-gate approval.
 
+### Sub-step 3.7: [remediate] §6.8 impl-review — 14 WARNINGs (Ste: fix all now, incl. SEC-W2 schema change)
+- Status: PENDING
+- Mode: AFK
+- Acceptance Criteria: RED first; SEC-W1 finalize refuses a judge-decided refutation and applies verdicts.jsonl; SEC-W2 refuted findings kept with refutation_reason (Finding schema + golden + contract), out of counts/baseline/SARIF, listed in report.md; SEC-W3/W4/W5 + CR-1..6 + FP-1/2 in skill text, read-only `codebase-assessor` agent (agent counts 12→13); full suite green; live Standard re-run. Source: impl-review.md Milestone 3 section.
+- Result Log: [placeholder]
+
 ## Milestone 4: understand-codebase repoint + residuals
 - Status: PENDING
 - Dependencies: Milestone 3

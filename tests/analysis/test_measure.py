@@ -773,27 +773,19 @@ def test_a_stage_root_inside_a_git_work_tree_is_not_used(
     assert not seen.read_text().strip().startswith(str(target))
 
 
-def test_a_file_that_cannot_be_staged_is_skipped_and_counted(
+def test_a_file_that_vanishes_after_listing_is_skipped_and_counted(
     target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    import shutil as shutil_mod
-
     from aa_ma.analysis import measure as measure_mod
 
-    real_link, real_copy = os.link, shutil_mod.copyfile
+    listed = measure_mod._tracked_regular_files
 
-    def link(src, dst, **kw):
-        if str(src).endswith("config.py"):
-            raise FileNotFoundError(src)
-        return real_link(src, dst, **kw)
+    def listing_then_delete(repo: Path):
+        out = listed(repo)
+        (target / "src" / "config.py").unlink()
+        return out
 
-    def copy(src, dst, **kw):
-        if str(src).endswith("config.py"):
-            raise FileNotFoundError(src)
-        return real_copy(src, dst, **kw)
-
-    monkeypatch.setattr(measure_mod.os, "link", link)
-    monkeypatch.setattr(measure_mod.shutil, "copyfile", copy)
+    monkeypatch.setattr(measure_mod, "_tracked_regular_files", listing_then_delete)
     assert doc(measure(target, "quick"))["metrics"]["files.unstaged"] == 1
 
 
@@ -834,8 +826,9 @@ def test_only_real_comment_suppressions_in_code_are_counted(
 def test_stale_stages_from_killed_runs_are_removed(
     target: Path, tools: Path, cache: Path
 ) -> None:
+    (cache / "aa-ma").mkdir(parents=True, mode=0o700)
     stale = cache / "aa-ma" / "stage-stale"
-    stale.mkdir(parents=True)
+    stale.mkdir()
     (stale / "held-inode").write_text("x")
     old = time.time() - 3 * 86400
     os.utime(stale, (old, old))
@@ -917,7 +910,11 @@ def test_a_deeply_nested_package_json_does_not_crash_measure(
 def test_a_fresh_stage_is_not_removed_as_stale(
     target: Path, tools: Path, cache: Path
 ) -> None:
+    (cache / "aa-ma").mkdir(parents=True, mode=0o700)
     fresh = cache / "aa-ma" / "stage-fresh"
-    fresh.mkdir(parents=True)
+    fresh.mkdir()
+    old = cache / "aa-ma" / "stage-old"  # proves the cleanup ran over this root
+    old.mkdir()
+    os.utime(old, (1, 1))
     measure(target, "quick")
-    assert fresh.exists()
+    assert fresh.exists() and not old.exists()

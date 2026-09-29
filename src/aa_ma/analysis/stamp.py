@@ -13,6 +13,7 @@ import stat
 import subprocess  # nosec B404 — git runs from an argv list, never a shell
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import BinaryIO
 
 from .models import HEX12, Stamp, Tier
 
@@ -91,13 +92,23 @@ def find_binary(name: str) -> str | None:
     )
 
 
-def read_regular(path: Path) -> str:
-    """A regular file's text; never through a symlink, never blocking on a FIFO (OSError)."""
+def open_regular(path: Path, identity: tuple[int, int] | None = None) -> BinaryIO:
+    """A regular file opened for reading; never through a symlink as its last component, never
+    blocking on a FIFO. With `identity` (st_dev, st_ino from a listing) the opened file must be
+    that one: a parent dir swapped for a symlink since the listing opens another (OSError)."""
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-    with os.fdopen(fd, encoding="utf-8") as fh:
-        if not stat.S_ISREG(os.fstat(fd).st_mode):
-            raise OSError(f"{path}: not a regular file")
-        return fh.read()
+    fh = os.fdopen(fd, "rb")
+    st = os.fstat(fd)
+    if not stat.S_ISREG(st.st_mode) or identity not in (None, (st.st_dev, st.st_ino)):
+        fh.close()
+        raise OSError(f"{path}: not the regular file that was listed")
+    return fh
+
+
+def read_regular(path: Path, identity: tuple[int, int] | None = None) -> str:
+    """A regular file's text (see open_regular)."""
+    with open_regular(path, identity) as fh:
+        return fh.read().decode("utf-8")
 
 
 def contained(repo: Path, rel: str) -> bool:

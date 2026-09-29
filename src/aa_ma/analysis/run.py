@@ -82,9 +82,8 @@ REFUSED: dict[str, set[str]] = {
 class _Form:
     words: tuple[str, ...] = ()  # fixed words right after the runner
     flags: frozenset[str] = frozenset()  # bare flags
-    valued: frozenset[str] = (
-        frozenset()
-    )  # flags taking one plain value (next token or =value)
+    # Flags taking one plain value (next token or =value).
+    valued: frozenset[str] = frozenset()
     paths: bool = True  # positional plain repo paths
     script: bool = False  # exactly one positional package-script name instead of paths
 

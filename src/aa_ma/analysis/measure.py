@@ -55,6 +55,7 @@ from .stamp import (
     check_git_config,
     ensure_self_ignoring,
     find_binary,
+    open_regular,
     read_regular,
     run_git,
     safe_dir,
@@ -93,7 +94,6 @@ UNSTAGED = TOOL_CONFIGS | {".gitignore"}
 PACKAGE_JSON, JSCPD_KEY = "package.json", "jscpd"
 STAGE_DIR, STAGE_PREFIX = "aa-ma", "stage-"
 # A stage this old outlived its run (killed before cleanup): removed at the next start.
-STALE_STAGE_S = 86400
 # Inline markers that silence one finding; counted, since the staging dir cannot remove them.
 # Only in a comment (after an introducer on the same line) of a non-prose file.
 # ponytail: an introducer inside a string literal still counts; a tokenizer per language if it matters.
@@ -111,6 +111,7 @@ PROSE_SUFFIXES = {".md", ".markdown", ".rst", ".txt", ".adoc"}
 CCN_FLAG, CCN_HIGH = 15, 25
 CHURN_DAYS = 90
 SECONDS_PER_DAY = 86400
+STALE_STAGE_S = SECONDS_PER_DAY
 # Hot files whose co-changes are recorded.
 CO_CHANGE_FILES = 3
 # dead_code truncates at its default budget (2.1: 167 of 1500 symbols).
@@ -173,8 +174,8 @@ class _Ctx:
     work: Path
     stage: Path
     timeout: float
-    # Tracked regular files inside the repo → size at listing time.
-    sizes: dict[str, int]
+    # Tracked regular files inside the repo → their lstat at listing time.
+    listed: dict[str, os.stat_result]
     tools: dict[str, ToolStatus] = field(default_factory=dict)
     metrics: dict[str, int | float | None] = field(default_factory=dict)
     found: list[_Candidate] = field(default_factory=list)
@@ -184,12 +185,16 @@ class _Ctx:
     _lines: dict[str, list[str]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        self.files = list(self.sizes)
-        self.fileset = set(self.sizes)
+        self.files = list(self.listed)
+        self.fileset = set(self.listed)
 
     def child(self) -> _Ctx:
         """A fresh context for one concurrent job; merged back in a fixed order."""
-        return _Ctx(self.repo, self.work, self.stage, self.timeout, self.sizes)
+        return _Ctx(self.repo, self.work, self.stage, self.timeout, self.listed)
+
+    def identity(self, rel: str) -> tuple[int, int]:
+        st = self.listed[rel]
+        return st.st_dev, st.st_ino
 
     def merge(self, other: _Ctx) -> None:
         """Jobs write disjoint metric keys, except counts several tools share (deps.vulns), which
@@ -205,8 +210,9 @@ class _Ctx:
         if path not in self.fileset:
             return fallback
         if path not in self._lines:
-            try:  # it was a regular file when listed; it must still be one
-                self._lines[path] = read_regular(self.repo / path).splitlines()
+            try:  # the file that was listed, not whatever the path reaches now
+                text = read_regular(self.repo / path, self.identity(path))
+                self._lines[path] = text.splitlines()
             except (OSError, UnicodeDecodeError):
                 self._lines[path] = []
         lines = self._lines[path]
@@ -499,11 +505,13 @@ def _top(path: str) -> str:
     return path.split("/", 1)[0] if "/" in path else "."
 
 
-def _tracked_regular_files(repo: Path) -> tuple[dict[str, int], int]:
-    """{path: size} of tracked regular files still inside the repo, and how many escaped it.
+def _tracked_regular_files(repo: Path) -> tuple[dict[str, os.stat_result], int]:
+    """{path: lstat} of tracked regular files still inside the repo, and how many escaped it.
 
     lstat and O_NOFOLLOW only guard the last component: a tracked `p/x` whose `p` was swapped
-    for a symlink resolves outside the repo, so every path is checked against its real one."""
+    for a symlink resolves outside the repo, so every parent is checked against its real path
+    (a tracked symlink itself is not a regular file and is simply left out). Every later read
+    checks the listed (st_dev, st_ino), so a parent swapped after this listing is caught too."""
     listed = run_git(repo, "ls-files", "-z", "--end-of-options")
     root, files, escaping = os.path.realpath(repo), {}, 0
     for rel in filter(None, listed.stdout.split("\0")):
@@ -511,10 +519,11 @@ def _tracked_regular_files(repo: Path) -> tuple[dict[str, int], int]:
             st = os.lstat(repo / rel)
         except FileNotFoundError:  # deleted in the working tree
             continue
-        if os.path.realpath(repo / rel) != os.path.join(root, rel):
+        parent = os.path.normpath(os.path.join(root, os.path.dirname(rel)))
+        if os.path.realpath((repo / rel).parent) != parent:
             escaping += 1
         elif stat.S_ISREG(st.st_mode):
-            files[rel] = st.st_size
+            files[rel] = st
     return files, escaping
 
 
@@ -530,6 +539,7 @@ def _stage_root(repo: Path) -> Path | None:
         if (
             not stat.S_ISDIR(st.st_mode)
             or st.st_uid != os.getuid()
+            or st.st_mode & 0o077  # shared: another user could plant or swap stages
             or st.st_dev != os.stat(repo).st_dev
             or run_git(root, "rev-parse", "--is-inside-work-tree").returncode == 0
         ):
@@ -550,11 +560,11 @@ def _make_stage(repo: Path) -> Path:
     return Path(tempfile.mkdtemp(prefix=STAGE_PREFIX, dir=root))
 
 
-def _without_jscpd_key(src: Path) -> str | None:
+def _without_jscpd_key(src: Path, identity: tuple[int, int]) -> str | None:
     """package.json as JSON without its `jscpd` key, or None when it has none."""
     try:
-        doc = json.loads(read_regular(src))
-    except (OSError, ValueError):
+        doc = json.loads(read_regular(src, identity))
+    except (OSError, ValueError, RecursionError):
         return None
     if not isinstance(doc, dict) or JSCPD_KEY not in doc:
         return None
@@ -576,7 +586,8 @@ def _stage(ctx: _Ctx) -> None:
             continue
         try:
             dst.parent.mkdir(parents=True, exist_ok=True)
-            stripped = _without_jscpd_key(src) if rel == PACKAGE_JSON else None
+            listed = ctx.identity(rel)
+            stripped = _without_jscpd_key(src, listed) if rel == PACKAGE_JSON else None
             if stripped is not None:
                 dst.write_text(stripped, encoding="utf-8")
                 overrides += 1
@@ -591,14 +602,19 @@ def _stage(ctx: _Ctx) -> None:
                 continue
             try:
                 os.link(src, dst, follow_symlinks=False)
+                # A hard link is the same inode: it must be the one that was listed.
+                linked = os.lstat(dst)
+                if (linked.st_dev, linked.st_ino) != listed:
+                    raise OSError(rel)
                 done["linked"] += 1
-            except OSError:
-                shutil.copyfile(src, dst, follow_symlinks=False)
+            except (
+                OSError
+            ):  # another filesystem, or not the listed file: copy (verified)
+                if os.path.lexists(dst):
+                    dst.unlink()
+                with open_regular(src, listed) as fin, open(dst, "xb") as fout:
+                    shutil.copyfileobj(fin, fout)
                 done["copied"] += 1
-            if not stat.S_ISREG(
-                os.lstat(dst).st_mode
-            ):  # swapped for a symlink since listed
-                raise OSError(rel)
         except OSError:  # shutil.SpecialFileError is one
             if os.path.lexists(dst):
                 dst.unlink()
@@ -613,7 +629,7 @@ def _git_metrics(ctx: _Ctx) -> None:
     files, size = Counter(), Counter()
     for rel in ctx.files:
         files[_top(rel)] += 1
-        size[_top(rel)] += ctx.sizes[rel]
+        size[_top(rel)] += ctx.listed[rel].st_size
     log = run_git(
         ctx.repo,
         "log",
@@ -884,10 +900,10 @@ def _regex_pass(ctx: _Ctx) -> None:
     seen = {(c.path, c.line) for c in ctx.found if c.rule == "security.secret"}
     found, markers = [], Counter()
     for rel in ctx.files:
-        if ctx.sizes[rel] > SECRET_SCAN_MAX_BYTES:
+        if ctx.listed[rel].st_size > SECRET_SCAN_MAX_BYTES:
             continue
         try:
-            text = read_regular(ctx.repo / rel)
+            text = read_regular(ctx.repo / rel, ctx.identity(rel))
         except (OSError, UnicodeDecodeError):
             continue
         if Path(rel).suffix.lower() not in PROSE_SUFFIXES:
@@ -946,8 +962,8 @@ def measure(repo: Path, tier: Tier, *, tool_timeout: float = TOOL_TIMEOUT_S) -> 
 
     stage = _make_stage(repo)
     try:
-        sizes, escaping = _tracked_regular_files(repo)
-        ctx = _Ctx(repo, work, stage, tool_timeout, sizes)
+        listed, escaping = _tracked_regular_files(repo)
+        ctx = _Ctx(repo, work, stage, tool_timeout, listed)
         ctx.metrics["files.escaping"] = escaping
         _stage(ctx)
         _git_metrics(ctx)

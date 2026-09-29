@@ -204,3 +204,9 @@ SUMMARY: 2 CRITICAL / 3 WARNING / 5 INFO.
 | R5-2 / threat model | **Hostile content at rest**: a concurrently running hostile process is out of scope (it already runs as the user); inode checks stay as defence in depth; boundary documented in §5a and the report |
 | at-rest items | Fix: git dir / common dir inside the repo (linked worktrees verified by back-reference); git call timeout → refused; `GIT_CONFIG_GLOBAL=/dev/null` + `GIT_CONFIG_NOSYSTEM=1`; explicit `-P` for non-test `python -m`; capped reads. Document: linters run repo code via their config; cargo walk; rust-toolchain |
 | close-out | One regression pass on the new diff; anything new and out of scope → M2 follow-up backlog, not another round |
+
+## Milestone 2 — §6.8 regression pass (2026-09-29), diff 6a203df..a7b95e1 (sub-step 2.12), security-auditor
+SUMMARY: 0 CRITICAL / 0 WARNING / 4 INFO. All 13 earlier findings re-reproduced and hold at HEAD (config.worktree, gpg/showSignature, submodule filter, stamp/fresh, foreign `.git` file, FIFO hang, global lfs filter, `./ruff`, `uv run ruff`, planted `./flake8.py`, cargo alias, symlinked parent at rest, C1 baseline). No in-scope git call runs before the config check.
+- INFO ×3 (worktree back-reference: forgeable from a hostile enclosing clone; unbounded read; `--relative-paths` worktrees refused) → fixed in 2.12 test-first (see tasks.md), both new conditions mutation-checked.
+- INFO (ISOLATED_CONFIG drops a global `safe.directory`: a repo owned by another uid reports "not a git repo") → **M2 follow-up backlog** (usability, fails closed).
+- Review loop closed per Ste's round-5 decision.

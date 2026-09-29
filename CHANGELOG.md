@@ -41,7 +41,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   kills the process group (best-effort, stated in the report). A target whose own git config
   (local, worktree or a submodule's) sets any key outside a small safe set is refused rather than
   trusted, and every file the scanners or the report read is the one that was listed — a directory
-  swapped for a symlink mid-run is skipped, never followed.
+  swapped for a symlink mid-run is skipped, never followed. Every command checks the target's git
+  config, its git dir must be its own, and git never reads the user's global config for it. The
+  report states its scope: hostile repository content is covered; a process changing the
+  repository during the run, and code run by approved commands, are not.
 - **`codemem query` reaches 10 MCP tools** — `hot_spots`, `co_changes <file>`, `owners <path>
   [--repo-root R]` and `layers` join the six ports, so scripts get git-history and layering answers
   without an MCP server. `owners --repo-root` computes the blame; without it only the cache is read,

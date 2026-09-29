@@ -1089,6 +1089,14 @@ call pins `core.fsmonitor=false`, `core.hooksPath=/dev/null`, `log.showSignature
 `status` skips submodules. `run`: `uv run` only around a test runner; other `python -m` modules run
 with `PYTHONSAFEPATH=1`; cargo is refused when the target ships `.cargo/config`. Every read of a
 target file must be the file that was listed (same `st_dev`/`st_ino`, never through a symlink).)*
+*(Amended 2026-09-29, M2 §6.8 round 5 → 2.12 — Ste: **threat model = hostile content at rest.** A
+process changing the repository during the run, and code run by approved test/build/lint commands
+(linters load plugins their own config names), are out of scope and stated in report.md `## Scope`.
+Every command (stamp, fresh, measure, finalize) checks the git config inside `head_stamp`; the git
+dir and common dir must be the repo's own (a linked worktree passes by its back-reference); git
+calls time out (refused) and read no global/system config; non-test `python -m` runs with `-P`;
+file reads stop at the scan cap. Cargo's config walk stops at the nearest `.git`, and a target
+`rust-toolchain.toml` is not inspected: cargo is a repo-code runner.)*
 
 **Secrets** (`secrets.py`): the regex set always runs (union with gitleaks hits, de-duplicated by
 path+line+span) over **decoded** content — every JSON string value AND key in `.json/.jsonl/.sarif`,

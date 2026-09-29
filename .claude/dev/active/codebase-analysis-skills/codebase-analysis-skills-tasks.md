@@ -133,7 +133,7 @@
 - Result Log: Mode: AFK — auto-dispatched after the HARD gate, before the PR. RED `b85d6df` → GREEN `d2dbccb`: refusals name `section.*.variable` (token no longer printed — reproduced before); `core.quotePath=false`; `:(literal)` pathspec; `secrets.findings` None without gitleaks; report.md cells inert + unscanned-file note; codemem owners prefix via substr(); B613 escape; owners.top_pct and Quick note asserted. Suite 2134 passed / 2 skipped; bandit 0 ≥Medium; lint-imports 6/6. Stage B auto-fix commit dropped (out-of-scope reformat) → L-031 `c017d2c`.
 
 ## Milestone 3: `assess-codebase` skill + thin command
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 2
 - Gate: HARD
 - Audit-Profile: full
@@ -142,6 +142,7 @@
 - Effort: 2
 - Goal: `/assess-codebase` runs Quick / Standard / Deep end to end on any repo, and every count, golden and README table agrees it exists.
 - Acceptance Criteria: 6 criteria — see plan.md § Milestone 3
+- Result Log: COMPLETE 2026-09-29 — 6/6 ACs verified; 7 sub-steps (3.7 added by §6.8). /assess-codebase + skill + read-only codebase-assessor agent; finalize verdicts.jsonl + refutation_reason + RULE_PATTERN/PREFIXES; counts 14/22/13; 2197 passed / 2 skipped; live Standard 251 s; §6.8 0 CRITICAL (14 W + regression 4 W fixed). HARD gate APPROVED (Ste).
 
 ### Sub-step 3.1: [measure] re-verify A1 at HEAD; list every pin the new dirs move
 - Status: COMPLETE

@@ -154,3 +154,18 @@ _This log will be updated via context compaction as the task progresses._
 - `refutation_reason` near 2000 chars can exceed `EVIDENCE_MAX` after redaction → finalize refuses the report (fails closed). Cap below the limit or truncate after redaction.
 - No validator pairs `refutation_reason` with `refutation ∈ {survived, refuted}`.
 - **M4 carry-over:** when understand-codebase reads assess's `findings.jsonl`, it must drop `refutation == refuted` (they are in the file now) — add a test in 4.2.
+
+## [2026-09-29] GATE APPROVAL: Milestone 3: `assess-codebase` skill + thin command
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 6/6
+- Evidence: suite 2197 passed / 2 skipped; bats install_dry_run 5/5; lint-imports 6/6; golden errors []; clean-room 0 shingles; live Standard report 7ff33a0cfb29 + post-3.7 replay a205eeb677c8 validate, 0 leaks; §6.3 LOW (re-run); §6.7 PASS, CRITICAL_PATH_REVIEW doc-count-drift (+ addendum), DIAGRAM_VERIFIED 5/5; §6.8 0 CRITICAL, regression closed
+- Decision: APPROVED
+- Next: PR via /sole-dev-merge
+
+## [2026-09-29] Milestone Completion: Milestone 3 — `assess-codebase` skill + thin command
+- Status: COMPLETE
+- Key outcome: `/assess-codebase` + `Skill(assess-codebase)` run Quick / Standard / Deep end to end over the aa-ma-analysis CLI: preflight, stamp/fresh, measure, ledger, Deep extras, read-only `codebase-assessor` judges (gated + validated), refuter via verdicts.jsonl, finalize; refuted findings kept with reasons. Counts 14 / 22 / 13 agree everywhere.
+- Artifacts: claude-code/skills/assess-codebase/{SKILL.md,references/RATING.md,references/AGENT-PROMPTS.md}, claude-code/commands/assess-codebase.md, claude-code/agents/codebase-assessor.md, src/aa_ma/analysis/{finalize,models,report_md}.py, tests/skills/test_assess_codebase.py, tests/analysis/test_rating_keys.py, test_finalize.py, goldens, docs counts.
+- Tests: 2197 passed / 2 skipped.
+- Next: Milestone 4 — understand-codebase repoint + residuals (Dependencies: Milestone 3); carry-over: filter refuted findings; orphan pin for /assess-codebase goes.

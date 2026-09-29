@@ -365,10 +365,10 @@ def test_an_ordinary_git_config_passes(repo: Path) -> None:
         ("branch.main.remote", "origin"),
         ("branch.main.merge", "refs/heads/main"),
         ("core.autocrlf", "input"),
-        (
-            "branch.main.vscode-merge-base",
-            "origin/main",
-        ),  # VS Code: 11 of 17 local repos
+        # VS Code: 11 of 17 local repos.
+        ("branch.main.vscode-merge-base", "origin/main"),
+        # git-lfs writes it on first use (found by CI on PR #5).
+        ("lfs.repositoryformatversion", "0"),
     ]:
         git(repo, "config", key, value)
     stamp.check_git_config(repo)

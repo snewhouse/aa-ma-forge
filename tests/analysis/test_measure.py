@@ -498,6 +498,7 @@ def test_real_codemem_run_measures_and_never_touches_a_committed_index(
         m["dead_code.candidates"], int
     )
     assert m["owners.authors:src/"] == 1
+    assert m["owners.top_pct:src/"] == 100.0
     assert any(k.startswith("hot_spot:") for k in m)
     assert "fixture@example.invalid" not in (work / "measure.json").read_text()
     assert CODEMEM.exists()
@@ -939,3 +940,32 @@ def test_reads_stop_at_the_scan_cap_even_if_a_file_grew(
     monkeypatch.setattr(measure_mod, "_tracked_regular_files", listing_then_grow)
     d = doc(measure(target, "quick"))
     assert "src/grow.py" not in [f["path"] for f in by_rule(d, "security.secret")]
+
+
+# --- pre-PR review (Stage C) ----------------------------------------------------------------------
+
+
+def test_churn_counts_a_non_ascii_top_level_dir(target: Path, tools: Path) -> None:
+    """git log --numstat C-quoted `déj/x.py`, so the dir's churn read 0."""
+    commit_file(target, "déj/x.py", "a = 1\nb = 2\n")
+    assert doc(measure(target, "quick"))["metrics"]["churn.90d:déj"] == 2
+
+
+def test_last_touch_treats_a_dir_name_as_a_literal_path(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A dir named `*` was a glob pathspec matching every later commit."""
+    monkeypatch.setenv("GIT_COMMITTER_DATE", "2020-01-01T00:00:00Z")
+    monkeypatch.setenv("GIT_AUTHOR_DATE", "2020-01-01T00:00:00Z")
+    commit_file(target, "*/old.py", "x = 1\n")
+    monkeypatch.delenv("GIT_COMMITTER_DATE")
+    monkeypatch.delenv("GIT_AUTHOR_DATE")
+    commit_file(target, "src/new.py", "y = 1\n")
+    assert doc(measure(target, "quick"))["metrics"]["last_touch_days:*"] > 0
+
+
+def test_secret_count_is_unknown_when_gitleaks_did_not_run(
+    target: Path, tools: Path
+) -> None:
+    """Regex hits alone are a floor, not the count (the partial-metric rule)."""
+    assert doc(measure(target, "quick"))["metrics"]["secrets.findings"] is None

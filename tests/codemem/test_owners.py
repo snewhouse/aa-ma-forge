@@ -29,7 +29,8 @@ def _commit(root: Path, message: str, at: int, author: str | None = None) -> Non
         env["GIT_COMMITTER_EMAIL"] = author
     subprocess.run(
         ["git", "-C", str(root), "commit", "-qm", message],
-        check=True, env=env,
+        check=True,
+        env=env,
     )
 
 
@@ -52,9 +53,7 @@ def git_repo(tmp_path: Path) -> Path:
     subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
     _commit(root, "seed", 1700000001)
     # 1 line added by second author (so owner has 10/11 ≈ 90.9%)
-    (root / "a.py").write_text(
-        "".join(f"line{i}\n" for i in range(10)) + "newline\n"
-    )
+    (root / "a.py").write_text("".join(f"line{i}\n" for i in range(10)) + "newline\n")
     subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
     _commit(root, "add one line", 1700000002, author="other@example.com")
     return root
@@ -358,3 +357,26 @@ class TestConcurrentRefresh:
             key=lambda a: (-a["percentage"], a["email"]),
         )
         assert result["authors"] == expected_authors
+
+
+def test_a_directory_query_matches_its_prefix_literally(tmp_path: Path) -> None:
+    """`_` and `%` in a directory name were LIKE wildcards: `a_c/` also matched `abc/`."""
+    from codemem import mcp_tools
+
+    db_path = tmp_path / "o.db"
+    conn = connect(db_path)
+    apply_schema(conn)
+    migrate(conn)
+    with transaction(conn):
+        for path, who in (
+            ("a_c/x.py", "one@example.com"),
+            ("abc/y.py", "two@example.com"),
+        ):
+            conn.execute(
+                "INSERT INTO ownership (file_path, author_email, line_count, percentage, "
+                "computed_at) VALUES (?, ?, 10, 100.0, 1700000000)",
+                (path, who),
+            )
+    conn.close()
+    got = mcp_tools.owners(db_path, "a_c/")
+    assert len(got["authors"]) == 1

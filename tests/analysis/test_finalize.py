@@ -823,10 +823,10 @@ def test_every_measured_rule_matches_its_dimension_prefix() -> None:
 
 
 def test_bidi_controls_never_reach_report_md(target: Path, lizard: Path) -> None:
-    title = "safe ‮gnp.exe‬ title ⁦x⁩"
+    title = "safe \u202egnp.exe\u202c title \u2066x\u2069"
     report = run(target, judged_lines=[json.dumps(judged(title=title))])
     md = (report / "report.md").read_text()
-    assert not any(ch in md for ch in "‪‫‬‭‮⁦⁧⁨⁩‎‏؜")
+    assert not any(ch in md for ch in "\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069\u200e\u200f\u061c")
 
 
 def test_the_findings_header_says_listed_below_only_when_something_was_refuted(

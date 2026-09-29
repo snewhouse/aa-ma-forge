@@ -56,7 +56,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   Each dimension is rated with its inputs and confidence against `references/RATING.md`, never an
   overall grade; a declined or failed test run is unknown, never passing. Every judge and refuter
   prompt restates the contract's NO-SECRETS line, and tests execute the preflight and the
-  claude-security guard rather than grepping for them.
+  claude-security guard rather than grepping for them. Judges and the refuter run as the new
+  read-only `codebase-assessor` agent (Read, Grep, Glob — it writes and runs nothing); their lines
+  pass the secret gate before anything reads them. A judge can no longer clear its own claim:
+  `finalize` refuses a judged Critical/High not written `pending`, takes the refuter's calls from
+  `verdicts.jsonl`, and keeps refuted findings in `findings.jsonl` with the new
+  `refutation_reason` field (listed under Refuted in `report.md`, outside counts, baseline and
+  SARIF). The Deep test-run ask shows what the command executes and says it runs the target's
+  own code.
 - **`codemem query` reaches 10 MCP tools** — `hot_spots`, `co_changes <file>`, `owners <path>
   [--repo-root R]` and `layers` join the six ports, so scripts get git-history and layering answers
   without an MCP server. `owners --repo-root` computes the blame; without it only the cache is read,

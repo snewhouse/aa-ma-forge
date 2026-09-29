@@ -116,7 +116,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `assess-codebase` | Whole-repo assessment over the `aa-ma-analysis` CLI: preflight → stamp/fresh → measure → coverage ledger → 4 dimension judges (`general-purpose`, sonnet) → refuter on Critical/High → finalize (IDs, rating cap, baseline, secret gate). `references/RATING.md` mirrors `CORE_INPUTS`; `references/AGENT-PROMPTS.md` restates the `ANALYSIS-CONTRACT.md` NO-SECRETS line per prompt. Deep adds network tools, a gated test run, and claude-security when installed and enabled |
 | `goal-condition-synthesis` | Synthesise a Claude Code `/goal` condition from AA-MA plan artefacts: produces a falsifiable condition referencing observable artefacts (`provenance.log`, `tasks.md` Status, git tags, test exit codes) with a turn-cap cost ceiling derived from plan effort. Owns the canonical verdict-token enum, observable-artefact list, and hashing contract; backed by a unit-tested Python reference module (`aa_ma.goal_synthesis`). Consumed by `/execute-aa-ma-full` §2.5 and `/verify-plan --iterate` |
 
-### Agents (12)
+### Agents (13)
 
 | Agent | Purpose |
 |-------|---------|
@@ -124,6 +124,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `aa-ma-scribe` | Generates the 5-file artifact set from an approved plan |
 | `aa-ma-validator` | Read-only validation of artifact completeness and cross-file consistency |
 | `code-reviewer` | Read-only fresh-eyes review of the milestone-window diff (KISS/SOLID/SOC/DRY, scope discipline, mechanism duplication, schema-breaking output regressions, dead code, magic numbers); CRITICAL → blocks user approval. Spawned by Phase 6.8 via `verify-impl` |
+| `codebase-assessor` | Read-only (Read, Grep, Glob) judge and refuter for `assess-codebase`: as a judge returns one dimension's JudgedFinding lines + a draft rating; as the refuter returns one survived/refuted verdict with a reason per Critical/High line. Writes nothing — the skill secret-gates and validates its replies |
 | `security-auditor` | Read-only analytical security audit of the milestone diff — the reasoning layer complementing the mechanical `security-static-check.sh` hook. Spawned by Phase 6.8 via `verify-impl` |
 | `tdd-sequence-auditor` | Verifies the red→green→refactor sequencing of the milestone's commits; emits PASS/FAIL/WAIVED verdicts (honours plan-declared `TDD-Waiver`). Spawned by Phase 6.8 via `verify-impl` |
 | `context7-evidence-auditor` | Checks that external-library usage introduced/changed in the milestone is backed by current docs evidence (scoped to MAJOR version bumps; capped at WARNING severity). Spawned by Phase 6.8 via `verify-impl` |

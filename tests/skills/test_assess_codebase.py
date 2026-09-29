@@ -119,8 +119,8 @@ def test_every_placeholder_is_listed_and_the_refuter_gets_references_only() -> N
 def test_each_dimension_brief_names_its_rule_prefix() -> None:
     text = _text(PROMPTS)
     for dim in models.Dimension:
-        section = re.search(rf"^## .*`{dim.value}`\n(.*?)(?=^## |\Z)", text, re.S | re.M)
-        assert section and re.search(r"rule prefix `[a-z]+\.`", section.group(1)), dim
+        section = re.search(rf"^## [^\n]*`{dim.value}`\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+        assert section and re.search(r"rule prefix `[a-z]+\.`", section.group(1), re.I), dim
     assert "last-touch age" not in text  # CR-4: name metrics as measure emits them
 
 

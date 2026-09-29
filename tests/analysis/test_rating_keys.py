@@ -18,9 +18,9 @@ RATING = ROOT / "claude-code/skills/assess-codebase/references/RATING.md"
 
 
 def test_every_metric_key_rating_md_names_is_emitted(target: Path, tools: Path) -> None:
-    for n in range(3):  # co-change needs files that change together
-        (target / "a.py").write_text(f"A = {n}\n")
-        (target / "b.py").write_text(f"B = {n}\n")
+    for n in range(3):  # co-change pairs are read for hot spots: files with functions, changed together
+        (target / "a.py").write_text(f"def a():\n    return {n}\n")
+        (target / "b.py").write_text(f"def b():\n    return {n}\n")
         git(target, "add", "a.py", "b.py")
         git(target, "commit", "-qm", f"pair {n}")
     keys = json.loads((measure(target, "standard") / "measure.json").read_text())["metrics"]

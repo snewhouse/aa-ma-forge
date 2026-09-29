@@ -195,7 +195,7 @@ def test_compound_commands_are_not_run(command: str, tmp_path: Path) -> None:
 
 
 def test_missing_command_fails(tmp_path: Path) -> None:
-    assert statuses(run_approved(["vitest"], tmp_path)) == ["failed"]
+    assert statuses(run_approved(["vitest run"], tmp_path)) == ["failed"]
 
 
 def test_note_is_last_40_lines_redacted(stubs: Path, tmp_path: Path) -> None:

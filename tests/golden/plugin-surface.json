@@ -31,6 +31,12 @@
    "src": "agent:code-reviewer"
   },
   {
+   "dst": "skill:assess-codebase",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "agent:codebase-assessor"
+  },
+  {
    "dst": "skill:understand-codebase",
    "kind": "skill",
    "ref_class": "ON_DISK",
@@ -799,9 +805,9 @@
    "src": "skill:aa-ma-research"
   },
   {
-   "dst": "agent:general-purpose",
+   "dst": "agent:codebase-assessor",
    "kind": "agent",
-   "ref_class": "DECLARED_EXTERNAL",
+   "ref_class": "ON_DISK",
    "src": "skill:assess-codebase"
   },
   {

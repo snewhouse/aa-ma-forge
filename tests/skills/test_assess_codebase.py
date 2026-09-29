@@ -198,14 +198,9 @@ def test_deep_test_run_discloses_what_it_executes() -> None:
         assert word in step4, word  # SEC-W3
 
 
-def test_rating_md_metric_keys_exist_in_measure() -> None:
-    text, src = _text(RATING), Path(measure.__file__).read_text(encoding="utf-8")
-    keys = [k for line in text.splitlines() if line.startswith(("Inputs:", "  "))
-            for k in re.findall(r"`([a-z_0-9]+[.:][a-z_0-9.]*?)(?::<[^>]+>/?)?`", line)]  # fmt: skip
-    assert len(keys) >= 10
-    for key in keys:
-        assert key == measure.COMPLEXITY_OVER or f'"{key}' in src or f'f"{key}' in src, key
-    assert f"`{measure.COMPLEXITY_OVER}`" in text  # FP-2
+def test_rating_md_ties_complexity_to_the_measure_constants() -> None:
+    text = _text(RATING)  # FP-2; key existence: tests/analysis/test_rating_keys.py
+    assert f"`{measure.COMPLEXITY_OVER}`" in text
     assert f"~{measure.CCN_HIGH} (`CCN_HIGH`" in text
 
 
@@ -306,4 +301,4 @@ def test_claude_security_guard(tmp_path: Path, installed: bool, enabled: bool | 
 def test_claude_security_guard_is_deep_only_and_not_a_skill_edge() -> None:
     text = _text(SKILL_MD)
     assert "Skill(claude-security)" not in text, "would need a surface_allowlist EXTERNAL entry"
-    assert text.index("# assess:claude-security") > text.index("## Step 6")
+    assert text.index("## Step 4") < text.index("# assess:claude-security") < text.index("## Step 5")

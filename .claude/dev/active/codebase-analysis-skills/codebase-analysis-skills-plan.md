@@ -266,6 +266,7 @@ flowchart LR
   IL[".importlinter"]
   ASK["claude-code/skills/assess-codebase/ (new)"]
   ACMD["claude-code/commands/assess-codebase.md (new)"]
+  AGT["claude-code/agents/codebase-assessor.md"]
   UND["claude-code/skills/understand-codebase/"]
   CON["claude-code/skills/understand-codebase/references/ANALYSIS-CONTRACT.md (new)"]
   UCMD["claude-code/commands/understand-codebase.md"]
@@ -276,6 +277,7 @@ flowchart LR
   CMD2["claude-code/codemem/"]
 
   ACMD -->|invokes| ASK
+  ASK -->|spawns read-only| AGT
   UCMD -->|invokes| UND
   ASK -->|will link| CON
   UND -->|will link| CON
@@ -303,8 +305,8 @@ flowchart TD
   B --> C["aa-ma-analysis measure: git + codemem query + optional tools"]
   C -->|tool absent or report empty| U["tool status ABSENT / UNKNOWN, never zero"]
   C --> D["coverage ledger: every top-level dir assessed or set aside"]
-  D --> E["sonnet judge agents per component: judged.jsonl with file:line"]
-  E --> F["refuter on session model: Critical/High SURVIVED or REFUTED"]
+  D --> E["read-only codebase-assessor judges (sonnet): replies gated into judged/, validated, file:line"]
+  E --> F["refuter (read-only codebase-assessor): Critical/High survived or refuted, verdicts.jsonl"]
   F --> G["aa-ma-analysis finalize: validate, IDs, rating cap, baseline diff"]
   G --> H["summary.json + findings.jsonl + findings.sarif + report.md"]
   H --> S["secret gate: gitleaks else regex; redact + mark"]
@@ -657,6 +659,11 @@ Files:
   Test    tests/skills/test_assess_codebase.py (new)
   Test    tests/golden/plugin-surface.json (regenerated)
   Test    tests/codemem/test_plugin_surface.py (orphan pin if it moves)
+  # Scope change 2026-09-29 (M3 §6.8, Ste — context-log "M3 §6.8 — remediation decisions"):
+  Create  claude-code/agents/codebase-assessor.md               # read-only judge + refuter (agents 12 → 13)
+  Modify  src/aa_ma/analysis/{finalize,models,report_md}.py     # verdicts.jsonl, refutation_reason, RULE_PATTERN/PREFIXES
+  Test    tests/golden/analysis/{finding,judged_finding}.schema.json (regenerated)
+  Test    tests/analysis/test_rating_keys.py (new)
 
 SKILL.md content (clean-room — ideas from the map only, no text from the local deep-dive):
   Step 0 stamp + fresh check (reuse a fresh same-SHA report; ask to re-run)
@@ -666,6 +673,8 @@ SKILL.md content (clean-room — ideas from the map only, no text from the local
   Step 2 measure; Step 3 coverage ledger; Step 4 judge (Standard/Deep): per-component
     built-in Explore/general-purpose agents, model: sonnet, prompts from AGENT-PROMPTS.md,
     reuse codebase-onboarding-health for the health slice
+    [superseded 2026-09-29: own tests_deps brief (3.2, Ste); judges + refuter run as the
+    read-only codebase-assessor agent; refuter verdicts via verdicts.jsonl (3.7, Ste)]
   Step 5 refute Critical/High (general-purpose, session model, prompted to disprove)
   Step 6 Deep only: offer claude-security deep pass (if installed+enabled); ask once to run
     tests via `aa-ma-analysis run` (declined/failed/timeout → coverage UNKNOWN)

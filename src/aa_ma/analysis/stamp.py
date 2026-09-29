@@ -55,6 +55,7 @@ SAFE_GIT_CONFIG = re.compile(
     r"|remote\..+\.(url|pushurl|fetch|tagopt|prune|mirror)"
     r"|branch\..+\.(remote|merge|rebase|pushremote|description|vscode-merge-base)"
     r"|submodule\..+\.(url|active)"
+    r"|lfs\.repositoryformatversion"
     r"|user\.(name|email)|init\.defaultbranch|pull\.rebase|push\.default|fetch\.prune"
 )
 TARGET_SCOPES = {"local", "worktree"}

@@ -29,6 +29,8 @@ from pydantic import (
 SCHEMA_VERSION = 1
 HEX12 = 12  # hex digits in a stamp's sha12 and in a finding id's hash
 EVIDENCE_MAX = 2000  # chars in a finding's evidence
+# A rule id is `<prefix>.<name>` — plain text, so an untrusted judged rule cannot shape report.md.
+RULE_PATTERN = r"^[a-z][a-z_]*\.[a-z0-9][a-z0-9_.-]{0,63}$"
 NOTE_MAX = 8000  # chars in a CommandCheck note (the last 40 lines of output)
 # A URI scheme — or a Windows drive letter, which looks like one — makes a path absolute to a viewer.
 SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
@@ -102,6 +104,13 @@ CORE_INPUTS = {
     Dimension.MAINTAINABILITY: ("lizard",),
     Dimension.SECURITY: ("semgrep",),
     Dimension.TESTS_DEPS: ("osv-scanner", "pip-audit"),
+}
+# The rule prefixes each dimension owns; finalize holds judged findings to them.
+RULE_PREFIXES = {
+    Dimension.ARCHITECTURE: ("arch",),
+    Dimension.MAINTAINABILITY: ("maint",),
+    Dimension.SECURITY: ("security",),
+    Dimension.TESTS_DEPS: ("tests", "deps"),
 }
 
 
@@ -188,7 +197,7 @@ class _FindingFields(_Model):
     dimension: Dimension
     severity: Severity
     confidence: Confidence
-    rule: str
+    rule: str = Field(pattern=RULE_PATTERN)
     title: str
     path: str
     line: PositiveInt | None

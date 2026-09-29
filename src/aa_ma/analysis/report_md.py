@@ -36,8 +36,14 @@ def deep_only_note() -> str:
 MD_SPECIAL = re.compile(r"([\\`*_{}\[\]()#+!|~-])")
 
 
+# Bidirectional controls reorder what a reader sees (Trojan Source); a report cell drops them.
+BIDI = dict.fromkeys(
+    map(ord, "\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069")
+)
+
+
 def _cell(text: str) -> str:
-    text = " ".join(text.split())
+    text = " ".join(text.translate(BIDI).split())
     text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     return MD_SPECIAL.sub(r"\\\1", text)
 
@@ -100,7 +106,7 @@ def render(summary: Summary, findings: list[Finding]) -> str:
         lines += [f"> {deep_only_note()}", ""]
     c, b = summary.counts, summary.baseline
     lines += [
-        f"## Findings — {c.findings} ({c.refuted} refuted, listed below; {c.redacted} redacted)",
+        f"## Findings — {c.findings} ({c.refuted} refuted{', listed below' if c.refuted else ''}; {c.redacted} redacted)",
         "",
         f"Baseline: {b.new} new · {b.persisting} persisting · {b.fixed} fixed",
         "",
@@ -114,7 +120,7 @@ def render(summary: Summary, findings: list[Finding]) -> str:
     for f in ordered:
         if f.refutation != Refutation.REFUTED:
             lines.append(
-                f"| {f.severity} | {f.rule} | {_cell(_where(f))} | {_cell(f.title)} | {f.id} |"
+                f"| {f.severity} | {_cell(f.rule)} | {_cell(_where(f))} | {_cell(f.title)} | {f.id} |"
             )
     if refuted:
         lines += [
@@ -126,7 +132,7 @@ def render(summary: Summary, findings: list[Finding]) -> str:
             "| severity | rule | where | title | reason | id |",
             "|---|---|---|---|---|---|",
             *(
-                f"| {f.severity} | {f.rule} | {_cell(_where(f))} | {_cell(f.title)} "
+                f"| {f.severity} | {_cell(f.rule)} | {_cell(_where(f))} | {_cell(f.title)} "
                 f"| {_cell(f.refutation_reason or '')} | {f.id} |"
                 for f in refuted
             ),

@@ -133,7 +133,7 @@ One `findings.jsonl` line.
 | `dimension` | architecture / maintainability / security / tests_deps | |
 | `severity` | critical / high / medium / low / info | |
 | `confidence` | high / med / low | |
-| `rule` | string | Stable rule id, e.g. `maint.complexity`, `security.secret`. |
+| `rule` | string | Stable rule id `<prefix>.<name>` (lowercase, no spaces or markup), e.g. `maint.complexity`, `security.secret`. The prefix belongs to the dimension: `arch`, `maint`, `security`, `tests` or `deps` (`models.RULE_PREFIXES`); finalize refuses a judged rule whose prefix is another dimension's. |
 | `title` | string | One line. |
 | `path` | string | Repo-relative; absolute, `\\`-rooted, URI-scheme or drive-letter, `..`, percent-encoded and control-character paths are rejected. |
 | `line` | positive integer or null | Where it was seen this run; not part of the ID. |

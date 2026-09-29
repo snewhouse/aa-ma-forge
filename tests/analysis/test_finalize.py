@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -789,3 +790,47 @@ def test_a_quick_report_says_what_only_deep_can_rate(
     from aa_ma.analysis.report_md import deep_only_note
 
     assert deep_only_note() in (run(target) / "report.md").read_text()
+
+
+# --- M3 §6.8 regression pass: rule shape and prefix, inert report cells -------------------------
+
+
+@pytest.mark.parametrize("rule", [
+    "x\n\n## PWNED [click](https://evil.example) |", "Arch.Layering", "arch", "arch. spaced", "arch.<b>",
+])  # fmt: skip
+def test_a_judged_rule_that_is_not_a_plain_id_is_refused(target: Path, lizard: Path, rule: str) -> None:
+    with pytest.raises(FinalizeError, match=r"judged\.jsonl:1: invalid") as exc:
+        run(target, judged_lines=[json.dumps(judged(rule=rule))])
+    assert "PWNED" not in str(exc.value)
+
+
+@pytest.mark.parametrize(("dimension", "rule"), [
+    ("maintainability", "security.injection"), ("architecture", "maint.x"), ("tests_deps", "arch.x"),
+])  # fmt: skip
+def test_a_judged_rule_prefix_must_match_its_dimension(
+    target: Path, lizard: Path, dimension: str, rule: str
+) -> None:
+    with pytest.raises(FinalizeError, match=r"judged\.jsonl:1: rule prefix"):
+        run(target, judged_lines=[json.dumps(judged(dimension=dimension, rule=rule))])
+
+
+def test_every_measured_rule_matches_its_dimension_prefix() -> None:
+    src = Path(finalize_mod.__file__).with_name("measure.py").read_text(encoding="utf-8")
+    from aa_ma.analysis.models import RULE_PREFIXES
+
+    for rule in set(re.findall(r'"((?:maint|security|deps|arch|tests)\.[a-z_]+)"', src)):
+        assert any(rule.startswith(p + ".") for ps in RULE_PREFIXES.values() for p in ps), rule
+
+
+def test_bidi_controls_never_reach_report_md(target: Path, lizard: Path) -> None:
+    title = "safe ‮gnp.exe‬ title ⁦x⁩"
+    report = run(target, judged_lines=[json.dumps(judged(title=title))])
+    md = (report / "report.md").read_text()
+    assert not any(ch in md for ch in "‪‫‬‭‮⁦⁧⁨⁩‎‏؜")
+
+
+def test_the_findings_header_says_listed_below_only_when_something_was_refuted(
+    target: Path, lizard: Path
+) -> None:
+    md = (run(target) / "report.md").read_text()
+    assert "listed below" not in md and "0 refuted" in md

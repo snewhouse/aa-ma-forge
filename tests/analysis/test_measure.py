@@ -713,3 +713,30 @@ def test_the_staging_dir_is_outside_any_git_work_tree(
     work = measure(target, "quick")
     assert probe.read_text().strip() == "outside"
     assert not (work / "stage").exists()
+
+
+def test_measure_refuses_a_target_whose_git_config_runs_commands(
+    target: Path, tools: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    marker = tmp_path / "fsmonitor-ran"
+    git(target, "config", "core.fsmonitor", f"touch '{marker}'; false")
+    assert cli.main(["measure", "--repo", str(target), "--tier", "quick"]) == 2
+    assert "core.fsmonitor" in capsys.readouterr().err
+    assert not marker.exists()
+
+
+def test_a_symlinked_parent_dir_never_leads_outside_the_repo(
+    target: Path, tools: Path, tmp_path: Path
+) -> None:
+    """Index says p/x.py; the working tree swapped p for a symlink out of the repo."""
+    commit_file(target, "p/x.py", "x = 1\n")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "x.py").write_text(f'TOKEN = "{FAKE_TOKEN}"\n')
+    import shutil
+
+    shutil.rmtree(target / "p")
+    os.symlink(outside, target / "p")
+    d = doc(measure(target, "quick"))
+    assert [f["path"] for f in by_rule(d, "security.secret")] == ["src/config.py"]
+    assert d["metrics"]["files.escaping"] == 1

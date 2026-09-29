@@ -585,3 +585,49 @@ def test_a_failed_restore_keeps_the_previous_report(
         p for p in (target / REPORTS_ROOT).iterdir() if p.name.startswith(".old-")
     ]
     assert {p.name: p.read_bytes() for p in (kept / previous.name).iterdir()} == before
+
+
+def test_no_baseline_when_git_cannot_list_the_reports_root(
+    target: Path, lizard: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fail closed: without the tracked list a planted report could pass as ours."""
+    _hostile_report(
+        target / REPORTS_ROOT, "0123456789ab", None, when="2000-01-01T00:00:00Z"
+    )
+    work = prepare(target)
+    real = finalize_mod.run_git
+
+    def failing(repo, *args):
+        return (
+            real(repo, "definitely-not-a-git-command")
+            if args[:1] == ("ls-files",)
+            else real(repo, *args)
+        )
+
+    monkeypatch.setattr(finalize_mod, "run_git", failing)
+    assert summary(finalize(target, work)).baseline.fixed == 0
+
+
+def test_a_failed_move_aside_leaves_no_empty_old_dir(
+    target: Path, lizard: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run(target)
+
+    def replace(src, dst):
+        raise OSError("busy")
+
+    monkeypatch.setattr(finalize_mod.os, "replace", replace)
+    with pytest.raises(FinalizeError):
+        finalize(target, prepare(target))
+    assert not [
+        p for p in (target / REPORTS_ROOT).iterdir() if p.name.startswith(".old-")
+    ]
+
+
+def test_finalize_refuses_a_target_whose_git_config_runs_commands(
+    target: Path, lizard: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    work = prepare(target)
+    git(target, "config", "filter.x.clean", "cat")
+    assert cli.main(["finalize", "--repo", str(target), "--work", str(work)]) == 2
+    assert "filter.x.clean" in capsys.readouterr().err

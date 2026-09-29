@@ -98,6 +98,19 @@
     "refutation": {
       "$ref": "#/$defs/Refutation"
     },
+    "refutation_reason": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Refutation Reason"
+    },
     "rule": {
       "title": "Rule",
       "type": "string"

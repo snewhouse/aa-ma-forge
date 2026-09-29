@@ -228,6 +228,17 @@ class Finding(_FindingFields):
     id: str = Field(pattern=rf"^F-[0-9a-f]{{{HEX12}}}$")
     origin: Origin
     redacted: bool
+    refutation_reason: str | None = Field(
+        default=None, max_length=EVIDENCE_MAX
+    )  # the refuter's
+
+
+class RefuterVerdict(_Model):
+    """One verdicts.jsonl line: the refuter's call on a pending judged.jsonl line. Internal: no golden."""
+
+    line: PositiveInt  # 1-based line number in judged.jsonl
+    verdict: Literal["survived", "refuted"]
+    reason: str = Field(min_length=1, max_length=EVIDENCE_MAX)
 
 
 class CommandCheck(_Model):

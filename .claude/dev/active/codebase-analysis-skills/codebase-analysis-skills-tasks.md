@@ -100,7 +100,7 @@
 ### Sub-step 2.7: [verify] live measure + finalize on forge; regen; CRITICAL_PATH_REVIEW; PR
 - Status: COMPLETE
 - Mode: HITL
-- Result Log: Mode: HITL. Live evidence: Deep measure + finalize on forge worktrees (ext4) at 7712b4e and at the final HEAD (see CRITICAL_PATH_REVIEW in provenance): every tool ran, 180 findings valid (models + SARIF schema), work dir removed; regen after every contract change; DIAGRAM_VERIFIED edges=5 checked=5. HARD gate APPROVED by Ste 2026-09-29; PR via /sole-dev-merge (SHA map in provenance).
+- Result Log: Mode: HITL. Live evidence: Deep measure + finalize on forge worktrees (ext4) at 7712b4e and at the final HEAD (see CRITICAL_PATH_REVIEW in provenance): every tool ran, 180 findings valid (models + SARIF schema), work dir removed; regen after every contract change; DIAGRAM_VERIFIED edges=5 checked=5. HARD gate APPROVED by Ste 2026-09-29; merged via PR #5 (/sole-dev-merge rebase-merge, CI 7/7 green) — main at 68fcc3f; rebased SHA map in provenance.
 
 ### Sub-step 2.8: [remediate] §6.8 impl-review — 1 accepted CRITICAL + 20 WARNINGs (Ste: fix all now)
 - Status: COMPLETE

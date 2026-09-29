@@ -151,3 +151,20 @@ All first-round items verified closed (C1, W-S1, W-S4, W-S5, W-S6, W1, W2 (parti
 | inline suppressions, parallel tool runs, faster owners blame, huge-repo argv | All done in M2 |
 
 Design (orchestrator, first principles): one **staging dir** of hard-linked tracked regular files in the work dir, target scanner configs left out; lizard/jscpd/gitleaks/semgrep/osv/pip-audit run with cwd = staging on `.` — closes gitleaks' untracked walk, `-`-named files as options, argv size limits and config obedience in one change.
+
+## Milestone 2 — §6.8 round 3 (2026-09-29), diff cb63e50..7bfc75e
+| Agent | CRITICAL | WARNING | INFO |
+|---|:-:|:-:|:-:|
+| code-reviewer | 1 | 6 | 8 |
+| security-auditor | 0 | 4 | 7 |
+
+- **C-R3 (code, confirmed live by the orchestrator):** `_allowed` matched `basename(argv[0])` — `./ruff check .` ran a binary planted in the target.
+- Security (reproduced by the auditor): allowed runners took any option — `cargo test --config target.…runner=[…]` and `node --test --import=data:` ran code; `pylint --init-hook`, `go test -exec`, `tox exec -- sh`, `yarn run node -e`, `npm test --node-options=/--registry=http://` pass; target `.git/config` `core.fsmonitor` ran a command during measure/finalize; a symlinked parent dir (`p` → `/proc`) made measure read and report `p/self/environ`.
+- Code: /tmp is tmpfs → staging always copies into RAM (ENOSPC crash risk); `_stage` crashes on files changed mid-run; target `.gitignore` staged (hides force-added files from semgrep); jscpd `package.json` key still obeyed; suppression counts include mentions in docs/tests (forge report.md "semgrep 4, gitleaks 6" false); formatters/`--fix` would rewrite the target; INFOs: formatter-damaged comments, three JSONL readers, empty `.old-*` leak, relative `*_BIN`, timeouts under concurrency, merge-sum invariant, stale stages after SIGKILL, `_previous` ls-files failure open, lstat races.
+
+### User Override Decisions (round 3, Ste)
+| Item | Decision |
+|---|---|
+| C-R3 + option vectors | **Strict grammar**: bare argv[0]; only paths + a small per-runner flag set; check-only formatter forms; else `not_run` |
+| target `.git/config` | **Harden + refuse**: git config overrides on every call (env `GIT_CONFIG_COUNT`), measure/finalize refuse (exit 2) when the local config sets include*/filter.*/diff.*.command|textconv/core.fsmonitor/core.sshCommand |
+| everything else | Fix all now; then one more §6.8 pass on the diff |

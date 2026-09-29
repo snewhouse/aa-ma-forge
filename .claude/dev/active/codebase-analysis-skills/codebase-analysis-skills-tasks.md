@@ -111,6 +111,11 @@
 - Mode: AFK
 - Result Log: [placeholder]
 
+### Sub-step 2.10: [remediate] §6.8 round 3 — strict run grammar, git-config refusal, symlinked parents, staging fidelity (Ste: all now)
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
 ## Milestone 3: `assess-codebase` skill + thin command
 - Status: PENDING
 - Dependencies: Milestone 2

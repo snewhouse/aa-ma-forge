@@ -18,7 +18,7 @@ from aa_ma.analysis.finalize import FinalizeError, finalize
 from aa_ma.analysis.ids import compare
 from aa_ma.analysis.measure import measure
 from aa_ma.analysis.models import Dimension, Finding, Summary
-from aa_ma.analysis.stamp import REPORTS_ROOT
+from aa_ma.analysis.stamp import REPORT_NAME, REPORTS_ROOT
 
 from .conftest import FAKE_TOKEN, commit_file, git, lizard_row, lizard_stub
 
@@ -164,6 +164,29 @@ def test_secret_quoted_by_a_judged_finding_never_reaches_any_output(
     assert (
         f"{n} redacted" in (report / "report.md").read_text()
     )  # rendered after the gate
+    Draft4Validator(SARIF_SCHEMA).validate(sarif(report))  # AC9: the redacted SARIF too
+
+
+def test_outputs_that_fail_revalidation_after_redaction_are_refused(
+    target: Path, lizard: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC9: every output is re-validated after the gate redacts; a broken one refuses the report."""
+    line = json.dumps(judged(path="src/config.py", evidence=f"leaks {FAKE_TOKEN}"))
+    work = prepare(target, judged_lines=[line])
+    redact = finalize_mod.secrets.redact
+
+    def redact_then_break(root: Path, hits) -> None:
+        redact(root, hits)
+        with (root / "findings.jsonl").open("a", encoding="utf-8") as fh:
+            fh.write("{not json\n")
+
+    monkeypatch.setattr(finalize_mod.secrets, "redact", redact_then_break)
+    with pytest.raises(FinalizeError, match="output gate refused"):
+        finalize(target, work)
+    assert work.is_dir()
+    assert not any(
+        REPORT_NAME.fullmatch(d.name) for d in (target / REPORTS_ROOT).iterdir()
+    )
 
 
 # --- AC5: baseline --------------------------------------------------------------------------------

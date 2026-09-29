@@ -107,14 +107,14 @@
 - Result Log: Mode: AFK — auto-dispatched. RED `29d7b9e` → GREEN `377a8e4` (run hardening, report_name, QUERY_TOOLS), `3c8fced` (measure: partial metrics None, code-only duplication, versions, configs, last-touch), `ceac469` (finalize: C1 baseline never read through symlinks/tracked/future, rollback, gated report.md, no input echo, ':' URIs) + 2 isolating tests after mutation testing showed the tracked-dir rule and O_NOFOLLOW were masked; `fc6846a` (B105 false positive renamed); `7ca99e9` CHANGELOG. C1 live repro before: rc 1 + outside text in a traceback; after: rc 0, no leak. Retroactive RED for the untracked-path filter confirmed. Round-2 review (§6.8 re-run + §6.6) verified every item closed; follow-ups → 2.9.
 
 ### Sub-step 2.9: [remediate] §6.8 re-run + §6.6 — allowlist gate, staging dir, correctness, perf, DRY (Ste: all now)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED→GREEN pairs: allowlist gate `9b84fb6`→`8f14447`; stamp helpers (absolute-PATH `find_binary`, `read_regular`, `REPORT_NAME`) `f3f73f4`→`36668c8`; codemem concurrent blame `e3a0a36`→`8f73cd3`; staging dir + concurrent jobs + owners/last-touch/suppression counts + restore `6d87ca8`→`e15edc0`; stage outside any work tree (found live: reports-root `.gitignore` hid everything) `8f205fc`→`c4e71d6`. Refactor `23422e2`; docs `7bfc75e`, regen `2f449d5`. Round-3 review (`bc35b34`): BLOCKED on C-R3 (`./ruff` basename matched the allowlist) → 2.10.
 
 ### Sub-step 2.10: [remediate] §6.8 round 3 — strict run grammar, git-config refusal, symlinked parents, staging fidelity (Ste: all now)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED→GREEN: strict run grammar `4edd4ec`→`42ccaf1` (C-R3 closed: bare argv[0] only); target git config never runs code (GIT_CONFIG_COUNT overrides + `check_git_config` refusal, exit 2), symlinked parents counted in `files.escaping`, fail-closed baseline `d2e0648`→`bb040f5`; staging fidelity (cache-root hard links, vanished files `files.unstaged`, no `.gitignore`, package.json `jscpd` key stripped, comment-only suppression counts, stale-stage cleanup) `a81ac5b`→`855d6e2` — 6 RED vs old source, 7/7 mutations caught. Tidy + §5a/CHANGELOG/reference + regen `4b032e4`. Suite 2081 passed / 2 skipped; lint-imports 6/6; bandit 0 issues ≥Medium. Live Deep on a forge worktree on ext4 @ `4b032e4`: stage linked=736 copied=0 skipped=0 in 0.08 s, all tools ran, 179 findings, 14.1 s wall-clock, cache root left empty.
 
 ## Milestone 3: `assess-codebase` skill + thin command
 - Status: PENDING

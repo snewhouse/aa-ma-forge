@@ -253,7 +253,8 @@ def test_refuted_findings_are_kept_with_their_reason_but_never_counted_or_shippe
     )
     assert got["kept"].refutation_reason is None
     s = summary(report)
-    assert s.counts.refuted == 1 and s.counts.high == 0
+    live_high = [f for f in findings(report) if f.severity == "high" and f.refutation != "refuted"]
+    assert s.counts.refuted == 1 and s.counts.high == len(live_high)
     assert s.counts.findings == len(findings(report)) - 1
     assert s.baseline.new == s.counts.findings  # refuted is outside the baseline
     shipped = [r["fingerprints"]["aaMaFindingId/v1"] for r in sarif(report)["runs"][0]["results"]]

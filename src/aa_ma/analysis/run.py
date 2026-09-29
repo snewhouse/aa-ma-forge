@@ -17,6 +17,7 @@ import subprocess  # nosec B404 — argv lists only, never a shell
 import tempfile
 import unicodedata
 from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 
 from . import secrets
@@ -71,47 +72,96 @@ REFUSED: dict[str, set[str]] = {
     "docker": {"pull", "run"},
     "make": {"install"},
 }
-# The allowlist: the only argv forms `run` executes. Anything else is `not_run — run by hand`.
-RUNNERS = {
-    "pytest",
-    "py.test",
-    "tox",
-    "ruff",
-    "mypy",
-    "flake8",
-    "pylint",
-    "black",
-    "jest",
-    "vitest",
-    "eslint",
-    "tsc",
-}
-RUNNER_SUBCOMMANDS = {
-    "npm": {"test", "t", "run"},
-    "pnpm": {"test", "run"},
-    "yarn": {"test", "run"},
-    "bun": {"test", "run"},
-    "cargo": {"test", "build", "check", "clippy", "fmt"},
-    "go": {"test", "build", "vet"},
-    "node": {"--test"},
+
+
+# The allowlist is a grammar: argv[0] is a bare runner name (never a path — `./ruff` could be a
+# binary the target planted); after the runner's fixed words come only plain repo paths and the
+# runner's own few flags; formatters only in check mode. Anything else is `not_run — run by hand`.
+# Every allowed runner still executes repo code (tests, Makefiles, package scripts): best-effort.
+@dataclass(frozen=True)
+class _Form:
+    words: tuple[str, ...] = ()  # fixed words right after the runner
+    flags: frozenset[str] = frozenset()  # bare flags
+    valued: frozenset[str] = (
+        frozenset()
+    )  # flags taking one plain value (next token or =value)
+    paths: bool = True  # positional plain repo paths
+    script: bool = False  # exactly one positional package-script name instead of paths
+
+
+def _forms(*forms: _Form) -> tuple[_Form, ...]:
+    return forms
+
+
+_F = frozenset
+PYTEST = _Form(
+    flags=_F(
+        {
+            "-q",
+            "-x",
+            "-v",
+            "-vv",
+            "-s",
+            "-ra",
+            "--no-header",
+            "--tb=short",
+            "--tb=line",
+            "--tb=no",
+        }
+    ),
+    valued=_F({"-k", "-m"}),
+)
+CARGO_BUILD = dict(
+    flags=_F({"--all-features", "--workspace", "--release", "-q"}),
+    valued=_F({"--features"}),
+    paths=False,
+)
+GO = dict(flags=_F({"-v", "-race", "-short"}), valued=_F({"-run", "-count"}))
+PM_FORMS = _forms(
+    _Form(("test",), paths=False), _Form(("run",), paths=False, script=True)
+)
+GRAMMAR: dict[str, tuple[_Form, ...]] = {
+    "pytest": _forms(PYTEST),
+    "py.test": _forms(PYTEST),
+    "tox": _forms(_Form(flags=_F({"-q"}), valued=_F({"-e"}), paths=False)),
+    "ruff": _forms(_Form(("check",)), _Form(("format", "--check"))),
+    "black": _forms(_Form(("--check",))),
+    "mypy": _forms(_Form(flags=_F({"--strict"}))),
+    "flake8": _forms(_Form()),
+    "pylint": _forms(_Form()),
+    "eslint": _forms(_Form()),
+    "tsc": _forms(_Form(("--noEmit",), valued=_F({"-p"}), paths=False)),
+    "jest": _forms(_Form(flags=_F({"--ci"}))),
+    "vitest": _forms(_Form(("run",))),
+    "node": _forms(_Form(("--test",))),
+    "npm": PM_FORMS,
+    "pnpm": PM_FORMS,
+    "yarn": PM_FORMS,
+    "bun": PM_FORMS,
+    "cargo": _forms(
+        *(_Form((w,), **CARGO_BUILD) for w in ("test", "build", "check", "clippy")),
+        _Form(("fmt", "--check"), paths=False),
+    ),
+    "go": _forms(*(_Form((w,), **GO) for w in ("test", "build", "vet"))),
 }
 PYTHON = re.compile(r"(python|pypy)[0-9.]*")
+# python [opts] -m <module> …: the module's own grammar applies to what follows.
 PY_MODULES = {
-    "pytest",
-    "unittest",
-    "mypy",
-    "ruff",
-    "black",
-    "flake8",
-    "pylint",
-    "compileall",
-    "doctest",
+    "pytest": PYTEST,
+    "mypy": GRAMMAR["mypy"][0],
+    "unittest": _Form(flags=_F({"-v"})),
+    "flake8": _Form(),
+    "pylint": _Form(),
 }
 # Interpreter options allowed before -m.
-PY_OPTION = re.compile(r"-[BbdIiOqsSuv]+|-[WX]\S+")
+PY_OPTION = re.compile(r"-[Bu]|-W[a-z:]+|-Xdev")
 # npm/yarn/pnpm/bun run <script>
 SCRIPT_NAME = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_:.-]*")
 MAKE_ARG = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.:/-]*|-j[0-9]*|-k|-s")
+# A path argument: repo-relative, no leading '-' or '/', no '..' component, no URL.
+PATH_ARG = re.compile(r"[A-Za-z0-9_.][A-Za-z0-9_./:@+-]*")
+# A flag's value: a test selector, marker, feature list or env name — never a path out or a URL.
+FLAG_VALUE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_ .,:()!-]*")
 
 
 def minimal_env() -> dict[str, str]:
@@ -197,7 +247,7 @@ def _refusal(argv: list[str]) -> str | None:
     name, args = os.path.basename(argv[0]), argv[1:]
     if "=" in argv[0] and "/" not in argv[0]:
         return "environment assignment"
-    if any(t.startswith(FETCH) for t in args):
+    if any(t.startswith(FETCH) or "://" in t for t in args):
         return "fetches from a URL"
     if name in REFUSED_ALWAYS or PIP.fullmatch(name):
         return f"{name}: shell, launcher, interpreter of inline code, or fetcher"
@@ -220,11 +270,46 @@ def _refusal(argv: list[str]) -> str | None:
     return None
 
 
+def _plain_path(arg: str) -> bool:
+    return (
+        bool(PATH_ARG.fullmatch(arg))
+        and ".." not in arg.split("/")
+        and "://" not in arg
+    )
+
+
+def _matches(form: _Form, args: list[str]) -> bool:
+    if tuple(args[: len(form.words)]) != form.words:
+        return False
+    rest, positional, i = args[len(form.words) :], [], 0
+    while i < len(rest):
+        arg = rest[i]
+        if arg.startswith("-") and arg != "-":
+            name, eq, value = arg.partition("=")
+            if arg in form.flags:
+                i += 1
+                continue
+            if name not in form.valued:
+                return False
+            if not eq:
+                if i + 1 >= len(rest):
+                    return False
+                value, i = rest[i + 1], i + 1
+            if not FLAG_VALUE.fullmatch(value):
+                return False
+        else:
+            positional.append(arg)
+        i += 1
+    if form.script:
+        return len(positional) == 1 and bool(SCRIPT_NAME.fullmatch(positional[0]))
+    return (form.paths or not positional) and all(_plain_path(p) for p in positional)
+
+
 def _allowed(argv: list[str]) -> bool:
-    """Is this one of the known test-runner, build or lint forms?"""
-    name, args = os.path.basename(argv[0]), argv[1:]
-    if name in RUNNERS:
-        return True
+    """Does argv fit the runner grammar?"""
+    name, args = argv[0], argv[1:]
+    if "/" in name:
+        return False  # a path: maybe a binary the target planted
     if (
         name == "uv"
     ):  # `uv run <allowed form>`, no uv options (they take values and change the env)
@@ -234,26 +319,20 @@ def _allowed(argv: list[str]) -> bool:
             and not args[1].startswith("-")
             and _allowed(args[1:])
         )
-    if PYTHON.fullmatch(name):  # interpreter options, then -m <allowed module>
+    if PYTHON.fullmatch(name):
         i = 0
         while i < len(args) and args[i] != "-m":
-            if args[i] in VALUE_FLAGS and i + 1 < len(args):
+            if args[i] == "-X" and args[i + 1 : i + 2] == ["dev"]:
                 i += 2
             elif PY_OPTION.fullmatch(args[i]):
                 i += 1
             else:
                 return False
-        return i + 1 < len(args) and args[i + 1] in PY_MODULES
+        module = args[i + 1] if i + 1 < len(args) else ""
+        return module in PY_MODULES and _matches(PY_MODULES[module], args[i + 2 :])
     if name == "make":
         return all(MAKE_ARG.fullmatch(a) for a in args)
-    if name in RUNNER_SUBCOMMANDS:
-        first = args[0] if args else ""
-        if first not in RUNNER_SUBCOMMANDS[name]:
-            return False
-        return first != "run" or (
-            len(args) > 1 and SCRIPT_NAME.fullmatch(args[1]) is not None
-        )
-    return False
+    return any(_matches(form, args) for form in GRAMMAR.get(name, ()))
 
 
 def _note(output: bytes) -> str:

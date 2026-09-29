@@ -153,6 +153,15 @@ PY_MODULES = {
     "flake8": _Form(),
     "pylint": _Form(),
 }
+# Runners that execute the target's code by design; only these may run under `uv run` (which
+# resolves the runner from the target's .venv/bin first) or keep cwd on sys.path.
+TEST_RUNNERS = {"pytest", "py.test"}
+TEST_MODULES = {"pytest", "unittest"}
+# Any other `python -m` gets PYTHONSAFEPATH: cwd off sys.path, so a planted ./mypy.py never loads.
+# ponytail: Python ≥ 3.11 honours it; an older interpreter still imports from cwd.
+SAFE_PATH_ENV = {"PYTHONSAFEPATH": "1"}
+# Cargo config in the target can alias `fmt`/`clippy` to `run` or set a runner: refused.
+CARGO_CONFIGS = ("config", "config.toml")
 # Interpreter options allowed before -m.
 PY_OPTION = re.compile(r"-[Bu]|-W[a-z:]+|-Xdev")
 # npm/yarn/pnpm/bun run <script>
@@ -305,31 +314,53 @@ def _matches(form: _Form, args: list[str]) -> bool:
     return (form.paths or not positional) and all(_plain_path(p) for p in positional)
 
 
+def _py_module(args: list[str]) -> tuple[str, list[str]]:
+    """(module, its args) for `python [allowed options] -m module …`; ("", []) otherwise."""
+    i = 0
+    while i < len(args) and args[i] != "-m":
+        if args[i] == "-X" and args[i + 1 : i + 2] == ["dev"]:
+            i += 2
+        elif PY_OPTION.fullmatch(args[i]):
+            i += 1
+        else:
+            return "", []
+    return (args[i + 1], args[i + 2 :]) if i + 1 < len(args) else ("", [])
+
+
+def _runs_tests(argv: list[str]) -> bool:
+    if PYTHON.fullmatch(argv[0]):
+        return _py_module(argv[1:])[0] in TEST_MODULES
+    return argv[0] in TEST_RUNNERS
+
+
+def _cargo_config(cwd: Path) -> bool:
+    """A .cargo/config[.toml] from cwd up to the repo root (the target's, not the user's)."""
+    for d in (cwd.absolute(), *cwd.absolute().parents):
+        if any((d / ".cargo" / name).exists() for name in CARGO_CONFIGS):
+            return True
+        if (d / ".git").exists():
+            return False
+    return False
+
+
 def _allowed(argv: list[str]) -> bool:
     """Does argv fit the runner grammar?"""
     name, args = argv[0], argv[1:]
     if "/" in name:
         return False  # a path: maybe a binary the target planted
-    if (
-        name == "uv"
-    ):  # `uv run <allowed form>`, no uv options (they take values and change the env)
+    # `uv run <test runner form>`, no uv options (they take values and change the env).
+    if name == "uv":
+        inner = args[1:]
         return (
             args[:1] == ["run"]
-            and len(args) > 1
-            and not args[1].startswith("-")
-            and _allowed(args[1:])
+            and bool(inner)
+            and not inner[0].startswith("-")
+            and _allowed(inner)
+            and _runs_tests(inner)
         )
     if PYTHON.fullmatch(name):
-        i = 0
-        while i < len(args) and args[i] != "-m":
-            if args[i] == "-X" and args[i + 1 : i + 2] == ["dev"]:
-                i += 2
-            elif PY_OPTION.fullmatch(args[i]):
-                i += 1
-            else:
-                return False
-        module = args[i + 1] if i + 1 < len(args) else ""
-        return module in PY_MODULES and _matches(PY_MODULES[module], args[i + 2 :])
+        module, rest = _py_module(args)
+        return module in PY_MODULES and _matches(PY_MODULES[module], rest)
     if name == "make":
         return all(MAKE_ARG.fullmatch(a) for a in args)
     return any(_matches(form, args) for form in GRAMMAR.get(name, ()))
@@ -392,8 +423,17 @@ def _run_part(part: str, cwd: Path, timeout: float) -> CommandCheck:
             status="not_run",
             note="not a known test-runner form — run by hand",
         )
+    if argv[0] == "cargo" and _cargo_config(cwd):
+        return CommandCheck(
+            command=part,
+            status="refused",
+            note="the target ships .cargo/config — its aliases and runners replace cargo's subcommands",
+        )
+    env = minimal_env()
+    if PYTHON.fullmatch(argv[0]) and not _runs_tests(argv):
+        env |= SAFE_PATH_ENV
     try:
-        rc, out = spawn(argv, cwd, minimal_env(), timeout, merge_stderr=True)
+        rc, out = spawn(argv, cwd, env, timeout, merge_stderr=True)
     except OSError as exc:
         return CommandCheck(
             command=part, status="failed", note=f"cannot start: {exc.strerror}"

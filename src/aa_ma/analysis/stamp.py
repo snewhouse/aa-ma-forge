@@ -50,7 +50,7 @@ GIT_OVERRIDES = (
 SAFE_GIT_CONFIG = re.compile(
     r"core\.(repositoryformatversion|filemode|bare|logallrefupdates|ignorecase"
     r"|precomposeunicode|symlinks|autocrlf|eol|safecrlf|quotepath)"
-    r"|extensions\.(objectformat|refstorage|worktreeconfig)"
+    r"|extensions\.(objectformat|refstorage|worktreeconfig|relativeworktrees)"
     r"|remote\..+\.(url|pushurl|fetch|tagopt|prune|mirror)"
     r"|branch\..+\.(remote|merge|rebase|pushremote|description|vscode-merge-base)"
     r"|submodule\..+\.(url|active)"
@@ -151,6 +151,27 @@ def _inside(root: str, path: str) -> bool:
     return path == root or path.startswith(root + os.sep)
 
 
+# A worktree's `gitdir` back-reference is one short path.
+BACKREF_MAX_BYTES = 4096
+
+
+def _is_worktree_of(root: str, git_dir: str, common: str) -> bool:
+    """Is git_dir a linked-worktree git dir (`<common>/worktrees/<name>`) whose `gitdir` file
+    names `<root>/.git` back? Relative back-references (`--relative-paths`) resolve against
+    git_dir. A hostile repo cannot write into another repo's `worktrees/`."""
+    if _inside(root, git_dir) or os.path.dirname(git_dir) != os.path.join(
+        common, "worktrees"
+    ):
+        return False
+    try:
+        back = read_regular(Path(git_dir) / "gitdir", limit=BACKREF_MAX_BYTES).strip()
+    except (OSError, UnicodeDecodeError):
+        return False
+    return bool(back) and os.path.realpath(os.path.join(git_dir, back)) == os.path.join(
+        root, ".git"
+    )
+
+
 def _check_git_dir(repo: Path) -> None:
     """The git dir and common dir must be the repo's own: a `.git` file or `commondir` naming
     another repo would have us mine its history. A linked worktree of the user's repo is the
@@ -169,15 +190,7 @@ def _check_git_dir(repo: Path) -> None:
     git_dir, common = (os.path.realpath(p) for p in out.stdout.splitlines()[:2])
     if _inside(root, git_dir) and _inside(root, common):
         return
-    try:
-        back = read_regular(Path(git_dir) / "gitdir").strip()
-    except (OSError, UnicodeDecodeError):
-        back = ""
-    if (
-        not _inside(root, git_dir)
-        and back
-        and os.path.realpath(back) == os.path.join(root, ".git")
-    ):
+    if _is_worktree_of(root, git_dir, common):
         return
     raise UnsafeRepo(f"{repo}: its git dir is outside the repo — assess a fresh clone")
 

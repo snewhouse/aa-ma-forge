@@ -353,6 +353,10 @@ def test_notes_pass_the_full_secret_gate(
         "ruff check --fix .",
         "cargo fmt",
         "eslint --fix .",
+        # §6.8 round 4: `uv run` resolves the runner from the target's .venv/bin first
+        "uv run ruff check .",
+        "uv run mypy src",
+        "uv run python -m mypy",
     ],
 )
 def test_anything_off_the_allowlist_is_never_executed(
@@ -368,3 +372,59 @@ def test_anything_off_the_allowlist_is_never_executed(
 def test_the_command_text_is_scrubbed_too(tmp_path: Path) -> None:
     [check] = run_approved([f"pytest --token {FAKE_TOKEN}"], tmp_path, timeout=5)
     assert FAKE_TOKEN not in check.command
+
+
+def _env_stub(stubs: Path, tmp_path: Path) -> Path:
+    out = tmp_path / "env.txt"
+    stub_bin(stubs, "python", f"env > '{out}'")
+    return out
+
+
+def test_a_lint_module_never_imports_from_the_target_dir(
+    stubs: Path, tmp_path: Path
+) -> None:
+    """`python -m mypy` put cwd first on sys.path: a planted ./mypy.py ran (§6.8 r4)."""
+    out = _env_stub(stubs, tmp_path)
+    run_approved(["python -m mypy"], tmp_path)
+    assert "PYTHONSAFEPATH=1" in out.read_text().splitlines()
+
+
+def test_a_test_module_keeps_the_target_dir_importable(
+    stubs: Path, tmp_path: Path
+) -> None:
+    """`python -m pytest` users rely on cwd on sys.path; the test runner runs repo code anyway."""
+    out = _env_stub(stubs, tmp_path)
+    run_approved(["python -m pytest -q"], tmp_path)
+    assert not any(
+        line.startswith("PYTHONSAFEPATH") for line in out.read_text().splitlines()
+    )
+
+
+@pytest.mark.skipif(shutil.which("python3") is None, reason="needs python3")
+def test_a_planted_module_named_like_a_linter_never_runs(tmp_path: Path) -> None:
+    marker = tmp_path / "planted-ran"
+    (tmp_path / "flake8.py").write_text(
+        f"open({str(marker)!r}, 'w').close()\n", encoding="utf-8"
+    )
+    run_approved(["python3 -m flake8"], tmp_path)
+    assert not marker.exists()
+
+
+@pytest.mark.parametrize("where", [".", "sub"])
+@pytest.mark.parametrize("name", ["config", "config.toml"])
+def test_cargo_is_refused_when_the_target_ships_cargo_config(
+    where: str, name: str, stubs: Path, tmp_path: Path
+) -> None:
+    """A `[alias] fmt = [\"run\", …]` replaces `cargo fmt` with the target's own binary."""
+    marker = tmp_path / "ran"
+    stub_bin(stubs, "cargo", f"touch '{marker}'")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".cargo").mkdir()
+    (tmp_path / ".cargo" / name).write_text(
+        "[alias]\nfmt = ['run']\n", encoding="utf-8"
+    )
+    cwd = tmp_path / where
+    cwd.mkdir(exist_ok=True)
+    [check] = run_approved(["cargo fmt --check"], cwd)
+    assert check.status == "refused" and ".cargo" in check.note
+    assert not marker.exists()

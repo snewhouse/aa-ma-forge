@@ -172,9 +172,10 @@ Each judge replies with JudgedFinding lines and a draft rating. When all are bac
    (the gate below refuses a file that does not parse).
 2. `AA aa-ma-analysis scan-secrets <work>/judged --redact` — the output gate, before anything
    else reads the lines. Exit 1 → refused or hits remain: stop and say so.
-3. `AA aa-ma-analysis validate judged_finding <work>/judged/<dimension>.jsonl` for each — a
-   failing line (reported by number, never echoed) goes back to its judge once; still failing →
-   drop it and say so.
+3. `AA aa-ma-analysis validate judged_finding <work>/judged/<dimension>.jsonl` for each — it
+   also enforces the judge rules (critical/high written `pending`, the rest `not_required`; a
+   rule prefix the dimension owns). A failing line (reported by number, never echoed) goes back
+   to its judge once; still failing → drop it and say so. Only lines that pass reach finalize.
 4. Concatenate the four files, in dimension order, into `<work>/judged.jsonl`.
 5. Write `<work>/ratings.json` (list of `{"dimension", "rating", "confidence", "inputs",
    "capped"}`) from the judges' drafts and RATING.md. `capped` is set by finalize; write `false`.

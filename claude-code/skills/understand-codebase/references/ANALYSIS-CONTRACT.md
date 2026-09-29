@@ -160,7 +160,7 @@ a Finding.
 | `path` | string | |
 | `line` | positive integer or null | |
 | `anchor` | string | The cited line, as `aa_ma.analysis.ids.anchor_for` produces it. |
-| `refutation` | as Finding | A judge writes `pending` for critical/high and `not_required` otherwise; finalize refuses anything else. |
+| `refutation` | as Finding | A judge writes `pending` for critical/high and `not_required` otherwise; the `rule` prefix must be the dimension's. `aa-ma-analysis validate judged_finding` and finalize both refuse anything else (a model rule, so not in the golden JSON Schema). |
 | `evidence` | string, ≤ 2000 chars | |
 
 The refuter's calls reach finalize as `verdicts.jsonl` in the work dir, one line per pending

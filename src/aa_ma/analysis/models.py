@@ -24,6 +24,7 @@ from pydantic import (
     PositiveInt,
     field_serializer,
     field_validator,
+    model_validator,
 )
 
 SCHEMA_VERSION = 1
@@ -105,7 +106,9 @@ CORE_INPUTS = {
     Dimension.SECURITY: ("semgrep",),
     Dimension.TESTS_DEPS: ("osv-scanner", "pip-audit"),
 }
-# The rule prefixes each dimension owns; finalize holds judged findings to them.
+# Judged findings of these severities are refuted before they ship.
+REFUTE_REQUIRED = frozenset({Severity.CRITICAL, Severity.HIGH})
+# The rule prefixes each dimension owns; judged findings are held to them.
 RULE_PREFIXES = {
     Dimension.ARCHITECTURE: ("arch",),
     Dimension.MAINTAINABILITY: ("maint",),
@@ -226,9 +229,32 @@ class _FindingFields(_Model):
 
 
 class JudgedFinding(_FindingFields):
-    """One judged.jsonl line, written by a judge agent; finalize assigns the id."""
+    """One judged.jsonl line, written by a judge agent; finalize assigns the id.
+
+    A judge never decides refutation (critical/high are pending for the refuter, the rest
+    not_required) and uses only its dimension's rule prefix — `validate` and finalize both
+    enforce it here. The messages are constants: they never quote the input."""
 
     origin: Literal["judged"]
+
+    @model_validator(mode="after")
+    def _judge_rules(self) -> JudgedFinding:
+        want = (
+            Refutation.PENDING
+            if self.severity in REFUTE_REQUIRED
+            else Refutation.NOT_REQUIRED
+        )
+        if self.refutation != want:
+            raise ValueError(
+                "a judge writes critical/high as pending and the rest as not_required "
+                "— the refuter decides, through verdicts.jsonl"
+            )
+        if self.rule.split(".", 1)[0] not in RULE_PREFIXES[self.dimension]:
+            raise ValueError(
+                "rule prefix does not belong to its dimension (expected "
+                f"{' or '.join(RULE_PREFIXES[self.dimension])})"
+            )
+        return self
 
 
 class Finding(_FindingFields):

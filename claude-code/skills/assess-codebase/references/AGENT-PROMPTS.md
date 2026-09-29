@@ -29,6 +29,7 @@ Output: append one JSON object per line to {OUT} (JudgedFinding, schema_version 
 - refutation "pending" for critical and high (a refuter will attack them), "not_required" otherwise.
 - path is repo-relative (no leading slash, no ".."); line is where you saw it; anchor is that line's text.
 - Do not repeat a measured finding already in measure.json; add judgement it cannot make.
+- A null metric means its tool did not run: name the gap in your inputs, never read it as zero.
 Check your file with: uv run --quiet --project "{AA_MA_ROOT}" aa-ma-analysis validate judged_finding {OUT}
 Then reply with only: a draft rating (strong | adequate | weak | unknown), confidence, the inputs it rests on, and the number of lines written.
 ```
@@ -41,7 +42,7 @@ Then reply with only: a draft rating (strong | adequate | weak | unknown), confi
 Judge the MAINTAINABILITY of the repo at {REPO} (commit {SHA12}).
 Measured inputs (from {WORK}/measure.json): {METRICS}
 Assessed paths (ledger): {PATHS}
-Complexity and duplication are already measured — do not re-report them. Read the worst functions and clones and judge why they are hard to change: mixed responsibilities, deep nesting, copy-paste with drift, stringly-typed state, missing error handling, dead parameters, misleading names. Rate against the maintainability section of RATING.md.
+Do not re-report measured complexity or duplication. Where those metrics are null (lizard or jscpd did not run), find the worst functions by reading the hot spots instead, and say the metric was missing. Judge why they are hard to change: mixed responsibilities, deep nesting, copy-paste with drift, stringly-typed state, missing error handling, dead parameters, misleading names. Rate against the maintainability section of RATING.md.
 
 Rules:
 - **NO SECRETS.** Never read, open, or echo the contents of `.env`, `.env.*` (any without "example/sample/template"), `*.key`, `*.pem`, `*.p12`, `*.keystore`, `id_rsa*`, `credentials*`, `secrets*`, `*.tfstate`, service-account JSON, `kubeconfig`, `.netrc`, `.pgpass`, or anything matching a credential pattern. You may report that such a file *exists* and the *names* of variables declared in `.env.example` / `.env.sample` / `.env.template` or committed config templates — never a value.
@@ -55,6 +56,7 @@ Output: append one JSON object per line to {OUT} (JudgedFinding, schema_version 
 - refutation "pending" for critical and high (a refuter will attack them), "not_required" otherwise.
 - path is repo-relative (no leading slash, no ".."); line is where you saw it; anchor is that line's text.
 - Do not repeat a measured finding already in measure.json; add judgement it cannot make.
+- A null metric means its tool did not run: name the gap in your inputs, never read it as zero.
 Check your file with: uv run --quiet --project "{AA_MA_ROOT}" aa-ma-analysis validate judged_finding {OUT}
 Then reply with only: a draft rating (strong | adequate | weak | unknown), confidence, the inputs it rests on, and the number of lines written.
 ```
@@ -67,7 +69,7 @@ Then reply with only: a draft rating (strong | adequate | weak | unknown), confi
 Judge the SECURITY of the repo at {REPO} (commit {SHA12}).
 Measured inputs (from {WORK}/measure.json): {METRICS}
 Assessed paths (ledger): {PATHS}
-Secrets and SAST results are already measured — do not re-report them. Trace untrusted input to sinks (shell, SQL, file paths, deserialisation, templates, redirects), authentication and authorisation checks, secret handling in code (how values are loaded, never what they are), unsafe defaults, disabled verification, and inline suppressions that hide a real issue. Rate against the security section of RATING.md.
+Do not re-report measured secrets or SAST results (null = the tool did not run, never zero). Trace untrusted input to sinks (shell, SQL, file paths, deserialisation, templates, redirects), authentication and authorisation checks, secret handling in code (how values are loaded, never what they are), unsafe defaults, disabled verification, and inline suppressions that hide a real issue. Rate against the security section of RATING.md.
 
 Rules:
 - **NO SECRETS.** Never read, open, or echo the contents of `.env`, `.env.*` (any without "example/sample/template"), `*.key`, `*.pem`, `*.p12`, `*.keystore`, `id_rsa*`, `credentials*`, `secrets*`, `*.tfstate`, service-account JSON, `kubeconfig`, `.netrc`, `.pgpass`, or anything matching a credential pattern. You may report that such a file *exists* and the *names* of variables declared in `.env.example` / `.env.sample` / `.env.template` or committed config templates — never a value.
@@ -81,6 +83,7 @@ Output: append one JSON object per line to {OUT} (JudgedFinding, schema_version 
 - refutation "pending" for critical and high (a refuter will attack them), "not_required" otherwise.
 - path is repo-relative (no leading slash, no ".."); line is where you saw it; anchor is that line's text.
 - Do not repeat a measured finding already in measure.json; add judgement it cannot make.
+- A null metric means its tool did not run: name the gap in your inputs, never read it as zero.
 Check your file with: uv run --quiet --project "{AA_MA_ROOT}" aa-ma-analysis validate judged_finding {OUT}
 Then reply with only: a draft rating (strong | adequate | weak | unknown), confidence, the inputs it rests on, and the number of lines written.
 ```
@@ -107,6 +110,7 @@ Output: append one JSON object per line to {OUT} (JudgedFinding, schema_version 
 - refutation "pending" for critical and high (a refuter will attack them), "not_required" otherwise.
 - path is repo-relative (no leading slash, no ".."); line is where you saw it; anchor is that line's text.
 - Do not repeat a measured finding already in measure.json; add judgement it cannot make.
+- A null metric means its tool did not run: name the gap in your inputs, never read it as zero.
 Check your file with: uv run --quiet --project "{AA_MA_ROOT}" aa-ma-analysis validate judged_finding {OUT}
 Then reply with only: a draft rating (strong | adequate | weak | unknown), confidence, the inputs it rests on, and the number of lines written.
 ```

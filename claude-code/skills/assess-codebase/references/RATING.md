@@ -4,6 +4,8 @@ One rating per dimension: `strong`, `adequate`, `weak` or `unknown`, with a conf
 `med` / `low`) and the list of `inputs` it rests on — metric keys from `measure.json`, finding ids,
 test-run results. There is no overall grade. Numeric anchors below are guidance, not thresholds:
 a judge may depart from them when the evidence says so, and names the evidence when it does.
+Each section's `Inputs:` line names metric keys exactly as measure emits them
+(`tests/analysis/test_rating_keys.py` checks them against a live measure).
 
 ## Rules for every dimension
 
@@ -23,8 +25,9 @@ a judge may depart from them when the evidence says so, and names the evidence w
 
 ## `architecture`
 
-Core: `codemem.layers`. Inputs: `layers.core|middle|periphery`, `dead_code.candidates`,
-`hot_spot:<path>`, `co_change:<a>|<b>`, plus judged findings.
+Core: `codemem.layers`.
+
+Inputs: `layers.core`, `layers.middle`, `layers.periphery`, `dead_code.candidates`, `hot_spot:<path>`, `co_change:<a>|<b>`, plus judged findings.
 
 - **strong** — layering is visible and respected (periphery does not reach into core
   unexpectedly); few dead-code candidates relative to size; co-change pairs stay inside a
@@ -35,20 +38,21 @@ Core: `codemem.layers`. Inputs: `layers.core|middle|periphery`, `dead_code.candi
 
 ## `maintainability`
 
-Core: `lizard`. Inputs: `complexity.functions`, `complexity.ccn_max`, `complexity.over_15`,
-`duplication.pct`, `duplication.clones` (jscpd), `churn.90d:<dir>`, plus judged findings.
+Core: `lizard`.
 
-- **strong** — `complexity.over_15` under ~2% of `complexity.functions`, `ccn_max` under ~25,
-  `duplication.pct` under ~3.
+Inputs: `complexity.functions`, `complexity.ccn_max`, `complexity.over_15`, `duplication.pct`, `duplication.clones`, `churn.90d:<dir>`, plus judged findings.
+
+- **strong** — `complexity.over_15` under ~2% of `complexity.functions`, `complexity.ccn_max`
+  under ~25 (`CCN_HIGH`, where measure marks a function high), `duplication.pct` under ~3.
 - **adequate** — over-15 functions ~2–8%, or duplication ~3–10%, concentrated rather than spread.
 - **weak** — over-15 functions above ~8%, duplication above ~10%, or complex code that is also
   the highest-churn code.
 
 ## `security`
 
-Core: `semgrep`. Inputs: `sast.findings`, `secrets.findings` (gitleaks + the built-in regex set),
-`suppressions.<tool>`, `tool_config.overrides`, plus judged findings and, in Deep, the
-claude-security pass.
+Core: `semgrep`.
+
+Inputs: `sast.findings`, `secrets.findings`, `suppressions.<tool>`, `tool_config.overrides`, plus judged findings and, in Deep, the claude-security pass.
 
 - **strong** — no surviving high/critical SAST finding, no secret in tracked content, input
   handling and auth paths the judge read hold up.
@@ -58,9 +62,11 @@ claude-security pass.
 
 ## `tests_deps`
 
-Core: `osv-scanner` or `pip-audit` (either one `ran` suffices). Inputs: `deps.vulns`, the Deep test
-run (`tests: verified|failed|timeout|not_run|refused|unknown — <command>`), test-to-source layout,
-plus judged findings.
+Core: `osv-scanner` or `pip-audit` (either one `ran` suffices).
+
+Inputs: `deps.vulns`, `churn.90d:<dir>`, `last_touch_days:<dir>`, `owners.authors:<dir>/`, `owners.top_pct:<dir>/`, plus judged findings.
+
+Also the Deep test run, recorded as `tests: verified|failed|timeout|not_run|refused|unknown — <command>`.
 
 - **strong** — the test run verified; no known-vulnerable dependency with a published fix; tests
   sit beside the hot spots.

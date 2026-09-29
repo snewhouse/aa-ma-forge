@@ -1,0 +1,1 @@
+{"schema_version": 1, "origin": "judged", "dimension": "security", "severity": "medium", "confidence": "med", "rule": "maint.sql_injection", "title": "SQL built by string concatenation", "path": "src/db.py", "line": 4, "anchor": "cur.execute(\"SELECT * FROM users WHERE id=\" + uid)", "refutation": "not_required", "evidence": "src/db.py:4 concatenates uid"}

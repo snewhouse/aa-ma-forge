@@ -58,6 +58,8 @@ def test_negative_fixtures_cover_the_named_cases() -> None:
         "finding-line-zero.jsonl",
         "finding-line-true.jsonl",
         "finding-missing-id.jsonl",
+        "judged_finding-self-refuted.jsonl",  # M3 merge review: validate enforces the judge rules
+        "judged_finding-prefix-mismatch.jsonl",
     ):
         assert required in names
 

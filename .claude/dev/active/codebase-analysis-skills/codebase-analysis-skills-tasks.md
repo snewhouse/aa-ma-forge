@@ -169,9 +169,9 @@
 - Result Log: Mode: AFK — auto-dispatched. `704f83c`: SECURITY.md 14 command files / 22 skills directories + `assess-codebase` in both name lists; foundations `### Commands (14)` / `### Skills (22)` + a row each; README `### All commands` row `/assess-codebase` + skills row `assess-codebase`; CHANGELOG Unreleased bullet; local gitignored CLAUDE.md:51-52 → 14/22 (not committed). regen (`scripts/regen-generated.sh`, draw --check OK): golden +6 edges — `command:assess-codebase -> skill:assess-codebase` ON_DISK, `-> command:understand-codebase`, `-> skill:verify-impl`, skill → `agent:general-purpose` DECLARED_EXTERNAL; `errors == []`; `command:assess-codebase` a new orphan (nothing names `/assess-codebase` until M4) → pin updated. `uv run pytest -q` 2159 passed / 2 skipped; `bats install_dry_run.bats` 5/5; lint-imports 6/6 KEPT; ruff clean.
 
 ### Sub-step 3.6: [verify] clean-room shingle check; live Standard run on forge; CRITICAL_PATH_REVIEW; PR
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: Mode: HITL — Ste proceeded. Clean-room: 0 shared 12-word shingles (count only, provenance CLEAN_ROOM). Live Standard run on forge per SKILL.md (provenance LIVE_RUN): preflight refused unset root (AC6 live) / passed with AA_MA_ROOT; 4 sonnet judges → 21 valid judged lines, 0 Critical/High; finalize correctly refused a moved HEAD, re-measured, report `7ff33a0cfb29/` — summary + findings validate, 4 ratings with inputs, ledger = every top-level path, scan-secrets rc 0 + gitleaks 0 leaks. Live run found a prompt defect (judges told null metrics "are already measured") → RED `4621f54` → fix `ccac6bb` (+ test tightening `7ff33a0`). CRITICAL_PATH_REVIEW (doc-count-drift) logged. PR follows the §6 gates + HARD-gate approval.
 
 ## Milestone 4: understand-codebase repoint + residuals
 - Status: PENDING

@@ -133,3 +133,7 @@ _This log will be updated via context compaction as the task progresses._
 - Threat model: hostile content at rest (Ste, round 5); stated in report.md `## Scope`.
 - Tests: 2125 passed / 2 pre-existing skips; lint-imports 6/6; bandit 0 ≥Medium; §6.7 PROTOTYPE, CRITICAL_PATH_REVIEW, DIAGRAM_VERIFIED; §6.8 five rounds → final regression 0/0.
 - Next: Milestone 3 — `assess-codebase` skill + thin command (Dependencies: Milestone 2).
+
+## [2026-09-29] M3 3.2 — health slice: own prompt, no agent reuse (Ste)
+- **Deviation from plan §5 M3 Step 4** ("reuse codebase-onboarding-health for the health slice"): that agent's hard constraint writes only `.claude/onboarding/09-repo-health-and-verdict.md` — outside the report dir, so the output secret gate never scans it, and in prose, not `judged.jsonl`. measure already yields churn / hot spots / owners / deps deterministically. Ste chose: a general-purpose judge with its own `tests_deps` prompt in AGENT-PROMPTS.md, writing judged.jsonl into the work dir like every other judge. Pinned by `test_judges_and_refuter_are_named`.
+- Executable skill blocks: the preflight and claude-security guard are fenced bash blocks tagged `# assess:<name>` and the tests run them, so AC6's "one live check" is in CI, not only a one-off.

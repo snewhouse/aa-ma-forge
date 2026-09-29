@@ -38,10 +38,24 @@ class UnsafeRepo(Exception):
 
 # Command-scope git config (GIT_CONFIG_COUNT) outranks the repo's .git/config: never run its
 # fsmonitor or hooks, whatever the target ships.
-GIT_OVERRIDES = (("core.fsmonitor", "false"), ("core.hooksPath", "/dev/null"))
-# Local config keys that make git run a command or read another file; a target carrying any of
-# them is refused rather than trusted (a clone never copies .git/config; a tarball can).
-UNSAFE_GIT_CONFIG = r"^(include\.|includeif\.|filter\.|core\.fsmonitor$|core\.sshcommand$|diff\..*\.(command|textconv)$)"
+GIT_OVERRIDES = (
+    ("core.fsmonitor", "false"),
+    ("core.hooksPath", "/dev/null"),
+    ("log.showSignature", "false"),
+)
+# The only keys a target's own config (local, worktree or a submodule's) may hold: what a clone
+# and a user identity write. Anything else refuses the target — four review rounds each found a
+# key that runs a command (fsmonitor, filter, gpg.program, …); an allowlist cannot miss one.
+SAFE_GIT_CONFIG = re.compile(
+    r"core\.(repositoryformatversion|filemode|bare|logallrefupdates|ignorecase"
+    r"|precomposeunicode|symlinks|autocrlf|eol|safecrlf|quotepath)"
+    r"|extensions\.(objectformat|refstorage|worktreeconfig)"
+    r"|remote\..+\.(url|pushurl|fetch|tagopt|prune|mirror)"
+    r"|branch\..+\.(remote|merge|rebase|pushremote|description|vscode-merge-base)"
+    r"|submodule\..+\.(url|active)"
+    r"|user\.(name|email)|init\.defaultbranch|pull\.rebase|push\.default|fetch\.prune"
+)
+TARGET_SCOPES = {"local", "worktree"}
 
 
 def absolute_path(path: str) -> str:
@@ -102,19 +116,29 @@ def run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _config_keys(repo: Path, *args: str) -> list[str]:
+    """Keys from `git config --list -z` (`[scope\\0]key\\nvalue\\0` entries); values never kept."""
+    listed = run_git(repo, "config", *args, "--list", "-z")
+    if listed.returncode != 0:
+        raise UnsafeRepo(f"{repo}: cannot read its git config — assess a fresh clone")
+    return [e.split("\n", 1)[0] for e in listed.stdout.split("\0") if e]
+
+
 def check_git_config(repo: Path) -> None:
-    """Refuse a repo whose local git config can run commands (names the keys, never values)."""
-    found = run_git(repo, "config", "--local", "--get-regexp", UNSAFE_GIT_CONFIG)
-    if found.returncode == 0 and found.stdout.strip():
-        keys = sorted(
-            {
-                line.split(maxsplit=1)[0]
-                for line in found.stdout.splitlines()
-                if line.strip()
-            }
-        )
+    """Refuse a repo whose own git config — local, worktree or any submodule's — holds a key
+    outside SAFE_GIT_CONFIG (names the keys, never values)."""
+    entries = _config_keys(repo, "--show-scope")
+    found = {
+        k for scope, k in zip(entries[::2], entries[1::2]) if scope in TARGET_SCOPES
+    }
+    common = run_git(repo, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    for module in Path(common.stdout.strip() or ".").glob("modules/**/config"):
+        found |= set(_config_keys(repo, "--file", str(module)))
+    unsafe = sorted(k for k in found if not SAFE_GIT_CONFIG.fullmatch(k))
+    if unsafe:
         raise UnsafeRepo(
-            f"{repo}: its .git/config can run commands ({', '.join(keys)}) — remove those keys or assess a fresh clone"
+            f"{repo}: its git config sets keys outside the safe list ({', '.join(unsafe)})"
+            " — remove them or assess a fresh clone"
         )
 
 
@@ -124,7 +148,12 @@ def head_stamp(repo: Path) -> tuple[str, bool, str]:
     if head.returncode != 0:
         raise NotAGitRepo(f"{repo}: {NOT_A_REPO}")
     status = run_git(
-        repo, "status", "--porcelain", "--untracked-files=no", "--end-of-options"
+        repo,
+        "status",
+        "--porcelain",
+        "--untracked-files=no",
+        "--ignore-submodules=all",
+        "--end-of-options",
     )
     if status.returncode != 0:
         raise NotAGitRepo(f"{repo}: git status failed: {status.stderr.strip()}")

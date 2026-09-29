@@ -617,6 +617,7 @@ def _git_metrics(ctx: _Ctx) -> None:
     log = run_git(
         ctx.repo,
         "log",
+        "--no-show-signature",
         f"--since={CHURN_DAYS} days ago",
         "--numstat",
         "--no-renames",
@@ -633,7 +634,13 @@ def _git_metrics(ctx: _Ctx) -> None:
                 churn[_top(path)] += int(added) + int(deleted)
     # Days before HEAD's commit, not before now: the same commit always gives the same value.
     head = run_git(
-        ctx.repo, "log", "-1", "--format=%ct", "--end-of-options", "HEAD"
+        ctx.repo,
+        "log",
+        "--no-show-signature",
+        "-1",
+        "--format=%ct",
+        "--end-of-options",
+        "HEAD",
     ).stdout.strip()
     for top in files:
         ctx.metrics[f"size.files:{top}"] = files[top]
@@ -645,6 +652,7 @@ def _git_metrics(ctx: _Ctx) -> None:
             last = run_git(
                 ctx.repo,
                 "log",
+                "--no-show-signature",
                 "-1",
                 "--format=%ct",
                 "--end-of-options",

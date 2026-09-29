@@ -335,6 +335,8 @@ def test_git_calls_never_run_the_targets_fsmonitor(repo: Path, tmp_path: Path) -
         ("log.showSignature", "true"),
         ("core.pager", "x"),
         ("some.unknownkey", "x"),
+        # A dotted subsection must not smuggle a key past a prefix match.
+        ("remote.a.url.b.uploadpack", "x"),
     ],
 )
 def test_a_git_config_that_can_run_commands_is_refused_by_name(
@@ -355,6 +357,7 @@ def test_an_ordinary_git_config_passes(repo: Path) -> None:
         ("branch.main.remote", "origin"),
         ("branch.main.merge", "refs/heads/main"),
         ("core.autocrlf", "input"),
+        ("branch.main.vscode-merge-base", "origin/main"),  # VS Code: 11 of 17 local repos
     ]:
         git(repo, "config", key, value)
     stamp.check_git_config(repo)

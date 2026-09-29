@@ -164,9 +164,9 @@
 - Result Log: Mode: AFK — auto-dispatched. In `69dc98e`: Step 6 block `# assess:claude-security` — offers the pass only when a `claude-security@*` key is in both `~/.claude/plugins/installed_plugins.json` `plugins` and `~/.claude/settings.json` `enabledPlugins` (true); prints exactly one status line, missing/unreadable files → "not installed and enabled". Executed by the test over 5 installed×enabled cases. No `Skill(claude-security)` → `surface_allowlist.py` untouched (Contract's conditional not triggered). BATS: plugin not installed → not offered (live: `claude-security: not installed and enabled`).
 
 ### Sub-step 3.5: [impl] counts, SECURITY lists, foundations, README rows, local CLAUDE.md; regen
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. `704f83c`: SECURITY.md 14 command files / 22 skills directories + `assess-codebase` in both name lists; foundations `### Commands (14)` / `### Skills (22)` + a row each; README `### All commands` row `/assess-codebase` + skills row `assess-codebase`; CHANGELOG Unreleased bullet; local gitignored CLAUDE.md:51-52 → 14/22 (not committed). regen (`scripts/regen-generated.sh`, draw --check OK): golden +6 edges — `command:assess-codebase -> skill:assess-codebase` ON_DISK, `-> command:understand-codebase`, `-> skill:verify-impl`, skill → `agent:general-purpose` DECLARED_EXTERNAL; `errors == []`; `command:assess-codebase` a new orphan (nothing names `/assess-codebase` until M4) → pin updated. `uv run pytest -q` 2159 passed / 2 skipped; `bats install_dry_run.bats` 5/5; lint-imports 6/6 KEPT; ruff clean.
 
 ### Sub-step 3.6: [verify] clean-room shingle check; live Standard run on forge; CRITICAL_PATH_REVIEW; PR
 - Status: PENDING

@@ -127,6 +127,11 @@
 - Mode: AFK
 - Result Log: Mode: AFK — auto-dispatched. RED→GREEN: every CLI command checks git config (head_stamp), git dir/common dir inside the repo (linked-worktree back-reference; foreign-worktree case added when that mutation survived), git timeout, no global/system config `eebe5ad`→`515aca8` — found and fixed in-flight: `rev-parse` echoes `--end-of-options` (submodule check silently saw no configs), and git writes `core.worktree` into every submodule config (legit submodule repos were refused → allowed there only); explicit `-P`, read cap `ff0df67`→`5b1c160`; report `## Scope` `521b19d`→`a7b95e1` + §5a/reference/CHANGELOG/regen. A test's global-filter fixture was first broken by `;` starting a git-config comment — fixed to a script before GREEN. Mutations caught: 8/8 (chunk D) + 2/2 (chunk E). Suite 2122 passed / 2 skipped at `5b1c160`; bandit 0 ≥Medium; lint-imports 6/6. Forge and a linked worktree of it pass the checks. Regression pass: 0 CRITICAL / 0 WARNING / 4 INFO, 13/13 earlier findings hold; 3 INFOs (worktree exception) fixed test-first — relative-path worktrees accepted, hostile enclosing clone refused, back-reference read capped; 1 INFO (safe.directory message) → backlog.
 
+### Sub-step 2.13: [remediate] /sole-dev-merge Stage C review — credential in refusals, non-ASCII churn, report injection, LOW bugs (Ste: fix MEDIUMs + LOW bugs; backlog 2)
+- Status: COMPLETE
+- Mode: AFK
+- Result Log: Mode: AFK — auto-dispatched after the HARD gate, before the PR. RED `b85d6df` → GREEN `d2dbccb`: refusals name `section.*.variable` (token no longer printed — reproduced before); `core.quotePath=false`; `:(literal)` pathspec; `secrets.findings` None without gitleaks; report.md cells inert + unscanned-file note; codemem owners prefix via substr(); B613 escape; owners.top_pct and Quick note asserted. Suite 2134 passed / 2 skipped; bandit 0 ≥Medium; lint-imports 6/6. Stage B auto-fix commit dropped (out-of-scope reformat) → L-031 `c017d2c`.
+
 ## Milestone 3: `assess-codebase` skill + thin command
 - Status: PENDING
 - Dependencies: Milestone 2

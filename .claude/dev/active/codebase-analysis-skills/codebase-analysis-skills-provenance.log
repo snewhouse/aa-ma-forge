@@ -51,3 +51,4 @@
 [2026-09-29T09:56:22+01:00] DIAGRAM_VERIFIED — Milestone 2: Assess engine (CLI) — edges=5 checked=5 phantom=0 unknown=0
 [2026-09-29T10:13:17+01:00] GATE — Milestone 2: Assess engine (CLI) — HARD — APPROVED by Ste — 12/12 criteria
 [2026-09-29T10:14:38+01:00] MILESTONE COMPLETE — M2 — Commit: 8fdd298 — Criteria: 12/12 verified
+[2026-09-29T10:37:12+01:00] PRE_PR_REVIEW — /sole-dev-merge Stage C/D — C1 0/0/1/10, C2 0/0/2/1, bandit 1 B613 (escaped) + test-fixture noise; MEDIUMs + LOW bugs fixed (b85d6df→d2dbccb); 2 LOW → backlog (Ste)

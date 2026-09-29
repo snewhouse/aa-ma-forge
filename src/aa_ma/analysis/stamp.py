@@ -33,15 +33,38 @@ class UnsafePath(Exception):
     pass
 
 
+class UnsafeRepo(Exception):
+    """The target's own git config could make our git calls run commands."""
+
+
+# Command-scope git config (GIT_CONFIG_COUNT) outranks the repo's .git/config: never run its
+# fsmonitor or hooks, whatever the target ships.
+GIT_OVERRIDES = (("core.fsmonitor", "false"), ("core.hooksPath", "/dev/null"))
+# Local config keys that make git run a command or read another file; a target carrying any of
+# them is refused rather than trusted (a clone never copies .git/config; a tarball can).
+UNSAFE_GIT_CONFIG = r"^(include\.|includeif\.|filter\.|core\.fsmonitor$|core\.sshcommand$|diff\..*\.(command|textconv)$)"
+
+
 def absolute_path(path: str) -> str:
     """PATH without `.`, empty or relative entries: resolved from inside the target, they would
     find a binary the target planted."""
     return os.pathsep.join(e for e in path.split(os.pathsep) if os.path.isabs(e))
 
 
+def git_overrides() -> dict[str, str]:
+    env = {"GIT_CONFIG_COUNT": str(len(GIT_OVERRIDES))}
+    for i, (key, value) in enumerate(GIT_OVERRIDES):
+        env |= {f"GIT_CONFIG_KEY_{i}": key, f"GIT_CONFIG_VALUE_{i}": value}
+    return env
+
+
 def safe_env() -> dict[str, str]:
-    """This process's environment with an absolute-only PATH."""
-    return dict(os.environ) | {"PATH": absolute_path(os.environ.get("PATH", ""))}
+    """This process's environment with an absolute-only PATH and git's command hooks disabled."""
+    return (
+        dict(os.environ)
+        | {"PATH": absolute_path(os.environ.get("PATH", ""))}
+        | git_overrides()
+    )
 
 
 def find_binary(name: str) -> str | None:
@@ -49,6 +72,7 @@ def find_binary(name: str) -> str | None:
     override = os.environ.get(f"{name.upper().replace('-', '_')}_BIN")
     if override is None:
         return shutil.which(name, path=absolute_path(os.environ.get("PATH", "")))
+    override = os.path.abspath(override)  # tools run from another cwd
     return (
         override if os.path.isfile(override) and os.access(override, os.X_OK) else None
     )
@@ -77,6 +101,22 @@ def run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
         check=False,
         env=safe_env(),
     )
+
+
+def check_git_config(repo: Path) -> None:
+    """Refuse a repo whose local git config can run commands (names the keys, never values)."""
+    found = run_git(repo, "config", "--local", "--get-regexp", UNSAFE_GIT_CONFIG)
+    if found.returncode == 0 and found.stdout.strip():
+        keys = sorted(
+            {
+                line.split(maxsplit=1)[0]
+                for line in found.stdout.splitlines()
+                if line.strip()
+            }
+        )
+        raise UnsafeRepo(
+            f"{repo}: its .git/config can run commands ({', '.join(keys)}) — remove those keys or assess a fresh clone"
+        )
 
 
 def head_stamp(repo: Path) -> tuple[str, bool, str]:

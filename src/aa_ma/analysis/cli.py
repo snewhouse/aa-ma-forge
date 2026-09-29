@@ -204,7 +204,7 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         return args.func(args)
-    except stamp.UnsafePath as exc:
+    except (stamp.UnsafePath, stamp.UnsafeRepo) as exc:
         _err(f"aa-ma-analysis {args.cmd}: refused: {exc}")
         return 2
 

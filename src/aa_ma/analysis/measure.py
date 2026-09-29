@@ -52,6 +52,7 @@ from .secrets import gitleaks_args, secret_lines
 from .stamp import (
     REPORTS_ROOT,
     build_stamp,
+    check_git_config,
     ensure_self_ignoring,
     find_binary,
     read_regular,
@@ -157,7 +158,9 @@ class _Ctx:
     work: Path
     stage: Path
     timeout: float
-    files: list[str]
+    sizes: dict[
+        str, int
+    ]  # tracked regular files inside the repo → size at listing time
     tools: dict[str, ToolStatus] = field(default_factory=dict)
     metrics: dict[str, int | float | None] = field(default_factory=dict)
     found: list[_Candidate] = field(default_factory=list)
@@ -167,11 +170,12 @@ class _Ctx:
     _lines: dict[str, list[str]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        self.fileset = set(self.files)
+        self.files = list(self.sizes)
+        self.fileset = set(self.sizes)
 
     def child(self) -> _Ctx:
         """A fresh context for one concurrent job; merged back in a fixed order."""
-        return _Ctx(self.repo, self.work, self.stage, self.timeout, self.files)
+        return _Ctx(self.repo, self.work, self.stage, self.timeout, self.sizes)
 
     def merge(self, other: _Ctx) -> None:
         for name, status in other.tools.items():
@@ -479,16 +483,23 @@ def _top(path: str) -> str:
     return path.split("/", 1)[0] if "/" in path else "."
 
 
-def _tracked_regular_files(repo: Path) -> list[str]:
+def _tracked_regular_files(repo: Path) -> tuple[dict[str, int], int]:
+    """{path: size} of tracked regular files still inside the repo, and how many escaped it.
+
+    lstat and O_NOFOLLOW only guard the last component: a tracked `p/x` whose `p` was swapped
+    for a symlink resolves outside the repo, so every path is checked against its real one."""
     listed = run_git(repo, "ls-files", "-z", "--end-of-options")
-    out = []
-    for rel in listed.stdout.split("\0"):
+    root, files, escaping = os.path.realpath(repo), {}, 0
+    for rel in filter(None, listed.stdout.split("\0")):
         try:
-            if rel and stat.S_ISREG(os.lstat(repo / rel).st_mode):
-                out.append(rel)
+            st = os.lstat(repo / rel)
         except FileNotFoundError:  # deleted in the working tree
             continue
-    return out
+        if os.path.realpath(repo / rel) != os.path.join(root, rel):
+            escaping += 1
+        elif stat.S_ISREG(st.st_mode):
+            files[rel] = st.st_size
+    return files, escaping
 
 
 def _stage(ctx: _Ctx) -> None:
@@ -513,7 +524,7 @@ def _git_metrics(ctx: _Ctx) -> None:
     files, size = Counter(), Counter()
     for rel in ctx.files:
         files[_top(rel)] += 1
-        size[_top(rel)] += os.lstat(ctx.repo / rel).st_size
+        size[_top(rel)] += ctx.sizes[rel]
     log = run_git(
         ctx.repo,
         "log",
@@ -784,7 +795,7 @@ def _regex_pass(ctx: _Ctx) -> None:
     seen = {(c.path, c.line) for c in ctx.found if c.rule == "security.secret"}
     found, markers = [], Counter()
     for rel in ctx.files:
-        if os.lstat(ctx.repo / rel).st_size > SECRET_SCAN_MAX_BYTES:
+        if ctx.sizes[rel] > SECRET_SCAN_MAX_BYTES:
             continue
         try:
             text = read_regular(ctx.repo / rel)
@@ -834,6 +845,7 @@ def _finding(c: _Candidate, fid: str) -> Finding:
 def measure(repo: Path, tier: Tier, *, tool_timeout: float = TOOL_TIMEOUT_S) -> Path:
     """Measure `repo` at `tier`; returns the work dir holding measure.json and run.log."""
     repo = Path(repo).absolute()
+    check_git_config(repo)
     stamp = build_stamp(repo, tier)
     root = safe_dir(repo, str(REPORTS_ROOT))
     ensure_self_ignoring(root)
@@ -844,7 +856,9 @@ def measure(repo: Path, tier: Tier, *, tool_timeout: float = TOOL_TIMEOUT_S) -> 
 
     stage = Path(tempfile.mkdtemp(prefix="aa-ma-stage-"))
     try:
-        ctx = _Ctx(repo, work, stage, tool_timeout, _tracked_regular_files(repo))
+        sizes, escaping = _tracked_regular_files(repo)
+        ctx = _Ctx(repo, work, stage, tool_timeout, sizes)
+        ctx.metrics["files.escaping"] = escaping
         _stage(ctx)
         _git_metrics(ctx)
         _tool_configs(ctx)

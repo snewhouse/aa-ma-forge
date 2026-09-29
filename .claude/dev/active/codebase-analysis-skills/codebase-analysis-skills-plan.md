@@ -1082,6 +1082,13 @@ tracked `.gitignore` is never staged; a `jscpd` key in the root `package.json` i
 staged copy and counted in `tool_config.overrides`. Suppression markers count only after a comment
 introducer in a non-prose file. `--tool-timeout` bounds each tool, and the tools run concurrently,
 so wall-clock is bounded by the slowest job's chain of calls, not by the sum over tools.)*
+*(Amended 2026-09-29, M2 §6.8 round 4 → 2.11 — Ste: the target's git config is an **allowlist**:
+measure and finalize refuse (exit 2, naming keys only) a target whose local, worktree or any
+submodule config holds a key outside `SAFE_GIT_CONFIG`, or whose config git cannot read; every git
+call pins `core.fsmonitor=false`, `core.hooksPath=/dev/null`, `log.showSignature=false`, and
+`status` skips submodules. `run`: `uv run` only around a test runner; other `python -m` modules run
+with `PYTHONSAFEPATH=1`; cargo is refused when the target ships `.cargo/config`. Every read of a
+target file must be the file that was listed (same `st_dev`/`st_ino`, never through a symlink).)*
 
 **Secrets** (`secrets.py`): the regex set always runs (union with gitleaks hits, de-duplicated by
 path+line+span) over **decoded** content — every JSON string value AND key in `.json/.jsonl/.sarif`,

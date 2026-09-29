@@ -38,7 +38,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   hard-linked from a user cache dir on the target's filesystem when one is available. `run` executes only known test-runner, build and lint forms (anything
   else is "run by hand"), without a shell, with a minimal offline environment and an absolute-only
   PATH, stdin closed, output and command text passed through the secret gate, and a timeout that
-  kills the process group (best-effort, stated in the report).
+  kills the process group (best-effort, stated in the report). A target whose own git config
+  (local, worktree or a submodule's) sets any key outside a small safe set is refused rather than
+  trusted, and every file the scanners or the report read is the one that was listed — a directory
+  swapped for a symlink mid-run is skipped, never followed.
 - **`codemem query` reaches 10 MCP tools** — `hot_spots`, `co_changes <file>`, `owners <path>
   [--repo-root R]` and `layers` join the six ports, so scripts get git-history and layering answers
   without an MCP server. `owners --repo-root` computes the blame; without it only the cache is read,

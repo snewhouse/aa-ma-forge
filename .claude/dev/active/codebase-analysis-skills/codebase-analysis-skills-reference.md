@@ -6,7 +6,7 @@
 - Repo: `snewhouse/aa-ma-forge` (PUBLIC). Plan authored on `main` at `f3ad912`; precondition PR #3 merged as `80caae7`.
 - Version at planning: `0.16.0` (tag `v0.16.0`); this effort releases `v0.17.0` via `scripts/release.sh minor` on `main` only (`scripts/release.sh:35-42`: branch main, clean tree, HEAD == origin/main, non-empty `## Unreleased`).
 - Merge mode: `/sole-dev-merge` rebase-merges (`claude-code/commands/sole-dev-merge.md:826`); rollback = `git revert <first>^..<last>`.
-- Counts at planning: 13 commands / 21 skills / 12 agents → after M3: 14 / 22 / 12. Pins: `SECURITY.md:11-13` (counts + name lists), `docs/spec/claude-code-foundations.md:73,91`, `tests/test_doc_counts.py`, `tests/commands/test_aa_ma_share_command.py:49-93`, README `### All commands` (~:210) + skills table (~:251), local gitignored `CLAUDE.md:51-53`.
+- Counts at planning: 13 commands / 21 skills / 12 agents → after M3: 14 / 22 / 13 (codebase-assessor added by M3 §6.8). Pins: `SECURITY.md:11-13` (counts + name lists), `docs/spec/claude-code-foundations.md:73,91`, `tests/test_doc_counts.py`, `tests/commands/test_aa_ma_share_command.py:49-93`, README `### All commands` (~:210) + skills table (~:251), local gitignored `CLAUDE.md:51-53`.
 - Forge tracked files at `f3ad912`: 665. Plugin-surface golden: 191 edges, 7 orphans, dangling pin `{"aa-ma-plan","haiku-eval"}` (`tests/codemem/test_plugin_surface.py:68`) → `{"haiku-eval"}` after M4.
 - `codebase-deep-dive` mentions under `claude-code/`: 29 on 27 lines in 10 files; `deep-analysis` 3; `Skill(aa-ma-plan)` 1 (`understand-codebase/SKILL.md:345`).
 

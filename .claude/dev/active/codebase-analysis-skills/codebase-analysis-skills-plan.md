@@ -1074,6 +1074,14 @@ codemem runs against a fresh `<work>/codemem.db`; nothing is written outside the
 system temp dir outside any git work tree, holding hard links/copies of the tracked regular files
 minus the target's scanner configs (recorded, not obeyed); each tool's version is probed and
 another major than the 2.1-confirmed one is `unknown`; inline suppressions are counted.)*
+*(Amended 2026-09-29, M2 §6.8 round 3 → 2.10: the stage prefers `$XDG_CACHE_HOME/aa-ma` (or
+`~/.cache/aa-ma`) when it is owned by the user, on the repo's filesystem (hard links, not copies)
+and outside any git work tree, else a system temp dir; stages older than a day are removed at start.
+A file that vanishes or changes type after listing is skipped and counted (`files.unstaged`); a
+tracked `.gitignore` is never staged; a `jscpd` key in the root `package.json` is stripped from the
+staged copy and counted in `tool_config.overrides`. Suppression markers count only after a comment
+introducer in a non-prose file. `--tool-timeout` bounds each tool, and the tools run concurrently,
+so wall-clock is bounded by the slowest job's chain of calls, not by the sum over tools.)*
 
 **Secrets** (`secrets.py`): the regex set always runs (union with gitleaks hits, de-duplicated by
 path+line+span) over **decoded** content — every JSON string value AND key in `.json/.jsonl/.sarif`,

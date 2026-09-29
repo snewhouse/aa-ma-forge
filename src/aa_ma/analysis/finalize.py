@@ -159,15 +159,18 @@ def _previous(repo: Path, root: Path) -> list[Finding]:
             when = Summary.model_validate_json(
                 read_regular(d / "summary.json")
             ).stamp.date_utc
-            lines = read_regular(d / "findings.jsonl").splitlines()
-            findings = [
-                Finding.model_validate_json(line) for line in lines if line.strip()
-            ]
+            findings = _findings_jsonl(read_regular(d / "findings.jsonl"))
         except (OSError, UnicodeDecodeError, ValidationError):
             continue
         if when <= now and (best is None or when > best[0]):
             best = (when, findings)
     return [] if best is None else best[1]
+
+
+def _findings_jsonl(text: str) -> list[Finding]:
+    return [
+        Finding.model_validate_json(line) for line in text.splitlines() if line.strip()
+    ]
 
 
 def _tool_version() -> str:
@@ -200,11 +203,7 @@ def _gate(tmp: Path) -> None:
         hits = secrets.scan(tmp).hits
         if hits:
             secrets.redact(tmp, hits)
-        findings = [
-            Finding.model_validate_json(x)
-            for x in (tmp / "findings.jsonl").read_text(encoding="utf-8").splitlines()
-            if x
-        ]
+        findings = _findings_jsonl((tmp / "findings.jsonl").read_text(encoding="utf-8"))
         summary = Summary.model_validate_json(
             (tmp / "summary.json").read_text(encoding="utf-8")
         )

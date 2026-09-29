@@ -173,9 +173,8 @@ class _Ctx:
     work: Path
     stage: Path
     timeout: float
-    sizes: dict[
-        str, int
-    ]  # tracked regular files inside the repo → size at listing time
+    # Tracked regular files inside the repo → size at listing time.
+    sizes: dict[str, int]
     tools: dict[str, ToolStatus] = field(default_factory=dict)
     metrics: dict[str, int | float | None] = field(default_factory=dict)
     found: list[_Candidate] = field(default_factory=list)
@@ -193,6 +192,8 @@ class _Ctx:
         return _Ctx(self.repo, self.work, self.stage, self.timeout, self.sizes)
 
     def merge(self, other: _Ctx) -> None:
+        """Jobs write disjoint metric keys, except counts several tools share (deps.vulns), which
+        `add` sums — or leaves unknown when any contributing run missed."""
         for name, status in other.tools.items():
             self._status(name, status)
         self.partial |= other.partial

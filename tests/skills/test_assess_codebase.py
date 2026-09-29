@@ -79,7 +79,7 @@ def test_both_skills_link_the_one_contract(skill_md: Path) -> None:
 
 
 def test_every_named_reference_exists() -> None:
-    for rel in set(re.findall(r"references/[A-Z-]+\.md", _text(SKILL_MD))):
+    for rel in set(re.findall(r"(?<![\w./-])references/[A-Z-]+\.md", _text(SKILL_MD))):
         assert (SKILL / rel).is_file(), rel
 
 
@@ -174,6 +174,9 @@ def test_preflight_is_step_0_before_any_agent() -> None:
 def test_preflight_refuses_a_non_checkout(tmp_path: Path) -> None:
     uv = shutil.which("uv")
     assert uv, "uv is required to run this suite"
+    for name in ("README.md", "pyproject.toml", "scripts/install.sh"):  # looks like a repo, is not the forge
+        (tmp_path / name).parent.mkdir(exist_ok=True)
+        (tmp_path / name).write_text("x\n")
     r = _run(_block("preflight"), {"AA_MA_ROOT": str(tmp_path), "PATH": str(Path(uv).parent), "HOME": str(tmp_path)})
     assert r.returncode != 0
     lines = r.stderr.strip().splitlines()

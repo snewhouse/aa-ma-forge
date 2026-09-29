@@ -168,3 +168,24 @@ Design (orchestrator, first principles): one **staging dir** of hard-linked trac
 | C-R3 + option vectors | **Strict grammar**: bare argv[0]; only paths + a small per-runner flag set; check-only formatter forms; else `not_run` |
 | target `.git/config` | **Harden + refuse**: git config overrides on every call (env `GIT_CONFIG_COUNT`), measure/finalize refuse (exit 2) when the local config sets include*/filter.*/diff.*.command|textconv/core.fsmonitor/core.sshCommand |
 | everything else | Fix all now; then one more §6.8 pass on the diff |
+
+## Milestone 2 — §6.8 round 4 (2026-09-29), diff bc35b34..4b032e4 (sub-step 2.10)
+| Agent | CRITICAL | WARNING | INFO |
+|---|:-:|:-:|:-:|
+| code-reviewer | 1 | 4 | 6 |
+| security-auditor | 3 | 4 | 3 |
+| AC evidence (§6.1 pre-check) | — | AC9 PARTIAL | — |
+
+- **C-R4a (both agents; reproduced by the orchestrator, PWNED created):** `check_git_config` read `--local` only; `extensions.worktreeConfig` + `filter.x.clean` in `config.worktree` ran during `head_stamp`'s `git status` on a touched file.
+- **C-R4b (security, reproduced by the auditor):** `log.showSignature=true` + relative `gpg.program` + a `gpgsig` commit → `_git_metrics`' `git log` ran it.
+- **C-R4c (security, reproduced by the auditor):** submodule config `.git/modules/<n>/config` never checked; `git status` recursed and ran its filter.
+- WARNINGs: `uv run ruff` ran a planted `.venv/bin/ruff`; `python -m mypy` imported a planted `./mypy.py`; cargo `[alias] fmt` ran target code; parent-dir symlink swap mid-stage passes the `S_ISREG` post-check; `check_git_config` fails open on rc∉{0,1}; in-repo tracked symlinks counted in `files.escaping`; `includeIf`/`diff.*.command` untested; `-k`/`-run` values with `^$|` → not_run (fail-safe; documented).
+- **Disputed (orchestrator):** "staged `.codemem/` hard-linked, codemem writes the target's db" — every codemem call passes `--db <work>/codemem.db` with cwd = target (`measure.py` `_Codemem.call`), so the stage's `.codemem/` is never opened.
+- INFOs: stage-root mode unchecked; `RecursionError` from a deep package.json; `STALE_STAGE_S` duplicates `SECONDS_PER_DAY`; formatter-split comments (run.py `valued`, measure.py post-check); `python -m ruff/black` asymmetry; staged package.json line numbers shift; no fresh-stage-survives test; linters that run repo code by design (documented).
+- AC9 uncovered: finalize refusing when post-redaction re-validation fails; vendored SARIF schema on a redacted report.
+
+### User Override Decisions (round 4, Ste)
+| Item | Decision |
+|---|---|
+| C-R4a/b/c | **Allowlist + isolate**: refuse (exit 2) a target whose local/worktree/submodule config holds a key outside a safe set; `log.showSignature=false` override + `--no-show-signature`; `--ignore-submodules=all` on status; fail closed when config is unreadable |
+| run/stage WARNINGs + INFOs + AC9 gaps | **Fix all now** (`uv run` only for test runners; `python -P -m` for lint modules; refuse cargo forms when `.cargo/config*` exists; (dev, ino) recorded at listing and compared after staging) |

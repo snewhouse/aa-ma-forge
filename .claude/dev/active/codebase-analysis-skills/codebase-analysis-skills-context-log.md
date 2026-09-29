@@ -102,3 +102,8 @@ _This log will be updated via context compaction as the task progresses._
 - Active step at compaction: Sub-step 2.7: [verify] live measure + finalize on forge; regen; CRITICAL_PATH_REVIEW; PR
 - Snapshot saved to: /home/sjnewhouse/.claude/hooks/cache/compaction-snapshots/codebase-analysis-skills-snapshot.md
 - Note: Context compacted. Reload AA-MA files to resume.
+
+## [2026-09-29] M2 §6.8 round 4 — git config allowlist (Ste)
+- **Target git config: denylist → allowlist.** Four review rounds each found a new config route to code execution (fsmonitor, filter in config.worktree, gpg.program via log.showSignature, submodule config). Unknown keys in local/worktree/submodule scope now refuse the target (exit 2); our calls also pin `log.showSignature=false` and skip submodules. Trade-off: repos with unusual but harmless local keys are refused and must be analysed from a clean clone — fail closed over fail open.
+- **run gate:** `uv run` only for test runners (they execute repo code by design); lint modules via `python -P -m` (no cwd on sys.path); cargo forms refused when the target ships `.cargo/config*`.
+- **Staging:** each file's (st_dev, st_ino) at listing is compared with the staged link; a mismatch (parent swapped for a symlink mid-run) is skipped and counted.

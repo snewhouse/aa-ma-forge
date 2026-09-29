@@ -116,6 +116,11 @@
 - Mode: AFK
 - Result Log: Mode: AFK — auto-dispatched. RED→GREEN: strict run grammar `4edd4ec`→`42ccaf1` (C-R3 closed: bare argv[0] only); target git config never runs code (GIT_CONFIG_COUNT overrides + `check_git_config` refusal, exit 2), symlinked parents counted in `files.escaping`, fail-closed baseline `d2e0648`→`bb040f5`; staging fidelity (cache-root hard links, vanished files `files.unstaged`, no `.gitignore`, package.json `jscpd` key stripped, comment-only suppression counts, stale-stage cleanup) `a81ac5b`→`855d6e2` — 6 RED vs old source, 7/7 mutations caught. Tidy + §5a/CHANGELOG/reference + regen `4b032e4`. Suite 2081 passed / 2 skipped; lint-imports 6/6; bandit 0 issues ≥Medium. Live Deep on a forge worktree on ext4 @ `4b032e4`: stage linked=736 copied=0 skipped=0 in 0.08 s, all tools ran, 179 findings, 14.1 s wall-clock, cache root left empty.
 
+### Sub-step 2.11: [remediate] §6.8 round 4 — git config allowlist + isolation, run-gate target-code vectors, staging inode check, AC9 gaps (Ste: all now)
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
 ## Milestone 3: `assess-codebase` skill + thin command
 - Status: PENDING
 - Dependencies: Milestone 2

@@ -302,3 +302,35 @@ def test_claude_security_guard_is_deep_only_and_not_a_skill_edge() -> None:
     text = _text(SKILL_MD)
     assert "Skill(claude-security)" not in text, "would need a surface_allowlist EXTERNAL entry"
     assert text.index("## Step 4") < text.index("# assess:claude-security") < text.index("## Step 5")
+
+
+# --- M3 §6.8 regression pass ------------------------------------------------------------------
+
+
+def test_each_brief_rule_prefix_is_one_finalize_accepts_for_its_dimension() -> None:
+    text = _text(PROMPTS)
+    for dim in models.Dimension:
+        section = re.search(rf"^## [^\n]*`{dim.value}`\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+        assert section, dim
+        (prefix,) = re.findall(r"[Rr]ule prefix `([a-z_]+)\.`", section.group(1))
+        assert prefix in models.RULE_PREFIXES[dim], (dim, prefix)
+
+
+def test_deep_disclosure_covers_hooks_and_every_runner_family() -> None:
+    text = _text(SKILL_MD)
+    step4 = text[text.index("## Step 4") : text.index("## Step 5")]
+    for word in ("pre<name>", "post<name>", "npm test", "tox.ini", "build.rs", "addopts", "not exhaustive"):
+        assert word in step4, word
+
+
+def test_judge_lines_that_do_not_parse_go_back_and_a_missing_agent_type_stops() -> None:
+    text = _text(SKILL_MD)
+    step5 = text[text.index("## Step 5") : text.index("## Step 6")]
+    assert "not one JSON object" in step5 and "never substitute" in step5
+    assert "physical line" in text[text.index("## Step 6") :]
+
+
+def test_foundations_row_names_the_read_only_assessor() -> None:
+    spec = (REPO_ROOT / "docs/spec/claude-code-foundations.md").read_text(encoding="utf-8")
+    (row,) = [line for line in spec.splitlines() if line.startswith("| `assess-codebase` |")]
+    assert "codebase-assessor" in row and "general-purpose" not in row

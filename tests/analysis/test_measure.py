@@ -841,3 +841,83 @@ def test_stale_stages_from_killed_runs_are_removed(
     os.utime(stale, (old, old))
     measure(target, "quick")
     assert not stale.exists()
+
+
+# --- M2 2.11: §6.8 round 4 ----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("copy", [False, True], ids=["link", "copy"])
+def test_a_parent_swapped_after_listing_is_never_read(
+    copy: bool,
+    target: Path,
+    tools: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """O_NOFOLLOW guards the last component only: a parent swapped for a symlink between the
+    listing and the read led staging, the regex pass and anchors outside the repo (§6.8 r4)."""
+    import shutil
+
+    from aa_ma.analysis import measure as measure_mod
+
+    commit_file(target, "p/x.py", "x = 1\n")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "x.py").write_text(f'TOKEN = "{FAKE_TOKEN}"\n')
+    listed = measure_mod._tracked_regular_files
+
+    def listing_then_swap(repo: Path):
+        out = listed(repo)
+        shutil.rmtree(target / "p")
+        os.symlink(outside, target / "p")
+        return out
+
+    monkeypatch.setattr(measure_mod, "_tracked_regular_files", listing_then_swap)
+    if copy:
+        monkeypatch.setattr(
+            measure_mod.os, "link", lambda *a, **k: (_ for _ in ()).throw(OSError())
+        )
+    seen = tools / "seen"
+    body = f"cat p/x.py > '{seen}' 2>/dev/null; exit 0"
+    monkeypatch.setenv("LIZARD_BIN", str(stub_bin(tools, "lizard", body)))
+    d = doc(measure(target, "quick"))
+    assert [f["path"] for f in by_rule(d, "security.secret")] == ["src/config.py"]
+    assert d["metrics"]["files.unstaged"] == 1
+    assert FAKE_TOKEN not in seen.read_text()
+
+
+def test_a_tracked_symlink_inside_the_repo_is_not_escaping(
+    target: Path, tools: Path
+) -> None:
+    os.symlink("README.md", target / "link")
+    git(target, "add", "link")
+    git(target, "commit", "-qm", "link")
+    assert doc(measure(target, "quick"))["metrics"]["files.escaping"] == 0
+
+
+def test_a_shared_stage_root_is_not_used(
+    target: Path, tools: Path, cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = cache / "aa-ma"
+    root.mkdir(parents=True)
+    root.chmod(0o777)
+    seen = tools / "seen"
+    monkeypatch.setenv("LIZARD_BIN", str(stub_bin(tools, "lizard", f"pwd > '{seen}'")))
+    measure(target, "quick")
+    assert not seen.read_text().startswith(str(root))
+
+
+def test_a_deeply_nested_package_json_does_not_crash_measure(
+    target: Path, tools: Path
+) -> None:
+    commit_file(target, "package.json", "[" * 100_000 + "]" * 100_000)
+    assert doc(measure(target, "quick"))["metrics"]["files.unstaged"] == 0
+
+
+def test_a_fresh_stage_is_not_removed_as_stale(
+    target: Path, tools: Path, cache: Path
+) -> None:
+    fresh = cache / "aa-ma" / "stage-fresh"
+    fresh.mkdir(parents=True)
+    measure(target, "quick")
+    assert fresh.exists()

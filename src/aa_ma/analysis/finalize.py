@@ -23,7 +23,7 @@ from .ids import anchor_for, assign_ids, compare
 from .measure import WORK_PREFIX
 from .models import (
     CORE_INPUTS,
-    RULE_PREFIXES,
+    REFUTE_REQUIRED,
     SCHEMA_VERSION,
     Baseline,
     Confidence,
@@ -54,7 +54,6 @@ from .stamp import (
 
 # Test seam: fail after the gate, before the rename.
 CRASH_SEAM = "AA_MA_FINALIZE_CRASH_BEFORE_RENAME"
-REFUTE_REQUIRED = {Severity.CRITICAL, Severity.HIGH}
 # Judged findings of these severities: confidence at most MED.
 CONFIDENCE_CAPPED = {Severity.MEDIUM, Severity.LOW}
 REPORT_FILES = (
@@ -82,8 +81,14 @@ def _read(work: Path, name: str) -> str:
 def _describe(exc: Exception) -> str:
     """An error, never the input: pydantic's text quotes the value, which may hold a secret."""
     if isinstance(exc, ValidationError):
-        kinds = sorted({e["type"] for e in exc.errors(include_input=False)})
-        return f"{exc.error_count()} validation error(s) ({', '.join(kinds)})"
+        errors = exc.errors(include_input=False)
+        kinds = sorted({e["type"] for e in errors})
+        # value_error messages are our own validators' constants, never the input.
+        ours = sorted({e["msg"] for e in errors if e["type"] == "value_error"})
+        return (
+            f"{exc.error_count()} validation error(s) ({', '.join(kinds)})"
+            + "".join(f": {m}" for m in ours)
+        )
     return f"{exc.__class__.__name__}: {exc}"
 
 
@@ -111,21 +116,6 @@ def _judged(work: Path, repo: Path) -> list[tuple[int, JudgedFinding]]:
             ) from None
         if not contained(repo, judged.path):
             raise FinalizeError(f"judged.jsonl:{n}: path resolves outside the repo")
-        if judged.rule.split(".", 1)[0] not in RULE_PREFIXES[judged.dimension]:
-            raise FinalizeError(
-                f"judged.jsonl:{n}: rule prefix does not belong to its dimension "
-                f"(expected {' or '.join(RULE_PREFIXES[judged.dimension])})"
-            )
-        want = (
-            Refutation.PENDING
-            if judged.severity in REFUTE_REQUIRED
-            else Refutation.NOT_REQUIRED
-        )
-        if judged.refutation != want:
-            raise FinalizeError(
-                f"judged.jsonl:{n}: a judge writes critical/high as pending and the rest as "
-                "not_required — the refuter decides, through verdicts.jsonl"
-            )
         out.append((n, judged))
     return out
 
@@ -252,7 +242,11 @@ def _gate(tmp: Path) -> None:
             (tmp / "summary.json").read_text(encoding="utf-8")
         )
         counts = summary.counts.model_copy(
-            update={"redacted": sum(f.redacted for f in findings)}
+            update={
+                "redacted": sum(
+                    f.redacted for f in findings if f.refutation != Refutation.REFUTED
+                )
+            }
         )
         summary = summary.model_copy(update={"counts": counts})
         (tmp / "summary.json").write_text(

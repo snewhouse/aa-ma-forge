@@ -42,7 +42,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "One judged.jsonl line, written by a judge agent; finalize assigns the id.",
+  "description": "One judged.jsonl line, written by a judge agent; finalize assigns the id.\n\nA judge never decides refutation (critical/high are pending for the refuter, the rest\nnot_required) and uses only its dimension's rule prefix \u2014 `validate` and finalize both\nenforce it here. The messages are constants: they never quote the input.",
   "properties": {
     "anchor": {
       "title": "Anchor",

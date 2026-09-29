@@ -133,7 +133,7 @@
 - Result Log: Mode: AFK — auto-dispatched after the HARD gate, before the PR. RED `b85d6df` → GREEN `d2dbccb`: refusals name `section.*.variable` (token no longer printed — reproduced before); `core.quotePath=false`; `:(literal)` pathspec; `secrets.findings` None without gitleaks; report.md cells inert + unscanned-file note; codemem owners prefix via substr(); B613 escape; owners.top_pct and Quick note asserted. Suite 2134 passed / 2 skipped; bandit 0 ≥Medium; lint-imports 6/6. Stage B auto-fix commit dropped (out-of-scope reformat) → L-031 `c017d2c`.
 
 ## Milestone 3: `assess-codebase` skill + thin command
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 2
 - Gate: HARD
 - Audit-Profile: full
@@ -144,9 +144,9 @@
 - Acceptance Criteria: 6 criteria — see plan.md § Milestone 3
 
 ### Sub-step 3.1: [measure] re-verify A1 at HEAD; list every pin the new dirs move
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. A1 holds at `d13e790` (13 commands / 21 skill dirs on disk). Pins that move (each named by the test that reads it): SECURITY.md:11 count+names, :12 count+names (`test_security_md_asset_lists_match_disk`, `test_command_count_sites_match_disk`, `test_doc_counts`); foundations `### Commands (13)` :73 + `### Skills (21)` :91 + a table row each (`test_foundations_count_headings_match_disk`, `test_doc_counts`); README `### All commands` table (`test_command_count_sites_match_disk`) + skills table :251 (unpinned); local gitignored CLAUDE.md:51-52 (`test_command_count_sites_match_disk`, skipped when absent); plugin-surface golden + docs/architecture (regen); orphan pin `test_plugin_surface.py:76-79` moves only if nothing references `/assess-codebase` — measured after regen, not assumed. Disk-derived, no edit: `install_dry_run.bats`, `test_doc_counts` TRUTH. No count claim in README prose or quick-reference. Engine facts the skill must match: finalize reads measure.json + judged.jsonl (optional) + ratings.json + ledger.json; refuses PENDING Critical/High; measured findings are `not_required`; cap rule in `models.CORE_INPUTS`.
 
 ### Sub-step 3.2: [test] tests/skills/test_assess_codebase.py, RED
 - Status: PENDING

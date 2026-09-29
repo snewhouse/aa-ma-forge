@@ -571,3 +571,21 @@ def test_a_git_file_naming_another_repos_worktree_is_refused(
     (target / ".git").write_text(f"gitdir: {wt_git_dir}\n", encoding="utf-8")
     with pytest.raises(stamp.UnsafeRepo, match="outside"):
         stamp.head_stamp(target)
+
+
+def test_a_relative_path_worktree_is_accepted(repo: Path, tmp_path: Path) -> None:
+    """`git worktree add --relative-paths` writes a back-reference relative to the git dir."""
+    wt = tmp_path / "rel-wt"
+    git(repo, "worktree", "add", "-q", "--relative-paths", "--detach", str(wt))
+    assert stamp.head_stamp(wt)[0] == stamp.head_stamp(repo)[0]
+
+
+def test_a_subdir_of_a_hostile_clone_cannot_forge_the_worktree_exception(
+    repo: Path,
+) -> None:
+    """The enclosing repo's own git dir is not a worktree git dir, whatever `gitdir` it holds."""
+    sub = repo / "sub"
+    sub.mkdir()
+    (repo / ".git" / "gitdir").write_text(f"{sub / '.git'}\r\n  ", encoding="utf-8")
+    with pytest.raises(stamp.UnsafeRepo, match="outside"):
+        stamp.head_stamp(sub)

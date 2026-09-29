@@ -116,6 +116,8 @@ _This log will be updated via context compaction as the task progresses._
 
 ## M2 follow-up backlog (out of the M2 review loop, per Ste's round-5 close-out)
 - `safe.directory`: with ISOLATED_CONFIG a repo owned by another uid (WSL /mnt drives, docker volumes) reports "not a git repo with ≥1 commit"; give a specific "dubious ownership — assess as the owner or from a clone" message. Fails closed today.
+- (pre-PR, Ste) Planted *untracked* baseline report in a directory handed over rather than cloned: keep an index of report dirs this tool wrote, outside the target, and ignore others.
+- (pre-PR, Ste) `run`: a passing command whose detached grandchild keeps the output pipe open is reported as `timeout`.
 
 ## [2026-09-29] GATE APPROVAL: Milestone 2: Assess engine (CLI)
 - Gate: HARD
@@ -131,5 +133,3 @@ _This log will be updated via context compaction as the task progresses._
 - Threat model: hostile content at rest (Ste, round 5); stated in report.md `## Scope`.
 - Tests: 2125 passed / 2 pre-existing skips; lint-imports 6/6; bandit 0 ≥Medium; §6.7 PROTOTYPE, CRITICAL_PATH_REVIEW, DIAGRAM_VERIFIED; §6.8 five rounds → final regression 0/0.
 - Next: Milestone 3 — `assess-codebase` skill + thin command (Dependencies: Milestone 2).
-- (pre-PR, Ste) Planted *untracked* baseline report in a directory handed over rather than cloned: keep an index of report dirs this tool wrote, outside the target, and ignore others.
-- (pre-PR, Ste) `run`: a passing command whose detached grandchild keeps the output pipe open is reported as `timeout`.

@@ -357,7 +357,10 @@ def test_an_ordinary_git_config_passes(repo: Path) -> None:
         ("branch.main.remote", "origin"),
         ("branch.main.merge", "refs/heads/main"),
         ("core.autocrlf", "input"),
-        ("branch.main.vscode-merge-base", "origin/main"),  # VS Code: 11 of 17 local repos
+        (
+            "branch.main.vscode-merge-base",
+            "origin/main",
+        ),  # VS Code: 11 of 17 local repos
     ]:
         git(repo, "config", key, value)
     stamp.check_git_config(repo)
@@ -444,3 +447,93 @@ def test_a_relative_bin_override_is_made_absolute(
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("TOOLX_BIN", "tool")
     assert stamp.find_binary("toolx") == str(tmp_path / "tool")
+
+
+# --- M2 2.12: §6.8 round 5 ----------------------------------------------------------------------
+
+
+def _hostile_filter(repo: Path, marker: Path) -> None:
+    """A filter in the target's own config, selected by its .gitattributes, on a stat-dirty file."""
+    commit_file(repo, ".gitattributes", "*.py filter=x\n")
+    git(repo, "config", "filter.x.clean", f"sh -c 'touch {marker}; cat'")
+    for f in repo.rglob("*.py"):
+        os.utime(f, (1, 1))
+
+
+@pytest.mark.parametrize("command", ["stamp", "fresh"])
+def test_every_cli_command_refuses_an_unsafe_git_config(
+    command: str, repo: Path, tmp_path: Path
+) -> None:
+    """R5-1: stamp and fresh reached `git status` without the config check."""
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "standard"))
+    marker = tmp_path / "filter-ran"
+    _hostile_filter(repo, marker)
+    argv = (
+        ["stamp", "--repo", str(repo), "--tier", "quick"]
+        if command == "stamp"
+        else ["fresh", str(d), "--repo", str(repo)]
+    )
+    assert cli.main(argv) == 2
+    assert not marker.exists()
+
+
+def test_a_git_dir_outside_the_repo_is_refused(repo: Path, tmp_path: Path) -> None:
+    """A `.git` file naming another repo's git dir would mine that repo's history."""
+    victim = tmp_path / "victim"
+    victim.mkdir()
+    git(victim, "init", "-q")
+    commit_file(victim, "secret.txt", "x\n")
+    target = tmp_path / "target"
+    target.mkdir()
+    (target / ".git").write_text(f"gitdir: {victim / '.git'}\n", encoding="utf-8")
+    with pytest.raises(stamp.UnsafeRepo, match="outside"):
+        stamp.head_stamp(target)
+
+
+def test_a_commondir_outside_the_repo_is_refused(repo: Path, tmp_path: Path) -> None:
+    victim = tmp_path / "victim"
+    victim.mkdir()
+    git(victim, "init", "-q")
+    (repo / ".git" / "commondir").write_text(str(victim / ".git"), encoding="utf-8")
+    with pytest.raises(stamp.UnsafeRepo, match="outside"):
+        stamp.check_git_config(repo)
+
+
+def test_a_linked_worktree_of_the_users_repo_is_accepted(
+    repo: Path, tmp_path: Path
+) -> None:
+    wt = tmp_path / "wt"
+    git(repo, "worktree", "add", "-q", "--detach", str(wt))
+    assert stamp.head_stamp(wt)[0] == stamp.head_stamp(repo)[0]
+
+
+def test_a_git_call_that_hangs_is_refused(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """include.path at a FIFO blocked `git config --list` forever."""
+    fifo = tmp_path / "fifo"
+    os.mkfifo(fifo)
+    git(repo, "config", "include.path", str(fifo))
+    monkeypatch.setattr(stamp, "GIT_TIMEOUT_S", 2)
+    with pytest.raises(stamp.UnsafeRepo, match="did not finish"):
+        stamp.check_git_config(repo)
+
+
+def test_the_users_global_filters_are_never_reached(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A target .gitattributes `filter=lfs` selected the user's global git-lfs clean filter."""
+    marker = tmp_path / "global-filter-ran"
+    script = (
+        tmp_path / "clean.sh"
+    )  # a script: `;` would start a comment in a config file
+    script.write_text(f"#!/bin/sh\ntouch '{marker}'\ncat\n", encoding="utf-8")
+    script.chmod(0o755)
+    cfg = tmp_path / "global.gitconfig"
+    cfg.write_text(f'[filter "lfs"]\n\tclean = {script}\n', encoding="utf-8")
+    commit_file(repo, ".gitattributes", "*.py filter=lfs\n")
+    for f in repo.rglob("*.py"):
+        os.utime(f, (1, 1))
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(cfg))  # after setup: only our call can run it
+    stamp.head_stamp(repo)
+    assert not marker.exists()

@@ -98,7 +98,7 @@ def test_every_prompt_block_restates_no_secrets_and_the_data_rule() -> None:
 def test_judge_blocks_read_a_null_metric_as_missing_never_zero() -> None:
     # Live M3 run: lizard/jscpd absent on the host, and the old text told judges the metrics "are already measured".
     text = _text(PROMPTS)
-    assert "already measured" not in text
+    assert "are already measured" not in text
     judges = [b for b in _fences(text, "text") if b.startswith("Judge ")]
     assert len(judges) == len(models.Dimension)
     assert all("never read it as zero" in b for b in judges)

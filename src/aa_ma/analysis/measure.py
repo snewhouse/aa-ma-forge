@@ -52,7 +52,6 @@ from .secrets import gitleaks_args, secret_lines
 from .stamp import (
     REPORTS_ROOT,
     build_stamp,
-    check_git_config,
     ensure_self_ignoring,
     find_binary,
     open_regular,
@@ -951,7 +950,6 @@ def _finding(c: _Candidate, fid: str) -> Finding:
 def measure(repo: Path, tier: Tier, *, tool_timeout: float = TOOL_TIMEOUT_S) -> Path:
     """Measure `repo` at `tier`; returns the work dir holding measure.json and run.log."""
     repo = Path(repo).absolute()
-    check_git_config(repo)
     stamp = build_stamp(repo, tier)
     root = safe_dir(repo, str(REPORTS_ROOT))
     ensure_self_ignoring(root)

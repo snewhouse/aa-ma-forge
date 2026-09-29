@@ -57,6 +57,14 @@ SAFE_GIT_CONFIG = re.compile(
     r"|user\.(name|email)|init\.defaultbranch|pull\.rebase|push\.default|fetch\.prune"
 )
 TARGET_SCOPES = {"local", "worktree"}
+# git writes core.worktree into every submodule's own config; in the target's local config it
+# stays refused.
+SUBMODULE_KEYS = {"core.worktree"}
+# A git call on the target that has not finished by now is refused (a FIFO in its config blocks).
+GIT_TIMEOUT_S = 300
+# Only the target's own config is read: the user's global and system config may define filters
+# (git-lfs) that the target's .gitattributes could select.
+ISOLATED_CONFIG = {"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
 
 
 def absolute_path(path: str) -> str:
@@ -78,6 +86,7 @@ def safe_env() -> dict[str, str]:
         dict(os.environ)
         | {"PATH": absolute_path(os.environ.get("PATH", ""))}
         | git_overrides()
+        | ISOLATED_CONFIG
     )
 
 
@@ -118,18 +127,59 @@ def contained(repo: Path, rel: str) -> bool:
 
 
 def run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(  # nosec B603 B607 — fixed `git` argv; --end-of-options before user values
-        ["git", "-C", str(repo), *args],
-        capture_output=True,
-        text=True,
-        check=False,
-        env=safe_env(),
+    try:
+        return subprocess.run(  # nosec B603 B607 — fixed `git` argv; --end-of-options before user values
+            ["git", "-C", str(repo), *args],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=safe_env(),
+            timeout=GIT_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        raise UnsafeRepo(
+            f"{repo}: git did not finish within {GIT_TIMEOUT_S}s — assess a fresh clone"
+        ) from None
+
+
+def _inside(root: str, path: str) -> bool:
+    return path == root or path.startswith(root + os.sep)
+
+
+def _check_git_dir(repo: Path) -> None:
+    """The git dir and common dir must be the repo's own: a `.git` file or `commondir` naming
+    another repo would have us mine its history. A linked worktree of the user's repo is the
+    one exception, proved by its git dir's `gitdir` file naming this worktree back."""
+    out = run_git(
+        repo,
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-dir",
+        "--git-common-dir",
+        "--end-of-options",
     )
+    if out.returncode != 0:
+        return  # not a repo: head_stamp says so
+    root = os.path.realpath(repo)
+    git_dir, common = (os.path.realpath(p) for p in out.stdout.splitlines()[:2])
+    if _inside(root, git_dir) and _inside(root, common):
+        return
+    try:
+        back = read_regular(Path(git_dir) / "gitdir").strip()
+    except (OSError, UnicodeDecodeError):
+        back = ""
+    if (
+        not _inside(root, git_dir)
+        and back
+        and os.path.realpath(back) == os.path.join(root, ".git")
+    ):
+        return
+    raise UnsafeRepo(f"{repo}: its git dir is outside the repo — assess a fresh clone")
 
 
 def _config_keys(repo: Path, *args: str) -> list[str]:
     """Keys from `git config --list -z` (`[scope\\0]key\\nvalue\\0` entries); values never kept."""
-    listed = run_git(repo, "config", *args, "--list", "-z")
+    listed = run_git(repo, "config", *args, "--list", "-z", "--end-of-options")
     if listed.returncode != 0:
         raise UnsafeRepo(f"{repo}: cannot read its git config — assess a fresh clone")
     return [e.split("\n", 1)[0] for e in listed.stdout.split("\0") if e]
@@ -138,13 +188,22 @@ def _config_keys(repo: Path, *args: str) -> list[str]:
 def check_git_config(repo: Path) -> None:
     """Refuse a repo whose own git config — local, worktree or any submodule's — holds a key
     outside SAFE_GIT_CONFIG (names the keys, never values)."""
+    _check_git_dir(repo)
     entries = _config_keys(repo, "--show-scope")
     found = {
         k for scope, k in zip(entries[::2], entries[1::2]) if scope in TARGET_SCOPES
     }
-    common = run_git(repo, "rev-parse", "--path-format=absolute", "--git-common-dir")
-    for module in Path(common.stdout.strip() or ".").glob("modules/**/config"):
-        found |= set(_config_keys(repo, "--file", str(module)))
+    common = run_git(
+        repo,
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir",
+        "--end-of-options",
+    )
+    # First line only: rev-parse echoes --end-of-options after the path.
+    common_dir = Path((common.stdout.splitlines() or ["."])[0])
+    for module in common_dir.glob("modules/**/config"):
+        found |= set(_config_keys(repo, "--file", str(module))) - SUBMODULE_KEYS
     unsafe = sorted(k for k in found if not SAFE_GIT_CONFIG.fullmatch(k))
     if unsafe:
         raise UnsafeRepo(
@@ -158,6 +217,7 @@ def head_stamp(repo: Path) -> tuple[str, bool, str]:
     head = run_git(repo, "rev-parse", "--verify", "--end-of-options", "HEAD")
     if head.returncode != 0:
         raise NotAGitRepo(f"{repo}: {NOT_A_REPO}")
+    check_git_config(repo)  # before `status`, which runs the filters a config names
     status = run_git(
         repo,
         "status",

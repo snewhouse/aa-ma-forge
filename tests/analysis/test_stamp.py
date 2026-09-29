@@ -314,7 +314,11 @@ def test_the_report_name_pattern_is_the_naming_rule() -> None:
 # --- M2 2.10: the target's own .git/config never runs code for us -------------------------------
 
 
-def test_git_calls_never_run_the_targets_fsmonitor(repo: Path, tmp_path: Path) -> None:
+def test_git_calls_never_run_the_targets_fsmonitor(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Defence in depth: the command-scope override alone stops it (the config check is off)."""
+    monkeypatch.setattr(stamp, "check_git_config", lambda repo: None)
     marker = tmp_path / "fsmonitor-ran"
     git(repo, "config", "core.fsmonitor", f"touch '{marker}'; false")
     stamp.head_stamp(repo)
@@ -337,6 +341,7 @@ def test_git_calls_never_run_the_targets_fsmonitor(repo: Path, tmp_path: Path) -
         ("some.unknownkey", "x"),
         # A dotted subsection must not smuggle a key past a prefix match.
         ("remote.a.url.b.uploadpack", "x"),
+        ("core.worktree", "/elsewhere"),  # allowed only in a submodule's own config
     ],
 )
 def test_a_git_config_that_can_run_commands_is_refused_by_name(
@@ -407,8 +412,7 @@ def test_our_git_log_never_verifies_signatures(repo: Path, tmp_path: Path) -> No
     assert not marker.exists()
 
 
-def test_status_never_enters_a_submodule(repo: Path, tmp_path: Path) -> None:
-    """A submodule's own config (never checked by `--local`) ran its filter under status."""
+def _add_submodule(repo: Path, tmp_path: Path) -> None:
     inner = tmp_path / "inner"
     inner.mkdir()
     git(inner, "init", "-q")
@@ -425,6 +429,20 @@ def test_status_never_enters_a_submodule(repo: Path, tmp_path: Path) -> None:
         "sub",
     )
     git(repo, "commit", "-qm", "sub")
+
+
+def test_a_repo_with_an_ordinary_submodule_passes(repo: Path, tmp_path: Path) -> None:
+    """git writes core.worktree into every submodule's own config."""
+    _add_submodule(repo, tmp_path)
+    stamp.check_git_config(repo)
+
+
+def test_status_never_enters_a_submodule(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Defence in depth (config check off): a submodule's filter never runs under status."""
+    monkeypatch.setattr(stamp, "check_git_config", lambda repo: None)
+    _add_submodule(repo, tmp_path)
     marker = tmp_path / "filter-ran"
     module = repo / ".git" / "modules" / "sub" / "config"
     git(
@@ -534,6 +552,22 @@ def test_the_users_global_filters_are_never_reached(
     commit_file(repo, ".gitattributes", "*.py filter=lfs\n")
     for f in repo.rglob("*.py"):
         os.utime(f, (1, 1))
-    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(cfg))  # after setup: only our call can run it
+    monkeypatch.setenv(
+        "GIT_CONFIG_GLOBAL", str(cfg)
+    )  # after setup: only our call can run it
     stamp.head_stamp(repo)
     assert not marker.exists()
+
+
+def test_a_git_file_naming_another_repos_worktree_is_refused(
+    repo: Path, tmp_path: Path
+) -> None:
+    """The worktree exception holds only when that git dir names *this* dir back."""
+    wt = tmp_path / "their-wt"
+    git(repo, "worktree", "add", "-q", "--detach", str(wt))
+    [wt_git_dir] = (repo / ".git" / "worktrees").iterdir()
+    target = tmp_path / "target"
+    target.mkdir()
+    (target / ".git").write_text(f"gitdir: {wt_git_dir}\n", encoding="utf-8")
+    with pytest.raises(stamp.UnsafeRepo, match="outside"):
+        stamp.head_stamp(target)

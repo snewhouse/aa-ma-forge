@@ -42,7 +42,6 @@ from .models import (
 from .stamp import (
     REPORT_NAME,
     REPORTS_ROOT,
-    check_git_config,
     contained,
     ensure_self_ignoring,
     head_stamp,
@@ -266,7 +265,6 @@ def finalize(repo: Path, workdir: Path) -> Path:
         or not work.is_dir()
     ):
         raise FinalizeError(f"{work}: not a work dir under {root}")
-    check_git_config(repo)
     try:
         measured = MeasureDoc.model_validate_json(_read(work, "measure.json"))
     except ValidationError as exc:

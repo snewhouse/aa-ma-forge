@@ -210,3 +210,14 @@ SUMMARY: 0 CRITICAL / 0 WARNING / 4 INFO. All 13 earlier findings re-reproduced 
 - INFO ×3 (worktree back-reference: forgeable from a hostile enclosing clone; unbounded read; `--relative-paths` worktrees refused) → fixed in 2.12 test-first (see tasks.md), both new conditions mutation-checked.
 - INFO (ISOLATED_CONFIG drops a global `safe.directory`: a repo owned by another uid reports "not a git repo") → **M2 follow-up backlog** (usability, fails closed).
 - Review loop closed per Ste's round-5 decision.
+
+## Milestone 2 — /sole-dev-merge Stage C (2026-09-29), diff main...HEAD
+| Source | CRITICAL | HIGH | MEDIUM | LOW |
+|---|:-:|:-:|:-:|:-:|
+| code-reviewer (C1) | 0 | 0 | 1 | 10 |
+| security-auditor (C2) | 0 | 0 | 2 | 1 |
+| bandit (C3, changed files incl. tests) | 1 (B613) | 5 | 449 | 0 |
+- MEDIUMs, all reproduced (credential in refusal message and non-ASCII churn by the orchestrator): **fixed** (Ste) in `b85d6df`→`d2dbccb`.
+- Bandit: B613 = the deliberate U+202E in the bidi-refusal test → written as an escape; B608 ×3 in codemem SQL predate this branch (git blame) → not this PR; B108/B105/B101/B603/B607/B404 → disputed, test-fixture false positives (Ste).
+- LOWs: 5 bugs + 2 comments + 2 test gaps **fixed** (Ste); 2 → backlog.
+- Out-of-scope: Stage B's auto-fix commit reformatted untouched lines of touched files → dropped before push; lesson L-031.

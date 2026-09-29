@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import os
 import subprocess
 from pathlib import Path
@@ -348,7 +349,9 @@ def test_a_git_config_that_can_run_commands_is_refused_by_name(
     repo: Path, key: str, value: str
 ) -> None:
     git(repo, "config", key, value)
-    with pytest.raises(stamp.UnsafeRepo, match=key.lower()):
+    with pytest.raises(
+        stamp.UnsafeRepo, match=re.escape(stamp._key_class(key.lower()))
+    ):
         stamp.check_git_config(repo)
 
 
@@ -374,7 +377,7 @@ def test_an_ordinary_git_config_passes(repo: Path) -> None:
 def test_worktree_scoped_config_is_checked(repo: Path) -> None:
     git(repo, "config", "extensions.worktreeConfig", "true")
     git(repo, "config", "--worktree", "filter.x.clean", "cat")
-    with pytest.raises(stamp.UnsafeRepo, match=r"filter\.x\.clean"):
+    with pytest.raises(stamp.UnsafeRepo, match=r"filter\.\*\.clean"):
         stamp.check_git_config(repo)
 
 
@@ -382,13 +385,13 @@ def test_a_submodule_config_is_checked(repo: Path) -> None:
     module = repo / ".git" / "modules" / "sub"
     module.mkdir(parents=True)
     git(repo, "config", "--file", str(module / "config"), "filter.x.clean", "cat")
-    with pytest.raises(stamp.UnsafeRepo, match=r"filter\.x\.clean"):
+    with pytest.raises(stamp.UnsafeRepo, match=r"filter\.\*\.clean"):
         stamp.check_git_config(repo)
 
 
 def test_an_unreadable_git_config_is_refused(repo: Path) -> None:
     (repo / ".git" / "config").write_text("[core\nbroken", encoding="utf-8")
-    with pytest.raises(stamp.UnsafeRepo, match="cannot read"):
+    with pytest.raises(stamp.UnsafeRepo, match="cannot (read|resolve)"):
         stamp.check_git_config(repo)
 
 

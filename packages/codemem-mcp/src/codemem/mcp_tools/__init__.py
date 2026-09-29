@@ -664,7 +664,7 @@ def owners(
         if is_directory:
             rows = conn.execute(
                 "SELECT author_email, SUM(line_count) AS line_count "
-                "FROM ownership WHERE file_path LIKE ? || '%' "
+                "FROM ownership WHERE substr(file_path, 1, length(?1)) = ?1 "
                 "GROUP BY author_email",
                 (clean,),
             ).fetchall()
@@ -736,7 +736,7 @@ def _refresh_ownership_cache(
         conn = db.connect(db_path)
         try:
             rows = conn.execute(
-                "SELECT path FROM files WHERE path LIKE ? || '%'",
+                "SELECT path FROM files WHERE substr(path, 1, length(?1)) = ?1",
                 (path,),
             ).fetchall()
             targets = [r[0] for r in rows]

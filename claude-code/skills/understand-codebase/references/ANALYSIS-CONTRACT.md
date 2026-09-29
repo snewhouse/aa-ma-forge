@@ -55,7 +55,7 @@ the run wrote (the report dir; `.claude/onboarding/` and `ONBOARDING.md` for und
 Every output carries a `Stamp`: UTC date (serialised as `Z`; any other offset is rejected), `sha12` (the first 12 hex characters of
 HEAD), `dirty`, branch (`(detached)` on a detached HEAD), tier (`quick` / `standard` / `deep`),
 each tool's status (`ran` / `absent` / `unknown` / `skipped` — skipped means not allowed at this
-tier), and what was absorbed or run fresh. `aa-ma-analysis stamp` refuses (exit 2) anywhere that is not a git repo with ≥1 commit, and — like `fresh`, `measure` and `finalize` — any target whose own git config (local, worktree or a submodule's) sets a key outside a small safe list, or whose git dir lies outside it; the message names keys, never values (assess a fresh clone instead).
+tier), and what was absorbed or run fresh. `aa-ma-analysis stamp` refuses (exit 2) anywhere that is not a git repo with ≥1 commit, and — like `fresh`, `measure` and `finalize` — any target whose own git config (local, worktree or a submodule's) sets a key outside a small safe list, or whose git dir lies outside it; the message names each key by section and variable only (`url.*.insteadof`) — never a subsection, which can hold a credential, and never a value (assess a fresh clone instead).
 
 - **Dirty means tracked changes only** — `git status --porcelain --untracked-files=no`. An
   untracked file (a freshly written `ONBOARDING.md`) never makes a run stale; an edit to a tracked

@@ -113,3 +113,6 @@ _This log will be updated via context compaction as the task progresses._
 - **Threat model: hostile content at rest.** The tool defends against anything a target repo can contain (files, names, symlinks, git config, `.git` files, tool configs). A hostile process running concurrently on the machine is out of scope: it already executes as the user and could read the files it would trick us into reading. The (st_dev, st_ino) checks remain as defence in depth. Why: round 5's R5-2 needs a live swapper; closing it needs an openat walk for every read with no gain against an attacker who already runs code.
 - **Correction (6c37fd2 claim):** `PYTHONSAFEPATH`/`-P` stops a planted module *named like* the linter; linters still load plugins from their own config (mypy `plugins`, flake8 local-plugins, pylint init-hook) — linters are repo-code runners like test runners.
 - Review loop closes after one regression pass (Ste): new out-of-scope items go to an M2 follow-up backlog.
+
+## M2 follow-up backlog (out of the M2 review loop, per Ste's round-5 close-out)
+- `safe.directory`: with ISOLATED_CONFIG a repo owned by another uid (WSL /mnt drives, docker volumes) reports "not a git repo with ≥1 commit"; give a specific "dubious ownership — assess as the owner or from a clone" message. Fails closed today.

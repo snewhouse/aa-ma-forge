@@ -229,6 +229,24 @@
    "src": "command:archive-aa-ma"
   },
   {
+   "dst": "command:understand-codebase",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:assess-codebase"
+  },
+  {
+   "dst": "skill:assess-codebase",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:assess-codebase"
+  },
+  {
+   "dst": "skill:verify-impl",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "command:assess-codebase"
+  },
+  {
    "dst": "agent:aa-ma-validator",
    "kind": "agent",
    "ref_class": "ON_DISK",
@@ -781,6 +799,24 @@
    "src": "skill:aa-ma-research"
   },
   {
+   "dst": "agent:general-purpose",
+   "kind": "agent",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:assess-codebase"
+  },
+  {
+   "dst": "command:understand-codebase",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:assess-codebase"
+  },
+  {
+   "dst": "skill:verify-impl",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:assess-codebase"
+  },
+  {
    "dst": "command:aa-ma-plan",
    "kind": "command",
    "ref_class": "ON_DISK",
@@ -1174,6 +1210,7 @@
  },
  "orphans": [
   "command:aa-ma-search",
+  "command:assess-codebase",
   "command:sole-dev-merge",
   "hook:aa-ma-session-end-dirty.sh",
   "skill:aa-ma-execution",

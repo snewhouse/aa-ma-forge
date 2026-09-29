@@ -45,6 +45,18 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   config, its git dir must be its own, and git never reads the user's global config for it. The
   report states its scope: hostile repository content is covered; a process changing the
   repository during the run, and code run by approved commands, are not.
+- **`/assess-codebase` + `Skill(assess-codebase)` — whole-repo assessment (`codebase-analysis-skills`
+  M3)** — drives the assess engine end to end: a preflight that refuses (one message naming
+  `scripts/install.sh` and `AA_MA_ROOT`) before any agent runs when there is no aa-ma-forge checkout
+  or no `uv`; a stamp and freshness check that reuses a same-commit report; a tier ask (Quick:
+  measured only, no agents; Standard: four dimension judges on sonnet plus a refuter that must
+  disprove every Critical/High claim; Deep: adds semgrep / osv-scanner / pip-audit — disclosed as
+  network calls — a test run through `aa-ma-analysis run`, and the claude-security pass only when
+  that plugin is installed and enabled); a coverage ledger of every top-level path; then finalize.
+  Each dimension is rated with its inputs and confidence against `references/RATING.md`, never an
+  overall grade; a declined or failed test run is unknown, never passing. Every judge and refuter
+  prompt restates the contract's NO-SECRETS line, and tests execute the preflight and the
+  claude-security guard rather than grepping for them.
 - **`codemem query` reaches 10 MCP tools** — `hot_spots`, `co_changes <file>`, `owners <path>
   [--repo-root R]` and `layers` join the six ports, so scripts get git-history and layering answers
   without an MCP server. `owners --repo-root` computes the blame; without it only the cache is read,

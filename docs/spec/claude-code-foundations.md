@@ -70,7 +70,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `.claude/dev/active/[task-name]/` | Active tasks |
 | `.claude/dev/completed/` | Archived completed tasks |
 
-### Commands (13)
+### Commands (14)
 
 | Command | Purpose |
 |---------|---------|
@@ -86,9 +86,10 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/aa-ma-chart` | Pre-plan decision map: `chart <effort> "<idea>"` / `work <effort> [ticket-N]`; hands off to `/aa-ma-plan --from-map <effort> [--dry-run]` (ADR-0013) |
 | `/aa-ma-share` | Publish a plan, ADR or spec doc as a private Artifact link (allowlisted paths only — context-log, provenance, reference and tasks are never shared) |
 | `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered Quick/Standard/Deep); optionally authors/reviews `AGENTS.md`. Thin wrapper around `Skill(understand-codebase)`; see ADR-0006 |
+| `/assess-codebase` | Whole-repo quality and risk assessment (tiered Quick/Standard/Deep): tools measure, sonnet judges cite `file:line`, a refuter attacks every Critical/High claim; per-dimension ratings with inputs and confidence (no overall grade) → SHA-stamped, secret-gated `summary.json` + `findings.jsonl` + SARIF + `report.md` under `.claude/reports/assess-codebase/`. Thin wrapper around `Skill(assess-codebase)` |
 | `/sole-dev-merge` | PR/MR-based merge workflow: scope-aware CI checks (L-007 guard) + 3-source security pass + idempotent PR/MR creation + 15-min CI poll + auto-merge + cleanup. See ADR-0008 |
 
-### Skills (21)
+### Skills (22)
 
 | Skill | Purpose |
 |-------|---------|
@@ -112,6 +113,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `write-a-skill` | Canonical skill-authoring procedure: gather requirements → draft SKILL.md → review with user; includes 1024-char description format, "Use when" trigger pattern, 100-line SKILL.md guidance, when-to-split-files heuristics (forked from mattpocock/skills — see ADR-0004) |
 | `verify-impl` | Post-impl adversarial review symmetric to `/verify-plan`: dispatches up to 5 parallel audit agents per the milestone's plan-declared `Audit-Profile`; CRITICAL findings surface via an accept/dispute/defer panel before §7.3 authorization (invoked by Phase 6.8 of `/execute-aa-ma-milestone` — see ADR-0005) |
 | `understand-codebase` | Tiered (Quick/Standard/Deep) codebase-onboarding workflow: reads/maps the repo, learns conventions/versioning/tests/stack/rules, produces a pros/cons verdict + "contribute safely" + "add a feature" playbooks → `ONBOARDING.md` + `.claude/onboarding/` deep-dives; Deep tier runs a `TeamCreate` agent-team; optionally authors/reviews `AGENTS.md` (see ADR-0006) |
+| `assess-codebase` | Whole-repo assessment over the `aa-ma-analysis` CLI: preflight → stamp/fresh → measure → coverage ledger → 4 dimension judges (`general-purpose`, sonnet) → refuter on Critical/High → finalize (IDs, rating cap, baseline, secret gate). `references/RATING.md` mirrors `CORE_INPUTS`; `references/AGENT-PROMPTS.md` restates the `ANALYSIS-CONTRACT.md` NO-SECRETS line per prompt. Deep adds network tools, a gated test run, and claude-security when installed and enabled |
 | `goal-condition-synthesis` | Synthesise a Claude Code `/goal` condition from AA-MA plan artefacts: produces a falsifiable condition referencing observable artefacts (`provenance.log`, `tasks.md` Status, git tags, test exit codes) with a turn-cap cost ceiling derived from plan effort. Owns the canonical verdict-token enum, observable-artefact list, and hashing contract; backed by a unit-tested Python reference module (`aa_ma.goal_synthesis`). Consumed by `/execute-aa-ma-full` §2.5 and `/verify-plan --iterate` |
 
 ### Agents (12)

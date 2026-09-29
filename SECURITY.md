@@ -8,8 +8,8 @@ The installer (`scripts/install.sh`) places files into `~/.claude/` so Claude Co
 
 **Symlinks created** (pointing from `~/.claude/` back into this repo):
 
-- 13 command files: `~/.claude/commands/*.md` (aa-ma-plan, execute-aa-ma-milestone, execute-aa-ma-full, execute-aa-ma-step, verify-plan, archive-aa-ma, grill-me, ops-mode, aa-ma-search, understand-codebase, sole-dev-merge, aa-ma-share, aa-ma-chart)
-- 21 skills directories: `~/.claude/skills/*/` (aa-ma-execution, aa-ma-plan-workflow, aa-ma-research, agent-teams, complexity-router, debugging-strategies, defense-in-depth, dispatching-parallel-agents, goal-condition-synthesis, grill-with-docs, grilling, impact-analysis, operational-constraints, plan-verification, prototype, retro, system-mapping, token-compression, understand-codebase, verify-impl, write-a-skill)
+- 14 command files: `~/.claude/commands/*.md` (aa-ma-plan, execute-aa-ma-milestone, execute-aa-ma-full, execute-aa-ma-step, verify-plan, archive-aa-ma, grill-me, ops-mode, aa-ma-search, understand-codebase, assess-codebase, sole-dev-merge, aa-ma-share, aa-ma-chart)
+- 22 skills directories: `~/.claude/skills/*/` (aa-ma-execution, aa-ma-plan-workflow, aa-ma-research, agent-teams, assess-codebase, complexity-router, debugging-strategies, defense-in-depth, dispatching-parallel-agents, goal-condition-synthesis, grill-with-docs, grilling, impact-analysis, operational-constraints, plan-verification, prototype, retro, system-mapping, token-compression, understand-codebase, verify-impl, write-a-skill)
 - 12 agent files: `~/.claude/agents/*.md` (aa-ma-researcher, aa-ma-scribe, aa-ma-validator, code-reviewer, codebase-onboarding-conventions, codebase-onboarding-health, codebase-onboarding-runbook, codebase-onboarding-synthesizer, context7-evidence-auditor, future-proofing-auditor, security-auditor, tdd-sequence-auditor)
 - 2 rules files: `~/.claude/rules/aa-ma.md`, `~/.claude/rules/engineering-standards.md`
 - 8 hooks: `~/.claude/hooks/lib/*.sh` (aa-ma-commit-drift, aa-ma-commit-signature, aa-ma-plan-marker, aa-ma-plan-skip-warn, aa-ma-session-end-dirty, aa-ma-session-start, pre-compact-aa-ma, security-static-check)

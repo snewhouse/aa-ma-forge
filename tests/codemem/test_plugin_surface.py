@@ -76,6 +76,7 @@ def test_orphans_are_the_named_set_and_no_errors(surface) -> None:
     assert {o.split(":", 1)[1] for o in surface.orphans} == {
         "aa-ma-search", "sole-dev-merge", "aa-ma-execution", "complexity-router",
         "debugging-strategies", "write-a-skill", "aa-ma-session-end-dirty.sh",
+        "assess-codebase",  # codebase-analysis-skills M3: nothing names /assess-codebase until M4
     }
     assert surface.errors == []
 

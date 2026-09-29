@@ -222,6 +222,7 @@ Moves completed artefacts to `.claude/dev/completed/` for future reference.
 | `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
 | `/aa-ma-chart` | Chart a pre-plan decision map (`chart <effort> "<idea>"`), resolve its typed tickets one per session (`work <effort> [ticket-N]`), then hand off with `/aa-ma-plan --from-map <effort>` — concept adapted from mattpocock/skills `wayfinder`, see [ADR-0013](docs/adr/0013-charting-wayfinder-lite.md) |
 | `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered: `--quick` / `--standard` / `--deep`); optionally authors or reviews `AGENTS.md` |
+| `/assess-codebase` | Whole-repo quality and risk assessment (tiered: `--quick` / `--standard` / `--deep`) — tools measure, model judges cite `file:line`, a refuter checks every Critical/High claim; per-dimension ratings, no overall grade; SARIF + `report.md` under `.claude/reports/assess-codebase/` |
 | `/sole-dev-merge` | PR/MR-based merge workflow with scope-aware CI checks, 3-source security pass, idempotent PR/MR creation, 15-min CI poll, auto-merge + cleanup — see [ADR-0008](docs/adr/0008-sole-dev-merge-pr-workflow.md) |
 | `/aa-ma-share` | Publish a plan, ADR or spec page as a private Artifact link — mermaid Architecture Views render natively; allowlisted paths only (never context-log/provenance/reference/tasks) — see [ADR-0010](docs/adr/0010-architecture-views-and-render.md) |
 
@@ -249,6 +250,7 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `grill-with-docs` | Plan-stress-test that delegates the interview to `grilling` and updates `CONTEXT.md` and ADRs inline as decisions crystallise (Phase 1.3 `with-docs` mode; Derived) |
 | `prototype` | Throwaway-code prototyping that routes between a self-contained HTML LOGIC demo and `?variant=`-switchable UI variations, captured on a `prototype/<name>` branch |
 | `understand-codebase` | Tiered codebase onboarding — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives; the engine behind `/understand-codebase` |
+| `assess-codebase` | Measure → judge → refute → finalize over the `aa-ma-analysis` CLI; the engine behind `/assess-codebase` |
 | `verify-impl` | Post-impl adversarial review symmetric to `plan-verification`; dispatches up to 5 parallel audit agents at Phase 6.8 |
 | `write-a-skill` | Authoring recipe: gather → draft SKILL.md (+REFERENCE/EXAMPLES/scripts) → review; description rules, 100-line split, 6-item checklist (Derived — upstream removed in 1.0.0) |
 | `goal-condition-synthesis` | Synthesize a Claude Code `/goal` condition from plan artifacts with a turn-cap cost ceiling; consumed by `/execute-aa-ma-full` §2.5 and `/verify-plan --iterate` |

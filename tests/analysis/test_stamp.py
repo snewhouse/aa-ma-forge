@@ -329,6 +329,12 @@ def test_git_calls_never_run_the_targets_fsmonitor(repo: Path, tmp_path: Path) -
         ("diff.x.textconv", "x"),
         ("include.path", "x"),
         ("core.sshCommand", "x"),
+        ("includeIf.gitdir:/x.path", "x"),
+        ("diff.x.command", "x"),
+        ("gpg.program", "x"),
+        ("log.showSignature", "true"),
+        ("core.pager", "x"),
+        ("some.unknownkey", "x"),
     ],
 )
 def test_a_git_config_that_can_run_commands_is_refused_by_name(
@@ -340,8 +346,92 @@ def test_a_git_config_that_can_run_commands_is_refused_by_name(
 
 
 def test_an_ordinary_git_config_passes(repo: Path) -> None:
-    git(repo, "config", "user.name", "Someone")
+    """What a fresh clone plus a user identity writes: every key is on the safe list."""
+    for key, value in [
+        ("user.name", "Someone"),
+        ("user.email", "s@example.invalid"),
+        ("remote.origin.url", "https://example.invalid/r.git"),
+        ("remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*"),
+        ("branch.main.remote", "origin"),
+        ("branch.main.merge", "refs/heads/main"),
+        ("core.autocrlf", "input"),
+    ]:
+        git(repo, "config", key, value)
     stamp.check_git_config(repo)
+
+
+def test_worktree_scoped_config_is_checked(repo: Path) -> None:
+    git(repo, "config", "extensions.worktreeConfig", "true")
+    git(repo, "config", "--worktree", "filter.x.clean", "cat")
+    with pytest.raises(stamp.UnsafeRepo, match=r"filter\.x\.clean"):
+        stamp.check_git_config(repo)
+
+
+def test_a_submodule_config_is_checked(repo: Path) -> None:
+    module = repo / ".git" / "modules" / "sub"
+    module.mkdir(parents=True)
+    git(repo, "config", "--file", str(module / "config"), "filter.x.clean", "cat")
+    with pytest.raises(stamp.UnsafeRepo, match=r"filter\.x\.clean"):
+        stamp.check_git_config(repo)
+
+
+def test_an_unreadable_git_config_is_refused(repo: Path) -> None:
+    (repo / ".git" / "config").write_text("[core\nbroken", encoding="utf-8")
+    with pytest.raises(stamp.UnsafeRepo, match="cannot read"):
+        stamp.check_git_config(repo)
+
+
+def test_our_git_log_never_verifies_signatures(repo: Path, tmp_path: Path) -> None:
+    """log.showSignature + gpg.program + one signed-looking commit ran the program (§6.8 r4)."""
+    marker = tmp_path / "gpg-ran"
+    gpg = tmp_path / "gpg"
+    gpg.write_text(f"#!/bin/sh\ntouch '{marker}'\n", encoding="utf-8")
+    gpg.chmod(0o755)
+    body = git(repo, "cat-file", "commit", "HEAD")
+    head, _, message = body.partition("\n\n")
+    signed = f"{head}\ngpgsig -----BEGIN PGP SIGNATURE-----\n x\n -----END PGP SIGNATURE-----\n\n{message}"
+    sha = subprocess.run(
+        ["git", "hash-object", "-t", "commit", "-w", "--stdin"],
+        cwd=repo, input=signed, capture_output=True, text=True, check=True,
+    ).stdout.strip()  # fmt: skip
+    git(repo, "update-ref", "HEAD", sha)
+    git(repo, "config", "log.showSignature", "true")
+    git(repo, "config", "gpg.program", str(gpg))
+    assert stamp.run_git(repo, "log", "-1", "--format=%ct", "HEAD").returncode == 0
+    assert not marker.exists()
+
+
+def test_status_never_enters_a_submodule(repo: Path, tmp_path: Path) -> None:
+    """A submodule's own config (never checked by `--local`) ran its filter under status."""
+    inner = tmp_path / "inner"
+    inner.mkdir()
+    git(inner, "init", "-q")
+    commit_file(inner, "a.txt", "a\n")
+    commit_file(inner, ".gitattributes", "*.txt filter=x\n")
+    git(
+        repo,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-q",
+        str(inner),
+        "sub",
+    )
+    git(repo, "commit", "-qm", "sub")
+    marker = tmp_path / "filter-ran"
+    module = repo / ".git" / "modules" / "sub" / "config"
+    git(
+        repo,
+        "config",
+        "--file",
+        str(module),
+        "filter.x.clean",
+        f"touch '{marker}'; cat",
+    )
+    os.utime(repo / "sub" / "a.txt", (1, 1))
+    stamp.head_stamp(repo)
+    assert not marker.exists()
 
 
 def test_a_relative_bin_override_is_made_absolute(

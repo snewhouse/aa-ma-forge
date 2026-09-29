@@ -169,3 +169,7 @@ _This log will be updated via context compaction as the task progresses._
 - Artifacts: claude-code/skills/assess-codebase/{SKILL.md,references/RATING.md,references/AGENT-PROMPTS.md}, claude-code/commands/assess-codebase.md, claude-code/agents/codebase-assessor.md, src/aa_ma/analysis/{finalize,models,report_md}.py, tests/skills/test_assess_codebase.py, tests/analysis/test_rating_keys.py, test_finalize.py, goldens, docs counts.
 - Tests: 2197 passed / 2 skipped.
 - Next: Milestone 4 — understand-codebase repoint + residuals (Dependencies: Milestone 3); carry-over: filter refuted findings; orphan pin for /assess-codebase goes.
+
+## [2026-09-29] M3 merged
+- PR #6 rebase-merged via /sole-dev-merge, CI 7/7 green; main at 14384d1 (milestone commit 3d4b856). Rebased SHA map in provenance. Merge review: 1 MEDIUM + 1 LOW fixed (judge rules moved into the JudgedFinding model so `validate` enforces them), Bandit B613 (literal bidi in a test) fixed, Stage B test reformat reverted per L-031.
+- To use the skill: run `scripts/install.sh` (symlinks assess-codebase command/skill and the codebase-assessor agent), then restart Claude Code.

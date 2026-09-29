@@ -136,9 +136,18 @@ judge as extra evidence. Otherwise say it was not offered and why.
 Then ask once whether to run the tests. Approving **runs the target's own code** with your files
 and network — say so in the ask. Propose a command from the repo's docs/CI, preferring a direct
 runner (`pytest -q`, `cargo test`, `go test ./...`) over an indirection, and show what it executes
-beside the argv: for `npm|pnpm|yarn run <name>` the `package.json` `scripts.<name>` body, for
-`make <target>` the `Makefile` recipe, for pytest whether a `conftest.py` exists. For a repo you
-do not trust, suggest running the whole assessment in a throwaway container or clone. On yes:
+beside the argv:
+
+- `npm|pnpm|yarn run <name>`, `npm test`, `pnpm test` — the `package.json` `scripts.<name>` (or
+  `scripts.test`) body **and** its `pre<name>` / `post<name>` hooks;
+- `make <target>` — the `Makefile` recipe; `tox` — the `commands` in `tox.ini`;
+- `cargo test` — whether a `build.rs` or a proc-macro crate exists (both run at build time);
+- pytest — whether a `conftest.py` exists and any `-p` plugins in `addopts` (pytest.ini,
+  pyproject.toml, setup.cfg).
+
+This list is not exhaustive: every runner the `run` gate allows executes code from the repo. For
+a repo you do not trust, suggest running the whole assessment in a throwaway container or clone.
+On yes:
 `AA aa-ma-analysis run --repo <path> --cmd "<command>"` — exit 0 all verified; otherwise read
 each check's `status`. The result (`tests: verified — <cmd>`) goes to the tests_deps judge.
 Declined, `failed`, `timeout`, `not_run` or `refused` → test health is **unknown**, never passing.
@@ -152,9 +161,15 @@ in parallel (at most 5 agents at once) with the Agent tool: `subagent_type: code
 ledger's assessed paths and any Step 4 evidence. A large component may get its own judge in the
 next wave.
 
+If the `codebase-assessor` agent type is not available, stop and say so (run `scripts/install.sh`
+from the aa-ma-forge checkout, then restart the session) — never substitute another agent type:
+the judges read hostile content and must not be able to write or run anything.
+
 Each judge replies with JudgedFinding lines and a draft rating. When all are back:
 
-1. Write each judge's lines to `<work>/judged/<dimension>.jsonl`.
+1. Write each judge's lines to `<work>/judged/<dimension>.jsonl`, no blank lines. A line that is
+   not one JSON object goes back to its judge once, by number; still bad → drop it and say so
+   (the gate below refuses a file that does not parse).
 2. `AA aa-ma-analysis scan-secrets <work>/judged --redact` — the output gate, before anything
    else reads the lines. Exit 1 → refused or hits remain: stop and say so.
 3. `AA aa-ma-analysis validate judged_finding <work>/judged/<dimension>.jsonl` for each — a
@@ -171,7 +186,8 @@ A judge writes every critical or high finding with `refutation: "pending"` and e
 `judged.jsonl` has pending lines, spawn one refuter (`subagent_type: codebase-assessor`, session
 model) with the refuter block from AGENT-PROMPTS.md and, per pending line, only its line number,
 rule, `path:line` and title — it reads the code itself. It tries to disprove each one and replies
-`<n> survived|refuted — <reason>`. Write one line per verdict to `<work>/verdicts.jsonl`:
+`<n> survived|refuted — <reason>`, where `<n>` is the physical line number in `judged.jsonl`
+(every line counts; Step 5 wrote none blank). Write one line per verdict to `<work>/verdicts.jsonl`:
 `{"line": <n>, "verdict": "survived" | "refuted", "reason": "<reason>"}`. Never edit
 `judged.jsonl`. finalize refuses a pending line with no verdict, a verdict for any other line, and
 two verdicts for one line. Medium and low judged findings are never above `med` confidence.

@@ -121,6 +121,11 @@
 - Mode: AFK
 - Result Log: [placeholder]
 
+### Sub-step 2.12: [remediate] §6.8 round 5 — config check in head_stamp, git dir inside the repo, git timeout, global config isolation, explicit -P, capped reads; threat-model boundary documented (Ste: at-rest)
+- Status: PENDING
+- Mode: AFK
+- Result Log: [placeholder]
+
 ## Milestone 3: `assess-codebase` skill + thin command
 - Status: PENDING
 - Dependencies: Milestone 2

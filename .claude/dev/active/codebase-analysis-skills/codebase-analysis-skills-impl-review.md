@@ -189,3 +189,18 @@ Design (orchestrator, first principles): one **staging dir** of hard-linked trac
 |---|---|
 | C-R4a/b/c | **Allowlist + isolate**: refuse (exit 2) a target whose local/worktree/submodule config holds a key outside a safe set; `log.showSignature=false` override + `--no-show-signature`; `--ignore-submodules=all` on status; fail closed when config is unreadable |
 | run/stage WARNINGs + INFOs + AC9 gaps | **Fix all now** (`uv run` only for test runners; `python -P -m` for lint modules; refuse cargo forms when `.cargo/config*` exists; (dev, ino) recorded at listing and compared after staging) |
+
+## Milestone 2 — §6.8 round 5 (2026-09-29), diff 1f55f08..ffb50eb (sub-step 2.11), security-auditor
+SUMMARY: 2 CRITICAL / 3 WARNING / 5 INFO.
+- **R5-1 (reproduced by the orchestrator, PWNED):** `aa-ma-analysis stamp` / `fresh` never called `check_git_config`; `git status` ran the target's `filter.x.clean`. measure/finalize refused correctly.
+- **R5-2 (auditor, with a concurrent swapper):** `_tracked_regular_files` lstat → realpath(parent) window lets a racing process get an outside inode listed; later identity checks then accept it.
+- WARNINGs: `.git` file / `commondir` pointing at another repo is mined (history, emails); `PYTHONSAFEPATH` does not stop linters loading plugins from their own config (mypy `plugins`, flake8 local-plugins) — the 6c37fd2 claim "lint modules never import from the target" is too strong; no timeout on git calls (FIFO via include.path hangs forever).
+- INFOs: user's global filter (git-lfs) reachable from target `.gitattributes`; cargo walk stops at a nested `.git`; `rust-toolchain.toml` path (unreproduced); python < 3.11 ignores PYTHONSAFEPATH; reads not size-capped.
+
+### User Override Decisions (round 5, Ste)
+| Item | Decision |
+|---|---|
+| R5-1 | Fix now: `head_stamp` calls `check_git_config`, covering every caller |
+| R5-2 / threat model | **Hostile content at rest**: a concurrently running hostile process is out of scope (it already runs as the user); inode checks stay as defence in depth; boundary documented in §5a and the report |
+| at-rest items | Fix: git dir / common dir inside the repo (linked worktrees verified by back-reference); git call timeout → refused; `GIT_CONFIG_GLOBAL=/dev/null` + `GIT_CONFIG_NOSYSTEM=1`; explicit `-P` for non-test `python -m`; capped reads. Document: linters run repo code via their config; cargo walk; rust-toolchain |
+| close-out | One regression pass on the new diff; anything new and out of scope → M2 follow-up backlog, not another round |

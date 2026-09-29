@@ -114,10 +114,15 @@ def open_regular(path: Path, identity: tuple[int, int] | None = None) -> BinaryI
     return fh
 
 
-def read_regular(path: Path, identity: tuple[int, int] | None = None) -> str:
-    """A regular file's text (see open_regular)."""
+def read_regular(
+    path: Path, identity: tuple[int, int] | None = None, limit: int | None = None
+) -> str:
+    """A regular file's text (see open_regular); more than `limit` bytes is an OSError."""
     with open_regular(path, identity) as fh:
-        return fh.read().decode("utf-8")
+        data = fh.read(-1 if limit is None else limit + 1)
+    if limit is not None and len(data) > limit:
+        raise OSError(f"{path}: larger than {limit} bytes")
+    return data.decode("utf-8")
 
 
 def contained(repo: Path, rel: str) -> bool:

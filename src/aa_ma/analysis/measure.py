@@ -210,7 +210,9 @@ class _Ctx:
             return fallback
         if path not in self._lines:
             try:  # the file that was listed, not whatever the path reaches now
-                text = read_regular(self.repo / path, self.identity(path))
+                text = read_regular(
+                    self.repo / path, self.identity(path), SECRET_SCAN_MAX_BYTES
+                )
                 self._lines[path] = text.splitlines()
             except (OSError, UnicodeDecodeError):
                 self._lines[path] = []
@@ -902,7 +904,9 @@ def _regex_pass(ctx: _Ctx) -> None:
         if ctx.listed[rel].st_size > SECRET_SCAN_MAX_BYTES:
             continue
         try:
-            text = read_regular(ctx.repo / rel, ctx.identity(rel))
+            text = read_regular(
+                ctx.repo / rel, ctx.identity(rel), SECRET_SCAN_MAX_BYTES
+            )
         except (OSError, UnicodeDecodeError):
             continue
         if Path(rel).suffix.lower() not in PROSE_SUFFIXES:

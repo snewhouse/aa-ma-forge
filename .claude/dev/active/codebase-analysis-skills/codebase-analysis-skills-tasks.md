@@ -99,7 +99,7 @@
 ### Sub-step 2.7: [verify] live measure + finalize on forge; regen; CRITICAL_PATH_REVIEW; PR
 - Status: PENDING
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: Mode: HITL. Live evidence: Deep measure + finalize on forge worktrees (ext4) at 7712b4e and at the final HEAD (see CRITICAL_PATH_REVIEW in provenance): every tool ran, 180 findings valid (models + SARIF schema), work dir removed; regen after every contract change; DIAGRAM_VERIFIED edges=5 checked=5. PR: pending Ste's HARD gate approval.
 
 ### Sub-step 2.8: [remediate] §6.8 impl-review — 1 accepted CRITICAL + 20 WARNINGs (Ste: fix all now)
 - Status: COMPLETE

@@ -117,14 +117,14 @@
 - Result Log: Mode: AFK — auto-dispatched. RED→GREEN: strict run grammar `4edd4ec`→`42ccaf1` (C-R3 closed: bare argv[0] only); target git config never runs code (GIT_CONFIG_COUNT overrides + `check_git_config` refusal, exit 2), symlinked parents counted in `files.escaping`, fail-closed baseline `d2e0648`→`bb040f5`; staging fidelity (cache-root hard links, vanished files `files.unstaged`, no `.gitignore`, package.json `jscpd` key stripped, comment-only suppression counts, stale-stage cleanup) `a81ac5b`→`855d6e2` — 6 RED vs old source, 7/7 mutations caught. Tidy + §5a/CHANGELOG/reference + regen `4b032e4`. Suite 2081 passed / 2 skipped; lint-imports 6/6; bandit 0 issues ≥Medium. Live Deep on a forge worktree on ext4 @ `4b032e4`: stage linked=736 copied=0 skipped=0 in 0.08 s, all tools ran, 179 findings, 14.1 s wall-clock, cache root left empty.
 
 ### Sub-step 2.11: [remediate] §6.8 round 4 — git config allowlist + isolation, run-gate target-code vectors, staging inode check, AC9 gaps (Ste: all now)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED→GREEN: git config allowlist over local/worktree/submodule scopes + log.showSignature override + status skips submodules `5c00554`→`39e495f` (VS Code `branch.*.vscode-merge-base` allowed after a 17-repo survey; dotted-subsection case added when a `match` mutation survived); run gate — `uv run` only around test runners, lint modules off cwd, cargo refused with a target `.cargo/config` `b73620f`→`6c37fd2` (planted `./flake8.py` really ran before); every read of a target file is the listed inode `430791c`→`ffb50eb` (outside secret was reported as `p/x.py` before). Docs `7712b4e`. Mutations 19/19 caught. Suite 2111/2. Live Deep measure + finalize @ `7712b4e`: 179 findings valid (models + SARIF schema), linked=736, work dir removed. Round 5 (`6a203df`) → 2.12.
 
 ### Sub-step 2.12: [remediate] §6.8 round 5 — config check in head_stamp, git dir inside the repo, git timeout, global config isolation, explicit -P, capped reads; threat-model boundary documented (Ste: at-rest)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED→GREEN: every CLI command checks git config (head_stamp), git dir/common dir inside the repo (linked-worktree back-reference; foreign-worktree case added when that mutation survived), git timeout, no global/system config `eebe5ad`→`515aca8` — found and fixed in-flight: `rev-parse` echoes `--end-of-options` (submodule check silently saw no configs), and git writes `core.worktree` into every submodule config (legit submodule repos were refused → allowed there only); explicit `-P`, read cap `ff0df67`→`5b1c160`; report `## Scope` `521b19d`→`a7b95e1` + §5a/reference/CHANGELOG/regen. A test's global-filter fixture was first broken by `;` starting a git-config comment — fixed to a script before GREEN. Mutations caught: 8/8 (chunk D) + 2/2 (chunk E). Suite 2122 passed / 2 skipped at `5b1c160`; bandit 0 ≥Medium; lint-imports 6/6. Forge and a linked worktree of it pass the checks.
 
 ## Milestone 3: `assess-codebase` skill + thin command
 - Status: PENDING

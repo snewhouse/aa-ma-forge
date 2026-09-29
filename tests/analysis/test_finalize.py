@@ -584,6 +584,14 @@ def test_report_md_says_what_the_target_did_to_its_scanners(
     assert "semgrep 1" in text
 
 
+def test_report_md_states_the_threat_model_boundary(target: Path, lizard: Path) -> None:
+    """Round 5 (Ste): hostile content at rest is covered; a concurrent writer and the code approved
+    commands run are not — the report says so."""
+    text = (run(target) / "report.md").read_text()
+    assert "## Scope" in text
+    assert "changing the repository while" in text and "runs the repository's code" in text
+
+
 def test_a_failed_restore_keeps_the_previous_report(
     target: Path, lizard: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

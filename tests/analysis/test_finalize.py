@@ -314,6 +314,14 @@ def test_a_secret_in_a_refutation_reason_is_redacted(target: Path, lizard: Path)
     assert f.redacted and "[REDACTED:" in (f.refutation_reason or "")
 
 
+def test_redacted_counts_live_findings_only(target: Path, lizard: Path) -> None:
+    # M3 merge review LOW: counts.redacted sits beside counts.findings, which excludes refuted.
+    lines = [json.dumps(judged(severity="high", refutation="pending"))]
+    report = run(target, judged_lines=lines, verdicts=[verdict(1, reason=f"key {FAKE_TOKEN} is a fixture")])
+    live = [f for f in findings(report) if f.refutation != "refuted"]
+    assert summary(report).counts.redacted == sum(f.redacted for f in live)
+
+
 def test_a_refutation_reason_is_inert_in_report_md(target: Path, lizard: Path) -> None:
     lines = [json.dumps(judged(severity="high", refutation="pending"))]
     report = run(target, judged_lines=lines, verdicts=[verdict(1, reason="<img src=x> | [link](http://a) # h")])
@@ -810,7 +818,7 @@ def test_a_judged_rule_that_is_not_a_plain_id_is_refused(target: Path, lizard: P
 def test_a_judged_rule_prefix_must_match_its_dimension(
     target: Path, lizard: Path, dimension: str, rule: str
 ) -> None:
-    with pytest.raises(FinalizeError, match=r"judged\.jsonl:1: rule prefix"):
+    with pytest.raises(FinalizeError, match=r"judged\.jsonl:1: .*rule prefix"):
         run(target, judged_lines=[json.dumps(judged(dimension=dimension, rule=rule))])
 
 

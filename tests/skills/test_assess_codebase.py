@@ -327,6 +327,7 @@ def test_judge_lines_that_do_not_parse_go_back_and_a_missing_agent_type_stops() 
     text = _text(SKILL_MD)
     step5 = text[text.index("## Step 5") : text.index("## Step 6")]
     assert "not one JSON object" in step5 and "never substitute" in step5
+    assert "rule prefix" in step5 and "pending" in step5  # validate enforces both (merge review)
     assert "physical line" in text[text.index("## Step 6") :]
 
 

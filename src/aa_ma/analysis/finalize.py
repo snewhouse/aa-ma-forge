@@ -42,6 +42,7 @@ from .models import (
 from .stamp import (
     REPORT_NAME,
     REPORTS_ROOT,
+    check_git_config,
     contained,
     ensure_self_ignoring,
     head_stamp,
@@ -138,6 +139,8 @@ def _previous(repo: Path, root: Path) -> list[Finding]:
     listed = run_git(
         repo, "ls-files", "-z", "--end-of-options", "--", str(REPORTS_ROOT)
     )
+    if listed.returncode != 0:
+        return []  # fail closed: without the tracked list a planted report could pass as ours
     tracked = {
         Path(p).relative_to(REPORTS_ROOT).parts[0]
         for p in listed.stdout.split("\0")
@@ -233,7 +236,11 @@ def _swap(root: Path, tmp: Path, target: Path) -> None:
     if target.is_symlink() or not target.is_dir():
         raise FinalizeError(f"{target}: refusing to replace a symlink or non-directory")
     old = Path(tempfile.mkdtemp(prefix=".old-", dir=root))
-    os.replace(target, old / target.name)
+    try:
+        os.replace(target, old / target.name)
+    except OSError:
+        old.rmdir()
+        raise
     try:
         os.rename(tmp, target)
     except OSError:
@@ -260,6 +267,7 @@ def finalize(repo: Path, workdir: Path) -> Path:
         or not work.is_dir()
     ):
         raise FinalizeError(f"{work}: not a work dir under {root}")
+    check_git_config(repo)
     try:
         measured = MeasureDoc.model_validate_json(_read(work, "measure.json"))
     except ValidationError as exc:

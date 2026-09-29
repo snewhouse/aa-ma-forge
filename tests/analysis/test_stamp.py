@@ -589,3 +589,17 @@ def test_a_subdir_of_a_hostile_clone_cannot_forge_the_worktree_exception(
     (repo / ".git" / "gitdir").write_text(f"{sub / '.git'}\r\n  ", encoding="utf-8")
     with pytest.raises(stamp.UnsafeRepo, match="outside"):
         stamp.head_stamp(sub)
+
+
+# --- pre-PR review (Stage C) ----------------------------------------------------------------------
+
+
+def test_a_refused_key_never_echoes_its_subsection(repo: Path) -> None:
+    """url.<base>.insteadOf carries a credential in its subsection (CI token pattern)."""
+    token = "ghp_" + "A" * 36
+    git(
+        repo, "config", f"url.https://x-access-token:{token}@github.com/.insteadOf", "x"
+    )
+    with pytest.raises(stamp.UnsafeRepo) as err:
+        stamp.check_git_config(repo)
+    assert token not in str(err.value) and "url.*.insteadof" in str(err.value)

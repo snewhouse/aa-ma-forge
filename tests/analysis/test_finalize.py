@@ -589,7 +589,9 @@ def test_report_md_states_the_threat_model_boundary(target: Path, lizard: Path) 
     commands run are not — the report says so."""
     text = (run(target) / "report.md").read_text()
     assert "## Scope" in text
-    assert "changing the repository while" in text and "runs the repository's code" in text
+    assert (
+        "changing the repository while" in text and "runs the repository's code" in text
+    )
 
 
 def test_a_failed_restore_keeps_the_previous_report(
@@ -662,3 +664,46 @@ def test_finalize_refuses_a_target_whose_git_config_runs_commands(
     git(target, "config", "filter.x.clean", "cat")
     assert cli.main(["finalize", "--repo", str(target), "--work", str(work)]) == 2
     assert "filter.x.clean" in capsys.readouterr().err
+
+
+# --- pre-PR review (Stage C) ----------------------------------------------------------------------
+
+
+def test_repo_derived_text_cannot_inject_markup_into_report_md(
+    target: Path, lizard: Path
+) -> None:
+    """A backtick in a branch name broke out of the code span: a live <img onerror>."""
+    git(target, "checkout", "-q", "-b", "x`<img/src=x/onerror=alert(1)>`y")
+    assert "<img" not in (run(target) / "report.md").read_text()
+
+
+def test_a_repo_derived_cell_is_inert_markdown() -> None:
+    """Paths and titles (jscpd's `also at <path>`) come from the repo: no link, image or HTML."""
+    from aa_ma.analysis.report_md import _cell
+
+    out = _cell("![i](x) [l](evil.example) <b>&amp; `c` | d")
+    assert "](" not in out and "<" not in out and "`" not in out.replace("\\`", "")
+    assert "\\|" in out
+
+
+def test_report_md_says_which_files_were_not_scanned(
+    target: Path, lizard: Path, tmp_path: Path
+) -> None:
+    """A tracked file behind a symlinked parent is not scanned; the report must say so."""
+    import shutil
+
+    commit_file(target, "p/x.py", "x = 1\n")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    shutil.rmtree(target / "p")
+    os.symlink(outside, target / "p")
+    text = (run(target) / "report.md").read_text()
+    assert "1 tracked file(s) not scanned" in text
+
+
+def test_a_quick_report_says_what_only_deep_can_rate(
+    target: Path, lizard: Path
+) -> None:
+    from aa_ma.analysis.report_md import deep_only_note
+
+    assert deep_only_note() in (run(target) / "report.md").read_text()

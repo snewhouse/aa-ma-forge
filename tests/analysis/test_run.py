@@ -83,7 +83,7 @@ def test_bypass_is_refused(command: str, tmp_path: Path) -> None:
 
 
 def test_control_and_bidi_characters_are_refused(tmp_path: Path) -> None:
-    assert statuses(run_approved(["pytest ‮txt", "pytest \x07"], tmp_path)) == [
+    assert statuses(run_approved(["pytest \u202etxt", "pytest \x07"], tmp_path)) == [
         "refused",
         "refused",
     ]

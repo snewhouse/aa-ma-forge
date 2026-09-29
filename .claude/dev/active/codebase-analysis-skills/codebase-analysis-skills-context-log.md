@@ -137,3 +137,8 @@ _This log will be updated via context compaction as the task progresses._
 ## [2026-09-29] M3 3.2 — health slice: own prompt, no agent reuse (Ste)
 - **Deviation from plan §5 M3 Step 4** ("reuse codebase-onboarding-health for the health slice"): that agent's hard constraint writes only `.claude/onboarding/09-repo-health-and-verdict.md` — outside the report dir, so the output secret gate never scans it, and in prose, not `judged.jsonl`. measure already yields churn / hot spots / owners / deps deterministically. Ste chose: a general-purpose judge with its own `tests_deps` prompt in AGENT-PROMPTS.md, writing judged.jsonl into the work dir like every other judge. Pinned by `test_judges_and_refuter_are_named`.
 - Executable skill blocks: the preflight and claude-security guard are fenced bash blocks tagged `# assess:<name>` and the tests run them, so AC6's "one live check" is in CI, not only a one-off.
+
+## [2026-09-29] M3 3.6 — live Standard run observations
+- finalize's "HEAD moved since measure" refusal fired live when a fix was committed mid-run. Carried judged/ratings/ledger to a fresh measure because the diff touched only the skill's prompts and a test (no cited path). The skill text leaves a re-run to the user; running assess on a moving branch is a user error, not a tool gap.
+- tests_deps judge proposed `unknown`; rated `adequate/low` because RATING.md reserves `unknown` for "neither core input nor judged evidence" and 7 judged lines exist. Security/tests_deps adequate outside Deep as designed.
+- lizard/jscpd absent on BATS (M2 used uvx/npx ephemerals): maintainability rests on judged reading; the prompt fix makes judges say so.

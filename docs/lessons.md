@@ -5,6 +5,19 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-031 (2026-09-29) — `/sole-dev-merge` Stage B reformatted untouched lines of touched files
+**Pattern:** Running `/sole-dev-merge` for codebase-analysis-skills M2, Stage B ran `ruff format`
++ `ruff check --fix` on every *file* the branch changed and Stage B-commit committed the result:
+6 files, +268/-130, mostly lines of codemem `cli.py` / `mcp_tools/__init__.py` the branch never
+touched. The L-007 guard passed it — it reverts out-of-scope *files*, and these files were in
+scope. Caught by reading `git show --stat` of the auto-commit before pushing; dropped with a
+reset of that one unpushed commit.
+**Rule:** After Stage B-commit, always inspect the auto-fix commit (`git show --stat HEAD`, then the
+diff of any file with more changed lines than the branch itself changed there). If it touches
+lines the branch did not, drop it before Stage F (unpushed: `git reset --hard HEAD~1`; pushed:
+`git revert`). Pre-existing format drift in a touched file ships as its own `chore(format)` PR,
+never inside a feature merge. The Stage B guard is file-scoped; line scope is on the operator.
+---
 ## L-030 (2026-09-28) — AA-MA artifacts committed and pushed before the user saw the final plan
 **Pattern:** In `/aa-ma-plan --from-map codebase-analysis-skills` I took Ste's approvals of the
 design, the grill answers and four verification decisions as approval of the plan itself, then
@@ -614,6 +627,8 @@ step can no longer escape the branch's declared scope. See
 [ADR-0008](adr/0008-sole-dev-merge-pr-workflow.md) §Decision Drivers
 ("Scope discipline structural fix") and `test_stage_b_scope.bats`
 test #2 (canonical L-007 scenario regression).
+
+**Gap (2026-09-29):** the guard is file-scoped — a touched file is still reformatted whole. See L-031.
 
 ---
 

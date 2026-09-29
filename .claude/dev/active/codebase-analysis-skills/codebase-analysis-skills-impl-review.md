@@ -254,3 +254,24 @@ Window `d13e790..6dc9b4f`. Agents: code-reviewer (+ §6.6 reuse/quality/efficien
 - FP-W2 RATING.md `complexity.over_15` / "~25" restate `measure.CCN_FLAG`/`CCN_HIGH` untested.
 
 **INFO (selected):** stamp tier hardcoded in Step 0; `[path]` never applied (`--repo .`); `{PENDING}` missing from placeholder list; test checks subcommand names not flags; `Explore` alternative dead in test; judges' `uv run validate` may sync; AA_MA_ROOT env trust (no new boundary); `fresh` shows a planted untracked same-SHA report; orphan pin removed in M4.
+
+## Milestone 3 — §6.8 regression pass (2026-09-29)
+
+code-reviewer + security-auditor over `6dc9b4f..f235223`. All 14 first-pass WARNINGs CLOSED except SEC-W3 / SEC-W4 PARTIAL (accepted: transcript exposure of agent replies is inherent; work dir self-ignoring). New: 0 CRITICAL / 4 WARNING / 10 INFO.
+
+| New finding | Decision (Ste: 4 W + cheap INFO, then close the loop) |
+|---|---|
+| SEC-R1 `rule` raw in report.md (forged headings/links) | FIXED `a9a6e46` — `RULE_PATTERN` on rule, `RULE_PREFIXES` per dimension enforced for judged lines, rule cell escaped |
+| SEC-R2 test-run disclosure incomplete (npm pre/post, npm test, tox, build.rs, addopts) | FIXED `2d77eb9` |
+| CR-R1 one unparseable judge line aborts the run | FIXED `2d77eb9` — re-ask once before the gate |
+| CR-R2 foundations row still says general-purpose | FIXED `2d77eb9` |
+| INFO missing agent type → substitution | FIXED — stop, never substitute |
+| INFO bidi controls in cells | FIXED — stripped in `_cell` |
+| INFO "0 refuted, listed below" | FIXED |
+| INFO verdict line numbering | FIXED — physical line, no blank lines written |
+| INFO refuted twins shift live IDs | BACKLOG |
+| INFO reason may exceed EVIDENCE_MAX after redaction (fails closed) | BACKLOG |
+| INFO refutation_reason ↔ refutation pairing unvalidated | BACKLOG |
+| INFO understand-codebase must filter refuted when reading findings.jsonl | M4 carry-over |
+
+RED `0d85de2` (15 failing) → GREEN `a9a6e46`, `2d77eb9`; regen `7790f99` stamps only. Loop closed (M2 precedent).

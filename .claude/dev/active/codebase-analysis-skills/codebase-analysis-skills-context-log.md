@@ -142,3 +142,15 @@ _This log will be updated via context compaction as the task progresses._
 - finalize's "HEAD moved since measure" refusal fired live when a fix was committed mid-run. Carried judged/ratings/ledger to a fresh measure because the diff touched only the skill's prompts and a test (no cited path). The skill text leaves a re-run to the user; running assess on a moving branch is a user error, not a tool gap.
 - tests_deps judge proposed `unknown`; rated `adequate/low` because RATING.md reserves `unknown` for "neither core input nor judged evidence" and 7 judged lines exist. Security/tests_deps adequate outside Deep as designed.
 - lizard/jscpd absent on BATS (M2 used uvx/npx ephemerals): maintainability rests on judged reading; the prompt fix makes judges say so.
+
+## [2026-09-29] M3 §6.8 — remediation decisions (Ste)
+- First pass 0 CRITICAL / 14 WARNING → "fix all now" incl. SEC-W2 schema change (sub-step 3.7). New read-only agent `codebase-assessor` (Read, Grep, Glob) replaces general-purpose for judges + refuter; agent count 12 → 13. Judges return lines in replies; the main thread writes `judged/<dim>.jsonl`, gates, validates. Refuter verdicts via `verdicts.jsonl`; refuted findings kept with `refutation_reason` (Finding schema, optional, default null — unreleased, no downstream).
+- Not done from SEC-W3's suggestions: a fresh temp HOME for `run` children — it would cut test runners off their offline caches (uv/npm/cargo under HOME) and fail offline runs; disclosure + container advice instead.
+- Live re-verification after 3.7 by replay (Ste): real judged lines through the new pipeline, no agents — the agent type is not installed mid-session.
+- Regression pass: 4 W + cheap INFO fixed; loop closed after one regression pass (M2 precedent).
+
+## M3 follow-up backlog
+- Refuted twins take part in `assign_ids`: a refuted twin listed first pushes a live finding to `#2`, flipping its baseline state. Assign live IDs first.
+- `refutation_reason` near 2000 chars can exceed `EVIDENCE_MAX` after redaction → finalize refuses the report (fails closed). Cap below the limit or truncate after redaction.
+- No validator pairs `refutation_reason` with `refutation ∈ {survived, refuted}`.
+- **M4 carry-over:** when understand-codebase reads assess's `findings.jsonl`, it must drop `refutation == refuted` (they are in the file now) — add a test in 4.2.

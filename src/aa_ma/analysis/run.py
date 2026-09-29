@@ -156,9 +156,10 @@ PY_MODULES = {
 # resolves the runner from the target's .venv/bin first) or keep cwd on sys.path.
 TEST_RUNNERS = {"pytest", "py.test"}
 TEST_MODULES = {"pytest", "unittest"}
-# Any other `python -m` gets PYTHONSAFEPATH: cwd off sys.path, so a planted ./mypy.py never loads.
-# ponytail: Python ≥ 3.11 honours it; an older interpreter still imports from cwd.
-SAFE_PATH_ENV = {"PYTHONSAFEPATH": "1"}
+# Any other `python -m` runs with -P: cwd off sys.path, so a planted ./mypy.py never loads. An
+# interpreter older than 3.11 rejects -P and fails rather than importing from cwd. (Linters still
+# load plugins their own config names: they run repo code, like test runners.)
+SAFE_PATH = "-P"
 # Cargo config in the target can alias `fmt`/`clippy` to `run` or set a runner: refused.
 CARGO_CONFIGS = ("config", "config.toml")
 # Interpreter options allowed before -m.
@@ -428,11 +429,10 @@ def _run_part(part: str, cwd: Path, timeout: float) -> CommandCheck:
             status="refused",
             note="the target ships .cargo/config — its aliases and runners replace cargo's subcommands",
         )
-    env = minimal_env()
     if PYTHON.fullmatch(argv[0]) and not _runs_tests(argv):
-        env |= SAFE_PATH_ENV
+        argv = [argv[0], SAFE_PATH, *argv[1:]]
     try:
-        rc, out = spawn(argv, cwd, env, timeout, merge_stderr=True)
+        rc, out = spawn(argv, cwd, minimal_env(), timeout, merge_stderr=True)
     except OSError as exc:
         return CommandCheck(
             command=part, status="failed", note=f"cannot start: {exc.strerror}"

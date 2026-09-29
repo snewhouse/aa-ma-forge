@@ -253,7 +253,9 @@ def _exe(path: Path, body: str = "exit 0") -> Path:
     return path
 
 
-def test_find_binary_ignores_relative_path_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_find_binary_ignores_relative_path_entries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Resolved after a chdir into the target, `.` or an empty entry finds a planted binary."""
     _exe(tmp_path / "toolx")
     monkeypatch.chdir(tmp_path)
@@ -262,7 +264,9 @@ def test_find_binary_ignores_relative_path_entries(tmp_path: Path, monkeypatch: 
     assert stamp.find_binary("toolx") is None
 
 
-def test_find_binary_override_must_be_executable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_find_binary_override_must_be_executable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("TOOLX_BIN", str(_exe(tmp_path / "ok")))
     assert stamp.find_binary("toolx") == str(tmp_path / "ok")
     (tmp_path / "noexec").write_text("x")
@@ -283,7 +287,9 @@ def test_git_is_never_taken_from_a_relative_path_entry(
     assert not marker.exists()
 
 
-def test_read_regular_refuses_a_symlink_and_never_blocks_on_a_fifo(tmp_path: Path) -> None:
+def test_read_regular_refuses_a_symlink_and_never_blocks_on_a_fifo(
+    tmp_path: Path,
+) -> None:
     import signal
 
     (tmp_path / "real").write_text("ok", encoding="utf-8")
@@ -303,3 +309,45 @@ def test_the_report_name_pattern_is_the_naming_rule() -> None:
     assert stamp.REPORT_NAME.fullmatch(stamp.report_name("0123456789ab", True))
     assert stamp.REPORT_NAME.fullmatch(stamp.report_name("0123456789ab", False))
     assert not stamp.REPORT_NAME.fullmatch(".work-0123456789ab")
+
+
+# --- M2 2.10: the target's own .git/config never runs code for us -------------------------------
+
+
+def test_git_calls_never_run_the_targets_fsmonitor(repo: Path, tmp_path: Path) -> None:
+    marker = tmp_path / "fsmonitor-ran"
+    git(repo, "config", "core.fsmonitor", f"touch '{marker}'; false")
+    stamp.head_stamp(repo)
+    assert not marker.exists()
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("core.fsmonitor", "x"),
+        ("filter.lfs.clean", "x"),
+        ("diff.x.textconv", "x"),
+        ("include.path", "x"),
+        ("core.sshCommand", "x"),
+    ],
+)
+def test_a_git_config_that_can_run_commands_is_refused_by_name(
+    repo: Path, key: str, value: str
+) -> None:
+    git(repo, "config", key, value)
+    with pytest.raises(stamp.UnsafeRepo, match=key.lower()):
+        stamp.check_git_config(repo)
+
+
+def test_an_ordinary_git_config_passes(repo: Path) -> None:
+    git(repo, "config", "user.name", "Someone")
+    stamp.check_git_config(repo)
+
+
+def test_a_relative_bin_override_is_made_absolute(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _exe(tmp_path / "tool")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("TOOLX_BIN", "tool")
+    assert stamp.find_binary("toolx") == str(tmp_path / "tool")

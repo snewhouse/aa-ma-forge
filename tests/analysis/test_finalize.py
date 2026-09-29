@@ -66,11 +66,16 @@ def ratings(**by_dim: str) -> list[dict]:
     ]
 
 
+def verdict(line: int, verdict: str = "refuted", reason: str = "guarded upstream at src/calc.py:1") -> str:
+    return json.dumps({"line": line, "verdict": verdict, "reason": reason})
+
+
 def prepare(
     target: Path,
     *,
     judged_lines: list[str] | None = None,
     rate: list[dict] | None = None,
+    verdicts: list[str] | None = None,
 ) -> Path:
     work = measure(target, "quick")
     (work / "ratings.json").write_text(json.dumps(rate or ratings()))
@@ -80,6 +85,8 @@ def prepare(
     (work / "judged.jsonl").write_text(
         "".join(line + "\n" for line in (judged_lines or []))
     )
+    if verdicts is not None:
+        (work / "verdicts.jsonl").write_text("".join(v + "\n" for v in verdicts))
     return work
 
 
@@ -229,14 +236,87 @@ def test_rerun_at_the_same_commit_compares_against_the_report_it_replaces(
 # --- §5a rules: refutation, confidence cap, rating cap --------------------------------------------
 
 
-def test_refuted_findings_are_dropped_and_counted(target: Path, lizard: Path) -> None:
+def test_refuted_findings_are_kept_with_their_reason_but_never_counted_or_shipped(
+    target: Path, lizard: Path
+) -> None:
+    # M3 §6.8 SEC-W2: a refuted Critical/High leaves an audit trail, not just a count.
     lines = [
-        json.dumps(judged(severity="high", refutation="refuted")),
+        json.dumps(judged(severity="high", refutation="pending", title="refuted one")),
         json.dumps(judged(title="kept", anchor="def f2(y):")),
     ]
-    report = run(target, judged_lines=lines)
-    assert [f.title for f in findings(report) if f.origin == "judged"] == ["kept"]
-    assert summary(report).counts.refuted == 1
+    report = run(target, judged_lines=lines, verdicts=[verdict(1)])
+    got = {f.title: f for f in findings(report) if f.origin == "judged"}
+    assert set(got) == {"refuted one", "kept"}
+    assert (got["refuted one"].refutation, got["refuted one"].refutation_reason) == (
+        "refuted",
+        "guarded upstream at src/calc.py:1",
+    )
+    assert got["kept"].refutation_reason is None
+    s = summary(report)
+    assert s.counts.refuted == 1 and s.counts.high == 0
+    assert s.counts.findings == len(findings(report)) - 1
+    assert s.baseline.new == s.counts.findings  # refuted is outside the baseline
+    shipped = [r["fingerprints"]["aaMaFindingId/v1"] for r in sarif(report)["runs"][0]["results"]]
+    assert got["refuted one"].id not in shipped and got["kept"].id in shipped
+    md = (report / "report.md").read_text()
+    refuted = md.split("## Refuted", 1)[1]
+    assert "refuted one" in refuted and "guarded upstream" in refuted
+
+
+def test_a_survived_verdict_ships_the_finding_with_its_reason(target: Path, lizard: Path) -> None:
+    lines = [json.dumps(judged(severity="critical", refutation="pending"))]
+    report = run(target, judged_lines=lines, verdicts=[verdict(1, "survived", "no guard on any caller")])
+    (f,) = [f for f in findings(report) if f.origin == "judged"]
+    assert (f.refutation, f.refutation_reason) == ("survived", "no guard on any caller")
+    assert summary(report).counts.critical == 1
+
+
+@pytest.mark.parametrize(("severity", "written"), [
+    ("critical", "refuted"), ("high", "survived"), ("high", "not_required"),
+    ("medium", "refuted"), ("low", "pending"), ("info", "survived"),
+])  # fmt: skip
+def test_a_judge_cannot_decide_its_own_refutation(
+    target: Path, lizard: Path, severity: str, written: str
+) -> None:
+    # M3 §6.8 SEC-W1: critical/high are written pending (the refuter decides), the rest not_required.
+    lines = [json.dumps(judged(severity=severity, refutation=written, title="SECRET-TITLE-TEXT"))]
+    with pytest.raises(FinalizeError, match=r"judged\.jsonl:1: .*pending") as exc:
+        run(target, judged_lines=lines, verdicts=[])
+    assert "SECRET-TITLE-TEXT" not in str(exc.value)
+
+
+@pytest.mark.parametrize(("verdicts", "msg"), [
+    ([verdict(2)], r"verdicts\.jsonl:1: line 2 is not a pending"),
+    ([verdict(1), verdict(1)], r"verdicts\.jsonl:2: .*already"),
+    (['{"line": 1, "verdict": "maybe", "reason": "x"}'], r"verdicts\.jsonl:1: invalid"),
+    (['{"line": 1, "verdict": "refuted"}'], r"verdicts\.jsonl:1: invalid"),
+    (["not json"], r"verdicts\.jsonl:1: invalid"),
+])  # fmt: skip
+def test_bad_verdicts_are_refused_naming_the_line(
+    target: Path, lizard: Path, verdicts: list[str], msg: str
+) -> None:
+    lines = [
+        json.dumps(judged(severity="high", refutation="pending")),
+        json.dumps(judged(anchor="def f2(y):")),
+    ]
+    with pytest.raises(FinalizeError, match=msg):
+        run(target, judged_lines=lines, verdicts=verdicts)
+
+
+def test_a_secret_in_a_refutation_reason_is_redacted(target: Path, lizard: Path) -> None:
+    lines = [json.dumps(judged(severity="high", refutation="pending"))]
+    report = run(target, judged_lines=lines, verdicts=[verdict(1, reason=f"key {FAKE_TOKEN} is a fixture")])
+    blob = "".join(p.read_text() for p in report.iterdir())
+    assert FAKE_TOKEN not in blob
+    (f,) = [f for f in findings(report) if f.origin == "judged"]
+    assert f.redacted and "[REDACTED:" in (f.refutation_reason or "")
+
+
+def test_a_refutation_reason_is_inert_in_report_md(target: Path, lizard: Path) -> None:
+    lines = [json.dumps(judged(severity="high", refutation="pending"))]
+    report = run(target, judged_lines=lines, verdicts=[verdict(1, reason="<img src=x> | [link](http://a) # h")])
+    refuted = (report / "report.md").read_text().split("## Refuted", 1)[1]
+    assert "<img" not in refuted and "](http" not in refuted
 
 
 def test_judged_medium_and_low_confidence_is_capped_at_med(
@@ -248,14 +328,14 @@ def test_judged_medium_and_low_confidence_is_capped_at_med(
             judged(
                 severity="high",
                 confidence="high",
-                refutation="survived",
+                refutation="pending",
                 anchor="def f2(y):",
             )
         ),
     ]
     got = {
         f.severity: f.confidence
-        for f in findings(run(target, judged_lines=lines))
+        for f in findings(run(target, judged_lines=lines, verdicts=[verdict(2, "survived")]))
         if f.origin == "judged"
     }
     assert got == {"low": "med", "high": "high"}

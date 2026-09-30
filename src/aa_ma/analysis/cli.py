@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import stat as stat_mod
 import sys
 from typing import get_args
 from pathlib import Path
@@ -32,22 +34,45 @@ def _cmd_stamp(args: argparse.Namespace) -> int:
 
 
 FRESH_MAX_BYTES = 1_000_000  # a summary.json / onboarding.json is kilobytes
+ONBOARDING_JSON = Path(".claude/onboarding/onboarding.json")
 
 
 class _Refused(Exception):
     """A report that cannot be trusted as this tool's output, whatever its stamp says."""
 
 
-def _stamp_doc(target: Path) -> Path | None:
+def _located(target: Path, repo: Path, *, report_dir: bool) -> None:
+    """target must be a report dir directly under the reports root, or .claude/onboarding/onboarding.json,
+    reached through real directories only: the path this tool writes by (stamp.safe_dir), not an alias."""
+    root = repo.absolute()
+    try:
+        rel = Path(os.path.abspath(target)).relative_to(root)
+    except ValueError:
+        raise _Refused("not under --repo") from None
+    if report_dir and rel.parent != stamp.REPORTS_ROOT:
+        raise _Refused(f"not under {stamp.REPORTS_ROOT}/")
+    if not report_dir and rel != ONBOARDING_JSON:
+        raise _Refused(f"a file target must be {ONBOARDING_JSON}")
+    current = root
+    for part in rel.parts:
+        current = current / part
+        if stat_mod.S_ISLNK(os.lstat(current).st_mode):
+            raise _Refused("a symlink on the path")
+
+
+def _stamp_doc(target: Path, repo: Path) -> Path | None:
     """The file holding the stamp, or None for an unstamped (legacy) dir. A report dir must be a
-    complete set of regular files — never symlinks — because understand-codebase reads them all."""
+    complete set of regular files — never symlinks — in its one place under the reports root,
+    because understand-codebase reads them all; a file target can only be onboarding.json."""
     if target.is_symlink():
         raise _Refused("a symlink")
     if not target.is_dir():
-        return target  # onboarding.json
+        _located(target, repo, report_dir=False)
+        return target
     summary = target / "summary.json"
     if not summary.exists() and not summary.is_symlink():
         return None
+    _located(target, repo, report_dir=True)
     for name in finalize.REPORT_FILES:
         f = target / name
         if f.is_symlink():
@@ -74,13 +99,18 @@ def _cmd_fresh(args: argparse.Namespace) -> int:
         _err(f"aa-ma-analysis fresh: {target}: not found")
         return 2
     try:
-        doc_path = _stamp_doc(target)
+        doc_path = _stamp_doc(target, repo)
         if doc_path is None:
             print(f"{target}: legacy, unverified (no provenance stamp)")
             return 1
         try:
             s = _read_stamp(doc_path)
-        except (json.JSONDecodeError, UnicodeDecodeError, ValidationError) as exc:
+        except (
+            json.JSONDecodeError,
+            UnicodeDecodeError,
+            ValidationError,
+            RecursionError,
+        ) as exc:
             print(f"{target}: unstamped (unreadable stamp: {exc.__class__.__name__})")
             return 1
         if s is None:
@@ -100,7 +130,11 @@ def _cmd_fresh(args: argparse.Namespace) -> int:
             listed = stamp.run_git(
                 repo, "ls-files", "-z", "--end-of-options", "--", str(target.absolute())
             )
-            if listed.returncode != 0 or listed.stdout:
+            if listed.returncode != 0:
+                raise _Refused(
+                    "git ls-files failed — cannot tell whether git tracks it"
+                )
+            if listed.stdout:
                 raise _Refused("tracked by git — not this tool's output")
     except _Refused as why:
         print(f"{target}: refused ({why})")

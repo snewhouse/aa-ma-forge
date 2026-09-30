@@ -148,3 +148,17 @@ def test_cli_refuses_a_symlinked_markdown_file(tmp_path: Path, capsys) -> None:
     real.write_text("- `x` (`src/x.py:1`)\n", encoding="utf-8")
     (repo / "ONBOARDING.md").symlink_to(real)
     assert cli.main(["ground", str(repo / "ONBOARDING.md"), "--repo", str(repo)]) == 2
+
+
+def test_cli_refuses_a_markdown_file_that_is_not_utf8(tmp_path: Path, capsys) -> None:
+    repo = make_repo(tmp_path / "r", {"src/x.py": "pass\n"})
+    doc = repo / "ONBOARDING.md"
+    doc.write_bytes(b"- \xff\xfe `x` (`src/x.py:1`)\n")
+    assert cli.main(["ground", str(doc), "--repo", str(repo)]) == 2
+    assert "Traceback" not in capsys.readouterr().err
+
+
+def test_a_missing_citation_is_flagged_as_missing(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path / "r", {"src/x.py": "pass\n"})
+    (miss,) = _ground(repo, "- `thing` lives in `src/gone.py:3`\n")
+    assert miss.missing and not _ground(make_repo(tmp_path / "s", {"a.py": "b\n"}), "- `c` (`a.py:1`)\n")[0].missing

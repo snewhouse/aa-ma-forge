@@ -67,6 +67,10 @@ tier), and what was absorbed or run fresh. `aa-ma-analysis stamp` refuses (exit 
   dirty now (`aa-ma-analysis fresh <report-dir|onboarding.json>`: 0 fresh, 1 stale). A report with
   no stamp — including a legacy `codebase-deep-dive-*` dir — is "legacy, unverified" and is never
   treated as fresh.
+- **A report dir must be this tool's output.** `fresh` also refuses (exit 1) a dir whose name is not
+  its stamp's `<sha12>[-dirty]`, a dir or any report file that is a symlink, an incomplete report set,
+  a stamp file over 1 MB, and a dir git tracks (real reports sit under the self-ignoring root). Any
+  non-zero exit means: do not absorb.
 - **Safe paths.** Every output directory is created component by component from the repo root; a
   component that is a symlink, is not a directory, or leaves the repo is refused (exit 2; the
   commands that create output directories land in M2). Every git call passes `--end-of-options`

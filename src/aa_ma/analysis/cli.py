@@ -31,37 +31,81 @@ def _cmd_stamp(args: argparse.Namespace) -> int:
     return 0
 
 
-def _read_stamp(target: Path) -> Stamp | None:
-    doc_path = target / "summary.json" if target.is_dir() else target
-    if not doc_path.is_file():
+FRESH_MAX_BYTES = 1_000_000  # a summary.json / onboarding.json is kilobytes
+
+
+class _Refused(Exception):
+    """A report that cannot be trusted as this tool's output, whatever its stamp says."""
+
+
+def _stamp_doc(target: Path) -> Path | None:
+    """The file holding the stamp, or None for an unstamped (legacy) dir. A report dir must be a
+    complete set of regular files — never symlinks — because understand-codebase reads them all."""
+    if target.is_symlink():
+        raise _Refused("a symlink")
+    if not target.is_dir():
+        return target  # onboarding.json
+    summary = target / "summary.json"
+    if not summary.exists() and not summary.is_symlink():
         return None
-    doc = json.loads(doc_path.read_text(encoding="utf-8"))
+    for name in finalize.REPORT_FILES:
+        f = target / name
+        if f.is_symlink():
+            raise _Refused(f"{name} is a symlink")
+        if not f.is_file():
+            raise _Refused(f"incomplete report set: no {name}")
+    return summary
+
+
+def _read_stamp(doc_path: Path) -> Stamp | None:
+    try:
+        text = stamp.read_regular(doc_path, limit=FRESH_MAX_BYTES)
+    except OSError:
+        raise _Refused("not a regular file within the size limit") from None
+    doc = json.loads(text)
     if not isinstance(doc, dict) or "stamp" not in doc:
         return None
     return Stamp.model_validate_json(json.dumps(doc["stamp"]))
 
 
 def _cmd_fresh(args: argparse.Namespace) -> int:
-    target = Path(args.target)
-    if not target.exists():
+    target, repo = Path(args.target), Path(args.repo)
+    if not target.exists() and not target.is_symlink():
         _err(f"aa-ma-analysis fresh: {target}: not found")
         return 2
     try:
-        s = _read_stamp(target)
-    except (json.JSONDecodeError, UnicodeDecodeError, ValidationError) as exc:
-        print(f"{target}: unstamped (unreadable stamp: {exc.__class__.__name__})")
+        doc_path = _stamp_doc(target)
+        if doc_path is None:
+            print(f"{target}: legacy, unverified (no provenance stamp)")
+            return 1
+        try:
+            s = _read_stamp(doc_path)
+        except (json.JSONDecodeError, UnicodeDecodeError, ValidationError) as exc:
+            print(f"{target}: unstamped (unreadable stamp: {exc.__class__.__name__})")
+            return 1
+        if s is None:
+            print(f"{target}: legacy, unverified (no provenance stamp)")
+            return 1
+        name = stamp.report_name(s.sha12, s.dirty)
+        if target.is_dir() and target.name != name:
+            print(f"{target}: stale (dir name does not match its stamp {name})")
+            return 1
+        try:
+            fresh = stamp.is_fresh(s, repo)
+        except stamp.NotAGitRepo:
+            _err(f"aa-ma-analysis fresh: {args.repo}: {stamp.NOT_A_REPO}")
+            return 2
+        if fresh and target.is_dir():
+            # This tool's reports sit under a self-ignoring root and are never tracked.
+            listed = stamp.run_git(
+                repo, "ls-files", "-z", "--end-of-options", "--", str(target.absolute())
+            )
+            if listed.returncode != 0 or listed.stdout:
+                raise _Refused("tracked by git — not this tool's output")
+    except _Refused as why:
+        print(f"{target}: refused ({why})")
         return 1
-    if s is None:
-        print(f"{target}: legacy, unverified (no provenance stamp)")
-        return 1
-    try:
-        fresh = stamp.is_fresh(s, Path(args.repo))
-    except stamp.NotAGitRepo:
-        _err(f"aa-ma-analysis fresh: {args.repo}: {stamp.NOT_A_REPO}")
-        return 2
-    print(
-        f"{target}: {'fresh' if fresh else 'stale'} (stamp {stamp.report_name(s.sha12, s.dirty)})"
-    )
+    print(f"{target}: {'fresh' if fresh else 'stale'} (stamp {name})")
     return 0 if fresh else 1
 
 

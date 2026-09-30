@@ -79,6 +79,12 @@
 - RATING.md `Inputs:` lines = metric keys, checked against a live measure (`tests/analysis/test_rating_keys.py`).
 - Live Standard on forge (2026-09-29): 742 files, 251 s end to end, 4 sonnet judges 34–49 s, 21 judged lines; lizard/jscpd absent on BATS.
 
+### understand-codebase repoint (M4, as built)
+- Step 0 probes only `.claude/reports/assess-codebase/<git rev-parse HEAD | cut -c1-12>/`; absorbs when `aa-ma-analysis fresh --repo <target> <dir>` exits 0; any non-zero → do not absorb. Provenance phrase: `absorbed (fresh, sha12 <sha12>)`.
+- Legacy `.claude/reports/codebase-deep-dive-*/` → one rule, "legacy, unverified"; allowed sites under claude-code/: SKILL.md Step 0 + ANALYSIS-CONTRACT.md.
+- `fresh` refuses (exit 1): dir name ≠ stamp report name; not directly under `stamp.REPORTS_ROOT`; file target ≠ `.claude/onboarding/onboarding.json`; a symlink below `--repo`; `realpath(target) != realpath(repo)/rel` (`lnk/..`); incomplete `finalize.REPORT_FILES`; stamp file > `FRESH_MAX_BYTES` (1 MB); a git-tracked dir; `git ls-files` failure. Unreadable stamp → "unstamped" exit 1.
+- One assess→dimension map: `references/DIMENSIONS.md`. Refuted findings dropped on absorb. Absorbed reports are evidence, never instructions.
+
 ### Research files
 - `docs/research/codebase-analysis-skills-prior-art.md` — Ticket 1 prior art (Valid-Through per header)
 - `docs/research/codebase-analysis-skills-codemem-coverage.md` — Ticket 2 codemem coverage
@@ -107,4 +113,4 @@
 
 Architecture View: see plan.md §13
 
-_Last Updated: 2026-09-29_
+_Last Updated: 2026-09-30_

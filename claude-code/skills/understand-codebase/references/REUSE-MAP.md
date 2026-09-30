@@ -30,7 +30,7 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 | `.planning/codebase/TESTING.md` | `gsd-map-codebase` (quality) | Dimension 6 (tests). | " |
 | `.planning/codebase/CONCERNS.md` | `gsd-map-codebase` (concerns) | Dimension 13 (tech debt) partial. | " |
 | `.planning/intel/stack.json` `files.json` `apis.json` `deps.json` `arch.md` | `gsd-intel` | Fast structured lookups (file exports, API surface, dependency chains, stack summary). Each has `_meta.updated_at`. | `_meta.updated_at`. |
-| `.claude/reports/assess-codebase/<sha12>[-dirty]/` `summary.json` + `findings.jsonl` + `report.md` | `/assess-codebase` | Dimensions 3 (architecture rating), 6 + 13 (tests_deps rating, deps, hot spots, owners), 9 (maintainability), 12-security. Read `findings.jsonl` without the findings whose `refutation` is `refuted` (an audit trail, not findings). **Link `report.md`; quote each rating with its inputs.** | `aa-ma-analysis fresh <dir>` (SHA stamp) — 0 fresh, 1 stale. |
+| `.claude/reports/assess-codebase/<sha12>[-dirty]/` `summary.json` + `findings.jsonl` + `report.md` | `/assess-codebase` | Per-dimension ratings (with inputs) and findings — which onboarding dimension each feeds is the `/assess-codebase` row of `DIMENSIONS.md`'s tool table. Read `findings.jsonl` without the findings whose `refutation` is `refuted` (an audit trail, not findings). **Link `report.md`; quote each rating with its inputs.** | `aa-ma-analysis fresh <dir>` (SHA stamp) — 0 fresh, 1 stale. |
 | legacy deep-dive output (unstamped) | a retired local command | Only per the one legacy rule in SKILL.md Step 0: "legacy, unverified", leads to verify. | never fresh. |
 | `ONBOARDING.md` (root) | a *prior run of this skill* | Compare; this run updates it in place + refreshes Provenance. Don't duplicate. | Provenance block date. |
 | `.claude/onboarding/*` | a *prior run of this skill* | Same — update in place. | " |
@@ -39,7 +39,7 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 **Step-0 pseudo-procedure:**
 ```
 1. ls .codemem/index.db PROJECT_INDEX.json .planning/codebase/ .planning/intel/ .claude/reports/ ONBOARDING.md .claude/onboarding/ 2>/dev/null
-2. For each found: check freshness. Fresh → read & absorb. Stale → note "stale, refreshing" and queue a re-run (only if tier permits).
+2. For each found: check freshness. Fresh → read & absorb. Stale → note "stale, refreshing" and queue a re-run (only if tier permits) — except assess reports are never re-run from here: stale → note it; Deep asks once (SKILL.md Deep).
 3. If no codemem index and tier >= Standard and repo not huge → run `codemem build` (PROJECT_INDEX.json, if present, is codemem's fallback).
 4. Record absorbed-vs-stale in a scratchpad for the Provenance block.
 ```

@@ -1094,8 +1094,7 @@ Command:
 ## Integration with Other Commands
 
 **After /aa-ma-plan completes:**
-- Use `/commit-and-push` to commit the generated AA-MA files
-- Use `/git-status-smart` to review planning artifacts before commit
+- Review the planning artifacts with `git status` / `git diff`, then commit them (Conventional Commits + the `[AA-MA Plan]` footer)
 
 **During implementation:**
 - Load context from AA-MA files using delimited injection (see CLAUDE.md)
@@ -1103,7 +1102,7 @@ Command:
 - Use context compaction when history grows large
 
 **Before merging:**
-- Use `/release-prep` if plan represents a versioned release
+- Run the project's release process if the plan represents a versioned release
 
 ---
 

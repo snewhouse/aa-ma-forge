@@ -13,9 +13,9 @@ from pathlib import Path
 from typing import NamedTuple
 
 from . import stamp
-from .models import Onboarding
+from .models import HEX12, Onboarding
 
-SHA12 = re.compile(r"[0-9a-f]{12}")
+SHA12 = re.compile(rf"[0-9a-f]{{{HEX12}}}")
 STRUCTURE = "03-structure.md"  # sections are keyed by deep-dive file name
 # Truth nobody cites line by line.
 SECTION_GLOBS = {
@@ -36,10 +36,15 @@ class Change(NamedTuple):
 
 
 def changed_since(repo: Path, sha12: str) -> list[Change] | None:
-    """Committed changes from `sha12` to HEAD, or None when `sha12` is not a commit here."""
+    """Committed changes from `sha12` to HEAD, or None — every section is stale — when `sha12` is
+    not a commit here or the tree has tracked changes the diff cannot see."""
     if not SHA12.fullmatch(sha12):
-        raise ValueError(f"not a 12-hex-digit sha: {sha12!r}")
-    stamp.head_stamp(repo)  # a repo with a commit and a safe config, or it raises
+        raise ValueError(f"not a {HEX12}-hex-digit sha: {sha12!r}")
+    _, dirty, _ = stamp.head_stamp(
+        repo
+    )  # a repo with a commit and a safe config, or it raises
+    if dirty:
+        return None
     if stamp.run_git(
         repo, "cat-file", "-e", "--end-of-options", f"{sha12}^{{commit}}"
     ).returncode:
@@ -78,6 +83,6 @@ def sections_to_regenerate(
         for c in changed
         if _matches(c.path, entries, SECTION_GLOBS.get(section, ()))
     }
-    if any(c.status in "ADRC" for c in changed):
+    if STRUCTURE in onboarding.sections and any(c.status in "ADRC" for c in changed):
         stale.add(STRUCTURE)
     return sorted(stale)

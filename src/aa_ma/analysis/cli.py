@@ -238,21 +238,53 @@ def _cmd_ground(args: argparse.Namespace) -> int:
         _err(f"aa-ma-analysis ground: {md}: not found")
         return 2
     if args.cited:
-        print(json.dumps(ground.cited_paths(md.read_text(encoding="utf-8"), repo)))
+        try:
+            text = stamp.read_regular(md, limit=ground.CITED_FILE_MAX_BYTES)
+        except OSError as exc:
+            _err(f"aa-ma-analysis ground: {md}: refused ({exc})")
+            return 2
+        print(json.dumps(ground.cited_paths(text, repo)))
         return 0
-    misses = ground.ground(md, repo)
+    try:
+        misses = ground.ground(md, repo)
+    except OSError as exc:  # a symlinked or oversized md: not a file this skill wrote
+        _err(f"aa-ma-analysis ground: {md}: refused ({exc})")
+        return 2
     for u in misses:
-        print(f"{md}:{u.md_line}: `{u.token}` not found in `{u.citation}`")
+        if u.token == u.citation.split(":")[0]:
+            print(
+                f"{md}:{u.md_line}: `{u.citation}`: cited path missing or outside the repo"
+            )
+        else:
+            print(f"{md}:{u.md_line}: `{u.token}` not found in `{u.citation}`")
     return 1 if misses else 0
 
 
+def _trusted_pack(path: Path, repo: Path) -> Onboarding:
+    """onboarding.json only in its one place, reached through real dirs, and never one the repo
+    ships: a planted pack would decide which of its own deep-dives are kept unchecked."""
+    _located(path, repo, report_dir=False)
+    listed = stamp.run_git(
+        repo, "ls-files", "-z", "--end-of-options", "--", ".claude/onboarding"
+    )
+    if listed.returncode != 0 or listed.stdout:
+        raise _Refused(
+            "git tracks the onboarding pack — the repo's own, not this tool's output"
+        )
+    text = stamp.read_regular(path, limit=FRESH_MAX_BYTES)
+    return Onboarding.model_validate_json(text)
+
+
 def _cmd_changed_since(args: argparse.Namespace) -> int:
+    repo = Path(args.repo)
     try:
-        diff = changed.changed_since(Path(args.repo), args.sha12)
+        diff = changed.changed_since(repo, args.sha12)
         onboarding = None
         if args.onboarding:
-            text = stamp.read_regular(Path(args.onboarding), limit=FRESH_MAX_BYTES)
-            onboarding = Onboarding.model_validate_json(text)
+            onboarding = _trusted_pack(Path(args.onboarding), repo)
+    except _Refused as why:
+        _err(f"aa-ma-analysis changed-since: {args.onboarding}: refused ({why})")
+        return 2
     except ValueError as exc:  # a bad sha, or an onboarding.json that does not validate
         _err(f"aa-ma-analysis changed-since: {exc}")
         return 2

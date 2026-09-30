@@ -14,9 +14,10 @@ from pathlib import Path
 from . import stamp
 
 WINDOW = 20
-CITED_FILE_MAX_BYTES = 2_000_000
+CITED_FILE_MAX_BYTES = 2_000_000  # also the cap on the markdown file being grounded
 SPAN = re.compile(r"`([^`\n]+)`")
-CITATION = re.compile(r"(?P<path>[\w./-]+?)(?::(?P<line>\d+)(?:-\d+)?)?")
+# `path:10-40` is grounded against lines 10-40 widened by ±WINDOW.
+CITATION = re.compile(r"(?P<path>[\w./-]+?)(?::(?P<line>\d+)(?:-(?P<end>\d+))?)?")
 # A number standing alone: not inside a word or a dotted version (v0.16.0), not a list marker.
 NUMBER = re.compile(r"(?<![\w.])\d+(?:\.\d+)?(?![\w]|\.\d)")
 LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
@@ -59,57 +60,65 @@ def _kind(repo: Path, rel: str) -> str:
     return "dir" if target.is_dir() else "missing"
 
 
-def _is_citation(repo: Path, span: str) -> re.Match[str] | None:
-    """A span is a citation when it names an existing repo path, carries `:line`, or has a `/`."""
-    m = CITATION.fullmatch(span)
-    if m is None:
-        return None
-    path = m["path"]
-    if m["line"] or "/" in path or _kind(repo, path) in ("file", "dir"):
-        return m
-    return None
+def _spans(unit: str, repo: Path):
+    """(span, citation match or None, path kind or None) for each backticked span.
+
+    A span is a citation when it names an existing repo path, carries `:line`, or has a `/`."""
+    for span in SPAN.findall(unit):
+        m = CITATION.fullmatch(span)
+        kind = _kind(repo, m["path"]) if m else None
+        if m and (m["line"] or "/" in m["path"] or kind in ("file", "dir")):
+            yield span, m, kind
+        else:
+            yield span, None, None
 
 
-def _window(repo: Path, path: str, line: str | None) -> str:
-    lines = stamp.read_regular(
-        (repo / path).resolve(), limit=CITED_FILE_MAX_BYTES
-    ).splitlines()
-    if line is None:
+def _window(lines: list[str], m: re.Match[str]) -> str:
+    if m["line"] is None:
         return "\n".join(lines)
-    at = int(line)
-    return "\n".join(lines[max(0, at - 1 - WINDOW) : at + WINDOW])
+    start = int(m["line"])
+    end = int(m["end"] or start)
+    return "\n".join(lines[max(0, start - 1 - WINDOW) : end + WINDOW])
 
 
 def ground(md_path: Path, repo: Path) -> list[Ungrounded]:
+    """Raises OSError when `md_path` is a symlink, not a regular file, or over the size cap."""
     repo = Path(repo)
+    text = stamp.read_regular(Path(md_path), limit=CITED_FILE_MAX_BYTES)
+    files: dict[str, list[str] | None] = {}  # each cited file is read once per call
     out: list[Ungrounded] = []
-    for n, unit in _units(Path(md_path).read_text(encoding="utf-8")):
+    for n, unit in _units(text):
         cites, names = [], []
-        for span in SPAN.findall(unit):
-            m = _is_citation(repo, span)
-            # A markdown table cell must write `|` as `\|`; the source holds the bare `|`.
-            (cites if m else names).append(m or span.replace("\\|", "|"))
-        if not cites:
-            continue
+        for span, m, kind in _spans(unit, repo):
+            if m is None:
+                # A markdown table cell must write `|` as `\|`; the source holds the bare `|`.
+                names.append(span.replace("\\|", "|"))
+            elif kind != "dir":
+                cites.append((m, kind))
         windows = []
-        for m in cites:
-            kind = _kind(repo, m["path"])
-            if kind == "dir":
-                continue
-            try:
-                if kind != "file":
-                    raise OSError(kind)
-                windows.append(_window(repo, m["path"], m["line"]))
-            except (OSError, UnicodeDecodeError):
-                out.append(Ungrounded(n, m[0], m["path"]))
+        for m, kind in cites:
+            path = m["path"]
+            if path not in files:
+                try:
+                    if kind != "file":
+                        raise OSError(kind)
+                    files[path] = stamp.read_regular(
+                        (repo / path).resolve(), limit=CITED_FILE_MAX_BYTES
+                    ).splitlines()
+                except (OSError, UnicodeDecodeError):
+                    files[path] = None
+            if files[path] is None:
+                out.append(Ungrounded(n, m[0], path))
+            else:
+                windows.append(_window(files[path], m))
         if not windows:
             continue
         windows += [
-            m["path"] for m in cites
+            m["path"] for m, _ in cites
         ]  # ADR-0008 is grounded by citing docs/adr/0008-….md
         tokens = dict.fromkeys(names + NUMBER.findall(SPAN.sub(" ", unit)))
         out += [
-            Ungrounded(n, cites[0][0], t)
+            Ungrounded(n, cites[0][0][0], t)
             for t in tokens
             if not any(t in w for w in windows)
         ]
@@ -121,11 +130,7 @@ def cited_paths(md: str, repo: Path) -> list[str]:
     repo = Path(repo)
     found = set()
     for _, unit in _units(md):
-        for span in SPAN.findall(unit):
-            m = _is_citation(repo, span)
-            if m is None:
-                continue
-            kind = _kind(repo, m["path"])
+        for _, m, kind in _spans(unit, repo):
             if kind == "file":
                 found.add(m["path"])
             elif kind == "dir":

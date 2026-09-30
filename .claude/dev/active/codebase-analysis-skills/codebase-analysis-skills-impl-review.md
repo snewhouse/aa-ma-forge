@@ -346,3 +346,10 @@ Window `7ae1d98..cb12326`. code-reviewer (+ §6.6), security-auditor, tdd-sequen
 |---|---|
 | CR-C1 step order | **accept** — fix now (5.6) |
 | all 8 WARNINGs + cheap INFO | fix now, test-first, then one regression pass |
+
+## Milestone 5 — §6.8 regression passes (2026-09-30)
+
+- **Pass 1** (code-reviewer + security-auditor, `bd960a7..ebf793b`): all original findings closed except SEC-1 / CR-W2 partial; new 0 CRITICAL / 4 WARNING — S1 `.claude` submodule bypass (reproduced), S2 case alias, C1 Deep team template still old order, C2 dirty-stamped pack + sha mismatch — and 10 INFO. Ste: fix + security-only pass. RED `3f53cb8` → `bd1f931` (work-tree check, case-folded tracked match in Python, stamp sha must match, dirty stamp → all, team template T0/T1/T10b/T14 + AA_MA_ROOT, Ungrounded.missing, UTF-8 → exit 2, ASCII section names, dir cites restored). Mutations 5/5.
+- **Pass 2** (security only, `6e6a56a..bd1f931`): S1 CLOSED; S2 CLOSED on ext4-casefold/APFS/HFS+. New 0 CRITICAL / 2 WARNING — W1 caller's GIT_DIR/GIT_INDEX_FILE steer the checks (reproduced), W2 NTFS upper-case rule (dotless ı) — fixed RED `425361b` → `09a2156` (safe_env drops GIT location/pathspec vars; casefold + upper). Mutations 2/2. Suite 2321 passed / 2 skipped.
+
+Loop closed (Ste: INFO from the final pass → backlog). Backlog: nested repo's own core.worktree → also compare --absolute-git-dir; `fresh` on onboarding.json via `_trusted_pack`; gitlink with no nested .git (manual deinit); 12-hex short-sha grinding; byte caps across 4 modules; ground may open a secret file (grep gate is the control); onboarding golden schema lacks additionalProperties:false on sections.

@@ -17,7 +17,9 @@ WINDOW = 20
 CITED_FILE_MAX_BYTES = 2_000_000  # also the cap on the markdown file being grounded
 SPAN = re.compile(r"`([^`\n]+)`")
 # `path:10-40` is grounded against lines 10-40 widened by ±WINDOW.
-CITATION = re.compile(r"(?P<path>[\w./-]+?)(?::(?P<line>\d+)(?:-(?P<end>\d+))?)?")
+CITATION = re.compile(
+    r"(?P<path>[\w./-]+?)(?::(?P<line>\d{1,9})(?:-(?P<end>\d{1,9}))?)?"
+)
 # A number standing alone: not inside a word or a dotted version (v0.16.0), not a list marker.
 NUMBER = re.compile(r"(?<![\w.])\d+(?:\.\d+)?(?![\w]|\.\d)")
 LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")

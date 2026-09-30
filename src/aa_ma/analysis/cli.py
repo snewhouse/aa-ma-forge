@@ -264,6 +264,8 @@ def _trusted_pack(path: Path, repo: Path) -> Onboarding:
     """onboarding.json only in its one place, reached through real dirs, and never one the repo
     ships: a planted pack would decide which of its own deep-dives are kept unchecked."""
     _located(path, repo, report_dir=False)
+    if not path.is_file():
+        raise _Refused("not found")
     top = stamp.run_git(path.parent, "rev-parse", "--show-toplevel")
     if top.returncode != 0 or os.path.realpath(top.stdout.strip()) != os.path.realpath(
         repo

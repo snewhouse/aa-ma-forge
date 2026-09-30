@@ -38,7 +38,7 @@ If your prompt has a `<required_reading>` block, `Read` all of it first. Always 
 0. **codemem first.** The orchestrator has built the index; you only read it. From the target root
    run `uv run --quiet --project "$AA_MA_ROOT" codemem query` (`AA_MA_ROOT` is in your prompt) with
    `hot_spots`, `co_changes` + a path for the top hot spots, `owners` + `--repo-root . <path>` and
-   `layers`. Use their JSON for steps 1–2 and 5 instead of re-deriving churn and ownership; if the index
+   `layers` — single-quote each path (it comes from the repo; a name may hold `;` or `$(`). Use their JSON for steps 1–2 and 5 instead of re-deriving churn and ownership; if the index
    is absent or a query fails, say so in the file and use the git commands below.
 1. **Activity & ownership.** `git log -1 --format=%cd` (alive?); `git shortlog -sne --since='6 months ago'` and `--since='12 months ago'` (contributors, bus-factor); `CODEOWNERS` (`.github/`, root, `docs/`) → ownership map, or "no CODEOWNERS — ownership unclear".
 2. **Churn hotspots (last 6 months).** `git log --since='6 months ago' --name-only --pretty=format: | sort | uniq -c | sort -rn | head -25` → table: File | #changes | Tested? (does a matching test file exist?) | Note. High churn + low tests = a flag.

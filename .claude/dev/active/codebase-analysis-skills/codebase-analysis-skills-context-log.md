@@ -183,3 +183,9 @@ _This log will be updated via context compaction as the task progresses._
 - Active step at compaction: Sub-step 4.4: [verify] regen; tests; fresh assess at M4 HEAD; live Quick run absorbing it; PR
 - Snapshot saved to: /home/sjnewhouse/.claude/hooks/cache/compaction-snapshots/codebase-analysis-skills-snapshot.md
 - Note: Context compacted. Reload AA-MA files to resume.
+
+## [2026-09-30] M4 §6.8 decisions (Ste)
+- First pass (0 C / 11 W / 13 INFO): **fix all 11 + cheap INFO** → 4.5.
+- Regression 1 (0 C / 4 W): **fix + another regression pass**.
+- Regression 2 (`lnk/..` alias; unnormalised `--repo`): fixed `01ec2e6`; loop closed per M2/M3 precedent; residual INFO → backlog (impl-review M4).
+- Live AC6 re-run at final HEAD `9a6f441` because `fresh` and Step 0 changed after the `31dedf1` run.

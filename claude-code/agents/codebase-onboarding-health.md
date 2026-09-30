@@ -35,6 +35,11 @@ If your prompt has a `<required_reading>` block, `Read` all of it first. Always 
 - **Describe, don't audit.** You're surfacing signals for a newcomer, not running a pentest. Note obvious risks; don't go deep — `/assess-codebase` does that (link its `report.md` if a fresh one exists).
 
 ## What to do (all read-only git/grep)
+0. **codemem first.** If your prompt gives an `AA_MA_ROOT`, run from the target root
+   `uv run --quiet --project "$AA_MA_ROOT" codemem build`, then `codemem query` (same prefix) with
+   `hot_spots`, `co_changes` + a path for the top hot spots, `owners` + `--repo-root . <path>` and `layers`.
+   Use their JSON for steps 1–2 and 5 instead of re-deriving churn and ownership; if codemem is
+   unavailable, say so in the file and use the git commands below.
 1. **Activity & ownership.** `git log -1 --format=%cd` (alive?); `git shortlog -sne --since='6 months ago'` and `--since='12 months ago'` (contributors, bus-factor); `CODEOWNERS` (`.github/`, root, `docs/`) → ownership map, or "no CODEOWNERS — ownership unclear".
 2. **Churn hotspots (last 6 months).** `git log --since='6 months ago' --name-only --pretty=format: | sort | uniq -c | sort -rn | head -25` → table: File | #changes | Tested? (does a matching test file exist?) | Note. High churn + low tests = a flag.
 3. **Doc drift.** Apply `Skill(doc-drift-detection)` heuristics (you don't run the skill — borrow the checks): stale version strings (compare `pyproject.toml`/`package.json` version against mentions in `*.md`), CHANGELOG completeness (feat/fix commits since last tag not in CHANGELOG), README/CLAUDE.md inaccuracies (dirs mentioned vs `ls src/`/`ls`), ADR-index drift (`docs/adr|decisions|pdr` file count vs INDEX.md entries), hardcoded-count drift, env-var drift (`.env.example` vars vs `os.getenv`/`process.env` in code). Report findings, or "no obvious drift".

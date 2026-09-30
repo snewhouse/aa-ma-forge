@@ -1,8 +1,9 @@
 # AGENTS-MD-TEMPLATE — author / review / improve an AGENTS.md
 
-Dimension 19. `understand-codebase` already learns everything an `AGENTS.md` needs (tech stack,
-build/test commands, conventions, where-things-go, dragons, secret handling). This file says how
-to turn that into an `AGENTS.md` — **safely**.
+Dimension 19. `understand-codebase` learns far more than an `AGENTS.md` should hold. An agent can
+read the stack, the layout, the architecture and the conventions from the code itself; `AGENTS.md`
+keeps **only what the code cannot tell it**: the exact commands (with their checked status), the
+gotchas that bite, and pointers to the rules files. This file says how to write it — **safely**.
 
 `AGENTS.md` is the open, tool-agnostic convention for "instructions to coding agents", a sibling
 of `CLAUDE.md` (Claude-Code-specific). It must be **small and high-signal** — an agent reads it
@@ -28,69 +29,33 @@ overwriting, look at the target — if you didn't create it, surface that instea
 
 ---
 
-## TEMPLATE — `AGENTS.md` (keep it under ~120 lines; trim ruthlessly)
+## TEMPLATE — `AGENTS.md` (three sections; keep it under ~60 lines)
+
+Nothing an agent can infer from the code goes in (stack, layout, architecture, style the linter
+enforces). Every command carries the currency-check status from `onboarding.json`; every gotcha
+cites a path.
 
 ```markdown
 # AGENTS.md
 
-> Instructions for AI coding agents working in this repository. For the full human-oriented
-> walkthrough see `ONBOARDING.md`. Last reviewed: <date> · <short-SHA> · by understand-codebase.
+> Instructions for AI coding agents working in this repository. The full walkthrough is
+> `ONBOARDING.md`. Last reviewed: <date> · <short-SHA> · by understand-codebase.
 
-## What this is
-<one or two sentences: what the project does, the main tech>
+## Commands
+- Install: `<command>` — <verified | failed | timeout | not_run | refused>
+- Test (fast, before every commit): `<command>` — <status>
+- Test (full, before pushing): `<command>` — <status>
+- Lint / format / type check: `<command>` — <status>
+- Tool versions this needs: `<from .python-version / .nvmrc / .tool-versions>`
 
-## Setup & run
-- Install: `<command>`
-- Run (dev): `<command>`
-- Run (prod-like): `<command>`
-- Requires: `<Node X / Python Y / Docker / ... — from toolchain pins>`
+## Gotchas
+- `<generated/vendored/frozen path>` — never hand-edit; regenerate with `<command>`
+- <a trap the code does not announce: the async/sync split, a required service, an order of steps> (`<path:line>`)
+- Never commit secrets or read `.env`, `*.key`, `*.pem` or credential files; env var names are in `<.env.example>`.
 
-## Test
-- Fast/unit: `<command>` — run this before every commit
-- Full: `<command>` — run before pushing
-- Integration/live: `<command>` (needs `<services>`)
-- The suite must be green before you finish. <coverage expectation if any>
-
-## Lint / format / type check
-- Lint: `<command>` (config: `<file>`)
-- Format: `<command>`
-- Type check: `<command>`
-- Pre-commit hooks run: `<list>` — `pre-commit run --all-files` to check ahead.
-
-## Project layout (where things go)
-- `<dir/>` — <purpose>
-- `<dir/>` — <purpose>
-- New <thing> goes in `<dir/>`, named `<pattern>`. <repeat for the 3-5 most common additions>
-
-## Conventions (observed in the code, not just the linter)
-- <naming / style / imports / error handling / logging — the dominant patterns, terse>
-- Commit messages: `<Conventional Commits / project style>`. <attribution rule, e.g. "no AI co-authored-by">
-- Branch from `<base>`, name `<pattern>`.
-
-## Architecture (one paragraph)
-<pattern + the layers + how a request flows>. Diagram: `<link to docs/architecture/component.md>`.
-
-## Don't touch / be careful (here be dragons)
-- `<vendored/generated/frozen path>` — <why; how to regenerate if generated, e.g. `make proto`>
-- <other fragile zones / async-sync split / etc.>
-
-## Secrets & config
-- Config via `<mechanism>`; env vars documented in `.env.example` (names only).
-- **Never** commit secrets; never read `.env` (no suffix), `*.key`, `*.pem`, credential files.
-- Secrets in production come from `<vault / SSM / sealed-secrets / ...>`.
-
-## Releases & deploy
-- Version lives in `<file>`; tags `<pattern>`; CHANGELOG `<policy>`.
-- Release: `<how>`. Deploy: `<how>`. Rollback: `<how>`.
-
-## Before you open a PR
-- [ ] Tests added & green  [ ] Lint/format/typecheck clean  [ ] CHANGELOG/conventional commit
-- [ ] New env vars in `.env.example` + config loader  [ ] Docs updated if user-facing
-- [ ] Impact analysis run if you changed shared/core code  [ ] CODEOWNERS reviewers requested
-- CI checks that block merge: `<list>`
-
-## See also
-- `ONBOARDING.md` — full walkthrough · `CONTRIBUTING.md` — <if present> · `CLAUDE.md` — <if present, "Claude-Code-specific overrides">
+## Rules pointers
+- `CLAUDE.md` / `CONTRIBUTING.md` / `.cursorrules` / `CODEOWNERS` — <one line: what each mandates>
+- Commit convention: <Conventional Commits / project style>; CI checks that block merge: `<list>`
 ```
 
 ---
@@ -101,18 +66,15 @@ For each row: verdict = ✅ accurate / ⚠️ stale / ❌ wrong/missing — with
 
 | Section | Check against | Verdict + evidence |
 |---|---|---|
-| Setup/run/test commands | actually run them (or check `Makefile`/`package.json` scripts they reference still exist) | |
+| Commands | the currency-check status in `onboarding.json` (the main thread ran them via `aa-ma-analysis run`, or they are `not_run`); the `Makefile`/`package.json` scripts they reference still exist | |
 | Required tool versions | `.nvmrc`/`.python-version`/`.tool-versions`/`Dockerfile` | |
 | Lint/format/typecheck commands & configs | the config files exist; commands still valid | |
-| Project layout | current `find . -maxdepth 3 -type d` / codemem `diagram(level="L1")` / `PROJECT_INDEX.json dir_purposes` (codemem's fallback) | |
-| Conventions | sampled source files (dimension 9 "claimed vs observed") | |
-| Architecture description | dimension 3 findings | |
-| Dragons / don't-touch | `.gitattributes` vendored/generated marks, `# DO NOT EDIT`, dimension 13 | |
+| Gotchas | `.gitattributes` vendored/generated marks, `# DO NOT EDIT`, dimension 13 | |
 | Secrets/config guidance | dimension 8/12 | |
-| Releases/deploy | dimension 10 | |
-| PR checklist & CI gates | dimension 7 | |
+| Rules pointers & CI gates | dimensions 7 and 11 | |
 | Stale references | any file/dir/command mentioned that no longer exists | |
-| Missing sections | anything in the template above that's absent and would help | |
+| Missing sections | Commands / Gotchas / Rules pointers absent | |
+| Inferable content | layout, architecture or style an agent can read from the code — propose cutting it | |
 | Contradictions with `CLAUDE.md` / `CONTRIBUTING.md` | cross-check | |
 
 Then: `## Proposed rewrite` — the full new `AGENTS.md` per the template, ready to copy over **if

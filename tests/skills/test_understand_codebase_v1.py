@@ -70,8 +70,9 @@ def test_health_agent_reads_codemem_instead_of_rederiving() -> None:
 
 
 def test_agents_template_keeps_only_what_code_cannot_tell() -> None:
-    template = _section(AGENTS_TEMPLATE, "## TEMPLATE")
-    fence = template[template.index("```markdown") : template.rindex("```")]
+    after = AGENTS_TEMPLATE[AGENTS_TEMPLATE.index("## TEMPLATE") :]
+    body = after[after.index("```markdown\n") :]
+    fence = body[: body.index("\n```\n")]  # the template itself holds `##` lines: no _section()
     headings = set(re.findall(r"^## (.+?)\s*$", fence, re.M))
     assert headings == AGENTS_HEADINGS
 

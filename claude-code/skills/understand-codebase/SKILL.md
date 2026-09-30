@@ -111,6 +111,42 @@ heavy tool (`gsd-map-codebase`) when its output is absent or stale.**
 
 ---
 
+## Checked output — the `aa-ma-analysis` CLI
+
+Every `aa-ma-analysis` call below runs from the target root as
+`uv run --quiet --project "$AA_MA_ROOT" aa-ma-analysis …` (`AA_MA_ROOT` as in Step 0). The tier workflows call these steps by name.
+
+- **Incremental re-run** (Standard/Deep). When `.claude/onboarding/onboarding.json` exists and
+  `git ls-files .claude/onboarding` prints nothing (a pack the repo itself ships is never trusted),
+  run `aa-ma-analysis changed-since <its stamp sha12> --repo . --onboarding .claude/onboarding/onboarding.json`.
+  `known: true` → regenerate only the deep-dives in `regenerate`, then the `ONBOARDING.md` sections
+  written from them; keep every other file as it is. `known: false` (the stamp's commit is gone), a
+  tracked pack, or any non-zero exit → a full run. Provenance lists the regenerated sections by name.
+- **Grounding** (every tier). After writing each file, `aa-ma-analysis ground <file> --repo .`. Exit 1 lists
+  `line: token not found in citation` — re-ask once (the agent that wrote the claim, or yourself)
+  to fix the claim or its citation; if it is still ungrounded, drop the claim. Every written file
+  ends at `ground` exit 0.
+- **Currency check** (Standard/Deep). The main thread — never an agent — shows the documented
+  build / test / lint commands with where each is defined, asks once (`AskUserQuestion`: run all ·
+  pick · none), and runs the approved ones: `aa-ma-analysis run --repo . --cmd "<c>" [--cmd …]`. Each command
+  gets exactly one status — verified / failed / timeout / not_run / refused — written beside it in
+  `ONBOARDING.md` and in `onboarding.json`. Declined or unapproved → `not_run`.
+- **Coverage ledger** (every tier). One entry per top-level path: `assessed`, or `set_aside` with a
+  reason naming the evidence (vendored, generated, fixtures). It goes in `onboarding.json`'s `ledger`
+  and, as a table, in the Provenance block; nothing is silently skipped.
+- **`onboarding.json`** (Standard/Deep). Write `.claude/onboarding/onboarding.json` last: `stamp`
+  from `aa-ma-analysis stamp --repo . --tier <tier>`; `commands` from the currency check; `entry_points`,
+  `key_modules`, `rules_files`; the `ledger`; and `sections` — for each deep-dive, its file name
+  mapped to `aa-ma-analysis ground --cited .claude/onboarding/<file> --repo .` (the paths it cites; the map the
+  next incremental re-run reads). Then `aa-ma-analysis validate onboarding .claude/onboarding/onboarding.json`
+  must exit 0.
+
+When the CLI is unavailable (`AA_MA_ROOT` is not an aa-ma-forge checkout, or `aa-ma-analysis` fails to start),
+every tier still completes: grounding, onboarding.json, the currency check and
+incremental regeneration are skipped (a full run instead), and each skip is named in Provenance.
+
+---
+
 ## The dimensions (single source of truth: `references/DIMENSIONS.md`)
 
 Every dimension below has, in `DIMENSIONS.md`: *what to look for · which existing tool/agent to
@@ -158,10 +194,13 @@ Coverage must include **all** of these:
    `/understand-codebase --standard`" footer. ≤ ~150 lines. No `.claude/onboarding/`. **Do not
    touch `AGENTS.md` in Quick tier** — just note "no `AGENTS.md` — run `--standard` to generate one"
    if it's absent.
+5. Checked output: `aa-ma-analysis ground` on `ONBOARDING.md` (re-ask once, then drop the claim);
+   the coverage ledger goes in its Provenance block. No currency check, no `onboarding.json`.
 
 ### Standard (~15–30 min) — DEFAULT
 
-1. Step 0 (absorb). Ensure a codemem index exists (`codemem build` if not; `PROJECT_INDEX.json` is codemem's equivalent fallback when present).
+1. Step 0 (absorb), then the incremental re-run check: when it names sections, the steps below
+   regenerate only those. Ensure a codemem index exists (`codemem build` if not; `PROJECT_INDEX.json` is codemem's equivalent fallback when present).
 2. Detect languages present (gate `sg`/ast-grep patterns accordingly; fall back to `Grep`).
 3. Launch **4 parallel `Agent(subagent_type=Explore)` calls in one message** — each owns a
    cluster and writes a structured summary back (NOT to disk; the main thread synthesizes):
@@ -194,7 +233,10 @@ Coverage must include **all** of these:
    SAFETY PROTOCOL: no `AGENTS.md` & no `CLAUDE.md` → `AskUserQuestion` to author one (or write
    `AGENTS.draft.md`); `AGENTS.md` exists → write `AGENTS.review.md`, never overwrite; only
    `CLAUDE.md` exists → `AskUserQuestion` (thin pointer / standalone / leave it). Never edit `CLAUDE.md`.
-7. **Self-check** against the acceptance criteria (below) and the secret-leak grep gate. Report a
+7. **Checked output:** `aa-ma-analysis ground` on every written file; then read 10 sampled claims
+   yourself against their cited lines (fix or drop any that fail); the currency check;
+   the coverage ledger; `onboarding.json` + `aa-ma-analysis validate onboarding`.
+8. **Self-check** against the acceptance criteria (below) and the secret-leak grep gate. Report a
    concise summary to chat (not the full docs) — including which `AGENTS.md` action was taken.
 
 ### Deep (~45 min+) — opt-in, `TeamCreate` agent-team
@@ -226,6 +268,10 @@ note it in Provenance and carry on. Shape:
   pointed at `ONBOARDING.md` + `.claude/onboarding/` with the brief: "verify every factual claim
   against the codebase; flag boilerplate not grounded in this repo; run the secret-leak grep."
   Apply its corrections, then `SendMessage` shutdown and clean up the team.
+- **Checked output** (orchestrator, after the reviewer): `aa-ma-analysis ground` on every written
+  file, ~20 sampled claims read against their cited lines, the currency check, the coverage ledger,
+  `onboarding.json` + `aa-ma-analysis validate onboarding`. On a re-run, the incremental check
+  decides which workers run at all.
 
 If any reused tool/agent is missing → skip that input, note it in Provenance, continue. Never hard-fail.
 
@@ -312,6 +358,7 @@ SECRETS line below is its canonical text; `tests/analysis/test_contract_doc.py` 
 | Not a git repo | Skip dimension 13 churn/contributors; note. Other dimensions still run. |
 | Huge repo (>100k LOC) | Warn; offer to scope to a subtree; if continuing, prefer Haiku for Explore agents. |
 | An Explore agent fails | Mark that cluster's sections "Incomplete — agent failed"; continue with the rest. |
+| `aa-ma-analysis` CLI unavailable | Skip grounding, `onboarding.json`, the currency check and incremental regeneration; name each skip in Provenance. |
 
 ## Acceptance criteria (self-check before reporting done)
 

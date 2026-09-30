@@ -18,7 +18,7 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
 ## 1 — Read it / understand it / map it
 - **What:** what the project *is* and *does*; the repo tour; ASCII directory tree (top 3 levels);
   entry points; the 3–5 critical execution paths a newcomer must trace.
-- **Reuse:** codemem (`layers`, `diagram` L0/L1, `search_symbols`; `codemem build` if no index) — or `PROJECT_INDEX.json` (`dir_purposes`, ASCII tree, `symbol_importance`), codemem's fallback, when present;
+- **Reuse:** codemem (`layers`, `diagram` L0/L1, `search_symbols`; the main thread builds the index — agents only query it) — or `PROJECT_INDEX.json` (`dir_purposes`, ASCII tree, `symbol_importance`), codemem's fallback, when present;
   `.planning/codebase/STRUCTURE.md` & `ARCHITECTURE.md`; `Skill(system-mapping)` step 1–2;
   `Skill(code-intelligence)` patterns for entry points.
 - **Inspect:** `README*`; `git ls-files | head -200`; `find . -maxdepth 3 -type d`; entry-point

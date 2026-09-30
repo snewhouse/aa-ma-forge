@@ -30,6 +30,7 @@ class Ungrounded:
     md_line: int
     citation: str
     token: str
+    missing: bool = False  # the cited path itself is missing or outside the repo
 
 
 def _units(text: str):
@@ -88,12 +89,14 @@ def ground(md_path: Path, repo: Path) -> list[Ungrounded]:
     files: dict[str, list[str] | None] = {}  # each cited file is read once per call
     out: list[Ungrounded] = []
     for n, unit in _units(text):
-        cites, names = [], []
+        cites, names, dirs = [], [], []
         for span, m, kind in _spans(unit, repo):
-            if m is None:
+            if kind == "dir":
+                dirs.append(m["path"])
+            elif m is None:
                 # A markdown table cell must write `|` as `\|`; the source holds the bare `|`.
                 names.append(span.replace("\\|", "|"))
-            elif kind != "dir":
+            else:
                 cites.append((m, kind))
         windows = []
         for m, kind in cites:
@@ -108,14 +111,13 @@ def ground(md_path: Path, repo: Path) -> list[Ungrounded]:
                 except (OSError, UnicodeDecodeError):
                     files[path] = None
             if files[path] is None:
-                out.append(Ungrounded(n, m[0], path))
+                out.append(Ungrounded(n, m[0], path, missing=True))
             else:
                 windows.append(_window(files[path], m))
         if not windows:
             continue
-        windows += [
-            m["path"] for m, _ in cites
-        ]  # ADR-0008 is grounded by citing docs/adr/0008-….md
+        # ADR-0008 is grounded by citing docs/adr/0008-….md; a cited dir grounds its own name.
+        windows += [m["path"] for m, _ in cites] + dirs
         tokens = dict.fromkeys(names + NUMBER.findall(SPAN.sub(" ", unit)))
         out += [
             Ungrounded(n, cites[0][0][0], t)

@@ -47,7 +47,7 @@ def _not_bool(value: object) -> object:
 SchemaVersion = Annotated[Literal[1], BeforeValidator(_not_bool)]
 # An onboarding section is a deep-dive file name (`03-structure.md`) — never a path. A re-run
 # echoes these back as files to regenerate, so a planted `../../x` must not validate.
-SectionName = Annotated[str, Field(pattern=r"^\d{2}-[a-z0-9-]+\.md$")]
+SectionName = Annotated[str, Field(pattern=r"^[0-9]{2}-[a-z0-9-]+\.md$")]
 
 
 class ToolStatus(StrEnum):

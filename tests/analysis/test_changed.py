@@ -130,19 +130,23 @@ def test_only_a_sha12_is_accepted(two_commits, bad: str) -> None:
         changed.changed_since(repo, bad)
 
 
-def _pack(repo: Path, sections: dict[str, list[str]] = SECTIONS) -> Path:
+def _pack(repo: Path, sections: dict[str, list[str]] = SECTIONS, sha12: str | None = None) -> Path:
     ob = repo / ".claude/onboarding/onboarding.json"
     ob.parent.mkdir(parents=True, exist_ok=True)
-    ob.write_text(_onboarding(sections).model_dump_json(), encoding="utf-8")
+    doc = json.loads(_onboarding(sections).model_dump_json())
+    if sha12:
+        doc["stamp"]["sha12"] = sha12  # the pack a run at that commit would have written
+    ob.write_text(json.dumps(doc), encoding="utf-8")
     return ob
 
 
 def test_cli_changed_since(two_commits, tmp_path: Path, capsys) -> None:
     repo, first = two_commits
-    ob = _pack(repo)
+    ob = _pack(repo, sha12=first)
     assert cli.main(["changed-since", first, "--repo", str(repo), "--onboarding", str(ob)]) == 0
     out = json.loads(capsys.readouterr().out)
     assert out == {"known": True, "changed": [["M", "src/a.py"]], "regenerate": ["02-architecture.md"]}
+    ob = _pack(repo, sha12="0123456789ab")
     assert cli.main(["changed-since", "0123456789ab", "--repo", str(repo), "--onboarding", str(ob)]) == 0
     out = json.loads(capsys.readouterr().out)
     assert out["known"] is False and out["regenerate"] == sorted(SECTIONS)
@@ -171,14 +175,14 @@ def _refused(repo: Path, first: str, ob: Path, capsys) -> bool:
 def test_cli_refuses_a_pack_behind_a_symlinked_claude_dir(two_commits, tmp_path: Path, capsys) -> None:
     repo, first = two_commits  # SEC-1: a committed `.claude` symlink hides the pack from ls-files
     planted = tmp_path / "evil"
-    _pack(planted)
+    _pack(planted, sha12=first)
     (repo / ".claude").symlink_to(planted / ".claude")
     assert _refused(repo, first, repo / ".claude/onboarding/onboarding.json", capsys)
 
 
 def test_cli_refuses_a_pack_the_repo_tracks(two_commits, capsys) -> None:
     repo, first = two_commits
-    ob = _pack(repo)
+    ob = _pack(repo, sha12=first)
     git(repo, "add", "-f", "--", ".claude/onboarding/onboarding.json")
     git(repo, "commit", "-q", "-m", "ship a pack")
     assert _refused(repo, first, ob, capsys)
@@ -196,7 +200,7 @@ def test_cli_refuses_a_pack_inside_a_claude_submodule(two_commits, tmp_path: Pat
     inner = repo / ".claude"
     inner.mkdir()
     git(inner, "init", "-q")
-    _pack(repo)
+    _pack(repo, sha12=first)
     git(inner, "add", "-A")
     git(inner, "commit", "-q", "-m", "planted pack")
     git(repo, "add", ".claude")  # an embedded repo: recorded as a gitlink, like a submodule
@@ -212,7 +216,7 @@ def test_cli_refuses_a_case_alias_of_a_tracked_pack(two_commits, capsys) -> None
     alias.write_text(_onboarding(SECTIONS).model_dump_json(), encoding="utf-8")
     git(repo, "add", "-f", "--", ".Claude")
     git(repo, "commit", "-q", "-m", "case alias")
-    ob = _pack(repo)
+    ob = _pack(repo, sha12=first)
     assert _refused(repo, first, ob, capsys)
 
 

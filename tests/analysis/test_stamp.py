@@ -781,3 +781,8 @@ def test_safe_env_drops_the_callers_repo_location(monkeypatch) -> None:
         monkeypatch.setenv(var, "/elsewhere")
     env = stamp.safe_env()
     assert not {"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_LITERAL_PATHSPECS"} & set(env)
+
+
+def test_safe_env_drops_command_line_config_from_the_caller(monkeypatch) -> None:
+    monkeypatch.setenv("GIT_CONFIG_PARAMETERS", "'core.fsmonitor'='touch /tmp/pwn'")
+    assert "GIT_CONFIG_PARAMETERS" not in stamp.safe_env()

@@ -343,3 +343,11 @@ def test_an_uppercase_alias_is_matched_too(two_commits, capsys) -> None:
     git(repo, "commit", "-q", "-m", "dotless alias")
     ob = _pack(repo, sha12=first)
     assert _refused(repo, first, ob, capsys)
+
+
+def test_a_missing_pack_is_reported_as_missing(two_commits, capsys) -> None:
+    repo, first = two_commits
+    rc = cli.main(["changed-since", first, "--repo", str(repo), "--onboarding",
+                   str(repo / ".claude/onboarding/onboarding.json")])
+    err = capsys.readouterr().err
+    assert rc == 2 and "not found" in err and "submodule" not in err

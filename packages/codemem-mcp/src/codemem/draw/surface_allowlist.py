@@ -23,6 +23,7 @@ EXTERNAL: dict[str, frozenset[str]] = {
     }),
     # Backticked `/x` (codebase-analysis-skills M6): gstack skills, Claude Code built-ins,
     # a plugin-namespaced skill. Local-only user commands are deliberately NOT here.
+    # browse/qa-only also sit under "skill": one external, reachable as Skill(x) and /x.
     "command": frozenset({"browse", "qa", "qa-only", "goal", "init", "superpowers:brainstorming"}),
     "agent": frozenset({"Explore", "general-purpose", "gsd-codebase-mapper"}),
     "hook": frozenset({"aa-ma-share-allow.sh"}),  # ships from scripts/, not claude-code/hooks/

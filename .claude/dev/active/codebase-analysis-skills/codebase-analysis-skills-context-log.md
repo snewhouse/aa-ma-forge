@@ -239,3 +239,6 @@ _This log will be updated via context compaction as the task progresses._
 - `/settings` is an HTTP route inside `claude-code/skills/prototype/UI.md`, a verbatim fork (FORKS.json `state: current`, md5-pinned to upstream c55ee46). Rewording trips fork-drift.
 - Options: keep verbatim (chosen) / edit + mark derived / exempt current forks in the extractor.
 - Fixed in 6.4: {commit-and-push, compress, git-status-smart, healthz, index, pre-commit-*, readyz, release-prep}. Post-6.4 command DANGLING = pin − fixed = {settings} (AC2), shown under Dangling in docs/architecture/plugin-surface.md.
+
+## [2026-09-30] M6 §6.8 — scope note (accepted CRITICAL)
+- 6.4 also modified `claude-code/agents/codebase-onboarding-runbook.md` (`/healthz`/`/readyz` → `GET /…`), needed for AC2. The M6 Contract `Files:` omits `claude-code/agents/`; this note records it as in scope. plan.md stays frozen (historical record).

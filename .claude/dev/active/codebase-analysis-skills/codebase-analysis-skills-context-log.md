@@ -195,3 +195,9 @@ _This log will be updated via context compaction as the task progresses._
 - Approved by: Ste
 - Criteria verified: 7/7 (AC7 CI architecture-drift confirmed on the PR)
 - Decision: APPROVED — Approve + PR + merge
+
+## [2026-09-30] M5 5.1 prototype verdict (Ste)
+- Section map source: **citations + globs** (not agent-declared). Each section → every backticked repo path it cites; a cited directory (`dir/`) matches as a prefix at **any depth** (Ste chose never-stale over fewer regenerations; exact-only missed architecture on abf5b20).
+- Fixed globs per section for truth nobody cites line-by-line (stack → manifests/lockfiles; tests-ci → `.github/workflows/*`, `tests/*`).
+- Any Add/Delete/Rename → structure section; stamp sha not a commit (rebased away) → every section.
+- Prototype: `prototype/cas-incremental-regen` b10b467 — throwaway; main keeps only this decision.

@@ -229,9 +229,9 @@
 - Acceptance Criteria: 6 criteria — see plan.md § Milestone 5 and §5a
 
 ### Sub-step 5.1: [prototype] incremental regeneration on `prototype/cas-incremental-regen`
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: Mode: HITL (Ste: citations + globs). Real 3-file forge pack (01-stack/02-architecture/05-tests-ci, 36 cited files, agent-written, citations line-checked) × 5 real commit pairs (ee822ac, abf5b20, b4b699f, 7b9295e, 649fb6d) + unknown sha → LOGIC page prototype/incremental-regen/index.html comparing exact vs dir-prefix. Exact missed architecture on abf5b20 (models.py under cited `src/aa_ma/`). Verdict PASS: prefixes any depth. Branch `prototype/cas-incremental-regen` b10b467 pushed; PROTOTYPE entry in provenance.
 
 ### Sub-step 5.2: [test] ground, changed, onboarding cases, skill-text tests, RED
 - Status: PENDING

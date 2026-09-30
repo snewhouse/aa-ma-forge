@@ -71,7 +71,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   "legacy, unverified" and never count as fresh. Quick links the assess report; Deep asks once
   whether to run `/assess-codebase` first. Whole-repo audits route to `/assess-codebase`; the
   retired `/deep-analysis` and `Skill(aa-ma-plan)` references are gone, and `--deep` no longer
-  claims to run commands this plugin does not ship.
+  claims to run the retired `/codebase-deep-dive` or `/index`. `aa-ma-analysis fresh` now checks the
+  report itself, not just its stamp: it refuses a dir named other than its stamp, a symlinked dir or
+  file, an incomplete report set, an oversized stamp file and a git-tracked report dir. The onboarding
+  agents that absorb reports treat them as evidence, never instructions, and skip symlinked files.
 - **`codemem query` reaches 10 MCP tools** — `hot_spots`, `co_changes <file>`, `owners <path>
   [--repo-root R]` and `layers` join the six ports, so scripts get git-history and layering answers
   without an MCP server. `owners --repo-root` computes the blame; without it only the cache is read,

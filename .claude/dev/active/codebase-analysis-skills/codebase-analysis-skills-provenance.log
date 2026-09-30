@@ -99,3 +99,4 @@
 [2026-09-30T12:04:50+01:00] DIAGRAM_VERIFIED — Milestone 5: understand-codebase v1 upgrades — edges=5 checked=5 phantom=0 unknown=0
 [2026-09-30T13:27:24+01:00] SOLE_DEV_MERGE Stage A OK; Stage B: suite 2321 passed / 2 skipped, L-007 clean; ruff format kept for 3 branch-new test files (chore commit), test_stamp.py pre-existing-line reformat reverted per L-031
 [2026-09-30T13:56:43+01:00] SOLE_DEV_MERGE Stage C/D — C1 code-reviewer 0 C / 0 H / 4 M / 3 L, C2 security 0 C / 0 H / 1 M / 4 L (shell expansion of repo commands), Bandit B108/B106 test FPs + test noise disputed, ShellCheck n/a; Ste: fix all M + 5 cheap L → RED 841ca2d → GREEN 9ab8192; backlog: ground treats any '/' span (origin/main) as a missing citation
+[2026-09-30T14:00:02+01:00] MILESTONE_COMPLETE — Milestone 5: understand-codebase v1 upgrades — gate APPROVED (context-log), PR #8 CI 7/7 green

@@ -58,7 +58,9 @@ INDEX_RUNS = [
     ("templates/onboarding-team.md", "(run /index if not)"),
 ]
 # A conditional reuse reference that must survive (Ticket 9: harmless, a real reuse path).
-KEPT = [("references/DIMENSIONS.md", "`/codebase-deep-dive` `01-architecture-overview.md`")]
+# codebase-analysis-skills M4: the one legacy-absorb rule replaced DIMENSIONS.md's conditional line.
+LEGACY_RULE = "`.claude/reports/codebase-deep-dive-*/` — **legacy deep-dive output**"
+KEPT = [("SKILL.md", LEGACY_RULE)]
 
 
 @pytest.mark.parametrize("rel, text", DEEP_DIVE_RUNS + INDEX_RUNS)
@@ -198,3 +200,92 @@ ROUTES_TO_UNSHIPPED = [
 @pytest.mark.parametrize("rel, text", ROUTES_TO_UNSHIPPED)
 def test_no_route_to_an_unshipped_command(rel: str, text: str) -> None:
     assert text not in (ROOT / rel).read_text(encoding="utf-8")
+
+
+# --- codebase-analysis-skills M4: repoint onto /assess-codebase + residuals R1 R2 R5 R7 R8 N1 ----
+
+CC = ROOT / "claude-code"
+COMMAND = CC / "commands/understand-codebase.md"
+CONTRACT_LEGACY = "no stamp — including a legacy `codebase-deep-dive-*` dir — is \"legacy, unverified\""
+
+
+def _lines(needle: str) -> list[tuple[str, str]]:
+    return [(str(p.relative_to(CC)), line) for p in sorted(CC.rglob("*.md"))
+            for line in p.read_text(encoding="utf-8").splitlines() if needle in line]  # fmt: skip
+
+
+def _section(text: str, heading: str) -> str:
+    start = text.index(heading)
+    nxt = re.search(r"^#{2,3} ", text[start + len(heading):], re.M)
+    return text[start : start + len(heading) + (nxt.start() if nxt else len(text))]
+
+
+def test_deep_dive_is_named_only_by_the_legacy_rule_and_the_contract() -> None:  # AC1 (Ste: 2 sites)
+    hits = _lines("codebase-deep-dive")
+    assert [f for f, _ in hits] == ["skills/understand-codebase/SKILL.md",
+                                    "skills/understand-codebase/references/ANALYSIS-CONTRACT.md"], hits  # fmt: skip
+    (_, rule), (_, contract) = hits
+    assert LEGACY_RULE in rule and "legacy, unverified" in rule and "aa-ma-analysis fresh" in rule
+    assert CONTRACT_LEGACY in (SKILL / "references/ANALYSIS-CONTRACT.md").read_text(encoding="utf-8").replace("\n  ", " ")
+    assert contract
+
+
+def test_no_deep_analysis_and_no_skill_aa_ma_plan() -> None:  # AC3
+    assert _lines("deep-analysis") == [] and _lines("Skill(aa-ma-plan)") == []
+
+
+def test_r1_degradation_row_drops_the_deep_dive() -> None:
+    text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    assert "| `gsd-codebase-mapper` unavailable | Deep → enhanced-Standard. Note. |" in text
+
+
+def test_r2_command_names_codemem_as_the_index_and_keeps_assess_output() -> None:
+    (line,) = [x for x in COMMAND.read_text(encoding="utf-8").splitlines() if x.startswith("3. Follow the skill exactly")]
+    assert "codemem" in line and "/assess-codebase" in line and "/index" not in line
+
+
+def test_r5_quick_links_a_real_assess_report() -> None:
+    quick = _section((SKILL / "SKILL.md").read_text(encoding="utf-8"), "### Quick")
+    assert ".claude/reports/assess-codebase/<sha12>/report.md" in quick
+
+
+def test_r7_deep_flag_no_longer_claims_unshipped_commands() -> None:
+    (line,) = [x for x in COMMAND.read_text(encoding="utf-8").splitlines() if x.startswith("- a **tier flag**")]
+    assert "/codebase-deep-dive" not in line and "/index" not in line and "/assess-codebase" in line
+
+
+def test_r8_whole_repo_audit_routes_to_assess_codebase() -> None:
+    for text in ((SKILL / "SKILL.md").read_text(encoding="utf-8"), COMMAND.read_text(encoding="utf-8")):
+        assert "ships no whole-repo audit" not in text and "no whole-repo audit ships here" not in text
+        assert re.search(r"audit[^\n]*→ `/assess-codebase`", text)
+
+
+def test_n1_follow_on_planning_is_the_aa_ma_plan_command() -> None:
+    related = _section((SKILL / "SKILL.md").read_text(encoding="utf-8"), "## Related skills / commands")
+    assert "`/aa-ma-plan` (follow-on, when you go to change it)" in related
+
+
+def test_step_0_judges_assess_and_legacy_freshness_by_sha() -> None:  # AC4 (narrowed, Ste)
+    text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    step0 = _section(text, "## Step 0")
+    assert "aa-ma-analysis fresh" in step0
+    (gsd,) = [x for x in step0.splitlines() if x.startswith("| `.planning/codebase/*.md`")]
+    assert "git log -1 --format=%cd" in gsd  # gsd output has no SHA stamp: its date rule stays
+    reuse = (SKILL / "references/REUSE-MAP.md").read_text(encoding="utf-8")
+    stale = reuse[reuse.index("2. **Only run a heavy tool"): reuse.index("3. **Record what was absorbed")]
+    assert "aa-ma-analysis fresh" in stale and "git log -1 --format=%cd" not in stale.split("gsd")[0]
+    # Dimension-13 liveness checks are not report freshness: they stay.
+    assert "`git log -1 --format=%cd` (is the repo alive?)" in (SKILL / "references/DIMENSIONS.md").read_text(encoding="utf-8")
+    assert "`git log -1 --format=%cd` (alive?)" in (CC / "agents/codebase-onboarding-health.md").read_text(encoding="utf-8")
+
+
+def test_step_0_absorbs_a_fresh_assess_report_and_drops_refuted_findings() -> None:
+    for rel in ("SKILL.md", "references/REUSE-MAP.md"):
+        text = (SKILL / rel).read_text(encoding="utf-8")
+        (row,) = [x for x in text.splitlines() if "`.claude/reports/assess-codebase/<sha12>" in x and "summary.json" in x]
+        assert "findings.jsonl" in row and "refuted" in row and "aa-ma-analysis fresh" in row, rel
+
+
+def test_deep_asks_once_to_run_assess_first() -> None:
+    deep = _section((SKILL / "SKILL.md").read_text(encoding="utf-8"), "### Deep")
+    assert "/assess-codebase" in deep and "ask once" in deep

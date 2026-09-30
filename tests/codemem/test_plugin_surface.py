@@ -65,7 +65,7 @@ def test_every_skill_target_has_exactly_one_class_and_dangling_is_named(surface)
     assert all(len(c) == 1 for c in classes.values()), classes
     dangling = {d.split(":", 1)[1] for d, c in classes.items() if c == {RefClass.DANGLING}}
     # M13 rewired understand-codebase off `Skill(codebase-deep-dive)` / `Skill(index)`: two fewer.
-    assert dangling == {"aa-ma-plan", "haiku-eval"}
+    assert dangling == {"haiku-eval"}  # codebase-analysis-skills M4: N1 dropped Skill(aa-ma-plan)
     # The target Ticket 4's regex could not see (':' in a plugin-namespaced name).
     assert classes["skill:feature-dev:feature-dev"] == {RefClass.DECLARED_EXTERNAL}
 
@@ -76,7 +76,6 @@ def test_orphans_are_the_named_set_and_no_errors(surface) -> None:
     assert {o.split(":", 1)[1] for o in surface.orphans} == {
         "aa-ma-search", "sole-dev-merge", "aa-ma-execution", "complexity-router",
         "debugging-strategies", "write-a-skill", "aa-ma-session-end-dirty.sh",
-        "assess-codebase",  # codebase-analysis-skills M3: nothing names /assess-codebase until M4
     }
     assert surface.errors == []
 

@@ -195,3 +195,10 @@ def test_a_missing_citation_is_flagged_as_missing(tmp_path: Path) -> None:
             make_repo(tmp_path / "s", {"a.py": "b\n"}), "- `c` (`a.py:1`)\n"
         )[0].missing
     )
+
+
+def test_a_huge_line_number_does_not_crash(tmp_path: Path, capsys) -> None:
+    repo = make_repo(tmp_path / "r", {"src/x.py": "def f(): pass\n"})
+    doc = repo / "ONBOARDING.md"  # Stage D: int() of 5000 digits raises ValueError
+    doc.write_text(f"- `f` (`src/x.py:{'9' * 5000}`)\n", encoding="utf-8")
+    assert cli.main(["ground", str(doc), "--repo", str(repo)]) in (0, 1)

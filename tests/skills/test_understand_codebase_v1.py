@@ -163,3 +163,18 @@ def test_the_cli_decides_whether_a_pack_is_trusted() -> None:
 def test_the_template_does_not_restate_sample_sizes() -> None:
     line = next(ln for ln in ONBOARDING_TEMPLATE.splitlines() if "**Checked output:**" in ln)
     assert not re.search(r"\d+\s*(Standard|Deep)", line)
+
+
+TEAM = (SKILL_DIR / "templates/onboarding-team.md").read_text(encoding="utf-8")
+
+
+def test_the_deep_team_template_follows_the_new_order() -> None:
+    assert "refresh-commits" in TEAM  # regression C1: T1 builds the whole index
+    assert "incremental re-run check" in TEAM
+    assert "AA_MA_ROOT" in TEAM
+    assert TEAM.index("currency check") < TEAM.index("T11")
+
+
+def test_grounding_names_what_exit_2_means() -> None:
+    rule = _section(SKILL, "## Checked output").split("- **Grounding**")[1].split("\n- **")[0]
+    assert "exit 2" in rule

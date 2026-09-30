@@ -189,3 +189,53 @@ def test_cli_refuses_a_pack_outside_its_place(two_commits, tmp_path: Path, capsy
     elsewhere = tmp_path / "onboarding.json"
     elsewhere.write_text(_onboarding(SECTIONS).model_dump_json(), encoding="utf-8")
     assert _refused(repo, first, elsewhere, capsys)
+
+
+def test_cli_refuses_a_pack_inside_a_claude_submodule(two_commits, tmp_path: Path, capsys) -> None:
+    repo, first = two_commits  # regression S1: ls-files cannot see into a gitlink'd `.claude`
+    inner = repo / ".claude"
+    inner.mkdir()
+    git(inner, "init", "-q")
+    _pack(repo)
+    git(inner, "add", "-A")
+    git(inner, "commit", "-q", "-m", "planted pack")
+    git(repo, "add", ".claude")  # an embedded repo: recorded as a gitlink, like a submodule
+    git(repo, "commit", "-q", "-m", "gitlink")
+    assert "160000" in git(repo, "ls-files", "-s", "--", ".claude")
+    assert _refused(repo, first, repo / ".claude/onboarding/onboarding.json", capsys)
+
+
+def test_cli_refuses_a_case_alias_of_a_tracked_pack(two_commits, capsys) -> None:
+    repo, first = two_commits  # regression S2: one file on a case-insensitive filesystem
+    alias = repo / ".Claude/Onboarding/onboarding.json"
+    alias.parent.mkdir(parents=True)
+    alias.write_text(_onboarding(SECTIONS).model_dump_json(), encoding="utf-8")
+    git(repo, "add", "-f", "--", ".Claude")
+    git(repo, "commit", "-q", "-m", "case alias")
+    ob = _pack(repo)
+    assert _refused(repo, first, ob, capsys)
+
+
+def test_a_pack_stamped_dirty_regenerates_every_section(two_commits, capsys) -> None:
+    repo, first = two_commits  # regression C2: it described edits the diff will never show
+    ob = _pack(repo)
+    doc = json.loads(ob.read_text(encoding="utf-8"))
+    doc["stamp"].update(sha12=first, dirty=True)
+    ob.write_text(json.dumps(doc), encoding="utf-8")
+    assert cli.main(["changed-since", first, "--repo", str(repo), "--onboarding", str(ob)]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["known"] is False and out["regenerate"] == sorted(SECTIONS)
+
+
+def test_the_sha_must_be_the_packs_own_stamp(two_commits, capsys) -> None:
+    repo, first = two_commits
+    ob = _pack(repo)
+    doc = json.loads(ob.read_text(encoding="utf-8"))
+    doc["stamp"]["sha12"] = "0123456789ab"
+    ob.write_text(json.dumps(doc), encoding="utf-8")
+    assert _refused(repo, first, ob, capsys)
+
+
+def test_section_names_are_ascii() -> None:
+    with pytest.raises(ValueError):
+        _onboarding({"٠٣-x.md": []})

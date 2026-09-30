@@ -113,3 +113,15 @@ def test_cli_ground_cited_prints_the_section_map_entry(tmp_path: Path, capsys) -
     doc.write_text("- see `src/x.py:1` and `src/`\n", encoding="utf-8")
     assert cli.main(["ground", str(doc), "--repo", str(repo), "--cited"]) == 0
     assert json.loads(capsys.readouterr().out) == ["src/", "src/x.py"]
+
+
+def test_an_escaped_pipe_in_a_table_cell_matches_the_source(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path / "r", {"ci.yml": "run: bandit -r src || true\n"})
+    md = "| bandit | `bandit -r src \\|\\| true` | `ci.yml:1` |\n"
+    assert _ground(repo, md) == []
+
+
+def test_a_number_in_the_cited_path_is_grounded_by_the_citation(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path / "r", {"docs/adr/0008-merge.md": "# Merge workflow\n"})
+    assert _ground(repo, "- ADR-0008 describes the merge workflow (`docs/adr/0008-merge.md:1`).\n") == []
+    assert [u.token for u in _ground(repo, "- ADR-0009 is it (`docs/adr/0008-merge.md:1`).\n")] == ["0009"]

@@ -196,9 +196,9 @@
 - Result Log: Mode: AFK — auto-dispatched. At 53d53bd: `codebase-deep-dive` on 28 lines / 28 occurrences in 11 files (plan: 27/29 — M1's ANALYSIS-CONTRACT.md:68 legacy-dir line added one; per file: DIMENSIONS 7, SKILL 5, REUSE-MAP 3, health 3, synthesizer 3, command 2, contract/DEEPDIVE-TEMPLATES/ONBOARDING-TEMPLATE/PROS-CONS/onboarding-team 1 each). `deep-analysis` 3 (SKILL.md:66, :345, command:48); `Skill(aa-ma-plan)` 1 (SKILL.md:345). Impact LOW: markdown only; tests pinning current text = test_understand_codebase_rewire (KEPT DIMENSIONS line moves; ROUTES/DEEP_DIVE_RUNS stay), xrefs (docstring only), test_plugin_surface dangling {"aa-ma-plan","haiku-eval"} → {"haiku-eval"} and orphan `command:assess-codebase` drops once understand names `/assess-codebase`. Plan corrections (Ste): AC4 narrowed — DIMENSIONS.md:217 + health agent :36 `git log -1 --format=%cd` are dimension-13 repo-liveness checks, kept and asserted; the date-based REPORT rule is REUSE-MAP.md:8-10 + SKILL.md Step 0 row. AC1: two allowed sites — the SKILL.md legacy-absorb rule + ANALYSIS-CONTRACT.md:68 freshness definition. M3 carry-over added: absorb drops `refutation == refuted`.
 
 ### Sub-step 4.2: [test] rewire tests incl. KEPT move and dangling pin, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED `0621f77` (tests only): tests/skills/test_understand_codebase_rewire.py +11 (AC1 two sites by exact file+string; AC3; R1 degradation row; R2 command step 3 names codemem + /assess-codebase; R5 Quick links `.claude/reports/assess-codebase/<sha12>/report.md`; R7 `--deep` line; R8 audit → `/assess-codebase` in skill + command; N1 `/aa-ma-plan` follow-on; AC4 narrowed — Step 0 + REUSE-MAP stale rule name `aa-ma-analysis fresh`, gsd row keeps its date rule, liveness checks asserted to stay; assess absorb row reads summary.json + findings.jsonl, drops refuted; Deep asks once), KEPT moved to the legacy rule; test_plugin_surface dangling → {"haiku-eval"}, orphan `assess-codebase` dropped. 14 failing, each on its assertion.
 
 ### Sub-step 4.3: [impl] repoint + residual fixes across skill, references, template, command, agents
 - Status: PENDING

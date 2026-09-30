@@ -70,7 +70,7 @@ def test_every_skill_target_has_exactly_one_class_and_dangling_is_named(surface)
     assert classes["skill:feature-dev:feature-dev"] == {RefClass.DECLARED_EXTERNAL}
 
 
-def test_no_command_mention_dangles(surface) -> None:
+def test_only_the_fork_route_command_dangles(surface) -> None:
     """codebase-analysis-skills M6: the 6.1 pin minus the eight mentions 6.4 fixed.
 
     `/settings` is an HTTP route in claude-code/skills/prototype/UI.md, a verbatim fork
@@ -82,7 +82,10 @@ def test_no_command_mention_dangles(surface) -> None:
 
 
 def test_the_backticked_rule_loses_no_edge_the_any_occurrence_rule_found(surface) -> None:
-    """Pre-M6 rule, inlined: any `/x` naming an on-disk command (`/x-*` expands) is an edge."""
+    """Pre-M6 rule, inlined: any `/x` naming an on-disk command (`/x-*` expands) is an edge.
+
+    The regex is a FROZEN copy of the pre-M6 `_COMMAND`; it must not follow later edits.
+    """
     import re
 
     old = re.compile(r"(?<![A-Za-z0-9_./~-])/([a-z][a-z0-9-]*)(\*(?!\*))?(?![A-Za-z0-9_/-]|\.[A-Za-z0-9_])")
@@ -100,7 +103,7 @@ def test_the_backticked_rule_loses_no_edge_the_any_occurrence_rule_found(surface
         }.get(kind, [])
         for f in files:
             for name, glob in old.findall(f.read_text(encoding="utf-8", errors="replace")):
-                hits = {c for c in commands if c[8:].startswith(name)} if glob else {f"command:{name}"} & commands
+                hits = {c for c in commands if c.removeprefix("command:").startswith(name)} if glob else {f"command:{name}"} & commands
                 expected |= {(src, h) for h in hits if h != src}
     got = {(e.src, e.dst) for e in surface.edges if e.kind == "command" and e.ref_class is RefClass.ON_DISK}
     assert expected - got == set()

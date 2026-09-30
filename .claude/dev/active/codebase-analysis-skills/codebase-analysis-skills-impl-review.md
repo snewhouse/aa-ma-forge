@@ -353,3 +353,28 @@ Window `7ae1d98..cb12326`. code-reviewer (+ §6.6), security-auditor, tdd-sequen
 - **Pass 2** (security only, `6e6a56a..bd1f931`): S1 CLOSED; S2 CLOSED on ext4-casefold/APFS/HFS+. New 0 CRITICAL / 2 WARNING — W1 caller's GIT_DIR/GIT_INDEX_FILE steer the checks (reproduced), W2 NTFS upper-case rule (dotless ı) — fixed RED `425361b` → `09a2156` (safe_env drops GIT location/pathspec vars; casefold + upper). Mutations 2/2. Suite 2321 passed / 2 skipped.
 
 Loop closed (Ste: INFO from the final pass → backlog). Backlog: nested repo's own core.worktree → also compare --absolute-git-dir; `fresh` on onboarding.json via `_trusted_pack`; gitlink with no nested .git (manual deinit); 12-hex short-sha grinding; byte caps across 4 modules; ground may open a secret file (grep gate is the control); onboarding golden schema lacks additionalProperties:false on sections.
+
+# Milestone 6 — post-impl review (§6.8, Audit-Profile: code-only) — 2026-09-30
+
+Window `5cc9dc2..90cee14`; 5 agents in parallel.
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer             |    1     |    2    |  5   | CRIT accepted → fixed |
+| security-auditor          |    0     |    0    |  2   | PASS    |
+| tdd-sequence-auditor      |    0     |    0    |  0   | PASS (RED fc57582 42s before GREEN 96adaa7, tests-only) |
+| context7-evidence-auditor |    0     |    0    |  0   | PASS (no dependency change) |
+| future-proofing-auditor   |    0     |    0    |  5   | PASS    |
+| TOTAL                     |    1     |    2    |  12  | PASS_WITH_WARNINGS after fixes |
+
+- [CRITICAL, scope] `claude-code/agents/codebase-onboarding-runbook.md:37` edited but the Contract names only skills/ and commands/ → context-log note (plan.md frozen).
+- [WARNING, DRY] `_COMMAND`/`_SPAN_COMMAND` restate the name grammar → shared `_NAME`/`_GLOB`/`_NOT_A_PATH` fragments (compiled patterns byte-identical).
+- [WARNING, latent] double-backtick spans are missed → documented `ponytail:` limit (none ship).
+- INFO fixed: test renamed `test_only_the_fork_route_command_dangles`; `c[8:]` → `removeprefix`; frozen-oracle docstring; allowlist-overlap comment.
+- INFO accepted: trailing-hyphen names dangle (`/nope-`) by design; allowlist is a reviewed trust decision; absolute home path in hook-written compaction notes (pre-existing pattern, hook-owned).
+
+## User Override Decisions (Ste) — M6
+| # | Finding | Decision |
+|---|---|---|
+| 1 | CRITICAL scope (agents/ not in Contract) | Accept — fix now |
+| 2 | W1 + cheap INFO; W2 | Fix W1 + cheap INFO, document W2 |

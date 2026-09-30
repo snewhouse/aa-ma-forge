@@ -42,10 +42,12 @@ _AGENT = re.compile(r"""subagent_type\s*[=:]\s*["']?([A-Za-z0-9_:-]+)""")
 _HOOK_CONVENTION = r"(?:aa-ma-|pre-compact-aa-ma|security-static-check)[a-z0-9-]{0,64}\.sh"
 # Lookbehind/ahead keep path fragments out (`/tmp/x-y.log`) but let a sentence end: `Run /x.`
 # `/x-*` is a glob; `**/x**` is bold markdown around /x, not a glob.
-_COMMAND = re.compile(r"(?<![A-Za-z0-9_./~-])/([a-z][a-z0-9-]*)(\*(?!\*))?(?![A-Za-z0-9_/-]|\.[A-Za-z0-9_])")
-# The same name at the START of a backtick span (spans paired left to right), plus `ns:name`.
+_NAME, _GLOB, _NOT_A_PATH = r"[a-z][a-z0-9-]*", r"(\*(?!\*))?", r"\.[A-Za-z0-9_]"
+_COMMAND = re.compile(rf"(?<![A-Za-z0-9_./~-])/({_NAME}){_GLOB}(?![A-Za-z0-9_/-]|{_NOT_A_PATH})")
+# The same name at the START of a backtick span, plus `ns:name`. Spans pair single
+# backticks left to right. ponytail: a ``double-backtick`` span is missed; none ship today.
 _SPAN = re.compile(r"`([^`\n]+)`")
-_SPAN_COMMAND = re.compile(r"/([a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)?)(\*(?!\*))?(?![A-Za-z0-9_/{:-]|\.[A-Za-z0-9_])")
+_SPAN_COMMAND = re.compile(rf"/({_NAME}(?::{_NAME})?){_GLOB}(?![A-Za-z0-9_/{{:-]|{_NOT_A_PATH})")
 _HOOK_BLOCK = re.compile(r"AA_MA_HOOKS=\((.*?)\n\)", re.DOTALL)
 _HOOK_ROW = re.compile(r'"([A-Za-z]+)\|([^"]*?)\|([A-Za-z0-9_.-]+\.sh)\|')
 

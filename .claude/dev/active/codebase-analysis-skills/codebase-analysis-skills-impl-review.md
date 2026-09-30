@@ -310,3 +310,39 @@ Window `53d53bd..6b3a174`. code-reviewer (+ §6.6), security-auditor, tdd-sequen
 - **Pass 2** (same pair): both converge on one WARNING — a `lnk/..` alias through an in-repo symlink passes the lexical `abspath` check while the kernel resolves outside the repo (and a missing component tracebacks); code-reviewer adds `--repo ../r` falsely refused (unnormalised root). RED `f154a68` → `01ec2e6`: root = `abspath(repo)`, `realpath(target) == realpath(root)/rel`, lstat `OSError` → refusal. Mutations 3/3. Suite 2242 passed / 2 skipped.
 
 Loop closed (M2/M3 precedent). Backlog: shared size cap with finalize, metric-key tests, data-rule equality test, `safe_dir` walk duplication, prose `fresh` without `--repo` in `commands/understand-codebase.md` and `templates/onboarding-team.md`.
+
+---
+
+# Milestone 5 — post-impl review (§6.8, Audit-Profile: full) — 2026-09-30
+
+Window `7ae1d98..cb12326`. code-reviewer (+ §6.6), security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor.
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 1 | 5 | 6 | BLOCKED → accepted, fixing |
+| security-auditor | 0 | 1 | 3 | WARN |
+| tdd-sequence-auditor | 0 | 0 | 3 | PASS |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS |
+| future-proofing-auditor | 0 | 2 | 4 | WARN |
+| **TOTAL** | **1** | **8** | **16** | **BLOCKED until 5.6** |
+
+**CRITICAL**
+- CR-C1 SKILL.md step order: the currency check and onboarding.json run after AGENTS.md (step 6) and after ONBOARDING.md is grounded (step 5) — statuses invented or ungrounded.
+
+**WARNINGs**
+- SEC-1 planted pack: a committed `.claude` symlink defeats `git ls-files .claude/onboarding`; `changed-since` reads `--onboarding` through parent symlinks, uncontained; `sections` keys unconstrained (`../../x` echoed in `regenerate`). Reproduced by the auditor.
+- CR-W1 Standard step 1 runs `codemem build` but not `refresh-commits` (dims 4/13 get empty churn).
+- CR-W2 `changed_since` sees committed changes only; a dirty tree keeps stale sections.
+- CR-W3 Deep's incremental check sits after dispatch.
+- CR-W4 health agent writes `.codemem/` under a "read-only" heading, concurrently with other writers.
+- CR-W5 synthesizer changed outside the Contract `Files:` list.
+- FP-W1 section file names duplicated in changed.py, untied to DEEPDIVE-TEMPLATES; STRUCTURE added even when absent from the map.
+- FP-W2 `12` hardcoded in changed.py; models.HEX12 exists.
+
+**INFO:** AA_MA_ROOT not passed to Deep workers + two codemem call forms; ground/cited_paths walk duplication; missing-citation message reads as a token miss; head_stamp runs status just to validate; range citation windows on start only; ledger bullet says onboarding.json in every tier; sample sizes restated in the template untested; ~60 lines in 3 places; byte caps across 4 modules; ground reads the md uncapped and re-reads cited files; ground may open a secret file (no echo — grep gate stays the control); security controls verified; TDD INFO ×3; AGENTS shape change intended.
+
+## User Override Decisions (Ste)
+| Finding | Decision |
+|---|---|
+| CR-C1 step order | **accept** — fix now (5.6) |
+| all 8 WARNINGs + cheap INFO | fix now, test-first, then one regression pass |

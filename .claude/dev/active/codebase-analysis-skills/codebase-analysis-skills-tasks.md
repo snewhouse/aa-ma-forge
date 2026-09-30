@@ -208,7 +208,7 @@
 ### Sub-step 4.4: [verify] regen; tests; fresh assess at M4 HEAD; live Quick run absorbing it; PR
 - Status: PENDING
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: Mode: HITL. Regen + full suite green throughout. First live run (616c3c0) found template/SKILL Provenance phrase drift → RED `93396db` → fix `31dedf1`, re-run OK; §6.8 GREEN-text commit `6b3a174` closed the first review window. AC6 re-run at final HEAD `9a6f441`: assess Quick → `9a6f44123869/`, fresh rc 0, absorbed (29 findings, 0 refuted), Provenance 'absorbed (fresh, sha12 9a6f44123869)'. Gate APPROVED (Ste). /sole-dev-merge: Stage B reformat of 4 test files reverted (L-031); Stage C 0 CRITICAL, 1 MEDIUM (Step 0 probe lacked `-C <target>`), 4 LOW, Bandit test noise disputed; Ste: fix MEDIUM + LOW walk → RED `abf0755` → `5b41463` (git -C probe; `_located` = one realpath check; mutation kills 3). Suite 2242 passed / 2 skipped. PR/CI/merge: see below.
 
 ### Sub-step 4.5: [remediate] §6.8 impl-review — 11 WARNINGs + cheap INFO (Ste: fix all now)
 - Status: COMPLETE

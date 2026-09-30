@@ -97,6 +97,13 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   [--repo-root R]` and `layers` join the six ports, so scripts get git-history and layering answers
   without an MCP server. `owners --repo-root` computes the blame; without it only the cache is read,
   and a directory needs a trailing `/`.
+- **Plugin-surface extractor classifies slash commands (`codebase-analysis-skills` M6, R4)** — a
+  `/x` that resolves (`commands/x.md`, now also `skills/x/`) stays an ON_DISK edge wherever it
+  occurs; an unresolved `/x` at the start of a backtick span is now DECLARED_EXTERNAL
+  (`surface_allowlist.EXTERNAL["command"]`: gstack `browse`/`qa`/`qa-only`, built-ins `goal`/`init`,
+  `superpowers:brainstorming`) or DANGLING, instead of being silently dropped. Eight dangling
+  mentions of local-only commands, `/compress` and health routes were reworded; `/settings` in
+  the verbatim `prototype` fork remains and is listed under Dangling in `plugin-surface.md`.
 
 ### Fixed
 

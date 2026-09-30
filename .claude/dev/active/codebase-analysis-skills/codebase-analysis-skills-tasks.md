@@ -270,9 +270,9 @@
 - Acceptance Criteria: 5 criteria — see plan.md § Milestone 6
 
 ### Sub-step 6.1: [measure] impact analysis; re-measure on a fresh scratch index; pin both sets
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. Measured on a `git archive HEAD` export of 3819eb0 (tracked files only; the extractor reads no codemem index, so the fresh base is the tree). Pre-M6 golden: 201 edges (200 drawn, MAX_EDGES 500), 62 ON_DISK command edges. Unresolved backticked `/x`: DECLARED_EXTERNAL {browse, goal, init, qa, qa-only, superpowers:brainstorming} — each verified (gstack skills in ~/.claude/skills, superpowers plugin cache, Claude Code built-ins); DANGLING {commit-and-push, compress, git-status-smart, healthz, index, pre-commit-*, readyz, release-prep, settings}. New skill resolutions (any occurrence): /retro, /verify-impl. Impact: consumers are views.py `_plugin_surface` (Dangling list in docs/architecture/plugin-surface.md), the golden, scripts/regen-generated.sh, CI architecture-drift — all regenerated in 6.5; risk MEDIUM (generated-artifact churn only, no API change). Sets pinned in context-log.
 
 ### Sub-step 6.2: [test] rule unit tests + named sets + no-lost-edge check, RED
 - Status: PENDING

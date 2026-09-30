@@ -125,3 +125,26 @@ def test_a_number_in_the_cited_path_is_grounded_by_the_citation(tmp_path: Path) 
     repo = make_repo(tmp_path / "r", {"docs/adr/0008-merge.md": "# Merge workflow\n"})
     assert _ground(repo, "- ADR-0008 describes the merge workflow (`docs/adr/0008-merge.md:1`).\n") == []
     assert [u.token for u in _ground(repo, "- ADR-0009 is it (`docs/adr/0008-merge.md:1`).\n")] == ["0009"]
+
+
+def test_a_range_citation_windows_the_whole_range(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path / "r", {"src/x.py": _src(55, "def tail_end(): pass")})
+    assert _ground(repo, "- `tail_end` closes it (`src/x.py:10-40`)\n") == []
+    far = make_repo(tmp_path / "far", {"src/x.py": _src(75, "def tail_end(): pass")})
+    assert [u.token for u in _ground(far, "- `tail_end` closes it (`src/x.py:10-40`)\n")] == ["tail_end"]
+
+
+def test_cli_names_a_bad_citation_as_such(tmp_path: Path, capsys) -> None:
+    repo = make_repo(tmp_path / "r", {"src/x.py": "pass\n"})
+    doc = repo / "ONBOARDING.md"
+    doc.write_text("- `thing` lives in `src/gone.py:3`\n", encoding="utf-8")
+    assert cli.main(["ground", str(doc), "--repo", str(repo)]) == 1
+    assert "cited path missing or outside the repo" in capsys.readouterr().out
+
+
+def test_cli_refuses_a_symlinked_markdown_file(tmp_path: Path, capsys) -> None:
+    repo = make_repo(tmp_path / "r", {"src/x.py": "pass\n"})
+    real = tmp_path / "elsewhere.md"
+    real.write_text("- `x` (`src/x.py:1`)\n", encoding="utf-8")
+    (repo / "ONBOARDING.md").symlink_to(real)
+    assert cli.main(["ground", str(repo / "ONBOARDING.md"), "--repo", str(repo)]) == 2

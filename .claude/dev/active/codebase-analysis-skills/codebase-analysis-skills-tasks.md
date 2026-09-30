@@ -239,9 +239,9 @@
 - Result Log: Mode: AFK — auto-dispatched. RED `d30e02e` (tests only, L-028): tests/analysis/test_ground.py (14: AC1 ±20 window, numbers, no-citation, bare path, sentences, multi-cite, missing/escaping citation, fences, cited_paths, CLI) + test_changed.py (13: AC2 exact sections, unknown sha → all, dir prefix, A → structure, rename, globs, sha12-only, CLI) fail on import; tests/skills/test_understand_codebase_v1.py 14/14 fail (AC3 runbook/10-20 sample/dims 4+13 codemem/AGENTS headings; AC6 CLI-unavailable skips; ground/ledger per tier; currency; onboarding.json; changed-since). Interface deviations in context-log.
 
 ### Sub-step 5.3: [impl] ground.py, changed.py; CLI ground, changed-since
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. GREEN `2634d1f`: ground.py (ground, cited_paths, Ungrounded; stamp.contained + read_regular 2 MB cap), changed.py (Change, changed_since via head_stamp guard + cat-file + diff -z -M, sections_to_regenerate, SECTION_GLOBS, STRUCTURE=03-structure.md), CLI `ground [--cited]` / `changed-since [--onboarding]`. tests/analysis 521 passed. Mutations 6/6 caught (window, numbers, containment, dir-prefix, structure, unknown-sha). import-linter 6 kept. Test adjustments in the GREEN commit: section keys = deep-dive file names (M1 fixture), model_validate_json, argparse SystemExit(2) + `--` path.
 
 ### Sub-step 5.4: [impl] skill + references + runbook agent line 28
 - Status: PENDING

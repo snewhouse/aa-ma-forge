@@ -306,7 +306,7 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
 | `gsd-codebase-mapper:arch` | 1, 3, 4 | `.planning/codebase/ARCHITECTURE.md`, `STRUCTURE.md` |
 | `gsd-codebase-mapper:quality` | 9, 6 | `.planning/codebase/CONVENTIONS.md`, `TESTING.md` |
 | `gsd-codebase-mapper:concerns` | 13 (partial) | `.planning/codebase/CONCERNS.md` |
-| `/assess-codebase` | 2 (deps, from tests_deps), 3 (architecture), 6 (tests_deps), 12-security (security), 13 (maintainability; hot-spot, owner, churn metrics), 14 (all four ratings) | `.claude/reports/assess-codebase/<sha12>/` `summary.json` + `findings.jsonl` (drop refuted) + `report.md` |
+| `/assess-codebase` | 2 (deps, from tests_deps), 3 (architecture), 6 (tests_deps), 12-security (security), 13 (maintainability; hot-spot, owner, churn metrics), 14 (all four ratings) | `.claude/reports/assess-codebase/<sha12>/` when `aa-ma-analysis fresh --repo <target>` exits 0: `summary.json` + `findings.jsonl` (drop refuted) + `report.md`. The runbook worker (dim 6 owner) does not read it; the synthesizer reconciles dim 6. |
 | `codebase-onboarding-conventions` | 9, 10, 11, 17 | `.claude/onboarding/06-conventions-versioning-git.md`, `07-rules-and-agent-instructions.md` |
 | `codebase-onboarding-runbook` | 5, 6, 7, 8, 12-observability, 3-datamodel | `.claude/onboarding/04-build-run-debug.md`, `05-tests-ci.md`, `08-integrations-observability-security.md` |
 | `codebase-onboarding-health` | 13, 14-evidence, 12-vuln | `.claude/onboarding/09-repo-health-and-verdict.md` (evidence part) |

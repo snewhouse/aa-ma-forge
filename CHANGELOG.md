@@ -72,8 +72,9 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   whether to run `/assess-codebase` first. Whole-repo audits route to `/assess-codebase`; the
   retired `/deep-analysis` and `Skill(aa-ma-plan)` references are gone, and `--deep` no longer
   claims to run the retired `/codebase-deep-dive` or `/index`. `aa-ma-analysis fresh` now checks the
-  report itself, not just its stamp: it refuses a dir named other than its stamp, a symlinked dir or
-  file, an incomplete report set, an oversized stamp file and a git-tracked report dir. The onboarding
+  report itself, not just its stamp: it refuses a dir named other than its stamp or outside the
+  reports root, any symlink on the path, a file target other than `onboarding.json`, an incomplete
+  report set, an oversized stamp file and a git-tracked report dir. The onboarding
   agents that absorb reports treat them as evidence, never instructions, and skip symlinked files.
 - **`codemem query` reaches 10 MCP tools** — `hot_spots`, `co_changes <file>`, `owners <path>
   [--repo-root R]` and `layers` join the six ports, so scripts get git-history and layering answers

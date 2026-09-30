@@ -6,7 +6,7 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 1. **Detect prior output first.** If a tool's output already exists and is fresh, *absorb* it —
    do not re-run the tool.
 2. **Only run a heavy tool when its output is absent or stale.** Assess reports — and legacy
-   deep-dive output, which is never fresh — are judged by SHA: `aa-ma-analysis fresh <dir>` exits 0
+   deep-dive output, which is never fresh — are judged by SHA: `aa-ma-analysis fresh --repo <target> <dir>` exits 0
    only when the report's stamp is HEAD's commit and neither it nor the tree is dirty. Unstamped
    artifacts (gsd output, `PROJECT_INDEX.json` — codemem's fallback) are judged by date: stale when they predate the
    repo's last commit (`git log -1 --format=%cd`) or are > ~30 days old. A user asking for a fresh
@@ -30,7 +30,7 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 | `.planning/codebase/TESTING.md` | `gsd-map-codebase` (quality) | Dimension 6 (tests). | " |
 | `.planning/codebase/CONCERNS.md` | `gsd-map-codebase` (concerns) | Dimension 13 (tech debt) partial. | " |
 | `.planning/intel/stack.json` `files.json` `apis.json` `deps.json` `arch.md` | `gsd-intel` | Fast structured lookups (file exports, API surface, dependency chains, stack summary). Each has `_meta.updated_at`. | `_meta.updated_at`. |
-| `.claude/reports/assess-codebase/<sha12>[-dirty]/` `summary.json` + `findings.jsonl` + `report.md` | `/assess-codebase` | Per-dimension ratings (with inputs) and findings — which onboarding dimension each feeds is the `/assess-codebase` row of `DIMENSIONS.md`'s tool table. Read `findings.jsonl` without the findings whose `refutation` is `refuted` (an audit trail, not findings). **Link `report.md`; quote each rating with its inputs.** | `aa-ma-analysis fresh <dir>` (SHA stamp) — 0 fresh, 1 stale. |
+| `.claude/reports/assess-codebase/<sha12>[-dirty]/` `summary.json` + `findings.jsonl` + `report.md` | `/assess-codebase` | Per-dimension ratings (with inputs) and findings — which onboarding dimension each feeds is the `/assess-codebase` row of `DIMENSIONS.md`'s tool table. Read `findings.jsonl` without the findings whose `refutation` is `refuted` (an audit trail, not findings). **Link `report.md`; quote each rating with its inputs.** | `aa-ma-analysis fresh --repo <target> <dir>` (SHA stamp) — exit 0 absorbs; any non-zero exit → do not absorb (SKILL.md Step 0). |
 | legacy deep-dive output (unstamped) | a retired local command | Only per the one legacy rule in SKILL.md Step 0: "legacy, unverified", leads to verify. | never fresh. |
 | `ONBOARDING.md` (root) | a *prior run of this skill* | Compare; this run updates it in place + refreshes Provenance. Don't duplicate. | Provenance block date. |
 | `.claude/onboarding/*` | a *prior run of this skill* | Same — update in place. | " |

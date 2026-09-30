@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from aa_ma.analysis import cli, stamp
+from aa_ma.analysis import cli, finalize, stamp
 from aa_ma.analysis.models import Stamp
 
 from .conftest import commit_file, git
@@ -124,8 +124,9 @@ def _write_summary_dir(repo: Path, s: Stamp) -> Path:
     d = repo / REPORTS / s.sha12
     d.mkdir(parents=True)
     (d / "summary.json").write_text(json.dumps(doc), encoding="utf-8")
-    for name in ("findings.jsonl", "findings.sarif", "report.md", "run.log"):  # a complete report set
-        (d / name).write_text("", encoding="utf-8")
+    for name in finalize.REPORT_FILES:  # a complete report set
+        if name != "summary.json":
+            (d / name).write_text("", encoding="utf-8")
     return d
 
 
@@ -688,3 +689,48 @@ def test_fresh_refuses_a_symlinked_onboarding_json(repo: Path, tmp_path: Path, c
     link.symlink_to(real)
     rc, out = _fresh(link, repo, capsys)
     assert rc == 1 and "refused" in out
+
+
+# --- M4 §6.8 regression: `fresh` pins the report's location and form ---------------------------
+
+
+def test_fresh_refuses_a_report_outside_the_reports_root(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "quick"))
+    elsewhere = repo / "docs" / d.name
+    elsewhere.parent.mkdir()
+    d.rename(elsewhere)
+    rc, out = _fresh(elsewhere, repo, capsys)
+    assert rc == 1 and "not under" in out
+
+
+def test_fresh_refuses_a_symlinked_reports_root(repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "quick"))
+    root = repo / REPORTS
+    moved = tmp_path / "moved-root"
+    root.rename(moved)
+    root.symlink_to(moved)
+    rc, out = _fresh(root / d.name, repo, capsys)
+    assert rc == 1 and "refused" in out
+
+
+def test_fresh_refuses_a_report_file_given_directly(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "quick"))
+    rc, out = _fresh(d / "summary.json", repo, capsys)
+    assert rc == 1 and "refused" in out
+
+
+def test_fresh_refuses_an_onboarding_json_elsewhere(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    fixture = Path(__file__).resolve().parents[2] / "tests/fixtures/analysis/valid/onboarding.json"
+    doc = json.loads(fixture.read_text(encoding="utf-8"))
+    doc["stamp"] = json.loads(stamp.build_stamp(repo, "quick").model_dump_json())
+    target = repo / "onboarding.json"
+    target.write_text(json.dumps(doc), encoding="utf-8")
+    rc, out = _fresh(target, repo, capsys)
+    assert rc == 1 and "refused" in out
+
+
+def test_fresh_on_deeply_nested_json_is_unstamped_not_a_traceback(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "quick"))
+    (d / "summary.json").write_text("[" * 100_000 + "]" * 100_000, encoding="utf-8")
+    rc, out = _fresh(d, repo, capsys)
+    assert rc == 1 and "unstamped" in out

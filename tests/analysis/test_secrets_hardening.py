@@ -209,10 +209,18 @@ def test_validate_never_echoes_rejected_values(
     assert "grade" in err, "the location is still reported"
 
 
-def test_fresh_on_non_utf8_summary_is_unstamped(tmp_path: Path) -> None:
-    d = _dir(tmp_path)
+def test_fresh_on_non_utf8_summary_is_unstamped(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    # M4 regression: a complete report set in its real location, so the decode branch is the one hit.
+    from aa_ma.analysis.finalize import REPORT_FILES
+    from aa_ma.analysis.stamp import REPORTS_ROOT
+
+    d = tmp_path / REPORTS_ROOT / "000000000000"
+    d.mkdir(parents=True)
+    for name in REPORT_FILES:
+        (d / name).write_text("", encoding="utf-8")
     (d / "summary.json").write_bytes(b"\xff\xfe{}")
     assert cli.main(["fresh", str(d), "--repo", str(tmp_path)]) == 1
+    assert "unstamped" in capsys.readouterr().out
 
 
 # --- §6.8 re-run (0ae6e8a..56f1cc6) -----------------------------------------------------------------

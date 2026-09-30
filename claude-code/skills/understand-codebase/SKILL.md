@@ -375,7 +375,7 @@ SECRETS line below is its canonical text; `tests/analysis/test_contract_doc.py` 
   → zero hits in skill-written files.
 - `--quick` → only `ONBOARDING.md`, ≤ ~150 lines, no `.claude/onboarding/`, `AGENTS.md` untouched.
 - Repo with **no** `AGENTS.md` (Standard/Deep) → user was asked before any `AGENTS.md`/`AGENTS.draft.md`
-  was written; if consent given, the file follows `references/AGENTS-MD-TEMPLATE.md` and is ≤ ~120 lines.
+  was written; if consent given, the file follows `references/AGENTS-MD-TEMPLATE.md` and is ≤ ~60 lines (Commands, Gotchas, Rules pointers).
 - Repo **with** an existing `AGENTS.md` → it is byte-for-byte unchanged; an `AGENTS.review.md`
   sidecar exists with a section-by-section accuracy verdict + a proposed rewrite. `CLAUDE.md` (if present) byte-for-byte unchanged.
 - Deep → a team dir appeared under `~/.claude/teams/`; task list shows mapper tasks → synthesis →

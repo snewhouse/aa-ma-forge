@@ -36,7 +36,7 @@ If your prompt has a `<required_reading>` block, `Read` all of it first. Always 
 
 ## What to do (all read-only git/grep)
 0. **codemem first.** If your prompt gives an `AA_MA_ROOT`, run from the target root
-   `uv run --quiet --project "$AA_MA_ROOT" codemem build`, then `codemem query` (same prefix) with
+   `uv run --quiet --project "$AA_MA_ROOT" codemem build` and `codemem refresh-commits` (same prefix; without it `hot_spots` and `co_changes` are empty), then `codemem query` (same prefix) with
    `hot_spots`, `co_changes` + a path for the top hot spots, `owners` + `--repo-root . <path>` and `layers`.
    Use their JSON for steps 1–2 and 5 instead of re-deriving churn and ownership; if codemem is
    unavailable, say so in the file and use the git commands below.

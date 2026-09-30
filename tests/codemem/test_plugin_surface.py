@@ -70,6 +70,36 @@ def test_every_skill_target_has_exactly_one_class_and_dangling_is_named(surface)
     assert classes["skill:feature-dev:feature-dev"] == {RefClass.DECLARED_EXTERNAL}
 
 
+def test_no_command_mention_dangles(surface) -> None:
+    """codebase-analysis-skills M6: every backticked `/x` resolves or is declared external."""
+    assert {e.dst for e in surface.edges if e.kind == "command" and e.ref_class is RefClass.DANGLING} == set()
+
+
+def test_the_backticked_rule_loses_no_edge_the_any_occurrence_rule_found(surface) -> None:
+    """Pre-M6 rule, inlined: any `/x` naming an on-disk command (`/x-*` expands) is an edge."""
+    import re
+
+    old = re.compile(r"(?<![A-Za-z0-9_./~-])/([a-z][a-z0-9-]*)(\*(?!\*))?(?![A-Za-z0-9_/-]|\.[A-Za-z0-9_])")
+    cc = REPO / "claude-code"
+    commands = {e.dst for e in surface.edges if e.kind == "command" and e.ref_class is RefClass.ON_DISK}
+    commands |= {f"command:{p.stem}" for p in (cc / "commands").glob("*.md")}
+    sources = {e.src for e in surface.edges} | set(surface.orphans)
+    expected = set()
+    for src in sources:
+        kind, stem = src.split(":", 1)
+        files = {
+            "command": [cc / "commands" / f"{stem}.md"], "agent": [cc / "agents" / f"{stem}.md"],
+            "rule": [cc / "rules" / f"{stem}.md"],
+            "skill": [f for f in (cc / "skills" / stem).rglob("*") if f.suffix in (".md", ".sh")],
+        }.get(kind, [])
+        for f in files:
+            for name, glob in old.findall(f.read_text(encoding="utf-8", errors="replace")):
+                hits = {c for c in commands if c[8:].startswith(name)} if glob else {f"command:{name}"} & commands
+                expected |= {(src, h) for h in hits if h != src}
+    got = {(e.src, e.dst) for e in surface.edges if e.kind == "command" and e.ref_class is RefClass.ON_DISK}
+    assert expected - got == set()
+
+
 def test_orphans_are_the_named_set_and_no_errors(surface) -> None:
     # Orphans are `kind:stem` (a stem can be both a command and a skill); AC4 names bare stems.
     assert len(surface.orphans) == len(set(surface.orphans))
@@ -168,6 +198,33 @@ def test_command_mentions_filter_on_disk_expand_globs_and_drop_self(tmp_path: Pa
         ("command:go-three", "command:go-one"),
         ("command:go-three", "command:go-two"),
     }
+
+
+def test_backticked_slash_names_resolve_declare_or_dangle(tmp_path: Path) -> None:
+    """R4 (codebase-analysis-skills M6): unresolved names count only at the start of a backtick span."""
+    s = extract(_tree(tmp_path, {
+        "claude-code/skills/retro/SKILL.md": "",
+        "claude-code/commands/run.md": (
+            "`/goal clear` `/retro` `/superpowers:brainstorming` `GET /healthz` `/retro-{date}.md`\n"
+            "`/nope` `/nope-*` and unbackticked /ghost or /tmp/x.log stay silent; /retro resolves anywhere.\n"
+        ),
+    }))
+    assert {(e.dst, e.kind, e.ref_class) for e in s.edges} == {
+        ("command:goal", "command", RefClass.DECLARED_EXTERNAL),
+        ("skill:retro", "skill", RefClass.ON_DISK),
+        ("command:superpowers:brainstorming", "command", RefClass.DECLARED_EXTERNAL),
+        ("command:nope", "command", RefClass.DANGLING),
+        ("command:nope-*", "command", RefClass.DANGLING),
+    }
+
+
+def test_a_stem_that_is_both_command_and_skill_resolves_to_the_command(tmp_path: Path) -> None:
+    s = extract(_tree(tmp_path, {
+        "claude-code/skills/both/SKILL.md": "",
+        "claude-code/commands/both.md": "",
+        "claude-code/commands/run.md": "`/both` and /both\n",
+    }))
+    assert {(e.dst, e.ref_class) for e in s.edges} == {("command:both", RefClass.ON_DISK)}
 
 
 def test_agents_hooks_and_externals_classify(tmp_path: Path) -> None:

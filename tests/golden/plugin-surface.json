@@ -31,6 +31,12 @@
    "src": "agent:code-reviewer"
   },
   {
+   "dst": "skill:verify-impl",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "agent:code-reviewer"
+  },
+  {
    "dst": "skill:assess-codebase",
    "kind": "skill",
    "ref_class": "ON_DISK",
@@ -81,6 +87,12 @@
   {
    "dst": "hook:security-static-check.sh",
    "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "agent:security-auditor"
+  },
+  {
+   "dst": "skill:verify-impl",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "agent:security-auditor"
   },
@@ -163,6 +175,12 @@
    "src": "command:aa-ma-plan"
   },
   {
+   "dst": "command:superpowers:brainstorming",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:aa-ma-plan"
+  },
+  {
    "dst": "command:verify-plan",
    "kind": "command",
    "ref_class": "ON_DISK",
@@ -235,6 +253,12 @@
    "src": "command:aa-ma-plan"
   },
   {
+   "dst": "command:browse",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:aa-ma-share"
+  },
+  {
    "dst": "hook:aa-ma-share-allow.sh",
    "kind": "hook",
    "ref_class": "DECLARED_EXTERNAL",
@@ -289,6 +313,12 @@
    "src": "command:execute-aa-ma-full"
   },
   {
+   "dst": "command:goal",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:execute-aa-ma-full"
+  },
+  {
    "dst": "skill:goal-condition-synthesis",
    "kind": "skill",
    "ref_class": "ON_DISK",
@@ -328,6 +358,18 @@
    "dst": "command:execute-aa-ma-full",
    "kind": "command",
    "ref_class": "ON_DISK",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "command:qa",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "command:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "command:qa-only",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
    "src": "command:execute-aa-ma-milestone"
   },
   {
@@ -484,6 +526,12 @@
    "dst": "command:execute-aa-ma-milestone",
    "kind": "command",
    "ref_class": "ON_DISK",
+   "src": "command:verify-plan"
+  },
+  {
+   "dst": "command:goal",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
    "src": "command:verify-plan"
   },
   {
@@ -703,6 +751,12 @@
    "src": "skill:aa-ma-execution"
   },
   {
+   "dst": "command:goal",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-execution"
+  },
+  {
    "dst": "command:verify-plan",
    "kind": "command",
    "ref_class": "ON_DISK",
@@ -772,6 +826,12 @@
    "dst": "command:execute-aa-ma-step",
    "kind": "command",
    "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "command:goal",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
    "src": "skill:aa-ma-plan-workflow"
   },
   {
@@ -856,6 +916,12 @@
    "dst": "command:execute-aa-ma-full",
    "kind": "command",
    "ref_class": "ON_DISK",
+   "src": "skill:goal-condition-synthesis"
+  },
+  {
+   "dst": "command:goal",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
    "src": "skill:goal-condition-synthesis"
   },
   {
@@ -961,6 +1027,12 @@
    "src": "skill:plan-verification"
   },
   {
+   "dst": "command:settings",
+   "kind": "command",
+   "ref_class": "DANGLING",
+   "src": "skill:prototype"
+  },
+  {
    "dst": "skill:aa-ma-plan-workflow",
    "kind": "skill",
    "ref_class": "ON_DISK",
@@ -1036,6 +1108,12 @@
    "dst": "command:assess-codebase",
    "kind": "command",
    "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "command:init",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
    "src": "skill:understand-codebase"
   },
   {

@@ -275,19 +275,19 @@
 - Result Log: Mode: AFK — auto-dispatched. Measured on a `git archive HEAD` export of 3819eb0 (tracked files only; the extractor reads no codemem index, so the fresh base is the tree). Pre-M6 golden: 201 edges (200 drawn, MAX_EDGES 500), 62 ON_DISK command edges. Unresolved backticked `/x`: DECLARED_EXTERNAL {browse, goal, init, qa, qa-only, superpowers:brainstorming} — each verified (gstack skills in ~/.claude/skills, superpowers plugin cache, Claude Code built-ins); DANGLING {commit-and-push, compress, git-status-smart, healthz, index, pre-commit-*, readyz, release-prep, settings}. New skill resolutions (any occurrence): /retro, /verify-impl. Impact: consumers are views.py `_plugin_surface` (Dangling list in docs/architecture/plugin-surface.md), the golden, scripts/regen-generated.sh, CI architecture-drift — all regenerated in 6.5; risk MEDIUM (generated-artifact churn only, no API change). Sets pinned in context-log.
 
 ### Sub-step 6.2: [test] rule unit tests + named sets + no-lost-edge check, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED fc57582 (tests only): `test_backticked_slash_names_resolve_declare_or_dangle` (AC1: `/goal` external, `/retro` ON_DISK skill, `/superpowers:brainstorming` external, `GET /healthz` + `/retro-{date}.md` no edge, `/nope`/`/nope-*` DANGLING) failed; plus command-over-skill precedence, command DANGLING pin, and `test_the_backticked_rule_loses_no_edge_the_any_occurrence_rule_found` (AC5: pre-M6 regex inlined, subset check — durable, no frozen fixture).
 
 ### Sub-step 6.3: [impl] unresolved backticked names to EXTERNAL or DANGLING; skills lookup; docstring
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. GREEN 96adaa7: `_resolve()` (glob→commands, command, else skills/x/), `_SPAN` pairs backtick spans left to right then `_SPAN_COMMAND.match` at span start (`:` namespace, `{` guard, span only — the any-occurrence regex is unchanged); `EXTERNAL["command"]` = {browse, qa, qa-only, goal, init, superpowers:brainstorming}; docstring lines 9-17 state the rule. Real repo: command DANGLING == 6.1 pin exactly; lost ON_DISK edges vs pre-M6 golden: 0.
 
 ### Sub-step 6.4: [impl] fix every remaining DANGLING slash-command mention
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. c963393: 8 fixed (commit-and-push, git-status-smart, release-prep in aa-ma-plan.md; commit-and-push + pre-commit-* + compress in aa-ma-execution; compress in token-compression; index in REUSE-MAP ×2; healthz/readyz → `GET /…` in 3 files). `/settings` kept — verbatim prototype fork (FORKS.json state current, md5-pinned); Ste chose 'Keep fork verbatim' → pin {settings}. tests/skills 244 passed; fork manifest 10 passed.
 
 ### Sub-step 6.5: [verify] regen; architecture-drift green; PR
 - Status: PENDING

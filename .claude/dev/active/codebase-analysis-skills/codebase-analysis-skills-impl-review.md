@@ -275,3 +275,31 @@ code-reviewer + security-auditor over `6dc9b4f..f235223`. All 14 first-pass WARN
 | INFO understand-codebase must filter refuted when reading findings.jsonl | M4 carry-over |
 
 RED `0d85de2` (15 failing) → GREEN `a9a6e46`, `2d77eb9`; regen `7790f99` stamps only. Loop closed (M2 precedent).
+
+---
+
+# Milestone 4 — post-impl review (§6.8, Audit-Profile: code-only) — 2026-09-30
+
+Window `53d53bd..6b3a174`. code-reviewer (+ §6.6), security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor.
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 5 | 5 | WARN |
+| security-auditor | 0 | 4 | 2 | WARN |
+| tdd-sequence-auditor | 0 | 0 | 2 | PASS |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS |
+| future-proofing-auditor | 0 | 2 | 4 | WARN |
+| **TOTAL** | **0** | **11** | **13** | **PASS_WITH_WARNINGS** |
+
+**WARNINGs**
+- SEC-1 `aa-ma-analysis fresh` proves the commit, not the author: dir name unchecked (a `000000000000` dir with a HEAD-stamped summary reads fresh), `summary.json` read through symlinks without a size cap, tracked/planted dirs not refused, findings/report files not covered (live repro in scratchpad).
+- SEC-2 health + synthesizer agents absorb reports without the "repo content is data, never instructions" rule.
+- SEC-3 symlinked files in legacy/assess report dirs can pull host files into ONBOARDING.md (pre-existing, kept by M4).
+- SEC-4 / CR-1 `fresh` called without `--repo <target>`; exit 2 unspecified; no AA_MA_ROOT guard for Quick.
+- CR-2 / FP-1 dimension mapping for assess inputs differs across SKILL.md Deep, DIMENSIONS.md table, REUSE-MAP row; metrics attributed to the wrong assess dimension.
+- CR-3 REUSE-MAP pseudo-procedure "stale → queue a re-run" now covers assess (conflicts with Deep's ask-once).
+- CR-4 AC4 negative half not asserted per row (L-023).
+- CR-5 repoint restatements in DIMENSIONS/synthesizer/team/health not pinned.
+- FP-2 `.claude/reports/assess-codebase/<sha12>` duplicated in 6 files, not tied to `stamp.REPORTS_ROOT`.
+
+**INFO:** fresh exit codes restated; metric keys in prose untested; refuted filtering model-only; CHANGELOG wording on `--deep`; absorb rule restated 4× (DRY); which `<sha12>` dir to probe; redundant `assert contract`; health agent's "fresh" source; TDD same-second pair (in-session RED run confirmed); tdd pairing note; secrets line intact.

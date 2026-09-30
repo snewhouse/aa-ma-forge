@@ -210,6 +210,12 @@
 - Mode: HITL
 - Result Log: [placeholder]
 
+### Sub-step 4.5: [remediate] §6.8 impl-review — 11 WARNINGs + cheap INFO (Ste: fix all now)
+- Status: PENDING
+- Mode: AFK
+- Acceptance Criteria: RED first (`ee86b95`); SEC-1 `aa-ma-analysis fresh` refuses name≠stamp, symlinks, oversize, incomplete, tracked; SEC-2..4 + CR-1..5 + FP-1/2 in skill/agents/references; cheap INFOs; full suite green; one regression pass. Source: impl-review.md Milestone 4 section.
+- Result Log: [placeholder]
+
 ## Milestone 5: understand-codebase v1 upgrades
 - Status: PENDING
 - Dependencies: Milestone 4

@@ -87,7 +87,8 @@ def ground(md_path: Path, repo: Path) -> list[Ungrounded]:
         cites, names = [], []
         for span in SPAN.findall(unit):
             m = _is_citation(repo, span)
-            (cites if m else names).append(m or span)
+            # A markdown table cell must write `|` as `\|`; the source holds the bare `|`.
+            (cites if m else names).append(m or span.replace("\\|", "|"))
         if not cites:
             continue
         windows = []
@@ -103,6 +104,7 @@ def ground(md_path: Path, repo: Path) -> list[Ungrounded]:
                 out.append(Ungrounded(n, m[0], m["path"]))
         if not windows:
             continue
+        windows += [m["path"] for m in cites]  # ADR-0008 is grounded by citing docs/adr/0008-….md
         tokens = dict.fromkeys(names + NUMBER.findall(SPAN.sub(" ", unit)))
         out += [
             Ungrounded(n, cites[0][0], t)

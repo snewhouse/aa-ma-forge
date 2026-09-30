@@ -173,3 +173,8 @@ _This log will be updated via context compaction as the task progresses._
 ## [2026-09-29] M3 merged
 - PR #6 rebase-merged via /sole-dev-merge, CI 7/7 green; main at 14384d1 (milestone commit 3d4b856). Rebased SHA map in provenance. Merge review: 1 MEDIUM + 1 LOW fixed (judge rules moved into the JudgedFinding model so `validate` enforces them), Bandit B613 (literal bidi in a test) fixed, Stage B test reformat reverted per L-031.
 - To use the skill: run `scripts/install.sh` (symlinks assess-codebase command/skill and the codebase-assessor agent), then restart Claude Code.
+
+## [2026-09-30] M4 4.1 — plan corrections (Ste)
+- **AC4 narrowed.** Plan named DIMENSIONS.md:217 and the health agent's `git log -1 --format=%cd` as report-freshness rules; at f3ad912 and HEAD both are dimension-13 "is the repo alive?" checks. They stay (asserted). SHA freshness via `aa-ma-analysis fresh` replaces the date rule for assess and legacy reports: REUSE-MAP.md:8-10 and the SKILL.md Step 0 rows. The gsd `.planning/codebase` row keeps its date rule.
+- **AC1: two allowed sites** for `codebase-deep-dive` under claude-code/: the one flagged legacy-absorb rule in SKILL.md Step 0 and ANALYSIS-CONTRACT.md's freshness definition (shared with assess). Every other mention points at the Step 0 rule.
+- **M3 carry-over folded in:** the assess-absorb rule drops findings with `refutation == refuted`.

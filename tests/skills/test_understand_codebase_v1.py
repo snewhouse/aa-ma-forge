@@ -15,15 +15,28 @@ ROOT = Path(__file__).resolve().parents[2]
 SKILL_DIR = ROOT / "claude-code/skills/understand-codebase"
 SKILL = (SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
 DIMENSIONS = (SKILL_DIR / "references/DIMENSIONS.md").read_text(encoding="utf-8")
-AGENTS_TEMPLATE = (SKILL_DIR / "references/AGENTS-MD-TEMPLATE.md").read_text(encoding="utf-8")
-ONBOARDING_TEMPLATE = (SKILL_DIR / "references/ONBOARDING-TEMPLATE.md").read_text(encoding="utf-8")
-RUNBOOK = (ROOT / "claude-code/agents/codebase-onboarding-runbook.md").read_text(encoding="utf-8")
-HEALTH = (ROOT / "claude-code/agents/codebase-onboarding-health.md").read_text(encoding="utf-8")
+AGENTS_TEMPLATE = (SKILL_DIR / "references/AGENTS-MD-TEMPLATE.md").read_text(
+    encoding="utf-8"
+)
+ONBOARDING_TEMPLATE = (SKILL_DIR / "references/ONBOARDING-TEMPLATE.md").read_text(
+    encoding="utf-8"
+)
+RUNBOOK = (ROOT / "claude-code/agents/codebase-onboarding-runbook.md").read_text(
+    encoding="utf-8"
+)
+HEALTH = (ROOT / "claude-code/agents/codebase-onboarding-health.md").read_text(
+    encoding="utf-8"
+)
 
 CODEMEM_TOOLS = ("hot_spots", "co_changes", "owners", "layers")
 AGENTS_HEADINGS = {"Commands", "Gotchas", "Rules pointers"}  # AC3: pinned set
 STATUSES = ("verified", "failed", "timeout", "not_run", "refused")
-SKIPPED_WITHOUT_CLI = ("grounding", "onboarding.json", "currency check", "incremental regeneration")
+SKIPPED_WITHOUT_CLI = (
+    "grounding",
+    "onboarding.json",
+    "currency check",
+    "incremental regeneration",
+)
 
 
 def _section(text: str, heading: str) -> str:
@@ -46,7 +59,11 @@ TIERS = {
 
 
 def test_runbook_never_runs_a_build_test_or_lint_command() -> None:
-    line = next(ln for ln in RUNBOOK.splitlines() if ln.startswith("- **Read-only on the target.**"))
+    line = next(
+        ln
+        for ln in RUNBOOK.splitlines()
+        if ln.startswith("- **Read-only on the target.**")
+    )
     assert "never run a build, test or lint command" in line
     assert "main thread" in line and "aa-ma-analysis run" in line
     assert "If you do try a command" not in RUNBOOK
@@ -57,7 +74,9 @@ def test_claim_check_samples_10_in_standard_and_20_in_deep() -> None:
     assert "~20 sampled claims" in TIERS["Deep"]
 
 
-@pytest.mark.parametrize("dim", ["## 4 — Directory map & structure", "## 13 — Repo health snapshot"])
+@pytest.mark.parametrize(
+    "dim", ["## 4 — Directory map & structure", "## 13 — Repo health snapshot"]
+)
 def test_dims_4_and_13_read_all_four_codemem_tools(dim: str) -> None:
     body = _section(DIMENSIONS, dim)
     assert "codemem query" in body
@@ -72,7 +91,9 @@ def test_health_agent_reads_codemem_instead_of_rederiving() -> None:
 def test_agents_template_keeps_only_what_code_cannot_tell() -> None:
     after = AGENTS_TEMPLATE[AGENTS_TEMPLATE.index("## TEMPLATE") :]
     body = after[after.index("```markdown\n") :]
-    fence = body[: body.index("\n```\n")]  # the template itself holds `##` lines: no _section()
+    fence = body[
+        : body.index("\n```\n")
+    ]  # the template itself holds `##` lines: no _section()
     headings = set(re.findall(r"^## (.+?)\s*$", fence, re.M))
     assert headings == AGENTS_HEADINGS
 
@@ -101,7 +122,9 @@ def test_currency_check_is_the_main_threads_job() -> None:
 def test_onboarding_json_is_written_and_validated() -> None:
     assert ".claude/onboarding/onboarding.json" in SKILL
     assert "aa-ma-analysis validate onboarding" in SKILL
-    assert "aa-ma-analysis ground --cited" in SKILL  # the section map comes from citations
+    assert (
+        "aa-ma-analysis ground --cited" in SKILL
+    )  # the section map comes from citations
 
 
 def test_a_rerun_regenerates_only_the_changed_sections() -> None:
@@ -127,11 +150,15 @@ def _step(body: str, needle: str) -> int:
 
 
 def test_standard_runs_the_currency_check_before_writing_anything() -> None:
-    body = TIERS["Standard"]  # CR-C1: statuses must exist before ONBOARDING.md / AGENTS.md
+    body = TIERS[
+        "Standard"
+    ]  # CR-C1: statuses must exist before ONBOARDING.md / AGENTS.md
     currency = _step(body, "currency check")
     assert currency < _step(body, "`ONBOARDING.md` at the repo root")
     assert currency < _step(body, "AGENTS.md decision")
-    assert _step(body, "10 sampled claims") > _step(body, "AGENTS.md decision")  # checks run last
+    assert _step(body, "10 sampled claims") > _step(
+        body, "AGENTS.md decision"
+    )  # checks run last
 
 
 def test_deep_runs_the_currency_check_before_the_synthesizer() -> None:
@@ -145,7 +172,9 @@ def test_deep_decides_incremental_before_dispatch() -> None:
 
 
 def test_standard_refreshes_commit_history_for_codemem() -> None:
-    assert "codemem refresh-commits" in TIERS["Standard"].split("\n2.")[0]  # CR-W1: step 1
+    assert (
+        "codemem refresh-commits" in TIERS["Standard"].split("\n2.")[0]
+    )  # CR-W1: step 1
 
 
 def test_the_orchestrator_builds_the_index_and_workers_only_query_it() -> None:
@@ -155,13 +184,21 @@ def test_the_orchestrator_builds_the_index_and_workers_only_query_it() -> None:
 
 
 def test_the_cli_decides_whether_a_pack_is_trusted() -> None:
-    rule = _section(SKILL, "## Checked output").split("- **Incremental re-run**")[1].split("\n- **")[0]
+    rule = (
+        _section(SKILL, "## Checked output")
+        .split("- **Incremental re-run**")[1]
+        .split("\n- **")[0]
+    )
     assert "exit 2" in rule and "dirty" in rule  # SEC-1, CR-W2
-    assert "git ls-files .claude/onboarding" not in SKILL  # the prose check a symlink defeated
+    assert (
+        "git ls-files .claude/onboarding" not in SKILL
+    )  # the prose check a symlink defeated
 
 
 def test_the_template_does_not_restate_sample_sizes() -> None:
-    line = next(ln for ln in ONBOARDING_TEMPLATE.splitlines() if "**Checked output:**" in ln)
+    line = next(
+        ln for ln in ONBOARDING_TEMPLATE.splitlines() if "**Checked output:**" in ln
+    )
     assert not re.search(r"\d+\s*(Standard|Deep)", line)
 
 
@@ -176,5 +213,9 @@ def test_the_deep_team_template_follows_the_new_order() -> None:
 
 
 def test_grounding_names_what_exit_2_means() -> None:
-    rule = _section(SKILL, "## Checked output").split("- **Grounding**")[1].split("\n- **")[0]
+    rule = (
+        _section(SKILL, "## Checked output")
+        .split("- **Grounding**")[1]
+        .split("\n- **")[0]
+    )
     assert "exit 2" in rule

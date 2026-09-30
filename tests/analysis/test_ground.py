@@ -25,7 +25,9 @@ def _ground(repo: Path, md: str) -> list[ground.Ungrounded]:
 def test_a_name_eighty_lines_away_is_flagged(tmp_path: Path) -> None:
     repo = make_repo(tmp_path / "r", {"src/x.py": _src(80, "def foo_bar(): pass")})
     out = _ground(repo, "- `foo_bar` loads the config (`src/x.py:10`)\n")
-    assert out == [ground.Ungrounded(md_line=1, citation="src/x.py:10", token="foo_bar")]
+    assert out == [
+        ground.Ungrounded(md_line=1, citation="src/x.py:10", token="foo_bar")
+    ]
 
 
 def test_a_name_within_twenty_lines_passes(tmp_path: Path) -> None:
@@ -35,22 +37,31 @@ def test_a_name_within_twenty_lines_passes(tmp_path: Path) -> None:
 
 def test_numbers_are_checked_in_the_same_window(tmp_path: Path) -> None:
     repo = make_repo(tmp_path / "r", {"src/x.py": _src(12, "TIMEOUT = 300")})
-    assert _ground(repo, "- The default timeout is 300 seconds (`src/x.py:12`).\n") == []
+    assert (
+        _ground(repo, "- The default timeout is 300 seconds (`src/x.py:12`).\n") == []
+    )
     out = _ground(repo, "- The default timeout is 500 seconds (`src/x.py:12`).\n")
     assert [u.token for u in out] == ["500"]
     far = make_repo(tmp_path / "far", {"src/x.py": _src(80, "TIMEOUT = 300")})
-    assert [u.token for u in _ground(far, "- Timeout is 300 (`src/x.py:12`).\n")] == ["300"]
+    assert [u.token for u in _ground(far, "- Timeout is 300 (`src/x.py:12`).\n")] == [
+        "300"
+    ]
 
 
 def test_a_unit_without_a_citation_is_not_a_claim(tmp_path: Path) -> None:
     repo = make_repo(tmp_path / "r", {"src/x.py": "pass\n"})
-    assert _ground(repo, "- `ghost` does 42 things.\n\nPlain prose with 7 numbers.\n") == []
+    assert (
+        _ground(repo, "- `ghost` does 42 things.\n\nPlain prose with 7 numbers.\n")
+        == []
+    )
 
 
 def test_a_bare_path_citation_searches_the_whole_file(tmp_path: Path) -> None:
     repo = make_repo(tmp_path / "r", {"src/x.py": _src(95, "def late(): pass")})
     assert _ground(repo, "- `late` is defined in `src/x.py`.\n") == []
-    assert [u.token for u in _ground(repo, "- `early` is defined in `src/x.py`.\n")] == ["early"]
+    assert [
+        u.token for u in _ground(repo, "- `early` is defined in `src/x.py`.\n")
+    ] == ["early"]
 
 
 def test_one_sentence_per_unit_in_prose(tmp_path: Path) -> None:
@@ -60,14 +71,20 @@ def test_one_sentence_per_unit_in_prose(tmp_path: Path) -> None:
 
 
 def test_any_cited_file_in_the_unit_can_ground_a_token(tmp_path: Path) -> None:
-    repo = make_repo(tmp_path / "r", {"a.py": "def one(): pass\n", "b.py": "def two(): pass\n"})
+    repo = make_repo(
+        tmp_path / "r", {"a.py": "def one(): pass\n", "b.py": "def two(): pass\n"}
+    )
     assert _ground(repo, "- `one` calls `two` (`a.py:1`, `b.py:1`)\n") == []
 
 
 def test_a_missing_cited_file_is_flagged(tmp_path: Path) -> None:
     repo = make_repo(tmp_path / "r", {"src/x.py": "pass\n"})
     out = _ground(repo, "- `thing` lives in `src/gone.py:3`\n")
-    assert out == [ground.Ungrounded(md_line=1, citation="src/gone.py:3", token="src/gone.py", missing=True)]
+    assert out == [
+        ground.Ungrounded(
+            md_line=1, citation="src/gone.py:3", token="src/gone.py", missing=True
+        )
+    ]
 
 
 def test_a_citation_that_leaves_the_repo_is_never_read(tmp_path: Path) -> None:
@@ -123,15 +140,26 @@ def test_an_escaped_pipe_in_a_table_cell_matches_the_source(tmp_path: Path) -> N
 
 def test_a_number_in_the_cited_path_is_grounded_by_the_citation(tmp_path: Path) -> None:
     repo = make_repo(tmp_path / "r", {"docs/adr/0008-merge.md": "# Merge workflow\n"})
-    assert _ground(repo, "- ADR-0008 describes the merge workflow (`docs/adr/0008-merge.md:1`).\n") == []
-    assert [u.token for u in _ground(repo, "- ADR-0009 is it (`docs/adr/0008-merge.md:1`).\n")] == ["0009"]
+    assert (
+        _ground(
+            repo,
+            "- ADR-0008 describes the merge workflow (`docs/adr/0008-merge.md:1`).\n",
+        )
+        == []
+    )
+    assert [
+        u.token
+        for u in _ground(repo, "- ADR-0009 is it (`docs/adr/0008-merge.md:1`).\n")
+    ] == ["0009"]
 
 
 def test_a_range_citation_windows_the_whole_range(tmp_path: Path) -> None:
     repo = make_repo(tmp_path / "r", {"src/x.py": _src(55, "def tail_end(): pass")})
     assert _ground(repo, "- `tail_end` closes it (`src/x.py:10-40`)\n") == []
     far = make_repo(tmp_path / "far", {"src/x.py": _src(75, "def tail_end(): pass")})
-    assert [u.token for u in _ground(far, "- `tail_end` closes it (`src/x.py:10-40`)\n")] == ["tail_end"]
+    assert [
+        u.token for u in _ground(far, "- `tail_end` closes it (`src/x.py:10-40`)\n")
+    ] == ["tail_end"]
 
 
 def test_cli_names_a_bad_citation_as_such(tmp_path: Path, capsys) -> None:
@@ -161,4 +189,9 @@ def test_cli_refuses_a_markdown_file_that_is_not_utf8(tmp_path: Path, capsys) ->
 def test_a_missing_citation_is_flagged_as_missing(tmp_path: Path) -> None:
     repo = make_repo(tmp_path / "r", {"src/x.py": "pass\n"})
     (miss,) = _ground(repo, "- `thing` lives in `src/gone.py:3`\n")
-    assert miss.missing and not _ground(make_repo(tmp_path / "s", {"a.py": "b\n"}), "- `c` (`a.py:1`)\n")[0].missing
+    assert (
+        miss.missing
+        and not _ground(
+            make_repo(tmp_path / "s", {"a.py": "b\n"}), "- `c` (`a.py:1`)\n"
+        )[0].missing
+    )

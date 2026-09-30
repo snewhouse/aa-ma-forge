@@ -774,3 +774,10 @@ def test_fresh_refuses_a_dotdot_alias_through_a_symlink(
         served.write_text(json.dumps(doc), encoding="utf-8")
     rc, out = _fresh(repo / "lnk" / ".." / rel, repo, capsys)
     assert rc == 1 and "refused" in out and "Traceback" not in out
+
+
+def test_safe_env_drops_the_callers_repo_location(monkeypatch) -> None:
+    for var in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_LITERAL_PATHSPECS"):
+        monkeypatch.setenv(var, "/elsewhere")
+    env = stamp.safe_env()
+    assert not {"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_LITERAL_PATHSPECS"} & set(env)

@@ -243,3 +243,25 @@ def test_the_sha_must_be_the_packs_own_stamp(two_commits, capsys) -> None:
 def test_section_names_are_ascii() -> None:
     with pytest.raises(ValueError):
         _onboarding({"٠٣-x.md": []})
+
+
+def test_the_callers_git_location_env_cannot_steer_the_checks(
+    two_commits, capsys, monkeypatch
+) -> None:
+    repo, first = two_commits  # regression 2 W1: hooks export GIT_DIR / GIT_INDEX_FILE
+    ob = _pack(repo, sha12=first)
+    git(repo, "add", "-f", "--", ".claude/onboarding/onboarding.json")
+    git(repo, "commit", "-q", "-m", "ship a pack")
+    monkeypatch.setenv("GIT_INDEX_FILE", str(repo / "no-such-index"))
+    assert _refused(repo, first, ob, capsys)
+
+
+def test_an_uppercase_alias_is_matched_too(two_commits, capsys) -> None:
+    repo, first = two_commits  # regression 2 W2: NTFS compares upper-cased; 'ı'.upper() == 'I'
+    alias = repo / ".claude/onboardıng/onboarding.json"
+    alias.parent.mkdir(parents=True)
+    alias.write_text("{}", encoding="utf-8")
+    git(repo, "add", "-f", "--", str(alias.relative_to(repo)))
+    git(repo, "commit", "-q", "-m", "dotless alias")
+    ob = _pack(repo, sha12=first)
+    assert _refused(repo, first, ob, capsys)

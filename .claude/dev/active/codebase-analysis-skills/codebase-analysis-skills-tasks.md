@@ -181,7 +181,7 @@
 - Result Log: Mode: AFK — auto-dispatched. RED `d9f39f1` (27 failing) + `0c6bc48` → GREEN code `5a19a72` (finalize: judge writes pending/not_required only; `verdicts.jsonl` {line, verdict, reason} applied once per pending line; refuted kept with `refutation_reason`, out of counts/baseline/SARIF, report.md `## Refuted` with inert cells; Finding golden + contract table) → GREEN skill `e799525` (read-only `codebase-assessor` agent; Deep extras = Step 4 before judges; judged/<dim>.jsonl → scan-secrets --redact → validate; refuter gets line refs only; one judge template + 4 briefs; RATING `Inputs:` keys checked against a live measure; `--repo <path>`; test-run ask shows script body + "runs the target's own code") → counts 13 agents + CHANGELOG + regen `a205eeb`. Test-defect fixes committed separately (`1b3d64f` fixture highs; `2ba388b` regex + co-change fixture). Mutations 4/4 caught (judge check, duplicate verdict, refuted in live, reason dropped). Suite 2182 passed / 2 skipped; lint-imports 6/6; ruff src clean (10 format warnings all pre-existing at d13e790); bats 5/5; draw --check OK. Live replay (Ste: no agents) at a205eeb: 21 real judge lines + 1 synthetic pending High through the new path — gate rc 0, 4 validate rc 0, verdict refuted → report `a205eeb677c8/`: summary+findings validate, refuted kept with reason, not in SARIF/counts, baseline 50 persisting vs 7ff33a0cfb29, scan-secrets rc 0. Regression pass (0 CRITICAL / 4 W / 10 INFO; Ste: 4 W + cheap INFO): RED `0d85de2` → `a9a6e46` (RULE_PATTERN + RULE_PREFIXES, rule cell escaped, bidi stripped, header) + `2d77eb9` (full disclosure, parse retry, no agent substitution, physical line numbers, foundations row); 3 INFO backlog + M4 carry-over in context-log; suite 2197 passed / 2 skipped.
 
 ## Milestone 4: understand-codebase repoint + residuals
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 3
 - Gate: HARD
 - Audit-Profile: code-only
@@ -191,9 +191,9 @@
 - Acceptance Criteria: 7 criteria — see plan.md § Milestone 4
 
 ### Sub-step 4.1: [impact] impact analysis; re-count the 29 mentions at HEAD
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. At 53d53bd: `codebase-deep-dive` on 28 lines / 28 occurrences in 11 files (plan: 27/29 — M1's ANALYSIS-CONTRACT.md:68 legacy-dir line added one; per file: DIMENSIONS 7, SKILL 5, REUSE-MAP 3, health 3, synthesizer 3, command 2, contract/DEEPDIVE-TEMPLATES/ONBOARDING-TEMPLATE/PROS-CONS/onboarding-team 1 each). `deep-analysis` 3 (SKILL.md:66, :345, command:48); `Skill(aa-ma-plan)` 1 (SKILL.md:345). Impact LOW: markdown only; tests pinning current text = test_understand_codebase_rewire (KEPT DIMENSIONS line moves; ROUTES/DEEP_DIVE_RUNS stay), xrefs (docstring only), test_plugin_surface dangling {"aa-ma-plan","haiku-eval"} → {"haiku-eval"} and orphan `command:assess-codebase` drops once understand names `/assess-codebase`. Plan corrections (Ste): AC4 narrowed — DIMENSIONS.md:217 + health agent :36 `git log -1 --format=%cd` are dimension-13 repo-liveness checks, kept and asserted; the date-based REPORT rule is REUSE-MAP.md:8-10 + SKILL.md Step 0 row. AC1: two allowed sites — the SKILL.md legacy-absorb rule + ANALYSIS-CONTRACT.md:68 freshness definition. M3 carry-over added: absorb drops `refutation == refuted`.
 
 ### Sub-step 4.2: [test] rewire tests incl. KEPT move and dangling pin, RED
 - Status: PENDING

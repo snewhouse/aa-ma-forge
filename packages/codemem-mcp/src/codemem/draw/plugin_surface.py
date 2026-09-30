@@ -6,11 +6,16 @@ Regex over ``claude-code/{commands,skills,agents,hooks,rules}`` (Ticket 4:
 * Node identity is the dir/file STEM, never frontmatter ``name:`` (fork-provenance
   SKILL.md files open with an HTML comment; ``name:`` can differ from the dir).
   ``_owner`` is the ONE rule: the node set is exactly the owners of the files walked.
-* Four syntaxes: ``Skill(x)``, ``/x`` kept only when ``commands/x.md`` exists (``/x-*``
-  expands), ``subagent_type: x``, and a hook literal (the ``aa-ma-*.sh`` naming
-  convention, so a missing hook reads DANGLING, plus every on-disk hook by name).
+* Four syntaxes: ``Skill(x)``, ``/x``, ``subagent_type: x``, and a hook literal (the
+  ``aa-ma-*.sh`` naming convention, so a missing hook reads DANGLING, plus every
+  on-disk hook by name).
+* ``/x`` that RESOLVES — ``commands/x.md``, else ``skills/x/`` (``/x-*`` expands over
+  commands) — is an ON_DISK edge wherever it occurs. An unresolved ``/x`` counts only
+  when a backtick span STARTS with it (`` `/goal clear` ``, not `` `GET /healthz` ``);
+  ``:`` joins a namespace (``/superpowers:brainstorming``), ``{`` ends no name
+  (``/retro-{date}``). Unbackticked unresolved ``/x`` (``/tmp``) is prose, not a reference.
 * Every reference is ON_DISK, DECLARED_EXTERNAL (``surface_allowlist.EXTERNAL``) or
-  DANGLING. ``/x`` is filtered, never classified: ``/tmp``, ``/goal`` are noise.
+  DANGLING.
 * Edge kind is the DESTINATION kind — M6's ``@skill``/``@command``/``@agent``/``@hook``
   sigils filter on it. Self-edges are dropped; ``docs/``, ``claude-code/codemem/`` and
   symlinks are out of the graph.
@@ -37,7 +42,10 @@ _AGENT = re.compile(r"""subagent_type\s*[=:]\s*["']?([A-Za-z0-9_:-]+)""")
 _HOOK_CONVENTION = r"(?:aa-ma-|pre-compact-aa-ma|security-static-check)[a-z0-9-]{0,64}\.sh"
 # Lookbehind/ahead keep path fragments out (`/tmp/x-y.log`) but let a sentence end: `Run /x.`
 # `/x-*` is a glob; `**/x**` is bold markdown around /x, not a glob.
-_COMMAND = re.compile(r"(?<![A-Za-z0-9_./~-])/([a-z][a-z0-9-]*)(\*(?!\*))?(?![A-Za-z0-9_/-]|\.[A-Za-z0-9_])")
+_COMMAND = re.compile(r"(?<![A-Za-z0-9_./~-])/([a-z][a-z0-9-]*)(\*(?!\*))?(?![A-Za-z0-9_/{-]|\.[A-Za-z0-9_])")
+# The same name at the START of a backtick span (spans paired left to right), plus `ns:name`.
+_SPAN = re.compile(r"`([^`\n]+)`")
+_SPAN_COMMAND = re.compile(r"/([a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)?)(\*(?!\*))?(?![A-Za-z0-9_/{:-]|\.[A-Za-z0-9_])")
 _HOOK_BLOCK = re.compile(r"AA_MA_HOOKS=\((.*?)\n\)", re.DOTALL)
 _HOOK_ROW = re.compile(r'"([A-Za-z]+)\|([^"]*?)\|([A-Za-z0-9_.-]+\.sh)\|')
 
@@ -90,6 +98,7 @@ def extract(repo_root: Path) -> Surface:
         for h in sorted(set(hook_owners)) if hook_owners.count(h) > 1
     ]
     commands = [_stem(n) for n in nodes if n.startswith("command:")]
+    skills = {_stem(n) for n in nodes if n.startswith("skill:")}
     hook_names = sorted({_stem(n) for n in nodes if n.startswith("hook:")} | EXTERNAL["hook"])
     hook_rx = re.compile(
         rf"(?<![\w.-])({'|'.join([_HOOK_CONVENTION, *map(re.escape, hook_names)])})(?![\w-])"
@@ -102,11 +111,12 @@ def extract(repo_root: Path) -> Surface:
             for name in rx.findall(text):
                 found.add(SurfaceEdge(src, f"{kind}:{name}", kind, _classify(kind, name, nodes)))
         for name, glob in _COMMAND.findall(text):
-            if glob:
-                hits = [c for c in commands if c.startswith(name)]
-            else:
-                hits = [name] if name in commands else []
-            found |= {SurfaceEdge(src, f"command:{c}", NodeKind.COMMAND, RefClass.ON_DISK) for c in hits}
+            found |= {SurfaceEdge(src, d, k, RefClass.ON_DISK) for d, k in _resolve(name, glob, commands, skills)}
+        for m in filter(None, map(_SPAN_COMMAND.match, _SPAN.findall(text))):
+            name, glob = m.group(1), m.group(2) or ""
+            if not _resolve(name, glob, commands, skills):
+                name += glob
+                found.add(SurfaceEdge(src, f"command:{name}", NodeKind.COMMAND, _classify("command", name, nodes)))
     edges = sorted(e for e in found if e.src != e.dst)
 
     inbound = {e.dst for e in edges if e.ref_class is RefClass.ON_DISK}
@@ -151,6 +161,14 @@ def _owner(cc: Path, f: Path) -> str | None:
     if kind == "hook":
         return f"hook:{f.name}" if f.suffix == ".sh" else None
     return f"{kind}:{f.stem}" if len(parts) == 2 and f.suffix == ".md" else None
+
+
+def _resolve(name: str, glob: str, commands: list[str], skills: set[str]) -> list[tuple[str, NodeKind]]:
+    if glob:
+        return [(f"command:{c}", NodeKind.COMMAND) for c in commands if c.startswith(name)]
+    if name in commands:
+        return [(f"command:{name}", NodeKind.COMMAND)]
+    return [(f"skill:{name}", NodeKind.SKILL)] if name in skills else []
 
 
 def _classify(kind: str, name: str, nodes: set[str]) -> RefClass:

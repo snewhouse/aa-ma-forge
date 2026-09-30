@@ -21,6 +21,9 @@ EXTERNAL: dict[str, frozenset[str]] = {
         "spec-driven-development", "test-driven-development", "ubiquitous-language",
         "feature-dev:feature-dev",  # plugin-namespaced: the feature-dev plugin's command
     }),
+    # Backticked `/x` (codebase-analysis-skills M6): gstack skills, Claude Code built-ins,
+    # a plugin-namespaced skill. Local-only user commands are deliberately NOT here.
+    "command": frozenset({"browse", "qa", "qa-only", "goal", "init", "superpowers:brainstorming"}),
     "agent": frozenset({"Explore", "general-purpose", "gsd-codebase-mapper"}),
     "hook": frozenset({"aa-ma-share-allow.sh"}),  # ships from scripts/, not claude-code/hooks/
 }

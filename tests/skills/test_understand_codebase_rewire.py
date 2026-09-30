@@ -289,3 +289,9 @@ def test_step_0_absorbs_a_fresh_assess_report_and_drops_refuted_findings() -> No
 def test_deep_asks_once_to_run_assess_first() -> None:
     deep = _section((SKILL / "SKILL.md").read_text(encoding="utf-8"), "### Deep")
     assert "/assess-codebase" in deep and "ask once" in deep
+
+
+def test_provenance_wording_is_one_phrase_in_skill_and_template() -> None:
+    # Live M4 run: the template example said "absorbed, fresh, sha12" while SKILL.md said "absorbed (fresh, sha12".
+    for rel in ("SKILL.md", "references/ONBOARDING-TEMPLATE.md"):
+        assert "absorbed (fresh, sha12 <sha12>)" in (SKILL / rel).read_text(encoding="utf-8"), rel

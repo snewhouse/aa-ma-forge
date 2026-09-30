@@ -114,7 +114,7 @@ git clone <url> && cd <repo>
 - **Tools used:** <e.g. codemem build + draw --write (ran), gsd-codebase-mapper×4 (ran), /assess-codebase — absorbed (fresh, sha12 <sha12>), link its report.md, code-intelligence (sg patterns), WebSearch+Context7 (version currency), agent-teams TeamCreate (Deep)>
 - **Absorbed (reused, not re-run):** <e.g. codemem index / PROJECT_INDEX.json (2026-05-10), .planning/codebase/* (2026-05-09); none>
 - **Freshly run:** <list>
-- **Checked output:** grounding <ground exit 0 on every file · N claims re-asked · M dropped | skipped — CLI unavailable>; claims sampled <10 Standard · ~20 Deep, all held | n/a>; currency check <see §5 | skipped>; `onboarding.json` <validated | skipped>
+- **Checked output:** grounding <ground exit 0 on every file · N claims re-asked · M dropped | skipped — CLI unavailable>; claims sampled <N per the tier (SKILL.md), all held | n/a>; currency check <see §5 | skipped>; `onboarding.json` <validated | skipped>
 - **Incremental:** <full run | regenerated: `<file>`, `<file>` (changed-since `<sha12>`) | skipped — CLI unavailable>
 - **Coverage ledger:** <table: Path | assessed / set_aside | Reason>
 - **Known limitations / gaps:** <list, or "none">

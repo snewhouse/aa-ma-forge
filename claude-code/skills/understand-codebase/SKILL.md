@@ -115,15 +115,20 @@ heavy tool (`gsd-map-codebase`) when its output is absent or stale.**
 
 Every `aa-ma-analysis` call below runs from the target root as
 `uv run --quiet --project "$AA_MA_ROOT" aa-ma-analysis …` (`AA_MA_ROOT` as in Step 0). The tier workflows call these steps by name.
+Order: the incremental check comes first, the currency check before anything is written (so every
+file is written with real statuses), and grounding, sampled claims, ledger and `onboarding.json` last.
 
-- **Incremental re-run** (Standard/Deep). When `.claude/onboarding/onboarding.json` exists and
-  `git ls-files .claude/onboarding` prints nothing (a pack the repo itself ships is never trusted),
-  run `aa-ma-analysis changed-since <its stamp sha12> --repo . --onboarding .claude/onboarding/onboarding.json`.
-  `known: true` → regenerate only the deep-dives in `regenerate`, then the `ONBOARDING.md` sections
-  written from them; keep every other file as it is. `known: false` (the stamp's commit is gone), a
-  tracked pack, or any non-zero exit → a full run. Provenance lists the regenerated sections by name.
+- **Incremental re-run** (Standard/Deep). When `.claude/onboarding/onboarding.json` exists, run
+  `aa-ma-analysis changed-since <its stamp sha12> --repo . --onboarding .claude/onboarding/onboarding.json`.
+  The CLI decides whether the pack can be trusted: it refuses (exit 2) a pack git tracks, one reached
+  through a symlinked `.claude` or `.claude/onboarding`, or one outside that path — a pack the repo
+  ships would pick which of its own deep-dives stay unchecked. `known: true` → regenerate only the
+  deep-dives in `regenerate`, then the `ONBOARDING.md` sections written from them; keep every other
+  file as it is. `known: false` (the stamp's commit is gone, or the tree is dirty — uncommitted edits
+  are invisible to the diff), exit 2, or any other non-zero exit → a full run. Provenance lists the
+  regenerated sections by name.
 - **Grounding** (every tier). After writing each file, `aa-ma-analysis ground <file> --repo .`. Exit 1 lists
-  `line: token not found in citation` — re-ask once (the agent that wrote the claim, or yourself)
+  `line: token not found in citation` (or `citation: cited path missing or outside the repo`) — re-ask once (the agent that wrote the claim, or yourself)
   to fix the claim or its citation; if it is still ungrounded, drop the claim. Every written file
   ends at `ground` exit 0.
 - **Currency check** (Standard/Deep). The main thread — never an agent — shows the documented
@@ -133,7 +138,7 @@ Every `aa-ma-analysis` call below runs from the target root as
   `ONBOARDING.md` and in `onboarding.json`. Declined or unapproved → `not_run`.
 - **Coverage ledger** (every tier). One entry per top-level path: `assessed`, or `set_aside` with a
   reason naming the evidence (vendored, generated, fixtures). It goes in `onboarding.json`'s `ledger`
-  and, as a table, in the Provenance block; nothing is silently skipped.
+  (Standard/Deep) and, as a table, in the Provenance block (every tier); nothing is silently skipped.
 - **`onboarding.json`** (Standard/Deep). Write `.claude/onboarding/onboarding.json` last: `stamp`
   from `aa-ma-analysis stamp --repo . --tier <tier>`; `commands` from the currency check; `entry_points`,
   `key_modules`, `rules_files`; the `ledger`; and `sections` — for each deep-dive, its file name
@@ -200,7 +205,9 @@ Coverage must include **all** of these:
 ### Standard (~15–30 min) — DEFAULT
 
 1. Step 0 (absorb), then the incremental re-run check: when it names sections, the steps below
-   regenerate only those. Ensure a codemem index exists (`codemem build` if not; `PROJECT_INDEX.json` is codemem's equivalent fallback when present).
+   regenerate only those. Ensure a current codemem index: `codemem build` then `codemem refresh-commits`
+   (the git history `hot_spots` / `co_changes` read — empty without it); the main thread runs both, since
+   Explore agents are read-only. `PROJECT_INDEX.json` is codemem's equivalent fallback when present.
 2. Detect languages present (gate `sg`/ast-grep patterns accordingly; fall back to `Grep`).
 3. Launch **4 parallel `Agent(subagent_type=Explore)` calls in one message** — each owns a
    cluster and writes a structured summary back (NOT to disk; the main thread synthesizes):
@@ -224,24 +231,29 @@ Coverage must include **all** of these:
    absorbed artifacts, fill the dimension catalogue, build the pros/cons verdict
    (`references/PROS-CONS-RUBRIC.md`) and the two playbooks (`PLAYBOOK-CONTRIBUTE.md`,
    `PLAYBOOK-ADD-FEATURE.md`) — both must cite **real files/commands from this repo**, not boilerplate.
-5. **Write**: `ONBOARDING.md` at the repo root (`references/ONBOARDING-TEMPLATE.md`) and
+5. **Run the currency check** (main thread, before anything is written): show the documented commands, ask
+   once, run the approved ones via `aa-ma-analysis run`; their statuses go into every file below.
+6. **Write**: `ONBOARDING.md` at the repo root (`references/ONBOARDING-TEMPLATE.md`) and
    `.claude/onboarding/00-index.md` … `09-repo-health-and-verdict.md`
    (`references/DEEPDIVE-TEMPLATES.md`). `02-architecture.md` links `docs/architecture/` when it
    exists (a Deep run writes it); otherwise it embeds one ```mermaid block from codemem's `diagram`
    MCP tool (default `level="L2"`) or `codemem draw --level L2` — never a hand-drawn sketch.
-6. **AGENTS.md decision** (dimension 19) — read `references/AGENTS-MD-TEMPLATE.md`; follow its
+7. **AGENTS.md decision** (dimension 19) — read `references/AGENTS-MD-TEMPLATE.md`; follow its
    SAFETY PROTOCOL: no `AGENTS.md` & no `CLAUDE.md` → `AskUserQuestion` to author one (or write
    `AGENTS.draft.md`); `AGENTS.md` exists → write `AGENTS.review.md`, never overwrite; only
    `CLAUDE.md` exists → `AskUserQuestion` (thin pointer / standalone / leave it). Never edit `CLAUDE.md`.
-7. **Checked output:** `aa-ma-analysis ground` on every written file; then read 10 sampled claims
-   yourself against their cited lines (fix or drop any that fail); the currency check;
-   the coverage ledger; `onboarding.json` + `aa-ma-analysis validate onboarding`.
-8. **Self-check** against the acceptance criteria (below) and the secret-leak grep gate. Report a
+8. **Checked output** (last): `aa-ma-analysis ground` on every written file; then read 10 sampled claims
+   yourself against their cited lines (fix or drop any that fail); the coverage ledger;
+   `onboarding.json` + `aa-ma-analysis validate onboarding`.
+9. **Self-check** against the acceptance criteria (below) and the secret-leak grep gate. Report a
    concise summary to chat (not the full docs) — including which `AGENTS.md` action was taken.
 
 ### Deep (~45 min+) — opt-in, `TeamCreate` agent-team
 
-Use `Skill(agent-teams)` machinery. Team template: `templates/onboarding-team.md`. If Step 0 found
+Use `Skill(agent-teams)` machinery. Team template: `templates/onboarding-team.md`. Before any
+dispatch, run the incremental re-run check — on a re-run, spawn only the mappers and workers that own
+the listed sections — then build the index once (`codemem build`, `codemem refresh-commits`) so no
+worker writes `.codemem/`, and put `AA_MA_ROOT` in every worker prompt. If Step 0 found
 no fresh assess report, ask once whether to run `/assess-codebase` first — its ratings and findings
 feed the dimensions listed in the `/assess-codebase` row of `references/DIMENSIONS.md`; declined →
 note it in Provenance and carry on. Shape:
@@ -258,6 +270,9 @@ note it in Provenance and carry on. Shape:
   version currency / EOL dates, known CVEs in the dependency set, and "current best-practice"
   patterns for the detected stack. Write findings into `.claude/onboarding/01-stack.md` (a
   "Version currency" subsection).
+- **Run the currency check** (orchestrator, once the workers are done and before the synthesizer): show the
+  documented commands the runbook worker found, ask once, run the approved ones via
+  `aa-ma-analysis run`, and pass the statuses to the synthesizer.
 - **Synthesizer:** `Agent(subagent_type="codebase-onboarding-synthesizer")` — reads ALL
   per-dimension docs + absorbed artifacts + enrichment, writes the root `ONBOARDING.md`, the
   `00-index.md`, the pros/cons verdict, both playbooks, the "10-minute orientation" and "first
@@ -268,10 +283,9 @@ note it in Provenance and carry on. Shape:
   pointed at `ONBOARDING.md` + `.claude/onboarding/` with the brief: "verify every factual claim
   against the codebase; flag boilerplate not grounded in this repo; run the secret-leak grep."
   Apply its corrections, then `SendMessage` shutdown and clean up the team.
-- **Checked output** (orchestrator, after the reviewer): `aa-ma-analysis ground` on every written
-  file, ~20 sampled claims read against their cited lines, the currency check, the coverage ledger,
-  `onboarding.json` + `aa-ma-analysis validate onboarding`. On a re-run, the incremental check
-  decides which workers run at all.
+- **Checked output** (orchestrator, last, after the reviewer): `aa-ma-analysis ground` on every
+  written file, ~20 sampled claims read against their cited lines, the coverage ledger,
+  `onboarding.json` + `aa-ma-analysis validate onboarding`.
 
 If any reused tool/agent is missing → skip that input, note it in Provenance, continue. Never hard-fail.
 
@@ -375,7 +389,7 @@ SECRETS line below is its canonical text; `tests/analysis/test_contract_doc.py` 
   → zero hits in skill-written files.
 - `--quick` → only `ONBOARDING.md`, ≤ ~150 lines, no `.claude/onboarding/`, `AGENTS.md` untouched.
 - Repo with **no** `AGENTS.md` (Standard/Deep) → user was asked before any `AGENTS.md`/`AGENTS.draft.md`
-  was written; if consent given, the file follows `references/AGENTS-MD-TEMPLATE.md` and is ≤ ~60 lines (Commands, Gotchas, Rules pointers).
+  was written; if consent given, the file follows `references/AGENTS-MD-TEMPLATE.md` and stays within that template's size limit.
 - Repo **with** an existing `AGENTS.md` → it is byte-for-byte unchanged; an `AGENTS.review.md`
   sidecar exists with a section-by-section accuracy verdict + a proposed rewrite. `CLAUDE.md` (if present) byte-for-byte unchanged.
 - Deep → a team dir appeared under `~/.claude/teams/`; task list shows mapper tasks → synthesis →

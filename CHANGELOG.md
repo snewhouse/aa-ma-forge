@@ -85,8 +85,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   not_run / refused. Standard and Deep write `.claude/onboarding/onboarding.json` (validated) with a
   per-section map of the paths each deep-dive cites; on a re-run, `aa-ma-analysis changed-since
   <sha12> --onboarding …` names the only sections to regenerate (cited files, cited directories,
-  fixed globs; any add/delete/rename → structure; a vanished stamp commit → everything; a pack the
-  repo itself tracks is never trusted). Every tier keeps a coverage ledger; Standard reads 10 sampled
+  fixed globs; any add/delete/rename → structure; a vanished stamp commit or a dirty tree →
+  everything). `changed-since` refuses a pack git tracks or reaches through a symlinked `.claude`,
+  and section names must be deep-dive file names, so a repo cannot plant a pack that keeps its own
+  deep-dives unchecked. Every tier keeps a coverage ledger; Standard reads 10 sampled
   claims, Deep ~20. Dimensions 4 and 13 read codemem `layers`, `hot_spots`, `co_changes` and
   `owners` instead of re-deriving them. The AGENTS.md template shrinks to Commands, Gotchas and Rules
   pointers — only what the code cannot tell an agent. Without the CLI every tier still completes and

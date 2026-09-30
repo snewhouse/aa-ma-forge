@@ -5,6 +5,17 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-032 (2026-09-30) — Post-merge record left on local main broke the next `/sole-dev-merge` G4
+**Pattern:** After M3 merged, its merge record (`53d53bd`) was committed on local `main` and never
+pushed; M4's branch was cut from that `main`, so the commit rode into PR #7 and was rebased
+upstream as `de52a06`. Stage G4's `git pull --ff-only` then failed on the diverged local `main`
+and G4 printed nothing — the merge itself had succeeded.
+**Rule:** Before cutting the next milestone branch, check `git status -sb` on `main`. If it is
+`ahead N`, either ask to push those record commits or let them ride the branch knowingly. After a
+G4 that prints nothing, run `git cherry -v origin/main main`. If every line is `-`, the commits are
+already upstream: `git reset --hard origin/main` on a clean tree, then re-run G4's cleanup.
+---
+
 ## L-031 (2026-09-29) — `/sole-dev-merge` Stage B reformatted untouched lines of touched files
 **Pattern:** Running `/sole-dev-merge` for codebase-analysis-skills M2, Stage B ran `ruff format`
 + `ruff check --fix` on every *file* the branch changed and Stage B-commit committed the result:

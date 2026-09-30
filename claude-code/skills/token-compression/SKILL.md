@@ -18,7 +18,7 @@ adapted for AA-MA execution mode integration.
 - **Automatic:** During AA-MA execution, intensity is set by task Mode field
   - `Mode: HITL` → lite (preserve clarity for human review)
   - `Mode: AFK` → ultra (maximum compression for autonomous execution)
-- **Manual:** `/compress lite|full|ultra` to override during any session
+- **Manual:** ask for "compress lite|full|ultra" to override during any session
 - **Default:** `full` when activated outside AA-MA execution context
 
 ## Rules
@@ -77,7 +77,7 @@ Resume compression after the clear section is complete.
 - Commit messages: follow Conventional Commits format, never compressed
 - PR descriptions: write normally
 - Error messages: quote exact, never paraphrase
-- `/compress off` or "normal mode": deactivate compression
+- "compress off" or "normal mode": deactivate compression
 - Level persists until changed or session end
 
 ## Integration with AA-MA Execution

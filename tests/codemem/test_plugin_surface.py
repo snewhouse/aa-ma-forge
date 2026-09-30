@@ -71,8 +71,14 @@ def test_every_skill_target_has_exactly_one_class_and_dangling_is_named(surface)
 
 
 def test_no_command_mention_dangles(surface) -> None:
-    """codebase-analysis-skills M6: every backticked `/x` resolves or is declared external."""
-    assert {e.dst for e in surface.edges if e.kind == "command" and e.ref_class is RefClass.DANGLING} == set()
+    """codebase-analysis-skills M6: the 6.1 pin minus the eight mentions 6.4 fixed.
+
+    `/settings` is an HTTP route in claude-code/skills/prototype/UI.md, a verbatim fork
+    (FORKS.json state "current"); rewording it would trip fork-drift (Ste, 2026-09-30).
+    """
+    assert {e.dst for e in surface.edges if e.kind == "command" and e.ref_class is RefClass.DANGLING} == {
+        "command:settings"
+    }
 
 
 def test_the_backticked_rule_loses_no_edge_the_any_occurrence_rule_found(surface) -> None:

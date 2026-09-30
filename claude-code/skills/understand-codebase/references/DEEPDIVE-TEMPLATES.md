@@ -257,7 +257,7 @@ git clone <url> && cd <repo>
 - Tracing: <OTel / Jaeger / Zipkin / Sentry / none — where>
 - Error tracking: <Sentry / Rollbar / Bugsnag / none>
 - Dashboards / alerting: <Grafana / Datadog / … — if discoverable>
-- Health checks: <`/healthz` / `/readyz` endpoints — file:line, or none>
+- Health checks: <`GET /healthz` / `GET /readyz` endpoints — file:line, or none>
 
 ## Security posture  (describe, don't audit — link a fresh `/assess-codebase` report.md if one exists)
 - Auth/authz model: <sessions / JWT / OAuth2 / OIDC / API keys / mTLS — 2-3 sentences, cite the middleware/decorator>

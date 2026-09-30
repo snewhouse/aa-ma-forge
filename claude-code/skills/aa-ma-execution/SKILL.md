@@ -250,7 +250,7 @@ Every task in `tasks.md` carries a `Mode:` field that controls execution behavio
 - No user interaction unless the task fails or hits a HARD gate
 
 **Token Compression Override:**
-Manual override via `/compress lite|full|ultra` at any point during execution.
+Manual override: ask for "compress lite|full|ultra" at any point during execution.
 See `Skill(token-compression)` for full intensity level details and auto-clarity exceptions.
 
 **HARD Gate Override:**
@@ -564,7 +564,7 @@ Acceptance criteria:
 
 - All commits during AA-MA plan execution
 - All commits from `/execute-aa-ma-step`, `/execute-aa-ma-milestone`, `/execute-aa-ma-full`
-- All commits from `/commit-and-push`, `/pre-commit-*` while a plan is active
+- Commits from any other helper command or pre-commit auto-fix while a plan is active
 - Manual commits during plan execution
 
 ---

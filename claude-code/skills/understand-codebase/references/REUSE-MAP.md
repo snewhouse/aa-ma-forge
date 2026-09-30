@@ -21,7 +21,7 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 | Artifact (relative to target repo root) | Produced by | If present, absorb as | Freshness check |
 |---|---|---|---|
 | `.codemem/index.db` | `codemem build` (codemem's MCP tools also build it on first query) | Symbols, call + import graph, `layers`, `diagram` (L0–L3 mermaid). **Query this first** for dimensions 1, 3, 4. | files changed since the build → run `codemem build`. |
-| `PROJECT_INDEX.json` | `/index` (external generator, not shipped) — codemem's equivalent fallback when present | Directory purposes (`dir_purposes`), ASCII tree, file summaries, `symbol_importance`, call graph, import deps. | mtime vs last commit; the file has its own metadata. |
+| `PROJECT_INDEX.json` | the external `claude-code-project-index` generator (not shipped) — codemem's equivalent fallback when present | Directory purposes (`dir_purposes`), ASCII tree, file summaries, `symbol_importance`, call graph, import deps. | mtime vs last commit; the file has its own metadata. |
 | `.planning/codebase/STACK.md` | `gsd-map-codebase` (tech) | Dimension 2 (tech stack) + 12-integrations partial. Authoritative. | date header in the file vs last commit. |
 | `.planning/codebase/INTEGRATIONS.md` | `gsd-map-codebase` (tech) | Dimension 12 integrations. | " |
 | `.planning/codebase/ARCHITECTURE.md` | `gsd-map-codebase` (arch) | Dimension 3 (architecture, data flow). | " |
@@ -55,7 +55,7 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
   = the aa-ma-forge checkout; see SKILL.md "Living architecture doc"). Python natively; TS/TSX/JS, Go,
   Rust, Java, Ruby, Bash via ast-grep. ~0.5 s on 175 files, ~30 s on 2 500.
 - **Output:** `.codemem/index.db`. Query it via the MCP tools or `codemem query` / `codemem draw`.
-- **Fallback:** if `PROJECT_INDEX.json` exists (from the external `/index` generator), read it instead of codemem — it answers
+- **Fallback:** if `PROJECT_INDEX.json` exists (from the external `claude-code-project-index` generator), read it instead of codemem — it answers
   the same structural questions. Otherwise agents discover structure with `find`/`sg`/`Grep`. Note in Provenance.
 
 ### `gsd-codebase-mapper` agent ×4 — structural docs (Deep tier)

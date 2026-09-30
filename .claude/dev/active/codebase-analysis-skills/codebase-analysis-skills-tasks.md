@@ -211,10 +211,10 @@
 - Result Log: [placeholder]
 
 ### Sub-step 4.5: [remediate] §6.8 impl-review — 11 WARNINGs + cheap INFO (Ste: fix all now)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: RED first (`ee86b95`); SEC-1 `aa-ma-analysis fresh` refuses name≠stamp, symlinks, oversize, incomplete, tracked; SEC-2..4 + CR-1..5 + FP-1/2 in skill/agents/references; cheap INFOs; full suite green; one regression pass. Source: impl-review.md Milestone 4 section.
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED `ee86b95` (9 fresh + 7 text failing; 6 guards) → GREEN `89b0af7` (cli `fresh`: `_stamp_doc` complete regular set, `read_regular` ≤ FRESH_MAX_BYTES, dir name == stamp report name, tracked → refused; contract bullet) + GREEN text (SKILL Step 0 probes `git rev-parse --short=12 HEAD`, `fresh --repo <target>`, any non-zero never absorbs, AA_MA_ROOT not a checkout → unknown, `find -type l` symlink refusal, absorb data rule as a hard constraint; Deep + REUSE-MAP point to DIMENSIONS.md's one map (2, 3, 6, 12, 13, 14 with assess dimension per entry); REUSE-MAP never auto-re-runs assess; both absorbing agents: data rule, symlink refusal, "named in your prompt"; CHANGELOG) + regen. Mutations 3/3 caught (name check, tracked check, file-symlink check). Live (throwaway worktree at 438f817): real finalize report fresh rc 0; planted `000000000000` copy rc 1 "dir name does not match"; symlinked report.md rc 1 "refused". Suite 2233 passed / 2 skipped.
 
 ## Milestone 5: understand-codebase v1 upgrades
 - Status: PENDING

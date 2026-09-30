@@ -63,6 +63,10 @@ git clone <url> && cd <repo>
 ## 5. Build / run / debug locally
 <the quick-start expanded: install / build / run-dev / run-prod-like / debug / lint / format / typecheck — each a real command; devcontainer/Docker path; toolchain pins; "if it breaks, check…".> ⟶ `.claude/onboarding/04-build-run-debug.md`
 
+| Command | Defined in | Status |
+|---|---|---|
+| `<command>` | `<file:line>` | <verified \| failed \| timeout \| not_run \| refused> — from the currency check (`aa-ma-analysis run`); `not_run` when declined |
+
 ## 6. Tests & CI gates
 <test framework; run commands per tier (fast/full/live + what live needs); rough pyramid; fixtures/mocking convention; coverage % if known; flaky tests.> <CI: what runs on a PR; which checks block a merge.> ⟶ `.claude/onboarding/05-tests-ci.md`
 
@@ -110,6 +114,9 @@ git clone <url> && cd <repo>
 - **Tools used:** <e.g. codemem build + draw --write (ran), gsd-codebase-mapper×4 (ran), /assess-codebase — absorbed (fresh, sha12 <sha12>), link its report.md, code-intelligence (sg patterns), WebSearch+Context7 (version currency), agent-teams TeamCreate (Deep)>
 - **Absorbed (reused, not re-run):** <e.g. codemem index / PROJECT_INDEX.json (2026-05-10), .planning/codebase/* (2026-05-09); none>
 - **Freshly run:** <list>
+- **Checked output:** grounding <ground exit 0 on every file · N claims re-asked · M dropped | skipped — CLI unavailable>; claims sampled <10 Standard · ~20 Deep, all held | n/a>; currency check <see §5 | skipped>; `onboarding.json` <validated | skipped>
+- **Incremental:** <full run | regenerated: `<file>`, `<file>` (changed-since `<sha12>`) | skipped — CLI unavailable>
+- **Coverage ledger:** <table: Path | assessed / set_aside | Reason>
 - **Known limitations / gaps:** <list, or "none">
 - **AGENTS.md action:** <as in §17>
 - **Re-run:** `/understand-codebase --<tier>` from the repo root.

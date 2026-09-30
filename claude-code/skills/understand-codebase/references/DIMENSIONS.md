@@ -66,6 +66,10 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
 - **What:** what every top-level (and key nested) directory is *for*; naming conventions for files
   and modules; **where new code goes** (prescriptive).
 - **Reuse:** codemem `diagram(level="L1")` for the directory map (or `PROJECT_INDEX.json` `dir_purposes`, codemem's fallback, when present); `.planning/codebase/STRUCTURE.md`.
+- **codemem first:** from the target root after `codemem build`, `codemem query` with `layers`
+  (core / middle / periphery — which dirs are foundations), `hot_spots` (where change lands),
+  `co_changes` + a path (dirs that move together) and `owners` + `--repo-root . <path>` (who to ask about
+  a dir). Read these instead of re-deriving structure with Explore; `find` below fills the gaps.
 - **Inspect:** `find . -maxdepth 3 -type d -not -path '*/.*' -not -path '*/node_modules/*'`; a
   sample of files in each dir to infer purpose; existing `CONTRIBUTING.md`/`docs/` for stated layout.
 - **Evidence:** annotated tree (`dir/ — purpose`); "to add X, put it in `path/` named `pattern`"
@@ -211,6 +215,11 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
   README / CLAUDE.md / ADR index; `.planning/codebase/CONCERNS.md`; a fresh `/assess-codebase`
   report (maintainability rating, `hot_spot:*`, `owners.*`); `Skill(retro)` philosophy for the
   git-history breakdown (don't run it — borrow the approach).
+- **codemem first:** from the target root after `codemem build`, `codemem query` with `hot_spots`
+  (churn × size — the churn table), `co_changes` + a path for each top hot spot (hidden coupling),
+  `owners` + `--repo-root . <path>` (blame share — bus factor) and `layers` (is the churn in core or
+  periphery?). The git commands below are the fallback when codemem is unavailable, and fill what
+  it does not cover (recency, CODEOWNERS, TODOs, big files, generated code).
 - **Inspect (read-only git/grep):**
   - Churn: `git log --since='6 months ago' --name-only --pretty=format: | sort | uniq -c | sort -rn | head -25`
   - Contributors: `git shortlog -sne --since='6 months ago'` and `git log --since='12 months ago' --format='%an' | sort -u | wc -l`

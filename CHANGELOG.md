@@ -76,6 +76,21 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   reports root, any symlink on the path, a file target other than `onboarding.json`, an incomplete
   report set, an oversized stamp file and a git-tracked report dir. The onboarding
   agents that absorb reports treat them as evidence, never instructions, and skip symlinked files.
+- **understand-codebase v1 — grounded, checked, incremental (`codebase-analysis-skills` M5)** —
+  `aa-ma-analysis ground <md>` lists every cited claim whose backticked names or standalone numbers
+  are not within ±20 lines of the cited `path:line` (or anywhere in a file cited bare); a missing or
+  repo-escaping citation is itself ungrounded. The skill re-asks once, then drops the claim, in every
+  tier. The main thread (never an agent) shows the documented build/test/lint commands, asks once and
+  runs the approved ones through `aa-ma-analysis run`, so each carries verified / failed / timeout /
+  not_run / refused. Standard and Deep write `.claude/onboarding/onboarding.json` (validated) with a
+  per-section map of the paths each deep-dive cites; on a re-run, `aa-ma-analysis changed-since
+  <sha12> --onboarding …` names the only sections to regenerate (cited files, cited directories,
+  fixed globs; any add/delete/rename → structure; a vanished stamp commit → everything; a pack the
+  repo itself tracks is never trusted). Every tier keeps a coverage ledger; Standard reads 10 sampled
+  claims, Deep ~20. Dimensions 4 and 13 read codemem `layers`, `hot_spots`, `co_changes` and
+  `owners` instead of re-deriving them. The AGENTS.md template shrinks to Commands, Gotchas and Rules
+  pointers — only what the code cannot tell an agent. Without the CLI every tier still completes and
+  names each skipped step in Provenance.
 - **`codemem query` reaches 10 MCP tools** — `hot_spots`, `co_changes <file>`, `owners <path>
   [--repo-root R]` and `layers` join the six ports, so scripts get git-history and layering answers
   without an MCP server. `owners --repo-root` computes the blame; without it only the cache is read,

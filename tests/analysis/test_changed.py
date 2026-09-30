@@ -1,7 +1,8 @@
 """changed_since + sections_to_regenerate: a re-run regenerates only what changed (M5 AC2).
 
 Section map decided by the 5.1 prototype (Ste, PASS): cited paths, cited dirs as prefixes at any
-depth, fixed globs per section, any add/delete/rename → 03-structure, unknown sha → every section.
+depth, fixed globs per section, any add/delete/rename → 03-structure.md; sections are keyed by
+deep-dive file name, as M1's onboarding fixture keys them, unknown sha → every section.
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ FIXTURE = Path(__file__).resolve().parents[1] / "fixtures/analysis/valid/onboard
 def _onboarding(sections: dict[str, list[str]]) -> Onboarding:
     doc = json.loads(FIXTURE.read_text(encoding="utf-8"))
     doc["sections"] = sections
-    return Onboarding.model_validate(doc)
+    return Onboarding.model_validate_json(json.dumps(doc))
 
 
 @pytest.fixture
@@ -37,9 +38,9 @@ def two_commits(tmp_path: Path) -> tuple[Path, str]:
 
 
 SECTIONS = {
-    "02-architecture": ["src/a.py"],
-    "04-build-run-debug": ["Makefile"],
-    "06-conventions-versioning-git": ["docs/"],
+    "02-architecture.md": ["src/a.py"],
+    "04-build-run-debug.md": ["Makefile"],
+    "06-conventions-versioning-git.md": ["docs/"],
 }
 
 
@@ -51,7 +52,7 @@ def test_changed_since_lists_the_committed_changes(two_commits) -> None:
 def test_exactly_the_sections_whose_paths_changed(two_commits) -> None:
     repo, first = two_commits
     got = changed.sections_to_regenerate(_onboarding(SECTIONS), changed.changed_since(repo, first))
-    assert got == ["02-architecture"]
+    assert got == ["02-architecture.md"]
 
 
 def test_an_unknown_sha_regenerates_every_section(two_commits) -> None:
@@ -65,7 +66,7 @@ def test_a_cited_directory_matches_as_a_prefix(two_commits) -> None:
     repo, first = two_commits
     commit_file(repo, "docs/x.md", "x2\n")
     got = changed.sections_to_regenerate(_onboarding(SECTIONS), changed.changed_since(repo, first))
-    assert got == ["02-architecture", "06-conventions-versioning-git"]
+    assert got == ["02-architecture.md", "06-conventions-versioning-git.md"]
 
 
 def test_an_added_file_regenerates_structure_and_its_directory(two_commits) -> None:
@@ -74,7 +75,7 @@ def test_an_added_file_regenerates_structure_and_its_directory(two_commits) -> N
     ch = changed.changed_since(repo, first)
     assert changed.Change("A", "docs/new.md") in ch
     got = changed.sections_to_regenerate(_onboarding(SECTIONS), ch)
-    assert got == ["02-architecture", "03-structure", "06-conventions-versioning-git"]
+    assert got == ["02-architecture.md", "03-structure.md", "06-conventions-versioning-git.md"]
 
 
 def test_a_rename_reports_both_paths(two_commits) -> None:
@@ -88,10 +89,10 @@ def test_a_rename_reports_both_paths(two_commits) -> None:
 @pytest.mark.parametrize(
     ("section", "path"),
     [
-        ("01-stack", "pyproject.toml"),
-        ("01-stack", "uv.lock"),
-        ("05-tests-ci", ".github/workflows/ci.yml"),
-        ("05-tests-ci", "tests/test_a.py"),
+        ("01-stack.md", "pyproject.toml"),
+        ("01-stack.md", "uv.lock"),
+        ("05-tests-ci.md", ".github/workflows/ci.yml"),
+        ("05-tests-ci.md", "tests/test_a.py"),
     ],
 )
 def test_fixed_globs_cover_uncited_truth(section: str, path: str) -> None:
@@ -112,7 +113,7 @@ def test_cli_changed_since(two_commits, tmp_path: Path, capsys) -> None:
     ob.write_text(_onboarding(SECTIONS).model_dump_json(), encoding="utf-8")
     assert cli.main(["changed-since", first, "--repo", str(repo), "--onboarding", str(ob)]) == 0
     out = json.loads(capsys.readouterr().out)
-    assert out == {"known": True, "changed": [["M", "src/a.py"]], "regenerate": ["02-architecture"]}
+    assert out == {"known": True, "changed": [["M", "src/a.py"]], "regenerate": ["02-architecture.md"]}
     assert cli.main(["changed-since", "0123456789ab", "--repo", str(repo), "--onboarding", str(ob)]) == 0
     out = json.loads(capsys.readouterr().out)
     assert out["known"] is False and out["regenerate"] == sorted(SECTIONS)
@@ -120,7 +121,11 @@ def test_cli_changed_since(two_commits, tmp_path: Path, capsys) -> None:
 
 def test_cli_changed_since_refuses_a_bad_sha(two_commits, capsys) -> None:
     repo, _ = two_commits
-    assert cli.main(["changed-since", "--output=x", "--repo", str(repo)]) == 2
+    with pytest.raises(SystemExit) as exc:  # argparse: an option-looking sha is a usage error
+        cli.main(["changed-since", "--output=x", "--repo", str(repo)])
+    assert exc.value.code == 2
+    assert cli.main(["changed-since", "--repo", str(repo), "--", "--output=x"]) == 2
+    assert "not a 12-hex-digit sha" in capsys.readouterr().err
 
 
 def test_cli_changed_since_needs_a_repo(tmp_path: Path, capsys) -> None:

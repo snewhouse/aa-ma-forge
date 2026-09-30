@@ -13,8 +13,8 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from . import finalize, measure, run, secrets, stamp
-from .models import EXPORTED, Stamp, Tier
+from . import changed, finalize, ground, measure, run, secrets, stamp
+from .models import EXPORTED, Onboarding, Stamp, Tier
 
 JSONL_KINDS = {"finding", "judged_finding"}
 
@@ -232,6 +232,43 @@ def _cmd_finalize(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_ground(args: argparse.Namespace) -> int:
+    md, repo = Path(args.md), Path(args.repo)
+    if not md.is_file():
+        _err(f"aa-ma-analysis ground: {md}: not found")
+        return 2
+    if args.cited:
+        print(json.dumps(ground.cited_paths(md.read_text(encoding="utf-8"), repo)))
+        return 0
+    misses = ground.ground(md, repo)
+    for u in misses:
+        print(f"{md}:{u.md_line}: `{u.token}` not found in `{u.citation}`")
+    return 1 if misses else 0
+
+
+def _cmd_changed_since(args: argparse.Namespace) -> int:
+    try:
+        diff = changed.changed_since(Path(args.repo), args.sha12)
+        onboarding = None
+        if args.onboarding:
+            text = stamp.read_regular(Path(args.onboarding), limit=FRESH_MAX_BYTES)
+            onboarding = Onboarding.model_validate_json(text)
+    except ValueError as exc:  # a bad sha, or an onboarding.json that does not validate
+        _err(f"aa-ma-analysis changed-since: {exc}")
+        return 2
+    except OSError as exc:
+        _err(f"aa-ma-analysis changed-since: {exc}")
+        return 2
+    except stamp.NotAGitRepo:
+        _err(f"aa-ma-analysis changed-since: {args.repo}: {stamp.NOT_A_REPO}")
+        return 2
+    out: dict = {"known": diff is not None, "changed": [list(c) for c in diff or []]}
+    if onboarding is not None:
+        out["regenerate"] = changed.sections_to_regenerate(onboarding, diff)
+    print(json.dumps(out))
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="aa-ma-analysis", description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -273,6 +310,24 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--work", required=True)
     p.add_argument("--repo", default=".")
     p.set_defaults(func=_cmd_finalize)
+    p = sub.add_parser(
+        "ground",
+        help="exit 1 lists cited claims whose names or numbers the cited file lacks",
+    )
+    p.add_argument("md")
+    p.add_argument("--repo", default=".")
+    p.add_argument(
+        "--cited", action="store_true", help="print the repo paths the file cites"
+    )
+    p.set_defaults(func=_cmd_ground)
+    p = sub.add_parser(
+        "changed-since",
+        help="changes from a stamp sha to HEAD; sections to regenerate (JSON)",
+    )
+    p.add_argument("sha12")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--onboarding", help="onboarding.json whose section map to apply")
+    p.set_defaults(func=_cmd_changed_since)
     return parser
 
 

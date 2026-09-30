@@ -215,3 +215,9 @@ _This log will be updated via context compaction as the task progresses._
 - Skill order: currency check before any write (Standard step 5; Deep before the synthesizer); grounding / sampled claims / ledger / onboarding.json last.
 - The orchestrator builds the codemem index once (build + refresh-commits); workers only query it and get `AA_MA_ROOT` in their prompt.
 - CR-W5: `codebase-onboarding-synthesizer.md` was outside the M5 Contract `Files:` list; it changed as a required follow-on of the AGENTS-MD-TEMPLATE size change (now "within that template's size limit" — one source).
+
+## [2026-09-30] GATE APPROVAL: Milestone 5: understand-codebase v1 upgrades
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 6/6
+- Decision: APPROVED — Approve + PR + merge

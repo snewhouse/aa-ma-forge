@@ -1,0 +1,345 @@
+{
+ "map": {
+  "01-stack": [
+   ".github/workflows/security.yml",
+   "packages/codemem-mcp/pyproject.toml",
+   "pyproject.toml",
+   "scripts/install.sh",
+   "scripts/regen-generated.sh",
+   "scripts/release.sh",
+   "tests/render/explorer_contract.test.mjs",
+   "uv.lock"
+  ],
+  "02-architecture": [
+   ".github/workflows/security.yml",
+   ".importlinter",
+   "claude-code/codemem/mcp/server.py",
+   "claude-code/commands/execute-aa-ma-milestone.md",
+   "claude-code/hooks/lib/aa-ma-parse.sh",
+   "docs/architecture/README.md",
+   "packages/codemem-mcp/src/codemem/cli.py",
+   "pyproject.toml",
+   "scripts/install.sh",
+   "src/aa_ma/analysis/cli.py",
+   "src/aa_ma/enforce.py",
+   "src/aa_ma/gate.py",
+   "src/aa_ma/grammar.py",
+   "src/aa_ma/render/cli.py",
+   "src/aa_ma/render/graph.py",
+   "src/aa_ma/tui/__main__.py",
+   "src/aa_ma/tui/parser.py"
+  ],
+  "05-tests-ci": [
+   ".github/workflows/security.yml",
+   "pyproject.toml",
+   "tests/analysis/conftest.py",
+   "tests/codemem/conftest.py",
+   "tests/codemem/test_incremental.py",
+   "tests/hooks/aa-ma-gate-python.bats",
+   "tests/hooks/security-static-check.bats",
+   "tests/perf/test_budgets.py",
+   "tests/render/conftest.py",
+   "tests/render/test_graph.py",
+   "tests/test_gate.py",
+   "tests/tui/conftest.py"
+  ],
+  "03-structure": []
+ },
+ "globs": {
+  "01-stack": [
+   "pyproject.toml",
+   "uv.lock",
+   "package.json",
+   "*.lock",
+   ".python-version",
+   ".tool-versions"
+  ],
+  "05-tests-ci": [
+   ".github/workflows/*",
+   "tests/*",
+   "pytest.ini",
+   "conftest.py"
+  ],
+  "03-structure": []
+ },
+ "cases": [
+  {
+   "commit": "ee822ac",
+   "subject": "fix(skills,analysis): Step 0 probes git -C <target>; fresh relies on one realpath check",
+   "changed": [
+    [
+     "M",
+     "claude-code/skills/understand-codebase/SKILL.md"
+    ],
+    [
+     "M",
+     "docs/architecture/README.md"
+    ],
+    [
+     "M",
+     "docs/architecture/component.md"
+    ],
+    [
+     "M",
+     "docs/architecture/io.md"
+    ],
+    [
+     "M",
+     "docs/architecture/plugin-surface.md"
+    ],
+    [
+     "M",
+     "src/aa_ma/analysis/cli.py"
+    ]
+   ],
+   "regenerate": [
+    "02-architecture"
+   ],
+   "why": {
+    "02-architecture": [
+     "M docs/architecture/README.md",
+     "M src/aa_ma/analysis/cli.py"
+    ]
+   }
+  },
+  {
+   "commit": "abf5b20",
+   "subject": "fix(analysis): validate judged_finding enforces the judge rules; redacted counts live findings",
+   "changed": [
+    [
+     "M",
+     "claude-code/skills/assess-codebase/SKILL.md"
+    ],
+    [
+     "M",
+     "claude-code/skills/understand-codebase/references/ANALYSIS-CONTRACT.md"
+    ],
+    [
+     "M",
+     "src/aa_ma/analysis/finalize.py"
+    ],
+    [
+     "M",
+     "src/aa_ma/analysis/models.py"
+    ],
+    [
+     "M",
+     "tests/golden/analysis/judged_finding.schema.json"
+    ]
+   ],
+   "regenerate": [
+    "05-tests-ci"
+   ],
+   "why": {
+    "05-tests-ci": [
+     "M tests/golden/analysis/judged_finding.schema.json"
+    ]
+   }
+  },
+  {
+   "commit": "b4b699f",
+   "subject": "feat(analysis): aa_ma.analysis core \u2014 models, stamp, ids, sarif, secret gate, CLI",
+   "changed": [
+    [
+     "M",
+     ".importlinter"
+    ],
+    [
+     "M",
+     "pyproject.toml"
+    ],
+    [
+     "A",
+     "src/aa_ma/analysis/__init__.py"
+    ],
+    [
+     "A",
+     "src/aa_ma/analysis/cli.py"
+    ],
+    [
+     "A",
+     "src/aa_ma/analysis/ids.py"
+    ],
+    [
+     "A",
+     "src/aa_ma/analysis/models.py"
+    ],
+    [
+     "A",
+     "src/aa_ma/analysis/sarif.py"
+    ],
+    [
+     "A",
+     "src/aa_ma/analysis/secrets.py"
+    ],
+    [
+     "A",
+     "src/aa_ma/analysis/stamp.py"
+    ],
+    [
+     "A",
+     "tests/golden/analysis/finding.schema.json"
+    ],
+    [
+     "A",
+     "tests/golden/analysis/judged_finding.schema.json"
+    ],
+    [
+     "A",
+     "tests/golden/analysis/onboarding.schema.json"
+    ],
+    [
+     "A",
+     "tests/golden/analysis/summary.schema.json"
+    ]
+   ],
+   "regenerate": [
+    "01-stack",
+    "02-architecture",
+    "03-structure",
+    "05-tests-ci"
+   ],
+   "why": {
+    "02-architecture": [
+     "M .importlinter",
+     "M pyproject.toml",
+     "A src/aa_ma/analysis/cli.py"
+    ],
+    "01-stack": [
+     "M pyproject.toml"
+    ],
+    "05-tests-ci": [
+     "M pyproject.toml",
+     "A tests/golden/analysis/finding.schema.json",
+     "A tests/golden/analysis/judged_finding.schema.json",
+     "A tests/golden/analysis/onboarding.schema.json",
+     "A tests/golden/analysis/summary.schema.json"
+    ],
+    "03-structure": [
+     "A src/aa_ma/analysis/__init__.py",
+     "A src/aa_ma/analysis/cli.py",
+     "A src/aa_ma/analysis/ids.py",
+     "A src/aa_ma/analysis/models.py",
+     "A src/aa_ma/analysis/sarif.py",
+     "A src/aa_ma/analysis/secrets.py",
+     "A src/aa_ma/analysis/stamp.py",
+     "A tests/golden/analysis/finding.schema.json",
+     "A tests/golden/analysis/judged_finding.schema.json",
+     "A tests/golden/analysis/onboarding.schema.json",
+     "A tests/golden/analysis/summary.schema.json"
+    ]
+   }
+  },
+  {
+   "commit": "7b9295e",
+   "subject": "ci: M12 explorer-contract job \u2014 node --test on the shared fixture + built page CSP",
+   "changed": [
+    [
+     "M",
+     ".github/workflows/security.yml"
+    ]
+   ],
+   "regenerate": [
+    "01-stack",
+    "02-architecture",
+    "05-tests-ci"
+   ],
+   "why": {
+    "01-stack": [
+     "M .github/workflows/security.yml"
+    ],
+    "02-architecture": [
+     "M .github/workflows/security.yml"
+    ],
+    "05-tests-ci": [
+     "M .github/workflows/security.yml"
+    ]
+   }
+  },
+  {
+   "commit": "649fb6d",
+   "subject": "feat(analysis): measure, finalize, report_md and CLI measure/run/finalize",
+   "changed": [
+    [
+     "M",
+     "CHANGELOG.md"
+    ],
+    [
+     "M",
+     "src/aa_ma/analysis/cli.py"
+    ],
+    [
+     "A",
+     "src/aa_ma/analysis/finalize.py"
+    ],
+    [
+     "A",
+     "src/aa_ma/analysis/measure.py"
+    ],
+    [
+     "M",
+     "src/aa_ma/analysis/models.py"
+    ],
+    [
+     "A",
+     "src/aa_ma/analysis/report_md.py"
+    ],
+    [
+     "M",
+     "src/aa_ma/analysis/sarif.py"
+    ],
+    [
+     "M",
+     "src/aa_ma/analysis/secrets.py"
+    ],
+    [
+     "M",
+     "tests/analysis/test_measure.py"
+    ]
+   ],
+   "regenerate": [
+    "02-architecture",
+    "03-structure",
+    "05-tests-ci"
+   ],
+   "why": {
+    "02-architecture": [
+     "M src/aa_ma/analysis/cli.py"
+    ],
+    "03-structure": [
+     "A src/aa_ma/analysis/finalize.py",
+     "A src/aa_ma/analysis/measure.py",
+     "A src/aa_ma/analysis/report_md.py"
+    ],
+    "05-tests-ci": [
+     "M tests/analysis/test_measure.py"
+    ]
+   }
+  },
+  {
+   "commit": "deadbeef0000",
+   "subject": "(unknown sha)",
+   "changed": null,
+   "regenerate": [
+    "01-stack",
+    "02-architecture",
+    "03-structure",
+    "05-tests-ci"
+   ],
+   "why": {
+    "01-stack": [
+     "unknown stamp sha"
+    ],
+    "02-architecture": [
+     "unknown stamp sha"
+    ],
+    "05-tests-ci": [
+     "unknown stamp sha"
+    ],
+    "03-structure": [
+     "unknown stamp sha"
+    ]
+   }
+  }
+ ]
+}

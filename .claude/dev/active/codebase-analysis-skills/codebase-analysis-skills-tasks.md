@@ -253,6 +253,12 @@
 - Mode: HITL
 - Result Log: Mode: HITL (Ste: full Standard, worktree; currency: safe checks). Live Standard at 9f9e1b6 — see provenance LIVE_RUN: 4 Explore agents → 10 deep-dives + ONBOARDING.md; ground exit 0 on all 11 after one re-ask (9 real claims fixed) and 2 checker tunings (RED 419f975 → 05f045d, style 04dd97e); skill fix ed7a117 (codemem refresh-commits before hot_spots/co_changes; AGENTS.md ~60 lines in synthesizer + self-check). 10 sampled claims held. Currency: pytest slice verified, uv run ruff/lint-imports not_run (by design). onboarding.json validate 0 / fresh 0. AC5: changed-since after one-module commit = [02-architecture.md, 03-structure.md, 05-tests-ci.md] == Provenance regenerated list; 7 other files byte-identical. CRITICAL_PATH_REVIEW + IMPACT_ANALYSIS logged. PR: pending (after §6.7/§6.8 and the HARD gate).
 
+### Sub-step 5.6: [remediate] §6.8 impl-review — CRITICAL + 8 WARNINGs + cheap INFO (Ste: fix all now)
+- Status: PENDING
+- Mode: AFK
+- Acceptance Criteria: RED first; CR-C1 currency check before Write/synthesizer; SEC-1 changed-since refuses symlinked/tracked .claude, uncontained --onboarding, section keys not NN-name.md; CR-W1..W5 + FP-W1/W2 + cheap INFO; full suite green; one regression pass. Source: impl-review.md Milestone 5 section.
+- Result Log: [placeholder]
+
 ## Milestone 6: Plugin-surface extractor learns slash commands (R4)
 - Status: PENDING
 - Dependencies: Milestone 5

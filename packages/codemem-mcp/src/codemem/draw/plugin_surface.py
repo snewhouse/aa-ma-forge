@@ -42,7 +42,7 @@ _AGENT = re.compile(r"""subagent_type\s*[=:]\s*["']?([A-Za-z0-9_:-]+)""")
 _HOOK_CONVENTION = r"(?:aa-ma-|pre-compact-aa-ma|security-static-check)[a-z0-9-]{0,64}\.sh"
 # Lookbehind/ahead keep path fragments out (`/tmp/x-y.log`) but let a sentence end: `Run /x.`
 # `/x-*` is a glob; `**/x**` is bold markdown around /x, not a glob.
-_COMMAND = re.compile(r"(?<![A-Za-z0-9_./~-])/([a-z][a-z0-9-]*)(\*(?!\*))?(?![A-Za-z0-9_/{-]|\.[A-Za-z0-9_])")
+_COMMAND = re.compile(r"(?<![A-Za-z0-9_./~-])/([a-z][a-z0-9-]*)(\*(?!\*))?(?![A-Za-z0-9_/-]|\.[A-Za-z0-9_])")
 # The same name at the START of a backtick span (spans paired left to right), plus `ns:name`.
 _SPAN = re.compile(r"`([^`\n]+)`")
 _SPAN_COMMAND = re.compile(r"/([a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)?)(\*(?!\*))?(?![A-Za-z0-9_/{:-]|\.[A-Za-z0-9_])")

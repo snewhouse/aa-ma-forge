@@ -233,4 +233,9 @@ _This log will be updated via context compaction as the task progresses._
 - Set to fix in 6.4: all nine (local-only user commands and `/compress` reworded; `/healthz`, `/readyz`, `/settings` are HTTP routes → `GET /…` form, which AC1 says draws no edge). Expected post-6.4 command DANGLING set: ∅.
 - EXTERNAL["command"] (only referenced names; AC3 forbids unreferenced entries): {browse, goal, init, qa, qa-only, superpowers:brainstorming}. Plan examples `help`, `clear`, `claude-security` are not referenced as backticked `/x` today, so not listed.
 - Skill DANGLING pin unchanged: {haiku-eval}.
-- Decision: the skills/x/ lookup applies to every resolvable occurrence (same rule as commands); a stem that is both a command and a skill resolves to the command. `{` added to the end-of-name guard for all `/x` (no command name is followed by `{`; the no-lost-edge check proves it).
+- Decision: the skills/x/ lookup applies to every resolvable occurrence (same rule as commands); a stem that is both a command and a skill resolves to the command. The `{` guard applies to backtick spans only; on the any-occurrence path it was mutation-dead (a `/x-{…}` template never names a real command) and was dropped.
+
+## [2026-09-30] M6 6.4 — `/settings` kept (Ste decision)
+- `/settings` is an HTTP route inside `claude-code/skills/prototype/UI.md`, a verbatim fork (FORKS.json `state: current`, md5-pinned to upstream c55ee46). Rewording trips fork-drift.
+- Options: keep verbatim (chosen) / edit + mark derived / exempt current forks in the extractor.
+- Fixed in 6.4: {commit-and-push, compress, git-status-smart, healthz, index, pre-commit-*, readyz, release-prep}. Post-6.4 command DANGLING = pin − fixed = {settings} (AC2), shown under Dangling in docs/architecture/plugin-surface.md.

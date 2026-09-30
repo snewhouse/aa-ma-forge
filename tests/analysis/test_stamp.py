@@ -734,3 +734,43 @@ def test_fresh_on_deeply_nested_json_is_unstamped_not_a_traceback(repo: Path, ca
     (d / "summary.json").write_text("[" * 100_000 + "]" * 100_000, encoding="utf-8")
     rc, out = _fresh(d, repo, capsys)
     assert rc == 1 and "unstamped" in out
+
+
+# --- M4 §6.8 regression 2: `..` aliases and an unnormalised --repo ----------------------------
+
+
+def test_fresh_reads_a_genuine_report_with_a_relative_repo_from_a_sibling_dir(
+    repo: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "quick"))
+    sibling = repo.parent / "sibling"
+    sibling.mkdir()
+    monkeypatch.chdir(sibling)
+    rel_repo = Path("..") / repo.name
+    rc = cli.main(["fresh", str(rel_repo / REPORTS / d.name), "--repo", str(rel_repo)])
+    assert rc == 0, capsys.readouterr().out
+
+
+@pytest.mark.parametrize("kind", ["report", "onboarding"])
+def test_fresh_refuses_a_dotdot_alias_through_a_symlink(
+    repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str], kind: str
+) -> None:
+    import shutil
+
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "quick"))
+    outside = tmp_path / "ev" / "inner"
+    outside.mkdir(parents=True)
+    (repo / "lnk").symlink_to(outside)
+    rel = REPORTS / d.name if kind == "report" else Path(".claude/onboarding/onboarding.json")
+    # The kernel resolves lnk/.. to tmp_path/ev: plant a HEAD-stamped copy there.
+    served = tmp_path / "ev" / rel
+    served.parent.mkdir(parents=True, exist_ok=True)
+    if kind == "report":
+        shutil.copytree(d, served)
+    else:
+        fixture = Path(__file__).resolve().parents[2] / "tests/fixtures/analysis/valid/onboarding.json"
+        doc = json.loads(fixture.read_text(encoding="utf-8"))
+        doc["stamp"] = json.loads(stamp.build_stamp(repo, "quick").model_dump_json())
+        served.write_text(json.dumps(doc), encoding="utf-8")
+    rc, out = _fresh(repo / "lnk" / ".." / rel, repo, capsys)
+    assert rc == 1 and "refused" in out and "Traceback" not in out

@@ -244,9 +244,9 @@
 - Result Log: Mode: AFK — auto-dispatched. GREEN `2634d1f`: ground.py (ground, cited_paths, Ungrounded; stamp.contained + read_regular 2 MB cap), changed.py (Change, changed_since via head_stamp guard + cat-file + diff -z -M, sections_to_regenerate, SECTION_GLOBS, STRUCTURE=03-structure.md), CLI `ground [--cited]` / `changed-since [--onboarding]`. tests/analysis 521 passed. Mutations 6/6 caught (window, numbers, containment, dir-prefix, structure, unknown-sha). import-linter 6 kept. Test adjustments in the GREEN commit: section keys = deep-dive file names (M1 fixture), model_validate_json, argparse SystemExit(2) + `--` path.
 
 ### Sub-step 5.4: [impl] skill + references + runbook agent line 28
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. GREEN `ff5abfe`: SKILL.md new "Checked output" section (incremental re-run only when git tracks nothing under .claude/onboarding; grounding every tier re-ask once → drop; currency check main thread asks once → `aa-ma-analysis run`, 5 statuses; coverage ledger every tier; onboarding.json with `ground --cited` section map + validate; CLI-unavailable paragraph) + per-tier steps (Quick ground+ledger; Standard 10 sampled claims; Deep ~20) + degradation row; DIMENSIONS dims 4/13 codemem-first (`layers`, `hot_spots`, `co_changes`, `owners` — all 4 live-checked); health agent step 0 codemem; runbook read-only bullet never runs build/test/lint (and drops `make -n`/`npm run --dry-run`); AGENTS-MD-TEMPLATE = Commands/Gotchas/Rules pointers + review checklist realigned; ONBOARDING-TEMPLATE §5 status table + Provenance checked-output/incremental/ledger lines; CHANGELOG; regen. Test fix: AGENTS heading test sliced past the fence. Suite 2288 passed / 2 skipped.
 
 ### Sub-step 5.5: [verify] regen; CRITICAL_PATH_REVIEW; live Standard run on forge; PR
 - Status: PENDING

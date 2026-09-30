@@ -61,9 +61,9 @@ touching anything `AGENTS.md`-related; its **SAFETY PROTOCOL** is binding.
 
 **Do NOT use this skill — use the named alternative instead:**
 - About to edit code you already understand → `Skill(impact-analysis)` / `Skill(system-mapping)`.
-- Pure quality/security audit with no onboarding deliverable → not this skill (this plugin ships no
-  whole-repo audit; to review a change, `Skill(verify-impl)`).
-- Implementation planning for a specific change → `/aa-ma-plan` or `/deep-analysis`.
+- Pure quality/security audit with no onboarding deliverable → `/assess-codebase` (to review a
+  change, `Skill(verify-impl)`).
+- Implementation planning for a specific change → `/aa-ma-plan`.
 - You only need a structural index for tooling → `codemem build` (or codemem's MCP tools).
 - Trivial repo (< ~5 source files) → just read it; this skill is overkill.
 
@@ -77,7 +77,7 @@ intent shapes how much weight the playbooks get.
 | Tier | ~Time | Agents | Reuses | Output |
 |---|---|---|---|---|
 | **Quick** | ~5 min | none (or 1 `Agent(subagent_type=Explore)`) | codemem if its index exists (`PROJECT_INDEX.json` an equivalent fallback when present); read README, `CLAUDE.md`/`AGENTS.md`, package manifest, CI config, CHANGELOG, LICENSE | one-page `ONBOARDING.md` = the "10-minute orientation" only (≤ ~150 lines), no `.claude/onboarding/` |
-| **Standard** *(default)* | ~15–30 min | ~4 parallel `Agent(subagent_type=Explore)` + main-thread synthesis | `code-intelligence` / codemem (or `PROJECT_INDEX.json` when present), `system-mapping`, `impact-analysis` heuristics; **absorbs** any prior `.planning/codebase/` or `.claude/reports/codebase-deep-dive-*/` | full `ONBOARDING.md` + `.claude/onboarding/00-index.md` … `09-*.md` + pros/cons verdict + both playbooks |
+| **Standard** *(default)* | ~15–30 min | ~4 parallel `Agent(subagent_type=Explore)` + main-thread synthesis | `code-intelligence` / codemem (or `PROJECT_INDEX.json` when present), `system-mapping`, `impact-analysis` heuristics; **absorbs** any prior `.planning/codebase/` or a fresh `/assess-codebase` report (Step 0) | full `ONBOARDING.md` + `.claude/onboarding/00-index.md` … `09-*.md` + pros/cons verdict + both playbooks |
 | **Deep** | ~45 min+ | formal `TeamCreate` agent-team (see below) | **everything**: full `gsd-map-codebase` (`.planning/codebase/`), the living architecture doc (`codemem build` + `codemem draw --write` → `docs/architecture/`); **WebSearch + Context7** for version-currency / EOL / CVE / framework best-practice checks | all of Standard + `docs/architecture/` + version-currency report + reviewer-verified synthesis |
 
 `--deep` is opt-in. If `TeamCreate` is unavailable or the team fails to spawn, **fall back to an
@@ -96,11 +96,14 @@ Before doing any analysis, detect and **absorb** prior work — do not redo it. 
 | codemem index (`.codemem/index.db`); `PROJECT_INDEX.json` (repo root) is an equivalent fallback when present | Query it first — codemem MCP `search_symbols`, `file_summary`, `who_calls`, `layers`, `diagram`: structure, symbol importance, call graph. Don't re-derive structure. The MCP tools build the index on first query; from the CLI, tier ≥ Standard runs `codemem build` first (`references/REUSE-MAP.md` B). |
 | `.planning/codebase/*.md` (gsd-map-codebase output) | Read `STACK.md ARCHITECTURE.md STRUCTURE.md INTEGRATIONS.md CONVENTIONS.md TESTING.md CONCERNS.md` and treat as authoritative for those dimensions; only refresh if stale (compare against `git log -1 --format=%cd`). |
 | `.planning/intel/*.json` (gsd-intel output) | Use `stack.json files.json apis.json deps.json` as fast lookups. |
-| `.claude/reports/codebase-deep-dive-*/` | Reuse `01-architecture-overview.md`, `04-code-quality-assessment.md`, `05-security-analysis.md`, `06-design-patterns.md` and its diagrams. Link them from `.claude/onboarding/`. |
+| `.claude/reports/assess-codebase/<sha12>[-dirty]/` (`/assess-codebase` output) | Absorb only when `aa-ma-analysis fresh <that dir>` exits 0 (same commit, not dirty). Read `summary.json` (per-dimension ratings with inputs, coverage ledger, metrics) and `findings.jsonl` — drop every finding whose `refutation` is `refuted` (kept there only as an audit trail). Link its `report.md`; Provenance says "absorbed (fresh, sha12 <sha12>)". Exit 1 → stale: note it, never absorb it as current. |
+| `.claude/reports/codebase-deep-dive-*/` — **legacy deep-dive output** (unstamped; from a retired local command) | The one legacy rule: absorb only as "legacy, unverified" — `aa-ma-analysis fresh` can never call it fresh. Use its architecture / quality / security notes and diagrams as leads to verify against the code, link them, and say so in Provenance. A fresh assess report wins over it. |
 | Existing root `README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`, `docs/` | Read and quote them; cross-check against the code (note drift as a "con"). |
 
-Record what was absorbed in the Provenance block. **Only run a heavy tool (`gsd-map-codebase`)
-when its output is absent or stale.**
+Freshness: assess and legacy reports by SHA — `uv run --quiet --project "$AA_MA_ROOT" aa-ma-analysis fresh <dir>`
+(0 fresh, 1 stale/unstamped; `AA_MA_ROOT` resolved as in the living-doc block below); gsd output by
+date, since it carries no stamp. Record what was absorbed in the Provenance block. **Only run a
+heavy tool (`gsd-map-codebase`) when its output is absent or stale.**
 
 ---
 
@@ -112,7 +115,7 @@ Coverage must include **all** of these:
 
 1. **Read it / understand it / map it** — repo tour, ASCII tree, entry points, critical execution paths.
 2. **Tech stack & versions** — languages, runtimes, frameworks, package managers, lockfiles, pinned versions; currency vs. upstream (Deep: WebSearch + Context7 for EOL / latest / migration notes).
-3. **Architecture & data flow** — pattern (layered / hexagonal / MVC / microservices / event-driven / monolith), layers, abstractions, inter-component comms, data model & migrations; reuse `/codebase-deep-dive` diagrams or generate Mermaid.
+3. **Architecture & data flow** — pattern (layered / hexagonal / MVC / microservices / event-driven / monolith), layers, abstractions, inter-component comms, data model & migrations; reuse the living doc / codemem diagrams or generate Mermaid.
 4. **Directory map & structure** — what lives where, naming conventions, where new code goes.
 5. **Build / run / debug locally** — exact commands to install, build, run, debug; devcontainer/Docker; toolchain pins (`.nvmrc` / `.python-version` / `.tool-versions` / `mise` / `asdf`).
 6. **Tests** — framework(s), how to run (fast / full / live tiers), test pyramid shape, fixtures/mocking patterns, coverage level, known flaky tests.
@@ -138,6 +141,8 @@ Coverage must include **all** of these:
 
 1. Step 0 (absorb). If no codemem index — *optionally* run `codemem build` (skip if it would
    take too long on a huge repo); read `PROJECT_INDEX.json` instead if present (codemem's fallback).
+   If Step 0 found a fresh assess report, link its `.claude/reports/assess-codebase/<sha12>/report.md`
+   from `ONBOARDING.md` and use its ratings for the pros/cons.
 2. Read: `README*`, `CLAUDE.md`/`AGENTS.md` (head only if huge), the package manifest
    (`package.json` / `pyproject.toml` / `go.mod` / `Cargo.toml` / `pom.xml` / `Gemfile`),
    the primary CI file, `CHANGELOG*`, `LICENSE*`, top-level dir listing.
@@ -190,7 +195,9 @@ Coverage must include **all** of these:
 
 ### Deep (~45 min+) — opt-in, `TeamCreate` agent-team
 
-Use `Skill(agent-teams)` machinery. Team template: `templates/onboarding-team.md`. Shape:
+Use `Skill(agent-teams)` machinery. Team template: `templates/onboarding-team.md`. If Step 0 found
+no fresh assess report, ask once whether to run `/assess-codebase` first — its ratings and findings
+feed dimensions 6, 9, 12 and 13; declined → note it in Provenance and carry on. Shape:
 
 - **Orchestrator** (you): create the team (`TeamCreate`, name `understand-codebase-<repo-slug>`),
   build the task list, dispatch, collect confirmations only (keep your context lean).
@@ -273,7 +280,7 @@ SECRETS line below is its canonical text; `tests/analysis/test_contract_doc.py` 
 - **NO SECRETS.** Never read, open, or echo the contents of `.env`, `.env.*` (any without "example/sample/template"), `*.key`, `*.pem`, `*.p12`, `*.keystore`, `id_rsa*`, `credentials*`, `secrets*`, `*.tfstate`, service-account JSON, `kubeconfig`, `.netrc`, `.pgpass`, or anything matching a credential pattern. You may report that such a file *exists* and the *names* of variables declared in `.env.example` / `.env.sample` / `.env.template` or committed config templates — never a value.
 - **Evidence or it didn't happen.** Every claim → a file path, a command, a git fact, a count, or
   an explicit "not found — gap". No vague assessments.
-- **Reuse before rebuild.** If `.planning/codebase/`, `.claude/reports/codebase-deep-dive-*/`, a codemem
+- **Reuse before rebuild.** If `.planning/codebase/`, a fresh `/assess-codebase` report, a codemem
   index or `PROJECT_INDEX.json` (codemem's fallback) exist and are fresh, absorb them; do not re-run the heavy tool.
 - **Read-only on the target's code.** This skill writes only `ONBOARDING.md`, `.claude/onboarding/**`,
   and, in the Deep tier, the living architecture doc: `docs/architecture/` (generated files only —
@@ -293,7 +300,7 @@ SECRETS line below is its canonical text; `tests/analysis/test_contract_doc.py` 
 |---|---|
 | `AskUserQuestion` declined | Default: target = cwd, tier = Standard. Note assumptions in Provenance. |
 | `codemem build` fails or is too slow | Skip; read `PROJECT_INDEX.json` if present (codemem's fallback), else agents discover structure directly. Note in Provenance. |
-| `gsd-codebase-mapper` / `/codebase-deep-dive` unavailable | Deep → enhanced-Standard. Note. |
+| `gsd-codebase-mapper` unavailable | Deep → enhanced-Standard. Note. |
 | `TeamCreate` unavailable / team spawn fails | Deep → enhanced-Standard. Note. |
 | Context7 / WebSearch unavailable | Skip version-currency/CVE enrichment; note as a limitation. |
 | Not a git repo | Skip dimension 13 churn/contributors; note. Other dimensions still run. |
@@ -342,4 +349,4 @@ codemem (`codemem draw`, MCP `diagram`) · `Skill(gsd-map-codebase)` (+ `Skill(g
 `Skill(system-mapping)` · `Skill(code-intelligence)` / `Skill(code-intelligence-index)` ·
 `Skill(impact-analysis)` · `Skill(doc-drift-detection)` · `Skill(agent-teams)` ·
 `Skill(improve-codebase-architecture)` (follow-on, once you understand it) ·
-`Skill(aa-ma-plan)` / `/deep-analysis` (follow-on, when you go to change it).
+`/assess-codebase` (whole-repo quality and risk) · `/aa-ma-plan` (follow-on, when you go to change it).

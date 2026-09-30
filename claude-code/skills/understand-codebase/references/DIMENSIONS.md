@@ -34,7 +34,7 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
   versions), package managers, lockfiles, build tools; **currency** vs upstream (latest, EOL,
   migration notes).
 - **Reuse:** `.planning/codebase/STACK.md`; `.planning/intel/stack.json`/`deps.json`;
-  `/codebase-deep-dive` `07-dependencies-tech-stack.md`. **Deep tier:** WebSearch + Context7 MCP
+  a fresh `/assess-codebase` report's `deps.vulns` metric and `deps.vuln` findings. **Deep tier:** WebSearch + Context7 MCP
   (`resolve-library-id` → `query-docs` / `get-library-docs`) for each major framework — "current
   stable version? EOL date? known breaking changes from <pinned>?".
 - **Inspect:** `package.json`+lockfile, `pyproject.toml`/`requirements*.txt`/`Pipfile`/`uv.lock`/`poetry.lock`,
@@ -50,8 +50,8 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
   microservices / event-driven / pipeline / monolith / serverless); layers & their responsibilities;
   core components & inter-component comms (sync calls / queues / events / RPC); the data model &
   migration story; a diagram.
-- **Reuse:** `.planning/codebase/ARCHITECTURE.md`; `/codebase-deep-dive` `01-architecture-overview.md`,
-  `03-data-flow-analysis.md`, `06-design-patterns.md`, and its diagrams (link them — don't
+- **Reuse:** `.planning/codebase/ARCHITECTURE.md`; a fresh `/assess-codebase` report (architecture rating, `layers.*`,
+  `co_change:*`), the living doc `docs/architecture/` and its diagrams (link them — don't
   redraw). The architecture diagram is `docs/architecture/` (Deep tier writes it via `codemem draw --write`);
   otherwise embed codemem's `diagram` output (MCP, `level="L2"`) — never hand-draw one. `Skill(code-intelligence)` for class/interface
   hierarchies, DB-query/HTTP-client patterns.
@@ -89,8 +89,8 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
 - **What:** test framework(s); how to run — **fast vs full vs live/integration tiers** (markers,
   env, services needed); test pyramid shape (unit/integration/e2e ratio, roughly); fixtures &
   mocking patterns; coverage level & how it's measured; **known flaky tests**.
-- **Reuse:** `.planning/codebase/TESTING.md`; `/codebase-deep-dive` `04-code-quality-assessment.md`
-  (test-coverage section); `Skill(python-testing-patterns)` / `developer-essentials:e2e-testing-patterns`
+- **Reuse:** `.planning/codebase/TESTING.md`; a fresh `/assess-codebase` report (tests_deps rating,
+  test-run result in its inputs); `Skill(python-testing-patterns)` / `developer-essentials:e2e-testing-patterns`
   for what "good" looks like (don't impose — just frame).
 - **Inspect:** `pytest.ini`/`pyproject.toml [tool.pytest.ini_options]`/`tox.ini`/`conftest.py`,
   `jest.config.*`/`vitest.config.*`/`playwright.config.*`/`cypress.config.*`, `*_test.go`/`go test`,
@@ -186,7 +186,7 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
   library & format, metrics (Prometheus/StatsD/OTel), tracing (OTel/Jaeger/Zipkin/Sentry), dashboards;
   security posture — auth/authz model (sessions/JWT/OAuth/OIDC/API-keys/mTLS), input-validation
   approach, dependency-vuln signal, how secrets/credentials are managed.
-- **Reuse:** `.planning/codebase/INTEGRATIONS.md`; `/codebase-deep-dive` `05-security-analysis.md`;
+- **Reuse:** `.planning/codebase/INTEGRATIONS.md`; a fresh `/assess-codebase` report (security rating + findings);
   `Skill(defense-in-depth)` / `Skill(secrets-management)` philosophy for framing (don't audit — describe).
 - **Inspect:** SDK deps in the manifest (`stripe`, `boto3`/`@aws-sdk`, `@google-cloud/*`, `redis`,
   `psycopg`/`pg`, `kafka`, `elasticsearch`/`opensearch`, `openai`/`anthropic`, `sendgrid`/`twilio`,
@@ -208,8 +208,8 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
   inventory; known-issue backlog; dependency health (count outdated/deprecated); test-coverage gaps;
   "here be dragons" (generated code, vendored code, `// DO NOT EDIT`, huge files, files with no tests).
 - **Reuse:** `Skill(doc-drift-detection)` heuristics for stale version strings / CHANGELOG /
-  README / CLAUDE.md / ADR index; `.planning/codebase/CONCERNS.md`; `/codebase-deep-dive`
-  `04-code-quality-assessment.md` & `08-recommendations.md`; `Skill(retro)` philosophy for the
+  README / CLAUDE.md / ADR index; `.planning/codebase/CONCERNS.md`; a fresh `/assess-codebase`
+  report (maintainability rating, `hot_spot:*`, `owners.*`); `Skill(retro)` philosophy for the
   git-history breakdown (don't run it — borrow the approach).
 - **Inspect (read-only git/grep):**
   - Churn: `git log --since='6 months ago' --name-only --pretty=format: | sort | uniq -c | sort -rn | head -25`
@@ -228,7 +228,7 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
 ## 14 — Pros / cons / watch-outs
 - **What:** an honest verdict per `references/PROS-CONS-RUBRIC.md`. ≥3 evidence-cited items per
   column (Pros / Cons / Watch-outs). Explicit trade-offs ("optimised for X at the cost of Y").
-- **Reuse:** synthesis of dimensions 3, 6, 9, 12, 13 + `/codebase-deep-dive` health grade if present.
+- **Reuse:** synthesis of dimensions 3, 6, 9, 12, 13 + a fresh `/assess-codebase` report's per-dimension ratings if present.
 - **Evidence:** the filled rubric table; the three columns each with cited evidence; a 2-3 sentence
   "bottom line for a newcomer".
 - **Owner:** HEALTH gathers evidence → SYN writes the verdict.
@@ -306,7 +306,7 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
 | `gsd-codebase-mapper:arch` | 1, 3, 4 | `.planning/codebase/ARCHITECTURE.md`, `STRUCTURE.md` |
 | `gsd-codebase-mapper:quality` | 9, 6 | `.planning/codebase/CONVENTIONS.md`, `TESTING.md` |
 | `gsd-codebase-mapper:concerns` | 13 (partial) | `.planning/codebase/CONCERNS.md` |
-| `/codebase-deep-dive` | 3, 6, 9, 12-security, 13 (quality grade) | `.claude/reports/codebase-deep-dive-*/` + diagrams |
+| `/assess-codebase` | 3, 6, 9, 12-security, 13 (per-dimension ratings) | `.claude/reports/assess-codebase/<sha12>/` `summary.json` + `findings.jsonl` (drop refuted) + `report.md` |
 | `codebase-onboarding-conventions` | 9, 10, 11, 17 | `.claude/onboarding/06-conventions-versioning-git.md`, `07-rules-and-agent-instructions.md` |
 | `codebase-onboarding-runbook` | 5, 6, 7, 8, 12-observability, 3-datamodel | `.claude/onboarding/04-build-run-debug.md`, `05-tests-ci.md`, `08-integrations-observability-security.md` |
 | `codebase-onboarding-health` | 13, 14-evidence, 12-vuln | `.claude/onboarding/09-repo-health-and-verdict.md` (evidence part) |

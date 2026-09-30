@@ -59,7 +59,7 @@ T2–T8 run in parallel once T1 is done. Spawn the mapper/worker agents with `Ag
   line counts. The orchestrator never holds the document bodies (token discipline — same as
   `gsd-map-codebase`).
 - **Absorb-before-run:** before T2–T5, the orchestrator checks for fresh `.planning/codebase/*` /
-  `.claude/reports/codebase-deep-dive-*/` / codemem index (or `PROJECT_INDEX.json`) and *cancels* the corresponding
+  fresh `/assess-codebase` report (`aa-ma-analysis fresh`) / codemem index (or `PROJECT_INDEX.json`) and *cancels* the corresponding
   task(s), recording "absorbed" in the Provenance scratchpad. (See `references/REUSE-MAP.md`.)
 - **AGENTS.md gate (T12):** the **orchestrator** runs the `AskUserQuestion` (it's HITL — needs the
   human); the **synthesizer** does the writing. Never overwrite an existing `AGENTS.md` — sidecar

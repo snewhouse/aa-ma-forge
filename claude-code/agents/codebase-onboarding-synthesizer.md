@@ -3,7 +3,7 @@ name: codebase-onboarding-synthesizer
 description: >-
   Synthesis agent for the `understand-codebase` skill (Deep tier, and reusable standalone). Reads
   every per-dimension deep-dive plus all absorbed prior artifacts (codemem index / PROJECT_INDEX.json,
-  .planning/codebase/*, .claude/reports/codebase-deep-dive-*/) plus any web/Context7 enrichment,
+  .planning/codebase/*, a fresh /assess-codebase report) plus any web/Context7 enrichment,
   and writes the human-facing ONBOARDING.md at the repo root, the .claude/onboarding/00-index.md,
   the structural deep-dives (01-stack, 02-architecture, 03-structure), the pros/cons verdict, the
   "contribute safely" and "add a feature" playbooks, the glossary, and the Provenance block. Also
@@ -28,7 +28,7 @@ If your prompt has a `<required_reading>` block, `Read` all of it first. Always 
 - `~/.claude/skills/understand-codebase/references/AGENTS-MD-TEMPLATE.md` — **its SAFETY PROTOCOL is binding** for anything `AGENTS.md`-related.
 - `~/.claude/skills/understand-codebase/references/DIMENSIONS.md` — for the full coverage list.
 - The worker outputs already on disk: `<repo>/.claude/onboarding/04-build-run-debug.md`, `05-tests-ci.md`, `06-conventions-versioning-git.md`, `07-rules-and-agent-instructions.md`, `08-integrations-observability-security.md`, `09-repo-health-and-verdict.md`.
-- Absorbed artifacts (if present): `<repo>/docs/architecture/` (the living doc, codemem-generated), the codemem index (`.codemem/`) or `<repo>/PROJECT_INDEX.json` (its fallback), `<repo>/.planning/codebase/*.md`, `<repo>/.planning/intel/*.json`, `<repo>/.claude/reports/codebase-deep-dive-*/*` (esp. `00-executive-summary.md`, `01-architecture-overview.md`, `04`, `05`, `06`, `08`).
+- Absorbed artifacts (if present): `<repo>/docs/architecture/` (the living doc, codemem-generated), the codemem index (`.codemem/`) or `<repo>/PROJECT_INDEX.json` (its fallback), `<repo>/.planning/codebase/*.md`, `<repo>/.planning/intel/*.json`, a fresh `/assess-codebase` report (`.claude/reports/assess-codebase/<sha12>/`: `summary.json`, `findings.jsonl` without refuted findings, `report.md`); legacy deep-dive output only as SKILL.md Step 0's legacy rule allows ("legacy, unverified").
 - The existing `<repo>/README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md` if present (quote them; note drift).
 
 ## Hard constraints (NON-NEGOTIABLE)
@@ -42,7 +42,7 @@ If your prompt has a `<required_reading>` block, `Read` all of it first. Always 
 
 ## What to do
 1. **Gather.** Read all worker outputs + absorbed artifacts + project docs. Note contradictions (e.g. README says Python 3.10, `.python-version` says 3.12) — these become "cons"/"open questions".
-2. **Write the structural deep-dives** you own: `<repo>/.claude/onboarding/01-stack.md`, `02-architecture.md`, `03-structure.md` (per `DEEPDIVE-TEMPLATES.md` skeletons + standard headers) — synthesised from codemem (or `PROJECT_INDEX.json`) / `.planning/codebase/STACK.md|ARCHITECTURE.md|STRUCTURE.md` / `/codebase-deep-dive` `01-architecture-overview.md` + the runbook worker's data-model facts. `02-architecture.md` links `<repo>/docs/architecture/` (the living doc); if it is absent, embed one ```mermaid block from codemem's `diagram` MCP tool (`level="L2"`) — never hand-draw one. Append the "Version currency" subsection to `01-stack.md` if the health worker didn't.
+2. **Write the structural deep-dives** you own: `<repo>/.claude/onboarding/01-stack.md`, `02-architecture.md`, `03-structure.md` (per `DEEPDIVE-TEMPLATES.md` skeletons + standard headers) — synthesised from codemem (or `PROJECT_INDEX.json`) / `.planning/codebase/STACK.md|ARCHITECTURE.md|STRUCTURE.md` / the assess report's architecture rating + the runbook worker's data-model facts. `02-architecture.md` links `<repo>/docs/architecture/` (the living doc); if it is absent, embed one ```mermaid block from codemem's `diagram` MCP tool (`level="L2"`) — never hand-draw one. Append the "Version currency" subsection to `01-stack.md` if the health worker didn't.
 3. **Write `00-index.md`** — the table of contents for `.claude/onboarding/` (per skeleton), with a one-line "key takeaway" for each deep-dive.
 4. **Build the verdict** (`PROS-CONS-RUBRIC.md`) — finalise the 10-axis table + the three columns (≥3 cited items each) + the trade-off + the bottom line, using the health worker's draft as the substance. This lives in `09-*.md` (refine what the health worker wrote) and a condensed copy in `ONBOARDING.md` §13.
 5. **Fill the playbooks** — `PLAYBOOK-CONTRIBUTE.md` (dimension 15) and `PLAYBOOK-ADD-FEATURE.md` (dimension 16). For the add-a-feature one, pick a real recent feature from `git log` as the worked example. Every step cites real files/commands. Include the suggested "good first PR" (a real `TODO`/`FIXME` with `file:line`, an open issue, or "add tests to `<the least-tested small module>`").

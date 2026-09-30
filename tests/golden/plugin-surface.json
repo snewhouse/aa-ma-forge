@@ -43,6 +43,12 @@
    "src": "agent:codebase-onboarding-conventions"
   },
   {
+   "dst": "command:assess-codebase",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "agent:codebase-onboarding-health"
+  },
+  {
    "dst": "skill:doc-drift-detection",
    "kind": "skill",
    "ref_class": "DECLARED_EXTERNAL",
@@ -59,6 +65,12 @@
    "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "agent:codebase-onboarding-runbook"
+  },
+  {
+   "dst": "command:assess-codebase",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "agent:codebase-onboarding-synthesizer"
   },
   {
    "dst": "skill:understand-codebase",
@@ -428,6 +440,12 @@
   },
   {
    "dst": "command:aa-ma-plan",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "command:understand-codebase"
+  },
+  {
+   "dst": "command:assess-codebase",
    "kind": "command",
    "ref_class": "ON_DISK",
    "src": "command:understand-codebase"
@@ -1015,15 +1033,15 @@
    "src": "skill:understand-codebase"
   },
   {
-   "dst": "command:understand-codebase",
+   "dst": "command:assess-codebase",
    "kind": "command",
    "ref_class": "ON_DISK",
    "src": "skill:understand-codebase"
   },
   {
-   "dst": "skill:aa-ma-plan",
-   "kind": "skill",
-   "ref_class": "DANGLING",
+   "dst": "command:understand-codebase",
+   "kind": "command",
+   "ref_class": "ON_DISK",
    "src": "skill:understand-codebase"
   },
   {
@@ -1216,7 +1234,6 @@
  },
  "orphans": [
   "command:aa-ma-search",
-  "command:assess-codebase",
   "command:sole-dev-merge",
   "hook:aa-ma-session-end-dirty.sh",
   "skill:aa-ma-execution",

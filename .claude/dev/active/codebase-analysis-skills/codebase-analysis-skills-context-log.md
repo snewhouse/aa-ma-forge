@@ -189,3 +189,9 @@ _This log will be updated via context compaction as the task progresses._
 - Regression 1 (0 C / 4 W): **fix + another regression pass**.
 - Regression 2 (`lnk/..` alias; unnormalised `--repo`): fixed `01ec2e6`; loop closed per M2/M3 precedent; residual INFO → backlog (impl-review M4).
 - Live AC6 re-run at final HEAD `9a6f441` because `fresh` and Step 0 changed after the `31dedf1` run.
+
+## [2026-09-30] GATE APPROVAL: Milestone 4: understand-codebase repoint + residuals
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 7/7 (AC7 CI architecture-drift confirmed on the PR)
+- Decision: APPROVED — Approve + PR + merge

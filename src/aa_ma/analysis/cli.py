@@ -270,11 +270,15 @@ def _trusted_pack(path: Path, repo: Path) -> Onboarding:
     ):
         raise _Refused("the pack sits in another git work tree (a submodule?)")
     listed = stamp.run_git(repo, "ls-files", "-z")
-    # Compared case-folded in Python, not by pathspec: `.Claude/Onboarding/…` is the same file on a
-    # case-insensitive filesystem, and pathspec magic would depend on the caller's GIT_*_PATHSPECS.
-    pack_dir = ONBOARDING_JSON.parent.as_posix().casefold() + "/"
+    # Compared case-folded and upper-cased in Python, not by pathspec: `.Claude/Onboarding/…` is the
+    # same file on a case-insensitive filesystem (NTFS upper-cases: 'ı'.upper() == 'I'), and
+    # pathspec magic would depend on the caller's environment.
+    pack_dir = ONBOARDING_JSON.parent.as_posix() + "/"
+    folds = (str.casefold, str.upper)
     if listed.returncode != 0 or any(
-        f.casefold().startswith(pack_dir) for f in listed.stdout.split("\0")
+        fold(f).startswith(fold(pack_dir))
+        for f in listed.stdout.split("\0")
+        for fold in folds
     ):
         raise _Refused(
             "git tracks the onboarding pack — the repo's own, not this tool's output"

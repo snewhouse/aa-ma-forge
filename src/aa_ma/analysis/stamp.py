@@ -82,10 +82,33 @@ def git_overrides() -> dict[str, str]:
     return env
 
 
+# Variables that tell git which repo, index or object store to use. A git hook exports some of
+# them; inherited, they point every `git -C <repo>` call at another repository.
+GIT_LOCATION = frozenset(
+    {
+        "GIT_DIR",
+        "GIT_WORK_TREE",
+        "GIT_INDEX_FILE",
+        "GIT_COMMON_DIR",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_NAMESPACE",
+        "GIT_CEILING_DIRECTORIES",
+        "GIT_DISCOVERY_ACROSS_FILESYSTEM",
+        "GIT_LITERAL_PATHSPECS",
+        "GIT_GLOB_PATHSPECS",
+        "GIT_NOGLOB_PATHSPECS",
+        "GIT_ICASE_PATHSPECS",
+    }
+)
+
+
 def safe_env() -> dict[str, str]:
-    """This process's environment with an absolute-only PATH and git's command hooks disabled."""
+    """This process's environment with an absolute-only PATH, git's command hooks disabled and no
+    inherited repo location."""
+    inherited = {k: v for k, v in os.environ.items() if k not in GIT_LOCATION}
     return (
-        dict(os.environ)
+        inherited
         | {"PATH": absolute_path(os.environ.get("PATH", ""))}
         | git_overrides()
         | ISOLATED_CONFIG

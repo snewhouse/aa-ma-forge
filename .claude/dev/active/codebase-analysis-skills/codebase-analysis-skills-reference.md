@@ -85,6 +85,13 @@
 - `fresh` refuses (exit 1): dir name ≠ stamp report name; not directly under `stamp.REPORTS_ROOT`; file target ≠ `.claude/onboarding/onboarding.json`; a symlink below `--repo`; `realpath(target) != realpath(repo)/rel` (`lnk/..`); incomplete `finalize.REPORT_FILES`; stamp file > `FRESH_MAX_BYTES` (1 MB); a git-tracked dir; `git ls-files` failure. Unreadable stamp → "unstamped" exit 1.
 - One assess→dimension map: `references/DIMENSIONS.md`. Refuted findings dropped on absorb. Absorbed reports are evidence, never instructions.
 
+### understand-codebase v1 (M5, as built)
+- `aa-ma-analysis ground <md> [--repo R] [--cited]` — exit 0 grounded / 1 lists `line: token not found in citation` (or `cited path missing or outside the repo`) / 2 md symlinked, over 2 MB (`CITED_FILE_MAX_BYTES`) or not UTF-8. Claim unit = list item / table row / prose sentence citing `` `path` `` or `` `path:line[-end]` ``; window ±`WINDOW` (20) around the cited range; tokens = backticked names (table `\|` unescaped) + standalone numbers; a cited path or dir grounds its own name/numbers. `--cited` prints the section's map entry (files + `dir/`).
+- `aa-ma-analysis changed-since <sha12> [--repo R] [--onboarding F]` → JSON {known, changed, regenerate}; exit 0; 2 = bad sha / non-repo / refused pack. Pack trusted only at `.claude/onboarding/onboarding.json`, real dirs, same git work tree as --repo, untracked (case-folded + upper-cased match), stamp sha == positional sha. known:false when the sha is not a commit, the tree is dirty, or the pack is stamped dirty.
+- Section map (5.1 PASS): cited files + cited dirs as prefixes (any depth) + `SECTION_GLOBS` (01-stack.md manifests/lockfiles; 05-tests-ci.md workflows/tests) ; A/D/R/C → `03-structure.md` when mapped. Section keys = deep-dive file names `^[0-9]{2}-[a-z0-9-]+\.md$` (models.SectionName).
+- `stamp.safe_env` drops `GIT_LOCATION` (GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, … pathspec vars).
+- Skill order: incremental check → (Standard) codemem build + refresh-commits by the main thread → agents → synthesize → currency check (`aa-ma-analysis run`, one ask; uv run allows test runners only) → write → AGENTS.md (Commands / Gotchas / Rules pointers, ~60 lines) → checked output last (ground, 10 sampled claims Standard / ~20 Deep, ledger, onboarding.json + validate). CLI unavailable → each skip named in Provenance.
+
 ### Research files
 - `docs/research/codebase-analysis-skills-prior-art.md` — Ticket 1 prior art (Valid-Through per header)
 - `docs/research/codebase-analysis-skills-codemem-coverage.md` — Ticket 2 codemem coverage

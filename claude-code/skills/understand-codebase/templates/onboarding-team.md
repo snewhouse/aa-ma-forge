@@ -34,7 +34,7 @@ dimension coverage.
 
 ## Task list (create with `TaskCreate`, wire deps with `TaskUpdate addBlockedBy`)
 ```
-T0  incremental      — orchestrator: the incremental re-run check (SKILL.md Checked output); cancel every task below that owns no listed section [no deps]
+T0  incremental      — orchestrator: the incremental re-run check (SKILL.md Checked output); cancel the mapper and worker tasks (T2–T9) that own no listed section — the index, currency, synthesis, gate, review, checks and shutdown tasks always run [no deps]
 T1  index            — orchestrator: `codemem build` then `codemem refresh-commits`, once; no worker writes `.codemem/` (PROJECT_INDEX.json, if present, is codemem's fallback) [blockedBy: T0]
 T2  map-tech         — mapper-tech writes STACK.md, INTEGRATIONS.md                      [blockedBy: T1]
 T3  map-arch         — mapper-arch writes ARCHITECTURE.md, STRUCTURE.md                  [blockedBy: T1]
@@ -71,7 +71,8 @@ T2–T8 run in parallel once T1 is done. Spawn the mapper/worker agents with `Ag
 - **Reviewer brief (T13):** "Read `ONBOARDING.md` + `.claude/onboarding/**`. For each factual
   claim, verify against the codebase (file exists? command valid? git fact true?). Flag any
   boilerplate not grounded in THIS repo. Run `grep -rEi 'api[_-]?key\s*=\s*\S|BEGIN [A-Z ]*PRIVATE KEY|password\s*=\s*\S|secret\s*=\s*[\"\x27]\S' ONBOARDING.md .claude/onboarding/` — must be zero hits. Check the acceptance criteria in `understand-codebase/SKILL.md`. Return: PASS / FIX-LIST."
-- **Shutdown (T14):** `SendMessage` each teammate "task complete — you may stop"; teammates going
+- **Checked output (T14):** ground every written file, ~20 sampled claims, ledger, onboarding.json + validate; re-ask a failed claim of the teammate that wrote it.
+- **Shutdown (T15):** `SendMessage` each teammate "task complete — you may stop"; teammates going
   idle between turns is normal. Then `TeamDelete` (or leave the team dir if the user wants the audit
   trail — ask). Report to chat: which tools ran vs absorbed, the AGENTS.md action, the reviewer
   verdict, and "ONBOARDING.md is at `<repo>/ONBOARDING.md`; deep-dives in `.claude/onboarding/`".
@@ -80,7 +81,7 @@ T2–T8 run in parallel once T1 is done. Spawn the mapper/worker agents with `Ag
 1. **ANALYZE** — Step 0 absorb; detect languages; size the repo; decide which heavy tools to run vs absorb.
 2. **COMPOSE** — pick the roles above (drop some mappers if their output is being absorbed; `living-doc` always runs).
 3. **APPROVE** — `AskUserQuestion`: confirm Deep tier, target path, "OK to run `gsd-map-codebase` + `codemem draw --write` (writes to `.planning/`, `docs/architecture/`, `.codemem/` and one `.gitignore` line; a hand-authored `docs/architecture/` file is never overwritten — the living doc is skipped instead)?".
-4. **SPAWN** — `TeamCreate` → `TaskCreate` ×14 + deps → `Agent(... run_in_background)` for T2–T9.
+4. **SPAWN** — `TeamCreate` → `TaskCreate` per task above + deps → `Agent(... run_in_background)` for T2–T9.
 5. **COORDINATE** — poll `TaskList`; as tasks complete, unblock T11; run T10 enrichment; collect confirmations.
-6. **SHUTDOWN** — T11 synth → T12 AGENTS.md gate → T13 review + fixes → final chat summary.
+6. **SHUTDOWN** — T10b currency → T11 synth → T12 AGENTS.md gate → T13 review + fixes → T14 checked output → T15 shutdown + final chat summary.
 7. **CLEANUP** — `SendMessage` stop; `TeamDelete`; (optionally keep the team dir as audit trail if asked).

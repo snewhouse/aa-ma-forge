@@ -68,7 +68,7 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
 - **Reuse:** codemem `diagram(level="L1")` for the directory map (or `PROJECT_INDEX.json` `dir_purposes`, codemem's fallback, when present); `.planning/codebase/STRUCTURE.md`.
 - **codemem first:** from the target root, once the main thread has run `codemem build` and
   `codemem refresh-commits` (without it `hot_spots` / `co_changes` come back empty),
-  `uv run --quiet --project "$AA_MA_ROOT" codemem query` with `layers`
+  `uv run --quiet --project "$AA_MA_ROOT" codemem query` (single-quote each repo path you pass) with `layers`
   (core / middle / periphery — which dirs are foundations), `hot_spots` (where change lands),
   `co_changes` + a path (dirs that move together) and `owners` + `--repo-root . <path>` (who to ask about
   a dir). Read these instead of re-deriving structure with Explore; `find` below fills the gaps.
@@ -219,7 +219,7 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
   git-history breakdown (don't run it — borrow the approach).
 - **codemem first:** from the target root, once the main thread has run `codemem build` and
   `codemem refresh-commits` (without it `hot_spots` / `co_changes` come back empty),
-  `uv run --quiet --project "$AA_MA_ROOT" codemem query` with `hot_spots`
+  `uv run --quiet --project "$AA_MA_ROOT" codemem query` (single-quote each repo path you pass) with `hot_spots`
   (churn × size — the churn table), `co_changes` + a path for each top hot spot (hidden coupling),
   `owners` + `--repo-root . <path>` (blame share — bus factor) and `layers` (is the churn in core or
   periphery?). The git commands below are the fallback when codemem is unavailable, and fill what

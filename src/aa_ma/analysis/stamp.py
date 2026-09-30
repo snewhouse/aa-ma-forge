@@ -82,8 +82,8 @@ def git_overrides() -> dict[str, str]:
     return env
 
 
-# Variables that tell git which repo, index or object store to use. A git hook exports some of
-# them; inherited, they point every `git -C <repo>` call at another repository.
+# Variables that tell git which repo, index or object store to use, or add config. A git hook
+# exports some of them; inherited, they point every `git -C <repo>` call at another repository.
 GIT_LOCATION = frozenset(
     {
         "GIT_DIR",
@@ -99,6 +99,7 @@ GIT_LOCATION = frozenset(
         "GIT_GLOB_PATHSPECS",
         "GIT_NOGLOB_PATHSPECS",
         "GIT_ICASE_PATHSPECS",
+        "GIT_CONFIG_PARAMETERS",  # `git -c` from the caller: could set core.fsmonitor
     }
 )
 

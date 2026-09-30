@@ -134,15 +134,19 @@ and `onboarding.json` last.
   is not one this skill wrote as a regular UTF-8 file (a symlink, oversized, not UTF-8): rewrite it.
   Every written file ends at `ground` exit 0.
 - **Currency check** (Standard/Deep). The main thread — never an agent — shows the documented
-  build / test / lint commands with where each is defined, asks once (`AskUserQuestion`: run all ·
-  pick · none), and runs the approved ones: `aa-ma-analysis run --repo . --cmd "<c>" [--cmd …]`. Each command
-  gets exactly one status — verified / failed / timeout / not_run / refused — written beside it in
-  `ONBOARDING.md` and in `onboarding.json`. Declined or unapproved → `not_run`.
+  build / test / lint commands with where each is defined, says that each one runs the repo's own code
+  (its tests, conftest.py, Makefile recipes), asks once (`AskUserQuestion`: run all · pick ·
+  none), and runs the approved ones: `aa-ma-analysis run --repo . --cmd '<c>' [--cmd …]`. Commands
+  come from the repo, so each goes in single quotes, and one containing `'`, `$` or a backtick is not
+  run (`not_run` — the shell would expand it before `run` sees it). Each command gets exactly one
+  status — verified / failed / timeout / not_run / refused — written beside it in `ONBOARDING.md` and
+  in `onboarding.json`. Declined or unapproved → `not_run`.
 - **Coverage ledger** (every tier). One entry per top-level path: `assessed`, or `set_aside` with a
   reason naming the evidence (vendored, generated, fixtures). It goes in `onboarding.json`'s `ledger`
   (Standard/Deep) and, as a table, in the Provenance block (every tier); nothing is silently skipped.
-- **`onboarding.json`** (Standard/Deep). Write `.claude/onboarding/onboarding.json` last: `stamp`
-  from `aa-ma-analysis stamp --repo . --tier <tier>`; `commands` from the currency check; `entry_points`,
+- **`onboarding.json`** (Standard/Deep). Write `.claude/onboarding/onboarding.json` last, but take its
+  `stamp` (`aa-ma-analysis stamp --repo . --tier <tier>`) at the start of the run, before anything is
+  written — the skill's own writes (ONBOARDING.md, a `.gitignore` line) must not mark it dirty; `commands` from the currency check; `entry_points`,
   `key_modules`, `rules_files`; the `ledger`; and `sections` — for each deep-dive, its file name
   mapped to `aa-ma-analysis ground --cited .claude/onboarding/<file> --repo .` (the paths it cites; the map the
   next incremental re-run reads). Then `aa-ma-analysis validate onboarding .claude/onboarding/onboarding.json`
@@ -284,10 +288,11 @@ note it in Provenance and carry on. Shape:
 - **Reviewer:** spawn `Agent(subagent_type=code-reviewer)` (or `comprehensive-review:code-reviewer`)
   pointed at `ONBOARDING.md` + `.claude/onboarding/` with the brief: "verify every factual claim
   against the codebase; flag boilerplate not grounded in this repo; run the secret-leak grep."
-  Apply its corrections, then `SendMessage` shutdown and clean up the team.
-- **Checked output** (orchestrator, last, after the reviewer): `aa-ma-analysis ground` on every
-  written file, ~20 sampled claims read against their cited lines, the coverage ledger,
-  `onboarding.json` + `aa-ma-analysis validate onboarding`.
+  Apply its corrections.
+- **Checked output** (orchestrator, after the reviewer and before shutdown, so a failed claim can be
+  re-asked of the teammate that wrote it): `aa-ma-analysis ground` on every written file,
+  ~20 sampled claims read against their cited lines, the coverage ledger, `onboarding.json` + `aa-ma-analysis
+  validate onboarding`. Then `SendMessage` shutdown and clean up the team.
 
 If any reused tool/agent is missing → skip that input, note it in Provenance, continue. Never hard-fail.
 

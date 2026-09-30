@@ -226,3 +226,11 @@ _This log will be updated via context compaction as the task progresses._
 - Active step at compaction: Sub-step 6.1: [measure] impact analysis; re-measure on a fresh scratch index; pin both sets
 - Snapshot saved to: /home/sjnewhouse/.claude/hooks/cache/compaction-snapshots/codebase-analysis-skills-snapshot.md
 - Note: Context compacted. Reload AA-MA files to resume.
+
+## [2026-09-30] M6 6.1 — pinned sets (measured on `git archive` of 3819eb0)
+- Pre-M6 golden: 201 edges, 62 ON_DISK command edges (the "no ON_DISK edge lost" base).
+- Command DANGLING set pinned at 6.1: {commit-and-push, compress, git-status-smart, healthz, index, pre-commit-*, readyz, release-prep, settings}.
+- Set to fix in 6.4: all nine (local-only user commands and `/compress` reworded; `/healthz`, `/readyz`, `/settings` are HTTP routes → `GET /…` form, which AC1 says draws no edge). Expected post-6.4 command DANGLING set: ∅.
+- EXTERNAL["command"] (only referenced names; AC3 forbids unreferenced entries): {browse, goal, init, qa, qa-only, superpowers:brainstorming}. Plan examples `help`, `clear`, `claude-security` are not referenced as backticked `/x` today, so not listed.
+- Skill DANGLING pin unchanged: {haiku-eval}.
+- Decision: the skills/x/ lookup applies to every resolvable occurrence (same rule as commands); a stem that is both a command and a skill resolves to the command. `{` added to the end-of-name guard for all `/x` (no command name is followed by `{`; the no-lost-edge check proves it).

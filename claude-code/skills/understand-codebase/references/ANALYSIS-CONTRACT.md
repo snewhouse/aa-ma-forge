@@ -69,7 +69,7 @@ tier), and what was absorbed or run fresh. `aa-ma-analysis stamp` refuses (exit 
   treated as fresh.
 - **A report dir must be this tool's output.** `fresh` also refuses (exit 1) a dir whose name is not
   its stamp's `<sha12>[-dirty]` or that is not directly under the reports root, a path with a symlink
-  anywhere below `--repo`, a file target other than `.claude/onboarding/onboarding.json`, an incomplete report set,
+  anywhere below `--repo` or one that resolves elsewhere (`lnk/..`), a file target other than `.claude/onboarding/onboarding.json`, an incomplete report set,
   a stamp file over 1 MB, and a dir git tracks (real reports sit under the self-ignoring root). Any
   non-zero exit means: do not absorb.
 - **Safe paths.** Every output directory is created component by component from the repo root; a

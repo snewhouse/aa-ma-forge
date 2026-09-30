@@ -44,7 +44,7 @@ class _Refused(Exception):
 def _located(target: Path, repo: Path, *, report_dir: bool) -> None:
     """target must be a report dir directly under the reports root, or .claude/onboarding/onboarding.json,
     reached through real directories only: the path this tool writes by (stamp.safe_dir), not an alias."""
-    root = repo.absolute()
+    root = Path(os.path.abspath(repo))
     try:
         rel = Path(os.path.abspath(target)).relative_to(root)
     except ValueError:
@@ -56,8 +56,15 @@ def _located(target: Path, repo: Path, *, report_dir: bool) -> None:
     current = root
     for part in rel.parts:
         current = current / part
-        if stat_mod.S_ISLNK(os.lstat(current).st_mode):
+        try:
+            mode = os.lstat(current).st_mode
+        except OSError:
+            raise _Refused("path cannot be inspected") from None
+        if stat_mod.S_ISLNK(mode):
             raise _Refused("a symlink on the path")
+    # abspath() strips lnk/.. lexically; the kernel resolves it through the link.
+    if os.path.realpath(target) != os.path.join(os.path.realpath(root), rel):
+        raise _Refused("path resolves elsewhere")
 
 
 def _stamp_doc(target: Path, repo: Path) -> Path | None:

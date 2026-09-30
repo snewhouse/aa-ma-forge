@@ -5,9 +5,12 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 
 1. **Detect prior output first.** If a tool's output already exists and is fresh, *absorb* it —
    do not re-run the tool.
-2. **Only run a heavy tool when its output is absent or stale.** "Stale" = the artifact's
-   timestamp predates the repo's last commit (`git log -1 --format=%cd`), or the artifact's own
-   date stamp is > ~30 days old, or the user asked for a fresh run.
+2. **Only run a heavy tool when its output is absent or stale.** Assess reports — and legacy
+   deep-dive output, which is never fresh — are judged by SHA: `aa-ma-analysis fresh <dir>` exits 0
+   only when the report's stamp is HEAD's commit and neither it nor the tree is dirty. Unstamped
+   artifacts (gsd output, `PROJECT_INDEX.json` — codemem's fallback) are judged by date: stale when they predate the
+   repo's last commit (`git log -1 --format=%cd`) or are > ~30 days old. A user asking for a fresh
+   run always wins.
 3. **Record what was absorbed vs freshly run** in the Provenance block.
 4. **Degrade gracefully.** If a tool/agent is unavailable, skip that input and note it — never hard-fail.
 
@@ -27,14 +30,15 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 | `.planning/codebase/TESTING.md` | `gsd-map-codebase` (quality) | Dimension 6 (tests). | " |
 | `.planning/codebase/CONCERNS.md` | `gsd-map-codebase` (concerns) | Dimension 13 (tech debt) partial. | " |
 | `.planning/intel/stack.json` `files.json` `apis.json` `deps.json` `arch.md` | `gsd-intel` | Fast structured lookups (file exports, API surface, dependency chains, stack summary). Each has `_meta.updated_at`. | `_meta.updated_at`. |
-| `.claude/reports/codebase-deep-dive-*/00-executive-summary.md` (+ `01`…`08` + `diagrams/`) | `/codebase-deep-dive` | Dimensions 3 (arch + diagrams), 6 (test coverage), 9 (quality grade), 12-security, 13 (recommendations). **Link the diagrams; quote the grade.** | timestamp in the dir name. |
+| `.claude/reports/assess-codebase/<sha12>[-dirty]/` `summary.json` + `findings.jsonl` + `report.md` | `/assess-codebase` | Dimensions 3 (architecture rating), 6 + 13 (tests_deps rating, deps, hot spots, owners), 9 (maintainability), 12-security. Read `findings.jsonl` without the findings whose `refutation` is `refuted` (an audit trail, not findings). **Link `report.md`; quote each rating with its inputs.** | `aa-ma-analysis fresh <dir>` (SHA stamp) — 0 fresh, 1 stale. |
+| legacy deep-dive output (unstamped) | a retired local command | Only per the one legacy rule in SKILL.md Step 0: "legacy, unverified", leads to verify. | never fresh. |
 | `ONBOARDING.md` (root) | a *prior run of this skill* | Compare; this run updates it in place + refreshes Provenance. Don't duplicate. | Provenance block date. |
 | `.claude/onboarding/*` | a *prior run of this skill* | Same — update in place. | " |
 | `README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`, `docs/`, `docs/adr/` | the project itself | Quote them; cross-check vs code; **note drift as a "con"** (use `Skill(doc-drift-detection)` heuristics). | n/a — always read & verify. |
 
 **Step-0 pseudo-procedure:**
 ```
-1. ls .codemem/index.db PROJECT_INDEX.json .planning/codebase/ .planning/intel/ .claude/reports/codebase-deep-dive-* ONBOARDING.md .claude/onboarding/ 2>/dev/null
+1. ls .codemem/index.db PROJECT_INDEX.json .planning/codebase/ .planning/intel/ .claude/reports/ ONBOARDING.md .claude/onboarding/ 2>/dev/null
 2. For each found: check freshness. Fresh → read & absorb. Stale → note "stale, refreshing" and queue a re-run (only if tier permits).
 3. If no codemem index and tier >= Standard and repo not huge → run `codemem build` (PROJECT_INDEX.json, if present, is codemem's fallback).
 4. Record absorbed-vs-stale in a scratchpad for the Provenance block.
@@ -70,11 +74,9 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 - **When:** Deep tier, always (SKILL.md "Living architecture doc" carries the exact fence).
 - **Output:** `docs/architecture/` in the target repo — generated, regenerable, `--check`-able in CI.
   `02-architecture.md` links it; it never copies it.
-- **Prior deep-dive output:** if a `.claude/reports/codebase-deep-dive-*/` already exists (someone ran
-  that command), absorb it per section A — link `01-architecture-overview.md`,
-  `04-code-quality-assessment.md`, `05-security-analysis.md`, `06-design-patterns.md`,
-  `08-recommendations.md`, and fold its health grade into the pros/cons verdict. This plugin does
-  not ship that command; never instruct running it.
+- **Prior assessment:** a fresh `/assess-codebase` report is absorbed per section A — link its
+  `report.md` and fold its per-dimension ratings (with their inputs) into the pros/cons verdict.
+  Legacy deep-dive output follows the one legacy rule in SKILL.md Step 0.
 
 ### `Skill(system-mapping)` — 5-point pre-flight
 - **When:** any tier — borrow its 5-point checklist (architecture / execution flows / logging /

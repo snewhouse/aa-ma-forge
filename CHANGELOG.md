@@ -64,6 +64,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   `refutation_reason` field (listed under Refuted in `report.md`, outside counts, baseline and
   SARIF). The Deep test-run ask shows what the command executes and says it runs the target's
   own code.
+- **understand-codebase reads `/assess-codebase` instead of the retired deep-dive
+  (`codebase-analysis-skills` M4)** — Step 0 absorbs a fresh assess report (`summary.json`,
+  `findings.jsonl` without refuted findings, a link to `report.md`) only when `aa-ma-analysis fresh`
+  says it describes HEAD; old `codebase-deep-dive-*` reports are absorbed by one flagged rule as
+  "legacy, unverified" and never count as fresh. Quick links the assess report; Deep asks once
+  whether to run `/assess-codebase` first. Whole-repo audits route to `/assess-codebase`; the
+  retired `/deep-analysis` and `Skill(aa-ma-plan)` references are gone, and `--deep` no longer
+  claims to run commands this plugin does not ship.
 - **`codemem query` reaches 10 MCP tools** — `hot_spots`, `co_changes <file>`, `owners <path>
   [--repo-root R]` and `layers` join the six ports, so scripts get git-history and layering answers
   without an MCP server. `owners --repo-root` computes the blame; without it only the cache is read,

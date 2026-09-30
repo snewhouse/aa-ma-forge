@@ -259,7 +259,7 @@ git clone <url> && cd <repo>
 - Dashboards / alerting: <Grafana / Datadog / … — if discoverable>
 - Health checks: <`/healthz` / `/readyz` endpoints — file:line, or none>
 
-## Security posture  (describe, don't audit — link `/codebase-deep-dive` 05-security-analysis.md if it ran)
+## Security posture  (describe, don't audit — link a fresh `/assess-codebase` report.md if one exists)
 - Auth/authz model: <sessions / JWT / OAuth2 / OIDC / API keys / mTLS — 2-3 sentences, cite the middleware/decorator>
 - Input validation: <where it happens (schemas / serializers / validators) — file:line>
 - Dependency vulnerability scanning: <Dependabot / Renovate config; `pip-audit`/`npm audit`/`govulncheck`/`trivy`/`snyk` in CI — or `not found — gap`>

@@ -28,7 +28,7 @@ sidecar (never overwrites it).
 
 `$ARGUMENTS` — optional, in any order:
 - a **path** to the repo to analyse (default: current working directory).
-- a **tier flag**: `--quick` (~5 min, one-page `ONBOARDING.md` only), `--standard` (default; ~15–30 min, 4 parallel Explore agents + the full pack), `--deep` (~45 min+; a `TeamCreate` agent-team that also runs `gsd-map-codebase`, `/codebase-deep-dive`, `/index`, and WebSearch+Context7 version-currency checks).
+- a **tier flag**: `--quick` (~5 min, one-page `ONBOARDING.md` only), `--standard` (default; ~15–30 min, 4 parallel Explore agents + the full pack), `--deep` (~45 min+; a `TeamCreate` agent-team that also runs `gsd-map-codebase`, writes the codemem living architecture doc, offers to run `/assess-codebase` first when no fresh report exists, and does WebSearch+Context7 version-currency checks).
 
 If no tier is given, the skill asks (defaulting to Standard) and also confirms target path + the
 reader's intent (just understand · planning to contribute · planning to add a feature).
@@ -37,7 +37,7 @@ reader's intent (just understand · planning to contribute · planning to add a 
 
 1. Parse `$ARGUMENTS` for a path and/or a tier flag.
 2. Invoke `Skill(understand-codebase)`, passing the path and tier (or letting the skill prompt).
-3. Follow the skill exactly — especially: **Step 0 reuse-and-absorb** (don't redo `gsd-map-codebase`/`/codebase-deep-dive`/`/index` if fresh outputs exist), the **NO-SECRETS** hard constraint, and the **`references/AGENTS-MD-TEMPLATE.md` SAFETY PROTOCOL** for anything `AGENTS.md`-related (author only if absent + with consent; never overwrite an existing one; never edit `CLAUDE.md`).
+3. Follow the skill exactly — especially: **Step 0 reuse-and-absorb** (codemem is the index; don't redo `gsd-map-codebase` or `/assess-codebase` when their output is fresh — assess reports by SHA via `aa-ma-analysis fresh`), the **NO-SECRETS** hard constraint, and the **`references/AGENTS-MD-TEMPLATE.md` SAFETY PROTOCOL** for anything `AGENTS.md`-related (author only if absent + with consent; never overwrite an existing one; never edit `CLAUDE.md`).
 4. On completion, report the concise summary the skill specifies (tools run vs absorbed, the `AGENTS.md` action taken, the bottom-line verdict, and where the docs landed).
 
 ## When to use vs. not
@@ -45,4 +45,4 @@ reader's intent (just understand · planning to contribute · planning to add a 
 **Use** when joining a new/inherited/shared codebase, or when asked "explain this repo / how do I
 contribute / how do I add a feature / is this codebase any good / write me an onboarding doc".
 
-**Don't use** — use the named alternative: editing code you already understand → `Skill(impact-analysis)`/`Skill(system-mapping)`; pure quality/security audit with no onboarding deliverable → not this command (no whole-repo audit ships here; to review a change, `Skill(verify-impl)`); implementation planning → `/aa-ma-plan` or `/deep-analysis`; just a structural index → `codemem build`; trivial repo (< ~5 files) → just read it.
+**Don't use** — use the named alternative: editing code you already understand → `Skill(impact-analysis)`/`Skill(system-mapping)`; pure quality/security audit with no onboarding deliverable → `/assess-codebase` (to review a change, `Skill(verify-impl)`); implementation planning → `/aa-ma-plan`; just a structural index → `codemem build`; trivial repo (< ~5 files) → just read it.

@@ -107,7 +107,7 @@ git clone <url> && cd <repo>
 - **Generated:** <YYYY-MM-DDTHH:MM:SSZ> by `understand-codebase` (skill v<version if known>)
 - **Repo state:** commit `<short-SHA>` on branch `<branch>`; `git status` was <clean|dirty>
 - **Tier:** <Quick|Standard|Deep>
-- **Tools used:** <e.g. codemem build + draw --write (ran), gsd-codebase-mapper×4 (ran), /codebase-deep-dive (absorbed prior run from .claude/reports/...), code-intelligence (sg patterns), WebSearch+Context7 (version currency), agent-teams TeamCreate (Deep)>
+- **Tools used:** <e.g. codemem build + draw --write (ran), gsd-codebase-mapper×4 (ran), /assess-codebase (absorbed, fresh, sha12 <sha12> — link report.md), code-intelligence (sg patterns), WebSearch+Context7 (version currency), agent-teams TeamCreate (Deep)>
 - **Absorbed (reused, not re-run):** <e.g. codemem index / PROJECT_INDEX.json (2026-05-10), .planning/codebase/* (2026-05-09); none>
 - **Freshly run:** <list>
 - **Known limitations / gaps:** <list, or "none">

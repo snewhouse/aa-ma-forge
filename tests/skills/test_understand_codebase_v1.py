@@ -113,3 +113,53 @@ def test_without_the_cli_every_skip_is_named_in_provenance() -> None:
     rule = next(p for p in SKILL.split("\n\n") if "CLI is unavailable" in p)
     assert "Provenance" in rule
     assert all(s in rule for s in SKIPPED_WITHOUT_CLI), rule
+
+
+# --- M5 §6.8 remediation ---------------------------------------------------------------------
+
+
+def _step(body: str, needle: str) -> int:
+    """The number of the top-level numbered step whose text holds `needle`."""
+    for m in re.finditer(r"^(\d+)\. (.*?)(?=^\d+\. |\Z)", body, re.M | re.S):
+        if needle in m[2]:
+            return int(m[1])
+    raise AssertionError(f"no step mentions {needle!r}")
+
+
+def test_standard_runs_the_currency_check_before_writing_anything() -> None:
+    body = TIERS["Standard"]  # CR-C1: statuses must exist before ONBOARDING.md / AGENTS.md
+    currency = _step(body, "currency check")
+    assert currency < _step(body, "`ONBOARDING.md` at the repo root")
+    assert currency < _step(body, "AGENTS.md decision")
+    assert _step(body, "10 sampled claims") > _step(body, "AGENTS.md decision")  # checks run last
+
+
+def test_deep_runs_the_currency_check_before_the_synthesizer() -> None:
+    body = TIERS["Deep"]
+    assert body.index("currency check") < body.index("**Synthesizer:**")
+
+
+def test_deep_decides_incremental_before_dispatch() -> None:
+    body = TIERS["Deep"]  # CR-W3
+    assert body.index("incremental re-run check") < body.index("**Mappers")
+
+
+def test_standard_refreshes_commit_history_for_codemem() -> None:
+    assert "codemem refresh-commits" in TIERS["Standard"].split("\n2.")[0]  # CR-W1: step 1
+
+
+def test_the_orchestrator_builds_the_index_and_workers_only_query_it() -> None:
+    assert "codemem build" not in HEALTH and "refresh-commits" not in HEALTH  # CR-W4
+    assert "codemem refresh-commits" in TIERS["Deep"]
+    assert "AA_MA_ROOT" in TIERS["Deep"]  # passed to every worker prompt
+
+
+def test_the_cli_decides_whether_a_pack_is_trusted() -> None:
+    rule = _section(SKILL, "## Checked output").split("- **Incremental re-run**")[1].split("\n- **")[0]
+    assert "exit 2" in rule and "dirty" in rule  # SEC-1, CR-W2
+    assert "git ls-files .claude/onboarding" not in SKILL  # the prose check a symlink defeated
+
+
+def test_the_template_does_not_restate_sample_sizes() -> None:
+    line = next(ln for ln in ONBOARDING_TEMPLATE.splitlines() if "**Checked output:**" in ln)
+    assert not re.search(r"\d+\s*(Standard|Deep)", line)

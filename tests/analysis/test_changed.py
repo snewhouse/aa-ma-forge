@@ -74,8 +74,31 @@ def test_an_added_file_regenerates_structure_and_its_directory(two_commits) -> N
     commit_file(repo, "docs/new.md", "n\n")
     ch = changed.changed_since(repo, first)
     assert changed.Change("A", "docs/new.md") in ch
-    got = changed.sections_to_regenerate(_onboarding(SECTIONS), ch)
+    got = changed.sections_to_regenerate(_onboarding({**SECTIONS, changed.STRUCTURE: []}), ch)
     assert got == ["02-architecture.md", "03-structure.md", "06-conventions-versioning-git.md"]
+    # A pack without a structure section is never told to regenerate one (FP-W1).
+    assert changed.STRUCTURE not in changed.sections_to_regenerate(_onboarding(SECTIONS), ch)
+
+
+def test_a_dirty_tree_regenerates_every_section(two_commits) -> None:
+    repo, first = two_commits
+    (repo / "src/b.py").write_text("uncommitted\n", encoding="utf-8")  # CR-W2: diff sees commits only
+    assert changed.changed_since(repo, first) is None
+
+
+def test_section_names_are_the_deep_dive_file_names() -> None:
+    templates = (
+        Path(__file__).resolve().parents[2]
+        / "claude-code/skills/understand-codebase/references/DEEPDIVE-TEMPLATES.md"
+    ).read_text(encoding="utf-8")
+    for name in (changed.STRUCTURE, *changed.SECTION_GLOBS):
+        assert f"## `{name}`" in templates, name
+
+
+@pytest.mark.parametrize("bad", ["../../.github/workflows/x.yml", "ONBOARDING.md", "3-x.md", "03-X.md"])
+def test_section_keys_must_be_deep_dive_names(bad: str) -> None:
+    with pytest.raises(ValueError):
+        _onboarding({bad: []})
 
 
 def test_a_rename_reports_both_paths(two_commits) -> None:
@@ -107,10 +130,16 @@ def test_only_a_sha12_is_accepted(two_commits, bad: str) -> None:
         changed.changed_since(repo, bad)
 
 
+def _pack(repo: Path, sections: dict[str, list[str]] = SECTIONS) -> Path:
+    ob = repo / ".claude/onboarding/onboarding.json"
+    ob.parent.mkdir(parents=True, exist_ok=True)
+    ob.write_text(_onboarding(sections).model_dump_json(), encoding="utf-8")
+    return ob
+
+
 def test_cli_changed_since(two_commits, tmp_path: Path, capsys) -> None:
     repo, first = two_commits
-    ob = tmp_path / "onboarding.json"
-    ob.write_text(_onboarding(SECTIONS).model_dump_json(), encoding="utf-8")
+    ob = _pack(repo)
     assert cli.main(["changed-since", first, "--repo", str(repo), "--onboarding", str(ob)]) == 0
     out = json.loads(capsys.readouterr().out)
     assert out == {"known": True, "changed": [["M", "src/a.py"]], "regenerate": ["02-architecture.md"]}
@@ -132,3 +161,31 @@ def test_cli_changed_since_needs_a_repo(tmp_path: Path, capsys) -> None:
     (tmp_path / "plain").mkdir()
     assert cli.main(["changed-since", "0123456789ab", "--repo", str(tmp_path / "plain")]) == 2
     assert stamp.NOT_A_REPO in capsys.readouterr().err
+
+
+def _refused(repo: Path, first: str, ob: Path, capsys) -> bool:
+    rc = cli.main(["changed-since", first, "--repo", str(repo), "--onboarding", str(ob)])
+    return rc == 2 and "refused" in capsys.readouterr().err
+
+
+def test_cli_refuses_a_pack_behind_a_symlinked_claude_dir(two_commits, tmp_path: Path, capsys) -> None:
+    repo, first = two_commits  # SEC-1: a committed `.claude` symlink hides the pack from ls-files
+    planted = tmp_path / "evil"
+    _pack(planted)
+    (repo / ".claude").symlink_to(planted / ".claude")
+    assert _refused(repo, first, repo / ".claude/onboarding/onboarding.json", capsys)
+
+
+def test_cli_refuses_a_pack_the_repo_tracks(two_commits, capsys) -> None:
+    repo, first = two_commits
+    ob = _pack(repo)
+    git(repo, "add", "-f", "--", ".claude/onboarding/onboarding.json")
+    git(repo, "commit", "-q", "-m", "ship a pack")
+    assert _refused(repo, first, ob, capsys)
+
+
+def test_cli_refuses_a_pack_outside_its_place(two_commits, tmp_path: Path, capsys) -> None:
+    repo, first = two_commits
+    elsewhere = tmp_path / "onboarding.json"
+    elsewhere.write_text(_onboarding(SECTIONS).model_dump_json(), encoding="utf-8")
+    assert _refused(repo, first, elsewhere, capsys)

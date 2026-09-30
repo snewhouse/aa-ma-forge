@@ -201,9 +201,9 @@
 - Result Log: Mode: AFK — auto-dispatched. RED `0621f77` (tests only): tests/skills/test_understand_codebase_rewire.py +11 (AC1 two sites by exact file+string; AC3; R1 degradation row; R2 command step 3 names codemem + /assess-codebase; R5 Quick links `.claude/reports/assess-codebase/<sha12>/report.md`; R7 `--deep` line; R8 audit → `/assess-codebase` in skill + command; N1 `/aa-ma-plan` follow-on; AC4 narrowed — Step 0 + REUSE-MAP stale rule name `aa-ma-analysis fresh`, gsd row keeps its date rule, liveness checks asserted to stay; assess absorb row reads summary.json + findings.jsonl, drops refuted; Deep asks once), KEPT moved to the legacy rule; test_plugin_surface dangling → {"haiku-eval"}, orphan `assess-codebase` dropped. 14 failing, each on its assertion.
 
 ### Sub-step 4.3: [impl] repoint + residual fixes across skill, references, template, command, agents
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. GREEN `ed620b6` (10 markdown files + CHANGELOG): SKILL.md Step 0 assess row (fresh via `aa-ma-analysis fresh`, summary.json + findings.jsonl without refuted, link report.md, Provenance "absorbed (fresh, sha12 …)") + the one legacy rule ("legacy, unverified", never fresh) + SHA/date freshness sentence; Quick links `.claude/reports/assess-codebase/<sha12>/report.md` (R5); Deep asks once to run `/assess-codebase`; audit → `/assess-codebase` (R8); R1 degradation row; N1 related line `/aa-ma-plan`. Command: `--deep` line (R7), step 3 codemem + assess (R2), audit route (R8/N1). REUSE-MAP: SHA rule for assess/legacy, date rule for gsd/PROJECT_INDEX; assess table row; `ls .claude/reports/`. DIMENSIONS ×7, PROS-CONS, ONBOARDING-TEMPLATE, DEEPDIVE-TEMPLATES, onboarding-team, health ×3 (liveness check kept), synthesizer ×3 repointed. `codebase-deep-dive` now on exactly 2 lines (SKILL.md legacy rule, contract); 0 `deep-analysis` / `Skill(aa-ma-plan)`. Mutations 3/3 caught (health route, refuted filter, command audit). Regen `4f1accc`: golden drops `skill:understand-codebase -> skill:aa-ma-plan`, adds understand → `command:assess-codebase` ×2; dangling {haiku-eval}; orphan gone; draw --check OK. Suite 2211 passed / 2 skipped; bats 5/5.
 
 ### Sub-step 4.4: [verify] regen; tests; fresh assess at M4 HEAD; live Quick run absorbing it; PR
 - Status: PENDING

@@ -7,7 +7,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import stat as stat_mod
 import sys
 from typing import get_args
 from pathlib import Path
@@ -53,18 +52,10 @@ def _located(target: Path, repo: Path, *, report_dir: bool) -> None:
         raise _Refused(f"not under {stamp.REPORTS_ROOT}/")
     if not report_dir and rel != ONBOARDING_JSON:
         raise _Refused(f"a file target must be {ONBOARDING_JSON}")
-    current = root
-    for part in rel.parts:
-        current = current / part
-        try:
-            mode = os.lstat(current).st_mode
-        except OSError:
-            raise _Refused("path cannot be inspected") from None
-        if stat_mod.S_ISLNK(mode):
-            raise _Refused("a symlink on the path")
-    # abspath() strips lnk/.. lexically; the kernel resolves it through the link.
+    # A symlink anywhere below --repo, or a lnk/.. that abspath() strips lexically, makes the
+    # kernel's path differ from the lexical one.
     if os.path.realpath(target) != os.path.join(os.path.realpath(root), rel):
-        raise _Refused("path resolves elsewhere")
+        raise _Refused("a symlink on the path, or it resolves elsewhere")
 
 
 def _stamp_doc(target: Path, repo: Path) -> Path | None:

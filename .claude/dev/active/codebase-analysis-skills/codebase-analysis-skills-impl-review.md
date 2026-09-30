@@ -303,3 +303,10 @@ Window `53d53bd..6b3a174`. code-reviewer (+ §6.6), security-auditor, tdd-sequen
 - FP-2 `.claude/reports/assess-codebase/<sha12>` duplicated in 6 files, not tied to `stamp.REPORTS_ROOT`.
 
 **INFO:** fresh exit codes restated; metric keys in prose untested; refuted filtering model-only; CHANGELOG wording on `--deep`; absorb rule restated 4× (DRY); which `<sha12>` dir to probe; redundant `assert contract`; health agent's "fresh" source; TDD same-second pair (in-session RED run confirmed); tdd pairing note; secrets line intact.
+
+## Milestone 4 — §6.8 regression passes (2026-09-30)
+
+- **Pass 1** (code-reviewer + security-auditor, `2288769..8ce9b29`): first-pass WARNINGs closed except SEC-1/SEC-4/CR-1 partial; new 0 CRITICAL / 4 WARNING → RED `4d9393c` → `28f2655` (report dir directly under `REPORTS_ROOT`; file target only onboarding.json; no symlink below `--repo`), `3f7da39` (every documented fresh call names `--repo`).
+- **Pass 2** (same pair): both converge on one WARNING — a `lnk/..` alias through an in-repo symlink passes the lexical `abspath` check while the kernel resolves outside the repo (and a missing component tracebacks); code-reviewer adds `--repo ../r` falsely refused (unnormalised root). RED `f154a68` → `01ec2e6`: root = `abspath(repo)`, `realpath(target) == realpath(root)/rel`, lstat `OSError` → refusal. Mutations 3/3. Suite 2242 passed / 2 skipped.
+
+Loop closed (M2/M3 precedent). Backlog: shared size cap with finalize, metric-key tests, data-rule equality test, `safe_dir` walk duplication, prose `fresh` without `--repo` in `commands/understand-codebase.md` and `templates/onboarding-team.md`.

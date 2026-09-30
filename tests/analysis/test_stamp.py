@@ -124,6 +124,8 @@ def _write_summary_dir(repo: Path, s: Stamp) -> Path:
     d = repo / REPORTS / s.sha12
     d.mkdir(parents=True)
     (d / "summary.json").write_text(json.dumps(doc), encoding="utf-8")
+    for name in ("findings.jsonl", "findings.sarif", "report.md", "run.log"):  # a complete report set
+        (d / name).write_text("", encoding="utf-8")
     return d
 
 
@@ -606,3 +608,83 @@ def test_a_refused_key_never_echoes_its_subsection(repo: Path) -> None:
     with pytest.raises(stamp.UnsafeRepo) as err:
         stamp.check_git_config(repo)
     assert token not in str(err.value) and "url.*.insteadof" in str(err.value)
+
+
+# --- codebase-analysis-skills M4 §6.8 SEC-1: `fresh` checks the report, not just the stamp ------
+
+
+def _fresh(d: Path, repo: Path, capsys: pytest.CaptureFixture[str]) -> tuple[int, str]:
+    rc = cli.main(["fresh", str(d), "--repo", str(repo)])
+    return rc, capsys.readouterr().out
+
+
+def test_fresh_refuses_a_dir_whose_name_is_not_its_stamp(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "quick"))
+    planted = d.with_name("000000000000")
+    d.rename(planted)
+    rc, out = _fresh(planted, repo, capsys)
+    assert rc == 1 and "does not match" in out
+
+
+@pytest.mark.parametrize("name", ["summary.json", "findings.jsonl", "report.md"])
+def test_fresh_refuses_symlinked_report_files(
+    repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str], name: str
+) -> None:
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "quick"))
+    outside = tmp_path / f"outside-{name}"
+    outside.write_bytes((d / name).read_bytes())
+    (d / name).unlink()
+    (d / name).symlink_to(outside)
+    rc, out = _fresh(d, repo, capsys)
+    assert rc == 1 and "refused" in out
+
+
+def test_fresh_refuses_a_symlinked_report_dir(repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "quick"))
+    real = tmp_path / "real"
+    d.rename(real)
+    d.symlink_to(real)
+    rc, out = _fresh(d, repo, capsys)
+    assert rc == 1 and "refused" in out
+
+
+def test_fresh_refuses_an_incomplete_report_set(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "quick"))
+    (d / "findings.jsonl").unlink()
+    rc, out = _fresh(d, repo, capsys)
+    assert rc == 1 and "incomplete" in out
+
+
+def test_fresh_refuses_an_oversized_summary(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "quick"))
+    with (d / "summary.json").open("a", encoding="utf-8") as fh:
+        fh.write(" " * (cli.FRESH_MAX_BYTES + 1))
+    rc, out = _fresh(d, repo, capsys)
+    assert rc == 1 and "refused" in out
+
+
+def test_fresh_refuses_a_report_dir_git_tracks(
+    repo: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Real reports are self-ignored, never tracked. A tracked one can only match HEAD by a hash
+    # collision, so the name check is patched out to reach the tracked check on its own.
+    d = _write_summary_dir(repo, stamp.build_stamp(repo, "quick"))
+    git(repo, "add", "-f", str(d))
+    git(repo, "commit", "-qm", "plant")
+    monkeypatch.setattr(stamp, "is_fresh", lambda s, r: True)
+    monkeypatch.setattr(stamp, "report_name", lambda sha12, dirty: d.name)
+    rc, out = _fresh(d, repo, capsys)
+    assert rc == 1 and "tracked" in out
+
+
+def test_fresh_refuses_a_symlinked_onboarding_json(repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    fixture = Path(__file__).resolve().parents[2] / "tests/fixtures/analysis/valid/onboarding.json"
+    doc = json.loads(fixture.read_text(encoding="utf-8"))
+    doc["stamp"] = json.loads(stamp.build_stamp(repo, "quick").model_dump_json())
+    real = tmp_path / "onboarding.json"
+    real.write_text(json.dumps(doc), encoding="utf-8")
+    link = repo / ".claude/onboarding/onboarding.json"
+    link.parent.mkdir(parents=True)
+    link.symlink_to(real)
+    rc, out = _fresh(link, repo, capsys)
+    assert rc == 1 and "refused" in out

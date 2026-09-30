@@ -6,7 +6,7 @@ implementation team — no debate mode needed; the "competing hypotheses" are ju
 dimension coverage.
 
 > **Fallback:** if `TeamCreate` is unavailable or any step fails to spawn, abort the team, clean
-> up whatever was created, and fall back to **enhanced Standard** (still run `codemem build`,
+> up whatever was created, and fall back to **enhanced Standard** (still run `codemem build` + `codemem refresh-commits`,
 > `gsd-map-codebase` ×4, the living architecture doc, the 3 onboarding worker agents directly, and the
 > WebSearch/Context7 enrichment — just without the formal team/task-list). Note the downgrade in Provenance.
 
@@ -34,7 +34,8 @@ dimension coverage.
 
 ## Task list (create with `TaskCreate`, wire deps with `TaskUpdate addBlockedBy`)
 ```
-T1  index            — `codemem build` (PROJECT_INDEX.json, if present, is codemem's fallback) [no deps]
+T0  incremental      — orchestrator: the incremental re-run check (SKILL.md Checked output); cancel every task below that owns no listed section [no deps]
+T1  index            — orchestrator: `codemem build` then `codemem refresh-commits`, once; no worker writes `.codemem/` (PROJECT_INDEX.json, if present, is codemem's fallback) [blockedBy: T0]
 T2  map-tech         — mapper-tech writes STACK.md, INTEGRATIONS.md                      [blockedBy: T1]
 T3  map-arch         — mapper-arch writes ARCHITECTURE.md, STRUCTURE.md                  [blockedBy: T1]
 T4  map-quality      — mapper-quality writes CONVENTIONS.md, TESTING.md                  [blockedBy: T1]
@@ -44,16 +45,19 @@ T7  conventions      — conventions agent writes 06-*, 07-*                    
 T8  runbook          — runbook agent writes 04-*, 05-*, 08-*                             [blockedBy: T1]
 T9  health           — health agent writes 09-* (evidence) + version-currency            [blockedBy: T1, (soft) T5, T6]
 T10 enrich-currency  — WebSearch+Context7 version/EOL/CVE pass (folded into T9 or standalone) [blockedBy: T2]
-T11 synthesize       — synthesizer writes ONBOARDING.md + 00-03 + verdict + playbooks    [blockedBy: T2,T3,T4,T5,T6,T7,T8,T9]
+T10b currency        — orchestrator: the currency check on the runbook's documented commands; statuses go to the synthesizer [blockedBy: T8]
+T11 synthesize       — synthesizer writes ONBOARDING.md + 00-03 + verdict + playbooks    [blockedBy: T2,T3,T4,T5,T6,T7,T8,T9,T10b]
 T12 agents-md-gate   — orchestrator AskUserQuestion (per AGENTS-MD-TEMPLATE SAFETY PROTOCOL); synthesizer writes AGENTS.md / AGENTS.review.md / AGENTS.draft.md accordingly [blockedBy: T11]
 T13 review           — reviewer verifies everything; corrections applied                 [blockedBy: T11, T12]
-T14 shutdown         — orchestrator: collect, summarise to chat, SendMessage teammates to stop, TeamDelete/cleanup [blockedBy: T13]
+T14 checked-output   — orchestrator: ground every written file, ~20 sampled claims, ledger, onboarding.json + validate [blockedBy: T13]
+T15 shutdown         — orchestrator: collect, summarise to chat, SendMessage teammates to stop, TeamDelete/cleanup [blockedBy: T14]
 ```
 T2–T8 run in parallel once T1 is done. Spawn the mapper/worker agents with `Agent({ team_name, name, subagent_type, prompt, run_in_background: true })`.
 
 ## Dispatch notes
 - **Every spawned agent prompt MUST include** (verbatim): the **NO-SECRETS** constraint; "evidence
-  or it didn't happen"; the target path; a `<required_reading>` block listing the codemem index / `PROJECT_INDEX.json` (codemem's fallback)
+  or it didn't happen"; the target path; `AA_MA_ROOT` (workers read codemem through
+  `uv run --quiet --project "$AA_MA_ROOT" codemem query` and never build it); a `<required_reading>` block listing the codemem index / `PROJECT_INDEX.json` (codemem's fallback)
   (if present), the relevant `references/*.md` for its dimensions, and any absorbed `.planning/codebase/*`.
 - **Agents write to disk, not back to the orchestrator** — they return a short confirmation +
   line counts. The orchestrator never holds the document bodies (token discipline — same as

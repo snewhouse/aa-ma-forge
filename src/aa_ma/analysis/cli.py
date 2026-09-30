@@ -240,18 +240,18 @@ def _cmd_ground(args: argparse.Namespace) -> int:
     if args.cited:
         try:
             text = stamp.read_regular(md, limit=ground.CITED_FILE_MAX_BYTES)
-        except OSError as exc:
+        except (OSError, UnicodeDecodeError) as exc:
             _err(f"aa-ma-analysis ground: {md}: refused ({exc})")
             return 2
         print(json.dumps(ground.cited_paths(text, repo)))
         return 0
     try:
         misses = ground.ground(md, repo)
-    except OSError as exc:  # a symlinked or oversized md: not a file this skill wrote
+    except (OSError, UnicodeDecodeError) as exc:  # symlinked, oversized or not UTF-8
         _err(f"aa-ma-analysis ground: {md}: refused ({exc})")
         return 2
     for u in misses:
-        if u.token == u.citation.split(":")[0]:
+        if u.missing:
             print(
                 f"{md}:{u.md_line}: `{u.citation}`: cited path missing or outside the repo"
             )
@@ -264,10 +264,18 @@ def _trusted_pack(path: Path, repo: Path) -> Onboarding:
     """onboarding.json only in its one place, reached through real dirs, and never one the repo
     ships: a planted pack would decide which of its own deep-dives are kept unchecked."""
     _located(path, repo, report_dir=False)
-    listed = stamp.run_git(
-        repo, "ls-files", "-z", "--end-of-options", "--", ".claude/onboarding"
-    )
-    if listed.returncode != 0 or listed.stdout:
+    top = stamp.run_git(path.parent, "rev-parse", "--show-toplevel")
+    if top.returncode != 0 or os.path.realpath(top.stdout.strip()) != os.path.realpath(
+        repo
+    ):
+        raise _Refused("the pack sits in another git work tree (a submodule?)")
+    listed = stamp.run_git(repo, "ls-files", "-z")
+    # Compared case-folded in Python, not by pathspec: `.Claude/Onboarding/…` is the same file on a
+    # case-insensitive filesystem, and pathspec magic would depend on the caller's GIT_*_PATHSPECS.
+    pack_dir = ONBOARDING_JSON.parent.as_posix().casefold() + "/"
+    if listed.returncode != 0 or any(
+        f.casefold().startswith(pack_dir) for f in listed.stdout.split("\0")
+    ):
         raise _Refused(
             "git tracks the onboarding pack — the repo's own, not this tool's output"
         )
@@ -282,6 +290,14 @@ def _cmd_changed_since(args: argparse.Namespace) -> int:
         onboarding = None
         if args.onboarding:
             onboarding = _trusted_pack(Path(args.onboarding), repo)
+            if onboarding.stamp.sha12 != args.sha12:
+                raise _Refused(
+                    f"its stamp is {onboarding.stamp.sha12}, not {args.sha12}"
+                )
+            if (
+                onboarding.stamp.dirty
+            ):  # it described edits a commit diff will never show
+                diff = None
     except _Refused as why:
         _err(f"aa-ma-analysis changed-since: {args.onboarding}: refused ({why})")
         return 2

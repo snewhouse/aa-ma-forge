@@ -2,7 +2,8 @@
 
 Map (5.1 prototype, Ste PASS): a section is stale when a changed path is one it cites, lies under a
 directory it cites (`dir/`, any depth), or matches its fixed globs; any add, delete or rename makes
-the structure section stale; a stamp sha that is no longer a commit makes every section stale.
+the structure section stale when the pack has one; a stamp sha that is no longer a commit, or a
+tree with tracked changes, makes every section stale.
 """
 
 from __future__ import annotations

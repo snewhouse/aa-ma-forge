@@ -67,7 +67,7 @@ def test_any_cited_file_in_the_unit_can_ground_a_token(tmp_path: Path) -> None:
 def test_a_missing_cited_file_is_flagged(tmp_path: Path) -> None:
     repo = make_repo(tmp_path / "r", {"src/x.py": "pass\n"})
     out = _ground(repo, "- `thing` lives in `src/gone.py:3`\n")
-    assert out == [ground.Ungrounded(md_line=1, citation="src/gone.py:3", token="src/gone.py")]
+    assert out == [ground.Ungrounded(md_line=1, citation="src/gone.py:3", token="src/gone.py", missing=True)]
 
 
 def test_a_citation_that_leaves_the_repo_is_never_read(tmp_path: Path) -> None:

@@ -115,8 +115,9 @@ heavy tool (`gsd-map-codebase`) when its output is absent or stale.**
 
 Every `aa-ma-analysis` call below runs from the target root as
 `uv run --quiet --project "$AA_MA_ROOT" aa-ma-analysis …` (`AA_MA_ROOT` as in Step 0). The tier workflows call these steps by name.
-Order: the incremental check comes first, the currency check before anything is written (so every
-file is written with real statuses), and grounding, sampled claims, ledger and `onboarding.json` last.
+Order: the incremental check comes first, the currency check before `ONBOARDING.md`, `AGENTS.md` or
+`onboarding.json` is written (so each carries real statuses), and grounding, sampled claims, ledger
+and `onboarding.json` last.
 
 - **Incremental re-run** (Standard/Deep). When `.claude/onboarding/onboarding.json` exists, run
   `aa-ma-analysis changed-since <its stamp sha12> --repo . --onboarding .claude/onboarding/onboarding.json`.
@@ -129,8 +130,9 @@ file is written with real statuses), and grounding, sampled claims, ledger and `
   regenerated sections by name.
 - **Grounding** (every tier). After writing each file, `aa-ma-analysis ground <file> --repo .`. Exit 1 lists
   `line: token not found in citation` (or `citation: cited path missing or outside the repo`) — re-ask once (the agent that wrote the claim, or yourself)
-  to fix the claim or its citation; if it is still ungrounded, drop the claim. Every written file
-  ends at `ground` exit 0.
+  to fix the claim or its citation; if it is still ungrounded, drop the claim. `ground` exit 2 means the file
+  is not one this skill wrote as a regular UTF-8 file (a symlink, oversized, not UTF-8): rewrite it.
+  Every written file ends at `ground` exit 0.
 - **Currency check** (Standard/Deep). The main thread — never an agent — shows the documented
   build / test / lint commands with where each is defined, asks once (`AskUserQuestion`: run all ·
   pick · none), and runs the approved ones: `aa-ma-analysis run --repo . --cmd "<c>" [--cmd …]`. Each command

@@ -208,3 +208,10 @@ _This log will be updated via context compaction as the task progresses._
 - CLI `changed-since <sha12> [--repo R] [--onboarding F]` prints JSON {known, changed, regenerate}; exit 0 (unknown sha is an answer, not an error), 2 on a bad sha or non-repo.
 - ground claim unit: one list item / table row line, or one sentence of prose; fenced code skipped; a citation is a backticked path to a regular file inside the repo (`path` or `path:line`); a cited path that is missing or escapes the repo is itself ungrounded (token = path). Numbers standing alone (not inside words like v0.16.0, not list markers) are checked.
 - Section keys are deep-dive **file names** (`03-structure.md`), matching M1's onboarding fixture (`04-build-run-debug.md`).
+
+## [2026-09-30] M5 §6.8 remediation decisions (5.6)
+- Pack trust moved from skill prose (`git ls-files .claude/onboarding`, defeated by a committed `.claude` symlink) into `changed-since`: `_located` (fresh's one-place + realpath check) + git-tracked refusal → exit 2 → full run. `SectionName` pattern `^\d{2}-[a-z0-9-]+\.md$` in the model (golden schema regenerated).
+- Dirty tree → `changed_since` returns None (every section) rather than diffing the working tree: consistent with stamp's tracked-only dirty and simpler than filtering our own untracked outputs.
+- Skill order: currency check before any write (Standard step 5; Deep before the synthesizer); grounding / sampled claims / ledger / onboarding.json last.
+- The orchestrator builds the codemem index once (build + refresh-commits); workers only query it and get `AA_MA_ROOT` in their prompt.
+- CR-W5: `codebase-onboarding-synthesizer.md` was outside the M5 Contract `Files:` list; it changed as a required follow-on of the AGENTS-MD-TEMPLATE size change (now "within that template's size limit" — one source).

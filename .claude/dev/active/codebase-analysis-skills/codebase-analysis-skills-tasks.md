@@ -257,7 +257,7 @@
 - Status: PENDING
 - Mode: AFK
 - Acceptance Criteria: RED first; CR-C1 currency check before Write/synthesizer; SEC-1 changed-since refuses symlinked/tracked .claude, uncontained --onboarding, section keys not NN-name.md; CR-W1..W5 + FP-W1/W2 + cheap INFO; full suite green; one regression pass. Source: impl-review.md Milestone 5 section.
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED `6e6a56a` (19 failing: 12 code, 7 skill text) → GREEN `3911737` (changed-since `_trusted_pack` = `_located` + git-tracked refusal → exit 2; `SectionName` pattern + golden schema; dirty tree → None; STRUCTURE only when mapped; HEX12; ground md read_regular capped → exit 2, range windows, per-call file cache, shared `_spans` walk, missing-citation message) + `e4977bd` (SKILL order: currency check step 5 / Deep before synthesizer, checks last; CLI-owned pack trust; dirty → full; Standard refresh-commits; Deep incremental + index build before dispatch + AA_MA_ROOT; health agent query-only; DIMENSIONS one call form; template sample sizes → SKILL; AGENTS size stated once; CHANGELOG) + regen. Mutations 6/6. Suite 2309 passed / 2 skipped. CR-W5 recorded in context-log. Regression pass: pending.
 
 ## Milestone 6: Plugin-surface extractor learns slash commands (R4)
 - Status: PENDING

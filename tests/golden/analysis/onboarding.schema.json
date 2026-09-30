@@ -179,11 +179,13 @@
       "type": "integer"
     },
     "sections": {
-      "additionalProperties": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
+      "patternProperties": {
+        "^\\d{2}-[a-z0-9-]+\\.md$": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
       },
       "title": "Sections",
       "type": "object"

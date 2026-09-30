@@ -201,3 +201,9 @@ _This log will be updated via context compaction as the task progresses._
 - Fixed globs per section for truth nobody cites line-by-line (stack → manifests/lockfiles; tests-ci → `.github/workflows/*`, `tests/*`).
 - Any Add/Delete/Rename → structure section; stamp sha not a commit (rebased away) → every section.
 - Prototype: `prototype/cas-incremental-regen` b10b467 — throwaway; main keeps only this decision.
+
+## [2026-09-30] M5 interface decisions (5.2)
+- `changed_since(repo, sha12) -> list[Change(status, path)] | None` — the plan's `list[str]` cannot carry the A/D/R status the 5.1 rule needs; None = sha not a commit (→ every section). A rename yields both paths (status R). sha12 must be 12 lowercase hex (ValueError otherwise; CLI exit 2).
+- `cited_paths(md, repo)` lives in ground.py beside the citation parser (DRY); CLI `ground <md> --cited` prints the section's map entry (files + `dir/` prefixes). Fixed per-section globs live in changed.py (SECTION_GLOBS), not in onboarding.json.
+- CLI `changed-since <sha12> [--repo R] [--onboarding F]` prints JSON {known, changed, regenerate}; exit 0 (unknown sha is an answer, not an error), 2 on a bad sha or non-repo.
+- ground claim unit: one list item / table row line, or one sentence of prose; fenced code skipped; a citation is a backticked path to a regular file inside the repo (`path` or `path:line`); a cited path that is missing or escapes the repo is itself ungrounded (token = path). Numbers standing alone (not inside words like v0.16.0, not list markers) are checked.

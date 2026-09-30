@@ -234,9 +234,9 @@
 - Result Log: Mode: HITL (Ste: citations + globs). Real 3-file forge pack (01-stack/02-architecture/05-tests-ci, 36 cited files, agent-written, citations line-checked) × 5 real commit pairs (ee822ac, abf5b20, b4b699f, 7b9295e, 649fb6d) + unknown sha → LOGIC page prototype/incremental-regen/index.html comparing exact vs dir-prefix. Exact missed architecture on abf5b20 (models.py under cited `src/aa_ma/`). Verdict PASS: prefixes any depth. Branch `prototype/cas-incremental-regen` b10b467 pushed; PROTOTYPE entry in provenance.
 
 ### Sub-step 5.2: [test] ground, changed, onboarding cases, skill-text tests, RED
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. RED `d30e02e` (tests only, L-028): tests/analysis/test_ground.py (14: AC1 ±20 window, numbers, no-citation, bare path, sentences, multi-cite, missing/escaping citation, fences, cited_paths, CLI) + test_changed.py (13: AC2 exact sections, unknown sha → all, dir prefix, A → structure, rename, globs, sha12-only, CLI) fail on import; tests/skills/test_understand_codebase_v1.py 14/14 fail (AC3 runbook/10-20 sample/dims 4+13 codemem/AGENTS headings; AC6 CLI-unavailable skips; ground/ledger per tier; currency; onboarding.json; changed-since). Interface deviations in context-log.
 
 ### Sub-step 5.3: [impl] ground.py, changed.py; CLI ground, changed-since
 - Status: PENDING

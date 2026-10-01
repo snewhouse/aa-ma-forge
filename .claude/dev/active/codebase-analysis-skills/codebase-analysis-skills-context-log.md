@@ -307,3 +307,8 @@ _This log will be updated via context compaction as the task progresses._
 - GLOSSARY APPROVAL — Ste approved the CONTEXT.md *Codebase analysis* wording (8 terms: Assessment, Onboarding, Measured finding, Judged finding, Refutation, Coverage ledger, Analysis contract, Fresh) as-is (AskUserQuestion, 2026-10-01). Rejected: refreshing *Refutation* to say refuted findings stay in findings.jsonl with a reason.
 - ADR-0017 records the clean-room Adaptation and the two-skill shape. ADR-0006 gains a dated Amendment pointing to it.
 - `main` was ahead 1 (`0250143`, M7 merge record) when this branch was cut. It rides the PR knowingly (L-032); G4 cleanup: `git cherry -v origin/main main`, then reset.
+
+## [2026-10-01] M8.3–8.4 — release and retirement
+- v0.17.0 cut on main by `scripts/release.sh minor` (Ste approved the dry-run, then the cut): bump `c843122`, annotated tag `v0.17.0`, GitHub Release published.
+- RETIREMENT — confirmed — 2026-10-01 — Ste chose to archive both local copies: `~/.claude/commands/codebase-deep-dive.md` and `deep-analysis.md` moved to `~/.claude/_archive/commands/` (reversible). `/assess-codebase` + `/understand-codebase` replace them (M7 Conditional PASS). Residual: the local `code-intelligence` and `code-intelligence-index` skills still mention `codebase-deep-dive`; they live outside the repo, so Ste updates them.
+- OUTCOME — codebase-analysis-skills shipped in v0.17.0. It delivers `assess-codebase` (skill + command + `codebase-assessor` agent), understand-codebase v1, the `aa-ma-analysis` CLI, the plugin-surface slash-command rule, and ADR-0017. Known gap: understand claim density on the private Python repo; it and other follow-ups are in TODOS.md.

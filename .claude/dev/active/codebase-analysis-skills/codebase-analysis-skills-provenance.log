@@ -133,3 +133,6 @@
 [2026-10-01T11:39:11+01:00] §6.6 SKIPPED — docs-only diff
 [2026-10-01T12:02:15+01:00] PR #11 MERGED (rebase, Ste) — SHA map: 086d8b5→2bdcd05, e38cd41→e34012a, 90f37cb→4e3e2b4, (quick-ref fix)→5e3a01a, 0250143→41b28be — Stage C 0C/0H/0M/2L (1 fixed) — CI 7/7 green
 [2026-10-01T12:02:15+01:00] L-032 cleanup — git cherry: 0250143 '-' (upstream as 41b28be); local main reset to origin/main 5e3a01a (clean tree)
+[2026-10-01T12:09:09+01:00] CRITICAL_PATH_REVIEW — Milestone 8: ADRs, docs, TODOS, release v0.17.0, retirement — version-pipeline — release.sh preconditions met (main, clean, HEAD==origin/main e58b5af, Unreleased non-empty); dry-run reviewed by Ste; cut c843122; git cat-file -t v0.17.0 = tag → c843122; pyproject/VERSION/README/CHANGELOG = 0.17.0; '## v0.17.0 (2026-10-01)' written by release.sh only (L-003); gh release view v0.17.0 isDraft=false; main == origin/main after push
+[2026-10-01T12:09:09+01:00] 8.3 COMPLETE — v0.17.0 released (c843122)
+[2026-10-01T12:09:44+01:00] 8.4 COMPLETE — local codebase-deep-dive.md + deep-analysis.md archived to ~/.claude/_archive/commands/ (Ste); RETIREMENT confirmed

@@ -471,11 +471,11 @@
 - Result Log: Mode: AFK — auto-dispatched. quick-ref: `/assess-codebase` + `### Codebase analysis (CLI)` (5 `aa-ma-analysis` lines, signatures checked against `--help`); foundations already carried assess rows (M3) — no change; spec has no per-skill listing — no change. TODOS.md `## codebase-analysis-skills follow-ups`: incremental assess v2, `unshare -rn`, uninstall.sh 5/8 (verified: missing security-static-check + 2× plan-skip-warn), `codemem refresh` placeholder (verified `_cmd_refresh`), + M7 backlog 3 + M2/M3 small hardening. CHANGELOG Unreleased: M1–M7 bullets present; + ADR-0017 Documentation bullet. pytest 2355 passed / 2 skipped; check_adr_index PASS 17/17; `codemem draw --check` OK. PR #11 rebase-merged (Ste): 2bdcd05 e34012a 4e3e2b4 5e3a01a (+ M7 record 0250143 → 41b28be). Stage C: code-reviewer 2 LOW (1 fixed `5e3a01a`, 1 pre-existing lessons.md `---` pattern left), security-auditor 0; CI 7/7 green.
 
 ### Sub-step 8.3: [release] on main: release.sh dry-run, then cut v0.17.0
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: Mode: HITL — Ste proceeded (twice: dry-run reviewed, then cut). Preconditions: on main, clean, HEAD == origin/main (e58b5af), `## Unreleased` held M1–M8 bullets. Dry-run: 0.16.0 → 0.17.0 MINOR, CHANGELOG + README lines shown. Cut: bump commit `c843122` (CHANGELOG, README, VERSION, pyproject, uv.lock), annotated tag `v0.17.0` → c843122, pushed main + tag, GitHub Release https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.17.0 (not draft). CRITICAL_PATH_REVIEW version-pipeline logged.
 
 ### Sub-step 8.4: [handoff] retirement checklist; outcome line in context-log
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: Mode: HITL — Ste chose archive both. `~/.claude/commands/codebase-deep-dive.md` (41168 B) + `deep-analysis.md` (14686 B) moved (mv -n) to `~/.claude/_archive/commands/`; `ls ~/.claude/commands | grep -c deep` = 0. Reversible. Local `code-intelligence` + `code-intelligence-index` skills still mention codebase-deep-dive (outside repo; left for Ste). RETIREMENT + OUTCOME lines in context-log.

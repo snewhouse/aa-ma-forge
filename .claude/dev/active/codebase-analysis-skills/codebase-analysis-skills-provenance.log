@@ -115,3 +115,4 @@
 [2026-10-01T09:03:50Z] CHECKPOINT — ActiveStep: Sub-step 7.3: [run] new side on all 3 repos (R6 absorb in Provenance) — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A
 [2026-10-01T10:12:03+01:00] STEP_COMPLETE — 7.3 — new side on 3 repos; runtimes assess/understand forge 262/510 s, hono 255/393 s, private 435/514 s; ground 0 everywhere; R6 absorbed ×3; judge sets seeded 20261001
 [2026-10-01T10:19:36+01:00] STEP_COMPLETE — 7.4 — 6 blinded judges (seed 20261001); AC1 fails 2/12 comparisons (hono J1 accuracy, private J2 density); AC3 fails all 3 repos (60/60 measured security.secret HIGH fail claim check; root cause measure.py _secret Severity.HIGH + refuter skips measured findings); CIRCUIT BREAKER — pass bar not met, awaiting Ste
+[2026-10-01T10:21:23+01:00] SCOPE_CHANGE — M7 +7.4a–d (secret severity fix + re-run + round-2 judging); Audit-Profile docs-only→code-only (Ste: fix + re-run)

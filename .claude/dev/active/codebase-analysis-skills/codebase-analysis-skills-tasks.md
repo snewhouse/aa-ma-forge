@@ -298,8 +298,7 @@
 - Status: ACTIVE
 - Dependencies: Milestone 5, Milestone 6
 - Gate: HARD
-- Audit-Profile: docs-only
-- TDD-Waiver: docs-only
+- Audit-Profile: code-only
 - Complexity: 60%
 - Effort: 2
 - Goal: Evidence, not opinion, that the new skills beat the local deep-dive on every repo, with zero secret leaks.
@@ -369,6 +368,39 @@
   - **Secret values in reports:** new 0 on every judge; old 0, except the private legacy report, which quotes the dev-default DB placeholder (private J2: 1).
   - **Actionability:** new ≥ old on every judge (forge 5 vs 4; others 4 vs 4).
   - **Preferences:** 2 new / 4 old. Every judge who preferred old cited the false-High secret flood.
+
+### Sub-step 7.4a: [test] RED — a measured secret hit is MEDIUM, not HIGH
+- Status: PENDING
+- Mode: AFK
+- Acceptance Criteria: `tests/analysis/test_measure.py` expects severity `medium` and a title marking the hit unverified; it fails on the current code. Test-only commit (L-028).
+- Result Log: [placeholder]
+
+### Sub-step 7.4b: [code] GREEN — `_secret()` → MEDIUM "unverified"; security judge escalates a live-looking hit as a judged high (refuter)
+- Status: PENDING
+- Mode: AFK
+- Acceptance Criteria:
+  - `measure.py` `_secret` is MEDIUM.
+  - The AGENT-PROMPTS security brief says to escalate a live-looking measured secret once as a judged high/critical, citing it, never the value, so the refuter sees it.
+  - RATING.md is consistent.
+  - The full pytest suite is green; ruff is clean.
+  - CHANGELOG has a bullet.
+- Result Log: [placeholder]
+
+### Sub-step 7.4c: [run] re-run assess Standard on all 3 scratch clones with the fix
+- Status: PENDING
+- Mode: AFK
+- Acceptance Criteria:
+  - 3 fresh reports; scan-secrets exits 0.
+  - 0 measured critical/high `security.secret`.
+  - Runtimes recorded.
+  - Understand packs untouched; the Provenance absorb sha12 is unchanged.
+- Result Log: [placeholder]
+
+### Sub-step 7.4d: [judge] round 2 — 6 fresh blinded judges, new seed; report both rounds
+- Status: PENDING
+- Mode: AFK
+- Acceptance Criteria: same procedure as 7.4 with a new seed. AC1 and AC3 are evaluated on round 2. The verdict shows round 1 and round 2 side by side.
+- Result Log: [placeholder]
 
 ### Sub-step 7.5: [docs] verdict file + CHANGELOG bullet; L-029 name gate before commit
 - Status: PENDING

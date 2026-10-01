@@ -967,6 +967,15 @@ Judges: 2 per repo, fresh general-purpose agents, reports anonymised A/B in seed
 | Risk | Mitigation |
 |---|---|
 | Judge bias toward the newer format | Blinding + A/B shuffle + claim-level checking before scoring. |
+
+**Scope change (2026-10-01, after round-1 judging):**
+- **Round-1 result:** AC3 failed. Measured `security.secret` findings were hard-coded HIGH and never refuted.
+- **Fix, sub-steps 7.4a–7.4d:**
+  - Measured hits become MEDIUM "unverified".
+  - The security judge escalates a live-looking hit as a judged high, which then goes through the refuter.
+- **Then:** re-run assess on all 3 repos and run round-2 judging on a new seed.
+- **Verdict:** reports both rounds.
+- **Audit-Profile** for M7 becomes code-only. See context-log 2026-10-01 CIRCUIT BREAKER.
 | Private-repo names leak into public files | Shape/count only; AC7 grep gate. |
 | New side fails the bar | Circuit breaker: no release; re-plan the failing milestone (new milestone, not a patch in M7). |
 

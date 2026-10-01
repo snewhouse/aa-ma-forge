@@ -259,3 +259,16 @@ _This log will be updated via context compaction as the task progresses._
 - Active step at compaction: Sub-step 7.3: [run] new side on all 3 repos (R6 absorb in Provenance)
 - Snapshot saved to: /home/sjnewhouse/.claude/hooks/cache/compaction-snapshots/codebase-analysis-skills-snapshot.md
 - Note: Context compacted. Reload AA-MA files to resume.
+
+## [2026-10-01] M7 CIRCUIT BREAKER — pass bar not met in round 1; fix and re-run (Ste)
+- **Evidence (7.4):**
+  - AC3 fails on all 3 repos: 60 of 60 checked new Critical/High findings fail the claim check.
+  - Every one is a measured `security.secret` finding hard-coded to `Severity.HIGH` (`src/aa_ma/analysis/measure.py:401-405`). The refuter only sees judged critical/high findings, so these never get checked.
+  - AC1 fails in 2 of 12 comparisons: hono J1 accuracy and private J2 density.
+- **Decision (Ste, AskUserQuestion):** fix and re-run, rather than writing a FAIL verdict now or accepting with exceptions.
+- **Secret severity (Ste):** measured hits become MEDIUM, worded "possible secret (unverified)". The security judge escalates a live-looking hit as a judged high, which the refuter then checks.
+  - Rejected: collapsing hits to one finding per file (more churn).
+  - Rejected: refuting every hit (2565 refutations on one repo).
+  - Kept: the target's `.gitleaks.toml` stays unobeyed, so a target cannot hide its own secrets.
+- **AC1 policy (Ste):** re-judge with 6 fresh judges on a new seed and report both rounds side by side. Understand packs are not hand-edited.
+- **Scope change:** M7 gains sub-steps 7.4a–7.4d. Audit-Profile changes docs-only → code-only and the TDD-Waiver is removed, because 7.4a/b change `src/`. Related HIGH-severity sources (semgrep ERROR, lizard CCN, fixable vulns) are out of scope: none was produced in Standard runs; noted for M8 TODOS.

@@ -378,3 +378,9 @@ Window `5cc9dc2..90cee14`; 5 agents in parallel.
 |---|---|---|
 | 1 | CRITICAL scope (agents/ not in Contract) | Accept — fix now |
 | 2 | W1 + cheap INFO; W2 | Fix W1 + cheap INFO, document W2 |
+
+## Milestone 6 — /sole-dev-merge Stage C/D (2026-10-01), diff main...HEAD
+- C1 [MEDIUM] no-lost-edge oracle skipped hook sources → fixed c6b5221 (4 hook→command edges now covered).
+- C1 [LOW] backticked `/x-*` expands over commands only → documented in the docstring.
+- C2 [LOW] absolute home path in the hook-written compaction note → pre-existing pattern (52 files on main), reviewer note.
+- Bandit: B101 in tests only. ShellCheck: no .sh changed.

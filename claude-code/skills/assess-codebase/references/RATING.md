@@ -58,7 +58,7 @@ Inputs: `sast.findings`, `secrets.findings`, `suppressions.<tool>`, `tool_config
   handling and auth paths the judge read hold up.
 - **adequate** — medium findings only, or secrets confined to test fixtures that are clearly fake.
 - **weak** — a live-looking secret in tracked content (a surviving `security.live-secret`, or in
-  Quick a measured `high` `security.secret`: a provider rule outside test paths), a surviving
+  Quick a measured `high` `security.secret`: a provider rule in shipped code), a surviving
   critical, or a pattern of unsafe input handling.
 
 ## `tests_deps`

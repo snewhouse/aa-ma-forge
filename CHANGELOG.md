@@ -127,8 +127,8 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   names landed as unrefuted High findings: 30, 204 and 2565 on the three `codebase-analysis-skills`
   M7 evaluation repos, and 60 of 60 sampled failed a claim check.
   - A measured hit is now `high` only for a provider rule (AWS, GitHub, Slack, private key, JWT …)
-    outside test and fixture paths, so a real key in shipped code still fails a SARIF
-    `error`/high-severity gate in Quick.
+    outside test, fixture, mock, docs and example paths, so a real key in shipped code still
+    fails a SARIF `error`/high-severity gate in Quick.
   - Everything else is `medium` "possible secret (…, unverified)": SARIF `warning`, security
     severity 4.0 instead of `error`/7.0. If your CI gates on SARIF errors, these hits no longer trip it.
   - The security judge now receives the measured hit locations (never values). It reports each

@@ -421,3 +421,22 @@ Window `5cc9dc2..90cee14`; 5 agents in parallel.
 - **SEC-I refuter reading, SEC-I floor preserved, SEC-I no exposure.** Noted; no action.
 
 Tests: full `uv run pytest -q` 2337 passed, 2 skipped; ruff clean.
+
+## Milestone 7 — /sole-dev-merge Stage C/D (2026-10-01), diff main...HEAD
+
+- **Counts:** C1 code-reviewer: 1 MEDIUM, 6 LOW. C2 security-auditor: 3 LOW. C3 Bandit: 289 MEDIUM after mapping, all in the 3 changed test files. C4 ShellCheck: no shell changed.
+- **C1 MEDIUM, docs/examples not demoted — APPLIED (Ste).** RED 9e8a45d, then GREEN. Paths that are not shipped now take MEDIUM:
+  - mocks/`__mocks__`, test_data/test-data, `__fixtures__`, `__snapshots__`, docs/doc, examples/example directories;
+  - conftest.py, `*.snap` and prose files (.md/.rst/.adoc/.txt).
+  - Paths are split with backslashes normalised.
+  - An 18-case parametrized edge test pins the rule: contest.py and latest_test_data.py stay HIGH.
+  - Re-applied to the round-2 findings: still 0 HIGH on all 3 repos.
+- **C1 LOWs folded into that fix:** extra test locations, backslash split, edge-case coverage, import order.
+- **C1 LOWs left as reviewer notes:** `spec/` false demotion (kept for rspec convention); GENERIC_SECRET_RULES duplicating rule ids owned by secrets.PATTERNS.
+- **C3 Bandit ×289 — DISPUTED (Ste).** Test-only noise: 278 B101 pytest asserts, 4 B105 deliberate fixtures, and B603/B607/B404 in tests. CI's Bandit scans src/ only.
+- **C2 LOWs — reviewer notes:**
+  - path-heuristic ceiling (documented);
+  - untrusted target paths in the judge's `{EXTRA}`: judge is read-only, output schema-validated;
+  - private sha12 in branch history: squash merge.
+
+Tests: full `uv run pytest -q` 2355 passed, 2 skipped.

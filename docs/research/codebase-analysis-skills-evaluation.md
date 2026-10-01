@@ -32,7 +32,7 @@ and led to a fix (below).
 placeholders, sha1 keys and variable names shipped as unrefuted High findings: 60 of 60 sampled failed.
 
 **Fix (sub-steps 7.5–7.6, refined after the §6.8 review):**
-- A measured hit is `high` only for a precise provider rule (AWS, GitHub, Slack, private key, JWT …) outside test and fixture paths. That keeps a real key in shipped code at High, even in Quick, which runs no judge.
+- A measured hit is `high` only for a precise provider rule (AWS, GitHub, Slack, private key, JWT …) outside test, fixture, mock, docs and example paths, where published sample keys live. That keeps a real key in shipped code at High, even in Quick, which runs no judge.
 - Every other hit (generic rules, or any hit in a test or fixture path) is `medium` "possible secret (…, unverified)".
 - The security judge is given the measured hit locations, never values, and reports each live-looking hit once as a judged `security.live-secret` at high/critical, so the refuter checks it. It treats a "fixture", "example" or "dummy" label as a claim to verify.
 - Re-applying the refined rule to every round-2 finding still gives 0 High on all 3 repos. Every provider-rule hit (hono: 49 `jwt`, 2 `private-key`) is in a test file, so the judged reports are unchanged in severity.
@@ -108,7 +108,7 @@ prompt-generation slip in the evaluation harness, not in the skill.
    rule, with a count.
 3. **Other measured HIGH sources** (semgrep ERROR, lizard CCN, fixable vulns, and now provider-rule secrets in
    shipped code) bypass the refuter by design. None fired in these runs; review them before Deep is evaluated.
-4. **Path heuristic ceiling.** A real key committed under a test or fixture path ships as `medium`. The security
+4. **Path heuristic ceiling.** A real key committed under a test, fixture, docs or example path ships as `medium`. The security
    judge, which now sees every hit location, is the net.
 
 Raw judge JSON, blind keys, fidelity notes and both rounds' reports are kept outside the repo (scratch). The

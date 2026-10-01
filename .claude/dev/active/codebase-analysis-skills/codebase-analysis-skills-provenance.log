@@ -123,3 +123,4 @@
 [2026-10-01T10:53:25+01:00] STEP_COMPLETE — 7.9 — verdict file + CHANGELOG; Conditional PASS (Ste)
 [2026-10-01T11:04:42+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 4 WARNING / 8 INFO — all fixed per Ste (RED 4a9cfa4 → GREEN), pytest 2337 passed
 [2026-10-01T11:07:21+01:00] MILESTONE_COMPLETE — M7 Evaluation — Conditional PASS (Ste); HARD gate approved; next: /sole-dev-merge (squash)
+[2026-10-01T11:21:10+01:00] SOLE_DEV_MERGE Stage C/D — C1 1M/6L, C2 3L, C3 289M (tests only, disputed by Ste); C1 MEDIUM applied (RED 9e8a45d → GREEN), pytest 2355 passed

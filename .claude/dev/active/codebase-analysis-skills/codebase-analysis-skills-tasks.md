@@ -449,7 +449,7 @@
 - Result Log: HITL — Ste accepted the verdict (Conditional PASS) and approved the M7 HARD gate (AskUserQuestion, 2026-10-01). PR #10 via /sole-dev-merge (CI 7/7 green), squash-merged as d62f0eb per Ste; the private sha12 in branch history never reached main (verified).
 
 ## Milestone 8: ADRs, docs, TODOS, release v0.17.0, retirement
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 7
 - Gate: HARD
 - Audit-Profile: docs-only
@@ -461,9 +461,9 @@
 - Acceptance Criteria: 6 criteria — see plan.md § Milestone 8
 
 ### Sub-step 8.1: [docs] ADR-0017 + ADR-0006 amendment + ADR index row + glossary wording approval
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: Mode: HITL — Ste proceeded. ADR-0017 `docs/adr/0017-assess-codebase-adaptation.md` (clean-room Adaptation, no FORKS.json; two skills + ANALYSIS-CONTRACT; `aa_ma.analysis` leaf + subprocess-only codemem seam; claude-security declared-external, installed∩enabled guard). ADR-0006 `## Amendment 2026-10-01` → 0017 (remaining soft-deps re-verified present by grep). INDEX row 0017; `scripts/check_adr_index.sh` → PASS (17/17). Glossary: Ste approved CONTEXT.md *Codebase analysis* 8 terms as-is (context-log).
 
 ### Sub-step 8.2: [docs] spec, quick-ref, foundations; TODOS; final Unreleased curation; PR
 - Status: PENDING

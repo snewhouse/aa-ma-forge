@@ -5,6 +5,39 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-035 (2026-10-01) — An evaluation-harness extra the shipped skill doesn't do quietly props up the verdict
+**Pattern:** In codebase-analysis-skills M7 round 2, I gave the security judges the
+`measure.json` path by hand. The shipped SKILL.md passed only a count, so the judges couldn't have
+seen the hit locations. The verdict leaned on that extra input until the §6.8 code reviewer
+flagged it.
+**Rule:** Every addition beyond the skill text in an evaluation run gets one of two outcomes
+before the verdict is written: ship it into the skill, or mark the affected evidence as not
+representing shipped behaviour. List each addition in the fidelity notes and check them all
+against the skill at verdict time.
+---
+
+## L-034 (2026-10-01) — Measured findings skip the refuter, so a hard-coded HIGH shipped 60/60 false positives
+**Pattern:** `measure._secret` set every gitleaks or regex hit to `Severity.HIGH`. The refuter
+only checks judged critical/high findings. Fixtures, sha1 artefact keys and variable names shipped
+as unrefuted High findings: 30, 204 and 2565 per repo. 60 of 60 sampled failed the claim check.
+Only the M7 blind evaluation caught this; 2300+ unit tests didn't.
+**Rule:** A measured (non-judged) finding may be High only if the pattern is precise by
+construction and in context: a provider rule in shipped code, not a generic rule and not a test,
+fixture, docs or example path. Every new measured rule needs one test that pins its severity on
+both a shipped path and a fixture path.
+---
+
+## L-033 (2026-10-01) — A template regex stopped at the inner code fence, so 5 judges never saw the reply format
+**Pattern:** The M7 round-2 prompt generator pulled the judge template from AGENT-PROMPTS.md with
+```` ```text\n(.*?)``` ````. That lazy match ended at the template's own inner ```` ```jsonl ````
+fence. Every prompt was cut off at "Reply with, first, a". Five codebase-assessor judges ran without
+the JSONL contract, and judge 1 is what noticed. Each one had to be resumed with the missing
+block.
+**Rule:** When extracting a fenced block that itself contains fences, anchor the end on the next
+heading: ```` \n```\n\n## ````. Before dispatching any generated prompt, check that it ends with
+the template's known last line, for example `Then, after the fence:`.
+---
+
 ## L-032 (2026-09-30) — Post-merge record left on local main broke the next `/sole-dev-merge` G4
 **Pattern:** After M3 merged, its merge record (`53d53bd`) was committed on local `main` and never
 pushed; M4's branch was cut from that `main`, so the commit rode into PR #7 and was rebased
@@ -53,6 +86,12 @@ the prose logs I wrote around it. Caught by the §6.8 security auditor, not by m
 `git diff --cached | grep -F -f <(names of that repo's top-level and second-level dirs)` and
 refuse on any hit. Describe external structure by shape and count only ("one top-level dir",
 "one skill-category dir, 482 edges") — never by name — in EVERY file, logs included.
+**Amended 2026-10-01 (M7):** grep only the *added* lines. The gate
+`git diff --cached | grep -F -f names.txt` matched the `-` lines that were removing the private
+SHA, so a redaction commit looks like a leak. New rule:
+`git diff --cached | grep '^+' | grep -F -i -f names.txt` must exit 1. Commit hashes of the private
+repo go in names.txt too. A merge that would carry private identifiers in branch history goes in as
+a squash.
 
 ## L-028 (2026-09-26) — Stubs committed with the RED tests tie the TDD auditor's clock
 

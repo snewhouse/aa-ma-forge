@@ -131,3 +131,5 @@
 [2026-10-01T11:39:11+01:00] §6.3 IMPACT — M8 docs-only (ADRs, TODOS, quick-ref, CHANGELOG): no code/contract/caller change — Overall LOW
 [2026-10-01T11:39:11+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: docs-only — agents: future-proofing (#1) + rigor fact-check — verdict: PASS — findings: 0 CRITICAL / 0 WARNING / 4 INFO (+8 fact-check, all fixed)
 [2026-10-01T11:39:11+01:00] §6.6 SKIPPED — docs-only diff
+[2026-10-01T12:02:15+01:00] PR #11 MERGED (rebase, Ste) — SHA map: 086d8b5→2bdcd05, e38cd41→e34012a, 90f37cb→4e3e2b4, (quick-ref fix)→5e3a01a, 0250143→41b28be — Stage C 0C/0H/0M/2L (1 fixed) — CI 7/7 green
+[2026-10-01T12:02:15+01:00] L-032 cleanup — git cherry: 0250143 '-' (upstream as 41b28be); local main reset to origin/main 5e3a01a (clean tree)

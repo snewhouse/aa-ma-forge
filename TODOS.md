@@ -157,6 +157,63 @@ Each was deferred inside a milestone with Ste's agreement; the source line is in
 ### `cut._neighbourhood` early exit
 **What:** `if not frontier: break` in the hop loop. **Why:** efficiency only — `diagram()` already bounds `hops` at 10 (M13 §6.8). **Effort:** XS · **Priority:** P3
 
+## codebase-analysis-skills follow-ups (carried forward at M8, 2026-10-01)
+
+Deferred with Ste's agreement. Source lines are in the plan's `context-log.md` (M2/M3/M7
+backlogs) and `impl-review.md`.
+
+### Incremental assess re-analysis (v2)
+**What:** re-measure and re-judge only what changed since the last Fresh report. Reuse
+`changed-since`'s section map idea for assess dimensions; carry unchanged findings forward by ID.
+**Why:** a Standard run re-reads the whole repo every time (forge 251 s). **Effort:** L · **Priority:** P2
+
+### `unshare -rn` hardening for `aa-ma-analysis run`
+**What:** when `unshare -r -n` works, run approved commands with no network namespace. Fall back
+to today's offline env otherwise, and say which in run.log. It also brings loopback down, so
+tests binding localhost fail. Make it opt-in.
+**Why:** the offline env is best-effort; `make test` can still reach the network
+(`docs/research/codebase-analysis-skills-offline-command-run.md` §3). **Effort:** M · **Priority:** P2
+
+### `uninstall.sh` deregisters 5 of the 8 hook registrations
+**What:** derive `AA_MA_UNINSTALL_HOOKS` from install.sh's `AA_MA_HOOKS` (one list), so
+`security-static-check.sh` (PreToolUse) and both `aa-ma-plan-skip-warn.sh` entries (PreToolUse
+ExitPlanMode, SessionEnd) are removed too. Add a bats test that install then uninstall leaves no
+forge hook in settings.json.
+**Why:** after uninstall, three registrations point at dangling symlinks. **Effort:** S · **Priority:** P1
+
+### `codemem refresh` is still a placeholder
+**What:** `codemem refresh` logs and exits 0 (`packages/codemem-mcp/src/codemem/cli.py`
+`_cmd_refresh`). Implement the incremental driver or remove the subcommand. assess runs a full
+`build` + `refresh-commits` per run today.
+**Why:** a command that succeeds without doing anything misleads callers. **Effort:** M · **Priority:** P3
+
+### Understand density: one `path:line` citation per factual unit
+**What:** tighten the onboarding templates so every factual list item, row or sentence carries a
+citation `ground` can check.
+**Why:** M7 Conditional PASS. The private Python repo trailed on claim density by 0.05–0.08 on
+both judges. **Effort:** S · **Priority:** P1
+
+### Collapse measured-secret hits to one finding per file and rule
+**What:** emit one `security.secret` finding per (path, rule) with a hit count, not one per hit.
+**Why:** 2565 hits on one eval repo; most are fixtures, now MEDIUM. **Effort:** S · **Priority:** P2
+
+### Review other measured-HIGH sources for refuter bypass
+**What:** semgrep ERROR, lizard CCN > 25 and fixable vulns are measured HIGH and skip the refuter
+(L-034). Each needs a severity that is safe by construction, plus a test pinning it on a shipped
+path and a fixture path, before Deep is evaluated.
+**Why:** Standard runs produced none in M7, so this is unmeasured. **Effort:** M · **Priority:** P1
+
+### Smaller assess/understand hardening (M2/M3 backlog)
+**What:**
+- a repo owned by another uid (`safe.directory`) should get a "dubious ownership" message, not "not a git repo"
+- ignore planted untracked baseline reports by keeping an index of dirs this tool wrote
+- `run` reports a passing command as `timeout` when a detached grandchild holds the pipe
+- assign live IDs before refuted twins
+- cap `refutation_reason` below `EVIDENCE_MAX` after redaction
+- validate `refutation_reason` against `refutation`
+- follow git renames instead of reading a rename as fixed + new
+**Why:** each fails closed or is a usability gap; none is a leak. **Effort:** M total · **Priority:** P3
+
 ## Completed
 
 ### Generate the milestone dependency graph from tasks.md

@@ -446,7 +446,7 @@
 ### Sub-step 7.10: [gate] Ste accepts the verdict or circuit-breaks; on accept, PR
 - Status: COMPLETE
 - Mode: HITL
-- Result Log: HITL — Ste accepted the verdict (Conditional PASS) and approved the M7 HARD gate (AskUserQuestion, 2026-10-01). PR via /sole-dev-merge, squash-merged per Ste so the private sha12 in branch history never reaches main.
+- Result Log: HITL — Ste accepted the verdict (Conditional PASS) and approved the M7 HARD gate (AskUserQuestion, 2026-10-01). PR #10 via /sole-dev-merge (CI 7/7 green), squash-merged as d62f0eb per Ste; the private sha12 in branch history never reached main (verified).
 
 ## Milestone 8: ADRs, docs, TODOS, release v0.17.0, retirement
 - Status: PENDING

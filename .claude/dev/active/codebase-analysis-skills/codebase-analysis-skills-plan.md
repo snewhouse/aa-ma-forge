@@ -970,7 +970,7 @@ Judges: 2 per repo, fresh general-purpose agents, reports anonymised A/B in seed
 
 **Scope change (2026-10-01, after round-1 judging):**
 - **Round-1 result:** AC3 failed. Measured `security.secret` findings were hard-coded HIGH and never refuted.
-- **Fix, sub-steps 7.4a–7.4d:**
+- **Fix, sub-steps 7.5–7.8 (verdict → 7.9, gate → 7.10):**
   - Measured hits become MEDIUM "unverified".
   - The security judge escalates a live-looking hit as a judged high, which then goes through the refuter.
 - **Then:** re-run assess on all 3 repos and run round-2 judging on a new seed.

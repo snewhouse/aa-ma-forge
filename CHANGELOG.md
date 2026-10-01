@@ -121,6 +121,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   before anything is written, naming the file; `--check` reports it as not generated and says to move it
   aside. Previously only `understand-codebase`'s Deep-tier fence checked, so a bare `--write` in a
   consumer repo replaced the team's file.
+- **`assess-codebase` no longer reports every secret-pattern match as High** — measured
+  `security.secret` hits (gitleaks and the built-in regex set) were `high`, and only judged
+  critical/high findings go to the refuter. So test fixtures, placeholders, sha1 keys and variable
+  names landed as unrefuted High findings: 30, 204 and 2565 on the three `codebase-analysis-skills`
+  M7 evaluation repos, and 60 of 60 sampled failed a claim check. They are now `medium`
+  "possible secret (…, unverified)". The security judge reports a live-looking hit once as a judged
+  `security.live-secret` at high/critical, which the refuter then checks. A target's own
+  `.gitleaks.toml` is still never obeyed.
 
 ## v0.16.0 (2026-09-27)
 

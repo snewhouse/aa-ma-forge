@@ -399,14 +399,16 @@ def _jscpd(ctx: _Ctx) -> Callable[[bytes], Parsed]:
 
 
 def _secret(path: str, line: int, rule: str) -> _Candidate:
+    # MEDIUM: a pattern match is not a verified secret, and only judged critical/high reach the
+    # refuter. A live-looking hit is escalated by the security judge (AGENT-PROMPTS.md).
     return _Candidate(
         "security.secret",
         Dimension.SECURITY,
-        Severity.HIGH,
+        Severity.MEDIUM,
         path,
         line,
         rule,
-        f"possible secret ({rule})",
+        f"possible secret ({rule}, unverified)",
     )
 
 

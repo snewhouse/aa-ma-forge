@@ -369,14 +369,14 @@
   - **Actionability:** new ≥ old on every judge (forge 5 vs 4; others 4 vs 4).
   - **Preferences:** 2 new / 4 old. Every judge who preferred old cited the false-High secret flood.
 
-### Sub-step 7.4a: [test] RED — a measured secret hit is MEDIUM, not HIGH
-- Status: PENDING
+### Sub-step 7.5: [test] RED — a measured secret hit is MEDIUM, not HIGH
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: `tests/analysis/test_measure.py` expects severity `medium` and a title marking the hit unverified; it fails on the current code. Test-only commit (L-028).
-- Result Log: [placeholder]
+- Result Log: f01ac94, test-only (L-028). In `tests/analysis/test_measure.py`, the regex-hit test now expects `medium` plus "unverified" in the title, and the new `test_a_measured_secret_is_never_critical_or_high` covers a gitleaks hit. Both failed on the old code (`{'high'} == {'medium'}`).
 
-### Sub-step 7.4b: [code] GREEN — `_secret()` → MEDIUM "unverified"; security judge escalates a live-looking hit as a judged high (refuter)
-- Status: PENDING
+### Sub-step 7.6: [code] GREEN — `_secret()` → MEDIUM "unverified"; security judge escalates a live-looking hit as a judged high (refuter)
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
   - `measure.py` `_secret` is MEDIUM.
@@ -384,9 +384,9 @@
   - RATING.md is consistent.
   - The full pytest suite is green; ruff is clean.
   - CHANGELOG has a bullet.
-- Result Log: [placeholder]
+- Result Log: `measure.py` `_secret` → `Severity.MEDIUM`, title "possible secret (<rule>, unverified)". The AGENT-PROMPTS security brief now says to report a live-looking measured hit once as a judged `security.live-secret` at high/critical, with the cite and never the value, so the refuter sees it. RATING.md weak-rule clarified. CHANGELOG Unreleased/Fixed bullet added. The rule id matches RULE_PATTERN. tests/analysis: 549 passed. Full `uv run pytest -q`: 2334 passed, 2 skipped. ruff clean. The first full run failed on the non-canonical 7.4a headings, fixed by renumbering.
 
-### Sub-step 7.4c: [run] re-run assess Standard on all 3 scratch clones with the fix
+### Sub-step 7.7: [run] re-run assess Standard on all 3 scratch clones with the fix
 - Status: PENDING
 - Mode: AFK
 - Acceptance Criteria:
@@ -396,18 +396,18 @@
   - Understand packs untouched; the Provenance absorb sha12 is unchanged.
 - Result Log: [placeholder]
 
-### Sub-step 7.4d: [judge] round 2 — 6 fresh blinded judges, new seed; report both rounds
+### Sub-step 7.8: [judge] round 2 — 6 fresh blinded judges, new seed; report both rounds
 - Status: PENDING
 - Mode: AFK
 - Acceptance Criteria: same procedure as 7.4 with a new seed. AC1 and AC3 are evaluated on round 2. The verdict shows round 1 and round 2 side by side.
 - Result Log: [placeholder]
 
-### Sub-step 7.5: [docs] verdict file + CHANGELOG bullet; L-029 name gate before commit
+### Sub-step 7.9: [docs] verdict file + CHANGELOG bullet; L-029 name gate before commit
 - Status: PENDING
 - Mode: AFK
 - Result Log: [placeholder]
 
-### Sub-step 7.6: [gate] Ste accepts the verdict or circuit-breaks; on accept, PR
+### Sub-step 7.10: [gate] Ste accepts the verdict or circuit-breaks; on accept, PR
 - Status: PENDING
 - Mode: HITL
 - Result Log: [placeholder]

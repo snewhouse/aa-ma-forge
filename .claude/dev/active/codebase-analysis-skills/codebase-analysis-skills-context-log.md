@@ -271,4 +271,4 @@ _This log will be updated via context compaction as the task progresses._
   - Rejected: refuting every hit (2565 refutations on one repo).
   - Kept: the target's `.gitleaks.toml` stays unobeyed, so a target cannot hide its own secrets.
 - **AC1 policy (Ste):** re-judge with 6 fresh judges on a new seed and report both rounds side by side. Understand packs are not hand-edited.
-- **Scope change:** M7 gains sub-steps 7.4a–7.4d. Audit-Profile changes docs-only → code-only and the TDD-Waiver is removed, because 7.4a/b change `src/`. Related HIGH-severity sources (semgrep ERROR, lizard CCN, fixable vulns) are out of scope: none was produced in Standard runs; noted for M8 TODOS.
+- **Scope change:** M7 gains sub-steps 7.5–7.8 (verdict → 7.9, gate → 7.10). Audit-Profile changes docs-only → code-only and the TDD-Waiver is removed, because 7.5/7.6 change `src/`. Related HIGH-severity sources (semgrep ERROR, lizard CCN, fixable vulns) are out of scope: none was produced in Standard runs; noted for M8 TODOS.

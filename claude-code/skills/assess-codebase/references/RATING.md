@@ -57,7 +57,8 @@ Inputs: `sast.findings`, `secrets.findings`, `suppressions.<tool>`, `tool_config
 - **strong** — no surviving high/critical SAST finding, no secret in tracked content, input
   handling and auth paths the judge read hold up.
 - **adequate** — medium findings only, or secrets confined to test fixtures that are clearly fake.
-- **weak** — a live-looking secret in tracked content, a surviving critical, or a pattern of
+- **weak** — a live-looking secret in tracked content (a surviving `security.live-secret`; measured
+  `security.secret` hits are unverified `medium`), a surviving critical, or a pattern of
   unsafe input handling.
 
 ## `tests_deps`

@@ -5,6 +5,17 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-036 (2026-10-01) — A background poll piped through grep reported success for a script that never existed
+**Pattern:** In codebase-analysis-skills M8, `gh pr edit --title` failed (GraphQL "Projects (classic)
+is being deprecated"). That broke the `&& …` chain, so the G1/G2 poll script was never written. The
+background `bash g12.sh | grep … | tail` then exited 0 with no output, and its "completed" read as
+a finished CI poll. I caught it only because the output was empty.
+**Rule:** A background verification command must print its own rc (`…; echo rc=$?`, with
+`pipefail`) and must fail loudly if its input file is missing. Treat an empty result as a failure,
+never as a pass. For PR title or body edits, use `gh api -X PATCH repos/{o}/{r}/pulls/N -f title=…`;
+`gh pr edit` can fail on the classic-Projects deprecation.
+---
+
 ## L-035 (2026-10-01) — An evaluation-harness extra the shipped skill doesn't do quietly props up the verdict
 **Pattern:** In codebase-analysis-skills M7 round 2, I gave the security judges the
 `measure.json` path by hand. The shipped SKILL.md passed only a count, so the judges couldn't have

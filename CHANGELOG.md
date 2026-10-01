@@ -130,6 +130,18 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   `security.live-secret` at high/critical, which the refuter then checks. A target's own
   `.gitleaks.toml` is still never obeyed.
 
+### Documentation
+
+- **`docs/research/codebase-analysis-skills-evaluation.md`** — the M7 evaluation:
+  `/assess-codebase` + `/understand-codebase` against the local `/codebase-deep-dive`. Three repos,
+  two rounds of blinded judges (2 per repo), with seeded A/B order.
+  - Verdict: **conditional pass**.
+  - Zero secret values in any new output.
+  - Zero failing Critical/High findings after the secret-severity fix.
+  - New ≥ old on accuracy and citation density on 2 of 3 repos; the third (a small private repo) trails by
+    0.05–0.08 density.
+  - Known gaps are listed.
+
 ## v0.16.0 (2026-09-27)
 
 ### Added

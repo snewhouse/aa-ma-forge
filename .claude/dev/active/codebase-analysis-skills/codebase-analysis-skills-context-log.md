@@ -272,3 +272,16 @@ _This log will be updated via context compaction as the task progresses._
   - Kept: the target's `.gitleaks.toml` stays unobeyed, so a target cannot hide its own secrets.
 - **AC1 policy (Ste):** re-judge with 6 fresh judges on a new seed and report both rounds side by side. Understand packs are not hand-edited.
 - **Scope change:** M7 gains sub-steps 7.5–7.8 (verdict → 7.9, gate → 7.10). Audit-Profile changes docs-only → code-only and the TDD-Waiver is removed, because 7.5/7.6 change `src/`. Related HIGH-severity sources (semgrep ERROR, lizard CCN, fixable vulns) are out of scope: none was produced in Standard runs; noted for M8 TODOS.
+
+## [2026-10-01] M7 VERDICT — Conditional PASS (Ste)
+- **Round 2 (seed 20261002):**
+  - AC3 passes on all 3 repos after the fix (0 new critical/high).
+  - AC1 passes on forge and hono.
+  - AC1 fails on the private repo: density −0.05/−0.08 on both judges, and accuracy 0.92 vs 0.96 on J2. One J2 "false" was itself wrong: the repo really has 44 trailer commits. Rescored, accuracy is 0.958, still below 0.960.
+- **Decision (Ste, AskUserQuestion):** Conditional PASS, recording the private-repo density gap as a known gap with backlog items.
+  - Rejected: fix density and re-run the private repo as round 3.
+  - Rejected: a FAIL verdict.
+- **Backlog for M8 TODOS:**
+  1. Understand templates: one `path:line` citation per factual unit.
+  2. Collapse measured-secret hits to one finding per file and rule, with a count.
+  3. Review the other measured-HIGH sources (semgrep ERROR, lizard CCN, fixable vulns) for refuter bypass before Deep is evaluated.

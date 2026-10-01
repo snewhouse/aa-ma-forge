@@ -439,9 +439,9 @@
   - **Pass bar NOT met on AC1 for the private repo.** Circuit breaker, awaiting Ste.
 
 ### Sub-step 7.9: [docs] verdict file + CHANGELOG bullet; L-029 name gate before commit
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Ste chose Conditional PASS (AskUserQuestion). Wrote `docs/research/codebase-analysis-skills-evaluation.md`: setup, both rounds' tables, disagreements, pass-bar table AC1–AC7, tool `command -v` table, runtimes, and 3 known gaps (understand citation density; measured-secret volume; other measured-HIGH sources bypass the refuter). Added a CHANGELOG Unreleased/Documentation bullet. The private repo is described by shape only (154 tracked, 47 .py). The L-029 gate exited 1 before commit.
 
 ### Sub-step 7.10: [gate] Ste accepts the verdict or circuit-breaks; on accept, PR
 - Status: PENDING

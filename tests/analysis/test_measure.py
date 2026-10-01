@@ -214,10 +214,27 @@ def test_regex_secret_finding_never_carries_the_secret(
     assert (f["path"], f["line"], f["severity"], f["anchor"]) == (
         "src/config.py",
         1,
-        "high",
+        "medium",
         "github-token",
     )
+    assert "unverified" in f["title"]
     assert FAKE_TOKEN not in (work / "measure.json").read_text()
+
+
+def test_a_measured_secret_is_never_critical_or_high(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A pattern match is not a verified secret, and only judged critical/high reach the refuter:
+    a HIGH here would skip that check."""
+    leak = {
+        "File": "src/config.py",
+        "StartLine": 1,
+        "RuleID": "github-pat",
+        "Secret": "REDACTED",
+    }
+    monkeypatch.setenv("GITLEAKS_BIN", str(_gitleaks_stub(tools, [leak])))
+    d = doc(measure(target, "quick"))
+    assert {f["severity"] for f in by_rule(d, "security.secret")} == {"medium"}
 
 
 def _gitleaks_stub(tools: Path, leaks: list[dict], rc: int = 0) -> Path:

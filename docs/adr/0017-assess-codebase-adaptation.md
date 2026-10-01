@@ -1,6 +1,6 @@
 # 0017. `assess-codebase`: a clean-room Adaptation, two skills over one analysis contract
 
-**Status:** Implemented (codebase-analysis-skills M1–M7; released in v0.17.0)
+**Status:** Implemented (codebase-analysis-skills M1–M7; ships in v0.17.0)
 **Date:** 2026-10-01
 **Deciders:** Stephen Newhouse (sole maintainer)
 **Tags:** `skills`, `assessment`, `onboarding`, `security`, `codemem`
@@ -41,8 +41,8 @@ commit-stamped, and have Onboarding reuse it, without copying anyone's files?**
 - **Clean-room Adaptation** (`CONTEXT.md` *Adaptation*). Concept is adapted from Anthropic's
   `claude-security` and `code-modernization`: a measure/judge/refute split, a coverage ledger,
   and a SHA-stamped, masked report. Every file is our own. There is no `FORKS.json` entry, no
-  provenance comment and no drift tracking. M3.6 ran a shingle check against the upstream
-  plugin text.
+  provenance comment and no drift tracking. M3.6 found 0 shared 12-word shingles against the
+  local `/codebase-deep-dive` command; no shingle check was run against the Anthropic plugins.
 - **Two skills over one contract.** `assess-codebase` (skill + thin `/assess-codebase`
   command + read-only `codebase-assessor` agent) and `understand-codebase` stay independent.
   Both obey `claude-code/skills/understand-codebase/references/ANALYSIS-CONTRACT.md`:
@@ -68,7 +68,7 @@ commit-stamped, and have Onboarding reuse it, without copying anyone's files?**
 
 ### Option 1 — two skills, one contract, `aa_ma.analysis`
 
-- ✅ Measured half is reproducible and tested (2300+ tests, fixture-repo contract tests in CI).
+- ✅ Measured half is reproducible and tested (569 tests in `tests/analysis`, fixture-repo contract tests in CI).
 - ✅ Secret gate fails closed in code, not prose.
 - ✅ Each skill evolves alone; the contract is the one shared surface.
 - ❌ A larger Python surface to own (12 modules) and a hardened subprocess runner.
@@ -102,8 +102,9 @@ commit-stamped, and have Onboarding reuse it, without copying anyone's files?**
 - The plugin-surface extractor learned slash commands (M6), so a dangling `/x` is caught.
 
 **Negative:**
-- Evaluation (M7) passed on two of three repos and conditionally on the third (understand
-  density gap on a private Python repo). Backlog is in `TODOS.md`.
+- Evaluation (M7): AC1 passed on two repos and failed on the private Python repo (density on
+  both judges, accuracy on one). Ste accepted an overall Conditional PASS. Backlog is in
+  `TODOS.md`.
 - Measured findings bypass the refuter, so each measured rule's severity must be safe by
   construction (L-034). Secret hits are HIGH only for a provider rule outside test, fixture,
   docs or example paths.
@@ -121,7 +122,7 @@ commit-stamped, and have Onboarding reuse it, without copying anyone's files?**
 flowchart LR
   A["claude-code/skills/assess-codebase/SKILL.md"] --> C["src/aa_ma/analysis/cli.py"]
   U["claude-code/skills/understand-codebase/SKILL.md"] --> C
-  A --> K["references/ANALYSIS-CONTRACT.md"]
+  A --> K["claude-code/skills/understand-codebase/references/ANALYSIS-CONTRACT.md"]
   U --> K
   C --> M["src/aa_ma/analysis/measure.py"]
   M -->|subprocess| CM["codemem CLI"]
@@ -132,9 +133,9 @@ flowchart LR
 ## Example (recommended)
 
 ```text
-uv run --project "$AA_MA_ROOT" aa-ma-analysis measure --tier standard
-uv run --project "$AA_MA_ROOT" aa-ma-analysis finalize --work .claude/reports/assess-codebase/.work-<sha12>
-uv run --project "$AA_MA_ROOT" aa-ma-analysis fresh .claude/reports/assess-codebase/<sha12>
+uv run --project "$AA_MA_ROOT" aa-ma-analysis measure --repo <target> --tier standard
+uv run --project "$AA_MA_ROOT" aa-ma-analysis finalize --repo <target> --work <target>/.claude/reports/assess-codebase/.work-<sha12>
+uv run --project "$AA_MA_ROOT" aa-ma-analysis fresh --repo <target> <target>/.claude/reports/assess-codebase/<sha12>
 ```
 
 ## Implementation Notes

@@ -140,7 +140,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - **ADR-0017 — `assess-codebase` as a clean-room Adaptation** — records the two-skill shape over
   one analysis contract, `aa_ma.analysis` as the code home with a subprocess-only codemem seam, and
   `claude-security` as an optional declared-external plugin. ADR-0006 gains a dated amendment
-  pointing to it. The quick reference lists `/assess-codebase` and the `aa-ma-analysis` commands;
+  pointing to it. The quick reference lists `/assess-codebase` and the main `aa-ma-analysis` commands;
   `TODOS.md` carries the deferred follow-ups.
 - **`docs/research/codebase-analysis-skills-evaluation.md`** — the M7 evaluation:
   `/assess-codebase` + `/understand-codebase` against the local `/codebase-deep-dive`. Three repos,

@@ -136,3 +136,5 @@
 [2026-10-01T12:09:09+01:00] CRITICAL_PATH_REVIEW — Milestone 8: ADRs, docs, TODOS, release v0.17.0, retirement — version-pipeline — release.sh preconditions met (main, clean, HEAD==origin/main e58b5af, Unreleased non-empty); dry-run reviewed by Ste; cut c843122; git cat-file -t v0.17.0 = tag → c843122; pyproject/VERSION/README/CHANGELOG = 0.17.0; '## v0.17.0 (2026-10-01)' written by release.sh only (L-003); gh release view v0.17.0 isDraft=false; main == origin/main after push
 [2026-10-01T12:09:09+01:00] 8.3 COMPLETE — v0.17.0 released (c843122)
 [2026-10-01T12:09:44+01:00] 8.4 COMPLETE — local codebase-deep-dive.md + deep-analysis.md archived to ~/.claude/_archive/commands/ (Ste); RETIREMENT confirmed
+[2026-10-01T12:12:09+01:00] DIAGRAM_VERIFIED — Milestone 8: ADRs, docs, TODOS, release v0.17.0, retirement — edges=5 checked=5 phantom=0 unknown=0
+[2026-10-01T12:13:05+01:00] §6.8 POST_IMPL_REVIEW (back-ref) — Milestone 8: ADRs, docs, TODOS, release v0.17.0, retirement — the docs-only PASS entry above (0C/0W/4I + 8 fact-check fixes) belongs to this milestone

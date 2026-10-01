@@ -99,6 +99,7 @@ def test_the_backticked_rule_loses_no_edge_the_any_occurrence_rule_found(surface
         files = {
             "command": [cc / "commands" / f"{stem}.md"], "agent": [cc / "agents" / f"{stem}.md"],
             "rule": [cc / "rules" / f"{stem}.md"],
+            "hook": [f for f in (cc / "hooks").rglob(stem) if f.is_file()],
             "skill": [f for f in (cc / "skills" / stem).rglob("*") if f.suffix in (".md", ".sh")],
         }.get(kind, [])
         for f in files:

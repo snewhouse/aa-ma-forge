@@ -440,3 +440,17 @@ Tests: full `uv run pytest -q` 2337 passed, 2 skipped; ruff clean.
   - private sha12 in branch history: squash merge.
 
 Tests: full `uv run pytest -q` 2355 passed, 2 skipped.
+
+## Milestone 8 — §6.8 post-impl review (2026-10-01)
+- Audit-Profile: docs-only → future-proofing-auditor check #1 only. Window `0250143..086d8b5+e38cd41`.
+- future-proofing: 0 CRITICAL / 0 WARNING / 4 INFO. Live count in TODOS ("5 of the 8") reworded to name the missing hooks — FIXED. ADR counts (14/22/13, 12 modules, 2300+) are dated snapshots — no change.
+- /rigor fact-check (general-purpose, read-only; 44 claims OK): 3 wrong + 4 misleading + 1 minor, all FIXED:
+  - ADR-0017 shingle check was against local `/codebase-deep-dive`, not the Anthropic plugins.
+  - ADR-0017 status "released in v0.17.0" → "ships in v0.17.0" (cut is 8.3).
+  - "2300+ tests" → 569 in `tests/analysis`.
+  - Eval wording: AC1 failed on the private repo; Conditional PASS is the overall verdict.
+  - Mermaid node → full `ANALYSIS-CONTRACT.md` path.
+  - Examples and quick-ref name `--repo` (M4 rule: every documented call names it).
+  - `ground` comment matches its behaviour (±20 lines; `--cited` prints paths).
+  - CHANGELOG: "the main `aa-ma-analysis` commands".
+- Verdict: PASS (all findings fixed).

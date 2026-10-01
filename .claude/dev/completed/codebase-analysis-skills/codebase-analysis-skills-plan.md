@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-10-01 20:25 -->
+<!-- Plan: codebase-analysis-skills - COMPLETE -->
+<!-- Total Milestones: 8 | Duration: 2026-09-27 to 2026-10-01 -->
+
 # codebase-analysis-skills Plan
 
 **Objective:** Ship a clean-room whole-repo assessment skill (`assess-codebase`) and an improved `understand-codebase`, sharing one analysis contract and one tested Python core, and prove both beat the local `/codebase-deep-dive` before release.

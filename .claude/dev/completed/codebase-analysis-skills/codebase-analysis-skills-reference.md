@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-10-01 20:25 -->
+<!-- Plan: codebase-analysis-skills - COMPLETE -->
+<!-- Total Milestones: 8 | Duration: 2026-09-27 to 2026-10-01 -->
+
 # codebase-analysis-skills Reference
 
 ## Immutable Facts and Constants

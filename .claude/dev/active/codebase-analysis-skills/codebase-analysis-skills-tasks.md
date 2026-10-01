@@ -295,7 +295,7 @@
 - Result Log: Mode: AFK — auto-dispatched. `scripts/regen-generated.sh` after `git add` (e5734df golden + docs; 90cee14 stamps); `codemem draw --check` OK. PR #9 opened; CI 7/7 green incl. Architecture drift + codemem smoke. §6.8 PASS_WITH_WARNINGS (CRIT scope paperwork fixed e4c3d2a); Stage C/D M fixed c6b5221.
 
 ## Milestone 7: Evaluation (Ticket 10)
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 5, Milestone 6
 - Gate: HARD
 - Audit-Profile: docs-only

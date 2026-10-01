@@ -294,3 +294,11 @@ _This log will be updated via context compaction as the task progresses._
   - The docs tidy-up was done.
 - **Why the refinement:** the security auditor showed that all-MEDIUM let a real leaked key in Quick (no judge) ship as a SARIF warning at 4.0. Provider-rule hits in the evaluation were all in test files, so the refinement keeps 0 HIGH there. That is verified by re-applying `_secret_severity` to every round-2 finding.
 - **Residual:** the private sha12 is in the history of 2 already-pushed branch commits. It is redacted from the current files and added to the names file.
+
+## [2026-10-01] GATE APPROVAL: Milestone 7: Evaluation (Ticket 10)
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 7/7 evaluated. AC2–AC7 pass. AC1 is a conditional pass: forge and hono pass; the private repo trails on density by 0.05–0.08. Ste accepted this as a known gap.
+- §6.8: 0 CRITICAL / 4 WARNING / 8 INFO, all fixed (3bb13b0). pytest 2337 passed, 2 skipped.
+- Merge: squash (Ste), so the private sha12 in 2 branch commits never reaches main.
+- Decision: APPROVED

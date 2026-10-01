@@ -295,7 +295,7 @@
 - Result Log: Mode: AFK — auto-dispatched. `scripts/regen-generated.sh` after `git add` (e5734df golden + docs; 90cee14 stamps); `codemem draw --check` OK. PR #9 opened; CI 7/7 green incl. Architecture drift + codemem smoke. §6.8 PASS_WITH_WARNINGS (CRIT scope paperwork fixed e4c3d2a); Stage C/D M fixed c6b5221.
 
 ## Milestone 7: Evaluation (Ticket 10)
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 5, Milestone 6
 - Gate: HARD
 - Audit-Profile: code-only
@@ -444,9 +444,9 @@
 - Result Log: Ste chose Conditional PASS (AskUserQuestion). Wrote `docs/research/codebase-analysis-skills-evaluation.md`: setup, both rounds' tables, disagreements, pass-bar table AC1–AC7, tool `command -v` table, runtimes, and 3 known gaps (understand citation density; measured-secret volume; other measured-HIGH sources bypass the refuter). Added a CHANGELOG Unreleased/Documentation bullet. The private repo is described by shape only (154 tracked, 47 .py). The L-029 gate exited 1 before commit.
 
 ### Sub-step 7.10: [gate] Ste accepts the verdict or circuit-breaks; on accept, PR
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: HITL — Ste accepted the verdict (Conditional PASS) and approved the M7 HARD gate (AskUserQuestion, 2026-10-01). PR via /sole-dev-merge, squash-merged per Ste so the private sha12 in branch history never reaches main.
 
 ## Milestone 8: ADRs, docs, TODOS, release v0.17.0, retirement
 - Status: PENDING

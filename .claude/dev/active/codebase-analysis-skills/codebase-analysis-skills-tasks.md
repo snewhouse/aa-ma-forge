@@ -344,9 +344,31 @@
   Blinded judge sets: built from seed 20261001 (A/B key kept outside the repo).
 
 ### Sub-step 7.4: [judge] 2 blinded fresh judges per repo, about 20 claims each
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log:
+  - **Setup:** 6 fresh general-purpose judges, run as a wave of 5 then 1. Reports were anonymised A/B with seed 20261001: forge A=new, hono A=new, private B=new. Judges sampled 21–25 claims per set; judge 2 sampled from the end of each file. Metrics were recomputed from the judge JSON (kept outside the repo).
+
+  | Repo · judge | Accuracy new / old | Density new / old | Crit/High fail, new (checked) / old | Preference |
+  |---|---|---|---|---|
+  | forge J1 | 0.955 / 0.909 | 0.870 / 0.455 | 10/10 of 30 / 0/2 | new |
+  | forge J2 | 0.957 / 0.909 | 0.826 / 0.455 | 10/10 of 30 / 0/2 | old |
+  | hono J1 | **0.958 / 1.000** | 0.792 / 0.625 | 10/10 of 204 / 0/1 | old |
+  | hono J2 | 1.000 / 1.000 | 0.714 / 0.619 | 10/10 of 204 / 0/1 | old |
+  | private J1 | 1.000 / 0.870 | 0.760 / 0.680 | 10/10 of 2565 / none | new |
+  | private J2 | 1.000 / 1.000 | **0.739 / 0.783** | 10/10 of 2565 / none | old |
+
+  - **AC1 FAIL, 2 of 12 comparisons:**
+    - hono J1 accuracy: one false new claim, that outbound fetch occurs only in RPC/JWKS, when the proxy helper also fetches.
+    - private J2 density: 0.739 < 0.783.
+  - **AC3 FAIL on all 3 repos:** 60 of 60 checked new Critical/High findings fail the claim check. All are measured `security.secret` hits on test fixtures, variable names, sha1 edge keys and placeholders.
+  - **AC3 root cause:**
+    - `_secret()` hard-codes `Severity.HIGH` (`src/aa_ma/analysis/measure.py:401-405`).
+    - Measured findings bypass the refuter, which handles judged critical/high only.
+    - The target's `.gitleaks.toml` is deliberately not obeyed (`measure.py:79-87`).
+  - **Secret values in reports:** new 0 on every judge; old 0, except the private legacy report, which quotes the dev-default DB placeholder (private J2: 1).
+  - **Actionability:** new ≥ old on every judge (forge 5 vs 4; others 4 vs 4).
+  - **Preferences:** 2 new / 4 old. Every judge who preferred old cited the false-High secret flood.
 
 ### Sub-step 7.5: [docs] verdict file + CHANGELOG bullet; L-029 name gate before commit
 - Status: PENDING

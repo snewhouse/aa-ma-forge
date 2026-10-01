@@ -16,7 +16,7 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-**Current version:** v0.16.0 — Diagrams from the code: living architecture doc, sigil-checked §13, explorer, MCP diagram tool
+**Current version:** v0.17.0 — Codebase analysis: assess-codebase, understand-codebase v1, aa-ma-analysis CLI
 
 ## The problem
 

@@ -466,9 +466,9 @@
 - Result Log: Mode: HITL — Ste proceeded. ADR-0017 `docs/adr/0017-assess-codebase-adaptation.md` (clean-room Adaptation, no FORKS.json; two skills + ANALYSIS-CONTRACT; `aa_ma.analysis` leaf + subprocess-only codemem seam; claude-security declared-external, installed∩enabled guard). ADR-0006 `## Amendment 2026-10-01` → 0017 (remaining soft-deps re-verified present by grep). INDEX row 0017; `scripts/check_adr_index.sh` → PASS (17/17). Glossary: Ste approved CONTEXT.md *Codebase analysis* 8 terms as-is (context-log).
 
 ### Sub-step 8.2: [docs] spec, quick-ref, foundations; TODOS; final Unreleased curation; PR
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. quick-ref: `/assess-codebase` + `### Codebase analysis (CLI)` (5 `aa-ma-analysis` lines, signatures checked against `--help`); foundations already carried assess rows (M3) — no change; spec has no per-skill listing — no change. TODOS.md `## codebase-analysis-skills follow-ups`: incremental assess v2, `unshare -rn`, uninstall.sh 5/8 (verified: missing security-static-check + 2× plan-skip-warn), `codemem refresh` placeholder (verified `_cmd_refresh`), + M7 backlog 3 + M2/M3 small hardening. CHANGELOG Unreleased: M1–M7 bullets present; + ADR-0017 Documentation bullet. pytest 2355 passed / 2 skipped; check_adr_index PASS 17/17; `codemem draw --check` OK. PR: see provenance.
 
 ### Sub-step 8.3: [release] on main: release.sh dry-run, then cut v0.17.0
 - Status: PENDING

@@ -150,6 +150,9 @@ synthesis. Protocol toggles: `--no-goal` on `/execute-aa-ma-full`; omit
 # Onboard to a new / inherited / shared codebase (tiered)
 /understand-codebase [path] [--quick | --standard | --deep]
 
+# Assess a whole repo: measured + judged findings, refuter on Critical/High (tiered)
+/assess-codebase [path] [--quick | --standard | --deep]
+
 # PR/MR-based merge workflow with 3-source security pass + auto-merge
 /sole-dev-merge
 ```
@@ -164,6 +167,16 @@ aa-ma-lint-views <plan.md> --repo-root . [--coverage]  # §13 lint: STALE_PATH, 
 aa-ma-render --explorer                         # build/explorer.html — click to drill the whole graph
 # MCP: diagram(level="L2", scope=None, hops=1)  — budget-sized; collapses or truncates, reports dropped
 # §13 sigil edge: A -->|"@import"| B  (quoted; checked at the §6.7 gate → DIAGRAM_VERIFIED)
+```
+
+### Codebase analysis (CLI)
+
+```bash
+aa-ma-analysis measure --tier quick|standard|deep  # tools → .claude/reports/assess-codebase/.work-<sha12>/
+aa-ma-analysis finalize --work <dir>             # IDs, rating cap, baseline, secret gate → <sha12>[-dirty]/
+aa-ma-analysis fresh <report-dir|onboarding.json> # exit 0 only when stamped at HEAD with no tracked change
+aa-ma-analysis ground <md> [--cited]             # every cited claim's names/numbers found near path:line
+aa-ma-analysis changed-since <sha12>             # which onboarding sections to regenerate
 ```
 
 ### Claude Code Directory Structure

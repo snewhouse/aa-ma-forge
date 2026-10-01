@@ -176,7 +176,7 @@ aa-ma-analysis measure --repo R --tier quick|standard|deep  # tools → .claude/
 aa-ma-analysis finalize --repo R --work <dir>    # IDs, rating cap, baseline, secret gate → <sha12>[-dirty]/
 aa-ma-analysis fresh --repo R <report-dir|onboarding.json>  # exit 0 only when stamped at HEAD with no tracked change
 aa-ma-analysis ground <md> [--cited]             # exit 1 lists claims whose names/numbers are absent within ±20 lines of path:line; --cited prints the cited paths
-aa-ma-analysis changed-since --repo R <sha12>    # which onboarding sections to regenerate
+aa-ma-analysis changed-since --repo R --onboarding F <sha12>  # which onboarding sections to regenerate
 ```
 
 ### Claude Code Directory Structure

@@ -316,9 +316,32 @@
 - Result Log: HITL — Ste chose main-thread orchestration in this session. Old /codebase-deep-dive run verbatim (6 phases, 8 agents, main-thread synthesis, 9 reports + 3 diagrams each): forge 458 s, hono 495 s. Private repo: existing 2026-09-17 6-file report (copied into its clone). Fidelity notes (scratch): P2 deps agent strayed into sibling clones → out-of-scope content discarded, private clone moved to a separate parent, later old-side prompts gained 'Stay inside that directory'; hono re-cloned fully (partial clone refused by the stamp's safe-config check: remote.*.promisor) with the old report moved over at the same SHA.
 
 ### Sub-step 7.3: [run] new side on all 3 repos (R6 absorb in Provenance)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: run in this session on the scratch clones (Ste's choice). Runtimes:
+  - forge: assess 262 s, understand 510 s
+  - hono: assess 255 s, understand 393 s
+  - private repo: assess 435 s, understand 514 s
+  Assess:
+  - All 4 dimensions rated adequate in every repo; 0 judged critical/high, so no refuter ran.
+  - scan-secrets exited 0 on all three report dirs.
+  - lizard, jscpd and osv-scanner were absent (`command -v` rc=1); semgrep and pip-audit were present but skipped in Standard; gitleaks ran.
+  Understand Standard:
+  - ONBOARDING.md plus `.claude/onboarding/00–09` written in each repo.
+  - `aa-ma-analysis ground` exited 0 on every file.
+  - 10 sampled claims held per repo.
+  - onboarding.json passed `validate onboarding` (exit 0).
+  - Leak grep was clean, including the private repo's in-code default credential literal.
+  R6: every Provenance block reads "assess-codebase report — absorbed (fresh, sha12 …)" — 26ba674208d5 / 6abd35b0a5f3 / 5739d24fd14f. The private repo's legacy deep-dive was used as leads only.
+  AGENTS.md:
+  - forge: AGENTS.draft.md (no AGENTS.md).
+  - hono: AGENTS.draft.md.
+  - private repo: AGENTS.review.md (AGENTS.md exists and was untouched; CLAUDE.md untouched).
+  Currency checks:
+  - forge pytest: 2 failed / 2331 passed in the clone.
+  - hono: not_run (Ste).
+  - private pytest: failed at conftest import, pymupdf missing in the fresh venv. Recorded, not fixed.
+  Blinded judge sets: built from seed 20261001 (A/B key kept outside the repo).
 
 ### Sub-step 7.4: [judge] 2 blinded fresh judges per repo, about 20 claims each
 - Status: PENDING

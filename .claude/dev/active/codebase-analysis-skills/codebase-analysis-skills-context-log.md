@@ -242,3 +242,9 @@ _This log will be updated via context compaction as the task progresses._
 
 ## [2026-09-30] M6 §6.8 — scope note (accepted CRITICAL)
 - 6.4 also modified `claude-code/agents/codebase-onboarding-runbook.md` (`/healthz`/`/readyz` → `GET /…`), needed for AC2. The M6 Contract `Files:` omits `claude-code/agents/`; this note records it as in scope. plan.md stays frozen (historical record).
+
+## [2026-10-01] GATE APPROVAL: Milestone 6: Plugin-surface extractor learns slash commands (R4)
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 5/5 (AC4 CI architecture-drift confirmed on the PR)
+- Decision: APPROVED — Approve + PR + merge

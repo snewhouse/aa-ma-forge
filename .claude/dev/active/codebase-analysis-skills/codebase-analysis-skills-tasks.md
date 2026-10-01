@@ -260,7 +260,7 @@
 - Result Log: Mode: AFK — auto-dispatched. RED `6e6a56a` (19 failing: 12 code, 7 skill text) → GREEN `3911737` (changed-since `_trusted_pack` = `_located` + git-tracked refusal → exit 2; `SectionName` pattern + golden schema; dirty tree → None; STRUCTURE only when mapped; HEX12; ground md read_regular capped → exit 2, range windows, per-call file cache, shared `_spans` walk, missing-citation message) + `e4977bd` (SKILL order: currency check step 5 / Deep before synthesizer, checks last; CLI-owned pack trust; dirty → full; Standard refresh-commits; Deep incremental + index build before dispatch + AA_MA_ROOT; health agent query-only; DIMENSIONS one call form; template sample sizes → SKILL; AGENTS size stated once; CHANGELOG) + regen. Mutations 6/6. Suite 2309 passed / 2 skipped. CR-W5 recorded in context-log. Regression 1 (0 C / 4 W / 10 I; Ste: fix + security-only pass): RED `3f53cb8` → `bd1f931` (submodule work-tree check, case-folded tracked match, stamp sha match, dirty stamp, Deep team template, cheap INFO; mutations 5/5). Regression 2 (security: S1/S2 closed; 2 W): RED `425361b` → `09a2156` (safe_env drops git location vars; casefold + upper; mutations 2/2). Suite 2321 passed / 2 skipped. Loop closed; INFO → backlog (impl-review M5).
 
 ## Milestone 6: Plugin-surface extractor learns slash commands (R4)
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 5
 - Gate: HARD
 - Audit-Profile: code-only
@@ -290,9 +290,9 @@
 - Result Log: Mode: AFK — auto-dispatched. c963393: 8 fixed (commit-and-push, git-status-smart, release-prep in aa-ma-plan.md; commit-and-push + pre-commit-* + compress in aa-ma-execution; compress in token-compression; index in REUSE-MAP ×2; healthz/readyz → `GET /…` in 3 files). `/settings` kept — verbatim prototype fork (FORKS.json state current, md5-pinned); Ste chose 'Keep fork verbatim' → pin {settings}. tests/skills 244 passed; fork manifest 10 passed.
 
 ### Sub-step 6.5: [verify] regen; architecture-drift green; PR
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log: Mode: AFK — auto-dispatched. `scripts/regen-generated.sh` after `git add` (e5734df golden + docs; 90cee14 stamps); `codemem draw --check` OK. PR #9 opened; CI 7/7 green incl. Architecture drift + codemem smoke. §6.8 PASS_WITH_WARNINGS (CRIT scope paperwork fixed e4c3d2a); Stage C/D M fixed c6b5221.
 
 ## Milestone 7: Evaluation (Ticket 10)
 - Status: PENDING

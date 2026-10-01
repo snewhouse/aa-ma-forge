@@ -21,8 +21,8 @@ from .conftest import (
     commit_file,
     git,
     lizard_row,
-    make_repo,
     lizard_stub,
+    make_repo,
     stub_bin,
 )
 
@@ -244,6 +244,37 @@ def test_only_a_provider_rule_outside_tests_is_high(tmp_path: Path, tools: Path)
         "src/auth.test.ts": "medium",
         "fixtures/keys.py": "medium",
     }
+
+
+@pytest.mark.parametrize(
+    ("path", "rule", "severity"),
+    [
+        ("src/config.py", "aws-access-key", "high"),
+        ("contest.py", "aws-access-key", "high"),
+        ("src/latest_test_data.py", "aws-access-key", "high"),
+        ("src/config.py", "generic-api-key", "medium"),
+        ("src/config.py", "url-credential", "medium"),
+        ("tests/test_a.py", "aws-access-key", "medium"),
+        ("tests\\test_a.py", "aws-access-key", "medium"),
+        ("src/auth.spec.ts", "aws-access-key", "medium"),
+        ("pkg/auth_test.go", "aws-access-key", "medium"),
+        ("a/b/fixtures/c/k.py", "aws-access-key", "medium"),
+        ("src/__mocks__/k.js", "aws-access-key", "medium"),
+        ("test_data/k.json", "aws-access-key", "medium"),
+        ("test-data/k.json", "aws-access-key", "medium"),
+        ("conftest.py", "aws-access-key", "medium"),
+        ("src/x.test.js.snap", "aws-access-key", "medium"),
+        ("README.md", "aws-access-key", "medium"),
+        ("docs/guide.md", "jwt", "medium"),
+        ("examples/k.py", "aws-access-key", "medium"),
+    ],
+)
+def test_secret_severity_edges(path: str, rule: str, severity: str) -> None:
+    """Shipped code with a provider rule is HIGH; tests, fixtures, docs and examples (where
+    published sample keys live) are MEDIUM. A name merely containing "test" is not a test."""
+    from aa_ma.analysis.measure import _secret_severity
+
+    assert _secret_severity(path, rule).value == severity
 
 
 def test_a_generic_gitleaks_rule_is_medium(

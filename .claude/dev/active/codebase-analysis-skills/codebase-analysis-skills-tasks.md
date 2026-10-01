@@ -387,14 +387,31 @@
 - Result Log: `measure.py` `_secret` → `Severity.MEDIUM`, title "possible secret (<rule>, unverified)". The AGENT-PROMPTS security brief now says to report a live-looking measured hit once as a judged `security.live-secret` at high/critical, with the cite and never the value, so the refuter sees it. RATING.md weak-rule clarified. CHANGELOG Unreleased/Fixed bullet added. The rule id matches RULE_PATTERN. tests/analysis: 549 passed. Full `uv run pytest -q`: 2334 passed, 2 skipped. ruff clean. The first full run failed on the non-canonical 7.4a headings, fixed by renumbering.
 
 ### Sub-step 7.7: [run] re-run assess Standard on all 3 scratch clones with the fix
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria:
   - 3 fresh reports; scan-secrets exits 0.
   - 0 measured critical/high `security.secret`.
   - Runtimes recorded.
   - Understand packs untouched; the Provenance absorb sha12 is unchanged.
-- Result Log: [placeholder]
+- Result Log: assess Standard was re-run on all 3 scratch clones with 419751f. Round-1 reports were moved aside, so there is no baseline. The private repo ran in a fresh clean clone at the same SHA, and the report was copied back beside its pack. Ledgers were reused from round 1.
+  Judging:
+  - 12 codebase-assessor (sonnet) judges, run in waves of ≤5.
+  - My prompt generator truncated the reply-format block for the first 5 judges. They re-emitted the same findings once they were sent the block. Logged in the fidelity notes.
+  - Every judged file passed the gate and validated. The gate redacted 1 span: a judge-quoted dev-default placeholder.
+  - 0 pending, so no refuter ran. finalize exit 0 ×3; scan-secrets on the report dirs exit 0 ×3 (gitleaks ran).
+  Results:
+
+  | Repo | Findings | Medium | Low | Info | Critical/high |
+  |---|---|---|---|---|---|
+  | forge | 47 | 35 | 12 | 0 | 0 |
+  | hono | 212 | 206 | 3 | 3 | 0 |
+  | private repo | 2581 | 2569 | 10 | 2 | 0 |
+
+  - Measured security.secret findings are all medium now: 30 / 204 / 2565.
+  - The 3 security judges triaged hits and found no live secret, so there is no security.live-secret.
+  - Ratings: all 4 dimensions adequate in every repo, none capped. Same as round 1.
+  Runtime: the 3 repos ran concurrently, about 336 s wall-clock each, including the prompt-repair detour. Understand packs are untouched.
 
 ### Sub-step 7.8: [judge] round 2 — 6 fresh blinded judges, new seed; report both rounds
 - Status: PENDING

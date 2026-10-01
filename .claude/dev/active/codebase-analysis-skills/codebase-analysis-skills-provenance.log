@@ -118,3 +118,4 @@
 [2026-10-01T10:21:23+01:00] SCOPE_CHANGE — M7 +7.4a–d (secret severity fix + re-run + round-2 judging); Audit-Profile docs-only→code-only (Ste: fix + re-run)
 [2026-10-01T10:25:46+01:00] RENUMBER — M7 new sub-steps 7.4a–d → 7.5–7.8 (canonical N.M headings); verdict 7.5→7.9, gate 7.6→7.10
 [2026-10-01T10:28:01+01:00] STEP_COMPLETE — 7.5 RED f01ac94; 7.6 GREEN measure._secret MEDIUM unverified + live-secret escalation brief; pytest 2334 passed
+[2026-10-01T10:35:17+01:00] STEP_COMPLETE — 7.7 — assess re-run ×3 with fix: 0 critical/high everywhere (secret hits medium 30/204/2565); ratings unchanged adequate×4; round-2 blind sets seed 20261002

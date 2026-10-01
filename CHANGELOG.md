@@ -121,6 +121,31 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   before anything is written, naming the file; `--check` reports it as not generated and says to move it
   aside. Previously only `understand-codebase`'s Deep-tier fence checked, so a bare `--write` in a
   consumer repo replaced the team's file.
+- **`assess-codebase` no longer reports every secret-pattern match as High** — measured
+  `security.secret` hits (gitleaks and the built-in regex set) were `high`, and only judged
+  critical/high findings go to the refuter. So test fixtures, placeholders, sha1 keys and variable
+  names landed as unrefuted High findings: 30, 204 and 2565 on the three `codebase-analysis-skills`
+  M7 evaluation repos, and 60 of 60 sampled failed a claim check.
+  - A measured hit is now `high` only for a provider rule (AWS, GitHub, Slack, private key, JWT …)
+    outside test, fixture, mock, docs and example paths, so a real key in shipped code still
+    fails a SARIF `error`/high-severity gate in Quick.
+  - Everything else is `medium` "possible secret (…, unverified)": SARIF `warning`, security
+    severity 4.0 instead of `error`/7.0. If your CI gates on SARIF errors, these hits no longer trip it.
+  - The security judge now receives the measured hit locations (never values). It reports each
+    live-looking one as a judged `security.live-secret` at high/critical, which the refuter then checks.
+  - A target's own `.gitleaks.toml` is still never obeyed.
+
+### Documentation
+
+- **`docs/research/codebase-analysis-skills-evaluation.md`** — the M7 evaluation:
+  `/assess-codebase` + `/understand-codebase` against the local `/codebase-deep-dive`. Three repos,
+  two rounds of blinded judges (2 per repo), with seeded A/B order.
+  - Verdict: **conditional pass**.
+  - Zero secret values in any new output.
+  - Zero failing Critical/High findings after the secret-severity fix.
+  - New ≥ old on accuracy and citation density on 2 of 3 repos; the third (a small private repo) trails by
+    0.05–0.08 density.
+  - Known gaps are listed.
 
 ## v0.16.0 (2026-09-27)
 

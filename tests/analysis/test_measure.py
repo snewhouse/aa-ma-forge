@@ -22,6 +22,7 @@ from .conftest import (
     git,
     lizard_row,
     lizard_stub,
+    make_repo,
     stub_bin,
 )
 
@@ -217,7 +218,77 @@ def test_regex_secret_finding_never_carries_the_secret(
         "high",
         "github-token",
     )
+    assert "unverified" in f["title"]
     assert FAKE_TOKEN not in (work / "measure.json").read_text()
+
+
+def test_only_a_provider_rule_outside_tests_is_high(tmp_path: Path, tools: Path) -> None:
+    """A precise provider pattern in shipped code is a likely leak: HIGH, even in Quick with no
+    judge to escalate it. A generic match, or any match in a test or fixture path, is MEDIUM —
+    only judged critical/high reach the refuter, so a HIGH there would ship unrefuted noise."""
+    repo = make_repo(
+        tmp_path / "repo",
+        {
+            "src/config.py": f'TOKEN = "{FAKE_TOKEN}"\n',
+            "src/settings.py": 'api_key = "abcdefgh12345678"\n',
+            "tests/test_auth.py": f'TOKEN = "{FAKE_TOKEN}"\n',
+            "src/auth.test.ts": f'const t = "{FAKE_TOKEN}"\n',
+            "fixtures/keys.py": f'TOKEN = "{FAKE_TOKEN}"\n',
+        },
+    )
+    d = doc(measure(repo, "quick"))
+    assert {f["path"]: f["severity"] for f in by_rule(d, "security.secret")} == {
+        "src/config.py": "high",
+        "src/settings.py": "medium",
+        "tests/test_auth.py": "medium",
+        "src/auth.test.ts": "medium",
+        "fixtures/keys.py": "medium",
+    }
+
+
+@pytest.mark.parametrize(
+    ("path", "rule", "severity"),
+    [
+        ("src/config.py", "aws-access-key", "high"),
+        ("contest.py", "aws-access-key", "high"),
+        ("src/latest_test_data.py", "aws-access-key", "high"),
+        ("src/config.py", "generic-api-key", "medium"),
+        ("src/config.py", "url-credential", "medium"),
+        ("tests/test_a.py", "aws-access-key", "medium"),
+        ("tests\\test_a.py", "aws-access-key", "medium"),
+        ("src/auth.spec.ts", "aws-access-key", "medium"),
+        ("pkg/auth_test.go", "aws-access-key", "medium"),
+        ("a/b/fixtures/c/k.py", "aws-access-key", "medium"),
+        ("src/__mocks__/k.js", "aws-access-key", "medium"),
+        ("test_data/k.json", "aws-access-key", "medium"),
+        ("test-data/k.json", "aws-access-key", "medium"),
+        ("conftest.py", "aws-access-key", "medium"),
+        ("src/x.test.js.snap", "aws-access-key", "medium"),
+        ("README.md", "aws-access-key", "medium"),
+        ("docs/guide.md", "jwt", "medium"),
+        ("examples/k.py", "aws-access-key", "medium"),
+    ],
+)
+def test_secret_severity_edges(path: str, rule: str, severity: str) -> None:
+    """Shipped code with a provider rule is HIGH; tests, fixtures, docs and examples (where
+    published sample keys live) are MEDIUM. A name merely containing "test" is not a test."""
+    from aa_ma.analysis.measure import _secret_severity
+
+    assert _secret_severity(path, rule).value == severity
+
+
+def test_a_generic_gitleaks_rule_is_medium(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    leak = {
+        "File": "src/config.py",
+        "StartLine": 1,
+        "RuleID": "generic-api-key",
+        "Secret": "REDACTED",
+    }
+    monkeypatch.setenv("GITLEAKS_BIN", str(_gitleaks_stub(tools, [leak])))
+    d = doc(measure(target, "quick"))
+    assert [f["severity"] for f in by_rule(d, "security.secret")] == ["medium"]
 
 
 def _gitleaks_stub(tools: Path, leaks: list[dict], rc: int = 0) -> Path:

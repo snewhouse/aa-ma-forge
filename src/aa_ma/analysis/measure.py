@@ -398,15 +398,56 @@ def _jscpd(ctx: _Ctx) -> Callable[[bytes], Parsed]:
     return parse
 
 
+# Rules that match a shape, not a provider's key format: a hit is a lead, not a likely leak.
+GENERIC_SECRET_RULES = {"generic-quoted", "generic-env", "url-credential"}
+# Tests, fixtures, mocks, docs and examples hold fake or published sample keys far more often
+# than real ones (AWS's documented AKIA…EXAMPLE, jwt.io tokens).
+NON_SHIPPED_DIRS = {
+    "test",
+    "tests",
+    "__tests__",
+    "fixtures",
+    "fixture",
+    "__fixtures__",
+    "testdata",
+    "test_data",
+    "test-data",
+    "spec",
+    "specs",
+    "mocks",
+    "__mocks__",
+    "__snapshots__",
+    "docs",
+    "doc",
+    "examples",
+    "example",
+}
+_NON_SHIPPED_NAME = re.compile(
+    r"^test_|^conftest\.py$|[._-](?:test|spec)\.[^.]+$|\.(?:bats|snap|md|rst|adoc|txt)$"
+)
+
+
+def _secret_severity(path: str, rule: str) -> Severity:
+    """HIGH only for a precise provider rule in shipped code — it may never reach a judge (Quick).
+    Everything else is MEDIUM: only judged critical/high reach the refuter, and the security judge
+    escalates a live-looking hit (AGENT-PROMPTS.md).
+    ponytail: path heuristic — a real key committed under tests/ or docs ships MEDIUM; the judge
+    is the net."""
+    *dirs, name = path.replace("\\", "/").lower().split("/")
+    generic = rule in GENERIC_SECRET_RULES or rule.startswith("generic")
+    shipped = not (NON_SHIPPED_DIRS & set(dirs) or _NON_SHIPPED_NAME.search(name))
+    return Severity.HIGH if shipped and not generic else Severity.MEDIUM
+
+
 def _secret(path: str, line: int, rule: str) -> _Candidate:
     return _Candidate(
         "security.secret",
         Dimension.SECURITY,
-        Severity.HIGH,
+        _secret_severity(path, rule),
         path,
         line,
         rule,
-        f"possible secret ({rule})",
+        f"possible secret ({rule}, unverified)",
     )
 
 

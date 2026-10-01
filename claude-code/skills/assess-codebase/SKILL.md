@@ -158,8 +158,10 @@ One judge per dimension — `architecture`, `maintainability`, `security`, `test
 in parallel (at most 5 agents at once) with the Agent tool: `subagent_type: codebase-assessor`
 (read-only: Read, Grep, Glob), `model: sonnet`, prompt = the judge template from
 [AGENT-PROMPTS.md](references/AGENT-PROMPTS.md) filled with that dimension's brief, metrics, the
-ledger's assessed paths and any Step 4 evidence. A large component may get its own judge in the
-next wave.
+ledger's assessed paths and any Step 4 evidence. The security judge's `{EXTRA}` also lists the
+measured `security.secret` hits from measure.json — `<rule> <path>:<line> <severity>`, high first,
+then one `<path> ×<count>` line per file past 50 — never a value (measure.json holds none). A large
+component may get its own judge in the next wave.
 
 If the `codebase-assessor` agent type is not available, stop and say so (run `scripts/install.sh`
 from the aa-ma-forge checkout, then restart the session) — never substitute another agent type:

@@ -384,3 +384,59 @@ Window `5cc9dc2..90cee14`; 5 agents in parallel.
 - C1 [LOW] backticked `/x-*` expands over commands only → documented in the docstring.
 - C2 [LOW] absolute home path in the hook-written compaction note → pre-existing pattern (52 files on main), reviewer note.
 - Bandit: B101 in tests only. ShellCheck: no .sh changed.
+
+## Milestone 7 — §6.8 post-impl review (2026-10-01), window 26ba674..1641e58, Audit-Profile code-only
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 2 | 3 | PASS_WITH_WARNINGS |
+| security-auditor | 0 | 2 | 4 | PASS_WITH_WARNINGS |
+| tdd-sequence-auditor | 0 | 0 | 0 | PASS: test-only RED f01ac94 came 6 min before fix 419751f |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS: no dependency changes |
+| future-proofing-auditor | 0 | 0 | 1 | PASS |
+| **TOTAL** | **0** | **4** | **8** | **PASS_WITH_WARNINGS** |
+
+**Findings and dispositions** (Ste, AskUserQuestion: fix all recommended before the gate):
+- **SEC-W1, A09.** Quick under-reports a real leaked credential: every measured hit was MEDIUM, and no judge runs in Quick.
+  - **FIXED (Ste: provider rule outside tests → HIGH).**
+  - `measure._secret_severity` makes a hit HIGH when the rule is a provider rule (not `generic*` or `url-credential`) and the path is not a test or fixture path. Everything else is MEDIUM.
+  - RED 4a9cfa4, then GREEN.
+  - Re-applied to the round-2 findings it gives 0 HIGH on all 3 repos (every provider-rule hit is in a test file), so the AC3 evidence holds.
+  - The RATING.md weak rule covers a Quick measured HIGH.
+  - Ceiling (ponytail comment): a real key under tests/ ships as MEDIUM.
+- **CR-W1, design gap.** The security judge never received the hit locations, so escalation could not be relied on.
+  - **FIXED.** SKILL.md Step 5 now puts the measured `security.secret` hits (rule path:line severity, high first, per-file counts past 50, never a value) into the security judge's `{EXTRA}`.
+  - Round 2 had received this by hand; that is recorded in the fidelity notes and the verdict.
+- **SEC-W2, A04.** Escalation can be defeated by misleading labels.
+  - **FIXED.** The brief now says: "report each … once", and a fixture/example/dummy label is a claim to verify against the match's shape and runtime loading.
+- **CR-W2, doc structure.** The scope-change block split the M7 Risks table.
+  - **FIXED.** The block was moved below Rollback, with a line on why M7 was patched instead of opening a new milestone.
+- **CR-I3, test coverage.** **FIXED.** Added `test_an_escalated_live_secret_goes_through_the_refuter`: pending blocks finalize; a survived verdict ships HIGH beside the measured hit.
+- **FP-I1, side-channel id.** **FIXED.** Added `test_the_live_secret_rule_is_one_id_across_brief_and_rating`, which pins `security.live-secret` in both docs and checks it against RULE_PATTERN.
+- **CR-I2, wording.** **FIXED.** The brief now reads "Do not re-report … except to escalate a secret."
+- **CR-I1, SARIF level.** **FIXED.** The CHANGELOG states that `warning`/4.0 replaces `error`/7.0, and that provider hits in shipped code stay high.
+- **SEC-I evaluation doc.** The private sha12 appeared in the AC5 row.
+  - **FIXED** in the current files (evaluation doc, AA-MA files). The sha is added to the L-029 names file.
+  - Earlier branch commits 2c4e1f2 and 1641e58 still carry it in history. Reported to Ste; history is not rewritten without explicit approval.
+- **SEC-I refuter reading, SEC-I floor preserved, SEC-I no exposure.** Noted; no action.
+
+Tests: full `uv run pytest -q` 2337 passed, 2 skipped; ruff clean.
+
+## Milestone 7 — /sole-dev-merge Stage C/D (2026-10-01), diff main...HEAD
+
+- **Counts:** C1 code-reviewer: 1 MEDIUM, 6 LOW. C2 security-auditor: 3 LOW. C3 Bandit: 289 MEDIUM after mapping, all in the 3 changed test files. C4 ShellCheck: no shell changed.
+- **C1 MEDIUM, docs/examples not demoted — APPLIED (Ste).** RED 9e8a45d, then GREEN. Paths that are not shipped now take MEDIUM:
+  - mocks/`__mocks__`, test_data/test-data, `__fixtures__`, `__snapshots__`, docs/doc, examples/example directories;
+  - conftest.py, `*.snap` and prose files (.md/.rst/.adoc/.txt).
+  - Paths are split with backslashes normalised.
+  - An 18-case parametrized edge test pins the rule: contest.py and latest_test_data.py stay HIGH.
+  - Re-applied to the round-2 findings: still 0 HIGH on all 3 repos.
+- **C1 LOWs folded into that fix:** extra test locations, backslash split, edge-case coverage, import order.
+- **C1 LOWs left as reviewer notes:** `spec/` false demotion (kept for rspec convention); GENERIC_SECRET_RULES duplicating rule ids owned by secrets.PATTERNS.
+- **C3 Bandit ×289 — DISPUTED (Ste).** Test-only noise: 278 B101 pytest asserts, 4 B105 deliberate fixtures, and B603/B607/B404 in tests. CI's Bandit scans src/ only.
+- **C2 LOWs — reviewer notes:**
+  - path-heuristic ceiling (documented);
+  - untrusted target paths in the judge's `{EXTRA}`: judge is read-only, output schema-validated;
+  - private sha12 in branch history: squash merge.
+
+Tests: full `uv run pytest -q` 2355 passed, 2 skipped.

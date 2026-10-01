@@ -295,45 +295,158 @@
 - Result Log: Mode: AFK — auto-dispatched. `scripts/regen-generated.sh` after `git add` (e5734df golden + docs; 90cee14 stamps); `codemem draw --check` OK. PR #9 opened; CI 7/7 green incl. Architecture drift + codemem smoke. §6.8 PASS_WITH_WARNINGS (CRIT scope paperwork fixed e4c3d2a); Stage C/D M fixed c6b5221.
 
 ## Milestone 7: Evaluation (Ticket 10)
-- Status: PENDING
+- Status: COMPLETE
 - Dependencies: Milestone 5, Milestone 6
 - Gate: HARD
-- Audit-Profile: docs-only
-- TDD-Waiver: docs-only
+- Audit-Profile: code-only
 - Complexity: 60%
 - Effort: 2
 - Goal: Evidence, not opinion, that the new skills beat the local deep-dive on every repo, with zero secret leaks.
 - Acceptance Criteria: 7 criteria (pass bar) — see plan.md § Milestone 7
 
 ### Sub-step 7.1: [setup] pin honojs/hono SHA; scratch clones
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: HITL — Ste: private repo located by search + confirmed; runs go to scratch clones (Ste). honojs/hono pinned at 6abd35b0a5f35f67b6417627d5b0a6c2d266ac04 (583 tracked files, inside 300–1500 → no fastify fallback). Scratch clones in the session scratchpad: forge @ 26ba674 (751 tracked), hono @ 6abd35b, private repo @ its HEAD (154 tracked, 47 .py) with its 2026-09-17 6-file deep-dive report copied in (report is untracked there). L-029 names file kept outside the repo: 6 entries; 23 candidates excluded as generic (count only).
 
 ### Sub-step 7.2: [run] old side on forge + hono; private repo uses its existing report
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: HITL — Ste chose main-thread orchestration in this session. Old /codebase-deep-dive run verbatim (6 phases, 8 agents, main-thread synthesis, 9 reports + 3 diagrams each): forge 458 s, hono 495 s. Private repo: existing 2026-09-17 6-file report (copied into its clone). Fidelity notes (scratch): P2 deps agent strayed into sibling clones → out-of-scope content discarded, private clone moved to a separate parent, later old-side prompts gained 'Stay inside that directory'; hono re-cloned fully (partial clone refused by the stamp's safe-config check: remote.*.promisor) with the old report moved over at the same SHA.
 
 ### Sub-step 7.3: [run] new side on all 3 repos (R6 absorb in Provenance)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: run in this session on the scratch clones (Ste's choice). Runtimes:
+  - forge: assess 262 s, understand 510 s
+  - hono: assess 255 s, understand 393 s
+  - private repo: assess 435 s, understand 514 s
+  Assess:
+  - All 4 dimensions rated adequate in every repo; 0 judged critical/high, so no refuter ran.
+  - scan-secrets exited 0 on all three report dirs.
+  - lizard, jscpd and osv-scanner were absent (`command -v` rc=1); semgrep and pip-audit were present but skipped in Standard; gitleaks ran.
+  Understand Standard:
+  - ONBOARDING.md plus `.claude/onboarding/00–09` written in each repo.
+  - `aa-ma-analysis ground` exited 0 on every file.
+  - 10 sampled claims held per repo.
+  - onboarding.json passed `validate onboarding` (exit 0).
+  - Leak grep was clean, including the private repo's in-code default credential literal.
+  R6: every Provenance block reads "assess-codebase report — absorbed (fresh, sha12 …)" — 26ba674208d5 / 6abd35b0a5f3 / (private sha12). The private repo's legacy deep-dive was used as leads only.
+  AGENTS.md:
+  - forge: AGENTS.draft.md (no AGENTS.md).
+  - hono: AGENTS.draft.md.
+  - private repo: AGENTS.review.md (AGENTS.md exists and was untouched; CLAUDE.md untouched).
+  Currency checks:
+  - forge pytest: 2 failed / 2331 passed in the clone.
+  - hono: not_run (Ste).
+  - private pytest: failed at conftest import, pymupdf missing in the fresh venv. Recorded, not fixed.
+  Blinded judge sets: built from seed 20261001 (A/B key kept outside the repo).
 
 ### Sub-step 7.4: [judge] 2 blinded fresh judges per repo, about 20 claims each
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Result Log:
+  - **Setup:** 6 fresh general-purpose judges, run as a wave of 5 then 1. Reports were anonymised A/B with seed 20261001: forge A=new, hono A=new, private B=new. Judges sampled 21–25 claims per set; judge 2 sampled from the end of each file. Metrics were recomputed from the judge JSON (kept outside the repo).
 
-### Sub-step 7.5: [docs] verdict file + CHANGELOG bullet; L-029 name gate before commit
-- Status: PENDING
+  | Repo · judge | Accuracy new / old | Density new / old | Crit/High fail, new (checked) / old | Preference |
+  |---|---|---|---|---|
+  | forge J1 | 0.955 / 0.909 | 0.870 / 0.455 | 10/10 of 30 / 0/2 | new |
+  | forge J2 | 0.957 / 0.909 | 0.826 / 0.455 | 10/10 of 30 / 0/2 | old |
+  | hono J1 | **0.958 / 1.000** | 0.792 / 0.625 | 10/10 of 204 / 0/1 | old |
+  | hono J2 | 1.000 / 1.000 | 0.714 / 0.619 | 10/10 of 204 / 0/1 | old |
+  | private J1 | 1.000 / 0.870 | 0.760 / 0.680 | 10/10 of 2565 / none | new |
+  | private J2 | 1.000 / 1.000 | **0.739 / 0.783** | 10/10 of 2565 / none | old |
+
+  - **AC1 FAIL, 2 of 12 comparisons:**
+    - hono J1 accuracy: one false new claim, that outbound fetch occurs only in RPC/JWKS, when the proxy helper also fetches.
+    - private J2 density: 0.739 < 0.783.
+  - **AC3 FAIL on all 3 repos:** 60 of 60 checked new Critical/High findings fail the claim check. All are measured `security.secret` hits on test fixtures, variable names, sha1 edge keys and placeholders.
+  - **AC3 root cause:**
+    - `_secret()` hard-codes `Severity.HIGH` (`src/aa_ma/analysis/measure.py:401-405`).
+    - Measured findings bypass the refuter, which handles judged critical/high only.
+    - The target's `.gitleaks.toml` is deliberately not obeyed (`measure.py:79-87`).
+  - **Secret values in reports:** new 0 on every judge; old 0, except the private legacy report, which quotes the dev-default DB placeholder (private J2: 1).
+  - **Actionability:** new ≥ old on every judge (forge 5 vs 4; others 4 vs 4).
+  - **Preferences:** 2 new / 4 old. Every judge who preferred old cited the false-High secret flood.
+
+### Sub-step 7.5: [test] RED — a measured secret hit is MEDIUM, not HIGH
+- Status: COMPLETE
 - Mode: AFK
-- Result Log: [placeholder]
+- Acceptance Criteria: `tests/analysis/test_measure.py` expects severity `medium` and a title marking the hit unverified; it fails on the current code. Test-only commit (L-028).
+- Result Log: f01ac94, test-only (L-028). In `tests/analysis/test_measure.py`, the regex-hit test now expects `medium` plus "unverified" in the title, and the new `test_a_measured_secret_is_never_critical_or_high` covers a gitleaks hit. Both failed on the old code (`{'high'} == {'medium'}`).
 
-### Sub-step 7.6: [gate] Ste accepts the verdict or circuit-breaks; on accept, PR
-- Status: PENDING
+### Sub-step 7.6: [code] GREEN — `_secret()` → MEDIUM "unverified"; security judge escalates a live-looking hit as a judged high (refuter)
+- Status: COMPLETE
+- Mode: AFK
+- Acceptance Criteria:
+  - `measure.py` `_secret` is MEDIUM.
+  - The AGENT-PROMPTS security brief says to escalate a live-looking measured secret once as a judged high/critical, citing it, never the value, so the refuter sees it.
+  - RATING.md is consistent.
+  - The full pytest suite is green; ruff is clean.
+  - CHANGELOG has a bullet.
+- Result Log: `measure.py` `_secret` → `Severity.MEDIUM`, title "possible secret (<rule>, unverified)". The AGENT-PROMPTS security brief now says to report a live-looking measured hit once as a judged `security.live-secret` at high/critical, with the cite and never the value, so the refuter sees it. RATING.md weak-rule clarified. CHANGELOG Unreleased/Fixed bullet added. The rule id matches RULE_PATTERN. tests/analysis: 549 passed. Full `uv run pytest -q`: 2334 passed, 2 skipped. ruff clean. The first full run failed on the non-canonical 7.4a headings, fixed by renumbering.
+
+### Sub-step 7.7: [run] re-run assess Standard on all 3 scratch clones with the fix
+- Status: COMPLETE
+- Mode: AFK
+- Acceptance Criteria:
+  - 3 fresh reports; scan-secrets exits 0.
+  - 0 measured critical/high `security.secret`.
+  - Runtimes recorded.
+  - Understand packs untouched; the Provenance absorb sha12 is unchanged.
+- Result Log: assess Standard was re-run on all 3 scratch clones with 419751f. Round-1 reports were moved aside, so there is no baseline. The private repo ran in a fresh clean clone at the same SHA, and the report was copied back beside its pack. Ledgers were reused from round 1.
+  Judging:
+  - 12 codebase-assessor (sonnet) judges, run in waves of ≤5.
+  - My prompt generator truncated the reply-format block for the first 5 judges. They re-emitted the same findings once they were sent the block. Logged in the fidelity notes.
+  - Every judged file passed the gate and validated. The gate redacted 1 span: a judge-quoted dev-default placeholder.
+  - 0 pending, so no refuter ran. finalize exit 0 ×3; scan-secrets on the report dirs exit 0 ×3 (gitleaks ran).
+  Results:
+
+  | Repo | Findings | Medium | Low | Info | Critical/high |
+  |---|---|---|---|---|---|
+  | forge | 47 | 35 | 12 | 0 | 0 |
+  | hono | 212 | 206 | 3 | 3 | 0 |
+  | private repo | 2581 | 2569 | 10 | 2 | 0 |
+
+  - Measured security.secret findings are all medium now: 30 / 204 / 2565.
+  - The 3 security judges triaged hits and found no live secret, so there is no security.live-secret.
+  - Ratings: all 4 dimensions adequate in every repo, none capped. Same as round 1.
+  Runtime: the 3 repos ran concurrently, about 336 s wall-clock each, including the prompt-repair detour. Understand packs are untouched.
+
+### Sub-step 7.8: [judge] round 2 — 6 fresh blinded judges, new seed; report both rounds
+- Status: COMPLETE
+- Mode: AFK
+- Acceptance Criteria: same procedure as 7.4 with a new seed. AC1 and AC3 are evaluated on round 2. The verdict shows round 1 and round 2 side by side.
+- Result Log: 6 fresh blinded general-purpose judges, seed 20261002 (forge A=new, hono A=new, private B=new). Same prompt as round 1. The packs are unchanged; the assess reports are the fixed ones.
+
+  | Repo · judge | Accuracy new / old | Density new / old | New Crit/High fails | Preference |
+  |---|---|---|---|---|
+  | forge J1 | 0.957 / 0.875 | 0.875 / 0.480 | 0 (0 C/H) | new |
+  | forge J2 | 0.957 / 0.920 | 0.792 / 0.480 | 0 (0 C/H) | new |
+  | hono J1 | 1.000 / 1.000 | 0.958 / 0.609 | 0 (0 C/H) | old |
+  | hono J2 | 1.000 / 0.955 | 0.773 / 0.636 | 0 (0 C/H) | old |
+  | private J1 | 1.000 / 0.952 | **0.773 / 0.826** | 0 (0 C/H) | new |
+  | private J2 | **0.920 / 0.960** | **0.760 / 0.840** | 0 (0 C/H) | old |
+
+  - **AC3:** PASS on all 3 repos. The new side has 0 Critical/High findings.
+  - **AC1:** PASS on forge and hono for both judges and both metrics. FAIL on the private repo in 3 of 4 comparisons:
+    - density, both judges (−0.05 and −0.08);
+    - accuracy, private J2.
+  - **Correction to private J2's accuracy:** one of its two "false" new claims is itself wrong. The repo has 44 commits with a Claude-Session trailer (`git log` count), as the pack says. Rescored, new accuracy would be 0.958, still below 0.960. Judge scores are kept as recorded.
+  - **The private density gap is systematic, not noise:** round 1 J2 was also lower (0.739 / 0.783). The old private report is the 6-file legacy report from 2026-09-17.
+  - **Secret values:** new 0 everywhere. The old private report reprints the dev-default placeholder (J1: 1).
+  - **Preferences:** 3 new / 3 old. The judges preferring old cite the volume of medium secret hits burying real findings (hono, private), and sharper code findings in the old reports.
+  - **Pass bar NOT met on AC1 for the private repo.** Circuit breaker, awaiting Ste.
+
+### Sub-step 7.9: [docs] verdict file + CHANGELOG bullet; L-029 name gate before commit
+- Status: COMPLETE
+- Mode: AFK
+- Result Log: Ste chose Conditional PASS (AskUserQuestion). Wrote `docs/research/codebase-analysis-skills-evaluation.md`: setup, both rounds' tables, disagreements, pass-bar table AC1–AC7, tool `command -v` table, runtimes, and 3 known gaps (understand citation density; measured-secret volume; other measured-HIGH sources bypass the refuter). Added a CHANGELOG Unreleased/Documentation bullet. The private repo is described by shape only (154 tracked, 47 .py). The L-029 gate exited 1 before commit.
+
+### Sub-step 7.10: [gate] Ste accepts the verdict or circuit-breaks; on accept, PR
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: HITL — Ste accepted the verdict (Conditional PASS) and approved the M7 HARD gate (AskUserQuestion, 2026-10-01). PR via /sole-dev-merge, squash-merged per Ste so the private sha12 in branch history never reaches main.
 
 ## Milestone 8: ADRs, docs, TODOS, release v0.17.0, retirement
 - Status: PENDING

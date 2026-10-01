@@ -383,6 +383,33 @@ def test_pending_high_finding_blocks_finalize_naming_its_id(
     assert "F-" in err and "pending" in err and str(work) in err
 
 
+def test_an_escalated_live_secret_goes_through_the_refuter(
+    target: Path, lizard: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The security judge's escalation path (AGENT-PROMPTS.md): a judged `security.live-secret`
+    at high is pending until the refuter rules, then ships next to the measured hit."""
+    live = judged(
+        dimension="security",
+        rule="security.live-secret",
+        severity="high",
+        refutation="pending",
+        title="live-looking token in shipped config",
+        path="src/config.py",
+        anchor="TOKEN = (value redacted)",
+        evidence="src/config.py:1 value redacted",
+    )
+    work = prepare(target, judged_lines=[json.dumps(live)])
+    assert cli.main(["finalize", "--repo", str(target), "--work", str(work)]) == 1
+    assert "pending" in capsys.readouterr().err
+    report = run(target, judged_lines=[json.dumps(live)], verdicts=[verdict(1, "survived", "loaded at import")])
+    got = {f.rule: f for f in findings(report) if f.path == "src/config.py"}
+    assert (got["security.live-secret"].severity, got["security.live-secret"].refutation) == (
+        "high",
+        "survived",
+    )
+    assert "security.secret" in got  # the measured hit stays beside it
+
+
 # --- AC9: untrusted judged input ------------------------------------------------------------------
 
 

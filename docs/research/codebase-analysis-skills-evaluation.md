@@ -31,9 +31,12 @@ and led to a fix (below).
 (`src/aa_ma/analysis/measure.py` `_secret`), and the refuter only sees judged findings. So test fixtures,
 placeholders, sha1 keys and variable names shipped as unrefuted High findings: 60 of 60 sampled failed.
 
-**Fix (sub-steps 7.5–7.6):**
-- Measured hits are now `medium` "possible secret (…, unverified)".
-- The security judge reports a live-looking hit once as a judged `security.live-secret` at high/critical, so the refuter checks it.
+**Fix (sub-steps 7.5–7.6, refined after the §6.8 review):**
+- A measured hit is `high` only for a precise provider rule (AWS, GitHub, Slack, private key, JWT …) outside test and fixture paths. That keeps a real key in shipped code at High, even in Quick, which runs no judge.
+- Every other hit (generic rules, or any hit in a test or fixture path) is `medium` "possible secret (…, unverified)".
+- The security judge is given the measured hit locations, never values, and reports each live-looking hit once as a judged `security.live-secret` at high/critical, so the refuter checks it. It treats a "fixture", "example" or "dummy" label as a claim to verify.
+- Re-applying the refined rule to every round-2 finding still gives 0 High on all 3 repos. Every provider-rule hit (hono: 49 `jwt`, 2 `private-key`) is in a test file, so the judged reports are unchanged in severity.
+- Fidelity note: in round 2 I gave the security judges the measure.json path myself. That input now ships in the skill (SKILL.md Step 5).
 - A target's own `.gitleaks.toml` is still never obeyed, so a target cannot hide its own secrets.
 - Tests were written first. The full suite is green.
 
@@ -69,7 +72,7 @@ Assess was re-run on all 3 repos. The understand packs were not touched or hand-
 | AC2 | zero secret values in any new output | PASS | gitleaks 8.18.0 (`detect --no-git --redact`) and a regex pass over every new report dir, ONBOARDING.md, `.claude/onboarding/` and AGENTS.* found 0. `scan-secrets` exited 0 on all 6 report dirs (both rounds). All 12 judges counted 0 secret values in new outputs. The old private report reprints a dev-default placeholder. |
 | AC3 | zero Critical/High findings that fail the claim check | PASS (round 2) | New side has 0 critical/high on all 3 repos. Round 1 failed 60/60; fixed in `419751f`. |
 | AC4 | ABSENT/UNKNOWN tools record `command -v` / rc | PASS | Table below |
-| AC5 | the understand Provenance block shows the fresh assess report absorbed, on all 3 repos (R6) | PASS | "assess-codebase report — absorbed (fresh, sha12 …)" with `26ba674208d5`, `6abd35b0a5f3`, `5739d24fd14f` |
+| AC5 | the understand Provenance block shows the fresh assess report absorbed, on all 3 repos (R6) | PASS | "assess-codebase report — absorbed (fresh, sha12 …)" with `26ba674208d5`, `6abd35b0a5f3` and the private repo's own sha12 |
 | AC6 | runtime per repo per side | recorded | Table below |
 | AC7 | L-029 name gate before every commit | PASS | `git diff --cached \| grep -F -i -f names.txt` exited 1 before each M7 commit; the names file lives outside the repo |
 
@@ -103,8 +106,10 @@ prompt-generation slip in the evaluation harness, not in the skill.
 2. **Measured-secret volume.** `medium` is the right severity, but thousands of rows (sha1 artefact keys, test
    fixtures) still bury real findings. Candidate fix: collapse measured secret hits to one finding per file and
    rule, with a count.
-3. **Other measured HIGH sources** (semgrep ERROR, lizard CCN, fixable vulns) also bypass the refuter. None fired in
-   Standard runs; they need the same review before Deep is evaluated.
+3. **Other measured HIGH sources** (semgrep ERROR, lizard CCN, fixable vulns, and now provider-rule secrets in
+   shipped code) bypass the refuter by design. None fired in these runs; review them before Deep is evaluated.
+4. **Path heuristic ceiling.** A real key committed under a test or fixture path ships as `medium`. The security
+   judge, which now sees every hit location, is the net.
 
 Raw judge JSON, blind keys, fidelity notes and both rounds' reports are kept outside the repo (scratch). The
 private repo's material never enters this repo.

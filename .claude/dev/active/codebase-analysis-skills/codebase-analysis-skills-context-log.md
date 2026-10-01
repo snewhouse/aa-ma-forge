@@ -285,3 +285,12 @@ _This log will be updated via context compaction as the task progresses._
   1. Understand templates: one `path:line` citation per factual unit.
   2. Collapse measured-secret hits to one finding per file and rule, with a count.
   3. Review the other measured-HIGH sources (semgrep ERROR, lizard CCN, fixable vulns) for refuter bypass before Deep is evaluated.
+
+## [2026-10-01] M7 §6.8 — 0 CRITICAL, 4 WARNING, 8 INFO; all recommended fixes applied (Ste)
+- **Ste's choices:**
+  - Secret severity is refined: a provider rule outside test or fixture paths is HIGH; everything else is MEDIUM.
+  - The security judge receives the hit locations.
+  - Escalation gets a test, and the `security.live-secret` id is pinned by a test.
+  - The docs tidy-up was done.
+- **Why the refinement:** the security auditor showed that all-MEDIUM let a real leaked key in Quick (no judge) ship as a SARIF warning at 4.0. Provider-rule hits in the evaluation were all in test files, so the refinement keeps 0 HIGH there. That is verified by re-applying `_secret_severity` to every round-2 finding.
+- **Residual:** the private sha12 is in the history of 2 already-pushed branch commits. It is redacted from the current files and added to the names file.

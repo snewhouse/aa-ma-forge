@@ -335,3 +335,15 @@ def test_foundations_row_names_the_read_only_assessor() -> None:
     spec = (REPO_ROOT / "docs/spec/claude-code-foundations.md").read_text(encoding="utf-8")
     (row,) = [line for line in spec.splitlines() if line.startswith("| `assess-codebase` |")]
     assert "codebase-assessor" in row and "general-purpose" not in row
+
+
+def test_the_live_secret_rule_is_one_id_across_brief_and_rating() -> None:
+    """The escalation rule lives only in prose: a rename in one doc would silently unhook the
+    RATING `weak` criterion from what the security judge emits."""
+    from aa_ma.analysis.models import RULE_PATTERN
+
+    rule = "security.live-secret"
+    assert re.fullmatch(RULE_PATTERN, rule)
+    for doc in ("AGENT-PROMPTS.md", "RATING.md"):
+        text = (SKILL / "references" / doc).read_text()
+        assert f"`{rule}`" in text, doc

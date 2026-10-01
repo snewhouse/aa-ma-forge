@@ -398,13 +398,38 @@ def _jscpd(ctx: _Ctx) -> Callable[[bytes], Parsed]:
     return parse
 
 
+# Rules that match a shape, not a provider's key format: a hit is a lead, not a likely leak.
+GENERIC_SECRET_RULES = {"generic-quoted", "generic-env", "url-credential"}
+# A test or fixture path holds fake keys far more often than real ones.
+FIXTURE_DIRS = {
+    "test",
+    "tests",
+    "__tests__",
+    "fixtures",
+    "fixture",
+    "testdata",
+    "spec",
+    "specs",
+}
+_FIXTURE_NAME = re.compile(r"^test_|[._-](?:test|spec)\.[^.]+$|\.bats$")
+
+
+def _secret_severity(path: str, rule: str) -> Severity:
+    """HIGH only for a precise provider rule in shipped code — it may never reach a judge (Quick).
+    Everything else is MEDIUM: only judged critical/high reach the refuter, and the security judge
+    escalates a live-looking hit (AGENT-PROMPTS.md).
+    ponytail: path heuristic — a real key committed under tests/ ships MEDIUM; the judge is the net."""
+    *dirs, name = path.lower().split("/")
+    generic = rule in GENERIC_SECRET_RULES or rule.startswith("generic")
+    fixture = bool(FIXTURE_DIRS & set(dirs)) or bool(_FIXTURE_NAME.search(name))
+    return Severity.MEDIUM if generic or fixture else Severity.HIGH
+
+
 def _secret(path: str, line: int, rule: str) -> _Candidate:
-    # MEDIUM: a pattern match is not a verified secret, and only judged critical/high reach the
-    # refuter. A live-looking hit is escalated by the security judge (AGENT-PROMPTS.md).
     return _Candidate(
         "security.secret",
         Dimension.SECURITY,
-        Severity.MEDIUM,
+        _secret_severity(path, rule),
         path,
         line,
         rule,

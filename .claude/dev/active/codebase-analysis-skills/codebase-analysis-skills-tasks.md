@@ -331,7 +331,7 @@
   - 10 sampled claims held per repo.
   - onboarding.json passed `validate onboarding` (exit 0).
   - Leak grep was clean, including the private repo's in-code default credential literal.
-  R6: every Provenance block reads "assess-codebase report — absorbed (fresh, sha12 …)" — 26ba674208d5 / 6abd35b0a5f3 / 5739d24fd14f. The private repo's legacy deep-dive was used as leads only.
+  R6: every Provenance block reads "assess-codebase report — absorbed (fresh, sha12 …)" — 26ba674208d5 / 6abd35b0a5f3 / (private sha12). The private repo's legacy deep-dive was used as leads only.
   AGENTS.md:
   - forge: AGENTS.draft.md (no AGENTS.md).
   - hono: AGENTS.draft.md.

@@ -125,10 +125,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   `security.secret` hits (gitleaks and the built-in regex set) were `high`, and only judged
   critical/high findings go to the refuter. So test fixtures, placeholders, sha1 keys and variable
   names landed as unrefuted High findings: 30, 204 and 2565 on the three `codebase-analysis-skills`
-  M7 evaluation repos, and 60 of 60 sampled failed a claim check. They are now `medium`
-  "possible secret (…, unverified)". The security judge reports a live-looking hit once as a judged
-  `security.live-secret` at high/critical, which the refuter then checks. A target's own
-  `.gitleaks.toml` is still never obeyed.
+  M7 evaluation repos, and 60 of 60 sampled failed a claim check.
+  - A measured hit is now `high` only for a provider rule (AWS, GitHub, Slack, private key, JWT …)
+    outside test and fixture paths, so a real key in shipped code still fails a SARIF
+    `error`/high-severity gate in Quick.
+  - Everything else is `medium` "possible secret (…, unverified)": SARIF `warning`, security
+    severity 4.0 instead of `error`/7.0. If your CI gates on SARIF errors, these hits no longer trip it.
+  - The security judge now receives the measured hit locations (never values). It reports each
+    live-looking one as a judged `security.live-secret` at high/critical, which the refuter then checks.
+  - A target's own `.gitleaks.toml` is still never obeyed.
 
 ### Documentation
 

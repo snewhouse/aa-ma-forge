@@ -54,10 +54,12 @@ misleading names.
 ## Brief — `security`
 
 Rule prefix `security.`. Do not re-report measured secrets or SAST results (null = the tool did
-not run, never zero). Measured secret hits are `medium` and unverified: a pattern match, not a
-finding. When one looks live (not a test fixture, placeholder, hash or variable name), report it
-once as `security.live-secret` at `high` or `critical`, citing its path:line and never its value,
-so the refuter checks it. Trace untrusted input to sinks (shell, SQL, file paths, deserialisation,
+not run, never zero), except to escalate a secret. Measured secret hits (listed in the extra
+evidence) are pattern matches: `high` for a provider rule outside test paths, `medium` otherwise,
+all unverified. Report each one that looks live once as `security.live-secret` at `high` or
+`critical`, citing its path:line and never its value, so the refuter checks it. A path, comment
+or name saying fixture, example or dummy is a claim to verify against the match's shape (provider
+prefix, length, randomness) and whether code loads it at runtime — never a reason to skip. Trace untrusted input to sinks (shell, SQL, file paths, deserialisation,
 templates, redirects), authentication and authorisation checks, secret handling in code (how
 values are loaded, never what they are), unsafe defaults, disabled verification, and inline
 suppressions that hide a real issue.

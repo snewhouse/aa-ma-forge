@@ -449,7 +449,8 @@
 - Result Log: HITL — Ste accepted the verdict (Conditional PASS) and approved the M7 HARD gate (AskUserQuestion, 2026-10-01). PR #10 via /sole-dev-merge (CI 7/7 green), squash-merged as d62f0eb per Ste; the private sha12 in branch history never reached main (verified).
 
 ## Milestone 8: ADRs, docs, TODOS, release v0.17.0, retirement
-- Status: ACTIVE
+- Status: COMPLETE
+- Result Log: 4/4 sub-steps; PR #11 (rebase) → v0.17.0 cut c843122 (tag + GitHub Release); 6/6 AC; HARD gate APPROVED (Ste 2026-10-01); local deep-dive copies archived.
 - Dependencies: Milestone 7
 - Gate: HARD
 - Audit-Profile: docs-only

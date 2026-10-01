@@ -312,3 +312,16 @@ _This log will be updated via context compaction as the task progresses._
 - v0.17.0 cut on main by `scripts/release.sh minor` (Ste approved the dry-run, then the cut): bump `c843122`, annotated tag `v0.17.0`, GitHub Release published.
 - RETIREMENT — confirmed — 2026-10-01 — Ste chose to archive both local copies: `~/.claude/commands/codebase-deep-dive.md` and `deep-analysis.md` moved to `~/.claude/_archive/commands/` (reversible). `/assess-codebase` + `/understand-codebase` replace them (M7 Conditional PASS). Residual: the local `code-intelligence` and `code-intelligence-index` skills still mention `codebase-deep-dive`; they live outside the repo, so Ste updates them.
 - OUTCOME — codebase-analysis-skills shipped in v0.17.0. It delivers `assess-codebase` (skill + command + `codebase-assessor` agent), understand-codebase v1, the `aa-ma-analysis` CLI, the plugin-surface slash-command rule, and ADR-0017. Known gap: understand claim density on the private Python repo; it and other follow-ups are in TODOS.md.
+
+## [2026-10-01] GATE APPROVAL: Milestone 8: ADRs, docs, TODOS, release v0.17.0, retirement
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 6/6 (ADR-0017 + amendment + INDEX PASS; TODOS 4 items; v0.17.0 dry-run → cut c843122, tag, Release; RETIREMENT confirmed; Unreleased M1–M8 + cut preconditions; glossary approval)
+- Evidence: pytest 2355 passed / 2 skipped; §6.7 PASS; DIAGRAM_VERIFIED 5/5; §6.8 docs-only PASS (0C/0W); PR #11 CI 7/7
+- Decision: APPROVED
+
+## [2026-10-01] Milestone Completion: Milestone 8 — ADRs, docs, TODOS, release v0.17.0, retirement
+- Status: COMPLETE
+- Key outcome: decisions recorded (ADR-0017, ADR-0006 amendment), docs and TODOS updated, v0.17.0 released on main, and the local deep-dive copies archived. All 8 milestones are complete.
+- Artifacts: docs/adr/0017-assess-codebase-adaptation.md, docs/adr/0006-…, docs/adr/INDEX.md, docs/spec/aa-ma-quick-reference.md, TODOS.md, CHANGELOG.md (release.sh), README/VERSION/pyproject/uv.lock (release.sh)
+- Tests: 2355 passed / 2 skipped

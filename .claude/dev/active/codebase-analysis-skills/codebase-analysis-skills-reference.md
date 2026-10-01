@@ -122,3 +122,10 @@
 Architecture View: see plan.md §13
 
 _Last Updated: 2026-09-30_
+
+## Milestone 6 facts (plugin-surface slash commands)
+- Rule: resolvable `/x` (`commands/x.md`, else `skills/x/`; `/x-*` expands over commands only) → ON_DISK anywhere; unresolved `/x` counts only at the START of a single-backtick span (`ns:name` allowed, `{` ends no name) → `EXTERNAL["command"]` DECLARED_EXTERNAL else DANGLING. Command beats skill on a shared stem.
+- `surface_allowlist.EXTERNAL["command"]` = {browse, qa, qa-only, goal, init, superpowers:brainstorming}; local-only user commands deliberately absent.
+- Pins: command DANGLING `{command:settings}` (verbatim prototype fork route); skill DANGLING `{haiku-eval}`.
+- Post-M6 golden: see `tests/golden/plugin-surface.json` (regenerated, never hand-count).
+- Oracle test `test_the_backticked_rule_loses_no_edge_the_any_occurrence_rule_found` freezes the pre-M6 regex (commands/agents/rules/skills/hooks sources).

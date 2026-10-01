@@ -248,3 +248,9 @@ _This log will be updated via context compaction as the task progresses._
 - Approved by: Ste
 - Criteria verified: 5/5 (AC4 CI architecture-drift confirmed on the PR)
 - Decision: APPROVED — Approve + PR + merge
+
+## [2026-10-01] Milestone Completion: Milestone 6: Plugin-surface extractor learns slash commands (R4)
+- Status: COMPLETE
+- Key outcome: backticked unresolved `/x` now classifies DECLARED_EXTERNAL or DANGLING; 8 dangling mentions fixed; only the fork route `/settings` remains (Ste decision); no ON_DISK edge lost.
+- Artifacts: draw/plugin_surface.py, draw/surface_allowlist.py, tests/codemem/test_plugin_surface.py, golden + docs/architecture, 7 shipped .md files, CHANGELOG.
+- Tests: 2333 passed; PR #9 CI 7/7 green.

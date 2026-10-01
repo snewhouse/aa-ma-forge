@@ -302,3 +302,8 @@ _This log will be updated via context compaction as the task progresses._
 - §6.8: 0 CRITICAL / 4 WARNING / 8 INFO, all fixed (3bb13b0). pytest 2337 passed, 2 skipped.
 - Merge: squash (Ste), so the private sha12 in 2 branch commits never reaches main.
 - Decision: APPROVED
+
+## [2026-10-01] M8.1 — ADR-0017 + glossary approval
+- GLOSSARY APPROVAL — Ste approved the CONTEXT.md *Codebase analysis* wording (8 terms: Assessment, Onboarding, Measured finding, Judged finding, Refutation, Coverage ledger, Analysis contract, Fresh) as-is (AskUserQuestion, 2026-10-01). Rejected: refreshing *Refutation* to say refuted findings stay in findings.jsonl with a reason.
+- ADR-0017 records the clean-room Adaptation and the two-skill shape. ADR-0006 gains a dated Amendment pointing to it.
+- `main` was ahead 1 (`0250143`, M7 merge record) when this branch was cut. It rides the PR knowingly (L-032); G4 cleanup: `git cherry -v origin/main main`, then reset.

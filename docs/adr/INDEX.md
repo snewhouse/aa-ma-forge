@@ -36,6 +36,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0014](0014-derived-architecture-views.md) | Derived architecture views: `aa_ma` reads codemem's graph through a stdlib-sqlite3 seam | Implemented | 2026-09-24 |
 | [0015](0015-diagram-as-acceptance-criterion.md) | The diagram as an acceptance criterion: a HARD §6.7 item, not a gate question | Implemented | 2026-09-25 |
 | [0016](0016-living-architecture-doc.md) | The living architecture doc: generated `docs/architecture/` checked for drift in CI | Implemented | 2026-09-24 |
+| [0017](0017-assess-codebase-adaptation.md) | `assess-codebase`: a clean-room Adaptation, two skills over one analysis contract | Implemented | 2026-10-01 |
 
 ## Statuses
 

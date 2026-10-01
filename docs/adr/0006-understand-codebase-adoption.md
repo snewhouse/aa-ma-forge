@@ -97,6 +97,17 @@ as documented soft-deps is consistent with that posture, not a new kind of coupl
 - **Count surface reconciled** in the same change: `CLAUDE.md` (9→10 commands, 17→18 skills, 7→11 agents), `SECURITY.md` (command/skill/agent lists + counts; also the incidental "4→5 spec docs" fix), `docs/spec/claude-code-foundations.md` (Commands 9→10, Skills 16→18 — also picking up the v0.8.0 `verify-impl` omission, Agents 2→11 — also picking up the five v0.8.0 audit agents, Hooks 2→8 — also picking up the v0.7.0/v0.8.0 hooks), `docs/spec/aa-ma-quick-reference.md` (+`/understand-codebase`), `README.md` "All commands" table (+`/understand-codebase`), `CHANGELOG.md` (`[Unreleased]` → `### Feat`). <!-- doc-drift-ignore-version -->
 - Shipped at v0.9.0 (next `cz bump` from the `feat:` commit) — this row will be marked `Implemented` and the merge/tag commits cited once landed on `main`.
 
+## Amendment 2026-10-01 — Assessment moves in-repo ([ADR-0017](0017-assess-codebase-adaptation.md))
+
+The `/codebase-deep-dive` and `deep-analysis` soft-dependencies listed above are gone.
+codebase-analysis-skills M4 repointed every mention to the in-repo `assess-codebase` skill, and
+Step 0 now absorbs a report only when `aa-ma-analysis fresh` confirms it is Fresh. One "legacy,
+unverified" rule for old `.claude/reports/codebase-deep-dive-*/` reports is left in Step 0 and
+`references/ANALYSIS-CONTRACT.md`. M5 added grounding, incremental regeneration, a coverage
+ledger and `onboarding.json`. Both skills now obey the shared analysis contract. The other
+soft-dependencies (gsd, `/index`, `code-intelligence`, `doc-drift-detection`,
+`improve-codebase-architecture`) are unchanged.
+
 ## References
 
 - AA-MA plan: `.claude/dev/active/understand-codebase-skill/understand-codebase-skill-plan.md`

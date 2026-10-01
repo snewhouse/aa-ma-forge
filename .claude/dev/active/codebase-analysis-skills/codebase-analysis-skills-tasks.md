@@ -414,10 +414,29 @@
   Runtime: the 3 repos ran concurrently, about 336 s wall-clock each, including the prompt-repair detour. Understand packs are untouched.
 
 ### Sub-step 7.8: [judge] round 2 — 6 fresh blinded judges, new seed; report both rounds
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Acceptance Criteria: same procedure as 7.4 with a new seed. AC1 and AC3 are evaluated on round 2. The verdict shows round 1 and round 2 side by side.
-- Result Log: [placeholder]
+- Result Log: 6 fresh blinded general-purpose judges, seed 20261002 (forge A=new, hono A=new, private B=new). Same prompt as round 1. The packs are unchanged; the assess reports are the fixed ones.
+
+  | Repo · judge | Accuracy new / old | Density new / old | New Crit/High fails | Preference |
+  |---|---|---|---|---|
+  | forge J1 | 0.957 / 0.875 | 0.875 / 0.480 | 0 (0 C/H) | new |
+  | forge J2 | 0.957 / 0.920 | 0.792 / 0.480 | 0 (0 C/H) | new |
+  | hono J1 | 1.000 / 1.000 | 0.958 / 0.609 | 0 (0 C/H) | old |
+  | hono J2 | 1.000 / 0.955 | 0.773 / 0.636 | 0 (0 C/H) | old |
+  | private J1 | 1.000 / 0.952 | **0.773 / 0.826** | 0 (0 C/H) | new |
+  | private J2 | **0.920 / 0.960** | **0.760 / 0.840** | 0 (0 C/H) | old |
+
+  - **AC3:** PASS on all 3 repos. The new side has 0 Critical/High findings.
+  - **AC1:** PASS on forge and hono for both judges and both metrics. FAIL on the private repo in 3 of 4 comparisons:
+    - density, both judges (−0.05 and −0.08);
+    - accuracy, private J2.
+  - **Correction to private J2's accuracy:** one of its two "false" new claims is itself wrong. The repo has 44 commits with a Claude-Session trailer (`git log` count), as the pack says. Rescored, new accuracy would be 0.958, still below 0.960. Judge scores are kept as recorded.
+  - **The private density gap is systematic, not noise:** round 1 J2 was also lower (0.739 / 0.783). The old private report is the 6-file legacy report from 2026-09-17.
+  - **Secret values:** new 0 everywhere. The old private report reprints the dev-default placeholder (J1: 1).
+  - **Preferences:** 3 new / 3 old. The judges preferring old cite the volume of medium secret hits burying real findings (hono, private), and sharper code findings in the old reports.
+  - **Pass bar NOT met on AC1 for the private repo.** Circuit breaker, awaiting Ste.
 
 ### Sub-step 7.9: [docs] verdict file + CHANGELOG bullet; L-029 name gate before commit
 - Status: PENDING

@@ -306,9 +306,9 @@
 - Acceptance Criteria: 7 criteria (pass bar) — see plan.md § Milestone 7
 
 ### Sub-step 7.1: [setup] pin honojs/hono SHA; scratch clones
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
-- Result Log: [placeholder]
+- Result Log: HITL — Ste: private repo located by search + confirmed; runs go to scratch clones (Ste). honojs/hono pinned at 6abd35b0a5f35f67b6417627d5b0a6c2d266ac04 (583 tracked files, inside 300–1500 → no fastify fallback). Scratch clones in the session scratchpad: forge @ 26ba674 (751 tracked), hono @ 6abd35b, private repo @ its HEAD (154 tracked, 47 .py) with its 2026-09-17 6-file deep-dive report copied in (report is untracked there). L-029 names file kept outside the repo: 6 entries; 23 candidates excluded as generic (count only).
 
 ### Sub-step 7.2: [run] old side on forge + hono; private repo uses its existing report
 - Status: PENDING

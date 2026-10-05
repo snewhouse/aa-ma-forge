@@ -1,5 +1,5 @@
-<!-- Maintained in aa-ma-forge as of v0.9.0 — see docs/adr/0006-understand-codebase-adoption.md -->
 ---
+# Maintained in aa-ma-forge as of v0.9.0 — see docs/adr/0006-understand-codebase-adoption.md
 name: understand-codebase
 description: >-
   Onboard to a new, inherited, or shared codebase. Read it, understand it, map it, and learn

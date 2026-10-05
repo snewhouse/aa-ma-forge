@@ -148,6 +148,10 @@ design (`upstream_md5.SKILL.md: null` in `claude-code/skills/FORKS.json`). Line 
 kept so `tests/skills/test_write_a_skill_frontmatter.py` still resolves it. Decided in
 `mattpocock-trio-adoption` Milestone 1 (ADR-0011/0012/0013 context).
 
+## Amendment 2026-10-05 — provenance location
+
+The `Derived from …` provenance is now on **line 2** of `SKILL.md`, as a YAML `#` comment inside the frontmatter, not on line 1. See the [ADR-0011 amendment](0011-prototype-resync-and-planning-gate.md#amendment-2026-10-05--provenance-moves-inside-the-frontmatter).
+
 ## References
 
 - AA-MA plan (skill-ecosystem-integration v1.2): `.claude/dev/active/skill-ecosystem-integration/`

@@ -108,6 +108,10 @@ ledger and `onboarding.json`. Both skills now obey the shared analysis contract.
 soft-dependencies (gsd, `/index`, `code-intelligence`, `doc-drift-detection`,
 `improve-codebase-architecture`) are unchanged.
 
+## Amendment 2026-10-05 — provenance location
+
+The `Maintained in aa-ma-forge …` note is now a YAML `#` comment on line 2 of `SKILL.md`. On line 1 it had hidden the frontmatter, including `allowed-tools`. See the [ADR-0011 amendment](0011-prototype-resync-and-planning-gate.md#amendment-2026-10-05--provenance-moves-inside-the-frontmatter).
+
 ## References
 
 - AA-MA plan: `.claude/dev/active/understand-codebase-skill/understand-codebase-skill-plan.md`

@@ -1,6 +1,6 @@
 # 0011. Re-sync `prototype` to upstream 1.2.3 and make the prototype decision explicit in planning
 
-**Status:** Implemented (2026-09-21 — `mattpocock-trio-adoption` Milestone 3)
+**Status:** Implemented (2026-09-21 — `mattpocock-trio-adoption` Milestone 3; amended 2026-10-05)
 **Date:** 2026-09-20
 **Deciders:** Stephen Newhouse, Claude (research session 2026-09-20)
 **Tags:** `workflow`, `aa-ma`, `skills`, `external-fork`, `engineering-standards-theme-1`, `hook-modification`
@@ -102,6 +102,30 @@ To be executed as **M1** of `/aa-ma-plan mattpocock-trio-adoption` (`Audit-Profi
 6. `docs/spec/aa-ma-specification.md:302-326`: add `PROTOTYPE — <milestone heading> — <verdict>[; branch=prototype/<name>]` and `CRITICAL_PATH_REVIEW — <evidence>` to the provenance grammar (pre-existing omission).
 7. `docs/templates/tasks-template.md:111-113` comment: "rolls up to the milestone gate".
 8. Counts/docs: `CHANGELOG.md ## Unreleased`, `docs/spec/claude-code-foundations.md` row for prototype (version note), `docs/ATTRIBUTION.md`.
+
+## Amendment 2026-10-05 — provenance moves inside the frontmatter
+
+Implementation Note 1's "keep the line-1 provenance comment" is **reversed**. Claude Code
+only recognises frontmatter that starts on line 1, so an HTML comment there silently dropped
+`name`, `description` (and `allowed-tools` on `understand-codebase`) from six skills. They
+loaded with the comment text as their description (`claude plugin validate`: "No frontmatter
+block found").
+
+- **New convention:** in `SKILL.md`, line 1 is `---` and line 2 is the provenance as a YAML
+  comment, e.g. `# Forked from https://github.com/mattpocock/skills/… @ c55ee46 on 2026-09-21 —
+  aa-ma-forge v0.13.0`. YAML ignores it, and Claude Code loads the real description. This was
+  verified live with `claude -p --setting-sources project` on all six files. Companion files
+  without frontmatter (`LOGIC.md`, `UI.md`, `ADR-FORMAT.md`, `CONTEXT-FORMAT.md`) keep the
+  line-1 HTML comment.
+- **md5 recipe:** "the file minus its provenance line": line 2 of `SKILL.md`, line 1 of
+  companions. It hashes the same bytes as the old `tail -n +2`, so every `FORKS.json` value is
+  unchanged. That is the proof only the comment moved.
+- **Guard:** `tests/test_frontmatter_at_top.py` requires `---` on line 1 and a parseable
+  `description` (plus `name` for skills/agents) across `claude-code/{skills/*/SKILL.md,
+  commands/*.md, agents/*.md}`.
+
+Decided with Ste 2026-10-05 (`fix/skill-frontmatter-provenance`). It applies to every fork;
+see the pointers in ADR-0002 (D5), ADR-0004 and ADR-0006.
 
 ## References
 

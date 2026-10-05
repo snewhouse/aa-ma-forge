@@ -1,5 +1,5 @@
-<!-- Forked from https://github.com/mattpocock/skills/skills/engineering/prototype @ c55ee46 on 2026-09-21 — aa-ma-forge v0.13.0 -->
 ---
+# Forked from https://github.com/mattpocock/skills/skills/engineering/prototype @ c55ee46 on 2026-09-21 — aa-ma-forge v0.13.0
 name: prototype
 description: Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right, or explore what a UI should look like.
 ---

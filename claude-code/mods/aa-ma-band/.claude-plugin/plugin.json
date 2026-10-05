@@ -1,0 +1,1 @@
+{ "name": "aa-ma-band", "version": "0.1.0", "description": "PROTOTYPE: AA-MA status band above the prompt (task, milestone, gate, repo hygiene, context vs 70%)", "types": "./types/index.d.ts" }

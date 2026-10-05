@@ -16,36 +16,57 @@ const GATE_ERRORS: Record<number, string> = { 1: 'no ACTIVE milestone', 2: 'task
 const REFRESH_ON = /-(tasks\.md|provenance\.log|context-log\.md)$/
 const GIT_MOVES = /\bgit\s+(commit|push|pull|reset|switch|checkout|merge|rebase|fetch)\b/
 
+// Security (commit review 2026-10-05): a repo's own config/.gitattributes can make `git status` run
+// commands (core.fsmonitor, filter.*.clean), and a repo-local .venv binary is attacker-planted code.
+// So: git and aa-ma-gate run only for repos under these roots, git with the user's global/system
+// config dropped and stamp.GIT_OVERRIDES applied, and the gate only from the forge's own venv.
+// ponytail: hardcoded allowlist; production reads it from options (userConfig).
+const TRUSTED_ROOTS = ['/home/sjnewhouse/projects/', '/home/sjnewhouse/dev/']
+const GIT_ENV: Record<string, string> = {
+  GIT_CONFIG_GLOBAL: '/dev/null',
+  GIT_CONFIG_NOSYSTEM: '1',
+  GIT_CONFIG_COUNT: '2',
+  GIT_CONFIG_KEY_0: 'core.fsmonitor',
+  GIT_CONFIG_VALUE_0: 'false',
+  GIT_CONFIG_KEY_1: 'core.hooksPath',
+  GIT_CONFIG_VALUE_1: '/dev/null',
+}
+// Repo-controlled text (dir names, gate errors) never reaches the terminal or the model raw.
+const clean = (s: string | undefined, max = 60) =>
+  s === undefined ? undefined : s.replace(/[\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩]/g, '?').slice(0, max)
+
 const kv = (text: string) =>
   Object.fromEntries(text.split('\n').filter(l => l.includes('=')).map(l => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]))
 
 async function run($: any, argv: string[], cwd?: string) {
   try {
-    return await $.process.run(argv, { cwd, timeoutMs: 5000 })
+    return await $.process.run(argv, { cwd, timeoutMs: 5000, env: argv[0] === 'git' ? GIT_ENV : undefined })
   } catch {
     return { exitCode: 127, stdout: '', stderr: '' }
   }
 }
 
-async function gateArgv($: any, root: string): Promise<string[]> {
-  for (const dir of [root, FORGE]) {
-    const bin = `${dir}/.venv/bin/aa-ma-gate`
-    if (await $.fs.exists(bin)) return [bin]
-  }
+async function gateArgv($: any): Promise<string[]> {
+  const bin = `${FORGE}/.venv/bin/aa-ma-gate` // never the target repo's own .venv
+  if (await $.fs.exists(bin)) return [bin]
   return ['uv', 'run', '--quiet', '--project', FORGE, 'aa-ma-gate']
 }
 
 async function refresh($: any) {
   const s: Snap = { repo: false, others: 0, ahead: 0, behind: 0, mainAhead: 0, dirty: 0, at: await $.clock.now() }
-  const top = await run($, ['git', 'rev-parse', '--show-toplevel'])
   const usage = await $.session.usage().catch(() => undefined)
   s.ctx = usage?.context?.percent
-  if (top.exitCode === 0) {
+  const cwd: string = await $.session.cwd()
+  const real = (await $.fs.stat(cwd, { resolve: true }).catch(() => undefined))?.realPath ?? ''
+  const trusted = TRUSTED_ROOTS.some(r => `${real}/`.startsWith(r))
+  if (!trusted) s.gateError = 'repo outside trusted roots: band idle'
+  const top = trusted ? await run($, ['git', 'rev-parse', '--show-toplevel']) : { exitCode: 1, stdout: '' }
+  if (top.exitCode === 0 && TRUSTED_ROOTS.some(r => `${top.stdout.trim()}/`.startsWith(r))) {
     const root = top.stdout.trim()
     s.repo = true
     const st = await run($, ['git', 'status', '--porcelain=v2', '--branch'], root)
     for (const line of st.stdout.split('\n')) {
-      if (line.startsWith('# branch.head ')) s.branch = line.slice(14)
+      if (line.startsWith('# branch.head ')) s.branch = clean(line.slice(14))
       else if (line.startsWith('# branch.ab ')) {
         const [a, b] = line.slice(12).split(' ')
         s.ahead = Number(a.slice(1))
@@ -60,15 +81,15 @@ async function refresh($: any) {
     s.others = Math.max(0, dirs.length - 1)
     if (dirs.length > 0) {
       const name = dirs[0].name
-      s.task = name
+      s.task = clean(name, 40)
       const tasks = `${active}/${name}/${name}-tasks.md`
-      const g = await run($, [...(await gateArgv($, root)), tasks, '--format', 'kv'], root)
+      const g = await run($, [...(await gateArgv($)), tasks, '--format', 'kv'], root)
       const f = kv(g.stdout)
       if (g.exitCode === 0) {
-        s.milestone = `M${f.number}`
-        s.pending = Number(f.pending_steps)
-        s.gate = f.gate
-        s.criticalPath = f.critical_path || undefined
+        s.milestone = clean(`M${f.number}`, 8)
+        s.pending = Number(f.pending_steps) || 0
+        s.gate = clean(f.gate, 4)
+        s.criticalPath = clean(f.critical_path || undefined, 24)
         s.prototype = f.prototype_required === 'YES'
       } else {
         s.gateError = GATE_ERRORS[g.exitCode] ?? `aa-ma-gate rc ${g.exitCode}`
@@ -84,7 +105,7 @@ function summary(s: Snap): string {
   if (s.task) {
     parts.push(s.others ? `${s.task} (+${s.others})` : s.task)
     parts.push(s.gateError ?? `${s.milestone} ACTIVE · ${s.pending} pending · ${s.gate}`)
-  } else parts.push('AA-MA: no active plan')
+  } else parts.push(s.gateError ?? 'AA-MA: no active plan')
   if (s.dirty) parts.push(`AA-MA dirty ${s.dirty}`)
   if (s.mainAhead) parts.push(`main ↑${s.mainAhead}`)
   if (s.ctx !== undefined) parts.push(`ctx ${s.ctx}%/${CTX_LIMIT}`)
@@ -151,7 +172,7 @@ export const register: Register = on => {
         )}
       </Text>
     ) : (
-      <Text dimColor>AA-MA: no active plan</Text>
+      <Text dimColor>{s.gateError ?? 'AA-MA: no active plan'}</Text>
     )
     const hygiene = (
       <Text>

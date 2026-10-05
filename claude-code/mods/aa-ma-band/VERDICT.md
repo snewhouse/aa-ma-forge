@@ -24,6 +24,14 @@ hygiene and context % visible above the prompt, as a thin view over `aa-ma-gate`
 - `aa-ma-gate` costs 0.06 s from `.venv/bin` and 0.26 s via `uv run`, so refreshing per turn is cheap.
 - The forge path is hard-coded (`FORGE`). Production should read `AA_MA_ROOT`, set by `install.sh`.
 
+**Security fix (background commit review, 2026-10-05):** two findings, both fixed in the second commit.
+- **Code execution from an untrusted workspace.** The band ran the repo's own `.venv/bin/aa-ma-gate`, and its plain `git status` could run commands configured by the repo (core.fsmonitor, filter.*.clean). Now:
+  - git and the gate run only for repos under `TRUSTED_ROOTS`; anywhere else the band says `repo outside trusted roots: band idle`
+  - git runs with the global and system config dropped, plus core.fsmonitor=false and core.hooksPath=/dev/null (as `stamp.GIT_OVERRIDES` does)
+  - the gate runs only from the forge's own venv
+- **Terminal escape injection.** Every string that comes from the repo now passes through `clean()`, which strips C0/C1 and bidi control characters and caps the length, before it reaches the terminal or the model.
+- Production: the allowlist moves to `userConfig`. Each mod's security review is an acceptance criterion.
+
 **Next:** `/aa-ma-plan` a mods effort covering:
 - `claude-code/mods/` home plus an `install.sh` entry for `CLAUDE_CODE_PLUGIN_DIRS`
 - an ADR on the mods home and trust policy (build our own; unsandboxed)

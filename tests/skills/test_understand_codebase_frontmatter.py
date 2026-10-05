@@ -4,7 +4,7 @@ Acceptance criteria (understand-codebase-skill M2.1):
   - ``SKILL.md`` parses as a valid markdown-with-yaml-frontmatter file
   - frontmatter ``name`` == ``"understand-codebase"`` (matches the dir name + ``Skill()`` invocation)
   - frontmatter ``description`` is a substantive string naming the onboarding deliverables
-  - frontmatter ``allowed-tools`` is a non-empty list including the essentials it uses
+  - frontmatter ``allowed-tools`` pre-approves read-only tools only (amended 2026-10-05)
   - every ``references/<X>.md`` and ``templates/<X>.md`` path named in ``SKILL.md`` exists on
     disk and is substantive (> 1 KB), and the references/ + templates/ inventory is pinned
 
@@ -20,6 +20,7 @@ from ._helpers import SKILLS_DIR, split_frontmatter  # pyright: ignore[reportMis
 SKILL_DIR_NAME = "understand-codebase"
 SKILL_DIR = SKILLS_DIR / SKILL_DIR_NAME
 SKILL_MD = SKILL_DIR / "SKILL.md"
+READ_ONLY_TOOLS = {"Read", "Glob", "Grep", "AskUserQuestion"}
 
 EXPECTED_REFERENCES = [
     "AGENTS-MD-TEMPLATE.md",
@@ -40,7 +41,7 @@ def test_understand_codebase_skill_md_exists() -> None:
 
 
 def test_understand_codebase_frontmatter() -> None:
-    """name == dir name; description is substantive and names the deliverables; allowed-tools is a non-empty list."""
+    """name == dir name; description is substantive and names the deliverables; allowed-tools is read-only."""
     _, fm = split_frontmatter(SKILL_MD.read_text(encoding="utf-8"))
 
     assert fm.get("name") == SKILL_DIR_NAME, (
@@ -57,14 +58,17 @@ def test_understand_codebase_frontmatter() -> None:
         "description should mention the onboarding deliverables (ONBOARDING.md / AGENTS.md)"
     )
 
+    # allowed-tools pre-approves tools with no prompt and is not gated by workspace trust.
+    # This skill reads untrusted repos (their AGENTS.md/CLAUDE.md are injection vectors), so
+    # only read-only tools are pre-approved; Bash/Write/Edit/web/agents still prompt
+    # (ADR-0006 amendment, 2026-10-05).
     allowed_tools = fm.get("allowed-tools")
-    assert isinstance(allowed_tools, list) and allowed_tools, (
-        "allowed-tools must be a non-empty list"
+    assert isinstance(allowed_tools, list) and "Read" in allowed_tools, (
+        "allowed-tools must be a list including Read"
     )
-    for tool in ("Read", "Write", "Agent"):
-        assert tool in allowed_tools, (
-            f"expected {tool!r} in allowed-tools (the skill composes agents and writes files)"
-        )
+    assert set(allowed_tools) <= READ_ONLY_TOOLS, (
+        f"allowed-tools must stay read-only; remove {sorted(set(allowed_tools) - READ_ONLY_TOOLS)}"
+    )
 
 
 def test_referenced_companion_files_exist_and_are_substantive() -> None:

@@ -107,6 +107,7 @@ Plugin cache note: `installed_plugins.json` records `gitCommitSha 2ab95809…` (
 ### 4.4 Adoption checklist (from ADR-0003's commits 6e2bc4c, 1d1b304, a796442, e5af1e0, b82e513, 0a342ba)
 
 1. `claude-code/skills/<name>/` with line-1 `<!-- Forked from <URL> on <date> — aa-ma-forge vN.N.N -->`; MD5s recorded in the ADR.
+   > **Superseded 2026-10-05:** in `SKILL.md` the provenance is now a YAML `#` comment on line 2, because line 1 must be `---`. Companion files without frontmatter keep the HTML form on line 1. See the ADR-0011 amendment.
 2. `docs/adr/NNNN-<name>-adoption.md` + `docs/adr/INDEX.md` row.
 3. `tests/skills/test_<name>_frontmatter.py` via `tests/skills/_helpers.py::assert_skill_frontmatter` (skips leading `<!--` lines).
 4. Wiring in a rule or command.

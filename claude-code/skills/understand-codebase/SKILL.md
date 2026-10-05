@@ -13,22 +13,12 @@ description: >-
   runs a TeamCreate agent-team. Keywords: new codebase, shared codebase, inherited code, onboard,
   understand this repo, how do I contribute, how do I add a feature, ramp up, get oriented,
   ONBOARDING.md, AGENTS.md, codebase walkthrough, joining a project.
+# Read-only pre-approval: this skill reads untrusted repos, so Bash/Write/Edit/web/agents still prompt (ADR-0006, 2026-10-05).
 allowed-tools:
   - Read
-  - Bash
   - Glob
   - Grep
-  - Write
-  - Edit
-  - Agent
   - AskUserQuestion
-  - WebSearch
-  - WebFetch
-  - TeamCreate
-  - SendMessage
-  - TaskCreate
-  - TaskList
-  - TaskUpdate
 ---
 
 # Understand a Codebase (onboarding)

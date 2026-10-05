@@ -110,7 +110,9 @@ soft-dependencies (gsd, `/index`, `code-intelligence`, `doc-drift-detection`,
 
 ## Amendment 2026-10-05 — provenance location
 
-The `Maintained in aa-ma-forge …` note is now a YAML `#` comment on line 2 of `SKILL.md`. On line 1 it had hidden the frontmatter, including `allowed-tools`. See the [ADR-0011 amendment](0011-prototype-resync-and-planning-gate.md#amendment-2026-10-05--provenance-moves-inside-the-frontmatter).
+The `Maintained in aa-ma-forge …` note is now a YAML `#` comment on line 2 of `SKILL.md`. On line 1 it had hidden the frontmatter, including `allowed-tools`.
+
+Because the fix makes `allowed-tools` take effect for the first time, the list is **narrowed to read-only** (`Read`, `Glob`, `Grep`, `AskUserQuestion`). The field pre-approves tools without a prompt and is not gated by workspace trust (https://code.claude.com/docs/en/skills). This skill reads untrusted repos, whose AGENTS.md and CLAUDE.md files are injection vectors, so `Bash`, `Write`, `Edit`, web tools and agent and team tools keep prompting as they effectively always have. This was decided with Ste on 2026-10-05, after the security pass on the fix. See the [ADR-0011 amendment](0011-prototype-resync-and-planning-gate.md#amendment-2026-10-05--provenance-moves-inside-the-frontmatter).
 
 ## References
 

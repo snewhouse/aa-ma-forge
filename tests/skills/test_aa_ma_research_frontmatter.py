@@ -29,7 +29,9 @@ def _upstream_body_md5(text: str) -> str:
         if line.startswith(LOCAL_SECTION):
             break  # /^## In this repo/,$d
         kept.append("name: research\n" if line == "name: aa-ma-research\n" else line)
-    return hashlib.md5("".join(kept).encode("utf-8")).hexdigest()  # noqa: S324 — fingerprint, not security
+    return hashlib.md5(
+        "".join(kept).encode("utf-8"), usedforsecurity=False
+    ).hexdigest()  # fingerprint
 
 
 def test_aa_ma_research_frontmatter() -> None:

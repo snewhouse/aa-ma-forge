@@ -154,6 +154,10 @@ a throwaway `prototype/<name>` branch — main keeps only the validated decision
   "real data" with no auth guidance — only the variant switcher is gated on `NODE_ENV`. Theme 1 adds
   the local rule: such routes sit behind the host app's auth middleware and read stubs/fixtures.
 
+## Amendment 2026-10-05 — provenance location
+
+D4's provenance comment no longer sits at the top of `SKILL.md`. It is a YAML `#` comment on line 2, inside the frontmatter. `LOGIC.md` and `UI.md` keep the HTML form on line 1. See the [ADR-0011 amendment](0011-prototype-resync-and-planning-gate.md#amendment-2026-10-05--provenance-moves-inside-the-frontmatter).
+
 ## References
 
 - AA-MA plan (skill-ecosystem-integration v1.2): `.claude/dev/active/skill-ecosystem-integration/`

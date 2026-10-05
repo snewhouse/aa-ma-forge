@@ -94,6 +94,10 @@ To be executed as **M2** of `/aa-ma-plan mattpocock-trio-adoption` (`Audit-Profi
 5. Install: check `scripts/install.sh` handling when `~/.claude/skills/research` is a real directory (backup vs refuse). Remove the dead PAI skill (or rename to `pai-research`) before install.
 6. Counts/docs: `SECURITY.md:12` (20 → 21 skills), `README.md`, `CHANGELOG.md ## Unreleased`, `docs/spec/claude-code-foundations.md`, `docs/spec/aa-ma-quick-reference.md`, `docs/ATTRIBUTION.md`.
 
+## Amendment 2026-10-05 — provenance location
+
+Implementation Note 1's "line-1 provenance comment" is now a YAML `#` comment on line 2 of `SKILL.md`, inside the frontmatter. See the [ADR-0011 amendment](0011-prototype-resync-and-planning-gate.md#amendment-2026-10-05--provenance-moves-inside-the-frontmatter).
+
 ## References
 
 - [Research: mattpocock trio 2026-09](../research/mattpocock-trio-2026-09.md)

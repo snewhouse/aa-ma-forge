@@ -25,7 +25,9 @@ def split_frontmatter(text: str) -> tuple[str, dict]:
     (ADR-0011 amendment, 2026-10-05); yaml.safe_load ignores them.
     """
     lines = text.splitlines()
-    if not lines or lines[0].strip() != "---":
+    if (
+        not lines or lines[0] != "---"
+    ):  # exact, as Claude Code and test_frontmatter_at_top require
         raise ValueError(
             f"Expected '---' frontmatter opener at line 1, "
             f"got: {lines[0] if lines else '<EOF>'}"
@@ -36,7 +38,7 @@ def split_frontmatter(text: str) -> tuple[str, dict]:
         provenance.append(lines[i])
         i += 1
     body_start = 1
-    while i < len(lines) and lines[i].strip() != "---":
+    while i < len(lines) and lines[i] != "---":
         i += 1
     if i >= len(lines):
         raise ValueError("Unterminated frontmatter — no closing '---' found")

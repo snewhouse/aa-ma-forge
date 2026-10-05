@@ -32,6 +32,8 @@ All hit counts are over `claude-code/` excluding `claude-code/codemem/` (88 mark
 
 **Frontmatter as node identity — do not.** 6/21 `SKILL.md` files open with an HTML fork-provenance comment, so `^---` on line 1 fails (`claude-code/skills/prototype/SKILL.md:1`, `grilling`, `aa-ma-research`, `grill-with-docs`, `understand-codebase`, `write-a-skill`); `dispatching-parallel-agents/SKILL.md:2` has `name: Dispatching Parallel Agents` (≠ dirname); 2/13 commands carry no `name:` (`ops-mode.md`, `sole-dev-merge.md`). Agents are clean (12/12 `name:` == stem, 12/12 `tools:`). `description:` is 100% present on agents and commands and is the right label source; `tools:` gives an agent → built-in-tool edge (e.g. `tools: Read, Glob, Grep, Bash, Write` 2×) if the View wants it.
 
+> **Since fixed (2026-10-05):** all 22 `SKILL.md` files now open with `---` on line 1, with fork provenance as a YAML `#` comment on line 2 (ADR-0011 amendment). `dispatching-parallel-agents` now has `name: dispatching-parallel-agents`. Both are guarded by `tests/test_frontmatter_at_top.py`. The figures above are the original measurement.
+
 ## Node coverage
 
 On-disk inventory (`ls claude-code/*/`, commit `75f5491`): **13 commands, 21 skills (+ `FORKS.json`), 12 agents, 8 hooks + 3 `hooks/lib/` helpers, 2 rules = 59 nodes.** (README/CHANGELOG counts are 13/21/12/8/2 — matches.)

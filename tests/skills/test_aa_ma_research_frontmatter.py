@@ -20,9 +20,10 @@ LOCAL_SECTION = "## In this repo"
 
 def _upstream_body_md5(text: str) -> str:
     """Python form of the acceptance recipe:
-    sed '1d;/^## In this repo/,$d' SKILL.md | sed 's/^name: aa-ma-research$/name: research/' | md5sum
+    sed '2d;/^## In this repo/,$d' SKILL.md | sed 's/^name: aa-ma-research$/name: research/' | md5sum
     """
-    lines = text.splitlines(keepends=True)[1:]  # 1d — drop the provenance comment
+    lines = text.splitlines(keepends=True)
+    del lines[1]  # 2d — drop the provenance comment (line 2, inside the frontmatter)
     kept: list[str] = []
     for line in lines:
         if line.startswith(LOCAL_SECTION):
@@ -34,7 +35,7 @@ def _upstream_body_md5(text: str) -> str:
 def test_aa_ma_research_frontmatter() -> None:
     """SKILL.md is Derived, renamed, model-invocable, and names upstream."""
     provenance, fm = assert_skill_frontmatter(SKILL_DIR_NAME, UPSTREAM_PATH)
-    assert provenance.startswith("<!-- Derived from"), (
+    assert provenance.startswith("# Derived from"), (
         "aa-ma-research is a Derived fork (renamed)"
     )
     assert "disable-model-invocation" not in fm, (

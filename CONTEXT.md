@@ -23,7 +23,7 @@ _Avoid_: "stack" when meaning the broader landscape (use "ecosystem"); "platform
 ### Adoption verbs
 
 **Fork**:
-The file-level operation of lifting upstream files into our tree with a provenance comment (`<!-- Forked from URL on YYYY-MM-DD — aa-ma-forge vN.N.N -->`) at the top. Mechanical and atomic; one task per fork.
+The file-level operation of lifting upstream files into our tree with a provenance comment: in a `SKILL.md`, `# Forked from URL on YYYY-MM-DD — aa-ma-forge vN.N.N` on line 2, inside the frontmatter; in a file without frontmatter, `<!-- Forked from URL on YYYY-MM-DD — aa-ma-forge vN.N.N -->` on line 1. Mechanical and atomic; one task per fork.
 _Avoid_: "vendor" (ambiguous: dependency vendoring vs producer entity), "import" (overloaded with code imports), "copy" (lacks the provenance contract).
 
 **Adoption**:

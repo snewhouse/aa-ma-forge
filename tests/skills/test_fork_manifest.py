@@ -16,24 +16,41 @@ from aa_ma.forks import ForkEntry, _cli, classify_fork, load_manifest
 
 from ._helpers import FORKS_MANIFEST as MANIFEST, SKILLS_DIR, assert_skill_frontmatter  # pyright: ignore[reportMissingImports]
 
-FORK_LINE_PREFIXES = ("<!-- Forked from ", "<!-- Derived from ")
+# SKILL.md carries provenance as a YAML comment on line 2, inside the frontmatter
+# (ADR-0011 amendment, 2026-10-05); companion files (LOGIC.md, ADR-FORMAT.md, …) have no
+# frontmatter and keep it as an HTML comment on line 1.
+FORK_LINE_PREFIXES = (
+    "# Forked from ",
+    "# Derived from ",
+    "<!-- Forked from ",
+    "<!-- Derived from ",
+)
 
 
 def _fork_dirs() -> set[str]:
-    """Skill dirs whose SKILL.md line 1 is a Forked/Derived provenance comment."""
+    """Skill dirs whose SKILL.md line 2 is a Forked/Derived provenance comment."""
     out: set[str] = set()
     for skill_md in SKILLS_DIR.glob("*/SKILL.md"):
-        with skill_md.open(encoding="utf-8") as fh:
-            first = fh.readline()
-        if first.startswith(FORK_LINE_PREFIXES):
+        lines = skill_md.read_text(encoding="utf-8").split("\n", 2)
+        if len(lines) > 1 and lines[1].startswith(FORK_LINE_PREFIXES):
             out.add(skill_md.parent.name)
     return out
 
 
 def _local_md5(path: Path) -> str:
-    """md5 of `tail -n +2 <file>` — the manifest `files.<f>` recipe."""
-    data = path.read_bytes()
-    body = data.split(b"\n", 1)[1] if b"\n" in data else b""
+    """md5 of the file minus its provenance line — the manifest `files.<f>` recipe.
+
+    The provenance line is line 2 of SKILL.md and line 1 of companion files. Dropping it
+    yields the same bytes the original `tail -n +2` recipe hashed, so FORKS.json is unchanged.
+    """
+    lines = path.read_bytes().split(b"\n")
+    hits = [
+        i
+        for i, line in enumerate(lines[:2])
+        if line.decode("utf-8").startswith(FORK_LINE_PREFIXES)
+    ]
+    assert hits, f"{path}: no Forked/Derived provenance line in lines 1-2"
+    body = b"\n".join(lines[: hits[0]] + lines[hits[0] + 1 :])
     return hashlib.md5(body).hexdigest()  # noqa: S324 — integrity check, not security
 
 

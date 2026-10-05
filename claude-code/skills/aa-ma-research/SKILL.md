@@ -1,5 +1,5 @@
-<!-- Derived from https://github.com/mattpocock/skills/skills/engineering/research @ c55ee46 (forked 2026-09-21; renamed aa-ma-research, AA-MA dispatch rules appended) — aa-ma-forge v0.13.0 -->
 ---
+# Derived from https://github.com/mattpocock/skills/skills/engineering/research @ c55ee46 (forked 2026-09-21; renamed aa-ma-research, AA-MA dispatch rules appended) — aa-ma-forge v0.13.0
 name: aa-ma-research
 description: Investigate a question against high-trust primary sources and capture the findings as a Markdown file in the repo. Use when the user wants a topic researched, docs or API facts gathered, or reading legwork delegated to a background agent.
 ---

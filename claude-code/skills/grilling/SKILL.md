@@ -1,5 +1,5 @@
-<!-- Forked from https://github.com/mattpocock/skills/skills/productivity/grilling @ c55ee46 on 2026-09-21 — aa-ma-forge v0.13.0 -->
 ---
+# Forked from https://github.com/mattpocock/skills/skills/productivity/grilling @ c55ee46 on 2026-09-21 — aa-ma-forge v0.13.0
 name: grilling
 description: Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases.
 ---

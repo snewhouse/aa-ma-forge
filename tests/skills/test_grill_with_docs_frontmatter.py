@@ -25,13 +25,19 @@ def test_grill_with_docs_frontmatter() -> None:
 
 
 def test_grill_with_docs_is_derived_delegator() -> None:
-    """Line 1 is a Derived provenance comment; <what-to-do> delegates to grilling (M2.2)."""
+    """Line 2 is a Derived provenance comment; <what-to-do> delegates to grilling (M2.2)."""
     text = (SKILLS_DIR / SKILL_DIR_NAME / "SKILL.md").read_text(encoding="utf-8")
-    first = text.splitlines()[0]
-    assert first.startswith("<!-- Derived from"), f"line 1 must be a Derived comment, got: {first!r}"
+    second = text.splitlines()[1]
+    assert second.startswith("# Derived from"), (
+        f"line 2 must be a Derived comment, got: {second!r}"
+    )
     block = text.split("<what-to-do>", 1)[1].split("</what-to-do>", 1)[0]
-    assert 'Skill tool with "grilling"' in block, "<what-to-do> must delegate to Skill(grilling)"
-    assert len(block.strip().splitlines()) <= 6, "<what-to-do> must stay a short delegator (M2 AC)"
+    assert 'Skill tool with "grilling"' in block, (
+        "<what-to-do> must delegate to Skill(grilling)"
+    )
+    assert len(block.strip().splitlines()) <= 6, (
+        "<what-to-do> must stay a short delegator (M2 AC)"
+    )
 
 
 def test_skill_directory_has_companion_format_files() -> None:

@@ -20,22 +20,22 @@ FORKS_MANIFEST = DEFAULT_MANIFEST
 def split_frontmatter(text: str) -> tuple[str, dict]:
     """Return (provenance_lines, frontmatter_dict). Strict — raises on malformed input.
 
-    Skips optional HTML-comment provenance lines at the top, then parses the
-    standard `---` YAML frontmatter block.
+    The `---` opener must be line 1 (Claude Code ignores frontmatter anywhere else).
+    Provenance is the run of YAML `#` comment lines directly after the opener
+    (ADR-0011 amendment, 2026-10-05); yaml.safe_load ignores them.
     """
     lines = text.splitlines()
-    i = 0
+    if not lines or lines[0].strip() != "---":
+        raise ValueError(
+            f"Expected '---' frontmatter opener at line 1, "
+            f"got: {lines[0] if lines else '<EOF>'}"
+        )
+    i = 1
     provenance: list[str] = []
-    while i < len(lines) and lines[i].startswith("<!--"):
+    while i < len(lines) and lines[i].startswith("#"):
         provenance.append(lines[i])
         i += 1
-    if i >= len(lines) or lines[i].strip() != "---":
-        raise ValueError(
-            f"Expected '---' frontmatter opener at line {i + 1}, "
-            f"got: {lines[i] if i < len(lines) else '<EOF>'}"
-        )
-    i += 1
-    body_start = i
+    body_start = 1
     while i < len(lines) and lines[i].strip() != "---":
         i += 1
     if i >= len(lines):
@@ -66,7 +66,10 @@ def assert_skill_frontmatter(
     Returns (provenance_lines, frontmatter_dict) for further assertions.
     """
     if expected_upstream_path is None:
-        expected_upstream_path = "mattpocock/skills/" + load_manifest(FORKS_MANIFEST)[skill_dir_name].upstream
+        expected_upstream_path = (
+            "mattpocock/skills/"
+            + load_manifest(FORKS_MANIFEST)[skill_dir_name].upstream
+        )
     skill_path = SKILLS_DIR / skill_dir_name / "SKILL.md"
     assert skill_path.exists(), f"SKILL.md not found at {skill_path}"
 

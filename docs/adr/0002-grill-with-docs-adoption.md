@@ -1,6 +1,6 @@
 # 0002. Adopt `grill-with-docs` from mattpocock/skills and wire into /aa-ma-plan Phase 1.3
 
-**Status:** Implemented — Derived (2026-05-10; amended 2026-09-21)
+**Status:** Implemented — Derived (2026-05-10; amended 2026-09-21, 2026-10-05)
 **Date:** 2026-05-10
 **Deciders:** Stephen Newhouse, Claude (planning + execution sessions)
 **Tags:** `workflow`, `aa-ma`, `skills`, `release-v0.6.0`, `external-fork`
@@ -155,6 +155,10 @@ Phase 1.3 and `tests/plan_markers/test_fingerprint.py` depend on `grill-with-doc
 - The one-question-at-a-time discipline lives on in `/grill-me` (unchanged).
 
 Decided in `mattpocock-trio-adoption` Milestone 2.
+
+## Amendment 2026-10-05 — provenance location
+
+D5's provenance comment no longer sits above the frontmatter. In `SKILL.md` it is a YAML `# …` comment on line 2, inside the frontmatter. Companion files without frontmatter keep the HTML form on line 1. See the [ADR-0011 amendment](0011-prototype-resync-and-planning-gate.md#amendment-2026-10-05--provenance-moves-inside-the-frontmatter).
 
 ## References
 

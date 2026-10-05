@@ -48,3 +48,8 @@ def test_frontmatter_starts_on_line_1(path: Path, keys: tuple[str, ...]) -> None
     for key in keys:
         value = fm.get(key)
         assert isinstance(value, str) and value.strip(), f"missing or empty {key!r}"
+    if path.name == "SKILL.md":
+        # `name` sets the skill's `/` command; callers invoke skills by directory slug.
+        assert fm["name"] == path.parent.name, (
+            f"name {fm['name']!r} must match the directory {path.parent.name!r}"
+        )

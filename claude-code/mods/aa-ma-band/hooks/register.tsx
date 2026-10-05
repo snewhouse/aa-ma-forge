@@ -60,7 +60,12 @@ async function refresh($: any) {
   const real = (await $.fs.stat(cwd, { resolve: true }).catch(() => undefined))?.realPath ?? ''
   const trusted = TRUSTED_ROOTS.some(r => `${real}/`.startsWith(r))
   if (!trusted) s.gateError = 'repo outside trusted roots: band idle'
-  const top = trusted ? await run($, ['git', 'rev-parse', '--show-toplevel']) : { exitCode: 1, stdout: '' }
+  // Second review: a repo's own .git/config can still define filter/diff drivers that `git status`
+  // runs. The forge's stamp refuses any local/worktree/submodule key outside SAFE_GIT_CONFIG
+  // (stamp.check_git_config, L-1294) — no git runs here until it passes.
+  const safe = trusted ? await run($, [`${FORGE}/.venv/bin/aa-ma-analysis`, 'stamp', '--tier', 'quick', '--repo', real]) : { exitCode: 1 }
+  if (trusted && safe.exitCode !== 0) s.gateError = safe.exitCode === 2 ? 'repo git config not on the safe list: band idle' : 'not a git repo'
+  const top = trusted && safe.exitCode === 0 ? await run($, ['git', 'rev-parse', '--show-toplevel']) : { exitCode: 1, stdout: '' }
   if (top.exitCode === 0 && TRUSTED_ROOTS.some(r => `${top.stdout.trim()}/`.startsWith(r))) {
     const root = top.stdout.trim()
     s.repo = true

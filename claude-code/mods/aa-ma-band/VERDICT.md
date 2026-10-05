@@ -30,6 +30,7 @@ hygiene and context % visible above the prompt, as a thin view over `aa-ma-gate`
   - git runs with the global and system config dropped, plus core.fsmonitor=false and core.hooksPath=/dev/null (as `stamp.GIT_OVERRIDES` does)
   - the gate runs only from the forge's own venv
 - **Terminal escape injection.** Every string that comes from the repo now passes through `clean()`, which strips C0/C1 and bidi control characters and caps the length, before it reaches the terminal or the model.
+- **Second review:** the fix was incomplete. Dropping the global config leaves the repo's own `.git/config`, whose filter and diff drivers `git status` would still run. No git command now runs in a repo until the forge's `aa-ma-analysis stamp` passes. It takes 0.17 s and refuses any config key outside `SAFE_GIT_CONFIG` (exit 2, checked live against a repo setting `filter.evil.clean`). The band then reads `repo git config not on the safe list: band idle`.
 - Production: the allowlist moves to `userConfig`. Each mod's security review is an acceptance criterion.
 
 **Next:** `/aa-ma-plan` a mods effort covering:

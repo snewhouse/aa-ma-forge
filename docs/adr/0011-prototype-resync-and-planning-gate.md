@@ -125,7 +125,7 @@ block found").
   commands/*.md, agents/*.md}`.
 
 Decided with Ste 2026-10-05 (`fix/skill-frontmatter-provenance`). It applies to every fork;
-see the pointers in ADR-0002 (D5), ADR-0004 and ADR-0006.
+see the pointers in ADR-0002 (D5), ADR-0003, ADR-0004, ADR-0006 and ADR-0012. ADR-0006 also records the narrowing of `understand-codebase`'s now-active `allowed-tools` to read-only.
 
 ## References
 

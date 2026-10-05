@@ -19,20 +19,33 @@ from ._helpers import FORKS_MANIFEST as MANIFEST, SKILLS_DIR, assert_skill_front
 # SKILL.md carries provenance as a YAML comment on line 2, inside the frontmatter
 # (ADR-0011 amendment, 2026-10-05); companion files (LOGIC.md, ADR-FORMAT.md, …) have no
 # frontmatter and keep it as an HTML comment on line 1.
-FORK_LINE_PREFIXES = (
-    "# Forked from ",
-    "# Derived from ",
-    "<!-- Forked from ",
-    "<!-- Derived from ",
-)
+YAML_PREFIXES = ("# Forked from ", "# Derived from ")
+HTML_PREFIXES = ("<!-- Forked from ", "<!-- Derived from ")
+
+
+def _provenance_region(text: str) -> list[str]:
+    """Lines where provenance could sit: the `#` run after a line-1 `---`, else line 1 itself."""
+    lines = text.split("\n")
+    if lines[0] != "---":
+        return lines[:1]
+    region: list[str] = []
+    for line in lines[1:]:
+        if not line.startswith("#"):
+            break
+        region.append(line)
+    return region
 
 
 def _fork_dirs() -> set[str]:
-    """Skill dirs whose SKILL.md line 2 is a Forked/Derived provenance comment."""
+    """Skill dirs whose SKILL.md carries a Forked/Derived provenance comment, wherever it sits.
+
+    Scans the whole provenance region (not just line 2) so a fork placed anywhere — even
+    the legacy line-1 form — is still checked against the manifest.
+    """
     out: set[str] = set()
     for skill_md in SKILLS_DIR.glob("*/SKILL.md"):
-        lines = skill_md.read_text(encoding="utf-8").split("\n", 2)
-        if len(lines) > 1 and lines[1].startswith(FORK_LINE_PREFIXES):
+        region = _provenance_region(skill_md.read_text(encoding="utf-8"))
+        if any(line.startswith(YAML_PREFIXES + HTML_PREFIXES) for line in region):
             out.add(skill_md.parent.name)
     return out
 
@@ -40,18 +53,20 @@ def _fork_dirs() -> set[str]:
 def _local_md5(path: Path) -> str:
     """md5 of the file minus its provenance line — the manifest `files.<f>` recipe.
 
-    The provenance line is line 2 of SKILL.md and line 1 of companion files. Dropping it
-    yields the same bytes the original `tail -n +2` recipe hashed, so FORKS.json is unchanged.
+    Exactly one valid place per file kind: line 2 (YAML `#`) of SKILL.md, line 1 (HTML
+    comment) of companion files. Dropping it yields the bytes the original `tail -n +2`
+    recipe hashed, so FORKS.json is unchanged — and a SKILL.md that slips back to the
+    line-1 form fails here as well as in tests/test_frontmatter_at_top.py.
     """
+    idx, prefixes = (
+        (1, YAML_PREFIXES) if path.name == "SKILL.md" else (0, HTML_PREFIXES)
+    )
     lines = path.read_bytes().split(b"\n")
-    hits = [
-        i
-        for i, line in enumerate(lines[:2])
-        if line.decode("utf-8").startswith(FORK_LINE_PREFIXES)
-    ]
-    assert hits, f"{path}: no Forked/Derived provenance line in lines 1-2"
-    body = b"\n".join(lines[: hits[0]] + lines[hits[0] + 1 :])
-    return hashlib.md5(body).hexdigest()  # noqa: S324 — integrity check, not security
+    assert len(lines) > idx and lines[idx].decode("utf-8").startswith(prefixes), (
+        f"{path}: line {idx + 1} must be the provenance comment ({prefixes[0].strip()} …)"
+    )
+    body = b"\n".join(lines[:idx] + lines[idx + 1 :])
+    return hashlib.md5(body, usedforsecurity=False).hexdigest()
 
 
 def test_every_fork_dir_is_in_manifest() -> None:

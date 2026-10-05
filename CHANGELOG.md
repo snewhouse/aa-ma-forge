@@ -8,7 +8,11 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- Six skills (`aa-ma-research`, `grill-with-docs`, `grilling`, `prototype`, `understand-codebase`, `write-a-skill`) opened with an HTML provenance comment on line 1, so Claude Code ignored their frontmatter: the comment text was used as the description, and `understand-codebase` lost `allowed-tools`. The provenance is now a YAML `#` comment on line 2, inside the frontmatter. `FORKS.json` md5s are unchanged (the recipe now drops the provenance line wherever it is). A new `tests/test_frontmatter_at_top.py` guards every skill, command and agent. ADR-0011 is amended, with pointers in ADR-0002/0004/0006.
+- Six skills (`aa-ma-research`, `grill-with-docs`, `grilling`, `prototype`, `understand-codebase`, `write-a-skill`) opened with an HTML provenance comment on line 1, so Claude Code ignored their frontmatter: the comment text was used as the description, and `understand-codebase` lost `allowed-tools`. The provenance is now a YAML `#` comment on line 2, inside the frontmatter. `FORKS.json` md5s are unchanged (the recipe now drops the provenance line wherever it is). A new `tests/test_frontmatter_at_top.py` guards every skill, command and agent. ADR-0011 is amended, with pointers in ADR-0002/0003/0004/0006/0012.
+
+### Security
+
+- `understand-codebase`: the frontmatter fix would have activated a dormant `allowed-tools` list that pre-approves `Bash`, `Write`, `Edit`, `WebFetch`, `Agent` and others with no prompt, on a skill that reads untrusted repos. It is narrowed to read-only (`Read`, `Glob`, `Grep`, `AskUserQuestion`), so everything else still prompts. See the ADR-0006 amendment.
 
 ## v0.17.0 (2026-10-01)
 

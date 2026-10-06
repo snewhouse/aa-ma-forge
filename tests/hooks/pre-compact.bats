@@ -97,6 +97,7 @@ EOF
 }
 
 @test "audit-trail append failure: fail-open (exit 0) but names each unwritable file on stderr" {
+    [ "$(id -u)" -eq 0 ] && skip "root ignores chmod 444"
     "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
     task_dir="$BATS_TMP/.claude/dev/active/task-1"
     chmod 444 "$task_dir/task-1-provenance.log" "$task_dir/task-1-context-log.md"
@@ -106,4 +107,15 @@ EOF
     [ "$status" -eq 0 ]
     grep -q "^pre-compact-aa-ma: .*task-1-provenance.log" "$BATS_TMP/stderr"
     grep -q "^pre-compact-aa-ma: .*task-1-context-log.md" "$BATS_TMP/stderr"
+}
+
+@test "audit-trail append failure with stderr closed: still exits 0 (fail-open survives EPIPE)" {
+    [ "$(id -u)" -eq 0 ] && skip "root ignores chmod 444"
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    task_dir="$BATS_TMP/.claude/dev/active/task-1"
+    chmod 444 "$task_dir/task-1-provenance.log" "$task_dir/task-1-context-log.md"
+    cd "$BATS_TMP"
+    HOME="$BATS_TMP_HOME" run bash -c "bash '$HOOK' 2>&-"
+    chmod 644 "$task_dir/task-1-provenance.log" "$task_dir/task-1-context-log.md"
+    [ "$status" -eq 0 ]
 }

@@ -102,7 +102,8 @@ for task_dir in "${TASKS[@]}"; do
             printf '[%s] CHECKPOINT — ActiveStep: %s — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A\n' \
                 "$(ts)" "$active_step"
         } 2>/dev/null >> "$prov_file" \
-            || printf 'pre-compact-aa-ma: could not append checkpoint to %s\n' "$prov_file" >&2
+            || printf 'pre-compact-aa-ma: could not append checkpoint to %q\n' "$prov_file" >&2 \
+            || true  # why: under set -e a failed stderr write (EPIPE) must not break fail-open
     fi
 
     if [ -f "$ctx_file" ]; then
@@ -112,7 +113,8 @@ for task_dir in "${TASKS[@]}"; do
             printf -- '- Snapshot saved to: %s\n' "$snapshot_file"
             printf -- '- Note: Context compacted. Reload AA-MA files to resume.\n'
         } 2>/dev/null >> "$ctx_file" \
-            || printf 'pre-compact-aa-ma: could not append compaction summary to %s\n' "$ctx_file" >&2
+            || printf 'pre-compact-aa-ma: could not append compaction summary to %q\n' "$ctx_file" >&2 \
+            || true  # why: under set -e a failed stderr write (EPIPE) must not break fail-open
     fi
 done
 

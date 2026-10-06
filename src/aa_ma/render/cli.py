@@ -44,7 +44,7 @@ def lint_main(argv: Sequence[str] | None = None) -> int:
     if a.coverage:  # never passed by the milestone gate (ADR-0009)
         try:
             findings += coverage_findings(a.plan.read_text(encoding="utf-8"))
-        except Exception as e:  # a crash is UNKNOWN (exit 2), never "findings" or clean (L-012)
+        except Exception as e:  # noqa: BLE001 — a crash is UNKNOWN (exit 2), never "findings" or clean (L-012)
             print(f"{a.plan}:1: UNKNOWN: coverage could not run: {printable(type(e).__name__)}")
             return 2
     where = printable(str(a.plan))

@@ -64,6 +64,36 @@ members = ["packages/codemem-mcp"]
 [tool.uv.sources]
 codemem-mcp = { workspace = true }
 
+[tool.ruff.lint]
+# Logging + comment hygiene (logging-and-comments standard). CI runs `ruff check src/`.
+# T201 has only an unsafe fix, so `ruff check --fix` reports prints and never deletes them.
+extend-select = [
+    "LOG",              # logger misuse: Logger() direct, getLogger without __name__, root-logger calls
+    "G",                # eager log formatting (G004 = f-string in log call), .warn, exc_info misuse
+    "T20",              # print/pprint left in library code
+    "BLE",              # blind `except Exception`
+    "S110", "S112",     # try/except/pass and try/except/continue — silent swallows
+    "TRY400", "TRY401", # use logger.exception in except; don't repeat the exception in the message
+    "D1",               # missing docstrings on public modules/classes/functions
+    "TD",               # TODO format: TODO(owner/issue): text
+    "ERA",              # commented-out code
+]
+# Pre-existing docstring gaps at adoption (2026-10-06: D101=29 D103=17 D102=7 D107=5 D104=3).
+# TODO(logging-std): burn down
+extend-ignore = ["D101", "D102", "D103", "D104", "D107"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# print IS the interface for CLIs (data -> stdout); tests need no docstrings.
+"**/cli.py" = ["T20"]
+"**/__main__.py" = ["T20"]
+"src/aa_ma/forks.py" = ["T20"]  # run as `python -m aa_ma.forks`; stdout is its report
+"src/aa_ma/deps.py" = ["T20"]   # run as `python -m aa_ma.deps` (aa_ma_deps helper); stdout is its report
+"scripts/**" = ["T20"]
+"tests/**" = ["D", "T20", "S110"]
+
 [tool.commitizen]
 # Releases are cut by scripts/release.sh (docs/runbooks/release.md): it promotes the curated
 # `## Unreleased` CHANGELOG section and the README "Current version" line, then `cz bump`

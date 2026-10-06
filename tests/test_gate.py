@@ -624,3 +624,20 @@ def test_invalid_substep_critical_path_is_exit_2() -> None:
     a = answer(ROLLUP, number="8")
     assert a.exit_code == EXIT_UNREADABLE
     assert any("Critical-Path" in e and "not-a-value" in e for e in a.errors), a.errors
+
+
+def test_an_internal_error_keeps_the_envelope_and_logs_the_traceback(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    def boom(*_: object) -> None:
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(gate, "answer", boom)
+    with caplog.at_level("DEBUG", logger="aa_ma.gate"):
+        assert main([str(ONE)]) == EXIT_UNREADABLE
+    out = json.loads(capsys.readouterr().out)
+    assert out["errors"] == ["internal error: RuntimeError('kaboom')"]
+    [rec] = [r for r in caplog.records if r.name == "aa_ma.gate"]
+    assert rec.exc_info is not None and rec.exc_info[0] is RuntimeError

@@ -10,6 +10,13 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 - Six skills (`aa-ma-research`, `grill-with-docs`, `grilling`, `prototype`, `understand-codebase`, `write-a-skill`) opened with an HTML provenance comment on line 1, so Claude Code ignored their frontmatter: the comment text was used as the description, and `understand-codebase` lost `allowed-tools`. The provenance is now a YAML `#` comment on line 2, inside the frontmatter. `FORKS.json` md5s are unchanged (the recipe now drops the provenance line wherever it is). A new `tests/test_frontmatter_at_top.py` guards every skill, command and agent. ADR-0011 is amended, with pointers in ADR-0002/0003/0004/0006/0012.
 - `dispatching-parallel-agents` had `name: Dispatching Parallel Agents`. `name` sets a skill's `/` command, so it is now `dispatching-parallel-agents`, which matches its directory and the `Skill(dispatching-parallel-agents)` callers. `tests/test_frontmatter_at_top.py` now requires every skill's `name` to equal its directory.
+- `aa-ma-analysis` measure: a tool report that failed to parse, or a tool that could not be spawned, left the input `unknown` with the cause lost. `run.log` now records why (`unknown: parse ValueError`, or a `spawn` line with `spawn failed: PermissionError`). Only the exception type is kept, because the message can quote tool output. The five-field line format is unchanged.
+- `aa-ma-gate`: the last-resort `except Exception` kept only `exc!r`. The traceback now also goes to the `aa_ma.gate` logger at DEBUG. stdout, the JSON/kv envelope and exit codes are unchanged.
+- `pre-compact-aa-ma.sh`: a failed append to a task's `provenance.log` or `context-log.md` was swallowed by `2>/dev/null || true`. The hook still exits 0, but now prints one `pre-compact-aa-ma: could not append … to <file>` line to stderr for each file.
+
+### Changed
+
+- `pyproject.toml` gains a `[tool.ruff.lint]` section for logging and comment hygiene (`LOG`, `G`, `T20`, `BLE`, `S110`/`S112`, `TRY400`/`TRY401`, `D1`, `TD`, `ERA`, google docstrings). Pre-existing docstring gaps (D101/D102/D103/D104/D107, 61 in all) are ignored and tagged `TODO(logging-std): burn down`. The two deliberate blind catches carry `noqa: BLE001` with a reason. CI's `ruff check src/` now enforces these rules.
 
 ### Security
 

@@ -232,9 +232,10 @@ class _Ctx:
         rc: int | None,
         secs: float,
         status: ToolStatus,
+        reason: str = "",
     ) -> None:
         self._status(name, status)
-        self.trail(name, argv, rc, secs, status)
+        self.trail(name, argv, rc, secs, f"{status}: {reason}" if reason else status)
 
     def trail(
         self, name: str, argv: list[str], rc: int | None, secs: float, status: str
@@ -281,8 +282,15 @@ def _exec(
             timeout or ctx.timeout,
             merge_stderr=False,
         )
-    except OSError:
+    except OSError as exc:
         rc, out = None, b""
+        ctx.trail(
+            "spawn",
+            argv,
+            None,
+            time.monotonic() - t0,
+            f"spawn failed: {type(exc).__name__}",
+        )
     return rc, out, time.monotonic() - t0
 
 
@@ -322,14 +330,15 @@ def _tool(
     argv = [binary, *args]
     rc, out, secs = _exec(ctx, argv)
     body = out if report is None else (report.read_bytes() if report.is_file() else b"")
-    status = ToolStatus.UNKNOWN
+    status, reason = ToolStatus.UNKNOWN, ""
     if rc in ok and (body.strip() or rc in empty_ok):
         try:
             ctx.add(*parse(body))
             status = ToolStatus.RAN
-        except (ValueError, KeyError, TypeError, IndexError, AttributeError):
-            pass
-    ctx.record(name, argv, rc, secs, status)
+        except (ValueError, KeyError, TypeError, IndexError, AttributeError) as exc:
+            # why: only the type is kept — the message can quote the tool's output.
+            reason = f"parse {type(exc).__name__}"
+    ctx.record(name, argv, rc, secs, status, reason)
     if status != ToolStatus.RAN:
         ctx.miss(metric_keys)
     return status == ToolStatus.RAN

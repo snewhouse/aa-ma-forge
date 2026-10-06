@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from aa_ma.analysis import cli
+from aa_ma.analysis import measure as measure_mod
 from aa_ma.analysis.measure import measure
 from aa_ma.analysis.stamp import REPORTS_ROOT, UnsafePath
 
@@ -653,6 +654,38 @@ def test_tool_versions_are_recorded_in_run_log(
     assert any(
         line.startswith("lizard.version\t") and "1.24.0" in line for line in lines
     )
+
+
+def test_an_unparseable_report_records_why_in_run_log(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    lizard_stub(tools, monkeypatch, f"{FAKE_TOKEN},not-a-row\n")
+    work = measure(target, "quick")
+    assert doc(work)["stamp"]["tools"]["lizard"] == "unknown"
+    log = (work / "run.log").read_text()
+    lizard = [line for line in log.splitlines() if line.startswith("lizard\t")]
+    assert lizard and lizard[0].split("\t")[4] == "unknown: parse ValueError"
+    assert FAKE_TOKEN not in log
+
+
+def test_a_tool_that_cannot_be_spawned_records_why_in_run_log(
+    target: Path, tools: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    lizard_stub(tools, monkeypatch, lizard_row("f1", 20, 1, 2))
+    real_spawn = measure_mod.spawn
+
+    def spawn(argv: list[str], *args: object, **kwargs: object) -> object:
+        if Path(argv[0]).name == "lizard" and "--version" not in argv:
+            raise PermissionError(13, "denied")
+        return real_spawn(argv, *args, **kwargs)
+
+    monkeypatch.setattr(measure_mod, "spawn", spawn)
+    work = measure(target, "quick")
+    assert doc(work)["stamp"]["tools"]["lizard"] == "unknown"
+    lines = (work / "run.log").read_text().splitlines()
+    spawned = [line.split("\t") for line in lines if line.startswith("spawn\t")]
+    assert spawned and spawned[0][4] == "spawn failed: PermissionError"
+    assert all(len(line.split("\t")) == 5 for line in lines)
 
 
 def test_gitleaks_paths_are_normalised(

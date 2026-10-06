@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
@@ -58,6 +59,8 @@ from aa_ma.grammar import (
     split_steps,
 )
 from aa_ma.plan_parsers import CANONICAL_AUDIT_PROFILES, CANONICAL_CRITICAL_PATHS
+
+logger = logging.getLogger(__name__)
 
 EXIT_OK = 0
 EXIT_NO_ACTIVE = 1
@@ -473,7 +476,10 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--step requires --milestone")
     try:
         result = answer(Path(args.tasks_md), args.milestone, args.step)
-    except Exception as exc:  # last resort: the envelope contract holds even here
+    except Exception as exc:  # noqa: BLE001 — last resort: the envelope contract holds even here
+        # why: broad on purpose — a gate fails closed with a JSON envelope, never a bare
+        # traceback; the traceback stays recoverable at DEBUG for whoever configures logging.
+        logger.debug("aa-ma-gate internal error", exc_info=True)
         result = GateAnswer(EXIT_UNREADABLE, None, (f"internal error: {exc!r}",))
     if args.format == "kv":
         sys.stdout.write(result.to_kv())

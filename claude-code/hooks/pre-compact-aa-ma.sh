@@ -93,11 +93,16 @@ for task_dir in "${TASKS[@]}"; do
     prov_file="${task_dir}/${task_name}-provenance.log"
     ctx_file="${task_dir}/${task_name}-context-log.md"
 
+    # Fail-open (compaction must proceed) but never silently: a lost audit-trail
+    # entry is named on stderr so the gap is visible.
     if [ -f "$prov_file" ]; then
-        printf '[%s] Context compacted — Snapshot saved, active step: %s\n' \
-            "$(ts)" "$active_step" >> "$prov_file" 2>/dev/null || true
-        printf '[%s] CHECKPOINT — ActiveStep: %s — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A\n' \
-            "$(ts)" "$active_step" >> "$prov_file" 2>/dev/null || true
+        {
+            printf '[%s] Context compacted — Snapshot saved, active step: %s\n' \
+                "$(ts)" "$active_step"
+            printf '[%s] CHECKPOINT — ActiveStep: %s — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A\n' \
+                "$(ts)" "$active_step"
+        } 2>/dev/null >> "$prov_file" \
+            || printf 'pre-compact-aa-ma: could not append checkpoint to %s\n' "$prov_file" >&2
     fi
 
     if [ -f "$ctx_file" ]; then
@@ -106,7 +111,8 @@ for task_dir in "${TASKS[@]}"; do
             printf -- '- Active step at compaction: %s\n' "$active_step"
             printf -- '- Snapshot saved to: %s\n' "$snapshot_file"
             printf -- '- Note: Context compacted. Reload AA-MA files to resume.\n'
-        } >> "$ctx_file" 2>/dev/null || true
+        } 2>/dev/null >> "$ctx_file" \
+            || printf 'pre-compact-aa-ma: could not append compaction summary to %s\n' "$ctx_file" >&2
     fi
 done
 

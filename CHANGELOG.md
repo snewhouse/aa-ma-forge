@@ -12,7 +12,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - `dispatching-parallel-agents` had `name: Dispatching Parallel Agents`. `name` sets a skill's `/` command, so it is now `dispatching-parallel-agents`, which matches its directory and the `Skill(dispatching-parallel-agents)` callers. `tests/test_frontmatter_at_top.py` now requires every skill's `name` to equal its directory.
 - `aa-ma-analysis` measure: a tool report that failed to parse, or a tool that could not be spawned, left the input `unknown` with the cause lost. `run.log` now records why (`unknown: parse ValueError`, or a `spawn` line with `spawn failed: PermissionError`). Only the exception type is kept, because the message can quote tool output. The five-field line format is unchanged.
 - `aa-ma-gate`: the last-resort `except Exception` kept only `exc!r`. The traceback now also goes to the `aa_ma.gate` logger at DEBUG. stdout, the JSON/kv envelope and exit codes are unchanged.
-- `pre-compact-aa-ma.sh`: a failed append to a task's `provenance.log` or `context-log.md` was swallowed by `2>/dev/null || true`. The hook still exits 0, but now prints one `pre-compact-aa-ma: could not append … to <file>` line to stderr for each file.
+- `pre-compact-aa-ma.sh`: a failed append to a task's `provenance.log` or `context-log.md` was swallowed by `2>/dev/null || true`. The hook still exits 0, but now logs one `WARN could not append … to <file>` line per file to `~/.claude/hooks/cache/compaction.log` and emits a JSON `systemMessage` with the failure count, because hook stderr on exit 0 reaches only the debug log and is never shown.
 
 ### Changed
 

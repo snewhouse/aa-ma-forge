@@ -19,6 +19,8 @@ elif [ -f "${SCRIPT_DIR}/aa-ma-parse.sh" ]; then
     HELPER="${SCRIPT_DIR}/aa-ma-parse.sh"
 else
     printf 'pre-compact-aa-ma: cannot find aa-ma-parse.sh helper\n' >&2
+    # why: stderr on exit 0 reaches only the debug log; systemMessage is shown to the user.
+    printf '{"systemMessage":"pre-compact-aa-ma: helper aa-ma-parse.sh not found; AA-MA snapshot skipped"}\n'
     exit 0  # PreCompact must never block compaction
 fi
 # shellcheck source=lib/aa-ma-parse.sh
@@ -32,6 +34,17 @@ LOG_FILE="$HOME/.claude/hooks/cache/compaction.log"
 ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
 mkdir -p "$SNAPSHOT_DIR" "$(dirname "$LOG_FILE")"
+
+# Audit-trail append failures, reported once at exit (see end of file).
+append_failures=0
+
+# warn_append <what> <file> — record one failed append. Fail-open: under set -e a
+# failed log write must not abort compaction, hence `|| true`.
+warn_append() {
+    printf '%s | PreCompact | WARN could not append %s to %q\n' "$(ts)" "$1" "$2" \
+        >> "$LOG_FILE" 2>/dev/null || true
+    append_failures=$((append_failures + 1))
+}
 
 # Master kill switch honoured.
 if aa_ma_is_disabled; then
@@ -93,17 +106,15 @@ for task_dir in "${TASKS[@]}"; do
     prov_file="${task_dir}/${task_name}-provenance.log"
     ctx_file="${task_dir}/${task_name}-context-log.md"
 
-    # Fail-open (compaction must proceed) but never silently: a lost audit-trail
-    # entry is named on stderr so the gap is visible.
+    # Fail-open (compaction must proceed) but never silently: each lost audit-trail
+    # entry is named in $LOG_FILE and counted for the user-visible message at exit.
     if [ -f "$prov_file" ]; then
         {
             printf '[%s] Context compacted — Snapshot saved, active step: %s\n' \
                 "$(ts)" "$active_step"
             printf '[%s] CHECKPOINT — ActiveStep: %s — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A\n' \
                 "$(ts)" "$active_step"
-        } 2>/dev/null >> "$prov_file" \
-            || printf 'pre-compact-aa-ma: could not append checkpoint to %q\n' "$prov_file" >&2 \
-            || true  # why: under set -e a failed stderr write (EPIPE) must not break fail-open
+        } 2>/dev/null >> "$prov_file" || warn_append checkpoint "$prov_file"
     fi
 
     if [ -f "$ctx_file" ]; then
@@ -112,10 +123,17 @@ for task_dir in "${TASKS[@]}"; do
             printf -- '- Active step at compaction: %s\n' "$active_step"
             printf -- '- Snapshot saved to: %s\n' "$snapshot_file"
             printf -- '- Note: Context compacted. Reload AA-MA files to resume.\n'
-        } 2>/dev/null >> "$ctx_file" \
-            || printf 'pre-compact-aa-ma: could not append compaction summary to %q\n' "$ctx_file" >&2 \
-            || true  # why: under set -e a failed stderr write (EPIPE) must not break fail-open
+        } 2>/dev/null >> "$ctx_file" || warn_append "compaction summary" "$ctx_file"
     fi
 done
+
+# why: hook stderr on exit 0 reaches only the debug log (code.claude.com/docs/en/hooks),
+# so a JSON systemMessage is the one channel the user actually sees. Count only — the
+# paths are in $LOG_FILE — so the JSON needs no escaping. `|| true`: a closed stdout
+# must not turn fail-open into a non-zero exit.
+if [ "$append_failures" -gt 0 ]; then
+    printf '{"systemMessage":"pre-compact-aa-ma: %d audit-trail append(s) failed; see ~/.claude/hooks/cache/compaction.log"}\n' \
+        "$append_failures" || true
+fi
 
 exit 0

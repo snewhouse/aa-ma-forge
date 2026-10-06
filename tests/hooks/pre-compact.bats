@@ -96,26 +96,38 @@ EOF
     [ "$snap_count" -eq 0 ]
 }
 
-@test "audit-trail append failure: fail-open (exit 0) but names each unwritable file on stderr" {
+@test "audit-trail append failure: fail-open (exit 0), logged per file, user-visible systemMessage" {
     [ "$(id -u)" -eq 0 ] && skip "root ignores chmod 444"
     "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
     task_dir="$BATS_TMP/.claude/dev/active/task-1"
     chmod 444 "$task_dir/task-1-provenance.log" "$task_dir/task-1-context-log.md"
     cd "$BATS_TMP"
-    HOME="$BATS_TMP_HOME" run bash -c "bash '$HOOK' 2>'$BATS_TMP/stderr'"
+    HOME="$BATS_TMP_HOME" run bash -c "bash '$HOOK' 2>/dev/null"
     chmod 644 "$task_dir/task-1-provenance.log" "$task_dir/task-1-context-log.md"
     [ "$status" -eq 0 ]
-    grep -q "^pre-compact-aa-ma: .*task-1-provenance.log" "$BATS_TMP/stderr"
-    grep -q "^pre-compact-aa-ma: .*task-1-context-log.md" "$BATS_TMP/stderr"
+    # Hook stderr on exit 0 reaches only the debug log, so the gap must land in the
+    # hook's own log (each file named) AND in a user-visible JSON systemMessage.
+    log="$BATS_TMP_HOME/.claude/hooks/cache/compaction.log"
+    grep -q "| PreCompact | WARN could not append checkpoint to .*task-1-provenance.log" "$log"
+    grep -q "| PreCompact | WARN could not append compaction summary to .*task-1-context-log.md" "$log"
+    printf '%s' "$output" | jq -e '.systemMessage | test("2 audit-trail append")' >/dev/null
 }
 
-@test "audit-trail append failure with stderr closed: still exits 0 (fail-open survives EPIPE)" {
+@test "clean compaction: stdout stays empty (no systemMessage noise)" {
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    cd "$BATS_TMP"
+    HOME="$BATS_TMP_HOME" run bash -c "bash '$HOOK' 2>/dev/null"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}
+
+@test "audit-trail append failure with stdout+stderr closed: still exits 0 (fail-open survives EPIPE)" {
     [ "$(id -u)" -eq 0 ] && skip "root ignores chmod 444"
     "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
     task_dir="$BATS_TMP/.claude/dev/active/task-1"
     chmod 444 "$task_dir/task-1-provenance.log" "$task_dir/task-1-context-log.md"
     cd "$BATS_TMP"
-    HOME="$BATS_TMP_HOME" run bash -c "bash '$HOOK' 2>&-"
+    HOME="$BATS_TMP_HOME" run bash -c "bash '$HOOK' >&- 2>&-"
     chmod 644 "$task_dir/task-1-provenance.log" "$task_dir/task-1-context-log.md"
     [ "$status" -eq 0 ]
 }

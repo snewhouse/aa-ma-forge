@@ -86,7 +86,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. RED first: `tests/scripts/test_check_conventions.py` collection error (script absent). `scripts/check_conventions.py` (stdlib-only, +x) → 14/14 pass: staged mode returns only added lines for modify/add/rename-with-edit/delete (`renamed.py` → {3} only; deleted file absent); `--from-ref/--to-ref` == staged on the same change; FILE filter; three-dot ignores base-branch progress; a `++…` content line is not taken for a header; exit 0 + `check_conventions: 0 checks enabled` (stderr); no refs + nothing staged → exit 2 "no diff source"; refs `no-such-ref`, `--output=/tmp/pwned`, `HEAD:mod.py` → exit 2 (verified via `rev-parse --verify --end-of-options <ref>^{commit}`); lone `--from-ref` → 2; env beats staged, flags beat env; a stub check → exit 1 with `path:line: CODE message`. Paths via `--name-status -z -M`, `--literal-pathspecs`. `.pre-commit-config.yaml`: 4 `repo: local` hooks (`language: system`; no deprecation warning from pre-commit 4.6.2, `validate-config` rc=0). `tests/test_precommit_config.py` now 4/4. `pre-commit run --files <7 M1 files>` first run caught TRY400 in the new script (fixed with `# why:` + `noqa: TRY400`; RUF100-clean under project config), then rc=0. `codemem draw --check` showed DRIFT in docs/architecture/io.md (new script node) → `scripts/regen-generated.sh` rc=0; 4 docs/architecture files regenerated; `draw --check` clean.
 
 ### Sub-step 1.4: CI job `touched`
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.3
 - Acceptance Criteria:
@@ -94,10 +94,10 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - Job `ruff` (src/ only) removed; the `pyproject.toml:68` comment ("CI runs `ruff check src/`") updated.
   - Canary: branch `canary/cci-m1-touched` opened as a DRAFT PR adding an F401 fails `touched`; failing run URL logged in provenance; PR closed and branch deleted.
   - The M1 PR itself passes `touched`.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. Job `touched` added to `.github/workflows/security.yml` (commit 3dff2a5): `if: github.event_name == 'pull_request'`; checkout @11d5960 (v4.4.0) `fetch-depth: 0`, `persist-credentials: false`; `astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7` (v10.2.0, released 2026-09-21) `version: '0.12.3'`; shellcheck installed + verified; `uv sync --locked`; `uv run pre-commit run --from-ref "origin/${BASE_REF}" --to-ref HEAD --show-diff-on-failure` with `BASE_REF` from `env:`. Job `ruff` removed; `pyproject.toml` comment updated. Local simulation rc=0. Canary draft PR #17 (`canary/cci-m1-touched`, F401 in `scripts/_canary_f401.py`) → `touched` FAILED on `F401 os imported but unused` (run 37802838559, job 113399245202); PR closed, branch deleted local + remote (`ls-remote` 0). M1 draft PR #18 → `touched` PASSED (run 37802855336), all 7 jobs green. Follow-up (post-merge, local only): gitignored project `CLAUDE.md:141` still says "Ruff lint on `src/`".
 
 ### Sub-step 1.5: ADR — touched-code lint gate
-- Status: PENDING
+- Status: IN_PROGRESS
 - Mode: HITL
 - Dependencies: Sub-step 1.4
 - Acceptance Criteria:

@@ -5,6 +5,18 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-039 (2026-10-08) — A research agent wrote a private repo's internals into this public repo
+**Pattern:** A charting research doc (docs/research/, written by an `aa-ma-researcher` agent) said
+"names only recorded". It nevertheless listed a private Carmen repo's package name, file paths, line
+numbers, function and script names. It was pushed to a public branch and found only by
+`/sole-dev-merge` Stage C2. Fixing it took a redact, a fixup/autosquash history rewrite, and a
+force-push with lease, plus a GitHub Support purge request for the orphaned commit.
+**Rule:** This repo is PUBLIC. Any agent prompt that reads private repos (Carmen, client, personal)
+must say: record counts and generic categories only, never repo names, paths, symbols or SHAs.
+Before pushing docs/research or a charting map, grep it for private repo names and run the security
+pass. A leak already pushed is never fixed by a follow-up commit: rewrite before any merge to main.
+---
+
 ## L-038 (2026-10-08) — A "prefer the project's .venv binary" amendment let a hostile repo run code from a hook
 **Pattern:** While planning code-conventions-impact, my own CEO-review amendment told `ruff-format.sh`
 to prefer "the project's `.venv/bin/ruff`" (and the impact hook the project's `codemem`). A global

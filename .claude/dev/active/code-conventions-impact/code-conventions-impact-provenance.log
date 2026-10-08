@@ -15,3 +15,4 @@
 [2026-10-08T17:28:57+01:00] Post-milestone review: 8 findings (0 critical, 2 warning, 6 info) [fixed: W2,I1,I3,I4,I6; partly: I2; acknowledged: W1,I5] — via code-reviewer (§6.6 folded)
 [2026-10-08T162913Z] DOUBLE_CHECK — status=Verified effort=standard report=.claude/reports/double-check/2026-10-08T162913Z-code-conventions-impact-milestone-1.md
 [2026-10-08T19:20:36+01:00] DOUBLE_CHECK fixes — F1 subdir/F2 textconv/F3 normpath fixed in check_conventions.py (tests 17→21 in tests/scripts+precommit), ADR-0018 main-push line; Ste chose fix-now via AskUserQuestion
+[2026-10-08T19:23:17+01:00] CI — M1 PR #18 @ d3b6bc4 all 7 jobs PASS incl. touched — https://github.com/snewhouse/aa-ma-forge/actions/runs/37823549130/job/113470427210 ; full suite 2450 passed/5 skipped/7 deselected (124.9 s) — supersedes the pre-fix evidence at 3edcec6

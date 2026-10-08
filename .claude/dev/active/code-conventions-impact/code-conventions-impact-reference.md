@@ -38,7 +38,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | `uv run pytest -q` | 2429 passed, 5 skipped, 7 deselected in 112.5 s | [valid: 2026-10-08] |
 | Ruff S findings (`ruff check --isolated --select S src packages scripts`) | 34 | [valid: 2026-10-08] |
 | Oversized prompt files (lines) | aa-ma-execution 1295, execute-aa-ma-milestone 1244, aa-ma-plan 1154, sole-dev-merge 1054, execute-aa-ma-full 757, plan-verification 608 | [valid: 2026-10-08] |
-| Existing >100-line references without a TOC | 23 (go into `TOC_ALLOWLIST`) | [valid: 2026-10-08] |
+| Existing >100-line references without a TOC | 23 (go into `TOC_ALLOWLIST (23 at plan time; 24 after M2 imports logging-and-comments/references/python.md)`) | [valid: 2026-10-08] |
 | Test files referencing `commands/` paths | 31 | [valid: 2026-10-08] |
 | Touched-file debt | ≤11 strict findings per planned file | [valid: 2026-10-08] |
 | `uv audit` (uv 0.12.3) | experimental; exits 1 with 13 vulnerable packages (12 with `--no-dev`: pyjwt, starlette, urllib3, mcp, fastmcp, cryptography…) | [valid: 2026-10-08] |
@@ -46,7 +46,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | Bandit B404 | fires 10× on this repo; Ruff `S404` is preview-only at 0.15.9 | [valid: 2026-10-08] |
 | Auto-loaded rule cost (map T1) | ~8.8k tokens (7 files); ~12.2k with project CLAUDE.md + ponytail injection | [valid: 2026-10-08] |
 | Counts before plan | skills 22, top-level hooks 8, rules 2, MCP tools 13, commands 14 | [valid: 2026-10-08] |
-| Counts after plan | skills 22→27 (M2) → +1 secops (M8) → +1 language-conventions (M12), −write-a-skill +writing-for-agents (M4), +13 converted commands (M3); hooks 8→9 (M2) →10 (M10); rules 2→3 (M12); MCP tools 13→14 (M10); commands 14→0 (M3) | [valid: 2026-10-08] |
+| Counts after plan | skills 22→27 (M2) → 38 after M3 (+11 new dirs: 2 commands merge into existing skills, grill-me deleted) → −write-a-skill +writing-for-agents (M4) → +1 secops (M8) → +1 language-conventions (M12) = 40 at end; hooks 8→9 (M2) →10 (M10); rules 2→3 (M12); MCP tools 13→14 (M10); commands 14→0 (M3) | [valid: 2026-10-08] |
 | codemem index at verification | 239 files after `codemem build` (was 7 files stale) | [valid: 2026-10-08] |
 
 ## Tool Versions
@@ -260,7 +260,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - `claude-code/commands/aa-ma-plan.md:579`, `claude-code/commands/aa-ma-share.md:30` (readlink fix → `/../../..`)
 - `claude-code/rules/engineering-standards.md` (:66 hook-modification scope; §2 TDD block; §5 rows; §1 Critical-Path table)
 - `docs/spec/aa-ma-specification.md` (:145, :183-188, :911); `docs/spec/claude-code-foundations.md` (:34, :73, :92, :113, :157); `README.md` (:255, "### All commands"); `SECURITY.md` (:11-12)
-- `examples/**/aa-ma-team-guide-reference.md:69`; `claude-code/hooks/aa-ma-footer.sh:5`; `claude-code/hooks/aa-ma-chart-guard.sh:18` (comments)
+- `examples/**/aa-ma-team-guide-reference.md:69`; `claude-code/hooks/lib/aa-ma-footer.sh:5`; `claude-code/hooks/lib/aa-ma-chart-guard.sh:18` (comments)
 - `tests/test_frontmatter_at_top.py`; `tests/test_doc_counts.py`; `tests/fixtures/draw-node-ids.json`; `tests/skills/test_assess_codebase.py:73`; `tests/test_plugin_surface.py:113-119`; 31 test files referencing `commands/`
 - `claude-code/skills/dispatching-parallel-agents/SKILL.md` (:6 `languages:`, :7 `context:`); operational-constraints and system-mapping (`triggers`)
 - `docs/adr/0004-write-a-skill-adoption.md` (→ Superseded); `docs/adr/INDEX.md` (every ADR step)
@@ -268,7 +268,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - `claude-code/hooks/lib/aa-ma-parse.sh` (`aa_ma_debug`, `HOOK_DEBUG` read at :68; `aa_ma_gate` launcher :261); `claude-code/hooks/aa-ma-plan-skip-warn.sh`; `claude-code/hooks/pre-compact-aa-ma.sh`; `tests/hooks/pre-compact.bats:110`; `docs/spec/plan-marker-grammar.md:207`
 - `claude-code/hooks/security-static-check.sh`; `claude-code/agents/security-auditor.md:3,7`; verify-impl SKILL.md (:93-96 window, :205/:211); execute-aa-ma-milestone (:604, :605 conditions 3/4; :611-630 CRITICAL_PATH_REVIEW grep; :661-731 DIAGRAM_VERIFIED fence; :793/:857); sole-dev-merge Stage D (:443-531), `test_stage_d_triage.bats`, `test_smoke_e2e.bats:209`
 - `claude-code/agents/code-reviewer.md` (:91 style-nit ban kept)
-- `packages/codemem-mcp/src/codemem/mcp_tools/__init__.py` (`blast_radius` returns key `downstream` :252; `aa_ma_context` reads `callees` :1287 = carried defect 1); `mcp_tools/sanitizers.py`; `cli.py` (`_cmd_query`; co_changes passed only path+budget :246); `git_mining.py:207-210`; `storage/db.py`; `indexer.py`; `claude-code/codemem/mcp/server.py`
+- `packages/codemem-mcp/src/codemem/mcp_tools/__init__.py` (`blast_radius` returns key `downstream` :252; `aa_ma_context` reads `callees` :1287 = carried defect 1); `mcp_tools/sanitizers.py`; `cli.py` (`_cmd_query`; co_changes passed only path+budget :246); `packages/codemem-mcp/src/codemem/analysis/git_mining.py:207-210`; `storage/db.py`; `indexer.py`; `claude-code/codemem/mcp/server.py`
 - 14-MCP-tool count sites: `tests/codemem/test_mcp_server.py` (`test_thirteen_exact`), SECURITY.md, `claude-code/codemem/README.md:63`, `claude-code/codemem/commands/codemem.md:57`, `packages/codemem-mcp/README.md`, `packages/codemem-mcp/pyproject.toml`, `docs/codemem/install-zero-config.md`; wording in `skills/impact-analysis/SKILL.md:227-232`, `skills/system-mapping/SKILL.md:140`
 - `src/aa_ma/plan_parsers.py`; `src/aa_ma/enforce.py`; `src/aa_ma/render/coverage.py` (`_ROW_RE` :36 Create|Modify only; `contract_paths` :70 drops tests/docs); `src/aa_ma/grammar.py:49` imports plan_parsers (hence new `contract_rows` module)
 - `docs/templates/{reference-template,tasks-template,plan-template}.md`; `claude-code/agents/aa-ma-scribe.md`; `claude-code/hooks/aa-ma-commit-drift.sh`; `scripts/regen-generated.sh`; `scripts/release.sh`

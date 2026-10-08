@@ -261,7 +261,7 @@ Facts checked 2026-10-08: the writing-for-agents-eval map is cleared (4/4 RESOLV
 5. **Commands → skills, all now (Ste):** all 14 `claude-code/commands/*.md` become skill directories, every `/name` unchanged (`disable-model-invocation: true` where user-only). `assess-codebase` and `understand-codebase` merge into their existing skills (the wrapper's unique text moves in, then the wrapper is deleted). A test asserts no name exists as both command and skill. `install.sh`/`uninstall.sh` remove stale command symlinks; hardcoded counts (README, CHANGELOG, SECURITY, foundations, quick-reference, CLAUDE.md) update. The size allowlist carries over to the converted files.
 6. **Rationale:** every MUST/NEVER/ALWAYS rule in skills, commands and rules carries a one-line why or a pointer (L-nnn, ADR, doc URL); §6.8 code-reviewer WARNs on touched markdown; no regex gate.
 7. **Hooks:** each hook header declares event, blocking vs advisory, exit-code meaning (0 / 2; never 1 for a policy), and fail-open behaviour (systemMessage + `lib/log.sh` line). Each hook has a bats test fed a real captured payload (L-1319). Real security gates live in CI/permissions (T10); `security-static-check.sh` is relabelled advisory.
-Evidence: [best-practice](../../../../docs/research/code-conventions-impact-best-practice.md) §3; [writing-for-agents-eval map](../writing-for-agents-eval/writing-for-agents-eval-map.md). Decided with Ste 2026-10-08 (grilling, 3 rounds).
+Evidence: [best-practice](../../../../docs/research/code-conventions-impact-best-practice.md) §3; [writing-for-agents-eval map](../../charting/writing-for-agents-eval/writing-for-agents-eval-map.md). Decided with Ste 2026-10-08 (grilling, 3 rounds).
 
 ## Not yet specified
 

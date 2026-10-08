@@ -1,7 +1,7 @@
 # Where is every coding convention stated today, and where is each one enforced?
 
 **Created:** 2026-10-08
-**Author:** aa-ma-researcher (Claude), for chart effort `code-conventions-impact` (Ticket 1, `.claude/dev/charting/code-conventions-impact/code-conventions-impact-map.md:27`)
+**Author:** aa-ma-researcher (Claude), for chart effort `code-conventions-impact` (Ticket 1, `.claude/dev/active/code-conventions-impact/code-conventions-impact-map.md:27`)
 **Reviewed-Through-Date:** 2026-10-08 (repo at `cb129c1` on `feature/engineering-standards`; `~/.claude` and plugin cache as on disk this date; ruff 0.15.9)
 **Valid-Through:** 2026-Q4 (invalidated by any edit to `claude-code/rules/*.md`, `~/.claude/CLAUDE.md`, `~/.claude/skills/logging-and-comments/`, `pyproject.toml [tool.ruff]`, `.github/workflows/security.yml`, `~/.claude/settings.json` hooks, or a ponytail / security-guidance plugin upgrade)
 **Sources:**

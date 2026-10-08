@@ -35,6 +35,7 @@ Standing decisions from the chart session (Ste, 2026-10-08):
 - [Ticket 10: What is the SecOps baseline, and where does each check run?](#ticket-10-what-is-the-secops-baseline-and-where-does-each-check-run): 4-layer fail-loud baseline (edit/commit/CI/gate) incl. gitleaks, uv --locked + audit, osv-scanner, Dependabot; Ruff S replaces Bandit after a pinned coverage comparison (gap fallback); secops → router, secrets-management adopted, log redaction helpers; boundary validation + asserts; LLM output untrusted; rollout via template.
 - [Ticket 11: How are the design principles stated so they are checkable, and how is the YAGNI-vs-SOLID tension resolved?](#ticket-11-how-are-the-design-principles-stated-so-they-are-checkable-and-how-is-the-yagni-vs-solid-tension-resolved): start concrete, earn abstractions by evidence (Ste's policy); knowledge-DRY now, code ~3rd occurrence; C901/PLR0913 + `# why:`; §2 as heuristic/check table; testing folded in — risk-proportionate TDD, code waiver enum canonical, gate runs tests (TESTS_VERIFIED).
 - [Ticket 13: Where does the reusable-code collection live?](#ticket-13-where-does-the-reusable-code-collection-live): private Carmen uv repo (tag-pinned git source) for library + tested PEP 723 snippets; public-forge router skill with runtime index (ships no names); public copier template repo; forge-canonical generic helpers vendored with drift check; provenance header + denylist/gitleaks/approval gate for client-derived code.
+- [Ticket 14: When does shared code graduate from snippet to module to library?](#ticket-14-when-does-shared-code-graduate-from-snippet-to-module-to-library): snippet → `_experimental` module on evidenced, same-contract reuse; → public API after 2 stable minors + 2 repos; rising tests (griffe at library); SemVer 0.y→1.0; one package + extras; header+licence+test metadata; fix-or-delete in 30 days; router check before new helpers.
 
 ## Tickets
 
@@ -220,10 +221,21 @@ Evidence: [reuse prior art](../../../../docs/research/code-conventions-impact-re
 ### Ticket 14: When does shared code graduate from snippet to module to library?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 5, 13
 #### Question
 Concrete graduation criteria (reuse count, test coverage, API stability, number of consuming projects), the minimum metadata a snippet carries (provenance, licence, tests, owner), versioning for the library tier, and how Claude finds and reuses entries while coding (skill, search, index).
+#### Answer
+- **Tiers (one kit package, T13):** *snippet* = `snippets/` PEP 723 script (copy or `uv run`); *module* = importable under `kit._experimental` (no SemVer promise, may change any release); *library* = the declared public API (SemVer, griffe-checked).
+- **Snippet → module:** evidenced reuse — about the third occurrence or use in 2 different repos (heuristic, per T11) — and every caller wants the same contract (near-fit callers stay snippets; deslop's "reject incompatible contracts"). Each public function gets a pytest.
+- **Module → library:** the contract has held for 2 consecutive minor releases with ≥2 consuming repos.
+- **Tests per tier:** snippet — one runnable test beside the script; module — unit tests per public function + T8 docstring rules; library — those + `griffe check` against the last tag in CI (blocks undeclared breaks, as T7) + CI across supported Pythons + T10's weekly full scan. Network-dependent validators (e.g. `validate_ot_queries.py` pattern) are marked and run on schedule, never as gates.
+- **Versioning:** SemVer via commitizen + conventional commits (the forge's pipeline); 0.y.z until two production repos depend on it, then 1.0.0; deprecations last ≥1 minor release; consumers pin tags.
+- **Granularity:** one package — stdlib-only core (logging, retry, config, provenance) with heavy/domain deps behind extras (e.g. `kit[bio]`, `kit[http]`); split a package out only when an extra's dependencies conflict.
+- **Metadata (every entry):** T13 provenance header (origin, source, date, `approved-by` for client-derived) + licence and upstream URL/SHA when derived from third-party code + path of its test. CI parses the header and fails on a missing field. Owner is implicitly Ste (no field).
+- **Rot:** the weekly scheduled CI opens an issue on a failing test; fix within 30 days or delete — no skip markers. **Demotion (Metz):** a library helper that accretes option flags for near-fit callers is inlined back into those callers and removed.
+- **Reuse-first while coding:** before writing a new generic helper (logging setup, retry, config, ID mapping, API client) Claude consults the router skill, then reuses or vendors an entry, or records "none fits" in one line. A helper written twice is flagged as a snippet candidate by the §6.8 code-reviewer (WARN).
+Evidence: [reuse prior art](../../../../docs/research/code-conventions-impact-reuse-prior-art.md) B1–B6 and "Candidate graduation criteria". Decided with Ste 2026-10-08 (grilling, 3 rounds).
 
 ### Ticket 15: What conventions govern Markdown skills and commands as prompt-as-code?
 - Type: grilling

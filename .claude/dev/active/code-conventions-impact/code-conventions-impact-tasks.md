@@ -71,7 +71,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. RED first: `tests/test_precommit_config.py` 4 failed. `[tool.uv] dev-dependencies` (10 entries, comments kept) merged into `[dependency-groups] dev`; added `pre-commit>=4.5` (locks 4.6.2, not the conda 4.5.1) and `bandit==1.9.4`. `uv lock` diff = additions only (bandit, cfgv, distlib, filelock, identify, nodeenv, pre-commit, python-discovery, stevedore, virtualenv), no upgrades. `uv sync --locked` rc=0; `uv run which bandit` → `.venv/bin/bandit`; `uv run true` prints 0 deprecation warnings. Now 3 passed / 1 failed (hook-id test, green in 1.3 by design). `pre-commit install` not run (Sub-step 2.0).
 
 ### Sub-step 1.3: Harness (TDD)
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.2
 - Acceptance Criteria:
@@ -83,10 +83,10 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `.pre-commit-config.yaml` hooks, all `repo: local`: `ruff-check` (`uv run ruff check`, `types: [python]`), `ruff-format` (`uv run ruff format --check`), `shellcheck` (`language: system`, `types: [shell]`), `check-conventions` (`uv run python scripts/check_conventions.py`).
   - `uv run pre-commit run --files <the M1 files>` exits 0 (no `--all-files`; that would be a backfill).
   - If `docs/architecture/` changes, `scripts/regen-generated.sh` is run.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. RED first: `tests/scripts/test_check_conventions.py` collection error (script absent). `scripts/check_conventions.py` (stdlib-only, +x) → 14/14 pass: staged mode returns only added lines for modify/add/rename-with-edit/delete (`renamed.py` → {3} only; deleted file absent); `--from-ref/--to-ref` == staged on the same change; FILE filter; three-dot ignores base-branch progress; a `++…` content line is not taken for a header; exit 0 + `check_conventions: 0 checks enabled` (stderr); no refs + nothing staged → exit 2 "no diff source"; refs `no-such-ref`, `--output=/tmp/pwned`, `HEAD:mod.py` → exit 2 (verified via `rev-parse --verify --end-of-options <ref>^{commit}`); lone `--from-ref` → 2; env beats staged, flags beat env; a stub check → exit 1 with `path:line: CODE message`. Paths via `--name-status -z -M`, `--literal-pathspecs`. `.pre-commit-config.yaml`: 4 `repo: local` hooks (`language: system`; no deprecation warning from pre-commit 4.6.2, `validate-config` rc=0). `tests/test_precommit_config.py` now 4/4. `pre-commit run --files <7 M1 files>` first run caught TRY400 in the new script (fixed with `# why:` + `noqa: TRY400`; RUF100-clean under project config), then rc=0. `codemem draw --check` showed DRIFT in docs/architecture/io.md (new script node) → `scripts/regen-generated.sh` rc=0; 4 docs/architecture files regenerated; `draw --check` clean.
 
 ### Sub-step 1.4: CI job `touched`
-- Status: PENDING
+- Status: IN_PROGRESS
 - Mode: AFK
 - Dependencies: Sub-step 1.3
 - Acceptance Criteria:

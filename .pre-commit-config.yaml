@@ -1,0 +1,26 @@
+# Touched-files lint harness (code-conventions-impact M1, ADR-0018).
+# Locally pre-commit checks staged files; CI's `touched` job runs it over the PR diff
+# with --from-ref/--to-ref. Untouched files are never linted against new rules (D8).
+# Every hook is `repo: local` so it runs the uv-locked tool, never a hook repo's own pin.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format --check
+        entry: uv run ruff format --check
+        language: system
+        types: [python]
+      - id: shellcheck
+        name: shellcheck
+        entry: shellcheck
+        language: system
+        types: [shell]
+      - id: check-conventions
+        name: check_conventions (added lines only)
+        entry: uv run python scripts/check_conventions.py
+        language: system

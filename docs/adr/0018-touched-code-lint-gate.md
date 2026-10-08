@@ -42,8 +42,13 @@ need line granularity (M6's `WHY001`, `TODO001`) run in `scripts/check_conventio
 reads the same refs from `PRE_COMMIT_FROM_REF`/`PRE_COMMIT_TO_REF` and checks only added lines.
 
 Compliance is **file-level** for the whole-file tools (D8): a touched file passes `ruff check`,
-`ruff format --check` and `shellcheck` in full. This adds no churn: the edit-time `ruff-format`
-hook already reformats the whole file on every Edit.
+`ruff format --check` and `shellcheck` in full. The first touch of an old file carries its debt.
+Measured on 2026-10-08: `ruff format --check .` would reformat 113 files (35 under
+`src`/`packages`/`scripts`, 77 under `tests`), and `ruff check .` reports 39 findings. Edits made
+through Claude Code are formatted by the edit-time `ruff-format` hook. A `git mv`, a `sed` or a
+manual edit is not, so format the file in the same change. `shellcheck` skips `.bats` files
+(`exclude_types: [bats]`): bats syntax is not plain shell, and CI's ShellCheck job has only ever
+covered `*.sh`. 19 of 31 `.bats` files fail shellcheck today; that debt is known and unlinted.
 
 ## Pros and Cons of the Options
 
@@ -77,6 +82,8 @@ hook already reformats the whole file on every Edit.
   `main` through a PR (`/sole-dev-merge`), where `touched` has already run.
 - `pre-commit run --all-files` is a backfill and is not part of any gate. With nothing staged
   and no refs, `check-conventions` exits 2 ("no diff source"): it needs a diff, not a file list.
+  The same holds for `pre-commit run --files X` with nothing staged; stage the change or set
+  `PRE_COMMIT_FROM_REF`/`PRE_COMMIT_TO_REF`.
 
 **Neutral:**
 - Touched `.sh` files are shellchecked twice on a PR: by the all-files `shellcheck` job and

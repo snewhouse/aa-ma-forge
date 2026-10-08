@@ -52,3 +52,15 @@ def test_precommit_hooks_are_local_and_complete() -> None:
             found[hook["id"]] = repo["repo"]
     assert HOOK_IDS <= set(found)
     assert all(found[hook_id] == "local" for hook_id in HOOK_IDS)
+
+
+def test_shellcheck_hook_skips_bats() -> None:
+    # why: identify tags .bats as `shell`; bats syntax is not plain shell, and CI's
+    # ShellCheck job has only ever covered *.sh (19 of 31 .bats files fail today).
+    config = yaml.safe_load(
+        (REPO / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    )
+    hook = next(
+        h for r in config["repos"] for h in r["hooks"] if h["id"] == "shellcheck"
+    )
+    assert "bats" in hook.get("exclude_types", [])

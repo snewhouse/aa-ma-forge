@@ -20,6 +20,7 @@ repos:
         entry: shellcheck
         language: system
         types: [shell]
+        exclude_types: [bats]   # bats is not plain shell; 19 of 31 .bats fail shellcheck (ADR-0018)
       - id: check-conventions
         name: check_conventions (added lines only)
         entry: uv run python scripts/check_conventions.py

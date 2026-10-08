@@ -11,7 +11,7 @@ FILE arguments filter the diff. Untouched lines are never checked (D8: no backfi
 Exit codes: 0 clean | 1 findings (``path:line: CODE message`` on stdout) |
 2 usage or git error, including "no diff source".
 
-Stdlib only: pre-commit runs it before the venv is guaranteed to be synced.
+Stdlib only, so it stays a leaf: no import from aa_ma or codemem, any python3 runs it.
 """
 
 from __future__ import annotations
@@ -118,21 +118,18 @@ def added_lines(
     old path, so moving a file does not make every line in it "touched".
     """
     wanted = set(files) if files else None
-    tokens = _git_out(["diff", "--name-status", "-z", "-M", *range_args], cwd).split(
+    # why: same -z token walk as src/aa_ma/analysis/changed.py (not imported: this
+    # script stays stdlib-only); keep the two in step.
+    fields = _git_out(["diff", "--name-status", "-z", "-M", *range_args], cwd).split(
         "\0"
     )
     result: dict[str, dict[int, str]] = {}
     i = 0
-    while (
-        i < len(tokens) - 1
-    ):  # why: -z output ends with a NUL, leaving one empty token
-        status = tokens[i]
-        if status.startswith("R"):
-            paths = tokens[i + 1 : i + 3]
-            i += 3
-        else:
-            paths = tokens[i + 1 : i + 2]
-            i += 2
+    while i < len(fields) and fields[i]:
+        status = fields[i]
+        width = 2 if status[0] in "RC" else 1
+        paths = fields[i + 1 : i + 1 + width]
+        i += 1 + width
         path = paths[-1]
         if status.startswith("D") or (wanted is not None and path not in wanted):
             continue

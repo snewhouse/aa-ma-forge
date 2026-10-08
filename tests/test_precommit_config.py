@@ -23,6 +23,7 @@ def _pyproject() -> dict:
 def _dev_group_names() -> set[str]:
     names = set()
     for spec in _pyproject()["dependency-groups"]["dev"]:
+        # why: strip the PEP 508 specifier, extras and markers to the bare name.
         names.add(re.split(r"[<>=!~\[ ;]", spec, maxsplit=1)[0].lower())
     return names
 

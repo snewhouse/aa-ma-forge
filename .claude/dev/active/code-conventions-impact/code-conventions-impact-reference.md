@@ -36,6 +36,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | Measure | Value | Marker |
 |---------|-------|--------|
 | `uv run pytest -q` | 2429 passed, 5 skipped, 7 deselected in 112.5 s | [valid: 2026-10-08] |
+| M1 BASELINE (provenance) | pytest 2429/5/7, ruff src+packages 4, Ruff S 34, shellcheck 0 (24 .sh), rules_chars 20249 | [valid: 2026-10-08] |
 | Ruff S findings (`ruff check --isolated --select S src packages scripts`) | 34 | [valid: 2026-10-08] |
 | Oversized prompt files (lines) | aa-ma-execution 1295, execute-aa-ma-milestone 1244, aa-ma-plan 1154, sole-dev-merge 1054, execute-aa-ma-full 757, plan-verification 608 | [valid: 2026-10-08] |
 | Existing >100-line references without a TOC | 23 (go into `TOC_ALLOWLIST (23 at plan time; 24 after M2 imports logging-and-comments/references/python.md)`) | [valid: 2026-10-08] |
@@ -58,7 +59,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | gitleaks (local) | 8.18.0 | conda, not in venv; 8.18 has no `git` subcommand (use `detect` / `protect`) | [valid: 2026-10-08] |
 | gitleaks (CI + pre-commit) | v8.18.4 | tarball, sha256 verified | [valid: 2026-10-08] |
 | shellcheck | 0.11.0 | conda/system; pre-commit `language: system` | [valid: 2026-10-08] |
-| pre-commit | 4.5.1 (conda) | added to `[dependency-groups] dev` in M1.2 | [valid: 2026-10-08] |
+| pre-commit | 4.6.2 (uv.lock; conda has 4.5.1 — never used) | added to `[dependency-groups] dev` in M1.2 (`pre-commit>=4.5`) | [valid: 2026-10-08] |
 | bandit | 1.9.4 | resolves to conda today; pinned `bandit==1.9.4` in dev group in M1.2 | [valid: 2026-10-08] |
 | griffe | absent | added (pinned) to dev group in M10.7 | [valid: 2026-10-08] |
 | osv-scanner | absent | YAGNI for the forge (P7) | [valid: 2026-10-08] |
@@ -231,7 +232,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 | pip-audit | (locked in dev group) | Dev-only | hashed dependency audit (A6 fallback) [valid: 2026-10-08] |
 | griffe | pinned in M10.7 | Dev-only | API diff for `aa_ma` and `codemem` (P6) [valid: 2026-10-08] |
 | codemem-mcp | workspace member | Dev-only for `aa_ma` | `pyproject.toml:56`; aa_ma shells out to its CLI, never imports it [valid: 2026-10-08] |
-| GitHub Actions | `astral-sh/setup-uv@<sha>`, `actions/checkout@<sha>` | CI | SHA-pinned; `persist-credentials: false` [valid: 2026-10-08] |
+| GitHub Actions | `astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7` (v10.2.0), `actions/checkout@11d5960…` (v4.4.0) | CI | SHA-pinned; `persist-credentials: false` [valid: 2026-10-08] |
 
 ## File Paths
 

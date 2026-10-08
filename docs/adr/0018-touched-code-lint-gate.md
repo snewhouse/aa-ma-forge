@@ -21,7 +21,7 @@ without a second tool deciding what "changed" means locally versus in CI?**
 - **One definition of "touched"** shared by the local commit and CI, so a commit that passes
   locally does not fail in CI over a different file set.
 - **No backfill.** Old debt is paid when a file is next edited, not in a sweep.
-- **One tool version.** Ruff comes from `uv.lock` (0.15.9), never the conda copy on PATH.
+- **One tool version.** Ruff comes from `uv.lock`, never a copy on PATH.
 - **Fail loud.** A gate that cannot run must not pass (L-012).
 
 ## Considered Options
@@ -73,9 +73,12 @@ hook already reformats the whole file on every Edit.
 - **Untouched files are no longer linted in CI.** The removed `ruff` job checked all of `src/`
   on every PR; now a file is checked only when a PR touches it. Full-repo **Ruff S** returns
   as its own CI job in M8.
-- `pre-commit run --all-files` is a backfill and is not part of any gate.
+- `pre-commit run --all-files` is a backfill and is not part of any gate. With nothing staged
+  and no refs, `check-conventions` exits 2 ("no diff source"): it needs a diff, not a file list.
 
 **Neutral:**
+- Touched `.sh` files are shellchecked twice on a PR: by the all-files `shellcheck` job and
+  by the hook. The overlap is deliberate; the hook also covers extensionless shell scripts.
 - `pre-commit install` (the local git hook) runs from the main checkout after merge (M2.0),
   not inside a worktree.
 
@@ -86,5 +89,5 @@ hook already reformats the whole file on every Edit.
 - `scripts/check_conventions.py` — stdlib-only added-lines extractor; exit 0 clean / 1 findings
   / 2 usage or git error (incl. "no diff source"). Ships zero checks.
 - `.github/workflows/security.yml` — job `touched` (pull_request only, `fetch-depth: 0`,
-  `persist-credentials: false`, uv 0.12.3) replaces job `ruff`.
+  `persist-credentials: false`, uv pinned in the job) replaces job `ruff`.
 - Tests: `tests/scripts/test_check_conventions.py`, `tests/test_precommit_config.py`.

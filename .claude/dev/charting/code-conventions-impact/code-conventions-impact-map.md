@@ -22,52 +22,63 @@ Standing decisions from the chart session (Ste, 2026-10-08):
 
 <!-- one line per RESOLVED ticket, newest last -->
 
+- [Ticket 1: Where is every coding convention stated today, and where is each one enforced?](#ticket-1-where-is-every-coding-convention-stated-today-and-where-is-each-one-enforced): ~8.8k auto-loaded tokens; real standard is global-only; enforcement thin (bandit `|| true`, D1xx ignored); ponytail↔SOLID/TDD and debug-env-var contradictions.
+- [Ticket 4: What is the state of impact analysis now, and which code-writing skills invoke it?](#ticket-4-what-is-the-state-of-impact-analysis-now-and-which-code-writing-skills-invoke-it): most gaps still open; `aa_ma_context` callees/downstream key bug; no general coding skill invokes it; cheapest wins = co_changes, who_calls pre-edit, path tagging.
+- [Ticket 3: What should the short TS/JS, R and SQL convention cards contain?](#ticket-3-what-should-the-short-tsjs-r-and-sql-convention-cards-contain): cards drafted (TS strict+typescript-eslint+pino, R Air/lintr/roxygen2/logger/renv, SQLFluff+dbt style); conflicts = pino stdout, @param vs Args:, SQL keyword case.
+- [Ticket 5: What reusable code exists today, and how do others curate and graduate it?](#ticket-5-what-reusable-code-exists-today-and-how-do-others-curate-and-graduate-it): nothing packaged; ~3k untested snippet fences in skills; git-HEAD helper ×6 is the first real graduation candidate; copier + uv workspaces are the viable distribution paths.
+- [Ticket 2: How do our Python, Bash and Markdown-skill conventions compare with current best practice?](#ticket-2-how-do-our-python-bash-and-markdown-skill-conventions-compare-with-current-best-practice): text is strong, enforcement is not — 4 silent-pass security checks, no supply-chain layer, 6 oversized skills, no skill evals; 19 prioritised actions.
+
 ## Tickets
 
 ### Ticket 1: Where is every coding convention stated today, and where is each one enforced?
 - Type: research
 - Mode: AFK
-- Status: CLAIMED
-- Claimed-at: 2026-10-08T10:49
+- Status: RESOLVED
 - Blocked-by: —
 #### Question
 Inventory every source that states a coding convention for Claude or for code in Ste's projects: `claude-code/rules/*.md`, `~/.claude/CLAUDE.md`, `~/.claude/rules/*.md`, forge skills (`operational-constraints`, `defense-in-depth`, `system-mapping`, `impact-analysis`) and global-only skills (`logging-and-comments` + `references/ruff-baseline.toml`, `python-quality-gates`, `bash-defensive-patterns`, `secrets-management`, `senior-secops`, `deslop-shared-libs`, `ponytail`), plus the mechanical layer (`pyproject.toml` ruff config, `.github/workflows/*`, `claude-code/hooks/security-static-check.sh`, pre-commit if any). For each topic — comments, docstrings, logging, security/SecOps, KISS/DRY/SOLID/SoC, testing — record: where it is stated (file:line), whether it is auto-loaded or on-demand, whether anything enforces it (lint rule / CI job / hook / gate / nothing), and every duplication or contradiction between sources. Count auto-loaded tokens for the rule files. Output: `docs/research/code-conventions-impact-inventory.md`.
+#### Answer
+Seven files auto-load every session (~8.8k tokens; ~12.2k here with project CLAUDE.md + ponytail's SessionStart injection). The real comments/docstring/logging standard lives only in global `logging-and-comments`. Mechanical enforcement is thin: ruff on `src/` only with D101–D107 ignored (`pyproject.toml:83`), `packages/` unchecked by CI; ShellCheck; a 5-pattern commit hook; bandit runs with `|| true` so it can never fail CI (`security.yml:39`); pytest/bats; import-linter. Unenforced: why-comments, `# why:` on suppressions, secrets-in-logs, KISS justification; "tests passing — HARD" is a comment in the §6.7 gate. Contradictions: ponytail vs SOLID and TDD depth; TDD-Waiver enum vs the rule's skip list; 4 debug env-var names, log formats and hook-log paths disagree; the ruff edit hook discards findings the skill says it reports. See [docs/research/code-conventions-impact-inventory.md](../../../../docs/research/code-conventions-impact-inventory.md). Two claims spot-checked by hand 2026-10-08.
 
 ### Ticket 2: How do our Python, Bash and Markdown-skill conventions compare with current best practice?
 - Type: research
 - Mode: AFK
-- Status: CLAIMED
-- Claimed-at: 2026-10-08T10:49
+- Status: RESOLVED
 - Blocked-by: —
 #### Question
 Against primary sources, state current best practice and gap-check what we ship, per topic. Python: PEP 8/257, Google Python Style Guide, numpydoc, the logging HOWTO and "logging in libraries" guidance, Ruff rule families (D, S, BLE, G, T20, LOG, TRY), Bandit, pip-audit/uv audit. Bash: Google Shell Style Guide, ShellCheck, `set -euo pipefail` caveats. Markdown skills/commands: Anthropic's skill-authoring guidance and Claude Code docs on skills/commands/hooks (prompt-as-code: frontmatter, progressive disclosure, testability). SecOps: OWASP ASVS / Top 10, NIST SSDF (SP 800-218), OpenSSF Scorecard, secret scanning (gitleaks), dependency pinning and supply chain. Design principles: KISS/DRY/SOLID/SoC, rule of three, YAGNI — including published critiques (e.g. DRY's wrong-abstraction cost). Use the Ticket 1 sources list if resolved; otherwise read the skills directly. Output: `docs/research/code-conventions-impact-best-practice.md` with a strengths / weaknesses / trade-offs table per topic.
+#### Answer
+On paper our conventions match or beat current guidance (logging/comments standard aligns with the Python logging docs, PEP 8, Google style, Claude Code hooks docs). Four places break our own no-silent-failure rule: CI Bandit runs `|| true`; the `secrets-management` TruffleHog example lacks `--fail` so cannot block; `senior-secops/scripts/security_scanner.py` is a stub whose `analyze()` hard-codes `findings = []` (always clean); CI Ruff checks `src/` only (all three spot-checked 2026-10-08). Biggest best-practice gaps: no supply-chain checks (no `uv sync --locked`, dependency audit, Dependabot or repo secret scan); bash skills omit `set -e` pitfalls; the documented `TODO(ADR-0014)` format fails Ruff TD003; 6 skill/command files exceed the 500-line guideline (aa-ma-execution 1295, execute-aa-ma-milestone 1244, aa-ma-plan 1154, sole-dev-merge 1054, execute-aa-ma-full 757, plan-verification 608); unknown frontmatter keys (`triggers`) silently ignored; `dispatching-parallel-agents` misuses `context:`; no skill has behavioural evals. Ends with 19 prioritised keep/change/add/drop actions, each naming its enforcing tool (Ruff S/D/RUF100/PGH, ShellCheck optional checks, `uv sync --locked`, `uv audit`, gitleaks, Dependabot, extended frontmatter pytest). See [docs/research/code-conventions-impact-best-practice.md](../../../../docs/research/code-conventions-impact-best-practice.md).
 
 ### Ticket 3: What should the short TS/JS, R and SQL convention cards contain?
 - Type: research
 - Mode: AFK
-- Status: CLAIMED
-- Claimed-at: 2026-10-08T10:49
+- Status: RESOLVED
 - Blocked-by: —
 #### Question
 For each of TS/JS, R and SQL, find the de-facto standard tooling and idiom from primary sources: formatter, linter and its security rules, doc-comment format (TSDoc/JSDoc, roxygen2, SQL comment conventions), logging idiom, test runner, dependency audit. Candidates to verify, not assume: TypeScript + typescript-eslint + Prettier/Biome, TSDoc, pino; tidyverse style guide + lintr + styler + roxygen2 + logger; sqlfluff + dialect choice. Keep each card to what a one-page reference can carry. Output: `docs/research/code-conventions-impact-language-cards.md`.
+#### Answer
+Three one-page cards, 68 primary-source URLs. **TS/JS:** `strict` (default since TS 6.0) + `noUncheckedIndexedAccess`; typescript-eslint type-checked config on ESLint v10; Prettier *or* Biome, never both; TSDoc (.ts) / JSDoc (.js); pino to stderr; Vitest; `npm`/`pnpm audit` + minimum release age; eslint-plugin-security advisory only (false positives). **R:** tidyverse style, Air formatter (pre-1.0; styler fallback), lintr, roxygen2, logger (stderr, JSON layout), testthat 3e, renv, osv-scanner on `renv.lock` (riskmetric is quality scoring, not audit). **SQL:** SQLFluff with explicit dialect, dbt style (lowercase, trailing commas, CTEs), parameterised queries + allow-listed identifiers, docs in the catalogue (`COMMENT ON` / dbt `persist_docs`), dbt unit tests or pgTAP. Conflicts with the Python conventions: pino defaults to stdout (vs logs→stderr); Google `Args:` vs `@param` tag vocabularies; ruff TODO check has no equivalent elsewhere; SQL guides disagree on keyword case (sqlstyle.guide — Simon Holywell, not Mazur — wants UPPERCASE). Repo has no pre-commit config; Air and SQLFluff ship pre-commit hooks; one osv-scanner CI job covers JS lockfiles and `renv.lock`. See [docs/research/code-conventions-impact-language-cards.md](../../../../docs/research/code-conventions-impact-language-cards.md).
 
 ### Ticket 4: What is the state of impact analysis now, and which code-writing skills invoke it?
 - Type: research
 - Mode: AFK
-- Status: CLAIMED
-- Claimed-at: 2026-10-08T10:49
+- Status: RESOLVED
 - Blocked-by: —
 #### Question
 Update `docs/research/impact-analysis-lifecycle-review.md` to today without rewriting it: for each gap 1–7 and recommendation R1–R6, is it fixed, partly fixed or open as of HEAD (git log since c0ec3f2; M13 commit 33465fe made codemem the default in impact-analysis/system-mapping — did that fix gap 3 and gap 7?). Then list every skill or command that writes or edits code (forge and global: `test-driven-development`, `superpowers:*`, `subagent-driven-development`, `executing-plans`, `please_proceed`, `execute-aa-ma-step/milestone/full`, `systematic-debugging`, `prototype`, …) and say whether each invokes impact analysis, at which point (pre-edit, post-edit, review) and how. Finally, summarise how established practice handles change-impact analysis at author time (static call graphs, co-change mining, test impact analysis / test selection, API/contract diffing, security-sensitive-path tagging) with primary sources. Output: `docs/research/code-conventions-impact-impact-status.md`.
+#### Answer
+Since the 2026-09-24 review: gap 3 partly fixed (M13 `33465fe` + `1fbd62b` put codemem into impact-analysis, system-mapping, aa-ma-plan and the §6.3 pre-check; Angle 3, Phase 3.5, execute-full §C and execute-step still grep). Gap 7 fixed in docs only: codemem `blast_radius` still returns callees, and `aa_ma_context` reads `blast.get("callees")` (`packages/codemem-mcp/src/codemem/mcp_tools/__init__.py:1287`) while the tool returns key `downstream` (line 252) — so it always reports 0 (verified by reading 2026-10-08; a bug outside charting scope, carried to the plan). Gaps 1, 2, 4, 5, 6 and R1–R4, R6 open; R5 partial. Invokers: only AA-MA milestone/full (post-edit) and global safe-refactoring, api-spec-workflow, triage-issue, please_proceed, rigor (pre-edit), all as prose; superpowers TDD/executing-plans/subagent-driven-development/systematic-debugging, mattpocock tdd, both prototype skills and gsd executors never invoke it. Cheapest additions: codemem `co_changes` in §6.3 (README co-changes with stale-count docs), a `who_calls` pre-edit check whose test callers become tests-to-run-first, path-glob tagging to Critical-Path; `griffe check` and testmon cost more. See [docs/research/code-conventions-impact-impact-status.md](../../../../docs/research/code-conventions-impact-impact-status.md).
 
 ### Ticket 5: What reusable code exists today, and how do others curate and graduate it?
 - Type: research
 - Mode: AFK
-- Status: CLAIMED
-- Claimed-at: 2026-10-08T10:49
+- Status: RESOLVED
 - Blocked-by: —
 #### Question
 Find what already exists: global skills that hold code (`pharma-use-case-library`, `terraform-module-library`, `deslop-shared-libs`, others), any snippet/utility directories under `~/.claude`, `~/dev/carmen-provenance-labs/*` and this repo (e.g. helpers duplicated across `src/` and `packages/`), and duplicated functions across Carmen projects (name and file, never client data). Then prior art for curation and graduation: rule of three, internal packages via uv workspaces or a private index, copier/cookiecutter templates, git subtree vs package, GitHub gists, "inner source" practice, semantic versioning for internal libs, and what keeps a snippet collection from rotting (tests, provenance, ownership). Output: `docs/research/code-conventions-impact-reuse-prior-art.md`.
+#### Answer
+Nothing reusable is packaged or versioned: ~3,037 untested Python fences live as prose in global skill `references/`; retry/rate-limit helpers recur in ~14 skills, logging setup in 6, Ensembl/ID mapping in 3–4. The three named library skills hold no executable code. Only 2 Carmen repos exist (1 with Python), so cross-Carmen duplication is not yet measurable. Strongest real duplicate: a git-HEAD/provenance helper written ~6 times (5 across this repo's `src/` and `packages/`, 1 in Carmen; spot-check found 6 forge files calling `rev-parse HEAD`), only one with a timeout and env scrubbing; placement is constrained because codemem must stay installable without `aa_ma`. Prior art: rule of three vs Metz's wrong abstraction; 10 distribution options compared (copier and uv workspaces have real update paths; gists and submodules weak); InnerSource, SemVer, rot evidence; Skills/MCP for AI discovery. Graduation criteria listed as options, not decided. Names only recorded for Carmen repos (confidentiality). See [docs/research/code-conventions-impact-reuse-prior-art.md](../../../../docs/research/code-conventions-impact-reuse-prior-art.md).
 
 ### Ticket 6: Should impact analysis be an explicit step inside the coding skills, and at which points?
 - Type: grilling

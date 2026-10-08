@@ -8,6 +8,8 @@ A locked decision — fork verbatim, derive, or skip mattpocock/skills `writing-
 
 Domain: aa-ma-forge skill adoption (ADR-0004 `write-a-skill` is a Derived orphan of this very skill's ancestor). Skills to consult: aa-ma-research, grill-with-docs. Standing preferences: verbatim forks are recorded in `claude-code/skills/FORKS.json` with an ADR; Ste prefers prototypes over speculation; no rewrite of existing skills in this effort.
 
+**Folded (2026-10-08):** these decisions are executed by the `code-conventions-impact` plan (its Ticket 15), not by a separate `/aa-ma-plan --from-map writing-for-agents-eval`.
+
 ## Decisions so far
 
 - [Ticket 1: What does writing-for-agents contain at c55ee46, and how much overlaps what we ship?](#ticket-1-what-does-writing-for-agents-contain-at-c55ee46-and-how-much-overlaps-what-we-ship): mostly new rules, 3 direct conflicts with skill-developer/write-a-skill, zero text overlap with our fork (lineage rewritten upstream at 1.0.0) — research file linked.

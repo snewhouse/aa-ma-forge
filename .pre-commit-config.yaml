@@ -24,3 +24,4 @@ repos:
         name: check_conventions (added lines only)
         entry: uv run python scripts/check_conventions.py
         language: system
+        require_serial: true   # one process: each run re-reads the whole diff

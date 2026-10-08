@@ -132,11 +132,12 @@ def test_cli_no_diff_source_exits_2(repo: Path) -> None:
     assert "no diff source" in proc.stderr
 
 
-@pytest.mark.parametrize("bad", ["no-such-ref", "--output=/tmp/pwned", "HEAD:mod.py"])
-def test_cli_rejects_unverifiable_refs(repo: Path, bad: str) -> None:
-    proc = run_cli(repo, "--from-ref", bad, "--to-ref", "HEAD")
+@pytest.mark.parametrize("bad", ["no-such-ref", "--output={sink}", "HEAD:mod.py"])
+def test_cli_rejects_unverifiable_refs(repo: Path, tmp_path: Path, bad: str) -> None:
+    sink = tmp_path / "pwned"
+    proc = run_cli(repo, "--from-ref", bad.format(sink=sink), "--to-ref", "HEAD")
     assert proc.returncode == 2
-    assert not Path("/tmp/pwned").exists()
+    assert not sink.exists()
 
 
 def test_cli_one_ref_alone_is_usage_error(repo: Path) -> None:

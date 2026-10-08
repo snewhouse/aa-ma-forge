@@ -51,7 +51,8 @@ members = ["packages/codemem-mcp"]
 codemem-mcp = { workspace = true }
 
 [tool.ruff.lint]
-# Logging + comment hygiene (logging-and-comments standard). CI runs `ruff check src/`.
+# Logging + comment hygiene (logging-and-comments standard). CI's `touched` job runs
+# `ruff check` (via pre-commit) on every file a PR touches (ADR-0018).
 # T201 has only an unsafe fix, so `ruff check --fix` reports prints and never deletes them.
 extend-select = [
     "LOG",              # logger misuse: Logger() direct, getLogger without __name__, root-logger calls

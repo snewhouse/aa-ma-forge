@@ -37,6 +37,7 @@ Standing decisions from the chart session (Ste, 2026-10-08):
 - [Ticket 13: Where does the reusable-code collection live?](#ticket-13-where-does-the-reusable-code-collection-live): private Carmen uv repo (tag-pinned git source) for library + tested PEP 723 snippets; public-forge router skill with runtime index (ships no names); public copier template repo; forge-canonical generic helpers vendored with drift check; provenance header + denylist/gitleaks/approval gate for client-derived code.
 - [Ticket 14: When does shared code graduate from snippet to module to library?](#ticket-14-when-does-shared-code-graduate-from-snippet-to-module-to-library): snippet → `_experimental` module on evidenced, same-contract reuse; → public API after 2 stable minors + 2 repos; rising tests (griffe at library); SemVer 0.y→1.0; one package + extras; header+licence+test metadata; fix-or-delete in 30 days; router check before new helpers.
 - [Ticket 15: What conventions govern Markdown skills and commands as prompt-as-code?](#ticket-15-what-conventions-govern-markdown-skills-and-commands-as-prompt-as-code): fold writing-for-agents-eval in; 500-line cap + ratchet; strict frontmatter schema test; ≥3 `claude plugin eval` cases for gate skills (scheduled, not gating); all 14 commands → skills now; why-or-pointer on MUST rules; declared hook contract + real-payload bats.
+- [Ticket 12: How is the coding doctrine packaged — one rule, per-topic skills, language cards — within an auto-load token budget?](#ticket-12-how-is-the-coding-doctrine-packaged--one-rule-per-topic-skills-language-cards--within-an-auto-load-token-budget): thin auto-loaded `coding-standards.md` (≤~1.5k tok) + on-demand topic skills + `language-conventions` with per-language refs; state-once dedupe incl. global CLAUDE.md (HITL) + budget ratchet test; 7 global skills + ruff hook migrate (verify origin → Fork or Adoption, full backups); ponytail declared-external.
 
 ## Tickets
 
@@ -196,10 +197,16 @@ Evidence: [best-practice](../../../../docs/research/code-conventions-impact-best
 ### Ticket 12: How is the coding doctrine packaged — one rule, per-topic skills, language cards — within an auto-load token budget?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 1, 8, 9, 10, 11, 15
 #### Question
 What is auto-loaded (rules) vs on-demand (skills, cards), how large the auto-loaded part may be, how global-only skills migrate into the forge (move, symlink, declared-external) and get tests, and how the language cards from Ticket 3 are reached.
+#### Answer
+- **Shape: thin rule + topic skills.** New auto-loaded `claude-code/rules/coding-standards.md` (≤ ~1,500 tokens) holds the non-negotiables, the T11 principles table + conflict-resolution policy, and a "when X, load Skill(Y)" routing table. `engineering-standards.md` keeps the AA-MA process doctrine; its §2 becomes a pointer. Detail lives in on-demand skills: `logging-and-comments`, `secrets-management`, the secops router, `impact-analysis`, `writing-for-agents`, the reuse router (T13), and a new `language-conventions` skill — short language-neutral core SKILL.md + `references/{python,bash,markdown,typescript,r,sql}.md` loaded by file type; the Python/Bash/Markdown cards point to the topic skills rather than repeat them.
+- **Budget and dedupe:** every convention is stated once. The global `~/.claude/CLAUDE.md` "Coding & Architecture" section shrinks to a pointer — the plan backs the file up, shows Ste the diff and applies it only after his OK (outside the repo; HITL). `operational-constraints` drops its restated KISS/DRY/SOLID/comments (T1: it claims not to duplicate but does). A pytest measures the chars of the shipped auto-loaded rules and fails over budget — a ratchet on today's ~12.2k-token total (T1 §1).
+- **Migration (graduates the last fog bullet):** seven global-only skills move into `claude-code/skills/` — `logging-and-comments`, `secrets-management`, `senior-secops` (→ router, T10), `python-quality-gates`, `bash-defensive-patterns`, `llm-output-safety`, `deslop-shared-libs` — plus the `ruff-format.sh` hook (T9). Per item: establish origin with evidence (frontmatter markers, file history, upstream search). Upstream-derived → **Fork** (FORKS.json row with upstream/SHA/md5 + licence check before edits; `deslop-shared-libs` is marked gstack-origin; `bash-defensive-patterns`, `secrets-management`, `senior-secops` names suggest community origin — unverified). Ste-authored → **Adoption**. Every move: whole-directory backup first (L-1300, count-verified); `install.sh` replaces the global dir with a symlink, backing up the original; the T15 frontmatter test covers them; gate/high-traffic skills get T15 evals.
+- **Ponytail:** declared-external (plugin-surface allowlist). `coding-standards.md` states the T8/T11 reconciliation itself (code docs exempt from the prose rule; abstractions earned by evidence; testing floor), so the rule holds with ponytail on or off.
+Evidence: [inventory](../../../../docs/research/code-conventions-impact-inventory.md) §1 (auto-load costs) and the duplication findings throughout. Decided with Ste 2026-10-08 (grilling, 3 rounds).
 
 ### Ticket 13: Where does the reusable-code collection live?
 - Type: grilling
@@ -258,7 +265,6 @@ Evidence: [best-practice](../../../../docs/research/code-conventions-impact-best
 
 ## Not yet specified
 
-- Migration mechanics for global-only skills into the forge (tests, FORKS.json rows, install.sh changes) — sharpens once Ticket 12 decides packaging.
 
 ## Out of scope
 

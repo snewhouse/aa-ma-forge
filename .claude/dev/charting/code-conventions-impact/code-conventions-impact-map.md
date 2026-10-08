@@ -16,6 +16,7 @@ Standing decisions from the chart session (Ste, 2026-10-08):
 - **Tiered language depth.** Full conventions for Python, Bash and Markdown skills/commands; TS/JS and R/SQL get the language-neutral core plus a short per-language card.
 - **Touched code only.** New and modified code must comply; a lint baseline freezes existing debt; backfill is out of scope.
 - **Reuse scope** covers generic utilities, biomedical helpers, genericized client code and templates/scaffolds. Client-derived code is confidential until genericized — this constrains where the collection may live.
+- **Defects carried to the plan** (found by T2/T4 research, deferred by Ste 2026-10-08; charting does not fix them): (1) `packages/codemem-mcp/src/codemem/mcp_tools/__init__.py:1287` — `aa_ma_context` reads `callees` but `blast_radius` returns `downstream` (line 252), so its count is always 0; (2) `~/.claude/skills/senior-secops/scripts/security_scanner.py` — stub `analyze()` always returns no findings; (3) `.github/workflows/security.yml:39` — Bandit `|| true` can never fail CI.
 - Biorelate `galactic-*` material is pattern reference only (`~/.claude/_archive/biorelate/`); never contact Biorelate remotes (L-1289).
 
 ## Decisions so far
@@ -27,6 +28,7 @@ Standing decisions from the chart session (Ste, 2026-10-08):
 - [Ticket 3: What should the short TS/JS, R and SQL convention cards contain?](#ticket-3-what-should-the-short-tsjs-r-and-sql-convention-cards-contain): cards drafted (TS strict+typescript-eslint+pino, R Air/lintr/roxygen2/logger/renv, SQLFluff+dbt style); conflicts = pino stdout, @param vs Args:, SQL keyword case.
 - [Ticket 5: What reusable code exists today, and how do others curate and graduate it?](#ticket-5-what-reusable-code-exists-today-and-how-do-others-curate-and-graduate-it): nothing packaged; ~3k untested snippet fences in skills; git-HEAD helper ×6 is the first real graduation candidate; copier + uv workspaces are the viable distribution paths.
 - [Ticket 2: How do our Python, Bash and Markdown-skill conventions compare with current best practice?](#ticket-2-how-do-our-python-bash-and-markdown-skill-conventions-compare-with-current-best-practice): text is strong, enforcement is not — 4 silent-pass security checks, no supply-chain layer, 6 oversized skills, no skill evals; 19 prioritised actions.
+- [Ticket 6: Should impact analysis be an explicit step inside the coding skills, and at which points?](#ticket-6-should-impact-analysis-be-an-explicit-step-inside-the-coding-skills-and-at-which-points): global index-gated PreToolUse hook (once/file/session) + forge skills name it; all of R1/R3/R4/R6; callers+tests, co-change, API diff, path-tag dimensions; plugin-surface edges into codemem; `callees` rename + alias; blocking left to T7.
 
 ## Tickets
 
@@ -83,10 +85,19 @@ Nothing reusable is packaged or versioned: ~3,037 untested Python fences live as
 ### Ticket 6: Should impact analysis be an explicit step inside the coding skills, and at which points?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 4
 #### Question
 Given Ticket 4: does impact analysis become a named step in every code-writing skill (pre-edit caller check, post-edit predicted-vs-actual diff, review input), or stay centralised in the AA-MA execution commands? Which of R1–R6 are adopted, and how does it cover dependencies, interfaces/contracts, tests (test impact), security-sensitive paths and downstream behaviour, including the markdown `Skill()` graph?
+#### Answer
+**Mechanism: hook + forge skills.** A global, non-blocking PreToolUse hook on Edit/Write injects impact context for the target file; forge-owned writers (`execute-aa-ma-*`, `prototype`, `defense-in-depth`, `write-a-skill` successor) name `Skill(impact-analysis)` explicitly. Rejected: forking third-party writers (superpowers, mattpocock, gsd) to add a step; AA-MA-only (ad-hoc coding gets nothing); a prose rule line (nothing behind it — T4 found every current invocation is prose).
+- **Hook behaviour:** index-gated — acts where a codemem index exists; otherwise one `systemMessage` per session ("no index — run codemem build"), never a silent fail-open (L-1319). Fires once per file per session, silent at 0 external callers and 0 co-changes, output capped at ~5 lines.
+- **Points (all four):** pre-edit caller check (R4; test callers listed as tests-to-run-first); post-edit predicted-vs-actual at §6.3 (R1: `git diff --name-only` vs the plan's Expected-Blast-Radius + `co_changes` misses, one line per unpredicted file); ad-hoc commits outside a plan get an advisory co_changes-at-commit check instead; review input — the unpredicted-file list goes to the fresh §6.8 code-reviewer, §6.3 stops self-grading (R6); prototype verdict delta — `PROTOTYPE` entry gains `verdict-changes-plan: YES/NO`, YES triggers an Angle-3 check on the decision delta (R3).
+- **Dimensions (all four):** callers + tests (codemem `who_calls`); co-change/downstream (`co_changes`); contract/API diff (`griffe check` for Python, API Extractor for TS — new dev deps); security path tagging — a path-glob map derives `Critical-Path` from touched files, alongside hand declaration.
+- **Markdown graph:** load `plugin_surface.py`'s `Skill()`/command edges into the codemem index so `who_calls` answers for skills and commands (graduates review gap 4 / former fog bullet).
+- **Gap 7:** codemem gains an honestly named `callees` tool; `blast_radius` stays one minor release as a deprecated alias with a notice in its output; the `aa_ma_context` key bug is fixed in the same change.
+- **Left to T7:** whether any of these signals blocks (gate, commit, CI). The plan owns the ADR for the hook (changes `claude-code/hooks/**` → `Critical-Path: hook-modification`).
+Evidence: [docs/research/code-conventions-impact-impact-status.md](../../../../docs/research/code-conventions-impact-impact-status.md). Decided with Ste 2026-10-08 (grilling, 3 rounds).
 
 ### Ticket 7: Is the impact check HARD-enforced in the gate or downgraded to SOFT?
 - Type: grilling
@@ -132,7 +143,7 @@ engineering-standards §2 lists KISS/DRY/SOLID/SoC as slogans. Rewrite as concre
 - Type: grilling
 - Mode: HITL
 - Status: OPEN
-- Blocked-by: 1, 8, 9, 10, 11
+- Blocked-by: 1, 8, 9, 10, 11, 15
 #### Question
 What is auto-loaded (rules) vs on-demand (skills, cards), how large the auto-loaded part may be, how global-only skills migrate into the forge (move, symlink, declared-external) and get tests, and how the language cards from Ticket 3 are reached.
 
@@ -152,11 +163,17 @@ Forge (a `uv` workspace member or skill references), a dedicated private repo in
 #### Question
 Concrete graduation criteria (reuse count, test coverage, API stability, number of consuming projects), the minimum metadata a snippet carries (provenance, licence, tests, owner), versioning for the library tier, and how Claude finds and reuses entries while coding (skill, search, index).
 
+### Ticket 15: What conventions govern Markdown skills and commands as prompt-as-code?
+- Type: grilling
+- Mode: HITL
+- Status: OPEN
+- Blocked-by: 2
+#### Question
+T2 found 6 skill/command files over the 500-line guideline (aa-ma-execution 1295, execute-aa-ma-milestone 1244, aa-ma-plan 1154, sole-dev-merge 1054, execute-aa-ma-full 757, plan-verification 608), unknown frontmatter keys silently ignored (`triggers`), `context:` misused, and no behavioural evals. Decide: size cap and split rule, frontmatter schema validation (test), whether skills need evals and of what shape, and how this relates to the `write-a-skill` → `writing-for-agents` adoption already decided in the writing-for-agents-eval map. Touched-files-only applies.
+
 ## Not yet specified
 
 - Migration mechanics for global-only skills into the forge (tests, FORKS.json rows, install.sh changes) — sharpens once Ticket 12 decides packaging.
-- Impact analysis over the markdown/`Skill()` dependency graph (review gap 4) — likely a sub-question of Ticket 6 once Ticket 4 says what the plugin-surface extractor already gives.
-- Prompt-as-code conventions for Markdown skills vs the existing skill-authoring guidance (`write-a-skill` / `writing-for-agents` outcome) — revisit after Ticket 2.
 
 ## Out of scope
 

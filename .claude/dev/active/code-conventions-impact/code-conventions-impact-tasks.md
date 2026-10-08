@@ -117,7 +117,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 2: Migrate 5 skills + ruff hook into the forge
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 1
 - Complexity: 60%
 - Effort: 1.5 days
@@ -136,14 +136,14 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 2.
 
 ### Sub-step 2.0: Post-merge of M1
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
   - M1 PR merged; `git pull` on the main checkout (on `main`).
   - `uv run pre-commit install` run once from the MAIN checkout only (worktrees share `.git/hooks`); `.git/hooks/pre-commit` exists and references the main `.venv`.
   - Worktree `.worktrees/<M2 branch>` cut from fresh `main`; `uv sync && uv run codemem build` exit 0 inside it.
-- Result Log:
+- Result Log: Mode: HITL — Ste asked to run it. M1 PR #18 rebase-merged as dc79b4b (CI run 37842869734, 7/7 green); main checkout on `main` == origin/main (local-only 4ccf14f proven upstream by `git cherry`, kept as `backup/main-pre-m1-merge`). Main checkout `uv sync` rc=0, `uv sync --locked` rc=0 (`.venv/bin/pre-commit`, `.venv/bin/bandit`). `core.hooksPath` unset; `uv run pre-commit install` → `.git/hooks/pre-commit` with `INSTALL_PYTHON=<main checkout>/.venv/bin/python3`. Gitignored local CLAUDE.md CI section: "Ruff lint on `src/`" → `touched` + local hook. Worktree `.worktrees/feat/cci-m2-skill-migration` (branch `feat/cci-m2-skill-migration`) cut from main @ dc79b4b; `uv sync` rc=0, `codemem build` rc=0 (243 files).
 
 ### Sub-step 2.1: Origin evidence
 - Status: PENDING

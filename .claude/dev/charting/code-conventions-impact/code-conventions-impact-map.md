@@ -30,6 +30,7 @@ Standing decisions from the chart session (Ste, 2026-10-08):
 - [Ticket 2: How do our Python, Bash and Markdown-skill conventions compare with current best practice?](#ticket-2-how-do-our-python-bash-and-markdown-skill-conventions-compare-with-current-best-practice): text is strong, enforcement is not — 4 silent-pass security checks, no supply-chain layer, 6 oversized skills, no skill evals; 19 prioritised actions.
 - [Ticket 6: Should impact analysis be an explicit step inside the coding skills, and at which points?](#ticket-6-should-impact-analysis-be-an-explicit-step-inside-the-coding-skills-and-at-which-points): global index-gated PreToolUse hook (once/file/session) + forge skills name it; all of R1/R3/R4/R6; callers+tests, co-change, API diff, path-tag dimensions; plugin-surface edges into codemem; `callees` rename + alias; blocking left to T7.
 - [Ticket 7: Is the impact check HARD-enforced in the gate or downgraded to SOFT?](#ticket-7-is-the-impact-check-hard-enforced-in-the-gate-or-downgraded-to-soft): HARD, gate-computed (DIAGRAM_VERIFIED pattern); unpredicted / predicted-unchanged / co-change (≥5 & ≥50%) misses need `Impact-Explained:`; undeclared API breaks block; derived path tags add CRITICAL_PATH_REVIEW; new plans only.
+- [Ticket 8: What is the comments and docstrings standard per language?](#ticket-8-what-is-the-comments-and-docstrings-standard-per-language): native doc format for public API in every language; full Ruff D (google, D417) on touched files; `# why:` on justified suppressions only, RUF100 removes the rest; `TODO(#N|ADR-NNNN)`; code docs exempt from ponytail; reviewer WARNs on comment substance.
 
 ## Tickets
 
@@ -120,10 +121,17 @@ Decided with Ste 2026-10-08 (grilling, 3 rounds).
 ### Ticket 8: What is the comments and docstrings standard per language?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 1, 2, 3
 #### Question
 Docstring style per language (Google vs numpydoc for Python; Bash header-comment format; TSDoc; roxygen2), which symbols require one (public API only?), why-not-what comment rule, `# why:` on suppressions, TODO format, constant rationale — which survive as written, which change, and which are lint-enforced.
+#### Answer
+1. **Core rule (all languages):** every exported/public symbol gets a doc block in its language's native format — Python Google style (`Args:`/`Returns:`/`Raises:`), Bash function header (Globals/Arguments/Outputs/Returns), TSDoc (.ts) / JSDoc (.js), roxygen2 `#'`, SQL in the catalogue (`COMMENT ON` / dbt `description` + `persist_docs`; never sensitive data — readable by any connected user in Postgres 18). No single cross-language syntax (T3 conflict: Google `Args:` vs `@param`).
+2. **Python enforcement:** full Ruff `D` with `convention = "google"` (incl. D417 undocumented-param) on touched files — pre-commit on staged files, CI on the diff (touched-code-only Note). D107 ignored permanently with a `# why:` (class docstring documents `__init__` args). The parked D101–D104 list and its ownerless `TODO(logging-std)` are deleted, not burned down.
+3. **Suppressions (Ste's scoping, verbatim intent):** `# why:` is required for deliberate lint/type-check suppressions, ignored command failures (`|| true`) and discarded stderr (`2>/dev/null`) in maintained source code. Specific diagnostic codes where the tool supports them (no blanket `noqa` / `type: ignore`). **Remove an unnecessary suppression before documenting it** — that is Ruff RUF100's role (plus PGH003/PGH004 for blanket forms). Enforced on added or modified lines; existing sites migrate when touched. The check must not match suppression-like text in documentation, strings or examples; a grep is a starting proposal, not a complete code-aware validator. Review judges whether a suppression is justified, not merely whether the comment exists.
+4. **TODO format:** `TODO(#N): …` or `TODO(ADR-NNNN): …` in every language; Ruff TD003 ignored (it rejects the ADR form — T2 measured), TD002 kept; a grep check requires the reference to match `#\d+|ADR-\d{4}`.
+5. **Judgement rules:** code documentation (docstrings, why-comments, constant rationale, `ponytail:` ceiling notes) is required documentation, exempt from ponytail's "no unrequested prose" rule, but proportionate (summary + sections, no tutorials) — this reconciliation is written into the doctrine. Magic constants (name + unit + reason) stay review-only; PLR2004 off. The §6.8 `code-reviewer` keeps its ban on style nits (`code-reviewer.md:91`) but WARNs (never CRITICAL) on substance: what-comments that restate code, missing why on non-obvious logic, docstrings claiming behaviour the code lacks, unjustified suppressions, and unnamed constants at any occurrence count (today 3+). Bash headers: Google rule (any function not both obvious and short) plus every function in a sourced library.
+Evidence: [best-practice](../../../../docs/research/code-conventions-impact-best-practice.md) §1–2, [inventory](../../../../docs/research/code-conventions-impact-inventory.md) §2–3, [language cards](../../../../docs/research/code-conventions-impact-language-cards.md). Decided with Ste 2026-10-08 (grilling, 3 rounds; Q3 scope written by Ste).
 
 ### Ticket 9: Is `logging-and-comments` adopted into the forge as the logging standard, and what changes?
 - Type: grilling

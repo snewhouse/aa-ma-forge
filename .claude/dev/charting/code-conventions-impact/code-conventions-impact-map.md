@@ -31,6 +31,7 @@ Standing decisions from the chart session (Ste, 2026-10-08):
 - [Ticket 6: Should impact analysis be an explicit step inside the coding skills, and at which points?](#ticket-6-should-impact-analysis-be-an-explicit-step-inside-the-coding-skills-and-at-which-points): global index-gated PreToolUse hook (once/file/session) + forge skills name it; all of R1/R3/R4/R6; callers+tests, co-change, API diff, path-tag dimensions; plugin-surface edges into codemem; `callees` rename + alias; blocking left to T7.
 - [Ticket 7: Is the impact check HARD-enforced in the gate or downgraded to SOFT?](#ticket-7-is-the-impact-check-hard-enforced-in-the-gate-or-downgraded-to-soft): HARD, gate-computed (DIAGRAM_VERIFIED pattern); unpredicted / predicted-unchanged / co-change (≥5 & ≥50%) misses need `Impact-Explained:`; undeclared API breaks block; derived path tags add CRITICAL_PATH_REVIEW; new plans only.
 - [Ticket 8: What is the comments and docstrings standard per language?](#ticket-8-what-is-the-comments-and-docstrings-standard-per-language): native doc format for public API in every language; full Ruff D (google, D417) on touched files; `# why:` on justified suppressions only, RUF100 removes the rest; `TODO(#N|ADR-NNNN)`; code docs exempt from ponytail; reviewer WARNs on comment substance.
+- [Ticket 9: Is `logging-and-comments` adopted into the forge as the logging standard, and what changes?](#ticket-9-is-logging-and-comments-adopted-into-the-forge-as-the-logging-standard-and-what-changes): moves into forge as one revised skill; NullHandler optional; JSON for services (opt-in elsewhere); ruff hook feeds findings back; `LOG_LEVEL` + `HOOK_DEBUG`; one hook log + shared `lib/log.sh`; `-euo` + BashFAQ/105 caveats.
 
 ## Tickets
 
@@ -136,10 +137,21 @@ Evidence: [best-practice](../../../../docs/research/code-conventions-impact-best
 ### Ticket 9: Is `logging-and-comments` adopted into the forge as the logging standard, and what changes?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 1, 2
 #### Question
 Adopt the global `logging-and-comments` skill (library vs app logging, stderr/stdout split, no silent failures, run-level context, hook `systemMessage` rule from L-1319) into the forge as is, revise it, or split logging from comments? Structured (JSON) logging: required, optional, or out?
+#### Answer
+- **Adoption:** `logging-and-comments` moves into `claude-code/skills/` as **one** revised skill (T8 + T9 changes applied, plus a test), symlinked back by `install.sh`. Kept as one because both halves fire on the same triggers (try/except, `|| true`, writing a CLI or hook). The five non-negotiables stay. Rejected: split into two skills; declared-external.
+- **Python:** `NullHandler` becomes optional, used only for deliberate silence with a `# why:` (T2: the mandatory form hides library warnings, against the Python logging HOWTO's default and our own no-silent-failure rule). JSON logs are required for long-running services and opt-in for CLIs and pipelines (`--log-format json` / `LOG_FORMAT=json`); hooks stay plain text.
+- **Edit-time ruff hook:** `~/.claude/hooks/ruff-format.sh` (global-only today) moves into the forge. On PostToolUse it returns `ruff check` findings for the edited file as `additionalContext` (capped at ~10 lines; never blocks; its own failures log one line), fixing the claim/mechanism mismatch (`ruff-format.sh:14` discards output; skill `:105` says findings are reported).
+- **Debug settings:** Python CLIs/apps use `-v`/`-q` + `LOG_LEVEL`. Hooks use one `HOOK_DEBUG=1` (already read by `lib/aa-ma-parse.sh:68`). `AA_MA_PLAN_MARKER_DEBUG` stays one release as a deprecated alias that prints a notice. `VERBOSE` and `DEBUG` are removed from the skills. The CLAUDE.md bypass table is updated.
+- **Bash format and path:** line `<date -Is> LEVEL <hook-name>: msg`; one persistent log `~/.claude/logs/hooks.log` (`compaction.log` folds in); `bash-defensive-patterns`' bracketed example is rewritten to match.
+- **Shared helper:** `aa_ma_debug` grows into `claude-code/hooks/lib/log.sh`: `log_info`/`log_warn`/`log_error`/`log_debug` plus `fail_open_notice` (systemMessage JSON + hook-log line, per L-1319). Hooks adopt it as they are touched; a bats test pins the format and the stderr/stdout split.
+- **Strict mode:** `set -euo pipefail` (`-E` only where an ERR trap exists), `shopt -s inherit_errexit`, never `local x=$(cmd)`, plus a BashFAQ/105 caveats block in the skills. ShellCheck optional checks `check-extra-masked-returns,check-set-e-suppressed` run on touched files.
+- **Other languages:** the TS/JS and R cards apply the stderr rule, so pino is configured to write to fd 2.
+- **Handed on:** secrets in logs → Ticket 10.
+Evidence: [inventory](../../../../docs/research/code-conventions-impact-inventory.md) §4, [best-practice](../../../../docs/research/code-conventions-impact-best-practice.md) §1–3. Decided with Ste 2026-10-08 (grilling, 3 rounds).
 
 ### Ticket 10: What is the SecOps baseline, and where does each check run?
 - Type: grilling
@@ -147,7 +159,7 @@ Adopt the global `logging-and-comments` skill (library vs app logging, stderr/st
 - Status: OPEN
 - Blocked-by: 1, 2
 #### Question
-Which security checks are mandatory for touched code (secret scanning, SAST, dependency audit, shell lint, input validation at trust boundaries, LLM-output safety), and at which layer each runs — authoring skill, PreToolUse hook, pre-commit, CI, milestone gate? What happens to `secrets-management` and `senior-secops`?
+Which security checks are mandatory for touched code (secret scanning, SAST, dependency audit, shell lint, input validation at trust boundaries, LLM-output safety), and at which layer each runs — authoring skill, PreToolUse hook, pre-commit, CI, milestone gate? What happens to `secrets-management` and `senior-secops`? Includes secrets in logs (handed on from Ticket 9: enforced today only by the §6.8 `security-auditor`).
 
 ### Ticket 11: How are the design principles stated so they are checkable, and how is the YAGNI-vs-SOLID tension resolved?
 - Type: grilling

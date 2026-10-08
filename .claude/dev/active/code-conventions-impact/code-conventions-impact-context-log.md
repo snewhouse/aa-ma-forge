@@ -125,3 +125,18 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Approved by: Ste (AskUserQuestion, 2026-10-08)
 - Decision: APPROVED — `docs/adr/0018-touched-code-lint-gate.md` Status: Accepted
 - Accepted gap recorded: untouched files are no longer linted in CI; full-repo Ruff S returns in M8.
+
+## [2026-10-08] GATE APPROVAL: Milestone 1: Touched-files lint harness + baseline
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion, 2026-10-08)
+- Criteria verified: 6/6
+- Decision: APPROVED
+
+## [2026-10-08] Milestone Completion: Milestone 1: Touched-files lint harness + baseline
+- Status: COMPLETE
+- Key outcome: pre-commit is the one touched-files harness (4 `repo: local` hooks + stdlib `scripts/check_conventions.py`, 0 checks); CI `touched` replaces the src-only `ruff` job; dev deps merged into `[dependency-groups] dev` with pre-commit and bandit==1.9.4; ADR-0018 Accepted.
+- Artifacts: .pre-commit-config.yaml, scripts/check_conventions.py, tests/scripts/test_check_conventions.py, tests/test_precommit_config.py, .github/workflows/security.yml, pyproject.toml, uv.lock, docs/adr/0018-touched-code-lint-gate.md, docs/adr/INDEX.md, docs/architecture/* (regenerated), impl-review.md.
+- Tests: full suite 2450 passed / 5 skipped / 7 deselected; PR #18 all 7 CI jobs green at d3b6bc4; canary PR #17 failed `touched` on F401.
+- Decisions: §6.6 folded into the §6.8 code-reviewer pass (/rigor 5-agent cap). Double-check F1–F3 fixed in M1 (Ste). Deferred to M6: escape control characters in finding output (security I1); single-call diff if latency shows (code-review I2).
+- Observed, out of scope: `src/aa_ma/grammar.py:263` SyntaxWarning (invalid escape `\S` in a docstring) on every gate call. `gh pr checks` in this gh version has no `--json`; polls must not hide stderr (L-036).
+- Post-merge (Sub-step 2.0): update gitignored project CLAUDE.md:141 "Ruff lint on `src/`".

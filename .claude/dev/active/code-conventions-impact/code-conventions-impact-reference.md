@@ -120,6 +120,8 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 - Precedence: `--from-ref/--to-ref` flags > `PRE_COMMIT_FROM_REF`/`PRE_COMMIT_TO_REF` env > staged mode; three-dot diff `from...to`; `FILE...` filters the diff. [valid: 2026-10-08]
 - M1 ships zero checks: prints `check_conventions: 0 checks enabled`. M6 adds `WHY001`, `TODO001` (added/modified lines only). [valid: 2026-10-08]
 - `TODO001` reference regex: `#\d+|ADR-\d{4}`. [valid: 2026-10-08]
+- As built (M1, d3b6bc4): every diff runs from `git rev-parse --show-toplevel` with `--literal-pathspecs`, `--no-textconv`, `--no-ext-diff`; FILE args are repo-root-relative (normalised with `os.path.normpath`); name-status `-z` walk mirrors `src/aa_ma/analysis/changed.py` (R/C take two paths); summary line goes to stderr, findings to stdout; `CHECKS` is a list of `(path, {line: text}) -> [(path, line, code, message)]`. [valid: 2026-10-08]
+- Deferred to M6: escape control characters in printed findings (security I1); one-call diff if per-file latency shows (code-review I2). [valid: 2026-10-08]
 
 ### `aa-ma-impact` (new, M11; `[project.scripts] aa-ma-impact = "aa_ma.impact:main"`)
 - Usage: `aa-ma-impact <plan.md> <tasks.md> --milestone N --base SHA [--format kv|json] [--ignore-cutover]` [valid: 2026-10-08]

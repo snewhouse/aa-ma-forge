@@ -34,6 +34,7 @@ Standing decisions from the chart session (Ste, 2026-10-08):
 - [Ticket 9: Is `logging-and-comments` adopted into the forge as the logging standard, and what changes?](#ticket-9-is-logging-and-comments-adopted-into-the-forge-as-the-logging-standard-and-what-changes): moves into forge as one revised skill; NullHandler optional; JSON for services (opt-in elsewhere); ruff hook feeds findings back; `LOG_LEVEL` + `HOOK_DEBUG`; one hook log + shared `lib/log.sh`; `-euo` + BashFAQ/105 caveats.
 - [Ticket 10: What is the SecOps baseline, and where does each check run?](#ticket-10-what-is-the-secops-baseline-and-where-does-each-check-run): 4-layer fail-loud baseline (edit/commit/CI/gate) incl. gitleaks, uv --locked + audit, osv-scanner, Dependabot; Ruff S replaces Bandit after a pinned coverage comparison (gap fallback); secops → router, secrets-management adopted, log redaction helpers; boundary validation + asserts; LLM output untrusted; rollout via template.
 - [Ticket 11: How are the design principles stated so they are checkable, and how is the YAGNI-vs-SOLID tension resolved?](#ticket-11-how-are-the-design-principles-stated-so-they-are-checkable-and-how-is-the-yagni-vs-solid-tension-resolved): start concrete, earn abstractions by evidence (Ste's policy); knowledge-DRY now, code ~3rd occurrence; C901/PLR0913 + `# why:`; §2 as heuristic/check table; testing folded in — risk-proportionate TDD, code waiver enum canonical, gate runs tests (TESTS_VERIFIED).
+- [Ticket 13: Where does the reusable-code collection live?](#ticket-13-where-does-the-reusable-code-collection-live): private Carmen uv repo (tag-pinned git source) for library + tested PEP 723 snippets; public-forge router skill with runtime index (ships no names); public copier template repo; forge-canonical generic helpers vendored with drift check; provenance header + denylist/gitleaks/approval gate for client-derived code.
 
 ## Tickets
 
@@ -201,10 +202,20 @@ What is auto-loaded (rules) vs on-demand (skills, cards), how large the auto-loa
 ### Ticket 13: Where does the reusable-code collection live?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 5
 #### Question
 Forge (a `uv` workspace member or skill references), a dedicated private repo in the carmen-provenance-labs org, or split (generic in one place, biomedical/client-derived in a private one)? Given that genericized client code is in scope, what is the confidentiality gate before code enters? Also: where the **project template** lives that carries the T10 SecOps baseline (CI, pre-commit, gitleaks, Dependabot) to Carmen and client repos.
+#### Answer
+Facts checked 2026-10-08: `snewhouse/aa-ma-forge` is **PUBLIC** (`gh repo view`); both carmen-provenance-labs repos are private; `codemem-mcp` is only a dev dependency of `aa_ma` (`pyproject.toml:56`).
+- **Library tier:** a **private** repo in carmen-provenance-labs (working name `carmen-kit`; final name chosen in the plan), packaged with uv and consumed by git source pinned to a tag (`{ git = …, tag = … }`); a private index only if consumers outgrow tags. Holds generic, biomedical and genericized-client helpers. The public forge never depends on it. Rejected: public/private split; a forge workspace member (public repo cannot hold client-derived code).
+- **Snippet tier:** PEP 723 single-file scripts, each with a test, in the kit's `snippets/`. A **forge router skill** reads the index at runtime from a local checkout (`CARMEN_KIT_PATH`), ships no entry names, paths or descriptions in the public forge, and prints a one-line notice when the checkout is missing (no silent fail). The ~3k untested prose fences in skills migrate only when touched.
+- **Project template:** a **public** copier template repo in the Carmen org (config only: CI, pre-commit, lint, gitleaks, Dependabot from T8/T9/T10; `.copier-answers.yml` tracked; `copier update` path), with the denylist grep and gitleaks in its own CI.
+- **Shared generic helpers** the forge itself uses (logging setup, T10 redaction filter, `lib/log.sh`): canonical in the public forge; the kit vendors them with a FORKS.json-style provenance pin and drift check reusing `src/aa_ma/forks.py` (knowledge-DRY, no private dependency in the forge).
+- **In-repo git-HEAD helper:** one hardened copy per package (`src/aa_ma` and `packages/codemem-mcp`; timeout + env scrubbing) sharing one contract test — no new package for one function (T11 evidence rule).
+- **Confidentiality gate:** every entry carries a provenance header (`origin: generic | biomedical | client-derived`, source, date); CI fails an entry without one. Client-derived entries additionally pass a genericization checklist, a client-term denylist grep (denylist kept outside every repo, e.g. `~/.config/carmen/denylist`), gitleaks, and Ste's explicit `approved-by: Ste YYYY-MM-DD`.
+- **Plan implication:** the plan creates two new GitHub repos (private kit, public template) — outward-facing actions that need Ste's confirmation at execution time (HITL).
+Evidence: [reuse prior art](../../../../docs/research/code-conventions-impact-reuse-prior-art.md) B2–B6. Decided with Ste 2026-10-08 (grilling, 3 rounds).
 
 ### Ticket 14: When does shared code graduate from snippet to module to library?
 - Type: grilling

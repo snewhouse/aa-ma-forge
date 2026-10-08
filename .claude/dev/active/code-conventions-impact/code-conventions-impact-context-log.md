@@ -1,0 +1,122 @@
+# code-conventions-impact Context Log
+
+_This log captures architectural decisions, trade-offs, and unresolved issues._
+
+---
+
+## [2026-10-08] Plan Approved
+
+- Plan: code-conventions-impact
+- Approved by: Ste (Stephen J Newhouse)
+- Milestones: 14
+- HARD gates: Milestone 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 14 (SOFT: Milestone 4, 13)
+
+---
+
+## [2026-10-08] Initial Context
+
+**Feature Request (Phase 1):**
+
+Imported from the charting map (`/aa-ma-plan --from-map code-conventions-impact`; map Destination, verbatim):
+
+> A plan-ready spec for one `/aa-ma-plan` that (1) wires impact analysis into the coding workflow at author time and at review, (2) sets forge-canonical coding conventions — comments, docstrings, logging, SecOps, design principles — for Python, Bash, Markdown skills, TS/JS and R/SQL, and (3) defines how reusable code is captured and when it graduates from snippet to module to library.
+
+Plan objective as approved: make the forge's coding conventions (comments, docstrings, logging, SecOps, design principles, testing, prompt-as-code) stated once and mechanically enforced on touched code, and wire impact analysis into authoring (pre-edit hook) and the milestone gate (gate-computed `IMPACT_VERIFIED`, `TESTS_VERIFIED`). Theme (3), reuse, moved to a later `reuse-kit` plan (D1).
+
+Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language depth (full for Python/Bash/Markdown, cards for TS/JS, R, SQL); touched code only, no backfill; Biorelate `galactic-*` material is pattern reference only (L-1289). Engineering Standards: all six themes selected by Ste.
+
+**Key Decisions (Phase 2 Brainstorming):**
+
+- **Decision AD-001 (D1, Ste):** Two plans. This plan covers map groups 1–12, the forge only; reuse (T13/T14: kit repo, template repo, router skill, graduation CI) moves to a later `reuse-kit` plan. T13's in-repo git-HEAD helper stays here (M10).
+  - **Rationale:** reuse work creates two new GitHub repos and has its own confidentiality gate; keeping it separate keeps this plan forge-only and shippable.
+  - **Alternatives Considered:** one plan for all three themes (the map's original "One plan" decision) — rejected as too large (~150 files already).
+  - **Trade-offs:** faster delivery of conventions + impact; reuse-first-while-coding (T14) waits for the router skill.
+
+- **Decision AD-002 (D2, Ste):** `deslop-shared-libs` is declared-external (gstack-owned, byte-identical to `~/.claude/skills/gstack/deslop-shared-libs/SKILL.md`). Migration is 5 skills, not 7.
+  - **Rationale:** it is owned upstream by gstack; forking it would create drift.
+  - **Alternatives Considered:** migrate as a fork — rejected.
+  - **Trade-offs:** one less in-repo skill; it stays an external reference on the allowlist (added in M12 only if referenced).
+
+- **Decision AD-003 (D3, Ste):** `senior-secops` becomes a new forge skill `secops` (thin router). The global copy (a byte-identical fork of davila7/claude-code-templates, disabled at `settings.json:295 "off"`) is backed up and removed, which deletes the stub scanner (carried defect 2). The `"off"` override is left alone (L-1210).
+  - **Rationale:** the stub scanner always reports clean — a silent pass; a router to real tools is honest.
+  - **Alternatives Considered:** migrate the skill as-is — rejected (keeps the stub).
+  - **Trade-offs:** outside-repo removal needs HITL + backup.
+
+- **Decision AD-004 (D4, Ste):** Retire the forge `/grill-me`; 13 commands convert to skills.
+  - **Rationale:** the forge ships `grilling` + `grill-with-docs`, and an external `~/.claude/skills/grill-me → ~/.agents/skills/grill-me` exists.
+  - **Alternatives Considered:** convert all 14 commands — rejected (duplicate of existing skills).
+  - **Trade-offs:** one user-facing `/name` disappears from the forge; the external one remains.
+
+- **Decision AD-005 (D5, Ste):** Milestone order approved, with commands→skills early (M3).
+  - **Rationale:** later milestones edit the converted skill files; converting first avoids editing them twice.
+  - **Alternatives Considered:** convert late — rejected.
+  - **Trade-offs:** the executor converts itself mid-plan (mitigated by the M3.1 prototype + D7).
+
+- **Decision AD-006 (D6, Ste):** Prototypes on M3 (install path), M10 (hook UX), M11 (co-change threshold).
+  - **Rationale:** highest implementation uncertainty; throwaway POCs are cheaper than wrong abstractions.
+  - **Alternatives Considered:** no prototypes — rejected.
+  - **Trade-offs:** extra HITL steps; PROTOTYPE evidence becomes a HARD gate check.
+
+- **Decision AD-007 (D7, Ste, CEO review F17):** Each milestone executes in its own worktree `.worktrees/<branch>`.
+  - **Rationale:** `install.sh` symlinks `~/.claude` into the main checkout, so branch edits must never go live mid-session.
+  - **Alternatives Considered:** work in the main checkout — rejected (live surface changes mid-session).
+  - **Trade-offs:** a new gate fence is first exercised by the milestone after the one that ships it; post-merge work becomes step N.0 of the next milestone; each worktree needs `uv sync && uv run codemem build`.
+
+- **Decision AD-008 (D8, Ste, Verification v1):** Touched files comply in full (file-level, not line-level); `check_conventions.py` rules (WHY001, TODO001) stay added-lines-only.
+  - **Rationale:** measured debt is ≤11 findings per planned file; the edit-time ruff-format hook already reformats whole files.
+  - **Alternatives Considered:** line-level compliance — rejected (complex, inconsistent with ruff/format behaviour).
+  - **Trade-offs:** small extra churn when an old file is first touched.
+
+- **Decision AD-009 (D9 → D9 revised, Ste, Wave 2):** `disable-model-invocation: true` on `sole-dev-merge` and `aa-ma-share` ONLY; the other 11 converted skills stay model-invocable. (Original D9: none — superseded.)
+  - **Rationale:** those two merge, push or publish, and nothing delegates to them; execute-aa-ma-full delegates to execute-aa-ma-milestone and aa-ma-execution routes to it.
+  - **Alternatives Considered:** user-only for all converted commands — rejected (breaks delegation).
+  - **Trade-offs:** model-invocable `aa-ma-plan` may trigger unprompted; mitigated by scoped descriptions and a 2-week re-evaluation.
+
+- **Decision AD-010 (D10, Ste, Verification v1):** `Test-Command: none — <reason>` opt-out for TESTS_VERIFIED, visible as `skipped: <reason>` in provenance and requiring a context-log GATE APPROVAL.
+  - **Rationale:** non-pytest repos and docs-only repos need an explicit, visible escape.
+  - **Alternatives Considered:** silent skip — rejected (no silent failures).
+  - **Trade-offs:** one more gate input to protect (read from the merge-base copy).
+
+- **Decision AD-011 (D11, Ste):** One release (v0.18.0) in its own milestone M14; interim releases dropped. M14 runs on main after M13 merges and sets `IMPACT_CUTOVER`.
+  - **Rationale:** the cutover date must equal the release date; one release keeps that atomic.
+  - **Alternatives Considered:** interim releases at M5/M9 — rejected.
+  - **Trade-offs:** public users get all changes at once (upgrade note: re-run `scripts/install.sh`).
+
+- **Decision AD-012 (D12, Ste; reopens T10/T15 "advisory"):** The commit scan keeps blocking: `security-static-check.sh` runs the forge-pinned `ruff check --isolated --select S602,S604,S307,S608,S301` on staged .py plus the secret-literal and path-traversal regexes, and exits 2 on findings in ANY repo. Regex classes Ruff covers are retired.
+  - **Rationale:** Security specialist (Verification v2) — a relabel to advisory would weaken the commit layer.
+  - **Alternatives Considered:** advisory hook (map T15 §7) — rejected on review.
+  - **Trade-offs:** no ruff → `fail_open_notice` + exit 0 (never a silent pass).
+
+- **Planner decisions P1–P9 (approved by Ste with the plan):** P1 touched-files harness = pre-commit; P2 Expected-Blast-Radius = Contract `Files:` rows; P3 `aa-ma-impact` CLI shells out to codemem (import-linter forbids `aa_ma` → `codemem`); P4 TESTS_VERIFIED for every plan, IMPACT_VERIFIED only post-cutover; P5 delete pyproject's unbacked claims; P6 griffe for aa_ma + codemem only; P7 Dependabot github-actions + uv only; P8 split-on-touch is its own milestone (M5); P9 evals advisory (release + weekly local; no GitHub-hosted schedule on a public repo).
+
+**Review Summaries:**
+
+- **CEO review (2026-10-08):** mode HOLD SCOPE (Ste chose HOLD over the rule-recommended REDUCTION). 17 findings, 2 CRITICAL GAPS (F1 stale-index silent pass; F7 evals that can push), both fixed in-plan. New decision D7 (worktree per milestone). Error & Rescue Registry: 10 rows, 0 critical gaps. Status CLEAR.
+- **Eng review (2026-10-08):** FULL_REVIEW, scope accepted as-is (S1, original arrangement). 5 issues, 0 critical gaps, all resolved in plan: R1 merge-base milestone window (`aa_ma_milestone_base`, shared by IMPACT fence + verify-impl, fails closed); E2 contract-row grammar with full verb set; E3 co_changes threshold/min-ratio/multi-path; E4 diagram edge correction (`impact.py → logsetup.py`); E5 fence parses the FINAL pytest summary line.
+- **Outside voice:** unavailable (codex not installed; no native fallback).
+- **Verification (automated, 3 revisions):** 16 CRITICAL found and resolved; ~45 WARNING reconciled; verdict PASS WITH WARNINGS. Structural lint: `aa-ma-lint-views --coverage` exit 0, `render: PASS`, `sigils: edges=25 checked=25 phantom=0 unknown=0`. Revisions: v1 inline fixes + amendments + D8–D10; v2 post-merge N.0 steps, M14 release, §0 security hardening, D11, D12, D9 revised; v3 reconciliation (precedence rule, contract_rows module, pronoun rule, version-pipeline globs, grandfather-before-merge-base).
+
+**Research Findings (Phase 3):**
+
+- [docs/research/code-conventions-impact-inventory.md](../../../../docs/research/code-conventions-impact-inventory.md) (T1) — ~8.8k auto-loaded tokens; the real comments/docstring/logging standard is global-only; Bandit `|| true` (`security.yml:39`); D101–D107 ignored; contradictions (ponytail vs SOLID/TDD, 4 debug env-var names, ruff hook discards findings).
+- [docs/research/code-conventions-impact-best-practice.md](../../../../docs/research/code-conventions-impact-best-practice.md) (T2) — 4 silent-pass security checks; no supply-chain checks; 6 files over 500 lines; unknown frontmatter keys ignored; no behavioural evals; 19 prioritised actions.
+- [docs/research/code-conventions-impact-language-cards.md](../../../../docs/research/code-conventions-impact-language-cards.md) (T3) — TS/JS, R and SQL one-page cards (68 primary sources); conflicts: pino stdout, `@param` vs `Args:`, SQL keyword case.
+- [docs/research/code-conventions-impact-impact-status.md](../../../../docs/research/code-conventions-impact-impact-status.md) (T4) — gap 3 partly fixed, gap 7 docs-only (`aa_ma_context` key bug, defect 1); gaps 1, 2, 4, 5, 6 and R1–R4, R6 open; no general coding skill invokes impact analysis.
+- [docs/research/code-conventions-impact-reuse-prior-art.md](../../../../docs/research/code-conventions-impact-reuse-prior-art.md) (T5) — nothing packaged; ~3k untested snippet fences; git-HEAD helper ×6 (input to M10.4 gitutil and the reuse-kit plan).
+- Eng-review test plan artifact: `~/.gstack/projects/snewhouse-aa-ma-forge/sjnewhouse-feature-engineering-standards-eng-review-test-plan-20261008-132258.md`.
+- Folded-in map: `.claude/dev/charting/writing-for-agents-eval/writing-for-agents-eval-map.md` (4/4 RESOLVED; executed by M4).
+- Verified at planning (Verification Angle 2): A1 additionalContext support per docs; D417 under google; A3 JSON output; A5 3 fixture-only gitleaks hits; merge-base viability. Contradicted: A6 (`uv audit` experimental, 13 vulnerable packages).
+
+**Remaining Questions / Unresolved Issues:**
+
+- A1 — PreToolUse/PostToolUse `hookSpecificOutput.additionalContext`: VERIFIED against docs in verification; live probe still due in M10.1 (fallback `systemMessage`).
+- A2 — `claude plugin eval` targets `claude-code/skills/` without `plugin.json`: OPEN; proven or replaced by the `claude -p` harness in M4.3.
+- A3 — `codemem query` prints JSON: VERIFIED 2026-10-08; co_changes gains `--threshold/--min-ratio`/multi-path in M10.
+- A4 — Ruff S at 0.15.9 covers every Bandit test that fires here: OPEN until M8.1 (S404 preview-only vs B404 ×10 decides the fallback list).
+- A5 — gitleaks full history finds no live secret: VERIFIED at planning (3 fixture hits); confirmed with a reviewed `.gitleaksignore` in M8.3.
+- A6 — `uv audit` usable: CONTRADICTED; pip-audit fallback + triage Sub-step 8.5 (plan 8.4a).
+- Residual (verification): review appendices (CEO/Eng output) keep pre-revision wording; the precedence rule governs.
+- Residual (verification): amendment-only files (forks.py, fork-drift.sh, git_mining.py, .importlinter, aa-ma-scribe.md, sanitizers.py) are not Contract `Files:` rows, so coverage lint cannot see them; nothing is gated on it because this plan is grandfathered from IMPACT_VERIFIED.
+- Residual (verification): re-run `/verify-plan code-conventions-impact` after Phase 5 so the tasks.md gate parse (check #2) runs.
+- Resolved (plan §13): the Milestone graph was appended to plan.md §13 by `aa_ma_deps graph` (2026-10-08, Phase 5). The pronoun rule was confirmed as v3, second-person only, in plan.md and tasks.md 4.1.
+- Re-evaluate the model-invocable `aa-ma-plan` description after 2 weeks of use (M3 Risk 3).

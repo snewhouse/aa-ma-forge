@@ -33,7 +33,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 1: Touched-files lint harness + baseline
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: None
 - Complexity: 45%
 - Effort: 1 day
@@ -48,6 +48,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `.github/workflows/security.yml` has job `touched` and no job `ruff`; the canary draft PR adding an F401 failed `touched` (run URL in provenance).
   - `docs/adr/NNNN-touched-code-lint-gate.md` exists with `Status: Accepted`, has a `docs/adr/INDEX.md` row and a context-log approval line.
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 1 (hook-modification).
+- Result Log: COMPLETE 2026-10-08 — HARD gate approved by Ste; 6/6 criteria verified. Full suite 2450/5/7; PR #18 green at d3b6bc4 (run 37823549130); canary #17 failed on F401 (run 37802838559). §6.8 PASS_WITH_WARNINGS (0 C / 2 W / 17 I; W2 fixed). Double-check Verified; F1–F3 fixed. Merge of PR #18 via /sole-dev-merge pending Ste's OK.
 
 ### Sub-step 1.1: Baseline
 - Status: COMPLETE

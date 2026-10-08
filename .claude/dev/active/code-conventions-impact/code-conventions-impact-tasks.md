@@ -97,16 +97,16 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. Job `touched` added to `.github/workflows/security.yml` (commit 3dff2a5): `if: github.event_name == 'pull_request'`; checkout @11d5960 (v4.4.0) `fetch-depth: 0`, `persist-credentials: false`; `astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7` (v10.2.0, released 2026-09-21) `version: '0.12.3'`; shellcheck installed + verified; `uv sync --locked`; `uv run pre-commit run --from-ref "origin/${BASE_REF}" --to-ref HEAD --show-diff-on-failure` with `BASE_REF` from `env:`. Job `ruff` removed; `pyproject.toml` comment updated. Local simulation rc=0. Canary draft PR #17 (`canary/cci-m1-touched`, F401 in `scripts/_canary_f401.py`) → `touched` FAILED on `F401 os imported but unused` (run 37802838559, job 113399245202); PR closed, branch deleted local + remote (`ls-remote` 0). M1 draft PR #18 → `touched` PASSED (run 37802855336), all 7 jobs green. Follow-up (post-merge, local only): gitignored project `CLAUDE.md:141` still says "Ruff lint on `src/`".
 
 ### Sub-step 1.5: ADR — touched-code lint gate
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 1.4
 - Acceptance Criteria:
   - `docs/adr/NNNN-touched-code-lint-gate.md` exists with `Status: Accepted` (next free ADR number is 0018): pre-commit as the one harness; file-level compliance on touch (D8); no backfill; states the accepted gap (untouched files are no longer linted in CI; full-repo Ruff S returns in M8).
   - `docs/adr/INDEX.md` row added; context-log approval line by Ste.
-- Result Log:
+- Result Log: Mode: HITL — Ste approved via AskUserQuestion. `docs/adr/0018-touched-code-lint-gate.md` (Status: Accepted; ADR number 0018 = next free): pre-commit as the one harness, file-level compliance on touch (D8), no backfill, accepted gap (untouched files unlinted in CI until M8's full-repo Ruff S). `docs/adr/INDEX.md` row 0018 added. Context-log line "ADR APPROVAL: ADR-0018" written.
 
 ### Sub-step 1.6: CRITICAL_PATH_REVIEW
-- Status: PENDING
+- Status: IN_PROGRESS
 - Mode: AFK
 - Dependencies: Sub-step 1.5
 - Acceptance Criteria:

@@ -38,21 +38,37 @@ jobs:
       - name: Run bandit on src/
         run: bandit -r src/ -f json || true
 
-  ruff:
-    name: Ruff (Lint)
+  touched:
+    # code-conventions-impact M1 / ADR-0018. Replaces the src/-only `ruff` job: the
+    # .pre-commit-config.yaml hooks run over the files this PR touches, and every
+    # touched file must comply in full (D8). Untouched files are not linted here;
+    # full-repo Ruff S returns in M8.
+    name: Touched files (pre-commit)
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
-          python-version: '3.13'
+          fetch-depth: 0              # --from-ref needs the base branch's history
+          persist-credentials: false
 
-      - name: Install uv
-        run: pip install uv
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: '0.12.3'
 
-      - name: Run ruff check
-        run: uv run ruff check src/
+      - name: Install shellcheck (the shellcheck hook is language system)
+        run: command -v shellcheck || (sudo apt-get update && sudo apt-get install -y shellcheck)
+
+      - name: Verify shellcheck is usable
+        run: shellcheck --version
+
+      - name: Sync locked deps
+        run: uv sync --locked
+
+      - name: pre-commit over the PR diff
+        env:
+          BASE_REF: ${{ github.base_ref }}   # via env, never interpolated into the script
+        run: uv run pre-commit run --from-ref "origin/${BASE_REF}" --to-ref HEAD --show-diff-on-failure
 
   bats:
     name: Bats (Hook + Command Tests)

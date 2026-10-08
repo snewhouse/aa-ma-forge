@@ -60,7 +60,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. Prerequisite met (plan on main @ 9ed9b18; main == origin/main; `git status -sb` checked). Worktree `.worktrees/feat/cci-m1-touched-harness` cut from main @ 4ccf14f (adds [ad-hoc] lessons cross-ref). `uv sync` rc=0; `codemem build` rc=0 (239 files). BASELINE: pytest 2429 passed/5 skipped/7 deselected (120.6 s); `ruff check src packages` 4 (2 T201 io_sinks.py, 2 BLE001); Ruff S 34 (S603 19, S607 10, S608 4, S101 1 — matches plan); shellcheck 0 findings over 24 .sh files; rules_chars 20249 (`cat claude-code/rules/*.md | wc -c`). Observed, out of scope: `src/aa_ma/grammar.py:263` emits SyntaxWarning (invalid escape `\S` in a docstring) on every gate call.
 
 ### Sub-step 1.2: Dependency hygiene (TDD)
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.1
 - Acceptance Criteria:
@@ -68,10 +68,10 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - Dev deps are merged into the existing `[dependency-groups] dev` (`pyproject.toml:129`), not moved.
   - `uv sync --locked` exits 0; `uv run which bandit` shows `.venv/bin/bandit`; `uv run true` prints no "dev-dependencies is deprecated" warning.
   - `uv run pre-commit install` is NOT run here (it is Sub-step 2.0, main checkout only).
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. RED first: `tests/test_precommit_config.py` 4 failed. `[tool.uv] dev-dependencies` (10 entries, comments kept) merged into `[dependency-groups] dev`; added `pre-commit>=4.5` (locks 4.6.2, not the conda 4.5.1) and `bandit==1.9.4`. `uv lock` diff = additions only (bandit, cfgv, distlib, filelock, identify, nodeenv, pre-commit, python-discovery, stevedore, virtualenv), no upgrades. `uv sync --locked` rc=0; `uv run which bandit` → `.venv/bin/bandit`; `uv run true` prints 0 deprecation warnings. Now 3 passed / 1 failed (hook-id test, green in 1.3 by design). `pre-commit install` not run (Sub-step 2.0).
 
 ### Sub-step 1.3: Harness (TDD)
-- Status: PENDING
+- Status: IN_PROGRESS
 - Mode: AFK
 - Dependencies: Sub-step 1.2
 - Acceptance Criteria:

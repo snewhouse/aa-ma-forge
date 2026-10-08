@@ -32,6 +32,7 @@ Standing decisions from the chart session (Ste, 2026-10-08):
 - [Ticket 7: Is the impact check HARD-enforced in the gate or downgraded to SOFT?](#ticket-7-is-the-impact-check-hard-enforced-in-the-gate-or-downgraded-to-soft): HARD, gate-computed (DIAGRAM_VERIFIED pattern); unpredicted / predicted-unchanged / co-change (≥5 & ≥50%) misses need `Impact-Explained:`; undeclared API breaks block; derived path tags add CRITICAL_PATH_REVIEW; new plans only.
 - [Ticket 8: What is the comments and docstrings standard per language?](#ticket-8-what-is-the-comments-and-docstrings-standard-per-language): native doc format for public API in every language; full Ruff D (google, D417) on touched files; `# why:` on justified suppressions only, RUF100 removes the rest; `TODO(#N|ADR-NNNN)`; code docs exempt from ponytail; reviewer WARNs on comment substance.
 - [Ticket 9: Is `logging-and-comments` adopted into the forge as the logging standard, and what changes?](#ticket-9-is-logging-and-comments-adopted-into-the-forge-as-the-logging-standard-and-what-changes): moves into forge as one revised skill; NullHandler optional; JSON for services (opt-in elsewhere); ruff hook feeds findings back; `LOG_LEVEL` + `HOOK_DEBUG`; one hook log + shared `lib/log.sh`; `-euo` + BashFAQ/105 caveats.
+- [Ticket 10: What is the SecOps baseline, and where does each check run?](#ticket-10-what-is-the-secops-baseline-and-where-does-each-check-run): 4-layer fail-loud baseline (edit/commit/CI/gate) incl. gitleaks, uv --locked + audit, osv-scanner, Dependabot; Ruff S replaces Bandit after a pinned coverage comparison (gap fallback); secops → router, secrets-management adopted, log redaction helpers; boundary validation + asserts; LLM output untrusted; rollout via template.
 
 ## Tickets
 
@@ -156,10 +157,22 @@ Evidence: [inventory](../../../../docs/research/code-conventions-impact-inventor
 ### Ticket 10: What is the SecOps baseline, and where does each check run?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 1, 2
 #### Question
 Which security checks are mandatory for touched code (secret scanning, SAST, dependency audit, shell lint, input validation at trust boundaries, LLM-output safety), and at which layer each runs — authoring skill, PreToolUse hook, pre-commit, CI, milestone gate? What happens to `secrets-management` and `senior-secops`? Includes secrets in logs (handed on from Ticket 9: enforced today only by the §6.8 `security-auditor`).
+#### Answer
+1. **Baseline: 4 layers, fail-loud** (no `|| true` anywhere in a security check):
+   - **Edit:** security-guidance plugin warnings + Ruff `S` findings through the T9 ruff hook (advisory).
+   - **Commit:** gitleaks on staged changes + the forge regex hook (`security-static-check.sh`), narrowed to what Ruff cannot catch (path traversal, secret literals); classes Ruff `S` covers (shell=True, eval/exec, pickle, SQL string-building) retire once Ruff `S` gates in pre-commit/CI.
+   - **CI (must fail on findings):** Ruff `S`; gitleaks over history; `uv sync --locked`; `uv audit --locked` (pip-audit if `uv audit` is still preview); ShellCheck + optional checks; Dependabot (github-actions, uv, npm); one osv-scanner job for JS lockfiles and `renv.lock`; npm release-age delay; eslint-plugin-security advisory only.
+   - **Gate/review:** §6.8 `security-auditor` + T7's derived Critical-Path tags.
+2. **Bandit → Ruff S (Ste's conditions):** run a coverage comparison at our pinned Ruff and Bandit versions first; remove Bandit only after confirming no required Bandit-specific checks or custom plugins are lost. Ruff `S` is then the blocking security check in CI and `/sole-dev-merge` Stage C; `BANDIT_BIN` is retired. Rule selection, exclusions and justified suppressions are defined centrally. Touched files are scanned for change validation and a full-repository scan is retained (on push to main + weekly). A known security violation (canary) must be shown to fail the gate. **Fallback** if the comparison finds needed gaps: Bandit stays as a gate restricted to those test IDs (`bandit -t B<ids> -ll`, pinned in `uv.lock`), re-checked on each Ruff upgrade.
+3. **Skills:** `senior-secops` is rewritten as a thin router to the real tools (Ruff `S`, gitleaks, `uv audit`, ShellCheck, osv-scanner) citing ASVS 5.0 / OWASP Top 10:2025 / NIST SSDF (no SSDF 1.2 practice IDs until final); its stub scanner is deleted (carried defect 2). `secrets-management` moves into the forge: gitleaks primary, TruffleHog `--fail` + digest pin as alternative. **Secrets in logs:** a shared Python `logging.Filter` that masks known secret patterns/keys and a masking step in T9's `lib/log.sh`; services and pipelines must install it; the `security-auditor` still judges. No grep heuristic.
+4. **Validation:** parse/validate once at each trust boundary into a typed value (pydantic / dataclass / enum); deeper layers rely on the type and add only cheap invariant asserts where a bug is dangerous (paths, SQL, shell). `defense-in-depth` is rewritten to say this, with Python/Bash examples (resolves the "every layer" vs ponytail "trust boundaries" contradiction, T1 §5). **LLM/agent output is untrusted input** at shell, SQL, file-path and HTML boundaries, via `llm-output-safety` (adopt or declare-external under T12).
+5. **Rollout:** the forge doctrine states the baseline; the project template from T13/T14 carries ready CI, pre-commit, gitleaks and Dependabot config; existing repos adopt when touched.
+Out of baseline: CodeQL and per-release SBOM (Maximal option declined); SLSA provenance deferred until a built artefact ships (T2).
+Evidence: [best-practice](../../../../docs/research/code-conventions-impact-best-practice.md) §4, [inventory](../../../../docs/research/code-conventions-impact-inventory.md) §5, [language cards](../../../../docs/research/code-conventions-impact-language-cards.md). Decided with Ste 2026-10-08 (grilling, 4 rounds; Bandit conditions written by Ste).
 
 ### Ticket 11: How are the design principles stated so they are checkable, and how is the YAGNI-vs-SOLID tension resolved?
 - Type: grilling
@@ -183,7 +196,7 @@ What is auto-loaded (rules) vs on-demand (skills, cards), how large the auto-loa
 - Status: OPEN
 - Blocked-by: 5
 #### Question
-Forge (a `uv` workspace member or skill references), a dedicated private repo in the carmen-provenance-labs org, or split (generic in one place, biomedical/client-derived in a private one)? Given that genericized client code is in scope, what is the confidentiality gate before code enters?
+Forge (a `uv` workspace member or skill references), a dedicated private repo in the carmen-provenance-labs org, or split (generic in one place, biomedical/client-derived in a private one)? Given that genericized client code is in scope, what is the confidentiality gate before code enters? Also: where the **project template** lives that carries the T10 SecOps baseline (CI, pre-commit, gitleaks, Dependabot) to Carmen and client repos.
 
 ### Ticket 14: When does shared code graduate from snippet to module to library?
 - Type: grilling

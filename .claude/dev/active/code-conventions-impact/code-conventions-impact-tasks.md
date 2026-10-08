@@ -106,12 +106,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: HITL — Ste approved via AskUserQuestion. `docs/adr/0018-touched-code-lint-gate.md` (Status: Accepted; ADR number 0018 = next free): pre-commit as the one harness, file-level compliance on touch (D8), no backfill, accepted gap (untouched files unlinted in CI until M8's full-repo Ruff S). `docs/adr/INDEX.md` row 0018 added. Context-log line "ADR APPROVAL: ADR-0018" written.
 
 ### Sub-step 1.6: CRITICAL_PATH_REVIEW
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.5
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — Milestone 1: Touched-files lint harness + baseline — hook-modification — <evidence>`, naming the test names and the canary run URL.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. CRITICAL_PATH_REVIEW line written to provenance.log naming the milestone heading verbatim, both test files (14/14, 4/4) and both run URLs (canary FAIL, M1 PR PASS). Only hook-modification surface touched: `.github/workflows/security.yml`; reviewed for trigger, permissions, secrets, injection, credential persistence, pins — no finding.
 
 ---
 

@@ -108,7 +108,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | Gate | SOFT, HARD | both | [valid: 2026-10-08] |
 | Mode | HITL, AFK | both | [valid: 2026-10-08] |
 | Prototype-Required | YES, NO | YES (M3, M10, M11) | [valid: 2026-10-08] |
-| Milestone Status | PENDING, ACTIVE, IN_PROGRESS, COMPLETE, BLOCKED | PENDING | [valid: 2026-10-08] |
+| Milestone Status | PENDING, ACTIVE, IN_PROGRESS, COMPLETE, BLOCKED | PENDING, COMPLETE (M1) | [valid: 2026-10-08] |
 | Step Status | PENDING, IN_PROGRESS, COMPLETE, BLOCKED, SKIPPED, DEFERRED | PENDING | [valid: 2026-10-08] |
 | Plan heading grammar (strict writer) | `^## Milestone (\d+): ` / `^### Sub-step (\d+\.\d+): ` (`grammar.CANONICAL_*_RE`) | step `8.4a` renumbered to 8.5 for that reason | [valid: 2026-10-08] |
 

@@ -29,6 +29,7 @@ Standing decisions from the chart session (Ste, 2026-10-08):
 - [Ticket 5: What reusable code exists today, and how do others curate and graduate it?](#ticket-5-what-reusable-code-exists-today-and-how-do-others-curate-and-graduate-it): nothing packaged; ~3k untested snippet fences in skills; git-HEAD helper ×6 is the first real graduation candidate; copier + uv workspaces are the viable distribution paths.
 - [Ticket 2: How do our Python, Bash and Markdown-skill conventions compare with current best practice?](#ticket-2-how-do-our-python-bash-and-markdown-skill-conventions-compare-with-current-best-practice): text is strong, enforcement is not — 4 silent-pass security checks, no supply-chain layer, 6 oversized skills, no skill evals; 19 prioritised actions.
 - [Ticket 6: Should impact analysis be an explicit step inside the coding skills, and at which points?](#ticket-6-should-impact-analysis-be-an-explicit-step-inside-the-coding-skills-and-at-which-points): global index-gated PreToolUse hook (once/file/session) + forge skills name it; all of R1/R3/R4/R6; callers+tests, co-change, API diff, path-tag dimensions; plugin-surface edges into codemem; `callees` rename + alias; blocking left to T7.
+- [Ticket 7: Is the impact check HARD-enforced in the gate or downgraded to SOFT?](#ticket-7-is-the-impact-check-hard-enforced-in-the-gate-or-downgraded-to-soft): HARD, gate-computed (DIAGRAM_VERIFIED pattern); unpredicted / predicted-unchanged / co-change (≥5 & ≥50%) misses need `Impact-Explained:`; undeclared API breaks block; derived path tags add CRITICAL_PATH_REVIEW; new plans only.
 
 ## Tickets
 
@@ -102,10 +103,19 @@ Evidence: [docs/research/code-conventions-impact-impact-status.md](../../../../d
 ### Ticket 7: Is the impact check HARD-enforced in the gate or downgraded to SOFT?
 - Type: grilling
 - Mode: HITL
-- Status: OPEN
+- Status: RESOLVED
 - Blocked-by: 6
 #### Question
 engineering-standards §5 claims HARD; the gate does not enforce it (review gap 2). Enforce via a milestone-scoped provenance token like `CRITICAL_PATH_REVIEW` (Critical-Path: hook-modification, needs an ADR), or downgrade the doctrine to SOFT?
+#### Answer
+**HARD, computed by the gate** — the `DIAGRAM_VERIFIED` pattern (`execute-aa-ma-milestone.md:661-727`: the fence run is the check, the provenance line its record), not the `CRITICAL_PATH_REVIEW` pattern (`:611-630`: the gate only greps for a line the agent wrote — self-attestation). Rejected: self-attested token (theatre); downgrade to SOFT (keeps the doctrine honest but leaves R1 unenforced).
+- **What blocks milestone COMPLETE:** each of (a) changed file not in Expected-Blast-Radius, (b) predicted file not changed, (c) co-change partner missing from the diff, unless the milestone's tasks.md block carries `Impact-Explained: <path> — <reason>` (read via `aa_ma.enforce`). Co-change threshold: a pair counts only with ≥5 shared commits AND the partner changed in ≥50% of the file's commits (configurable). On pass the gate writes `[ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0`.
+- **API diff** (`griffe` / API Extractor): an undeclared breaking change blocks; a break declared in the milestone's Contract block passes; ad-hoc commits get an advisory only.
+- **Derived path tags:** path-glob-derived Critical-Path values join the declared ones, so the existing HARD `CRITICAL_PATH_REVIEW` evidence applies to them; the gate names the files that triggered each derived value.
+- **Never blocks:** the pre-edit hook (T6) and the ad-hoc co_changes-at-commit check.
+- **Grandfathering:** only plans `Created:` on or after the release that ships this (v0.5.0 / v0.12.0 precedent).
+- **Plan owns:** the ADR, the engineering-standards §5 row rewrite, and `gate.py` changes — all `Critical-Path: hook-modification` (ADR-0009 scope).
+Decided with Ste 2026-10-08 (grilling, 3 rounds).
 
 ### Ticket 8: What is the comments and docstrings standard per language?
 - Type: grilling

@@ -120,3 +120,8 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Residual (verification): re-run `/verify-plan code-conventions-impact` after Phase 5 so the tasks.md gate parse (check #2) runs.
 - Resolved (plan §13): the Milestone graph was appended to plan.md §13 by `aa_ma_deps graph` (2026-10-08, Phase 5). The pronoun rule was confirmed as v3, second-person only, in plan.md and tasks.md 4.1.
 - Re-evaluate the model-invocable `aa-ma-plan` description after 2 weeks of use (M3 Risk 3).
+
+## [2026-10-08] ADR APPROVAL: ADR-0018 touched-code lint gate (Sub-step 1.5)
+- Approved by: Ste (AskUserQuestion, 2026-10-08)
+- Decision: APPROVED — `docs/adr/0018-touched-code-lint-gate.md` Status: Accepted
+- Accepted gap recorded: untouched files are no longer linted in CI; full-repo Ruff S returns in M8.

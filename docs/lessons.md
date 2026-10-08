@@ -5,6 +5,26 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-038 (2026-10-08) — A "prefer the project's .venv binary" amendment let a hostile repo run code from a hook
+**Pattern:** While planning code-conventions-impact, my own CEO-review amendment told `ruff-format.sh`
+to prefer "the project's `.venv/bin/ruff`" (and the impact hook the project's `codemem`). A global
+hook fires on edits in ANY repo, so a cloned repo could commit `.venv/bin/ruff` and run it on every
+Edit with no prompt. The Phase 4.5 security specialist caught it (CRITICAL).
+**Rule:** A global hook resolves executables only from the forge root (`readlink -f` on the hook, the
+`aa_ma_gate` pattern) or PATH, never from the edited repo. Every such hook gets a bats case: a fixture
+repo with a tracked `.venv/bin/<tool>` that writes a sentinel; assert the sentinel is never created.
+---
+
+## L-037 (2026-10-08) — A post-merge step inside a HARD milestone can never pass its gate
+**Pattern:** The code-conventions-impact draft put live `install.sh` runs, `pre-commit install`,
+live probes and interim releases inside the milestones that ship them. With worktree-per-milestone
+(install.sh symlinks point at the main checkout), those steps can only run after merge, but the HARD
+gate needs COMPLETE before merge. Angle 6 of verification caught it.
+**Rule:** When milestones merge via PR, any step that needs merged state belongs to step N.0 of
+the NEXT milestone (pull main, install, verify). A release is its own milestone, run on main.
+The originating step keeps only an isolated proof, such as a fake `CLAUDE_HOME`.
+---
+
 ## L-036 (2026-10-01) — A background poll piped through grep reported success for a script that never existed
 **Pattern:** In codebase-analysis-skills M8, `gh pr edit --title` failed (GraphQL "Projects (classic)
 is being deprecated"). That broke the `&& …` chain, so the G1/G2 poll script was never written. The

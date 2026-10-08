@@ -16,3 +16,5 @@
 [2026-10-08T162913Z] DOUBLE_CHECK — status=Verified effort=standard report=.claude/reports/double-check/2026-10-08T162913Z-code-conventions-impact-milestone-1.md
 [2026-10-08T19:20:36+01:00] DOUBLE_CHECK fixes — F1 subdir/F2 textconv/F3 normpath fixed in check_conventions.py (tests 17→21 in tests/scripts+precommit), ADR-0018 main-push line; Ste chose fix-now via AskUserQuestion
 [2026-10-08T19:23:17+01:00] CI — M1 PR #18 @ d3b6bc4 all 7 jobs PASS incl. touched — https://github.com/snewhouse/aa-ma-forge/actions/runs/37823549130/job/113470427210 ; full suite 2450 passed/5 skipped/7 deselected (124.9 s) — supersedes the pre-fix evidence at 3edcec6
+[2026-10-08T19:23:33+01:00] DIAGRAM_VERIFIED — Milestone 1: Touched-files lint harness + baseline — edges=25 checked=25 phantom=0 unknown=0
+[2026-10-08T19:23:33+01:00] ENG_STANDARDS_GATE — Milestone 1: Touched-files lint harness + baseline — PASS at d3b6bc4+ (git clean, pending=0, CRITICAL_PATH_REVIEW present, prototype n/a; diagram re-verified after codemem rebuild)

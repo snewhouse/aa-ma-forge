@@ -15,6 +15,7 @@ force-push with lease, plus a GitHub Support purge request for the orphaned comm
 must say: record counts and generic categories only, never repo names, paths, symbols or SHAs.
 Before pushing docs/research or a charting map, grep it for private repo names and run the security
 pass. A leak already pushed is never fixed by a follow-up commit: rewrite before any merge to main.
+**Cross-ref:** global L-1281 (repeat of the same pattern; rule tightened there)
 ---
 
 ## L-038 (2026-10-08) — A "prefer the project's .venv binary" amendment let a hostile repo run code from a hook
@@ -25,6 +26,7 @@ Edit with no prompt. The Phase 4.5 security specialist caught it (CRITICAL).
 **Rule:** A global hook resolves executables only from the forge root (`readlink -f` on the hook, the
 `aa_ma_gate` pattern) or PATH, never from the edited repo. Every such hook gets a bats case: a fixture
 repo with a tracked `.venv/bin/<tool>` that writes a sentinel; assert the sentinel is never created.
+**Cross-ref:** global L-1331
 ---
 
 ## L-037 (2026-10-08) — A post-merge step inside a HARD milestone can never pass its gate

@@ -73,6 +73,8 @@ hook already reformats the whole file on every Edit.
 - **Untouched files are no longer linted in CI.** The removed `ruff` job checked all of `src/`
   on every PR; now a file is checked only when a PR touches it. Full-repo **Ruff S** returns
   as its own CI job in M8.
+- `touched` runs on pull requests only, so a push to `main` runs no lint. Every change reaches
+  `main` through a PR (`/sole-dev-merge`), where `touched` has already run.
 - `pre-commit run --all-files` is a backfill and is not part of any gate. With nothing staged
   and no refs, `check-conventions` exits 2 ("no diff source"): it needs a diff, not a file list.
 

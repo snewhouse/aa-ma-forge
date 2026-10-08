@@ -85,6 +85,41 @@ def test_file_arguments_filter_the_diff(repo: Path) -> None:
     assert got == {"new.py": EXPECTED["new.py"]}
 
 
+def test_file_arguments_are_normalised(repo: Path) -> None:
+    make_change(repo)
+    got = cc.added_lines(
+        cc.resolve_range(None, None, cwd=repo), files=["./new.py"], cwd=repo
+    )
+    assert got == {"new.py": EXPECTED["new.py"]}
+
+
+def test_run_from_subdirectory_sees_the_whole_change(repo: Path) -> None:
+    # A manual run from a subdirectory must not silently check nothing.
+    (repo / "sub").mkdir()
+    (repo / "sub" / "s.py").write_text("x\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "sub")
+    (repo / "sub" / "s.py").write_text("x\ny\n")
+    git(repo, "add", "-A")
+    sub = repo / "sub"
+    assert cc.added_lines(cc.resolve_range(None, None, cwd=sub), cwd=sub) == {
+        "sub/s.py": {2: "y"}
+    }
+
+
+def test_textconv_driver_is_ignored(repo: Path) -> None:
+    # A local textconv driver must neither shift line numbers nor run.
+    conv = repo / "conv.sh"
+    conv.write_text('#!/bin/sh\necho HDR\ncat "$1"\n')
+    conv.chmod(0o755)
+    git(repo, "config", "diff.hdr.textconv", str(conv))
+    (repo / ".git" / "info" / "attributes").write_text("*.py diff=hdr\n")
+    (repo / "mod.py").write_text("a\nB\nc\n")
+    git(repo, "add", "mod.py")
+    got = cc.added_lines(cc.resolve_range(None, None, cwd=repo), cwd=repo)
+    assert got == {"mod.py": {2: "B"}}
+
+
 def test_three_dot_diff_ignores_base_branch_progress(repo: Path) -> None:
     git(repo, "checkout", "-q", "-b", "feature")
     (repo / "new.py").write_text("feature\n")

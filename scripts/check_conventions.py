@@ -6,7 +6,8 @@ Usage: check_conventions.py [--from-ref REF --to-ref REF] [FILE...]
 The diff source is, in order of precedence: the --from-ref/--to-ref flags, the
 PRE_COMMIT_FROM_REF/PRE_COMMIT_TO_REF environment (pre-commit cannot template refs
 into hook args), then the staged changes. Ref diffs are three-dot (``from...to``).
-FILE arguments filter the diff. Untouched lines are never checked (D8: no backfill).
+FILE arguments (repo-root-relative, as pre-commit passes them) filter the diff.
+Untouched lines are never checked (D8: no backfill).
 
 Exit codes: 0 clean | 1 findings (``path:line: CODE message`` on stdout) |
 2 usage or git error, including "no diff source".
@@ -117,10 +118,13 @@ def added_lines(
     Deleted files are omitted. A rename reports only the lines that differ from the
     old path, so moving a file does not make every line in it "touched".
     """
-    wanted = set(files) if files else None
+    wanted = {os.path.normpath(f) for f in files} if files else None
+    # why: --name-status prints root-relative paths but pathspecs resolve against the cwd,
+    # so a run from a subdirectory would diff nothing; run every diff from the top level.
+    top = _git_out(["rev-parse", "--show-toplevel"], cwd).strip()
     # why: same -z token walk as src/aa_ma/analysis/changed.py (not imported: this
     # script stays stdlib-only); keep the two in step.
-    fields = _git_out(["diff", "--name-status", "-z", "-M", *range_args], cwd).split(
+    fields = _git_out(["diff", "--name-status", "-z", "-M", *range_args], top).split(
         "\0"
     )
     result: dict[str, dict[int, str]] = {}
@@ -140,11 +144,12 @@ def added_lines(
                 "-M",
                 "--no-color",
                 "--no-ext-diff",
+                "--no-textconv",  # why: a local driver would shift line numbers and run code
                 *range_args,
                 "--",
                 *paths,
             ],
-            cwd,
+            top,
         )
         result[path] = _parse_added(patch)
     return result

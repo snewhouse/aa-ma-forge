@@ -95,3 +95,8 @@ None required (0 CRITICAL).
 ## Revision History
 
 - 2026-10-08 — initial run; fixes applied in the same milestone (W2, I1–I4, I6 code-review; FP I1, I2, I5; C7 I2).
+- 2026-10-08 — double-check challenger (fresh subagent) found F1 (subdirectory run diffed nothing:
+  name-status paths are root-relative, pathspecs cwd-relative), F2 (textconv honoured), F3 (FILE
+  filter unnormalised). Ste chose "fix now in M1". Tests first (3 RED for the intended reasons), then:
+  every diff runs from `rev-parse --show-toplevel`, `--no-textconv`, `os.path.normpath` on FILE
+  args. ADR-0018 states that main pushes run no lint (PR-only). Security I1 (escape output) stays M6.

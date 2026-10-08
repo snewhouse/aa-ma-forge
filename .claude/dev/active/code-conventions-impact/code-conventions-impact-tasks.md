@@ -33,7 +33,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 1: Touched-files lint harness + baseline
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: None
 - Complexity: 45%
 - Effort: 1 day
@@ -50,17 +50,17 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 1 (hook-modification).
 
 ### Sub-step 1.1: Baseline
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: None
 - Acceptance Criteria:
   - The Prerequisite is met (plan on `main`); `git status -sb` on `main` checked first (L-032); branch `feat/cci-m1-touched-harness` cut from fresh `main` in worktree `.worktrees/feat/cci-m1-touched-harness`; `uv sync && uv run codemem build` exit 0 inside it.
   - One provenance line in the form `[ts] BASELINE — pytest=<passed>/<skipped>/<deselected> ruff_src_packages=<N> ruff_S=<N> shellcheck=<N> rules_chars=<N>`.
   - Commands used: `uv run pytest -q`; `uv run ruff check src packages --statistics`; `uv run ruff check --isolated --select S src packages scripts` (34 at plan time); `find . -name '*.sh' -not -path './.worktrees/*' -exec shellcheck {} +`; `cat claude-code/rules/*.md | wc -c` (rules-only count, the like-for-like M12 budget baseline). CLAUDE.md is excluded (gitignored).
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. Prerequisite met (plan on main @ 9ed9b18; main == origin/main; `git status -sb` checked). Worktree `.worktrees/feat/cci-m1-touched-harness` cut from main @ 4ccf14f (adds [ad-hoc] lessons cross-ref). `uv sync` rc=0; `codemem build` rc=0 (239 files). BASELINE: pytest 2429 passed/5 skipped/7 deselected (120.6 s); `ruff check src packages` 4 (2 T201 io_sinks.py, 2 BLE001); Ruff S 34 (S603 19, S607 10, S608 4, S101 1 — matches plan); shellcheck 0 findings over 24 .sh files; rules_chars 20249 (`cat claude-code/rules/*.md | wc -c`). Observed, out of scope: `src/aa_ma/grammar.py:263` emits SyntaxWarning (invalid escape `\S` in a docstring) on every gate call.
 
 ### Sub-step 1.2: Dependency hygiene (TDD)
-- Status: PENDING
+- Status: IN_PROGRESS
 - Mode: AFK
 - Dependencies: Sub-step 1.1
 - Acceptance Criteria:

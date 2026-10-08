@@ -5,3 +5,4 @@
 [2026-10-08T14:00:03+01:00] PLAN_REVIEWS: ceo=HOLD_SCOPE(clear) eng=FULL_REVIEW(5 issues resolved) outside_voice=unavailable
 [2026-10-08T14:00:04+01:00] VERIFICATION: mode=automated revisions=3 criticals_found=16 criticals_open=0 verdict=PASS_WITH_WARNINGS
 [2026-10-08T14:00:05+01:00] AA-MA artifacts created
+[2026-10-08T16:36:30+01:00] BASELINE — pytest=2429/5/7 ruff_src_packages=4 ruff_S=34 shellcheck=0 rules_chars=20249

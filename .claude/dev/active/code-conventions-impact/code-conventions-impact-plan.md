@@ -654,7 +654,7 @@ Risks: (1) A hook regresses with a new log path. Mitigation: hooks.log already e
 - Tests:
   - a bats loop over `claude-code/hooks/*.sh` asserting the `# Event:`, `# Mode: (Blocking|Advisory)` and `# Exit:` headers;
   - ruff stripped from PATH → exactly 1 `systemMessage` per session_id;
-  - `SecretRedactingFilter` with a pattern monkeypatched to raise → `record.getMessage() == "[redaction failed]"`.
+  - `SecretRedactingFormatter` with a pattern monkeypatched to raise → `record.getMessage() == "[redaction failed]"`.
 - 7.5 AC: each fixture keeps its real `session_id`/`transcript_path`; provenance has a `PAYLOAD_CAPTURED <event>` line per event.
 
 ### Milestone 8 — SecOps CI baseline (T10)
@@ -692,7 +692,7 @@ Risks: (1) gitleaks flags old history in a public repo. Mitigation: a real secre
 
 #### Verification amendments (v1, binding)
 - 8.1 also records Ruff `S404` as preview-only at 0.15.9 while Bandit B404 fires 10×; that decides whether the fallback ID list includes B404. AC: context-log `DECISION ruff-only|fallback (<ids>) — approved by Ste`.
-- **8.4a (new, AFK→HITL):** triage the 13 vulnerable packages. For each: `uv lock --upgrade-package <pkg>`, or an ignore entry with ID, why and expiry date. AC: the deps job exits 0 on the branch; the triage table is in `docs/research/code-conventions-impact-ruff-vs-bandit.md` §deps.
+- **8.4a (new, AFK→HITL; tasks.md Sub-step 8.5 — tasks.md renumbers M8 steps to N.M):** triage the 13 vulnerable packages. For each: `uv lock --upgrade-package <pkg>`, or an ignore entry with ID, why and expiry date. AC: the deps job exits 0 on the branch; the triage table is in `docs/research/code-conventions-impact-ruff-vs-bandit.md` §deps.
 - gitleaks: the 3 current hits are test fixtures (tests/analysis/test_measure.py, tests/hooks/security-static-check.bats) and go into `.gitleaksignore` as fingerprints. A test asserts every entry is preceded by a `# why:` line.
 - Bandit also leaves:
   - the security.yml bats job (:103-107);
@@ -714,7 +714,7 @@ Files:
   Modify  claude-code/skills/execute-aa-ma-milestone/SKILL.md   # §6.7: replace comment-only conditions 3 (:604) and 4 (:605) with fence 3 (TESTS_VERIFIED); condition 4 becomes M11's fence
             Fence 3 contract:
               TEST_CMD = value of "Test-Command:" in the MERGE-BASE copy of <task>-reference.md (`git show $base:…`, §0 v2), else "uv run pytest"; printed, then run as shlex argv
-              run with timeout ${AA_MA_TEST_TIMEOUT:-1800}s; capture rc + last summary line
+              run with timeout ${AA_MA_TEST_TIMEOUT:-540}s; capture rc + last summary line
               PASS iff rc==0 AND pytest's FINAL non-empty line, after stripping the `=` banner (`sed -E 's/^=+ //; s/ =+$//'`), matches /(^|, )([0-9]+) passed/ — default output is `=== 2429 passed, … ===`, -q output has no banner, and earlier lines like "2 snapshots passed." are ignored (Verification v1)  → append
                 "[ts] TESTS_VERIFIED — <milestone heading> — passed=N cmd=<TEST_CMD>"
               else: "BLOCKED: tests …" exit 1 (no provenance line)
@@ -930,11 +930,11 @@ Files:
 Steps:
 - **14.0 Post-merge of M13 (HITL).** `git pull` on main; `uv run pytest -q` is green.
 - **14.1 Cutover (AFK, TDD).** The failing test is first: `test_cutover_is_release_date`. Then set `IMPACT_CUTOVER` to the release date and commit on main with the plan footer. AC: the test passes; `git status --porcelain` is empty.
-- **14.2 Release (HITL).** `scripts/release.sh minor --headline "…" --dry-run`, then the real run. `release.sh` runs the evals advisorily and asserts a clean tree after them (Security v2). AC: `gh release view v0.18.0` exits 0, and the tag's commit contains the cutover.
+- **14.2 Release (HITL).** `scripts/release.sh minor --headline "…" --dry-run`, then `--no-push`; verify `test_cutover_is_release_date` against the local tag; then push main + tag (Ste OK). `release.sh` runs the evals advisorily and asserts a clean tree after them (Security v2). AC: `gh release view v0.18.0` exits 0, and the tag's commit contains the cutover.
 - **14.3 Archive readiness (AFK).** CRITICAL_PATH_REVIEW for version-pipeline (evidence: dry-run output plus the release URL). AC: provenance has the entry.
 
 Risks:
-1. The cutover date ≠ the tag date when the release slips past midnight. Mitigation: 14.1 uses the planned date and the test compares it to the tag date. If they differ, amend before the push.
+1. The cutover date ≠ the tag date. Mitigation: `scripts/release.sh … --no-push` (commit + tag locally), run `test_cutover_is_release_date`, fix and re-tag locally if needed, then push main + tag with Ste's OK (C1 review).
 2. `release.sh` fails mid-way. Mitigation: `docs/runbooks/release.md` rollback, with the dry run first.
 3. Eval failures block the release mood but not the release. Mitigation: evals are advisory and the summary is logged.
 
@@ -984,7 +984,7 @@ The five input classes the spec implies that are most likely to bite. Each has a
 
 **Standing rules (Verification v2, binding):**
 - **Post-merge work is step N.0 of the NEXT milestone.** A HARD milestone completes before its PR merges, so a live `install.sh`, `pre-commit install`, a live probe, or a check that needs merged state can never be a sub-step of the milestone that ships it. Step N.0 pulls main and runs `scripts/install.sh` from the main checkout when M(N-1) changed install.sh, hooks, rules or the skill set. It then runs the deferred verification. Mapping:
-  - 2.0 ← 1.6 (`pre-commit install`)
+  - 2.0 ← `pre-commit install` (post-merge of M1)
   - 3.0 ← 2.4 live install + 2.6 probe
   - 4.0 ← 3.6 live probes
   - 8.0 ← M7 hooks install + 7.4 live additionalContext check
@@ -1004,9 +1004,9 @@ The five input classes the spec implies that are most likely to bite. Each has a
 
 **Start Milestone 1, sub-step 1.1:** cut `feat/cci-m1-touched-harness` from fresh `main` and record the five baseline numbers in provenance.
 
-**AA-MA files to update first:** `code-conventions-impact-tasks.md` (1.1 → ACTIVE), then `code-conventions-impact-provenance.log`.
+**AA-MA files to update first:** `code-conventions-impact-tasks.md` (Milestone 1 → ACTIVE, Sub-step 1.1 → IN_PROGRESS; steps are never ACTIVE, enforce.py:42), then `code-conventions-impact-provenance.log`.
 
-**Before executing any milestone:** `uv run aa-ma-gate .claude/dev/active/code-conventions-impact/code-conventions-impact-tasks.md --format kv` must report the §2a fields.
+**Before executing any milestone:** `uv run aa-ma-gate .claude/dev/active/code-conventions-impact/code-conventions-impact-tasks.md --milestone N --format kv` must report the §2a fields.
 
 ## Plan Review History
 - CEO Review: ran 2026-10-08, HOLD SCOPE (Ste chose HOLD over the rule-recommended REDUCTION). 17 findings, 2 CRITICAL GAPS (F1 stale-index silent pass, F7 evals that can push), both fixed in-plan. 1 new decision: D7 worktree per milestone. Outside voice unavailable (codex not installed; no TaskOutput for native fallback).

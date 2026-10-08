@@ -1329,8 +1329,8 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Mode: HITL
 - Dependencies: Sub-step 14.1
 - Acceptance Criteria:
-  - `scripts/release.sh minor --headline "…" --dry-run`, then the real run (CHANGELOG, README, VERSION, pyproject.toml via commitizen; never hand-edited); `release.sh` runs the evals advisorily and asserts a clean tree after them (Security v2).
-  - If the cutover date ≠ the tag date, amend before the push.
+  - `scripts/release.sh minor --headline "…" --dry-run`, then `--no-push` (CHANGELOG, README, VERSION, pyproject.toml via commitizen; never hand-edited); `release.sh` runs the evals advisorily and asserts a clean tree after them (Security v2).
+  - Run `test_cutover_is_release_date` against the LOCAL tag; if it fails, fix the cutover and re-tag locally; then push main + tag with Ste's OK (release.sh pushes both in one run otherwise, so never amend after a pushed tag).
   - `gh release view v0.18.0` exits 0; the tag's commit contains the cutover.
 - Result Log:
 

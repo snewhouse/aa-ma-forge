@@ -48,6 +48,12 @@ a finished CI poll. I caught it only because the output was empty.
 `pipefail`) and must fail loudly if its input file is missing. Treat an empty result as a failure,
 never as a pass. For PR title or body edits, use `gh api -X PATCH repos/{o}/{r}/pulls/N -f title=…`;
 `gh pr edit` can fail on the classic-Projects deprecation.
+**Repeat (2026-10-08, code-conventions-impact M1):** two `until gh pr checks N --json … 2>/dev/null | grep …`
+polls hung for 10 minutes: this gh has no `--json` on `pr checks`, and `2>/dev/null` hid
+`unknown flag: --json`. A later `pkill -f 'gh pr checks'` also killed its own shell (exit 144).
+**Tightened rule:** never put `2>/dev/null` on the probe command of a poll. Run the probe once in the
+foreground before backgrounding it, and confirm it prints a real state. Poll `gh pr checks N` with
+plain output (rc 8 = pending). Never `pkill -f` a pattern that appears in your own command line.
 ---
 
 ## L-035 (2026-10-01) — An evaluation-harness extra the shipped skill doesn't do quietly props up the verdict

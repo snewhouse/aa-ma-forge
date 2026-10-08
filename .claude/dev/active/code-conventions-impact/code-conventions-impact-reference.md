@@ -37,6 +37,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 |---------|-------|--------|
 | `uv run pytest -q` | 2429 passed, 5 skipped, 7 deselected in 112.5 s | [valid: 2026-10-08] |
 | M1 BASELINE (provenance) | pytest 2429/5/7, ruff src+packages 4, Ruff S 34, shellcheck 0 (24 .sh), rules_chars 20249 | [valid: 2026-10-08] |
+| Touched-file debt, repo-wide (2026-10-08, /sole-dev-merge C1) | `ruff format --check .` 113 files to reformat (35 src/packages/scripts, 77 tests); `ruff check .` 39 findings; 19 of 31 `.bats` fail shellcheck (excluded from the hook via `exclude_types: [bats]`) | [valid: 2026-10-08] |
 | Ruff S findings (`ruff check --isolated --select S src packages scripts`) | 34 | [valid: 2026-10-08] |
 | Oversized prompt files (lines) | aa-ma-execution 1295, execute-aa-ma-milestone 1244, aa-ma-plan 1154, sole-dev-merge 1054, execute-aa-ma-full 757, plan-verification 608 | [valid: 2026-10-08] |
 | Existing >100-line references without a TOC | 23 (go into `TOC_ALLOWLIST (23 at plan time; 24 after M2 imports logging-and-comments/references/python.md)`) | [valid: 2026-10-08] |
@@ -121,7 +122,8 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 - M1 ships zero checks: prints `check_conventions: 0 checks enabled`. M6 adds `WHY001`, `TODO001` (added/modified lines only). [valid: 2026-10-08]
 - `TODO001` reference regex: `#\d+|ADR-\d{4}`. [valid: 2026-10-08]
 - As built (M1, d3b6bc4): every diff runs from `git rev-parse --show-toplevel` with `--literal-pathspecs`, `--no-textconv`, `--no-ext-diff`; FILE args are repo-root-relative (normalised with `os.path.normpath`); name-status `-z` walk mirrors `src/aa_ma/analysis/changed.py` (R/C take two paths); summary line goes to stderr, findings to stdout; `CHECKS` is a list of `(path, {line: text}) -> [(path, line, code, message)]`. [valid: 2026-10-08]
-- Deferred to M6: escape control characters in printed findings (security I1); one-call diff if per-file latency shows (code-review I2). [valid: 2026-10-08]
+- Deferred to M6: escape control characters in printed findings (security I1) and print non-UTF-8 paths safely (`errors="backslashreplace"` on output; /sole-dev-merge C1 LOW); one-call diff if per-file latency shows (code-review I2). [valid: 2026-10-08]
+- Format on touch: a `git mv`/`sed`/manual edit bypasses the edit-time ruff-format hook, so format the file in the same change (M3 renames). [valid: 2026-10-08]
 
 ### `aa-ma-impact` (new, M11; `[project.scripts] aa-ma-impact = "aa_ma.impact:main"`)
 - Usage: `aa-ma-impact <plan.md> <tasks.md> --milestone N --base SHA [--format kv|json] [--ignore-cutover]` [valid: 2026-10-08]

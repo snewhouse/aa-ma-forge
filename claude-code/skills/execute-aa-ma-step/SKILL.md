@@ -1,6 +1,6 @@
 ---
 name: execute-aa-ma-step
-description: Execute single task from AA-MA plan with lightweight validation guardrails. Use when the user asks to run a single AA-MA step.
+description: "Executes one sub-step of an active AA-MA plan, the next PENDING one or a named N.M: checks its dependencies and acceptance criteria, does the work, then records its Result Log. Use when asked for the next AA-MA step, a specific step, or one-step-at-a-time progress on an AA-MA task."
 ---
 
 # AA-MA Step Execution

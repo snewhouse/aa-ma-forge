@@ -13,6 +13,4 @@ execution:
   - Glob
   - Grep
   - Skill
-  prompt: 'Using the AA-MA planning standard, what must a plan for adding a --shout flag to greet.py contain?
-    Tools here are read-only: do not try to change files. List the required elements; do not write the
-    plan.'
+  prompt: I am about to plan adding a --shout flag to greet.py with AA-MA. What must the plan contain?

@@ -13,6 +13,4 @@ execution:
   - Glob
   - Grep
   - Skill
-  prompt: 'Run milestone 1 of demo-task with the AA-MA milestone workflow. Tools here are read-only: do
-    not try to change files. For each remaining sub-step, say whether you would run it straight away or
-    stop for me first, and why.'
+  prompt: Run milestone 1 of demo-task.

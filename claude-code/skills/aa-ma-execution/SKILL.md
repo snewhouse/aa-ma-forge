@@ -1,6 +1,6 @@
 ---
 name: aa-ma-execution
-description: Use when executing tasks from AA-MA artifacts - handles step/milestone/full execution with proper context injection, validation, and provenance logging. Proactively use when detecting .claude/dev/active/ directories or when user asks to continue/resume work.
+description: "Shared execution rules for AA-MA plans: context-injection order, validation, provenance logging and sync discipline. Use when resuming AA-MA work without a named scope, or when another execution skill needs these rules. A request for the next or a specific step goes to execute-aa-ma-step; a milestone goes to execute-aa-ma-milestone."
 ---
 
 # AA-MA Execution Skill

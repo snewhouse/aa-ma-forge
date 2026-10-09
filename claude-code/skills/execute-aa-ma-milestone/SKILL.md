@@ -1,6 +1,6 @@
 ---
 name: execute-aa-ma-milestone
-description: Execute complete milestone from AA-MA plan with strict validation and auto-commit (RECOMMENDED DEFAULT). Use when the user asks to run an AA-MA milestone.
+description: "Executes a whole AA-MA milestone: every sub-step, the milestone-boundary gates (acceptance criteria, impact, tests, HARD-gate approval), then a commit. The default way to advance an AA-MA plan. Use when asked to run, continue or finish an AA-MA milestone, or whether a milestone can be marked COMPLETE."
 ---
 
 # AA-MA Milestone Execution (Recommended Default)

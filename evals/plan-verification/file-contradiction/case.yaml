@@ -13,5 +13,4 @@ execution:
   - Glob
   - Grep
   - Skill
-  prompt: 'Verify the AA-MA plan in .claude/dev/active/demo-plan/ and list every defect you find. Tools
-    here are read-only: do not try to change files.'
+  prompt: Verify the AA-MA plan in .claude/dev/active/demo-plan/.

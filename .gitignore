@@ -23,6 +23,10 @@ media/
 # Hypothesis property-test cache (test state, not source)
 .hypothesis/
 
+# claude plugin eval run output (scripts/run-evals.sh uses a temp --output-dir; this
+# catches a direct `claude plugin eval .` run). Eval JSONL lives in .claude/evals/.
+evals/results/
+
 # /retro skill output — per-developer weekly retrospective JSON snapshots
 .context/
 

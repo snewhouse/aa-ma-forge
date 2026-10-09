@@ -1,0 +1,17 @@
+schema_version: '1.1'
+name: execute-aa-ma-milestone-not-complete
+tags:
+- execute-aa-ma-milestone
+plugins:
+- ../../../claude-code
+context:
+  scaffold_script: fixture.sh
+execution:
+  max_turns: 12
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  prompt: Using the AA-MA milestone execution rules, can Milestone 1 of demo-task be marked COMPLETE right
+    now? Answer yes or no and give the reason.

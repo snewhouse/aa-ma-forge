@@ -20,8 +20,10 @@ teardown() { rm -rf "$WORK"; }
 # A stub `claude`: records argv and env, then writes a plugin-eval-shaped result JSON.
 _stub_claude() {
   mkdir -p "$WORK/bin"
-  cat > "$WORK/bin/claude" <<'EOF2'
-#!/usr/bin/env bash
+  # The path is baked in: run-evals.sh runs claude under `env -i`, so no exported
+  # variable reaches the stub (that is the point of the scrubbed-environment case).
+  printf '#!/usr/bin/env bash\nSTUB_DIR=%q\n' "$WORK" > "$WORK/bin/claude"
+  cat >> "$WORK/bin/claude" <<'EOF2'
 printf '%s\n' "$@" > "$STUB_DIR/argv"
 env > "$STUB_DIR/env"
 pwd > "$STUB_DIR/pwd"
@@ -33,10 +35,10 @@ cat > "$json" <<JSON
  {"name": "b-fail", "dir": "evals/x/b-fail", "aggregates": {"score": 0.5, "passRate": 0}, "arms": {"with": [{"error": null}]}}
 ]}
 JSON
-exit "${STUB_RC:-1}"
+exit 1
 EOF2
   chmod +x "$WORK/bin/claude"
-  export CLAUDE_BIN="$WORK/bin/claude" STUB_DIR="$WORK"
+  export CLAUDE_BIN="$WORK/bin/claude"
 }
 
 @test "never bypasses permissions" {
@@ -77,7 +79,7 @@ EOF2
 
 @test "writes one JSONL line per case and a summary, and exits 0 with rc in the last line" {
   _stub_claude
-  STUB_RC=1 run "$RUN_EVALS"
+  run "$RUN_EVALS"
   [ "$status" -eq 0 ]
   f="$WORK/results/$(date +%F).jsonl"
   [ "$(wc -l < "$f")" -eq 2 ]

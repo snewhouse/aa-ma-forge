@@ -67,7 +67,7 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
   - **Alternatives Considered:** line-level compliance — rejected (complex, inconsistent with ruff/format behaviour).
   - **Trade-offs:** small extra churn when an old file is first touched.
 
-- **Decision AD-009 (D9 → D9 revised, Ste, Wave 2):** `disable-model-invocation: true` on `sole-dev-merge` and `aa-ma-share` ONLY; the other 11 converted skills stay model-invocable. (Original D9: none — superseded.)
+- **Decision AD-009 (D9 → D9 revised, Ste, Wave 2):** `disable-model-invocation: true` on `sole-dev-merge` and `aa-ma-share` ONLY; the other 11 converted skills stay model-invocable. (Original D9: none — superseded.) **Revised again 2026-10-09 (M3 §6.8, Ste):** also execute-aa-ma-full and archive-aa-ma → 4 skills; see "M3 §6.8 decisions" below.
   - **Rationale:** those two merge, push or publish, and nothing delegates to them; execute-aa-ma-full delegates to execute-aa-ma-milestone and aa-ma-execution routes to it.
   - **Alternatives Considered:** user-only for all converted commands — rejected (breaks delegation).
   - **Trade-offs:** model-invocable `aa-ma-plan` may trigger unprompted; mitigated by scoped descriptions and a 2-week re-evaluation.

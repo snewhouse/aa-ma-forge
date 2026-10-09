@@ -114,6 +114,7 @@ Lessons applied: L-1319 (no silent fail-open; hook stderr on exit 0 is invisible
 - D7 **Worktree per milestone** (CEO review F17): the live symlinks point at the main checkout.
 - D8 **Touched files comply in full** (Verification v1): file-level, not line-level; measured debt is ≤11 findings per planned file.
 - D9 (superseded by "D9 revised" below): originally no `disable-model-invocation` on any converted skill.
+- D9 **revised again (2026-10-09, M3 §6.8 security review, Ste):** also `execute-aa-ma-full` and `archive-aa-ma` → 4 skills. The Wave 2 lines below (and the M3 Contract/amendments) record the earlier 2-skill decision.
 - D9 **revised (Wave 2, Ste):** `disable-model-invocation: true` on `sole-dev-merge` and `aa-ma-share` ONLY (they merge, push or publish, and nothing delegates to them); the other 11 stay model-invocable.
 - D11 **One release, own milestone** (Ste): interim releases are dropped. M14 releases v0.18.0 on main after M13 merges and sets `IMPACT_CUTOVER`.
 - D12 **Commit scan keeps blocking** (Ste; reopens T10/T15's "advisory"): `security-static-check.sh` runs the forge-pinned `ruff check --isolated --select S602,S604,S307,S608,S301` on staged .py plus the secret-literal and path-traversal regexes, and exits 2 on findings in ANY repo. Regex classes Ruff covers are retired.

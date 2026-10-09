@@ -210,12 +210,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. Fake HOME (scratchpad), `scripts/install.sh` rc=0 from the M2 worktree: `readlink -f <fake>/.claude/skills/{logging-and-comments,python-quality-gates,llm-output-safety,secrets-management,bash-defensive-patterns}` → `<checkout>/claude-code/skills/<same>` (5/5); `hooks/lib/ruff-format.sh` → `<checkout>/claude-code/hooks/ruff-format.sh`. With the live settings.json re-rooted at the fake HOME (`sed s|$HOME/.claude|<fake>/.claude|`): ruff-format command count before=1, after=1; all 9 AA_MA_HOOKS "already registered". Caveat observed: copying settings.json un-rerooted gives count 2, because register_hook dedupes on the full `<CLAUDE_HOME>/hooks/lib/<hook>` path — on the real machine CLAUDE_HOME is the live one, so the live install keeps 1 (re-checked in 3.0). Also covered by `tests/hooks/install-migration.bats` (6/6). The live L-1315 isolated probe is deferred to Sub-step 3.0 (standing rule, D7: live symlinks must point at the main checkout after merge).
 
 ### Sub-step 2.7: CRITICAL_PATH_REVIEW
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 2.6
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — Milestone 2: Migrate 5 skills + ruff hook into the forge — hook-modification — <evidence>`, naming the bats/test names.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. provenance.log `CRITICAL_PATH_REVIEW — Milestone 2: Migrate 5 skills + ruff hook into the forge — hook-modification — …` written, naming ruff-format.bats 4/4, install-migration.bats 6/6, fork-drift.bats 8/8, bats -r 352/352, pytest 2477/0. Re-checked `uninstall --restore` against a settings-only backup dir: settings.json skipped (exists), no clobber; registrations remain — pre-existing, logged out of scope.
 
 ---
 

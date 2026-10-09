@@ -1,0 +1,26 @@
+# Ruff baseline for logging + comment hygiene. Merge into pyproject.toml under [tool.ruff.lint].
+# Verified with ruff 0.15.4: T201 (print) has only an UNSAFE fix, so the PostToolUse
+# `ruff check --fix` hook never deletes prints — they are reported, not removed.
+
+[tool.ruff.lint]
+extend-select = [
+  "LOG",            # logger misuse: Logger() direct, getLogger without __name__, root-logger calls
+  "G",              # eager log formatting (G004 = f-string in log call), .warn, exc_info misuse
+  "T20",            # print/pprint left in library code
+  "BLE",            # blind `except Exception`
+  "S110", "S112",   # try/except/pass and try/except/continue — silent swallows
+  "TRY400", "TRY401", # use logger.exception in except; don't repeat the exception in the message
+  "D1",             # missing docstrings on public modules/classes/functions
+  "TD",             # TODO format: TODO(owner/issue): text
+  "ERA",            # commented-out code
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# print IS the interface for CLIs and one-off scripts (data -> stdout); tests need no docstrings.
+"**/cli.py" = ["T20"]
+"**/__main__.py" = ["T20"]
+"scripts/**" = ["T20"]
+"tests/**" = ["D", "T20", "S110"]

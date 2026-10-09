@@ -57,21 +57,21 @@ def assert_skill_frontmatter(
     """Common assertion bundle for forked-skill SKILL.md files.
 
     When `expected_upstream_path` is None it is derived from FORKS.json as
-    "mattpocock/skills/" + entry.upstream (the manifest is the SSoT).
+    entry.upstream_repo + "/" + entry.upstream (the manifest is the SSoT).
 
     Verifies:
       - SKILL.md exists at claude-code/skills/<skill_dir_name>/SKILL.md
       - frontmatter `name` matches `skill_dir_name`
       - frontmatter `description` is a non-empty string of >= min_description_length chars
-      - provenance comment references mattpocock/skills and the expected upstream path
+      - provenance comment references the row's upstream repo and the expected upstream path
 
     Returns (provenance_lines, frontmatter_dict) for further assertions.
     """
+    entry = load_manifest(FORKS_MANIFEST).get(skill_dir_name)
+    upstream_repo = entry.upstream_repo if entry else "mattpocock/skills"
     if expected_upstream_path is None:
-        expected_upstream_path = (
-            "mattpocock/skills/"
-            + load_manifest(FORKS_MANIFEST)[skill_dir_name].upstream
-        )
+        assert entry is not None, f"{skill_dir_name} is not in FORKS.json"
+        expected_upstream_path = f"{entry.upstream_repo}/{entry.upstream}"
     skill_path = SKILLS_DIR / skill_dir_name / "SKILL.md"
     assert skill_path.exists(), f"SKILL.md not found at {skill_path}"
 
@@ -94,9 +94,9 @@ def assert_skill_frontmatter(
         f"(>= {min_description_length} chars)."
     )
 
-    assert "mattpocock/skills" in provenance, (
+    assert upstream_repo in provenance, (
         "Forked-from provenance comment is missing or does not reference "
-        "the canonical upstream (mattpocock/skills)."
+        f"the canonical upstream ({upstream_repo})."
     )
     assert expected_upstream_path in provenance, (
         f"Provenance comment should name the upstream skill path "

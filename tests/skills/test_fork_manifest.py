@@ -101,6 +101,8 @@ def _entry(**upstream_md5: str | None) -> ForkEntry:
     return ForkEntry(
         name="x",
         upstream="skills/engineering/x",
+        upstream_repo="mattpocock/skills",
+        licence="MIT",
         upstream_sha="c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
         forked_at="2026-05-10",
         adr="docs/adr/0000-x.md",
@@ -138,8 +140,19 @@ def test_helper_resolves_upstream_from_manifest() -> None:
 def test_cli_files_lists_manifest_rows(capsys: pytest.CaptureFixture[str]) -> None:
     assert _cli(["files", "--manifest", str(MANIFEST)]) == 0
     rows = [line.split("\t") for line in capsys.readouterr().out.splitlines()]
-    assert ["prototype", "skills/engineering/prototype", "SKILL.md"] in rows
-    assert all(len(r) == 3 for r in rows)
+    assert [
+        "prototype",
+        "mattpocock/skills",
+        "skills/engineering/prototype",
+        "SKILL.md",
+    ] in rows
+    assert [
+        "secrets-management",
+        "wshobson/agents",
+        "plugins/cicd-automation/skills/secrets-management",
+        "SKILL.md",
+    ] in rows
+    assert all(len(r) == 4 for r in rows)
 
 
 def test_cli_classify_all_reads_stdin(
@@ -172,3 +185,42 @@ def test_default_manifest_constant_is_shared() -> None:
     from aa_ma.forks import DEFAULT_MANIFEST
 
     assert DEFAULT_MANIFEST == MANIFEST
+
+
+@pytest.mark.parametrize("name", sorted(load_manifest(MANIFEST)))
+def test_every_fork_provenance_names_its_upstream(name: str) -> None:
+    """Line-2 provenance names the row's own repo + path (not always mattpocock/skills)."""
+    assert_skill_frontmatter(name, expected_upstream_path=None)
+
+
+@pytest.mark.parametrize("name", sorted(load_manifest(MANIFEST)))
+def test_every_fork_carries_upstream_licence(name: str) -> None:
+    """An MIT fork ships the upstream LICENSE beside its files (MIT's notice condition)."""
+    entry = load_manifest(MANIFEST)[name]
+    assert entry.licence == "MIT", (
+        f"{name}: licence {entry.licence!r} — review before forking"
+    )
+    licence = SKILLS_DIR / name / "LICENSE"
+    assert licence.is_file(), f"MISSING_LICENSE: {name}/LICENSE"
+    assert licence.read_text(encoding="utf-8").startswith("MIT License"), name
+
+
+def test_wshobson_forks_recorded() -> None:
+    manifest = load_manifest(MANIFEST)
+    secrets, bash = manifest["secrets-management"], manifest["bash-defensive-patterns"]
+    assert (secrets.upstream_repo, secrets.state) == ("wshobson/agents", "current")
+    assert secrets.upstream_sha == "46891e7e60da0e52baf1050b7b6391b64e84c6d9"
+    assert secrets.files == secrets.upstream_md5  # current = byte-exact upstream
+    assert (bash.upstream_repo, bash.state) == ("wshobson/agents", "derived")
+    assert bash.upstream_sha == "5d65aa10638bcc1b390738e11f9bff213f61955a"
+
+
+def test_python_quality_gates_baseline_link_resolves() -> None:
+    """The ruff baseline is linked relative to the skill, not via ~/.claude (works in-repo)."""
+    skill = SKILLS_DIR / "python-quality-gates" / "SKILL.md"
+    text = skill.read_text(encoding="utf-8")
+    assert "~/.claude/skills/" not in text
+    assert "../logging-and-comments/references/ruff-baseline.toml" in text
+    assert (
+        skill.parent / "../logging-and-comments/references/ruff-baseline.toml"
+    ).is_file()

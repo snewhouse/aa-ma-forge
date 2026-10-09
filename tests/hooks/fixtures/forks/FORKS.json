@@ -1,21 +1,49 @@
 {
   "alpha": {
-    "_comment": "upstream_md5 = md5('Hello') — matches the fork-drift.bats stub payload SGVsbG8=; unknown row keys are ignored on load",
+    "_comment": "upstream_md5 = md5('Hello') \u2014 matches the fork-drift.bats stub payload SGVsbG8=; unknown row keys are ignored on load",
     "upstream": "skills/engineering/alpha",
+    "upstream_repo": "mattpocock/skills",
+    "licence": "MIT",
     "upstream_sha": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
     "forked_at": "2026-05-10",
     "adr": "docs/adr/0000-alpha.md",
     "state": "current",
-    "files": { "SKILL.md": "5e2c51f0d3b7ad7c8b9b2d4b5f7e1a2c" },
-    "upstream_md5": { "SKILL.md": "8b1a9953c4611296a827abf8c47804d7" }
+    "files": {
+      "SKILL.md": "5e2c51f0d3b7ad7c8b9b2d4b5f7e1a2c"
+    },
+    "upstream_md5": {
+      "SKILL.md": "8b1a9953c4611296a827abf8c47804d7"
+    }
   },
   "beta": {
     "upstream": "skills/engineering/beta",
+    "upstream_repo": "mattpocock/skills",
+    "licence": "MIT",
     "upstream_sha": null,
     "forked_at": "2026-05-10",
     "adr": "docs/adr/0000-beta.md",
     "state": "current",
-    "files": { "SKILL.md": "5e2c51f0d3b7ad7c8b9b2d4b5f7e1a2c" },
-    "upstream_md5": { "SKILL.md": "8b1a9953c4611296a827abf8c47804d7" }
+    "files": {
+      "SKILL.md": "5e2c51f0d3b7ad7c8b9b2d4b5f7e1a2c"
+    },
+    "upstream_md5": {
+      "SKILL.md": "8b1a9953c4611296a827abf8c47804d7"
+    }
+  },
+  "gamma": {
+    "_comment": "second upstream repo \u2014 fork-drift must fetch it from wshobson/agents, not mattpocock/skills",
+    "upstream": "plugins/x/skills/gamma",
+    "upstream_repo": "wshobson/agents",
+    "licence": "MIT",
+    "upstream_sha": "46891e7e60da0e52baf1050b7b6391b64e84c6d9",
+    "forked_at": "2026-10-09",
+    "adr": "docs/adr/0000-gamma.md",
+    "state": "current",
+    "files": {
+      "SKILL.md": "5e2c51f0d3b7ad7c8b9b2d4b5f7e1a2c"
+    },
+    "upstream_md5": {
+      "SKILL.md": "8b1a9953c4611296a827abf8c47804d7"
+    }
   }
 }

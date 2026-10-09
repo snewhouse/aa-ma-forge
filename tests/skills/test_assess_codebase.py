@@ -36,7 +36,9 @@ def _text(path: Path) -> str:
 
 
 def _deny_line() -> str:
-    (line,) = [x for x in _text(CONTRACT).splitlines() if x.startswith("- **NO SECRETS.**")]
+    (line,) = [
+        x for x in _text(CONTRACT).splitlines() if x.startswith("- **NO SECRETS.**")
+    ]
     return line
 
 
@@ -45,7 +47,11 @@ def _fences(text: str, lang: str) -> list[str]:
 
 
 def _block(marker: str) -> str:
-    (block,) = [b for b in _fences(_text(SKILL_MD), "bash") if b.startswith(f"# assess:{marker}")]
+    (block,) = [
+        b
+        for b in _fences(_text(SKILL_MD), "bash")
+        if b.startswith(f"# assess:{marker}")
+    ]
     return block
 
 
@@ -60,13 +66,18 @@ def _run(block: str, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
 def test_frontmatter() -> None:
     _, fm = split_frontmatter(_text(SKILL_MD))
     assert fm.get("name") == "assess-codebase"
-    assert isinstance(fm.get("description"), str) and len(fm["description"].strip()) >= 50
+    assert (
+        isinstance(fm.get("description"), str) and len(fm["description"].strip()) >= 50
+    )
     assert isinstance(fm.get("allowed-tools"), list) and fm["allowed-tools"]
 
 
 def test_inventory_is_exactly_skill_md_and_two_references() -> None:
     assert sorted(p.name for p in SKILL.iterdir()) == ["SKILL.md", "references"]
-    assert sorted(p.name for p in (SKILL / "references").iterdir()) == ["AGENT-PROMPTS.md", "RATING.md"]
+    assert sorted(p.name for p in (SKILL / "references").iterdir()) == [
+        "AGENT-PROMPTS.md",
+        "RATING.md",
+    ]
 
 
 def test_skill_md_is_at_most_250_lines() -> None:
@@ -76,7 +87,10 @@ def test_skill_md_is_at_most_250_lines() -> None:
 @pytest.mark.parametrize("skill_md", [SKILL_MD, SKILLS_DIR / "understand-codebase/SKILL.md"],
                          ids=["assess-codebase", "understand-codebase"])  # fmt: skip
 def test_both_skills_link_the_one_contract(skill_md: Path) -> None:
-    targets = {(skill_md.parent / t).resolve() for t in re.findall(r"\]\(([^)#\s]+)", _text(skill_md))}
+    targets = {
+        (skill_md.parent / t).resolve()
+        for t in re.findall(r"\]\(([^)#\s]+)", _text(skill_md))
+    }
     assert CONTRACT.resolve() in targets
 
 
@@ -103,24 +117,34 @@ def test_judge_blocks_read_a_null_metric_as_missing_never_zero() -> None:
     assert "are already measured" not in text
     (judge,) = [b for b in _fences(text, "text") if b.startswith("Judge ")]
     assert "never read it as zero" in judge
-    assert f"at most {models.EVIDENCE_MAX} chars" in judge  # FP-1: the model's limit, not a copy
+    assert (
+        f"at most {models.EVIDENCE_MAX} chars" in judge
+    )  # FP-1: the model's limit, not a copy
 
 
 def test_every_placeholder_is_listed_and_the_refuter_gets_references_only() -> None:
     text = _text(PROMPTS)
-    listed_para, *_ = [p for p in text.split("\n\n") if "Filled in by the main thread" in p]
+    listed_para, *_ = [
+        p for p in text.split("\n\n") if "Filled in by the main thread" in p
+    ]
     used = set(re.findall(r"\{([A-Z_]+)\}", text))
     assert used and all(f"{{{u}}}" in listed_para for u in used), used
     refuter = [b for b in _fences(text, "text") if not b.startswith("Judge ")][0]
-    assert "{PENDING_REFS}" in refuter and "exactly one file" not in refuter  # SEC-W4, CR-5
+    assert (
+        "{PENDING_REFS}" in refuter and "exactly one file" not in refuter
+    )  # SEC-W4, CR-5
     assert "verdict" in refuter and "reason" in refuter
 
 
 def test_each_dimension_brief_names_its_rule_prefix() -> None:
     text = _text(PROMPTS)
     for dim in models.Dimension:
-        section = re.search(rf"^## [^\n]*`{dim.value}`\n(.*?)(?=^## |\Z)", text, re.S | re.M)
-        assert section and re.search(r"rule prefix `[a-z]+\.`", section.group(1), re.I), dim
+        section = re.search(
+            rf"^## [^\n]*`{dim.value}`\n(.*?)(?=^## |\Z)", text, re.S | re.M
+        )
+        assert section and re.search(
+            r"rule prefix `[a-z]+\.`", section.group(1), re.I
+        ), dim
     assert "last-touch age" not in text  # CR-4: name metrics as measure emits them
 
 
@@ -129,7 +153,9 @@ def test_prompts_cover_every_dimension_and_the_refuter() -> None:
     for dim in models.Dimension:
         assert re.search(rf"^## .*`{dim.value}`", text, re.M), dim
     assert re.search(r"^## .*[Rr]efuter", text, re.M)
-    assert "judged.jsonl" not in text, "judges return lines; the main thread writes and gates them"
+    assert "judged.jsonl" not in text, (
+        "judges return lines; the main thread writes and gates them"
+    )
 
 
 # --- the skill drives the real CLI and the real rating policy -------------------------------
@@ -146,7 +172,9 @@ def test_every_cli_invocation_parses() -> None:
     calls = re.findall(r"`AA (aa-ma-analysis [^`]+)`", _text(SKILL_MD))
     assert len(calls) >= 6
     for call in calls:
-        argv = shlex.split(re.sub(r"<[^>]+>", "x", call.replace("<tier>", "standard")))[1:]
+        argv = shlex.split(re.sub(r"<[^>]+>", "x", call.replace("<tier>", "standard")))[
+            1:
+        ]
         try:
             cli._parser().parse_args(argv)  # noqa: SLF001
         except SystemExit:
@@ -155,12 +183,25 @@ def test_every_cli_invocation_parses() -> None:
 
 def test_steps_are_in_order() -> None:
     text = _text(SKILL_MD)
-    order = [text.index(f"aa-ma-analysis {s}") for s in ("fresh", "measure", "finalize")]
+    order = [
+        text.index(f"aa-ma-analysis {s}") for s in ("fresh", "measure", "finalize")
+    ]
     assert order == sorted(order)
     extras, judge, refute = (text.index(f"## Step {n}") for n in (4, 5, 6))
     # CR-1: Deep's claude-security pass and test run feed the judges, so they come first.
-    assert text.index("ledger.json") < extras < text.index("# assess:claude-security") < judge < refute < order[2]
-    assert text.index("scan-secrets") < text.index("validate judged_finding") < judge + text[judge:].index("## Step 6")
+    assert (
+        text.index("ledger.json")
+        < extras
+        < text.index("# assess:claude-security")
+        < judge
+        < refute
+        < order[2]
+    )
+    assert (
+        text.index("scan-secrets")
+        < text.index("validate judged_finding")
+        < judge + text[judge:].index("## Step 6")
+    )
     assert "verdicts.jsonl" in text[refute:]
     assert "--repo ." not in text, "the parsed [path] is the repo"
 
@@ -178,16 +219,25 @@ def test_tiers_and_the_deep_network_disclosure() -> None:
 def test_judges_and_refuter_are_named() -> None:
     text = _text(SKILL_MD)
     assert "model: sonnet" in text
-    assert text.count("subagent_type: codebase-assessor") >= 2 and "general-purpose" not in text  # SEC-W5
-    assert "codebase-onboarding-health" not in text, "Ste 2026-09-29: own health prompt, no reuse"
+    assert (
+        text.count("subagent_type: codebase-assessor") >= 2
+        and "general-purpose" not in text
+    )  # SEC-W5
+    assert "codebase-onboarding-health" not in text, (
+        "Ste 2026-09-29: own health prompt, no reuse"
+    )
     assert "run the tests" in text.lower() or "aa-ma-analysis run" in text
     assert "no overall grade" in text.lower()
 
 
 def test_constraints_do_not_contradict_the_workflow() -> None:
     text = _text(SKILL_MD)
-    assert "restate verbatim in every spawned agent prompt" not in text  # CR-3: only NO SECRETS is verbatim
-    assert "Only the CLI writes" not in text  # CR-2: the main thread writes ledger/ratings/judged
+    assert (
+        "restate verbatim in every spawned agent prompt" not in text
+    )  # CR-3: only NO SECRETS is verbatim
+    assert (
+        "Only the CLI writes" not in text
+    )  # CR-2: the main thread writes ledger/ratings/judged
     assert "spawned agents write nothing" in text
 
 
@@ -222,7 +272,11 @@ def test_assessor_agent_is_read_only_and_restates_the_rules() -> None:
     text = _text(AGENT)
     fm = split_frontmatter(text)[1]
     assert fm.get("name") == "codebase-assessor"
-    assert [t.strip() for t in str(fm.get("tools")).split(",")] == ["Read", "Grep", "Glob"]
+    assert [t.strip() for t in str(fm.get("tools")).split(",")] == [
+        "Read",
+        "Grep",
+        "Glob",
+    ]
     assert _deny_line() in text.splitlines()
     assert DATA_SENTENCE in text
 
@@ -250,26 +304,55 @@ def test_preflight_is_step_0_before_any_agent() -> None:
 def test_preflight_refuses_a_non_checkout(tmp_path: Path) -> None:
     uv = shutil.which("uv")
     assert uv, "uv is required to run this suite"
-    for name in ("README.md", "pyproject.toml", "scripts/install.sh"):  # looks like a repo, is not the forge
+    for name in (
+        "README.md",
+        "pyproject.toml",
+        "scripts/install.sh",
+    ):  # looks like a repo, is not the forge
         (tmp_path / name).parent.mkdir(exist_ok=True)
         (tmp_path / name).write_text("x\n")
-    r = _run(_block("preflight"), {"AA_MA_ROOT": str(tmp_path), "PATH": str(Path(uv).parent), "HOME": str(tmp_path)})
+    r = _run(
+        _block("preflight"),
+        {
+            "AA_MA_ROOT": str(tmp_path),
+            "PATH": str(Path(uv).parent),
+            "HOME": str(tmp_path),
+        },
+    )
     assert r.returncode != 0
     lines = r.stderr.strip().splitlines()
-    assert len(lines) == 1 and "scripts/install.sh" in lines[0] and "AA_MA_ROOT" in lines[0], r.stderr
+    assert (
+        len(lines) == 1
+        and "scripts/install.sh" in lines[0]
+        and "AA_MA_ROOT" in lines[0]
+    ), r.stderr
 
 
 def test_preflight_refuses_without_uv(tmp_path: Path) -> None:
-    r = _run(_block("preflight"), {"AA_MA_ROOT": str(REPO_ROOT), "PATH": str(tmp_path), "HOME": str(tmp_path)})
+    r = _run(
+        _block("preflight"),
+        {"AA_MA_ROOT": str(REPO_ROOT), "PATH": str(tmp_path), "HOME": str(tmp_path)},
+    )
     assert r.returncode != 0
     lines = r.stderr.strip().splitlines()
-    assert len(lines) == 1 and "scripts/install.sh" in lines[0] and "AA_MA_ROOT" in lines[0], r.stderr
+    assert (
+        len(lines) == 1
+        and "scripts/install.sh" in lines[0]
+        and "AA_MA_ROOT" in lines[0]
+    ), r.stderr
 
 
 def test_preflight_passes_a_real_checkout(tmp_path: Path) -> None:
     uv = shutil.which("uv")
     assert uv
-    r = _run(_block("preflight"), {"AA_MA_ROOT": str(REPO_ROOT), "PATH": str(Path(uv).parent), "HOME": str(tmp_path)})
+    r = _run(
+        _block("preflight"),
+        {
+            "AA_MA_ROOT": str(REPO_ROOT),
+            "PATH": str(Path(uv).parent),
+            "HOME": str(tmp_path),
+        },
+    )
     assert r.returncode == 0, r.stderr
     assert f"AA_MA_ROOT={REPO_ROOT}" in r.stdout
 
@@ -282,26 +365,43 @@ def _home(tmp_path: Path, installed: bool, enabled: bool | None) -> Path:
     plugins.mkdir(parents=True)
     key = "claude-security@claude-plugins-official"
     (plugins / "installed_plugins.json").write_text(
-        json.dumps({"version": 2, "plugins": {key: [{"scope": "user"}]} if installed else {}}))
+        json.dumps(
+            {"version": 2, "plugins": {key: [{"scope": "user"}]} if installed else {}}
+        )
+    )
     if enabled is not None:
-        (tmp_path / ".claude/settings.json").write_text(json.dumps({"enabledPlugins": {key: enabled}}))
+        (tmp_path / ".claude/settings.json").write_text(
+            json.dumps({"enabledPlugins": {key: enabled}})
+        )
     return tmp_path
 
 
 @pytest.mark.parametrize(("installed", "enabled", "available"), [
     (False, None, False), (False, True, False), (True, None, False), (True, False, False), (True, True, True),
 ])  # fmt: skip
-def test_claude_security_guard(tmp_path: Path, installed: bool, enabled: bool | None, available: bool) -> None:
+def test_claude_security_guard(
+    tmp_path: Path, installed: bool, enabled: bool | None, available: bool
+) -> None:
     home = _home(tmp_path, installed, enabled)
     r = _run(_block("claude-security"), {"HOME": str(home), "PATH": "/usr/bin:/bin"})
     assert r.returncode == 0, r.stderr
-    assert r.stdout.strip() == ("claude-security: available" if available else "claude-security: not installed and enabled")
+    assert r.stdout.strip() == (
+        "claude-security: available"
+        if available
+        else "claude-security: not installed and enabled"
+    )
 
 
 def test_claude_security_guard_is_deep_only_and_not_a_skill_edge() -> None:
     text = _text(SKILL_MD)
-    assert "Skill(claude-security)" not in text, "would need a surface_allowlist EXTERNAL entry"
-    assert text.index("## Step 4") < text.index("# assess:claude-security") < text.index("## Step 5")
+    assert "Skill(claude-security)" not in text, (
+        "would need a surface_allowlist EXTERNAL entry"
+    )
+    assert (
+        text.index("## Step 4")
+        < text.index("# assess:claude-security")
+        < text.index("## Step 5")
+    )
 
 
 # --- M3 §6.8 regression pass ------------------------------------------------------------------
@@ -310,7 +410,9 @@ def test_claude_security_guard_is_deep_only_and_not_a_skill_edge() -> None:
 def test_each_brief_rule_prefix_is_one_finalize_accepts_for_its_dimension() -> None:
     text = _text(PROMPTS)
     for dim in models.Dimension:
-        section = re.search(rf"^## [^\n]*`{dim.value}`\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+        section = re.search(
+            rf"^## [^\n]*`{dim.value}`\n(.*?)(?=^## |\Z)", text, re.S | re.M
+        )
         assert section, dim
         (prefix,) = re.findall(r"[Rr]ule prefix `([a-z_]+)\.`", section.group(1))
         assert prefix in models.RULE_PREFIXES[dim], (dim, prefix)
@@ -319,7 +421,15 @@ def test_each_brief_rule_prefix_is_one_finalize_accepts_for_its_dimension() -> N
 def test_deep_disclosure_covers_hooks_and_every_runner_family() -> None:
     text = _text(SKILL_MD)
     step4 = text[text.index("## Step 4") : text.index("## Step 5")]
-    for word in ("pre<name>", "post<name>", "npm test", "tox.ini", "build.rs", "addopts", "not exhaustive"):
+    for word in (
+        "pre<name>",
+        "post<name>",
+        "npm test",
+        "tox.ini",
+        "build.rs",
+        "addopts",
+        "not exhaustive",
+    ):
         assert word in step4, word
 
 
@@ -327,13 +437,19 @@ def test_judge_lines_that_do_not_parse_go_back_and_a_missing_agent_type_stops() 
     text = _text(SKILL_MD)
     step5 = text[text.index("## Step 5") : text.index("## Step 6")]
     assert "not one JSON object" in step5 and "never substitute" in step5
-    assert "rule prefix" in step5 and "pending" in step5  # validate enforces both (merge review)
+    assert (
+        "rule prefix" in step5 and "pending" in step5
+    )  # validate enforces both (merge review)
     assert "physical line" in text[text.index("## Step 6") :]
 
 
 def test_foundations_row_names_the_read_only_assessor() -> None:
-    spec = (REPO_ROOT / "docs/spec/claude-code-foundations.md").read_text(encoding="utf-8")
-    (row,) = [line for line in spec.splitlines() if line.startswith("| `assess-codebase` |")]
+    spec = (REPO_ROOT / "docs/spec/claude-code-foundations.md").read_text(
+        encoding="utf-8"
+    )
+    (row,) = [
+        line for line in spec.splitlines() if line.startswith("| `assess-codebase` |")
+    ]
     assert "codebase-assessor" in row and "general-purpose" not in row
 
 

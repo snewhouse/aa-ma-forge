@@ -77,3 +77,4 @@
 [2026-10-09T15:57:10+01:00] Sub-step 4.1 COMPLETE — RED 807788e → GREEN a406dc3 — frontmatter schema; pytest 2625/0 failed
 [2026-10-09T15:58:39+01:00] Sub-step 4.2 COMPLETE — cda0c30 tests/test_prompt_size.py 66 passed; negative controls bite
 [2026-10-09T16:08:27+01:00] EVAL_PROOF — {"case": "aa-ma-search/no-match", "rc": 0, "verdict": "pass", "score": 1, "cost_usd": 0.00336, "claude": "2.1.295", "mechanism": "plugin-eval"}
+[2026-10-09T17:20:53+01:00] Sub-step 4.4 COMPLETE — RED 79c82bf → GREEN 6960571 (fork) ; RED d3830a8 → GREEN 4ae7c7c (install sweep); ADR-0021 Accepted; pytest 2696/0 failed, bats 384/384

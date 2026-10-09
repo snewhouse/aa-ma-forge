@@ -28,7 +28,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | Canary branch (M1.4) | `canary/cci-m1-touched` (DRAFT PR, closed + deleted after) | [valid: 2026-10-08] |
 | Prototype branches | `prototype/cmd-to-skill` (M3.1), `prototype/impact-hook` (M10.1) | [valid: 2026-10-08] |
 | Release target | v0.18.0 (minor), single release in M14 (D11) | [valid: 2026-10-08] |
-| Next free ADR number | 0021 (0018 = M1 lint gate, 0019 = M2 skill migration, 0020 = M3 commands → skills); eight ADRs planned | [valid: 2026-10-09] |
+| Next free ADR number | 0022 (0018 = M1 lint gate, 0019 = M2 skill migration, 0020 = M3 commands → skills, 0021 = M4 writing-for-agents); eight ADRs planned | [valid: 2026-10-09] |
 | Session rules | `/rigor` (`~/.claude/skills/rigor/SKILL.md`), ≤5 concurrent sub-agents, `Skill(double-check)` before any COMPLETE | [valid: 2026-10-08] |
 
 ## Baseline Numbers (plan §0, 2026-10-08)
@@ -374,3 +374,10 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 | Step N.0 | Post-merge work of milestone N-1 (live install, pre-commit install, live probes), run from the main checkout. |
 | Grandfathered | A plan `Created:` before `IMPACT_CUTOVER`; fence 4 prints "not applicable". This plan (Created 2026-10-08) is grandfathered. |
 | Expected-Blast-Radius | The milestone's Contract `Files:` rows (Create/Modify/Test/Move/Merge/Delete), via `contract_rows.milestone_contract_rows`. |
+
+## M4 As-Built Facts (2026-10-09)
+- Skill frontmatter schema lives in `tests/test_frontmatter_at_top.py` (`SKILL_KEYS`, `skill_schema_errors`, `UNSCOPED_TOOLS_ALLOWLIST` = assess-codebase, retro). Per-skill versions are `metadata.version`. [valid: 2026-10-09]
+- Size ratchet `tests/test_prompt_size.py`: whole-file lines, `ALLOWLIST` ceilings aa-ma-execution 1295, execute-aa-ma-milestone 1244, aa-ma-plan 1154, sole-dev-merge 1057, execute-aa-ma-full 758, plan-verification 608; `TOC_ALLOWLIST` 24 references. [valid: 2026-10-09]
+- Eval mechanism: `claude plugin eval <repo-root> --no-publish --runs 1 --ablation none --trust-plugin --max-cost-usd <cap> --json <f>`; cases `evals/<skill>/<case>/case.yaml` with `plugins: ["../../../claude-code"]`; skills load as `claude-code:<skill>`; every case has a `tool_used: Skill` grader. One haiku case ≈ $0.0034. [valid: 2026-10-09]
+- `writing-for-agents` fork: mattpocock/skills @ c55ee46, state derived, upstream md5 SKILL.md 9663b04e / SKILL-MECHANICS.md f3648a8f; ADR-0021 Accepted; next ADR 0022. [valid: 2026-10-09]
+- install.sh stale sweep covers `commands/*.md`, `skills/*`, `agents/*.md` links dangling into the repo. [valid: 2026-10-09]

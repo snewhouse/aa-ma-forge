@@ -41,3 +41,6 @@
 [2026-10-09T11:24:16+01:00] MERGED — M2 PR #19 → main 686abac (rebase; CI 37916630923 7/7); live install by Ste: 5 skill links + ruff-format hook resolve into main, ruff-format entries=1; L-1315 probe 5/5 with discriminating control
 [2026-10-09T10:32:10Z] Context compacted — Snapshot saved, active step: Sub-step 3.0: Post-merge of M2
 [2026-10-09T10:32:10Z] CHECKPOINT — ActiveStep: Sub-step 3.0: Post-merge of M2 — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A
+[2026-10-09T11:24:30+01:00] WORKTREE — M3 .worktrees/feat/cci-m3-commands-to-skills cut from main @ 686abac; uv sync rc=0; codemem build rc=0 (back-filled per validator W6)
+[2026-10-09T11:37:03+01:00] COMPLEXITY_ROUTER — Milestone 3: Commands → skills (13), install hygiene — 80% Critical (61% weighted + auto-triggers) — route: prototype + HITL
+[2026-10-09T11:37:03+01:00] PROTOTYPE — Milestone 3: Commands → skills (13), install hygiene — GO: git mv + REPO_ROOT-scoped stale-command-link sweep + foreign-symlink manifest (fake HOME install/uninstall --restore/reinstall rc=0; L-1315 probe resolves /aa-ma-search, control discriminating; prototype/cmd-to-skill @ ac5f814) — verdict-changes-plan: YES (uninstall --restore must replay foreign-symlinks.tsv)

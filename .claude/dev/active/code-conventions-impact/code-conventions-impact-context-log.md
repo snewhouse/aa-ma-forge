@@ -220,3 +220,9 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Status Proposed → Accepted; INDEX row 0021 Accepted; ADR-0004 → Superseded by 0021.
 - Scope added in 4.4 (found while writing the ADR): `install.sh` swept only stale *command* links, so retiring a skill would leave `~/.claude/skills/write-a-skill` dangling into the repo after 5.0's live install. The sweep now covers `skills/*` and `agents/*.md` too (RED d3830a8 → GREEN 4ae7c7c). Same predicate as before (`points_into_repo`, dangling only), so foreign links are untouched.
 - Not taken from upstream: `agents/openai.yaml` (Codex display metadata; Claude Code does not read it; a YAML companion also has no slot for the HTML provenance line the fork test requires).
+
+## [2026-10-09] M4.5 Eval runner decisions
+- Billing (Ste asked before any paid run): this machine authenticates with claude.ai (`claude auth status`), no `ANTHROPIC_API_KEY`; eval runs count against plan usage. `costUsd` / `--max-cost-usd` are list-price estimates, not charges. Guard added: `run-evals.sh` drops `ANTHROPIC_API_KEY` unless `RUN_EVALS_ALLOW_API_KEY=1`. Ste chose sonnet as the default model.
+- AC mapping: the tasks AC was written for the `claude -p` fallback (`--disallowedTools`, `--allowedTools`). With `claude plugin eval` (4.3), tools a case does not list are absent from the session; `env -i`, the temp output dir, JSONL and exit-0 contract are kept as written. LIVE bats prove git push and `$HOME` writes cannot happen.
+- Grader lesson: `tool_used … max: 0` counts refused calls, so "Bash was never used" must be asserted on the session's tool list, with a positive-control regex so `not_contains` is not vacuous.
+- Baseline (2026-10-09, sonnet): 14/24 pass; 9 of 10 fails are `skill-fired` (description did not trigger on the user's phrasing). Input for the eval re-runs planned in 9.6, 10.9, 11.8; not fixed here (scope).

@@ -143,7 +143,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 
 ### `scripts/run-evals.sh` (new, M4)
 - Exit 0 always (advisory); rc in the last line; results → `.claude/evals/<YYYY-MM-DD>.jsonl` (gitignored) + one summary line; `claude plugin eval` always with `--no-publish`, `--runs 1`, no ablation arm. [valid: 2026-10-08]
-- As built (M4): `env -i` keeps PATH, HOME, LANG (+ CLAUDE_CODE_OAUTH_TOKEN, CLAUDE_CONFIG_DIR if set; ANTHROPIC_API_KEY only with RUN_EVALS_ALLOW_API_KEY=1); `claude plugin eval . --eval-dir evals --no-publish --runs 1 --ablation none --scaffold --trust-plugin --model sonnet --max-cost-usd 5`, temp `--output-dir`; extra args pass through (e.g. `-j 4`, `--case`); JSONL fields ts, case, verdict, score, rc, model, error, failed. `scripts/release.sh --skip-evals` skips the advisory run; `--dry-run` never runs it. [valid: 2026-10-09]
+- As built (M4; scrub reworked at sole-dev-merge Stage D): a subshell `export -n`s every variable not on the allowlist, then `exec claude` (no token in argv — `/proc/<pid>/cmdline` is world-readable); claude sees PATH, HOME, LANG, PWD (+ CLAUDE_CODE_OAUTH_TOKEN, CLAUDE_CONFIG_DIR if set; ANTHROPIC_API_KEY only with RUN_EVALS_ALLOW_API_KEY=1); `claude plugin eval . --eval-dir evals --no-publish --runs 1 --ablation none --scaffold --trust-plugin --model sonnet --max-cost-usd 5`, temp `--output-dir`; extra args pass through (e.g. `-j 4`, `--case`); JSONL fields ts, case, verdict, score, rc, model, error, failed. `scripts/release.sh --skip-evals` skips the advisory run; `--dry-run` never runs it. [valid: 2026-10-09]
 
 ## Provenance Token Formats
 
@@ -217,7 +217,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 | `RUFF_BIN` | `ruff` | no | scanner override; `/nonexistent` exercises the UNKNOWN path [valid: 2026-10-08] |
 | `BANDIT_BIN` | `bandit` | no | retired in M8 (Stage C3) [valid: 2026-10-08 to M8] |
 | `SHELLCHECK_BIN` | `shellcheck` | no | scanner override (existing) [valid: 2026-10-08] |
-| `GH_TOKEN`, `GITHUB_TOKEN`, `SSH_AUTH_SOCK` | — | no | unset inside the eval sandbox (`env -i`) [valid: 2026-10-08] |
+| `GH_TOKEN`, `GITHUB_TOKEN`, `SSH_AUTH_SOCK` | — | no | not exported to claude in the eval sandbox (`export -n`; was `env -i` until sole-dev-merge Stage D) [valid: 2026-10-08] |
 | `RUN_EVALS_ALLOW_API_KEY` | 0 | no | `1` forwards `ANTHROPIC_API_KEY` into run-evals; otherwise dropped so evals stay on plan usage [valid: 2026-10-09] |
 | `RUN_EVALS_MODEL` / `RUN_EVALS_MAX_COST_USD` / `RUN_EVALS_DIR` / `RUN_EVALS_RESULTS` | sonnet / 5 / evals / `.claude/evals` | no | run-evals.sh knobs [valid: 2026-10-09] |
 | `AA_MA_EVAL_LIVE` | 0 | no | `1` runs the paid LIVE sandbox bats case [valid: 2026-10-09] |
@@ -386,6 +386,6 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - Skill frontmatter schema lives in `tests/test_frontmatter_at_top.py` (`SKILL_KEYS`, `skill_schema_errors`, `UNSCOPED_TOOLS_ALLOWLIST` = assess-codebase, retro). Per-skill versions are `metadata.version`. [valid: 2026-10-09]
 - Size ratchet `tests/test_prompt_size.py`: whole-file lines, `ALLOWLIST` ceilings aa-ma-execution 1295, execute-aa-ma-milestone 1244, aa-ma-plan 1154, sole-dev-merge 1057, execute-aa-ma-full 758, plan-verification 608; `TOC_ALLOWLIST` 24 references. [valid: 2026-10-09]
 - Eval fixtures live in `tests/fixtures/evals/<name>/` (scaffolds `evals/_lib/`); baseline 14/24 (pre-4.7) → 22/24 with skill-fired 24/24 (single run after 4.7 + §6.8 fixes); failing cases vary between n=1 runs. [valid: 2026-10-09]
-- Eval mechanism: `claude plugin eval <repo-root> --no-publish --runs 1 --ablation none --trust-plugin --max-cost-usd <cap> --json <f>`; cases `evals/<skill>/<case>/case.yaml` with `plugins: ["../../../claude-code"]`; skills load as `claude-code:<skill>`; every case has a `tool_used: Skill` grader. One haiku case ≈ $0.0034. [valid: 2026-10-09]
+- Eval mechanism: `claude plugin eval <repo-root> --no-publish --runs 1 --ablation none --trust-plugin --max-cost-usd <cap> --json <f>`; cases `evals/<skill>/<case>/case.yaml` with `plugins: ["../../../claude-code"]`; skills load as `claude-code:<skill>`; model-invoked cases have a `tool_used: Skill` grader; user-invoked (execute-aa-ma-full) cases prompt `/claude-code:<skill>` with result + regex graders. One haiku case ≈ $0.0034. [valid: 2026-10-09]
 - `writing-for-agents` fork: mattpocock/skills @ c55ee46, state derived, upstream md5 SKILL.md 9663b04e / SKILL-MECHANICS.md f3648a8f; ADR-0021 Accepted; next ADR 0022. [valid: 2026-10-09]
 - install.sh stale sweep covers `commands/*.md`, `skills/*`, `agents/*.md` links dangling into the repo. [valid: 2026-10-09]

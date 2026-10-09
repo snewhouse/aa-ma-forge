@@ -421,7 +421,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Dependencies: Sub-step 4.5
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — Milestone 4: Prompt-as-code checks + writing-for-agents fork — version-pipeline — <evidence>`, naming the `scripts/release.sh` change, the sandbox bats name and the eval summary line.
-- Result Log: Mode: AFK — auto-dispatched. `CRITICAL_PATH_REVIEW — Milestone 4: Prompt-as-code checks + writing-for-agents fork — version-pipeline — …` appended to provenance.log, naming the scripts/release.sh change (--skip-evals, EVALS seam, advisory block before edits; version/tag/push path unchanged), the 4 new release.bats cases (18/18), the sandbox bats file and its LIVE case (9/9), and the eval summary line (24 cases, 14 pass, 10 fail; rc=1, advisory).
+- Result Log: Mode: AFK — auto-dispatched. `CRITICAL_PATH_REVIEW — Milestone 4: Prompt-as-code checks + writing-for-agents fork — version-pipeline — …` appended to provenance.log, naming the scripts/release.sh change (--skip-evals, EVALS seam, advisory block before edits; version/tag/push path unchanged), the 4 new release.bats cases (18/18), the sandbox bats file and its LIVE case (9/9), and the eval summary line (24 cases, 14 pass, 10 fail; rc=1, advisory). [Superseded by 1a912bf/1157273: the sandbox bats is 10 tests (9 default + 1 LIVE covering 3 hostile cases: git-push, home-write, skill-escape); CRITICAL_PATH_REVIEW addenda record both.]
 
 ### Sub-step 4.7: Skill triggering fix (added 2026-10-09, Ste)
 - Status: COMPLETE

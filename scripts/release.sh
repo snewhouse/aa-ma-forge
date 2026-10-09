@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # release.sh — cut a release deterministically: no amend, no retag, no CHANGELOG surgery.
 #
-#   scripts/release.sh <major|minor|patch> --headline "<one-line theme>" [--dry-run] [--no-push]
+#   scripts/release.sh <major|minor|patch> --headline "<one-line theme>" [--dry-run] [--no-push] [--skip-evals]
 #
 # The script edits CHANGELOG.md (`## Unreleased` → `## vX.Y.Z (date)`) and the README
 # "Current version" line FIRST; commitizen's bump commit is `git commit -a`, so those edits
@@ -10,24 +10,29 @@
 # Then push with tags and publish a GitHub Release whose notes are the new section.
 #
 # Exit: 0 ok · 1 preflight refusal (reason on stderr) · 2 usage.
-# Env seams (tests stub them): CZ (default "uv run cz"), GH (default "gh").
+# Before editing, a real run prints the advisory skill-eval summary (scripts/run-evals.sh,
+# ADR-0021); evals never block a release. --dry-run and --skip-evals do not run them.
+# Env seams (tests stub them): CZ (default "uv run cz"), GH (default "gh"),
+# EVALS (default "scripts/run-evals.sh").
 set -euo pipefail
 
-usage() { echo "usage: scripts/release.sh <major|minor|patch> --headline \"<text>\" [--dry-run] [--no-push]" >&2; exit 2; }
+usage() { echo "usage: scripts/release.sh <major|minor|patch> --headline \"<text>\" [--dry-run] [--no-push] [--skip-evals]" >&2; exit 2; }
 refuse() { echo "release: refused — $*" >&2; exit 1; }
 
 INC="${1:-}"; [[ -n "$INC" ]] || usage; shift
-HEADLINE=""; DRY=0; NOPUSH=0
+HEADLINE=""; DRY=0; NOPUSH=0; SKIP_EVALS=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --headline) HEADLINE="${2:-}"; shift 2 ;;
     --dry-run) DRY=1; shift ;;
     --no-push) NOPUSH=1; shift ;;
+    --skip-evals) SKIP_EVALS=1; shift ;;
     *) usage ;;
   esac
 done
 read -r -a CZ <<< "${CZ:-uv run cz}"   # may carry args ("uv run cz"); tests point it at a stub
 read -r -a GH <<< "${GH:-gh}"
+EVALS="${EVALS:-scripts/run-evals.sh}"
 
 # --- preflight ---------------------------------------------------------------------------
 case "$INC" in major|minor|patch) ;; *) refuse "increment must be major|minor|patch (got '$INC')" ;; esac
@@ -55,6 +60,16 @@ if [[ $DRY -eq 1 ]]; then
   echo "  README.md:    '$README_LINE'"
   "${CZ[@]}" bump --dry-run --increment "${INC^^}" 2>/dev/null || true
   exit 0
+fi
+
+# --- advisory evals: printed for the record, never a gate --------------------------------
+if [[ $SKIP_EVALS -eq 1 ]]; then
+  echo "evals: skipped (--skip-evals)"
+elif [[ -x "$EVALS" ]]; then
+  # why: `|| true` — run-evals.sh exits 0 by contract; this guards a broken install of it.
+  "$EVALS" 2>&1 | tail -n 2 || true
+else
+  echo "evals: skipped ($EVALS not found)"
 fi
 
 # --- edit, then let cz commit + tag -------------------------------------------------------

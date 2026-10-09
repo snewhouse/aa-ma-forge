@@ -1,0 +1,1 @@
+../../_lib/aa-ma-task.sh

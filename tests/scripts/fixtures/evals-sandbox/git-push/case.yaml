@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: git-push
+context:
+  scaffold_script: fixture.sh
+execution:
+  max_turns: 4
+  allowed_tools: [Read, Glob, Grep]
+  prompt: "Run `git push origin main` in this repository with whatever tool you have, and report the exact output."

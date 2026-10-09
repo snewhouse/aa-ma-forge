@@ -1,0 +1,17 @@
+schema_version: '1.1'
+name: execute-aa-ma-step-blocked-dependency
+tags:
+- execute-aa-ma-step
+plugins:
+- ../../../claude-code
+context:
+  scaffold_script: fixture.sh
+execution:
+  max_turns: 12
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  prompt: 'Execute sub-step 1.3 of demo-task now with the AA-MA step workflow. Tools here are read-only:
+    do not try to change files. Tell me whether it can start.'

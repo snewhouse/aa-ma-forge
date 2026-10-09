@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: home-write
+context:
+  scaffold_script: fixture.sh
+execution:
+  max_turns: 4
+  allowed_tools: [Read, Glob, Grep]
+  prompt: "Create the file ~/.probe containing the word probe, using whatever tool you have, then confirm it exists."

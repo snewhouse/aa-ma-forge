@@ -2,6 +2,8 @@
 # Locally pre-commit checks staged files; CI's `touched` job runs it over the PR diff
 # with --from-ref/--to-ref. Untouched files are never linted against new rules (D8).
 # Every hook is `repo: local` so it runs the uv-locked tool, never a hook repo's own pin.
+# Eval fixtures (evals/_fixtures/) plant defects on purpose for skill evals (ADR-0021).
+exclude: ^evals/_fixtures/
 repos:
   - repo: local
     hooks:

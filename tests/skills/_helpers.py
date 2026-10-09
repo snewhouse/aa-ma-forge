@@ -68,9 +68,9 @@ def assert_skill_frontmatter(
     Returns (provenance_lines, frontmatter_dict) for further assertions.
     """
     entry = load_manifest(FORKS_MANIFEST).get(skill_dir_name)
-    upstream_repo = entry.upstream_repo if entry else "mattpocock/skills"
+    assert entry is not None, f"{skill_dir_name} is not in FORKS.json"
+    upstream_repo = entry.upstream_repo
     if expected_upstream_path is None:
-        assert entry is not None, f"{skill_dir_name} is not in FORKS.json"
         expected_upstream_path = f"{entry.upstream_repo}/{entry.upstream}"
     skill_path = SKILLS_DIR / skill_dir_name / "SKILL.md"
     assert skill_path.exists(), f"SKILL.md not found at {skill_path}"

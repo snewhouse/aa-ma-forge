@@ -16,14 +16,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Five coding-doctrine skills move into the forge (ADR-0019): `logging-and-comments`, `python-quality-gates`, `llm-output-safety` (adopted), `secrets-management` (forked from wshobson/agents @ 46891e7, MIT) and `bash-defensive-patterns` (derived @ 5d65aa1, MIT). Skills 22→27.
-- `ruff-format.sh` ships as a PostToolUse(Edit|Write) hook that `install.sh` links and registers (hooks 8→9); bats run it on a real captured payload.
+- Five coding-doctrine skills move into the forge (ADR-0019): `logging-and-comments`, `python-quality-gates`, `llm-output-safety` (adopted), `secrets-management` (derived from wshobson/agents @ 46891e7, MIT: no secret echo, trufflehog `--fail`) and `bash-defensive-patterns` (derived @ 5d65aa1, MIT). Skills 22→27.
+- `ruff-format.sh` ships as a PostToolUse(Edit|Write) hook that `install.sh` links and registers (hooks 8→9); it honours `AA_MA_HOOKS_DISABLE` and `CLAUDE_HOOK_LOG`; bats run it on a real captured payload.
 - `FORKS.json` rows record `upstream_repo` and `licence`; `scripts/fork-drift.sh` fetches each fork from its own repo. Every fork dir ships its upstream MIT `LICENSE`.
 
 ### Changed
 
-- `install.sh` backs up `settings.json` into the run's timestamped `backups/aa-ma-forge-<ts>/` (no more overwritten `settings.json.bak`), and `--force` still backs up a real directory before replacing it with a symlink.
-- **Upgrade note:** after this change `uninstall.sh` removes the five migrated skills and the ruff hook registration, and `--restore` (latest `aa-ma-forge-*` backup only) may not recreate them. Restore from the `~/.claude/backups/cci-m2-<ts>.tgz` tarball taken before the migration.
+- `install.sh` backs up `settings.json` to a timestamped `backups/settings-aa-ma-forge-<ts>.json` (no more overwritten `settings.json.bak`), and `--force` still backs up a real directory before replacing it with a symlink.
+- `uninstall.sh --restore` walks every `aa-ma-forge-*` backup newest-first and restores each path from its newest copy; it used to read only the newest dir, which a re-install that backed up just the copied spec docs could hide.
+- **Upgrade note:** after this change `uninstall.sh` removes the five migrated skills and the ruff hook registration; `--restore` brings back the pre-install copies from the install backup. The `~/.claude/backups/cci-m2-<ts>.tgz` tarball taken before the migration is the fallback.
 - `pyproject.toml` gains a `[tool.ruff.lint]` section for logging and comment hygiene (`LOG`, `G`, `T20`, `BLE`, `S110`/`S112`, `TRY400`/`TRY401`, `D1`, `TD`, `ERA`, google docstrings). Pre-existing docstring gaps (D101/D102/D103/D104/D107, 61 in all) are ignored and tagged `TODO(logging-std): burn down`. The two deliberate blind catches carry `noqa: BLE001` with a reason. CI's `ruff check src/` now enforces these rules.
 
 ### Security

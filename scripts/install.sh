@@ -165,8 +165,11 @@ if ${FORCE}; then
     backup_targets=("${forced_targets[@]}")
 fi
 
-# One timestamped dir per run; settings.json backups land here too (backup_settings_once).
-BACKUP_DIR="${CLAUDE_HOME}/backups/aa-ma-forge-$(date +%Y%m%d-%H%M%S)"
+RUN_TS="$(date +%Y%m%d-%H%M%S)"
+BACKUP_DIR="${CLAUDE_HOME}/backups/aa-ma-forge-${RUN_TS}"
+# why: a sibling file, not inside BACKUP_DIR — `uninstall.sh --restore` reads only the latest
+# aa-ma-forge-* dir, and a settings-only dir would hide the one holding real-file backups.
+SETTINGS_BACKUP="${CLAUDE_HOME}/backups/settings-aa-ma-forge-${RUN_TS}.json"
 
 if [ ${#backup_targets[@]} -gt 0 ]; then
 
@@ -374,11 +377,11 @@ backup_settings_once() {
     ${SETTINGS_BACKED_UP} && return 0
     if [ -f "${SETTINGS_FILE}" ] && ! ${FORCE}; then
         if ${DRY_RUN}; then
-            info "Would back up ${SETTINGS_FILE} → ${BACKUP_DIR}/settings.json"
+            info "Would back up ${SETTINGS_FILE} → ${SETTINGS_BACKUP}"
         else
-            mkdir -p "${BACKUP_DIR}"
-            cp -a "${SETTINGS_FILE}" "${BACKUP_DIR}/settings.json"
-            info "Backed up ${SETTINGS_FILE} → ${BACKUP_DIR}/settings.json"
+            mkdir -p "${SETTINGS_BACKUP%/*}"
+            cp -a "${SETTINGS_FILE}" "${SETTINGS_BACKUP}"
+            info "Backed up ${SETTINGS_FILE} → ${SETTINGS_BACKUP}"
         fi
     fi
     SETTINGS_BACKED_UP=true

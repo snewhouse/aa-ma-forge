@@ -257,7 +257,7 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `logging-and-comments` | Logging and comment standard for Python and Bash, with the Ruff baseline that enforces it |
 | `python-quality-gates` | Zero-tolerance test gate and pre-commit documentation checklist |
 | `llm-output-safety` | Safety rules for LLM text in client-facing outputs (sanitisation, citation integrity) |
-| `secrets-management` | Secrets handling in CI/CD (forked from wshobson/agents @ 46891e7, MIT) |
+| `secrets-management` | Secrets handling in CI/CD (derived from wshobson/agents @ 46891e7, MIT) |
 | `bash-defensive-patterns` | Defensive Bash patterns (derived from wshobson/agents @ 5d65aa1, MIT) |
 
 Start with the [quick reference](docs/spec/aa-ma-quick-reference.md) for a five-minute overview. The [team guide](docs/spec/aa-ma-team-guide.md) covers the full workflow in detail (originally written for internal use, so some model references may be dated). To see what the five files look like in practice, check [examples/aa-ma-team-guide/](examples/aa-ma-team-guide/).
@@ -356,7 +356,7 @@ The full story is in [how we got here](docs/narrative/how-we-got-here.md), and t
 
 ## AA-MA hook troubleshooting
 
-AA-MA Forge ships nine hooks. All but the advisory `ruff-format.sh` formatter (never blocks, always exits 0) honour a single master kill switch and carry explicit bypass mechanisms for the edge cases where they get in the way.
+AA-MA Forge ships 9 hooks. All honour a single master kill switch and carry explicit bypass mechanisms for the edge cases where they get in the way.
 
 **Master kill switch.** Something misbehaving? This disables every AA-MA hook immediately:
 

@@ -2,12 +2,12 @@
 # uninstall.sh — Remove AA-MA Forge artifacts from ~/.claude/
 #
 # Finds all symlinks in ~/.claude/ that point back into this repo and removes
-# them. Also removes the 3 copied spec docs. Optionally restores from the most
-# recent backup.
+# them. Also removes the 3 copied spec docs. Optionally restores each path from
+# its newest aa-ma-forge-* backup.
 #
 # Usage:
 #   scripts/uninstall.sh              # remove symlinks + copied docs
-#   scripts/uninstall.sh --restore    # also restore from latest backup
+#   scripts/uninstall.sh --restore    # also restore each path from its newest backup
 #   scripts/uninstall.sh --dry-run    # preview without changes
 
 set -euo pipefail
@@ -158,52 +158,53 @@ if ${RESTORE}; then
     if [ ! -d "${BACKUP_BASE}" ]; then
         warn "No backup directory found at ${BACKUP_BASE}/"
     else
-        # Find the most recent aa-ma-forge backup by directory name (sorted
-        # lexicographically — the YYYYMMDD-HHMMSS suffix guarantees correct order)
-        LATEST_BACKUP=""
+        # Every aa-ma-forge backup dir, newest first (the YYYYMMDD-HHMMSS suffix sorts
+        # lexicographically). why: one install run backs up only what was real at that
+        # moment, so the newest dir alone (e.g. a re-run that backed up just the copied
+        # spec docs) can hide the dir holding the real skills. Each path is restored from
+        # its newest backup; older copies of an already-restored path are skipped.
+        BACKUPS=()
         while IFS= read -r -d '' dir; do
-            LATEST_BACKUP="${dir}"
-        done < <(find "${BACKUP_BASE}" -maxdepth 1 -type d -name "aa-ma-forge-*" -print0 2>/dev/null | sort -z)
+            BACKUPS+=("${dir}")
+        done < <(find "${BACKUP_BASE}" -maxdepth 1 -type d -name "aa-ma-forge-*" -print0 2>/dev/null | sort -rz)
 
-        if [ -z "${LATEST_BACKUP}" ]; then
+        if [ ${#BACKUPS[@]} -eq 0 ]; then
             warn "No aa-ma-forge backups found in ${BACKUP_BASE}/"
         else
-            info "Most recent backup: ${LATEST_BACKUP}"
+            info "Backups (newest first): ${#BACKUPS[@]}"
+            declare -A RESTORED=()
+            for backup_dir in "${BACKUPS[@]}"; do
+                while IFS= read -r -d '' backup_file; do
+                    rel_path="${backup_file#"${backup_dir}"/}"
+                    [ -n "${RESTORED[${rel_path}]:-}" ] && continue   # a newer backup already won
+                    restore_target="${CLAUDE_HOME}/${rel_path}"
 
-            # Walk the backup directory and restore each file to its original
-            # location under ~/.claude/
-            while IFS= read -r -d '' backup_file; do
-                # Compute the relative path within the backup
-                rel_path="${backup_file#"${LATEST_BACKUP}"/}"
-                restore_target="${CLAUDE_HOME}/${rel_path}"
-
-                # Only restore if the target doesn't already exist (we just
-                # removed symlinks, so the slot should be free)
-                if [ -e "${restore_target}" ] && [ ! -L "${restore_target}" ]; then
-                    warn "Skipping restore (file exists): ${restore_target}"
-                    continue
-                fi
-
-                # Remove dangling symlink if present
-                if [ -L "${restore_target}" ]; then
-                    if ! ${DRY_RUN}; then
-                        rm "${restore_target}"
+                    # Only restore if the target doesn't already exist (we just
+                    # removed symlinks, so the slot should be free)
+                    if [ -e "${restore_target}" ] && [ ! -L "${restore_target}" ]; then
+                        warn "Skipping restore (file exists): ${restore_target}"
+                        RESTORED["${rel_path}"]=1
+                        continue
                     fi
-                fi
 
-                if ${DRY_RUN}; then
-                    info "Would restore: ${backup_file} -> ${restore_target}"
-                else
-                    mkdir -p "$(dirname "${restore_target}")"
-                    if [ -d "${backup_file}" ]; then
-                        cp -a "${backup_file}" "${restore_target}"
+                    # Remove dangling symlink if present
+                    if [ -L "${restore_target}" ]; then
+                        if ! ${DRY_RUN}; then
+                            rm "${restore_target}"
+                        fi
+                    fi
+
+                    if ${DRY_RUN}; then
+                        info "Would restore: ${backup_file} -> ${restore_target}"
                     else
+                        mkdir -p "$(dirname "${restore_target}")"
                         cp -a "${backup_file}" "${restore_target}"
+                        info "Restored: ${rel_path} (from ${backup_dir##*/})"
                     fi
-                    info "Restored: ${rel_path}"
-                fi
-                FILES_RESTORED=$((FILES_RESTORED + 1))
-            done < <(find "${LATEST_BACKUP}" -type f -print0 2>/dev/null)
+                    RESTORED["${rel_path}"]=1
+                    FILES_RESTORED=$((FILES_RESTORED + 1))
+                done < <(find "${backup_dir}" -type f -print0 2>/dev/null)
+            done
         fi
     fi
 else

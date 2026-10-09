@@ -70,3 +70,14 @@ run_hook() {
     [ "$(wc -l < "$WORK/custom.log")" -eq 1 ]
     [ ! -e "$LOG" ]
 }
+
+@test "ruff check --fix runs before ruff format (ruff's documented order)" {
+    mkdir -p "$WORK/bin"
+    printf '#!/usr/bin/env bash\necho "$1" >> "%s/calls"\n' "$WORK" > "$WORK/bin/ruff"
+    chmod +x "$WORK/bin/ruff"
+    printf 'x=1\n' > "$WORK/sample.py"
+    jq --arg f "$WORK/sample.py" '.tool_input.file_path = $f' "$PAYLOAD" > "$WORK/payload.json"
+    run env PATH="$WORK/bin:$PATH" bash "$HOOK" < "$WORK/payload.json"
+    [ "$status" -eq 0 ]
+    [ "$(paste -sd, "$WORK/calls")" = "check,format" ]
+}

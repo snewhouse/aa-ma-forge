@@ -1,7 +1,8 @@
 ---
 name: aa-ma-share
-description: Publish a plan, ADR or spec doc as a private Artifact link (markdown in; mermaid renders natively). Allowlisted paths only — context-log, provenance, reference and tasks are never shared.
+description: Publish a plan, ADR or spec doc as a private Artifact link (markdown in; mermaid renders natively). Allowlisted paths only — context-log, provenance, reference and tasks are never shared. Run only when the user asks to share a doc.
 argument-hint: "[path-to-plan|adr|spec.md]"
+disable-model-invocation: true
 ---
 
 # /aa-ma-share
@@ -27,7 +28,7 @@ HTML export would nest a document inside the viewer and initialise mermaid twice
 
 ```bash
 # Resolve the aa-ma-forge checkout from this command's own installed symlink.
-AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/commands/aa-ma-share.md)")/../.." && pwd)
+AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/skills/aa-ma-share/SKILL.md)")/../../.." && pwd)
 if [[ ! -f "$AA_MA_ROOT/pyproject.toml" ]]; then
   echo "aa-ma-share: aa-ma-forge checkout not found (command was copied, not symlinked); publishing without lint" >&2
   AA_MA_ROOT=""

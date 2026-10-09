@@ -1,6 +1,6 @@
 ---
 name: aa-ma-plan
-description: Advanced planning workflow with AA-MA methodology, superpowers skills, Context7 MCP, and multi-agent coordination
+description: Advanced planning workflow with AA-MA methodology, superpowers skills, Context7 MCP, and multi-agent coordination. Use only when the user asks to plan a feature or create an AA-MA plan.
 ---
 
 <!-- Renamed from /ultraplan to /aa-ma-plan on 2026-04-06.
@@ -576,7 +576,7 @@ skips the cut. Phase 4.5 check 8 (`aa-ma-lint-views --coverage`) flags any `Crea
 
 ```bash
 # The aa-ma-forge checkout, from this command's installed symlink (scripts/install.sh).
-AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/commands/aa-ma-plan.md)")/../.." && pwd)
+AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/skills/aa-ma-plan/SKILL.md)")/../../.." && pwd)
 if [[ ! -f "${AA_MA_ROOT}/packages/codemem-mcp/pyproject.toml" ]]; then
   echo "§13 seed unavailable: ${AA_MA_ROOT} is not an aa-ma-forge checkout (run scripts/install.sh)."
 else

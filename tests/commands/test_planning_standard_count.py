@@ -32,7 +32,7 @@ SITES = {
     "docs/spec/claude-code-foundations.md": r"(\d+) mandatory outputs",
     "docs/templates/plan-template.md": r"(?:all|ALL) (\d+) (?:mandatory planning|AA-MA planning) elements",
     "claude-code/agents/aa-ma-validator.md": r"\((\d+) AA-MA Elements\)|/(\d+) elements present",
-    "claude-code/commands/aa-ma-plan.md": r"(?:ALL|all) (\d+) (?:required )?elements",
+    "claude-code/skills/aa-ma-plan/SKILL.md": r"(?:ALL|all) (\d+) (?:required )?elements",
     "claude-code/skills/aa-ma-plan-workflow/references/PHASE_4_PLAN_GENERATION.md": r"(?:ALL|all) (\d+) (?:required |AA-MA )?elements",
     "claude-code/agents/aa-ma-scribe.md": r"all (\d+) AA-MA elements",
 }

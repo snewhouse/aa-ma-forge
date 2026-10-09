@@ -63,7 +63,7 @@ rejected by `Skill(plan-verification)`. Add new values via plan + ADR.):
 | `external-api`     | Third-party API calls (rate limits, error handling, contract surface) |
 | `version-pipeline` | Release, version-bump, tag-and-push, CHANGELOG mechanics            |
 | `doc-count-drift`  | Hardcoded counts in docs (Tier 6 detector domain)                   |
-| `hook-modification`| Changes to the shipped enforcement surface: `claude-code/hooks/**` (incl. `lib/`), the CI workflows `.github/workflows/**`, the gate/scan logic inside `claude-code/commands/**` and `claude-code/skills/**`, and the Python the gate reads — `src/aa_ma/{gate,enforce,grammar,plan_parsers}.py` (ADR-0009) (affect all sessions) |
+| `hook-modification`| Changes to the shipped enforcement surface: `claude-code/hooks/**` (incl. `lib/`), the CI workflows `.github/workflows/**`, the gate/scan logic inside `claude-code/skills/**`, and the Python the gate reads — `src/aa_ma/{gate,enforce,grammar,plan_parsers}.py` (ADR-0009) (affect all sessions) |
 
 **Diagram-Waiver canonical values** (plan-level front-matter; planning-time only —
 read by `Skill(plan-verification)`, never by the milestone gate; novel values are

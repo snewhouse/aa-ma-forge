@@ -27,7 +27,7 @@ from aa_ma.render.mermaid_lint import lint_plan
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "claude-code/skills/plan-verification/SKILL.md"
-PLAN_CMD = ROOT / "claude-code/commands/aa-ma-plan.md"
+PLAN_CMD = ROOT / "claude-code/skills/aa-ma-plan/SKILL.md"
 SPEC = ROOT / "docs/spec/aa-ma-specification.md"
 SEEDED = ROOT / "tests/fixtures/seeded-plan.md"
 
@@ -387,7 +387,7 @@ def _fence(md: Path, anchor: str) -> str:
 def home(tmp_path: Path) -> Path:
     """A ~/.claude that symlinks this checkout, as scripts/install.sh would."""
     h = tmp_path / "home"
-    for rel in ("commands/aa-ma-plan.md", "skills/plan-verification/SKILL.md"):
+    for rel in ("skills/aa-ma-plan", "skills/plan-verification"):
         (h / ".claude" / rel).parent.mkdir(parents=True, exist_ok=True)
         (h / ".claude" / rel).symlink_to(ROOT / "claude-code" / rel)
     return h

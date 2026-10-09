@@ -180,7 +180,7 @@ Generated: [ISO-8601 timestamp] | Audit-Profile: [profile] | Budget: [normal|low
 - Grandfathered by `Created:` date (mirrors v0.5.0 cutover for Engineering Standards Declaration element #12)
 - The file is optional — absent on grandfathered plans, present on v0.8.0+ plans with non-bypassed `Audit-Profile`
 
-**Phase 6.8 anatomy (in `execute-aa-ma-milestone.md`):**
+**Phase 6.8 anatomy (in `skills/execute-aa-ma-milestone/SKILL.md`):**
 
 | Phase | Location | What runs |
 |---|---|---|
@@ -908,4 +908,4 @@ lives in `docs/spec/plan-marker-grammar.md`.
 [7] Provenance and telemetry management in software pipelines.
 [8] Inspired by Helix.ml spec-driven workflows (infrastructure-enforced gates, executable test definitions). See research: `.claude/plans/witty-puzzling-sonnet.md`.
 [9] Adversarial plan verification. 6-angle structured review derived from lessons L-054, L-058, L-059, L-067, L-068, L-069. See skill: `claude-code/skills/plan-verification/SKILL.md`.
-[10] Charting — pre-plan decision map with typed tickets, adapted from mattpocock/skills `wayfinder` (concept only, no files forked). See ADR-0013 and command: `claude-code/commands/aa-ma-chart.md`.
+[10] Charting — pre-plan decision map with typed tickets, adapted from mattpocock/skills `wayfinder` (concept only, no files forked). See ADR-0013 and skill: `claude-code/skills/aa-ma-chart/SKILL.md`.

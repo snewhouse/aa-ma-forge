@@ -14,8 +14,8 @@
 # caller asked for and always runs — a kill switch that silently skipped it would
 # leave /aa-ma-plan reporting a map it never moved.
 #
-# A `hooks/lib/` helper, not a registered hook: invoked from the command bodies
-# (aa-ma-chart.md, aa-ma-plan.md --from-map) through the `_cand` resolution
+# A `hooks/lib/` helper, not a registered hook: invoked from the skill bodies
+# (aa-ma-chart, aa-ma-plan --from-map) through the `_cand` resolution
 # and symlinked by install.sh (L-005 — helpers are never auto-linked). Sources
 # its sibling aa-ma-parse.sh via readlink -f so the installed symlink and the
 # repo path both find it.

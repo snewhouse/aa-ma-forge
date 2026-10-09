@@ -1,6 +1,6 @@
 ---
 name: verify-plan
-description: Run adversarial verification on an existing AA-MA plan using 6 structured angles to catch errors before execution
+description: Run adversarial verification on an existing AA-MA plan using 6 structured angles to catch errors before execution. Use when the user asks to verify an AA-MA plan.
 ---
 
 # /verify-plan - Plan Verification Command

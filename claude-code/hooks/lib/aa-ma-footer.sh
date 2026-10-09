@@ -2,7 +2,7 @@
 # aa-ma-footer.sh — emit the canonical AA-MA commit footer.
 #
 # Sourced by stage-b-commit and stage-d-triage in
-# `claude-code/commands/sole-dev-merge.md`. Single source-of-truth for the
+# `claude-code/skills/sole-dev-merge/SKILL.md`. Single source-of-truth for the
 # footer format used in plan-active commits; eliminates the drift risk
 # flagged by the M2 §6.8 future-proofing-auditor (HIGH finding: "AA-MA
 # footer convention duplicated inline").

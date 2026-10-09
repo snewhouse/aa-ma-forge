@@ -66,7 +66,7 @@ _Last Updated: 2025-11-26_
 ### Claude Code AA-MA
 - CLAUDE.md lines 87-307
 - aa-ma-execution skill: ~/.claude/skills/aa-ma-execution/SKILL.md
-- Commands: ~/.claude/commands/aa-ma-plan.md
+- Skill: ~/.claude/skills/aa-ma-plan/SKILL.md
 - Design doc: ~/.claude/docs/plans/2025-11-17-aa-ma-execution-commands-design.md
 
 ## Core Principles (5)

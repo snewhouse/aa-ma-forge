@@ -16,7 +16,7 @@ load fixtures/helpers
 
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../../.." && pwd)"
-    COMMAND_MD="${REPO_ROOT}/claude-code/commands/sole-dev-merge.md"
+    COMMAND_MD="${REPO_ROOT}/claude-code/skills/sole-dev-merge/SKILL.md"
     EXTRACT="${REPO_ROOT}/tests/commands/sole-dev-merge/fixtures/extract_stage.sh"
     STUB_DIR="${REPO_ROOT}/tests/commands/sole-dev-merge/fixtures/bin"
 

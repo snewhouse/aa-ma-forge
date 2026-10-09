@@ -293,7 +293,7 @@ _repo() {  # prints a fresh git repo holding the clear map at the charting path
 # The /aa-ma-chart fences, executed as shipped (aa-ma-gate-python.bats pattern):
 # the guard-resolution fence (with <effort> substituted) followed by the fog-test fence.
 _chart_fences() {  # <effort>
-    local cmd="${REPO_ROOT}/claude-code/commands/aa-ma-chart.md"
+    local cmd="${REPO_ROOT}/claude-code/skills/aa-ma-chart/SKILL.md"
     { awk '/^## Guard resolution/{f=1} f && /^```bash$/{g=1; next} g && /^```$/{exit} g' "$cmd" | sed "s|^EFFORT=\"<effort>\"|EFFORT=\"$1\"|"
       awk '/^3\. \*\*Fog test/{f=1} f && /^ *```bash$/{g=1; next} g && /^ *```$/{exit} g' "$cmd"; }
 }

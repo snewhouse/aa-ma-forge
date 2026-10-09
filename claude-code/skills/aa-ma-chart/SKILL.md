@@ -1,6 +1,6 @@
 ---
 name: aa-ma-chart
-description: Chart a pre-plan decision map for an idea too big for one planning session, then work its tickets one per session until the way to /aa-ma-plan is clear
+description: Chart a pre-plan decision map for an idea too big for one planning session, then work its tickets one per session until the way to /aa-ma-plan is clear. Use when the user asks to chart or map an idea before planning.
 ---
 
 <!-- Concept adapted from mattpocock/skills `wayfinder` @ c55ee46 (2026-09-21); no files forked.

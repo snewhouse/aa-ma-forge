@@ -5,7 +5,7 @@
 #   extract_stage.sh <stage-marker> <command-md-path>
 #
 # Example:
-#   extract_stage.sh stage-a-preflight claude-code/commands/sole-dev-merge.md
+#   extract_stage.sh stage-a-preflight claude-code/skills/sole-dev-merge/SKILL.md
 #
 # Looks for fenced markers:
 #   # === <stage-marker> (BEGIN) ===

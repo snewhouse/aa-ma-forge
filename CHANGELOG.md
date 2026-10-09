@@ -31,7 +31,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - `install.sh` no longer requires `~/.claude/commands/`.
   - It removes command links that dangle into the repo.
   - Before replacing a symlink that points outside the repo, it records the link in the backup's `foreign-symlinks.tsv`, under `--force` too.
-- `uninstall.sh` reads its hook list from `install.sh`'s `AA_MA_HOOKS` table, so it now also deregisters `security-static-check` and `aa-ma-plan-skip-warn`, with or without `--restore`. `--restore` puts recorded foreign symlinks back. Links into the repo whose source directory is gone are removed.
+- `AA_MA_HOOKS` moves to `scripts/lib/aa-ma-install-lib.sh`, the one hook table. `install.sh` and `uninstall.sh` source it, and codemem's plugin-surface extractor reads it.
+  - Both scripts refuse a malformed row before they change anything.
+  - `uninstall.sh` now also deregisters `security-static-check` and `aa-ma-plan-skip-warn`, with or without `--restore`. It matches the hook path as a literal string (it used to match a regex, so a home path containing `+` or `(` left hooks registered), and it logs when it cannot read `settings.json` or finds no `jq`.
+  - `uninstall.sh --restore`:
+    - puts recorded foreign symlinks back, creating the parent directory if it is gone;
+    - logs manifest rows it skips;
+    - under `--dry-run`, reports those restores correctly.
+  - Links into the repo whose source directory is gone are removed.
 - codemem `plugin_surface`: a `/x-*` glob expands over skills as well as commands.
 - `install.sh` backs up `settings.json` to a timestamped `backups/settings-aa-ma-forge-<ts>.json` (no more overwritten `settings.json.bak`), and `--force` still backs up a real directory before replacing it with a symlink.
 - `uninstall.sh --restore` walks every `aa-ma-forge-*` backup newest-first and restores each path from its newest copy; it used to read only the newest dir, which a re-install that backed up just the copied spec docs could hide.

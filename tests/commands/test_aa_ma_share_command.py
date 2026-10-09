@@ -4,7 +4,7 @@
 - the body resolves the checkout via ``readlink -f`` on its own installed symlink
 - the body calls the tested allowlist script rather than describing an allowlist in prose
 - the body never routes through ``aa-ma-render`` (the Artifact tool wraps and renders markdown)
-- the command count sites agree with the number of command files on disk (doc-count-drift)
+- README's slash names are shipped skills; SECURITY.md and foundations skill/agent counts match disk
 """
 
 from __future__ import annotations
@@ -51,6 +51,10 @@ def _count(sub: str, pattern: str) -> int:
     )
 
 
+# The 13 commands that became skills in ADR-0020 (11 moved + 2 merged); grill-me retired.
+FORMER_COMMANDS = 13
+
+
 def test_readme_slash_names_are_shipped_skills() -> None:
     """README's slash-name list names skills on disk (the forge's commands became skills, ADR-0020)."""
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
@@ -59,7 +63,7 @@ def test_readme_slash_names_are_shipped_skills() -> None:
     skills = {
         p.parent.name for p in (REPO_ROOT / "claude-code" / "skills").glob("*/SKILL.md")
     }
-    assert len(names) >= 13 and names <= skills, sorted(names - skills)
+    assert len(names) >= FORMER_COMMANDS and names <= skills, sorted(names - skills)
 
 
 def test_security_md_asset_lists_match_disk() -> None:

@@ -38,7 +38,11 @@ header()  { printf "\n%s%s%s\n" "${BOLD}" "$1" "${RESET}"; }
 # Resolve repo root (parent of the directory containing this script)
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# why: pwd -P — points_into_repo compares against `readlink -f`, which is canonical.
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+# shellcheck source=lib/aa-ma-install-lib.sh
+# shellcheck disable=SC1090,SC1091
+. "${SCRIPT_DIR}/lib/aa-ma-install-lib.sh"
 CLAUDE_HOME="${HOME}/.claude"
 
 # ---------------------------------------------------------------------------
@@ -61,6 +65,13 @@ done
 
 if ${DRY_RUN}; then
     header "=== DRY RUN — no changes will be made ==="
+fi
+
+# A malformed hook row must stop the uninstall before it removes anything: links gone
+# but hooks still registered would point every session at missing files.
+if ! aa_ma_hooks_validate; then
+    error "Fix AA_MA_HOOKS in ${SCRIPT_DIR}/lib/aa-ma-install-lib.sh, then re-run."
+    exit 1
 fi
 
 # ---------------------------------------------------------------------------
@@ -92,12 +103,8 @@ for search_dir in "${SEARCH_DIRS[@]}"; do
     # Find symlinks in this directory (non-recursive — depth 1 only)
     while IFS= read -r -d '' link; do
         # Resolve where the symlink points
-        # why: `readlink -f` fails when the link's source directory is gone too (a
-        # command dir removed by an upgrade); fall back to the raw destination.
-        link_target="$(readlink -f "${link}" 2>/dev/null || readlink "${link}")"
-
-        # Check if the resolved target lives under our repo root
-        if [[ "${link_target}" == "${REPO_ROOT}/"* ]]; then
+        link_target="$(readlink "${link}")"
+        if points_into_repo "${link}"; then
             if ${DRY_RUN}; then
                 info "Would remove symlink: ${link} -> ${link_target}"
             else
@@ -134,8 +141,7 @@ for doc in "${SPEC_DOCS[@]}"; do
         DOCS_REMOVED=$((DOCS_REMOVED + 1))
     elif [ -L "${target}" ]; then
         # Unlikely but handle it: if somehow it's a symlink to our repo
-        link_target="$(readlink -f "${target}" 2>/dev/null || true)"
-        if [[ "${link_target}" == "${REPO_ROOT}"* ]]; then
+        if points_into_repo "${target}"; then
             if ${DRY_RUN}; then
                 info "Would remove symlinked doc: ${target}"
             else
@@ -151,64 +157,49 @@ done
 
 # ------------------------------------------------------------------
 # Deregister all AA-MA hooks from settings.json (symmetric with install.sh),
-# with or without --restore.
-# Uses path-substring match so both `<path>` and `bash <path>` forms are
-# removed together. Idempotent: silently no-ops if a hook isn't registered.
+# with or without --restore. Every row of AA_MA_HOOKS (the one table, sourced
+# above) is removed. A literal substring match on the link path removes both the
+# `<path>` and `bash <path>` command forms. Idempotent.
 # ------------------------------------------------------------------
 SETTINGS_FILE="${CLAUDE_HOME}/settings.json"
-
-# Derived from install.sh's AA_MA_HOOKS table, so a hook added there is also
-# removed here. Same row grammar codemem's plugin_surface reads (_HOOK_ROW).
-AA_MA_UNINSTALL_HOOKS=()
-while IFS= read -r row; do
-    if [[ "${row}" =~ ^([A-Za-z]+)\|(.*)\|([A-Za-z0-9_.-]+\.sh)\|([0-9]+)\|(.*)$ ]]; then
-        AA_MA_UNINSTALL_HOOKS+=("${BASH_REMATCH[1]}|${BASH_REMATCH[3]}")
-    fi
-done < <(sed -n '/^AA_MA_HOOKS=(/,/^)/s/^[[:space:]]*"\(.*\)"[[:space:]]*$/\1/p' "${SCRIPT_DIR}/install.sh")
-if [ ${#AA_MA_UNINSTALL_HOOKS[@]} -eq 0 ]; then
-    error "Could not read AA_MA_HOOKS from ${SCRIPT_DIR}/install.sh — no hooks deregistered"
-    exit 1
-fi
 
 deregister_hook() {
     local event="$1" src_base="$2"
     local link_path="${CLAUDE_HOME}/hooks/lib/${src_base}"
-    if ! command -v jq &>/dev/null || [ ! -f "${SETTINGS_FILE}" ]; then
-        return 0
-    fi
     local has
-    has=$(jq -r \
-        --arg event "$event" \
-        --arg link "$link_path" \
-        '(.hooks[$event] // []) | map(select(.hooks[]? | .command | test($link; "l"))) | length' \
-        "${SETTINGS_FILE}" 2>/dev/null || echo "0")
-    if [ "${has}" = "0" ]; then
+    if ! has=$(jq -r --arg event "$event" --arg link "$link_path" \
+        '(.hooks[$event] // []) | map(select(any(.hooks[]?; (.command // "") | contains($link)))) | length' \
+        "${SETTINGS_FILE}"); then
+        warn "Could not read ${SETTINGS_FILE}; ${event} [${src_base}] left registered"
         return 0
     fi
+    [ "${has}" = "0" ] && return 0
     if ${DRY_RUN}; then
         info "Would deregister ${event} [${src_base}] from settings.json"
         return 0
     fi
     local tmp="${SETTINGS_FILE}.tmp.$$"
-    jq \
-        --arg event "$event" \
-        --arg link "$link_path" \
-        '.hooks[$event] = ((.hooks[$event] // []) | map(select(.hooks | all(.command | test($link; "l") | not))))' \
+    jq --arg event "$event" --arg link "$link_path" \
+        '.hooks[$event] = ((.hooks[$event] // []) | map(select(.hooks | all((.command // "") | contains($link) | not))))' \
         "${SETTINGS_FILE}" > "${tmp}" || { rm -f "${tmp}"; return 1; }
-    if ! jq empty "${tmp}" 2>/dev/null; then
-        rm -f "${tmp}"
-        error "Deregistration of ${event} [${src_base}] would produce invalid settings.json — aborting"
-        return 1
-    fi
     mv "${tmp}" "${SETTINGS_FILE}"
     info "Deregistered ${event} [${src_base}] from settings.json"
 }
 
-for entry in "${AA_MA_UNINSTALL_HOOKS[@]}"; do
-    IFS='|' read -r u_event u_src <<< "${entry}"
-    deregister_hook "${u_event}" "${u_src}"
-done
-
+header "Deregistering hooks..."
+if [ ! -f "${SETTINGS_FILE}" ]; then
+    info "No ${SETTINGS_FILE}; nothing to deregister."
+elif ! command -v jq &>/dev/null; then
+    warn "jq not found; AA-MA hooks left registered in ${SETTINGS_FILE}"
+else
+    declare -A DEREGISTERED=()
+    for entry in "${AA_MA_HOOKS[@]}"; do
+        aa_ma_hook_parse "${entry}"   # validated at the top
+        [ -n "${DEREGISTERED[${HOOK_EVENT}|${HOOK_SRC}]:-}" ] && continue
+        DEREGISTERED["${HOOK_EVENT}|${HOOK_SRC}"]=1
+        deregister_hook "${HOOK_EVENT}" "${HOOK_SRC}"
+    done
+fi
 
 # ---------------------------------------------------------------------------
 # 3. Restore from backup (if --restore flag set)
@@ -272,17 +263,23 @@ if ${RESTORE}; then
                 manifest="${backup_dir}/foreign-symlinks.tsv"
                 [ -f "${manifest}" ] || continue
                 while IFS=$'\t' read -r link dest; do
-                    [[ "${link}" == "${CLAUDE_HOME}/"* && -n "${dest}" ]] || continue
+                    if [[ "${link}" != "${CLAUDE_HOME}/"* || -z "${dest}" ]]; then
+                        warn "Skipping manifest row (not a link under ${CLAUDE_HOME}/): ${link}"
+                        continue
+                    fi
                     rel_path="${link#"${CLAUDE_HOME}"/}"
                     [ -n "${RESTORED[${rel_path}]:-}" ] && continue
                     RESTORED["${rel_path}"]=1
-                    if [ -e "${link}" ] || [ -L "${link}" ]; then
+                    # A dry run removed none of our links, so a slot one of them holds is free.
+                    if { [ -e "${link}" ] || [ -L "${link}" ]; } \
+                        && ! { ${DRY_RUN} && [ -L "${link}" ] && points_into_repo "${link}"; }; then
                         warn "Skipping foreign-symlink restore (exists): ${link}"
                         continue
                     fi
                     if ${DRY_RUN}; then
                         info "Would restore foreign symlink: ${link} -> ${dest}"
                     else
+                        mkdir -p "$(dirname "${link}")"
                         ln -s "${dest}" "${link}"
                         info "Restored foreign symlink: ${link} -> ${dest}"
                     fi

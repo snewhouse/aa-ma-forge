@@ -39,7 +39,11 @@ header()  { printf "\n%s%s%s\n" "${BOLD}" "$1" "${RESET}"; }
 # Resolve repo root (parent of the directory containing this script)
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# why: pwd -P — points_into_repo compares against `readlink -f`, which is canonical.
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+# shellcheck source=lib/aa-ma-install-lib.sh
+# shellcheck disable=SC1090,SC1091
+. "${SCRIPT_DIR}/lib/aa-ma-install-lib.sh"
 CLAUDE_HOME="${HOME}/.claude"
 
 # ---------------------------------------------------------------------------
@@ -64,6 +68,12 @@ done
 
 if ${DRY_RUN}; then
     header "=== DRY RUN — no changes will be made ==="
+fi
+
+# A malformed hook row must stop the install before it changes anything.
+if ! aa_ma_hooks_validate; then
+    error "Fix AA_MA_HOOKS in ${SCRIPT_DIR}/lib/aa-ma-install-lib.sh, then re-run."
+    exit 1
 fi
 
 # ---------------------------------------------------------------------------
@@ -208,8 +218,8 @@ fi
 FOREIGN_MANIFEST="${BACKUP_DIR}/foreign-symlinks.tsv"
 record_foreign_symlink() {
     local target="$1" dest
+    points_into_repo "${target}" && return 0
     dest=$(readlink "${target}")
-    [[ "${dest}" == "${REPO_ROOT}/"* ]] && return 0
     if ${DRY_RUN}; then
         info "Would record foreign symlink: ${target} -> ${dest}"
         return 0
@@ -287,9 +297,10 @@ copy_file() {
 header "Removing stale command links..."
 # A command that became a skill leaves ~/.claude/commands/<x>.md dangling into this repo.
 for link in "${CLAUDE_HOME}/commands/"*.md; do
-    [ -L "${link}" ] || continue
+    if [ ! -L "${link}" ] || [ -e "${link}" ] || ! points_into_repo "${link}"; then
+        continue
+    fi
     dest=$(readlink "${link}")
-    [[ "${dest}" == "${REPO_ROOT}/claude-code/"* && ! -e "${dest}" ]] || continue
     if ${DRY_RUN}; then
         info "Would remove stale command link: ${link} -> ${dest}"
     else
@@ -347,24 +358,7 @@ fi
 # multi-milestone plan: re-running after new hook files land adds their
 # registrations without touching already-registered entries.
 #
-# Hook entries use a pipe-delimited schema:
-#   event|matcher|source_basename|timeout|statusMessage
-# A matcher is a regex and may itself hold `|` (`Edit|Write`), so rows are split by
-# anchoring on the `<name>.sh|<timeout>|` field — the same grammar codemem's
-# plugin-surface extractor uses (`_HOOK_ROW`, packages/codemem-mcp/…/plugin_surface.py).
-# Empty matcher = no tool-name match restriction (applies to SessionStart, etc.).
-
-AA_MA_HOOKS=(
-    "SessionStart||aa-ma-session-start.sh|5|Loading AA-MA context..."
-    "PreCompact||pre-compact-aa-ma.sh|5|"
-    "PreToolUse|Bash|aa-ma-commit-signature.sh|10|"
-    "PreToolUse|Bash|security-static-check.sh|10|"
-    "SessionEnd||aa-ma-session-end-dirty.sh|5|"
-    "PostToolUse|Bash|aa-ma-commit-drift.sh|5|"
-    "PreToolUse|ExitPlanMode|aa-ma-plan-skip-warn.sh|5|"
-    "SessionEnd||aa-ma-plan-skip-warn.sh|5|"
-    "PostToolUse|Edit|Write|ruff-format.sh|10|"
-)
+# Hook rows come from AA_MA_HOOKS in scripts/lib/aa-ma-install-lib.sh (the one table).
 
 SETTINGS_FILE="${CLAUDE_HOME}/settings.json"
 SETTINGS_BACKED_UP=false
@@ -491,13 +485,8 @@ register_hook() {
 }
 
 for entry in "${AA_MA_HOOKS[@]}"; do
-    if ! [[ "${entry}" =~ ^([A-Za-z]+)\|(.*)\|([A-Za-z0-9_.-]+\.sh)\|([0-9]+)\|(.*)$ ]]; then
-        error "Unparseable AA_MA_HOOKS row: ${entry}"
-        exit 1
-    fi
-    h_event="${BASH_REMATCH[1]}" h_matcher="${BASH_REMATCH[2]}" h_src="${BASH_REMATCH[3]}"
-    h_timeout="${BASH_REMATCH[4]}" h_status="${BASH_REMATCH[5]}"
-    register_hook "${h_event}" "${h_matcher}" "${h_src}" "${h_timeout}" "${h_status}"
+    aa_ma_hook_parse "${entry}"   # validated before anything changed (top of script)
+    register_hook "${HOOK_EVENT}" "${HOOK_MATCHER}" "${HOOK_SRC}" "${HOOK_TIMEOUT}" "${HOOK_STATUS}"
 done
 
 # ---------------------------------------------------------------------------

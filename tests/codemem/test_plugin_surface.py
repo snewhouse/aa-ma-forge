@@ -18,7 +18,7 @@ import pytest
 
 from codemem.draw.cut import Level, node_id
 from codemem.draw.plugin_surface import NodeKind, RefClass, as_json, extract
-from codemem.draw.surface_allowlist import EXTERNAL
+from codemem.draw.surface_allowlist import EXTERNAL, HOOK_TABLE
 
 REPO = Path(__file__).resolve().parents[2]
 GOLDEN = REPO / "tests/golden/plugin-surface.json"
@@ -138,7 +138,7 @@ INSTALL = """AA_MA_HOOKS=(
 
 def _tree(root: Path, files: dict[str, str]) -> Path:
     for rel, text in {
-        "scripts/install.sh": INSTALL,
+        HOOK_TABLE: INSTALL,
         "claude-code/hooks/h-start.sh": "",
         **files,
     }.items():
@@ -308,7 +308,7 @@ def test_agents_hooks_and_externals_classify(tmp_path: Path) -> None:
     }
 
 
-def test_hook_events_come_from_install_sh(tmp_path: Path) -> None:
+def test_hook_events_come_from_the_hook_table(tmp_path: Path) -> None:
     s = extract(_tree(tmp_path, {}))
     assert s.hook_events == {"h-start.sh": ["PreToolUse:Bash", "SessionStart"]}
     assert s.errors == []
@@ -320,10 +320,10 @@ def test_a_wired_hook_missing_on_disk_is_an_error(tmp_path: Path) -> None:
     assert any("h-start.sh" in e for e in extract(root).errors)
 
 
-def test_missing_install_sh_is_an_error_not_silence(tmp_path: Path) -> None:
+def test_missing_hook_table_is_an_error_not_silence(tmp_path: Path) -> None:
     root = _tree(tmp_path, {})
-    (root / "scripts/install.sh").unlink()
-    assert any("install.sh" in e for e in extract(root).errors)
+    (root / HOOK_TABLE).unlink()
+    assert any(HOOK_TABLE in e for e in extract(root).errors)
 
 
 def test_one_rule_decides_node_identity(tmp_path: Path) -> None:
@@ -364,7 +364,7 @@ def test_install_table_matchers_and_unparsed_rows(tmp_path: Path) -> None:
     root = _tree(
         tmp_path,
         {
-            "scripts/install.sh": """AA_MA_HOOKS=(
+            HOOK_TABLE: """AA_MA_HOOKS=(
     "PreToolUse|Edit|Write|h-start.sh|5|"
     "PreToolUse|mcp__.*|h-start.sh|5|"
     "this row is not a hook row"
@@ -379,17 +379,17 @@ def test_install_table_matchers_and_unparsed_rows(tmp_path: Path) -> None:
     assert len(s.errors) == 1 and "unparsed" in s.errors[0]
 
 
-def test_non_utf8_install_sh_does_not_raise(tmp_path: Path) -> None:
+def test_non_utf8_hook_table_does_not_raise(tmp_path: Path) -> None:
     root = _tree(tmp_path, {})
-    (root / "scripts/install.sh").write_bytes(INSTALL.encode() + b"# \xff\xfe\n")
+    (root / HOOK_TABLE).write_bytes(INSTALL.encode() + b"# \xff\xfe\n")
     assert extract(root).hook_events == {
         "h-start.sh": ["PreToolUse:Bash", "SessionStart"]
     }
 
 
 def test_missing_plugin_tree_is_an_error_not_an_empty_graph(tmp_path: Path) -> None:
-    (tmp_path / "scripts").mkdir()
-    (tmp_path / "scripts/install.sh").write_text(INSTALL)
+    (tmp_path / HOOK_TABLE).parent.mkdir(parents=True)
+    (tmp_path / HOOK_TABLE).write_text(INSTALL)
     assert "claude-code/: not found" in extract(tmp_path).errors
 
 

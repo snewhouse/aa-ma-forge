@@ -9,23 +9,20 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import yaml
+from ._helpers import SKILLS_DIR, split_frontmatter
 
-SKILLS = Path(__file__).resolve().parents[2] / "claude-code" / "skills"
 EXPECTED = {"sole-dev-merge", "aa-ma-share"}
 
 
 def _frontmatter(path: Path) -> dict:
-    text = path.read_text(encoding="utf-8")
-    if not text.startswith("---\n"):
-        return {}  # fork-provenance SKILL.md files open with an HTML comment
-    return yaml.safe_load(text.split("\n---\n", 1)[0][4:]) or {}
+    # Strict: a SKILL.md whose frontmatter does not parse fails here, never reads as {}.
+    return split_frontmatter(path.read_text(encoding="utf-8"))[1]
 
 
 def test_exactly_the_two_outward_skills_disable_model_invocation() -> None:
     got = {
         p.parent.name
-        for p in sorted(SKILLS.glob("*/SKILL.md"))
+        for p in sorted(SKILLS_DIR.glob("*/SKILL.md"))
         if _frontmatter(p).get("disable-model-invocation") is True
     }
     assert got == EXPECTED
@@ -33,7 +30,7 @@ def test_exactly_the_two_outward_skills_disable_model_invocation() -> None:
 
 def test_the_flag_is_never_spelled_any_other_way() -> None:
     """A quoted "true" or a typo'd key would read as model-invocable."""
-    for p in sorted(SKILLS.glob("*/SKILL.md")):
+    for p in sorted(SKILLS_DIR.glob("*/SKILL.md")):
         fm = _frontmatter(p)
         assert fm.get("disable-model-invocation") in (None, True), p
         assert not {

@@ -18,6 +18,7 @@ import yaml
 
 from codemem.cli import main
 from codemem.draw import views
+from codemem.draw.surface_allowlist import HOOK_TABLE
 from codemem.draw.captions import CAPTIONS_PATH
 from codemem.indexer import build_index
 
@@ -284,8 +285,8 @@ def test_malformed_sidecar_reports_under_the_check_prefix(repo: Path, capsys) ->
 def test_plugin_surface_names_from_file_stems_are_escaped(repo: Path) -> None:
     (repo / "claude-code/commands").mkdir(parents=True)
     (repo / "claude-code/commands/x`<img src=y>.md").write_text("Skill(nope)\n")
-    (repo / "scripts").mkdir()
-    (repo / "scripts/install.sh").write_text("AA_MA_HOOKS=(\n)\n")
+    (repo / HOOK_TABLE).parent.mkdir(parents=True)
+    (repo / HOOK_TABLE).write_text("AA_MA_HOOKS=(\n)\n")
     spec = views.VIEWS["plugin-surface"]
     body = spec.generator(repo, sqlite3.connect(repo / ".codemem/index.db"), {}, spec)
     assert "<img" not in body and "&lt;img" in body

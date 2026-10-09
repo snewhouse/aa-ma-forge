@@ -372,12 +372,12 @@ def test_r7_deep_flag_no_longer_claims_unshipped_commands() -> None:
 
 
 def test_r8_whole_repo_audit_routes_to_assess_codebase() -> None:
-    for text in ((SKILL / "SKILL.md").read_text(encoding="utf-8"),):
-        assert (
-            "ships no whole-repo audit" not in text
-            and "no whole-repo audit ships here" not in text
-        )
-        assert re.search(r"audit[^\n]*→ `/assess-codebase`", text)
+    text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    assert (
+        "ships no whole-repo audit" not in text
+        and "no whole-repo audit ships here" not in text
+    )
+    assert re.search(r"audit[^\n]*→ `/assess-codebase`", text)
 
 
 def test_n1_follow_on_planning_is_the_aa_ma_plan_command() -> None:

@@ -21,7 +21,7 @@ Two artifacts are generated and checked for drift in CI; never hand-edit them:
 - `docs/architecture/` — the living architecture doc ([ADR-0016](docs/adr/0016-living-architecture-doc.md)), checked by the `architecture-drift` job.
 - `tests/golden/plugin-surface.json` — the plugin-surface snapshot, checked by `tests/codemem/test_plugin_surface.py`.
 
-After changing imports or calls, a reference in `claude-code/`, the hook table in `scripts/install.sh`, or `docs/architecture.captions.json`, run:
+After changing imports or calls, a reference in `claude-code/`, the hook table in `scripts/lib/aa-ma-install-lib.sh`, or `docs/architecture.captions.json`, run:
 
 ```bash
 scripts/regen-generated.sh

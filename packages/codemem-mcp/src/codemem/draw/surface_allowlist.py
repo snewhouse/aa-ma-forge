@@ -39,8 +39,9 @@ EXTERNAL: dict[str, frozenset[str]] = {
     # Backticked `/x` (codebase-analysis-skills M6): gstack skills, Claude Code built-ins,
     # a plugin-namespaced skill. Local-only user commands are deliberately NOT here.
     # browse/qa-only also sit under "skill": one external, reachable as Skill(x) and /x.
-    # grill-me: the forge's command was retired (code-conventions-impact D4, ADR-0020);
-    # /aa-ma-plan's `simple` grill mode now reaches the user-level mattpocock skill.
+    # grill-me: a user-level SKILL (mattpocock), reached as /grill-me. The forge's own
+    # command was retired (code-conventions-impact D4, ADR-0020); /aa-ma-plan's `simple`
+    # grill mode reaches the user's skill. Slash names classify under "command".
     "command": frozenset(
         {
             "browse",
@@ -59,4 +60,4 @@ EXTERNAL: dict[str, frozenset[str]] = {
 }
 
 # The one place hooks are wired to events (``event|matcher|hook.sh|...`` rows).
-HOOK_TABLE = "scripts/install.sh"
+HOOK_TABLE = "scripts/lib/aa-ma-install-lib.sh"

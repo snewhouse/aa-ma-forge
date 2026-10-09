@@ -1,5 +1,5 @@
 ---
 type: "llm"
 ---
-PASS if the reply ends with sub-step 1.2 recorded (or, if files cannot be written here, says it must be recorded) as Status COMPLETE with a Result Log of concrete evidence, such as the command run and its output.
-FAIL if it says nothing about recording Status or the Result Log.
+PASS if the reply either records sub-step 1.2 as COMPLETE with a Result Log of evidence from actually running its criterion, or leaves 1.2 PENDING and explains that the criterion was not run or the tasks file could not be updated here.
+FAIL if it claims 1.2 is COMPLETE without having run `python greet.py Ada`.

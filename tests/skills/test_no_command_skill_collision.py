@@ -15,3 +15,7 @@ def test_no_stem_is_both_a_command_and_a_skill() -> None:
     commands = {p.stem for p in (CC / "commands").glob("*.md")}
     skills = {p.parent.name for p in (CC / "skills").glob("*/SKILL.md")}
     assert commands & skills == set()
+
+
+def test_the_forge_ships_no_commands() -> None:
+    assert not list((CC / "commands").glob("*")) if (CC / "commands").exists() else True

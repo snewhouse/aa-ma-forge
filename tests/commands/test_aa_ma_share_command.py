@@ -15,7 +15,6 @@ from pathlib import Path
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-COMMANDS = REPO_ROOT / "claude-code" / "commands"
 COMMAND_MD = REPO_ROOT / "claude-code" / "skills" / "aa-ma-share" / "SKILL.md"
 
 
@@ -52,35 +51,21 @@ def _count(sub: str, pattern: str) -> int:
     )
 
 
-def test_command_count_sites_match_disk() -> None:
-    n = len(list(COMMANDS.glob("*.md")))
-    sites = {
-        "SECURITY.md": r"- (\d+) command files:",
-        "CLAUDE.md": r"commands/\s+(\d+) slash commands",  # gitignored, local-only: skipped when absent
-    }
-    for rel, pat in sites.items():
-        f = REPO_ROOT / rel
-        if not f.exists():
-            assert rel == "CLAUDE.md", f"{rel} missing"
-            continue
-        m = re.search(pat, f.read_text(encoding="utf-8"))
-        assert m, f"{rel}: count line not found"
-        assert int(m.group(1)) == n, f"{rel} says {m.group(1)} commands, disk has {n}"
+def test_readme_slash_names_are_shipped_skills() -> None:
+    """README's slash-name list names skills on disk (the forge's commands became skills, ADR-0020)."""
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
-    table = readme.split("### All commands", 1)[1].split("\n\n", 2)[1]
-    rows = {
-        m.group(1) for m in re.finditer(r"^\| `/([a-z0-9-]+)`", table, re.MULTILINE)
+    section = readme.split("### All slash commands", 1)[1].split("\n### ", 1)[0]
+    names = set(re.findall(r"^- `/([a-z0-9-]+)`", section, re.MULTILINE))
+    skills = {
+        p.parent.name for p in (REPO_ROOT / "claude-code" / "skills").glob("*/SKILL.md")
     }
-    assert rows == {p.stem for p in COMMANDS.glob("*.md")}, rows ^ {
-        p.stem for p in COMMANDS.glob("*.md")
-    }
+    assert len(names) >= 13 and names <= skills, sorted(names - skills)
 
 
 def test_security_md_asset_lists_match_disk() -> None:
     """SECURITY.md enumerates every shipped command/skill/agent/hook by name and count."""
     text = (REPO_ROOT / "SECURITY.md").read_text(encoding="utf-8")
     expected = {
-        "command files": ({p.stem for p in COMMANDS.glob("*.md")}, None),
         "skills directories": (
             {
                 d.name
@@ -105,7 +90,7 @@ def test_security_md_asset_lists_match_disk() -> None:
 
 
 def test_foundations_count_headings_match_disk() -> None:
-    """docs/spec/claude-code-foundations.md `### Commands (N)` / `### Skills (N)` / `### Agents (N)` track disk.
+    """docs/spec/claude-code-foundations.md `### Skills (N)` / `### Agents (N)` track disk.
 
     SECURITY.md is covered by test_security_md_asset_lists_match_disk; CLAUDE.md is gitignored.
     """
@@ -113,7 +98,6 @@ def test_foundations_count_headings_match_disk() -> None:
         encoding="utf-8"
     )
     on_disk = {
-        "Commands": len(list(COMMANDS.glob("*.md"))),
         "Skills": len(
             [d for d in (REPO_ROOT / "claude-code" / "skills").iterdir() if d.is_dir()]
         ),

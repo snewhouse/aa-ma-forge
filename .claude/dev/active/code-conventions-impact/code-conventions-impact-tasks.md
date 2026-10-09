@@ -329,7 +329,8 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Dependencies: Sub-step 3.6
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — Milestone 3: Commands → skills (13), install hygiene — hook-modification — <evidence>`, naming bats/test names.
-- Result Log:
+- Status: COMPLETE
+- Result Log: Mode: AFK — auto-dispatched. `CRITICAL_PATH_REVIEW — Milestone 3: Commands → skills (13), install hygiene — hook-modification — …` appended to provenance.log, naming the 6 gate/fence bats files, the sole-dev-merge stage bats, the 8 new install_dry_run.bats test names, install-migration.bats, and the suite totals (bats 366/366, pytest 2490/0 failed, shellcheck rc=0).
 
 ---
 

@@ -78,6 +78,16 @@ EOF2
   grep -q '^HOME=' "$WORK/env"
 }
 
+@test "the scrub is closed: exported functions and names bash cannot parse never reach claude" {
+  _stub_claude
+  leaky() { echo leak-fn; }
+  export -f leaky
+  run env 'BAD-NAME=leak-badname' "$RUN_EVALS"
+  [ "$status" -eq 0 ]
+  run grep -E 'BASH_FUNC|leak-' "$WORK/env"
+  [ "$status" -eq 1 ]
+}
+
 @test "keeps credentials off every command line: no token in env's or claude's argv" {
   _stub_claude
   # A recording `env` ahead of the real one on PATH: argv is world-readable in

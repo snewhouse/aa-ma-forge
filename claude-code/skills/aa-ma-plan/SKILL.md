@@ -1,6 +1,6 @@
 ---
 name: aa-ma-plan
-description: Advanced planning workflow with AA-MA methodology, superpowers skills, Context7 MCP, and multi-agent coordination. Use only when the user asks to plan a feature or create an AA-MA plan.
+description: "Plans a feature or change with the AA-MA method: brainstorm, research, a 13-element plan, then the five AA-MA files. Use when the user asks to plan a feature, design an implementation or create an AA-MA plan, or asks what such a plan must contain."
 ---
 
 <!-- Renamed from /ultraplan to /aa-ma-plan on 2026-04-06.

@@ -13,5 +13,4 @@ execution:
   - Glob
   - Grep
   - Skill
-  prompt: 'Execute the next AA-MA step for demo-task. Tools here are read-only: do not try to change files.
-    Say which sub-step is next and quote its acceptance criteria, then stop.'
+  prompt: Execute the next AA-MA step for demo-task.

@@ -13,5 +13,4 @@ execution:
   - Glob
   - Grep
   - Skill
-  prompt: 'Review draft/SKILL.md, a skill I am writing, and tell me what to fix. Tools here are read-only:
-    do not try to change files.'
+  prompt: Review draft/SKILL.md, a skill I am writing.

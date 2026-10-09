@@ -13,5 +13,4 @@ execution:
   - Glob
   - Grep
   - Skill
-  prompt: 'Execute the next AA-MA milestone for demo-task. Tools here are read-only: do not try to change
-    files. Report which milestone is the target and which of its sub-steps remain, in order, then stop.'
+  prompt: Execute the next AA-MA milestone for demo-task.

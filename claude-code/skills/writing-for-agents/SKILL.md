@@ -2,6 +2,7 @@
 # Derived from https://github.com/mattpocock/skills/skills/productivity/writing-for-agents @ c55ee46 (forked 2026-10-09; `## In this repo` appended, upstream text unedited) — aa-ma-forge v0.17.0
 name: writing-for-agents
 description: Writing documents for agents. Use when creating or editing skills, or modifying AGENTS.md or CLAUDE.md.
+when_to_use: Use when writing, reviewing or editing a skill (its SKILL.md or its description), a CLAUDE.md or AGENTS.md line, or any instructions an agent will read.
 ---
 
 Reference for writing any document an agent consumes: a skill, an `AGENTS.md` / `CLAUDE.md`, a doc reached by a pointer. The packaging differs; the writing does not: the same levers make each one predictable, since the agent takes the same _process_ every run rather than producing the same output.

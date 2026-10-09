@@ -13,5 +13,4 @@ execution:
   - Glob
   - Grep
   - Skill
-  prompt: With the AA-MA step workflow, once sub-step 1.2 of demo-task is done, what exactly must be updated
-    in demo-task-tasks.md before moving to the next step?
+  prompt: Execute sub-step 1.2 of demo-task.

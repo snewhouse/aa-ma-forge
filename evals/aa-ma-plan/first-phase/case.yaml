@@ -13,6 +13,5 @@ execution:
   - Glob
   - Grep
   - Skill
-  prompt: 'Plan a feature for this repo with the AA-MA planning workflow: add a --shout flag to greet.py
-    that upper-cases the greeting. Tools here are read-only: do not try to change files. Nobody can answer
-    questions in this session, so stop after the first phase and list the questions you would ask me.'
+  prompt: 'Plan a feature for this repo: add a --shout flag to greet.py that upper-cases the greeting.
+    Nobody can answer questions in this session, so list the questions you would ask me.'

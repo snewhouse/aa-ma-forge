@@ -1,6 +1,6 @@
 ---
 name: verify-plan
-description: Run adversarial verification on an existing AA-MA plan using 6 structured angles to catch errors before execution. Use when the user asks to verify an AA-MA plan.
+description: "Slash entry for plan verification: runs plan-verification on an existing AA-MA plan, writes [task]-verification.md, and with --iterate loops until the plan converges. Use when the user types /verify-plan or wants the verification report saved."
 ---
 
 # /verify-plan - Plan Verification Command

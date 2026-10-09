@@ -1,6 +1,6 @@
 ---
 name: aa-ma-plan-workflow
-description: Use when planning complex multi-step tasks, creating AA-MA artifacts, or transitioning from ad-hoc to structured development - transforms rough ideas into executable plans through 5-phase workflow with integrated skills and validation gates
+description: "Phase-by-phase reference for AA-MA planning (operational readiness, brainstorm, research, plan generation, artifact creation, validation gates, sync protocol) that aa-ma-plan follows. Use when a planning phase needs its detailed procedure; a request to start a plan goes to aa-ma-plan."
 ---
 
 # AA-MA Plan Workflow Skill

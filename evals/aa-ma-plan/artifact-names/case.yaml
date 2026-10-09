@@ -13,6 +13,5 @@ execution:
   - Glob
   - Grep
   - Skill
-  prompt: 'I want an AA-MA plan for adding a --shout flag to greet.py, task name shout-flag. Tools here
-    are read-only: do not try to change files. Before planning, list the files the plan will produce and
-    where they go.'
+  prompt: Create an AA-MA plan for adding a --shout flag to greet.py; call the task shout-flag. Start
+    by telling me which files the plan will produce and where.

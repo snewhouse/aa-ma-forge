@@ -13,5 +13,5 @@ execution:
   - Glob
   - Grep
   - Skill
-  prompt: 'Write only the frontmatter `description` for a model-invoked skill that rotates API keys stored
-    in our vault. Tools here are read-only: do not try to change files.'
+  prompt: Write the frontmatter description for a new model-invoked skill that rotates API keys stored
+    in our vault.

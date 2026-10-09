@@ -1,6 +1,6 @@
 ---
 name: plan-verification
-description: Adversarial verification of AA-MA plans using 6 independent angles. Catches factual errors, unverified assumptions, impact gaps, vague criteria, implementation barriers, and domain-specific risks before plans reach execution. Invoked by Phase 4.5 of aa-ma-plan and standalone /verify-plan command.
+description: "Verifies an AA-MA plan from 6 adversarial angles (facts, assumptions, impact, acceptance criteria, implementation barriers, domain risk) and lists its defects. Use when asked to verify, check or review an AA-MA plan, and at aa-ma-plan Phase 4.5."
 ---
 
 # Plan Verification Skill

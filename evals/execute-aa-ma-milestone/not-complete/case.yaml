@@ -13,5 +13,4 @@ execution:
   - Glob
   - Grep
   - Skill
-  prompt: Using the AA-MA milestone execution rules, can Milestone 1 of demo-task be marked COMPLETE right
-    now? Answer yes or no and give the reason.
+  prompt: Mark Milestone 1 of demo-task COMPLETE.

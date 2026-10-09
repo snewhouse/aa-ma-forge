@@ -153,3 +153,16 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Leak (private Carmen repo path in imported `logging-and-comments/SKILL.md:66`) → **rewrite + force-push**: filter-branch done locally, history hits 0; force-push denied by tool permission; **done by Ste** (90396b1 → 4a23e0a, remote history hits 0); GitHub Support purge of orphaned SHAs still pending (Ste). L-039 tightened (scan any imported content before its first commit).
 - secrets-management → **patched, state derived** (supersedes the 2.1 "current @ 46891e7, byte-exact" choice).
 - Other warnings → **all fixed**: hook kill switch + CLAUDE_HOOK_LOG (hook now "Adoption, adapted"), settings backups as sibling files, `--restore` walks all backups newest-first, README "9 hooks", tests read SHAs from FORKS.json, `_helpers` requires a manifest entry.
+
+## [2026-10-09] GATE APPROVAL: Milestone 2: Migrate 5 skills + ruff hook into the forge
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 8/8
+- Decision: APPROVED
+
+## [2026-10-09] Milestone Completion: Migrate 5 skills + ruff hook into the forge
+- Status: COMPLETE
+- Key outcome: 5 coding-doctrine skills (3 adopted, 2 wshobson forks, both derived) and the adapted ruff-format hook ship from the forge; install/uninstall handle them; fork tooling is multi-repo with per-fork LICENSE.
+- Artifacts: claude-code/skills/{logging-and-comments,python-quality-gates,llm-output-safety,secrets-management,bash-defensive-patterns}/, claude-code/hooks/ruff-format.sh, FORKS.json, src/aa_ma/forks.py, scripts/{fork-drift,install,uninstall}.sh, surface_allowlist.py, tests/hooks/{ruff-format,install-migration}.bats, ADR-0019, counts docs, regenerated golden/architecture.
+- Tests: pytest 2482 passed / 0 failed; bats 355/355; PR #19 CI 7/7 (run 37914723912).
+- Open (outside repo): GitHub Support purge of orphaned leaked SHAs (Ste). Next: Sub-step 3.0 post-merge (live install.sh from main, L-1315 probe).

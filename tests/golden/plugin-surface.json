@@ -49,8 +49,8 @@
    "src": "agent:codebase-onboarding-conventions"
   },
   {
-   "dst": "command:assess-codebase",
-   "kind": "command",
+   "dst": "skill:assess-codebase",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "agent:codebase-onboarding-health"
   },
@@ -73,8 +73,8 @@
    "src": "agent:codebase-onboarding-runbook"
   },
   {
-   "dst": "command:assess-codebase",
-   "kind": "command",
+   "dst": "skill:assess-codebase",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "agent:codebase-onboarding-synthesizer"
   },
@@ -107,60 +107,6 @@
    "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "agent:tdd-sequence-auditor"
-  },
-  {
-   "dst": "command:understand-codebase",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:assess-codebase"
-  },
-  {
-   "dst": "skill:assess-codebase",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:assess-codebase"
-  },
-  {
-   "dst": "skill:verify-impl",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:assess-codebase"
-  },
-  {
-   "dst": "command:assess-codebase",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:understand-codebase"
-  },
-  {
-   "dst": "skill:aa-ma-plan",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:understand-codebase"
-  },
-  {
-   "dst": "skill:impact-analysis",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:understand-codebase"
-  },
-  {
-   "dst": "skill:system-mapping",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:understand-codebase"
-  },
-  {
-   "dst": "skill:understand-codebase",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:understand-codebase"
-  },
-  {
-   "dst": "skill:verify-impl",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:understand-codebase"
   },
   {
    "dst": "hook:aa-ma-parse.sh",
@@ -673,8 +619,8 @@
    "src": "skill:assess-codebase"
   },
   {
-   "dst": "command:understand-codebase",
-   "kind": "command",
+   "dst": "skill:understand-codebase",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:assess-codebase"
   },
@@ -1099,21 +1045,9 @@
    "src": "skill:understand-codebase"
   },
   {
-   "dst": "command:assess-codebase",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:understand-codebase"
-  },
-  {
    "dst": "command:init",
    "kind": "command",
    "ref_class": "DECLARED_EXTERNAL",
-   "src": "skill:understand-codebase"
-  },
-  {
-   "dst": "command:understand-codebase",
-   "kind": "command",
-   "ref_class": "ON_DISK",
    "src": "skill:understand-codebase"
   },
   {
@@ -1124,6 +1058,12 @@
   },
   {
    "dst": "skill:agent-teams",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:assess-codebase",
    "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:understand-codebase"

@@ -222,7 +222,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 3: Commands → skills (13), install hygiene
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 2
 - Complexity: 85% ⚠️ HIGH COMPLEXITY
 - Effort: 2.5 days
@@ -241,7 +241,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 3.
 
 ### Sub-step 3.0: Post-merge of M2
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
@@ -249,7 +249,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `readlink -f ~/.claude/skills/<each of 5 migrated>` resolves into the main checkout; `~/.claude/settings.json` has exactly one ruff-format.sh entry (`jq '[..|.command?|select(.!=null and test("ruff-format"))]|length'` = 1).
   - L-1315 isolated probe lists each of the 5 skill names (deferred from 2.6).
   - Worktree for M3 cut from fresh main; `uv sync && uv run codemem build` exit 0 inside it.
-- Result Log:
+- Result Log: Mode: HITL — Ste ran the live `scripts/install.sh` from the main checkout. M2 PR #19 rebase-merged as 686abac (CI run 37916630923, 7/7 green at f3ae3cf); main checkout ff to 686abac == origin/main; remote feature branch deleted (`git push origin --delete`, since `--delete-branch` can't delete a branch checked out in a worktree). Live: `readlink -f ~/.claude/skills/{logging-and-comments,python-quality-gates,llm-output-safety,secrets-management,bash-defensive-patterns}` → `<main>/claude-code/skills/<same>` (5/5); `~/.claude/hooks/lib/ruff-format.sh` → `<main>/claude-code/hooks/ruff-format.sh`; ruff-format command count in settings.json = 1; install backup `~/.claude/backups/aa-ma-forge-20261009-112048`. L-1315 isolated probe (`claude -p --setting-sources project --strict-mcp-config`, 5 skills copied into `<probe>/.claude/skills`): all 5 listed with their own descriptions. Control: a malformed `name: [x` value still loaded (lenient reader) → not discriminating; a line-1 HTML comment control is listed with the comment as its description → discriminating. Global L-1315 updated with this. Ste deleted the local `backup/cci-m2-pre-rewrite` (leak-bearing). Worktree `.worktrees/feat/cci-m3-commands-to-skills` cut from main @ 686abac; `uv sync` rc=0, `codemem build` rc=0.
 
 ### Sub-step 3.1: PROTOTYPE — command-to-skill install path
 - Status: PENDING

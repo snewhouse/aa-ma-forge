@@ -10,6 +10,7 @@ description: >-
   SARIF, report.md) under .claude/reports/assess-codebase/. Tiered Quick / Standard / Deep.
   Keywords: assess codebase, audit repo, code quality, technical debt, security review of
   a whole repo, is this codebase any good, risk assessment, SARIF.
+argument-hint: "[path] [--quick | --standard | --deep]"
 allowed-tools:
   - Read
   - Bash
@@ -213,8 +214,11 @@ Then `AA aa-ma-analysis scan-secrets <report dir>` — exit 0 and the `gitleaks:
 - tools absent / unknown / skipped, and what installing them would add;
 - wall-clock time.
 
-## When not to use
+## When to use vs. not
 
-A change or diff under review → `Skill(verify-impl)`. Onboarding a newcomer →
+**Use** for "is this codebase any good", a pre-acquisition or pre-adoption review, a tech-debt
+inventory, or a SARIF baseline to track findings over time.
+
+**Don't use** — a change or diff under review → `Skill(verify-impl)`. Onboarding a newcomer →
 `/understand-codebase` (it reads a fresh assess report instead of re-measuring). A single file or
 function → read it.

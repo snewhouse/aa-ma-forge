@@ -13,6 +13,7 @@ description: >-
   runs a TeamCreate agent-team. Keywords: new codebase, shared codebase, inherited code, onboard,
   understand this repo, how do I contribute, how do I add a feature, ramp up, get oriented,
   ONBOARDING.md, AGENTS.md, codebase walkthrough, joining a project.
+argument-hint: "[path] [--quick | --standard | --deep]"
 # Read-only pre-approval: this skill reads untrusted repos, so Bash/Write/Edit/web/agents still prompt (ADR-0006, 2026-10-05).
 allowed-tools:
   - Read
@@ -58,6 +59,8 @@ touching anything `AGENTS.md`-related; its **SAFETY PROTOCOL** is binding.
 - Trivial repo (< ~5 source files) → just read it; this skill is overkill.
 
 ## Tier selection (ask the user, default = Standard)
+
+Parse `$ARGUMENTS` for an optional path and a tier flag: `--quick` (one-page `ONBOARDING.md`), `--standard` (default), `--deep` (adds `gsd-map-codebase` and the codemem architecture doc, offers `/assess-codebase` first when no fresh report exists, and checks version currency with WebSearch + Context7).
 
 Use `AskUserQuestion` (header "Onboarding depth") unless the invocation already specifies
 `--quick` / `--standard` / `--deep`. Also confirm: **target path** (default = cwd) and the

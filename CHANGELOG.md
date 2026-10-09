@@ -22,10 +22,25 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Commands become skills (ADR-0020).**
+  - 11 slash commands move to `claude-code/skills/<name>/SKILL.md`: `aa-ma-chart`, `aa-ma-plan`, `aa-ma-search`, `aa-ma-share`, `archive-aa-ma`, `execute-aa-ma-full`, `execute-aa-ma-milestone`, `execute-aa-ma-step`, `ops-mode`, `sole-dev-merge`, `verify-plan`.
+  - The `assess-codebase` and `understand-codebase` command wrappers merge into their skills.
+  - Every `/name` still works. Only `/sole-dev-merge` and `/aa-ma-share` carry `disable-model-invocation`.
+  - Counts change: skills 27→38, commands 14→0.
+  - **Upgrade note:** existing installs must re-run `scripts/install.sh`. Until then, the old `~/.claude/commands/<x>.md` links dangle and the new skill links are missing.
+- `install.sh` no longer requires `~/.claude/commands/`.
+  - It removes command links that dangle into the repo.
+  - Before replacing a symlink that points outside the repo, it records the link in the backup's `foreign-symlinks.tsv`, under `--force` too.
+- `uninstall.sh` reads its hook list from `install.sh`'s `AA_MA_HOOKS` table, so it now also deregisters `security-static-check` and `aa-ma-plan-skip-warn`, with or without `--restore`. `--restore` puts recorded foreign symlinks back. Links into the repo whose source directory is gone are removed.
+- codemem `plugin_surface`: a `/x-*` glob expands over skills as well as commands.
 - `install.sh` backs up `settings.json` to a timestamped `backups/settings-aa-ma-forge-<ts>.json` (no more overwritten `settings.json.bak`), and `--force` still backs up a real directory before replacing it with a symlink.
 - `uninstall.sh --restore` walks every `aa-ma-forge-*` backup newest-first and restores each path from its newest copy; it used to read only the newest dir, which a re-install that backed up just the copied spec docs could hide.
 - **Upgrade note:** after this change `uninstall.sh` removes the five migrated skills and the ruff hook registration; `--restore` brings back the pre-install copies from the install backup. The `~/.claude/backups/cci-m2-<ts>.tgz` tarball taken before the migration is the fallback.
 - `pyproject.toml` gains a `[tool.ruff.lint]` section for logging and comment hygiene (`LOG`, `G`, `T20`, `BLE`, `S110`/`S112`, `TRY400`/`TRY401`, `D1`, `TD`, `ERA`, google docstrings). Pre-existing docstring gaps (D101/D102/D103/D104/D107, 61 in all) are ignored and tagged `TODO(logging-std): burn down`. The two deliberate blind catches carry `noqa: BLE001` with a reason. CI's `ruff check src/` now enforces these rules.
+
+### Removed
+
+- `/grill-me` (forge command, D4): `/aa-ma-plan`'s `simple` grill mode now reaches the user-level mattpocock `grill-me` skill. It is declared external in the plugin surface.
 
 ### Security
 

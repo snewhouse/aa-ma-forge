@@ -39,8 +39,18 @@ EXTERNAL: dict[str, frozenset[str]] = {
     # Backticked `/x` (codebase-analysis-skills M6): gstack skills, Claude Code built-ins,
     # a plugin-namespaced skill. Local-only user commands are deliberately NOT here.
     # browse/qa-only also sit under "skill": one external, reachable as Skill(x) and /x.
+    # grill-me: the forge's command was retired (code-conventions-impact D4, ADR-0020);
+    # /aa-ma-plan's `simple` grill mode now reaches the user-level mattpocock skill.
     "command": frozenset(
-        {"browse", "qa", "qa-only", "goal", "init", "superpowers:brainstorming"}
+        {
+            "browse",
+            "qa",
+            "qa-only",
+            "goal",
+            "init",
+            "superpowers:brainstorming",
+            "grill-me",
+        }
     ),
     "agent": frozenset({"Explore", "general-purpose", "gsd-codebase-mapper"}),
     "hook": frozenset(

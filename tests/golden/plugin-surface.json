@@ -417,7 +417,7 @@
   {
    "dst": "command:grill-me",
    "kind": "command",
-   "ref_class": "ON_DISK",
+   "ref_class": "DECLARED_EXTERNAL",
    "src": "skill:aa-ma-plan"
   },
   {

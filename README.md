@@ -37,7 +37,7 @@ docs/spec/          The specification (v2.1), quick reference, team guide,
                     and Claude Code foundations reference
 docs/narrative/     The origin story (how and why AA-MA exists)
 docs/templates/     Ready-to-use templates for all 9 AA-MA file types (5 standard + 4 optional)
-claude-code/        Commands, skills, agents, rules, hooks
+claude-code/        Skills (incl. the slash commands), agents, rules, hooks
                     (the operational layer that plugs into Claude Code)
 src/aa_ma/          Python package (package skeleton only, logic planned)
 examples/           Real completed task artefacts (five files plus optional tests)
@@ -207,24 +207,23 @@ The agent reads your plan, picks up the current milestone, works through each ta
 
 Moves completed artefacts to `.claude/dev/completed/` for future reference.
 
-### All commands
+### All slash commands
 
-| Command | What it does |
-|---------|-------------|
-| `/aa-ma-plan` | Brainstorm and create a structured plan with all five artefact files |
-| `/execute-aa-ma-milestone` | Execute the current milestone with strict validation and auto-commit *(recommended)* |
-| `/execute-aa-ma-step` | Execute a single task with lightweight validation |
-| `/execute-aa-ma-full` | Execute the entire plan from current position to completion |
-| `/verify-plan` | Run adversarial verification against the plan before execution |
-| `/grill-me` | Relentlessly interview you about a plan or design until every decision is resolved |
-| `/ops-mode` | Activate disciplined execution mode (token efficiency, parallel eval, tool protocols) |
-| `/archive-aa-ma` | Move completed artefacts to `.claude/dev/completed/` |
-| `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
-| `/aa-ma-chart` | Chart a pre-plan decision map (`chart <effort> "<idea>"`), resolve its typed tickets one per session (`work <effort> [ticket-N]`), then hand off with `/aa-ma-plan --from-map <effort>` — concept adapted from mattpocock/skills `wayfinder`, see [ADR-0013](docs/adr/0013-charting-wayfinder-lite.md) |
-| `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered: `--quick` / `--standard` / `--deep`); optionally authors or reviews `AGENTS.md` |
-| `/assess-codebase` | Whole-repo quality and risk assessment (tiered: `--quick` / `--standard` / `--deep`) — tools measure, model judges cite `file:line`, a refuter checks every Critical/High claim; per-dimension ratings, no overall grade; SARIF + `report.md` under `.claude/reports/assess-codebase/` |
-| `/sole-dev-merge` | PR/MR-based merge workflow with scope-aware CI checks, 3-source security pass, idempotent PR/MR creation, 15-min CI poll, auto-merge + cleanup — see [ADR-0008](docs/adr/0008-sole-dev-merge-pr-workflow.md) |
-| `/aa-ma-share` | Publish a plan, ADR or spec page as a private Artifact link — mermaid Architecture Views render natively; allowlisted paths only (never context-log/provenance/reference/tasks) — see [ADR-0010](docs/adr/0010-architecture-views-and-render.md) |
+Each is a skill in `claude-code/skills/<name>/` (ADR-0020); type `/name` to run it. `/sole-dev-merge` and `/aa-ma-share` run only when you ask; the rest the model may also start when your request matches.
+
+- `/aa-ma-plan` — Brainstorm and create a structured plan with all five artefact files
+- `/execute-aa-ma-milestone` — Execute the current milestone with strict validation and auto-commit *(recommended)*
+- `/execute-aa-ma-step` — Execute a single task with lightweight validation
+- `/execute-aa-ma-full` — Execute the entire plan from current position to completion
+- `/verify-plan` — Run adversarial verification against the plan before execution
+- `/ops-mode` — Activate disciplined execution mode (token efficiency, parallel eval, tool protocols)
+- `/archive-aa-ma` — Move completed artefacts to `.claude/dev/completed/`
+- `/aa-ma-search` — Keyword search across active and completed AA-MA task files
+- `/aa-ma-chart` — Chart a pre-plan decision map (`chart <effort> "<idea>"`), resolve its typed tickets one per session (`work <effort> [ticket-N]`), then hand off with `/aa-ma-plan --from-map <effort>` — concept adapted from mattpocock/skills `wayfinder`, see [ADR-0013](docs/adr/0013-charting-wayfinder-lite.md)
+- `/understand-codebase` — Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered: `--quick` / `--standard` / `--deep`); optionally authors or reviews `AGENTS.md`
+- `/assess-codebase` — Whole-repo quality and risk assessment (tiered: `--quick` / `--standard` / `--deep`) — tools measure, model judges cite `file:line`, a refuter checks every Critical/High claim; per-dimension ratings, no overall grade; SARIF + `report.md` under `.claude/reports/assess-codebase/`
+- `/sole-dev-merge` — PR/MR-based merge workflow with scope-aware CI checks, 3-source security pass, idempotent PR/MR creation, 15-min CI poll, auto-merge + cleanup — see [ADR-0008](docs/adr/0008-sole-dev-merge-pr-workflow.md)
+- `/aa-ma-share` — Publish a plan, ADR or spec page as a private Artifact link — mermaid Architecture Views render natively; allowlisted paths only (never context-log/provenance/reference/tasks) — see [ADR-0010](docs/adr/0010-architecture-views-and-render.md)
 
 ### Skills
 

@@ -5,7 +5,7 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
-## L-039 (2026-10-08) — A research agent wrote a private repo's internals into this public repo
+## L-039 (2026-10-08; repeated 2026-10-09) — Private repo names reach this public repo (research docs, then imported skills)
 **Pattern:** A charting research doc (docs/research/, written by an `aa-ma-researcher` agent) said
 "names only recorded". It nevertheless listed a private Carmen repo's package name, file paths, line
 numbers, function and script names. It was pushed to a public branch and found only by
@@ -15,6 +15,15 @@ force-push with lease, plus a GitHub Support purge request for the orphaned comm
 must say: record counts and generic categories only, never repo names, paths, symbols or SHAs.
 Before pushing docs/research or a charting map, grep it for private repo names and run the security
 pass. A leak already pushed is never fixed by a follow-up commit: rewrite before any merge to main.
+**Repeat (2026-10-09, code-conventions-impact M2.3):** copying Ste's global `logging-and-comments`
+skill in verbatim carried an "Exemplar:" line naming a private Carmen repo and file path. It was
+pushed and found by the §6.8 security-auditor, then rewritten (`filter-branch --tree-filter`) and
+force-pushed. Root cause: the rule above covered agent-written research, not content copied in
+from outside the repo — and global `~/.claude` content was written for a private audience.
+**Rule (tightened):** ANY content entering this repo from outside it — global `~/.claude`
+skills/hooks/rules/docs, other repos, agent output — is scanned before its first commit, not its
+first push: `git diff --cached | grep '^+' | grep -i -E "carmen|$(ls ~/dev/carmen-provenance-labs | paste -sd'|')|biorelate|galactic|/home/|/mnt/"`
+must be empty. "Verbatim adoption" never exempts a file from this scan.
 **Cross-ref:** global L-1281 (repeat of the same pattern; rule tightened there)
 ---
 

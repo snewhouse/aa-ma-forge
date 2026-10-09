@@ -100,3 +100,45 @@ None required (0 CRITICAL).
   filter unnormalised). Ste chose "fix now in M1". Tests first (3 RED for the intended reasons), then:
   every diff runs from `rev-parse --show-toplevel`, `--no-textconv`, `os.path.normpath` on FILE
   args. ADR-0018 states that main pushes run no lint (PR-only). Security I1 (escape output) stays M6.
+
+---
+
+# Impl Review Report: code-conventions-impact / Milestone 2
+
+**Milestone:** Milestone 2: Migrate 5 skills + ruff hook into the forge
+**Audit-Profile:** full · **Budget:** normal (parallel, 5 agents) · **Date:** 2026-10-09
+**Window:** `dc79b4b..90396b1` (pre-rewrite SHAs; the branch was rewritten for the leak below — reviewed content identical except `logging-and-comments/SKILL.md:66`)
+
+## Summary
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer (+ §6.6 reuse/quality/efficiency) | 0 | 3 | 6 | WARN |
+| security-auditor          | 0 | 3 | 7 | WARN |
+| tdd-sequence-auditor      | 1 | 0 | 3 | FAIL → disputed |
+| context7-evidence-auditor | 0 | 0 | 1 | PASS |
+| future-proofing-auditor   | 0 | 3 | 7 | WARN |
+| **TOTAL**                 | **1** | **9** | **24** | **PASS_WITH_WARNINGS** (CRITICAL disputed) |
+
+## User Override Decisions (Ste, 2026-10-09)
+
+| # | Finding | Decision | Action |
+|---|---------|----------|--------|
+| 1 | [CRITICAL] tdd-sequence: tests and src share commits (a6b2e51/c465cec pre-rewrite), so git cannot order RED before GREEN | **dispute** | RED runs are in the 2.3/2.4 Result Logs (15 failed; 9/10 failed). Convention learned: from now on, RED tests get their own `test(...)` commit (applied: `4e6889e` RED → `adb3524` GREEN) |
+
+## Findings and dispositions
+
+- **Security W1 — private repo name in a public repo** (`logging-and-comments/SKILL.md:66`, the "Exemplar:" line naming a private Carmen repo path). **Fixed + history rewritten** (Ste: rewrite + force-push): `git filter-branch --tree-filter` over `dc79b4b..HEAD`; `git log -p` hits = 0; GitHub Support purge of the orphaned SHAs is pending, for Ste to request. Lesson L-039 tightened.
+- **Security W2 — secrets-management GitLab example echoes `$API_KEY`/`$DATABASE_URL`** (:205-206). **Fixed** (Ste: patch + derived).
+- **Security W3 — trufflehog without `--fail` exits 0 on findings** (:323-342). **Fixed**: `--fail` on both calls; FORKS state current → derived, local md5 `ea0799c2…`.
+- **Code W1 — settings-only backup dir hides real-file backups from `uninstall --restore`.** **Fixed, root cause broader:** any re-install backs up the copied spec docs into a new dir, which hid the older one (pre-existing). `--restore` now walks every `aa-ma-forge-*` dir newest-first; settings backups are sibling files `settings-aa-ma-forge-<ts>.json`. bats: "a later settings-only backup never hides the real-file backup from uninstall --restore".
+- **Code W2 — ruff-format.sh ignores `AA_MA_HOOKS_DISABLE`.** **Fixed** (+ `CLAUDE_HOOK_LOG`, Future W3; `--` before the path, Security INFO). README kill-switch carve-out removed. ADR-0019: "Adoption, adapted".
+- **Code W3 / Future I8 — `_helpers.py` mattpocock fallback.** **Fixed**: a FORKS.json entry is required.
+- **Future W1 — README "nine hooks" invisible to the count test.** **Fixed**: "9 hooks".
+- **Future W2 — literal SHAs in tests.** **Fixed**: `test_provenance_header_names_the_manifest_sha` reads them from FORKS.json.
+- **Code I — stale write-a-skill message.** **Fixed.**
+- **Not changed (INFO):** dual hook-row grammar (install.sh regex vs codemem `_HOOK_ROW`, cross-referenced); trailing comments after format-on-touch; repeated `load_manifest` at collection; jq-missing path not logged; fork-drift manifest values not validated (GET-only, committed input); Vault dev-mode/`--secret-string`/`$GITHUB_ENV` examples (upstream prose); upstream SHAs in README/foundations prose; orphan pin to be removed by M12; `licence` single-valued; ruff "0.15.4" in baseline prose; SECURITY.md name lists not set-checked; captured payload keeps real session/tool IDs (not credentials).
+- **Out of scope, pre-existing:** `uninstall --restore` does not deregister hooks.
+
+## Verification after fixes
+`uv run pytest` 2482 passed / 7 skipped / 0 failed; `bats -r tests` 355/355; shellcheck rc=0.

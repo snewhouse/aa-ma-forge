@@ -31,8 +31,10 @@ force-pushed. Root cause: the rule above covered agent-written research, not con
 from outside the repo — and global `~/.claude` content was written for a private audience.
 **Rule (tightened):** ANY content entering this repo from outside it — global `~/.claude`
 skills/hooks/rules/docs, other repos, agent output — is scanned before its first commit, not its
-first push: `git diff --cached | grep '^+' | grep -i -E "carmen|$(ls ~/dev/carmen-provenance-labs | paste -sd'|')|biorelate|galactic|/home/|/mnt/"`
-must be empty. "Verbatim adoption" never exempts a file from this scan.
+first push: `git diff --cached | grep '^+' | grep -i -E -f ~/.config/carmen/denylist` must be empty
+(the denylist lives outside this repo, one regex per line: private org/repo names, client names,
+home paths).
+"Verbatim adoption" never exempts a file from this scan.
 **Cross-ref:** global L-1281 (repeat of the same pattern; rule tightened there)
 ---
 

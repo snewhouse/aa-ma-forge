@@ -158,6 +158,7 @@ done
 # why: --force skips file backups, but create_symlink `rm -rf`s whatever is in the way —
 # a real directory (e.g. a skill that predates the forge) is never deleted unbacked.
 if ${FORCE}; then
+    warn "Skipping file backups (--force flag set); real directories are still backed up"
     forced_targets=()
     for target in "${backup_targets[@]}"; do
         [ -d "${target}" ] && forced_targets+=("${target}")
@@ -167,8 +168,8 @@ fi
 
 RUN_TS="$(date +%Y%m%d-%H%M%S)"
 BACKUP_DIR="${CLAUDE_HOME}/backups/aa-ma-forge-${RUN_TS}"
-# why: a sibling file, not inside BACKUP_DIR — `uninstall.sh --restore` reads only the latest
-# aa-ma-forge-* dir, and a settings-only dir would hide the one holding real-file backups.
+# why: a sibling file, not inside BACKUP_DIR — settings.json is not a symlinked target, and
+# `uninstall.sh --restore` must never overwrite the live settings.json from a backup dir.
 SETTINGS_BACKUP="${CLAUDE_HOME}/backups/settings-aa-ma-forge-${RUN_TS}.json"
 
 if [ ${#backup_targets[@]} -gt 0 ]; then
@@ -199,9 +200,7 @@ if [ ${#backup_targets[@]} -gt 0 ]; then
         fi
         FILES_BACKED_UP=$((FILES_BACKED_UP + 1))
     done
-elif ${FORCE}; then
-    warn "Skipping file backups (--force flag set)"
-else
+elif ! ${FORCE}; then
     info "No existing files to back up."
 fi
 

@@ -33,6 +33,7 @@ def surface():
 # The real repo (AC1-AC4)
 # ---------------------------------------------------------------------
 
+
 def test_matches_golden(surface) -> None:
     assert as_json(surface) == json.loads(GOLDEN.read_text()), (
         "plugin surface drifted from tests/golden/plugin-surface.json — "
@@ -57,15 +58,21 @@ def test_every_drawn_edge_resolves_on_disk_or_is_declared_external(surface) -> N
         assert (pair in drawn) == (e.ref_class is not RefClass.DANGLING), e
 
 
-def test_every_skill_target_has_exactly_one_class_and_dangling_is_named(surface) -> None:
+def test_every_skill_target_has_exactly_one_class_and_dangling_is_named(
+    surface,
+) -> None:
     classes: dict[str, set[RefClass]] = {}
     for e in surface.edges:
         if e.kind == "skill":
             classes.setdefault(e.dst, set()).add(e.ref_class)
     assert all(len(c) == 1 for c in classes.values()), classes
-    dangling = {d.split(":", 1)[1] for d, c in classes.items() if c == {RefClass.DANGLING}}
+    dangling = {
+        d.split(":", 1)[1] for d, c in classes.items() if c == {RefClass.DANGLING}
+    }
     # M13 rewired understand-codebase off `Skill(codebase-deep-dive)` / `Skill(index)`: two fewer.
-    assert dangling == {"haiku-eval"}  # codebase-analysis-skills M4: N1 dropped Skill(aa-ma-plan)
+    assert dangling == {
+        "haiku-eval"
+    }  # codebase-analysis-skills M4: N1 dropped Skill(aa-ma-plan)
     # The target Ticket 4's regex could not see (':' in a plugin-namespaced name).
     assert classes["skill:feature-dev:feature-dev"] == {RefClass.DECLARED_EXTERNAL}
 
@@ -76,37 +83,62 @@ def test_only_the_fork_route_command_dangles(surface) -> None:
     `/settings` is an HTTP route in claude-code/skills/prototype/UI.md, a verbatim fork
     (FORKS.json state "current"); rewording it would trip fork-drift (Ste, 2026-09-30).
     """
-    assert {e.dst for e in surface.edges if e.kind == "command" and e.ref_class is RefClass.DANGLING} == {
-        "command:settings"
-    }
+    assert {
+        e.dst
+        for e in surface.edges
+        if e.kind == "command" and e.ref_class is RefClass.DANGLING
+    } == {"command:settings"}
 
 
-def test_the_backticked_rule_loses_no_edge_the_any_occurrence_rule_found(surface) -> None:
+def test_the_backticked_rule_loses_no_edge_the_any_occurrence_rule_found(
+    surface,
+) -> None:
     """Pre-M6 rule, inlined: any `/x` naming an on-disk command (`/x-*` expands) is an edge.
 
     The regex is a FROZEN copy of the pre-M6 `_COMMAND`; it must not follow later edits.
     """
     import re
 
-    old = re.compile(r"(?<![A-Za-z0-9_./~-])/([a-z][a-z0-9-]*)(\*(?!\*))?(?![A-Za-z0-9_/-]|\.[A-Za-z0-9_])")
+    old = re.compile(
+        r"(?<![A-Za-z0-9_./~-])/([a-z][a-z0-9-]*)(\*(?!\*))?(?![A-Za-z0-9_/-]|\.[A-Za-z0-9_])"
+    )
     cc = REPO / "claude-code"
-    commands = {e.dst for e in surface.edges if e.kind == "command" and e.ref_class is RefClass.ON_DISK}
+    commands = {
+        e.dst
+        for e in surface.edges
+        if e.kind == "command" and e.ref_class is RefClass.ON_DISK
+    }
     commands |= {f"command:{p.stem}" for p in (cc / "commands").glob("*.md")}
     sources = {e.src for e in surface.edges} | set(surface.orphans)
     expected = set()
     for src in sources:
         kind, stem = src.split(":", 1)
         files = {
-            "command": [cc / "commands" / f"{stem}.md"], "agent": [cc / "agents" / f"{stem}.md"],
+            "command": [cc / "commands" / f"{stem}.md"],
+            "agent": [cc / "agents" / f"{stem}.md"],
             "rule": [cc / "rules" / f"{stem}.md"],
             "hook": [f for f in (cc / "hooks").rglob(stem) if f.is_file()],
-            "skill": [f for f in (cc / "skills" / stem).rglob("*") if f.suffix in (".md", ".sh")],
+            "skill": [
+                f
+                for f in (cc / "skills" / stem).rglob("*")
+                if f.suffix in (".md", ".sh")
+            ],
         }.get(kind, [])
         for f in files:
-            for name, glob in old.findall(f.read_text(encoding="utf-8", errors="replace")):
-                hits = {c for c in commands if c.removeprefix("command:").startswith(name)} if glob else {f"command:{name}"} & commands
+            for name, glob in old.findall(
+                f.read_text(encoding="utf-8", errors="replace")
+            ):
+                hits = (
+                    {c for c in commands if c.removeprefix("command:").startswith(name)}
+                    if glob
+                    else {f"command:{name}"} & commands
+                )
                 expected |= {(src, h) for h in hits if h != src}
-    got = {(e.src, e.dst) for e in surface.edges if e.kind == "command" and e.ref_class is RefClass.ON_DISK}
+    got = {
+        (e.src, e.dst)
+        for e in surface.edges
+        if e.kind == "command" and e.ref_class is RefClass.ON_DISK
+    }
     assert expected - got == set()
 
 
@@ -114,8 +146,17 @@ def test_orphans_are_the_named_set_and_no_errors(surface) -> None:
     # Orphans are `kind:stem` (a stem can be both a command and a skill); AC4 names bare stems.
     assert len(surface.orphans) == len(set(surface.orphans))
     assert {o.split(":", 1)[1] for o in surface.orphans} == {
-        "aa-ma-search", "sole-dev-merge", "aa-ma-execution", "complexity-router",
-        "debugging-strategies", "write-a-skill", "aa-ma-session-end-dirty.sh",
+        "aa-ma-search",
+        "sole-dev-merge",
+        "aa-ma-execution",
+        "complexity-router",
+        "debugging-strategies",
+        "write-a-skill",
+        "aa-ma-session-end-dirty.sh",
+        # code-conventions-impact M2 (ADR-0019): migrated, not yet invoked by forge content;
+        # the M12 coding-standards rule is planned to reference them.
+        "llm-output-safety",
+        "bash-defensive-patterns",
     }
     assert surface.errors == []
 
@@ -140,15 +181,19 @@ def test_orphan_nodes_are_drawn(surface) -> None:
 # Fixture tree — behaviour, not counts (AC5)
 # ---------------------------------------------------------------------
 
-INSTALL = '''AA_MA_HOOKS=(
+INSTALL = """AA_MA_HOOKS=(
     "SessionStart||h-start.sh|5|"
     "PreToolUse|Bash|h-start.sh|5|"
 )
-'''
+"""
 
 
 def _tree(root: Path, files: dict[str, str]) -> Path:
-    for rel, text in {"scripts/install.sh": INSTALL, "claude-code/hooks/h-start.sh": "", **files}.items():
+    for rel, text in {
+        "scripts/install.sh": INSTALL,
+        "claude-code/hooks/h-start.sh": "",
+        **files,
+    }.items():
         p = root / rel
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(text)
@@ -169,13 +214,19 @@ def _classes(s, cls: RefClass) -> list:
 def test_rename_skill_moves_exactly_its_references_to_dangling(tmp_path: Path) -> None:
     before = extract(_tree(tmp_path / "a", BASE))
     refs_to_alpha = sum(e.dst == "skill:alpha" for e in before.edges)
-    assert refs_to_alpha == 2  # run.md's two mentions dedupe to one edge; gamma adds one
+    assert (
+        refs_to_alpha == 2
+    )  # run.md's two mentions dedupe to one edge; gamma adds one
 
     renamed = dict(BASE)
-    renamed["claude-code/skills/beta/SKILL.md"] = renamed.pop("claude-code/skills/alpha/SKILL.md")
+    renamed["claude-code/skills/beta/SKILL.md"] = renamed.pop(
+        "claude-code/skills/alpha/SKILL.md"
+    )
     after = extract(_tree(tmp_path / "b", renamed))
 
-    on_disk = len(_classes(before, RefClass.ON_DISK)) - len(_classes(after, RefClass.ON_DISK))
+    on_disk = len(_classes(before, RefClass.ON_DISK)) - len(
+        _classes(after, RefClass.ON_DISK)
+    )
     assert on_disk == refs_to_alpha
     assert len(_classes(after, RefClass.DANGLING)) == refs_to_alpha
     assert not any(e.dst == "skill:beta" for e in after.edges)
@@ -184,7 +235,9 @@ def test_rename_skill_moves_exactly_its_references_to_dangling(tmp_path: Path) -
 
 def test_rename_skill_and_its_references_keeps_the_graph(tmp_path: Path) -> None:
     before = extract(_tree(tmp_path / "a", BASE))
-    renamed = {k.replace("alpha", "beta"): v.replace("alpha", "beta") for k, v in BASE.items()}
+    renamed = {
+        k.replace("alpha", "beta"): v.replace("alpha", "beta") for k, v in BASE.items()
+    }
     after = extract(_tree(tmp_path / "b", renamed))
     assert len(after.edges) == len(before.edges)
     assert _classes(after, RefClass.DANGLING) == []
@@ -196,12 +249,19 @@ def test_node_identity_is_the_dir_stem_not_frontmatter(tmp_path: Path) -> None:
     assert not any("Not Alpha" in n for n in s.cut.nodes.values())
 
 
-def test_command_mentions_filter_on_disk_expand_globs_and_drop_self(tmp_path: Path) -> None:
-    s = extract(_tree(tmp_path, {
-        "claude-code/commands/go-one.md": "/go-one is me. See /goal, /tmp/go-two.log. Run /go-two.\n",
-        "claude-code/commands/go-two.md": "",
-        "claude-code/commands/go-three.md": "Any /go-* command.\n",
-    }))
+def test_command_mentions_filter_on_disk_expand_globs_and_drop_self(
+    tmp_path: Path,
+) -> None:
+    s = extract(
+        _tree(
+            tmp_path,
+            {
+                "claude-code/commands/go-one.md": "/go-one is me. See /goal, /tmp/go-two.log. Run /go-two.\n",
+                "claude-code/commands/go-two.md": "",
+                "claude-code/commands/go-three.md": "Any /go-* command.\n",
+            },
+        )
+    )
     got = {(e.src, e.dst) for e in s.edges}
     assert got == {
         ("command:go-one", "command:go-two"),
@@ -212,13 +272,18 @@ def test_command_mentions_filter_on_disk_expand_globs_and_drop_self(tmp_path: Pa
 
 def test_backticked_slash_names_resolve_declare_or_dangle(tmp_path: Path) -> None:
     """R4 (codebase-analysis-skills M6): unresolved names count only at the start of a backtick span."""
-    s = extract(_tree(tmp_path, {
-        "claude-code/skills/retro/SKILL.md": "",
-        "claude-code/commands/run.md": (
-            "`/goal clear` `/retro` `/superpowers:brainstorming` `GET /healthz` `/retro-{date}.md`\n"
-            "`/nope` `/nope-*` and unbackticked /ghost or /tmp/x.log stay silent; /retro resolves anywhere.\n"
-        ),
-    }))
+    s = extract(
+        _tree(
+            tmp_path,
+            {
+                "claude-code/skills/retro/SKILL.md": "",
+                "claude-code/commands/run.md": (
+                    "`/goal clear` `/retro` `/superpowers:brainstorming` `GET /healthz` `/retro-{date}.md`\n"
+                    "`/nope` `/nope-*` and unbackticked /ghost or /tmp/x.log stay silent; /retro resolves anywhere.\n"
+                ),
+            },
+        )
+    )
     assert {(e.dst, e.kind, e.ref_class) for e in s.edges} == {
         ("command:goal", "command", RefClass.DECLARED_EXTERNAL),
         ("skill:retro", "skill", RefClass.ON_DISK),
@@ -228,26 +293,40 @@ def test_backticked_slash_names_resolve_declare_or_dangle(tmp_path: Path) -> Non
     }
 
 
-def test_a_stem_that_is_both_command_and_skill_resolves_to_the_command(tmp_path: Path) -> None:
-    s = extract(_tree(tmp_path, {
-        "claude-code/skills/both/SKILL.md": "",
-        "claude-code/commands/both.md": "",
-        "claude-code/commands/run.md": "`/both` and /both\n",
-    }))
-    assert {(e.dst, e.ref_class) for e in s.edges} == {("command:both", RefClass.ON_DISK)}
+def test_a_stem_that_is_both_command_and_skill_resolves_to_the_command(
+    tmp_path: Path,
+) -> None:
+    s = extract(
+        _tree(
+            tmp_path,
+            {
+                "claude-code/skills/both/SKILL.md": "",
+                "claude-code/commands/both.md": "",
+                "claude-code/commands/run.md": "`/both` and /both\n",
+            },
+        )
+    )
+    assert {(e.dst, e.ref_class) for e in s.edges} == {
+        ("command:both", RefClass.ON_DISK)
+    }
 
 
 def test_agents_hooks_and_externals_classify(tmp_path: Path) -> None:
-    s = extract(_tree(tmp_path, {
-        "claude-code/agents/checker.md": "",
-        "claude-code/hooks/lib/aa-ma-helper.sh": "",
-        "claude-code/hooks/plan-lint.sh": "",
-        "claude-code/skills/s/SKILL.md": (
-            'subagent_type: "checker"\nsubagent_type=Explore\nsubagent_type: ghost-agent\n'
-            "source lib/aa-ma-helper.sh; aa-ma-missing.sh; test-aa-ma-fake.sh; plan-lint.sh\n"
-            "Skill(browse) Skill(not-a-real-skill)\n"
-        ),
-    }))
+    s = extract(
+        _tree(
+            tmp_path,
+            {
+                "claude-code/agents/checker.md": "",
+                "claude-code/hooks/lib/aa-ma-helper.sh": "",
+                "claude-code/hooks/plan-lint.sh": "",
+                "claude-code/skills/s/SKILL.md": (
+                    'subagent_type: "checker"\nsubagent_type=Explore\nsubagent_type: ghost-agent\n'
+                    "source lib/aa-ma-helper.sh; aa-ma-missing.sh; test-aa-ma-fake.sh; plan-lint.sh\n"
+                    "Skill(browse) Skill(not-a-real-skill)\n"
+                ),
+            },
+        )
+    )
     got = {(e.dst, e.kind, e.ref_class) for e in s.edges}
     assert got == {
         ("agent:checker", "agent", RefClass.ON_DISK),
@@ -281,11 +360,16 @@ def test_missing_install_sh_is_an_error_not_silence(tmp_path: Path) -> None:
 
 def test_one_rule_decides_node_identity(tmp_path: Path) -> None:
     """A file that is not a node (hooks/README.md, a nested command) is never an edge source."""
-    s = extract(_tree(tmp_path, {
-        "claude-code/skills/alpha/SKILL.md": "",
-        "claude-code/hooks/README.md": "Skill(alpha)\n",
-        "claude-code/commands/sub/nested.md": "Skill(alpha)\n",
-    }))
+    s = extract(
+        _tree(
+            tmp_path,
+            {
+                "claude-code/skills/alpha/SKILL.md": "",
+                "claude-code/hooks/README.md": "Skill(alpha)\n",
+                "claude-code/commands/sub/nested.md": "Skill(alpha)\n",
+            },
+        )
+    )
     assert s.edges == []
     assert "skill:alpha" in s.orphans
 
@@ -302,27 +386,37 @@ def test_symlinked_files_are_not_followed(tmp_path: Path) -> None:
 
 def test_hook_regex_is_linear_on_hostile_input(tmp_path: Path) -> None:
     import time
+
     s0 = time.perf_counter()
     extract(_tree(tmp_path, {"claude-code/skills/s/SKILL.md": "aa-ma-" * 20000 + "\n"}))
     assert time.perf_counter() - s0 < 1.0
 
 
 def test_install_table_matchers_and_unparsed_rows(tmp_path: Path) -> None:
-    root = _tree(tmp_path, {"scripts/install.sh": """AA_MA_HOOKS=(
+    root = _tree(
+        tmp_path,
+        {
+            "scripts/install.sh": """AA_MA_HOOKS=(
     "PreToolUse|Edit|Write|h-start.sh|5|"
     "PreToolUse|mcp__.*|h-start.sh|5|"
     "this row is not a hook row"
 )
-"""})
+"""
+        },
+    )
     s = extract(root)
-    assert s.hook_events == {"h-start.sh": ["PreToolUse:Edit|Write", "PreToolUse:mcp__.*"]}
+    assert s.hook_events == {
+        "h-start.sh": ["PreToolUse:Edit|Write", "PreToolUse:mcp__.*"]
+    }
     assert len(s.errors) == 1 and "unparsed" in s.errors[0]
 
 
 def test_non_utf8_install_sh_does_not_raise(tmp_path: Path) -> None:
     root = _tree(tmp_path, {})
     (root / "scripts/install.sh").write_bytes(INSTALL.encode() + b"# \xff\xfe\n")
-    assert extract(root).hook_events == {"h-start.sh": ["PreToolUse:Bash", "SessionStart"]}
+    assert extract(root).hook_events == {
+        "h-start.sh": ["PreToolUse:Bash", "SessionStart"]
+    }
 
 
 def test_missing_plugin_tree_is_an_error_not_an_empty_graph(tmp_path: Path) -> None:
@@ -335,26 +429,38 @@ def test_missing_plugin_tree_is_an_error_not_an_empty_graph(tmp_path: Path) -> N
 # Remaining §6.8 INFO items (M4), fixed 2026-09-24 at Ste's "fix all now"
 # ---------------------------------------------------------------------
 
+
 def test_quoted_spaced_and_argument_skill_forms_are_references(tmp_path: Path) -> None:
-    s = extract(_tree(tmp_path, {
-        "claude-code/skills/alpha/SKILL.md": "",
-        "claude-code/agents/checker.md": "",
-        "claude-code/commands/run.md": (
-            'Skill("alpha") Skill( alpha ) Skill(alpha, args="x")\n'
-            "subagent_type: 'checker'\n"
-        ),
-    }))
+    s = extract(
+        _tree(
+            tmp_path,
+            {
+                "claude-code/skills/alpha/SKILL.md": "",
+                "claude-code/agents/checker.md": "",
+                "claude-code/commands/run.md": (
+                    'Skill("alpha") Skill( alpha ) Skill(alpha, args="x")\n'
+                    "subagent_type: 'checker'\n"
+                ),
+            },
+        )
+    )
     assert {(e.dst, e.ref_class) for e in s.edges} == {
-        ("skill:alpha", RefClass.ON_DISK), ("agent:checker", RefClass.ON_DISK),
+        ("skill:alpha", RefClass.ON_DISK),
+        ("agent:checker", RefClass.ON_DISK),
     }
 
 
 def test_bold_markdown_after_a_command_is_not_a_glob(tmp_path: Path) -> None:
-    s = extract(_tree(tmp_path, {
-        "claude-code/commands/aa-ma-plan.md": "",
-        "claude-code/commands/aa-ma-plan-extra.md": "",
-        "claude-code/commands/run.md": "Use **/aa-ma-plan** first.\n",
-    }))
+    s = extract(
+        _tree(
+            tmp_path,
+            {
+                "claude-code/commands/aa-ma-plan.md": "",
+                "claude-code/commands/aa-ma-plan-extra.md": "",
+                "claude-code/commands/run.md": "Use **/aa-ma-plan** first.\n",
+            },
+        )
+    )
     assert {e.dst for e in s.edges} == {"command:aa-ma-plan"}
 
 
@@ -364,10 +470,15 @@ def test_two_hooks_with_one_name_are_an_error(tmp_path: Path) -> None:
 
 
 def test_unowned_markdown_in_the_tree_is_reported(tmp_path: Path) -> None:
-    s = extract(_tree(tmp_path, {
-        "claude-code/commands/sub/nested.md": "Skill(alpha)\n",
-        "claude-code/hooks/README.md": "",
-    }))
+    s = extract(
+        _tree(
+            tmp_path,
+            {
+                "claude-code/commands/sub/nested.md": "Skill(alpha)\n",
+                "claude-code/hooks/README.md": "",
+            },
+        )
+    )
     assert "claude-code/commands/sub/nested.md: not a node (nested)" in s.errors
     assert "claude-code/hooks/README.md: not a node (nested)" in s.errors
 
@@ -378,4 +489,6 @@ def test_edge_kinds_are_the_node_kind_enum(surface) -> None:
 
 
 if __name__ == "__main__":
-    GOLDEN.write_text(json.dumps(as_json(extract(REPO)), indent=1, sort_keys=True) + "\n")
+    GOLDEN.write_text(
+        json.dumps(as_json(extract(REPO)), indent=1, sort_keys=True) + "\n"
+    )

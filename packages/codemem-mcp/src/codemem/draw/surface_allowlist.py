@@ -12,21 +12,40 @@ from __future__ import annotations
 __all__ = ["EXTERNAL", "HOOK_TABLE"]
 
 EXTERNAL: dict[str, frozenset[str]] = {
-    "skill": frozenset({
-        "api-spec-workflow", "ast-grep", "browse", "code-intelligence",
-        "code-intelligence-index", "doc-drift-detection", "first-principles-framework",
-        "gsd-intel", "gsd-map-codebase", "gsd-scan", "improve-codebase-architecture",
-        "plan-ceo-review", "plan-design-review", "plan-eng-review",
-        "python-testing-patterns", "qa-only", "secrets-management",
-        "spec-driven-development", "test-driven-development", "ubiquitous-language",
-        "feature-dev:feature-dev",  # plugin-namespaced: the feature-dev plugin's command
-    }),
+    "skill": frozenset(
+        {
+            "api-spec-workflow",
+            "ast-grep",
+            "browse",
+            "code-intelligence",
+            "code-intelligence-index",
+            "doc-drift-detection",
+            "first-principles-framework",
+            "gsd-intel",
+            "gsd-map-codebase",
+            "gsd-scan",
+            "improve-codebase-architecture",
+            "plan-ceo-review",
+            "plan-design-review",
+            "plan-eng-review",
+            "python-testing-patterns",
+            "qa-only",
+            "spec-driven-development",
+            "test-driven-development",
+            "ubiquitous-language",
+            "feature-dev:feature-dev",  # plugin-namespaced: the feature-dev plugin's command
+        }
+    ),
     # Backticked `/x` (codebase-analysis-skills M6): gstack skills, Claude Code built-ins,
     # a plugin-namespaced skill. Local-only user commands are deliberately NOT here.
     # browse/qa-only also sit under "skill": one external, reachable as Skill(x) and /x.
-    "command": frozenset({"browse", "qa", "qa-only", "goal", "init", "superpowers:brainstorming"}),
+    "command": frozenset(
+        {"browse", "qa", "qa-only", "goal", "init", "superpowers:brainstorming"}
+    ),
     "agent": frozenset({"Explore", "general-purpose", "gsd-codebase-mapper"}),
-    "hook": frozenset({"aa-ma-share-allow.sh"}),  # ships from scripts/, not claude-code/hooks/
+    "hook": frozenset(
+        {"aa-ma-share-allow.sh"}
+    ),  # ships from scripts/, not claude-code/hooks/
 }
 
 # The one place hooks are wired to events (``event|matcher|hook.sh|...`` rows).

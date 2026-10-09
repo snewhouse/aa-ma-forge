@@ -89,7 +89,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/assess-codebase` | Whole-repo quality and risk assessment (tiered Quick/Standard/Deep): tools measure, sonnet judges cite `file:line`, a refuter attacks every Critical/High claim; per-dimension ratings with inputs and confidence (no overall grade) → SHA-stamped, secret-gated `summary.json` + `findings.jsonl` + SARIF + `report.md` under `.claude/reports/assess-codebase/`. Thin wrapper around `Skill(assess-codebase)` |
 | `/sole-dev-merge` | PR/MR-based merge workflow: scope-aware CI checks (L-007 guard) + 3-source security pass + idempotent PR/MR creation + 15-min CI poll + auto-merge + cleanup. See ADR-0008 |
 
-### Skills (22)
+### Skills (27)
 
 | Skill | Purpose |
 |-------|---------|
@@ -115,6 +115,11 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `understand-codebase` | Tiered (Quick/Standard/Deep) codebase-onboarding workflow: reads/maps the repo, learns conventions/versioning/tests/stack/rules, produces a pros/cons verdict + "contribute safely" + "add a feature" playbooks → `ONBOARDING.md` + `.claude/onboarding/` deep-dives; Deep tier runs a `TeamCreate` agent-team; optionally authors/reviews `AGENTS.md` (see ADR-0006) |
 | `assess-codebase` | Whole-repo assessment over the `aa-ma-analysis` CLI: preflight → stamp/fresh → measure → coverage ledger → 4 dimension judges (read-only `codebase-assessor`, sonnet; replies secret-gated then validated) → refuter on Critical/High, verdicts via `verdicts.jsonl` → finalize (IDs, rating cap, baseline, refuted kept with reason, secret gate). `references/RATING.md` mirrors `CORE_INPUTS`; `references/AGENT-PROMPTS.md` restates the `ANALYSIS-CONTRACT.md` NO-SECRETS line per prompt. Deep adds network tools, a gated test run, and claude-security when installed and enabled |
 | `goal-condition-synthesis` | Synthesise a Claude Code `/goal` condition from AA-MA plan artefacts: produces a falsifiable condition referencing observable artefacts (`provenance.log`, `tasks.md` Status, git tags, test exit codes) with a turn-cap cost ceiling derived from plan effort. Owns the canonical verdict-token enum, observable-artefact list, and hashing contract; backed by a unit-tested Python reference module (`aa_ma.goal_synthesis`). Consumed by `/execute-aa-ma-full` §2.5 and `/verify-plan --iterate` |
+| `logging-and-comments` | Logging and code-comment standard for Python and Bash: library vs app logging, stderr vs stdout, no silent failures, run-level context, why-comments, docstrings, constant rationale, TODO format; ships `references/ruff-baseline.toml` (adopted from the global skill — see ADR-0019) |
+| `python-quality-gates` | Zero tolerance for failing tests and the pre-commit documentation-maintenance checklist (adopted — ADR-0019) |
+| `llm-output-safety` | Safety requirements for pipelines that put LLM text into client-facing outputs: non-Latin sanitisation, programmatic citation integrity (adopted — ADR-0019) |
+| `secrets-management` | Secrets handling in CI/CD with Vault, AWS Secrets Manager and native platform stores (forked verbatim from wshobson/agents @ 46891e7, MIT — ADR-0019) |
+| `bash-defensive-patterns` | Defensive Bash: strict mode, error traps, safe temp files, input validation, idempotency (derived from wshobson/agents @ 5d65aa1, MIT — ADR-0019) |
 
 ### Agents (13)
 
@@ -141,7 +146,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `aa-ma.md` | Operational rules governing sync discipline, commit signatures, task modes, gate classification |
 | `engineering-standards.md` | 6-theme engineering doctrine (Verification & Truth, Development Principles, Reasoning & Planning, Safety & Continuity, Execution Checklist, Sync & Commit Discipline) — auto-loaded; defines `Critical-Path:` canonical enum |
 
-### Hooks (8)
+### Hooks (9)
 
 | Hook | Purpose |
 |------|---------|
@@ -151,6 +156,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `aa-ma-commit-signature.sh` | PreToolUse(Bash) — when an AA-MA plan is active, requires every `git commit` to carry the `[AA-MA Plan] {task} .claude/dev/active/{task}` footer (or an `[ad-hoc]` bypass marker); **BLOCKING** |
 | `aa-ma-commit-drift.sh` | post-commit — advisory; flags commits that land without touching any `tasks.md`/`provenance.log` in an active task dir (`[no-sync-check]` overrides). Always exits 0 |
 | `aa-ma-plan-skip-warn.sh` | PreToolUse(ExitPlanMode) + SessionEnd — advisory; checks the `/aa-ma-plan` runtime log for skipped phase markers. Never blocks |
+| `ruff-format.sh` | PostToolUse(Edit\|Write) — advisory; runs `ruff format` + `ruff check --fix` on an edited `.py` and logs a format failure to `~/.claude/logs/hooks.log`. Always exits 0 (adopted — ADR-0019) |
 | `aa-ma-plan-marker.sh` | Library helper invoked by the `/aa-ma-plan` workflow to append phase markers to `~/.claude/runtime/aa-ma-plan-<slug>.log` (not a standalone event hook) |
 
 Two further `hooks/lib/` helpers are symlinked by `install.sh` but are not event hooks and not counted above: `aa-ma-parse.sh` (sourced by every hook; launches `aa-ma-gate`, the advisory `aa_ma_deps`, and `aa_ma_lint_views` for the §6.7 diagram item) and `aa-ma-chart-guard.sh` (charting checks `fog | claim | reclaim | from-map | import`, invoked from `/aa-ma-chart` and `/aa-ma-plan --from-map`).

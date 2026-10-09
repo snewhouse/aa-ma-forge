@@ -14,8 +14,16 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - `aa-ma-gate`: the last-resort `except Exception` kept only `exc!r`. The traceback now also goes to the `aa_ma.gate` logger at DEBUG. stdout, the JSON/kv envelope and exit codes are unchanged.
 - `pre-compact-aa-ma.sh`: a failed append to a task's `provenance.log` or `context-log.md` was swallowed by `2>/dev/null || true`. The hook still exits 0, but now logs one `WARN could not append … to <file>` line per file to `~/.claude/hooks/cache/compaction.log` and emits a JSON `systemMessage` with the failure count, because hook stderr on exit 0 reaches only the debug log and is never shown.
 
+### Added
+
+- Five coding-doctrine skills move into the forge (ADR-0019): `logging-and-comments`, `python-quality-gates`, `llm-output-safety` (adopted), `secrets-management` (forked from wshobson/agents @ 46891e7, MIT) and `bash-defensive-patterns` (derived @ 5d65aa1, MIT). Skills 22→27.
+- `ruff-format.sh` ships as a PostToolUse(Edit|Write) hook that `install.sh` links and registers (hooks 8→9); bats run it on a real captured payload.
+- `FORKS.json` rows record `upstream_repo` and `licence`; `scripts/fork-drift.sh` fetches each fork from its own repo. Every fork dir ships its upstream MIT `LICENSE`.
+
 ### Changed
 
+- `install.sh` backs up `settings.json` into the run's timestamped `backups/aa-ma-forge-<ts>/` (no more overwritten `settings.json.bak`), and `--force` still backs up a real directory before replacing it with a symlink.
+- **Upgrade note:** after this change `uninstall.sh` removes the five migrated skills and the ruff hook registration, and `--restore` (latest `aa-ma-forge-*` backup only) may not recreate them. Restore from the `~/.claude/backups/cci-m2-<ts>.tgz` tarball taken before the migration.
 - `pyproject.toml` gains a `[tool.ruff.lint]` section for logging and comment hygiene (`LOG`, `G`, `T20`, `BLE`, `S110`/`S112`, `TRY400`/`TRY401`, `D1`, `TD`, `ERA`, google docstrings). Pre-existing docstring gaps (D101/D102/D103/D104/D107, 61 in all) are ignored and tagged `TODO(logging-std): burn down`. The two deliberate blind catches carry `noqa: BLE001` with a reason. CI's `ruff check src/` now enforces these rules.
 
 ### Security

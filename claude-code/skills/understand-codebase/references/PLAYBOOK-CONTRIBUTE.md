@@ -43,7 +43,7 @@ Before editing anything imported by 2+ other modules (or anything under `<core/ 
 - Add/extend tests next to the code: `<test layout & framework from dimension 6, with an example test file to imitate>`.
 - Run the tiers you can: `<fast: cmd>` always; `<full: cmd>` before pushing; `<live/integration: cmd + what it needs>` if your change touches that area.
 - Coverage expectation: `<from dimension 6/13 — or "no enforced threshold; match the surrounding files">`.
-- Don't leave the suite red. (`rules/python-quality-gates.md` philosophy — zero tolerance.)
+- Don't leave the suite red. (`Skill(python-quality-gates)` — zero tolerance.)
 
 ### 5. Commit
 - Message format: `<Conventional Commits / project style — from dimension 10 + `.commitlintrc` if present>`. Example from this repo: `<a real recent commit message>`.

@@ -300,6 +300,15 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - Counts after M2: skills 27, top-level hooks 9. Orphans pinned in `test_plugin_surface.py` until M12: `llm-output-safety`, `bash-defensive-patterns`. [valid: 2026-10-09]
 - Convention (TDD dispute, 2026-10-09): RED tests get their own `test(...)` commit before the GREEN commit. [valid: 2026-10-09]
 
+## M3 As-Built Facts (2026-10-09)
+- Slash entry points are skills: `claude-code/commands/` is gone; 13 former commands live at `claude-code/skills/<name>/SKILL.md` (11 git mv + assess-codebase, understand-codebase merged); skills 38, commands 0. [valid: 2026-10-09]
+- `disable-model-invocation: true` on exactly `sole-dev-merge`, `aa-ma-share` (`tests/skills/test_model_invocation_list.py`). [valid: 2026-10-09]
+- Checkout from an installed skill: `readlink -f ~/.claude/skills/<x>/SKILL.md` then `/../../..` (aa-ma-plan, aa-ma-share). [valid: 2026-10-09]
+- The one hook table: `AA_MA_HOOKS` in `scripts/lib/aa-ma-install-lib.sh` (+ `aa_ma_hook_parse`, `aa_ma_hooks_validate`, `points_into_repo`); sourced by install.sh/uninstall.sh; codemem `surface_allowlist.HOOK_TABLE` points at it. [valid: 2026-10-09]
+- Foreign-symlink manifest: `~/.claude/backups/aa-ma-forge-<ts>/foreign-symlinks.tsv` (`<link>\t<dest>`), replayed by `uninstall.sh --restore`. [valid: 2026-10-09]
+- `/grill-me` is declared external (`surface_allowlist.EXTERNAL["command"]`), the user-level mattpocock skill. [valid: 2026-10-09]
+- ADR-0020 Accepted; next ADR is 0021. [valid: 2026-10-09]
+
 ## Decisions (one line each; full text in plan §3)
 
 - D1 Two plans: this plan = map groups 1–12, forge only; reuse (T13/T14) → later `reuse-kit` plan; T13's in-repo git-HEAD helper stays (M10). [valid: 2026-10-08]

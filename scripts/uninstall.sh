@@ -37,7 +37,9 @@ header()  { printf "\n%s%s%s\n" "${BOLD}" "$1" "${RESET}"; }
 # ---------------------------------------------------------------------------
 # Resolve repo root (parent of the directory containing this script)
 # ---------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# why: readlink -f — run through a symlink (an alias in ~/bin), dirname would name the
+# link's directory, not scripts/, and lib/ and REPO_ROOT would be wrong.
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd -P)"
 # why: pwd -P — points_into_repo compares against `readlink -f`, which is canonical.
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
 # shellcheck source=lib/aa-ma-install-lib.sh

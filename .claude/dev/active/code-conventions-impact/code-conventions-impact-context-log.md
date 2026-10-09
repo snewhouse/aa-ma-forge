@@ -147,3 +147,9 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - 2.3: every fork ships its upstream MIT LICENSE, incl. the 5 pre-existing mattpocock forks (gap found by the new test).
 - 2.4: payload captured via isolated headless `claude -p --settings <tmp>` (Ste's choice). AA_MA_HOOKS keeps the `|` schema; install.sh parses rows anchored on `<name>.sh|<timeout>|` like codemem `_HOOK_ROW` (a `;` switch broke the plugin-surface extractor).
 - 2.5: five user-local `/x` refs in python-quality-gates reworded (allowlist policy: local-only commands are not declared-external); llm-output-safety + bash-defensive-patterns pinned as orphans until M12; ruff-format.sh stays verbatim and does not honour AA_MA_HOOKS_DISABLE (README states the exception).
+
+## [2026-10-09] M2 §6.8 decisions (Ste)
+- TDD CRITICAL (tests + src in one commit) → **disputed**; RED runs are in the Result Logs. Convention: RED gets its own `test(...)` commit from now on (applied: 4e6889e → adb3524).
+- Leak (private Carmen repo path in imported `logging-and-comments/SKILL.md:66`) → **rewrite + force-push**: filter-branch done locally, history hits 0; force-push denied by tool permission, Ste to run it; GitHub Support purge pending. L-039 tightened (scan any imported content before its first commit).
+- secrets-management → **patched, state derived** (supersedes the 2.1 "current @ 46891e7, byte-exact" choice).
+- Other warnings → **all fixed**: hook kill switch + CLAUDE_HOOK_LOG (hook now "Adoption, adapted"), settings backups as sibling files, `--restore` walks all backups newest-first, README "9 hooks", tests read SHAs from FORKS.json, `_helpers` requires a manifest entry.

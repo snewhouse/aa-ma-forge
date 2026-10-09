@@ -86,6 +86,20 @@ _manifest_rows() { cat "${BATS_FAKE_HOME}"/.claude/backups/aa-ma-forge-*/foreign
     [ -L "${BATS_FAKE_HOME}/.claude/commands/theirs.md" ]
 }
 
+@test "install removes retired skill and agent links that dangle into this repo, and leaves foreign ones" {
+    _settings
+    mkdir -p "${BATS_FAKE_HOME}/.claude/agents"
+    ln -s "${REPO_ROOT}/claude-code/skills/retired-skill" "${BATS_FAKE_HOME}/.claude/skills/retired-skill"
+    ln -s "${REPO_ROOT}/claude-code/agents/retired-agent.md" "${BATS_FAKE_HOME}/.claude/agents/retired-agent.md"
+    ln -s "${BATS_FAKE_HOME}/nowhere" "${BATS_FAKE_HOME}/.claude/skills/theirs"
+    run env HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}"
+    [ "${status}" -eq 0 ]
+    [ ! -L "${BATS_FAKE_HOME}/.claude/skills/retired-skill" ]
+    [ ! -L "${BATS_FAKE_HOME}/.claude/agents/retired-agent.md" ]
+    [ -L "${BATS_FAKE_HOME}/.claude/skills/theirs" ]
+    [[ "${output}" == *"Removed stale link: ${BATS_FAKE_HOME}/.claude/skills/retired-skill"* ]]
+}
+
 @test "install records a foreign symlink's destination before replacing it" {
     _settings
     mkdir -p "${BATS_FAKE_HOME}/elsewhere/grill-with-docs"

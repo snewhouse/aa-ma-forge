@@ -320,7 +320,8 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Acceptance Criteria:
   - `install.sh` into a fake `CLAUDE_HOME`: 13 skill links present, 14 command links absent, foreign `grill-me` link recorded in the manifest.
   - Live install and the 13 probes are deferred to Sub-step 4.0.
-- Result Log:
+- Status: COMPLETE
+- Result Log: Mode: AFK — auto-dispatched. Fake HOME seeded like the live machine: the 14 old `~/.claude/commands/<x>.md` links into `<repo>/claude-code/commands/` (now dangling), one real user command file (`commit-local.md`), `skills/grill-me` → `../../.agents/skills/grill-me` (relative, as live), plus a deliberately colliding foreign `skills/ops-mode` → `elsewhere/`. `install.sh` rc=0: 13/13 skill links resolve into the repo with a SKILL.md; 0/14 old command links left (14 "Removed stale command link"); real `commit-local.md` untouched; `skills/grill-me` untouched; manifest has exactly 1 row (`skills/ops-mode` → `elsewhere/ops-mode`). `uninstall.sh --restore` rc=0: 0 repo links left, 0 hook commands left in settings.json, `skills/ops-mode` → `elsewhere/ops-mode` again, grill-me and commit-local.md untouched. AC deviation (logged): the tasks AC said the foreign grill-me link is "recorded in the manifest" — install records only links it replaces, and no forge source targets `skills/grill-me`, so the correct and observed result is *untouched, not recorded* (matches the plan's own 4.0 AC "still points to ~/.agents/…"); recording is proven on the colliding `ops-mode` link instead. Live install + 13 probes deferred to Sub-step 4.0 as planned.
 
 ### Sub-step 3.7: CRITICAL_PATH_REVIEW
 - Status: PENDING

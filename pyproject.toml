@@ -52,7 +52,7 @@ codemem-mcp = { workspace = true }
 
 [tool.ruff]
 # Eval fixtures plant logging/style defects on purpose for the skills to find (ADR-0021).
-extend-exclude = ["evals/_fixtures"]
+extend-exclude = ["tests/fixtures/evals"]
 
 [tool.ruff.lint]
 # Logging + comment hygiene (logging-and-comments standard). CI's `touched` job runs
@@ -115,8 +115,8 @@ markers = [
     "perf: performance-budget gates (codemem M1 Task 1.13). Skipped by default; run with `-m perf`.",
     "slow: long-running property tests (codemem M2 Task 2.4 roundtrip — 100 examples). Skipped by default; run with `-m slow`.",
 ]
-# evals/_fixtures/ holds eval-case fixture repos (ADR-0021), not this repo's tests.
-addopts = "-m 'not perf and not slow' --ignore=evals"
+# tests/fixtures/evals/ holds eval-case fixture repos (ADR-0021), not this repo's tests.
+addopts = "-m 'not perf and not slow' --ignore=tests/fixtures/evals"
 
 [dependency-groups]
 dev = [

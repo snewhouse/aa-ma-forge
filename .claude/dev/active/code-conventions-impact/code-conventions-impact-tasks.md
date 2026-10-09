@@ -329,7 +329,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 4: Prompt-as-code checks + writing-for-agents fork
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 3
 - Complexity: 60%
 - Effort: 2 days

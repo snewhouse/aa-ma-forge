@@ -245,7 +245,7 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - C2/C4/F2/F3 are guards over currently-correct code; each proven by a temporary mutation (SKILL-MECHANICS.md +1 line, one case `max_turns: 13`, a `!`git status`` line in retro) → each failed, then restored.
 
 ## [2026-10-09] Milestone Completion: Milestone 4: Prompt-as-code checks + writing-for-agents fork
-- Status: COMPLETE on Ste's §7.3 approval (Gate: SOFT); tasks.md flips in the same commit
+- Status: COMPLETE (Ste approved at §7.3, 2026-10-09; Gate: SOFT)
 - Key outcome: forge skills are now checked as code (frontmatter schema, size ratchet) and exercised by 24 advisory `claude plugin eval` cases in a sandbox; writing-for-agents replaces write-a-skill; skill descriptions route each intent to one skill (evals 14/24 → 22/24, every skill triggers).
 - Artifacts: tests/test_frontmatter_at_top.py, tests/test_prompt_size.py, tests/test_eval_cases.py, tests/skills/test_writing_for_agents_fork.py, tests/scripts/test_run_evals_sandbox.bats (+ fixtures), scripts/run-evals.sh, scripts/release.sh, scripts/install.sh, evals/ (24 cases, _lib scaffolds), tests/fixtures/evals/, claude-code/skills/writing-for-agents/, FORKS.json, 8 skill descriptions, ADR-0021, CHANGELOG, runbook, counts docs.
 - Tests: pytest 2728 passed / 6 skipped / 0 failed; bats 398/398; shellcheck rc=0; LIVE sandbox pass; eval baseline 22/24 (sonnet, single run).

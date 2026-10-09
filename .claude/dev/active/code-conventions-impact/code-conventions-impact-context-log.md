@@ -210,7 +210,7 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Decision: `scripts/run-evals.sh` drives `claude plugin eval` (Claude Code 2.1.295), not the `claude -p` fallback. Ste approved the paid proof run (HITL, cap $0.50).
 - A2: a directory with `skills/<x>/SKILL.md` and no `plugin.json` loads as a plugin named after the directory (docs: plugins-reference "Manifest file"; plugin-evals "Choose what to evaluate"). Plugin skills are namespaced `<plugin>:<skill>`.
 - Correction found in the proof: run 1 prompted `/aa-ma-search …` inside plugin `q`; the skill never loaded ("`/aa-ma-search` isn't installed in this session") yet the `llm` grader scored the case 1.0 (votes PASS FAIL PASS). A judge alone gives false passes. Rule for every case: one `tool_used` grader `tool: Skill`, `input_match: '"skill"\s*:\s*"(?:[\w-]+:)?<skill>"'` plus one result grader; prompts are phrased as a user would ask, not as `/<name>`.
-- Placement: cases at repo-root `evals/<skill>/<case>/case.yaml` with `plugins: ["../../../claude-code"]`, run as `claude plugin eval <repo-root>`. A case-file target refuses that `plugins` entry (containment root = the case dir); the repo-root target accepts it. Results land in `evals/results/<ts>/` → gitignore it; run-evals.sh converts to `.claude/evals/<date>.jsonl`.
+- Placement: cases at repo-root `evals/<skill>/<case>/case.yaml` with `plugins: ["../../../claude-code"]`, run as `claude plugin eval <repo-root>`. A case-file target refuses that `plugins` entry (containment root = the case dir); the repo-root target accepts it. Results land in `evals/results/<ts>/` → gitignore it; run-evals.sh converts to `.claude/evals/<date>.jsonl`. [Superseded by M4.5: run-evals.sh uses a temp `--output-dir`; `evals/results/` stays ignored for direct runs.]
 - Flags: always `--no-publish --runs 1 --ablation none --trust-plugin --max-cost-usd <cap> --json <file>`, `</dev/null`. Isolation is built in: each run gets a temp HOME and an empty cwd; Bash/Write/Edit/WebFetch/WebSearch are removed unless `--allow-tools` grants them (granted Bash runs under the OS sandbox, needs bubblewrap+socat on Linux).
 - Cost of one case: $0.0034 (haiku agent, 2 graders incl. 3 haiku judge votes), 12 s wall.
 - JSONL proof line: see provenance `EVAL_PROOF`.
@@ -225,7 +225,7 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Billing (Ste asked before any paid run): this machine authenticates with claude.ai (`claude auth status`), no `ANTHROPIC_API_KEY`; eval runs count against plan usage. `costUsd` / `--max-cost-usd` are list-price estimates, not charges. Guard added: `run-evals.sh` drops `ANTHROPIC_API_KEY` unless `RUN_EVALS_ALLOW_API_KEY=1`. Ste chose sonnet as the default model.
 - AC mapping: the tasks AC was written for the `claude -p` fallback (`--disallowedTools`, `--allowedTools`). With `claude plugin eval` (4.3), tools a case does not list are absent from the session; `env -i`, the temp output dir, JSONL and exit-0 contract are kept as written. LIVE bats prove git push and `$HOME` writes cannot happen.
 - Grader lesson: `tool_used … max: 0` counts refused calls, so "Bash was never used" must be asserted on the session's tool list, with a positive-control regex so `not_contains` is not vacuous.
-- Baseline (2026-10-09, sonnet): 14/24 pass; 9 of 10 fails are `skill-fired` (description did not trigger on the user's phrasing). Input for the eval re-runs planned in 9.6, 10.9, 11.8; not fixed here (scope).
+- Baseline (2026-10-09, sonnet): 14/24 pass; 9 of 10 fails are `skill-fired` (description did not trigger on the user's phrasing). Input for the eval re-runs planned in 9.6, 10.9, 11.8; not fixed here (scope). [Superseded the same day: Ste added Sub-step 4.7, see below.]
 
 ## [2026-10-09] Skill-triggering diagnosis → Sub-step 4.7 (Ste: "the skills should trigger — why don't they?")
 - Kept traces (sonnet, 4 failing cases; all 17 forge AA-MA skills were in the 55-skill listing):
@@ -245,8 +245,13 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - C2/C4/F2/F3 are guards over currently-correct code; each proven by a temporary mutation (SKILL-MECHANICS.md +1 line, one case `max_turns: 13`, a `!`git status`` line in retro) → each failed, then restored.
 
 ## [2026-10-09] Milestone Completion: Milestone 4: Prompt-as-code checks + writing-for-agents fork
-- Status: COMPLETE (pending Ste's §7.3 approval; Gate: SOFT)
+- Status: COMPLETE on Ste's §7.3 approval (Gate: SOFT); tasks.md flips in the same commit
 - Key outcome: forge skills are now checked as code (frontmatter schema, size ratchet) and exercised by 24 advisory `claude plugin eval` cases in a sandbox; writing-for-agents replaces write-a-skill; skill descriptions route each intent to one skill (evals 14/24 → 22/24, every skill triggers).
 - Artifacts: tests/test_frontmatter_at_top.py, tests/test_prompt_size.py, tests/test_eval_cases.py, tests/skills/test_writing_for_agents_fork.py, tests/scripts/test_run_evals_sandbox.bats (+ fixtures), scripts/run-evals.sh, scripts/release.sh, scripts/install.sh, evals/ (24 cases, _lib scaffolds), tests/fixtures/evals/, claude-code/skills/writing-for-agents/, FORKS.json, 8 skill descriptions, ADR-0021, CHANGELOG, runbook, counts docs.
 - Tests: pytest 2728 passed / 6 skipped / 0 failed; bats 398/398; shellcheck rc=0; LIVE sandbox pass; eval baseline 22/24 (sonnet, single run).
 - Open / next: Sub-step 5.0 — merge via /sole-dev-merge, live install from main (sweeps the dead write-a-skill link), L-1315 probe lists writing-for-agents.
+
+## [2026-10-09] M4 double-check decisions (report 2026-10-09T190311Z, Partially verified)
+- Gaps: the 4.7 "24/24 on its last runs" sentence joined two partial runs (Contradicted); 4.5 Result Log cited moved fixture paths and "9/9" (stale); LIVE sandbox proofs are opt-in paid runs (disclosed limit, not fixed: by design, AA_MA_EVAL_LIVE=1).
+- Ste: fix the records and take one fresh full run as the baseline of record → a9a638f; single run 22/24, skill-fired 24/24 ($2.97 est); the failing pair differs from the previous run (n=1 noise in result graders).
+- Validator §7.2.5 WARNINGS_BUT_USABLE (6 WARN) back-filled inline before §7.3.

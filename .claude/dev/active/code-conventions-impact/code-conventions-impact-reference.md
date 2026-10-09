@@ -143,6 +143,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 
 ### `scripts/run-evals.sh` (new, M4)
 - Exit 0 always (advisory); rc in the last line; results → `.claude/evals/<YYYY-MM-DD>.jsonl` (gitignored) + one summary line; `claude plugin eval` always with `--no-publish`, `--runs 1`, no ablation arm. [valid: 2026-10-08]
+- As built (M4): `env -i` keeps PATH, HOME, LANG (+ CLAUDE_CODE_OAUTH_TOKEN, CLAUDE_CONFIG_DIR if set; ANTHROPIC_API_KEY only with RUN_EVALS_ALLOW_API_KEY=1); `claude plugin eval . --eval-dir evals --no-publish --runs 1 --ablation none --scaffold --trust-plugin --model sonnet --max-cost-usd 5`, temp `--output-dir`; extra args pass through (e.g. `-j 4`, `--case`); JSONL fields ts, case, verdict, score, rc, model, error, failed. `scripts/release.sh --skip-evals` skips the advisory run; `--dry-run` never runs it. [valid: 2026-10-09]
 
 ## Provenance Token Formats
 
@@ -158,6 +159,8 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | DIAGRAM_VERIFIED | `DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K` | existing §6.7 fence 2 | [valid: 2026-10-08] |
 | PAYLOAD_CAPTURED | `PAYLOAD_CAPTURED <event>` (one per registered hook event) | M7.5 | [valid: 2026-10-08] |
 | COMMANDS | `COMMANDS pre=N post=N-14` | M4.0 | [valid: 2026-10-08] |
+| EVAL_PROOF | `[ts] EVAL_PROOF — {json: case, rc, verdict, score, cost_usd, claude, mechanism}` | M4.3 | [valid: 2026-10-09] |
+| EVAL_BASELINE / EVAL_RERUN | `[ts] EVAL_BASELINE — <N> cases <model>: <P> pass/<F> fail …` | M4.5, M4.7, eval re-runs | [valid: 2026-10-09] |
 | Ruff/Bandit decision (context-log) | `DECISION ruff-only\|fallback (<ids>) — approved by Ste` | M8.1 | [valid: 2026-10-08] |
 
 The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md heading (without `## `, backticks included). [valid: 2026-10-08]
@@ -215,6 +218,10 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 | `BANDIT_BIN` | `bandit` | no | retired in M8 (Stage C3) [valid: 2026-10-08 to M8] |
 | `SHELLCHECK_BIN` | `shellcheck` | no | scanner override (existing) [valid: 2026-10-08] |
 | `GH_TOKEN`, `GITHUB_TOKEN`, `SSH_AUTH_SOCK` | — | no | unset inside the eval sandbox (`env -i`) [valid: 2026-10-08] |
+| `RUN_EVALS_ALLOW_API_KEY` | 0 | no | `1` forwards `ANTHROPIC_API_KEY` into run-evals; otherwise dropped so evals stay on plan usage [valid: 2026-10-09] |
+| `RUN_EVALS_MODEL` / `RUN_EVALS_MAX_COST_USD` / `RUN_EVALS_DIR` / `RUN_EVALS_RESULTS` | sonnet / 5 / evals / `.claude/evals` | no | run-evals.sh knobs [valid: 2026-10-09] |
+| `AA_MA_EVAL_LIVE` | 0 | no | `1` runs the paid LIVE sandbox bats case [valid: 2026-10-09] |
+| `EVALS` | `scripts/run-evals.sh` | no | release.sh seam (tests stub it) [valid: 2026-10-09] |
 
 ### Config Files and keys
 - `pyproject.toml` [valid: 2026-10-08]:

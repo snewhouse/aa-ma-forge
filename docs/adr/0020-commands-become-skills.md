@@ -1,6 +1,6 @@
 # 0020. Commands become skills: the forge ships no slash commands
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-10-09
 **Deciders:** Stephen Newhouse (sole maintainer)
 **Tags:** `skills`, `commands`, `install`, `conventions`

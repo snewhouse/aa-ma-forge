@@ -176,3 +176,8 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - complexity-router: Scope 82, Arch 75, Risk 60, Deps 40, Uncertainty 25 → 61% weighted; auto-triggers 50+ files and a breaking path contract (commands/ → skills/) → **80% Critical**. Route: deep review = the 3.1 prototype + HITL gates (plan states 85%; consistent).
 - Prototype verdict: **GO** — commands convert to skills by `git mv`; the install path needs (a) a REPO_ROOT-scoped stale-command-link sweep and (b) foreign-symlink recording before replacement. Plan change (verdict-changes-plan: YES): `uninstall.sh --restore` must replay the foreign-symlink manifest (new 3.2 AC). Evidence: tasks 3.1 Result Log; branch prototype/cmd-to-skill @ ac5f814.
 - Pre-execution validator: WARN (0 FAIL, 7 WARN). Fixed now: W1 (plan.md 3.4 prose → SKILL.md body), W4 (reference status rows), W6 (provenance line for the M3 worktree cut below). W2 (list of the 31 test files) → 3.3 Result Log. W3/W5/W7: no action (Contract Files: rows are grandfathered; §2 ADR number is historical, reference says 0020; W7 done above).
+
+## [2026-10-09] ADR-0020 approval — Commands become skills
+- Approved by: Ste (AskUserQuestion, M3.5) — Decision: Accept
+- Status Proposed → Accepted; INDEX row 0020 Accepted.
+- Deferred to Sub-step 4.0 (post-merge): the gitignored local CLAUDE.md:51-52 edit (commands/ 14 → none; skills count), so main's CLAUDE.md never describes a tree main does not have yet.

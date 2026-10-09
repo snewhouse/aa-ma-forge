@@ -203,3 +203,43 @@ Totals note: the Summary counts each agent's raw findings (7 W / 18 I); the tabl
 ## Verification after fixes
 
 pytest 2571 passed / 0 failed; `bats -r tests` 377/377; shellcheck (CI form, every `.sh`) rc=0.
+
+---
+
+# Impl Review Report: code-conventions-impact / Milestone 4
+
+- Milestone: Milestone 4: Prompt-as-code checks + writing-for-agents fork
+- Audit-Profile: full — agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor (parallel, budget normal)
+- Window: 13de435..6802df7 (38 commits); fixes in 1157273
+- Date: 2026-10-09
+
+## Summary
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer             | 0 | 4 | 5 | WARN |
+| security-auditor          | 0 | 1 | 4 | WARN |
+| tdd-sequence-auditor      | 0 | 0 | 0 | PASS (9 RED→GREEN pairs in order; first test 3m06s before first src) |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS (no new PyPI deps / MAJOR bumps) |
+| future-proofing-auditor   | 0 | 3 | 8 | WARN |
+| **TOTAL**                 | **0** | **8** | **17** | **PASS_WITH_WARNINGS** |
+
+## Findings and outcomes (Ste: fix all 8 + one-liner INFOs)
+
+- S1 [A01] eval session could reach Bash via a skill whose `allowed-tools` pre-approve it (retro, assess-codebase) — **fixed/verified**: LIVE hostile case `tests/scripts/fixtures/evals-sandbox/skill-escape` (grants Skill, loads the plugin, invokes retro, asks for a shell marker) passes; marker absent, real `~/.probe` absent.
+- C4 `!`…`` only refused in forked skills — **fixed**: `test_no_loaded_skill_runs_dynamic_exec` covers every skill the evals load.
+- C2 SKILL-MECHANICS.md not hash-checked — **fixed**: `test_skill_mechanics_is_unedited` vs FORKS.json upstream md5.
+- C3 provenance said "upstream text unedited" after 4.7's `when_to_use` — **fixed** (provenance line, block sentence, test docstring; FORKS.json md5 updated).
+- C1 eight one-line `_lib` wrappers — **kept by decision** (context-log): plugin eval resolves the case symlink fully, so the fixture name cannot come from the link name.
+- F1 bats hardcoded 24 — **fixed**: counts `evals/*/*/case.yaml`.
+- F2 exactly-3 vs "at least 3" — **fixed**: `test_each_eval_skill_has_its_minimum_cases`.
+- F3 `max_turns: 12` ×24 without rationale — **fixed**: `MAX_TURNS` asserted per case; why in ADR-0021.
+- INFOs fixed: `_helpers.py` docstring; release.sh `tail -n 2` why-comment; "24" removed from runbook and run-evals comment. INFOs acknowledged: install.sh scope note (context-log 4.4), TOC merge-base warn-only while pytest is local-only, model alias not pinned (record the resolved model at the 9.6/10.9/11.8 re-runs), c55ee46 prose copies (fork-drift process), duplicate small reads in tests (efficiency INFO).
+
+## User Override Decisions
+
+None — no CRITICAL findings.
+
+## Verification
+
+Guards C2/C4/F3 each proven by a temporary mutation (failed, restored). pytest 2728 passed / 6 skipped / 0 failed; `bats -r tests` 398/398; shellcheck rc=0; LIVE sandbox bats pass (3 hostile cases).

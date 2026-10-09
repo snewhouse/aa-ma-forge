@@ -238,3 +238,8 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 ## [2026-10-09] M4.7 follow-up — the 2 remaining eval fails
 - aa-ma-plan/first-phase: no Skill call; the model planned a tiny feature inline. Ste decided aa-ma-plan should fire only when AA-MA is named (a small feature can be planned inline); the case prompt now names AA-MA. Description unchanged.
 - execute-aa-ma-step/sync-after-step: the skill fired and refused to mark 1.2 COMPLETE without running its criterion — correct behaviour; the rubric was wrong and now accepts it.
+
+## [2026-10-09] M4 §6.8 decisions — fix all 8 WARNINGs (Ste)
+- S1 (security): a LIVE hostile case `skill-escape` grants `Skill`, loads the forge plugin and tells the agent to invoke `retro` (pre-approves Bash/Write) and run a shell marker; `retro` was invoked, the marker never appeared, real `~/.probe` absent → skill `allowed-tools` do not add tools in a `claude plugin eval` session. A follow-up trace inspection was denied by the permission prompt and not retried; the bats graders are the evidence.
+- C1 (8 one-line `evals/_lib/<fixture>.sh` wrappers) kept by decision: `claude plugin eval` fully resolves the case's `fixture.sh` symlink before running it (argv0 = the real `_lib` path), so a fixture name taken from the link name would be lost; one wrapper per fixture is the simplest correct form.
+- C2/C4/F2/F3 are guards over currently-correct code; each proven by a temporary mutation (SKILL-MECHANICS.md +1 line, one case `max_turns: 13`, a `!`git status`` line in retro) → each failed, then restored.

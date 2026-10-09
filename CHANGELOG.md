@@ -19,6 +19,8 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Five coding-doctrine skills move into the forge (ADR-0019): `logging-and-comments`, `python-quality-gates`, `llm-output-safety` (adopted), `secrets-management` (derived from wshobson/agents @ 46891e7, MIT: no secret echo, trufflehog `--fail`) and `bash-defensive-patterns` (derived @ 5d65aa1, MIT). Skills 22→27.
 - `ruff-format.sh` ships as a PostToolUse(Edit|Write) hook that `install.sh` links and registers (hooks 8→9); it honours `AA_MA_HOOKS_DISABLE` and `CLAUDE_HOOK_LOG`; bats run it on a real captured payload.
 - `FORKS.json` rows record `upstream_repo` and `licence`; `scripts/fork-drift.sh` fetches each fork from its own repo. Every fork dir ships its upstream MIT `LICENSE`.
+- `tests/test_frontmatter_at_top.py` checks every skill's frontmatter against the documented schema: only documented keys plus `metadata` (Claude Code ignores an unknown key without an error), `name`/`description`/listing length limits, no `<`, third person, `context:` only `fork`, and no unscoped `Bash`/`Write`/`Edit` in `allowed-tools` without an allowlisted reason.
+- `tests/test_prompt_size.py` caps any SKILL.md or agent file at 500 lines; six existing files are held at their current size until they are split. A new or modified `references/*.md` over 100 lines needs a table of contents.
 
 ### Changed
 
@@ -44,6 +46,9 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   - `install.sh` and `uninstall.sh` keep `settings.json`'s file mode (a 0600 file stays 0600).
 - `/aa-ma-share` refuses when it cannot find its checkout. A copied skill no longer runs `./scripts/aa-ma-share-allow.sh` from the repo it was asked to share.
 - codemem `plugin_surface`: a `/x-*` glob expands over skills as well as commands.
+- **`writing-for-agents` replaces `write-a-skill` (ADR-0021, supersedes ADR-0004).** Forked from mattpocock/skills @ c55ee46 with the upstream text unedited. An appended `## In this repo` block states the forge's skill conventions. Skill count unchanged.
+- `install.sh` also removes skill and agent links that dangle into the repo, such as `~/.claude/skills/write-a-skill` after this change. It used to sweep command links only. **Upgrade note:** re-run `scripts/install.sh` to drop the dead `write-a-skill` link.
+- Skill frontmatter fixes: `operational-constraints` and `system-mapping` `triggers` → `when_to_use`; `dispatching-parallel-agents` and `retro` `version` → `metadata.version`; `dispatching-parallel-agents` gets a third-person description, `languages` moves into `metadata` and its stray `context:` is dropped; `grill-with-docs` drops "your plan".
 - `install.sh` backs up `settings.json` to a timestamped `backups/settings-aa-ma-forge-<ts>.json` (no more overwritten `settings.json.bak`), and `--force` still backs up a real directory before replacing it with a symlink.
 - `uninstall.sh --restore` walks every `aa-ma-forge-*` backup newest-first and restores each path from its newest copy; it used to read only the newest dir, which a re-install that backed up just the copied spec docs could hide.
 - **Upgrade note:** after this change `uninstall.sh` removes the five migrated skills and the ruff hook registration; `--restore` brings back the pre-install copies from the install backup. The `~/.claude/backups/cci-m2-<ts>.tgz` tarball taken before the migration is the fallback.

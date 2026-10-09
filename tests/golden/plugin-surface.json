@@ -1253,6 +1253,12 @@
    "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:verify-plan"
+  },
+  {
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:writing-for-agents"
   }
  ],
  "errors": [],
@@ -1292,6 +1298,6 @@
   "skill:debugging-strategies",
   "skill:llm-output-safety",
   "skill:sole-dev-merge",
-  "skill:write-a-skill"
+  "skill:writing-for-agents"
  ]
 }

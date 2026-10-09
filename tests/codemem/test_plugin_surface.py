@@ -99,7 +99,8 @@ def test_orphans_are_the_named_set_and_no_errors(surface) -> None:
         "aa-ma-execution",
         "complexity-router",
         "debugging-strategies",
-        "write-a-skill",
+        # ADR-0021: model-invoked on skill/CLAUDE.md edits; nothing in the forge calls it.
+        "writing-for-agents",
         "aa-ma-session-end-dirty.sh",
         # code-conventions-impact M2 (ADR-0019): migrated, not yet invoked by forge content;
         # the M12 coding-standards rule is planned to reference them.

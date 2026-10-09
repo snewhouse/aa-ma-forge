@@ -25,7 +25,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - **Commands become skills (ADR-0020).**
   - 11 slash commands move to `claude-code/skills/<name>/SKILL.md`: `aa-ma-chart`, `aa-ma-plan`, `aa-ma-search`, `aa-ma-share`, `archive-aa-ma`, `execute-aa-ma-full`, `execute-aa-ma-milestone`, `execute-aa-ma-step`, `ops-mode`, `sole-dev-merge`, `verify-plan`.
   - The `assess-codebase` and `understand-codebase` command wrappers merge into their skills.
-  - Every `/name` still works. Only `/sole-dev-merge` and `/aa-ma-share` carry `disable-model-invocation`.
+  - Every `/name` still works. `/sole-dev-merge`, `/aa-ma-share`, `/execute-aa-ma-full` and `/archive-aa-ma` carry `disable-model-invocation`: they run only when you type them.
   - Counts change: skills 27→38, commands 14→0.
   - **Upgrade note:** existing installs must re-run `scripts/install.sh`. Until then, the old `~/.claude/commands/<x>.md` links dangle and the new skill links are missing.
 - `install.sh` no longer requires `~/.claude/commands/`.
@@ -39,6 +39,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
     - logs manifest rows it skips;
     - under `--dry-run`, reports those restores correctly.
   - Links into the repo whose source directory is gone are removed.
+  - `--restore` refuses manifest rows outside the install slots (e.g. `..` rows).
+  - A failed settings write warns and the uninstall carries on.
+  - `install.sh` and `uninstall.sh` keep `settings.json`'s file mode (a 0600 file stays 0600).
+- `/aa-ma-share` refuses when it cannot find its checkout. A copied skill no longer runs `./scripts/aa-ma-share-allow.sh` from the repo it was asked to share.
 - codemem `plugin_surface`: a `/x-*` glob expands over skills as well as commands.
 - `install.sh` backs up `settings.json` to a timestamped `backups/settings-aa-ma-forge-<ts>.json` (no more overwritten `settings.json.bak`), and `--force` still backs up a real directory before replacing it with a symlink.
 - `uninstall.sh --restore` walks every `aa-ma-forge-*` backup newest-first and restores each path from its newest copy; it used to read only the newest dir, which a re-install that backed up just the copied spec docs could hide.

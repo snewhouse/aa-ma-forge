@@ -50,9 +50,18 @@ uninstalled and reinstalled one converted command into a fake `HOME`, and an iso
 
 - **Move.** `git mv` keeps history. Each moved skill has `name:` equal to its directory and a
   description that names the explicit request.
-- **Invocation (D9 revised).** Only `sole-dev-merge` and `aa-ma-share` carry
-  `disable-model-invocation: true`. Every other moved skill stays model-invocable.
-  `tests/skills/test_model_invocation_list.py` pins the set.
+- **Invocation (D9 revised).** Four skills carry `disable-model-invocation: true`:
+  - `sole-dev-merge` (merges to main);
+  - `aa-ma-share` (publishes a link);
+  - `execute-aa-ma-full` and `archive-aa-ma`, which commit, tag and push with no per-step gate
+    (added after the §6.8 security review).
+
+  The other moved skills stay model-invocable, so `/execute-aa-ma-full` can delegate to
+  `Skill(execute-aa-ma-milestone)`. `tests/skills/test_model_invocation_list.py` pins the set.
+  An isolated probe confirmed the mechanics: the model did not start a skill with the flag
+  when asked to; a typed `/name` still ran it; `$ARGUMENTS` was substituted.
+- **Links.** `tests/skills/test_skill_links_resolve.py` resolves every `../` link in a shipped
+  skill. The move broke three of them, and nothing else checks markdown links.
 - **Merge.** `argument-hint`, `$ARGUMENTS` parsing and the use/don't-use routing move from the two
   wrappers into the SKILL.md bodies, not into `references/`.
 - **No collisions.** `tests/skills/test_no_command_skill_collision.py` asserts that no stem is
@@ -62,7 +71,9 @@ uninstalled and reinstalled one converted command into a fake `HOME`, and an iso
     `<repo>/claude-code/` and whose source is gone.
   - Before replacing a symlink that points outside the repo, it records `<link>\t<destination>`
     in `backups/aa-ma-forge-<ts>/foreign-symlinks.tsv`. It does this under `--force` too.
-  - `uninstall.sh --restore` puts recorded links back.
+  - `uninstall.sh --restore` puts recorded links back. It accepts a manifest row only when the
+    row names exactly one item in an install slot (`skills|agents|rules|commands|hooks/lib`);
+    a `..` row is refused.
   - `AA_MA_HOOKS` moves to `scripts/lib/aa-ma-install-lib.sh`. That file is the one hook table:
     `install.sh` and `uninstall.sh` source it, and codemem's extractor reads it
     (`surface_allowlist.HOOK_TABLE`). Both scripts validate every row before they change

@@ -1,6 +1,7 @@
 ---
 name: archive-aa-ma
-description: Archive a completed AA-MA plan to .claude/dev/completed/. Use when the user asks to archive a finished AA-MA plan.
+description: Archive a completed AA-MA plan to .claude/dev/completed/. Run only when the user asks to archive a finished AA-MA plan.
+disable-model-invocation: true
 ---
 
 # Archive AA-MA Plan

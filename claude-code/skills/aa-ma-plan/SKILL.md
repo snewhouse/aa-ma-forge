@@ -202,7 +202,7 @@ discipline).
 |------|-----------|
 | `auto` (default) | Detect project state. If `CONTEXT.md` exists OR `docs/adr/` exists and is readable → `with-docs`. Unreadable `docs/adr/` falls back to `simple` with a stderr WARN. Otherwise → `simple`. |
 | `with-docs` | Force `Skill(grill-with-docs)` regardless of project state. Creates `CONTEXT.md` / `docs/adr/` lazily as terms or decisions crystallise. |
-| `simple` | Force the existing `/grill-me` protocol (preserved verbatim from v0.5.0). |
+| `simple` | Force the grill-me discipline (described inline below; the user-level `/grill-me` skill also follows it if installed). |
 | `skip` | Bypass Phase 1.3 entirely. Parallel to `--skip-lessons` in Phase 1.5. |
 
 Invalid `--grill-mode` values exit with code 2 and a stderr error; the caller
@@ -262,7 +262,7 @@ fi
   external connectors or writes. Both live
   under `claude-code/skills/` (auto-discovered by `scripts/install.sh`,
   symlinked to `~/.claude/skills/grill-with-docs/` and `~/.claude/skills/grilling/`).
-- **`simple`** — Apply the `/grill-me` discipline: interview the user
+- **`simple`** — Apply the grill-me discipline: interview the user
   relentlessly about every aspect of their request. Walk down each branch of the
   design/decision tree, resolving dependencies between decisions one-by-one. For
   each question, provide your recommended answer. If a question can be answered

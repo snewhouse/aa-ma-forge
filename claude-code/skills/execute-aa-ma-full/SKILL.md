@@ -1,6 +1,7 @@
 ---
 name: execute-aa-ma-full
-description: Execute complete AA-MA plan from current position to completion with automated checkpoints. Use when the user asks to run a whole AA-MA plan.
+description: Execute complete AA-MA plan from current position to completion with automated checkpoints. Run only when the user asks to run a whole AA-MA plan.
+disable-model-invocation: true
 ---
 
 # AA-MA Full Plan Execution

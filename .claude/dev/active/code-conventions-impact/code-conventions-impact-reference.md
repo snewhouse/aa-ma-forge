@@ -302,7 +302,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 
 ## M3 As-Built Facts (2026-10-09)
 - Slash entry points are skills: `claude-code/commands/` is gone; 13 former commands live at `claude-code/skills/<name>/SKILL.md` (11 git mv + assess-codebase, understand-codebase merged); skills 38, commands 0. [valid: 2026-10-09]
-- `disable-model-invocation: true` on exactly `sole-dev-merge`, `aa-ma-share` (`tests/skills/test_model_invocation_list.py`). [valid: 2026-10-09]
+- `disable-model-invocation: true` on exactly `sole-dev-merge`, `aa-ma-share`, `execute-aa-ma-full`, `archive-aa-ma` (`tests/skills/test_model_invocation_list.py`). [valid: 2026-10-09]
 - Checkout from an installed skill: `readlink -f ~/.claude/skills/<x>/SKILL.md` then `/../../..` (aa-ma-plan, aa-ma-share). [valid: 2026-10-09]
 - The one hook table: `AA_MA_HOOKS` in `scripts/lib/aa-ma-install-lib.sh` (+ `aa_ma_hook_parse`, `aa_ma_hooks_validate`, `points_into_repo`); sourced by install.sh/uninstall.sh; codemem `surface_allowlist.HOOK_TABLE` points at it. [valid: 2026-10-09]
 - Foreign-symlink manifest: `~/.claude/backups/aa-ma-forge-<ts>/foreign-symlinks.tsv` (`<link>\t<dest>`), replayed by `uninstall.sh --restore`. [valid: 2026-10-09]
@@ -319,7 +319,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - D6 Prototypes: M3 install path, M10 hook UX, M11 co-change threshold.
 - D7 Worktree per milestone (live symlinks point at the main checkout).
 - D8 Touched files comply in full (file-level, not line-level).
-- D9 (superseded) no `disable-model-invocation`; **D9 revised**: `disable-model-invocation: true` on `sole-dev-merge` and `aa-ma-share` only.
+- D9 (superseded) no `disable-model-invocation`; **D9 revised** (2026-10-08): `disable-model-invocation: true` on `sole-dev-merge` and `aa-ma-share`; **revised again** (2026-10-09, M3 §6.8 security): also `execute-aa-ma-full` and `archive-aa-ma` (commit/tag/push with no per-step gate) — 4 skills.
 - D10 `Test-Command: none — <reason>` opt-out for TESTS_VERIFIED.
 - D11 One release (v0.18.0) in its own milestone M14; interim releases dropped.
 - D12 Commit scan keeps blocking: forge-pinned `ruff check --isolated --select S602,S604,S307,S608,S301` + secret-literal/path-traversal regexes, exit 2 in any repo.

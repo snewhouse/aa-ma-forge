@@ -179,10 +179,16 @@ deregister_hook() {
         return 0
     fi
     local tmp="${SETTINGS_FILE}.tmp.$$"
-    jq --arg event "$event" --arg link "$link_path" \
+    # Write failures warn and return 0, like the read above: links are already gone, so
+    # aborting here would leave a half-done uninstall and skip --restore.
+    if ! jq --arg event "$event" --arg link "$link_path" \
         '.hooks[$event] = ((.hooks[$event] // []) | map(select(.hooks | all((.command // "") | contains($link) | not))))' \
-        "${SETTINGS_FILE}" > "${tmp}" || { rm -f "${tmp}"; return 1; }
-    mv "${tmp}" "${SETTINGS_FILE}"
+        "${SETTINGS_FILE}" > "${tmp}" \
+        || ! chmod --reference="${SETTINGS_FILE}" "${tmp}" || ! mv "${tmp}" "${SETTINGS_FILE}"; then
+        rm -f "${tmp}"
+        warn "Could not update ${SETTINGS_FILE}; ${event} [${src_base}] left registered"
+        return 0
+    fi
     info "Deregistered ${event} [${src_base}] from settings.json"
 }
 
@@ -200,6 +206,19 @@ else
         deregister_hook "${HOOK_EVENT}" "${HOOK_SRC}"
     done
 fi
+
+# manifest_slot_ok REL — REL (relative to ~/.claude) is one name in a slot install.sh
+# links into. A row is only data from ~/.claude/backups, so `..`, nesting and any other
+# path are refused rather than followed out of ~/.claude.
+manifest_slot_ok() {
+    [[ "$1" =~ ^(skills|agents|rules|commands|hooks/lib)/[^/]+$ && "${1##*/}" != "." && "${1##*/}" != ".." ]]
+}
+
+# slot_free_for_restore LINK — nothing is at LINK, or (in a dry run, which removed none of
+# our links) what is there is one of our links that a real run would already have removed.
+slot_free_for_restore() {
+    { [ ! -e "$1" ] && [ ! -L "$1" ]; } || { ${DRY_RUN} && [ -L "$1" ] && points_into_repo "$1"; }
+}
 
 # ---------------------------------------------------------------------------
 # 3. Restore from backup (if --restore flag set)
@@ -263,16 +282,14 @@ if ${RESTORE}; then
                 manifest="${backup_dir}/foreign-symlinks.tsv"
                 [ -f "${manifest}" ] || continue
                 while IFS=$'\t' read -r link dest; do
-                    if [[ "${link}" != "${CLAUDE_HOME}/"* || -z "${dest}" ]]; then
-                        warn "Skipping manifest row (not a link under ${CLAUDE_HOME}/): ${link}"
+                    rel_path="${link#"${CLAUDE_HOME}"/}"
+                    if [[ "${link}" != "${CLAUDE_HOME}/"* || -z "${dest}" ]] || ! manifest_slot_ok "${rel_path}"; then
+                        warn "Skipping manifest row (not an install slot under ${CLAUDE_HOME}/): ${link}"
                         continue
                     fi
-                    rel_path="${link#"${CLAUDE_HOME}"/}"
                     [ -n "${RESTORED[${rel_path}]:-}" ] && continue
                     RESTORED["${rel_path}"]=1
-                    # A dry run removed none of our links, so a slot one of them holds is free.
-                    if { [ -e "${link}" ] || [ -L "${link}" ]; } \
-                        && ! { ${DRY_RUN} && [ -L "${link}" ] && points_into_repo "${link}"; }; then
+                    if ! slot_free_for_restore "${link}"; then
                         warn "Skipping foreign-symlink restore (exists): ${link}"
                         continue
                     fi

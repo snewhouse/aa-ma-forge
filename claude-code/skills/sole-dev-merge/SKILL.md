@@ -1054,4 +1054,4 @@ Bats suite lives in `tests/commands/sole-dev-merge/`. CI runs them via
 ---
 
 _Stages A–G are placeholders. Logic lands across Steps 1.2 – 4.5 of the
-[sole-dev-merge-pr-workflow](../../.claude/dev/active/sole-dev-merge-pr-workflow/sole-dev-merge-pr-workflow-plan.md) plan._
+[sole-dev-merge-pr-workflow](../../../.claude/dev/completed/sole-dev-merge-pr-workflow/sole-dev-merge-pr-workflow-plan.md) plan._

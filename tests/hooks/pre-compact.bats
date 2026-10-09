@@ -131,3 +131,14 @@ EOF
     chmod 644 "$task_dir/task-1-provenance.log" "$task_dir/task-1-context-log.md"
     [ "$status" -eq 0 ]
 }
+
+@test "compaction summary names the snapshot as ~/…, never the absolute home path" {
+    # context-log.md is committed; an absolute path leaks the username into a public repo.
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    cd "$BATS_TMP"
+    HOME="$BATS_TMP_HOME" run bash "$HOOK"
+    [ "$status" -eq 0 ]
+    grep -qF -- '- Snapshot saved to: ~/.claude/hooks/cache/compaction-snapshots/task-1-snapshot.md' \
+        "$BATS_TMP/.claude/dev/active/task-1/task-1-context-log.md"
+    ! grep -qF -- "$BATS_TMP_HOME" "$BATS_TMP/.claude/dev/active/task-1/task-1-context-log.md"
+}

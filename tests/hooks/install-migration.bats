@@ -92,6 +92,23 @@ ruff_count() {
     grep -qx "old secrets-management" "${CH}"/backups/aa-ma-forge-*/skills/secrets-management/SKILL.md
 }
 
+@test "--force says it skips file backups even when it backs up a real directory" {
+    run "${REPO_ROOT}/scripts/install.sh" --force
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Skipping file backups (--force flag set)"* ]]
+}
+
+@test "--restore takes each backed-up target whole from its newest backup (no per-file merge)" {
+    mkdir -p "${CH}/backups/aa-ma-forge-20260101-000000/skills/x" "${CH}/backups/aa-ma-forge-20260102-000000/skills/x"
+    printf 'old\n' > "${CH}/backups/aa-ma-forge-20260101-000000/skills/x/SKILL.md"
+    printf 'stale\n' > "${CH}/backups/aa-ma-forge-20260101-000000/skills/x/gone.md"
+    printf 'new\n' > "${CH}/backups/aa-ma-forge-20260102-000000/skills/x/SKILL.md"
+    run "${REPO_ROOT}/scripts/uninstall.sh" --restore
+    [ "$status" -eq 0 ]
+    [ "$(cat "${CH}/skills/x/SKILL.md")" = "new" ]
+    [ ! -e "${CH}/skills/x/gone.md" ]
+}
+
 @test "uninstall removes the skill links and the ruff-format registration" {
     "${REPO_ROOT}/scripts/install.sh" >/dev/null
     run "${REPO_ROOT}/scripts/uninstall.sh"

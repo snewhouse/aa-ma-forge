@@ -51,7 +51,7 @@
 
 ### §6.8 M4 deferred INFOs — README skills-table test; `plan_elements=<N>/12` → `/13`
 
-**What:** (a) Extend `tests/commands/test_aa_ma_share_command.py::test_readme_slash_names_are_shipped_skills` (was `test_command_count_sites_match_disk`) to the README skills table (split on the skills heading, regex `^\| \`([a-z0-9-]+)\``) so the row-set is asserted against `claude-code/skills/*/` like the commands table is. (b) `docs/spec/plan-marker-grammar.md:59` and `claude-code/commands/aa-ma-plan.md:89` still read `plan_elements=<N>/12`; the planning standard has had 13 elements since v0.12.0 (element #13, Architecture View). Update both and any fixture that carries `/12`.
+**What:** (a) Extend `tests/commands/test_aa_ma_share_command.py::test_readme_slash_names_are_shipped_skills` (was `test_command_count_sites_match_disk`) to the README skills table (split on the skills heading, regex `^\| \`([a-z0-9-]+)\``) so the row-set is asserted against `claude-code/skills/*/` like the commands table is. (b) `docs/spec/plan-marker-grammar.md:59` and `claude-code/skills/aa-ma-plan/SKILL.md` (was `commands/aa-ma-plan.md:89`) still read `plan_elements=<N>/12`; the planning standard has had 13 elements since v0.12.0 (element #13, Architecture View). Update both and any fixture that carries `/12`.
 
 **Why:** Both surfaced by the M4 future-proofing audit (2026-09-21) as out-of-window / Tier-6 retroactive drift; neither is M4 work.
 
@@ -112,7 +112,7 @@
 
 ### Let /aa-ma-share publish charting maps
 
-**What:** Extend the allowlist in `scripts/aa-ma-share-allow.sh` (`*-plan.md|docs/adr/*.md|docs/spec/*.md`) with `*-map.md`; add a bats case in `tests/commands/aa-ma-share-allow.bats`; update `README.md` (share section) and `claude-code/commands/aa-ma-share.md`.
+**What:** Extend the allowlist in `scripts/aa-ma-share-allow.sh` (`*-plan.md|docs/adr/*.md|docs/spec/*.md`) with `*-map.md`; add a bats case in `tests/commands/aa-ma-share-allow.bats`; update `README.md` (share section) and `claude-code/skills/aa-ma-share/SKILL.md`.
 
 **Why:** A charting map is the kind of document you would share for a second opinion. Today it is refused.
 

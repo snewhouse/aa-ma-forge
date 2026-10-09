@@ -181,3 +181,8 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Approved by: Ste (AskUserQuestion, M3.5) — Decision: Accept
 - Status Proposed → Accepted; INDEX row 0020 Accepted.
 - Deferred to Sub-step 4.0 (post-merge): the gitignored local CLAUDE.md:51-52 edit (commands/ 14 → none; skills count), so main's CLAUDE.md never describes a tree main does not have yet.
+
+## [2026-10-09] M3 §6.6 decision — fix all, including one shared hook table
+- 3 review agents: 0 CRITICAL, 15 WARNING, 17 INFO. Ste chose "Fix all incl. shared hook table" over deferring the table move to M7.
+- Format change with 4 readers (L-041 grep): install.sh, uninstall.sh, codemem plugin_surface via surface_allowlist.HOOK_TABLE (+ its tmp-tree test fixtures, test_draw_check), the bats oracle; docs CONTRIBUTING.md, regen-generated.sh. All moved in 41d8288; the array syntax is unchanged so `_HOOK_BLOCK`/`_HOOK_ROW` read the new file as-is.
+- Skipped: porting the deleted frozen-regex test to skills (test_a_slash_glob_expands_over_skills_too covers the glob rule); `.worktrees/` links are now foreign rather than documented-only.

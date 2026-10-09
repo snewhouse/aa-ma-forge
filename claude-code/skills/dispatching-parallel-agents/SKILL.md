@@ -1,10 +1,10 @@
 ---
 name: dispatching-parallel-agents
-description: Use multiple Claude agents to investigate and fix independent problems concurrently
-when_to_use: when facing 3+ independent failures that can be investigated without shared state or dependencies
-version: 1.1.0  # doc-drift-ignore-version: per-skill semver tracks the skill's own evolution (forked from external source), not the aa-ma-forge project version
-languages: all
-context: AI-assisted development (Claude Code or similar)
+description: Dispatches multiple Claude agents to investigate and fix independent problems concurrently
+when_to_use: Use when facing 3+ independent failures that can be investigated without shared state or dependencies
+metadata:
+  version: 1.1.0  # doc-drift-ignore-version: per-skill semver tracks the skill's own evolution (forked from external source), not the aa-ma-forge project version
+  languages: all
 ---
 
 # Dispatching Parallel Agents

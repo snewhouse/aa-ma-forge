@@ -1,12 +1,7 @@
 ---
 name: system-mapping
 description: Lightweight pre-flight checklist for understanding system context before code changes. Perform 5-point analysis of architecture, execution flows, logging, dependencies, and environment. Use before modifying unfamiliar code or multi-file changes.
-triggers:
-  - system mapping
-  - pre-flight check
-  - before modifying
-  - understand context
-  - code change preparation
+when_to_use: Use for system mapping, a pre-flight check, understanding context before modifying code, or preparing a code change.
 ---
 
 # System Mapping Skill

@@ -174,13 +174,6 @@ tests binding localhost fail. Make it opt-in.
 **Why:** the offline env is best-effort; `make test` can still reach the network
 (`docs/research/codebase-analysis-skills-offline-command-run.md` §3). **Effort:** M · **Priority:** P2
 
-### `uninstall.sh` misses hook registrations that install.sh adds
-**What:** derive `AA_MA_UNINSTALL_HOOKS` from install.sh's `AA_MA_HOOKS` (one list), so
-`security-static-check.sh` (PreToolUse) and both `aa-ma-plan-skip-warn.sh` entries (PreToolUse
-ExitPlanMode, SessionEnd) are removed too. Add a bats test that install then uninstall leaves no
-forge hook in settings.json.
-**Why:** after uninstall, those registrations point at dangling symlinks. **Effort:** S · **Priority:** P1
-
 ### `codemem refresh` is still a placeholder
 **What:** `codemem refresh` logs and exits 0 (`packages/codemem-mcp/src/codemem/cli.py`
 `_cmd_refresh`). Implement the incremental driver or remove the subcommand. assess runs a full

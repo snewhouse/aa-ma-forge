@@ -63,8 +63,14 @@ uninstalled and reinstalled one converted command into a fake `HOME`, and an iso
   - Before replacing a symlink that points outside the repo, it records `<link>\t<destination>`
     in `backups/aa-ma-forge-<ts>/foreign-symlinks.tsv`. It does this under `--force` too.
   - `uninstall.sh --restore` puts recorded links back.
-  - `uninstall.sh` takes its deregistration list from `install.sh`'s `AA_MA_HOOKS` table, with
-    or without `--restore`.
+  - `AA_MA_HOOKS` moves to `scripts/lib/aa-ma-install-lib.sh`. That file is the one hook table:
+    `install.sh` and `uninstall.sh` source it, and codemem's extractor reads it
+    (`surface_allowlist.HOOK_TABLE`). Both scripts validate every row before they change
+    anything. `uninstall.sh` deregisters every row, with or without `--restore`, matching the
+    hook path as a literal string.
+  - Both scripts decide "is this link ours?" with one helper, `points_into_repo`. A relative
+    link into the checkout counts as ours. A link into another checkout under `.worktrees/`
+    counts as foreign.
 - **Plugin surface.** `/x-*` globs expand over skills as well as commands.
 - **`/grill-me`** is declared external in `surface_allowlist.py`.
 
@@ -93,8 +99,9 @@ foreign recorded and restorable.
 - Eleven skills that used to run only when typed may now be started by the model.
   - Mitigation: each description names the explicit request.
   - Re-evaluate `aa-ma-plan` after two weeks of use (plan risk 3).
-- A symlink into a different forge checkout counts as foreign and is recorded, for example a link
-  into `main` while installing from a worktree. This is harmless, but it is noise in the manifest.
+- A symlink into a different forge checkout counts as foreign and is recorded. Examples: a link into
+  `main` while installing from a worktree, or a link into `.worktrees/<x>` while installing from
+  `main`. This is harmless, but it is noise in the manifest.
 
 **Neutral**
 

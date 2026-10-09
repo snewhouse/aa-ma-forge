@@ -97,3 +97,12 @@ def test_mcp_tool_counts_match_the_registry() -> None:
     assert {c[0] for c in claims} == set(CODEMEM_DOCS), claims
     want = _mcp_tool_count()
     assert [c for c in claims if c[2] != want] == [], f"truth: {want} MCP tools"
+
+
+def test_no_doc_claims_a_command_count() -> None:
+    """The forge ships no commands (ADR-0020), so a "N commands" count is always stale."""
+    claims = _claims(
+        PLUGIN_DOCS,
+        [r"\b(\d+) (?:slash )?command(?: file)?s\b", r"\bCommands \((\d+)\)"],
+    )
+    assert claims == [], claims

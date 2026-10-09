@@ -1,8 +1,9 @@
 """Which skills the model may not invoke on its own (code-conventions-impact D9 revised).
 
-Only the two with outward effects (merging to main, publishing a link) carry
-``disable-model-invocation: true``; every other skill stays model-invocable, so
-``/execute-aa-ma-full`` can delegate to ``/execute-aa-ma-milestone``.
+The four with outward effects carry ``disable-model-invocation: true``: merging to main,
+publishing a link, and the two that commit, tag and push without a per-step gate
+(execute-aa-ma-full, archive-aa-ma; §6.8 security review). Every other skill stays
+model-invocable, so ``/execute-aa-ma-full`` can delegate to ``/execute-aa-ma-milestone``.
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ from pathlib import Path
 
 from ._helpers import SKILLS_DIR, split_frontmatter
 
-EXPECTED = {"sole-dev-merge", "aa-ma-share"}
+EXPECTED = {"sole-dev-merge", "aa-ma-share", "execute-aa-ma-full", "archive-aa-ma"}
 
 
 def _frontmatter(path: Path) -> dict:
@@ -19,7 +20,7 @@ def _frontmatter(path: Path) -> dict:
     return split_frontmatter(path.read_text(encoding="utf-8"))[1]
 
 
-def test_exactly_the_two_outward_skills_disable_model_invocation() -> None:
+def test_exactly_the_outward_skills_disable_model_invocation() -> None:
     got = {
         p.parent.name
         for p in sorted(SKILLS_DIR.glob("*/SKILL.md"))

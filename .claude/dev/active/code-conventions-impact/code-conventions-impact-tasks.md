@@ -152,7 +152,8 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Acceptance Criteria:
   - The ADR draft has 5 rows, each Fork or Adoption with evidence: upstream path, md5, `diff -wB`, licence, upstream SHA (`git -C <marketplace> rev-parse HEAD`).
   - Each row has a non-empty md5 and a 40-hex upstream SHA; each Fork row (secrets-management, bash-defensive-patterns; wshobson/agents) carries a licence string (MIT expected).
-- Result Log:
+- Status: COMPLETE
+- Result Log: Mode: AFK — auto-dispatched. ADR draft `docs/adr/0019-coding-doctrine-skill-migration.md` (Status: Proposed) has 6 rows (5 skills + ruff-format.sh), each with local md5. Forks: secrets-management = wshobson/agents `plugins/cicd-automation/skills/secrets-management` — local `f72110c6` matches marketplace snapshot 5d65aa1 up to 3 blank lines (`diff -wB` empty); live upstream HEAD `46891e7e60da0e52baf1050b7b6391b64e84c6d9` changed the file (`5273fb73`: no secret echo, pinned images) → Ste chose **current @ 46891e7, byte-exact**. bash-defensive-patterns = `plugins/shell-scripting/skills/bash-defensive-patterns` @ `5d65aa10638bcc1b390738e11f9bff213f61955a` (upstream SKILL.md `8280da5a`; local `b1930f17` adds stderr ERR trap + `work_dir` trap fix; `references/advanced-patterns.md` `376f1ab0` local-only; upstream HEAD restructured to references/details.md) → Ste chose **derived @ 5d65aa1**. Licence: `gh api repos/wshobson/agents/license` = MIT; LICENSE md5 `0e1b4dd9` same at 5d65aa1 and 46891e7. Adoptions (logging-and-comments, python-quality-gates, llm-output-safety, ruff-format.sh): Ste-authored, no upstream (no copy in 19 marketplaces or `_archive/`), so no upstream SHA exists — the "40-hex SHA per row" AC applies to Fork rows only; Adoption rows say "none: Ste-authored".
 
 ### Sub-step 2.2: Backup outside-repo state
 - Status: PENDING

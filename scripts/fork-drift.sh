@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # fork-drift.sh — Drift/Orphan detector for every fork in claude-code/skills/FORKS.json.
 #
-# Fetches each manifest file from mattpocock/skills at <ref> via `gh api`, then
+# Fetches each manifest file from its row's upstream_repo at <ref> via `gh api`, then
 # feeds `skill<TAB>file<TAB>md5|null` rows to the pure classifier
 # (`python -m aa_ma.forks classify-all`). This script is the ONLY place that
 # fetches (eng-review 3A / OV2 — never the plugin cache). The manifest is read
 # by `aa_ma.forks` alone, so a malformed manifest fails closed with a named key.
 #
 # Usage: scripts/fork-drift.sh [--sha <ref>] [--manifest <path>]
+#        --sha applies to every row; omit it (default: each repo's main) when rows span repos,
+#        or a ref one repo lacks reads as a 404 there.
 # Exit:  0 ok · 1 gh missing / network / auth / bad manifest / empty content · 2 usage
 #
 # Only HTTP 404 on a FILE becomes `null` → ORPHAN. 403/auth/network exit 1, and
-# the repo itself is checked first (GitHub answers 404, not 403, for a repo the
+# each repo itself is checked first (GitHub answers 404, not 403, for a repo the
 # caller cannot see) — a fork is never reported ORPHAN because the fetch was refused.
 set -euo pipefail
 
@@ -36,16 +38,18 @@ forks() { uv run --quiet --project "$REPO_ROOT" python -m aa_ma.forks "$@" --man
 
 rows="$(forks files)"   # validates the manifest before any fetch; ValueError → exit 1 under set -e
 
-"${GH[@]}" api "repos/mattpocock/skills" --jq .full_name >/dev/null \
-  || { echo "fork-drift: repos/mattpocock/skills unreachable — not classifying (a hidden repo must not look like missing files)" >&2; exit 1; }
+while read -r repo; do
+  "${GH[@]}" api "repos/${repo}" --jq .full_name >/dev/null \
+    || { echo "fork-drift: repos/${repo} unreachable — not classifying (a hidden repo must not look like missing files)" >&2; exit 1; }
+done < <(cut -f2 <<< "$rows" | sort -u)
 
 err="$(mktemp)"; trap 'rm -f "$err"' EXIT
 
 # Fetch everything first; classify only a complete fetch (a mid-loop failure must not
 # leave the classifier holding partial rows, where every unfetched file reads as ORPHAN).
 fetch_all() {
-  while IFS=$'\t' read -r skill upstream file; do
-    if body=$("${GH[@]}" api "repos/mattpocock/skills/contents/${upstream}/${file}?ref=${SHA}" --jq .content 2>"$err"); then
+  while IFS=$'\t' read -r skill repo upstream file; do
+    if body=$("${GH[@]}" api "repos/${repo}/contents/${upstream}/${file}?ref=${SHA}" --jq .content 2>"$err"); then
       [[ -n "$body" ]] || { echo "fork-drift: empty content for ${upstream}/${file} (file >1 MB?) — refusing" >&2; return 1; }
       printf '%s\t%s\t%s\n' "$skill" "$file" "$(printf '%s' "$body" | base64 -d | md5sum | cut -d' ' -f1)"
     elif grep -q 'HTTP 404' "$err"; then

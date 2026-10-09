@@ -21,6 +21,8 @@ Verdict = Literal["SAME", "DRIFT", "ORPHAN"]
 class ForkEntry:
     name: str
     upstream: str
+    upstream_repo: str  # "owner/repo" on GitHub; fork-drift.sh fetches from it per row
+    licence: str  # SPDX id of the upstream licence; the fork dir ships its LICENSE
     upstream_sha: str | None
     forked_at: str
     adr: str
@@ -76,7 +78,7 @@ DEFAULT_MANIFEST = (
 
 _USAGE = (
     "usage: python -m aa_ma.forks classify <skill> '<json: {file: md5|null}>' [--manifest <path>]\n"
-    "       python -m aa_ma.forks files [--manifest <path>]           # skill<TAB>upstream<TAB>file rows\n"
+    "       python -m aa_ma.forks files [--manifest <path>]           # skill<TAB>repo<TAB>upstream<TAB>file rows\n"
     "       python -m aa_ma.forks classify-all [--manifest <path>]    # stdin: skill<TAB>file<TAB>md5|null"
 )
 
@@ -106,7 +108,7 @@ def _cli(argv: list[str]) -> int:
     if cmd == "files" and len(args) == 1:
         for name, entry in load_manifest(manifest_path).items():
             for fname in entry.files:
-                print(name, entry.upstream, fname, sep="\t")
+                print(name, entry.upstream_repo, entry.upstream, fname, sep="\t")
         return 0
     if cmd == "classify-all" and len(args) == 1:
         # Absent skills/files → None → ORPHAN, same rule as classify_fork.

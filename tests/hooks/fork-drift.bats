@@ -19,7 +19,9 @@ make_stub() {
 #!/usr/bin/env bash
 case "\$*" in
   "api repos/mattpocock/skills --jq .full_name") echo mattpocock/skills ;;   # repo pre-flight
-  *alpha/SKILL.md*) printf 'SGVsbG8=\n' ;;
+  "api repos/wshobson/agents --jq .full_name") echo wshobson/agents ;;
+  *repos/mattpocock/skills/contents/*alpha/SKILL.md*) printf 'SGVsbG8=\n' ;;
+  *repos/wshobson/agents/contents/*gamma/SKILL.md*) printf 'SGVsbG8=\n' ;;
   *beta/SKILL.md*)  echo "$1" >&2; exit 1 ;;
   *) echo "unexpected: \$*" >&2; exit 99 ;;
 esac
@@ -41,6 +43,14 @@ STUB
     [[ "$output" == *"alpha | * | | | SAME"* ]]
     [[ "$output" == *"beta | SKILL.md | ${HELLO_MD5} | - | ORPHAN"* ]]
     [[ "$output" == *"beta | * | | | ORPHAN"* ]]
+}
+
+@test "stub: each row is fetched from its own upstream_repo" {
+    make_stub "gh: Not Found (HTTP 404)"
+    run env GH="$WORK/stub-gh" "$SCRIPT" --manifest "$MANIFEST"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"gamma | SKILL.md | ${HELLO_MD5} | ${HELLO_MD5} | SAME"* ]]
+    [[ "$output" != *"unexpected"* ]]
 }
 
 @test "stub: HTTP 403 → exit 1, never ORPHAN" {

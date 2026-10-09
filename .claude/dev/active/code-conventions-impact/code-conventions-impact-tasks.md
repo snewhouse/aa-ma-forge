@@ -164,7 +164,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: HITL — Ste: Proceed. `~/.claude/backups/cci-m2-20261009T073602Z.tgz` (23612 B, sha256 dfe5f8f9…4ec4c5), tar rc=0; `tar tzf | grep -v '/$' | wc -l` = 11 == `find <7 paths> -type f | wc -l` = 11 (L-1300). Logged in provenance.
 
 ### Sub-step 2.3: Copy in + fork provenance (TDD)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 2.2
 - Acceptance Criteria:
@@ -174,7 +174,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - Each fork dir carries the upstream MIT `LICENSE`; a test requires it (§0 v2).
   - L-1314: every frontmatter field that becomes live is listed and reviewed in the Result Log.
   - `uv run pytest tests/skills tests/test_frontmatter_at_top.py` exits 0; `test_fork_manifest` passes.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. TDD: RED first — `tests/skills/test_fork_manifest.py` (+provenance-names-its-upstream ×7, +carries-upstream-licence ×7, +wshobson rows, +pqg baseline link; files CLI now 4 cols) 15 failed; `tests/hooks/fork-drift.bats` new "each row is fetched from its own upstream_repo" (gamma row from wshobson/agents in the fixture) failed. GREEN: `src/aa_ma/forks.py` ForkEntry +`upstream_repo`, +`licence` (required), `files` prints skill/repo/upstream/file; `scripts/fork-drift.sh` pre-flights each distinct repo and fetches `repos/${repo}/contents/…` (no `mattpocock/skills` literal left; `--sha` note: applies to every row); `tests/skills/_helpers.py` derives repo from the row. Copied in: logging-and-comments (4 files), python-quality-gates, llm-output-safety (Adoptions, verbatim), bash-defensive-patterns (local copy + line-2 `# Derived from … @ 5d65aa1`; references/advanced-patterns.md gets line-1 HTML `Derived from`, kept out of FORKS `files` as it has no upstream file → fork-drift would ORPHAN it), secrets-management (gh-api raw @ 46891e7 + line-2 `# Forked from`; body md5 `5273fb73` == upstream md5 → byte-exact). FORKS.json +2 rows (secrets current, bash derived; `upstream_md5_source` gh-api@46891e7 / marketplace-clone@5d65aa1); existing 5 rows gain `upstream_repo: mattpocock/skills`, `licence: MIT`. LICENSE: wshobson MIT (md5 `0e1b4dd9`) in both new forks; mattpocock MIT @ c55ee46 (md5 `a1d7928c`) added to the 5 existing forks too, since the test requires it for every fork (pre-existing gap); `test_write_a_skill_is_single_file` now allows LICENSE. `python-quality-gates/SKILL.md:42` → relative link `../logging-and-comments/references/ruff-baseline.toml`. L-1314 live frontmatter fields: all 5 SKILL.md carry only `name` + `description` (no `allowed-tools`, no `model`, no hooks) — reviewed, nothing to gate. `uv run pytest tests/skills tests/test_frontmatter_at_top.py` → 343 passed; fork-drift.bats 8/8. Full suite: 2470 passed / 7 failed, all plugin-surface + count tests that 2.5 owns (golden, doc_counts[skills], aa_ma_share SECURITY/foundations counts) — plus 5 new dangling `command:` refs (`/commit-and-push`, `/pre-commit-full`, `/release-prep`, `/doc-sync`, `/doc-fix`) from `python-quality-gates/SKILL.md:34-38`, to resolve in 2.5.
 
 ### Sub-step 2.4: Hook + install (TDD)
 - Status: PENDING

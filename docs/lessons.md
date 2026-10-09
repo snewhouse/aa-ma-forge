@@ -5,6 +5,20 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-044 (2026-10-09) — M3 made install.sh / uninstall.sh Linux-only; only the PR-time reviewer caught it
+**Pattern:** To keep a 0600 `settings.json` 0600 I added `chmod --reference` (GNU-only) to both
+installer scripts, and moved uninstall's hook dedupe onto `declare -A`, which now ran on every
+uninstall instead of only under `--restore`. On macOS (BSD chmod, stock bash 3.2) install would abort
+at the first hook registration and uninstall would never deregister. §6.6 (3 agents), §6.8 (5 agents)
+and the double-check all passed it; the `/sole-dev-merge` Stage C code-reviewer found it.
+**Rule:** `scripts/install.sh`, `scripts/uninstall.sh` and `scripts/lib/aa-ma-install-lib.sh` use only
+POSIX/BSD-safe flags (`cp -p`, not `chmod --reference`). Open gap, same family: `readlink -f`
+(SCRIPT_DIR, `points_into_repo`) exists in BSD readlink only from macOS 12.3 and that floor is not
+documented — document it or add a fallback. Bash 4 features only on paths that already require them
+(`--restore`). Keep the BSD-`chmod` shim bats case, and add a shim case whenever a new external tool or
+flag enters these scripts.
+**Cross-ref:** Global L-223 (symlinked layout), L-1214 (never-seen-failing guards)
+
 ## L-043 (2026-10-09) — Closed sub-steps by adding a Status line instead of flipping the existing one
 **Pattern:** In code-conventions-impact M2 (2.1) and again in M3 (3.1–3.7, all seven), I closed each
 sub-step by inserting `- Status: COMPLETE` above `- Result Log:`, leaving the sub-step's original

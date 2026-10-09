@@ -198,3 +198,10 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Approved by: Ste (AskUserQuestion: "Fix F1+F2, then approve") — F1/F2 fixed in 38e3b20 before this record
 - Criteria verified: 7/7 (double-check report 2026-10-09T113200Z, Verified; §6.7 PASS; §6.8 PASS_WITH_WARNINGS, all fixed)
 - Decision: APPROVED
+
+## [2026-10-09] Milestone Completion: Milestone 3: Commands → skills (13), install hygiene
+- Status: COMPLETE
+- Key outcome: every forge `/name` is now a skill (13; /grill-me retired), and install/uninstall clean up after the move: stale command links swept, foreign symlinks recorded and restored, one validated hook table shared with codemem.
+- Artifacts: claude-code/skills/{aa-ma-chart,aa-ma-plan,aa-ma-search,aa-ma-share,archive-aa-ma,execute-aa-ma-full,execute-aa-ma-milestone,execute-aa-ma-step,ops-mode,sole-dev-merge,verify-plan}/SKILL.md, assess-codebase + understand-codebase SKILL.md, scripts/{install,uninstall}.sh, scripts/lib/aa-ma-install-lib.sh, codemem plugin_surface.py + surface_allowlist.py, ADR-0020, tests (install_dry_run.bats, test_hook_table, test_model_invocation_list, test_no_command_skill_collision, test_skill_links_resolve), counts docs, regenerated golden/architecture.
+- Tests: pytest 2571 passed / 0 failed; bats 378/378; shellcheck rc=0.
+- Open (outside repo / next): Sub-step 4.0 — live install from main, 13 isolated probes, `ls ~/.claude/commands` drop of 14 (COMMANDS pre/post), CLAUDE.md local edit, pre-compact hook absolute-path fix decision; GitHub Support purge (Ste).

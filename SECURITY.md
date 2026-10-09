@@ -8,8 +8,7 @@ The installer (`scripts/install.sh`) places files into `~/.claude/` so Claude Co
 
 **Symlinks created** (pointing from `~/.claude/` back into this repo):
 
-- 14 command files: `~/.claude/commands/*.md` (aa-ma-plan, execute-aa-ma-milestone, execute-aa-ma-full, execute-aa-ma-step, verify-plan, archive-aa-ma, grill-me, ops-mode, aa-ma-search, understand-codebase, assess-codebase, sole-dev-merge, aa-ma-share, aa-ma-chart)
-- 27 skills directories: `~/.claude/skills/*/` (aa-ma-execution, aa-ma-plan-workflow, aa-ma-research, agent-teams, assess-codebase, bash-defensive-patterns, complexity-router, debugging-strategies, defense-in-depth, dispatching-parallel-agents, goal-condition-synthesis, grill-with-docs, grilling, impact-analysis, llm-output-safety, logging-and-comments, operational-constraints, plan-verification, prototype, python-quality-gates, retro, secrets-management, system-mapping, token-compression, understand-codebase, verify-impl, write-a-skill)
+- 38 skills directories: `~/.claude/skills/*/` (aa-ma-chart, aa-ma-execution, aa-ma-plan, aa-ma-plan-workflow, aa-ma-research, aa-ma-search, aa-ma-share, agent-teams, archive-aa-ma, assess-codebase, bash-defensive-patterns, complexity-router, debugging-strategies, defense-in-depth, dispatching-parallel-agents, execute-aa-ma-full, execute-aa-ma-milestone, execute-aa-ma-step, goal-condition-synthesis, grill-with-docs, grilling, impact-analysis, llm-output-safety, logging-and-comments, operational-constraints, ops-mode, plan-verification, prototype, python-quality-gates, retro, secrets-management, sole-dev-merge, system-mapping, token-compression, understand-codebase, verify-impl, verify-plan, write-a-skill)
 - 13 agent files: `~/.claude/agents/*.md` (aa-ma-researcher, aa-ma-scribe, aa-ma-validator, code-reviewer, codebase-assessor, codebase-onboarding-conventions, codebase-onboarding-health, codebase-onboarding-runbook, codebase-onboarding-synthesizer, context7-evidence-auditor, future-proofing-auditor, security-auditor, tdd-sequence-auditor)
 - 2 rules files: `~/.claude/rules/aa-ma.md`, `~/.claude/rules/engineering-standards.md`
 - 9 hooks: `~/.claude/hooks/lib/*.sh` (aa-ma-commit-drift, aa-ma-commit-signature, aa-ma-plan-marker, aa-ma-plan-skip-warn, aa-ma-session-end-dirty, aa-ma-session-start, pre-compact-aa-ma, ruff-format, security-static-check)
@@ -24,7 +23,7 @@ The installer (`scripts/install.sh`) places files into `~/.claude/` so Claude Co
 - `--dry-run` previews every operation without touching the filesystem
 - Before overwriting any existing (non-symlink) file, the installer backs it up to `~/.claude/backups/aa-ma-forge-YYYYMMDD-HHMMSS/` with the original directory structure preserved
 - `--force` skips backups (intended for CI, not normal use)
-- The installer refuses to run if the expected target directories don't exist -- it will not create `~/.claude/commands/`, `~/.claude/skills/`, etc. from scratch
+- The installer refuses to run if the expected target directories don't exist -- it will not create `~/.claude/skills/`, `~/.claude/agents/`, etc. from scratch
 
 **Clean removal:** `scripts/uninstall.sh` finds all symlinks pointing into this repo and removes them, deletes the copied spec docs, and optionally restores from the most recent backup (`--restore`). It also supports `--dry-run`.
 
@@ -86,7 +85,7 @@ codemem also maintains a second write-ahead log in JSONL form (`<repo>/.codemem/
 
 ## Prompt files trust model
 
-The commands, skills, agents, and rules in this repo are declarative markdown files. They are not shell scripts or executables. Claude Code's runtime reads them as prompt instructions.
+The skills, agents, and rules in this repo are declarative markdown files. They are not shell scripts or executables. Claude Code's runtime reads them as prompt instructions.
 
 They run with whatever permissions your Claude Code session already has. Installing AA-MA Forge does not grant Claude Code any new capabilities or escalate privileges. If Claude Code can't do something before you install this, it still can't do it after.
 

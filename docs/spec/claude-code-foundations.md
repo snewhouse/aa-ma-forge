@@ -70,7 +70,9 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `.claude/dev/active/[task-name]/` | Active tasks |
 | `.claude/dev/completed/` | Archived completed tasks |
 
-### Commands (14)
+### Slash commands
+
+Each is a skill under `claude-code/skills/<name>/` (ADR-0020), counted in Skills below.
 
 | Command | Purpose |
 |---------|---------|
@@ -79,7 +81,6 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/execute-aa-ma-full` | Execute complete plan from current position |
 | `/execute-aa-ma-step` | Execute single task with lightweight validation |
 | `/verify-plan` | Adversarial 6-angle verification |
-| `/grill-me` | Relentlessly interview about plans/designs until decisions are resolved |
 | `/ops-mode` | Activate full operational constraints for disciplined execution |
 | `/archive-aa-ma` | Archive completed tasks to `dev/completed/` |
 | `/aa-ma-search` | Keyword search across active and completed AA-MA task files |
@@ -89,7 +90,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | `/assess-codebase` | Whole-repo quality and risk assessment (tiered Quick/Standard/Deep): tools measure, sonnet judges cite `file:line`, a refuter attacks every Critical/High claim; per-dimension ratings with inputs and confidence (no overall grade) → SHA-stamped, secret-gated `summary.json` + `findings.jsonl` + SARIF + `report.md` under `.claude/reports/assess-codebase/`. Thin wrapper around `Skill(assess-codebase)` |
 | `/sole-dev-merge` | PR/MR-based merge workflow: scope-aware CI checks (L-007 guard) + 3-source security pass + idempotent PR/MR creation + 15-min CI poll + auto-merge + cleanup. See ADR-0008 |
 
-### Skills (27)
+### Skills (38)
 
 | Skill | Purpose |
 |-------|---------|

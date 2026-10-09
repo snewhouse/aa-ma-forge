@@ -90,58 +90,6 @@ def test_only_the_fork_route_command_dangles(surface) -> None:
     } == {"command:settings"}
 
 
-def test_the_backticked_rule_loses_no_edge_the_any_occurrence_rule_found(
-    surface,
-) -> None:
-    """Pre-M6 rule, inlined: any `/x` naming an on-disk command (`/x-*` expands) is an edge.
-
-    The regex is a FROZEN copy of the pre-M6 `_COMMAND`; it must not follow later edits.
-    """
-    import re
-
-    old = re.compile(
-        r"(?<![A-Za-z0-9_./~-])/([a-z][a-z0-9-]*)(\*(?!\*))?(?![A-Za-z0-9_/-]|\.[A-Za-z0-9_])"
-    )
-    cc = REPO / "claude-code"
-    commands = {
-        e.dst
-        for e in surface.edges
-        if e.kind == "command" and e.ref_class is RefClass.ON_DISK
-    }
-    commands |= {f"command:{p.stem}" for p in (cc / "commands").glob("*.md")}
-    sources = {e.src for e in surface.edges} | set(surface.orphans)
-    expected = set()
-    for src in sources:
-        kind, stem = src.split(":", 1)
-        files = {
-            "command": [cc / "commands" / f"{stem}.md"],
-            "agent": [cc / "agents" / f"{stem}.md"],
-            "rule": [cc / "rules" / f"{stem}.md"],
-            "hook": [f for f in (cc / "hooks").rglob(stem) if f.is_file()],
-            "skill": [
-                f
-                for f in (cc / "skills" / stem).rglob("*")
-                if f.suffix in (".md", ".sh")
-            ],
-        }.get(kind, [])
-        for f in files:
-            for name, glob in old.findall(
-                f.read_text(encoding="utf-8", errors="replace")
-            ):
-                hits = (
-                    {c for c in commands if c.removeprefix("command:").startswith(name)}
-                    if glob
-                    else {f"command:{name}"} & commands
-                )
-                expected |= {(src, h) for h in hits if h != src}
-    got = {
-        (e.src, e.dst)
-        for e in surface.edges
-        if e.kind == "command" and e.ref_class is RefClass.ON_DISK
-    }
-    assert expected - got == set()
-
-
 def test_orphans_are_the_named_set_and_no_errors(surface) -> None:
     # Orphans are `kind:stem` (a stem can be both a command and a skill); AC4 names bare stems.
     assert len(surface.orphans) == len(set(surface.orphans))

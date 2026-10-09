@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install.sh — Deploy AA-MA Forge artifacts into ~/.claude/ via symlinks
 #
-# Symlinks operational files (commands, skills, agents, rules, hooks) from this
+# Symlinks operational files (skills, agents, rules, hooks) from this
 # repo into ~/.claude/ so Claude Code picks them up. Spec docs are copied (not
 # symlinked) because ~/.claude/docs/ contains non-AA-MA files and mixing
 # symlinks with regular files in a shared directory is fragile.
@@ -124,11 +124,6 @@ collect_backup_target() {
     fi
 }
 
-# Commands
-for f in "${REPO_ROOT}/claude-code/commands/"*.md; do
-    [ -e "${f}" ] || continue
-    collect_backup_target "${CLAUDE_HOME}/commands/$(basename "${f}")"
-done
 
 # Skills directories (auto-discover all)
 for d in "${REPO_ROOT}/claude-code/skills/"*/; do
@@ -287,7 +282,7 @@ copy_file() {
 }
 
 # ---------------------------------------------------------------------------
-# 1. Symlink commands (each file individually)
+# 1. Sweep command links left by earlier installs
 # ---------------------------------------------------------------------------
 header "Removing stale command links..."
 # A command that became a skill leaves ~/.claude/commands/<x>.md dangling into this repo.
@@ -302,12 +297,6 @@ for link in "${CLAUDE_HOME}/commands/"*.md; do
         info "Removed stale command link: ${link} -> ${dest}"
     fi
     STALE_REMOVED=$((STALE_REMOVED + 1))
-done
-
-header "Linking commands..."
-for f in "${REPO_ROOT}/claude-code/commands/"*.md; do
-    [ -e "${f}" ] || continue
-    create_symlink "${f}" "${CLAUDE_HOME}/commands/$(basename "${f}")"
 done
 
 # ---------------------------------------------------------------------------

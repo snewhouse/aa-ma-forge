@@ -126,7 +126,7 @@ synthesis. Protocol toggles: `--no-goal` on `/execute-aa-ma-full`; omit
 # CLI > env > default. See scripts/grill-mode-resolver.sh for the canonical
 # resolver (8 branches, 13 unit tests).
 
-# Stress-test a plan before executing
+# Stress-test a plan before executing (user-level mattpocock skill; the forge no longer ships it)
 /grill-me [artifact]
 
 # Adversarial 6-angle verification

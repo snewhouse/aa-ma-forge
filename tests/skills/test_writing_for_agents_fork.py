@@ -8,21 +8,20 @@ line and that block hashes to the upstream md5.
 
 from __future__ import annotations
 
-import hashlib
 import re
 
+from aa_ma.forks import load_manifest
+
 from ._helpers import (  # pyright: ignore[reportMissingImports]
+    FORKS_MANIFEST,
     REPO_ROOT,
     SKILLS_DIR,
     assert_skill_frontmatter,
+    upstream_body_md5,
 )
 
 SKILL = "writing-for-agents"
 IN_THIS_REPO = "\n## In this repo\n"
-
-
-def _md5(data: bytes) -> str:
-    return hashlib.md5(data, usedforsecurity=False).hexdigest()
 
 
 def test_frontmatter_and_provenance() -> None:
@@ -38,12 +37,9 @@ def test_upstream_text_is_unedited_above_the_local_block() -> None:
     """Local edits are the provenance line, one `when_to_use` line and the appended block."""
     text = (SKILLS_DIR / SKILL / "SKILL.md").read_text(encoding="utf-8")
     assert text.count(IN_THIS_REPO) == 1, "exactly one '## In this repo' block"
-    lines = text.split("\n")
-    local = [i for i, line in enumerate(lines) if line.startswith("when_to_use: ")]
-    assert len(local) == 1, "writing-for-agents carries one local when_to_use line"
-    upstream_lines = [line for i, line in enumerate(lines) if i != 1 and i not in local]
-    upstream = "\n".join(upstream_lines).split(IN_THIS_REPO)[0]
-    assert _md5(upstream.encode("utf-8")) == "9663b04e7529a8d72e82a6fd088d336d"
+    assert sum(line.startswith("when_to_use: ") for line in text.splitlines()) == 1
+    upstream = load_manifest(FORKS_MANIFEST)[SKILL].upstream_md5["SKILL.md"]
+    assert upstream_body_md5(text, drop_prefixes=("when_to_use: ",)) == upstream
 
 
 def test_write_a_skill_is_retired() -> None:

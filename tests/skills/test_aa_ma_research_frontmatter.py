@@ -7,31 +7,24 @@ dir) is never shadowed (OV1). See ADR-0012.
 
 from __future__ import annotations
 
-import hashlib
-
-from ._helpers import SKILLS_DIR, assert_skill_frontmatter  # pyright: ignore[reportMissingImports]
+from ._helpers import (  # pyright: ignore[reportMissingImports]
+    LOCAL_SECTION,
+    SKILLS_DIR,
+    assert_skill_frontmatter,
+    upstream_body_md5,
+)
 
 SKILL_DIR_NAME = "aa-ma-research"
 UPSTREAM_PATH = "mattpocock/skills/skills/engineering/research"
 # Whole-file md5 of skills/engineering/research/SKILL.md @ c55ee46 (reference.md "Upstream").
 UPSTREAM_MD5 = "e1dd6af372a9e1d134eff7d8362fe3f7"
-LOCAL_SECTION = "## In this repo"
 
 
 def _upstream_body_md5(text: str) -> str:
-    """Python form of the acceptance recipe:
-    sed '2d;/^## In this repo/,$d' SKILL.md | sed 's/^name: aa-ma-research$/name: research/' | md5sum
-    """
-    lines = text.splitlines(keepends=True)
-    del lines[1]  # 2d — drop the provenance comment (line 2, inside the frontmatter)
-    kept: list[str] = []
-    for line in lines:
-        if line.startswith(LOCAL_SECTION):
-            break  # /^## In this repo/,$d
-        kept.append("name: research\n" if line == "name: aa-ma-research\n" else line)
-    return hashlib.md5(
-        "".join(kept).encode("utf-8"), usedforsecurity=False
-    ).hexdigest()  # fingerprint
+    """sed '2d;/^## In this repo/,$d' SKILL.md | sed 's/^name: aa-ma-research$/name: research/' | md5sum"""
+    return upstream_body_md5(
+        text, rename={"name: aa-ma-research\n": "name: research\n"}
+    )
 
 
 def test_aa_ma_research_frontmatter() -> None:

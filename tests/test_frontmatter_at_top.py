@@ -9,12 +9,13 @@ directory, since `name` sets the `/` command and callers use the directory slug.
 
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 
 import pytest
 import yaml
+
+from aa_ma.forks import DEFAULT_MANIFEST, load_manifest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = REPO_ROOT / "claude-code"
@@ -114,7 +115,8 @@ NAME_MAX = 64  # Agent Skills spec
 DESCRIPTION_MAX = 1024  # Agent Skills spec
 LISTING_MAX = 1536  # Claude Code: description + when_to_use, truncated beyond this
 SECOND_PERSON_RE = re.compile(r"\b(you|your)\b", re.IGNORECASE)
-QUOTED_RE = re.compile(r"\"[^\"]*\"|'[^']*'|“[^”]*”")
+# Single quotes count only at word edges, so the apostrophes in "user's … aren't" are not a quote.
+QUOTED_RE = re.compile(r"\"[^\"]*\"|“[^”]*”|(?<!\w)'[^']*'(?!\w)")
 DYNAMIC_EXEC_RE = re.compile(r"(^|\s)!`|^```!", re.MULTILINE)
 UNSCOPED_TOOLS = frozenset({"Bash", "Write", "Edit"})
 
@@ -140,11 +142,17 @@ def _skill_parts(path: Path) -> tuple[dict, str]:
     return fm, "\n".join(lines[lines.index("---", 1) + 1 :])
 
 
+# Bash(*), Write(**) and Edit() grant everything: treat them as the bare tool.
+WILDCARD_SCOPE_RE = re.compile(r"\((\*{1,2})?\)$")
+
+
 def _tool_names(value: object) -> list[str]:
     if isinstance(value, list):
-        return [str(v).strip() for v in value]
-    # "Bash(git:*) Read, Write": split on commas/space outside parentheses.
-    return [t for t in re.split(r"[,\s]+(?![^()]*\))", str(value or "")) if t]
+        names = [str(v).strip() for v in value]
+    else:
+        # "Bash(git:*) Read, Write": split on commas/space outside parentheses.
+        names = [t for t in re.split(r"[,\s]+(?![^()]*\))", str(value or "")) if t]
+    return [WILDCARD_SCOPE_RE.sub("", n) for n in names]
 
 
 def skill_schema_errors(
@@ -167,6 +175,8 @@ def skill_schema_errors(
     if not isinstance(when, str):
         errors.append("when_to_use must be a string")
         when = ""
+    if "<" in when:
+        errors.append("when_to_use contains '<'")
     if len(desc) + len(when) > LISTING_MAX:
         errors.append(
             f"description + when_to_use is {len(desc) + len(when)} chars (max {LISTING_MAX})"
@@ -191,7 +201,7 @@ def skill_schema_errors(
     return errors
 
 
-FORKED = set(json.loads((PLUGIN / "skills" / "FORKS.json").read_text(encoding="utf-8")))
+FORKED = set(load_manifest(DEFAULT_MANIFEST))
 
 
 @pytest.mark.parametrize(

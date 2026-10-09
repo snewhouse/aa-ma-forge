@@ -6,6 +6,7 @@ Used by test_grill_with_docs_frontmatter.py (M1.7), test_prototype_frontmatter.p
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import yaml
@@ -104,3 +105,33 @@ def assert_skill_frontmatter(
     )
 
     return provenance, fm
+
+
+LOCAL_SECTION = "## In this repo"
+
+
+def upstream_body_md5(
+    text: str,
+    *,
+    drop_prefixes: tuple[str, ...] = (),
+    rename: dict[str, str] | None = None,
+) -> str:
+    """md5 of a derived fork's SKILL.md as upstream shipped it.
+
+    Undoes the local edits a derived fork is allowed: the provenance comment (line 2),
+    whole lines starting with any of `drop_prefixes` (e.g. a local `when_to_use:`),
+    exact-line renames, and the appended `## In this repo` block together with the one
+    blank line that separates it.
+    """
+    lines = text.splitlines(keepends=True)
+    del lines[1]
+    kept: list[str] = []
+    for line in lines:
+        if line.startswith(LOCAL_SECTION):
+            if kept and kept[-1] == "\n":
+                kept.pop()
+            break
+        if drop_prefixes and line.startswith(drop_prefixes):
+            continue
+        kept.append((rename or {}).get(line, line))
+    return hashlib.md5("".join(kept).encode("utf-8"), usedforsecurity=False).hexdigest()

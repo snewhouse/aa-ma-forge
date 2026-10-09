@@ -66,8 +66,12 @@ fi
 if [[ $SKIP_EVALS -eq 1 ]]; then
   echo "evals: skipped (--skip-evals)"
 elif [[ -x "$EVALS" ]]; then
+  EVALS_LOG="$(mktemp "${TMPDIR:-/tmp}/release-evals.XXXXXX")"
+  echo "evals: running (advisory, a few minutes; --skip-evals to skip)"
   # why: `|| true` — run-evals.sh exits 0 by contract; this guards a broken install of it.
-  "$EVALS" 2>&1 | tail -n 2 || true
+  "$EVALS" >"$EVALS_LOG" 2>&1 || true
+  tail -n 2 "$EVALS_LOG"
+  echo "evals: full log $EVALS_LOG"
 else
   echo "evals: skipped ($EVALS not found)"
 fi

@@ -54,7 +54,8 @@ EOF2
   argv="$(cat "$WORK/argv")"
   [[ "$argv" == plugin$'\n'eval$'\n'.* ]]
   for flag in --no-publish --scaffold --trust-plugin; do grep -qx -- "$flag" "$WORK/argv"; done
-  grep -qx -- '--runs' "$WORK/argv" && grep -A1 -x -- '--runs' "$WORK/argv" | tail -1 | grep -qx 1
+  grep -qx -- '--runs' "$WORK/argv"
+  [ "$(grep -A1 -x -- '--runs' "$WORK/argv" | tail -1)" = 1 ]
   grep -A1 -x -- '--ablation' "$WORK/argv" | tail -1 | grep -qx none
   grep -qx -- '--max-cost-usd' "$WORK/argv"
 }
@@ -75,6 +76,19 @@ EOF2
   [ "$status" -eq 1 ]
   grep -q '^PATH=' "$WORK/env"
   grep -q '^HOME=' "$WORK/env"
+}
+
+@test "keeps credentials off every command line: no token in env's or claude's argv" {
+  _stub_claude
+  # A recording `env` ahead of the real one on PATH: argv is world-readable in
+  # /proc/<pid>/cmdline, so a token passed as NAME=value there is exposed.
+  printf '#!/bin/sh\nprintf "%%s\\n" "$@" >> %q\nexec /usr/bin/env "$@"\n' "$WORK/env-argv" > "$WORK/bin/env"
+  chmod +x "$WORK/bin/env"
+  PATH="$WORK/bin:$PATH" CLAUDE_CODE_OAUTH_TOKEN=tok-secret run "$RUN_EVALS"
+  [ "$status" -eq 0 ]
+  run grep -l tok-secret "$WORK/env-argv" "$WORK/argv"
+  [ -z "$output" ]
+  grep -qx 'CLAUDE_CODE_OAUTH_TOKEN=tok-secret' "$WORK/env"
 }
 
 @test "drops ANTHROPIC_API_KEY unless RUN_EVALS_ALLOW_API_KEY=1, so evals never switch to API billing" {

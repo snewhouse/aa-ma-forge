@@ -237,6 +237,11 @@ GOOD = {
         ({"metadata": "1.0"}, "metadata must be a map"),
         ({"allowed-tools": "Read Bash"}, "unscoped ['Bash']"),
         ({"allowed-tools": ["Read", "Write"]}, "unscoped ['Write']"),
+        ({"allowed-tools": "Bash(*) Read"}, "unscoped ['Bash']"),
+        ({"allowed-tools": ["Write(**)"]}, "unscoped ['Write']"),
+        ({"allowed-tools": "Edit()"}, "unscoped ['Edit']"),
+        ({"description": "The user's plan, when you aren't sure."}, "second person"),
+        ({"when_to_use": "Use for <tag> edits."}, "'<'"),
     ],
 )
 def test_negative_controls_fail(extra: dict, needle: str) -> None:

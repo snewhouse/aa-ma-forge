@@ -171,6 +171,9 @@ EOF2
   [ "$status" -eq 0 ]
   [ "$(cat "$WORK/evals.log")" = "called" ]
   [[ "$output" == *"run-evals: 24 cases, 20 pass, 4 fail"* ]]
+  [[ "$output" == *"evals: running (advisory"* ]]
+  log="$(printf '%s\n' "$output" | sed -n 's/^evals: full log //p')"
+  [ -s "$log" ] && grep -q called "$WORK/evals.log"
   [[ "$output" == *"released v0.12.0 locally"* ]]
 }
 

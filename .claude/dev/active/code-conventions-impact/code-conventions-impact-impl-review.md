@@ -107,7 +107,7 @@ None required (0 CRITICAL).
 
 **Milestone:** Milestone 2: Migrate 5 skills + ruff hook into the forge
 **Audit-Profile:** full · **Budget:** normal (parallel, 5 agents) · **Date:** 2026-10-09
-**Window:** `dc79b4b..90396b1` (pre-rewrite SHAs; the branch was rewritten for the leak below — reviewed content identical except `logging-and-comments/SKILL.md:66`)
+**Window:** `dc79b4b..<pre-rewrite>` (pre-rewrite SHAs; the branch was rewritten for the leak below — reviewed content identical except `logging-and-comments/SKILL.md:66`)
 
 ## Summary
 
@@ -124,7 +124,7 @@ None required (0 CRITICAL).
 
 | # | Finding | Decision | Action |
 |---|---------|----------|--------|
-| 1 | [CRITICAL] tdd-sequence: tests and src share commits (a6b2e51/c465cec pre-rewrite), so git cannot order RED before GREEN | **dispute** | RED runs are in the 2.3/2.4 Result Logs (15 failed; 9/10 failed). Convention learned: from now on, RED tests get their own `test(...)` commit (applied: `4e6889e` RED → `adb3524` GREEN) |
+| 1 | [CRITICAL] tdd-sequence: tests and src share commits (<pre-rewrite>/<pre-rewrite> pre-rewrite), so git cannot order RED before GREEN | **dispute** | RED runs are in the 2.3/2.4 Result Logs (15 failed; 9/10 failed). Convention learned: from now on, RED tests get their own `test(...)` commit (applied: `4e6889e` RED → `adb3524` GREEN) |
 
 ## Findings and dispositions
 

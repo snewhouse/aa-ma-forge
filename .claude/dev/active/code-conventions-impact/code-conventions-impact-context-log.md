@@ -150,7 +150,7 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 
 ## [2026-10-09] M2 §6.8 decisions (Ste)
 - TDD CRITICAL (tests + src in one commit) → **disputed**; RED runs are in the Result Logs. Convention: RED gets its own `test(...)` commit from now on (applied: 4e6889e → adb3524).
-- Leak (private Carmen repo path in imported `logging-and-comments/SKILL.md:66`) → **rewrite + force-push**: filter-branch done locally, history hits 0; force-push denied by tool permission; **done by Ste** (90396b1 → 4a23e0a, remote history hits 0); GitHub Support purge of orphaned SHAs still pending (Ste). L-039 tightened (scan any imported content before its first commit).
+- Leak (private Carmen repo path in imported `logging-and-comments/SKILL.md:66`) → **rewrite + force-push**: filter-branch done locally, history hits 0; force-push denied by tool permission; **done by Ste** (pre-rewrite tip → 4a23e0a, remote history hits 0); GitHub Support purge of orphaned SHAs still pending (Ste). L-039 tightened (scan any imported content before its first commit).
 - secrets-management → **patched, state derived** (supersedes the 2.1 "current @ 46891e7, byte-exact" choice).
 - Other warnings → **all fixed**: hook kill switch + CLAUDE_HOOK_LOG (hook now "Adoption, adapted"), settings backups as sibling files, `--restore` walks all backups newest-first, README "9 hooks", tests read SHAs from FORKS.json, `_helpers` requires a manifest entry.
 

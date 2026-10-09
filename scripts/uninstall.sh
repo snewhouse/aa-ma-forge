@@ -174,36 +174,36 @@ if ${RESTORE}; then
             info "Backups (newest first): ${#BACKUPS[@]}"
             declare -A RESTORED=()
             for backup_dir in "${BACKUPS[@]}"; do
-                while IFS= read -r -d '' backup_file; do
-                    rel_path="${backup_file#"${backup_dir}"/}"
+                # Restore units are what install.sh backed up: depth-2 entries
+                # (skills/<name>, commands/<x>.md, rules/…, docs/…) plus hooks/lib/<x>.
+                # A unit is copied whole from its newest backup, never merged per file.
+                while IFS= read -r -d '' unit; do
+                    rel_path="${unit#"${backup_dir}"/}"
                     [ -n "${RESTORED[${rel_path}]:-}" ] && continue   # a newer backup already won
+                    RESTORED["${rel_path}"]=1
                     restore_target="${CLAUDE_HOME}/${rel_path}"
 
-                    # Only restore if the target doesn't already exist (we just
-                    # removed symlinks, so the slot should be free)
+                    # Only restore if the slot is free (we just removed our symlinks).
                     if [ -e "${restore_target}" ] && [ ! -L "${restore_target}" ]; then
-                        warn "Skipping restore (file exists): ${restore_target}"
-                        RESTORED["${rel_path}"]=1
+                        warn "Skipping restore (exists): ${restore_target}"
                         continue
                     fi
-
-                    # Remove dangling symlink if present
-                    if [ -L "${restore_target}" ]; then
-                        if ! ${DRY_RUN}; then
-                            rm "${restore_target}"
-                        fi
+                    if [ -L "${restore_target}" ] && ! ${DRY_RUN}; then
+                        rm "${restore_target}"   # dangling symlink
                     fi
 
                     if ${DRY_RUN}; then
-                        info "Would restore: ${backup_file} -> ${restore_target}"
+                        info "Would restore: ${unit} -> ${restore_target}"
                     else
                         mkdir -p "$(dirname "${restore_target}")"
-                        cp -a "${backup_file}" "${restore_target}"
+                        cp -a "${unit}" "${restore_target}"
                         info "Restored: ${rel_path} (from ${backup_dir##*/})"
                     fi
-                    RESTORED["${rel_path}"]=1
                     FILES_RESTORED=$((FILES_RESTORED + 1))
-                done < <(find "${backup_dir}" -type f -print0 2>/dev/null)
+                done < <(
+                    find "${backup_dir}" -mindepth 2 -maxdepth 2 ! -path "${backup_dir}/hooks/lib" -print0 2>/dev/null
+                    find "${backup_dir}/hooks/lib" -mindepth 1 -maxdepth 1 -print0 2>/dev/null
+                )
             done
         fi
     fi

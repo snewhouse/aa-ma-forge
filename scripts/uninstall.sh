@@ -92,10 +92,12 @@ for search_dir in "${SEARCH_DIRS[@]}"; do
     # Find symlinks in this directory (non-recursive — depth 1 only)
     while IFS= read -r -d '' link; do
         # Resolve where the symlink points
-        link_target="$(readlink -f "${link}" 2>/dev/null || true)"
+        # why: `readlink -f` fails when the link's source directory is gone too (a
+        # command dir removed by an upgrade); fall back to the raw destination.
+        link_target="$(readlink -f "${link}" 2>/dev/null || readlink "${link}")"
 
         # Check if the resolved target lives under our repo root
-        if [[ "${link_target}" == "${REPO_ROOT}"* ]]; then
+        if [[ "${link_target}" == "${REPO_ROOT}/"* ]]; then
             if ${DRY_RUN}; then
                 info "Would remove symlink: ${link} -> ${link_target}"
             else
@@ -146,6 +148,67 @@ for doc in "${SPEC_DOCS[@]}"; do
         warn "Not found (already removed?): ${target}"
     fi
 done
+
+# ------------------------------------------------------------------
+# Deregister all AA-MA hooks from settings.json (symmetric with install.sh),
+# with or without --restore.
+# Uses path-substring match so both `<path>` and `bash <path>` forms are
+# removed together. Idempotent: silently no-ops if a hook isn't registered.
+# ------------------------------------------------------------------
+SETTINGS_FILE="${CLAUDE_HOME}/settings.json"
+
+# Derived from install.sh's AA_MA_HOOKS table, so a hook added there is also
+# removed here. Same row grammar codemem's plugin_surface reads (_HOOK_ROW).
+AA_MA_UNINSTALL_HOOKS=()
+while IFS= read -r row; do
+    if [[ "${row}" =~ ^([A-Za-z]+)\|(.*)\|([A-Za-z0-9_.-]+\.sh)\|([0-9]+)\|(.*)$ ]]; then
+        AA_MA_UNINSTALL_HOOKS+=("${BASH_REMATCH[1]}|${BASH_REMATCH[3]}")
+    fi
+done < <(sed -n '/^AA_MA_HOOKS=(/,/^)/s/^[[:space:]]*"\(.*\)"[[:space:]]*$/\1/p' "${SCRIPT_DIR}/install.sh")
+if [ ${#AA_MA_UNINSTALL_HOOKS[@]} -eq 0 ]; then
+    error "Could not read AA_MA_HOOKS from ${SCRIPT_DIR}/install.sh — no hooks deregistered"
+    exit 1
+fi
+
+deregister_hook() {
+    local event="$1" src_base="$2"
+    local link_path="${CLAUDE_HOME}/hooks/lib/${src_base}"
+    if ! command -v jq &>/dev/null || [ ! -f "${SETTINGS_FILE}" ]; then
+        return 0
+    fi
+    local has
+    has=$(jq -r \
+        --arg event "$event" \
+        --arg link "$link_path" \
+        '(.hooks[$event] // []) | map(select(.hooks[]? | .command | test($link; "l"))) | length' \
+        "${SETTINGS_FILE}" 2>/dev/null || echo "0")
+    if [ "${has}" = "0" ]; then
+        return 0
+    fi
+    if ${DRY_RUN}; then
+        info "Would deregister ${event} [${src_base}] from settings.json"
+        return 0
+    fi
+    local tmp="${SETTINGS_FILE}.tmp.$$"
+    jq \
+        --arg event "$event" \
+        --arg link "$link_path" \
+        '.hooks[$event] = ((.hooks[$event] // []) | map(select(.hooks | all(.command | test($link; "l") | not))))' \
+        "${SETTINGS_FILE}" > "${tmp}" || { rm -f "${tmp}"; return 1; }
+    if ! jq empty "${tmp}" 2>/dev/null; then
+        rm -f "${tmp}"
+        error "Deregistration of ${event} [${src_base}] would produce invalid settings.json — aborting"
+        return 1
+    fi
+    mv "${tmp}" "${SETTINGS_FILE}"
+    info "Deregistered ${event} [${src_base}] from settings.json"
+}
+
+for entry in "${AA_MA_UNINSTALL_HOOKS[@]}"; do
+    IFS='|' read -r u_event u_src <<< "${entry}"
+    deregister_hook "${u_event}" "${u_src}"
+done
+
 
 # ---------------------------------------------------------------------------
 # 3. Restore from backup (if --restore flag set)
@@ -204,67 +267,33 @@ if ${RESTORE}; then
                     find "${backup_dir}" -mindepth 2 -maxdepth 2 ! -path "${backup_dir}/hooks/lib" -print0 2>/dev/null
                     find "${backup_dir}/hooks/lib" -mindepth 1 -maxdepth 1 -print0 2>/dev/null
                 )
+
+                # Foreign symlinks install.sh replaced (one "<link>\t<dest>" per row).
+                manifest="${backup_dir}/foreign-symlinks.tsv"
+                [ -f "${manifest}" ] || continue
+                while IFS=$'\t' read -r link dest; do
+                    [[ "${link}" == "${CLAUDE_HOME}/"* && -n "${dest}" ]] || continue
+                    rel_path="${link#"${CLAUDE_HOME}"/}"
+                    [ -n "${RESTORED[${rel_path}]:-}" ] && continue
+                    RESTORED["${rel_path}"]=1
+                    if [ -e "${link}" ] || [ -L "${link}" ]; then
+                        warn "Skipping foreign-symlink restore (exists): ${link}"
+                        continue
+                    fi
+                    if ${DRY_RUN}; then
+                        info "Would restore foreign symlink: ${link} -> ${dest}"
+                    else
+                        ln -s "${dest}" "${link}"
+                        info "Restored foreign symlink: ${link} -> ${dest}"
+                    fi
+                    FILES_RESTORED=$((FILES_RESTORED + 1))
+                done < "${manifest}"
             done
         fi
     fi
 else
     header "Backup restore"
     info "Skipped (use --restore to restore from the most recent backup)."
-
-    # ------------------------------------------------------------------
-    # Deregister all AA-MA hooks from settings.json (symmetric with install.sh).
-    # Uses path-substring match so both `<path>` and `bash <path>` forms are
-    # removed together. Idempotent: silently no-ops if a hook isn't registered.
-    # ------------------------------------------------------------------
-    SETTINGS_FILE="${CLAUDE_HOME}/settings.json"
-
-    AA_MA_UNINSTALL_HOOKS=(
-        "SessionStart|aa-ma-session-start.sh"
-        "PreCompact|pre-compact-aa-ma.sh"
-        "PreToolUse|aa-ma-commit-signature.sh"
-        "SessionEnd|aa-ma-session-end-dirty.sh"
-        "PostToolUse|aa-ma-commit-drift.sh"
-        "PostToolUse|ruff-format.sh"
-    )
-
-    deregister_hook() {
-        local event="$1" src_base="$2"
-        local link_path="${CLAUDE_HOME}/hooks/lib/${src_base}"
-        if ! command -v jq &>/dev/null || [ ! -f "${SETTINGS_FILE}" ]; then
-            return 0
-        fi
-        local has
-        has=$(jq -r \
-            --arg event "$event" \
-            --arg link "$link_path" \
-            '(.hooks[$event] // []) | map(select(.hooks[]? | .command | test($link; "l"))) | length' \
-            "${SETTINGS_FILE}" 2>/dev/null || echo "0")
-        if [ "${has}" = "0" ]; then
-            return 0
-        fi
-        if ${DRY_RUN}; then
-            info "Would deregister ${event} [${src_base}] from settings.json"
-            return 0
-        fi
-        local tmp="${SETTINGS_FILE}.tmp.$$"
-        jq \
-            --arg event "$event" \
-            --arg link "$link_path" \
-            '.hooks[$event] = ((.hooks[$event] // []) | map(select(.hooks | all(.command | test($link; "l") | not))))' \
-            "${SETTINGS_FILE}" > "${tmp}" || { rm -f "${tmp}"; return 1; }
-        if ! jq empty "${tmp}" 2>/dev/null; then
-            rm -f "${tmp}"
-            error "Deregistration of ${event} [${src_base}] would produce invalid settings.json — aborting"
-            return 1
-        fi
-        mv "${tmp}" "${SETTINGS_FILE}"
-        info "Deregistered ${event} [${src_base}] from settings.json"
-    }
-
-    for entry in "${AA_MA_UNINSTALL_HOOKS[@]}"; do
-        IFS='|' read -r u_event u_src <<< "${entry}"
-        deregister_hook "${u_event}" "${u_src}"
-    done
 
     # Show available backups as a convenience
     BACKUP_BASE="${CLAUDE_HOME}/backups"

@@ -77,8 +77,9 @@ STALE_REMOVED=0
 # ---------------------------------------------------------------------------
 # Verify target directories exist (we do NOT create them)
 # ---------------------------------------------------------------------------
+# commands/ is no longer required: the forge ships no commands (M3, ADR-0020); the
+# stale-link sweep below is a no-op when the directory is absent.
 REQUIRED_DIRS=(
-    "${CLAUDE_HOME}/commands"
     "${CLAUDE_HOME}/skills"
     "${CLAUDE_HOME}/agents"
     "${CLAUDE_HOME}/rules"
@@ -205,6 +206,25 @@ elif ! ${FORCE}; then
 fi
 
 # ---------------------------------------------------------------------------
+# Helper: record a foreign symlink's destination before it is replaced
+# ---------------------------------------------------------------------------
+# A link that points outside this repo is someone else's install; replacing it
+# loses where it pointed. Record "<link>\t<destination>" so --restore can put it back.
+FOREIGN_MANIFEST="${BACKUP_DIR}/foreign-symlinks.tsv"
+record_foreign_symlink() {
+    local target="$1" dest
+    dest=$(readlink "${target}")
+    [[ "${dest}" == "${REPO_ROOT}/"* ]] && return 0
+    if ${DRY_RUN}; then
+        info "Would record foreign symlink: ${target} -> ${dest}"
+        return 0
+    fi
+    mkdir -p "${BACKUP_DIR}"
+    printf '%s\t%s\n' "${target}" "${dest}" >> "${FOREIGN_MANIFEST}"
+    warn "Replacing foreign symlink (recorded in ${FOREIGN_MANIFEST}): ${target} -> ${dest}"
+}
+
+# ---------------------------------------------------------------------------
 # Helper: create a symlink, removing stale symlinks first (idempotent)
 # ---------------------------------------------------------------------------
 create_symlink() {
@@ -213,6 +233,7 @@ create_symlink() {
 
     # Remove stale symlink (pointing anywhere, including our repo)
     if [ -L "${target}" ]; then
+        record_foreign_symlink "${target}"
         if ${DRY_RUN}; then
             info "Would remove stale symlink: ${target}"
         else
@@ -268,6 +289,21 @@ copy_file() {
 # ---------------------------------------------------------------------------
 # 1. Symlink commands (each file individually)
 # ---------------------------------------------------------------------------
+header "Removing stale command links..."
+# A command that became a skill leaves ~/.claude/commands/<x>.md dangling into this repo.
+for link in "${CLAUDE_HOME}/commands/"*.md; do
+    [ -L "${link}" ] || continue
+    dest=$(readlink "${link}")
+    [[ "${dest}" == "${REPO_ROOT}/claude-code/"* && ! -e "${dest}" ]] || continue
+    if ${DRY_RUN}; then
+        info "Would remove stale command link: ${link} -> ${dest}"
+    else
+        rm "${link}"
+        info "Removed stale command link: ${link} -> ${dest}"
+    fi
+    STALE_REMOVED=$((STALE_REMOVED + 1))
+done
+
 header "Linking commands..."
 for f in "${REPO_ROOT}/claude-code/commands/"*.md; do
     [ -e "${f}" ] || continue

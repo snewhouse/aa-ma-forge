@@ -23,7 +23,7 @@ pre-fix state. The §7.2.5 validator returned GAPS_REQUIRE_FIX both times.
 **Rule:** In the same pass as any post-review fix commit: append "Superseded by <sha>" notes to the
 affected Result Logs, add a CRITICAL_PATH_REVIEW addendum, re-run the §6.7 fences, and update
 reference.md. Only then dispatch the validator.
----
+--- **Ordering (M3, 2026-10-09):** re-run the §6.7 fences after the LAST fix and BEFORE flipping the milestone to COMPLETE; the shipped fence certifies only an ACTIVE milestone, so a re-run after the flip is refused and has to be done by hand with `--milestone N`.
 
 ## L-041 (2026-10-09) — Changed a file format without finding its second reader
 **Pattern:** Switched `scripts/install.sh` AA_MA_HOOKS rows from `|` to `;` because a matcher holds `|`.

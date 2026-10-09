@@ -34,6 +34,12 @@ def test_command_frontmatter() -> None:
     assert isinstance(fm.get("description"), str) and fm["description"].strip()
 
 
+def test_a_missing_checkout_refuses_rather_than_running_a_local_script() -> None:
+    """A copied skill must not run ./scripts/aa-ma-share-allow.sh from a repo it was asked to share."""
+    body = COMMAND_MD.read_text(encoding="utf-8")
+    assert "${AA_MA_ROOT:-.}" not in body
+
+
 def test_command_body_contract() -> None:
     body = COMMAND_MD.read_text(encoding="utf-8")
     assert "readlink -f" in body

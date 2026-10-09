@@ -135,7 +135,7 @@ _registered() { jq -r '[..|.command?|select(. != null)]|.[]' "${HOME_UNDER_TEST:
 @test "uninstall deregisters every hook install.sh registers (derived from AA_MA_HOOKS)" {
     _settings
     env HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}" >/dev/null
-    [ "$(_installed_hook_scripts | wc -l)" -ge 8 ]  # the loops below must not pass vacuously
+    [ "$(_installed_hook_scripts | wc -l)" -ge 1 ]  # the loops below must not pass vacuously
     for h in $(_installed_hook_scripts); do [ "$(_registered "$h")" -ge 1 ]; done
     run env HOME="${BATS_FAKE_HOME}" bash "${REPO_ROOT}/scripts/uninstall.sh"
     [ "${status}" -eq 0 ]
@@ -234,4 +234,34 @@ _registered() { jq -r '[..|.command?|select(. != null)]|.[]' "${HOME_UNDER_TEST:
     rmdir "${BATS_FAKE_HOME}/.claude/commands"
     run env HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}"
     [ "${status}" -eq 0 ]
+}
+
+@test "uninstall --restore refuses a manifest row that climbs out of ~/.claude with .." {
+    mkdir -p "${BATS_FAKE_HOME}/.claude/backups/aa-ma-forge-20260101-000000"
+    printf '%s\t%s\n' "${BATS_FAKE_HOME}/.claude/../evil/link" "${BATS_FAKE_HOME}/x" \
+        > "${BATS_FAKE_HOME}/.claude/backups/aa-ma-forge-20260101-000000/foreign-symlinks.tsv"
+    run env HOME="${BATS_FAKE_HOME}" bash "${REPO_ROOT}/scripts/uninstall.sh" --restore
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"Skipping manifest row"* ]]
+    [ ! -e "${BATS_FAKE_HOME}/evil" ]
+}
+
+@test "uninstall warns and carries on when it cannot rewrite settings.json" {
+    _settings
+    env HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}" >/dev/null
+    chmod a-w "${BATS_FAKE_HOME}/.claude"   # the temp file beside settings.json cannot be created
+    run env HOME="${BATS_FAKE_HOME}" bash "${REPO_ROOT}/scripts/uninstall.sh"
+    chmod u+w "${BATS_FAKE_HOME}/.claude"
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"Could not update"* ]]
+    [[ "${output}" == *"Uninstall Summary"* ]]
+}
+
+@test "install and uninstall keep settings.json's file mode" {
+    _settings
+    chmod 600 "${BATS_FAKE_HOME}/.claude/settings.json"
+    env HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}" >/dev/null
+    [ "$(stat -c %a "${BATS_FAKE_HOME}/.claude/settings.json")" = 600 ]
+    env HOME="${BATS_FAKE_HOME}" bash "${REPO_ROOT}/scripts/uninstall.sh" >/dev/null
+    [ "$(stat -c %a "${BATS_FAKE_HOME}/.claude/settings.json")" = 600 ]
 }

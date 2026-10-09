@@ -13,5 +13,5 @@ execution:
   - Glob
   - Grep
   - Skill
-  prompt: 'Plan a feature for this repo: add a --shout flag to greet.py that upper-cases the greeting.
-    Nobody can answer questions in this session, so list the questions you would ask me.'
+  prompt: 'Plan this as an AA-MA plan: add a --shout flag to greet.py that upper-cases the greeting. Nobody
+    can answer questions in this session, so list the questions you would ask me.'

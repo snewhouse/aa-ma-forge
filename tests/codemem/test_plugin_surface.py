@@ -270,6 +270,26 @@ def test_command_mentions_filter_on_disk_expand_globs_and_drop_self(
     }
 
 
+def test_a_slash_glob_expands_over_skills_too(tmp_path: Path) -> None:
+    """Commands became skills (code-conventions-impact M3): `/x-*` must still find them."""
+    s = extract(
+        _tree(
+            tmp_path,
+            {
+                "claude-code/skills/go-one/SKILL.md": "",
+                "claude-code/skills/go-two/SKILL.md": "",
+                "claude-code/skills/go-all/SKILL.md": "Any /go-* skill; or /go-two alone.\n",
+            },
+        )
+    )
+    assert {
+        (e.src, e.dst, e.kind, e.ref_class) for e in s.edges if e.src == "skill:go-all"
+    } == {
+        ("skill:go-all", "skill:go-one", "skill", RefClass.ON_DISK),
+        ("skill:go-all", "skill:go-two", "skill", RefClass.ON_DISK),
+    }
+
+
 def test_backticked_slash_names_resolve_declare_or_dangle(tmp_path: Path) -> None:
     """R4 (codebase-analysis-skills M6): unresolved names count only at the start of a backtick span."""
     s = extract(

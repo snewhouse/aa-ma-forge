@@ -36,3 +36,4 @@
 [2026-10-09T10:58:44+01:00] ENG_STANDARDS_GATE — Milestone 2: Migrate 5 skills + ruff hook into the forge — PASS re-run post-§6.8 + rewrite (AA-MA clean, pending_steps=0, CRITICAL_PATH_REVIEW present; diagram edges=25 checked=25 phantom=0)
 [2026-10-09T11:01:32+01:00] CI — M2 PR #19 @ 4bc56c3 — 7/7 pass (touched, bats, shellcheck, bandit, arch drift, explorer, codemem smoke) — run https://github.com/snewhouse/aa-ma-forge/actions/runs/37914723912
 [2026-10-09T11:01:32+01:00] DOUBLE_CHECK resolution — report 2026-10-09T09:42:41Z (Partially verified): F1 leak-on-remote resolved (force-push 4a23e0a, remote hits 0); F2 stale Result Logs resolved (Superseded notes + reference/context-log back-fill). Open, tracked: GitHub Support purge of orphaned a6b2e51…90396b1 (Ste).
+[2026-10-09T11:02:09+01:00] MILESTONE COMPLETE — M2 — Commit: a38974c — Criteria: 8/8 verified

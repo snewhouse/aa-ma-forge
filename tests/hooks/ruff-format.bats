@@ -53,3 +53,20 @@ run_hook() {
     [ "$(wc -l < "$LOG")" -eq 1 ]
     grep -q "ERROR ruff-format: ${WORK}/bad.py:" "$LOG"
 }
+
+@test "AA_MA_HOOKS_DISABLE=1 → the hook touches nothing" {
+    printf 'x=1\n' > "$WORK/sample.py"
+    jq --arg f "$WORK/sample.py" '.tool_input.file_path = $f' "$PAYLOAD" > "$WORK/payload.json"
+    run env AA_MA_HOOKS_DISABLE=1 bash "$HOOK" < "$WORK/payload.json"
+    [ "$status" -eq 0 ]
+    [ "$(cat "$WORK/sample.py")" = "x=1" ]
+}
+
+@test "CLAUDE_HOOK_LOG overrides the log path" {
+    printf 'def broken(:\n' > "$WORK/bad.py"
+    jq --arg f "$WORK/bad.py" '.tool_input.file_path = $f' "$PAYLOAD" > "$WORK/payload.json"
+    run env CLAUDE_HOOK_LOG="$WORK/custom.log" bash "$HOOK" < "$WORK/payload.json"
+    [ "$status" -eq 0 ]
+    [ "$(wc -l < "$WORK/custom.log")" -eq 1 ]
+    [ ! -e "$LOG" ]
+}

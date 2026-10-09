@@ -10,6 +10,7 @@ Per ADR-0005 / Plan M4: agent prompts must satisfy structural invariants:
 These tests run at every commit (via the default pytest suite) to guard
 against drift in agent prompts that would break the orchestrator's parsing.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -86,7 +87,9 @@ class TestLessonReferences:
     def test_code_reviewer_references_l005(self) -> None:
         """code-reviewer mandatory pattern #2 (mechanism duplication) maps to L-005."""
         text = _read_agent("code-reviewer")
-        assert "L-005" in text, "code-reviewer must reference L-005 (install.sh symlinks)"
+        assert "L-005" in text, (
+            "code-reviewer must reference L-005 (install.sh symlinks)"
+        )
         assert "mechanism duplication" in text.lower(), (
             "code-reviewer must document the mechanism-duplication pattern"
         )
@@ -102,7 +105,9 @@ class TestLessonReferences:
     def test_code_reviewer_references_l007(self) -> None:
         """code-reviewer mandatory pattern #1 (scope discipline) maps to L-007."""
         text = _read_agent("code-reviewer")
-        assert "L-007" in text, "code-reviewer must reference L-007 (sole-dev-merge format pass)"
+        assert "L-007" in text, (
+            "code-reviewer must reference L-007 (sole-dev-merge format pass)"
+        )
         assert "scope discipline" in text.lower(), (
             "code-reviewer must document the scope-discipline pattern"
         )
@@ -179,7 +184,13 @@ class TestImplReviewTemplate:
 
     def test_template_has_section_per_agent(self) -> None:
         text = self.TEMPLATE_PATH.read_text(encoding="utf-8")
-        for label in ("Code Review", "Security", "TDD Sequence", "External Library Evidence", "Future-Proofing"):
+        for label in (
+            "Code Review",
+            "Security",
+            "TDD Sequence",
+            "External Library Evidence",
+            "Future-Proofing",
+        ):
             assert label in text, f"impl-review-template must have section: {label}"
 
     def test_template_has_user_override_section(self) -> None:

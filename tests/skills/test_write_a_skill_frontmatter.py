@@ -34,6 +34,6 @@ def test_write_a_skill_is_single_file() -> None:
     skill_dir = SKILLS_DIR / SKILL_DIR_NAME
     files = sorted(p.name for p in skill_dir.iterdir() if p.is_file())
     assert files == ["LICENSE", "SKILL.md"], (
-        f"Expected only SKILL.md in {skill_dir}; found {files!r}. "
+        f"Expected only SKILL.md + LICENSE in {skill_dir}; found {files!r}. "
         "Upstream ships write-a-skill as a single-file skill."
     )

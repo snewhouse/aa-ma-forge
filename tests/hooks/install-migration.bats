@@ -64,13 +64,25 @@ ruff_count() {
     [ "$(ruff_count)" -eq 1 ]
 }
 
-@test "settings.json is backed up into the timestamped backup dir, not settings.json.bak" {
+@test "settings.json is backed up to a timestamped file, not settings.json.bak" {
     echo '{}' > "${CH}/settings.json"
     run "${REPO_ROOT}/scripts/install.sh"
     [ "$status" -eq 0 ]
     [ ! -e "${CH}/settings.json.bak" ]
-    run jq -c . "${CH}"/backups/aa-ma-forge-*/settings.json
+    run jq -c . "${CH}"/backups/settings-aa-ma-forge-*.json
     [ "$output" = "{}" ]
+}
+
+@test "a later settings-only backup never hides the real-file backup from uninstall --restore" {
+    "${REPO_ROOT}/scripts/install.sh" >/dev/null
+    sleep 1   # why: backup names have 1 s resolution; a second run must sort after the first
+    # Drop the ruff registration so the next install mutates (and backs up) settings.json only.
+    jq 'del(.hooks.PostToolUse[] | select(.hooks[].command | test("ruff-format")))' \
+        "${CH}/settings.json" > "${WORK}/s.json" && mv "${WORK}/s.json" "${CH}/settings.json"
+    "${REPO_ROOT}/scripts/install.sh" >/dev/null
+    run "${REPO_ROOT}/scripts/uninstall.sh" --restore
+    [ "$status" -eq 0 ]
+    grep -qx "old secrets-management" "${CH}/skills/secrets-management/SKILL.md"
 }
 
 @test "--force still backs up a real directory before replacing it" {

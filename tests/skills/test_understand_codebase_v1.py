@@ -226,14 +226,21 @@ def test_grounding_names_what_exit_2_means() -> None:
 
 def test_currency_commands_are_single_quoted_and_screened() -> None:
     assert "--cmd '<c>'" in SKILL and '--cmd "<c>"' not in SKILL  # no $(...) expansion
-    rule = _section(SKILL, "## Checked output").split("- **Currency check**")[1].split("\n- **")[0]
+    rule = (
+        _section(SKILL, "## Checked output")
+        .split("- **Currency check**")[1]
+        .split("\n- **")[0]
+    )
     assert "`'`" in rule and "`$`" in rule and "backtick" in rule
     assert "runs the repo's own code" in rule
 
 
 def test_repo_paths_are_quoted_in_codemem_commands() -> None:
-    for text in (HEALTH, _section(DIMENSIONS, "## 4 — Directory map & structure"),
-                 _section(DIMENSIONS, "## 13 — Repo health snapshot")):
+    for text in (
+        HEALTH,
+        _section(DIMENSIONS, "## 4 — Directory map & structure"),
+        _section(DIMENSIONS, "## 13 — Repo health snapshot"),
+    ):
         assert "single-quote" in text
 
 
@@ -249,5 +256,9 @@ def test_team_template_numbering_is_current() -> None:
 
 
 def test_the_stamp_is_taken_before_anything_is_written() -> None:
-    rule = _section(SKILL, "## Checked output").split("- **`onboarding.json`**")[1].split("\n\n")[0]
+    rule = (
+        _section(SKILL, "## Checked output")
+        .split("- **`onboarding.json`**")[1]
+        .split("\n\n")[0]
+    )
     assert "at the start of the run" in rule

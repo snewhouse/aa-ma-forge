@@ -208,11 +208,18 @@ def test_every_fork_carries_upstream_licence(name: str) -> None:
 def test_wshobson_forks_recorded() -> None:
     manifest = load_manifest(MANIFEST)
     secrets, bash = manifest["secrets-management"], manifest["bash-defensive-patterns"]
-    assert (secrets.upstream_repo, secrets.state) == ("wshobson/agents", "current")
-    assert secrets.upstream_sha == "46891e7e60da0e52baf1050b7b6391b64e84c6d9"
-    assert secrets.files == secrets.upstream_md5  # current = byte-exact upstream
+    assert (secrets.upstream_repo, secrets.state) == ("wshobson/agents", "derived")
     assert (bash.upstream_repo, bash.state) == ("wshobson/agents", "derived")
-    assert bash.upstream_sha == "5d65aa10638bcc1b390738e11f9bff213f61955a"
+
+
+@pytest.mark.parametrize("name", sorted(load_manifest(MANIFEST)))
+def test_provenance_header_names_the_manifest_sha(name: str) -> None:
+    """Line-2 provenance `@ <sha7>` must match the row's upstream_sha (no SHA literals in tests)."""
+    entry = load_manifest(MANIFEST)[name]
+    if entry.upstream_sha is None:
+        pytest.skip(f"{name}: upstream_sha unknown (pre-manifest fork)")
+    header = (SKILLS_DIR / name / "SKILL.md").read_text(encoding="utf-8").split("\n")[1]
+    assert f"@ {entry.upstream_sha[:7]}" in header, header
 
 
 def test_python_quality_gates_baseline_link_resolves() -> None:

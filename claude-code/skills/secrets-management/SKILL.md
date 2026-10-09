@@ -1,5 +1,5 @@
 ---
-# Forked from https://github.com/wshobson/agents/plugins/cicd-automation/skills/secrets-management @ 46891e7 on 2026-10-09 — aa-ma-forge v0.17.0
+# Derived from https://github.com/wshobson/agents/plugins/cicd-automation/skills/secrets-management @ 46891e7 on 2026-10-09 (no secret echo; trufflehog --fail) — aa-ma-forge v0.17.0
 name: secrets-management
 description: Implement secure secrets management for CI/CD pipelines using Vault, AWS Secrets Manager, or native platform solutions. Use when handling sensitive credentials, rotating secrets, or securing CI/CD environments.
 ---
@@ -202,8 +202,8 @@ deploy:
 ```yaml
 deploy:
   script:
-    - echo "Deploying with $API_KEY"
-    - echo "Database: $DATABASE_URL"
+    # $API_KEY / $DATABASE_URL are injected as env vars — never echo them to the job log
+    - ./deploy.sh
 ```
 
 ### Protected and Masked Variables
@@ -323,7 +323,7 @@ spec:
 # Check for secrets with TruffleHog
 docker run --rm -v "$(pwd):/repo" \
   trufflesecurity/trufflehog:3.88 \
-  filesystem --directory=/repo
+  filesystem --directory=/repo --fail   # --fail: exit 183 on findings (default exits 0)
 
 if [ $? -ne 0 ]; then
   echo "❌ Secret detected! Commit blocked."
@@ -338,7 +338,7 @@ secret-scan:
   stage: security
   image: trufflesecurity/trufflehog:3.88
   script:
-    - trufflehog filesystem .
+    - trufflehog filesystem . --fail   # without --fail, findings still exit 0
   allow_failure: false
 ```
 

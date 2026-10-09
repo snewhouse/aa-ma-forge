@@ -40,9 +40,9 @@ so to the plugin-surface extractor they are declared-external or dangling
 | `logging-and-comments` (SKILL.md, references/{bash,python}.md, references/ruff-baseline.toml) | Adoption | none: Ste-authored (no copy in 19 plugin marketplaces or `_archive/`) | SKILL.md `0f7bde15…` · bash.md `679d4194…` · python.md `e587f717…` · ruff-baseline.toml `cc860803…` | — | — | repo licence | — |
 | `python-quality-gates` (SKILL.md) | Adoption | none: Ste-authored | `ed0ff4e4…` | — | — | repo licence | — |
 | `llm-output-safety` (SKILL.md) | Adoption | none: Ste-authored (from lessons L-050–L-052) | `891ef7e5…` | — | — | repo licence | — |
-| `secrets-management` (SKILL.md) | Fork | `wshobson/agents` @ `46891e7e60da0e52baf1050b7b6391b64e84c6d9`, `plugins/cicd-automation/skills/secrets-management/` | `f72110c6…` (= snapshot `5d65aa1` up to 3 blank lines) | `5273fb73…` | upstream since changed: examples no longer echo secrets, images pinned (`vault:1.17`) | MIT (`gh api …/license`: MIT; LICENSE md5 `0e1b4dd9…`) | **current**: copied byte-exact from upstream @ `46891e7` (Ste, 2026-10-09) |
+| `secrets-management` (SKILL.md) | Fork | `wshobson/agents` @ `46891e7e60da0e52baf1050b7b6391b64e84c6d9`, `plugins/cicd-automation/skills/secrets-management/` | `f72110c6…` (= snapshot `5d65aa1` up to 3 blank lines) | `5273fb73…` | upstream since changed: examples no longer echo secrets, images pinned (`vault:1.17`) | MIT (`gh api …/license`: MIT; LICENSE md5 `0e1b4dd9…`) | **derived** @ `46891e7`: copied byte-exact from upstream (Ste, 2026-10-09), then patched after the §6.8 security review — the GitLab example no longer echoes `$API_KEY`/`$DATABASE_URL`, and both trufflehog calls pass `--fail` (without it findings exit 0, so the gates could never fail) |
 | `bash-defensive-patterns` (SKILL.md, references/advanced-patterns.md) | Fork | `wshobson/agents` @ `5d65aa10638bcc1b390738e11f9bff213f61955a`, `plugins/shell-scripting/skills/bash-defensive-patterns/` | SKILL.md `b1930f17…` · advanced-patterns.md `376f1ab0…` | SKILL.md `8280da5a…`; advanced-patterns.md has no upstream | local edits: ERR trap to stderr, `work_dir` instead of `TMPDIR` in traps; advanced-patterns.md split out locally | MIT (same LICENSE) | **derived** @ `5d65aa1` (Ste, 2026-10-09). Upstream HEAD `46891e7` restructured to SKILL.md + references/details.md; rebasing onto it is out of scope. |
-| `hooks/lib/ruff-format.sh` → `claude-code/hooks/ruff-format.sh` | Adoption | none: Ste-authored | `618d855b…` | — | — | repo licence | — |
+| `hooks/lib/ruff-format.sh` → `claude-code/hooks/ruff-format.sh` | Adoption, adapted | none: Ste-authored | `618d855b…` | — | — | repo licence | — (adds `AA_MA_HOOKS_DISABLE`, `CLAUDE_HOOK_LOG`, `--` before the path) |
 
 Upstream SHAs come from `gh api repos/wshobson/agents/commits/HEAD` (`46891e7`) and from the
 local marketplace clone `git -C ~/.claude/plugins/marketplaces/claude-code-workflows rev-parse HEAD`
@@ -60,11 +60,16 @@ plan (the secops plan).
 - **Good:** both forks are tracked in `claude-code/skills/FORKS.json` and checked by `fork-drift.sh`,
   which now reads the upstream repo per row instead of assuming `mattpocock/skills`.
 - **Bad:** after M2, `scripts/uninstall.sh` removes the five migrated skills and the ruff hook
-  registration, and `--restore` (which reads only the latest `aa-ma-forge-*` backup) may not
-  recreate them. Restore them from the `~/.claude/backups/cci-m2-<ts>.tgz` tarball
+  registration. `--restore` now walks every `aa-ma-forge-*` backup newest-first and restores each
+  path from its newest copy, so the install-time backups of the five real skill dirs come back;
+  before, it read only the newest dir, which a later re-run (backing up just the copied spec docs)
+  could hide. `settings.json` backups are sibling files (`backups/settings-aa-ma-forge-<ts>.json`).
+  The `~/.claude/backups/cci-m2-<ts>.tgz` tarball stays the fallback
   (M2: `cci-m2-20261009T073602Z.tgz`, 11 files, count-verified).
-- **Neutral:** `ruff-format.sh` ships verbatim, so it does not honour `AA_MA_HOOKS_DISABLE`; it is
-  advisory and always exits 0. README says so.
+- **Neutral:** `ruff-format.sh` is adapted, not verbatim: it honours `AA_MA_HOOKS_DISABLE` and
+  `CLAUDE_HOOK_LOG` (the logging-and-comments contract) like every AA-MA hook.
+- **Neutral:** every fork dir ships its upstream MIT `LICENSE`, including the five pre-existing
+  mattpocock forks; the new every-fork test found that gap.
 - **Neutral:** `python-quality-gates` named five user-local commands (`commit-and-push`,
   `pre-commit-full`, `release-prep`, `doc-sync`, `doc-fix`) as `/x`. Shipped content may not
   invoke local-only commands (`surface_allowlist.py`), so the text now names them as user-local

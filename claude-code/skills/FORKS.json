@@ -94,9 +94,9 @@
     "upstream_sha": "46891e7e60da0e52baf1050b7b6391b64e84c6d9",
     "forked_at": "2026-10-09",
     "adr": "docs/adr/0019-coding-doctrine-skill-migration.md",
-    "state": "current",
+    "state": "derived",
     "files": {
-      "SKILL.md": "5273fb736339ba74400b977d9ebb8d14"
+      "SKILL.md": "ea0799c2efe7f109253baa9879f8ddf3"
     },
     "upstream_md5": {
       "SKILL.md": "5273fb736339ba74400b977d9ebb8d14"

@@ -134,3 +134,10 @@ _registered() { jq -r '[..|.command?|select(. != null)]|.[]' "${BATS_FAKE_HOME}/
     [ "${status}" -eq 0 ]
     for h in $(_installed_hook_scripts); do [ "$(_registered "$h")" -eq 0 ] || { echo "still registered: $h"; return 1; }; done
 }
+
+@test "uninstall removes a link into this repo whose source directory is gone" {
+    ln -s "${REPO_ROOT}/claude-code/no-such-dir/x.md" "${BATS_FAKE_HOME}/.claude/commands/x.md"
+    run env HOME="${BATS_FAKE_HOME}" bash "${REPO_ROOT}/scripts/uninstall.sh"
+    [ "${status}" -eq 0 ]
+    [ ! -L "${BATS_FAKE_HOME}/.claude/commands/x.md" ]
+}

@@ -60,7 +60,8 @@ mkdir -p "${RESULTS}"
 jsonl="${RESULTS}/$(date +%F).jsonl"
 jq -c --arg ts "$(date -Iseconds)" --arg model "${MODEL}" --argjson rc "${rc}" '
     .cases[] | {ts: $ts, case: .dir, verdict: (if .aggregates.score >= 1 then "pass" else "fail" end),
-                score: .aggregates.score, rc: $rc, model: $model, error: .arms.with[0].error}' \
+                score: .aggregates.score, rc: $rc, model: $model, error: .arms.with[0].error,
+                failed: [.arms.with[0].graders[]? | select(.passed | not) | .name]}' \
     "${OUT}/result.json" >>"${jsonl}"
 jq -r --arg jsonl "${jsonl}" '
     [.cases[] | .aggregates.score >= 1] as $p

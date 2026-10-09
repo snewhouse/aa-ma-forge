@@ -23,3 +23,4 @@
 [2026-10-08T21:53:31+01:00] SOLE_DEV_MERGE PR #18 Stage C/D — C1 1 HIGH/1 MEDIUM/2 LOW, C2 1 LOW, C3 bandit 34 (B101/B404/B603/B607); Ste: HIGH applied (shellcheck hook exclude_types [bats] + test), MEDIUM applied (ADR-0018 + reference: measured debt 113 format / 39 lint / 19 bats), Bandit disputed (list-arg git, test asserts; policy in M8.1), LOW (1) ADR fix, (2)(3) deferred to M6
 [2026-10-09T07:22:44Z] Context compacted — Snapshot saved, active step: Sub-step 2.0: Post-merge of M1
 [2026-10-09T07:22:44Z] CHECKPOINT — ActiveStep: Sub-step 2.0: Post-merge of M1 — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A
+[2026-10-09T08:36:10+01:00] BACKUP cci-m2 — ~/.claude/backups/cci-m2-20261009T073602Z.tgz — tar_files=11 src_files=11 — sha256 dfe5f8f9276cdd26076f2937d12b885d962d19d8d7bd8a49e6c93261bc4ec4c5

@@ -97,3 +97,4 @@
 [2026-10-09T20:41:35+01:00] DOUBLE_CHECK resolution — report 2026-10-09T190311Z (Partially verified): 4.7 stitched '24/24' corrected, 4.5 stale paths superseded → a9a638f; fresh baseline-of-record run 22/24, skill-fired 24/24; validator §7.2.5 WARNINGS_BUT_USABLE (6 WARN) back-filled
 [2026-10-09T20:41:35+01:00] VALIDATOR §7.2.5 — WARNINGS_BUT_USABLE (0 FAIL / 6 WARN / 2 INFO) — all back-filled inline
 [2026-10-09T20:41:35+01:00] ENG_STANDARDS_GATE — Milestone 4: Prompt-as-code checks + writing-for-agents fork — PASS re-run post-double-check + back-fill: gate rc=0, pending_steps=0, CRITICAL_PATH_REVIEW present
+[2026-10-09T20:52:18+01:00] MILESTONE COMPLETE — M4 — Commit: e2392b6 — Criteria: 6/6 verified

@@ -136,12 +136,19 @@ def test_prompt_file_within_cap(path: Path) -> None:
 
 
 @pytest.mark.parametrize("rel", sorted(ALLOWLIST))
-def test_allowlist_entries_are_still_oversized(rel: str) -> None:
-    """An entry for a file now under the cap (or gone) is stale; delete it."""
+def test_allowlist_ceilings_track_the_file(rel: str) -> None:
+    """A ceiling equals the file's size, so a shrink must lower it in the same diff.
+
+    Without this a file that drops from 1154 to 700 lines could silently regrow to 1154.
+    """
     path = PLUGIN / rel
     assert path.is_file(), f"{rel} no longer exists"
-    assert line_count(path.read_text(encoding="utf-8")) > MAX_LINES, (
+    lines = line_count(path.read_text(encoding="utf-8"))
+    assert lines > MAX_LINES, (
         f"{rel} is within the {MAX_LINES}-line cap; remove it from ALLOWLIST"
+    )
+    assert lines == ALLOWLIST[rel], (
+        f"{rel} is {lines} lines; set its ALLOWLIST ceiling to {lines}"
     )
 
 

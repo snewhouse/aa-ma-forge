@@ -110,16 +110,24 @@ EOF2
   [ "${lines[-1]}" = "run-evals: rc=7" ]
 }
 
-@test "every fixture scaffold makes a git repo with no remote" {
+@test "every case's fixture.sh, run through its symlink, makes a git repo with no remote" {
   n=0
-  for s in "$REPO_ROOT"/evals/_lib/*.sh; do
+  for s in "$REPO_ROOT"/evals/*/*/fixture.sh; do
     d="$(mktemp -d "$WORK/ws.XXXXXX")"
     (cd "$d" && HOME="$WORK" bash "$s")
     git -C "$d" rev-parse --git-dir >/dev/null
     [ -z "$(git -C "$d" remote)" ]
     n=$((n + 1))
   done
-  [ "$n" -ge 1 ]
+  [ "$n" -eq 24 ]
+}
+
+@test "a result with no costUsd still prints the summary" {
+  _stub_claude
+  sed -i 's/{"costUsd": 0.0123, /{/' "$WORK/bin/claude"
+  run "$RUN_EVALS"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"run-evals: 2 cases, 1 pass, 1 fail, cost \$0"* ]]
 }
 
 # --- LIVE (AA_MA_EVAL_LIVE=1): real claude plugin eval, hostile fixture cases ---------

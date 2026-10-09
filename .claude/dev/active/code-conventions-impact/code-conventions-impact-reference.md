@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-08_
+_Last Updated: 2026-10-09_
 
 Test-Command: uv run pytest
 
@@ -28,7 +28,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | Canary branch (M1.4) | `canary/cci-m1-touched` (DRAFT PR, closed + deleted after) | [valid: 2026-10-08] |
 | Prototype branches | `prototype/cmd-to-skill` (M3.1), `prototype/impact-hook` (M10.1) | [valid: 2026-10-08] |
 | Release target | v0.18.0 (minor), single release in M14 (D11) | [valid: 2026-10-08] |
-| Next free ADR number | 0018; eight ADRs planned | [valid: 2026-10-08] |
+| Next free ADR number | 0020 (0018 = M1 lint gate, 0019 = M2 skill migration); eight ADRs planned | [valid: 2026-10-09] |
 | Session rules | `/rigor` (`~/.claude/skills/rigor/SKILL.md`), ≤5 concurrent sub-agents, `Skill(double-check)` before any COMPLETE | [valid: 2026-10-08] |
 
 ## Baseline Numbers (plan §0, 2026-10-08)
@@ -109,7 +109,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | Gate | SOFT, HARD | both | [valid: 2026-10-08] |
 | Mode | HITL, AFK | both | [valid: 2026-10-08] |
 | Prototype-Required | YES, NO | YES (M3, M10, M11) | [valid: 2026-10-08] |
-| Milestone Status | PENDING, ACTIVE, IN_PROGRESS, COMPLETE, BLOCKED | PENDING, COMPLETE (M1) | [valid: 2026-10-08] |
+| Milestone Status | PENDING, ACTIVE, IN_PROGRESS, COMPLETE, BLOCKED | PENDING, COMPLETE (M1), ACTIVE (M2) | [valid: 2026-10-09] |
 | Step Status | PENDING, IN_PROGRESS, COMPLETE, BLOCKED, SKIPPED, DEFERRED | PENDING | [valid: 2026-10-08] |
 | Plan heading grammar (strict writer) | `^## Milestone (\d+): ` / `^### Sub-step (\d+\.\d+): ` (`grammar.CANONICAL_*_RE`) | step `8.4a` renumbered to 8.5 for that reason | [valid: 2026-10-08] |
 
@@ -286,6 +286,19 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - `~/.claude/runtime/impact-seen-<session_id>/` — pre-edit hook once-per-file markers
 - `~/.claude/logs/hooks.log` — single hook log
 - `.claude/evals/` — eval results (gitignored)
+
+## M2 As-Built Facts (2026-10-09)
+
+- ADR-0019 `docs/adr/0019-coding-doctrine-skill-migration.md` — Accepted, INDEX row 41. [valid: 2026-10-09]
+- Fork pins (`claude-code/skills/FORKS.json`): `secrets-management` = wshobson/agents `plugins/cicd-automation/skills/secrets-management` @ `46891e7e60da0e52baf1050b7b6391b64e84c6d9`, state **derived** (no secret echo; trufflehog `--fail`), local md5 `ea0799c2`, upstream md5 `5273fb73`; `bash-defensive-patterns` = `plugins/shell-scripting/skills/bash-defensive-patterns` @ `5d65aa10638bcc1b390738e11f9bff213f61955a`, derived, upstream md5 `8280da5a`; `references/advanced-patterns.md` is local-only and kept out of `files`. [valid: 2026-10-09]
+- LICENSE in every fork dir: wshobson MIT md5 `0e1b4dd9`; mattpocock MIT @ c55ee46 md5 `a1d7928c` (also added to the 5 pre-existing forks). [valid: 2026-10-09]
+- `src/aa_ma/forks.py` ForkEntry required fields now include `upstream_repo` and `licence`; `python -m aa_ma.forks files` prints 4 columns (skill, repo, upstream, file); `scripts/fork-drift.sh` pre-flights and fetches each row's own repo; `--sha` applies to every row. [valid: 2026-10-09]
+- Outside-repo backup: `~/.claude/backups/cci-m2-20261009T073602Z.tgz`, 11 files, sha256 `dfe5f8f9…4ec4c5` (restore fallback). [valid: 2026-10-09]
+- `claude-code/hooks/ruff-format.sh` = Adoption, adapted: honours `AA_MA_HOOKS_DISABLE`, logs to `${CLAUDE_HOOK_LOG:-~/.claude/logs/hooks.log}`, passes `--` before the path. Not cmp-identical to the live `~/.claude/hooks/lib/ruff-format.sh` (until 3.0 relinks it). [valid: 2026-10-09]
+- `scripts/install.sh`: row `PostToolUse|Edit|Write|ruff-format.sh|10|`; rows parsed by a regex anchored on `<name>.sh|<timeout>|` (same grammar as codemem `_HOOK_ROW`); settings backups are sibling files `~/.claude/backups/settings-aa-ma-forge-<ts>.json`; `--force` still backs up real dirs. `scripts/uninstall.sh --restore` walks every `aa-ma-forge-*` backup newest-first (newest copy per path wins); deregisters ruff-format only without `--restore`. [valid: 2026-10-09]
+- Real PostToolUse(Edit) payload fixture: `tests/hooks/fixtures/ruff-format/posttooluse-edit.json` (captured 2026-10-09, paths rewritten to `/tmp/capture`). [valid: 2026-10-09]
+- Counts after M2: skills 27, top-level hooks 9. Orphans pinned in `test_plugin_surface.py` until M12: `llm-output-safety`, `bash-defensive-patterns`. [valid: 2026-10-09]
+- Convention (TDD dispute, 2026-10-09): RED tests get their own `test(...)` commit before the GREEN commit. [valid: 2026-10-09]
 
 ## Decisions (one line each; full text in plan §3)
 

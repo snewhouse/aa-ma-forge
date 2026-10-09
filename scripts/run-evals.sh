@@ -22,6 +22,7 @@
 # (default sonnet), RUN_EVALS_MAX_COST_USD (default 5), RUN_EVALS_RESULTS (default
 # <repo>/.claude/evals), RUN_EVALS_ALLOW_API_KEY (1 forwards ANTHROPIC_API_KEY),
 # CLAUDE_BIN (default claude; tests stub it).
+# Needs jq, GNU readlink -f / date -I (Linux, or macOS 12.3+ with coreutils-compatible tools).
 
 set -uo pipefail
 
@@ -48,6 +49,13 @@ done
     --output-dir "${OUT}/run" --json "${OUT}/result.json" "$@" </dev/null) >"${OUT}/eval.log" 2>&1
 rc=$?
 
+if ! command -v jq >/dev/null 2>&1; then
+    echo "run-evals: jq not found; cannot read ${CLAUDE_BIN} plugin eval's result" >&2
+    echo "run-evals: no result (jq missing)"
+    echo "run-evals: rc=${rc}"
+    exit 0
+fi
+
 if [[ ! -s "${OUT}/result.json" ]]; then
     echo "run-evals: no result from ${CLAUDE_BIN} plugin eval; log tail:" >&2
     tail -n 20 "${OUT}/eval.log" >&2
@@ -65,7 +73,7 @@ jq -c --arg ts "$(date -Iseconds)" --arg model "${MODEL}" --argjson rc "${rc}" '
     "${OUT}/result.json" >>"${jsonl}"
 jq -r --arg jsonl "${jsonl}" '
     [.cases[] | .aggregates.score >= 1] as $p
-    | "run-evals: \($p | length) cases, \($p | map(select(.)) | length) pass, \($p | map(select(. | not)) | length) fail, cost $\(.costUsd * 100 | round / 100) → \($jsonl)"' \
+    | "run-evals: \($p | length) cases, \($p | map(select(.)) | length) pass, \($p | map(select(. | not)) | length) fail, cost $\((.costUsd // 0) * 100 | round / 100) → \($jsonl)"' \
     "${OUT}/result.json"
 echo "run-evals: rc=${rc}"
 exit 0

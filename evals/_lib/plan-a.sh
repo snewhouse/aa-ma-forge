@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 # Scaffold for tests/fixtures/evals/plan-a/ (see scaffold.bash).
-exec bash "$(dirname "${BASH_SOURCE[0]}")/scaffold.bash" plan-a
+# A case links here; resolve the link so scaffold.bash is found beside the real file.
+exec bash "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/scaffold.bash" plan-a

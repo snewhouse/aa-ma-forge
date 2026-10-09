@@ -15,6 +15,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from tests.skills._helpers import split_frontmatter
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EVALS = REPO_ROOT / "evals"
 SKILLS = REPO_ROOT / "claude-code" / "skills"
@@ -37,8 +39,7 @@ def _cases() -> list[Path]:
 
 
 def _frontmatter(path: Path) -> dict:
-    text = path.read_text(encoding="utf-8")
-    return yaml.safe_load(text.split("---")[1]) or {}
+    return split_frontmatter(path.read_text(encoding="utf-8"))[1]
 
 
 def _user_invoked(skill: str) -> bool:

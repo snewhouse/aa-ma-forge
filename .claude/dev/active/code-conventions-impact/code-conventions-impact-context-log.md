@@ -192,3 +192,9 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - D9 revised again (Ste): execute-aa-ma-full and archive-aa-ma also get `disable-model-invocation: true` — they commit, tag and push with no per-step gate, and nothing delegates to them. execute-aa-ma-milestone stays model-invocable (execute-aa-ma-full delegates to it).
 - Fixed now (Ste): broken `../` links + a guard test; `..` manifest rows refused; jq write failure warns; settings.json mode kept; aa-ma-share refuses without its checkout; doc drift.
 - Record correction: 256237f is labelled format-only but also carries the 11 renames (pushed; not rewritten).
+
+## [2026-10-09] GATE APPROVAL: Milestone 3: Commands → skills (13), install hygiene
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion: "Fix F1+F2, then approve") — F1/F2 fixed in 38e3b20 before this record
+- Criteria verified: 7/7 (double-check report 2026-10-09T113200Z, Verified; §6.7 PASS; §6.8 PASS_WITH_WARNINGS, all fixed)
+- Decision: APPROVED

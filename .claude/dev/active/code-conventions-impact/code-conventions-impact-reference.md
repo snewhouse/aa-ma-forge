@@ -28,7 +28,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | Canary branch (M1.4) | `canary/cci-m1-touched` (DRAFT PR, closed + deleted after) | [valid: 2026-10-08] |
 | Prototype branches | `prototype/cmd-to-skill` (M3.1), `prototype/impact-hook` (M10.1) | [valid: 2026-10-08] |
 | Release target | v0.18.0 (minor), single release in M14 (D11) | [valid: 2026-10-08] |
-| Next free ADR number | 0020 (0018 = M1 lint gate, 0019 = M2 skill migration); eight ADRs planned | [valid: 2026-10-09] |
+| Next free ADR number | 0021 (0018 = M1 lint gate, 0019 = M2 skill migration, 0020 = M3 commands → skills); eight ADRs planned | [valid: 2026-10-09] |
 | Session rules | `/rigor` (`~/.claude/skills/rigor/SKILL.md`), ≤5 concurrent sub-agents, `Skill(double-check)` before any COMPLETE | [valid: 2026-10-08] |
 
 ## Baseline Numbers (plan §0, 2026-10-08)
@@ -109,7 +109,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | Gate | SOFT, HARD | both | [valid: 2026-10-08] |
 | Mode | HITL, AFK | both | [valid: 2026-10-08] |
 | Prototype-Required | YES, NO | YES (M3, M10, M11) | [valid: 2026-10-08] |
-| Milestone Status | PENDING, ACTIVE, IN_PROGRESS, COMPLETE, BLOCKED | PENDING, COMPLETE (M1, M2), ACTIVE (M3) | [valid: 2026-10-09] |
+| Milestone Status | PENDING, ACTIVE, IN_PROGRESS, COMPLETE, BLOCKED | PENDING, COMPLETE (M1, M2, M3) | [valid: 2026-10-09] |
 | Step Status | PENDING, IN_PROGRESS, COMPLETE, BLOCKED, SKIPPED, DEFERRED | PENDING, COMPLETE | [valid: 2026-10-09] |
 | Plan heading grammar (strict writer) | `^## Milestone (\d+): ` / `^### Sub-step (\d+\.\d+): ` (`grammar.CANONICAL_*_RE`) | step `8.4a` renumbered to 8.5 for that reason | [valid: 2026-10-08] |
 
@@ -295,7 +295,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - `src/aa_ma/forks.py` ForkEntry required fields now include `upstream_repo` and `licence`; `python -m aa_ma.forks files` prints 4 columns (skill, repo, upstream, file); `scripts/fork-drift.sh` pre-flights and fetches each row's own repo; `--sha` applies to every row. [valid: 2026-10-09]
 - Outside-repo backup: `~/.claude/backups/cci-m2-20261009T073602Z.tgz`, 11 files, sha256 `dfe5f8f9…4ec4c5` (restore fallback). [valid: 2026-10-09]
 - `claude-code/hooks/ruff-format.sh` = Adoption, adapted: honours `AA_MA_HOOKS_DISABLE`, logs to `${CLAUDE_HOOK_LOG:-~/.claude/logs/hooks.log}`, passes `--` before the path. Not cmp-identical to the live `~/.claude/hooks/lib/ruff-format.sh` (until 3.0 relinks it). [valid: 2026-10-09]
-- `scripts/install.sh`: row `PostToolUse|Edit|Write|ruff-format.sh|10|`; rows parsed by a regex anchored on `<name>.sh|<timeout>|` (same grammar as codemem `_HOOK_ROW`); settings backups are sibling files `~/.claude/backups/settings-aa-ma-forge-<ts>.json`; `--force` still backs up real dirs. `scripts/uninstall.sh --restore` walks every `aa-ma-forge-*` backup newest-first (newest copy per path wins); deregisters ruff-format only without `--restore`. [valid: 2026-10-09]
+- `scripts/install.sh`: row `PostToolUse|Edit|Write|ruff-format.sh|10|`; rows parsed by a regex anchored on `<name>.sh|<timeout>|` (same grammar as codemem `_HOOK_ROW`); settings backups are sibling files `~/.claude/backups/settings-aa-ma-forge-<ts>.json`; `--force` still backs up real dirs. `scripts/uninstall.sh --restore` walks every `aa-ma-forge-*` backup newest-first (newest copy per path wins); deregisters ruff-format only without `--restore`. [valid: 2026-10-09] [Superseded by M3 (2f2de1a, 41d8288): uninstall deregisters every AA_MA_HOOKS row, with or without `--restore`; the table lives in scripts/lib/aa-ma-install-lib.sh.]
 - Real PostToolUse(Edit) payload fixture: `tests/hooks/fixtures/ruff-format/posttooluse-edit.json` (captured 2026-10-09, paths rewritten to `/tmp/capture`). [valid: 2026-10-09]
 - Counts after M2: skills 27, top-level hooks 9. Orphans pinned in `test_plugin_surface.py` until M12: `llm-output-safety`, `bash-defensive-patterns`. [valid: 2026-10-09]
 - Convention (TDD dispute, 2026-10-09): RED tests get their own `test(...)` commit before the GREEN commit. [valid: 2026-10-09]

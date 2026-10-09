@@ -198,6 +198,8 @@ No CRITICAL, so no override panel. Two decisions taken on WARNINGs:
 | future-proofing | I | SECURITY.md:11 / foundations counts guarded; `FORMER_COMMANDS` floor; bats `-ge 8` floor | bats floor → `-ge 1` |
 | future-proofing | I | gitignored CLAUDE.md block stale | deferred to 4.0 (context-log) |
 
+Totals note: the Summary counts each agent's raw findings (7 W / 18 I); the table merges rows that share a fix (the two `../` links into one row; security INFO "jq safe / symlinks improved / leak clean" into one; future-proofing count rows into one), so it lists fewer rows.
+
 ## Verification after fixes
 
 pytest 2571 passed / 0 failed; `bats -r tests` 377/377; shellcheck (CI form, every `.sh`) rc=0.

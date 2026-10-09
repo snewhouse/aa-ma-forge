@@ -1,13 +1,15 @@
 """The writing-for-agents fork (ADR-0021) replaces write-a-skill (ADR-0004, superseded).
 
 mattpocock/skills @ c55ee46 ships `SKILL.md` + `SKILL-MECHANICS.md` (+ a Codex-only
-`agents/openai.yaml`, not taken). The upstream text is kept unedited; local conventions
-live in an appended `## In this repo` block, so the derived SKILL.md minus its provenance
-line and that block hashes to the upstream md5.
+`agents/openai.yaml`, not taken). The upstream text is kept unedited apart from one local
+`when_to_use` frontmatter line; local conventions live in an appended `## In this repo`
+block, so the derived SKILL.md minus its provenance line, that line and that block hashes
+to the upstream md5.
 """
 
 from __future__ import annotations
 
+import hashlib
 import re
 
 from aa_ma.forks import load_manifest
@@ -40,6 +42,15 @@ def test_upstream_text_is_unedited_above_the_local_block() -> None:
     assert sum(line.startswith("when_to_use: ") for line in text.splitlines()) == 1
     upstream = load_manifest(FORKS_MANIFEST)[SKILL].upstream_md5["SKILL.md"]
     assert upstream_body_md5(text, drop_prefixes=("when_to_use: ",)) == upstream
+
+
+def test_skill_mechanics_is_unedited() -> None:
+    """The second fork file is verbatim: only its line-1 HTML provenance comment is local."""
+    text = (SKILLS_DIR / SKILL / "SKILL-MECHANICS.md").read_text(encoding="utf-8")
+    assert text.startswith("<!-- ")
+    body = text.split("\n", 1)[1].encode("utf-8")
+    upstream = load_manifest(FORKS_MANIFEST)[SKILL].upstream_md5["SKILL-MECHANICS.md"]
+    assert hashlib.md5(body, usedforsecurity=False).hexdigest() == upstream
 
 
 def test_write_a_skill_is_retired() -> None:

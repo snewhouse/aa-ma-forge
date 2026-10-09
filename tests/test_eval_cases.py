@@ -1,6 +1,6 @@
 """The advisory skill-eval suite (`evals/`, ADR-0021) has the agreed shape.
 
-3 cases for each of 8 skills (code-conventions-impact M4.5). Each case loads the forge
+At least CASES_PER_SKILL cases for each skill in EVAL_SKILLS (code-conventions-impact M4.5). Each case loads the forge
 plugin, starts from a scaffolded git repo with no remote, grants only read-only tools,
 and carries a grader that proves the skill ran: a `tool_used: Skill` grader for a
 model-invoked skill. A user-invoked skill (`disable-model-invocation: true`) is reached
@@ -16,6 +16,7 @@ import pytest
 import yaml
 
 from tests.skills._helpers import split_frontmatter
+from tests.test_frontmatter_at_top import DYNAMIC_EXEC_RE
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EVALS = REPO_ROOT / "evals"
@@ -30,7 +31,9 @@ EVAL_SKILLS = {
     "logging-and-comments",
     "writing-for-agents",
 }
-CASES_PER_SKILL = 3
+CASES_PER_SKILL = 3  # minimum per skill (ADR-0021 "at least 3")
+# One turn budget for every case: Skill load + up to ~10 reads/greps + the answer.
+MAX_TURNS = 12
 READ_ONLY_TOOLS = {"Read", "Glob", "Grep", "Skill"}
 
 
@@ -48,11 +51,22 @@ def _user_invoked(skill: str) -> bool:
     )
 
 
-def test_three_cases_for_each_of_the_eight_skills() -> None:
+def test_each_eval_skill_has_its_minimum_cases() -> None:
     counts: dict[str, int] = {}
     for case in _cases():
         counts[case.parent.parent.name] = counts.get(case.parent.parent.name, 0) + 1
-    assert counts == dict.fromkeys(EVAL_SKILLS, CASES_PER_SKILL)
+    assert set(counts) == EVAL_SKILLS
+    assert all(n >= CASES_PER_SKILL for n in counts.values()), counts
+
+
+def test_no_loaded_skill_runs_dynamic_exec() -> None:
+    """Evals load every forge skill; a `!`cmd`` line would run before any tool gate applies."""
+    hits = [
+        p.parent.name
+        for p in sorted(SKILLS.glob("*/SKILL.md"))
+        if DYNAMIC_EXEC_RE.search(p.read_text(encoding="utf-8"))
+    ]
+    assert hits == []
 
 
 @pytest.mark.parametrize(
@@ -65,6 +79,7 @@ def test_case_shape(case: Path) -> None:
     assert spec["name"] == f"{skill}-{case.parent.name}"
     assert (case.parent / spec["plugins"][0]).resolve() == REPO_ROOT / "claude-code"
     ex = spec["execution"]
+    assert ex["max_turns"] == MAX_TURNS
     assert set(ex["allowed_tools"]) <= READ_ONLY_TOOLS, "grant read-only tools only"
     assert ex["prompt"].strip()
     scaffold = case.parent / spec["context"]["scaffold_script"]

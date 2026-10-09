@@ -9,7 +9,7 @@
 # Usage:
 #   scripts/install.sh              # install with backup
 #   scripts/install.sh --dry-run    # preview without changes
-#   scripts/install.sh --force      # skip backup (CI/testing)
+#   scripts/install.sh --force      # skip file backups (CI/testing); real directories are still backed up
 
 set -euo pipefail
 
@@ -147,6 +147,7 @@ collect_backup_target "${CLAUDE_HOME}/rules/engineering-standards.md"
 
 # Hooks
 collect_backup_target "${CLAUDE_HOME}/hooks/lib/pre-compact-aa-ma.sh"
+collect_backup_target "${CLAUDE_HOME}/hooks/lib/ruff-format.sh"
 
 # Spec docs (copies, not symlinks)
 for f in "${REPO_ROOT}/docs/spec/"*.md; do
@@ -154,8 +155,20 @@ for f in "${REPO_ROOT}/docs/spec/"*.md; do
     collect_backup_target "${CLAUDE_HOME}/docs/$(basename "${f}")"
 done
 
-if [ ${#backup_targets[@]} -gt 0 ] && ! ${FORCE}; then
-    BACKUP_DIR="${CLAUDE_HOME}/backups/aa-ma-forge-$(date +%Y%m%d-%H%M%S)"
+# why: --force skips file backups, but create_symlink `rm -rf`s whatever is in the way —
+# a real directory (e.g. a skill that predates the forge) is never deleted unbacked.
+if ${FORCE}; then
+    forced_targets=()
+    for target in "${backup_targets[@]}"; do
+        [ -d "${target}" ] && forced_targets+=("${target}")
+    done
+    backup_targets=("${forced_targets[@]}")
+fi
+
+# One timestamped dir per run; settings.json backups land here too (backup_settings_once).
+BACKUP_DIR="${CLAUDE_HOME}/backups/aa-ma-forge-$(date +%Y%m%d-%H%M%S)"
+
+if [ ${#backup_targets[@]} -gt 0 ]; then
 
     header "Backing up existing files..."
     if ${DRY_RUN}; then
@@ -183,8 +196,8 @@ if [ ${#backup_targets[@]} -gt 0 ] && ! ${FORCE}; then
         fi
         FILES_BACKED_UP=$((FILES_BACKED_UP + 1))
     done
-elif [ ${#backup_targets[@]} -gt 0 ] && ${FORCE}; then
-    warn "Skipping backup (--force flag set)"
+elif ${FORCE}; then
+    warn "Skipping file backups (--force flag set)"
 else
     info "No existing files to back up."
 fi
@@ -307,19 +320,20 @@ fi
 # multi-milestone plan: re-running after new hook files land adds their
 # registrations without touching already-registered entries.
 #
-# Hook entries use a pipe-delimited schema:
-#   event|matcher|source_basename|timeout|statusMessage
+# Hook entries use a semicolon-delimited schema (a matcher is a regex and may hold `|`):
+#   event;matcher;source_basename;timeout;statusMessage
 # Empty matcher = no tool-name match restriction (applies to SessionStart, etc.).
 
 AA_MA_HOOKS=(
-    "SessionStart||aa-ma-session-start.sh|5|Loading AA-MA context..."
-    "PreCompact||pre-compact-aa-ma.sh|5|"
-    "PreToolUse|Bash|aa-ma-commit-signature.sh|10|"
-    "PreToolUse|Bash|security-static-check.sh|10|"
-    "SessionEnd||aa-ma-session-end-dirty.sh|5|"
-    "PostToolUse|Bash|aa-ma-commit-drift.sh|5|"
-    "PreToolUse|ExitPlanMode|aa-ma-plan-skip-warn.sh|5|"
-    "SessionEnd||aa-ma-plan-skip-warn.sh|5|"
+    "SessionStart;;aa-ma-session-start.sh;5;Loading AA-MA context..."
+    "PreCompact;;pre-compact-aa-ma.sh;5;"
+    "PreToolUse;Bash;aa-ma-commit-signature.sh;10;"
+    "PreToolUse;Bash;security-static-check.sh;10;"
+    "SessionEnd;;aa-ma-session-end-dirty.sh;5;"
+    "PostToolUse;Bash;aa-ma-commit-drift.sh;5;"
+    "PreToolUse;ExitPlanMode;aa-ma-plan-skip-warn.sh;5;"
+    "SessionEnd;;aa-ma-plan-skip-warn.sh;5;"
+    "PostToolUse;Edit|Write;ruff-format.sh;10;"
 )
 
 SETTINGS_FILE="${CLAUDE_HOME}/settings.json"
@@ -357,10 +371,11 @@ backup_settings_once() {
     ${SETTINGS_BACKED_UP} && return 0
     if [ -f "${SETTINGS_FILE}" ] && ! ${FORCE}; then
         if ${DRY_RUN}; then
-            info "Would back up ${SETTINGS_FILE} → ${SETTINGS_FILE}.bak"
+            info "Would back up ${SETTINGS_FILE} → ${BACKUP_DIR}/settings.json"
         else
-            cp -a "${SETTINGS_FILE}" "${SETTINGS_FILE}.bak"
-            info "Backed up ${SETTINGS_FILE} → ${SETTINGS_FILE}.bak"
+            mkdir -p "${BACKUP_DIR}"
+            cp -a "${SETTINGS_FILE}" "${BACKUP_DIR}/settings.json"
+            info "Backed up ${SETTINGS_FILE} → ${BACKUP_DIR}/settings.json"
         fi
     fi
     SETTINGS_BACKED_UP=true
@@ -446,7 +461,7 @@ register_hook() {
 }
 
 for entry in "${AA_MA_HOOKS[@]}"; do
-    IFS='|' read -r h_event h_matcher h_src h_timeout h_status <<< "${entry}"
+    IFS=';' read -r h_event h_matcher h_src h_timeout h_status <<< "${entry}"
     register_hook "${h_event}" "${h_matcher}" "${h_src}" "${h_timeout}" "${h_status}"
 done
 

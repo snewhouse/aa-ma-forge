@@ -223,6 +223,7 @@ else
         "PreToolUse|aa-ma-commit-signature.sh"
         "SessionEnd|aa-ma-session-end-dirty.sh"
         "PostToolUse|aa-ma-commit-drift.sh"
+        "PostToolUse|ruff-format.sh"
     )
 
     deregister_hook() {

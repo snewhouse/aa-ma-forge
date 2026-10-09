@@ -1,0 +1,41 @@
+{
+  "session_id": "40f764b0-ba4e-457a-8d56-fab7c2cafa5e",
+  "transcript_path": "/tmp/capture/transcript.jsonl",
+  "cwd": "/tmp/capture/work",
+  "prompt_id": "7ccfe65d-3c58-4881-9719-f2355e3a0791",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/tmp/capture/work/sample.py",
+    "old_string": "x = 1",
+    "new_string": "x = 2",
+    "replace_all": false
+  },
+  "tool_response": {
+    "filePath": "/tmp/capture/work/sample.py",
+    "oldString": "x = 1",
+    "newString": "x = 2",
+    "originalFile": "x = 1\n",
+    "structuredPatch": [
+      {
+        "oldStart": 1,
+        "oldLines": 1,
+        "newStart": 1,
+        "newLines": 1,
+        "lines": [
+          "-x = 1",
+          "+x = 2"
+        ]
+      }
+    ],
+    "userModified": false,
+    "replaceAll": false,
+    "contentNotInModelContext": true
+  },
+  "tool_use_id": "toolu_01GDs5JYCSrqQ7geRYkqbo7E",
+  "duration_ms": 20
+}

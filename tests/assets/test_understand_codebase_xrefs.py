@@ -32,13 +32,23 @@ def test_in_repo_composed_assets_exist() -> None:
         REPO_ROOT / "claude-code" / "agents" / "code-reviewer.md",
     ]
     for p in must_exist:
-        assert p.exists(), f"understand-codebase composes {p.relative_to(REPO_ROOT)} but it is missing from this repo"
+        assert p.exists(), (
+            f"understand-codebase composes {p.relative_to(REPO_ROOT)} but it is missing from this repo"
+        )
 
 
 def test_skill_internal_relative_links_resolve() -> None:
     """Every ``references/<X>`` / ``templates/<X>`` path in SKILL.md resolves within the skill dir."""
     text = (SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
-    rels = set(re.findall(r"\b((?:references|templates)/[A-Za-z0-9_.-]+\.[A-Za-z0-9]+)\b", text))
-    assert rels, "expected SKILL.md to reference its companion files under references/ and templates/"
+    rels = set(
+        re.findall(
+            r"\b((?:references|templates)/[A-Za-z0-9_.-]+\.[A-Za-z0-9]+)\b", text
+        )
+    )
+    assert rels, (
+        "expected SKILL.md to reference its companion files under references/ and templates/"
+    )
     for rel in sorted(rels):
-        assert (SKILL_DIR / rel).exists(), f"SKILL.md links {rel!r} but it does not exist in the skill directory"
+        assert (SKILL_DIR / rel).exists(), (
+            f"SKILL.md links {rel!r} but it does not exist in the skill directory"
+        )

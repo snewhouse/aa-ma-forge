@@ -11,14 +11,18 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def _spec_count() -> int:
     text = (ROOT / "docs/spec/aa-ma-specification.md").read_text(encoding="utf-8")
-    section = text.split("### Required Outputs (Every Plan)", 1)[1].split("### Format & Mapping", 1)[0]
+    section = text.split("### Required Outputs (Every Plan)", 1)[1].split(
+        "### Format & Mapping", 1
+    )[0]
     return len(re.findall(r"^\d+\. \*\*", section, re.MULTILINE))
 
 
 def _ints(path: str, pattern: str) -> list[int]:
     text = (ROOT / path).read_text(encoding="utf-8")
     found = [int(m) for m in re.findall(pattern, text)]
-    assert found, f"{path}: pattern {pattern!r} matched nothing — site moved or was reworded"
+    assert found, (
+        f"{path}: pattern {pattern!r} matched nothing — site moved or was reworded"
+    )
     return found
 
 
@@ -43,11 +47,18 @@ def test_every_prose_site_matches_spec_count() -> None:
     drift = {}
     for path, pattern in SITES.items():
         text = (ROOT / path).read_text(encoding="utf-8")
-        found = [int(g) for m in re.findall(pattern, text) for g in (m if isinstance(m, tuple) else (m,)) if g]
+        found = [
+            int(g)
+            for m in re.findall(pattern, text)
+            for g in (m if isinstance(m, tuple) else (m,))
+            if g
+        ]
         assert found, f"{path}: pattern matched nothing — site moved or was reworded"
         if any(n != expected for n in found):
             drift[path] = found
-    assert not drift, f"element count is {expected} in spec §XI but these sites disagree: {drift}"
+    assert not drift, (
+        f"element count is {expected} in spec §XI but these sites disagree: {drift}"
+    )
 
 
 def test_readme_list_length_matches_its_own_heading() -> None:

@@ -214,3 +214,9 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Flags: always `--no-publish --runs 1 --ablation none --trust-plugin --max-cost-usd <cap> --json <file>`, `</dev/null`. Isolation is built in: each run gets a temp HOME and an empty cwd; Bash/Write/Edit/WebFetch/WebSearch are removed unless `--allow-tools` grants them (granted Bash runs under the OS sandbox, needs bubblewrap+socat on Linux).
 - Cost of one case: $0.0034 (haiku agent, 2 graders incl. 3 haiku judge votes), 12 s wall.
 - JSONL proof line: see provenance `EVAL_PROOF`.
+
+## [2026-10-09] ADR-0021 approval — Fork writing-for-agents; retire write-a-skill
+- Approved by: Ste (AskUserQuestion, M4.4) — Decision: Accept
+- Status Proposed → Accepted; INDEX row 0021 Accepted; ADR-0004 → Superseded by 0021.
+- Scope added in 4.4 (found while writing the ADR): `install.sh` swept only stale *command* links, so retiring a skill would leave `~/.claude/skills/write-a-skill` dangling into the repo after 5.0's live install. The sweep now covers `skills/*` and `agents/*.md` too (RED d3830a8 → GREEN 4ae7c7c). Same predicate as before (`points_into_repo`, dangling only), so foreign links are untouched.
+- Not taken from upstream: `agents/openai.yaml` (Codex display metadata; Claude Code does not read it; a YAML companion also has no slot for the HTML provenance line the fork test requires).

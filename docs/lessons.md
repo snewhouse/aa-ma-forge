@@ -5,6 +5,26 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-042 (2026-10-09) — Post-review fixes left AA-MA records stating what was no longer true
+**Pattern:** In M1 (back-fill 14cc372) and again in M2 of code-conventions-impact, fixes made after the
+§6.8 review changed behaviour (hook adapted, settings backup path, fork state) while Result Logs, the
+CRITICAL_PATH_REVIEW line and the DIAGRAM_VERIFIED / ENG_STANDARDS_GATE lines still described the
+pre-fix state. The §7.2.5 validator returned GAPS_REQUIRE_FIX both times.
+**Rule:** In the same pass as any post-review fix commit: append "Superseded by <sha>" notes to the
+affected Result Logs, add a CRITICAL_PATH_REVIEW addendum, re-run the §6.7 fences, and update
+reference.md. Only then dispatch the validator.
+---
+
+## L-041 (2026-10-09) — Changed a file format without finding its second reader
+**Pattern:** Switched `scripts/install.sh` AA_MA_HOOKS rows from `|` to `;` because a matcher holds `|`.
+codemem's plugin-surface extractor (`_HOOK_ROW`, packages/codemem-mcp/…/plugin_surface.py) parses the
+same table; it reported 9 "row unparsed" errors, caught only by the regen tests a sub-step later.
+**Rule:** Before changing any file format, table or schema, `git grep -n '<its marker>'` across the
+whole repo (packages/ included) to find every reader. Prefer making the one parser tolerant over
+changing the format.
+**Cross-ref:** L-005 (mechanism duplication)
+---
+
 ## L-040 (2026-10-09) — `ruff format <dir>` pulled five untouched test files into a milestone PR
 **Pattern:** During code-conventions-impact M2 I ran `uv run ruff format tests/skills/` to format the
 one test file I had edited. It reformatted every file in the directory; five unrelated test files

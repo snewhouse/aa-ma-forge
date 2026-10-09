@@ -294,20 +294,21 @@ copy_file() {
 }
 
 # ---------------------------------------------------------------------------
-# 1. Sweep command links left by earlier installs
+# 1. Sweep links left by earlier installs
 # ---------------------------------------------------------------------------
-header "Removing stale command links..."
-# A command that became a skill leaves ~/.claude/commands/<x>.md dangling into this repo.
-for link in "${CLAUDE_HOME}/commands/"*.md; do
+header "Removing stale links..."
+# A command that became a skill (ADR-0020), or a retired skill or agent (ADR-0021),
+# leaves its old link dangling into this repo. Links pointing elsewhere are never touched.
+for link in "${CLAUDE_HOME}/commands/"*.md "${CLAUDE_HOME}/skills/"* "${CLAUDE_HOME}/agents/"*.md; do
     if [ ! -L "${link}" ] || [ -e "${link}" ] || ! points_into_repo "${link}"; then
         continue
     fi
     dest=$(readlink "${link}")
     if ${DRY_RUN}; then
-        info "Would remove stale command link: ${link} -> ${dest}"
+        info "Would remove stale link: ${link} -> ${dest}"
     else
         rm "${link}"
-        info "Removed stale command link: ${link} -> ${dest}"
+        info "Removed stale link: ${link} -> ${dest}"
     fi
     STALE_REMOVED=$((STALE_REMOVED + 1))
 done

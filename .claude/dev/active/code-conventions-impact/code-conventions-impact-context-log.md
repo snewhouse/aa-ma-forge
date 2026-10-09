@@ -186,3 +186,9 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - 3 review agents: 0 CRITICAL, 15 WARNING, 17 INFO. Ste chose "Fix all incl. shared hook table" over deferring the table move to M7.
 - Format change with 4 readers (L-041 grep): install.sh, uninstall.sh, codemem plugin_surface via surface_allowlist.HOOK_TABLE (+ its tmp-tree test fixtures, test_draw_check), the bats oracle; docs CONTRIBUTING.md, regen-generated.sh. All moved in 41d8288; the array syntax is unchanged so `_HOOK_BLOCK`/`_HOOK_ROW` read the new file as-is.
 - Skipped: porting the deleted frozen-regex test to skills (test_a_slash_glob_expands_over_skills_too covers the glob rule); `.worktrees/` links are now foreign rather than documented-only.
+
+## [2026-10-09] M3 §6.8 decisions — D9 revised again (4 skills), fix all WARNINGs
+- 5 agents: 0 CRITICAL / 7 WARNING / 18 INFO (PASS_WITH_WARNINGS). No override panel needed.
+- D9 revised again (Ste): execute-aa-ma-full and archive-aa-ma also get `disable-model-invocation: true` — they commit, tag and push with no per-step gate, and nothing delegates to them. execute-aa-ma-milestone stays model-invocable (execute-aa-ma-full delegates to it).
+- Fixed now (Ste): broken `../` links + a guard test; `..` manifest rows refused; jq write failure warns; settings.json mode kept; aa-ma-share refuses without its checkout; doc drift.
+- Record correction: 256237f is labelled format-only but also carries the 11 renames (pushed; not rewritten).

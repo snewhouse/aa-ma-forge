@@ -142,3 +142,62 @@ None required (0 CRITICAL).
 
 ## Verification after fixes
 `uv run pytest` 2482 passed / 7 skipped / 0 failed; `bats -r tests` 355/355; shellcheck rc=0.
+
+---
+
+# Impl Review Report: code-conventions-impact / Milestone 3
+
+**Milestone:** Milestone 3: Commands → skills (13), install hygiene
+**Audit-Profile:** full · **Budget:** normal (parallel, 5 agents) · **Date:** 2026-10-09
+**Window:** `686abac..5795fe4` (fixes after it: `e72f8a7` RED → `196461b` GREEN)
+
+## Summary
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer             | 0 | 4 | 4 | WARN |
+| security-auditor          | 0 | 2 | 5 | WARN |
+| tdd-sequence-auditor      | 0 | 1 | 3 | PASS |
+| context7-evidence-auditor | 0 | 0 | 2 | PASS |
+| future-proofing-auditor   | 0 | 0 | 4 | PASS |
+| **TOTAL**                 | **0** | **7** | **18** | **PASS_WITH_WARNINGS** |
+
+(§6.6 ran first with 3 agents — 0 CRITICAL / 15 WARNING / 17 INFO — all fixed in `db1038c` → `41d8288`, Ste: "fix all incl. shared hook table".)
+
+## User Override Decisions (Ste, 2026-10-09)
+
+No CRITICAL, so no override panel. Two decisions taken on WARNINGs:
+
+| # | Finding | Decision | Action |
+|---|---------|----------|--------|
+| 1 | [WARNING] security: execute-aa-ma-full and archive-aa-ma became model-invocable but commit/tag/push with no per-step gate | **D9 revised again: add both (4 total)** | `disable-model-invocation: true`; `EXPECTED` = 4; ADR-0020, reference D9, README, CHANGELOG |
+| 2 | The other 6 WARNINGs + cheap INFOs | **fix now** | `e72f8a7` RED → `196461b` GREEN |
+
+## Findings and dispositions
+
+| Agent | Sev | Finding | Disposition |
+|---|---|---|---|
+| code-reviewer | W | `../` links broken by the git mv: aa-ma-chart:28, execute-aa-ma-milestone:737 | fixed (`../../../`); new `tests/skills/test_skill_links_resolve.py` (every `../` link in shipped skills; *TEMPLATE* files excluded — their links are relative to output) |
+| code-reviewer | W | uninstall aborts half-done if the jq write fails | fixed: warns and returns 0 |
+| code-reviewer | W | docs/ATTRIBUTION.md lists retired command paths | fixed |
+| code-reviewer | I | TODOS.md stale test/path names | fixed |
+| code-reviewer | I | sole-dev-merge:1057 dead plan link (dead before the move) | fixed → `.claude/dev/completed/…` |
+| code-reviewer | I | aa-ma-plan `simple` says "/grill-me protocol preserved verbatim" | reworded |
+| code-reviewer | I | dry-run carve-out hard to read | extracted `slot_free_for_restore` |
+| security | W | planted `..` manifest row → `--restore` writes a link outside ~/.claude (reproduced by the auditor) | fixed: `manifest_slot_ok` accepts one name in `skills|agents|rules|commands|hooks/lib`; bats case |
+| security | W | execute-aa-ma-full / archive-aa-ma model-invocable | fixed per decision 1 |
+| security | I | aa-ma-share runs `./scripts/aa-ma-share-allow.sh` from cwd when the checkout is missing (pre-existing) | fixed: refuses |
+| security | I | settings.json rewrite loses a 0600 mode (pre-existing) | fixed in install + uninstall (`chmod --reference`); bats case |
+| security | I | jq filters safe; symlink handling improved; leak rule clean | — |
+| tdd-sequence | W | 210ca3f added `disable-model-invocation` + the readlink change with their test in the same commit | acknowledged: frontmatter/path changes rode the move commit; the readlink was verified empirically in a fake HOME (3.3 Result Log) and the flag mechanics by probe |
+| tdd-sequence | I | **256237f's message says "format-only / No content change" but the commit also carries the 11 R100 renames** (they were already staged) | acknowledged; pushed history not rewritten — this row is the correction |
+| tdd-sequence | I | 41d8288 GREEN adds `test_no_doc_claims_a_command_count` without its own RED | acknowledged (doc-wording guard) |
+| tdd-sequence | I | 24c3676 deletes the frozen-regex test | acknowledged (vacuous with no commands; skill-glob test covers) |
+| context7 | I | no new deps / bumps | — |
+| context7 | I | `$ARGUMENTS` and `disable-model-invocation` not shown live | closed: isolated probe (provenance PROBE line) |
+| future-proofing | I | SECURITY.md:11 / foundations counts guarded; `FORMER_COMMANDS` floor; bats `-ge 8` floor | bats floor → `-ge 1` |
+| future-proofing | I | gitignored CLAUDE.md block stale | deferred to 4.0 (context-log) |
+
+## Verification after fixes
+
+pytest 2571 passed / 0 failed; `bats -r tests` 377/377; shellcheck (CI form, every `.sh`) rc=0.

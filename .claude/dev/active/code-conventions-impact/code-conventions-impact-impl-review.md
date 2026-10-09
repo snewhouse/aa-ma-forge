@@ -187,7 +187,7 @@ No CRITICAL, so no override panel. Two decisions taken on WARNINGs:
 | security | W | planted `..` manifest row → `--restore` writes a link outside ~/.claude (reproduced by the auditor) | fixed: `manifest_slot_ok` accepts one name in `skills|agents|rules|commands|hooks/lib`; bats case |
 | security | W | execute-aa-ma-full / archive-aa-ma model-invocable | fixed per decision 1 |
 | security | I | aa-ma-share runs `./scripts/aa-ma-share-allow.sh` from cwd when the checkout is missing (pre-existing) | fixed: refuses |
-| security | I | settings.json rewrite loses a 0600 mode (pre-existing) | fixed in install + uninstall (`chmod --reference`); bats case |
+| security | I | settings.json rewrite loses a 0600 mode (pre-existing) | fixed in install + uninstall (`chmod --reference`; superseded by 8e87d95: `cp -p` before the jq write — portable, no 0644 window); bats case |
 | security | I | jq filters safe; symlink handling improved; leak rule clean | — |
 | tdd-sequence | W | 210ca3f added `disable-model-invocation` + the readlink change with their test in the same commit | acknowledged: frontmatter/path changes rode the move commit; the readlink was verified empirically in a fake HOME (3.3 Result Log) and the flag mechanics by probe |
 | tdd-sequence | I | **256237f's message says "format-only / No content change" but the commit also carries the 11 R100 renames** (they were already staged) | acknowledged; pushed history not rewritten — this row is the correction |

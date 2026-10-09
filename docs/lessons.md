@@ -5,6 +5,19 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-045 (2026-10-09) — Bats checks that could never fail: `a && b` and `! cmd` lines
+**Pattern:** Two M4 bats assertions were `a && b` lists that were not the last line of the test
+(`--runs 1`, the release eval log). Bash's errexit, which bats relies on, never fires for a failure
+on the left of `&&`, nor for a command negated with `!`, so both tests passed with the behaviour
+removed. §6.6, §6.8 and the double-check missed it; the `/sole-dev-merge` Stage C reviewer found
+it. While fixing it I wrote the same bug twice more (`! grep`, then `[ … ] && [ … ]`) and only
+caught it because the new test would not go RED.
+**Rule:** In bats, one assertion per line, no `&&` and no leading `!`: write `run cmd` then
+`[ "$status" -eq 1 ]` (or `run ! cmd` on bats ≥ 1.5). A new or changed bats assertion must be seen
+failing (RED, or a mutation of the code it guards) before it counts. 17 bare `! …` lines predate
+this rule in `tests/hooks/*.bats` and `tests/commands/release.bats`; sweep them in M5.
+**Cross-ref:** L-1214 (never-seen-failing guards)
+
 ## L-044 (2026-10-09) — M3 made install.sh / uninstall.sh Linux-only; only the PR-time reviewer caught it
 **Pattern:** To keep a 0600 `settings.json` 0600 I added `chmod --reference` (GNU-only) to both
 installer scripts, and moved uninstall's hook dedupe onto `declare -A`, which now ran on every

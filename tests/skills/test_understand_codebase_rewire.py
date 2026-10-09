@@ -14,6 +14,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "claude-code/skills/understand-codebase"
@@ -271,11 +272,11 @@ ROUTES_TO_UNSHIPPED = [
         "- `/codebase-deep-dive` - For comprehensive codebase audits",
     ),
     (
-        "claude-code/commands/understand-codebase.md",
+        "claude-code/skills/understand-codebase/SKILL.md",
         "no onboarding deliverable → `/codebase-deep-dive`; implementation",
     ),
     (
-        "claude-code/commands/understand-codebase.md",
+        "claude-code/skills/understand-codebase/SKILL.md",
         "just a structural index → `/index`;",
     ),
     (
@@ -298,7 +299,6 @@ def test_no_route_to_an_unshipped_command(rel: str, text: str) -> None:
 # --- codebase-analysis-skills M4: repoint onto /assess-codebase + residuals R1 R2 R5 R7 R8 N1 ----
 
 CC = ROOT / "claude-code"
-COMMAND = CC / "commands/understand-codebase.md"
 CONTRACT_LEGACY = (
     'no stamp — including a legacy `codebase-deep-dive-*` dir — is "legacy, unverified"'
 )
@@ -345,13 +345,12 @@ def test_r1_degradation_row_drops_the_deep_dive() -> None:
     )
 
 
-def test_r2_command_names_codemem_as_the_index_and_keeps_assess_output() -> None:
-    (line,) = [
-        x
-        for x in COMMAND.read_text(encoding="utf-8").splitlines()
-        if x.startswith("3. Follow the skill exactly")
-    ]
-    assert "codemem" in line and "/assess-codebase" in line and "/index" not in line
+def test_r2_step_0_names_codemem_as_the_index_and_keeps_assess_output() -> None:
+    # The command wrapper's "3. Follow the skill exactly" line merged into the skill (ADR-0020).
+    step0 = _section((SKILL / "SKILL.md").read_text(encoding="utf-8"), "## Step 0")
+    assert (
+        "codemem" in step0 and "/assess-codebase" in step0 and "`/index`" not in step0
+    )
 
 
 def test_r5_quick_links_a_real_assess_report() -> None:
@@ -362,8 +361,8 @@ def test_r5_quick_links_a_real_assess_report() -> None:
 def test_r7_deep_flag_no_longer_claims_unshipped_commands() -> None:
     (line,) = [
         x
-        for x in COMMAND.read_text(encoding="utf-8").splitlines()
-        if x.startswith("- a **tier flag**")
+        for x in (SKILL / "SKILL.md").read_text(encoding="utf-8").splitlines()
+        if x.startswith("Parse `$ARGUMENTS`")
     ]
     assert (
         "/codebase-deep-dive" not in line
@@ -373,10 +372,7 @@ def test_r7_deep_flag_no_longer_claims_unshipped_commands() -> None:
 
 
 def test_r8_whole_repo_audit_routes_to_assess_codebase() -> None:
-    for text in (
-        (SKILL / "SKILL.md").read_text(encoding="utf-8"),
-        COMMAND.read_text(encoding="utf-8"),
-    ):
+    for text in ((SKILL / "SKILL.md").read_text(encoding="utf-8"),):
         assert (
             "ships no whole-repo audit" not in text
             and "no whole-repo audit ships here" not in text
@@ -569,3 +565,14 @@ def test_every_fresh_invocation_names_the_target_and_no_doc_says_1_means_stale()
         calls = re.findall(r"aa-ma-analysis fresh[^`\n]*", text)
         assert calls and all("--repo" in c for c in calls), (rel, calls)
         assert "1 stale" not in text and "any non-zero" in text, rel
+
+
+def test_skill_carries_the_command_surface() -> None:
+    """The /understand-codebase command wrapper merged into the skill (ADR-0020)."""
+    text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    fm = yaml.safe_load(text.split("\n---\n", 1)[0].removeprefix("---\n"))
+    assert fm.get("argument-hint") == "[path] [--quick | --standard | --deep]"
+    tiers = _section(text, "## Tier selection")
+    assert "$ARGUMENTS" in tiers
+    for flag in ("--quick", "--standard", "--deep"):
+        assert flag in tiers

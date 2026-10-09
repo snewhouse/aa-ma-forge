@@ -5,6 +5,15 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-040 (2026-10-09) — `ruff format <dir>` pulled five untouched test files into a milestone PR
+**Pattern:** During code-conventions-impact M2 I ran `uv run ruff format tests/skills/` to format the
+one test file I had edited. It reformatted every file in the directory; five unrelated test files
+(~560 lines of churn) rode into the RED commit and were only caught by `/sole-dev-merge` Stage C (Bandit
+hits in files the milestone never meant to touch).
+**Rule:** Format by file, never by directory: `uv run ruff format <the files in git diff --name-only>`.
+Before committing, check `git diff --cached --stat` lists only files the step meant to change (L-007).
+---
+
 ## L-039 (2026-10-08; repeated 2026-10-09) — Private repo names reach this public repo (research docs, then imported skills)
 **Pattern:** A charting research doc (docs/research/, written by an `aa-ma-researcher` agent) said
 "names only recorded". It nevertheless listed a private Carmen repo's package name, file paths, line

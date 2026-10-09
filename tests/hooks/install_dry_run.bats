@@ -278,3 +278,54 @@ _registered() { jq -r '[..|.command?|select(. != null)]|.[]' "${HOME_UNDER_TEST:
     [ "${status}" -eq 0 ]
     [ ! -e "${BATS_FAKE_HOME}/.claude/skills/aa-ma-plan" ]
 }
+
+# A chmod that, like BSD/macOS chmod, has no --reference option.
+_bsd_chmod_on_path() {
+    mkdir -p "${BATS_FAKE_HOME}/shim"
+    printf '#!/usr/bin/env bash\nfor a in "$@"; do [[ "$a" == --reference* ]] && { echo "chmod: illegal option -- -" >&2; exit 1; }; done\nexec /bin/chmod "$@"\n' \
+        > "${BATS_FAKE_HOME}/shim/chmod"
+    /bin/chmod +x "${BATS_FAKE_HOME}/shim/chmod"
+    SHIM_PATH="${BATS_FAKE_HOME}/shim:${PATH}"
+}
+
+@test "install and uninstall work with a BSD chmod (no --reference) and keep a 0600 settings.json" {
+    _settings
+    chmod 600 "${BATS_FAKE_HOME}/.claude/settings.json"
+    _bsd_chmod_on_path
+    run env PATH="${SHIM_PATH}" HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}"
+    [ "${status}" -eq 0 ]
+    [ "$(_registered aa-ma-session-start.sh)" -ge 1 ]
+    [ "$(stat -c %a "${BATS_FAKE_HOME}/.claude/settings.json")" = 600 ]
+    run env PATH="${SHIM_PATH}" HOME="${BATS_FAKE_HOME}" bash "${REPO_ROOT}/scripts/uninstall.sh"
+    [ "${status}" -eq 0 ]
+    for h in $(_installed_hook_scripts); do [ "$(_registered "$h")" -eq 0 ] || { echo "still registered: $h"; return 1; }; done
+    [ "$(stat -c %a "${BATS_FAKE_HOME}/.claude/settings.json")" = 600 ]
+    ! ls "${BATS_FAKE_HOME}/.claude/"settings.json.tmp.* 2>/dev/null
+}
+
+@test "uninstall needs bash 4 only under --restore (no declare -A on the default path)" {
+    # stock macOS bash is 3.2: associative arrays must stay inside the --restore branch
+    [ "$(grep -c 'declare -A' "${REPO_ROOT}/scripts/uninstall.sh")" -eq 1 ]
+    grep -n 'declare -A RESTORED' "${REPO_ROOT}/scripts/uninstall.sh"
+}
+
+@test "a second install registers nothing new when HOME holds regex metacharacters" {
+    HOME_UNDER_TEST="${BATS_FAKE_HOME}/h+(x"
+    mkdir -p "${HOME_UNDER_TEST}/.claude"/{skills,agents,rules,hooks/lib,docs}
+    printf '{}\n' > "${HOME_UNDER_TEST}/.claude/settings.json"
+    env HOME="${HOME_UNDER_TEST}" bash "${INSTALLER}" >/dev/null
+    first=$(jq '[..|.command?|select(. != null)]|length' "${HOME_UNDER_TEST}/.claude/settings.json")
+    env HOME="${HOME_UNDER_TEST}" bash "${INSTALLER}" >/dev/null
+    second=$(jq '[..|.command?|select(. != null)]|length' "${HOME_UNDER_TEST}/.claude/settings.json")
+    [ "${first}" -ge 1 ] && [ "${first}" -eq "${second}" ]
+}
+
+@test "uninstall deregisters even when settings.json has a hook group without a hooks array" {
+    _settings
+    env HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}" >/dev/null
+    jq '.hooks.SessionStart += [{"matcher": "x"}]' "${BATS_FAKE_HOME}/.claude/settings.json" > "${BATS_FAKE_HOME}/s.json"
+    mv "${BATS_FAKE_HOME}/s.json" "${BATS_FAKE_HOME}/.claude/settings.json"
+    run env HOME="${BATS_FAKE_HOME}" bash "${REPO_ROOT}/scripts/uninstall.sh"
+    [ "${status}" -eq 0 ]
+    [ "$(_registered aa-ma-session-start.sh)" -eq 0 ]
+}

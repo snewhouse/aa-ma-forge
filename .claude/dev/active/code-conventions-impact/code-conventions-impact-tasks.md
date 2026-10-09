@@ -222,7 +222,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 3: Commands → skills (13), install hygiene
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 2
 - Complexity: 85% ⚠️ HIGH COMPLEXITY
 - Effort: 2.5 days
@@ -239,6 +239,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `uv run pytest` count ≥ the baseline minus the deleted command-only tests (named in the Result Log); all bats green; `test_doc_counts` passes.
   - `docs/adr/NNNN-commands-become-skills.md` has `Status: Accepted` + INDEX row + context-log approval.
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 3.
+- Result Log: COMPLETE 2026-10-09, 7/7 criteria verified, HARD gate APPROVED by Ste (after double-check F1/F2 fixed). 13 commands are skills (11 git mv + 2 merged), /grill-me retired and declared external, claude-code/commands/ gone (ADR-0020 Accepted). Install hygiene: one sourced hook table (scripts/lib/aa-ma-install-lib.sh), stale command links swept, foreign symlinks recorded + restored, uninstall validates first and deregisters every row. D9 revised to 4 non-model-invocable skills. §6.6 0C/15W (all fixed), §6.8 PASS_WITH_WARNINGS 0C/7W (all fixed). pytest 2571 passed/0 failed (baseline 2482; 7 command-only tests deleted, named in 3.4/3.5), bats 378/378, shellcheck rc=0. Double-check Verified. Deferred to 4.0: live install from main + 13 probes, CLAUDE.md local edit, pre-compact hook home-path decision.
 
 ### Sub-step 3.0: Post-merge of M2
 - Status: COMPLETE

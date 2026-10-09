@@ -64,3 +64,4 @@
 [2026-10-09T113200Z] DOUBLE_CHECK — status=Verified effort=standard report=.claude/reports/double-check/2026-10-09T113200Z-code-conventions-impact-milestone-3.md
 [2026-10-09T12:44:30+01:00] DOUBLE_CHECK resolution — report 2026-10-09T113200Z (Verified): F1 TODOS.md:54/115 stale command paths → fixed; F2 install/uninstall through a symlink → fixed (SCRIPT_DIR via readlink -f; RED 8ec84d0 → GREEN 38e3b20). pytest 2571/0 failed, bats -r tests 378/378
 [2026-10-09T12:44:30+01:00] CRITICAL_PATH_REVIEW addendum — Milestone 3: Commands → skills (13), install hygiene — hook-modification — after double-check (38e3b20): SCRIPT_DIR resolves BASH_SOURCE with readlink -f in install.sh + uninstall.sh; bats 'install and uninstall work when invoked through a symlink'; bats 378/378, shellcheck rc=0
+[2026-10-09T12:44:36+01:00] DIAGRAM_VERIFIED — Milestone 3: Commands → skills (13), install hygiene — edges=25 checked=25 phantom=0 unknown=0

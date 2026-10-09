@@ -75,3 +75,4 @@
 [2026-10-09T15:53:09+01:00] COMMANDS pre=29 post=15 — Sub-step 4.0; pre derived (15 user files + 14 forge links from M2 3.0 install; the 14:18 sweep output was not kept); post measured: 15 regular files, 0 symlinks
 [2026-10-09T15:53:09+01:00] Sub-step 4.0 COMPLETE — 13/13 sandboxed /name probes resolve (0 Unknown); worktree feat/cci-m4-prompt-as-code @ 13de435; uv sync + codemem build rc=0
 [2026-10-09T15:57:10+01:00] Sub-step 4.1 COMPLETE — RED 807788e → GREEN a406dc3 — frontmatter schema; pytest 2625/0 failed
+[2026-10-09T15:58:39+01:00] Sub-step 4.2 COMPLETE — cda0c30 tests/test_prompt_size.py 66 passed; negative controls bite

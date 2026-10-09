@@ -265,3 +265,16 @@ _registered() { jq -r '[..|.command?|select(. != null)]|.[]' "${HOME_UNDER_TEST:
     env HOME="${BATS_FAKE_HOME}" bash "${REPO_ROOT}/scripts/uninstall.sh" >/dev/null
     [ "$(stat -c %a "${BATS_FAKE_HOME}/.claude/settings.json")" = 600 ]
 }
+
+@test "install and uninstall work when invoked through a symlink" {
+    _settings
+    mkdir -p "${BATS_FAKE_HOME}/bin"
+    ln -s "${REPO_ROOT}/scripts/install.sh" "${BATS_FAKE_HOME}/bin/aa-install"
+    ln -s "${REPO_ROOT}/scripts/uninstall.sh" "${BATS_FAKE_HOME}/bin/aa-uninstall"
+    run env HOME="${BATS_FAKE_HOME}" bash "${BATS_FAKE_HOME}/bin/aa-install"
+    [ "${status}" -eq 0 ]
+    [ "$(readlink "${BATS_FAKE_HOME}/.claude/skills/aa-ma-plan")" = "${REPO_ROOT}/claude-code/skills/aa-ma-plan" ]
+    run env HOME="${BATS_FAKE_HOME}" bash "${BATS_FAKE_HOME}/bin/aa-uninstall"
+    [ "${status}" -eq 0 ]
+    [ ! -e "${BATS_FAKE_HOME}/.claude/skills/aa-ma-plan" ]
+}

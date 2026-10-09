@@ -143,7 +143,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 
 ### `scripts/run-evals.sh` (new, M4)
 - Exit 0 always (advisory); rc in the last line; results → `.claude/evals/<YYYY-MM-DD>.jsonl` (gitignored) + one summary line; `claude plugin eval` always with `--no-publish`, `--runs 1`, no ablation arm. [valid: 2026-10-08]
-- As built (M4; scrub reworked at sole-dev-merge Stage D): a subshell `export -n`s every variable not on the allowlist, then `exec claude` (no token in argv — `/proc/<pid>/cmdline` is world-readable); claude sees PATH, HOME, LANG, PWD (+ CLAUDE_CODE_OAUTH_TOKEN, CLAUDE_CONFIG_DIR if set; ANTHROPIC_API_KEY only with RUN_EVALS_ALLOW_API_KEY=1); `claude plugin eval . --eval-dir evals --no-publish --runs 1 --ablation none --scaffold --trust-plugin --model sonnet --max-cost-usd 5`, temp `--output-dir`; extra args pass through (e.g. `-j 4`, `--case`); JSONL fields ts, case, verdict, score, rc, model, error, failed. `scripts/release.sh --skip-evals` skips the advisory run; `--dry-run` never runs it. [valid: 2026-10-09]
+- As built (M4; scrub reworked at sole-dev-merge Stage D): `env -i PATH HOME LANG` starts a clean inner bash, which reads the forwarded credentials NUL-separated on stdin and execs claude (no token in argv — `/proc/<pid>/cmdline` is world-readable; an `export -n` scrub was tried and let exported functions and unparseable names through); forwarded (+ CLAUDE_CODE_OAUTH_TOKEN, CLAUDE_CONFIG_DIR if set; ANTHROPIC_API_KEY only with RUN_EVALS_ALLOW_API_KEY=1); `claude plugin eval . --eval-dir evals --no-publish --runs 1 --ablation none --scaffold --trust-plugin --model sonnet --max-cost-usd 5`, temp `--output-dir`; extra args pass through (e.g. `-j 4`, `--case`); JSONL fields ts, case, verdict, score, rc, model, error, failed. `scripts/release.sh --skip-evals` skips the advisory run; `--dry-run` never runs it. [valid: 2026-10-09]
 
 ## Provenance Token Formats
 
@@ -217,7 +217,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 | `RUFF_BIN` | `ruff` | no | scanner override; `/nonexistent` exercises the UNKNOWN path [valid: 2026-10-08] |
 | `BANDIT_BIN` | `bandit` | no | retired in M8 (Stage C3) [valid: 2026-10-08 to M8] |
 | `SHELLCHECK_BIN` | `shellcheck` | no | scanner override (existing) [valid: 2026-10-08] |
-| `GH_TOKEN`, `GITHUB_TOKEN`, `SSH_AUTH_SOCK` | — | no | not exported to claude in the eval sandbox (`export -n`; was `env -i` until sole-dev-merge Stage D) [valid: 2026-10-08] |
+| `GH_TOKEN`, `GITHUB_TOKEN`, `SSH_AUTH_SOCK` | — | no | unset inside the eval sandbox (`env -i`; credentials forwarded on stdin, not argv) [valid: 2026-10-08] |
 | `RUN_EVALS_ALLOW_API_KEY` | 0 | no | `1` forwards `ANTHROPIC_API_KEY` into run-evals; otherwise dropped so evals stay on plan usage [valid: 2026-10-09] |
 | `RUN_EVALS_MODEL` / `RUN_EVALS_MAX_COST_USD` / `RUN_EVALS_DIR` / `RUN_EVALS_RESULTS` | sonnet / 5 / evals / `.claude/evals` | no | run-evals.sh knobs [valid: 2026-10-09] |
 | `AA_MA_EVAL_LIVE` | 0 | no | `1` runs the paid LIVE sandbox bats case [valid: 2026-10-09] |

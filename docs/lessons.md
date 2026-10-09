@@ -5,6 +5,17 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-046 (2026-10-09) — Fixed a LOW leak by replacing a closed env scrub with an open one
+**Pattern:** To keep the OAuth token out of `env -i NAME=value` argv, I swapped `env -i` for a
+loop that `export -n`s every variable not on an allowlist. Bash can only un-export what it can
+name: exported functions (`BASH_FUNC_*`) and environment entries with names bash cannot parse
+(`BAD-NAME=…`) still reached claude. The tests checked named leaks only, so they passed; the
+commit-time security review caught it.
+**Rule:** A sandbox env scrub is built from empty (`env -i` + allowlist), never by subtracting
+from the inherited environment. Secrets travel on stdin or a file descriptor, not argv. A scrub
+test includes an exported function and an unparseable name, not only named secrets.
+**Cross-ref:** L-045, L-038 (hostile-repo code via a hook)
+
 ## L-045 (2026-10-09) — Bats checks that could never fail: `a && b` and `! cmd` lines
 **Pattern:** Two M4 bats assertions were `a && b` lists that were not the last line of the test
 (`--runs 1`, the release eval log). Bash's errexit, which bats relies on, never fires for a failure

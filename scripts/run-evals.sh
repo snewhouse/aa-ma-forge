@@ -7,7 +7,7 @@
 # Results append to .claude/evals/<YYYY-MM-DD>.jsonl (gitignored), one line per case.
 #
 # Sandbox, in layers:
-#   - claude sees only PATH, HOME (its credentials live there) and locale from the environment:
+#   - claude runs under `env -i` with PATH, HOME (its credentials live there) and locale only:
 #     no GH_TOKEN, GITHUB_TOKEN, SSH_AUTH_SOCK or cloud keys. ANTHROPIC_API_KEY is dropped too
 #     unless RUN_EVALS_ALLOW_API_KEY=1: with a claude.ai login, evals then count against plan
 #     usage and can never switch to per-token API billing.
@@ -36,22 +36,25 @@ CLAUDE_BIN="${CLAUDE_BIN:-claude}"
 OUT="$(mktemp -d "${TMPDIR:-/tmp}/run-evals.XXXXXX")"
 trap 'rm -rf "${OUT}"' EXIT
 
-keep=" PATH HOME LANG CLAUDE_CODE_OAUTH_TOKEN CLAUDE_CONFIG_DIR "
-[[ "${RUN_EVALS_ALLOW_API_KEY:-0}" == 1 ]] && keep+="ANTHROPIC_API_KEY "
+clean_env=(PATH="${PATH}" HOME="${HOME}" LANG="${LANG:-C.UTF-8}")
+forward=(CLAUDE_CODE_OAUTH_TOKEN CLAUDE_CONFIG_DIR)
+[[ "${RUN_EVALS_ALLOW_API_KEY:-0}" == 1 ]] && forward+=(ANTHROPIC_API_KEY)
 
-# Scrub by un-exporting, not `env -i NAME=value`: argv is world-readable in
-# /proc/<pid>/cmdline, so a token passed there shows in `ps`. `export -n` keeps the
-# value for this shell (CLAUDE_BIN, MODEL… may arrive exported) and hides it from claude.
+# `env -i` starts from an empty environment, so nothing else gets through — not an
+# exported function, not a name bash cannot parse (un-exporting misses both). The
+# forwarded values reach the inner bash NUL-separated on stdin, never in argv, which
+# is world-readable in /proc/<pid>/cmdline.
+# shellcheck disable=SC2016  # why: the inner bash expands "$@" and kv, not this one
 (
     cd "${REPO_ROOT}" || exit 127
-    export LANG="${LANG:-C.UTF-8}"
-    for var in $(compgen -e); do
-        [[ "${keep}" == *" ${var} "* ]] || export -n "${var?}"
-    done
-    exec "${CLAUDE_BIN}" plugin eval . \
+    for var in "${forward[@]}"; do
+        if [[ -n "${!var:-}" ]]; then printf '%s=%s\0' "${var}" "${!var}"; fi
+    done | env -i "${clean_env[@]}" "${BASH}" -c \
+        'while IFS= read -r -d "" kv; do export "${kv}"; done; exec "$@" </dev/null' \
+        run-evals "${CLAUDE_BIN}" plugin eval . \
         --eval-dir "${EVAL_DIR}" --no-publish --runs 1 --ablation none --scaffold --trust-plugin \
         --model "${MODEL}" --max-cost-usd "${MAX_COST}" \
-        --output-dir "${OUT}/run" --json "${OUT}/result.json" "$@" </dev/null
+        --output-dir "${OUT}/run" --json "${OUT}/result.json" "$@"
 ) >"${OUT}/eval.log" 2>&1
 rc=$?
 

@@ -25,7 +25,7 @@ the signal you have reached the edge of the map: stop and tell the user to run `
 ```
 
 `<effort>` is `[a-z0-9-]+`. The map is `.claude/dev/charting/<effort>/<effort>-map.md`, in the grammar of
-[`docs/templates/map-template.md`](../../docs/templates/map-template.md).
+[`docs/templates/map-template.md`](../../../docs/templates/map-template.md).
 
 ## Hard rules
 

@@ -734,7 +734,7 @@ fi
 
 ### 6.8 Post-Impl Adversarial Review (NEW in v0.8.0)
 
-Reference: ADR-0005 ([`docs/adr/0005-post-impl-adversarial-review.md`](../../docs/adr/0005-post-impl-adversarial-review.md)) and Skill: `verify-impl`.
+Reference: ADR-0005 ([`docs/adr/0005-post-impl-adversarial-review.md`](../../../docs/adr/0005-post-impl-adversarial-review.md)) and Skill: `verify-impl`.
 
 Symmetric to plan-verification (which runs adversarially BEFORE execution),
 §6.8 dispatches up to 5 audit agents AFTER the milestone's implementation has

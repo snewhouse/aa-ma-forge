@@ -30,10 +30,11 @@ HTML export would nest a document inside the viewer and initialise mermaid twice
 # Resolve the aa-ma-forge checkout from this command's own installed symlink.
 AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/skills/aa-ma-share/SKILL.md)")/../../.." && pwd)
 if [[ ! -f "$AA_MA_ROOT/pyproject.toml" ]]; then
-  echo "aa-ma-share: aa-ma-forge checkout not found (command was copied, not symlinked); publishing without lint" >&2
-  AA_MA_ROOT=""
+  # A copied skill would otherwise run ./scripts/aa-ma-share-allow.sh from the repo being shared.
+  echo "aa-ma-share: aa-ma-forge checkout not found (skill was copied, not symlinked); refusing" >&2
+  exit 1
 fi
-"${AA_MA_ROOT:-.}/scripts/aa-ma-share-allow.sh" "$TARGET"   # exit 0 allow / 1 refuse
+"$AA_MA_ROOT/scripts/aa-ma-share-allow.sh" "$TARGET"   # exit 0 allow / 1 refuse
 ```
 
 Exit 1 → print the script's message and **stop**. The script (`scripts/aa-ma-share-allow.sh`,

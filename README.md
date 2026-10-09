@@ -209,7 +209,7 @@ Moves completed artefacts to `.claude/dev/completed/` for future reference.
 
 ### All slash commands
 
-Each is a skill in `claude-code/skills/<name>/` (ADR-0020); type `/name` to run it. `/sole-dev-merge` and `/aa-ma-share` run only when you ask; the rest the model may also start when your request matches.
+Each is a skill in `claude-code/skills/<name>/` (ADR-0020); type `/name` to run it. `/sole-dev-merge`, `/aa-ma-share`, `/execute-aa-ma-full` and `/archive-aa-ma` run only when you ask; the rest the model may also start when your request matches.
 
 - `/aa-ma-plan` — Brainstorm and create a structured plan with all five artefact files
 - `/execute-aa-ma-milestone` — Execute the current milestone with strict validation and auto-commit *(recommended)*

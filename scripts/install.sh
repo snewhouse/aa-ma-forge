@@ -480,6 +480,7 @@ register_hook() {
         return 1
     fi
 
+    chmod --reference="${SETTINGS_FILE}" "${tmp}"   # keep a 0600 settings.json 0600
     mv "${tmp}" "${SETTINGS_FILE}"
     info "Registered ${event} [${src_base}] in settings.json"
 }

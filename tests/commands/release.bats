@@ -150,3 +150,48 @@ EOF
   [ "$status" -eq 1 ]; [[ "$output" == *uv.lock* ]]
   [ -z "$(git ls-remote --tags origin v0.12.0)" ]
 }
+
+# --- advisory evals (code-conventions-impact M4.5): run-evals.sh runs, never decides -----
+
+_stub_evals() {
+  cat > "$WORK/bin/run-evals" <<EOF2
+#!/usr/bin/env bash
+echo called >> "$WORK/evals.log"
+echo "run-evals: 24 cases, 20 pass, 4 fail, cost \\\$1.23"
+echo "run-evals: rc=1"
+exit 0
+EOF2
+  chmod +x "$WORK/bin/run-evals"
+  export EVALS="$WORK/bin/run-evals"
+}
+
+@test "evals: a real release runs run-evals.sh and prints its summary, and a failing case does not block" {
+  _stub_evals
+  run "$RELEASE" minor --headline "h" --no-push
+  [ "$status" -eq 0 ]
+  [ "$(cat "$WORK/evals.log")" = "called" ]
+  [[ "$output" == *"run-evals: 24 cases, 20 pass, 4 fail"* ]]
+  [[ "$output" == *"released v0.12.0 locally"* ]]
+}
+
+@test "evals: --dry-run does not spend on evals" {
+  _stub_evals
+  run "$RELEASE" minor --headline "h" --dry-run
+  [ "$status" -eq 0 ]
+  [ ! -e "$WORK/evals.log" ]
+}
+
+@test "evals: --skip-evals skips them and says so" {
+  _stub_evals
+  run "$RELEASE" minor --headline "h" --no-push --skip-evals
+  [ "$status" -eq 0 ]
+  [ ! -e "$WORK/evals.log" ]
+  [[ "$output" == *"evals: skipped (--skip-evals)"* ]]
+}
+
+@test "evals: a missing run-evals.sh is reported, not fatal" {
+  export EVALS="$WORK/bin/nope"
+  run "$RELEASE" minor --headline "h" --no-push
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"evals: skipped ("*"not found)"* ]]
+}

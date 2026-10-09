@@ -1,5 +1,7 @@
 # Claude Code
 CLAUDE.md
+# ...except an eval fixture's CLAUDE.md, which a case reads (evals/writing-for-agents/sharpen-pointer).
+!evals/_fixtures/**/CLAUDE.md
 # aa-ma-forge IS the AA-MA framework — its own AA-MA task artifacts
 # (.claude/dev/active/, .claude/dev/completed/) are intentional deliverables
 # and MUST be version-controlled. The rest of .claude/ (session state, memory,

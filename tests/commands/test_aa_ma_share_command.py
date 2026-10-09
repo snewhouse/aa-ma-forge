@@ -40,6 +40,15 @@ def test_a_missing_checkout_refuses_rather_than_running_a_local_script() -> None
     assert "${AA_MA_ROOT:-.}" not in body
 
 
+def test_the_checkout_check_names_the_allowlist_script_and_lint_has_no_dead_guard() -> (
+    None
+):
+    """A copied skill resolves AA_MA_ROOT to $HOME: ~/pyproject.toml must not pass for a checkout."""
+    body = COMMAND_MD.read_text(encoding="utf-8")
+    assert '[[ ! -x "$AA_MA_ROOT/scripts/aa-ma-share-allow.sh" ]]' in body
+    assert '-n "$AA_MA_ROOT"' not in body
+
+
 def test_command_body_contract() -> None:
     body = COMMAND_MD.read_text(encoding="utf-8")
     assert "readlink -f" in body

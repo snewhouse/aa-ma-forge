@@ -32,7 +32,7 @@ for a in "$@"; do [[ "$prev" == "--json" ]] && json="$a"; prev="$a"; done
 cat > "$json" <<JSON
 {"costUsd": 0.0123, "cases": [
  {"name": "a-pass", "dir": "evals/x/a-pass", "aggregates": {"score": 1, "passRate": 1}, "arms": {"with": [{"error": null}]}},
- {"name": "b-fail", "dir": "evals/x/b-fail", "aggregates": {"score": 0.5, "passRate": 0}, "arms": {"with": [{"error": null}]}}
+ {"name": "b-fail", "dir": "evals/x/b-fail", "aggregates": {"score": 0.5, "passRate": 0}, "arms": {"with": [{"error": null, "graders": [{"name": "skill-fired", "passed": false}, {"name": "result", "passed": true}]}]}}
 ]}
 JSON
 exit 1
@@ -96,7 +96,8 @@ EOF2
   f="$WORK/results/$(date +%F).jsonl"
   [ "$(wc -l < "$f")" -eq 2 ]
   jq -e 'select(.case=="evals/x/a-pass") | .verdict=="pass" and .score==1' "$f"
-  jq -e 'select(.case=="evals/x/b-fail") | .verdict=="fail"' "$f"
+  jq -e 'select(.case=="evals/x/b-fail") | .verdict=="fail" and .failed==["skill-fired"]' "$f"
+  jq -e 'select(.case=="evals/x/a-pass") | .failed==[]' "$f"
   [[ "$output" == *"run-evals: 2 cases, 1 pass, 1 fail"* ]]
   [ "${lines[-1]}" = "run-evals: rc=1" ]
 }

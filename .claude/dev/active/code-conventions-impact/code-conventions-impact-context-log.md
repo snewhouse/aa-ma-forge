@@ -234,3 +234,7 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
   - execute-aa-ma-step/next-step → no skill; globbed and read tasks.md. The case prompt ("report … then stop") made it a Q&A answerable from one file; `aa-ma-execution` ("proactively use when detecting .claude/dev/active") overlaps too.
   - writing-for-agents/write-description → no tool call; wrote from knowledge. Leading words "Writing documents for agents" do not match "write the description for a skill".
 - Decision (Ste: add 4.7 now): fix collisions by routing in descriptions (not `disable-model-invocation`, which would cut `Skill()` callers), rewrite the 8 descriptions, rephrase eval prompts, re-run evals vs the 14/24 baseline.
+
+## [2026-10-09] M4.7 follow-up — the 2 remaining eval fails
+- aa-ma-plan/first-phase: no Skill call; the model planned a tiny feature inline. Ste decided aa-ma-plan should fire only when AA-MA is named (a small feature can be planned inline); the case prompt now names AA-MA. Description unchanged.
+- execute-aa-ma-step/sync-after-step: the skill fired and refused to mark 1.2 COMPLETE without running its criterion — correct behaviour; the rubric was wrong and now accepts it.

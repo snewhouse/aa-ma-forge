@@ -1,6 +1,6 @@
 # 0019. Coding-doctrine skill migration: five global skills and the ruff hook move into the forge
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-10-09
 **Deciders:** Stephen Newhouse (sole maintainer)
 **Tags:** `skills`, `forks`, `install`, `conventions`
@@ -60,8 +60,19 @@ plan (the secops plan).
 - **Good:** both forks are tracked in `claude-code/skills/FORKS.json` and checked by `fork-drift.sh`,
   which now reads the upstream repo per row instead of assuming `mattpocock/skills`.
 - **Bad:** after M2, `scripts/uninstall.sh` removes the five migrated skills and the ruff hook
-  registration, and `--restore` cannot recreate them (they were never forge backups). Restore
-  them from the `~/.claude/backups/cci-m2-<ts>.tgz` tarball.
+  registration, and `--restore` (which reads only the latest `aa-ma-forge-*` backup) may not
+  recreate them. Restore them from the `~/.claude/backups/cci-m2-<ts>.tgz` tarball
+  (M2: `cci-m2-20261009T073602Z.tgz`, 11 files, count-verified).
+- **Neutral:** `ruff-format.sh` ships verbatim, so it does not honour `AA_MA_HOOKS_DISABLE`; it is
+  advisory and always exits 0. README says so.
+- **Neutral:** `python-quality-gates` named five user-local commands (`commit-and-push`,
+  `pre-commit-full`, `release-prep`, `doc-sync`, `doc-fix`) as `/x`. Shipped content may not
+  invoke local-only commands (`surface_allowlist.py`), so the text now names them as user-local
+  commands this plugin does not ship. `llm-output-safety` and `bash-defensive-patterns` are
+  orphans (nothing in the forge invokes them) until the planned `coding-standards.md` rule.
+- **Neutral:** a fork's local-only file (`bash-defensive-patterns/references/advanced-patterns.md`)
+  is kept out of `FORKS.json` `files`, since fork-drift would report it ORPHAN; it carries a
+  line-1 `Derived from` comment instead.
 - **Bad:** the live `secrets-management` changes content when `install.sh` relinks it (the
   upstream fixes above).
 

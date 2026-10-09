@@ -38,6 +38,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0016](0016-living-architecture-doc.md) | The living architecture doc: generated `docs/architecture/` checked for drift in CI | Implemented | 2026-09-24 |
 | [0017](0017-assess-codebase-adaptation.md) | `assess-codebase`: a clean-room Adaptation, two skills over one analysis contract | Implemented | 2026-10-01 |
 | [0018](0018-touched-code-lint-gate.md) | Touched-code lint gate: pre-commit as the one harness, file-level compliance, no backfill | Accepted | 2026-10-08 |
+| [0019](0019-coding-doctrine-skill-migration.md) | Coding-doctrine skill migration: five global skills and the ruff hook move into the forge | Accepted | 2026-10-09 |
 
 ## Statuses
 

@@ -320,20 +320,23 @@ fi
 # multi-milestone plan: re-running after new hook files land adds their
 # registrations without touching already-registered entries.
 #
-# Hook entries use a semicolon-delimited schema (a matcher is a regex and may hold `|`):
-#   event;matcher;source_basename;timeout;statusMessage
+# Hook entries use a pipe-delimited schema:
+#   event|matcher|source_basename|timeout|statusMessage
+# A matcher is a regex and may itself hold `|` (`Edit|Write`), so rows are split by
+# anchoring on the `<name>.sh|<timeout>|` field — the same grammar codemem's
+# plugin-surface extractor uses (`_HOOK_ROW`, packages/codemem-mcp/…/plugin_surface.py).
 # Empty matcher = no tool-name match restriction (applies to SessionStart, etc.).
 
 AA_MA_HOOKS=(
-    "SessionStart;;aa-ma-session-start.sh;5;Loading AA-MA context..."
-    "PreCompact;;pre-compact-aa-ma.sh;5;"
-    "PreToolUse;Bash;aa-ma-commit-signature.sh;10;"
-    "PreToolUse;Bash;security-static-check.sh;10;"
-    "SessionEnd;;aa-ma-session-end-dirty.sh;5;"
-    "PostToolUse;Bash;aa-ma-commit-drift.sh;5;"
-    "PreToolUse;ExitPlanMode;aa-ma-plan-skip-warn.sh;5;"
-    "SessionEnd;;aa-ma-plan-skip-warn.sh;5;"
-    "PostToolUse;Edit|Write;ruff-format.sh;10;"
+    "SessionStart||aa-ma-session-start.sh|5|Loading AA-MA context..."
+    "PreCompact||pre-compact-aa-ma.sh|5|"
+    "PreToolUse|Bash|aa-ma-commit-signature.sh|10|"
+    "PreToolUse|Bash|security-static-check.sh|10|"
+    "SessionEnd||aa-ma-session-end-dirty.sh|5|"
+    "PostToolUse|Bash|aa-ma-commit-drift.sh|5|"
+    "PreToolUse|ExitPlanMode|aa-ma-plan-skip-warn.sh|5|"
+    "SessionEnd||aa-ma-plan-skip-warn.sh|5|"
+    "PostToolUse|Edit|Write|ruff-format.sh|10|"
 )
 
 SETTINGS_FILE="${CLAUDE_HOME}/settings.json"
@@ -461,7 +464,12 @@ register_hook() {
 }
 
 for entry in "${AA_MA_HOOKS[@]}"; do
-    IFS=';' read -r h_event h_matcher h_src h_timeout h_status <<< "${entry}"
+    if ! [[ "${entry}" =~ ^([A-Za-z]+)\|(.*)\|([A-Za-z0-9_.-]+\.sh)\|([0-9]+)\|(.*)$ ]]; then
+        error "Unparseable AA_MA_HOOKS row: ${entry}"
+        exit 1
+    fi
+    h_event="${BASH_REMATCH[1]}" h_matcher="${BASH_REMATCH[2]}" h_src="${BASH_REMATCH[3]}"
+    h_timeout="${BASH_REMATCH[4]}" h_status="${BASH_REMATCH[5]}"
     register_hook "${h_event}" "${h_matcher}" "${h_src}" "${h_timeout}" "${h_status}"
 done
 

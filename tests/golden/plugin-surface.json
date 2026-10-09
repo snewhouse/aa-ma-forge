@@ -937,6 +937,18 @@
    "src": "skill:goal-condition-synthesis"
   },
   {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:logging-and-comments"
+  },
+  {
+   "dst": "hook:ruff-format.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:logging-and-comments"
+  },
+  {
    "dst": "command:aa-ma-plan",
    "kind": "command",
    "ref_class": "ON_DISK",
@@ -1031,6 +1043,18 @@
    "kind": "command",
    "ref_class": "DANGLING",
    "src": "skill:prototype"
+  },
+  {
+   "dst": "skill:doc-drift-detection",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:python-quality-gates"
+  },
+  {
+   "dst": "skill:logging-and-comments",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:python-quality-gates"
   },
   {
    "dst": "skill:aa-ma-plan-workflow",
@@ -1189,6 +1213,12 @@
    "src": "skill:understand-codebase"
   },
   {
+   "dst": "skill:python-quality-gates",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
    "dst": "skill:python-testing-patterns",
    "kind": "skill",
    "ref_class": "DECLARED_EXTERNAL",
@@ -1203,7 +1233,7 @@
   {
    "dst": "skill:secrets-management",
    "kind": "skill",
-   "ref_class": "DECLARED_EXTERNAL",
+   "ref_class": "ON_DISK",
    "src": "skill:understand-codebase"
   },
   {
@@ -1306,6 +1336,9 @@
   "pre-compact-aa-ma.sh": [
    "PreCompact"
   ],
+  "ruff-format.sh": [
+   "PostToolUse:Edit|Write"
+  ],
   "security-static-check.sh": [
    "PreToolUse:Bash"
   ]
@@ -1315,8 +1348,10 @@
   "command:sole-dev-merge",
   "hook:aa-ma-session-end-dirty.sh",
   "skill:aa-ma-execution",
+  "skill:bash-defensive-patterns",
   "skill:complexity-router",
   "skill:debugging-strategies",
+  "skill:llm-output-safety",
   "skill:write-a-skill"
  ]
 }

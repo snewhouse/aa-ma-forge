@@ -140,3 +140,10 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Decisions: §6.6 folded into the §6.8 code-reviewer pass (/rigor 5-agent cap). Double-check F1–F3 fixed in M1 (Ste). Deferred to M6: escape control characters in finding output (security I1); single-call diff if latency shows (code-review I2).
 - Observed, out of scope: `src/aa_ma/grammar.py:263` SyntaxWarning (invalid escape `\S` in a docstring) on every gate call. `gh pr checks` in this gh version has no `--json`; polls must not hide stderr (L-036).
 - Post-merge (Sub-step 2.0): update gitignored project CLAUDE.md:141 "Ruff lint on `src/`".
+
+## [2026-10-09] ADR-0019 approval + M2 decisions
+- ADR-0019 (coding-doctrine skill migration) → Accepted by Ste (AskUserQuestion, 2026-10-09).
+- 2.1: secrets-management pinned to live upstream wshobson/agents @ 46891e7 byte-exact (picks up no-echo + pinned-image fixes); bash-defensive-patterns kept as Ste's copy, derived @ 5d65aa1 (upstream restructure not rebased). Adoption rows have no upstream SHA (Ste-authored).
+- 2.3: every fork ships its upstream MIT LICENSE, incl. the 5 pre-existing mattpocock forks (gap found by the new test).
+- 2.4: payload captured via isolated headless `claude -p --settings <tmp>` (Ste's choice). AA_MA_HOOKS keeps the `|` schema; install.sh parses rows anchored on `<name>.sh|<timeout>|` like codemem `_HOOK_ROW` (a `;` switch broke the plugin-surface extractor).
+- 2.5: five user-local `/x` refs in python-quality-gates reworded (allowlist policy: local-only commands are not declared-external); llm-output-safety + bash-defensive-patterns pinned as orphans until M12; ruff-format.sh stays verbatim and does not honour AA_MA_HOOKS_DISABLE (README states the exception).

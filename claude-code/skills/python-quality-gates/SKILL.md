@@ -30,12 +30,12 @@ Documentation drift is now **automatically enforced** by the commit workflows. S
 2. Did I change architecture or deps? → README update needed
 3. Feature, fix, or breaking change? → CHANGELOG entry needed
 
-**Automated enforcement:**
-- `/commit-and-push` — advisory warnings for version + CHANGELOG drift
-- `/pre-commit-full` — blocks on stale versions, breaking changes without CHANGELOG, AA-MA stale
-- `/release-prep` — blocks on all documentation drift (full `/doc-sync --fix`)
+**Automated enforcement** comes from user-local commands this plugin does not ship (where installed):
+- commit-and-push — advisory warnings for version + CHANGELOG drift
+- pre-commit-full — blocks on stale versions, breaking changes without CHANGELOG, AA-MA stale
+- release-prep — blocks on all documentation drift (full doc-sync with `--fix`)
 
-**Quick repair:** Run `/doc-fix` to auto-fix version strings and CHANGELOG entries.
+**Quick repair:** the doc-fix command, where installed, auto-fixes version strings and CHANGELOG entries.
 
 ## Logging & Comment Lint
 

@@ -10,7 +10,7 @@ Regex over ``claude-code/{commands,skills,agents,hooks,rules}`` (Ticket 4:
   ``aa-ma-*.sh`` naming convention, so a missing hook reads DANGLING, plus every
   on-disk hook by name).
 * ``/x`` that RESOLVES — ``commands/x.md``, else ``skills/x/`` (``/x-*`` expands over
-  commands only) — is an ON_DISK edge wherever it occurs. An unresolved ``/x`` counts only
+  commands, then skills: the forge's commands became skills) — is an ON_DISK edge wherever it occurs. An unresolved ``/x`` counts only
   when a backtick span STARTS with it (`` `/goal clear` ``, not `` `GET /healthz` ``);
   ``:`` joins a namespace (``/superpowers:brainstorming``), ``{`` ends no name
   (``/retro-{date}``). Unbackticked unresolved ``/x`` (``/tmp``) is prose, not a reference.
@@ -228,6 +228,8 @@ def _resolve(
     if glob:
         return [
             (f"command:{c}", NodeKind.COMMAND) for c in commands if c.startswith(name)
+        ] + [
+            (f"skill:{s}", NodeKind.SKILL) for s in sorted(skills) if s.startswith(name)
         ]
     if name in commands:
         return [(f"command:{name}", NodeKind.COMMAND)]

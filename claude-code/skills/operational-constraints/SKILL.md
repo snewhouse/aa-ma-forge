@@ -1,13 +1,7 @@
 ---
 name: operational-constraints
 description: Activate comprehensive operational constraints for disciplined execution. Use at session start, before complex tasks, during planning phases, or when encountering friction. Enforces token efficiency, tool protocols, parallel execution, TDD, and system mapping.
-triggers:
-  - ops-mode
-  - ultrathink
-  - operational mode
-  - disciplined execution
-  - complex task
-  - enable constraints
+when_to_use: Use for ops-mode, ultrathink, operational mode, disciplined execution, a complex task, or a request to enable constraints.
 ---
 
 # Operational Constraints Skill

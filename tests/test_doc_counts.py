@@ -43,7 +43,6 @@ def _mcp_tool_count() -> int:
 
 
 TRUTH = {
-    "commands": len(list((CC / "commands").glob("*.md"))),
     "skills": len(list((CC / "skills").glob("*/SKILL.md"))),
     "agents": len(list((CC / "agents").glob("*.md"))),
     "rules": len(list((CC / "rules").glob("*.md"))),
@@ -52,7 +51,6 @@ TRUTH = {
     ),  # top-level hooks/*.sh as the docs count them (incl. the plan-marker helper); hooks/lib/ excluded
 }
 PLUGIN_PATTERNS = {
-    "commands": [r"\b(\d+) (?:slash )?command(?: file)?s\b", r"\bCommands \((\d+)\)"],
     "skills": [r"\b(\d+) skills?(?: directories)?\b", r"\bSkills \((\d+)\)"],
     "agents": [r"\b(\d+) agent(?: file)?s\b", r"\bAgents \((\d+)\)"],
     "rules": [

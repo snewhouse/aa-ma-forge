@@ -7,8 +7,10 @@
 # Results append to .claude/evals/<YYYY-MM-DD>.jsonl (gitignored), one line per case.
 #
 # Sandbox, in layers:
-#   - claude runs under `env -i` with PATH, HOME (its credentials live there), locale and
-#     the Anthropic auth variables only: no GH_TOKEN, GITHUB_TOKEN, SSH_AUTH_SOCK or cloud keys.
+#   - claude runs under `env -i` with PATH, HOME (its credentials live there) and locale only:
+#     no GH_TOKEN, GITHUB_TOKEN, SSH_AUTH_SOCK or cloud keys. ANTHROPIC_API_KEY is dropped too
+#     unless RUN_EVALS_ALLOW_API_KEY=1: with a claude.ai login, evals then count against plan
+#     usage and can never switch to per-token API billing.
 #   - `claude plugin eval` gives every run a temp HOME and an empty workspace; each case's
 #     scaffold makes a git repo there with no remote (evals/_lib/).
 #   - No tool beyond the read-only set the case lists is granted: Bash, Write, Edit,
@@ -18,7 +20,8 @@
 #
 # Env: RUN_EVALS_DIR (eval dir below the repo root, default evals), RUN_EVALS_MODEL
 # (default sonnet), RUN_EVALS_MAX_COST_USD (default 5), RUN_EVALS_RESULTS (default
-# <repo>/.claude/evals), CLAUDE_BIN (default claude; tests stub it).
+# <repo>/.claude/evals), RUN_EVALS_ALLOW_API_KEY (1 forwards ANTHROPIC_API_KEY),
+# CLAUDE_BIN (default claude; tests stub it).
 
 set -uo pipefail
 
@@ -33,7 +36,9 @@ OUT="$(mktemp -d "${TMPDIR:-/tmp}/run-evals.XXXXXX")"
 trap 'rm -rf "${OUT}"' EXIT
 
 clean_env=(PATH="${PATH}" HOME="${HOME}" LANG="${LANG:-C.UTF-8}")
-for var in ANTHROPIC_API_KEY CLAUDE_CODE_OAUTH_TOKEN CLAUDE_CONFIG_DIR; do
+forward=(CLAUDE_CODE_OAUTH_TOKEN CLAUDE_CONFIG_DIR)
+[[ "${RUN_EVALS_ALLOW_API_KEY:-0}" == 1 ]] && forward+=(ANTHROPIC_API_KEY)
+for var in "${forward[@]}"; do
     [[ -n "${!var:-}" ]] && clean_env+=("${var}=${!var}")
 done
 

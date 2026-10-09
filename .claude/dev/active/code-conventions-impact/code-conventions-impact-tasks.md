@@ -259,7 +259,8 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `Skill(complexity-router)` run first (85% milestone); its verdict logged in context-log.
   - On branch `prototype/cmd-to-skill`, `aa-ma-search` only is converted, then installed, uninstalled and reinstalled in a fake `CLAUDE_HOME` and in an L-1315 isolated probe: `/aa-ma-search` resolves; the stale command link is removed; a foreign symlink is recorded before replacement.
   - `provenance.log` has `[ts] PROTOTYPE — Milestone 3: Commands → skills (13), install hygiene — <verdict> — verdict-changes-plan: YES|NO`, plus a list of verdict deltas in the Result Log.
-- Result Log:
+- Status: COMPLETE
+- Result Log: Mode: HITL — Ste: Proceed. complexity-router: weighted 61%, auto-triggers (50+ files; breaking path contract commands/→skills/) → 80% Critical → deep review = this prototype + HITL gates. Prototype `prototype/cmd-to-skill` @ ac5f814 (pushed; throwaway): `git mv commands/aa-ma-search.md → skills/aa-ma-search/SKILL.md` (already had `name:`); install.sh gains (a) a stale-command-link sweep — links in `~/.claude/commands/*.md` whose `readlink` is under `${REPO_ROOT}/claude-code/` and whose source is gone are removed; (b) `record_foreign_symlink` in `create_symlink` — a link whose destination is not under `${REPO_ROOT}/` is appended to `${BACKUP_DIR}/foreign-symlinks.tsv` (`<link>\t<dest>`) before `rm`. Fake HOME (pre-state: stale command link into the repo + foreign `skills/aa-ma-search` → `elsewhere/`): install rc=0 → stale link removed, foreign link recorded (1 row) then replaced by the repo link, 13 other command links created; `uninstall.sh --restore` rc=0 → skill link and all command links gone, **foreign link NOT restored**; reinstall rc=0 and again rc=0 → 0 new foreign rows, 0 stale removals (idempotent). L-1315 probe (`claude -p --setting-sources project --strict-mcp-config`): listing shows `aa-ma-search` with its own description; line-1-comment control shows the comment (discriminating); `/aa-ma-search zzqx-probe-term` ran the skill body (its report frame), 0 `Unknown skill/command` lines. Verdict deltas: Δ1 (changes plan) `uninstall.sh --restore` must replay `foreign-symlinks.tsv` → added to 3.2 AC; Δ2 a link into a *different* forge checkout (e.g. main while installing from a worktree) is recorded as foreign — by design, noted for the ADR; Δ3 the stale sweep is `REPO_ROOT`-scoped, so installing from a worktree leaves main's command links alone (D7 safe) and the live cleanup happens on install from main (4.0, already planned); Δ4 uninstall already removes dangling links into the repo by prefix — no change; Δ5 none of the 11 new skill names collide with anything in live `~/.claude/skills`; the only foreign live link is `skills/grill-me` → `~/.agents/skills/grill-me`, which no forge source targets.
 
 ### Sub-step 3.2: install/uninstall hygiene (TDD)
 - Status: PENDING
@@ -270,6 +271,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `uninstall.sh` derives its deregistration list from install's `AA_MA_HOOKS` (not a fixed count), including `security-static-check` and `plan-skip-warn`, also under `--restore`.
   - `install.sh` REQUIRED_DIRS (:80, `~/.claude/commands`) updated.
   - `tests/hooks/install_dry_run.bats` passes.
+  - (3.1 Δ1) `uninstall.sh --restore` replays `foreign-symlinks.tsv`: a foreign link replaced by install points at its original destination again after `--restore`.
 - Result Log:
 
 ### Sub-step 3.3: Move 11 commands + fix paths

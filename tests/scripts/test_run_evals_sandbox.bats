@@ -77,6 +77,18 @@ EOF2
   grep -q '^HOME=' "$WORK/env"
 }
 
+@test "drops ANTHROPIC_API_KEY unless RUN_EVALS_ALLOW_API_KEY=1, so evals never switch to API billing" {
+  _stub_claude
+  ANTHROPIC_API_KEY=sk-test run "$RUN_EVALS"
+  [ "$status" -eq 0 ]
+  run grep -E '^ANTHROPIC_API_KEY=' "$WORK/env"
+  [ "$status" -eq 1 ]
+  [[ "$(cat "$WORK/env")" != *sk-test* ]]
+  ANTHROPIC_API_KEY=sk-test RUN_EVALS_ALLOW_API_KEY=1 run "$RUN_EVALS"
+  [ "$status" -eq 0 ]
+  grep -qx 'ANTHROPIC_API_KEY=sk-test' "$WORK/env"
+}
+
 @test "writes one JSONL line per case and a summary, and exits 0 with rc in the last line" {
   _stub_claude
   run "$RUN_EVALS"

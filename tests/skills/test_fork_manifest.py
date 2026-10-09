@@ -163,13 +163,13 @@ def test_cli_classify_all_reads_stdin(
     proto = load_manifest(MANIFEST)["prototype"]
     fetched = (
         "\n".join(f"prototype\t{f}\t{md5}" for f, md5 in proto.upstream_md5.items())
-        + "\nwrite-a-skill\tSKILL.md\tnull\n"
+        + "\naa-ma-research\tSKILL.md\tnull\n"
     )
     monkeypatch.setattr("sys.stdin", io.StringIO(fetched))
     assert _cli(["classify-all", "--manifest", str(MANIFEST)]) == 0
     out = capsys.readouterr().out
     assert "prototype | * | | | SAME" in out
-    assert "write-a-skill | * | | | ORPHAN" in out
+    assert "aa-ma-research | * | | | ORPHAN" in out
     assert (
         "grill-with-docs | * | | | ORPHAN" in out
     )  # absent from stdin → every file None

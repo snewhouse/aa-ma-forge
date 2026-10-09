@@ -23,7 +23,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0001](0001-engineering-standards-architecture.md) | Engineering Standards Architecture for aa-ma-plan Workflows | Implemented | 2026-05-09 |
 | [0002](0002-grill-with-docs-adoption.md) | Adopt `grill-with-docs` from mattpocock/skills and wire into /aa-ma-plan Phase 1.3 | Implemented | 2026-05-10 |
 | [0003](0003-prototype-adoption.md) | Adopt `prototype` from mattpocock/skills (LOGIC + UI branches) | Implemented | 2026-05-10 |
-| [0004](0004-write-a-skill-adoption.md) | Adopt `write-a-skill` from mattpocock/skills | Implemented | 2026-05-10 |
+| [0004](0004-write-a-skill-adoption.md) | Adopt `write-a-skill` from mattpocock/skills | Superseded by 0021 | 2026-05-10 |
 | [0005](0005-post-impl-adversarial-review.md) | Post-Impl Adversarial Review (Phase 6.8 + /verify-impl) | Implemented | 2026-05-11 |
 | [0006](0006-understand-codebase-adoption.md) | Adopt `understand-codebase` onboarding skill + 4 worker agents + `/understand-codebase` into the AA-MA Forge ecosystem | Implemented | 2026-05-12 |
 | [0007](0007-aa-ma-tui-tracker.md) | `aa-ma-tui` — Read-Only Textual TUI + Rich Snapshot for AA-MA Task Tracking | Implemented | 2026-05-18 |
@@ -40,6 +40,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0018](0018-touched-code-lint-gate.md) | Touched-code lint gate: pre-commit as the one harness, file-level compliance, no backfill | Accepted | 2026-10-08 |
 | [0019](0019-coding-doctrine-skill-migration.md) | Coding-doctrine skill migration: five global skills and the ruff hook move into the forge | Accepted | 2026-10-09 |
 | [0020](0020-commands-become-skills.md) | Commands become skills: the forge ships no slash commands | Accepted | 2026-10-09 |
+| [0021](0021-writing-for-agents-fork.md) | Fork `writing-for-agents`; retire `write-a-skill` | Accepted | 2026-10-09 |
 
 ## Statuses
 

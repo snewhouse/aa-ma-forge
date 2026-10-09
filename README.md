@@ -251,7 +251,7 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `understand-codebase` | Tiered codebase onboarding — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives; the engine behind `/understand-codebase` |
 | `assess-codebase` | Measure → judge → refute → finalize over the `aa-ma-analysis` CLI; the engine behind `/assess-codebase` |
 | `verify-impl` | Post-impl adversarial review symmetric to `plan-verification`; dispatches up to 5 parallel audit agents at Phase 6.8 |
-| `write-a-skill` | Authoring recipe: gather → draft SKILL.md (+REFERENCE/EXAMPLES/scripts) → review; description rules, 100-line split, 6-item checklist (Derived — upstream removed in 1.0.0) |
+| `writing-for-agents` | Reference for writing any document an agent consumes (skills, `CLAUDE.md`, `AGENTS.md`): context pointers, information hierarchy, completion criteria, invocation choice; plus the forge's `## In this repo` conventions (Derived from mattpocock/skills @ c55ee46 — ADR-0021) |
 | `goal-condition-synthesis` | Synthesize a Claude Code `/goal` condition from plan artifacts with a turn-cap cost ceiling; consumed by `/execute-aa-ma-full` §2.5 and `/verify-plan --iterate` |
 | `logging-and-comments` | Logging and comment standard for Python and Bash, with the Ruff baseline that enforces it |
 | `python-quality-gates` | Zero-tolerance test gate and pre-commit documentation checklist |

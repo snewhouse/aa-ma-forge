@@ -1,6 +1,6 @@
 # 0004. Adopt `write-a-skill` from mattpocock/skills
 
-**Status:** Implemented — Derived (2026-05-10; amended 2026-09-21)
+**Status:** Superseded by [0021](0021-writing-for-agents-fork.md) (2026-10-09; was Implemented — Derived, 2026-05-10, amended 2026-09-21)
 **Date:** 2026-05-10
 **Deciders:** Stephen Newhouse, Claude (planning + execution sessions)
 **Tags:** `workflow`, `aa-ma`, `skills`, `release-v0.6.0`, `external-fork`, `meta-tooling`

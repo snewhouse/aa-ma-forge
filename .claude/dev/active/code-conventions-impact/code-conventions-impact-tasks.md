@@ -329,7 +329,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 4: Prompt-as-code checks + writing-for-agents fork
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 3
 - Complexity: 60%
 - Effort: 2 days
@@ -346,7 +346,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 4 (version-pipeline).
 
 ### Sub-step 4.0: Post-merge of M3
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
@@ -354,7 +354,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - For each of the 13 `/names`, an isolated `claude -p "/<name> --help-like no-op" </dev/null` probe (L-1322 prompt-first): 13/13 resolve; no stdout contains `Unknown skill` or `Unknown command`.
   - `ls ~/.claude/commands/ | wc -l` drops by 14 (13 moved + grill-me); provenance logs `COMMANDS pre=N post=N-14`; `~/.claude/skills/grill-me` still points to `~/.agents/…`.
   - Worktree for M4 cut from fresh main; `uv sync && uv run codemem build` exit 0.
-- Result Log:
+- Result Log: Mode: HITL — Ste ran the live `scripts/install.sh` from the main checkout (14:18 and 14:25; backups `~/.claude/backups/aa-ma-forge-20261009-141822`, `-142526`) after M3 PR #20 merged (main 13de435 == origin/main). 13 isolated probes (Ste chose "Sandboxed"): each `/name` run in its own `mktemp -d` + `git init` (no remote) with `claude -p "/<name> zzqx-probe-noop …" --model haiku --max-turns 1 --strict-mcp-config --disallowedTools Bash Write Edit NotebookEdit WebFetch WebSearch Agent </dev/null` → 13/13 rc=0, each reply names the loaded skill, 0 `Unknown skill`/`Unknown command` lines across stdout+stderr. `~/.claude/commands/`: post=15, all regular user files, 0 symlinks; pre=29 is derived (15 user files with mtimes before today + the 14 forge links installed from main by M2's 3.0 install), because the 14:18 install that swept them ran before this session and its output was not kept → COMMANDS line logged with that caveat. `readlink ~/.claude/skills/grill-me` = `../../.agents/skills/grill-me` (untouched). Worktree `.worktrees/feat/cci-m4-prompt-as-code` cut from main @ 13de435; `uv sync` rc=0; `uv run codemem build` rc=0 (248 files). Deferred from M3: local gitignored CLAUDE.md updated (commands/ line removed, skills 38, hooks 9 + ruff-format; Flow line); pre-compact home-path fix already landed in M3 (ba60dc1). Uncommitted L-044 moved into this branch (2e21eaf). Noted, not fixed here: `src/aa_ma/grammar.py:263` SyntaxWarning (`\S` in a non-raw docstring).
 
 ### Sub-step 4.1: Frontmatter schema (TDD)
 - Status: PENDING

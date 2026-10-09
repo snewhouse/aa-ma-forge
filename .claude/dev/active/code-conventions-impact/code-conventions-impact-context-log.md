@@ -226,3 +226,11 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - AC mapping: the tasks AC was written for the `claude -p` fallback (`--disallowedTools`, `--allowedTools`). With `claude plugin eval` (4.3), tools a case does not list are absent from the session; `env -i`, the temp output dir, JSONL and exit-0 contract are kept as written. LIVE bats prove git push and `$HOME` writes cannot happen.
 - Grader lesson: `tool_used … max: 0` counts refused calls, so "Bash was never used" must be asserted on the session's tool list, with a positive-control regex so `not_contains` is not vacuous.
 - Baseline (2026-10-09, sonnet): 14/24 pass; 9 of 10 fails are `skill-fired` (description did not trigger on the user's phrasing). Input for the eval re-runs planned in 9.6, 10.9, 11.8; not fixed here (scope).
+
+## [2026-10-09] Skill-triggering diagnosis → Sub-step 4.7 (Ste: "the skills should trigger — why don't they?")
+- Kept traces (sonnet, 4 failing cases; all 17 forge AA-MA skills were in the 55-skill listing):
+  - aa-ma-plan/planning-standard → model invoked `aa-ma-plan-workflow` (sibling collision: both claim "plan with AA-MA").
+  - plan-verification/bad-critical-path → no skill; read plan.md + reference.md itself. Its description has no "Use when" and says "Invoked by Phase 4.5 … and standalone /verify-plan" (reads as internal machinery); `verify-plan` also claims "verify an AA-MA plan".
+  - execute-aa-ma-step/next-step → no skill; globbed and read tasks.md. The case prompt ("report … then stop") made it a Q&A answerable from one file; `aa-ma-execution` ("proactively use when detecting .claude/dev/active") overlaps too.
+  - writing-for-agents/write-description → no tool call; wrote from knowledge. Leading words "Writing documents for agents" do not match "write the description for a skill".
+- Decision (Ste: add 4.7 now): fix collisions by routing in descriptions (not `disable-model-invocation`, which would cut `Skill()` callers), rewrite the 8 descriptions, rephrase eval prompts, re-run evals vs the 14/24 baseline.

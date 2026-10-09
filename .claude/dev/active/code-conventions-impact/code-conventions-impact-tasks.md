@@ -422,6 +422,17 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — Milestone 4: Prompt-as-code checks + writing-for-agents fork — version-pipeline — <evidence>`, naming the `scripts/release.sh` change, the sandbox bats name and the eval summary line.
 - Result Log: Mode: AFK — auto-dispatched. `CRITICAL_PATH_REVIEW — Milestone 4: Prompt-as-code checks + writing-for-agents fork — version-pipeline — …` appended to provenance.log, naming the scripts/release.sh change (--skip-evals, EVALS seam, advisory block before edits; version/tag/push path unchanged), the 4 new release.bats cases (18/18), the sandbox bats file and its LIVE case (9/9), and the eval summary line (24 cases, 14 pass, 10 fail; rc=1, advisory).
 
+### Sub-step 4.7: Skill triggering fix (added 2026-10-09, Ste)
+- Status: PENDING
+- Mode: AFK
+- Dependencies: Sub-step 4.6
+- Acceptance Criteria:
+  - Diagnosis recorded (context-log): kept traces of 4 failing cases show sibling collision (aa-ma-plan-workflow fired for an aa-ma-plan request), no-skill answers from files (execute-aa-ma-step, plan-verification), and a weak pointer (writing-for-agents).
+  - Descriptions rewritten per writing-for-agents (leading word first, one trigger per branch, routing to the sibling) for execute-aa-ma-step, execute-aa-ma-milestone, aa-ma-execution, aa-ma-plan, aa-ma-plan-workflow, plan-verification, verify-plan; writing-for-agents gains a local `when_to_use` (fork test: upstream text unedited apart from that one frontmatter line); no `disable-model-invocation` change (callers: system-mapping → aa-ma-plan-workflow, verify-plan → plan-verification).
+  - Eval prompts phrased as real requests (no "report … then stop" hints); `tests/test_frontmatter_at_top.py`, `tests/test_eval_cases.py`, fork tests pass.
+  - `scripts/run-evals.sh` re-run: pass count and `skill-fired` failures compared with the 14/24 baseline, recorded in provenance (advisory, not gated).
+- Result Log:
+
 ---
 
 ## Milestone 5: Split the six oversized prompt files (behaviour-preserving)

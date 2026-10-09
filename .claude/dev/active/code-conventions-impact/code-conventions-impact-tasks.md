@@ -117,7 +117,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 2: Migrate 5 skills + ruff hook into the forge
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 1
 - Complexity: 60%
 - Effort: 1.5 days
@@ -134,6 +134,8 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `test_plugin_surface` and `test_doc_counts` pass (skills 22→27, top-level hooks 8→9); `skill:secrets-management` is ON_DISK in `tests/golden/plugin-surface.json`.
   - `docs/adr/NNNN-coding-doctrine-skill-migration.md` exists with `Status: Accepted` + INDEX row + context-log approval.
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 2.
+
+- Result Log: COMPLETE 2026-10-09, 8/8 criteria verified, HARD gate APPROVED by Ste. 5 skills + adapted ruff hook in the forge (ADR-0019 Accepted); §6.8 PASS_WITH_WARNINGS (1 CRITICAL disputed, 9 WARNING fixed RED 4e6889e → GREEN adb3524); leak in imported skill rewritten out of history (force-push 4a23e0a by Ste; Support purge pending). pytest 2482/0, bats 355/355, PR #19 CI 7/7.
 
 ### Sub-step 2.0: Post-merge of M1
 - Status: COMPLETE

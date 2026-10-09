@@ -57,6 +57,7 @@ one test file I had edited. It reformatted every file in the directory; five unr
 hits in files the milestone never meant to touch).
 **Rule:** Format by file, never by directory: `uv run ruff format <the files in git diff --name-only>`.
 Before committing, check `git diff --cached --stat` lists only files the step meant to change (L-007).
+**Recurrence (M4 §6.6, 2026-10-09):** ran `uv run ruff check --fix tests/` — same mistake through `check --fix`; it rewrote `tests/test_grammar.py` (caught by `git status`, reverted). The rule covers every ruff verb that writes (`format`, `check --fix`, `--unsafe-fixes`): pass an explicit file list (`F="<files>"; uv run ruff check --fix $F`), never a directory, and run `git status --short` before staging.
 ---
 
 ## L-039 (2026-10-08; repeated 2026-10-09) — Private repo names reach this public repo (research docs, then imported skills)

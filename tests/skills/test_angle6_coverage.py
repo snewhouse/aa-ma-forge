@@ -37,7 +37,7 @@ def _plan(contract: str, nodes: str = "", created: str | None = "2026-09-25") ->
     return (
         f"# p Plan\n\n{front}## Milestones\n\n### Milestone 1: x\n\n- Audit-Profile: code-only\n\n"
         f"#### Contract\n```\nFiles:\n{contract}\n```\n\n"
-        f"## 13. Architecture View\n\n### Component view\n\n```mermaid\nflowchart LR\n{nodes}  Z[\"prose only\"]\n```\n"
+        f'## 13. Architecture View\n\n### Component view\n\n```mermaid\nflowchart LR\n{nodes}  Z["prose only"]\n```\n'
     )
 
 
@@ -59,7 +59,9 @@ def test_all_drawn_gives_none():  # AC2
     assert coverage.coverage_findings(_plan(THREE, nodes)) == []
 
 
-@pytest.mark.parametrize(("created", "fires"), [("2026-09-10", False), (None, False), ("2026-09-11", True)])
+@pytest.mark.parametrize(
+    ("created", "fires"), [("2026-09-10", False), (None, False), ("2026-09-11", True)]
+)
 def test_grandfathered_before_the_cutover(created, fires):  # AC3
     assert bool(coverage.coverage_findings(_plan(THREE, created=created))) is fires
 
@@ -93,10 +95,17 @@ def test_exempt_rows(row):
 
 def test_a_directory_node_covers_everything_beneath_it():
     rows = "  Modify  claude-code/skills/u/SKILL.md\n  Create  claude-code/skills/u/references/x.md\n"
-    assert coverage.coverage_findings(_plan(rows, '  U["claude-code/skills/u/"]\n')) == []
-    assert coverage.coverage_findings(_plan(rows, '  U["claude-code/skills/u"]\n')) == []
+    assert (
+        coverage.coverage_findings(_plan(rows, '  U["claude-code/skills/u/"]\n')) == []
+    )
+    assert (
+        coverage.coverage_findings(_plan(rows, '  U["claude-code/skills/u"]\n')) == []
+    )
     # a prefix that is not a path component does not cover
-    assert len(coverage.coverage_findings(_plan(rows, '  U["claude-code/skills/uu"]\n'))) == 2
+    assert (
+        len(coverage.coverage_findings(_plan(rows, '  U["claude-code/skills/uu"]\n')))
+        == 2
+    )
 
 
 def test_template_file_lines_braces_comments_and_suffixes():
@@ -105,12 +114,20 @@ def test_template_file_lines_braces_comments_and_suffixes():
         "  Modify  src/rules/{a,b}.yml   # two files\n"
         "  Modify  src/x.py, src/y.py\n"
     )
-    assert _codes(_plan(rows)) == ["src/m.py", "src/rules/a.yml", "src/rules/b.yml", "src/x.py", "src/y.py"]
+    assert _codes(_plan(rows)) == [
+        "src/m.py",
+        "src/rules/a.yml",
+        "src/rules/b.yml",
+        "src/x.py",
+        "src/y.py",
+    ]
 
 
 def test_a_contract_quoted_inside_an_example_fence_is_not_read():
     text = _plan("  Modify  src/a.py\n", '  A["src/a.py"]\n').replace(
-        "## 13.", "- [ ] Add to the plan:\n\n````markdown\n#### Contract\n```\n# file: path/to/module.py\n```\n````\n\n## 13.", 1
+        "## 13.",
+        "- [ ] Add to the plan:\n\n````markdown\n#### Contract\n```\n# file: path/to/module.py\n```\n````\n\n## 13.",
+        1,
     )
     assert coverage.coverage_findings(text) == []
 
@@ -138,14 +155,22 @@ def test_the_gate_never_computes_coverage():
 
 def test_check_8_never_names_the_gate():  # AC4 proxy, scoped to check 8 (Ste 2026-09-25)
     text = SKILL.read_text(encoding="utf-8")
-    check_8 = text[text.index("8. **Contract paths drawn in §13"): text.index("Parsers for checks")]
+    check_8 = text[
+        text.index("8. **Contract paths drawn in §13") : text.index(
+            "Parsers for checks"
+        )
+    ]
     assert not re.search(r"aa-ma-gate|aa_ma[._]gate", check_8)
 
 
 def test_coverage_module_never_imports_the_gate():
-    tree = ast.parse((ROOT / "src/aa_ma/render/coverage.py").read_text(encoding="utf-8"))
+    tree = ast.parse(
+        (ROOT / "src/aa_ma/render/coverage.py").read_text(encoding="utf-8")
+    )
     mods = {n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
-    mods |= {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
+    mods |= {
+        a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names
+    }
     assert not any(m == "aa_ma.gate" or m.endswith(".gate") for m in mods)
 
 
@@ -160,19 +185,25 @@ def test_skill_appends_check_8_without_renumbering():
 
 def test_plan_command_seeds_section_13_from_the_graph():
     text = PLAN_CMD.read_text(encoding="utf-8")
-    seed = text[text.index("### Phase 4:"): text.index("### Phase 4.2:")]
+    seed = text[text.index("### Phase 4:") : text.index("### Phase 4.2:")]
     assert "codemem" in seed and "draw --level L2" in seed and "--scope" in seed
     assert "--direction both" in seed and "--hops 1" in seed
     assert "codemem build" in seed  # the no-index reason is printed, not an empty seed
 
 
 def test_spec_item_13_names_the_coverage_rule():
-    item = next(ln for ln in SPEC.read_text(encoding="utf-8").splitlines() if ln.startswith("13. **Architecture View**"))
+    item = next(
+        ln
+        for ln in SPEC.read_text(encoding="utf-8").splitlines()
+        if ln.startswith("13. **Architecture View**")
+    )
     assert "--coverage" in item and "UNDRAWN_PATH" in item
 
 
 def test_this_plan_passes_its_own_rule():
-    plans = sorted(ROOT.glob(".claude/dev/*/diagram-generation/diagram-generation-plan.md"))
+    plans = sorted(
+        ROOT.glob(".claude/dev/*/diagram-generation/diagram-generation-plan.md")
+    )
     assert plans, "diagram-generation plan not found"
     assert coverage.coverage_findings(plans[0].read_text(encoding="utf-8")) == []
 
@@ -206,17 +237,36 @@ def seed_repo(tmp_path: Path) -> Path:
     return root
 
 
-def test_fixture_seed_is_byte_identical_to_the_command(seed_repo: Path, monkeypatch, capsys):  # AC5
+def test_fixture_seed_is_byte_identical_to_the_command(
+    seed_repo: Path, monkeypatch, capsys
+):  # AC5
     from codemem.cli import main as codemem_main
 
     monkeypatch.chdir(seed_repo)
-    assert codemem_main(["draw", "--level", "L2", "--scope", "src/app/a.py", "--hops", "1", "--direction", "both"]) == 0
+    assert (
+        codemem_main(
+            [
+                "draw",
+                "--level",
+                "L2",
+                "--scope",
+                "src/app/a.py",
+                "--hops",
+                "1",
+                "--direction",
+                "both",
+            ]
+        )
+        == 0
+    )
     seed = capsys.readouterr().out
     assert seed.count('-->|"@import"|') >= 1
     assert seed in SEEDED.read_text(encoding="utf-8")
 
 
-def test_seeded_fixture_has_no_phantom_edges_and_every_claim_is_evaluated(seed_repo: Path):  # AC5
+def test_seeded_fixture_has_no_phantom_edges_and_every_claim_is_evaluated(
+    seed_repo: Path,
+):  # AC5
     rep = lint_plan(SEEDED, seed_repo)
     assert [f for f in rep.findings if f.code == "PHANTOM_EDGE"] == []
     assert [u for u in rep.unknowns if "@" in u.message] == []  # evaluated, not skipped
@@ -240,13 +290,17 @@ def test_seeded_fixture_has_no_phantom_edges_and_every_claim_is_evaluated(seed_r
         ("  Create: src/x.py", "src/x.py"),
     ],
 )
-def test_every_contract_token_is_a_path(row, path):  # fail closed: a dropped path passes silently
+def test_every_contract_token_is_a_path(
+    row, path
+):  # fail closed: a dropped path passes silently
     assert _codes(_plan(row + "\n")) == [path]
 
 
 def test_brace_expansion_is_bounded():
     wide = "# file: src/" + "{a,b}" * 25 + ".py\n"  # 2**25 paths if expanded
-    deep = "# file: src/" + "{" * 3000 + "a" + "}" * 3000 + ".py\n"  # recursion depth 3000
+    deep = (
+        "# file: src/" + "{" * 3000 + "a" + "}" * 3000 + ".py\n"
+    )  # recursion depth 3000
     start = time.perf_counter()
     assert len(coverage.coverage_findings(_plan(wide))) == 1
     assert len(coverage.coverage_findings(_plan(deep))) == 1
@@ -254,7 +308,12 @@ def test_brace_expansion_is_bounded():
 
 
 def test_small_brace_lists_still_expand():
-    assert _codes(_plan("  Modify  src/{a,b}/{c,d}.py\n")) == ["src/a/c.py", "src/a/d.py", "src/b/c.py", "src/b/d.py"]
+    assert _codes(_plan("  Modify  src/{a,b}/{c,d}.py\n")) == [
+        "src/a/c.py",
+        "src/a/d.py",
+        "src/b/c.py",
+        "src/b/d.py",
+    ]
 
 
 def test_a_lone_slash_in_a_label_draws_nothing():
@@ -276,15 +335,26 @@ def test_cli_crash_is_unknown_not_findings(tmp_path, monkeypatch, capsys):
 
 def test_skill_names_every_exemption_the_code_applies():
     text = SKILL.read_text(encoding="utf-8")
-    check_8 = text[text.index("8. **Contract paths drawn in §13"): text.index("Parsers for checks")]
-    for name in (*coverage.EXEMPT_DIRS, *sorted(coverage.ROOT_DOCS), *sorted(coverage.MANIFESTS), "*.lock"):
+    check_8 = text[
+        text.index("8. **Contract paths drawn in §13") : text.index(
+            "Parsers for checks"
+        )
+    ]
+    for name in (
+        *coverage.EXEMPT_DIRS,
+        *sorted(coverage.ROOT_DOCS),
+        *sorted(coverage.MANIFESTS),
+        "*.lock",
+    ):
         assert name.removesuffix(".md") in check_8, name
 
 
 def test_cutover_prose_matches_the_constant():
     assert coverage.COVERAGE_CUTOVER in SKILL.read_text(encoding="utf-8")
     assert coverage.COVERAGE_CUTOVER in SPEC.read_text(encoding="utf-8")
-    before = (date.fromisoformat(coverage.COVERAGE_CUTOVER) - timedelta(days=1)).isoformat()
+    before = (
+        date.fromisoformat(coverage.COVERAGE_CUTOVER) - timedelta(days=1)
+    ).isoformat()
     assert coverage.coverage_findings(_plan(THREE, created=before)) == []
     assert coverage.coverage_findings(_plan(THREE, created=coverage.COVERAGE_CUTOVER))
 
@@ -292,7 +362,11 @@ def test_cutover_prose_matches_the_constant():
 def test_every_check_list_names_check_8():
     rule = (ROOT / "claude-code/rules/aa-ma.md").read_text(encoding="utf-8")
     assert "#8" in rule.split("Grandfathering (v0.12.0", 1)[1].split("\n\n", 1)[0]
-    routing = next(ln for ln in SKILL.read_text(encoding="utf-8").splitlines() if "Engineering Standards Auditor |" in ln)
+    routing = next(
+        ln
+        for ln in SKILL.read_text(encoding="utf-8").splitlines()
+        if "Engineering Standards Auditor |" in ln
+    )
     assert "check #8" in routing
 
 
@@ -301,7 +375,9 @@ def test_every_check_list_names_check_8():
 
 def _fence(md: Path, anchor: str) -> str:
     """The first ```bash fence after ``anchor``, dedented, up to its own closer line."""
-    lines = md.read_text(encoding="utf-8")[md.read_text(encoding="utf-8").index(anchor):].splitlines()
+    lines = md.read_text(encoding="utf-8")[
+        md.read_text(encoding="utf-8").index(anchor) :
+    ].splitlines()
     start = next(i for i, ln in enumerate(lines) if ln.strip() == "```bash")
     end = next(i for i in range(start + 1, len(lines)) if lines[i].strip() == "```")
     return textwrap.dedent("\n".join(lines[start + 1 : end])) + "\n"
@@ -320,19 +396,25 @@ def home(tmp_path: Path) -> Path:
 def _stub_uv(tmp_path: Path, rc: int) -> Path:
     bin_ = tmp_path / "bin"
     bin_.mkdir(exist_ok=True)
-    (bin_ / "uv").write_text(f'#!/bin/sh\nfor a in "$@"; do printf "%s\\n" "$a"; done > "{tmp_path}/uv-args"\nexit {rc}\n')
+    (bin_ / "uv").write_text(
+        f'#!/bin/sh\nfor a in "$@"; do printf "%s\\n" "$a"; done > "{tmp_path}/uv-args"\nexit {rc}\n'
+    )
     (bin_ / "uv").chmod(0o755)
     return bin_
 
 
 def _run(script: str, home: Path, bin_: Path, cwd: Path) -> str:
     env = {"HOME": str(home), "PATH": f"{bin_}:/usr/bin:/bin"}
-    return subprocess.run(["bash", "-c", script], cwd=cwd, env=env, capture_output=True, text=True).stdout
+    return subprocess.run(
+        ["bash", "-c", script], cwd=cwd, env=env, capture_output=True, text=True
+    ).stdout
 
 
 def test_seed_fence_skips_the_cut_with_no_existing_paths(tmp_path, home):
     bin_ = _stub_uv(tmp_path, 0)
-    script = _fence(PLAN_CMD, "**Step 4.2b").replace("<one existing path per line>\n", "")
+    script = _fence(PLAN_CMD, "**Step 4.2b").replace(
+        "<one existing path per line>\n", ""
+    )
     out = _run(script, home, bin_, tmp_path)
     assert "seed skipped" in out
     assert not (tmp_path / "uv-args").exists()
@@ -340,14 +422,24 @@ def test_seed_fence_skips_the_cut_with_no_existing_paths(tmp_path, home):
 
 def test_seed_fence_passes_each_path_as_one_scope(tmp_path, home):
     bin_ = _stub_uv(tmp_path, 0)
-    script = _fence(PLAN_CMD, "**Step 4.2b").replace("<one existing path per line>", "src/a b.py\nsrc/$(touch pwned).py\nsrc/*.py")
+    script = _fence(PLAN_CMD, "**Step 4.2b").replace(
+        "<one existing path per line>", "src/a b.py\nsrc/$(touch pwned).py\nsrc/*.py"
+    )
     _run(script, home, bin_, tmp_path)
     args = (tmp_path / "uv-args").read_text().splitlines()
-    assert [args[i + 1] for i, a in enumerate(args) if a == "--scope"] == ["src/a b.py", "src/$(touch pwned).py", "src/*.py"]
+    assert [args[i + 1] for i, a in enumerate(args) if a == "--scope"] == [
+        "src/a b.py",
+        "src/$(touch pwned).py",
+        "src/*.py",
+    ]
     assert not (tmp_path / "pwned").exists()
 
 
 def test_check_8_fence_never_reads_a_failed_run_as_clean(tmp_path, home):
     bin_ = _stub_uv(tmp_path, 127)
-    script = _fence(SKILL, "8. **Contract paths drawn in §13").replace("<plan.md>", "p.md").replace("<project-root>", ".")
+    script = (
+        _fence(SKILL, "8. **Contract paths drawn in §13")
+        .replace("<plan.md>", "p.md")
+        .replace("<project-root>", ".")
+    )
     assert "CRITICAL: check 8 could not run" in _run(script, home, bin_, tmp_path)

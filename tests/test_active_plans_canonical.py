@@ -29,7 +29,9 @@ def _active_tasks_files() -> list[Path]:
     """Every tasks.md under .claude/dev/active/, excluding git worktrees."""
     if not ACTIVE_DIR.exists():
         return []
-    return sorted(p for p in ACTIVE_DIR.glob("*/*-tasks.md") if ".worktrees" not in p.parts)
+    return sorted(
+        p for p in ACTIVE_DIR.glob("*/*-tasks.md") if ".worktrees" not in p.parts
+    )
 
 
 @pytest.mark.parametrize(
@@ -63,7 +65,9 @@ def test_lint_rejects_the_malformed_fixture() -> None:
     """
     text = (FIXTURE / "malformed-task-tasks.md").read_text(encoding="utf-8")
     violations = find_non_canonical(text)
-    assert len(violations) == 4, f"expected 4 violations, got {len(violations)}: {violations}"
+    assert len(violations) == 4, (
+        f"expected 4 violations, got {len(violations)}: {violations}"
+    )
     assert any("## M1:" in v for v in violations)
     assert any("## Milestone M2:" in v for v in violations)
     assert any("Em-dash" in v for v in violations)
@@ -89,7 +93,9 @@ WRITER_TEMPLATES = [
     "README.md",
 ]
 
-_PLACEHOLDER_RE = re.compile(r"^(#{2,3} (?:Milestone|Sub-step|Step|Task)) N(?:\.[MN0-9])?:", re.MULTILINE)
+_PLACEHOLDER_RE = re.compile(
+    r"^(#{2,3} (?:Milestone|Sub-step|Step|Task)) N(?:\.[MN0-9])?:", re.MULTILINE
+)
 
 
 def _normalise_placeholders(text: str) -> str:
@@ -129,7 +135,8 @@ def test_shipped_writers_emit_canonical_headings(rel_path: str) -> None:
     text = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
     violations = _violations_everywhere(text)
     assert not violations, (
-        f"{rel_path} writes non-canonical headings the lint rejects:\n  " + "\n  ".join(violations)
+        f"{rel_path} writes non-canonical headings the lint rejects:\n  "
+        + "\n  ".join(violations)
     )
 
 
@@ -141,7 +148,9 @@ def test_writer_check_is_not_vacuous(rel_path: str) -> None:
     green forever and nobody notices the guard stopped guarding.
     """
     text = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
-    corrupted = text.replace("### Sub-step ", "### Task ").replace("## Milestone ", "## M")
+    corrupted = text.replace("### Sub-step ", "### Task ").replace(
+        "## Milestone ", "## M"
+    )
     assert _violations_everywhere(corrupted), (
         f"{rel_path}: corrupting every heading produced NO violation — "
         "this file contributes zero coverage and the guard is inert."
@@ -177,25 +186,42 @@ from aa_ma.grammar import CANONICAL_DEPENDENCY_RE  # noqa: E402
 def test_active_plans_write_canonical_dependencies(tasks_file: Path) -> None:
     """`None` · `Milestone 2` · `Milestone 2, Milestone 3` · `Sub-step 1.1` — nothing else."""
     fields = dependency_fields(tasks_file.read_text(encoding="utf-8"))
-    assert fields, f"{tasks_file}: no Dependencies: field read — the check would pass vacuously"
-    bad = [f"{owner}: {value}" for owner, value in fields if not CANONICAL_DEPENDENCY_RE.match(value)]
-    assert not bad, f"{tasks_file} has non-canonical Dependencies:\n  " + "\n  ".join(bad)
+    assert fields, (
+        f"{tasks_file}: no Dependencies: field read — the check would pass vacuously"
+    )
+    bad = [
+        f"{owner}: {value}"
+        for owner, value in fields
+        if not CANONICAL_DEPENDENCY_RE.match(value)
+    ]
+    assert not bad, f"{tasks_file} has non-canonical Dependencies:\n  " + "\n  ".join(
+        bad
+    )
 
 
 # The two files that teach the scribe what to write in `Dependencies:`.
-DEPENDENCY_WRITERS = ["docs/templates/tasks-template.md", "claude-code/agents/aa-ma-scribe.md"]
+DEPENDENCY_WRITERS = [
+    "docs/templates/tasks-template.md",
+    "claude-code/agents/aa-ma-scribe.md",
+]
 _LEGACY_NOUN_RE = re.compile(r"(?<!Sub-)\b(?:Steps?|Tasks?)\b|\bM\d|IDs")
 
 
 @pytest.mark.parametrize("rel_path", DEPENDENCY_WRITERS)
 def test_writers_teach_the_canonical_dependencies_spelling(rel_path: str) -> None:
     text = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
-    normalised = _normalise_placeholders(text)  # `## Milestone N:` -> a heading the reader sees
+    normalised = _normalise_placeholders(
+        text
+    )  # `## Milestone N:` -> a heading the reader sees
     blocks = iter_fenced_blocks(normalised) or [normalised]
     values = [v for b in blocks for _, v in dependency_fields(b)]
     assert values, f"{rel_path}: no Dependencies: field found — the check is inert"
     bad = [
-        v for v in values
-        if not (CANONICAL_DEPENDENCY_RE.match(v) or (v.startswith("[") and not _LEGACY_NOUN_RE.search(v)))
+        v
+        for v in values
+        if not (
+            CANONICAL_DEPENDENCY_RE.match(v)
+            or (v.startswith("[") and not _LEGACY_NOUN_RE.search(v))
+        )
     ]
     assert not bad, f"{rel_path} teaches non-canonical Dependencies: {bad}"

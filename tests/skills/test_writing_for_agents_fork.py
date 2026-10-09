@@ -35,11 +35,14 @@ def test_files_are_the_two_upstream_markdown_files_plus_licence() -> None:
 
 
 def test_upstream_text_is_unedited_above_the_local_block() -> None:
+    """Local edits are the provenance line, one `when_to_use` line and the appended block."""
     text = (SKILLS_DIR / SKILL / "SKILL.md").read_text(encoding="utf-8")
     assert text.count(IN_THIS_REPO) == 1, "exactly one '## In this repo' block"
     lines = text.split("\n")
-    without_provenance = "\n".join(lines[:1] + lines[2:])
-    upstream = without_provenance.split(IN_THIS_REPO)[0]
+    local = [i for i, line in enumerate(lines) if line.startswith("when_to_use: ")]
+    assert len(local) == 1, "writing-for-agents carries one local when_to_use line"
+    upstream_lines = [line for i, line in enumerate(lines) if i != 1 and i not in local]
+    upstream = "\n".join(upstream_lines).split(IN_THIS_REPO)[0]
     assert _md5(upstream.encode("utf-8")) == "9663b04e7529a8d72e82a6fd088d336d"
 
 

@@ -378,6 +378,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 ## M4 As-Built Facts (2026-10-09)
 - Skill frontmatter schema lives in `tests/test_frontmatter_at_top.py` (`SKILL_KEYS`, `skill_schema_errors`, `UNSCOPED_TOOLS_ALLOWLIST` = assess-codebase, retro). Per-skill versions are `metadata.version`. [valid: 2026-10-09]
 - Size ratchet `tests/test_prompt_size.py`: whole-file lines, `ALLOWLIST` ceilings aa-ma-execution 1295, execute-aa-ma-milestone 1244, aa-ma-plan 1154, sole-dev-merge 1057, execute-aa-ma-full 758, plan-verification 608; `TOC_ALLOWLIST` 24 references. [valid: 2026-10-09]
+- Eval fixtures live in `tests/fixtures/evals/<name>/` (scaffolds `evals/_lib/`); baseline 14/24 → 22/24 after 4.7. [valid: 2026-10-09]
 - Eval mechanism: `claude plugin eval <repo-root> --no-publish --runs 1 --ablation none --trust-plugin --max-cost-usd <cap> --json <f>`; cases `evals/<skill>/<case>/case.yaml` with `plugins: ["../../../claude-code"]`; skills load as `claude-code:<skill>`; every case has a `tool_used: Skill` grader. One haiku case ≈ $0.0034. [valid: 2026-10-09]
 - `writing-for-agents` fork: mattpocock/skills @ c55ee46, state derived, upstream md5 SKILL.md 9663b04e / SKILL-MECHANICS.md f3648a8f; ADR-0021 Accepted; next ADR 0022. [valid: 2026-10-09]
 - install.sh stale sweep covers `commands/*.md`, `skills/*`, `agents/*.md` links dangling into the repo. [valid: 2026-10-09]

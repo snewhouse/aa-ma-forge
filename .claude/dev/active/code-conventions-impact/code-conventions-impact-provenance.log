@@ -48,3 +48,4 @@
 [2026-10-09T11:55:35+01:00] STEP COMPLETE — 3.3 move 11 commands + fix paths — RED dbb02d4 → fmt 256237f → GREEN d83f8ac → move 210ca3f — pytest 2488 passed / 5 count-site failures deferred to 3.5; bats 366/366
 [2026-10-09T11:57:50+01:00] STEP COMPLETE — 3.4 merge 2 collisions — fmt a4c424f → RED 805ab0c → GREEN 9585130 — 5 command-only tests deleted (named in Result Log), 3 skill-side tests added
 [2026-10-09T12:06:16+01:00] STEP COMPLETE — 3.5 retire grill-me, counts, regen, ADR-0020 Accepted (Ste) — fmt 8c89db7 → RED 8d4eda9 → GREEN 24c3676 — pytest 2490/0 failed, bats 366/366
+[2026-10-09T12:06:55+01:00] STEP COMPLETE — 3.6 install proof (fake HOME, live-shaped) — 13/13 skill links, 0/14 command links, grill-me untouched, foreign collision recorded + restored, uninstall --restore leaves 0 repo links / 0 hook cmds

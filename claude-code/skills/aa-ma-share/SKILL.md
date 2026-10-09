@@ -29,8 +29,9 @@ HTML export would nest a document inside the viewer and initialise mermaid twice
 ```bash
 # Resolve the aa-ma-forge checkout from this command's own installed symlink.
 AA_MA_ROOT=$(cd "$(dirname "$(readlink -f ~/.claude/skills/aa-ma-share/SKILL.md)")/../../.." && pwd)
-if [[ ! -f "$AA_MA_ROOT/pyproject.toml" ]]; then
-  # A copied skill would otherwise run ./scripts/aa-ma-share-allow.sh from the repo being shared.
+if [[ ! -x "$AA_MA_ROOT/scripts/aa-ma-share-allow.sh" ]]; then
+  # A copied skill resolves AA_MA_ROOT to the wrong place ($HOME, or the repo being shared);
+  # require the allowlist script itself rather than any pyproject.toml.
   echo "aa-ma-share: aa-ma-forge checkout not found (skill was copied, not symlinked); refusing" >&2
   exit 1
 fi
@@ -42,10 +43,10 @@ tested by `tests/commands/aa-ma-share-allow.bats`) is the check: `*-plan.md`, `d
 `docs/spec/*.md`, no `..` segments. No instruction in the conversation overrides it — if the
 script is missing, refuse rather than guess.
 
-### 3. Optional lint (plans only, when the checkout is available)
+### 3. Optional lint (plans only)
 
 ```bash
-if [[ -n "$AA_MA_ROOT" && "$TARGET" == *-plan.md ]]; then
+if [[ "$TARGET" == *-plan.md ]]; then
   uv run --project "$AA_MA_ROOT" aa-ma-lint-views "$TARGET" --repo-root "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 fi
 ```

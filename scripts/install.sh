@@ -435,7 +435,7 @@ register_hook() {
     already=$(jq -r \
         --arg event "$event" \
         --arg link "$link_path" \
-        '(.hooks[$event] // []) | map(select(.hooks[]? | .command | test($link; "l"))) | length' \
+        '(.hooks[$event] // []) | map(select(any(.hooks[]?; (.command // "") | contains($link)))) | length' \
         "${SETTINGS_FILE}" 2>/dev/null || echo "0")
 
     if [ "${already}" != "0" ]; then
@@ -450,8 +450,12 @@ register_hook() {
         return 0
     fi
 
-    # 3. Atomic write: tempfile + jq empty validation + mv.
+    # 3. Atomic write: tempfile + jq empty validation + mv. `cp -p` first so the temp
+    # file is born with settings.json's mode (a 0600 file is never briefly 0644); the
+    # `>` below truncates it in place and keeps that mode. Portable: BSD chmod has no
+    # --reference.
     local tmp="${SETTINGS_FILE}.tmp.$$"
+    cp -p "${SETTINGS_FILE}" "${tmp}"
     jq \
         --arg event "$event" \
         --arg matcher "$matcher" \
@@ -482,7 +486,6 @@ register_hook() {
         return 1
     fi
 
-    chmod --reference="${SETTINGS_FILE}" "${tmp}"   # keep a 0600 settings.json 0600
     mv "${tmp}" "${SETTINGS_FILE}"
     info "Registered ${event} [${src_base}] in settings.json"
 }

@@ -305,7 +305,7 @@ _bsd_chmod_on_path() {
 
 @test "uninstall needs bash 4 only under --restore (no declare -A on the default path)" {
     # stock macOS bash is 3.2: associative arrays must stay inside the --restore branch
-    [ "$(grep -c 'declare -A' "${REPO_ROOT}/scripts/uninstall.sh")" -eq 1 ]
+    [ "$(grep -cE '^[[:space:]]*declare -A' "${REPO_ROOT}/scripts/uninstall.sh")" -eq 1 ]
     grep -n 'declare -A RESTORED' "${REPO_ROOT}/scripts/uninstall.sh"
 }
 

@@ -183,10 +183,13 @@ deregister_hook() {
     local tmp="${SETTINGS_FILE}.tmp.$$"
     # Write failures warn and return 0, like the read above: links are already gone, so
     # aborting here would leave a half-done uninstall and skip --restore.
-    if ! jq --arg event "$event" --arg link "$link_path" \
-        '.hooks[$event] = ((.hooks[$event] // []) | map(select(.hooks | all((.command // "") | contains($link) | not))))' \
+    # `cp -p` first: the temp file keeps settings.json's mode (portable; BSD chmod has
+    # no --reference), and `>` truncates it in place without changing that mode.
+    if ! cp -p "${SETTINGS_FILE}" "${tmp}" \
+        || ! jq --arg event "$event" --arg link "$link_path" \
+        '.hooks[$event] = ((.hooks[$event] // []) | map(select((.hooks // []) | all((.command // "") | contains($link) | not))))' \
         "${SETTINGS_FILE}" > "${tmp}" \
-        || ! chmod --reference="${SETTINGS_FILE}" "${tmp}" || ! mv "${tmp}" "${SETTINGS_FILE}"; then
+        || ! mv "${tmp}" "${SETTINGS_FILE}"; then
         rm -f "${tmp}"
         warn "Could not update ${SETTINGS_FILE}; ${event} [${src_base}] left registered"
         return 0
@@ -200,11 +203,13 @@ if [ ! -f "${SETTINGS_FILE}" ]; then
 elif ! command -v jq &>/dev/null; then
     warn "jq not found; AA-MA hooks left registered in ${SETTINGS_FILE}"
 else
-    declare -A DEREGISTERED=()
+    # A space-separated seen-list, not `declare -A`: the default path must run on
+    # bash 3.2 (stock macOS); only --restore needs bash 4.
+    deregistered=" "
     for entry in "${AA_MA_HOOKS[@]}"; do
         aa_ma_hook_parse "${entry}"   # validated at the top
-        [ -n "${DEREGISTERED[${HOOK_EVENT}|${HOOK_SRC}]:-}" ] && continue
-        DEREGISTERED["${HOOK_EVENT}|${HOOK_SRC}"]=1
+        case "${deregistered}" in *" ${HOOK_EVENT}|${HOOK_SRC} "*) continue ;; esac
+        deregistered+="${HOOK_EVENT}|${HOOK_SRC} "
         deregister_hook "${HOOK_EVENT}" "${HOOK_SRC}"
     done
 fi

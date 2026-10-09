@@ -7,26 +7,26 @@
    "src": "agent:aa-ma-researcher"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "agent:aa-ma-scribe"
-  },
-  {
    "dst": "hook:aa-ma-plan-marker.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",
    "src": "agent:aa-ma-scribe"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "agent:aa-ma-scribe"
+  },
+  {
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "agent:code-reviewer"
   },
   {
-   "dst": "command:execute-aa-ma-milestone",
-   "kind": "command",
+   "dst": "skill:execute-aa-ma-milestone",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "agent:code-reviewer"
   },
@@ -109,168 +109,6 @@
    "src": "agent:tdd-sequence-auditor"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-chart"
-  },
-  {
-   "dst": "command:aa-ma-share",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-chart"
-  },
-  {
-   "dst": "hook:aa-ma-chart-guard.sh",
-   "kind": "hook",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-chart"
-  },
-  {
-   "dst": "skill:aa-ma-research",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-chart"
-  },
-  {
-   "dst": "skill:grill-with-docs",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-chart"
-  },
-  {
-   "dst": "skill:grilling",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-chart"
-  },
-  {
-   "dst": "skill:prototype",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-chart"
-  },
-  {
-   "dst": "agent:Explore",
-   "kind": "agent",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "agent:aa-ma-researcher",
-   "kind": "agent",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "command:aa-ma-chart",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "command:grill-me",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "command:superpowers:brainstorming",
-   "kind": "command",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "command:verify-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "hook:aa-ma-chart-guard.sh",
-   "kind": "hook",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "hook:aa-ma-parse.sh",
-   "kind": "hook",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "hook:aa-ma-plan-marker.sh",
-   "kind": "hook",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "hook:aa-ma-plan-skip-warn.sh",
-   "kind": "hook",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "skill:aa-ma-research",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "skill:grill-with-docs",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "skill:grilling",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "skill:plan-ceo-review",
-   "kind": "skill",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "skill:plan-design-review",
-   "kind": "skill",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "skill:plan-eng-review",
-   "kind": "skill",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "skill:prototype",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:aa-ma-plan"
-  },
-  {
-   "dst": "command:browse",
-   "kind": "command",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:aa-ma-share"
-  },
-  {
-   "dst": "hook:aa-ma-share-allow.sh",
-   "kind": "hook",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:aa-ma-share"
-  },
-  {
-   "dst": "skill:retro",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:archive-aa-ma"
-  },
-  {
    "dst": "command:understand-codebase",
    "kind": "command",
    "ref_class": "ON_DISK",
@@ -289,206 +127,14 @@
    "src": "command:assess-codebase"
   },
   {
-   "dst": "agent:aa-ma-validator",
-   "kind": "agent",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-full"
-  },
-  {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-full"
-  },
-  {
-   "dst": "command:archive-aa-ma",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-full"
-  },
-  {
-   "dst": "command:execute-aa-ma-milestone",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-full"
-  },
-  {
-   "dst": "command:goal",
-   "kind": "command",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:execute-aa-ma-full"
-  },
-  {
-   "dst": "skill:goal-condition-synthesis",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-full"
-  },
-  {
-   "dst": "skill:impact-analysis",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-full"
-  },
-  {
-   "dst": "skill:system-mapping",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-full"
-  },
-  {
-   "dst": "agent:aa-ma-validator",
-   "kind": "agent",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "command:archive-aa-ma",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "command:execute-aa-ma-full",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "command:qa",
-   "kind": "command",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "command:qa-only",
-   "kind": "command",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "hook:aa-ma-parse.sh",
-   "kind": "hook",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "hook:security-static-check.sh",
-   "kind": "hook",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "skill:browse",
-   "kind": "skill",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "skill:impact-analysis",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "skill:qa-only",
-   "kind": "skill",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "skill:system-mapping",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "skill:verify-impl",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-milestone"
-  },
-  {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-step"
-  },
-  {
-   "dst": "command:execute-aa-ma-full",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-step"
-  },
-  {
-   "dst": "command:execute-aa-ma-milestone",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:execute-aa-ma-step"
-  },
-  {
-   "dst": "skill:ast-grep",
-   "kind": "skill",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:ops-mode"
-  },
-  {
-   "dst": "skill:dispatching-parallel-agents",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:ops-mode"
-  },
-  {
-   "dst": "skill:impact-analysis",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:ops-mode"
-  },
-  {
-   "dst": "skill:operational-constraints",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:ops-mode"
-  },
-  {
-   "dst": "skill:system-mapping",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:ops-mode"
-  },
-  {
-   "dst": "skill:test-driven-development",
-   "kind": "skill",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:ops-mode"
-  },
-  {
-   "dst": "hook:aa-ma-commit-signature.sh",
-   "kind": "hook",
-   "ref_class": "ON_DISK",
-   "src": "command:sole-dev-merge"
-  },
-  {
-   "dst": "hook:aa-ma-footer.sh",
-   "kind": "hook",
-   "ref_class": "ON_DISK",
-   "src": "command:sole-dev-merge"
-  },
-  {
-   "dst": "command:aa-ma-plan",
+   "dst": "command:assess-codebase",
    "kind": "command",
    "ref_class": "ON_DISK",
    "src": "command:understand-codebase"
   },
   {
-   "dst": "command:assess-codebase",
-   "kind": "command",
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "command:understand-codebase"
   },
@@ -517,44 +163,20 @@
    "src": "command:understand-codebase"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:verify-plan"
-  },
-  {
-   "dst": "command:execute-aa-ma-milestone",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "command:verify-plan"
-  },
-  {
-   "dst": "command:goal",
-   "kind": "command",
-   "ref_class": "DECLARED_EXTERNAL",
-   "src": "command:verify-plan"
-  },
-  {
-   "dst": "skill:goal-condition-synthesis",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "command:verify-plan"
-  },
-  {
-   "dst": "command:aa-ma-chart",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "hook:aa-ma-chart-guard.sh"
-  },
-  {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "hook:aa-ma-chart-guard.sh"
-  },
-  {
    "dst": "hook:aa-ma-parse.sh",
    "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-chart-guard.sh"
+  },
+  {
+   "dst": "skill:aa-ma-chart",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-chart-guard.sh"
+  },
+  {
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "hook:aa-ma-chart-guard.sh"
   },
@@ -589,14 +211,14 @@
    "src": "hook:aa-ma-parse.sh"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "hook:aa-ma-plan-marker.sh"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "hook:aa-ma-plan-skip-warn.sh"
   },
@@ -631,32 +253,26 @@
    "src": "hook:security-static-check.sh"
   },
   {
-   "dst": "command:aa-ma-chart",
-   "kind": "command",
+   "dst": "skill:aa-ma-chart",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "rule:aa-ma"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "rule:aa-ma"
   },
   {
-   "dst": "command:archive-aa-ma",
-   "kind": "command",
+   "dst": "skill:archive-aa-ma",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "rule:aa-ma"
   },
   {
-   "dst": "command:execute-aa-ma-milestone",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "rule:aa-ma"
-  },
-  {
-   "dst": "command:verify-plan",
-   "kind": "command",
+   "dst": "skill:execute-aa-ma-milestone",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "rule:aa-ma"
   },
@@ -667,26 +283,32 @@
    "src": "rule:aa-ma"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
+   "dst": "skill:verify-plan",
+   "kind": "skill",
    "ref_class": "ON_DISK",
-   "src": "rule:engineering-standards"
-  },
-  {
-   "dst": "command:execute-aa-ma-milestone",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "rule:engineering-standards"
-  },
-  {
-   "dst": "command:execute-aa-ma-step",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "rule:engineering-standards"
+   "src": "rule:aa-ma"
   },
   {
    "dst": "hook:aa-ma-commit-drift.sh",
    "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "rule:engineering-standards"
+  },
+  {
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:engineering-standards"
+  },
+  {
+   "dst": "skill:execute-aa-ma-milestone",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:engineering-standards"
+  },
+  {
+   "dst": "skill:execute-aa-ma-step",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "rule:engineering-standards"
   },
@@ -721,34 +343,46 @@
    "src": "rule:engineering-standards"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
+   "dst": "hook:aa-ma-chart-guard.sh",
+   "kind": "hook",
    "ref_class": "ON_DISK",
-   "src": "skill:aa-ma-execution"
+   "src": "skill:aa-ma-chart"
   },
   {
-   "dst": "command:archive-aa-ma",
-   "kind": "command",
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
    "ref_class": "ON_DISK",
-   "src": "skill:aa-ma-execution"
+   "src": "skill:aa-ma-chart"
   },
   {
-   "dst": "command:execute-aa-ma-full",
-   "kind": "command",
+   "dst": "skill:aa-ma-research",
+   "kind": "skill",
    "ref_class": "ON_DISK",
-   "src": "skill:aa-ma-execution"
+   "src": "skill:aa-ma-chart"
   },
   {
-   "dst": "command:execute-aa-ma-milestone",
-   "kind": "command",
+   "dst": "skill:aa-ma-share",
+   "kind": "skill",
    "ref_class": "ON_DISK",
-   "src": "skill:aa-ma-execution"
+   "src": "skill:aa-ma-chart"
   },
   {
-   "dst": "command:execute-aa-ma-step",
-   "kind": "command",
+   "dst": "skill:grill-with-docs",
+   "kind": "skill",
    "ref_class": "ON_DISK",
-   "src": "skill:aa-ma-execution"
+   "src": "skill:aa-ma-chart"
+  },
+  {
+   "dst": "skill:grilling",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-chart"
+  },
+  {
+   "dst": "skill:prototype",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-chart"
   },
   {
    "dst": "command:goal",
@@ -757,8 +391,32 @@
    "src": "skill:aa-ma-execution"
   },
   {
-   "dst": "command:verify-plan",
-   "kind": "command",
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "skill:archive-aa-ma",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "skill:execute-aa-ma-full",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "skill:execute-aa-ma-milestone",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "skill:execute-aa-ma-step",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:aa-ma-execution"
   },
@@ -793,6 +451,114 @@
    "src": "skill:aa-ma-execution"
   },
   {
+   "dst": "skill:verify-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-execution"
+  },
+  {
+   "dst": "agent:Explore",
+   "kind": "agent",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "agent:aa-ma-researcher",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "command:grill-me",
+   "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "command:superpowers:brainstorming",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "hook:aa-ma-chart-guard.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "hook:aa-ma-plan-marker.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "hook:aa-ma-plan-skip-warn.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "skill:aa-ma-chart",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "skill:aa-ma-research",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "skill:grill-with-docs",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "skill:grilling",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "skill:plan-ceo-review",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "skill:plan-design-review",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "skill:plan-eng-review",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "skill:prototype",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan"
+  },
+  {
+   "dst": "skill:verify-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan"
+  },
+  {
    "dst": "agent:aa-ma-scribe",
    "kind": "agent",
    "ref_class": "ON_DISK",
@@ -805,33 +571,15 @@
    "src": "skill:aa-ma-plan-workflow"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:aa-ma-plan-workflow"
-  },
-  {
-   "dst": "command:execute-aa-ma-full",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:aa-ma-plan-workflow"
-  },
-  {
-   "dst": "command:execute-aa-ma-milestone",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:aa-ma-plan-workflow"
-  },
-  {
-   "dst": "command:execute-aa-ma-step",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:aa-ma-plan-workflow"
-  },
-  {
    "dst": "command:goal",
    "kind": "command",
    "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
    "src": "skill:aa-ma-plan-workflow"
   },
   {
@@ -850,6 +598,24 @@
    "dst": "skill:ast-grep",
    "kind": "skill",
    "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "skill:execute-aa-ma-full",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "skill:execute-aa-ma-milestone",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:aa-ma-plan-workflow"
+  },
+  {
+   "dst": "skill:execute-aa-ma-step",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
    "src": "skill:aa-ma-plan-workflow"
   },
   {
@@ -883,6 +649,24 @@
    "src": "skill:aa-ma-research"
   },
   {
+   "dst": "command:browse",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-share"
+  },
+  {
+   "dst": "hook:aa-ma-share-allow.sh",
+   "kind": "hook",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:aa-ma-share"
+  },
+  {
+   "dst": "skill:retro",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:archive-aa-ma"
+  },
+  {
    "dst": "agent:codebase-assessor",
    "kind": "agent",
    "ref_class": "ON_DISK",
@@ -901,22 +685,148 @@
    "src": "skill:assess-codebase"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
+   "dst": "agent:aa-ma-validator",
+   "kind": "agent",
    "ref_class": "ON_DISK",
-   "src": "skill:goal-condition-synthesis"
+   "src": "skill:execute-aa-ma-full"
   },
   {
-   "dst": "command:archive-aa-ma",
+   "dst": "command:goal",
    "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:goal-condition-synthesis"
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:execute-aa-ma-full"
   },
   {
-   "dst": "command:execute-aa-ma-full",
-   "kind": "command",
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
    "ref_class": "ON_DISK",
-   "src": "skill:goal-condition-synthesis"
+   "src": "skill:execute-aa-ma-full"
+  },
+  {
+   "dst": "skill:archive-aa-ma",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-full"
+  },
+  {
+   "dst": "skill:execute-aa-ma-milestone",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-full"
+  },
+  {
+   "dst": "skill:goal-condition-synthesis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-full"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-full"
+  },
+  {
+   "dst": "skill:system-mapping",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-full"
+  },
+  {
+   "dst": "agent:aa-ma-validator",
+   "kind": "agent",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "command:qa",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "command:qa-only",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "hook:security-static-check.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:archive-aa-ma",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:browse",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:execute-aa-ma-full",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:qa-only",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:system-mapping",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:verify-impl",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-milestone"
+  },
+  {
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-step"
+  },
+  {
+   "dst": "skill:execute-aa-ma-full",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-step"
+  },
+  {
+   "dst": "skill:execute-aa-ma-milestone",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-step"
   },
   {
    "dst": "command:goal",
@@ -925,13 +835,31 @@
    "src": "skill:goal-condition-synthesis"
   },
   {
-   "dst": "command:verify-plan",
-   "kind": "command",
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:goal-condition-synthesis"
+  },
+  {
+   "dst": "skill:archive-aa-ma",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:goal-condition-synthesis"
+  },
+  {
+   "dst": "skill:execute-aa-ma-full",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:goal-condition-synthesis"
   },
   {
    "dst": "skill:plan-verification",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:goal-condition-synthesis"
+  },
+  {
+   "dst": "skill:verify-plan",
    "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:goal-condition-synthesis"
@@ -949,14 +877,8 @@
    "src": "skill:logging-and-comments"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:operational-constraints"
-  },
-  {
-   "dst": "command:ops-mode",
-   "kind": "command",
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:operational-constraints"
   },
@@ -974,6 +896,12 @@
   },
   {
    "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:operational-constraints"
+  },
+  {
+   "dst": "skill:ops-mode",
    "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:operational-constraints"
@@ -1003,6 +931,42 @@
    "src": "skill:operational-constraints"
   },
   {
+   "dst": "skill:ast-grep",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:ops-mode"
+  },
+  {
+   "dst": "skill:dispatching-parallel-agents",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:ops-mode"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:ops-mode"
+  },
+  {
+   "dst": "skill:operational-constraints",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:ops-mode"
+  },
+  {
+   "dst": "skill:system-mapping",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:ops-mode"
+  },
+  {
+   "dst": "skill:test-driven-development",
+   "kind": "skill",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:ops-mode"
+  },
+  {
    "dst": "agent:Explore",
    "kind": "agent",
    "ref_class": "DECLARED_EXTERNAL",
@@ -1015,26 +979,26 @@
    "src": "skill:plan-verification"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:plan-verification"
-  },
-  {
-   "dst": "command:execute-aa-ma-milestone",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:plan-verification"
-  },
-  {
-   "dst": "command:verify-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:plan-verification"
-  },
-  {
    "dst": "hook:aa-ma-parse.sh",
    "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:plan-verification"
+  },
+  {
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:plan-verification"
+  },
+  {
+   "dst": "skill:execute-aa-ma-milestone",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:plan-verification"
+  },
+  {
+   "dst": "skill:verify-plan",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:plan-verification"
   },
@@ -1055,6 +1019,18 @@
    "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:python-quality-gates"
+  },
+  {
+   "dst": "hook:aa-ma-commit-signature.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:sole-dev-merge"
+  },
+  {
+   "dst": "hook:aa-ma-footer.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:sole-dev-merge"
   },
   {
    "dst": "skill:aa-ma-plan-workflow",
@@ -1123,12 +1099,6 @@
    "src": "skill:understand-codebase"
   },
   {
-   "dst": "command:aa-ma-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:understand-codebase"
-  },
-  {
    "dst": "command:assess-codebase",
    "kind": "command",
    "ref_class": "ON_DISK",
@@ -1143,6 +1113,12 @@
   {
    "dst": "command:understand-codebase",
    "kind": "command",
+   "ref_class": "ON_DISK",
+   "src": "skill:understand-codebase"
+  },
+  {
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:understand-codebase"
   },
@@ -1285,24 +1261,6 @@
    "src": "skill:verify-impl"
   },
   {
-   "dst": "command:execute-aa-ma-full",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:verify-impl"
-  },
-  {
-   "dst": "command:execute-aa-ma-milestone",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:verify-impl"
-  },
-  {
-   "dst": "command:verify-plan",
-   "kind": "command",
-   "ref_class": "ON_DISK",
-   "src": "skill:verify-impl"
-  },
-  {
    "dst": "hook:aa-ma-parse.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",
@@ -1313,6 +1271,48 @@
    "kind": "hook",
    "ref_class": "ON_DISK",
    "src": "skill:verify-impl"
+  },
+  {
+   "dst": "skill:execute-aa-ma-full",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  },
+  {
+   "dst": "skill:execute-aa-ma-milestone",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  },
+  {
+   "dst": "skill:verify-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-impl"
+  },
+  {
+   "dst": "command:goal",
+   "kind": "command",
+   "ref_class": "DECLARED_EXTERNAL",
+   "src": "skill:verify-plan"
+  },
+  {
+   "dst": "skill:aa-ma-plan",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-plan"
+  },
+  {
+   "dst": "skill:execute-aa-ma-milestone",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-plan"
+  },
+  {
+   "dst": "skill:goal-condition-synthesis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:verify-plan"
   }
  ],
  "errors": [],
@@ -1344,14 +1344,14 @@
   ]
  },
  "orphans": [
-  "command:aa-ma-search",
-  "command:sole-dev-merge",
   "hook:aa-ma-session-end-dirty.sh",
   "skill:aa-ma-execution",
+  "skill:aa-ma-search",
   "skill:bash-defensive-patterns",
   "skill:complexity-router",
   "skill:debugging-strategies",
   "skill:llm-output-safety",
+  "skill:sole-dev-merge",
   "skill:write-a-skill"
  ]
 }

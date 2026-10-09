@@ -28,7 +28,7 @@ def test_in_repo_composed_assets_exist() -> None:
         REPO_ROOT / "claude-code" / "skills" / "agent-teams" / "SKILL.md",
         REPO_ROOT / "claude-code" / "skills" / "impact-analysis" / "SKILL.md",
         REPO_ROOT / "claude-code" / "skills" / "system-mapping" / "SKILL.md",
-        REPO_ROOT / "claude-code" / "commands" / "aa-ma-plan.md",
+        REPO_ROOT / "claude-code" / "skills" / "aa-ma-plan" / "SKILL.md",
         REPO_ROOT / "claude-code" / "agents" / "code-reviewer.md",
     ]
     for p in must_exist:

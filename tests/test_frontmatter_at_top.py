@@ -17,11 +17,10 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = REPO_ROOT / "claude-code"
 
-# (glob, keys that must be non-empty strings). 2 of 14 commands carry no `name`, so
-# commands only require `description`.
+# (glob, keys that must be non-empty strings). The forge's commands became skills
+# (ADR-0020), so commands/ is no longer a surface.
 SURFACES = {
     "skills/*/SKILL.md": ("name", "description"),
-    "commands/*.md": ("description",),
     "agents/*.md": ("name", "description"),
 }
 

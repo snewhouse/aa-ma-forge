@@ -1,5 +1,7 @@
 ---
-description: PR/MR-based merge workflow with scope-aware CI checks, review, security pass, and auto-merge
+name: sole-dev-merge
+description: PR/MR-based merge workflow with scope-aware CI checks, review, security pass, and auto-merge. Run only when the user asks to merge a branch or PR.
+disable-model-invocation: true
 ---
 
 # /sole-dev-merge — PR/MR merge workflow (v2)
@@ -11,9 +13,10 @@ PR/MR-based merge workflow for sole developers. Runs scope-aware local CI
 auto-merges with `--rebase --delete-branch` for linear history.
 
 **Replaces:** the legacy fast-merge `/sole-dev-merge` user-local command. The
-plugin install (`scripts/install.sh`) creates a symlink at
-`~/.claude/commands/sole-dev-merge.md` after backing up the previous file to
-`~/.claude/backups/aa-ma-forge-<timestamp>/`.
+plugin install (`scripts/install.sh`) links `~/.claude/skills/sole-dev-merge/`
+after backing up anything real in its way to
+`~/.claude/backups/aa-ma-forge-<timestamp>/`, and removes the old
+`~/.claude/commands/sole-dev-merge.md` link once its source is gone (ADR-0020).
 
 **Plan-of-record:** see ADR-0008 (`docs/adr/0008-sole-dev-merge-pr-workflow.md`)
 once landed. Rationale for command-only design (no skill/lib pattern), 3-source

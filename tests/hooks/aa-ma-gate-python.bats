@@ -18,7 +18,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     HELPER="${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh"
-    MILESTONE_CMD="${REPO_ROOT}/claude-code/commands/execute-aa-ma-milestone.md"
+    MILESTONE_CMD="${REPO_ROOT}/claude-code/skills/execute-aa-ma-milestone/SKILL.md"
     FIXDIR="${BATS_TEST_DIRNAME}/fixtures/gate-scans"
     WORK="$(mktemp -d "${BATS_TMPDIR}/gate-py.XXXXXX")"
     # The fences resolve the lib from the git toplevel, else ${CLAUDE_HOME:-~/.claude}.

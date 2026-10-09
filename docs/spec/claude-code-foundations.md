@@ -31,7 +31,7 @@ What ships with Claude Code out of the box vs what AA-MA adds on top.
 | Hooks | Event-driven automation (25+ events including SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PreCompact, PostCompact, TaskCreated, TaskCompleted, SubagentStart, etc.) |
 | Skills | Reusable prompt-based workflows invoked via the Skill() tool |
 | Agents | Custom subagent definitions spawned via the Agent tool |
-| Commands | Custom slash commands in `~/.claude/commands/` |
+| Commands | Custom slash commands in `~/.claude/commands/` (AA-MA Forge ships none: its `/names` are skills, ADR-0020) |
 | MCP servers | External tool and resource integrations via Model Context Protocol |
 | Plugins | Packaged extensions providing skills + agents + commands + hooks |
 

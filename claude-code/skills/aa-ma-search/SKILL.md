@@ -1,6 +1,6 @@
 ---
 name: aa-ma-search
-description: Search across active and completed AA-MA task files for keywords. Returns ranked results from reference.md, context-log.md, and tasks.md files.
+description: Search across active and completed AA-MA task files for keywords. Returns ranked results from reference.md, context-log.md, and tasks.md files. Use when the user asks to search past AA-MA tasks.
 ---
 
 # /aa-ma-search — Cross-Task Search

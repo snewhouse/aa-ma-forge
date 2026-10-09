@@ -1,6 +1,6 @@
 ---
 name: execute-aa-ma-full
-description: Execute complete AA-MA plan from current position to completion with automated checkpoints
+description: Execute complete AA-MA plan from current position to completion with automated checkpoints. Use when the user asks to run a whole AA-MA plan.
 ---
 
 # AA-MA Full Plan Execution

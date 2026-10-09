@@ -28,11 +28,11 @@
 
 ### Make aa-ma-tui runnable from any project
 
-**What:** Resolve the aa-ma-forge checkout from the install.sh symlink (`readlink -f ~/.claude/commands/<any>.md` → repo root) and run `uv run --project <root> aa-ma-tui`, via a thin wrapper or documented alias.
+**What:** Resolve the aa-ma-forge checkout from the install.sh symlink (`readlink -f ~/.claude/skills/<any>/SKILL.md` → repo root) and run `uv run --project <root> aa-ma-tui`, via a thin wrapper or documented alias.
 
 **Why:** The TUI only works from inside the aa-ma-forge checkout; every client repo with an active AA-MA plan cannot use it. The same gap was found and fixed for `/aa-ma-share` (plan-eng-review D2, 2026-09-11).
 
-**Context:** The resolution snippet lands in `claude-code/commands/aa-ma-share.md` at plan-architecture-views M3.1; reuse it verbatim. Needs one bats test that the wrapper resolves the root from a symlinked command file.
+**Context:** The resolution snippet lands in `claude-code/skills/aa-ma-share/SKILL.md` (was `commands/aa-ma-share.md`) at plan-architecture-views M3.1; reuse it verbatim. Needs one bats test that the wrapper resolves the root from a symlinked command file.
 
 **Effort:** S
 **Priority:** P3
@@ -236,6 +236,6 @@ path and a fixture path, before Deep is evaluated.
 **Done:** 2026-09-27 — `views.write_views` refuses a stampless target before any write; `--check` names it and says move it aside (`tests/codemem/test_draw_check.py`).
 
 ### Repoint the PROJECT_INDEX references outside the M13 rewire at codemem
-**What:** `claude-code/commands/aa-ma-plan.md:181,184,857`, `claude-code/commands/execute-aa-ma-milestone.md:332`, `claude-code/agents/codebase-onboarding-{runbook,conventions}.md` name codemem as default, PROJECT_INDEX.json as fallback; `aa-ma-plan.md:181` stops suggesting `/index`. **Why:** §6.3's blast-radius advice assumes project-index's upstream `blast_radius`; codemem's is downstream (callers are `who_calls`). The gate file is fence-position-tested — `Critical-Path: hook-modification`. **Effort:** S · **Priority:** P2
+**What:** `claude-code/skills/aa-ma-plan/SKILL.md` (was `commands/aa-ma-plan.md:181,184,857`), `claude-code/skills/execute-aa-ma-milestone/SKILL.md` (was `commands/…:332`), `claude-code/agents/codebase-onboarding-{runbook,conventions}.md` name codemem as default, PROJECT_INDEX.json as fallback; `aa-ma-plan.md:181` stops suggesting `/index`. **Why:** §6.3's blast-radius advice assumes project-index's upstream `blast_radius`; codemem's is downstream (callers are `who_calls`). The gate file is fence-position-tested — `Critical-Path: hook-modification`. **Effort:** S · **Priority:** P2
 
 **Done:** 2026-09-27 — all four files name codemem as the default index with PROJECT_INDEX.json as fallback; `aa-ma-plan` Step 1.2 no longer suggests `/index`; §6.3's pre-check asks codemem's `who_calls` for callers (`tests/skills/test_understand_codebase_rewire.py`).

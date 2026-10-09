@@ -16,7 +16,7 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COMMANDS = REPO_ROOT / "claude-code" / "commands"
-COMMAND_MD = COMMANDS / "aa-ma-share.md"
+COMMAND_MD = REPO_ROOT / "claude-code" / "skills" / "aa-ma-share" / "SKILL.md"
 
 
 def _frontmatter(path: Path) -> dict:

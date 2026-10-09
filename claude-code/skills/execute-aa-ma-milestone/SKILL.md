@@ -1,6 +1,6 @@
 ---
 name: execute-aa-ma-milestone
-description: Execute complete milestone from AA-MA plan with strict validation and auto-commit (RECOMMENDED DEFAULT)
+description: Execute complete milestone from AA-MA plan with strict validation and auto-commit (RECOMMENDED DEFAULT). Use when the user asks to run an AA-MA milestone.
 ---
 
 # AA-MA Milestone Execution (Recommended Default)

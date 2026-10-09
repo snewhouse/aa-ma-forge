@@ -10,7 +10,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     HELPER="${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh"
-    MILESTONE_CMD="${REPO_ROOT}/claude-code/commands/execute-aa-ma-milestone.md"
+    MILESTONE_CMD="${REPO_ROOT}/claude-code/skills/execute-aa-ma-milestone/SKILL.md"
     FIXTURE="${REPO_ROOT}/tests/fixtures/deps-hazards.md"
     WORK="$(mktemp -d "${BATS_TMPDIR}/deps.XXXXXX")"
     CLAUDE_HOME="$WORK/claude-home"
@@ -55,7 +55,7 @@ _advisory_fence() {
 }
 
 @test "the shipped /aa-ma-plan Step 5.5 fence prints the Milestone graph and checks it" {
-    PLAN_CMD="${REPO_ROOT}/claude-code/commands/aa-ma-plan.md"
+    PLAN_CMD="${REPO_ROOT}/claude-code/skills/aa-ma-plan/SKILL.md"
     awk '/^Write `Dependencies:` in the canonical form only/{f=1} f && /^```bash$/{g=1; next} g && /^```$/{exit} g' \
         "$PLAN_CMD" > "$WORK/plan-fence.sh"
     [ -s "$WORK/plan-fence.sh" ]
@@ -83,7 +83,7 @@ _advisory_fence() {
 }
 
 @test "/execute-aa-ma-full never halts on Dependencies either" {
-    FULL_CMD="${REPO_ROOT}/claude-code/commands/execute-aa-ma-full.md"
+    FULL_CMD="${REPO_ROOT}/claude-code/skills/execute-aa-ma-full/SKILL.md"
     grep -q "aa_ma_deps advisory" "$FULL_CMD"
     run bash -c "grep -i -A3 'dependenc' '$FULL_CMD' | grep HALT"
     [ "$status" -ne 0 ]

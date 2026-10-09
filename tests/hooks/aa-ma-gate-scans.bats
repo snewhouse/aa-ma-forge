@@ -22,7 +22,7 @@
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     HELPER="${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh"
-    MILESTONE_CMD="${REPO_ROOT}/claude-code/commands/execute-aa-ma-milestone.md"
+    MILESTONE_CMD="${REPO_ROOT}/claude-code/skills/execute-aa-ma-milestone/SKILL.md"
     VERIFY_IMPL="${REPO_ROOT}/claude-code/skills/verify-impl/SKILL.md"
     FIXTURE="${BATS_TEST_DIRNAME}/fixtures/gate-scans/styles-tasks.md"
     FIX_ONE="${BATS_TEST_DIRNAME}/fixtures/gate-scans/one-active-tasks.md"

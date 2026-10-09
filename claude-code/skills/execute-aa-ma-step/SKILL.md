@@ -1,6 +1,6 @@
 ---
 name: execute-aa-ma-step
-description: Execute single task from AA-MA plan with lightweight validation guardrails
+description: Execute single task from AA-MA plan with lightweight validation guardrails. Use when the user asks to run a single AA-MA step.
 ---
 
 # AA-MA Step Execution

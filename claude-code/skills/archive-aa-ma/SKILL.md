@@ -1,6 +1,6 @@
 ---
 name: archive-aa-ma
-description: Archive a completed AA-MA plan to .claude/dev/completed/
+description: Archive a completed AA-MA plan to .claude/dev/completed/. Use when the user asks to archive a finished AA-MA plan.
 ---
 
 # Archive AA-MA Plan

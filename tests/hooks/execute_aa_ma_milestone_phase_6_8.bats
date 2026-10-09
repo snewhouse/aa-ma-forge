@@ -17,8 +17,8 @@
 
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
-    MILESTONE_CMD="${REPO_ROOT}/claude-code/commands/execute-aa-ma-milestone.md"
-    FULL_CMD="${REPO_ROOT}/claude-code/commands/execute-aa-ma-full.md"
+    MILESTONE_CMD="${REPO_ROOT}/claude-code/skills/execute-aa-ma-milestone/SKILL.md"
+    FULL_CMD="${REPO_ROOT}/claude-code/skills/execute-aa-ma-full/SKILL.md"
     export REPO_ROOT MILESTONE_CMD FULL_CMD
 }
 

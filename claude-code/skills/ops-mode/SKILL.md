@@ -1,5 +1,6 @@
 ---
-description: Activate full operational constraints mode for disciplined, efficient execution
+name: ops-mode
+description: Activate full operational constraints mode for disciplined, efficient execution. Use when the user asks for ops mode.
 ---
 
 # Operational Mode Activated

@@ -5,6 +5,16 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-043 (2026-10-09) — Closed sub-steps by adding a Status line instead of flipping the existing one
+**Pattern:** In code-conventions-impact M2 (2.1) and again in M3 (3.1–3.7, all seven), I closed each
+sub-step by inserting `- Status: COMPLETE` above `- Result Log:`, leaving the sub-step's original
+`- Status: PENDING` a few lines higher. `aa-ma-gate` refused the milestone (exit 2, "Status:
+conflicting values in '- Status: PENDING; - Status: COMPLETE'") only at the §6.7 boundary, seven
+commits after the first wrong one.
+**Rule:** Close a sub-step by REPLACING its one `- Status:` line, never by adding one, and after every
+sub-step sync run `aa_ma_gate <tasks.md> --milestone N --step N.M` (exit 0, `step_status=COMPLETE`)
+before committing. A script that writes Result Logs asserts the block has exactly one `- Status:` line.
+
 ## L-042 (2026-10-09) — Post-review fixes left AA-MA records stating what was no longer true
 **Pattern:** In M1 (back-fill 14cc372) and again in M2 of code-conventions-impact, fixes made after the
 §6.8 review changed behaviour (hook adapted, settings backup path, fork state) while Result Logs, the

@@ -19,7 +19,7 @@ scripts/release.sh <major|minor|patch> --headline "<one-line theme>" [--dry-run]
    `**Current version:** vX.Y.Z — …` line; next version from `cz bump --get-next`; tag absent;
    `gh auth status` (unless `--no-push`/`--dry-run`).
 1a. **Advisory evals** (not under `--dry-run` or `--skip-evals`): `scripts/run-evals.sh` runs the
-   24 skill evals (ADR-0021) and the script prints its summary line. A failing case never blocks the
+   skill evals under `evals/` (ADR-0021) and the script prints its summary line. A failing case never blocks the
    release; read `.claude/evals/<date>.jsonl` if the pass count dropped. With a claude.ai login the
    run counts against plan usage, not an API bill.
 2. `## Unreleased` → `## vX.Y.Z (YYYY-MM-DD)`; README line → `**Current version:** vX.Y.Z — <headline>`.

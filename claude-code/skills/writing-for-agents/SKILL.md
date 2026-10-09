@@ -1,5 +1,5 @@
 ---
-# Derived from https://github.com/mattpocock/skills/skills/productivity/writing-for-agents @ c55ee46 (forked 2026-10-09; `## In this repo` appended, upstream text unedited) — aa-ma-forge v0.17.0
+# Derived from https://github.com/mattpocock/skills/skills/productivity/writing-for-agents @ c55ee46 (forked 2026-10-09; `## In this repo` appended and one local `when_to_use` line added; upstream text otherwise unedited) — aa-ma-forge v0.17.0
 name: writing-for-agents
 description: Writing documents for agents. Use when creating or editing skills, or modifying AGENTS.md or CLAUDE.md.
 when_to_use: Use when writing, reviewing or editing a skill (its SKILL.md or its description), a CLAUDE.md or AGENTS.md line, or any instructions an agent will read.
@@ -84,7 +84,7 @@ You win twice: fewer tokens, and a sharper hook for the agent to hang its thinki
 
 ## In this repo
 
-aa-ma-forge conventions for its own skills (ADR-0021). They sit below the upstream text and never edit it. Where they differ from it, they say which wins.
+aa-ma-forge conventions for its own skills (ADR-0021). They sit below the upstream text and do not edit it; the only other local line is `when_to_use` in the frontmatter. Where they differ from it, they say which wins.
 
 - **Frontmatter is tested.** `tests/test_frontmatter_at_top.py` allows the documented keys plus `metadata` only, because Claude Code ignores an unknown key without an error. `name` equals the directory, ≤64 chars of `[a-z0-9-]`. `description` is ≤1024 chars with no `<`, written in third person. `description` + `when_to_use` is ≤1536. `context:` may only be `fork`. An unscoped `Bash`, `Write` or `Edit` in `allowed-tools` needs an allowlist entry giving the why. A per-skill version goes in `metadata.version`.
 - **Size: the branching test, plus a cap.** The branching test above decides *what* moves out of a skill. `tests/test_prompt_size.py` caps any SKILL.md or agent file at 500 lines; legacy files are ceilinged in its `ALLOWLIST` until split. A new or modified `references/*.md` over 100 lines needs a table of contents. Overflow goes to `references/`, one level deep. The cap is a backstop, not the split criterion.

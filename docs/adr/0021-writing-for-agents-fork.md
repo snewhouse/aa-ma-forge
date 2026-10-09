@@ -72,7 +72,7 @@ Chosen option: **1**.
 Gate-bearing and high-traffic skills keep advisory eval cases under `evals/<skill>/<case>/`, run
 by `scripts/run-evals.sh` with `claude plugin eval` (proved in code-conventions-impact M4.3,
 recorded in its context-log): repo-root target, each case naming `plugins: ["../../../claude-code"]`,
-always `--no-publish --runs 1 --ablation none`. Every case carries a `tool_used: Skill` grader:
+always `--no-publish --runs 1 --ablation none`. Every case has `max_turns: 12` (one Skill load, up to ~10 reads or greps, the answer); `tests/test_eval_cases.py` keeps the copies equal. Every case carries a `tool_used: Skill` grader:
 in the proof run an LLM judge passed a case in which the skill had never loaded. Evals never gate
 CI (cost, nondeterminism).
 

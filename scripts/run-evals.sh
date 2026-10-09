@@ -29,7 +29,7 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 EVAL_DIR="${RUN_EVALS_DIR:-evals}"
 MODEL="${RUN_EVALS_MODEL:-sonnet}"
-MAX_COST="${RUN_EVALS_MAX_COST_USD:-5}"  # USD; ~24 sonnet cases cost well under this
+MAX_COST="${RUN_EVALS_MAX_COST_USD:-5}"  # USD list-price estimate; the full suite on sonnet costs well under this
 RESULTS="${RUN_EVALS_RESULTS:-${REPO_ROOT}/.claude/evals}"
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
 

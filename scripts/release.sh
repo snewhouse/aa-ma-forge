@@ -70,7 +70,7 @@ elif [[ -x "$EVALS" ]]; then
   echo "evals: running (advisory, a few minutes; --skip-evals to skip)"
   # why: `|| true` — run-evals.sh exits 0 by contract; this guards a broken install of it.
   "$EVALS" >"$EVALS_LOG" 2>&1 || true
-  tail -n 2 "$EVALS_LOG"
+  tail -n 2 "$EVALS_LOG"   # why: run-evals.sh ends with its summary line, then `run-evals: rc=N`
   echo "evals: full log $EVALS_LOG"
 else
   echo "evals: skipped ($EVALS not found)"

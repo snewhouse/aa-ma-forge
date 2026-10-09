@@ -1,8 +1,4 @@
-"""Shared helpers for SKILL.md frontmatter tests across the plugin's forked skills.
-
-Used by test_grill_with_docs_frontmatter.py (M1.7), test_prototype_frontmatter.py
-(M2.8), and test_write_a_skill_frontmatter.py (M2.8).
-"""
+"""Shared helpers for SKILL.md frontmatter and fork-integrity tests (forked skills, evals)."""
 
 from __future__ import annotations
 

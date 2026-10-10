@@ -238,15 +238,15 @@ create_symlink() {
     local source="$1"
     local target="$2"
 
-    # Remove stale symlink (pointing anywhere, including our repo)
+    # Replace any existing symlink (ours or foreign). Not counted as stale: STALE_REMOVED
+    # counts only the dangling links the sweep below removes.
     if [ -L "${target}" ]; then
         record_foreign_symlink "${target}"
         if ${DRY_RUN}; then
-            info "Would remove stale symlink: ${target}"
+            info "Would replace existing symlink: ${target}"
         else
             rm "${target}"
         fi
-        STALE_REMOVED=$((STALE_REMOVED + 1))
     fi
 
     # Remove real file/dir that's in our way (already backed up above)
@@ -281,7 +281,6 @@ copy_file() {
         else
             rm "${target}"
         fi
-        STALE_REMOVED=$((STALE_REMOVED + 1))
     fi
 
     if ${DRY_RUN}; then

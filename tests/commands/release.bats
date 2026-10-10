@@ -116,11 +116,11 @@ EOF
 @test "--no-push: one commit with CHANGELOG+README+VERSION, heading renamed, annotated tag, clean tree" {
   run "$RELEASE" minor --headline "new headline" --no-push
   [ "$status" -eq 0 ]
-  ! grep -q 'Unreleased' CHANGELOG.md
+  run ! grep -q 'Unreleased' CHANGELOG.md
   grep -q "^## v0.12.0 ($(date +%F))$" CHANGELOG.md
   grep -q '^- thing one$' CHANGELOG.md                                  # curated notes survive
   [ "$(grep -c '^\*\*Current version:\*\* v0.12.0 — new headline$' README.md)" -eq 1 ]
-  ! grep -q 'old headline' README.md
+  run ! grep -q 'old headline' README.md
   [ "$(git log --format=%s -1)" = "bump: version 0.11.0 → 0.12.0" ]
   git show --stat --format= HEAD | grep -q CHANGELOG.md
   git show --stat --format= HEAD | grep -q README.md

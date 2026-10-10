@@ -25,8 +25,9 @@ it. While fixing it I wrote the same bug twice more (`! grep`, then `[ … ] && 
 caught it because the new test would not go RED.
 **Rule:** In bats, one assertion per line, no `&&` and no leading `!`: write `run cmd` then
 `[ "$status" -eq 1 ]` (or `run ! cmd` on bats ≥ 1.5). A new or changed bats assertion must be seen
-failing (RED, or a mutation of the code it guards) before it counts. 17 bare `! …` lines predate
-this rule in `tests/hooks/*.bats` and `tests/commands/release.bats`; sweep them in M5.
+failing (RED, or a mutation of the code it guards) before it counts. The 21 bare `! …` lines that
+predated this rule were rewritten on 2026-10-10, and `tests/test_bats_assertions.py` now refuses any
+new one (the `&&` form is not machine-checked).
 **Cross-ref:** L-1214 (never-seen-failing guards)
 
 ## L-044 (2026-10-09) — M3 made install.sh / uninstall.sh Linux-only; only the PR-time reviewer caught it

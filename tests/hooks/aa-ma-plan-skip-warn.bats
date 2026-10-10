@@ -117,7 +117,7 @@ EOF
     [ "$status" -eq 0 ]
     # Skips with reasons must not warn.
     if [[ "$output" == *"PHASE_1.5"* ]]; then echo 'PHASE_1.5 warned unexpectedly' >&2; false; fi
-    ! [[ "$output" == *"PHASE_4.2"* ]]
+    [[ "$output" != *"PHASE_4.2"* ]]
 }
 
 @test "SKIPPED without reason → stderr warning, exit 0" {

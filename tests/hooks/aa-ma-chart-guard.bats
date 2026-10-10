@@ -148,7 +148,7 @@ _block() {  # <map> <N>
     [ "$status" -eq 0 ]
     _block "$map" 1 | grep -q '^- Status: CLAIMED$'
     [ "$(_block "$map" 1 | grep -c '^- Claimed-at: ')" -eq 1 ]
-    ! _block "$map" 1 | grep -q '^- Claimed-at: 2026-09-21T09:00$'
+    run ! grep -q '^- Claimed-at: 2026-09-21T09:00$' <<< "$(_block "$map" 1)"
     _block "$map" 1 | grep -Eq '^- Reclaimed: [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}$'
     _block "$map" 3 | grep -q '^- Status: OPEN$'
 }

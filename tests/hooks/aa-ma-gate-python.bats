@@ -394,7 +394,7 @@ _run_approval() {  # <cwd> <task-name>
     # Every reading there must come from aa_ma_gate; the retired awk helpers
     # must not be referenced.
     for f in "$MILESTONE_CMD" "$REPO_ROOT/claude-code/skills/verify-impl/SKILL.md"; do
-        ! grep -qE 'aa_ma_(extract_milestone_block|field_value|count_field|active_milestone_strict|is_milestone_heading)' "$f"
+        run ! grep -qE 'aa_ma_(extract_milestone_block|field_value|count_field|active_milestone_strict|is_milestone_heading)' "$f"
     done
     grep -q 'aa_ma_gate' "$MILESTONE_CMD"
     grep -q 'aa_ma_gate' "$REPO_ROOT/claude-code/skills/verify-impl/SKILL.md"

@@ -100,6 +100,16 @@ _manifest_rows() { cat "${BATS_FAKE_HOME}"/.claude/backups/aa-ma-forge-*/foreign
     [ ! -L "${BATS_FAKE_HOME}/.claude/agents/retired-agent.md" ]
     [ -L "${BATS_FAKE_HOME}/.claude/skills/theirs" ]
     [[ "${output}" == *"Removed stale link: ${BATS_FAKE_HOME}/.claude/skills/retired-skill"* ]]
+    [[ "${output}" == *"Stale links removed:   2"* ]]
+}
+
+@test "a re-install counts no stale links: relinking its own links is not a removal" {
+    _settings
+    run env HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}"
+    [ "${status}" -eq 0 ]
+    run env HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}"
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"Stale links removed:   0"* ]]
 }
 
 @test "install records a foreign symlink's destination before replacing it" {

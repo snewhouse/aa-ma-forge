@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
 # aa-ma-parse.bats — tests for claude-code/hooks/lib/aa-ma-parse.sh
 
+bats_require_minimum_version 1.5.0
+
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/.." && pwd)"
     HELPER="$REPO_ROOT/../claude-code/hooks/lib/aa-ma-parse.sh"
@@ -135,7 +137,7 @@ EOF
     mapfile -t tasks < <(aa_ma_list_active_tasks)
     [ "${#tasks[@]}" -eq 1 ]
     [[ "${tasks[0]}" == "$BATS_TMP"* ]]
-    ! [[ "${tasks[0]}" == "$BATS_TMP_HOME"* ]]
+    [[ "${tasks[0]}" != "$BATS_TMP_HOME"* ]]
 }
 
 @test "aa_ma_list_active_tasks merges non-colliding tasks from both paths" {
@@ -221,7 +223,7 @@ EOF
     [ -n "$header" ]
     printf '%s' "$header" | grep -qF "aa_ma_gate"
     # And a symbol that is definitely absent must be detected as absent.
-    ! printf '%s' "$header" | grep -qF "aa_ma_definitely_not_a_real_symbol"
+    run ! grep -qF "aa_ma_definitely_not_a_real_symbol" <<< "$header"
 }
 
 # ---------------------------------------------------------------------------

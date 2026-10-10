@@ -133,7 +133,7 @@ _run_fence() {
     run _run_fence
     [ "$status" -eq 0 ]
     [[ "$output" == *"not applicable"* ]]
-    ! grep -q DIAGRAM_VERIFIED "$T/t-provenance.log"
+    run ! grep -q DIAGRAM_VERIFIED "$T/t-provenance.log"
 }
 
 @test "a true sigil edge passes and records DIAGRAM_VERIFIED naming the milestone" {
@@ -148,7 +148,7 @@ _run_fence() {
     run _run_fence
     [ "$status" -eq 1 ]
     [[ "$output" == *BLOCKED* && "$output" == *PHANTOM_EDGE* ]]
-    ! grep -q DIAGRAM_VERIFIED "$T/t-provenance.log"
+    run ! grep -q DIAGRAM_VERIFIED "$T/t-provenance.log"
 }
 
 @test "a typo'd sigil (LABEL_UNKNOWN) refuses COMPLETE" {
@@ -164,7 +164,7 @@ _run_fence() {
     run _run_fence
     [ "$status" -eq 1 ]
     [[ "$output" == *BLOCKED* && "$output" == *"codemem build"* ]]
-    ! grep -q DIAGRAM_VERIFIED "$T/t-provenance.log"
+    run ! grep -q DIAGRAM_VERIFIED "$T/t-provenance.log"
 }
 
 @test "a stale index refuses; codemem build clears it" {
@@ -190,7 +190,7 @@ _run_fence() {
     run _run_fence
     [ "$status" -eq 1 ]
     [[ "$output" == *BLOCKED* ]]
-    ! grep -q DIAGRAM_VERIFIED "$T/t-provenance.log"
+    run ! grep -q DIAGRAM_VERIFIED "$T/t-provenance.log"
 }
 
 @test "no ACTIVE milestone refuses before linting" {
@@ -207,7 +207,7 @@ _run_fence() {
     run _run_fence
     [ "$status" -eq 1 ]
     [[ "$output" == *BLOCKED* ]]
-    ! grep -q DIAGRAM_VERIFIED "$T/t-provenance.log"
+    run ! grep -q DIAGRAM_VERIFIED "$T/t-provenance.log"
 }
 
 @test "§6.8: sigil edges under a prose 'Component view:' (no heading) refuse" {

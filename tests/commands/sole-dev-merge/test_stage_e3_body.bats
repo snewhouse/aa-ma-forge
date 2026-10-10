@@ -10,6 +10,8 @@
 # is documented in the surrounding prose (Claude executor dispatches Haiku
 # Agent) and runs OUTSIDE this bash block. The fallback alone satisfies AC.
 
+bats_require_minimum_version 1.5.0
+
 load fixtures/helpers
 
 setup() {
@@ -88,7 +90,7 @@ _five_commit_branch() {
 
     run bash "$E3_SCRIPT"
     [ "$status" -eq 0 ]
-    ! grep -q '^Plan context:' "$BODY_OUT"
+    run ! grep -q '^Plan context:' "$BODY_OUT"
 }
 
 @test "E3: required section headings — Summary, Changes by area, Reviewer notes" {
@@ -137,7 +139,7 @@ NOTES
     grep -q 'B311 random Standard pseudo-random generators' "$BODY_OUT"
     # AND they must NOT be preceded by '(none)' (which would mean Stage E3
     # missed the file and fell back to the empty branch).
-    ! grep -q '^(none)$' "$BODY_OUT"
+    run ! grep -q '^(none)$' "$BODY_OUT"
 
     # $notes_file is swept by teardown()'s sweep_slug_tmp. SLUG is deliberately
     # NOT unset here — teardown needs it, and each bats test runs in its own

@@ -50,7 +50,7 @@ teardown() {
     HOME="$BATS_TMP_HOME" run bash "$HOOK"
     [ "$status" -eq 0 ]
     [[ "$output" == *"task=[task-1]"* ]]
-    ! [[ "$output" == *"task=[task-3]"* ]]
+    [[ "$output" != *"task=[task-3]"* ]]
 }
 
 @test "multi-task footer: 4 active tasks → top + (3 other active tasks: ...)" {
@@ -83,7 +83,7 @@ teardown() {
     HOME="${BATS_TMP_HOME}/" run bash "$HOOK"
     [ "$status" -eq 0 ]
     # No "//" should appear in the emitted path.
-    ! [[ "$output" == *"//"* ]]
+    [[ "$output" != *"//"* ]]
 }
 
 @test "home-fallback: task lives only in \$HOME, hook emits its HOME path" {

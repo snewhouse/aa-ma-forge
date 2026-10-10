@@ -9,6 +9,8 @@
 # this repo is swept; a foreign symlink is recorded before it is replaced and put
 # back by `uninstall.sh --restore`; uninstall deregisters every AA_MA_HOOKS row.
 
+bats_require_minimum_version 1.5.0
+
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     INSTALLER="${REPO_ROOT}/scripts/install.sh"
@@ -314,7 +316,7 @@ _bsd_chmod_on_path() {
     [ "${status}" -eq 0 ]
     for h in $(_installed_hook_scripts); do [ "$(_registered "$h")" -eq 0 ] || { echo "still registered: $h"; return 1; }; done
     [ "$(stat -c %a "${BATS_FAKE_HOME}/.claude/settings.json")" = 600 ]
-    ! ls "${BATS_FAKE_HOME}/.claude/"settings.json.tmp.* 2>/dev/null
+    run ! compgen -G "${BATS_FAKE_HOME}/.claude/settings.json.tmp.*"
 }
 
 @test "uninstall needs bash 4 only under --restore (no declare -A on the default path)" {

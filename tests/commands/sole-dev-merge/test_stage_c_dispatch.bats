@@ -18,6 +18,8 @@
 # Test pattern: MOCK_AGENT_DISPATCH=1 means agent outputs are pre-populated by
 # the test (bypassing real Agent tool). C3/C4 run real bandit/shellcheck.
 
+bats_require_minimum_version 1.5.0
+
 load fixtures/helpers
 
 setup() {
@@ -258,5 +260,5 @@ EOF
 
     [ -f "/tmp/sole-dev-merge-findings-${SLUG}.md" ]
     # No findings → no [SEVERITY] lines
-    ! grep -qE '^\[(CRITICAL|HIGH|MEDIUM|LOW)\]' "/tmp/sole-dev-merge-findings-${SLUG}.md"
+    run ! grep -qE '^\[(CRITICAL|HIGH|MEDIUM|LOW)\]' "/tmp/sole-dev-merge-findings-${SLUG}.md"
 }

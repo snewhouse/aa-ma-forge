@@ -9,6 +9,8 @@
 #
 # Pre-M2 hook only reads $HOME. These tests MUST be RED against it.
 
+bats_require_minimum_version 1.5.0
+
 setup() {
     HOOK="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)/claude-code/hooks/pre-compact-aa-ma.sh"
     FIXTURE="${BATS_TEST_DIRNAME}/fixtures/build_active_dir.sh"
@@ -140,5 +142,5 @@ EOF
     [ "$status" -eq 0 ]
     grep -qF -- '- Snapshot saved to: ~/.claude/hooks/cache/compaction-snapshots/task-1-snapshot.md' \
         "$BATS_TMP/.claude/dev/active/task-1/task-1-context-log.md"
-    ! grep -qF -- "$BATS_TMP_HOME" "$BATS_TMP/.claude/dev/active/task-1/task-1-context-log.md"
+    run ! grep -qF -- "$BATS_TMP_HOME" "$BATS_TMP/.claude/dev/active/task-1/task-1-context-log.md"
 }

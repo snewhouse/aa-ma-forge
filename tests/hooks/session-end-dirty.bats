@@ -93,5 +93,5 @@ setup_committed_tasks() {
     HOME="$BATS_TMP_HOME" CLAUDE_CODE=1 run bash "$HOOK"
     [ "$status" -eq 0 ]
     # No "dirty" warning; may or may not have debug output.
-    ! [[ "$output" == *"⚠️"* ]]
+    [[ "$output" != *"⚠️"* ]]
 }

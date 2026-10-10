@@ -14,6 +14,8 @@
 #   - For HIGH/MEDIUM: AskUserQuestion panel (not testable in bats; skipped here)
 #   - For LOW: append to Reviewer notes section (advisory)
 
+bats_require_minimum_version 1.5.0
+
 load fixtures/helpers
 
 setup() {
@@ -91,7 +93,7 @@ PY
     [[ "$SUBJECT" =~ ^fix\(review\):\ apply\ CRITICAL\ bandit ]]
 
     # The file no longer contains shell=True
-    ! grep -q "shell=True" vulnerable.py
+    run ! grep -q "shell=True" vulnerable.py
 }
 
 @test "Stage D is a no-op when findings.md has no auto-fixable CRITICALs" {

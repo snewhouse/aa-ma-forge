@@ -31,6 +31,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - `aa_ma.logsetup` (map T9): `configure_logging(verbosity, fmt)` for CLI entrypoints — one stderr handler, `LOG_LEVEL`/`LOG_FORMAT` (text or json), `-v`/`-q` override the env. `SecretRedactingFormatter` masks the rendered record (message, args, traceback, stack) and fails closed to `[redaction failed]`.
 - Secret masking for both: `src/aa_ma/secret_patterns.tsv` (13 gitleaks rule ids) is the one pattern source; bash and Python mask identically (parity test), each pattern is timed on 100 KB adversarial input, and a secret straddling the cap is masked whole.
 - Every `claude-code/hooks/*.sh` opens with `# Event:`, `# Mode: Blocking|Advisory`, `# Exit:` and `# Fail-open:` lines; `tests/hooks/hook-headers.bats` checks them against the `AA_MA_HOOKS` registration table.
+- `ruff-format.sh` (map T15 §7): after fixing and formatting, it hands the model what `ruff check` still finds as PostToolUse `additionalContext`, capped at 10 lines. With no ruff available it shows one `systemMessage` per session instead of skipping silently.
 
 ### Changed
 
@@ -74,6 +75,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Security
 
+- `ruff-format.sh` ran whatever `command -v ruff` returned, so a relative `PATH` entry such as `.venv/bin` resolved inside the edited repo and ran that repo's committed `.venv/bin/ruff`. ruff now comes only from the forge's `.venv` or an absolute `PATH` entry (bats: a hostile repo's stub is never run).
 - `understand-codebase`: the frontmatter fix would have activated a dormant `allowed-tools` list that pre-approves `Bash`, `Write`, `Edit`, `WebFetch`, `Agent` and others with no prompt, on a skill that reads untrusted repos. It is narrowed to read-only (`Read`, `Glob`, `Grep`, `AskUserQuestion`), so everything else still prompts. See the ADR-0006 amendment.
 
 ## v0.17.0 (2026-10-01)

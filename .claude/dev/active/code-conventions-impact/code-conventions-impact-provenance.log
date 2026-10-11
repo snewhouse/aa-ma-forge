@@ -104,3 +104,4 @@
 [2026-10-10T22:39:24Z] Context compacted — Snapshot saved, active step: Sub-step 5.0: Post-merge of M4
 [2026-10-10T22:39:24Z] CHECKPOINT — ActiveStep: Sub-step 5.0: Post-merge of M4 — NextAction: "Resume from active step" — ContextLoaded: REFERENCE,TASKS — TokenUsage: N/A
 [2026-10-11T06:55:41+01:00] Sub-step 5.0 (partial) — main bc177e5 (PRs #21/#22/#23 merged); live install rc=0 links=65 stale=0; worktree feat/cci-m5-split-prompts @ bc177e5, uv sync rc=0, codemem build rc=0 (303 files); L-1315 probe pending (nested claude -p denied in-session, handed to Ste)
+[2026-10-11T06:56:24+01:00] Sub-step 5.0 COMPLETE — L-1315 isolated probe PASS (run by Ste): writing-for-agents listed with its own description + when_to_use; control zz-control shows the line-1 comment

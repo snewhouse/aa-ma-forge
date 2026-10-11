@@ -35,7 +35,7 @@ _section_68() {
 
 @test "§6.8 points at its body in references/post-impl-review.md" {
     [ -s "$POST_IMPL_REF" ]
-    awk '/^### 6\.8/,/^### 7\.1/' "$MILESTONE_CMD" | grep -F "](references/post-impl-review.md)"
+    awk '/^### 6\.8/,/^### 7\.1/' "$MILESTONE_CMD" | grep -F "](references/post-impl-review.md#"
 }
 
 @test "§6.8 section exists in execute-aa-ma-milestone.md" {

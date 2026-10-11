@@ -19,6 +19,7 @@ from ._helpers import (  # pyright: ignore[reportMissingImports]
     REPO_ROOT,
     SKILLS_DIR,
     assert_skill_frontmatter,
+    skill_files,
     upstream_body_md5,
 )
 
@@ -60,7 +61,7 @@ def test_write_a_skill_is_retired() -> None:
 def test_aa_ma_writers_do_not_invoke_it() -> None:
     """writing-for-agents-eval T4: AA-MA artefacts follow their templates and grammar."""
     writers = [
-        *sorted((SKILLS_DIR / "aa-ma-plan").rglob("*.md")),
+        *skill_files(SKILLS_DIR / "aa-ma-plan" / "SKILL.md"),
         REPO_ROOT / "claude-code" / "agents" / "aa-ma-scribe.md",
         *sorted((SKILLS_DIR / "aa-ma-plan-workflow").rglob("*.md")),
     ]

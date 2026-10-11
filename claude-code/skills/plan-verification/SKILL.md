@@ -73,25 +73,25 @@ Dispatch all 4 agents simultaneously using the Agent tool. Each agent runs indep
 
 #### Angle 1: Ground-Truth Audit
 
-See [angles-1-5.md](references/angles-1-5.md) — what each Wave 1 agent (ground truth, assumptions, impact, falsifiability) and the Wave 2 fresh-agent simulation checks, and how it reports.
+See [angles-1-5.md](references/angles-1-5.md#angle-1-ground-truth-audit) — what each Wave 1 agent (ground truth, assumptions, impact, falsifiability) and the Wave 2 fresh-agent simulation checks, and how it reports.
 
 ---
 
 #### Angle 2: Assumption Extraction & Challenge
 
-See [angles-1-5.md](references/angles-1-5.md) — what each Wave 1 agent (ground truth, assumptions, impact, falsifiability) and the Wave 2 fresh-agent simulation checks, and how it reports.
+See [angles-1-5.md](references/angles-1-5.md#angle-2-assumption-extraction--challenge) — what each Wave 1 agent (ground truth, assumptions, impact, falsifiability) and the Wave 2 fresh-agent simulation checks, and how it reports.
 
 ---
 
 #### Angle 3: Impact Analysis on Proposed Changes
 
-See [angles-1-5.md](references/angles-1-5.md) — what each Wave 1 agent (ground truth, assumptions, impact, falsifiability) and the Wave 2 fresh-agent simulation checks, and how it reports.
+See [angles-1-5.md](references/angles-1-5.md#angle-3-impact-analysis-on-proposed-changes) — what each Wave 1 agent (ground truth, assumptions, impact, falsifiability) and the Wave 2 fresh-agent simulation checks, and how it reports.
 
 ---
 
 #### Angle 4: Acceptance Criteria Falsifiability
 
-See [angles-1-5.md](references/angles-1-5.md) — what each Wave 1 agent (ground truth, assumptions, impact, falsifiability) and the Wave 2 fresh-agent simulation checks, and how it reports.
+See [angles-1-5.md](references/angles-1-5.md#angle-4-acceptance-criteria-falsifiability) — what each Wave 1 agent (ground truth, assumptions, impact, falsifiability) and the Wave 2 fresh-agent simulation checks, and how it reports.
 
 ---
 
@@ -127,7 +127,7 @@ Wave 2 agents receive Wave 1 findings to avoid re-flagging known issues.
 
 #### Angle 5: Fresh-Agent Simulation
 
-See [angles-1-5.md](references/angles-1-5.md) — what each Wave 1 agent (ground truth, assumptions, impact, falsifiability) and the Wave 2 fresh-agent simulation checks, and how it reports.
+See [angles-1-5.md](references/angles-1-5.md#angle-5-fresh-agent-simulation) — what each Wave 1 agent (ground truth, assumptions, impact, falsifiability) and the Wave 2 fresh-agent simulation checks, and how it reports.
 
 ---
 

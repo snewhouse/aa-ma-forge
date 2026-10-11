@@ -7,6 +7,8 @@
 
 bats_require_minimum_version 1.5.0
 
+load ../lib/skill_files
+
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     HELPER="${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh"
@@ -87,8 +89,9 @@ _advisory_fence() {
     grep -q "aa_ma_deps advisory" "$FULL_CMD"
     # SKILL.md and the references/ it was split into (L-047): the HALT check must
     # cover every file the instructions live in.
-    local refs=("${FULL_CMD%/SKILL.md}"/references/*.md)
-    [ -s "${refs[0]}" ]
-    run bash -c "grep -h -i -A3 'dependenc' \"\$@\" | grep HALT" _ "$FULL_CMD" "${refs[@]}"
+    local files
+    mapfile -t files < <(skill_files "$FULL_CMD")
+    [ "${#files[@]}" -ge 2 ]
+    run bash -c "grep -h -i -A3 'dependenc' \"\$@\" | grep HALT" _ "${files[@]}"
     [ "$status" -ne 0 ]
 }

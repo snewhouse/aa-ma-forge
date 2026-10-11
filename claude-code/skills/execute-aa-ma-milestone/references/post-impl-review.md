@@ -1,4 +1,4 @@
-# Post-impl adversarial review (§6.8) — when §6.8 fires, how Skill(verify-impl) dispatches the five audit agents (ADR-0005), verdicts, the CRITICAL override panel and bypasses.
+# Post-impl adversarial review (§6.8) — when §6.8 fires, how Skill(verify-impl) dispatches the audit agents (ADR-0005), verdicts, the CRITICAL override panel and bypasses.
 
 ## Contents
 

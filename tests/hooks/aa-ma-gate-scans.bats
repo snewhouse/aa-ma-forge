@@ -19,6 +19,8 @@
 #      which must never treat a prose H2 as a milestone; identical under gawk
 #      and mawk.
 
+load ../lib/skill_files
+
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     HELPER="${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh"
@@ -27,8 +29,7 @@ setup() {
     FIXTURE="${BATS_TEST_DIRNAME}/fixtures/gate-scans/styles-tasks.md"
     FIX_ONE="${BATS_TEST_DIRNAME}/fixtures/gate-scans/one-active-tasks.md"
     FIX_NONE="${BATS_TEST_DIRNAME}/fixtures/gate-scans/no-active-tasks.md"
-    MILESTONE_REFS="${REPO_ROOT}/claude-code/skills/execute-aa-ma-milestone/references"
-    export REPO_ROOT HELPER MILESTONE_CMD MILESTONE_REFS VERIFY_IMPL FIXTURE FIX_ONE FIX_NONE
+    export REPO_ROOT HELPER MILESTONE_CMD VERIFY_IMPL FIXTURE FIX_ONE FIX_NONE
 }
 
 teardown() {
@@ -123,7 +124,7 @@ _exec_lines() {
 # The command is SKILL.md plus the references/ it was split into (code-conventions-impact
 # M5); a guard that read SKILL.md alone would stop covering every snippet that moved.
 _milestone_files() {
-    printf '%s\n' "$MILESTONE_CMD" "$MILESTONE_REFS"/*.md
+    skill_files "$MILESTONE_CMD"
 }
 
 _milestone_exec_lines() {

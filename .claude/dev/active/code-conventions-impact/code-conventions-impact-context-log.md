@@ -310,3 +310,12 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - SC2312 (masked command-substitution status) made 116 of the 124 shellcheck findings that fall due when a .sh file is touched, mostly `echo "$(cmd)"` — noise relative to its value. Dropped from the hook; SC2310 (set -e off inside a condition) kept.
 - With SC2312 gone, 8 SC2310 findings remain in 2 files (4 in claude-code/hooks/). They are swept in Sub-step 7.0, before 7.1, so M7's hook migration (7.3) starts from files that already pass the hook.
 - Recorded as two Sub-step 7.0 acceptance criteria; plan.md unchanged (historical record).
+
+## [2026-10-11] DECISION — hook log variable stays `CLAUDE_HOOK_LOG` (M7.0, validator W1)
+- Approved by: Ste
+- The plan named `AA_MA_HOOK_LOG` for aa-ma-log.sh, but `CLAUDE_HOOK_LOG` already ships: claude-code/hooks/ruff-format.sh:6, tests/hooks/ruff-format.bats:65, logging-and-comments references/bash.md:41, ADR-0019:70 ("the logging-and-comments contract"), CHANGELOG, claude-code-foundations.md.
+- Chosen: keep `CLAUDE_HOOK_LOG`; no rename, no alias. Rejected: `AA_MA_HOOK_LOG` + a one-release alias (churns six shipped files for no user benefit).
+- tasks.md 7.1 AC and reference.md Environment Variables corrected; plan.md unchanged (historical record).
+
+## [2026-10-11] Sub-step 7.0 — SC2310 sites suppressed, not rewritten
+- All 8 findings were deliberate: set -e is meant to be off in pre-compact-aa-ma.sh's fail-open appends, and uninstall.sh's manifest_slot_ok / slot_free_for_restore are pure predicates whose status is the answer. Rewriting (e.g. `now=$(ts)` outside the `||`) would make a date failure fatal and break fail-open — a behaviour change. Each site gets a narrow `# shellcheck disable=SC2310  # why: …`, matching the file's existing SC2088 style.

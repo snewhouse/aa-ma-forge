@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-11 (M6)_
+_Last Updated: 2026-10-11 (M7.0)_
 
 Test-Command: uv run pytest
 
@@ -208,7 +208,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 | `AA_MA_TEST_TIMEOUT` | 540 | no | fence 3 timeout, seconds [valid: 2026-10-08] |
 | `HOOK_DEBUG` | unset | no | `=1` enables `log_debug` (also stderr) in hooks [valid: 2026-10-08] |
 | `AA_MA_PLAN_MARKER_DEBUG` | unset | no | deprecated alias for one release (prints notice) — removal recorded in TODOS.md [valid: 2026-10-08] |
-| `AA_MA_HOOK_LOG` | `~/.claude/logs/hooks.log` | no | hook log path (compaction.log folds in) [valid: 2026-10-08] |
+| `CLAUDE_HOOK_LOG` | `~/.claude/logs/hooks.log` | no | hook log path (compaction.log folds in); the name already shipped in ruff-format.sh, its bats, logging-and-comments and ADR-0019 — the plan's `AA_MA_HOOK_LOG` is not used (Ste, M7.0) [valid: 2026-10-11] |
 | `LOG_LEVEL` | — | no | Python CLI log level (with `-v`/`-q`) [valid: 2026-10-08] |
 | `LOG_FORMAT` | text | no | `json` opt-in for CLIs; required for services [valid: 2026-10-08] |
 | `PRE_COMMIT_FROM_REF` / `PRE_COMMIT_TO_REF` | unset | no | read by check_conventions.py (pre-commit cannot template refs into args) [valid: 2026-10-08] |
@@ -398,6 +398,6 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - Ruff (`pyproject.toml [tool.ruff.lint]`): extend-select += D, RUF100, PGH003, PGH004, C901, PLR0913; extend-ignore = {D107, TD003} (ratchet, `tests/test_ruff_config.py`); mccabe max-complexity 10, pylint max-args 6; PLR2004 not selected. Fixtures must use a public module path — pydocstyle hides D103 in `_private` modules. [valid: 2026-10-11]
 - `scripts/check_conventions.py`: `Check = (path, {lineno: added text}, new-side text)`; `CHECKS = [check_why, check_todo]`; new side read with `git show :0:<path>` (staged) or `<to>:<path>`, only for scannable paths (`.py/.pyi/.sh/.bash`, or extensionless with a shell shebang; `.bats` never) with added lines; repo top resolved once. Shell scanner: context stack with one `_CONTEXTS` opener/closer table (`$(`/backtick are code inside `"…"`, `$((…))` arithmetic, `$'…'` escapes), heredocs `<<`, `<<-`, quoted/backslash delimiters starting `[A-Za-z_]`; unbalanced context at EOF logs a warning. `# why:` = same line or anywhere in the contiguous comment block above (one forward pass). [valid: 2026-10-11]
 - WHY001 suppressions: Python comments `# noqa`, `# ruff: noqa`, `# flake8: noqa`, `# type: ignore`, `# pyright: ignore`, `# nosec`; shell code `|| true`, `|| :`, `2>/dev/null`, `&>/dev/null`, `>/dev/null 2>&1`. TODO001: `#\s*(TODO|FIXME)` (case-insensitive) without `(?<![\w#])(#\d+|ADR-\d{4})(?!\w)`. Repo-wide (all lines as added) 131 WHY001 / 1 TODO001 — paid when touched. [valid: 2026-10-11]
-- `.pre-commit-config.yaml`: shellcheck `args: ["--enable=check-extra-masked-returns,check-set-e-suppressed"]` (quoted — an unquoted YAML flow list splits on the comma); check-conventions `args: ["--"]`. ruff-check / ruff-format hooks still lack `--` → M8. Debt due on touch: 124 SC2310/SC2312 in 51 .sh files; 7 eval scaffolds `evals/_lib/*.sh` carry SC2312. [valid: 2026-10-11]
+- `.pre-commit-config.yaml`: shellcheck `args: ["--enable=check-set-e-suppressed"]` (SC2312 dropped in M7.0, a22106d; SC2310 sites: 0, swept in e175676); check-conventions `args: ["--"]`. ruff-check / ruff-format hooks still lack `--` → M8. [valid: 2026-10-11 (M7.0)]
 - `tests/test_eval_cases.py` `EVAL_AGENTS = {"code-reviewer"}`: an agent case may grant `Agent` and needs a `tool_used: Agent` grader matching `subagent_type`. [valid: 2026-10-11]
 - Canary PRs: #25 (canary commit 54d08cd on 994ed35, run 38140041890), #26 (canary commit 2cdb3f6 on 79e83cb — the final scanner + hook config, run 38142145243) — both closed, branches deleted. `gh pr close --delete-branch` fails from a worktree (main is checked out elsewhere); delete the remote with `git push origin --delete`. [valid: 2026-10-11]

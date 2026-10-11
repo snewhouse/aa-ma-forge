@@ -611,7 +611,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 7: Logging standard (T9) + hook contracts (T15 §7)
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 6
 - Complexity: 65%
 - Effort: 2 days
@@ -628,7 +628,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 7.
 
 ### Sub-step 7.0: Post-merge of M6
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
@@ -636,14 +636,14 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - Worktree for M7 cut from fresh main; `uv sync && uv run codemem build` exit 0.
   - Ste decision 2026-10-11 (after M6): SC2312 dropped from the shellcheck hook — `.pre-commit-config.yaml` args become `["--enable=check-set-e-suppressed"]`, and `tests/test_precommit_config.py::test_shellcheck_hook_enables_masked_return_checks` asserts SC2310 fires and SC2312 does not (RED first). Rationale: SC2312 was 116 of the 124 findings due on touch, mostly `echo "$(cmd)"`.
   - Hook sweep before 7.1: `shellcheck --enable=check-set-e-suppressed` reports 0 SC2310 across `git ls-files '*.sh'` (8 findings in 2 files at a063a53, 4 of them in `claude-code/hooks/`), each fix behaviour-preserving with the file's bats green.
-- Result Log:
+- Result Log: Mode: HITL — Ste: Proceed. M6 merged as a063a53 (PR #27); main pulled (74cc7e2, already up to date). No install.sh run: M6 changed no install script, hook registration, rules or skill set. M6 worktree + local branch removed (remote branch already gone; non-AA-MA diff vs main empty, L-1332). Worktree `.worktrees/feat/cci-m7-logging-hook-contracts` cut from main 74cc7e2; uv sync rc=0, codemem build rc=0 (310 files, 3030 symbols). SC2312 dropped: RED 48e05a7 (test renamed `test_shellcheck_hook_enables_set_e_suppressed_only`, asserts SC2310 fires and SC2312 does not), GREEN a22106d (`args: ["--enable=check-set-e-suppressed"]`). SC2310 sweep e175676: all 8 sites are deliberate (pre-compact-aa-ma.sh: fail-open audit appends, 3 narrow directives; uninstall.sh: pure predicates manifest_slot_ok / slot_free_for_restore, 2 directives), each `# shellcheck disable=SC2310  # why: …` — no logic change. `shellcheck --enable=check-set-e-suppressed` over `git ls-files '*.sh'`: 0 SC2310, rc=0. pytest 2874 passed / 6 skipped / 0 failed; bats -r tests 403/403. Decision W1 (Ste): hook log var stays CLAUDE_HOOK_LOG — 7.1 AC and reference corrected.
 
 ### Sub-step 7.1: aa-ma-log.sh + bats (TDD)
 - Status: PENDING
 - Mode: AFK
 - Dependencies: Sub-step 7.0
 - Acceptance Criteria:
-  - `claude-code/hooks/lib/aa-ma-log.sh`: `log_info|log_warn|log_error|log_debug <hook-name> <msg>` append `<date -Is> LEVEL <hook-name>: <msg>` to `${AA_MA_HOOK_LOG:-~/.claude/logs/hooks.log}`; `log_debug` only when `HOOK_DEBUG=1` (also stderr); `log_*` always masks and strips CR/LF.
+  - `claude-code/hooks/lib/aa-ma-log.sh`: `log_info|log_warn|log_error|log_debug <hook-name> <msg>` append `<date -Is> LEVEL <hook-name>: <msg>` to `${CLAUDE_HOOK_LOG:-~/.claude/logs/hooks.log}` (the shipped contract — Ste, 2026-10-11, 7.0); `log_debug` only when `HOOK_DEBUG=1` (also stderr); `log_*` always masks and strips CR/LF.
   - `fail_open_notice <hook-name> <msg>` prints `{"systemMessage": "..."}` to stdout, built with `jq -n --arg`, plus a `log_warn` line (L-1319).
   - `mask_secrets <text>`; the bash and Python pattern sets are generated from one source file, with a parity test.
   - `aa-ma-parse.sh` sources it from its own directory; `aa_ma_debug` becomes a thin wrapper over `log_debug`; `install.sh` symlinks `hooks/lib/aa-ma-log.sh` (lib list :331-346); `uninstall.sh` removes it.

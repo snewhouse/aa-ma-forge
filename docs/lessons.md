@@ -15,6 +15,11 @@ Found while mapping 5.3's readers, after 5.2 had been committed.
 sort them: positive pins fail and get moved; negative and whole-file checks ("not in", "every line",
 "no snippet") must be widened to the new files in the same commit, with a planted line in the new
 file proving each still bites.
+**Recurrence (same day):** my hand sweep for 5.4–5.6 still missed `aa-ma-gate-python.bats:396`
+(`run ! grep` in a loop over SKILL.md); the double-check's fresh reviewer found it. **Stricter rule:**
+sweep mechanically, not by reading — for each file that reads a moved path, list its negative
+forms with `git grep -nE 'run ! |! grep|not in |assert not|grep -c|\| *grep [A-Z]' -- <reader>`
+and widen every hit that reads the old file.
 **Cross-ref:** L-045 (checks that cannot fail), L-041 (a file's second reader)
 
 ---

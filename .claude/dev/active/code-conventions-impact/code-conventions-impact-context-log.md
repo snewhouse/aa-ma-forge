@@ -291,3 +291,16 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - WHY001 suppression set widened beyond the plan's four forms to ruff/flake8 file noqa, `pyright: ignore`, `nosec`, `&>/dev/null`, `>/dev/null 2>&1`, `|| :` — same intent (L-1319), measured 131 genuine hits repo-wide, no false positives in the sample.
 - Deferred: the ruff-check/ruff-format hooks have the same filename-as-option hole the check-conventions hook had (pre-dates M6, extensionless python-shebang file named `--exit-zero`) → M8 (secops baseline). One-call `git diff` (N+1, 2.5 s at 322 files) — M1-deferred, still deferred. Shared markdown `_section` test helper (3 copies) — later touch. 7 eval scaffold scripts carry SC2312 — fixed when touched (D8).
 - code-reviewer eval code-reviewer/what-comment does not discriminate at n=1 (control on the old prompt also passes) — kept as an advisory behaviour check; a discriminating grader needs the WARNING label or n>1.
+
+## [2026-10-11] GATE APPROVAL: Milestone 6: Comments, docstrings, KISS lint (T8, T11 §3)
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion, 2026-10-11)
+- Criteria verified: 5/5
+- Decision: APPROVED
+- Evidence: test_ruff_config 14, test_check_conventions 84 (17 mutations caught), reviewer rules + eval case (advisory, non-discriminating at n=1 — recorded), CI canary at HEAD PR #26 run 38142145243 FAIL D103 + WHY001, CRITICAL_PATH_REVIEW + addendum; pytest 2866/0 failed, bats 403/403; §6.8 PASS_WITH_WARNINGS (0 CRITICAL, 7 WARNING fixed); double-check Partially verified → F1/F2 closed (fresh canary, addendum), F3 accepted as advisory.
+
+## [2026-10-11] Milestone Completion: Milestone 6: Comments, docstrings, KISS lint (T8, T11 §3)
+- Status: COMPLETE
+- Key outcome: touched Python files now meet ruff D (google)/RUF100/PGH/C901/PLR0913; added lines are checked for unexplained suppressions (WHY001) and unreferenced TODOs (TODO001); code-reviewer WARNs on comment substance.
+- Artifacts: pyproject.toml, scripts/check_conventions.py, .pre-commit-config.yaml, claude-code/agents/code-reviewer.md, docs/adr/0018 (Implementation line), CHANGELOG.md, evals/code-reviewer/what-comment/*, evals/_lib/py-review.sh, tests/fixtures/evals/py-review/stats.py, tests/{test_ruff_config,test_precommit_config,test_eval_cases}.py, tests/scripts/test_check_conventions.py, tests/skills/test_code_reviewer_warn_rules.py, docs/lessons.md (L-048).
+- Tests: pytest 2866 passed / 6 skipped / 0 failed, bats 403/403 (cd64eda); touched-set 141 passed at HEAD; CI canary PR #26 FAIL D103 + WHY001.

@@ -538,7 +538,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 6: Comments, docstrings, KISS lint (T8, T11 §3)
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 5
 - Complexity: 55%
 - Effort: 1.5 days
@@ -598,7 +598,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Dependencies: Sub-step 6.3
 - Acceptance Criteria:
   - A draft PR adding an undocumented function + a bare `|| true` fails `touched` with D103 + WHY001; run URL logged in provenance; PR closed and branch deleted.
-- Result Log: Mode: AFK — auto-dispatched. Pre-flight: `pre-commit run --from-ref origin/main --to-ref HEAD` on the M6 branch passes all 4 hooks. Canary branch canary/cci-m6-touched (54d08cd, from 994ed35) adds scripts/canary_m6.py (undocumented public `canary()`; public module name — a `_` module hides D103) + scripts/canary_m6.sh (bare `|| true`); local run fails D103 + WHY001. Draft PR #25 → `Touched files (pre-commit)` FAILED: ruff-check `D103 Missing docstring in public function` + check-conventions `scripts/canary_m6.sh:3: WHY001 …`; ruff format and shellcheck passed; every other job passed (Bats, codemem smoke, Architecture drift, ShellCheck, Bandit, Explorer) — so the M6 files themselves are clean in CI. Run: https://github.com/snewhouse/aa-ma-forge/actions/runs/38140041890/job/114471854486. PR #25 closed; branch deleted local + remote (`gh --delete-branch` failed on the worktree layout — 'main' is checked out in the main worktree — so the remote was deleted with `git push --delete`; ls-remote 0).
+- Result Log: Mode: AFK — auto-dispatched. Pre-flight: `pre-commit run --from-ref origin/main --to-ref HEAD` on the M6 branch passes all 4 hooks. Canary branch canary/cci-m6-touched (54d08cd, from 994ed35) adds scripts/canary_m6.py (undocumented public `canary()`; public module name — a `_` module hides D103) + scripts/canary_m6.sh (bare `|| true`); local run fails D103 + WHY001. Draft PR #25 → `Touched files (pre-commit)` FAILED: ruff-check `D103 Missing docstring in public function` + check-conventions `scripts/canary_m6.sh:3: WHY001 …`; ruff format and shellcheck passed; every other job passed (Bats, codemem smoke, Architecture drift, ShellCheck, Bandit, Explorer) — so the M6 files themselves are clean in CI. Run: https://github.com/snewhouse/aa-ma-forge/actions/runs/38140041890/job/114471854486. PR #25 closed; branch deleted local + remote (`gh --delete-branch` failed on the worktree layout — 'main' is checked out in the main worktree — so the remote was deleted with `git push --delete`; ls-remote 0). Re-run at the final code (double-check F1): canary commit 2cdb3f6 on 79e83cb, draft PR #26 → touched FAILED D103 + WHY001 on the `"$(… 2>/dev/null || true)"` form (fixed in 9edd103), run https://github.com/snewhouse/aa-ma-forge/actions/runs/38142145243/job/114478012309; the full-repo ShellCheck job failed only on the canary's SC2034; PR closed, branch deleted local + remote.
 
 ### Sub-step 6.5: CRITICAL_PATH_REVIEW
 - Status: COMPLETE

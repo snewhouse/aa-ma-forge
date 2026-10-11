@@ -42,6 +42,24 @@ REWIRED = [  # the Contract's files + the Deep tier's team template (Ste, 13.4)
     ROOT / "claude-code/agents/codebase-onboarding-runbook.md",
     ROOT / "claude-code/agents/codebase-onboarding-conventions.md",
 ]
+# A skill split into SKILL.md + references/ (code-conventions-impact M5) is checked whole:
+# a line that moved into references/ must not drop out of the check.
+REWIRED += [
+    ref
+    for f in list(REWIRED)
+    if f.name == "SKILL.md" and f.parent != SKILL
+    for ref in sorted((f.parent / "references").glob("*.md"))
+]
+
+
+def skill_text(rel: str) -> str:
+    """The file at `rel`; for a SKILL.md, the skill's references/*.md too."""
+    path = ROOT / rel
+    files = [path]
+    if path.name == "SKILL.md":
+        files += sorted((path.parent / "references").glob("*.md"))
+    return "\n".join(f.read_text(encoding="utf-8") for f in files)
+
 
 # AC5 — the 7 instructions to run /codebase-deep-dive (4 in the Contract + 3 in the template).
 DEEP_DIVE_RUNS = [
@@ -293,7 +311,18 @@ ROUTES_TO_UNSHIPPED = [
 
 @pytest.mark.parametrize("rel, text", ROUTES_TO_UNSHIPPED)
 def test_no_route_to_an_unshipped_command(rel: str, text: str) -> None:
-    assert text not in (ROOT / rel).read_text(encoding="utf-8")
+    assert text not in skill_text(rel)
+
+
+def test_split_skills_are_checked_with_their_references() -> None:
+    ref = (
+        ROOT
+        / "claude-code/skills/execute-aa-ma-milestone/references/boundary-checks.md"
+    )
+    assert ref in REWIRED
+    assert "Index-enhanced" in skill_text(
+        "claude-code/skills/execute-aa-ma-milestone/SKILL.md"
+    )
 
 
 # --- codebase-analysis-skills M4: repoint onto /assess-codebase + residuals R1 R2 R5 R7 R8 N1 ----

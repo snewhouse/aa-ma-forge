@@ -6,6 +6,9 @@ and carries a grader that proves the skill ran: a `tool_used: Skill` grader for 
 model-invoked skill. A user-invoked skill (`disable-model-invocation: true`) is reached
 by its slash name, which is expanded before the trace starts and is not a tool call, so
 its cases grade the skill's behaviour instead.
+
+An agent in EVAL_AGENTS (M6) has at least one case under `evals/<agent>/`; it may also
+grant the Agent tool, and a `tool_used: Agent` grader proves that agent was dispatched.
 """
 
 from __future__ import annotations
@@ -31,6 +34,8 @@ EVAL_SKILLS = {
     "logging-and-comments",
     "writing-for-agents",
 }
+EVAL_AGENTS = {"code-reviewer"}
+AGENTS = REPO_ROOT / "claude-code" / "agents"
 CASES_PER_SKILL = 3  # minimum per skill (ADR-0021 "at least 3")
 # One turn budget for every case: Skill load + up to ~10 reads/greps + the answer.
 MAX_TURNS = 12
@@ -55,8 +60,8 @@ def test_each_eval_skill_has_its_minimum_cases() -> None:
     counts: dict[str, int] = {}
     for case in _cases():
         counts[case.parent.parent.name] = counts.get(case.parent.parent.name, 0) + 1
-    assert set(counts) == EVAL_SKILLS
-    assert all(n >= CASES_PER_SKILL for n in counts.values()), counts
+    assert set(counts) == EVAL_SKILLS | EVAL_AGENTS
+    assert all(counts[s] >= CASES_PER_SKILL for s in EVAL_SKILLS), counts
 
 
 def test_no_loaded_skill_runs_dynamic_exec() -> None:
@@ -80,7 +85,9 @@ def test_case_shape(case: Path) -> None:
     assert (case.parent / spec["plugins"][0]).resolve() == REPO_ROOT / "claude-code"
     ex = spec["execution"]
     assert ex["max_turns"] == MAX_TURNS
-    assert set(ex["allowed_tools"]) <= READ_ONLY_TOOLS, "grant read-only tools only"
+    agent = skill in EVAL_AGENTS
+    allowed = READ_ONLY_TOOLS | {"Agent"} if agent else READ_ONLY_TOOLS
+    assert set(ex["allowed_tools"]) <= allowed, "grant read-only tools only"
     assert ex["prompt"].strip()
     scaffold = case.parent / spec["context"]["scaffold_script"]
     assert scaffold.is_symlink() and scaffold.resolve().parent == EVALS / "_lib"
@@ -88,7 +95,15 @@ def test_case_shape(case: Path) -> None:
     graders = sorted((case.parent / "graders").glob("*.md"))
     assert len(graders) >= 2, "one grader on the steps, one on the result"
     kinds = [_frontmatter(g) for g in graders]
-    if _user_invoked(skill):
+    if agent:
+        assert (AGENTS / f"{skill}.md").is_file()
+        agent_graders = [
+            k
+            for k in kinds
+            if k.get("type") == "tool_used" and k.get("tool") == "Agent"
+        ]
+        assert agent_graders and skill in agent_graders[0]["input_match"]
+    elif _user_invoked(skill):
         assert ex["prompt"].lstrip().startswith(f"/claude-code:{skill}")
         assert not any(k.get("tool") == "Skill" for k in kinds)
     else:

@@ -319,3 +319,9 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 
 ## [2026-10-11] Sub-step 7.0 — SC2310 sites suppressed, not rewritten
 - All 8 findings were deliberate: set -e is meant to be off in pre-compact-aa-ma.sh's fail-open appends, and uninstall.sh's manifest_slot_ok / slot_free_for_restore are pure predicates whose status is the answer. Rewriting (e.g. `now=$(ts)` outside the `||`) would make a date failure fatal and break fail-open — a behaviour change. Each site gets a narrow `# shellcheck disable=SC2310  # why: …`, matching the file's existing SC2088 style.
+
+## [2026-10-11] Sub-step 7.1/7.2 — background security notice on aa-ma-log.sh
+- A background commit-security review reported "sensitive-to-observability in claude-code/hooks/lib/aa-ma-log.sh" with no detail in the notice (body held only connector warnings).
+- Self-review against that class found one real leak: masking ran AFTER the 8192-char cap, so a secret straddling the cut lost its tail and the fragment (too short to match) was logged. Proven RED in bash at 8928661 against shipped 5fc528b. Fixed in both libraries (mask an 8192+256 window, then truncate) in 0f4cf65.
+- Checked and accepted: the hook name is not masked (always a code constant, not data — CR/LF stripped and capped); patterns cover provider tokens only (gitleaks rule ids, per plan); generic `password=` / AWS secret keys are out of scope.
+- Design: one pattern source `src/aa_ma/secret_patterns.tsv` read at runtime by both sides (bash via the lib's real path → forge root, the aa_ma_gate pattern; Python via importlib.resources) instead of code generation — nothing to regenerate or drift; the parity test proves identical output.

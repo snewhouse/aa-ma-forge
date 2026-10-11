@@ -7,6 +7,8 @@
 #   3. Parsing markers and correlating against transcript tool_use entries.
 #   4. Emitting warnings to stderr for missing/unbacked phase markers.
 
+bats_require_minimum_version 1.5.0
+
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     HOOK="${REPO_ROOT}/claude-code/hooks/aa-ma-plan-skip-warn.sh"
@@ -171,4 +173,35 @@ EOF
         run bash -c "echo 'not json' | bash '$HOOK'"
     [ "$status" -eq 0 ]
     # Hook may emit debug to stderr but must not crash.
+}
+
+@test "HOOK_DEBUG=1 → DEBUG lines on stderr and in hooks.log (M7.3)" {
+    tpath="${BATS_TMP_HOME}/empty.jsonl"
+    : > "$tpath"
+    stdin="$(build_stdin "$tpath")"
+    HOME="$BATS_TMP_HOME" HOOK_DEBUG=1 \
+        run --separate-stderr bash -c "echo '$stdin' | bash '$HOOK'"
+    [ "$status" -eq 0 ]
+    [[ "$stderr" == *" DEBUG aa-ma-plan-skip-warn: no runtime log found"* ]]
+    grep -q " DEBUG aa-ma-plan-skip-warn: no runtime log found" "$BATS_TMP_HOME/.claude/logs/hooks.log"
+}
+
+@test "deprecated AA_MA_PLAN_MARKER_DEBUG=1 still enables debug and prints a deprecation notice (M7.3)" {
+    tpath="${BATS_TMP_HOME}/empty.jsonl"
+    : > "$tpath"
+    stdin="$(build_stdin "$tpath")"
+    HOME="$BATS_TMP_HOME" AA_MA_PLAN_MARKER_DEBUG=1 \
+        run --separate-stderr bash -c "echo '$stdin' | bash '$HOOK'"
+    [ "$status" -eq 0 ]
+    [[ "$stderr" == *"AA_MA_PLAN_MARKER_DEBUG is deprecated; use HOOK_DEBUG=1"* ]]
+    [[ "$stderr" == *" DEBUG aa-ma-plan-skip-warn: no runtime log found"* ]]
+}
+
+@test "no debug variable → no DEBUG output (M7.3)" {
+    tpath="${BATS_TMP_HOME}/empty.jsonl"
+    : > "$tpath"
+    stdin="$(build_stdin "$tpath")"
+    HOME="$BATS_TMP_HOME" run --separate-stderr bash -c "echo '$stdin' | bash '$HOOK'"
+    [ "$status" -eq 0 ]
+    [[ "$stderr" != *DEBUG* ]]
 }

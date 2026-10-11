@@ -107,11 +107,12 @@ EOF
     HOME="$BATS_TMP_HOME" run bash -c "bash '$HOOK' 2>/dev/null"
     chmod 644 "$task_dir/task-1-provenance.log" "$task_dir/task-1-context-log.md"
     [ "$status" -eq 0 ]
-    # Hook stderr on exit 0 reaches only the debug log, so the gap must land in the
-    # hook's own log (each file named) AND in a user-visible JSON systemMessage.
-    log="$BATS_TMP_HOME/.claude/hooks/cache/compaction.log"
-    grep -q "| PreCompact | WARN could not append checkpoint to .*task-1-provenance.log" "$log"
-    grep -q "| PreCompact | WARN could not append compaction summary to .*task-1-context-log.md" "$log"
+    # Hook stderr on exit 0 reaches only the debug log, so the gap must land in hooks.log
+    # (each file named; compaction.log folded in at M7.3) AND in a user-visible systemMessage.
+    log="$BATS_TMP_HOME/.claude/logs/hooks.log"
+    grep -q " WARN pre-compact-aa-ma: could not append checkpoint to .*task-1-provenance.log" "$log"
+    grep -q " WARN pre-compact-aa-ma: could not append compaction summary to .*task-1-context-log.md" "$log"
+    [ ! -e "$BATS_TMP_HOME/.claude/hooks/cache/compaction.log" ]
     printf '%s' "$output" | jq -e '.systemMessage | test("2 audit-trail append")' >/dev/null
 }
 

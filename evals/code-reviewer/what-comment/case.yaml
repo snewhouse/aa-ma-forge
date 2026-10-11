@@ -1,0 +1,18 @@
+schema_version: '1.1'
+name: code-reviewer-what-comment
+tags:
+- code-reviewer
+plugins:
+- ../../../claude-code
+context:
+  scaffold_script: fixture.sh
+execution:
+  max_turns: 12
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  prompt: 'Use the code-reviewer agent to review stats.py, which this milestone added (Required Artefacts:
+    stats.py; Audit-Profile: code-only; there is no base commit, so review the whole file). Report its
+    findings. Tools here are read-only: do not try to change files.'

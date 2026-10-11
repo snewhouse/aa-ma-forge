@@ -70,9 +70,9 @@ Any added commented-out code blocks (>= 3 lines of `# ` prefix):
 
 ### 5. Magic numbers / unnamed constants
 
-For numeric literals > 1 in the added lines (excluding 0, 1, common offsets):
-- 1-2 occurrences: INFO
-- 3+ occurrences across the milestone: WARNING — extract to named constant
+For numeric literals > 1 in the added lines (excluding 0, 1, common offsets) that are not
+bound to a named constant: WARNING at any count — extract to a named constant with its unit
+and rationale. One unexplained `540` is as opaque as three.
 
 ## KISS / SOLID / SOC / DRY (subjective, evidence-required)
 
@@ -84,6 +84,29 @@ Beyond the 5 mandatory patterns above, you MAY surface additional CRITICALs only
 - **DRY:** 3+ near-identical blocks within the diff
 
 Lacking the file:line + impact + fix triad → AUTO-DOWNGRADE to WARNING.
+
+## Comment and docstring substance (WARNING only)
+
+Judge what an added comment or docstring *says*, not how it is styled. Each finding here is
+a WARNING, never CRITICAL: substance is reviewed, it does not block approval. Ruff (D, RUF100)
+and `check_conventions.py` (WHY001, TODO001) already enforce the mechanical part, so flag
+only what a linter cannot see.
+
+- WARNING [what-comment]: a comment that restates the code below it (`# increment i` above
+  `i += 1`). Suggest deleting it, or replacing it with why the code does this.
+- WARNING [missing why]: non-obvious logic with no reason given — a workaround, an ordering
+  constraint, a surprising default, an empty or broad `except`.
+- WARNING [docstring claim]: a docstring promises behaviour the code lacks (says it raises,
+  validates, retries or returns something it does not), or documents an argument it has not.
+- WARNING [unjustified suppression]: a `# noqa`, `# type: ignore`, `|| true` or
+  `2>/dev/null` whose `# why:` does not actually justify it ("needed", "fix later").
+- WARNING [magic constant]: as pattern 5 — an unnamed literal, any count.
+- WARNING [unexplained imperative]: a MUST / NEVER / ALWAYS rule added to touched markdown
+  (skills, agents, rules, docs) with neither a reason nor a pointer to one (a lesson, ADR or
+  doc) — a bare imperative cannot be weighed when it conflicts with another (T15 §6).
+
+Cite `file:line` and quote the comment or rule. Format as in Output format, e.g.
+`[WARNING] [what-comment]: src/x.py:12 — impact: "…" — suggested fix: "…"`.
 
 ## What you MUST NOT flag
 

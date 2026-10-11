@@ -5,6 +5,20 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-047 (2026-10-11) — Moving text out of a file silently narrowed the tests that read it
+**Pattern:** M5 moves skill text from SKILL.md into references/. Positive pins failed loudly and
+were moved, but checks that pass when text is ABSENT kept passing: `test_understand_codebase_rewire`
+(no route to an unshipped command; every PROJECT_INDEX line names codemem) and the gate-scans
+`awk`/`bash -n` guards read SKILL.md only, so text moved in 5.2 left their scope with nothing red.
+Found while mapping 5.3's readers, after 5.2 had been committed.
+**Rule:** Before moving text out of a file, find every test that reads it (`git grep` its path) and
+sort them: positive pins fail and get moved; negative and whole-file checks ("not in", "every line",
+"no snippet") must be widened to the new files in the same commit, with a planted line in the new
+file proving each still bites.
+**Cross-ref:** L-045 (checks that cannot fail), L-041 (a file's second reader)
+
+---
+
 ## L-046 (2026-10-09) — Fixed a LOW leak by replacing a closed env scrub with an open one
 **Pattern:** To keep the OAuth token out of `env -i NAME=value` argv, I swapped `env -i` for a
 loop that `export -n`s every variable not on an allowlist. Bash can only un-export what it can

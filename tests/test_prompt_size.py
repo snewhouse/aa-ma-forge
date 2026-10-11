@@ -31,9 +31,7 @@ MAX_LINES = 500  # Agent Skills spec: "Keep your main SKILL.md under 500 lines"
 TOC_THRESHOLD = 100  # lines; a longer reference file needs a table of contents
 
 # path relative to claude-code/ -> ceiling (lines on 2026-10-09). May only fall.
-ALLOWLIST = {
-    "skills/plan-verification/SKILL.md": 608,
-}
+ALLOWLIST: dict[str, int] = {}  # emptied by M5 (code-conventions-impact); keep it empty
 
 # references/*.md over TOC_THRESHOLD lines with no TOC on 2026-10-09 (24).
 TOC_ALLOWLIST = frozenset(
@@ -147,13 +145,14 @@ def test_allowlist_ceilings_track_the_file(rel: str) -> None:
     )
 
 
-def test_one_added_line_breaks_an_allowlisted_ceiling() -> None:
-    """Negative control: the ratchet bites at ceiling + 1."""
-    rel = "skills/plan-verification/SKILL.md"
-    text = (PLUGIN / rel).read_text(encoding="utf-8")
-    padded = "x\n" * (ALLOWLIST[rel] - line_count(text) + 1)
-    assert size_error(rel, text + padded) is not None
-    assert size_error(rel, text) is None
+def test_one_added_line_breaks_an_allowlisted_ceiling(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Negative control: the ratchet bites at ceiling + 1 (on a synthetic entry)."""
+    rel = "skills/legacy/SKILL.md"
+    monkeypatch.setitem(ALLOWLIST, rel, MAX_LINES + 100)
+    assert size_error(rel, "x\n" * (MAX_LINES + 100)) is None
+    assert size_error(rel, "x\n" * (MAX_LINES + 101)) is not None
 
 
 def test_cap_applies_to_a_file_not_on_the_allowlist() -> None:

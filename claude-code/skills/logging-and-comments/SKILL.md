@@ -102,7 +102,7 @@ Claude Code hooks are a special case (rules verified against [the hooks docs](ht
 ## Enforcement
 
 - **Ruff:** merge `references/ruff-baseline.toml` into each project's `pyproject.toml`. If an existing repo has many pre-existing violations, put the noisy codes in `extend-ignore` tagged `# TODO(logging-std): burn down`, rather than mass-fixing them.
-- **The PostToolUse `ruff-format.sh` hook** runs `ruff check --fix` on every edit. T201's fix is unsafe-only, so prints are reported, never deleted (verified on ruff 0.15.4). Hook failures are logged to `~/.claude/logs/hooks.log`.
+- **The PostToolUse `ruff-format.sh` hook** runs `ruff check --fix` on every edit. T201's fix is unsafe-only, so prints are reported, never deleted (verified on ruff 0.15.4). Findings it cannot fix come back to the model as `additionalContext` (≤10 lines). Hook failures are logged to `~/.claude/logs/hooks.log`.
 - **Review checklist for a diff:**
   - grep the added lines for `except`, `|| true`, `2>/dev/null`, `continue` and `pass`, and check that each one logs, counts or has a `# why:`;
   - check that each new constant has a rationale;

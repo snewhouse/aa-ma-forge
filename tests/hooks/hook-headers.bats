@@ -53,10 +53,10 @@ registered_events() {
         mode="$(header_field "$f" Mode)"
         event="$(header_field "$f" Event)"
         if [[ "$mode" == Advisory* && "$event" != none* ]]; then
-            run ! grep -nE '\bexit 2\b' "$f"
+            run ! grep -nE '^[^#]*\bexit 2\b' "$f"
         fi
         # exit 1 is allowed only for hook-infrastructure errors, which the Exit header must say
-        if grep -qE '\bexit 1\b' "$f"; then
+        if grep -qE '^[^#]*\bexit 1\b' "$f"; then   # code only: comments may say "exit 1 means …"
             [[ "$(header_field "$f" Exit)" == *"1 "*infra* ]] || { echo "$name: exits 1 but its Exit header does not mark 1 as an infra error"; return 1; }
         fi
     done

@@ -211,6 +211,12 @@
    "src": "hook:pre-compact-aa-ma.sh"
   },
   {
+   "dst": "hook:aa-ma-log.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:ruff-format.sh"
+  },
+  {
    "dst": "hook:aa-ma-commit-signature.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",

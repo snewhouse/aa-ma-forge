@@ -19,6 +19,9 @@ media/
 # codemem local state — never commit
 .codemem/
 
+# graphify local state — regenerable (AST free; semantic pass ~847k subagent tokens, cache/ kept locally for --update)
+graphify-out/
+
 # git worktrees — sibling working trees for parallel feature work (L-066)
 .worktrees/
 

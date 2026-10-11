@@ -204,8 +204,9 @@ the eventual task directory name when `aa-ma-scribe` runs at Phase 5.
 
 - `AA_MA_HOOKS_DISABLE=1` — disables the advisory hook (existing master
   kill switch).
-- `AA_MA_PLAN_MARKER_DEBUG=1` — enables verbose tracing of the
-  fingerprint matcher's decision tree to stderr.
+- `HOOK_DEBUG=1` — enables verbose tracing of the advisory hook's decisions
+  (stderr and `~/.claude/logs/hooks.log`). `AA_MA_PLAN_MARKER_DEBUG=1` is a
+  deprecated alias kept for one release; it prints a deprecation notice.
 
 ## Cross-References
 

@@ -34,7 +34,7 @@ The installer (`scripts/install.sh`) places files into `~/.claude/` so Claude Co
 1. Checks whether any active AA-MA task directories exist under `~/.claude/dev/active/`
 2. If they do, reads their task status, reference, context log, and provenance files
 3. Writes a markdown snapshot to `~/.claude/hooks/cache/compaction-snapshots/`
-4. Appends a one-line log entry to `~/.claude/hooks/cache/compaction.log`
+4. Appends a one-line log entry to `~/.claude/logs/hooks.log` (override with `CLAUDE_HOOK_LOG`)
 
 It only reads and writes files under `~/.claude/`. It always exits 0, so it never blocks compaction. If there are no active tasks, it logs that fact and exits immediately.
 

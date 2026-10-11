@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Event: PreToolUse(Bash)
+# Mode: Blocking — exit 2 refuses a commit that adds a flagged pattern
+# Exit: 0 allow · 2 block (policy) · 1 infra error (helper/jq missing, bad stdin; non-blocking, the commit proceeds)
+# Fail-open: kill switch, bypass marker, not a repo, no staged .py pass with exit 0; infra errors exit 1 with a stderr line
+#
 # PreToolUse(Bash) hook — block commits that introduce mechanical security
 # anti-patterns in Python files. Symmetric to aa-ma-commit-signature.sh but
 # inspects the staged diff for 5 categorical patterns.

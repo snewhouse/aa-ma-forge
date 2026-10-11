@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Event: PostToolUse(Bash)
+# Mode: Advisory — warns, never blocks
+# Exit: 0 always
+# Fail-open: every skip path (kill switch, no active plan, not a commit) exits 0 silently
+#
 # PostToolUse(Bash) hook — warn when a commit lands without touching any
 # AA-MA task's tasks.md or provenance.log.
 #

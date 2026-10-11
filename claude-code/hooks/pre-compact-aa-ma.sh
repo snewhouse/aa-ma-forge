@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Event: PreCompact
+# Mode: Advisory — never blocks compaction
+# Exit: 0 always
+# Fail-open: a failed audit-trail append is logged to hooks.log, counted, and reported in one systemMessage; helper missing → systemMessage
+#
 # PreCompact hook: snapshot AA-MA state before auto-compaction.
 #
 # Iterates ALL active task dirs (project-local .claude/dev/active/ first, then
@@ -28,28 +33,26 @@ fi
 . "$HELPER"
 
 SNAPSHOT_DIR="$HOME/.claude/hooks/cache/compaction-snapshots"
-LOG_FILE="$HOME/.claude/hooks/cache/compaction.log"
+HOOK=pre-compact-aa-ma   # log name in hooks.log (aa-ma-log.sh; compaction.log folded in at M7.3)
 
 # POSIX date format (cross-platform; works on both GNU and BSD date).
 ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
-mkdir -p "$SNAPSHOT_DIR" "$(dirname "$LOG_FILE")"
+mkdir -p "$SNAPSHOT_DIR"
 
 # Audit-trail append failures, reported once at exit (see end of file).
 append_failures=0
 
-# warn_append <what> <file> — record one failed append. Fail-open: under set -e a
-# failed log write must not abort compaction, hence `|| true`.
+# warn_append <what> <file> — record one failed append in hooks.log and count it.
+# log_warn never fails, so this cannot abort compaction under set -e.
 warn_append() {
-    # shellcheck disable=SC2310  # why: fail-open by design — set -e is meant to be off here; a failed log write is counted, not fatal
-    printf '%s | PreCompact | WARN could not append %s to %q\n' "$(ts)" "$1" "$2" \
-        >> "$LOG_FILE" 2>/dev/null || true
+    log_warn "$HOOK" "could not append $1 to $2"
     append_failures=$((append_failures + 1))
 }
 
 # Master kill switch honoured.
 if aa_ma_is_disabled; then
-    printf '%s | PreCompact | Disabled via AA_MA_HOOKS_DISABLE=1\n' "$(ts)" >> "$LOG_FILE"
+    log_info "$HOOK" "disabled via AA_MA_HOOKS_DISABLE=1"
     exit 0
 fi
 
@@ -57,7 +60,7 @@ fi
 mapfile -t TASKS < <(aa_ma_list_active_tasks)
 
 if [ "${#TASKS[@]}" -eq 0 ]; then
-    printf '%s | PreCompact | No active AA-MA tasks\n' "$(ts)" >> "$LOG_FILE"
+    log_info "$HOOK" "no active AA-MA tasks"
     exit 0
 fi
 
@@ -95,7 +98,7 @@ for task_dir in "${TASKS[@]}"; do
         fi
     } > "$snapshot_file"
 
-    printf '%s | PreCompact | Snapshot saved: %s\n' "$(ts)" "$task_name" >> "$LOG_FILE"
+    log_info "$HOOK" "snapshot saved: $task_name"
 
     # Best-effort: extract active step for CHECKPOINT entry.
     active_step="unknown"
@@ -108,7 +111,7 @@ for task_dir in "${TASKS[@]}"; do
     ctx_file="${task_dir}/${task_name}-context-log.md"
 
     # Fail-open (compaction must proceed) but never silently: each lost audit-trail
-    # entry is named in $LOG_FILE and counted for the user-visible message at exit.
+    # entry is named in hooks.log and counted for the user-visible message at exit.
     if [ -f "$prov_file" ]; then
         # shellcheck disable=SC2310  # why: fail-open by design — set -e is meant to be off here; a failed append is counted, not fatal
         {
@@ -136,13 +139,10 @@ for task_dir in "${TASKS[@]}"; do
     fi
 done
 
-# why: hook stderr on exit 0 reaches only the debug log (code.claude.com/docs/en/hooks),
-# so a JSON systemMessage is the one channel the user actually sees. Count only — the
-# paths are in $LOG_FILE — so the JSON needs no escaping. `|| true`: a closed stdout
-# must not turn fail-open into a non-zero exit.
+# Hook stderr on exit 0 reaches only the debug log (code.claude.com/docs/en/hooks), so a
+# systemMessage is the one channel the user actually sees; the paths are in hooks.log.
 if [ "$append_failures" -gt 0 ]; then
-    printf '{"systemMessage":"pre-compact-aa-ma: %d audit-trail append(s) failed; see ~/.claude/hooks/cache/compaction.log"}\n' \
-        "$append_failures" || true
+    fail_open_notice "$HOOK" "$append_failures audit-trail append(s) failed; see ~/.claude/logs/hooks.log"
 fi
 
 exit 0

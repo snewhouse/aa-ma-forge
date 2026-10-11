@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Event: PreToolUse(ExitPlanMode), SessionEnd
+# Mode: Advisory — warns on stderr, never blocks
+# Exit: 0 always
+# Fail-open: kill switch, malformed stdin, no runtime log → exit 0; debug lines only with HOOK_DEBUG=1
+#
 # PreToolUse(ExitPlanMode) + SessionEnd hook — advisory warn about skipped
 # or missing /aa-ma-plan phase markers in the active runtime log.
 #
@@ -23,11 +28,24 @@
 
 set -Eeuo pipefail
 
+# Logging library through this file's real path: installed, this hook is a symlink in
+# ~/.claude/hooks/lib, and the library sits in lib/ beside the real file. Debug lines are
+# the only thing it is used for, so a missing library degrades to no debug output.
+HOOK=aa-ma-plan-skip-warn
+_real_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+if [ -f "${_real_dir}/lib/aa-ma-log.sh" ]; then
+    # shellcheck disable=SC1091  # why: runtime path; aa-ma-log.bats covers the library
+    . "${_real_dir}/lib/aa-ma-log.sh"
+else
+    log_debug() { :; }
+fi
+[ "${AA_MA_PLAN_MARKER_DEBUG:-0}" = "1" ] && { printf '%s: AA_MA_PLAN_MARKER_DEBUG is deprecated; use HOOK_DEBUG=1\n' "$HOOK" >&2; export HOOK_DEBUG=1; }
+
 # -----------------------------------------------------------------------------
 # 1. Kill switch.
 # -----------------------------------------------------------------------------
 if [ "${AA_MA_HOOKS_DISABLE:-0}" = "1" ]; then
-    [ "${AA_MA_PLAN_MARKER_DEBUG:-0}" = "1" ] && printf 'aa-ma-plan-skip-warn: AA_MA_HOOKS_DISABLE=1, skipping\n' >&2
+    log_debug "$HOOK" "AA_MA_HOOKS_DISABLE=1, skipping"
     exit 0
 fi
 
@@ -41,7 +59,7 @@ STDIN_JSON="$(cat 2>/dev/null || printf '{}')"
 # Validate JSON shape, but never fail on it.
 if command -v jq >/dev/null 2>&1; then
     if ! printf '%s' "$STDIN_JSON" | jq empty 2>/dev/null; then
-        [ "${AA_MA_PLAN_MARKER_DEBUG:-0}" = "1" ] && printf 'aa-ma-plan-skip-warn: stdin not valid JSON, continuing with empty context\n' >&2
+        log_debug "$HOOK" "stdin not valid JSON, continuing with empty context"
         STDIN_JSON='{}'
     fi
 fi
@@ -52,7 +70,7 @@ fi
 RUNTIME_DIR="${HOME:-/tmp}/.claude/runtime"
 
 if [ ! -d "$RUNTIME_DIR" ]; then
-    [ "${AA_MA_PLAN_MARKER_DEBUG:-0}" = "1" ] && printf 'aa-ma-plan-skip-warn: %s does not exist, not in a plan\n' "$RUNTIME_DIR" >&2
+    log_debug "$HOOK" "$RUNTIME_DIR does not exist, not in a plan"
     exit 0
 fi
 
@@ -65,11 +83,11 @@ LATEST_LOG="$(
 )"
 
 if [ -z "${LATEST_LOG:-}" ] || [ ! -f "$LATEST_LOG" ]; then
-    [ "${AA_MA_PLAN_MARKER_DEBUG:-0}" = "1" ] && printf 'aa-ma-plan-skip-warn: no runtime log found, not in a plan\n' >&2
+    log_debug "$HOOK" "no runtime log found, not in a plan"
     exit 0
 fi
 
-[ "${AA_MA_PLAN_MARKER_DEBUG:-0}" = "1" ] && printf 'aa-ma-plan-skip-warn: inspecting %s\n' "$LATEST_LOG" >&2
+log_debug "$HOOK" "inspecting $LATEST_LOG"
 
 # -----------------------------------------------------------------------------
 # 4. Validate the 9 required phase markers.

@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Event: SessionStart
+# Mode: Advisory — adds context, never blocks
+# Exit: 0 always
+# Fail-open: kill switch or no active task → exit 0 with no output
+#
 # SessionStart hook: surface the most-recently-touched active AA-MA task.
 #
 # Behaviour:

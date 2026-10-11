@@ -175,6 +175,12 @@
    "src": "hook:aa-ma-plan-marker.sh"
   },
   {
+   "dst": "hook:aa-ma-log.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-plan-skip-warn.sh"
+  },
+  {
    "dst": "skill:aa-ma-plan",
    "kind": "skill",
    "ref_class": "ON_DISK",
@@ -191,6 +197,12 @@
    "kind": "hook",
    "ref_class": "ON_DISK",
    "src": "hook:aa-ma-session-start.sh"
+  },
+  {
+   "dst": "hook:aa-ma-log.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:pre-compact-aa-ma.sh"
   },
   {
    "dst": "hook:aa-ma-parse.sh",

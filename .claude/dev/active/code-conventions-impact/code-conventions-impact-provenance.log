@@ -109,3 +109,4 @@
 [2026-10-11T07:13:00+01:00] Sub-step 5.2 COMPLETE — execute-aa-ma-milestone split 1244→492 (6399c58); 6.7 fences inline; phase_6_8/gate-scans/canonical tests follow the text; moved ADR link fixed; pytest 2751/0 failed, bats 403/403
 [2026-10-11T07:18:18+01:00] Sub-step 5.3 COMPLETE — aa-ma-plan split 1154→425 (485f998); 90a0224 + L-047 widen negative checks to references; pytest 2759/0 failed, bats 403/403
 [2026-10-11T07:22:24+01:00] Sub-step 5.4 COMPLETE — sole-dev-merge split 1057→314 (abd3abe; c97c31f wording); extract_stage.sh reads references, refuses duplicates; pytest 2765/0 failed, bats 403/403
+[2026-10-11T07:27:56+01:00] Sub-step 5.5 COMPLETE — execute-aa-ma-full split 758→430 (ebabd70); deps HALT check widened; pytest 2769/0 failed, bats 403/403

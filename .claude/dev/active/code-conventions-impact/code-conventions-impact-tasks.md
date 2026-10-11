@@ -502,12 +502,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. abd3abe: SKILL.md 1057 → 314 lines (measured 1057 at bc177e5; heading keeps the plan-time 1054); Stages C, D, E, F, G moved verbatim, one reference each: references/{stage-c-review-and-security, stage-d-triage, stage-e-remote-and-body, stage-f-push, stage-g-merge}.md. Stay inline: migration banner (test_smoke_e2e greps its markers in SKILL.md), Stages A, B, B-commit, exit-status contract, Tests. The test followed in the same commit: `fixtures/extract_stage.sh` reads a SKILL.md with its references/*.md and refuses a marker found more than once (planted duplicate → rc=1); all 15 stage markers extract. No negative checks read this file (L-047 sweep). c97c31f (separate, so the split commit stays pure moves): the 'inline bash blocks below' sentence now says where C–G live. regen: edges/golden unchanged. Tests: pytest 2765 passed / 6 skipped / 0 failed; bats 403/403 (sole-dev-merge 70/70).
 
 ### Sub-step 5.5: Split execute-aa-ma-full (757 lines)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 5.4
 - Acceptance Criteria:
   - SKILL.md ≤500 lines; `test_split_preserves_content` and the full suite + all bats pass; committed.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. ebabd70: SKILL.md 758 → 430 lines; §1, §2+§2.5 and §8–§11 (contiguous, one stub; nothing outside the file cites §8–§11) moved verbatim to references/{pre-execution-validation, context-and-goal, errors-and-operations}.md. §3–§7 stay, incl. §5 (B.6 hand-off pinned by execute_aa_ma_milestone_phase_6_8.bats awk B.6→C., `aa_ma_deps advisory` pinned by aa-ma-deps.bats). L-047: aa-ma-deps.bats "never halts on Dependencies" (a negative check) now greps SKILL.md + references/*.md; planted 'dependency … HALT' in a reference fails it. Tests: pytest 2769 passed / 6 skipped / 0 failed; bats 403/403; regen edges/golden unchanged.
 
 ### Sub-step 5.6: Split plan-verification (608 lines)
 - Status: PENDING

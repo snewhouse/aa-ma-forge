@@ -96,7 +96,8 @@ covered `*.sh`. 19 of 31 `.bats` files fail shellcheck today; that debt is known
 - `.pre-commit-config.yaml` — hooks `ruff-check`, `ruff-format`, `shellcheck`,
   `check-conventions`, all `repo: local`.
 - `scripts/check_conventions.py` — stdlib-only added-lines extractor; exit 0 clean / 1 findings
-  / 2 usage or git error (incl. "no diff source"). Ships zero checks.
+  / 2 usage or git error (incl. "no diff source"). Ships zero checks; M6 adds `WHY001`
+  and `TODO001` (Python and shell comments only), and the shellcheck hook enables SC2310/SC2312.
 - `.github/workflows/security.yml` — job `touched` (pull_request only, `fetch-depth: 0`,
   `persist-credentials: false`, uv pinned in the job) replaces job `ruff`.
 - Tests: `tests/scripts/test_check_conventions.py`, `tests/test_precommit_config.py`.

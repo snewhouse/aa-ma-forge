@@ -237,6 +237,8 @@ def codes(path: str, text: str, lines: set[int] | None = None) -> list[tuple[int
         ("a.sh", "cmd 2>/dev/null\n", [(1, "WHY001")]),
         ("a.sh", "cmd 2> /dev/null\n", [(1, "WHY001")]),
         ("hook", "#!/usr/bin/env bash\ncmd || true\n", [(2, "WHY001")]),
+        # ${#var} and $# do not start a comment, so the || true is still code
+        ("a.sh", "n=${#a[@]}; echo $# || true\n", [(1, "WHY001")]),
         ("a.py", "# TODO: tidy\n", [(1, "TODO001")]),
         ("a.py", "x = 1  # FIXME later\n", [(1, "TODO001")]),
         ("a.sh", "# TODO(ste): later\n", [(1, "TODO001")]),
@@ -259,6 +261,7 @@ def test_finding(path: str, text: str, expected: list) -> None:
         ("a.py", 'S = "import os  # noqa: F401"\n'),
         ("a.py", '"""Docstring.\n\n# noqa TODO: no\n"""\n'),
         ("a.py", "# the TODO001 rule mentions noqa in prose\n"),
+        ("a.sh", "# see the TODO at the bottom of this file\n"),
         ("a.sh", "echo 'x || true'\n"),
         ("a.sh", 'echo "cmd 2>/dev/null"\n'),
         ("a.sh", "# a comment saying || true\n"),
@@ -270,8 +273,6 @@ def test_finding(path: str, text: str, expected: list) -> None:
         ("a.py", "# TODO(ADR-0021): x\n"),
         ("a.py", "# TODO(#42): x\n"),
         ("a.sh", "# FIXME(#7): x\n"),
-        # ${#var} and $# are not comments
-        ("a.sh", 'n=${#arr[@]}; echo "$#"\n'),
     ],
 )
 def test_no_finding(path: str, text: str) -> None:
@@ -293,9 +294,9 @@ def test_existing_why_above_covers_an_added_suppression() -> None:
     assert codes("a.py", text, lines={2}) == []
 
 
-def test_untokenizable_python_is_reported_not_skipped(capsys) -> None:
+def test_untokenizable_python_is_reported_not_skipped(caplog) -> None:
     assert codes("a.py", "x = (\n") == []
-    assert "a.py" in capsys.readouterr().err
+    assert "a.py: not tokenizable" in caplog.text
 
 
 def test_cli_end_to_end_reads_the_new_side(repo: Path) -> None:
@@ -328,7 +329,8 @@ def test_cli_ref_mode_reads_the_to_side(repo: Path) -> None:
 
 def test_cli_escapes_control_characters_and_bad_utf8_in_paths(repo: Path) -> None:
     name = b"evil\x1b[2Jname\xff.py"
-    (Path(os.fsencode(repo)) / name).write_bytes(b"# TODO: x\n")
+    with open(os.fsencode(repo) + b"/" + name, "wb") as fh:
+        fh.write(b"# TODO: x\n")
     git(repo, "add", "-A")
     proc = subprocess.run(
         ["python3", str(SCRIPT)], cwd=repo, capture_output=True, check=False

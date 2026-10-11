@@ -20,6 +20,8 @@ repos:
       - id: shellcheck
         name: shellcheck
         entry: shellcheck
+        # Opt-in checks: SC2312 masked command-substitution status, SC2310 set -e off in conditions (T8).
+        args: ["--enable=check-extra-masked-returns,check-set-e-suppressed"]  # quoted: a bare comma splits the list
         language: system
         types: [shell]
         exclude_types: [bats]   # bats is not plain shell; 19 of 31 .bats fail shellcheck (ADR-0018)

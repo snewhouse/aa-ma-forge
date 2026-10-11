@@ -270,4 +270,16 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - §6.6 (3 agents): fixed shared `skill_text` helper, tighter split check (smuggled heading/link/pointer, order), whole-skill writer lint, extractor per-file reset, empty-ALLOWLIST assert (b61aba2). Disputed: checking only the split commit (later commits are ordinary reviewed edits); paths with spaces (fixed repo paths).
 - §6.8 (5 agents, PASS_WITH_WARNINGS): fixes in 6a64cd2 (deep-linked stubs, imperative safety stubs, bash helper, CHANGELOG, counts).
 - Deferred: execute-aa-ma-milestone and execute-aa-ma-full each ship a byte-identical `references/pre-execution-validation.md` (74 lines; full adds one paragraph). The duplication predates M5 (both SKILL.md held the same §1); merging into one shared reference is a content change, so it belongs to a milestone that edits these skills (M7–M11) or a follow-up, not to a behaviour-preserving split.
-- Double-check (2026-10-11T064952Z, standard, fresh challenge subagent): Partially verified — F1 CHANGELOG "every section heading" false (grouped trailing sections share one stub), F2 terminal steps only in pointer prose (execute-aa-ma-milestone §9–§11, execute-aa-ma-full §8.1, aa-ma-plan Phases 0–3), F3 aa-ma-gate-python.bats:396 negative check still SKILL.md-only (an L-047 miss), F4 spec §II line 183 stale. Ste: fix all 4 + re-run evals → 9c03f05. aa-ma-deps.bats caught the first execute-aa-ma-full wording ("any failure … HALT" beside "dependency chains"); reworded to validation failures.
+- Double-check (2026-10-11T064952Z, standard, fresh challenge subagent): Partially verified — F1 CHANGELOG "every section heading" false (grouped trailing sections share one stub), F2 terminal steps only in pointer prose (execute-aa-ma-milestone §9–§11, execute-aa-ma-full §8.1, aa-ma-plan Phases 0–3), F3 aa-ma-gate-python.bats:396 negative check still SKILL.md-only (an L-047 miss), F4 spec §II line 183 stale. Ste: fix all 4 + re-run evals → 9c03f05; df9142c widened one more SKILL.md-only check (`_resolution_snippets`) found by the L-047 mechanical sweep, and tightened L-047. aa-ma-deps.bats caught the first execute-aa-ma-full wording ("any failure … HALT" beside "dependency chains"); reworded to validation failures.
+
+## [2026-10-11] GATE APPROVAL: Milestone 5: Split the six oversized prompt files (behaviour-preserving)
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion, 2026-10-11)
+- Criteria verified: 5/5
+- Decision: APPROVED
+
+## [2026-10-11] Milestone Completion: Milestone 5: Split the six oversized prompt files (behaviour-preserving)
+- Status: COMPLETE
+- Key outcome: the six oversized skills load as SKILL.md entry points under 500 lines with detail in references/; the split is proven verbatim per commit, executed fences unchanged, and every test that read the moved text still covers it.
+- Artifacts: 6 SKILL.md + 28 references/*.md; tests/test_split_preserves_content.py; tests/skills/_helpers.py (skill_files, skill_text); tests/lib/skill_files.bash; extract_stage.sh, phase_6_8/gate-scans/deps/gate-python bats, rewire/canonical/planning-count/angle6/writing-for-agents/prompt_size pytest; CHANGELOG; spec §II; docs/lessons.md L-047.
+- Tests: pytest 2774 passed / 6 skipped / 0 failed; bats 403/403; shellcheck rc=0; evals 11/12 (advisory).

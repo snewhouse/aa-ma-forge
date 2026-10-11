@@ -9,13 +9,16 @@
 #     aa_ma_extract_active_milestone <file>   -> stdout: active milestone heading text   (DISPLAY)
 #     aa_ma_extract_active_step <file>        -> stdout: active step heading text        (DISPLAY)
 #     aa_ma_list_active_tasks                 -> stdout: mtime-sorted task-dir paths, one per line
-#     aa_ma_debug <msg...>                    -> stderr line iff HOOK_DEBUG=1
+#     aa_ma_debug <msg...>                    -> log_debug line (hooks.log + stderr) iff HOOK_DEBUG=1
 #     AA_MA_PARSE_SH_LOADED                   -> set to 1 once sourced (re-source guard)
 #     AA_MA_MILESTONE_ERE                     -> ERE mirroring grammar.py MILESTONE_RE (display readers only)
 #     aa_ma_gate <file> [--milestone N] [--step N.M] -> kv lines from the Python SSoT gate; rc 0-4, 127 if it cannot run  (ENFORCING)
 #     aa_ma_gate_field <key>  (stdin: kv)     -> value after the first `=`, verbatim
 #     aa_ma_deps <graph|check|advisory> <tasks.md> -> `python -m aa_ma.deps` output; rc passed through  (ADVISORY — never a gate)
 #     aa_ma_lint_views <plan.md> [args...] -> `aa-ma-lint-views` output; rc 0/1 passed through, 127 if it cannot run  (read by the §6.7 diagram item)
+#
+# Also sources aa-ma-log.sh from this file's real directory, so every hook that sources this
+# library has log_info|log_warn|log_error|log_debug, fail_open_notice and mask_secrets.
 #
 # This header is the discovery surface: it is the first thing anyone sourcing
 # the library reads, and a symbol missing from it gets reimplemented instead of
@@ -53,6 +56,11 @@ if [ "${AA_MA_PARSE_SH_LOADED:-0}" = "1" ]; then
 fi
 AA_MA_PARSE_SH_LOADED=1
 
+# Real directory, not the symlink's: install.sh links this file into ~/.claude/hooks/lib, and a
+# checkout pulled before install.sh re-runs may not have aa-ma-log.sh linked there yet.
+# shellcheck disable=SC1091  # why: the path is computed at runtime; aa-ma-log.bats covers the source
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/aa-ma-log.sh"
+
 # -----------------------------------------------------------------------------
 # aa_ma_is_disabled — returns 0 (true) if the master kill switch is set.
 # -----------------------------------------------------------------------------
@@ -61,12 +69,11 @@ aa_ma_is_disabled() {
 }
 
 # -----------------------------------------------------------------------------
-# aa_ma_debug <msg...> — emits a `[aa-ma-debug]` prefixed stderr line when
-# HOOK_DEBUG=1 is set. Silent otherwise.
+# aa_ma_debug <msg...> — log_debug under the calling hook's file name: a DEBUG line
+# to hooks.log and stderr when HOOK_DEBUG=1. Silent otherwise.
 # -----------------------------------------------------------------------------
 aa_ma_debug() {
-    [ "${HOOK_DEBUG:-0}" = "1" ] || return 0
-    printf '[aa-ma-debug] %s\n' "$*" >&2
+    log_debug "${0##*/}" "$*"
 }
 
 # -----------------------------------------------------------------------------

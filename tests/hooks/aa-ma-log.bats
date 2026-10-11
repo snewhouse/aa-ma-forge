@@ -32,7 +32,7 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
     [ -z "$stderr" ]
     [ "$(wc -l < "$CLAUDE_HOOK_LOG")" -eq 1 ]
     line=$(cat "$CLAUDE_HOOK_LOG")
-    [[ "$line" =~ $ts_re' INFO my-hook: hello world$' ]]
+    [[ "$line" =~ $ts_re' INFO my-hook: hello world'$ ]]
 }
 
 @test "log_warn and log_error use WARN and ERROR" {
@@ -58,7 +58,7 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
     run --separate-stderr log_debug h "loud"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [[ "$stderr" =~ $ts_re' DEBUG h: loud$' ]]
+    [[ "$stderr" =~ $ts_re' DEBUG h: loud'$ ]]
     [[ "$(cat "$CLAUDE_HOOK_LOG")" =~ ' DEBUG h: loud'$ ]]
 }
 
@@ -72,9 +72,9 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
 @test "log_* masks secrets with the gitleaks rule id" {
     . "$LIB"
     log_warn h "aws=$AWS gh=$GHP key=$ANT"
-    ! grep -qF "$AWS" "$CLAUDE_HOOK_LOG"
-    ! grep -qF "$GHP" "$CLAUDE_HOOK_LOG"
-    ! grep -qF "$ANT" "$CLAUDE_HOOK_LOG"
+    run ! grep -qF "$AWS" "$CLAUDE_HOOK_LOG"
+    run ! grep -qF "$GHP" "$CLAUDE_HOOK_LOG"
+    run ! grep -qF "$ANT" "$CLAUDE_HOOK_LOG"
     grep -qF 'aws=[REDACTED:aws-access-token]' "$CLAUDE_HOOK_LOG"
     grep -qF 'gh=[REDACTED:github-pat]' "$CLAUDE_HOOK_LOG"
     grep -qF 'key=[REDACTED:anthropic-api-key]' "$CLAUDE_HOOK_LOG"
@@ -107,7 +107,7 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
     cp "$LIB" "$WORK/forge/claude-code/hooks/lib/"
     . "$WORK/forge/claude-code/hooks/lib/aa-ma-log.sh"
     log_warn h "secret $GHP"
-    ! grep -qF "$GHP" "$CLAUDE_HOOK_LOG"
+    run ! grep -qF "$GHP" "$CLAUDE_HOOK_LOG"
     grep -qF ' WARN h: [redaction failed]' "$CLAUDE_HOOK_LOG"
 }
 

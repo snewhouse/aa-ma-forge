@@ -518,21 +518,21 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. 211f38d: SKILL.md 608 → 416 lines; Angles 1–5 moved verbatim to references/angles-1-5.md (216 lines, TOC); each `#### Angle N` heading kept with a See pointer. Angle 6 stays (text pinned by test_plan_verification_angle6 + test_angle6_coverage slices of check 8; the lib-resolution snippet aa-ma-gate-python.bats compares). The ALLOWLIST emptied here, not in 5.7: removing the last entry is forced by test_allowlist_ceilings_track_the_file, so the ratchet control (test_one_added_line_breaks_an_allowlisted_ceiling) now uses a synthetic monkeypatched entry; the per-entry ceiling test reports an empty parameter set (1 skip) and still guards any future entry. L-047: test_angle6_runs_the_lint_not_a_grep (negative) and test_prose_code_profile_sets_match_the_constant read references too; planted lines fail both. Tests: pytest 2771 passed / 7 skipped / 0 failed; bats 403/403; regen edges/golden unchanged.
 
 ### Sub-step 5.7: Empty the size allowlist
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 5.6
 - Acceptance Criteria:
   - `tests/test_prompt_size.py` passes with an empty ALLOWLIST.
   - M4 evals re-run for the 4 affected skills with cases (execute-aa-ma-milestone, execute-aa-ma-full, aa-ma-plan, plan-verification); delta logged (advisory; Risk 3 mitigation).
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. `tests/test_prompt_size.py`: `ALLOWLIST: dict[str, int] = {}` (emptied in 211f38d, 5.6 — forced by the ceiling-tracking test); test_prompt_size 60 passed / 1 skipped (empty parameter set of the per-entry ceiling test). Final SKILL.md sizes: aa-ma-execution 487, execute-aa-ma-milestone 492, aa-ma-plan 425, sole-dev-merge 315, execute-aa-ma-full 430, plan-verification 416. Evals re-run (advisory, sonnet, plan usage, `scripts/run-evals.sh --case '<skill>-*' -j 3` from the M5 worktree, $1.52 est): execute-aa-ma-milestone 3/3, execute-aa-ma-full 3/3, aa-ma-plan 2/3, plan-verification 3/3 → 11/12, skill fired 12/12. Delta vs M4 baseline of record (same 12 cases 10/12): aa-ma-plan/artifact-names still fails [names-tasks-file, result] (same graders as baseline); plan-verification/missing-criteria now passes (n=1, within the noise the baseline recorded). No regression from the splits.
 
 ### Sub-step 5.8: CRITICAL_PATH_REVIEW
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 5.7
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — Milestone 5: Split the six oversized prompt files (behaviour-preserving) — hook-modification — <evidence>`, naming `test_split_preserves_content`, the fence bats and the suite counts.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. CRITICAL_PATH_REVIEW appended to provenance.log naming test_split_preserves_content (6 split commits vs parents, 0 lost lines), the fence bats (aa-ma-gate-python `_gate_fence`, test_diagram_verified `_diagram_fence`, aa-ma-deps `_advisory_fence` + Step 5.5 fence, sole-dev-merge extract_stage ×15) and suite counts; executed blocks byte-identical bc177e5 vs HEAD (§5, §6.7, §7.1 md5; 15 stage bodies).
 
 ---
 

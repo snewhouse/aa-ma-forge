@@ -28,7 +28,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILLS = "claude-code/skills"
 
 # Skills split in code-conventions-impact M5, in the order they were split.
-SPLIT_SKILLS = ("aa-ma-execution", "execute-aa-ma-milestone")
+SPLIT_SKILLS = ("aa-ma-execution", "execute-aa-ma-milestone", "aa-ma-plan")
 
 SUBJECT_PREFIX = "refactor(skills): split {skill} "
 LINK_OR_TOC_RE = re.compile(

@@ -85,6 +85,10 @@ _advisory_fence() {
 @test "/execute-aa-ma-full never halts on Dependencies either" {
     FULL_CMD="${REPO_ROOT}/claude-code/skills/execute-aa-ma-full/SKILL.md"
     grep -q "aa_ma_deps advisory" "$FULL_CMD"
-    run bash -c "grep -i -A3 'dependenc' '$FULL_CMD' | grep HALT"
+    # SKILL.md and the references/ it was split into (L-047): the HALT check must
+    # cover every file the instructions live in.
+    local refs=("${FULL_CMD%/SKILL.md}"/references/*.md)
+    [ -s "${refs[0]}" ]
+    run bash -c "grep -h -i -A3 'dependenc' \"\$@\" | grep HALT" _ "$FULL_CMD" "${refs[@]}"
     [ "$status" -ne 0 ]
 }

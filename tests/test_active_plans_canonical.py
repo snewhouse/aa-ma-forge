@@ -19,6 +19,7 @@ from pathlib import Path
 import pytest
 
 from aa_ma.grammar import find_non_canonical, iter_fenced_blocks, split_milestones
+from tests.skills._helpers import skill_text
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ACTIVE_DIR = REPO_ROOT / ".claude" / "dev" / "active"
@@ -86,9 +87,7 @@ WRITER_TEMPLATES = [
     "docs/spec/aa-ma-specification.md",
     "claude-code/agents/aa-ma-scribe.md",
     "claude-code/skills/aa-ma-plan/SKILL.md",
-    # execute-aa-ma-milestone: its templates moved to references/ (code-conventions-impact M5)
-    "claude-code/skills/execute-aa-ma-milestone/references/post-impl-review.md",
-    "claude-code/skills/execute-aa-ma-milestone/references/checkpoint-and-errors.md",
+    "claude-code/skills/execute-aa-ma-milestone/SKILL.md",
     "claude-code/skills/aa-ma-plan-workflow/references/PHASE_5_ARTIFACT_CREATION.md",
     "claude-code/skills/aa-ma-execution/SKILL.md",
     "claude-code/rules/aa-ma.md",
@@ -134,7 +133,7 @@ def _violations_everywhere(text: str) -> list[str]:
 @pytest.mark.parametrize("rel_path", WRITER_TEMPLATES)
 def test_shipped_writers_emit_canonical_headings(rel_path: str) -> None:
     """Every writer of tasks.md emits the form the lint accepts."""
-    text = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
+    text = skill_text(REPO_ROOT / rel_path)  # SKILL.md + references/ (L-047)
     violations = _violations_everywhere(text)
     assert not violations, (
         f"{rel_path} writes non-canonical headings the lint rejects:\n  "
@@ -149,7 +148,7 @@ def test_writer_check_is_not_vacuous(rel_path: str) -> None:
     Without this, a writer whose headings are invisible to the checker passes
     green forever and nobody notices the guard stopped guarding.
     """
-    text = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
+    text = skill_text(REPO_ROOT / rel_path)  # SKILL.md + references/ (L-047)
     corrupted = text.replace("### Sub-step ", "### Task ").replace(
         "## Milestone ", "## M"
     )

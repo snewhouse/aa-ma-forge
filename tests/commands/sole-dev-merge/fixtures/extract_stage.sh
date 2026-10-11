@@ -39,12 +39,16 @@ if [[ "$(basename "$FILE")" == SKILL.md ]]; then
 fi
 
 # Fixed-string match via index() to avoid regex escaping pitfalls with ().
-N_BEGIN=$(awk -v b="$BEGIN_MARK" 'index($0, b) { n++ } END { print n + 0 }' "${FILES[@]}")
-if [[ "$N_BEGIN" -gt 1 ]]; then
-    echo "extract_stage.sh: marker '$STAGE' found $N_BEGIN times in ${FILES[*]}" >&2
-    exit 1
-fi
+for mark in "$BEGIN_MARK" "$END_MARK"; do
+    n=$(awk -v m="$mark" 'index($0, m) { n++ } END { print n + 0 }' "${FILES[@]}")
+    if [[ "$n" -gt 1 ]]; then
+        echo "extract_stage.sh: '$mark' found $n times in ${FILES[*]}" >&2
+        exit 1
+    fi
+done
+# FNR == 1: a BEGIN left open in one file never runs on into the next.
 BODY=$(awk -v b="$BEGIN_MARK" -v e="$END_MARK" '
+    FNR == 1 { inside = 0 }
     index($0, b) { inside = 1; next }
     index($0, e) { inside = 0; next }
     inside { print }

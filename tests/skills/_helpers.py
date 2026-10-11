@@ -131,3 +131,20 @@ def upstream_body_md5(
             continue
         kept.append((rename or {}).get(line, line))
     return hashlib.md5("".join(kept).encode("utf-8"), usedforsecurity=False).hexdigest()
+
+
+def skill_files(path: Path) -> list[Path]:
+    """`path`, plus its sibling references/*.md when `path` is a SKILL.md.
+
+    A skill split into SKILL.md + references/ (code-conventions-impact M5) is one
+    document: a check that reads SKILL.md alone stops covering every line that moved
+    (L-047).
+    """
+    if path.name != "SKILL.md":
+        return [path]
+    return [path, *sorted((path.parent / "references").glob("*.md"))]
+
+
+def skill_text(path: Path) -> str:
+    """The text of every file `skill_files(path)` names, joined by newlines."""
+    return "\n".join(f.read_text(encoding="utf-8") for f in skill_files(path))

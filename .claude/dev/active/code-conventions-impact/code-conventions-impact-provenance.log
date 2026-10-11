@@ -132,3 +132,5 @@
 [2026-10-11T13:34:29+01:00] Sub-step 6.2 COMPLETE — WHY001/TODO001 in check_conventions (RED 126ecbb), 54+6 tests, 12 mutations caught; shellcheck SC2310/SC2312 enabled (YAML comma-split bug caught by test)
 [2026-10-11T13:37:41+01:00] Sub-step 6.3 COMPLETE — code-reviewer WARN rules (6, never CRITICAL; magic constants any count); eval code-reviewer/what-comment advisory 1/1 pass $0.09; control on old prompt also pass (non-discriminating at n=1)
 [2026-10-11T13:37:41+01:00] EVAL_RERUN — code-reviewer/what-comment, sonnet: 1 case, 1 pass/0 fail, $0.09 (new prompt); control old prompt 1 pass, $0.08
+[2026-10-11T13:41:55+01:00] CANARY — touched FAILED on D103 (scripts/canary_m6.py) + WHY001 (scripts/canary_m6.sh:3) — PR #25 run https://github.com/snewhouse/aa-ma-forge/actions/runs/38140041890/job/114471854486 — PR closed, branch canary/cci-m6-touched deleted (local+remote)
+[2026-10-11T13:41:55+01:00] Sub-step 6.4 COMPLETE — canary PR #25 touched FAIL D103+WHY001, closed and deleted

@@ -593,12 +593,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. RED 7620890 (9 failed) → GREEN. `claude-code/agents/code-reviewer.md`: new section 'Comment and docstring substance (WARNING only)' — WARNING [what-comment], [missing why], [docstring claim], [unjustified suppression], [magic constant], [unexplained imperative] (MUST/NEVER/ALWAYS in touched markdown with no why-or-pointer, T15 §6); never CRITICAL (asserted: no CRITICAL in the section); pattern 5 magic numbers now WARNING at any count (was INFO 1-2 / WARNING 3+); the style-nit ban line (old :91) kept verbatim (asserted). Tests: new tests/skills/test_code_reviewer_warn_rules.py (9) — kept out of test_verify_impl_agents.py because that file is not ruff-formatted and touching it would force a whole-file reformat (D8/L-007). Eval: evals/code-reviewer/what-comment (+ tests/fixtures/evals/py-review/stats.py, evals/_lib/py-review.sh); graders agent-fired (`tool_used: Agent`, subagent_type code-reviewer) + result (llm: what-comments flagged at ≤WARNING, not CRITICAL). test_eval_cases.py gains EVAL_AGENTS={code-reviewer} (≥1 case, may grant Agent, needs an Agent grader). Advisory run (sonnet): 1/1 pass, $0.09. Control run against the pre-change agent prompt: also 1/1 pass ($0.08) — at n=1 the case does not discriminate (sonnet flags what-comments unprompted); recorded, not hidden. test_eval_cases 36 passed; sandbox fixture bats ok.
 
 ### Sub-step 6.4: Canary PR
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 6.3
 - Acceptance Criteria:
   - A draft PR adding an undocumented function + a bare `|| true` fails `touched` with D103 + WHY001; run URL logged in provenance; PR closed and branch deleted.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. Pre-flight: `pre-commit run --from-ref origin/main --to-ref HEAD` on the M6 branch passes all 4 hooks. Canary branch canary/cci-m6-touched (54d08cd, from 994ed35) adds scripts/canary_m6.py (undocumented public `canary()`; public module name — a `_` module hides D103) + scripts/canary_m6.sh (bare `|| true`); local run fails D103 + WHY001. Draft PR #25 → `Touched files (pre-commit)` FAILED: ruff-check `D103 Missing docstring in public function` + check-conventions `scripts/canary_m6.sh:3: WHY001 …`; ruff format and shellcheck passed; every other job passed (Bats, codemem smoke, Architecture drift, ShellCheck, Bandit, Explorer) — so the M6 files themselves are clean in CI. Run: https://github.com/snewhouse/aa-ma-forge/actions/runs/38140041890/job/114471854486. PR #25 closed; branch deleted local + remote (`gh --delete-branch` failed on the worktree layout — 'main' is checked out in the main worktree — so the remote was deleted with `git push --delete`; ls-remote 0).
 
 ### Sub-step 6.5: CRITICAL_PATH_REVIEW
 - Status: PENDING

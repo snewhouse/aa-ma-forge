@@ -34,6 +34,7 @@ Finding = tuple[str, int, str, str]
 # A check gets (path, {lineno: added text}, whole new-side file text).
 Check = Callable[[str, dict[int, str], str], list[Finding]]
 
+_GITLINK_RE = re.compile(r"^(?:index \S+ |new file mode )160000$", re.MULTILINE)
 _HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 _SHEBANG_SH_RE = re.compile(r"^#!.*\b(?:ba|da|k|z)?sh\b")
 _PY_SUPPRESS_RE = re.compile(
@@ -63,15 +64,17 @@ def _git(
 ) -> subprocess.CompletedProcess:
     # why: --literal-pathspecs so a filename like `*.py` matches itself, not a glob;
     # core.quotePath=false so non-ASCII paths come back verbatim.
-    return subprocess.run(
+    proc = subprocess.run(
         ["git", "-c", "core.quotePath=false", "--literal-pathspecs", *args],
         cwd=cwd,
         capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="surrogateescape",
         check=False,
     )
+    # why: decode by hand, not text=True — universal newlines would turn a lone \r
+    # into a line break and shift every line number off git's \n-only count.
+    proc.stdout = proc.stdout.decode("utf-8", "surrogateescape")
+    proc.stderr = proc.stderr.decode("utf-8", "surrogateescape")
+    return proc
 
 
 def _git_out(args: Sequence[str], cwd: str | os.PathLike | None) -> str:
@@ -169,6 +172,8 @@ def added_lines(
             ],
             top,
         )
+        if _GITLINK_RE.search(patch):
+            continue  # why: a submodule entry is a commit pointer, not lines to check
         result[path] = _parse_added(patch)
     return result
 
@@ -186,8 +191,14 @@ class _Lang(NamedTuple):
     in_comment: bool  # Python suppressions live in comments, shell ones in code
 
 
+def _split(text: str) -> list[str]:
+    # why: git and tokenize count lines by \n only; str.splitlines() also breaks on
+    # \x0c, \x0b, \x1c-\x1e, \x85 and U+2028/9, which shifts every later line.
+    return [line.removesuffix("\r") for line in text.split("\n")]
+
+
 def _python_lines(path: str, text: str) -> dict[int, tuple[str, str]]:
-    lines = {n: (line, "") for n, line in enumerate(text.splitlines(), start=1)}
+    lines = {n: (line, "") for n, line in enumerate(_split(text), start=1)}
     try:
         for tok in tokenize.generate_tokens(io.StringIO(text).readline):
             if tok.type == tokenize.COMMENT:
@@ -267,7 +278,8 @@ def _shell_code_comment(line: str, stack: list[str]) -> tuple[str, str]:
     code: list[str] = []
     i = 0
     while i < len(line):
-        if not stack and line[i] == "#" and (i == 0 or line[i - 1] in " \t;|&("):
+        in_code = not stack or stack[-1] not in _QUOTES
+        if in_code and line[i] == "#" and (i == 0 or line[i - 1] in " \t;|&("):
             return "".join(code), line[i:]
         quoted = stack and stack[-1] in _QUOTES
         n, out = (_step_quoted if quoted else _step_code)(line, i, stack)
@@ -280,7 +292,7 @@ def _shell_lines(path: str, text: str) -> dict[int, tuple[str, str]]:
     lines: dict[int, tuple[str, str]] = {}
     stack: list[str] = []
     heredocs: list[tuple[bool, str]] = []  # (strip leading tabs, delimiter), in order
-    for n, line in enumerate(text.splitlines(), start=1):
+    for n, line in enumerate(_split(text), start=1):
         if heredocs:
             strip_tabs, delim = heredocs[0]
             if (line.lstrip("\t") if strip_tabs else line) == delim:

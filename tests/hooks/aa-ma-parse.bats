@@ -13,7 +13,9 @@ setup() {
     FIXTURE="${BATS_TEST_DIRNAME}/fixtures/build_active_dir.sh"
     BATS_TMP="$(mktemp -d)"
     BATS_TMP_HOME="$(mktemp -d)"
-    export BATS_TMP BATS_TMP_HOME
+    # why: aa_ma_debug writes through log_debug (M7.1); never touch the real hooks.log
+    CLAUDE_HOOK_LOG="$BATS_TMP/hooks.log"
+    export BATS_TMP BATS_TMP_HOME CLAUDE_HOOK_LOG
 }
 
 teardown() {
@@ -56,12 +58,13 @@ load_helper() {
     [ -z "$output" ]
 }
 
-@test "aa_ma_debug emits [aa-ma-debug] prefix when HOOK_DEBUG=1" {
+@test "aa_ma_debug emits a hooks.log-format DEBUG line when HOOK_DEBUG=1" {
     load_helper
     HOOK_DEBUG=1
     run aa_ma_debug "hello"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"[aa-ma-debug] hello"* ]]
+    [[ "$output" =~ ' DEBUG '.+': hello'$ ]]
+    grep -q ': hello$' "$CLAUDE_HOOK_LOG"
 }
 
 @test "aa_ma_extract_active_milestone finds bold-format Status: ACTIVE" {

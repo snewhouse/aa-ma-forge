@@ -72,6 +72,12 @@ _fake_repo() {
     [[ "${output}" == *"Would symlink:"*".claude/hooks/lib/aa-ma-chart-guard.sh"*"claude-code/hooks/lib/aa-ma-chart-guard.sh"* ]]
 }
 
+@test "install.sh --dry-run announces the hooks/lib/aa-ma-log.sh symlink (M7.1)" {
+    run env HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}" --dry-run
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"Would symlink:"*".claude/hooks/lib/aa-ma-log.sh"*"claude-code/hooks/lib/aa-ma-log.sh"* ]]
+}
+
 # --- M3.2 install hygiene (real installs into the isolated HOME) -------------
 
 _settings() { printf '{}\n' > "${BATS_FAKE_HOME}/.claude/settings.json"; }

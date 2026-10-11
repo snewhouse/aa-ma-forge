@@ -130,3 +130,5 @@
 [2026-10-11T13:17:05+01:00] Sub-step 6.0 COMPLETE — main f6a3af3 (PR #24 merged); no install needed (verified: M5 changed no install script/rules/agents/skill set; aa-ma-footer.sh comment-only and not deployed); worktree feat/cci-m6-comments-docstrings @ f6a3af3, uv sync rc=0, codemem build rc=0
 [2026-10-11T13:29:16+01:00] Sub-step 6.1 COMPLETE — ruff D/RUF100/PGH003/PGH004/C901/PLR0913 enabled; test_ruff_config 14 passed (RED c324b5c); D417 verified via --show-settings
 [2026-10-11T13:34:29+01:00] Sub-step 6.2 COMPLETE — WHY001/TODO001 in check_conventions (RED 126ecbb), 54+6 tests, 12 mutations caught; shellcheck SC2310/SC2312 enabled (YAML comma-split bug caught by test)
+[2026-10-11T13:37:41+01:00] Sub-step 6.3 COMPLETE — code-reviewer WARN rules (6, never CRITICAL; magic constants any count); eval code-reviewer/what-comment advisory 1/1 pass $0.09; control on old prompt also pass (non-discriminating at n=1)
+[2026-10-11T13:37:41+01:00] EVAL_RERUN — code-reviewer/what-comment, sonnet: 1 case, 1 pass/0 fail, $0.09 (new prompt); control old prompt 1 pass, $0.08

@@ -65,16 +65,30 @@ extend-select = [
     "BLE",              # blind `except Exception`
     "S110", "S112",     # try/except/pass and try/except/continue — silent swallows
     "TRY400", "TRY401", # use logger.exception in except; don't repeat the exception in the message
-    "D1",               # missing docstrings on public modules/classes/functions
+    "D",                # docstrings, google convention (incl. D417 undocumented Args) (T8)
     "TD",               # TODO format: TODO(owner/issue): text
     "ERA",              # commented-out code
+    "RUF100",           # unused noqa: a suppression that suppresses nothing is removed (T8)
+    "PGH003", "PGH004", # blanket `type: ignore` / `noqa`: name the code you silence (T8)
+    "C901",             # cyclomatic complexity (KISS, T11 §3)
+    "PLR0913",          # too many arguments (KISS, T11 §3)
 ]
-# Pre-existing docstring gaps at adoption (2026-10-06: D101=29 D103=17 D102=7 D107=5 D104=3).
-# TODO(logging-std): burn down
-extend-ignore = ["D101", "D102", "D103", "D104", "D107"]
+# Touched files comply in full (D8): CI lints only the files a PR touches, so the
+# pre-existing docstring gaps are paid down as files are edited, not all at once.
+# PLR2004 (magic values) is deliberately not selected: constants are review-only (T8).
+extend-ignore = [
+    "D107",  # why: the class docstring documents __init__ args (google style, T8)
+    "TD003", # why: wants an issue URL line; it rejects TODO(ADR-NNNN), which TODO001 accepts (T8)
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10  # why: ruff/flake8 default; Ste's T11 §3 ceiling for one function
+
+[tool.ruff.lint.pylint]
+max-args = 6  # why: one over ruff's 5 — leaves room for a keyword-only flag (T11 §3)
 
 [tool.ruff.lint.per-file-ignores]
 # print IS the interface for CLIs (data -> stdout); tests need no docstrings.

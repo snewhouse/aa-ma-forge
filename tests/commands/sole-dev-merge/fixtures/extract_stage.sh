@@ -31,7 +31,7 @@ FILE="${2:?usage: extract_stage.sh <stage-marker> <command-md-path>}"
 BEGIN_MARK="=== ${STAGE} (BEGIN) ==="
 END_MARK="=== ${STAGE} (END) ==="
 
-# shellcheck source=tests/lib/skill_files.bash
+# shellcheck source=tests/lib/skill_files.bash disable=SC1091  # why: path built from BASH_SOURCE; scanners without -x cannot follow it
 . "$(dirname "${BASH_SOURCE[0]}")/../../../lib/skill_files.bash"
 mapfile -t FILES < <(skill_files "$FILE")
 

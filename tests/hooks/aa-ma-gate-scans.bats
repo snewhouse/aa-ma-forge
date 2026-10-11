@@ -174,7 +174,9 @@ _milestone_exec_lines() {
 @test "no executable awk is left in the command file or verify-impl" {
     # The enforcing awk is gone; what is documented in comments stays. If a
     # future edit puts an awk back on an executable line, this is the alarm.
-    for f in $(_milestone_files) "$VERIFY_IMPL"; do
+    local f files
+    mapfile -t files < <(_milestone_files; echo "$VERIFY_IMPL")
+    for f in "${files[@]}"; do
         if _exec_lines "$f" | grep -qE '(^|[^a-z_])awk( |$)'; then
             echo "executable awk found in $f — enforcing reads belong in src/aa_ma/gate.py" >&2
             false
@@ -183,7 +185,10 @@ _milestone_exec_lines() {
 }
 
 @test "every bash snippet in the command file is syntactically valid" {
-    _milestone_files | xargs awk '/^```bash$/{f=1;next} /^```$/{f=0;print "";next} f' \
+    local files
+    mapfile -t files < <(_milestone_files)
+    # FNR == 1: a fence left open in one file never runs on into the next.
+    awk 'FNR == 1 {f = 0} /^```bash$/{f=1;next} /^```$/{f=0;print "";next} f' "${files[@]}" \
         > "$BATS_TMPDIR/snippets.sh"
     run bash -n "$BATS_TMPDIR/snippets.sh"
     [ "$status" -eq 0 ]

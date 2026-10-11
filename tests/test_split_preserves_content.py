@@ -33,6 +33,7 @@ SPLIT_SKILLS = (
     "execute-aa-ma-milestone",
     "aa-ma-plan",
     "sole-dev-merge",
+    "execute-aa-ma-full",
 )
 
 SUBJECT_PREFIX = "refactor(skills): split {skill} "

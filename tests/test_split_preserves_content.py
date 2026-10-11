@@ -8,10 +8,15 @@ by subject because rebase-merge rewrites SHAs but keeps messages; comparing agai
 instead would fail as soon as a later milestone edits the split files on purpose.
 
 Before the split commit exists, the uncommitted working tree is compared with HEAD.
+
+A relative link is compared by the file it resolves to: moving `](../../../docs/x.md)`
+from SKILL.md into references/ must add a `../` to keep pointing at the same file, and
+that is the same line.
 """
 
 from __future__ import annotations
 
+import posixpath
 import re
 import subprocess
 from collections import Counter
@@ -23,10 +28,21 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILLS = "claude-code/skills"
 
 # Skills split in code-conventions-impact M5, in the order they were split.
-SPLIT_SKILLS = ("aa-ma-execution",)
+SPLIT_SKILLS = ("aa-ma-execution", "execute-aa-ma-milestone")
 
 SUBJECT_PREFIX = "refactor(skills): split {skill} "
-LINK_OR_TOC_RE = re.compile(r"^\s*[-*] \[.+\]\(.+\)$|^#+ |^>? ?See .*\]\(references/")
+LINK_OR_TOC_RE = re.compile(
+    r"^\s*[-*] \[.+\]\(.+\)$|^#+ |^>? ?See .*\]\((?:@/\S+/)?references/"
+)
+RELATIVE_LINK_RE = re.compile(r"\]\((?![a-z]+:|#|/)([^)#\s]+)")
+
+
+def resolve_links(rel: str, text: str) -> str:
+    """Rewrite each relative link in `text` (the file at repo path `rel`) to its target."""
+    here = posixpath.dirname(rel)
+    return RELATIVE_LINK_RE.sub(
+        lambda m: "](@/" + posixpath.normpath(posixpath.join(here, m.group(1))), text
+    )
 
 
 def split_errors(before: list[str], after: list[str]) -> list[str]:
@@ -68,13 +84,23 @@ def _texts_at(rev: str, skill: str) -> list[str]:
     paths = _git(
         "ls-tree", "-r", "--name-only", rev, "--", f"{SKILLS}/{skill}/"
     ).split()
-    return [_git("show", f"{rev}:{p}") for p in paths if _is_skill_text(p, skill)]
+    return [
+        resolve_links(p, _git("show", f"{rev}:{p}"))
+        for p in paths
+        if _is_skill_text(p, skill)
+    ]
 
 
 def _texts_on_disk(skill: str) -> list[str]:
     root = REPO_ROOT / SKILLS / skill
     files = [root / "SKILL.md", *sorted((root / "references").glob("*.md"))]
-    return [f.read_text(encoding="utf-8") for f in files if f.is_file()]
+    return [
+        resolve_links(
+            f.relative_to(REPO_ROOT).as_posix(), f.read_text(encoding="utf-8")
+        )
+        for f in files
+        if f.is_file()
+    ]
 
 
 def _split_commits(skill: str) -> list[str]:
@@ -129,3 +155,17 @@ def test_split_errors_allows_moves_links_headings_and_pointers() -> None:
         "# Body — what this file holds\n\n## Contents\n- [Part](#part)\nbody 2\nbody 1\n",
     ]
     assert split_errors(before, after) == []
+
+
+def test_resolve_links_compares_a_moved_link_by_its_target() -> None:
+    skill, ref = f"{SKILLS}/x/SKILL.md", f"{SKILLS}/x/references/r.md"
+    a = resolve_links(
+        skill, "see [ADR](../../../docs/adr/1.md#top) and [web](https://e.x)"
+    )
+    b = resolve_links(
+        ref, "see [ADR](../../../../docs/adr/1.md#top) and [web](https://e.x)"
+    )
+    assert a == b == "see [ADR](@/docs/adr/1.md#top) and [web](https://e.x)"
+    assert resolve_links(ref, "[ADR](../../../docs/adr/1.md)") != b.split(" and")[0]
+    pointer = resolve_links(skill, "See [r.md](references/r.md) — what r holds.")
+    assert LINK_OR_TOC_RE.match(pointer)

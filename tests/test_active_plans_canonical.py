@@ -86,7 +86,9 @@ WRITER_TEMPLATES = [
     "docs/spec/aa-ma-specification.md",
     "claude-code/agents/aa-ma-scribe.md",
     "claude-code/skills/aa-ma-plan/SKILL.md",
-    "claude-code/skills/execute-aa-ma-milestone/SKILL.md",
+    # execute-aa-ma-milestone: its templates moved to references/ (code-conventions-impact M5)
+    "claude-code/skills/execute-aa-ma-milestone/references/post-impl-review.md",
+    "claude-code/skills/execute-aa-ma-milestone/references/checkpoint-and-errors.md",
     "claude-code/skills/aa-ma-plan-workflow/references/PHASE_5_ARTIFACT_CREATION.md",
     "claude-code/skills/aa-ma-execution/SKILL.md",
     "claude-code/rules/aa-ma.md",

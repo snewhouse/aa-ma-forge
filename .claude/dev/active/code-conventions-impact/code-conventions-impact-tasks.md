@@ -634,6 +634,8 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Acceptance Criteria:
   - M6 merged; `git pull` on main (M6 changed no install.sh, hooks, rules or skill set, so no `install.sh` run; recorded in the Result Log).
   - Worktree for M7 cut from fresh main; `uv sync && uv run codemem build` exit 0.
+  - Ste decision 2026-10-11 (after M6): SC2312 dropped from the shellcheck hook — `.pre-commit-config.yaml` args become `["--enable=check-set-e-suppressed"]`, and `tests/test_precommit_config.py::test_shellcheck_hook_enables_masked_return_checks` asserts SC2310 fires and SC2312 does not (RED first). Rationale: SC2312 was 116 of the 124 findings due on touch, mostly `echo "$(cmd)"`.
+  - Hook sweep before 7.1: `shellcheck --enable=check-set-e-suppressed` reports 0 SC2310 across `git ls-files '*.sh'` (8 findings in 2 files at a063a53, 4 of them in `claude-code/hooks/`), each fix behaviour-preserving with the file's bats green.
 - Result Log:
 
 ### Sub-step 7.1: aa-ma-log.sh + bats (TDD)

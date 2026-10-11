@@ -304,3 +304,9 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Key outcome: touched Python files now meet ruff D (google)/RUF100/PGH/C901/PLR0913; added lines are checked for unexplained suppressions (WHY001) and unreferenced TODOs (TODO001); code-reviewer WARNs on comment substance.
 - Artifacts: pyproject.toml, scripts/check_conventions.py, .pre-commit-config.yaml, claude-code/agents/code-reviewer.md, docs/adr/0018 (Implementation line), CHANGELOG.md, evals/code-reviewer/what-comment/*, evals/_lib/py-review.sh, tests/fixtures/evals/py-review/stats.py, tests/{test_ruff_config,test_precommit_config,test_eval_cases}.py, tests/scripts/test_check_conventions.py, tests/skills/test_code_reviewer_warn_rules.py, docs/lessons.md (L-048).
 - Tests: pytest 2866 passed / 6 skipped / 0 failed, bats 403/403 (cd64eda); touched-set 141 passed at HEAD; CI canary PR #26 FAIL D103 + WHY001.
+
+## [2026-10-11] DECISION — drop SC2312; sweep SC2310 at the start of M7
+- Approved by: Ste (after the M6 merge, a063a53)
+- SC2312 (masked command-substitution status) made 116 of the 124 shellcheck findings that fall due when a .sh file is touched, mostly `echo "$(cmd)"` — noise relative to its value. Dropped from the hook; SC2310 (set -e off inside a condition) kept.
+- With SC2312 gone, 8 SC2310 findings remain in 2 files (4 in claude-code/hooks/). They are swept in Sub-step 7.0, before 7.1, so M7's hook migration (7.3) starts from files that already pass the hook.
+- Recorded as two Sub-step 7.0 acceptance criteria; plan.md unchanged (historical record).

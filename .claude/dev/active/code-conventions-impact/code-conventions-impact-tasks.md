@@ -493,13 +493,13 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. 485f998: SKILL.md 1154 → 425 lines; Phases 0, 1, 2, 3, 4.2+4.5 and the tail (Error Handling → Design Principles, one contiguous block) moved verbatim to references/{phase-0-runtime-log, phase-1-context, phase-2-brainstorm, phase-3-research, phase-4-reviews-and-verification, operations}.md. Phase 4 stays (Step 4.2b fence run by test_angle6_coverage `_fence`, seed text between `### Phase 4:` and `### Phase 4.2:`, "ALL 13 required elements" for test_planning_standard_count SITES) and Phase 5 stays (tasks.md templates for test_active_plans_canonical; the Dependencies fence aa-ma-deps.bats runs). Before this split, 90a0224 widened test_understand_codebase_rewire to read split skills' references (5.2 had moved §6.3 out of its no-unshipped-route and PROJECT_INDEX-names-codemem checks with nothing failing; planted line now fails both) → lesson L-047. In 485f998: planning-standard drift check and test_aa_ma_writers_do_not_invoke_it read aa-ma-plan's references (planted line fails both). ALLOWLIST entry removed; ratchet control → sole-dev-merge. regen: edges/golden unchanged. Tests: pytest 2759 passed / 6 skipped / 0 failed; bats 403/403.
 
 ### Sub-step 5.4: Split sole-dev-merge (1054 lines)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 5.3
 - Acceptance Criteria:
   - SKILL.md ≤500 lines; stage fences referenced by `tests/commands/sole-dev-merge/*.bats` and `fixtures/extract_stage.sh` stay in place or the tests follow in the same commit.
   - `test_split_preserves_content` and the full suite + all bats pass; committed.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. abd3abe: SKILL.md 1057 → 314 lines (measured 1057 at bc177e5; heading keeps the plan-time 1054); Stages C, D, E, F, G moved verbatim, one reference each: references/{stage-c-review-and-security, stage-d-triage, stage-e-remote-and-body, stage-f-push, stage-g-merge}.md. Stay inline: migration banner (test_smoke_e2e greps its markers in SKILL.md), Stages A, B, B-commit, exit-status contract, Tests. The test followed in the same commit: `fixtures/extract_stage.sh` reads a SKILL.md with its references/*.md and refuses a marker found more than once (planted duplicate → rc=1); all 15 stage markers extract. No negative checks read this file (L-047 sweep). c97c31f (separate, so the split commit stays pure moves): the 'inline bash blocks below' sentence now says where C–G live. regen: edges/golden unchanged. Tests: pytest 2765 passed / 6 skipped / 0 failed; bats 403/403 (sole-dev-merge 70/70).
 
 ### Sub-step 5.5: Split execute-aa-ma-full (757 lines)
 - Status: PENDING

@@ -554,13 +554,13 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 6.
 
 ### Sub-step 6.0: Post-merge of M5
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
   - M5 merged; `git pull` on main (M5 changed no install.sh, hooks, rules or skill set, so no `install.sh` run is needed; recorded in the Result Log).
   - Worktree for M6 cut from fresh main; `uv sync && uv run codemem build` exit 0.
-- Result Log:
+- Result Log: Mode: HITL (Ste: "please proceed"). M5 PR #24 rebase-merged → main f6a3af3 == origin/main; M5 worktree, local and remote branch removed. No install.sh run, as planned — verified, not assumed: `git diff bc177e5..main` touches no scripts/install.sh, uninstall.sh, scripts/lib, rules or agents, adds/removes no skill; the one hooks change is a 2-line comment in claude-code/hooks/lib/aa-ma-footer.sh, which install.sh does not deploy (sole-dev-merge sources it from the repo root). The six split skills are directory links into the main checkout, so their references/ are live (~/.claude/skills/<s>/references: 7/6/6/5/3/2 files). Worktree `.worktrees/feat/cci-m6-comments-docstrings` cut from main @ f6a3af3; `uv sync` rc=0; `uv run codemem build` rc=0 (305 files, 2976 symbols).
 
 ### Sub-step 6.1: Ruff docstring/KISS config (TDD)
 - Status: PENDING

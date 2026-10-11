@@ -32,7 +32,6 @@ TOC_THRESHOLD = 100  # lines; a longer reference file needs a table of contents
 
 # path relative to claude-code/ -> ceiling (lines on 2026-10-09). May only fall.
 ALLOWLIST = {
-    "skills/sole-dev-merge/SKILL.md": 1057,
     "skills/execute-aa-ma-full/SKILL.md": 758,
     "skills/plan-verification/SKILL.md": 608,
 }
@@ -151,7 +150,7 @@ def test_allowlist_ceilings_track_the_file(rel: str) -> None:
 
 def test_one_added_line_breaks_an_allowlisted_ceiling() -> None:
     """Negative control: the ratchet bites at ceiling + 1."""
-    rel = "skills/sole-dev-merge/SKILL.md"
+    rel = "skills/execute-aa-ma-full/SKILL.md"
     text = (PLUGIN / rel).read_text(encoding="utf-8")
     padded = "x\n" * (ALLOWLIST[rel] - line_count(text) + 1)
     assert size_error(rel, text + padded) is not None

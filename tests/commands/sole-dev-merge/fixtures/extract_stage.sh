@@ -15,9 +15,13 @@
 # Emits the bash between (exclusive of the markers themselves), prefixed
 # with a shebang so the output is directly executable.
 #
+# A SKILL.md is read with its references/*.md: stages moved there when the
+# skill was split (code-conventions-impact M5). A marker must occur exactly
+# once across those files.
+#
 # Exit codes:
 #   0 — extraction succeeded (non-empty body)
-#   1 — markers not found OR body empty
+#   1 — markers not found, found more than once, OR body empty
 
 set -euo pipefail
 
@@ -27,12 +31,24 @@ FILE="${2:?usage: extract_stage.sh <stage-marker> <command-md-path>}"
 BEGIN_MARK="=== ${STAGE} (BEGIN) ==="
 END_MARK="=== ${STAGE} (END) ==="
 
+FILES=("$FILE")
+if [[ "$(basename "$FILE")" == SKILL.md ]]; then
+    for ref in "$(dirname "$FILE")"/references/*.md; do
+        [[ -f "$ref" ]] && FILES+=("$ref")
+    done
+fi
+
 # Fixed-string match via index() to avoid regex escaping pitfalls with ().
+N_BEGIN=$(awk -v b="$BEGIN_MARK" 'index($0, b) { n++ } END { print n + 0 }' "${FILES[@]}")
+if [[ "$N_BEGIN" -gt 1 ]]; then
+    echo "extract_stage.sh: marker '$STAGE' found $N_BEGIN times in ${FILES[*]}" >&2
+    exit 1
+fi
 BODY=$(awk -v b="$BEGIN_MARK" -v e="$END_MARK" '
     index($0, b) { inside = 1; next }
     index($0, e) { inside = 0; next }
     inside { print }
-' "$FILE")
+' "${FILES[@]}")
 
 if [[ -z "$BODY" ]]; then
     echo "extract_stage.sh: no body found for marker '$STAGE' in $FILE" >&2

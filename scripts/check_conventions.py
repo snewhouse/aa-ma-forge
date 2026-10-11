@@ -26,6 +26,7 @@ import subprocess
 import sys
 import tokenize
 from collections.abc import Callable, Sequence
+from typing import NamedTuple
 
 log = logging.getLogger(__name__)
 
@@ -35,14 +36,19 @@ Check = Callable[[str, dict[int, str], str], list[Finding]]
 
 _HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 _SHEBANG_SH_RE = re.compile(r"^#!.*\b(?:ba|da|k|z)?sh\b")
-_PY_SUPPRESS_RE = re.compile(r"#\s*(noqa|type:\s*ignore)\b", re.IGNORECASE)
-_SH_SUPPRESS_RE = re.compile(r"(\|\|\s*true\b|2>\s*/dev/null)")
+_PY_SUPPRESS_RE = re.compile(
+    r"#\s*(?:(?:ruff|flake8):\s*)?(?:noqa|type:\s*ignore|pyright:\s*ignore|nosec)\b",
+    re.IGNORECASE,
+)
+_SH_SUPPRESS_RE = re.compile(
+    r"\|\|\s*(?:true|:)(?![\w-])|(?:2|&)>\s*/dev/null|>\s*/dev/null\s+2>&1"
+)
 _WHY_RE = re.compile(r"#\s*why:")
-_TODO_RE = re.compile(
-    r"#\s*(TODO|FIXME)\b"
-)  # why: a tag, as ruff TD reads it — not prose
-_TODO_REF_RE = re.compile(r"#\d+|ADR-\d{4}")
-_HEREDOC_RE = re.compile(r"<<(-?)\s*(['\"]?)([A-Za-z0-9_]+)\2")
+# why: a tag right after `#`, as ruff TD reads it — "the TODO below" is prose.
+_TODO_RE = re.compile(r"#\s*(?:TODO|FIXME)\b", re.IGNORECASE)
+_TODO_REF_RE = re.compile(r"(?<![\w#])(?:#\d+|ADR-\d{4})(?!\w)")
+_HEREDOC_RE = re.compile(r"<<(-?)\s*\\?(['\"]?)([A-Za-z_][^\s'\"<>;&|()]*)\2")
+_SCANNED_SUFFIXES = (".py", ".pyi", ".sh", ".bash")
 _CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
@@ -166,9 +172,16 @@ def added_lines(
 
 
 # --- Comment scanning ---------------------------------------------------------------
-# Each language reduces a file to {lineno: (code, comment)}: code is the line with
-# string contents blanked, comment is the comment text. Strings, docstrings, heredoc
-# bodies and Markdown never reach a check (T8).
+# Each language reduces a file to {lineno: (code, comment)}. Strings, docstrings,
+# heredoc bodies and Markdown never reach a check (T8). For shell, code is the line
+# with quoted text blanked; for Python it is the text before the comment, unblanked,
+# because Python suppressions are read from comment tokens only.
+
+
+class _Lang(NamedTuple):
+    lines: dict[int, tuple[str, str]]
+    suppress: re.Pattern
+    in_comment: bool  # Python suppressions live in comments, shell ones in code
 
 
 def _python_lines(path: str, text: str) -> dict[int, tuple[str, str]]:
@@ -186,37 +199,66 @@ def _python_lines(path: str, text: str) -> dict[int, tuple[str, str]]:
     return lines
 
 
-def _shell_code_comment(line: str, quote: str | None) -> tuple[str, str, str | None]:
-    """Split one shell line into (code with quoted text blanked, comment, open quote)."""
+# Shell contexts on a stack that persists across lines: "'" and "$'" and '"' are
+# quotes (text blanked); "$(", "(", "`" are code again, even inside "..."; "((" is
+# arithmetic, where `<<` is a shift, not a heredoc. Each step returns
+# (chars consumed, replacement of the same length) so code stays index-aligned with
+# the raw line, from which heredoc delimiters are read back.
+_OPENERS = (("$((", "(("), ("((", "(("), ("$(", "$("), ("$'", "$'"), ("(", "("))
+_OPENERS += (("`", "`"), ("'", "'"), ('"', '"'))
+
+
+def _step_quoted(line: str, i: int, stack: list[str]) -> tuple[int, str]:
+    top, c = stack[-1], line[i]
+    if c == "\\" and top != "'":
+        n = len(line[i : i + 2])
+        return n, " " * n
+    if c == top[-1]:
+        stack.pop()
+        return 1, c
+    if top == '"' and line.startswith("$(", i):
+        return _step_code(line, i, stack)
+    if top == '"' and c == "`":
+        stack.append("`")
+        return 1, c
+    return 1, " "
+
+
+def _step_code(line: str, i: int, stack: list[str]) -> tuple[int, str]:
+    c = line[i]
+    if c == "\\":
+        return len(line[i : i + 2]), line[i : i + 2]
+    if c == "<" and "((" in stack:
+        return 1, " "
+    top = stack[-1] if stack else ""
+    for closer, ctx in (("))", "(("), (")", "$("), (")", "("), ("`", "`")):
+        if top == ctx and line.startswith(closer, i):
+            stack.pop()
+            return len(closer), closer
+    for opener, ctx in _OPENERS:
+        if line.startswith(opener, i):
+            stack.append(ctx)
+            return len(opener), opener
+    return 1, c
+
+
+def _shell_code_comment(line: str, stack: list[str]) -> tuple[str, str]:
+    """Split one shell line into (code with quoted text blanked, comment)."""
     code: list[str] = []
     i = 0
     while i < len(line):
-        c = line[i]
-        if quote is None and c == "#" and (i == 0 or line[i - 1] in " \t;|&("):
-            return "".join(code), line[i:], None
-        if c == "\\" and quote != "'":
-            # why: keep code[] index-aligned with line so heredoc delimiters can be read
-            # back from the raw line at the same offset.
-            code.append(
-                line[i : i + 2] if quote is None else "  "[: len(line[i : i + 2])]
-            )
-            i += 2
-            continue
-        if quote is None and c in "'\"":
-            quote = c
-            code.append(c)
-        elif quote is not None and c == quote:
-            quote = None
-            code.append(c)
-        else:
-            code.append(" " if quote is not None else c)
-        i += 1
-    return "".join(code), "", quote
+        if not stack and line[i] == "#" and (i == 0 or line[i - 1] in " \t;|&("):
+            return "".join(code), line[i:]
+        quoted = stack and stack[-1] in ("'", "$'", '"')
+        n, out = (_step_quoted if quoted else _step_code)(line, i, stack)
+        code.append(out)
+        i += n
+    return "".join(code), ""
 
 
 def _shell_lines(text: str) -> dict[int, tuple[str, str]]:
     lines: dict[int, tuple[str, str]] = {}
-    quote: str | None = None
+    stack: list[str] = []
     heredocs: list[tuple[bool, str]] = []  # (strip leading tabs, delimiter), in order
     for n, line in enumerate(text.splitlines(), start=1):
         if heredocs:
@@ -225,7 +267,7 @@ def _shell_lines(text: str) -> dict[int, tuple[str, str]]:
                 heredocs.pop(0)
             lines[n] = ("", "")
             continue
-        code, comment, quote = _shell_code_comment(line, quote)
+        code, comment = _shell_code_comment(line, stack)
         for m in re.finditer(r"(?<!<)<<(?!<)", code):
             here = _HEREDOC_RE.match(line, m.start())
             if here:
@@ -234,14 +276,21 @@ def _shell_lines(text: str) -> dict[int, tuple[str, str]]:
     return lines
 
 
-def _scan(path: str, text: str) -> tuple[dict[int, tuple[str, str]], re.Pattern] | None:
-    """Return the file's (lines, suppression pattern), or None if it is not scanned."""
+def _scannable(path: str) -> bool:
+    # why: shell is recognised by suffix, or by shebang only when there is no suffix,
+    # so a .md/.json/.bats file is never read at all (.bats is not plain shell, as the
+    # shellcheck hook, ADR-0018).
+    return path.endswith(_SCANNED_SUFFIXES) or "." not in os.path.basename(path)
+
+
+def _scan(path: str, text: str) -> _Lang | None:
+    """Return the file's scanned lines and suppression rule, or None if not scanned."""
     if path.endswith((".py", ".pyi")):
-        return _python_lines(path, text), _PY_SUPPRESS_RE
-    if path.endswith(".bats"):
-        return None  # why: bats is not plain shell (as the shellcheck hook, ADR-0018)
+        return _Lang(_python_lines(path, text), _PY_SUPPRESS_RE, in_comment=True)
+    if not _scannable(path):
+        return None
     if path.endswith((".sh", ".bash")) or _SHEBANG_SH_RE.match(text):
-        return _shell_lines(text), _SH_SUPPRESS_RE
+        return _Lang(_shell_lines(text), _SH_SUPPRESS_RE, in_comment=False)
     return None
 
 
@@ -269,21 +318,15 @@ def check_why(path: str, added: dict[int, str], text: str) -> list[Finding]:
     Returns:
         One finding per added line that suppresses without a reason.
     """
-    scanned = _scan(path, text)
-    if scanned is None:
+    lang = _scan(path, text)
+    if lang is None:
         return []
-    lines, pattern = scanned
     findings = []
     for n in sorted(added):
-        code, comment = lines.get(n, ("", ""))
-        # why: Python suppressions live in comments, shell ones in code.
-        hit = pattern.search(comment if pattern is _PY_SUPPRESS_RE else code)
-        if hit and not _has_why(lines, n):
-            token = (
-                "# " + hit.group(1).split()[0]
-                if pattern is _PY_SUPPRESS_RE
-                else hit.group(1)
-            )
+        code, comment = lang.lines.get(n, ("", ""))
+        hit = lang.suppress.search(comment if lang.in_comment else code)
+        if hit and not _has_why(lang.lines, n):
+            token = " ".join(hit.group().split())
             message = f"suppression `{token}` without a `# why:` on this line or the comment above"
             findings.append((path, n, "WHY001", message))
     return findings
@@ -300,10 +343,10 @@ def check_todo(path: str, added: dict[int, str], text: str) -> list[Finding]:
     Returns:
         One finding per added TODO/FIXME comment with no ``#N`` or ``ADR-NNNN``.
     """
-    scanned = _scan(path, text)
-    if scanned is None:
+    lang = _scan(path, text)
+    if lang is None:
         return []
-    lines = scanned[0]
+    lines = lang.lines
     message = "TODO/FIXME without a reference: write TODO(#N) or TODO(ADR-NNNN)"
     return [
         (path, n, "TODO001", message)
@@ -316,21 +359,18 @@ def check_todo(path: str, added: dict[int, str], text: str) -> list[Finding]:
 CHECKS: list[Check] = [check_why, check_todo]
 
 
-def new_text(
-    range_args: Sequence[str], path: str, cwd: str | os.PathLike | None = None
-) -> str:
+def new_text(range_args: Sequence[str], path: str, top: str) -> str:
     """Return the new side of ``path``: the index for ``--cached``, else the to-commit.
 
     Args:
         range_args: What `resolve_range` returned.
         path: Repo-root-relative path, as `added_lines` reports it.
-        cwd: Any directory inside the repo.
+        top: The repository's top-level directory.
 
     Returns:
         The file text (undecodable bytes surrogate-escaped).
     """
     side = "" if list(range_args) == ["--cached"] else range_args[0].split("...")[1]
-    top = _git_out(["rev-parse", "--show-toplevel"], cwd).strip()
     return _git_out(["show", f"{side}:{path}"], top)
 
 
@@ -354,8 +394,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         to_ref = os.environ.get("PRE_COMMIT_TO_REF")
     try:
         range_args = resolve_range(from_ref, to_ref)
+        top = _git_out(["rev-parse", "--show-toplevel"], None).strip()
         touched = {
-            path: (lines, new_text(range_args, path))
+            path: (
+                lines,
+                new_text(range_args, path, top) if lines and _scannable(path) else "",
+            )
             for path, lines in added_lines(range_args, files=args.files or None).items()
         }
     except UsageError as exc:

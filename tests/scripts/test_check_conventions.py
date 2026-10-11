@@ -239,6 +239,22 @@ def codes(path: str, text: str, lines: set[int] | None = None) -> list[tuple[int
         ("hook", "#!/usr/bin/env bash\ncmd || true\n", [(2, "WHY001")]),
         # ${#var} and $# do not start a comment, so the || true is still code
         ("a.sh", "n=${#a[@]}; echo $# || true\n", [(1, "WHY001")]),
+        # §6.6 review: forms the first scanner missed
+        ("a.sh", 'x="$(git rev-parse HEAD 2>/dev/null || true)"\n', [(1, "WHY001")]),
+        ("a.sh", 'x="`cmd 2>/dev/null`"\n', [(1, "WHY001")]),
+        ("a.sh", "x=$((1<<N))\nfoo || true\n", [(2, "WHY001")]),
+        ("a.sh", "cat <<END-X\nbody\nEND-X\nfoo || true\n", [(4, "WHY001")]),
+        ("a.sh", "echo $'it\\'s'\nfoo || true\n", [(2, "WHY001")]),
+        ("a.sh", "cmd &>/dev/null\n", [(1, "WHY001")]),
+        ("a.sh", "cmd >/dev/null 2>&1\n", [(1, "WHY001")]),
+        ("a.sh", "cmd || :\n", [(1, "WHY001")]),
+        ("a.py", "# ruff: noqa: E501\n", [(1, "WHY001")]),
+        ("a.py", "# flake8: noqa\n", [(1, "WHY001")]),
+        ("a.py", "x = f()  # pyright: ignore\n", [(1, "WHY001")]),
+        ("a.py", "import subprocess  # nosec\n", [(1, "WHY001")]),
+        ("a.sh", "# why: x\n\nfoo || true\n", [(3, "WHY001")]),
+        ("a.py", "# todo: tidy\n", [(1, "TODO001")]),
+        ("a.py", "# TODO see #12abc\n", [(1, "TODO001")]),
         ("a.py", "# TODO: tidy\n", [(1, "TODO001")]),
         ("a.py", "x = 1  # FIXME later\n", [(1, "TODO001")]),
         ("a.sh", "# TODO(ste): later\n", [(1, "TODO001")]),
@@ -267,6 +283,11 @@ def test_finding(path: str, text: str, expected: list) -> None:
         ("a.sh", "# a comment saying || true\n"),
         ("a.sh", "cat <<EOF\nx || true\nEOF\n"),
         ("a.sh", "cat <<-'END'\n\tcmd 2>/dev/null\n\tEND\ny=1\n"),
+        ("a.sh", 'x="$(echo "a || true")"\n'),
+        ("a.sh", "cat <<\\EOF\nfoo || true\nEOF\n"),
+        ("a.sh", "cat <<'END-X'\nfoo || true\nEND-X\n"),
+        ("a.sh", "echo $'it\\'s || true'\n"),
+        ("a.sh", "x=$(cat <<EOF\nfoo || true\nEOF\n)\n"),
         ("README.md", "x || true\n# TODO: no\n"),
         ("t.bats", "run cmd || true\n"),
         # referenced TODOs pass TODO001
@@ -297,6 +318,27 @@ def test_existing_why_above_covers_an_added_suppression() -> None:
 def test_untokenizable_python_is_reported_not_skipped(caplog) -> None:
     assert codes("a.py", "x = (\n") == []
     assert "a.py: not tokenizable" in caplog.text
+
+
+def test_finding_names_the_suppression() -> None:
+    added = {1: "x: int = y  # type:   ignore[assignment]"}
+    (finding,) = cc.check_why("a.py", added, added[1] + "\n")
+    assert "`# type: ignore`" in finding[3]
+
+
+def test_unscannable_files_are_never_read(repo: Path, monkeypatch) -> None:
+    (repo / "doc.md").write_text("x || true\n")
+    (repo / "pic.png").write_bytes(b"\x89PNG")
+    (repo / "mod.py").write_text("a\nB\nc\n")
+    git(repo, "add", "-A")
+    shown: list[str] = []
+    real = cc.new_text
+    monkeypatch.setattr(
+        cc, "new_text", lambda r, p, top: shown.append(p) or real(r, p, top)
+    )
+    monkeypatch.chdir(repo)
+    assert cc.main([]) == 0
+    assert shown == ["mod.py"]
 
 
 def test_cli_end_to_end_reads_the_new_side(repo: Path) -> None:

@@ -27,6 +27,9 @@ AA_MA_LOG_SH_LOADED=1
 
 # Redaction input cap, in characters (≈8 KB): bounds regex work on hostile input (plan §0 v2).
 _AA_MA_LOG_MAX_CHARS=8192
+# Extra characters masked past the cap before truncating, so a secret that straddles the
+# cut is masked whole instead of leaving an unmatched fragment (same as aa_ma.logsetup).
+_AA_MA_LOG_CAP_OVERLAP=256
 _AA_MA_SECRET_IDS=()
 _AA_MA_SECRET_RES=()
 _AA_MA_SECRET_PATTERNS_OK=0
@@ -48,10 +51,10 @@ _aa_ma_log_load_patterns() {
 }
 _aa_ma_log_load_patterns
 
-# _aa_ma_log_oneline <text> — <text> capped, with CR and LF turned into spaces.
+# _aa_ma_log_oneline <text> — <text> cut to the masking window, CR and LF turned into spaces.
 _aa_ma_log_oneline() {
     local text="${1-}"
-    text="${text:0:${_AA_MA_LOG_MAX_CHARS}}"
+    text="${text:0:$((_AA_MA_LOG_MAX_CHARS + _AA_MA_LOG_CAP_OVERLAP))}"
     text="${text//$'\r'/ }"
     printf '%s\n' "${text//$'\n'/ }"
 }
@@ -69,13 +72,14 @@ mask_secrets() {
             text="${text/"${BASH_REMATCH[0]}"/"[REDACTED:${_AA_MA_SECRET_IDS[${i}]}]"}"
         done
     done
-    printf '%s\n' "${text}"
+    printf '%s\n' "${text:0:${_AA_MA_LOG_MAX_CHARS}}"
 }
 
 # _aa_ma_log <LEVEL> <hook-name> <msg> — the one writer behind every log_* function.
 _aa_ma_log() {
     local level="$1" hook msg log dir line
     hook="$(_aa_ma_log_oneline "${2-}")"
+    hook="${hook:0:${_AA_MA_LOG_MAX_CHARS}}"
     msg="$(mask_secrets "${3-}")"
     log="${CLAUDE_HOOK_LOG:-${HOME}/.claude/logs/hooks.log}"
     dir="${log%/*}"

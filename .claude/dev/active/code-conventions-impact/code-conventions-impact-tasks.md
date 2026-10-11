@@ -538,7 +538,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 6: Comments, docstrings, KISS lint (T8, T11 §3)
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 5
 - Complexity: 55%
 - Effort: 1.5 days
@@ -563,7 +563,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: HITL (Ste: "please proceed"). M5 PR #24 rebase-merged → main f6a3af3 == origin/main; M5 worktree, local and remote branch removed. No install.sh run, as planned — verified, not assumed: `git diff bc177e5..main` touches no scripts/install.sh, uninstall.sh, scripts/lib, rules or agents, adds/removes no skill; the one hooks change is a 2-line comment in claude-code/hooks/lib/aa-ma-footer.sh, which install.sh does not deploy (sole-dev-merge sources it from the repo root). The six split skills are directory links into the main checkout, so their references/ are live (~/.claude/skills/<s>/references: 7/6/6/5/3/2 files). Worktree `.worktrees/feat/cci-m6-comments-docstrings` cut from main @ f6a3af3; `uv sync` rc=0; `uv run codemem build` rc=0 (305 files, 2976 symbols).
 
 ### Sub-step 6.1: Ruff docstring/KISS config (TDD)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 6.0
 - Acceptance Criteria:
@@ -571,7 +571,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - D417 verified enabled under google (`ruff --show-settings`), or enabled explicitly.
   - Fixtures: undocumented public function fails D103; complexity 11 fails C901; `# noqa: E501` on a clean line fails RUF100; undocumented argument fails D417.
   - Ruff rules apply file-level (D8); run `regen-generated.sh` if docs/architecture changes.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. RED c324b5c (9 failed / 5 controls passed) → GREEN: tests/test_ruff_config.py 14 passed. pyproject: extend-select += D, RUF100, PGH003, PGH004, C901, PLR0913 (TD kept); extend-ignore D107, TD003 each with `# why:`; mccabe max-complexity 10, pylint max-args 6 (each `# why:`); PLR2004 not selected (asserted quiet); D101–D104 parked list + TODO(logging-std) deleted (asserted). D417 enabled under google — `ruff --show-settings` lists undocumented-param (D417), and a fixture with an undocumented arg fails D417. Fixtures fire: D103, C901 (complexity 11), RUF100 (`# noqa: E501` on a clean line), D417, PLR0913 (7 args), PGH004, PGH003; quiet: documented fn, complexity 10, 6 args, TODO(ADR-0021), __init__ (D107), magic 7 (PLR2004). Fixture caught: a `_private` module path hides D103 (pydocstyle), so the fixture path is public. No architecture change → no regen. Repo-wide untouched debt now visible (D8 touched-only): D205 73, D209 65, D101 48, D103 32, C901 23, D301 16, D102 8, RUF100 5, PLR0913 3. ruff bats (ruff-format 11, stage_b_scope) pass.
 
 ### Sub-step 6.2: WHY001 / TODO001 (TDD)
 - Status: PENDING

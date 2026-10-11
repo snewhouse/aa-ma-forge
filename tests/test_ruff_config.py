@@ -14,7 +14,8 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
-FIXTURE_PATH = "src/aa_ma/_ruff_fixture.py"
+# why: a public module name — pydocstyle treats functions in a `_private` module as private.
+FIXTURE_PATH = "src/aa_ma/ruff_fixture.py"
 
 
 def _codes(source: str) -> set[str]:

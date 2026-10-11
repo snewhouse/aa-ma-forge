@@ -424,7 +424,9 @@ _run_approval() {  # <cwd> <task-name>
 # ---------------------------------------------------------------------------
 
 _resolution_snippets() {  # prints one normalised snippet per site
-    for f in "$MILESTONE_CMD" "$REPO_ROOT/claude-code/skills/verify-impl/SKILL.md" "$REPO_ROOT/claude-code/skills/plan-verification/SKILL.md"; do
+    local f
+    # split skills are read with their references/ (L-047)
+    for f in $(skill_files "$MILESTONE_CMD") "$REPO_ROOT/claude-code/skills/verify-impl/SKILL.md" $(skill_files "$REPO_ROOT/claude-code/skills/plan-verification/SKILL.md"); do
         awk '/^[[:space:]]*for _cand in \\$/{f=1} f{print} f && /aa-ma-parse.sh"; do$/{g=1} g && /^[[:space:]]*done$/{f=0; g=0; print "--"}' "$f" \
             | sed -E 's/^[[:space:]]+//; s/\[\[ -f/[ -f/; s/\]\] &&/] \&\&/'
     done

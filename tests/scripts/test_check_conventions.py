@@ -153,11 +153,12 @@ def run_cli(
     )
 
 
-def test_cli_clean_reports_zero_checks(repo: Path) -> None:
+def test_cli_clean_reports_check_count(repo: Path) -> None:
     make_change(repo)
     proc = run_cli(repo)
     assert proc.returncode == 0, proc.stderr
-    assert "check_conventions: 0 checks enabled" in proc.stderr
+    assert f"check_conventions: {len(cc.CHECKS)} checks enabled" in proc.stderr
+    assert len(cc.CHECKS) == 2
     assert proc.stdout == ""
 
 
@@ -203,10 +204,135 @@ def test_findings_exit_1_with_path_line_code(repo: Path, monkeypatch, capsys) ->
     make_change(repo)
     monkeypatch.chdir(repo)
     monkeypatch.setattr(
-        cc, "CHECKS", [lambda path, lines: [(path, n, "TST001", "seen") for n in lines]]
+        cc,
+        "CHECKS",
+        [lambda path, lines, text: [(path, n, "TST001", "seen") for n in lines]],
     )
     assert cc.main(["new.py"]) == 1
     assert capsys.readouterr().out.splitlines() == [
         "new.py:1: TST001 seen",
         "new.py:2: TST001 seen",
     ]
+
+
+# --- WHY001 / TODO001 (M6, map T8) ---------------------------------------------------
+
+
+def codes(path: str, text: str, lines: set[int] | None = None) -> list[tuple[int, str]]:
+    """Run every check as if ``lines`` (default: all) were the added lines of ``text``."""
+    numbered = dict(enumerate(text.splitlines(), start=1))
+    added = {n: t for n, t in numbered.items() if lines is None or n in lines}
+    return sorted(
+        (n, code) for chk in cc.CHECKS for _, n, code, _ in chk(path, added, text)
+    )
+
+
+@pytest.mark.parametrize(
+    ("path", "text", "expected"),
+    [
+        ("a.py", "import os  # noqa: F401\n", [(1, "WHY001")]),
+        ("a.py", "x: int = y  # type: ignore[assignment]\n", [(1, "WHY001")]),
+        ("a.py", "import os  # NOQA\n", [(1, "WHY001")]),
+        ("a.sh", "rm -f x || true\n", [(1, "WHY001")]),
+        ("a.sh", "cmd 2>/dev/null\n", [(1, "WHY001")]),
+        ("a.sh", "cmd 2> /dev/null\n", [(1, "WHY001")]),
+        ("hook", "#!/usr/bin/env bash\ncmd || true\n", [(2, "WHY001")]),
+        ("a.py", "# TODO: tidy\n", [(1, "TODO001")]),
+        ("a.py", "x = 1  # FIXME later\n", [(1, "TODO001")]),
+        ("a.sh", "# TODO(ste): later\n", [(1, "TODO001")]),
+    ],
+)
+def test_finding(path: str, text: str, expected: list) -> None:
+    assert codes(path, text) == expected
+
+
+@pytest.mark.parametrize(
+    ("path", "text"),
+    [
+        # why: on the same line, or in the comment block directly above
+        ("a.py", "import os  # noqa: F401  # why: re-export\n"),
+        ("a.py", "# why: re-export\nimport os  # noqa: F401\n"),
+        ("a.py", "# why: re-export for the\n# public API.\nimport os  # noqa: F401\n"),
+        ("a.sh", "rm -f x || true  # why: may not exist\n"),
+        ("a.sh", "# why: may not exist\nrm -f x 2>/dev/null\n"),
+        # never scanned: strings, docstrings, comments' prose, heredocs, markdown
+        ("a.py", 'S = "import os  # noqa: F401"\n'),
+        ("a.py", '"""Docstring.\n\n# noqa TODO: no\n"""\n'),
+        ("a.py", "# the TODO001 rule mentions noqa in prose\n"),
+        ("a.sh", "echo 'x || true'\n"),
+        ("a.sh", 'echo "cmd 2>/dev/null"\n'),
+        ("a.sh", "# a comment saying || true\n"),
+        ("a.sh", "cat <<EOF\nx || true\nEOF\n"),
+        ("a.sh", "cat <<-'END'\n\tcmd 2>/dev/null\n\tEND\ny=1\n"),
+        ("README.md", "x || true\n# TODO: no\n"),
+        ("t.bats", "run cmd || true\n"),
+        # referenced TODOs pass TODO001
+        ("a.py", "# TODO(ADR-0021): x\n"),
+        ("a.py", "# TODO(#42): x\n"),
+        ("a.sh", "# FIXME(#7): x\n"),
+        # ${#var} and $# are not comments
+        ("a.sh", 'n=${#arr[@]}; echo "$#"\n'),
+    ],
+)
+def test_no_finding(path: str, text: str) -> None:
+    assert codes(path, text) == []
+
+
+def test_heredoc_ends_and_scanning_resumes() -> None:
+    text = "cat <<EOF\nx || true\nEOF\ncmd || true\n"
+    assert codes("a.sh", text) == [(4, "WHY001")]
+
+
+def test_only_added_lines_are_reported() -> None:
+    text = "import os  # noqa: F401\nimport re  # noqa: F401\n"
+    assert codes("a.py", text, lines={2}) == [(2, "WHY001")]
+
+
+def test_existing_why_above_covers_an_added_suppression() -> None:
+    text = "# why: re-export\nimport os  # noqa: F401\n"
+    assert codes("a.py", text, lines={2}) == []
+
+
+def test_untokenizable_python_is_reported_not_skipped(capsys) -> None:
+    assert codes("a.py", "x = (\n") == []
+    assert "a.py" in capsys.readouterr().err
+
+
+def test_cli_end_to_end_reads_the_new_side(repo: Path) -> None:
+    # The why: comment is an unchanged line; only the suppression below it is added.
+    (repo / "mod.py").write_text("# why: kept for callers\nimport os\n")
+    git(repo, "commit", "-qam", "why")
+    (repo / "mod.py").write_text(
+        "# why: kept for callers\nimport os  # noqa: F401\nimport re  # noqa: F401\n"
+    )
+    (repo / "h.sh").write_text("#!/bin/bash\nrm x || true\n# TODO: later\n")
+    (repo / "doc.md").write_text("rm x || true\n")
+    git(repo, "add", "-A")
+    proc = run_cli(repo)
+    assert proc.returncode == 1, proc.stderr
+    assert proc.stdout.splitlines() == [
+        "h.sh:2: WHY001 suppression `|| true` without a `# why:` on this line or the comment above",
+        "h.sh:3: TODO001 TODO/FIXME without a reference: write TODO(#N) or TODO(ADR-NNNN)",
+        "mod.py:3: WHY001 suppression `# noqa` without a `# why:` on this line or the comment above",
+    ]
+
+
+def test_cli_ref_mode_reads_the_to_side(repo: Path) -> None:
+    (repo / "mod.py").write_text("import os  # noqa: F401\n")
+    git(repo, "commit", "-qam", "bad")
+    (repo / "mod.py").write_text("clean = 1\n")  # working tree differs from HEAD
+    proc = run_cli(repo, "--from-ref", "HEAD~1", "--to-ref", "HEAD")
+    assert proc.returncode == 1
+    assert proc.stdout.startswith("mod.py:1: WHY001")
+
+
+def test_cli_escapes_control_characters_and_bad_utf8_in_paths(repo: Path) -> None:
+    name = b"evil\x1b[2Jname\xff.py"
+    (Path(os.fsencode(repo)) / name).write_bytes(b"# TODO: x\n")
+    git(repo, "add", "-A")
+    proc = subprocess.run(
+        ["python3", str(SCRIPT)], cwd=repo, capture_output=True, check=False
+    )
+    assert proc.returncode == 1, proc.stderr
+    assert b"\x1b" not in proc.stdout
+    assert proc.stdout.startswith(b"evil\\x1b[2Jname\\udcff.py:1: TODO001")

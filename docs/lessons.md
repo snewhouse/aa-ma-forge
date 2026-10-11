@@ -13,6 +13,12 @@ landed — but only because a hook happened to fail, not because I checked.
 **Rule:** Formatters and `git add` take the exact paths edited, never a directory: keep the list in a
 shell variable (`F="a.py b.py"`) and use it for `ruff format`, `git add` and the commit pathspec. Before
 any commit, `git diff --cached --name-only` must equal that list.
+**Recurrence (same session, minutes later):** a `sed` edit to a test silently did not match, the next
+pytest printed `1 failed`, and the commit ran anyway because the shell chain gated `git commit` on
+ruff, not on pytest — 3fc63c2 was pushed red and fixed in 895fa2c. **Stricter rule:** a commit
+command is gated on its tests in the same chain — `if uv run pytest <files> -q; then git commit …; fi`
+— never a pytest line followed by an ungated commit. Make edits with an asserting script (`assert
+s.count(old) == 1`), not `sed`, when the pattern carries quotes or escapes.
 **Cross-ref:** L-007 (format pass outside scope), global L-1334 (pathspec-less commit)
 
 ---

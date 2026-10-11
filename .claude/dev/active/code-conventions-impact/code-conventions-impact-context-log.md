@@ -283,3 +283,11 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Key outcome: the six oversized skills load as SKILL.md entry points under 500 lines with detail in references/; the split is proven verbatim per commit, executed fences unchanged, and every test that read the moved text still covers it.
 - Artifacts: 6 SKILL.md + 28 references/*.md; tests/test_split_preserves_content.py; tests/skills/_helpers.py (skill_files, skill_text); tests/lib/skill_files.bash; extract_stage.sh, phase_6_8/gate-scans/deps/gate-python bats, rewire/canonical/planning-count/angle6/writing-for-agents/prompt_size pytest; CHANGELOG; spec §II; docs/lessons.md L-047.
 - Tests: pytest 2774 passed / 6 skipped / 0 failed; bats 403/403; shellcheck rc=0; evals 11/12 (advisory).
+
+## [2026-10-11] M6 — decisions during boundary review
+- §6.6 quality review found the shell scanner blanked `$(…)` inside double quotes (CRITICAL, fixed 9edd103) — the hand-written scanner is kept (no stdlib tokenizer gives comment offsets + heredocs; shlex drops them), now a context stack with one opener/closer table.
+- `# why:` accepted anywhere in the contiguous comment block above (plan said "line above"): a reason often spans lines; a blank line ends the block (pinned).
+- Shell recognised by `.sh`/`.bash`, or by shebang only for extensionless paths, so unscannable files are never read (efficiency + no binary decode).
+- WHY001 suppression set widened beyond the plan's four forms to ruff/flake8 file noqa, `pyright: ignore`, `nosec`, `&>/dev/null`, `>/dev/null 2>&1`, `|| :` — same intent (L-1319), measured 131 genuine hits repo-wide, no false positives in the sample.
+- Deferred: the ruff-check/ruff-format hooks have the same filename-as-option hole the check-conventions hook had (pre-dates M6, extensionless python-shebang file named `--exit-zero`) → M8 (secops baseline). One-call `git diff` (N+1, 2.5 s at 322 files) — M1-deferred, still deferred. Shared markdown `_section` test helper (3 copies) — later touch. 7 eval scaffold scripts carry SC2312 — fixed when touched (D8).
+- code-reviewer eval code-reviewer/what-comment does not discriminate at n=1 (control on the old prompt also passes) — kept as an advisory behaviour check; a discriminating grader needs the WARNING label or n>1.

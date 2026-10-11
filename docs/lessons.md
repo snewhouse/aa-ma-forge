@@ -5,6 +5,18 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-048 (2026-10-11) — `ruff format tests/` + `git add tests` swept 66 untouched files into a RED commit
+**Pattern:** M6 §6.8: after editing three test files I ran `uv run ruff format -q tests/` (the whole
+directory, not the three paths) and staged with `git add tests`. 69 files were staged; only 3 were
+mine. The local pre-commit hook refused the commit (ruff check failed on the swept files), so nothing
+landed — but only because a hook happened to fail, not because I checked.
+**Rule:** Formatters and `git add` take the exact paths edited, never a directory: keep the list in a
+shell variable (`F="a.py b.py"`) and use it for `ruff format`, `git add` and the commit pathspec. Before
+any commit, `git diff --cached --name-only` must equal that list.
+**Cross-ref:** L-007 (format pass outside scope), global L-1334 (pathspec-less commit)
+
+---
+
 ## L-047 (2026-10-11) — Moving text out of a file silently narrowed the tests that read it
 **Pattern:** M5 moves skill text from SKILL.md into references/. Positive pins failed loudly and
 were moved, but checks that pass when text is ABSENT kept passing: `test_understand_codebase_rewire`

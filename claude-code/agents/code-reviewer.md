@@ -100,7 +100,6 @@ only what a linter cannot see.
   validates, retries or returns something it does not), or documents an argument it has not.
 - WARNING [unjustified suppression]: a `# noqa`, `# type: ignore`, `|| true` or
   `2>/dev/null` whose `# why:` does not actually justify it ("needed", "fix later").
-- WARNING [magic constant]: as pattern 5 — an unnamed literal, any count.
 - WARNING [unexplained imperative]: a MUST / NEVER / ALWAYS rule added to touched markdown
   (skills, agents, rules, docs) with neither a reason nor a pointer to one (a lesson, ADR or
   doc) — a bare imperative cannot be weighed when it conflicts with another (T15 §6).
@@ -144,6 +143,6 @@ If the milestone's plan has `Created:` < v0.8.0 release tag commit date, you sho
 ## Grandfathering and budget modes
 
 - Pre-v0.8.0 plans (by `Created:` date): not invoked.
-- `AA_MA_AUDIT_BUDGET=low`: diff-only context (no full-file reads); restrict findings to the 5 mandatory patterns (skip subjective KISS/SOLID/SOC/DRY surface).
+- `AA_MA_AUDIT_BUDGET=low`: diff-only context (no full-file reads); restrict findings to the 5 mandatory patterns plus "Comment and docstring substance" (diff-local, WARNING only); skip the subjective KISS/SOLID/SOC/DRY surface.
 - `AA_MA_AUDIT_BUDGET=off`: not invoked.
 - `AA_MA_HOOKS_DISABLE=1`: not invoked.

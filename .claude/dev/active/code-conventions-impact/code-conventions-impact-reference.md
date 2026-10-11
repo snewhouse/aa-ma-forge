@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-09_
+_Last Updated: 2026-10-11_
 
 Test-Command: uv run pytest
 
@@ -39,7 +39,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | M1 BASELINE (provenance) | pytest 2429/5/7, ruff src+packages 4, Ruff S 34, shellcheck 0 (24 .sh), rules_chars 20249 | [valid: 2026-10-08] |
 | Touched-file debt, repo-wide (2026-10-08, /sole-dev-merge C1) | `ruff format --check .` 113 files to reformat (35 src/packages/scripts, 77 tests); `ruff check .` 39 findings; 19 of 31 `.bats` fail shellcheck (excluded from the hook via `exclude_types: [bats]`) | [valid: 2026-10-08] |
 | Ruff S findings (`ruff check --isolated --select S src packages scripts`) | 34 | [valid: 2026-10-08] |
-| Oversized prompt files (lines) | aa-ma-execution 1295, execute-aa-ma-milestone 1244, aa-ma-plan 1154, sole-dev-merge 1054, execute-aa-ma-full 757, plan-verification 608 | [valid: 2026-10-08] |
+| Oversized prompt files (lines) | aa-ma-execution 1295, execute-aa-ma-milestone 1244, aa-ma-plan 1154, sole-dev-merge 1057, execute-aa-ma-full 758, plan-verification 608 (re-measured at bc177e5; plan time said 1054/757) | [valid: 2026-10-11] |
 | Existing >100-line references without a TOC | 23 (go into `TOC_ALLOWLIST (23 at plan time; 24 after M2 imports logging-and-comments/references/python.md)`) | [valid: 2026-10-08] |
 | Test files referencing `commands/` paths | 31 | [valid: 2026-10-08] |
 | Touched-file debt | ≤11 strict findings per planned file | [valid: 2026-10-08] |
@@ -277,6 +277,8 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - `claude-code/skills/dispatching-parallel-agents/SKILL.md` (:6 `languages:`, :7 `context:`); operational-constraints and system-mapping (`triggers`)
 - `docs/adr/0004-write-a-skill-adoption.md` (→ Superseded); `docs/adr/INDEX.md` (every ADR step)
 - Bats pinning prompt text (M5): `execute_aa_ma_milestone_phase_6_8.bats` (10 greps), `aa-ma-deps.bats`, `aa-ma-gate-scans.bats:155`, `aa-ma-gate-python.bats:45`, `test_diagram_verified.bats:127`, sole-dev-merge `fixtures/extract_stage.sh`
+- Readers of the six SKILL.md files (M5, `git grep` 2026-10-11 @ bc177e5): bats — `tests/commands/sole-dev-merge/*.bats` (10) via `fixtures/extract_stage.sh`, `aa-ma-deps.bats` (:58 aa-ma-plan, :86 execute-aa-ma-full, + execute-aa-ma-milestone), `aa-ma-gate-python.bats` (:45, :421 plan-verification), `aa-ma-gate-scans.bats:155`, `execute_aa_ma_milestone_phase_6_8.bats`, `test_diagram_verified.bats:127`; pytest — `test_planning_standard_count.py`, `test_plan_verification_angle6.py`, `tests/skills/test_angle6_coverage.py`, `tests/skills/test_understand_codebase_rewire.py`, `tests/test_active_plans_canonical.py`, `tests/test_prompt_size.py`. codemem `plugin_surface.extract` owns every file under `skills/<name>/` (references included) as `skill:<name>`, so moving text inside a skill dir keeps its edge set. [valid: 2026-10-11]
+- Content-preservation base (M5): each split is its own commit `refactor(skills): split <skill> …`; `tests/test_split_preserves_content.py` finds it by subject (rebase-merge keeps messages, not SHAs) and compares the commit with its parent (pre-split = parent; worktree cut from main bc177e5). Before that commit exists it compares the working tree with HEAD. A fixed base SHA vs HEAD was rejected: M7–M11 edit these files and would break it. [valid: 2026-10-11]
 - `claude-code/hooks/lib/aa-ma-parse.sh` (`aa_ma_debug`, `HOOK_DEBUG` read at :68; `aa_ma_gate` launcher :261); `claude-code/hooks/aa-ma-plan-skip-warn.sh`; `claude-code/hooks/pre-compact-aa-ma.sh`; `tests/hooks/pre-compact.bats:110`; `docs/spec/plan-marker-grammar.md:207`
 - `claude-code/hooks/security-static-check.sh`; `claude-code/agents/security-auditor.md:3,7`; verify-impl SKILL.md (:93-96 window, :205/:211); execute-aa-ma-milestone (:604, :605 conditions 3/4; :611-630 CRITICAL_PATH_REVIEW grep; :661-731 DIAGRAM_VERIFIED fence; :793/:857); sole-dev-merge Stage D (:443-531), `test_stage_d_triage.bats`, `test_smoke_e2e.bats:209`
 - `claude-code/agents/code-reviewer.md` (:91 style-nit ban kept)

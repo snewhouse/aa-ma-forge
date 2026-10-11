@@ -260,3 +260,8 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Active step at compaction: Sub-step 5.0: Post-merge of M4
 - Snapshot saved to: ~/.claude/hooks/cache/compaction-snapshots/code-conventions-impact-snapshot.md
 - Note: Context compacted. Reload AA-MA files to resume.
+
+## [2026-10-11] M5 start — pre-execution validation and test design
+- Tier 2 validator: WARN (no FAIL). Fixed in reference.md: re-measured sizes (sole-dev-merge 1057, execute-aa-ma-full 758; sub-step headings keep the plan-time figures), full reader list of the six SKILL.md files, content-preservation base.
+- Decision (deviation from "pre-split file @ base SHA"): `test_split_preserves_content` compares each split commit with its parent, found by subject. Why: a fixed base vs HEAD would fail as soon as M7–M11 edit these files; rebase-merge rewrites SHAs, so the commit is found by its message. Same check (multiset ⊆, only link/TOC lines added), same pre-split content.
+- Readers checked per L-041: codemem plugin-surface owns references/ under the skill node, so edges are unchanged; regen-generated run after each split confirms.

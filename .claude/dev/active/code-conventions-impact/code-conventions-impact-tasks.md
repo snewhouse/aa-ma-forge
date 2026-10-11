@@ -510,12 +510,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. ebabd70: SKILL.md 758 → 430 lines; §1, §2+§2.5 and §8–§11 (contiguous, one stub; nothing outside the file cites §8–§11) moved verbatim to references/{pre-execution-validation, context-and-goal, errors-and-operations}.md. §3–§7 stay, incl. §5 (B.6 hand-off pinned by execute_aa_ma_milestone_phase_6_8.bats awk B.6→C., `aa_ma_deps advisory` pinned by aa-ma-deps.bats). L-047: aa-ma-deps.bats "never halts on Dependencies" (a negative check) now greps SKILL.md + references/*.md; planted 'dependency … HALT' in a reference fails it. Tests: pytest 2769 passed / 6 skipped / 0 failed; bats 403/403; regen edges/golden unchanged.
 
 ### Sub-step 5.6: Split plan-verification (608 lines)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 5.5
 - Acceptance Criteria:
   - SKILL.md ≤500 lines; `test_split_preserves_content` and the full suite + all bats pass; committed.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. 211f38d: SKILL.md 608 → 416 lines; Angles 1–5 moved verbatim to references/angles-1-5.md (216 lines, TOC); each `#### Angle N` heading kept with a See pointer. Angle 6 stays (text pinned by test_plan_verification_angle6 + test_angle6_coverage slices of check 8; the lib-resolution snippet aa-ma-gate-python.bats compares). The ALLOWLIST emptied here, not in 5.7: removing the last entry is forced by test_allowlist_ceilings_track_the_file, so the ratchet control (test_one_added_line_breaks_an_allowlisted_ceiling) now uses a synthetic monkeypatched entry; the per-entry ceiling test reports an empty parameter set (1 skip) and still guards any future entry. L-047: test_angle6_runs_the_lint_not_a_grep (negative) and test_prose_code_profile_sets_match_the_constant read references too; planted lines fail both. Tests: pytest 2771 passed / 7 skipped / 0 failed; bats 403/403; regen edges/golden unchanged.
 
 ### Sub-step 5.7: Empty the size allowlist
 - Status: PENDING

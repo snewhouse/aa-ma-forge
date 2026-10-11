@@ -263,23 +263,25 @@ fi
 
 ### Stage C — Code review + 3-source security pass
 
-See [stage-c-review-and-security.md](references/stage-c-review-and-security.md) — the parallel code-reviewer and security-auditor dispatch, Bandit and ShellCheck, and the findings aggregation.
+See [stage-c-review-and-security.md](references/stage-c-review-and-security.md#stage-c--code-review--3-source-security-pass) — the parallel code-reviewer and security-auditor dispatch, Bandit and ShellCheck, and the findings aggregation.
 
 ### Stage D — Findings triage
 
-See [stage-d-triage.md](references/stage-d-triage.md) — how findings are routed by severity: the B602 auto-fix, user panels for HIGH/MEDIUM, LOW to reviewer notes.
+See [stage-d-triage.md](references/stage-d-triage.md#stage-d--findings-triage) — how findings are routed by severity: the B602 auto-fix, user panels for HIGH/MEDIUM, LOW to reviewer notes.
+
+**HIGH and MEDIUM findings go to the user (`AskUserQuestion`: Apply / Dispute / Defer) before Stage E starts.**
 
 ### Stage E — Remote detection, choice, auth, AI body generation
 
-See [stage-e-remote-and-body.md](references/stage-e-remote-and-body.md) — remote detection and choice, the auth check and the generated PR/MR body.
+See [stage-e-remote-and-body.md](references/stage-e-remote-and-body.md#stage-e--remote-detection-choice-auth-ai-body-generation) — remote detection and choice, the auth check and the generated PR/MR body.
 
 ### Stage F — Push + PR/MR creation (idempotent)
 
-See [stage-f-push.md](references/stage-f-push.md) — the idempotent push and PR/MR creation.
+See [stage-f-push.md](references/stage-f-push.md#stage-f--push--prmr-creation-idempotent) — the idempotent push and PR/MR creation.
 
 ### Stage G — CI poll + auto-merge + cleanup
 
-See [stage-g-merge.md](references/stage-g-merge.md) — branch protection check, CI polling, the rebase merge and local cleanup.
+See [stage-g-merge.md](references/stage-g-merge.md#stage-g--ci-poll--auto-merge--cleanup) — branch protection check, CI polling, the rebase merge and local cleanup.
 
 ---
 

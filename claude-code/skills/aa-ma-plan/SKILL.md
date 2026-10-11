@@ -47,25 +47,25 @@ Phase 5: AA-MA Artifacts      → Create .claude/dev/active/[task]/
 
 ### Phase 0: Runtime Log Initialization
 
-See [phase-0-runtime-log.md](references/phase-0-runtime-log.md) — derive the plan slug and write the phase markers the plan-marker hook checks.
+See [phase-0-runtime-log.md](references/phase-0-runtime-log.md#phase-0-runtime-log-initialization) — derive the plan slug and write the phase markers the plan-marker hook checks.
 
 ---
 
 ### Phase 1: Context Gathering & Input Processing
 
-See [phase-1-context.md](references/phase-1-context.md) — --from-map import, input detection, the grill protocol, clarifying questions and the lessons scan.
+See [phase-1-context.md](references/phase-1-context.md#phase-1-context-gathering--input-processing) — --from-map import, input detection, the grill protocol, clarifying questions and the lessons scan.
 
 ---
 
 ### Phase 2: Structured Thinking with Brainstorming
 
-See [phase-2-brainstorm.md](references/phase-2-brainstorm.md) — the brainstorming pass that refines the request before research.
+See [phase-2-brainstorm.md](references/phase-2-brainstorm.md#phase-2-structured-thinking-with-brainstorming) — the brainstorming pass that refines the request before research.
 
 ---
 
 ### Phase 3: Research & Documentation Gathering
 
-See [phase-3-research.md](references/phase-3-research.md) — Context7-first documentation research with its fallbacks, and parallel research agents.
+See [phase-3-research.md](references/phase-3-research.md#phase-3-research--documentation-gathering) — Context7-first documentation research with its fallbacks, and parallel research agents.
 
 ---
 
@@ -189,13 +189,13 @@ PHASE 4 COMPLETE: Plan Generated
 
 ### Phase 4.2: Optional Plan Reviews (gstack integration)
 
-See [phase-4-reviews-and-verification.md](references/phase-4-reviews-and-verification.md) — the optional gstack plan reviews and the 6-angle adversarial verification of the generated plan.
+See [phase-4-reviews-and-verification.md](references/phase-4-reviews-and-verification.md#phase-42-optional-plan-reviews-gstack-integration) — the optional gstack plan reviews and the adversarial verification of the generated plan.
 
 ---
 
 ### Phase 4.5: Adversarial Verification
 
-See [phase-4-reviews-and-verification.md](references/phase-4-reviews-and-verification.md) — the optional gstack plan reviews and the 6-angle adversarial verification of the generated plan.
+See [phase-4-reviews-and-verification.md](references/phase-4-reviews-and-verification.md#phase-45-adversarial-verification) — the optional gstack plan reviews and the adversarial verification of the generated plan.
 
 ---
 
@@ -422,4 +422,4 @@ To begin implementation, load context with:
 
 ## Error Handling & Fallbacks
 
-See [operations.md](references/operations.md) — error handling and fallbacks, token use, usage examples, related commands, time estimates and troubleshooting.
+See [operations.md](references/operations.md#error-handling--fallbacks) — error handling and fallbacks, token use, usage examples, related commands, time estimates and troubleshooting.

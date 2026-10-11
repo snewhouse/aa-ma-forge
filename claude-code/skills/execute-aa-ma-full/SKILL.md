@@ -18,19 +18,19 @@ You are executing the **complete AA-MA plan** from current position to final com
 
 ## 1. Locate Active Task & Pre-Execution Validation
 
-See [pre-execution-validation.md](references/pre-execution-validation.md) — the Tier 1 existence check and the Tier 2 validator dispatch, with auto-recovery.
+See [pre-execution-validation.md](references/pre-execution-validation.md#1-locate-active-task--pre-execution-validation) — the Tier 1 existence check and the Tier 2 validator dispatch, with auto-recovery.
 
 ---
 
 ## 2. Full Context Injection
 
-See [context-and-goal.md](references/context-and-goal.md) — which AA-MA files to load for a full run, and the optional /goal synthesis and bind for AFK runs.
+See [context-and-goal.md](references/context-and-goal.md#2-full-context-injection) — which AA-MA files to load for a full run, and the optional /goal synthesis and bind for AFK runs.
 
 ---
 
 ## 2.5 Goal Synthesis & Bind (Optional, Recommended for AFK Runs)
 
-See [context-and-goal.md](references/context-and-goal.md) — which AA-MA files to load for a full run, and the optional /goal synthesis and bind for AFK runs.
+See [context-and-goal.md](references/context-and-goal.md#25-goal-synthesis--bind-optional-recommended-for-afk-runs) — which AA-MA files to load for a full run, and the optional /goal synthesis and bind for AFK runs.
 
 ---
 
@@ -423,7 +423,7 @@ Next Steps:
 
 ## 8. Error Handling
 
-See [errors-and-operations.md](references/errors-and-operations.md) — validation failures, broken dependency chains, context limits, token use, rollback and best practices for a full run.
+See [errors-and-operations.md](references/errors-and-operations.md#8-error-handling) — validation failures, broken dependency chains, context limits, token use, rollback and best practices for a full run.
 
 ---
 

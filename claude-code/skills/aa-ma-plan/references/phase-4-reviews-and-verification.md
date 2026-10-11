@@ -1,4 +1,4 @@
-# Phase 4.2 and 4.5: plan reviews and verification — the optional gstack plan reviews and the 6-angle adversarial verification of the generated plan.
+# Phase 4.2 and 4.5: plan reviews and verification — the optional gstack plan reviews and the adversarial verification of the generated plan.
 
 ## Contents
 

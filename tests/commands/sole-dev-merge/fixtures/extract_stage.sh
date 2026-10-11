@@ -31,12 +31,9 @@ FILE="${2:?usage: extract_stage.sh <stage-marker> <command-md-path>}"
 BEGIN_MARK="=== ${STAGE} (BEGIN) ==="
 END_MARK="=== ${STAGE} (END) ==="
 
-FILES=("$FILE")
-if [[ "$(basename "$FILE")" == SKILL.md ]]; then
-    for ref in "$(dirname "$FILE")"/references/*.md; do
-        [[ -f "$ref" ]] && FILES+=("$ref")
-    done
-fi
+# shellcheck source=tests/lib/skill_files.bash
+. "$(dirname "${BASH_SOURCE[0]}")/../../../lib/skill_files.bash"
+mapfile -t FILES < <(skill_files "$FILE")
 
 # Fixed-string match via index() to avoid regex escaping pitfalls with ().
 for mark in "$BEGIN_MARK" "$END_MARK"; do

@@ -263,17 +263,17 @@ HARD gates always pause for approval regardless of Mode. If a milestone has `Gat
 
 ## IV. Execution Workflows
 
-See [execution-workflows.md](references/execution-workflows.md) — how a step, a milestone and a full plan are executed, sub-step by sub-step.
+See [execution-workflows.md](references/execution-workflows.md#iv-execution-workflows) — how a step, a milestone and a full plan are executed, sub-step by sub-step.
 
 ## V. AA-MA Commit Signature — MANDATORY
 
-See [commit-signature.md](references/commit-signature.md) — the footer every commit carries while a plan is active, with examples.
+See [commit-signature.md](references/commit-signature.md#v-aa-ma-commit-signature--mandatory) — the footer every commit carries while a plan is active, with examples.
 
 ---
 
 ## VI. Finalization Protocol — MANDATORY
 
-See [finalization-protocol.md](references/finalization-protocol.md) — the integrity check, doc update, HARD gate and approval steps before a milestone is COMPLETE.
+See [finalization-protocol.md](references/finalization-protocol.md#vi-finalization-protocol--mandatory) — the integrity check, doc update, HARD gate and approval steps before a milestone is COMPLETE.
 
 ---
 
@@ -372,15 +372,15 @@ echo "[$(date '+%Y-%m-%d %H:%M')] Commit $(git rev-parse --short HEAD) — TaskI
 
 ## VIII. Context Compaction
 
-See [compaction-and-rollback.md](references/compaction-and-rollback.md) — how to compact context mid-task, validate acceptance criteria and roll back a step.
+See [compaction-and-rollback.md](references/compaction-and-rollback.md#viii-context-compaction) — how to compact context mid-task, validate acceptance criteria and roll back a step.
 
 ## IX. Validation & Rollback
 
-See [compaction-and-rollback.md](references/compaction-and-rollback.md) — how to compact context mid-task, validate acceptance criteria and roll back a step.
+See [compaction-and-rollback.md](references/compaction-and-rollback.md#ix-validation--rollback) — how to compact context mid-task, validate acceptance criteria and roll back a step.
 
 ## IX.5 Goal-Condition Synthesis Patterns (Optional, Claude Code `/goal`)
 
-See [goal-conditions.md](references/goal-conditions.md) — optional `/goal` conditions built from AA-MA artefacts.
+See [goal-conditions.md](references/goal-conditions.md#ix5-goal-condition-synthesis-patterns-optional-claude-code-goal) — optional `/goal` conditions built from AA-MA artefacts.
 
 ## X. Integration with Slash Commands
 
@@ -418,11 +418,11 @@ Claude: [Executes milestone using this skill's workflow]
 
 ## XI. Error Handling
 
-See [error-handling.md](references/error-handling.md) — common errors during execution and how to resolve each.
+See [error-handling.md](references/error-handling.md#xi-error-handling) — common errors during execution and how to resolve each.
 
 ## XII. Best Practices
 
-See [best-practices.md](references/best-practices.md) — habits that keep execution state accurate across sessions.
+See [best-practices.md](references/best-practices.md#xii-best-practices) — habits that keep execution state accurate across sessions.
 
 ## XIII. Checklist for Using This Skill
 

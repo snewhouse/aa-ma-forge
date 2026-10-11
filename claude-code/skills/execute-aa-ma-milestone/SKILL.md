@@ -15,31 +15,31 @@ You are executing a **complete milestone** from an AA-MA (Advanced Agentic Memor
 
 ## 1. Locate Active Task & Pre-Execution Validation
 
-See [pre-execution-validation.md](references/pre-execution-validation.md) — the Tier 1 existence check and the Tier 2 validator dispatch, with auto-recovery.
+See [pre-execution-validation.md](references/pre-execution-validation.md#1-locate-active-task--pre-execution-validation) — the Tier 1 existence check and the Tier 2 validator dispatch, with auto-recovery.
 
 ---
 
 ## 2. Priority Context Injection
 
-See [context-and-todos.md](references/context-and-todos.md) — context-injection order, the loaded-context checks, the HTP-to-TodoWrite mapping and the quality triggers applied during execution.
+See [context-and-todos.md](references/context-and-todos.md#2-priority-context-injection) — context-injection order, the loaded-context checks, the HTP-to-TodoWrite mapping and the quality triggers applied during execution.
 
 ---
 
 ## 3. Validate Loaded Context
 
-See [context-and-todos.md](references/context-and-todos.md) — context-injection order, the loaded-context checks, the HTP-to-TodoWrite mapping and the quality triggers applied during execution.
+See [context-and-todos.md](references/context-and-todos.md#3-validate-loaded-context) — context-injection order, the loaded-context checks, the HTP-to-TodoWrite mapping and the quality triggers applied during execution.
 
 ---
 
 ## 4. Parse HTP & Create TodoWrite Todos
 
-See [context-and-todos.md](references/context-and-todos.md) — context-injection order, the loaded-context checks, the HTP-to-TodoWrite mapping and the quality triggers applied during execution.
+See [context-and-todos.md](references/context-and-todos.md#4-parse-htp--create-todowrite-todos) — context-injection order, the loaded-context checks, the HTP-to-TodoWrite mapping and the quality triggers applied during execution.
 
 ---
 
 ## 4.5 Quality Standards (Actionable Triggers)
 
-See [context-and-todos.md](references/context-and-todos.md) — context-injection order, the loaded-context checks, the HTP-to-TodoWrite mapping and the quality triggers applied during execution.
+See [context-and-todos.md](references/context-and-todos.md#45-quality-standards-actionable-triggers) — context-injection order, the loaded-context checks, the HTP-to-TodoWrite mapping and the quality triggers applied during execution.
 
 ---
 
@@ -141,7 +141,7 @@ true
 
 ### 6.1 Acceptance Criteria Verification
 
-See [boundary-checks.md](references/boundary-checks.md) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
+See [boundary-checks.md](references/boundary-checks.md#61-acceptance-criteria-verification) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
 
 ### 6.2 Dependency Verification (advisory — never blocks)
 
@@ -153,21 +153,21 @@ e.g. `Next: Milestone 3 — Dependencies: Milestone 2` (canonical form).
 
 ### 6.3 Impact Analysis Verification (REQUIRED)
 
-See [boundary-checks.md](references/boundary-checks.md) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
+See [boundary-checks.md](references/boundary-checks.md#63-impact-analysis-verification-required) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
 
 ### 6.4 Test Execution (if specified)
 
-See [boundary-checks.md](references/boundary-checks.md) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
+See [boundary-checks.md](references/boundary-checks.md#64-test-execution-if-specified) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
 
 ---
 
 ### 6.5 Optional Web Verification (gstack integration)
 
-See [boundary-checks.md](references/boundary-checks.md) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
+See [boundary-checks.md](references/boundary-checks.md#65-optional-web-verification-gstack-integration) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
 
 ### 6.6 Post-Milestone Simplification Review
 
-See [boundary-checks.md](references/boundary-checks.md) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
+See [boundary-checks.md](references/boundary-checks.md#66-post-milestone-simplification-review) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
 
 ---
 
@@ -387,7 +387,9 @@ fi
 
 ### 6.8 Post-Impl Adversarial Review (NEW in v0.8.0)
 
-See [post-impl-review.md](references/post-impl-review.md) — when §6.8 fires, how Skill(verify-impl) dispatches the five audit agents (ADR-0005), verdicts, the CRITICAL override panel and bypasses.
+See [post-impl-review.md](references/post-impl-review.md#68-post-impl-adversarial-review-new-in-v080) — when §6.8 fires, how Skill(verify-impl) dispatches the audit agents (ADR-0005), verdicts, the CRITICAL override panel and bypasses.
+
+**A BLOCKED verdict stops the milestone here:** do not continue to §7.1 until every accepted CRITICAL is fixed and §6.8 re-runs clean.
 
 ---
 
@@ -467,25 +469,27 @@ All [X] criteria verified. Ready for finalization.
 
 ### 7.2 Documentation Auto-Update
 
-See [finalization.md](references/finalization.md) — the doc auto-update, validator dispatch, user approval and status change that follow §7.1.
+See [finalization.md](references/finalization.md#72-documentation-auto-update) — the doc auto-update, validator dispatch, user approval and status change that follow §7.1.
 
 ### 7.2.5 Post-Completion Validator Dispatch (RECOMMENDED)
 
-See [finalization.md](references/finalization.md) — the doc auto-update, validator dispatch, user approval and status change that follow §7.1.
+See [finalization.md](references/finalization.md#725-post-completion-validator-dispatch-recommended) — the doc auto-update, validator dispatch, user approval and status change that follow §7.1.
 
 ### 7.3 User Authorization (Approval Gate)
 
-See [finalization.md](references/finalization.md) — the doc auto-update, validator dispatch, user approval and status change that follow §7.1.
+See [finalization.md](references/finalization.md#73-user-authorization-approval-gate) — the doc auto-update, validator dispatch, user approval and status change that follow §7.1.
+
+**Never mark the milestone COMPLETE without the user's explicit approval through `AskUserQuestion`.**
 
 ### 7.4 Transparent Status Change
 
-See [finalization.md](references/finalization.md) — the doc auto-update, validator dispatch, user approval and status change that follow §7.1.
+See [finalization.md](references/finalization.md#74-transparent-status-change) — the doc auto-update, validator dispatch, user approval and status change that follow §7.1.
 
 ---
 
 ## 8. Git Checkpoint Creation (Auto-commit)
 
-See [checkpoint-and-errors.md](references/checkpoint-and-errors.md) — the milestone commit and provenance entries (§8), status update (§9), completion report (§10), BLOCKED handling (§11), token use and rollback.
+See [checkpoint-and-errors.md](references/checkpoint-and-errors.md#8-git-checkpoint-creation-auto-commit) — the milestone commit and provenance entries (§8), status update (§9), completion report (§10), BLOCKED handling (§11), token use and rollback.
 
 ---
 

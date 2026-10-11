@@ -32,7 +32,8 @@ from tests.skills._helpers import skill_files
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILLS = "claude-code/skills"
 
-# Skills split in code-conventions-impact M5, in the order they were split.
+# Skills split in code-conventions-impact M5, in the order they were split. A later split
+# is checked only once its skill is added here (its commit subject must use SUBJECT_PREFIX).
 SPLIT_SKILLS = (
     "aa-ma-execution",
     "execute-aa-ma-milestone",

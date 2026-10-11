@@ -16,6 +16,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from tests.skills._helpers import skill_files, skill_text
+
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "claude-code/skills/understand-codebase"
 REWIRED = [  # the Contract's files + the Deep tier's team template (Ste, 13.4)
@@ -44,21 +46,17 @@ REWIRED = [  # the Contract's files + the Deep tier's team template (Ste, 13.4)
 ]
 # A skill split into SKILL.md + references/ (code-conventions-impact M5) is checked whole:
 # a line that moved into references/ must not drop out of the check.
-REWIRED += [
-    ref
-    for f in list(REWIRED)
-    if f.name == "SKILL.md" and f.parent != SKILL
-    for ref in sorted((f.parent / "references").glob("*.md"))
+# understand-codebase's own references are listed above one by one (the Contract's
+# files), so only the other skills are widened.
+REWIRED = [
+    *REWIRED,
+    *(
+        ref
+        for f in REWIRED
+        if f.name == "SKILL.md" and f.parent != SKILL
+        for ref in skill_files(f)[1:]
+    ),
 ]
-
-
-def skill_text(rel: str) -> str:
-    """The file at `rel`; for a SKILL.md, the skill's references/*.md too."""
-    path = ROOT / rel
-    files = [path]
-    if path.name == "SKILL.md":
-        files += sorted((path.parent / "references").glob("*.md"))
-    return "\n".join(f.read_text(encoding="utf-8") for f in files)
 
 
 # AC5 — the 7 instructions to run /codebase-deep-dive (4 in the Contract + 3 in the template).
@@ -311,7 +309,7 @@ ROUTES_TO_UNSHIPPED = [
 
 @pytest.mark.parametrize("rel, text", ROUTES_TO_UNSHIPPED)
 def test_no_route_to_an_unshipped_command(rel: str, text: str) -> None:
-    assert text not in skill_text(rel)
+    assert text not in skill_text(ROOT / rel)
 
 
 def test_split_skills_are_checked_with_their_references() -> None:
@@ -321,7 +319,7 @@ def test_split_skills_are_checked_with_their_references() -> None:
     )
     assert ref in REWIRED
     assert "Index-enhanced" in skill_text(
-        "claude-code/skills/execute-aa-ma-milestone/SKILL.md"
+        ROOT / "claude-code/skills/execute-aa-ma-milestone/SKILL.md"
     )
 
 

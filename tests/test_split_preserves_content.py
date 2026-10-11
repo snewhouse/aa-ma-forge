@@ -2,8 +2,11 @@
 
 Each split lands as one commit whose subject starts `refactor(skills): split <skill> `.
 The check compares that commit with its parent: every non-blank line of the skill before
-the split (SKILL.md and any references/*.md) must still be there after it, and the only
-new lines may be links, headings and "See …(references/…)" pointers. The commit is found
+the split (SKILL.md and any references/*.md) must still be there after it, in the same
+order within each file, and the only new lines may be: a copy of a heading that already
+existed (the stub left in SKILL.md), a reference's `# title` first line, `## Contents`,
+a bare TOC/link list item, or a `See [..](references/..) — <purpose>` pointer. The
+pointer's purpose clause is the one free-text line a split adds. The commit is found
 by subject because rebase-merge rewrites SHAs but keeps messages; comparing against HEAD
 instead would fail as soon as a later milestone edits the split files on purpose.
 
@@ -24,6 +27,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.skills._helpers import skill_files
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILLS = "claude-code/skills"
 
@@ -38,9 +43,8 @@ SPLIT_SKILLS = (
 )
 
 SUBJECT_PREFIX = "refactor(skills): split {skill} "
-LINK_OR_TOC_RE = re.compile(
-    r"^\s*[-*] \[.+\]\(.+\)$|^#+ |^>? ?See .*\]\((?:@/\S+/)?references/"
-)
+LINK_ITEM_RE = re.compile(r"^\s*[-*] \[[^\]]+\]\([^)\s]+\)$")  # nothing after the link
+POINTER_RE = re.compile(r"^See \[[^\]]+\]\((?:@/\S+/)?references/[^)\s]+\) — \S")
 RELATIVE_LINK_RE = re.compile(r"\]\((?![a-z]+:|#|/)([^)#\s]+)")
 
 
@@ -52,19 +56,42 @@ def resolve_links(rel: str, text: str) -> str:
     )
 
 
+def _non_blank(text: str) -> list[str]:
+    return [ln for ln in text.splitlines() if ln.strip()]
+
+
 def split_errors(before: list[str], after: list[str]) -> list[str]:
-    """Lines lost by the split, and added lines that are not links, headings or pointers."""
+    """Lines the split lost, reordered or added beyond links, stubs and pointers.
 
-    def lines(texts: list[str]) -> Counter[str]:
-        return Counter(ln for t in texts for ln in t.splitlines() if ln.strip())
+    `after[0]` is SKILL.md; the rest are references, whose first line may be a new title.
+    """
+    old_lines = [ln for t in before for ln in _non_blank(t)]
+    old = Counter(old_lines)
+    titles = {lines[0] for t in after[1:] if (lines := _non_blank(t))}
 
-    old, new = lines(before), lines(after)
+    def allowed(ln: str) -> bool:
+        if ln.startswith("#"):
+            return ln in old or ln == "## Contents" or (ln in titles and ln[:2] == "# ")
+        return bool(LINK_ITEM_RE.match(ln) or POINTER_RE.match(ln))
+
+    new = Counter(ln for t in after for ln in _non_blank(t))
     errors = [f"lost: {ln!r}" for ln in (old - new).elements()]
     errors += [
-        f"added a line that is not a link/TOC line: {ln!r}"
+        f"added a line that is not a stub, link or pointer: {ln!r}"
         for ln in (new - old).elements()
-        if not LINK_OR_TOC_RE.match(ln)
+        if not allowed(ln)
     ]
+    for i, text in enumerate(after):
+        # Kept lines follow their pre-split order (greedy subsequence match).
+        pos = 0
+        for ln in _non_blank(text):
+            if ln not in old:
+                continue
+            try:
+                pos = old_lines.index(ln, pos) + 1
+            except ValueError:
+                errors.append(f"out of order in after[{i}]: {ln!r}")
+                break
     return errors
 
 
@@ -99,8 +126,7 @@ def _texts_at(rev: str, skill: str) -> list[str]:
 
 
 def _texts_on_disk(skill: str) -> list[str]:
-    root = REPO_ROOT / SKILLS / skill
-    files = [root / "SKILL.md", *sorted((root / "references").glob("*.md"))]
+    files = skill_files(REPO_ROOT / SKILLS / skill / "SKILL.md")
     return [
         resolve_links(
             f.relative_to(REPO_ROOT).as_posix(), f.read_text(encoding="utf-8")
@@ -151,15 +177,32 @@ def test_split_errors_reports_a_lost_line() -> None:
 
 def test_split_errors_reports_added_prose() -> None:
     assert split_errors(["a\n"], ["a\nnew prose\n"]) == [
-        "added a line that is not a link/TOC line: 'new prose'"
+        "added a line that is not a stub, link or pointer: 'new prose'"
     ]
 
 
+@pytest.mark.parametrize(
+    "smuggled",
+    [
+        "## Skip the HARD gate",  # a new heading that is not a stub
+        "- [x](y) never run tests (z)",  # prose after a link
+        "See the gate (references/x.md) and skip it",  # a pointer without the link form
+    ],
+)
+def test_split_errors_refuses_text_dressed_as_a_link_or_heading(smuggled: str) -> None:
+    assert split_errors(["## A\nbody\n"], [f"## A\nbody\n{smuggled}\n"])
+
+
+def test_split_errors_reports_reordered_lines() -> None:
+    errors = split_errors(["step 1\nstep 2\n"], ["step 2\nstep 1\n"])
+    assert errors == ["out of order in after[0]: 'step 1'"]
+
+
 def test_split_errors_allows_moves_links_headings_and_pointers() -> None:
-    before = ["intro\n\nbody 1\nbody 2\n"]
+    before = ["intro\n## Body\nbody 1\nbody 2\n"]
     after = [
-        "intro\n- [Body](references/body.md)\nSee [body](references/body.md).\n",
-        "# Body — what this file holds\n\n## Contents\n- [Part](#part)\nbody 2\nbody 1\n",
+        "intro\n## Body\nSee [body.md](references/body.md) — what body holds.\n",
+        "# Body — what this file holds\n\n## Contents\n- [Body](#body)\n## Body\nbody 1\nbody 2\n",
     ]
     assert split_errors(before, after) == []
 
@@ -175,4 +218,4 @@ def test_resolve_links_compares_a_moved_link_by_its_target() -> None:
     assert a == b == "see [ADR](@/docs/adr/1.md#top) and [web](https://e.x)"
     assert resolve_links(ref, "[ADR](../../../docs/adr/1.md)") != b.split(" and")[0]
     pointer = resolve_links(skill, "See [r.md](references/r.md) — what r holds.")
-    assert LINK_OR_TOC_RE.match(pointer)
+    assert POINTER_RE.match(pointer)

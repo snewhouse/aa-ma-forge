@@ -6,6 +6,8 @@ next element bump cannot leave a stale "13" behind (proactive Tier 6 — L-010 c
 import re
 from pathlib import Path
 
+from tests.skills._helpers import skill_text
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -17,19 +19,8 @@ def _spec_count() -> int:
     return len(re.findall(r"^\d+\. \*\*", section, re.MULTILINE))
 
 
-def _site_text(path: str) -> str:
-    """The file at `path`; a SKILL.md split into references/ is read whole (L-047)."""
-    p = ROOT / path
-    files = (
-        [p, *sorted((p.parent / "references").glob("*.md"))]
-        if p.name == "SKILL.md"
-        else [p]
-    )
-    return "\n".join(f.read_text(encoding="utf-8") for f in files)
-
-
 def _ints(path: str, pattern: str) -> list[int]:
-    text = _site_text(path)
+    text = skill_text(ROOT / path)
     found = [int(m) for m in re.findall(pattern, text)]
     assert found, (
         f"{path}: pattern {pattern!r} matched nothing — site moved or was reworded"
@@ -57,7 +48,7 @@ def test_every_prose_site_matches_spec_count() -> None:
     expected = _spec_count()
     drift = {}
     for path, pattern in SITES.items():
-        text = _site_text(path)
+        text = skill_text(ROOT / path)
         found = [
             int(g)
             for m in re.findall(pattern, text)

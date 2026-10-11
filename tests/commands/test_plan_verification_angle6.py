@@ -9,17 +9,10 @@ from pathlib import Path
 
 from aa_ma.plan_parsers import CANONICAL_AUDIT_PROFILES, CANONICAL_DIAGRAM_WAIVERS
 from aa_ma.render.mermaid_lint import CODE_AUDIT_PROFILES
+from tests.skills._helpers import skill_text
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "claude-code" / "skills" / "plan-verification" / "SKILL.md"
-
-
-def _text(path: Path) -> str:
-    """A file; a SKILL.md is read with its references/ (split in M5, L-047)."""
-    files = [path]
-    if path.name == "SKILL.md":
-        files += sorted((path.parent / "references").glob("*.md"))
-    return "\n".join(f.read_text(encoding="utf-8") for f in files)
 
 
 ENG_STANDARDS = ROOT / "claude-code" / "rules" / "engineering-standards.md"
@@ -42,7 +35,7 @@ def test_angle6_names_architecture_view_check() -> None:
 
 
 def test_angle6_runs_the_lint_not_a_grep() -> None:
-    text = _text(SKILL)
+    text = skill_text(SKILL)
     assert "aa-ma-lint-views" in text
     assert "parse_diagram_waiver" in text
     assert "grep -nE '^\\*\\*Diagram-Waiver" not in text  # the M1 stopgap is gone
@@ -66,7 +59,7 @@ def test_prose_code_profile_sets_match_the_constant() -> None:
     pattern = re.compile(r"Audit-Profile`? ?∈ ?\{([^}]*)\}")
     seen = 0
     for rel in CODE_PROFILE_SITES:
-        for m in pattern.finditer(_text(ROOT / rel)):
+        for m in pattern.finditer(skill_text(ROOT / rel)):
             seen += 1
             values = {v.strip().strip("`") for v in m.group(1).split(",")}
             assert values == CODE_AUDIT_PROFILES, f"{rel}: {m.group(0)}"

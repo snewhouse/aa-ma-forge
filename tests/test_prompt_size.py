@@ -31,7 +31,9 @@ MAX_LINES = 500  # Agent Skills spec: "Keep your main SKILL.md under 500 lines"
 TOC_THRESHOLD = 100  # lines; a longer reference file needs a table of contents
 
 # path relative to claude-code/ -> ceiling (lines on 2026-10-09). May only fall.
-ALLOWLIST: dict[str, int] = {}  # emptied by M5 (code-conventions-impact); keep it empty
+ALLOWLIST: dict[
+    str, int
+] = {}  # emptied by M5 (code-conventions-impact); test_allowlist_is_empty
 
 # references/*.md over TOC_THRESHOLD lines with no TOC on 2026-10-09 (24).
 TOC_ALLOWLIST = frozenset(
@@ -128,21 +130,13 @@ def test_prompt_file_within_cap(path: Path) -> None:
     assert error is None, error
 
 
-@pytest.mark.parametrize("rel", sorted(ALLOWLIST))
-def test_allowlist_ceilings_track_the_file(rel: str) -> None:
-    """A ceiling equals the file's size, so a shrink must lower it in the same diff.
+def test_allowlist_is_empty() -> None:
+    """M5 split the last oversized skill; a long SKILL.md moves detail to references/.
 
-    Without this a file that drops from 1154 to 700 lines could silently regrow to 1154.
+    The ceiling mechanism stays (and its control below), but an entry is no longer a way
+    to exempt a file: re-adding one is a decision for a plan, not a diff.
     """
-    path = PLUGIN / rel
-    assert path.is_file(), f"{rel} no longer exists"
-    lines = line_count(path.read_text(encoding="utf-8"))
-    assert lines > MAX_LINES, (
-        f"{rel} is within the {MAX_LINES}-line cap; remove it from ALLOWLIST"
-    )
-    assert lines == ALLOWLIST[rel], (
-        f"{rel} is {lines} lines; set its ALLOWLIST ceiling to {lines}"
-    )
+    assert ALLOWLIST == {}, f"split these into references/ instead: {sorted(ALLOWLIST)}"
 
 
 def test_one_added_line_breaks_an_allowlisted_ceiling(

@@ -109,6 +109,15 @@ ruff_count() {
     [ ! -e "${CH}/skills/x/gone.md" ]
 }
 
+@test "install links hooks/lib/aa-ma-log.sh into the repo; uninstall removes it (M7.1)" {
+    "${REPO_ROOT}/scripts/install.sh" >/dev/null
+    [ "$(readlink -f "${CH}/hooks/lib/aa-ma-log.sh")" = "$(readlink -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-log.sh")" ]
+    run "${REPO_ROOT}/scripts/uninstall.sh"
+    [ "$status" -eq 0 ]
+    [ ! -e "${CH}/hooks/lib/aa-ma-log.sh" ]
+    [ ! -L "${CH}/hooks/lib/aa-ma-log.sh" ]
+}
+
 @test "uninstall removes the skill links and the ruff-format registration" {
     "${REPO_ROOT}/scripts/install.sh" >/dev/null
     run "${REPO_ROOT}/scripts/uninstall.sh"

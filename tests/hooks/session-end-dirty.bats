@@ -83,7 +83,7 @@ setup_committed_tasks() {
     cd "$BATS_TMP"
     HOME="$BATS_TMP_HOME" CLAUDE_CODE=1 HOOK_DEBUG=1 run bash "$HOOK"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"aa-ma-debug"* ]]
+    [[ "$output" == *" DEBUG aa-ma-session-end-dirty.sh: "* ]]
 }
 
 @test "task dir not in a git repo → skipped silently (no crash)" {

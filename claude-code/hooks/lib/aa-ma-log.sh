@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# aa-ma-log.sh — logging library for AA-MA hooks: one masked line per call to hooks.log.
+#
+# Source this file (don't execute it). aa-ma-parse.sh sources it, so every AA-MA hook has it.
+#
+# Exports:
+#     log_info|log_warn|log_error <hook-name> <msg> -> append "<date -Is> LEVEL <hook-name>: <msg>"
+#     log_debug <hook-name> <msg>                   -> the same at DEBUG, only when HOOK_DEBUG=1; also to stderr
+#     fail_open_notice <hook-name> <msg>            -> stdout {"systemMessage": "<hook-name>: <msg>"} + a WARN line
+#     mask_secrets <text>                           -> stdout: <text> capped, CR/LF → space, secrets → [REDACTED:<rule id>]
+#     AA_MA_LOG_SH_LOADED                           -> set to 1 once sourced (re-source guard)
+#
+# Log file: ${CLAUDE_HOOK_LOG:-$HOME/.claude/logs/hooks.log} (the logging-and-comments contract).
+# Patterns: src/aa_ma/secret_patterns.tsv in the forge checkout — the same file aa_ma.logsetup
+# reads — found through this file's real path, since install.sh symlinks it into ~/.claude.
+# If the patterns cannot be read, every message becomes "[redaction failed]": fail closed.
+#
+# Why fail_open_notice is the only thing on stdout: hook stdout is parsed as JSON, and stderr on
+# exit 0 is never shown to the user (L-1319), so a notice the user must see is a systemMessage.
+# log_* never fail: a log write that cannot happen is reported on stderr and the hook carries on.
+
+# shellcheck disable=SC2317  # why: `return` / `exit` fallback both unreachable by design
+if [ "${AA_MA_LOG_SH_LOADED:-0}" = "1" ]; then
+    return 0 2>/dev/null || exit 0   # why: `return` when sourced, `exit` if run directly
+fi
+AA_MA_LOG_SH_LOADED=1
+
+# Redaction input cap, in characters (≈8 KB): bounds regex work on hostile input (plan §0 v2).
+_AA_MA_LOG_MAX_CHARS=8192
+_AA_MA_SECRET_IDS=()
+_AA_MA_SECRET_RES=()
+_AA_MA_SECRET_PATTERNS_OK=0
+
+# Loads the pattern file into the two arrays; sets _AA_MA_SECRET_PATTERNS_OK=1 only on success.
+_aa_ma_log_load_patterns() {
+    local root file id re
+    root="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)" || return 0
+    file="${root}/src/aa_ma/secret_patterns.tsv"
+    [ -r "${file}" ] || return 0
+    while IFS=$'\t' read -r id re; do
+        case "${id}" in '' | '#'*) continue ;; esac
+        [ -n "${re}" ] || return 0   # a rule with no regex: treat the whole file as unreadable
+        _AA_MA_SECRET_IDS+=("${id}")
+        _AA_MA_SECRET_RES+=("${re}")
+    done < "${file}"
+    [ "${#_AA_MA_SECRET_IDS[@]}" -gt 0 ] && _AA_MA_SECRET_PATTERNS_OK=1
+    return 0
+}
+_aa_ma_log_load_patterns
+
+# _aa_ma_log_oneline <text> — <text> capped, with CR and LF turned into spaces.
+_aa_ma_log_oneline() {
+    local text="${1-}"
+    text="${text:0:${_AA_MA_LOG_MAX_CHARS}}"
+    text="${text//$'\r'/ }"
+    printf '%s\n' "${text//$'\n'/ }"
+}
+
+mask_secrets() {
+    local text i re
+    text="$(_aa_ma_log_oneline "${1-}")"
+    if [ "${_AA_MA_SECRET_PATTERNS_OK}" != "1" ]; then
+        printf '%s\n' "[redaction failed]"
+        return 0
+    fi
+    for i in "${!_AA_MA_SECRET_RES[@]}"; do
+        re="${_AA_MA_SECRET_RES[${i}]}"
+        while [[ "${text}" =~ ${re} ]] && [ -n "${BASH_REMATCH[0]}" ]; do
+            text="${text/"${BASH_REMATCH[0]}"/"[REDACTED:${_AA_MA_SECRET_IDS[${i}]}]"}"
+        done
+    done
+    printf '%s\n' "${text}"
+}
+
+# _aa_ma_log <LEVEL> <hook-name> <msg> — the one writer behind every log_* function.
+_aa_ma_log() {
+    local level="$1" hook msg log dir line
+    hook="$(_aa_ma_log_oneline "${2-}")"
+    msg="$(mask_secrets "${3-}")"
+    log="${CLAUDE_HOOK_LOG:-${HOME}/.claude/logs/hooks.log}"
+    dir="${log%/*}"
+    [ "${dir}" = "${log}" ] && dir=.
+    line="$(date -Is) ${level} ${hook}: ${msg}"
+    # why: the shell's own redirection error is replaced by the one-line notice that follows
+    { mkdir -p "${dir}" && printf '%s\n' "${line}" >> "${log}"; } 2>/dev/null \
+        || printf 'aa-ma-log: cannot append to %s\n' "${log}" >&2
+    if [ "${level}" = "DEBUG" ]; then
+        printf '%s\n' "${line}" >&2
+    fi
+    return 0
+}
+
+log_info()  { _aa_ma_log INFO "${1-}" "${2-}"; }
+log_warn()  { _aa_ma_log WARN "${1-}" "${2-}"; }
+log_error() { _aa_ma_log ERROR "${1-}" "${2-}"; }
+log_debug() {
+    [ "${HOOK_DEBUG:-0}" = "1" ] || return 0
+    _aa_ma_log DEBUG "${1-}" "${2-}"
+}
+
+fail_open_notice() {
+    local hook msg
+    hook="$(_aa_ma_log_oneline "${1-}")"
+    msg="$(mask_secrets "${2-}")"
+    log_warn "${hook}" "${msg}"
+    # why: `command -v` prints the path on success; only its status is wanted
+    if command -v jq >/dev/null 2>&1; then
+        jq -cn --arg m "${hook}: ${msg}" '{systemMessage: $m}'
+    else
+        log_error aa-ma-log "jq not on PATH; ${hook} notice replaced by a fixed systemMessage"
+        printf '%s\n' '{"systemMessage": "AA-MA hook notice: jq is missing; see ~/.claude/logs/hooks.log"}'
+    fi
+    return 0
+}

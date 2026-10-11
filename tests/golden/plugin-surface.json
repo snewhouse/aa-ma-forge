@@ -145,6 +145,18 @@
    "src": "hook:aa-ma-footer.sh"
   },
   {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-log.sh"
+  },
+  {
+   "dst": "hook:aa-ma-log.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-parse.sh"
+  },
+  {
    "dst": "hook:aa-ma-session-start.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",

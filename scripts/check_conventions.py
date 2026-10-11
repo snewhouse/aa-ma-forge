@@ -18,22 +18,32 @@ Stdlib only, so it stays a leaf: no import from aa_ma or codemem, any python3 ru
 from __future__ import annotations
 
 import argparse
+import io
 import logging
 import os
 import re
 import subprocess
 import sys
+import tokenize
 from collections.abc import Callable, Sequence
 
 log = logging.getLogger(__name__)
 
 Finding = tuple[str, int, str, str]
-Check = Callable[[str, dict[int, str]], list[Finding]]
-
-# M1 ships the harness with no checks; M6 adds WHY001 and TODO001.
-CHECKS: list[Check] = []
+# A check gets (path, {lineno: added text}, whole new-side file text).
+Check = Callable[[str, dict[int, str], str], list[Finding]]
 
 _HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
+_SHEBANG_SH_RE = re.compile(r"^#!.*\b(?:ba|da|k|z)?sh\b")
+_PY_SUPPRESS_RE = re.compile(r"#\s*(noqa|type:\s*ignore)\b", re.IGNORECASE)
+_SH_SUPPRESS_RE = re.compile(r"(\|\|\s*true\b|2>\s*/dev/null)")
+_WHY_RE = re.compile(r"#\s*why:")
+_TODO_RE = re.compile(
+    r"#\s*(TODO|FIXME)\b"
+)  # why: a tag, as ruff TD reads it — not prose
+_TODO_REF_RE = re.compile(r"#\d+|ADR-\d{4}")
+_HEREDOC_RE = re.compile(r"<<(-?)\s*(['\"]?)([A-Za-z0-9_]+)\2")
+_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
 class UsageError(Exception):
@@ -155,6 +165,179 @@ def added_lines(
     return result
 
 
+# --- Comment scanning ---------------------------------------------------------------
+# Each language reduces a file to {lineno: (code, comment)}: code is the line with
+# string contents blanked, comment is the comment text. Strings, docstrings, heredoc
+# bodies and Markdown never reach a check (T8).
+
+
+def _python_lines(path: str, text: str) -> dict[int, tuple[str, str]]:
+    lines = {n: (line, "") for n, line in enumerate(text.splitlines(), start=1)}
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO(text).readline):
+            if tok.type == tokenize.COMMENT:
+                row = tok.start[0]
+                lines[row] = (lines[row][0][: tok.start[1]], tok.string)
+    except (tokenize.TokenError, SyntaxError) as exc:
+        # why: a file that cannot be tokenized is ruff's to report (it runs in the same
+        # hook set); say so and check nothing rather than guess at comments.
+        log.warning("check_conventions: %s: not tokenizable, skipped: %s", path, exc)
+        return {}
+    return lines
+
+
+def _shell_code_comment(line: str, quote: str | None) -> tuple[str, str, str | None]:
+    """Split one shell line into (code with quoted text blanked, comment, open quote)."""
+    code: list[str] = []
+    i = 0
+    while i < len(line):
+        c = line[i]
+        if quote is None and c == "#" and (i == 0 or line[i - 1] in " \t;|&("):
+            return "".join(code), line[i:], None
+        if c == "\\" and quote != "'":
+            # why: keep code[] index-aligned with line so heredoc delimiters can be read
+            # back from the raw line at the same offset.
+            code.append(
+                line[i : i + 2] if quote is None else "  "[: len(line[i : i + 2])]
+            )
+            i += 2
+            continue
+        if quote is None and c in "'\"":
+            quote = c
+            code.append(c)
+        elif quote is not None and c == quote:
+            quote = None
+            code.append(c)
+        else:
+            code.append(" " if quote is not None else c)
+        i += 1
+    return "".join(code), "", quote
+
+
+def _shell_lines(text: str) -> dict[int, tuple[str, str]]:
+    lines: dict[int, tuple[str, str]] = {}
+    quote: str | None = None
+    heredocs: list[tuple[bool, str]] = []  # (strip leading tabs, delimiter), in order
+    for n, line in enumerate(text.splitlines(), start=1):
+        if heredocs:
+            strip_tabs, delim = heredocs[0]
+            if (line.lstrip("\t") if strip_tabs else line) == delim:
+                heredocs.pop(0)
+            lines[n] = ("", "")
+            continue
+        code, comment, quote = _shell_code_comment(line, quote)
+        for m in re.finditer(r"(?<!<)<<(?!<)", code):
+            here = _HEREDOC_RE.match(line, m.start())
+            if here:
+                heredocs.append((here.group(1) == "-", here.group(3)))
+        lines[n] = (code, comment)
+    return lines
+
+
+def _scan(path: str, text: str) -> tuple[dict[int, tuple[str, str]], re.Pattern] | None:
+    """Return the file's (lines, suppression pattern), or None if it is not scanned."""
+    if path.endswith((".py", ".pyi")):
+        return _python_lines(path, text), _PY_SUPPRESS_RE
+    if path.endswith(".bats"):
+        return None  # why: bats is not plain shell (as the shellcheck hook, ADR-0018)
+    if path.endswith((".sh", ".bash")) or _SHEBANG_SH_RE.match(text):
+        return _shell_lines(text), _SH_SUPPRESS_RE
+    return None
+
+
+def _has_why(lines: dict[int, tuple[str, str]], n: int) -> bool:
+    if _WHY_RE.search(lines[n][1]):
+        return True
+    # why: a reason often spans a comment block; any `# why:` in the block directly
+    # above the line covers it.
+    n -= 1
+    while n in lines and not lines[n][0].strip() and lines[n][1]:
+        if _WHY_RE.search(lines[n][1]):
+            return True
+        n -= 1
+    return False
+
+
+def check_why(path: str, added: dict[int, str], text: str) -> list[Finding]:
+    """WHY001: an added suppression needs a `# why:` on its line or the comment above.
+
+    Args:
+        path: Repo-relative path of the file.
+        added: The added lines, ``{lineno: text}``.
+        text: The whole new-side file.
+
+    Returns:
+        One finding per added line that suppresses without a reason.
+    """
+    scanned = _scan(path, text)
+    if scanned is None:
+        return []
+    lines, pattern = scanned
+    findings = []
+    for n in sorted(added):
+        code, comment = lines.get(n, ("", ""))
+        # why: Python suppressions live in comments, shell ones in code.
+        hit = pattern.search(comment if pattern is _PY_SUPPRESS_RE else code)
+        if hit and not _has_why(lines, n):
+            token = (
+                "# " + hit.group(1).split()[0]
+                if pattern is _PY_SUPPRESS_RE
+                else hit.group(1)
+            )
+            message = f"suppression `{token}` without a `# why:` on this line or the comment above"
+            findings.append((path, n, "WHY001", message))
+    return findings
+
+
+def check_todo(path: str, added: dict[int, str], text: str) -> list[Finding]:
+    """TODO001: an added TODO/FIXME comment must cite an issue or ADR.
+
+    Args:
+        path: Repo-relative path of the file.
+        added: The added lines, ``{lineno: text}``.
+        text: The whole new-side file.
+
+    Returns:
+        One finding per added TODO/FIXME comment with no ``#N`` or ``ADR-NNNN``.
+    """
+    scanned = _scan(path, text)
+    if scanned is None:
+        return []
+    lines = scanned[0]
+    message = "TODO/FIXME without a reference: write TODO(#N) or TODO(ADR-NNNN)"
+    return [
+        (path, n, "TODO001", message)
+        for n in sorted(added)
+        if _TODO_RE.search(c := lines.get(n, ("", ""))[1])
+        and not _TODO_REF_RE.search(c)
+    ]
+
+
+CHECKS: list[Check] = [check_why, check_todo]
+
+
+def new_text(
+    range_args: Sequence[str], path: str, cwd: str | os.PathLike | None = None
+) -> str:
+    """Return the new side of ``path``: the index for ``--cached``, else the to-commit.
+
+    Args:
+        range_args: What `resolve_range` returned.
+        path: Repo-root-relative path, as `added_lines` reports it.
+        cwd: Any directory inside the repo.
+
+    Returns:
+        The file text (undecodable bytes surrogate-escaped).
+    """
+    side = "" if list(range_args) == ["--cached"] else range_args[0].split("...")[1]
+    top = _git_out(["rev-parse", "--show-toplevel"], cwd).strip()
+    return _git_out(["show", f"{side}:{path}"], top)
+
+
+def _printable(text: str) -> str:
+    return _CONTROL_RE.sub(lambda m: f"\\x{ord(m.group()):02x}", text)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run every enabled check over the touched lines; return the exit code."""
     parser = argparse.ArgumentParser(description=(__doc__ or "").partition("\n")[0])
@@ -170,7 +353,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         from_ref = os.environ.get("PRE_COMMIT_FROM_REF")
         to_ref = os.environ.get("PRE_COMMIT_TO_REF")
     try:
-        touched = added_lines(resolve_range(from_ref, to_ref), files=args.files or None)
+        range_args = resolve_range(from_ref, to_ref)
+        touched = {
+            path: (lines, new_text(range_args, path))
+            for path, lines in added_lines(range_args, files=args.files or None).items()
+        }
     except UsageError as exc:
         # why: a bad ref or empty diff is an expected usage error; one line, no traceback.
         log.error("check_conventions: %s", exc)  # noqa: TRY400
@@ -179,12 +366,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     log.info("check_conventions: %d checks enabled", len(CHECKS))
     findings = [
         f
-        for path, lines in touched.items()
+        for path, (lines, text) in touched.items()
         for check in CHECKS
-        for f in check(path, lines)
+        for f in check(path, lines, text)
     ]
+    # why: git paths may carry undecodable bytes (surrogate-escaped) and control
+    # characters; neither may reach the terminal raw.
+    sys.stdout.reconfigure(errors="backslashreplace")  # type: ignore[union-attr]  # why: always a TextIOWrapper here
     for path, lineno, code, message in findings:
-        print(f"{path}:{lineno}: {code} {message}")
+        print(f"{_printable(path)}:{lineno}: {code} {message}")
     return 1 if findings else 0
 
 

@@ -7,6 +7,7 @@ pre-commit is the one harness: staged files locally, the PR diff in CI. Every ho
 from __future__ import annotations
 
 import re
+import subprocess
 import tomllib
 from pathlib import Path
 
@@ -64,3 +65,26 @@ def test_shellcheck_hook_skips_bats() -> None:
         h for r in config["repos"] for h in r["hooks"] if h["id"] == "shellcheck"
     )
     assert "bats" in hook.get("exclude_types", [])
+
+
+def test_shellcheck_hook_enables_masked_return_checks(tmp_path: Path) -> None:
+    # why: SC2312 (a command substitution's exit code masked) and SC2310 (set -e
+    # silently off inside a condition) are opt-in; the hook must turn both on (T8).
+    config = yaml.safe_load(
+        (REPO / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    )
+    hook = next(
+        h for r in config["repos"] for h in r["hooks"] if h["id"] == "shellcheck"
+    )
+    script = tmp_path / "s.sh"
+    script.write_text(
+        '#!/bin/bash\nset -e\nf() { false; }\nif f; then :; fi\necho "$(date)"\n'
+    )
+    proc = subprocess.run(
+        [hook["entry"], *hook.get("args", []), "--format=gcc", str(script)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert "SC2310" in proc.stdout
+    assert "SC2312" in proc.stdout

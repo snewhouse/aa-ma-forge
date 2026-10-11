@@ -17,7 +17,8 @@
 #
 # Why fail_open_notice is the only thing on stdout: hook stdout is parsed as JSON, and stderr on
 # exit 0 is never shown to the user (L-1319), so a notice the user must see is a systemMessage.
-# log_* never fail: a log write that cannot happen is reported on stderr and the hook carries on.
+# Nothing here may fail its caller: hooks run under `set -e`, often with stdout or stderr closed
+# (EPIPE), so every write has a fallback and every function returns 0.
 
 # shellcheck disable=SC2317  # why: `return` / `exit` fallback both unreachable by design
 if [ "${AA_MA_LOG_SH_LOADED:-0}" = "1" ]; then
@@ -87,9 +88,9 @@ _aa_ma_log() {
     line="$(date -Is) ${level} ${hook}: ${msg}"
     # why: the shell's own redirection error is replaced by the one-line notice that follows
     { mkdir -p "${dir}" && printf '%s\n' "${line}" >> "${log}"; } 2>/dev/null \
-        || printf 'aa-ma-log: cannot append to %s\n' "${log}" >&2
+        || printf 'aa-ma-log: cannot append to %s\n' "${log}" >&2 2>/dev/null || :   # why: stderr may be closed; must not trip set -e
     if [ "${level}" = "DEBUG" ]; then
-        printf '%s\n' "${line}" >&2
+        printf '%s\n' "${line}" >&2 2>/dev/null || :   # why: debug echo is best-effort; the log line is the record
     fi
     return 0
 }
@@ -109,10 +110,14 @@ fail_open_notice() {
     log_warn "${hook}" "${msg}"
     # why: `command -v` prints the path on success; only its status is wanted
     if command -v jq >/dev/null 2>&1; then
-        jq -cn --arg m "${hook}: ${msg}" '{systemMessage: $m}'
+        # why: jq's own EPIPE message is replaced by the log_error line on failure
+        jq -cn --arg m "${hook}: ${msg}" '{systemMessage: $m}' 2>/dev/null \
+            || log_error aa-ma-log "could not write the systemMessage for ${hook} (stdout closed?)"
     else
         log_error aa-ma-log "jq not on PATH; ${hook} notice replaced by a fixed systemMessage"
-        printf '%s\n' '{"systemMessage": "AA-MA hook notice: jq is missing; see ~/.claude/logs/hooks.log"}'
+        # why: a closed stdout is reported by the log_error line that follows, not by the shell
+        printf '%s\n' '{"systemMessage": "AA-MA hook notice: jq is missing; see ~/.claude/logs/hooks.log"}' 2>/dev/null \
+            || log_error aa-ma-log "could not write the systemMessage for ${hook} (stdout closed?)"
     fi
     return 0
 }

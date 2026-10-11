@@ -169,3 +169,20 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
     [ "$status" -eq 0 ]
     [ "$output" = "ok" ]
 }
+
+@test "under set -e with stdout and stderr closed, no log function aborts the caller" {
+    # why: a PATH with the tools the library needs, minus jq, exercises the no-jq branch
+    NOJQ="$WORK/nojq"; mkdir -p "$NOJQ"
+    ln -s "$(command -v date)" "$NOJQ/date"; ln -s "$(command -v mkdir)" "$NOJQ/mkdir"
+    run bash -c '
+        set -euo pipefail
+        . "$1"
+        HOOK_DEBUG=1
+        fail_open_notice h "notice" >&- 2>&-
+        log_debug h "debug" 2>&-
+        CLAUDE_HOOK_LOG=/proc/aa-ma-no-such/hooks.log log_error h "lost" 2>&-
+        PATH="$2" fail_open_notice h "no jq" >&- 2>&-
+        echo survived' _ "$LIB" "$NOJQ"
+    [ "$status" -eq 0 ]
+    [ "$output" = "survived" ]
+}

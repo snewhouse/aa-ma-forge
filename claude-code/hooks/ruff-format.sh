@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Event: PostToolUse(Edit|Write)
+# Mode: Advisory — never blocks
+# Exit: 0 always
+# Fail-open: non-.py file, missing file or ruff not on PATH → exit 0; a ruff format failure is logged to hooks.log
+#
 # PostToolUse(Edit|Write): format + autofix edited .py files with ruff. Advisory — never blocks.
 # Why log to a file, not stdout/stderr: PostToolUse output is fed back to the model on every
 # edit; a file keeps failures visible (tail ~/.claude/logs/hooks.log) without that noise.

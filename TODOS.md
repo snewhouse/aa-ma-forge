@@ -2,6 +2,16 @@
 
 ## AA-MA Tooling
 
+### Remove the `AA_MA_PLAN_MARKER_DEBUG` alias
+
+**What:** Delete the alias line in `claude-code/hooks/aa-ma-plan-skip-warn.sh` (and its bats case and the note in `docs/spec/plan-marker-grammar.md`) one release after v0.18.0.
+
+**Why:** M7.3 of code-conventions-impact moved the hook to `HOOK_DEBUG`, the one debug switch for every hook; the old name stays for one release so existing shells keep working, with a deprecation notice.
+
+**Effort:** XS
+**Priority:** P3
+**Depends on:** the release after v0.18.0
+
 ### Fail the build on a dangling plugin reference
 
 **What:** Generating `docs/architecture/plugin-surface.md` exits non-zero when a reference from `claude-code/` resolves nowhere — on disk or in the declared-external allowlist.

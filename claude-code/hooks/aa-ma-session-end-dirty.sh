@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Event: SessionEnd
+# Mode: Advisory — warns on stderr, never blocks
+# Exit: 0 always
+# Fail-open: kill switch, no active task, CLAUDE_CODE unset, not a git repo → exit 0 silently
+#
 # SessionEnd hook — warn when AA-MA artifacts are git-dirty at session end.
 #
 # Enforces the CLAUDE.md rule: "never leave uncommitted work at session end".

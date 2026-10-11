@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Event: PreToolUse(Bash)
+# Mode: Blocking — exit 2 refuses a git commit without an AA-MA signature
+# Exit: 0 allow · 2 block (policy) · 1 infra error (helper/jq missing, bad stdin; non-blocking, the commit proceeds)
+# Fail-open: kill switch, no active plan, editor-form and -F/variable messages pass with exit 0; infra errors exit 1 with a stderr line
+#
 # PreToolUse(Bash) hook — enforce AA-MA commit signature on git commits.
 #
 # Fires via Claude Code's PreToolUse event with matcher="Bash". Reads a JSON

@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Event: none — helper run by the /aa-ma-plan skill, linked into hooks/lib, not a registered hook
+# Mode: Advisory — never blocks a tool call
+# Exit: 0 marker appended · 2 usage error (bad arguments) · other non-zero if the append fails (set -e)
+# Fail-open: none — it creates the runtime log if absent; argument errors and a failed append fail loudly on stderr
+#
 # aa-ma-plan-marker.sh — append a well-formed phase marker to the active
 # /aa-ma-plan runtime log.
 #

@@ -14,7 +14,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - `dispatching-parallel-agents` had `name: Dispatching Parallel Agents`. `name` sets a skill's `/` command, so it is now `dispatching-parallel-agents`, which matches its directory and the `Skill(dispatching-parallel-agents)` callers. `tests/test_frontmatter_at_top.py` now requires every skill's `name` to equal its directory.
 - `aa-ma-analysis` measure: a tool report that failed to parse, or a tool that could not be spawned, left the input `unknown` with the cause lost. `run.log` now records why (`unknown: parse ValueError`, or a `spawn` line with `spawn failed: PermissionError`). Only the exception type is kept, because the message can quote tool output. The five-field line format is unchanged.
 - `aa-ma-gate`: the last-resort `except Exception` kept only `exc!r`. The traceback now also goes to the `aa_ma.gate` logger at DEBUG. stdout, the JSON/kv envelope and exit codes are unchanged.
-- `pre-compact-aa-ma.sh`: a failed append to a task's `provenance.log` or `context-log.md` was swallowed by `2>/dev/null || true`. The hook still exits 0, but now logs one `WARN could not append … to <file>` line per file to `~/.claude/hooks/cache/compaction.log` and emits a JSON `systemMessage` with the failure count, because hook stderr on exit 0 reaches only the debug log and is never shown.
+- `pre-compact-aa-ma.sh`: a failed append to a task's `provenance.log` or `context-log.md` was swallowed by `2>/dev/null || true`. The hook still exits 0, but now logs one `WARN could not append … to <file>` line per file to `~/.claude/logs/hooks.log` (its old `compaction.log` folded in) and emits a JSON `systemMessage` with the failure count, because hook stderr on exit 0 reaches only the debug log and is never shown.
 
 ### Added
 
@@ -27,6 +27,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 - Comment and docstring lint on touched files (map T8/T11). Ruff now selects the full `D` set (google convention, incl. D417 undocumented `Args:`), `RUF100`, `PGH003`/`PGH004`, `C901` (max complexity 10) and `PLR0913` (max 6 args); the parked D101–D104 ignore list is gone, so a file a PR touches complies in full. `scripts/check_conventions.py` gains its first two checks on added lines: **WHY001** — a Python `# noqa` / `# type: ignore` / `# pyright: ignore` / `# nosec` comment, or a shell `|| true` / `|| :` / `2>/dev/null` / `&>/dev/null` in code, needs a `# why:` on the line or in the comment block above; **TODO001** — a `TODO`/`FIXME` tag needs `(#N)` or `(ADR-NNNN)`. Strings, docstrings, heredoc bodies and Markdown are never scanned. The shellcheck hook enables SC2310/SC2312. The edit-time `ruff-format.sh` hook now also applies the safe docstring fixes (D209, D212, D403) and removes unused `noqa`s on files you edit.
 - `code-reviewer` WARNs (never CRITICAL) on what-comments, missing reasons, docstring claims the code lacks, unjustified suppressions and bare MUST/NEVER/ALWAYS rules in touched markdown; unnamed magic constants are a WARNING at any count. An advisory eval case `evals/code-reviewer/what-comment` covers the first rule.
+- `claude-code/hooks/lib/aa-ma-log.sh` (map T9): `log_info|log_warn|log_error|log_debug <hook> <msg>` append `<date -Is> LEVEL <hook>: <msg>` to `${CLAUDE_HOOK_LOG:-~/.claude/logs/hooks.log}`, capped at 8192 characters with CR/LF stripped; `log_debug` only with `HOOK_DEBUG=1`; `fail_open_notice` prints a jq-built `systemMessage`. None of them can fail a `set -e` caller, even with stdout or stderr closed. `aa-ma-parse.sh` sources it, so every AA-MA hook has it; `install.sh` links it.
+- `aa_ma.logsetup` (map T9): `configure_logging(verbosity, fmt)` for CLI entrypoints — one stderr handler, `LOG_LEVEL`/`LOG_FORMAT` (text or json), `-v`/`-q` override the env. `SecretRedactingFormatter` masks the rendered record (message, args, traceback, stack) and fails closed to `[redaction failed]`.
+- Secret masking for both: `src/aa_ma/secret_patterns.tsv` (13 gitleaks rule ids) is the one pattern source; bash and Python mask identically (parity test), each pattern is timed on 100 KB adversarial input, and a secret straddling the cap is masked whole.
+- Every `claude-code/hooks/*.sh` opens with `# Event:`, `# Mode: Blocking|Advisory`, `# Exit:` and `# Fail-open:` lines; `tests/hooks/hook-headers.bats` checks them against the `AA_MA_HOOKS` registration table.
 
 ### Changed
 
@@ -60,6 +64,9 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - `uninstall.sh --restore` walks every `aa-ma-forge-*` backup newest-first and restores each path from its newest copy; it used to read only the newest dir, which a re-install that backed up just the copied spec docs could hide.
 - **Upgrade note:** after this change `uninstall.sh` removes the five migrated skills and the ruff hook registration; `--restore` brings back the pre-install copies from the install backup. The `~/.claude/backups/cci-m2-<ts>.tgz` tarball taken before the migration is the fallback.
 - `pyproject.toml` gains a `[tool.ruff.lint]` section for logging and comment hygiene (`LOG`, `G`, `T20`, `BLE`, `S110`/`S112`, `TRY400`/`TRY401`, `D1`, `TD`, `ERA`, google docstrings). Pre-existing docstring gaps (D101/D102/D103/D104/D107, 61 in all) are ignored and tagged `TODO(logging-std): burn down`. The two deliberate blind catches carry `noqa: BLE001` with a reason. CI's `ruff check src/` now enforces these rules.
+- `pre-compact-aa-ma.sh` logs through `aa-ma-log.sh` to `hooks.log`; `~/.claude/hooks/cache/compaction.log` is no longer written.
+- `aa_ma_debug` is now a thin wrapper over `log_debug`: its line is `<ts> DEBUG <hook>: <msg>` (was `[aa-ma-debug] <msg>`) and also lands in `hooks.log`.
+- `aa-ma-plan-skip-warn.sh` debug output is enabled by `HOOK_DEBUG=1`; `AA_MA_PLAN_MARKER_DEBUG=1` still works for one release and prints a deprecation notice.
 
 ### Removed
 

@@ -32,7 +32,6 @@ TOC_THRESHOLD = 100  # lines; a longer reference file needs a table of contents
 
 # path relative to claude-code/ -> ceiling (lines on 2026-10-09). May only fall.
 ALLOWLIST = {
-    "skills/aa-ma-execution/SKILL.md": 1295,
     "skills/execute-aa-ma-milestone/SKILL.md": 1244,
     "skills/aa-ma-plan/SKILL.md": 1154,
     "skills/sole-dev-merge/SKILL.md": 1057,

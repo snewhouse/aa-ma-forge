@@ -69,6 +69,7 @@ source_modules =
     aa_ma.gate
     aa_ma.goal_synthesis
     aa_ma.grammar
+    aa_ma.logsetup
     aa_ma.plan_markers
     aa_ma.plan_parsers
     aa_ma.schemas
@@ -96,6 +97,7 @@ source_modules =
     aa_ma.gate
     aa_ma.goal_synthesis
     aa_ma.grammar
+    aa_ma.logsetup
     aa_ma.plan_markers
     aa_ma.plan_parsers
     aa_ma.render
@@ -118,6 +120,7 @@ forbidden_modules =
     aa_ma.gate
     aa_ma.goal_synthesis
     aa_ma.grammar
+    aa_ma.logsetup
     aa_ma.plan_markers
     aa_ma.plan_parsers
     aa_ma.render

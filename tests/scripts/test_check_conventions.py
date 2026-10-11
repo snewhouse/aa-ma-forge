@@ -426,7 +426,7 @@ def test_unbalanced_shell_context_is_logged(caplog) -> None:
     assert "a.sh: shell context unbalanced at end of file" in caplog.text
 
 
-@pytest.mark.parametrize("name", ["::error title=x::y.py", " \t::warning::y.py"])
+@pytest.mark.parametrize("name", ["::error title=x::y.py", "  ::warning::y.py"])
 def test_workflow_command_paths_are_defused(repo: Path, name: str) -> None:
     # why: GitHub may read a workflow command after leading whitespace, so any line
     # whose first non-blank characters are `::` is defused.

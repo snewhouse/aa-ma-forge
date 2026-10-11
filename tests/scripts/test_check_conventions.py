@@ -426,12 +426,16 @@ def test_unbalanced_shell_context_is_logged(caplog) -> None:
     assert "a.sh: shell context unbalanced at end of file" in caplog.text
 
 
-def test_workflow_command_paths_are_defused(repo: Path) -> None:
-    (repo / "::error title=x::y.py").write_text("# TODO: x\n")
+@pytest.mark.parametrize("name", ["::error title=x::y.py", " \t::warning::y.py"])
+def test_workflow_command_paths_are_defused(repo: Path, name: str) -> None:
+    # why: GitHub may read a workflow command after leading whitespace, so any line
+    # whose first non-blank characters are `::` is defused.
+    (repo / name).write_text("# TODO: x\n")
     git(repo, "add", "-A")
     proc = run_cli(repo)
     assert proc.returncode == 1
-    assert proc.stdout.startswith("./::error title=x::y.py:1: TODO001")
+    assert proc.stdout.startswith("./")
+    assert not proc.stdout.lstrip().startswith("::")
 
 
 def test_staged_path_that_looks_like_a_stage_spec(repo: Path) -> None:

@@ -454,8 +454,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     sys.stdout.reconfigure(errors="backslashreplace")  # type: ignore[union-attr]  # why: always a TextIOWrapper here
     for path, lineno, code, message in findings:
         shown = _printable(path)
-        # why: a line starting `::` is a GitHub workflow command (fake annotations).
-        shown = f"./{shown}" if shown.startswith("::") else shown
+        # why: a line whose first non-blank text is `::` is a GitHub workflow command.
+        shown = f"./{shown}" if shown.lstrip().startswith("::") else shown
         print(f"{shown}:{lineno}: {code} {message}")
     return 1 if findings else 0
 

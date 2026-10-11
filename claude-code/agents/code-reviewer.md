@@ -110,7 +110,7 @@ Cite `file:line` and quote the comment or rule. Format as in Output format, e.g.
 ## What you MUST NOT flag
 
 - Pre-existing patterns NOT touched by this milestone's diff
-- Stylistic preferences without empirical impact (variable naming, comment style)
+- Stylistic preferences without empirical impact (variable naming, comment style) — what a comment *says* is not style; see Comment and docstring substance
 - Choices documented in `[task]-context-log.md` as accepted trade-offs
 - Findings already in `[task]-impl-review.md` from a prior run that were `disputed` (those are "convention learned" — respect them)
 

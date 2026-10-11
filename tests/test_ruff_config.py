@@ -49,6 +49,11 @@ def _codes(source: str) -> set[str]:
 
 
 MODULE = '"""Fixture module."""\n\n'
+LINT = tomllib.loads((REPO / "pyproject.toml").read_text(encoding="utf-8"))["tool"][
+    "ruff"
+]["lint"]
+MAX_COMPLEXITY = LINT["mccabe"]["max-complexity"]
+MAX_ARGS = LINT["pylint"]["max-args"]
 
 
 def _branches(n: int) -> str:
@@ -77,7 +82,7 @@ def _args(n: int) -> str:
     ("source", "code"),
     [
         (MODULE + "def f() -> int:\n    return 1\n", "D103"),
-        (_branches(10), "C901"),  # why: 10 ifs + the function = complexity 11
+        (_branches(MAX_COMPLEXITY), "C901"),  # why: n ifs + the function = n + 1
         (MODULE + "X = 1  # noqa: E501\n", "RUF100"),
         (
             MODULE
@@ -86,7 +91,7 @@ def _args(n: int) -> str:
             + "    return a + b\n",
             "D417",
         ),
-        (_args(7), "PLR0913"),
+        (_args(MAX_ARGS + 1), "PLR0913"),
         (MODULE + "X = 1  # noqa\n", "PGH004"),
         (MODULE + "X: int = 1  # type: ignore\n", "PGH003"),
     ],
@@ -100,8 +105,8 @@ def test_rule_fires(source: str, code: str) -> None:
     ("source", "code"),
     [
         (MODULE + 'def f() -> int:\n    """Return one."""\n    return 1\n', "D103"),
-        (_branches(9), "C901"),  # why: complexity 10 is the ceiling, not over it
-        (_args(6), "PLR0913"),
+        (_branches(MAX_COMPLEXITY - 1), "C901"),  # why: at the ceiling, not over it
+        (_args(MAX_ARGS), "PLR0913"),
         (MODULE + "# TODO(ADR-0021): x\n", "TD003"),
         (
             MODULE
@@ -124,10 +129,8 @@ def test_rule_quiet(source: str, code: str) -> None:
 
 
 def test_parked_docstring_ignores_removed() -> None:
-    lint = tomllib.loads((REPO / "pyproject.toml").read_text(encoding="utf-8"))["tool"][
-        "ruff"
-    ]["lint"]
-    assert set(lint["extend-ignore"]) == {"D107", "TD003"}
+    # why: a ratchet — a new ignore must be argued for here, not slipped in.
+    assert set(LINT["extend-ignore"]) == {"D107", "TD003"}
     assert "TODO(logging-std)" not in (REPO / "pyproject.toml").read_text(
         encoding="utf-8"
     )

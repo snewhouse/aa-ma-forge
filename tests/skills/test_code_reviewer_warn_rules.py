@@ -31,7 +31,6 @@ def _section() -> str:
         "missing why",
         "docstring claim",
         "unjustified suppression",
-        "magic constant",
         "unexplained imperative",
     ],
 )
@@ -54,3 +53,14 @@ def test_style_nit_ban_kept() -> None:
         "Stylistic preferences without empirical impact (variable naming, comment style)"
         in AGENT.read_text(encoding="utf-8")
     )
+
+
+def test_magic_constants_reported_once() -> None:
+    # why: pattern 5 owns them; a second bullet double-counts one literal in SUMMARY.
+    assert "WARNING [magic constant]" not in _section()
+
+
+def test_low_budget_keeps_the_substance_section() -> None:
+    text = AGENT.read_text(encoding="utf-8")
+    low = next(line for line in text.splitlines() if "AA_MA_AUDIT_BUDGET=low" in line)
+    assert "Comment and docstring substance" in low

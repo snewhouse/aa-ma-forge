@@ -12,6 +12,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "check_conventions.py"
 _spec = importlib.util.spec_from_file_location("check_conventions", SCRIPT)
@@ -158,7 +159,7 @@ def test_cli_clean_reports_check_count(repo: Path) -> None:
     proc = run_cli(repo)
     assert proc.returncode == 0, proc.stderr
     assert f"check_conventions: {len(cc.CHECKS)} checks enabled" in proc.stderr
-    assert len(cc.CHECKS) == 2
+    assert {c.__name__ for c in cc.CHECKS} == {"check_why", "check_todo"}
     assert proc.stdout == ""
 
 
@@ -380,3 +381,62 @@ def test_cli_escapes_control_characters_and_bad_utf8_in_paths(repo: Path) -> Non
     assert proc.returncode == 1, proc.stderr
     assert b"\x1b" not in proc.stdout
     assert proc.stdout.startswith(b"evil\\x1b[2Jname\\udcff.py:1: TODO001")
+
+
+# --- §6.8 security review --------------------------------------------------------------
+
+
+def test_hook_passes_filenames_after_double_dash() -> None:
+    config = yaml.safe_load((SCRIPT.parents[1] / ".pre-commit-config.yaml").read_text())
+    hook = next(
+        h for r in config["repos"] for h in r["hooks"] if h["id"] == "check-conventions"
+    )
+    assert hook.get("args") == ["--"]
+
+
+def test_a_filename_cannot_override_the_range(repo: Path) -> None:
+    # pre-commit runs `entry args FILE...`; a committed file named like a flag must
+    # stay a file, never switch the diff to an empty range.
+    head = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "bad.py").write_text("import os  # noqa: F401\n")
+    git(repo, "add", "-A")
+    proc = run_cli(repo, "--", "bad.py", f"--from-ref={head}", f"--to-ref={head}")
+    assert proc.returncode == 1, proc.stderr
+    assert proc.stdout.startswith("bad.py:1: WHY001")
+
+
+def test_why_scan_is_linear_in_the_comment_block() -> None:
+    import time
+
+    text = "# noqa\n" * 20000
+    start = time.monotonic()
+    assert len(codes("a.py", text)) == 20000
+    # why: the old walk-back was O(n²) — 8k lines took 6.5 s; linear is ~0.1 s here.
+    assert time.monotonic() - start < 5
+
+
+def test_log_lines_escape_control_characters(caplog) -> None:
+    codes("evil\x1b[31m.py", "x = (\n")
+    assert "\x1b" not in caplog.text
+    assert "evil\\x1b[31m.py" in caplog.text
+
+
+def test_unbalanced_shell_context_is_logged(caplog) -> None:
+    codes("a.sh", 'echo "unclosed\nfoo || true\n')
+    assert "a.sh: shell context unbalanced at end of file" in caplog.text
+
+
+def test_workflow_command_paths_are_defused(repo: Path) -> None:
+    (repo / "::error title=x::y.py").write_text("# TODO: x\n")
+    git(repo, "add", "-A")
+    proc = run_cli(repo)
+    assert proc.returncode == 1
+    assert proc.stdout.startswith("./::error title=x::y.py:1: TODO001")
+
+
+def test_staged_path_that_looks_like_a_stage_spec(repo: Path) -> None:
+    (repo / "1:evil.py").write_text("# TODO: x\n")
+    git(repo, "add", "-A")
+    proc = run_cli(repo)
+    assert proc.returncode == 1, proc.stderr
+    assert proc.stdout.startswith("1:evil.py:1: TODO001")

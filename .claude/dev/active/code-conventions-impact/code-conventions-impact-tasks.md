@@ -454,14 +454,14 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 5.
 
 ### Sub-step 5.0: Post-merge of M4
-- Status: PENDING
+- Status: IN_PROGRESS
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
   - M4 merged; `git pull` on main; live `scripts/install.sh` from main (M4 changed the skill set: + writing-for-agents, − write-a-skill).
   - L-1315 isolated probe lists `writing-for-agents` (deferred from 4.4).
   - Worktree for M5 cut from fresh main; `uv sync && uv run codemem build` exit 0.
-- Result Log:
+- Result Log: Mode: HITL (Ste: "merge to main, then cut the M5 worktree … finish Sub-step 5.0"). M4 PR #21 merged; follow-ups PR #22 (L-045 bare-negation sweep) and PR #23 (install.sh stale count) rebase-merged → main bc177e5 == origin/main. Live `scripts/install.sh` from the main checkout @ bc177e5: rc=0, symlinks 65, copied 5, backed up 5, stale removed 0 (the pre-#23 run reported 65 — the miscount #23 fixed); `~/.claude/skills/writing-for-agents` → main checkout, `write-a-skill` absent, 0 dangling links under skills/agents/rules/hooks. Worktree `.worktrees/feat/cci-m5-split-prompts` cut from main @ bc177e5; `uv sync` rc=0; `uv run codemem build` rc=0 (303 files, 2956 symbols). Compaction checkpoint lines carried over from the main checkout via stash. PENDING: L-1315 isolated probe — the nested `claude -p` and the probe-dir setup were refused by the permission layer in-session; handed to Ste to run.
 
 ### Sub-step 5.1: Split aa-ma-execution (1295 lines)
 - Status: PENDING

@@ -221,7 +221,8 @@ def test_findings_exit_1_with_path_line_code(repo: Path, monkeypatch, capsys) ->
 
 def codes(path: str, text: str, lines: set[int] | None = None) -> list[tuple[int, str]]:
     """Run every check as if ``lines`` (default: all) were the added lines of ``text``."""
-    numbered = dict(enumerate(text.splitlines(), start=1))
+    # why: git numbers lines by \n only, so the fixture must too (not splitlines()).
+    numbered = dict(enumerate(text.split("\n"), start=1))
     added = {n: t for n, t in numbered.items() if lines is None or n in lines}
     return sorted(
         (n, code) for chk in cc.CHECKS for _, n, code, _ in chk(path, added, text)
@@ -444,3 +445,48 @@ def test_staged_path_that_looks_like_a_stage_spec(repo: Path) -> None:
     proc = run_cli(repo)
     assert proc.returncode == 1, proc.stderr
     assert proc.stdout.startswith("1:evil.py:1: TODO001")
+
+
+# --- /sole-dev-merge Stage C review ----------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # a comment inside a multi-line $( … ) is a comment, why: and all
+        ("x=$(\n  cmd || true  # why: may fail\n)\n", []),
+        # an apostrophe in a subshell comment must not open a quote
+        ("(\n  # don't care\n  cd x\n)\nfoo || true\n", [(5, "WHY001")]),
+        # line numbers follow git: a form feed is not a line break
+        ("a=1\n\x0c\nfoo || true\n", [(3, "WHY001")]),
+        # CRLF files still close their heredocs
+        ("cat <<EOF\r\nx || true\r\nEOF\r\nfoo || true\r\n", [(4, "WHY001")]),
+    ],
+)
+def test_shell_stage_c_cases(text: str, expected: list) -> None:
+    assert codes("a.sh", text) == expected
+
+
+def test_form_feed_does_not_shift_python_lines() -> None:
+    assert codes("a.py", "x = 1\n\x0c\ny = 2  # noqa\n") == [(3, "WHY001")]
+
+
+def test_lone_carriage_return_is_not_a_line_break(repo: Path) -> None:
+    (repo / "cr.py").write_bytes(b"a = 1\rb = 2\nimport os  # noqa: F401\n")
+    git(repo, "add", "-A")
+    proc = run_cli(repo)
+    assert proc.returncode == 1, proc.stderr
+    assert proc.stdout.startswith("cr.py:2: WHY001")
+
+
+def test_submodule_entry_is_skipped_not_fatal(repo: Path) -> None:
+    # why: a submodule's commit is not in this repo's object store.
+    absent = "1" * 40
+    git(repo, "update-index", "--add", "--cacheinfo", f"160000,{absent},vendorlib")
+    (repo / "t.py").write_text("# TODO: x\n")
+    git(repo, "add", "t.py")
+    proc = run_cli(repo)
+    assert proc.returncode == 1, proc.stderr
+    assert proc.stdout.splitlines() == [
+        "t.py:1: TODO001 TODO/FIXME without a reference: write TODO(#N) or TODO(ADR-NNNN)"
+    ]

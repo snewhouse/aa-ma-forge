@@ -180,7 +180,7 @@ Generated: [ISO-8601 timestamp] | Audit-Profile: [profile] | Budget: [normal|low
 - Grandfathered by `Created:` date (mirrors v0.5.0 cutover for Engineering Standards Declaration element #12)
 - The file is optional — absent on grandfathered plans, present on v0.8.0+ plans with non-bypassed `Audit-Profile`
 
-**Phase 6.8 anatomy (in `skills/execute-aa-ma-milestone/SKILL.md`):**
+**Phase 6.8 anatomy (in `skills/execute-aa-ma-milestone/references/post-impl-review.md`; SKILL.md keeps the §6.8 heading):**
 
 | Phase | Location | What runs |
 |---|---|---|

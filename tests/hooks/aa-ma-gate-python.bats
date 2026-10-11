@@ -15,6 +15,8 @@
 
 bats_require_minimum_version 1.5.0
 
+load ../lib/skill_files
+
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     HELPER="${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh"
@@ -393,7 +395,11 @@ _run_approval() {  # <cwd> <task-name>
     # The enforcing sites are the §6.7/§7.1 fences and verify-impl Step 1.
     # Every reading there must come from aa_ma_gate; the retired awk helpers
     # must not be referenced.
-    for f in "$MILESTONE_CMD" "$REPO_ROOT/claude-code/skills/verify-impl/SKILL.md"; do
+    # The command is SKILL.md plus the references/ it was split into (L-047).
+    local f files
+    mapfile -t files < <(skill_files "$MILESTONE_CMD"; echo "$REPO_ROOT/claude-code/skills/verify-impl/SKILL.md")
+    [ "${#files[@]}" -ge 3 ]
+    for f in "${files[@]}"; do
         run ! grep -qE 'aa_ma_(extract_milestone_block|field_value|count_field|active_milestone_strict|is_milestone_heading)' "$f"
     done
     grep -q 'aa_ma_gate' "$MILESTONE_CMD"

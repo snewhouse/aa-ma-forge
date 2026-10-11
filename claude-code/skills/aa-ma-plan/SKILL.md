@@ -45,6 +45,8 @@ Phase 5: AA-MA Artifacts      → Create .claude/dev/active/[task]/
 
 ## Instructions for AI
 
+Run the phases in order. Phases 0–3, 4.2 and 4.5 live in `references/`: read each phase's reference before running that phase (Phase 0 writes the markers the plan-marker hook checks).
+
 ### Phase 0: Runtime Log Initialization
 
 See [phase-0-runtime-log.md](references/phase-0-runtime-log.md#phase-0-runtime-log-initialization) — derive the plan slug and write the phase markers the plan-marker hook checks.

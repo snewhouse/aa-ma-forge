@@ -491,6 +491,8 @@ See [finalization.md](references/finalization.md#74-transparent-status-change) �
 
 See [checkpoint-and-errors.md](references/checkpoint-and-errors.md#8-git-checkpoint-creation-auto-commit) — the milestone commit and provenance entries (§8), status update (§9), completion report (§10), BLOCKED handling (§11), token use and rollback.
 
+**Read it to the end:** after the commit, §9 sets the milestone COMPLETE and §10 reports it; if any check failed, §11 sets it BLOCKED, adds a remediation sub-task and HALTs instead.
+
 ---
 
 **End of execute-aa-ma-milestone.md**

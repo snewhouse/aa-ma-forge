@@ -425,6 +425,8 @@ Next Steps:
 
 See [errors-and-operations.md](references/errors-and-operations.md#8-error-handling) — validation failures, broken dependency chains, context limits, token use, rollback and best practices for a full run.
 
+**If a validation check fails at a milestone boundary, follow §8.1 in the reference first: set the milestone BLOCKED, add a remediation sub-task, alert the user and stop the run.**
+
 ---
 
 **End of execute-aa-ma-full.md**

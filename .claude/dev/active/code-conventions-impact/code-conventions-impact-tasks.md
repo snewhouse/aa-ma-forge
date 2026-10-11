@@ -437,7 +437,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 5: Split the six oversized prompt files (behaviour-preserving)
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 4
 - Complexity: 70%
 - Effort: 1.5 days

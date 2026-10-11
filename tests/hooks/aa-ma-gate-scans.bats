@@ -27,7 +27,8 @@ setup() {
     FIXTURE="${BATS_TEST_DIRNAME}/fixtures/gate-scans/styles-tasks.md"
     FIX_ONE="${BATS_TEST_DIRNAME}/fixtures/gate-scans/one-active-tasks.md"
     FIX_NONE="${BATS_TEST_DIRNAME}/fixtures/gate-scans/no-active-tasks.md"
-    export REPO_ROOT HELPER MILESTONE_CMD VERIFY_IMPL FIXTURE FIX_ONE FIX_NONE
+    MILESTONE_REFS="${REPO_ROOT}/claude-code/skills/execute-aa-ma-milestone/references"
+    export REPO_ROOT HELPER MILESTONE_CMD MILESTONE_REFS VERIFY_IMPL FIXTURE FIX_ONE FIX_NONE
 }
 
 teardown() {
@@ -119,17 +120,34 @@ _exec_lines() {
         | sed 's/[[:space:]]#[^"'"'"']*$//'
 }
 
+# The command is SKILL.md plus the references/ it was split into (code-conventions-impact
+# M5); a guard that read SKILL.md alone would stop covering every snippet that moved.
+_milestone_files() {
+    printf '%s\n' "$MILESTONE_CMD" "$MILESTONE_REFS"/*.md
+}
+
+_milestone_exec_lines() {
+    local f
+    while IFS= read -r f; do _exec_lines "$f"; done < <(_milestone_files)
+}
+
+@test "the scans cover SKILL.md and every reference it was split into" {
+    run _milestone_files
+    [ "${#lines[@]}" -ge 2 ]
+    for f in "${lines[@]}"; do [ -s "$f" ]; done
+}
+
 @test "command file no longer uses the self-terminating awk range" {
     # /^## Milestone.../,/^## Milestone/ — the start line matches the end
     # pattern, so the range is one line and every field scan reads empty.
-    if _exec_lines "$MILESTONE_CMD" | grep -q -F ',/^## Milestone/'; then
+    if _milestone_exec_lines | grep -q -F ',/^## Milestone/'; then
         echo "self-terminating awk range still live in $MILESTONE_CMD" >&2
         false
     fi
 }
 
 @test "command file no longer extracts Gate with grep -A1" {
-    if _exec_lines "$MILESTONE_CMD" | grep -qE 'grep -A1 .*## Milestone'; then
+    if _milestone_exec_lines | grep -qE 'grep -A1 .*## Milestone'; then
         echo "grep -A1 Gate extraction still live in $MILESTONE_CMD" >&2
         false
     fi
@@ -155,7 +173,7 @@ _exec_lines() {
 @test "no executable awk is left in the command file or verify-impl" {
     # The enforcing awk is gone; what is documented in comments stays. If a
     # future edit puts an awk back on an executable line, this is the alarm.
-    for f in "$MILESTONE_CMD" "$VERIFY_IMPL"; do
+    for f in $(_milestone_files) "$VERIFY_IMPL"; do
         if _exec_lines "$f" | grep -qE '(^|[^a-z_])awk( |$)'; then
             echo "executable awk found in $f — enforcing reads belong in src/aa_ma/gate.py" >&2
             false
@@ -164,7 +182,7 @@ _exec_lines() {
 }
 
 @test "every bash snippet in the command file is syntactically valid" {
-    awk '/^```bash$/{f=1;next} /^```$/{f=0;print "";next} f' "$MILESTONE_CMD" \
+    _milestone_files | xargs awk '/^```bash$/{f=1;next} /^```$/{f=0;print "";next} f' \
         > "$BATS_TMPDIR/snippets.sh"
     run bash -n "$BATS_TMPDIR/snippets.sh"
     [ "$status" -eq 0 ]

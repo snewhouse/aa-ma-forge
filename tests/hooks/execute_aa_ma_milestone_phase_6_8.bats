@@ -14,12 +14,28 @@
 #   - Provenance entry format documented
 #   - Bash snippets are syntactically valid (bash -n)
 #   - /execute-aa-ma-full.md delegates to milestone §6.8 (B.6 section)
+#
+# Since code-conventions-impact M5 the §6.8 body lives in
+# references/post-impl-review.md; SKILL.md keeps the heading (its position
+# between §6.7 and §7.1 is still asserted) and a pointer. "The section" below
+# is both, read together.
 
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     MILESTONE_CMD="${REPO_ROOT}/claude-code/skills/execute-aa-ma-milestone/SKILL.md"
     FULL_CMD="${REPO_ROOT}/claude-code/skills/execute-aa-ma-full/SKILL.md"
-    export REPO_ROOT MILESTONE_CMD FULL_CMD
+    POST_IMPL_REF="${REPO_ROOT}/claude-code/skills/execute-aa-ma-milestone/references/post-impl-review.md"
+    export REPO_ROOT MILESTONE_CMD FULL_CMD POST_IMPL_REF
+}
+
+_section_68() {
+    awk '/^### 6\.8/,/^### 7\.1/' "$MILESTONE_CMD"
+    cat "$POST_IMPL_REF"
+}
+
+@test "§6.8 points at its body in references/post-impl-review.md" {
+    [ -s "$POST_IMPL_REF" ]
+    awk '/^### 6\.8/,/^### 7\.1/' "$MILESTONE_CMD" | grep -F "](references/post-impl-review.md)"
 }
 
 @test "§6.8 section exists in execute-aa-ma-milestone.md" {
@@ -45,12 +61,12 @@ setup() {
 
 @test "§6.8 documents grandfathering by Created: date" {
     # Extract the §6.8 section content
-    awk '/^### 6\.8/,/^### 7\.1/' "$MILESTONE_CMD" > "$BATS_TMPDIR/section_68.md"
+    _section_68 > "$BATS_TMPDIR/section_68.md"
     grep -E "Created:|grandfather|pre-v0\.8\.0" "$BATS_TMPDIR/section_68.md"
 }
 
 @test "§6.8 documents all 5 audit agents" {
-    awk '/^### 6\.8/,/^### 7\.1/' "$MILESTONE_CMD" > "$BATS_TMPDIR/section_68.md"
+    _section_68 > "$BATS_TMPDIR/section_68.md"
     grep -F "code-reviewer" "$BATS_TMPDIR/section_68.md"
     grep -F "security-auditor" "$BATS_TMPDIR/section_68.md"
     grep -F "tdd-sequence-auditor" "$BATS_TMPDIR/section_68.md"
@@ -59,14 +75,14 @@ setup() {
 }
 
 @test "§6.8 documents 3 verdict outcomes" {
-    awk '/^### 6\.8/,/^### 7\.1/' "$MILESTONE_CMD" > "$BATS_TMPDIR/section_68.md"
+    _section_68 > "$BATS_TMPDIR/section_68.md"
     grep -F "PASS_WITH_WARNINGS" "$BATS_TMPDIR/section_68.md"
     grep -E "^\| .PASS." "$BATS_TMPDIR/section_68.md"
     grep -E "BLOCKED" "$BATS_TMPDIR/section_68.md"
 }
 
 @test "§6.8 documents CRITICAL override panel (accept/dispute/defer)" {
-    awk '/^### 6\.8/,/^### 7\.1/' "$MILESTONE_CMD" > "$BATS_TMPDIR/section_68.md"
+    _section_68 > "$BATS_TMPDIR/section_68.md"
     grep -F "accept" "$BATS_TMPDIR/section_68.md"
     grep -F "dispute" "$BATS_TMPDIR/section_68.md"
     grep -F "defer" "$BATS_TMPDIR/section_68.md"
@@ -74,7 +90,7 @@ setup() {
 }
 
 @test "§6.8 bypass table lists 6 mechanisms" {
-    awk '/^### 6\.8/,/^### 7\.1/' "$MILESTONE_CMD" > "$BATS_TMPDIR/section_68.md"
+    _section_68 > "$BATS_TMPDIR/section_68.md"
     grep -F "AA_MA_HOOKS_DISABLE=1" "$BATS_TMPDIR/section_68.md"
     grep -F "AA_MA_AUDIT_BUDGET=off" "$BATS_TMPDIR/section_68.md"
     grep -F "AA_MA_AUDIT_BUDGET=low" "$BATS_TMPDIR/section_68.md"
@@ -84,19 +100,19 @@ setup() {
 }
 
 @test "§6.8 documents provenance entry format" {
-    awk '/^### 6\.8/,/^### 7\.1/' "$MILESTONE_CMD" > "$BATS_TMPDIR/section_68.md"
+    _section_68 > "$BATS_TMPDIR/section_68.md"
     grep -F "§6.8 POST_IMPL_REVIEW" "$BATS_TMPDIR/section_68.md"
 }
 
 @test "§6.8 documents 'defer creates new sub-task' behaviour" {
-    awk '/^### 6\.8/,/^### 7\.1/' "$MILESTONE_CMD" > "$BATS_TMPDIR/section_68.md"
+    _section_68 > "$BATS_TMPDIR/section_68.md"
     grep -i "DEFERRED" "$BATS_TMPDIR/section_68.md"
     grep -i "new sub-task\|create.*sub-task\|new backlog" "$BATS_TMPDIR/section_68.md"
 }
 
 @test "§6.8 bash snippets are syntactically valid" {
     # Extract code blocks marked ```bash from §6.8 and run `bash -n` on each
-    awk '/^### 6\.8/,/^### 7\.1/' "$MILESTONE_CMD" > "$BATS_TMPDIR/section_68.md"
+    _section_68 > "$BATS_TMPDIR/section_68.md"
     # Pull bash code blocks
     awk '/^```bash$/{flag=1;next}/^```$/{flag=0;print "---SNIPPET---"}flag' \
         "$BATS_TMPDIR/section_68.md" > "$BATS_TMPDIR/snippets.sh"

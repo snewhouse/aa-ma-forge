@@ -21,6 +21,13 @@ def _pyproject() -> dict:
     return tomllib.loads((REPO / "pyproject.toml").read_text(encoding="utf-8"))
 
 
+def _hook(hook_id: str) -> dict:
+    config = yaml.safe_load(
+        (REPO / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    )
+    return next(h for r in config["repos"] for h in r["hooks"] if h["id"] == hook_id)
+
+
 def _dev_group_names() -> set[str]:
     names = set()
     for spec in _pyproject()["dependency-groups"]["dev"]:
@@ -58,24 +65,14 @@ def test_precommit_hooks_are_local_and_complete() -> None:
 def test_shellcheck_hook_skips_bats() -> None:
     # why: identify tags .bats as `shell`; bats syntax is not plain shell, and CI's
     # ShellCheck job has only ever covered *.sh (19 of 31 .bats files fail today).
-    config = yaml.safe_load(
-        (REPO / ".pre-commit-config.yaml").read_text(encoding="utf-8")
-    )
-    hook = next(
-        h for r in config["repos"] for h in r["hooks"] if h["id"] == "shellcheck"
-    )
+    hook = _hook("shellcheck")
     assert "bats" in hook.get("exclude_types", [])
 
 
 def test_shellcheck_hook_enables_masked_return_checks(tmp_path: Path) -> None:
     # why: SC2312 (a command substitution's exit code masked) and SC2310 (set -e
     # silently off inside a condition) are opt-in; the hook must turn both on (T8).
-    config = yaml.safe_load(
-        (REPO / ".pre-commit-config.yaml").read_text(encoding="utf-8")
-    )
-    hook = next(
-        h for r in config["repos"] for h in r["hooks"] if h["id"] == "shellcheck"
-    )
+    hook = _hook("shellcheck")
     script = tmp_path / "s.sh"
     script.write_text(
         '#!/bin/bash\nset -e\nf() { false; }\nif f; then :; fi\necho "$(date)"\n'

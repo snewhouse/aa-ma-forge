@@ -31,9 +31,8 @@ MAX_LINES = 500  # Agent Skills spec: "Keep your main SKILL.md under 500 lines"
 TOC_THRESHOLD = 100  # lines; a longer reference file needs a table of contents
 
 # path relative to claude-code/ -> ceiling (lines on 2026-10-09). May only fall.
-ALLOWLIST: dict[
-    str, int
-] = {}  # emptied by M5 (code-conventions-impact); test_allowlist_is_empty
+# Emptied by M5 (code-conventions-impact); test_allowlist_is_empty keeps it so.
+ALLOWLIST: dict[str, int] = {}
 
 # references/*.md over TOC_THRESHOLD lines with no TOC on 2026-10-09 (24).
 TOC_ALLOWLIST = frozenset(

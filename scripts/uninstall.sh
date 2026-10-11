@@ -290,12 +290,14 @@ if ${RESTORE}; then
                 [ -f "${manifest}" ] || continue
                 while IFS=$'\t' read -r link dest; do
                     rel_path="${link#"${CLAUDE_HOME}"/}"
+                    # shellcheck disable=SC2310  # why: a pure predicate — its exit status is the answer, so set -e has nothing to catch
                     if [[ "${link}" != "${CLAUDE_HOME}/"* || -z "${dest}" ]] || ! manifest_slot_ok "${rel_path}"; then
                         warn "Skipping manifest row (not an install slot under ${CLAUDE_HOME}/): ${link}"
                         continue
                     fi
                     [ -n "${RESTORED[${rel_path}]:-}" ] && continue
                     RESTORED["${rel_path}"]=1
+                    # shellcheck disable=SC2310  # why: a pure predicate — its exit status is the answer, so set -e has nothing to catch
                     if ! slot_free_for_restore "${link}"; then
                         warn "Skipping foreign-symlink restore (exists): ${link}"
                         continue

@@ -69,9 +69,10 @@ def test_shellcheck_hook_skips_bats() -> None:
     assert "bats" in hook.get("exclude_types", [])
 
 
-def test_shellcheck_hook_enables_masked_return_checks(tmp_path: Path) -> None:
-    # why: SC2312 (a command substitution's exit code masked) and SC2310 (set -e
-    # silently off inside a condition) are opt-in; the hook must turn both on (T8).
+def test_shellcheck_hook_enables_set_e_suppressed_only(tmp_path: Path) -> None:
+    # why: SC2310 (set -e silently off inside a condition) is opt-in and the hook
+    # turns it on (T8). SC2312 was dropped after M6 (Ste, 2026-10-11): 116 of the
+    # 124 findings due on touch, mostly the harmless `echo "$(cmd)"` form.
     hook = _hook("shellcheck")
     script = tmp_path / "s.sh"
     script.write_text(
@@ -84,4 +85,4 @@ def test_shellcheck_hook_enables_masked_return_checks(tmp_path: Path) -> None:
         check=False,
     )
     assert "SC2310" in proc.stdout
-    assert "SC2312" in proc.stdout
+    assert "SC2312" not in proc.stdout

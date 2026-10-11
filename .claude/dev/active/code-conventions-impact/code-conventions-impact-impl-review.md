@@ -243,3 +243,42 @@ None — no CRITICAL findings.
 ## Verification
 
 Guards C2/C4/F3 each proven by a temporary mutation (failed, restored). pytest 2728 passed / 6 skipped / 0 failed; `bats -r tests` 398/398; shellcheck rc=0; LIVE sandbox bats pass (3 hostile cases).
+
+---
+
+# Impl Review Report: code-conventions-impact / Milestone 5
+
+- Milestone: Milestone 5: Split the six oversized prompt files (behaviour-preserving)
+- Audit-Profile: code-only — agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor (parallel, budget normal)
+- Window: bc177e5..101dc00 (21 commits); fixes in 6a64cd2
+- Date: 2026-10-11
+
+## Summary
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer             | 0 | 3 | 3 | WARN (all six SKILL.md usable entry points; no dangling above/below) |
+| security-auditor          | 0 | 0 | 3 | PASS (safety text intact; no private names; extract_stage.sh safe) |
+| tdd-sequence-auditor      | 0 | 0 | 1 | WAIVED (TDD-Waiver: refactor; RED 7957ddc 4m13s before first split) |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS (no PyPI deps / MAJOR bumps) |
+| future-proofing-auditor   | 0 | 1 | 5 | WARN |
+| **TOTAL**                 | **0** | **4** | **12** | **PASS_WITH_WARNINGS** |
+
+## Findings and outcomes
+
+- C-W1 pointer stubs name the file, not the section; §7.3 stub does not say it blocks — **fixed** (6a64cd2): 45 pointers deep-link `references/<file>#<anchor>`, anchor existence asserted when written.
+- S-I1/S-I2 §6.8, §7.3, Stage D safety steps behind a descriptive pointer — **fixed**: one imperative line each in SKILL.md.
+- C-W2 four bash copies of "SKILL.md + references" — **fixed**: `tests/lib/skill_files.bash` used by extract_stage.sh, gate-scans, deps bats (`_section_68` keeps its single named reference by design).
+- C-W3 `pre-execution-validation.md` byte-identical in execute-aa-ma-milestone and execute-aa-ma-full (pre-existing duplication made visible) — **deferred** (context-log): consolidating is not a behaviour-preserving move.
+- F-W1 CHANGELOG Unreleased said six files are held until split — **fixed**; split entry added under Changed.
+- F-I "five audit agents", "6-angle" in new titles/pointers — **fixed** (counts dropped). F-I `angles-1-5.md` name encodes a range — **accepted** (angles are numbered in the spec). F-I SPLIT_SKILLS hand-maintained — **comment added**. F-I pointer purposes repeat titles — accepted cost of the format.
+- C-I writing-for-agents test used rglob — **fixed** (skill_files). C-I L-047 outside declared artefacts — recorded in the 5.3 Result Log (self-improvement rule). C-I POINTER_RE purpose clause is free text — accepted, documented; all pointer lines read by the reviewer.
+- S-I3 Stage F relies on Stage A's main-branch check — unchanged behaviour; noted for a later milestone.
+
+## User Override Decisions
+
+None — no CRITICAL findings.
+
+## Verification
+
+Widened checks proven by planted lines (gate-scans 2 fail, deps 1 fail; restored). pytest 2774 passed / 6 skipped / 0 failed; `bats -r tests` 403/403; shellcheck clean; regen edges/golden unchanged.

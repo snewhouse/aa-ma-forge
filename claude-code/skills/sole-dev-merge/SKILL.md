@@ -71,7 +71,8 @@ fi
 
 The command runs sequentially through stages **A → G**. Each stage is
 self-contained (one reason to change, per SOC). Implementation lives in
-named inline bash blocks below; this section is the contract surface.
+named bash blocks: inline below for Stages A–B, in `references/stage-*.md`
+for Stages C–G. Read each stage's reference when you reach it.
 
 ### Stage A — Pre-flight checks
 

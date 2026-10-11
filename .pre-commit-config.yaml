@@ -28,5 +28,8 @@ repos:
       - id: check-conventions
         name: check_conventions (added lines only)
         entry: uv run python scripts/check_conventions.py
+        # `--` before the filenames: a committed file named `--from-ref=X` must stay a
+        # file, not switch the diff to an empty range (§6.8 security).
+        args: ["--"]
         language: system
         require_serial: true   # one process: each run re-reads the whole diff

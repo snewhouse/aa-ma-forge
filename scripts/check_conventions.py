@@ -48,7 +48,9 @@ _WHY_RE = re.compile(r"#\s*why:")
 _TODO_RE = re.compile(r"#\s*(?:TODO|FIXME)\b", re.IGNORECASE)
 _TODO_REF_RE = re.compile(r"(?<![\w#])(?:#\d+|ADR-\d{4})(?!\w)")
 _HEREDOC_RE = re.compile(r"<<(-?)\s*\\?(['\"]?)([A-Za-z_][^\s'\"<>;&|()]*)\2")
-_SCANNED_SUFFIXES = (".py", ".pyi", ".sh", ".bash")
+_HEREDOC_OP_RE = re.compile(r"(?<!<)<<(?!<)")  # a heredoc's <<, not a <<< here-string
+_PY_SUFFIXES = (".py", ".pyi")
+_SH_SUFFIXES = (".sh", ".bash")
 _CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
@@ -194,7 +196,11 @@ def _python_lines(path: str, text: str) -> dict[int, tuple[str, str]]:
     except (tokenize.TokenError, SyntaxError) as exc:
         # why: a file that cannot be tokenized is ruff's to report (it runs in the same
         # hook set); say so and check nothing rather than guess at comments.
-        log.warning("check_conventions: %s: not tokenizable, skipped: %s", path, exc)
+        log.warning(
+            "check_conventions: %s: not tokenizable, skipped: %s",
+            _printable(path),
+            _printable(str(exc)),
+        )
         return {}
     return lines
 
@@ -204,8 +210,19 @@ def _python_lines(path: str, text: str) -> dict[int, tuple[str, str]]:
 # arithmetic, where `<<` is a shift, not a heredoc. Each step returns
 # (chars consumed, replacement of the same length) so code stays index-aligned with
 # the raw line, from which heredoc delimiters are read back.
-_OPENERS = (("$((", "(("), ("((", "(("), ("$(", "$("), ("$'", "$'"), ("(", "("))
-_OPENERS += (("`", "`"), ("'", "'"), ('"', '"'))
+# (opener, context, closer); longest opener first, so `$((` wins over `$(` and `(`.
+_CONTEXTS = (
+    ("$((", "((", "))"),
+    ("((", "((", "))"),
+    ("$(", "$(", ")"),
+    ("$'", "$'", "'"),
+    ("(", "(", ")"),
+    ("`", "`", "`"),
+    ("'", "'", "'"),
+    ('"', '"', '"'),
+)
+_CLOSERS = {ctx: closer for _, ctx, closer in _CONTEXTS}
+_QUOTES = ("'", "$'", '"')
 
 
 def _step_quoted(line: str, i: int, stack: list[str]) -> tuple[int, str]:
@@ -213,29 +230,32 @@ def _step_quoted(line: str, i: int, stack: list[str]) -> tuple[int, str]:
     if c == "\\" and top != "'":
         n = len(line[i : i + 2])
         return n, " " * n
-    if c == top[-1]:
+    if line.startswith(_CLOSERS[top], i):
         stack.pop()
         return 1, c
-    if top == '"' and line.startswith("$(", i):
+    if top == '"' and (line.startswith("$(", i) or c == "`"):
         return _step_code(line, i, stack)
-    if top == '"' and c == "`":
-        stack.append("`")
-        return 1, c
     return 1, " "
+
+
+def _in_arithmetic(stack: list[str]) -> bool:
+    # why: O(1), not `"((" in stack` — an unclosed `$(` run must not make each `<`
+    # cost the stack depth (§6.8 security). Misses only `$(( (a << b) ))`.
+    return bool(stack) and (
+        stack[-1] == "((" or (stack[-1] == "(" and len(stack) > 1 and stack[-2] == "((")
+    )
 
 
 def _step_code(line: str, i: int, stack: list[str]) -> tuple[int, str]:
     c = line[i]
     if c == "\\":
         return len(line[i : i + 2]), line[i : i + 2]
-    if c == "<" and "((" in stack:
+    if c == "<" and _in_arithmetic(stack):
         return 1, " "
-    top = stack[-1] if stack else ""
-    for closer, ctx in (("))", "(("), (")", "$("), (")", "("), ("`", "`")):
-        if top == ctx and line.startswith(closer, i):
-            stack.pop()
-            return len(closer), closer
-    for opener, ctx in _OPENERS:
+    if stack and line.startswith(_CLOSERS[stack[-1]], i):
+        closer = _CLOSERS[stack.pop()]
+        return len(closer), closer
+    for opener, ctx, _ in _CONTEXTS:
         if line.startswith(opener, i):
             stack.append(ctx)
             return len(opener), opener
@@ -249,14 +269,14 @@ def _shell_code_comment(line: str, stack: list[str]) -> tuple[str, str]:
     while i < len(line):
         if not stack and line[i] == "#" and (i == 0 or line[i - 1] in " \t;|&("):
             return "".join(code), line[i:]
-        quoted = stack and stack[-1] in ("'", "$'", '"')
+        quoted = stack and stack[-1] in _QUOTES
         n, out = (_step_quoted if quoted else _step_code)(line, i, stack)
         code.append(out)
         i += n
     return "".join(code), ""
 
 
-def _shell_lines(text: str) -> dict[int, tuple[str, str]]:
+def _shell_lines(path: str, text: str) -> dict[int, tuple[str, str]]:
     lines: dict[int, tuple[str, str]] = {}
     stack: list[str] = []
     heredocs: list[tuple[bool, str]] = []  # (strip leading tabs, delimiter), in order
@@ -268,11 +288,19 @@ def _shell_lines(text: str) -> dict[int, tuple[str, str]]:
             lines[n] = ("", "")
             continue
         code, comment = _shell_code_comment(line, stack)
-        for m in re.finditer(r"(?<!<)<<(?!<)", code):
+        for m in _HEREDOC_OP_RE.finditer(code):
             here = _HEREDOC_RE.match(line, m.start())
             if here:
                 heredocs.append((here.group(1) == "-", here.group(3)))
         lines[n] = (code, comment)
+    if stack or heredocs:
+        # why: an unclosed quote or heredoc hides every later line from the checks;
+        # say so rather than report a clean file (no silent fail-open, L-1319).
+        log.warning(
+            "check_conventions: %s: shell context unbalanced at end of file; "
+            "later lines may be unchecked",
+            _printable(path),
+        )
     return lines
 
 
@@ -280,31 +308,36 @@ def _scannable(path: str) -> bool:
     # why: shell is recognised by suffix, or by shebang only when there is no suffix,
     # so a .md/.json/.bats file is never read at all (.bats is not plain shell, as the
     # shellcheck hook, ADR-0018).
-    return path.endswith(_SCANNED_SUFFIXES) or "." not in os.path.basename(path)
+    return path.endswith(_PY_SUFFIXES + _SH_SUFFIXES) or "." not in os.path.basename(
+        path
+    )
 
 
 def _scan(path: str, text: str) -> _Lang | None:
     """Return the file's scanned lines and suppression rule, or None if not scanned."""
-    if path.endswith((".py", ".pyi")):
+    if path.endswith(_PY_SUFFIXES):
         return _Lang(_python_lines(path, text), _PY_SUPPRESS_RE, in_comment=True)
     if not _scannable(path):
         return None
-    if path.endswith((".sh", ".bash")) or _SHEBANG_SH_RE.match(text):
-        return _Lang(_shell_lines(text), _SH_SUPPRESS_RE, in_comment=False)
+    if path.endswith(_SH_SUFFIXES) or _SHEBANG_SH_RE.match(text):
+        return _Lang(_shell_lines(path, text), _SH_SUPPRESS_RE, in_comment=False)
     return None
 
 
-def _has_why(lines: dict[int, tuple[str, str]], n: int) -> bool:
-    if _WHY_RE.search(lines[n][1]):
-        return True
-    # why: a reason often spans a comment block; any `# why:` in the block directly
-    # above the line covers it.
-    n -= 1
-    while n in lines and not lines[n][0].strip() and lines[n][1]:
-        if _WHY_RE.search(lines[n][1]):
-            return True
-        n -= 1
-    return False
+def _why_covered(lines: dict[int, tuple[str, str]]) -> set[int]:
+    """Lines with a `# why:` on them or anywhere in the comment block directly above."""
+    # why: one forward pass; walking back per line was O(n²) on a long comment block,
+    # which a PR could use to hang CI (§6.8 security).
+    covered: set[int] = set()
+    block_has_why = False
+    for n in sorted(lines):
+        code, comment = lines[n]
+        why = bool(_WHY_RE.search(comment))
+        if why or block_has_why:
+            covered.add(n)
+        comment_only = bool(comment) and not code.strip()
+        block_has_why = (block_has_why or why) if comment_only else False
+    return covered
 
 
 def check_why(path: str, added: dict[int, str], text: str) -> list[Finding]:
@@ -322,10 +355,11 @@ def check_why(path: str, added: dict[int, str], text: str) -> list[Finding]:
     if lang is None:
         return []
     findings = []
+    covered = _why_covered(lang.lines)
     for n in sorted(added):
         code, comment = lang.lines.get(n, ("", ""))
         hit = lang.suppress.search(comment if lang.in_comment else code)
-        if hit and not _has_why(lang.lines, n):
+        if hit and n not in covered:
             token = " ".join(hit.group().split())
             message = f"suppression `{token}` without a `# why:` on this line or the comment above"
             findings.append((path, n, "WHY001", message))
@@ -370,7 +404,8 @@ def new_text(range_args: Sequence[str], path: str, top: str) -> str:
     Returns:
         The file text (undecodable bytes surrogate-escaped).
     """
-    side = "" if list(range_args) == ["--cached"] else range_args[0].split("...")[1]
+    # why: `:0:` names stage 0 explicitly, so a staged `1:x.py` is not read as stage 1.
+    side = ":0" if list(range_args) == ["--cached"] else range_args[0].split("...")[1]
     return _git_out(["show", f"{side}:{path}"], top)
 
 
@@ -418,7 +453,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     # characters; neither may reach the terminal raw.
     sys.stdout.reconfigure(errors="backslashreplace")  # type: ignore[union-attr]  # why: always a TextIOWrapper here
     for path, lineno, code, message in findings:
-        print(f"{_printable(path)}:{lineno}: {code} {message}")
+        shown = _printable(path)
+        # why: a line starting `::` is a GitHub workflow command (fake annotations).
+        shown = f"./{shown}" if shown.startswith("::") else shown
+        print(f"{shown}:{lineno}: {code} {message}")
     return 1 if findings else 0
 
 

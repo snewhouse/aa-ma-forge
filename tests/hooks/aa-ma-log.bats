@@ -102,6 +102,15 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
     [ "${#msg}" -le 8192 ]
 }
 
+@test "a secret straddling the cap is masked, not left as a fragment" {
+    . "$LIB"
+    pad=$(head -c 8182 /dev/zero | tr '\0' 'x')
+    run mask_secrets "${pad}${GHP}"
+    [ "$status" -eq 0 ]
+    [ "${#output}" -le 8192 ]
+    [[ "$output" != *ghp_* ]]
+}
+
 @test "missing pattern file fails closed: the message is replaced, never logged unmasked" {
     mkdir -p "$WORK/forge/claude-code/hooks/lib"
     cp "$LIB" "$WORK/forge/claude-code/hooks/lib/"

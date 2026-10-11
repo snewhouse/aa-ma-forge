@@ -282,3 +282,41 @@ None — no CRITICAL findings.
 ## Verification
 
 Widened checks proven by planted lines (gate-scans 2 fail, deps 1 fail; restored). pytest 2774 passed / 6 skipped / 0 failed; `bats -r tests` 403/403; shellcheck clean; regen edges/golden unchanged.
+
+---
+
+# Impl Review Report: code-conventions-impact / Milestone 6
+
+- Milestone: Milestone 6: Comments, docstrings, KISS lint (T8, T11 §3)
+- Audit-Profile: full — agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor (parallel, budget normal)
+- Window: f6a3af3..9d5c806 (11 commits); RED 25ff1eb, fixes cd64eda
+- Date: 2026-10-11
+
+## Summary
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer             | 0 | 2 | 4 | WARN |
+| security-auditor          | 0 | 3 | 4 | WARN |
+| tdd-sequence-auditor      | 0 | 0 | 0 | PASS (c324b5c RED 49 s before 0b8faaa; process notes below) |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS (config only; no PyPI deps / MAJOR bumps) |
+| future-proofing-auditor   | 0 | 2 | 6 | WARN |
+| **TOTAL**                 | **0** | **7** | **14** | **PASS_WITH_WARNINGS** |
+
+## Findings and outcomes
+
+- S-W1 a committed file named `--from-ref=<sha>`/`--to-ref=<sha>` reached argparse as an option (pre-commit appends filenames with no `--`) and emptied the range → WHY001/TODO001 off in CI — **fixed** (cd64eda): hook `args: ["--"]`; test pins the args; proved live: with the fix pre-commit fails WHY001, old argv order exits 0.
+- S-W2 `_has_why` walked back per line, O(n²) (8k lines 6.5 s) — **fixed**: one forward pass `_why_covered`; 20k-line test < 5 s. Arithmetic check O(1) (`_in_arithmetic`), not `"((" in stack`.
+- S-W3 raw control characters in the not-tokenizable log line — **fixed**: `_printable` on path and exception; test.
+- S-I `::`-prefixed path forges a GitHub annotation — **fixed** (`./::…`); S-I staged `1:evil.py` read as stage 1 — **fixed** (`:0:`); S-I eval grants Agent → subagent Bash — **accepted** (trusted fixture, remote-less scaffold); S-I same `--` hole in the ruff hooks (pre-dates M6) — **deferred to M8** (secops), recorded in context-log.
+- C-W1 magic-constant rule stated twice (pattern 5 + new bullet), double-counts in SUMMARY — **fixed**: bullet removed, test asserts it stays out. C-W2 AUDIT_BUDGET=low silent on the new section — **fixed**: it runs (diff-local); test.
+- C-I / F-W1 suffix lists duplicated between `_SCANNED_SUFFIXES` and `_scan` — **fixed** (`_PY_SUFFIXES`, `_SH_SUFFIXES`). F-W2 openers and closers in two lists — **fixed** (`_CONTEXTS` table, `_CLOSERS` derived). C-I unbalanced shell context at EOF silent — **fixed** (one warning; test). C-I/F-I `len(CHECKS) == 2` — **fixed** (asserts names). F-I ruff limits hard-coded in fixtures — **fixed** (read from pyproject). F-I `extend-ignore` exact set — **kept as ratchet**, `# why:` added. F-I inline `<<` regex — **named** `_HEREDOC_OP_RE`. C-I `new_text` parses the range string — **accepted** (one producer, tested both modes). F-I rule IDs named in code-reviewer prose, ADR-0018 line — **accepted** (update when checks change; ADR line is history).
+- T-I process: the §6.6 fix 9edd103 carried its RED cases in the same commit, and the shellcheck-args test landed with its GREEN commit (seen RED locally first — it exposed the YAML comma split). §6.8 fixes went back to a separate RED commit (25ff1eb).
+
+## User Override Decisions
+
+None — no CRITICAL findings.
+
+## Verification
+
+7 mutations of the §6.8 fixes each fail ≥1 test (block reset/carry, stage 0, `::`, log escape, EOF warning, arithmetic top). test_check_conventions 83, test_ruff_config 14, agent rule tests 11 — 152 passed in the touched set; full suite recorded in provenance.

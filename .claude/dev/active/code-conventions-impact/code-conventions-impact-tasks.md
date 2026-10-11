@@ -484,13 +484,13 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. 6399c58: SKILL.md 1244 → 492 lines; §1–§4.5, §6.1, §6.3–§6.6, §6.8, §7.2–§7.4 and §8–end moved verbatim to references/{pre-execution-validation, context-and-todos, boundary-checks, post-impl-review, finalization, checkpoint-and-errors}.md (§8–end as one contiguous block, one stub; nothing outside the file cites §8–§11). Stay inline: §5.1 advisory fence (aa-ma-deps `_advisory_fence`), §5.2 Mode dispatch, §6.2 (aa-ma-deps awk 6.2→6.3), both §6.7 fences (`_gate_fence`, `_diagram_fence`), §6.8/§7.1 headings (order test), §7.1 HARD-gate fence, footer. Tests moved in the same commit: execute_aa_ma_milestone_phase_6_8.bats reads the §6.8 stub + references/post-impl-review.md (+1 pointer test; removing the reference fails 9); aa-ma-gate-scans.bats awk/bash -n guards scan SKILL.md + references/*.md (+1 coverage test; a planted awk in a reference fails 3 guards — before, moved snippets would have left the guard silently); test_active_plans_canonical WRITER_TEMPLATES → the 2 references holding tasks.md templates; ALLOWLIST entry removed, ratchet control now uses aa-ma-plan. Defect caught by test_skill_links_resolve: the moved ADR-0005 link needed one more `../` from references/; test_split_preserves_content now compares relative links by resolved target (+control). regen: edges/golden unchanged. Tests: pytest 2751 passed / 6 skipped / 0 failed; bats 403/403.
 
 ### Sub-step 5.3: Split aa-ma-plan (1154 lines)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 5.2
 - Acceptance Criteria:
   - SKILL.md ≤500 lines; `test_planning_standard_count` SITES ("ALL 13 elements") stay findable.
   - `test_split_preserves_content` and the full suite + all bats pass; committed.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. 485f998: SKILL.md 1154 → 425 lines; Phases 0, 1, 2, 3, 4.2+4.5 and the tail (Error Handling → Design Principles, one contiguous block) moved verbatim to references/{phase-0-runtime-log, phase-1-context, phase-2-brainstorm, phase-3-research, phase-4-reviews-and-verification, operations}.md. Phase 4 stays (Step 4.2b fence run by test_angle6_coverage `_fence`, seed text between `### Phase 4:` and `### Phase 4.2:`, "ALL 13 required elements" for test_planning_standard_count SITES) and Phase 5 stays (tasks.md templates for test_active_plans_canonical; the Dependencies fence aa-ma-deps.bats runs). Before this split, 90a0224 widened test_understand_codebase_rewire to read split skills' references (5.2 had moved §6.3 out of its no-unshipped-route and PROJECT_INDEX-names-codemem checks with nothing failing; planted line now fails both) → lesson L-047. In 485f998: planning-standard drift check and test_aa_ma_writers_do_not_invoke_it read aa-ma-plan's references (planted line fails both). ALLOWLIST entry removed; ratchet control → sole-dev-merge. regen: edges/golden unchanged. Tests: pytest 2759 passed / 6 skipped / 0 failed; bats 403/403.
 
 ### Sub-step 5.4: Split sole-dev-merge (1054 lines)
 - Status: PENDING

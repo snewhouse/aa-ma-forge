@@ -107,3 +107,4 @@
 [2026-10-11T06:56:24+01:00] Sub-step 5.0 COMPLETE — L-1315 isolated probe PASS (run by Ste): writing-for-agents listed with its own description + when_to_use; control zz-control shows the line-1 comment
 [2026-10-11T07:04:35+01:00] Sub-step 5.1 COMPLETE — aa-ma-execution split 1295→487 (RED 7957ddc, GREEN 58b73d6); test_split_preserves_content 0 errors; pytest 2741/0 failed, bats 401/401
 [2026-10-11T07:13:00+01:00] Sub-step 5.2 COMPLETE — execute-aa-ma-milestone split 1244→492 (6399c58); 6.7 fences inline; phase_6_8/gate-scans/canonical tests follow the text; moved ADR link fixed; pytest 2751/0 failed, bats 403/403
+[2026-10-11T07:18:18+01:00] Sub-step 5.3 COMPLETE — aa-ma-plan split 1154→425 (485f998); 90a0224 + L-047 widen negative checks to references; pytest 2759/0 failed, bats 403/403

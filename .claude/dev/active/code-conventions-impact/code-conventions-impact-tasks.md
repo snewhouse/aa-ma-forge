@@ -765,7 +765,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched; two HITL decisions taken with Ste. (1) tests/** S ignores = S101,S108,S603,S607 + pre-existing S110 (Ruff S over tests found 327 hits / 50 files; a literal S101-only would force noqa on every touched test subprocess call); `test_only_tests_ignore_s_rules_and_only_the_approved_set` asserts the exact set. (2) D8 debt on the 16 touched files paid down: AST-identical format commit; 63 docstring fixes (subagent, AST minus docstrings identical) + 20 D209 autofixes; 10 C901/PLR0913 get noqa+why + a TODOS entry; codemem owners' silent `except Exception: return {}` now logs one warning (test mutation-checked). Commits: RED 8fab08b → GREEN f700f90 (S selected, Bandit job removed — carried defect 3 closed — `ruff-security` job on push main/PR/weekly cron, pre-commit ruff `--force-exclude` + `--`, 35 per-site `noqa: S60x # why:`, snapshot.py assert → raise) → style 20f0838 → 6fe1770. Canary `tests/fixtures/canary/canary_shell.py` (S602; AWS key id joined at runtime, the regex finds none in source); its single extend-exclude, when removed, fails 2 tests. Gate `uv run ruff check --isolated --select S src packages scripts` rc 0; tests/security 11 passed; pytest 2982/6/0; bats 460/460; local touched sim rc 0; draft PR #30 CI 7/7 incl. Ruff S (run 38274739316). `# nosec B404` import comments stay until 8.6 (Stage C still runs Bandit).
 
 ### Sub-step 8.3: gitleaks
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 8.2
 - Acceptance Criteria:
@@ -773,7 +773,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `.gitleaksignore` holds fingerprint entries (commit:file:rule:line) for the 3 fixture hits (tests/analysis/test_measure.py, tests/hooks/security-static-check.bats), each preceded by a `# why:` line; a test asserts that; no path or regex allowlists; Ste reviews the allowlist.
   - `.pre-commit-config.yaml` + gitleaks (staged), rev frozen to a SHA.
   - The full-history scan exits 0; a canary commit in a LOCAL `mktemp -d` repo fails `gitleaks detect --source <tmp>`; no canary secret is ever pushed (A5).
-- Result Log:
+- Result Log: HITL (allowlist reviewed and approved by Ste). Full-history scan found **8** generic-api-key hits, all tests/ fixtures, not 3: M7 added 5 (aa-ma-parse.bats, test_logsetup.py ×2, test_fork_manifest.py ×2 — a git SHA). 8.18.0 and 8.18.4 give the same 8 fingerprints. 2 commits sit only on local refs (20a7bb95, a6b2e51e refs/original); they are kept and marked. `.gitleaksignore` holds 8 fingerprints, each under a `# why:`; no allowlist file. CI job `gitleaks`: v8.18.4 tarball, sha256 ba6dbb65…7d (matches the release checksums file) `sha256sum -c`, `detect --redact --exit-code 1 --log-opts="--all"`, fetch-depth 0, persist-credentials false. Pre-commit `gitleaks-system` @02808f45 (v8.18.4 commit; tag object 77c3c6a3); touched job `SKIP: gitleaks-system`. Canary: a runtime key in a tmp repo → detect rc 1 (test); a staged canary in the worktree → hook Failed "leaks found: 1", unstaged and deleted, never committed. RED 068c268 → GREEN e9016cc; tests/security + precommit 24 passed; PR #30 CI 8/8 incl. gitleaks (run 38275374954).
 
 ### Sub-step 8.4: deps job + Dependabot
 - Status: PENDING

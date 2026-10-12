@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 PR/MR-based merge workflow for sole developers. Runs scope-aware local CI
 (closing L-007), dispatches code review + 3-source security pass
-(security-auditor agent + Bandit + ShellCheck), opens a PR via `gh` or MR via
+(security-auditor agent + Ruff S + ShellCheck), opens a PR via `gh` or MR via
 `glab` (default GitLab when both remotes present), polls CI to green, then
 auto-merges with `--rebase --delete-branch` for linear history.
 
@@ -263,11 +263,11 @@ fi
 
 ### Stage C — Code review + 3-source security pass
 
-See [stage-c-review-and-security.md](references/stage-c-review-and-security.md#stage-c--code-review--3-source-security-pass) — the parallel code-reviewer and security-auditor dispatch, Bandit and ShellCheck, and the findings aggregation.
+See [stage-c-review-and-security.md](references/stage-c-review-and-security.md#stage-c--code-review--3-source-security-pass) — the parallel code-reviewer and security-auditor dispatch, Ruff S and ShellCheck, and the findings aggregation.
 
 ### Stage D — Findings triage
 
-See [stage-d-triage.md](references/stage-d-triage.md#stage-d--findings-triage) — how findings are routed by severity: the B602 auto-fix, user panels for HIGH/MEDIUM, LOW to reviewer notes.
+See [stage-d-triage.md](references/stage-d-triage.md#stage-d--findings-triage) — how findings are routed by severity: the S602 auto-fix, user panels for HIGH/MEDIUM, LOW to reviewer notes.
 
 **HIGH and MEDIUM findings go to the user (`AskUserQuestion`: Apply / Dispute / Defer) before Stage E starts.**
 

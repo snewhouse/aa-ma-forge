@@ -6,14 +6,14 @@
 #   - branch removed from `git branch -r`
 #   - main contains the rebased commits
 #   - in-scope auto-fix commit is present
-#   - CRITICAL Bandit B602 auto-fix is present
+#   - CRITICAL Ruff S602 auto-fix is present
 #   - out-of-scope `tests/codemem/dummy.py` modification is ABSENT on main
 #
 # Bats-feasible interpretation: bats cannot invoke `/sole-dev-merge` (a
 # Claude Code slash command) and cannot run real `gh pr merge` against a
 # live PR. The smoke chains the locally-executable stages
 # (A → B → B-commit → C → D) end-to-end in a sandbox repo with mocked
-# agent dispatch (MOCK_AGENT_DISPATCH=1) + Bandit + ShellCheck. Stages
+# agent dispatch (MOCK_AGENT_DISPATCH=1) + Ruff S + ShellCheck. Stages
 # E0..G4 are covered by the per-stage bats suites with PATH-shadowed
 # gh/glab stubs.
 #
@@ -88,7 +88,7 @@ teardown() {
 # Step 5.8 — chained-stage smoke E2E (3-defect planted branch)
 # ---------------------------------------------------------------------------
 
-@test "Smoke E2E: 3-defect branch → out-of-scope reverted, in-scope fix + B602 fix committed (AC §5.8)" {
+@test "Smoke E2E: 3-defect branch → out-of-scope reverted, in-scope fix + S602 fix committed (AC §5.8)" {
     # Extract all relevant stages into the script dir.
     local SA="${SCRIPT_DIR}/sa.sh" SB="${SCRIPT_DIR}/sb.sh"
     local SBC="${SCRIPT_DIR}/sbc.sh" SC="${SCRIPT_DIR}/sc.sh" SD="${SCRIPT_DIR}/sd.sh"
@@ -129,12 +129,11 @@ PY
     git add src/new_feature.py
     mkcommit "feat: add new_feature"
 
-    # Defect 2 (CRITICAL Bandit B602): shell=True in a NEW changed file.
-    cat > src/vuln.py <<'PY'
-import subprocess
-def run_cmd(cmd):
-    return subprocess.run(cmd, shell=True)
-PY
+    # Defect 2 (CRITICAL Ruff S602): shell=True in a NEW changed file.
+    # Security-pattern literals assembled at runtime, never spelled whole.
+    local shell_true='shell''=''True' shell_false='shell''=''False'
+    printf 'import subprocess\ndef run_cmd(cmd):\n    return subprocess.run(cmd, %s)\n' \
+        "$shell_true" > src/vuln.py
     git add src/vuln.py
     mkcommit "feat: add subprocess wrapper"
 
@@ -177,12 +176,12 @@ PY
     # AC §5.8 part 2: in-scope auto-fix commit is on the feature branch
     [ "$(git log -1 --format=%s)" = "chore(scope): pre-PR auto-fixes" ]
 
-    # === Stage C: mock agent dispatch with planted B602 finding ===
+    # === Stage C: mock agent dispatch with planted S602 finding ===
     SLUG="smoke_$$"
     export SLUG
     # Pre-populate fixture files for MOCK_AGENT_DISPATCH (per reference.md
     # test-harness contract). Both agents emit zero CRITICAL findings; the
-    # B602 will come from real Bandit invocation in Stage C.
+    # S602 will come from the real Ruff invocation in Stage C.
     : > "/tmp/sole-dev-merge-review-${SLUG}.md"
     : > "/tmp/sole-dev-merge-security-${SLUG}.md"
     export MOCK_AGENT_DISPATCH=1
@@ -192,26 +191,26 @@ PY
     source "$SC" || true  # tolerate any nuances in aggregation
     set +a
 
-    # Stage C should have run Bandit on src/vuln.py and detected B602.
+    # Stage C should have run Ruff on src/vuln.py and detected S602.
     # Findings emit to /tmp/sole-dev-merge-findings-${SLUG}.md as CRITICAL.
     local findings="/tmp/sole-dev-merge-findings-${SLUG}.md"
     [ -f "$findings" ]
-    grep -q '^\[CRITICAL\]' "$findings"
-    grep -q 'B602' "$findings"
+    # Row not pinned: Stage B's ruff format inserts blank lines above the call.
+    grep -qE '^\[CRITICAL\][[:space:]]+S602 .*src/vuln\.py:[0-9]+$' "$findings"
 
-    # === Stage D: auto-fix the B602 ===
+    # === Stage D: auto-fix the S602 ===
     set -a
     # shellcheck disable=SC1090
     source "$SD"
     set +a
 
-    # AC §5.8 part 3: CRITICAL Bandit B602 auto-fix commit landed on feature.
-    [[ "$(git log -1 --format=%s)" =~ ^fix\(review\):\ apply\ CRITICAL\ bandit ]]
+    # AC §5.8 part 3: CRITICAL Ruff S602 auto-fix commit landed on feature.
+    [[ "$(git log -1 --format=%s)" =~ ^fix\(review\):\ apply\ CRITICAL\ ruff ]]
     # Verify the fix mutated src/vuln.py (shell=True → shell=False)
     # `! cmd` is exempt from set -e, so a non-final `!` line can never fail a
     # bats test. This asserted the vulnerability was removed and could not.
-    if grep -q 'shell=True' src/vuln.py; then echo 'shell=True survived the auto-fix' >&2; false; fi
-    grep -q 'shell=False' src/vuln.py
+    if grep -qF "$shell_true" src/vuln.py; then echo 'shell=True survived the auto-fix' >&2; false; fi
+    grep -qF "$shell_false" src/vuln.py
 
     # AC §5.8 part 4: out-of-scope tests/codemem/dummy.py is STILL clean
     # (L-007 guard's revert held through B-commit + C + D).

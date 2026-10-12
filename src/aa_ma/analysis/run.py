@@ -15,7 +15,7 @@ import os
 import re
 import shlex
 import signal
-import subprocess  # nosec B404 — argv lists only, never a shell
+import subprocess
 import tempfile
 import unicodedata
 from collections.abc import Sequence

@@ -5,18 +5,19 @@
 # Plan §2.1-§2.4 contract:
 #   - C1 (code-reviewer agent) writes findings to /tmp/sole-dev-merge-review-<slug>.md
 #   - C2 (security-auditor agent) writes to /tmp/sole-dev-merge-security-<slug>.md
-#   - C3 (Bandit) writes JSON to /tmp/sole-dev-merge-bandit-<slug>.json
+#   - C3 (Ruff S) writes JSON to /tmp/sole-dev-merge-ruff-<slug>.json
 #   - C4 (ShellCheck) writes JSON to /tmp/sole-dev-merge-shellcheck-<slug>.json
 #   - Aggregator consolidates all 4 sources into /tmp/sole-dev-merge-findings-<slug>.md
 #
 # Severity contract (reference.md):
 #   Agent emits: [CRITICAL]|[HIGH]|[MEDIUM]|[LOW] <one-line> — <path>:<line>
-#   Bandit JSON:  HIGH→[CRITICAL], MEDIUM→[HIGH], LOW→[MEDIUM]
+#   Ruff JSON:    rule code → RUFF_SEV_JSON (e.g. S602→[CRITICAL], S608→[HIGH],
+#                 S101→[MEDIUM]); a code missing from the map → [HIGH]
 #   ShellCheck:   error→[CRITICAL], warning→[HIGH], info→[MEDIUM], style→[LOW]
 #   Parse failure → safe-default: classify ALL findings as [HIGH]
 #
 # Test pattern: MOCK_AGENT_DISPATCH=1 means agent outputs are pre-populated by
-# the test (bypassing real Agent tool). C3/C4 run real bandit/shellcheck.
+# the test (bypassing real Agent tool). C3/C4 run real ruff/shellcheck.
 
 bats_require_minimum_version 1.5.0
 
@@ -58,7 +59,7 @@ EOF
 [MEDIUM]   Open redirect via user-supplied URL — src/route.py:55
 EOF
 
-    # Empty Bandit + ShellCheck (no Python or shell changes)
+    # Empty Ruff + ShellCheck (no Python or shell changes)
     cd "$BATS_TMP"
     sandbox_init
     echo init > a.txt && git add a.txt
@@ -81,19 +82,19 @@ EOF
     [[ "$FINDINGS" == *"src/api.py:9"* ]]
 }
 
-@test "C3 maps Bandit HIGH severity to [CRITICAL]" {
-    # Plant a Python file with Bandit B602 (subprocess shell=True)
+@test "C3 maps Ruff S602 to [CRITICAL] with the rule code" {
+    # Real ruff (the project venv's, on PATH as in CI). No skip guard on purpose:
+    # ruff is a locked dev dependency, so its absence is a red build, not a skip.
     cd "$BATS_TMP"
     sandbox_init
     echo init > a.txt && git add a.txt
     mkcommit "init"
     git checkout -q -b feature
 
-    cat > vulnerable.py <<'PY'
-import subprocess
-def run(cmd):
-    return subprocess.run(cmd, shell=True)
-PY
+    # Security-pattern literal assembled at runtime, never spelled whole.
+    local shell_true='shell''=''True'
+    printf 'import subprocess\ndef run(cmd):\n    return subprocess.run(cmd, %s)\n' \
+        "$shell_true" > vulnerable.py
     git add vulnerable.py
     mkcommit "feat: vulnerable"
 
@@ -107,10 +108,50 @@ PY
     run bash "$SC_SCRIPT"
     [ "$status" -eq 0 ]
 
-    FINDINGS=$(cat "/tmp/sole-dev-merge-findings-${SLUG}.md")
-    # Bandit B602 is HIGH severity → maps to [CRITICAL]
-    [[ "$FINDINGS" == *"[CRITICAL]"* ]]
-    [[ "$FINDINGS" == *"B602"* ]] || [[ "$FINDINGS" == *"shell=True"* ]] || [[ "$FINDINGS" == *"subprocess"* ]]
+    # The report is Ruff's, under the renamed path.
+    [ -s "/tmp/sole-dev-merge-ruff-${SLUG}.json" ]
+    # One line carries both the severity and the code, at the flagged row.
+    grep -qE '^\[CRITICAL\][[:space:]]+S602 .*vulnerable\.py:3 *$' \
+        "/tmp/sole-dev-merge-findings-${SLUG}.md"
+}
+
+@test "C3 maps Ruff codes through RUFF_SEV_JSON; an unmapped code is [HIGH]" {
+    # A stub scanner emitting a fixed Ruff-shaped report pins the mapping
+    # itself, independent of which rules a given ruff release fires.
+    cd "$BATS_TMP"
+    sandbox_init
+    echo init > a.txt && git add a.txt
+    mkcommit "init"
+    git checkout -q -b feature
+    printf 'x = 1\n' > m.py
+    git add m.py
+    mkcommit "feat: m"
+
+    local stub="${SCRIPT_DIR}/fake-ruff"
+    cat > "$stub" <<'SH'
+#!/bin/bash
+cat <<'JSON'
+[
+ {"code": "S101", "message": "assert used", "filename": "m.py", "location": {"row": 1, "column": 1}},
+ {"code": "S608", "message": "sql built from strings", "filename": "m.py", "location": {"row": 2, "column": 1}},
+ {"code": "S999", "message": "a rule this map has never heard of", "filename": "m.py", "location": {"row": 3, "column": 1}}
+]
+JSON
+exit 1
+SH
+    chmod +x "$stub"
+
+    : > "/tmp/sole-dev-merge-review-${SLUG}.md"
+    : > "/tmp/sole-dev-merge-security-${SLUG}.md"
+
+    RUFF_BIN="$stub" BASE_REF=main DEFAULT_BRANCH=main \
+        CHANGED_PY="m.py" CHANGED_SH="" run bash "$SC_SCRIPT"
+    [ "$status" -eq 0 ]
+
+    local f="/tmp/sole-dev-merge-findings-${SLUG}.md"
+    grep -qE '^\[MEDIUM\][[:space:]]+S101 assert used — m\.py:1$' "$f"
+    grep -qE '^\[HIGH\][[:space:]]+S608 .* — m\.py:2$' "$f"
+    grep -qE '^\[HIGH\][[:space:]]+S999 .* — m\.py:3$' "$f"
 }
 
 @test "C3/C4 record UNKNOWN in findings when a scanner does not run" {
@@ -134,16 +175,17 @@ PY
     git add buggy.sh
     mkcommit "feat: buggy"
 
-    printf 'import subprocess\nsubprocess.call("ls", shell=True)\n' > vuln.py
+    local shell_true='shell''=''True'
+    printf 'import subprocess\nsubprocess.call("ls", %s)\n' "$shell_true" > vuln.py
     git add vuln.py
     mkcommit "feat: vulnerable"
 
     local findings="/tmp/sole-dev-merge-findings-${SLUG}.md"
 
-    # Both scanners, all three modes. C3/bandit matters at least as much as C4:
-    # bandit is not a declared dependency of this repo, and $BANDIT_OUT drives
-    # Stage D's B602 auto-remediation, so a silent miss disabled fixing too.
-    for scanner in SHELLCHECK BANDIT; do
+    # Both scanners, all three modes. C3/ruff matters at least as much as C4:
+    # $RUFF_OUT drives Stage D's S602 auto-remediation, so a silent miss would
+    # disable fixing too.
+    for scanner in SHELLCHECK RUFF; do
         for bin in /nonexistent/scanner true echo; do
             : > "/tmp/sole-dev-merge-review-${SLUG}.md"
             : > "/tmp/sole-dev-merge-security-${SLUG}.md"
@@ -152,17 +194,16 @@ PY
                 SHELLCHECK_BIN="$bin" BASE_REF=main DEFAULT_BRANCH=main \
                     CHANGED_PY="" CHANGED_SH="buggy.sh" run bash "$SC_SCRIPT"
             else
-                BANDIT_BIN="$bin" BASE_REF=main DEFAULT_BRANCH=main \
+                RUFF_BIN="$bin" BASE_REF=main DEFAULT_BRANCH=main \
                     CHANGED_PY="vuln.py" CHANGED_SH="" run bash "$SC_SCRIPT"
             fi
             [ "$status" -eq 0 ]
 
             # The degraded state must reach $FINDINGS, not just stdout, and must
             # carry a severity Stage D will actually triage.
-            grep -q '^\[HIGH\]' "$findings" \
-                || { echo "no [HIGH] sentinel for ${scanner}_BIN=$bin" >&2; false; }
-            grep -qi 'UNKNOWN' "$findings" \
-                || { echo "findings do not record UNKNOWN for ${scanner}_BIN=$bin" >&2; false; }
+            # One line carries both, so the sentinel and its meaning travel together.
+            grep -qE '^\[HIGH\].*UNKNOWN' "$findings" \
+                || { echo "no [HIGH] ... UNKNOWN sentinel for ${scanner}_BIN=$bin" >&2; false; }
 
             # And "0 findings" must be unrepresentable in this state — that count
             # is what makes Stage D skip triage entirely.

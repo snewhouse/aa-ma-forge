@@ -152,6 +152,5 @@ dev = [
     "mcp>=1.29.1,<2",               # codemem-benchmark-fairness-v2 M2a.1: explicit dev dep for jCodeMunch stdio MCP round-trip in scripts/bench_codemem_vs_aider.py (already transitive via fastmcp; declared explicitly per L-055).
     "codemem-mcp",             # OBS-001 fix (2026-04-20): workspace member must be an explicit dep for `uv sync` to install it into .venv. Resolved via [tool.uv.sources] codemem-mcp = { workspace = true }. Required so `uv run codemem intel ...` resolves (M3 prerequisite).
     "pre-commit>=4.5",         # code-conventions-impact M1: the touched-files lint harness (ADR-0018).
-    "bandit==1.9.4",           # code-conventions-impact M1: exact pin; M8.1 compares Ruff S against this one version.
     "pip-audit>=2.10.1",
 ]

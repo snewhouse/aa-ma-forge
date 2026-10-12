@@ -6,7 +6,7 @@ import os
 import re
 import shutil
 import sqlite3
-import subprocess  # nosec B404 — optional mmdc render seam, never shell=True
+import subprocess
 import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass

@@ -418,3 +418,7 @@ DECISION ruff-only () — approved by Ste
 - tests/** S ignores: S101, S108, S603, S607 (+ S110, pre-existing). This deviates from the plan's "ONLY S101". Ruff S over tests/ found 327 hits in 50 files, mostly subprocess calls that tests make on purpose. S602/S604/S105/S106/S307/S608 stay on in tests.
 - D8 debt on the 16 files touched for per-site noqa: paid down (format, docstrings). The 10 C901/PLR0913 get noqa+why and a TODOS entry, with no refactor inside a security milestone. Rejected: per-file-ignores (would hide new S60x in those files) and a full refactor (behaviour risk).
 - Found during the pay-down: codemem `owners` swallowed blame exceptions silently (L-1319). Now one warning per failure.
+
+## [2026-10-12] M8.3 — gitleaks allowlist approved (Ste)
+- 8 fingerprints, not the planned 3 (M7 added 5 fixture hits). Kept the 2 local-only-ref entries so the local `--all` scan stays clean. Fixtures not rewritten: history hits would need fingerprints anyway.
+- The pre-commit hook takes its definition from the upstream repo at a frozen SHA, `gitleaks-system`, not `golang` (no Go toolchain needed). The touched CI job skips it; the gitleaks job covers history.

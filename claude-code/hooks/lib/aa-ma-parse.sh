@@ -79,7 +79,7 @@ aa_ma_debug() {
     log_debug "${0##*/}" "$*"
 }
 
-# Characters of a command's first word kept in a debug line: enough to name the program.
+# Longest first word logged, in characters: enough for a program name; a longer word is '?'.
 # No argument is ever logged: HOOK_DEBUG lines are written to hooks.log on disk, and a
 # command line can carry a secret no mask pattern knows (`curl -u user:pw`, `mysql -pX`).
 _AA_MA_DEBUG_WORD_CHARS=32
@@ -96,7 +96,9 @@ aa_ma_debug_cmd() {
     done
     # a quoted or odd word may be the tail of a quoted value (`P='a b' cmd`): log '?' instead
     [[ -z "${word}" || "${word}" =~ ^[A-Za-z0-9_./-]+$ ]] || word="?"
-    aa_ma_debug "${1-} (${#cmd} chars, first word '${word:0:${_AA_MA_DEBUG_WORD_CHARS}}')"
+    # Never truncate: a cut token (ghp_…, sk-…) is too short for its mask rule and would leak.
+    (( ${#word} <= _AA_MA_DEBUG_WORD_CHARS )) || word="?"
+    aa_ma_debug "${1-} (${#cmd} chars, first word '${word}')"
 }
 
 # -----------------------------------------------------------------------------

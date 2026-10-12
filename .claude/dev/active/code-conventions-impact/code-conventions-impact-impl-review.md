@@ -320,3 +320,66 @@ None — no CRITICAL findings.
 ## Verification
 
 7 mutations of the §6.8 fixes each fail ≥1 test (block reset/carry, stage 0, `::`, log escape, EOF warning, arithmetic top). test_check_conventions 83, test_ruff_config 14, agent rule tests 11 — 152 passed in the touched set; full suite recorded in provenance.
+
+---
+
+# Impl Review Report: code-conventions-impact / Milestone 7
+
+- Milestone: Milestone 7: Logging standard (T9) + hook contracts (T15 §7)
+- Audit-Profile: full. Agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor (run in parallel, budget normal)
+- Window: 74cc7e2..b8bb285 (26 commits); §6.6 fixes in 1dc490b
+- Date: 2026-10-12
+
+## Summary
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer             | 0 | 5 | 4 | WARN |
+| security-auditor          | 0 | 2 | 3 | WARN (no `[security-bypass:]` in the window) |
+| tdd-sequence-auditor      | 0 | 0 | 0 | PASS (48e05a7 RED 29 min before the first src/ commit 5fc528b; every src/hook file paired) |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS (no PyPI deps or MAJOR bumps) |
+| future-proofing-auditor   | 0 | 1 | 3 | WARN |
+| **TOTAL**                 | **0** | **8** | **10** | **PASS_WITH_WARNINGS** |
+
+## Findings
+
+- S-W1: with `HOOK_DEBUG=1`, `aa_ma_debug` now writes whole Bash commands to hooks.log on disk; before, they went to stderr only.
+- S-W2: masking gaps:
+  - `export API_KEY="…"`, `PASSWORD='…'` (quoted value);
+  - `Authorization: Bearer …`;
+  - `token: "…"` (unquoted key, quoted value);
+  - `--password x`;
+  - url-credential stops at the first `@` or `/` in the password.
+- C-W1: three hooks load aa-ma-log.sh three ways, each failing differently when it is missing.
+- C-W2: the plan-skip-warn deprecation notice is stderr-only on exit 0, so it is never seen (L-1319).
+- C-W3: ruff-format with malformed stdin JSON exits 0 with no log line.
+- C-W4: logsetup JSON mode writes its fail-closed record without `ts` or `logger`.
+- C-W5 / F-I: `{1,64}` bound on session_id in ruff-format has no name or reason.
+- F-W1: the cap 8192 and overlap 256 are defined separately in bash and Python (tests pin both).
+- S-I: text-mode CLI logs don't flatten CR/LF. S-I: an absolute PATH entry inside an untrusted venv is still trusted (user's choice). S-I: ruff output from the edited repo reaches the model (JSON-safe, capped at 10 lines).
+- C-I: `configure_logging` has no non-test caller until M10. C-I: verbosity 2 maps to DEBUG via `.get` default. C-I: a missing jq gives a notice on every edit (dedupe needs session_id, which needs jq). C-I: hook-name cleanup written twice.
+- F-I: "13 rules" in CHANGELOG is correct today. F-I: "≤10 lines" is repeated in docs.
+
+## Outcomes (Ste: "Fix 6, defer 2")
+
+RED 7c39826, GREEN fe79b23.
+- S-W2, **fixed:**
+  - generic-env accepts a quoted value and `--key value`;
+  - new `bearer-token` rule (log-only id);
+  - url-credential's password is `[^ ]{1,256}@`, so `@` and `/` are masked.
+  - All of these are bounded, and the 100 KB timing cases were added.
+- S-W1, **fixed:** `aa_ma_debug_cmd` logs `<label> (<n> chars): <first 120>`. All 3 command sites use it, and a guard bats test fails if a hook passes `$cmd` to aa_ma_debug.
+- C-W2, **fixed:** the deprecation notice also goes to hooks.log through `log_warn`, and the alias stays on one line.
+- C-W3, **fixed:** an unreadable payload writes one WARN line to hooks.log, and the Fail-open header says so.
+- C-W4, **fixed:** the JSON fail-closed record has `ts`, `level`, `logger` and `message`.
+- C-W5, **fixed:** `# why:` on the 64-char session-id bound.
+- C-W1 (one aa-ma-log.sh loader) and F-W1 (cap and overlap in one place), **deferred:** TODOS.md "Hook hot-path and helper tidy-ups".
+- INFO: S-I CR/LF in text-mode CLI logs, **deferred** to the same TODOS item. Other INFO items are **accepted** as recorded above. `configure_logging` gets its first caller in M10.
+
+## User Override Decisions
+
+None: no CRITICAL findings.
+
+## Verification
+
+Mutations: removing bearer-token fails 2 tests; removing the quoted-value branch fails 3; a raw `$cmd` in aa_ma_debug fails the guard. bats 446/446, pytest 2964 passed / 6 skipped / 0 failed, lint-imports 6 kept, shellcheck clean.

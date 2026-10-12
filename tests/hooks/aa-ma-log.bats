@@ -69,15 +69,15 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
     grep -q ' INFO ho ok: a b c$' "$CLAUDE_HOOK_LOG"
 }
 
-@test "log_* masks secrets with the gitleaks rule id" {
+@test "log_* masks secrets with their rule id" {
     . "$LIB"
     log_warn h "aws=$AWS gh=$GHP key=$ANT"
     run ! grep -qF "$AWS" "$CLAUDE_HOOK_LOG"
     run ! grep -qF "$GHP" "$CLAUDE_HOOK_LOG"
     run ! grep -qF "$ANT" "$CLAUDE_HOOK_LOG"
-    grep -qF 'aws=[REDACTED:aws-access-token]' "$CLAUDE_HOOK_LOG"
-    grep -qF 'gh=[REDACTED:github-pat]' "$CLAUDE_HOOK_LOG"
-    grep -qF 'key=[REDACTED:anthropic-api-key]' "$CLAUDE_HOOK_LOG"
+    grep -qF 'aws=[REDACTED:aws-access-key]' "$CLAUDE_HOOK_LOG"
+    grep -qF 'gh=[REDACTED:github-token]' "$CLAUDE_HOOK_LOG"
+    grep -qF 'key=[REDACTED:sk-key]' "$CLAUDE_HOOK_LOG"
 }
 
 @test "near-miss strings are left alone" {
@@ -91,7 +91,7 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
     . "$LIB"
     run mask_secrets "token $GHP end"
     [ "$status" -eq 0 ]
-    [ "$output" = "token [REDACTED:github-pat] end" ]
+    [ "$output" = "token [REDACTED:github-token] end" ]
 }
 
 @test "messages are capped at 8 KB before matching" {
@@ -149,7 +149,7 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
 @test "fail_open_notice masks secrets in the systemMessage" {
     . "$LIB"
     run fail_open_notice h "leaked $AWS"
-    [ "$(printf '%s' "$output" | jq -r '.systemMessage')" = "h: leaked [REDACTED:aws-access-token]" ]
+    [ "$(printf '%s' "$output" | jq -r '.systemMessage')" = "h: leaked [REDACTED:aws-access-key]" ]
 }
 
 @test "aa-ma-parse.sh sources aa-ma-log.sh; aa_ma_debug routes through log_debug" {
@@ -185,4 +185,22 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
         echo survived' _ "$LIB" "$NOJQ"
     [ "$status" -eq 0 ]
     [ "$output" = "survived" ]
+}
+
+@test "a malformed rule line (empty regex or a second tab) fails closed (M7 §6.6)" {
+    for bad in 'broken\t' 'two\tab\tcd'; do
+        rm -rf "$WORK/forge"
+        mkdir -p "$WORK/forge/claude-code/hooks/lib" "$WORK/forge/src/aa_ma"
+        cp "$LIB" "$WORK/forge/claude-code/hooks/lib/"
+        printf "ok\tabc\n${bad}\n" > "$WORK/forge/src/aa_ma/secret_patterns.tsv"
+        run bash -c '. "$1"; mask_secrets "secret"' _ "$WORK/forge/claude-code/hooks/lib/aa-ma-log.sh"
+        [ "$output" = "[redaction failed]" ]
+    done
+}
+
+@test "patterns load lazily: sourcing the library alone does not read the pattern file (M7 §6.6)" {
+    run bash -c '. "$1"; echo "ok=${_AA_MA_SECRET_PATTERNS_OK}"' _ "$LIB"
+    [ "$output" = "ok=0" ]
+    run bash -c '. "$1"; mask_secrets x >/dev/null; echo "ok=${_AA_MA_SECRET_PATTERNS_OK}"' _ "$LIB"
+    [ "$output" = "ok=1" ]
 }

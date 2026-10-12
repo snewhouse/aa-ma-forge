@@ -41,21 +41,44 @@ def _record(msg: str, *args: object) -> logging.LogRecord:
 
 def test_patterns_load_from_the_shared_source() -> None:
     ids = [rule_id for rule_id, _ in logsetup.SECRET_RULES]
-    assert ids[:2] == ["aws-access-token", "github-pat"]
+    assert ids[:2] == ["aws-access-key", "github-token"]
     assert len(logsetup.SECRET_PATTERNS) == len(ids) >= 10
-    assert ids.index("anthropic-api-key") < ids.index("openai-api-key")
+    # generic key=value rules run last, so a known token keeps its specific id
+    assert ids[-3:] == ["url-credential", "generic-quoted", "generic-env"]
+
+
+def test_rule_ids_match_the_report_gate_where_they_overlap() -> None:
+    """One id vocabulary across the forge: analysis/secrets.py names the same secrets."""
+    from aa_ma.analysis.secrets import PATTERNS
+
+    log_ids = {rule_id for rule_id, _ in logsetup.SECRET_RULES}
+    assert log_ids <= {rule_id for rule_id, _ in PATTERNS}
+
+
+@pytest.mark.parametrize(
+    "line",
+    ["broken-rule\t", "two-tabs\tab\tcd", "no-tab-at-all"],
+    ids=["empty", "tab", "notab"],
+)
+def test_a_malformed_rule_line_is_refused(line: str) -> None:
+    with pytest.raises(RuntimeError, match="secret_patterns.tsv"):
+        logsetup._parse_rules(f"# header\nok\tabc\n{line}\n")
 
 
 @pytest.mark.parametrize(
     ("secret", "rule"),
     [
-        (AWS, "aws-access-token"),
-        (GHP, "github-pat"),
-        (ANT, "anthropic-api-key"),
-        (OPENAI, "openai-api-key"),
+        (AWS, "aws-access-key"),
+        (GHP, "github-token"),
+        (ANT, "sk-key"),
+        (OPENAI, "sk-key"),
         (SLACK, "slack-token"),
         (JWT, "jwt"),
-        (PEM, "private-key"),
+        (PEM, "private-key-block"),
+        ("PASSWORD=" + "hunter2hunter2", "generic-env"),
+        ("db_secret: " + "s3cr3tvalue", "generic-env"),
+        ('"api_key": "' + "abcdefgh1234" + '"', "generic-quoted"),
+        ("https://user:" + "pa55word" + "@db.example", "url-credential"),
     ],
 )
 def test_mask_secrets_replaces_with_rule_id(secret: str, rule: str) -> None:
@@ -63,8 +86,18 @@ def test_mask_secrets_replaces_with_rule_id(secret: str, rule: str) -> None:
 
 
 def test_near_misses_are_left_alone() -> None:
-    text = "AKIA1234 ghp_short sk-ant-tiny xoxb- eyJhbGci"
+    text = "AKIA1234 ghp_short sk-ant-tiny xoxb- eyJhbGci token=short risk-assessment-for-module"
     assert logsetup.mask_secrets(text) == text
+
+
+def test_private_key_body_is_masked_not_just_its_header() -> None:
+    body = "MIIEow" + "A" * 60
+    out = logsetup.mask_secrets(f"{PEM} {body} -----END RSA PRIVATE KEY----- tail")
+    assert out == "[REDACTED:private-key-block] tail"
+
+
+def test_a_known_token_after_a_key_name_keeps_its_specific_id() -> None:
+    assert logsetup.mask_secrets(f"TOKEN={GHP}") == "TOKEN=[REDACTED:github-token]"
 
 
 def test_mask_secrets_caps_input() -> None:
@@ -81,7 +114,7 @@ def test_formatter_masks_message_and_args() -> None:
     fmt = logsetup.SecretRedactingFormatter("%(message)s")
     out = fmt.format(_record("key=%s token=" + GHP, ANT))
     assert AWS not in out and GHP not in out and ANT not in out
-    assert out == "key=[REDACTED:anthropic-api-key] token=[REDACTED:github-pat]"
+    assert out == "key=[REDACTED:sk-key] token=[REDACTED:github-token]"
 
 
 def test_formatter_masks_exception_text() -> None:
@@ -96,7 +129,7 @@ def test_formatter_masks_exception_text() -> None:
     out = fmt.format(rec)
     assert "Traceback" in out
     assert AWS not in out
-    assert "[REDACTED:aws-access-token]" in out
+    assert "[REDACTED:aws-access-key]" in out
 
 
 def test_formatter_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -116,7 +149,7 @@ def test_child_logger_output_is_redacted(stderr_logs, capsys) -> None:
     logging.getLogger("aa_ma.child.deeper").warning("leak %s", GHP)
     err = capsys.readouterr().err
     assert GHP not in err
-    assert "[REDACTED:github-pat]" in err
+    assert "[REDACTED:github-token]" in err
 
 
 @pytest.mark.parametrize(
@@ -174,7 +207,15 @@ def test_json_format_is_one_redacted_object_per_line(
     obj = json.loads(line)
     assert obj["level"] == "WARNING"
     assert obj["logger"] == "aa_ma.j"
-    assert obj["message"] == 'quote " and [REDACTED:aws-access-token]'
+    assert obj["message"] == 'quote " and [REDACTED:aws-access-key]'
+
+
+def test_json_format_keeps_masked_stack_info(stderr_logs, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("LOG_FORMAT", "json")
+    logsetup.configure_logging()
+    logging.getLogger("aa_ma.j").warning("with stack %s", AWS, stack_info=True)
+    obj = json.loads(capsys.readouterr().err.strip())
+    assert "Stack (most recent call last)" in obj["stack"]
 
 
 def test_fmt_argument_overrides_log_format_env(
@@ -201,6 +242,11 @@ ADVERSARIAL = [
     "ey" + "a" * 50_000 + ".ey" + "b" * 50_000,
     "-----BEGIN " + " " * 100_000,
     "-----BEGIN" * 10_000,
+    "-----BEGIN RSA PRIVATE KEY-----" + "A" * 100_000,
+    "password" * 12_500,
+    "x_password " * 9_000,
+    '"token": "' * 10_000,
+    "a://b:" * 16_000,
 ]
 
 
@@ -227,6 +273,10 @@ PARITY_CORPUS = [
     "AIza" + "-" * 35,
     "AKIA1234 ghp_short sk-ant-tiny xoxb- eyJhbGci",
     "ASIA" + "Z" * 16 + AWS,
+    "PASSWORD=hunter2hunter2 and Api-Key: abcdefgh123",
+    '{"Token": "abcdefgh1234", "secret":"tiny"}',
+    "postgres://u:pa55word@host/db and TOKEN=" + GHP,
+    PEM + " MIIEowAAAA -----END RSA PRIVATE KEY----- after",
 ]
 
 

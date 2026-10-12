@@ -787,13 +787,13 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. RED fbe2190 (6 tests) → GREEN 0d6d6b6. Job `deps`: `uv sync --locked`, `uv export --frozen --no-emit-workspace --no-emit-project -o req.txt` (hashed), `uv run pip-audit --disable-pip --require-hashes --strict -r req.txt`, with ignores read from `.pip-audit-ignore` (`<ID>  # expires: YYYY-MM-DD — why`; the loop was checked with 0 and 2 entries). pip-audit 2.10.1 locked in the dev group. The expiry test was mutation-checked (an expired entry fails it). `.github/dependabot.yml` covers github-actions + uv, weekly, `cooldown.default-days: 7` (schema checked against the GitHub docs; GitHub's dependabot check passed). bats, codemem-smoke, architecture-drift and explorer-contract moved from setup-python + `pip install uv` + `uv sync` to setup-uv@c18668a (0.12.3, py 3.13) + `uv sync --locked`. All 9 checkouts set `persist-credentials: false`. Pre-commit's only remote rev is frozen to a SHA (8.3). PR #30 run 38276289265: 9/10 green, `deps` red as expected ("Found 72 known vulnerabilities in 13 packages"). **A6 resolved:** pip-audit replaces the experimental `uv audit`. Local note: uv-managed CPython 3.13.5 lacks the stdlib `venv` package, so local pip-audit ran via `uvx --python /usr/bin/python3.14 pip-audit==2.10.1` (toolchain not modified). pytest 2995/6/0.
 
 ### Sub-step 8.5: Triage the 13 vulnerable packages (plan 8.4a)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 8.4
 - Acceptance Criteria:
   - For each of the 13 packages (12 with `--no-dev`: pyjwt, starlette, urllib3, mcp, fastmcp, cryptography…): `uv lock --upgrade-package <pkg>`, or an ignore entry with ID, why and expiry date.
   - The `deps` job exits 0 on the branch; the triage table is in `docs/research/code-conventions-impact-ruff-vs-bandit.md` §deps.
-- Result Log:
+- Result Log: HITL (ignore decision approved by Ste). Baseline: 72 findings / 46 unique advisory IDs / 13 packages. A blanket upgrade was rejected (mcp → 2.3.0 major, fastmcp downgraded). 11 packages upgraded within constraints (mcp 1.27→1.30, dev pin `>=1.29.1,<2`; cryptography 46→50; pyjwt 2.15.1; starlette 1.7; urllib3 2.8; …). fastmcp ≥3.2 was blocked by watchfiles `<1` (TUI), so 3 IDs are ignored to 2027-01-12 with reasons: PYSEC-2026-2475/2476 (fastmcp; Gemini-CLI and OAuth proxy, both absent — grep confirms stdio-only) and PYSEC-2026-2447 (diskcache, no fix). TODOS P2 covers the fastmcp 3 / watchfiles 1 migration. Live MCP stdio round-trip on mcp 1.30: 15 tools, `who_calls` OK. Re-audit: 0 unignored. Commit 2f81482. pytest 2995/6/0 (+2 authlib-1.8 DeprecationWarnings from fastmcp imports; gone after the migration); bats 460/460; PR #30 CI 9/9 incl. deps (run 38287827088). Triage table in research doc §deps.
 
 ### Sub-step 8.6: Commit hook → forge-pinned Ruff S (blocking) + Stage C (plan 8.5, TDD)
 - Status: PENDING

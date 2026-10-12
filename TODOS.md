@@ -9,6 +9,9 @@
 - `_aa_ma_log` builds `hook` and `msg` in `$(…)` subshells, one fork per field per line. Use `printf -v` or globals.
 - `~/.claude/hooks/cache/ruff-format-no-ruff-<sid>` markers are never removed. Prune old ones, e.g. from session-start.
 - The forge-root lookup (`readlink -f` + strip path components) is written out in `aa-ma-log.sh`, `aa-ma-parse.sh` (3×) and `ruff-format.sh`. Make it one helper in `aa-ma-log.sh`.
+- Three hooks load `aa-ma-log.sh` three ways and react differently when it is missing: `aa-ma-parse.sh` sources it, `aa-ma-plan-skip-warn.sh` stubs `log_debug`, and `ruff-format.sh` prints a systemMessage. Use one loader with one rule (§6.8 C-W1).
+- The 8192-char cap and 256-char overlap are defined in both `aa-ma-log.sh` and `logsetup.py`. Tests pin both, but a change needs 4 edits. Read them from the TSV, or add a parity test (§6.8 F-W1).
+- Text-mode CLI logs (`logsetup.py`) don't flatten CR/LF, so a message built from untrusted input can fake a log line. The bash side flattens them (§6.8 S-I).
 
 **Why:** found by the code-conventions-impact M7 post-milestone review. Ste chose to fix the WARNINGs in M7 and defer these INFO items. None is a defect: each costs a few ms, or is one marker file per session.
 

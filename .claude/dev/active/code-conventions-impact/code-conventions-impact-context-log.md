@@ -346,3 +346,11 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Trade-off: `sk-key` keeps `{32,}`. Without the gate's lookbehind a 20-char minimum masks words like `risk-assessment-…`.
 - Hot path re-measured (50 runs, temp HOME, real payloads), branch vs main: commit-signature 44.6 → 46.6 ms, security-static-check 27.9 → 29.9, commit-drift 41.3 → 45.2 (was ~+15 ms each before the fix); ruff-format on a non-.py edit 4.7 → 1.8 ms.
 - Not fixed: E4's `printf %(…)T` would print `+0000` and break the `date -Is` line contract, so only the mkdir guard was taken. Q2 sites predate M7 (git blame), so they are out of scope. Deferred to TODOS.md: E5, E7, E8, R2.
+
+## [2026-10-12] M7 §6.8 post-impl review — PASS_WITH_WARNINGS (0 CRITICAL / 8 WARNING / 10 INFO)
+- Approved by: Ste ("Fix 6, defer 2").
+- The security auditor found the §6.6 masking rules still missed common shapes: quoted values, `--password x`, `Bearer`, and URL passwords with `@` or `/`. That mattered more because `HOOK_DEBUG=1` now writes whole commands to hooks.log on disk. Fixed both ways:
+  - the rules were widened;
+  - debug lines carry only a command's length and first 120 characters (`AA_MA_DEBUG_CMD_CHARS`), so a mask miss in the tail never reaches disk.
+- `bearer-token` is the one log-only rule id, an exception to "ids follow the report gate": report files rarely hold HTTP headers. The subset test names the exception.
+- Deferred to TODOS: one aa-ma-log.sh loader (C-W1), the cap and overlap in one place (F-W1), CR/LF flattening in text-mode CLI logs (S-I).

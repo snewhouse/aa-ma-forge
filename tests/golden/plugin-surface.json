@@ -841,7 +841,7 @@
    "src": "skill:goal-condition-synthesis"
   },
   {
-   "dst": "hook:aa-ma-parse.sh",
+   "dst": "hook:aa-ma-log.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",
    "src": "skill:logging-and-comments"
@@ -849,6 +849,12 @@
   {
    "dst": "hook:ruff-format.sh",
    "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:logging-and-comments"
+  },
+  {
+   "dst": "skill:bash-defensive-patterns",
+   "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:logging-and-comments"
   },
@@ -1323,7 +1329,6 @@
   "hook:aa-ma-session-end-dirty.sh",
   "skill:aa-ma-execution",
   "skill:aa-ma-search",
-  "skill:bash-defensive-patterns",
   "skill:complexity-router",
   "skill:debugging-strategies",
   "skill:llm-output-safety",

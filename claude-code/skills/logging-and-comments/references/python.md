@@ -1,5 +1,11 @@
 # Python logging — detail and templates
 
+## Contents
+
+- [Entrypoint configuration (applications / CLIs only)](#entrypoint-configuration-applications--clis-only)
+- [Patterns](#patterns)
+- [Anti-patterns → fixes](#anti-patterns--fixes)
+
 ## Entrypoint configuration (applications / CLIs only)
 
 ```python
@@ -38,10 +44,10 @@ def configure_logging(verbosity: int = 0, quiet: bool = False) -> None:
         logging.getLogger(noisy).setLevel(cap)
 ```
 
-Libraries (packages other code imports) do only this, in the package `__init__.py`:
+Libraries (packages other code imports) configure nothing. Leave out `NullHandler` by default: with no configuration, WARNING and above still reach stderr, which the [Logging HOWTO](https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library) calls "the best default behaviour", and that keeps a library's failures visible to callers. Add it only when you deliberately want those callers silent, and say why:
 
 ```python
-logging.getLogger(__name__).addHandler(logging.NullHandler())
+logging.getLogger(__name__).addHandler(logging.NullHandler())  # why: <reason the warnings must not show>
 ```
 
 ## Patterns

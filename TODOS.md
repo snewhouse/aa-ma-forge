@@ -18,6 +18,10 @@
 **Priority:** P3
 **Depends on:** —
 
+### Migrate codemem to fastmcp 3.x (and aa-ma to watchfiles 1.x) before 2027-01-12
+**What:** `fastmcp>=3.2,<4` in `packages/codemem-mcp/pyproject.toml` and `watchfiles>=1.0` in `pyproject.toml` (TUI watcher, `src/aa_ma/tui/watcher.py`). Re-test the TUI and a live MCP stdio round-trip. Then delete the three `.pip-audit-ignore` entries, or re-check diskcache: it has no fix yet.
+**Why:** M8.5 ignored PYSEC-2026-2475/2476 (fastmcp <3.2) and PYSEC-2026-2447 (diskcache) because they are unreachable from a stdio-only server. The ignores expire on 2027-01-12, and `test_deps_audit.py` then fails CI. **Effort:** M · **Priority:** P2
+
 ### Refactor the 10 functions M8.2 suppressed with `noqa: C901` / `PLR0913`
 **What:** split these so the per-site suppressions can go:
 - `codemem/incremental.py::_refresh_locked` (17)

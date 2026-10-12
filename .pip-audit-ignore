@@ -1,3 +1,6 @@
 # pip-audit ignores for the CI `deps` job (code-conventions-impact M8.4).
 # One per line:  <VULN-ID>  # expires: YYYY-MM-DD — <why it is safe until then>
 # tests/security/test_deps_audit.py fails any entry past its expiry date.
+PYSEC-2026-2475  # expires: 2027-01-12 — fastmcp <3.2 Gemini-CLI command injection (GHSA-m8x7-r2rg-vh5g); codemem never installs into Gemini CLI; fix needs fastmcp 3.x + watchfiles>=1 (TODOS)
+PYSEC-2026-2476  # expires: 2027-01-12 — fastmcp <3.2 OAuth-proxy consent bypass (GHSA-rww4-4w9c-7733); codemem's server is stdio-only, no OAuth proxy; same migration (TODOS)
+PYSEC-2026-2447  # expires: 2027-01-12 — diskcache pickle deserialization (GHSA-w8v5-vhqr-4h9v), no fix released; transitive via fastmcp's py-key-value-aio, which codemem never configures

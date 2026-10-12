@@ -694,22 +694,22 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE d2fcb17. 7 payloads captured live 2026-10-11/12 (`claude -p --model haiku`, plan billing; ExitPlanMode via an interactive plan-mode session Ste ran): SessionStart, PreCompact, SessionEnd, PreToolUse-Bash, PreToolUse-ExitPlanMode, PostToolUse-Bash, PostToolUse-Edit → `tests/fixtures/hook-payloads/`. **AC deviation (Ste):** session_id/prompt_id/tool_use_id scrubbed to placeholders, `/home/<user>`→`/home/capture`, scratchpad uid→`/tmp/claude-capture`; all other fields as captured. Masker: 7/7 unchanged. Wiring: `tests/lib/hook_payloads.bash` `payload` helper; make_input/build_stdin in commit-signature, security-static-check, commit-drift, plan-skip-warn now build from the fixtures; +1 piped-fixture test each in session-start, pre-compact, session-end-dirty, plan-skip-warn (SessionEnd); ruff-format repointed, M2.4 fixture deleted. Guard `tests/test_hook_payloads.py` (8): every registered event+matcher has a fixture; no home/uid/real-uuid/toolu leak; masker-clean. Mutations: 8/8 hook bats fail on a broken fixture; guard catches uuid, home, missing-fixture mutants (3/3). bats 439/439, pytest 2935 passed/6 skipped/0 failed.
 
 ### Sub-step 7.6: Revise logging skills
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 7.5
 - Acceptance Criteria:
   - `logging-and-comments`: NullHandler optional + why; JSON for services, opt-in elsewhere; `HOOK_DEBUG`/`LOG_LEVEL` only (VERBOSE/DEBUG removed); strict-mode + BashFAQ/105 caveats; hooks.log format; pino → fd 2 note.
   - `bash-defensive-patterns/SKILL.md`: bracketed log example → hook-log format; strict-mode caveats.
   - M4 evals for logging-and-comments re-run; delta logged.
-- Result Log:
+- Result Log: COMPLETE 4f9df10. Mode: AFK — auto-dispatched. `logging-and-comments`: NullHandler optional + `# why:` (references/python.md, HOWTO quote; TOC added, TOC allowlist entry dropped); JSON default for services, opt-in `LOG_FORMAT` elsewhere; `LOG_LEVEL`/`HOOK_DEBUG` the only switches; `set -e` caveats + BashFAQ/105 (SKILL.md + new references/bash.md section; `inherit_errexit`; header template on LOG_LEVEL + hooks.log format); hooks.log format with example + `aa-ma-log.sh` helpers; pino → `pino.destination(2)`. `bash-defensive-patterns`: `set -e` caveats block; Pattern 5 logging → hooks.log format; Pattern 4 `-v` → `LOG_LEVEL=DEBUG`; derived-fork md5 updated in FORKS.json; no longer a plugin-surface orphan (test set + golden regenerated). Grep AC `git grep -n 'AA_MA_PLAN_MARKER_DEBUG\|VERBOSE\|\bDEBUG=' claude-code/` → only aa-ma-plan-skip-warn.sh:42 (the alias). Evals logging-and-comments (sonnet, n=1): before 3/3 $0.30 → after 3/3 $0.24; delta 0. bats 439/439, pytest 2935 passed/6 skipped/0 failed.
 
 ### Sub-step 7.7: CRITICAL_PATH_REVIEW
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 7.6
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — Milestone 7: Logging standard (T9) + hook contracts (T15 §7) — hook-modification — <evidence>`, naming the bats/test names.
-- Result Log:
+- Result Log: COMPLETE — CRITICAL_PATH_REVIEW written to provenance.log (2026-10-12T10:11:32+01:00); evidence: 21 commits main..HEAD, every changed hook/lib exercised by named bats with real payloads, mutation runs recorded per sub-step.
 
 ---
 

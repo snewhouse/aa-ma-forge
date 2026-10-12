@@ -178,3 +178,4 @@
 [2026-10-12T104810Z] DOUBLE_CHECK — status=Verified effort=quick report=/home/sjnewhouse/projects/github_private/aa-ma-forge/.worktrees/feat/cci-m7-logging-hook-contracts/.claude/reports/double-check/2026-10-12T104810Z-m7-logging-hook-contracts-hard-gate.md
 [2026-10-12T11:50:12+01:00] MILESTONE COMPLETE — Milestone 7: Logging standard (T9) + hook contracts (T15 §7) — Commit: 190508e (finalization follows) — Criteria: 6/6 verified — Gate: HARD APPROVED (Ste)
 [2026-10-12T11:51:42+01:00] VALIDATOR — M7 post-completion: READY_FOR_ARCHIVE (M7 scope; M8–M14 PENDING) — 0 FAIL / 0 WARN / 5 INFO (cosmetic)
+[2026-10-12T12:15:10+01:00] sole-dev-merge Stage C/D — findings: C1 1H/1M/4L, C2 3L, Bandit 122 (tests only, disputed), ShellCheck 0; fixed RED 8ec4613 GREEN 44defcd; disputed 2 LOW (contracts) + Bandit tests; bats 457/457, pytest 2970 passed/6 skipped/0 failed

@@ -303,12 +303,13 @@ EOF
     [ -z "$result" ]
 }
 
-@test "aa_ma_debug_cmd logs the command's length and a capped prefix, never its tail (M7 §6.8)" {
+@test "aa_ma_debug_cmd logs a command's length and first word only, never its arguments (M7 §6.8)" {
     . "$HELPER"
-    cmd="git commit -m x $(printf 'a%.0s' {1..200}) TAILSECRETXYZ"
-    HOOK_DEBUG=1 aa_ma_debug_cmd "commit-signature: examining command" "$cmd" 2>/dev/null
-    grep -qF "commit-signature: examining command (${#cmd} chars): git commit -m x aaa" "$CLAUDE_HOOK_LOG"
-    run ! grep -qF TAILSECRETXYZ "$CLAUDE_HOOK_LOG"
+    for cmd in 'curl -u admin:hunter2 https://x' 'mysql -phunter2 db' 'sshpass -p hunter2 ssh h'; do
+        HOOK_DEBUG=1 aa_ma_debug_cmd "probe" "$cmd" 2>/dev/null
+        grep -qF "probe (${#cmd} chars, first word '${cmd%% *}')" "$CLAUDE_HOOK_LOG"
+    done
+    run ! grep -qF hunter2 "$CLAUDE_HOOK_LOG"
 }
 
 @test "no hook passes a raw command to aa_ma_debug (M7 §6.8)" {

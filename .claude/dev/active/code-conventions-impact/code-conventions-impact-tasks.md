@@ -684,14 +684,14 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. RED c50c8ce, GREEN 7abd17d. ruff-format.sh: fix → format → `ruff check --output-format concise --quiet` findings as `{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":…}}` via `jq -cn --arg`, ≤10 lines (9 + "… and N more — run: ruff check <f>"); format failure → log_error; clean file → no stdout; never blocks. ruff resolution: `<forge>/.venv/bin/ruff` (forge = hook's `readlink -f` dir/../..) else `command -v ruff` **only if absolute**; none → `fail_open_notice` once per session (marker `~/.claude/hooks/cache/ruff-format-no-ruff-<session_id>`, session_id `^[A-Za-z0-9_-]{1,64}$`). **Security finding**: the shipped hook ran a hostile repo's committed `.venv/bin/ruff` when PATH held a relative `.venv/bin` (RED proved it). The first draft of the hostile test passed vacuously — its stub's `#!/usr/bin/env bash` could not start on the restricted PATH — caught by a manual repro; stub is now `#!/bin/sh` + builtin redirect. bats: captured M2 payload → additionalContext JSON with only the 3 expected paths; 15-finding file → 10 lines; hostile repo (forge ruff present, and no-forge + relative PATH) → sentinel never created; no ruff → exactly 1 systemMessage per session_id (A, A, B → 1, 0, 1; 2 WARN lines). Mutations caught: relative ruff accepted, no session marker, no cap, code-level exit 1 in an Advisory hook (hook-headers.bats now ignores comment lines). Docs: foundations.md, logging-and-comments SKILL.md, CHANGELOG (Added + Security). LIVE transcript check → 8.0 as planned. bats -r tests 435/435; pytest 2927 / 0 failed.
 
 ### Sub-step 7.5: Captured payload fixtures
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 7.4
 - Acceptance Criteria:
   - One fixture per registered hook event in `tests/fixtures/hook-payloads/`, captured live (not hand-written), each keeping its real `session_id`/`transcript_path`.
   - Every hook's bats is fed a real captured payload.
   - `provenance.log` has a `PAYLOAD_CAPTURED <event>` line per event.
-- Result Log:
+- Result Log: COMPLETE d2fcb17. 7 payloads captured live 2026-10-11/12 (`claude -p --model haiku`, plan billing; ExitPlanMode via an interactive plan-mode session Ste ran): SessionStart, PreCompact, SessionEnd, PreToolUse-Bash, PreToolUse-ExitPlanMode, PostToolUse-Bash, PostToolUse-Edit → `tests/fixtures/hook-payloads/`. **AC deviation (Ste):** session_id/prompt_id/tool_use_id scrubbed to placeholders, `/home/<user>`→`/home/capture`, scratchpad uid→`/tmp/claude-capture`; all other fields as captured. Masker: 7/7 unchanged. Wiring: `tests/lib/hook_payloads.bash` `payload` helper; make_input/build_stdin in commit-signature, security-static-check, commit-drift, plan-skip-warn now build from the fixtures; +1 piped-fixture test each in session-start, pre-compact, session-end-dirty, plan-skip-warn (SessionEnd); ruff-format repointed, M2.4 fixture deleted. Guard `tests/test_hook_payloads.py` (8): every registered event+matcher has a fixture; no home/uid/real-uuid/toolu leak; masker-clean. Mutations: 8/8 hook bats fail on a broken fixture; guard catches uuid, home, missing-fixture mutants (3/3). bats 439/439, pytest 2935 passed/6 skipped/0 failed.
 
 ### Sub-step 7.6: Revise logging skills
 - Status: PENDING

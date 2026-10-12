@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-11 (M7.0)_
+_Last Updated: 2026-10-12 (M7.5)_
 
 Test-Command: uv run pytest
 
@@ -307,7 +307,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - Outside-repo backup: `~/.claude/backups/cci-m2-20261009T073602Z.tgz`, 11 files, sha256 `dfe5f8f9…4ec4c5` (restore fallback). [valid: 2026-10-09]
 - `claude-code/hooks/ruff-format.sh` = Adoption, adapted: honours `AA_MA_HOOKS_DISABLE`, logs to `${CLAUDE_HOOK_LOG:-~/.claude/logs/hooks.log}`, passes `--` before the path. Not cmp-identical to the live `~/.claude/hooks/lib/ruff-format.sh` (until 3.0 relinks it). [valid: 2026-10-09]
 - `scripts/install.sh`: row `PostToolUse|Edit|Write|ruff-format.sh|10|`; rows parsed by a regex anchored on `<name>.sh|<timeout>|` (same grammar as codemem `_HOOK_ROW`); settings backups are sibling files `~/.claude/backups/settings-aa-ma-forge-<ts>.json`; `--force` still backs up real dirs. `scripts/uninstall.sh --restore` walks every `aa-ma-forge-*` backup newest-first (newest copy per path wins); deregisters ruff-format only without `--restore`. [valid: 2026-10-09] [Superseded by M3 (2f2de1a, 41d8288): uninstall deregisters every AA_MA_HOOKS row, with or without `--restore`; the table lives in scripts/lib/aa-ma-install-lib.sh.]
-- Real PostToolUse(Edit) payload fixture: `tests/hooks/fixtures/ruff-format/posttooluse-edit.json` (captured 2026-10-09, paths rewritten to `/tmp/capture`). [valid: 2026-10-09]
+- Real hook payload fixtures, one per registered event+matcher: `tests/fixtures/hook-payloads/<Event>[-<Matcher>].json` (captured 2026-10-12; ids → `00000000-0000-4000-8000-NNNNNNNNNNNN` / `toolu_0…N`, home → `/home/capture`); bats read them via `load ../lib/hook_payloads` + `payload <name> <jq filter>`; guarded by `tests/test_hook_payloads.py`. Supersedes the M2.4 `tests/hooks/fixtures/ruff-format/posttooluse-edit.json`. [valid: 2026-10-12]
 - Counts after M2: skills 27, top-level hooks 9. Orphans pinned in `test_plugin_surface.py` until M12: `llm-output-safety`, `bash-defensive-patterns`. [valid: 2026-10-09]
 - Convention (TDD dispute, 2026-10-09): RED tests get their own `test(...)` commit before the GREEN commit. [valid: 2026-10-09]
 

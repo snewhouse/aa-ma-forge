@@ -847,6 +847,12 @@
    "src": "skill:logging-and-comments"
   },
   {
+   "dst": "hook:pre-compact-aa-ma.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "skill:logging-and-comments"
+  },
+  {
    "dst": "hook:ruff-format.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",

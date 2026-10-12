@@ -81,6 +81,10 @@ class SecretRedactingFormatter(logging.Formatter):
         super().__init__(fmt)
         self.as_json = as_json
 
+    def formatMessage(self, record: logging.LogRecord) -> str:
+        """The record's line with CR/LF flattened: untrusted input must not forge a log line."""
+        return super().formatMessage(record).replace("\r", " ").replace("\n", " ")
+
     def format(self, record: logging.LogRecord) -> str:
         """Render the record, then mask it; fail closed by replacing the record's message."""
         try:

@@ -204,3 +204,9 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
     run bash -c '. "$1"; mask_secrets x >/dev/null; echo "ok=${_AA_MA_SECRET_PATTERNS_OK}"' _ "$LIB"
     [ "$output" = "ok=1" ]
 }
+
+@test "HOME unset under set -u: log calls still return 0 (double-check F2)" {
+    run env -u HOME -u CLAUDE_HOOK_LOG HOOK_DEBUG=1 bash -c 'set -euo pipefail; cd "$2"; . "$1"; log_warn h m; log_debug h d; echo done' _ "$LIB" "$WORK"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *done* ]]
+}

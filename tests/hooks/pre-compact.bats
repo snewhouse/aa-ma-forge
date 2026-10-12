@@ -155,3 +155,13 @@ EOF
     [ "$status" -eq 0 ]
     [ -f "$BATS_TMP_HOME/.claude/hooks/cache/compaction-snapshots/task-1-snapshot.md" ]
 }
+
+@test "unwritable HOME: exit 0 with a systemMessage, as the Exit header says (double-check F2)" {
+    [ "$(id -u)" -eq 0 ] && skip "root ignores chmod"
+    ro="$BATS_TMP/ro-home"; mkdir -p "$ro"; chmod 500 "$ro"
+    cd "$BATS_TMP"
+    HOME="$ro" run bash -c "bash '$HOOK' 2>/dev/null"
+    chmod 700 "$ro"
+    [ "$status" -eq 0 ]
+    printf '%s' "$output" | jq -e '.systemMessage | test("snapshot")' >/dev/null
+}

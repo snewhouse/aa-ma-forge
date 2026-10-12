@@ -82,6 +82,8 @@ def test_a_malformed_rule_line_is_refused(line: str) -> None:
         ("secret: " + "s3cr3tvalue", "generic-env"),
         ("API_KEY=" + '"abcdefgh12345678"', "generic-env"),
         ("PASSWORD=" + "'hunter2hunter2'", "generic-env"),
+        ("AWS_SECRET_ACCESS_KEY=" + "wJalrXUtnFEMIK7MDENG", "generic-env"),
+        ("GH_PAT_TOKEN_VALUE=" + "'abcdefgh1234'", "generic-env"),
         ("token: " + '"abcdefghijk"', "generic-env"),
         ("--password " + "hunter2hunter2", "generic-env"),
         ("Authorization: Bearer " + "abcDEF123456ghiJKL789", "bearer-token"),
@@ -93,7 +95,7 @@ def test_mask_secrets_replaces_with_rule_id(secret: str, rule: str) -> None:
 
 
 def test_near_misses_are_left_alone() -> None:
-    text = "AKIA1234 ghp_short sk-ant-tiny xoxb- eyJhbGci token=short risk-assessment-for-module"
+    text = "AKIA1234 ghp_short sk-ant-tiny xoxb- eyJhbGci token=short risk-assessment-for-module MONKEY_COUNT=3"
     assert logsetup.mask_secrets(text) == text
 
 
@@ -242,6 +244,15 @@ def test_bad_log_level_env_warns_and_falls_back(
     assert "LOG_LEVEL='LOUD'" in capsys.readouterr().err
 
 
+def test_text_format_keeps_one_record_on_one_line(stderr_logs, capsys) -> None:
+    """A CR/LF in untrusted input must not forge a second log line (security §6.8 S-I)."""
+    logsetup.configure_logging()
+    logging.getLogger("aa_ma.t").warning("user said %s", "hi\nCRITICAL root: forged\rx")
+    err = capsys.readouterr().err
+    assert err.count("\n") == 1
+    assert "\r" not in err
+
+
 def test_handler_writes_to_stderr_not_stdout(stderr_logs, capsys) -> None:
     logsetup.configure_logging()
     logging.getLogger("aa_ma.x").warning("to stderr")
@@ -304,6 +315,8 @@ ADVERSARIAL = [
     "--password " * 9_000,
     "Bearer " * 14_000,
     'API_KEY="' * 11_000,
+    "_KEY" * 25_000 + "=",
+    "A" * 50_000 + "SECRET" + "B" * 50_000 + "=",
 ]
 
 

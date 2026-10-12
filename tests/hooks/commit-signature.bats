@@ -127,3 +127,15 @@ EOF
     HOME="$BATS_TMP_HOME" run bash -c "printf '%s' \"\$1\" | bash \"$HOOK\"" _ "$input"
     [ "$status" -eq 0 ]
 }
+
+@test "readlink without -f (macOS < 12.3): the hook still loads and still blocks (double-check F2)" {
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    cd "$BATS_TMP"
+    stub="$BATS_TMP/stub"; mkdir -p "$stub"
+    printf '#!/bin/sh\ncase "$1" in -f) echo "readlink: illegal option -- f" >&2; exit 1;; esac\nexec %s "$@"\n' "$(command -v readlink)" > "$stub/readlink"
+    chmod +x "$stub/readlink"
+    input=$(make_input 'git commit -m "feat: unrelated"')
+    HOME="$BATS_TMP_HOME" PATH="$stub:$PATH" run bash -c "printf '%s' \"\$1\" | bash \"$HOOK\"" _ "$input"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"[AA-MA Plan]"* ]]
+}

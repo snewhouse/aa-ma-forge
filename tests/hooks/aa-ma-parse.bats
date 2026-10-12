@@ -316,3 +316,13 @@ EOF
     run git -C "$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)" grep -nE 'aa_ma_debug .*[$][{]?cmd\b' -- ':(glob)claude-code/hooks/*.sh'   # top-level hooks; lib/ holds the capped helper
     [ "$status" -eq 1 ]
 }
+
+@test "aa_ma_debug_cmd skips leading NAME=value words: an env prefix is never logged (double-check F1)" {
+    . "$HELPER"
+    c="AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENG FOO=bar aws s3 ls"
+    HOOK_DEBUG=1 aa_ma_debug_cmd p "$c" 2>/dev/null
+    HOOK_DEBUG=1 aa_ma_debug_cmd q "  A=1 B=2" 2>/dev/null
+    grep -qF "p (${#c} chars, first word 'aws')" "$CLAUDE_HOOK_LOG"
+    grep -qF "q (9 chars, first word '')" "$CLAUDE_HOOK_LOG"
+    run ! grep -qF wJalr "$CLAUDE_HOOK_LOG"
+}

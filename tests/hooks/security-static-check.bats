@@ -376,3 +376,16 @@ sys.exit(p.wait())' "$HOOK" "$input"
     run grep -nE 'SQL_FN|PKL_MOD|BIN_DYN|shell injection \(subprocess' "$HOOK"
     [ "$status" -eq 1 ]
 }
+
+@test "ruff erroring on a file (rc 2) → a systemMessage naming the file, never a silent pass" {
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    local b; b=$(ssc_sysbin)
+    printf '#!/bin/sh\necho "ruff: boom" >&2\nexit 2\n' > "$b/ruff"
+    chmod +x "$b/ruff"
+    local input; input=$(make_input 'git commit -m "feat: run"')
+    cd "$BATS_TMP"
+    run env HOME="$BATS_TMP_HOME" PATH="$b" "$BASH" "$(ssc_forge)" <<< "$input"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'"systemMessage"'*"ruff failed on src/run.py"* ]]
+}

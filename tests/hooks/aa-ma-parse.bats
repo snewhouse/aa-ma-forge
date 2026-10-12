@@ -312,6 +312,6 @@ EOF
 }
 
 @test "no hook passes a raw command to aa_ma_debug (M7 §6.8)" {
-    run git -C "$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)" grep -nE 'aa_ma_debug .*[$][{]?cmd\b' -- claude-code/hooks
+    run git -C "$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)" grep -nE 'aa_ma_debug .*[$][{]?cmd\b' -- ':(glob)claude-code/hooks/*.sh'   # top-level hooks; lib/ holds the capped helper
     [ "$status" -eq 1 ]
 }

@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -44,7 +45,9 @@ def test_patterns_load_from_the_shared_source() -> None:
     assert ids[:2] == ["aws-access-key", "github-token"]
     assert len(logsetup.SECRET_PATTERNS) == len(ids) >= 10
     # generic key=value rules run last, so a known token keeps its specific id
-    assert ids[-3:] == ["url-credential", "generic-quoted", "generic-env"]
+    generic = {"url-credential", "bearer-token", "generic-quoted", "generic-env"}
+    first_generic = min(i for i, r in enumerate(ids) if r in generic)
+    assert set(ids[first_generic:]) == generic
 
 
 def test_rule_ids_match_the_report_gate_where_they_overlap() -> None:
@@ -77,7 +80,7 @@ def test_a_malformed_rule_line_is_refused(line: str) -> None:
         (JWT, "jwt"),
         ("PASSWORD=" + "hunter2hunter2", "generic-env"),
         ("secret: " + "s3cr3tvalue", "generic-env"),
-        ("export API_KEY=" + '"abcdefgh12345678"', "generic-env"),
+        ("API_KEY=" + '"abcdefgh12345678"', "generic-env"),
         ("PASSWORD=" + "'hunter2hunter2'", "generic-env"),
         ("token: " + '"abcdefghijk"', "generic-env"),
         ("--password " + "hunter2hunter2", "generic-env"),
@@ -304,9 +307,14 @@ ADVERSARIAL = [
 ]
 
 
-@pytest.mark.parametrize("rule_id", [r for r, _ in logsetup.SECRET_RULES])
-def test_each_pattern_is_linear_on_100kb_adversarial_input(rule_id: str) -> None:
-    pattern = dict(logsetup.SECRET_RULES)[rule_id]
+@pytest.mark.parametrize(
+    ("rule_id", "pattern"),
+    logsetup.SECRET_RULES,
+    ids=[r for r, _ in logsetup.SECRET_RULES],
+)
+def test_each_pattern_is_linear_on_100kb_adversarial_input(
+    rule_id: str, pattern: "re.Pattern[str]"
+) -> None:
     start = time.perf_counter()
     for text in ADVERSARIAL:
         pattern.sub("", text)

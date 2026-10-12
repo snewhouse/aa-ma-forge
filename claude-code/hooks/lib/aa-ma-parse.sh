@@ -10,6 +10,7 @@
 #     aa_ma_extract_active_step <file>        -> stdout: active step heading text        (DISPLAY)
 #     aa_ma_list_active_tasks                 -> stdout: mtime-sorted task-dir paths, one per line
 #     aa_ma_debug <msg...>                    -> log_debug line (hooks.log + stderr) iff HOOK_DEBUG=1
+#     aa_ma_debug_cmd <label> <command>       -> aa_ma_debug "<label> (<n> chars): <first AA_MA_DEBUG_CMD_CHARS chars>"
 #     AA_MA_PARSE_SH_LOADED                   -> set to 1 once sourced (re-source guard)
 #     AA_MA_MILESTONE_ERE                     -> ERE mirroring grammar.py MILESTONE_RE (display readers only)
 #     aa_ma_gate <file> [--milestone N] [--step N.M] -> kv lines from the Python SSoT gate; rc 0-4, 127 if it cannot run  (ENFORCING)
@@ -75,6 +76,16 @@ aa_ma_is_disabled() {
 # -----------------------------------------------------------------------------
 aa_ma_debug() {
     log_debug "${0##*/}" "$*"
+}
+
+# Characters of a command kept in a debug line: enough to recognise it. The rest can hold a
+# secret the mask patterns miss, and HOOK_DEBUG lines are written to hooks.log on disk.
+AA_MA_DEBUG_CMD_CHARS=120
+
+# aa_ma_debug_cmd <label> <command> — debug line naming the command's length and its prefix.
+aa_ma_debug_cmd() {
+    local cmd="${2-}"
+    aa_ma_debug "${1-} (${#cmd} chars): ${cmd:0:${AA_MA_DEBUG_CMD_CHARS}}"
 }
 
 # -----------------------------------------------------------------------------

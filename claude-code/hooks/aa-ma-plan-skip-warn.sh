@@ -39,7 +39,7 @@ if [ -f "${_real_dir}/lib/aa-ma-log.sh" ]; then
 else
     log_debug() { :; }
 fi
-[ "${AA_MA_PLAN_MARKER_DEBUG:-0}" = "1" ] && { printf '%s: AA_MA_PLAN_MARKER_DEBUG is deprecated; use HOOK_DEBUG=1\n' "$HOOK" >&2; export HOOK_DEBUG=1; }
+[ "${AA_MA_PLAN_MARKER_DEBUG:-0}" = "1" ] && { log_warn "$HOOK" "AA_MA_PLAN_MARKER_DEBUG is deprecated; use HOOK_DEBUG=1"; printf '%s: AA_MA_PLAN_MARKER_DEBUG is deprecated; use HOOK_DEBUG=1\n' "$HOOK" >&2; export HOOK_DEBUG=1; }
 
 # -----------------------------------------------------------------------------
 # 1. Kill switch.

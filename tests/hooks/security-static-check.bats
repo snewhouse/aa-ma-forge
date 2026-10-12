@@ -273,7 +273,7 @@ ssc_forge() {
 ssc_sysbin() {
     local b="$BATS_TMP_HOME/sysbin" t
     mkdir -p "$b"
-    for t in cat jq git grep sed tr date mkdir mktemp rm head wc readlink dirname cut; do ln -sf "$(command -v "$t")" "$b/$t"; done
+    for t in cat jq git grep sed tr date mkdir head wc readlink dirname cut; do ln -sf "$(command -v "$t")" "$b/$t"; done
     echo "$b"
 }
 
@@ -300,7 +300,7 @@ $SUBPROC_SHELL"
     [ "$status" -eq 2 ]
 }
 
-@test "a Ruff finding on an unchanged line does not block (only introduced lines)" {
+@test "a pre-existing finding in a touched file blocks (whole-file, D8)" {
     stage_file "src/old.py" "import subprocess
 $SUBPROC_SHELL"
     (cd "$BATS_TMP" && git commit -qm old)
@@ -308,7 +308,7 @@ $SUBPROC_SHELL"
 $SUBPROC_SHELL
 y = 2"
     run_hook 'git commit -m "feat: touch"'
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 2 ]
 }
 
 @test "the repo's own ruff config cannot switch the rules off (--isolated)" {
@@ -439,18 +439,6 @@ $SUBPROC_SHELL"
     [ "$status" -eq 2 ]
 }
 
-@test "pre-existing line text with glob characters matches literally" {
-    local glob_call='subprocess.run(cmd[0] * 2, shell''=''True)'
-    stage_file "src/glob.py" "import subprocess
-$glob_call"
-    (cd "$BATS_TMP" && git commit -qm old)
-    stage_file "src/glob.py" "import subprocess
-$glob_call
-y = 2"
-    run_hook 'git commit -m "feat: touch"'
-    [ "$status" -eq 0 ]
-}
-
 # --- M8.6 security review #2: statement-scoped "introduced", fail closed ------------------
 
 @test "changing the arguments of an existing multi-line shell=True call → exit 2" {
@@ -479,7 +467,7 @@ $SUBPROC_SHELL"
     [[ "$output" == *"S602"* ]]
 }
 
-@test "a lone-CR file is judged conservatively: an existing finding counts" {
+@test "a lone-CR file is scanned like any other" {
     printf 'import subprocess\r%s\r' "$SUBPROC_SHELL" > "$BATS_TMP/src_cr.py"
     (cd "$BATS_TMP" && git add src_cr.py && git commit -qm old)
     printf 'import subprocess\r%s\ry = 2\r' "$SUBPROC_SHELL" > "$BATS_TMP/src_cr.py"
@@ -488,32 +476,21 @@ $SUBPROC_SHELL"
     [ "$status" -eq 2 ]
 }
 
-@test "no python to scope findings → every finding counts (fail closed)" {
-    stage_file "src/old.py" "import subprocess
-$SUBPROC_SHELL"
-    (cd "$BATS_TMP" && git commit -qm old)
-    stage_file "src/old.py" "import subprocess
-$SUBPROC_SHELL
-y = 2"
-    local b; b=$(ssc_sysbin)
-    ln -sf "$REPO_ROOT_SSC/.venv/bin/ruff" "$b/ruff"
-    local input; input=$(make_input 'git commit -m "feat: touch"')
-    cd "$BATS_TMP"
-    run env HOME="$BATS_TMP_HOME" PATH="$b" "$BASH" "$(ssc_forge)" <<< "$input"
+# --- M8.6 review 3: the added-line parser for the regex classes ----------------------
+
+@test "an added line starting with '++' is not mistaken for a file header" {
+    stage_file "src/pp.py" "x = 0
+++x
+$HARD_KEY"
+    run_hook 'git commit -m "feat: pp"'
     [ "$status" -eq 2 ]
+    [[ "$output" == *"src/pp.py:3: hardcoded secret"* ]]
 }
 
-@test "mktemp failing blocks the commit (exit 2), never exit 1/127 which lets it through" {
-    stage_file "src/run.py" "import subprocess
-$SUBPROC_SHELL"
-    local b; b=$(ssc_sysbin)
-    rm -f "$b/mktemp"   # a symlink to the real mktemp: never write through it
-    printf '#!/bin/sh\nexit 1\n' > "$b/mktemp"
-    chmod +x "$b/mktemp"
-    ln -sf "$REPO_ROOT_SSC/.venv/bin/ruff" "$b/ruff"
-    local input; input=$(make_input 'git commit -m "feat: run"')
-    cd "$BATS_TMP"
-    run env HOME="$BATS_TMP_HOME" PATH="$b" "$BASH" "$(ssc_forge)" <<< "$input"
+@test "the repo's diff config (color=always) cannot hide added lines" {
+    (cd "$BATS_TMP" && git config color.diff always && git config color.ui always)
+    stage_file "src/leak.py" "$HARD_KEY"
+    run_hook 'git commit -m "feat: key"'
     [ "$status" -eq 2 ]
-    [[ "$output" == *"mktemp failed"* ]]
+    [[ "$output" == *"hardcoded"* ]]
 }

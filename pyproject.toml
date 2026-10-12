@@ -140,7 +140,6 @@ addopts = "-m 'not perf and not slow' --ignore=tests/fixtures/evals"
 dev = [
     "jsonschema>=4",          # tests/test_gate.py validates the aa-ma-gate JSON envelope (M5).
     "pyyaml>=6",              # tests/skills/_helpers.py parses SKILL.md frontmatter; was only transitive (mattpocock-trio-adoption M1).
-
     "pytest-textual-snapshot>=1.0",
     "pytest>=8.0",
     "pytest-benchmark>=4.0",   # M1 perf budget enforcement (Step 1.13)
@@ -154,4 +153,5 @@ dev = [
     "codemem-mcp",             # OBS-001 fix (2026-04-20): workspace member must be an explicit dep for `uv sync` to install it into .venv. Resolved via [tool.uv.sources] codemem-mcp = { workspace = true }. Required so `uv run codemem intel ...` resolves (M3 prerequisite).
     "pre-commit>=4.5",         # code-conventions-impact M1: the touched-files lint harness (ADR-0018).
     "bandit==1.9.4",           # code-conventions-impact M1: exact pin; M8.1 compares Ruff S against this one version.
+    "pip-audit>=2.10.1",
 ]

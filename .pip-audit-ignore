@@ -1,0 +1,3 @@
+# pip-audit ignores for the CI `deps` job (code-conventions-impact M8.4).
+# One per line:  <VULN-ID>  # expires: YYYY-MM-DD — <why it is safe until then>
+# tests/security/test_deps_audit.py fails any entry past its expiry date.

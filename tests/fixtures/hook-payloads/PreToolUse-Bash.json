@@ -1,0 +1,17 @@
+{
+  "session_id": "00000000-0000-4000-8000-000000000001",
+  "transcript_path": "/home/capture/.claude/projects/-tmp-capture-work/00000000-0000-4000-8000-000000000001.jsonl",
+  "cwd": "/tmp/capture/work",
+  "prompt_id": "00000000-0000-4000-8000-000000000002",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "git add -A && git commit -m dummy2",
+    "description": "Stage all changes and commit with message dummy2"
+  },
+  "tool_use_id": "toolu_000000000000000000000001"
+}

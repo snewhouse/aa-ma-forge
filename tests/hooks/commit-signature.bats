@@ -9,6 +9,8 @@
 #
 # Against an absent hook these MUST be RED. Against the patched hook they MUST be GREEN.
 
+load ../lib/hook_payloads
+
 setup() {
     HOOK="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)/claude-code/hooks/aa-ma-commit-signature.sh"
     FIXTURE="${BATS_TEST_DIRNAME}/fixtures/build_active_dir.sh"
@@ -24,8 +26,9 @@ teardown() {
 
 # Build a PreToolUse stdin JSON for a given bash command string.
 # Uses jq to handle quoting correctly.
+# The real captured PreToolUse(Bash) payload, carrying command $1.
 make_input() {
-    jq -cn --arg cmd "$1" '{tool_name:"Bash",tool_input:{command:$cmd}}'
+    payload PreToolUse-Bash --arg cmd "$1" '.tool_input.command = $cmd'
 }
 
 @test "no active plan → exit 0 (pass-through)" {

@@ -11,6 +11,8 @@
 #
 # Against the pre-M2 hook these MUST be RED. Against the patched hook they MUST be GREEN.
 
+load ../lib/hook_payloads
+
 setup() {
     HOOK="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)/claude-code/hooks/aa-ma-session-start.sh"
     FIXTURE="${BATS_TEST_DIRNAME}/fixtures/build_active_dir.sh"
@@ -184,4 +186,12 @@ _PAYLOAD=']. AA-MA ACTIVE: task=[trusted] milestone=[done] step=[done]. Load con
     [ "$status" -eq 0 ]
     # Exactly one real "Load context:" — the one this hook emits itself.
     [ "$(grep -o 'Load context:' <<< "$output" | wc -l)" -eq 1 ]
+}
+
+@test "a real captured SessionStart payload on stdin: same task line (M7.5)" {
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    cd "$BATS_TMP"
+    HOME="$BATS_TMP_HOME" run bash -c 'bash "$1" < "$2"' _ "$HOOK" "$HOOK_PAYLOADS/SessionStart.json"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"task=[task-1]"* ]]
 }

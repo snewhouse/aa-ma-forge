@@ -1,0 +1,40 @@
+{
+  "session_id": "00000000-0000-4000-8000-000000000001",
+  "transcript_path": "/home/capture/.claude/projects/-tmp-capture-work/00000000-0000-4000-8000-000000000001.jsonl",
+  "cwd": "/tmp/capture/work",
+  "prompt_id": "00000000-0000-4000-8000-000000000002",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/tmp/capture/work/mod.py",
+    "old_string": "x = 2",
+    "new_string": "x = 3",
+    "replace_all": false
+  },
+  "tool_response": {
+    "filePath": "/tmp/capture/work/mod.py",
+    "oldString": "x = 2",
+    "newString": "x = 3",
+    "originalFile": "x = 2\n",
+    "structuredPatch": [
+      {
+        "oldStart": 1,
+        "oldLines": 1,
+        "newStart": 1,
+        "newLines": 1,
+        "lines": [
+          "-x = 2",
+          "+x = 3"
+        ]
+      }
+    ],
+    "userModified": false,
+    "replaceAll": false
+  },
+  "tool_use_id": "toolu_000000000000000000000002",
+  "duration_ms": 6
+}

@@ -10,6 +10,8 @@
 #   - Always exits 0 (advisory)
 #   - Silent when no active plans, initial-commit case, below-threshold commits
 
+load ../lib/hook_payloads
+
 setup() {
     HOOK="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)/claude-code/hooks/aa-ma-commit-drift.sh"
     FIXTURE="${BATS_TEST_DIRNAME}/fixtures/build_active_dir.sh"
@@ -52,8 +54,9 @@ commit_files() {
 }
 
 # Helper: build a PostToolUse-shape stdin JSON.
+# The real captured PostToolUse(Bash) payload, carrying command $1.
 make_input() {
-    jq -cn --arg cmd "$1" '{tool_name:"Bash",tool_input:{command:$cmd},tool_response:{}}'
+    payload PostToolUse-Bash --arg cmd "$1" '.tool_input.command = $cmd'
 }
 
 run_hook() {

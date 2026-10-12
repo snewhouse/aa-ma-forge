@@ -9,6 +9,8 @@
 
 bats_require_minimum_version 1.5.0
 
+load ../lib/hook_payloads
+
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     HOOK="${REPO_ROOT}/claude-code/hooks/aa-ma-plan-skip-warn.sh"
@@ -60,12 +62,10 @@ write_full_transcript() {
     echo "$tpath"
 }
 
-# Synthesize the stdin JSON the hook expects from Claude Code.
+# The real captured payload for event $2 (PreToolUse-ExitPlanMode | SessionEnd),
+# pointed at transcript $1.
 build_stdin() {
-    local transcript_path="$1"
-    local event="${2:-PreToolUse}"
-    printf '{"hook_event_name":"%s","transcript_path":"%s","session_id":"test"}' \
-        "$event" "$transcript_path"
+    payload "${2:-PreToolUse-ExitPlanMode}" --arg t "$1" '.transcript_path = $t'
 }
 
 @test "happy path: all 9 markers present + full transcript → silent exit 0" {
@@ -204,4 +204,13 @@ EOF
     HOME="$BATS_TMP_HOME" run --separate-stderr bash -c "echo '$stdin' | bash '$HOOK'"
     [ "$status" -eq 0 ]
     [[ "$stderr" != *DEBUG* ]]
+}
+
+@test "a real captured SessionEnd payload: missing marker still warned (M7.5)" {
+    grep -v 'PHASE_1.3 ' "$(write_full_log)" > "${RUNTIME_DIR}/aa-ma-plan-end-20260511140000.log"
+    rm "${RUNTIME_DIR}/aa-ma-plan-happy-20260511130000.log"
+    stdin="$(build_stdin "$(write_full_transcript)" SessionEnd)"
+    HOME="$BATS_TMP_HOME" CLAUDE_CODE=1 run bash -c "echo '$stdin' | bash '$HOOK'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"PHASE_1.3"* ]]
 }

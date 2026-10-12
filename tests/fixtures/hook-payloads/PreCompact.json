@@ -1,0 +1,9 @@
+{
+  "session_id": "00000000-0000-4000-8000-000000000004",
+  "transcript_path": "/home/capture/.claude/projects/-tmp-capture-work/00000000-0000-4000-8000-000000000004.jsonl",
+  "cwd": "/tmp/capture/work",
+  "prompt_id": "00000000-0000-4000-8000-000000000005",
+  "hook_event_name": "PreCompact",
+  "trigger": "manual",
+  "custom_instructions": null
+}

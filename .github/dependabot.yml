@@ -1,0 +1,16 @@
+# code-conventions-impact M8.4. Weekly version updates for the pinned Actions and the uv
+# lock; a 7-day cooldown lets a fresh release age before it is proposed.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

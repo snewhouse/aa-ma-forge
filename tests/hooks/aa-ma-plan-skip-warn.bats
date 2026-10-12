@@ -216,3 +216,10 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"PHASE_1.3"* ]]
 }
+
+@test "library missing + deprecated alias: still exit 0 (double-check F2)" {
+    d="$BATS_TMP_HOME/bare"; mkdir -p "$d"
+    cp "$HOOK" "$d/"
+    HOME="$BATS_TMP_HOME" AA_MA_PLAN_MARKER_DEBUG=1 run bash -c "echo '{}' | bash '$d/aa-ma-plan-skip-warn.sh'"
+    [ "$status" -eq 0 ]
+}

@@ -53,9 +53,7 @@ CODEMEM_DOC_GLOB = (
 # retroactive drift updates would violate the "historical docs are frozen"
 # rule in CLAUDE.md. Listed explicitly rather than inferred from naming so
 # every exclusion requires deliberate intent.
-CODEMEM_DOC_EXCLUDE = (
-    "docs/codemem/design-scratchpad.md",
-)
+CODEMEM_DOC_EXCLUDE = ("docs/codemem/design-scratchpad.md",)
 CODEMEM_PATH_PREFIXES = (
     "packages/codemem-mcp/",
     "claude-code/codemem/",
@@ -75,9 +73,9 @@ CODEMEM_PATH_PREFIXES = (
 VERSION_RE = re.compile(
     r"\b\d+\.\d+\.\d+"
     r"(?:"
-    r"[.\-][A-Za-z0-9]+"          # dotted or dashed suffix: .dev0 / -dev
+    r"[.\-][A-Za-z0-9]+"  # dotted or dashed suffix: .dev0 / -dev
     r"|"
-    r"[A-Za-z]+\d*"                # no-separator PEP 440: a1 / rc1
+    r"[A-Za-z]+\d*"  # no-separator PEP 440: a1 / rc1
     r")?"
 )
 
@@ -91,13 +89,18 @@ class Finding:
     message: str
 
     def format(self) -> str:
-        loc = f"{self.file}:{self.line}" if self.file and self.line else self.file or "-"
-        return f"[{self.severity}] {self.tier}\n  File: {loc}\n  Finding: {self.message}"
+        loc = (
+            f"{self.file}:{self.line}" if self.file and self.line else self.file or "-"
+        )
+        return (
+            f"[{self.severity}] {self.tier}\n  File: {loc}\n  Finding: {self.message}"
+        )
 
 
 # ---------------------------------------------------------------------
 # Tier 1
 # ---------------------------------------------------------------------
+
 
 def canonical_codemem_version(repo_root: Path) -> str | None:
     pj = repo_root / "packages" / "codemem-mcp" / "pyproject.toml"
@@ -137,19 +140,21 @@ def check_tier_1_version_strings(repo_root: Path) -> list[Finding]:
                 # Exclude third-party versions pinned in documented form.
                 # Heuristic: require the candidate to appear immediately
                 # adjacent to "codemem" OR "version" within 40 chars.
-                window = line[max(0, m.start() - 40):m.end() + 40].lower()
+                window = line[max(0, m.start() - 40) : m.end() + 40].lower()
                 if "codemem" not in window and "version" not in window:
                     continue
-                findings.append(Finding(
-                    tier="Tier 1: codemem Version String",
-                    severity="WARNING",
-                    file=str(doc.relative_to(repo_root)),
-                    line=lineno,
-                    message=(
-                        f"'{candidate}' in context near codemem/version but "
-                        f"canonical is '{canonical}'"
-                    ),
-                ))
+                findings.append(
+                    Finding(
+                        tier="Tier 1: codemem Version String",
+                        severity="WARNING",
+                        file=str(doc.relative_to(repo_root)),
+                        line=lineno,
+                        message=(
+                            f"'{candidate}' in context near codemem/version but "
+                            f"canonical is '{canonical}'"
+                        ),
+                    )
+                )
     return findings
 
 
@@ -157,9 +162,14 @@ def check_tier_1_version_strings(repo_root: Path) -> list[Finding]:
 # Tier 2
 # ---------------------------------------------------------------------
 
+
 def _git(args: list[str], cwd: Path) -> str:
     r = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-        ["git", *args], cwd=cwd, capture_output=True, text=True, check=False,  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
+        ["git", *args],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     return r.stdout if r.returncode == 0 else ""
 
@@ -184,12 +194,12 @@ def check_tier_2_changelog_completeness(repo_root: Path) -> list[Finding]:
         if current_sha is None:
             return
         # Check conventional commit type.
-        if not re.match(r"^(feat|fix)(\([^)]*\))?:|BREAKING CHANGE", current_subject or "", re.I):
+        if not re.match(
+            r"^(feat|fix)(\([^)]*\))?:|BREAKING CHANGE", current_subject or "", re.I
+        ):
             return
         # Did this commit touch any codemem path?
-        if any(
-            f.startswith(CODEMEM_PATH_PREFIXES) for f in current_files
-        ):
+        if any(f.startswith(CODEMEM_PATH_PREFIXES) for f in current_files):
             notable_touching_codemem.append((current_sha, current_subject or ""))
 
     for line in commits_log.splitlines():
@@ -215,37 +225,41 @@ def check_tier_2_changelog_completeness(repo_root: Path) -> list[Finding]:
     if has_unreleased:
         return []
 
-    return [Finding(
-        tier="Tier 2: codemem CHANGELOG Behind",
-        severity="WARNING",
-        file="CHANGELOG.md",
-        line=None,
-        message=(
-            f"{len(notable_touching_codemem)} feat/fix commits touching codemem "
-            f"paths since {last_tag} but CHANGELOG.md has no 'Unreleased' section"
-        ),
-    )]
+    return [
+        Finding(
+            tier="Tier 2: codemem CHANGELOG Behind",
+            severity="WARNING",
+            file="CHANGELOG.md",
+            line=None,
+            message=(
+                f"{len(notable_touching_codemem)} feat/fix commits touching codemem "
+                f"paths since {last_tag} but CHANGELOG.md has no 'Unreleased' section"
+            ),
+        )
+    ]
 
 
 # ---------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------
 
+
 def run_checks(repo_root: Path) -> list[Finding]:
-    return (
-        check_tier_1_version_strings(repo_root)
-        + check_tier_2_changelog_completeness(repo_root)
-    )
+    return check_tier_1_version_strings(
+        repo_root
+    ) + check_tier_2_changelog_completeness(repo_root)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="check_codemem_doc_drift")
     parser.add_argument(
-        "--repo-root", default=os.getcwd(),
+        "--repo-root",
+        default=os.getcwd(),
         help="Repo root (default: cwd)",
     )
     parser.add_argument(
-        "--json", action="store_true",
+        "--json",
+        action="store_true",
         help="Emit findings as JSON (one object per finding)",
     )
     args = parser.parse_args(argv)
@@ -254,19 +268,21 @@ def main(argv: list[str] | None = None) -> int:
     findings = run_checks(repo_root)
 
     if args.json:
-        print(json.dumps(
-            [
-                {
-                    "tier": f.tier,
-                    "severity": f.severity,
-                    "file": f.file,
-                    "line": f.line,
-                    "message": f.message,
-                }
-                for f in findings
-            ],
-            indent=2,
-        ))
+        print(
+            json.dumps(
+                [
+                    {
+                        "tier": f.tier,
+                        "severity": f.severity,
+                        "file": f.file,
+                        "line": f.line,
+                        "message": f.message,
+                    }
+                    for f in findings
+                ],
+                indent=2,
+            )
+        )
     else:
         if not findings:
             print("codemem doc-drift: no findings.")

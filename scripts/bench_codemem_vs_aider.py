@@ -124,9 +124,7 @@ def jaccard(a: set[H], b: set[H]) -> float:
     return len(a & b) / len(a | b)
 
 
-def rbo_at_10(
-    list_s: list, list_t: list, p: float = 0.9, k: int = 10
-) -> float:
+def rbo_at_10(list_s: list, list_t: list, p: float = 0.9, k: int = 10) -> float:
     """Rank-Biased Overlap, extrapolated form (Webber, Moffat, Zobel 2010).
 
     Top-heavy similarity in [0, 1] for two ranked lists. Identical rankings
@@ -165,7 +163,7 @@ def rbo_at_10(
 
     rbo_truncated = (1.0 - p) * summation
     agreement_k = len(s_set & t_set) / k
-    rbo_extrapolated = rbo_truncated + (p ** k) * agreement_k
+    rbo_extrapolated = rbo_truncated + (p**k) * agreement_k
     return rbo_extrapolated
 
 
@@ -175,15 +173,26 @@ def _run_codemem(repo: Path, budget: int) -> dict:
         out_path = Path(f.name)
     try:
         result = subprocess.run(  # noqa: S603  # why: benchmark harness: fixed argv, no shell
-            ["uv", "run", "codemem", "intel",  # noqa: S607  # why: `uv` from PATH by design (dev script)
-             f"--budget={budget}", f"--out={out_path}"],
-            cwd=repo, capture_output=True, text=True, timeout=60,
+            [  # noqa: S607  # why: `uv` from PATH by design (dev script)
+                "uv",
+                "run",
+                "codemem",
+                "intel",
+                f"--budget={budget}",
+                f"--out={out_path}",
+            ],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
         if result.returncode != 0:
             return {
                 "status": "error",
                 "error": f"codemem exit {result.returncode}: {result.stderr.strip()[:200]}",
-                "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+                "raw_bytes": 0,
+                "tiktoken_tokens": 0,
+                "symbol_count": 0,
                 "symbols": [],
             }
         text = out_path.read_text()
@@ -193,8 +202,11 @@ def _run_codemem(repo: Path, budget: int) -> dict:
         return {"status": "ok", **m, "symbols": symbols}
     except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError) as e:
         return {
-            "status": "error", "error": f"{type(e).__name__}: {e}",
-            "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+            "status": "error",
+            "error": f"{type(e).__name__}: {e}",
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
             "symbols": [],
         }
     finally:
@@ -220,13 +232,18 @@ def _run_aider(repo: Path, budget: int, *, tokeniser_equalise: bool = False) -> 
     try:
         result = subprocess.run(  # noqa: S603  # why: benchmark harness: argv from fixed tool names, no shell
             args,
-            cwd=repo, capture_output=True, text=True, timeout=120,
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            timeout=120,
         )
         if result.returncode != 0:
             return {
                 "status": "error",
                 "error": f"aider exit {result.returncode}: {result.stderr.strip()[:200]}",
-                "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+                "raw_bytes": 0,
+                "tiktoken_tokens": 0,
+                "symbol_count": 0,
                 "symbols": [],
             }
         text = result.stdout
@@ -236,8 +253,11 @@ def _run_aider(repo: Path, budget: int, *, tokeniser_equalise: bool = False) -> 
         return {"status": "ok", **m, "symbols": symbols}
     except (subprocess.TimeoutExpired, OSError) as e:
         return {
-            "status": "error", "error": f"{type(e).__name__}: {e}",
-            "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+            "status": "error",
+            "error": f"{type(e).__name__}: {e}",
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
             "symbols": [],
         }
 
@@ -279,7 +299,7 @@ def _parse_munch_gen1(text: str) -> list[tuple[str, str]]:
             return token
         for handle in sorted_handles:
             if token.startswith(handle):
-                return legends[handle] + token[len(handle):]
+                return legends[handle] + token[len(handle) :]
         return token
 
     rows: list[tuple[str, str]] = []
@@ -369,7 +389,9 @@ def _run_jcodemunch(repo: Path, budget: int) -> dict:
         return {
             "status": "error",
             "error": f"{type(e).__name__}: {str(e)[:200]}",
-            "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
             "symbols": [],
         }
 
@@ -398,9 +420,7 @@ def _pair_overlap(
     }
 
 
-_REPOMIX_FILE_PATH_RE = re.compile(
-    r"""<file\s+path\s*=\s*["']([^"']+)["']\s*>"""
-)
+_REPOMIX_FILE_PATH_RE = re.compile(r"""<file\s+path\s*=\s*["']([^"']+)["']\s*>""")
 
 
 def _extract_repomix_file_paths(text: str) -> list[str]:
@@ -437,19 +457,29 @@ def _run_repomix(repo: Path, budget: int) -> dict:
     try:
         result = subprocess.run(  # noqa: S603  # why: benchmark harness: fixed argv, no shell
             [  # noqa: S607  # why: tool from PATH by design (dev script)
-                "npx", "-y", "repomix@1.14.0",
-                "--style", "xml",
-                "--output", str(out_path),
-                "--token-count-encoding", "cl100k_base",
+                "npx",
+                "-y",
+                "repomix@1.14.0",
+                "--style",
+                "xml",
+                "--output",
+                str(out_path),
+                "--token-count-encoding",
+                "cl100k_base",
                 str(repo),
             ],
-            cwd=repo, capture_output=True, text=True, timeout=300,
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            timeout=300,
         )
         if result.returncode != 0:
             return {
                 "status": "error",
                 "error": f"repomix exit {result.returncode}: {result.stderr.strip()[-200:]}",
-                "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+                "raw_bytes": 0,
+                "tiktoken_tokens": 0,
+                "symbol_count": 0,
                 "symbols": [],
             }
         text = out_path.read_text()
@@ -464,8 +494,11 @@ def _run_repomix(repo: Path, budget: int) -> dict:
         }
     except (subprocess.TimeoutExpired, OSError) as e:
         return {
-            "status": "error", "error": f"{type(e).__name__}: {e}",
-            "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+            "status": "error",
+            "error": f"{type(e).__name__}: {e}",
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
             "symbols": [],
             "file_paths": [],
         }
@@ -529,17 +562,23 @@ def _run_yek(repo: Path, budget: int) -> dict:
         result = subprocess.run(  # noqa: S603  # why: benchmark harness: fixed argv, no shell
             [  # noqa: S607  # why: tool from PATH by design (dev script)
                 "yek",
-                "--tokens", str(budget),
+                "--tokens",
+                str(budget),
                 "--json",
                 str(repo),
             ],
-            cwd=repo, capture_output=True, text=True, timeout=120,
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            timeout=120,
         )
         if result.returncode != 0:
             return {
                 "status": "error",
                 "error": f"yek exit {result.returncode}: {result.stderr.strip()[-200:]}",
-                "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+                "raw_bytes": 0,
+                "tiktoken_tokens": 0,
+                "symbol_count": 0,
                 "symbols": [],
             }
         text = result.stdout
@@ -554,8 +593,11 @@ def _run_yek(repo: Path, budget: int) -> dict:
         }
     except (subprocess.TimeoutExpired, OSError) as e:
         return {
-            "status": "error", "error": f"{type(e).__name__}: {e}",
-            "raw_bytes": 0, "tiktoken_tokens": 0, "symbol_count": 0,
+            "status": "error",
+            "error": f"{type(e).__name__}: {e}",
+            "raw_bytes": 0,
+            "tiktoken_tokens": 0,
+            "symbol_count": 0,
             "symbols": [],
             "file_paths": [],
         }
@@ -587,9 +629,13 @@ def _file_list_from_symbols(
 
 
 def _build_report(
-    budget: int, repo: Path,
-    codemem: dict, aider: dict, jcm: dict,
-    repomix: dict | None = None, yek: dict | None = None,
+    budget: int,
+    repo: Path,
+    codemem: dict,
+    aider: dict,
+    jcm: dict,
+    repomix: dict | None = None,
+    yek: dict | None = None,
 ) -> dict:
     """Assemble the harness JSON report.
 
@@ -628,30 +674,58 @@ def _build_report(
         tools["yek"] = {k: v for k, v in yek.items() if k != "symbols"}
 
     overlap: dict = {
-        "codemem_vs_aider":      {**_pair_overlap(cm_list, ai_list), "level": "symbol"},
-        "codemem_vs_jcodemunch": {**_pair_overlap(cm_list, jcm_list), "level": "symbol"},
-        "aider_vs_jcodemunch":   {**_pair_overlap(ai_list, jcm_list), "level": "symbol"},
+        "codemem_vs_aider": {**_pair_overlap(cm_list, ai_list), "level": "symbol"},
+        "codemem_vs_jcodemunch": {
+            **_pair_overlap(cm_list, jcm_list),
+            "level": "symbol",
+        },
+        "aider_vs_jcodemunch": {**_pair_overlap(ai_list, jcm_list), "level": "symbol"},
     }
 
     if repomix is not None or yek is not None:
         cm_files = _file_list_from_symbols(cm_list)
         ai_files = _file_list_from_symbols(ai_list)
         jcm_files = _file_list_from_symbols(jcm_list)
-        rpx_files: list[str] = list(repomix.get("file_paths", [])) if repomix is not None else []
-        yek_files: list[str] = list(yek.get("file_paths", [])) if yek is not None else []
+        rpx_files: list[str] = (
+            list(repomix.get("file_paths", [])) if repomix is not None else []
+        )
+        yek_files: list[str] = (
+            list(yek.get("file_paths", [])) if yek is not None else []
+        )
 
         if repomix is not None:
-            overlap["codemem_vs_repomix"]    = {**_pair_overlap(cm_files,  rpx_files), "level": "file"}
-            overlap["aider_vs_repomix"]      = {**_pair_overlap(ai_files,  rpx_files), "level": "file"}
-            overlap["jcodemunch_vs_repomix"] = {**_pair_overlap(jcm_files, rpx_files), "level": "file"}
+            overlap["codemem_vs_repomix"] = {
+                **_pair_overlap(cm_files, rpx_files),
+                "level": "file",
+            }
+            overlap["aider_vs_repomix"] = {
+                **_pair_overlap(ai_files, rpx_files),
+                "level": "file",
+            }
+            overlap["jcodemunch_vs_repomix"] = {
+                **_pair_overlap(jcm_files, rpx_files),
+                "level": "file",
+            }
 
         if yek is not None:
-            overlap["codemem_vs_yek"]    = {**_pair_overlap(cm_files,  yek_files), "level": "file"}
-            overlap["aider_vs_yek"]      = {**_pair_overlap(ai_files,  yek_files), "level": "file"}
-            overlap["jcodemunch_vs_yek"] = {**_pair_overlap(jcm_files, yek_files), "level": "file"}
+            overlap["codemem_vs_yek"] = {
+                **_pair_overlap(cm_files, yek_files),
+                "level": "file",
+            }
+            overlap["aider_vs_yek"] = {
+                **_pair_overlap(ai_files, yek_files),
+                "level": "file",
+            }
+            overlap["jcodemunch_vs_yek"] = {
+                **_pair_overlap(jcm_files, yek_files),
+                "level": "file",
+            }
 
         if repomix is not None and yek is not None:
-            overlap["repomix_vs_yek"] = {**_pair_overlap(rpx_files, yek_files), "level": "file"}
+            overlap["repomix_vs_yek"] = {
+                **_pair_overlap(rpx_files, yek_files),
+                "level": "file",
+            }
 
     return {
         "requested_budget": budget,
@@ -664,31 +738,44 @@ def _build_report(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, add_help=True)
-    parser.add_argument("--repo", type=Path, required=True,
-                        help="Target repository root")
-    parser.add_argument("--requested-budget", type=int, required=True,
-                        help="Token budget for all 3 tools")
-    parser.add_argument("--out", type=Path, required=True,
-                        help="Output JSON path")
     parser.add_argument(
-        "--aider-tokeniser-equalise", action="store_true",
-        help=("Run Aider with --model gpt-3.5-turbo so litellm routes through "
-              "cl100k_base, matching codemem (post-M1) and jCodeMunch. "
-              "Verified live: works without OPENAI_API_KEY (warning-only)."),
+        "--repo", type=Path, required=True, help="Target repository root"
     )
     parser.add_argument(
-        "--include-repomix", action="store_true",
-        help=("Add Repomix to the tools panel (M2b). Repomix is a "
-              "dump-everything tool with no native budget; expect ~500k+ "
-              "tokens on aa-ma-forge. Disabled by default to keep the "
-              "default invocation fast."),
+        "--requested-budget",
+        type=int,
+        required=True,
+        help="Token budget for all 3 tools",
+    )
+    parser.add_argument("--out", type=Path, required=True, help="Output JSON path")
+    parser.add_argument(
+        "--aider-tokeniser-equalise",
+        action="store_true",
+        help=(
+            "Run Aider with --model gpt-3.5-turbo so litellm routes through "
+            "cl100k_base, matching codemem (post-M1) and jCodeMunch. "
+            "Verified live: works without OPENAI_API_KEY (warning-only)."
+        ),
     )
     parser.add_argument(
-        "--include-yek", action="store_true",
-        help=("Add yek to the tools panel (M2c). yek is budget-aware but "
-              "order-preserving — at low budgets it stops at the first "
-              "file that doesn't fit rather than skipping ahead. Disabled "
-              "by default to keep the default invocation fast."),
+        "--include-repomix",
+        action="store_true",
+        help=(
+            "Add Repomix to the tools panel (M2b). Repomix is a "
+            "dump-everything tool with no native budget; expect ~500k+ "
+            "tokens on aa-ma-forge. Disabled by default to keep the "
+            "default invocation fast."
+        ),
+    )
+    parser.add_argument(
+        "--include-yek",
+        action="store_true",
+        help=(
+            "Add yek to the tools panel (M2c). yek is budget-aware but "
+            "order-preserving — at low budgets it stops at the first "
+            "file that doesn't fit rather than skipping ahead. Disabled "
+            "by default to keep the default invocation fast."
+        ),
     )
     args = parser.parse_args(argv)
 
@@ -698,22 +785,28 @@ def main(argv: list[str] | None = None) -> int:
 
     codemem = _run_codemem(args.repo, args.requested_budget)
     aider = _run_aider(
-        args.repo, args.requested_budget,
+        args.repo,
+        args.requested_budget,
         tokeniser_equalise=args.aider_tokeniser_equalise,
     )
     jcm = _run_jcodemunch(args.repo, args.requested_budget)
-    repomix = _run_repomix(args.repo, args.requested_budget) if args.include_repomix else None
+    repomix = (
+        _run_repomix(args.repo, args.requested_budget) if args.include_repomix else None
+    )
     yek = _run_yek(args.repo, args.requested_budget) if args.include_yek else None
     report = _build_report(
-        args.requested_budget, args.repo, codemem, aider, jcm,
-        repomix=repomix, yek=yek,
+        args.requested_budget,
+        args.repo,
+        codemem,
+        aider,
+        jcm,
+        repomix=repomix,
+        yek=yek,
     )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2) + "\n")
-    statuses = (
-        f"cm={codemem['status']}, ai={aider['status']}, jcm={jcm['status']}"
-    )
+    statuses = f"cm={codemem['status']}, ai={aider['status']}, jcm={jcm['status']}"
     if repomix is not None:
         statuses += f", rpx={repomix['status']}"
     if yek is not None:

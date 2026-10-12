@@ -36,7 +36,9 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-INDEX_SCRIPT = Path.home() / ".claude-code-project-index" / "scripts" / "project_index.py"
+INDEX_SCRIPT = (
+    Path.home() / ".claude-code-project-index" / "scripts" / "project_index.py"
+)
 INDEX_CLI = Path.home() / ".claude-code-project-index" / "scripts" / "cli.py"
 TRIALS = 5
 
@@ -50,7 +52,11 @@ def _time(fn) -> float:
 def _run(args: list[str], cwd: Path, env_extra: dict | None = None) -> None:
     env = {**os.environ, **(env_extra or {})}
     subprocess.run(  # noqa: S603  # why: benchmark harness: argv from fixed tool names, shell=False
-        args, cwd=cwd, env=env, shell=False, check=True,
+        args,
+        cwd=cwd,
+        env=env,
+        shell=False,
+        check=True,
         capture_output=True,
     )
 
@@ -61,6 +67,7 @@ def _median(ts: list[float]) -> float:
 
 def bench_codemem_build_cold(repo: Path) -> float:
     """Cold build: remove .codemem/ first."""
+
     def do():
         shutil.rmtree(repo / ".codemem", ignore_errors=True)
         _run(
@@ -68,43 +75,52 @@ def bench_codemem_build_cold(repo: Path) -> float:
             cwd=REPO_ROOT,
             env_extra={"CODEMEM_REPO": str(repo)} if repo != REPO_ROOT else {},
         )
+
     return _time(do)
 
 
 def bench_codemem_build_warm(repo: Path) -> float:
     """Warm build: index already present."""
+
     def do():
         _run(["uv", "run", "codemem", "build"], cwd=REPO_ROOT)
+
     return _time(do)
 
 
 def bench_index_build_cold(repo: Path) -> float:
     """Cold /index build: remove PROJECT_INDEX.json first."""
+
     def do():
         json_path = repo / "PROJECT_INDEX.json"
         if json_path.exists():
             json_path.unlink()
         _run(["python3", str(INDEX_SCRIPT)], cwd=repo)
+
     return _time(do)
 
 
 def bench_codemem_who_calls(repo: Path, anchor: str) -> float:
     """Representative MCP query."""
+
     def do():
         _run(
             ["uv", "run", "codemem", "query", "who_calls", anchor],
             cwd=REPO_ROOT,
         )
+
     return _time(do)
 
 
 def bench_index_who_calls(repo: Path, anchor: str) -> float:
     """Same query via /index CLI."""
+
     def do():
         _run(
             ["python3", str(INDEX_CLI), "query", "who-calls", anchor],
             cwd=repo,
         )
+
     return _time(do)
 
 
@@ -125,10 +141,16 @@ def run_trials(label: str, fn, n: int = TRIALS) -> list[float]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("repo", type=Path, help="Path to repo under test")
-    ap.add_argument("--anchor", default="refresh_commits_cache",
-                    help="Symbol name to probe in who_calls queries")
-    ap.add_argument("--label", default=None,
-                    help="Human label for this repo (default: repo dir name)")
+    ap.add_argument(
+        "--anchor",
+        default="refresh_commits_cache",
+        help="Symbol name to probe in who_calls queries",
+    )
+    ap.add_argument(
+        "--label",
+        default=None,
+        help="Human label for this repo (default: repo dir name)",
+    )
     args = ap.parse_args()
 
     repo = args.repo.resolve()
@@ -145,19 +167,19 @@ def main() -> int:
 
     # codemem cold + warm
     results["codemem_cold"] = _median(
-        run_trials("codemem build (cold)",
-                   lambda: bench_codemem_build_cold(repo)) or [float("nan")]
+        run_trials("codemem build (cold)", lambda: bench_codemem_build_cold(repo))
+        or [float("nan")]
     )
     results["codemem_warm"] = _median(
-        run_trials("codemem build (warm)",
-                   lambda: bench_codemem_build_warm(repo)) or [float("nan")]
+        run_trials("codemem build (warm)", lambda: bench_codemem_build_warm(repo))
+        or [float("nan")]
     )
 
     # /index cold
     if INDEX_SCRIPT.exists():
         results["index_cold"] = _median(
-            run_trials("/index generate (cold)",
-                       lambda: bench_index_build_cold(repo)) or [float("nan")]
+            run_trials("/index generate (cold)", lambda: bench_index_build_cold(repo))
+            or [float("nan")]
         )
     else:
         print(f"  /index not found at {INDEX_SCRIPT} — skipping comparison")
@@ -165,13 +187,19 @@ def main() -> int:
 
     # who_calls queries — best-effort; different anchors per repo
     results["codemem_who_calls"] = _median(
-        run_trials(f"codemem who_calls {args.anchor}",
-                   lambda: bench_codemem_who_calls(repo, args.anchor)) or [float("nan")]
+        run_trials(
+            f"codemem who_calls {args.anchor}",
+            lambda: bench_codemem_who_calls(repo, args.anchor),
+        )
+        or [float("nan")]
     )
     if INDEX_CLI.exists():
         results["index_who_calls"] = _median(
-            run_trials(f"/index who-calls {args.anchor}",
-                       lambda: bench_index_who_calls(repo, args.anchor)) or [float("nan")]
+            run_trials(
+                f"/index who-calls {args.anchor}",
+                lambda: bench_index_who_calls(repo, args.anchor),
+            )
+            or [float("nan")]
         )
     else:
         results["index_who_calls"] = float("nan")
@@ -179,7 +207,8 @@ def main() -> int:
     # Ratio (codemem / /index). Target: ≤ 1.5.
     build_ratio = (
         results["codemem_cold"] / results["index_cold"]
-        if results["index_cold"] and not (results["index_cold"] != results["index_cold"])
+        if results["index_cold"]
+        and not (results["index_cold"] != results["index_cold"])
         else float("nan")
     )
 
@@ -187,10 +216,14 @@ def main() -> int:
     print(f"\n### {label}\n")
     print("| measurement | median (s) | ratio vs /index |")
     print("|---|---:|---:|")
-    print(f"| codemem build cold | {results['codemem_cold']:.3f} | {build_ratio:.2f}× |")
+    print(
+        f"| codemem build cold | {results['codemem_cold']:.3f} | {build_ratio:.2f}× |"
+    )
     print(f"| codemem build warm | {results['codemem_warm']:.3f} | — |")
     print(f"| /index generate cold | {results['index_cold']:.3f} | 1.00× |")
-    print(f"| codemem who_calls({args.anchor}) | {results['codemem_who_calls']:.3f} | — |")
+    print(
+        f"| codemem who_calls({args.anchor}) | {results['codemem_who_calls']:.3f} | — |"
+    )
     print(f"| /index who-calls {args.anchor} | {results['index_who_calls']:.3f} | — |")
     print(
         f"\n**Target:** `codemem build cold` ≤ 1.5× `/index generate cold`. "

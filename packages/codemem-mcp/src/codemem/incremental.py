@@ -68,6 +68,7 @@ class RefreshStats:
 # Entry point
 # ---------------------------------------------------------------------
 
+
 def refresh_index(
     repo_root: Path,
     db_path: Path,
@@ -93,8 +94,12 @@ def refresh_index(
                 skipped_locked=True, elapsed_seconds=time.monotonic() - t0
             )
         return _refresh_locked(
-            repo_root, db_path, package=package,
-            log_file=log_file, last_sha_file=last_sha_file, t0=t0,
+            repo_root,
+            db_path,
+            package=package,
+            log_file=log_file,
+            last_sha_file=last_sha_file,
+            t0=t0,
         )
 
 
@@ -108,8 +113,10 @@ def _refresh_locked(
     t0: float,
 ) -> RefreshStats:
     # ---- Fallback: no DB yet, no last_sha, or orphaned SHA ----------
-    if not db_path.exists() or not last_sha_file.exists() or _sha_orphaned(
-        repo_root, last_sha_file
+    if (
+        not db_path.exists()
+        or not last_sha_file.exists()
+        or _sha_orphaned(repo_root, last_sha_file)
     ):
         reason = _fallback_reason(db_path, last_sha_file, repo_root)
         _log(log_file, f"full rebuild: {reason}")
@@ -121,9 +128,7 @@ def _refresh_locked(
             db_path.unlink()
         build_index(repo_root, db_path, package=package)
         _write_last_sha(repo_root, last_sha_file)
-        return RefreshStats(
-            full_rebuild=True, elapsed_seconds=time.monotonic() - t0
-        )
+        return RefreshStats(full_rebuild=True, elapsed_seconds=time.monotonic() - t0)
 
     stats = RefreshStats()
 
@@ -145,8 +150,8 @@ def _refresh_locked(
 
     # --- Classify changes ---------------------------------------------
     moved: list[tuple[str, str]] = []  # (old_path, new_path)
-    dirty: list[str] = []               # path (edit in place OR new file)
-    deleted: list[str] = []             # path (gone from disk, no move match)
+    dirty: list[str] = []  # path (edit in place OR new file)
+    deleted: list[str] = []  # path (gone from disk, no move match)
 
     disk_hashes: dict[str, str] = {rel: h for rel, (_, h) in disk_by_path.items()}
     db_hashes: dict[str, str] = {
@@ -218,9 +223,7 @@ def _refresh_locked(
 
             if dirty:
                 dirty_abs = [disk_by_path[p][0] for p in dirty]
-                parses, _ = parse_files(
-                    dirty_abs, repo_root=repo_root, package=package
-                )
+                parses, _ = parse_files(dirty_abs, repo_root=repo_root, package=package)
 
                 for fp in parses:
                     _apply_file_delta(conn, fp, stats)
@@ -248,7 +251,7 @@ def _refresh_locked(
         f"deleted={stats.files_deleted} added={stats.symbols_added} "
         f"removed={stats.symbols_removed} modified={stats.symbols_modified} "
         f"renamed={stats.symbols_renamed} "
-        f"({stats.elapsed_seconds*1000:.1f}ms)",
+        f"({stats.elapsed_seconds * 1000:.1f}ms)",
     )
     return stats
 
@@ -256,6 +259,7 @@ def _refresh_locked(
 # ---------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------
+
 
 def _hash(p: Path) -> str:
     """SHA-256 of file contents. Returns empty string on read error so
@@ -302,7 +306,9 @@ def _fallback_reason(db_path: Path, last_sha_file: Path, repo_root: Path) -> str
 def _write_last_sha(repo_root: Path, last_sha_file: Path) -> None:
     result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
         ["git", "-C", str(repo_root), "rev-parse", "HEAD"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
-        capture_output=True, text=True, check=False,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     if result.returncode == 0:
         last_sha_file.parent.mkdir(parents=True, exist_ok=True)

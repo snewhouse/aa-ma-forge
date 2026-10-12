@@ -57,10 +57,7 @@ def _task_card(task: Task) -> str:
     """
     s_done, s_total = task.step_progress()
     m_done, m_total = task.milestone_progress()
-    return (
-        f"[bold]{task.name}[/bold]\n"
-        f"{s_done}/{s_total} steps · {m_done}/{m_total} ms"
-    )
+    return f"[bold]{task.name}[/bold]\n{s_done}/{s_total} steps · {m_done}/{m_total} ms"
 
 
 def _group_by_aggregate(tasks: list[Task]) -> dict[AggregateStatus, list[Task]]:

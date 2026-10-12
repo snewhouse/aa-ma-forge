@@ -776,7 +776,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: HITL (allowlist reviewed and approved by Ste). Full-history scan found **8** generic-api-key hits, all tests/ fixtures, not 3: M7 added 5 (aa-ma-parse.bats, test_logsetup.py ×2, test_fork_manifest.py ×2 — a git SHA). 8.18.0 and 8.18.4 give the same 8 fingerprints. 2 commits sit only on local refs (20a7bb95, a6b2e51e refs/original); they are kept and marked. `.gitleaksignore` holds 8 fingerprints, each under a `# why:`; no allowlist file. CI job `gitleaks`: v8.18.4 tarball, sha256 ba6dbb65…7d (matches the release checksums file) `sha256sum -c`, `detect --redact --exit-code 1 --log-opts="--all"`, fetch-depth 0, persist-credentials false. Pre-commit `gitleaks-system` @02808f45 (v8.18.4 commit; tag object 77c3c6a3); touched job `SKIP: gitleaks-system`. Canary: a runtime key in a tmp repo → detect rc 1 (test); a staged canary in the worktree → hook Failed "leaks found: 1", unstaged and deleted, never committed. RED 068c268 → GREEN e9016cc; tests/security + precommit 24 passed; PR #30 CI 8/8 incl. gitleaks (run 38275374954).
 
 ### Sub-step 8.4: deps job + Dependabot
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 8.3
 - Acceptance Criteria:
@@ -784,7 +784,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `.github/dependabot.yml`: github-actions + uv, weekly, `cooldown: 7` days.
   - All jobs use `astral-sh/setup-uv@<sha>` (`version: 0.12.3`) instead of `pip install uv`, `uv sync --locked`, `persist-credentials: false`; pre-commit `rev:`s frozen to SHAs.
   - All jobs except `deps` are green; `deps` goes green after Sub-step 8.5; A6 resolution logged.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. RED fbe2190 (6 tests) → GREEN 0d6d6b6. Job `deps`: `uv sync --locked`, `uv export --frozen --no-emit-workspace --no-emit-project -o req.txt` (hashed), `uv run pip-audit --disable-pip --require-hashes --strict -r req.txt`, with ignores read from `.pip-audit-ignore` (`<ID>  # expires: YYYY-MM-DD — why`; the loop was checked with 0 and 2 entries). pip-audit 2.10.1 locked in the dev group. The expiry test was mutation-checked (an expired entry fails it). `.github/dependabot.yml` covers github-actions + uv, weekly, `cooldown.default-days: 7` (schema checked against the GitHub docs; GitHub's dependabot check passed). bats, codemem-smoke, architecture-drift and explorer-contract moved from setup-python + `pip install uv` + `uv sync` to setup-uv@c18668a (0.12.3, py 3.13) + `uv sync --locked`. All 9 checkouts set `persist-credentials: false`. Pre-commit's only remote rev is frozen to a SHA (8.3). PR #30 run 38276289265: 9/10 green, `deps` red as expected ("Found 72 known vulnerabilities in 13 packages"). **A6 resolved:** pip-audit replaces the experimental `uv audit`. Local note: uv-managed CPython 3.13.5 lacks the stdlib `venv` package, so local pip-audit ran via `uvx --python /usr/bin/python3.14 pip-audit==2.10.1` (toolchain not modified). pytest 2995/6/0.
 
 ### Sub-step 8.5: Triage the 13 vulnerable packages (plan 8.4a)
 - Status: PENDING

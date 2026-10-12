@@ -205,3 +205,31 @@ hostile_repo() {
     [ -z "$output" ]
     grep -qF 'WARN ruff-format: stdin payload not readable' "$LOG"
 }
+
+# Claude Code hands a hook its payload on a socket, not a pipe or file. Opening /dev/stdin on a
+# socket fails with ENXIO, so `$(</dev/stdin)` read nothing and the hook exited 0 in silence on
+# every live edit, while the `< file` tests above all passed (found live in M8.0, 2026-10-12).
+@test "payload on a socket stdin (as Claude Code delivers it) still reaches ruff" {
+    printf 'import os\n' > "$WORK/unused.py"
+    jq --arg f "$WORK/unused.py" '.tool_input.file_path = $f' "$PAYLOAD" > "$WORK/payload.json"
+    run python3 - "$HOOK" "$WORK/payload.json" <<'PY'
+import socket, subprocess, sys
+ours, theirs = socket.socketpair()
+hook = subprocess.Popen(["bash", sys.argv[1]], stdin=theirs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+theirs.close()
+ours.sendall(open(sys.argv[2], "rb").read())
+ours.shutdown(socket.SHUT_WR)
+out, err = hook.communicate()
+sys.stdout.write(out.decode())
+sys.stderr.write(err.decode())
+sys.exit(hook.returncode)
+PY
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"No such device"* ]]
+    printf '%s' "$output" | jq -r '.hookSpecificOutput.additionalContext' | grep -q 'F401'
+}
+
+@test "no shipped hook reads its payload with /dev/stdin (ENXIO on a socket)" {
+    run grep -rn '/dev/stdin' "${REPO_ROOT}/claude-code/hooks"
+    [ "$status" -eq 1 ]
+}

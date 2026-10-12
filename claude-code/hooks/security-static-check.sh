@@ -2,11 +2,11 @@
 # Event: PreToolUse(Bash)
 # Mode: Blocking — exit 2 refuses a commit that adds a flagged pattern
 # Exit: 0 allow · 2 block (policy) · 1 infra error (helper/jq missing, bad stdin; non-blocking, the commit proceeds)
-# Fail-open: kill switch, bypass marker, not a repo, no staged .py pass with exit 0; infra errors exit 1 with a stderr line
+# Fail-open: kill switch, bypass marker, not a repo, no staged .py pass with exit 0; infra errors exit 1 with a stderr line; no ruff, or ruff erroring on a file → a systemMessage + hooks.log line, the regex classes still run
 #
 # PreToolUse(Bash) hook — block commits that introduce mechanical security
 # anti-patterns in Python files. Symmetric to aa-ma-commit-signature.sh but
-# inspects the staged diff for 5 categorical patterns.
+# inspects the staged diff: Ruff S rules on each staged blob, plus two regex classes.
 #
 # Fires via Claude Code's PreToolUse event with matcher="Bash". Reads a JSON
 # object from stdin of shape {tool_name: "Bash", tool_input: {command: "..."}}.
@@ -19,16 +19,18 @@
 #   5. command contains [security-bypass: <reason>]    -> exit 0 (auditable bypass)
 #   6. not inside a git repo                           -> exit 0 (graceful skip)
 #   7. no staged *.py files (Added/Modified)           -> exit 0
-#   8. scan added lines for 5 pattern classes          -> if any -> exit 2
+#   8. Ruff S + 2 regex classes on ADDED lines         -> if any -> exit 2
 #   9. otherwise                                       -> exit 0
 #
-# Detection scope (Python files, ADDED lines in staged diff):
-#   - Hardcoded secrets: api_key|token|password|secret = "literal_8+_chars"
+# Detection scope (Python files, ADDED lines in staged diff, any repo):
+#   - Ruff S102,S301,S307,S602,S604,S608 on the STAGED blob (`git show :<file>`), forge-pinned
+#     ruff with --isolated, so the repo's own config cannot switch them off; findings on
+#     unchanged lines are dropped. Covers shell=True calls, the dynamic-code builtins,
+#     SQL string building and unsafe binary deserialisation (D12; S102 keeps exec() covered).
+#     A `# noqa: S6xx` on the line is honoured.
+#   - Hardcoded secrets (regex): api_key|token|password|secret = "literal_8+_chars"
 #     Whitelist: placeholders (your-*, <KEY>, xxx*) and env-var reads
-#   - Shell injection: subprocess(..., shell=True), dynamic-code builtins
-#   - Path traversal: open() / Path() containing relative-up components
-#   - SQL string concatenation: db-cursor calls with f-string or + interpolation
-#   - Unsafe binary deserialisation (CWE-502 family)
+#   - Path traversal (regex): open() / Path() containing relative-up components
 #
 # Bypass:
 #   - AA_MA_HOOKS_DISABLE=1 (master kill switch)
@@ -36,9 +38,6 @@
 #
 # Always emits findings to stderr; exit 2 blocks; exit 0 passes.
 #
-# Implementation note: Trigger tokens for the dynamic-code builtins and the
-# unsafe deserialisation module are assembled at runtime from split string
-# fragments. This keeps the script source free of literal scannable tokens.
 
 set -euo pipefail
 
@@ -130,12 +129,35 @@ fi
 # 8. Scan added lines for pattern classes.
 # -----------------------------------------------------------------------------
 
-# Runtime-assembled trigger tokens (string-concat splits keep the script
-# source free of literal scannable patterns).
-BIN_DYN1="ev""al"          # first dynamic-code builtin name
-BIN_DYN2="ex""ec"          # second dynamic-code builtin name
-PKL_MOD="p""ickle"         # unsafe binary serialisation module name
-SQL_FN="ex""ec""ute"       # db-cursor call name (cursor.<this>(...))
+# ruff comes ONLY from this forge's .venv or an absolute PATH entry — never from the repo being
+# committed to, which may ship its own .venv/bin/ruff (the rule ruff-format.sh follows).
+# ponytail: resolution duplicated from ruff-format.sh; move it to lib/ if a third hook needs it.
+# why: no `readlink -f` (macOS < 12.3) → the path as invoked
+REAL="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null)" || REAL="${BASH_SOURCE[0]}"
+REAL_DIR="${REAL%/*}"
+FORGE="${REAL_DIR%/*/*}"
+ruff=""
+if [ -x "${FORGE}/.venv/bin/ruff" ]; then
+    ruff="${FORGE}/.venv/bin/ruff"
+else
+    ruff=$(command -v ruff) || ruff=""
+    [[ "$ruff" == /* ]] || ruff=""
+fi
+if [ -z "$ruff" ]; then
+    fail_open_notice "security-static-check" "ruff not found (forge .venv or an absolute PATH entry); shell, dynamic-code, SQL and deserialisation checks skipped"
+fi
+
+RUFF_RULES="S102,S301,S307,S602,S604,S608"
+# A case, not `declare -A`: macOS /bin/bash 3.2 has no associative arrays.
+ruff_label() {
+    case "$1" in
+        S102|S307) printf 'dynamic code execution' ;;
+        S602|S604) printf 'shell injection' ;;
+        S608) printf 'SQL string construction' ;;
+        S301) printf 'unsafe binary deserialisation (CWE-502)' ;;
+        *) printf 'security rule' ;;
+    esac
+}
 
 findings=()
 
@@ -144,6 +166,7 @@ while IFS= read -r file; do
     diff_content=$(git diff --cached -U0 -- "$file" 2>/dev/null || true)
     [ -z "$diff_content" ] && continue
 
+    added=" "   # new-file line numbers of the added lines, space-delimited
     line_num=0
     while IFS= read -r line; do
         # Hunk header: reset line counter to NEW-file line start
@@ -158,6 +181,7 @@ while IFS= read -r file; do
         [[ "$line" == "+"* ]] || continue
 
         content="${line:1}"
+        added+="${line_num} "
 
         # -- 1. Hardcoded secrets --------------------------------------------
         # Lowercase the content for case-insensitive identifier matching
@@ -170,36 +194,27 @@ while IFS= read -r file; do
             fi
         fi
 
-        # -- 2. Shell injection ----------------------------------------------
-        # subprocess.* with shell=True
-        if [[ "$content" =~ subprocess\.[a-zA-Z_]+\([^\)]*shell[[:space:]]*=[[:space:]]*True ]]; then
-            findings+=("${file}:${line_num}: shell injection (subprocess shell=True)")
-        fi
-        # Dynamic-code builtins
-        if [[ "$content" =~ (^|[^a-zA-Z_\.])(${BIN_DYN1}|${BIN_DYN2})[[:space:]]*\( ]]; then
-            findings+=("${file}:${line_num}: dynamic code execution (${BIN_DYN1}/${BIN_DYN2} call)")
-        fi
-
         # -- 3. Path traversal -----------------------------------------------
         if [[ "$content" =~ (open|Path)[[:space:]]*\([^\)]*\.\.\/ ]]; then
             findings+=("${file}:${line_num}: path traversal (relative-up component)")
         fi
 
-        # -- 4. SQL string concatenation -------------------------------------
-        if [[ "$content" =~ \.${SQL_FN}[[:space:]]*\([[:space:]]*f[\"\'] ]]; then
-            findings+=("${file}:${line_num}: SQL string concatenation (f-string)")
-        fi
-        if [[ "$content" =~ \.${SQL_FN}[[:space:]]*\([[:space:]]*[\"\'][^\"\']*[\"\'][[:space:]]*\+ ]]; then
-            findings+=("${file}:${line_num}: SQL string concatenation (+ operator)")
-        fi
-
-        # -- 5. Unsafe binary deserialisation (CWE-502) -----------------------
-        if [[ "$content" =~ (^|[^a-zA-Z_])c?${PKL_MOD}\.loads[[:space:]]*\( ]]; then
-            findings+=("${file}:${line_num}: unsafe binary deserialisation (CWE-502)")
-        fi
-
         line_num=$((line_num + 1))
     done <<< "$diff_content"
+
+    [ -n "$ruff" ] || continue
+    # why: rc 1 means findings, which the loop below reads; rc 2+ is ruff failing, reported as a notice
+    ruff_out=$(git show ":${file}" | "$ruff" check --isolated --select "$RUFF_RULES" \
+        --output-format concise --quiet --stdin-filename "$file" - 2>&1) && rc=0 || rc=$?
+    if [ "$rc" -gt 1 ]; then
+        fail_open_notice "security-static-check" "ruff failed on ${file} (rc ${rc}); its Ruff S checks were skipped"
+        continue
+    fi
+    while IFS= read -r r; do
+        [[ "$r" =~ ^.+:([0-9]+):[0-9]+:\ (S[0-9]+)\ (.*)$ ]] || continue
+        [[ "$added" == *" ${BASH_REMATCH[1]} "* ]] || continue   # unchanged line: not introduced here
+        findings+=("${file}:${BASH_REMATCH[1]}: $(ruff_label "${BASH_REMATCH[2]}") [${BASH_REMATCH[2]}] ${BASH_REMATCH[3]}")
+    done <<< "$ruff_out"
 done <<< "$py_files"
 
 # -----------------------------------------------------------------------------
@@ -214,7 +229,8 @@ if [ "${#findings[@]}" -gt 0 ]; then
         done
         printf '\n'
         printf 'Mechanical security check. If a finding is a false positive\n'
-        printf '(e.g., test fixture, intentional pattern), append to commit message:\n\n'
+        printf '(e.g., test fixture, intentional pattern), add "# noqa: <rule>  # why: <reason>"\n'
+        printf 'on the line for a Ruff [Sxxx] finding, or append to the commit message:\n\n'
         printf '  [security-bypass: <reason>]\n\n'
         printf 'Reason must be non-empty and on its own line.\n\n'
         printf 'Emergency bypass: export AA_MA_HOOKS_DISABLE=1\n'

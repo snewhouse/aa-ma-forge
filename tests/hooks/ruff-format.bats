@@ -175,3 +175,25 @@ hostile_repo() {
     [ "$(printf '%s' "$out3" | jq -r '.systemMessage')" != "null" ]
     [ "$(grep -c 'WARN ruff-format: ruff not found' "$LOG")" -eq 2 ]
 }
+
+@test "jq missing on a .py edit → a systemMessage and a hooks.log line, never silence (M7 §6.6)" {
+    local b="$WORK/nojq" t
+    mkdir -p "$b"
+    for t in readlink date mkdir head grep wc; do ln -sf "$(command -v "$t")" "$b/$t"; done
+    printf 'x=1\n' > "$WORK/s.py"
+    jq --arg f "$WORK/s.py" '.tool_input.file_path = $f' "$PAYLOAD" > "$WORK/p.json"
+    run env PATH="$b" "$BASH" "$HOOK" < "$WORK/p.json"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'"systemMessage"'* ]]
+    grep -qF 'WARN ruff-format: jq not on PATH' "$LOG"
+}
+
+@test "a non-.py edit exits before any fork: no ruff, no jq, no library (M7 §6.6)" {
+    local b="$WORK/empty"
+    mkdir -p "$b"
+    jq --arg f "$WORK/notes.txt" '.tool_input.file_path = $f' "$PAYLOAD" > "$WORK/p.json"
+    run env PATH="$b" "$BASH" "$HOOK" < "$WORK/p.json"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    [ ! -e "$LOG" ]
+}

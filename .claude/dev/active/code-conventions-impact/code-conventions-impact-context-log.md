@@ -380,3 +380,17 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Key outcome: one masked, fail-open logging library for hooks (aa-ma-log.sh) and CLIs (aa_ma.logsetup) sharing one pattern file; every hook states its Event/Mode/Exit/Fail-open contract and is tested against real captured payloads and a fault matrix.
 - Artifacts: claude-code/hooks/lib/aa-ma-log.sh, src/aa_ma/logsetup.py, src/aa_ma/secret_patterns.tsv, tests/fixtures/hook-payloads/ (7), tests/lib/hook_payloads.bash, tests/test_hook_payloads.py, 9 hook headers, ruff-format.sh rewrite, logging skills revised.
 - Tests: bats 452/452, pytest 2968 passed/6 skipped/0 failed.
+
+## [2026-10-12] M7 sole-dev-merge Stage C/D — 1 HIGH, 1 MEDIUM, 7 LOW fixed or disputed (Ste)
+- C1 HIGH: `date -Is` is GNU-only, and a failed stamp aborted set -e hooks. Fixed with a fallback chain (UTC Z form, then `unknown-time`).
+- C1 MEDIUM / C2 LOW: a quoted env value's tail leaked as the debug "first word". Only a plain program name is logged now, `?` otherwise.
+- LOWs fixed:
+  - a new hooks.log is 600 in a 700 dir (an existing file keeps its mode);
+  - the pattern loader falls back to a one-level readlink;
+  - traceback continuation lines are indented;
+  - an empty LOG_FORMAT is treated as unset.
+- Disputed (Ste: "Keep both"):
+  - LogRecord mutation stays: the 7.2 AC requires it, and it guards other handlers.
+  - SECRET_PATTERNS stays: Contract API, first caller M10.
+  - Bandit hits in tests/: out of CI scope (src/ = 0).
+- RED 8ec4613, GREEN 44defcd. Mutations: umask 1/1, date fallback 2/2. bats 457/457, pytest 2970 passed/6 skipped/0 failed.

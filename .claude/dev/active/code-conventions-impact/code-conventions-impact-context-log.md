@@ -406,3 +406,10 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - Fix `payload=$(cat)` (matches commit-signature / commit-drift / security-static-check). The builtin `read -d ''` was rejected: it reads a socket one byte per syscall (measured 1.9 s vs 34 ms at 2 MB; Edit payloads carry the original file).
 - Decision (Ste): ship as a separate fix PR #29 to main ahead of M8 (it blocked 8.0's live criterion); rebase-merged. Lesson L-050.
 - M8 AA-MA records live on the M8 branch (main checkout kept clean; no pushes to main for records).
+
+## [2026-10-12] M8.1 — Ruff vs Bandit decision
+DECISION ruff-only () — approved by Ste
+- Evidence: `docs/research/code-conventions-impact-ruff-vs-bandit.md`. Bandit 39 hits / 5 IDs (B101 1, B404 11, B603 15, B607 9, B608 3) on src+packages+scripts. Each one has a Ruff S hit on the same call; line offsets come only from how each tool anchors a multi-line call. Ruff reports 8 more because it ignores `# nosec`; those get `noqa`+`why` in 8.2.
+- 75 Bandit tests: 71 map (58 stable, 13 preview S401–S415); GAPs B613 (→ PLE2502, 0 hits), B614/B615/B703 (no torch/HF/django imports).
+- B404 (A4): excluded. S404 is preview-only and flags imports, not calls (S603/S607 cover every call; `codemem/cli.py` imports only for `CalledProcessError`). Revisit trigger: torch / huggingface_hub / django enter deps, or S404 stabilises.
+- Rejected: fallback `-t B404 -ll` would gate nothing (B404 is LOW).

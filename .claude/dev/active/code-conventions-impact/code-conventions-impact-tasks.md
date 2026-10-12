@@ -744,14 +744,14 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: HITL — Ste: proceed, pause only at decisions. PR #28 MERGED 2026-10-12T11:27Z (f331e3a); M7 worktree removed (tree diff vs origin/main empty, `git cherry` 0 → `branch -D`); `scripts/install.sh` from main (66 symlinks); `readlink -f ~/.claude/hooks/lib/aa-ma-log.sh` → main checkout. **Live F401 check FAILED first:** ruff-format did nothing on live edits; session transcript `hook_success` stderr `line 22: /dev/stdin: No such device or address` (Claude Code delivers stdin on a socket → ENXIO), a silent fail-open since 563cee4 (M2). Fixed via PR #29 (RED fb2f0a4 socketpair bats + /dev/stdin guard, GREEN 73edc09 `payload=$(cat)` — `read -d ''` rejected, measured 1.9 s vs 34 ms @2 MB; L-050 0df379c); bats 460/460, pytest 2970/6/0, CI 7/7 (run 38269492960); rebase-merged by Ste's OK. Re-check PASS: live Edit of scratch `f401_probe.py` → next-turn context `F401 [*] \`os\` imported but unused`, file reformatted (`x=1`→`x = 1`); transcript line 492 of session 7bba3333. M8 worktree `feat/cci-m8-secops-ci-baseline` from 0df379c; `uv sync` 0, `codemem build` 0 (315 files, 3088 symbols).
 
 ### Sub-step 8.1: Pinned Ruff-vs-Bandit comparison
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 8.0
 - Acceptance Criteria:
   - `docs/research/code-conventions-impact-ruff-vs-bandit.md`: every Bandit test ID → Ruff S code or GAP at ruff 0.15.9 / bandit 1.9.4 (venv-pinned, M1.2), run on this repo; a table of every Bandit ID that fired, with its Ruff mapping.
   - Records Ruff `S404` as preview-only at 0.15.9 while Bandit B404 fires 10×, deciding whether the fallback ID list includes B404 (A4).
   - context-log has `DECISION ruff-only|fallback (<ids>) — approved by Ste`.
-- Result Log:
+- Result Log: HITL decision. `docs/research/code-conventions-impact-ruff-vs-bandit.md` written (ruff 0.15.9 / bandit 1.9.4, venv). Bandit 39 hits (B101 1, B404 11, B603 15, B607 9, B608 3); Ruff S 36 stable / 51 preview. A per-call cross-check found no hit for Bandit alone (11 line offsets = multi-line anchoring). Ruff +8 = `# nosec` sites. 75 IDs: 71 mapped (13 preview), 4 GAP (B613→PLE2502 0 hits; B614/B615/B703 not importable here). B404 preview-only, import-level noise → excluded (A4). Context-log: `DECISION ruff-only () — approved by Ste`.
 
 ### Sub-step 8.2: Ruff S on + CI security jobs
 - Status: PENDING

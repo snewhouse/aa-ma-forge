@@ -10,6 +10,9 @@
 # ruff comes ONLY from this forge's .venv or an absolute PATH entry — never from the edited
 # repo, which may be hostile and commit its own .venv/bin/ruff (plan §0 v2, Security CRITICAL).
 # A relative PATH entry such as `.venv/bin` would resolve against that repo, so it is refused.
+# An absolute PATH entry is trusted: if you activate a venv inside an untrusted repo, its ruff runs.
+# The findings text comes from that repo's file (paths, messages) and reaches the model as data:
+# it is JSON-escaped by jq and capped at MAX_CONTEXT_LINES, never interpreted by this hook.
 [[ "${AA_MA_HOOKS_DISABLE:-0}" == "1" ]] && exit 0   # master kill switch, like every AA-MA hook
 
 HOOK="ruff-format"
@@ -21,7 +24,8 @@ payload=$(</dev/stdin)
 # JSON as `….py"`. A miss is exact; a hit (e.g. ".py" in the edited text) gets the real check below.
 [[ "${payload}" == *'.py"'* ]] || exit 0
 
-REAL="$(readlink -f "${BASH_SOURCE[0]}")"   # <forge>/claude-code/hooks/ruff-format.sh
+# why: no `readlink -f` (macOS < 12.3) → the path as invoked; the lib check below then decides
+REAL="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null)" || REAL="${BASH_SOURCE[0]}"   # <forge>/claude-code/hooks/ruff-format.sh
 REAL_DIR="${REAL%/*}"
 FORGE="${REAL_DIR%/*/*}"
 if [[ -f "${REAL_DIR}/lib/aa-ma-log.sh" ]]; then

@@ -90,7 +90,7 @@ _aa_ma_log() {
     hook="$(_aa_ma_log_oneline "${2-}")"
     hook="${hook:0:${_AA_MA_LOG_MAX_CHARS}}"
     msg="$(mask_secrets "${3-}")"
-    log="${CLAUDE_HOOK_LOG:-${HOME}/.claude/logs/hooks.log}"
+    log="${CLAUDE_HOOK_LOG:-${HOME:-/tmp}/.claude/logs/hooks.log}"   # HOME unset (cron, env -i) must not trip set -u
     dir="${log%/*}"
     [ "${dir}" = "${log}" ] && dir=.
     line="$(date -Is) ${level} ${hook}: ${msg}"

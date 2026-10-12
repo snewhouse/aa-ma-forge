@@ -165,3 +165,9 @@ EOF
     [ "$status" -eq 0 ]
     printf '%s' "$output" | jq -e '.systemMessage | test("snapshot")' >/dev/null
 }
+
+@test "HOME unset (cron, env -i): exit 0, as the Exit header says (double-check F2)" {
+    cd "$BATS_TMP"
+    run env -u HOME bash "$HOOK"
+    [ "$status" -eq 0 ]
+}

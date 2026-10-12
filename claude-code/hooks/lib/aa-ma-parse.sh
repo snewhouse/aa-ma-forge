@@ -59,7 +59,8 @@ AA_MA_PARSE_SH_LOADED=1
 
 # Real directory, not the symlink's: install.sh links this file into ~/.claude/hooks/lib, and a
 # checkout pulled before install.sh re-runs may not have aa-ma-log.sh linked there yet.
-_aa_ma_parse_real="$(readlink -f "${BASH_SOURCE[0]}")"   # one fork; ${…%/*} replaces dirname (hot path)
+# why: one fork (hot path); no `readlink -f` (macOS < 12.3) → the path as sourced, which install.sh's lib/ link serves
+_aa_ma_parse_real="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null)" || _aa_ma_parse_real="${BASH_SOURCE[0]}"
 # shellcheck disable=SC1091  # why: the path is computed at runtime; aa-ma-log.bats covers the source
 . "${_aa_ma_parse_real%/*}/aa-ma-log.sh"
 
@@ -85,8 +86,14 @@ _AA_MA_DEBUG_WORD_CHARS=32
 
 # aa_ma_debug_cmd <label> <command> — debug line naming the command's length and first word.
 aa_ma_debug_cmd() {
-    local cmd="${2-}" word
-    word="${cmd%%[[:space:]]*}"
+    local cmd="${2-}" rest word
+    rest="${cmd#"${cmd%%[![:space:]]*}"}"
+    while :; do   # skip env assignments (`TOKEN=x cmd`): the value is exactly what must not be logged
+        word="${rest%%[[:space:]]*}"
+        [[ "${word}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || break
+        rest="${rest#"${word}"}"
+        rest="${rest#"${rest%%[![:space:]]*}"}"
+    done
     aa_ma_debug "${1-} (${#cmd} chars, first word '${word:0:${_AA_MA_DEBUG_WORD_CHARS}}')"
 }
 

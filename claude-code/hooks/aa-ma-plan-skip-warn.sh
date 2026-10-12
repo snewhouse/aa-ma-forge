@@ -32,12 +32,15 @@ set -Eeuo pipefail
 # ~/.claude/hooks/lib, and the library sits in lib/ beside the real file. Debug lines are
 # the only thing it is used for, so a missing library degrades to no debug output.
 HOOK=aa-ma-plan-skip-warn
-_real_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+# why: no `readlink -f` (macOS < 12.3) → the path as invoked
+_real="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null)" || _real="${BASH_SOURCE[0]}"
+_real_dir="${_real%/*}"
 if [ -f "${_real_dir}/lib/aa-ma-log.sh" ]; then
     # shellcheck disable=SC1091  # why: runtime path; aa-ma-log.bats covers the library
     . "${_real_dir}/lib/aa-ma-log.sh"
 else
     log_debug() { :; }
+    log_warn() { :; }
 fi
 [ "${AA_MA_PLAN_MARKER_DEBUG:-0}" = "1" ] && { log_warn "$HOOK" "AA_MA_PLAN_MARKER_DEBUG is deprecated; use HOOK_DEBUG=1"; printf '%s: AA_MA_PLAN_MARKER_DEBUG is deprecated; use HOOK_DEBUG=1\n' "$HOOK" >&2; export HOOK_DEBUG=1; }
 

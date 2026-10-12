@@ -32,13 +32,22 @@ fi
 # shellcheck disable=SC1090,SC1091
 . "$HELPER"
 
-SNAPSHOT_DIR="$HOME/.claude/hooks/cache/compaction-snapshots"
 HOOK=pre-compact-aa-ma   # log name in hooks.log (aa-ma-log.sh; compaction.log folded in at M7.3)
+
+# HOME unset (cron, env -i): no snapshot home, and set -u would abort; never write to a shared /tmp.
+if [ -z "${HOME:-}" ]; then
+    fail_open_notice "$HOOK" "HOME is not set; AA-MA snapshot skipped"
+    exit 0   # PreCompact must never block compaction
+fi
+SNAPSHOT_DIR="$HOME/.claude/hooks/cache/compaction-snapshots"
 
 # POSIX date format (cross-platform; works on both GNU and BSD date).
 ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
-mkdir -p "$SNAPSHOT_DIR"
+mkdir -p "$SNAPSHOT_DIR" 2>/dev/null || {   # why: the notice below replaces mkdir's message
+    fail_open_notice "$HOOK" "cannot create ${SNAPSHOT_DIR/#"$HOME"/\~}; AA-MA snapshot skipped"
+    exit 0   # PreCompact must never block compaction
+}
 
 # Audit-trail append failures, reported once at exit (see end of file).
 append_failures=0

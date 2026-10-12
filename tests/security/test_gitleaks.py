@@ -107,7 +107,7 @@ def test_a_canary_secret_in_a_throwaway_repo_is_caught(tmp_path: Path) -> None:
     subprocess.run([*git, "commit", "-qm", "canary"], check=True)
     proc = subprocess.run(
         [
-            GITLEAKS,
+            str(GITLEAKS),
             "detect",
             "--source",
             str(tmp_path),

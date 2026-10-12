@@ -427,3 +427,26 @@ $SUBPROC_SHELL"
     run_hook 'git commit -m "feat: rename"'
     [ "$status" -eq 2 ]
 }
+
+@test "a second identical shell=True line is introduced (findings are counted, not set-matched)" {
+    stage_file "src/dup.py" "import subprocess
+$SUBPROC_SHELL"
+    (cd "$BATS_TMP" && git commit -qm old)
+    stage_file "src/dup.py" "import subprocess
+$SUBPROC_SHELL
+$SUBPROC_SHELL"
+    run_hook 'git commit -m "feat: dup"'
+    [ "$status" -eq 2 ]
+}
+
+@test "pre-existing line text with glob characters matches literally" {
+    local glob_call='subprocess.run(cmd[0] * 2, shell''=''True)'
+    stage_file "src/glob.py" "import subprocess
+$glob_call"
+    (cd "$BATS_TMP" && git commit -qm old)
+    stage_file "src/glob.py" "import subprocess
+$glob_call
+y = 2"
+    run_hook 'git commit -m "feat: touch"'
+    [ "$status" -eq 0 ]
+}

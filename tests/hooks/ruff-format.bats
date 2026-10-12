@@ -1,13 +1,12 @@
 #!/usr/bin/env bats
-# ruff-format.bats — claude-code/hooks/ruff-format.sh against a real PostToolUse(Edit)
-# payload. The fixture was captured 2026-10-09 from a headless `claude -p` Edit run
-# (code-conventions-impact M2.4); only cwd/transcript_path/file paths were rewritten
-# to /tmp/capture/…, and each test points tool_input.file_path at its own file.
+# ruff-format.bats — claude-code/hooks/ruff-format.sh against the real captured
+# PostToolUse(Edit) payload (tests/fixtures/hook-payloads, M7.5); each test points
+# tool_input.file_path at its own file.
 
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     HOOK="${REPO_ROOT}/claude-code/hooks/ruff-format.sh"
-    PAYLOAD="${BATS_TEST_DIRNAME}/fixtures/ruff-format/posttooluse-edit.json"
+    PAYLOAD="${BATS_TEST_DIRNAME}/../fixtures/hook-payloads/PostToolUse-Edit.json"
     WORK="$(mktemp -d "${BATS_TMPDIR}/ruff-format.XXXXXX")"
     export HOME="${WORK}/home"   # the hook logs to $HOME/.claude/logs/hooks.log
     LOG="${HOME}/.claude/logs/hooks.log"

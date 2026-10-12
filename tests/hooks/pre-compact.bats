@@ -11,6 +11,8 @@
 
 bats_require_minimum_version 1.5.0
 
+load ../lib/hook_payloads
+
 setup() {
     HOOK="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)/claude-code/hooks/pre-compact-aa-ma.sh"
     FIXTURE="${BATS_TEST_DIRNAME}/fixtures/build_active_dir.sh"
@@ -144,4 +146,12 @@ EOF
     grep -qF -- '- Snapshot saved to: ~/.claude/hooks/cache/compaction-snapshots/task-1-snapshot.md' \
         "$BATS_TMP/.claude/dev/active/task-1/task-1-context-log.md"
     run ! grep -qF -- "$BATS_TMP_HOME" "$BATS_TMP/.claude/dev/active/task-1/task-1-context-log.md"
+}
+
+@test "a real captured PreCompact payload on stdin: snapshot still written (M7.5)" {
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    cd "$BATS_TMP"
+    HOME="$BATS_TMP_HOME" run bash -c 'bash "$1" < "$2"' _ "$HOOK" "$HOOK_PAYLOADS/PreCompact.json"
+    [ "$status" -eq 0 ]
+    [ -f "$BATS_TMP_HOME/.claude/hooks/cache/compaction-snapshots/task-1-snapshot.md" ]
 }

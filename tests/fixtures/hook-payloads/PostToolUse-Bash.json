@@ -1,0 +1,32 @@
+{
+  "session_id": "00000000-0000-4000-8000-000000000001",
+  "transcript_path": "/home/capture/.claude/projects/-tmp-capture-work/00000000-0000-4000-8000-000000000001.jsonl",
+  "cwd": "/tmp/capture/work",
+  "prompt_id": "00000000-0000-4000-8000-000000000002",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "git add -A && git commit -m dummy2",
+    "description": "Stage all changes and commit with message dummy2"
+  },
+  "tool_response": {
+    "stdout": "[main 0301491] dummy2\n 1 file changed, 1 insertion(+), 1 deletion(-)",
+    "stderr": "",
+    "interrupted": false,
+    "isImage": false,
+    "noOutputExpected": false,
+    "gitOperation": {
+      "commit": {
+        "sha": "0301491",
+        "kind": "committed",
+        "branch": "main"
+      }
+    }
+  },
+  "tool_use_id": "toolu_000000000000000000000001",
+  "duration_ms": 122
+}

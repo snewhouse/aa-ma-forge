@@ -24,6 +24,8 @@
 # runtime via string concatenation. This keeps the bats source clean of any
 # scannable trigger token.
 
+load ../lib/hook_payloads
+
 setup() {
     HOOK="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)/claude-code/hooks/security-static-check.sh"
     BATS_TMP="$(mktemp -d)"
@@ -64,8 +66,9 @@ teardown() {
 }
 
 # Build a PreToolUse stdin JSON for a given bash command string.
+# The real captured PreToolUse(Bash) payload, carrying command $1.
 make_input() {
-    jq -cn --arg cmd "$1" '{tool_name:"Bash",tool_input:{command:$cmd}}'
+    payload PreToolUse-Bash --arg cmd "$1" '.tool_input.command = $cmd'
 }
 
 # Stage a file with given content in the bats temp repo.

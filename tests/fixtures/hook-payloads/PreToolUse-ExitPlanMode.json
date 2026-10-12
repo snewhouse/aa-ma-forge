@@ -1,0 +1,18 @@
+{
+  "session_id": "00000000-0000-4000-8000-000000000003",
+  "transcript_path": "/home/capture/.claude/projects/-tmp-capture-work/00000000-0000-4000-8000-000000000003.jsonl",
+  "cwd": "/tmp/capture/work",
+  "scratchpad_dir": "/tmp/claude-capture/-tmp-capture-work/00000000-0000-4000-8000-000000000003/scratchpad",
+  "prompt_id": "00000000-0000-4000-8000-000000000006",
+  "permission_mode": "plan",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "ExitPlanMode",
+  "tool_input": {
+    "plan": "# Plan: set x to 3 in mod.py\n\n## Context\n`mod.py` currently contains a single line: `x = 2`. Requested change: `x` should be 3.\n\n## Change\n- `/tmp/capture/work/mod.py` line 1: `x = 2` → `x = 3`\n\n## Verification\n- `python -c \"import mod; assert mod.x == 3\"` from `/tmp/capture/work`\n- `git diff` shows exactly one changed line\n",
+    "planFilePath": "/home/capture/.claude/plans/plan-a-one-line-change-jaunty-dusk.md"
+  },
+  "tool_use_id": "toolu_000000000000000000000003"
+}

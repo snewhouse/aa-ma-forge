@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
 # session-end-dirty.bats — tests for claude-code/hooks/aa-ma-session-end-dirty.sh
 
+load ../lib/hook_payloads
+
 setup() {
     HOOK="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)/claude-code/hooks/aa-ma-session-end-dirty.sh"
     FIXTURE="${BATS_TEST_DIRNAME}/fixtures/build_active_dir.sh"
@@ -94,4 +96,13 @@ setup_committed_tasks() {
     [ "$status" -eq 0 ]
     # No "dirty" warning; may or may not have debug output.
     [[ "$output" != *"⚠️"* ]]
+}
+
+@test "a real captured SessionEnd payload on stdin: dirty artifact still warned (M7.5)" {
+    setup_committed_tasks 1
+    printf '\ndirty change\n' >> "$BATS_TMP/.claude/dev/active/task-1/task-1-tasks.md"
+    cd "$BATS_TMP"
+    HOME="$BATS_TMP_HOME" CLAUDE_CODE=1 run bash -c 'bash "$1" < "$2"' _ "$HOOK" "$HOOK_PAYLOADS/SessionEnd.json"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"task-1-tasks.md"* ]]
 }

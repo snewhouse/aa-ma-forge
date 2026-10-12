@@ -2,6 +2,20 @@
 
 ## AA-MA Tooling
 
+### Hook hot-path and helper tidy-ups (M7 §6.6 review, deferred)
+
+**What:**
+- `ruff-format.sh` runs ruff three times per .py edit (check --fix, format, check; ~11 ms each). Take the findings from one `check --fix --output-format concise` run.
+- `_aa_ma_log` builds `hook` and `msg` in `$(…)` subshells, one fork per field per line. Use `printf -v` or globals.
+- `~/.claude/hooks/cache/ruff-format-no-ruff-<sid>` markers are never removed. Prune old ones, e.g. from session-start.
+- The forge-root lookup (`readlink -f` + strip path components) is written out in `aa-ma-log.sh`, `aa-ma-parse.sh` (3×) and `ruff-format.sh`. Make it one helper in `aa-ma-log.sh`.
+
+**Why:** found by the code-conventions-impact M7 post-milestone review. Ste chose to fix the WARNINGs in M7 and defer these INFO items. None is a defect: each costs a few ms, or is one marker file per session.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** —
+
 ### Remove the `AA_MA_PLAN_MARKER_DEBUG` alias
 
 **What:** Delete the alias line in `claude-code/hooks/aa-ma-plan-skip-warn.sh` (and its bats case and the note in `docs/spec/plan-marker-grammar.md`) one release after v0.18.0.

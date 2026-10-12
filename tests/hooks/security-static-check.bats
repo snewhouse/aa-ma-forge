@@ -255,3 +255,124 @@ TOKEN = os.getenv("TOKEN")'
     run shellcheck "$HOOK"
     [ "$status" -eq 0 ]
 }
+
+# --- M8.6: forge-pinned Ruff S (S102,S301,S307,S602,S604,S608) on the staged blobs ---------
+REPO_ROOT_SSC="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
+
+# ssc_forge — the hook in a forge layout with NO .venv (ruff must come from PATH or be absent).
+ssc_forge() {
+    local d="$BATS_TMP_HOME/forge"
+    mkdir -p "$d/claude-code/hooks/lib" "$d/src/aa_ma"
+    cp "$HOOK" "$d/claude-code/hooks/"
+    cp "$REPO_ROOT_SSC"/claude-code/hooks/lib/aa-ma-*.sh "$d/claude-code/hooks/lib/"
+    cp "$REPO_ROOT_SSC/src/aa_ma/secret_patterns.tsv" "$d/src/aa_ma/"
+    echo "$d/claude-code/hooks/security-static-check.sh"
+}
+
+# ssc_sysbin — a PATH dir with what the hook needs, and no ruff.
+ssc_sysbin() {
+    local b="$BATS_TMP_HOME/sysbin" t
+    mkdir -p "$b"
+    for t in cat jq git grep sed tr date mkdir head wc readlink dirname cut; do ln -sf "$(command -v "$t")" "$b/$t"; done
+    echo "$b"
+}
+
+@test "Ruff S602 on a staged shell=True → exit 2 naming the rule" {
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    run_hook 'git commit -m "feat: run"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"src/run.py:2"*"S602"* ]]
+}
+
+@test "the second dynamic-code builtin (Ruff S102) → exit 2" {
+    stage_file "src/dyn2.py" "$EXEC_CALL"
+    run_hook 'git commit -m "feat: dyn"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"S102"* ]]
+}
+
+@test "the staged blob is scanned, not the working tree" {
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    printf 'x = 1\n' > "$BATS_TMP/src/run.py"   # clean working copy, dirty index
+    run_hook 'git commit -m "feat: run"'
+    [ "$status" -eq 2 ]
+}
+
+@test "a Ruff finding on an unchanged line does not block (only introduced lines)" {
+    stage_file "src/old.py" "import subprocess
+$SUBPROC_SHELL"
+    (cd "$BATS_TMP" && git commit -qm old)
+    stage_file "src/old.py" "import subprocess
+$SUBPROC_SHELL
+y = 2"
+    run_hook 'git commit -m "feat: touch"'
+    [ "$status" -eq 0 ]
+}
+
+@test "the repo's own ruff config cannot switch the rules off (--isolated)" {
+    stage_file "pyproject.toml" '[tool.ruff.lint]
+ignore = ["S602"]'
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    run_hook 'git commit -m "feat: run"'
+    [ "$status" -eq 2 ]
+}
+
+@test "a per-site noqa is honoured" {
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL  # noqa: S602"
+    run_hook 'git commit -m "feat: run"'
+    [ "$status" -eq 0 ]
+}
+
+@test "a hostile repo's .venv/bin/ruff is never run" {
+    mkdir -p "$BATS_TMP/.venv/bin"
+    printf '#!/bin/sh\n: > "%s/PWNED"\n' "$BATS_TMP_HOME" > "$BATS_TMP/.venv/bin/ruff"
+    chmod +x "$BATS_TMP/.venv/bin/ruff"
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    local input; input=$(make_input 'git commit -m "feat: run"')
+    cd "$BATS_TMP"
+    run env HOME="$BATS_TMP_HOME" PATH=".venv/bin:$(ssc_sysbin)" "$BASH" "$(ssc_forge)" <<< "$input"
+    [ ! -e "$BATS_TMP_HOME/PWNED" ]
+}
+
+@test "no ruff → a systemMessage and a hooks.log line, exit 0 — never a silent pass" {
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    local input; input=$(make_input 'git commit -m "feat: run"')
+    cd "$BATS_TMP"
+    run env HOME="$BATS_TMP_HOME" PATH="$(ssc_sysbin)" "$BASH" "$(ssc_forge)" <<< "$input"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'"systemMessage"'*"ruff"* ]]
+    grep -q 'WARN security-static-check: .*ruff' "$BATS_TMP_HOME/.claude/logs/hooks.log"
+}
+
+@test "no ruff still blocks a secret literal (the regex classes do not need ruff)" {
+    stage_file "src/leak.py" "$HARD_KEY"
+    local input; input=$(make_input 'git commit -m "feat: key"')
+    cd "$BATS_TMP"
+    run env HOME="$BATS_TMP_HOME" PATH="$(ssc_sysbin)" "$BASH" "$(ssc_forge)" <<< "$input"
+    [ "$status" -eq 2 ]
+}
+
+@test "payload on a socket stdin (as Claude Code delivers it) is read (L-050)" {
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    local input; input=$(make_input 'git commit -m "feat: run"')
+    cd "$BATS_TMP"
+    run env HOME="$BATS_TMP_HOME" python3 -c '
+import socket, subprocess, sys
+ours, theirs = socket.socketpair()
+p = subprocess.Popen(["bash", sys.argv[1]], stdin=theirs)
+theirs.close(); ours.sendall(sys.argv[2].encode()); ours.shutdown(socket.SHUT_WR)
+sys.exit(p.wait())' "$HOOK" "$input"
+    [ "$status" -eq 2 ]
+}
+
+@test "the regex classes Ruff now covers are retired from the script" {
+    run grep -nE 'SQL_FN|PKL_MOD|BIN_DYN|shell injection \(subprocess' "$HOOK"
+    [ "$status" -eq 1 ]
+}

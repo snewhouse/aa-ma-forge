@@ -430,3 +430,10 @@ DECISION ruff-only () — approved by Ste
 ## [2026-10-12] M8.5 — dependency triage decision (Ste)
 - 3 advisory IDs ignored to 2027-01-12, not migrated now: fastmcp 3.x requires watchfiles>=1 against the TUI`s <1 pin. That cascade belongs outside a security CI milestone. The advisories are unreachable (stdio-only server, no OAuth proxy, no Gemini install, diskcache unused). The expiry plus the test forces the TODOS migration.
 - Rejected: a blanket `--upgrade-package` (it silently moved mcp to 2.x and downgraded fastmcp); a 30-day expiry.
+
+## [2026-10-12] M8.6 — security-static-check design (circuit breaker; Ste)
+- DECISION whole-file Ruff S in the commit hook — approved by Ste. Three background review rounds found bypasses in every "only findings this commit introduced" filter: in-file noqa, start-row anchoring, a first-line text key, jq --arg E2BIG, an added `++x` read as a diff header, repo color.diff. Git diff, Ruff and ast number lines differently, so no such mapping is attempted. A pre-existing site in a touched file needs `[security-bypass: <reason>]`. In this repo that is mcp_tools/__init__.py (3× S608) and indexer.py (1× S608).
+- `--ignore-noqa`: in-file suppression is repo-controlled; the bypass marker is the auditable escape.
+- Fail closed (exit 2) when ruff or git error on a file, the JSON is unreadable, or the diff has no parsable hunk. Only "no ruff at all" stays notice + exit 0 (the plan's contract).
+- S102 added to D12's `S602,S604,S307,S608,S301` so exec() keeps the coverage its regex had.
+- Stage C runs Ruff S without --isolated (repo per-file-ignores apply, like any lint); severities come from the matching Bandit test's default tier; an unknown code is HIGH.

@@ -45,6 +45,20 @@ append into a world-writable directory, where a planted symlink redirects it. I 
 write to a shared /tmp" for pre-compact. **Stricter:** a fallback path is part of the threat model. When
 the private location is unknown, write nothing (stderr only). Never substitute `/tmp` or another shared dir.
 A test greps the library for `:-/tmp`.
+**Recurrence 2 (2026-10-12, M8.6, security-static-check):** the change was to block only Ruff findings
+"introduced" by a commit. Three background review rounds each found a bypass in my filter:
+1. an in-file `# ruff: noqa`;
+2. a finding anchored on an unchanged row of a multi-line call;
+3. a (rule, first-line text) key that ignores changed arguments;
+4. jq `--arg` E2BIG on files over 128 KiB (fail-open);
+5. an added `++x` parsed as a `+++` header;
+6. repo `color.diff=always` breaking hunk parsing.
+Each patch added surface. **Stricter:** a security gate never filters findings by a mapping
+between two line-numbering systems (git diff vs a linter vs ast). Scan the whole artifact (D8) and
+give pre-existing sites an auditable bypass. When a security review finds a bypass, the second
+finding in the same mechanism means stop and redesign, not patch. Before calling such a hook done,
+probe the inputs the attacker controls: in-file suppressions, git config (color, ext-diff,
+textconv), argv size, renames, and lines that look like diff syntax.
 **Cross-ref:** L-1319 (stderr on exit 0 is invisible), L-047 (sweep every reader)
 
 ---

@@ -50,6 +50,8 @@ _NOT_OURS = "line 1 is not a codemem draw stamp, so it is not generated — move
 
 @dataclass(frozen=True)
 class ViewSpec:
+    """One generated view: its output path, title, body generator and scope."""
+
     output_path: str
     title: str
     generator: Callable[
@@ -62,6 +64,7 @@ class ViewSpec:
 
 
 def registered_paths(repo_root: Path) -> list[Path]:
+    """Return the absolute output path of every view registered for ``repo_root``."""
     return [repo_root / s.output_path for s in _registered(repo_root)]
 
 

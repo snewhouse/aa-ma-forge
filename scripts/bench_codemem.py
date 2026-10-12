@@ -125,6 +125,16 @@ def bench_index_who_calls(repo: Path, anchor: str) -> float:
 
 
 def run_trials(label: str, fn, n: int = TRIALS) -> list[float]:
+    """Run ``fn`` ``n`` times and print the median.
+
+    Args:
+        label: Name printed for this measurement.
+        fn: Zero-argument callable returning elapsed seconds.
+        n: Number of trials.
+
+    Returns:
+        The per-trial timings, or an empty list if a subprocess failed.
+    """
     print(f"  {label:.<40s}", end=" ", flush=True)
     results: list[float] = []
     for _ in range(n):
@@ -139,6 +149,11 @@ def run_trials(label: str, fn, n: int = TRIALS) -> list[float]:
 
 
 def main() -> int:
+    """Benchmark codemem against /index on one repo and print a markdown table.
+
+    Returns:
+        0 on success, 1 if the repo is not a git repo.
+    """
     ap = argparse.ArgumentParser()
     ap.add_argument("repo", type=Path, help="Path to repo under test")
     ap.add_argument(

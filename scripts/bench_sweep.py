@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""M3 budget-sweep orchestrator for the bench harness.
+r"""M3 budget-sweep orchestrator for the bench harness.
 
 Runs scripts/bench_codemem_vs_aider.py N times per budget and aggregates
 medians per (tool, budget) cell. Honors AD-006 (3-run median) without
 modifying the single-run harness shape (M2 Task 2.6 contract preserved).
 
 Usage:
-    uv run python scripts/bench_sweep.py \\
-        --repo /tmp/bench-fastapi \\
-        --budgets 512,1024,2048,4096 \\
-        --runs 3 \\
-        --pinned-sha 708606c982cf35718cb2214c0bb9261cf548f042 \\
+    uv run python scripts/bench_sweep.py \
+        --repo /tmp/bench-fastapi \
+        --budgets 512,1024,2048,4096 \
+        --runs 3 \
+        --pinned-sha 708606c982cf35718cb2214c0bb9261cf548f042 \
         --out /tmp/bench-fastapi.json
 """
 
@@ -127,6 +127,14 @@ def _run_harness_once(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the harness per budget, aggregate medians and write the sweep JSON.
+
+    Args:
+        argv: Command-line arguments; ``None`` reads ``sys.argv``.
+
+    Returns:
+        0 once the output file is written.
+    """
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--repo", type=Path, required=True, help="Target repository root")
     p.add_argument(

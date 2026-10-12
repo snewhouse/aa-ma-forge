@@ -43,6 +43,8 @@ _INDEXABLE_EXTENSIONS: frozenset[str] = frozenset(
 
 @dataclass
 class BuildStats:
+    """Counters and timing reported by a full index build."""
+
     files_indexed: int = 0
     symbols_inserted: int = 0
     edges_inserted: int = 0
@@ -118,15 +120,17 @@ class _FileParse:
     size: int
 
 
-def parse_files(
+def parse_files(  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down, no logic change in a security milestone)
     files: list[Path],
     *,
     repo_root: Path,
     package: str,
 ) -> tuple[list[_FileParse], int]:
-    """Parse each file with the appropriate parser. Python uses the stdlib
-    parser one file at a time; other languages batch via ast-grep. A file
-    ast-grep could not parse is absent from ``parses`` (not an empty parse).
+    """Parse each file with the appropriate parser.
+
+    Python uses the stdlib parser one file at a time; other languages batch
+    via ast-grep. A file ast-grep could not parse is absent from ``parses``
+    (not an empty parse).
 
     Returns ``(parses, python_parse_errors)`` — second value counts files
     whose Python parse returned an empty ParseResult (caller metric).
@@ -293,8 +297,10 @@ def _resolve_parent_ids(conn, parses: list[_FileParse]) -> None:
 
 
 def _bulk_insert_edges(conn, parses: list[_FileParse]) -> int:
-    """Insert edges after symbol IDs are known. Unresolved edges (dst None)
-    are persisted via ``dst_unresolved`` column; Task 1.6 fills in later.
+    """Insert edges after symbol IDs are known.
+
+    Unresolved edges (dst None) are persisted via ``dst_unresolved`` column;
+    Task 1.6 fills in later.
     """
     rows = conn.execute("SELECT scip_id, id FROM symbols").fetchall()
     scip_to_id = {scip: sid for scip, sid in rows}

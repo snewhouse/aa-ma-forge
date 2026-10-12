@@ -73,6 +73,8 @@ _PATH_RE = re.compile(
 
 @dataclass(frozen=True)
 class Finding:
+    """One lint finding: a code, the plan line it is on, and a message."""
+
     code: str
     line: int
     message: str
@@ -80,6 +82,8 @@ class Finding:
 
 @dataclass(frozen=True)
 class LintReport:
+    """The result of linting one plan: findings, render status, and sigil-edge counts."""
+
     findings: tuple[Finding, ...]
     render_status: str  # PASS | FAIL | UNKNOWN
     unknowns: tuple[
@@ -137,10 +141,12 @@ class _Graph:
     edge_langs: dict[str, set[str]]  # sigil -> languages with at least one such edge
 
     def models(self, sigil: str, path: str) -> bool:
-        """Can the graph hold this sigil's edge at ``path``? Data, not a language list: an
-        indexed file whose language has at least one such edge. codemem indexes `.sh` for
+        """Can the graph hold this sigil's edge at ``path``?
+
+        Data, not a language list: an indexed file whose language has at least one such edge. codemem indexes `.sh` for
         symbols but persists imports for Python only, so an `@import` on a shell script is
-        UNKNOWN, while an isolated Python file is still evaluable (and PHANTOM if absent)."""
+        UNKNOWN, while an isolated Python file is still evaluable (and PHANTOM if absent).
+        """
         return self.langs.get(path) in self.edge_langs[sigil]
 
 
@@ -219,7 +225,7 @@ def section_13(
 def _views(
     section_lines: list[str], stripped_lines: list[str]
 ) -> dict[str, tuple[int, str]]:
-    """name -> (0-based heading line within the section, body text).
+    """Name -> (0-based heading line within the section, body text).
 
     Headings are located on the fence-stripped lines (a `### Component view` quoted inside a
     fenced example is content, not a view); bodies are sliced from the original lines so the
@@ -239,8 +245,11 @@ def _views(
 
 
 def _bracketed(line: str) -> list[tuple[int, str]]:
-    """(index of `[`, contents) per `[...]` via str.find — linear on a hostile line of
-    200 000 `[` where a `\\[([^\\]]*)\\]` regex re-scanned to EOL from every opener."""
+    r"""(index of `[`, contents) per `[...]` via str.find.
+
+    Linear on a hostile line of 200 000 `[` where a `\[([^\]]*)\]` regex re-scanned to EOL
+    from every opener.
+    """
     out: list[tuple[int, str]] = []
     i = line.find("[")
     while i >= 0:
@@ -257,8 +266,10 @@ def _labels(line: str) -> list[str]:
 
 
 def _label_paths(label: str) -> list[str]:
-    """Repo-path claims in one `[...]` label; none when it is planned `(new)`. The one rule
-    STALE_PATH and sigil endpoints share (§6.8 M8 found two copies, one without `_inside`)."""
+    """Repo-path claims in one `[...]` label; none when it is planned `(new)`.
+
+    The one rule STALE_PATH and sigil endpoints share (§6.8 M8 found two copies, one without `_inside`).
+    """
     if NEW_RE.search(label):
         return []
     # [/x/] is a shape; a leading "/" would otherwise resolve from the fs root
@@ -271,8 +282,11 @@ def _label_paths(label: str) -> list[str]:
 
 
 def _inside(repo_root: Path, rel: str) -> bool:
-    """A label path is a claim about *this* repo. Absolute paths and `..` would otherwise
-    turn the existence check into an oracle for arbitrary host files."""
+    """True if the label path resolves inside ``repo_root``.
+
+    A label path is a claim about *this* repo. Absolute paths and `..` would otherwise
+    turn the existence check into an oracle for arbitrary host files.
+    """
     try:
         return (repo_root / rel).resolve().is_relative_to(repo_root.resolve())
     except OSError:
@@ -291,7 +305,7 @@ def _stale_paths(src: str, repo_root: Path) -> list[tuple[int, str]]:
 
 
 def node_labels(src: str) -> dict[str, str]:
-    """id -> `[...]` label per fence; the LAST declaration wins, as in mermaid."""
+    """Id -> `[...]` label per fence; the LAST declaration wins, as in mermaid."""
     labels: dict[str, str] = {}
     for line in src.split("\n"):
         for i, content in _bracketed(line):
@@ -304,8 +318,10 @@ def node_labels(src: str) -> dict[str, str]:
 
 
 def _unwrap(label: str) -> str:
-    """`("x (new)")` -> `x (new)`: peel matched shape pairs, then quotes — never a `)` of
-    `(new)`. Two indices, one slice: re-slicing per peel was quadratic."""
+    """`("x (new)")` -> `x (new)`: peel matched shape pairs, then quotes.
+
+    Never a `)` of `(new)`. Two indices, one slice: re-slicing per peel was quadratic.
+    """
     i, k = 0, len(label)
     while True:
         while i < k and label[i] in " \t":
@@ -349,7 +365,7 @@ def _endpoint(
     return paths[0], None
 
 
-def _sigil_claims(
+def _sigil_claims(  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down, no logic change in a security milestone)
     src: str, first_line: int, repo_root: Path, graph: list[_Graph]
 ) -> tuple[list[Finding], list[Finding], int, int]:
     """PHANTOM_EDGE / LABEL_UNKNOWN findings, UNKNOWN notes, claims and claims checked for one fence.
@@ -449,11 +465,11 @@ def _sigil_slots(text: str) -> int:
 
 
 def mermaid_fences(body: str) -> list[tuple[int, str]]:
-    """(1-based line of first content line, source) per ```mermaid fence, one linear pass.
+    r"""(1-based line of first content line, source) per ```mermaid fence, one linear pass.
 
     Mirrors the CommonMark rule in grammar.scan_fences (closer = same char, >= opener
     length, no info string) rather than calling it: scan_fences returns block contents
-    but not their info strings or positions, and a lazy `^```mermaid\\n(.*?)^```` regex
+    but not their info strings or positions, and a lazy `^```mermaid\n(.*?)^```` regex
     re-scanned to EOF from every unclosed opener (measured 14.5 s at 18 000 openers).
     """
     lines = body.split("\n")
@@ -482,7 +498,18 @@ def mermaid_fences(body: str) -> list[tuple[int, str]]:
     return out
 
 
-def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintReport:
+def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintReport:  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down, no logic change in a security milestone)
+    """Lint a plan's §13 Architecture View against ``repo_root``.
+
+    Args:
+        plan_text: The plan.md text.
+        repo_root: Repo that label paths and sigil edges are checked against.
+        tasks_text: The tasks.md text, read with the plan for milestone Audit-Profile and
+            Critical-Path facts.
+
+    Returns:
+        The findings, render status and sigil-edge counts.
+    """
     out: list[Finding] = []
     code_ms, has_crit, audit_errors = _milestone_facts(plan_text + "\n" + tasks_text)
     out += [Finding("AUDIT_PROFILE_INVALID", 1, e) for e in dict.fromkeys(audit_errors)]
@@ -585,6 +612,16 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
 def lint_plan(
     plan_path: Path, repo_root: Path, *, tasks_path: Path | None = None
 ) -> LintReport:
+    """Read a plan file (and its sibling tasks file) and lint it with :func:`lint_text`.
+
+    Args:
+        plan_path: Path to the plan.md file.
+        repo_root: Repo that label paths and sigil edges are checked against.
+        tasks_path: The tasks.md file; ``None`` uses the sibling ``*-tasks.md`` if it exists.
+
+    Returns:
+        The :class:`LintReport` from :func:`lint_text`.
+    """
     if tasks_path is None:
         cand = plan_path.with_name(plan_path.name.replace("-plan.md", "-tasks.md"))
         tasks_path = cand if cand != plan_path and cand.is_file() else None
@@ -596,7 +633,9 @@ def lint_plan(
 
 
 def render_check(sources: Sequence[str], *, timeout_s: float = 90.0) -> str:
-    """timeout_s is per source, not total. PASS iff every source yields a non-empty SVG via MMDC_BIN; FAIL only on a mermaid parse
+    """Render each source with mermaid-cli and return PASS, FAIL or UNKNOWN.
+
+    timeout_s is per source, not total. PASS iff every source yields a non-empty SVG via MMDC_BIN; FAIL only on a mermaid parse
     error (stderr signature); UNKNOWN for everything else — mermaid-cli exits 1 for *all* errors,
     including a missing Chromium, so rc alone cannot distinguish a bad diagram from a bad install (L-012).
     """

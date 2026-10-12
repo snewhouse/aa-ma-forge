@@ -18,6 +18,20 @@
 **Priority:** P3
 **Depends on:** —
 
+### Refactor the 10 functions M8.2 suppressed with `noqa: C901` / `PLR0913`
+**What:** split these so the per-site suppressions can go:
+- `codemem/incremental.py::_refresh_locked` (17)
+- `codemem/parser/ast_grep.py::_build_parse_result` (15)
+- `scripts/bench_codemem_vs_aider.py::_parse_munch_gen1` (16)
+- `check_codemem_doc_drift.py::check_tier_2_changelog_completeness` (13)
+- `render/mermaid_lint.py::_sigil_claims` (13), `::lint_text` (12)
+- `mcp_tools::diagram` (12), `ast_grep.py::extract_with_ast_grep` (12)
+- `indexer.py::parse_files` (11)
+- `bench_codemem_vs_aider.py::_build_report` (PLR0913, 7 args)
+
+Find them with `grep -rn "M8.2 D8 pay-down"`.
+**Why:** M8.2 had to add security `noqa`s to these files, which made them touched files (D8). Refactoring codemem and render logic inside a security milestone was out of scope (Ste, 2026-10-12). **Effort:** M · **Priority:** P3
+
 ### Remove the `AA_MA_PLAN_MARKER_DEBUG` alias
 
 **What:** Delete the alias line in `claude-code/hooks/aa-ma-plan-skip-warn.sh` (and its bats case and the note in `docs/spec/plan-marker-grammar.md`) one release after v0.18.0.

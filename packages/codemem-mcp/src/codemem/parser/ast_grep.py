@@ -351,7 +351,7 @@ def _file_rel_to_package(file: Path, repo_root: Path, package: str) -> str:
         return str(rel_to_repo)
 
 
-def _build_parse_result(
+def _build_parse_result(  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down, no logic change in a security milestone)
     file: Path,
     matches: list[_SgMatch],
     *,
@@ -489,7 +489,7 @@ def _callee(m: _SgMatch) -> str | None:
 Invoker = Callable[[Path, list[Path]], "str | None"]
 
 
-def extract_with_ast_grep(
+def extract_with_ast_grep(  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down, no logic change in a security milestone)
     files: Iterable[Path],
     *,
     package: str,
@@ -497,8 +497,9 @@ def extract_with_ast_grep(
     sg_bin: str | None = None,
     _invoker: Callable[..., str | None] | None = None,
 ) -> dict[Path, ParseResult]:
-    """Parse ``files`` via ast-grep, batched per language (and per
-    ``_ARGV_BUDGET`` bytes of path arguments).
+    """Parse ``files`` via ast-grep.
+
+    Batched per language (and per ``_ARGV_BUDGET`` bytes of path arguments).
 
     Returns a mapping from each PARSED file to its :class:`ParseResult`.
     Files whose language is unsupported (e.g. ``.py`` — handled by the

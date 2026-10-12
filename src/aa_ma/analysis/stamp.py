@@ -2,7 +2,8 @@
 
 Dirty = TRACKED changes only (`git status --porcelain --untracked-files=no`), so a freshly
 written, untracked ONBOARDING.md never makes the run that wrote it stale. Every git call ends
-its options with `--end-of-options` so no value can be read as a flag."""
+its options with `--end-of-options` so no value can be read as a flag.
+"""
 
 from __future__ import annotations
 
@@ -26,10 +27,14 @@ REPORT_NAME = re.compile(rf"[0-9a-f]{{{HEX12}}}(-dirty)?")
 
 
 class NotAGitRepo(Exception):
+    """The target is not a git repo with at least one commit, or git status failed on it."""
+
     pass
 
 
 class UnsafePath(Exception):
+    """A path that would leave the repo or pass through a symlink or non-directory."""
+
     pass
 
 
@@ -70,12 +75,15 @@ ISOLATED_CONFIG = {"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
 
 
 def absolute_path(path: str) -> str:
-    """PATH without `.`, empty or relative entries: resolved from inside the target, they would
-    find a binary the target planted."""
+    """PATH without `.`, empty or relative entries.
+
+    Resolved from inside the target, they would find a binary the target planted.
+    """
     return os.pathsep.join(e for e in path.split(os.pathsep) if os.path.isabs(e))
 
 
 def git_overrides() -> dict[str, str]:
+    """GIT_CONFIG_COUNT/KEY/VALUE env vars that apply GIT_OVERRIDES at command scope."""
     env = {"GIT_CONFIG_COUNT": str(len(GIT_OVERRIDES))}
     for i, (key, value) in enumerate(GIT_OVERRIDES):
         env |= {f"GIT_CONFIG_KEY_{i}": key, f"GIT_CONFIG_VALUE_{i}": value}
@@ -105,8 +113,10 @@ GIT_LOCATION = frozenset(
 
 
 def safe_env() -> dict[str, str]:
-    """This process's environment with an absolute-only PATH, git's command hooks disabled and no
-    inherited repo location."""
+    """This process's environment, made safe for running git on the target.
+
+    Absolute-only PATH, git's command hooks disabled and no inherited repo location.
+    """
     inherited = {k: v for k, v in os.environ.items() if k not in GIT_LOCATION}
     return (
         inherited
@@ -128,9 +138,11 @@ def find_binary(name: str) -> str | None:
 
 
 def open_regular(path: Path, identity: tuple[int, int] | None = None) -> BinaryIO:
-    """A regular file opened for reading; never through a symlink as its last component, never
-    blocking on a FIFO. With `identity` (st_dev, st_ino from a listing) the opened file must be
-    that one: a parent dir swapped for a symlink since the listing opens another (OSError)."""
+    """A regular file opened for reading.
+
+    Never through a symlink as its last component, never blocking on a FIFO. With `identity` (st_dev, st_ino from a listing) the opened file must be
+    that one: a parent dir swapped for a symlink since the listing opens another (OSError).
+    """
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     fh = os.fdopen(fd, "rb")
     st = os.fstat(fd)
@@ -152,12 +164,13 @@ def read_regular(
 
 
 def contained(repo: Path, rel: str) -> bool:
-    """Does repo/rel, symlinks resolved, stay inside the repo? (finalize; ground in M5)"""
+    """Does repo/rel, symlinks resolved, stay inside the repo? Used by finalize; ground in M5."""
     root = Path(repo).resolve()
     return (root / rel).resolve().is_relative_to(root)
 
 
 def run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    """Run `git -C repo *args` with safe_env() and a timeout; a timeout raises UnsafeRepo."""
     try:
         return subprocess.run(  # noqa: S603  # why: fixed `git` argv; --end-of-options before user values
             ["git", "-C", str(repo), *args],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
@@ -182,9 +195,12 @@ BACKREF_MAX_BYTES = 4096
 
 
 def _is_worktree_of(root: str, git_dir: str, common: str) -> bool:
-    """Is git_dir a linked-worktree git dir (`<common>/worktrees/<name>`) whose `gitdir` file
-    names `<root>/.git` back? Relative back-references (`--relative-paths`) resolve against
-    git_dir. A hostile repo cannot write into another repo's `worktrees/`."""
+    """Is git_dir a linked worktree of root?
+
+    True when git_dir is a linked-worktree git dir (`<common>/worktrees/<name>`) whose `gitdir`
+    file names `<root>/.git` back. Relative back-references (`--relative-paths`) resolve against
+    git_dir. A hostile repo cannot write into another repo's `worktrees/`.
+    """
     if _inside(root, git_dir) or os.path.dirname(git_dir) != os.path.join(
         common, "worktrees"
     ):
@@ -199,9 +215,12 @@ def _is_worktree_of(root: str, git_dir: str, common: str) -> bool:
 
 
 def _check_git_dir(repo: Path) -> Path:
-    """The git dir and common dir must be the repo's own: a `.git` file or `commondir` naming
+    """Return the repo's common git dir, refusing one that is not the repo's own.
+
+    The git dir and common dir must be the repo's own: a `.git` file or `commondir` naming
     another repo would have us mine its history. A linked worktree of the user's repo is the
-    one exception, proved by its git dir's `gitdir` file naming this worktree back."""
+    one exception, proved by its git dir's `gitdir` file naming this worktree back.
+    """
     out = run_git(
         repo,
         "rev-parse",
@@ -223,7 +242,7 @@ def _check_git_dir(repo: Path) -> Path:
 
 
 def _config_keys(repo: Path, *args: str) -> list[str]:
-    """Keys from `git config --list -z` (`[scope\\0]key\\nvalue\\0` entries); values never kept."""
+    r"""Keys from `git config --list -z` (`[scope\0]key\nvalue\0` entries); values never kept."""
     listed = run_git(repo, "config", *args, "--list", "-z", "--end-of-options")
     if listed.returncode != 0:
         raise UnsafeRepo(f"{repo}: cannot read its git config — assess a fresh clone")
@@ -236,8 +255,10 @@ def _key_class(key: str) -> str:
 
 
 def check_git_config(repo: Path) -> None:
-    """Refuse a repo whose own git config — local, worktree or any submodule's — holds a key
-    outside SAFE_GIT_CONFIG (names the keys, never values)."""
+    """Refuse a repo whose own git config holds a key outside SAFE_GIT_CONFIG.
+
+    Checks local, worktree and every submodule's config; names the keys, never values.
+    """
     common_dir = _check_git_dir(repo)
     entries = _config_keys(repo, "--show-scope")
     found = {
@@ -279,6 +300,7 @@ def head_stamp(repo: Path) -> tuple[str, bool, str]:
 
 
 def build_stamp(repo: Path, tier: Tier) -> Stamp:
+    """A provenance Stamp for the repo's current HEAD at the given tier, dated now (UTC)."""
     sha12, dirty, branch = head_stamp(repo)
     return Stamp(
         date_utc=datetime.now(UTC).replace(microsecond=0),
@@ -293,6 +315,7 @@ def build_stamp(repo: Path, tier: Tier) -> Stamp:
 
 
 def is_fresh(s: Stamp, repo: Path) -> bool:
+    """True if the stamp matches HEAD and neither the stamp nor the worktree is dirty."""
     sha12, dirty, _ = head_stamp(repo)
     return s.sha12 == sha12 and not s.dirty and not dirty
 
@@ -303,13 +326,17 @@ def report_name(sha12: str, dirty: bool) -> str:
 
 
 def report_dir(repo: Path) -> Path:
+    """The report directory for the repo's current HEAD, under REPORTS_ROOT."""
     sha12, dirty, _ = head_stamp(repo)
     return Path(repo) / REPORTS_ROOT / report_name(sha12, dirty)
 
 
 def safe_dir(repo: Path, rel: str) -> Path:
-    """Create repo/rel one component at a time, refusing any component that is a symlink, is not a
-    directory, or would leave the repo. Nothing is ever written through a symlink."""
+    """Create repo/rel one component at a time.
+
+    Refuses any component that is a symlink, is not a directory, or would leave the repo. Nothing
+    is ever written through a symlink.
+    """
     rel_path = Path(rel)
     if rel_path.is_absolute() or ".." in rel_path.parts:
         raise UnsafePath(f"{rel}: must be a relative path inside the repo")

@@ -80,7 +80,7 @@
     "adr": "docs/adr/0019-coding-doctrine-skill-migration.md",
     "state": "derived",
     "files": {
-      "SKILL.md": "ea0799c2efe7f109253baa9879f8ddf3"
+      "SKILL.md": "0af555f2cc4d0ec3924f4156fa67a765"
     },
     "upstream_md5": {
       "SKILL.md": "5273fb736339ba74400b977d9ebb8d14"

@@ -1,5 +1,5 @@
 ---
-# Derived from https://github.com/wshobson/agents/plugins/cicd-automation/skills/secrets-management @ 46891e7 on 2026-10-09 (no secret echo; trufflehog --fail) — aa-ma-forge v0.17.0
+# Derived from https://github.com/wshobson/agents/plugins/cicd-automation/skills/secrets-management @ 46891e7 on 2026-10-09 (no secret echo; trufflehog --fail; gitleaks primary) — aa-ma-forge v0.17.0
 name: secrets-management
 description: Implement secure secrets management for CI/CD pipelines using Vault, AWS Secrets Manager, or native platform solutions. Use when handling sensitive credentials, rotating secrets, or securing CI/CD environments.
 ---
@@ -219,7 +219,7 @@ deploy:
 3. **Rotate secrets regularly**
 4. **Implement least-privilege access**
 5. **Enable audit logging**
-6. **Use secret scanning** (GitGuardian, TruffleHog)
+6. **Use secret scanning** (gitleaks; TruffleHog as an alternative)
 7. **Mask secrets in logs**
 8. **Encrypt secrets at rest**
 9. **Use short-lived tokens** when possible
@@ -314,34 +314,50 @@ spec:
 
 ## Secret Scanning
 
-### Pre-commit Hook
+gitleaks is the primary scanner: staged changes at commit, full history in CI. Ignore a
+reviewed false positive by its fingerprint (`commit:file:rule:line`) in `.gitleaksignore`,
+with a `# why:` line above it, never by a path or regex allowlist.
 
-```bash
-#!/bin/bash
-# .git/hooks/pre-commit
-
-# Check for secrets with TruffleHog
-docker run --rm -v "$(pwd):/repo" \
-  trufflesecurity/trufflehog:3.88 \
-  filesystem --directory=/repo --fail   # --fail: exit 183 on findings (default exits 0)
-
-if [ $? -ne 0 ]; then
-  echo "❌ Secret detected! Commit blocked."
-  exit 1
-fi
-```
-
-### CI/CD Secret Scanning
+### Pre-commit (staged changes)
 
 ```yaml
-secret-scan:
-  stage: security
-  image: trufflesecurity/trufflehog:3.88
-  script:
-    - trufflehog filesystem . --fail   # without --fail, findings still exit 0
-  allow_failure: false
+# .pre-commit-config.yaml — hook definition from a SHA-frozen rev; runs the installed binary
+- repo: https://github.com/gitleaks/gitleaks
+  rev: <40-hex commit of the release tag>  # frozen: v8.18.4
+  hooks:
+    - id: gitleaks-system
 ```
 
+### CI (full history)
+
+```yaml
+gitleaks:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@<sha>
+      with:
+        fetch-depth: 0              # every commit, not just the tip
+        persist-credentials: false
+    - name: Install gitleaks (checksum-verified release tarball)
+      run: |
+        curl -fsSLO https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz
+        echo "<sha256 from the release's checksums.txt>  gitleaks_8.18.4_linux_x64.tar.gz" | sha256sum -c
+        tar -xzf gitleaks_8.18.4_linux_x64.tar.gz gitleaks
+    - run: ./gitleaks detect --redact --exit-code 1 --log-opts="--all"
+```
+
+Prove the gate fires with a canary: commit a runtime-assembled fake key to a throwaway
+`mktemp -d` repo and expect `gitleaks detect --source <tmp>` to exit 1. Never push a canary.
+
+### Alternative: TruffleHog
+
+Pin the image by digest (a tag can move) and pass `--fail` (without it, findings still exit 0):
+
+```bash
+docker run --rm -v "$(pwd):/repo" \
+  trufflesecurity/trufflehog@sha256:<digest> \
+  filesystem --directory=/repo --fail   # exit 183 on findings
+```
 
 ## Related Skills
 

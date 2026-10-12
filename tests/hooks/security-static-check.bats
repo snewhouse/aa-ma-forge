@@ -450,3 +450,55 @@ y = 2"
     run_hook 'git commit -m "feat: touch"'
     [ "$status" -eq 0 ]
 }
+
+# --- M8.6 security review #2: statement-scoped "introduced", fail closed ------------------
+
+@test "changing the arguments of an existing multi-line shell=True call → exit 2" {
+    stage_file "src/args.py" "import subprocess
+subprocess.run(
+    'ls',
+    shell""=""True,
+)"
+    (cd "$BATS_TMP" && git commit -qm old)
+    stage_file "src/args.py" "import subprocess
+subprocess.run(
+    user_input,
+    shell""=""True,
+)"
+    run_hook 'git commit -m "feat: args"'
+    [ "$status" -eq 2 ]
+}
+
+@test "a file larger than one argv string (>128 KiB) is still scanned, not skipped" {
+    local pad; pad=$(python3 -c 'print("\n".join(f"v{i} = {i}" for i in range(20000)))')
+    stage_file "src/big.py" "import subprocess
+$pad
+$SUBPROC_SHELL"
+    run_hook 'git commit -m "feat: big"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"S602"* ]]
+}
+
+@test "a lone-CR file is judged conservatively: an existing finding counts" {
+    printf 'import subprocess\r%s\r' "$SUBPROC_SHELL" > "$BATS_TMP/src_cr.py"
+    (cd "$BATS_TMP" && git add src_cr.py && git commit -qm old)
+    printf 'import subprocess\r%s\ry = 2\r' "$SUBPROC_SHELL" > "$BATS_TMP/src_cr.py"
+    (cd "$BATS_TMP" && git add src_cr.py)
+    run_hook 'git commit -m "feat: cr"'
+    [ "$status" -eq 2 ]
+}
+
+@test "no python to scope findings → every finding counts (fail closed)" {
+    stage_file "src/old.py" "import subprocess
+$SUBPROC_SHELL"
+    (cd "$BATS_TMP" && git commit -qm old)
+    stage_file "src/old.py" "import subprocess
+$SUBPROC_SHELL
+y = 2"
+    local b; b=$(ssc_sysbin)
+    ln -sf "$REPO_ROOT_SSC/.venv/bin/ruff" "$b/ruff"
+    local input; input=$(make_input 'git commit -m "feat: touch"')
+    cd "$BATS_TMP"
+    run env HOME="$BATS_TMP_HOME" PATH="$b" "$BASH" "$(ssc_forge)" <<< "$input"
+    [ "$status" -eq 2 ]
+}

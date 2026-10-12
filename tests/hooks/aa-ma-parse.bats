@@ -337,3 +337,12 @@ EOF
     grep -qF "c (19 chars, first word '/usr/bin/git')" "$CLAUDE_HOOK_LOG"
     run ! grep -qE "hunter2|topsecret" "$CLAUDE_HOOK_LOG"
 }
+
+@test "aa_ma_debug_cmd never truncates a first word: a long one (e.g. a pasted token) becomes '?' (security notice)" {
+    . "$HELPER"
+    gh="ghp_$(printf 'a%.0s' {1..36})"; ant="sk-ant-api03-$(printf 'B%.0s' {1..40})"
+    HOOK_DEBUG=1 aa_ma_debug_cmd p "$gh push" 2>/dev/null
+    HOOK_DEBUG=1 aa_ma_debug_cmd q "$ant" 2>/dev/null
+    [ "$(grep -c "first word '?'" "$CLAUDE_HOOK_LOG")" -eq 2 ]
+    run ! grep -qE 'ghp_a|sk-ant' "$CLAUDE_HOOK_LOG"
+}

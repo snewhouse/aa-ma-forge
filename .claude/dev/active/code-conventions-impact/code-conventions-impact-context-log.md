@@ -426,3 +426,7 @@ DECISION ruff-only () — approved by Ste
 ## [2026-10-12] M8.4 — A6 resolution
 - `uv audit` is experimental in uv 0.12.3, so the gate is pip-audit 2.10.1 over a hashed `uv export`. Ignores live in `.pip-audit-ignore` with an expiry date; a test fails expired ones. The 13 packages / 72 vulns are triaged in 8.5.
 - Local env defect, not repo work: `~/.local/share/uv/python/cpython-3.13.5` has no `venv` package (looks damaged). Left untouched; reinstall with `uv python install 3.13 --reinstall` if you want local pip-audit via `uv run`.
+
+## [2026-10-12] M8.5 — dependency triage decision (Ste)
+- 3 advisory IDs ignored to 2027-01-12, not migrated now: fastmcp 3.x requires watchfiles>=1 against the TUI`s <1 pin. That cascade belongs outside a security CI milestone. The advisories are unreachable (stdio-only server, no OAuth proxy, no Gemini install, diskcache unused). The expiry plus the test forces the TODOS migration.
+- Rejected: a blanket `--upgrade-package` (it silently moved mcp to 2.x and downgraded fastmcp); a 30-day expiry.

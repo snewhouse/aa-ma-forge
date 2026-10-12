@@ -44,7 +44,10 @@ _aa_ma_log_load_patterns() {
     [ "${_AA_MA_SECRET_PATTERNS_TRIED}" = "1" ] && return 0
     _AA_MA_SECRET_PATTERNS_TRIED=1
     local real file id re ids=() res=()
-    real="$(readlink -f "${BASH_SOURCE[0]}")" || return 0
+    # why: no `readlink -f` on macOS < 12.3; the fallback below takes over
+    real="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null)" || real=""
+    # why: one-level readlink (install.sh links straight to the forge file), else the path as sourced
+    [ -n "${real}" ] || real="$(readlink "${BASH_SOURCE[0]}" 2>/dev/null)" || real="${BASH_SOURCE[0]}"
     file="${real%/*/*/*/*}/src/aa_ma/secret_patterns.tsv"   # <forge>/claude-code/hooks/lib/<this>
     [ -r "${file}" ] || return 0
     while IFS=$'\t' read -r id re; do
@@ -87,13 +90,15 @@ mask_secrets() {
 
 # _aa_ma_log <LEVEL> <hook-name> <msg> — the one writer behind every log_* function.
 _aa_ma_log() {
-    local level="$1" hook msg log dir line
+    local level="$1" hook msg log dir line ts
     hook="$(_aa_ma_log_oneline "${2-}")"
     hook="${hook:0:${_AA_MA_LOG_MAX_CHARS}}"
     msg="$(mask_secrets "${3-}")"
     log="${CLAUDE_HOOK_LOG:-}"
     [ -n "${log}" ] || [ -z "${HOME:-}" ] || log="${HOME}/.claude/logs/hooks.log"
-    line="$(date -Is) ${level} ${hook}: ${msg}"
+    # why: `date -Is` is GNU; BSD/macOS may reject it. A failed stamp must never abort a set -e hook.
+    ts="$(date -Is 2>/dev/null)" || ts="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" || ts="unknown-time"
+    line="${ts} ${level} ${hook}: ${msg}"
     if [ -z "${log}" ]; then
         # HOME unset (cron, env -i) and no CLAUDE_HOOK_LOG: there is no private place to write. Never
         # fall back to a shared dir such as /tmp, where a planted symlink would redirect the append.
@@ -103,7 +108,8 @@ _aa_ma_log() {
     dir="${log%/*}"
     [ "${dir}" = "${log}" ] && dir=.
     # why: the shell's own redirection error is replaced by the one-line notice that follows
-    { { [ -d "${dir}" ] || mkdir -p "${dir}"; } && printf '%s\n' "${line}" >> "${log}"; } 2>/dev/null \
+    # umask 077 in a subshell: a new hooks.log is 600 in a 700 dir; an existing file keeps its mode
+    ( umask 077; { [ -d "${dir}" ] || mkdir -p "${dir}"; } && printf '%s\n' "${line}" >> "${log}" ) 2>/dev/null \
         || printf 'aa-ma-log: cannot append to %s\n' "${log}" >&2 2>/dev/null || :   # why: stderr may be closed; must not trip set -e
     if [ "${level}" = "DEBUG" ]; then
         printf '%s\n' "${line}" >&2 2>/dev/null || :   # why: debug echo is best-effort; the log line is the record

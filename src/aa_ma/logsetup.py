@@ -100,7 +100,8 @@ class SecretRedactingFormatter(logging.Formatter):
                 if record.stack_info:
                     body["stack"] = mask_secrets(self.formatStack(record.stack_info))
                 return json.dumps(body)
-            return mask_secrets(super().format(record))
+            # Indent exception/stack lines: one whose text holds LF must not start a forged record.
+            return mask_secrets(super().format(record).replace("\n", "\n    "))
         except Exception:  # noqa: BLE001  # why: any failure must turn into the fixed message, never a leak or a dropped record
             record.msg, record.args = _FAILED, None
             record.exc_info = record.exc_text = record.stack_info = None
@@ -140,7 +141,9 @@ def configure_logging(
                 f"ignoring LOG_LEVEL={raw!r}: not a level name; using WARNING"
             )
         level = logging.WARNING if level is None else level
-    chosen = fmt or os.environ.get("LOG_FORMAT", "text").lower()
+    chosen = (
+        fmt or (os.environ.get("LOG_FORMAT") or "text").lower()
+    )  # empty = unset, as LOG_LEVEL
     if chosen not in ("text", "json"):
         problems.append(f"ignoring LOG_FORMAT={chosen!r}: use text or json")
         chosen = "text"

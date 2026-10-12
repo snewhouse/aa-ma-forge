@@ -273,7 +273,7 @@ ssc_forge() {
 ssc_sysbin() {
     local b="$BATS_TMP_HOME/sysbin" t
     mkdir -p "$b"
-    for t in cat jq git grep sed tr date mkdir head wc readlink dirname cut; do ln -sf "$(command -v "$t")" "$b/$t"; done
+    for t in cat jq git grep sed tr date mkdir mktemp rm head wc readlink dirname cut; do ln -sf "$(command -v "$t")" "$b/$t"; done
     echo "$b"
 }
 
@@ -377,7 +377,7 @@ sys.exit(p.wait())' "$HOOK" "$input"
     [ "$status" -eq 1 ]
 }
 
-@test "ruff erroring on a file (rc 2) → a systemMessage naming the file, never a silent pass" {
+@test "ruff erroring on a file (rc 2) blocks naming the file (fail closed)" {
     stage_file "src/run.py" "import subprocess
 $SUBPROC_SHELL"
     local b; b=$(ssc_sysbin)
@@ -386,8 +386,8 @@ $SUBPROC_SHELL"
     local input; input=$(make_input 'git commit -m "feat: run"')
     cd "$BATS_TMP"
     run env HOME="$BATS_TMP_HOME" PATH="$b" "$BASH" "$(ssc_forge)" <<< "$input"
-    [ "$status" -eq 0 ]
-    [[ "$output" == *'"systemMessage"'*"ruff failed on src/run.py"* ]]
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"src/run.py: ruff could not check this file"* ]]
 }
 
 # --- M8.6 security review: repo-controlled suppressions and parser differentials ----------
@@ -501,4 +501,19 @@ y = 2"
     cd "$BATS_TMP"
     run env HOME="$BATS_TMP_HOME" PATH="$b" "$BASH" "$(ssc_forge)" <<< "$input"
     [ "$status" -eq 2 ]
+}
+
+@test "mktemp failing blocks the commit (exit 2), never exit 1/127 which lets it through" {
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    local b; b=$(ssc_sysbin)
+    rm -f "$b/mktemp"   # a symlink to the real mktemp: never write through it
+    printf '#!/bin/sh\nexit 1\n' > "$b/mktemp"
+    chmod +x "$b/mktemp"
+    ln -sf "$REPO_ROOT_SSC/.venv/bin/ruff" "$b/ruff"
+    local input; input=$(make_input 'git commit -m "feat: run"')
+    cd "$BATS_TMP"
+    run env HOME="$BATS_TMP_HOME" PATH="$b" "$BASH" "$(ssc_forge)" <<< "$input"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"mktemp failed"* ]]
 }

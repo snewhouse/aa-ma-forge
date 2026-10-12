@@ -24,12 +24,14 @@
 #
 # Detection scope (Python files, ADDED lines in staged diff, any repo):
 #   - Ruff S102,S301,S307,S602,S604,S608 on the STAGED blob (`git show :<file>`), forge-pinned
-#     ruff with --isolated, so the repo's own config cannot switch them off; findings on
-#     only INTRODUCED findings block: a rule + line-text pair the staged blob has more of
-#     than HEAD's blob (a new file, or a renamed one, has no HEAD blob: all count). Line
-#     numbers are not used, so an added `shell=True` inside an unchanged multi-line call
-#     is caught. Covers shell=True calls, the dynamic-code builtins, SQL string building
-#     and unsafe binary deserialisation (D12; S102 keeps exec() covered).
+#     ruff with --isolated, so the repo's own config cannot switch them off. Only
+#     INTRODUCED findings block: one whose innermost enclosing Python statement (ast) holds
+#     an added line — so changed arguments inside an unchanged multi-line call count.
+#     Fails closed: no python, a file ast cannot parse, or a lone CR (git and ast would
+#     number lines differently) make every finding count; ruff erroring on a file blocks.
+#     All of it goes through private temp files, never argv (no size limit to slip past).
+#     Covers shell=True calls, the dynamic-code builtins, SQL string building and unsafe
+#     binary deserialisation (D12; S102 keeps exec() covered).
 #     --ignore-noqa: an in-file `# noqa` / `# ruff: noqa` is repo-controlled, so it cannot
 #     suppress this check; the [security-bypass: <reason>] marker is the auditable escape.
 #   - Hardcoded secrets (regex): api_key|token|password|secret = "literal_8+_chars"
@@ -165,19 +167,47 @@ ruff_label() {
     esac
 }
 
-# ruff_keys <source> — one TSV row per Ruff finding: row, rule, trimmed text of that line, message.
-# Exit 1 when ruff errors (rc 2+) or its JSON cannot be read: never an empty "clean" answer.
-ruff_keys() {
-    local out rc=0
-    # why: stderr dropped — a failure is reported by the caller's notice
-    out=$("$ruff" 2>/dev/null check --isolated --ignore-noqa --select "$RUFF_RULES" \
-        --output-format json --stdin-filename "$file" - <<< "$1") || rc=$?
-    [ "$rc" -le 1 ] || return 1
-    # why: jq's parse error becomes the caller's notice
-    jq 2>/dev/null -r --arg src "$1" '($src | split("\n")) as $lines | .[] | select(.code != null)
-        | [.location.row, .code, ($lines[.location.row - 1] // "" | gsub("^\\s+|\\s+$"; "") | gsub("\t"; " ")),
-           (.message | gsub("[\t\n]"; " "))] | @tsv' <<< "$out"
+# python scopes each finding to its statement; resolved like ruff (forge .venv, or absolute PATH).
+py=""
+if [ -x "${FORGE}/.venv/bin/python" ]; then
+    py="${FORGE}/.venv/bin/python"
+else
+    py=$(command -v python3) || py=""
+    [[ "$py" == /* ]] || py=""
+fi
+# argv: blob, ruff JSON, added-lines file. Prints row<TAB>rule<TAB>message per introduced finding.
+# No single quotes inside: this is a single-quoted shell string.
+SCOPE_PY='
+import ast, json, sys
+src = open(sys.argv[1], "rb").read()
+added = {int(n) for n in open(sys.argv[3]).read().split()}
+tree = None
+if b"\r" not in src.replace(b"\r\n", b""):
+    try:
+        tree = ast.parse(src)
+    except (SyntaxError, ValueError):
+        tree = None
+spans = [(n.lineno, n.end_lineno) for n in ast.walk(tree) if isinstance(n, ast.stmt)] if tree else []
+for f in json.load(open(sys.argv[2])):
+    if not f.get("code"):
+        continue
+    row = f["location"]["row"]
+    lo, hi = row, f["end_location"]["row"]
+    if tree is not None:
+        inside = [sp for sp in spans if sp[0] <= lo and hi <= sp[1]]
+        if inside:
+            lo, hi = min(inside, key=lambda sp: sp[1] - sp[0])
+        if not any(lo <= n <= hi for n in added):
+            continue
+    print("%s\t%s\t%s" % (row, f["code"], " ".join(f["message"].split())))
+'
+# Fail closed: exit 1/127 here would be a non-blocking error, i.e. the commit goes through.
+work=$(mktemp -d) || {
+    printf 'security-static-check: mktemp failed; refusing to pass an unscanned commit (exit 2)\n' >&2
+    printf 'Emergency bypass: export AA_MA_HOOKS_DISABLE=1\n' >&2
+    exit 2
 }
+trap 'rm -rf "$work"' EXIT
 
 findings=()
 
@@ -186,6 +216,7 @@ while IFS= read -r file; do
     diff_content=$(git diff --cached -U0 -- "$file" 2>/dev/null || true)
     [ -z "$diff_content" ] && continue
 
+    : > "$work/added"
     line_num=0
     while IFS= read -r line; do
         # Hunk header: reset line counter to NEW-file line start
@@ -200,6 +231,7 @@ while IFS= read -r file; do
         [[ "$line" == "+"* ]] || continue
 
         content="${line:1}"
+        printf '%s\n' "$line_num" >> "$work/added"
 
         # -- 1. Hardcoded secrets --------------------------------------------
         # Lowercase the content for case-insensitive identifier matching
@@ -221,32 +253,32 @@ while IFS= read -r file; do
     done <<< "$diff_content"
 
     [ -n "$ruff" ] || continue
-    # why: rc 1 means findings, which the loop below reads; rc 2+ is ruff failing, reported as a notice
-    # Staged findings not matched by one of HEAD's (same rule, same line text) are introduced.
-    # shellcheck disable=SC2310  # why: ruff_keys answers by explicit return codes; set -e is not relied on inside it
-    new_keys=$(ruff_keys "$(git show ":${file}")") || {
-        fail_open_notice "security-static-check" "ruff failed on ${file}; its Ruff S checks were skipped"
+    git show ":${file}" > "$work/blob"
+    # why: stderr dropped — rc 1 means findings; rc 2+ (ruff failing) blocks below, fail closed
+    "$ruff" 2>/dev/null check --isolated --ignore-noqa --select "$RUFF_RULES" --output-format json \
+        --stdin-filename "$file" - < "$work/blob" > "$work/ruff.json" && rc=0 || rc=$?
+    if [ "$rc" -gt 1 ]; then
+        findings+=("${file}: ruff could not check this file (rc ${rc}); fix it or use the bypass marker")
         continue
-    }
-    old_keys=$'\n'
-    # why: no HEAD blob (new or renamed file) means nothing pre-existed
-    if git cat-file -e "HEAD:${file}" 2>/dev/null; then
-        # shellcheck disable=SC2310  # why: ruff_keys answers by explicit return codes; set -e is not relied on inside it
-        old_rows=$(ruff_keys "$(git show "HEAD:${file}")") || {
-            fail_open_notice "security-static-check" "ruff failed on HEAD:${file}; its Ruff S checks were skipped"
+    fi
+    rows=""
+    if [ -n "$py" ]; then
+        # why: stderr dropped — a failed scoping falls back to counting every finding below
+        rows=$("$py" 2>/dev/null -I -c "$SCOPE_PY" "$work/blob" "$work/ruff.json" "$work/added") || py_failed=1
+    fi
+    if [ -z "$py" ] || [ "${py_failed:-0}" = 1 ]; then
+        py_failed=0
+        # why: stderr dropped — unreadable output becomes a blocking finding just below
+        rows=$(jq 2>/dev/null -r '.[] | select(.code != null)
+            | [.location.row, .code, (.message | gsub("\\s+"; " "))] | @tsv' "$work/ruff.json") || {
+            findings+=("${file}: ruff output unreadable; fix it or use the bypass marker")
             continue
         }
-        old_keys+=$(cut -f2,3 <<< "$old_rows")$'\n'   # rule<TAB>text, the lookup key
     fi
-    while IFS=$'\t' read -r row code text msg; do
+    while IFS=$'\t' read -r row code msg; do
         [ -n "${code:-}" ] || continue
-        key="${code}"$'\t'"${text}"
-        if [[ "$old_keys" == *$'\n'"$key"$'\n'* ]]; then
-            old_keys="${old_keys/$'\n'"$key"$'\n'/$'\n'}"   # consume one pre-existing match
-            continue
-        fi
         findings+=("${file}:${row}: $(ruff_label "$code") [${code}] ${msg}")
-    done <<< "$new_keys"
+    done <<< "$rows"
 done <<< "$py_files"
 
 # -----------------------------------------------------------------------------

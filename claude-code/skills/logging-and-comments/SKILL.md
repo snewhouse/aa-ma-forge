@@ -57,6 +57,7 @@ except Exception:
 
 **CLIs:**
 - Provide `-v/--verbose` (repeatable) and `-q/--quiet`, with a `LOG_LEVEL` env var as the default; flags win over the env var.
+- **Two debug switches only:** `LOG_LEVEL` for programs, `HOOK_DEBUG=1` for hooks. No per-tool verbose or debug variables; one switch per kind means one thing to remember.
 - `print()` is fine *only* for the CLI's real output. Ruff T20 is ignored for `cli.py`, `__main__.py` and `scripts/**`.
 
 **Batch / pipeline / scientific runs:** log enough to reproduce the run and to check it.
@@ -65,7 +66,11 @@ except Exception:
 - Write the same facts to a `manifest.json` next to the outputs.
 - Shape: one `run()` entrypoint that writes the start facts, runs the stages, then writes the end facts and `manifest.json`.
 
-Long-running services may emit JSON logs to stdout (12-factor). Use stdlib logging + a JSON formatter, with one env switch (`LOG_FORMAT=json|text`), and bind a `trace_id`/`run_id` to every line via `contextvars` or a `LoggerAdapter`. Don't run two logging libraries in one service.
+**JSON logs: the default for long-running services, opt-in everywhere else.**
+- A service emits JSON lines to stdout and lets the platform collect them (12-factor). Bind a `trace_id`/`run_id` to every line via `contextvars` or a `LoggerAdapter`. Don't run two logging libraries in one service.
+- CLIs, hooks and batch jobs log text to stderr. JSON is an opt-in, `LOG_FORMAT=json|text` (default `text`), because a human reads them first.
+- Use stdlib logging and a JSON formatter. `aa_ma.logsetup.configure_logging` is the forge's own: it masks secrets in both formats.
+- Node: pino defaults to **stdout**, so CLIs and hooks must pass `pino.destination(2)` to keep stdout for data.
 
 ## Bash / hooks — quick reference
 
@@ -78,11 +83,13 @@ cp "$src" "$dst" || { log WARN "copy failed for $src; continuing with stale copy
 grep -q foo f 2>/dev/null || true   # why: f may not exist yet on first run; absence == no match
 ```
 
+`set -e` is a safety net, not error handling. It does not fire inside `if`, `&&` and `||`, in functions called from those, or in `$(…)` without `inherit_errexit`, and `local x=$(cmd)` hides the status ([BashFAQ/105](https://mywiki.wooledge.org/BashFAQ/105)). So check the status wherever a failure changes the result. Detail: `Skill(bash-defensive-patterns)`.
+
 Claude Code hooks are a special case (rules verified against [the hooks docs](https://code.claude.com/docs/en/hooks), 2026-10-06):
 - **On exit 0, stderr reaches only the debug log; nobody sees it.** Plain stdout goes to the model for UserPromptSubmit and SessionStart, and to the debug log for most other events. Hooks must exit fast.
 - **To tell the user something on exit 0, print JSON `{"systemMessage": "..."}` to stdout.** It is shown to the user but not to the model, and on PreToolUse the tool call still proceeds. Verified live, it shows as `PreToolUse:Bash says: …`.
-- **A fail-open path writes a `systemMessage` and also one line to a log file** (`~/.claude/logs/hooks.log`, format `ISO-ts LEVEL hook-name: msg`). Keep its regression test, feed it a real payload, and assert that the message is emitted. Patterns: `hooks/lib/guard-protected-dirs.sh` and its test `hooks/tests/test-guard-protected-dirs.sh`.
-- **Debug chatter is opt-in.** Gate it with `HOOK_DEBUG=1` → `aa_ma_debug` (`hooks/lib/aa-ma-parse.sh`).
+- **A fail-open path writes a `systemMessage` and also one line to a log file:** `~/.claude/logs/hooks.log` (override: `CLAUDE_HOOK_LOG`). Each line is `ISO-ts LEVEL hook-name: msg`, e.g. `2026-10-12T09:41:00+01:00 WARN pre-compact-aa-ma: could not append …`. `hooks/lib/aa-ma-log.sh` writes it: `log_info|warn|error|debug <hook> <msg>` masks secrets, caps the line at 8192 chars, and never trips `set -e`; `fail_open_notice <hook> <msg>` emits the `systemMessage` too. Keep its regression test, feed it a real payload, and assert that the message is emitted. Patterns: `hooks/lib/guard-protected-dirs.sh` and its test `hooks/tests/test-guard-protected-dirs.sh`.
+- **Debug chatter is opt-in.** Gate it with `HOOK_DEBUG=1` → `log_debug` (`hooks/lib/aa-ma-log.sh`).
 
 ## Comments & docstrings
 

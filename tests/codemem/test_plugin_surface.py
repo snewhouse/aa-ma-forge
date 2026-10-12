@@ -103,9 +103,9 @@ def test_orphans_are_the_named_set_and_no_errors(surface) -> None:
         "writing-for-agents",
         "aa-ma-session-end-dirty.sh",
         # code-conventions-impact M2 (ADR-0019): migrated, not yet invoked by forge content;
-        # the M12 coding-standards rule is planned to reference them.
+        # the M12 coding-standards rule is planned to reference it. (bash-defensive-patterns
+        # left this set in M7.6: logging-and-comments now points to it.)
         "llm-output-safety",
-        "bash-defensive-patterns",
     }
     assert surface.errors == []
 

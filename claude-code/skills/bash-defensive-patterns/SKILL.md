@@ -31,9 +31,16 @@ set -Eeuo pipefail  # Exit on error, unset variables, pipe failures
 
 **Key flags:**
 - `set -E`: Inherit ERR trap in functions
-- `set -e`: Exit on any error (command returns non-zero)
+- `set -e`: Exit when a command fails, with the exceptions below
 - `set -u`: Exit on undefined variable reference
 - `set -o pipefail`: Pipe fails if any command fails (not just last)
+
+**`set -e` caveats** ([BashFAQ/105](https://mywiki.wooledge.org/BashFAQ/105)). It is a safety net, not error handling. It does not fire:
+- inside `if`/`while` conditions or on the left of `&&`/`||`, including in any function called from there (SC2310);
+- in `$(…)` unless `shopt -s inherit_errexit` (bash ≥ 4.4);
+- for `local x=$(cmd)`, because `local` returns 0 (SC2155): declare, then assign.
+
+`pipefail` fails `producer | head` with SIGPIPE (141). Check status explicitly where a failure changes the result. `-E` only matters with an ERR trap; without one, `set -euo pipefail` is enough.
 
 ### 2. Error Trapping and Cleanup
 Implement proper cleanup on script exit or error.
@@ -191,7 +198,7 @@ echo "Temp files created in: $work_dir" >&2
 set -Eeuo pipefail
 
 # Default values
-VERBOSE=false
+LOG_LEVEL="${LOG_LEVEL:-INFO}"
 DRY_RUN=false
 OUTPUT_FILE=""
 THREADS=4
@@ -201,7 +208,7 @@ usage() {
 Usage: $0 [OPTIONS]
 
 Options:
-    -v, --verbose       Enable verbose output
+    -v, --verbose       Debug output (same as LOG_LEVEL=DEBUG)
     -d, --dry-run       Run without making changes
     -o, --output FILE   Output file path
     -j, --jobs NUM      Number of parallel jobs
@@ -214,7 +221,7 @@ EOF
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -v|--verbose)
-            VERBOSE=true
+            LOG_LEVEL=DEBUG
             shift
             ;;
         -d|--dry-run)
@@ -253,26 +260,14 @@ done
 #!/bin/bash
 set -Eeuo pipefail
 
-# Logging functions
-log_info() {
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: $*" >&2
-}
+# One line per event on stderr: ISO-8601 time, level, script, message (the hooks.log format)
+log() { printf '%s %s %s: %s\n' "$(date -Is)" "$1" "${0##*/}" "${*:2}" >&2; }
+log_info()  { log INFO "$@"; }
+log_warn()  { log WARN "$@"; }
+log_error() { log ERROR "$@"; }
+log_debug() { [[ "${LOG_LEVEL:-INFO}" == DEBUG ]] || return 0; log DEBUG "$@"; }   # opt-in
 
-log_warn() {
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] WARN: $*" >&2
-}
-
-log_error() {
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $*" >&2
-}
-
-log_debug() {
-    if [[ "${DEBUG:-0}" == "1" ]]; then
-        echo "[$(date +'%Y-%m-%d %H:%M:%S')] DEBUG: $*" >&2
-    fi
-}
-
-# Usage
+# Usage → 2026-10-12T09:41:00+01:00 INFO deploy.sh: Starting script
 log_info "Starting script"
 log_debug "Debug information"
 log_warn "Warning message"
@@ -404,7 +399,7 @@ ensure_config() {
 
 # Rerunning script multiple times should be safe
 ensure_directory "/var/cache/myapp"
-ensure_config "/etc/myapp/config" "DEBUG=false"
+ensure_config "/etc/myapp/config" "log_level=info"
 ```
 
 ### Pattern 9: Safe Command Substitution

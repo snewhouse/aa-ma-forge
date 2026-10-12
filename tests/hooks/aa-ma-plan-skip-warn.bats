@@ -195,6 +195,8 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$stderr" == *"AA_MA_PLAN_MARKER_DEBUG is deprecated; use HOOK_DEBUG=1"* ]]
     [[ "$stderr" == *" DEBUG aa-ma-plan-skip-warn: no runtime log found"* ]]
+    # stderr on exit 0 is never shown (L-1319), so the notice must also reach hooks.log
+    grep -qF " WARN aa-ma-plan-skip-warn: AA_MA_PLAN_MARKER_DEBUG is deprecated" "$BATS_TMP_HOME/.claude/logs/hooks.log"
 }
 
 @test "no debug variable → no DEBUG output (M7.3)" {

@@ -198,3 +198,10 @@ hostile_repo() {
     [ -z "$output" ]
     [ ! -e "$LOG" ]
 }
+
+@test "malformed stdin JSON on a .py-looking payload → one hooks.log line, exit 0 (M7 §6.8)" {
+    run bash "$HOOK" <<< '{"tool_input": {"file_path": "x.py"'
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    grep -qF 'WARN ruff-format: stdin payload not readable' "$LOG"
+}

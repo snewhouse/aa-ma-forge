@@ -52,7 +52,8 @@ def test_rule_ids_match_the_report_gate_where_they_overlap() -> None:
     from aa_ma.analysis.secrets import PATTERNS
 
     log_ids = {rule_id for rule_id, _ in logsetup.SECRET_RULES}
-    assert log_ids <= {rule_id for rule_id, _ in PATTERNS}
+    # bearer-token is log-only: report files rarely hold an HTTP header, CLI debug lines do
+    assert log_ids - {"bearer-token"} <= {rule_id for rule_id, _ in PATTERNS}
 
 
 @pytest.mark.parametrize(
@@ -76,6 +77,11 @@ def test_a_malformed_rule_line_is_refused(line: str) -> None:
         (JWT, "jwt"),
         ("PASSWORD=" + "hunter2hunter2", "generic-env"),
         ("secret: " + "s3cr3tvalue", "generic-env"),
+        ("export API_KEY=" + '"abcdefgh12345678"', "generic-env"),
+        ("PASSWORD=" + "'hunter2hunter2'", "generic-env"),
+        ("token: " + '"abcdefghijk"', "generic-env"),
+        ("--password " + "hunter2hunter2", "generic-env"),
+        ("Authorization: Bearer " + "abcDEF123456ghiJKL789", "bearer-token"),
         ('"api_key": "' + "abcdefgh1234" + '"', "generic-quoted"),
     ],
 )
@@ -101,6 +107,16 @@ def test_a_cut_private_key_masks_the_base64_run_after_its_header() -> None:
         logsetup.mask_secrets(f"x {PEM} MIIE abc=; y")
         == "x [REDACTED:private-key-block]; y"
     )
+
+
+@pytest.mark.parametrize("password", ["p@ss@word", "pa/ss"])
+def test_url_credential_masks_a_password_holding_at_or_slash(password: str) -> None:
+    out = logsetup.mask_secrets(f"https://user:{password}@db.example/x")
+    assert out == "[REDACTED:url-credential]db.example/x"
+
+
+def test_a_flag_followed_by_another_flag_is_not_a_password() -> None:
+    assert logsetup.mask_secrets("--password --verbose") == "--password --verbose"
 
 
 def test_url_credential_masks_userinfo_and_keeps_the_host() -> None:
@@ -162,6 +178,20 @@ def test_formatter_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
     out = logsetup.SecretRedactingFormatter("%(message)s").format(rec)
     assert AWS not in out
     assert rec.getMessage() == "[redaction failed]"
+
+
+def test_json_fail_closed_record_keeps_the_normal_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Boom:
+        def sub(self, *_: object) -> str:
+            raise RuntimeError("pattern exploded")
+
+    monkeypatch.setattr(logsetup, "SECRET_RULES", (("boom", Boom()),))
+    out = logsetup.SecretRedactingFormatter(as_json=True).format(_record("x %s", AWS))
+    obj = json.loads(out)
+    assert set(obj) == {"ts", "level", "logger", "message"}
+    assert obj["message"] == "[redaction failed]"
 
 
 def test_child_logger_output_is_redacted(stderr_logs, capsys) -> None:
@@ -267,6 +297,10 @@ ADVERSARIAL = [
     "x_password " * 9_000,
     '"token": "' * 10_000,
     "a://b:" * 16_000,
+    "x://" + "u" * 50_000 + ":" + "p" * 50_000,
+    "--password " * 9_000,
+    "Bearer " * 14_000,
+    'API_KEY="' * 11_000,
 ]
 
 
@@ -297,6 +331,8 @@ PARITY_CORPUS = [
     '{"Token": "abcdefgh1234", "secret":"tiny"}',
     "postgres://u:pa55word@host/db and TOKEN=" + GHP,
     PEM + " MIIEowAAAA -----END RSA PRIVATE KEY----- after",
+    'export API_KEY="abcdefgh12345678" && curl -H "Authorization: Bearer abcDEF123456ghiJKL789"',
+    "mysql --password hunter2hunter2 --user x; https://u:p@ss@word@h/x",
 ]
 
 

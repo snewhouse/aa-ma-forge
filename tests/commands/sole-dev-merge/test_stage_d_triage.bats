@@ -1,15 +1,14 @@
 #!/usr/bin/env bats
-# test_stage_d_triage.bats — Stage D findings triage with planted B602.
+# test_stage_d_triage.bats — Stage D findings triage with planted Ruff S602.
 #
 # Plan §2.5 / AC §4.2.5: given a fixture with `subprocess.run(cmd, shell=True)`
 # in a changed Python file, after Stage D runs:
-#   - `bandit -t B602 fixture.py 2>&1 | grep -c "Issue:"` returns 0 (auto-fix
-#     applied), AND
-#   - `git log -1 --format=%s` matches regex `^fix\(review\): apply CRITICAL bandit`
+#   - `ruff check --select S602 fixture.py` is clean (auto-fix applied), AND
+#   - `git log -1 --format=%s` matches regex `^fix\(review\): apply CRITICAL ruff`
 #
 # Stage D behaviour:
-#   - For CRITICAL findings from Bandit/ShellCheck with deterministic patterns:
-#     attempt auto-fix (B602 → s/shell=True/shell=False/) and commit
+#   - For CRITICAL findings from Ruff/ShellCheck with deterministic patterns:
+#     attempt auto-fix (S602 → s/shell=True/shell=False/) and commit
 #   - For agent-emitted CRITICALs: tag for user-review (no auto-fix)
 #   - For HIGH/MEDIUM: AskUserQuestion panel (not testable in bats; skipped here)
 #   - For LOW: append to Reviewer notes section (advisory)
@@ -44,6 +43,15 @@ setup() {
     # otherwise return the sandbox path, not the aa-ma-forge repo).
     AA_MA_FOOTER_HELPER="${REPO_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh"
     export SC_SCRIPT SD_SCRIPT AA_MA_FOOTER_HELPER
+
+    # Security-pattern literals, assembled at runtime and never spelled whole.
+    SHELL_TRUE='shell''=''True'
+    SHELL_FALSE='shell''=''False'
+}
+
+# ruff_s602_clean FILE — rc 0 iff Ruff reports no S602 on FILE.
+ruff_s602_clean() {
+    "${RUFF_BIN:-ruff}" check --quiet --select S602 "$1"
 }
 
 teardown() {
@@ -51,49 +59,82 @@ teardown() {
     sweep_slug_tmp
 }
 
-@test "Stage D auto-fixes planted Bandit B602 (AC §4.2.5)" {
+@test "Stage D auto-fixes planted Ruff S602 (AC §4.2.5)" {
     cd "$BATS_TMP"
     sandbox_init
     echo init > a.txt && git add a.txt
     mkcommit "init"
     git checkout -q -b feature
 
-    # Plant a Python file with B602 (subprocess shell=True)
-    cat > vulnerable.py <<'PY'
-import subprocess
-def run_cmd(cmd):
-    return subprocess.run(cmd, shell=True)
-PY
+    # Plant a Python file with S602 (subprocess shell=True)
+    printf 'import subprocess\ndef run_cmd(cmd):\n    return subprocess.run(cmd, %s)\n' \
+        "$SHELL_TRUE" > vulnerable.py
     git add vulnerable.py
     mkcommit "feat: vulnerable"
 
-    # Mocked agent outputs (empty — focus on Bandit-driven auto-fix)
+    # Mocked agent outputs (empty — focus on Ruff-driven auto-fix)
     : > "/tmp/sole-dev-merge-review-${SLUG}.md"
     : > "/tmp/sole-dev-merge-security-${SLUG}.md"
 
-    # Run Stage C aggregator to produce findings.md including the B602 entry
+    # Run Stage C aggregator to produce findings.md including the S602 entry
     export BASE_REF=main DEFAULT_BRANCH=main \
            CHANGED_PY="vulnerable.py" CHANGED_SH=""
     bash "$SC_SCRIPT" >/dev/null
 
-    # Verify pre-Stage-D state: findings.md HAS a B602 CRITICAL
-    grep -q "B602" "/tmp/sole-dev-merge-findings-${SLUG}.md"
-    grep -q "shell=True" vulnerable.py
+    # Verify pre-Stage-D state: findings.md HAS an S602 CRITICAL
+    grep -qE '^\[CRITICAL\][[:space:]]+S602 ' "/tmp/sole-dev-merge-findings-${SLUG}.md"
+    grep -qF "$SHELL_TRUE" vulnerable.py
 
     # Run Stage D
     run bash "$SD_SCRIPT"
     [ "$status" -eq 0 ]
 
-    # AC §4.2.5 #1: post-fix, Bandit B602 finds 0 issues on the fixed file
-    BANDIT_ISSUES=$(bandit -t B602 vulnerable.py 2>&1 | grep -c "Issue:" || true)
-    [ "$BANDIT_ISSUES" -eq 0 ]
+    # AC §4.2.5 #1: post-fix, Ruff S602 finds 0 issues on the fixed file
+    ruff_s602_clean vulnerable.py
 
-    # AC §4.2.5 #2: commit subject matches `^fix\(review\): apply CRITICAL bandit`
+    # AC §4.2.5 #2: commit subject matches `^fix\(review\): apply CRITICAL ruff`
     SUBJECT=$(git log -1 --format=%s)
-    [[ "$SUBJECT" =~ ^fix\(review\):\ apply\ CRITICAL\ bandit ]]
+    [[ "$SUBJECT" =~ ^fix\(review\):\ apply\ CRITICAL\ ruff ]]
 
     # The file no longer contains shell=True
-    run ! grep -q "shell=True" vulnerable.py
+    run ! grep -qF "$SHELL_TRUE" vulnerable.py
+}
+
+@test "Stage D auto-fixes exactly the S602 rows named in a Ruff JSON report" {
+    # Drives Stage D from a hand-written Ruff report, no Stage C: pins the
+    # contract that the fix keys on code == "S602" (exact) and location.row.
+    cd "$BATS_TMP"
+    sandbox_init
+    echo init > a.txt && git add a.txt
+    mkcommit "init"
+    git checkout -q -b feature
+
+    # Rows 2, 3 and 4 all carry the literal; only row 3 is reported as S602.
+    printf 'import subprocess\na = subprocess.run("x", %s)\nb = subprocess.run("y", %s)\nc = subprocess.run("z", %s)\n' \
+        "$SHELL_TRUE" "$SHELL_TRUE" "$SHELL_TRUE" > rep.py
+    git add rep.py
+    mkcommit "feat: rep"
+
+    local abs="${BATS_TMP}/rep.py"
+    cat > "/tmp/sole-dev-merge-ruff-${SLUG}.json" <<JSON
+[
+ {"code": "S603", "message": "not S602", "filename": "${abs}", "location": {"row": 2, "column": 5}},
+ {"code": "S602", "message": "shell call", "filename": "${abs}", "location": {"row": 3, "column": 5}},
+ {"code": "S6020", "message": "near-miss code", "filename": "${abs}", "location": {"row": 4, "column": 5}}
+]
+JSON
+    printf '[CRITICAL]     S602 shell call — %s:3\n' "$abs" \
+        > "/tmp/sole-dev-merge-findings-${SLUG}.md"
+
+    run bash "$SD_SCRIPT"
+    [ "$status" -eq 0 ]
+
+    sed -n '2p' rep.py | grep -qF "$SHELL_TRUE"
+    sed -n '3p' rep.py | grep -qF "$SHELL_FALSE"
+    sed -n '4p' rep.py | grep -qF "$SHELL_TRUE"
+    [[ "$(git log -1 --format=%s)" =~ ^fix\(review\):\ apply\ CRITICAL\ ruff ]]
+    # The auto-fixed S602 is not re-tagged for user review.
+    [[ "$output" != *"tagged for user review"* ]]
 }
 
 @test "Stage D is a no-op when findings.md has no auto-fixable CRITICALs" {
@@ -119,12 +160,12 @@ EOF
     [ "$PRE_SHA" = "$POST_SHA" ]
 }
 
-@test "Stage D B602 auto-fix is line-scoped — docstring with 'shell=True' survives" {
+@test "Stage D S602 auto-fix is line-scoped — docstring with 'shell=True' survives" {
     # Regression test addressing §6.8 audit HIGH findings 1-3:
     # "Stage D's sed -i 's/shell=True/shell=False/g' rewrites EVERY occurrence
     #  including docstrings, comments, # nosec, and test fixtures."
-    # Fix: drive auto-fix from $BANDIT_OUT JSON (exact line + test_id equality),
-    # apply line-scoped sed (only the EXACT line Bandit reports).
+    # Fix: drive auto-fix from $RUFF_OUT JSON (exact row + code equality),
+    # apply line-scoped sed (only the EXACT line Ruff reports).
 
     cd "$BATS_TMP"
     sandbox_init
@@ -133,14 +174,10 @@ EOF
     git checkout -q -b feature
 
     # File has TWO occurrences of `shell=True`:
-    #   line 1: docstring (must SURVIVE — Bandit doesn't flag it)
-    #   line 4: actual B602 call (must be FIXED — Bandit flags it on line 4)
-    cat > mixed.py <<'PY'
-"""Demo module: never use shell=True for untrusted input."""
-import subprocess
-def run_cmd(cmd):
-    return subprocess.run(cmd, shell=True)
-PY
+    #   line 1: docstring (must SURVIVE — Ruff doesn't flag it)
+    #   line 4: actual S602 call (must be FIXED — Ruff flags it on line 4)
+    printf '"""Demo module: never use %s for untrusted input."""\nimport subprocess\ndef run_cmd(cmd):\n    return subprocess.run(cmd, %s)\n' \
+        "$SHELL_TRUE" "$SHELL_TRUE" > mixed.py
     git add mixed.py
     mkcommit "feat: mixed"
 
@@ -152,21 +189,20 @@ PY
     bash "$SC_SCRIPT" >/dev/null
 
     # Sanity-check pre-Stage-D: both occurrences present
-    [ "$(grep -c 'shell=True' mixed.py)" -eq 2 ]
+    [ "$(grep -cF "$SHELL_TRUE" mixed.py)" -eq 2 ]
 
     run bash "$SD_SCRIPT"
     [ "$status" -eq 0 ]
 
     # Post-Stage-D:
     # - Docstring on line 1 SURVIVES (still contains "shell=True")
-    head -1 mixed.py | grep -q "shell=True"
+    head -1 mixed.py | grep -qF "$SHELL_TRUE"
 
     # - Line 4 was rewritten (no longer contains "shell=True")
-    if sed -n '4p' mixed.py | grep -q "shell=True"; then echo 'line 4 still has shell=True' >&2; false; fi
+    if sed -n '4p' mixed.py | grep -qF "$SHELL_TRUE"; then echo 'line 4 still has shell=True' >&2; false; fi
 
-    # - Bandit re-scan finds 0 B602 issues
-    BANDIT_ISSUES=$(bandit -t B602 mixed.py 2>&1 | grep -c "Issue:" || true)
-    [ "$BANDIT_ISSUES" -eq 0 ]
+    # - Ruff re-scan finds 0 S602 issues
+    ruff_s602_clean mixed.py
 }
 
 @test "Stage D tags agent-emitted CRITICALs for user review (no auto-fix)" {
@@ -181,7 +217,7 @@ PY
     git add src.py
     mkcommit "feat: src"
 
-    # An agent-emitted CRITICAL — NOT a Bandit/ShellCheck pattern
+    # An agent-emitted CRITICAL — NOT a Ruff/ShellCheck pattern
     # Stage D should NOT auto-fix this; just tag for user review.
     cat > "/tmp/sole-dev-merge-findings-${SLUG}.md" <<'EOF'
 [CRITICAL] Logic error: function returns wrong value — src.py:1

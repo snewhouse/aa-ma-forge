@@ -44,12 +44,7 @@ def test_no_deprecated_uv_dev_dependencies() -> None:
 
 def test_harness_tools_in_dev_group() -> None:
     names = _dev_group_names()
-    assert {"pre-commit", "bandit"} <= names
-
-
-def test_bandit_pinned_exactly() -> None:
-    # why: M8.1 compares Ruff S against one Bandit version; a floating pin moves the baseline.
-    assert "bandit==1.9.4" in _pyproject()["dependency-groups"]["dev"]
+    assert {"pre-commit"} <= names
 
 
 def test_precommit_hooks_are_local_and_complete() -> None:

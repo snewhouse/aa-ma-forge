@@ -11,7 +11,7 @@ import os
 import re
 import shutil
 import stat
-import subprocess  # nosec B404 — git runs from an argv list, never a shell
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import BinaryIO

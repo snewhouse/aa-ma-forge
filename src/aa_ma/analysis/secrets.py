@@ -14,7 +14,7 @@ import dataclasses
 import json
 import os
 import re
-import subprocess  # nosec B404 — gitleaks runs from an argv list, never a shell
+import subprocess
 import tempfile
 from collections.abc import Iterator
 from pathlib import Path

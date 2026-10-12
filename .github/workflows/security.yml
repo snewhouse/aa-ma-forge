@@ -156,9 +156,6 @@ jobs:
       - name: Verify shellcheck is usable
         run: shellcheck --version
 
-      # C3 has the same contract as C4 and the same failure mode. bandit is not
-      # a declared dependency of this repo, so nothing else in this job installs
-      # it, yet test_smoke_e2e.bats asserts a real B602 finding.
       # aa-ma-gate-python.bats (milestone-grammar-ssot M5) drives the shipped §6.7/§7.1
       # fences, which call `uv run --project <root> aa-ma-gate`. Without uv the
       # launcher returns 127 and 17 cases fail — the job had been red since 2026-09-11.
@@ -177,12 +174,6 @@ jobs:
 
       - name: Verify project tools are runnable
         run: aa-ma-gate --help >/dev/null && ruff --version && cz version
-
-      - name: Install bandit (required by Stage C / C3)
-        run: command -v bandit || pipx install bandit || pip install bandit
-
-      - name: Verify bandit is usable
-        run: bandit --version
 
       - name: Run bats on tests/hooks/
         run: bats --recursive tests/hooks/

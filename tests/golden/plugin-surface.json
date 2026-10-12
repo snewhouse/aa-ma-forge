@@ -667,6 +667,12 @@
    "src": "skill:assess-codebase"
   },
   {
+   "dst": "skill:llm-output-safety",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:defense-in-depth"
+  },
+  {
    "dst": "agent:aa-ma-validator",
    "kind": "agent",
    "ref_class": "ON_DISK",

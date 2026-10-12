@@ -403,7 +403,7 @@ def _run_gitleaks(binary: str, texts: list[_Text]) -> list[Any] | None:
         report = Path(rep, "report.json")
         argv = [binary, *gitleaks_args(src, report)]
         try:
-            proc = subprocess.run(  # nosec B603 — binary from GITLEAKS_BIN/PATH, args are our temp paths
+            proc = subprocess.run(  # noqa: S603  # why: binary from GITLEAKS_BIN/PATH, args are our temp paths
                 argv,
                 capture_output=True,
                 text=True,

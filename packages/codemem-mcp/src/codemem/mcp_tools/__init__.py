@@ -348,7 +348,7 @@ def dependency_chain(
             SELECT s.id, s.scip_id, s.name, s.kind, s.line, f.path
             FROM symbols s JOIN files f ON s.file_id = f.id
             WHERE s.id IN ({placeholders})
-            """,
+            """,  # noqa: S608  # why: only `?` placeholders are interpolated; values are bound
             best_chain,
         ).fetchall()
         by_id = {r["id"]: r for r in rows}
@@ -586,7 +586,7 @@ def co_changes(
            {exclude_clause}
          ORDER BY co.c DESC, co.path ASC
          LIMIT ?
-    """
+    """  # noqa: S608  # why: exclude_clause is literals + `?` placeholders; values are bound
     params: list[object] = [clean, clean, threshold, clean, clean, clean, clean]
     if excludes:
         params.extend(excludes)
@@ -1249,7 +1249,7 @@ def _extract_symbol_mentions(corpus: str, *, db_path: Path) -> list[str]:
     placeholders = ",".join("?" for _ in candidates)
     with _open_ro(db_path) as conn:
         rows = conn.execute(
-            f"SELECT DISTINCT name FROM symbols WHERE name IN ({placeholders})",
+            f"SELECT DISTINCT name FROM symbols WHERE name IN ({placeholders})",  # noqa: S608  # why: only `?` placeholders are interpolated; values are bound
             candidates,
         ).fetchall()
     found = {r["name"] for r in rows}

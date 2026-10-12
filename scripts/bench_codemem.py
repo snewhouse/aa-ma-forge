@@ -49,7 +49,7 @@ def _time(fn) -> float:
 
 def _run(args: list[str], cwd: Path, env_extra: dict | None = None) -> None:
     env = {**os.environ, **(env_extra or {})}
-    subprocess.run(
+    subprocess.run(  # noqa: S603  # why: benchmark harness: argv from fixed tool names, shell=False
         args, cwd=cwd, env=env, shell=False, check=True,
         capture_output=True,
     )

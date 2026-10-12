@@ -158,8 +158,8 @@ def check_tier_1_version_strings(repo_root: Path) -> list[Finding]:
 # ---------------------------------------------------------------------
 
 def _git(args: list[str], cwd: Path) -> str:
-    r = subprocess.run(
-        ["git", *args], cwd=cwd, capture_output=True, text=True, check=False,
+    r = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+        ["git", *args], cwd=cwd, capture_output=True, text=True, check=False,  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
     )
     return r.stdout if r.returncode == 0 else ""
 

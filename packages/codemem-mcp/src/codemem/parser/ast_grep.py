@@ -216,7 +216,7 @@ def _candidates(name: str) -> Iterator[str]:
 def _is_ast_grep(binary: str) -> bool:
     try:
         # stdin closed: a shadow-utils ``sg`` may read a group password from it.
-        out = subprocess.run(
+        out = subprocess.run(  # noqa: S603  # why: probes a resolved binary with a fixed `--version` argv, no shell
             [binary, "--version"], capture_output=True, text=True,
             stdin=subprocess.DEVNULL, timeout=10, check=False,
         )
@@ -262,7 +262,7 @@ def _invoke_sg(rule_file: Path, files: list[Path], *, sg_bin: str) -> str | None
     ]
     cmd.extend(str(f) for f in files)
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # noqa: S603  # why: sg binary resolved by the caller; argv is our rule file + file paths, no shell
             cmd,
             capture_output=True,
             text=True,

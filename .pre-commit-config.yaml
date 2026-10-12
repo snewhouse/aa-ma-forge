@@ -9,14 +9,16 @@ repos:
     hooks:
       - id: ruff-check
         name: ruff check
-        entry: uv run ruff check
+        entry: uv run ruff check --force-exclude
         language: system
         types: [python]
+        args: ["--"]   # why: a staged file named like an option is a path, never a flag
       - id: ruff-format
         name: ruff format --check
-        entry: uv run ruff format --check
+        entry: uv run ruff format --check --force-exclude
         language: system
         types: [python]
+        args: ["--"]   # why: a staged file named like an option is a path, never a flag
       - id: shellcheck
         name: shellcheck
         entry: shellcheck

@@ -91,7 +91,7 @@ class GitMiner:
         env or cwd mutation.
         """
         cmd = ["git", "-C", str(self.repo_root), *args]
-        return subprocess.run(
+        return subprocess.run(  # noqa: S603  # why: argv[0] is literally `git`, -C pins repo_root; shell=False
             cmd,
             shell=False,
             check=check,

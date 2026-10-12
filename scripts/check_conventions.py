@@ -64,8 +64,8 @@ def _git(
 ) -> subprocess.CompletedProcess:
     # why: --literal-pathspecs so a filename like `*.py` matches itself, not a glob;
     # core.quotePath=false so non-ASCII paths come back verbatim.
-    proc = subprocess.run(
-        ["git", "-c", "core.quotePath=false", "--literal-pathspecs", *args],
+    proc = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+        ["git", "-c", "core.quotePath=false", "--literal-pathspecs", *args],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
         cwd=cwd,
         capture_output=True,
         check=False,

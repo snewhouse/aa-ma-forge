@@ -1,7 +1,9 @@
 """Contract for the touched-files lint harness (code-conventions-impact M1, ADR-0018).
 
-pre-commit is the one harness: staged files locally, the PR diff in CI. Every hook is
-``repo: local`` so it runs the uv-locked tool versions, never a hook repo's own pin.
+pre-commit is the one harness: staged files locally, the PR diff in CI. Every lint hook is
+``repo: local`` so it runs the uv-locked tool versions, never a hook repo's own pin. The one
+remote repo, gitleaks (M8.3), supplies only a hook definition at a frozen SHA; its
+``gitleaks-system`` hook runs the installed binary.
 """
 
 from __future__ import annotations

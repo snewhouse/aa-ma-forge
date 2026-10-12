@@ -1,0 +1,26 @@
+# gitleaks ignores: one fingerprint (commit:file:rule:line) per reviewed false positive.
+# Never a path or regex allowlist. Each entry was reviewed by Ste (M8.3); a new hit fails CI.
+
+# why: secret-scanner fixture: a made-up api_key the measure tests expect to be found
+d62f0eb89e38948d6b2981dd0e42f8e868963257:tests/analysis/test_measure.py:generic-api-key:233
+
+# why: masking fixture: a truncated AWS documentation-example secret (M7 debug-log redaction test)
+11d4e8ad8147bee87a17a16460a7584d2d8a70df:tests/hooks/aa-ma-parse.bats:generic-api-key:322
+
+# why: hook fixture: a made-up sk- key the secret-literal check must block (commit on local refs only; CI never sees it, the local --all scan does)
+20a7bb950319f5c14087c5310c2b30bdc64b1c72:tests/hooks/security-static-check.bats:generic-api-key:43
+
+# why: hook fixture: a made-up sk- key the secret-literal check must block
+55f0be075da09881b0276fc72ef3d04e4235a7ad:tests/hooks/security-static-check.bats:generic-api-key:43
+
+# why: not a secret: a 40-hex git commit SHA (the secrets-management fork pin)
+9903afac4f1eb09cef0b6512306485d0a7cf390e:tests/skills/test_fork_manifest.py:generic-api-key:212
+
+# why: not a secret: a 40-hex git commit SHA (the secrets-management fork pin) (commit on local refs only; CI never sees it, the local --all scan does)
+a6b2e51e109033becc96787a3852ffcefe2df588:tests/skills/test_fork_manifest.py:generic-api-key:212
+
+# why: redaction fixture: made-up API key / bearer / token strings that logsetup must mask (M7)
+ad0d0dd60c4728fff98a9c9ec0a698222046f6f9:tests/test_logsetup.py:generic-api-key:277
+
+# why: redaction fixture: made-up API key / bearer / token strings that logsetup must mask (M7)
+2f6f7b6e7226cb604608843b3bb0a6ae39e145b0:tests/test_logsetup.py:generic-api-key:334

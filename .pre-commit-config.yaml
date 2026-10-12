@@ -1,10 +1,17 @@
 # Touched-files lint harness (code-conventions-impact M1, ADR-0018).
 # Locally pre-commit checks staged files; CI's `touched` job runs it over the PR diff
 # with --from-ref/--to-ref. Untouched files are never linted against new rules (D8).
-# Every hook is `repo: local` so it runs the uv-locked tool, never a hook repo's own pin.
+# Every lint hook is `repo: local` so it runs the uv-locked tool, never a hook repo's own pin
+# (gitleaks, below, takes only its hook definition from a frozen rev).
 # Eval fixtures (tests/fixtures/evals/) plant defects on purpose for skill evals (ADR-0021).
 exclude: ^tests/fixtures/evals/
 repos:
+  # Hook definition only, from a SHA-frozen rev (v8.18.4); gitleaks-system runs the installed
+  # binary on staged changes. CI's gitleaks job is the full-history gate.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: 02808f45d038526bfcceebcbf6421c1047997ff9  # frozen: v8.18.4
+    hooks:
+      - id: gitleaks-system
   - repo: local
     hooks:
       - id: ruff-check

@@ -1015,6 +1015,24 @@
    "src": "skill:python-quality-gates"
   },
   {
+   "dst": "skill:defense-in-depth",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:secops"
+  },
+  {
+   "dst": "skill:llm-output-safety",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:secops"
+  },
+  {
+   "dst": "skill:secrets-management",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:secops"
+  },
+  {
    "dst": "hook:aa-ma-commit-signature.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",
@@ -1343,7 +1361,7 @@
   "skill:aa-ma-search",
   "skill:complexity-router",
   "skill:debugging-strategies",
-  "skill:llm-output-safety",
+  "skill:secops",
   "skill:sole-dev-merge",
   "skill:writing-for-agents"
  ]

@@ -229,6 +229,12 @@
    "src": "hook:security-static-check.sh"
   },
   {
+   "dst": "hook:ruff-format.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:security-static-check.sh"
+  },
+  {
    "dst": "skill:aa-ma-chart",
    "kind": "skill",
    "ref_class": "ON_DISK",

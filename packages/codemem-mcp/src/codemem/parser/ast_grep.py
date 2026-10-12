@@ -44,26 +44,26 @@ logger = logging.getLogger(__name__)
 # ``.tsx`` — ast-grep treats them as distinct languages).
 SUPPORTED_LANGUAGES: dict[str, set[str]] = {
     "TypeScript": {".ts"},
-    "Tsx":        {".tsx"},
+    "Tsx": {".tsx"},
     "JavaScript": {".js", ".jsx", ".mjs", ".cjs"},
-    "Go":         {".go"},
-    "Rust":       {".rs"},
-    "Java":       {".java"},
-    "Ruby":       {".rb"},
-    "Bash":       {".sh", ".bash"},
+    "Go": {".go"},
+    "Rust": {".rs"},
+    "Java": {".java"},
+    "Ruby": {".rb"},
+    "Bash": {".sh", ".bash"},
 }
 
 # Language → rule-file basename under rules/. One file per language keeps the
 # batched sg invocation per-language simple.
 _RULE_FILE_BY_LANG: dict[str, str] = {
     "TypeScript": "typescript.yml",
-    "Tsx":        "tsx.yml",
+    "Tsx": "tsx.yml",
     "JavaScript": "javascript.yml",
-    "Go":         "go.yml",
-    "Rust":       "rust.yml",
-    "Java":       "java.yml",
-    "Ruby":       "ruby.yml",
-    "Bash":       "bash.yml",
+    "Go": "go.yml",
+    "Rust": "rust.yml",
+    "Java": "java.yml",
+    "Ruby": "ruby.yml",
+    "Bash": "bash.yml",
 }
 
 # Max bytes of file-path arguments per ``sg scan``. A whole repo's files in one
@@ -74,20 +74,25 @@ _ARGV_BUDGET = 32_000
 # Rule-id suffix → the Symbol.kind we emit. Rules are named
 # ``<langprefix>-function-def`` etc. (e.g. ``ts-function-def``).
 _KIND_BY_RULE_SUFFIX: dict[str, str] = {
-    "-function-def":  "function",
-    "-class-def":     "class",
-    "-interface-def": "class",       # Java/TS interfaces are containers for methods
-    "-struct-def":    "class",       # Go/Rust structs — containers for methods
-    "-module-def":    "class",       # Ruby module — container
-    "-type-alias":    "class",       # TS type alias — treated as type for SCIP marker
-    "-method-def":    "method",
+    "-function-def": "function",
+    "-class-def": "class",
+    "-interface-def": "class",  # Java/TS interfaces are containers for methods
+    "-struct-def": "class",  # Go/Rust structs — containers for methods
+    "-module-def": "class",  # Ruby module — container
+    "-type-alias": "class",  # TS type alias — treated as type for SCIP marker
+    "-method-def": "method",
     # imports + calls are edges — handled separately, no Symbol emission.
 }
 
 # Rule suffixes whose matches define a CONTAINER (eligible parent for methods).
-_CONTAINER_SUFFIXES: frozenset[str] = frozenset({
-    "-class-def", "-interface-def", "-struct-def", "-module-def",
-})
+_CONTAINER_SUFFIXES: frozenset[str] = frozenset(
+    {
+        "-class-def",
+        "-interface-def",
+        "-struct-def",
+        "-module-def",
+    }
+)
 
 
 def language_from_path(path: Path) -> str | None:
@@ -103,12 +108,13 @@ def language_from_path(path: Path) -> str | None:
 # JSON stream parser
 # ---------------------------------------------------------------------
 
+
 @dataclass
 class _SgMatch:
     file: Path
     rule_id: str
     name: str | None
-    line: int      # 1-indexed
+    line: int  # 1-indexed
     end_line: int  # 1-indexed
     text: str
     callee: str | None = None  # $CALLEE of a ``*-call`` rule (diagram-generation M9)
@@ -164,6 +170,7 @@ def parse_sg_output(stream: str) -> list[_SgMatch]:
 # Subprocess invocation
 # ---------------------------------------------------------------------
 
+
 def _rules_dir() -> Path:
     return Path(__file__).parent / "rules"
 
@@ -217,8 +224,12 @@ def _is_ast_grep(binary: str) -> bool:
     try:
         # stdin closed: a shadow-utils ``sg`` may read a group password from it.
         out = subprocess.run(  # noqa: S603  # why: probes a resolved binary with a fixed `--version` argv, no shell
-            [binary, "--version"], capture_output=True, text=True,
-            stdin=subprocess.DEVNULL, timeout=10, check=False,
+            [binary, "--version"],
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            timeout=10,
+            check=False,
         )
     except (OSError, subprocess.SubprocessError):
         return False
@@ -255,8 +266,10 @@ def _invoke_sg(rule_file: Path, files: list[Path], *, sg_bin: str) -> str | None
     logged and its output still used, as before.
     """
     cmd = [
-        sg_bin, "scan",
-        "-r", str(rule_file),
+        sg_bin,
+        "scan",
+        "-r",
+        str(rule_file),
         "--json=stream",
         "--include-metadata",
     ]
@@ -272,12 +285,17 @@ def _invoke_sg(rule_file: Path, files: list[Path], *, sg_bin: str) -> str | None
         if exc.errno == errno.E2BIG:
             logger.warning(
                 "codemem: argument list too long running %r on %d %s file(s); left unindexed",
-                sg_bin, len(files), rule_file.stem,
+                sg_bin,
+                len(files),
+                rule_file.stem,
             )
         else:
             logger.warning(
                 "codemem: cannot run ast-grep binary %r (%s); %d %s file(s) left unindexed",
-                sg_bin, exc, len(files), rule_file.stem,
+                sg_bin,
+                exc,
+                len(files),
+                rule_file.stem,
             )
         return None
     if result.returncode != 0:
@@ -285,12 +303,20 @@ def _invoke_sg(rule_file: Path, files: list[Path], *, sg_bin: str) -> str | None
         if not result.stdout.strip():
             logger.warning(
                 "codemem: %r scan failed (exit %d) for %d %s file(s), left unindexed: %s",
-                sg_bin, result.returncode, len(files), rule_file.stem, stderr_head,
+                sg_bin,
+                result.returncode,
+                len(files),
+                rule_file.stem,
+                stderr_head,
             )
             return None
         logger.warning(
             "codemem: %r scan exited with partial output (exit %d) for %d %s file(s): %s",
-            sg_bin, result.returncode, len(files), rule_file.stem, stderr_head,
+            sg_bin,
+            result.returncode,
+            len(files),
+            rule_file.stem,
+            stderr_head,
         )
     return result.stdout
 
@@ -298,6 +324,7 @@ def _invoke_sg(rule_file: Path, files: list[Path], *, sg_bin: str) -> str | None
 # ---------------------------------------------------------------------
 # ParseResult construction
 # ---------------------------------------------------------------------
+
 
 def _rule_suffix(rule_id: str) -> str | None:
     for suffix in _KIND_BY_RULE_SUFFIX:
@@ -422,7 +449,11 @@ def _build_parse_result(
     # One sorted sweep: syntax nests, so the innermost open callable is the stack top.
     # Ties at a start position put callables before calls, outer callables first.
     events = [(start, 0, end, sid) for start, end, sid in callables]
-    events += [((m.line, m.col), 1, (m.end_line, m.end_col), c) for m in matches if (c := _callee(m))]
+    events += [
+        ((m.line, m.col), 1, (m.end_line, m.end_col), c)
+        for m in matches
+        if (c := _callee(m))
+    ]
     events.sort(key=lambda ev: (ev[0], ev[1], (-ev[2][0], -ev[2][1])))
     unresolved: dict[tuple[str, str], CallEdge] = {}
     open_: list[tuple[tuple[int, int], str]] = []  # (end, scip_id)
@@ -435,7 +466,9 @@ def _build_parse_result(
             src = open_[-1][1]
             unresolved.setdefault((src, value), CallEdge(src, None, value, "call"))
 
-    return ParseResult(symbols=symbols, edges=edges, unresolved_edges=list(unresolved.values()))
+    return ParseResult(
+        symbols=symbols, edges=edges, unresolved_edges=list(unresolved.values())
+    )
 
 
 def _callee(m: _SgMatch) -> str | None:

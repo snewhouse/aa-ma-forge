@@ -68,8 +68,12 @@ def aggregate(runs: list[dict]) -> dict:
 
 
 def _run_harness_once(
-    project_root: Path, repo: Path, budget: int,
-    *, include_repomix: bool = False, include_yek: bool = False,
+    project_root: Path,
+    repo: Path,
+    budget: int,
+    *,
+    include_repomix: bool = False,
+    include_yek: bool = False,
     aider_tokeniser_equalise: bool = False,
 ) -> dict | None:
     """Invoke the single-run harness, return parsed JSON or None on failure.
@@ -84,11 +88,16 @@ def _run_harness_once(
         out = Path(f.name)
     try:
         argv = [
-            "uv", "run", "python",
+            "uv",
+            "run",
+            "python",
             "scripts/bench_codemem_vs_aider.py",
-            "--repo", str(repo),
-            "--requested-budget", str(budget),
-            "--out", str(out),
+            "--repo",
+            str(repo),
+            "--requested-budget",
+            str(budget),
+            "--out",
+            str(out),
         ]
         if aider_tokeniser_equalise:
             argv.append("--aider-tokeniser-equalise")
@@ -99,11 +108,15 @@ def _run_harness_once(
         r = subprocess.run(  # noqa: S603  # why: benchmark harness: argv from fixed flags, no shell
             argv,
             cwd=project_root,
-            capture_output=True, text=True, timeout=600,
+            capture_output=True,
+            text=True,
+            timeout=600,
         )
         if r.returncode != 0:
-            print(f"  harness exit {r.returncode}: "
-                  f"{r.stderr.strip()[-200:]}", file=sys.stderr)
+            print(
+                f"  harness exit {r.returncode}: {r.stderr.strip()[-200:]}",
+                file=sys.stderr,
+            )
             return None
         return json.loads(out.read_text())
     except (subprocess.TimeoutExpired, json.JSONDecodeError) as e:
@@ -115,25 +128,32 @@ def _run_harness_once(
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--repo", type=Path, required=True,
-                   help="Target repository root")
-    p.add_argument("--budgets", default="512,1024,2048,4096",
-                   help="Comma-separated budget list")
-    p.add_argument("--runs", type=int, default=3,
-                   help="Runs per cell (AD-006 default)")
-    p.add_argument("--out", type=Path, required=True,
-                   help="Output JSON path")
-    p.add_argument("--pinned-sha", default="",
-                   help="Target repo SHA for provenance")
-    p.add_argument("--project-root", type=Path,
-                   default=Path(__file__).resolve().parents[1],
-                   help="aa-ma-forge root (where bench_codemem_vs_aider lives)")
-    p.add_argument("--include-repomix", action="store_true",
-                   help="Add Repomix to the panel (M2b).")
-    p.add_argument("--include-yek", action="store_true",
-                   help="Add yek to the panel (M2c, AD-V2-013).")
-    p.add_argument("--aider-tokeniser-equalise", action="store_true",
-                   help="Pass --model gpt-3.5-turbo to Aider for cl100k_base.")
+    p.add_argument("--repo", type=Path, required=True, help="Target repository root")
+    p.add_argument(
+        "--budgets", default="512,1024,2048,4096", help="Comma-separated budget list"
+    )
+    p.add_argument("--runs", type=int, default=3, help="Runs per cell (AD-006 default)")
+    p.add_argument("--out", type=Path, required=True, help="Output JSON path")
+    p.add_argument("--pinned-sha", default="", help="Target repo SHA for provenance")
+    p.add_argument(
+        "--project-root",
+        type=Path,
+        default=Path(__file__).resolve().parents[1],
+        help="aa-ma-forge root (where bench_codemem_vs_aider lives)",
+    )
+    p.add_argument(
+        "--include-repomix", action="store_true", help="Add Repomix to the panel (M2b)."
+    )
+    p.add_argument(
+        "--include-yek",
+        action="store_true",
+        help="Add yek to the panel (M2c, AD-V2-013).",
+    )
+    p.add_argument(
+        "--aider-tokeniser-equalise",
+        action="store_true",
+        help="Pass --model gpt-3.5-turbo to Aider for cl100k_base.",
+    )
     args = p.parse_args(argv)
 
     budgets = [int(b.strip()) for b in args.budgets.split(",")]
@@ -144,19 +164,20 @@ def main(argv: list[str] | None = None) -> int:
         "budgets": budgets,
         "tokenizer": "cl100k_base",
         "tools_included": ["codemem", "aider", "jcodemunch"]
-            + (["repomix"] if args.include_repomix else [])
-            + (["yek"] if args.include_yek else []),
+        + (["repomix"] if args.include_repomix else [])
+        + (["yek"] if args.include_yek else []),
         "measurements": {},
         "overlap": {},
     }
 
     for budget in budgets:
-        print(f"--- budget={budget}, {args.runs} run(s) ---",
-              file=sys.stderr)
+        print(f"--- budget={budget}, {args.runs} run(s) ---", file=sys.stderr)
         runs: list[dict] = []
         for i in range(args.runs):
             run_json = _run_harness_once(
-                args.project_root, args.repo, budget,
+                args.project_root,
+                args.repo,
+                budget,
                 include_repomix=args.include_repomix,
                 include_yek=args.include_yek,
                 aider_tokeniser_equalise=args.aider_tokeniser_equalise,
@@ -179,8 +200,7 @@ def main(argv: list[str] | None = None) -> int:
             # successful run's overlap is representative.
             result["overlap"][f"budget_{budget}"] = runs[0]["overlap"]
         else:
-            print(f"  budget={budget}: ALL {args.runs} RUNS FAILED",
-                  file=sys.stderr)
+            print(f"  budget={budget}: ALL {args.runs} RUNS FAILED", file=sys.stderr)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(result, indent=2) + "\n")

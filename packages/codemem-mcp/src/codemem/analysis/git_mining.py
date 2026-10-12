@@ -41,7 +41,7 @@ __all__ = ["GitMiner"]
 # A fence token that can never appear inside a commit subject line because
 # it contains an ASCII record-separator (U+001E). ``git log --pretty=format:``
 # does not escape this for us.
-_COMMIT_FIELD_SEP = "\x1f"   # unit separator between fields
+_COMMIT_FIELD_SEP = "\x1f"  # unit separator between fields
 _COMMIT_RECORD_SEP = "\x1e"  # record separator between commits
 
 
@@ -144,14 +144,9 @@ class GitMiner:
             conn.executemany(
                 "INSERT OR REPLACE INTO commits "
                 "(sha, author_email, author_time, message) VALUES (?, ?, ?, ?)",
-                [
-                    (r.sha, r.author_email, r.author_time, r.message)
-                    for r in records
-                ],
+                [(r.sha, r.author_email, r.author_time, r.message) for r in records],
             )
-            junction_rows = [
-                (r.sha, fp) for r in records for fp in r.files
-            ]
+            junction_rows = [(r.sha, fp) for r in records for fp in r.files]
             if junction_rows:
                 conn.executemany(
                     "INSERT OR IGNORE INTO commit_files "
@@ -279,9 +274,7 @@ def _parse_git_log_output(stdout: str) -> list[_CommitRecord]:
             author_time = int(at)
         except ValueError:
             continue
-        files = tuple(
-            f.strip() for f in files_blob.splitlines() if f.strip()
-        )
+        files = tuple(f.strip() for f in files_blob.splitlines() if f.strip())
         records.append(
             _CommitRecord(
                 sha=sha,
@@ -324,6 +317,4 @@ def _parse_blame_porcelain(stdout: str) -> dict[str, tuple[int, float]]:
 
     if total == 0:
         return {}
-    return {
-        email: (n, (n / total) * 100.0) for email, n in counts.items()
-    }
+    return {email: (n, (n / total) * 100.0) for email, n in counts.items()}

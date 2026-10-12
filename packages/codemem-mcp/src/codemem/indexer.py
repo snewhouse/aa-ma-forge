@@ -37,8 +37,7 @@ __all__ = ["BuildStats", "build_index", "discover_files", "parse_files"]
 # not indexed, not inserted. The indexer is source-code aware; docs and
 # assets aren't in scope for v1.
 _INDEXABLE_EXTENSIONS: frozenset[str] = frozenset(
-    {".py"}
-    | {ext for exts in ast_grep.SUPPORTED_LANGUAGES.values() for ext in exts}
+    {".py"} | {ext for exts in ast_grep.SUPPORTED_LANGUAGES.values() for ext in exts}
 )
 
 
@@ -56,6 +55,7 @@ class BuildStats:
 # ---------------------------------------------------------------------
 # File discovery
 # ---------------------------------------------------------------------
+
 
 def discover_files(repo_root: Path) -> list[Path]:
     """Return absolute paths to indexable files under ``repo_root``.
@@ -76,7 +76,8 @@ def discover_files(repo_root: Path) -> list[Path]:
         candidates = [p for p in repo_root.rglob("*") if p.is_file()]
 
     return [
-        p for p in candidates
+        p
+        for p in candidates
         if p.suffix.lower() in _INDEXABLE_EXTENSIONS and p.is_file()
     ]
 
@@ -105,10 +106,11 @@ def git_tracked_files(repo_root: Path) -> list[Path] | None:
 # Parse dispatch
 # ---------------------------------------------------------------------
 
+
 @dataclass
 class _FileParse:
-    path: Path              # absolute
-    rel_to_repo: str        # posix string relative to repo_root
+    path: Path  # absolute
+    rel_to_repo: str  # posix string relative to repo_root
     lang: str
     result: ParseResult
     content_hash: str
@@ -148,9 +150,7 @@ def parse_files(
         except OSError:
             continue
         rel = p.resolve().relative_to(repo_root).as_posix()
-        pr = python_ast.extract_python_signatures(
-            source, package=package, file_rel=rel
-        )
+        pr = python_ast.extract_python_signatures(source, package=package, file_rel=rel)
         if not pr.symbols and source.strip():
             python_parse_errors += 1  # file had content but we got nothing
         parses.append(
@@ -203,6 +203,7 @@ def parse_files(
 # Bulk insert
 # ---------------------------------------------------------------------
 
+
 def _upsert_files(conn, parses: list[_FileParse]) -> dict[str, int]:
     """Insert/update a row per file; return path → file_id map."""
     now = int(time.time())
@@ -224,7 +225,9 @@ def _upsert_files(conn, parses: list[_FileParse]) -> dict[str, int]:
     return {path: fid for path, fid in rows}
 
 
-def _bulk_insert_symbols(conn, parses: list[_FileParse], path_to_fid: dict[str, int]) -> int:
+def _bulk_insert_symbols(
+    conn, parses: list[_FileParse], path_to_fid: dict[str, int]
+) -> int:
     """Insert symbols for every parse; return total rows inserted.
 
     Uses ``INSERT OR REPLACE`` keyed on ``(file_id, scip_id)`` so a
@@ -327,6 +330,7 @@ def _bulk_insert_edges(conn, parses: list[_FileParse]) -> int:
 # Public entry point
 # ---------------------------------------------------------------------
 
+
 def _parse_result_to_wal_args(fp) -> dict:
     """Serialise a file parse for persistence as a WAL entry payload."""
     return {
@@ -413,9 +417,7 @@ def build_index(
             symbols_inserted = _bulk_insert_symbols(conn, parses, path_to_fid)
             _resolve_parent_ids(conn, parses)
             edges_inserted = _bulk_insert_edges(conn, parses)
-            resolver_stats = _resolver.resolve_cross_file_edges(
-                conn, parses=parses
-            )
+            resolver_stats = _resolver.resolve_cross_file_edges(conn, parses=parses)
 
             # Append WAL entries for every file we just indexed — these
             # serve as the bootstrap record for `codemem replay --from-wal`.
@@ -479,7 +481,9 @@ def build_index(
     try:
         result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
             ["git", "-C", str(repo_root), "rev-parse", "HEAD"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
-            capture_output=True, text=True, check=False,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if result.returncode == 0:
             last_sha_file = db_path.parent / "last_sha"

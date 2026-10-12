@@ -54,7 +54,9 @@ _DEFAULT_CO_CHANGES_EXCLUDE: tuple[str, ...] = ("CHANGELOG.md", "README.md")
 
 
 _DEFAULT_BUDGET = 8_000
-_MAX_HOPS = 10  # diagram(): a neighbourhood this wide is the whole graph on any real repo
+_MAX_HOPS = (
+    10  # diagram(): a neighbourhood this wide is the whole graph on any real repo
+)
 _MAX_SCOPE = 1024  # diagram(): a path prefix, matched in Python only (never SQL)
 # Conservative char-per-token heuristic. 1 token ≈ 4 chars for English+code.
 _CHARS_PER_TOKEN = 4
@@ -63,6 +65,7 @@ _CHARS_PER_TOKEN = 4
 # ---------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------
+
 
 def ensure_built(db_path: Path, repo_root: Path) -> dict | None:
     """Ensure the codemem index DB exists, building it if missing.
@@ -114,11 +117,7 @@ def ensure_built(db_path: Path, repo_root: Path) -> dict | None:
             time.sleep(0.1)
             if db_path.exists():
                 return None
-        return {
-            "error": (
-                "build in progress by another process; timed out after 10s"
-            )
-        }
+        return {"error": ("build in progress by another process; timed out after 10s")}
     except Exception as exc:  # noqa: BLE001 — tool-surface contract
         return {"error": f"build failed: {exc.__class__.__name__}: {exc}"}
 
@@ -137,9 +136,7 @@ def _open_ro(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
-def _resolve_symbol_ids_by_name(
-    conn: sqlite3.Connection, name: str
-) -> list[int]:
+def _resolve_symbol_ids_by_name(conn: sqlite3.Connection, name: str) -> list[int]:
     """Return ALL symbol IDs for symbols with this unqualified name."""
     rows = conn.execute("SELECT id FROM symbols WHERE name = ?", (name,)).fetchall()
     return [r["id"] for r in rows]
@@ -158,6 +155,7 @@ def _symbol_info_row(row: sqlite3.Row) -> dict:
 # ---------------------------------------------------------------------
 # who_calls
 # ---------------------------------------------------------------------
+
 
 def who_calls(
     db_path: Path,
@@ -209,6 +207,7 @@ def who_calls(
 # blast_radius
 # ---------------------------------------------------------------------
 
+
 def blast_radius(
     db_path: Path,
     name: str,
@@ -225,7 +224,12 @@ def blast_radius(
     with _open_ro(db_path) as conn:
         target_ids = _resolve_symbol_ids_by_name(conn, clean)
         if not target_ids:
-            return {"target": clean, "downstream": [], "truncated": False, "error": None}
+            return {
+                "target": clean,
+                "downstream": [],
+                "truncated": False,
+                "error": None,
+            }
 
         dst_ids: set[int] = set()
         for tid in target_ids:
@@ -258,6 +262,7 @@ def blast_radius(
 # ---------------------------------------------------------------------
 # dead_code
 # ---------------------------------------------------------------------
+
 
 def dead_code(
     db_path: Path,
@@ -363,6 +368,7 @@ def dependency_chain(
 # search_symbols
 # ---------------------------------------------------------------------
 
+
 def search_symbols(
     db_path: Path,
     query: str,
@@ -402,6 +408,7 @@ def search_symbols(
 # file_summary
 # ---------------------------------------------------------------------
 
+
 def file_summary(
     db_path: Path,
     path: str,
@@ -440,6 +447,7 @@ def file_summary(
 # ---------------------------------------------------------------------
 # hot_spots (M3 Task 3.2)
 # ---------------------------------------------------------------------
+
 
 def hot_spots(
     db_path: Path,
@@ -507,6 +515,7 @@ def hot_spots(
 # co_changes (M3 Task 3.3)
 # ---------------------------------------------------------------------
 
+
 def co_changes(
     db_path: Path,
     file_path: str,
@@ -536,20 +545,14 @@ def co_changes(
     except ValidationError as exc:
         return {"error": str(exc), "target": file_path, "files": []}
 
-    excludes = (
-        _DEFAULT_CO_CHANGES_EXCLUDE if exclude is None else tuple(exclude)
-    )
+    excludes = _DEFAULT_CO_CHANGES_EXCLUDE if exclude is None else tuple(exclude)
 
     # Parameterised `NOT IN (?, ?, ...)` — build conditionally so empty
     # excludes produces NO clause at all (a bare `NOT IN (NULL)` evaluates
     # to NULL/unknown and filters out everything, SQL three-valued-logic gotcha).
     exclude_clause = ""
     if excludes:
-        exclude_clause = (
-            "AND co.path NOT IN ("
-            + ",".join("?" for _ in excludes)
-            + ")"
-        )
+        exclude_clause = "AND co.path NOT IN (" + ",".join("?" for _ in excludes) + ")"
     query = f"""
         WITH target_commits AS (
             SELECT commit_sha FROM commit_files WHERE file_path = ?
@@ -611,6 +614,7 @@ def co_changes(
 # ---------------------------------------------------------------------
 # owners (M3 Task 3.4)
 # ---------------------------------------------------------------------
+
 
 def owners(
     db_path: Path,
@@ -713,9 +717,7 @@ def owners(
 _BLAME_MAX_WORKERS = min(8, os.cpu_count() or 1)
 
 
-def _refresh_ownership_cache(
-    db_path: Path, path: str, *, repo_root: Path
-) -> None:
+def _refresh_ownership_cache(db_path: Path, path: str, *, repo_root: Path) -> None:
     """Call ``GitMiner.get_blame`` for ``path`` (or the files under it when path
     is a directory) and write results to the ``ownership`` table.
 
@@ -766,9 +768,7 @@ def _refresh_ownership_cache(
                 if not result:
                     continue
                 # Replace any stale rows for this file.
-                conn.execute(
-                    "DELETE FROM ownership WHERE file_path = ?", (t,)
-                )
+                conn.execute("DELETE FROM ownership WHERE file_path = ?", (t,))
                 for email, (line_count, pct) in result.items():
                     conn.execute(
                         "INSERT INTO ownership "
@@ -932,8 +932,8 @@ def _git_log_L(miner, *, name: str, file_path: str) -> list[dict]:
 # layers (M3 Task 3.6)
 # ---------------------------------------------------------------------
 
-_LAYER_MAX_COLS = 80          # AC: fits 80-col terminal without wrap
-_LAYER_MAX_CHARS = 2_000      # AC: ≤ 500 tokens × 4 chars/token heuristic
+_LAYER_MAX_COLS = 80  # AC: fits 80-col terminal without wrap
+_LAYER_MAX_CHARS = 2_000  # AC: ≤ 500 tokens × 4 chars/token heuristic
 
 
 def layers(
@@ -987,7 +987,7 @@ def layers(
         core_count = max(1, n // 3)
         peri_count = max(1, n // 3)
     core = [p for p, _ in files[:core_count]]
-    periphery = [p for p, _ in files[n - peri_count:]]
+    periphery = [p for p, _ in files[n - peri_count :]]
     middle = [p for p, _ in files[core_count : n - peri_count]]
 
     ascii_art = _render_layers_onion(core, middle, periphery)
@@ -1087,29 +1087,53 @@ def diagram(
 
     def out(c, lv, *, frm=None, dropped=0, error=None) -> dict:
         text = to_mermaid(c) if c else ""
-        if c and dropped > c.dropped:  # budget truncation: to_mermaid only notes its own maxEdges cap
-            text = text.replace("flowchart LR\n", f"flowchart LR\n%% {dropped} edges not shown: over the {budget}-token budget\n", 1)
+        if (
+            c and dropped > c.dropped
+        ):  # budget truncation: to_mermaid only notes its own maxEdges cap
+            text = text.replace(
+                "flowchart LR\n",
+                f"flowchart LR\n%% {dropped} edges not shown: over the {budget}-token budget\n",
+                1,
+            )
         return {
-            "mermaid": text, "level": lv,
-            "nodes": len(c.nodes) if c else 0, "edges": len(c.edges) if c else 0,
-            "dropped": dropped, "collapsed_from": frm,
-            "truncated": dropped > 0 or frm is not None, "error": error,
+            "mermaid": text,
+            "level": lv,
+            "nodes": len(c.nodes) if c else 0,
+            "edges": len(c.edges) if c else 0,
+            "dropped": dropped,
+            "collapsed_from": frm,
+            "truncated": dropped > 0 or frm is not None,
+            "error": error,
         }
 
     if level not in Level.__members__:
-        return out(None, level, error=f"level must be one of {list(Level.__members__)}, got {level!r}")
+        return out(
+            None,
+            level,
+            error=f"level must be one of {list(Level.__members__)}, got {level!r}",
+        )
     if not 0 <= hops <= _MAX_HOPS:  # the neighbourhood walk loops `hops` times
         return out(None, level, error=f"hops must be 0..{_MAX_HOPS}, got {hops}")
     if scope is not None and not (len(scope) <= _MAX_SCOPE and scope.isprintable()):
-        return out(None, level, error=f"scope must be at most {_MAX_SCOPE} printable characters")
+        return out(
+            None,
+            level,
+            error=f"scope must be at most {_MAX_SCOPE} printable characters",
+        )
     try:
         with _open_ro(db_path) as conn:
             version = conn.execute("PRAGMA user_version").fetchone()[0]
             if version < MIN_SCHEMA_VERSION:
-                return out(None, level, error=f"index is schema v{version}, need v{MIN_SCHEMA_VERSION}; run `codemem build`")
+                return out(
+                    None,
+                    level,
+                    error=f"index is schema v{version}, need v{MIN_SCHEMA_VERSION}; run `codemem build`",
+                )
             requested = lv = Level[level]
             c = cut(conn, lv, scope=scope, hops=hops)
-            while lv > Level.L0 and _exceeds_budget(out(c, lv.name, dropped=c.dropped), budget):
+            while lv > Level.L0 and _exceeds_budget(
+                out(c, lv.name, dropped=c.dropped), budget
+            ):
                 coarser = cut(conn, Level(lv - 1), scope=scope, hops=hops)
                 if not coarser.edges:
                     break
@@ -1123,9 +1147,16 @@ def diagram(
     named = sorted((c.nodes[a], c.nodes[b], k) for a, b, k in c.edges)
 
     def fitted(k: int) -> dict:
-        return out(from_edges(set(named[:k]), lv), lv.name, frm=frm, dropped=c.dropped + len(named) - k)
+        return out(
+            from_edges(set(named[:k]), lv),
+            lv.name,
+            frm=frm,
+            dropped=c.dropped + len(named) - k,
+        )
 
-    return fitted(_largest_prefix(len(named), lambda k: not _exceeds_budget(fitted(k), budget)))
+    return fitted(
+        _largest_prefix(len(named), lambda k: not _exceeds_budget(fitted(k), budget))
+    )
 
 
 def aa_ma_context(
@@ -1315,6 +1346,7 @@ def _append_snapshot_to_reference(ref_md: Path, markdown: str) -> None:
 # Token-budget enforcement
 # ---------------------------------------------------------------------
 
+
 def _largest_prefix(n: int, fits: Callable[[int], bool]) -> int:
     """Largest ``k <= n`` with ``fits(k)``, by binary search; ``fits`` must be monotone."""
     lo, hi = 0, n
@@ -1338,6 +1370,10 @@ def _truncate(payload: dict, *, list_key: str, budget: int) -> dict:
         return {**payload, "truncated": False}
     keep = _largest_prefix(
         len(items),
-        lambda k: not _exceeds_budget({**payload, list_key: items[:k], "truncated": True}, budget),
+        lambda k: (
+            not _exceeds_budget(
+                {**payload, list_key: items[:k], "truncated": True}, budget
+            )
+        ),
     )
     return {**payload, list_key: items[:keep], "truncated": True}

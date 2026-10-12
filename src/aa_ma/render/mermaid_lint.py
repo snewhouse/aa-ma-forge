@@ -24,7 +24,13 @@ from aa_ma.plan_parsers import (
     parse_critical_path,
     parse_diagram_waiver,
 )
-from aa_ma.render.graph import GraphStatus, call_edges, file_langs, import_edges, open_graph
+from aa_ma.render.graph import (
+    GraphStatus,
+    call_edges,
+    file_langs,
+    import_edges,
+    open_graph,
+)
 
 # Allowlist by policy, not a mermaid inventory: the views a plan is expected to hold.
 # A newer type (architecture-beta, mindmap, timeline...) is UNKNOWN_TYPE until added here
@@ -76,9 +82,15 @@ class Finding:
 class LintReport:
     findings: tuple[Finding, ...]
     render_status: str  # PASS | FAIL | UNKNOWN
-    unknowns: tuple[Finding, ...] = ()  # unevaluable sigil claims (code UNKNOWN); never set the exit
-    sigil_edges: int | None = None  # sigil claims in §13; None: not all were read (never an opt-out)
-    sigil_checked: int = 0  # claims actually compared with the graph (held or PHANTOM_EDGE)
+    unknowns: tuple[
+        Finding, ...
+    ] = ()  # unevaluable sigil claims (code UNKNOWN); never set the exit
+    sigil_edges: int | None = (
+        None  # sigil claims in §13; None: not all were read (never an opt-out)
+    )
+    sigil_checked: int = (
+        0  # claims actually compared with the graph (held or PHANTOM_EDGE)
+    )
 
 
 # Sigil verdicts the §6.7 HARD item reads (ADR-0015). Every UNKNOWN still prints `UNKNOWN:`;
@@ -96,7 +108,12 @@ UNKNOWN_INVALID = "UNKNOWN_INVALID"
 # Opt-in edge claims (diagram-generation M8, map Ticket 5). An edge is checked ONLY when its
 # label carries a reserved sigil; unlabelled and prose-labelled edges never are.
 _EDGE_READERS = {"@import": import_edges, "@call": call_edges}  # graph-backed sigils
-_PLUGIN_SIGILS = ("@skill", "@command", "@agent", "@hook")  # UNKNOWN until the index holds them (M13)
+_PLUGIN_SIGILS = (
+    "@skill",
+    "@command",
+    "@agent",
+    "@hook",
+)  # UNKNOWN until the index holds them (M13)
 SIGILS: tuple[str, ...] = (*_EDGE_READERS, *_PLUGIN_SIGILS)
 _PLUGIN_REASON = "plugin-surface edges are not in the codemem index"
 _ID = r"[A-Za-z_][\w-]*"
@@ -105,7 +122,9 @@ _DECL = r"(?:[ \t]*\[[^\]\n]*\]+)?"  # inline `[...]`; ONE `[` opens it (`\[+` w
 _EDGE_RE = re.compile(
     rf'^[ \t]*({_ID}){_DECL}[ \t]*(?:-->|-\.->|==>)[ \t]*\|("[^"\n]*"|[^|\n]*)\|[ \t]*({_ID}){_DECL}[ \t]*;?[ \t]*$'
 )
-_SIGIL_SLOT_RE = re.compile(r'(?:\||--|==)[ \t]*"?@[\w-]')  # an `@` where an edge label sits
+_SIGIL_SLOT_RE = re.compile(
+    r'(?:\||--|==)[ \t]*"?@[\w-]'
+)  # an `@` where an edge label sits
 _ID_TAIL_RE = re.compile(rf"({_ID})[ \t]*$")
 
 
@@ -129,17 +148,25 @@ def _load_graph(repo_root: Path) -> _Graph:
     h = open_graph(repo_root)
     empty = {s: set() for s in _EDGE_READERS}
     try:
-        if h.status is not GraphStatus.OK:  # its claims are UNKNOWN anyway: read nothing
+        if (
+            h.status is not GraphStatus.OK
+        ):  # its claims are UNKNOWN anyway: read nothing
             return _Graph(h.status, h.reason, empty, {}, dict(empty))
         edges = {s: read(h) for s, read in _EDGE_READERS.items()}
         langs = file_langs(h)
-    except sqlite3.Error as exc:  # a v3 index missing tables/columns: UNKNOWN, never a crash
-        reason = f"codemem index is unreadable ({type(exc).__name__}); run `codemem build`"
+    except (
+        sqlite3.Error
+    ) as exc:  # a v3 index missing tables/columns: UNKNOWN, never a crash
+        reason = (
+            f"codemem index is unreadable ({type(exc).__name__}); run `codemem build`"
+        )
         return _Graph(GraphStatus.MISSING, reason, empty, {}, dict(empty))
     finally:
         if h.conn is not None:
             h.conn.close()
-    edge_langs = {s: {langs[p] for e in es for p in e if p in langs} for s, es in edges.items()}
+    edge_langs = {
+        s: {langs[p] for e in es for p in e if p in langs} for s, es in edges.items()
+    }
     return _Graph(h.status, h.reason, edges, langs, edge_langs)
 
 
@@ -172,7 +199,9 @@ def _milestone_facts(text: str) -> tuple[bool, bool, list[str]]:
     return code, crit, errors
 
 
-def section_13(plan_text: str, stripped: str) -> tuple[int, list[str], list[str]] | None:
+def section_13(
+    plan_text: str, stripped: str
+) -> tuple[int, list[str], list[str]] | None:
     """(0-based heading line, original lines, fence-stripped lines) of §13, or None.
 
     ``stripped`` is ``scan_fences(plan_text).stripped``: a heading quoted inside a fence is
@@ -233,7 +262,12 @@ def _label_paths(label: str) -> list[str]:
     if NEW_RE.search(label):
         return []
     # [/x/] is a shape; a leading "/" would otherwise resolve from the fs root
-    return [q.lstrip("/") for t in label.split() if len(t) <= _MAX_TOKEN for q in _PATH_RE.findall(t)]
+    return [
+        q.lstrip("/")
+        for t in label.split()
+        if len(t) <= _MAX_TOKEN
+        for q in _PATH_RE.findall(t)
+    ]
 
 
 def _inside(repo_root: Path, rel: str) -> bool:
@@ -261,7 +295,9 @@ def node_labels(src: str) -> dict[str, str]:
     labels: dict[str, str] = {}
     for line in src.split("\n"):
         for i, content in _bracketed(line):
-            m = _ID_TAIL_RE.search(line, max(0, i - _MAX_TOKEN), i)  # bounded look-back: linear
+            m = _ID_TAIL_RE.search(
+                line, max(0, i - _MAX_TOKEN), i
+            )  # bounded look-back: linear
             if m:
                 labels[m.group(1)] = _unwrap(content)
     return labels
@@ -282,20 +318,34 @@ def _unwrap(label: str) -> str:
         return label[i:k].strip('"').strip()
 
 
-def _endpoint(node: str, labels: dict[str, str], repo_root: Path) -> tuple[str | None, Finding | None]:
+def _endpoint(
+    node: str, labels: dict[str, str], repo_root: Path
+) -> tuple[str | None, Finding | None]:
     """(repo path, None) or (None, the UNKNOWN saying why it cannot be a graph node; line 0)."""
     label = labels.get(node, "")
     if NEW_RE.search(label):
         planned = _label_paths(NEW_RE.sub("", label))
-        if planned and _inside(repo_root, planned[0]) and (repo_root / planned[0]).exists():
-            return None, Finding(UNKNOWN_INVALID, 0, f"marked (new) but exists — drop `(new)`: {planned[0]}")
-        return None, Finding("UNKNOWN", 0, f"endpoint planned (new): {label[:_MAX_TOKEN]}")
+        if (
+            planned
+            and _inside(repo_root, planned[0])
+            and (repo_root / planned[0]).exists()
+        ):
+            return None, Finding(
+                UNKNOWN_INVALID,
+                0,
+                f"marked (new) but exists — drop `(new)`: {planned[0]}",
+            )
+        return None, Finding(
+            "UNKNOWN", 0, f"endpoint planned (new): {label[:_MAX_TOKEN]}"
+        )
     paths = _label_paths(label)
     inside = bool(paths) and _inside(repo_root, paths[0])
     if not paths:
         return None, Finding(UNKNOWN_INVALID, 0, f"no repo path in node label: {node}")
     if not inside:  # never probed: existence outside is not ours to report
-        return None, Finding(UNKNOWN_INVALID, 0, f"endpoint outside the repo: {paths[0]}")
+        return None, Finding(
+            UNKNOWN_INVALID, 0, f"endpoint outside the repo: {paths[0]}"
+        )
     return paths[0], None
 
 
@@ -316,46 +366,81 @@ def _sigil_claims(
         line_no = first_line + ln
         m = _EDGE_RE.match(line)
         if m is None:
-            if _SIGIL_SLOT_RE.search(line):  # chained, `&`, `-- "@x" -->`, `--o`...: never a silent pass
+            if _SIGIL_SLOT_RE.search(
+                line
+            ):  # chained, `&`, `-- "@x" -->`, `--o`...: never a silent pass
                 claims += 1
-                unknown.append(Finding(UNKNOWN_INVALID, line_no, "unparsed sigil edge form"))
+                unknown.append(
+                    Finding(UNKNOWN_INVALID, line_no, "unparsed sigil edge form")
+                )
             continue
         sigil = m.group(2).strip().strip('"').strip()
         if not sigil.startswith("@"):
             continue  # unlabelled or prose: never checked, never reported
         claims += 1
         if sigil not in SIGILS:
-            found.append(Finding(LABEL_UNKNOWN, line_no, f"unknown sigil {sigil!r}; reserved: {', '.join(SIGILS)}"))
+            found.append(
+                Finding(
+                    LABEL_UNKNOWN,
+                    line_no,
+                    f"unknown sigil {sigil!r}; reserved: {', '.join(SIGILS)}",
+                )
+            )
             continue
         if sigil in _PLUGIN_SIGILS:
             unknown.append(Finding("UNKNOWN", line_no, f"{sigil}: {_PLUGIN_REASON}"))
             continue
-        (sp, s_why), (dp, d_why) = _endpoint(m.group(1), labels, repo_root), _endpoint(m.group(3), labels, repo_root)
+        (sp, s_why), (dp, d_why) = (
+            _endpoint(m.group(1), labels, repo_root),
+            _endpoint(m.group(3), labels, repo_root),
+        )
         if why := s_why or d_why:
             unknown.append(Finding(why.code, line_no, why.message))
             continue
         if not graph:
             graph.append(_load_graph(repo_root))
         g = graph[0]
-        if g.status is not GraphStatus.OK:  # missing, too old or stale: never PASS (L-012)
+        if (
+            g.status is not GraphStatus.OK
+        ):  # missing, too old or stale: never PASS (L-012)
             unknown.append(Finding(UNKNOWN_INDEX, line_no, g.reason or g.status.value))
             continue
         outside = next((p for p in (sp, dp) if not g.models(sigil, p)), None)
         if outside is not None:
             missing = not (repo_root / outside).exists()  # inside: checked
-            why = "endpoint missing" if missing else "unparsed language, isolated file or out of graph"
+            why = (
+                "endpoint missing"
+                if missing
+                else "unparsed language, isolated file or out of graph"
+            )
             code = UNKNOWN_INVALID if missing else "UNKNOWN"
-            unknown.append(Finding(code, line_no, f"not in the codemem graph for {sigil} ({why}): {outside}"))
+            unknown.append(
+                Finding(
+                    code,
+                    line_no,
+                    f"not in the codemem graph for {sigil} ({why}): {outside}",
+                )
+            )
             continue
         checked += 1
         if (sp, dp) not in g.edges[sigil]:
-            found.append(Finding(PHANTOM_EDGE, line_no, f"{sp} -->|{sigil}| {dp}: no such edge in the codemem graph"))
+            found.append(
+                Finding(
+                    PHANTOM_EDGE,
+                    line_no,
+                    f"{sp} -->|{sigil}| {dp}: no such edge in the codemem graph",
+                )
+            )
     return found, unknown, claims, checked
 
 
 def _slot_lines(src: str) -> int:
     """Lines of one mermaid source carrying a sigil slot (comments excluded)."""
-    return sum(1 for ln in src.split("\n") if not ln.lstrip().startswith("%%") and _SIGIL_SLOT_RE.search(ln))
+    return sum(
+        1
+        for ln in src.split("\n")
+        if not ln.lstrip().startswith("%%") and _SIGIL_SLOT_RE.search(ln)
+    )
 
 
 def _sigil_slots(text: str) -> int:
@@ -424,13 +509,17 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
                 f"Diagram-Waiver: {waiver} but a milestone has a code Audit-Profile",
             )
         )
-    all_slots = _sigil_slots(plan_text)  # every sigil claim in any mermaid fence of the plan
+    all_slots = _sigil_slots(
+        plan_text
+    )  # every sigil claim in any mermaid fence of the plan
     sec = section_13(plan_text, stripped)
     if sec is None:
         if ok and waiver == "none":
             out.append(Finding("NO_SECTION", 1, "missing '## 13. Architecture View'"))
         return LintReport(tuple(out), "UNKNOWN", sigil_edges=None if all_slots else 0)
-    base, section_lines, stripped_lines = sec  # absolute line = base + 1-based line within the section
+    base, section_lines, stripped_lines = (
+        sec  # absolute line = base + 1-based line within the section
+    )
     views = _views(section_lines, stripped_lines)
     if "Component" not in views:
         out.append(
@@ -476,7 +565,9 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
                 )
                 for ln, p in _stale_paths(src, repo_root)
             ]
-            claims, notes, n, n_checked = _sigil_claims(src, vline + fline, repo_root, graph)
+            claims, notes, n, n_checked = _sigil_claims(
+                src, vline + fline, repo_root, graph
+            )
             out += claims
             unknowns += notes
             sigil_edges += n
@@ -486,7 +577,9 @@ def lint_text(plan_text: str, repo_root: Path, *, tasks_text: str = "") -> LintR
     # A sigil in a mermaid fence the view scan never reached (no view heading, a fence outside
     # §13's views) makes the count partial: None, never an undercount the §6.7 item passes.
     edges = sigil_edges if read_slots >= all_slots else None
-    return LintReport(tuple(out), render_check(sources), tuple(unknowns), edges, sigil_checked)
+    return LintReport(
+        tuple(out), render_check(sources), tuple(unknowns), edges, sigil_checked
+    )
 
 
 def lint_plan(

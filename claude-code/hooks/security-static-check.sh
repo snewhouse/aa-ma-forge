@@ -2,7 +2,7 @@
 # Event: PreToolUse(Bash)
 # Mode: Blocking — exit 2 refuses a commit that adds a flagged pattern
 # Exit: 0 allow · 2 block (policy) · 1 infra error (helper/jq missing, bad stdin; non-blocking, the commit proceeds)
-# Fail-open: kill switch, bypass marker, not a repo, no staged .py pass with exit 0; infra errors exit 1 with a stderr line; no ruff, or ruff erroring on a file → a systemMessage + hooks.log line, the regex classes still run
+# Fail-open: kill switch, bypass marker, not a repo, no staged .py pass with exit 0; infra errors exit 1 with a stderr line; no ruff → a systemMessage + hooks.log line and the regex classes still run. Fails closed (exit 2): ruff erroring on a file, unreadable ruff output, a diff with no hunk
 #
 # PreToolUse(Bash) hook — block commits that introduce mechanical security
 # anti-patterns in Python files. Symmetric to aa-ma-commit-signature.sh but
@@ -19,24 +19,21 @@
 #   5. command contains [security-bypass: <reason>]    -> exit 0 (auditable bypass)
 #   6. not inside a git repo                           -> exit 0 (graceful skip)
 #   7. no staged *.py files (Added/Modified)           -> exit 0
-#   8. Ruff S + 2 regex classes on ADDED lines         -> if any -> exit 2
+#   8. Ruff S on whole staged files + 2 regex classes on added lines -> if any -> exit 2
 #   9. otherwise                                       -> exit 0
 #
-# Detection scope (Python files, ADDED lines in staged diff, any repo):
-#   - Ruff S102,S301,S307,S602,S604,S608 on the STAGED blob (`git show :<file>`), forge-pinned
-#     ruff with --isolated, so the repo's own config cannot switch them off. Only
-#     INTRODUCED findings block: one whose innermost enclosing Python statement (ast) holds
-#     an added line — so changed arguments inside an unchanged multi-line call count.
-#     Fails closed: no python, a file ast cannot parse, or a lone CR (git and ast would
-#     number lines differently) make every finding count; ruff erroring on a file blocks.
-#     All of it goes through private temp files, never argv (no size limit to slip past).
+# Detection scope (staged Python files, any repo):
+#   - Ruff S102,S301,S307,S602,S604,S608 on the WHOLE staged blob (`git show :<file>`): a touched
+#     file complies in full (D8). Whole-file on purpose: three review rounds found bypasses in
+#     every "only lines this commit added" filter (git, Ruff and ast number lines differently),
+#     so none is attempted. Forge-pinned ruff, --isolated (the repo's config cannot switch the
+#     rules off) and --ignore-noqa (nor can an in-file `# noqa` / `# ruff: noqa`); a pre-existing
+#     site in a touched file needs the auditable [security-bypass: <reason>] marker.
 #     Covers shell=True calls, the dynamic-code builtins, SQL string building and unsafe
 #     binary deserialisation (D12; S102 keeps exec() covered).
-#     --ignore-noqa: an in-file `# noqa` / `# ruff: noqa` is repo-controlled, so it cannot
-#     suppress this check; the [security-bypass: <reason>] marker is the auditable escape.
-#   - Hardcoded secrets (regex): api_key|token|password|secret = "literal_8+_chars"
+#   - Hardcoded secrets (regex, ADDED lines): api_key|token|password|secret = "literal_8+_chars"
 #     Whitelist: placeholders (your-*, <KEY>, xxx*) and env-var reads
-#   - Path traversal (regex): open() / Path() containing relative-up components
+#   - Path traversal (regex, ADDED lines): open() / Path() containing relative-up components
 #
 # Bypass:
 #   - AA_MA_HOOKS_DISABLE=1 (master kill switch)
@@ -134,7 +131,7 @@ if [ -z "$py_files" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 8. Scan added lines for pattern classes.
+# 8. Ruff S on each whole staged file; two regex classes on its added lines.
 # -----------------------------------------------------------------------------
 
 # ruff comes ONLY from this forge's .venv or an absolute PATH entry — never from the repo being
@@ -167,71 +164,50 @@ ruff_label() {
     esac
 }
 
-# python scopes each finding to its statement; resolved like ruff (forge .venv, or absolute PATH).
-py=""
-if [ -x "${FORGE}/.venv/bin/python" ]; then
-    py="${FORGE}/.venv/bin/python"
-else
-    py=$(command -v python3) || py=""
-    [[ "$py" == /* ]] || py=""
-fi
-# argv: blob, ruff JSON, added-lines file. Prints row<TAB>rule<TAB>message per introduced finding.
-# No single quotes inside: this is a single-quoted shell string.
-SCOPE_PY='
-import ast, json, sys
-src = open(sys.argv[1], "rb").read()
-added = {int(n) for n in open(sys.argv[3]).read().split()}
-tree = None
-if b"\r" not in src.replace(b"\r\n", b""):
-    try:
-        tree = ast.parse(src)
-    except (SyntaxError, ValueError):
-        tree = None
-spans = [(n.lineno, n.end_lineno) for n in ast.walk(tree) if isinstance(n, ast.stmt)] if tree else []
-for f in json.load(open(sys.argv[2])):
-    if not f.get("code"):
-        continue
-    row = f["location"]["row"]
-    lo, hi = row, f["end_location"]["row"]
-    if tree is not None:
-        inside = [sp for sp in spans if sp[0] <= lo and hi <= sp[1]]
-        if inside:
-            lo, hi = min(inside, key=lambda sp: sp[1] - sp[0])
-        if not any(lo <= n <= hi for n in added):
-            continue
-    print("%s\t%s\t%s" % (row, f["code"], " ".join(f["message"].split())))
-'
-# Fail closed: exit 1/127 here would be a non-blocking error, i.e. the commit goes through.
-work=$(mktemp -d) || {
-    printf 'security-static-check: mktemp failed; refusing to pass an unscanned commit (exit 2)\n' >&2
-    printf 'Emergency bypass: export AA_MA_HOOKS_DISABLE=1\n' >&2
-    exit 2
-}
-trap 'rm -rf "$work"' EXIT
-
 findings=()
 
 while IFS= read -r file; do
     [ -z "$file" ] && continue
-    diff_content=$(git diff --cached -U0 -- "$file" 2>/dev/null || true)
+
+    # -- Ruff S, whole staged file (D8) ----------------------------------------
+    if [ -n "$ruff" ]; then
+        # why: stderr dropped — rc 1 means findings; rc 2+ (ruff or git failing) blocks below
+        out=$(git show ":${file}" | "$ruff" 2>/dev/null check --isolated --ignore-noqa \
+            --select "$RUFF_RULES" --output-format json --stdin-filename "$file" -) && rc=0 || rc=$?
+        # why: jq's parse error becomes the blocking finding below (a here-string: no argv size limit)
+        if [ "$rc" -gt 1 ] || ! rows=$(jq 2>/dev/null -r '.[] | select(.code != null)
+                | [.location.row, .code, (.message | gsub("\\s+"; " "))] | @tsv' <<< "$out"); then
+            findings+=("${file}: ruff could not check this file (rc ${rc}); fix it or use the bypass marker")
+        else
+            while IFS=$'\t' read -r row code msg; do
+                [ -n "${code:-}" ] || continue
+                findings+=("${file}:${row}: $(ruff_label "$code") [${code}] ${msg}")
+            done <<< "$rows"
+        fi
+    fi
+
+    # -- Regex classes, added lines --------------------------------------------
+    # Plain diff whatever the repo's config says: color, an external diff or a textconv
+    # driver would change the text this parser reads.
+    # why: a git failure leaves the diff empty, which the hunk check below refuses
+    diff_content=$(git diff --cached --no-color --no-ext-diff --no-textconv -U0 -- "$file" 2>/dev/null || true)
     [ -z "$diff_content" ] && continue
 
-    : > "$work/added"
+    in_hunk=0
     line_num=0
     while IFS= read -r line; do
         # Hunk header: reset line counter to NEW-file line start
         if [[ "$line" =~ ^@@[[:space:]]\-[0-9]+(,[0-9]+)?[[:space:]]\+([0-9]+)(,[0-9]+)?[[:space:]]@@ ]]; then
             line_num="${BASH_REMATCH[2]}"
+            in_hunk=1
             continue
         fi
-        # File header lines
-        [[ "$line" == "+++"* ]] && continue
-        [[ "$line" == "---"* ]] && continue
+        # File headers exist only before the first hunk; inside one, `+++x` is an added `++x`.
+        [ "$in_hunk" = 1 ] || continue
         # Only inspect ADDED lines (start with single +)
         [[ "$line" == "+"* ]] || continue
 
         content="${line:1}"
-        printf '%s\n' "$line_num" >> "$work/added"
 
         # -- 1. Hardcoded secrets --------------------------------------------
         # Lowercase the content for case-insensitive identifier matching
@@ -244,41 +220,16 @@ while IFS= read -r file; do
             fi
         fi
 
-        # -- 3. Path traversal -----------------------------------------------
+        # -- 2. Path traversal -----------------------------------------------
         if [[ "$content" =~ (open|Path)[[:space:]]*\([^\)]*\.\.\/ ]]; then
             findings+=("${file}:${line_num}: path traversal (relative-up component)")
         fi
 
         line_num=$((line_num + 1))
     done <<< "$diff_content"
-
-    [ -n "$ruff" ] || continue
-    git show ":${file}" > "$work/blob"
-    # why: stderr dropped — rc 1 means findings; rc 2+ (ruff failing) blocks below, fail closed
-    "$ruff" 2>/dev/null check --isolated --ignore-noqa --select "$RUFF_RULES" --output-format json \
-        --stdin-filename "$file" - < "$work/blob" > "$work/ruff.json" && rc=0 || rc=$?
-    if [ "$rc" -gt 1 ]; then
-        findings+=("${file}: ruff could not check this file (rc ${rc}); fix it or use the bypass marker")
-        continue
+    if [ "$in_hunk" = 0 ]; then
+        findings+=("${file}: staged diff has no hunk the parser can read; refusing to pass it unscanned")
     fi
-    rows=""
-    if [ -n "$py" ]; then
-        # why: stderr dropped — a failed scoping falls back to counting every finding below
-        rows=$("$py" 2>/dev/null -I -c "$SCOPE_PY" "$work/blob" "$work/ruff.json" "$work/added") || py_failed=1
-    fi
-    if [ -z "$py" ] || [ "${py_failed:-0}" = 1 ]; then
-        py_failed=0
-        # why: stderr dropped — unreadable output becomes a blocking finding just below
-        rows=$(jq 2>/dev/null -r '.[] | select(.code != null)
-            | [.location.row, .code, (.message | gsub("\\s+"; " "))] | @tsv' "$work/ruff.json") || {
-            findings+=("${file}: ruff output unreadable; fix it or use the bypass marker")
-            continue
-        }
-    fi
-    while IFS=$'\t' read -r row code msg; do
-        [ -n "${code:-}" ] || continue
-        findings+=("${file}:${row}: $(ruff_label "$code") [${code}] ${msg}")
-    done <<< "$rows"
 done <<< "$py_files"
 
 # -----------------------------------------------------------------------------

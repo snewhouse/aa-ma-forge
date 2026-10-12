@@ -2,7 +2,7 @@
 # Event: PostToolUse(Edit|Write)
 # Mode: Advisory — never blocks
 # Exit: 0 always
-# Fail-open: non-.py or missing file → exit 0; ruff not found → one systemMessage per session; a ruff format failure is logged to hooks.log
+# Fail-open: non-.py or missing file → exit 0; jq not found → a systemMessage; ruff not found → one systemMessage per session; a ruff format failure is logged to hooks.log
 #
 # Formats and autofixes an edited .py file with ruff, then hands the model what `ruff check`
 # still finds, as PostToolUse additionalContext (at most 10 lines).
@@ -13,8 +13,17 @@
 [[ "${AA_MA_HOOKS_DISABLE:-0}" == "1" ]] && exit 0   # master kill switch, like every AA-MA hook
 
 HOOK="ruff-format"
-REAL_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-FORGE="$(cd "${REAL_DIR}/../.." && pwd)"
+# Context lines handed to the model per edit: enough to act on, small enough not to drown it.
+MAX_CONTEXT_LINES=10
+
+payload=$(</dev/stdin)
+# Fork-free pre-gate: this runs on every Edit/Write, and a .py file_path always appears in the
+# JSON as `….py"`. A miss is exact; a hit (e.g. ".py" in the edited text) gets the real check below.
+[[ "${payload}" == *'.py"'* ]] || exit 0
+
+REAL="$(readlink -f "${BASH_SOURCE[0]}")"   # <forge>/claude-code/hooks/ruff-format.sh
+REAL_DIR="${REAL%/*}"
+FORGE="${REAL_DIR%/*/*}"
 if [[ -f "${REAL_DIR}/lib/aa-ma-log.sh" ]]; then
     # shellcheck disable=SC1091  # why: runtime path; aa-ma-log.bats covers the library
     . "${REAL_DIR}/lib/aa-ma-log.sh"
@@ -22,13 +31,15 @@ else
     printf '%s\n' '{"systemMessage": "ruff-format: aa-ma-log.sh not found; re-run scripts/install.sh"}'
     exit 0
 fi
+# why: `command -v` prints the path on success; only its status is wanted
+if ! command -v jq >/dev/null 2>&1; then
+    fail_open_notice "${HOOK}" "jq not on PATH; .py edits are not formatted"
+    exit 0
+fi
 
-# Context lines handed to the model per edit: enough to act on, small enough not to drown it.
-MAX_CONTEXT_LINES=10
-
-payload=$(</dev/stdin)
-f=$(jq -r '.tool_input.file_path // empty' <<<"${payload}")
-sid=$(jq -r '.session_id // empty' <<<"${payload}")
+# One jq for both fields, NUL-separated so any byte in the path survives.
+mapfile -d '' -t fields < <(jq -j '(.tool_input.file_path // ""), "\u0000", (.session_id // ""), "\u0000"' <<<"${payload}")
+f="${fields[0]-}" sid="${fields[1]-}"
 [[ "${f}" == *.py && -f "${f}" ]] || exit 0
 
 # notify_no_ruff — one fail_open_notice per session; the marker file remembers the session.

@@ -74,11 +74,9 @@ def test_a_malformed_rule_line_is_refused(line: str) -> None:
         (OPENAI, "sk-key"),
         (SLACK, "slack-token"),
         (JWT, "jwt"),
-        (PEM, "private-key-block"),
         ("PASSWORD=" + "hunter2hunter2", "generic-env"),
-        ("db_secret: " + "s3cr3tvalue", "generic-env"),
+        ("secret: " + "s3cr3tvalue", "generic-env"),
         ('"api_key": "' + "abcdefgh1234" + '"', "generic-quoted"),
-        ("https://user:" + "pa55word" + "@db.example", "url-credential"),
     ],
 )
 def test_mask_secrets_replaces_with_rule_id(secret: str, rule: str) -> None:
@@ -94,6 +92,28 @@ def test_private_key_body_is_masked_not_just_its_header() -> None:
     body = "MIIEow" + "A" * 60
     out = logsetup.mask_secrets(f"{PEM} {body} -----END RSA PRIVATE KEY----- tail")
     assert out == "[REDACTED:private-key-block] tail"
+
+
+def test_a_cut_private_key_masks_the_base64_run_after_its_header() -> None:
+    # Logs flatten newlines, so with no END marker the body runs to the first non-base64
+    # character; over-masking the words that follow is the safe direction.
+    assert (
+        logsetup.mask_secrets(f"x {PEM} MIIE abc=; y")
+        == "x [REDACTED:private-key-block]; y"
+    )
+
+
+def test_url_credential_masks_userinfo_and_keeps_the_host() -> None:
+    out = logsetup.mask_secrets("https://user:" + "pa55word" + "@db.example/x")
+    assert out == "[REDACTED:url-credential]db.example/x"
+
+
+def test_generic_env_keeps_the_prefix_before_the_key_word() -> None:
+    # No unbounded prefix in the pattern (it would be O(n²)), so DB_ survives.
+    assert (
+        logsetup.mask_secrets("DB_PASSWORD=" + "hunter2hunter2")
+        == "DB_[REDACTED:generic-env]"
+    )
 
 
 def test_a_known_token_after_a_key_name_keeps_its_specific_id() -> None:

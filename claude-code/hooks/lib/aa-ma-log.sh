@@ -13,7 +13,9 @@
 # Log file: ${CLAUDE_HOOK_LOG:-$HOME/.claude/logs/hooks.log} (the logging-and-comments contract).
 # Patterns: src/aa_ma/secret_patterns.tsv in the forge checkout — the same file aa_ma.logsetup
 # reads — found through this file's real path, since install.sh symlinks it into ~/.claude.
-# If the patterns cannot be read, every message becomes "[redaction failed]": fail closed.
+# They load on the first mask, not at source time: most hook runs never log, and the path
+# resolve costs a fork on every tool call. If the patterns cannot be read, or a line is not
+# exactly <id><TAB><regex>, every message becomes "[redaction failed]": fail closed.
 #
 # Why fail_open_notice is the only thing on stdout: hook stdout is parsed as JSON, and stderr on
 # exit 0 is never shown to the user (L-1319), so a notice the user must see is a systemMessage.
@@ -34,23 +36,28 @@ _AA_MA_LOG_CAP_OVERLAP=256
 _AA_MA_SECRET_IDS=()
 _AA_MA_SECRET_RES=()
 _AA_MA_SECRET_PATTERNS_OK=0
+_AA_MA_SECRET_PATTERNS_TRIED=0
 
-# Loads the pattern file into the two arrays; sets _AA_MA_SECRET_PATTERNS_OK=1 only on success.
+# Loads the pattern file into the two arrays, once; sets _AA_MA_SECRET_PATTERNS_OK=1 only on success.
 _aa_ma_log_load_patterns() {
-    local root file id re
-    root="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)" || return 0
-    file="${root}/src/aa_ma/secret_patterns.tsv"
+    [ "${_AA_MA_SECRET_PATTERNS_TRIED}" = "1" ] && return 0
+    _AA_MA_SECRET_PATTERNS_TRIED=1
+    local real file id re ids=() res=()
+    real="$(readlink -f "${BASH_SOURCE[0]}")" || return 0
+    file="${real%/*/*/*/*}/src/aa_ma/secret_patterns.tsv"   # <forge>/claude-code/hooks/lib/<this>
     [ -r "${file}" ] || return 0
     while IFS=$'\t' read -r id re; do
         case "${id}" in '' | '#'*) continue ;; esac
-        [ -n "${re}" ] || return 0   # a rule with no regex: treat the whole file as unreadable
-        _AA_MA_SECRET_IDS+=("${id}")
-        _AA_MA_SECRET_RES+=("${re}")
+        # a rule with no regex, or a second tab: treat the whole file as unreadable
+        [[ -n "${re}" && "${re}" != *$'\t'* ]] || return 0
+        ids+=("${id}")
+        res+=("${re}")
     done < "${file}"
-    [ "${#_AA_MA_SECRET_IDS[@]}" -gt 0 ] && _AA_MA_SECRET_PATTERNS_OK=1
-    return 0
+    [ "${#ids[@]}" -gt 0 ] || return 0
+    _AA_MA_SECRET_IDS=("${ids[@]}")
+    _AA_MA_SECRET_RES=("${res[@]}")
+    _AA_MA_SECRET_PATTERNS_OK=1
 }
-_aa_ma_log_load_patterns
 
 # _aa_ma_log_oneline <text> — <text> cut to the masking window, CR and LF turned into spaces.
 _aa_ma_log_oneline() {
@@ -63,6 +70,7 @@ _aa_ma_log_oneline() {
 mask_secrets() {
     local text i re
     text="$(_aa_ma_log_oneline "${1-}")"
+    _aa_ma_log_load_patterns
     if [ "${_AA_MA_SECRET_PATTERNS_OK}" != "1" ]; then
         printf '%s\n' "[redaction failed]"
         return 0
@@ -87,7 +95,7 @@ _aa_ma_log() {
     [ "${dir}" = "${log}" ] && dir=.
     line="$(date -Is) ${level} ${hook}: ${msg}"
     # why: the shell's own redirection error is replaced by the one-line notice that follows
-    { mkdir -p "${dir}" && printf '%s\n' "${line}" >> "${log}"; } 2>/dev/null \
+    { { [ -d "${dir}" ] || mkdir -p "${dir}"; } && printf '%s\n' "${line}" >> "${log}"; } 2>/dev/null \
         || printf 'aa-ma-log: cannot append to %s\n' "${log}" >&2 2>/dev/null || :   # why: stderr may be closed; must not trip set -e
     if [ "${level}" = "DEBUG" ]; then
         printf '%s\n' "${line}" >&2 2>/dev/null || :   # why: debug echo is best-effort; the log line is the record
@@ -105,9 +113,10 @@ log_debug() {
 
 fail_open_notice() {
     local hook msg
+    log_warn "${1-}" "${2-}"   # masks and caps on its own; the masked copy below is for stdout
     hook="$(_aa_ma_log_oneline "${1-}")"
+    hook="${hook:0:${_AA_MA_LOG_MAX_CHARS}}"
     msg="$(mask_secrets "${2-}")"
-    log_warn "${hook}" "${msg}"
     # why: `command -v` prints the path on success; only its status is wanted
     if command -v jq >/dev/null 2>&1; then
         # why: jq's own EPIPE message is replaced by the log_error line on failure

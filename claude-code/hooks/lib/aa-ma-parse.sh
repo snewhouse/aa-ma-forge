@@ -58,8 +58,9 @@ AA_MA_PARSE_SH_LOADED=1
 
 # Real directory, not the symlink's: install.sh links this file into ~/.claude/hooks/lib, and a
 # checkout pulled before install.sh re-runs may not have aa-ma-log.sh linked there yet.
+_aa_ma_parse_real="$(readlink -f "${BASH_SOURCE[0]}")"   # one fork; ${…%/*} replaces dirname (hot path)
 # shellcheck disable=SC1091  # why: the path is computed at runtime; aa-ma-log.bats covers the source
-. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/aa-ma-log.sh"
+. "${_aa_ma_parse_real%/*}/aa-ma-log.sh"
 
 # -----------------------------------------------------------------------------
 # aa_ma_is_disabled — returns 0 (true) if the master kill switch is set.

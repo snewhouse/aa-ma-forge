@@ -191,7 +191,8 @@ hostile_repo() {
 @test "a non-.py edit exits before any fork: no ruff, no jq, no library (M7 §6.6)" {
     local b="$WORK/empty"
     mkdir -p "$b"
-    jq --arg f "$WORK/notes.txt" '.tool_input.file_path = $f' "$PAYLOAD" > "$WORK/p.json"
+    # a real payload names the file twice: tool_input.file_path and tool_response.filePath
+    jq --arg f "$WORK/notes.txt" '.tool_input.file_path = $f | .tool_response.filePath = $f' "$PAYLOAD" > "$WORK/p.json"
     run env PATH="$b" "$BASH" "$HOOK" < "$WORK/p.json"
     [ "$status" -eq 0 ]
     [ -z "$output" ]

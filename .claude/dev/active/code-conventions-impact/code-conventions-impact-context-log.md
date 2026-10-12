@@ -422,3 +422,7 @@ DECISION ruff-only () — approved by Ste
 ## [2026-10-12] M8.3 — gitleaks allowlist approved (Ste)
 - 8 fingerprints, not the planned 3 (M7 added 5 fixture hits). Kept the 2 local-only-ref entries so the local `--all` scan stays clean. Fixtures not rewritten: history hits would need fingerprints anyway.
 - The pre-commit hook takes its definition from the upstream repo at a frozen SHA, `gitleaks-system`, not `golang` (no Go toolchain needed). The touched CI job skips it; the gitleaks job covers history.
+
+## [2026-10-12] M8.4 — A6 resolution
+- `uv audit` is experimental in uv 0.12.3, so the gate is pip-audit 2.10.1 over a hashed `uv export`. Ignores live in `.pip-audit-ignore` with an expiry date; a test fails expired ones. The 13 packages / 72 vulns are triaged in 8.5.
+- Local env defect, not repo work: `~/.local/share/uv/python/cpython-3.13.5` has no `venv` package (looks damaged). Left untouched; reinstall with `uv python install 3.13 --reinstall` if you want local pip-audit via `uv run`.

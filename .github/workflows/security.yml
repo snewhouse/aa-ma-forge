@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: '17 6 * * 1'   # weekly, Monday 06:17 UTC: new Ruff S rules or advisories surface without a push
 
 # Least privilege: no job writes to the repo or calls a write API. Explicit so a
 # change to the repo's default token setting cannot widen it. Actions are pinned
@@ -22,21 +24,26 @@ jobs:
       - name: Run ShellCheck on all .sh files
         run: find . -name '*.sh' -exec shellcheck {} +
 
-  bandit:
-    name: Bandit (Python Security)
+  ruff-security:
+    # code-conventions-impact M8 (DECISION ruff-only, docs/research/code-conventions-impact-ruff-vs-bandit.md).
+    # Replaces the Bandit job, whose `|| true` meant it could never fail. Full scan of the
+    # gated paths on every run; per-site `# noqa: S… # why:` is the only way past a finding.
+    name: Ruff S (Python security)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
-          python-version: '3.13'
+          persist-credentials: false
 
-      - name: Install bandit
-        run: pip install bandit
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: '0.12.3'
 
-      - name: Run bandit on src/
-        run: bandit -r src/ -f json || true
+      - name: Sync locked deps
+        run: uv sync --locked
+
+      - name: Ruff S over src, packages, scripts
+        run: uv run ruff check --isolated --select S src packages scripts
 
   touched:
     # code-conventions-impact M1 / ADR-0018. Replaces the src/-only `ruff` job: the

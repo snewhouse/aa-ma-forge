@@ -84,8 +84,8 @@ def discover_files(repo_root: Path) -> list[Path]:
 def git_tracked_files(repo_root: Path) -> list[Path] | None:
     """Return git-tracked files (absolute paths), or ``None`` if not a git repo."""
     try:
-        result = subprocess.run(
-            ["git", "-C", str(repo_root), "ls-files"],
+        result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+            ["git", "-C", str(repo_root), "ls-files"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
             capture_output=True,
             text=True,
             check=False,
@@ -407,7 +407,7 @@ def build_index(
             # disk and heals an index corrupted by the old behaviour. The
             # git-mining tables are keyed by path and are left alone.
             for table in ("edges", "file_edges", "symbols", "files"):
-                conn.execute(f"DELETE FROM {table}")  # nosec B608 — fixed table names
+                conn.execute(f"DELETE FROM {table}")  # noqa: S608  # why: table names come from the literal tuple above
 
             path_to_fid = _upsert_files(conn, parses)
             symbols_inserted = _bulk_insert_symbols(conn, parses, path_to_fid)
@@ -477,8 +477,8 @@ def build_index(
     # fails and we skip — next refresh will still do a full rebuild,
     # which is acceptable for non-git trees.
     try:
-        result = subprocess.run(
-            ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
+        result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+            ["git", "-C", str(repo_root), "rev-parse", "HEAD"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
             capture_output=True, text=True, check=False,
         )
         if result.returncode == 0:

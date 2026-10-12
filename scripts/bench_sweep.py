@@ -96,7 +96,7 @@ def _run_harness_once(
             argv.append("--include-repomix")
         if include_yek:
             argv.append("--include-yek")
-        r = subprocess.run(
+        r = subprocess.run(  # noqa: S603  # why: benchmark harness: argv from fixed flags, no shell
             argv,
             cwd=project_root,
             capture_output=True, text=True, timeout=600,

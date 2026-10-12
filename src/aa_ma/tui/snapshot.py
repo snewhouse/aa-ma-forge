@@ -87,12 +87,13 @@ _RESULT_LOG_PREVIEW_CHARS = 60
 # All non-ERROR AggregateStatus values must appear as a board column. If a
 # future ADR adds a 6th AggregateStatus value, the next assertion forces an
 # explicit decision (add to columns OR document the omission) — prevents the
-# silent-drop drift caught by §6.8 audit W2-FP.
-assert {*BOARD_COLUMNS, AggregateStatus.ERROR} == set(AggregateStatus), (
-    "AggregateStatus enum changed without updating BOARD_COLUMNS; "
-    "decide explicitly whether the new value is a board column or "
-    "(like ERROR) surfaced as a badge."
-)
+# silent-drop drift caught by §6.8 audit W2-FP. A raise, not an assert: `python -O` strips asserts.
+if {*BOARD_COLUMNS, AggregateStatus.ERROR} != set(AggregateStatus):
+    raise AssertionError(
+        "AggregateStatus enum changed without updating BOARD_COLUMNS; "
+        "decide explicitly whether the new value is a board column or "
+        "(like ERROR) surfaced as a badge."
+    )
 
 
 def render_summary(tasks: list[Task]) -> str:

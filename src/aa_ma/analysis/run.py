@@ -188,7 +188,7 @@ def spawn(
     merge_stderr: bool,
 ) -> tuple[int | None, bytes]:
     """(returncode, stdout) — returncode None on timeout, after the whole process group is gone."""
-    proc = subprocess.Popen(  # nosec B603 — argv list, no shell; callers gate argv[0]
+    proc = subprocess.Popen(  # noqa: S603  # why: argv list, no shell; callers gate argv[0]
         list(argv),
         cwd=cwd,
         env=env,

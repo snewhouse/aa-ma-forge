@@ -159,8 +159,8 @@ def contained(repo: Path, rel: str) -> bool:
 
 def run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     try:
-        return subprocess.run(  # nosec B603 B607 — fixed `git` argv; --end-of-options before user values
-            ["git", "-C", str(repo), *args],
+        return subprocess.run(  # noqa: S603  # why: fixed `git` argv; --end-of-options before user values
+            ["git", "-C", str(repo), *args],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
             capture_output=True,
             text=True,
             check=False,

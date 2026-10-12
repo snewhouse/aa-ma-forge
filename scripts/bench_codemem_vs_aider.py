@@ -174,8 +174,8 @@ def _run_codemem(repo: Path, budget: int) -> dict:
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         out_path = Path(f.name)
     try:
-        result = subprocess.run(
-            ["uv", "run", "codemem", "intel",
+        result = subprocess.run(  # noqa: S603  # why: benchmark harness: fixed argv, no shell
+            ["uv", "run", "codemem", "intel",  # noqa: S607  # why: `uv` from PATH by design (dev script)
              f"--budget={budget}", f"--out={out_path}"],
             cwd=repo, capture_output=True, text=True, timeout=60,
         )
@@ -218,7 +218,7 @@ def _run_aider(repo: Path, budget: int, *, tokeniser_equalise: bool = False) -> 
     if tokeniser_equalise:
         args += ["--model", "gpt-3.5-turbo"]
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # noqa: S603  # why: benchmark harness: argv from fixed tool names, no shell
             args,
             cwd=repo, capture_output=True, text=True, timeout=120,
         )
@@ -435,8 +435,8 @@ def _run_repomix(repo: Path, budget: int) -> dict:
     with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
         out_path = Path(f.name)
     try:
-        result = subprocess.run(
-            [
+        result = subprocess.run(  # noqa: S603  # why: benchmark harness: fixed argv, no shell
+            [  # noqa: S607  # why: tool from PATH by design (dev script)
                 "npx", "-y", "repomix@1.14.0",
                 "--style", "xml",
                 "--output", str(out_path),
@@ -526,8 +526,8 @@ def _run_yek(repo: Path, budget: int) -> dict:
     file-level overlap analysis.
     """
     try:
-        result = subprocess.run(
-            [
+        result = subprocess.run(  # noqa: S603  # why: benchmark harness: fixed argv, no shell
+            [  # noqa: S607  # why: tool from PATH by design (dev script)
                 "yek",
                 "--tokens", str(budget),
                 "--json",

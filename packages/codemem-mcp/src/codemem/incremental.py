@@ -281,8 +281,8 @@ def _sha_orphaned(repo_root: Path, last_sha_file: Path) -> bool:
         return True
     if not sha:
         return True
-    result = subprocess.run(
-        ["git", "-C", str(repo_root), "cat-file", "-e", sha],
+    result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+        ["git", "-C", str(repo_root), "cat-file", "-e", sha],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
         capture_output=True,
         check=False,
     )
@@ -300,8 +300,8 @@ def _fallback_reason(db_path: Path, last_sha_file: Path, repo_root: Path) -> str
 
 
 def _write_last_sha(repo_root: Path, last_sha_file: Path) -> None:
-    result = subprocess.run(
-        ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
+    result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+        ["git", "-C", str(repo_root), "rev-parse", "HEAD"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
         capture_output=True, text=True, check=False,
     )
     if result.returncode == 0:

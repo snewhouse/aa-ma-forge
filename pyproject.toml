@@ -52,7 +52,10 @@ codemem-mcp = { workspace = true }
 
 [tool.ruff]
 # Eval fixtures plant logging/style defects on purpose for the skills to find (ADR-0021).
-extend-exclude = ["tests/fixtures/evals"]
+extend-exclude = [
+    "tests/fixtures/evals",
+    "tests/fixtures/canary/canary_shell.py",  # why: a deliberate S602; tests/security/test_canary.py scans it explicitly
+]
 
 [tool.ruff.lint]
 # Logging + comment hygiene (logging-and-comments standard). CI's `touched` job runs
@@ -63,7 +66,7 @@ extend-select = [
     "G",                # eager log formatting (G004 = f-string in log call), .warn, exc_info misuse
     "T20",              # print/pprint left in library code
     "BLE",              # blind `except Exception`
-    "S110", "S112",     # try/except/pass and try/except/continue — silent swallows
+    "S",                # flake8-bandit security rules, the Python security gate (M8, ruff-only); incl. S110/S112 silent swallows
     "TRY400", "TRY401", # use logger.exception in except; don't repeat the exception in the message
     "D",                # docstrings, google convention (incl. D417 undocumented Args) (T8)
     "TD",               # TODO format: TODO(owner/issue): text
@@ -97,7 +100,8 @@ max-args = 6  # why: one over ruff's 5 — leaves room for a keyword-only flag (
 "src/aa_ma/forks.py" = ["T20"]  # run as `python -m aa_ma.forks`; stdout is its report
 "src/aa_ma/deps.py" = ["T20"]   # run as `python -m aa_ma.deps` (aa_ma_deps helper); stdout is its report
 "scripts/**" = ["T20"]
-"tests/**" = ["D", "T20", "S110"]
+# tests run git/bash on purpose (S603/S607), write tmp fixtures (S108) and assert (S101) — approved M8.2.
+"tests/**" = ["D", "T20", "S101", "S108", "S110", "S603", "S607"]
 
 [tool.commitizen]
 # Releases are cut by scripts/release.sh (docs/runbooks/release.md): it promotes the curated

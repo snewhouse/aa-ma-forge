@@ -515,7 +515,7 @@ def render_check(sources: Sequence[str], *, timeout_s: float = 90.0) -> str:
             inp, out = Path(d) / "in.mmd", Path(d) / "out.svg"
             inp.write_text(src, encoding="utf-8")
             try:
-                proc = subprocess.run(  # nosec B603 — binary from MMDC_BIN seam, args are our own temp paths
+                proc = subprocess.run(  # noqa: S603  # why: binary from MMDC_BIN seam, args are our own temp paths
                     [binary, "-i", str(inp), "-o", str(out)],
                     capture_output=True,
                     text=True,

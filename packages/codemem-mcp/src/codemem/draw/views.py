@@ -201,8 +201,8 @@ def _readme(repo_root: Path, conn: sqlite3.Connection, captions: dict[str, str],
 
 def _head_sha(repo_root: Path) -> str:
     try:
-        out = subprocess.run(  # nosec B603 B607 — fixed argv, no shell
-            ["git", "-C", str(repo_root), "rev-parse", "--short", "HEAD"],
+        out = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+            ["git", "-C", str(repo_root), "rev-parse", "--short", "HEAD"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
             capture_output=True, text=True, check=True,
         ).stdout.strip()
     except (OSError, subprocess.CalledProcessError):

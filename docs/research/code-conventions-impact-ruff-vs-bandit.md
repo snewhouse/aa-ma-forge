@@ -143,4 +143,26 @@ and fixture subprocess calls). The plan keeps only the `tests/**` S101 per-file 
 
 ## §deps — vulnerable package triage
 
-Filled in by M8.5.
+Method: pip-audit 2.10.1 over `uv export --frozen --no-emit-workspace --no-emit-project` (hashed, `--strict`)
+on 2026-10-12. Baseline: **72 findings in 13 packages** (46 unique advisory IDs; pip-audit lists some twice). CI `deps` run 38276289265 matched it.
+A blanket `uv lock --upgrade-package` of all 13 was rejected: it moved `mcp` to 2.3.0 (a major) and *downgraded*
+fastmcp. Upgrades were therefore made within existing constraints, plus `mcp>=1.29.1,<2` in the dev group.
+
+| Package | Was | Now | Unique advisories | Resolution |
+|---------|-----|-----|-----------:|------------|
+| anyio | 4.13.0 | 4.14.2 | 2 | upgraded |
+| authlib | 1.6.10 | 1.8.0 | 2 | upgraded |
+| cryptography | 46.0.7 | 50.0.2 | 4 | upgraded (transitive, via pyjwt/authlib) |
+| idna | 3.11 | 3.20 | 1 | upgraded |
+| mcp | 1.27.0 | 1.30.0 | 3 | upgraded, held `<2`; live stdio round-trip with the codemem server OK (15 tools) |
+| pydantic-settings | 2.13.1 | 2.15.0 | 1 | upgraded |
+| pyjwt | 2.12.1 | 2.15.1 | 15 | upgraded (no-fix PYSEC-2026-4146 no longer reported) |
+| pytest | 9.0.2 | 9.1.1 | 1 | upgraded (dev) |
+| python-multipart | 0.0.26 | 0.0.32 | 4 | upgraded |
+| starlette | 1.0.0 | 1.7.0 | 5 | upgraded |
+| urllib3 | 2.6.3 | 2.8.0 | 5 | upgraded |
+| fastmcp | 2.14.7 | 2.14.7 | 2 | **ignored to 2027-01-12**: PYSEC-2026-2475 (Gemini-CLI install; never used) and PYSEC-2026-2476 (OAuth proxy; the server is stdio-only). The fix needs fastmcp ≥3.2, which needs `watchfiles>=1` while aa-ma pins `<1` (TUI). TODOS P2 |
+| diskcache | 5.6.3 | 5.6.3 | 1 | **ignored to 2027-01-12**: PYSEC-2026-2447 has no fixed release; pulled in by fastmcp's py-key-value-aio, which codemem never configures |
+
+After triage: 0 unignored advisories. Ignores live in `.pip-audit-ignore` (ID, expiry, why), and
+`tests/security/test_deps_audit.py` fails any expired entry. Decision approved by Ste (M8.5).

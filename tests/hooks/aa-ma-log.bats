@@ -212,3 +212,42 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
     [[ "$stderr" == *" WARN h: m"* ]]    # no log file to write: the line goes to stderr instead
     run ! grep -nE ':-/tmp|/tmp/' "$LIB"  # a world-writable dir invites a symlink attack on the append
 }
+
+@test "date without -Is (BSD/macOS): the line uses a UTC fallback stamp, set -e caller survives (sole-dev-merge C1 HIGH)" {
+    stub="$WORK/stub"; mkdir -p "$stub"
+    real_date="$(command -v date)"
+    printf '#!/bin/sh\ncase "$1" in -Is) echo "date: illegal option -- I" >&2; exit 1;; esac\nexec %s "$@"\n' "$real_date" > "$stub/date"
+    chmod +x "$stub/date"
+    run env PATH="$stub:$PATH" bash -c 'set -euo pipefail; . "$1"; log_warn h m; echo done' _ "$LIB"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *done* ]]
+    grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z WARN h: m$' "$CLAUDE_HOOK_LOG"
+}
+
+@test "date missing entirely: the line still lands with a fixed stamp (sole-dev-merge C1 HIGH)" {
+    stub="$WORK/stub2"; mkdir -p "$stub"
+    printf '#!/bin/sh\nexit 1\n' > "$stub/date"; chmod +x "$stub/date"
+    run env PATH="$stub:$PATH" bash -c 'set -euo pipefail; . "$1"; log_warn h m; echo done' _ "$LIB"
+    [ "$status" -eq 0 ]
+    grep -qE '^unknown-time WARN h: m$' "$CLAUDE_HOOK_LOG"
+}
+
+@test "a new hooks.log is private: file 600, dir 700 (sole-dev-merge C2 LOW)" {
+    export CLAUDE_HOOK_LOG="$WORK/fresh/logs/hooks.log"
+    . "$LIB"
+    log_warn h m
+    [ "$(stat -c %a "$CLAUDE_HOOK_LOG")" = 600 ]
+    [ "$(stat -c %a "${CLAUDE_HOOK_LOG%/*}")" = 700 ]
+}
+
+@test "readlink without -f: patterns still load, through an installed symlink too (sole-dev-merge C1 LOW)" {
+    stub="$WORK/stub3"; mkdir -p "$stub"
+    printf '#!/bin/sh\ncase "$1" in -f) echo "readlink: illegal option -- f" >&2; exit 1;; esac\nexec %s "$@"\n' "$(command -v readlink)" > "$stub/readlink"
+    chmod +x "$stub/readlink"
+    mkdir -p "$WORK/home/hooks/lib"; ln -s "$LIB" "$WORK/home/hooks/lib/aa-ma-log.sh"
+    for lib in "$LIB" "$WORK/home/hooks/lib/aa-ma-log.sh"; do
+        run --separate-stderr env PATH="$stub:$PATH" bash -c '. "$1"; mask_secrets "t $2"' _ "$lib" "$GHP"
+        [ "$output" = "t [REDACTED:github-token]" ]
+        [ -z "$stderr" ]
+    done
+}

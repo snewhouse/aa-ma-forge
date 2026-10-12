@@ -302,3 +302,16 @@ EOF
     result=$(aa_ma_extract_active_step "$BATS_TMP/prose.md")
     [ -z "$result" ]
 }
+
+@test "aa_ma_debug_cmd logs the command's length and a capped prefix, never its tail (M7 §6.8)" {
+    . "$HELPER"
+    cmd="git commit -m x $(printf 'a%.0s' {1..200}) TAILSECRETXYZ"
+    HOOK_DEBUG=1 aa_ma_debug_cmd "commit-signature: examining command" "$cmd" 2>/dev/null
+    grep -qF "commit-signature: examining command (${#cmd} chars): git commit -m x aaa" "$CLAUDE_HOOK_LOG"
+    run ! grep -qF TAILSECRETXYZ "$CLAUDE_HOOK_LOG"
+}
+
+@test "no hook passes a raw command to aa_ma_debug (M7 §6.8)" {
+    run git -C "$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)" grep -nE 'aa_ma_debug .*[$][{]?cmd\b' -- claude-code/hooks
+    [ "$status" -eq 1 ]
+}

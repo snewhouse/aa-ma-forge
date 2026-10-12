@@ -394,3 +394,4 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
   - SECRET_PATTERNS stays: Contract API, first caller M10.
   - Bandit hits in tests/: out of CI scope (src/ = 0).
 - RED 8ec4613, GREEN 44defcd. Mutations: umask 1/1, date fallback 2/2. bats 457/457, pytest 2970 passed/6 skipped/0 failed.
+- Fifth background security notice (aa-ma-parse.sh, during the PR's CI run). Truncating the debug first word to 32 chars happened *before* masking, which left `ghp_…` / `sk-ant-…` prefixes too short for their rules, so they were logged (probed). Fix: a first word longer than 32 is logged as `?` and is never truncated. RED d0ac20e, GREEN 1f33194. This is the same class as the §6.6 cap-straddle fix in aa-ma-log.sh (mask before cut). L-049's rule covers it: probe every cut-then-mask path.

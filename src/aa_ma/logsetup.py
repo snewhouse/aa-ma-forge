@@ -33,21 +33,31 @@ _VERBOSITY_LEVELS = {
 _FAILED = "[redaction failed]"
 
 
-def _load_rules() -> tuple[tuple[str, re.Pattern[str]], ...]:
-    """Read `secret_patterns.tsv`: one tab-separated `<rule id>  <regex>` per non-comment line."""
+def _parse_rules(text: str) -> tuple[tuple[str, re.Pattern[str]], ...]:
+    """Parse `secret_patterns.tsv` text: one `<rule id><TAB><regex>` per non-comment line.
+
+    Raises:
+        RuntimeError: on a line without exactly one tab or with an empty regex, or on a file
+            with no rules — the same lines that make aa-ma-log.sh fail closed.
+    """
     rules = []
-    text = files("aa_ma").joinpath("secret_patterns.tsv").read_text(encoding="utf-8")
-    for line in text.splitlines():
+    for n, line in enumerate(text.splitlines(), 1):
         if not line or line.startswith("#"):
             continue
-        rule_id, regex = line.split("\t")
+        rule_id, sep, regex = line.partition("\t")
+        if not sep or not rule_id or not regex or "\t" in regex:
+            raise RuntimeError(
+                f"secret_patterns.tsv line {n}: want <rule id><TAB><regex>"
+            )
         rules.append((rule_id, re.compile(regex)))
     if not rules:
         raise RuntimeError("secret_patterns.tsv holds no rules")
     return tuple(rules)
 
 
-SECRET_RULES: tuple[tuple[str, re.Pattern[str]], ...] = _load_rules()
+SECRET_RULES: tuple[tuple[str, re.Pattern[str]], ...] = _parse_rules(
+    files("aa_ma").joinpath("secret_patterns.tsv").read_text(encoding="utf-8")
+)
 SECRET_PATTERNS: tuple[re.Pattern[str], ...] = tuple(p for _, p in SECRET_RULES)
 
 
@@ -83,6 +93,8 @@ class SecretRedactingFormatter(logging.Formatter):
                 }
                 if record.exc_info:
                     body["exc"] = mask_secrets(self.formatException(record.exc_info))
+                if record.stack_info:
+                    body["stack"] = mask_secrets(self.formatStack(record.stack_info))
                 return json.dumps(body)
             return mask_secrets(super().format(record))
         except Exception:  # noqa: BLE001  # why: any failure must turn into the fixed message, never a leak or a dropped record
@@ -108,15 +120,12 @@ def configure_logging(
         level = _VERBOSITY_LEVELS.get(max(-2, min(verbosity, 2)), logging.DEBUG)
     else:
         raw = os.environ.get("LOG_LEVEL", "")
-        level = (
-            logging.getLevelNamesMapping().get(raw.upper(), logging.WARNING)
-            if raw
-            else logging.WARNING
-        )
-        if raw and raw.upper() not in logging.getLevelNamesMapping():
+        level = logging.getLevelNamesMapping().get(raw.upper()) if raw else None
+        if raw and level is None:
             problems.append(
                 f"ignoring LOG_LEVEL={raw!r}: not a level name; using WARNING"
             )
+        level = logging.WARNING if level is None else level
     chosen = fmt or os.environ.get("LOG_FORMAT", "text").lower()
     if chosen not in ("text", "json"):
         problems.append(f"ignoring LOG_FORMAT={chosen!r}: use text or json")

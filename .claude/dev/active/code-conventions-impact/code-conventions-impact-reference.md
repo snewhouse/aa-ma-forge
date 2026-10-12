@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-12 (M7.5)_
+_Last Updated: 2026-10-12 (M7 complete)_
 
 Test-Command: uv run pytest
 
@@ -401,3 +401,12 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - `.pre-commit-config.yaml`: shellcheck `args: ["--enable=check-set-e-suppressed"]` (SC2312 dropped in M7.0, a22106d; SC2310 sites: 0, swept in e175676); check-conventions `args: ["--"]`. ruff-check / ruff-format hooks still lack `--` → M8. [valid: 2026-10-11 (M7.0)]
 - `tests/test_eval_cases.py` `EVAL_AGENTS = {"code-reviewer"}`: an agent case may grant `Agent` and needs a `tool_used: Agent` grader matching `subagent_type`. [valid: 2026-10-11]
 - Canary PRs: #25 (canary commit 54d08cd on 994ed35, run 38140041890), #26 (canary commit 2cdb3f6 on 79e83cb — the final scanner + hook config, run 38142145243) — both closed, branches deleted. `gh pr close --delete-branch` fails from a worktree (main is checked out elsewhere); delete the remote with `git push origin --delete`. [valid: 2026-10-11]
+
+## M7 As-Built Facts (2026-10-12)
+- `claude-code/hooks/lib/aa-ma-log.sh`: `log_info|warn|error|debug <hook> <msg>` → `<date -Is> LEVEL <hook>: <msg>` to `${CLAUDE_HOOK_LOG:-$HOME/.claude/logs/hooks.log}`. With neither set: stderr only, never a shared dir (4544060). `fail_open_notice` = stdout systemMessage + WARN line. Patterns load lazily on first mask. Cap 8192 + overlap 256. Every function returns 0. [valid: 2026-10-12]
+- `src/aa_ma/secret_patterns.tsv`: 16 rule lines, `<id><TAB><regex>`, ERE ≡ Python `re`, bounded runs only (no O(n²)). Ids are the report gate's (`analysis/secrets.py`) except the log-only `bearer-token`. `generic-env` repeats (KEY=v, `--key v`, `*SECRET*=` env names). Bad line → fail closed in both readers. [valid: 2026-10-12]
+- `aa_ma_debug_cmd <label> <cmd>` (aa-ma-parse.sh) logs `<label> (<n> chars, first word '<w>')`, skipping leading `NAME=value`. No command argument is ever logged; a bats guard rejects `aa_ma_debug … $cmd` in hooks. [valid: 2026-10-12]
+- `readlink -f` falls back to the invoked path (macOS < 12.3) at the top-level sites in aa-ma-parse.sh, plan-skip-warn, ruff-format. The gate-function sites (pre-M7) are unchanged. [valid: 2026-10-12]
+- `aa_ma.logsetup.configure_logging(verbosity, fmt)`: `LOG_LEVEL` / `LOG_FORMAT=text|json`; stderr handler with `SecretRedactingFormatter`. Text mode flattens CR/LF; JSON keeps masked exc/stack; the fail-closed record keeps `ts`, `level`, `logger`, `message`. First non-test caller planned in M10. [valid: 2026-10-12]
+- Hook payload fixtures: `tests/fixtures/hook-payloads/<Event>[-<Matcher>].json` (7), loaded via `load ../lib/hook_payloads` and `payload <name> <jq filter>`, guarded by `tests/test_hook_payloads.py`. [valid: 2026-10-12]
+- Hook-path cost vs main (50 runs, real payloads): Bash-call hooks +2–4 ms each; ruff-format on a non-.py edit 1.8 ms (main 4.7). [valid: 2026-10-12]

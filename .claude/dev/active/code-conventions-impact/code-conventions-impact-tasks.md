@@ -611,7 +611,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 7: Logging standard (T9) + hook contracts (T15 §7)
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 6
 - Complexity: 65%
 - Effort: 2 days
@@ -626,6 +626,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - ruff-format.sh bats: additionalContext JSON asserted on a captured payload; the hostile `.venv/bin/ruff` sentinel is never created; ruff off PATH → exactly 1 systemMessage per session_id.
   - One captured payload fixture per registered hook event, with a `PAYLOAD_CAPTURED <event>` provenance line each.
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 7.
+- Result Log: COMPLETE 2026-10-12, GATE APPROVAL (Ste, HARD) in context-log. 6/6 ACs; 8/8 sub-steps; bats 452/452, pytest 2968 passed/6 skipped/0 failed; §6.3 MEDIUM; §6.6 16 findings → 1dc490b; §6.8 PASS_WITH_WARNINGS → fe79b23 + 2b6be1e; double-check → f8f7220 + 4544060 (re-check Verified); deferred items in TODOS.md "Hook hot-path and helper tidy-ups".
 
 ### Sub-step 7.0: Post-merge of M6
 - Status: COMPLETE

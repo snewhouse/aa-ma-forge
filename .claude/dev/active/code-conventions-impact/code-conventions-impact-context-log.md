@@ -367,3 +367,16 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 - F4 CHANGELOG SC2312 corrected; the logging skill points at real files (pre-compact.bats, aa-ma-log.sh) instead of a guard-protected-dirs.sh absent from the repo. plugin-surface gains an ON_DISK skill→hook edge.
 - Left as is: plan-skip-warn reads `${HOME:-/tmp}/.claude/runtime` (pre-M7, read-only; it can only raise an advisory warning).
 - Process note: the pre-compact HOME-unset test was committed with its GREEN (seen RED first). Lesson L-049 added, with a recurrence entry.
+
+## [2026-10-12] GATE APPROVAL: Milestone 7: Logging standard (T9) + hook contracts (T15 §7)
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 6/6 (milestone) + 8/8 sub-steps
+- Evidence: bats 452/452, pytest 2968 passed/6 skipped/0 failed at 190508e. §6.3 MEDIUM (no HIGH). §6.6: 16 findings (fixed or deferred to TODOS). §6.7 ENG gate PASS; DIAGRAM_VERIFIED edges=25 phantom=0. §6.8 PASS_WITH_WARNINGS (6 fixed, 2 deferred). Double-check Partially verified → remediated → Verified (re-check 2026-10-12T104810Z). CRITICAL_PATH_REVIEW addendum after 4544060.
+- Decision: APPROVED
+
+## [2026-10-12] Milestone Completion: Milestone 7: Logging standard (T9) + hook contracts (T15 §7)
+- Status: COMPLETE
+- Key outcome: one masked, fail-open logging library for hooks (aa-ma-log.sh) and CLIs (aa_ma.logsetup) sharing one pattern file; every hook states its Event/Mode/Exit/Fail-open contract and is tested against real captured payloads and a fault matrix.
+- Artifacts: claude-code/hooks/lib/aa-ma-log.sh, src/aa_ma/logsetup.py, src/aa_ma/secret_patterns.tsv, tests/fixtures/hook-payloads/ (7), tests/lib/hook_payloads.bash, tests/test_hook_payloads.py, 9 hook headers, ruff-format.sh rewrite, logging skills revised.
+- Tests: bats 452/452, pytest 2968 passed/6 skipped/0 failed.

@@ -10,7 +10,8 @@
 #     mask_secrets <text>                           -> stdout: <text> capped, CR/LF → space, secrets → [REDACTED:<rule id>]
 #     AA_MA_LOG_SH_LOADED                           -> set to 1 once sourced (re-source guard)
 #
-# Log file: ${CLAUDE_HOOK_LOG:-$HOME/.claude/logs/hooks.log} (the logging-and-comments contract).
+# Log file: ${CLAUDE_HOOK_LOG:-$HOME/.claude/logs/hooks.log} (the logging-and-comments contract);
+# with neither set, lines go to stderr — never to a shared directory.
 # Patterns: src/aa_ma/secret_patterns.tsv in the forge checkout — the same file aa_ma.logsetup
 # reads — found through this file's real path, since install.sh symlinks it into ~/.claude.
 # They load on the first mask, not at source time: most hook runs never log, and the path
@@ -90,10 +91,17 @@ _aa_ma_log() {
     hook="$(_aa_ma_log_oneline "${2-}")"
     hook="${hook:0:${_AA_MA_LOG_MAX_CHARS}}"
     msg="$(mask_secrets "${3-}")"
-    log="${CLAUDE_HOOK_LOG:-${HOME:-/tmp}/.claude/logs/hooks.log}"   # HOME unset (cron, env -i) must not trip set -u
+    log="${CLAUDE_HOOK_LOG:-}"
+    [ -n "${log}" ] || [ -z "${HOME:-}" ] || log="${HOME}/.claude/logs/hooks.log"
+    line="$(date -Is) ${level} ${hook}: ${msg}"
+    if [ -z "${log}" ]; then
+        # HOME unset (cron, env -i) and no CLAUDE_HOOK_LOG: there is no private place to write. Never
+        # fall back to a shared dir such as /tmp, where a planted symlink would redirect the append.
+        printf '%s\n' "${line}" >&2 2>/dev/null || :   # why: stderr may be closed; must not trip set -e
+        return 0
+    fi
     dir="${log%/*}"
     [ "${dir}" = "${log}" ] && dir=.
-    line="$(date -Is) ${level} ${hook}: ${msg}"
     # why: the shell's own redirection error is replaced by the one-line notice that follows
     { { [ -d "${dir}" ] || mkdir -p "${dir}"; } && printf '%s\n' "${line}" >> "${log}"; } 2>/dev/null \
         || printf 'aa-ma-log: cannot append to %s\n' "${log}" >&2 2>/dev/null || :   # why: stderr may be closed; must not trip set -e

@@ -85,7 +85,7 @@ fake_forge() {
 no_ruff_path() {
     local b="$WORK/sysbin" t
     mkdir -p "$b"
-    for t in jq readlink dirname date mkdir head grep wc; do ln -sf "$(command -v "$t")" "$b/$t"; done
+    for t in cat jq readlink dirname date mkdir head grep wc; do ln -sf "$(command -v "$t")" "$b/$t"; done
     echo "$b"
 }
 
@@ -179,7 +179,7 @@ hostile_repo() {
 @test "jq missing on a .py edit → a systemMessage and a hooks.log line, never silence (M7 §6.6)" {
     local b="$WORK/nojq" t
     mkdir -p "$b"
-    for t in readlink date mkdir head grep wc; do ln -sf "$(command -v "$t")" "$b/$t"; done
+    for t in cat readlink date mkdir head grep wc; do ln -sf "$(command -v "$t")" "$b/$t"; done
     printf 'x=1\n' > "$WORK/s.py"
     jq --arg f "$WORK/s.py" '.tool_input.file_path = $f' "$PAYLOAD" > "$WORK/p.json"
     run env PATH="$b" "$BASH" "$HOOK" < "$WORK/p.json"
@@ -188,9 +188,10 @@ hostile_repo() {
     grep -qF 'WARN ruff-format: jq not on PATH' "$LOG"
 }
 
-@test "a non-.py edit exits before any fork: no ruff, no jq, no library (M7 §6.6)" {
+@test "a non-.py edit exits after reading stdin: no ruff, no jq, no library (M7 §6.6)" {
     local b="$WORK/empty"
     mkdir -p "$b"
+    ln -s "$(command -v cat)" "$b/cat"   # the payload read is the one command a non-.py edit runs
     # a real payload names the file twice: tool_input.file_path and tool_response.filePath
     jq --arg f "$WORK/notes.txt" '.tool_input.file_path = $f | .tool_response.filePath = $f' "$PAYLOAD" > "$WORK/p.json"
     run env PATH="$b" "$BASH" "$HOOK" < "$WORK/p.json"

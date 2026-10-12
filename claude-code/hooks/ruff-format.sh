@@ -2,7 +2,7 @@
 # Event: PostToolUse(Edit|Write)
 # Mode: Advisory — never blocks
 # Exit: 0 always
-# Fail-open: non-.py or missing file → exit 0; unreadable stdin → one hooks.log line; jq not found → a systemMessage; ruff not found → one systemMessage per session; a ruff format failure is logged to hooks.log
+# Fail-open: non-.py or missing file → exit 0; no cat (coreutils) → empty payload, exit 0; unreadable stdin → one hooks.log line; jq not found → a systemMessage; ruff not found → one systemMessage per session; a ruff format failure is logged to hooks.log
 #
 # Formats and autofixes an edited .py file with ruff, then hands the model what `ruff check`
 # still finds, as PostToolUse additionalContext (at most 10 lines).
@@ -19,9 +19,13 @@ HOOK="ruff-format"
 # Context lines handed to the model per edit: enough to act on, small enough not to drown it.
 MAX_CONTEXT_LINES=10
 
-payload=$(</dev/stdin)
-# Fork-free pre-gate: this runs on every Edit/Write, and a .py file_path always appears in the
-# JSON as `….py"`. A miss is exact; a hit (e.g. ".py" in the edited text) gets the real check below.
+# cat reads fd 0 as it is. Never a $(<…) of the stdin device file: Claude Code hands the payload
+# over on a socket, and opening that device on a socket fails with ENXIO, so the hook saw nothing
+# live. Not the `read -d ''` builtin either: it reads a socket one byte per syscall (1.9 s for 2 MB
+# vs 34 ms for cat, measured), and an Edit payload carries the whole original file.
+payload=$(cat)
+# Pre-gate, no fork past the cat above: this runs on every Edit/Write, and a .py file_path
+# always appears in the JSON as `….py"`. A miss is exact; a hit (e.g. ".py" in the edited text) gets the real check below.
 [[ "${payload}" == *'.py"'* ]] || exit 0
 
 # why: no `readlink -f` (macOS < 12.3) → the path as invoked; the lib check below then decides

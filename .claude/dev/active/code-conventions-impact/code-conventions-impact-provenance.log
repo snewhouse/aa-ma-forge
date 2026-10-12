@@ -168,3 +168,5 @@
 [2026-10-12T10:33:27+01:00] DIAGRAM_VERIFIED — Milestone 7: Logging standard (T9) + hook contracts (T15 §7) — edges=25 checked=25 phantom=0 unknown=0
 [2026-10-12T10:37:04+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: full — agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 8 WARNING / 10 INFO
 [2026-10-12T11:06:11+01:00] §6.8 fixes landed — RED 7c39826, GREEN fe79b23 (S-W1, S-W2, C-W2..C-W5); deferred C-W1, F-W1, S-I CR/LF to TODOS; mutations 3/3 caught; bats 446/446, pytest 2964 passed/6 skipped/0 failed
+[2026-10-12T11:06:24+01:00] DIAGRAM_VERIFIED — Milestone 7: Logging standard (T9) + hook contracts (T15 §7) — edges=25 checked=25 phantom=0 unknown=0
+[2026-10-12T11:13:56+01:00] security notice (aa-ma-parse.sh sensitive-data-in-logs) fixed — RED f644447, GREEN 2b6be1e; probes: 3/3 CLI secret forms no longer logged; bats + pytest green

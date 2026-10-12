@@ -354,3 +354,7 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
   - debug lines carry only a command's length and first 120 characters (`AA_MA_DEBUG_CMD_CHARS`), so a mask miss in the tail never reaches disk.
 - `bearer-token` is the one log-only rule id, an exception to "ids follow the report gate": report files rarely hold HTTP headers. The subset test names the exception.
 - Deferred to TODOS: one aa-ma-log.sh loader (C-W1), the cap and overlap in one place (F-W1), CR/LF flattening in text-mode CLI logs (S-I).
+
+## [2026-10-12] Correction: debug lines carry no command text (third background security notice)
+- A background review flagged sensitive-data-in-logs in aa-ma-parse.sh (no detail given). Probed live: the 120-char prefix kept `curl -u admin:hunter2`, `mysql -phunter2` and `sshpass -p hunter2` in hooks.log, since no mask pattern can know every CLI secret form.
+- Fix (2b6be1e, RED f644447): `aa_ma_debug_cmd` logs `<label> (<n> chars, first word '<word>')` (word capped at 32, private constant `_AA_MA_DEBUG_WORD_CHARS`). This supersedes the "first 120 characters" in the §6.8 entry above.

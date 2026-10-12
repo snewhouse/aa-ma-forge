@@ -382,4 +382,6 @@ None: no CRITICAL findings.
 
 ## Verification
 
+Follow-up (2b6be1e): a third background security notice. Live probes showed the 120-char prefix still kept CLI secrets (`curl -u user:pw`), so debug lines now name only the length and first word. RED f644447.
+
 Mutations: removing bearer-token fails 2 tests; removing the quoted-value branch fails 3; a raw `$cmd` in aa_ma_debug fails the guard. bats 446/446, pytest 2964 passed / 6 skipped / 0 failed, lint-imports 6 kept, shellcheck clean.

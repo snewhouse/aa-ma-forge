@@ -5,6 +5,21 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-050 (2026-10-12) — A "real payload" test fed from a file hid a hook that never ran live
+**Pattern:** Since M2, `ruff-format.sh` read its payload with `$(</dev/stdin)`. Claude Code delivers hook stdin on a
+**socket**, and opening `/dev/stdin` on a socket fails with ENXIO. So on every live Edit/Write the hook got an empty
+payload and exited 0, with no format, no findings and no log line. Its stderr sat in the session transcript
+(`hook_success … stderr: "/dev/stdin: No such device or address"`). Eighteen bats cases and M7's "tested on real
+captured payloads" all used `< file`, where the redirect works. The bug surfaced only when M8.0 required a *live* edit.
+**Rule:** "Real payload" covers the delivery channel as well as the JSON. Every stdin-reading hook test suite carries one
+case that feeds the payload on a `socketpair` (see `tests/hooks/ruff-format.bats`). A hook's live check is done only when
+the effect is observed (file reformatted, context line present), never because rc was 0. When a live check
+shows nothing, grep the session transcript (`~/.claude/projects/<proj>/<session>.jsonl`) for that hook's
+`hook_success` records: stderr is kept there even on exit 0.
+**Cross-ref:** L-1319 (stderr on exit 0 is invisible), L-049 (probe each header claim)
+
+---
+
 ## L-049 (2026-10-12) — Declared a hook/secret fix done three times before probing hostile inputs
 **Pattern:** M7 masking and debug logging went through §6.6, then §6.8, then a security follow-up.
 Each round I wrote the fix, ran the suites, and called it closed. Each time the next reviewer found the

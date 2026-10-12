@@ -326,3 +326,14 @@ EOF
     grep -qF "q (9 chars, first word '')" "$CLAUDE_HOOK_LOG"
     run ! grep -qF wJalr "$CLAUDE_HOOK_LOG"
 }
+
+@test "aa_ma_debug_cmd: a quoted env value with a space never leaks; only a plain program name is logged (sole-dev-merge C1 MEDIUM)" {
+    . "$HELPER"
+    HOOK_DEBUG=1 aa_ma_debug_cmd a "PGPASSWORD='abc hunter2' psql -h db" 2>/dev/null
+    HOOK_DEBUG=1 aa_ma_debug_cmd b 'PASSWORD="x topsecret" git log' 2>/dev/null
+    HOOK_DEBUG=1 aa_ma_debug_cmd c "/usr/bin/git status" 2>/dev/null
+    grep -qF "a (" "$CLAUDE_HOOK_LOG"
+    grep -qF "first word '?'" "$CLAUDE_HOOK_LOG"
+    grep -qF "c (19 chars, first word '/usr/bin/git')" "$CLAUDE_HOOK_LOG"
+    run ! grep -qE "hunter2|topsecret" "$CLAUDE_HOOK_LOG"
+}

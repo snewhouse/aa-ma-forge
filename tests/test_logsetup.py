@@ -253,6 +253,30 @@ def test_text_format_keeps_one_record_on_one_line(stderr_logs, capsys) -> None:
     assert "\r" not in err
 
 
+def test_exception_text_cannot_forge_a_record_line(stderr_logs, capsys) -> None:
+    """Traceback lines are indented, so an exception message with LF cannot start a record."""
+    logsetup.configure_logging()
+    try:
+        raise ValueError("boom\nCRITICAL root: forged")
+    except ValueError:
+        logging.getLogger("aa_ma.t").exception("failed")
+    lines = capsys.readouterr().err.splitlines()
+    assert lines[0].startswith("ERROR aa_ma.t: failed")
+    assert all(line.startswith("    ") for line in lines[1:])
+
+
+def test_empty_log_format_is_the_default_like_empty_log_level(
+    stderr_logs, monkeypatch, capsys
+) -> None:
+    monkeypatch.setenv("LOG_FORMAT", "")
+    monkeypatch.setenv("LOG_LEVEL", "")
+    logsetup.configure_logging()
+    logging.getLogger("aa_ma.t").warning("plain")
+    err = capsys.readouterr().err
+    assert "ignoring" not in err
+    assert err.startswith("WARNING aa_ma.t: plain")
+
+
 def test_handler_writes_to_stderr_not_stdout(stderr_logs, capsys) -> None:
     logsetup.configure_logging()
     logging.getLogger("aa_ma.x").warning("to stderr")

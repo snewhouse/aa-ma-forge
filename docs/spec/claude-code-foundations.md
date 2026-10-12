@@ -90,7 +90,7 @@ Each is a skill under `claude-code/skills/<name>/` (ADR-0020), counted in Skills
 | `/assess-codebase` | Whole-repo quality and risk assessment (tiered Quick/Standard/Deep): tools measure, sonnet judges cite `file:line`, a refuter attacks every Critical/High claim; per-dimension ratings with inputs and confidence (no overall grade) → SHA-stamped, secret-gated `summary.json` + `findings.jsonl` + SARIF + `report.md` under `.claude/reports/assess-codebase/`. Thin wrapper around `Skill(assess-codebase)` |
 | `/sole-dev-merge` | PR/MR-based merge workflow: scope-aware CI checks (L-007 guard) + 3-source security pass + idempotent PR/MR creation + 15-min CI poll + auto-merge + cleanup. See ADR-0008 |
 
-### Skills (38)
+### Skills (39)
 
 | Skill | Purpose |
 |-------|---------|
@@ -119,6 +119,7 @@ Each is a skill under `claude-code/skills/<name>/` (ADR-0020), counted in Skills
 | `logging-and-comments` | Logging and code-comment standard for Python and Bash: library vs app logging, stderr vs stdout, no silent failures, run-level context, why-comments, docstrings, constant rationale, TODO format; ships `references/ruff-baseline.toml` (adopted from the global skill — see ADR-0019) |
 | `python-quality-gates` | Zero tolerance for failing tests and the pre-commit documentation-maintenance checklist (adopted — ADR-0019) |
 | `llm-output-safety` | Safety requirements for pipelines that put LLM text into client-facing outputs: non-Latin sanitisation, programmatic citation integrity (adopted — ADR-0019) |
+| `secops` | Security router: which scanner (Ruff S, gitleaks, pip-audit, osv-scanner, ShellCheck) runs at which layer (edit, commit, CI); M8 / ADR-0022 |
 | `secrets-management` | Secrets handling in CI/CD with Vault, AWS Secrets Manager and native platform stores (derived from wshobson/agents @ 46891e7, MIT — ADR-0019) |
 | `bash-defensive-patterns` | Defensive Bash: strict mode, error traps, safe temp files, input validation, idempotency (derived from wshobson/agents @ 5d65aa1, MIT — ADR-0019) |
 

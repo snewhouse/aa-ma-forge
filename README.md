@@ -256,6 +256,7 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `logging-and-comments` | Logging and comment standard for Python and Bash, with the Ruff baseline that enforces it |
 | `python-quality-gates` | Zero-tolerance test gate and pre-commit documentation checklist |
 | `llm-output-safety` | Safety rules for LLM text in client-facing outputs (sanitisation, citation integrity) |
+| `secops` | Security router: which scanner runs at which layer (Ruff S, gitleaks, pip-audit, osv-scanner, ShellCheck) |
 | `secrets-management` | Secrets handling in CI/CD (derived from wshobson/agents @ 46891e7, MIT) |
 | `bash-defensive-patterns` | Defensive Bash patterns (derived from wshobson/agents @ 5d65aa1, MIT) |
 

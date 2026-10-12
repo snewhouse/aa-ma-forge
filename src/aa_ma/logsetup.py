@@ -100,10 +100,20 @@ class SecretRedactingFormatter(logging.Formatter):
         except Exception:  # noqa: BLE001  # why: any failure must turn into the fixed message, never a leak or a dropped record
             record.msg, record.args = _FAILED, None
             record.exc_info = record.exc_text = record.stack_info = None
-            return (
-                json.dumps({"level": record.levelname, "message": _FAILED})
-                if self.as_json
-                else _FAILED
+            if not self.as_json:
+                return _FAILED
+            try:
+                ts = self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z")
+            except Exception:  # noqa: BLE001  # why: the fixed record must still be written; an empty ts says why
+                ts = ""
+            # same keys as a normal record, so a JSON reader does not break on this one
+            return json.dumps(
+                {
+                    "ts": ts,
+                    "level": record.levelname,
+                    "logger": record.name,
+                    "message": _FAILED,
+                }
             )
 
 

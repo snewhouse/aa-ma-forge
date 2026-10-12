@@ -81,7 +81,7 @@ cmd=$(printf '%s' "$stdin_json" | jq -er '.tool_input.command // empty' 2>/dev/n
 
 [ -z "$cmd" ] && exit 0
 
-aa_ma_debug "security-static-check: examining command: $cmd"
+aa_ma_debug_cmd "security-static-check: examining command" "$cmd"
 
 # -----------------------------------------------------------------------------
 # 3. Word-boundary match on 'git commit'.

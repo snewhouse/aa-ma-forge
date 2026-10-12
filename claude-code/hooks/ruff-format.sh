@@ -2,7 +2,7 @@
 # Event: PostToolUse(Edit|Write)
 # Mode: Advisory — never blocks
 # Exit: 0 always
-# Fail-open: non-.py or missing file → exit 0; jq not found → a systemMessage; ruff not found → one systemMessage per session; a ruff format failure is logged to hooks.log
+# Fail-open: non-.py or missing file → exit 0; unreadable stdin → one hooks.log line; jq not found → a systemMessage; ruff not found → one systemMessage per session; a ruff format failure is logged to hooks.log
 #
 # Formats and autofixes an edited .py file with ruff, then hands the model what `ruff check`
 # still finds, as PostToolUse additionalContext (at most 10 lines).
@@ -38,13 +38,19 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 # One jq for both fields, NUL-separated so any byte in the path survives.
-mapfile -d '' -t fields < <(jq -j '(.tool_input.file_path // ""), "\u0000", (.session_id // ""), "\u0000"' <<<"${payload}")
-f="${fields[0]-}" sid="${fields[1]-}"
+# why: jq's parse error is replaced by the one log_warn line below
+mapfile -d '' -t fields < <(jq -j '(.tool_input.file_path // ""), "\u0000", (.session_id // ""), "\u0000"' <<<"${payload}" 2>/dev/null)
+if (( ${#fields[@]} != 2 )); then   # jq printed nothing: the payload is not the JSON we expect
+    log_warn "${HOOK}" "stdin payload not readable as hook JSON; .py edit not formatted"
+    exit 0
+fi
+f="${fields[0]}" sid="${fields[1]}"
 [[ "${f}" == *.py && -f "${f}" ]] || exit 0
 
 # notify_no_ruff — one fail_open_notice per session; the marker file remembers the session.
 notify_no_ruff() {
     local marker
+    # why: sid becomes a filename; 64 bounds it (real ids are 36-char UUIDs), the class stops ../
     if [[ "${sid}" =~ ^[A-Za-z0-9_-]{1,64}$ ]]; then
         marker="${HOME}/.claude/hooks/cache/ruff-format-no-ruff-${sid}"
         [[ -e "${marker}" ]] && return 0

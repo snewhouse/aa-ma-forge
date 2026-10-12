@@ -60,7 +60,7 @@ if ! printf '%s' "$cmd" | grep -Eq 'git commit([[:space:]]|$)'; then
     exit 0
 fi
 
-aa_ma_debug "commit-drift: examining last commit after: $cmd"
+aa_ma_debug_cmd "commit-drift: examining last commit after" "$cmd"
 
 # -----------------------------------------------------------------------------
 # Active plans?

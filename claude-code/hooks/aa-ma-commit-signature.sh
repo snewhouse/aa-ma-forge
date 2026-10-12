@@ -74,7 +74,7 @@ cmd=$(printf '%s' "$stdin_json" | jq -er '.tool_input.command // empty' 2>/dev/n
 
 [ -z "$cmd" ] && exit 0  # empty command — nothing to do
 
-aa_ma_debug "commit-signature: examining command: $cmd"
+aa_ma_debug_cmd "commit-signature: examining command" "$cmd"
 
 # -----------------------------------------------------------------------------
 # 3. Word-boundary match on `git commit`. NOT `git commit-tree`, `commit-graph`.

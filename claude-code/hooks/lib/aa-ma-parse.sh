@@ -94,6 +94,8 @@ aa_ma_debug_cmd() {
         rest="${rest#"${word}"}"
         rest="${rest#"${rest%%[![:space:]]*}"}"
     done
+    # a quoted or odd word may be the tail of a quoted value (`P='a b' cmd`): log '?' instead
+    [[ -z "${word}" || "${word}" =~ ^[A-Za-z0-9_./-]+$ ]] || word="?"
     aa_ma_debug "${1-} (${#cmd} chars, first word '${word:0:${_AA_MA_DEBUG_WORD_CHARS}}')"
 }
 

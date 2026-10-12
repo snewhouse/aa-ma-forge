@@ -5,6 +5,35 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-049 (2026-10-12) — Declared a hook/secret fix done three times before probing hostile inputs
+**Pattern:** M7 masking and debug logging went through §6.6, then §6.8, then a security follow-up.
+Each round I wrote the fix, ran the suites, and called it closed. Each time the next reviewer found the
+same class still open with a one-line probe:
+- quoted values and `--password x` unmasked;
+- `curl -u user:pw` inside the 120-char debug prefix;
+- `AWS_SECRET_ACCESS_KEY=…` as the "first word".
+
+The double-check challenger also found fail-open contracts I had just written into headers but never
+exercised: no `readlink -f` → commit-signature rc 1 (stops enforcing), lib missing → rc 127,
+`HOME` unset → rc 1. Green tests proved only the cases I had thought of.
+**Rule:** Before calling a hook or redaction change done, run a hostile-input matrix and record the
+results in the Result Log:
+- **Secrets:** `KEY=v cmd`, `export K="v"`, `--password v`, `-u u:p`, `Bearer …`, URL userinfo containing `@` and `/`.
+- **Faults:** no `readlink -f` (stub), lib file missing, `HOME` unset, read-only `HOME`, stdout closed, malformed stdin.
+
+Each header claim ("Exit: 0 always", "never logged") gets one probe that would falsify it. For logs
+written to disk, prefer not logging data over masking it.
+**Also:** `cd X && …` in a chain that can fail early runs the rest in the *previous* cwd (here, the
+main checkout). Use `cd X || exit 1` on its own line.
+**Recurrence (minutes later):** fixing "HOME unset" I wrote `${HOME:-/tmp}/.claude/logs/hooks.log`, an
+append into a world-writable directory, where a planted symlink redirects it. I had *just* written "never
+write to a shared /tmp" for pre-compact. **Stricter:** a fallback path is part of the threat model. When
+the private location is unknown, write nothing (stderr only). Never substitute `/tmp` or another shared dir.
+A test greps the library for `:-/tmp`.
+**Cross-ref:** L-1319 (stderr on exit 0 is invisible), L-047 (sweep every reader)
+
+---
+
 ## L-048 (2026-10-11) — `ruff format tests/` + `git add tests` swept 66 untouched files into a RED commit
 **Pattern:** M6 §6.8: after editing three test files I ran `uv run ruff format -q tests/` (the whole
 directory, not the three paths) and staged with `git add tests`. 69 files were staged; only 3 were
@@ -19,6 +48,9 @@ ruff, not on pytest — 3fc63c2 was pushed red and fixed in 895fa2c. **Stricter 
 command is gated on its tests in the same chain — `if uv run pytest <files> -q; then git commit …; fi`
 — never a pytest line followed by an ungated commit. Make edits with an asserting script (`assert
 s.count(old) == 1`), not `sed`, when the pattern carries quotes or escapes.
+**Recurrence 2 (2026-10-12, M7):** a leftover `sed` line I meant to delete still ran. Its `.` matched
+an apostrophe and replaced a `def` line in logsetup.py with `X`; ruff caught it before commit. **Stricter:**
+no `sed -i` on source files at all. Use asserting Python edits, and never leave a superseded edit command in a chain.
 **Cross-ref:** L-007 (format pass outside scope), global L-1334 (pathspec-less commit)
 
 ---

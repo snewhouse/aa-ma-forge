@@ -358,3 +358,12 @@ Standing map decisions (Ste, 2026-10-08): forge is canonical; tiered language de
 ## [2026-10-12] Correction: debug lines carry no command text (third background security notice)
 - A background review flagged sensitive-data-in-logs in aa-ma-parse.sh (no detail given). Probed live: the 120-char prefix kept `curl -u admin:hunter2`, `mysql -phunter2` and `sshpass -p hunter2` in hooks.log, since no mask pattern can know every CLI secret form.
 - Fix (2b6be1e, RED f644447): `aa_ma_debug_cmd` logs `<label> (<n> chars, first word '<word>')` (word capped at 32, private constant `_AA_MA_DEBUG_WORD_CHARS`). This supersedes the "first 120 characters" in the §6.8 entry above.
+
+## [2026-10-12] Double-check (Partially verified) remediation — Ste: "yes and fix the security warnings too"
+- F1: `aa_ma_debug_cmd` skips leading `NAME=value` words. A bounded generic-env row masks `*SECRET*|*PASSWORD*|*PASSWD*|*TOKEN*|*KEY*=` env assignments.
+- F2: readlink -f falls back to the path as invoked (macOS < 12.3) in aa-ma-parse.sh, plan-skip-warn and ruff-format; skip-warn stubs log_warn; pre-compact is fail-open on an unset or unwritable HOME.
+- Security (4th background notice): the `${HOME:-/tmp}` fallback added in f8f7220 was a symlink-attack surface (append into a world-writable dir). Replaced in 4544060: with neither CLAUDE_HOOK_LOG nor HOME, lines go to stderr and nothing is written. A test forbids `:-/tmp` in the library. My probe-created /tmp/.claude (probe lines only) was removed.
+- §6.8 security INFO items closed: text-mode CLI logs flatten CR/LF (logsetup formatMessage); ruff-format's header states its trust boundaries (absolute PATH entries trusted; repo-sourced findings reach the model JSON-escaped and capped).
+- F4 CHANGELOG SC2312 corrected; the logging skill points at real files (pre-compact.bats, aa-ma-log.sh) instead of a guard-protected-dirs.sh absent from the repo. plugin-surface gains an ON_DISK skill→hook edge.
+- Left as is: plan-skip-warn reads `${HOME:-/tmp}/.claude/runtime` (pre-M7, read-only; it can only raise an advisory warning).
+- Process note: the pre-compact HOME-unset test was committed with its GREEN (seen RED first). Lesson L-049 added, with a recurrence entry.

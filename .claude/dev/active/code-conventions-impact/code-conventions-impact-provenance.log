@@ -185,3 +185,4 @@
 [2026-10-12T16:32:37+01:00] M8 ACTIVE — dependency advisory: none
 [2026-10-12T16:32:37+01:00] Sub-step 8.0 COMPLETE — PR #28 merged f331e3a; install.sh from main; live F401 check failed (ruff-format /dev/stdin ENXIO on socket) → PR #29 RED fb2f0a4 GREEN 73edc09 L-050 0df379c, CI run 38269492960 7/7, bats 460/460, pytest 2970/6/0; live re-check PASS (transcript 7bba3333 line 492); worktree feat/cci-m8-secops-ci-baseline @0df379c, uv sync 0, codemem build 0
 [2026-10-12T16:35:06+01:00] Sub-step 8.1 COMPLETE — DECISION ruff-only approved by Ste; research doc docs/research/code-conventions-impact-ruff-vs-bandit.md; bandit 39/5 IDs all covered by Ruff S; 4 GAPs not reachable
+[2026-10-12T17:06:31+01:00] Sub-step 8.2 COMPLETE — RED 8fab08b GREEN f700f90 style 20f0838 debt 6fe1770; gate rc 0; pytest 2982/6/0; bats 460/460; PR #30 CI run 38274739316 7/7 (ruff-security pass); subagent docstring pay-down dispatched + independently verified (AST, lint, suites)

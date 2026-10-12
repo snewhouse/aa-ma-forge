@@ -754,7 +754,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: HITL decision. `docs/research/code-conventions-impact-ruff-vs-bandit.md` written (ruff 0.15.9 / bandit 1.9.4, venv). Bandit 39 hits (B101 1, B404 11, B603 15, B607 9, B608 3); Ruff S 36 stable / 51 preview. A per-call cross-check found no hit for Bandit alone (11 line offsets = multi-line anchoring). Ruff +8 = `# nosec` sites. 75 IDs: 71 mapped (13 preview), 4 GAP (B613→PLE2502 0 hits; B614/B615/B703 not importable here). B404 preview-only, import-level noise → excluded (A4). Context-log: `DECISION ruff-only () — approved by Ste`.
 
 ### Sub-step 8.2: Ruff S on + CI security jobs
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 8.1
 - Acceptance Criteria:
@@ -762,7 +762,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `security.yml`: job `bandit` removed (or, on the fallback decision, `uv run bandit -t <GAP ids> -ll -r src packages` with no `|| true`; carried defect 3); job `ruff-security` runs `uv run ruff check --isolated --select S src packages scripts` on push to main + weekly schedule.
   - `tests/security/test_canary.py`: a canary file with `shell=True` + a fake AWS key under `tests/fixtures/canary/` (secret assembled at runtime by concatenation, never a literal; the canary exclusion names one file) is flagged by Ruff S when scanned explicitly.
   - `ruff check --select S src packages scripts` exits 0; the canary test passes.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched; two HITL decisions taken with Ste. (1) tests/** S ignores = S101,S108,S603,S607 + pre-existing S110 (Ruff S over tests found 327 hits / 50 files; a literal S101-only would force noqa on every touched test subprocess call); `test_only_tests_ignore_s_rules_and_only_the_approved_set` asserts the exact set. (2) D8 debt on the 16 touched files paid down: AST-identical format commit; 63 docstring fixes (subagent, AST minus docstrings identical) + 20 D209 autofixes; 10 C901/PLR0913 get noqa+why + a TODOS entry; codemem owners' silent `except Exception: return {}` now logs one warning (test mutation-checked). Commits: RED 8fab08b → GREEN f700f90 (S selected, Bandit job removed — carried defect 3 closed — `ruff-security` job on push main/PR/weekly cron, pre-commit ruff `--force-exclude` + `--`, 35 per-site `noqa: S60x # why:`, snapshot.py assert → raise) → style 20f0838 → 6fe1770. Canary `tests/fixtures/canary/canary_shell.py` (S602; AWS key id joined at runtime, the regex finds none in source); its single extend-exclude, when removed, fails 2 tests. Gate `uv run ruff check --isolated --select S src packages scripts` rc 0; tests/security 11 passed; pytest 2982/6/0; bats 460/460; local touched sim rc 0; draft PR #30 CI 7/7 incl. Ruff S (run 38274739316). `# nosec B404` import comments stay until 8.6 (Stage C still runs Bandit).
 
 ### Sub-step 8.3: gitleaks
 - Status: PENDING

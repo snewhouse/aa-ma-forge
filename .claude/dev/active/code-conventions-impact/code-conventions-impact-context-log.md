@@ -413,3 +413,8 @@ DECISION ruff-only () — approved by Ste
 - 75 Bandit tests: 71 map (58 stable, 13 preview S401–S415); GAPs B613 (→ PLE2502, 0 hits), B614/B615/B703 (no torch/HF/django imports).
 - B404 (A4): excluded. S404 is preview-only and flags imports, not calls (S603/S607 cover every call; `codemem/cli.py` imports only for `CalledProcessError`). Revisit trigger: torch / huggingface_hub / django enter deps, or S404 stabilises.
 - Rejected: fallback `-t B404 -ll` would gate nothing (B404 is LOW).
+
+## [2026-10-12] M8.2 — Ruff S scope decisions (Ste)
+- tests/** S ignores: S101, S108, S603, S607 (+ S110, pre-existing). This deviates from the plan's "ONLY S101". Ruff S over tests/ found 327 hits in 50 files, mostly subprocess calls that tests make on purpose. S602/S604/S105/S106/S307/S608 stay on in tests.
+- D8 debt on the 16 files touched for per-site noqa: paid down (format, docstrings). The 10 C901/PLR0913 get noqa+why and a TODOS entry, with no refactor inside a security milestone. Rejected: per-file-ignores (would hide new S60x in those files) and a full refactor (behaviour risk).
+- Found during the pay-down: codemem `owners` swallowed blame exceptions silently (L-1319). Now one warning per failure.

@@ -320,11 +320,11 @@ $SUBPROC_SHELL"
     [ "$status" -eq 2 ]
 }
 
-@test "a per-site noqa is honoured" {
+@test "a per-site noqa does NOT suppress the check (the bypass marker is the auditable escape)" {
     stage_file "src/run.py" "import subprocess
 $SUBPROC_SHELL  # noqa: S602"
     run_hook 'git commit -m "feat: run"'
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 2 ]
 }
 
 @test "a hostile repo's .venv/bin/ruff is never run" {
@@ -388,4 +388,42 @@ $SUBPROC_SHELL"
     run env HOME="$BATS_TMP_HOME" PATH="$b" "$BASH" "$(ssc_forge)" <<< "$input"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"systemMessage"'*"ruff failed on src/run.py"* ]]
+}
+
+# --- M8.6 security review: repo-controlled suppressions and parser differentials ----------
+
+@test "an added shell=True on a continuation line of an unchanged call → exit 2" {
+    stage_file "src/multi.py" "import subprocess
+subprocess.run(
+    cmd,
+)"
+    (cd "$BATS_TMP" && git commit -qm old)
+    stage_file "src/multi.py" "import subprocess
+subprocess.run(
+    cmd,
+    shell""=""True,
+)"
+    run_hook 'git commit -m "feat: touch"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"S602"* ]]
+}
+
+@test "a file-level '# ruff: noqa' cannot suppress the check" {
+    stage_file "src/run.py" "# ruff: noqa
+import subprocess
+$SUBPROC_SHELL"
+    run_hook 'git commit -m "feat: run"'
+    [ "$status" -eq 2 ]
+}
+
+@test "a renamed file with an added shell=True is scanned" {
+    local body="import subprocess"
+    for i in 1 2 3 4 5 6 7 8 9 10 11 12; do body+=$'\n'"v${i} = ${i}"; done
+    stage_file "src/a.py" "$body"
+    (cd "$BATS_TMP" && git commit -qm old && git mv src/a.py src/b.py)
+    stage_file "src/b.py" "$body
+$SUBPROC_SHELL"
+    (cd "$BATS_TMP" && git diff --cached --name-status | grep -q '^R')   # it really is a rename
+    run_hook 'git commit -m "feat: rename"'
+    [ "$status" -eq 2 ]
 }

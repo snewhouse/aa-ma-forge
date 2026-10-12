@@ -246,9 +246,9 @@ class GitMiner:
 
 
 def _parse_git_log_output(stdout: str) -> list[_CommitRecord]:
-    """Parse fence-delimited ``git log --pretty=format:<_PRETTY_FORMAT> --name-only`` output.
+    r"""Parse fence-delimited ``git log --pretty=format:<_PRETTY_FORMAT> --name-only`` output.
 
-    Layout: each commit is ``sha<US>time<US>email<US>subject<RS>\\nfile_a\\nfile_b\\n\\n``.
+    Layout: each commit is ``sha<US>time<US>email<US>subject<RS>\nfile_a\nfile_b\n\n``.
     We split on the record separator first, then on field separator inside
     each record. The trailing block after the last RS contains the files
     of the last commit; git emits files separated by newlines with a blank

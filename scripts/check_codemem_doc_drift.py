@@ -82,6 +82,8 @@ VERSION_RE = re.compile(
 
 @dataclass
 class Finding:
+    """One drift finding: tier, severity, location and message."""
+
     tier: str
     severity: str  # CRITICAL / WARNING / INFO
     file: str | None
@@ -89,6 +91,7 @@ class Finding:
     message: str
 
     def format(self) -> str:
+        """Render the finding as a multi-line human-readable report entry."""
         loc = (
             f"{self.file}:{self.line}" if self.file and self.line else self.file or "-"
         )
@@ -103,6 +106,7 @@ class Finding:
 
 
 def canonical_codemem_version(repo_root: Path) -> str | None:
+    """Return the version from codemem-mcp's pyproject.toml, or ``None`` if absent."""
     pj = repo_root / "packages" / "codemem-mcp" / "pyproject.toml"
     if not pj.exists():
         return None
@@ -124,6 +128,7 @@ def _iter_codemem_docs(repo_root: Path) -> list[Path]:
 
 
 def check_tier_1_version_strings(repo_root: Path) -> list[Finding]:
+    """Flag version strings in codemem docs that do not match the canonical version."""
     canonical = canonical_codemem_version(repo_root)
     if canonical is None:
         return []
@@ -174,7 +179,8 @@ def _git(args: list[str], cwd: Path) -> str:
     return r.stdout if r.returncode == 0 else ""
 
 
-def check_tier_2_changelog_completeness(repo_root: Path) -> list[Finding]:
+def check_tier_2_changelog_completeness(repo_root: Path) -> list[Finding]:  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down, no logic change in a security milestone)
+    """Flag codemem feat/fix commits since the last tag when CHANGELOG.md has no Unreleased section."""
     last_tag = _git(["describe", "--tags", "--abbrev=0"], repo_root).strip()
     if not last_tag:
         return []
@@ -245,12 +251,21 @@ def check_tier_2_changelog_completeness(repo_root: Path) -> list[Finding]:
 
 
 def run_checks(repo_root: Path) -> list[Finding]:
+    """Run the Tier 1 and Tier 2 checks and return all findings."""
     return check_tier_1_version_strings(
         repo_root
     ) + check_tier_2_changelog_completeness(repo_root)
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Print the drift findings as text or JSON.
+
+    Args:
+        argv: Command-line arguments; ``None`` reads ``sys.argv``.
+
+    Returns:
+        1 if any finding was reported, else 0.
+    """
     parser = argparse.ArgumentParser(prog="check_codemem_doc_drift")
     parser.add_argument(
         "--repo-root",

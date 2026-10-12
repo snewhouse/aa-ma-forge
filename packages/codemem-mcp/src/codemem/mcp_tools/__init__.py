@@ -19,6 +19,7 @@ Tools:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import sqlite3
@@ -31,6 +32,8 @@ from typing import Any, Callable
 from ..storage import db
 from .queries import BLAST_RADIUS_CTE, WHO_CALLS_CTE
 from .sanitizers import ValidationError, sanitize_path_arg, sanitize_symbol_arg
+
+_log = logging.getLogger(__name__)
 
 
 __all__ = [
@@ -718,12 +721,14 @@ _BLAME_MAX_WORKERS = min(8, os.cpu_count() or 1)
 
 
 def _refresh_ownership_cache(db_path: Path, path: str, *, repo_root: Path) -> None:
-    """Call ``GitMiner.get_blame`` for ``path`` (or the files under it when path
-    is a directory) and write results to the ``ownership`` table.
+    """Blame ``path`` and write the results to the ``ownership`` table.
 
-    Per-file 2 second timeout matches the AC. Silently skips files that
-    blame refuses (binary, not-in-HEAD, deleted) — they just don't get
-    cache entries. Blames run concurrently on a bounded thread pool; only
+    Calls ``GitMiner.get_blame`` for ``path`` (or the files under it when
+    path is a directory).
+
+    Per-file 2 second timeout matches the AC. Files that blame refuses
+    (binary, not-in-HEAD, deleted) get no cache entries; a blame that raises
+    (e.g. the timeout) is logged as one warning and skipped. Blames run concurrently on a bounded thread pool; only
     the calling thread writes, in sorted file-path order.
     """
     # Local import avoids circular dep if someone stubs mcp_tools before
@@ -753,7 +758,10 @@ def _refresh_ownership_cache(db_path: Path, path: str, *, repo_root: Path) -> No
     def _blame(target: str) -> dict[str, tuple[int, float]]:
         try:
             return miner.get_blame(target)
-        except Exception:
+        except Exception as exc:  # noqa: BLE001  # why: one unblameable file must not sink the owners report
+            _log.warning(
+                "owners: blame failed for %s (%s); skipped", target, type(exc).__name__
+            )
             return {}
 
     targets = sorted(targets)
@@ -1065,7 +1073,7 @@ _FILE_MENTION_RE = re.compile(r"`([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]{1,5})`")
 _SYMBOL_MENTION_RE = re.compile(r"`([a-zA-Z_][a-zA-Z0-9_.]{0,63})`")
 
 
-def diagram(
+def diagram(  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down, no logic change in a security milestone)
     db_path: Path,
     *,
     level: str = "L2",

@@ -49,6 +49,8 @@ __all__ = ["RefreshStats", "refresh_index"]
 
 @dataclass
 class RefreshStats:
+    """Counters and timing reported by :func:`refresh_index`."""
+
     files_dirty: int = 0
     files_moved: int = 0
     files_deleted: int = 0
@@ -75,6 +77,20 @@ def refresh_index(
     *,
     package: str = ".",
 ) -> RefreshStats:
+    """Refresh the index at ``db_path`` to match the working tree under ``repo_root``.
+
+    Holds the single-writer lock; if another refresh holds it, returns at once
+    with ``skipped_locked`` set.
+
+    Args:
+        repo_root: Root of the repository to index.
+        db_path: Path to the SQLite index; its parent also holds the log,
+            ``last_sha`` and lock files.
+        package: Package name used when building SCIP ids.
+
+    Returns:
+        A :class:`RefreshStats` describing what changed.
+    """
     t0 = time.monotonic()
     repo_root = repo_root.resolve()
     db_path = db_path.resolve()
@@ -103,7 +119,7 @@ def refresh_index(
         )
 
 
-def _refresh_locked(
+def _refresh_locked(  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down, no logic change in a security milestone)
     repo_root: Path,
     db_path: Path,
     *,
@@ -262,8 +278,10 @@ def _refresh_locked(
 
 
 def _hash(p: Path) -> str:
-    """SHA-256 of file contents. Returns empty string on read error so
-    the caller can treat it as 'unknown' and re-index conservatively.
+    """SHA-256 of file contents.
+
+    Returns empty string on read error so the caller can treat it as
+    'unknown' and re-index conservatively.
     """
     try:
         return hashlib.sha256(p.read_bytes()).hexdigest()
@@ -316,9 +334,10 @@ def _write_last_sha(repo_root: Path, last_sha_file: Path) -> None:
 
 
 def _rewrite_scip_paths(conn, old_path: str, new_path: str) -> None:
-    """When a file moves, every scip_id referencing the old path needs
-    to be rewritten. The SCIP grammar encodes file path between the
-    kind-marker and the ``#`` — simple string replacement is safe.
+    """Rewrite every scip_id that references a moved file's old path.
+
+    The SCIP grammar encodes file path between the kind-marker and the
+    ``#`` — simple string replacement is safe.
     """
     # Build the SCIP ID prefix: ``codemem <package> <marker><file>#`` —
     # the file portion is what changes. Update every row that references
@@ -341,8 +360,10 @@ def _rewrite_scip_paths(conn, old_path: str, new_path: str) -> None:
 
 
 def _apply_file_delta(conn, fp, stats: RefreshStats) -> None:
-    """Upsert the file row, diff its symbols against the DB, apply
-    ADDED/REMOVED/MODIFIED/RENAMED changes via SQL."""
+    """Upsert the file row, diff its symbols against the DB, and apply the changes.
+
+    ADDED/REMOVED/MODIFIED/RENAMED changes are applied via SQL.
+    """
     now = int(time.time())
     conn.execute(
         """

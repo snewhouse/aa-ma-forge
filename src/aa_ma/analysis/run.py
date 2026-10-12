@@ -1,11 +1,13 @@
-"""Run commands a user approved against a repo they do not control: only known test-runner, build
-and lint forms, no shell, a minimal offline env, stdin closed, and a timeout that kills the whole
-process group.
+"""Run commands a user approved against a repo they do not control.
+
+Only known test-runner, build and lint forms, no shell, a minimal offline env, stdin closed, and a
+timeout that kills the whole process group.
 
 The allowlist bounds the *argv*, not what it does: every allowed runner executes repo code, which
 can do anything its user can, and a grandchild that calls setsid() leaves the process group and
 survives the kill (`unshare -rn` is the hardening option). Best-effort, and the report says so.
-The refuse list only names the reason for the obviously dangerous; the allowlist is the gate."""
+The refuse list only names the reason for the obviously dangerous; the allowlist is the gate.
+"""
 
 from __future__ import annotations
 

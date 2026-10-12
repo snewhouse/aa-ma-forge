@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""codemem vs Aider vs jCodeMunch token-budget benchmark harness (M2).
+r"""codemem vs Aider vs jCodeMunch token-budget benchmark harness (M2).
 
 Invokes each tool at a requested budget, captures its output, and emits a
 normalized JSON measurement record per the harness output contract
 (reference.md §Harness JSON Output Contract).
 
 Usage:
-    uv run python scripts/bench_codemem_vs_aider.py \\
+    uv run python scripts/bench_codemem_vs_aider.py \
         --repo . --requested-budget 1024 --out /tmp/bench.json
 
 jCodeMunch note: this tool is invoked via MCP protocol only; the real MCP
@@ -140,7 +140,8 @@ def rbo_at_10(list_s: list, list_t: list, p: float = 0.9, k: int = 10) -> float:
     window; this is the convention in the original paper.
 
     Args:
-        list_s, list_t: Ranked sequences. Items must be hashable.
+        list_s: First ranked sequence. Items must be hashable.
+        list_t: Second ranked sequence. Items must be hashable.
         p: Persistence parameter (top-heaviness). Default 0.9.
         k: Truncation depth. Default 10.
 
@@ -262,7 +263,7 @@ def _run_aider(repo: Path, budget: int, *, tokeniser_equalise: bool = False) -> 
         }
 
 
-def _parse_munch_gen1(text: str) -> list[tuple[str, str]]:
+def _parse_munch_gen1(text: str) -> list[tuple[str, str]]:  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down, no logic change in a security milestone)
     """Parse jCodeMunch MUNCH/gen1 response into (file, symbol_name) tuples.
 
     The MUNCH on-wire format has 4 sections separated by blank lines:
@@ -385,7 +386,7 @@ def _run_jcodemunch(repo: Path, budget: int) -> dict:
         text, rows = asyncio.run(asyncio.wait_for(_call(), timeout=120))
         m = measure_output(text, len(rows))
         return {"status": "ok", **m, "symbols": rows}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001  # why: any failure becomes this row's "error" status in the report, never a crashed sweep
         return {
             "status": "error",
             "error": f"{type(e).__name__}: {str(e)[:200]}",
@@ -400,9 +401,9 @@ def _pair_overlap(
     list_a: list[H],
     list_b: list[H],
 ) -> dict[str, float]:
-    """Both Jaccard (set similarity) and RBO@10 (rank-aware similarity)
-    for a single tool-pair. Symmetric in arguments — Jaccard always is,
-    and RBO is treated as such by averaging both directions to remove
+    """Both Jaccard (set similarity) and RBO@10 (rank-aware similarity) for a tool-pair.
+
+    Symmetric in arguments — Jaccard always is, and RBO is treated as such by averaging both directions to remove
     asymmetry-of-tail-extrapolation noise (Webber 2010 §4.2).
 
     Element type is the TypeVar ``H`` (Hashable). Use ``tuple[str, str]``
@@ -436,10 +437,10 @@ def _extract_repomix_file_paths(text: str) -> list[str]:
 
 
 def _run_repomix(repo: Path, budget: int) -> dict:
-    """Invoke pinned Repomix CLI via npx, capture XML, re-tokenize.
+    r"""Invoke pinned Repomix CLI via npx, capture XML, re-tokenize.
 
     Pinned invocation (per reference.md):
-        npx -y repomix@1.14.0 --style xml --output FILE \\
+        npx -y repomix@1.14.0 --style xml --output FILE \
             --token-count-encoding cl100k_base <repo>
 
     Repomix is a *dump-everything* tool with no native budget concept.
@@ -628,7 +629,7 @@ def _file_list_from_symbols(
     return ordered
 
 
-def _build_report(
+def _build_report(  # noqa: PLR0913  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down, no logic change in a security milestone)
     budget: int,
     repo: Path,
     codemem: dict,
@@ -737,6 +738,14 @@ def _build_report(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run each tool at the requested budget and write the JSON report.
+
+    Args:
+        argv: Command-line arguments; ``None`` reads ``sys.argv``.
+
+    Returns:
+        0 on success, 2 if ``--repo`` is not a directory.
+    """
     parser = argparse.ArgumentParser(description=__doc__, add_help=True)
     parser.add_argument(
         "--repo", type=Path, required=True, help="Target repository root"

@@ -4,7 +4,8 @@ Layer 3 of three (agents never read secret files → sources are masked → this
 regex set ALWAYS runs; gitleaks (GITLEAKS_BIN, else PATH) adds hits when it runs. Both see DECODED
 content: every JSON string value and key, and the whole text of .md/.log. A Hit never carries the
 value it found. JSON is parsed and re-dumped, never byte-patched; any other file type fails closed.
-gitleaks status follows the report-based rule: rc≠0 or no readable report → unknown."""
+gitleaks status follows the report-based rule: rc≠0 or no readable report → unknown.
+"""
 
 from __future__ import annotations
 
@@ -85,8 +86,11 @@ class UnsupportedFile(GateError):
 
 @dataclasses.dataclass(frozen=True)
 class Hit:
-    """Where a secret is — never what it is. Lines are 1-based, columns 0-based end-exclusive,
-    both relative to the scanned text: the file for .md/.log, the decoded string for JSON."""
+    """Where a secret is — never what it is.
+
+    Lines are 1-based, columns 0-based end-exclusive, both relative to the scanned text: the file
+    for .md/.log, the decoded string for JSON.
+    """
 
     rule: str
     path: str
@@ -103,6 +107,8 @@ class Hit:
 
 @dataclasses.dataclass(frozen=True)
 class ScanResult:
+    """The hits found by a scan and the status of the scanning tool."""
+
     hits: list[Hit]
     tool_status: ToolStatus
 
@@ -161,8 +167,10 @@ def _apply(text: str, spans: list[tuple[str, int, int]]) -> tuple[str, int]:
 
 
 def secret_lines(text: str) -> list[tuple[str, int]]:
-    """(rule, 1-based line) per built-in regex hit, in PATTERNS order — for repo source, which is
-    only reported on, never rewritten, so no span or value is kept."""
+    """(rule, 1-based line) per built-in regex hit, in PATTERNS order.
+
+    For repo source, which is only reported on, never rewritten, so no span or value is kept.
+    """
     starts = _line_starts(text)
     return [
         (rule, _to_line_col(starts, start)[0]) for rule, start, _ in _regex_spans(text)
@@ -210,7 +218,9 @@ def _walk(node: Any, pointer: str) -> Iterator[tuple[str, str, bool]]:
 
 def _contexts(node: Any, pointer: str) -> Iterator[tuple[str, str, int]]:
     """(value pointer, `"key": "value"` text, value offset) for every string-valued object member.
-    The offset is the prefix length, never searched for — a key may itself contain '": "'."""
+
+    The offset is the prefix length, never searched for — a key may itself contain '": "'.
+    """
     if isinstance(node, dict):
         for pos, (key, value) in enumerate(node.items()):
             child = _member_ptr(pointer, pos)
@@ -360,8 +370,11 @@ def _gitleaks_bin() -> str | None:
 
 
 def _widen(line: str, start: int, end: int) -> tuple[int, int]:
-    """Clamp, trim edge whitespace (an off-by-one start may sit on the gap before a token), then grow
-    the span to the enclosing non-whitespace run. An empty span blanks the whole line."""
+    """Clamp the span and grow it to the enclosing non-whitespace run.
+
+    Clamp, trim edge whitespace (an off-by-one start may sit on the gap before a token), then grow
+    the span to the enclosing non-whitespace run. An empty span blanks the whole line.
+    """
     start, end = max(0, min(start, len(line))), max(0, min(end, len(line)))
     while start < end and line[start].isspace():
         start += 1

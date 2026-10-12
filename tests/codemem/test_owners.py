@@ -318,6 +318,24 @@ class TestConcurrentRefresh:
             f"refresh took {elapsed:.2f}s; serial blame would take {serial:.1f}s"
         )
 
+    def test_a_failed_blame_is_logged_never_silent(
+        self,
+        indexed_db: Path,
+        slow_fake_blame: None,
+        tmp_path: Path,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        from codemem.mcp_tools import owners
+
+        with caplog.at_level("WARNING", logger="codemem.mcp_tools"):
+            owners(indexed_db, "pkg/", refresh=True, repo_root=tmp_path)
+        failed = [
+            r.getMessage() for r in caplog.records if "blame failed" in r.getMessage()
+        ]
+        assert failed == [
+            "owners: blame failed for pkg/boom.py (TimeoutExpired); skipped"
+        ]
+
     def test_refresh_rows_match_serial_computation(
         self, indexed_db: Path, slow_fake_blame: None, tmp_path: Path
     ) -> None:

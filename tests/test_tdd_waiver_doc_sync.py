@@ -69,6 +69,18 @@ def test_the_rules_say_what_m9_requires() -> None:
     assert "follow-up test task" in TDD_WAIVER_RULES["hotfix-emergency"]
 
 
+def test_no_skill_restates_the_retired_skip_list() -> None:
+    """Skills point at §2 instead of copying an old skip list ("infrastructure-only" is not a waiver)."""
+    hits = [
+        f"{path.relative_to(REPO)}:{n}"
+        for root in ("claude-code", "docs/spec")
+        for path in (REPO / root).rglob("*.md")
+        for n, line in enumerate(path.read_text().splitlines(), 1)
+        if "infrastructure-only" in line
+    ]
+    assert hits == [], f"point these at engineering-standards.md §2: {hits}"
+
+
 def regenerate() -> None:
     """Rewrite the marker-delimited block in place (called by scripts/regen-generated.sh)."""
     text = RULE.read_text()

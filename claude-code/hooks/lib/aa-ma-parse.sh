@@ -332,9 +332,20 @@ aa_ma_has_gate_approval() {
     [ -f "$1" ] || return 1
     # The title goes in through the environment: `awk -v` would process its backslash escapes.
     # Lines inside a ``` / ~~~ code fence are skipped, so a pasted example is never an approval.
+    # A fence closes only on its own character at >= its own length, nothing after (CommonMark):
+    # a ``` inside ````, or a ~~~ inside ```, must not end the skip (PR #37 Stage C).
+    # Run lengths are counted by hand: mawk has no {n,m} intervals.
     AA_MA_WANT="GATE APPROVAL: $2" awk '
         BEGIN { want = ENVIRON["AA_MA_WANT"] }
-        /^[ \t]*(```|~~~)/ { infence = !infence; next }
+        {
+            s = $0; sub(/^[ \t]*/, "", s); c = substr(s, 1, 1)
+            if ((c == "`" || c == "~") && substr(s, 1, 3) == c c c) {
+                n = 3; while (substr(s, n + 1, 1) == c) n++
+                if (!infence) { infence = 1; fc = c; fl = n }
+                else if (c == fc && n >= fl && substr(s, n + 1) ~ /^[ \t]*$/) infence = 0
+                next
+            }
+        }
         infence { next }
         /^#+[ \t]/ {
             line = $0; sub(/[ \t]+$/, "", line)

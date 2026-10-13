@@ -46,7 +46,10 @@ It is the THIRD ```bash fence in §6.7: the two fences above keep their places, 
 
 **Inputs, from the merge-base copy of `<task>-reference.md`** (`git merge-base <origin/HEAD | main | master> HEAD`),
 so a branch cannot change the command or the pass rule that prove it (the branch still controls
-the code and test configuration under test). A reference.md new on the branch has no merge-base
+the code and test configuration under test). That guard is only as upstream as the base: with no
+`origin/HEAD` the base is a local `main`/`master` this session can change (on `main` itself the
+plan is self-authored), so the fence prints a NOTE and the line gains an
+`inputs: local <ref> (no origin/HEAD) — ` segment before `passed=`. A reference.md new on the branch has no merge-base
 copy: if the default branch has it (this branch forked before the plan existed), that copy is used;
 otherwise the plan is new and its HEAD copy, then its uncommitted working-tree copy, is used,
 with a notice (a brand-new plan is self-authored either way). The argv split runs `python3 -I`, so a

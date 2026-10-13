@@ -437,3 +437,7 @@ DECISION ruff-only () — approved by Ste
 - Fail closed (exit 2) when ruff or git error on a file, the JSON is unreadable, or the diff has no parsable hunk. Only "no ruff at all" stays notice + exit 0 (the plan's contract).
 - S102 added to D12's `S602,S604,S307,S608,S301` so exec() keeps the coverage its regex had.
 - Stage C runs Ruff S without --isolated (repo per-file-ignores apply, like any lint); severities come from the matching Bandit test's default tier; an unknown code is HIGH.
+
+## [2026-10-13] M8.7 — approvals (Ste)
+- ADR-0022 SecOps baseline: Accepted, approved by Ste.
+- senior-secops removal approved by Ste after reading the files: a template stub (scanners hard-code zero findings), already off via skillOverrides. Backup /home/sjnewhouse/.claude/backups/cci-m8-senior-secops-20261013-094804.tgz, 7/7 files verified. Removed by Ste with `!` because guard-protected-dirs.sh blocks a recursive rm under ~/.claude/skills; that guard was not bypassed.

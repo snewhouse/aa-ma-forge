@@ -3,26 +3,27 @@
 # Mode: Blocking — exit 2 refuses a commit touching a .py file with a flagged pattern
 #       (Ruff: anywhere in the file; regexes: on the lines it adds)
 # Exit: 0 allow · 2 block (policy) · 1 infra error (helper/jq missing, bad stdin; non-blocking, the commit proceeds)
-# Fail-open: kill switch, bypass marker, not a repo, no staged .py pass with exit 0; infra errors exit 1 with a stderr line; no ruff → a systemMessage + hooks.log line and the regex classes still run. Fails closed (exit 2): ruff or git erroring on a file, unreadable ruff output, a binary .py diff
+# Fail-open: kill switch, bypass marker (logged to hooks.log), not a repo, no staged or modified .py pass with exit 0; infra errors exit 1 with a stderr line; no ruff → a systemMessage + hooks.log line and the regex classes still run. Fails closed (exit 2): ruff or git erroring on a file, unreadable ruff output, a binary .py diff, a file listing that cannot run, an unresolvable git -C / --git-dir / --work-tree
 #
 # PreToolUse(Bash) hook — block commits that introduce mechanical security
 # anti-patterns in Python files. Symmetric to aa-ma-commit-signature.sh but
-# inspects the staged diff: Ruff S rules on each staged blob, plus two regex classes.
+# inspects every .py the commit can contain (staged, or modified for -a / a pathspec):
+# Ruff S rules on each whole file, plus two regex classes on added lines.
 #
 # Fires via Claude Code's PreToolUse event with matcher="Bash". Reads a JSON
 # object from stdin of shape {tool_name: "Bash", tool_input: {command: "..."}}.
 #
 # Decision tree:
+#   0. stdin holds no 'commit' at all                  -> exit 0 before any fork (hot path)
 #   1. AA_MA_HOOKS_DISABLE=1                          -> exit 0 (kill switch)
 #   2. stdin JSON malformed                            -> exit 1 (hook infra error)
-#   3. command is not 'git commit ...'                 -> exit 0
-#   0. stdin holds no 'commit' at all                  -> exit 0 before any fork (hot path)
-#   4. editor-form commit (no message flag: -m -F -c -C --message --file
-#      --reedit-message --reuse-message)               -> exit 0 (no msg to inspect)
+#   3. not `git [-c k=v | -C dir | --opt]... commit`  -> exit 0; -C <plain path> is
+#      entered, an unresolvable -C / --git-dir / --work-tree -> exit 2
+#   4. (none: a commit with no message flag is scanned too; it just cannot carry a marker)
 #   5. command contains [security-bypass: <reason>]    -> exit 0 (auditable bypass)
 #   6. not inside a git repo                           -> exit 0 (graceful skip)
-#   7. no staged *.py files (Added/Modified/Renamed/Copied) -> exit 0
-#   8. Ruff S on whole staged files + 2 regex classes on added lines -> if any -> exit 2
+#   7. no .py staged or modified (A/M/R/C), NUL-listed -> exit 0
+#   8. Ruff S on each whole file (index + working tree) + 2 regexes on added lines -> exit 2 if any
 #   9. otherwise                                       -> exit 0
 #
 # Detection scope (staged Python files, any repo):
@@ -93,28 +94,40 @@ cmd=$(printf '%s' "$stdin_json" | jq -er '.tool_input.command // empty' 2>/dev/n
 aa_ma_debug_cmd "security-static-check: examining command" "$cmd"
 
 # -----------------------------------------------------------------------------
-# 3. Word-boundary match on 'git commit'.
+# 3. `git [-c k=v | -C <dir> | --opt[=v]]... commit`, word-bounded (not commit-tree).
 # -----------------------------------------------------------------------------
-if ! printf '%s' "$cmd" | grep -Eq 'git commit([[:space:]]|$)'; then
+GIT_COMMIT_RE='(^|[;&|(`[:space:]])git(([[:space:]]+-[cC][[:space:]]+[^[:space:]]+)|([[:space:]]+--[a-z][a-z-]*(=[^[:space:]]*)?))*[[:space:]]+commit([[:space:]]|$)'
+if ! [[ "$cmd" =~ $GIT_COMMIT_RE ]]; then
     exit 0
+fi
+git_prefix="${BASH_REMATCH[0]}"
+
+# Global options that move the repository: scan the repo the commit lands in, or refuse.
+if [[ "$git_prefix" == *--git-dir* || "$git_prefix" == *--work-tree* ]]; then
+    printf 'security-static-check: --git-dir/--work-tree commits cannot be scanned; run git commit from the repository (exit 2)\n' >&2
+    exit 2
+fi
+if [[ "$git_prefix" =~ [[:space:]]-C[[:space:]]+([^[:space:]]+) ]]; then
+    c_dir="${BASH_REMATCH[1]}"
+    # A quoted, expanded or home-relative path is not the path the shell will use.
+    if [[ "$c_dir" == *[\"\'\$\`~\\]* ]] || ! cd -- "$c_dir" 2>/dev/null; then  # why: a failed cd is the refusal below
+        printf 'security-static-check: cannot resolve git -C %s to scan it; use a plain path (exit 2)\n' "$c_dir" >&2
+        exit 2
+    fi
 fi
 
-# -----------------------------------------------------------------------------
-# 4. Editor-form detection. Editor form means we cannot see the message yet
-#    AND there is no way to inspect a bypass marker. We pass through.
-# -----------------------------------------------------------------------------
-if ! printf '%s' "$cmd" | grep -Eq '([[:space:]]|^)(-m|-F|-c|-C|--message|--file|--reedit-message|--reuse-message)([[:space:]]|=|$)'; then
-    aa_ma_debug "security-static-check: editor-form commit, passing through"
-    exit 0
-fi
+# 4. (removed) A commit with no message flag (`--no-edit`, `--amend`, editor form) is scanned
+#    like any other: it simply cannot carry the bypass marker.
 
 # -----------------------------------------------------------------------------
 # 5. [security-bypass: <reason>] marker.
 #    Must be on its own line AND must include a non-empty reason.
 # -----------------------------------------------------------------------------
 normalized_cmd=$(printf '%s' "$cmd" | sed 's/\\n/\n/g')
-if printf '%s\n' "$normalized_cmd" | grep -Eq '^[[:space:]]*\[security-bypass:[[:space:]]+[^]]+\][[:space:]"'"'"'\`]*$'; then
-    aa_ma_debug "security-static-check: [security-bypass: ...] marker found, passing through"
+if bypass_line=$(printf '%s\n' "$normalized_cmd" | grep -Em1 '^[[:space:]]*\[security-bypass:[[:space:]]+[^]]+\][[:space:]"'"'"'\`]*$'); then
+    # The marker is honoured wherever it sits in the command, so it is logged here too:
+    # an audit trail that does not depend on it reaching the commit message.
+    log_warn "security-static-check" "bypass marker used: ${bypass_line}"
     exit 0
 fi
 
@@ -127,18 +140,29 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 
 # -----------------------------------------------------------------------------
-# 7. Find staged Python files (Added/Modified/Renamed/Copied).
+# 7. Python files this commit can contain: staged (AMRC) plus modified-but-unstaged tracked
+#    files, which `-a` and a pathspec commit. No flag parsing decides what is scanned.
 # -----------------------------------------------------------------------------
-# AMRC: a renamed or copied file with new lines is scanned too (its new name).
-# why: not a repo or no index is handled above; an empty list means nothing to scan
-py_files=$(git diff --cached --name-only --diff-filter=AMRC 2>/dev/null | grep -E '\.py$' || true)
-if [ -z "$py_files" ]; then
-    aa_ma_debug "security-static-check: no staged *.py files"
+# The listing below runs in a process substitution, whose failure would read as "no files":
+# check the commands it needs first, and fail closed.
+# why: stdout/stderr dropped — only the status matters; a failure is reported on the next line
+if ! command -v sort >/dev/null 2>&1 || ! git diff --cached --name-only -z >/dev/null 2>&1 || ! git diff --name-only -z >/dev/null 2>&1; then
+    printf 'security-static-check: cannot list the files this commit contains (git or sort failed); refusing (exit 2)\n' >&2
+    exit 2
+fi
+py_files=()
+# why: stderr dropped — the same commands just succeeded above
+while IFS= read -r -d '' f; do
+    [[ "$f" == *.py ]] && py_files+=("$f")
+done < <({ git -c core.quotePath=false diff --cached --name-only -z --diff-filter=AMRC 2>/dev/null  # why: checked above
+           git -c core.quotePath=false diff --name-only -z --diff-filter=AMRC 2>/dev/null; } | sort -zu)  # why: checked above
+if [ "${#py_files[@]}" -eq 0 ]; then
+    aa_ma_debug "security-static-check: no staged or modified *.py files"
     exit 0
 fi
 
 # -----------------------------------------------------------------------------
-# 8. Ruff S on each whole staged file; two regex classes on its added lines.
+# 8. Ruff S on each whole file (index and working tree); two regex classes on added lines.
 # -----------------------------------------------------------------------------
 
 # ruff comes ONLY from this forge's .venv or an absolute PATH entry — never from the repo being
@@ -166,29 +190,47 @@ ruff_label() {
         S602|S604) printf 'shell injection' ;;
         S608) printf 'SQL string construction' ;;
         S301) printf 'unsafe binary deserialisation (CWE-502)' ;;
+        invalid-syntax) printf 'unparsable Python (cannot be scanned)' ;;
         *) printf 'security rule' ;;
     esac
 }
 
 findings=()
 
-while IFS= read -r file; do
-    [ -z "$file" ] && continue
+# ruff_scan <file> <content> — append a finding per Ruff S hit in <content>, or one blocking
+# finding when ruff cannot check it. Content goes by here-string: no argv size limit.
+ruff_scan() {
+    local out rc=0 rows row code msg
+    # why: stderr dropped — rc 1 means findings; rc 2+ blocks below
+    out=$("$ruff" 2>/dev/null check --isolated --ignore-noqa --select "$RUFF_RULES" \
+        --output-format json --stdin-filename "$1" - <<< "$2") || rc=$?
+    # why: jq's parse error becomes the blocking finding below
+    if [ "$rc" -gt 1 ] || ! rows=$(jq 2>/dev/null -r '.[] | select(.code != null)
+            | [.location.row, .code, (.message | gsub("\\s+"; " "))] | @tsv' <<< "$out"); then
+        findings+=("${1}: ruff could not check this file (rc ${rc}); fix it or use the bypass marker")
+        return 0
+    fi
+    while IFS=$'\t' read -r row code msg; do
+        [ -n "${code:-}" ] || continue
+        findings+=("${1}:${row}: $(ruff_label "$code") [${code}] ${msg}")
+    done <<< "$rows"
+}
 
-    # -- Ruff S, whole staged file (D8) ----------------------------------------
+for file in "${py_files[@]}"; do
+
+    # -- Ruff S, whole file (D8): the index blob, and the working tree where it differs ------
     if [ -n "$ruff" ]; then
-        # why: stderr dropped — rc 1 means findings; rc 2+ (ruff or git failing) blocks below
-        out=$(git show ":${file}" | "$ruff" 2>/dev/null check --isolated --ignore-noqa \
-            --select "$RUFF_RULES" --output-format json --stdin-filename "$file" -) && rc=0 || rc=$?
-        # why: jq's parse error becomes the blocking finding below (a here-string: no argv size limit)
-        if [ "$rc" -gt 1 ] || ! rows=$(jq 2>/dev/null -r '.[] | select(.code != null)
-                | [.location.row, .code, (.message | gsub("\\s+"; " "))] | @tsv' <<< "$out"); then
-            findings+=("${file}: ruff could not check this file (rc ${rc}); fix it or use the bypass marker")
-        else
-            while IFS=$'\t' read -r row code msg; do
-                [ -n "${code:-}" ] || continue
-                findings+=("${file}:${row}: $(ruff_label "$code") [${code}] ${msg}")
-            done <<< "$rows"
+        # why: stderr dropped — no index entry (an unstaged-only change) is normal
+        if git cat-file -e ":${file}" 2>/dev/null; then
+            if blob=$(git show ":${file}" 2>/dev/null); then  # why: a failure is the finding below
+                ruff_scan "$file" "$blob"
+            else
+                findings+=("${file}: git show failed; refusing to pass it unscanned")
+            fi
+        fi
+        # why: rc 1 = the working tree differs from the index (what `-a` / a pathspec commits)
+        if [ -f "$file" ] && ! git diff --quiet -- "$file" 2>/dev/null; then
+            ruff_scan "$file" "$(cat -- "$file")"
         fi
     fi
 
@@ -196,7 +238,8 @@ while IFS= read -r file; do
     # Plain diff whatever the repo's config says: color, an external diff or a textconv
     # driver would change the text this parser reads.
     # why: stderr dropped — a failing git diff becomes a blocking finding (fail closed)
-    if ! diff_content=$(git diff --cached --no-color --no-ext-diff --no-textconv -U0 -- "$file" 2>/dev/null); then
+    if ! diff_content=$(git diff --cached --no-color --no-ext-diff --no-textconv -U0 -- "$file" 2>/dev/null &&
+                       git diff --no-color --no-ext-diff --no-textconv -U0 -- "$file" 2>/dev/null); then  # why: as above
         findings+=("${file}: git diff failed; refusing to pass it unscanned")
         continue
     fi
@@ -245,7 +288,7 @@ while IFS= read -r file; do
     if [ "$in_hunk" = 0 ] && [[ "$diff_content" == *"Binary files "* ]]; then
         findings+=("${file}: binary diff; refusing to pass it unscanned")
     fi
-done <<< "$py_files"
+done
 
 # -----------------------------------------------------------------------------
 # 9. Verdict.

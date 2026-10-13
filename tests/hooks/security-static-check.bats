@@ -273,7 +273,7 @@ ssc_forge() {
 ssc_sysbin() {
     local b="$BATS_TMP_HOME/sysbin" t
     mkdir -p "$b"
-    for t in cat jq git grep sed tr date mkdir head wc readlink dirname cut; do ln -sf "$(command -v "$t")" "$b/$t"; done
+    for t in cat jq git grep sed tr date mkdir head wc readlink dirname cut sort; do ln -sf "$(command -v "$t")" "$b/$t"; done
     echo "$b"
 }
 
@@ -632,4 +632,17 @@ $SUBPROC_SHELL"
     [ "$status" -eq 2 ]
     [[ "$output" == *"unparsable Python"* ]]
     [[ "$output" != *"security rule"* ]]
+}
+
+@test "a file listing that cannot run blocks (fail closed), never reads as 'no files'" {
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    local b; b=$(ssc_sysbin)
+    rm -f "$b/sort"   # the listing pipes through sort
+    ln -sf "$REPO_ROOT_SSC/.venv/bin/ruff" "$b/ruff"
+    local input; input=$(make_input 'git commit -m "feat: run"')
+    cd "$BATS_TMP"
+    run env HOME="$BATS_TMP_HOME" PATH="$b" "$BASH" "$(ssc_forge)" <<< "$input"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"cannot list the files"* ]]
 }

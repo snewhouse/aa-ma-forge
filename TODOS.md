@@ -18,6 +18,18 @@
 **Priority:** P3
 **Depends on:** —
 
+### Move the commit-time security checks into a git pre-commit hook (upgrade path, ADR-0022 amendment)
+**What:** run the Ruff S subset and the secret/path regexes from the repo's pre-commit framework (inside git, on the real index, for every commit form), and shrink `security-static-check.sh` to a nudge.
+**Why:** the PreToolUse hook only sees the Bash command text, so env-var commits, aliases, `cd && git commit` and scripts bypass it by design (six review rounds, 2026-10-12/13). **Effort:** M · **Priority:** P2
+
+### A reusable `secops-ci` template for other repos
+**What:** a drop-in set (security.yml jobs ruff-security / gitleaks / deps, `.gitleaksignore`, `.pip-audit-ignore`, `dependabot.yml`, a pre-commit gitleaks entry) plus a short install note in `Skill(secops)`.
+**Why:** M8's CI gates exist only in aa-ma-forge; new, old and inherited repos get none of them (Ste, 2026-10-13). **Effort:** M · **Priority:** P2
+
+### security-static-check: per-file forks cap a commit at roughly 700 .py files
+**What:** one `git checkout-index --prefix=<tmp>/` plus a single `ruff check`, mapping paths back.
+**Why:** about 14 ms per staged file; the 10 s hook timeout is a non-blocking error, so a larger commit passes unscanned (M8 §6.6/§6.8). **Effort:** S · **Priority:** P3
+
 ### Review the security pins Dependabot cannot bump (quarterly; next 2027-01-12)
 **What:** check for newer releases and bump them by hand:
 - gitleaks: `security.yml` tarball URL + sha256, `.pre-commit-config.yaml` rev + `# frozen:` comment, `tests/security/test_gitleaks.py` VERSION/TARBALL_SHA256. `test_precommit_rev_and_ci_tarball_name_the_same_gitleaks_version` keeps them aligned.

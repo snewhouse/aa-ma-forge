@@ -15,6 +15,30 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
 
 ---
 
+## Contents
+
+- [1 — Read it / understand it / map it](#1--read-it--understand-it--map-it)
+- [2 — Tech stack & versions](#2--tech-stack--versions)
+- [3 — Architecture & data flow](#3--architecture--data-flow)
+- [4 — Directory map & structure](#4--directory-map--structure)
+- [5 — Build / run / debug locally](#5--build--run--debug-locally)
+- [6 — Tests](#6--tests)
+- [7 — CI gates](#7--ci-gates)
+- [8 — Env & config (NO SECRETS)](#8--env--config-no-secrets)
+- [9 — Conventions](#9--conventions)
+- [10 — Versioning & releases · git workflow](#10--versioning--releases--git-workflow)
+- [11 — Rules & agent instructions](#11--rules--agent-instructions)
+- [12 — Integrations · observability · security posture](#12--integrations--observability--security-posture)
+- [13 — Repo health snapshot](#13--repo-health-snapshot)
+- [14 — Pros / cons / watch-outs](#14--pros--cons--watch-outs)
+- [15 — Contribute safely](#15--contribute-safely)
+- [16 — Add a feature](#16--add-a-feature)
+- [17 — Glossary](#17--glossary)
+- [18 — Provenance (every file gets this block)](#18--provenance-every-file-gets-this-block)
+- [19 — Author / review / improve AGENTS.md  *(Standard & Deep only — never Quick; consent-gated)*](#19--author--review--improve-agentsmd--standard--deep-only--never-quick-consent-gated)
+- [Standard-tier agent ↦ dimension assignment (no overlap)](#standard-tier-agent--dimension-assignment-no-overlap)
+- [Deep-tier agent ↦ dimension assignment](#deep-tier-agent--dimension-assignment)
+
 ## 1 — Read it / understand it / map it
 - **What:** what the project *is* and *does*; the repo tour; ASCII directory tree (top 3 levels);
   entry points; the 3–5 critical execution paths a newcomer must trace.
@@ -35,7 +59,7 @@ S3 How-the-team-works, S4 Repo-health) map onto the same owners; the main thread
   migration notes).
 - **Reuse:** `.planning/codebase/STACK.md`; `.planning/intel/stack.json`/`deps.json`;
   a fresh `/assess-codebase` report's `deps.vulns` metric and `deps.vuln` findings. **Deep tier:** WebSearch + Context7 MCP
-  (`resolve-library-id` → `query-docs` / `get-library-docs`) for each major framework — "current
+  (`resolve-library-id` → `query-docs`) for each major framework — "current
   stable version? EOL date? known breaking changes from <pinned>?".
 - **Inspect:** `package.json`+lockfile, `pyproject.toml`/`requirements*.txt`/`Pipfile`/`uv.lock`/`poetry.lock`,
   `go.mod`/`go.sum`, `Cargo.toml`/`Cargo.lock`, `pom.xml`/`build.gradle*`, `Gemfile`/`Gemfile.lock`,

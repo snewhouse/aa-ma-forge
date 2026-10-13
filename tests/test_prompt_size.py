@@ -40,7 +40,6 @@ TOC_ALLOWLIST = frozenset(
         "skills/aa-ma-plan-workflow/references/COMPLEXITY_ROUTING.md",
         "skills/aa-ma-plan-workflow/references/PHASE_0_OPERATIONAL_READINESS.md",
         "skills/aa-ma-plan-workflow/references/PHASE_2_BRAINSTORM.md",
-        "skills/aa-ma-plan-workflow/references/PHASE_3_RESEARCH.md",
         "skills/aa-ma-plan-workflow/references/PHASE_4_PLAN_GENERATION.md",
         "skills/aa-ma-plan-workflow/references/PHASE_5_ARTIFACT_CREATION.md",
         "skills/aa-ma-plan-workflow/references/SYNC_PROTOCOL.md",
@@ -55,9 +54,7 @@ TOC_ALLOWLIST = frozenset(
         "skills/understand-codebase/references/AGENTS-MD-TEMPLATE.md",
         "skills/understand-codebase/references/ANALYSIS-CONTRACT.md",
         "skills/understand-codebase/references/DEEPDIVE-TEMPLATES.md",
-        "skills/understand-codebase/references/DIMENSIONS.md",
         "skills/understand-codebase/references/ONBOARDING-TEMPLATE.md",
-        "skills/understand-codebase/references/REUSE-MAP.md",
         "skills/understand-codebase/references/RULES-FILES.md",
     }
 )

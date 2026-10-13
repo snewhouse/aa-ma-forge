@@ -22,6 +22,20 @@
 **What:** run the Ruff S subset and the secret/path regexes from the repo's pre-commit framework (inside git, on the real index, for every commit form), and shrink `security-static-check.sh` to a nudge.
 **Why:** the PreToolUse hook only sees the Bash command text, so env-var commits, aliases, `cd && git commit` and scripts bypass it by design (six review rounds, 2026-10-12/13). **Effort:** M · **Priority:** P2
 
+### sole-dev-merge C3/D and security-static-check LOWs (PR #30 Stage C, 2026-10-13)
+**What:**
+- C3 runs `ruff check --select S` without `--force-exclude`, so it reports the deliberate `shell=True` fixtures under `extend-exclude` (`tests/fixtures/canary/`, `tests/fixtures/evals/py-secops/`) as CRITICAL. Stage D's S602 auto-fix would then rewrite them and break the canary tests. Add `--force-exclude`, and never let Stage D edit an excluded path.
+- C3 is not `--isolated`, so a PR can mute its own findings through per-file-ignores or `noqa`. Flag S ignores the PR adds.
+- Stage D reads its findings from predictable `/tmp` paths; use a `mktemp -d` per run.
+- `"${FIXED_KEYS[@]}"` aborts under `set -u` on bash < 4.4 when the array is empty.
+- security-static-check:
+  - The header doesn't document that unstaged-modified (and now untracked) `.py` are scanned on a plain commit, which can false-block.
+  - The bypass marker can't override a `-C` refusal.
+  - Only the first `-C` is entered.
+  - A text hunk in one diff hides a `Binary files` line in the other.
+
+**Why:** the Stage C1/C2 review of PR #30 found 7 LOWs and 2 disputed CRITICALs (Ste: notes + TODOS). **Effort:** S · **Priority:** P3
+
 ### A reusable `secops-ci` template for other repos
 **What:** a drop-in set (security.yml jobs ruff-security / gitleaks / deps, `.gitleaksignore`, `.pip-audit-ignore`, `dependabot.yml`, a pre-commit gitleaks entry) plus a short install note in `Skill(secops)`.
 **Why:** M8's CI gates exist only in aa-ma-forge; new, old and inherited repos get none of them (Ste, 2026-10-13). **Effort:** M · **Priority:** P2

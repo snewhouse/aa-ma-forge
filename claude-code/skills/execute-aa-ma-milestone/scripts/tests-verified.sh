@@ -70,8 +70,15 @@ REF_FROM="merge-base ${BASE:0:7}"
 # why: stderr dropped — a reference.md new on this branch is absent at the merge-base
 if git cat-file -e "${BASE}:${REF}" 2>/dev/null; then
     REF_TEXT=$(git show "${BASE}:${REF}") || blocked "cannot read ${REF} at the merge-base ${BASE}."
-# A plan created on this branch has nothing at the merge-base; its own copy is all there is (a
-# brand-new plan is self-authored either way). Every existing plan keeps the merge-base guard.
+# The plan exists on the default branch, but this branch forked before it did: take the default
+# branch's copy, never the branch's own (an early fork must not self-pass an existing plan).
+# why: stderr dropped — absent on the default branch too means the plan is new
+elif git cat-file -e "${BASE_REF}:${REF}" 2>/dev/null; then
+    REF_TEXT=$(git show "${BASE_REF}:${REF}") || blocked "cannot read ${REF} on ${BASE_REF}."
+    REF_FROM="${BASE_REF} (this branch forked before the plan reached it)"
+    echo "NOTE: ${REF} is not at the merge-base but is on ${BASE_REF}; using the ${BASE_REF} copy."
+# A plan created on this branch exists nowhere upstream; its own copy is all there is (a
+# brand-new plan is self-authored either way). Every existing plan keeps an upstream guard.
 # why: stderr dropped — not yet committed falls back to the working-tree file
 elif git cat-file -e "HEAD:${REF}" 2>/dev/null; then
     REF_TEXT=$(git show "HEAD:${REF}") || blocked "cannot read ${REF} at HEAD."

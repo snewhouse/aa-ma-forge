@@ -539,3 +539,10 @@ DECISION ruff-only () — approved by Ste
 - Q3: **T9 and T8** pulled forward into Milestone 15 (T9 user-scope codemem MCP via stable symlink + global git excludes; T8 routing rule). Evidence (addendum §11, verified): `which codemem` empty; plan.md:792 M10 hook "codemem absent from PATH → one notice". M10's contract decides how the hook resolves codemem.
 - Q1: **re-baseline** the roadmap week targets from actuals (CCI M1–M9 in ~6 calendar days vs ~1 day/week planned).
 - T12 (X4 → TODOS.md) runs at the start of Milestone 15. M10 not started.
+
+## [2026-10-13] SCOPE CHANGE: Milestone 15 — Codemem freshness (report 03 T2–T6) added before Milestone 10 (Ste)
+- Why: G13 — M10/M11 build `IMPACT_VERIFIED` on codemem; its index was 263 commits stale and `codemem refresh` is a placeholder (report 03 §2; verified `cli.py:80-94` "M2 placeholder"). A gate computed from a stale index gives confidently wrong answers.
+- What: `## Milestone 15: Codemem freshness (report 03 T2–T6)` appended (B1, never "9b"); sub-steps 15.0–15.9 = M9 post-merge + T12, PROTOTYPE (refresh cap), T2, T3, T4, T5, T6, T7 (Ste added), T9, T8 (Ste: both). Gate HARD, Audit-Profile full, Critical-Path hook-modification, Prototype-Required YES, 6 days, 75%.
+- M10: `Dependencies: Milestone 9, Milestone 15`; 10.0 becomes "Post-merge of M15"; its TESTS_VERIFIED AC no longer claims the first live run (fence 3 ran live at the M9 gate). plan.md: M15 Contract, regenerated Milestone graph (15 edges), effort row (total 25 → 31 days), §8 N.0 mapping.
+- B1 precondition proven before the edit (fixture: M10 → Milestone 15): aa-ma-gate reads M10 and M15; `aa_ma.deps check` rc 0; graph edge M15 → M10; advisory "Milestone 10 is ACTIVE but Milestone 15 … PENDING"; canonical lint 0 violations. After the edit: gate reads M15 (HARD, hook-modification, YES, 10 PENDING), deps check rc 0, test_active_plans_canonical 26/26, aa-ma-lint-views edges=25 checked=25 phantom=0.
+- Excluded: T10 (Python parity), T11 (X3 evals) — later work.

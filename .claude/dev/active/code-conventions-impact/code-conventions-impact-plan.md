@@ -314,6 +314,7 @@ flowchart LR
   M12("Milestone 12: Doctrine packaging: `coding-standards.md`, `language-conventions`, dedupe, budget (T11 §4, T12)")
   M13("Milestone 13: Docs, counts, TODOS (pre-release)")
   M14("Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main)")
+  M15("Milestone 15: Codemem freshness (report 03 T2–T6)")
   M1 --> M2
   M2 --> M3
   M3 --> M4
@@ -323,10 +324,12 @@ flowchart LR
   M7 --> M8
   M8 --> M9
   M9 --> M10
+  M15 --> M10
   M10 --> M11
   M11 --> M12
   M12 --> M13
   M13 --> M14
+  M9 --> M15
 ```
 
 _Derived from tasks.md by `aa_ma_deps graph`; never hand-edited._
@@ -942,6 +945,36 @@ Risks:
 2. `release.sh` fails mid-way. Mitigation: `docs/runbooks/release.md` rollback, with the dry run first.
 3. Eval failures block the release mood but not the release. Mitigation: evals are advisory and the summary is logged.
 
+### Milestone 15 — Codemem freshness (report 03 T2–T6) — `Prototype-Required: YES`
+
+_Scope change 2026-10-13 (Ste, handover Part C: Q2 = B1, Q3 = T8 + T9, plus T7). Runs after M9 and before M10: M10–M11 build `IMPACT_VERIFIED` on codemem, whose index was 263 commits stale with a placeholder `codemem refresh` (report 03 §2; G13). Source: `~/projects/github_private/ooh_ideas/research/03-codemem-graphify-report.md` §8 P0/P0+/P1, §Implementation Tasks T2–T9, T12._
+
+#### Contract
+```
+Audit-Profile: full
+Critical-Path: hook-modification
+Prototype-Required: YES
+Complexity: 75%
+Effort: 6 days
+Files:
+  Modify  packages/codemem-mcp/src/codemem/cli.py   # `codemem refresh` → real refresh_index driver (no placeholder)
+  Modify  packages/codemem-mcp/src/codemem/mcp_tools/__init__.py   # ensure_built: staleness check + bounded refresh (5 s cap = cold-build SLO); other-process wait 10 s → cap
+  Modify  packages/codemem-mcp/src/codemem/incremental.py   # refresh_index (:74) under the cap; abort leaves writer lock + WAL consistent
+  Modify  claude-code/codemem/mcp/server.py   # _with_autobuild (:266): index_sha, head_sha, stale (true|false|unknown), stale_reason (X2)
+  Modify  claude-code/codemem/hooks/post-commit.sh   # own step: flock + start-SHA (D12); graphify update . → graphify-out/.built_sha only on exit 0
+  Modify  claude-code/hooks/aa-ma-session-start.sh   # X1 `Code-intel:` line; reads sidecars directly; < 200 ms; fails open, logged
+  Modify  claude-code/skills/execute-aa-ma-milestone/references/*.md   # CODE_INTEL_REFRESH at the boundary (pre-commit HEAD); graphify WARN-only (D7 code-only)
+  Modify  claude-code/skills/impact-analysis/SKILL.md, claude-code/skills/plan-verification/SKILL.md   # record CODE_INTEL_STALE when proceeding on stale results
+  Modify  claude-code/codemem/commands/codemem.md, packages/codemem-mcp/README.md, docs/codemem/kill-criteria.md   # T7 doc drift + 2026-10 review
+  Modify  scripts/install.sh   # if the post-commit wiring changes
+  Modify  TODOS.md   # X4 entry (T12)
+  Outside ~/.local/share/codemem-plugin (symlink, D13), user-scope MCP registration, global git excludes (T9); ~/.claude/rules/code-intel-routing.md, graphify skill description, GRAPHIFY_QUERY_LOG_DISABLE=1 (T8, D14) — HITL, backups first
+  Test    tests/codemem/: refresh AC (a)–(e) + edge cases + kill-mid-refresh recovery; X2 golden tests (additive); locked-index CODE_INTEL_STALE
+  Test    tests/hooks/: post-commit race (pause/release, A last) + killed run keeps the sidecar; session-start Code-intel output rules + < 200 ms; shared SHA-vs-HEAD fixture shared with X2
+```
+Steps: **15.0** Post-merge of M9 + X4 TODOS (HITL). **15.1 PROTOTYPE (HITL)** the refresh cap: thread vs subprocess, kill mid-run, next refresh recovers. **15.2** T2 bounded refresh (AFK, TDD). **15.3** T3 X2 envelope + `CODE_INTEL_STALE` (AFK, TDD). **15.4** T4 post-commit step + sidecar (AFK, TDD). **15.5** T5 briefing line (AFK, TDD). **15.6** T6 `CODE_INTEL_REFRESH` (HITL). **15.7** T7 doc drift + kill-criteria (AFK). **15.8** T9 user-scope MCP (HITL, outside repo). **15.9** T8 routing rule (HITL, outside repo).
+Risks: (1) The cap cannot abort a synchronous refresh safely. Mitigation: 15.1 prototype decides thread vs subprocess before 15.2; serve `stale=true, reason=timeout` rather than block. (2) The post-commit background run races or stamps a newer SHA. Mitigation: `flock` + start-SHA (D12) and the pause/release test. (3) The user-scope MCP path moves again (bio312 `.pth` precedent). Mitigation: one stable symlink (D13) + the session-start missing-path check.
+
 ## 5a. Review Focus (writing-plans)
 
 The five input classes the spec implies that are most likely to bite. Each has a pinned test in its owning milestone:
@@ -969,7 +1002,8 @@ The five input classes the spec implies that are most likely to bite. Each has a
 | 12 | Doctrine packaging | 2d | 60% | hook-modification, HITL outside repo |
 | 13 | Docs, counts, TODOS | 0.5d | 30% | docs-only |
 | 14 | Release v0.18.0 + cutover (on main) | 0.5d | 40% | version-pipeline |
-| | **Total** | **25 days** | | 2 steps ≥80% → deep review (Skill(complexity-router)) |
+| 15 | Codemem freshness (scope change 2026-10-13; runs before M10) | 6d | 75% | hook-modification, Prototype, HITL outside repo |
+| | **Total** | **31 days** | | 2 steps ≥80% → deep review (Skill(complexity-router)) |
 
 ## 7. Global Rollback Strategy (element #7)
 
@@ -993,7 +1027,8 @@ The five input classes the spec implies that are most likely to bite. Each has a
   - 4.0 ← 3.6 live probes
   - 8.0 ← M7 hooks install + 7.4 live additionalContext check
   - 9.0 ← M8 hook install
-  - 10.0 ← M9 install, plus `TESTS_VERIFIED` must appear for M10 at its own gate
+  - 15.0 ← M9 install (scope change 2026-10-13: M15 runs before M10)
+  - 10.0 ← M15 install, plus `TESTS_VERIFIED` must appear for M10 at its own gate
   - 11.0 ← 10.6 live install
   - 12.0 ← M11 install
   - 13.0 ← 12.6 live install

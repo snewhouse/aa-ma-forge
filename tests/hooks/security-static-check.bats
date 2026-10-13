@@ -646,3 +646,19 @@ $SUBPROC_SHELL"
     [ "$status" -eq 2 ]
     [[ "$output" == *"cannot list the files"* ]]
 }
+
+@test "committing from a subdirectory scans root-relative paths correctly → exit 2" {
+    commit_tracked_then_dirty "src/w.py"
+    mkdir -p "$BATS_TMP/src"
+    local input; input=$(make_input 'git commit -am "feat: w"')
+    cd "$BATS_TMP/src"
+    HOME="$BATS_TMP_HOME" run bash -c "printf '%s' \"\$1\" | bash \"$HOOK\"" _ "$input"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"src/w.py"*"S602"* ]]
+}
+
+@test "git -C <subdir> commit scans root-relative paths correctly → exit 2" {
+    commit_tracked_then_dirty "src/w.py"
+    run_hook 'git -C src commit -am "feat: w"'
+    [ "$status" -eq 2 ]
+}

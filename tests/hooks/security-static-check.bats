@@ -662,3 +662,33 @@ $SUBPROC_SHELL"
     run_hook 'git -C src commit -am "feat: w"'
     [ "$status" -eq 2 ]
 }
+
+# An untracked file is staged by `git add` in the SAME command, after PreToolUse fires: it is in
+# neither diff when the hook runs, so the listing must include untracked, non-ignored .py.
+write_untracked() {
+    mkdir -p "$BATS_TMP/$(dirname "$1")"
+    printf '%s\n' "$2" > "$BATS_TMP/$1"
+}
+
+@test "git add <new>.py && commit: an untracked shell=True file is scanned → exit 2" {
+    write_untracked "src/new.py" "import subprocess
+$SUBPROC_SHELL"
+    run_hook 'git add src/new.py && git commit -m "feat: new"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"src/new.py"*"S602"* ]]
+}
+
+@test "git add <new>.py && commit: a secret literal in an untracked file is caught → exit 2" {
+    write_untracked "src/conf.py" "$HARD_KEY"
+    run_hook 'git add src/conf.py && git commit -m "feat: conf"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"src/conf.py:1"*"secret"* ]]
+}
+
+@test "a gitignored untracked .py is not committable → not scanned, exit 0" {
+    printf 'scratch/\n' > "$BATS_TMP/.gitignore"
+    write_untracked "scratch/tmp.py" "import subprocess
+$SUBPROC_SHELL"
+    run_hook 'git commit -m "chore: nothing"'
+    [ "$status" -eq 0 ]
+}

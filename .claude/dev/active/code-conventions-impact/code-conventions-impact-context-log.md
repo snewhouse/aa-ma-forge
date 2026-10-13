@@ -478,3 +478,29 @@ DECISION ruff-only () — approved by Ste
 - Approved by: Ste (AskUserQuestion, session m9tostart)
 - Decision: APPROVED — Status Accepted (ADR + INDEX)
 - Records: thin fence + skill script (500-line cap); merge-base Test-Command / optional Pass-Regex (bash ERE, last matching line, numeric group 1); argv via shlex, metacharacters rejected, 540 s timeout; no auto-rerun; opt-out `Test-Command: none — <reason>` with `GATE APPROVAL: Test-Command none — <heading>` + `Decision: APPROVED` (HEAD context-log, §7.1 convention; Ste kept it); symlinked provenance path refused; other appenders → TODOS P1.
+
+## [2026-10-13] Milestone 9 boundary: §6.3 impact analysis and §6.6 review (Ste decisions)
+- §6.3 consolidated impact (main...HEAD, 21 files): Overall MEDIUM, no HIGH.
+  - `scripts/tests-verified.sh` (new): one caller, the §6.7 fence 3 block. LOW.
+  - `SKILL.md` §6.7/§7.1: §7.1's approval check is now STRICTER (block-scoped, exact title, last block decides). It could reject an approval that only passed through the old `grep -A8` bleed. Checked against this plan's real context-log: all 7 HARD approvals (M1–M3, M5–M8) still pass; M9 correctly does not yet. MEDIUM (contract tightened on purpose).
+  - `hooks/lib/aa-ma-parse.sh`: +`aa_ma_has_gate_approval` (Exports header updated); no existing function changed; sourced by every hook. LOW.
+  - `plan_parsers.py`: `CANONICAL_TDD_WAIVERS` keeps the same 5 values (187 consumer tests pass). LOW.
+  - `engineering-standards.md` (auto-loaded rule): the generated TDD block and the §5 "Tests written and passing" row. LOW.
+  - Three skill files now point the TDD skip rule at §2 instead of the retired "infrastructure-only" list (guarded by `test_no_skill_restates_the_retired_skip_list`). LOW.
+  - Docs, ADR, spec, template, scribe, pyproject comments, `regen-generated.sh`, `TOC_ALLOWLIST` −1. LOW.
+  - Post-merge: `install.sh` (the spec is copied, not symlinked).
+- §6.6: three reviews (reuse, quality, efficiency). 0 CRITICAL. Verified WARNINGs fixed.
+  - A (Ste: shared helper, fix both): approval bleed in fence 3 and the existing §7.1 → `aa_ma_has_gate_approval`. RED 6769f2c, GREEN 774ee15. Passes under mawk 1.3.4.
+  - B (Ste: HEAD fallback): a reference.md new on the branch now uses its HEAD copy (or the uncommitted working-tree copy), with a notice. Existing plans keep the merge-base guard.
+  - C–F (Ste: fix now), RED 6f9992e, GREEN d5ae802:
+    - the provenance append is checked, and the symlink is re-checked at append time;
+    - the Pass-Regex scan is filtered by grep (also sees a last line with no newline);
+    - `timeout -k ${AA_MA_TEST_KILL_AFTER:-30}`, and 137 counts as a timeout;
+    - rc 126/127 is named as "could not run";
+    - the overclaim is reworded;
+    - the gate-fences.md backtick and "above" wording are fixed;
+    - the §5 checklist row is updated;
+    - the count loop is unstringly-typed.
+  - G → TODOS: process-group kill, `setsid` children, comment/fence-aware reference.md parsing, a shared default-branch helper. The generator in a test module is acknowledged as the existing repo pattern (test_plugin_surface.py).
+  - Also fixed under §6.3: the stale TDD skip list in three skills (RED/GREEN a58c5a4), and a TOC for the touched SKILL_INTEGRATION.md.
+- Tests: test_tests_verified.bats 35/35; aa-ma-gate-approval.bats 10/10; mutation 11/11 killed (one false kill from an unescaped sed `&` was caught and re-run as a valid mutant); full bats 555/555, pytest 3010/6/0, `draw --check` OK.

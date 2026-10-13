@@ -65,6 +65,9 @@ Extract all **immutable facts** from the plan:
 ```markdown
 # [task-name] Reference
 
+Test-Command: [the plan's test command; default `uv run pytest`; a task with no tests: `none — <reason>`]
+Test-Command-Pass-Regex: [only when the plan declares one — a non-pytest runner; group 1 = pass count]
+
 ## Immutable Facts and Constants
 
 _These are non-negotiable facts extracted from the plan and research._

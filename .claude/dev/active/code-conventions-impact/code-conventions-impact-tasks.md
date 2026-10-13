@@ -881,12 +881,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. RED 19c7a92 → GREEN 50476c0. `plan_parsers.TDD_WAIVER_RULES` (dict: waiver → rule) is now the single source; `CANONICAL_TDD_WAIVERS = frozenset(TDD_WAIVER_RULES)` (same 5 values; consumers: plan_parsers internal + test_tdd_waiver_parser, unchanged). engineering-standards.md §2 TDD bullet is a `<!-- BEGIN/END GENERATED tdd-waivers -->` block: "infrastructure-only"/"config-only" gone → `tooling-config`; `refactor` = existing tests must stay green; `hotfix-emergency` = requires a follow-up test task. New target in scripts/regen-generated.sh (no new script): `uv run python tests/test_tdd_waiver_doc_sync.py` (the test file regenerates when run as a script, like test_plugin_surface.py); regen end-to-end rc 0, idempotent; stamp-only docs/architecture churn reverted, `codemem draw --check` OK. tests/test_tdd_waiver_doc_sync.py 4/4; all plan_parsers consumers 187 passed/1 skipped; doctests 6/6. Touching plan_parsers.py pulled in its 4 pre-existing D301s (ruff on touched files): raw docstrings with halved backslashes, every __doc__ verified identical via ast.
 
 ### Sub-step 9.3: Delete unbacked pyproject claims
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 9.2
 - Acceptance Criteria:
   - The `:49` "≥90% coverage gate" and `:121` "CI perf job" claims removed (P5); `! grep -nE 'coverage gate|perf job' pyproject.toml` succeeds.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. 5ae7f0e. Claims were at pyproject.toml :130 ("CI's perf job opts in with `-m perf`") and :146 (pytest-cov "coverage gate ≥90%"), not :49/:121 (validator). Verified unbacked first: CI pytest runs `--ignore=tests/perf` (security.yml:253) and no `--cov`/`fail_under` exists anywhere. Comments now say: run perf locally with `-m perf` (CI does not run it); pytest-cov is for on-demand reports, no threshold enforced. pytest-cov dependency kept (not in AC). `! grep -nE 'coverage gate|perf job' pyproject.toml` succeeds; TOML parses; `uv lock --check` resolves; the 10 test files that read pyproject.toml: 333 passed.
 
 ### Sub-step 9.4: ADR + spec/template/scribe updates
 - Status: PENDING

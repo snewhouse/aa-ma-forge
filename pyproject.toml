@@ -75,6 +75,7 @@ extend-select = [
     "PGH003", "PGH004", # blanket `type: ignore` / `noqa`: name the code you silence (T8)
     "C901",             # cyclomatic complexity (KISS, T11 §3)
     "PLR0913",          # too many arguments (KISS, T11 §3)
+    "W605",             # invalid escape sequence: a SyntaxWarning on Python 3.12+, an error later
 ]
 # Touched files comply in full (D8): CI lints only the files a PR touches, so the
 # pre-existing docstring gaps are paid down as files are edited, not all at once.

@@ -18,7 +18,7 @@ This preserves backward compat with `examples/` plans authored before v0.5.0.
 **§13 sigil edges verified — HARD, opt-in** (ADR-0015; Execution Checklist row in
 `engineering-standards.md` §5). HARD ≠ `gate.py`: `aa-ma-gate` reads only `tasks.md`,
 while §13 lives in `plan.md`, so this item is enforced here and the gate CLI, its kv
-envelope and the fence above are unchanged. It applies only when the plan's §13 carries
+envelope and the gate fence (fence 1) are unchanged. It applies only when the plan's §13 carries
 a sigil edge (`-->|"@import"|`, `-->|"@call"|`, …); a plan without one is a no-op.
 
 | Lint says | Verdict |
@@ -34,7 +34,7 @@ What still passes, counted in `unknown=K`: a claim that cannot be checked *yet* 
 genuinely planned `(new)` file, a plugin sigil (`@skill`/`@command`/`@agent`/`@hook`), a
 language the graph does not model. `checked=C` is how many edges were actually compared
 with the code. The fence run is the check; the `DIAGRAM_VERIFIED` line is its record.
-This fence must stay AFTER the gate fence above: `tests/hooks/aa-ma-gate-python.bats`
+This fence must stay AFTER the gate fence (fence 1): `tests/hooks/aa-ma-gate-python.bats`
 (`_gate_fence`) executes the *first* ```bash fence after the `### 6.7 ` heading, and
 `tests/hooks/test_diagram_verified.bats` asserts the order.
 
@@ -45,17 +45,20 @@ It is the THIRD ```bash fence in §6.7: the two fences above keep their places, 
 `aa-ma-gate-python.bats` runs the first and `test_diagram_verified.bats` the second.
 
 **Inputs, from the merge-base copy of `<task>-reference.md`** (`git merge-base <origin/HEAD | main | master> HEAD`),
-so a branch cannot change what proves it:
+so a branch cannot change the command or the pass rule that prove it (the branch still controls
+the code and test configuration under test). A reference.md new on the branch has no merge-base
+copy: its HEAD copy is used, with a notice (a brand-new plan is self-authored either way):
 
 | Line | Meaning |
 |------|---------|
-| `Test-Command: <cmd>` | The command, run as a shlex argv (never `bash -c`). Absent → `uv run pytest`. `; \| & $ ` < >` are rejected. |
+| `Test-Command: <cmd>` | The command, run as a shlex argv (never `bash -c`). Absent → `uv run pytest`. ``; \| & $ ` < >`` are rejected. |
 | `Test-Command-Pass-Regex: <ERE>` | Optional, for a runner other than pytest. Group 1 must capture the pass count. |
 | `Test-Command: none — <reason>` | Opt-out. Needs, in context-log.md: `## [date] GATE APPROVAL: Test-Command none — <milestone heading>` then `- Decision: APPROVED`. |
 
 A repeated line, an empty value or an invalid regex is BLOCKED before anything runs.
 
-**Verdicts** (timeout `${AA_MA_TEST_TIMEOUT:-540}` s):
+**Verdicts** (timeout `${AA_MA_TEST_TIMEOUT:-540}` s; a test that ignores SIGTERM is killed
+`${AA_MA_TEST_KILL_AFTER:-30}` s later):
 
 | Outcome | Verdict |
 |---------|---------|
@@ -63,7 +66,9 @@ A repeated line, an empty value or an invalid regex is BLOCKED before anything r
 | rc 0, Pass-Regex: the LAST output line matching it gives an all-digit group 1 | PASS — `passed=N` |
 | rc 0 but no such line, or group 1 not a number | BLOCKED |
 | rc ≠ 0 (rc 5 also names the opt-out) | BLOCKED — fix the tests and re-run; no auto-rerun |
-| timeout (rc 124) | BLOCKED — raise the timeout, run in the background |
+| timeout (rc 124, or 137 after the kill) | BLOCKED — raise the timeout, run in the background |
+| rc 126 / 127 (the command cannot start) | BLOCKED — a configuration error, named as such |
+| provenance.log unwritable, or a symlink / non-file at append time | BLOCKED — never a PASS without its line |
 | opt-out with its GATE APPROVAL | `TESTS_VERIFIED — <heading> — skipped: <reason>` |
 
 Why the LAST matching line, not the final line: real testthat 3.2.3 run through `Rscript` printed a

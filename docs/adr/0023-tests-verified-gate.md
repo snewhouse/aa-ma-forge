@@ -76,7 +76,11 @@ change, and it ships with the skill symlink, so `install.sh` needs no change.
 **Positive:**
 - COMPLETE now needs the suite to pass, at the boundary, with the count recorded.
 - R (testthat), Nextflow and other runners can pass through `Test-Command-Pass-Regex:`.
-- Inputs are read from the merge-base copy, so a branch cannot change them to pass itself.
+- Inputs are read from the merge-base copy, so a branch cannot change the command or the pass
+  rule that prove it (it still controls the code and test configuration under test). A plan
+  whose reference.md is new on the branch uses its HEAD copy, with a notice (§6.6, Ste).
+- The approval check is block-scoped and shared with §7.1 (`aa_ma_has_gate_approval`); the
+  `grep -A8` it replaced let a REJECTED block borrow the next block's APPROVED (§6.6).
 
 **Negative:**
 - The gate takes as long as the suite (the forge: about 2 minutes). Suites over 540 s raise

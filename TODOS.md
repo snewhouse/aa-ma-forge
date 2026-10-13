@@ -36,6 +36,25 @@
 
 **Why:** the Stage C1/C2 review of PR #30 found 7 LOWs and 2 disputed CRITICALs (Ste: notes + TODOS). **Effort:** S · **Priority:** P3
 
+### sole-dev-merge Stage G3/G4: don't break when run from a worktree
+**What:**
+- Stage G3 (`references/stage-g-merge.md:158`) always runs `gh pr merge "$PR_NUM" --"$MERGE_STRATEGY" --delete-branch`. When the branch lives in a worktree, gh's local step fails with `fatal: 'main' is already used by worktree at …`, and the remote branch is left behind.
+- Stage G4 (`:220`) runs `git checkout -q "$DEFAULT_BRANCH"` under `set -euo pipefail`, which fails the same way.
+- Fix: detect a worktree with `[ "$(git rev-parse --path-format=absolute --git-common-dir)" != "$(git rev-parse --path-format=absolute --git-dir)" ]`. Without `--path-format=absolute` the comparison reports a worktree when run from a subdirectory of the main checkout (probed 2026-10-13, git 2.53). In a worktree:
+  - G3 merges without `--delete-branch`, then runs `git push origin --delete "$ORIGINAL_BRANCH"` and asserts `git ls-remote --heads origin "$ORIGINAL_BRANCH"` prints nothing.
+  - G4 fast-forwards the main checkout (`git -C "$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")" pull --ff-only`) instead of switching branches.
+- Update `tests/commands/sole-dev-merge/test_stage_g_merge.bats:100,112` (they pin `--delete-branch`), and add worktree-case tests.
+
+**Why:** this happened on PRs #18, #19, #25, #27 and #30 (global lesson L-1332). The skill's own G3 contradicts the lesson's rule, so the lesson alone can't prevent it. **Effort:** S · **Priority:** P2
+
+### sole-dev-merge Stage F: update an existing PR through REST, not `gh pr edit`
+**What:**
+- Stage F (`references/stage-f-push.md:50`) updates an existing PR with `gh pr edit --body-file "$PR_BODY_FILE"`. On this repo that call hits a Projects-classic GraphQL error (`repository.pullRequest.projectCards`) and the body is not updated.
+- Fix: replace it with `gh api -X PATCH "repos/{owner}/{repo}/pulls/$PR_NUM" -F body=@"$PR_BODY_FILE"`, resolving `PR_NUM` from `gh pr view` first. Read the body back and fail loud if it's unchanged.
+- Update `tests/commands/sole-dev-merge/test_stage_f_idempotent.bats:106` (it asserts `gh pr edit` is called).
+
+**Why:** on PR #30 (2026-10-13) the body edit silently didn't land, and a chained `gh pr ready` never ran. Only a read-back caught it (global lesson L-1309). **Effort:** S · **Priority:** P2
+
 ### A reusable `secops-ci` template for other repos
 **What:** a drop-in set (security.yml jobs ruff-security / gitleaks / deps, `.gitleaksignore`, `.pip-audit-ignore`, `dependabot.yml`, a pre-commit gitleaks entry) plus a short install note in `Skill(secops)`.
 **Why:** M8's CI gates exist only in aa-ma-forge; new, old and inherited repos get none of them (Ste, 2026-10-13). **Effort:** M · **Priority:** P2

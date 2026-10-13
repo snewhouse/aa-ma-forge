@@ -375,3 +375,11 @@ PASS_RE='Test-Command-Pass-Regex: \[ FAIL 0 \| WARN [0-9]+ \| SKIP [0-9]+ \| PAS
     [ "$status" -eq 1 ]
     [ ! -s "$WORK/victim" ]
 }
+
+@test "opt-out: a REJECTED approval followed by another APPROVED block does not count (no bleed)" {
+    _base_ref 'Test-Command: none — docs-only milestone'
+    printf '## [2026-10-13] GATE APPROVAL: Test-Command none — %s\n- Decision: REJECTED\n\n## [2026-10-13] GATE APPROVAL: Milestone 1: Done already\n- Decision: APPROVED\n' "$HEADING" > "$T/t-context-log.md"
+    _run_fence
+    [ "$status" -eq 1 ]
+    run ! _line
+}

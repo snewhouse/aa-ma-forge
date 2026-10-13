@@ -15,6 +15,7 @@
 #     AA_MA_MILESTONE_ERE                     -> ERE mirroring grammar.py MILESTONE_RE (display readers only)
 #     aa_ma_gate <file> [--milestone N] [--step N.M] -> kv lines from the Python SSoT gate; rc 0-4, 127 if it cannot run  (ENFORCING)
 #     aa_ma_gate_field <key>  (stdin: kv)     -> value after the first `=`, verbatim
+#     aa_ma_has_gate_approval <log> <title>  -> rc 0 iff the LAST "GATE APPROVAL: <title>" block says Decision: APPROVED  (ENFORCING)
 #     aa_ma_deps <graph|check|advisory> <tasks.md> -> `python -m aa_ma.deps` output; rc passed through  (ADVISORY — never a gate)
 #     aa_ma_lint_views <plan.md> [args...] -> `aa-ma-lint-views` output; rc 0/1 passed through, 127 if it cannot run  (read by the §6.7 diagram item)
 #
@@ -315,6 +316,30 @@ aa_ma_gate() {
 # -----------------------------------------------------------------------------
 aa_ma_gate_field() {
     sed -n "s/^$1=//p" | head -n 1
+}
+
+# -----------------------------------------------------------------------------
+# aa_ma_has_gate_approval <context-log.md> <title>
+#   rc 0 iff the LAST heading that ends with "GATE APPROVAL: <title>" opens a block
+#   (up to the next heading) holding `- Decision: APPROVED` (bold field accepted).
+#   Block-scoped on purpose: the `grep -A8` it replaces read into the NEXT block,
+#   so a REJECTED approval passed when another milestone's APPROVED one followed it.
+#   The title is compared as a string (never a pattern). Used by §7.1 and fence 3.
+# -----------------------------------------------------------------------------
+aa_ma_has_gate_approval() {
+    [ -f "$1" ] || return 1
+    awk -v want="GATE APPROVAL: $2" '
+        /^#+[ \t]/ {
+            line = $0; sub(/[ \t]+$/, "", line)
+            inb = 0
+            if (length(line) >= length(want) && substr(line, length(line) - length(want) + 1) == want) {
+                inb = 1; found = 1; dec = ""
+            }
+            next
+        }
+        inb && /^-[ \t]+(\*\*)?Decision:(\*\*)?[ \t]+/ { dec = $0 }
+        END { exit !(found && dec ~ /^-[ \t]+(\*\*)?Decision:(\*\*)?[ \t]+APPROVED/) }
+    ' "$1"
 }
 
 # -----------------------------------------------------------------------------

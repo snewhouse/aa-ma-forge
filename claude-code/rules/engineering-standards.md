@@ -80,9 +80,16 @@ A waiver is invalid when any milestone declares `Audit-Profile ∈ {full, code-o
 
 ### 2. Development Principles
 
+<!-- BEGIN GENERATED tdd-waivers: from src/aa_ma/plan_parsers.py TDD_WAIVER_RULES; regenerate with scripts/regen-generated.sh -->
 - **TDD** — write failing tests before implementation; cover happy path, edge
-  cases, regressions. Skip only for docs-only, config-only, or
-  infrastructure-only milestones.
+  cases, regressions. A milestone skips the test-first sequence only with a
+  canonical `TDD-Waiver:` value:
+  - `docs-only` — no `src/` touched (also auto-detected).
+  - `hotfix-emergency` — a production incident; requires a follow-up test task.
+  - `prototype` — `Prototype-Required: YES` is set; `Skill(prototype)` governs.
+  - `refactor` — behaviour-preserving; the existing tests must stay green.
+  - `tooling-config` — `pyproject.toml`, CI config or a Dockerfile only.
+<!-- END GENERATED tdd-waivers -->
 - **KISS** — simple, obvious solutions by default; complexity requires
   justification recorded in `context-log.md`.
 - **DRY** — extract shared logic; document why duplication is intentional when

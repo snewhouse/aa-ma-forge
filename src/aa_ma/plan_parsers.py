@@ -44,18 +44,24 @@ CANONICAL_AUDIT_PROFILES: frozenset[str] = frozenset(
 - `custom`: per-milestone explicit lists via `Audit-Run:` / `Audit-Skip:`
 """
 
-CANONICAL_TDD_WAIVERS: frozenset[str] = frozenset(
-    {"refactor", "docs-only", "prototype", "hotfix-emergency", "tooling-config"}
-)
+TDD_WAIVER_RULES: dict[str, str] = {
+    "refactor": "behaviour-preserving; the existing tests must stay green.",
+    "docs-only": "no `src/` touched (also auto-detected).",
+    "prototype": "`Prototype-Required: YES` is set; `Skill(prototype)` governs.",
+    "hotfix-emergency": "a production incident; requires a follow-up test task.",
+    "tooling-config": "`pyproject.toml`, CI config or a Dockerfile only.",
+}
+"""Each canonical `TDD-Waiver:` value and the rule that comes with it.
+
+The single source for engineering-standards.md §2's TDD bullet, which is generated
+from it (`tests/test_tdd_waiver_doc_sync.py`, run by `scripts/regen-generated.sh`).
+"""
+
+CANONICAL_TDD_WAIVERS: frozenset[str] = frozenset(TDD_WAIVER_RULES)
 """Canonical `TDD-Waiver:` values per milestone.
 
 When present, the tdd-sequence-auditor returns WAIVED instead of PASS/FAIL.
-Reasons:
-- `refactor`: Behaviour-preserving change; existing tests cover the surface
-- `docs-only`: No `src/` touched (auto-detected too)
-- `prototype`: `Prototype-Required: YES` already set; `Skill(prototype)` governs
-- `hotfix-emergency`: Production incident; tests added in follow-up
-- `tooling-config`: `pyproject.toml` / CI config / Dockerfile only
+The reason for each value is in `TDD_WAIVER_RULES`.
 """
 
 CANONICAL_CRITICAL_PATHS: frozenset[str] = frozenset(
@@ -103,13 +109,13 @@ needs its own ADR. `none` means "the Architecture View is present".
 
 
 def _strip_html_comments(text: str) -> str:
-    """Remove HTML-comment blocks so commented-out examples don't trip the parser.
+    r"""Remove HTML-comment blocks so commented-out examples don't trip the parser.
 
     Matches the behavior of `_aa_ma_strip_html_comments` in `aa-ma-parse.sh` —
     intentionally tolerant of multi-line comments. An unclosed `<!--` is left
     in place, as the previous regex left it.
 
-    A `str.find` scan, not `<!--[\\s\\S]*?-->`: that regex rescanned to EOF from
+    A `str.find` scan, not `<!--[\s\S]*?-->`: that regex rescanned to EOF from
     every opener that never closes, O(n·openers) — measured 17 s on 20k
     unclosed openers in 80 KiB — and `aa_ma.gate` now runs it on untrusted
     input. This scanner is linear.
@@ -193,7 +199,7 @@ def _parse_canonical_field(
 
 
 def parse_audit_profile(text: str) -> tuple[str | None, bool, str | None]:
-    """Parse `Audit-Profile:` from a milestone block.
+    r"""Parse `Audit-Profile:` from a milestone block.
 
     Args:
         text: The full text of a milestone block from `[task]-tasks.md`.
@@ -202,7 +208,7 @@ def parse_audit_profile(text: str) -> tuple[str | None, bool, str | None]:
         (value, is_valid, error). See module docstring for semantics.
 
     Example:
-        >>> block = "## Milestone 1\\n- Audit-Profile: full\\n"
+        >>> block = "## Milestone 1\n- Audit-Profile: full\n"
         >>> parse_audit_profile(block)
         ('full', True, None)
     """
@@ -210,7 +216,7 @@ def parse_audit_profile(text: str) -> tuple[str | None, bool, str | None]:
 
 
 def parse_tdd_waiver(text: str) -> tuple[str | None, bool, str | None]:
-    """Parse `TDD-Waiver:` from a milestone block.
+    r"""Parse `TDD-Waiver:` from a milestone block.
 
     Args:
         text: The full text of a milestone block from `[task]-tasks.md`.
@@ -219,7 +225,7 @@ def parse_tdd_waiver(text: str) -> tuple[str | None, bool, str | None]:
         (value, is_valid, error). See module docstring for semantics.
 
     Example:
-        >>> block = "## Milestone 4\\n- TDD-Waiver: refactor\\n"
+        >>> block = "## Milestone 4\n- TDD-Waiver: refactor\n"
         >>> parse_tdd_waiver(block)
         ('refactor', True, None)
     """
@@ -227,14 +233,14 @@ def parse_tdd_waiver(text: str) -> tuple[str | None, bool, str | None]:
 
 
 def parse_critical_path(text: str) -> tuple[str | None, bool, str | None]:
-    """Parse `Critical-Path:` from a milestone block.
+    r"""Parse `Critical-Path:` from a milestone block.
 
     Exists so `Skill(plan-verification)` Angle 6 check #2 can be executed rather
     than eyeballed — there was no `CANONICAL_CRITICAL_PATHS` in code, so a novel
     value passed silently and the check was manual-only.
 
     Note the shipped form is **bold** (`- **Critical-Path:** data-xform`),
-    because the §6.7 gate greps `^- \\*\\*Critical-Path:\\*\\* \\S`.
+    because the §6.7 gate greps `^- \*\*Critical-Path:\*\* \S`.
     `_extract_field` accepts plain and bold alike, so the parser is tolerant
     where the gate is strict; a plain-form value parses here but would not be
     seen by the gate.
@@ -246,7 +252,7 @@ def parse_critical_path(text: str) -> tuple[str | None, bool, str | None]:
         (value, is_valid, error). See module docstring for semantics.
 
     Example:
-        >>> block = "## Milestone 4\\n- **Critical-Path:** hook-modification\\n"
+        >>> block = "## Milestone 4\n- **Critical-Path:** hook-modification\n"
         >>> parse_critical_path(block)
         ('hook-modification', True, None)
     """

@@ -2,6 +2,7 @@
 # Regenerate every generated artifact that a CI drift check compares (ADR-0016):
 #   docs/architecture/                 codemem draw --write     (architecture-drift job)
 #   tests/golden/plugin-surface.json   plugin-surface golden    (codemem-smoke job)
+#   claude-code/rules/engineering-standards.md  §2 TDD-waiver block (tests/test_tdd_waiver_doc_sync.py)
 # Run after any change to imports/calls, claude-code/ references, the hook table in
 # scripts/lib/aa-ma-install-lib.sh, or docs/architecture.captions.json. Review `git diff` — the diff IS the
 # architecture change. The index is rebuilt first: a stale one disagrees with CI (L-024).
@@ -19,5 +20,6 @@ fi
 uv run codemem build
 uv run codemem draw --write
 uv run python tests/codemem/test_plugin_surface.py
+uv run python tests/test_tdd_waiver_doc_sync.py
 uv run codemem draw --check
-git status --short -- docs/architecture tests/golden/plugin-surface.json
+git status --short -- docs/architecture tests/golden/plugin-surface.json claude-code/rules/engineering-standards.md

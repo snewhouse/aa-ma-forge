@@ -516,6 +516,7 @@ DECISION ruff-only () — approved by Ste
 - Evidence: test_tests_verified.bats 39/39; aa-ma-gate-python.bats + test_diagram_verified.bats green and unchanged vs 1ff3178; test_tdd_waiver_doc_sync.py 5/5 (the 5th, retired-skip-list, added RED 3ff786f → GREEN a58c5a4 after the 4/4 in 9.4); pyproject clean of coverage/perf claims; ADR-0023 Accepted + INDEX row; reference.md Test-Command: uv run pytest; CRITICAL_PATH_REVIEW addendum at 036319d. Full bats 561/561, pytest 3010 passed/6 skipped/0 failed; CI run 38418957143 9/9 green. §6.3 MEDIUM, no HIGH. §6.6 C–F fixed, G → TODOS. §6.7 fences 1–3 PASS (DIAGRAM_VERIFIED edges=25 phantom=0; TESTS_VERIFIED passed=3010, merge-base 1ff3178 — fence 3 dogfooded). §6.8 PASS_WITH_WARNINGS (1 CRITICAL accepted + fixed in 449cb14; WARNINGs 1–6 fixed).
 - Decision: APPROVED
 - Correction (validator, after approval): the approval prompt said §6.3 LOW; the record (provenance §6.3 IMPACT) says MEDIUM, no HIGH. Corrected above; reported to Ste.
+- Re-confirmed: Ste reviewed the §6.3 detail (MEDIUM, no HIGH) and the approval stands (2026-10-13).
 
 ## [2026-10-13] Milestone Completion: Milestone 9: Testing gate `TESTS_VERIFIED` (T11 §5)
 - Status: COMPLETE

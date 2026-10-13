@@ -504,3 +504,7 @@ DECISION ruff-only () — approved by Ste
   - G → TODOS: process-group kill, `setsid` children, comment/fence-aware reference.md parsing, a shared default-branch helper. The generator in a test module is acknowledged as the existing repo pattern (test_plugin_surface.py).
   - Also fixed under §6.3: the stale TDD skip list in three skills (RED/GREEN a58c5a4), and a TOC for the touched SKILL_INTEGRATION.md.
 - Tests: test_tests_verified.bats 35/35; aa-ma-gate-approval.bats 10/10; mutation 11/11 killed (one false kill from an unescaped sed `&` was caught and re-run as a valid mutant); full bats 555/555, pytest 3010/6/0, `draw --check` OK.
+
+## [2026-10-13] §6.8 OVERRIDE: Milestone 9 — C1 (future-proofing) Accept
+- Approved by: Ste (AskUserQuestion)
+- Decision: ACCEPT — ADR-0023 drifting counts removed (449cb14). WARNINGs 1–6 fixed now (Ste: "Fix 1–6 now"); remaining INFOs → TODOS or accepted (impl-review.md).

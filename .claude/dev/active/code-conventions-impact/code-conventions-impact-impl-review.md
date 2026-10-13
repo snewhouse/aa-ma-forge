@@ -440,3 +440,53 @@ None (no CRITICAL).
 ## Verification
 
 pytest 3004 passed / 6 skipped / 0 failed; bats 505/505 at b661861.
+
+# Milestone 9: Testing gate `TESTS_VERIFIED` (T11 §5) — post-impl review (§6.8)
+
+- Audit-Profile: full · window 1ff3178..972e783 · budget normal · parallel dispatch, 5 agents
+- Date: 2026-10-13
+
+## Summary
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 3 | 2 | WARN |
+| security-auditor | 0 | 1 | 4 | WARN |
+| tdd-sequence-auditor | 0 | 0 | 2 | PASS (6 RED→GREEN pairs) |
+| context7-evidence-auditor | 0 | 0 | 1 | PASS (no new deps) |
+| future-proofing-auditor | 1 | 2 | 2 | BLOCKED until accepted |
+| **TOTAL** | **1** | **6** | **11** | **PASS_WITH_WARNINGS** (after the CRITICAL was accepted and fixed) |
+
+## Findings and outcomes
+
+| # | Finding (agent) | Outcome |
+|---|---|---|
+| C1 | ADR-0023 hard-coded "SKILL.md 497 lines" and "28 cases", both stale after §6.6 (future-proofing) | **Accepted, fixed** 449cb14: no drifting counts |
+| W1 | A `shlex.py` at the repo root replaced the stdlib module in the argv split, so a branch could run any command and still record `cmd=uv run pytest` (security, reproduced) | **Fixed** RED a7bfd8f → GREEN 449cb14: `python3 -I` |
+| W2 | `awk -v` unescaped backslashes in the approval title (code-reviewer, reproduced; security INFO) | **Fixed** 449cb14: the title is passed via `ENVIRON` |
+| W3 | Working-tree fallback undocumented; a misleading "merge-base" label when no reference.md existed anywhere (code-reviewer) | **Fixed** 449cb14: header and gate-fences list every source; NOTE + `default: no reference.md anywhere` |
+| W4 | 540 s / 30 s defaults with no reason; `tail -n 5`/`20` unnamed (code-reviewer, future-proofing) | **Fixed** 449cb14: `# why:` on both defaults; `TAIL_SHORT`/`TAIL_FAIL` |
+| I | Inherited `TV` env var executed when neither script candidate exists (code-reviewer) | **Fixed** 449cb14: `TV=""` before the loop |
+| I | A code-fenced approval example counted as an approval; fails open (security) | **Fixed** 449cb14: fenced lines skipped (an unclosed fence fails closed) |
+| I | `timeout(1)` behaviour not cited (context7) | **Fixed** 449cb14: 124/137 cited in gate-fences.md and the ADR |
+| I | Repo-local-first lookup of gate scripts (pre-existing pattern); a backreference Pass-Regex can hang the scan after the timeout (security) | **Deferred** TODOS P2 |
+| I | "fences 2 and 3 follow" count wording (future-proofing) | **Accepted** as-is: test-guarded (`test_tests_verified.bats` fence-order case) |
+| I | Out-of-list files (TDD-wording pointers, TOC) and resolver-loop duplication (code-reviewer) | **Recorded**: forced by tests (§6.3); duplication is the enforced pattern |
+
+## Background review after §6.6
+
+The commit review of d5ae802 flagged "gate integrity" in tests-verified.sh with no details. The
+concrete vector found and reproduced: a branch forked before an existing plan reached the default
+branch saw no merge-base reference.md and could supply its own Test-Command (decision B made that
+possible). **Fixed** RED 61a9afb → GREEN 761c9b4: the default branch's copy wins; only a plan that
+exists nowhere upstream uses its own copy.
+
+## User Override Decisions
+
+- C1 (future-proofing, hard-coded counts in ADR-0023): **Accept** (Ste) → fixed in 449cb14.
+
+## Verification
+
+test_tests_verified.bats 39/39, aa-ma-gate-approval.bats 12/12 (also under mawk 1.3.4); mutation
+13/13 killed; full bats 561/561, pytest 3010 passed / 6 skipped / 0 failed; `codemem draw --check`
+OK; all 7 real HARD approvals in this plan's context-log still pass. Final CI: see the CRITICAL_PATH_REVIEW addendum.

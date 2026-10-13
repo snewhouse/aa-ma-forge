@@ -1,3 +1,11 @@
+## Contents
+
+- [Step 13: Save Retro History](#step-13-save-retro-history)
+- [Step 14: Write the Narrative](#step-14-write-the-narrative)
+- [Compare Mode](#compare-mode)
+- [Tone](#tone)
+- [Important Rules](#important-rules)
+
 ### Step 13: Save Retro History
 
 After computing all metrics (including streak) and loading any prior history for comparison, save a JSON snapshot:
@@ -9,7 +17,7 @@ mkdir -p .context/retros
 Determine the next sequence number for today (substitute the actual date for `$(date +%Y-%m-%d)`):
 ```bash
 # Count existing retros for today to get next sequence number
-today=$(TZ=America/Los_Angeles date +%Y-%m-%d)
+today=$(TZ=Europe/London date +%Y-%m-%d)
 existing=$(ls .context/retros/${today}-*.json 2>/dev/null | wc -l | tr -d ' ')
 next=$((existing + 1))
 # Save as .context/retros/${today}-${next}.json
@@ -206,7 +214,7 @@ When the user runs `/retro compare` (or `/retro compare 14d`):
 
 - ALL narrative output goes directly to the user in the conversation. The ONLY file written is the `.context/retros/` JSON snapshot.
 - Use `origin/<default>` for all git queries (not local main which may be stale)
-- Convert all timestamps to Pacific time for display (use `TZ=America/Los_Angeles`)
+- Convert all timestamps to UK time for display (use `TZ=Europe/London`)
 - If the window has zero commits, say so and suggest a different window
 - Round LOC/hour to nearest 50
 - Treat merge commits as PR boundaries

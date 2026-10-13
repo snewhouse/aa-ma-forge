@@ -138,6 +138,13 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     aa_ma_debug "security-static-check: not inside a git repo, skipping"
     exit 0
 fi
+# git lists paths relative to the top level; `[ -f ]`, `cat` and `git diff -- <path>` resolve
+# them against the cwd. Work from the top level, or a commit from a subdirectory scans nothing.
+# why: stderr dropped — a failure is the refusal below
+if ! top=$(git rev-parse --show-toplevel 2>/dev/null) || ! cd -- "$top"; then
+    printf 'security-static-check: cannot enter the repository top level; refusing (exit 2)\n' >&2
+    exit 2
+fi
 
 # -----------------------------------------------------------------------------
 # 7. Python files this commit can contain: staged (AMRC) plus modified-but-unstaged tracked

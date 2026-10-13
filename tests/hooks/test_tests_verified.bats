@@ -519,3 +519,29 @@ PASS_RE='Test-Command-Pass-Regex: \[ FAIL 0 \| WARN [0-9]+ \| SKIP [0-9]+ \| PAS
     run _line
     [[ "$output" == *"— passed=4 cmd=uv run pytest" ]]
 }
+
+# ---------------------------------------------------------------------------
+# PR #37 Stage C (C2 MEDIUM): with no origin/HEAD the inputs come from a LOCAL ref that the
+# session can move (on main, merge-base == HEAD: the plan is self-authored). Say so, and
+# record it in the line; with an upstream (origin/HEAD) nothing changes.
+# ---------------------------------------------------------------------------
+
+@test "no origin/HEAD: a notice and an 'inputs: local main' segment in the line" {
+    _run_fence
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"NOTE: no origin/HEAD"* ]]
+    run _line
+    [[ "$output" == *"— ${HEADING} — inputs: local main (no origin/HEAD) — passed=12 cmd=./stub.sh" ]]
+}
+
+@test "origin/HEAD set: inputs come from the remote-tracking branch, no local notice" {
+    git clone -q --bare "$R" "$WORK/origin.git"
+    _git remote add origin "$WORK/origin.git"
+    _git fetch -q origin
+    _git remote set-head origin main >/dev/null
+    _run_fence
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"NOTE: no origin/HEAD"* ]]
+    run _line
+    [[ "$output" == *"— ${HEADING} — passed=12 cmd=./stub.sh" ]]
+}

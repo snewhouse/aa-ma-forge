@@ -494,3 +494,58 @@ $HARD_KEY"
     [ "$status" -eq 2 ]
     [[ "$output" == *"hardcoded"* ]]
 }
+
+# --- M8 §6.6 review: false blocks, a failing git diff, timeout fail-open, hot path ----------
+
+@test "an empty new .py commits (no hunk is not a parse failure)" {
+    : > "$BATS_TMP/empty_init.py"
+    (cd "$BATS_TMP" && git add empty_init.py)
+    run_hook 'git commit -m "feat: pkg"'
+    [ "$status" -eq 0 ]
+}
+
+@test "a chmod-only .py change commits" {
+    stage_file "src/m.py" "x = 1"
+    (cd "$BATS_TMP" && git commit -qm m && chmod +x src/m.py && git add src/m.py)
+    run_hook 'git commit -m "chore: mode"'
+    [ "$status" -eq 0 ]
+}
+
+@test "a failing git diff blocks (fail closed), it is not skipped" {
+    stage_file "src/leak.py" "$HARD_KEY"
+    local b; b=$(ssc_sysbin)
+    rm -f "$b/git"
+    printf '#!/bin/sh\n[ "$1" = diff ] && [ "$2" = --cached ] && [ "$3" = --no-color ] && exit 1\nexec %s "$@"\n' "$(command -v git)" > "$b/git"
+    chmod +x "$b/git"
+    ln -sf "$REPO_ROOT_SSC/.venv/bin/ruff" "$b/ruff"
+    local input; input=$(make_input 'git commit -m "feat: key"')
+    cd "$BATS_TMP"
+    run env HOME="$BATS_TMP_HOME" PATH="$b" "$BASH" "$(ssc_forge)" <<< "$input"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"git diff failed"* ]]
+}
+
+@test "a 5000-line diff is scanned well inside the hook timeout (no per-line forks)" {
+    local body; body=$(python3 -c 'print("\n".join(f"v{i} = {i}" for i in range(5000)))')
+    stage_file "src/big2.py" "$body
+$HARD_KEY"
+    local t0=$SECONDS
+    run_hook 'git commit -m "feat: big"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"hardcoded"* ]]
+    [ $((SECONDS - t0)) -lt 3 ]
+}
+
+@test "a mixed-case secret name is still caught (case-insensitive match)" {
+    stage_file "src/mc.py" 'Api_''Key = "abcd''efgh1234''5678"'   # split: no literal for gitleaks
+    run_hook 'git commit -m "feat: mc"'
+    [ "$status" -eq 2 ]
+}
+
+@test "a non-commit Bash call exits 0 before the helper is even loaded (hot path)" {
+    local d="$BATS_TMP_HOME/bare"
+    mkdir -p "$d"
+    cp "$HOOK" "$d/"   # no lib/: sourcing the helper would fail with exit 1
+    run bash "$d/security-static-check.sh" <<< "$(make_input 'ls -la')"
+    [ "$status" -eq 0 ]
+}

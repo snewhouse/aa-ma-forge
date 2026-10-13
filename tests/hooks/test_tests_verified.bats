@@ -383,3 +383,59 @@ PASS_RE='Test-Command-Pass-Regex: \[ FAIL 0 \| WARN [0-9]+ \| SKIP [0-9]+ \| PAS
     [ "$status" -eq 1 ]
     run ! _line
 }
+
+# ---------------------------------------------------------------------------
+# §6.6 review fixes (M9): new-on-branch reference, unwritable provenance, no final
+# newline, TERM-ignoring tests, a command that cannot run
+# ---------------------------------------------------------------------------
+
+@test "reference.md new on this branch → its HEAD copy is used, with a notice" {
+    _git checkout -q main
+    _git rm -q "$T/t-reference.md" && _git commit -qm "no reference yet"
+    _git checkout -q -B feat
+    printf '# t Reference\n\nTest-Command: ./stub.sh\n' > "$T/t-reference.md"
+    _git add -A && _git commit -qm "plan created on the branch"
+    _run_fence
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"new on this branch"* ]]
+    run _line
+    [[ "$output" == *"— passed=12 cmd=./stub.sh" ]]
+}
+
+@test "an unwritable provenance.log → BLOCKED, never a PASS without its line" {
+    chmod 444 "$T/t-provenance.log"
+    _run_fence
+    chmod 644 "$T/t-provenance.log"
+    [ "$status" -eq 1 ]
+    [[ "$output" != *"TESTS-GATE: PASS"* ]]
+    run ! _line
+}
+
+@test "custom Pass-Regex: a summary on a last line with no trailing newline still passes" {
+    _base_ref $'Test-Command: ./stub.sh\n'"$PASS_RE"
+    printf 'start\n[ FAIL 0 | WARN 0 | SKIP 0 | PASS 7 ]' > "$R/stub.out"
+    printf '0\n' > "$R/stub.rc"
+    _run_fence
+    [ "$status" -eq 0 ]
+    run _line
+    [[ "$output" == *"— passed=7 cmd=./stub.sh" ]]
+}
+
+@test "a test that ignores SIGTERM is killed after AA_MA_TEST_KILL_AFTER → BLOCKED as a timeout" {
+    printf '#!/usr/bin/env bash\ntrap "" TERM\nsleep 30\n' > "$R/stub.sh"
+    _tv_fence > "$WORK/fence.sh"
+    SECONDS=0
+    run bash -c 'cd "$R" && AA_MA_TEST_TIMEOUT=1 AA_MA_TEST_KILL_AFTER=1 TASK_NAME=t bash "$WORK/fence.sh"'
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"timed out"* ]]
+    [ "$SECONDS" -lt 15 ]
+    run ! _line
+}
+
+@test "a Test-Command that cannot run (rc 127) says so, not 'tests failed'" {
+    _base_ref 'Test-Command: ./no-such-runner.sh'
+    _run_fence
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"could not run"* ]]
+    run ! _line
+}

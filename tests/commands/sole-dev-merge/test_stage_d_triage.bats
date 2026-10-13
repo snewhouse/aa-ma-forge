@@ -119,11 +119,11 @@ teardown() {
     cat > "/tmp/sole-dev-merge-ruff-${SLUG}.json" <<JSON
 [
  {"code": "S603", "message": "not S602", "filename": "${abs}", "location": {"row": 2, "column": 5}},
- {"code": "S602", "message": "shell call", "filename": "${abs}", "location": {"row": 3, "column": 5}},
+ {"code": "S602", "message": "`subprocess` call with `shell=True` identified, security issue", "filename": "${abs}", "location": {"row": 3, "column": 5}},
  {"code": "S6020", "message": "near-miss code", "filename": "${abs}", "location": {"row": 4, "column": 5}}
 ]
 JSON
-    printf '[CRITICAL]     S602 shell call — %s:3\n' "$abs" \
+    printf '[CRITICAL]     S602 `subprocess` call with `shell=True` identified, security issue — %s:3\n' "$abs" \
         > "/tmp/sole-dev-merge-findings-${SLUG}.md"
 
     run bash "$SD_SCRIPT"
@@ -233,4 +233,67 @@ EOF
 
     # Output should indicate the agent CRITICAL was tagged for user review
     [[ "$output" == *"user"* ]] || [[ "$output" == *"review"* ]] || [[ "$output" == *"tag"* ]]
+}
+
+# --- M8 §6.8: Ruff S602 also fires on literal commands (Bandit's HIGH filter excluded them) ---
+
+S602_NONLITERAL='`subprocess` call with `shell=True` identified, security issue'
+S602_LITERAL='`subprocess` call with `shell=True` seems safe, but may be changed in the future; consider rewriting without `shell`'
+
+# stage_d_repo <py-content> — a feature branch holding rep.py with the given content.
+stage_d_repo() {
+    cd "$BATS_TMP"
+    sandbox_init
+    echo init > a.txt && git add a.txt
+    mkcommit "init"
+    git checkout -q -b feature
+    printf '%s\n' "$1" > rep.py
+    git add rep.py
+    mkcommit "feat: rep"
+}
+
+# ruff_report <row> <message> — a one-finding S602 report + its CRITICAL findings line.
+ruff_report() {
+    local abs="${BATS_TMP}/rep.py"
+    jq -n --arg f "$abs" --argjson r "$1" --arg m "$2" \
+        '[{code: "S602", message: $m, filename: $f, location: {row: $r, column: 1}}]' \
+        > "/tmp/sole-dev-merge-ruff-${SLUG}.json"
+    printf '[CRITICAL]     S602 %s — %s:%s\n' "$2" "$abs" "$1" > "/tmp/sole-dev-merge-findings-${SLUG}.md"
+}
+
+@test "Stage D does not auto-fix a literal-command S602; it is tagged for review" {
+    stage_d_repo "import subprocess
+subprocess.run(\"ls | wc -l\", ${SHELL_TRUE})"
+    ruff_report 2 "$S602_LITERAL"
+    run bash "$SD_SCRIPT"
+    [ "$status" -eq 0 ]
+    sed -n '2p' rep.py | grep -qF "$SHELL_TRUE"           # untouched: a pipe needs the shell
+    [[ "$(git log -1 --format=%s)" == "feat: rep" ]]        # nothing committed
+    [[ "$output" == *"tagged for user review"* ]]
+}
+
+@test "Stage D does not count an auto-fix that did not apply; it is tagged for review" {
+    stage_d_repo "import subprocess
+subprocess.run(
+    cmd,
+    ${SHELL_TRUE},
+)"
+    ruff_report 2 "$S602_NONLITERAL"   # Ruff reports the call's first row, not the shell= row
+    run bash "$SD_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$(git log -1 --format=%s)" == "feat: rep" ]]
+    [[ "$output" != *"auto-fix: S602"* ]]
+    [[ "$output" == *"tagged for user review"* ]]
+}
+
+@test "Stage D commits only the files it fixed, never a stray untracked file" {
+    stage_d_repo "import subprocess
+subprocess.run(cmd, ${SHELL_TRUE})"
+    ruff_report 2 "$S602_NONLITERAL"
+    printf 'TOKEN=stray\n' > stray.env
+    run bash "$SD_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$(git log -1 --format=%s)" =~ ^fix\(review\) ]]
+    [ "$(git show --name-only --format= HEAD)" = "rep.py" ]
+    [ -z "$(git ls-files stray.env)" ]
 }

@@ -104,7 +104,7 @@ These principles apply DURING execution. Each has a trigger condition and skip c
 - **DRY:** Before writing a new utility function, grep the codebase for existing implementations. If a match exists, reuse it. Section 6.6 (Post-Milestone Simplification Review) catches misses post-hoc.
 - **SOLID:** If a class has >5 public methods, evaluate single-responsibility. If a module mixes data access + business logic + presentation, separate. Skip for scripts and one-off tools.
 - **SOC:** If a file grows beyond one clear responsibility, split. If a function handles both data transformation and side effects, separate.
-- **TDD:** If this milestone produces code, invoke `superpowers:test-driven-development`. Let the skill decide test strategy. Skip for docs-only, config-only, or infrastructure-only milestones.
+- **TDD:** If this milestone produces code, invoke `superpowers:test-driven-development`. Let the skill decide test strategy. Skip it only with a canonical `TDD-Waiver:` value (`engineering-standards.md` §2).
 - **12-Factor:** If the task involves service deployment, API servers, or containerized applications, reference 12-Factor principles for config (env vars not files), statelessness, and port binding. For ALL tasks with `.env` files, verify env-var-drift compliance (see `rules/env-var-drift.md`).
 - **Context7 MCP:** Use for library docs and code generation. Retry once on failure, then fall back to WebSearch + official docs.
 - **WebSearch:** Fallback when Context7 fails. Also use proactively for unfamiliar APIs, recent library changes, or deployment patterns.

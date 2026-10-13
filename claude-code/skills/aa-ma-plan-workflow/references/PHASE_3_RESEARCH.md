@@ -1,5 +1,14 @@
 # Phase 3: Research & Documentation Gathering
 
+## Contents
+
+- [Objectives](#objectives)
+- [Skill Integration](#skill-integration)
+- [Tool Hierarchy](#tool-hierarchy)
+- [Step-by-Step Procedure](#step-by-step-procedure)
+- [Phase 3 Checklist](#phase-3-checklist)
+- [Validation Gate 2: Research Completeness](#validation-gate-2-research-completeness)
+
 ## Objectives
 - Gather technical documentation for libraries/APIs
 - Explore existing codebase patterns
@@ -60,13 +69,15 @@ Based on refined requirements from Phase 2, determine what needs research:
 ```
 # Step 1: Resolve library ID
 mcp__context7__resolve-library-id
-  library_name: "[library-name]"
+  libraryName: "[library-name]"
+  query: "[what you need from its docs]"
   # Returns: library ID(s)
 
-# Step 2: Get documentation
-mcp__context7__get-library-docs
-  library_id: "[resolved-id]"
-  # Returns: comprehensive library docs
+# Step 2: Query documentation
+mcp__context7__query-docs
+  libraryId: "[resolved-id]"
+  query: "[one concept per call]"
+  # Returns: docs and code examples for that query
 ```
 
 **Fallback strategy (if MCP unavailable):**

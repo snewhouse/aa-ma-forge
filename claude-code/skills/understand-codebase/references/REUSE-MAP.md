@@ -16,6 +16,12 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 
 ---
 
+## Contents
+
+- [A. Detect & absorb prior outputs (Step 0, every tier)](#a-detect--absorb-prior-outputs-step-0-every-tier)
+- [B. Tool invocation recipes (when you DO need to run them)](#b-tool-invocation-recipes-when-you-do-need-to-run-them)
+- [C. What this skill writes (the only things it writes)](#c-what-this-skill-writes-the-only-things-it-writes)
+
 ## A. Detect & absorb prior outputs (Step 0, every tier)
 
 | Artifact (relative to target repo root) | Produced by | If present, absorb as | Freshness check |
@@ -103,7 +109,7 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 ### WebSearch + Context7 MCP — version-currency / CVE / best-practice enrichment (Deep tier)
 - **When:** Deep tier, dimension 2 currency pass + dimension 12 vuln signal.
 - **How:**
-  - Context7: `resolve-library-id` for each major framework/library → `query-docs` / `get-library-docs`
+  - Context7: `resolve-library-id` for each major framework/library → `query-docs`
     with a focused query: "latest stable version", "is `<pinned-version>` EOL", "breaking changes since `<pinned>`".
   - WebSearch: `"<framework> <version> end of life"`, `"<lib> known CVEs <year>"`, `"<stack> project structure best practices <year>"`.
 - **Output:** a "Version currency" subsection in `.claude/onboarding/01-stack.md`: per major dep,

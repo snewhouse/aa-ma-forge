@@ -692,3 +692,21 @@ $SUBPROC_SHELL"
     run_hook 'git commit -m "chore: nothing"'
     [ "$status" -eq 0 ]
 }
+
+@test "a glob-like untracked name (x[1].py beside a tracked x1.py) is still scanned → exit 2" {
+    stage_file "x1.py" "x = 1"
+    (cd "$BATS_TMP" && git commit -q -m "x1")
+    write_untracked "x[1].py" "import subprocess
+$SUBPROC_SHELL"
+    run_hook 'git add -A && git commit -m "feat: x"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"x[1].py"*"S602"* ]]
+}
+
+@test "more .py files than the hook can scan inside its timeout → refused, exit 2 (never a timeout)" {
+    mkdir -p "$BATS_TMP/vendor"
+    for i in $(seq 1 251); do printf 'x = %d\n' "$i" > "$BATS_TMP/vendor/m$i.py"; done
+    run_hook 'git add -A && git commit -m "feat: vendor"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"251"*"250"* ]]
+}

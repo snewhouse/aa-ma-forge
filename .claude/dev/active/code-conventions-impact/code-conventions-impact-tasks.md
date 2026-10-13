@@ -715,7 +715,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 8: SecOps CI baseline (T10)
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 7
 - Complexity: 70%
 - Effort: 2.5 days
@@ -732,6 +732,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `ls ~/.claude/skills/senior-secops` reports absent; its backup tgz count is verified.
   - `docs/adr/NNNN-secops-baseline.md` has `Status: Accepted` + INDEX row + context-log approval.
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 8.
+- Result Log: COMPLETE 2026-10-13, GATE APPROVAL (Ste, HARD) in context-log. 8/8 ACs (2 via approved deviations: tests/** S set, 8 gitleaks fingerprints); 9/9 sub-steps; bats 505/505, pytest 3004 passed/6 skipped/0 failed at 0eaa6c9; CI run 38377287777 9/9 green; §6.3 MEDIUM; §6.7 PASS, DIAGRAM_VERIFIED edges=25 phantom=0; §6.8 PASS_WITH_WARNINGS (0/16/19; A–G fixed, 2 deferred); double-check F1 → CRITICAL_PATH_REVIEW addendum 5c44a49.
 
 ### Sub-step 8.0: Post-merge of M7
 - Status: COMPLETE
@@ -824,7 +825,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Dependencies: Sub-step 8.7
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — Milestone 8: SecOps CI baseline (T10) — hook-modification — <evidence>`, naming the bats/test names and the CI run URLs (ruff-security, gitleaks, deps).
-- Result Log: Mode: AFK — auto-dispatched. CRITICAL_PATH_REVIEW line written to provenance.log naming the security-static-check, sole-dev-merge and ruff-format bats cases and the CI run 38372156840 job URLs for ruff-security, gitleaks, deps and bats (all pass @3ab820d).
+- Result Log: Mode: AFK — auto-dispatched. CRITICAL_PATH_REVIEW line written to provenance.log naming the security-static-check, sole-dev-merge and ruff-format bats cases and the CI run 38372156840 job URLs for ruff-security, gitleaks, deps and bats (all pass @3ab820d). Superseded 2026-10-13 by the addendum at 5c44a49: CI run 38377287777 @0eaa6c9, hook bats 61/61, bats 505/505.
 
 ---
 

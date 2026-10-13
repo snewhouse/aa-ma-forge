@@ -830,7 +830,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 9: Testing gate `TESTS_VERIFIED` (T11 §5)
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 8
 - Complexity: 60%
 - Effort: 1.5 days
@@ -846,6 +846,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `docs/adr/NNNN-tests-verified-gate.md` has `Status: Accepted` + INDEX row + context-log approval.
   - This plan's reference.md carries `Test-Command: uv run pytest`.
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 9.
+- Result Log: COMPLETE 2026-10-13, GATE APPROVAL (Ste, HARD) in context-log. 7/7 ACs; 8/8 sub-steps; test_tests_verified 39/39, aa-ma-gate-approval 12/12, mutants 13/13; full bats 561/561, pytest 3010 passed/6 skipped/0 failed at 036319d; CI run 38418957143 9/9 green; §6.3 LOW; §6.6 C–F fixed, G → TODOS; §6.7 fences 1–3 PASS (DIAGRAM_VERIFIED edges=25 phantom=0; TESTS_VERIFIED passed=3010, dogfooded); §6.8 PASS_WITH_WARNINGS (1 CRITICAL accepted + fixed 449cb14; WARNINGs 1–6 fixed); CPR addendum f99dd5a. PR #37.
 
 ### Sub-step 9.0: Post-merge of M8
 - Status: COMPLETE

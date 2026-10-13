@@ -466,6 +466,7 @@ pytest 3004 passed / 6 skipped / 0 failed; bats 505/505 at b661861.
 | W2 | `awk -v` unescaped backslashes in the approval title (code-reviewer, reproduced; security INFO) | **Fixed** 449cb14: the title is passed via `ENVIRON` |
 | W3 | Working-tree fallback undocumented; a misleading "merge-base" label when no reference.md existed anywhere (code-reviewer) | **Fixed** 449cb14: header and gate-fences list every source; NOTE + `default: no reference.md anywhere` |
 | W4 | 540 s / 30 s defaults with no reason; `tail -n 5`/`20` unnamed (code-reviewer, future-proofing) | **Fixed** 449cb14: `# why:` on both defaults; `TAIL_SHORT`/`TAIL_FAIL` |
+| — | Totals note: 6 raw WARNINGs → 4 rows. W4 merges one code-reviewer and both future-proofing WARNINGs (the 540 s default rationale; the `tail -n 5`/`20` windows) | — |
 | I | Inherited `TV` env var executed when neither script candidate exists (code-reviewer) | **Fixed** 449cb14: `TV=""` before the loop |
 | I | A code-fenced approval example counted as an approval; fails open (security) | **Fixed** 449cb14: fenced lines skipped (an unclosed fence fails closed) |
 | I | `timeout(1)` behaviour not cited (context7) | **Fixed** 449cb14: 124/137 cited in gate-fences.md and the ADR |

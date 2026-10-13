@@ -914,12 +914,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. `scripts/run-evals.sh --case 'execute-aa-ma-milestone-*' -j 3` from the M9 worktree (sonnet, plan usage, $0.44): hitl-pause, next-milestone, not-complete all `verdict: pass`, score 1, `failed: []` (skill-fired included) → 3/3. Delta: M4 baseline 3/3; M5 first run 3/3, M5 re-run 2/3 (not-complete skill-fired only, judged n=1 noise) → M9 3/3, no regression from fence 3 or the §6.7 prose move. Results: .claude/evals/2026-10-13.jsonl (gitignored). Advisory.
 
 ### Sub-step 9.7: CRITICAL_PATH_REVIEW
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 9.6
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — <milestone heading> — hook-modification — <evidence>`, naming the bats/test names, where the heading is verbatim (backticks included): Milestone 9: Testing gate `TESTS_VERIFIED` (T11 §5)
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. CRITICAL_PATH_REVIEW written to provenance.log with the verbatim heading, written AFTER the last critical-path commit (L-1346): head 8331093, critical-path commits a54be1d/de3f390, 903adf0/6f299b3, 19c7a92/50476c0; names the six Pass-Regex bats cases plus merge-base, metachar, opt-out and symlink cases; full bats 538/538, pytest 3009/6/0; CI run 38407580385 @8331093 9/9 (draft PR #37) with job URLs.
 
 ---
 

@@ -830,7 +830,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 9: Testing gate `TESTS_VERIFIED` (T11 §5)
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 8
 - Complexity: 60%
 - Effort: 1.5 days
@@ -848,14 +848,14 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 9.
 
 ### Sub-step 9.0: Post-merge of M8
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
   - M8 merged; `git pull` on main; live `scripts/install.sh` from main (M8 changed the commit hook and the skill set); `readlink -f ~/.claude/hooks/security-static-check.sh` resolves into main and the live hook contains the forge-pinned Ruff S invocation.
   - L-1315 probe lists `secops` (deferred from 8.7).
   - Worktree for M9 cut from fresh main; `uv sync && uv run codemem build` exit 0.
-- Result Log:
+- Result Log: Mode: HITL — Ste: Proceed. M8 merged (PR #30, 60127e1 2026-10-13T10:36:44Z); main pulled (ff, at 1ff3178, clean). Live `scripts/install.sh` from main rc 0 (67 links, 5 docs backed up). The AC's path `~/.claude/hooks/security-static-check.sh` does not exist: the registered hook is `~/.claude/hooks/lib/security-static-check.sh` (settings.json:479), `readlink -f` → main checkout; live file has the forge-pinned Ruff S call (`${FORGE}/.venv/bin/ruff` :207, `RUFF_RULES="S102,S301,S307,S602,S604,S608"` :217, `--isolated --ignore-noqa` :237). L-1315 isolated probe (Ste ran `claude -p --setting-sources project --strict-mcp-config` from a scratch dir): `secops` listed with its own description; control (frontmatter not on line 1) listed with its CONTROL-COMMENT → discriminating PASS. Worktree `.worktrees/feat/cci-m9-tests-verified-gate` cut from 1ff3178; `uv sync` rc 0; `uv run codemem build` rc 0 (327 files, 3123 symbols, 8338 edges; one SyntaxWarning `invalid escape '\S'` from a parsed file, non-fatal). Baseline: pytest 3004 passed/6 skipped/0 failed; bats 509/510 on the first run (one failure, name not captured), then 510/510 on 4 further runs → an unidentified pre-existing flake; every later run logs its `not ok` lines. Part A (approved scope change) committed first on the branch as a1bdb6b.
 
 ### Sub-step 9.1: Fence 3 TESTS_VERIFIED (bats first, TDD)
 - Status: PENDING

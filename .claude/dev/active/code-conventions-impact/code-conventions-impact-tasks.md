@@ -898,12 +898,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: HITL — Ste: Proceed; opt-out approval format kept; ADR-0023 Accepted (context-log ADR APPROVAL). docs/adr/0023-tests-verified-gate.md (Status: Accepted; options inline / thin fence + script / Python CLI; residual risk; component view; testthat example) + INDEX row (Accepted). docs/templates/reference-template.md: `Test-Command:` line + commented `Test-Command-Pass-Regex:` example (inert: the script reads only lines starting with the key). claude-code/agents/aa-ma-scribe.md: reference.md skeleton carries `Test-Command:` and, when the plan declares one, `Test-Command-Pass-Regex:`. docs/spec/aa-ma-specification.md §6.7 row now names fences 1–3 (ADR-0009/0015/0023). Doc/ADR/spec/template/scribe readers: 225 passed/4 skipped. Spec is copied by install.sh (not symlinked) → re-run install after merge.
 
 ### Sub-step 9.5: Dogfood Test-Command
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 9.4
 - Acceptance Criteria:
   - `code-conventions-impact-reference.md` has the line `Test-Command: uv run pytest` (met within M9). Because of D7, fence 3 goes live after the M9 merge + install, so the provenance check moves to Sub-step 10.0 / the Milestone 10 gate.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. Met before M9 (Ste agreed at the scope-change approval): reference.md:7 reads `Test-Command: uv run pytest`, re-checked at HEAD and at origin/main (the merge-base fence 3 will read). No edit. The live TESTS_VERIFIED check moves to Sub-step 10.0 / the Milestone 10 gate (D7: fence 3 goes live after merge + install.sh).
 
 ### Sub-step 9.6: Re-run execute-aa-ma-milestone evals
 - Status: PENDING

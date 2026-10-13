@@ -62,7 +62,8 @@ change, and it ships with the skill symlink, so `install.sh` needs no change.
 
 ### Option 2 — Thin fence + skill script
 
-- ✅ SKILL.md stays at 497 lines; the logic is shellcheck-clean and bats-tested (28 cases, 7/7 mutants killed).
+- ✅ SKILL.md stays under its 500-line cap (`tests/test_prompt_size.py`); the logic is shellcheck-clean,
+  bats-tested (`tests/hooks/test_tests_verified.bats`) and mutation-checked.
 - ✅ Bash ERE for the Pass-Regex, as approved.
 - ❌ A second file to read to see the full rule. Mitigated by `references/gate-fences.md`.
 
@@ -78,7 +79,10 @@ change, and it ships with the skill symlink, so `install.sh` needs no change.
 - R (testthat), Nextflow and other runners can pass through `Test-Command-Pass-Regex:`.
 - Inputs are read from the merge-base copy, so a branch cannot change the command or the pass
   rule that prove it (it still controls the code and test configuration under test). A plan
-  whose reference.md is new on the branch uses its HEAD copy, with a notice (§6.6, Ste).
+  whose reference.md is new on the branch uses its HEAD copy, with a notice (§6.6, Ste); a branch
+  forked before an existing plan reached the default branch uses the default branch's copy
+  (background review). The argv split runs `python3 -I` (§6.8: a repo `shlex.py` cannot hijack it).
+- `timeout -k` (GNU coreutils `timeout(1)`): 124 = timed out, 137 = 128 + SIGKILL after the grace.
 - The approval check is block-scoped and shared with §7.1 (`aa_ma_has_gate_approval`); the
   `grep -A8` it replaced let a REJECTED block borrow the next block's APPROVED (§6.6).
 

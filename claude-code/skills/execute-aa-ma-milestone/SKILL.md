@@ -374,6 +374,7 @@ See [gate-fences.md](references/gate-fences.md#fence-3--tests_verified) — inpu
 ```bash
 # Fence 3 — TESTS_VERIFIED. All logic is in the skill's scripts/tests-verified.sh (bats-tested).
 _s=skills/execute-aa-ma-milestone/scripts/tests-verified.sh
+TV=""   # never run an inherited TV
 # why: stderr dropped — outside a repo the first candidate is simply absent
 for _tv in "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/${_s}" \
            "${CLAUDE_HOME:-${HOME}/.claude}/${_s}"; do

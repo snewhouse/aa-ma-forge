@@ -324,11 +324,18 @@ aa_ma_gate_field() {
 #   (up to the next heading) holding `- Decision: APPROVED` (bold field accepted).
 #   Block-scoped on purpose: the `grep -A8` it replaces read into the NEXT block,
 #   so a REJECTED approval passed when another milestone's APPROVED one followed it.
-#   The title is compared as a string (never a pattern). Used by §7.1 and fence 3.
+#   The title is compared as a string (never a pattern, never unescaped); code-fenced lines
+#   are skipped (an unclosed fence hides the rest of the file: that fails closed, never open).
+#   Used by §7.1 and fence 3.
 # -----------------------------------------------------------------------------
 aa_ma_has_gate_approval() {
     [ -f "$1" ] || return 1
-    awk -v want="GATE APPROVAL: $2" '
+    # The title goes in through the environment: `awk -v` would process its backslash escapes.
+    # Lines inside a ``` / ~~~ code fence are skipped, so a pasted example is never an approval.
+    AA_MA_WANT="GATE APPROVAL: $2" awk '
+        BEGIN { want = ENVIRON["AA_MA_WANT"] }
+        /^[ \t]*(```|~~~)/ { infence = !infence; next }
+        infence { next }
         /^#+[ \t]/ {
             line = $0; sub(/[ \t]+$/, "", line)
             inb = 0

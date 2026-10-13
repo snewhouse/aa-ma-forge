@@ -47,7 +47,10 @@ It is the THIRD ```bash fence in §6.7: the two fences above keep their places, 
 **Inputs, from the merge-base copy of `<task>-reference.md`** (`git merge-base <origin/HEAD | main | master> HEAD`),
 so a branch cannot change the command or the pass rule that prove it (the branch still controls
 the code and test configuration under test). A reference.md new on the branch has no merge-base
-copy: its HEAD copy is used, with a notice (a brand-new plan is self-authored either way):
+copy: if the default branch has it (this branch forked before the plan existed), that copy is used;
+otherwise the plan is new and its HEAD copy, then its uncommitted working-tree copy, is used,
+with a notice (a brand-new plan is self-authored either way). The argv split runs `python3 -I`, so a
+`shlex.py` in the repo cannot replace the standard library's:
 
 | Line | Meaning |
 |------|---------|
@@ -58,7 +61,9 @@ copy: its HEAD copy is used, with a notice (a brand-new plan is self-authored ei
 A repeated line, an empty value or an invalid regex is BLOCKED before anything runs.
 
 **Verdicts** (timeout `${AA_MA_TEST_TIMEOUT:-540}` s; a test that ignores SIGTERM is killed
-`${AA_MA_TEST_KILL_AFTER:-30}` s later):
+`${AA_MA_TEST_KILL_AFTER:-30}` s later, via `timeout -k`; GNU `timeout` exits 124 on the timeout and
+137 = 128 + SIGKILL when the kill was needed — see `timeout(1)`; 540 s stays under the Claude Code
+Bash tool's 600 s cap):
 
 | Outcome | Verdict |
 |---------|---------|

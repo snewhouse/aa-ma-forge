@@ -207,6 +207,8 @@ class TestPhase3Fingerprint:
             _tc("WebFetch", url="https://example.com"),
             _tc("WebSearch", query="x"),
             _tc("mcp__plugin_context7_context7__resolve-library-id", library="x"),
+            # B0 0.2: the claude.ai connector names the server "Context7" (capital C).
+            _tc("mcp__claude_ai_Context7__query-docs", libraryId="/x/y", query="q"),
             _tc("Agent", subagent_type="Explore", prompt="x"),
         ],
     )

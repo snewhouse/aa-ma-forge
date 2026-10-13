@@ -75,6 +75,17 @@ So a fallback would gate nothing (Option 3), and Option 2 keeps a second, slower
 **Neutral:**
 - Bandit leaves the dev group; `BANDIT_BIN` gives way to `RUFF_BIN`; the global `senior-secops` skill is removed.
 
+## Amendment (2026-10-13): the commit hook is a best-effort guardrail
+
+Six background security review rounds kept finding bypasses in `security-static-check.sh`. It
+infers what git will commit from the Bash command text, and the command text cannot settle
+that: env-var commits (`GIT_INDEX_FILE`, `GIT_DIR`), `--git-dir <path>`, aliases, `cd <dir> && git commit`, `sh -c`,
+and scripts all defeat it. **Decision (Ste):** the hook is an early guardrail, not a security
+boundary. It fails closed on what it recognises; the forms above are named non-goals and are
+not patched case by case. Enforcement lives in CI (`ruff-security`, `gitleaks`, `deps`) and the
+repository's own pre-commit. Moving the hook's checks into a git pre-commit hook, which sees
+the real index, is the upgrade path (TODOS).
+
 ## Example
 
 ```bash

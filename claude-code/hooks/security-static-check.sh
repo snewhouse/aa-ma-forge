@@ -10,6 +10,14 @@
 # inspects every .py the commit can contain (staged, or modified for -a / a pathspec):
 # Ruff S rules on each whole file, plus two regex classes on added lines.
 #
+# CONTRACT: a best-effort guardrail, NOT a security boundary (decided 2026-10-13, ADR-0022).
+# It sees only the Bash command text and guesses what git will commit, so these are named
+# non-goals, never patched one by one: env-var commits (GIT_DIR, GIT_INDEX_FILE, GIT_WORK_TREE),
+# git global options taking a separate value (`--git-dir <path>`), git aliases,
+# `cd <dir> && git commit`, `sh -c` / eval / scripts that commit, commits run
+# outside Claude. Enforcement is CI (ruff-security, gitleaks, deps) and the repo's pre-commit.
+# Within its scope it fails closed: whatever it recognises and cannot scan, it refuses.
+#
 # Fires via Claude Code's PreToolUse event with matcher="Bash". Reads a JSON
 # object from stdin of shape {tool_name: "Bash", tool_input: {command: "..."}}.
 #

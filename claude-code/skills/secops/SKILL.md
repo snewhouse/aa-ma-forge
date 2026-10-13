@@ -13,8 +13,8 @@ Pick the check for the artifact, run it at the earliest layer that can block, an
 |----------|---------|-----|
 | Python source | Ruff S rules (flake8-bandit) | `ruff check --select S <paths>`; suppress only per site, `# noqa: Sxxx  # why: …` |
 | Secrets in any file or commit | gitleaks | `gitleaks detect --redact --exit-code 1 --log-opts="--all"`; ignores are reviewed fingerprints in `.gitleaksignore`, never path or regex allowlists |
-| Python dependencies (uv / pip lock) | pip-audit (`uv audit` once it is GA) | `uv export --frozen --no-emit-project -o req.txt` then `pip-audit --require-hashes --strict -r req.txt`; each ignore carries an ID, a why and an expiry date |
-| JS / R lockfiles (`package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `renv.lock`) | osv-scanner | `osv-scanner scan -L <file>` |
+| Python dependencies (uv / pip lock) | pip-audit (`uv audit` once it is GA) | `uv export --frozen --no-emit-workspace --no-emit-project -o req.txt` then `pip-audit --disable-pip --require-hashes --strict -r req.txt`; each ignore carries an ID, a why and an expiry date |
+| Other lockfiles: JS (`package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`), R (`renv.lock`), Go (`go.mod`), Rust (`Cargo.lock`), Java (`pom.xml`, `gradle.lockfile`), Ruby (`Gemfile.lock`), PHP (`composer.lock`), .NET (`packages.lock.json`) | osv-scanner | `osv-scanner scan -L <file>` |
 | Shell scripts | ShellCheck | `shellcheck --enable=check-set-e-suppressed <files>` |
 | GitHub Actions and the lock itself | Dependabot | `github-actions` + the package ecosystem, weekly, with a cooldown |
 
@@ -25,7 +25,7 @@ A Python finding names its rule: `subprocess.run(cmd, shell=True)` with interpol
 | Layer | What runs | Blocks? |
 |-------|-----------|---------|
 | Edit | the language formatter/linter hook (findings reach the model) | no — advisory |
-| Commit | a staged-file check: high-signal Ruff S rules + a secret-literal regex; `gitleaks protect --staged` | yes — exit 2, with an auditable bypass marker |
+| Commit | a staged-file check: high-signal Ruff S rules + a secret-literal regex; `gitleaks protect --staged` | yes — exit 2, with an auditable bypass marker; a best-effort guardrail, not a boundary |
 | CI | full Ruff S over the gated paths, gitleaks over full history, the hashed dependency audit | yes — the merge gate |
 | Weekly | the same CI jobs on a schedule, plus Dependabot | surfaces new advisories without a push |
 
@@ -33,7 +33,7 @@ Pin every scanner (version and checksum, or a commit SHA), take it from the proj
 
 ## Standards to cite
 
-Cite by name and edition, not by guessed IDs: OWASP ASVS 5.0 for verification requirements, OWASP Top 10:2025 for risk classes, NIST SSDF (SP 800-218) for the practice areas. Do not cite SSDF 1.2 practice IDs.
+Cite by name and edition, not by guessed IDs: OWASP ASVS 5.0 for verification requirements, OWASP Top 10:2025 for risk classes, NIST SSDF (SP 800-218) for the practice areas. Do not cite SSDF 1.2 practice IDs: 1.2 was still a draft when this was written (2026-10), so its IDs may change before it is final.
 
 ## Related
 

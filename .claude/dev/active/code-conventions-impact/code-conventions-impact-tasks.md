@@ -839,7 +839,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Critical-Path: hook-modification
 - Mode: HITL
 - Acceptance Criteria:
-  - `tests/hooks/test_tests_verified.bats` passes (pass writes line; failing suite exit 1 with no line; missing summary exit 1; custom Test-Command honoured; banner line; `-q` line; opt-out; rc 5).
+  - `tests/hooks/test_tests_verified.bats` passes (pass writes line; failing suite exit 1 with no line; missing summary exit 1; custom Test-Command honoured; banner line; `-q` line; opt-out; rc 5; custom Test-Command-Pass-Regex honoured (with trailing praise line); rc 0 + FAIL>0 summary → exit 1 no line; invalid Pass-Regex → exit 1).
   - `aa-ma-gate-python.bats` and `test_diagram_verified.bats` stay green unchanged.
   - `tests/test_tdd_waiver_doc_sync.py` passes.
   - `! grep -nE 'coverage gate|perf job' pyproject.toml` succeeds.
@@ -865,6 +865,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - Fence 3 is its OWN bash block after the DIAGRAM_VERIFIED block in `claude-code/skills/execute-aa-ma-milestone/SKILL.md` §6.7, never inside the first §6.7 block; it replaces comment-only conditions 3 (:604) and 4 (:605).
   - TEST_CMD = the `Test-Command:` value in the MERGE-BASE copy of `<task>-reference.md` (`git show $base:…`), else `uv run pytest`; printed, then run as a shlex argv (no `bash -c`); the characters ; | & $ backtick < > are rejected.
   - Timeout `${AA_MA_TEST_TIMEOUT:-540}` s. PASS iff rc==0 AND the final non-empty line, after `sed -E 's/^=+ //; s/ =+$//'`, matches `(^|, )([0-9]+) passed` → append `[ts] TESTS_VERIFIED — <milestone heading> — passed=N cmd=<TEST_CMD>`; else `BLOCKED: tests …` exit 1 with no provenance line.
+  - Optional `Test-Command-Pass-Regex:` (merge-base reference.md) replaces the pytest summary match; bottom-up scan, the last line matching it via bash `[[ =~ ]]` (no eval) must give an all-digit `BASH_REMATCH[1]` = N; invalid ERE (rc 2) / empty / non-numeric → BLOCKED; the TEST_CMD character-rejection rule is not applied to it; default path unchanged. No auto-rerun: a failing run is BLOCKED.
   - Opt-out (D10): `Test-Command: none — <reason>` (needs a context-log GATE APPROVAL) → `TESTS_VERIFIED — <milestone> — skipped: <reason>`; pytest rc 5 without that line → BLOCKED, naming the opt-out.
   - §6.7 summary prints the real count of conditions (no fixed "all 5").
   - `tests/hooks/test_tests_verified.bats` passes all cases; `aa-ma-gate-python.bats:45` and `test_diagram_verified.bats:127` green unchanged.
@@ -893,7 +894,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Dependencies: Sub-step 9.3
 - Acceptance Criteria:
   - `docs/adr/NNNN-tests-verified-gate.md` `Status: Accepted` + INDEX row + context-log approval.
-  - `docs/templates/reference-template.md` gains the `Test-Command:` line; `claude-code/agents/aa-ma-scribe.md` copies `Test-Command:` into reference.md; `docs/spec/aa-ma-specification.md:183-188` (§6.7/§6.8 table) updated.
+  - `docs/templates/reference-template.md` gains the `Test-Command:` line and an optional, commented `Test-Command-Pass-Regex:` example; `claude-code/agents/aa-ma-scribe.md` copies `Test-Command:` into reference.md (and `Test-Command-Pass-Regex:` when the plan declares one); `docs/spec/aa-ma-specification.md:183-188` (§6.7/§6.8 table) updated.
 - Result Log:
 
 ### Sub-step 9.5: Dogfood Test-Command

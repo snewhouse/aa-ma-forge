@@ -190,12 +190,12 @@ $HARD_KEY
     [ "$status" -eq 0 ]
 }
 
-@test "editor-form 'git commit' (no -m) → exit 0 (pass-through)" {
+@test "a plain 'git commit' (no message flag) is still scanned → exit 2 (no marker possible)" {
     stage_file "src/leak.py" "$HARD_KEY"
     run_hook 'git commit'
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 2 ]
     run_hook 'git commit --amend'
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 2 ]
 }
 
 @test "non-commit bash command → exit 0 (not our concern)" {
@@ -549,4 +549,87 @@ $HARD_KEY"
     run bash "$d/security-static-check.sh" \
         <<< "$(payload PreToolUse-Bash --arg c 'ls -la' '.tool_input.command = $c | .tool_input.description = "List files"')"
     [ "$status" -eq 0 ]
+}
+
+# --- M8 §6.8 security review: what gets committed is what gets scanned ---------------------
+
+# commit_tracked_then_dirty <path> — commit a clean tracked .py, then leave an S602 UNSTAGED in it.
+commit_tracked_then_dirty() {
+    stage_file "$1" "import subprocess
+x = 1"
+    (cd "$BATS_TMP" && git commit -qm base-py)
+    printf 'import subprocess\nx = 1\n%s\n' "$SUBPROC_SHELL" > "$BATS_TMP/$1"
+}
+
+@test "git commit -am with an unstaged shell=True is scanned → exit 2" {
+    commit_tracked_then_dirty "src/w.py"
+    run_hook 'git commit -am "feat: w"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"src/w.py"*"S602"* ]]
+}
+
+@test "git commit -a -m with an unstaged shell=True is scanned → exit 2" {
+    commit_tracked_then_dirty "src/w.py"
+    run_hook 'git commit -a -m "feat: w"'
+    [ "$status" -eq 2 ]
+}
+
+@test "a pathspec commit of an unstaged shell=True is scanned → exit 2" {
+    commit_tracked_then_dirty "src/w.py"
+    run_hook 'git commit -m "feat: w" src/w.py'
+    [ "$status" -eq 2 ]
+}
+
+@test "git -C . commit is recognised → exit 2" {
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    run_hook 'git -C . commit -m "feat: run"'
+    [ "$status" -eq 2 ]
+}
+
+@test "git -c key=value commit is recognised → exit 2" {
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    run_hook 'git -c user.name=x commit -m "feat: run"'
+    [ "$status" -eq 2 ]
+}
+
+@test "a git -C path the hook cannot read refuses (fail closed)" {
+    stage_file "src/run.py" "x = 1"
+    run_hook 'git -C "$(pwd)" commit -m "feat: run"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"-C"* ]]
+}
+
+@test "git commit --amend --no-edit (no message flag) is still scanned → exit 2" {
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    run_hook 'git commit --amend --no-edit'
+    [ "$status" -eq 2 ]
+}
+
+@test "a staged .py with a non-ASCII name (git quotes it) is scanned → exit 2" {
+    stage_file "src/évil.py" "import subprocess
+$SUBPROC_SHELL"
+    run_hook 'git commit -m "feat: e"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"évil.py"* ]]
+}
+
+@test "every bypass-marker use is logged to hooks.log with its reason" {
+    stage_file "src/run.py" "import subprocess
+$SUBPROC_SHELL"
+    run_hook 'git commit -m "feat: run
+[security-bypass: fixture plants it]"'
+    [ "$status" -eq 0 ]
+    grep -q 'security-static-check: bypass marker used.*fixture plants it' "$BATS_TMP_HOME/.claude/logs/hooks.log"
+}
+
+@test "a .py Ruff cannot parse blocks, labelled as unparsable (not 'security rule')" {
+    stage_file "src/broken.py" "def f(:
+    pass"
+    run_hook 'git commit -m "feat: broken"'
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"unparsable Python"* ]]
+    [[ "$output" != *"security rule"* ]]
 }

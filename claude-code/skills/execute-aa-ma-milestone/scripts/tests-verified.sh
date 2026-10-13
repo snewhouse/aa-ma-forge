@@ -8,8 +8,11 @@
 # Inputs come from the MERGE-BASE copy of <task>-reference.md, so a branch cannot change the
 # command or the pass rule that prove it (it still controls the code and test config under
 # test): `Test-Command:` (default `uv run pytest`) and the optional `Test-Command-Pass-Regex:`.
-# A reference.md new on the branch has no merge-base copy; its HEAD copy is used, with a notice. The command runs as a shlex argv, never `bash -c`, under
-# ${AA_MA_TEST_TIMEOUT:-540}s. PASS needs rc 0 AND a summary that names the pass count:
+# Sources, in order: the merge-base copy; else the default branch's copy (a branch forked
+# before the plan existed); else HEAD's copy, then the uncommitted working-tree copy (a plan new
+# on this branch, with a notice); else nothing, and the default runs. The command runs as a
+# shlex argv, never `bash -c`, under ${AA_MA_TEST_TIMEOUT:-540}s.
+# PASS needs rc 0 AND a summary that names the pass count:
 #   default         the final non-empty line, `=` banner stripped, matches `(^|, )([0-9]+) passed`
 #   Pass-Regex set  the LAST output line matching it (bash ERE) gives an all-digit group 1
 # No auto-rerun: a failing run is BLOCKED (Ste, 2026-10-13). Contract and rationale:
@@ -88,6 +91,9 @@ elif [[ -f "${REF}" ]]; then
     REF_TEXT=$(cat -- "${REF}") || blocked "cannot read ${REF}."
     REF_FROM="working tree"
     echo "NOTE: ${REF} is new on this branch and uncommitted; using the working-tree copy."
+else
+    REF_FROM="default: no ${REF} anywhere"
+    echo "NOTE: no ${REF} at the merge-base, on the default branch or on this branch; running the default."
 fi
 
 # count <name> / field <name>: how many `<name>:` lines, and the (trimmed) value of one.
@@ -142,13 +148,18 @@ if [[ "${PASS_RE_COUNT}" -gt 0 ]]; then
     bash -c '[[ "" =~ $1 ]]' _ "${PASS_RE}" 2>/dev/null || _rc=$?  # why: the rc is the verdict
     [[ "${_rc}" -ne 2 ]] || blocked "invalid Test-Command-Pass-Regex: ${PASS_RE}"
 fi
+# why: 540 s keeps the run under the Claude Code Bash tool's 600 s foreground cap, with room
+# for the kill grace below; a longer suite raises it and runs the fence in the background.
 TIMEOUT="${AA_MA_TEST_TIMEOUT:-540}"
 [[ "${TIMEOUT}" =~ ^[1-9][0-9]*$ ]] || blocked "AA_MA_TEST_TIMEOUT must be a positive integer (got '${TIMEOUT}')."
 # A test that ignores SIGTERM gets SIGKILL this many seconds after the timeout.
+# why: 30 s is enough for a well-behaved suite to tear down (fixtures, temp dirs) after TERM.
 KILL_AFTER="${AA_MA_TEST_KILL_AFTER:-30}"
 [[ "${KILL_AFTER}" =~ ^[1-9][0-9]*$ ]] || blocked "AA_MA_TEST_KILL_AFTER must be a positive integer (got '${KILL_AFTER}')."
 
-ARGS=$(python3 -c 'import shlex, sys; print("\n".join(shlex.split(sys.argv[1])))' "${TEST_CMD}" 2>&1) \
+# -I: isolated mode — cwd is not on sys.path, so a shlex.py committed at the repo root cannot
+# stand in for the stdlib one (and PYTHON* env vars are ignored).
+ARGS=$(python3 -I -c 'import shlex, sys; print("\n".join(shlex.split(sys.argv[1])))' "${TEST_CMD}" 2>&1) \
     || blocked "cannot split Test-Command into arguments (python3 shlex): ${ARGS}"
 ARGV=()
 while IFS= read -r _a; do ARGV+=("${_a}"); done <<< "${ARGS}"
@@ -158,6 +169,9 @@ TIMEOUT_BIN=$(command -v timeout || command -v gtimeout || true)
 [[ -n "${TIMEOUT_BIN}" ]] || echo "WARN: no timeout(1)/gtimeout(1) found; running without a time limit."
 
 # -- Run --------------------------------------------------------------------------------------
+# Output lines shown with a BLOCKED message: enough to see the summary, not the whole run.
+TAIL_SHORT=5   # timeout, cannot-run and no-summary cases: the last lines say why
+TAIL_FAIL=20   # a failing suite: room for the failure summary
 OUT=$(mktemp) || blocked "mktemp failed."
 trap 'rm -f "${OUT}"' EXIT
 echo "Running Test-Command (${REF_FROM}): ${TEST_CMD}"
@@ -170,16 +184,16 @@ RC=$?
 
 # 124: timed out and stopped on SIGTERM; 137: needed the SIGKILL (or was killed otherwise).
 if [[ -n "${TIMEOUT_BIN}" && ( "${RC}" -eq 124 || "${RC}" -eq 137 ) ]]; then
-    tail -n 5 "${OUT}"
+    tail -n "${TAIL_SHORT}" "${OUT}"
     blocked "tests timed out after ${TIMEOUT}s (rc ${RC}). Raise AA_MA_TEST_TIMEOUT and run this fence with run_in_background."
 fi
 # A command that cannot start is a configuration error, not a failing suite.
 if [[ "${RC}" -eq 126 || "${RC}" -eq 127 ]]; then
-    tail -n 5 "${OUT}"
+    tail -n "${TAIL_SHORT}" "${OUT}"
     blocked "Test-Command could not run (rc ${RC}: not executable / not found): ${TEST_CMD}"
 fi
 if [[ "${RC}" -ne 0 ]]; then
-    tail -n 20 "${OUT}"
+    tail -n "${TAIL_FAIL}" "${OUT}"
     if [[ "${RC}" -eq 5 ]]; then
         echo "rc 5 is pytest's 'no tests collected'. A milestone with no tests declares, in reference.md,"
         echo "'Test-Command: none — <reason>' plus a context-log GATE APPROVAL."
@@ -203,7 +217,7 @@ if [[ "${PASS_RE_COUNT}" -gt 0 ]]; then
         fi
     done <<< "${CANDIDATES}"
     if [[ "${MATCHED}" -eq 0 ]]; then
-        tail -n 5 "${OUT}"
+        tail -n "${TAIL_SHORT}" "${OUT}"
         blocked "tests exited 0 but no output line matches Test-Command-Pass-Regex: ${PASS_RE}"
     fi
     [[ "${N}" =~ ^[0-9]+$ ]] \
@@ -214,7 +228,7 @@ else
     if [[ "${STRIPPED}" =~ (^|, )([0-9]+)\ passed ]]; then
         N="${BASH_REMATCH[2]}"
     else
-        tail -n 5 "${OUT}"
+        tail -n "${TAIL_SHORT}" "${OUT}"
         blocked "tests exited 0 but the final line is not a pytest summary: '${LAST}' (another runner: set Test-Command-Pass-Regex)."
     fi
 fi

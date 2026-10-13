@@ -56,6 +56,14 @@ One shared guard in `hooks/lib/aa-ma-parse.sh` would cover them all.
 
 **Why:** the M9 §6.6 reuse, quality and efficiency reviews (2026-10-13); the verified WARNINGs were fixed in M9 and these remain. **Effort:** S · **Priority:** P3
 
+### Gate scripts: use the installed copy unless the repo is the plugin itself (M9 §6.8)
+**What:** the §6.7/§7.1 fences, and now fence 3 and `tests-verified.sh`, source `aa-ma-parse.sh` and run
+scripts from `$(git rev-parse --show-toplevel)/claude-code/…` before `~/.claude/…`. In an inherited repo
+a committed copy replaces the whole gate. Prefer the installed copy unless the toplevel is the
+aa-ma-forge checkout. Also bound the Pass-Regex scan (a backreference regex on large output can hang
+`grep`/`=~` after the timeout window).
+**Why:** M9 §6.8 security-auditor INFOs (pre-existing lookup order; a hang, not a bypass). **Effort:** S · **Priority:** P2
+
 ### sole-dev-merge Stage G3/G4: don't break when run from a worktree
 **What:**
 - Stage G3 (`references/stage-g-merge.md:158`) always runs `gh pr merge "$PR_NUM" --"$MERGE_STRATEGY" --delete-branch`. When the branch lives in a worktree, gh's local step fails with `fatal: 'main' is already used by worktree at …`, and the remote branch is left behind.

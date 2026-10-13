@@ -503,3 +503,19 @@ PASS_RE='Test-Command-Pass-Regex: \[ FAIL 0 \| WARN [0-9]+ \| SKIP [0-9]+ \| PAS
     [ "$status" -ne 0 ]
     [ ! -e "$WORK/pwned" ]
 }
+
+@test "no reference.md anywhere → a notice, then the default command" {
+    _git checkout -q main
+    _git rm -q "$T/t-reference.md"
+    _git -c core.hooksPath=/dev/null commit -qm "no reference anywhere"
+    _git checkout -q -B feat
+    mkdir -p "$WORK/bin"
+    printf '#!/usr/bin/env bash\nif [ "$*" = "run pytest" ]; then echo "4 passed in 0.10s"; exit 0; fi\nexec "%s" "$@"\n' "$(command -v uv)" > "$WORK/bin/uv"
+    chmod +x "$WORK/bin/uv"
+    _tv_fence > "$WORK/fence.sh"
+    run bash -c 'cd "$R" && PATH="$WORK/bin:$PATH" TASK_NAME=t bash "$WORK/fence.sh"'
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"on the default branch or on this branch; running the default"* ]]
+    run _line
+    [[ "$output" == *"— passed=4 cmd=uv run pytest" ]]
+}

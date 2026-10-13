@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Event: PreToolUse(Bash)
-# Mode: Blocking — exit 2 refuses a commit that adds a flagged pattern
+# Mode: Blocking — exit 2 refuses a commit touching a .py file with a flagged pattern
+#       (Ruff: anywhere in the file; regexes: on the lines it adds)
 # Exit: 0 allow · 2 block (policy) · 1 infra error (helper/jq missing, bad stdin; non-blocking, the commit proceeds)
-# Fail-open: kill switch, bypass marker, not a repo, no staged .py pass with exit 0; infra errors exit 1 with a stderr line; no ruff → a systemMessage + hooks.log line and the regex classes still run. Fails closed (exit 2): ruff erroring on a file, unreadable ruff output, a diff with no hunk
+# Fail-open: kill switch, bypass marker, not a repo, no staged .py pass with exit 0; infra errors exit 1 with a stderr line; no ruff → a systemMessage + hooks.log line and the regex classes still run. Fails closed (exit 2): ruff or git erroring on a file, unreadable ruff output, a binary .py diff
 #
 # PreToolUse(Bash) hook — block commits that introduce mechanical security
 # anti-patterns in Python files. Symmetric to aa-ma-commit-signature.sh but
@@ -15,15 +16,17 @@
 #   1. AA_MA_HOOKS_DISABLE=1                          -> exit 0 (kill switch)
 #   2. stdin JSON malformed                            -> exit 1 (hook infra error)
 #   3. command is not 'git commit ...'                 -> exit 0
-#   4. editor-form commit (no -m/-F/--message/--file)  -> exit 0 (no msg to inspect)
+#   0. stdin holds no 'commit' at all                  -> exit 0 before any fork (hot path)
+#   4. editor-form commit (no message flag: -m -F -c -C --message --file
+#      --reedit-message --reuse-message)               -> exit 0 (no msg to inspect)
 #   5. command contains [security-bypass: <reason>]    -> exit 0 (auditable bypass)
 #   6. not inside a git repo                           -> exit 0 (graceful skip)
-#   7. no staged *.py files (Added/Modified)           -> exit 0
+#   7. no staged *.py files (Added/Modified/Renamed/Copied) -> exit 0
 #   8. Ruff S on whole staged files + 2 regex classes on added lines -> if any -> exit 2
 #   9. otherwise                                       -> exit 0
 #
 # Detection scope (staged Python files, any repo):
-#   - Ruff S102,S301,S307,S602,S604,S608 on the WHOLE staged blob (`git show :<file>`): a touched
+#   - Ruff rules RUFF_RULES (below) on the WHOLE staged blob (`git show :<file>`): a touched
 #     file complies in full (D8). Whole-file on purpose: three review rounds found bypasses in
 #     every "only lines this commit added" filter (git, Ruff and ast number lines differently),
 #     so none is attempted. Forge-pinned ruff, --isolated (the repo's config cannot switch the
@@ -43,6 +46,11 @@
 #
 
 set -euo pipefail
+
+# Hot path: this runs on EVERY Bash call. Read stdin once and leave before sourcing the
+# helper, jq or any fork unless the payload could hold a commit (step 3 needs 'git commit').
+stdin_json=$(cat)
+[[ "$stdin_json" == *commit* ]] || exit 0
 
 # Resolve helper across two layouts (project / installed).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -75,7 +83,6 @@ if ! command -v jq >/dev/null 2>&1; then
     exit 1
 fi
 
-stdin_json=$(cat)
 cmd=$(printf '%s' "$stdin_json" | jq -er '.tool_input.command // empty' 2>/dev/null) || {
     printf 'security-static-check: failed to parse stdin JSON\n' >&2
     exit 1
@@ -120,7 +127,7 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 
 # -----------------------------------------------------------------------------
-# 7. Find staged Python files (Added or Modified).
+# 7. Find staged Python files (Added/Modified/Renamed/Copied).
 # -----------------------------------------------------------------------------
 # AMRC: a renamed or copied file with new lines is scanned too (its new name).
 # why: not a repo or no index is handled above; an empty list means nothing to scan
@@ -141,7 +148,6 @@ fi
 REAL="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null)" || REAL="${BASH_SOURCE[0]}"
 REAL_DIR="${REAL%/*}"
 FORGE="${REAL_DIR%/*/*}"
-ruff=""
 if [ -x "${FORGE}/.venv/bin/ruff" ]; then
     ruff="${FORGE}/.venv/bin/ruff"
 else
@@ -189,8 +195,11 @@ while IFS= read -r file; do
     # -- Regex classes, added lines --------------------------------------------
     # Plain diff whatever the repo's config says: color, an external diff or a textconv
     # driver would change the text this parser reads.
-    # why: a git failure leaves the diff empty, which the hunk check below refuses
-    diff_content=$(git diff --cached --no-color --no-ext-diff --no-textconv -U0 -- "$file" 2>/dev/null || true)
+    # why: stderr dropped — a failing git diff becomes a blocking finding (fail closed)
+    if ! diff_content=$(git diff --cached --no-color --no-ext-diff --no-textconv -U0 -- "$file" 2>/dev/null); then
+        findings+=("${file}: git diff failed; refusing to pass it unscanned")
+        continue
+    fi
     [ -z "$diff_content" ] && continue
 
     in_hunk=0
@@ -210,9 +219,13 @@ while IFS= read -r file; do
         content="${line:1}"
 
         # -- 1. Hardcoded secrets --------------------------------------------
-        # Lowercase the content for case-insensitive identifier matching
-        content_lc=$(printf '%s' "$content" | tr '[:upper:]' '[:lower:]')
-        if [[ "$content_lc" =~ (api[_-]?key|apikey|token|password|secret)[[:space:]]*=[[:space:]]*[\"\'][^\"\']{8,}[\"\'] ]]; then
+        # nocasematch, not a `tr` per line: a fork per added line made a 2000-line commit
+        # outlast the 10 s hook timeout, and a timeout lets the commit through (bash 3.2 has it).
+        shopt -s nocasematch
+        secret_hit=0
+        [[ "$content" =~ (api[_-]?key|apikey|token|password|secret)[[:space:]]*=[[:space:]]*[\"\'][^\"\']{8,}[\"\'] ]] && secret_hit=1
+        shopt -u nocasematch   # the whitelist below is case-sensitive (<KEY>, $ENV)
+        if [ "$secret_hit" = 1 ]; then
             # Whitelist common placeholders / env reads (check original content
             # for placeholder forms that include casing like <KEY> or os.environ)
             if [[ ! "$content" =~ (your-|\<[A-Z_]+\>|xxxx|os\.environ|os\.getenv|\$\{[A-Z_]+\}|\$[A-Z_]+) ]]; then
@@ -227,8 +240,10 @@ while IFS= read -r file; do
 
         line_num=$((line_num + 1))
     done <<< "$diff_content"
-    if [ "$in_hunk" = 0 ]; then
-        findings+=("${file}: staged diff has no hunk the parser can read; refusing to pass it unscanned")
+    # No hunk is normal for an empty file, a mode change or a pure rename (no added lines).
+    # A binary diff hides its lines from the regexes, so it is refused.
+    if [ "$in_hunk" = 0 ] && [[ "$diff_content" == *"Binary files "* ]]; then
+        findings+=("${file}: binary diff; refusing to pass it unscanned")
     fi
 done <<< "$py_files"
 

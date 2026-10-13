@@ -15,8 +15,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 SECURITY_YML = ROOT / ".github" / "workflows" / "security.yml"
 IGNORES = ROOT / ".pip-audit-ignore"
-SETUP_UV = "astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7"
-UV_VERSION = "0.12.3"
+# Shape, not a literal: Dependabot's weekly github-actions PR bumps the SHA (and a human the
+# uv version) in every job at once; the test only insists they stay pinned and identical.
+SETUP_UV = re.compile(r"astral-sh/setup-uv@[0-9a-f]{40}")
+UV_VERSION = re.compile(r"\d+\.\d+\.\d+")
 # One ignore per line: `<ID>  # expires: YYYY-MM-DD — <why>`.
 IGNORE_LINE = re.compile(
     r"(?P<id>[A-Za-z0-9-]+)\s+# expires: (?P<date>\d{4}-\d{2}-\d{2}) — (?P<why>\S.*)"
@@ -71,6 +73,7 @@ def test_every_checkout_drops_its_credentials() -> None:
 
 
 def test_uv_comes_from_pinned_setup_uv_and_syncs_locked() -> None:
+    pins = set()
     for name, job in _jobs().items():
         runs = "\n".join(s.get("run", "") for s in job["steps"])
         assert "pip install uv" not in runs, name
@@ -81,6 +84,14 @@ def test_uv_comes_from_pinned_setup_uv_and_syncs_locked() -> None:
             for s in job["steps"]
             if s.get("uses", "").startswith("astral-sh/setup-uv@")
         ]
-        assert [s["uses"] for s in setups] == [SETUP_UV], name
-        assert setups[0]["with"]["version"] == UV_VERSION, name
+        assert len(setups) == 1 and SETUP_UV.fullmatch(setups[0]["uses"]), name
+        assert UV_VERSION.fullmatch(str(setups[0]["with"]["version"])), name
         assert not re.search(r"uv sync(?! --locked)", runs), name
+        pins.add((setups[0]["uses"], str(setups[0]["with"]["version"])))
+    assert len(pins) == 1, f"setup-uv pins differ across jobs: {pins}"
+
+
+def test_deps_job_fails_on_an_expired_ignore_itself() -> None:
+    # The expiry test also runs in codemem-smoke; the job whose ignores they are must fail too.
+    runs = "\n".join(s.get("run", "") for s in _jobs()["deps"]["steps"])
+    assert "tests/security/test_deps_audit.py" in runs

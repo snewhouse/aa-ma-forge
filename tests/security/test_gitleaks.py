@@ -121,3 +121,10 @@ def test_a_canary_secret_in_a_throwaway_repo_is_caught(tmp_path: Path) -> None:
         check=False,
     )
     assert proc.returncode == 1, proc.stdout + proc.stderr
+
+
+def test_precommit_rev_and_ci_tarball_name_the_same_gitleaks_version() -> None:
+    # Neither pin is watched by Dependabot (a curl URL, a pre-commit rev): bump them together.
+    text = (ROOT / ".pre-commit-config.yaml").read_text()
+    frozen = re.search(r"# frozen: v(\d+\.\d+\.\d+)", text)
+    assert frozen and frozen.group(1) == VERSION

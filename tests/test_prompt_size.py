@@ -50,7 +50,6 @@ TOC_ALLOWLIST = frozenset(
         "skills/agent-teams/references/ROLE_TEMPLATES.md",
         "skills/agent-teams/references/SHUTDOWN_PROTOCOL.md",
         "skills/agent-teams/references/TEAM_PATTERNS.md",
-        "skills/retro/references/output-format.md",
         "skills/understand-codebase/references/AGENTS-MD-TEMPLATE.md",
         "skills/understand-codebase/references/ANALYSIS-CONTRACT.md",
         "skills/understand-codebase/references/DEEPDIVE-TEMPLATES.md",

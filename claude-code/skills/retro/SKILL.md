@@ -149,7 +149,7 @@ When the user types `/retro`, run this skill.
 
 ## Instructions
 
-Parse the argument to determine the time window. Default to 7 days if no argument given. Use `--since="N days ago"`, `--since="N hours ago"`, or `--since="N weeks ago"` (for `w` units) for git log queries. All times should be reported in **Pacific time** (use `TZ=America/Los_Angeles` when converting timestamps).
+Parse the argument to determine the time window. Default to 7 days if no argument given. Use `--since="N days ago"`, `--since="N hours ago"`, or `--since="N weeks ago"` (for `w` units) for git log queries. All times should be reported in **UK time** (use `TZ=Europe/London` when converting timestamps).
 
 **Argument validation:** If the argument doesn't match a number followed by `d`, `h`, or `w`, the word `compare`, or `compare` followed by a number and `d`/`h`/`w`, show this usage and stop:
 ```
@@ -186,8 +186,8 @@ git log origin/<default> --since="<window>" --format="%H|%aN|%ae|%ai|%s" --short
 git log origin/<default> --since="<window>" --format="COMMIT:%H|%aN" --numstat
 
 # 3. Commit timestamps for session detection and hourly distribution (with author)
-#    Use TZ=America/Los_Angeles for Pacific time conversion
-TZ=America/Los_Angeles git log origin/<default> --since="<window>" --format="%at|%aN|%ai|%s" | sort -n
+#    Use TZ=Europe/London for UK time conversion
+TZ=Europe/London git log origin/<default> --since="<window>" --format="%at|%aN|%ai|%s" | sort -n
 
 # 4. Files most frequently changed (hotspot analysis)
 git log origin/<default> --since="<window>" --format="" --name-only | grep -v '^$' | sort | uniq -c | sort -rn
@@ -267,7 +267,7 @@ If TODOS.md doesn't exist, skip the Backlog Health row.
 
 ### Step 3: Commit Time Distribution
 
-Show hourly histogram in Pacific time using bar chart:
+Show hourly histogram in UK time using bar chart:
 
 ```
 Hour  Commits  ████████████████
@@ -285,7 +285,7 @@ Identify and call out:
 ### Step 4: Work Session Detection
 
 Detect sessions using **45-minute gap** threshold between consecutive commits. For each session report:
-- Start/end time (Pacific)
+- Start/end time (UK time)
 - Number of commits
 - Duration in minutes
 
@@ -371,11 +371,11 @@ If the time window is 14 days or more, split into weekly buckets and show trends
 Count consecutive days with at least 1 commit to origin/<default>, going back from today. Track both team streak and personal streak:
 
 ```bash
-# Team streak: all unique commit dates (Pacific time) — no hard cutoff
-TZ=America/Los_Angeles git log origin/<default> --format="%ad" --date=format:"%Y-%m-%d" | sort -u
+# Team streak: all unique commit dates (UK time) — no hard cutoff
+TZ=Europe/London git log origin/<default> --format="%ad" --date=format:"%Y-%m-%d" | sort -u
 
 # Personal streak: only the current user's commits
-TZ=America/Los_Angeles git log origin/<default> --author="<user_name>" --format="%ad" --date=format:"%Y-%m-%d" | sort -u
+TZ=Europe/London git log origin/<default> --author="<user_name>" --format="%ad" --date=format:"%Y-%m-%d" | sort -u
 ```
 
 Count backward from today — how many consecutive days have at least one commit? This queries the full history so streaks of any length are reported accurately. Display both:

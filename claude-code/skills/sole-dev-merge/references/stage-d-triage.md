@@ -9,7 +9,7 @@
 Consumes `/tmp/sole-dev-merge-findings-${SLUG}.md` produced by Stage C and
 routes findings by severity:
 
-- **CRITICAL** — deterministic auto-fix for known patterns (Ruff S602
+- **CRITICAL** — deterministic auto-fix for known patterns (non-literal Ruff S602
   → `s/shell=True/shell=False/`); other CRITICALs (ShellCheck, agent-emitted)
   are tagged for user review. Auto-fix lands as a single commit:
   `fix(review): apply CRITICAL ruff findings`.
@@ -43,6 +43,8 @@ N_LOW=$(grep -cE '^\[LOW\]' "$FINDINGS" || true)
 echo "Stage D triage: $N_CRITICAL CRITICAL, $N_HIGH HIGH, $N_MEDIUM MEDIUM, $N_LOW LOW"
 
 AUTO_FIXED=0
+FIXED_KEYS=()    # "<file>:<row>" of each applied fix, so the review tagging skips exactly these
+FIXED_FILES=()   # what the auto-fix commit stages — never `git add -A`
 
 # === S602 AUTO-FIX (driven from $RUFF_OUT JSON — trusted provenance) ===
 # §6.8 audit fix (security HIGH 1-3 + future-proofing HIGH #4):
@@ -56,8 +58,16 @@ if [[ -s "$RUFF_OUT" ]]; then
             # Line-scoped sed: rewrite ONLY the exact line Ruff flagged.
             # Docstrings, comments, and unrelated occurrences SURVIVE.
             sed -i "${LINE}s/shell=True/shell=False/" "$FILE"
-            echo "Stage D auto-fix: S602 at $FILE:$LINE"
-            AUTO_FIXED=$((AUTO_FIXED + 1))
+            # Ruff anchors a multi-line call on its first row, which may not hold
+            # `shell=True`: a sed that changed nothing is not a fix (tagged below).
+            if sed -n "${LINE}p" "$FILE" | grep -qF 'shell=False'; then
+                echo "Stage D auto-fix: S602 at $FILE:$LINE"
+                AUTO_FIXED=$((AUTO_FIXED + 1))
+                FIXED_KEYS+=("$FILE:$LINE")
+                FIXED_FILES+=("$FILE")
+            else
+                echo "Stage D: S602 at $FILE:$LINE not auto-fixed (shell=True is not on that row)"
+            fi
         fi
     done < <(python3 - "$RUFF_OUT" <<'PY'
 import json, sys
@@ -69,20 +79,27 @@ except (json.JSONDecodeError, FileNotFoundError):
 if not isinstance(data, list):
     sys.exit(0)  # not a Ruff report; Stage C already recorded it UNPARSEABLE
 for r in data:
-    # Exact equality on the rule code — no substring matching. Ruff's S602
-    # maps to [CRITICAL] unconditionally (RUFF_SEV_JSON in Stage C).
-    if r.get("code") == "S602":
+    # Exact equality on the rule code — no substring matching. Only the
+    # non-literal form ("identified, security issue") is auto-fixed: Ruff also
+    # reports S602 for a literal command ("seems safe, ..."), which may need the
+    # shell (a pipe), so shell=False would break it. Bandit's HIGH-severity filter
+    # excluded that form; this message test is its Ruff equivalent.
+    if r.get("code") == "S602" and "identified, security issue" in (r.get("message") or ""):
         print(f"{r.get('filename', '')}\t{(r.get('location') or {}).get('row', 0)}")
 PY
     )
 fi
 
 # Tag non-auto-fixable CRITICALs (ShellCheck + agent-emitted) for user review.
-# S602 lines are excluded — we've handled them via the JSON-driven path above.
+# Only the S602 rows actually fixed above are excluded (their line ends "— <file>:<row>").
 TAGGED_FOR_REVIEW=()
 if [[ "$N_CRITICAL" -gt 0 ]]; then
     while IFS= read -r line; do
-        [[ "$line" == *"S602"* ]] && continue  # already auto-fixed
+        fixed=0
+        for key in "${FIXED_KEYS[@]}"; do
+            [[ "$line" == *"— ${key}" ]] && fixed=1 && break
+        done
+        [[ "$fixed" -eq 1 ]] && continue  # auto-fixed above
         TAGGED_FOR_REVIEW+=("$line")
     done < <(grep -E '^\[CRITICAL\]' "$FINDINGS")
 fi
@@ -102,7 +119,7 @@ fi
 # Commit auto-fixes if any (footer from shared helper for drift-resistance)
 if [[ "$AUTO_FIXED" -gt 0 ]]; then
     FOOTER=$(emit_aa_ma_footer)
-    git add -A
+    git add -- "${FIXED_FILES[@]}"   # only what was edited: never sweep in untracked files
     git commit -m "fix(review): apply CRITICAL ruff findings${FOOTER}"
     echo "Stage D: committed $AUTO_FIXED auto-fix(es) ($(git rev-parse --short HEAD))"
 fi

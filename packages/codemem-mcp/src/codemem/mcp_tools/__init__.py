@@ -33,7 +33,7 @@ from ..storage import db
 from .queries import BLAST_RADIUS_CTE, WHO_CALLS_CTE
 from .sanitizers import ValidationError, sanitize_path_arg, sanitize_symbol_arg
 
-_log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 __all__ = [
@@ -759,7 +759,7 @@ def _refresh_ownership_cache(db_path: Path, path: str, *, repo_root: Path) -> No
         try:
             return miner.get_blame(target)
         except Exception as exc:  # noqa: BLE001  # why: one unblameable file must not sink the owners report
-            _log.warning(
+            logger.warning(
                 "owners: blame failed for %s (%s); skipped", target, type(exc).__name__
             )
             return {}

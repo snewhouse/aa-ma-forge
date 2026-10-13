@@ -546,6 +546,7 @@ $HARD_KEY"
     local d="$BATS_TMP_HOME/bare"
     mkdir -p "$d"
     cp "$HOOK" "$d/"   # no lib/: sourcing the helper would fail with exit 1
-    run bash "$d/security-static-check.sh" <<< "$(make_input 'ls -la')"
+    run bash "$d/security-static-check.sh" \
+        <<< "$(payload PreToolUse-Bash --arg c 'ls -la' '.tool_input.command = $c | .tool_input.description = "List files"')"
     [ "$status" -eq 0 ]
 }

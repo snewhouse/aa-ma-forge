@@ -719,17 +719,20 @@ Files:
               PASS iff rc==0 AND pytest's FINAL non-empty line, after stripping the `=` banner (`sed -E 's/^=+ //; s/ =+$//'`), matches /(^|, )([0-9]+) passed/ — default output is `=== 2429 passed, … ===`, -q output has no banner, and earlier lines like "2 snapshots passed." are ignored (Verification v1)  → append
                 "[ts] TESTS_VERIFIED — <milestone heading> — passed=N cmd=<TEST_CMD>"
               else: "BLOCKED: tests …" exit 1 (no provenance line)
+              PASS_RE = "Test-Command-Pass-Regex:" in the same merge-base reference.md, if present → replaces the pytest match:
+                PASS iff rc==0 AND the last output line with [[ line =~ $PASS_RE ]] gives all-digit BASH_REMATCH[1]=N;
+                invalid ERE (rc 2) / empty / non-numeric group → BLOCKED; TEST_CMD char rejection not applied to PASS_RE
               §6.7 summary prints the real count of conditions (no fixed "all 5")
   Modify  claude-code/rules/engineering-standards.md   # §2 TDD text → regenerated from plan_parsers.CANONICAL_TDD_WAIVERS (marker-delimited block); "infrastructure-only" → tooling-config; refactor requires existing tests to stay green; hotfix-emergency requires a follow-up test task
   Modify  scripts/regen-generated.sh   # + target regenerating the TDD-waiver block from CANONICAL_TDD_WAIVERS (no new script)
   Modify  pyproject.toml   # delete :49 coverage-gate claim and :121 perf-CI claim (P5)
   Modify  docs/templates/reference-template.md   # Test-Command: line
   Create  docs/adr/NNNN-tests-verified-gate.md
-  Test    tests/hooks/test_tests_verified.bats (new): pass → line written; failing suite → exit 1, no line; missing summary → exit 1; custom Test-Command honoured
+  Test    tests/hooks/test_tests_verified.bats (new): pass → line written; failing suite → exit 1, no line; missing summary → exit 1; custom Test-Command honoured; custom Pass-Regex honoured (testthat line + trailing praise line); rc 0 + FAIL>0 summary → exit 1, no line; invalid Pass-Regex → exit 1
   Test    tests/test_tdd_waiver_doc_sync.py (new): the rule block equals the regenerated text
 ```
 Steps: **9.1** bats first, then fence 3 (AFK, TDD). **9.2** Waiver regen target in `scripts/regen-generated.sh` + sync test (AFK, TDD). **9.3** Delete the pyproject claims (AFK). **9.4** ADR (HITL). **9.5** Dogfood: this plan's reference.md carries `Test-Command: uv run pytest`. Because of D7, fence 3 goes live after the M9 merge + `install.sh`, so **Milestone 10's** gate is the first to write `TESTS_VERIFIED`. AC (9.5, met within M9): reference.md has the line. The provenance check moves to M10.0. **9.6** Re-run the M4 evals for execute-aa-ma-milestone (advisory) and log the delta (CEO F13).
-Risks: (1) A long suite blocks the gate. Mitigation: a timeout with a clear message. (2) A non-pytest summary format. Mitigation: `Test-Command-Pass-Regex:` override, YAGNI until a non-pytest plan appears (documented). (3) A flaky test. Mitigation: rerun once and log both rcs, never auto-pass.
+Risks: (1) A long suite blocks the gate. Mitigation: a timeout with a clear message. (2) A non-pytest summary format. Mitigation: optional `Test-Command-Pass-Regex:` override (one capture group = pass count), **in scope since 2026-10-13 (scope change, context-log; G9)**. (3) A flaky test. Mitigation: no auto-rerun (Ste, 2026-10-13): a failing run is BLOCKED; fix the test or re-run the gate by hand. Never auto-pass.
 
 #### Verification amendments (v1, binding)
 - Fence 3 is its OWN bash block, placed after the DIAGRAM_VERIFIED block. It is never inside the first §6.7 block, because `_gate_fence` (`aa-ma-gate-python.bats:45`, `test_diagram_verified.bats:127`) runs the first block in fixtures. Both bats files stay green unchanged.

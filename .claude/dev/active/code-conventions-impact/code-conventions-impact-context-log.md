@@ -462,3 +462,14 @@ DECISION ruff-only () — approved by Ste
 - Artifacts: claude-code/hooks/security-static-check.sh, .github/workflows/security.yml, .github/dependabot.yml, .gitleaksignore, .pip-audit-ignore, tests/security/ (4 files), claude-code/skills/secops/, docs/adr/0022-secops-baseline.md, sole-dev-merge Stage C/D references.
 - Tests: bats 505/505, pytest 3004 passed/6 skipped/0 failed.
 - Post-merge (outside the milestone): scripts/install.sh; local CLAUDE.md BANDIT_BIN→RUFF_BIN row, CI section and 39-skill count; remove the M8 worktree.
+
+## [2026-10-13] SCOPE CHANGE: Milestone 9 — `Test-Command-Pass-Regex:` un-deferred (Ste)
+- Source: checkmeplans review, ooh_ideas/research/04-work-priorities-roadmap.md decisions G2 + G9; handover .claude/handovers/2026-10-13-m9-scope-change-and-m10-stop.md (evidence E1–E17 re-run and matching).
+- Why: plan.md:732 deferred the override as "YAGNI until a non-pytest plan appears". G2 confirms Ste will ship R (testthat), Nextflow (nf-test) and others, so fence 3 as planned can never PASS those plans.
+- Change (small): optional `Test-Command-Pass-Regex: <ERE; group 1 = pass count>` in reference.md (merge-base copy, same as Test-Command). If set: PASS iff rc==0 AND the LAST output line matching it (bottom-up scan; bash `[[ =~ ]]`, no eval) yields an all-digit BASH_REMATCH[1] = N. Invalid ERE (rc 2; bash also prints an error on stderr, which the fence must contain), empty value, or non-numeric group 1 → BLOCKED. The TEST_CMD character-rejection rule does not apply to the regex (never executed). Default pytest path unchanged. Provenance line format unchanged (`passed=N cmd=…`).
+- Why "last matching line", not "final line": real testthat 3.2.3 via Rscript ended with a praise line in 1 of 8 passing runs (handover E16).
+- Not added: exit-code-only mode (KISS).
+- Flaky tests (plan Risk 3, raised by the pre-execution validator): no auto-rerun. A failing run is BLOCKED; fix the test or re-run the gate by hand (Ste).
+- Tests: +4 bats cases in tests/hooks/test_tests_verified.bats (custom Pass-Regex honoured; trailing praise line; rc 0 + FAIL>0 summary → BLOCKED; invalid regex → BLOCKED). The handover's P1 said +3; its P4 lists 4.
+- 9.5: counted as met by reference.md:7 `Test-Command: uv run pytest` (Ste).
+- Approved by: Ste (session m9tostart, 2026-10-13, AskUserQuestion)

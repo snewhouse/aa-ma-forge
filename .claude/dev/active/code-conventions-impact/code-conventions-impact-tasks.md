@@ -906,12 +906,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. Met before M9 (Ste agreed at the scope-change approval): reference.md:7 reads `Test-Command: uv run pytest`, re-checked at HEAD and at origin/main (the merge-base fence 3 will read). No edit. The live TESTS_VERIFIED check moves to Sub-step 10.0 / the Milestone 10 gate (D7: fence 3 goes live after merge + install.sh).
 
 ### Sub-step 9.6: Re-run execute-aa-ma-milestone evals
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 9.5
 - Acceptance Criteria:
   - M4 evals for execute-aa-ma-milestone re-run (advisory); delta logged (CEO F13).
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. `scripts/run-evals.sh --case 'execute-aa-ma-milestone-*' -j 3` from the M9 worktree (sonnet, plan usage, $0.44): hitl-pause, next-milestone, not-complete all `verdict: pass`, score 1, `failed: []` (skill-fired included) → 3/3. Delta: M4 baseline 3/3; M5 first run 3/3, M5 re-run 2/3 (not-complete skill-fired only, judged n=1 noise) → M9 3/3, no regression from fence 3 or the §6.7 prose move. Results: .claude/evals/2026-10-13.jsonl (gitignored). Advisory.
 
 ### Sub-step 9.7: CRITICAL_PATH_REVIEW
 - Status: PENDING

@@ -143,3 +143,29 @@ _approval_fence() {
     _has "$T2"
     [ "$status" -eq 0 ]
 }
+
+# ---------------------------------------------------------------------------
+# PR #37 Stage C (C1 + C2): a fence closes only on its own character at >= its own length
+# (CommonMark), so a nested fence cannot end the skip early.
+# ---------------------------------------------------------------------------
+
+@test "a four-backtick fence holding three-backtick lines still hides a pasted APPROVED example" {
+    _block "$T2" REJECTED
+    printf '````markdown\n```\n## [d] GATE APPROVAL: %s\n- Decision: APPROVED\n```\n````\n' "$T2" >> "$LOG"
+    _has "$T2"
+    [ "$status" -ne 0 ]
+}
+
+@test "a tilde fence line inside a backtick fence does not close it" {
+    _block "$T2" REJECTED
+    printf '```text\n~~~\n## [d] GATE APPROVAL: %s\n- Decision: APPROVED\n```\n' "$T2" >> "$LOG"
+    _has "$T2"
+    [ "$status" -ne 0 ]
+}
+
+@test "after a properly closed nested fence, a real APPROVED block counts" {
+    printf '````markdown\n```\nexample\n```\n````\n\n' >> "$LOG"
+    _block "$T2" APPROVED
+    _has "$T2"
+    [ "$status" -eq 0 ]
+}

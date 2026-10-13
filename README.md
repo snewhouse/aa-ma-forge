@@ -39,7 +39,8 @@ docs/narrative/     The origin story (how and why AA-MA exists)
 docs/templates/     Ready-to-use templates for all 9 AA-MA file types (5 standard + 4 optional)
 claude-code/        Skills (incl. the slash commands), agents, rules, hooks
                     (the operational layer that plugs into Claude Code)
-src/aa_ma/          Python package (package skeleton only, logic planned)
+src/aa_ma/          Python tooling: the gate CLI (aa-ma-gate), plan parsers,
+                    the TUI, view lint/render, analysis, logging setup
 examples/           Real completed task artefacts (five files plus optional tests)
 scripts/            install.sh / uninstall.sh
 ```

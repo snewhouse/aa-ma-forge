@@ -59,6 +59,15 @@ give pre-existing sites an auditable bypass. When a security review finds a bypa
 finding in the same mechanism means stop and redesign, not patch. Before calling such a hook done,
 probe the inputs the attacker controls: in-file suppressions, git config (color, ext-diff,
 textconv), argv size, renames, and lines that look like diff syntax.
+**Recurrence 3 (2026-10-13, PR #30 Stage C):** widening the scan to untracked files (`git add new.py
+&& git commit`) brought in two bypasses within the hour:
+- `git ls-files -- "$file"` read `x[1].py` as a glob, matched a tracked `x1.py`, and skipped the scan;
+- 1,500 untracked files ran past the 10 s timeout, which lets the commit through.
+
+**Stricter:** any new file-list source gets three probes before its commit:
+1. a glob-like name (`x[1].py`, `*.py`), with git pathspecs taken literally (`GIT_LITERAL_PATHSPECS=1`);
+2. a count large enough to hit the timeout, so a refusal replaces the timeout;
+3. an ignored file.
 **Cross-ref:** L-1319 (stderr on exit 0 is invisible), L-047 (sweep every reader)
 
 ---

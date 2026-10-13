@@ -533,3 +533,9 @@ DECISION ruff-only () — approved by Ste
 - MEDIUM 2 (Ste: Apply NOTE + ADR wording, no BLOCK): with no origin/HEAD the merge-base guard reads a local ref this session can change (on main, the plan is self-authored). Refined trigger, evidence-led: the approved "merge-base == HEAD" condition fires on every fresh clean branch and misses nothing origin/HEAD does not already cover, so the NOTE keys on the local fallback instead. The line gains `inputs: local <ref> (no origin/HEAD) — ` before `passed=`; ADR-0023 + gate-fences.md reworded.
 - LOW x5 → PR body reviewer notes (coloured pytest output BLOCKs a pass; trailing empty argv dropped; 124/137 'timed out' wording; rename-plan → HEAD fallback; fence LOW dup).
 - All 8 real HARD approvals in this plan still pass. Pre-existing, not a regression: completed understand-codebase-skill M3 writes `Decision: **APPROVED**` (bold value), which neither the old grep nor the helper accepts; archived, never re-gated.
+
+## [2026-10-13] DECISION: Part C stop after Milestone 9 (handover 2026-10-13, Q1–Q3) — Ste
+- Q2: **B1** — codemem freshness (report 03 T2–T6) folds into CCI as `## Milestone 15: Codemem freshness (report 03 T2–T6)`; M10 `Dependencies: Milestone 9, Milestone 15`. Precondition: prove with a fixture that a dependency on a higher-numbered milestone passes `aa-ma-gate` and `tests/test_active_plans_canonical.py` before editing plan/tasks (else B2 renumber).
+- Q3: **T9 and T8** pulled forward into Milestone 15 (T9 user-scope codemem MCP via stable symlink + global git excludes; T8 routing rule). Evidence (addendum §11, verified): `which codemem` empty; plan.md:792 M10 hook "codemem absent from PATH → one notice". M10's contract decides how the hook resolves codemem.
+- Q1: **re-baseline** the roadmap week targets from actuals (CCI M1–M9 in ~6 calendar days vs ~1 day/week planned).
+- T12 (X4 → TODOS.md) runs at the start of Milestone 15. M10 not started.

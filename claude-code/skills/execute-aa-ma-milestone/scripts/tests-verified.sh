@@ -60,10 +60,18 @@ MILESTONE_TITLE=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field heading)
 # -- Inputs from the merge-base copy -------------------------------------------------------
 # why: stderr dropped — a missing origin/HEAD falls through to the local candidates
 BASE_REF=$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null) || BASE_REF=""
+LOCAL_BASE=""
 if [[ -z "${BASE_REF}" ]]; then
     for _c in main master; do
         git rev-parse --verify -q "${_c}" >/dev/null && BASE_REF="${_c}" && break
     done
+    # A local ref is no upstream guard: this session can commit to it or move it (on main itself,
+    # merge-base == HEAD and the plan is self-authored). Say so, and record it in the line.
+    if [[ -n "${BASE_REF}" ]]; then
+        LOCAL_BASE="inputs: local ${BASE_REF} (no origin/HEAD) — "
+        echo "NOTE: no origin/HEAD; inputs come from local ${BASE_REF}, which this session can change." \
+             "For an upstream guard: git remote set-head origin --auto"
+    fi
 fi
 [[ -n "${BASE_REF}" ]] || blocked "no default branch (origin/HEAD, main, master) to take the merge-base from."
 BASE=$(git merge-base "${BASE_REF}" HEAD) || blocked "no merge-base between ${BASE_REF} and HEAD."
@@ -233,5 +241,5 @@ else
     fi
 fi
 
-append "[$(date -Iseconds)] TESTS_VERIFIED — ${MILESTONE_TITLE} — passed=${N} cmd=${TEST_CMD}"
+append "[$(date -Iseconds)] TESTS_VERIFIED — ${MILESTONE_TITLE} — ${LOCAL_BASE}passed=${N} cmd=${TEST_CMD}"
 echo "TESTS-GATE: PASS — passed=${N} cmd=${TEST_CMD}"

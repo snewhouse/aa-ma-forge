@@ -78,7 +78,11 @@ change, and it ships with the skill symlink, so `install.sh` needs no change.
 - COMPLETE now needs the suite to pass, at the boundary, with the count recorded.
 - R (testthat), Nextflow and other runners can pass through `Test-Command-Pass-Regex:`.
 - Inputs are read from the merge-base copy, so a branch cannot change the command or the pass
-  rule that prove it (it still controls the code and test configuration under test). A plan
+  rule that prove it (it still controls the code and test configuration under test). That holds
+  against an upstream base only: with no `origin/HEAD` the base is a local ref the session can
+  change (on `main` itself the plan is self-authored), so the fence says so in a NOTE and records
+  `inputs: local <ref> (no origin/HEAD)` in the line (PR #37 Stage C; a NOTE, not a BLOCK, so a
+  sole developer working on `main` is not locked out — Ste). A plan
   whose reference.md is new on the branch uses its HEAD copy, with a notice (§6.6, Ste); a branch
   forked before an existing plan reached the default branch uses the default branch's copy
   (background review). The argv split runs `python3 -I` (§6.8: a repo `shlex.py` cannot hijack it).

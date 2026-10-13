@@ -40,9 +40,9 @@
 **What:** a drop-in set (security.yml jobs ruff-security / gitleaks / deps, `.gitleaksignore`, `.pip-audit-ignore`, `dependabot.yml`, a pre-commit gitleaks entry) plus a short install note in `Skill(secops)`.
 **Why:** M8's CI gates exist only in aa-ma-forge; new, old and inherited repos get none of them (Ste, 2026-10-13). **Effort:** M · **Priority:** P2
 
-### security-static-check: per-file forks cap a commit at roughly 700 .py files
-**What:** one `git checkout-index --prefix=<tmp>/` plus a single `ruff check`, mapping paths back.
-**Why:** about 14 ms per staged file; the 10 s hook timeout is a non-blocking error, so a larger commit passes unscanned (M8 §6.6/§6.8). **Effort:** S · **Priority:** P3
+### security-static-check: per-file forks cap a commit at 250 .py files
+**What:** one `git checkout-index --prefix=<tmp>/` plus a single `ruff check`, mapping paths back, then raise `MAX_PY_FILES`.
+**Why:** about 20 ms per file. The 10 s hook timeout is a non-blocking error, so the hook now refuses more than 250 files (5.7 s measured) rather than letting the commit through (PR #30 background review). **Effort:** S · **Priority:** P3
 
 ### Review the security pins Dependabot cannot bump (quarterly; next 2027-01-12)
 **What:** check for newer releases and bump them by hand:

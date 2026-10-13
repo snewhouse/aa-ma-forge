@@ -154,6 +154,9 @@ if ! top=$(git rev-parse --show-toplevel 2>/dev/null) || ! cd -- "$top"; then
     printf 'security-static-check: cannot enter the repository top level; refusing (exit 2)\n' >&2
     exit 2
 fi
+# Every `-- "$file"` below names one file, never a pattern: an untracked `x[1].py` must not
+# match a tracked `x1.py` and be taken for it.
+export GIT_LITERAL_PATHSPECS=1
 
 # -----------------------------------------------------------------------------
 # 7. Python files this commit can contain: staged (AMRC), modified-but-unstaged tracked files
@@ -178,6 +181,16 @@ done < <({ git -c core.quotePath=false diff --cached --name-only -z --diff-filte
 if [ "${#py_files[@]}" -eq 0 ]; then
     aa_ma_debug "security-static-check: no staged or modified *.py files"
     exit 0
+fi
+# A hook that runs past its timeout lets the commit through, so refuse a list too long to scan.
+# ponytail: a fixed file cap (250 untracked files measured 5.7 s of the 10 s timeout); the
+# git pre-commit move in TODOS removes the ceiling.
+MAX_PY_FILES=250
+if [ "${#py_files[@]}" -gt "$MAX_PY_FILES" ]; then
+    printf 'security-static-check: %d .py files exceed the %d this hook can scan inside its timeout; refusing (exit 2).\n' \
+        "${#py_files[@]}" "$MAX_PY_FILES" >&2
+    printf 'Commit in smaller batches, add generated or vendored directories to .gitignore, or use [security-bypass: <reason>].\n' >&2
+    exit 2
 fi
 
 # -----------------------------------------------------------------------------

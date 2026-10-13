@@ -508,3 +508,17 @@ DECISION ruff-only () — approved by Ste
 ## [2026-10-13] §6.8 OVERRIDE: Milestone 9 — C1 (future-proofing) Accept
 - Approved by: Ste (AskUserQuestion)
 - Decision: ACCEPT — ADR-0023 drifting counts removed (449cb14). WARNINGs 1–6 fixed now (Ste: "Fix 1–6 now"); remaining INFOs → TODOS or accepted (impl-review.md).
+
+## [2026-10-13] GATE APPROVAL: Milestone 9: Testing gate `TESTS_VERIFIED` (T11 §5)
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 7/7 (milestone) + 8/8 sub-steps (9.0–9.7)
+- Evidence: test_tests_verified.bats 39/39; aa-ma-gate-python.bats + test_diagram_verified.bats green and unchanged vs 1ff3178; test_tdd_waiver_doc_sync.py 5/5; pyproject clean of coverage/perf claims; ADR-0023 Accepted + INDEX row; reference.md Test-Command: uv run pytest; CRITICAL_PATH_REVIEW addendum at 036319d. Full bats 561/561, pytest 3010 passed/6 skipped/0 failed; CI run 38418957143 9/9 green. §6.3 LOW. §6.6 C–F fixed, G → TODOS. §6.7 fences 1–3 PASS (DIAGRAM_VERIFIED edges=25 phantom=0; TESTS_VERIFIED passed=3010, merge-base 1ff3178 — fence 3 dogfooded). §6.8 PASS_WITH_WARNINGS (1 CRITICAL accepted + fixed in 449cb14; WARNINGs 1–6 fixed).
+- Decision: APPROVED
+
+## [2026-10-13] Milestone Completion: Milestone 9: Testing gate `TESTS_VERIFIED` (T11 §5)
+- Status: COMPLETE
+- Key outcome: §6.7 fence 3 runs the plan's Test-Command (merge-base reference.md) and refuses COMPLETE without a parsed pass count, writing `TESTS_VERIFIED — <heading> — passed=N cmd=…`; §7.1 and fence 3 share the block-scoped `aa_ma_has_gate_approval`; TDD-waiver list single-sourced.
+- Artifacts: claude-code/skills/execute-aa-ma-milestone/{SKILL.md,scripts/tests-verified.sh,references/gate-fences.md,references/context-and-todos.md}, claude-code/hooks/lib/aa-ma-parse.sh, src/aa_ma/plan_parsers.py, claude-code/rules/engineering-standards.md, scripts/regen-generated.sh, docs/adr/0023-tests-verified-gate.md (+INDEX), docs/spec/aa-ma-specification.md, docs/templates/reference-template.md, claude-code/agents/aa-ma-scribe.md, execute-aa-ma-full/SKILL.md, aa-ma-plan-workflow/references/SKILL_INTEGRATION.md, pyproject.toml (comments), TODOS.md; tests/hooks/test_tests_verified.bats, tests/hooks/aa-ma-gate-approval.bats, tests/test_tdd_waiver_doc_sync.py, tests/test_prompt_size.py.
+- Tests: bats 561/561, pytest 3010 passed/6 skipped/0 failed; CI run 38418957143 9/9 green.
+- Next (handover Part C): STOP before Milestone 10 — Q1 roadmap re-baseline, Q2 codemem freshness (B1 as Milestone 15 vs separate plan), Q3 pull T9 forward (addendum §11).

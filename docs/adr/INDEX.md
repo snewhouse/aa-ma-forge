@@ -42,6 +42,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0020](0020-commands-become-skills.md) | Commands become skills: the forge ships no slash commands | Accepted | 2026-10-09 |
 | [0021](0021-writing-for-agents-fork.md) | Fork `writing-for-agents`; retire `write-a-skill` | Accepted | 2026-10-09 |
 | [0022](0022-secops-baseline.md) | SecOps baseline: Ruff S, gitleaks, hashed dependency audit, whole-file commit hook | Accepted | 2026-10-12 |
+| [0023](0023-tests-verified-gate.md) | Tests-verified gate: §6.7 fence 3 runs the merge-base `Test-Command:` | Accepted | 2026-10-13 |
 
 ## Statuses
 

@@ -473,3 +473,8 @@ DECISION ruff-only () — approved by Ste
 - Tests: +4 bats cases in tests/hooks/test_tests_verified.bats (custom Pass-Regex honoured; trailing praise line; rc 0 + FAIL>0 summary → BLOCKED; invalid regex → BLOCKED). The handover's P1 said +3; its P4 lists 4.
 - 9.5: counted as met by reference.md:7 `Test-Command: uv run pytest` (Ste).
 - Approved by: Ste (session m9tostart, 2026-10-13, AskUserQuestion)
+
+## [2026-10-13] ADR APPROVAL: ADR-0023 Tests-verified gate (§6.7 fence 3)
+- Approved by: Ste (AskUserQuestion, session m9tostart)
+- Decision: APPROVED — Status Accepted (ADR + INDEX)
+- Records: thin fence + skill script (500-line cap); merge-base Test-Command / optional Pass-Regex (bash ERE, last matching line, numeric group 1); argv via shlex, metacharacters rejected, 540 s timeout; no auto-rerun; opt-out `Test-Command: none — <reason>` with `GATE APPROVAL: Test-Command none — <heading>` + `Decision: APPROVED` (HEAD context-log, §7.1 convention; Ste kept it); symlinked provenance path refused; other appenders → TODOS P1.

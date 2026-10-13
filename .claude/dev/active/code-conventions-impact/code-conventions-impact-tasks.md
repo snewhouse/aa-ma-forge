@@ -889,13 +889,13 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. 5ae7f0e. Claims were at pyproject.toml :130 ("CI's perf job opts in with `-m perf`") and :146 (pytest-cov "coverage gate ≥90%"), not :49/:121 (validator). Verified unbacked first: CI pytest runs `--ignore=tests/perf` (security.yml:253) and no `--cov`/`fail_under` exists anywhere. Comments now say: run perf locally with `-m perf` (CI does not run it); pytest-cov is for on-demand reports, no threshold enforced. pytest-cov dependency kept (not in AC). `! grep -nE 'coverage gate|perf job' pyproject.toml` succeeds; TOML parses; `uv lock --check` resolves; the 10 test files that read pyproject.toml: 333 passed.
 
 ### Sub-step 9.4: ADR + spec/template/scribe updates
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 9.3
 - Acceptance Criteria:
   - `docs/adr/NNNN-tests-verified-gate.md` `Status: Accepted` + INDEX row + context-log approval.
   - `docs/templates/reference-template.md` gains the `Test-Command:` line and an optional, commented `Test-Command-Pass-Regex:` example; `claude-code/agents/aa-ma-scribe.md` copies `Test-Command:` into reference.md (and `Test-Command-Pass-Regex:` when the plan declares one); `docs/spec/aa-ma-specification.md:183-188` (§6.7/§6.8 table) updated.
-- Result Log:
+- Result Log: Mode: HITL — Ste: Proceed; opt-out approval format kept; ADR-0023 Accepted (context-log ADR APPROVAL). docs/adr/0023-tests-verified-gate.md (Status: Accepted; options inline / thin fence + script / Python CLI; residual risk; component view; testthat example) + INDEX row (Accepted). docs/templates/reference-template.md: `Test-Command:` line + commented `Test-Command-Pass-Regex:` example (inert: the script reads only lines starting with the key). claude-code/agents/aa-ma-scribe.md: reference.md skeleton carries `Test-Command:` and, when the plan declares one, `Test-Command-Pass-Regex:`. docs/spec/aa-ma-specification.md §6.7 row now names fences 1–3 (ADR-0009/0015/0023). Doc/ADR/spec/template/scribe readers: 225 passed/4 skipped. Spec is copied by install.sh (not symlinked) → re-run install after merge.
 
 ### Sub-step 9.5: Dogfood Test-Command
 - Status: PENDING

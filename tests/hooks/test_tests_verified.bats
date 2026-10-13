@@ -477,3 +477,29 @@ PASS_RE='Test-Command-Pass-Regex: \[ FAIL 0 \| WARN [0-9]+ \| SKIP [0-9]+ \| PAS
     run _line
     [[ "$output" == *"— passed=12 cmd=./stub.sh" ]]
 }
+
+# ---------------------------------------------------------------------------
+# §6.8 (M9): a repo cannot hijack the argv split, nor make the fence run an inherited TV
+# ---------------------------------------------------------------------------
+
+@test "a shlex.py committed at the repo root cannot replace the stdlib split (python3 -I)" {
+    printf 'def split(s):\n    return ["./evil.sh"]\n' > "$R/shlex.py"
+    printf '#!/usr/bin/env bash\ntouch "$(dirname "$0")/pwned"\necho "1 passed in 0.01s"\n' > "$R/evil.sh"
+    chmod +x "$R/evil.sh"
+    _run_fence
+    [ "$status" -eq 0 ]
+    [ ! -e "$R/pwned" ]
+    [ -f "$R/stub.argc" ]
+    run _line
+    [[ "$output" == *"— passed=12 cmd=./stub.sh" ]]
+}
+
+@test "an inherited TV is never executed when the script cannot be found" {
+    printf '#!/usr/bin/env bash\ntouch "%s/pwned"\n' "$WORK" > "$WORK/evil.sh"
+    chmod +x "$WORK/evil.sh"
+    _tv_fence > "$WORK/fence.sh"
+    mkdir -p "$WORK/empty-home"
+    run bash -c 'cd "$R" && CLAUDE_HOME="$WORK/empty-home" TV="$WORK/evil.sh" TASK_NAME=t bash "$WORK/fence.sh"'
+    [ "$status" -ne 0 ]
+    [ ! -e "$WORK/pwned" ]
+}

@@ -32,7 +32,7 @@ teardown() {
     rm -rf "$WORK"
 }
 
-_git() { git -C "$R" -c user.name=t -c user.email=t@t -c commit.gpgsign=false "$@"; }
+_git() { git -C "$R" -c user.name=t -c user.email=t@t -c commit.gpgsign=false -c core.autocrlf=false "$@"; }
 
 # The stub records its argv and prints stub.out, sleeps $STUB_SLEEP, exits with stub.rc.
 _mkrepo() {
@@ -188,8 +188,17 @@ _line() { grep -F "TESTS_VERIFIED — ${HEADING} — " "$T/t-provenance.log"; }
 }
 
 @test "no Test-Command line → the default 'uv run pytest' is printed and run" {
+    # A uv shim: `uv run pytest` is the suite; anything else (the gate's own uv call) is real uv.
     mkdir -p "$WORK/bin"
-    printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" > "%s/uv.args"\necho "5 passed in 0.10s"\n' "$WORK" > "$WORK/bin/uv"
+    cat > "$WORK/bin/uv" <<EOF
+#!/usr/bin/env bash
+if [ "\$*" = "run pytest" ]; then
+    printf '%s\n' "\$*" > "$WORK/uv.args"
+    echo "5 passed in 0.10s"
+    exit 0
+fi
+exec "$(command -v uv)" "\$@"
+EOF
     chmod +x "$WORK/bin/uv"
     _base_ref '# t Reference'
     _tv_fence > "$WORK/fence.sh"
@@ -304,4 +313,33 @@ PASS_RE='Test-Command-Pass-Regex: \[ FAIL 0 \| WARN [0-9]+ \| SKIP [0-9]+ \| PAS
     [ "$status" -eq 1 ]
     [[ "$output" == *"group 1"* ]]
     run ! _line
+}
+
+# ---------------------------------------------------------------------------
+# Hostile inputs (L-049)
+# ---------------------------------------------------------------------------
+
+@test "an unbalanced quote in Test-Command → BLOCKED, nothing runs" {
+    _base_ref "Test-Command: ./stub.sh \"unterminated"
+    _run_fence
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"cannot split Test-Command"* ]]
+    [ ! -f "$R/stub.argc" ]
+}
+
+@test "a CRLF reference.md still yields the clean command (no stray carriage return)" {
+    _base_ref $'# t Reference\r\n\r\nTest-Command: ./stub.sh\r'
+    _run_fence
+    [ "$status" -eq 0 ]
+    run _line
+    [[ "$output" == *"— passed=12 cmd=./stub.sh" ]]
+}
+
+@test "custom Pass-Regex: the LAST matching line wins over an earlier one" {
+    _base_ref $'Test-Command: ./stub.sh\n'"$PASS_RE"
+    _out $'[ FAIL 0 | WARN 0 | SKIP 0 | PASS 3 ]\nmore tests\n[ FAIL 0 | WARN 0 | SKIP 0 | PASS 12 ]' 0
+    _run_fence
+    [ "$status" -eq 0 ]
+    run _line
+    [[ "$output" == *"— passed=12 cmd=./stub.sh" ]]
 }

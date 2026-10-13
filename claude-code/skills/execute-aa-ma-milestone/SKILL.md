@@ -174,11 +174,11 @@ See [boundary-checks.md](references/boundary-checks.md#66-post-milestone-simplif
 ### 6.7 Engineering Standards HARD Gate
 
 Reference: `claude-code/rules/engineering-standards.md` (Themes 1, 4, 5, 6).
-This gate is structural — it refuses to mark COMPLETE when any of 5 conditions
+This gate is structural — it refuses to mark COMPLETE when any condition
 fails. Independent of `Gate: SOFT|HARD` in tasks.md (that controls the approval
 artifact in 7.1; THIS gate enforces engineering posture for every milestone).
 
-**Five conditions, evaluated in order:**
+**Conditions, evaluated in order** (two more fences follow: §13 diagram edges, then tests):
 
 ```bash
 TASK_DIR=".claude/dev/active/${TASK_NAME}"
@@ -254,8 +254,9 @@ if [[ "${PENDING_IN_MILESTONE}" -gt 0 ]]; then
   exit 1
 fi
 
-# 3. Tests-pass evidence (already enforced in 6.4; double-check Result Log mentions)
-# 4. Impact-analysis evidence (already enforced in 6.3; double-check Result Log mentions)
+# 3. Tests pass: fence 3 below runs Test-Command and writes TESTS_VERIFIED.
+# 4. Impact analysis: §6.3 (not checked by any fence yet).
+CONDITIONS=2   # conditions 1 and 2 above
 
 # 5. Critical-Path / Prototype-Required provenance evidence (CONDITIONAL)
 # Absent-field semantic: the gate reports an empty value when the field is
@@ -267,6 +268,7 @@ fi
 #   [ts] CRITICAL_PATH_REVIEW — <milestone-title> — <value> — <evidence>
 CRITICAL_PATH_TASKS=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field critical_path)
 if [[ -n "${CRITICAL_PATH_TASKS}" ]]; then
+  CONDITIONS=$((CONDITIONS + 1))
   if ! grep -F -- "CRITICAL_PATH_REVIEW" "${TASK_DIR}/${TASK_NAME}-provenance.log" \
        | grep -qF -- "${MILESTONE_TITLE}"; then
     echo "BLOCKED: Milestone declares Critical-Path: ${CRITICAL_PATH_TASKS} but"
@@ -277,6 +279,7 @@ fi
 
 PROTOTYPE_TASKS=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field prototype_required)
 if [[ "${PROTOTYPE_TASKS}" == "YES" ]]; then
+  CONDITIONS=$((CONDITIONS + 1))
   if ! grep -F -- "PROTOTYPE —" "${TASK_DIR}/${TASK_NAME}-provenance.log" \
        | grep -qF -- "${MILESTONE_TITLE}"; then
     echo "BLOCKED: the milestone or one of its sub-steps declares Prototype-Required: YES"
@@ -285,41 +288,20 @@ if [[ "${PROTOTYPE_TASKS}" == "YES" ]]; then
   fi
 fi
 
-echo "ENG-STANDARDS-GATE: PASS (all 5 conditions satisfied)"
+echo "ENG-STANDARDS-GATE: PASS (${CONDITIONS} conditions checked; fences 2 and 3 follow)"
 ```
 
-**Absent-field semantic** (M2.5 verification finding): when `Critical-Path:` or
-`Prototype-Required:` is **absent** from a task, the corresponding check is
-**skipped (no failure)**. Only present-but-without-evidence triggers a HALT.
-This preserves backward compat with `examples/` plans authored before v0.5.0.
+See [gate-fences.md](references/gate-fences.md#absent-field-semantic-fence-1) — absent `Critical-Path:` / `Prototype-Required:` fields skip their check.
 
 **Bypass:** to override this gate (e.g. for diagnostic runs), set
 `AA_MA_HOOKS_DISABLE=1` in the environment. The gate honors the master kill
 switch but logs the override to provenance.log:
 `[ts] ENG_STANDARDS_GATE: BYPASSED via AA_MA_HOOKS_DISABLE`.
 
-**§13 sigil edges verified — HARD, opt-in** (ADR-0015; Execution Checklist row in
-`engineering-standards.md` §5). HARD ≠ `gate.py`: `aa-ma-gate` reads only `tasks.md`,
-while §13 lives in `plan.md`, so this item is enforced here and the gate CLI, its kv
-envelope and the fence above are unchanged. It applies only when the plan's §13 carries
-a sigil edge (`-->|"@import"|`, `-->|"@call"|`, …); a plan without one is a no-op.
+**§13 sigil edges verified — HARD, opt-in** (fence 2, ADR-0015): a plan whose §13 carries a sigil edge
+must have every edge hold in the code. It stays the second fence (`test_diagram_verified.bats`).
 
-| Lint says | Verdict |
-|-----------|---------|
-| `edges=0` | not applicable — no evidence written |
-| `phantom>0` (`PHANTOM_EDGE` / `LABEL_UNKNOWN`) | BLOCKED — the diagram claims an edge the code does not hold |
-| `invalid>0` — an edge to a missing file, a stale `(new)` on a file that exists, a path-less label, an unparsed edge form, a path outside the repo | BLOCKED — an authoring error the diagram can fix now |
-| `index-unknown>0` (no, stale, too-old or unreadable index) | BLOCKED — the check did not run (L-012); run `codemem build` and re-run |
-| no `sigils:` line / `sigils: UNKNOWN` (a sigil edge outside §13's views, an unterminated fence) / the lint did not run | BLOCKED — not every sigil edge could be read |
-| otherwise | PASS — appends `[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K` |
-
-What still passes, counted in `unknown=K`: a claim that cannot be checked *yet* — a
-genuinely planned `(new)` file, a plugin sigil (`@skill`/`@command`/`@agent`/`@hook`), a
-language the graph does not model. `checked=C` is how many edges were actually compared
-with the code. The fence run is the check; the `DIAGRAM_VERIFIED` line is its record.
-This fence must stay AFTER the gate fence above: `tests/hooks/aa-ma-gate-python.bats`
-(`_gate_fence`) executes the *first* ```bash fence after the `### 6.7 ` heading, and
-`tests/hooks/test_diagram_verified.bats` asserts the order.
+See [gate-fences.md](references/gate-fences.md#fence-2--13-sigil-edges-verified) — the lint verdicts, what still passes, and why the fence order is fixed.
 
 ```bash
 # Self-sufficient, like §7.1's fence: a fresh shell has none of the variables above.
@@ -381,6 +363,23 @@ else
     >> "${TASK_DIR}/${TASK_NAME}-provenance.log"
   echo "DIAGRAM-GATE: PASS — edges=${EDGES} checked=${CHECKED} phantom=0 unknown=${UNKNOWN}"
 fi
+```
+
+**Tests verified — HARD** (fence 3): runs the merge-base `Test-Command:` (default `uv run pytest`);
+appends `[ts] TESTS_VERIFIED — <milestone heading> — passed=N cmd=<TEST_CMD>` only on rc 0 plus a
+pass-count summary. A failure is BLOCKED, never retried. Long suite: raise `AA_MA_TEST_TIMEOUT` (540 s), run in background.
+
+See [gate-fences.md](references/gate-fences.md#fence-3--tests_verified) — inputs, PASS rules, `Test-Command-Pass-Regex:`, the `none` opt-out and its approval.
+
+```bash
+# Fence 3 — TESTS_VERIFIED. All logic is in the skill's scripts/tests-verified.sh (bats-tested).
+_s=skills/execute-aa-ma-milestone/scripts/tests-verified.sh
+# why: stderr dropped — outside a repo the first candidate is simply absent
+for _tv in "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/${_s}" \
+           "${CLAUDE_HOME:-${HOME}/.claude}/${_s}"; do
+  [[ -f "${_tv}" ]] && TV="${_tv}" && break
+done
+bash "${TV:?tests-verified.sh not found — run scripts/install.sh}" "${TASK_NAME:-}"
 ```
 
 ---

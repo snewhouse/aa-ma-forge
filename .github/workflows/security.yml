@@ -66,6 +66,9 @@ jobs:
       - name: Sync locked deps
         run: uv sync --locked
 
+      - name: Ignores are current (an expired waiver fails here, in the job it waives)
+        run: uv run pytest -q tests/security/test_deps_audit.py::test_every_ignore_has_an_id_a_why_and_an_unexpired_date
+
       - name: Export the lock with hashes
         run: uv export --frozen --no-emit-workspace --no-emit-project -o req.txt
 

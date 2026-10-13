@@ -18,6 +18,14 @@
 **Priority:** P3
 **Depends on:** —
 
+### Review the security pins Dependabot cannot bump (quarterly; next 2027-01-12)
+**What:** check for newer releases and bump them by hand:
+- gitleaks: `security.yml` tarball URL + sha256, `.pre-commit-config.yaml` rev + `# frozen:` comment, `tests/security/test_gitleaks.py` VERSION/TARBALL_SHA256. `test_precommit_rev_and_ci_tarball_name_the_same_gitleaks_version` keeps them aligned.
+- the uv `version:` input of setup-uv in every job.
+
+Dependabot bumps the setup-uv SHA itself.
+**Why:** Dependabot watches only the github-actions and uv ecosystems; a curl URL, a pre-commit rev and an action input age silently (M8 §6.8 future-proofing). **Effort:** S · **Priority:** P3
+
 ### Migrate codemem to fastmcp 3.x (and aa-ma to watchfiles 1.x) before 2027-01-12
 **What:** `fastmcp>=3.2,<4` in `packages/codemem-mcp/pyproject.toml` and `watchfiles>=1.0` in `pyproject.toml` (TUI watcher, `src/aa_ma/tui/watcher.py`). Re-test the TUI and a live MCP stdio round-trip. Then delete the three `.pip-audit-ignore` entries, or re-check diskcache: it has no fix yet.
 **Why:** M8.5 ignored PYSEC-2026-2475/2476 (fastmcp <3.2) and PYSEC-2026-2447 (diskcache) because they are unreachable from a stdio-only server. The ignores expire on 2027-01-12, and `test_deps_audit.py` then fails CI. **Effort:** M · **Priority:** P2

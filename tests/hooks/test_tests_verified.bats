@@ -343,3 +343,35 @@ PASS_RE='Test-Command-Pass-Regex: \[ FAIL 0 \| WARN [0-9]+ \| SKIP [0-9]+ \| PAS
     run _line
     [[ "$output" == *"— passed=12 cmd=./stub.sh" ]]
 }
+
+# A committed symlink must never redirect the append (background security review of de3f390):
+# the line carries repo-controlled text (the heading), so ~/.bashrc as a target is code execution.
+@test "provenance.log as a symlink → BLOCKED, the link target is untouched" {
+    : > "$WORK/victim"
+    rm "$T/t-provenance.log" && ln -s "$WORK/victim" "$T/t-provenance.log"
+    _run_fence
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"symlink"* ]]
+    [ ! -s "$WORK/victim" ]
+}
+
+@test "the task directory as a symlink → BLOCKED, nothing written through it" {
+    mkdir -p "$WORK/elsewhere"
+    mv "$T" "$WORK/elsewhere/t"
+    ln -s "$WORK/elsewhere/t" "$T"
+    : > "$WORK/elsewhere/t/t-provenance.log"
+    _run_fence
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"symlink"* ]]
+    [ ! -s "$WORK/elsewhere/t/t-provenance.log" ]
+}
+
+@test "an approved opt-out still refuses a symlinked provenance.log" {
+    _base_ref 'Test-Command: none — docs-only milestone'
+    printf '## [2026-10-13] GATE APPROVAL: Test-Command none — %s\n- Decision: APPROVED\n' "$HEADING" > "$T/t-context-log.md"
+    : > "$WORK/victim"
+    rm "$T/t-provenance.log" && ln -s "$WORK/victim" "$T/t-provenance.log"
+    _run_fence
+    [ "$status" -eq 1 ]
+    [ ! -s "$WORK/victim" ]
+}

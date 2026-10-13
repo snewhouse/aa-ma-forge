@@ -47,6 +47,15 @@
 One shared guard in `hooks/lib/aa-ma-parse.sh` would cover them all.
 **Why:** a repo can commit `<task>-provenance.log` as a link to `~/.bashrc`. The appended line carries repo-controlled text (the milestone heading), so the next shell start runs it. Found by the background security review of the fence 3 commit (de3f390, 2026-10-13). **Effort:** S · **Priority:** P1
 
+### Fence 3 (TESTS_VERIFIED) follow-ups from the M9 §6.6 review
+**What:**
+- Killing the fence (SIGTERM to the gate) leaves the test run going. GNU `timeout` puts itself in its own process group. Fix: background `timeout`, `trap 'kill -TERM -- -$pid' TERM INT`, then `wait`.
+- Children a test starts with `setsid` outlive the timeout. Same fix area.
+- `reference.md` is read line by line. A `Test-Command:` line inside a multi-line `<!-- -->` or a code fence counts, which gives a confusing "more than one" BLOCKED (it fails closed). Run it through `_aa_ma_strip_html_comments` / `aa_ma.grammar.sanitize` first.
+- One default-branch helper (`aa_ma_default_branch` in `hooks/lib/aa-ma-parse.sh`) for fence 3 and sole-dev-merge step 5, which pick the branch differently (remote-tracking vs local).
+
+**Why:** the M9 §6.6 reuse, quality and efficiency reviews (2026-10-13); the verified WARNINGs were fixed in M9 and these remain. **Effort:** S · **Priority:** P3
+
 ### sole-dev-merge Stage G3/G4: don't break when run from a worktree
 **What:**
 - Stage G3 (`references/stage-g-merge.md:158`) always runs `gh pr merge "$PR_NUM" --"$MERGE_STRATEGY" --delete-branch`. When the branch lives in a worktree, gh's local step fails with `fatal: 'main' is already used by worktree at …`, and the remote branch is left behind.

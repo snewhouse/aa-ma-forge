@@ -142,7 +142,7 @@ checklist. The HARD/SOFT column indicates milestone-level enforcement:
 | Item                                            | Tier | Verification                                                            |
 |-------------------------------------------------|------|-------------------------------------------------------------------------|
 | Implementation tested with running code/API     | HARD | `provenance.log` shows live execution evidence                          |
-| Tests written and passing                       | HARD | `uv run pytest` exit 0 (or project equivalent)                          |
+| Tests written and passing                       | HARD | §6.7 fence 3 runs `Test-Command:` and records `TESTS_VERIFIED — <milestone heading> — passed=N` in `provenance.log` (ADR-0023) |
 | Non-breaking constraint verified                | HARD | `Skill(impact-analysis)` run; tests still pass                          |
 | AA-MA artifacts in sync; git clean              | HARD | `git status` clean for AA-MA files; zero `Status: PENDING` in milestone |
 | `Critical-Path:` evidence (when field present)  | HARD | `CRITICAL_PATH_REVIEW` entry in `provenance.log`                        |

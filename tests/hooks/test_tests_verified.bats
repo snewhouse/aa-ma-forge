@@ -397,7 +397,20 @@ PASS_RE='Test-Command-Pass-Regex: \[ FAIL 0 \| WARN [0-9]+ \| SKIP [0-9]+ \| PAS
     _git add -A && _git commit -qm "plan created on the branch"
     _run_fence
     [ "$status" -eq 0 ]
-    [[ "$output" == *"new on this branch"* ]]
+    [[ "$output" == *"new on this branch (absent at the merge-base); using its HEAD copy"* ]]
+    run _line
+    [[ "$output" == *"— passed=12 cmd=./stub.sh" ]]
+}
+
+@test "reference.md new and uncommitted → the working-tree copy is used, with a notice" {
+    _git checkout -q main
+    _git rm -q "$T/t-reference.md"
+    _git -c core.hooksPath=/dev/null commit -qm "no reference yet"
+    _git checkout -q -B feat
+    printf '# t Reference\n\nTest-Command: ./stub.sh\n' > "$T/t-reference.md"
+    _run_fence
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"uncommitted; using the working-tree copy"* ]]
     run _line
     [[ "$output" == *"— passed=12 cmd=./stub.sh" ]]
 }

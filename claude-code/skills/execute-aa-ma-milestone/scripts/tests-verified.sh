@@ -5,9 +5,10 @@
 # Exit:  0 PASS, or an approved opt-out (one provenance line appended)
 #        1 BLOCKED (no provenance line)
 #
-# Inputs come from the MERGE-BASE copy of <task>-reference.md, so a branch cannot change
-# what proves it: `Test-Command:` (default `uv run pytest`) and the optional
-# `Test-Command-Pass-Regex:`. The command runs as a shlex argv, never `bash -c`, under
+# Inputs come from the MERGE-BASE copy of <task>-reference.md, so a branch cannot change the
+# command or the pass rule that prove it (it still controls the code and test config under
+# test): `Test-Command:` (default `uv run pytest`) and the optional `Test-Command-Pass-Regex:`.
+# A reference.md new on the branch has no merge-base copy; its HEAD copy is used, with a notice. The command runs as a shlex argv, never `bash -c`, under
 # ${AA_MA_TEST_TIMEOUT:-540}s. PASS needs rc 0 AND a summary that names the pass count:
 #   default         the final non-empty line, `=` banner stripped, matches `(^|, )([0-9]+) passed`
 #   Pass-Regex set  the LAST output line matching it (bash ERE) gives an all-digit group 1
@@ -65,9 +66,21 @@ fi
 BASE=$(git merge-base "${BASE_REF}" HEAD) || blocked "no merge-base between ${BASE_REF} and HEAD."
 
 REF_TEXT=""
-# why: stderr dropped — a reference.md new on this branch is absent at the merge-base (→ default)
+REF_FROM="merge-base ${BASE:0:7}"
+# why: stderr dropped — a reference.md new on this branch is absent at the merge-base
 if git cat-file -e "${BASE}:${REF}" 2>/dev/null; then
     REF_TEXT=$(git show "${BASE}:${REF}") || blocked "cannot read ${REF} at the merge-base ${BASE}."
+# A plan created on this branch has nothing at the merge-base; its own copy is all there is (a
+# brand-new plan is self-authored either way). Every existing plan keeps the merge-base guard.
+# why: stderr dropped — not yet committed falls back to the working-tree file
+elif git cat-file -e "HEAD:${REF}" 2>/dev/null; then
+    REF_TEXT=$(git show "HEAD:${REF}") || blocked "cannot read ${REF} at HEAD."
+    REF_FROM="HEAD"
+    echo "NOTE: ${REF} is new on this branch (absent at the merge-base); using its HEAD copy."
+elif [[ -f "${REF}" ]]; then
+    REF_TEXT=$(cat -- "${REF}") || blocked "cannot read ${REF}."
+    REF_FROM="working tree"
+    echo "NOTE: ${REF} is new on this branch and uncommitted; using the working-tree copy."
 fi
 
 # count <name> / field <name>: how many `<name>:` lines, and the (trimmed) value of one.
@@ -75,16 +88,23 @@ count() { printf '%s\n' "${REF_TEXT}" | grep -c "^$1:"; }
 field() { printf '%s\n' "${REF_TEXT}" | sed -n "s/^$1:[[:space:]]*//p" | sed 's/[[:space:]]*$//'; }
 TEST_CMD_COUNT=$(count "Test-Command")
 PASS_RE_COUNT=$(count "Test-Command-Pass-Regex")
-for _f in "Test-Command:${TEST_CMD_COUNT}" "Test-Command-Pass-Regex:${PASS_RE_COUNT}"; do
-    [[ "${_f##*:}" -le 1 ]] || blocked "more than one '${_f%:*}:' line in the merge-base ${REF}."
-done
+[[ "${TEST_CMD_COUNT}" -le 1 ]] || blocked "more than one 'Test-Command:' line in ${REF} (${REF_FROM})."
+[[ "${PASS_RE_COUNT}" -le 1 ]] || blocked "more than one 'Test-Command-Pass-Regex:' line in ${REF} (${REF_FROM})."
 TEST_CMD=$(field "Test-Command")
 PASS_RE=$(field "Test-Command-Pass-Regex")
 if [[ "${TEST_CMD_COUNT}" -eq 0 ]]; then
     TEST_CMD="uv run pytest"
 elif [[ -z "${TEST_CMD}" ]]; then
-    blocked "'Test-Command:' is empty in the merge-base ${REF}."
+    blocked "'Test-Command:' is empty in ${REF} (${REF_FROM})."
 fi
+
+# append <line>: re-check the path just before writing (it may change during a long run) and
+# refuse to report success when the line did not land.
+append() {
+    [[ ! -L "${PROV}" && ( ! -e "${PROV}" || -f "${PROV}" ) ]] \
+        || blocked "${PROV} became a symlink or a non-file during the run; nothing written."
+    printf '%s\n' "$1" >> "${PROV}" || blocked "cannot write ${PROV}; no TESTS_VERIFIED line was recorded."
+}
 
 # -- Opt-out (D10): `Test-Command: none — <reason>` + a context-log GATE APPROVAL ----------
 if [[ "${TEST_CMD}" == none || "${TEST_CMD}" == none[[:space:]]* ]]; then
@@ -98,7 +118,7 @@ if [[ "${TEST_CMD}" == none || "${TEST_CMD}" == none[[:space:]]* ]]; then
         echo "  - Decision: APPROVED"
         blocked "'Test-Command: none' without a GATE APPROVAL."
     fi
-    printf '[%s] TESTS_VERIFIED — %s — skipped: %s\n' "$(date -Iseconds)" "${MILESTONE_TITLE}" "${REASON}" >> "${PROV}"
+    append "[$(date -Iseconds)] TESTS_VERIFIED — ${MILESTONE_TITLE} — skipped: ${REASON}"
     echo "TESTS-GATE: SKIPPED (approved opt-out) — ${REASON}"
     exit 0
 fi
@@ -117,6 +137,9 @@ if [[ "${PASS_RE_COUNT}" -gt 0 ]]; then
 fi
 TIMEOUT="${AA_MA_TEST_TIMEOUT:-540}"
 [[ "${TIMEOUT}" =~ ^[1-9][0-9]*$ ]] || blocked "AA_MA_TEST_TIMEOUT must be a positive integer (got '${TIMEOUT}')."
+# A test that ignores SIGTERM gets SIGKILL this many seconds after the timeout.
+KILL_AFTER="${AA_MA_TEST_KILL_AFTER:-30}"
+[[ "${KILL_AFTER}" =~ ^[1-9][0-9]*$ ]] || blocked "AA_MA_TEST_KILL_AFTER must be a positive integer (got '${KILL_AFTER}')."
 
 ARGS=$(python3 -c 'import shlex, sys; print("\n".join(shlex.split(sys.argv[1])))' "${TEST_CMD}" 2>&1) \
     || blocked "cannot split Test-Command into arguments (python3 shlex): ${ARGS}"
@@ -130,17 +153,23 @@ TIMEOUT_BIN=$(command -v timeout || command -v gtimeout || true)
 # -- Run --------------------------------------------------------------------------------------
 OUT=$(mktemp) || blocked "mktemp failed."
 trap 'rm -f "${OUT}"' EXIT
-echo "Running Test-Command (merge-base ${BASE:0:7}): ${TEST_CMD}"
+echo "Running Test-Command (${REF_FROM}): ${TEST_CMD}"
 if [[ -n "${TIMEOUT_BIN}" ]]; then
-    "${TIMEOUT_BIN}" "${TIMEOUT}" "${ARGV[@]}" > "${OUT}" 2>&1
+    "${TIMEOUT_BIN}" -k "${KILL_AFTER}" "${TIMEOUT}" "${ARGV[@]}" > "${OUT}" 2>&1
 else
     "${ARGV[@]}" > "${OUT}" 2>&1
 fi
 RC=$?
 
-if [[ -n "${TIMEOUT_BIN}" && "${RC}" -eq 124 ]]; then
+# 124: timed out and stopped on SIGTERM; 137: needed the SIGKILL (or was killed otherwise).
+if [[ -n "${TIMEOUT_BIN}" && ( "${RC}" -eq 124 || "${RC}" -eq 137 ) ]]; then
     tail -n 5 "${OUT}"
-    blocked "tests timed out after ${TIMEOUT}s. Raise AA_MA_TEST_TIMEOUT and run this fence with run_in_background."
+    blocked "tests timed out after ${TIMEOUT}s (rc ${RC}). Raise AA_MA_TEST_TIMEOUT and run this fence with run_in_background."
+fi
+# A command that cannot start is a configuration error, not a failing suite.
+if [[ "${RC}" -eq 126 || "${RC}" -eq 127 ]]; then
+    tail -n 5 "${OUT}"
+    blocked "Test-Command could not run (rc ${RC}: not executable / not found): ${TEST_CMD}"
 fi
 if [[ "${RC}" -ne 0 ]]; then
     tail -n 20 "${OUT}"
@@ -154,13 +183,18 @@ fi
 # -- rc 0: the summary must name the pass count -------------------------------------------
 N=""
 if [[ "${PASS_RE_COUNT}" -gt 0 ]]; then
+    # grep narrows the output to candidate lines (1M lines: 0.01 s, vs 14 s for a bash loop over
+    # every line) and keeps a last line that has no trailing newline; bash =~ still decides.
     MATCHED=0
+    CANDIDATES=$(grep -aE -e "${PASS_RE}" "${OUT}")
+    _grc=$?
+    [[ "${_grc}" -le 1 ]] || blocked "grep could not scan the test output (rc ${_grc})."
     while IFS= read -r _line; do
-        if [[ "${_line}" =~ ${PASS_RE} ]]; then
+        if [[ -n "${_line}" && "${_line}" =~ ${PASS_RE} ]]; then
             MATCHED=1
             N="${BASH_REMATCH[1]-}"
         fi
-    done < "${OUT}"
+    done <<< "${CANDIDATES}"
     if [[ "${MATCHED}" -eq 0 ]]; then
         tail -n 5 "${OUT}"
         blocked "tests exited 0 but no output line matches Test-Command-Pass-Regex: ${PASS_RE}"
@@ -178,5 +212,5 @@ else
     fi
 fi
 
-printf '[%s] TESTS_VERIFIED — %s — passed=%s cmd=%s\n' "$(date -Iseconds)" "${MILESTONE_TITLE}" "${N}" "${TEST_CMD}" >> "${PROV}"
+append "[$(date -Iseconds)] TESTS_VERIFIED — ${MILESTONE_TITLE} — passed=${N} cmd=${TEST_CMD}"
 echo "TESTS-GATE: PASS — passed=${N} cmd=${TEST_CMD}"

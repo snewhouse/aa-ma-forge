@@ -1,4 +1,4 @@
-"""Canonical grammar for AA-MA milestone and step headings.
+r"""Canonical grammar for AA-MA milestone and step headings.
 
 Single source of truth for "what is a milestone/step heading", shared by the
 TUI parser and the corpus tests. Field-value parsing (``Audit-Profile``,
@@ -23,9 +23,9 @@ Three deliberate choices:
 * The separator is a colon **or a space-delimited dash**. A bare ``-`` in the
   character class made ``### Step 1.1-alpha:`` parse as number ``1.1`` with
   title ``alpha:``.
-* Line ends use ``[ \\t]*$``, never ``\\s*$`` — ``\\s`` matches newlines, so
+* Line ends use ``[ \t]*$``, never ``\s*$`` — ``\s`` matches newlines, so
   ``group(0)`` would run past the heading line whenever it has trailing
-  whitespace. The title is ``.*[^ \\t]`` rather than ``.+?``: the lazy form
+  whitespace. The title is ``.*[^ \t]`` rather than ``.+?``: the lazy form
   was quadratic on a title made of a long whitespace run (20k spaces -> 1 s),
   and the gate now runs on untrusted input.
 * Milestone and step numbers share one dotted-depth rule. An earlier revision
@@ -69,7 +69,8 @@ _SEP = r"(?::|[ \t]+[–—-][ \t]+)"
 # and a word suffix (`1.1.bis`). The suffix is generic — `.bis` was the only one
 # in the corpus, but hardcoding it silently dropped `.alt` / `.ter`.
 _NUM_M = r"\d+[a-z]?(?:\.\d+)*"
-NUMBER_BODY = r"\d+[a-z]?(?:\.\d+)*(?:\.[a-z]{2,}|[a-z])?"  # a step number after its optional `M`
+# A step number after its optional `M`.
+NUMBER_BODY = r"\d+[a-z]?(?:\.\d+)*(?:\.[a-z]{2,}|[a-z])?"
 _NUM_S = rf"M?{NUMBER_BODY}"
 
 MILESTONE_RE = re.compile(
@@ -255,8 +256,9 @@ def own_text(block: Block) -> str:
 
 
 def field_pattern(name: str) -> re.Pattern[str]:
-    """Tolerant ``- Field: value`` reader for DISPLAY and advisory reads (never the gate:
-    that is :func:`aa_ma.enforce.read_enforced_field`).
+    r"""Tolerant ``- Field: value`` reader for DISPLAY and advisory reads.
+
+    Never the gate: that is :func:`aa_ma.enforce.read_enforced_field`.
 
     Accepts a leading bullet, ``**Field:**`` and ``**Field**:``. Linear by construction —
     one optional bullet run and a greedy value ending on non-space; the earlier
@@ -294,7 +296,9 @@ CANONICAL_STEP_RE = re.compile(r"^### Sub-step (?P<number>\d+\.\d+): (?P<title>\
 # milestone as `<task-slug> Milestone 5` (cross-plan: exempt from resolution). The tolerant
 # reader of every legacy form is `aa_ma.deps`; the gate never reads this field (Ticket 16).
 _CANONICAL_DEP = r"(?:(?:[a-z0-9]+(?:-[a-z0-9]+)+ )?Milestone \d+|Sub-step \d+\.\d+)"
-CANONICAL_DEPENDENCY_RE = re.compile(rf"^(?:None|{_CANONICAL_DEP}(?:, {_CANONICAL_DEP})*)$")
+CANONICAL_DEPENDENCY_RE = re.compile(
+    rf"^(?:None|{_CANONICAL_DEP}(?:, {_CANONICAL_DEP})*)$"
+)
 
 
 def find_non_canonical(text: str) -> list[str]:

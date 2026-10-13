@@ -120,3 +120,26 @@ _approval_fence() {
 @test "§7.1 calls the shared helper" {
     _approval_fence | grep -q 'aa_ma_has_gate_approval'
 }
+
+# ---------------------------------------------------------------------------
+# §6.8 (M9): the title is a string even with backslashes; a code-fenced example is not an approval
+# ---------------------------------------------------------------------------
+
+@test "a title with a backslash is compared as a string (awk -v would unescape it)" {
+    _block 'Milestone 2: grep \S fix' APPROVED
+    _has 'Milestone 2: grep \S fix'
+    [ "$status" -eq 0 ]
+    : > "$LOG"
+    _block 'Milestone 2: grep S fix' APPROVED
+    _has 'Milestone 2: grep \S fix'
+    [ "$status" -ne 0 ]
+}
+
+@test "an approval example pasted inside a code fence does not count" {
+    printf 'How to approve:\n\n```markdown\n## [date] GATE APPROVAL: %s\n- Decision: APPROVED\n```\n' "$T2" >> "$LOG"
+    _has "$T2"
+    [ "$status" -ne 0 ]
+    printf '\n## [2026-10-13] GATE APPROVAL: %s\n- Decision: APPROVED\n' "$T2" >> "$LOG"
+    _has "$T2"
+    [ "$status" -eq 0 ]
+}

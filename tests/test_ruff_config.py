@@ -94,8 +94,10 @@ def _args(n: int) -> str:
         (_args(MAX_ARGS + 1), "PLR0913"),
         (MODULE + "X = 1  # noqa\n", "PGH004"),
         (MODULE + "X: int = 1  # type: ignore\n", "PGH003"),
+        # why: Python 3.12+ warns on an invalid escape; a future version makes it an error.
+        (MODULE + 'X = "\\S"\n', "W605"),
     ],
-    ids=["D103", "C901", "RUF100", "D417", "PLR0913", "PGH004", "PGH003"],
+    ids=["D103", "C901", "RUF100", "D417", "PLR0913", "PGH004", "PGH003", "W605"],
 )
 def test_rule_fires(source: str, code: str) -> None:
     assert code in _codes(source)

@@ -452,3 +452,28 @@ PASS_RE='Test-Command-Pass-Regex: \[ FAIL 0 \| WARN [0-9]+ \| SKIP [0-9]+ \| PAS
     [[ "$output" == *"could not run"* ]]
     run ! _line
 }
+
+# Background security review of d5ae802 (gate integrity): a branch forked BEFORE an existing plan
+# reached the default branch sees no reference.md at the merge-base. It must not be able to supply
+# its own Test-Command for that plan: the default branch's tip copy wins.
+@test "a branch forked before the plan existed cannot supply its own Test-Command" {
+    _git checkout -q main
+    _git rm -q "$T/t-reference.md"
+    _git -c core.hooksPath=/dev/null commit -qm "A: plan without reference.md"
+    _git checkout -q -B feat
+    _git checkout -q main
+    printf '# t Reference\n\nTest-Command: ./stub.sh\n' > "$T/t-reference.md"
+    _git add -A
+    _git -c core.hooksPath=/dev/null commit -qm "B: reference.md lands on main"
+    _git checkout -q feat
+    printf '# t Reference\n\nTest-Command: ./other.sh\n' > "$T/t-reference.md"
+    printf '#!/usr/bin/env bash\necho "99 passed in 0.01s"\n' > "$R/other.sh"
+    chmod +x "$R/other.sh"
+    _git add -A
+    _git -c core.hooksPath=/dev/null commit -qm "self-pass attempt from an early fork"
+    _run_fence
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"main"* ]]
+    run _line
+    [[ "$output" == *"— passed=12 cmd=./stub.sh" ]]
+}

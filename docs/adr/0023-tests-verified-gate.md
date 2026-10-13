@@ -1,6 +1,6 @@
 # 0023. Tests-Verified Gate (§6.7 Fence 3)
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-10-13
 **Deciders:** Ste
 **Tags:** `workflow`, `gate`, `testing`

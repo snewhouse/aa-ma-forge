@@ -184,7 +184,7 @@ Generated: [ISO-8601 timestamp] | Audit-Profile: [profile] | Budget: [normal|low
 
 | Phase | Location | What runs |
 |---|---|---|
-| §6.7 Engineering Standards HARD Gate | heading `### 6.7 Engineering Standards HARD Gate` | git-clean, zero-PENDING, Critical-Path / Prototype evidence — every reading from `aa-ma-gate` (ADR-0009) |
+| §6.7 Engineering Standards HARD Gate | heading `### 6.7 Engineering Standards HARD Gate` | Fence 1: git-clean, zero-PENDING, Critical-Path / Prototype evidence — every reading from `aa-ma-gate` (ADR-0009). Fence 2: §13 sigil edges hold in the code (ADR-0015). Fence 3: runs the merge-base `Test-Command:` (optional `Test-Command-Pass-Regex:`) and writes `TESTS_VERIFIED` (ADR-0023) |
 | **§6.8 Post-Impl Adversarial Review** | (NEW — inserted between §6.7 and §7.1) | Invoke `/verify-impl` with current milestone's `Audit-Profile`; aggregate findings; surface CRITICAL via AskUserQuestion |
 | §7.1 Integrity Check | heading `### 7.1 Integrity Check` | HARD-gate approval artifact check (asks `aa-ma-gate` itself; requires `Decision: APPROVED`) |
 | §7.3 User Authorization | heading `### 7.3 User Authorization` | Existing approval gate (now post-§6.8) |

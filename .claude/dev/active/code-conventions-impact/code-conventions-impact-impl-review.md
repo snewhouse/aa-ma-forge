@@ -387,3 +387,56 @@ Follow-up (2b6be1e): a third background security notice. Live probes showed the 
 Double-check follow-up (f8f7220, 4544060): env-prefix secrets; readlink -f / HOME / lib fail-open; CR/LF-safe CLI logs (closes the deferred S-I); no shared-/tmp fallback (4th security notice).
 
 Mutations: removing bearer-token fails 2 tests; removing the quoted-value branch fails 3; a raw `$cmd` in aa_ma_debug fails the guard. bats 446/446, pytest 2964 passed / 6 skipped / 0 failed, lint-imports 6 kept, shellcheck clean.
+
+---
+
+# Milestone 8: SecOps CI baseline (T10) — post-impl review (§6.8)
+
+- Audit-Profile: full · window 0df379c..e7f85ab (35 commits) · budget normal · parallel dispatch, 5 agents
+- Date: 2026-10-13
+
+## Summary
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 6 | 2 | WARN |
+| security-auditor | 0 | 5 | 3 | WARN |
+| tdd-sequence-auditor | 0 | 1 | 2 | PASS |
+| context7-evidence-auditor | 0 | 1 | 3 | WARN |
+| future-proofing-auditor | 0 | 3 | 9 | WARN |
+| **TOTAL** | **0** | **16** | **19** | **PASS_WITH_WARNINGS** |
+
+No CRITICAL, so no override panel. Ste chose "Fix A–G, defer 2".
+
+## Findings and outcomes
+
+| # | Finding (agent) | Outcome |
+|---|---|---|
+| A | Stage D auto-fixed literal-command S602 (Ruff reports it; Bandit's HIGH filter did not), counted unapplied sed edits, staged with `git add -A` (security, code-reviewer) | **Fixed** 70411d9 RED → 7bf4610: non-literal only, edit verified, only edited files staged |
+| B | Hook read only the index and the literal `git commit`: -am, -a, pathspec, `git -C/-c`, `--no-edit` unscanned (security) | **Fixed** 5e5aa6f RED → e5241b5: staged ∪ modified tracked .py, index + working tree, `git -C/-c` recognised, no editor-form skip |
+| C | Quoted non-ASCII names dropped (security) | **Fixed** e5241b5: NUL listing, `core.quotePath=false` |
+| D | Bypass marker outside the message left no audit trail (security) | **Fixed** e5241b5: every use logs a hooks.log WARN line |
+| E | `invalid-syntax` labelled "security rule" (Ste's question) | **Fixed** e5241b5: "unparsable Python (cannot be scanned)", still blocks |
+| F | Pinned-SHA test would fail every Dependabot setup-uv PR; deps job did not check expiry; gitleaks pins unwatched (future-proofing, code-reviewer, security) | **Fixed** 18aa2a6 RED → ff92d48: shape + uniform pins, expiry step in deps, gitleaks rev/CI agreement test, TODOS pin review |
+| G | secops pip-audit recipe ≠ CI; SSDF rule without reason; pip-audit pin without why; header step order; foundations row stale (code-reviewer, future-proofing) | **Fixed** b661861 (+ Go/Rust/Java/Ruby/PHP/.NET lockfile routing per osv-scanner docs) |
+| — | Per-file fork ceiling (~700 files) (security) | **Deferred** TODOS P3 |
+| — | Reusable secops-ci template for other repos (Ste) | **Deferred** TODOS P2 |
+| — | TDD: 964e5b7 (whole-file redesign) and db3c46a (Stage C/D) changed tests in the same commit, no RED first | **Recorded** (verdict PASS at window level) |
+| — | pip-audit: no CONTEXT7 evidence | **Recorded** honestly in provenance: verified by live runs, no docs consulted |
+| — | Test-helper duplication across tests/security, owners logger name, scope notes | INFO; logger renamed (e1b5c88), helpers kept per house style |
+
+## Background review rounds after §6.8
+
+Two further commit reviews on the hook found a root-relative path mismatch (fixed c8467eb,
+RED test first) and more command-parsing bypasses (`--git-dir <path>`, `cd x && git commit`,
+env-var commits). **Decision (Ste, 2026-10-13): the hook is a best-effort guardrail, not a
+security boundary** — ADR-0022 amendment and hook header list the non-goals; enforcement is CI
+plus the repo's pre-commit; a git pre-commit move is the TODOS upgrade path.
+
+## User Override Decisions
+
+None (no CRITICAL).
+
+## Verification
+
+pytest 3004 passed / 6 skipped / 0 failed; bats 505/505 at b661861.

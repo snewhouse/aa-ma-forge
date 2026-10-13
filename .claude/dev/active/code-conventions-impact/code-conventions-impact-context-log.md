@@ -441,3 +441,10 @@ DECISION ruff-only () — approved by Ste
 ## [2026-10-13] M8.7 — approvals (Ste)
 - ADR-0022 SecOps baseline: Accepted, approved by Ste.
 - senior-secops removal approved by Ste after reading the files: a template stub (scanners hard-code zero findings), already off via skillOverrides. Backup /home/sjnewhouse/.claude/backups/cci-m8-senior-secops-20261013-094804.tgz, 7/7 files verified. Removed by Ste with `!` because guard-protected-dirs.sh blocks a recursive rm under ~/.claude/skills; that guard was not bypassed.
+
+## [2026-10-13] M8 §6.6 / §6.8 decisions (Ste)
+- §6.6: fixed the CRITICAL timeout fail-open (per-line forks) plus the empty/chmod false block, the git-diff skip, the hot path and the text drift (e1b5c88). Duplicated ruff resolution, per-file forks, CI sync cost and test-helper duplication were acknowledged.
+- §6.8 (0 CRITICAL / 16 WARNING): "Fix A–G, defer 2". See impl-review M8.
+- DECISION security-static-check is a best-effort guardrail, not a security boundary — approved by Ste. Six review rounds showed that command-text parsing cannot see every commit form. Named non-goals live in the hook header and the ADR-0022 amendment. Enforcement is CI plus the repo's pre-commit. Upgrade path is TODOS P2.
+- D8 exception, recorded so "no logic change in a security milestone" stays true: the codemem owners blame swallow now logs a warning (6fe1770, L-1319). It is the only logic change in the D8 pay-down; it is tested and mutation-checked.
+- TDD audit WARNING accepted: 964e5b7 and db3c46a rewrote their tests in the same commit as the behaviour change. Every later hook change had a RED commit first.

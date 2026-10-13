@@ -36,6 +36,17 @@
 
 **Why:** the Stage C1/C2 review of PR #30 found 7 LOWs and 2 disputed CRITICALs (Ste: notes + TODOS). **Effort:** S · **Priority:** P3
 
+### Refuse to append AA-MA records through a symlink (all writers, not just fence 3)
+**What:** fence 3 (`execute-aa-ma-milestone/scripts/tests-verified.sh`) now refuses to append when `provenance.log`, or any directory on its path, is a symlink. The other appenders have no such check (each needs a probe):
+- the diagram fence (`execute-aa-ma-milestone/SKILL.md:363`);
+- `references/post-impl-review.md:34,41`;
+- `verify-impl/SKILL.md:105`;
+- `hooks/pre-compact-aa-ma.sh:131,147` (provenance and context-log);
+- `hooks/aa-ma-commit-drift.sh`.
+
+One shared guard in `hooks/lib/aa-ma-parse.sh` would cover them all.
+**Why:** a repo can commit `<task>-provenance.log` as a link to `~/.bashrc`. The appended line carries repo-controlled text (the milestone heading), so the next shell start runs it. Found by the background security review of the fence 3 commit (de3f390, 2026-10-13). **Effort:** S · **Priority:** P1
+
 ### sole-dev-merge Stage G3/G4: don't break when run from a worktree
 **What:**
 - Stage G3 (`references/stage-g-merge.md:158`) always runs `gh pr merge "$PR_NUM" --"$MERGE_STRATEGY" --delete-branch`. When the branch lives in a worktree, gh's local step fails with `fatal: 'main' is already used by worktree at …`, and the remote branch is left behind.

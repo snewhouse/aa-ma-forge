@@ -28,6 +28,13 @@ TASK_DIR=".claude/dev/active/${TASK_NAME}"
 REF="${TASK_DIR}/${TASK_NAME}-reference.md"
 PROV="${TASK_DIR}/${TASK_NAME}-provenance.log"
 
+# The append target must be a regular file reached through no symlink. A committed link
+# would redirect the line — which carries the repo's own heading text — into, say, ~/.bashrc.
+for _p in .claude .claude/dev .claude/dev/active "${TASK_DIR}" "${PROV}"; do
+    [[ -L "${_p}" ]] && blocked "${_p} is a symlink; refusing to write provenance through it."
+done
+[[ ! -e "${PROV}" || -f "${PROV}" ]] || blocked "${PROV} is not a regular file."
+
 # -- The milestone being certified (Python SSoT, like the other §6.7 fences) ------------
 _top=$(git rev-parse --show-toplevel 2>/dev/null)  # why: outside a repo the first candidate is simply absent
 for _cand in \

@@ -7,7 +7,8 @@
 #
 # PreToolUse(Bash) hook — block commits that introduce mechanical security
 # anti-patterns in Python files. Symmetric to aa-ma-commit-signature.sh but
-# inspects every .py the commit can contain (staged, or modified for -a / a pathspec):
+# inspects every .py the commit can contain (staged, modified for -a / a pathspec, or
+# untracked and not ignored, which a `git add` earlier in the same command stages):
 # Ruff S rules on each whole file, plus two regex classes on added lines.
 #
 # CONTRACT: a best-effort guardrail, NOT a security boundary (decided 2026-10-13, ADR-0022).
@@ -155,13 +156,15 @@ if ! top=$(git rev-parse --show-toplevel 2>/dev/null) || ! cd -- "$top"; then
 fi
 
 # -----------------------------------------------------------------------------
-# 7. Python files this commit can contain: staged (AMRC) plus modified-but-unstaged tracked
-#    files, which `-a` and a pathspec commit. No flag parsing decides what is scanned.
+# 7. Python files this commit can contain: staged (AMRC), modified-but-unstaged tracked files
+#    (`-a`, a pathspec), and untracked non-ignored files: PreToolUse fires before the
+#    `git add new.py` in `git add new.py && git commit`. No flag parsing decides what is scanned.
 # -----------------------------------------------------------------------------
 # The listing below runs in a process substitution, whose failure would read as "no files":
 # check the commands it needs first, and fail closed.
 # why: stdout/stderr dropped — only the status matters; a failure is reported on the next line
-if ! command -v sort >/dev/null 2>&1 || ! git diff --cached --name-only -z >/dev/null 2>&1 || ! git diff --name-only -z >/dev/null 2>&1; then
+if ! command -v sort >/dev/null 2>&1 || ! git diff --cached --name-only -z >/dev/null 2>&1 || ! git diff --name-only -z >/dev/null 2>&1 ||
+   ! git ls-files --others --exclude-standard -z >/dev/null 2>&1; then  # why: as above
     printf 'security-static-check: cannot list the files this commit contains (git or sort failed); refusing (exit 2)\n' >&2
     exit 2
 fi
@@ -170,7 +173,8 @@ py_files=()
 while IFS= read -r -d '' f; do
     [[ "$f" == *.py ]] && py_files+=("$f")
 done < <({ git -c core.quotePath=false diff --cached --name-only -z --diff-filter=AMRC 2>/dev/null  # why: checked above
-           git -c core.quotePath=false diff --name-only -z --diff-filter=AMRC 2>/dev/null; } | sort -zu)  # why: checked above
+           git -c core.quotePath=false diff --name-only -z --diff-filter=AMRC 2>/dev/null  # why: checked above
+           git -c core.quotePath=false ls-files --others --exclude-standard -z 2>/dev/null; } | sort -zu)  # why: checked above
 if [ "${#py_files[@]}" -eq 0 ]; then
     aa_ma_debug "security-static-check: no staged or modified *.py files"
     exit 0
@@ -232,6 +236,10 @@ ruff_scan() {
 }
 
 for file in "${py_files[@]}"; do
+    # Untracked: no index entry and no diff against one; the whole working copy is new.
+    untracked=0
+    # why: stdout/stderr dropped — only the status matters (rc 1 = not in the index)
+    git ls-files --error-unmatch -- "$file" >/dev/null 2>&1 || untracked=1
 
     # -- Ruff S, whole file (D8): the index blob, and the working tree where it differs ------
     if [ -n "$ruff" ]; then
@@ -244,7 +252,7 @@ for file in "${py_files[@]}"; do
             fi
         fi
         # why: rc 1 = the working tree differs from the index (what `-a` / a pathspec commits)
-        if [ -f "$file" ] && ! git diff --quiet -- "$file" 2>/dev/null; then
+        if [ -f "$file" ] && { [ "$untracked" = 1 ] || ! git diff --quiet -- "$file" 2>/dev/null; }; then
             ruff_scan "$file" "$(cat -- "$file")"
         fi
     fi
@@ -252,8 +260,17 @@ for file in "${py_files[@]}"; do
     # -- Regex classes, added lines --------------------------------------------
     # Plain diff whatever the repo's config says: color, an external diff or a textconv
     # driver would change the text this parser reads.
+    # An untracked file diffs against /dev/null, so every line is an added line.
+    if [ "$untracked" = 1 ]; then
+        drc=0
+        # why: stderr dropped — rc 1 means "differs"; rc 2+ is the blocking finding below
+        diff_content=$(git diff --no-index --no-color --no-ext-diff --no-textconv -U0 -- /dev/null "$file" 2>/dev/null) || drc=$?
+        if [ "$drc" -gt 1 ]; then
+            findings+=("${file}: git diff failed; refusing to pass it unscanned")
+            continue
+        fi
     # why: stderr dropped — a failing git diff becomes a blocking finding (fail closed)
-    if ! diff_content=$(git diff --cached --no-color --no-ext-diff --no-textconv -U0 -- "$file" 2>/dev/null &&
+    elif ! diff_content=$(git diff --cached --no-color --no-ext-diff --no-textconv -U0 -- "$file" 2>/dev/null &&
                        git diff --no-color --no-ext-diff --no-textconv -U0 -- "$file" 2>/dev/null); then  # why: as above
         findings+=("${file}: git diff failed; refusing to pass it unscanned")
         continue

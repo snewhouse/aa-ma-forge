@@ -819,12 +819,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: HITL (ADR and removal approved by Ste). Eval-first: 3 cases `evals/secops/{scanner-map,js-lockfile,shell-true}` + fixture `tests/fixtures/evals/py-secops`, committed RED bf92b21 before SKILL.md (FileNotFoundError). `claude-code/skills/secops/SKILL.md` is a thin router: Ruff S, gitleaks, pip-audit (uv audit once GA), osv-scanner `scan -L` (syntax and renv.lock checked against the osv-scanner docs), ShellCheck, Dependabot × edit/commit/CI/weekly. It cites ASVS 5.0, OWASP Top 10:2025 and NIST SSDF by name, no 1.2 IDs (62dd2d0). secrets-management: gitleaks primary, TruffleHog `--fail` + digest pin as the alternative; FORKS.json md5 → 0af555f2 (state derived). defense-in-depth: parse once at the trust boundary into typed values, cheap asserts deeper, LLM output untrusted → Skill(llm-output-safety) (7c3555c). Counts 38→39 (SECURITY.md, foundations, README); golden regenerated; orphan set secops in, llm-output-safety out. ADR-0022 Accepted + INDEX row. senior-secops: read first — a template stub (all 3 scripts `findings = []`, boilerplate refs, identical to the marketplace copy, already `skillOverrides: off`). Backup `/home/sjnewhouse/.claude/backups/cci-m8-senior-secops-20261013-094804.tgz` verified 7/7 files, extracted content diff-identical. The guard hook blocked the agent's `rm -r` under ~/.claude/skills, so Ste removed it via `!` (10 entries removed); `ls` → absent. settings.json `"off"` override left alone (L-1210). pytest 3002/6/0.
 
 ### Sub-step 8.8: CRITICAL_PATH_REVIEW
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 8.7
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — Milestone 8: SecOps CI baseline (T10) — hook-modification — <evidence>`, naming the bats/test names and the CI run URLs (ruff-security, gitleaks, deps).
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. CRITICAL_PATH_REVIEW line written to provenance.log naming the security-static-check, sole-dev-merge and ruff-format bats cases and the CI run 38372156840 job URLs for ruff-security, gitleaks, deps and bats (all pass @3ab820d).
 
 ---
 

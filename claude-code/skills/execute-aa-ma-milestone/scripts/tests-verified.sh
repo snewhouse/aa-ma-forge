@@ -91,10 +91,8 @@ if [[ "${TEST_CMD}" == none || "${TEST_CMD}" == none[[:space:]]* ]]; then
     [[ "${TEST_CMD}" =~ ^none[[:space:]]+—[[:space:]]+(.+)$ ]] \
         || blocked "the opt-out needs a reason: 'Test-Command: none — <reason>'."
     REASON="${BASH_REMATCH[1]}"
-    # The heading is data, not a pattern (-F); `Decision: APPROVED` must be in the block.
-    if ! grep -A8 -F -- "GATE APPROVAL: Test-Command none — ${MILESTONE_TITLE}" \
-         "${TASK_DIR}/${TASK_NAME}-context-log.md" \
-         | grep -qE '^-[[:blank:]]+(\*\*)?Decision:(\*\*)?[[:blank:]]+APPROVED'; then
+    # Block-scoped, exact-title check shared with §7.1 (aa-ma-parse.sh).
+    if ! aa_ma_has_gate_approval "${TASK_DIR}/${TASK_NAME}-context-log.md" "Test-Command none — ${MILESTONE_TITLE}"; then
         echo "The opt-out needs, in ${TASK_NAME}-context-log.md:"
         echo "  ## [date] GATE APPROVAL: Test-Command none — ${MILESTONE_TITLE}"
         echo "  - Decision: APPROVED"

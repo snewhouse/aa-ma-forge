@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-12 (M7 complete)_
+_Last Updated: 2026-10-13 (M8 complete)_
 
 Test-Command: uv run pytest
 
@@ -28,7 +28,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | Canary branch (M1.4) | `canary/cci-m1-touched` (DRAFT PR, closed + deleted after) | [valid: 2026-10-08] |
 | Prototype branches | `prototype/cmd-to-skill` (M3.1), `prototype/impact-hook` (M10.1) | [valid: 2026-10-08] |
 | Release target | v0.18.0 (minor), single release in M14 (D11) | [valid: 2026-10-08] |
-| Next free ADR number | 0022 (0018 = M1 lint gate, 0019 = M2 skill migration, 0020 = M3 commands → skills, 0021 = M4 writing-for-agents); eight ADRs planned | [valid: 2026-10-09] |
+| Next free ADR number | 0023 (0022 = M8 secops baseline; 0018 = M1 lint gate, 0019 = M2 skill migration, 0020 = M3 commands → skills, 0021 = M4 writing-for-agents); eight ADRs planned | [valid: 2026-10-13] |
 | Session rules | `/rigor` (`~/.claude/skills/rigor/SKILL.md`), ≤5 concurrent sub-agents, `Skill(double-check)` before any COMPLETE | [valid: 2026-10-08] |
 
 ## Baseline Numbers (plan §0, 2026-10-08)
@@ -196,8 +196,8 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 | gitutil timeout | 10.0 s | `git(args, repo, timeout=10.0)` | [valid: 2026-10-08] |
 | Dependabot cooldown | 7 days | `.github/dependabot.yml` | [valid: 2026-10-08] |
 | codemem schema | v4 (adds `plugin_edges(src TEXT, dst TEXT, kind TEXT, ref_class TEXT)`) | storage/db.py, M10.3 | [valid: 2026-10-08] |
-| Security-static-check Ruff selection | `S602,S604,S307,S608,S301` | D12, M8.6 | [valid: 2026-10-08] |
-| Only Ruff S ignore | `tests/**` S101 | tested (§0 v2) | [valid: 2026-10-08] |
+| Security-static-check Ruff selection | `S102,S301,S307,S602,S604,S608`, `--isolated --ignore-noqa`, whole file | D12, M8.6 (S102 added) | [valid: 2026-10-13] |
+| Ruff S ignores | `tests/**` S101, S108, S110, S603, S607 (Ste-approved deviation, M8.2) | pyproject.toml | [valid: 2026-10-13] |
 
 ## Configuration
 
@@ -215,7 +215,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 | `AA_MA_HOOKS_DISABLE` | unset | no | master kill switch (emergency rollback for new fences, stated to Ste) [valid: 2026-10-08] |
 | `CLAUDE_HOME` | `~/.claude` | no | fake home for in-milestone install proofs [valid: 2026-10-08] |
 | `RUFF_BIN` | `ruff` | no | scanner override; `/nonexistent` exercises the UNKNOWN path [valid: 2026-10-08] |
-| `BANDIT_BIN` | `bandit` | no | retired in M8 (Stage C3) [valid: 2026-10-08 to M8] |
+| `BANDIT_BIN` | — | no | RETIRED in M8 (Stage C3 uses `RUFF_BIN`) [valid: 2026-10-08 to 2026-10-13] |
 | `SHELLCHECK_BIN` | `shellcheck` | no | scanner override (existing) [valid: 2026-10-08] |
 | `GH_TOKEN`, `GITHUB_TOKEN`, `SSH_AUTH_SOCK` | — | no | unset inside the eval sandbox (`env -i`; credentials forwarded on stdin, not argv) [valid: 2026-10-08] |
 | `RUN_EVALS_ALLOW_API_KEY` | 0 | no | `1` forwards `ANTHROPIC_API_KEY` into run-evals; otherwise dropped so evals stay on plan usage [valid: 2026-10-09] |
@@ -238,9 +238,9 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 | Package | Version | Class | Purpose |
 |---------|---------|-------|---------|
 | pre-commit | (locked in uv.lock) | Dev-only | touched-files harness (P1) [valid: 2026-10-08] |
-| bandit | ==1.9.4 | Dev-only | pinned for the M8.1 comparison; fallback gate only [valid: 2026-10-08] |
+| bandit | — | removed | dropped from the dev group in M8.6 (db3c46a); ruff-only [valid: 2026-10-08 to 2026-10-13] |
 | ruff | 0.15.9 (uv.lock) | Dev-only | lint, format, Ruff S [valid: 2026-10-08] |
-| pip-audit | (locked in dev group) | Dev-only | hashed dependency audit (A6 fallback) [valid: 2026-10-08] |
+| pip-audit | >=2.10.1 (2.10.1 locked) | Dev-only | hashed dependency audit (A6 fallback) [valid: 2026-10-13] |
 | griffe | pinned in M10.7 | Dev-only | API diff for `aa_ma` and `codemem` (P6) [valid: 2026-10-08] |
 | codemem-mcp | workspace member | Dev-only for `aa_ma` | `pyproject.toml:56`; aa_ma shells out to its CLI, never imports it [valid: 2026-10-08] |
 | GitHub Actions | `astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7` (v10.2.0), `actions/checkout@11d5960…` (v4.4.0) | CI | SHA-pinned; `persist-credentials: false` [valid: 2026-10-08] |
@@ -256,7 +256,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - `tests/test_prompt_size.py`; `claude-code/skills/writing-for-agents/`; `evals/<skill>/<case>/case.yaml` (24); `scripts/run-evals.sh`; `tests/scripts/test_run_evals_sandbox.bats`; `docs/adr/NNNN-writing-for-agents-fork.md` — M4
 - `tests/test_split_preserves_content.py`; `references/` dirs for the 6 split skills — M5
 - `claude-code/hooks/lib/aa-ma-log.sh`; `src/aa_ma/logsetup.py`; `tests/hooks/aa-ma-log.bats`; `tests/test_logsetup.py`; `tests/fixtures/hook-payloads/` — M7
-- `docs/research/code-conventions-impact-ruff-vs-bandit.md`; `.github/dependabot.yml`; `.gitleaksignore`; `claude-code/skills/secops/SKILL.md`; `tests/security/test_canary.py`; `tests/fixtures/canary/`; `docs/adr/NNNN-secops-baseline.md` — M8
+- `docs/research/code-conventions-impact-ruff-vs-bandit.md`; `.github/dependabot.yml`; `.gitleaksignore`; `claude-code/skills/secops/SKILL.md`; `tests/security/test_canary.py`; `tests/fixtures/canary/`; `docs/adr/0022-secops-baseline.md` — M8
 - `tests/hooks/test_tests_verified.bats`; `tests/test_tdd_waiver_doc_sync.py`; `docs/adr/NNNN-tests-verified-gate.md` — M9
 - `packages/codemem-mcp/src/codemem/gitutil.py`; `src/aa_ma/gitutil.py`; `claude-code/hooks/aa-ma-impact-preedit.sh`; `tests/codemem/{test_callees,test_file_impact,test_plugin_surface_index,test_critical_path_globs}.py`; `tests/test_gitutil_contract.py`; `tests/hooks/aa-ma-impact-preedit.bats`; `docs/adr/NNNN-impact-preedit-hook-and-callees.md` — M10
 - `src/aa_ma/impact.py`; `src/aa_ma/contract_rows.py`; `tests/test_impact.py`; `tests/test_contract_rows.py`; `tests/test_impact_codemem_contract.py`; `tests/hooks/test_impact_verified.bats`; `tests/hooks/aa-ma-milestone-base.bats`; `claude-code/skills/execute-aa-ma-milestone/references/impact-gate.md`; `docs/adr/NNNN-gate-computed-impact-verified.md` — M11
@@ -410,3 +410,14 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - `aa_ma.logsetup.configure_logging(verbosity, fmt)`: `LOG_LEVEL` / `LOG_FORMAT=text|json`; stderr handler with `SecretRedactingFormatter`. Text mode flattens CR/LF; JSON keeps masked exc/stack; the fail-closed record keeps `ts`, `level`, `logger`, `message`. First non-test caller planned in M10. [valid: 2026-10-12]
 - Hook payload fixtures: `tests/fixtures/hook-payloads/<Event>[-<Matcher>].json` (7), loaded via `load ../lib/hook_payloads` and `payload <name> <jq filter>`, guarded by `tests/test_hook_payloads.py`. [valid: 2026-10-12]
 - Hook-path cost vs main (50 runs, real payloads): Bash-call hooks +2–4 ms each; ruff-format on a non-.py edit 1.8 ms (main 4.7). [valid: 2026-10-12]
+
+## M8 As-Built Facts (2026-10-13)
+- CI `security.yml` jobs: shellcheck, ruff-security, deps, gitleaks, touched (`SKIP: gitleaks-system`), bats, codemem-smoke, architecture-drift, explorer-contract; weekly cron `17 6 * * 1`; bandit job removed. [valid: 2026-10-13]
+- uv in CI: `astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7`, uv 0.12.3, python 3.13, `uv sync --locked`, `persist-credentials: false`; tests assert pins are SHA-shaped and uniform, not literal (Dependabot bumps them). [valid: 2026-10-13]
+- deps job: `uv export --frozen --no-emit-workspace --no-emit-project -o req.txt` → `uv run pip-audit --disable-pip --require-hashes --strict -r req.txt`; it runs `tests/security/test_deps_audit.py` so an expired ignore fails it. [valid: 2026-10-13]
+- `.pip-audit-ignore`: `<ID>  # expires: YYYY-MM-DD — why`; PYSEC-2026-2475, PYSEC-2026-2476 (fastmcp <3.2), PYSEC-2026-2447 (diskcache), all expire 2027-01-12; fix is the fastmcp-3 migration (TODOS). [valid: 2026-10-13]
+- gitleaks v8.18.4 (tarball sha256 `ba6dbb65…628e7d`); pre-commit rev `02808f45…7ff9`, hook `gitleaks-system`; `.gitleaksignore` = 8 fingerprints, each with `# why:`; a test asserts pre-commit and CI name the same version. [valid: 2026-10-13]
+- `.github/dependabot.yml`: github-actions + uv, weekly, `cooldown.default-days: 7`. [valid: 2026-10-13]
+- `security-static-check.sh` contract: best-effort guardrail, NOT a security boundary (ADR-0022 amendment, Ste). Scans staged ∪ unstaged-modified tracked `.py` (index blob + working copy) from the repo top level; recognises `git [-c k=v|-C dir|--opt]… commit`; named non-goals: env-var commits, `--git-dir`, aliases, `cd && git commit`, `sh -c`/eval/scripts, commits outside Claude. No ruff → notice, exit 0. 61 bats. [valid: 2026-10-13]
+- sole-dev-merge Stage C3: `"${RUFF_BIN:-ruff}" check --select S --output-format json`, 72-code severity map, unknown code → HIGH, missing scanner → `[HIGH] C3 NOT RUN … UNKNOWN`; Stage D auto-fixes only non-literal S602 and stages only edited files. [valid: 2026-10-13]
+- Skills 38 → 39 (secops router added; senior-secops removed from `~/.claude/skills`, backup tgz 7 files). ADR-0022 Accepted. [valid: 2026-10-13]

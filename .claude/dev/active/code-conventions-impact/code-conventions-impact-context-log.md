@@ -448,3 +448,17 @@ DECISION ruff-only () — approved by Ste
 - DECISION security-static-check is a best-effort guardrail, not a security boundary — approved by Ste. Six review rounds showed that command-text parsing cannot see every commit form. Named non-goals live in the hook header and the ADR-0022 amendment. Enforcement is CI plus the repo's pre-commit. Upgrade path is TODOS P2.
 - D8 exception, recorded so "no logic change in a security milestone" stays true: the codemem owners blame swallow now logs a warning (6fe1770, L-1319). It is the only logic change in the D8 pay-down; it is tested and mutation-checked.
 - TDD audit WARNING accepted: 964e5b7 and db3c46a rewrote their tests in the same commit as the behaviour change. Every later hook change had a RED commit first.
+
+## [2026-10-13] GATE APPROVAL: Milestone 8: SecOps CI baseline (T10)
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 8/8 (milestone) + 9/9 sub-steps (8.0–8.8)
+- Evidence: pytest 3004 passed/6 skipped/0 failed, bats 505/505 at 0eaa6c9; CI run 38377287777 9/9 green. Criterion 2 via approved deviation (tests/** S101/S108/S110/S603/S607); criterion 3 via 8 approved gitleaks fingerprints. §6.3 MEDIUM (no HIGH). §6.7 ENG gate PASS; DIAGRAM_VERIFIED edges=25 phantom=0. §6.8 PASS_WITH_WARNINGS (0 CRITICAL / 16 WARNING / 19 INFO; A–G fixed, 2 deferred to TODOS). Double-check Partially verified (F1 stale CPR) → remediated by the CRITICAL_PATH_REVIEW addendum at 5c44a49.
+- Decision: APPROVED
+
+## [2026-10-13] Milestone Completion: Milestone 8: SecOps CI baseline (T10)
+- Status: COMPLETE
+- Key outcome: bandit replaced by Ruff S in CI and the commit hook (whole-file, forge-pinned, best-effort guardrail per the ADR-0022 amendment); gitleaks over full history plus pre-commit; pip-audit over the hashed lock with expiring ignores; Dependabot for actions and uv; senior-secops replaced by the secops router skill.
+- Artifacts: claude-code/hooks/security-static-check.sh, .github/workflows/security.yml, .github/dependabot.yml, .gitleaksignore, .pip-audit-ignore, tests/security/ (4 files), claude-code/skills/secops/, docs/adr/0022-secops-baseline.md, sole-dev-merge Stage C/D references.
+- Tests: bats 505/505, pytest 3004 passed/6 skipped/0 failed.
+- Post-merge (outside the milestone): scripts/install.sh; local CLAUDE.md BANDIT_BIN→RUFF_BIN row, CI section and 39-skill count; remove the M8 worktree.

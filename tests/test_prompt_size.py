@@ -43,7 +43,6 @@ TOC_ALLOWLIST = frozenset(
         "skills/aa-ma-plan-workflow/references/PHASE_3_RESEARCH.md",
         "skills/aa-ma-plan-workflow/references/PHASE_4_PLAN_GENERATION.md",
         "skills/aa-ma-plan-workflow/references/PHASE_5_ARTIFACT_CREATION.md",
-        "skills/aa-ma-plan-workflow/references/SKILL_INTEGRATION.md",
         "skills/aa-ma-plan-workflow/references/SYNC_PROTOCOL.md",
         "skills/aa-ma-plan-workflow/references/VALIDATION_GATES.md",
         "skills/agent-teams/references/AA_MA_INTEGRATION.md",

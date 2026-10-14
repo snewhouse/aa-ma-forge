@@ -559,3 +559,9 @@ DECISION ruff-only () — approved by Ste
 ## [2026-10-14] M15 start — title rename + pre-exec validator (Ste)
 - 15.0 HITL: Proceed. Title renamed `(report 03 T2–T6)` → `(report 03 T2–T9)` (Ste), before any milestone token exists; sites: tasks.md heading + 15.1/15.10 ACs, plan.md §13 node + §M15 heading. Context-log entries above keep the old title as history.
 - Pre-exec validator: WARN, 0 FAIL, 7 WARN. Applied: (1) 15.10 depends on 15.6, 15.7, 15.9 (its evidence); (2) report-03 decision ids prefixed `R03-` inside M15 (they clashed with this plan's D7/D10/D12; D13/D14 were undefined here); (3) 15.2 AC names the stale `cli.py` "placeholder" docstrings; (4) reference.md gains M15 facts; (5) provenance gains the scope-change line; (6) plan.md counts/order (fifteen milestones; M1 → M9, M15, M10 → M14); (7) Contract rationale for install.sh (15.8 link) and SKILL.md (pointer line only).
+
+## [2026-10-14] M15.1 PROTOTYPE verdict — bounded refresh (Ste: Accept both)
+- Decision: subprocess cap (not a thread): `lockf` is per-process, so threads in one MCP server do not exclude each other; a thread cannot be killed; refresh parsing holds the GIL. Spawn only when an in-process pre-check (`last_sha` vs HEAD + `git status --porcelain -uno`, ~10 ms on the forge) says stale, so the 125 ms subprocess start is not paid per query.
+- Kill safety holds today (3 kill points, all recover to cold-build counts). No new lock or WAL code needed for the kill AC.
+- Plan change (verdict-changes-plan: YES): the full-rebuild fallback unlinks `index.db` in place and every concurrent reader raises for the whole rebuild. 15.2 builds to a temp DB and swaps with `os.replace`. Open risk owned by 15.2: a long-lived reader holding the old `-wal` across the swap.
+- Alternatives rejected: thread + in-process mutex (GIL contention, no kill); defer the swap to TODOS (readers keep failing during every full rebuild, which the cap would now trigger more often).

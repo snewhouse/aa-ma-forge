@@ -74,10 +74,10 @@ Ste selected **all six themes** (2026-10-08).
 |---|---|
 | 1. Verification & Truth | Gate, hooks and CI change. Every new check is proven by a canary that must fail (Ruff S, gitleaks, `TESTS_VERIFIED`, `IMPACT_VERIFIED`), and hooks are tested with real captured payloads (L-1319). |
 | 2. Development Principles | TDD for every Python/bash change. KISS: shell out to the `codemem` CLI rather than break the `aa-ma-never-imports-codemem` contract. Knowledge-DRY: Expected-Blast-Radius **is** the Contract `Files:` block, parsed by the existing coverage parser. |
-| 3. Reasoning & Planning | Eight ADRs (next free number 0018), three prototypes, and ≥80% steps (M3, M11) get deep review. |
+| 3. Reasoning & Planning | Eight ADRs (next free number 0018), four prototypes (M15 added 2026-10-13), and ≥80% steps (M3, M11) get deep review. |
 | 4. Safety & Continuity | Outside-repo moves need full-directory backups (L-1300, L-1317). `install.sh` currently deletes foreign symlinks with no backup — fixed in M3. Touched-code-only is never a backfill. |
-| 5. Execution Checklist | `Critical-Path: hook-modification` on 11 milestones (M1–M3, M5–M12) and `version-pipeline` on M4 and M14. `Prototype-Required: YES` on M3, M10, M11. |
-| 6. Sync & Commit Discipline | 14 milestones across many sessions. Result Log per sub-step (L-080–L-082), with the plan footer on every commit. |
+| 5. Execution Checklist | `Critical-Path: hook-modification` on 12 milestones (M1–M3, M5–M12, M15) and `version-pipeline` on M4 and M14. `Prototype-Required: YES` on M3, M10, M11, M15. |
+| 6. Sync & Commit Discipline | 15 milestones across many sessions. Result Log per sub-step (L-080–L-082), with the plan footer on every commit. |
 
 Lessons applied: L-1319 (no silent fail-open; hook stderr on exit 0 is invisible; real payloads), L-1300/L-1317 (whole-dir backups, count-verified), L-1322 (`claude -p "<prompt>"` first + `</dev/null`), L-1315 (live-load in an isolated session; `plugin validate` is not evidence), L-1314 (newly-live frontmatter fields re-audited), L-1210 (never delete config on a partial existence check), L-036 (background checks print rc; empty ≠ pass), L-031 (inspect auto-fix commits), L-034 (each new measured rule pins severity on shipped vs fixture paths).
 
@@ -101,6 +101,7 @@ Lessons applied: L-1319 (no silent fail-open; hook stderr on exit 0 is invisible
 | M12 | HARD | full | hook-modification | — | — |
 | M13 | SOFT | docs-only | — | — | docs-only |
 | M14 | HARD | code-only | version-pipeline | — | — |
+| M15 | HARD | full | hook-modification | YES | — |
 
 ## 3. Dependencies and Assumptions (element #8)
 
@@ -231,6 +232,10 @@ flowchart LR
   REGEN["scripts/regen-generated.sh"]
   IDX["packages/codemem-mcp/src/codemem/indexer.py"]
   TODO["TODOS.md"]
+  INCR["packages/codemem-mcp/src/codemem/incremental.py"]
+  PCH["claude-code/codemem/hooks/post-commit.sh"]
+  CMDOC["claude-code/codemem/commands/codemem.md"]
+  CRDME["packages/codemem-mcp/README.md"]
 
   CMDS -->|will move into| SKILLS
   INST -->|symlinks| SKILLS
@@ -273,11 +278,15 @@ flowchart LR
   DEP -->|will update| WF
   IMP -->|will log via| LOGS
   GITC -->|will harden git calls for| CCLI
+  CCLI -->|refresh will drive refresh_index in| INCR
+  PCH -->|will run codemem refresh via| CCLI
+  CMDOC -->|documents| CCLI
+  CRDME -->|documents| CCLI
 ```
 
 ### Flow view
 
-Critical paths: `hook-modification` (M1–M3, M5–M12) and `version-pipeline` (M4, M14). This is the milestone gate after M9 and M11:
+Critical paths: `hook-modification` (M1–M3, M5–M12, M15) and `version-pipeline` (M4, M14). This is the milestone gate after M9 and M11:
 
 ```mermaid
 flowchart TD
@@ -734,7 +743,7 @@ Files:
   Test    tests/hooks/test_tests_verified.bats (new): pass → line written; failing suite → exit 1, no line; missing summary → exit 1; custom Test-Command honoured; custom Pass-Regex honoured (testthat line + trailing praise line); rc 0 + FAIL>0 summary → exit 1, no line; invalid Pass-Regex → exit 1
   Test    tests/test_tdd_waiver_doc_sync.py (new): the rule block equals the regenerated text
 ```
-Steps: **9.1** bats first, then fence 3 (AFK, TDD). **9.2** Waiver regen target in `scripts/regen-generated.sh` + sync test (AFK, TDD). **9.3** Delete the pyproject claims (AFK). **9.4** ADR (HITL). **9.5** Dogfood: this plan's reference.md carries `Test-Command: uv run pytest`. Because of D7, fence 3 goes live after the M9 merge + `install.sh`, so **Milestone 10's** gate is the first to write `TESTS_VERIFIED`. AC (9.5, met within M9): reference.md has the line. The provenance check moves to M10.0. **9.6** Re-run the M4 evals for execute-aa-ma-milestone (advisory) and log the delta (CEO F13).
+Steps: **9.1** bats first, then fence 3 (AFK, TDD). **9.2** Waiver regen target in `scripts/regen-generated.sh` + sync test (AFK, TDD). **9.3** Delete the pyproject claims (AFK). **9.4** ADR (HITL). **9.5** Dogfood: this plan's reference.md carries `Test-Command: uv run pytest`. Because of D7, fence 3 goes live after the M9 merge + `install.sh`, so **Milestone 10's** gate is the first to write `TESTS_VERIFIED`. AC (9.5, met within M9): reference.md has the line. The provenance check moves to M10.0. _(Superseded 2026-10-13: fence 3 ran live at the M9 gate itself, so provenance.log holds `TESTS_VERIFIED` for M9; tasks.md M10 AC.)_ **9.6** Re-run the M4 evals for execute-aa-ma-milestone (advisory) and log the delta (CEO F13).
 Risks: (1) A long suite blocks the gate. Mitigation: a timeout with a clear message. (2) A non-pytest summary format. Mitigation: optional `Test-Command-Pass-Regex:` override (one capture group = pass count), **in scope since 2026-10-13 (scope change, context-log; G9)**. (3) A flaky test. Mitigation: no auto-rerun (Ste, 2026-10-13): a failing run is BLOCKED; fix the test or re-run the gate by hand. Never auto-pass.
 
 #### Verification amendments (v1, binding)
@@ -853,6 +862,7 @@ Risks: (1) Too noisy, so it gets bypassed. Mitigation: the 11.1 prototype and th
 #### Verification amendments (v1, binding)
 - **Changed set = merge-base..HEAD ∪ working tree** (staged, unstaged and untracked non-ignored, from `git status --porcelain`). Otherwise milestone files still uncommitted at §6.7 would be invisible, since §8.1 commits after the gate: a silent pass.
 - Fence 4 is its own bash block after fence 3.
+- A codemem result with `stale` ≠ `false` (`true` or `unknown`, from M15's X2 envelope) never satisfies fence 4: exit 1 naming `stale_reason` (PR review 2026-10-14; G13).
 - `.importlinter` + test_leaf_contract gain `aa_ma.impact` and `aa_ma.contract_rows`; `impact.py` imports only plan_parsers/enforce/grammar/contract_rows/gitutil/logsetup (its CLI entrypoint calls `configure_logging`).
 - `refresh-commits` printing "another writer holds … — skipped" while exiting 0 counts as a refresh failure → exit 3.
 - Partners linked by import/call edges are excluded by `co_changes` by design (the `linked` CTE); the ADR states that callers are the domain of who_calls/§6.3, not of fence 4.
@@ -947,7 +957,7 @@ Risks:
 
 ### Milestone 15 — Codemem freshness (report 03 T2–T6) — `Prototype-Required: YES`
 
-_Scope change 2026-10-13 (Ste, handover Part C: Q2 = B1, Q3 = T8 + T9, plus T7). Runs after M9 and before M10: M10–M11 build `IMPACT_VERIFIED` on codemem, whose index was 263 commits stale with a placeholder `codemem refresh` (report 03 §2; G13). Source: `~/projects/github_private/ooh_ideas/research/03-codemem-graphify-report.md` §8 P0/P0+/P1, §Implementation Tasks T2–T9, T12._
+_Scope change 2026-10-13 (Ste, handover Part C: Q2 = B1, Q3 = T8 + T9, plus T7). Runs after M9 and before M10: M10–M11 build `IMPACT_VERIFIED` on codemem, whose index was 263 commits stale with a placeholder `codemem refresh` (report 03 §2; G13 is in the ooh_ideas roadmap, report 04). Source: `~/projects/github_private/ooh_ideas/research/03-codemem-graphify-report.md` §8 P0/P0+/P1, §Implementation Tasks T2–T9, T12._
 
 #### Contract
 ```
@@ -962,17 +972,17 @@ Files:
   Modify  packages/codemem-mcp/src/codemem/incremental.py   # refresh_index (:74) under the cap; abort leaves writer lock + WAL consistent
   Modify  claude-code/codemem/mcp/server.py   # _with_autobuild (:266): index_sha, head_sha, stale (true|false|unknown), stale_reason (X2)
   Modify  claude-code/codemem/hooks/post-commit.sh   # own step: flock + start-SHA (D12); graphify update . → graphify-out/.built_sha only on exit 0
-  Modify  claude-code/hooks/aa-ma-session-start.sh   # X1 `Code-intel:` line; reads sidecars directly; < 200 ms; fails open, logged
+  Modify  claude-code/hooks/aa-ma-session-start.sh   # X1 `Code-intel:` line; reads sidecars directly; only ^[0-9a-f]{40}$ after --end-of-options (sidecars are repo-controlled); < 200 ms; fails open, logged; D13 link-target check
   Modify  claude-code/skills/execute-aa-ma-milestone/references/*.md   # CODE_INTEL_REFRESH at the boundary (pre-commit HEAD); graphify WARN-only (D7 code-only)
   Modify  claude-code/skills/impact-analysis/SKILL.md, claude-code/skills/plan-verification/SKILL.md   # record CODE_INTEL_STALE when proceeding on stale results
   Modify  claude-code/codemem/commands/codemem.md, packages/codemem-mcp/README.md, docs/codemem/kill-criteria.md   # T7 doc drift + 2026-10 review
   Modify  scripts/install.sh   # if the post-commit wiring changes
   Modify  TODOS.md   # X4 entry (T12)
-  Outside ~/.local/share/codemem-plugin (symlink, D13), user-scope MCP registration, global git excludes (T9); ~/.claude/rules/code-intel-routing.md, graphify skill description, GRAPHIFY_QUERY_LOG_DISABLE=1 (T8, D14) — HITL, backups first
+  Outside ~/.local/share/codemem-plugin (symlink → a dedicated forge worktree on main, D13), user-scope MCP registration, global git excludes (T9); ~/.claude/rules/code-intel-routing.md, graphify skill description, GRAPHIFY_QUERY_LOG_DISABLE=1 (T8, D14) — HITL, backups first
   Test    tests/codemem/: refresh AC (a)–(e) + edge cases + kill-mid-refresh recovery; X2 golden tests (additive); locked-index CODE_INTEL_STALE
   Test    tests/hooks/: post-commit race (pause/release, A last) + killed run keeps the sidecar; session-start Code-intel output rules + < 200 ms; shared SHA-vs-HEAD fixture shared with X2
 ```
-Steps: **15.0** Post-merge of M9 + X4 TODOS (HITL). **15.1 PROTOTYPE (HITL)** the refresh cap: thread vs subprocess, kill mid-run, next refresh recovers. **15.2** T2 bounded refresh (AFK, TDD). **15.3** T3 X2 envelope + `CODE_INTEL_STALE` (AFK, TDD). **15.4** T4 post-commit step + sidecar (AFK, TDD). **15.5** T5 briefing line (AFK, TDD). **15.6** T6 `CODE_INTEL_REFRESH` (HITL). **15.7** T7 doc drift + kill-criteria (AFK). **15.8** T9 user-scope MCP (HITL, outside repo). **15.9** T8 routing rule (HITL, outside repo).
+Steps: **15.0** Post-merge of M9 + X4 TODOS (HITL). **15.1 PROTOTYPE (HITL)** the refresh cap: thread vs subprocess, kill mid-run, next refresh recovers. **15.2** T2 bounded refresh (AFK, TDD). **15.3** T3 X2 envelope + `CODE_INTEL_STALE` (AFK, TDD). **15.4** T4 post-commit step + sidecar (AFK, TDD). **15.5** T5 briefing line (AFK, TDD). **15.6** T6 `CODE_INTEL_REFRESH` (HITL). **15.7** T7 doc drift + kill-criteria (AFK). **15.8** T9 user-scope MCP (HITL, outside repo). **15.9** T8 routing rule (HITL, outside repo). **15.10** CRITICAL_PATH_REVIEW (AFK). The first live `CODE_INTEL_REFRESH` line is M10's (D7); 15.6 proves the step by a dry run.
 Risks: (1) The cap cannot abort a synchronous refresh safely. Mitigation: 15.1 prototype decides thread vs subprocess before 15.2; serve `stale=true, reason=timeout` rather than block. (2) The post-commit background run races or stamps a newer SHA. Mitigation: `flock` + start-SHA (D12) and the pause/release test. (3) The user-scope MCP path moves again (bio312 `.pth` precedent). Mitigation: one stable symlink (D13) + the session-start missing-path check.
 
 ## 5a. Review Focus (writing-plans)
@@ -1010,6 +1020,7 @@ The five input classes the spec implies that are most likely to bite. Each has a
 | Scope | Strategy |
 |---|---|
 | Any milestone | One PR per milestone, rebase-merged. Rebase rewrites SHAs, so revert the commits **as they landed on main** (`git log --oneline --grep '(#<PR>)' main` or the PR's merge range), not the branch SHAs in provenance. |
+| Outside-repo moves (M15: 15.8, 15.9) | Restore `~/.claude` from `~/.claude/backups/cci-m15-<ts>.tgz` (count-verified); `rm ~/.local/share/codemem-plugin` and `git worktree remove` its worktree; `claude mcp remove --scope user codemem`; restore the global excludes file and the shell rc (`GRAPHIFY_QUERY_LOG_DISABLE`) from their timestamped copies; delete `~/.claude/rules/code-intel-routing.md`. |
 | Outside-repo moves (M2, M8, M12) | Restore from `~/.claude/backups/cci-mN-<ts>.tgz` (count-verified) + `install.sh` backups; timestamped `settings.json` backups in BACKUP_DIR (§0 v2). |
 | commands → skills (M3) | Revert M3; `uninstall.sh` then `install.sh` restores the command links (the stale-link logic removes skill links whose source is gone). |
 | New gate fences (M9, M11) | Revert the fence commit; tokens are additive provenance lines. Emergency: `AA_MA_HOOKS_DISABLE=1`, stated to Ste. |
@@ -1028,7 +1039,7 @@ The five input classes the spec implies that are most likely to bite. Each has a
   - 8.0 ← M7 hooks install + 7.4 live additionalContext check
   - 9.0 ← M8 hook install
   - 15.0 ← M9 install (scope change 2026-10-13: M15 runs before M10)
-  - 10.0 ← M15 install, plus `TESTS_VERIFIED` must appear for M10 at its own gate
+  - 10.0 ← M15 install, plus `TESTS_VERIFIED` and the first live `CODE_INTEL_REFRESH` must appear for M10 at its own gate
   - 11.0 ← 10.6 live install
   - 12.0 ← M11 install
   - 13.0 ← 12.6 live install

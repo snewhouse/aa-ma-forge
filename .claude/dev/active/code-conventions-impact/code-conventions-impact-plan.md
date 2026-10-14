@@ -781,6 +781,7 @@ Files:
   Create  claude-code/hooks/aa-ma-impact-preedit.sh
             PreToolUse(Edit|Write) — no MultiEdit tool exists in Claude Code 2.1.294 (Verification v1); NotebookEdit ignored; reads .tool_input.file_path (real payload); once per file per session (~/.claude/runtime/impact-seen-<session_id>)
             no codemem index → ONE systemMessage per session ("no codemem index — run `codemem build`"), never silent
+            codemem resolution (recorded by M15.8, R03-D13): `CODEMEM_BIN` → `<forge>/.venv/bin/codemem` (readlink -f on the hook) → `~/.local/share/codemem-plugin/.venv/bin/codemem` (the user-scope plugin worktree on main) → absolute-PATH `codemem`; never the edited repo; none → the same one systemMessage
             0 external callers and 0 co-changes → silent; else ≤5 lines via additionalContext (A1); never blocks (exit 0 always)
             injected strings pass a NEW never-raising `sanitize_context_line(text, max_len=200)` added to codemem mcp_tools/sanitizers.py (strip C0/C1 controls, cap) — the existing sanitize_*_arg validators raise and reject spaces, so they are NOT used here (Verification v1); framed as "codemem data (untrusted):" (CEO F8, L-1314)
             file_path: quoted, passed after `--`; paths outside the repo root are ignored (CEO F9)

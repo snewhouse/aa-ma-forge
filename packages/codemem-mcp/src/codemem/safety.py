@@ -21,8 +21,6 @@ import hmac
 import os
 import secrets
 import sqlite3
-import stat
-import tempfile
 from pathlib import Path
 
 __all__ = [
@@ -104,70 +102,102 @@ def trust_record(db_dir: Path) -> Path:
     return Path(state) / "codemem" / "trust" / key
 
 
-def _check_store_dir(store: Path) -> None:
-    """Raise :class:`TrustStoreError` unless ``store`` is this user's private directory.
+_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 
-    A shared ``XDG_STATE_HOME`` (another user created ``codemem/trust`` first,
-    or made it writable) would let them plant a nonce they know.
+
+def _open_store(store: Path, *, create: bool) -> int | None:
+    """A descriptor on the trust dir, checked private to this user; None if absent.
+
+    Every later check, read and write goes through this one descriptor, so the
+    directory cannot be swapped between the check and the use (TOCTOU). A
+    shared ``XDG_STATE_HOME`` (another user's or group-writable trust dir)
+    would let someone plant a nonce they know, so it is refused.
     """
     try:
-        st = store.lstat()
+        if create:
+            # why: only the leaf dir gets 0700 from mkdir; the fstat check below rejects a shared one
+            store.mkdir(parents=True, exist_ok=True, mode=0o700)
+        dfd = os.open(store, os.O_RDONLY | os.O_DIRECTORY | _NOFOLLOW)
     except FileNotFoundError:
-        return
+        return None
     except OSError as exc:
         raise TrustStoreError(
-            f"trust store {store} unreadable ({type(exc).__name__})"
+            f"trust store {store} unusable ({type(exc).__name__})"
         ) from exc
-    private = (
-        stat.S_ISDIR(st.st_mode) and st.st_uid == os.getuid() and not st.st_mode & 0o022
-    )
-    if not private:
+    st = os.fstat(dfd)
+    if st.st_uid != os.getuid() or st.st_mode & 0o022:
+        os.close(dfd)
         raise TrustStoreError(
             f"trust store {store} is not a private directory of this user"
         )
+    return dfd
 
 
-def _read_record(rec: Path) -> str | None:
-    """The nonce in ``rec``; None if the record is absent or empty."""
-    _check_store_dir(rec.parent)
+def _read_at(dfd: int, name: str, store: Path) -> str | None:
+    """The nonce in record ``name``; None if it is absent or empty."""
     try:
-        fd = os.open(rec, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        fd = os.open(name, os.O_RDONLY | _NOFOLLOW, dir_fd=dfd)
         with os.fdopen(fd, "rb") as fh:
             data = fh.read(_RECORD_MAX_BYTES)
     except FileNotFoundError:
         return None
     except OSError as exc:
         raise TrustStoreError(
-            f"trust store {rec.parent} unreadable ({type(exc).__name__})"
+            f"trust store {store} unreadable ({type(exc).__name__})"
         ) from exc
     try:
         return data.decode("ascii").strip() or None
     except UnicodeDecodeError as exc:
-        raise TrustStoreError(f"trust record {rec} does not hold a nonce") from exc
+        raise TrustStoreError(
+            f"trust record {store / name} does not hold a nonce"
+        ) from exc
 
 
-def _publish(tmp: Path, rec: Path) -> None:
-    """Make ``tmp`` the record: whole or not at all, and never over another's."""
+def _write_at(dfd: int, name: str, *, replace: bool) -> None:
+    """Write a fresh nonce as record ``name``: whole or not at all, never over another's.
+
+    ``replace`` is set only for an empty record (a crash before its data
+    reached disk), which stamped nothing.
+    """
+    nonce = secrets.token_hex(NONCE_BYTES) + "\n"
+    tmp = f".{name}.{secrets.token_hex(8)}.tmp"
+    fd = os.open(
+        tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _NOFOLLOW, 0o600, dir_fd=dfd
+    )
     try:
-        os.link(tmp, rec)
-    except FileExistsError:
-        return  # a concurrent build created it first; use theirs
-    except OSError as exc:
-        if exc.errno not in _NO_HARD_LINKS:
-            raise
-        # No hard links on this filesystem: create it directly (a reader may briefly see it empty).
-        try:
-            fd = os.open(
-                rec,
-                os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
-                0o600,
-            )
-        except FileExistsError:
-            return
         with os.fdopen(fd, "w") as fh:
-            fh.write(tmp.read_text())
+            fh.write(nonce)
             fh.flush()
-            os.fsync(fh.fileno())
+            os.fsync(fh.fileno())  # the record must never appear empty after a crash
+        if replace:
+            os.replace(tmp, name, src_dir_fd=dfd, dst_dir_fd=dfd)
+            return
+        try:
+            os.link(tmp, name, src_dir_fd=dfd, dst_dir_fd=dfd)
+        except FileExistsError:
+            return  # a concurrent build created it first; use theirs
+        except OSError as exc:
+            if exc.errno not in _NO_HARD_LINKS:
+                raise
+            # No hard links on this filesystem: create it directly (a reader may briefly see it empty).
+            try:
+                wfd = os.open(
+                    name,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | _NOFOLLOW,
+                    0o600,
+                    dir_fd=dfd,
+                )
+            except FileExistsError:
+                return
+            with os.fdopen(wfd, "w") as fh:
+                fh.write(nonce)
+                fh.flush()
+                os.fsync(fh.fileno())
+    finally:
+        try:
+            os.unlink(tmp, dir_fd=dfd)
+        except FileNotFoundError:
+            pass  # renamed into place, or never created
 
 
 def _nonce(db_dir: Path, *, create: bool) -> str | None:
@@ -175,44 +205,33 @@ def _nonce(db_dir: Path, *, create: bool) -> str | None:
 
     Raises :class:`TrustStoreError` when the store itself cannot be used, so a
     broken state dir is never mistaken for a hostile index. An empty record
-    (a crash before its data reached disk) stamps nothing, so creating
-    replaces it.
+    stamps nothing, so creating replaces it.
     """
     rec = trust_record(db_dir)
-    nonce = _read_record(rec)
-    if nonce is not None or not create:
-        return nonce
+    dfd = _open_store(rec.parent, create=create)
+    if dfd is None:
+        return None
     try:
-        # why: only the leaf dir gets 0700 from mkdir; _check_store_dir rejects a shared one
-        rec.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        _check_store_dir(rec.parent)
-        fd, name = tempfile.mkstemp(
-            dir=rec.parent, prefix=f".{rec.name}.", suffix=".tmp"
-        )
-        tmp = Path(name)
+        nonce = _read_at(dfd, rec.name, rec.parent)
+        if nonce is not None or not create:
+            return nonce
         try:
-            with os.fdopen(fd, "w") as fh:
-                fh.write(secrets.token_hex(NONCE_BYTES) + "\n")
-                fh.flush()
-                os.fsync(
-                    fh.fileno()
-                )  # the record must never appear empty after a crash
-            if rec.exists():
-                os.replace(tmp, rec)  # it was empty: nothing was stamped with it
-            else:
-                _publish(tmp, rec)
-        finally:
-            tmp.unlink(missing_ok=True)
-    except TrustStoreError:
-        raise
-    except OSError as exc:
-        raise TrustStoreError(
-            f"trust store {rec.parent} unwritable ({type(exc).__name__})"
-        ) from exc
-    nonce = _read_record(rec)
-    if nonce is None:
-        raise TrustStoreError(f"trust record {rec} is empty after writing it")
-    return nonce
+            os.stat(rec.name, dir_fd=dfd, follow_symlinks=False)
+            empty_record = True
+        except FileNotFoundError:
+            empty_record = False
+        try:
+            _write_at(dfd, rec.name, replace=empty_record)
+        except OSError as exc:
+            raise TrustStoreError(
+                f"trust store {rec.parent} unwritable ({type(exc).__name__})"
+            ) from exc
+        nonce = _read_at(dfd, rec.name, rec.parent)
+        if nonce is None:
+            raise TrustStoreError(f"trust record {rec} is empty after writing it")
+        return nonce
+    finally:
+        os.close(dfd)
 
 
 def stamp(conn: sqlite3.Connection, db_dir: Path) -> None:

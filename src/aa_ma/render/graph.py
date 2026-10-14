@@ -13,7 +13,6 @@ import hashlib
 import hmac
 import os
 import sqlite3
-import stat
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -83,22 +82,27 @@ def _trust_problem(conn: sqlite3.Connection, db_dir: Path) -> str | None:
     state = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
     key = hashlib.sha256(os.fsencode(os.path.realpath(db_dir))).hexdigest()
     rec = Path(state) / "codemem" / "trust" / key
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
     try:
-        st = rec.parent.lstat()
-        private = (
-            stat.S_ISDIR(st.st_mode)
-            and st.st_uid == os.getuid()
-            and not st.st_mode & 0o022
-        )
-        if not private:
+        # One directory fd for the check and the read: no swap in between (TOCTOU).
+        dfd = os.open(rec.parent, os.O_RDONLY | os.O_DIRECTORY | nofollow)
+    except FileNotFoundError:
+        return not_built
+    except OSError as exc:
+        return f"cannot be checked: trust store {rec.parent} unusable ({type(exc).__name__})"
+    try:
+        st = os.fstat(dfd)
+        if st.st_uid != os.getuid() or st.st_mode & 0o022:
             return f"cannot be checked: trust store {rec.parent} is not a private directory of this user"
-        fd = os.open(rec, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        fd = os.open(rec.name, os.O_RDONLY | nofollow, dir_fd=dfd)
         with os.fdopen(fd, "rb") as fh:
             nonce = fh.read(256).decode("ascii").strip()
     except FileNotFoundError:
         return not_built
     except (OSError, UnicodeDecodeError) as exc:
         return f"cannot be checked: trust store {rec.parent} unreadable ({type(exc).__name__})"
+    finally:
+        os.close(dfd)
     try:
         row = conn.execute(
             "SELECT value FROM meta WHERE key = 'trust_nonce'"

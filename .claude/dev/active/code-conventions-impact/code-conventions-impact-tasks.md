@@ -1017,6 +1017,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `install.sh` AA_MA_HOOKS += impact-preedit; `uninstall.sh` updated; hooks count 9→10.
   - `tests/hooks/aa-ma-impact-preedit.bats` passes: real captured Edit/Write payloads; NotebookEdit + out-of-repo path → exit 0, empty stdout; codemem absent from PATH → one notice; once-per-file; no-index notice once; silent at 0; injection-named symbol sanitized; file_path with spaces and `$(touch x)` executes nothing; two concurrent invocations print once.
   - Fake-`CLAUDE_HOME` install shows exactly one impact-preedit registration; the live install is deferred to Sub-step 11.0.
+  - codemem is resolved as M15.8 recorded in the M10 Contract: `CODEMEM_BIN` → forge `.venv/bin/codemem` → `~/.local/share/codemem-plugin/.venv/bin/codemem` → absolute PATH; never from the edited repo.
 - Result Log:
 
 ### Sub-step 10.7: §6.3 / §6.8 / Angle-3 / writers wiring + ad-hoc advisory
@@ -1470,14 +1471,14 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode AFK — auto-dispatched. 83fb7c6: `grep -c '_M2 placeholder_' claude-code/codemem/commands/codemem.md` = 0 (refresh/replay sections describe the real commands); wheel README `pip install` claim replaced (plugin-only, AD-Q15); journal truth fixed in codemem README, SECURITY.md, ARCHITECTURE.md, migration guide (`wal.jsonl` is written only by Python callers of `build_index(wal_path=…)` — no production caller); `docs/architecture/` regenerated → `uv run --no-sync codemem draw --check` exit 0 (io.md had drifted); codemem doc-drift no findings; doc tests 46 passed. 330beda: `docs/codemem/kill-criteria.md` 2026-10-14 review entry — Signal 4 **FIRED** (background researcher, primary sources; repowise MCP_TOOLS.md spot-checked via gh api: co_change_partners, owners/bus factor, hotspot_score, layers) → Ste: apply the pre-committed rule (codemem consolidates under AA-MA; standalone framing dropped; M15/M10/M11 unchanged); positioning edits → TODOS P2.
 
 ### Sub-step 15.8: User-scope codemem MCP via stable symlink + global excludes (T9)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 15.3, Sub-step 15.5
 - Acceptance Criteria:
   - `~/.local/share/codemem-plugin` → a dedicated git worktree of the forge on `main` (R03-D13; PR review 2026-10-14: never the working checkout, whose branch changes under review and prototypes), made with `ln -sfn`, updated only by `scripts/install.sh` or a pull; codemem MCP registered at user scope with that path; the 15.5 session-start check reports a missing link and a target that is not that worktree on `main`.
   - Global git excludes carry `.codemem/` and `graphify-out/`; codemem tools answer in a second repo and its `git status` stays clean. Taken first: `~/.claude` backup (count-verified) and timestamped copies of the global excludes file and the shell rc (plan §7 M15 row).
   - The M10 contract records how its pre-edit hook resolves codemem (this stable path, or `uv run --directory <forge>`).
-- Result Log:
+- Result Log: Mode HITL — Ste: Proceed + install.sh refresh. Design note: git refuses `main` in a second worktree while the main checkout has it, so the dedicated worktree is **detached at main's tip** and "on main" means HEAD == refs/heads/main. Repo (RED c471032 → GREEN d7a5090): session-start prints one `Code-intel:` line when `~/.claude.json` names the link and it is missing or off main (5 bats); `scripts/install.sh` §8 re-points a linked worktree of this forge to main + `uv sync --locked --quiet`, leaves alone the checkout itself / other targets / a dirty worktree, dry-run says so (6 bats, throwaway forge copy). Live (outside repo, 2026-10-14): backup `~/.claude/backups/cci-m15-20261014T100926Z.tgz` (20/20 files: ~/.claude.json, settings.json, rules/, skills/graphify/, ~/.config/git/ignore, ~/.bashrc; sha256 40263f34…) + `~/.config/git/ignore.cci-m15-20261014T100926Z`, `~/.bashrc.cci-m15-20261014T100926Z`; `git worktree add --detach ~/.local/share/codemem-plugin-wt main` (9546a2e), `ln -sfn` → `~/.local/share/codemem-plugin`, `uv sync --locked`; `claude mcp add -s user codemem -- <link>/.venv/bin/python <link>/claude-code/codemem/mcp/server.py` (forge keeps its project-scope entry); `~/.config/git/ignore` += `.codemem/`, `graphify-out/`. Proof: fresh second repo, `claude -p` (haiku, $0.017) → `search_symbols greet` answered (app.py:1) via the user-scope server; `git status --porcelain` empty with `.codemem/` present. X2 fields absent there until merge + install.sh re-points the worktree (it runs main's pre-M15 code). M10 Contract + 10.6 AC record the resolution order (`CODEMEM_BIN` → forge venv → `~/.local/share/codemem-plugin/.venv/bin/codemem` → absolute PATH). Full: pytest 3052/5/7, bats 607 rc 0.
 
 ### Sub-step 15.9: Routing rule + graphify trigger (T8)
 - Status: PENDING

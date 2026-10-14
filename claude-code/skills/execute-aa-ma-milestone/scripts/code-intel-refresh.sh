@@ -56,8 +56,12 @@ GATE_KV=$(aa_ma_gate "${TASK_DIR}/${TASK_NAME}-tasks.md") || {
 HEADING=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field heading)
 [[ -n "${HEADING}" ]] || blocked "empty milestone heading."
 
-# Repo-controlled: codemem refuses to write through it, so its sidecar can only lie.
-[[ -L "${TOP}/.codemem" ]] && blocked ".codemem is a symlink; codemem refuses to index through one. Remove it, run \`codemem build\`, then re-run."
+# Repo-controlled: codemem refuses a .codemem that is or holds a symlink, so its
+# sidecar could only lie, and "run codemem build" would not help. A dangling
+# index.db link is one too (it fails -e and would read as "no index").
+if [[ -L "${TOP}/.codemem" ]] || { [[ -d "${TOP}/.codemem" ]] && [[ -n "$(find "${TOP}/.codemem" -maxdepth 1 -type l -print -quit 2>/dev/null)" ]]; }; then  # why: find errors on an unreadable dir; codemem then refuses it too, caught below
+    blocked ".codemem is or holds a symlink; codemem refuses to index through one. Remove the link, run \`codemem build\`, then re-run."
+fi
 
 # The worker always exits 0; the sidecars say what it achieved.
 bash "${WORKER}" --worker "${HEAD_SHA}" "${TOP}"

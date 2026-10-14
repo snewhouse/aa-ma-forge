@@ -22,8 +22,9 @@
 # - Repo-controlled inputs stay inert: PATH keeps absolute entries only (a
 #   relative entry would run a repo's ./graphify), codemem comes from this
 #   forge's venv before PATH, and refresh.log / .built_sha are never written
-#   through a symlink. A symlinked graphify-out skips graphify (it would write
-#   through the link); codemem refuses a symlinked .codemem itself. A stray
+#   through a symlink. A graphify-out that is or holds a symlink skips
+#   graphify (it could write through the link); codemem refuses a .codemem
+#   that is or holds one itself. A stray
 #   refresh.pid is no longer read: killing a PID from a repo-writable file
 #   could kill any process of the user.
 # - Bounded: each step runs under `timeout` (when present) and a worker waits
@@ -42,10 +43,12 @@ SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURC
 FORGE_ROOT="$(cd "$(dirname "${SELF}")/../../.." && pwd)"
 SHA_RE='^([0-9a-f]{40}|[0-9a-f]{64})$'
 # The slowest measured step is a cold `graphify update` (11.5 s on aa-ma-forge,
-# M15.4); 300 s is ~25x that. A worker waits for one predecessor's two capped
-# steps (codemem, graphify) plus slack before giving up its turn.
+# M15.4); 300 s is ~25x that. A worker waits for one predecessor's three
+# capped steps (codemem refresh, refresh-commits, graphify update) plus a
+# minute of slack before giving up its turn.
 STEP_TIMEOUT_S=300
-LOCK_WAIT_S=900
+CAPPED_STEPS=3
+LOCK_WAIT_S=$((CAPPED_STEPS * STEP_TIMEOUT_S + 60))
 
 log_line() {
     # One line to .codemem/refresh.log, never through a symlink (the dir is repo-controlled).
@@ -139,6 +142,11 @@ run_worker() {
     fi
     if [[ -L graphify-out ]]; then
         log_line "graphify-out is a symlink: code graph not refreshed (.built_sha unchanged)"
+        exit 0
+    fi
+    # why: find's own errors (an unreadable subdir) are not a reason to fail the worker; any output refuses
+    if [[ -d graphify-out && -n "$(find graphify-out -type l -print -quit 2>/dev/null)" ]]; then
+        log_line "graphify-out holds a symlink: code graph not refreshed (.built_sha unchanged)"
         exit 0
     fi
     # why: graphify output carries repo text; only its exit code is logged

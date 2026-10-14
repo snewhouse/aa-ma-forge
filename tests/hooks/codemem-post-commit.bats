@@ -258,3 +258,14 @@ drain() {
     [ ! -e graphify-out/.built_sha ]
     grep -q 'graphify update timed out after [0-9]*s' .codemem/refresh.log
 }
+
+@test "§6.8 re-run: a link inside graphify-out skips graphify" {
+    mkdir -p graphify-out
+    printf 'original\n' > "${TMP}/victim"
+    ln -s "${TMP}/victim" graphify-out/graph.json
+    commit_change 2
+    drain
+    [ "$(cat "${TMP}/victim")" = "original" ]
+    [ ! -s "$STUB_LOG" ]
+    grep -q 'graphify-out holds a symlink' .codemem/refresh.log
+}

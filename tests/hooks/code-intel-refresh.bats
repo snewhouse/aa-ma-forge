@@ -165,3 +165,21 @@ line_count() { grep -c 'CODE_INTEL_REFRESH' "$PROV" || true; }
     [[ "$output" == *"BLOCKED"*".codemem"*"symlink"* ]]
     [ "$(line_count)" -eq 0 ]
 }
+
+@test "§6.8 re-run: a link inside .codemem/ is BLOCKED and named" {
+    printf 'x\n' > "${WORK}/victim"
+    rm -f .codemem/index.db
+    ln -s "${WORK}/victim" .codemem/index.db
+    run bash "$SCRIPT" t
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"BLOCKED"*".codemem"*"symlink"* ]]
+    [ "$(line_count)" -eq 0 ]
+}
+
+@test "§6.8 re-run: a dangling index.db link is BLOCKED, not skipped(no index)" {
+    rm -f .codemem/index.db
+    ln -s "${WORK}/nowhere" .codemem/index.db
+    run bash "$SCRIPT" t
+    [ "$status" -eq 1 ]
+    [ "$(line_count)" -eq 0 ]
+}

@@ -83,3 +83,11 @@ teardown() { rm -rf "$WORK"; }
     [ "$status" -eq 0 ]
     [[ "$output" != *"codemem plugin"* ]]
 }
+
+@test "§6.6: a forge that is not a git checkout does not abort install at step 8" {
+    rm -rf "${FORGE}/.git"
+    ln -sfn "${WORK}/wt" "$LINK"
+    run "${FORGE}/scripts/install.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"not a worktree of this forge"* ]]
+}

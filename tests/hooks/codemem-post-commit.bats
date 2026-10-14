@@ -182,3 +182,29 @@ drain() {
     run bash "$HOOK"
     [ "$status" -eq 0 ]
 }
+
+@test "§6.6: no flock (stock macOS) still refreshes codemem; only the graph step is skipped" {
+    nf="${TMP}/noflock-bin"
+    mkdir -p "$nf"
+    for d in /usr/local/bin /usr/bin /bin; do
+        for f in "$d"/*; do
+            b="${f##*/}"
+            [[ "$b" == flock || -e "${nf}/${b}" ]] || ln -s "$f" "${nf}/${b}"
+        done
+    done
+    PATH="${STUBS}:${nf}" commit_change 2
+    drain
+    [ "$(cat .codemem/last_sha)" = "$(git rev-parse HEAD)" ]
+    [ ! -e graphify-out/.built_sha ]
+    grep -q 'flock not found' .codemem/refresh.log
+}
+
+@test "§6.6: a .built_sha write that fails is logged" {
+    commit_change 2
+    drain
+    chmod 555 graphify-out
+    commit_change 3
+    drain
+    chmod 755 graphify-out
+    grep -q 'post-commit: .*built_sha' .codemem/refresh.log
+}

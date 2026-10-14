@@ -1010,7 +1010,7 @@ Files:
   Modify  packages/codemem-mcp/src/codemem/{cli,indexer,incremental,safety}.py, packages/codemem-mcp/src/codemem/mcp_tools/__init__.py, packages/codemem-mcp/src/codemem/storage/db.py   # default index under ${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo)>/
   Modify  claude-code/codemem/mcp/server.py, claude-code/codemem/hooks/post-commit.sh, claude-code/hooks/aa-ma-session-start.sh, claude-code/hooks/lib/aa-ma-parse.sh, claude-code/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh, src/aa_ma/render/graph.py, src/aa_ma/analysis/measure.py   # one shared location resolver per language
   Modify  SECURITY.md, claude-code/codemem/README.md, claude-code/codemem/commands/codemem.md, docs (53 files name .codemem)   # remove the known-limit paragraph
-  Test    tests/codemem/test_trust.py (planted-WAL reproduction), tests/hooks/*.bats (location)
+  Test    tests/codemem/test_trust.py (planted-WAL reproduction; committed-own-index nonce leak, M15 double-check F1), tests/hooks/*.bats (location)
 ```
 Steps: **16.0** plan the move (HITL). Further steps are written at 16.0.
 

@@ -130,7 +130,8 @@ rebuild finishes an MCP response is an `error` with `stale_reason: "untrusted"`.
 `codemem replay --from-wal` trusts its journal: replay only one codemem wrote here.
 Keep `XDG_STATE_HOME` the same for every process that runs codemem, or each rebuilds the
 other's index. Known limit until Milestone 16 moves the index out of the repo: a
-committed `index.db-wal` beside an index built here is still replayed by SQLite.
+committed `index.db-wal` beside an index built here is still replayed by SQLite, and committing
+your own `.codemem/` publishes its stamp: keep `.codemem/` ignored.
 
 ## Related documents
 

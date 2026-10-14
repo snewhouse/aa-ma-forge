@@ -3,7 +3,7 @@
 **Objective:** Make the forge's coding conventions (comments, docstrings, logging, SecOps, design principles, testing, prompt-as-code) stated once and mechanically enforced on touched code, and wire impact analysis into authoring (pre-edit hook) and the milestone gate (gate-computed `IMPACT_VERIFIED`, `TESTS_VERIFIED`).
 **Owner:** Stephen J Newhouse + AI
 **Created:** 2026-10-08
-**Last Updated:** 2026-10-08
+**Last Updated:** 2026-10-14 (M15 title T2–T9; R03- decision ids)
 **Source map:** `code-conventions-impact-map.md` (15/15 tickets RESOLVED, fog empty, guard clear). Folded-in input: `.claude/dev/charting/writing-for-agents-eval/writing-for-agents-eval-map.md` (4/4 RESOLVED; executed by M4).
 **Diagram-Waiver:** none
 **Companion plan (later):** `reuse-kit` — private Carmen kit repo, public copier template repo, forge reuse-router skill, graduation CI (map Tickets 13–14). Seeded from this plan's imported map. Not in scope here.
@@ -64,7 +64,7 @@
 
 ## 1. Executive Summary
 
-Fourteen milestones, one release (v0.18.0, M14). M1–M5 restructure the prompt surface: migrate 5 global skills and the ruff hook in, convert 13 commands to skills, add frontmatter, size and eval checks, and split the six oversized files. M6–M9 land the conventions on a touched-files lint harness: comments/docstrings/KISS, logging, the SecOps CI baseline, and a gate that runs tests. M10–M13 add impact analysis (codemem `callees`, a pre-edit hook, gate-computed `IMPACT_VERIFIED`) plus the thin auto-loaded `coding-standards.md` rule and its budget ratchet; M14 releases.
+Fifteen milestones, one release (v0.18.0, M14). M1–M5 restructure the prompt surface: migrate 5 global skills and the ruff hook in, convert 13 commands to skills, add frontmatter, size and eval checks, and split the six oversized files. M6–M9 land the conventions on a touched-files lint harness: comments/docstrings/KISS, logging, the SecOps CI baseline, and a gate that runs tests. M10–M13 add impact analysis (codemem `callees`, a pre-edit hook, gate-computed `IMPACT_VERIFIED`) plus the thin auto-loaded `coding-standards.md` rule and its budget ratchet; M14 releases. M15 (scope change 2026-10-13) runs after M9 and before M10: it makes the codemem index fresh before M10–M11 build on it.
 
 ## 2. Engineering Standards Declaration (element #12)
 
@@ -144,7 +144,7 @@ Lessons applied: L-1319 (no silent fail-open; hook stderr on exit 0 is invisible
 
 ## 4. Stepwise Implementation Plan (elements #2 and #4)
 
-Milestones run in order M1 → M14; the dependency graph is in §13. Each sub-step's acceptance criteria are in §5 and are copied into tasks.md.
+Milestones run in order M1 → M9, M15, M10 → M14 (M15 added 2026-10-13); the dependency graph is in §13. Each sub-step's acceptance criteria are in §5 and are copied into tasks.md.
 
 ## 13. Architecture View
 
@@ -323,7 +323,7 @@ flowchart LR
   M12("Milestone 12: Doctrine packaging: `coding-standards.md`, `language-conventions`, dedupe, budget (T11 §4, T12)")
   M13("Milestone 13: Docs, counts, TODOS (pre-release)")
   M14("Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main)")
-  M15("Milestone 15: Codemem freshness (report 03 T2–T6)")
+  M15("Milestone 15: Codemem freshness (report 03 T2–T9)")
   M1 --> M2
   M2 --> M3
   M3 --> M4
@@ -955,7 +955,9 @@ Risks:
 2. `release.sh` fails mid-way. Mitigation: `docs/runbooks/release.md` rollback, with the dry run first.
 3. Eval failures block the release mood but not the release. Mitigation: evals are advisory and the summary is logged.
 
-### Milestone 15 — Codemem freshness (report 03 T2–T6) — `Prototype-Required: YES`
+### Milestone 15 — Codemem freshness (report 03 T2–T9) — `Prototype-Required: YES`
+
+_`R03-Dn` = decision n of report 03's CEO-review ledger, not this plan's Dn._
 
 _Scope change 2026-10-13 (Ste, handover Part C: Q2 = B1, Q3 = T8 + T9, plus T7). Runs after M9 and before M10: M10–M11 build `IMPACT_VERIFIED` on codemem, whose index was 263 commits stale with a placeholder `codemem refresh` (report 03 §2; G13 is in the ooh_ideas roadmap, report 04). Source: `~/projects/github_private/ooh_ideas/research/03-codemem-graphify-report.md` §8 P0/P0+/P1, §Implementation Tasks T2–T9, T12._
 
@@ -971,19 +973,19 @@ Files:
   Modify  packages/codemem-mcp/src/codemem/mcp_tools/__init__.py   # ensure_built: staleness check + bounded refresh (5 s cap = cold-build SLO); other-process wait 10 s → cap
   Modify  packages/codemem-mcp/src/codemem/incremental.py   # refresh_index (:74) under the cap; abort leaves writer lock + WAL consistent
   Modify  claude-code/codemem/mcp/server.py   # _with_autobuild (:266): index_sha, head_sha, stale (true|false|unknown), stale_reason (X2)
-  Modify  claude-code/codemem/hooks/post-commit.sh   # own step: flock + start-SHA (D12); graphify update . → graphify-out/.built_sha only on exit 0
-  Modify  claude-code/hooks/aa-ma-session-start.sh   # X1 `Code-intel:` line; reads sidecars directly; only ^[0-9a-f]{40}$ after --end-of-options (sidecars are repo-controlled); < 200 ms; fails open, logged; D13 link-target check
-  Modify  claude-code/skills/execute-aa-ma-milestone/references/*.md   # CODE_INTEL_REFRESH at the boundary (pre-commit HEAD); graphify WARN-only (D7 code-only)
+  Modify  claude-code/codemem/hooks/post-commit.sh   # own step: flock + start-SHA (R03-D12); graphify update . → graphify-out/.built_sha only on exit 0
+  Modify  claude-code/hooks/aa-ma-session-start.sh   # X1 `Code-intel:` line; reads sidecars directly; only ^[0-9a-f]{40}$ after --end-of-options (sidecars are repo-controlled); < 200 ms; fails open, logged; R03-D13 link-target check
+  Modify  claude-code/skills/execute-aa-ma-milestone/references/*.md   # CODE_INTEL_REFRESH at the boundary (pre-commit HEAD); graphify WARN-only (R03-D7 code-only); SKILL.md gains at most a pointer line (500-line cap)
   Modify  claude-code/skills/impact-analysis/SKILL.md, claude-code/skills/plan-verification/SKILL.md   # record CODE_INTEL_STALE when proceeding on stale results
   Modify  claude-code/codemem/commands/codemem.md, packages/codemem-mcp/README.md, docs/codemem/kill-criteria.md   # T7 doc drift + 2026-10 review
-  Modify  scripts/install.sh   # if the post-commit wiring changes
+  Modify  scripts/install.sh   # post-commit wiring if it changes (15.4); the ~/.local/share/codemem-plugin link (15.8, R03-D13)
   Modify  TODOS.md   # X4 entry (T12)
-  Outside ~/.local/share/codemem-plugin (symlink → a dedicated forge worktree on main, D13), user-scope MCP registration, global git excludes (T9); ~/.claude/rules/code-intel-routing.md, graphify skill description, GRAPHIFY_QUERY_LOG_DISABLE=1 (T8, D14) — HITL, backups first
+  Outside ~/.local/share/codemem-plugin (symlink → a dedicated forge worktree on main, R03-D13), user-scope MCP registration, global git excludes (T9); ~/.claude/rules/code-intel-routing.md, graphify skill description, GRAPHIFY_QUERY_LOG_DISABLE=1 (T8, R03-D14) — HITL, backups first
   Test    tests/codemem/: refresh AC (a)–(e) + edge cases + kill-mid-refresh recovery; X2 golden tests (additive); locked-index CODE_INTEL_STALE
   Test    tests/hooks/: post-commit race (pause/release, A last) + killed run keeps the sidecar; session-start Code-intel output rules + < 200 ms; shared SHA-vs-HEAD fixture shared with X2
 ```
-Steps: **15.0** Post-merge of M9 + X4 TODOS (HITL). **15.1 PROTOTYPE (HITL)** the refresh cap: thread vs subprocess, kill mid-run, next refresh recovers. **15.2** T2 bounded refresh (AFK, TDD). **15.3** T3 X2 envelope + `CODE_INTEL_STALE` (AFK, TDD). **15.4** T4 post-commit step + sidecar (AFK, TDD). **15.5** T5 briefing line (AFK, TDD). **15.6** T6 `CODE_INTEL_REFRESH` (HITL). **15.7** T7 doc drift + kill-criteria (AFK). **15.8** T9 user-scope MCP (HITL, outside repo). **15.9** T8 routing rule (HITL, outside repo). **15.10** CRITICAL_PATH_REVIEW (AFK). The first live `CODE_INTEL_REFRESH` line is M10's (D7); 15.6 proves the step by a dry run.
-Risks: (1) The cap cannot abort a synchronous refresh safely. Mitigation: 15.1 prototype decides thread vs subprocess before 15.2; serve `stale=true, reason=timeout` rather than block. (2) The post-commit background run races or stamps a newer SHA. Mitigation: `flock` + start-SHA (D12) and the pause/release test. (3) The user-scope MCP path moves again (bio312 `.pth` precedent). Mitigation: one stable symlink (D13) + the session-start missing-path check.
+Steps: **15.0** Post-merge of M9 + X4 TODOS (HITL). **15.1 PROTOTYPE (HITL)** the refresh cap: thread vs subprocess, kill mid-run, next refresh recovers. **15.2** T2 bounded refresh (AFK, TDD). **15.3** T3 X2 envelope + `CODE_INTEL_STALE` (AFK, TDD). **15.4** T4 post-commit step + sidecar (AFK, TDD). **15.5** T5 briefing line (AFK, TDD). **15.6** T6 `CODE_INTEL_REFRESH` (HITL). **15.7** T7 doc drift + kill-criteria (AFK). **15.8** T9 user-scope MCP (HITL, outside repo). **15.9** T8 routing rule (HITL, outside repo). **15.10** CRITICAL_PATH_REVIEW (AFK). The first live `CODE_INTEL_REFRESH` line is M10's (R03-D7); 15.6 proves the step by a dry run.
+Risks: (1) The cap cannot abort a synchronous refresh safely. Mitigation: 15.1 prototype decides thread vs subprocess before 15.2; serve `stale=true, reason=timeout` rather than block. (2) The post-commit background run races or stamps a newer SHA. Mitigation: `flock` + start-SHA (R03-D12) and the pause/release test. (3) The user-scope MCP path moves again (bio312 `.pth` precedent). Mitigation: one stable symlink (R03-D13) + the session-start missing-path check.
 
 ## 5a. Review Focus (writing-plans)
 

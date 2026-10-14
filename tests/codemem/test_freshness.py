@@ -510,7 +510,10 @@ class TestRepoControlledInputs:
         assert r["stale"] is False
 
     @pytest.mark.parametrize("name", ["tree_sig", "last_sha"])
-    def test_sidecar_symlink_is_replaced_not_followed(self, repo, tmp_path, name):
+    def test_sidecar_symlink_is_refused_not_followed(self, repo, tmp_path, name):
+        """§6.8 C1 redesign: a linked sidecar refuses the refresh (15.2 replaced it)."""
+        from codemem.incremental import UnsafeDbPath
+
         root, db_path = repo
         victim = tmp_path / "victim-rc"
         victim.write_text("original\n")
@@ -519,9 +522,9 @@ class TestRepoControlledInputs:
         side.symlink_to(victim)
         (root / "c.py").write_text("def y():\n    pass\n")
         _commit(root)
-        refresh_index(root, db_path)
+        with pytest.raises(UnsafeDbPath):
+            refresh_index(root, db_path)
         assert victim.read_text() == "original\n"
-        assert not side.is_symlink()
 
     def test_repo_git_config_runs_nothing(self, repo, tmp_path):
         """`git ls-files` / `status` run a repo's core.fsmonitor (measured 2026-10-14)."""

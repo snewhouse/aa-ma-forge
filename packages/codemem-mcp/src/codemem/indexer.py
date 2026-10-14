@@ -34,7 +34,9 @@ from .storage import db
 __all__ = [
     "SAFE_GIT",
     "BuildStats",
+    "UnsafeDbPath",
     "build_index",
+    "check_db_path",
     "discover_files",
     "parse_files",
     "tree_signature",
@@ -142,6 +144,46 @@ def tree_signature(files: list[Path]) -> str:
             continue  # vanished since discovery: its absence changes the hash
         h.update(os.fsencode(p) + f"\0{st.st_mtime_ns}\0{st.st_size}\n".encode())
     return h.hexdigest()
+
+
+class UnsafeDbPath(OSError):
+    """The DB directory, or a file codemem writes in it, is a symlink."""
+
+
+# Every file codemem writes beside its DB, beyond the DB's own SQLite files.
+_DB_DIR_FILES = ("db.lock", "last_sha", "tree_sig", "refresh.log")
+
+
+def check_db_path(db_path: Path) -> None:
+    """Raise :class:`UnsafeDbPath` if the DB dir or any file codemem writes there is a link.
+
+    ``.codemem/`` is repo-controllable: a clone can commit ``.codemem`` or
+    ``.codemem/index.db`` as a link to a user file, and one refresh would
+    overwrite it with SQLite (M15 §6.8 C1). One fail-closed check at every
+    writing entry point, rather than a guard per write. Checked once per
+    call: the threat is committed content, not a local process racing us.
+    """
+    stems = (db_path.name, db_path.name + ".rebuild")
+    names = [s + x for s in stems for x in ("", "-wal", "-shm")] + list(_DB_DIR_FILES)
+    paths = [db_path.parent] + [db_path.parent / n for n in names]
+    link = next((p for p in paths if p.is_symlink()), None)
+    if link is not None:
+        raise UnsafeDbPath(f"{link} is a symlink; codemem never writes through one")
+
+
+def _write_build_sidecars(repo_root: Path, db_dir: Path, signature: str) -> None:
+    try:
+        result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+            [*SAFE_GIT, "-C", str(repo_root), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        return  # git not on PATH — first refresh will full-rebuild too
+    if result.returncode == 0:
+        write_sidecar(db_dir / "last_sha", result.stdout.strip() + "\n")
+        write_sidecar(db_dir / "tree_sig", signature + "\n")
 
 
 def write_sidecar(path: Path, text: str) -> None:
@@ -434,15 +476,21 @@ def build_index(
     *,
     package: str = ".",
     wal_path: Path | None = None,
+    write_sidecars: bool = True,
 ) -> BuildStats:
     """Full build pipeline: discover → parse → bulk insert.
 
     Idempotent: re-running against the same source state leaves the DB
-    in the same shape (INSERT ON CONFLICT updates in place).
+    in the same shape (INSERT ON CONFLICT updates in place). With
+    ``write_sidecars=False`` the caller records ``last_sha``/``tree_sig``
+    itself: a DB built aside must not claim HEAD before it is swapped in.
+    Raises :class:`UnsafeDbPath` for a linked DB dir or DB file.
     """
     t0 = time.monotonic()
     repo_root = repo_root.resolve()
-    db_path = db_path.resolve()
+    # Never resolve db_path: following a planted link is the attack.
+    db_path = db_path.absolute()
+    check_db_path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     _pending_wal_acks: list[str] = []
 
@@ -540,18 +588,8 @@ def build_index(
     # git repo (rglob fallback in discover_files), `git rev-parse HEAD`
     # fails and we skip — next refresh will still do a full rebuild,
     # which is acceptable for non-git trees.
-    try:
-        result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-            [*SAFE_GIT, "-C", str(repo_root), "rev-parse", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            write_sidecar(db_path.parent / "last_sha", result.stdout.strip() + "\n")
-            write_sidecar(db_path.parent / "tree_sig", signature + "\n")
-    except FileNotFoundError:
-        pass  # git not on PATH — first refresh will full-rebuild too
+    if write_sidecars:
+        _write_build_sidecars(repo_root, db_path.parent, signature)
 
     return BuildStats(
         files_indexed=len(parses),

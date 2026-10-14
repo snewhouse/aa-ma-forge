@@ -72,8 +72,27 @@ _code_intel_line() {
         "$(_code_intel_part graphify "$has_gf" "$top" "${top}/graphify-out/.built_sha")"
 }
 
-# Every path in _code_intel_line / _code_intel_part returns 0: the line is advisory.
+# R03-D13: the user-scope codemem MCP runs from ~/.local/share/codemem-plugin, a link to a
+# dedicated forge worktree on main (updated by scripts/install.sh). Checked only when
+# ~/.claude.json names the link, so machines without it see nothing.
+_code_intel_plugin_check() {
+    local link="${HOME}/.local/share/codemem-plugin" head main
+    grep -qF '.local/share/codemem-plugin' "${HOME}/.claude.json" 2>/dev/null || return 0  # why: no config → not set up here
+    if [[ ! -e "$link" ]]; then
+        printf 'Code-intel: codemem plugin link missing (~/.local/share/codemem-plugin) — the user-scope codemem MCP cannot start\n'
+        return 0
+    fi
+    head="$(git -C "$link" -c core.fsmonitor=false rev-parse --verify -q HEAD 2>/dev/null)" || head=""  # why: not a repo → empty → reported below
+    main="$(git -C "$link" -c core.fsmonitor=false rev-parse --verify -q refs/heads/main 2>/dev/null)" || main=""  # why: as above
+    if [[ -z "$head" || "$head" != "$main" ]]; then
+        printf 'Code-intel: codemem plugin worktree is not on main — re-run scripts/install.sh\n'
+    fi
+    return 0
+}
+
+# Every path in these functions returns 0: the lines are advisory.
 _code_intel_line
+_code_intel_plugin_check
 
 # Collect active task dirs (mtime-sorted, project-first collision).
 mapfile -t TASKS < <(aa_ma_list_active_tasks)

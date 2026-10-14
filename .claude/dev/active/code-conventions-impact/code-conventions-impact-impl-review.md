@@ -491,3 +491,25 @@ exists nowhere upstream uses its own copy.
 test_tests_verified.bats 39/39, aa-ma-gate-approval.bats 12/12 (also under mawk 1.3.4); mutation
 13/13 killed; full bats 561/561, pytest 3010 passed / 6 skipped / 0 failed; `codemem draw --check`
 OK; all 7 real HARD approvals in this plan's context-log still pass. Final CI: see the CRITICAL_PATH_REVIEW addendum.
+
+# Milestone 15: Codemem freshness (report 03 T2–T9) — post-impl review (§6.8)
+
+- Audit-Profile: full · window 9546a2e..678fc82 · budget normal · parallel dispatch, 5 agents
+- Date: 2026-10-14
+
+## Summary
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 1 | 7 | 3 | BLOCKED until fixed (accepted) |
+| security-auditor | 1 | 2 | 4 | BLOCKED until fixed (accepted, reproduced) |
+| tdd-sequence-auditor | 0 | 0 | 2 | PASS (10 RED→GREEN pairs) |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS (no new deps) |
+| future-proofing-auditor | 0 | 3 | 6 | WARN |
+| **TOTAL** | **2** | **12** | **15** | **BLOCKED** (pending the fix pass below) |
+
+## User Override Decisions
+
+- C1 (security-auditor): a committed `.codemem/index.db -> <user file>` or `.codemem -> <dir>` made one codemem query overwrite the target with SQLite and delete `-wal`/`-shm` beside it — reproduced on the branch (victim replaced; `last_sha`, `tree_sig`, `db.lock`, `refresh.log` written beside it), not on main. **Accept** (Ste) → fix as one fail-closed boundary (L-049: third finding in the repo-controlled `.codemem/` mechanism → redesign, not patch).
+- C2 (code-reviewer): `code-intel-refresh.sh` `sidecar()` followed symlinks and skipped the 40-hex check, so a committed `last_sha -> ../.git/refs/heads/<branch>` recorded `codemem=<HEAD>` for an index that never refreshed. **Accept** (Ste) → one shared shell reader.
+- WARNINGs: fold in (Ste) — 40/64-hex SHAs, no sidecar write before the swap, `_git` timeout, lazy `Freshness` import, header reasons, `flock -w` + timeouts in the worker, `EXIT_LOCKED` in the test, `REFRESH_CAP_S` wording; the rest recorded (Contract/reference now, others TODOS).

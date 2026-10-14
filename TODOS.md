@@ -62,7 +62,10 @@ scripts from `$(git rev-parse --show-toplevel)/claude-code/…` before `~/.claud
 a committed copy replaces the whole gate. Prefer the installed copy unless the toplevel is the
 aa-ma-forge checkout. Also bound the Pass-Regex scan (a backreference regex on large output can hang
 `grep`/`=~` after the timeout window).
-**Why:** M9 §6.8 security-auditor INFOs (pre-existing lookup order; a hang, not a bypass). **Effort:** S · **Priority:** P2
+**Why:** M9 §6.8 security-auditor INFOs (pre-existing lookup order; a hang, not a bypass). M15 §6.6
+(2026-10-14): `scripts/code-intel-refresh.sh` already loads the lib from its own forge; move the shared
+guards (`blocked`, slug check, provenance symlink refusal, heading read — tests-verified.sh:22-58) into one
+sourced helper so the two scripts cannot drift. **Effort:** S · **Priority:** P2
 
 ### sole-dev-merge Stage G3/G4: don't break when run from a worktree
 **What:**
@@ -175,6 +178,18 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 **What:** After `graphify install` or an upgrade of the `graphifyy` package, re-apply the M15.9 description in `~/.claude/skills/graphify/SKILL.md` (concept and doc questions; structural questions go to codemem). Check with `grep -c 'any question about a codebase' ~/.claude/skills/graphify/SKILL.md`, which must print 0.
 **Why:** graphify ships its own SKILL.md, and an upgrade restores the "any question about a codebase" trigger that `~/.claude/rules/code-intel-routing.md` routes away from.
 **Effort:** XS
+**Priority:** P3
+
+### codemem freshness follow-ups (M15 §6.6, deferred by Ste 2026-10-14)
+
+**What:**
+- Try `db.lock` in-process (non-blocking) before spawning a `codemem refresh` that would only exit 75, which saves a Python start and two refresh.log lines per query while a long rebuild holds the lock.
+- Drop `mcp_tools.ensure_built`, which has no production caller since M15.3, and rename the server's `_with_autobuild` (it now refreshes and adds the X2 fields).
+- Give `indexer.py` one public git helper next to `SAFE_GIT` for `incremental`, `draw/views.py` and `build_index`.
+- If commit bursts make the post-commit queue costly (about 7.6 s per worker, mostly graphify), let a worker skip when HEAD has moved past its SHA. That changes the 15.4 race AC ("A last → .built_sha == A"); Ste kept that AC on 2026-10-14.
+
+**Why:** These are the M15 §6.6 review findings that were not fixed in the milestone.
+**Effort:** S
 **Priority:** P3
 
 ### X4: graphify tree-sitter call edges as codemem's non-Python fallback

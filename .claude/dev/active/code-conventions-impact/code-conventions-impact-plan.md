@@ -977,16 +977,18 @@ Files:
   Modify  claude-code/codemem/hooks/post-commit.sh   # own step: flock + start-SHA (R03-D12); graphify update . → graphify-out/.built_sha only on exit 0
   Modify  claude-code/hooks/aa-ma-session-start.sh   # X1 `Code-intel:` line; reads sidecars directly; only ^[0-9a-f]{40}$ after --end-of-options (sidecars are repo-controlled); < 200 ms; fails open, logged; R03-D13 link-target check
   Modify  claude-code/skills/execute-aa-ma-milestone/references/*.md   # CODE_INTEL_REFRESH at the boundary (pre-commit HEAD); graphify WARN-only (R03-D7 code-only); SKILL.md gains at most a pointer line (500-line cap)
-  Modify  claude-code/skills/impact-analysis/SKILL.md, claude-code/skills/plan-verification/SKILL.md   # record CODE_INTEL_STALE when proceeding on stale results
-  Modify  claude-code/codemem/commands/codemem.md, packages/codemem-mcp/README.md, docs/codemem/kill-criteria.md   # T7 doc drift + 2026-10 review
+  Modify  claude-code/skills/impact-analysis/SKILL.md, claude-code/skills/plan-verification/references/angles-1-5.md   # record CODE_INTEL_STALE when proceeding on stale results (as built: the Angle 3 text lives in references/)
+  Modify  claude-code/codemem/commands/codemem.md, claude-code/codemem/README.md, packages/codemem-mcp/README.md, docs/codemem/{kill-criteria,ARCHITECTURE,migration-from-index}.md, docs/architecture/*.md (regenerated), SECURITY.md, docs/lessons.md   # T7 doc drift + 2026-10 review (as built)
   Modify  scripts/install.sh   # post-commit wiring if it changes (15.4); the ~/.local/share/codemem-plugin link (15.8, R03-D13)
   Modify  TODOS.md   # X4 entry (T12)
-  Modify  packages/codemem-mcp/src/codemem/indexer.py   # (as built, 15.2 security review) SAFE_GIT pins on ls-files/rev-parse; tree_signature; write_sidecar for last_sha/tree_sig
-  Modify  claude-code/hooks/lib/aa-ma-parse.sh   # (as built, 15.5) aa_ma_sha_behind — the one shell SHA-vs-HEAD
+  Modify  packages/codemem-mcp/src/codemem/indexer.py   # (as built, 15.2 security review) SAFE_GIT pins on ls-files/rev-parse; tree_signature; write_sidecar for last_sha/tree_sig; (§6.8 C1) check_db_path
+  Modify  packages/codemem-mcp/src/codemem/journal/lock.py   # (as built, §6.8 C1) db.lock opened O_NOFOLLOW
+  Modify  claude-code/hooks/lib/aa-ma-parse.sh   # (as built, 15.5) aa_ma_sha_behind — the one shell SHA-vs-HEAD; (§6.8 C2) aa_ma_read_sidecar_sha
   Create  claude-code/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh   # (as built, 15.6) §6.0 CODE_INTEL_REFRESH; tests-verified.sh precedent
   Outside ~/.local/share/codemem-plugin (symlink → a dedicated forge worktree on main, R03-D13), user-scope MCP registration, global git excludes (T9); ~/.claude/rules/code-intel-routing.md, graphify skill description, GRAPHIFY_QUERY_LOG_DISABLE=1 (T8, R03-D14) — HITL, backups first
   Test    tests/codemem/: refresh AC (a)–(e) + edge cases + kill-mid-refresh recovery; X2 golden tests (additive); locked-index CODE_INTEL_STALE
   Test    tests/hooks/: post-commit race (pause/release, A last) + killed run keeps the sidecar; session-start Code-intel output rules + < 200 ms; shared SHA-vs-HEAD fixture shared with X2
+  Test    (as built) tests/skills/test_code_intel_stale.py, tests/codemem/test_writer_lock.py, tests/analysis/test_measure.py (fixture fix for the global .codemem/ exclude), tests/hooks/{code-intel-refresh,install-codemem-plugin}.bats
 ```
 Steps: **15.0** Post-merge of M9 + X4 TODOS (HITL). **15.1 PROTOTYPE (HITL)** the refresh cap: thread vs subprocess, kill mid-run, next refresh recovers. **15.2** T2 bounded refresh (AFK, TDD). **15.3** T3 X2 envelope + `CODE_INTEL_STALE` (AFK, TDD). **15.4** T4 post-commit step + sidecar (AFK, TDD). **15.5** T5 briefing line (AFK, TDD). **15.6** T6 `CODE_INTEL_REFRESH` (HITL). **15.7** T7 doc drift + kill-criteria (AFK). **15.8** T9 user-scope MCP (HITL, outside repo). **15.9** T8 routing rule (HITL, outside repo). **15.10** CRITICAL_PATH_REVIEW (AFK). The first live `CODE_INTEL_REFRESH` line is M10's (R03-D7); 15.6 proves the step by a dry run.
 Risks: (1) The cap cannot abort a synchronous refresh safely. Mitigation: 15.1 prototype decides thread vs subprocess before 15.2; serve `stale=true, reason=timeout` rather than block. (2) The post-commit background run races or stamps a newer SHA. Mitigation: `flock` + start-SHA (R03-D12) and the pause/release test. (3) The user-scope MCP path moves again (bio312 `.pth` precedent). Mitigation: one stable symlink (R03-D13) + the session-start missing-path check.

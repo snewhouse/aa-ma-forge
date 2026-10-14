@@ -208,3 +208,53 @@ drain() {
     chmod 755 graphify-out
     grep -q 'post-commit: .*built_sha' .codemem/refresh.log
 }
+
+# --- §6.8 (M15): repo-controlled dirs, SHA-256, and bounded steps -----------
+
+@test "§6.8: a symlinked graphify-out is never written through" {
+    mkdir -p "${TMP}/victim-dir"
+    ln -s "${TMP}/victim-dir" graphify-out
+    commit_change 2
+    drain
+    [ -z "$(ls -A "${TMP}/victim-dir")" ]
+    grep -q 'graphify-out is a symlink' .codemem/refresh.log
+}
+
+@test "§6.8: a symlinked .codemem/ is never refreshed through" {
+    mkdir -p "${TMP}/victim-dir"
+    printf 'keep\n' > "${TMP}/victim-dir/index.db"
+    ln -s "${TMP}/victim-dir" .codemem
+    commit_change 2
+    drain
+    [ "$(ls -A "${TMP}/victim-dir")" = "index.db" ]
+    [ "$(cat "${TMP}/victim-dir/index.db")" = "keep" ]
+}
+
+@test "§6.8: a worker accepts a 64-hex (SHA-256) SHA" {
+    sha=$(printf 'a%.0s' {1..64})
+    run bash "$HOOK" --worker "$sha" "$REPO"
+    [ "$status" -eq 0 ]
+    [ "$(cat graphify-out/.built_sha)" = "$sha" ]
+}
+
+@test "§6.8: each step runs under timeout and the queue waits with flock -w" {
+    real_flock=$(command -v flock)
+    printf '#!/usr/bin/env bash\necho "timeout $*" >> "$STUB_LOG"\nshift\nexec "$@"\n' > "${STUBS}/timeout"
+    printf '#!/usr/bin/env bash\necho "flock $*" >> "$STUB_LOG"\nexec %s "$@"\n' "$real_flock" > "${STUBS}/flock"
+    chmod +x "${STUBS}/timeout" "${STUBS}/flock"
+    commit_change 2
+    drain
+    grep -qE '^timeout [0-9]+ .*/graphify update \.$' "$STUB_LOG"
+    grep -qE '^timeout [0-9]+ .*codemem refresh$' "$STUB_LOG"
+    grep -qE '^timeout [0-9]+ .*codemem refresh-commits$' "$STUB_LOG"
+    grep -qE '^flock -w [0-9]+ 9$' "$STUB_LOG"
+    [ "$(cat graphify-out/.built_sha)" = "$(git rev-parse HEAD)" ]
+}
+
+@test "§6.8: a timed-out graphify (rc 124) keeps .built_sha and says so" {
+    printf '#!/usr/bin/env bash\nexit 124\n' > "${STUBS}/graphify"
+    commit_change 2
+    drain
+    [ ! -e graphify-out/.built_sha ]
+    grep -q 'graphify update timed out after [0-9]*s' .codemem/refresh.log
+}

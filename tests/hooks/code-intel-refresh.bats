@@ -135,3 +135,33 @@ line_count() { grep -c 'CODE_INTEL_REFRESH' "$PROV" || true; }
     [[ "$fence" == *'CLAUDE_HOME'* ]]
     [[ "$fence" != *'show-toplevel'* ]]
 }
+
+# --- §6.8 (M15 C2): the gate trusts no linked sidecar or index dir ----------
+
+@test "§6.8: a symlinked last_sha naming HEAD is BLOCKED" {
+    git rev-parse HEAD > "${WORK}/fake-sha"
+    rm -f .codemem/last_sha
+    ln -s "${WORK}/fake-sha" .codemem/last_sha
+    run bash "$SCRIPT" t
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"BLOCKED"* ]]
+    [ "$(line_count)" -eq 0 ]
+}
+
+@test "§6.8: a symlinked .built_sha naming HEAD is a WARN, not a graphify SHA" {
+    mkdir -p graphify-out
+    git rev-parse HEAD > "${WORK}/fake-sha"
+    ln -s "${WORK}/fake-sha" graphify-out/.built_sha
+    STUB_FAIL=1 run bash "$SCRIPT" t
+    [ "$status" -eq 0 ]
+    grep -qE "graphify=WARN " "$PROV"
+}
+
+@test "§6.8: a symlinked .codemem/ is BLOCKED and named" {
+    mv .codemem "${WORK}/elsewhere"
+    ln -s "${WORK}/elsewhere" .codemem
+    run bash "$SCRIPT" t
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"BLOCKED"*".codemem"*"symlink"* ]]
+    [ "$(line_count)" -eq 0 ]
+}

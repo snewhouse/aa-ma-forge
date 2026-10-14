@@ -574,3 +574,8 @@ WARNINGs from every round were folded in (latest: 6d752e6→54b8efb). Deferred i
 | code-reviewer | 0 | 4 | 9 | WARN — re-run-3 WARNINGs fixed; `draw --check` exit 1 on a broken store; empty record bricks builds; untested branches; `stale_reason: error` ambiguity |
 
 Fold-ins (standing "fold them in"): RED 30e7f8d → GREEN c1df21f. Accepted known limits, not re-raised: planted `index.db-wal`; committing one's own `.codemem/` publishes the stamp; `replay --from-wal` trusts its journal (all → Milestone 16 / TODOS).
+- Background review of c1df21f flagged a trust-store TOCTOU (path checked, then used): fixed by doing the check and every record operation through one directory fd (RED 118e199 → GREEN 3b50b5b), in both twins.
+
+### Verification at 31afa8a (final)
+- pytest 3136 passed (5 skipped); bats 633/633; no test writes `~/.local/state`; real `codemem build`/`status` work against the 0700 trust dir.
+- §6.7: fence 1 PASS (0 pending, AA-MA clean); fence 2 DIAGRAM_VERIFIED edges=25 checked=25 phantom=0; fence 3 TESTS_VERIFIED passed=3136.

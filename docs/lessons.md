@@ -78,6 +78,11 @@ every file under its tool dirs (`.codemem/`, `graphify-out/`: symlinks, contents
 git on a foreign repo gets command-scope pins (`-c core.fsmonitor=false -c core.hooksPath=/dev/null`) or the
 `stamp.py` allowlist; files in a repo-controlled dir are written by temp + `os.replace`, appended with `O_NOFOLLOW`.
 Each gets a test that plants the hostile thing and a mutation that removes the pin.
+**Recurrence 5 (same day, M15.6):** I copied the forge's `$(git rev-parse --show-toplevel)/claude-code/…`-first
+lookup into a new gate script, so a repo committing `claude-code/hooks/lib/aa-ma-parse.sh` ran inside the gate
+(TODOS already tracked the class for the old fences). **Stricter:** new code never sources or runs a file found
+under the target repo's tree; it uses its own location (`readlink -f "${BASH_SOURCE[0]}"`) or the installed copy.
+Copying an existing pattern does not make it safe: check the TODOS for a known flaw in the pattern first.
 **Cross-ref:** L-1319 (stderr on exit 0 is invisible), L-047 (sweep every reader)
 
 ---

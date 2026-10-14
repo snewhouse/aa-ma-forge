@@ -43,10 +43,10 @@ FORGE="$(cd "$(dirname "${SELF}")/../../../.." && pwd)"
 WORKER="${FORGE}/claude-code/codemem/hooks/post-commit.sh"
 [[ -f "${WORKER}" ]] || blocked "post-commit.sh not found at ${WORKER} — run scripts/install.sh."
 
-for _cand in "${TOP}/claude-code/hooks/lib/aa-ma-parse.sh" "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
-    [[ -f "${_cand}" ]] && AA_MA_LIB="${_cand}" && break
-done
-[[ -n "${AA_MA_LIB:-}" ]] || blocked "aa-ma-parse.sh not found — run scripts/install.sh."
+# This script's own forge, never the target repo's tree: a repo that commits
+# claude-code/hooks/lib/aa-ma-parse.sh would otherwise run inside the gate.
+AA_MA_LIB="${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh"
+[[ -f "${AA_MA_LIB}" ]] || blocked "aa-ma-parse.sh not found at ${AA_MA_LIB} — run scripts/install.sh."
 # shellcheck source=/dev/null
 . "${AA_MA_LIB}"
 GATE_KV=$(aa_ma_gate "${TASK_DIR}/${TASK_NAME}-tasks.md") || {

@@ -356,6 +356,8 @@ def test_an_empty_trust_record_heals_on_the_next_build(repo):
 def test_a_record_created_concurrently_is_used_and_no_temp_is_left(
     tmp_path, monkeypatch
 ):
+    import os
+
     import codemem.safety as safety
 
     d = tmp_path / "r" / ".codemem"
@@ -363,10 +365,11 @@ def test_a_record_created_concurrently_is_used_and_no_temp_is_left(
     rec = safety.trust_record(d)
     real_link = safety.os.link
 
-    def racing_link(src, dst):
-        Path(dst).parent.mkdir(parents=True, exist_ok=True)
-        Path(dst).write_text("their-nonce\n")  # another process won
-        return real_link(src, dst)
+    def racing_link(src, dst, *, src_dir_fd=None, dst_dir_fd=None):
+        fd = os.open(dst, os.O_WRONLY | os.O_CREAT, 0o600, dir_fd=dst_dir_fd)
+        os.write(fd, b"their-nonce\n")  # another process won
+        os.close(fd)
+        return real_link(src, dst, src_dir_fd=src_dir_fd, dst_dir_fd=dst_dir_fd)
 
     monkeypatch.setattr(safety.os, "link", racing_link)
     assert safety._nonce(d, create=True) == "their-nonce"
@@ -380,7 +383,7 @@ def test_a_store_without_hard_links_still_records(tmp_path, monkeypatch):
 
     import codemem.safety as safety
 
-    def no_links(src, dst):
+    def no_links(src, dst, **_):
         raise OSError(errno.EPERM, "Operation not permitted")
 
     monkeypatch.setattr(safety.os, "link", no_links)
@@ -467,6 +470,8 @@ def test_a_trust_dir_swapped_after_its_check_is_never_read(repo, monkeypatch, tm
     import codemem.safety as safety
 
     _, db_path = repo
+    _other_machine(monkeypatch, tmp_path)  # its own store: this test moves it
+    safety._nonce(db_path.parent, create=True)
     rec = safety.trust_record(db_path.parent)
     store = rec.parent
     planted = tmp_path / "planted-store"

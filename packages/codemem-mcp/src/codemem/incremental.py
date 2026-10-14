@@ -31,6 +31,8 @@ actually changed (cheap import-set-diff check).
 from __future__ import annotations
 
 import hashlib
+import os
+import re
 import subprocess
 import time
 from dataclasses import dataclass
@@ -44,7 +46,25 @@ from .parser.python_ast import Symbol
 from .storage import db
 
 
-__all__ = ["RefreshStats", "refresh_index"]
+__all__ = [
+    "EXIT_LOCKED",
+    "Freshness",
+    "RefreshStats",
+    "check_freshness",
+    "log_refresh",
+    "refresh_index",
+]
+
+# `codemem refresh` exit code when another refresh holds db.lock: EX_TEMPFAIL
+# (sysexits.h), "try again later". Read by mcp_tools.ensure_fresh.
+EXIT_LOCKED = 75
+
+# `.codemem/last_sha` and `tree_sig` are repo-controlled (a clone can commit
+# them): only a full 40-hex SHA is ever passed to git.
+_SHA_RE = re.compile(r"[0-9a-f]{40}")
+# Signature of a clean tree (empty `git status`): the default when no
+# tree_sig was written, e.g. right after a cold build.
+_CLEAN_SIG = hashlib.sha256(b"").hexdigest()
 
 
 @dataclass
@@ -64,6 +84,50 @@ class RefreshStats:
     # this refresh no-opped rather than queued.
     skipped_locked: bool = False
     elapsed_seconds: float = 0.0
+
+
+@dataclass(frozen=True)
+class Freshness:
+    """How the index at a DB path relates to the working tree (report 03 X2).
+
+    ``stale`` is True, False, or None when it cannot be known (no git).
+    ``reason`` names why it is stale or unknown: ``behind``, ``dirty``,
+    ``no_index_sha``, ``no_git``, ``no_head`` or ``git_error``.
+    """
+
+    index_sha: str | None
+    head_sha: str | None
+    stale: bool | None
+    reason: str | None
+
+
+def check_freshness(repo_root: Path, db_path: Path) -> Freshness:
+    """Cheap in-process staleness check (~10 ms on aa-ma-forge, M15.1).
+
+    Compares ``last_sha`` with HEAD, then the working tree's signature with
+    the one the last refresh recorded. Runs no refresh itself.
+    """
+    index_sha = _read_sha(db_path.parent / "last_sha")
+    head = _git(repo_root, "rev-parse", "--verify", "-q", "HEAD")
+    if head is None:
+        inside = _git(repo_root, "rev-parse", "--git-dir") is not None
+        return Freshness(index_sha, None, None, "no_head" if inside else "no_git")
+    if index_sha is None:
+        return Freshness(None, head, True, "no_index_sha")
+    if index_sha != head:
+        return Freshness(index_sha, head, True, "behind")
+    sig = _worktree_signature(repo_root)
+    if sig is None:
+        return Freshness(index_sha, head, None, "git_error")
+    stored = _read_text(db_path.parent / "tree_sig") or _CLEAN_SIG
+    if sig != stored:
+        return Freshness(index_sha, head, True, "dirty")
+    return Freshness(index_sha, head, False, None)
+
+
+def log_refresh(db_dir: Path, message: str) -> None:
+    """Append one timestamped line to ``<db_dir>/refresh.log``."""
+    _log(db_dir / "refresh.log", message)
 
 
 # ---------------------------------------------------------------------
@@ -109,7 +173,10 @@ def refresh_index(
             return RefreshStats(
                 skipped_locked=True, elapsed_seconds=time.monotonic() - t0
             )
-        return _refresh_locked(
+        # Taken before reading the tree: an edit made during the refresh
+        # leaves the stored signature behind, so the next check re-runs.
+        sig = _worktree_signature(repo_root)
+        stats = _refresh_locked(
             repo_root,
             db_path,
             package=package,
@@ -117,6 +184,12 @@ def refresh_index(
             last_sha_file=last_sha_file,
             t0=t0,
         )
+        tree_sig = db_path.parent / "tree_sig"
+        if sig is None:
+            tree_sig.unlink(missing_ok=True)
+        else:
+            tree_sig.write_text(sig + "\n")
+        return stats
 
 
 def _refresh_locked(  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down, no logic change in a security milestone)
@@ -136,13 +209,10 @@ def _refresh_locked(  # noqa: C901  # why: pre-existing; refactor tracked in TOD
     ):
         reason = _fallback_reason(db_path, last_sha_file, repo_root)
         _log(log_file, f"full rebuild: {reason}")
-        # Wipe the DB before rebuild so stale rows from prior states
-        # don't leak through. ``build_index``'s DELETE is scoped to
-        # paths in the current parse set and won't clean up files
-        # whose paths disappeared between runs.
-        if db_path.exists():
-            db_path.unlink()
-        build_index(repo_root, db_path, package=package)
+        # Build from empty so stale rows from prior states don't leak
+        # through (``build_index``'s DELETE is scoped to the current parse
+        # set). Never in place: readers keep the old DB until the swap.
+        _rebuild_and_swap(repo_root, db_path, package=package)
         _write_last_sha(repo_root, last_sha_file)
         return RefreshStats(full_rebuild=True, elapsed_seconds=time.monotonic() - t0)
 
@@ -296,12 +366,94 @@ def _log(log_file: Path, message: str) -> None:
         fh.write(f"[{timestamp}] {message}\n")
 
 
-def _sha_orphaned(repo_root: Path, last_sha_file: Path) -> bool:
+def _rebuild_and_swap(repo_root: Path, db_path: Path, *, package: str) -> None:
+    """Full build into a sibling file, then ``os.replace`` it over the live DB.
+
+    The caller holds db.lock. An in-place unlink made every concurrent
+    reader raise for the whole rebuild (M15.1: ~23k errors on aa-ma-forge);
+    the swap is atomic for readers. The old DB's ``-wal``/``-shm`` are
+    unlinked first: a reader still holding them keeps its own (now
+    nameless) copies, and new readers of the new DB start clean instead
+    of replaying the old DB's WAL frames into it.
+    """
+    tmp = db_path.with_name(db_path.name + ".rebuild")
+    for leftover in _db_files(tmp):  # a rebuild killed mid-run
+        leftover.unlink(missing_ok=True)
+    build_index(repo_root, tmp, package=package)
+    for side in _db_files(tmp)[1:] + _db_files(db_path)[1:]:
+        side.unlink(missing_ok=True)
+    os.replace(tmp, db_path)
+
+
+def _db_files(path: Path) -> list[Path]:
+    """The SQLite file and its WAL-mode sidecars, main file first."""
+    return [
+        path,
+        path.with_name(path.name + "-wal"),
+        path.with_name(path.name + "-shm"),
+    ]
+
+
+def _git(repo_root: Path, *args: str) -> str | None:
+    """Stdout of a git command, or None when git fails or is missing."""
     try:
-        sha = last_sha_file.read_text().strip()
+        result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+            ["git", "-C", str(repo_root), *args],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
+            capture_output=True,
+            text=True,
+            check=False,
+        )
     except OSError:
-        return True
-    if not sha:
+        return None
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def _read_text(path: Path) -> str | None:
+    try:
+        return path.read_text().strip() or None
+    except OSError:
+        return None
+
+
+def _read_sha(path: Path) -> str | None:
+    """A 40-hex SHA from ``path``, or None for anything else (repo-controlled file)."""
+    text = _read_text(path)
+    return text if text is not None and _SHA_RE.fullmatch(text) else None
+
+
+def _worktree_signature(repo_root: Path) -> str | None:
+    """Hash of tracked-file changes (``git status``) plus their mtime and size.
+
+    Equal signatures mean no tracked file changed since the last refresh.
+    Untracked files are left out: ``discover_files`` indexes tracked files only.
+    """
+    try:
+        out = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+            ["git", "-C", str(repo_root), "status", "--porcelain=v1", "-z", "-uno"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
+            capture_output=True,
+            check=False,
+        )
+    except OSError:
+        return None
+    if out.returncode != 0:
+        return None
+    if not out.stdout:
+        return _CLEAN_SIG
+    h = hashlib.sha256(out.stdout)
+    for entry in out.stdout.split(b"\0"):
+        path = repo_root / os.fsdecode(entry[3:]) if len(entry) > 3 else None
+        try:
+            st = path.stat() if path is not None else None
+        except OSError:
+            st = None  # deleted: the status line itself records it
+        if st is not None:
+            h.update(f"\0{st.st_mtime_ns}:{st.st_size}".encode())
+    return h.hexdigest()
+
+
+def _sha_orphaned(repo_root: Path, last_sha_file: Path) -> bool:
+    sha = _read_sha(last_sha_file)
+    if sha is None:
         return True
     result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
         ["git", "-C", str(repo_root), "cat-file", "-e", sha],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
@@ -316,8 +468,13 @@ def _fallback_reason(db_path: Path, last_sha_file: Path, repo_root: Path) -> str
         return "no DB (first refresh)"
     if not last_sha_file.exists():
         return "no last_sha file"
+    sha = _read_sha(last_sha_file)
+    if sha is None:
+        return (
+            "last_sha malformed (not a 40-hex SHA)"  # never echo repo-controlled text
+        )
     if _sha_orphaned(repo_root, last_sha_file):
-        return f"last_sha orphaned by git history rewrite ({last_sha_file.read_text().strip()[:12]}...)"
+        return f"last_sha orphaned by git history rewrite ({sha[:12]}...)"
     return "unknown"
 
 

@@ -23,6 +23,8 @@ import logging
 import os
 import re
 import sqlite3
+import subprocess
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -43,7 +45,9 @@ __all__ = [
     "dead_code",
     "dependency_chain",
     "diagram",
+    "REFRESH_CAP_S",
     "ensure_built",
+    "ensure_fresh",
     "file_summary",
     "hot_spots",
     "layers",
@@ -70,29 +74,110 @@ _CHARS_PER_TOKEN = 4
 # ---------------------------------------------------------------------
 
 
+# A query never waits longer than this for the index: the aa-ma-forge
+# cold-build SLO (report 03 R03-D6). Past it, results are served with
+# stale=true and the refresh keeps running in the background.
+REFRESH_CAP_S = 5.0
+
+
 def ensure_built(db_path: Path, repo_root: Path) -> dict | None:
-    """Ensure the codemem index DB exists, building it if missing.
+    """Make the index servable: build it if missing, refresh it if stale.
 
-    Callers (typically the MCP server's first-query path, M3.5 Task
-    3.5.3) use this to transparently provision the index before
-    dispatching to a tool. Returns ``None`` when the DB is ready, or a
-    structured ``{"error": ...}`` dict on failure — ANY exception
-    (invalid repo root, lockfile mkdir failure, indexer crash) is
-    caught so the caller's contract of "no raises, only error dicts"
-    is preserved.
+    Returns ``None`` when there is a DB to serve (fresh or, past the cap,
+    stale), or a structured ``{"error": ...}`` dict when there is none.
+    Never raises. :func:`ensure_fresh` returns the freshness fields too.
+    """
+    result = ensure_fresh(db_path, repo_root)
+    return {"error": result["error"]} if "error" in result else None
 
-    Concurrency: guarded by the M2 single-writer advisory lock
-    (:func:`codemem.journal.lock.acquire_writer_lock`). If another
-    process holds the lock, polls for DB existence up to 10 seconds
-    (>2× the aa-ma-forge cold-build SLO of 5s). A timeout surfaces as
-    a "build in progress; timed out" error rather than stalling the
-    RPC call indefinitely.
 
-    This lives in :mod:`codemem.mcp_tools` (the declared public-API
-    layer) so ``claude-code/codemem/mcp/server.py`` doesn't have to
-    import from restricted layers (:mod:`codemem.indexer`,
-    :mod:`codemem.journal`) — the plugin-surface layering contract
-    forbids those direct imports.
+def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) -> dict:
+    """Build if missing, refresh if stale, both bounded by ``cap`` seconds.
+
+    Returns ``index_sha``, ``head_sha``, ``stale`` (True, False or
+    ``"unknown"``) and ``stale_reason``; or ``{"error": ...}`` when no DB
+    can be served. ``stale`` is the state AFTER the refresh attempt (D6):
+    True only when the refresh was locked, failed or ran past the cap, and
+    each of those writes one ``ensure_fresh:`` line to refresh.log.
+
+    The refresh runs as a ``codemem refresh`` subprocess (M15.1 verdict):
+    the writer lock is per-process, a thread cannot be stopped, and a
+    subprocess that outlives the cap keeps running on its own.
+    """
+    err = _build_if_missing(db_path, repo_root, cap)
+    if err is not None:
+        return err
+    try:
+        from ..incremental import check_freshness, log_refresh
+
+        before = check_freshness(repo_root, db_path)
+        if before.stale is not True:
+            return _freshness_fields(before)
+        outcome = _capped_refresh(db_path, repo_root, cap)
+        if outcome == "ok":
+            return _freshness_fields(check_freshness(repo_root, db_path))
+        log_refresh(
+            db_path.parent,
+            f"ensure_fresh: serving a stale index ({before.reason}); refresh {outcome}",
+        )
+        fields = _freshness_fields(before)
+        fields["stale_reason"] = outcome
+        return fields
+    except Exception as exc:  # noqa: BLE001  # why: tool-surface contract — never raise, return fields
+        logger.warning("ensure_fresh: freshness check failed: %s", type(exc).__name__)
+        return {
+            "index_sha": None,
+            "head_sha": None,
+            "stale": "unknown",
+            "stale_reason": "error",
+        }
+
+
+def _freshness_fields(f: Any) -> dict:
+    return {
+        "index_sha": f.index_sha,
+        "head_sha": f.head_sha,
+        "stale": "unknown" if f.stale is None else f.stale,
+        "stale_reason": f.reason,
+    }
+
+
+def _capped_refresh(db_path: Path, repo_root: Path, cap: float) -> str:
+    """Run ``codemem refresh``; return ok, locked, error or timeout within ``cap``."""
+    from ..incremental import EXIT_LOCKED
+
+    proc = subprocess.Popen(  # noqa: S603  # why: fixed argv (this interpreter + codemem.cli), no shell
+        [
+            sys.executable,
+            "-m",
+            "codemem.cli",
+            "--db",
+            str(db_path),
+            "refresh",
+            "--repo-root",
+            str(repo_root),
+        ],
+        cwd=repo_root,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    try:
+        rc = proc.wait(timeout=cap)
+    except subprocess.TimeoutExpired:
+        # ponytail: left running, detached; it holds db.lock, so queries
+        # until it ends see "locked". Kill-safe either way (M15.1).
+        return "timeout"
+    return {0: "ok", EXIT_LOCKED: "locked"}.get(rc, "error")
+
+
+def _build_if_missing(db_path: Path, repo_root: Path, cap: float) -> dict | None:
+    """Cold-build a missing DB, or wait up to ``cap`` for another process's build.
+
+    Guarded by the M2 single-writer advisory lock. Lives in
+    :mod:`codemem.mcp_tools` (the public-API layer) so the plugin server
+    never imports :mod:`codemem.indexer` or :mod:`codemem.journal` itself.
     """
     if db_path.exists():
         return None
@@ -115,12 +200,14 @@ def ensure_built(db_path: Path, repo_root: Path) -> dict | None:
             # Lock contended — exit context so we don't starve the
             # real builder, then poll outside.
 
-        # Another process holds the lock; wait for them to finish.
-        for _ in range(100):
+        deadline = time.monotonic() + cap
+        while time.monotonic() < deadline:
             time.sleep(0.1)
             if db_path.exists():
                 return None
-        return {"error": ("build in progress by another process; timed out after 10s")}
+        return {
+            "error": f"build in progress by another process; timed out after {cap:g}s"
+        }
     except Exception as exc:  # noqa: BLE001 — tool-surface contract
         return {"error": f"build failed: {exc.__class__.__name__}: {exc}"}
 

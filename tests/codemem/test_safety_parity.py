@@ -95,3 +95,22 @@ def test_twins_agree_a_non_ascii_stamp_is_untrusted(tmp_path):
     conn.close()
     assert db.index_trusted(d / "index.db") is False
     assert "not built" in open_graph(d.parent).reason
+
+
+def test_twins_name_a_broken_trust_store_not_a_hostile_index(tmp_path):
+    """SECURITY.md: a trust-store fault is reported as such, never as 'not built here'."""
+    import os
+
+    from aa_ma.render.graph import open_graph
+    from codemem.safety import TrustStoreError, trust_record
+
+    d = _built(tmp_path / "s" / ".codemem")
+    store = trust_record(d).parent
+    os.chmod(store, 0)
+    try:
+        with pytest.raises(TrustStoreError):
+            db.connect(d / "index.db", read_only=True)
+        reason = open_graph(d.parent).reason
+    finally:
+        os.chmod(store, 0o700)
+    assert "trust store" in reason and "not built" not in reason

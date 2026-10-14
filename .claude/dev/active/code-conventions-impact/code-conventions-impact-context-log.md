@@ -578,3 +578,8 @@ DECISION ruff-only () — approved by Ste
 - Overall MEDIUM, no HIGH; 22 non-test files. Contract changes: X2 fields added to every codemem MCP response (additive); `codemem refresh` exit codes 0/75/1 (callers: post-commit worker, mcp_tools — both updated); `ensure_built` keeps None-or-error and now also refreshes.
 - MEDIUM items: (1) the post-commit worker gains refresh-commits + graphify + .built_sha — 0 repos have it wired (scan of ~/projects, ~/dev); (2) §6.0 is a new gate for every plan once installed: BLOCKED only when an existing codemem index cannot reach HEAD; `graphify update .` runs at each boundary wherever graphify is installed (code-only per R03-D14; `graphify-out/` globally excluded since 15.8). Only aa-ma-forge holds a `.codemem/` today.
 - Contract as built: rows added for indexer.py, aa-ma-parse.sh and scripts/code-intel-refresh.sh (all drawn by existing §13 nodes; coverage clean). journal/lock.py changed its docstring only (refresh.pid → post-commit queue lock) and is left out of the Contract rather than drawn.
+
+## [2026-10-14] Milestone 15 boundary: §6.6 review (Ste decisions)
+- 3 agents: reuse (1 W / 3 I), quality (4 W / 13 I), efficiency (2 W / 4 I); 0 CRITICAL. Verified the efficiency headline myself: fresh-path `check_freshness` ~55 ms, `discover_files` 52 ms (resolve() on all 1,049 tracked files before the suffix filter).
+- Ste: apply the proposed fix set (fbcb720). Storm coalescing NOT applied: it would contradict the approved 15.4 race AC ("A released last → .built_sha == A"); cost recorded in TODOS.
+- Side effect found: the 15.8 global excludes (`.codemem/`) made `tests/analysis/test_measure.py` commit nothing locally; the test now force-adds its planted index (CI has no global excludes, so it never saw this).

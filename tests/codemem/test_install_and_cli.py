@@ -19,6 +19,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 # import-linter contract — AC gate
 # ---------------------------------------------------------------------
 
+
 class TestImportLinterContract:
     def test_contracts_kept(self):
         """Run `lint-imports` against the .importlinter config. Must pass."""
@@ -55,6 +56,7 @@ class TestImportLinterContract:
 # ---------------------------------------------------------------------
 # Post-commit hook script
 # ---------------------------------------------------------------------
+
 
 class TestPostCommitHook:
     def test_hook_file_exists_and_executable(self):
@@ -95,13 +97,18 @@ class TestPostCommitHook:
 # install.sh --wire-git-hook
 # ---------------------------------------------------------------------
 
+
 class TestInstallScriptWiring:
     def test_dry_run_flag_accepts_wire_git_hook(self, tmp_path):
         # Accept the new flag without error (in dry-run so no side
         # effects land in ~/.claude/).
         result = subprocess.run(
-            ["bash", str(REPO_ROOT / "scripts" / "install.sh"),
-             "--dry-run", "--wire-git-hook"],
+            [
+                "bash",
+                str(REPO_ROOT / "scripts" / "install.sh"),
+                "--dry-run",
+                "--wire-git-hook",
+            ],
             capture_output=True,
             text=True,
             env={**os.environ, "HOME": str(tmp_path)},
@@ -158,15 +165,25 @@ class TestCLI:
         )
 
         db_path = tmp_path / ".codemem" / "index.db"
-        env = {**os.environ, "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src")}
+        env = {
+            **os.environ,
+            "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src"),
+        }
 
         # Build — --db is a global flag (before subcommand).
         r = subprocess.run(
-            [sys.executable, "-m", "codemem.cli",
-             "--db", str(db_path),
-             "build",
-             "--repo-root", str(tmp_path),
-             "--package", "."],
+            [
+                sys.executable,
+                "-m",
+                "codemem.cli",
+                "--db",
+                str(db_path),
+                "build",
+                "--repo-root",
+                str(tmp_path),
+                "--package",
+                ".",
+            ],
             capture_output=True,
             text=True,
             env=env,
@@ -186,24 +203,12 @@ class TestCLI:
         assert "files:" in r.stdout
         assert "symbols:" in r.stdout
 
-    def test_refresh_is_no_op_m1_placeholder(self, tmp_path):
-        r = subprocess.run(
-            [sys.executable, "-m", "codemem.cli",
-             "--db", str(tmp_path / "x.db"),
-             "refresh"],
-            capture_output=True,
-            text=True,
-            cwd=REPO_ROOT,
-        )
-        assert r.returncode == 0
-        assert "placeholder" in r.stdout.lower() or "m2" in r.stdout.lower()
-
     def test_refresh_commits_populates_git_mining_cache(self, tmp_path):
         """RED → GREEN gate for L-254 fix: ``codemem refresh-commits``
         must populate ``commits`` + ``commit_files`` from ``git log``.
 
-        The default ``codemem refresh`` is an M2 placeholder and does NOT
-        populate the git-mining cache, so out of the box ``co_changes`` /
+        ``codemem refresh`` (the incremental driver; tests in
+        test_freshness.py) does NOT populate the git-mining cache, so out of the box ``co_changes`` /
         ``hot_spots`` / cached portions of ``owners``+``symbol_history``
         return empty until a production code path runs
         ``GitMiner.refresh_commits_cache``. This test pins that path.
@@ -222,30 +227,39 @@ class TestCLI:
         (tmp_path / "a.py").write_text("def a(): return 1\n")
         subprocess.run(
             ["git", "init", "-q", "-b", "main", str(tmp_path)],
-            check=True, env=hermetic,
+            check=True,
+            env=hermetic,
         )
         subprocess.run(
             ["git", "-C", str(tmp_path), "config", "user.email", "t@x"],
-            check=True, env=hermetic,
+            check=True,
+            env=hermetic,
         )
         subprocess.run(
             ["git", "-C", str(tmp_path), "config", "user.name", "T"],
-            check=True, env=hermetic,
+            check=True,
+            env=hermetic,
         )
         subprocess.run(
-            ["git", "-C", str(tmp_path), "add", "-A"], check=True, env=hermetic,
+            ["git", "-C", str(tmp_path), "add", "-A"],
+            check=True,
+            env=hermetic,
         )
         subprocess.run(
             ["git", "-C", str(tmp_path), "commit", "-qm", "first"],
-            check=True, env=hermetic,
+            check=True,
+            env=hermetic,
         )
         (tmp_path / "b.py").write_text("def b(): return 2\n")
         subprocess.run(
-            ["git", "-C", str(tmp_path), "add", "-A"], check=True, env=hermetic,
+            ["git", "-C", str(tmp_path), "add", "-A"],
+            check=True,
+            env=hermetic,
         )
         subprocess.run(
             ["git", "-C", str(tmp_path), "commit", "-qm", "second"],
-            check=True, env=hermetic,
+            check=True,
+            env=hermetic,
         )
 
         db_path = tmp_path / ".codemem" / "index.db"
@@ -256,26 +270,48 @@ class TestCLI:
 
         # Build → DB exists at v2 but commits cache empty.
         r = subprocess.run(
-            [sys.executable, "-m", "codemem.cli", "--db", str(db_path),
-             "build", "--repo-root", str(tmp_path), "--package", "."],
-            capture_output=True, text=True, env=env, cwd=tmp_path,
+            [
+                sys.executable,
+                "-m",
+                "codemem.cli",
+                "--db",
+                str(db_path),
+                "build",
+                "--repo-root",
+                str(tmp_path),
+                "--package",
+                ".",
+            ],
+            capture_output=True,
+            text=True,
+            env=env,
+            cwd=tmp_path,
         )
         assert r.returncode == 0, r.stderr
 
         conn = sqlite3.connect(db_path)
         try:
             assert conn.execute("SELECT COUNT(*) FROM commits").fetchone()[0] == 0
-            assert conn.execute(
-                "SELECT COUNT(*) FROM commit_files"
-            ).fetchone()[0] == 0
+            assert conn.execute("SELECT COUNT(*) FROM commit_files").fetchone()[0] == 0
         finally:
             conn.close()
 
         # refresh-commits → cache populated.
         r = subprocess.run(
-            [sys.executable, "-m", "codemem.cli", "--db", str(db_path),
-             "refresh-commits", "--repo-root", str(tmp_path)],
-            capture_output=True, text=True, env=env, cwd=tmp_path,
+            [
+                sys.executable,
+                "-m",
+                "codemem.cli",
+                "--db",
+                str(db_path),
+                "refresh-commits",
+                "--repo-root",
+                str(tmp_path),
+            ],
+            capture_output=True,
+            text=True,
+            env=env,
+            cwd=tmp_path,
         )
         assert r.returncode == 0, r.stderr
         assert "inserted" in r.stdout.lower()
@@ -283,9 +319,7 @@ class TestCLI:
         conn = sqlite3.connect(db_path)
         try:
             n_commits = conn.execute("SELECT COUNT(*) FROM commits").fetchone()[0]
-            n_files = conn.execute(
-                "SELECT COUNT(*) FROM commit_files"
-            ).fetchone()[0]
+            n_files = conn.execute("SELECT COUNT(*) FROM commit_files").fetchone()[0]
         finally:
             conn.close()
         assert n_commits == 2, f"expected 2 commits cached, got {n_commits}"
@@ -405,7 +439,10 @@ class TestQueryRoundTrips:
         repo, _ = indexed_repo
         r = _cli("query", "--help", cwd=repo)
         assert r.returncode == 0
-        assert re.search(r"\{([a-z_,]+)\}", r.stdout).group(1).split(",") == QUERY_TOOLS_PINNED
+        assert (
+            re.search(r"\{([a-z_,]+)\}", r.stdout).group(1).split(",")
+            == QUERY_TOOLS_PINNED
+        )
         assert "10 MCP tools" in _cli("--help", cwd=repo).stdout
 
 
@@ -440,6 +477,7 @@ def test_query_tool_counts_in_docs_match_the_cli() -> None:
 # Plugin-surface no-bypass (grep-based — supplements import-linter
 # since claude-code/codemem/ isn't a Python package)
 # ---------------------------------------------------------------------
+
 
 class TestPluginSurfaceNoBypass:
     def test_mcp_server_only_imports_mcp_tools(self):

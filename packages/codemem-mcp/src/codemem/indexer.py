@@ -188,15 +188,27 @@ def check_db_path(db_path: Path) -> None:
             capture_output=True,
             timeout=GIT_TIMEOUT_S,
             check=False,
+            env={
+                **os.environ,
+                "LC_ALL": "C",
+            },  # stable message text for the check below
         )
     except FileNotFoundError:
-        return  # no git: nothing can be tracked
+        # ponytail: with no git installed a tracked index cannot be detected;
+        # every freshness answer is then stale "unknown" (no_git), leads only.
+        return
     except subprocess.TimeoutExpired as exc:
         raise UnsafeDbPath(
             f"{db_dir}: git did not answer in {GIT_TIMEOUT_S:g}s; codemem refuses it"
         ) from exc
-    if tracked.returncode == 0 and tracked.stdout:
-        raise unsafe
+    if tracked.returncode == 0:
+        if tracked.stdout:
+            raise unsafe
+    elif b"not a git repository" not in tracked.stderr:
+        # Fail closed: e.g. "dubious ownership" is a repo git refused to read.
+        raise UnsafeDbPath(
+            f"{db_dir}: git could not list it (rc {tracked.returncode}); codemem refuses it"
+        )
 
 
 def _write_build_sidecars(repo_root: Path, db_dir: Path, signature: str) -> None:

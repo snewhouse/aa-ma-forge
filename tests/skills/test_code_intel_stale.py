@@ -11,7 +11,7 @@ SKILLS = Path(__file__).resolve().parents[2] / "claude-code" / "skills"
 
 @pytest.mark.parametrize("skill", ["impact-analysis", "plan-verification"])
 def test_skill_records_code_intel_stale(skill):
-    text = skill_text(SKILLS / skill)
+    text = skill_text(SKILLS / skill / "SKILL.md")
     assert "CODE_INTEL_STALE" in text
     assert "stale_reason" in text
     assert (

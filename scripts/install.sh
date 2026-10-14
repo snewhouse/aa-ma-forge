@@ -580,6 +580,34 @@ EOF
 fi
 
 # ---------------------------------------------------------------------------
+# 8. codemem user-scope plugin worktree (code-conventions-impact M15.8, R03-D13)
+# ---------------------------------------------------------------------------
+# ~/.local/share/codemem-plugin links to a dedicated, detached worktree of this forge
+# that the user-scope codemem MCP runs from. Keep it on main's tip and its venv in sync.
+# Only a linked worktree of THIS forge is touched — never the checkout itself (its branch
+# changes under review), never anything else, and never one with uncommitted changes.
+CODEMEM_PLUGIN_LINK="${HOME}/.local/share/codemem-plugin"
+if [[ -L "${CODEMEM_PLUGIN_LINK}" ]]; then
+    header "Refreshing the codemem plugin worktree..."
+    plugin_wt="$(readlink -f "${CODEMEM_PLUGIN_LINK}")"
+    # why: a target that is not a git worktree has no common dir → empty → refused below
+    plugin_common="$(git -C "${plugin_wt}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+    forge_common="$(git -C "${REPO_ROOT}" rev-parse --path-format=absolute --git-common-dir)"
+    if [[ -z "${plugin_common}" || "${plugin_common}" != "${forge_common}" || "${plugin_wt}" == "${REPO_ROOT}" ]]; then
+        warn "codemem plugin link targets ${plugin_wt}: not a worktree of this forge — left alone"
+    elif [[ -n "$(git -C "${plugin_wt}" status --porcelain --untracked-files=no)" ]]; then
+        warn "codemem plugin worktree ${plugin_wt} has uncommitted changes — left alone"
+    elif ${DRY_RUN}; then
+        info "Would refresh codemem plugin worktree ${plugin_wt} to main and run uv sync there"
+    elif git -C "${plugin_wt}" checkout -q --detach main \
+            && (cd "${plugin_wt}" && uv sync --locked --quiet); then
+        info "codemem plugin worktree ${plugin_wt} → main $(git -C "${plugin_wt}" rev-parse --short HEAD)"
+    else
+        warn "codemem plugin worktree ${plugin_wt}: refresh failed — run: git -C ${plugin_wt} checkout --detach main && (cd ${plugin_wt} && uv sync)"
+    fi
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 header "=== Installation Summary ==="

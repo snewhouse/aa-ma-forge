@@ -597,3 +597,7 @@ DECISION ruff-only () — approved by Ste
 - Contract changes: a garbage/corrupt/foreign index is rebuilt, not served stale-error (3 tests moved to a trusted-but-broken trigger); a git-tracked `.codemem` is rebuilt, not refused; new X2 `stale_reason: untrusted` (error, nothing served).
 - Verified live: the auditor's 4 exploit repos (ebv, eb2v, ci2v, supv) no longer return the phantom caller; the committed index blob is refused by `open_graph` ("not built by codemem here").
 - Known limit (TODOS): `codemem replay --from-wal` trusts its journal, which a repo can commit; replay is manual recovery only.
+
+## [2026-10-14] Milestone 15 boundary: §6.8 re-run 3 (Ste decisions)
+- security-auditor 1 C / 1 W / 7 I: a committed regular `.codemem/index.db-wal` beside a stamped index replays forged pages (the stamp page is untouched) — reproduced end to end, also through graph.py. Ste: defer the root fix (move the index out of the repo) to a new Milestone 16 before M10; M15 closes with it documented (SECURITY.md, README, commands doc, TODOS P1). M10 now depends on M16. Numbered 16, not "15b": the canonical grammar takes digits only (`## Milestone \d+:`).
+- code-reviewer 0 C / 4 W / 9 I. Folded: trust-store faults named (TrustStoreError, reproduced silent-rebuild loop fixed), outcome-specific untrusted errors, README exception list, NONCE_BYTES; plus Ste's fold-ins (byte compare, atomic nonce file, XDG docs) and INFOs (refused dir propagates from check_freshness, one import source in cli, parity foreign-nonce case, mode rationale, format artefact).

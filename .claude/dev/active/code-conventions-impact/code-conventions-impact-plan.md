@@ -996,6 +996,24 @@ Files:
 Steps: **15.0** Post-merge of M9 + X4 TODOS (HITL). **15.1 PROTOTYPE (HITL)** the refresh cap: thread vs subprocess, kill mid-run, next refresh recovers. **15.2** T2 bounded refresh (AFK, TDD). **15.3** T3 X2 envelope + `CODE_INTEL_STALE` (AFK, TDD). **15.4** T4 post-commit step + sidecar (AFK, TDD). **15.5** T5 briefing line (AFK, TDD). **15.6** T6 `CODE_INTEL_REFRESH` (HITL). **15.7** T7 doc drift + kill-criteria (AFK). **15.8** T9 user-scope MCP (HITL, outside repo). **15.9** T8 routing rule (HITL, outside repo). **15.10** CRITICAL_PATH_REVIEW (AFK). The first live `CODE_INTEL_REFRESH` line is M10's (R03-D7); 15.6 proves the step by a dry run.
 Risks: (1) The cap cannot abort a synchronous refresh safely. Mitigation: 15.1 prototype decides thread vs subprocess before 15.2; serve `stale=true, reason=timeout` rather than block. (2) The post-commit background run races or stamps a newer SHA. Mitigation: `flock` + start-SHA (R03-D12) and the pause/release test. (3) The user-scope MCP path moves again (bio312 `.pth` precedent). Mitigation: one stable symlink (R03-D13) + the session-start missing-path check.
 
+### Milestone 16 — Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral)
+
+_Scope change 2026-10-14 (Ste, M15 §6.8 re-run 3): a committed regular `.codemem/index.db-wal` beside a stamped index replays forged pages (reproduced). Fifth bypass in one root cause: codemem keeps derived data in a repo-controlled directory. Ste deferred the root fix here, before M10 (M10/M11 build `IMPACT_VERIFIED` on codemem). M15 closes with it documented as a known limit. Planned in detail at 16.0._
+
+#### Contract
+```
+Audit-Profile: full
+Critical-Path: hook-modification
+Complexity: 60%
+Effort: 1.5 days
+Files:
+  Modify  packages/codemem-mcp/src/codemem/{cli,indexer,incremental,safety}.py, packages/codemem-mcp/src/codemem/mcp_tools/__init__.py, packages/codemem-mcp/src/codemem/storage/db.py   # default index under ${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo)>/
+  Modify  claude-code/codemem/mcp/server.py, claude-code/codemem/hooks/post-commit.sh, claude-code/hooks/aa-ma-session-start.sh, claude-code/hooks/lib/aa-ma-parse.sh, claude-code/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh, src/aa_ma/render/graph.py, src/aa_ma/analysis/measure.py   # one shared location resolver per language
+  Modify  SECURITY.md, claude-code/codemem/README.md, claude-code/codemem/commands/codemem.md, docs (53 files name .codemem)   # remove the known-limit paragraph
+  Test    tests/codemem/test_trust.py (planted-WAL reproduction), tests/hooks/*.bats (location)
+```
+Steps: **16.0** plan the move (HITL). Further steps are written at 16.0.
+
 ## 5a. Review Focus (writing-plans)
 
 The five input classes the spec implies that are most likely to bite. Each has a pinned test in its owning milestone:

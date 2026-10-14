@@ -143,15 +143,15 @@ drain() {
     [ ! -e "${TMP}/planted-ran" ]
 }
 
-@test "a symlinked .built_sha is replaced, never followed" {
+@test "a symlinked .built_sha is never followed (§6.8 re-run: graphify skipped; 15.4 replaced it)" {
     mkdir -p graphify-out
     printf 'original\n' > "${TMP}/victim"
     ln -s "${TMP}/victim" graphify-out/.built_sha
     commit_change 2
     drain
     [ "$(cat "${TMP}/victim")" = "original" ]
-    [ ! -L graphify-out/.built_sha ]
-    [ "$(cat graphify-out/.built_sha)" = "$(git rev-parse HEAD)" ]
+    [ ! -s "$STUB_LOG" ]
+    grep -q 'graphify-out holds a symlink' .codemem/refresh.log
 }
 
 @test "a symlinked refresh.log is never appended to" {

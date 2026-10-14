@@ -112,6 +112,7 @@ only formatter form allowed is the changed-file list: `uv run ruff format $(git 
 happens next. When the pre-commit hook forces format-on-touch of a file with old drift, the drift
 goes in its own `style:` commit first (eddfd3f is the pattern).
 **Recurrence 4 (same day, §6.8 re-run 2):** `sed -i` again, on `test_trust.py`, to fix one key name. **Stricter:** before any shell edit of a file under `tests/`, `src/`, `packages/` or `claude-code/`, the edit goes through an asserting Python `sub()` (count == 1) — a `sed -i` on those trees is the error, however small the change.
+**Recurrence 5 (same day):** `pytest … | tail -1 && git add … && git commit … && git push` committed and pushed a red test (3d014c5): a pipe's exit status is the last command's, so `tail` gated the commit. **Stricter:** in any chain that commits, pytest/bats run unpiped as the condition — `if uv run pytest <files> -q; then git commit …; fi` — never `| tail`, `| grep` or `| head` before `&&`.
 **Cross-ref:** L-007 (format pass outside scope), global L-1334 (pathspec-less commit)
 
 ---

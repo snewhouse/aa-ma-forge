@@ -1,5 +1,4 @@
-"""
-SQLite connection + schema management for codemem.
+"""SQLite connection + schema management for codemem.
 
 Single entry point: `connect(path, read_only=False)` returns a configured
 connection with per-connection PRAGMAs applied (WAL + busy_timeout +
@@ -38,7 +37,9 @@ __all__ = [
 ]
 
 APPLICATION_ID = 0x434D454D  # 'CMEM' ASCII = 1129209165 (within signed int32, per SQLite application_id spec)
-CURRENT_SCHEMA_VERSION = 3  # v2: git-mining tables; v3: file_edges (diagram-generation M1)
+CURRENT_SCHEMA_VERSION = (
+    3  # v2: git-mining tables; v3: file_edges (diagram-generation M1)
+)
 
 # Forward-only migrations. Each entry: (target_version, SQL_script_string).
 # The initial schema (v1) is provided by schema.sql; migrations here start at v2.
@@ -138,8 +139,8 @@ def _apply_per_connection_pragmas(conn: sqlite3.Connection, *, read_only: bool) 
     application_id are persisted at DB level and do NOT need re-issue.
     """
     conn.execute("PRAGMA busy_timeout = 5000")
-    conn.execute("PRAGMA cache_size = -65536")       # 64 MB per conn
-    conn.execute("PRAGMA mmap_size = 268435456")     # 256 MB; up to DB size
+    conn.execute("PRAGMA cache_size = -65536")  # 64 MB per conn
+    conn.execute("PRAGMA mmap_size = 268435456")  # 256 MB; up to DB size
     conn.execute("PRAGMA temp_store = MEMORY")
     if not read_only:
         # FK constraints only enforced on write paths; mode=ro ignores them.

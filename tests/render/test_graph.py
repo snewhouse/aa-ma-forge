@@ -263,3 +263,21 @@ def test_never_imports_codemem_contract_declared() -> None:
     assert c["type"] == "forbidden"
     assert c["source_modules"].split() == ["aa_ma"]
     assert c["forbidden_modules"].split() == ["codemem"]
+
+
+def test_a_linked_index_is_refused_and_never_opened(tmp_path: Path) -> None:
+    """§6.8 re-run 1: a read-only open of a linked WAL-mode DB created -wal/-shm beside it."""
+    victim = tmp_path / "home" / "places.sqlite"
+    victim.parent.mkdir()
+    c = sqlite3.connect(victim)
+    c.execute("PRAGMA journal_mode=WAL")
+    c.execute("CREATE TABLE t (x)")
+    c.commit()
+    c.close()
+    repo = tmp_path / "r"
+    (repo / ".codemem").mkdir(parents=True)
+    (repo / ".codemem" / "index.db").symlink_to(victim)
+    h = open_graph(repo)
+    assert h.status is GraphStatus.MISSING and h.conn is None
+    assert "symlink" in h.reason
+    assert sorted(p.name for p in victim.parent.iterdir()) == ["places.sqlite"]

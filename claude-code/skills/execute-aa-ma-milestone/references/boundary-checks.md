@@ -22,14 +22,10 @@ the **pre-commit** HEAD — a file cannot name the commit that contains it:
 ```
 
 ```bash
-_s=skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh
-CIR=""
-# why: stderr dropped — outside a repo the first candidate is simply absent
-for _c in "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/${_s}" \
-          "${CLAUDE_HOME:-${HOME}/.claude}/${_s}"; do
-  [[ -f "${_c}" ]] && CIR="${_c}" && break
-done
-bash "${CIR:?code-intel-refresh.sh not found — run scripts/install.sh}" "${TASK_NAME:-}"
+# The installed copy only: a repo-committed claude-code/ must never run as the gate.
+CIR="${CLAUDE_HOME:-${HOME}/.claude}/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh"
+[[ -f "${CIR}" ]] || { echo "BLOCKED: ${CIR} not found — run scripts/install.sh."; exit 1; }
+bash "${CIR}" "${TASK_NAME:-}"
 ```
 
 - graphify failing or absent: `graphify=WARN …`, never blocks (graphify is leads-only).

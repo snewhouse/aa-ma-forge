@@ -199,6 +199,7 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 - `server.py` `_with_autobuild` returns `query failed: <class>: <message>`; the message can carry repo-controlled text such as paths. Return the class name only and log the rest.
 - Add a test for the `_rebuild_and_swap` claim that readers of the new DB never replay the old DB's WAL frames.
 - Label every M15 measurement in the docs with date, machine and repo; some are unlabelled.
+- `codemem refresh` skips a file whose content hash is unchanged without updating its stored `mtime`, so `aa-ma-lint-views` (`render/graph.py::_stale_paths`) reports a touched-but-unchanged file (e.g. after `git checkout -- f`) as changed since indexing until a full `codemem build`. Pre-existing (M2 refresh, M8 lint); found in the §6.8 fix pass. Update `mtime`/`size` on a hash match.
 
 **Why:** These are M15 §6.8 WARNING/INFO findings that Ste recorded rather than fixed in the milestone.
 **Effort:** S

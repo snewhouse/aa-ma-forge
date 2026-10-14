@@ -97,20 +97,41 @@ def test_twins_agree_a_non_ascii_stamp_is_untrusted(tmp_path):
     assert "not built" in open_graph(d.parent).reason
 
 
-def test_twins_name_a_broken_trust_store_not_a_hostile_index(tmp_path):
-    """SECURITY.md: a trust-store fault is reported as such, never as 'not built here'."""
+def test_twins_name_a_broken_trust_store_not_a_hostile_index(tmp_path, monkeypatch):
+    """SECURITY.md: a trust-store fault is reported as such, never as 'not built here'.
+
+    The store is broken by pointing XDG_STATE_HOME at a file (chmod 0 does not stop root).
+    """
+    from aa_ma.render.graph import open_graph
+    from codemem.safety import TrustStoreError
+
+    d = _built(tmp_path / "s" / ".codemem")
+    blocker = tmp_path / "state-is-a-file"
+    blocker.write_text("x\n")
+    monkeypatch.setenv("XDG_STATE_HOME", str(blocker))
+    with pytest.raises(TrustStoreError):
+        db.connect(d / "index.db", read_only=True)
+    reason = open_graph(d.parent).reason
+    assert "trust store" in reason and "not built" not in reason
+
+
+@pytest.mark.parametrize("fault", ["non-utf8 record", "shared trust dir"])
+def test_twins_agree_on_store_faults(tmp_path, fault):
     import os
 
     from aa_ma.render.graph import open_graph
     from codemem.safety import TrustStoreError, trust_record
 
-    d = _built(tmp_path / "s" / ".codemem")
-    store = trust_record(d).parent
-    os.chmod(store, 0)
+    d = _built(tmp_path / "f" / ".codemem")
+    rec = trust_record(d)
+    if fault == "non-utf8 record":
+        rec.write_bytes(b"\xff\xfe")
+    else:
+        os.chmod(rec.parent, 0o777)  # noqa: S103  # why: plants the unsafe mode the code must refuse
     try:
         with pytest.raises(TrustStoreError):
             db.connect(d / "index.db", read_only=True)
         reason = open_graph(d.parent).reason
     finally:
-        os.chmod(store, 0o700)
+        os.chmod(rec.parent, 0o700)
     assert "trust store" in reason and "not built" not in reason

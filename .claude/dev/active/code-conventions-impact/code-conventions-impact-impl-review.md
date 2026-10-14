@@ -565,3 +565,12 @@ WARNINGs from every round were folded in (latest: 6d752e6→54b8efb). Deferred i
 - pytest 3121 passed (5 skipped); bats 633/633; no test writes `~/.local/state`.
 - §6.7: fence 1 PASS (AA-MA clean, 0 pending, CRITICAL_PATH_REVIEW + PROTOTYPE present); fence 2 DIAGRAM_VERIFIED edges=25 checked=25 phantom=0; fence 3 TESTS_VERIFIED passed=3121.
 - Live: the auditor's 35-case link harness → 0 bad; the 4 re-run-2 exploit repos no longer return the phantom caller; a committed index blob is refused by `open_graph`.
+
+## §6.8 re-run 4 (targeted, window 4981491..bd10921, 2026-10-14)
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| security-auditor | 0 | 1 | 6 | WARN — no fail-open; `connect` could delete an index it did not create (TOCTOU) |
+| code-reviewer | 0 | 4 | 9 | WARN — re-run-3 WARNINGs fixed; `draw --check` exit 1 on a broken store; empty record bricks builds; untested branches; `stale_reason: error` ambiguity |
+
+Fold-ins (standing "fold them in"): RED 30e7f8d → GREEN c1df21f. Accepted known limits, not re-raised: planted `index.db-wal`; committing one's own `.codemem/` publishes the stamp; `replay --from-wal` trusts its journal (all → Milestone 16 / TODOS).

@@ -605,3 +605,6 @@ DECISION ruff-only () — approved by Ste
 ## [2026-10-14] Milestone 15 boundary: double-check (Ste decisions)
 - `Skill(double-check)` (standard, fresh challenger) → Partially verified: F1 committed-own-index nonce leak (reproduced), F2 fold-in code unreviewed by §6.8, F3 graph.py twin misreports a broken trust store.
 - Ste: F1 → known limit (SECURITY.md, README, commands doc) + Milestone 16 acceptance criterion; F2 → targeted §6.8 re-run 4 on 4981491..HEAD; F3 → fixed now (15bc257 → 542ef67).
+
+## [2026-10-14] Milestone 15 boundary: §6.8 re-run 4 (targeted)
+- security-auditor 0 C / 1 W / 6 I; code-reviewer 0 C / 4 W / 9 I on 4981491..bd10921. All WARNINGs and the useful INFOs folded (30e7f8d → c1df21f): atomic create in `connect`; private trust dir + O_NOFOLLOW strict records + fsync'd temp-and-link writes with a no-hard-link fallback; empty records heal; `stale_reason: trust_store`; `draw --check` UNKNOWN on a broken store (ADR-0016). New X2 `stale_reason` value `trust_store` (documented in the ensure_fresh docstring, commands doc, impact-analysis skill).

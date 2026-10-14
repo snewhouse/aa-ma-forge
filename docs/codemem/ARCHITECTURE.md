@@ -74,7 +74,7 @@ crash-survivable atomic commits at the SQLite-row level. Truncated by
 one layer above SQLite and makes codemem's per-file mutation sequence
 replayable from scratch. Implemented in
 [`codemem/journal/wal.py`](../../packages/codemem-mcp/src/codemem/journal/wal.py).
-This is what we mean when we say "the WAL" in the codemem sense.
+This is what we mean when we say "the WAL" in the codemem sense. It is written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14).
 
 ### Ordering contract (intent → commit → ack)
 

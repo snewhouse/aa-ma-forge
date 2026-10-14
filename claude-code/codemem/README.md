@@ -161,7 +161,7 @@ Auto-build on first MCP query (delivered by M3.5 Task 3.5.3) means the hook isn'
 ### What gets written where
 
 - `<repo>/.codemem/index.db` — SQLite database. Git-ignored by default.
-- `<repo>/.codemem/wal.jsonl` — codemem's JSONL write-ahead log for crash-safe incremental refresh. Rotates at 10 MB with 3 compressed archives retained.
+- `<repo>/.codemem/wal.jsonl` — codemem's JSONL write-ahead journal, replayable with `codemem replay --from-wal`; written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14). Rotates at 10 MB with 3 compressed archives retained.
 - `<repo>/.codemem/db.lock` — single-writer advisory lock. Harmless if left over from a crashed indexer.
 - `<repo>/.codemem/last_sha`, `<repo>/.codemem/tree_sig` — the commit and tracked-file state the index reflects; a query compares them with HEAD and refreshes (capped at 5 s) when they differ.
 - `<repo>/.codemem/refresh.log` — structured log line per refresh invocation.

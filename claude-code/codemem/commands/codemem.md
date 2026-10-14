@@ -84,18 +84,21 @@ populated and the list is empty. No tool raises under untrusted input.
 Print a summary of the current index: file count, symbol count, edge
 count (resolved vs unresolved), last build time, schema version.
 
-### `codemem refresh` — _M2 placeholder_
+### `codemem refresh [--repo-root PATH]`
 
-Incremental rebuild for dirty files (mtime+size → SHA-256 fallback).
-Writes to `.codemem/wal.jsonl` BEFORE mutating SQLite; crash-safe
-replay via `codemem replay --from-wal`. Not yet implemented — shipped
-in Milestone M2.
+Incremental refresh of the index (`codemem.incremental.refresh_index`): content-hash
+dirty detection, `git mv` detection, symbol-level deltas. With `last_sha` missing,
+malformed or orphaned by a history rewrite it does a full rebuild into a sibling file
+and swaps it in with `os.replace`, so readers never see a half-built DB. Records
+`.codemem/last_sha` and `.codemem/tree_sig`. Exit 0 refreshed, 75 another refresh holds
+`.codemem/db.lock`, 1 error (one line in `.codemem/refresh.log`). Run by the post-commit
+step and, capped at 5 s, by any MCP query that finds the index stale; responses then
+carry `index_sha`, `head_sha`, `stale` and `stale_reason`.
 
-### `codemem replay --from-wal` — _M2 placeholder_
+### `codemem replay --from-wal [--wal PATH]`
 
-Reconstruct SQLite state from the WAL JSONL journal. Idempotent via
-`(op, prev_user_version, content_sha)` keys. Not yet implemented —
-shipped in Milestone M2.
+Reconstruct SQLite state from a JSONL write-ahead journal (default `.codemem/wal.jsonl`).
+Idempotent via `(op, prev_user_version, content_sha)` keys. The journal is written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14).
 
 ---
 

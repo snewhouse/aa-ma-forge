@@ -81,7 +81,7 @@ codemem uses SQLite journal mode WAL for crash safety. The WAL file (`<repo>/.co
 
 SQLite auto-checkpoints on connection close. If you kill the indexer mid-build the WAL can outlive its parent — re-running `codemem build` replays it cleanly. To flush manually: `sqlite3 .codemem/index.db "PRAGMA wal_checkpoint(TRUNCATE);"`.
 
-codemem also maintains a second write-ahead log in JSONL form (`<repo>/.codemem/wal.jsonl`) used for crash-safe incremental refresh. It rotates at 10 MB with 3 compressed archives retained — unbounded growth is not possible.
+codemem can also keep a second write-ahead log in JSONL form (`<repo>/.codemem/wal.jsonl`), replayable with `codemem replay --from-wal`; it is written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14). It rotates at 10 MB with 3 compressed archives retained — unbounded growth is not possible.
 
 ## Prompt files trust model
 

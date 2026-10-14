@@ -573,3 +573,7 @@ DECISION ruff-only () — approved by Ste
 
 ## [2026-10-14] DECISION: codemem kill Signal 4 fired — consolidate under AA-MA (Ste)
 - 15.7's overdue kill-criteria review found repowise (AGPL, 7.7k stars, MCP) matching co_changes + owners + layers (hotspots partial). Ste chose the pre-committed 2026-05-08 rule over "also evaluate repowise" and "decide later": codemem is AA-MA's internal code-intelligence engine; the standalone framing is dropped; M15/M10/M11 scope unchanged. Positioning edits are in TODOS (P2).
+
+## [2026-10-14] Milestone 15 boundary: §6.3 impact analysis
+- Overall MEDIUM, no HIGH; 22 non-test files. Contract changes: X2 fields added to every codemem MCP response (additive); `codemem refresh` exit codes 0/75/1 (callers: post-commit worker, mcp_tools — both updated); `ensure_built` keeps None-or-error and now also refreshes.
+- MEDIUM items: (1) the post-commit worker gains refresh-commits + graphify + .built_sha — 0 repos have it wired (scan of ~/projects, ~/dev); (2) §6.0 is a new gate for every plan once installed: BLOCKED only when an existing codemem index cannot reach HEAD; `graphify update .` runs at each boundary wherever graphify is installed (code-only per R03-D14; `graphify-out/` globally excluded since 15.8). Only aa-ma-forge holds a `.codemem/` today.

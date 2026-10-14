@@ -18,6 +18,7 @@ Bulk-insert strategy (per AC):
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import subprocess
 import time
@@ -31,6 +32,8 @@ from .parser.python_ast import ParseResult
 from .safety import GIT_TIMEOUT_S, SAFE_GIT, UnsafeDbPath, check_db_path
 from .storage import db
 
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "GIT_TIMEOUT_S",
@@ -143,6 +146,13 @@ def tree_signature(files: list[Path]) -> str:
     return h.hexdigest()
 
 
+def _discard_untrusted(db_path: Path) -> None:
+    """Delete an existing DB (and its WAL files) that codemem did not build here."""
+    if db_path.exists() and not db.index_trusted(db_path):
+        for suffix in ("", "-wal", "-shm"):
+            db_path.with_name(db_path.name + suffix).unlink(missing_ok=True)
+
+
 def _write_build_sidecars(repo_root: Path, db_dir: Path, signature: str) -> None:
     try:
         result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
@@ -152,8 +162,14 @@ def _write_build_sidecars(repo_root: Path, db_dir: Path, signature: str) -> None
             check=False,
             timeout=GIT_TIMEOUT_S,
         )
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return  # no git, or wedged: the next refresh full-rebuilds
+    except FileNotFoundError:
+        return  # no git: the next refresh full-rebuilds
+    except subprocess.TimeoutExpired:
+        logger.warning(
+            "git rev-parse timed out after %gs; last_sha/tree_sig not written",
+            GIT_TIMEOUT_S,
+        )
+        return
     if result.returncode == 0:
         write_sidecar(db_dir / "last_sha", result.stdout.strip() + "\n")
         write_sidecar(db_dir / "tree_sig", signature + "\n")
@@ -459,13 +475,16 @@ def build_index(
     itself: a DB built aside must not claim HEAD before it is swapped in.
     (So two writers record the sidecars: this one for a standalone build,
     ``refresh_index`` after its swap. One shared writer is a TODOS item.)
-    Raises :class:`UnsafeDbPath` for a linked DB dir or DB file.
+    Raises :class:`UnsafeDbPath` per :func:`codemem.safety.check_db_path`. An
+    existing DB codemem did not build here is deleted first, not reused: its
+    git-mining tables survive a build, so none of its rows may.
     """
     t0 = time.monotonic()
     repo_root = repo_root.resolve()
     # Never resolve db_path: following a planted link is the attack.
     db_path = db_path.absolute()
     check_db_path(db_path)
+    _discard_untrusted(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     _pending_wal_acks: list[str] = []
 

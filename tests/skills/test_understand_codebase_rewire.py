@@ -187,6 +187,8 @@ def _run_fence(repo: Path, aa_ma_root: Path = ROOT) -> subprocess.CompletedProce
         "AA_MA_ROOT": str(aa_ma_root),
         "PATH": os.environ["PATH"],
         "HOME": os.environ["HOME"],
+        # codemem's trust records (M15 §6.8): the suite's throwaway dir, never ~/.local/state
+        "XDG_STATE_HOME": os.environ["XDG_STATE_HOME"],
     }
     return subprocess.run(
         ["bash", "-c", _living_doc_fence()],

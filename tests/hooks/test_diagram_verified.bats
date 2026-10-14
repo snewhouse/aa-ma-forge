@@ -18,6 +18,8 @@ setup() {
     HELPER="${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh"
     MILESTONE_CMD="${REPO_ROOT}/claude-code/skills/execute-aa-ma-milestone/SKILL.md"
     WORK="$(mktemp -d "${BATS_TMPDIR}/diagram-verified.XXXXXX")"
+    # codemem keeps trust records under XDG_STATE_HOME (M15 §6.8): never the user's.
+    export XDG_STATE_HOME="${WORK}/state"
     # The fence resolves the lib from the git toplevel (the throwaway repo has none),
     # else ${CLAUDE_HOME:-~/.claude}: point that at the in-repo lib.
     CLAUDE_HOME="$WORK/claude-home"

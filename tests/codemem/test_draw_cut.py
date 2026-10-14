@@ -269,9 +269,12 @@ def test_several_scopes_are_one_union_cut(proto) -> None:
 def test_cli_scope_is_repeatable(proto, tmp_path, monkeypatch, capsys) -> None:
     from codemem.cli import main
 
+    from codemem.safety import stamp
+
     db = tmp_path / "p.db"
     with sqlite3.connect(db) as out:
         proto.backup(out)
+        stamp(out, tmp_path)  # a fixture DB, as if codemem built it here (§6.8 trust)
     args = ["--db", str(db), "draw", "--level", "L2", "--hops", "1"]
     assert (
         main([*args, "--scope", "src/aa_ma/render/", "--scope", "src/aa_ma/gate.py"])

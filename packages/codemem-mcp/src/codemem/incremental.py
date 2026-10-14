@@ -115,11 +115,15 @@ class Freshness:
 def check_freshness(repo_root: Path, db_path: Path) -> Freshness:
     """Cheap in-process staleness check (~15 ms on aa-ma-forge when fresh, M15 §6.6).
 
-    Compares ``last_sha`` with HEAD, then the working tree's signature with
-    the one the last refresh recorded. Runs no refresh itself.
+    First, an index codemem did not build here is stale ``untrusted`` whatever
+    its sidecars say (M15 §6.8). Then compares ``last_sha`` with HEAD, then the
+    working tree's signature with the one the last refresh recorded. Runs no
+    refresh itself.
     """
-    index_sha = _read_sha(db_path.parent / "last_sha")
     head = _git(repo_root, "rev-parse", "--verify", "-q", "HEAD")
+    if not db.index_trusted(db_path):
+        return Freshness(None, head, True, "untrusted")
+    index_sha = _read_sha(db_path.parent / "last_sha")
     if head is None:
         inside = _git(repo_root, "rev-parse", "--git-dir") is not None
         return Freshness(index_sha, None, None, "no_head" if inside else "no_git")
@@ -152,8 +156,9 @@ def refresh_index(
     """Refresh the index at ``db_path`` to match the working tree under ``repo_root``.
 
     Holds the single-writer lock; if another refresh holds it, returns at once
-    with ``skipped_locked`` set. Raises :class:`UnsafeDbPath` when the DB
-    dir or a file codemem writes in it is a symlink.
+    with ``skipped_locked`` set. Raises :class:`UnsafeDbPath` per
+    :func:`codemem.safety.check_db_path`. An index codemem did not build here
+    is rebuilt in full.
 
     Args:
         repo_root: Root of the repository to index.
@@ -211,6 +216,7 @@ def _refresh_locked(  # noqa: C901  # why: pre-existing; refactor tracked in TOD
     # ---- Fallback: no DB yet, no last_sha, or orphaned SHA ----------
     if (
         not db_path.exists()
+        or not db.index_trusted(db_path)
         or not last_sha_file.exists()
         or _sha_orphaned(repo_root, last_sha_file)
     ):
@@ -473,6 +479,8 @@ def _sha_orphaned(repo_root: Path, last_sha_file: Path) -> bool:
 def _fallback_reason(db_path: Path, last_sha_file: Path, repo_root: Path) -> str:
     if not db_path.exists():
         return "no DB (first refresh)"
+    if not db.index_trusted(db_path):
+        return "index not built by codemem here (untrusted)"
     if not last_sha_file.exists():
         return "no last_sha file"
     sha = _read_sha(last_sha_file)

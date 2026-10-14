@@ -14,6 +14,8 @@ setup() {
     FORGE="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     SCRIPT="${FORGE}/claude-code/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh"
     WORK="$(mktemp -d)"
+    # codemem keeps trust records under XDG_STATE_HOME (M15 §6.8): never the user's.
+    export XDG_STATE_HOME="${WORK}/state"
     R="${WORK}/r"
     T="${R}/.claude/dev/active/t"
     PROV="${T}/t-provenance.log"
@@ -83,7 +85,8 @@ line_count() { grep -c 'CODE_INTEL_REFRESH' "$PROV" || true; }
 }
 
 @test "an existing codemem index that fails to refresh is BLOCKED, nothing appended" {
-    printf 'garbage%.0s' {1..64} > .codemem/index.db
+    # A refresh error on an index built here (a garbage file is untrusted and rebuilt, §6.8).
+    "${FORGE}/.venv/bin/python" -I -c 'import sqlite3; c = sqlite3.connect(".codemem/index.db"); c.execute("DROP TABLE files"); c.commit()'
     git -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -q --allow-empty -m next
     run bash "$SCRIPT" t
     [ "$status" -eq 1 ]
@@ -182,4 +185,12 @@ line_count() { grep -c 'CODE_INTEL_REFRESH' "$PROV" || true; }
     run bash "$SCRIPT" t
     [ "$status" -eq 1 ]
     [ "$(line_count)" -eq 0 ]
+}
+
+@test "§6.8 trust: an index not built here is rebuilt, and §6.0 records HEAD" {
+    printf 'garbage%.0s' {1..64} > .codemem/index.db
+    head=$(git rev-parse HEAD)
+    run bash "$SCRIPT" t
+    [ "$status" -eq 0 ]
+    grep -qE "— codemem=${head} graphify=" "$PROV"
 }

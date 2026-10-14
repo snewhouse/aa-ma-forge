@@ -84,7 +84,12 @@ def _built_here(conn: sqlite3.Connection, db_dir: Path) -> bool:
         ).fetchone()
     except (OSError, sqlite3.Error):
         return False
-    return bool(nonce) and row is not None and hmac.compare_digest(str(row[0]), nonce)
+    if not nonce or row is None:
+        return False
+    stored = str(row[0]).encode(
+        "utf-8", "surrogatepass"
+    )  # bytes: str compare raises on non-ASCII
+    return hmac.compare_digest(stored, nonce.encode())
 
 
 def open_graph(repo_root: Path) -> GraphHandle:

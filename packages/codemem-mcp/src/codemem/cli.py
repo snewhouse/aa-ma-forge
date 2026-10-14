@@ -136,7 +136,7 @@ def _cmd_refresh_commits(args: argparse.Namespace) -> int:
     import sqlite3
 
     from .analysis.git_mining import GitMiner
-    from .indexer import check_db_path
+    from .safety import check_db_path
     from .journal.lock import acquire_writer_lock
     from .storage import db as storage_db
 
@@ -322,7 +322,8 @@ def _cmd_draw(args: argparse.Namespace) -> int:
 
     from .draw.cut import MIN_SCHEMA_VERSION, Level, cut
     from .draw.mermaid import to_mermaid
-    from .storage.db import UnsafeDbPath, connect
+    from .safety import UnsafeDbPath
+    from .storage.db import connect
 
     views_mode = args.write or args.check
     cut_options = (args.level, args.scope, args.hops, args.direction, args.kind)
@@ -345,9 +346,8 @@ def _cmd_draw(args: argparse.Namespace) -> int:
         return no_graph(f"no index at {db_path}")
     try:
         conn = connect(db_path, read_only=True)
-    except (
-        UnsafeDbPath
-    ) as exc:  # refused or untrusted: UNKNOWN under --check (ADR-0016)
+    # refused or untrusted: UNKNOWN under --check (ADR-0016)
+    except UnsafeDbPath as exc:
         return no_graph(str(exc))
     try:
         version = conn.execute("PRAGMA user_version").fetchone()[0]
@@ -529,12 +529,15 @@ def main(argv: list[str] | None = None) -> int:
     if handler is None:
         parser.print_help()
         return 2
-    from .safety import UnsafeDbPath
+    from .safety import TrustStoreError, UnsafeDbPath
 
     try:
         return handler(args)
     except UnsafeDbPath as exc:  # one refusal point for every subcommand (M15 §6.8)
         print(f"codemem {args.cmd}: refused: {exc}", file=sys.stderr)
+        return 1
+    except TrustStoreError as exc:  # a local fault: name it, never "refused"
+        print(f"codemem {args.cmd}: trust store error: {exc}", file=sys.stderr)
         return 1
 
 

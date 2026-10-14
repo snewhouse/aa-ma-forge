@@ -207,3 +207,16 @@ class TestLinkedTaskFiles:
         r = aa_ma_context(db_path, "sample-task", repo_root=repo_root, write=True)
         assert r["error"] and "symlink" in r["error"]
         assert (elsewhere / "sample-task-reference.md").read_text() == before
+
+    def test_file_mentions_never_leave_the_repo(self, repo_with_task, tmp_path) -> None:
+        """§6.8 re-run 1 (background review): mentions are repo text; no `..`, absolute or escaping link."""
+        from codemem.mcp_tools import aa_ma_context
+
+        repo_root, db_path = repo_with_task
+        (tmp_path / "outside.py").write_text("x = 1\n")
+        (repo_root / "escape.py").symlink_to(tmp_path / "outside.py")
+        ref = repo_root / ".claude/dev/active/sample-task/sample-task-reference.md"
+        with ref.open("a") as fh:
+            fh.write(f"\n`../outside.py` `{tmp_path}/outside.py` `escape.py`\n")
+        files = aa_ma_context(db_path, "sample-task", repo_root=repo_root)["files"]
+        assert not [f for f in files if "outside" in f or f == "escape.py"]

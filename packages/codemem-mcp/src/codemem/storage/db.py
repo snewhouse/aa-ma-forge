@@ -20,6 +20,7 @@ Design notes (per Task 1.0 + Task 1.2):
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 from contextlib import contextmanager
 from importlib.resources import files as _pkg_files
@@ -27,6 +28,8 @@ from pathlib import Path
 from typing import Iterator
 
 from ..safety import UnsafeDbPath, UntrustedIndex, check_db_path, is_trusted, stamp
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "APPLICATION_ID",
@@ -183,7 +186,14 @@ def connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
         conn = sqlite3.connect(path, timeout=5.0)
     _apply_per_connection_pragmas(conn, read_only=read_only)
     if created:
-        stamp(conn, path.parent)
+        try:
+            stamp(conn, path.parent)
+        except Exception:
+            # Leave no unstamped file behind: it would read as "not built here".
+            conn.close()
+            for suffix in ("", "-wal", "-shm"):
+                path.with_name(path.name + suffix).unlink(missing_ok=True)
+            raise
     elif read_only and not is_trusted(conn, path.parent):
         conn.close()
         raise UntrustedIndex(
@@ -193,10 +203,23 @@ def connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
 
 
 def index_trusted(path: str | Path) -> bool:
-    """Whether ``path`` is an index codemem built here (False if absent or unreadable)."""
+    """Whether ``path`` is an index codemem built here.
+
+    False for an unstamped, foreign, absent or unreadable index (logged when
+    SQLite fails). A refused dir (:class:`UnsafeDbPath`) and a broken trust
+    store (``TrustStoreError``) propagate: their remedy is not a rebuild.
+    """
     try:
         connect(path, read_only=True).close()
-    except (UnsafeDbPath, sqlite3.Error):  # UntrustedIndex is an UnsafeDbPath
+    except UntrustedIndex:
+        return False
+    except sqlite3.Error as exc:
+        if Path(path).exists():
+            logger.info(
+                "index %s unreadable (%s): treated as untrusted",
+                path,
+                type(exc).__name__,
+            )
         return False
     return True
 

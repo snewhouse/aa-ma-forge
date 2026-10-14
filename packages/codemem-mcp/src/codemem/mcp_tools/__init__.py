@@ -120,7 +120,7 @@ def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) 
     writer lock is per-process, a thread cannot be stopped, and a subprocess
     that outlives the cap keeps running on its own.
     """
-    from ..safety import UnsafeDbPath, check_db_path
+    from ..safety import TrustStoreError, UnsafeDbPath, check_db_path
 
     try:
         check_db_path(db_path)
@@ -138,23 +138,42 @@ def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) 
         outcome = _capped_refresh(db_path, repo_root, cap)
         after = check_freshness(repo_root, db_path) if outcome == "ok" else before
         fields = _freshness_fields(after)
+        if after.reason == "untrusted":
+            # Never serve an index codemem did not build here (M15 §6.8).
+            log_refresh(
+                db_path.parent,
+                f"ensure_fresh: not served (untrusted); rebuild {outcome}",
+            )
+            return {
+                "error": _UNTRUSTED_ERROR.get(outcome, _UNTRUSTED_ERROR["error"]),
+                **fields,
+            }
         if outcome != "ok":
             log_refresh(
                 db_path.parent,
                 f"ensure_fresh: serving a stale index ({before.reason}); refresh {outcome}",
             )
             fields["stale_reason"] = outcome
-        if after.reason == "untrusted":
-            # Never serve an index codemem did not build here (M15 §6.8).
-            return {
-                "error": "the index was not built by codemem here and its rebuild has not finished; retry",
-                **fields,
-                "stale_reason": "untrusted",
-            }
         return fields
+    except TrustStoreError as exc:
+        logger.warning("ensure_fresh: %s", exc)
+        return {
+            "error": f"codemem trust store unusable: {exc}",
+            **_unknown_freshness("error"),
+        }
     except Exception as exc:  # noqa: BLE001  # why: tool-surface contract — never raise, return fields
         logger.warning("ensure_fresh: freshness check failed: %s", type(exc).__name__)
         return _unknown_freshness("error")
+
+
+# Why nothing is served for an untrusted index, by rebuild outcome: a caller
+# should retry while it runs, and stop retrying when it failed.
+_UNTRUSTED_ERROR = {
+    "timeout": "the index was not built by codemem here; its rebuild is still running, retry shortly",
+    "locked": "the index was not built by codemem here; another refresh holds the lock, retry shortly",
+    "ok": "the index was not built by codemem here and its rebuild did not take; run `codemem build`",
+    "error": "the index was not built by codemem here and its rebuild failed; see .codemem/refresh.log, then run `codemem build`",
+}
 
 
 def _unknown_freshness(reason: str) -> dict:

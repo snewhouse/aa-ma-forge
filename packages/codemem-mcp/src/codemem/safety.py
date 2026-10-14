@@ -25,7 +25,9 @@ from pathlib import Path
 __all__ = [
     "GIT_TIMEOUT_S",
     "SAFE_GIT",
+    "NONCE_BYTES",
     "TRUST_KEY",
+    "TrustStoreError",
     "UnsafeDbPath",
     "UntrustedIndex",
     "check_db_path",
@@ -48,6 +50,9 @@ GIT_TIMEOUT_S = 1.0
 # The ``meta`` row holding a DB's stamp.
 TRUST_KEY = "trust_nonce"
 
+# 128-bit nonce: unguessable by a repo that cannot read the user's state dir.
+NONCE_BYTES = 16
+
 
 class UnsafeDbPath(OSError):
     """The DB dir is a symlink, holds one, cannot be listed, or its index is untrusted."""
@@ -55,6 +60,10 @@ class UnsafeDbPath(OSError):
 
 class UntrustedIndex(UnsafeDbPath):
     """The index carries no stamp for this user and directory: codemem did not build it here."""
+
+
+class TrustStoreError(OSError):
+    """This user's trust store cannot be read or written: a local fault, not a repo's."""
 
 
 def check_db_path(db_path: Path) -> None:
@@ -89,21 +98,41 @@ def trust_record(db_dir: Path) -> Path:
 
 
 def _nonce(db_dir: Path, *, create: bool) -> str | None:
+    """This user's nonce for ``db_dir``; None if there is none and ``create`` is off.
+
+    Raises :class:`TrustStoreError` when the store itself cannot be used, so a
+    broken state dir is never mistaken for a hostile index.
+    """
     rec = trust_record(db_dir)
     try:
         return rec.read_text().strip() or None
     except FileNotFoundError:
         if not create:
             return None
-    except OSError:
-        return None
-    rec.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    except OSError as exc:
+        raise TrustStoreError(
+            f"trust store {rec.parent} unreadable ({type(exc).__name__})"
+        ) from exc
+    tmp = rec.with_name(f".{rec.name}.{os.getpid()}.tmp")
     try:
-        fd = os.open(rec, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    except FileExistsError:
-        return _nonce(db_dir, create=False)  # a concurrent build created it first
-    with os.fdopen(fd, "w") as fh:
-        fh.write(secrets.token_hex(16) + "\n")
+        # why: only the leaf dir gets 0700 from mkdir; the records' own 0600 keeps the nonce private
+        rec.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        tmp.unlink(missing_ok=True)
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w") as fh:
+            fh.write(secrets.token_hex(NONCE_BYTES) + "\n")
+        try:
+            os.link(
+                tmp, rec
+            )  # appears complete or not at all: a reader never sees it empty
+        except FileExistsError:
+            pass  # a concurrent build created it first; use theirs
+        finally:
+            tmp.unlink(missing_ok=True)
+    except OSError as exc:
+        raise TrustStoreError(
+            f"trust store {rec.parent} unwritable ({type(exc).__name__})"
+        ) from exc
     return _nonce(db_dir, create=False)
 
 
@@ -111,9 +140,7 @@ def stamp(conn: sqlite3.Connection, db_dir: Path) -> None:
     """Mark a DB codemem has just created in ``db_dir`` as built here."""
     nonce = _nonce(db_dir, create=True)
     if nonce is None:
-        raise UnsafeDbPath(
-            f"cannot record trust for {db_dir} in {trust_record(db_dir).parent}"
-        )
+        raise TrustStoreError(f"trust record for {db_dir} is empty")
     conn.execute(
         "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
     )
@@ -134,4 +161,9 @@ def is_trusted(conn: sqlite3.Connection, db_dir: Path) -> bool:
         ).fetchone()
     except sqlite3.Error:
         return False
-    return row is not None and hmac.compare_digest(str(row[0]), nonce)
+    if row is None:
+        return False
+    stored = str(row[0]).encode(
+        "utf-8", "surrogatepass"
+    )  # bytes: str compare raises on non-ASCII
+    return hmac.compare_digest(stored, nonce.encode())

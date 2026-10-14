@@ -549,3 +549,19 @@ User Override Decisions (Ste, 2026-10-14):
 User Override Decisions (Ste, 2026-10-14):
 - CRITICAL (planted `-wal`): **Defer — root fix in a new milestone M15b, before M10**: move the default index out of the repo (`${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo)>/`, `CODEMEM_DB` override kept), which removes the repo-controlled class (5 bypasses so far). M15 closes with it documented as a known limit (SECURITY.md, TODOS P1); still strictly better than main, which served any committed index.
 - Fold-ins: non-ASCII stamp crash (byte compare, both twins), atomic nonce file, docs on differing `XDG_STATE_HOME`; plus the code-reviewer's 4 WARNINGs (standing "fold them in").
+
+## §6.8 final verdict (2026-10-14): PASS_WITH_WARNINGS
+
+| Round | Accepted CRITICALs | Outcome |
+|---|---|---|
+| First run | C1 `.codemem` link overwrite; C2 §6.0 sidecar reader | Fixed (fb7dd2a→4ad019c, a794c69→c896eb7, 8a34d54→71e78ab) |
+| Re-run 1 | regular-file `.codemem` raised through every tool | Fixed (53b8b69→b0e1632); boundary moved to `db.connect` (e08ec0c→18fb83c) |
+| Re-run 2 | committed embedded repo defeated git-tracked detection | Redesigned: trust token (1e3ac60→97b8ac9) |
+| Re-run 3 | planted `index.db-wal` beside a stamped index | **Deferred by Ste** to Milestone 16 (move the index out of the repo); documented known limit |
+
+WARNINGs from every round were folded in (latest: 6d752e6→54b8efb). Deferred items: TODOS.md (§6.6 follow-ups, §6.8 deferrals, M16 P1).
+
+### Verification (at d594950)
+- pytest 3121 passed (5 skipped); bats 633/633; no test writes `~/.local/state`.
+- §6.7: fence 1 PASS (AA-MA clean, 0 pending, CRITICAL_PATH_REVIEW + PROTOTYPE present); fence 2 DIAGRAM_VERIFIED edges=25 checked=25 phantom=0; fence 3 TESTS_VERIFIED passed=3121.
+- Live: the auditor's 35-case link harness → 0 bad; the 4 re-run-2 exploit repos no longer return the phantom caller; a committed index blob is refused by `open_graph`.

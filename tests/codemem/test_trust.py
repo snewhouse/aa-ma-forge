@@ -458,3 +458,33 @@ def test_every_refresh_outcome_has_an_untrusted_message():
     assert set(mcp_tools._UNTRUSTED_ERROR) == set(
         typing.get_args(mcp_tools.RefreshOutcome)
     )
+
+
+def test_a_trust_dir_swapped_after_its_check_is_never_read(repo, monkeypatch, tmp_path):
+    """TOCTOU: checks and reads go through one directory fd, not the path twice."""
+    import os
+
+    import codemem.safety as safety
+
+    _, db_path = repo
+    rec = safety.trust_record(db_path.parent)
+    store = rec.parent
+    planted = tmp_path / "planted-store"
+    planted.mkdir(mode=0o700)
+    (planted / rec.name).write_text("attacker-known-nonce\n")
+    real_open = os.open
+    swapped = []
+
+    def open_then_swap(path, flags, *a, **k):
+        fd = real_open(path, flags, *a, **k)
+        if (
+            Path(os.fsdecode(path)) == store and not swapped
+        ):  # the dir is open: now swap the path
+            store.rename(tmp_path / "moved-store")
+            store.symlink_to(planted)
+            swapped.append(True)
+        return fd
+
+    monkeypatch.setattr(safety.os, "open", open_then_swap)
+    assert safety._nonce(db_path.parent, create=False) != "attacker-known-nonce"
+    assert swapped, "the store directory was never opened by path"

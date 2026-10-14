@@ -139,6 +139,8 @@ true
 
 **When all sub-tasks complete, REQUIRED validation before marking milestone COMPLETE:**
 
+**First, §6.0:** run `scripts/code-intel-refresh.sh` (CODE_INTEL_REFRESH) — see [boundary-checks.md](references/boundary-checks.md#60-code-intel-refresh-code_intel_refresh); BLOCKED stops here.
+
 ### 6.1 Acceptance Criteria Verification
 
 See [boundary-checks.md](references/boundary-checks.md#61-acceptance-criteria-verification) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).

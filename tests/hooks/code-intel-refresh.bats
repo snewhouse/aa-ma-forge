@@ -29,6 +29,8 @@ mkdir -p graphify-out
 git rev-parse HEAD > graphify-out/graph.json
 EOF
     chmod +x "${STUBS}/graphify"
+    # aa-ma-gate needs uv; link only uv, so a real graphify beside it stays off PATH.
+    ln -s "$(command -v uv)" "${STUBS}/uv"
     export PATH="${STUBS}:/usr/local/bin:/usr/bin:/bin"
     cp "${BATS_TEST_DIRNAME}/fixtures/gate-scans/one-active-tasks.md" "${T}/t-tasks.md"
     : > "$PROV"

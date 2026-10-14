@@ -11,7 +11,8 @@
 #   detached worker (`--worker <sha> <repo>`) and returns.
 # - Workers are serialised by flock on <git-dir>/codemem-post-commit.lock
 #   (the git dir is never committed content). Each runs, in order:
-#     1. `codemem refresh` (its own writer lock; errors in refresh.log);
+#     1. `codemem refresh` + `codemem refresh-commits` (own writer lock;
+#        errors in refresh.log);
 #     2. `graphify update .` (code-only, no LLM);
 #     3. on graphify exit 0 only, the SHA captured at commit time →
 #        graphify-out/.built_sha (R03-D12). A failed or killed run leaves the
@@ -79,11 +80,18 @@ run_worker() {
     exec 9>> "${lock}" || exit 0
     flock 9 || exit 0
 
-    codemem="${FORGE_ROOT}/.venv/bin/codemem"
-    [[ -x "${codemem}" ]] || codemem="$(command -v codemem || true)"  # why: absent is handled (and logged) below
-    if [[ -n "${codemem}" ]]; then
+    # CODEMEM_BIN (user env, like RUFF_BIN) pins the binary with no fallback.
+    if [[ -n "${CODEMEM_BIN:-}" ]]; then
+        codemem="${CODEMEM_BIN}"
+    else
+        codemem="${FORGE_ROOT}/.venv/bin/codemem"
+        [[ -x "${codemem}" ]] || codemem="$(command -v codemem || true)"  # why: absent is handled (and logged) below
+    fi
+    if [[ -n "${codemem}" && -x "${codemem}" ]]; then
         # why: codemem refresh logs its own errors to refresh.log; its stdout is a summary nobody reads
         "${codemem}" refresh > /dev/null 2>&1 || log_line "codemem refresh exited $? (75 = another refresh held the lock)"
+        # why: as above; the git-mining cache (co_changes, hot_spots) follows the commit too
+        "${codemem}" refresh-commits > /dev/null 2>&1 || log_line "codemem refresh-commits exited $?"
     else
         log_line "codemem not found: index not refreshed"
     fi

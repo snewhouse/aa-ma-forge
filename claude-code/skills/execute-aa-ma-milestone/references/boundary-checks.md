@@ -1,12 +1,42 @@
-# Milestone boundary checks — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
+# Milestone boundary checks — code-intel refresh, acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.0, §6.1, §6.3–§6.6).
 
 ## Contents
 
+  - [6.0 Code-intel refresh (CODE_INTEL_REFRESH)](#60-code-intel-refresh-code_intel_refresh)
   - [6.1 Acceptance Criteria Verification](#61-acceptance-criteria-verification)
   - [6.3 Impact Analysis Verification (REQUIRED)](#63-impact-analysis-verification-required)
   - [6.4 Test Execution (if specified)](#64-test-execution-if-specified)
   - [6.5 Optional Web Verification (gstack integration)](#65-optional-web-verification-gstack-integration)
   - [6.6 Post-Milestone Simplification Review](#66-post-milestone-simplification-review)
+
+### 6.0 Code-intel refresh (CODE_INTEL_REFRESH)
+
+Run first, so §6.3's impact analysis and §6.7's diagram fence read indexes that
+match the code (report 03 T6). It refreshes codemem (`refresh` + `refresh-commits`)
+and the graphify code graph (`graphify update .`, code-only) through the same
+flock-serialised worker as the post-commit step, then appends one line naming
+the **pre-commit** HEAD — a file cannot name the commit that contains it:
+
+```
+[ts] CODE_INTEL_REFRESH — <milestone heading> — codemem=<sha|skipped(no index)> graphify=<sha|WARN reason>
+```
+
+```bash
+_s=skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh
+CIR=""
+# why: stderr dropped — outside a repo the first candidate is simply absent
+for _c in "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/${_s}" \
+          "${CLAUDE_HOME:-${HOME}/.claude}/${_s}"; do
+  [[ -f "${_c}" ]] && CIR="${_c}" && break
+done
+bash "${CIR:?code-intel-refresh.sh not found — run scripts/install.sh}" "${TASK_NAME:-}"
+```
+
+- graphify failing or absent: `graphify=WARN …`, never blocks (graphify is leads-only).
+- A codemem index that exists but does not reach HEAD: **BLOCKED** (exit 1) — run
+  `codemem build` and re-run; gates must not read a stale index. No index at all:
+  `codemem=skipped(no index)`.
+- `--dry-run` refreshes and prints the line without appending it.
 
 ### 6.1 Acceptance Criteria Verification
 

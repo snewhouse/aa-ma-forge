@@ -462,3 +462,28 @@ class TestRefreshCli:
 
     def test_no_placeholder_text_left_in_cli(self):
         assert "placeholder" not in CLI_SRC.read_text().lower()
+
+
+class TestRefreshLogHardening:
+    """refresh.log sits in a repo-controllable dir (L-049: probe the hostile inputs)."""
+
+    def test_symlinked_log_is_not_followed(self, repo, tmp_path):
+        root, db_path = repo
+        target = tmp_path / "victim-rc"
+        target.write_text("original\n")
+        log = db_path.parent / "refresh.log"
+        log.unlink(missing_ok=True)
+        log.symlink_to(target)
+        from codemem.incremental import log_refresh
+
+        log_refresh(db_path.parent, "ensure_fresh: probe")
+        assert target.read_text() == "original\n"
+
+    def test_one_line_per_message(self, repo):
+        root, db_path = repo
+        from codemem.incremental import log_refresh
+
+        log_refresh(db_path.parent, "refresh: error X: a\nforged [2026] line\r")
+        lines = (db_path.parent / "refresh.log").read_text().splitlines()
+        assert len([ln for ln in lines if "forged" in ln]) == 1
+        assert not any(ln.startswith("forged") for ln in lines)

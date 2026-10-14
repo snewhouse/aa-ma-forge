@@ -166,6 +166,24 @@ class TestRefreshIndex:
         assert "orphan_case" in _symbols(db_path)
         assert check_freshness(root, db_path).stale is False
 
+    def test_option_shaped_last_sha_never_reaches_git(self, repo, monkeypatch):
+        """last_sha is repo-controlled: only 40-hex is passed to git; anything else rebuilds."""
+        root, db_path = repo
+        import codemem.incremental as inc
+
+        argvs: list[list[str]] = []
+        real_run = inc.subprocess.run
+
+        def spy(argv, *a, **k):
+            argvs.append(list(argv))
+            return real_run(argv, *a, **k)
+
+        monkeypatch.setattr(inc.subprocess, "run", spy)
+        (db_path.parent / "last_sha").write_text("--output=/tmp/pwned\n")
+        stats = refresh_index(root, db_path)
+        assert stats.full_rebuild is True
+        assert not any("--output=/tmp/pwned" in a for argv in argvs for a in argv)
+
     def test_full_rebuild_never_unlinks_the_live_db(self, repo, monkeypatch):
         """15.1: readers keep a whole DB while a full rebuild runs (temp DB + os.replace)."""
         root, db_path = repo

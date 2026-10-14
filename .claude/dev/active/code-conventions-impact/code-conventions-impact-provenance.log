@@ -253,3 +253,5 @@
 [2026-10-14T14:35:34+01:00] DIAGRAM_VERIFIED — Milestone 15: Codemem freshness (report 03 T2–T9) — edges=25 checked=25 phantom=0 unknown=0
 [2026-10-14T14:37:48+01:00] TESTS_VERIFIED — Milestone 15: Codemem freshness (report 03 T2–T9) — passed=3073 cmd=uv run pytest
 [2026-10-14T16:12:26+01:00] TDD_EXCEPTION — Milestone 15: Codemem freshness (report 03 T2–T9) — 4ad019c added test_writer_lock O_NOFOLLOW test with its fix (shown failing without the fix by stashing lock.py); the 15.2 sidecar test (4ad019c) and 15.4 .built_sha test (1a3ebb9) changed contract in their GREEN commits, recorded in context-log
+[2026-10-14T20:09:35+01:00] DIAGRAM_VERIFIED — Milestone 15: Codemem freshness (report 03 T2–T9) — edges=25 checked=25 phantom=0 unknown=0
+[2026-10-14T20:11:53+01:00] TESTS_VERIFIED — Milestone 15: Codemem freshness (report 03 T2–T9) — passed=3114 cmd=uv run pytest

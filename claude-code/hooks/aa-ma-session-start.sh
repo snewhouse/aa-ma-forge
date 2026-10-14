@@ -2,7 +2,7 @@
 # Event: SessionStart
 # Mode: Advisory — adds context, never blocks
 # Exit: 0 always
-# Fail-open: kill switch or no active task → exit 0 with no output
+# Fail-open: kill switch → exit 0 with no output; no active task → only the Code-intel lines (if any)
 #
 # SessionStart hook: surface the most-recently-touched active AA-MA task.
 #
@@ -11,6 +11,9 @@
 #   - Picks the task whose `*-tasks.md` has the newest mtime (ties → alphabetical)
 #   - Emits a single hidden-context line describing the top task + its absolute path
 #   - Appends "(N other active tasks: a, b, c [and M more])" when there are 2+ active tasks
+#   - First, a `Code-intel:` line (report 03 X1) when the repo has a codemem index or a
+#     graphify-out/, and a codemem plugin-link line when ~/.claude.json names the link
+#     and it is missing or off main (R03-D13)
 #
 # Honours AA_MA_HOOKS_DISABLE=1 (master kill switch).
 # Always exits 0 — never blocks session start.

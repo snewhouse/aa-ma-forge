@@ -18,6 +18,7 @@
 #     aa_ma_has_gate_approval <log> <title>  -> rc 0 iff the LAST "GATE APPROVAL: <title>" block says Decision: APPROVED  (ENFORCING)
 #     aa_ma_deps <graph|check|advisory> <tasks.md> -> `python -m aa_ma.deps` output; rc passed through  (ADVISORY — never a gate)
 #     aa_ma_lint_views <plan.md> [args...] -> `aa-ma-lint-views` output; rc 0/1 passed through, 127 if it cannot run  (read by the §6.7 diagram item)
+#     aa_ma_sha_behind <repo> <sidecar>  -> stdout: commits from the sidecar's SHA to HEAD (rc 0), or a reason: bad sha | not in history | git timeout (rc 1)
 #
 # Also sources aa-ma-log.sh from this file's real directory, so every hook that sources this
 # library has log_info|log_warn|log_error|log_debug, fail_open_notice and mask_secrets.
@@ -409,3 +410,40 @@ aa_ma_lint_views() {
 # -----------------------------------------------------------------------------
 # End of aa-ma-parse.sh
 # -----------------------------------------------------------------------------
+
+
+# aa_ma_sha_behind <repo> <sidecar-file>
+#   The one shell "SHA vs HEAD" computation (report 03 X1; X2 does the same in
+#   Python, codemem.incremental.check_freshness — both are tested against
+#   tests/fixtures/code-intel/make-repo.sh). Sidecars (.codemem/last_sha,
+#   graphify-out/.built_sha) are repo-controlled: only a regular file holding
+#   exactly 40 hex chars is used, and it reaches git after --end-of-options.
+#   The value itself is never printed.
+aa_ma_sha_behind() {
+    local repo="$1" file="$2" sha n rc
+    if [[ ! -f "$file" ]]; then
+        printf 'bad sha'
+        return 1
+    fi
+    sha="$(head -c 128 -- "$file" 2>/dev/null)" || sha=""  # why: unreadable → empty → "bad sha" below
+    if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+        printf 'bad sha'
+        return 1
+    fi
+    if command -v timeout > /dev/null 2>&1; then  # why: a presence probe (absent on stock macOS)
+        n="$(timeout 1 git -C "$repo" -c core.fsmonitor=false rev-list --count --end-of-options "${sha}..HEAD" 2>/dev/null)"  # why: git's own error text is replaced by the reason below
+        rc=$?
+    else
+        n="$(git -C "$repo" -c core.fsmonitor=false rev-list --count --end-of-options "${sha}..HEAD" 2>/dev/null)"  # why: as above
+        rc=$?
+    fi
+    if [[ "$rc" -eq 124 ]]; then
+        printf 'git timeout'
+        return 1
+    fi
+    if [[ "$rc" -ne 0 || ! "$n" =~ ^[0-9]+$ ]]; then
+        printf 'not in history'
+        return 1
+    fi
+    printf '%s' "$n"
+}

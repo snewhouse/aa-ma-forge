@@ -36,6 +36,45 @@ if aa_ma_is_disabled; then
     exit 0
 fi
 
+# -----------------------------------------------------------------------------
+# X1 (report 03; code-conventions-impact M15.5): one `Code-intel:` line on how
+# far the codemem index and the graphify code graph lag HEAD. Printed whether
+# or not an AA-MA task is active — it describes the repo. Reads the sidecars
+# directly (no `uv run`): one `git rev-list --count` per index, < 200 ms.
+# Rules: neither index → nothing; one missing → "<name> not built"; an index
+# without its sidecar → "<name>: no sha"; a bad sidecar or git failure →
+# "<name> unknown (<reason>)", logged once. Never blocks.
+# -----------------------------------------------------------------------------
+_code_intel_part() {
+    local name="$1" present="$2" top="$3" sidecar="$4" n
+    if [[ "$present" -eq 0 ]]; then
+        printf '%s not built' "$name"
+    elif [[ ! -e "$sidecar" && ! -L "$sidecar" ]]; then
+        printf '%s: no sha' "$name"
+    elif n="$(aa_ma_sha_behind "$top" "$sidecar")"; then
+        printf '%s %s behind' "$name" "$n"
+        [[ "$name" == "graphify" ]] && printf ' (code layer)'
+    else
+        log_warn "aa-ma-session-start" "code-intel ${name}: ${n}"
+        printf '%s unknown (%s)' "$name" "$n"
+    fi
+    return 0
+}
+
+_code_intel_line() {
+    local top has_cm=0 has_gf=0
+    top="$(git rev-parse --show-toplevel 2>/dev/null)" || return 0  # why: not a repo → no line, by rule
+    [[ -e "${top}/.codemem/index.db" ]] && has_cm=1
+    [[ -d "${top}/graphify-out" ]] && has_gf=1
+    [[ "$has_cm" -eq 0 && "$has_gf" -eq 0 ]] && return 0
+    printf 'Code-intel: %s · %s\n' \
+        "$(_code_intel_part codemem "$has_cm" "$top" "${top}/.codemem/last_sha")" \
+        "$(_code_intel_part graphify "$has_gf" "$top" "${top}/graphify-out/.built_sha")"
+}
+
+# Every path in _code_intel_line / _code_intel_part returns 0: the line is advisory.
+_code_intel_line
+
 # Collect active task dirs (mtime-sorted, project-first collision).
 mapfile -t TASKS < <(aa_ma_list_active_tasks)
 

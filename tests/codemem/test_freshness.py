@@ -487,3 +487,53 @@ class TestRefreshLogHardening:
         lines = (db_path.parent / "refresh.log").read_text().splitlines()
         assert len([ln for ln in lines if "forged" in ln]) == 1
         assert not any(ln.startswith("forged") for ln in lines)
+
+
+class TestRepoControlledInputs:
+    """A cloned repo controls its tree and can commit .codemem/ (security review, 2026-10-14)."""
+
+    def test_repo_cannot_shadow_the_codemem_package(self, repo, tmp_path):
+        root, db_path = repo
+        marker = tmp_path / "pwned"
+        (root / "codemem").mkdir()
+        (root / "codemem" / "__init__.py").write_text("")
+        (root / "codemem" / "cli.py").write_text(
+            f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\n"
+        )
+        (root / "c.py").write_text("def x():\n    pass\n")
+        _commit(root)
+        r = mcp_tools.ensure_fresh(db_path, root)
+        assert not marker.exists(), "repo code ran inside the refresh"
+        assert r["stale"] is False
+
+    @pytest.mark.parametrize("name", ["tree_sig", "last_sha"])
+    def test_sidecar_symlink_is_replaced_not_followed(self, repo, tmp_path, name):
+        root, db_path = repo
+        victim = tmp_path / "victim-rc"
+        victim.write_text("original\n")
+        side = db_path.parent / name
+        side.unlink(missing_ok=True)
+        side.symlink_to(victim)
+        (root / "c.py").write_text("def y():\n    pass\n")
+        _commit(root)
+        refresh_index(root, db_path)
+        assert victim.read_text() == "original\n"
+        assert not side.is_symlink()
+
+    def test_repo_git_config_runs_nothing(self, repo, tmp_path):
+        """`git ls-files` / `status` run a repo's core.fsmonitor (measured 2026-10-14)."""
+        root, db_path = repo
+        marker = tmp_path / "ran"
+        hook = tmp_path / "hook.sh"
+        hook.write_text(f"#!/bin/sh\necho ran >> {marker}\ncat\n")
+        hook.chmod(0o755)
+        _git(root, "config", "core.fsmonitor", str(hook))
+        _git(root, "config", "filter.evil.clean", str(hook))
+        (root / ".gitattributes").write_text("*.py filter=evil\n")
+        (root / "a.py").write_text("def edited():\n    return 9\n")
+        check_freshness(root, db_path)
+        refresh_index(root, db_path)
+        (db_path.parent / "last_sha").unlink()
+        refresh_index(root, db_path)  # full rebuild path
+        mcp_tools.ensure_fresh(db_path, root)
+        assert not marker.exists(), marker.read_text()

@@ -163,11 +163,11 @@ Auto-build on first MCP query (delivered by M3.5 Task 3.5.3) means the hook isn'
 - `<repo>/.codemem/index.db` — SQLite database. Git-ignored by default.
 - `<repo>/.codemem/wal.jsonl` — codemem's JSONL write-ahead log for crash-safe incremental refresh. Rotates at 10 MB with 3 compressed archives retained.
 - `<repo>/.codemem/db.lock` — single-writer advisory lock. Harmless if left over from a crashed indexer.
-- `<repo>/.codemem/refresh.pid` — PID of the most-recent post-commit refresh. Only exists if the git hook is installed.
+- `<repo>/.codemem/last_sha`, `<repo>/.codemem/tree_sig` — the commit and tracked-file state the index reflects; a query compares them with HEAD and refreshes (capped at 5 s) when they differ.
 - `<repo>/.codemem/refresh.log` — structured log line per refresh invocation.
 - `<repo>/PROJECT_INTEL.json` *(optional)* — PageRank-ranked 1024-token symbol index. Commit this one if you want it.
 
-codemem never writes outside `<repo>/.codemem/` or `<repo>/PROJECT_INTEL.json` — see [`SECURITY.md`](../../SECURITY.md) for the full contract.
+codemem never writes outside `<repo>/.codemem/` or `<repo>/PROJECT_INTEL.json`. The optional post-commit step (`scripts/install.sh --wire-git-hook`) also writes `<git-dir>/codemem-post-commit.lock` and, after a successful `graphify update .`, `<repo>/graphify-out/.built_sha` — see [`SECURITY.md`](../../SECURITY.md) for the full contract.
 
 ## Performance
 

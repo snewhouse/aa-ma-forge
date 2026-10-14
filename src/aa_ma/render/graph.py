@@ -13,6 +13,7 @@ import hashlib
 import hmac
 import os
 import sqlite3
+import stat
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -74,21 +75,29 @@ def _trust_problem(conn: sqlite3.Connection, db_dir: Path) -> str | None:
 
     A committed or copied index would otherwise let DIAGRAM_VERIFIED vouch for
     a graph that is not the code's (M15 §6.8 re-run 2). A broken trust store
-    is named as such, never as "not built here" (SECURITY.md).
+    (unreadable, not a private dir of this user, a record that is not a
+    nonce) is named as such, never as "not built here" (SECURITY.md).
+    ``tests/codemem/test_safety_parity.py`` keeps the two in step.
     """
     not_built = f"was not built by codemem here; {_REMEDY}"
     state = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
-    rec = (
-        Path(state)
-        / "codemem"
-        / "trust"
-        / hashlib.sha256(os.fsencode(os.path.realpath(db_dir))).hexdigest()
-    )
+    key = hashlib.sha256(os.fsencode(os.path.realpath(db_dir))).hexdigest()
+    rec = Path(state) / "codemem" / "trust" / key
     try:
-        nonce = rec.read_text().strip()
+        st = rec.parent.lstat()
+        private = (
+            stat.S_ISDIR(st.st_mode)
+            and st.st_uid == os.getuid()
+            and not st.st_mode & 0o022
+        )
+        if not private:
+            return f"cannot be checked: trust store {rec.parent} is not a private directory of this user"
+        fd = os.open(rec, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        with os.fdopen(fd, "rb") as fh:
+            nonce = fh.read(256).decode("ascii").strip()
     except FileNotFoundError:
         return not_built
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         return f"cannot be checked: trust store {rec.parent} unreadable ({type(exc).__name__})"
     try:
         row = conn.execute(
@@ -98,9 +107,8 @@ def _trust_problem(conn: sqlite3.Connection, db_dir: Path) -> str | None:
         return not_built
     if not nonce or row is None:
         return not_built
-    stored = str(row[0]).encode(
-        "utf-8", "surrogatepass"
-    )  # bytes: str compare raises on non-ASCII
+    # bytes: compare_digest raises TypeError on a non-ASCII str
+    stored = str(row[0]).encode("utf-8", "surrogatepass")
     return None if hmac.compare_digest(stored, nonce.encode()) else not_built
 
 

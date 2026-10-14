@@ -15,11 +15,14 @@ two. ``storage.db.connect`` applies both rules for every reader and writer;
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import hmac
 import os
 import secrets
 import sqlite3
+import stat
+import tempfile
 from pathlib import Path
 
 __all__ = [
@@ -52,6 +55,10 @@ TRUST_KEY = "trust_nonce"
 
 # 128-bit nonce: unguessable by a repo that cannot read the user's state dir.
 NONCE_BYTES = 16
+# A record is one hex nonce line; reading more than this means it is not one.
+_RECORD_MAX_BYTES = 256
+# os.link errnos meaning "this filesystem has no hard links" (FUSE, SMB, exFAT).
+_NO_HARD_LINKS = {errno.EPERM, errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV}
 
 
 class UnsafeDbPath(OSError):
@@ -97,50 +104,123 @@ def trust_record(db_dir: Path) -> Path:
     return Path(state) / "codemem" / "trust" / key
 
 
-def _nonce(db_dir: Path, *, create: bool) -> str | None:
-    """This user's nonce for ``db_dir``; None if there is none and ``create`` is off.
+def _check_store_dir(store: Path) -> None:
+    """Raise :class:`TrustStoreError` unless ``store`` is this user's private directory.
 
-    Raises :class:`TrustStoreError` when the store itself cannot be used, so a
-    broken state dir is never mistaken for a hostile index.
+    A shared ``XDG_STATE_HOME`` (another user created ``codemem/trust`` first,
+    or made it writable) would let them plant a nonce they know.
     """
-    rec = trust_record(db_dir)
     try:
-        return rec.read_text().strip() or None
+        st = store.lstat()
     except FileNotFoundError:
-        if not create:
-            return None
+        return
+    except OSError as exc:
+        raise TrustStoreError(
+            f"trust store {store} unreadable ({type(exc).__name__})"
+        ) from exc
+    private = (
+        stat.S_ISDIR(st.st_mode) and st.st_uid == os.getuid() and not st.st_mode & 0o022
+    )
+    if not private:
+        raise TrustStoreError(
+            f"trust store {store} is not a private directory of this user"
+        )
+
+
+def _read_record(rec: Path) -> str | None:
+    """The nonce in ``rec``; None if the record is absent or empty."""
+    _check_store_dir(rec.parent)
+    try:
+        fd = os.open(rec, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        with os.fdopen(fd, "rb") as fh:
+            data = fh.read(_RECORD_MAX_BYTES)
+    except FileNotFoundError:
+        return None
     except OSError as exc:
         raise TrustStoreError(
             f"trust store {rec.parent} unreadable ({type(exc).__name__})"
         ) from exc
-    tmp = rec.with_name(f".{rec.name}.{os.getpid()}.tmp")
     try:
-        # why: only the leaf dir gets 0700 from mkdir; the records' own 0600 keeps the nonce private
-        rec.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        tmp.unlink(missing_ok=True)
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        with os.fdopen(fd, "w") as fh:
-            fh.write(secrets.token_hex(NONCE_BYTES) + "\n")
+        return data.decode("ascii").strip() or None
+    except UnicodeDecodeError as exc:
+        raise TrustStoreError(f"trust record {rec} does not hold a nonce") from exc
+
+
+def _publish(tmp: Path, rec: Path) -> None:
+    """Make ``tmp`` the record: whole or not at all, and never over another's."""
+    try:
+        os.link(tmp, rec)
+    except FileExistsError:
+        return  # a concurrent build created it first; use theirs
+    except OSError as exc:
+        if exc.errno not in _NO_HARD_LINKS:
+            raise
+        # No hard links on this filesystem: create it directly (a reader may briefly see it empty).
         try:
-            os.link(
-                tmp, rec
-            )  # appears complete or not at all: a reader never sees it empty
+            fd = os.open(
+                rec,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                0o600,
+            )
         except FileExistsError:
-            pass  # a concurrent build created it first; use theirs
+            return
+        with os.fdopen(fd, "w") as fh:
+            fh.write(tmp.read_text())
+            fh.flush()
+            os.fsync(fh.fileno())
+
+
+def _nonce(db_dir: Path, *, create: bool) -> str | None:
+    """This user's nonce for ``db_dir``; None if there is none and ``create`` is off.
+
+    Raises :class:`TrustStoreError` when the store itself cannot be used, so a
+    broken state dir is never mistaken for a hostile index. An empty record
+    (a crash before its data reached disk) stamps nothing, so creating
+    replaces it.
+    """
+    rec = trust_record(db_dir)
+    nonce = _read_record(rec)
+    if nonce is not None or not create:
+        return nonce
+    try:
+        # why: only the leaf dir gets 0700 from mkdir; _check_store_dir rejects a shared one
+        rec.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        _check_store_dir(rec.parent)
+        fd, name = tempfile.mkstemp(
+            dir=rec.parent, prefix=f".{rec.name}.", suffix=".tmp"
+        )
+        tmp = Path(name)
+        try:
+            with os.fdopen(fd, "w") as fh:
+                fh.write(secrets.token_hex(NONCE_BYTES) + "\n")
+                fh.flush()
+                os.fsync(
+                    fh.fileno()
+                )  # the record must never appear empty after a crash
+            if rec.exists():
+                os.replace(tmp, rec)  # it was empty: nothing was stamped with it
+            else:
+                _publish(tmp, rec)
         finally:
             tmp.unlink(missing_ok=True)
+    except TrustStoreError:
+        raise
     except OSError as exc:
         raise TrustStoreError(
             f"trust store {rec.parent} unwritable ({type(exc).__name__})"
         ) from exc
-    return _nonce(db_dir, create=False)
+    nonce = _read_record(rec)
+    if nonce is None:
+        raise TrustStoreError(f"trust record {rec} is empty after writing it")
+    return nonce
 
 
 def stamp(conn: sqlite3.Connection, db_dir: Path) -> None:
-    """Mark a DB codemem has just created in ``db_dir`` as built here."""
+    """Mark a DB codemem has just created in ``db_dir`` as built here.
+
+    Raises :class:`TrustStoreError` when the trust store cannot be used.
+    """
     nonce = _nonce(db_dir, create=True)
-    if nonce is None:
-        raise TrustStoreError(f"trust record for {db_dir} is empty")
     conn.execute(
         "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
     )
@@ -163,7 +243,6 @@ def is_trusted(conn: sqlite3.Connection, db_dir: Path) -> bool:
         return False
     if row is None:
         return False
-    stored = str(row[0]).encode(
-        "utf-8", "surrogatepass"
-    )  # bytes: str compare raises on non-ASCII
+    # bytes: compare_digest raises TypeError on a non-ASCII str
+    stored = str(row[0]).encode("utf-8", "surrogatepass")
     return hmac.compare_digest(stored, nonce.encode())

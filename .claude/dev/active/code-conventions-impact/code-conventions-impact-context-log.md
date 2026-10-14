@@ -583,3 +583,10 @@ DECISION ruff-only () — approved by Ste
 - 3 agents: reuse (1 W / 3 I), quality (4 W / 13 I), efficiency (2 W / 4 I); 0 CRITICAL. Verified the efficiency headline myself: fresh-path `check_freshness` ~55 ms, `discover_files` 52 ms (resolve() on all 1,049 tracked files before the suffix filter).
 - Ste: apply the proposed fix set (fbcb720). Storm coalescing NOT applied: it would contradict the approved 15.4 race AC ("A released last → .built_sha == A"); cost recorded in TODOS.
 - Side effect found: the 15.8 global excludes (`.codemem/`) made `tests/analysis/test_measure.py` commit nothing locally; the test now force-adds its planted index (CI has no global excludes, so it never saw this).
+
+## [2026-10-14] Milestone 15 boundary: §6.8 fix pass + re-run 1 (Ste decisions)
+- C1/C2 fixed TDD (fb7dd2a→4ad019c, a794c69→c896eb7). A background security review then showed a name list in check_db_path misses SQLite's `-journal` → any-symlink rule (8a34d54→71e78ab).
+- Re-run 1: security-auditor 0 C / 4 W / 5 I (C1 closed in 35 hostile cases; C2 closed); code-reviewer 1 C (my regression: a regular-file `.codemem` raised through every MCP tool) / 8 W / 7 I. Ste: accept the CRITICAL; move the boundary into `storage.db.connect` (chokepoint); refuse a git-tracked `.codemem` (a committed index was served as fresh); fix `aa_ma_context`'s linked-path append now.
+- Two follow-up background reviews pushed toward one rule for readers and writers: it now lives in `codemem.safety` and `connect()` applies it; `aa_ma.render.graph` carries a twin, because the §13 diagram fence must not vouch for a committed graph.
+- Contract changes (intended, tests updated with a docstring note): a linked sidecar is refused instead of replaced (15.2 test); a linked `graphify-out/.built_sha` skips graphify instead of being replaced (15.4 test). New X2 `stale_reason`: `unsafe_db_path`.
+- Ceiling recorded in code (ponytail): with no git binary, a tracked index cannot be detected; freshness is then stale "unknown" (leads only).

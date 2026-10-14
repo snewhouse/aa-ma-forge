@@ -113,6 +113,16 @@ unless `--include-tests`. Edges carry their kind as a quoted sigil —
 mermaid 11 parse error). Over 500 edges (mermaid's `maxEdges`) the rest are dropped
 and reported. Exit 0 ok, 1 no/old/unreadable index (run `codemem build`), 2 usage.
 
+### A refused `.codemem/`
+
+Every subcommand and MCP tool refuses a `.codemem/` (or the `CODEMEM_DB` directory)
+that is or holds a symlink, is tracked by git, or cannot be listed: a repo controls
+that directory, and a link or a committed index would be written through or served
+as fresh. The CLI prints `codemem <cmd>: refused: …` and exits 1; an MCP response
+carries `stale: "unknown"`, `stale_reason: "unsafe_db_path"` and an `error`. Remove
+the link (or `git rm --cached -r .codemem`), run `codemem build`, and keep
+`CODEMEM_DB` in a dedicated directory.
+
 ## Related documents
 
 - [`docs/codemem/symbol-id-grammar.md`](../../../docs/codemem/symbol-id-grammar.md)

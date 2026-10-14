@@ -77,15 +77,6 @@ ALIASES: dict[str, list[str]] = {
 _registered_names: list[str] = []
 
 
-# X2 fields when there is no index to serve at all (the build failed).
-_NO_INDEX = {
-    "index_sha": None,
-    "head_sha": None,
-    "stale": "unknown",
-    "stale_reason": "no_index",
-}
-
-
 def _default_db_path() -> Path:
     """Default codemem DB location. Override via ``CODEMEM_DB`` env var."""
     env = os.environ.get("CODEMEM_DB")
@@ -297,7 +288,7 @@ def build_server() -> FastMCP:  # noqa: C901  # why: pre-existing (21 before M15
         def wrapper(**kwargs: Any) -> dict:
             fresh = _ensure_fresh()
             if "error" in fresh:
-                return {**fresh, **_NO_INDEX}
+                return fresh
             try:
                 result = handler(**kwargs)
             except Exception as exc:  # noqa: BLE001  # why: tool-surface contract — an error dict, never a raise (e.g. a corrupt index)

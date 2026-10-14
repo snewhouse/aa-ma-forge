@@ -407,21 +407,17 @@ aa_ma_lint_views() {
     return "$rc"
 }
 
-# -----------------------------------------------------------------------------
-# End of aa-ma-parse.sh
-# -----------------------------------------------------------------------------
-
-
 # aa_ma_sha_behind <repo> <sidecar-file>
 #   The one shell "SHA vs HEAD" computation (report 03 X1; X2 does the same in
 #   Python, codemem.incremental.check_freshness — both are tested against
 #   tests/fixtures/code-intel/make-repo.sh). Sidecars (.codemem/last_sha,
-#   graphify-out/.built_sha) are repo-controlled: only a regular file holding
-#   exactly 40 hex chars is used, and it reaches git after --end-of-options.
-#   The value itself is never printed.
+#   graphify-out/.built_sha) are repo-controlled: only a regular, non-symlink
+#   file holding exactly 40 hex chars is used, and it reaches git after
+#   --end-of-options. The value itself is never printed. Safe to call under
+#   `set -e`: it prints its reason before returning 1.
 aa_ma_sha_behind() {
-    local repo="$1" file="$2" sha n rc
-    if [[ ! -f "$file" ]]; then
+    local repo="$1" file="$2" sha n rc=0
+    if [[ ! -f "$file" || -L "$file" ]]; then
         printf 'bad sha'
         return 1
     fi
@@ -430,20 +426,28 @@ aa_ma_sha_behind() {
         printf 'bad sha'
         return 1
     fi
+    # why: 1 s caps a hung git well inside the SessionStart hook's 5 s timeout; a healthy call takes ~5 ms
     if command -v timeout > /dev/null 2>&1; then  # why: a presence probe (absent on stock macOS)
-        n="$(timeout 1 git -C "$repo" -c core.fsmonitor=false rev-list --count --end-of-options "${sha}..HEAD" 2>/dev/null)"  # why: git's own error text is replaced by the reason below
-        rc=$?
+        n="$(timeout 1 git -C "$repo" -c core.fsmonitor=false rev-list --count --end-of-options "${sha}..HEAD" 2>/dev/null)" || rc=$?  # why: git's own error text is replaced by the reason below
     else
-        n="$(git -C "$repo" -c core.fsmonitor=false rev-list --count --end-of-options "${sha}..HEAD" 2>/dev/null)"  # why: as above
-        rc=$?
+        n="$(git -C "$repo" -c core.fsmonitor=false rev-list --count --end-of-options "${sha}..HEAD" 2>/dev/null)" || rc=$?  # why: as above
     fi
     if [[ "$rc" -eq 124 ]]; then
         printf 'git timeout'
         return 1
     fi
     if [[ "$rc" -ne 0 || ! "$n" =~ ^[0-9]+$ ]]; then
-        printf 'not in history'
+        if git -C "$repo" rev-parse --git-dir > /dev/null 2>&1; then  # why: a probe — only its exit status is read
+            printf 'not in history'
+        else
+            printf 'git failed'
+        fi
         return 1
     fi
     printf '%s' "$n"
 }
+
+# -----------------------------------------------------------------------------
+# End of aa-ma-parse.sh
+# -----------------------------------------------------------------------------
+

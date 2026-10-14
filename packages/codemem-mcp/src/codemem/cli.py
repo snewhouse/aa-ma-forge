@@ -379,9 +379,8 @@ def _draw_views(args: argparse.Namespace, conn) -> int:
                 )
             return 0
         findings = views.check_views(repo_root, conn)
-    except (
-        ValueError
-    ) as exc:  # malformed sidecar, a refused write target, or an ill-formed view
+    # A malformed sidecar, a refused write target, or an ill-formed view.
+    except ValueError as exc:
         print(f"{who}: {exc}", file=sys.stderr)
         return 1
     for f in findings:

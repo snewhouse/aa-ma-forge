@@ -63,7 +63,7 @@ sidecar() { head -c 128 -- "$1" 2>/dev/null | tr -d '\n'; }  # why: absent sidec
 
 if [[ -e "${TOP}/.codemem/index.db" ]]; then
     [[ "$(sidecar "${TOP}/.codemem/last_sha")" == "${HEAD_SHA}" ]] \
-        || blocked "the codemem index did not refresh to HEAD ${HEAD_SHA:0:12} (see .codemem/refresh.log); run \`codemem build\`, then re-run."
+        || blocked "the codemem index did not reach HEAD ${HEAD_SHA:0:12}. If .codemem/refresh.log says another refresh held db.lock (exit 75), wait and re-run; if it names an error, run \`codemem build\`, then re-run."
     CODEMEM="${HEAD_SHA}"
 else
     CODEMEM="skipped(no index)"

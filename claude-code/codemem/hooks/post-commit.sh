@@ -59,13 +59,37 @@ write_built_sha() {
         log_line "graphify-out/.built_sha is a directory: not written"
         return 0
     fi
-    tmp="$(mktemp "${out}/.built_sha.XXXXXX")" || return 0
-    printf '%s\n' "$1" > "${tmp}" && rm -f -- "${out}/.built_sha" && mv -f -- "${tmp}" "${out}/.built_sha"
+    if ! tmp="$(mktemp "${out}/.built_sha.XXXXXX" 2>/dev/null)"; then  # why: the failure is logged on the next line
+        log_line "cannot create a temp file in graphify-out: .built_sha not written"
+        return 0
+    fi
+    if ! { printf '%s\n' "$1" > "${tmp}" && rm -f -- "${out}/.built_sha" && mv -f -- "${tmp}" "${out}/.built_sha"; }; then
+        log_line "cannot replace graphify-out/.built_sha: not written"
+    fi
     rm -f -- "${tmp}"
 }
 
+refresh_codemem() {
+    # CODEMEM_BIN (user env, like RUFF_BIN) pins the binary with no fallback.
+    local codemem
+    if [[ -n "${CODEMEM_BIN:-}" ]]; then
+        codemem="${CODEMEM_BIN}"
+    else
+        codemem="${FORGE_ROOT}/.venv/bin/codemem"
+        [[ -x "${codemem}" ]] || codemem="$(command -v codemem || true)"  # why: absent is handled (and logged) below
+    fi
+    if [[ -z "${codemem}" || ! -x "${codemem}" ]]; then
+        log_line "codemem not found: index not refreshed"
+        return 0
+    fi
+    # why: codemem refresh logs its own errors to refresh.log; its stdout is a summary nobody reads
+    "${codemem}" refresh > /dev/null 2>&1 || log_line "codemem refresh exited $? (75 = another refresh held the lock)"
+    # why: as above; the git-mining cache (co_changes, hot_spots) follows the commit too
+    "${codemem}" refresh-commits > /dev/null 2>&1 || log_line "codemem refresh-commits exited $?"
+}
+
 run_worker() {
-    local sha="$1" lock codemem graphify rc
+    local sha="$1" lock graphify rc
     [[ "${sha}" =~ ${SHA_RE} ]] || exit 0
     cd "${REPO_ROOT}" || exit 0
     lock="$(git rev-parse --absolute-git-dir 2>/dev/null)/codemem-post-commit.lock" || exit 0  # why: not a repo any more → nothing to refresh
@@ -73,28 +97,22 @@ run_worker() {
     # calls) at the commit-time index; the worker outlives that.
     unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
 
+    # Without flock (stock macOS) codemem still refreshes — its own db.lock
+    # serialises it — and only the graph step, which needs the queue, is skipped.
     if ! command -v flock > /dev/null 2>&1; then  # why: a presence probe; the branch logs the outcome
+        refresh_codemem
         log_line "flock not found: graph refresh skipped (cannot serialise; .built_sha unchanged)"
         exit 0
     fi
-    exec 9>> "${lock}" || exit 0
-    flock 9 || exit 0
-
-    # CODEMEM_BIN (user env, like RUFF_BIN) pins the binary with no fallback.
-    if [[ -n "${CODEMEM_BIN:-}" ]]; then
-        codemem="${CODEMEM_BIN}"
-    else
-        codemem="${FORGE_ROOT}/.venv/bin/codemem"
-        [[ -x "${codemem}" ]] || codemem="$(command -v codemem || true)"  # why: absent is handled (and logged) below
+    if ! { exec 9>> "${lock}"; } 2>/dev/null; then  # why: the failure is logged on the next line
+        log_line "cannot open ${lock##*/}: refresh skipped"
+        exit 0
     fi
-    if [[ -n "${codemem}" && -x "${codemem}" ]]; then
-        # why: codemem refresh logs its own errors to refresh.log; its stdout is a summary nobody reads
-        "${codemem}" refresh > /dev/null 2>&1 || log_line "codemem refresh exited $? (75 = another refresh held the lock)"
-        # why: as above; the git-mining cache (co_changes, hot_spots) follows the commit too
-        "${codemem}" refresh-commits > /dev/null 2>&1 || log_line "codemem refresh-commits exited $?"
-    else
-        log_line "codemem not found: index not refreshed"
+    if ! flock 9; then
+        log_line "flock failed on ${lock##*/}: refresh skipped"
+        exit 0
     fi
+    refresh_codemem
 
     graphify="$(command -v graphify || true)"  # why: absent is handled (and logged) below
     if [[ -z "${graphify}" ]]; then

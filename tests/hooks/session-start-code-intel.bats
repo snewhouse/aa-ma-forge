@@ -110,3 +110,50 @@ code_intel() { printf '%s\n' "$output" | grep '^Code-intel:' || true; }
     run aa_ma_sha_behind . graphify-out/.built_sha
     [ "$output" = "0" ]
 }
+
+# --- R03-D13: the user-scope codemem MCP runs from ~/.local/share/codemem-plugin, a link
+# to a dedicated forge worktree on main. Checked only when ~/.claude.json names the link.
+
+plugin_setup() {
+    printf '{"mcpServers":{"codemem":{"command":"%s/.local/share/codemem-plugin/.venv/bin/python"}}}\n' "$HOME" > "${HOME}/.claude.json"
+    PLUGIN_SRC="${TMP}/forge"
+    bash "${FORGE}/tests/fixtures/code-intel/make-repo.sh" "$PLUGIN_SRC"
+    git -C "$PLUGIN_SRC" worktree add -q --detach "${TMP}/plugin-wt" main
+    mkdir -p "${HOME}/.local/share"
+}
+
+plugin_line() { printf '%s\n' "$output" | grep 'codemem plugin' || true; }
+
+@test "plugin link: not configured → no plugin line" {
+    run bash "$HOOK"
+    [ -z "$(plugin_line)" ]
+}
+
+@test "plugin link: configured but missing → one line naming it" {
+    plugin_setup
+    run bash "$HOOK"
+    [ "$(plugin_line)" = "Code-intel: codemem plugin link missing (~/.local/share/codemem-plugin) — the user-scope codemem MCP cannot start" ]
+}
+
+@test "plugin link: worktree on main → silent" {
+    plugin_setup
+    ln -sfn "${TMP}/plugin-wt" "${HOME}/.local/share/codemem-plugin"
+    run bash "$HOOK"
+    [ -z "$(plugin_line)" ]
+}
+
+@test "plugin link: worktree behind main → not on main" {
+    plugin_setup
+    git -C "${TMP}/plugin-wt" checkout -q --detach HEAD~1
+    ln -sfn "${TMP}/plugin-wt" "${HOME}/.local/share/codemem-plugin"
+    run bash "$HOOK"
+    [ "$(plugin_line)" = "Code-intel: codemem plugin worktree is not on main — re-run scripts/install.sh" ]
+}
+
+@test "plugin link: target is not a git worktree → not on main" {
+    plugin_setup
+    mkdir -p "${TMP}/plain"
+    ln -sfn "${TMP}/plain" "${HOME}/.local/share/codemem-plugin"
+    run bash "$HOOK"
+    [ "$(plugin_line)" = "Code-intel: codemem plugin worktree is not on main — re-run scripts/install.sh" ]
+}

@@ -151,3 +151,17 @@ def test_build_failure_still_carries_the_fields(server_mod, tmp_path, monkeypatc
         "no_index",
         None,
     )
+
+
+def test_shared_fixture_sha_vs_head(tmp_path):
+    """Same fixture as the X1 shell test (session-start-code-intel.bats): 2 behind."""
+    from codemem.incremental import check_freshness
+
+    root = tmp_path / "fx"
+    fixture = REPO_ROOT / "tests" / "fixtures" / "code-intel" / "make-repo.sh"
+    subprocess.run(["bash", str(fixture), str(root)], check=True)
+    f = check_freshness(root, root / ".codemem" / "index.db")
+    assert (f.stale, f.reason) == (True, "behind")
+    assert f.index_sha == _git(root, "rev-parse", "HEAD~2")
+    assert f.head_sha == _git(root, "rev-parse", "HEAD")
+    assert _git(root, "rev-list", "--count", f"{f.index_sha}..{f.head_sha}") == "2"

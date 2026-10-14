@@ -107,8 +107,12 @@ Agent tool:
     For EACH file, run the 5-point impact check:
 
     1. UPSTREAM: Who imports or calls this file?
-       - Use Grep to search for imports of this module
+       - Use Grep to search for imports of this module (or codemem's
+         `who_calls` when its MCP tools are available)
        - Count callers
+       - A codemem response with `stale` other than false is leads only:
+         confirm by Grep/Read, and add a line
+         `CODE_INTEL_STALE — <tool> — <stale_reason>` to your output.
     2. DOWNSTREAM: What does this file depend on?
        - Read imports in the file
     3. CONTRACTS: What function signatures or class interfaces would change?

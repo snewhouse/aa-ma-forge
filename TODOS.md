@@ -152,6 +152,16 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 **Priority:** P2
 **Depends on:** diagram-generation M1 (establishes the partial-unique-index pattern)
 
+### codemem: isolate the rest of its git calls from repo config
+
+**What:** Route codemem's remaining git calls (`analysis/git_mining.py` `git log`, `owners` blame, `symbol_history` `git log -L`, `cli.py` refresh-commits) through `indexer.SAFE_GIT`, or adopt `src/aa_ma/analysis/stamp.py`'s allowlist-and-refuse model. Also: `git_tracked_files` resolves tracked symlinks, so a tracked `x.py -> /etc/...` is read into the index.
+
+**Why:** M15.2's security review showed `git ls-files` and `git status` run a repo's `core.fsmonitor` (measured 2026-10-14). M15.2 pinned the index path only (`ls-files`, `rev-parse`, `cat-file`); `git log`/`blame` can also run config-named commands (diff drivers, textconv). Matters once codemem answers in every repo at user scope (M15.8).
+
+**Effort:** M
+**Priority:** P1
+**Depends on:** code-conventions-impact M15.2 (`SAFE_GIT`)
+
 ### X4: graphify tree-sitter call edges as codemem's non-Python fallback
 
 **What:** Feed graphify's tree-sitter call edges into codemem for the language families whose calls codemem leaves unresolved (TS/JS, Java, shell, Go/Rust/Ruby), then rerun the per-language parity check for each family.

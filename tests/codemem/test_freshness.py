@@ -495,11 +495,12 @@ class TestRepoControlledInputs:
     def test_repo_cannot_shadow_the_codemem_package(self, repo, tmp_path):
         root, db_path = repo
         marker = tmp_path / "pwned"
-        (root / "codemem").mkdir()
-        (root / "codemem" / "__init__.py").write_text("")
-        (root / "codemem" / "cli.py").write_text(
-            f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\n"
-        )
+        for where in (root, db_path.parent):  # the repo top and its .codemem/
+            (where / "codemem").mkdir()
+            (where / "codemem" / "__init__.py").write_text("")
+            (where / "codemem" / "cli.py").write_text(
+                f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\n"
+            )
         (root / "c.py").write_text("def x():\n    pass\n")
         _commit(root)
         r = mcp_tools.ensure_fresh(db_path, root)

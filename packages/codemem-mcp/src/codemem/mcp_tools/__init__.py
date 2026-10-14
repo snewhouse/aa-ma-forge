@@ -146,9 +146,12 @@ def _capped_refresh(db_path: Path, repo_root: Path, cap: float) -> str:
     """Run ``codemem refresh``; return ok, locked, error or timeout within ``cap``."""
     from ..incremental import EXIT_LOCKED
 
+    # -I: `-m` would otherwise put the cwd first on sys.path, and a repo
+    # that ships its own codemem/cli.py would run inside the refresh.
     proc = subprocess.Popen(  # noqa: S603  # why: fixed argv (this interpreter + codemem.cli), no shell
         [
             sys.executable,
+            "-I",
             "-m",
             "codemem.cli",
             "--db",
@@ -157,7 +160,7 @@ def _capped_refresh(db_path: Path, repo_root: Path, cap: float) -> str:
             "--repo-root",
             str(repo_root),
         ],
-        cwd=repo_root,
+        cwd=db_path.parent,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

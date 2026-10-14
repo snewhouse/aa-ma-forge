@@ -41,7 +41,14 @@ from pathlib import Path
 
 from . import resolver as _resolver
 from .diff.symbol_diff import ChangeKind, diff_symbols
-from .indexer import build_index, parse_files, discover_files
+from .indexer import (
+    SAFE_GIT,
+    build_index,
+    discover_files,
+    parse_files,
+    tree_signature,
+    write_sidecar,
+)
 from .journal.lock import acquire_writer_lock
 from .parser.python_ast import Symbol
 from .storage import db
@@ -65,9 +72,6 @@ logger = logging.getLogger(__name__)
 # `.codemem/last_sha` and `tree_sig` are repo-controlled (a clone can commit
 # them): only a full 40-hex SHA is ever passed to git.
 _SHA_RE = re.compile(r"[0-9a-f]{40}")
-# Signature of a clean tree (empty `git status`): the default when no
-# tree_sig was written, e.g. right after a cold build.
-_CLEAN_SIG = hashlib.sha256(b"").hexdigest()
 
 
 @dataclass
@@ -95,7 +99,7 @@ class Freshness:
 
     ``stale`` is True, False, or None when it cannot be known (no git).
     ``reason`` names why it is stale or unknown: ``behind``, ``dirty``,
-    ``no_index_sha``, ``no_git``, ``no_head`` or ``git_error``.
+    ``no_index_sha``, ``no_git`` or ``no_head``.
     """
 
     index_sha: str | None
@@ -119,11 +123,8 @@ def check_freshness(repo_root: Path, db_path: Path) -> Freshness:
         return Freshness(None, head, True, "no_index_sha")
     if index_sha != head:
         return Freshness(index_sha, head, True, "behind")
-    sig = _worktree_signature(repo_root)
-    if sig is None:
-        return Freshness(index_sha, head, None, "git_error")
-    stored = _read_text(db_path.parent / "tree_sig") or _CLEAN_SIG
-    if sig != stored:
+    stored = _read_text(db_path.parent / "tree_sig")
+    if stored is None or tree_signature(discover_files(repo_root)) != stored:
         return Freshness(index_sha, head, True, "dirty")
     return Freshness(index_sha, head, False, None)
 
@@ -178,7 +179,7 @@ def refresh_index(
             )
         # Taken before reading the tree: an edit made during the refresh
         # leaves the stored signature behind, so the next check re-runs.
-        sig = _worktree_signature(repo_root)
+        sig = tree_signature(discover_files(repo_root))
         stats = _refresh_locked(
             repo_root,
             db_path,
@@ -187,11 +188,7 @@ def refresh_index(
             last_sha_file=last_sha_file,
             t0=t0,
         )
-        tree_sig = db_path.parent / "tree_sig"
-        if sig is None:
-            tree_sig.unlink(missing_ok=True)
-        else:
-            tree_sig.write_text(sig + "\n")
+        write_sidecar(db_path.parent / "tree_sig", sig + "\n")
         return stats
 
 
@@ -415,7 +412,7 @@ def _git(repo_root: Path, *args: str) -> str | None:
     """Stdout of a git command, or None when git fails or is missing."""
     try:
         result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-            ["git", "-C", str(repo_root), *args],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
+            [*SAFE_GIT, "-C", str(repo_root), *args],
             capture_output=True,
             text=True,
             check=False,
@@ -438,42 +435,12 @@ def _read_sha(path: Path) -> str | None:
     return text if text is not None and _SHA_RE.fullmatch(text) else None
 
 
-def _worktree_signature(repo_root: Path) -> str | None:
-    """Hash of tracked-file changes (``git status``) plus their mtime and size.
-
-    Equal signatures mean no tracked file changed since the last refresh.
-    Untracked files are left out: ``discover_files`` indexes tracked files only.
-    """
-    try:
-        out = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-            ["git", "-C", str(repo_root), "status", "--porcelain=v1", "-z", "-uno"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
-            capture_output=True,
-            check=False,
-        )
-    except OSError:
-        return None
-    if out.returncode != 0:
-        return None
-    if not out.stdout:
-        return _CLEAN_SIG
-    h = hashlib.sha256(out.stdout)
-    for entry in out.stdout.split(b"\0"):
-        path = repo_root / os.fsdecode(entry[3:]) if len(entry) > 3 else None
-        try:
-            st = path.stat() if path is not None else None
-        except OSError:
-            st = None  # deleted: the status line itself records it
-        if st is not None:
-            h.update(f"\0{st.st_mtime_ns}:{st.st_size}".encode())
-    return h.hexdigest()
-
-
 def _sha_orphaned(repo_root: Path, last_sha_file: Path) -> bool:
     sha = _read_sha(last_sha_file)
     if sha is None:
         return True
     result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-        ["git", "-C", str(repo_root), "cat-file", "-e", sha],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
+        [*SAFE_GIT, "-C", str(repo_root), "cat-file", "-e", sha],
         capture_output=True,
         check=False,
     )
@@ -496,15 +463,10 @@ def _fallback_reason(db_path: Path, last_sha_file: Path, repo_root: Path) -> str
 
 
 def _write_last_sha(repo_root: Path, last_sha_file: Path) -> None:
-    result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-        ["git", "-C", str(repo_root), "rev-parse", "HEAD"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode == 0:
+    head = _git(repo_root, "rev-parse", "HEAD")
+    if head is not None:
         last_sha_file.parent.mkdir(parents=True, exist_ok=True)
-        last_sha_file.write_text(result.stdout.strip() + "\n")
+        write_sidecar(last_sha_file, head + "\n")
 
 
 def _rewrite_scip_paths(conn, old_path: str, new_path: str) -> None:

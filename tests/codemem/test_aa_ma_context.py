@@ -175,3 +175,35 @@ class TestWriteMode:
         after = ref_path.read_text()
         assert after.startswith(before)
         assert "## aa_ma_context snapshot" in after
+
+
+class TestLinkedTaskFiles:
+    """§6.8 re-run 1: a committed link in the task path must not be read or appended to."""
+
+    def test_a_linked_reference_md_is_never_appended_to(
+        self, repo_with_task, tmp_path
+    ) -> None:
+        from codemem.mcp_tools import aa_ma_context
+
+        repo_root, db_path = repo_with_task
+        victim = tmp_path / "victim-rc"
+        victim.write_text("precious\n")
+        ref = repo_root / ".claude/dev/active/sample-task/sample-task-reference.md"
+        ref.unlink()
+        ref.symlink_to(victim)
+        r = aa_ma_context(db_path, "sample-task", repo_root=repo_root, write=True)
+        assert r["error"] and "symlink" in r["error"]
+        assert victim.read_text() == "precious\n"
+
+    def test_a_linked_task_dir_is_refused(self, repo_with_task, tmp_path) -> None:
+        from codemem.mcp_tools import aa_ma_context
+
+        repo_root, db_path = repo_with_task
+        active = repo_root / ".claude/dev/active"
+        elsewhere = tmp_path / "elsewhere"
+        (active / "sample-task").rename(elsewhere)
+        (active / "sample-task").symlink_to(elsewhere)
+        before = (elsewhere / "sample-task-reference.md").read_text()
+        r = aa_ma_context(db_path, "sample-task", repo_root=repo_root, write=True)
+        assert r["error"] and "symlink" in r["error"]
+        assert (elsewhere / "sample-task-reference.md").read_text() == before

@@ -983,7 +983,8 @@ Files:
   Modify  TODOS.md   # X4 entry (T12)
   Modify  packages/codemem-mcp/src/codemem/indexer.py   # (as built, 15.2 security review) SAFE_GIT pins on ls-files/rev-parse; tree_signature; write_sidecar for last_sha/tree_sig; (§6.8 C1) check_db_path
   Modify  packages/codemem-mcp/src/codemem/journal/lock.py   # (as built, §6.8 C1) db.lock opened O_NOFOLLOW
-  Create  packages/codemem-mcp/src/codemem/safety.py   # (as built, §6.8 re-run) the one .codemem rule; applied by storage/db.py connect()
+  Create  packages/codemem-mcp/src/codemem/safety.py   # (as built, §6.8 re-runs) the .codemem link rule + the trust token; applied by storage/db.py connect()
+  Create  tests/conftest.py, tests/codemem/test_trust.py, tests/codemem/test_safety_parity.py   # (as built, §6.8 re-run 2)
   Modify  packages/codemem-mcp/src/codemem/storage/db.py, src/aa_ma/render/graph.py   # (as built, §6.8 re-run) every reader refuses what writers refuse; trusted_schema=OFF
   Modify  claude-code/hooks/lib/aa-ma-parse.sh   # (as built, 15.5) aa_ma_sha_behind — the one shell SHA-vs-HEAD; (§6.8 C2) aa_ma_read_sidecar_sha
   Create  claude-code/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh   # (as built, 15.6) §6.0 CODE_INTEL_REFRESH; tests-verified.sh precedent

@@ -26,6 +26,8 @@ from importlib.resources import files as _pkg_files
 from pathlib import Path
 from typing import Iterator
 
+from ..safety import UnsafeDbPath, check_db_path
+
 __all__ = [
     "APPLICATION_ID",
     "CURRENT_SCHEMA_VERSION",
@@ -132,10 +134,6 @@ MIGRATIONS: list[tuple[int, str]] = [
 ]
 
 
-class UnsafeDbPath(OSError):
-    """The DB, its directory, or an entry codemem relies on there is unsafe to open."""
-
-
 def _apply_per_connection_pragmas(conn: sqlite3.Connection, *, read_only: bool) -> None:
     """Apply PRAGMAs that are per-connection (not persisted).
 
@@ -166,16 +164,12 @@ def connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
     read_only : bool
         If True, open via `file:...?mode=ro` URI.
 
-    Raises :class:`UnsafeDbPath` when ``path`` or its directory is a symlink.
+    Raises :class:`UnsafeDbPath` per :func:`codemem.safety.check_db_path`.
     """
     path = Path(path)
-    # Every reader and writer passes here, so this is the one place a planted
-    # link cannot slip past (M15 §6.8 re-run 1): SQLite would open the link's
-    # target and, in WAL mode, create -wal/-shm beside it even read-only.
-    if path.is_symlink() or path.parent.is_symlink():
-        raise UnsafeDbPath(
-            f"{path} or its directory is a symlink; codemem never opens one"
-        )
+    # Every reader and writer passes here: readers refuse exactly what writers
+    # refuse (codemem.safety, M15 §6.8).
+    check_db_path(path)
     if read_only:
         uri = f"file:{path}?mode=ro"
         conn = sqlite3.connect(uri, uri=True, timeout=5.0)

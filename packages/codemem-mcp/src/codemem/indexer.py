@@ -28,8 +28,8 @@ from . import resolver as _resolver
 from .journal import wal as _wal
 from .parser import ast_grep, python_ast
 from .parser.python_ast import ParseResult
+from .safety import GIT_TIMEOUT_S, SAFE_GIT, UnsafeDbPath, check_db_path
 from .storage import db
-from .storage.db import UnsafeDbPath
 
 
 __all__ = [
@@ -44,17 +44,6 @@ __all__ = [
     "tree_signature",
     "write_sidecar",
 ]
-
-# Every git call on the index path. Command-scope config outranks the repo's
-# own .git/config, which can name commands git runs: `git ls-files` and
-# `git status` both run core.fsmonitor (measured 2026-10-14).
-SAFE_GIT = ("git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null")
-
-# Per git call on the query path. A healthy local rev-parse / ls-files takes
-# ms; past 1 s git is wedged (a stuck index.lock, a hung mount) and the answer
-# is "unknown". Same budget as the session-start Code-intel line. ensure_fresh
-# makes at most 5 such calls around its capped refresh.
-GIT_TIMEOUT_S = 1.0
 
 
 # Extensions we recognise. Files with any other extension are skipped —
@@ -152,63 +141,6 @@ def tree_signature(files: list[Path]) -> str:
             continue  # vanished since discovery: its absence changes the hash
         h.update(os.fsencode(p) + f"\0{st.st_mtime_ns}\0{st.st_size}\n".encode())
     return h.hexdigest()
-
-
-def check_db_path(db_path: Path) -> None:
-    """Raise :class:`UnsafeDbPath` unless the DB dir is codemem's own, unlinked, untracked dir.
-
-    ``.codemem/`` is repo-controllable (M15 §6.8): a clone can commit it, or
-    any entry in it, as a link to a user file, and one refresh would
-    overwrite the target with SQLite; or commit a whole index whose rows do
-    not match the code and have it served as fresh. So the dir is refused
-    when it, or ANY entry in it, is a symlink (a list of names goes stale:
-    SQLite alone adds ``-journal``), when git tracks anything in it, or when
-    it cannot be listed. ``storage.db.connect`` re-checks the DB file itself
-    for every reader. The message names only the dir, never a repo-chosen
-    entry. Point ``CODEMEM_DB`` at a dedicated dir.
-    """
-    db_dir = db_path.parent
-    unsafe = UnsafeDbPath(
-        f"{db_dir} is a symlink, holds one, or is tracked by git; codemem refuses it"
-    )
-    if db_dir.is_symlink():
-        raise unsafe
-    try:
-        if any(p.is_symlink() for p in db_dir.iterdir()):
-            raise unsafe
-    except FileNotFoundError:
-        return  # no DB dir yet: the caller creates it
-    except OSError as exc:  # a regular file named .codemem, or unreadable
-        raise UnsafeDbPath(
-            f"{db_dir} cannot be listed ({type(exc).__name__}); codemem refuses it"
-        ) from exc
-    try:
-        tracked = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-            [*SAFE_GIT, "-C", str(db_dir), "ls-files", "-z", "--", "."],
-            capture_output=True,
-            timeout=GIT_TIMEOUT_S,
-            check=False,
-            env={
-                **os.environ,
-                "LC_ALL": "C",
-            },  # stable message text for the check below
-        )
-    except FileNotFoundError:
-        # ponytail: with no git installed a tracked index cannot be detected;
-        # every freshness answer is then stale "unknown" (no_git), leads only.
-        return
-    except subprocess.TimeoutExpired as exc:
-        raise UnsafeDbPath(
-            f"{db_dir}: git did not answer in {GIT_TIMEOUT_S:g}s; codemem refuses it"
-        ) from exc
-    if tracked.returncode == 0:
-        if tracked.stdout:
-            raise unsafe
-    elif b"not a git repository" not in tracked.stderr:
-        # Fail closed: e.g. "dubious ownership" is a repo git refused to read.
-        raise UnsafeDbPath(
-            f"{db_dir}: git could not list it (rc {tracked.returncode}); codemem refuses it"
-        )
 
 
 def _write_build_sidecars(repo_root: Path, db_dir: Path, signature: str) -> None:

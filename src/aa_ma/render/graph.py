@@ -9,7 +9,9 @@ plus a reason naming the remedy.
 
 from __future__ import annotations
 
+import os
 import sqlite3
+import subprocess
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -47,20 +49,53 @@ class GraphHandle:
     conn: sqlite3.Connection | None  # read-only; the caller owns it and closes it
 
 
+# Twin of codemem.safety.SAFE_GIT: command-scope config outranks the repo's
+# own .git/config, whose core.fsmonitor `git ls-files` would run.
+_SAFE_GIT = ("git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null")
+
+
+def _unsafe_reason(db_dir: Path) -> str | None:
+    """Why ``db_dir`` must not be opened, or None: twin of ``codemem.safety.check_db_path``.
+
+    Repo-controlled (M15 §6.8): a linked target opened read-only still gets
+    -wal/-shm beside it, and a committed index would let DIAGRAM_VERIFIED
+    vouch for a graph that is not the code's. aa_ma never imports codemem
+    (ADR-0014), so the rule is repeated here; keep the two in step.
+    """
+    if db_dir.is_symlink():
+        return "is a symlink"
+    if not db_dir.is_dir():
+        return None  # absent: open_graph reports MISSING with the build remedy
+    if any(p.is_symlink() for p in db_dir.iterdir()):
+        return "holds a symlink"
+    try:
+        r = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+            [*_SAFE_GIT, "-C", str(db_dir), "ls-files", "-z", "--", "."],
+            capture_output=True,
+            timeout=1.0,  # as codemem.safety.GIT_TIMEOUT_S: past 1 s git is wedged
+            check=False,
+            env={**os.environ, "LC_ALL": "C"},
+        )
+    except FileNotFoundError:
+        return None  # no git: nothing can be tracked
+    except subprocess.TimeoutExpired:
+        return "could not be checked (git timed out)"
+    if r.returncode == 0:
+        return "is tracked by git" if r.stdout else None
+    return (
+        None if b"not a git repository" in r.stderr else "could not be checked by git"
+    )
+
+
 def open_graph(repo_root: Path) -> GraphHandle:
     """Open ``<repo_root>/.codemem/index.db`` read-only and classify it."""
     db = conn = None
     try:
         db = Path(repo_root) / ".codemem" / "index.db"
-        # Repo-controlled: opening a linked target read-only still creates
-        # -wal/-shm beside it (M15 §6.8 re-run 1). Never resolve() it.
-        # Same rule as codemem's check_db_path: the dir or any entry in it.
-        links = db.parent.is_dir() and any(p.is_symlink() for p in db.parent.iterdir())
-        if db.parent.is_symlink() or links:
+        unsafe = _unsafe_reason(db.parent)
+        if unsafe is not None:
             return GraphHandle(
-                GraphStatus.MISSING,
-                f"codemem index at {db} is a symlink; refusing to open it",
-                None,
+                GraphStatus.MISSING, f"{db.parent} {unsafe}; refusing to open it", None
             )
         if not db.is_file():
             return GraphHandle(

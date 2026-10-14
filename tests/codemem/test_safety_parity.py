@@ -66,10 +66,16 @@ def test_twin_trust_matches_codemem_trust(tmp_path):
 
     here = _built(tmp_path / "a" / ".codemem")
     db.connect(here / "index.db", read_only=True).close()
-    assert (
-        open_graph(here.parent).reason is None
-        or "not built" not in open_graph(here.parent).reason
-    )
+    assert "not built" not in (open_graph(here.parent).reason or "")
+
+    foreign = tmp_path / "c" / ".codemem"
+    foreign.mkdir(parents=True)
+    (foreign / "index.db").write_bytes(
+        (here / "index.db").read_bytes()
+    )  # another dir's stamp
+    with pytest.raises(db.UntrustedIndex):
+        db.connect(foreign / "index.db", read_only=True)
+    assert "not built" in open_graph(foreign.parent).reason
 
     plain = tmp_path / "b" / ".codemem"
     plain.mkdir(parents=True)
@@ -77,3 +83,15 @@ def test_twin_trust_matches_codemem_trust(tmp_path):
     with pytest.raises(db.UntrustedIndex):
         db.connect(plain / "index.db", read_only=True)
     assert "codemem build" in open_graph(plain.parent).reason
+
+
+def test_twins_agree_a_non_ascii_stamp_is_untrusted(tmp_path):
+    from aa_ma.render.graph import open_graph
+
+    d = _built(tmp_path / "n" / ".codemem")
+    conn = sqlite3.connect(d / "index.db")
+    conn.execute("UPDATE meta SET value = 'é' WHERE key = 'trust_nonce'")
+    conn.commit()
+    conn.close()
+    assert db.index_trusted(d / "index.db") is False
+    assert "not built" in open_graph(d.parent).reason

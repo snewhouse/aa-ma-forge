@@ -708,9 +708,11 @@ class TestCodememDirBoundary:
         from codemem.incremental import _read_sha
 
         assert _read_sha(db_path.parent / "last_sha") is None
-        assert (
-            check_freshness(root, db_path).reason == "untrusted"
-        )  # §6.8: the dir is refused
+        from codemem.safety import UnsafeDbPath
+
+        # the dir is refused: the remedy is "remove the link", not "rebuild"
+        with pytest.raises(UnsafeDbPath):
+            check_freshness(root, db_path)
 
 
 class TestSection68Warnings:

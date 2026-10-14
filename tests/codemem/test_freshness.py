@@ -449,7 +449,9 @@ class TestRefreshCli:
         finally:
             holder.kill()
             holder.wait()
-        assert r.returncode == 75
+        from codemem.incremental import EXIT_LOCKED
+
+        assert r.returncode == EXIT_LOCKED
 
     def test_refresh_error_exits_1_and_logs(self, repo):
         root, db_path = repo
@@ -600,3 +602,119 @@ class TestSection66Fixes:
         (root / "c.py").write_text("def q():\n    pass\n")
         _commit(root)
         assert refresh_index(root, db_path).full_rebuild is True
+
+
+class TestCodememDirBoundary:
+    """§6.8 C1 (reproduced): .codemem/ and its files are repo-controlled; never write through a link."""
+
+    @pytest.fixture
+    def victim(self, tmp_path):
+        v = tmp_path / "home" / "dotrc"
+        v.parent.mkdir()
+        v.write_text("precious\n")
+        return v
+
+    def test_symlinked_index_db_is_refused_by_ensure_fresh(self, repo, victim):
+        root, db_path = repo
+        db_path.unlink()
+        db_path.symlink_to(victim)
+        r = mcp_tools.ensure_fresh(db_path, root)
+        assert victim.read_text() == "precious\n"
+        assert "error" in r and r["stale_reason"] == "unsafe_db_path"
+        assert sorted(p.name for p in victim.parent.iterdir()) == ["dotrc"]
+
+    def test_symlinked_codemem_dir_is_refused(self, repo, tmp_path):
+        root, db_path = repo
+        elsewhere = tmp_path / "victim-dir"
+        elsewhere.mkdir()
+        (elsewhere / "index.db-wal").write_text("keep me\n")
+        for p in db_path.parent.iterdir():
+            p.unlink()
+        db_path.parent.rmdir()
+        db_path.parent.symlink_to(elsewhere)
+        r = mcp_tools.ensure_fresh(db_path, root)
+        assert r["stale_reason"] == "unsafe_db_path"
+        assert sorted(p.name for p in elsewhere.iterdir()) == ["index.db-wal"]
+        assert (elsewhere / "index.db-wal").read_text() == "keep me\n"
+
+    @pytest.mark.parametrize(
+        "name", ["db.lock", "index.db.rebuild", "index.db-wal", "refresh.log"]
+    )
+    def test_any_linked_codemem_file_refuses_refresh(self, repo, victim, name):
+        root, db_path = repo
+        link = db_path.parent / name
+        link.unlink(missing_ok=True)
+        link.symlink_to(victim)
+        (db_path.parent / "last_sha").unlink()  # forces the rebuild path
+        from codemem.incremental import UnsafeDbPath
+
+        with pytest.raises(UnsafeDbPath):
+            refresh_index(root, db_path)
+        assert victim.read_text() == "precious\n"
+
+    def test_cli_refresh_through_a_link_exits_1_and_spares_the_target(
+        self, repo, victim
+    ):
+        root, db_path = repo
+        db_path.unlink()
+        db_path.symlink_to(victim)
+        r = _cli(root, db_path)
+        assert r.returncode == 1
+        assert victim.read_text() == "precious\n"
+
+    def test_build_index_refuses_a_linked_db(self, repo, victim):
+        root, db_path = repo
+        db_path.unlink()
+        db_path.symlink_to(victim)
+        from codemem.incremental import UnsafeDbPath
+
+        with pytest.raises(UnsafeDbPath):
+            build_index(root, db_path)
+        assert victim.read_text() == "precious\n"
+
+    def test_symlinked_last_sha_is_not_trusted(self, repo, tmp_path):
+        root, db_path = repo
+        real = tmp_path / "sha"
+        real.write_text(_git(root, "rev-parse", "HEAD") + "\n")
+        (db_path.parent / "last_sha").unlink()
+        (db_path.parent / "last_sha").symlink_to(real)
+        assert check_freshness(root, db_path).reason == "no_index_sha"
+
+
+class TestSection68Warnings:
+    def test_sha256_repo_is_fresh_after_a_build(self, tmp_path):
+        root = tmp_path / "s256"
+        root.mkdir()
+        (root / "a.py").write_text("def a():\n    return 1\n")
+        _git(root, "init", "-q", "--object-format=sha256", "-b", "main")
+        _commit(root, "init")
+        db_path = root / ".codemem" / "index.db"
+        build_index(root, db_path)
+        f = check_freshness(root, db_path)
+        assert (f.stale, len(f.index_sha or "")) == (False, 64)
+
+    def test_no_fresh_sidecar_before_the_swap(self, repo, monkeypatch):
+        """A full rebuild must not claim HEAD while the old DB is still in place."""
+        root, db_path = repo
+        import codemem.incremental as inc
+
+        (root / "c.py").write_text("def swapped():\n    pass\n")
+        head = _commit(root)
+        (db_path.parent / "last_sha").unlink()
+        seen = []
+        real_replace = inc.os.replace
+
+        def spy(src, dst):
+            if Path(dst) == db_path:
+                ls = db_path.parent / "last_sha"
+                seen.append(ls.read_text().strip() if ls.exists() else None)
+            return real_replace(src, dst)
+
+        monkeypatch.setattr(inc.os, "replace", spy)
+        refresh_index(root, db_path)
+        assert seen and seen[0] != head
+
+    def test_locked_exit_code_is_the_named_constant(self):
+        from codemem.incremental import EXIT_LOCKED
+
+        assert EXIT_LOCKED == 75  # EX_TEMPFAIL; the shell and docs repeat 75

@@ -26,17 +26,14 @@ The 13 tools:
 - Pure Python + stdlib (no NetworkX, no scipy, no embeddings)
 - `ast-grep-cli` as the only external binary dep (via pip wheel)
 - SQLite-canonical storage with PageRank-budgeted JSON projection (cl100k_base honest-budget enforcement post-M1, 2026-05-05)
-- AA-MA coupling (`aa_ma_context`) is the durable moat. The git-mining tools are commoditisable per kill-criteria Signal 4 (next watch: 2026-08-06).
+- AA-MA coupling (`aa_ma_context`) is the durable moat. The git-mining tools are commoditisable per kill-criteria Signal 4 (see `docs/codemem/kill-criteria.md` for the current watch).
 
-## Install (standalone)
+## Install
 
-```bash
-pip install codemem-mcp
-```
-
-## Install (with aa-ma-forge integration)
-
-See the parent [aa-ma-forge](https://github.com/snewhouse/aa-ma-forge) README.
+codemem is not published to PyPI: `pip install codemem-mcp` does not work. It ships
+inside [aa-ma-forge](https://github.com/snewhouse/aa-ma-forge) as a uv workspace member
+(plugin-only distribution, AD-Q15). Clone the forge, run `uv sync`, then
+`scripts/install.sh`; see the parent README.
 
 ## Docs
 

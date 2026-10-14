@@ -96,7 +96,7 @@ Minified, ~100 KB on aa-ma-forge; auto-compressed if it exceeds a target size.
 ### codemem produces
 
 - `<repo>/.codemem/index.db` — SQLite database with tables `files`, `symbols`, `edges` (v1 schema), plus `commits`, `commit_files`, `ownership`, `co_change_pairs` (v2, added with the git-mining tools), plus `file_edges` (v3, file-level import edges). `user_version` tracks `CURRENT_SCHEMA_VERSION` in `storage/db.py`.
-- `<repo>/.codemem/wal.jsonl` — write-ahead log for crash-safe incremental refresh. Rotates at 10 MB with 3 compressed archives retained.
+- `<repo>/.codemem/wal.jsonl` — JSONL write-ahead journal (written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14)). Rotates at 10 MB with 3 compressed archives retained.
 - `<repo>/.codemem/last_sha` — HEAD commit SHA at last refresh (used for `git log $last..HEAD` on incremental refresh).
 - `<repo>/PROJECT_INTEL.json` (optional) — a PageRank-ranked 1024-token symbol index suitable for `@`-loading as model context.
 

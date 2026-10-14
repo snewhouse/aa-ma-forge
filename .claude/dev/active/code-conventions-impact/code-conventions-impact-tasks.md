@@ -1369,8 +1369,8 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main) — version-pipeline — <evidence>`, naming the dry-run output and the release URL.
 - Result Log:
 
-## Milestone 15: Codemem freshness (report 03 T2–T6)
-- Status: PENDING
+## Milestone 15: Codemem freshness (report 03 T2–T9)
+- Status: ACTIVE
 - Dependencies: Milestone 9
 - Complexity: 75%
 - Effort: 6 days
@@ -1379,28 +1379,29 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Critical-Path: hook-modification
 - Prototype-Required: YES
 - Mode: HITL
+- Decision ids: `R03-Dn` = decision n of report 03's CEO-review ledger, never this plan's Dn (renamed 2026-10-14, pre-exec validator W2).
 - Source: ~/projects/github_private/ooh_ideas/research/03-codemem-graphify-report.md §8 P0/P0+/P1 and §Implementation Tasks T2–T9, T12 (scope change 2026-10-13, Ste: B1 + T7 + T8 + T9)
 - Acceptance Criteria:
   - `codemem refresh` runs the real `refresh_index` driver (no "placeholder" text in `cli.py`); report 03 P0#1 AC (a)–(e) and its edge cases (no git, detached HEAD, shallow clone, dirty tree, missing index) pass as tests, incl. a refresh killed mid-run that the next refresh recovers from.
   - Every codemem MCP response carries `index_sha`, `head_sha`, `stale` (true|false|unknown), `stale_reason` (golden tests updated additively); an impact-analysis run on a locked index emits `CODE_INTEL_STALE`.
   - After a commit, `.codemem/last_sha` and `graphify-out/.built_sha` equal HEAD; a killed or failed graphify rebuild leaves the previous `.built_sha`; the race test (pause/release, A last) leaves `.built_sha == A`.
   - The Session Briefing prints `Code-intel: …` per report 03 X1 output rules, < 200 ms on aa-ma-forge, never blocks.
-  - 15.6's milestone dry run prints a `CODE_INTEL_REFRESH` line naming the pre-commit HEAD; a graphify failure WARNs and never blocks. The first live line is Milestone 10's (D7: the executor gains the step after merge + install.sh).
+  - 15.6's milestone dry run prints a `CODE_INTEL_REFRESH` line naming the pre-commit HEAD; a graphify failure WARNs and never blocks. The first live line is Milestone 10's (R03-D7: the executor gains the step after merge + install.sh).
   - `uv run --no-sync codemem draw --check` exits 0; `docs/codemem/kill-criteria.md` has a 2026-10 review entry; `grep -c '_M2 placeholder_' claude-code/codemem/commands/codemem.md` prints 0; the wheel README has no false `pip install` claim.
-  - codemem MCP answers at user scope in a second repo via a stable symlink (D13), whose `git status` stays clean (global excludes `.codemem/`, `graphify-out/`).
-  - `~/.claude/rules/code-intel-routing.md` exists (per-language table D10, `~/biorelate/**` + client repos code-only), `GRAPHIFY_QUERY_LOG_DISABLE=1` is set, and the graphify skill description no longer claims every codebase question (`grep -c 'any question about a codebase' ~/.claude/skills/graphify/SKILL.md` prints 0).
+  - codemem MCP answers at user scope in a second repo via a stable symlink (R03-D13), whose `git status` stays clean (global excludes `.codemem/`, `graphify-out/`).
+  - `~/.claude/rules/code-intel-routing.md` exists (per-language table R03-D10, `~/biorelate/**` + client repos code-only), `GRAPHIFY_QUERY_LOG_DISABLE=1` is set, and the graphify skill description no longer claims every codebase question (`grep -c 'any question about a codebase' ~/.claude/skills/graphify/SKILL.md` prints 0).
   - `TODOS.md` has the X4 entry (`grep -n X4 TODOS.md`).
   - `provenance.log` has `PROTOTYPE`, `TESTS_VERIFIED` and `CRITICAL_PATH_REVIEW` lines for Milestone 15.
 
 ### Sub-step 15.0: Post-merge of M9 + X4 TODOS entry (T12)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
   - M9 merged (PR #37, d0a1833), main pulled, live `scripts/install.sh` rc 0, live fence 3 and `aa_ma_has_gate_approval` verified — record the evidence already in provenance.log.
   - Worktree for M15 cut from fresh main; `uv sync && uv run codemem build` exit 0.
-  - `TODOS.md` gains the X4 entry (non-Python call gap; trigger: a language family fails the parity gate; path to full project-index retirement, D10).
-- Result Log:
+  - `TODOS.md` gains the X4 entry (non-Python call gap; trigger: a language family fails the parity gate; path to full project-index retirement, R03-D10).
+- Result Log: Mode HITL — Ste: Proceed + rename title to T2–T9. M9 post-merge evidence already in provenance (PR #37 d0a1833, install.sh rc 0, installed `aa_ma_has_gate_approval` rc 0/1; fence 3 live at M9's gate `TESTS_VERIFIED … passed=3010`); nothing install-relevant changed since (`git diff d0a1833..9546a2e -- docs/spec scripts/install.sh claude-code/hooks` empty). Worktree `.worktrees/feat/cci-m15-codemem-freshness` @ 9546a2e; `uv sync` + `codemem build` rc 0 (329 files, 3136 symbols, 8353 edges, 0.87 s). Baseline: pytest 3012 passed / 6 skipped / 7 deselected (135 s), bats 560/560. TODOS.md X4 entry (`grep -n X4 TODOS.md` → :154). Pre-exec validator WARN 0 FAIL / 7 WARN — all 7 applied (context-log 2026-10-14 M15 start). Gate reads M15 ACTIVE, HARD, 11 PENDING; deps advisory silent; lint-views edges=25 checked=25 phantom=0; tasks.md canonical violations [].
 
 ### Sub-step 15.1: PROTOTYPE — bounded refresh cap (T2 risk)
 - Status: PENDING
@@ -1409,7 +1410,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Prototype-Required: YES
 - Acceptance Criteria:
   - On `prototype/codemem-refresh-cap`, prove the 5 s cap around the synchronous `refresh_index` (`incremental.py:74`): thread vs subprocess; killing it mid-run leaves the writer lock and WAL consistent and the next refresh recovers.
-  - `provenance.log` has `[ts] PROTOTYPE — Milestone 15: Codemem freshness (report 03 T2–T6) — <verdict> — verdict-changes-plan: YES|NO`.
+  - `provenance.log` has `[ts] PROTOTYPE — Milestone 15: Codemem freshness (report 03 T2–T9) — <verdict> — verdict-changes-plan: YES|NO`.
 - Result Log:
 
 ### Sub-step 15.2: Bounded refresh + stale semantics; real `codemem refresh` (T2)
@@ -1418,6 +1419,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Dependencies: Sub-step 15.1
 - Acceptance Criteria:
   - TDD: tests for P0#1 AC (a)–(e) and every edge case with its defined output fail first, then pass.
+  - `grep -ci placeholder packages/codemem-mcp/src/codemem/cli.py` prints 0 (the stale `:12` replay and `:103` refresh-commits docstrings included), or each remaining hit is true and named in the Result Log.
   - `codemem refresh` calls `refresh_index`; `ensure_built` checks staleness and refreshes under the cap; the 10 s other-process wait (`mcp_tools/__init__.py`) shrinks to the same cap; locked/error/timeout → results with `stale=true` + reason and one log line (`refresh.log`).
 - Result Log:
 
@@ -1435,7 +1437,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Mode: AFK
 - Dependencies: Sub-step 15.2
 - Acceptance Criteria:
-  - `claude-code/codemem/hooks/post-commit.sh`: `codemem refresh` + `graphify update .` in the background under `flock`, writing the SHA captured at start to `graphify-out/.built_sha` only when graphify exits 0 (D12); graphify's own post-commit hook is not used.
+  - `claude-code/codemem/hooks/post-commit.sh`: `codemem refresh` + `graphify update .` in the background under `flock`, writing the SHA captured at start to `graphify-out/.built_sha` only when graphify exits 0 (R03-D12); graphify's own post-commit hook is not used.
   - bats: race test (pause/release, A last → `.built_sha == A`); a killed run keeps the old sidecar; graphify absent → one notice, exit 0. `scripts/install.sh` updated if the hook wiring changes.
 - Result Log:
 
@@ -1454,7 +1456,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Mode: HITL
 - Dependencies: Sub-step 15.4
 - Acceptance Criteria:
-  - `execute-aa-ma-milestone` (references) refreshes codemem (`refresh` + `refresh-commits`) and graphify (`update .`, code-only, D7) at the boundary and appends `[ts] CODE_INTEL_REFRESH — <milestone heading> — codemem=<sha> graphify=<sha|WARN reason>` naming the pre-commit HEAD; graphify failure WARNs, never blocks; codemem failure keeps the existing BLOCKED contract.
+  - `execute-aa-ma-milestone` (references) refreshes codemem (`refresh` + `refresh-commits`) and graphify (`update .`, code-only, R03-D7) at the boundary and appends `[ts] CODE_INTEL_REFRESH — <milestone heading> — codemem=<sha> graphify=<sha|WARN reason>` naming the pre-commit HEAD; graphify failure WARNs, never blocks; codemem failure keeps the existing BLOCKED contract.
   - A milestone dry run logs the pre-commit HEAD; SKILL.md stays under its 500-line cap.
 - Result Log:
 
@@ -1471,7 +1473,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Mode: HITL
 - Dependencies: Sub-step 15.3, Sub-step 15.5
 - Acceptance Criteria:
-  - `~/.local/share/codemem-plugin` → a dedicated git worktree of the forge on `main` (D13; PR review 2026-10-14: never the working checkout, whose branch changes under review and prototypes), made with `ln -sfn`, updated only by `scripts/install.sh` or a pull; codemem MCP registered at user scope with that path; the 15.5 session-start check reports a missing link and a target that is not that worktree on `main`.
+  - `~/.local/share/codemem-plugin` → a dedicated git worktree of the forge on `main` (R03-D13; PR review 2026-10-14: never the working checkout, whose branch changes under review and prototypes), made with `ln -sfn`, updated only by `scripts/install.sh` or a pull; codemem MCP registered at user scope with that path; the 15.5 session-start check reports a missing link and a target that is not that worktree on `main`.
   - Global git excludes carry `.codemem/` and `graphify-out/`; codemem tools answer in a second repo and its `git status` stays clean. Taken first: `~/.claude` backup (count-verified) and timestamped copies of the global excludes file and the shell rc (plan §7 M15 row).
   - The M10 contract records how its pre-edit hook resolves codemem (this stable path, or `uv run --directory <forge>`).
 - Result Log:
@@ -1481,14 +1483,14 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Mode: HITL
 - Dependencies: Sub-step 15.8
 - Acceptance Criteria:
-  - `~/.claude/rules/code-intel-routing.md` per report 03 §5 + D10 table (Python → codemem only after parity; others as tabled), naming `~/biorelate/**` and client repos code-only (D14); never cite INFERRED/AMBIGUOUS graphify edges as evidence.
+  - `~/.claude/rules/code-intel-routing.md` per report 03 §5 + R03-D10 table (Python → codemem only after parity; others as tabled), naming `~/biorelate/**` and client repos code-only (R03-D14); never cite INFERRED/AMBIGUOUS graphify edges as evidence.
   - `GRAPHIFY_QUERY_LOG_DISABLE=1` in the shell env (`env | grep GRAPHIFY_QUERY_LOG_DISABLE`); graphify skill description narrowed (`grep -c 'any question about a codebase' ~/.claude/skills/graphify/SKILL.md` prints 0); graphify's PreToolUse hook-guard not installed.
 - Result Log:
 
 ### Sub-step 15.10: CRITICAL_PATH_REVIEW
 - Status: PENDING
 - Mode: AFK
-- Dependencies: Sub-step 15.9
+- Dependencies: Sub-step 15.6, Sub-step 15.7, Sub-step 15.9
 - Acceptance Criteria:
-  - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — <milestone heading> — hook-modification — <evidence>`, naming the bats/test names, where the heading is verbatim: Milestone 15: Codemem freshness (report 03 T2–T6)
+  - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — <milestone heading> — hook-modification — <evidence>`, naming the bats/test names, where the heading is verbatim: Milestone 15: Codemem freshness (report 03 T2–T9)
 - Result Log:

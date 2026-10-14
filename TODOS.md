@@ -151,6 +151,18 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 **Priority:** P2
 **Depends on:** diagram-generation M1 (establishes the partial-unique-index pattern)
 
+### X4: graphify tree-sitter call edges as codemem's non-Python fallback
+
+**What:** Feed graphify's tree-sitter call edges into codemem for the language families whose calls codemem leaves unresolved (TS/JS, Java, shell, Go/Rust/Ruby), then rerun the per-language parity check for each family.
+
+**Why:** codemem resolves calls fully only for Python: TS/JS/Java calls stay unresolved, and it does not index Kotlin, C#, C/C++ or R at all (`indexer.py` language table). The codemem/graphify review (report 03, decision ledger X4) deferred this. It is now the only path to retiring project-index outright: every family except Python keeps project-index until X4 lands and that family passes parity (report 03 R03-D10).
+
+**Trigger:** a language family fails the parity gate (report 03 P1 #7), or a client repo needs callers/callees in a non-Python language.
+
+**Effort:** L
+**Priority:** P2
+**Depends on:** code-conventions-impact Milestone 15 (fresh index, `stale` envelope); the Python parity check (report 03 T10)
+
 ### Make aa-ma-tui runnable from any project
 
 **What:** Resolve the aa-ma-forge checkout from the install.sh symlink (`readlink -f ~/.claude/skills/<any>/SKILL.md` → repo root) and run `uv run --project <root> aa-ma-tui`, via a thin wrapper or documented alias.

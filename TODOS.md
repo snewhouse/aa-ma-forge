@@ -170,6 +170,13 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 **Effort:** S
 **Priority:** P2
 
+### Re-narrow the graphify skill trigger after every graphify upgrade
+
+**What:** After `graphify install` or an upgrade of the `graphifyy` package, re-apply the M15.9 description in `~/.claude/skills/graphify/SKILL.md` (concept and doc questions; structural questions go to codemem). Check with `grep -c 'any question about a codebase' ~/.claude/skills/graphify/SKILL.md`, which must print 0.
+**Why:** graphify ships its own SKILL.md, and an upgrade restores the "any question about a codebase" trigger that `~/.claude/rules/code-intel-routing.md` routes away from.
+**Effort:** XS
+**Priority:** P3
+
 ### X4: graphify tree-sitter call edges as codemem's non-Python fallback
 
 **What:** Feed graphify's tree-sitter call edges into codemem for the language families whose calls codemem leaves unresolved (TS/JS, Java, shell, Go/Rust/Ruby), then rerun the per-language parity check for each family.

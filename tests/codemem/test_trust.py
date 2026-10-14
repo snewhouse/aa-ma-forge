@@ -287,7 +287,7 @@ def test_an_unreadable_trust_store_is_a_named_error_not_untrusted(
     with pytest.raises(TrustStoreError):
         db.connect(db_path, read_only=True)
     r = mcp_tools.ensure_fresh(db_path, root)
-    assert r["stale_reason"] == "error" and "trust store" in r["error"]
+    assert r["stale_reason"] == "trust_store" and "trust store" in r["error"]
     assert not (db_path.parent / "index.db.rebuild").exists()
 
 
@@ -313,3 +313,144 @@ def test_an_untrusted_rebuild_that_failed_says_so(repo, monkeypatch, tmp_path):
     assert r["stale_reason"] == "untrusted" and "failed" in r["error"]
     log = (db_path.parent / "refresh.log").read_text()
     assert "not served" in log and "serving a stale index" not in log.splitlines()[-1]
+
+
+# --- §6.8 re-run 4 (fold-ins) -------------------------------------------------
+
+
+def _broken_store(monkeypatch, tmp_path) -> None:
+    blocker = tmp_path / "state-is-a-file"
+    blocker.write_text("x\n")
+    monkeypatch.setenv("XDG_STATE_HOME", str(blocker))
+
+
+def test_connect_never_deletes_an_index_it_did_not_create(repo, monkeypatch, tmp_path):
+    """TOCTOU: a file that appears after an exists() check must not be cleaned up as ours."""
+    from codemem.safety import TrustStoreError
+
+    _, db_path = repo
+    _broken_store(monkeypatch, tmp_path)
+    real_exists = Path.exists
+    monkeypatch.setattr(
+        Path, "exists", lambda p: False if p == db_path else real_exists(p)
+    )
+    with pytest.raises(TrustStoreError):
+        db.connect(db_path)
+    monkeypatch.setattr(Path, "exists", real_exists)
+    assert db_path.exists()
+
+
+def test_an_empty_trust_record_heals_on_the_next_build(repo):
+    from codemem.safety import trust_record
+    from codemem.storage.db import index_trusted
+
+    root, db_path = repo
+    trust_record(db_path.parent).write_text("")
+    build_index(root, db_path)
+    assert index_trusted(db_path) is True
+    assert trust_record(db_path.parent).read_text().strip()
+
+
+def test_a_record_created_concurrently_is_used_and_no_temp_is_left(
+    tmp_path, monkeypatch
+):
+    import codemem.safety as safety
+
+    d = tmp_path / "r" / ".codemem"
+    d.mkdir(parents=True)
+    rec = safety.trust_record(d)
+    real_link = safety.os.link
+
+    def racing_link(src, dst):
+        Path(dst).parent.mkdir(parents=True, exist_ok=True)
+        Path(dst).write_text("their-nonce\n")  # another process won
+        return real_link(src, dst)
+
+    monkeypatch.setattr(safety.os, "link", racing_link)
+    assert safety._nonce(d, create=True) == "their-nonce"
+    assert [p.name for p in rec.parent.iterdir()] == [rec.name]
+
+
+def test_a_store_without_hard_links_still_records(tmp_path, monkeypatch):
+    import errno
+
+    import codemem.safety as safety
+
+    def no_links(src, dst):
+        raise OSError(errno.EPERM, "Operation not permitted")
+
+    monkeypatch.setattr(safety.os, "link", no_links)
+    d = tmp_path / "r" / ".codemem"
+    d.mkdir(parents=True)
+    assert safety._nonce(d, create=True)
+
+
+def test_a_non_utf8_record_is_a_trust_store_error(repo):
+    from codemem.safety import TrustStoreError, trust_record
+
+    _, db_path = repo
+    trust_record(db_path.parent).write_bytes(b"\xff\xfe\x00bad")
+    with pytest.raises(TrustStoreError):
+        db.connect(db_path, read_only=True)
+
+
+def test_a_trust_dir_another_user_could_write_is_refused(repo):
+    import os
+
+    from codemem.safety import TrustStoreError, trust_record
+
+    _, db_path = repo
+    store = trust_record(db_path.parent).parent
+    os.chmod(store, 0o777)  # noqa: S103  # why: plants the unsafe mode the code must refuse
+    try:
+        with pytest.raises(TrustStoreError):
+            db.connect(db_path, read_only=True)
+    finally:
+        os.chmod(store, 0o700)
+
+
+def test_a_broken_store_has_its_own_stale_reason(repo, monkeypatch, tmp_path):
+    root, db_path = repo
+    _broken_store(monkeypatch, tmp_path)
+    r = mcp_tools.ensure_fresh(db_path, root)
+    assert r["stale_reason"] == "trust_store" and "trust store" in r["error"]
+
+
+def test_cli_names_a_broken_store(repo, monkeypatch, tmp_path):
+    root, db_path = repo
+    _broken_store(monkeypatch, tmp_path)
+    r = subprocess.run(
+        [sys.executable, "-m", "codemem.cli", "--db", str(db_path), "status"],
+        capture_output=True,
+        text=True,
+        cwd=root,
+    )
+    assert r.returncode == 1 and "trust store error" in r.stderr
+
+
+def test_draw_check_on_a_broken_store_is_unknown_not_drift(
+    repo, monkeypatch, tmp_path, capsys
+):
+    from codemem import cli
+
+    _, db_path = repo
+    _broken_store(monkeypatch, tmp_path)
+    assert cli.main(["--db", str(db_path), "draw", "--check"]) == 0
+    out = capsys.readouterr().out
+    assert "UNKNOWN" in out and "codemem build" not in out
+
+
+def test_untrusted_error_names_the_real_log(repo, monkeypatch, tmp_path):
+    root, db_path = repo
+    _other_machine(monkeypatch, tmp_path)
+    monkeypatch.setattr(mcp_tools, "_capped_refresh", lambda *a, **k: "error")
+    r = mcp_tools.ensure_fresh(db_path, root)
+    assert str(db_path.parent / "refresh.log") in r["error"]
+
+
+def test_every_refresh_outcome_has_an_untrusted_message():
+    import typing
+
+    assert set(mcp_tools._UNTRUSTED_ERROR) == set(
+        typing.get_args(mcp_tools.RefreshOutcome)
+    )

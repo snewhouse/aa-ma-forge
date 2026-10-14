@@ -163,7 +163,11 @@ class TestWriteMode:
 
         repo_root, db_path = repo_with_task
         ref_path = (
-            repo_root / ".claude" / "dev" / "active" / "sample-task"
+            repo_root
+            / ".claude"
+            / "dev"
+            / "active"
+            / "sample-task"
             / "sample-task-reference.md"
         )
         before = ref_path.read_text()

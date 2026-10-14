@@ -54,7 +54,13 @@ def _repo(tmp_path: Path, *, version: int = 3) -> Path:
     )
     conn.executemany(
         "INSERT INTO edges VALUES (?, ?, ?, 'call')",
-        [(1, 3, None), (1, 3, None), (1, 2, None), (3, 4, None), (1, None, "os.getcwd")],
+        [
+            (1, 3, None),
+            (1, 3, None),
+            (1, 2, None),
+            (3, 4, None),
+            (1, None, "os.getcwd"),
+        ],
     )
     if version >= 3:
         conn.executemany(
@@ -82,6 +88,7 @@ def _touch_forward(path: Path, seconds: int = 10) -> None:
 # ---------------------------------------------------------------------
 # open_graph statuses
 # ---------------------------------------------------------------------
+
 
 class TestOpenGraph:
     def test_ok(self, tmp_path: Path) -> None:
@@ -125,7 +132,9 @@ class TestOpenGraph:
         assert h.reason
         assert h.conn is None
 
-    def test_directory_replaced_by_file_is_stale_not_raised(self, tmp_path: Path) -> None:
+    def test_directory_replaced_by_file_is_stale_not_raised(
+        self, tmp_path: Path
+    ) -> None:
         """NotADirectoryError (and any OSError) must become STALE, never escape."""
         root = _repo(tmp_path)
         _add_file_row(root, "pkg/x.py")
@@ -134,7 +143,9 @@ class TestOpenGraph:
         assert h.status is GraphStatus.STALE
         assert "pkg/x.py" in h.reason
 
-    @pytest.mark.parametrize("hostile", ["/etc/passwd", "../outside.py", "a/../../outside.py"])
+    @pytest.mark.parametrize(
+        "hostile", ["/etc/passwd", "../outside.py", "a/../../outside.py"]
+    )
     def test_paths_outside_repo_are_stale_not_statted(
         self, tmp_path: Path, hostile: str
     ) -> None:
@@ -213,6 +224,7 @@ class TestOpenGraph:
 # Readers
 # ---------------------------------------------------------------------
 
+
 class TestReaders:
     def test_import_edges_resolved_only(self, tmp_path: Path) -> None:
         h = open_graph(_repo(tmp_path))
@@ -241,6 +253,7 @@ class TestReaders:
 # ---------------------------------------------------------------------
 # Import contract (AC4) — asserted by NAME, never by total
 # ---------------------------------------------------------------------
+
 
 def test_never_imports_codemem_contract_declared() -> None:
     cfg = configparser.ConfigParser()

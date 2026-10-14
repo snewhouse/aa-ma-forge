@@ -68,6 +68,16 @@ textconv), argv size, renames, and lines that look like diff syntax.
 1. a glob-like name (`x[1].py`, `*.py`), with git pathspecs taken literally (`GIT_LITERAL_PATHSPECS=1`);
 2. a count large enough to hit the timeout, so a refusal replaces the timeout;
 3. an ignored file.
+**Recurrence 4 (2026-10-14, M15.2, codemem bounded refresh):** I ran the matrix (symlinked log, newline injection,
+option-shaped SHA, git absent, read-only dir) and still shipped three holes a background review found in minutes:
+`python -m pkg` with cwd = the target repo imports the repo's own `pkg/` (code execution); a sidecar `write_text`
+follows a committed symlink; `git status` (and, measured, `git ls-files`) runs the repo's `core.fsmonitor`.
+**Stricter:** when code runs against a repo it did not author, list every input the repo controls before writing it:
+its tree (module names on `sys.path`, file names in messages), its `.git/config` (fsmonitor, filters, hooks), and
+every file under its tool dirs (`.codemem/`, `graphify-out/`: symlinks, contents). Subprocesses of Python get `-I`;
+git on a foreign repo gets command-scope pins (`-c core.fsmonitor=false -c core.hooksPath=/dev/null`) or the
+`stamp.py` allowlist; files in a repo-controlled dir are written by temp + `os.replace`, appended with `O_NOFOLLOW`.
+Each gets a test that plants the hostile thing and a mutation that removes the pin.
 **Cross-ref:** L-1319 (stderr on exit 0 is invisible), L-047 (sweep every reader)
 
 ---

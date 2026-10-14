@@ -14,7 +14,15 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-__all__ = ["GraphHandle", "GraphStatus", "call_edges", "file_langs", "import_edges", "open_graph", "printable"]
+__all__ = [
+    "GraphHandle",
+    "GraphStatus",
+    "call_edges",
+    "file_langs",
+    "import_edges",
+    "open_graph",
+    "printable",
+]
 
 MIN_SCHEMA_VERSION = 3  # file_edges arrived in codemem schema v3
 _REMEDY = "run `codemem build`"
@@ -22,6 +30,8 @@ _MAX_SHOWN = 3  # stale paths quoted in a reason
 
 
 class GraphStatus(StrEnum):
+    """Whether a codemem index can answer: usable, absent, too old or stale."""
+
     OK = "ok"
     MISSING = "missing"
     SCHEMA_TOO_OLD = "schema_too_old"
@@ -30,6 +40,8 @@ class GraphStatus(StrEnum):
 
 @dataclass(frozen=True)
 class GraphHandle:
+    """The result of :func:`open_graph`: a status, its reason, and the connection if any."""
+
     status: GraphStatus
     reason: str | None
     conn: sqlite3.Connection | None  # read-only; the caller owns it and closes it
@@ -41,7 +53,9 @@ def open_graph(repo_root: Path) -> GraphHandle:
     try:
         db = Path(repo_root) / ".codemem" / "index.db"
         if not db.is_file():
-            return GraphHandle(GraphStatus.MISSING, f"no codemem index at {db}; {_REMEDY}", None)
+            return GraphHandle(
+                GraphStatus.MISSING, f"no codemem index at {db}; {_REMEDY}", None
+            )
         conn = sqlite3.connect(f"{db.resolve().as_uri()}?mode=ro", uri=True)
         conn.execute("PRAGMA trusted_schema = OFF")  # the file is data, not code
         version = conn.execute("PRAGMA user_version").fetchone()[0]
@@ -57,10 +71,14 @@ def open_graph(repo_root: Path) -> GraphHandle:
         if conn is not None:
             conn.close()
         return GraphHandle(
-            GraphStatus.MISSING, f"codemem index at {db} is unreadable ({exc}); {_REMEDY}", None
+            GraphStatus.MISSING,
+            f"codemem index at {db} is unreadable ({exc}); {_REMEDY}",
+            None,
         )
     if stale:
-        shown = ", ".join(printable(p) for p in stale[:_MAX_SHOWN]) + (", ..." if len(stale) > _MAX_SHOWN else "")
+        shown = ", ".join(printable(p) for p in stale[:_MAX_SHOWN]) + (
+            ", ..." if len(stale) > _MAX_SHOWN else ""
+        )
         return GraphHandle(
             GraphStatus.STALE,
             f"{len(stale)} file(s) changed since indexing ({shown}); {_REMEDY}",

@@ -513,3 +513,17 @@ OK; all 7 real HARD approvals in this plan's context-log still pass. Final CI: s
 - C1 (security-auditor): a committed `.codemem/index.db -> <user file>` or `.codemem -> <dir>` made one codemem query overwrite the target with SQLite and delete `-wal`/`-shm` beside it — reproduced on the branch (victim replaced; `last_sha`, `tree_sig`, `db.lock`, `refresh.log` written beside it), not on main. **Accept** (Ste) → fix as one fail-closed boundary (L-049: third finding in the repo-controlled `.codemem/` mechanism → redesign, not patch).
 - C2 (code-reviewer): `code-intel-refresh.sh` `sidecar()` followed symlinks and skipped the 40-hex check, so a committed `last_sha -> ../.git/refs/heads/<branch>` recorded `codemem=<HEAD>` for an index that never refreshed. **Accept** (Ste) → one shared shell reader.
 - WARNINGs: fold in (Ste) — 40/64-hex SHAs, no sidecar write before the swap, `_git` timeout, lazy `Freshness` import, header reasons, `flock -w` + timeouts in the worker, `EXIT_LOCKED` in the test, `REFRESH_CAP_S` wording; the rest recorded (Contract/reference now, others TODOS).
+
+## §6.8 re-run 1 (fix window ff6100c..f263dbc, 2026-10-14)
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 1 | 8 | 7 | BLOCKED (regression in the C1 fix; accepted) |
+| security-auditor | 0 | 4 | 5 | WARN — C1 closed (35 hostile cases, 0 bad), C2 closed |
+
+User Override Decisions (Ste, 2026-10-14):
+- CRITICAL (code-reviewer): `check_db_path` caught only `FileNotFoundError`; a committed regular FILE `.codemem` made `ensure_fresh` (and every MCP tool) raise `NotADirectoryError` instead of returning the X2 envelope. **Accept — block until fixed.**
+- Boundary (security-auditor W1/W2 + TOCTOU INFO): `codemem replay` wrote into a linked `index.db`; readers (status, draw, query, intel, `src/aa_ma/render/graph.py`) created `-wal`/`-shm` beside a linked target. **Chokepoint in `storage.db.connect()`** (refuse a linked DB file/dir for every reader and writer); `graph.py` drops `resolve()`.
+- Committed index (security-auditor W4, A08): a git-tracked `.codemem/` was served as `stale=false` with poisoned rows. **Fix in M15**: a tracked `.codemem/` is refused; `connect()` sets `PRAGMA trusted_schema=OFF`.
+- `aa_ma_context(write=True)` appended through a committed linked `reference.md` (security-auditor W3, pre-existing 814b9a0). **Fix now in M15.**
+- code-reviewer WARNINGs: folded in (per Ste's standing "Fold them in" for §6.8 WARNINGs this milestone).

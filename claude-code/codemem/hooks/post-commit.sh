@@ -22,8 +22,12 @@
 # - Repo-controlled inputs stay inert: PATH keeps absolute entries only (a
 #   relative entry would run a repo's ./graphify), codemem comes from this
 #   forge's venv before PATH, and refresh.log / .built_sha are never written
-#   through a symlink. A stray refresh.pid is no longer read: killing a PID
-#   from a repo-writable file could kill any process of the user.
+#   through a symlink. A symlinked graphify-out skips graphify (it would write
+#   through the link); codemem refuses a symlinked .codemem itself. A stray
+#   refresh.pid is no longer read: killing a PID from a repo-writable file
+#   could kill any process of the user.
+# - Bounded: each step runs under `timeout` (when present) and a worker waits
+#   at most LOCK_WAIT_S for the queue, so a wedged step cannot hold it forever.
 
 set -u
 
@@ -36,7 +40,12 @@ export PATH
 
 SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"  # why: readlink -f is absent on old macOS; the invoked path still works
 FORGE_ROOT="$(cd "$(dirname "${SELF}")/../../.." && pwd)"
-SHA_RE='^[0-9a-f]{40}$'
+SHA_RE='^([0-9a-f]{40}|[0-9a-f]{64})$'
+# The slowest measured step is a cold `graphify update` (11.5 s on aa-ma-forge,
+# M15.4); 300 s is ~25x that. A worker waits for one predecessor's two capped
+# steps (codemem, graphify) plus slack before giving up its turn.
+STEP_TIMEOUT_S=300
+LOCK_WAIT_S=900
 
 log_line() {
     # One line to .codemem/refresh.log, never through a symlink (the dir is repo-controlled).
@@ -69,6 +78,15 @@ write_built_sha() {
     rm -f -- "${tmp}"
 }
 
+capped() {
+    # "$@" under timeout when present (absent on stock macOS); rc 124 = timed out.
+    if command -v timeout > /dev/null 2>&1; then  # why: a presence probe
+        timeout "${STEP_TIMEOUT_S}" "$@"
+    else
+        "$@"
+    fi
+}
+
 refresh_codemem() {
     # CODEMEM_BIN (user env, like RUFF_BIN) pins the binary with no fallback.
     local codemem
@@ -83,9 +101,9 @@ refresh_codemem() {
         return 0
     fi
     # why: codemem refresh logs its own errors to refresh.log; its stdout is a summary nobody reads
-    "${codemem}" refresh > /dev/null 2>&1 || log_line "codemem refresh exited $? (75 = another refresh held the lock)"
+    capped "${codemem}" refresh > /dev/null 2>&1 || log_line "codemem refresh exited $? (75 = another refresh held the lock; 124 = timed out after ${STEP_TIMEOUT_S}s)"
     # why: as above; the git-mining cache (co_changes, hot_spots) follows the commit too
-    "${codemem}" refresh-commits > /dev/null 2>&1 || log_line "codemem refresh-commits exited $?"
+    capped "${codemem}" refresh-commits > /dev/null 2>&1 || log_line "codemem refresh-commits exited $? (124 = timed out after ${STEP_TIMEOUT_S}s)"
 }
 
 run_worker() {
@@ -108,8 +126,8 @@ run_worker() {
         log_line "cannot open ${lock##*/}: refresh skipped"
         exit 0
     fi
-    if ! flock 9; then
-        log_line "flock failed on ${lock##*/}: refresh skipped"
+    if ! flock -w "${LOCK_WAIT_S}" 9; then
+        log_line "flock on ${lock##*/} failed or waited ${LOCK_WAIT_S}s: refresh skipped"
         exit 0
     fi
     refresh_codemem
@@ -119,10 +137,17 @@ run_worker() {
         log_line "graphify not found: code graph not refreshed (.built_sha unchanged)"
         exit 0
     fi
+    if [[ -L graphify-out ]]; then
+        log_line "graphify-out is a symlink: code graph not refreshed (.built_sha unchanged)"
+        exit 0
+    fi
     # why: graphify output carries repo text; only its exit code is logged
-    "${graphify}" update . > /dev/null 2>&1
+    capped "${graphify}" update . > /dev/null 2>&1
     rc=$?
-    if [[ "${rc}" -ne 0 ]]; then
+    if [[ "${rc}" -eq 124 ]]; then
+        log_line "graphify update timed out after ${STEP_TIMEOUT_S}s: .built_sha kept"
+        exit 0
+    elif [[ "${rc}" -ne 0 ]]; then
         log_line "graphify update failed (rc ${rc}): .built_sha kept"
         exit 0
     fi

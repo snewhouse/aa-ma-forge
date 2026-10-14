@@ -4,7 +4,7 @@
 # Usage: code-intel-refresh.sh <task-name> [--dry-run]     (run from the repo top)
 # Exit:  0 refreshed; the line is appended (or, with --dry-run, printed)
 #        1 BLOCKED: bad task name, unsafe provenance path, unreadable milestone,
-#          or a codemem index that exists but did not reach HEAD
+#          a symlinked .codemem/, or a codemem index that exists but did not reach HEAD
 #
 # Runs the 15.4 post-commit worker synchronously (same flock as post-commit runs;
 # codemem refresh + refresh-commits, `graphify update .` code-only, start-SHA
@@ -36,7 +36,7 @@ done
 
 TOP="$(git rev-parse --show-toplevel 2>/dev/null)" || blocked "not inside a git repo."  # why: git's message is replaced by this one
 HEAD_SHA="$(git rev-parse HEAD 2>/dev/null)" || blocked "no HEAD commit."  # why: as above
-[[ "${HEAD_SHA}" =~ ^[0-9a-f]{40}$ ]] || blocked "HEAD is not a 40-hex SHA."
+[[ "${HEAD_SHA}" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]] || blocked "HEAD is not a 40- or 64-hex SHA."
 
 SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"  # why: readlink -f is absent on old macOS; the invoked path still works
 FORGE="$(cd "$(dirname "${SELF}")/../../../.." && pwd)"
@@ -56,20 +56,22 @@ GATE_KV=$(aa_ma_gate "${TASK_DIR}/${TASK_NAME}-tasks.md") || {
 HEADING=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field heading)
 [[ -n "${HEADING}" ]] || blocked "empty milestone heading."
 
+# Repo-controlled: codemem refuses to write through it, so its sidecar can only lie.
+[[ -L "${TOP}/.codemem" ]] && blocked ".codemem is a symlink; codemem refuses to index through one. Remove it, run \`codemem build\`, then re-run."
+
 # The worker always exits 0; the sidecars say what it achieved.
 bash "${WORKER}" --worker "${HEAD_SHA}" "${TOP}"
 
-sidecar() { head -c 128 -- "$1" 2>/dev/null | tr -d '\n'; }  # why: absent sidecar → empty, handled by the callers
-
+# Sidecars are read only through aa_ma_read_sidecar_sha: never through a link (§6.8 C2).
 if [[ -e "${TOP}/.codemem/index.db" ]]; then
-    [[ "$(sidecar "${TOP}/.codemem/last_sha")" == "${HEAD_SHA}" ]] \
+    [[ "$(aa_ma_read_sidecar_sha "${TOP}/.codemem/last_sha")" == "${HEAD_SHA}" ]] \
         || blocked "the codemem index did not reach HEAD ${HEAD_SHA:0:12}. If .codemem/refresh.log says another refresh held db.lock (exit 75), wait and re-run; if it names an error, run \`codemem build\`, then re-run."
     CODEMEM="${HEAD_SHA}"
 else
     CODEMEM="skipped(no index)"
 fi
 
-if [[ "$(sidecar "${TOP}/graphify-out/.built_sha")" == "${HEAD_SHA}" ]]; then
+if [[ "$(aa_ma_read_sidecar_sha "${TOP}/graphify-out/.built_sha")" == "${HEAD_SHA}" ]]; then
     GRAPHIFY="${HEAD_SHA}"
 elif ! command -v graphify > /dev/null 2>&1; then  # why: a presence probe
     GRAPHIFY="WARN graphify not found"

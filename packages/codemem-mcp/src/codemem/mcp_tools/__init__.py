@@ -77,9 +77,10 @@ _CHARS_PER_TOKEN = 4
 # ---------------------------------------------------------------------
 
 
-# A query never waits longer than this for the index: the aa-ma-forge
-# cold-build SLO (report 03 R03-D6). Past it, results are served with
-# stale=true and the refresh keeps running in the background.
+# The refresh step of a query is capped at this: the aa-ma-forge cold-build
+# SLO (report 03 R03-D6). Past it, results are served with stale=true and the
+# refresh keeps running in the background. A missing index is cold-built
+# unbounded (nothing to serve without it); see ensure_fresh.
 REFRESH_CAP_S = 5.0
 
 

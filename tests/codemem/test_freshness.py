@@ -91,6 +91,18 @@ def _hold_lock_in_child(lock: Path) -> subprocess.Popen:
     return p
 
 
+def _forbid_refresh_spawn(monkeypatch) -> None:
+    """Fail if anything spawns ``codemem.cli`` (git calls still run)."""
+    real = subprocess.Popen
+
+    def guarded(argv, *a, **k):
+        if "codemem.cli" in list(argv):
+            raise AssertionError(f"a refresh was spawned: {argv}")
+        return real(argv, *a, **k)
+
+    monkeypatch.setattr(subprocess, "Popen", guarded)
+
+
 # ---------------------------------------------------------------------
 # check_freshness: the cheap in-process pre-check
 # ---------------------------------------------------------------------
@@ -200,6 +212,7 @@ class TestRefreshIndex:
         monkeypatch.setattr(inc, "build_index", spy)
         (db_path.parent / "last_sha").unlink()
         (root / "c.py").write_text("def rebuilt():\n    pass\n")
+        _commit(root)  # discover_files indexes tracked files only
         refresh_index(root, db_path)
         assert seen and seen[0][0] != db_path and seen[0][1] is True
         assert "rebuilt" in _symbols(db_path)
@@ -209,20 +222,34 @@ class TestRefreshIndex:
         assert leftovers == []
 
     def test_long_lived_reader_across_swap(self, repo):
-        """A reader holding the old DB (and its -wal) open does not corrupt the new one."""
+        """The old DB's WAL frames never bleed into the swapped-in DB.
+
+        A reader holding a snapshot pins the old -wal; a writer then commits
+        frames there. Kept across the swap, that -wal/-shm pair makes new
+        readers of the NEW file see the OLD data (measured 2026-10-14).
+        """
         root, db_path = repo
         old = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
         old.execute("BEGIN")
         assert old.execute("SELECT count(*) FROM symbols").fetchone()[0] > 0
+        writer = sqlite3.connect(db_path)
+        writer.execute("PRAGMA wal_autocheckpoint=0")
+        writer.execute("CREATE TABLE stale_wal_marker(x)")
+        writer.commit()
+        assert (db_path.parent / "index.db-wal").stat().st_size > 0
         (db_path.parent / "last_sha").unlink()
         (root / "c.py").write_text("def after_swap():\n    pass\n")
+        _commit(root)  # discover_files indexes tracked files only
         refresh_index(root, db_path)
         assert "after_swap" in _symbols(db_path)
         old.execute("SELECT count(*) FROM symbols").fetchone()
         old.close()
+        writer.close()
         conn = sqlite3.connect(db_path)
         try:
             assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+            tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master")}
+            assert "stale_wal_marker" not in tables
         finally:
             conn.close()
         assert "after_swap" in _symbols(db_path)
@@ -279,11 +306,7 @@ class TestEnsureFresh:
 
     def test_a_fresh_index_spawns_nothing(self, repo, monkeypatch):
         root, db_path = repo
-
-        def boom(*a, **k):
-            raise AssertionError("no refresh may run on a fresh index")
-
-        monkeypatch.setattr(mcp_tools.subprocess, "Popen", boom)
+        _forbid_refresh_spawn(monkeypatch)
         r = mcp_tools.ensure_fresh(db_path, root)
         assert r["stale"] is False and r["stale_reason"] is None
         assert r["index_sha"] == r["head_sha"]
@@ -360,11 +383,7 @@ class TestEnsureFresh:
     def test_no_git_is_unknown_and_spawns_nothing(self, tmp_path, monkeypatch):
         (tmp_path / "a.py").write_text("x = 1\n")
         db_path = tmp_path / ".codemem" / "index.db"
-        monkeypatch.setattr(
-            mcp_tools.subprocess,
-            "Popen",
-            lambda *a, **k: (_ for _ in ()).throw(AssertionError("spawned")),
-        )
+        _forbid_refresh_spawn(monkeypatch)
         r = mcp_tools.ensure_fresh(db_path, tmp_path)
         assert (r["stale"], r["stale_reason"], r["head_sha"]) == (
             "unknown",

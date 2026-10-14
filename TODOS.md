@@ -112,6 +112,7 @@ Dependabot bumps the setup-uv SHA itself.
 - `render/mermaid_lint.py::_sigil_claims` (13), `::lint_text` (12)
 - `mcp_tools::diagram` (12), `ast_grep.py::extract_with_ast_grep` (12)
 - `indexer.py::parse_files` (11)
+- `cli.py::_cmd_query` (12; touched by M15.2)
 - `bench_codemem_vs_aider.py::_build_report` (PLR0913, 7 args)
 
 Find them with `grep -rn "M8.2 D8 pay-down"`.

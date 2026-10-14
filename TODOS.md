@@ -192,6 +192,18 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 **Effort:** S
 **Priority:** P3
 
+### codemem freshness: §6.8 deferrals (M15, recorded 2026-10-14)
+
+**What:**
+- Tie the "5 s" in `claude-code/codemem/README.md`, `commands/codemem.md` and `SECURITY.md` to `mcp_tools.REFRESH_CAP_S` with a doc-count test, so the number cannot drift from the constant.
+- `server.py` `_with_autobuild` returns `query failed: <class>: <message>`; the message can carry repo-controlled text such as paths. Return the class name only and log the rest.
+- Add a test for the `_rebuild_and_swap` claim that readers of the new DB never replay the old DB's WAL frames.
+- Label every M15 measurement in the docs with date, machine and repo; some are unlabelled.
+
+**Why:** These are M15 §6.8 WARNING/INFO findings that Ste recorded rather than fixed in the milestone.
+**Effort:** S
+**Priority:** P3
+
 ### X4: graphify tree-sitter call edges as codemem's non-Python fallback
 
 **What:** Feed graphify's tree-sitter call edges into codemem for the language families whose calls codemem leaves unresolved (TS/JS, Java, shell, Go/Rust/Ruby), then rerun the per-language parity check for each family.

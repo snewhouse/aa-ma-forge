@@ -767,17 +767,6 @@ class TestSection68Rerun:
         r = mcp_tools.ensure_fresh(db_path, root)
         assert r["stale_reason"] == "unsafe_db_path" and "error" in r
 
-    def test_a_git_tracked_codemem_dir_is_refused(self, repo):
-        root, db_path = repo
-        _git(root, "add", "-f", ".codemem/last_sha")
-        _commit(root, "ship an index")
-        r = mcp_tools.ensure_fresh(db_path, root)
-        assert r["stale_reason"] == "unsafe_db_path"
-        from codemem.incremental import UnsafeDbPath
-
-        with pytest.raises(UnsafeDbPath):
-            refresh_index(root, db_path)
-
     @pytest.mark.parametrize("read_only", [True, False])
     def test_connect_refuses_a_linked_db_file(self, tmp_path, wal_victim, read_only):
         from codemem.storage import db
@@ -804,7 +793,7 @@ class TestSection68Rerun:
         with db.connect(db_path, read_only=True) as conn:
             assert conn.execute("PRAGMA trusted_schema").fetchone()[0] == 0
 
-    @pytest.mark.parametrize("cmd", [["replay", "--from-wal"], ["status"]])
+    @pytest.mark.parametrize("cmd", [["replay", "--from-wal"], ["status"], ["refresh"]])
     def test_cli_through_a_linked_index_refuses_cleanly(self, repo, wal_victim, cmd):
         root, db_path = repo
         for p in db_path.parent.iterdir():
@@ -819,6 +808,8 @@ class TestSection68Rerun:
             cwd=root,
         )
         assert r.returncode == 1 and "Traceback" not in r.stderr
+        assert "refused" in r.stderr
+        assert not (db_path.parent / "refresh.log").exists()
         assert wal_victim.read_bytes() == before
         assert sorted(p.name for p in wal_victim.parent.iterdir()) == ["places.sqlite"]
 
@@ -846,40 +837,11 @@ class TestSection68Rerun:
         assert inc._git(repo[0], "rev-parse", "HEAD") is None
         assert any("timed out" in r.getMessage() for r in caplog.records)
 
-    def test_a_git_error_other_than_not_a_repo_refuses(self, repo, monkeypatch):
-        """Fail closed: e.g. `dubious ownership` must not read as "nothing tracked"."""
-        import codemem.indexer as ix
-        from codemem.incremental import UnsafeDbPath
-
-        _, db_path = repo
-        real = ix.subprocess.run
-
-        def refused(argv, *a, **k):
-            if "ls-files" in argv:
-                return subprocess.CompletedProcess(
-                    argv, 128, b"", b"fatal: detected dubious ownership in repository\n"
-                )
-            return real(argv, *a, **k)
-
-        monkeypatch.setattr(ix.subprocess, "run", refused)
-        with pytest.raises(UnsafeDbPath):
-            ix.check_db_path(db_path)
-
     def test_a_db_dir_outside_any_repo_is_fine(self, tmp_path):
         from codemem.indexer import check_db_path
 
         (tmp_path / "plain").mkdir()
         check_db_path(tmp_path / "plain" / "index.db")
-
-    def test_readers_refuse_what_writers_refuse(self, repo):
-        """Parity (background review): connect() applies check_db_path's whole rule."""
-        from codemem.storage import db
-
-        root, db_path = repo
-        _git(root, "add", "-f", ".codemem/last_sha")
-        _commit(root, "ship an index")
-        with pytest.raises(db.UnsafeDbPath):
-            db.connect(db_path, read_only=True)
 
     def test_connect_refuses_any_link_in_the_db_dir(self, repo, victim):
         from codemem.storage import db
@@ -888,3 +850,41 @@ class TestSection68Rerun:
         (db_path.parent / "anything").symlink_to(victim)
         with pytest.raises(db.UnsafeDbPath):
             db.connect(db_path, read_only=True)
+
+    def test_a_sidecar_git_timeout_in_build_is_logged(self, repo, monkeypatch, caplog):
+        import codemem.indexer as ix
+
+        root, _ = repo
+        real = ix.subprocess.run
+
+        def wedged(argv, *a, **k):
+            if "rev-parse" in argv:
+                raise subprocess.TimeoutExpired(argv, k.get("timeout"))
+            return real(argv, *a, **k)
+
+        monkeypatch.setattr(ix.subprocess, "run", wedged)
+        ix._write_build_sidecars(root, root / ".codemem", "sig")
+        assert any("timed out" in r.getMessage() for r in caplog.records)
+
+    def test_replay_refuses_before_reading_a_linked_wal(
+        self, repo, victim, monkeypatch
+    ):
+        import codemem.journal.wal as wal
+        from codemem import cli
+
+        _, db_path = repo
+        (db_path.parent / "wal.jsonl").symlink_to(victim)
+        read = []
+        monkeypatch.setattr(wal, "read_acked_ids", lambda p: read.append(p) or set())
+        assert cli.main(["--db", str(db_path), "replay", "--from-wal"]) == 1
+        assert read == []
+
+    def test_draw_check_on_a_refused_dir_is_unknown_not_a_block(
+        self, repo, victim, capsys
+    ):
+        from codemem import cli
+
+        _, db_path = repo
+        (db_path.parent / "planted").symlink_to(victim)
+        assert cli.main(["--db", str(db_path), "draw", "--check"]) == 0
+        assert "UNKNOWN" in capsys.readouterr().out

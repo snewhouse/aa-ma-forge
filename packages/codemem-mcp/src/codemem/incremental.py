@@ -43,7 +43,9 @@ from . import resolver as _resolver
 from .diff.symbol_diff import ChangeKind, diff_symbols
 from .indexer import (
     SAFE_GIT,
+    UnsafeDbPath,
     build_index,
+    check_db_path,
     discover_files,
     parse_files,
     tree_signature,
@@ -58,6 +60,7 @@ __all__ = [
     "EXIT_LOCKED",
     "Freshness",
     "RefreshStats",
+    "UnsafeDbPath",
     "check_freshness",
     "log_refresh",
     "refresh_index",
@@ -70,8 +73,13 @@ EXIT_LOCKED = 75
 logger = logging.getLogger(__name__)
 
 # `.codemem/last_sha` and `tree_sig` are repo-controlled (a clone can commit
-# them): only a full 40-hex SHA is ever passed to git.
-_SHA_RE = re.compile(r"[0-9a-f]{40}")
+# them): only a full SHA-1 (40-hex) or SHA-256 (64-hex) is ever passed to git.
+_SHA_RE = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
+
+# A git that cannot answer a rev-parse within the query SLO
+# (mcp_tools.REFRESH_CAP_S) is wedged (a stuck index.lock, a hung network
+# mount): give "unknown" rather than hang the query. Local calls take ms.
+GIT_TIMEOUT_S = 5.0
 
 
 @dataclass
@@ -148,7 +156,8 @@ def refresh_index(
     """Refresh the index at ``db_path`` to match the working tree under ``repo_root``.
 
     Holds the single-writer lock; if another refresh holds it, returns at once
-    with ``skipped_locked`` set.
+    with ``skipped_locked`` set. Raises :class:`UnsafeDbPath` when the DB
+    dir or a file codemem writes in it is a symlink.
 
     Args:
         repo_root: Root of the repository to index.
@@ -161,7 +170,9 @@ def refresh_index(
     """
     t0 = time.monotonic()
     repo_root = repo_root.resolve()
-    db_path = db_path.resolve()
+    # Never resolve db_path: following a planted link is the attack.
+    db_path = db_path.absolute()
+    check_db_path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     log_file = db_path.parent / "refresh.log"
@@ -396,7 +407,7 @@ def _rebuild_and_swap(repo_root: Path, db_path: Path, *, package: str) -> None:
     tmp = db_path.with_name(db_path.name + ".rebuild")
     for leftover in _db_files(tmp):  # a rebuild killed mid-run
         leftover.unlink(missing_ok=True)
-    build_index(repo_root, tmp, package=package)
+    build_index(repo_root, tmp, package=package, write_sidecars=False)
     for side in _db_files(tmp)[1:] + _db_files(db_path)[1:]:
         side.unlink(missing_ok=True)
     os.replace(tmp, db_path)
@@ -419,13 +430,17 @@ def _git(repo_root: Path, *args: str) -> str | None:
             capture_output=True,
             text=True,
             check=False,
+            timeout=GIT_TIMEOUT_S,
         )
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         return None
     return result.stdout.strip() if result.returncode == 0 else None
 
 
 def _read_text(path: Path) -> str | None:
+    """A sidecar's text; None if absent, unreadable or a symlink (repo-controlled)."""
+    if path.is_symlink():
+        return None
     try:
         return path.read_text().strip() or None
     except OSError:
@@ -433,7 +448,7 @@ def _read_text(path: Path) -> str | None:
 
 
 def _read_sha(path: Path) -> str | None:
-    """A 40-hex SHA from ``path``, or None for anything else (repo-controlled file)."""
+    """A 40- or 64-hex SHA from ``path``, or None for anything else (repo-controlled file)."""
     text = _read_text(path)
     return text if text is not None and _SHA_RE.fullmatch(text) else None
 
@@ -450,9 +465,7 @@ def _fallback_reason(db_path: Path, last_sha_file: Path, repo_root: Path) -> str
         return "no last_sha file"
     sha = _read_sha(last_sha_file)
     if sha is None:
-        return (
-            "last_sha malformed (not a 40-hex SHA)"  # never echo repo-controlled text
-        )
+        return "last_sha malformed (not a 40/64-hex SHA)"  # never echo repo-controlled text
     if _sha_orphaned(repo_root, last_sha_file):
         return f"last_sha orphaned by git history rewrite ({sha[:12]}...)"
     return "unknown"

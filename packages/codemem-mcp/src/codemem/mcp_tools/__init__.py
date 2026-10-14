@@ -29,12 +29,14 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from ..storage import db
-from ..incremental import Freshness
 from .queries import BLAST_RADIUS_CTE, WHO_CALLS_CTE
 from .sanitizers import ValidationError, sanitize_path_arg, sanitize_symbol_arg
+
+if TYPE_CHECKING:
+    from ..incremental import Freshness
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +107,9 @@ def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) 
     - ``behind`` / ``dirty`` / ``no_index_sha``: still stale after a
       refresh that finished (the tree moved meanwhile);
     - ``no_git`` / ``no_head``: ``stale`` is ``"unknown"``;
-    - ``no_index``: the build failed, nothing to serve.
+    - ``no_index``: the build failed, nothing to serve;
+    - ``unsafe_db_path``: the DB dir or a file codemem writes there is a
+      symlink (repo-controlled; M15 §6.8 C1). Nothing is served or written.
 
     A missing DB is cold-built in-process and unbounded (nothing can be
     served without it); only the wait for another process's build is capped.
@@ -113,6 +117,12 @@ def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) 
     writer lock is per-process, a thread cannot be stopped, and a subprocess
     that outlives the cap keeps running on its own.
     """
+    from ..indexer import UnsafeDbPath, check_db_path
+
+    try:
+        check_db_path(db_path)
+    except UnsafeDbPath as exc:
+        return {"error": str(exc), **_unknown_freshness("unsafe_db_path")}
     err = _build_if_missing(db_path, repo_root, cap)
     if err is not None:
         return {**err, **_unknown_freshness("no_index")}

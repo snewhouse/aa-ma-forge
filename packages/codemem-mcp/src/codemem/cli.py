@@ -36,11 +36,15 @@ def _default_db_path() -> Path:
 
 
 def _cmd_build(args: argparse.Namespace) -> int:
-    from .indexer import build_index
+    from .indexer import UnsafeDbPath, build_index
 
     db_path = Path(args.db) if args.db else _default_db_path()
     repo_root = Path(args.repo_root) if args.repo_root else Path.cwd()
-    stats = build_index(repo_root, db_path, package=args.package or ".")
+    try:
+        stats = build_index(repo_root, db_path, package=args.package or ".")
+    except UnsafeDbPath as exc:
+        print(f"codemem build: refused: {exc}", file=sys.stderr)
+        return 1
     print(
         f"codemem build: {stats.files_indexed} files, "
         f"{stats.symbols_inserted} symbols, {stats.edges_inserted} edges "
@@ -133,11 +137,17 @@ def _cmd_refresh_commits(args: argparse.Namespace) -> int:
     import sqlite3
 
     from .analysis.git_mining import GitMiner
+    from .indexer import UnsafeDbPath, check_db_path
     from .journal.lock import acquire_writer_lock
     from .storage import db as storage_db
 
     db_path = Path(args.db) if args.db else _default_db_path()
     repo_root = Path(args.repo_root) if args.repo_root else Path.cwd()
+    try:
+        check_db_path(db_path)
+    except UnsafeDbPath as exc:
+        print(f"codemem refresh-commits: refused: {exc}", file=sys.stderr)
+        return 1
 
     if not db_path.exists():
         print(

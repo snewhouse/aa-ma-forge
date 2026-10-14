@@ -45,8 +45,9 @@ def acquire_writer_lock(path: Path) -> Iterator[bool]:
     path.parent.mkdir(parents=True, exist_ok=True)
     # O_CREAT so the lock file exists; O_WRONLY because we need a
     # write fd to lock on POSIX (shared-read fds can only take
-    # shared-read locks).
-    fd = os.open(path, os.O_CREAT | os.O_WRONLY, 0o644)
+    # shared-read locks). O_NOFOLLOW: `.codemem/db.lock` is repo-controllable,
+    # and O_CREAT through a planted link would create or open its target.
+    fd = os.open(path, os.O_CREAT | os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0), 0o644)
 
     try:
         acquired = _try_lock(fd)

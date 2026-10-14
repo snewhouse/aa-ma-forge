@@ -5,6 +5,8 @@ from __future__ import annotations
 import multiprocessing
 from pathlib import Path
 
+import pytest
+
 from codemem.journal.lock import acquire_writer_lock
 
 
@@ -159,3 +161,14 @@ class TestRefreshIndexLockIntegration:
         # Give the timestamp a millisecond of separation before we
         # sanity-check the log got another line (it should).
         time.sleep(0.01)
+
+
+def test_a_linked_lock_file_is_never_opened_through(tmp_path):
+    """M15 §6.8 C1: `.codemem/db.lock` is repo-controllable; O_CREAT must not follow it."""
+    victim = tmp_path / "victim"
+    lock = tmp_path / "db.lock"
+    lock.symlink_to(victim)
+    with pytest.raises(OSError):
+        with acquire_writer_lock(lock):
+            pass
+    assert not victim.exists()

@@ -116,12 +116,18 @@ and reported. Exit 0 ok, 1 no/old/unreadable index (run `codemem build`), 2 usag
 ### A refused `.codemem/`
 
 Every subcommand and MCP tool refuses a `.codemem/` (or the `CODEMEM_DB` directory)
-that is or holds a symlink, is tracked by git, or cannot be listed: a repo controls
-that directory, and a link or a committed index would be written through or served
-as fresh. The CLI prints `codemem <cmd>: refused: …` and exits 1; an MCP response
-carries `stale: "unknown"`, `stale_reason: "unsafe_db_path"` and an `error`. Remove
-the link (or `git rm --cached -r .codemem`), run `codemem build`, and keep
-`CODEMEM_DB` in a dedicated directory.
+that is or holds a symlink or cannot be listed: a repo controls that directory, and a
+link would be written through. The CLI prints `codemem <cmd>: refused: …` and exits 1;
+an MCP response carries `stale: "unknown"`, `stale_reason: "unsafe_db_path"` and an
+`error`. Remove the link, run `codemem build`, and keep `CODEMEM_DB` in a dedicated
+directory.
+
+codemem also reads only an index it built on this machine. A committed, copied or
+unzipped `index.db` carries no stamp for you (the nonce lives in
+`$XDG_STATE_HOME/codemem/trust/`, default `~/.local/state`): read-only commands refuse
+it (`run codemem build`), `codemem refresh` and any MCP query rebuild it, and until the
+rebuild finishes an MCP response is an `error` with `stale_reason: "untrusted"`.
+`codemem replay --from-wal` trusts its journal: replay only one codemem wrote here.
 
 ## Related documents
 

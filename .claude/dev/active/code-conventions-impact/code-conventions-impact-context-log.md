@@ -590,3 +590,10 @@ DECISION ruff-only () — approved by Ste
 - Two follow-up background reviews pushed toward one rule for readers and writers: it now lives in `codemem.safety` and `connect()` applies it; `aa_ma.render.graph` carries a twin, because the §13 diagram fence must not vouch for a committed graph.
 - Contract changes (intended, tests updated with a docstring note): a linked sidecar is refused instead of replaced (15.2 test); a linked `graphify-out/.built_sha` skips graphify instead of being replaced (15.4 test). New X2 `stale_reason`: `unsafe_db_path`.
 - Ceiling recorded in code (ponytail): with no git binary, a tracked index cannot be detected; freshness is then stale "unknown" (leads only).
+
+## [2026-10-14] Milestone 15 boundary: §6.8 re-run 2 → trust-token redesign (Ste)
+- Re-run 2: code-reviewer 0 C / 4 W / 9 I; security-auditor 1 C (a committed embedded git repo inside `.codemem/` made `git -C .codemem ls-files` consult the attacker's repo → a poisoned index served stale:false; graph.py vouched for a planted edge) / 1 W (case alias on WSL drvfs) / 7 I.
+- Ste: redesign, not patch (L-049: 4th bypass of git-based detection). codemem serves only an index it built here — a per-user nonce per DB dir outside the repo, stamped into every DB file codemem creates, checked on every read-only open and by the graph.py twin. Git detection dropped (removes the GIT_* env, case-alias, dubious-ownership and timeout classes with it). All WARNINGs/INFOs folded.
+- Contract changes: a garbage/corrupt/foreign index is rebuilt, not served stale-error (3 tests moved to a trusted-but-broken trigger); a git-tracked `.codemem` is rebuilt, not refused; new X2 `stale_reason: untrusted` (error, nothing served).
+- Verified live: the auditor's 4 exploit repos (ebv, eb2v, ci2v, supv) no longer return the phantom caller; the committed index blob is refused by `open_graph` ("not built by codemem here").
+- Known limit (TODOS): `codemem replay --from-wal` trusts its journal, which a repo can commit; replay is manual recovery only.

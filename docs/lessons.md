@@ -111,6 +111,7 @@ only formatter form allowed is the changed-file list: `uv run ruff format $(git 
 --diff-filter=AM -- '*.py')`. Typing a directory after `ruff format` is the error itself, whatever
 happens next. When the pre-commit hook forces format-on-touch of a file with old drift, the drift
 goes in its own `style:` commit first (eddfd3f is the pattern).
+**Recurrence 4 (same day, §6.8 re-run 2):** `sed -i` again, on `test_trust.py`, to fix one key name. **Stricter:** before any shell edit of a file under `tests/`, `src/`, `packages/` or `claude-code/`, the edit goes through an asserting Python `sub()` (count == 1) — a `sed -i` on those trees is the error, however small the change.
 **Cross-ref:** L-007 (format pass outside scope), global L-1334 (pathspec-less commit)
 
 ---

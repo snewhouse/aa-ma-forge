@@ -18,7 +18,8 @@
 #     aa_ma_has_gate_approval <log> <title>  -> rc 0 iff the LAST "GATE APPROVAL: <title>" block says Decision: APPROVED  (ENFORCING)
 #     aa_ma_deps <graph|check|advisory> <tasks.md> -> `python -m aa_ma.deps` output; rc passed through  (ADVISORY — never a gate)
 #     aa_ma_lint_views <plan.md> [args...] -> `aa-ma-lint-views` output; rc 0/1 passed through, 127 if it cannot run  (read by the §6.7 diagram item)
-#     aa_ma_sha_behind <repo> <sidecar>  -> stdout: commits from the sidecar's SHA to HEAD (rc 0), or a reason: bad sha | not in history | git timeout (rc 1)
+#     aa_ma_read_sidecar_sha <file>      -> stdout: the 40/64-hex SHA in a repo-controlled sidecar (rc 0), nothing for anything else (rc 1)
+#     aa_ma_sha_behind <repo> <sidecar>  -> stdout: commits from the sidecar's SHA to HEAD (rc 0), or a reason: bad sha | not in history | git timeout | git failed (rc 1)
 #
 # Also sources aa-ma-log.sh from this file's real directory, so every hook that sources this
 # library has log_info|log_warn|log_error|log_debug, fail_open_notice and mask_secrets.
@@ -407,22 +408,31 @@ aa_ma_lint_views() {
     return "$rc"
 }
 
+# aa_ma_read_sidecar_sha <file>
+#   The one shell reader of a repo-controlled sidecar (.codemem/last_sha,
+#   graphify-out/.built_sha; M15 §6.8 C2). Prints the SHA only when <file> is
+#   a regular file, neither it nor its directory a symlink, holding exactly one
+#   SHA-1 (40-hex) or SHA-256 (64-hex) line; else prints nothing, rc 1. Python
+#   twin: codemem.incremental._read_sha.
+aa_ma_read_sidecar_sha() {
+    local file="$1" sha
+    [[ -f "$file" && ! -L "$file" && ! -L "${file%/*}" ]] || return 1
+    # why: a sidecar is one SHA line; 128 bytes bounds the read of a planted huge file; unreadable → empty → rc 1
+    sha="$(head -c 128 -- "$file" 2>/dev/null)" || return 1
+    [[ "$sha" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]] || return 1
+    printf '%s' "$sha"
+}
+
 # aa_ma_sha_behind <repo> <sidecar-file>
 #   The one shell "SHA vs HEAD" computation (report 03 X1; X2 does the same in
 #   Python, codemem.incremental.check_freshness — both are tested against
-#   tests/fixtures/code-intel/make-repo.sh). Sidecars (.codemem/last_sha,
-#   graphify-out/.built_sha) are repo-controlled: only a regular, non-symlink
-#   file holding exactly 40 hex chars is used, and it reaches git after
-#   --end-of-options. The value itself is never printed. Safe to call under
-#   `set -e`: it prints its reason before returning 1.
+#   tests/fixtures/code-intel/make-repo.sh). The sidecar is read by
+#   aa_ma_read_sidecar_sha, and the SHA reaches git after --end-of-options.
+#   The value itself is never printed. Safe to call under `set -e`: it prints
+#   its reason before returning 1.
 aa_ma_sha_behind() {
     local repo="$1" file="$2" sha n rc=0
-    if [[ ! -f "$file" || -L "$file" ]]; then
-        printf 'bad sha'
-        return 1
-    fi
-    sha="$(head -c 128 -- "$file" 2>/dev/null)" || sha=""  # why: unreadable → empty → "bad sha" below
-    if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+    if ! sha="$(aa_ma_read_sidecar_sha "$file")"; then
         printf 'bad sha'
         return 1
     fi

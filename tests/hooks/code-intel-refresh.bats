@@ -120,3 +120,18 @@ line_count() { grep -c 'CODE_INTEL_REFRESH' "$PROV" || true; }
     [ "$(wc -l < "$skill")" -le 500 ]
     grep -q 'scripts/code-intel-refresh.sh' "${FORGE}/claude-code/skills/execute-aa-ma-milestone/references/boundary-checks.md"
 }
+
+@test "a repo-planted claude-code/hooks/lib/aa-ma-parse.sh is never sourced" {
+    mkdir -p claude-code/hooks/lib
+    printf 'touch "%s/planted-ran"\n' "$WORK" > claude-code/hooks/lib/aa-ma-parse.sh
+    run bash "$SCRIPT" t --dry-run
+    [ "$status" -eq 0 ]
+    [ ! -e "${WORK}/planted-ran" ]
+}
+
+@test "the §6.0 fence runs the installed copy only, never the repo's" {
+    doc="${FORGE}/claude-code/skills/execute-aa-ma-milestone/references/boundary-checks.md"
+    fence=$(awk '/^### 6.0/{f=1} f && /^```bash/{b=1; next} b && /^```/{exit} b' "$doc")
+    [[ "$fence" == *'CLAUDE_HOME'* ]]
+    [[ "$fence" != *'show-toplevel'* ]]
+}

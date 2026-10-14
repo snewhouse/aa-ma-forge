@@ -565,3 +565,8 @@ DECISION ruff-only () — approved by Ste
 - Kill safety holds today (3 kill points, all recover to cold-build counts). No new lock or WAL code needed for the kill AC.
 - Plan change (verdict-changes-plan: YES): the full-rebuild fallback unlinks `index.db` in place and every concurrent reader raises for the whole rebuild. 15.2 builds to a temp DB and swaps with `os.replace`. Open risk owned by 15.2: a long-lived reader holding the old `-wal` across the swap.
 - Alternatives rejected: thread + in-process mutex (GIL contention, no kill); defer the swap to TODOS (readers keep failing during every full rebuild, which the cap would now trigger more often).
+
+## [2026-10-14] M15.2 security review — fixes and a Contract deviation
+- Background security review of the pushed 15.2 commits: (1) `python -m codemem.cli` with cwd = repo root imports a repo's own `codemem/` (code execution in the MCP refresh); (2) `tree_sig`/`last_sha` writes follow a committed symlink; (3) `git status` runs a repo's `core.fsmonitor` / clean filters. Probe added: `git ls-files` also runs `core.fsmonitor` (pre-existing, every build); `rev-parse`/`cat-file` run nothing.
+- Decision (KISS, prior art `src/aa_ma/analysis/stamp.py`): drop `git status` for a stat signature of the indexed files; pin fsmonitor/hooksPath at command scope on the index path (`indexer.SAFE_GIT`); atomic sidecar writes; `python -I`. Full stamp-style allowlist for codemem's other git calls → TODOS P1, not M15.
+- Contract deviation: `packages/codemem-mcp/src/codemem/indexer.py` modified (not in the M15 Files rows): `ls-files` and the `last_sha` write live there. §13 coverage to re-check at the boundary.

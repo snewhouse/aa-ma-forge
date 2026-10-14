@@ -104,6 +104,13 @@ s.count(old) == 1`), not `sed`, when the pattern carries quotes or escapes.
 **Recurrence 2 (2026-10-12, M7):** a leftover `sed` line I meant to delete still ran. Its `.` matched
 an apostrophe and replaced a `def` line in logsetup.py with `X`; ruff caught it before commit. **Stricter:**
 no `sed -i` on source files at all. Use asserting Python edits, and never leave a superseded edit command in a chain.
+**Recurrence 3 (2026-10-14, M15 §6.8 fix pass):** both rules broken in one pass. `ruff format -q
+packages/codemem-mcp/src` (a directory) reformatted 11 untouched files; `git status` caught it before
+staging and they were reverted. A `sed -i` added an import to `test_writer_lock.py`. **Stricter:** the
+only formatter form allowed is the changed-file list: `uv run ruff format $(git diff --name-only
+--diff-filter=AM -- '*.py')`. Typing a directory after `ruff format` is the error itself, whatever
+happens next. When the pre-commit hook forces format-on-touch of a file with old drift, the drift
+goes in its own `style:` commit first (eddfd3f is the pattern).
 **Cross-ref:** L-007 (format pass outside scope), global L-1334 (pathspec-less commit)
 
 ---

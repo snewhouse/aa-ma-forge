@@ -527,3 +527,14 @@ User Override Decisions (Ste, 2026-10-14):
 - Committed index (security-auditor W4, A08): a git-tracked `.codemem/` was served as `stale=false` with poisoned rows. **Fix in M15**: a tracked `.codemem/` is refused; `connect()` sets `PRAGMA trusted_schema=OFF`.
 - `aa_ma_context(write=True)` appended through a committed linked `reference.md` (security-auditor W3, pre-existing 814b9a0). **Fix now in M15.**
 - code-reviewer WARNINGs: folded in (per Ste's standing "Fold them in" for §6.8 WARNINGs this milestone).
+
+## §6.8 re-run 2 (window f263dbc..e9e511b, 2026-10-14)
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 4 | 9 | WARN — all re-run-1 findings fixed or recorded |
+| security-auditor | 1 | 1 | 7 | BLOCKED — committed embedded repo in `.codemem/` defeats the git-tracked check (reproduced: phantom caller served stale:false; graph.py vouched for a planted edge) |
+
+User Override Decisions (Ste, 2026-10-14):
+- CRITICAL: **Redesign — trust token** (L-049: 4th bypass of git-based detection: dubious ownership, embedded repo, case alias, relative GIT_DIR). codemem serves only an index it built: a per-user record outside the repo holds a random nonce per DB directory; builds write it into the DB; readers and the graph.py twin compare. The git ls-files check is dropped; the link rule stays.
+- WARNINGs + INFOs from both reports: **fold them in**.

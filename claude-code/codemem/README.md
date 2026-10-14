@@ -167,7 +167,7 @@ Auto-build on first MCP query (delivered by M3.5 Task 3.5.3) means the hook isn'
 - `<repo>/.codemem/refresh.log` — structured log line per refresh invocation.
 - `<repo>/PROJECT_INTEL.json` *(optional)* — PageRank-ranked 1024-token symbol index. Commit this one if you want it.
 
-codemem never writes outside `<repo>/.codemem/` or `<repo>/PROJECT_INTEL.json`. The optional post-commit step (`scripts/install.sh --wire-git-hook`) also writes `<git-dir>/codemem-post-commit.lock` and, after a successful `graphify update .`, `<repo>/graphify-out/.built_sha` — see [`SECURITY.md`](../../SECURITY.md) for the full contract.
+codemem never writes outside `<repo>/.codemem/` or `<repo>/PROJECT_INTEL.json`, except that `aa_ma_context(write=True)` appends to `.claude/dev/active/<task>/<task>-reference.md` (refused if any part of that path is a symlink). `.codemem/` must be codemem's own: every command and MCP tool refuses it when it is or holds a symlink, is tracked by git, or cannot be listed (`stale_reason: unsafe_db_path`, CLI exit 1). Point `CODEMEM_DB` at a dedicated directory. The optional post-commit step (`scripts/install.sh --wire-git-hook`) also writes `<git-dir>/codemem-post-commit.lock` and, after a successful `graphify update .`, `<repo>/graphify-out/.built_sha` — see [`SECURITY.md`](../../SECURITY.md) for the full contract.
 
 ## Performance
 

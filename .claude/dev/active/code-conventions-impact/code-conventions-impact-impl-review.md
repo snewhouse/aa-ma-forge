@@ -538,3 +538,14 @@ User Override Decisions (Ste, 2026-10-14):
 User Override Decisions (Ste, 2026-10-14):
 - CRITICAL: **Redesign — trust token** (L-049: 4th bypass of git-based detection: dubious ownership, embedded repo, case alias, relative GIT_DIR). codemem serves only an index it built: a per-user record outside the repo holds a random nonce per DB directory; builds write it into the DB; readers and the graph.py twin compare. The git ls-files check is dropped; the link rule stays.
 - WARNINGs + INFOs from both reports: **fold them in**.
+
+## §6.8 re-run 3 (window e9e511b..4981491, 2026-10-14)
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 4 | 9 | WARN — re-run-2 findings fixed; trust-store errors fail silently (reproduced) |
+| security-auditor | 1 | 1 | 7 | CRITICAL deferred (Ste) — a committed regular `.codemem/index.db-wal` beside a stamped index replays forged pages; the stamp page is untouched (reproduced end to end) |
+
+User Override Decisions (Ste, 2026-10-14):
+- CRITICAL (planted `-wal`): **Defer — root fix in a new milestone M15b, before M10**: move the default index out of the repo (`${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo)>/`, `CODEMEM_DB` override kept), which removes the repo-controlled class (5 bypasses so far). M15 closes with it documented as a known limit (SECURITY.md, TODOS P1); still strictly better than main, which served any committed index.
+- Fold-ins: non-ASCII stamp crash (byte compare, both twins), atomic nonce file, docs on differing `XDG_STATE_HOME`; plus the code-reviewer's 4 WARNINGs (standing "fold them in").

@@ -122,12 +122,15 @@ an MCP response carries `stale: "unknown"`, `stale_reason: "unsafe_db_path"` and
 `error`. Remove the link, run `codemem build`, and keep `CODEMEM_DB` in a dedicated
 directory.
 
-codemem also reads only an index it built on this machine. A committed, copied or
-unzipped `index.db` carries no stamp for you (the nonce lives in
+codemem also reads only an index it built for this user and this directory. A
+committed, copied or unzipped `index.db` (or one in a moved repo) carries no stamp for you (the nonce lives in
 `$XDG_STATE_HOME/codemem/trust/`, default `~/.local/state`): read-only commands refuse
 it (`run codemem build`), `codemem refresh` and any MCP query rebuild it, and until the
 rebuild finishes an MCP response is an `error` with `stale_reason: "untrusted"`.
 `codemem replay --from-wal` trusts its journal: replay only one codemem wrote here.
+Keep `XDG_STATE_HOME` the same for every process that runs codemem, or each rebuilds the
+other's index. Known limit until Milestone 16 moves the index out of the repo: a
+committed `index.db-wal` beside an index built here is still replayed by SQLite.
 
 ## Related documents
 

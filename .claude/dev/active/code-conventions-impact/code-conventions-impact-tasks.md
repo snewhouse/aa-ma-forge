@@ -927,7 +927,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 
 ## Milestone 10: Impact tooling: codemem `callees`, pre-edit hook, wiring (T6, T13 git helper)
 - Status: PENDING
-- Dependencies: Milestone 9, Milestone 15
+- Dependencies: Milestone 9, Milestone 15, Milestone 16
 - Complexity: 75%
 - Effort: 3 days
 - Gate: HARD
@@ -1496,3 +1496,28 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — <milestone heading> — hook-modification — <evidence>`, naming the bats/test names, where the heading is verbatim: Milestone 15: Codemem freshness (report 03 T2–T9)
 - Result Log: Mode AFK — auto-dispatched. CRITICAL_PATH_REVIEW line appended (heading verbatim) naming the 6 critical-path commits and the bats/test names: codemem-post-commit 12/12 (mutations 5/5), session-start-code-intel 18/18, code-intel-refresh 11/11, install-codemem-plugin 6/6, storm test; header claims corrected (7ea1228). Boundary fixes after this get a CRITICAL_PATH_REVIEW addendum (M8/M9 precedent).
+
+## Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral)
+- Status: PENDING
+- Dependencies: Milestone 15
+- Complexity: 60%
+- Effort: 1.5 days
+- Gate: HARD
+- Audit-Profile: full
+- Critical-Path: hook-modification
+- Mode: HITL
+- Source: M15 §6.8 re-run 3 (security-auditor CRITICAL, reproduced: a committed regular `.codemem/index.db-wal` beside a stamped index replays forged pages). Ste 2026-10-14: defer the root fix to its own milestone before M10.
+- Acceptance Criteria:
+  - The default index and its sidecars (`index.db`, `last_sha`, `tree_sig`, `db.lock`, `refresh.log`) live at `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo root)>/`; `CODEMEM_DB` still overrides; nothing codemem reads or writes by default lives in the repo.
+  - The planted-WAL reproduction (re-run 3 `probe_wal.py`) is a test in `tests/codemem/test_trust.py` and passes: no forged row is served or drawn.
+  - Every shell and Python consumer (post-commit worker, session-start `Code-intel:` line, §6.0 `code-intel-refresh.sh`, `aa_ma.render.graph`, `measure.py`) resolves the same location; bats and pytest cover it.
+  - The trust token is kept or dropped by an explicit decision recorded in context-log; SECURITY.md's known-limit paragraph is removed.
+  - `provenance.log` has `TESTS_VERIFIED` and `CRITICAL_PATH_REVIEW` lines for Milestone 16.
+
+### Sub-step 16.0: Plan the move (scope, migration of existing `.codemem/` dirs, docs blast radius)
+- Status: PENDING
+- Mode: HITL
+- Dependencies: None
+- Acceptance Criteria:
+  - Ste approves the location, the migration path for existing `.codemem/` dirs (ignore and rebuild, or move), and the trust-token decision; 14 code / 31 test / 53 doc files that name `.codemem` are listed with an action each.
+- Result Log:

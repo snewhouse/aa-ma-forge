@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import sqlite3
 import subprocess
 import sys
 import textwrap
@@ -118,7 +119,10 @@ def test_d_refresh_error_is_served_stale_error(server_mod, env):
     root, db_path = env
     (root / "b.py").write_text("def b():\n    pass\n")
     _commit(root)
-    db_path.write_bytes(b"garbage" * 64)
+    conn = sqlite3.connect(db_path)  # refresh error on an index built here (§6.8 trust)
+    conn.execute("DROP TABLE files")
+    conn.commit()
+    conn.close()
     r = _run(server_mod.build_server(), "who_calls", {"name": "helper"})
     assert (r["stale"], r["stale_reason"]) == (True, "error")
 
@@ -160,6 +164,13 @@ def test_shared_fixture_sha_vs_head(tmp_path):
     root = tmp_path / "fx"
     fixture = REPO_ROOT / "tests" / "fixtures" / "code-intel" / "make-repo.sh"
     subprocess.run(["bash", str(fixture), str(root)], check=True)
+    from codemem.safety import stamp
+
+    conn = sqlite3.connect(
+        root / ".codemem" / "index.db"
+    )  # the shell fixture's index, as if built here
+    stamp(conn, root / ".codemem")
+    conn.close()
     f = check_freshness(root, root / ".codemem" / "index.db")
     assert (f.stale, f.reason) == (True, "behind")
     assert f.index_sha == _git(root, "rev-parse", "HEAD~2")

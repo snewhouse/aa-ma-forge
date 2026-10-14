@@ -196,3 +196,10 @@ def test_cli_status_on_an_untrusted_index_refuses_and_names_the_remedy(
         cwd=root,
     )
     assert r.returncode == 1 and "refused" in r.stderr and "codemem build" in r.stderr
+
+
+def test_a_corrupt_index_is_rebuilt_not_served(repo):
+    root, db_path = repo
+    db_path.write_bytes(b"not a sqlite database at all" * 10)
+    r = mcp_tools.ensure_fresh(db_path, root, cap=60)
+    assert r["stale"] is False, r

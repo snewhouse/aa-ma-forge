@@ -10,6 +10,8 @@ setup() {
     FORGE="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     HOOK="${FORGE}/claude-code/codemem/hooks/post-commit.sh"
     TMP="$(mktemp -d)"
+    # codemem keeps trust records under XDG_STATE_HOME (M15 §6.8): never the user's.
+    export XDG_STATE_HOME="${TMP}/state"
     REPO="${TMP}/repo"
     STUBS="${TMP}/stubs"
     export STUB_LOG="${TMP}/stub.log"

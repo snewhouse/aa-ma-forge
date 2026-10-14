@@ -9,9 +9,10 @@ plus a reason naming the remedy.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import os
 import sqlite3
-import subprocess
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -49,42 +50,41 @@ class GraphHandle:
     conn: sqlite3.Connection | None  # read-only; the caller owns it and closes it
 
 
-# Twin of codemem.safety.SAFE_GIT: command-scope config outranks the repo's
-# own .git/config, whose core.fsmonitor `git ls-files` would run.
-_SAFE_GIT = ("git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null")
-
-
 def _unsafe_reason(db_dir: Path) -> str | None:
     """Why ``db_dir`` must not be opened, or None: twin of ``codemem.safety.check_db_path``.
 
     Repo-controlled (M15 §6.8): a linked target opened read-only still gets
-    -wal/-shm beside it, and a committed index would let DIAGRAM_VERIFIED
-    vouch for a graph that is not the code's. aa_ma never imports codemem
-    (ADR-0014), so the rule is repeated here; keep the two in step.
+    -wal/-shm beside it. aa_ma never imports codemem (ADR-0014), so the rule
+    is repeated here; ``tests/codemem/test_safety_parity.py`` keeps the two
+    in step.
     """
     if db_dir.is_symlink():
         return "is a symlink"
-    if not db_dir.is_dir():
-        return None  # absent: open_graph reports MISSING with the build remedy
-    if any(p.is_symlink() for p in db_dir.iterdir()):
-        return "holds a symlink"
     try:
-        r = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-            [*_SAFE_GIT, "-C", str(db_dir), "ls-files", "-z", "--", "."],
-            capture_output=True,
-            timeout=1.0,  # as codemem.safety.GIT_TIMEOUT_S: past 1 s git is wedged
-            check=False,
-            env={**os.environ, "LC_ALL": "C"},
-        )
+        linked = any(p.is_symlink() for p in db_dir.iterdir())
     except FileNotFoundError:
-        return None  # no git: nothing can be tracked
-    except subprocess.TimeoutExpired:
-        return "could not be checked (git timed out)"
-    if r.returncode == 0:
-        return "is tracked by git" if r.stdout else None
-    return (
-        None if b"not a git repository" in r.stderr else "could not be checked by git"
-    )
+        return None  # absent: open_graph reports MISSING with the build remedy
+    except OSError:
+        return "cannot be listed"
+    return "holds a symlink" if linked else None
+
+
+def _built_here(conn: sqlite3.Connection, db_dir: Path) -> bool:
+    """Twin of ``codemem.safety.is_trusted``: the DB carries this user's nonce for ``db_dir``.
+
+    A committed or copied index would otherwise let DIAGRAM_VERIFIED vouch for
+    a graph that is not the code's (M15 §6.8 re-run 2).
+    """
+    state = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
+    key = hashlib.sha256(os.fsencode(os.path.realpath(db_dir))).hexdigest()
+    try:
+        nonce = (Path(state) / "codemem" / "trust" / key).read_text().strip()
+        row = conn.execute(
+            "SELECT value FROM meta WHERE key = 'trust_nonce'"
+        ).fetchone()
+    except (OSError, sqlite3.Error):
+        return False
+    return bool(nonce) and row is not None and hmac.compare_digest(str(row[0]), nonce)
 
 
 def open_graph(repo_root: Path) -> GraphHandle:
@@ -103,6 +103,13 @@ def open_graph(repo_root: Path) -> GraphHandle:
             )
         conn = sqlite3.connect(f"{db.absolute().as_uri()}?mode=ro", uri=True)
         conn.execute("PRAGMA trusted_schema = OFF")  # the file is data, not code
+        if not _built_here(conn, db.parent):
+            conn.close()
+            return GraphHandle(
+                GraphStatus.MISSING,
+                f"codemem index at {db} was not built by codemem here; {_REMEDY}",
+                None,
+            )
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version < MIN_SCHEMA_VERSION:
             conn.close()
@@ -117,7 +124,7 @@ def open_graph(repo_root: Path) -> GraphHandle:
             conn.close()
         return GraphHandle(
             GraphStatus.MISSING,
-            f"codemem index at {db} is unreadable ({exc}); {_REMEDY}",
+            f"codemem index at {db} is unreadable ({printable(str(exc))}); {_REMEDY}",
             None,
         )
     if stale:

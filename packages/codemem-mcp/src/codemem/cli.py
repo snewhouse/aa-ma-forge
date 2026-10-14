@@ -87,11 +87,14 @@ def _cmd_refresh(args: argparse.Namespace) -> int:
     stderr is discarded) and to stderr, never as a traceback.
     """
     from .incremental import EXIT_LOCKED, log_refresh, refresh_index
+    from .safety import UnsafeDbPath
 
     db_path = Path(args.db) if args.db else _default_db_path()
     repo_root = Path(args.repo_root) if args.repo_root else Path.cwd()
     try:
         stats = refresh_index(repo_root, db_path)
+    except UnsafeDbPath:
+        raise  # main reports it; nothing is logged into a refused dir
     except Exception as exc:  # noqa: BLE001  # why: CLI boundary — one logged line + exit 1, never a traceback into a hook
         log_refresh(db_path.parent, f"refresh: error {exc.__class__.__name__}: {exc}")
         print(
@@ -198,6 +201,7 @@ def _cmd_replay(args: argparse.Namespace) -> int:
     Replays entries by idempotency key, so a re-run applies nothing twice.
     """
     from .journal.wal import replay_wal
+    from .safety import UnsafeDbPath, check_db_path
 
     if not args.from_wal:
         print(
@@ -208,6 +212,10 @@ def _cmd_replay(args: argparse.Namespace) -> int:
 
     db_path = Path(args.db) if args.db else _default_db_path()
     wal_path = Path(args.wal) if args.wal else db_path.parent / "wal.jsonl"
+    # Refuse before reading the journal through a link (M15 §6.8).
+    check_db_path(db_path)
+    if wal_path.is_symlink():
+        raise UnsafeDbPath(f"{wal_path} is a symlink; codemem refuses it")
     if not wal_path.exists():
         print(f"codemem replay: no WAL at {wal_path}", file=sys.stderr)
         return 1
@@ -314,7 +322,7 @@ def _cmd_draw(args: argparse.Namespace) -> int:
 
     from .draw.cut import MIN_SCHEMA_VERSION, Level, cut
     from .draw.mermaid import to_mermaid
-    from .storage.db import connect
+    from .storage.db import UnsafeDbPath, connect
 
     views_mode = args.write or args.check
     cut_options = (args.level, args.scope, args.hops, args.direction, args.kind)
@@ -335,7 +343,12 @@ def _cmd_draw(args: argparse.Namespace) -> int:
 
     if not db_path.is_file():
         return no_graph(f"no index at {db_path}")
-    conn = connect(db_path, read_only=True)
+    try:
+        conn = connect(db_path, read_only=True)
+    except (
+        UnsafeDbPath
+    ) as exc:  # refused or untrusted: UNKNOWN under --check (ADR-0016)
+        return no_graph(str(exc))
     try:
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version < MIN_SCHEMA_VERSION:
@@ -516,7 +529,7 @@ def main(argv: list[str] | None = None) -> int:
     if handler is None:
         parser.print_help()
         return 2
-    from .storage.db import UnsafeDbPath
+    from .safety import UnsafeDbPath
 
     try:
         return handler(args)

@@ -109,8 +109,10 @@ def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) 
       refresh that finished (the tree moved meanwhile);
     - ``no_git`` / ``no_head``: ``stale`` is ``"unknown"``;
     - ``no_index``: the build failed, nothing to serve;
-    - ``unsafe_db_path``: the DB dir or a file codemem writes there is a
-      symlink (repo-controlled; M15 §6.8 C1). Nothing is served or written.
+    - ``unsafe_db_path``: refused per ``codemem.safety.check_db_path``
+      (repo-controlled ``.codemem/``; M15 §6.8). Nothing is served or written;
+    - ``untrusted``: an index codemem did not build here (``codemem.safety``)
+      whose rebuild did not finish within ``cap``. Nothing is served.
 
     A missing DB is cold-built in-process and unbounded (nothing can be
     served without it); only the wait for another process's build is capped.
@@ -118,7 +120,7 @@ def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) 
     writer lock is per-process, a thread cannot be stopped, and a subprocess
     that outlives the cap keeps running on its own.
     """
-    from ..indexer import UnsafeDbPath, check_db_path
+    from ..safety import UnsafeDbPath, check_db_path
 
     try:
         check_db_path(db_path)
@@ -134,14 +136,21 @@ def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) 
         if before.stale is not True:
             return _freshness_fields(before)
         outcome = _capped_refresh(db_path, repo_root, cap)
-        if outcome == "ok":
-            return _freshness_fields(check_freshness(repo_root, db_path))
-        log_refresh(
-            db_path.parent,
-            f"ensure_fresh: serving a stale index ({before.reason}); refresh {outcome}",
-        )
-        fields = _freshness_fields(before)
-        fields["stale_reason"] = outcome
+        after = check_freshness(repo_root, db_path) if outcome == "ok" else before
+        fields = _freshness_fields(after)
+        if outcome != "ok":
+            log_refresh(
+                db_path.parent,
+                f"ensure_fresh: serving a stale index ({before.reason}); refresh {outcome}",
+            )
+            fields["stale_reason"] = outcome
+        if after.reason == "untrusted":
+            # Never serve an index codemem did not build here (M15 §6.8).
+            return {
+                "error": "the index was not built by codemem here and its rebuild has not finished; retry",
+                **fields,
+                "stale_reason": "untrusted",
+            }
         return fields
     except Exception as exc:  # noqa: BLE001  # why: tool-surface contract — never raise, return fields
         logger.warning("ensure_fresh: freshness check failed: %s", type(exc).__name__)

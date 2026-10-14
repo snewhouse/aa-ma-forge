@@ -26,15 +26,17 @@ from importlib.resources import files as _pkg_files
 from pathlib import Path
 from typing import Iterator
 
-from ..safety import UnsafeDbPath, check_db_path
+from ..safety import UnsafeDbPath, UntrustedIndex, check_db_path, is_trusted, stamp
 
 __all__ = [
     "APPLICATION_ID",
     "CURRENT_SCHEMA_VERSION",
     "MIGRATIONS",
     "UnsafeDbPath",
+    "UntrustedIndex",
     "apply_schema",
     "connect",
+    "index_trusted",
     "ensure_schema",
     "migrate",
 ]
@@ -164,12 +166,15 @@ def connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
     read_only : bool
         If True, open via `file:...?mode=ro` URI.
 
-    Raises :class:`UnsafeDbPath` per :func:`codemem.safety.check_db_path`.
+    Raises :class:`UnsafeDbPath` per :func:`codemem.safety.check_db_path`, and
+    :class:`UntrustedIndex` for a read-only open of an index codemem did not
+    build here. A DB file this call creates is stamped as built here.
     """
     path = Path(path)
     # Every reader and writer passes here: readers refuse exactly what writers
     # refuse (codemem.safety, M15 §6.8).
     check_db_path(path)
+    created = not read_only and not path.exists()
     if read_only:
         uri = f"file:{path}?mode=ro"
         conn = sqlite3.connect(uri, uri=True, timeout=5.0)
@@ -177,7 +182,23 @@ def connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
         path.parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(path, timeout=5.0)
     _apply_per_connection_pragmas(conn, read_only=read_only)
+    if created:
+        stamp(conn, path.parent)
+    elif read_only and not is_trusted(conn, path.parent):
+        conn.close()
+        raise UntrustedIndex(
+            f"{path} was not built by codemem here; run `codemem build`"
+        )
     return conn
+
+
+def index_trusted(path: str | Path) -> bool:
+    """Whether ``path`` is an index codemem built here (False if absent or unreadable)."""
+    try:
+        connect(path, read_only=True).close()
+    except (UnsafeDbPath, sqlite3.Error):  # UntrustedIndex is an UnsafeDbPath
+        return False
+    return True
 
 
 def _load_initial_schema_sql() -> str:

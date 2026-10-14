@@ -344,7 +344,7 @@ class TestEnsureFresh:
         root, db_path = repo
         (root / "c.py").write_text("def x():\n    pass\n")
         _commit(root)
-        db_path.write_bytes(b"not a sqlite database at all" * 10)
+        _break_index(db_path)
         r = mcp_tools.ensure_fresh(db_path, root)
         assert (r["stale"], r["stale_reason"]) == (True, "error")
         assert len(_log_lines(db_path, "ensure_fresh:")) == 1
@@ -422,6 +422,14 @@ class TestEnsureFresh:
 # ---------------------------------------------------------------------
 
 
+def _break_index(db_path: Path) -> None:
+    """A refresh error on an index built here (a garbage file is untrusted and rebuilt, §6.8)."""
+    conn = sqlite3.connect(db_path)
+    conn.execute("DROP TABLE files")
+    conn.commit()
+    conn.close()
+
+
 def _cli(root: Path, db_path: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, "-m", "codemem.cli", "--db", str(db_path), "refresh", *args],
@@ -458,7 +466,7 @@ class TestRefreshCli:
         root, db_path = repo
         (root / "c.py").write_text("def z():\n    pass\n")
         _commit(root)
-        db_path.write_bytes(b"garbage" * 50)
+        _break_index(db_path)
         r = _cli(root, db_path)
         assert r.returncode == 1
         assert _log_lines(db_path, "refresh: error")
@@ -697,7 +705,12 @@ class TestCodememDirBoundary:
         real.write_text(_git(root, "rev-parse", "HEAD") + "\n")
         (db_path.parent / "last_sha").unlink()
         (db_path.parent / "last_sha").symlink_to(real)
-        assert check_freshness(root, db_path).reason == "no_index_sha"
+        from codemem.incremental import _read_sha
+
+        assert _read_sha(db_path.parent / "last_sha") is None
+        assert (
+            check_freshness(root, db_path).reason == "untrusted"
+        )  # §6.8: the dir is refused
 
 
 class TestSection68Warnings:

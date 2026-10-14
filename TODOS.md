@@ -185,7 +185,7 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 **What:**
 - Try `db.lock` in-process (non-blocking) before spawning a `codemem refresh` that would only exit 75, which saves a Python start and two refresh.log lines per query while a long rebuild holds the lock.
 - Drop `mcp_tools.ensure_built`, which has no production caller since M15.3, and rename the server's `_with_autobuild` (it now refreshes and adds the X2 fields).
-- Give `indexer.py` one public git helper next to `SAFE_GIT` for `incremental`, `draw/views.py` and `build_index`.
+- Give `indexer.py` one public git helper next to `SAFE_GIT` (and `GIT_TIMEOUT_S`) for `incremental`, `draw/views.py` and `build_index`, and one sidecar writer for `build_index` and `refresh_index` (today `build_index(write_sidecars=...)` picks between two; §6.8 re-run 1).
 - If commit bursts make the post-commit queue costly (about 7.6 s per worker, mostly graphify), let a worker skip when HEAD has moved past its SHA. That changes the 15.4 race AC ("A last → .built_sha == A"); Ste kept that AC on 2026-10-14.
 
 **Why:** These are the M15 §6.6 review findings that were not fixed in the milestone.

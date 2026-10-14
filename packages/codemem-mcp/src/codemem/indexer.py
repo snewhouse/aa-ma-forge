@@ -29,9 +29,11 @@ from .journal import wal as _wal
 from .parser import ast_grep, python_ast
 from .parser.python_ast import ParseResult
 from .storage import db
+from .storage.db import UnsafeDbPath
 
 
 __all__ = [
+    "GIT_TIMEOUT_S",
     "SAFE_GIT",
     "BuildStats",
     "UnsafeDbPath",
@@ -47,6 +49,12 @@ __all__ = [
 # own .git/config, which can name commands git runs: `git ls-files` and
 # `git status` both run core.fsmonitor (measured 2026-10-14).
 SAFE_GIT = ("git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null")
+
+# Per git call on the query path. A healthy local rev-parse / ls-files takes
+# ms; past 1 s git is wedged (a stuck index.lock, a hung mount) and the answer
+# is "unknown". Same budget as the session-start Code-intel line. ensure_fresh
+# makes at most 5 such calls around its capped refresh.
+GIT_TIMEOUT_S = 1.0
 
 
 # Extensions we recognise. Files with any other extension are skipped —
@@ -146,30 +154,49 @@ def tree_signature(files: list[Path]) -> str:
     return h.hexdigest()
 
 
-class UnsafeDbPath(OSError):
-    """The DB directory, or a file codemem writes in it, is a symlink."""
-
-
 def check_db_path(db_path: Path) -> None:
-    """Raise :class:`UnsafeDbPath` if the DB dir, or anything in it, is a symlink.
+    """Raise :class:`UnsafeDbPath` unless the DB dir is codemem's own, unlinked, untracked dir.
 
-    ``.codemem/`` is repo-controllable: a clone can commit ``.codemem`` or
-    ``.codemem/index.db`` as a link to a user file, and one refresh would
-    overwrite it with SQLite (M15 §6.8 C1). One fail-closed check at every
-    writing entry point, rather than a guard per write. Every entry, not a
-    list of the files codemem writes: SQLite alone may add ``-journal``
-    beside any DB, and a list goes stale. The DB dir is codemem's own, so
-    point ``CODEMEM_DB`` at a dedicated dir. Checked once per call: the
-    threat is committed content, not a local process racing us.
+    ``.codemem/`` is repo-controllable (M15 §6.8): a clone can commit it, or
+    any entry in it, as a link to a user file, and one refresh would
+    overwrite the target with SQLite; or commit a whole index whose rows do
+    not match the code and have it served as fresh. So the dir is refused
+    when it, or ANY entry in it, is a symlink (a list of names goes stale:
+    SQLite alone adds ``-journal``), when git tracks anything in it, or when
+    it cannot be listed. ``storage.db.connect`` re-checks the DB file itself
+    for every reader. The message names only the dir, never a repo-chosen
+    entry. Point ``CODEMEM_DB`` at a dedicated dir.
     """
-    link = db_path.parent
-    if not link.is_symlink():
-        try:
-            link = next((p for p in link.iterdir() if p.is_symlink()), None)
-        except FileNotFoundError:
-            return  # no DB dir yet: the caller creates it
-    if link is not None:
-        raise UnsafeDbPath(f"{link} is a symlink; codemem never writes through one")
+    db_dir = db_path.parent
+    unsafe = UnsafeDbPath(
+        f"{db_dir} is a symlink, holds one, or is tracked by git; codemem refuses it"
+    )
+    if db_dir.is_symlink():
+        raise unsafe
+    try:
+        if any(p.is_symlink() for p in db_dir.iterdir()):
+            raise unsafe
+    except FileNotFoundError:
+        return  # no DB dir yet: the caller creates it
+    except OSError as exc:  # a regular file named .codemem, or unreadable
+        raise UnsafeDbPath(
+            f"{db_dir} cannot be listed ({type(exc).__name__}); codemem refuses it"
+        ) from exc
+    try:
+        tracked = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+            [*SAFE_GIT, "-C", str(db_dir), "ls-files", "-z", "--", "."],
+            capture_output=True,
+            timeout=GIT_TIMEOUT_S,
+            check=False,
+        )
+    except FileNotFoundError:
+        return  # no git: nothing can be tracked
+    except subprocess.TimeoutExpired as exc:
+        raise UnsafeDbPath(
+            f"{db_dir}: git did not answer in {GIT_TIMEOUT_S:g}s; codemem refuses it"
+        ) from exc
+    if tracked.returncode == 0 and tracked.stdout:
+        raise unsafe
 
 
 def _write_build_sidecars(repo_root: Path, db_dir: Path, signature: str) -> None:
@@ -179,9 +206,10 @@ def _write_build_sidecars(repo_root: Path, db_dir: Path, signature: str) -> None
             capture_output=True,
             text=True,
             check=False,
+            timeout=GIT_TIMEOUT_S,
         )
-    except FileNotFoundError:
-        return  # git not on PATH — first refresh will full-rebuild too
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return  # no git, or wedged: the next refresh full-rebuilds
     if result.returncode == 0:
         write_sidecar(db_dir / "last_sha", result.stdout.strip() + "\n")
         write_sidecar(db_dir / "tree_sig", signature + "\n")
@@ -485,6 +513,8 @@ def build_index(
     in the same shape (INSERT ON CONFLICT updates in place). With
     ``write_sidecars=False`` the caller records ``last_sha``/``tree_sig``
     itself: a DB built aside must not claim HEAD before it is swapped in.
+    (So two writers record the sidecars: this one for a standalone build,
+    ``refresh_index`` after its swap. One shared writer is a TODOS item.)
     Raises :class:`UnsafeDbPath` for a linked DB dir or DB file.
     """
     t0 = time.monotonic()

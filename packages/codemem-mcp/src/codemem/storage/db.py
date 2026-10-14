@@ -30,6 +30,7 @@ __all__ = [
     "APPLICATION_ID",
     "CURRENT_SCHEMA_VERSION",
     "MIGRATIONS",
+    "UnsafeDbPath",
     "apply_schema",
     "connect",
     "ensure_schema",
@@ -131,6 +132,10 @@ MIGRATIONS: list[tuple[int, str]] = [
 ]
 
 
+class UnsafeDbPath(OSError):
+    """The DB, its directory, or an entry codemem relies on there is unsafe to open."""
+
+
 def _apply_per_connection_pragmas(conn: sqlite3.Connection, *, read_only: bool) -> None:
     """Apply PRAGMAs that are per-connection (not persisted).
 
@@ -138,6 +143,9 @@ def _apply_per_connection_pragmas(conn: sqlite3.Connection, *, read_only: bool) 
     re-issued on every new connection. journal_mode, user_version,
     application_id are persisted at DB level and do NOT need re-issue.
     """
+    # The file may be repo-controlled: never run SQL functions from its schema
+    # (views, triggers, defaults) with this connection's privileges.
+    conn.execute("PRAGMA trusted_schema = OFF")
     conn.execute("PRAGMA busy_timeout = 5000")
     conn.execute("PRAGMA cache_size = -65536")  # 64 MB per conn
     conn.execute("PRAGMA mmap_size = 268435456")  # 256 MB; up to DB size
@@ -157,8 +165,17 @@ def connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
         Path to the DB file (created if absent and not read_only).
     read_only : bool
         If True, open via `file:...?mode=ro` URI.
+
+    Raises :class:`UnsafeDbPath` when ``path`` or its directory is a symlink.
     """
     path = Path(path)
+    # Every reader and writer passes here, so this is the one place a planted
+    # link cannot slip past (M15 §6.8 re-run 1): SQLite would open the link's
+    # target and, in WAL mode, create -wal/-shm beside it even read-only.
+    if path.is_symlink() or path.parent.is_symlink():
+        raise UnsafeDbPath(
+            f"{path} or its directory is a symlink; codemem never opens one"
+        )
     if read_only:
         uri = f"file:{path}?mode=ro"
         conn = sqlite3.connect(uri, uri=True, timeout=5.0)

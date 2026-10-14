@@ -292,38 +292,37 @@ uses `multiprocessing.Process` + `multiprocessing.Event` to verify the
 contention path deterministically (holder process acquires, second
 process fails to acquire, succeeds once holder releases).
 
-### Primitive 3 — Post-commit hook PID tracking (`.codemem/refresh.pid`)
+### Primitive 3 — Post-commit step serialised by flock (M15.4)
 
 Separate from `db.lock` and with a different job. Lives in
-`claude-code/codemem/hooks/post-commit.sh` (M2 Task 2.5). Its
-responsibilities:
+`claude-code/codemem/hooks/post-commit.sh` (M2 Task 2.5, rewritten in
+code-conventions-impact M15.4). Its responsibilities:
 
 - Skip during `rebase`, `cherry-pick`, `revert`, `merge` via
   `GIT_REFLOG_ACTION` prefix check.
-- On every commit, check whether `.codemem/refresh.pid` names a live
-  process; if so, kill the **entire process group** (`kill -- -<pgid>`)
-  with a 50 ms sleep for clean shutdown. The leading minus is load-
-  bearing: `codemem refresh` spawns `sg scan` and `python` subprocesses
-  and we need all of them gone.
-- Spawn the new refresh under `setsid` so its PGID equals its PID —
-  this is what makes the `kill -- -<pgid>` in the next commit hit the
-  whole subprocess tree. On macOS where `setsid` isn't in the default
-  shell, fall back to plain `&` background spawn.
-- Write the new PID to `.codemem/refresh.pid`; redirect stdout + stderr
-  to `.codemem/refresh.log`; close stdin.
-- `exit 0` unconditionally. The hook must NEVER fail a commit.
+- Capture HEAD, spawn a detached worker (`setsid`, plain `&` on macOS) and
+  `exit 0` — the hook must NEVER fail or slow a commit.
+- Workers queue on `flock` over `<git-dir>/codemem-post-commit.lock` (the
+  git dir is never committed content). Each runs `codemem refresh`, then
+  `graphify update .` (code-only), then writes the SHA captured at commit
+  time to `graphify-out/.built_sha` — only when graphify exits 0, so a
+  failed or killed run leaves the previous sidecar (report 03 R03-D12).
+- The M2 design killed the previous refresh's process group by the PID in
+  `.codemem/refresh.pid`. That file is repo-writable, so the PID could name
+  any process of the user; queueing on the lock replaced it.
 
-Storm-test gate: `tests/codemem/test_post_commit_storm.py` rapid-fires
-five `git commit --amend` calls in under two seconds and asserts
-`pgrep -af codemem | wc -l == 1` after quiesce.
+Test evidence: `tests/hooks/codemem-post-commit.bats` (race with a held
+worker released last, failed and killed graphify runs, repo-controlled PATH
+and symlinks) and `tests/codemem/test_post_commit_storm.py` (five rapid
+amends: every commit exits 0 in under two seconds and both sidecars end at
+HEAD).
 
-### Why the two files are separate
+### Why the two locks are separate
 
-`.codemem/db.lock` is about the DB and owned by the indexer process
-that happens to be writing. `.codemem/refresh.pid` is about the hook
-and owned by whatever process the post-commit spawned. Merging them
-would couple the hook's liveness to the DB-write contract — a hook
-killed between commits shouldn't look like a writer who vanished.
+`.codemem/db.lock` is about the DB and owned by the indexer process that
+happens to be writing. The post-commit lock is about the hook's queue: a
+worker waits on it for the whole refresh-then-graphify sequence, which
+would otherwise hold the DB lock across graphify's run.
 
 ### Reads never touch either file
 

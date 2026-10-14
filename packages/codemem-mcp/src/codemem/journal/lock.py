@@ -13,9 +13,9 @@ Usage::
 
         # ... do the write ...
 
-Separate from ``refresh.pid`` (Task 2.5 — the post-commit hook's
-process-tracking file). ``db.lock`` is ABOUT THE DB; ``refresh.pid``
-is ABOUT THE HOOK. Read MCP connections use ``mode=ro`` on the SQLite
+Separate from the post-commit step's queue lock
+(``<git-dir>/codemem-post-commit.lock``, M15.4). ``db.lock`` is ABOUT THE
+DB; the post-commit lock is ABOUT THE HOOK. Read MCP connections use ``mode=ro`` on the SQLite
 URI and never touch either file.
 """
 
@@ -60,8 +60,10 @@ def acquire_writer_lock(path: Path) -> Iterator[bool]:
 
 
 def _try_lock(fd: int) -> bool:
-    """Return True if we got the exclusive lock, False if another
-    process holds it. Never raises on contention (uses non-blocking)."""
+    """Return True if we got the exclusive lock, False if another process holds it.
+
+    Never raises on contention (uses non-blocking).
+    """
     if _IS_WINDOWS:
         return _try_lock_windows(fd)
     return _try_lock_posix(fd)
@@ -77,6 +79,7 @@ def _unlock(fd: int) -> None:
 # ---------------------------------------------------------------------
 # POSIX implementation — fcntl.lockf with LOCK_EX | LOCK_NB
 # ---------------------------------------------------------------------
+
 
 def _try_lock_posix(fd: int) -> bool:
     import fcntl
@@ -101,6 +104,7 @@ def _unlock_posix(fd: int) -> None:
 # ---------------------------------------------------------------------
 # Windows implementation — msvcrt.locking
 # ---------------------------------------------------------------------
+
 
 def _try_lock_windows(fd: int) -> bool:  # pragma: no cover — POSIX CI
     import msvcrt

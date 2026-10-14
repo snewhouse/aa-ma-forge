@@ -1,11 +1,9 @@
-"""Storm test for the codemem post-commit hook (M2 Task 2.5).
+"""Storm test for the codemem post-commit step (M2 Task 2.5; flock design M15.4).
 
-AC: 5 rapid `git commit --amend` calls in <1s must leave only ONE
-active codemem refresh process. Verified via the PID file + process
-liveness count.
-
-The test installs the hook via the repo's own
-`scripts/install.sh --wire-git-hook` path (end-to-end validation).
+Five rapid ``git commit --amend`` calls: every commit exits 0 in under two
+seconds, the queued workers drain, and both sidecars end at the final HEAD.
+Serialisation and the start-SHA race are pinned in
+``tests/hooks/codemem-post-commit.bats``; graphify is a stub here.
 """
 
 from __future__ import annotations
@@ -15,163 +13,75 @@ import subprocess
 import time
 from pathlib import Path
 
-import pytest
-
-
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+HOOK = REPO_ROOT / "claude-code" / "codemem" / "hooks" / "post-commit.sh"
 
 
-def _init_git_repo(root: Path) -> None:
-    subprocess.run(["git", "init", "-q", "-b", "main", str(root)], check=True)
-    subprocess.run(
-        ["git", "-C", str(root), "config", "user.email", "storm@codemem.local"],
-        check=True,
+def _git(
+    root: Path, *args: str, env: dict | None = None
+) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", "-C", str(root), *args],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
     )
-    subprocess.run(
-        ["git", "-C", str(root), "config", "user.name", "storm"], check=True
+
+
+def _repo(tmp_path: Path) -> tuple[Path, dict]:
+    root = tmp_path / "repo"
+    root.mkdir()
+    stubs = tmp_path / "stubs"
+    stubs.mkdir()
+    graphify = stubs / "graphify"
+    graphify.write_text(
+        "#!/usr/bin/env bash\nmkdir -p graphify-out\ngit rev-parse HEAD > graphify-out/graph.json\n"
     )
+    graphify.chmod(0o755)
+    env = {**os.environ, "PATH": f"{stubs}:/usr/local/bin:/usr/bin:/bin"}
+    _git(root, "init", "-q", "-b", "main")
+    _git(root, "config", "user.email", "storm@codemem.local")
+    _git(root, "config", "user.name", "storm")
+    _git(root, "config", "commit.gpgsign", "false")
+    (root / ".gitignore").write_text(".codemem/\ngraphify-out/\n")
+    (root / "file.py").write_text("def a():\n    return 1\n")
+    hook = root / ".git" / "hooks" / "post-commit"
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    hook.write_text(f'#!/usr/bin/env bash\n"{HOOK}" || true\n')
+    hook.chmod(0o755)
+    return root, env
 
 
-def _wire_hook(root: Path) -> Path:
-    """Directly install the hook via a guarded append (same shape as
-    scripts/install.sh --wire-git-hook, but scoped to this test)."""
-    hook_src = REPO_ROOT / "claude-code" / "codemem" / "hooks" / "post-commit.sh"
-    git_dir = root / ".git"
-    hook_file = git_dir / "hooks" / "post-commit"
-    hook_file.parent.mkdir(parents=True, exist_ok=True)
-    hook_file.write_text(
-        "#!/usr/bin/env bash\n"
-        f'"{hook_src}" || true\n'
-    )
-    hook_file.chmod(0o755)
-    return hook_file
-
-
-class TestPIDFileLifecycle:
-    def test_pid_file_written_after_first_commit(self, tmp_path: Path):
-        _init_git_repo(tmp_path)
-        _wire_hook(tmp_path)
-        (tmp_path / ".gitignore").write_text(".codemem/\n")
-        (tmp_path / "seed.py").write_text("def a(): return 1\n")
-        subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
-        env = {**os.environ, "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src")}
-        subprocess.run(
-            ["git", "-C", str(tmp_path), "commit", "-qm", "seed"],
-            check=True, env=env,
-        )
-        # Hook backgrounds the refresh; give it a moment to write PID.
-        time.sleep(0.3)
-        pid_file = tmp_path / ".codemem" / "refresh.pid"
-        assert pid_file.exists()
-        pid_text = pid_file.read_text().strip()
-        assert pid_text.isdigit()
-
-
-class TestStormOfAmends:
-    def test_five_rapid_amends_one_active_process(self, tmp_path: Path):
-        """AC gate: 5 rapid `git commit --amend` in <1s leave exactly
-        1 active codemem process (the latest)."""
-        _init_git_repo(tmp_path)
-        _wire_hook(tmp_path)
-        (tmp_path / ".gitignore").write_text(".codemem/\n")
-        (tmp_path / "file.py").write_text("def a(): return 1\n")
-        subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
-        env = {**os.environ, "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src")}
-        subprocess.run(
-            ["git", "-C", str(tmp_path), "commit", "-qm", "seed"],
-            check=True, env=env,
-        )
-
-        start = time.monotonic()
-        for i in range(5):
-            (tmp_path / "file.py").write_text(f"def a(): return {i + 2}\n")
-            subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
-            subprocess.run(
-                ["git", "-C", str(tmp_path), "commit", "--amend", "-qm", f"amend-{i}"],
-                check=True, env=env,
-            )
-        elapsed = time.monotonic() - start
-        assert elapsed < 2.0, f"storm took too long: {elapsed:.2f}s"
-
-        # Wait briefly for the last refresh to actually start + the
-        # previous ones to die.
-        time.sleep(0.5)
-
-        pid_file = tmp_path / ".codemem" / "refresh.pid"
-        assert pid_file.exists()
-
-        # Enumerate all live codemem-refresh-like processes under this
-        # test's tmp_path. Because other test runs might be in flight,
-        # we filter by the repo path in the command line.
-        result = subprocess.run(
-            ["pgrep", "-af", "codemem"],
-            capture_output=True, text=True, check=False,
-        )
-        active_pids = [
-            line.split()[0]
-            for line in result.stdout.splitlines()
-            if str(tmp_path) in line
-        ]
-        # At most one active process for this repo.
-        assert len(active_pids) <= 1, (
-            f"storm left {len(active_pids)} active codemem refreshes: {active_pids}"
-        )
-
-    def test_hook_exits_zero_on_storm(self, tmp_path: Path):
-        """The storm mustn't make any commit fail."""
-        _init_git_repo(tmp_path)
-        _wire_hook(tmp_path)
-        (tmp_path / ".gitignore").write_text(".codemem/\n")
-        (tmp_path / "seed.py").write_text("x = 1\n")
-        subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
-        env = {**os.environ, "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src")}
-
+def _drained(root: Path, timeout: float = 60.0) -> bool:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
         r = subprocess.run(
-            ["git", "-C", str(tmp_path), "commit", "-qm", "seed"],
-            env=env,
+            ["pgrep", "-f", f"post-commit.sh --worker [0-9a-f]* {root}"],
+            capture_output=True,
+            check=False,
         )
-        assert r.returncode == 0
-
-        for i in range(5):
-            (tmp_path / "seed.py").write_text(f"x = {i + 2}\n")
-            subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
-            r = subprocess.run(
-                ["git", "-C", str(tmp_path), "commit", "--amend", "-qm", f"amend-{i}"],
-                env=env,
-            )
-            assert r.returncode == 0
+        if r.returncode != 0:
+            return True
+        time.sleep(0.1)
+    return False
 
 
-@pytest.mark.skipif(
-    subprocess.run(["which", "setsid"], capture_output=True).returncode != 0,
-    reason="setsid not available (macOS)",
-)
-class TestProcessGroupIsolation:
-    def test_new_refresh_gets_own_session(self, tmp_path: Path):
-        """Verify setsid path actually fires — new process should have
-        PGID == its own PID (session leader)."""
-        _init_git_repo(tmp_path)
-        _wire_hook(tmp_path)
-        (tmp_path / ".gitignore").write_text(".codemem/\n")
-        (tmp_path / "seed.py").write_text("x = 1\n")
-        subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
-        env = {**os.environ, "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src")}
-        subprocess.run(
-            ["git", "-C", str(tmp_path), "commit", "-qm", "seed"],
-            check=True, env=env,
-        )
+def test_five_rapid_amends_exit_zero_fast_and_end_at_head(tmp_path: Path):
+    root, env = _repo(tmp_path)
+    _git(root, "add", "-A", env=env)
+    assert _git(root, "commit", "-qm", "seed", env=env).returncode == 0
 
-        time.sleep(0.3)
-        pid_file = tmp_path / ".codemem" / "refresh.pid"
-        if not pid_file.exists():
-            pytest.skip("hook didn't produce a PID — slow CI machine?")
-        pid = pid_file.read_text().strip()
-        # /proc/<pid>/status exposes 'Tgid:' + 'NSpid:' + 'SessionId:' on Linux.
-        status_file = Path(f"/proc/{pid}/status")
-        if not status_file.exists():
-            pytest.skip(f"/proc/{pid} vanished (process already exited)")
-        text = status_file.read_text()
-        # Process should be in its own session group — look for a
-        # "Sid:" line or similar. If not available, at minimum assert
-        # that the PID is valid (existed when we read it).
-        assert "Pid:" in text
+    start = time.monotonic()
+    for i in range(5):
+        (root / "file.py").write_text(f"def a():\n    return {i + 2}\n")
+        _git(root, "add", "-A", env=env)
+        r = _git(root, "commit", "--amend", "-qm", f"amend-{i}", env=env)
+        assert r.returncode == 0, r.stderr
+    elapsed = time.monotonic() - start
+    assert elapsed < 2.0, f"storm took too long: {elapsed:.2f}s"
+
+    assert _drained(root), "post-commit workers did not drain"
+    head = _git(root, "rev-parse", "HEAD").stdout.strip()
+    assert (root / ".codemem" / "last_sha").read_text().strip() == head
+    assert (root / "graphify-out" / ".built_sha").read_text().strip() == head

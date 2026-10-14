@@ -655,6 +655,21 @@ class TestCodememDirBoundary:
             refresh_index(root, db_path)
         assert victim.read_text() == "precious\n"
 
+    @pytest.mark.parametrize(
+        "name", ["index.db-journal", "index.db.rebuild-journal", "some-future-file"]
+    )
+    def test_a_link_of_any_name_in_the_db_dir_refuses(self, repo, victim, name):
+        """No list of names: SQLite alone can add -journal beside a DB (§6.8 re-review)."""
+        root, db_path = repo
+        (db_path.parent / name).symlink_to(victim)
+        from codemem.incremental import UnsafeDbPath
+
+        with pytest.raises(UnsafeDbPath):
+            refresh_index(root, db_path)
+        r = mcp_tools.ensure_fresh(db_path, root)
+        assert r["stale_reason"] == "unsafe_db_path"
+        assert victim.read_text() == "precious\n"
+
     def test_cli_refresh_through_a_link_exits_1_and_spares_the_target(
         self, repo, victim
     ):

@@ -24,6 +24,7 @@ FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 # node_id — the contract M12's JS must reproduce byte-for-byte
 # ---------------------------------------------------------------------
 
+
 def _node_ids() -> list[dict]:
     return json.loads((FIXTURES / "draw-node-ids.json").read_text(encoding="utf-8"))
 
@@ -53,25 +54,40 @@ def test_node_id_is_mermaid_safe() -> None:
 # Fixture DBs
 # ---------------------------------------------------------------------
 
-def _db(tmp_path: Path, calls: Sequence[tuple[str, str, str, str]],
-        imports: Sequence[tuple[str, str]] = (), extra_files: Sequence[str] = ()) -> sqlite3.Connection:
+
+def _db(
+    tmp_path: Path,
+    calls: Sequence[tuple[str, str, str, str]],
+    imports: Sequence[tuple[str, str]] = (),
+    extra_files: Sequence[str] = (),
+) -> sqlite3.Connection:
     """Real codemem schema; symbols keyed (file, name) as the prototype keyed them."""
     conn = connect(tmp_path / "idx.db")
     ensure_schema(conn)
-    paths = sorted({p for sf, _, df, _ in calls for p in (sf, df)}
-                   | {p for e in imports for p in e} | set(extra_files))
+    paths = sorted(
+        {p for sf, _, df, _ in calls for p in (sf, df)}
+        | {p for e in imports for p in e}
+        | set(extra_files)
+    )
     fid = {}
     for p in paths:
         fid[p] = conn.execute(
             "INSERT INTO files(path, lang, last_indexed) VALUES (?, 'python', 0)", (p,)
         ).lastrowid
     sid = {}
-    for f, s in sorted({(sf, ss) for sf, ss, _, _ in calls} | {(df, ds) for _, _, df, ds in calls}):
+    for f, s in sorted(
+        {(sf, ss) for sf, ss, _, _ in calls} | {(df, ds) for _, _, df, ds in calls}
+    ):
         sid[(f, s)] = conn.execute(
             "INSERT INTO symbols(file_id, scip_id, name, kind) VALUES (?, ?, ?, 'function')",
             (fid[f], f"codemem . /{f}#{s}", s.rsplit(".", 1)[-1]),
         ).lastrowid
-    for sf, ss, df, ds in calls:  # duplicates kept on purpose: production stores every row twice
+    for (
+        sf,
+        ss,
+        df,
+        ds,
+    ) in calls:  # duplicates kept on purpose: production stores every row twice
         conn.execute(
             "INSERT INTO edges(src_symbol_id, dst_symbol_id, kind) VALUES (?, ?, 'call')",
             (sid[(sf, ss)], sid[(df, ds)]),
@@ -88,8 +104,11 @@ def _db(tmp_path: Path, calls: Sequence[tuple[str, str, str, str]],
 @pytest.fixture(scope="module")
 def proto(tmp_path_factory) -> sqlite3.Connection:
     g = json.loads((FIXTURES / "draw-prototype-graph.json").read_text(encoding="utf-8"))
-    return _db(tmp_path_factory.mktemp("proto"), [tuple(e) for e in g["edges"]],
-               extra_files=g["files"])
+    return _db(
+        tmp_path_factory.mktemp("proto"),
+        [tuple(e) for e in g["edges"]],
+        extra_files=g["files"],
+    )
 
 
 def _nc(c: Cut) -> tuple[int, int]:
@@ -99,6 +118,7 @@ def _nc(c: Cut) -> tuple[int, int]:
 # ---------------------------------------------------------------------
 # Fidelity — every Ticket 3 band, on the data it was measured on
 # ---------------------------------------------------------------------
+
 
 class TestPrototypeFidelity:
     def test_raw_file_level_with_tests(self, proto) -> None:
@@ -133,9 +153,9 @@ class TestPrototypeFidelity:
 
 CALLS = [
     ("src/a.py", "f", "src/b.py", "g"),
-    ("src/a.py", "f", "src/b.py", "g"),           # stored twice, as in production
+    ("src/a.py", "f", "src/b.py", "g"),  # stored twice, as in production
     ("src/b.py", "g", "lib/c.py", "h"),
-    ("src/a.py", "f", "src/a.py", "local"),       # same-file: never a file edge
+    ("src/a.py", "f", "src/a.py", "local"),  # same-file: never a file edge
     ("tests/test_a.py", "t", "src/a.py", "f"),
 ]
 IMPORTS = [("src/a.py", "src/b.py"), ("lib/c.py", "src/b.py")]
@@ -151,11 +171,15 @@ class TestSemantics:
         c = cut(small, Level.L2)
         by_name = {(c.nodes[a], c.nodes[b], k) for a, b, k in c.edges}
         assert by_name == {
-            ("src/a.py", "src/b.py", "call"), ("src/b.py", "lib/c.py", "call"),
-            ("src/a.py", "src/b.py", "import"), ("lib/c.py", "src/b.py", "import"),
+            ("src/a.py", "src/b.py", "call"),
+            ("src/b.py", "lib/c.py", "call"),
+            ("src/a.py", "src/b.py", "import"),
+            ("lib/c.py", "src/b.py", "import"),
         }
 
-    @pytest.mark.parametrize(("kind", "expected"), [("call", {"call"}), ("import", {"import"})])
+    @pytest.mark.parametrize(
+        ("kind", "expected"), [("call", {"call"}), ("import", {"import"})]
+    )
     def test_kind_filter(self, small, kind, expected) -> None:
         assert {k for _, _, k in cut(small, Level.L2, kind=kind).edges} == expected
 
@@ -163,23 +187,30 @@ class TestSemantics:
         assert len(cut(small, Level.L2, kind="call").edges) == 2
 
     def test_include_tests(self, small) -> None:
-        assert "tests/test_a.py" in cut(small, Level.L2, include_tests=True).nodes.values()
+        assert (
+            "tests/test_a.py" in cut(small, Level.L2, include_tests=True).nodes.values()
+        )
 
     def test_l0_collapses_to_top_dirs(self, small) -> None:
         c = cut(small, Level.L0)
         assert set(c.nodes.values()) == {"src", "lib"}
 
-    @pytest.mark.parametrize(("direction", "expected"), [
-        ("down", {("src/b.py", "lib/c.py")}),
-        ("up", {("src/a.py", "src/b.py")}),
-        ("both", {("src/a.py", "src/b.py"), ("src/b.py", "lib/c.py")}),
-    ])
+    @pytest.mark.parametrize(
+        ("direction", "expected"),
+        [
+            ("down", {("src/b.py", "lib/c.py")}),
+            ("up", {("src/a.py", "src/b.py")}),
+            ("both", {("src/a.py", "src/b.py"), ("src/b.py", "lib/c.py")}),
+        ],
+    )
     def test_direction(self, small, direction, expected) -> None:
         c = cut(small, Level.L2, scope="src/b.py", kind="call", direction=direction)
         assert {(c.nodes[a], c.nodes[b]) for a, b, _ in c.edges} == expected
 
     def test_hops_two_reaches_further(self, small) -> None:
-        c = cut(small, Level.L2, scope="src/a.py", kind="call", hops=2, direction="down")
+        c = cut(
+            small, Level.L2, scope="src/a.py", kind="call", hops=2, direction="down"
+        )
         assert {c.nodes[b] for _, b, _ in c.edges} == {"src/b.py", "lib/c.py"}
 
     def test_l3_is_call_only(self, small) -> None:
@@ -201,12 +232,15 @@ class TestSemantics:
             cut(small, Level.L2, direction="sideways")
 
 
-@pytest.mark.parametrize(("path", "expected"), [
-    ("tests/test_a.py", True),
-    ("packages/x/tests/test_b.py", True),
-    ("src/tests_helper.py", False),
-    ("src/attests/x.py", False),
-])
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [
+        ("tests/test_a.py", True),
+        ("packages/x/tests/test_b.py", True),
+        ("src/tests_helper.py", False),
+        ("src/attests/x.py", False),
+    ],
+)
 def test_is_test_path(path, expected) -> None:
     assert is_test_path(path) is expected
 
@@ -221,10 +255,13 @@ def test_l3_import_kind_rejected(small) -> None:
 # Repeatable --scope (diagram-generation M10: /aa-ma-plan seeds §13 from several files)
 # ---------------------------------------------------------------------
 
+
 def test_several_scopes_are_one_union_cut(proto) -> None:
     one = cut(proto, Level.L2, scope="src/aa_ma/render/", hops=1)
     two = cut(proto, Level.L2, scope="src/aa_ma/gate.py", hops=1)
-    both = cut(proto, Level.L2, scope=("src/aa_ma/render/", "src/aa_ma/gate.py"), hops=1)
+    both = cut(
+        proto, Level.L2, scope=("src/aa_ma/render/", "src/aa_ma/gate.py"), hops=1
+    )
     assert both.edges == one.edges | two.edges
     assert set(both.nodes) == set(one.nodes) | set(two.nodes)
 
@@ -236,7 +273,10 @@ def test_cli_scope_is_repeatable(proto, tmp_path, monkeypatch, capsys) -> None:
     with sqlite3.connect(db) as out:
         proto.backup(out)
     args = ["--db", str(db), "draw", "--level", "L2", "--hops", "1"]
-    assert main([*args, "--scope", "src/aa_ma/render/", "--scope", "src/aa_ma/gate.py"]) == 0
+    assert (
+        main([*args, "--scope", "src/aa_ma/render/", "--scope", "src/aa_ma/gate.py"])
+        == 0
+    )
     both = capsys.readouterr().out
     assert main([*args, "--scope", "src/aa_ma/render/"]) == 0
     one = capsys.readouterr().out

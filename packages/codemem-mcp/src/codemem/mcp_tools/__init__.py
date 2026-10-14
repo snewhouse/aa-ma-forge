@@ -1298,14 +1298,12 @@ def aa_ma_context(
         return {"error": "repo_root is required for aa_ma_context", "task": clean}
 
     task_dir = Path(repo_root) / ".claude" / "dev" / "active" / clean
-    if not task_dir.is_dir():
-        return {
-            "error": f"task not found: {clean} (expected at {task_dir})",
-            "task": clean,
-        }
-
     tasks_md = task_dir / f"{clean}-tasks.md"
     ref_md = task_dir / f"{clean}-reference.md"
+    problem = _task_path_problem(task_dir, tasks_md, ref_md)
+    if problem is not None:
+        return {"error": problem, "task": clean}
+
     text_blobs: list[str] = []
     for p in (tasks_md, ref_md):
         if p.is_file():
@@ -1445,14 +1443,30 @@ def _render_context_markdown(
     return "\n".join(parts) + "\n"
 
 
+def _task_path_problem(task_dir: Path, *files: Path) -> str | None:
+    """Why the task path cannot be used, or None.
+
+    The task path is repo-controlled: a committed link at ``.claude``,
+    ``dev``, ``active``, the task dir or ``files`` would make
+    ``aa_ma_context(write=True)`` append repo-chosen text to any user file
+    (M15 §6.8 re-run 1).
+    """
+    chain = [task_dir.parents[2], task_dir.parents[1], task_dir.parent, task_dir]
+    if any(p.is_symlink() for p in [*chain, *files]):
+        return f"task path for {task_dir.name} contains a symlink; refusing to read or write it"
+    if not task_dir.is_dir():
+        return f"task not found: {task_dir.name} (expected at {task_dir})"
+    return None
+
+
 def _append_snapshot_to_reference(ref_md: Path, markdown: str) -> None:
     """Append ``## aa_ma_context snapshot [<ISO>]`` + content to reference.md."""
     ts = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     block = f"\n\n## aa_ma_context snapshot [{ts}]\n\n{markdown}"
-    if ref_md.exists():
-        ref_md.write_text(ref_md.read_text(encoding="utf-8") + block, encoding="utf-8")
-    else:
-        ref_md.write_text(block, encoding="utf-8")
+    # O_NOFOLLOW: a link planted after aa_ma_context's check is still refused.
+    flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+    with os.fdopen(os.open(ref_md, flags, 0o644), "a", encoding="utf-8") as fh:
+        fh.write(block)
 
 
 # ---------------------------------------------------------------------

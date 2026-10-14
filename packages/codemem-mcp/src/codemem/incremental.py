@@ -42,6 +42,7 @@ from pathlib import Path
 from . import resolver as _resolver
 from .diff.symbol_diff import ChangeKind, diff_symbols
 from .indexer import (
+    GIT_TIMEOUT_S,
     SAFE_GIT,
     UnsafeDbPath,
     build_index,
@@ -75,11 +76,6 @@ logger = logging.getLogger(__name__)
 # `.codemem/last_sha` and `tree_sig` are repo-controlled (a clone can commit
 # them): only a full SHA-1 (40-hex) or SHA-256 (64-hex) is ever passed to git.
 _SHA_RE = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
-
-# A git that cannot answer a rev-parse within the query SLO
-# (mcp_tools.REFRESH_CAP_S) is wedged (a stuck index.lock, a hung network
-# mount): give "unknown" rather than hang the query. Local calls take ms.
-GIT_TIMEOUT_S = 5.0
 
 
 @dataclass
@@ -432,19 +428,35 @@ def _git(repo_root: Path, *args: str) -> str | None:
             check=False,
             timeout=GIT_TIMEOUT_S,
         )
-    except (OSError, subprocess.TimeoutExpired):
+    except subprocess.TimeoutExpired:
+        logger.warning(
+            "git %s timed out after %gs; freshness unknown", args[0], GIT_TIMEOUT_S
+        )
+        return None
+    except OSError:
         return None
     return result.stdout.strip() if result.returncode == 0 else None
 
 
+# A sidecar is one SHA or signature line; bounds the read of a planted huge file.
+_SIDECAR_MAX_BYTES = 128
+
+
 def _read_text(path: Path) -> str | None:
-    """A sidecar's text; None if absent, unreadable or a symlink (repo-controlled)."""
+    """A sidecar's one line; None if absent, unreadable, empty or a symlink.
+
+    Python twin of the shell's ``aa_ma_read_sidecar_sha`` (aa-ma-parse.sh):
+    same byte bound, only trailing newlines dropped. The DB dir itself is
+    checked by ``indexer.check_db_path`` before any refresh.
+    """
     if path.is_symlink():
         return None
     try:
-        return path.read_text().strip() or None
-    except OSError:
+        with path.open("rb") as fh:
+            text = fh.read(_SIDECAR_MAX_BYTES).decode("ascii")
+    except (OSError, UnicodeDecodeError):
         return None
+    return text.rstrip("\n") or None
 
 
 def _read_sha(path: Path) -> str | None:

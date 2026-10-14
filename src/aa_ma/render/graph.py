@@ -52,11 +52,19 @@ def open_graph(repo_root: Path) -> GraphHandle:
     db = conn = None
     try:
         db = Path(repo_root) / ".codemem" / "index.db"
+        # Repo-controlled: opening a linked target read-only still creates
+        # -wal/-shm beside it (M15 §6.8 re-run 1). Never resolve() it.
+        if db.is_symlink() or db.parent.is_symlink():
+            return GraphHandle(
+                GraphStatus.MISSING,
+                f"codemem index at {db} is a symlink; refusing to open it",
+                None,
+            )
         if not db.is_file():
             return GraphHandle(
                 GraphStatus.MISSING, f"no codemem index at {db}; {_REMEDY}", None
             )
-        conn = sqlite3.connect(f"{db.resolve().as_uri()}?mode=ro", uri=True)
+        conn = sqlite3.connect(f"{db.absolute().as_uri()}?mode=ro", uri=True)
         conn.execute("PRAGMA trusted_schema = OFF")  # the file is data, not code
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version < MIN_SCHEMA_VERSION:

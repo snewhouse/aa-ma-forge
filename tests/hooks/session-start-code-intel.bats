@@ -181,3 +181,32 @@ plugin_line() { printf '%s\n' "$output" | grep 'codemem plugin' || true; }
     run bash -ec ". '${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh'; aa_ma_sha_behind . .codemem/last_sha"
     [ "$output" = "not in history" ]
 }
+
+# --- §6.8 (M15 C2): one sidecar reader for every shell consumer -------------
+
+@test "§6.8: aa_ma_read_sidecar_sha prints a 40- or 64-hex SHA, nothing else" {
+    . "${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh"
+    git rev-parse HEAD > "${TMP}/s1"
+    printf '%s\n' "$(printf 'b%.0s' {1..64})" > "${TMP}/s256"
+    run aa_ma_read_sidecar_sha "${TMP}/s1"
+    [ "$status" -eq 0 ] && [ "$output" = "$(git rev-parse HEAD)" ]
+    run aa_ma_read_sidecar_sha "${TMP}/s256"
+    [ "$status" -eq 0 ] && [ "${#output}" -eq 64 ]
+    { git rev-parse HEAD; echo forged; } > "${TMP}/nl"
+    run aa_ma_read_sidecar_sha "${TMP}/nl"
+    [ "$status" -eq 1 ] && [ -z "$output" ]
+    ln -s "${TMP}/s1" "${TMP}/link"
+    run aa_ma_read_sidecar_sha "${TMP}/link"
+    [ "$status" -eq 1 ] && [ -z "$output" ]
+    run aa_ma_read_sidecar_sha "${TMP}/absent"
+    [ "$status" -eq 1 ] && [ -z "$output" ]
+}
+
+@test "§6.8: a sidecar inside a symlinked .codemem/ is 'bad sha'" {
+    . "${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh"
+    mv .codemem "${TMP}/elsewhere"
+    ln -s "${TMP}/elsewhere" .codemem
+    run aa_ma_sha_behind . .codemem/last_sha
+    [ "$status" -eq 1 ]
+    [ "$output" = "bad sha" ]
+}

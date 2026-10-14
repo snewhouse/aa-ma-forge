@@ -163,6 +163,13 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 **Priority:** P1
 **Depends on:** code-conventions-impact M15.2 (`SAFE_GIT`)
 
+### codemem positioning after kill Signal 4 fired (2026-10-14)
+
+**What:** Rewrite `docs/codemem/positioning.md`, the codemem README landscape section and `packages/codemem-mcp/README.md` "Design notes" for the consolidated framing. codemem is AA-MA's internal code-intelligence engine, not a standalone code-intel tool. Name repowise in the landscape section.
+**Why:** `docs/codemem/kill-criteria.md` Signal 4, review of 2026-10-14: repowise matches 3 of the 5 git-mining differentiators. Ste applied the rule pre-committed on 2026-05-08.
+**Effort:** S
+**Priority:** P2
+
 ### X4: graphify tree-sitter call edges as codemem's non-Python fallback
 
 **What:** Feed graphify's tree-sitter call edges into codemem for the language families whose calls codemem leaves unresolved (TS/JS, Java, shell, Go/Rust/Ruby), then rerun the per-language parity check for each family.

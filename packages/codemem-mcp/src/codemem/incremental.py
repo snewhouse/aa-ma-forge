@@ -31,6 +31,7 @@ actually changed (cheap import-set-diff check).
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import re
 import subprocess
@@ -58,6 +59,8 @@ __all__ = [
 # `codemem refresh` exit code when another refresh holds db.lock: EX_TEMPFAIL
 # (sysexits.h), "try again later". Read by mcp_tools.ensure_fresh.
 EXIT_LOCKED = 75
+
+logger = logging.getLogger(__name__)
 
 # `.codemem/last_sha` and `tree_sig` are repo-controlled (a clone can commit
 # them): only a full 40-hex SHA is ever passed to git.
@@ -360,10 +363,24 @@ def _hash(p: Path) -> str:
 
 
 def _log(log_file: Path, message: str) -> None:
+    """Append one line to ``log_file``; never through a symlink.
+
+    ``.codemem/`` is repo-controllable (a clone can commit
+    ``refresh.log -> ~/.bashrc``), and messages can carry repo-controlled
+    text such as file names in exception messages: newlines are folded so
+    one call is one line, and a symlinked log is refused.
+    """
     log_file.parent.mkdir(parents=True, exist_ok=True)
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime())
-    with log_file.open("a", encoding="utf-8") as fh:
-        fh.write(f"[{timestamp}] {message}\n")
+    line = " ".join(message.splitlines())
+    flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(log_file, flags, 0o644)
+    except OSError as exc:
+        logger.warning("refresh.log not written (%s): %s", type(exc).__name__, log_file)
+        return
+    with os.fdopen(fd, "a", encoding="utf-8") as fh:
+        fh.write(f"[{timestamp}] {line}\n")
 
 
 def _rebuild_and_swap(repo_root: Path, db_path: Path, *, package: str) -> None:

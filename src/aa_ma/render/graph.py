@@ -69,27 +69,39 @@ def _unsafe_reason(db_dir: Path) -> str | None:
     return "holds a symlink" if linked else None
 
 
-def _built_here(conn: sqlite3.Connection, db_dir: Path) -> bool:
-    """Twin of ``codemem.safety.is_trusted``: the DB carries this user's nonce for ``db_dir``.
+def _trust_problem(conn: sqlite3.Connection, db_dir: Path) -> str | None:
+    """Why the index must not be read, or None: twin of ``codemem.safety.is_trusted``.
 
     A committed or copied index would otherwise let DIAGRAM_VERIFIED vouch for
-    a graph that is not the code's (M15 §6.8 re-run 2).
+    a graph that is not the code's (M15 §6.8 re-run 2). A broken trust store
+    is named as such, never as "not built here" (SECURITY.md).
     """
+    not_built = f"was not built by codemem here; {_REMEDY}"
     state = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
-    key = hashlib.sha256(os.fsencode(os.path.realpath(db_dir))).hexdigest()
+    rec = (
+        Path(state)
+        / "codemem"
+        / "trust"
+        / hashlib.sha256(os.fsencode(os.path.realpath(db_dir))).hexdigest()
+    )
     try:
-        nonce = (Path(state) / "codemem" / "trust" / key).read_text().strip()
+        nonce = rec.read_text().strip()
+    except FileNotFoundError:
+        return not_built
+    except OSError as exc:
+        return f"cannot be checked: trust store {rec.parent} unreadable ({type(exc).__name__})"
+    try:
         row = conn.execute(
             "SELECT value FROM meta WHERE key = 'trust_nonce'"
         ).fetchone()
-    except (OSError, sqlite3.Error):
-        return False
+    except sqlite3.Error:
+        return not_built
     if not nonce or row is None:
-        return False
+        return not_built
     stored = str(row[0]).encode(
         "utf-8", "surrogatepass"
     )  # bytes: str compare raises on non-ASCII
-    return hmac.compare_digest(stored, nonce.encode())
+    return None if hmac.compare_digest(stored, nonce.encode()) else not_built
 
 
 def open_graph(repo_root: Path) -> GraphHandle:
@@ -108,12 +120,11 @@ def open_graph(repo_root: Path) -> GraphHandle:
             )
         conn = sqlite3.connect(f"{db.absolute().as_uri()}?mode=ro", uri=True)
         conn.execute("PRAGMA trusted_schema = OFF")  # the file is data, not code
-        if not _built_here(conn, db.parent):
+        problem = _trust_problem(conn, db.parent)
+        if problem is not None:
             conn.close()
             return GraphHandle(
-                GraphStatus.MISSING,
-                f"codemem index at {db} was not built by codemem here; {_REMEDY}",
-                None,
+                GraphStatus.MISSING, f"codemem index at {db} {problem}", None
             )
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version < MIN_SCHEMA_VERSION:

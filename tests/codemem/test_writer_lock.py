@@ -45,6 +45,7 @@ class TestAcquireBasics:
 # Cross-process contention — the real AC
 # ---------------------------------------------------------------------
 
+
 def _hold_lock(lock_path, ready, release):
     path = Path(lock_path)
     with acquire_writer_lock(path) as acquired:
@@ -103,6 +104,7 @@ class TestCrossProcessContention:
 # Integration: refresh_index skips when lock is held
 # ---------------------------------------------------------------------
 
+
 class TestRefreshIndexLockIntegration:
     def test_refresh_noops_when_lock_held(self, tmp_path: Path):
         """AC: concurrent refresh invocations — second is a no-op."""
@@ -115,9 +117,7 @@ class TestRefreshIndexLockIntegration:
         # Set up an indexed repo
         (tmp_path / ".gitignore").write_text(".codemem/\n")
         (tmp_path / "a.py").write_text("def foo(): return 1\n")
-        subprocess.run(
-            ["git", "init", "-q", "-b", "main", str(tmp_path)], check=True
-        )
+        subprocess.run(["git", "init", "-q", "-b", "main", str(tmp_path)], check=True)
         subprocess.run(
             ["git", "-C", str(tmp_path), "config", "user.email", "t@x"], check=True
         )
@@ -125,9 +125,7 @@ class TestRefreshIndexLockIntegration:
             ["git", "-C", str(tmp_path), "config", "user.name", "t"], check=True
         )
         subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
-        subprocess.run(
-            ["git", "-C", str(tmp_path), "commit", "-qm", "i"], check=True
-        )
+        subprocess.run(["git", "-C", str(tmp_path), "commit", "-qm", "i"], check=True)
 
         db_path = tmp_path / ".codemem" / "index.db"
         build_index(tmp_path, db_path, package=".")

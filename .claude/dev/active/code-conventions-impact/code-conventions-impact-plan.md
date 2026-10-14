@@ -981,6 +981,9 @@ Files:
   Modify  claude-code/codemem/commands/codemem.md, packages/codemem-mcp/README.md, docs/codemem/kill-criteria.md   # T7 doc drift + 2026-10 review
   Modify  scripts/install.sh   # post-commit wiring if it changes (15.4); the ~/.local/share/codemem-plugin link (15.8, R03-D13)
   Modify  TODOS.md   # X4 entry (T12)
+  Modify  packages/codemem-mcp/src/codemem/indexer.py   # (as built, 15.2 security review) SAFE_GIT pins on ls-files/rev-parse; tree_signature; write_sidecar for last_sha/tree_sig
+  Modify  claude-code/hooks/lib/aa-ma-parse.sh   # (as built, 15.5) aa_ma_sha_behind — the one shell SHA-vs-HEAD
+  Create  claude-code/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh   # (as built, 15.6) §6.0 CODE_INTEL_REFRESH; tests-verified.sh precedent
   Outside ~/.local/share/codemem-plugin (symlink → a dedicated forge worktree on main, R03-D13), user-scope MCP registration, global git excludes (T9); ~/.claude/rules/code-intel-routing.md, graphify skill description, GRAPHIFY_QUERY_LOG_DISABLE=1 (T8, R03-D14) — HITL, backups first
   Test    tests/codemem/: refresh AC (a)–(e) + edge cases + kill-mid-refresh recovery; X2 golden tests (additive); locked-index CODE_INTEL_STALE
   Test    tests/hooks/: post-commit race (pause/release, A last) + killed run keeps the sidecar; session-start Code-intel output rules + < 200 ms; shared SHA-vs-HEAD fixture shared with X2

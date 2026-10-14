@@ -150,23 +150,24 @@ class UnsafeDbPath(OSError):
     """The DB directory, or a file codemem writes in it, is a symlink."""
 
 
-# Every file codemem writes beside its DB, beyond the DB's own SQLite files.
-_DB_DIR_FILES = ("db.lock", "last_sha", "tree_sig", "refresh.log")
-
-
 def check_db_path(db_path: Path) -> None:
-    """Raise :class:`UnsafeDbPath` if the DB dir or any file codemem writes there is a link.
+    """Raise :class:`UnsafeDbPath` if the DB dir, or anything in it, is a symlink.
 
     ``.codemem/`` is repo-controllable: a clone can commit ``.codemem`` or
     ``.codemem/index.db`` as a link to a user file, and one refresh would
     overwrite it with SQLite (M15 §6.8 C1). One fail-closed check at every
-    writing entry point, rather than a guard per write. Checked once per
-    call: the threat is committed content, not a local process racing us.
+    writing entry point, rather than a guard per write. Every entry, not a
+    list of the files codemem writes: SQLite alone may add ``-journal``
+    beside any DB, and a list goes stale. The DB dir is codemem's own, so
+    point ``CODEMEM_DB`` at a dedicated dir. Checked once per call: the
+    threat is committed content, not a local process racing us.
     """
-    stems = (db_path.name, db_path.name + ".rebuild")
-    names = [s + x for s in stems for x in ("", "-wal", "-shm")] + list(_DB_DIR_FILES)
-    paths = [db_path.parent] + [db_path.parent / n for n in names]
-    link = next((p for p in paths if p.is_symlink()), None)
+    link = db_path.parent
+    if not link.is_symlink():
+        try:
+            link = next((p for p in link.iterdir() if p.is_symlink()), None)
+        except FileNotFoundError:
+            return  # no DB dir yet: the caller creates it
     if link is not None:
         raise UnsafeDbPath(f"{link} is a symlink; codemem never writes through one")
 

@@ -127,6 +127,10 @@ committed, copied or unzipped `index.db` (or one in a moved repo) carries no sta
 `$XDG_STATE_HOME/codemem/trust/`, default `~/.local/state`): read-only commands refuse
 it (`run codemem build`), `codemem refresh` and any MCP query rebuild it, and until the
 rebuild finishes an MCP response is an `error` with `stale_reason: "untrusted"`.
+If the trust store itself cannot be used (unreadable, not a private directory of this user,
+a record that is not a nonce), the CLI prints `codemem <cmd>: trust store error: …` and an MCP
+response is an `error` with `stale_reason: "trust_store"`: fix the state dir; a rebuild will
+not help. `codemem draw --check` reports it as UNKNOWN (exit 0).
 `codemem replay --from-wal` trusts its journal: replay only one codemem wrote here.
 Keep `XDG_STATE_HOME` the same for every process that runs codemem, or each rebuilds the
 other's index. Known limit until Milestone 16 moves the index out of the repo: a

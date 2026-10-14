@@ -281,3 +281,11 @@ def test_a_linked_index_is_refused_and_never_opened(tmp_path: Path) -> None:
     assert h.status is GraphStatus.MISSING and h.conn is None
     assert "symlink" in h.reason
     assert sorted(p.name for p in victim.parent.iterdir()) == ["places.sqlite"]
+
+
+def test_any_link_in_codemem_is_refused(tmp_path: Path) -> None:
+    """Same rule as codemem's check_db_path: any symlink in .codemem/ (background review)."""
+    repo = _repo(tmp_path)
+    (repo / ".codemem" / "index.db-wal").symlink_to(tmp_path / "victim")
+    h = open_graph(repo)
+    assert h.status is GraphStatus.MISSING and "symlink" in h.reason

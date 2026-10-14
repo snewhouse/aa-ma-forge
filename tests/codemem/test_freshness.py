@@ -845,3 +845,28 @@ class TestSection68Rerun:
         monkeypatch.setattr(inc.subprocess, "run", wedged)
         assert inc._git(repo[0], "rev-parse", "HEAD") is None
         assert any("timed out" in r.getMessage() for r in caplog.records)
+
+    def test_a_git_error_other_than_not_a_repo_refuses(self, repo, monkeypatch):
+        """Fail closed: e.g. `dubious ownership` must not read as "nothing tracked"."""
+        import codemem.indexer as ix
+        from codemem.incremental import UnsafeDbPath
+
+        _, db_path = repo
+        real = ix.subprocess.run
+
+        def refused(argv, *a, **k):
+            if "ls-files" in argv:
+                return subprocess.CompletedProcess(
+                    argv, 128, b"", b"fatal: detected dubious ownership in repository\n"
+                )
+            return real(argv, *a, **k)
+
+        monkeypatch.setattr(ix.subprocess, "run", refused)
+        with pytest.raises(UnsafeDbPath):
+            ix.check_db_path(db_path)
+
+    def test_a_db_dir_outside_any_repo_is_fine(self, tmp_path):
+        from codemem.indexer import check_db_path
+
+        (tmp_path / "plain").mkdir()
+        check_db_path(tmp_path / "plain" / "index.db")

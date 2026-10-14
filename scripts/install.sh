@@ -592,8 +592,9 @@ if [[ -L "${CODEMEM_PLUGIN_LINK}" ]]; then
     plugin_wt="$(readlink -f "${CODEMEM_PLUGIN_LINK}")"
     # why: a target that is not a git worktree has no common dir → empty → refused below
     plugin_common="$(git -C "${plugin_wt}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
-    forge_common="$(git -C "${REPO_ROOT}" rev-parse --path-format=absolute --git-common-dir)"
-    if [[ -z "${plugin_common}" || "${plugin_common}" != "${forge_common}" || "${plugin_wt}" == "${REPO_ROOT}" ]]; then
+    # why: a forge that is not a git checkout → empty → the link is refused below
+    forge_common="$(git -C "${REPO_ROOT}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+    if [[ -z "${plugin_common}" || -z "${forge_common}" || "${plugin_common}" != "${forge_common}" || "${plugin_wt}" == "${REPO_ROOT}" ]]; then
         warn "codemem plugin link targets ${plugin_wt}: not a worktree of this forge — left alone"
     elif [[ -n "$(git -C "${plugin_wt}" status --porcelain --untracked-files=no)" ]]; then
         warn "codemem plugin worktree ${plugin_wt} has uncommitted changes — left alone"

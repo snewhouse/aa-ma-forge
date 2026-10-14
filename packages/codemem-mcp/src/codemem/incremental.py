@@ -109,7 +109,7 @@ class Freshness:
 
 
 def check_freshness(repo_root: Path, db_path: Path) -> Freshness:
-    """Cheap in-process staleness check (~10 ms on aa-ma-forge, M15.1).
+    """Cheap in-process staleness check (~15 ms on aa-ma-forge when fresh, M15 §6.6).
 
     Compares ``last_sha`` with HEAD, then the working tree's signature with
     the one the last refresh recorded. Runs no refresh itself.
@@ -165,7 +165,6 @@ def refresh_index(
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     log_file = db_path.parent / "refresh.log"
-    last_sha_file = db_path.parent / "last_sha"
     lock_file = db_path.parent / "db.lock"
 
     # M2 Task 2.7: single-writer lock. If another refresh holds it,
@@ -179,14 +178,14 @@ def refresh_index(
             )
         # Taken before reading the tree: an edit made during the refresh
         # leaves the stored signature behind, so the next check re-runs.
-        sig = tree_signature(discover_files(repo_root))
+        disk_files = discover_files(repo_root)
+        sig = tree_signature(disk_files)
         stats = _refresh_locked(
             repo_root,
             db_path,
             package=package,
-            log_file=log_file,
-            last_sha_file=last_sha_file,
             t0=t0,
+            disk_files=disk_files,
         )
         write_sidecar(db_path.parent / "tree_sig", sig + "\n")
         return stats
@@ -197,10 +196,11 @@ def _refresh_locked(  # noqa: C901  # why: pre-existing; refactor tracked in TOD
     db_path: Path,
     *,
     package: str,
-    log_file: Path,
-    last_sha_file: Path,
     t0: float,
+    disk_files: list[Path],
 ) -> RefreshStats:
+    log_file = db_path.parent / "refresh.log"
+    last_sha_file = db_path.parent / "last_sha"
     # ---- Fallback: no DB yet, no last_sha, or orphaned SHA ----------
     if (
         not db_path.exists()
@@ -218,12 +218,12 @@ def _refresh_locked(  # noqa: C901  # why: pre-existing; refactor tracked in TOD
 
     stats = RefreshStats()
 
-    disk_files = discover_files(repo_root)
-    # Map from repo-relative path → absolute path + hash for every disk file.
+    # Map from repo-relative path → absolute path + hash for every disk file
+    # (discover_files already returns resolved paths).
     disk_by_path: dict[str, tuple[Path, str]] = {}
     for p in disk_files:
-        rel = p.resolve().relative_to(repo_root).as_posix()
-        disk_by_path[rel] = (p.resolve(), _hash(p))
+        rel = p.relative_to(repo_root).as_posix()
+        disk_by_path[rel] = (p, _hash(p))
 
     # Map from DB-stored path → (id, content_hash) so we can diff.
     with db.connect(db_path, read_only=True) as conn:
@@ -360,18 +360,21 @@ def _hash(p: Path) -> str:
 
 
 def _log(log_file: Path, message: str) -> None:
-    """Append one line to ``log_file``; never through a symlink.
+    """Append one line to ``log_file``; never through a symlink; never raises.
 
     ``.codemem/`` is repo-controllable (a clone can commit
-    ``refresh.log -> ~/.bashrc``), and messages can carry repo-controlled
-    text such as file names in exception messages: newlines are folded so
-    one call is one line, and a symlinked log is refused.
+    ``refresh.log -> ~/.bashrc``, or ``.codemem`` itself as a link), and
+    messages can carry repo-controlled text such as file names in exception
+    messages: newlines are folded so one call is one line, and a symlinked
+    log or log directory is refused.
     """
-    log_file.parent.mkdir(parents=True, exist_ok=True)
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime())
     line = " ".join(message.splitlines())
     flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
     try:
+        if log_file.parent.is_symlink():
+            raise OSError(f"{log_file.parent.name} is a symlink")
+        log_file.parent.mkdir(parents=True, exist_ok=True)
         fd = os.open(log_file, flags, 0o644)
     except OSError as exc:
         logger.warning("refresh.log not written (%s): %s", type(exc).__name__, log_file)
@@ -437,14 +440,7 @@ def _read_sha(path: Path) -> str | None:
 
 def _sha_orphaned(repo_root: Path, last_sha_file: Path) -> bool:
     sha = _read_sha(last_sha_file)
-    if sha is None:
-        return True
-    result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-        [*SAFE_GIT, "-C", str(repo_root), "cat-file", "-e", sha],
-        capture_output=True,
-        check=False,
-    )
-    return result.returncode != 0
+    return sha is None or _git(repo_root, "cat-file", "-e", sha) is None
 
 
 def _fallback_reason(db_path: Path, last_sha_file: Path, repo_root: Path) -> str:

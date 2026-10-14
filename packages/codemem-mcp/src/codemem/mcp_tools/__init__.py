@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from ..storage import db
+from ..incremental import Freshness
 from .queries import BLAST_RADIUS_CTE, WHO_CALLS_CTE
 from .sanitizers import ValidationError, sanitize_path_arg, sanitize_symbol_arg
 
@@ -92,21 +93,29 @@ def ensure_built(db_path: Path, repo_root: Path) -> dict | None:
 
 
 def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) -> dict:
-    """Build if missing, refresh if stale, both bounded by ``cap`` seconds.
+    """Build if missing, then refresh if stale with the refresh capped at ``cap`` s.
 
-    Returns ``index_sha``, ``head_sha``, ``stale`` (True, False or
-    ``"unknown"``) and ``stale_reason``; or ``{"error": ...}`` when no DB
-    can be served. ``stale`` is the state AFTER the refresh attempt (D6):
-    True only when the refresh was locked, failed or ran past the cap, and
-    each of those writes one ``ensure_fresh:`` line to refresh.log.
+    Returns the X2 fields ``index_sha``, ``head_sha``, ``stale`` and
+    ``stale_reason``; with no DB to serve, an ``error`` too. ``stale`` is
+    True, False or ``"unknown"``, as it stands AFTER the refresh attempt (D6).
+    ``stale_reason`` is None when fresh, else one of:
 
-    The refresh runs as a ``codemem refresh`` subprocess (M15.1 verdict):
-    the writer lock is per-process, a thread cannot be stopped, and a
-    subprocess that outlives the cap keeps running on its own.
+    - ``locked`` / ``error`` / ``timeout``: the refresh did not finish (the
+      pre-check cause, behind or dirty, goes in the refresh.log line);
+    - ``behind`` / ``dirty`` / ``no_index_sha``: still stale after a
+      refresh that finished (the tree moved meanwhile);
+    - ``no_git`` / ``no_head``: ``stale`` is ``"unknown"``;
+    - ``no_index``: the build failed, nothing to serve.
+
+    A missing DB is cold-built in-process and unbounded (nothing can be
+    served without it); only the wait for another process's build is capped.
+    The refresh runs as a ``codemem refresh`` subprocess (M15.1 verdict): the
+    writer lock is per-process, a thread cannot be stopped, and a subprocess
+    that outlives the cap keeps running on its own.
     """
     err = _build_if_missing(db_path, repo_root, cap)
     if err is not None:
-        return err
+        return {**err, **_unknown_freshness("no_index")}
     try:
         from ..incremental import check_freshness, log_refresh
 
@@ -125,15 +134,19 @@ def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) 
         return fields
     except Exception as exc:  # noqa: BLE001  # why: tool-surface contract — never raise, return fields
         logger.warning("ensure_fresh: freshness check failed: %s", type(exc).__name__)
-        return {
-            "index_sha": None,
-            "head_sha": None,
-            "stale": "unknown",
-            "stale_reason": "error",
-        }
+        return _unknown_freshness("error")
 
 
-def _freshness_fields(f: Any) -> dict:
+def _unknown_freshness(reason: str) -> dict:
+    return {
+        "index_sha": None,
+        "head_sha": None,
+        "stale": "unknown",
+        "stale_reason": reason,
+    }
+
+
+def _freshness_fields(f: Freshness) -> dict:
     return {
         "index_sha": f.index_sha,
         "head_sha": f.head_sha,
@@ -178,31 +191,22 @@ def _capped_refresh(db_path: Path, repo_root: Path, cap: float) -> str:
 def _build_if_missing(db_path: Path, repo_root: Path, cap: float) -> dict | None:
     """Cold-build a missing DB, or wait up to ``cap`` for another process's build.
 
-    Guarded by the M2 single-writer advisory lock. Lives in
-    :mod:`codemem.mcp_tools` (the public-API layer) so the plugin server
-    never imports :mod:`codemem.indexer` or :mod:`codemem.journal` itself.
+    The build goes through ``refresh_index``: the same writer lock (beside
+    the DB, so ``CODEMEM_DB`` elsewhere is still one lock), a DB built aside
+    and swapped in whole (a poller never sees a half-built file), and
+    ``last_sha`` + ``tree_sig`` recorded. Lives in :mod:`codemem.mcp_tools`
+    so the plugin server never imports the indexer or journal itself.
     """
     if db_path.exists():
         return None
-
+    if not repo_root.is_dir():
+        return {"error": f"build failed: repo root is not a directory: {repo_root}"}
     try:
-        # Lazy imports: keep mcp_tools' cold-start cheap when the DB
-        # already exists (the common case after the first query).
-        from ..indexer import build_index
-        from ..journal.lock import acquire_writer_lock
+        # Lazy import: keep mcp_tools' cold-start cheap when the DB exists.
+        from ..incremental import refresh_index
 
-        lock_path = repo_root / ".codemem" / "db.lock"
-        with acquire_writer_lock(lock_path) as got_lock:
-            # Re-check inside the lock — another process may have built
-            # while we waited to open the lock file.
-            if db_path.exists():
-                return None
-            if got_lock:
-                build_index(repo_root, db_path)
-                return None
-            # Lock contended — exit context so we don't starve the
-            # real builder, then poll outside.
-
+        if not refresh_index(repo_root, db_path).skipped_locked:
+            return None
         deadline = time.monotonic() + cap
         while time.monotonic() < deadline:
             time.sleep(0.1)
@@ -211,7 +215,7 @@ def _build_if_missing(db_path: Path, repo_root: Path, cap: float) -> dict | None
         return {
             "error": f"build in progress by another process; timed out after {cap:g}s"
         }
-    except Exception as exc:  # noqa: BLE001 — tool-surface contract
+    except Exception as exc:  # noqa: BLE001  # why: tool-surface contract — an error dict, never a raise
         return {"error": f"build failed: {exc.__class__.__name__}: {exc}"}
 
 

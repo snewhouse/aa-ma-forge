@@ -85,9 +85,15 @@ def discover_files(repo_root: Path) -> list[Path]:
     can't index what we can't read.
     """
     repo_root = repo_root.resolve()
-    tracked = git_tracked_files(repo_root)
+    tracked = _ls_files(repo_root)
     if tracked is not None:
-        candidates = tracked
+        # Filter by name before resolve(): resolve() is ~40 µs a file and runs
+        # on every MCP query's freshness check (M15 §6.6: 52 ms → ~13 ms here).
+        candidates = [
+            (repo_root / rel).resolve()
+            for rel in tracked
+            if Path(rel).suffix.lower() in _INDEXABLE_EXTENSIONS
+        ]
     else:
         candidates = [p for p in repo_root.rglob("*") if p.is_file()]
 
@@ -100,22 +106,25 @@ def discover_files(repo_root: Path) -> list[Path]:
 
 def git_tracked_files(repo_root: Path) -> list[Path] | None:
     """Return git-tracked files (absolute paths), or ``None`` if not a git repo."""
+    tracked = _ls_files(repo_root)
+    if tracked is None:
+        return None
+    return [(repo_root / rel).resolve() for rel in tracked]
+
+
+def _ls_files(repo_root: Path) -> list[str] | None:
+    """Repo-relative tracked paths from ``git ls-files -z``, or None without git/repo."""
     try:
         result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-            [*SAFE_GIT, "-C", str(repo_root), "ls-files"],
+            [*SAFE_GIT, "-C", str(repo_root), "ls-files", "-z"],
             capture_output=True,
-            text=True,
             check=False,
         )
     except FileNotFoundError:
         return None
     if result.returncode != 0:
         return None
-    return [
-        (repo_root / line).resolve()
-        for line in result.stdout.splitlines()
-        if line.strip()
-    ]
+    return [os.fsdecode(raw) for raw in result.stdout.split(b"\0") if raw]
 
 
 def tree_signature(files: list[Path]) -> str:

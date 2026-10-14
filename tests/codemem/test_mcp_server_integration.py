@@ -223,6 +223,11 @@ class TestAllToolsCallableViaFastMCP:
         assert err in (None, ""), (
             f"{tool_name} returned error: {err!r} (payload keys: {list(payload)})"
         )
+        # X2 (M15.3): every response carries the index freshness, additively.
+        assert payload["stale"] is False, payload.get("stale_reason")
+        assert payload["stale_reason"] is None
+        assert payload["index_sha"] == payload["head_sha"]
+        assert len(payload["head_sha"]) == 40
 
 
 class TestAutoBuildOnFirstQuery:

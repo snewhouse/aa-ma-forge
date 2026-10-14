@@ -203,3 +203,40 @@ def test_a_corrupt_index_is_rebuilt_not_served(repo):
     db_path.write_bytes(b"not a sqlite database at all" * 10)
     r = mcp_tools.ensure_fresh(db_path, root, cap=60)
     assert r["stale"] is False, r
+
+
+def test_a_planted_wal_is_never_absorbed_into_a_new_stamped_db(tmp_path):
+    """SQLite replays an existing -wal into a newly created DB; codemem would then stamp it."""
+    import shutil
+
+    src = tmp_path / "attacker" / "index.db"
+    src.parent.mkdir()
+    keep = sqlite3.connect(src)
+    keep.execute("PRAGMA journal_mode=WAL")
+    keep.execute("PRAGMA wal_autocheckpoint=0")
+    keep.execute(
+        "CREATE TABLE commits (sha TEXT PRIMARY KEY, author_email TEXT, author_time INTEGER, message TEXT)"
+    )
+    keep.execute("INSERT INTO commits VALUES ('f00d', 'x', 0, 'planted')")
+    keep.commit()
+    target = tmp_path / "victim-repo" / ".codemem"
+    target.mkdir(parents=True)
+    shutil.copy(src.with_name("index.db-wal"), target / "index.db-wal")
+    keep.close()
+    conn = db.connect(target / "index.db")
+    tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master")}
+    conn.close()
+    assert "commits" not in tables
+
+
+def test_a_planted_rollback_journal_is_never_absorbed_either(tmp_path):
+    """Characterisation (SQLite 3.4x): a hot -journal with no main file is ignored."""
+    target = tmp_path / "victim-repo" / ".codemem"
+    target.mkdir(parents=True)
+    (target / "index.db-journal").write_bytes(
+        b"\xd9\xd5\x05\xf9\x20\xa1\x63\xd7" + b"\x00" * 504
+    )
+    conn = db.connect(target / "index.db")
+    tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master")}
+    conn.close()
+    assert tables == {"meta"}

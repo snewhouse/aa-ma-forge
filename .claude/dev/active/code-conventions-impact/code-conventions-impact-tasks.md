@@ -1510,6 +1510,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Acceptance Criteria:
   - The default index and its sidecars (`index.db`, `last_sha`, `tree_sig`, `db.lock`, `refresh.log`) live at `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo root)>/`; `CODEMEM_DB` still overrides; nothing codemem reads or writes by default lives in the repo.
   - The planted-WAL reproduction (re-run 3 `probe_wal.py`) is a test in `tests/codemem/test_trust.py` and passes: no forged row is served or drawn.
+  - The committed-own-index nonce leak (M15 double-check F1, challenger `probes/leak.py`: victim commits a stamped `.codemem/`, attacker pushes forged rows keeping the stamp) is a test and passes: no forged row is served or drawn.
   - Every shell and Python consumer (post-commit worker, session-start `Code-intel:` line, §6.0 `code-intel-refresh.sh`, `aa_ma.render.graph`, `measure.py`) resolves the same location; bats and pytest cover it.
   - The trust token is kept or dropped by an explicit decision recorded in context-log; SECURITY.md's known-limit paragraph is removed.
   - `provenance.log` has `TESTS_VERIFIED` and `CRITICAL_PATH_REVIEW` lines for Milestone 16.

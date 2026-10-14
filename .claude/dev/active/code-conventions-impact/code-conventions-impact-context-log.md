@@ -601,3 +601,7 @@ DECISION ruff-only () — approved by Ste
 ## [2026-10-14] Milestone 15 boundary: §6.8 re-run 3 (Ste decisions)
 - security-auditor 1 C / 1 W / 7 I: a committed regular `.codemem/index.db-wal` beside a stamped index replays forged pages (the stamp page is untouched) — reproduced end to end, also through graph.py. Ste: defer the root fix (move the index out of the repo) to a new Milestone 16 before M10; M15 closes with it documented (SECURITY.md, README, commands doc, TODOS P1). M10 now depends on M16. Numbered 16, not "15b": the canonical grammar takes digits only (`## Milestone \d+:`).
 - code-reviewer 0 C / 4 W / 9 I. Folded: trust-store faults named (TrustStoreError, reproduced silent-rebuild loop fixed), outcome-specific untrusted errors, README exception list, NONCE_BYTES; plus Ste's fold-ins (byte compare, atomic nonce file, XDG docs) and INFOs (refused dir propagates from check_freshness, one import source in cli, parity foreign-nonce case, mode rationale, format artefact).
+
+## [2026-10-14] Milestone 15 boundary: double-check (Ste decisions)
+- `Skill(double-check)` (standard, fresh challenger) → Partially verified: F1 committed-own-index nonce leak (reproduced), F2 fold-in code unreviewed by §6.8, F3 graph.py twin misreports a broken trust store.
+- Ste: F1 → known limit (SECURITY.md, README, commands doc) + Milestone 16 acceptance criterion; F2 → targeted §6.8 re-run 4 on 4981491..HEAD; F3 → fixed now (15bc257 → 542ef67).

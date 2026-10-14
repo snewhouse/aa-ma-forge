@@ -289,3 +289,26 @@ def test_any_link_in_codemem_is_refused(tmp_path: Path) -> None:
     (repo / ".codemem" / "index.db-wal").symlink_to(tmp_path / "victim")
     h = open_graph(repo)
     assert h.status is GraphStatus.MISSING and "symlink" in h.reason
+
+
+def test_a_git_tracked_index_is_refused(tmp_path: Path) -> None:
+    """Parity with codemem: a committed index could make DIAGRAM_VERIFIED vouch for a fake graph."""
+    import subprocess
+
+    repo = _repo(tmp_path)
+    git = [
+        "git",
+        "-C",
+        str(repo),
+        "-c",
+        "user.name=t",
+        "-c",
+        "user.email=t@t",
+        "-c",
+        "commit.gpgsign=false",
+    ]
+    subprocess.run([*git, "init", "-q"], check=True)
+    subprocess.run([*git, "add", "-f", ".codemem/index.db"], check=True)
+    subprocess.run([*git, "commit", "-qm", "ship an index"], check=True)
+    h = open_graph(repo)
+    assert h.status is GraphStatus.MISSING and "tracked" in h.reason

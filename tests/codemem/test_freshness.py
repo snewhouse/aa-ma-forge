@@ -870,3 +870,21 @@ class TestSection68Rerun:
 
         (tmp_path / "plain").mkdir()
         check_db_path(tmp_path / "plain" / "index.db")
+
+    def test_readers_refuse_what_writers_refuse(self, repo):
+        """Parity (background review): connect() applies check_db_path's whole rule."""
+        from codemem.storage import db
+
+        root, db_path = repo
+        _git(root, "add", "-f", ".codemem/last_sha")
+        _commit(root, "ship an index")
+        with pytest.raises(db.UnsafeDbPath):
+            db.connect(db_path, read_only=True)
+
+    def test_connect_refuses_any_link_in_the_db_dir(self, repo, victim):
+        from codemem.storage import db
+
+        _, db_path = repo
+        (db_path.parent / "anything").symlink_to(victim)
+        with pytest.raises(db.UnsafeDbPath):
+            db.connect(db_path, read_only=True)

@@ -538,3 +538,65 @@ class TestRepoControlledInputs:
         refresh_index(root, db_path)  # full rebuild path
         mcp_tools.ensure_fresh(db_path, root)
         assert not marker.exists(), marker.read_text()
+
+
+class TestSection66Fixes:
+    """M15 §6.6 review fixes (quality + efficiency), 2026-10-14."""
+
+    def test_log_refuses_a_symlinked_db_dir(self, repo, tmp_path):
+        root, db_path = repo
+        from codemem.incremental import log_refresh
+
+        elsewhere = tmp_path / "elsewhere"
+        elsewhere.mkdir()
+        link = root / "linked-codemem"
+        link.symlink_to(elsewhere)
+        log_refresh(link, "ensure_fresh: probe")
+        assert not (elsewhere / "refresh.log").exists()
+
+    def test_log_never_raises_when_its_dir_cannot_be_made(self, repo, tmp_path):
+        from codemem.incremental import log_refresh
+
+        blocker = tmp_path / "a-file"
+        blocker.write_text("x")
+        log_refresh(blocker / "sub", "refresh: error X: y")  # parent is a file
+
+    def test_cold_build_takes_the_lock_beside_the_db(self, repo, tmp_path):
+        """Under CODEMEM_DB the DB dir is not <repo>/.codemem: one lock, beside the DB."""
+        root, _ = repo
+        db_path = tmp_path / "elsewhere" / "index.db"
+        db_path.parent.mkdir()
+        holder = _hold_lock_in_child(db_path.parent / "db.lock")
+        try:
+            r = mcp_tools.ensure_fresh(db_path, root, cap=0.3)
+        finally:
+            holder.kill()
+            holder.wait()
+        assert "error" in r and "0.3" in r["error"]
+        assert not db_path.exists()
+
+    def test_cold_build_writes_both_sidecars_beside_the_db(self, repo, tmp_path):
+        root, _ = repo
+        db_path = tmp_path / "elsewhere" / "index.db"
+        r = mcp_tools.ensure_fresh(db_path, root)
+        assert r["stale"] is False
+        assert (db_path.parent / "last_sha").read_text().strip() == _git(
+            root, "rev-parse", "HEAD"
+        )
+        assert (db_path.parent / "tree_sig").exists()
+
+    def test_orphan_check_survives_git_missing(self, repo, monkeypatch):
+        root, db_path = repo
+        import codemem.incremental as inc
+
+        real = inc.subprocess.run
+
+        def no_cat_file(argv, *a, **k):
+            if "cat-file" in argv:
+                raise FileNotFoundError("git")
+            return real(argv, *a, **k)
+
+        monkeypatch.setattr(inc.subprocess, "run", no_cat_file)
+        (root / "c.py").write_text("def q():\n    pass\n")
+        _commit(root)
+        assert refresh_index(root, db_path).full_rebuild is True

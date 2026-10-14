@@ -157,3 +157,27 @@ plugin_line() { printf '%s\n' "$output" | grep 'codemem plugin' || true; }
     run bash "$HOOK"
     [ "$(plugin_line)" = "Code-intel: codemem plugin worktree is not on main — re-run scripts/install.sh" ]
 }
+
+@test "§6.6: aa_ma_sha_behind refuses a symlinked sidecar" {
+    . "${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh"
+    git rev-parse HEAD > "${TMP}/real-sha"
+    rm -f graphify-out/.built_sha
+    ln -s "${TMP}/real-sha" graphify-out/.built_sha
+    run aa_ma_sha_behind . graphify-out/.built_sha
+    [ "$status" -eq 1 ]
+    [ "$output" = "bad sha" ]
+}
+
+@test "§6.6: aa_ma_sha_behind says 'git failed' outside a repo" {
+    . "${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh"
+    mkdir -p "${TMP}/plain"
+    run aa_ma_sha_behind "${TMP}/plain" .codemem/last_sha
+    [ "$status" -eq 1 ]
+    [ "$output" = "git failed" ]
+}
+
+@test "§6.6: aa_ma_sha_behind prints its reason under set -e" {
+    printf '%s\n' 0123456789abcdef0123456789abcdef01234567 > .codemem/last_sha
+    run bash -ec ". '${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh'; aa_ma_sha_behind . .codemem/last_sha"
+    [ "$output" = "not in history" ]
+}

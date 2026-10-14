@@ -29,7 +29,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 from ..storage import db
 from .queries import BLAST_RADIUS_CTE, WHO_CALLS_CTE
@@ -111,6 +111,8 @@ def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) 
     - ``no_index``: the build failed, nothing to serve;
     - ``unsafe_db_path``: refused per ``codemem.safety.check_db_path``
       (repo-controlled ``.codemem/``; M15 §6.8). Nothing is served or written;
+    - ``trust_store``: this user's trust store (``$XDG_STATE_HOME/codemem/trust``)
+      cannot be used; no refresh ran. Nothing is served; fix the state dir;
     - ``untrusted``: an index codemem did not build here (``codemem.safety``)
       whose rebuild did not finish within ``cap``. Nothing is served.
 
@@ -145,7 +147,9 @@ def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) 
                 f"ensure_fresh: not served (untrusted); rebuild {outcome}",
             )
             return {
-                "error": _UNTRUSTED_ERROR.get(outcome, _UNTRUSTED_ERROR["error"]),
+                "error": _UNTRUSTED_ERROR[outcome].format(
+                    log=db_path.parent / "refresh.log"
+                ),
                 **fields,
             }
         if outcome != "ok":
@@ -159,20 +163,23 @@ def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) 
         logger.warning("ensure_fresh: %s", exc)
         return {
             "error": f"codemem trust store unusable: {exc}",
-            **_unknown_freshness("error"),
+            **_unknown_freshness("trust_store"),
         }
     except Exception as exc:  # noqa: BLE001  # why: tool-surface contract — never raise, return fields
         logger.warning("ensure_fresh: freshness check failed: %s", type(exc).__name__)
         return _unknown_freshness("error")
 
 
+# What a capped `codemem refresh` came to; every value has an _UNTRUSTED_ERROR entry.
+RefreshOutcome = Literal["ok", "locked", "error", "timeout"]
+
 # Why nothing is served for an untrusted index, by rebuild outcome: a caller
 # should retry while it runs, and stop retrying when it failed.
-_UNTRUSTED_ERROR = {
+_UNTRUSTED_ERROR: dict[str, str] = {
     "timeout": "the index was not built by codemem here; its rebuild is still running, retry shortly",
     "locked": "the index was not built by codemem here; another refresh holds the lock, retry shortly",
     "ok": "the index was not built by codemem here and its rebuild did not take; run `codemem build`",
-    "error": "the index was not built by codemem here and its rebuild failed; see .codemem/refresh.log, then run `codemem build`",
+    "error": "the index was not built by codemem here and its rebuild failed; see {log}, then run `codemem build`",
 }
 
 
@@ -194,7 +201,7 @@ def _freshness_fields(f: Freshness) -> dict:
     }
 
 
-def _capped_refresh(db_path: Path, repo_root: Path, cap: float) -> str:
+def _capped_refresh(db_path: Path, repo_root: Path, cap: float) -> RefreshOutcome:
     """Run ``codemem refresh``; return ok, locked, error or timeout within ``cap``."""
     from ..incremental import EXIT_LOCKED
 

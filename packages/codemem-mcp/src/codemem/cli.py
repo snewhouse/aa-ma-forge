@@ -317,13 +317,33 @@ def _non_negative_int(text: str) -> int:
     return value
 
 
+def _no_graph(who: str, check: bool, reason: str) -> int:
+    """No graph to draw: UNKNOWN under --check, never PASS and never a block (ADR-0016)."""
+    if check:
+        print(f"{who}: UNKNOWN — {reason}")
+        return 0
+    print(f"{who}: {reason}", file=sys.stderr)
+    return 1
+
+
+def _draw_connect(db_path: Path, who: str, check: bool):
+    """The index for ``draw``, or the exit code when there is no graph to draw."""
+    from .safety import TrustStoreError, UnsafeDbPath
+    from .storage.db import connect
+
+    try:
+        return connect(db_path, read_only=True)
+    except UnsafeDbPath as exc:  # refused or untrusted
+        return _no_graph(who, check, f"{exc}; run `codemem build`")
+    except TrustStoreError as exc:  # a broken state dir: a rebuild would not help
+        return _no_graph(who, check, str(exc))
+
+
 def _cmd_draw(args: argparse.Namespace) -> int:
     import sqlite3
 
     from .draw.cut import MIN_SCHEMA_VERSION, Level, cut
     from .draw.mermaid import to_mermaid
-    from .safety import UnsafeDbPath
-    from .storage.db import connect
 
     views_mode = args.write or args.check
     cut_options = (args.level, args.scope, args.hops, args.direction, args.kind)
@@ -335,20 +355,13 @@ def _cmd_draw(args: argparse.Namespace) -> int:
     db_path = Path(args.db) if args.db else _default_db_path()
 
     def no_graph(reason: str) -> int:
-        # --check cannot run without a graph: UNKNOWN, never PASS, and never a block (ADR-0016).
-        if args.check:
-            print(f"{who}: UNKNOWN — {reason}; run `codemem build`")
-            return 0
-        print(f"{who}: {reason}; run `codemem build`", file=sys.stderr)
-        return 1
+        return _no_graph(who, args.check, f"{reason}; run `codemem build`")
 
     if not db_path.is_file():
         return no_graph(f"no index at {db_path}")
-    try:
-        conn = connect(db_path, read_only=True)
-    # refused or untrusted: UNKNOWN under --check (ADR-0016)
-    except UnsafeDbPath as exc:
-        return no_graph(str(exc))
+    conn = _draw_connect(db_path, who, args.check)
+    if isinstance(conn, int):
+        return conn
     try:
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version < MIN_SCHEMA_VERSION:

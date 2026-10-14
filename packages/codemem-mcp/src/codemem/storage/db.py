@@ -21,6 +21,7 @@ Design notes (per Task 1.0 + Task 1.2):
 from __future__ import annotations
 
 import logging
+import os
 import sqlite3
 from contextlib import contextmanager
 from importlib.resources import files as _pkg_files
@@ -177,12 +178,25 @@ def connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
     # Every reader and writer passes here: readers refuse exactly what writers
     # refuse (codemem.safety, M15 §6.8).
     check_db_path(path)
-    created = not read_only and not path.exists()
+    created = False
     if read_only:
         uri = f"file:{path}?mode=ro"
         conn = sqlite3.connect(uri, uri=True, timeout=5.0)
     else:
         path.parent.mkdir(parents=True, exist_ok=True)
+        # "Created by this call" is decided atomically: an exists() check could
+        # be beaten by another writer, and the cleanup below would delete theirs.
+        try:
+            os.close(
+                os.open(
+                    path,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                    0o644,
+                )
+            )
+            created = True
+        except FileExistsError:
+            pass
         conn = sqlite3.connect(path, timeout=5.0)
     _apply_per_connection_pragmas(conn, read_only=read_only)
     if created:
@@ -191,7 +205,7 @@ def connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
         except Exception:
             # Leave no unstamped file behind: it would read as "not built here".
             conn.close()
-            for suffix in ("", "-wal", "-shm"):
+            for suffix in ("", "-wal", "-shm", "-journal"):
                 path.with_name(path.name + suffix).unlink(missing_ok=True)
             raise
     elif read_only and not is_trusted(conn, path.parent):

@@ -1490,9 +1490,9 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode HITL — Ste: Approve as drafted (preview). Outside repo, covered by backup `cci-m15-20261014T100926Z.tgz`: `~/.claude/rules/code-intel-routing.md` written (1,736 chars: report 03 §5 table, R03-D10 language routing, INFERRED/AMBIGUOUS never evidence, stale → leads + CODE_INTEL_STALE, `~/biorelate/**` + client repos graphify code-only (R03-D14), no hook-guard); graphify SKILL.md description narrowed (`grep -c 'any question about a codebase' ~/.claude/skills/graphify/SKILL.md` = 0; live in the session skill listing); `~/.bashrc` += `export GRAPHIFY_QUERY_LOG_DISABLE=1` (`bash -ic 'env | grep GRAPHIFY_QUERY_LOG_DISABLE'` → `=1`; graphify 0.9.85 `querylog.py:24` honours it and it wins over opt-in logging); no graphify PreToolUse hook in settings.json (only the `gsd-graphify: off` skill override). L-1315 isolated probe (`claude -p`, haiku, $0.015): the rule is loaded and its INFERRED/AMBIGUOUS bullet quoted verbatim. Note: graphify is a pipx install; `graphify install` / upgrade rewrites SKILL.md → TODOS (re-narrow after upgrades).
 
 ### Sub-step 15.10: CRITICAL_PATH_REVIEW
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 15.6, Sub-step 15.7, Sub-step 15.9
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — <milestone heading> — hook-modification — <evidence>`, naming the bats/test names, where the heading is verbatim: Milestone 15: Codemem freshness (report 03 T2–T9)
-- Result Log:
+- Result Log: Mode AFK — auto-dispatched. CRITICAL_PATH_REVIEW line appended (heading verbatim) naming the 6 critical-path commits and the bats/test names: codemem-post-commit 12/12 (mutations 5/5), session-start-code-intel 18/18, code-intel-refresh 11/11, install-codemem-plugin 6/6, storm test; header claims corrected (7ea1228). Boundary fixes after this get a CRITICAL_PATH_REVIEW addendum (M8/M9 precedent).

@@ -54,7 +54,9 @@ def open_graph(repo_root: Path) -> GraphHandle:
         db = Path(repo_root) / ".codemem" / "index.db"
         # Repo-controlled: opening a linked target read-only still creates
         # -wal/-shm beside it (M15 §6.8 re-run 1). Never resolve() it.
-        if db.is_symlink() or db.parent.is_symlink():
+        # Same rule as codemem's check_db_path: the dir or any entry in it.
+        links = db.parent.is_dir() and any(p.is_symlink() for p in db.parent.iterdir())
+        if db.parent.is_symlink() or links:
             return GraphHandle(
                 GraphStatus.MISSING,
                 f"codemem index at {db} is a symlink; refusing to open it",

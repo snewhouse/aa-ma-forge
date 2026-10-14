@@ -1361,14 +1361,18 @@ def aa_ma_context(
 def _extract_file_mentions(corpus: str, *, repo_root: Path) -> list[str]:
     """Backticked path tokens that also exist on disk under repo_root.
 
-    Deduplicates and preserves first-appearance order.
+    Deduplicates and preserves first-appearance order. The corpus is repo
+    text: an absolute or ``..`` token, or one whose link leaves the repo, is
+    never probed (M15 §6.8 background review).
     """
+    root = repo_root.resolve()
     seen: dict[str, None] = {}
     for match in _FILE_MENTION_RE.findall(corpus):
-        if match in seen:
+        rel = Path(match)
+        if match in seen or rel.is_absolute() or ".." in rel.parts:
             continue
-        candidate = repo_root / match
-        if candidate.is_file():
+        candidate = (root / rel).resolve()
+        if candidate.is_relative_to(root) and candidate.is_file():
             seen[match] = None
     return list(seen.keys())
 

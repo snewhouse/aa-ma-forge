@@ -2,7 +2,7 @@
 
 Measurable, time-boxed signals that would cause us to abandon or pivot codemem. Public and honest — if any of these fires, we'll say so here rather than quietly walking away from the project.
 
-The thresholds are taken verbatim from the plan document's §12, which came out of the CEO-review step of AA-MA planning (Phase 4.2a). Status lines are added here as milestones close. Latest update: 2026-05-08 (Signal 2 Aider sub-claim re-baselined with v2 honest-cl100k_base measurement and 5-tool panel; see `codemem-benchmark-fairness-v2` plan).
+The thresholds are taken verbatim from the plan document's §12, which came out of the CEO-review step of AA-MA planning (Phase 4.2a). Status lines are added here as milestones close. Latest update: 2026-10-14 (Signal 4 fired; see Signal 4's 2026-10-14 review). Previous update: 2026-05-08 (Signal 2 Aider sub-claim re-baselined with v2 honest-cl100k_base measurement and 5-tool panel; see `codemem-benchmark-fairness-v2` plan).
 
 ## The 5 signals
 
@@ -61,6 +61,11 @@ Full methodology, tables across four budgets, RBO@10 + Jaccard 10-pair overlap, 
 - Search GitNexus / Axon / repomix / yek release notes for any tool named or matching `hot_spots` / `co_changes` / `owners` / `symbol_history` / `layers` semantics
 - Search HN, awesome-lists, and Claude Code plugin index for new git-mining MCP tools
 - If 3+ of the differentiator-five are matched at comparable UX, fire the signal
+
+**Review 2026-10-14 (the 2026-08-06 watch, run late in code-conventions-impact M15.7): FIRED.** Checked against GitHub READMEs, release notes, the npm, PyPI and crates.io registries, and the GitHub API:
+- **repowise** (`repowise-dev/repowise`, AGPL-3.0, 7,668 stars, created 2026-03-23, PyPI 0.56.0 on 2026-10-12) matches 3 of the 5 differentiators over MCP at comparable UX: `co_change_partners` (`get_risk`), blame owners with bus factor (`get_risk include=["owners"]`), and architecture layers with PageRank and betweenness centrality (`get_overview`). Its `hotspot_score` (decayed churn) is a partial 4th. No per-symbol history. Source: [`docs/agent/MCP_TOOLS.md`](https://github.com/repowise-dev/repowise/blob/main/docs/agent/MCP_TOOLS.md), verified 2026-10-14.
+- Still below the threshold: GitNexus 1.6.12 (0/5: `detect_changes` maps a diff and mines no history); Axon 1.0.1 (1/5: co-change coupling feeds `axon_impact`, which the 2026-05-08 review missed); repomix 1.18.1 (raw git log and diff inclusion only); yek 0.25.5 (git-boosted priority, no MCP); graphify 0.9.90 (rebuild hooks and PR metadata). Two git-only servers (GitIntel-MCP-Server, mcp-git-historian) reach 3/5 but have no code graph and almost no users.
+- **Outcome (Ste, 2026-10-14):** apply the rule pre-committed on 2026-05-08. codemem consolidates under AA-MA as its internal code-intelligence engine: the index behind the milestone gates (`TESTS_VERIFIED` context, `IMPACT_VERIFIED`, the §13 diagram fence) and the impact-analysis skill. The standalone "code-intel tool" framing is dropped. Plan work is unchanged (M15 freshness, M10 callees and the pre-edit hook, M11 the impact gate). Positioning-doc edits are in `TODOS.md`. `symbol_history` (`git log -L`) is the one differentiator no surveyed tool offers. The watch is retired: this signal has fired.
 
 ### 5. M2 correctness-risk kill
 

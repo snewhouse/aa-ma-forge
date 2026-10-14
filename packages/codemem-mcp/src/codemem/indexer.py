@@ -18,6 +18,7 @@ Bulk-insert strategy (per AC):
 from __future__ import annotations
 
 import hashlib
+import os
 import subprocess
 import time
 from dataclasses import dataclass
@@ -30,7 +31,20 @@ from .parser.python_ast import ParseResult
 from .storage import db
 
 
-__all__ = ["BuildStats", "build_index", "discover_files", "parse_files"]
+__all__ = [
+    "SAFE_GIT",
+    "BuildStats",
+    "build_index",
+    "discover_files",
+    "parse_files",
+    "tree_signature",
+    "write_sidecar",
+]
+
+# Every git call on the index path. Command-scope config outranks the repo's
+# own .git/config, which can name commands git runs: `git ls-files` and
+# `git status` both run core.fsmonitor (measured 2026-10-14).
+SAFE_GIT = ("git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null")
 
 
 # Extensions we recognise. Files with any other extension are skipped —
@@ -88,7 +102,7 @@ def git_tracked_files(repo_root: Path) -> list[Path] | None:
     """Return git-tracked files (absolute paths), or ``None`` if not a git repo."""
     try:
         result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-            ["git", "-C", str(repo_root), "ls-files"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
+            [*SAFE_GIT, "-C", str(repo_root), "ls-files"],
             capture_output=True,
             text=True,
             check=False,
@@ -102,6 +116,37 @@ def git_tracked_files(repo_root: Path) -> list[Path] | None:
         for line in result.stdout.splitlines()
         if line.strip()
     ]
+
+
+def tree_signature(files: list[Path]) -> str:
+    """Hash of every indexed file's path, mtime and size.
+
+    Equal signatures mean no indexed file was added, removed or touched.
+    Stat-only on purpose: ``git status`` would run the repo's fsmonitor and
+    clean filters.
+    """
+    h = hashlib.sha256()
+    for p in sorted(files):
+        try:
+            st = p.stat()
+        except OSError:
+            continue  # vanished since discovery: its absence changes the hash
+        h.update(os.fsencode(p) + f"\0{st.st_mtime_ns}\0{st.st_size}\n".encode())
+    return h.hexdigest()
+
+
+def write_sidecar(path: Path, text: str) -> None:
+    """Replace ``path`` atomically; a planted symlink is replaced, never followed.
+
+    ``.codemem/`` is repo-controllable: a clone can commit
+    ``.codemem/last_sha -> ~/.bashrc``.
+    """
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    tmp.unlink(missing_ok=True)
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(text)
+    os.replace(tmp, path)
 
 
 # ---------------------------------------------------------------------
@@ -393,6 +438,8 @@ def build_index(
     _pending_wal_acks: list[str] = []
 
     files = discover_files(repo_root)
+    # Taken before parsing: a file edited mid-build changes the signature.
+    signature = tree_signature(files)
     parses, py_errors = parse_files(files, repo_root=repo_root, package=package)
 
     conn = db.connect(db_path, read_only=False)
@@ -486,14 +533,14 @@ def build_index(
     # which is acceptable for non-git trees.
     try:
         result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-            ["git", "-C", str(repo_root), "rev-parse", "HEAD"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
+            [*SAFE_GIT, "-C", str(repo_root), "rev-parse", "HEAD"],
             capture_output=True,
             text=True,
             check=False,
         )
         if result.returncode == 0:
-            last_sha_file = db_path.parent / "last_sha"
-            last_sha_file.write_text(result.stdout.strip() + "\n")
+            write_sidecar(db_path.parent / "last_sha", result.stdout.strip() + "\n")
+            write_sidecar(db_path.parent / "tree_sig", signature + "\n")
     except FileNotFoundError:
         pass  # git not on PATH — first refresh will full-rebuild too
 

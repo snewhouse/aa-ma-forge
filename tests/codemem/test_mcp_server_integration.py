@@ -140,8 +140,8 @@ def populated_env(tmp_path: Path, monkeypatch) -> Path:
         cwd=repo_root,
         check=True,
     )
-    # The seeded DB stands for this commit: record it, or the bounded
-    # refresh (M15.2) treats the index as unverifiable and rebuilds it.
+    # The seeded DB stands for this commit and tree: record both, or the
+    # bounded refresh (M15.2) treats the index as unverifiable and rebuilds it.
     head = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         cwd=repo_root,
@@ -150,6 +150,10 @@ def populated_env(tmp_path: Path, monkeypatch) -> Path:
         text=True,
     ).stdout.strip()
     (db_path.parent / "last_sha").write_text(head + "\n")
+    from codemem.indexer import discover_files, tree_signature
+
+    sig = tree_signature(discover_files(repo_root))
+    (db_path.parent / "tree_sig").write_text(sig + "\n")
 
     # --- AA-MA task dir for aa_ma_context. Adversarial-safe mentions:
     #     a.py exists on disk; "foo" exists in the symbols table.

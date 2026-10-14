@@ -230,13 +230,27 @@ def test_a_planted_wal_is_never_absorbed_into_a_new_stamped_db(tmp_path):
 
 
 def test_a_planted_rollback_journal_is_never_absorbed_either(tmp_path):
-    """Characterisation (SQLite 3.4x): a hot -journal with no main file is ignored."""
+    """Characterisation (SQLite 3.4x): a real hot -journal with no main file is ignored."""
+    import shutil
+
+    src = tmp_path / "attacker" / "index.db"
+    src.parent.mkdir()
+    keep = sqlite3.connect(src, isolation_level=None)
+    keep.execute("PRAGMA journal_mode=DELETE")
+    keep.execute("CREATE TABLE commits (message TEXT)")
+    keep.execute("BEGIN")
+    keep.executemany("INSERT INTO commits VALUES (?)", [("planted",)] * 2000)
     target = tmp_path / "victim-repo" / ".codemem"
     target.mkdir(parents=True)
-    (target / "index.db-journal").write_bytes(
-        b"\xd9\xd5\x05\xf9\x20\xa1\x63\xd7" + b"\x00" * 504
-    )
+    shutil.copy(
+        src.with_name("index.db-journal"), target / "index.db-journal"
+    )  # hot, mid-transaction
+    keep.execute("ROLLBACK")
+    keep.close()
     conn = db.connect(target / "index.db")
-    tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master")}
+    tables = {
+        r[0]
+        for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+    }
     conn.close()
     assert tables == {"meta"}

@@ -254,3 +254,62 @@ def test_a_planted_rollback_journal_is_never_absorbed_either(tmp_path):
     }
     conn.close()
     assert tables == {"meta"}
+
+
+def _set_stamp(db_path: Path, value: str) -> None:
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE meta SET value = ? WHERE key = 'trust_nonce'", (value,))
+    conn.commit()
+    conn.close()
+
+
+def test_a_non_ascii_stamp_is_untrusted_and_build_recovers(repo):
+    """hmac.compare_digest raised TypeError on a non-ASCII str: even `codemem build` crashed."""
+    from codemem.storage.db import index_trusted
+
+    root, db_path = repo
+    _set_stamp(db_path, "é")
+    assert index_trusted(db_path) is False
+    build_index(root, db_path)
+    assert index_trusted(db_path) is True
+
+
+def test_an_unreadable_trust_store_is_a_named_error_not_untrusted(
+    repo, monkeypatch, tmp_path
+):
+    """A broken state dir must not look like a hostile index (that loops rebuilds silently)."""
+    from codemem.safety import TrustStoreError
+
+    root, db_path = repo
+    blocker = tmp_path / "state-is-a-file"
+    blocker.write_text("x\n")
+    monkeypatch.setenv("XDG_STATE_HOME", str(blocker))
+    with pytest.raises(TrustStoreError):
+        db.connect(db_path, read_only=True)
+    r = mcp_tools.ensure_fresh(db_path, root)
+    assert r["stale_reason"] == "error" and "trust store" in r["error"]
+    assert not (db_path.parent / "index.db.rebuild").exists()
+
+
+def test_a_db_that_cannot_be_stamped_is_not_left_behind(tmp_path, monkeypatch):
+    from codemem.safety import TrustStoreError
+
+    blocker = tmp_path / "state-is-a-file"
+    blocker.write_text("x\n")
+    monkeypatch.setenv("XDG_STATE_HOME", str(blocker))
+    d = tmp_path / "r" / ".codemem"
+    d.mkdir(parents=True)
+    with pytest.raises(TrustStoreError):
+        db.connect(d / "index.db")
+    assert list(d.iterdir()) == []
+
+
+def test_an_untrusted_rebuild_that_failed_says_so(repo, monkeypatch, tmp_path):
+    """Caller must tell 'still rebuilding, retry' from 'rebuild failed'."""
+    root, db_path = repo
+    _other_machine(monkeypatch, tmp_path)
+    monkeypatch.setattr(mcp_tools, "_capped_refresh", lambda *a, **k: "error")
+    r = mcp_tools.ensure_fresh(db_path, root)
+    assert r["stale_reason"] == "untrusted" and "failed" in r["error"]
+    log = (db_path.parent / "refresh.log").read_text()
+    assert "not served" in log and "serving a stale index" not in log.splitlines()[-1]

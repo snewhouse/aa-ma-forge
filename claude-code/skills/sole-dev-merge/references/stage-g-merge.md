@@ -175,6 +175,13 @@ case "$CI_STATE" in
     green)
         : "${ORIGINAL_BRANCH:?Stage G3 needs ORIGINAL_BRANCH from Stage A}"
         DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+        # DEFAULT_BRANCH comes from the remote's HEAD; refuse an option-shaped one.
+        git check-ref-format --branch "$DEFAULT_BRANCH" >/dev/null \
+            || { echo "ABORT: Stage G3: DEFAULT_BRANCH '$DEFAULT_BRANCH' is not a valid branch name"; exit 1; }
+        case "$MERGE_STRATEGY" in
+            rebase|merge|squash) ;;
+            *) echo "ABORT: Stage G3: MERGE_STRATEGY '$MERGE_STRATEGY' is not rebase, merge or squash"; exit 1 ;;
+        esac
         case "$REMOTE_CHOICE" in
         github)
             # Refuse before any state change, so a wrong or hostile value can't
@@ -203,8 +210,14 @@ case "$CI_STATE" in
             # branch is already gone (E12); ls-remote decides, not the rc.
             git push -q origin ":refs/heads/$ORIGINAL_BRANCH" \
                 || echo "Stage G3: push --delete rc=$? (already gone server-side?) — checking ls-remote"
-            if [[ -n "$(git ls-remote origin "refs/heads/$ORIGINAL_BRANCH")" ]]; then
+            # --exit-code: rc 2 = gone, 0 = still there; anything else could not
+            # check, which must never read as "deleted" (L-1332).
+            LS_RC=0
+            git ls-remote --exit-code origin "refs/heads/$ORIGINAL_BRANCH" >/dev/null || LS_RC=$?
+            if [[ "$LS_RC" -eq 0 ]]; then
                 echo "STATUS: BRANCH_NOT_DELETED — $ORIGINAL_BRANCH"
+            elif [[ "$LS_RC" -ne 2 ]]; then
+                echo "STATUS: BRANCH_NOT_DELETED — $ORIGINAL_BRANCH (ls-remote rc=$LS_RC, could not verify)"
             fi
             ;;
         gitlab)
@@ -277,6 +290,8 @@ DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
 # (security audit: `--output=` would clobber a file).
 git check-ref-format --branch "$ORIGINAL_BRANCH" >/dev/null \
     || { echo "ABORT: Stage G4: invalid ORIGINAL_BRANCH '$ORIGINAL_BRANCH'"; exit 1; }
+git check-ref-format --branch "$DEFAULT_BRANCH" >/dev/null \
+    || { echo "ABORT: Stage G4: invalid DEFAULT_BRANCH '$DEFAULT_BRANCH'"; exit 1; }
 
 # Absolute forms on both sides: the raw --git-common-dir is relative from a
 # subdirectory, which would misread a plain checkout as a worktree (E7).
@@ -294,14 +309,14 @@ else
     # Linked worktree: the default branch belongs to the main worktree, so
     # update it there and leave this worktree and its branch alone (L-1332).
     WT_LIST=$(git worktree list --porcelain)   # captured once: no early-exit pipe under pipefail
-    MAIN_WT=$(awk '/^worktree /{ if (!w) w = substr($0, 10) } END { print w }' <<<"$WT_LIST")
+    MAIN_WT=$(awk '/^worktree / && !w { sub(/^worktree /, ""); w = $0 } END { print w }' <<<"$WT_LIST")
     git -C "$MAIN_WT" fetch -q --prune origin
     if [[ "$(git -C "$MAIN_WT" branch --show-current)" != "$DEFAULT_BRANCH" ]]; then
         if [[ $'\n'"$WT_LIST"$'\n' == *$'\n'"branch refs/heads/$DEFAULT_BRANCH"$'\n'* ]]; then
-            echo "STATUS: MAIN_NOT_UPDATED — $DEFAULT_BRANCH is in use by another worktree"
+            MAIN_NOTE="STATUS: MAIN_NOT_UPDATED — $DEFAULT_BRANCH is in use by another worktree"
         else
             git -C "$MAIN_WT" fetch -q origin "$DEFAULT_BRANCH:$DEFAULT_BRANCH" \
-                || echo "STATUS: MAIN_NOT_UPDATED — non-fast-forward"
+                || MAIN_NOTE="STATUS: MAIN_NOT_UPDATED — non-fast-forward"
         fi
     elif [[ -n "$(git -C "$MAIN_WT" status --porcelain --untracked-files=no)" ]]; then
         # Never auto-revert someone's edits in the main worktree (L-1347, Q5).
@@ -319,8 +334,13 @@ else
 fi
 
 MERGE_SHA=$(git -C "${MAIN_WT:-.}" rev-parse --short "$DEFAULT_BRANCH")
-echo "Stage G4: cleanup OK — $DEFAULT_BRANCH at $MERGE_SHA${WT_NOTE:-}"
+echo "Stage G4: cleanup done — $DEFAULT_BRANCH at $MERGE_SHA${WT_NOTE:-}"
 echo "Final: branch=$ORIGINAL_BRANCH merged into $DEFAULT_BRANCH (sha=$MERGE_SHA)${PR_URL:+ — $PR_URL}"
-echo "STATUS: OK${WT_NOTE:-}"
+# One terminal STATUS line: OK only when the default branch was really updated.
+if [[ -n "${MAIN_NOTE:-}" ]]; then
+    echo "$MAIN_NOTE"
+else
+    echo "STATUS: OK${WT_NOTE:-}"
+fi
 # === stage-g4-cleanup (END) ===
 ```

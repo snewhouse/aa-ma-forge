@@ -382,6 +382,13 @@ if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-log.sh" ]; then
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-log.sh"
 fi
 
+# Commit-footer helper, sourced by /sole-dev-merge's B-commit and D blocks. In
+# any repo but this one they find it only here (the `footer-resolve` chain).
+if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh" ]; then
+    create_symlink "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh" \
+                   "${CLAUDE_HOME}/hooks/lib/aa-ma-footer.sh"
+fi
+
 # Charting guard is invoked from the /aa-ma-chart and /aa-ma-plan --from-map
 # command bodies via the `_cand` resolution (repo-local first, then
 # ${CLAUDE_HOME}/hooks/lib). Not a registered hook event; L-005 — helpers

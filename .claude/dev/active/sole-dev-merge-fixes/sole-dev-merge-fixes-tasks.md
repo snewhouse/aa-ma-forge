@@ -218,7 +218,7 @@ Conventions used in the criteria:
     - the symlink target is unchanged (1 line).
 
 ### Sub-step 1.9: RED/GREEN — install link for the footer helper
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.8
 - Acceptance Criteria:
@@ -226,6 +226,13 @@ Conventions used in the criteria:
   - `grep -c 'aa-ma-footer.sh' scripts/install.sh` ≥ 1.
   - `scripts/uninstall.sh` removes the link: either a dry-run assertion, or a grep showing generic `hooks/lib` handling (whichever applies, recorded in the Result Log).
 - Result Log:
+  - Mode: AFK — auto-dispatched.
+  - RED (ebeda62): the new `install_dry_run.bats` case "announces the hooks/lib/aa-ma-footer.sh symlink" was not-ok before the fix.
+  - GREEN: one `create_symlink` block for `hooks/lib/aa-ma-footer.sh`, added after the `aa-ma-log.sh` block. The live anchor is `scripts/install.sh:384-390`; validator W3 re-checked it. Like its neighbours, it has no backup step (TODOS "install.sh: back up every hooks/lib target").
+    - `grep -c aa-ma-footer.sh scripts/install.sh` = 3.
+    - `install_dry_run.bats` 33/33 ok; install-migration ok; `shellcheck scripts/install.sh` rc 0.
+  - Uninstall: generic handling, no change needed. `scripts/uninstall.sh:99` puts `${CLAUDE_HOME}/hooks/lib` in `SEARCH_DIRS` and removes every link that `points_into_repo`.
+  - Live check with a fake HOME laid out like the test setup: `install.sh` rc 0, link → `<wt>/claude-code/hooks/lib/aa-ma-footer.sh`; `uninstall.sh` rc 0, link removed.
 
 ### Sub-step 1.10: Docs and lessons
 - Status: PENDING

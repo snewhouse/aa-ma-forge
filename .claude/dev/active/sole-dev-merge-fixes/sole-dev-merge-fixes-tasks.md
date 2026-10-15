@@ -193,7 +193,7 @@ Conventions used in the criteria:
   - TODOS: new entry "Check the AA-MA commit signature at the `commit-msg` stage, not in the command text".
 
 ### Sub-step 1.8: RED/GREEN — pre-compact never follows a symlink
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.7
 - Acceptance Criteria:
@@ -207,6 +207,15 @@ Conventions used in the criteria:
   - GREEN: 0 not-ok across all 17 tests; `shellcheck claude-code/hooks/pre-compact-aa-ma.sh` exits 0.
   - `grep -cE '\[\[ -L |realpath' claude-code/hooks/pre-compact-aa-ma.sh` ≥ 2.
 - Result Log:
+  - Mode: AFK — auto-dispatched.
+  - RED (37225cf): 4 new @tests with a fake HOME (symlinked provenance.log, context-log.md, reference.md, task dir). All 4 not-ok before the fix. Repro: the fake `<home>/.bashrc` went from 1 to 3 lines through a symlinked provenance.log.
+  - GREEN: before any read or write, `pre-compact-aa-ma.sh` skips a task whose dir, or any of its 4 AA-MA files, is a symlink (`[[ -L ]]`). Each skip writes one `skipped task <name>: …` WARN line to hooks.log and is counted. Skips and append failures share one systemMessage. The Fail-open header is updated.
+  - Deviation from the plan: no `realpath -e` containment check. With the `-L` checks in place, a regular file in a non-symlinked dir is always inside that dir, so the check adds nothing, and `realpath -e` is GNU-only. A symlinked parent (`.claude`) is out of scope, as the code comment says. `grep -cE '\[\[ -L |realpath'` = 2.
+  - `bats pre-compact.bats` 17/17 ok; hook-headers ok; `shellcheck` rc 0; pre-commit shellcheck passed.
+  - Fault probes:
+    - a skip with stdout and stderr closed → rc 0;
+    - a skip plus a failed append → rc 0 and exactly 1 JSON object naming both;
+    - the symlink target is unchanged (1 line).
 
 ### Sub-step 1.9: RED/GREEN — install link for the footer helper
 - Status: PENDING

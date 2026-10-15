@@ -2,7 +2,7 @@
 # Event: PreCompact
 # Mode: Advisory — never blocks compaction
 # Exit: 0 always
-# Fail-open: a failed audit-trail append is logged to hooks.log, counted, and reported in one systemMessage; helper missing → systemMessage
+# Fail-open: a failed audit-trail append or a task skipped for a symlink is logged to hooks.log, counted, and reported in one systemMessage; helper missing → systemMessage
 #
 # PreCompact hook: snapshot AA-MA state before auto-compaction.
 #
@@ -49,8 +49,9 @@ mkdir -p "$SNAPSHOT_DIR" 2>/dev/null || {   # why: the notice below replaces mkd
     exit 0   # PreCompact must never block compaction
 }
 
-# Audit-trail append failures, reported once at exit (see end of file).
+# Audit-trail append failures and skipped tasks, reported once at exit (see end of file).
 append_failures=0
+skipped_tasks=0
 
 # warn_append <what> <file> — record one failed append in hooks.log and count it.
 # log_warn never fails, so this cannot abort compaction under set -e.
@@ -75,6 +76,30 @@ fi
 
 for task_dir in "${TASKS[@]}"; do
     task_name=$(basename "$task_dir")
+
+    # Never follow a symlink (security audit, sole-dev-merge-fixes 1.8): an
+    # untrusted clone can commit one in place of a task dir or an AA-MA file,
+    # and the appends below would then write into, and the snapshot copy from,
+    # any file outside the repo. A regular file in a non-symlinked task dir is
+    # inside that dir, so these checks are enough; a symlinked parent (.claude
+    # itself) is not checked.
+    skip_why=""
+    if [[ -L "$task_dir" ]]; then
+        skip_why="task dir is a symlink"
+    else
+        for f in tasks.md reference.md context-log.md provenance.log; do
+            if [[ -L "${task_dir}/${task_name}-${f}" ]]; then
+                skip_why="${task_name}-${f} is a symlink"
+                break
+            fi
+        done
+    fi
+    if [ -n "$skip_why" ]; then
+        log_warn "$HOOK" "skipped task $task_name: $skip_why; nothing read or written"
+        skipped_tasks=$((skipped_tasks + 1))
+        continue
+    fi
+
     snapshot_file="${SNAPSHOT_DIR}/${task_name}-snapshot.md"
 
     {
@@ -150,8 +175,14 @@ done
 
 # Hook stderr on exit 0 reaches only the debug log (code.claude.com/docs/en/hooks), so a
 # systemMessage is the one channel the user actually sees; the paths are in hooks.log.
+# One notice for both kinds: stdout carries a single JSON object.
+notice=""
+[ "$skipped_tasks" -gt 0 ] && notice="$skipped_tasks task(s) skipped: a symlinked AA-MA file or task dir"
 if [ "$append_failures" -gt 0 ]; then
-    fail_open_notice "$HOOK" "$append_failures audit-trail append(s) failed; see ~/.claude/logs/hooks.log"
+    notice="${notice:+$notice; }$append_failures audit-trail append(s) failed"
+fi
+if [ -n "$notice" ]; then
+    fail_open_notice "$HOOK" "$notice; see ~/.claude/logs/hooks.log"
 fi
 
 exit 0

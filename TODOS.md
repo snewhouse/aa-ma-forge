@@ -93,9 +93,19 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
   - a helper sourced from an arbitrary file;
   - `-m "$MSG"` and `-F file`, which still pass;
   - combined short flags (`git commit -am "unsigned"` passes as "editor form", rc 0). This was probed 2026-10-15 on the hook at `1d760f1`, so it predates rule 8.
+  - `git -C <dir> commit` and `git -c k=v commit` never match the hook's `git commit` pattern (rc 0; §6.8 security review, 2026-10-15).
+  - rule 8 trusts the helper's output; it can't tell which `aa-ma-footer.sh` the command sourced.
 - Fix: a `commit-msg` hook, installed per repo or via pre-commit's `commit-msg` stage, that reads the real message file and applies the same rule as `aa-ma-footer.sh`. Keep the PreToolUse hook as an early warning.
 
 **Why:** a check that sees the actual message has no shapes to guess, and it ends the literal-text bypasses. **Effort:** M · **Priority:** P2
+
+### pre-compact: also skip a project whose `.claude`, `.claude/dev` or `.claude/dev/active` is a symlink
+**What:** sole-dev-merge-fixes 1.8 skips a task whose dir or AA-MA file is a symlink. A cloned repo can still commit `.claude/dev/active` as a symlink to another project's active dir. The hook would then append CHECKPOINT lines to that project's `<task>-provenance.log` and `<task>-context-log.md` and copy its reference.md into the snapshot. Only AA-MA-shaped files are reachable. Skip project tasks when any of the three parents under the project root is `-L`. Don't apply this to `$HOME/.claude`, which is often a legitimate dotfiles symlink. Fold it into M5, which reworks this hook's roots anyway.
+**Why:** §6.8 security review of M1 (INFO, 2026-10-15). **Effort:** S · **Priority:** P3
+
+### /sole-dev-merge: source the repo's own `aa-ma-footer.sh` only inside aa-ma-forge
+**What:** the `footer-resolve` chain tries `<toplevel>/claude-code/hooks/lib/aa-ma-footer.sh` in **any** repo, and the commit-signature hook then trusts that helper's output. Check that the repo is aa-ma-forge (plugin manifest name) before taking the repo copy; otherwise use the installed `~/.claude/hooks/lib` link.
+**Why:** §6.8 security review of M1 (INFO, A08). Low risk, because Stage B already runs the repo's own pre-commit and pytest. **Effort:** S · **Priority:** P3
 
 ### A reusable `secops-ci` template for other repos
 **What:** a drop-in set (security.yml jobs ruff-security / gitleaks / deps, `.gitleaksignore`, `.pip-audit-ignore`, `dependabot.yml`, a pre-commit gitleaks entry) plus a short install note in `Skill(secops)`.
@@ -249,7 +259,7 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 
 ### install.sh: back up every `hooks/lib/` target it replaces; `lib/aa-ma-footer.sh` is never linked
 
-**What:** `scripts/install.sh:149` backs up only `~/.claude/hooks/lib/pre-compact-aa-ma.sh`; the other seven `hooks/lib/` paths it `rm -rf`s (`aa-ma-parse.sh`, `aa-ma-plan-marker.sh`, the six `AA_MA_HOOKS` scripts at :314-323 via `register_hook` :373) get no backup. Loop the same list in the backup collector (:126-155). ~~Separately decide whether `claude-code/hooks/lib/aa-ma-footer.sh` should be installed or removed.~~ **Done:** sole-dev-merge-fixes M1 (2026-10-15) — `install.sh` links it, because `/sole-dev-merge` resolves it there outside this repo.
+**What:** `scripts/install.sh` backs up only two `hooks/lib/` targets (`collect_backup_target` for `pre-compact-aa-ma.sh` and `ruff-format.sh`). Every other `hooks/lib/` path it links with `create_symlink` or `register_hook` (including `aa-ma-footer.sh`, added by sole-dev-merge-fixes M1) is replaced with no backup. Collect a backup for each of them, derived from the same calls rather than a second hand-kept list. ~~Separately decide whether `claude-code/hooks/lib/aa-ma-footer.sh` should be installed or removed.~~ **Done:** sole-dev-merge-fixes M1 (2026-10-15) — `install.sh` links it, because `/sole-dev-merge` resolves it there outside this repo.
 
 **Why:** Found by the M4.3 `aa-ma-researcher` live run (`docs/research/mattpocock-trio-adoption-install-backup.md`) and confirmed by hand 2026-09-21. L-016 (b) pattern: `hooks/lib` helpers are per-file, not auto-discovered.
 

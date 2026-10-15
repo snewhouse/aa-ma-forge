@@ -466,7 +466,7 @@ feat(api): add rate limiting middleware
 2. Exactly one → that task's name is `{task-name}`.
 3. Several → the plan the branch changed: a tracked change (committed or not) under its `.claude/dev/active/<task>/` since the merge-base with `origin/HEAD` (`origin/main` when that is unset), or a plan directory not yet in git. If no plan or more than one plan was changed, write `[ad-hoc]` and print a warning. Never guess: parallel plans on one main are normal, and each milestone branch carries its own plan's files.
 
-**Enforcement:** the `aa-ma-commit-signature.sh` PreToolUse hook accepts the footer of **any** active plan it can see from the session's working directory. It also accepts the `[ad-hoc]` line, and a commit built as `FOOTER=$(emit_aa_ma_footer); git commit -m "…${FOOTER}"` (the helper is then the footer's only source). It does not check that the plan matches the branch; the detection rule above does that. The session-start banner lists plans alphabetically. That is display order only, a separate rule.
+**Enforcement:** the `aa-ma-commit-signature.sh` PreToolUse hook accepts the footer of **any** active plan it can see from the session's working directory. It also accepts the `[ad-hoc]` line, and a helper-built commit: after `set -e`, a line that is only `FOOTER=$(emit_aa_ma_footer)`, then a line that is only `git commit -m "…${FOOTER}"`. The helper is then the footer's only source, and an undefined helper stops the shell before the commit. It does not check that the plan matches the branch; the detection rule above does that. The session-start banner lists plans alphabetically. That is display order only, a separate rule.
 
 **Applies To:**
 - All AA-MA execution commits (`/execute-aa-ma-milestone`, `/execute-aa-ma-full`)

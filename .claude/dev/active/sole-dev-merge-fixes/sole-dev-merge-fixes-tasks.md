@@ -462,7 +462,7 @@ Conventions used in the criteria:
 - Mode: AFK
 - Dependencies: Sub-step 4.1
 - Acceptance Criteria:
-  - The status table has the 7 new rows: MERGE_FAILED, BRANCH_NOT_DELETED, MAIN_CHECKOUT_DIRTY, MAIN_NOT_UPDATED, REMOTE_UNKNOWN, PR_BODY_NOT_UPDATED, and the B-commit ABORT. The `comm` check (milestone AC 4) is empty.
+  - The status table has the 7 new rows: MERGE_FAILED, BRANCH_NOT_DELETED, MAIN_CHECKOUT_DIRTY, MAIN_NOT_UPDATED, REMOTE_UNKNOWN, PR_BODY_NOT_UPDATED, and the B-commit ABORT. It also has the G3/G4 ABORT rows (rc 1, since M1 §6.8), the exit-contract line (`SKILL.md` "non-zero only for A, E2, F") widened to G3/G4, and the `STATUS: OK` row reworded (in a worktree the local branch is left for the operator). The `comm` check (milestone AC 4) is empty.
   - `bats --tap SDM` gives 0 not-ok; shellcheck exits 0 on F, A and E3.
   - `scripts/regen-generated.sh` leaves no uncommitted diff.
 - Result Log:

@@ -52,7 +52,7 @@ Conventions used in the criteria:
   - Pre-exec validator: WARN (0 FAIL, 4 WARN: W1 1.0 commit-order, W2 some M1 paths not in reference.md, W3 install.sh anchor re-check in 1.9, W4 cosmetic).
 
 ### Sub-step 1.1: RED — G3 tests
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.0
 - Acceptance Criteria:
@@ -64,6 +64,11 @@ Conventions used in the criteria:
   - The 5 security-audit cases exist: head-ref mismatch ABORT, `ORIGINAL_BRANCH=main` ABORT, `--output=x` ABORT with no file `x`, tag `feature` survives, and `other/feature` gives no false `BRANCH_NOT_DELETED`. In all, `grep -c '^@test "G3:'` grows by ≥ 12.
   - RED evidence is recorded.
 - Result Log:
+  - Mode: AFK — auto-dispatched.
+  - `setup()` exports `ORIGINAL_BRANCH=feature`; the two `:100-121` cases now assert `grep -c -- --delete-branch` = 0 and `pr merge <n> --<strategy>$`.
+  - gh stub: `--json state` → `${GH_PR_STATE:-MERGED}`, `--json headRefName` → `${GH_HEAD_REF:-feature}` (both before `GH_PR_EXISTS`), `pr merge` → `${GH_MERGE_RC:-0}`.
+  - `grep -c '^@test "G3:'` 5 → 17 (+12: 7 plan cases + 5 security cases: head-ref mismatch, ORIGINAL_BRANCH=main, `--output=x`, tag survives, `other/feature`).
+  - RED on unfixed G3: 14 not-ok (the 2 flipped + 12 new), 9 ok (existing G1/G3-timeout/failed/unknown/gitlab/G4). No new case passes as a guard: the tag and `other/feature` cases also assert `refs/heads/feature` is deleted.
 
 ### Sub-step 1.2: GREEN — G3 implementation
 - Status: PENDING

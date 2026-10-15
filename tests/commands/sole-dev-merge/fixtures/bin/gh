@@ -12,6 +12,10 @@
 #                           Use 0 for green, 1+ for failure. Ignored when HANG=1.
 #   GH_ALLOW_REBASE=true — `gh api repos/.../allow_rebase_merge` echoes this.
 #                           Set to "false" to simulate rebase-merge disabled.
+#   GH_PR_STATE=MERGED   — `gh pr view ... --json state` echoes this (G3 reads
+#                           the server state after the merge call, E6).
+#   GH_HEAD_REF=feature  — `gh pr view ... --json headRefName` echoes this.
+#   GH_MERGE_RC=0        — exit code for `gh pr merge`.
 
 set -eu
 
@@ -22,6 +26,15 @@ case "${1:-}" in
     pr)
         case "${2:-}" in
             view)
+                # G3 arms first: they must win over the GH_PR_EXISTS check
+                # below, or every G3 test would read "no PR".
+                if [[ "$*" == *"--json state"* ]]; then
+                    echo "${GH_PR_STATE:-MERGED}"
+                    exit 0
+                elif [[ "$*" == *"--json headRefName"* ]]; then
+                    echo "${GH_HEAD_REF:-feature}"
+                    exit 0
+                fi
                 # §6.8 M4 CRITICAL-1 fix: Stage F now queries `--jq '.url'` and
                 # `--jq '.number'` to extract PR_URL + PR_NUM. Honour both
                 # filters even when PR_EXISTS=0 (post-create-the-PR-exists).
@@ -54,7 +67,7 @@ case "${1:-}" in
                 exit 0
                 ;;
             merge)
-                exit 0
+                exit "${GH_MERGE_RC:-0}"
                 ;;
         esac
         ;;

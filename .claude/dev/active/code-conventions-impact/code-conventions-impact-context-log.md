@@ -624,3 +624,10 @@ DECISION ruff-only () — approved by Ste
 
 ## [2026-10-15] Milestone 15 finalization: §7.2.5 validator
 - Verdict WARNINGS_BUT_USABLE (0 FAIL / 13 WARN), back-filled inline: post-merge chain re-pointed (16.0 ← M15 post-merge incl. 15.4's deferred `--wire-git-hook` and 15.8's user-scope check; 10.0 ← M16; the first live CODE_INTEL_REFRESH is M16's — M15 AC5's wording and M10's AC updated to match); plan §2a/§6 M16 rows, counts, order, Last Updated; §13 milestone graph regenerated (`aa_ma_deps graph`); §13 nodes for safety.py, journal/lock.py, render/graph.py, analysis/measure.py, codemem README and docs/ (`--coverage` 0 undrawn; sigils still 25/25) — this also supersedes the §6.3 note that lock.py was left out of the Contract; reference Last Updated, the TOCTOU fact and superseded markers; 15.2's RED SHA (dfdc00f); provenance back-fill (re-run 4 POST_IMPL_REVIEW, F3 and TOCTOU fixes, M16 SCOPE CHANGE, 15.10 COMPLETE, final evidence SHA).
+
+## [2026-10-15] M15 PR sole-dev-merge Stage C/D (Ste decisions)
+- Stage C on `main...HEAD` (d0febe6, 58 files): C1 code-reviewer 2 MEDIUM / 5 LOW; C2 security-auditor 1 HIGH / 2 LOW; C3 Ruff S 0; C4 ShellCheck 0. Stage B: pytest 3136 passed / 5 skipped; L-007 guard clean.
+- HIGH (planted `index.db-journal` rolled back into a stamped index; cleanups omit `-journal`, confirmed at `incremental.py:418`, `indexer.py:150` vs `db.py:208`): Ste **Defer to M16**. Same root cause as the re-run 3 WAL limit. SECURITY.md known limit widened; M16 AC added.
+- MEDIUM relative `CODEMEM_DB`/`CODEMEM_REPO_ROOT` (confirmed `server.py:82-91` returns `Path(env)`; refresh runs with cwd = DB dir): Ste **Defer to M16**; M16 AC added.
+- MEDIUM §6.0 gate cold-builds instead of `skipped(no index)` (confirmed: worker runs `codemem refresh` whenever the binary exists, `post-commit.sh:107`): Ste **Defer to M16**; M16 AC added.
+- LOW x7 → PR body reviewer notes and TODOS (P3). M15 not reopened (gate rule).

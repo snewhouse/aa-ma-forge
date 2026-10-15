@@ -71,7 +71,7 @@ Conventions used in the criteria:
   - RED on unfixed G3: 14 not-ok (the 2 flipped + 12 new), 9 ok (existing G1/G3-timeout/failed/unknown/gitlab/G4). No new case passes as a guard: the tag and `other/feature` cases also assert `refs/heads/feature` is deleted.
 
 ### Sub-step 1.2: GREEN — G3 implementation
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.1
 - Acceptance Criteria:
@@ -80,6 +80,12 @@ Conventions used in the criteria:
   - `extract stage-g3-merge … | awk '/2>\/dev\/null|\|\| true/ && !/# why:/ && prev !~ /# why:/ {n++} {prev=$0} END{print n+0}'` = 0. check-conventions skips `.md`, so this awk is the check.
   - SKILL.md `:13` no longer says `--delete-branch`.
 - Result Log:
+  - Mode: AFK — auto-dispatched.
+  - `stage-g-merge.md` G3 `green)` arm replaced per plan §4 1.2: ORIGINAL_BRANCH required; check-ref-format / not-default / PR-head refusals (rc 1) before any merge; `gh pr merge <n> --<strategy>` with no `--delete-branch`; decision from `gh pr view --json state`; `git push origin :refs/heads/<b>` then `ls-remote` assert; `STATUS: MERGE_FAILED|BRANCH_NOT_DELETED|REMOTE_UNKNOWN`; prints `MERGE_DISPATCHED=0|1`.
+  - Deviation from the plan snippet: the `git push … :refs/heads/<b>` keeps its stderr (no `2>/dev/null`), so the operator sees git's reason on a refused delete; rc still printed.
+  - `bats --tap SDM/test_stage_g_merge.bats` = 23 ok, 0 not-ok (incl. existing timeout, failed, gitlab green, gitlab timeout, unknown).
+  - `extract stage-g3-merge | shellcheck --enable=check-set-e-suppressed -` rc 0; suppression awk = 0; `gh pr merge.*--delete-branch` in G3 = 0; `STATUS: (MERGE_FAILED|BRANCH_NOT_DELETED|REMOTE_UNKNOWN)` in stage-g-merge.md = 6.
+  - G3 prose (`:26-37`) and SKILL.md `:13` updated; SKILL.md no longer says `--delete-branch`.
 
 ### Sub-step 1.3: RED — G4 worktree tests
 - Status: PENDING

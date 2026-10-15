@@ -108,3 +108,9 @@ _This log will be updated via context compaction as the task progresses._
   - `git -C`/`git -c` forms (in the commit-msg TODO).
   - M4 4.2's status rows are widened to the G3/G4 ABORTs and the exit contract (code-reviewer W4).
 - **Scope note** (code-reviewer W1): `docs/architecture/{README,component,io}.md` (regen stamp) and `tests/codemem/test_plugin_surface.py` (orphan set) changed as outputs of `scripts/regen-generated.sh`. The Contract's "only if regen-generated.sh changes them" line covers them.
+
+## [2026-10-15] GATE APPROVAL: Milestone 1: Worktree-safe G3/G4, deterministic footer, lessons
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion, "Approve")
+- Criteria verified: 7/7 pre-merge (bats 638/0 at 8ae211e via fence 3; G3 --delete-branch 0; STATUS markers 7; feature default 0; 4 hook suites 0 not-ok; privacy 0/0; PROTOTYPE/IMPACT_ANALYSIS/CRITICAL_PATH_REVIEW present). The `[post-merge]` criterion is recorded at Sub-step 2.0 (L-037).
+- Decision: APPROVED

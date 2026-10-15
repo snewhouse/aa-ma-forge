@@ -263,7 +263,7 @@ Conventions used in the criteria:
   - Privacy: denylist count 0; `/ho[m]e/|/tm[p]/claude-` count 0. A by-eye check plus a grep for known private names gave 2 hits; both are the denylist file's own path (`~/.config/<org>/denylist`), quoted in this tasks.md by the planning commit. The diff names no private repository. (Corrected after commit 86a6403, which logged "0" before the grep output was read; global L-1352.)
 
 ### Sub-step 1.11: Verify, impact, gate
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 1.10
 - Acceptance Criteria:
@@ -274,6 +274,18 @@ Conventions used in the criteria:
   - PL has `IMPACT_ANALYSIS — Milestone 1: HIGH=0 unresolved` and `CRITICAL_PATH_REVIEW — Milestone 1:`.
   - CL has `## <date> GATE APPROVAL: Milestone 1` with `Decision: APPROVED`.
 - Result Log:
+  - Mode: HITL — Ste: "Proceed" at the gate; HARD gate "Approve".
+  - Full suites at 9fbb57f: bats 625/625 and pytest 3 failed.
+    - Fixed in 6b12a9d: 2 bare `!` bats assertions that could not fail. The pre-compact sentinel check now fails against the pre-fix hook (mutation-verified).
+    - Plugin-surface drift: a new edge, hook commit-signature → skill sole-dev-merge. Orphan set updated.
+  - §6.0 CODE_INTEL_REFRESH: codemem and graphify at 6b12a9d. Fence 2: no §13 sigil edges.
+  - §6.8 PASS_WITH_WARNINGS (0/9/16). WARNINGs fixed test-first (RED 68a02bb; b31a9c0, e82da0d, 98b41ab, 1ce6b15) or deferred. See impl-review.md.
+  - Final state at 8ae211e:
+    - fence 3 TESTS_VERIFIED passed=638 (`bats --tap SDM tests/hooks`, 0 not-ok); `uv run pytest -q` 3136 passed;
+    - shellcheck 0 on extracted G3/G4/B-commit/D and on aa-ma-footer.sh, aa-ma-commit-signature.sh, pre-compact-aa-ma.sh;
+    - privacy 0/0;
+    - `regen-generated.sh` rc 0; `git status --porcelain tests/golden docs/architecture` empty after commit 8ae211e.
+  - PL has IMPACT_ANALYSIS (HIGH=0 unresolved) and CRITICAL_PATH_REVIEW. CL has `GATE APPROVAL: Milestone 1`, Decision: APPROVED.
 
 ### Sub-step 1.12: PR, bootstrap merge, post-merge checks
 - Status: PENDING

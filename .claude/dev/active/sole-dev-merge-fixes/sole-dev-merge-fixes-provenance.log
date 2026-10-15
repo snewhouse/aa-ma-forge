@@ -34,3 +34,4 @@
 [2026-10-15T12:10:39+01:00] RED — §6.8 remediation — G tests not-ok=5 (ls-remote rc, MERGE_STRATEGY allowlist, DEFAULT_BRANCH G3/G4, MAIN_NOT_UPDATED vs OK); commit-signature not-ok=8 (empty-footer and trailing-text shapes)
 [2026-10-15T12:13:42+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: full — agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 9 WARNING / 16 INFO — window 1d760f1..6b12a9d; remediated in 68a02bb (RED), b31a9c0, e82da0d, 98b41ab + docs; rest deferred to TODOS/M4/M5 (context-log)
 [2026-10-15T12:17:10+01:00] TESTS_VERIFIED — Milestone 1: Worktree-safe G3/G4, deterministic footer, lessons — passed=638 cmd=bats --tap tests/commands/sole-dev-merge tests/hooks
+[2026-10-15T12:59:52+01:00] GATE_APPROVED — Milestone 1 — Ste — pre-merge criteria 7/7; STEP_COMPLETE — Sub-step 1.11

@@ -139,3 +139,60 @@ EOF
     [ "$status" -eq 2 ]
     [[ "$output" == *"[AA-MA Plan]"* ]]
 }
+
+# ---------------------------------------------------------------------------
+# Helper-built footers (sole-dev-merge-fixes 1.7). The skill commits with
+# `FOOTER=$(emit_aa_ma_footer); git commit -m "…${FOOTER}"`, so the literal
+# command never holds a signature. Only that canonical shape is trusted.
+# ---------------------------------------------------------------------------
+
+_run_hook_with_plan() {
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    cd "$BATS_TMP"
+    input=$(make_input "$1")
+    HOME="$BATS_TMP_HOME" run bash -c "printf '%s' \"\$1\" | bash \"$HOOK\"" _ "$input"
+}
+
+@test "helper footer: FOOTER=\$(emit_aa_ma_footer); git commit -m \"x\${FOOTER}\" → exit 0" {
+    _run_hook_with_plan 'FOOTER=$(emit_aa_ma_footer); git commit -m "x${FOOTER}"'
+    [ "$status" -eq 0 ]
+}
+
+@test "helper footer: neither helper nor literal signature → exit 2" {
+    _run_hook_with_plan 'FOOTER=x; git commit -m "x${FOOTER}"'
+    [ "$status" -eq 2 ]
+}
+
+@test "helper footer: name only mentioned in a comment → exit 2" {
+    _run_hook_with_plan 'git commit -m "no footer" # emit_aa_ma_footer'
+    [ "$status" -eq 2 ]
+}
+
+@test "helper footer: a redefined emit_aa_ma_footer → exit 2" {
+    _run_hook_with_plan 'emit_aa_ma_footer(){ :; }; FOOTER=$(emit_aa_ma_footer); git commit -m "x${FOOTER}"'
+    [ "$status" -eq 2 ]
+}
+
+@test "helper footer: footer not at the end of the message → exit 2" {
+    _run_hook_with_plan 'FOOTER=$(emit_aa_ma_footer); git commit -m "${FOOTER} x"'
+    [ "$status" -eq 2 ]
+}
+
+@test "helper footer: FOOTER reassigned after the helper call → exit 2" {
+    _run_hook_with_plan 'FOOTER=$(emit_aa_ma_footer); FOOTER=x; git commit -m "y${FOOTER}"'
+    [ "$status" -eq 2 ]
+}
+
+@test "helper footer: the skill's real stage-b-commit block → exit 0" {
+    local root; root="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
+    _run_hook_with_plan "$(bash "$root/tests/commands/sole-dev-merge/fixtures/extract_stage.sh" \
+        stage-b-commit "$root/claude-code/skills/sole-dev-merge/SKILL.md")"
+    [ "$status" -eq 0 ]
+}
+
+@test "helper footer: the skill's real stage-d-triage block → exit 0" {
+    local root; root="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
+    _run_hook_with_plan "$(bash "$root/tests/commands/sole-dev-merge/fixtures/extract_stage.sh" \
+        stage-d-triage "$root/claude-code/skills/sole-dev-merge/references/stage-d-triage.md")"
+    [ "$status" -eq 0 ]
+}

@@ -3,7 +3,7 @@
 **Objective:** Make the forge's coding conventions (comments, docstrings, logging, SecOps, design principles, testing, prompt-as-code) stated once and mechanically enforced on touched code, and wire impact analysis into authoring (pre-edit hook) and the milestone gate (gate-computed `IMPACT_VERIFIED`, `TESTS_VERIFIED`).
 **Owner:** Stephen J Newhouse + AI
 **Created:** 2026-10-08
-**Last Updated:** 2026-10-14 (M15 title T2–T9; R03- decision ids)
+**Last Updated:** 2026-10-15 (M16 added: move the codemem index out of the repo, M15 §6.8 deferral; M15 title T2–T9; R03- decision ids)
 **Source map:** `code-conventions-impact-map.md` (15/15 tickets RESOLVED, fog empty, guard clear). Folded-in input: `.claude/dev/charting/writing-for-agents-eval/writing-for-agents-eval-map.md` (4/4 RESOLVED; executed by M4).
 **Diagram-Waiver:** none
 **Companion plan (later):** `reuse-kit` — private Carmen kit repo, public copier template repo, forge reuse-router skill, graduation CI (map Tickets 13–14). Seeded from this plan's imported map. Not in scope here.
@@ -64,7 +64,7 @@
 
 ## 1. Executive Summary
 
-Fifteen milestones, one release (v0.18.0, M14). M1–M5 restructure the prompt surface: migrate 5 global skills and the ruff hook in, convert 13 commands to skills, add frontmatter, size and eval checks, and split the six oversized files. M6–M9 land the conventions on a touched-files lint harness: comments/docstrings/KISS, logging, the SecOps CI baseline, and a gate that runs tests. M10–M13 add impact analysis (codemem `callees`, a pre-edit hook, gate-computed `IMPACT_VERIFIED`) plus the thin auto-loaded `coding-standards.md` rule and its budget ratchet; M14 releases. M15 (scope change 2026-10-13) runs after M9 and before M10: it makes the codemem index fresh before M10–M11 build on it.
+Sixteen milestones, one release (v0.18.0, M14). M1–M5 restructure the prompt surface: migrate 5 global skills and the ruff hook in, convert 13 commands to skills, add frontmatter, size and eval checks, and split the six oversized files. M6–M9 land the conventions on a touched-files lint harness: comments/docstrings/KISS, logging, the SecOps CI baseline, and a gate that runs tests. M10–M13 add impact analysis (codemem `callees`, a pre-edit hook, gate-computed `IMPACT_VERIFIED`) plus the thin auto-loaded `coding-standards.md` rule and its budget ratchet; M14 releases. M15 (scope change 2026-10-13) runs after M9 and before M10: it makes the codemem index fresh before M10–M11 build on it. M16 (scope change 2026-10-14) runs after M15 and before M10: it moves the codemem index out of the repo (M15 §6.8 deferral).
 
 ## 2. Engineering Standards Declaration (element #12)
 
@@ -76,8 +76,8 @@ Ste selected **all six themes** (2026-10-08).
 | 2. Development Principles | TDD for every Python/bash change. KISS: shell out to the `codemem` CLI rather than break the `aa-ma-never-imports-codemem` contract. Knowledge-DRY: Expected-Blast-Radius **is** the Contract `Files:` block, parsed by the existing coverage parser. |
 | 3. Reasoning & Planning | Eight ADRs (next free number 0018), four prototypes (M15 added 2026-10-13), and ≥80% steps (M3, M11) get deep review. |
 | 4. Safety & Continuity | Outside-repo moves need full-directory backups (L-1300, L-1317). `install.sh` currently deletes foreign symlinks with no backup — fixed in M3. Touched-code-only is never a backfill. |
-| 5. Execution Checklist | `Critical-Path: hook-modification` on 12 milestones (M1–M3, M5–M12, M15) and `version-pipeline` on M4 and M14. `Prototype-Required: YES` on M3, M10, M11, M15. |
-| 6. Sync & Commit Discipline | 15 milestones across many sessions. Result Log per sub-step (L-080–L-082), with the plan footer on every commit. |
+| 5. Execution Checklist | `Critical-Path: hook-modification` on 13 milestones (M1–M3, M5–M12, M15, M16) and `version-pipeline` on M4 and M14. `Prototype-Required: YES` on M3, M10, M11, M15. |
+| 6. Sync & Commit Discipline | 16 milestones across many sessions. Result Log per sub-step (L-080–L-082), with the plan footer on every commit. |
 
 Lessons applied: L-1319 (no silent fail-open; hook stderr on exit 0 is invisible; real payloads), L-1300/L-1317 (whole-dir backups, count-verified), L-1322 (`claude -p "<prompt>"` first + `</dev/null`), L-1315 (live-load in an isolated session; `plugin validate` is not evidence), L-1314 (newly-live frontmatter fields re-audited), L-1210 (never delete config on a partial existence check), L-036 (background checks print rc; empty ≠ pass), L-031 (inspect auto-fix commits), L-034 (each new measured rule pins severity on shipped vs fixture paths).
 
@@ -102,6 +102,7 @@ Lessons applied: L-1319 (no silent fail-open; hook stderr on exit 0 is invisible
 | M13 | SOFT | docs-only | — | — | docs-only |
 | M14 | HARD | code-only | version-pipeline | — | — |
 | M15 | HARD | full | hook-modification | YES | — |
+| M16 | HARD | full | hook-modification | — | — |
 
 ## 3. Dependencies and Assumptions (element #8)
 
@@ -144,7 +145,7 @@ Lessons applied: L-1319 (no silent fail-open; hook stderr on exit 0 is invisible
 
 ## 4. Stepwise Implementation Plan (elements #2 and #4)
 
-Milestones run in order M1 → M9, M15, M10 → M14 (M15 added 2026-10-13); the dependency graph is in §13. Each sub-step's acceptance criteria are in §5 and are copied into tasks.md.
+Milestones run in order M1 → M9, M15, M16, M10 → M14 (M15 added 2026-10-13, M16 2026-10-14); the dependency graph is in §13. Each sub-step's acceptance criteria are in §5 and are copied into tasks.md.
 
 ## 13. Architecture View
 
@@ -235,6 +236,12 @@ flowchart LR
   INCR["packages/codemem-mcp/src/codemem/incremental.py"]
   PCH["claude-code/codemem/hooks/post-commit.sh"]
   CMDOC["claude-code/codemem/commands/codemem.md"]
+  CMREADME["claude-code/codemem/README.md"]
+  SAFE["packages/codemem-mcp/src/codemem/safety.py"]
+  LOCK["packages/codemem-mcp/src/codemem/journal/lock.py"]
+  RGRAPH["src/aa_ma/render/graph.py"]
+  MEAS["src/aa_ma/analysis/measure.py"]
+  DOCSDIR["docs/"]
   CRDME["packages/codemem-mcp/README.md"]
 
   CMDS -->|will move into| SKILLS
@@ -281,6 +288,12 @@ flowchart LR
   CCLI -->|refresh will drive refresh_index in| INCR
   PCH -->|will run codemem refresh via| CCLI
   CMDOC -->|documents| CCLI
+  CMREADME -->|documents| CCLI
+  ns1j8lg -->|refuses a linked or untrusted .codemem via| SAFE
+  INCR -->|takes db.lock O_NOFOLLOW via| LOCK
+  RGRAPH -->|twins the .codemem rule of| SAFE
+  MEAS -->|M16: resolves the index location like| SAFE
+  DOCSDIR -->|M16: rewrites .codemem mentions beside| CMDOC
   CRDME -->|documents| CCLI
 ```
 
@@ -324,6 +337,7 @@ flowchart LR
   M13("Milestone 13: Docs, counts, TODOS (pre-release)")
   M14("Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main)")
   M15("Milestone 15: Codemem freshness (report 03 T2–T9)")
+  M16("Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral)")
   M1 --> M2
   M2 --> M3
   M3 --> M4
@@ -334,11 +348,13 @@ flowchart LR
   M8 --> M9
   M9 --> M10
   M15 --> M10
+  M16 --> M10
   M10 --> M11
   M11 --> M12
   M12 --> M13
   M13 --> M14
   M9 --> M15
+  M15 --> M16
 ```
 
 _Derived from tasks.md by `aa_ma_deps graph`; never hand-edited._
@@ -993,7 +1009,7 @@ Files:
   Test    tests/hooks/: post-commit race (pause/release, A last) + killed run keeps the sidecar; session-start Code-intel output rules + < 200 ms; shared SHA-vs-HEAD fixture shared with X2
   Test    (as built) tests/skills/test_code_intel_stale.py, tests/codemem/test_writer_lock.py, tests/analysis/test_measure.py (fixture fix for the global .codemem/ exclude), tests/hooks/{code-intel-refresh,install-codemem-plugin}.bats, tests/codemem/test_aa_ma_context.py, tests/render/test_graph.py
 ```
-Steps: **15.0** Post-merge of M9 + X4 TODOS (HITL). **15.1 PROTOTYPE (HITL)** the refresh cap: thread vs subprocess, kill mid-run, next refresh recovers. **15.2** T2 bounded refresh (AFK, TDD). **15.3** T3 X2 envelope + `CODE_INTEL_STALE` (AFK, TDD). **15.4** T4 post-commit step + sidecar (AFK, TDD). **15.5** T5 briefing line (AFK, TDD). **15.6** T6 `CODE_INTEL_REFRESH` (HITL). **15.7** T7 doc drift + kill-criteria (AFK). **15.8** T9 user-scope MCP (HITL, outside repo). **15.9** T8 routing rule (HITL, outside repo). **15.10** CRITICAL_PATH_REVIEW (AFK). The first live `CODE_INTEL_REFRESH` line is M10's (R03-D7); 15.6 proves the step by a dry run.
+Steps: **15.0** Post-merge of M9 + X4 TODOS (HITL). **15.1 PROTOTYPE (HITL)** the refresh cap: thread vs subprocess, kill mid-run, next refresh recovers. **15.2** T2 bounded refresh (AFK, TDD). **15.3** T3 X2 envelope + `CODE_INTEL_STALE` (AFK, TDD). **15.4** T4 post-commit step + sidecar (AFK, TDD). **15.5** T5 briefing line (AFK, TDD). **15.6** T6 `CODE_INTEL_REFRESH` (HITL). **15.7** T7 doc drift + kill-criteria (AFK). **15.8** T9 user-scope MCP (HITL, outside repo). **15.9** T8 routing rule (HITL, outside repo). **15.10** CRITICAL_PATH_REVIEW (AFK). The first live `CODE_INTEL_REFRESH` line is at the first gate after merge + install.sh: M16's (scope change 2026-10-14; R03-D7); 15.6 proves the step by a dry run.
 Risks: (1) The cap cannot abort a synchronous refresh safely. Mitigation: 15.1 prototype decides thread vs subprocess before 15.2; serve `stale=true, reason=timeout` rather than block. (2) The post-commit background run races or stamps a newer SHA. Mitigation: `flock` + start-SHA (R03-D12) and the pause/release test. (3) The user-scope MCP path moves again (bio312 `.pth` precedent). Mitigation: one stable symlink (R03-D13) + the session-start missing-path check.
 
 ### Milestone 16 — Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral)
@@ -1042,7 +1058,8 @@ The five input classes the spec implies that are most likely to bite. Each has a
 | 13 | Docs, counts, TODOS | 0.5d | 30% | docs-only |
 | 14 | Release v0.18.0 + cutover (on main) | 0.5d | 40% | version-pipeline |
 | 15 | Codemem freshness (scope change 2026-10-13; runs before M10) | 6d | 75% | hook-modification, Prototype, HITL outside repo |
-| | **Total** | **31 days** | | 2 steps ≥80% → deep review (Skill(complexity-router)) |
+| 16 | Move the codemem index out of the repo (scope change 2026-10-14; runs before M10) | 1.5d | 60% | hook-modification |
+| | **Total** | **32.5 days** | | 2 steps ≥80% → deep review (Skill(complexity-router)) |
 
 ## 7. Global Rollback Strategy (element #7)
 
@@ -1068,7 +1085,8 @@ The five input classes the spec implies that are most likely to bite. Each has a
   - 8.0 ← M7 hooks install + 7.4 live additionalContext check
   - 9.0 ← M8 hook install
   - 15.0 ← M9 install (scope change 2026-10-13: M15 runs before M10)
-  - 10.0 ← M15 install, plus `TESTS_VERIFIED` and the first live `CODE_INTEL_REFRESH` must appear for M10 at its own gate
+  - 16.0 ← M15 install (scope change 2026-10-14: M16 runs before M10); the first live `CODE_INTEL_REFRESH` is M16's, at its own gate
+  - 10.0 ← M16 install, plus `TESTS_VERIFIED` and `CODE_INTEL_REFRESH` must appear for M10 at its own gate
   - 11.0 ← 10.6 live install
   - 12.0 ← M11 install
   - 13.0 ← 12.6 live install

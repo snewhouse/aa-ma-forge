@@ -263,3 +263,10 @@
 [2026-10-14T193344Z] DOUBLE_CHECK — status=Partially verified effort=standard report=.claude/reports/double-check/2026-10-14T193344Z-m15-code-conventions-impact-6-8-fix.md
 [2026-10-14T21:48:21+01:00] DIAGRAM_VERIFIED — Milestone 15: Codemem freshness (report 03 T2–T9) — edges=25 checked=25 phantom=0 unknown=0
 [2026-10-14T21:50:40+01:00] TESTS_VERIFIED — Milestone 15: Codemem freshness (report 03 T2–T9) — passed=3136 cmd=uv run pytest
+[2026-10-15T06:39:54+01:00] BACKFILL (§7.2.5 validator WARNINGS_BUT_USABLE) — the lines below record events whose commits are already on the branch
+[2026-10-15T06:39:54+01:00] Sub-step 15.10 COMPLETE — Milestone 15: Codemem freshness (report 03 T2–T9) — CRITICAL_PATH_REVIEW written — Commit: 463efa3
+[2026-10-15T06:39:54+01:00] SCOPE CHANGE — Milestone 16 added (move the codemem index out of the repo; M15 §6.8 re-run 3 deferral, Ste 2026-10-14); M10 now depends on M16; 16.0 ← M15 post-merge, 10.0 ← M16 — Commit: 1fafaf3
+[2026-10-15T06:39:54+01:00] FIX — Milestone 15: Codemem freshness (report 03 T2–T9) — double-check F3: graph.py twin names a broken trust store — RED 15bc257 → GREEN 542ef67
+[2026-10-15T06:39:54+01:00] §6.8 POST_IMPL_REVIEW — Milestone 15: Codemem freshness (report 03 T2–T9) — re-run 4 (targeted, 4981491..bd10921) — agents: security-auditor, code-reviewer — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 5 WARNING / 15 INFO — WARNINGs folded RED 30e7f8d → GREEN c1df21f
+[2026-10-15T06:39:54+01:00] FIX — Milestone 15: Codemem freshness (report 03 T2–T9) — background review: trust-store TOCTOU, one directory fd for check and use — RED 118e199 → GREEN 3b50b5b
+[2026-10-15T06:39:54+01:00] FINAL EVIDENCE — Milestone 15: Codemem freshness (report 03 T2–T9) — code at 31afa8a (fences recorded in f0a7f2f; later commits AA-MA/docs only): pytest 3136 passed / 5 skipped, bats 633/633, DIAGRAM_VERIFIED edges=25 checked=25 phantom=0, TESTS_VERIFIED passed=3136

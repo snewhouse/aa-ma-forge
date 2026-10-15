@@ -119,7 +119,7 @@ Conventions used in the criteria:
   - `bats --tap SDM/test_stage_g_merge.bats` 30 ok / 0 not-ok; shellcheck `--enable=check-set-e-suppressed` on G4 rc 0. Whole SDM 94 ok / 0 not-ok (75 + 19 new).
 
 ### Sub-step 1.5: RED — footer helper tests
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.0
 - Acceptance Criteria:
@@ -136,6 +136,11 @@ Conventions used in the criteria:
   - The tests source the helper without `pipefail`.
   - RED evidence is recorded. The 0-plan, 1-plan and detached cases are expected guards.
 - Result Log:
+  - Mode: AFK — auto-dispatched.
+  - New `tests/hooks/aa-ma-footer.bats`, 13 @tests: 0 plans; 1 plan; 2 plans b touched (+ mirror a); both touched → `[ad-hoc]` + `WARN: aa-ma-footer`; neither → same; uncommitted edit counts (+ mirror); detached HEAD; no `origin/HEAD` → `origin/main` (+ mirror); untracked plan dir; B-commit outside forge with helper under `CLAUDE_HOME`; B-commit with no helper → `[ad-hoc]` + notice; D outside forge rc 0; footer-resolve snippets byte-identical.
+  - Helper sourced after `set +o pipefail`; `CLAUDE_HOME` is a temp dir and `AA_MA_FOOTER_HELPER` is unset.
+  - First draft: the "b touched" cases passed on unfixed code by `find` order alone (L-045). Each "picks X" case now also checks the mirror plan.
+  - RED on unfixed helper/skill: 9 not-ok, 4 ok. Guards: 0-plan, 1-plan and detached (expected); untracked-dir (`find` lists the newest dir first, so the unfixed helper picks it too; it fails if the fix drops `ls-files --others`).
 
 ### Sub-step 1.6: GREEN — footer helper and skill resolution chain
 - Status: PENDING

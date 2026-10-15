@@ -12,6 +12,8 @@ name; the bash blocks below follow the execution order.
 
 - **E1** (remote detection) — parses `git remote -v`, classifies each remote
   as `github` / `gitlab` / `other`, exports `n_github` / `n_gitlab` / `n_other`.
+  These counts are not in the stage state file, so **run E1 and E2 in one
+  Bash call** (`source` E1, then E2), or E2 aborts with no remotes.
 - **E2** (remote choice) — one remote → use it; both → emit
   `DUAL_REMOTE_PROMPT` signal + JSON for the Claude executor to dispatch
   `AskUserQuestion` with GitLab as default; neither github+gitlab → abort.

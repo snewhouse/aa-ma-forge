@@ -86,6 +86,13 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** on PR #30 (2026-10-13) the body edit silently didn't land, and a chained `gh pr ready` never ran. Only a read-back caught it (global lesson L-1309). **Effort:** S · **Priority:** P2
 
+### sole-dev-merge E1 → E2: remote counts don't reach E2 in a separate Bash call
+**What:**
+- E2 reads `n_github`/`n_gitlab` from E1, but E1 has no stage-state loader and those keys are not in the 15-key allowlist. Run E2 in its own Bash call and it aborts with "only github.com and gitlab.com remotes supported". The prose says to run E1 and E2 in one call (sole-dev-merge-fixes M2).
+- Fix: E1 saves `n_github`/`n_gitlab`/`n_other` through the loader. Widen the allowlist to 18 keys, and add an empty-env E2 case to `test_stage_state.bats`.
+
+**Why:** found while building the M2 state file. Every other stage now gets its inputs in a fresh shell. **Effort:** S · **Priority:** P2 · **Planned:** sole-dev-merge-fixes M4 (4.2).
+
 ### Check the AA-MA commit signature at the `commit-msg` stage, not in the command text
 **What:**
 - `aa-ma-commit-signature.sh` (PreToolUse) reads only the literal command, so it guesses at messages it can't see. Rule 8 (sole-dev-merge-fixes 1.7) now trusts one canonical shape, `FOOTER=$(emit_aa_ma_footer); git commit -m "…${FOOTER}"`.

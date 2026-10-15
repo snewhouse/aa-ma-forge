@@ -135,3 +135,15 @@ _This log will be updated via context compaction as the task progresses._
 - **Stage C prints `Stage C scanned: Ruff S <n> file(s), ShellCheck <m> file(s)`.** 2.3's live check quotes this line, and C did not print such a count before.
 - **Stage F:** no `PR_BODY_FILE` default. An empty or missing value hits the existing "requires non-empty body file" ABORT.
 - **Deviation from the Contract's "review only":** `test_stage_c_dispatch.bats` (29 refs), `test_stage_d_triage.bats` (11) and `test_stage_e3_body.bats` (2) seed and read `/tmp/sole-dev-merge-*-$SLUG` paths. Moving run files to `$SDM_DIR` makes them real edits in 2.2: they set `SDM_DIR`/`SLUG` and use the new names. Behaviour is unchanged; only the inputs move.
+
+## [2026-10-15] DECISION E1→E2 remote counts: prose now, fix in M4 — Ste
+- Found in 2.2: E2 reads `n_github`/`n_gitlab` from E1. E1 is not one of the 13 state blocks, and the counts are not among the 15 decided keys, so a fresh-shell E2 aborts.
+- Options put to Ste:
+  - (1) prose now, fix in M4 — recommended, chosen;
+  - (2) fix in M2: E1 saves, 18 keys;
+  - (3) E2 recounts the remotes itself (duplicates E1).
+- Done in M2: the E1 prose says to run E1 and E2 in one Bash call, and the TODOS entry is added. M4 4.2 gains the criterion: E1 saves its counts (18 keys) and an empty-env E2 test passes.
+- Other 2.2 deviations, for the record:
+  - Stage C requires `SDM_DIR`, not `SLUG`: its file names no longer contain the slug.
+  - The loader comment `no eval anywhere` was reworded in all 12 copies, because the plan's own `eval|sdm` AC matched it.
+

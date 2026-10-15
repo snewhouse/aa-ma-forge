@@ -43,3 +43,4 @@
 [2026-10-15T19:01:28+01:00] STEP_COMPLETE — Sub-step 2.0
 [2026-10-15T19:07:17+01:00] RED — Sub-step 2.1 — test_stage_state.bats not-ok=22 ok=0 (22 @tests); smoke E2E not-ok at the new state-file assertion; vacuous test 14 found and fixed (errexit not inherited into $(probe))
 [2026-10-15T19:07:17+01:00] STEP_COMPLETE — Sub-step 2.1
+[2026-10-15T19:27:54+01:00] STEP_COMPLETE — Sub-step 2.2 — GREEN: SDM 121/0; bats SDM+hooks 660/0; pytest 3136 passed; shellcheck 0 on 13 blocks; open finding E1→E2 n_github handoff (to Ste at 2.3)

@@ -68,6 +68,34 @@ fi
 
 ---
 
+## State between stages
+
+Every block below runs in its own Bash call, so a shell variable set in one
+block is gone in the next (forge L-055). The values travel in a **stage state
+file** instead: `"$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"`. It
+lives in this worktree's own git-dir, so it is untracked, never pushed, and
+separate per worktree.
+
+- **Stage A starts it.** It deletes the last run's file first (an aborted A
+  leaves none), then saves `ORIGINAL_BRANCH`, `BASE_REF`, `DEFAULT_BRANCH`,
+  `SLUG` and `SDM_DIR`. Its `Stage state:` line prints both paths.
+- **Every later block loads it** with the same loader. A non-empty explicit
+  env value beats the file, and the file beats a block's own defaults. A
+  required value that is still missing stops the block loudly.
+- **Saves are appended** as `KEY=<base64>` by `sdm_save`; the last write of a
+  key wins. B saves `CHANGED_FILES/PY/SH`, E2 `REMOTE_CHOICE`, E3
+  `PR_BODY_FILE`, F `PR_NUM`/`PR_URL`, G1 `MERGE_STRATEGY`, G2 `CI_STATE`, G3
+  `MERGE_DISPATCHED`.
+- **Run files** (agent outputs, scanner reports, findings, reviewer notes, the
+  AUQ bridge, the PR body) live in `SDM_DIR`, a mode-700 directory next to the
+  state file. Nothing is written to the shared temp directory.
+- **The loader trusts nothing it reads.** It ignores a file written on another
+  branch (with a message), refuses a symlinked or group/world-writable file or
+  one you don't own, accepts only the 15 known keys, and never `eval`s a value.
+- **To re-answer a question** (for example the dual-remote choice), re-run the
+  block with the answer set explicitly, such as `REMOTE_CHOICE=github`. The block
+  saves the explicit value.
+
 ## Workflow stages
 
 The command runs sequentially through stages **A → G**. Each stage is
@@ -93,6 +121,11 @@ ABORT exits non-zero (rc=1). `Pre-flight OK` exits zero and exports
 ```bash
 # === stage-a-preflight (BEGIN) ===
 set -euo pipefail
+
+# 0. Stage state file (see "State between stages"). A writes it; it never loads it.
+SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"
+rm -f "$SDM_STATE"   # why: first, so an A that aborts below never leaves the last run's state behind
+sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
 
 # 1. Capture original branch
 ORIGINAL_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
@@ -137,8 +170,18 @@ if [[ "$AHEAD" -eq 0 ]]; then
     exit 1
 fi
 
-export ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH
+# 7. Start this run's state: one SLUG, a private run dir, the keys every later stage reads.
+SLUG="${SLUG:-$(date +%Y%m%d-%H%M%S)-$$}"
+SDM_DIR="$(git rev-parse --absolute-git-dir)/sdm-$SLUG"
+(   # why: a subshell, so the private umask does not leak into a caller that sources this block
+    umask 077
+    [[ -d "$SDM_DIR" ]] || mkdir -m 700 "$SDM_DIR"   # why: exists only when an explicit SLUG is reused
+    for _k in ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR; do sdm_save "$_k" "${!_k}"; done
+)
+
+export ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR
 echo "Pre-flight OK (branch=$ORIGINAL_BRANCH, base=$BASE_REF, ahead=$AHEAD)"
+echo "Stage state: ${SDM_STATE} (run dir ${SDM_DIR})"
 # === stage-a-preflight (END) ===
 ```
 
@@ -156,6 +199,34 @@ reverts any dirty file NOT in `$CHANGED_FILES` via `git checkout --`.
 # === stage-b-scope (BEGIN) ===
 set -euo pipefail
 
+# Stage state: load what earlier stages saved (SKILL.md "State between stages").
+SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+sdm_load() {
+    # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
+    if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
+        echo "Stage state: refusing ${SDM_STATE##*/} (symlink, not owned by you, or writable by others)"; return 0
+    fi
+    local line k v dv
+    declare -A _sdm=()
+    while IFS= read -r line; do
+        k=${line%%=*}; v=${line#*=}
+        [[ "$SDM_KEYS" == *" $k "* ]] || { echo "Stage state: ignoring unknown key '$k'"; continue; }   # why: allowlist, never a free-form name
+        # why: decode into a temp first, so a bad line never overwrites an earlier good value
+        dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
+        _sdm[$k]=$dv                                   # why: last good write wins
+    done < "$SDM_STATE"
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
+    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+        echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
+    fi
+    for k in "${!_sdm[@]}"; do
+        [[ -n "${!k:-}" ]] || printf -v "$k" '%s' "${_sdm[$k]}"   # why: a non-empty explicit env wins; a value is assigned, never executed
+    done
+}
+[[ -f "$SDM_STATE" ]] && sdm_load
+sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
+
 # Stage A exports BASE_REF; defensive fallback in case Stage B is run alone
 BASE_REF="${BASE_REF:-main}"
 
@@ -163,6 +234,7 @@ BASE_REF="${BASE_REF:-main}"
 CHANGED_FILES=$(git diff --name-only "${BASE_REF}...HEAD" || true)
 CHANGED_PY=$(echo "$CHANGED_FILES" | grep '\.py$' || true)
 CHANGED_SH=$(echo "$CHANGED_FILES" | grep '\.sh$' || true)
+for _k in CHANGED_FILES CHANGED_PY CHANGED_SH; do sdm_save "$_k" "${!_k}"; done   # why: B-commit and Stage C read these in their own shells
 
 N_TOTAL=$(echo "$CHANGED_FILES" | grep -c . || true)
 N_PY=$(echo "$CHANGED_PY" | grep -c . || true)
@@ -241,6 +313,34 @@ If `git status` is clean, this stage is a no-op.
 ```bash
 # === stage-b-commit (BEGIN) ===
 set -euo pipefail
+
+# Stage state: load what earlier stages saved (SKILL.md "State between stages").
+SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+sdm_load() {
+    # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
+    if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
+        echo "Stage state: refusing ${SDM_STATE##*/} (symlink, not owned by you, or writable by others)"; return 0
+    fi
+    local line k v dv
+    declare -A _sdm=()
+    while IFS= read -r line; do
+        k=${line%%=*}; v=${line#*=}
+        [[ "$SDM_KEYS" == *" $k "* ]] || { echo "Stage state: ignoring unknown key '$k'"; continue; }   # why: allowlist, never a free-form name
+        # why: decode into a temp first, so a bad line never overwrites an earlier good value
+        dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
+        _sdm[$k]=$dv                                   # why: last good write wins
+    done < "$SDM_STATE"
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
+    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+        echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
+    fi
+    for k in "${!_sdm[@]}"; do
+        [[ -n "${!k:-}" ]] || printf -v "$k" '%s' "${_sdm[$k]}"   # why: a non-empty explicit env wins; a value is assigned, never executed
+    done
+}
+[[ -f "$SDM_STATE" ]] && sdm_load
+sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
 
 # Source the shared AA-MA footer helper. The aa-ma-commit-signature.sh
 # PreToolUse hook validates the LITERAL `-m` argument, so we MUST emit

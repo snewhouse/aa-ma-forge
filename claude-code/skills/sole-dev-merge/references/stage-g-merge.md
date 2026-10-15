@@ -56,6 +56,34 @@ failure. G4 runs only on a successful merge.
 # === stage-g1-protect (BEGIN) ===
 set -euo pipefail
 
+# Stage state: load what earlier stages saved (SKILL.md "State between stages").
+SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+sdm_load() {
+    # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
+    if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
+        echo "Stage state: refusing ${SDM_STATE##*/} (symlink, not owned by you, or writable by others)"; return 0
+    fi
+    local line k v dv
+    declare -A _sdm=()
+    while IFS= read -r line; do
+        k=${line%%=*}; v=${line#*=}
+        [[ "$SDM_KEYS" == *" $k "* ]] || { echo "Stage state: ignoring unknown key '$k'"; continue; }   # why: allowlist, never a free-form name
+        # why: decode into a temp first, so a bad line never overwrites an earlier good value
+        dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
+        _sdm[$k]=$dv                                   # why: last good write wins
+    done < "$SDM_STATE"
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
+    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+        echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
+    fi
+    for k in "${!_sdm[@]}"; do
+        [[ -n "${!k:-}" ]] || printf -v "$k" '%s' "${_sdm[$k]}"   # why: a non-empty explicit env wins; a value is assigned, never executed
+    done
+}
+[[ -f "$SDM_STATE" ]] && sdm_load
+sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
+
 # Inherits REMOTE_CHOICE from Stage E2. Defensive default to github.
 REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
 MERGE_STRATEGY=rebase  # default; falls back to merge if rebase disabled
@@ -78,6 +106,7 @@ fi
 
 export MERGE_STRATEGY
 echo "MERGE_STRATEGY=$MERGE_STRATEGY"
+sdm_save MERGE_STRATEGY "$MERGE_STRATEGY"   # why: G3 reads it in its own shell
 # === stage-g1-protect (END) ===
 ```
 
@@ -85,9 +114,37 @@ echo "MERGE_STRATEGY=$MERGE_STRATEGY"
 # === stage-g2-poll (BEGIN) ===
 set -euo pipefail
 
+# Stage state: load what earlier stages saved (SKILL.md "State between stages").
+SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+sdm_load() {
+    # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
+    if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
+        echo "Stage state: refusing ${SDM_STATE##*/} (symlink, not owned by you, or writable by others)"; return 0
+    fi
+    local line k v dv
+    declare -A _sdm=()
+    while IFS= read -r line; do
+        k=${line%%=*}; v=${line#*=}
+        [[ "$SDM_KEYS" == *" $k "* ]] || { echo "Stage state: ignoring unknown key '$k'"; continue; }   # why: allowlist, never a free-form name
+        # why: decode into a temp first, so a bad line never overwrites an earlier good value
+        dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
+        _sdm[$k]=$dv                                   # why: last good write wins
+    done < "$SDM_STATE"
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
+    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+        echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
+    fi
+    for k in "${!_sdm[@]}"; do
+        [[ -n "${!k:-}" ]] || printf -v "$k" '%s' "${_sdm[$k]}"   # why: a non-empty explicit env wins; a value is assigned, never executed
+    done
+}
+[[ -f "$SDM_STATE" ]] && sdm_load
+sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
+
 # Inputs from Stage F: PR_NUM, PR_URL, REMOTE_CHOICE.
 REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
-PR_NUM="${PR_NUM:-0}"
+PR_NUM="${PR_NUM:?Stage G2 needs PR_NUM from Stage F}"
 PR_URL="${PR_URL:-}"
 # 15 minutes hard cap by default; tests override to small values for speed.
 CI_POLL_TIMEOUT="${CI_POLL_TIMEOUT:-900s}"
@@ -154,6 +211,7 @@ elif [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
     done
 fi
 
+sdm_save CI_STATE "$CI_STATE"   # why: G3 reads it in its own shell
 export CI_STATE
 echo "CI_STATE=$CI_STATE"
 # === stage-g2-poll (END) ===
@@ -163,10 +221,38 @@ echo "CI_STATE=$CI_STATE"
 # === stage-g3-merge (BEGIN) ===
 set -euo pipefail
 
+# Stage state: load what earlier stages saved (SKILL.md "State between stages").
+SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+sdm_load() {
+    # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
+    if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
+        echo "Stage state: refusing ${SDM_STATE##*/} (symlink, not owned by you, or writable by others)"; return 0
+    fi
+    local line k v dv
+    declare -A _sdm=()
+    while IFS= read -r line; do
+        k=${line%%=*}; v=${line#*=}
+        [[ "$SDM_KEYS" == *" $k "* ]] || { echo "Stage state: ignoring unknown key '$k'"; continue; }   # why: allowlist, never a free-form name
+        # why: decode into a temp first, so a bad line never overwrites an earlier good value
+        dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
+        _sdm[$k]=$dv                                   # why: last good write wins
+    done < "$SDM_STATE"
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
+    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+        echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
+    fi
+    for k in "${!_sdm[@]}"; do
+        [[ -n "${!k:-}" ]] || printf -v "$k" '%s' "${_sdm[$k]}"   # why: a non-empty explicit env wins; a value is assigned, never executed
+    done
+}
+[[ -f "$SDM_STATE" ]] && sdm_load
+sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
+
 # Inputs from Stage F + G1 + G2: PR_NUM, PR_URL, REMOTE_CHOICE,
 # MERGE_STRATEGY (rebase|merge), CI_STATE (green|timeout|failed).
 REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
-PR_NUM="${PR_NUM:-0}"
+PR_NUM="${PR_NUM:?Stage G3 needs PR_NUM from Stage F}"
 PR_URL="${PR_URL:-}"
 MERGE_STRATEGY="${MERGE_STRATEGY:-rebase}"
 CI_STATE="${CI_STATE:-unknown}"
@@ -202,7 +288,7 @@ case "$CI_STATE" in
             STATE=$(gh pr view "$PR_NUM" --json state --jq .state 2>/dev/null || echo UNKNOWN)
             if [[ "$STATE" != MERGED ]]; then
                 echo "STATUS: MERGE_FAILED — state=$STATE — see $PR_URL"
-                export MERGE_DISPATCHED=0
+                export MERGE_DISPATCHED=0; sdm_save MERGE_DISPATCHED 0
                 echo "MERGE_DISPATCHED=0"
                 exit 0
             fi
@@ -230,12 +316,12 @@ case "$CI_STATE" in
             ;;
         *)
             echo "STATUS: REMOTE_UNKNOWN — REMOTE_CHOICE='$REMOTE_CHOICE'"
-            export MERGE_DISPATCHED=0
+            export MERGE_DISPATCHED=0; sdm_save MERGE_DISPATCHED 0
             echo "MERGE_DISPATCHED=0"
             exit 0
             ;;
         esac
-        export MERGE_DISPATCHED=1
+        export MERGE_DISPATCHED=1; sdm_save MERGE_DISPATCHED 1
         echo "MERGE_DISPATCHED=1"
         echo "Stage G3: merged $PR_NUM (strategy=$MERGE_STRATEGY)"
         ;;
@@ -249,7 +335,7 @@ case "$CI_STATE" in
         else
             echo "  recovery: gh pr merge $PR_NUM --auto --rebase"
         fi
-        export MERGE_DISPATCHED=0
+        export MERGE_DISPATCHED=0; sdm_save MERGE_DISPATCHED 0
         ;;
     failed)
         # §6.8 M4 HIGH-1 fix (failed branch): remote-aware diagnostic hint.
@@ -259,19 +345,19 @@ case "$CI_STATE" in
         else
             echo "  diagnostic: gh pr checks $PR_NUM"
         fi
-        export MERGE_DISPATCHED=0
+        export MERGE_DISPATCHED=0; sdm_save MERGE_DISPATCHED 0
         ;;
     blocked)
         # §6.8 M4 HIGH-2 fix: G2's `manual|skipped` GitLab enum hand-off.
         # No merge; G2 already emitted the STATUS:CI_BLOCKED line.
-        export MERGE_DISPATCHED=0
+        export MERGE_DISPATCHED=0; sdm_save MERGE_DISPATCHED 0
         ;;
     *)
         # §6.8 M4 MED-1 fix: emit a STATUS line for the unknown catchall so
         # downstream tooling parsing for `STATUS:` doesn't miss this terminal
         # state. REMOTE_CHOICE included for diagnostic context.
         echo "STATUS: CI_UNKNOWN — CI_STATE='$CI_STATE' REMOTE_CHOICE='$REMOTE_CHOICE'"
-        export MERGE_DISPATCHED=0
+        export MERGE_DISPATCHED=0; sdm_save MERGE_DISPATCHED 0
         ;;
 esac
 # === stage-g3-merge (END) ===
@@ -280,6 +366,34 @@ esac
 ```bash
 # === stage-g4-cleanup (BEGIN) ===
 set -euo pipefail
+
+# Stage state: load what earlier stages saved (SKILL.md "State between stages").
+SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+sdm_load() {
+    # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
+    if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
+        echo "Stage state: refusing ${SDM_STATE##*/} (symlink, not owned by you, or writable by others)"; return 0
+    fi
+    local line k v dv
+    declare -A _sdm=()
+    while IFS= read -r line; do
+        k=${line%%=*}; v=${line#*=}
+        [[ "$SDM_KEYS" == *" $k "* ]] || { echo "Stage state: ignoring unknown key '$k'"; continue; }   # why: allowlist, never a free-form name
+        # why: decode into a temp first, so a bad line never overwrites an earlier good value
+        dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
+        _sdm[$k]=$dv                                   # why: last good write wins
+    done < "$SDM_STATE"
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
+    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+        echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
+    fi
+    for k in "${!_sdm[@]}"; do
+        [[ -n "${!k:-}" ]] || printf -v "$k" '%s' "${_sdm[$k]}"   # why: a non-empty explicit env wins; a value is assigned, never executed
+    done
+}
+[[ -f "$SDM_STATE" ]] && sdm_load
+sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
 
 # Runs only on successful merge (gated by caller checking MERGE_DISPATCHED=1).
 # Inputs: ORIGINAL_BRANCH (from Stage A), PR_URL (from Stage F).

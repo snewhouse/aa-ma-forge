@@ -15,6 +15,9 @@ name; the bash blocks below follow the execution order.
 - **E2** (remote choice) — one remote → use it; both → emit
   `DUAL_REMOTE_PROMPT` signal + JSON for the Claude executor to dispatch
   `AskUserQuestion` with GitLab as default; neither github+gitlab → abort.
+  Saves `REMOTE_CHOICE` to the stage state file. After the dual-remote
+  question, re-run E2 with `REMOTE_CHOICE=<answer>` so the answer is saved
+  (an explicit env value beats the default).
 - **E0** (auth pre-flight) — `gh auth status` / `glab auth status` for the
   chosen remote; `STATUS: AUTH_REQUIRED — run <cli> auth login` on failure
   (clean exit 0 — auth recovery is a user action, not a script failure).
@@ -60,11 +63,39 @@ echo "Stage E1 remote: n_github=$n_github n_gitlab=$n_gitlab n_other=$n_other"
 # === stage-e2-choice (BEGIN) ===
 set -euo pipefail
 
+# Stage state: load what earlier stages saved (SKILL.md "State between stages").
+SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+sdm_load() {
+    # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
+    if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
+        echo "Stage state: refusing ${SDM_STATE##*/} (symlink, not owned by you, or writable by others)"; return 0
+    fi
+    local line k v dv
+    declare -A _sdm=()
+    while IFS= read -r line; do
+        k=${line%%=*}; v=${line#*=}
+        [[ "$SDM_KEYS" == *" $k "* ]] || { echo "Stage state: ignoring unknown key '$k'"; continue; }   # why: allowlist, never a free-form name
+        # why: decode into a temp first, so a bad line never overwrites an earlier good value
+        dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
+        _sdm[$k]=$dv                                   # why: last good write wins
+    done < "$SDM_STATE"
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
+    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+        echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
+    fi
+    for k in "${!_sdm[@]}"; do
+        [[ -n "${!k:-}" ]] || printf -v "$k" '%s' "${_sdm[$k]}"   # why: a non-empty explicit env wins; a value is assigned, never executed
+    done
+}
+[[ -f "$SDM_STATE" ]] && sdm_load
+sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
+
 # Inherits n_github / n_gitlab from Stage E1; defensive default when E2 is
 # run standalone (e.g. in a unit test).
 n_github="${n_github:-0}"
 n_gitlab="${n_gitlab:-0}"
-AUQ_LOG="${AUQ_LOG:-/tmp/sole-dev-merge-auq.json}"
+AUQ_LOG="${AUQ_LOG:-${SDM_DIR:?Stage E2 needs SDM_DIR from Stage A}/auq.json}"
 
 if (( n_github == 0 && n_gitlab == 0 )); then
     echo "ABORT: only github.com and gitlab.com remotes supported"
@@ -91,6 +122,7 @@ else
     echo "REMOTE_CHOICE=gitlab"
 fi
 
+sdm_save REMOTE_CHOICE "$REMOTE_CHOICE"   # why: E0, F and G read it in their own shells
 export REMOTE_CHOICE
 # === stage-e2-choice (END) ===
 ```
@@ -98,6 +130,34 @@ export REMOTE_CHOICE
 ```bash
 # === stage-e0-auth (BEGIN) ===
 set -euo pipefail
+
+# Stage state: load what earlier stages saved (SKILL.md "State between stages").
+SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+sdm_load() {
+    # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
+    if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
+        echo "Stage state: refusing ${SDM_STATE##*/} (symlink, not owned by you, or writable by others)"; return 0
+    fi
+    local line k v dv
+    declare -A _sdm=()
+    while IFS= read -r line; do
+        k=${line%%=*}; v=${line#*=}
+        [[ "$SDM_KEYS" == *" $k "* ]] || { echo "Stage state: ignoring unknown key '$k'"; continue; }   # why: allowlist, never a free-form name
+        # why: decode into a temp first, so a bad line never overwrites an earlier good value
+        dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
+        _sdm[$k]=$dv                                   # why: last good write wins
+    done < "$SDM_STATE"
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
+    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+        echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
+    fi
+    for k in "${!_sdm[@]}"; do
+        [[ -n "${!k:-}" ]] || printf -v "$k" '%s' "${_sdm[$k]}"   # why: a non-empty explicit env wins; a value is assigned, never executed
+    done
+}
+[[ -f "$SDM_STATE" ]] && sdm_load
+sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
 
 # Stage E2 sets REMOTE_CHOICE; defensive default to github so the auth check
 # fires somewhere even if E0 runs standalone.
@@ -121,8 +181,36 @@ fi
 # === stage-e3-body (BEGIN) ===
 set -euo pipefail
 
+# Stage state: load what earlier stages saved (SKILL.md "State between stages").
+SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+sdm_load() {
+    # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
+    if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
+        echo "Stage state: refusing ${SDM_STATE##*/} (symlink, not owned by you, or writable by others)"; return 0
+    fi
+    local line k v dv
+    declare -A _sdm=()
+    while IFS= read -r line; do
+        k=${line%%=*}; v=${line#*=}
+        [[ "$SDM_KEYS" == *" $k "* ]] || { echo "Stage state: ignoring unknown key '$k'"; continue; }   # why: allowlist, never a free-form name
+        # why: decode into a temp first, so a bad line never overwrites an earlier good value
+        dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
+        _sdm[$k]=$dv                                   # why: last good write wins
+    done < "$SDM_STATE"
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
+    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+        echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
+    fi
+    for k in "${!_sdm[@]}"; do
+        [[ -n "${!k:-}" ]] || printf -v "$k" '%s' "${_sdm[$k]}"   # why: a non-empty explicit env wins; a value is assigned, never executed
+    done
+}
+[[ -f "$SDM_STATE" ]] && sdm_load
+sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
+
 BASE_REF="${BASE_REF:-main}"
-BODY_OUT="${BODY_OUT:-/tmp/sole-dev-merge-body.md}"
+BODY_OUT="${BODY_OUT:-${SDM_DIR:?Stage E3 needs SDM_DIR from Stage A}/body.md}"
 
 BRANCH=$(git branch --show-current 2>/dev/null || echo "feature")
 N_COMMITS=$(git rev-list --count "${BASE_REF}..HEAD" 2>/dev/null || echo 0)
@@ -143,13 +231,9 @@ N_COMMITS=$(git rev-list --count "${BASE_REF}..HEAD" 2>/dev/null || echo 0)
     echo
     echo "## Reviewer notes"
     echo
-    # Stage D writes LOW findings to a slug-namespaced path; Stage E3 reads
-    # the SAME path. SLUG must be exported by Stage C in production; tests
-    # set SLUG via env or fall through to the NOSLUG sentinel (file absent
-    # → "(none)" branch — clean fallback).
-    # §6.8 CRITICAL-1 fix: previously read unslugged path, breaking the D→E3
-    # contract (LOW findings never reached PR body). See impl-review.md.
-    REVIEWER_NOTES_FILE="${REVIEWER_NOTES_FILE:-/tmp/sole-dev-merge-reviewer-notes-${SLUG:-NOSLUG}.md}"
+    # Stage D writes LOW findings to $SDM_DIR/reviewer-notes.md; E3 reads the
+    # SAME path (the D→E3 contract; a missing file → the "(none)" branch).
+    REVIEWER_NOTES_FILE="${REVIEWER_NOTES_FILE:-${SDM_DIR:?Stage E3 needs SDM_DIR from Stage A}/reviewer-notes.md}"
     if [[ -s "$REVIEWER_NOTES_FILE" ]]; then
         cat "$REVIEWER_NOTES_FILE"
     else
@@ -168,6 +252,7 @@ N_COMMITS=$(git rev-list --count "${BASE_REF}..HEAD" 2>/dev/null || echo 0)
     echo "<!-- Generated by /sole-dev-merge -->"
 } > "$BODY_OUT"
 
+sdm_save PR_BODY_FILE "$BODY_OUT"   # why: Stage F reads it in its own shell
 echo "Stage E3 body: wrote $(wc -l < "$BODY_OUT") line(s) to $BODY_OUT"
 # === stage-e3-body (END) ===
 ```

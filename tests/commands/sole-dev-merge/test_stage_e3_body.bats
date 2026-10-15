@@ -22,7 +22,8 @@ setup() {
     SCRIPT_DIR="$(tmp_script_dir)"
     BATS_TMP="$(mktemp -d)"
     BODY_OUT="${BATS_TMP}/body.md"
-    export BATS_TMP SCRIPT_DIR REPO_ROOT COMMAND_MD EXTRACT BODY_OUT
+    SDM_DIR="$(mktemp -d)"   # why: Stage A's private run dir, where E3 reads D's reviewer notes
+    export BATS_TMP SCRIPT_DIR REPO_ROOT COMMAND_MD EXTRACT BODY_OUT SDM_DIR
 
     [[ -f "$COMMAND_MD" ]] || { echo "Missing $COMMAND_MD" >&2; return 1; }
     [[ -x "$EXTRACT"   ]] || { echo "Missing or non-exec $EXTRACT" >&2; return 1; }
@@ -34,11 +35,7 @@ setup() {
 }
 
 teardown() {
-    rm -rf "$BATS_TMP" "$SCRIPT_DIR"
-    # Only the E3+D integration test sets SLUG; sweep_slug_tmp no-ops (loudly)
-    # for the rest. Placed here rather than in the test body so a failing
-    # assertion cannot skip the cleanup.
-    sweep_slug_tmp
+    rm -rf "$BATS_TMP" "$SCRIPT_DIR" "$SDM_DIR"
 }
 
 # Build a 5-commit feature branch off main (AC §4.3.3 fixture spec).
@@ -112,24 +109,21 @@ _five_commit_branch() {
 # ---------------------------------------------------------------------------
 # §6.8 CRITICAL-1 regression: Stage D → Stage E3 reviewer-notes integration
 # ---------------------------------------------------------------------------
-# Stage D writes LOW findings to /tmp/sole-dev-merge-reviewer-notes-${SLUG}.md.
-# Stage E3 must read the SAME path. Previously E3 read the un-slugged path,
+# Stage D writes LOW findings to ${SDM_DIR}/reviewer-notes.md.
+# Stage E3 must read the SAME path. Previously E3 read a different path,
 # making the contract dead (LOW findings never reached PR body).
-# This test plants the slug-namespaced file BEFORE running E3 and asserts the
+# This test plants the run-dir file BEFORE running E3 and asserts the
 # content is inlined under '## Reviewer notes'.
 
-@test "E3+D integration: slug-namespaced reviewer-notes appear under '## Reviewer notes' (§6.8 CRITICAL-1 fix)" {
+@test "E3+D integration: run-dir reviewer-notes appear under '## Reviewer notes' (§6.8 CRITICAL-1 fix)" {
     _five_commit_branch
-    local slug="testslug_$$"
-    local notes_file="/tmp/sole-dev-merge-reviewer-notes-${slug}.md"
+    local notes_file="${SDM_DIR}/reviewer-notes.md"
 
-    # Simulate Stage D having written a LOW finding for this slug
+    # Simulate Stage D having written LOW findings for this run
     cat > "$notes_file" <<'NOTES'
 [LOW] B101 assert_used Use of assert detected — example/path.py:5
 [LOW] B311 random Standard pseudo-random generators are not suitable — other.py:12
 NOTES
-
-    export SLUG="$slug"
 
     run bash "$E3_SCRIPT"
     [ "$status" -eq 0 ]
@@ -140,16 +134,12 @@ NOTES
     # AND they must NOT be preceded by '(none)' (which would mean Stage E3
     # missed the file and fell back to the empty branch).
     run ! grep -q '^(none)$' "$BODY_OUT"
-
-    # $notes_file is swept by teardown()'s sweep_slug_tmp. SLUG is deliberately
-    # NOT unset here — teardown needs it, and each bats test runs in its own
-    # process, so the export cannot leak into the next one.
 }
 
-@test "E3+D integration: missing reviewer-notes → '(none)' fallback (no SLUG)" {
+@test "E3+D integration: missing reviewer-notes → '(none)' fallback" {
     _five_commit_branch
-    # No SLUG set, no file planted — confirms fallback path still works.
-    unset SLUG REVIEWER_NOTES_FILE || true
+    # No notes file in the run dir — confirms the fallback path still works.
+    unset REVIEWER_NOTES_FILE || true
 
     run bash "$E3_SCRIPT"
     [ "$status" -eq 0 ]

@@ -6,7 +6,7 @@
 
 ### Stage D — Findings triage
 
-Consumes `/tmp/sole-dev-merge-findings-${SLUG}.md` produced by Stage C and
+Consumes `$SDM_DIR/findings.md` produced by Stage C and
 routes findings by severity:
 
 - **CRITICAL** — deterministic auto-fix for known patterns (non-literal Ruff S602
@@ -15,12 +15,40 @@ routes findings by severity:
   `fix(review): apply CRITICAL ruff findings`.
 - **HIGH / MEDIUM** — Claude executor invokes `AskUserQuestion` panels
   (4-per-call max) with Apply / Dispute / Defer options. Bash logs only.
-- **LOW** — appended to `/tmp/sole-dev-merge-reviewer-notes-${SLUG}.md`
+- **LOW** — appended to `$SDM_DIR/reviewer-notes.md`
   for inclusion in the PR/MR body's "Reviewer notes" section (advisory).
 
 ```bash
 # === stage-d-triage (BEGIN) ===
 set -euo pipefail
+
+# Stage state: load what earlier stages saved (SKILL.md "State between stages").
+SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+sdm_load() {
+    # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
+    if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
+        echo "Stage state: refusing ${SDM_STATE##*/} (symlink, not owned by you, or writable by others)"; return 0
+    fi
+    local line k v dv
+    declare -A _sdm=()
+    while IFS= read -r line; do
+        k=${line%%=*}; v=${line#*=}
+        [[ "$SDM_KEYS" == *" $k "* ]] || { echo "Stage state: ignoring unknown key '$k'"; continue; }   # why: allowlist, never a free-form name
+        # why: decode into a temp first, so a bad line never overwrites an earlier good value
+        dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
+        _sdm[$k]=$dv                                   # why: last good write wins
+    done < "$SDM_STATE"
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
+    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+        echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
+    fi
+    for k in "${!_sdm[@]}"; do
+        [[ -n "${!k:-}" ]] || printf -v "$k" '%s' "${_sdm[$k]}"   # why: a non-empty explicit env wins; a value is assigned, never executed
+    done
+}
+[[ -f "$SDM_STATE" ]] && sdm_load
+sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
 
 # Single source-of-truth for the AA-MA commit footer (shared with Stage B-commit).
 # footer-resolve:begin
@@ -42,9 +70,9 @@ else
 fi
 # footer-resolve:end
 
-SLUG="${SLUG:-$(date +%s)}"
-FINDINGS="/tmp/sole-dev-merge-findings-${SLUG}.md"
-RUFF_OUT="/tmp/sole-dev-merge-ruff-${SLUG}.json"
+: "${SDM_DIR:?Stage D needs SDM_DIR from Stage A}"
+FINDINGS="$SDM_DIR/findings.md"
+RUFF_OUT="$SDM_DIR/ruff.json"
 
 if [[ ! -f "$FINDINGS" ]]; then
     echo "Stage D: no findings file at $FINDINGS — nothing to triage"
@@ -127,7 +155,7 @@ fi
 
 # LOW → reviewer notes (advisory; surfaced in PR/MR body by Stage E3)
 if [[ "$N_LOW" -gt 0 ]]; then
-    REVIEWER_NOTES="/tmp/sole-dev-merge-reviewer-notes-${SLUG}.md"
+    REVIEWER_NOTES="$SDM_DIR/reviewer-notes.md"
     grep -E '^\[LOW\]' "$FINDINGS" > "$REVIEWER_NOTES"
     echo "Stage D: $N_LOW LOW finding(s) → $REVIEWER_NOTES (advisory)"
 fi

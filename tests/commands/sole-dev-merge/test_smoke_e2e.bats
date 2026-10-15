@@ -37,12 +37,8 @@ setup() {
 }
 
 teardown() {
+    # Stage A's run files live in $BATS_TMP/.git/sdm-<slug>, so this removes them too.
     rm -rf "$BATS_TMP" "$SCRIPT_DIR"
-    # SLUG is set inside the test body, which teardown still sees. Sweeping here
-    # rather than at the end of the test is the point: an assertion that fails
-    # mid-test aborts before any in-body cleanup, so the old placement only ever
-    # cleaned up on the runs that had nothing to clean up after.
-    sweep_slug_tmp
     # Remove the migration-banner sentinel so successive tests don't see
     # the "once per session" suppression effect.
     rm -f "${TMPDIR:-/tmp}/sole-dev-merge-banner-shown"
@@ -180,13 +176,12 @@ PY
     [ "$(git log -1 --format=%s)" = "chore(scope): pre-PR auto-fixes" ]
 
     # === Stage C: mock agent dispatch with planted S602 finding ===
-    SLUG="smoke_$$"
-    export SLUG
+    # SDM_DIR came from Stage A (sourced above with set -a).
     # Pre-populate fixture files for MOCK_AGENT_DISPATCH (per reference.md
     # test-harness contract). Both agents emit zero CRITICAL findings; the
     # S602 will come from the real Ruff invocation in Stage C.
-    : > "/tmp/sole-dev-merge-review-${SLUG}.md"
-    : > "/tmp/sole-dev-merge-security-${SLUG}.md"
+    : > "${SDM_DIR}/review.md"
+    : > "${SDM_DIR}/security.md"
     export MOCK_AGENT_DISPATCH=1
 
     set -a
@@ -195,8 +190,8 @@ PY
     set +a
 
     # Stage C should have run Ruff on src/vuln.py and detected S602.
-    # Findings emit to /tmp/sole-dev-merge-findings-${SLUG}.md as CRITICAL.
-    local findings="/tmp/sole-dev-merge-findings-${SLUG}.md"
+    # Findings emit to ${SDM_DIR}/findings.md as CRITICAL.
+    local findings="${SDM_DIR}/findings.md"
     [ -f "$findings" ]
     # Row not pinned: Stage B's ruff format inserts blank lines above the call.
     grep -qE '^\[CRITICAL\][[:space:]]+S602 .*src/vuln\.py:[0-9]+$' "$findings"
@@ -218,7 +213,4 @@ PY
     # AC §5.8 part 4: out-of-scope tests/codemem/dummy.py is STILL clean
     # (L-007 guard's revert held through B-commit + C + D).
     cmp -s tests/codemem/dummy.py <(git show main:tests/codemem/dummy.py)
-
-    # Cleanup runs in teardown() via sweep_slug_tmp — see the note there on why
-    # in-body cleanup could not be trusted.
 }

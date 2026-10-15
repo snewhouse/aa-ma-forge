@@ -381,7 +381,7 @@ Conventions used in the criteria:
   - Verdict: **PASS**.
 
 ### Sub-step 2.1: RED — state tests
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 2.0
 - Acceptance Criteria:
@@ -389,6 +389,21 @@ Conventions used in the criteria:
   - `grep -c 'sole-dev-merge.env' SDM/test_smoke_e2e.bats` ≥ 1.
   - RED evidence is recorded.
 - Result Log:
+  - Mode: AFK — auto-dispatched.
+  - **New file** `SDM/test_stage_state.bats`, **22 @tests**. Every block runs through `fresh` (`env -i` with only PATH/HOME, like a new Bash tool call) in a git sandbox with a bare origin. Loader cases use `probe`, which is G1's shipped loader text plus a printer. The cases cover:
+    - A: writes the 5 keys; modes 600/700; truncates a stale file; an aborted A leaves none;
+    - B saves CHANGED_*; C scans B's files from an empty env and prints `Stage C scanned: Ruff S n file(s), ShellCheck m file(s)`; D writes reviewer notes under SDM_DIR; E3 writes the body there and saves PR_BODY_FILE; G3 reads PR_NUM and saves MERGE_DISPATCHED; G4 reads ORIGINAL_BRANCH; the last write wins;
+    - loader behaviour: hostile round-trip, 4 hostile lines inert (and reported), explicit env wins, empty env does not mask, foreign branch ignored, a bad line keeps the good value, a bad ORIGINAL_BRANCH voids the file, trailing newline dropped, symlink/g+w/o+w refused;
+    - static checks: only `sdm_save` and A's `rm -f` touch the file; the loader is byte-identical in the 12 non-A blocks and absent from A; no masking defaults, `/tmp/sole-dev-merge` or `eval … sdm`.
+  - **Smoke:** `test_smoke_e2e.bats` asserts the state file exists after Stage A (grep count 1).
+  - **RED evidence:** `bats --tap SDM/test_stage_state.bats` → **22 not-ok / 0 ok**. Smoke E2E not-ok, at exactly the new assertion. No guards: every case needs the M2 change.
+    - The first run had test 14 passing **vacuously**: bash does not inherit errexit into `$(probe)`, so the probe's guard was dead. It now fails through `|| return 1`.
+    - The failure lines were checked by test: each fails at the behaviour under test, not at sandbox setup. `tests/test_bats_assertions.py` passes.
+  - **Interface choices this RED fixes** (within plan §4 M2; see CL):
+    - run files under `$SDM_DIR` with fixed names (`findings.md`, `reviewer-notes.md`, `body.md`, …);
+    - A's `rm -f` runs before its checks;
+    - C prints a scanned-files line (needed by 2.3's live check).
+  - Hygiene: the RED runs of unfixed Stage C left 8 `/tmp/sole-dev-merge-findings-<epoch>.md` files. They were removed by name. The shared `/tmp/sole-dev-merge-body.md` was left alone.
 
 ### Sub-step 2.2: GREEN — loader and saver in every block
 - Status: PENDING

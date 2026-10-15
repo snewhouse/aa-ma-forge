@@ -41,3 +41,5 @@
 [2026-10-15T19:01:28+01:00] DECISION — G3/G4 take ORIGINAL_BRANCH from the state file only (Ste, handover Q2) — context-log
 [2026-10-15T19:01:28+01:00] PROTOTYPE — Milestone 2: Stage state file — PASS — proof.sh 6/6 PASS (separate bash, cd+bash, per-worktree git-dir, set -a chaining, hostile round-trip + 4 hostile lines inert, explicit env wins/empty does not mask); 8 extras ok; mutation: 2/2 mutants killed
 [2026-10-15T19:01:28+01:00] STEP_COMPLETE — Sub-step 2.0
+[2026-10-15T19:07:17+01:00] RED — Sub-step 2.1 — test_stage_state.bats not-ok=22 ok=0 (22 @tests); smoke E2E not-ok at the new state-file assertion; vacuous test 14 found and fixed (errexit not inherited into $(probe))
+[2026-10-15T19:07:17+01:00] STEP_COMPLETE — Sub-step 2.1

@@ -1,0 +1,322 @@
+#!/usr/bin/env bats
+# test_stage_state.bats — the stage state file (sole-dev-merge-fixes M2, forge L-055).
+#
+# Each stage block runs in its own Bash tool call, so shell variables do not
+# carry from one block to the next. Stage A writes
+#   "$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"
+# as KEY=<base64> lines; every later block loads it, and appends with sdm_save.
+#
+# Contract (plan §4 M2): a non-empty explicit env beats the file; the file beats
+# defaults; required values fail loud; the last write of a key wins; a file left
+# by another branch is ignored, with a message.
+#
+# Every block here runs through `fresh`: `env -i` with only PATH and HOME, which
+# is what a new Bash tool call gives a block.
+
+bats_require_minimum_version 1.5.0
+
+load fixtures/helpers
+
+BLOCKS=(stage-a-preflight stage-b-scope stage-b-commit stage-c-aggregate
+        stage-d-triage stage-e0-auth stage-e2-choice stage-e3-body stage-f-push
+        stage-g1-protect stage-g2-poll stage-g3-merge stage-g4-cleanup)
+
+setup() {
+    REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../../.." && pwd)"
+    COMMAND_MD="${REPO_ROOT}/claude-code/skills/sole-dev-merge/SKILL.md"
+    SKILL_DIR="${REPO_ROOT}/claude-code/skills/sole-dev-merge"
+    EXTRACT="${REPO_ROOT}/tests/commands/sole-dev-merge/fixtures/extract_stage.sh"
+    STUB_DIR="${REPO_ROOT}/tests/commands/sole-dev-merge/fixtures/bin"
+    SCRIPT_DIR="$(tmp_script_dir)"
+    BATS_TMP="$(mktemp -d)"
+    CLI_LOG="${SCRIPT_DIR}/cli.log"; : > "$CLI_LOG"     # why: outside the repo, so Stage A sees a clean tree
+    SCAN_LOG="${SCRIPT_DIR}/scan.log"; : > "$SCAN_LOG"
+    export REPO_ROOT COMMAND_MD SKILL_DIR EXTRACT STUB_DIR SCRIPT_DIR BATS_TMP CLI_LOG SCAN_LOG
+
+    for b in "${BLOCKS[@]}"; do
+        bash "$EXTRACT" "$b" "$COMMAND_MD" > "${SCRIPT_DIR}/${b}.sh"
+    done
+
+    # Scanner stubs for Stage C: log the files they were given, report clean.
+    for s in ruff shellcheck; do
+        printf '#!/usr/bin/env bash\necho "%s $*" >> "%s"\necho "[]"\n' "$s" "$SCAN_LOG" > "${SCRIPT_DIR}/${s}-stub"
+        chmod +x "${SCRIPT_DIR}/${s}-stub"
+    done
+
+    # Sandbox: main + feature (1 commit ahead, one .py and one .sh), bare origin.
+    cd "$BATS_TMP"
+    sandbox_init
+    echo init > a.txt && git add a.txt && mkcommit "init"
+    git init -q --bare "${BATS_TMP}.bare.git"
+    git remote add origin "${BATS_TMP}.bare.git"
+    git switch -q -c feature
+    printf 'import os\n' > app.py
+    printf '#!/usr/bin/env bash\necho hi\n' > run.sh
+    git add app.py run.sh && mkcommit "feat: app"
+    git push -q origin main feature
+}
+
+teardown() {
+    rm -rf "$BATS_TMP" "${BATS_TMP}.bare.git" "$SCRIPT_DIR"
+}
+
+# A fresh shell with an empty env, like a new Bash tool call.
+fresh() { env -i PATH="${STUB_DIR}:${PATH}" HOME="$HOME" CLI_LOG="$CLI_LOG" "$@"; }
+blk()   { printf '%s/%s.sh' "$SCRIPT_DIR" "$1"; }
+state() { printf '%s/sole-dev-merge.env' "$(git rev-parse --absolute-git-dir)"; }
+# get KEY — the last value of KEY in the state file, decoded.
+get() { local l; l=$(grep "^$1=" "$(state)" | tail -n 1) || return 1; printf '%s' "${l#*=}" | base64 -d; }
+# put KEY VALUE — append one line in sdm_save's format.
+put() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$(state)"; }
+# probe — the loader as shipped in G1, then print each key in $SHOW as k=%q.
+probe() {
+    {
+        echo 'set -euo pipefail'
+        sed -n '/^SDM_STATE=/,/^sdm_save()/p' "$(blk stage-g1-protect)"
+        echo 'for k in ${SHOW:-}; do printf "%s=%q\n" "$k" "${!k:-}"; done'
+    } > "${SCRIPT_DIR}/probe.sh"
+    # why: `p=$(probe)` runs without errexit (bash does not inherit it into $(…)),
+    # so a missing loader must fail through the return code, not set -e.
+    grep -q '^sdm_load()' "${SCRIPT_DIR}/probe.sh" || { echo "no sdm_load in G1" >&2; return 1; }
+    printf '%s/probe.sh' "$SCRIPT_DIR"
+}
+# seed_g — the keys Stage F/G1/G2 would have saved, after a real Stage A.
+seed_g() {
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    put REMOTE_CHOICE github; put PR_NUM 42; put PR_URL "https://github.com/test/repo/pull/42"
+    put MERGE_STRATEGY rebase; put CI_STATE green
+}
+
+# --- Stage A: the writer -----------------------------------------------------
+
+@test "A writes ORIGINAL_BRANCH, BASE_REF, DEFAULT_BRANCH, SLUG and SDM_DIR" {
+    run fresh bash "$(blk stage-a-preflight)"
+    [ "$status" -eq 0 ]
+    [ -f "$(state)" ]
+    [ "$(get ORIGINAL_BRANCH)" = feature ]
+    [ "$(get BASE_REF)" = main ]
+    [ "$(get DEFAULT_BRANCH)" = main ]
+    [ -n "$(get SLUG)" ]
+    [ "$(get SDM_DIR)" = "$(git rev-parse --absolute-git-dir)/sdm-$(get SLUG)" ]
+}
+
+@test "A creates the state file 600 and SDM_DIR 700" {
+    run fresh bash "$(blk stage-a-preflight)"
+    [ "$status" -eq 0 ]
+    [ "$(stat -c %a "$(state)")" = 600 ]
+    [ "$(stat -c %a "$(get SDM_DIR)")" = 700 ]
+}
+
+@test "A truncates a stale state file from an earlier run" {
+    put ORIGINAL_BRANCH feature; put PR_NUM 999
+    run fresh bash "$(blk stage-a-preflight)"
+    [ "$status" -eq 0 ]
+    run grep -c '^PR_NUM=' "$(state)"
+    [ "$output" = 0 ]
+}
+
+@test "an aborted A leaves no state file behind" {
+    put ORIGINAL_BRANCH feature; put PR_NUM 999
+    echo dirt > dirty.txt
+    run fresh bash "$(blk stage-a-preflight)"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Uncommitted changes"* ]]
+    [ ! -e "$(state)" ]
+}
+
+# --- Values carry between separate shells --------------------------------------
+
+@test "B appends CHANGED_FILES, CHANGED_PY and CHANGED_SH" {
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    run fresh bash "$(blk stage-b-scope)"
+    [ "$status" -eq 0 ]
+    [ "$(get CHANGED_PY)" = app.py ]
+    [ "$(get CHANGED_SH)" = run.sh ]
+    [ "$(get CHANGED_FILES)" = $'app.py\nrun.sh' ]
+}
+
+@test "C in a fresh empty shell scans B's files and writes findings under SDM_DIR" {
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    fresh bash "$(blk stage-b-scope)" >/dev/null
+    run fresh RUFF_BIN="${SCRIPT_DIR}/ruff-stub" SHELLCHECK_BIN="${SCRIPT_DIR}/shellcheck-stub" \
+        bash "$(blk stage-c-aggregate)"
+    [ "$status" -eq 0 ]
+    grep -q '^ruff .*app\.py' "$SCAN_LOG"
+    grep -q '^shellcheck .*run\.sh' "$SCAN_LOG"
+    [[ "$output" == *"Stage C scanned: Ruff S 1 file(s), ShellCheck 1 file(s)"* ]]
+    [ -f "$(get SDM_DIR)/findings.md" ]
+}
+
+@test "D uses A's SLUG: it triages C's findings and writes reviewer notes under SDM_DIR" {
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    fresh bash "$(blk stage-b-scope)" >/dev/null
+    fresh RUFF_BIN="${SCRIPT_DIR}/ruff-stub" SHELLCHECK_BIN="${SCRIPT_DIR}/shellcheck-stub" \
+        bash "$(blk stage-c-aggregate)" >/dev/null
+    echo "[LOW]      A low finding — app.py:1" >> "$(get SDM_DIR)/findings.md"
+    run fresh bash "$(blk stage-d-triage)"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Stage D triage:"* ]]
+    [ -s "$(get SDM_DIR)/reviewer-notes.md" ]
+}
+
+@test "E3 writes the body under SDM_DIR and saves PR_BODY_FILE" {
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    run fresh bash "$(blk stage-e3-body)"
+    [ "$status" -eq 0 ]
+    [ "$(get PR_BODY_FILE)" = "$(get SDM_DIR)/body.md" ]
+    [ -s "$(get SDM_DIR)/body.md" ]
+}
+
+@test "G3 with no env reads PR_NUM from the file and saves MERGE_DISPATCHED=1" {
+    seed_g
+    run fresh bash "$(blk stage-g3-merge)"
+    [ "$status" -eq 0 ]
+    grep -q '^gh pr merge 42 ' "$CLI_LOG"
+    [ "$(get MERGE_DISPATCHED)" = 1 ]
+}
+
+@test "G4 with no env reads ORIGINAL_BRANCH from the file" {
+    seed_g; put MERGE_DISPATCHED 1
+    run fresh bash "$(blk stage-g4-cleanup)"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"needs ORIGINAL_BRANCH"* ]]
+    [[ "$output" == *"branch=feature"* ]]
+}
+
+@test "a key written twice gives the last value" {
+    seed_g; put PR_NUM 7
+    run fresh bash "$(blk stage-g3-merge)"
+    [ "$status" -eq 0 ]
+    grep -q '^gh pr merge 7 ' "$CLI_LOG"
+}
+
+# --- The loader: precedence, hostile input, refusals ---------------------------
+
+@test "values with spaces, quotes, \$, backticks, newlines and a trailing = round-trip" {
+    local p v
+    p=$(probe)
+    v=$'a b "q" \'s\' $HOME `id` $(id) ; | & < > \\ x\ty\nline2 trail='
+    put ORIGINAL_BRANCH feature; put PR_URL "$v"
+    run fresh SHOW=PR_URL bash "$p"
+    [ "$status" -eq 0 ]
+    [ "$output" = "PR_URL=$(printf '%q' "$v")" ]
+}
+
+@test "hand-written hostile lines execute nothing; bad values and unknown keys are reported" {
+    local p
+    p=$(probe)
+    put ORIGINAL_BRANCH feature
+    printf '%s\n' 'PR_URL=$(touch PWN)' 'CI_STATE=`touch PWN`' \
+        "GIT_SSH_COMMAND=$(printf 'touch PWN' | base64)" "BASH_ENV=$(printf '/tmp/x' | base64)" >> "$(state)"
+    run fresh SHOW="PR_URL CI_STATE" bash "$p"
+    [ "$status" -eq 0 ]
+    [ ! -e PWN ]
+    [[ "$output" == *"Stage state: bad value for PR_URL"* ]]
+    [[ "$output" == *"Stage state: bad value for CI_STATE"* ]]
+    [[ "$output" == *"Stage state: ignoring unknown key 'GIT_SSH_COMMAND'"* ]]
+    [[ "$output" == *"Stage state: ignoring unknown key 'BASH_ENV'"* ]]
+}
+
+@test "a non-empty explicit env beats the file" {
+    local p
+    p=$(probe)
+    put ORIGINAL_BRANCH feature; put PR_NUM 42
+    run fresh PR_NUM=99 SHOW=PR_NUM bash "$p"
+    [ "$output" = "PR_NUM=99" ]
+}
+
+@test "an empty exported var does not mask the file" {
+    local p
+    p=$(probe)
+    put ORIGINAL_BRANCH feature; put PR_NUM 42
+    run fresh PR_NUM= SHOW=PR_NUM bash "$p"
+    [ "$output" = "PR_NUM=42" ]
+}
+
+@test "a file written on another branch is ignored, with the message" {
+    local p
+    p=$(probe)
+    put ORIGINAL_BRANCH some-other-branch; put PR_NUM 42
+    run fresh SHOW=PR_NUM bash "$p"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Stage state: sole-dev-merge.env is not for this branch — ignored (run Stage A first)"* ]]
+    [[ "$output" == *"PR_NUM=''"* ]]
+}
+
+@test "a bad line keeps the earlier good value; a bad ORIGINAL_BRANCH voids the file" {
+    local p
+    p=$(probe)
+    put ORIGINAL_BRANCH feature; put PR_NUM 42
+    printf 'PR_NUM=%%%%notbase64\n' >> "$(state)"
+    run fresh SHOW=PR_NUM bash "$p"
+    [[ "$output" == *"PR_NUM=42"* ]]
+    : > "$(state)"
+    printf 'ORIGINAL_BRANCH=%%%%notbase64\n' >> "$(state)"; put PR_NUM 42
+    run fresh SHOW=PR_NUM bash "$p"
+    [[ "$output" == *"not for this branch"* ]]
+    [[ "$output" == *"PR_NUM=''"* ]]
+}
+
+@test "a value loses its trailing newline (documented: no key needs one)" {
+    local p
+    p=$(probe)
+    put ORIGINAL_BRANCH feature; put CHANGED_FILES $'a.py\nb.sh\n'
+    run fresh SHOW=CHANGED_FILES bash "$p"
+    [ "$output" = "CHANGED_FILES=$(printf '%q' $'a.py\nb.sh')" ]
+}
+
+@test "a symlinked, group-writable or world-writable state file is refused" {
+    local p st
+    p=$(probe)
+    put ORIGINAL_BRANCH feature; put PR_NUM 42
+    st=$(state)
+    chmod g+w "$st"
+    run fresh SHOW=PR_NUM bash "$p"
+    [[ "$output" == *"Stage state: refusing sole-dev-merge.env"* ]]
+    [[ "$output" == *"PR_NUM=''"* ]]
+    chmod g-w,o+w "$st"
+    run fresh SHOW=PR_NUM bash "$p"
+    [[ "$output" == *"Stage state: refusing sole-dev-merge.env"* ]]
+    chmod o-w "$st"
+    mv "$st" "${st}.real" && ln -s "${st}.real" "$st"
+    run fresh SHOW=PR_NUM bash "$p"
+    [[ "$output" == *"Stage state: refusing sole-dev-merge.env"* ]]
+    [[ "$output" == *"PR_NUM=''"* ]]
+    # A foreign owner needs root to set up; `! -O` covers it in the same branch.
+}
+
+# --- Static contract over the skill text ---------------------------------------
+
+@test "only sdm_save and Stage A's rm -f touch the state file" {
+    local writes
+    writes=$(grep -rnE '>>? *"?\$SDM_STATE' "$SKILL_DIR")
+    [ -n "$writes" ]
+    run grep -vc 'sdm_save()' <<<"$writes"
+    [ "$output" = 0 ]
+    run grep -rnE 'rm -f[^|;]*SDM_STATE' "$SKILL_DIR"
+    [ "${#lines[@]}" -eq 1 ]
+}
+
+@test "every block names the state file; the loader is identical in the 12 non-A blocks" {
+    local b ref
+    for b in "${BLOCKS[@]}"; do
+        grep -q 'sole-dev-merge.env' "$(blk "$b")" || { echo "no state file in $b"; return 1; }
+    done
+    run grep -c 'sdm_load' "$(blk stage-a-preflight)"
+    [ "$output" = 0 ]
+    ref=$(sed -n '/^SDM_STATE=/,/^sdm_save()/p' "$(blk stage-g1-protect)")
+    [ -n "$ref" ]
+    for b in "${BLOCKS[@]:1}"; do
+        [ "$(sed -n '/^SDM_STATE=/,/^sdm_save()/p' "$(blk "$b")")" = "$ref" ] \
+            || { echo "loader differs in $b"; return 1; }
+    done
+}
+
+@test "no masking defaults, /tmp run files or eval remain in the skill" {
+    run grep -rnE 'SLUG.*date \+%s|PR_NUM:-0|ORIGINAL_BRANCH:-feature|SLUG:-NOSLUG' "$SKILL_DIR"
+    [ "$status" -eq 1 ]
+    run grep -rn '/tmp/sole-dev-merge' "$SKILL_DIR"
+    [ "$status" -eq 1 ]
+    run bash -c "grep -rn 'eval' '$SKILL_DIR' | grep sdm"
+    [ "$status" -eq 1 ]
+}

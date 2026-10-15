@@ -149,6 +149,9 @@ PY
     source "$SA"
     set +a
 
+    # M2: Stage A leaves the stage state file for the later blocks.
+    [ -f "$(git rev-parse --absolute-git-dir)/sole-dev-merge.env" ]
+
     # NOW plant the out-of-scope drift after Stage A's preflight passed.
     echo "# out-of-scope drift planted post-preflight" \
         >> tests/codemem/dummy.py

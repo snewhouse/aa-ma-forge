@@ -260,7 +260,7 @@ Conventions used in the criteria:
     - new `### Hooks resolve the active plan from $PWD` entry. Its awk range counts commit-drift 1, session-end-dirty 1, session-start 1, commit-signature 2. Anchors are re-checked at HEAD: commit-signature is now `:103`, moved by the 1.7 header rows.
   - CHANGELOG `## Unreleased → ### Fixed`: 5 new bullets (G3, G4, footer helper, commit-signature trust, install link); `^## Unreleased` = 1. The 1.8 symlink fix went under `### Security`, not Fixed, so Fixed stays at 5.
   - ADR-0008: the `:55` footer paragraph and the G3/G4 table rows are updated; `grep -c 'checkout main'` = 0.
-  - Privacy: denylist count 0; `/ho[m]e/|/tm[p]/claude-` count 0. By eye, plus a grep for known private names (0): the diff names no private repository.
+  - Privacy: denylist count 0; `/ho[m]e/|/tm[p]/claude-` count 0. A by-eye check plus a grep for known private names gave 2 hits; both are the denylist file's own path (`~/.config/<org>/denylist`), quoted in this tasks.md by the planning commit. The diff names no private repository. (Corrected after commit 86a6403, which logged "0" before the grep output was read; global L-1352.)
 
 ### Sub-step 1.11: Verify, impact, gate
 - Status: PENDING

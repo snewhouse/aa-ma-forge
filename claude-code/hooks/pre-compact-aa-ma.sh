@@ -49,6 +49,10 @@ mkdir -p "$SNAPSHOT_DIR" 2>/dev/null || {   # why: the notice below replaces mkd
     exit 0   # PreCompact must never block compaction
 }
 
+# The AA-MA files this hook reads or appends to, per task. Every file named in
+# the loop below must be in this list, so the symlink guard covers it.
+readonly AA_MA_FILES=(tasks.md reference.md context-log.md provenance.log)
+
 # Audit-trail append failures and skipped tasks, reported once at exit (see end of file).
 append_failures=0
 skipped_tasks=0
@@ -87,7 +91,7 @@ for task_dir in "${TASKS[@]}"; do
     if [[ -L "$task_dir" ]]; then
         skip_why="task dir is a symlink"
     else
-        for f in tasks.md reference.md context-log.md provenance.log; do
+        for f in "${AA_MA_FILES[@]}"; do
             if [[ -L "${task_dir}/${task_name}-${f}" ]]; then
                 skip_why="${task_name}-${f} is a symlink"
                 break

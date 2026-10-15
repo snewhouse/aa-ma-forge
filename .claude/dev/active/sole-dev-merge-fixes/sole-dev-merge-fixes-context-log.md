@@ -146,4 +146,17 @@ _This log will be updated via context compaction as the task progresses._
 - Other 2.2 deviations, for the record:
   - Stage C requires `SDM_DIR`, not `SLUG`: its file names no longer contain the slug.
   - The loader comment `no eval anywhere` was reworded in all 12 copies, because the plan's own `eval|sdm` AC matched it.
+  - Two more files outside the Contract list, both required by the change: `tests/commands/sole-dev-merge/fixtures/helpers.bash` (`sweep_slug_tmp` deleted, 0 callers left) and `tests/hooks/aa-ma-footer.bats` (D is fed `SDM_DIR`).
+
+## [2026-10-15] §6.8 POST_IMPL_REVIEW — Milestone 2 (window f78bbf9..03f9008)
+- Verdict: PASS_WITH_WARNINGS. 0 CRITICAL / 11 WARNING (10 distinct) / 19 INFO across 5 agents; no override panel was needed.
+- **Fixed before the gate** (RED 38d6560, then GREEN):
+  - the loader rejects an empty ORIGINAL_BRANCH; A ABORTs on a detached HEAD and outside a repo;
+  - `sdm_save` refuses a symlinked or foreign file (fail closed, in all 13 copies);
+  - G4 requires `MERGE_DISPATCHED=1`; G2/G3 require a numeric `PR_NUM`;
+  - A validates `SLUG`, clears earlier `sdm-*` run dirs, and always makes a fresh 700 dir (this also stops stale reviewer notes reaching E3);
+  - prose and CHANGELOG no longer hardcode "15 keys" or the false temp-dir claim; F's message is reworded;
+  - the test block list is read from the markers.
+- **Deferred:** `$CHANGED_*` word-splitting → M3; `REMOTE_CHOICE:-github` → M4 (one TODOS entry).
+- Full record: `sole-dev-merge-fixes-impl-review.md` § Milestone 2.
 

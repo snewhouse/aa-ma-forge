@@ -155,6 +155,10 @@ _Avoid_: "recent", "up to date" (say fresh or stale).
 A step that runs, prints its exit code where the operator sees it, and never stops the pipeline. A step that cannot run at all (no diff source, tool missing) is not best-effort; it is a failure to fix.
 _Avoid_: "best-effort by design" for a step that exits before doing its job (forge L-051).
 
+**Stage state file**:
+The per-worktree file (`<git-dir>/sole-dev-merge.env`) in which `/sole-dev-merge`'s stage blocks hand values to each other, because each block runs in its own shell. Stage A starts it; later blocks load it and append to it. An explicit env value beats it, and a required value it lacks stops the block.
+_Avoid_: "exported vars" or "the env" as the way stages share values (forge L-055).
+
 ## Relationships
 
 - A **Repo** has one or more **Skills** (and possibly other artifacts).

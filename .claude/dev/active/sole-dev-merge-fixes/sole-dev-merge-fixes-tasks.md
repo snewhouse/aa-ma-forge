@@ -548,6 +548,7 @@ Conventions used in the criteria:
   - The status table has the 7 new rows: MERGE_FAILED, BRANCH_NOT_DELETED, MAIN_CHECKOUT_DIRTY, MAIN_NOT_UPDATED, REMOTE_UNKNOWN, PR_BODY_NOT_UPDATED, and the B-commit ABORT. It also has the G3/G4 ABORT rows (rc 1, since M1 §6.8), the exit-contract line (`SKILL.md` "non-zero only for A, E2, F") widened to G3/G4, and the `STATUS: OK` row reworded (in a worktree the local branch is left for the operator). The `comm` check (milestone AC 4) is empty.
   - `bats --tap SDM` gives 0 not-ok; shellcheck exits 0 on F, A and E3.
   - `scripts/regen-generated.sh` leaves no uncommitted diff.
+  - (Added at M2 2.3, Ste.) E1 saves `n_github`/`n_gitlab`/`n_other` to the stage state file (allowlist 15 → 18 keys). An empty-env E2 case in `test_stage_state.bats` passes. The E1/E2 "one Bash call" prose line and its TODOS entry are removed.
 - Result Log:
 
 ### Sub-step 4.3: Verify, gate, merge with the fixed skill

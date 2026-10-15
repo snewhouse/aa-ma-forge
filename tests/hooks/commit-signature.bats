@@ -153,9 +153,51 @@ _run_hook_with_plan() {
     HOME="$BATS_TMP_HOME" run bash -c "printf '%s' \"\$1\" | bash \"$HOOK\"" _ "$input"
 }
 
-@test "helper footer: FOOTER=\$(emit_aa_ma_footer); git commit -m \"x\${FOOTER}\" → exit 0" {
-    _run_hook_with_plan 'FOOTER=$(emit_aa_ma_footer); git commit -m "x${FOOTER}"'
+@test "helper footer: set -e, then FOOTER=\$(emit_aa_ma_footer) and git commit -m \"x\${FOOTER}\" on their own lines → exit 0" {
+    _run_hook_with_plan $'set -euo pipefail\nFOOTER=$(emit_aa_ma_footer)\ngit commit -m "x${FOOTER}"'
     [ "$status" -eq 0 ]
+}
+
+# §6.8 security review: shapes that commit with an EMPTY footer, or put text
+# after the signature. Each must block (rc 2).
+@test "helper footer: no set -e (an undefined helper leaves FOOTER empty) → exit 2" {
+    _run_hook_with_plan $'FOOTER=$(emit_aa_ma_footer)\ngit commit -m "x${FOOTER}"'
+    [ "$status" -eq 2 ]
+}
+
+@test "helper footer: one-line '; ' form (no set -e) → exit 2" {
+    _run_hook_with_plan 'FOOTER=$(emit_aa_ma_footer); git commit -m "x${FOOTER}"'
+    [ "$status" -eq 2 ]
+}
+
+@test "helper footer: prefix assignment FOOTER=\$(…) git commit → exit 2" {
+    _run_hook_with_plan $'set -e\nFOOTER=$(emit_aa_ma_footer) git commit -m "x${FOOTER}"'
+    [ "$status" -eq 2 ]
+}
+
+@test "helper footer: assignment commented out → exit 2" {
+    _run_hook_with_plan $'set -e\n# FOOTER=$(emit_aa_ma_footer)\ngit commit -m "x${FOOTER}"'
+    [ "$status" -eq 2 ]
+}
+
+@test "helper footer: assignment in a subshell → exit 2" {
+    _run_hook_with_plan $'set -e\n( FOOTER=$(emit_aa_ma_footer) )\ngit commit -m "x${FOOTER}"'
+    [ "$status" -eq 2 ]
+}
+
+@test "helper footer: --trailer before -m → exit 2" {
+    _run_hook_with_plan $'set -e\nFOOTER=$(emit_aa_ma_footer)\ngit commit --trailer "A: b" -m "x${FOOTER}"'
+    [ "$status" -eq 2 ]
+}
+
+@test "helper footer: a second -m on a continuation line → exit 2" {
+    _run_hook_with_plan $'set -e\nFOOTER=$(emit_aa_ma_footer)\ngit commit -m "x${FOOTER}" \\\n  -m "extra"'
+    [ "$status" -eq 2 ]
+}
+
+@test "helper footer: set +e after set -e → exit 2" {
+    _run_hook_with_plan $'set -e\nset +e\nFOOTER=$(emit_aa_ma_footer)\ngit commit -m "x${FOOTER}"'
+    [ "$status" -eq 2 ]
 }
 
 @test "helper footer: neither helper nor literal signature → exit 2" {

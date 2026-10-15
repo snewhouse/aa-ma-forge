@@ -263,6 +263,41 @@ _sandbox_with_pushed_feature() {
     [ -n "$(git ls-remote origin refs/heads/other/feature)" ]
 }
 
+# --- §6.8 review fixes (code-reviewer W3, security-auditor INFO) -----------
+
+@test "G3: ls-remote fails after the delete → BRANCH_NOT_DELETED with its rc, never read as deleted" {
+    _sandbox_with_pushed_feature
+    local real_git; real_git=$(command -v git)
+    mkdir -p "$BATS_TMP/gitbin"
+    printf '#!/bin/sh\n[ "$1" = ls-remote ] && exit 128\nexec %s "$@"\n' "$real_git" > "$BATS_TMP/gitbin/git"
+    chmod +x "$BATS_TMP/gitbin/git"
+    export CI_STATE=green
+
+    PATH="$BATS_TMP/gitbin:$PATH" run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: BRANCH_NOT_DELETED — feature"*"rc=128"* ]]
+}
+
+@test "G3: MERGE_STRATEGY outside rebase|merge|squash → ABORT rc 1, no merge" {
+    _sandbox_with_pushed_feature
+    export CI_STATE=green MERGE_STRATEGY=admin
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT"* ]]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
+}
+
+@test "G3: option-shaped DEFAULT_BRANCH → ABORT rc 1, no merge" {
+    _sandbox_with_pushed_feature
+    export CI_STATE=green DEFAULT_BRANCH='-xmain'
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT"* ]]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
+}
+
 @test "G3: CI_STATE=timeout → no merge + STATUS:CI_TIMEOUT + recovery hint" {
     _sandbox_with_pushed_feature
     export CI_STATE=timeout MERGE_STRATEGY=rebase
@@ -429,6 +464,27 @@ _fingerprint() {
     [ "$(git -C "$WT" branch --show-current)" = "feature" ]
     [[ "$(git -C "$MAIN" rev-parse refs/heads/main)" == "$(git --git-dir="$BARE_REMOTE" rev-parse main)" \
        || "$output" == *"STATUS: MAIN_NOT_UPDATED"* ]]
+}
+
+@test "G4: AC2.5b default branch in use by a third worktree → STATUS: MAIN_NOT_UPDATED, never STATUS: OK" {
+    _sandbox_worktree
+    git -C "$MAIN" checkout -q -b other
+    git -C "$MAIN" worktree add -q "$BATS_TMP/wt-main" main
+
+    run bash "$G4_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: MAIN_NOT_UPDATED"* ]]
+    [[ "$output" != *"STATUS: OK"* ]]
+}
+
+@test "G4: option-shaped DEFAULT_BRANCH → ABORT rc 1 before any fetch or checkout" {
+    _sandbox_worktree
+    export DEFAULT_BRANCH='-xmain'
+
+    run bash "$G4_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT"* ]]
+    [ "$(git -C "$WT" branch --show-current)" = "feature" ]
 }
 
 @test "G4: AC2.6 ORIGINAL_BRANCH unset → fails loud, no branch deleted, no checkout" {

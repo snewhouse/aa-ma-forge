@@ -17,9 +17,16 @@ bats_require_minimum_version 1.5.0
 
 load fixtures/helpers
 
-BLOCKS=(stage-a-preflight stage-b-scope stage-b-commit stage-c-aggregate
-        stage-d-triage stage-e0-auth stage-e2-choice stage-e3-body stage-f-push
-        stage-g1-protect stage-g2-poll stage-g3-merge stage-g4-cleanup)
+# Every stage block in the skill, read from its markers, so a new block is
+# checked without anyone remembering to list it. NO_STATE names the blocks
+# that hold no state: the banner, and E1 (its counts reach E2 in the same
+# Bash call until sole-dev-merge-fixes M4 saves them).
+NO_STATE=" stage-banner stage-e1-remote "
+mapfile -t BLOCKS < <(
+    grep -rhoE '=== stage-[a-z0-9-]+ \(BEGIN\)' "${BATS_TEST_DIRNAME}/../../../claude-code/skills/sole-dev-merge" \
+        | sed -E 's/^=== (stage-[a-z0-9-]+) .*/\1/' \
+        | while read -r b; do [[ "$NO_STATE" == *" $b "* ]] || echo "$b"; done
+)
 
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../../.." && pwd)"
@@ -285,6 +292,92 @@ seed_g() {
     # A foreign owner needs root to set up; `! -O` covers it in the same branch.
 }
 
+# --- §6.8 remediation (code-reviewer, security-auditor, future-proofing) --------
+
+@test "A outside a git repository prints an ABORT line and exits 1" {
+    local nr
+    nr=$(mktemp -d)
+    run fresh bash -c 'cd "$1" && bash "$2"' _ "$nr" "$(blk stage-a-preflight)"
+    rm -rf "$nr"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Not inside a git repository"* ]]
+}
+
+@test "A refuses a detached HEAD" {
+    git switch -q --detach
+    run fresh bash "$(blk stage-a-preflight)"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Detached HEAD"* ]]
+}
+
+@test "on a detached HEAD the loader ignores a file whose ORIGINAL_BRANCH is empty" {
+    local p
+    p=$(probe)
+    put ORIGINAL_BRANCH ""; put PR_NUM 42
+    git switch -q --detach
+    run fresh SHOW=PR_NUM bash "$p"
+    [[ "$output" == *"is not for this branch"* ]]
+    [[ "$output" == *"PR_NUM=''"* ]]
+}
+
+@test "sdm_save refuses a symlinked state file and leaves the link's target alone" {
+    local st target
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    st=$(state); target="${SCRIPT_DIR}/victim"
+    printf 'precious\n' > "$target"
+    rm -f "$st" && ln -s "$target" "$st"
+    run fresh bash "$(blk stage-b-scope)"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Stage state: refusing to save"* ]]
+    [ "$(cat "$target")" = precious ]
+}
+
+@test "A removes earlier run dirs (a symlinked one as a link only) and starts a fresh 700 dir" {
+    local gd outside
+    gd=$(git rev-parse --absolute-git-dir); outside="${SCRIPT_DIR}/outside"
+    mkdir -p "$gd/sdm-old" "$outside"
+    echo "[LOW] stale" > "$gd/sdm-old/reviewer-notes.md"
+    echo keep > "$outside/keep.txt"
+    ln -s "$outside" "$gd/sdm-link"
+    run fresh SLUG=old bash "$(blk stage-a-preflight)"
+    [ "$status" -eq 0 ]
+    [ ! -e "$gd/sdm-old/reviewer-notes.md" ]
+    [ ! -L "$gd/sdm-link" ]
+    [ "$(cat "$outside/keep.txt")" = keep ]
+    [ "$(stat -c %a "$gd/sdm-old")" = 700 ]
+}
+
+@test "A refuses a SLUG that is not a plain name" {
+    run fresh SLUG="../escape" bash "$(blk stage-a-preflight)"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: SLUG"* ]]
+    [ ! -e "$(git rev-parse --absolute-git-dir)/escape" ]
+}
+
+@test "G3 refuses a non-numeric PR_NUM before calling gh" {
+    seed_g; put PR_NUM "--repo=evil/x"
+    run fresh bash "$(blk stage-g3-merge)"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage G3: PR_NUM"* ]]
+    run grep -c 'pr merge' "$CLI_LOG"
+    [ "$output" = 0 ]
+}
+
+@test "G2 refuses a non-numeric PR_NUM" {
+    seed_g; put PR_NUM "12a"
+    run fresh bash "$(blk stage-g2-poll)"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage G2: PR_NUM"* ]]
+}
+
+@test "G4 stops when no successful merge was recorded" {
+    seed_g
+    run fresh bash "$(blk stage-g4-cleanup)"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage G4: no successful merge recorded"* ]]
+    [ "$(git branch --show-current)" = feature ]
+}
+
 # --- Static contract over the skill text ---------------------------------------
 
 @test "only sdm_save and Stage A's rm -f touch the state file" {
@@ -297,8 +390,9 @@ seed_g() {
     [ "${#lines[@]}" -eq 1 ]
 }
 
-@test "every block names the state file; the loader is identical in the 12 non-A blocks" {
+@test "every stage block names the state file; the loader is identical in every block but A" {
     local b ref
+    [[ " ${BLOCKS[*]} " == *" stage-a-preflight "* && " ${BLOCKS[*]} " == *" stage-g4-cleanup "* ]]
     for b in "${BLOCKS[@]}"; do
         grep -q 'sole-dev-merge.env' "$(blk "$b")" || { echo "no state file in $b"; return 1; }
     done
@@ -306,10 +400,15 @@ seed_g() {
     [ "$output" = 0 ]
     ref=$(sed -n '/^SDM_STATE=/,/^sdm_save()/p' "$(blk stage-g1-protect)")
     [ -n "$ref" ]
-    for b in "${BLOCKS[@]:1}"; do
+    for b in "${BLOCKS[@]}"; do
+        [[ "$b" == stage-a-preflight ]] && continue
         [ "$(sed -n '/^SDM_STATE=/,/^sdm_save()/p' "$(blk "$b")")" = "$ref" ] \
             || { echo "loader differs in $b"; return 1; }
     done
+}
+
+@test "Stage A's sdm_save is the loader's sdm_save" {
+    [ "$(grep '^sdm_save()' "$(blk stage-a-preflight)")" = "$(grep '^sdm_save()' "$(blk stage-g1-protect)")" ]
 }
 
 @test "no masking defaults, /tmp run files or eval remain in the skill" {

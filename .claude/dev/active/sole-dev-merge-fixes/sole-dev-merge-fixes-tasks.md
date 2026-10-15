@@ -88,7 +88,7 @@ Conventions used in the criteria:
   - G3 prose (`:26-37`) and SKILL.md `:13` updated; SKILL.md no longer says `--delete-branch`.
 
 ### Sub-step 1.3: RED — G4 worktree tests
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.2
 - Acceptance Criteria:
@@ -97,6 +97,10 @@ Conventions used in the criteria:
   - The AC2.2 test asserts `git -C "$MAIN" rev-parse HEAD` = `git --git-dir="$BARE_REMOTE" rev-parse main`, and that the worktree's `branch --show-current` is unchanged.
   - RED evidence is recorded. AC2.4 (subdirectory) is expected to pass as a guard.
 - Result Log:
+  - Mode: AFK — auto-dispatched.
+  - `_sandbox_worktree [main_dir] [branch]` added (count 1): main checkout, linked worktree at `<main>/.worktrees/<branch>`, bare remote with post-merge state. Plus `_fingerprint` (HEAD + `diff HEAD` + tracked status, sha256).
+  - 7 tests `G4: AC2.(2|2b|3|3b|4|5|6) ` (count 7); AC2.3b uses branch `feature/x`. AC2.2 asserts main HEAD = bare `main` and the worktree branch/HEAD unchanged. AC2.2b evals the printed cleanup lines against a recording `git` function (dry run) and checks argv equals the spaced paths.
+  - RED on unfixed G4: 6 not-ok (AC2.2, 2.2b, 2.3, 2.3b: `checkout main` fails in the worktree; AC2.5: the worktree is switched off `feature`; AC2.6: rc 0 with the `feature` default). AC2.4 (subdirectory, plain checkout) passes as the expected guard. Existing G4 test `:149` ok.
 
 ### Sub-step 1.4: GREEN — G4 implementation
 - Status: PENDING

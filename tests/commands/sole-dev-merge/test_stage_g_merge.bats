@@ -312,6 +312,136 @@ _sandbox_with_pushed_feature() {
     [[ "$output" == *"merged"* || "$output" == *"OK"* ]]
 }
 
+# Helper: main checkout at $1 (default $BATS_TMP) with a linked worktree for
+# branch $2 (default feature) at $1/.worktrees/$2, a bare remote, and the
+# post-merge server state: remote main = the branch tip, remote branch gone.
+# Leaves cwd in the worktree. Exports MAIN, WT, ORIGINAL_BRANCH.
+_sandbox_worktree() {
+    MAIN="${1:-$BATS_TMP}"
+    local branch="${2:-feature}"
+    mkdir -p "$MAIN"
+    cd "$MAIN"
+    sandbox_init
+    echo init > a.txt && git add a.txt
+    mkcommit "init"
+    git init --bare -q "$BARE_REMOTE"
+    git remote add origin "$BARE_REMOTE"
+    git push -q origin main
+    git fetch -q origin
+    WT="$MAIN/.worktrees/$branch"
+    git worktree add -q -b "$branch" "$WT"
+    cd "$WT"
+    echo feat > b.txt && git add b.txt
+    mkcommit "feat: new feature"
+    git push -q -u origin "$branch"
+    git --git-dir="$BARE_REMOTE" update-ref refs/heads/main "$(git rev-parse HEAD)"
+    git --git-dir="$BARE_REMOTE" update-ref -d "refs/heads/$branch"
+    export MAIN WT ORIGINAL_BRANCH="$branch"
+}
+
+# Fingerprint of a checkout's tracked state: HEAD, index/worktree diff, status.
+_fingerprint() {
+    { git -C "$1" rev-parse HEAD; git -C "$1" diff HEAD; git -C "$1" status --porcelain --untracked-files=no; } | sha256sum
+}
+
+@test "G4: AC2.2 from a worktree, clean main checkout → main fast-forwarded, worktree untouched, cleanup printed" {
+    _sandbox_worktree
+    local wt_head; wt_head=$(git rev-parse HEAD)
+
+    run bash "$G4_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(git -C "$MAIN" rev-parse HEAD)" = "$(git --git-dir="$BARE_REMOTE" rev-parse main)" ]
+    [ "$(git -C "$MAIN" branch --show-current)" = "main" ]
+    [ "$(git -C "$WT" branch --show-current)" = "feature" ]
+    [ "$(git -C "$WT" rev-parse HEAD)" = "$wt_head" ]
+    [[ "$output" == *"worktree remove"* ]]
+    [[ "$output" == *"branch -D feature"* ]]
+    [[ "$output" == *"STATUS: OK"* ]]
+}
+
+@test "G4: AC2.2b main checkout path with a space → printed cleanup commands are quoted" {
+    _sandbox_worktree "$BATS_TMP/my main"
+
+    run bash "$G4_SCRIPT"
+    [ "$status" -eq 0 ]
+    local rm_line del_line
+    rm_line=$(grep -E '^ +git -C .* worktree remove ' <<<"$output")
+    del_line=$(grep -E '^ +git -C .* branch -D ' <<<"$output")
+    [ -n "$rm_line" ] && [ -n "$del_line" ]
+    # Dry run: a git function records argv instead of acting.
+    git() { printf '%s\n' "$@" > "$BATS_TMP/argv"; }
+    eval "$rm_line"
+    [ "$(sed -n 2p "$BATS_TMP/argv")" = "$MAIN" ]
+    [ "$(sed -n 5p "$BATS_TMP/argv")" = "$WT" ]
+    eval "$del_line"
+    [ "$(sed -n 2p "$BATS_TMP/argv")" = "$MAIN" ]
+    [ "$(sed -n 5p "$BATS_TMP/argv")" = "feature" ]
+    unset -f git
+}
+
+@test "G4: AC2.3 dirty tracked file in the main checkout → STATUS: MAIN_CHECKOUT_DIRTY, main byte-identical" {
+    _sandbox_worktree
+    echo dirty >> "$MAIN/a.txt"
+    local before; before=$(_fingerprint "$MAIN")
+
+    run bash "$G4_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: MAIN_CHECKOUT_DIRTY"* ]]
+    [ "$(_fingerprint "$MAIN")" = "$before" ]
+    [ "$(git -C "$WT" branch --show-current)" = "feature" ]
+}
+
+@test "G4: AC2.3b untracked file in the main checkout → not dirty, fast-forwarded (branch feature/x)" {
+    _sandbox_worktree "$BATS_TMP" "feature/x"
+    echo u > "$MAIN/untracked.txt"
+
+    run bash "$G4_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"MAIN_CHECKOUT_DIRTY"* ]]
+    [ "$(git -C "$MAIN" rev-parse HEAD)" = "$(git --git-dir="$BARE_REMOTE" rev-parse main)" ]
+    [ -f "$MAIN/untracked.txt" ]
+    [ "$(git -C "$WT" branch --show-current)" = "feature/x" ]
+    [[ "$output" == *"branch -D feature/x"* ]]
+}
+
+@test "G4: AC2.4 run from a subdirectory of a plain checkout → non-worktree path" {
+    _sandbox_with_pushed_feature
+    git --git-dir="$BARE_REMOTE" update-ref -d refs/heads/feature
+    git --git-dir="$BARE_REMOTE" update-ref refs/heads/main "$(git rev-parse feature)"
+    mkdir -p sub && cd sub
+
+    run bash "$G4_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(git -C "$BATS_TMP" branch --show-current)" = "main" ]
+    [ "$(git -C "$BATS_TMP" rev-parse main)" = "$(git --git-dir="$BARE_REMOTE" rev-parse main)" ]
+    [[ "$output" != *"worktree remove"* ]]
+}
+
+@test "G4: AC2.5 main checkout on branch 'other' → 'other' untouched, local main updated or MAIN_NOT_UPDATED" {
+    _sandbox_worktree
+    git -C "$MAIN" checkout -q -b other
+    local other_sha; other_sha=$(git -C "$MAIN" rev-parse other)
+
+    run bash "$G4_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(git -C "$MAIN" branch --show-current)" = "other" ]
+    [ "$(git -C "$MAIN" rev-parse other)" = "$other_sha" ]
+    [ "$(git -C "$WT" branch --show-current)" = "feature" ]
+    [[ "$(git -C "$MAIN" rev-parse refs/heads/main)" == "$(git --git-dir="$BARE_REMOTE" rev-parse main)" \
+       || "$output" == *"STATUS: MAIN_NOT_UPDATED"* ]]
+}
+
+@test "G4: AC2.6 ORIGINAL_BRANCH unset → fails loud, no branch deleted, no checkout" {
+    _sandbox_with_pushed_feature
+    git --git-dir="$BARE_REMOTE" update-ref refs/heads/main "$(git rev-parse feature)"
+    unset ORIGINAL_BRANCH
+
+    run bash "$G4_SCRIPT"
+    [ "$status" -ne 0 ]
+    git rev-parse -q --verify refs/heads/feature
+    [ "$(git branch --show-current)" = "feature" ]
+}
+
 # ---------------------------------------------------------------------------
 # §6.8 M4 GitLab-branch coverage (MED-3 fix) — G1 + G3 GitLab paths
 # previously had 0% test coverage despite full stub support.

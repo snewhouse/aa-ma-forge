@@ -631,3 +631,11 @@ DECISION ruff-only () — approved by Ste
 - MEDIUM relative `CODEMEM_DB`/`CODEMEM_REPO_ROOT` (confirmed `server.py:82-91` returns `Path(env)`; refresh runs with cwd = DB dir): Ste **Defer to M16**; M16 AC added.
 - MEDIUM §6.0 gate cold-builds instead of `skipped(no index)` (confirmed: worker runs `codemem refresh` whenever the binary exists, `post-commit.sh:107`): Ste **Defer to M16**; M16 AC added.
 - LOW x7 → PR body reviewer notes and TODOS (P3). M15 not reopened (gate rule).
+
+## [2026-10-15] M15 merged to main (PR #41)
+
+- Rebase-merged at 6ae8974; CI 9/9 green (run 38697841996); branch, worktree removed. Ste OK'd this direct record commit to main.
+
+- Rebase-merge rewrote SHAs; the M15 records name branch SHAs. Map (branch→main): 778259f→fed6551, 30bfed2→0129233, 86f1b57→fed4091, d0febe6→ed267e9, 4ad1eb6→6ae8974, 31afa8a→63b38b8, f0a7f2f→011c96e.
+
+- Next: Sub-step 16.0 (install.sh from main, optional --wire-git-hook, M16 worktree, codemem build, plan the move). Not started.

@@ -38,9 +38,19 @@ failure. G4 runs only on a successful merge.
     (`gh pr merge --auto --rebase`); skip merge.
   - `failed` → emit `STATUS: CI_FAILED — see <URL>` + diagnostic hint
     (`gh pr checks <num>`); skip merge.
-- **G4** (cleanup, plan §4.5) — runs only on successful merge:
-  `git checkout main` → `git pull --ff-only origin main` → `git fetch --prune`.
-  Prints final summary: branch, commits merged, merge SHA, PR/MR URL.
+- **G4** (cleanup, plan §4.5) — runs only on successful merge. Needs
+  `ORIGINAL_BRANCH` (fails loud without it). Detects a linked worktree by
+  comparing the absolute `--git-dir` and `--git-common-dir`:
+  - plain checkout: switch to the default branch, `git fetch --prune origin`,
+    `git merge --ff-only origin/<default>`, delete the local branch (rc
+    printed on failure). No `pull` (E10).
+  - worktree: fast-forward the **main worktree** with `git -C`, never switch
+    branches here. A tracked change there → `STATUS: MAIN_CHECKOUT_DIRTY`, stop
+    (never auto-revert); main worktree on another branch → update the
+    default branch ref by fetch, or `STATUS: MAIN_NOT_UPDATED`. Then show the
+    `--stat` diff and print quoted `worktree remove` / `branch -D` commands
+    for the operator to run.
+  Prints final summary: branch, merge SHA, PR/MR URL.
 
 ```bash
 # === stage-g1-protect (BEGIN) ===
@@ -260,27 +270,57 @@ set -euo pipefail
 
 # Runs only on successful merge (gated by caller checking MERGE_DISPATCHED=1).
 # Inputs: ORIGINAL_BRANCH (from Stage A), PR_URL (from Stage F).
-ORIGINAL_BRANCH="${ORIGINAL_BRANCH:-feature}"
+: "${ORIGINAL_BRANCH:?Stage G4 needs ORIGINAL_BRANCH from Stage A}"
 PR_URL="${PR_URL:-}"
 DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+# Refuse option-shaped or invalid names before they reach diff/branch
+# (security audit: `--output=` would clobber a file).
+git check-ref-format --branch "$ORIGINAL_BRANCH" >/dev/null \
+    || { echo "ABORT: Stage G4: invalid ORIGINAL_BRANCH '$ORIGINAL_BRANCH'"; exit 1; }
 
-# 1. Switch to default branch (feature branch was deleted server-side by
-#    --delete-branch in G3; local ref may still exist but switching is safe).
-git checkout -q "$DEFAULT_BRANCH"
+# Absolute forms on both sides: the raw --git-common-dir is relative from a
+# subdirectory, which would misread a plain checkout as a worktree (E7).
+GIT_DIR_ABS=$(git rev-parse --path-format=absolute --git-dir)
+COMMON_ABS=$(git rev-parse --path-format=absolute --git-common-dir)
+if [[ "$GIT_DIR_ABS" == "$COMMON_ABS" ]]; then
+    # Plain checkout: switch to the default branch and fast-forward it.
+    git checkout -q "$DEFAULT_BRANCH"
+    # No `pull`: with pull.rebase=true, `pull --ff-only` fails on a dirty tree (E10).
+    git fetch -q --prune origin
+    git merge -q --ff-only "origin/$DEFAULT_BRANCH"
+    git branch -q -D "$ORIGINAL_BRANCH" \
+        || echo "Stage G4: local branch $ORIGINAL_BRANCH not deleted (rc=$?)"
+else
+    # Linked worktree: the default branch belongs to the main worktree, so
+    # update it there and leave this worktree and its branch alone (L-1332).
+    WT_LIST=$(git worktree list --porcelain)   # captured once: no early-exit pipe under pipefail
+    MAIN_WT=$(awk '/^worktree /{ if (!w) w = substr($0, 10) } END { print w }' <<<"$WT_LIST")
+    git -C "$MAIN_WT" fetch -q --prune origin
+    if [[ "$(git -C "$MAIN_WT" branch --show-current)" != "$DEFAULT_BRANCH" ]]; then
+        if [[ $'\n'"$WT_LIST"$'\n' == *$'\n'"branch refs/heads/$DEFAULT_BRANCH"$'\n'* ]]; then
+            echo "STATUS: MAIN_NOT_UPDATED — $DEFAULT_BRANCH is in use by another worktree"
+        else
+            git -C "$MAIN_WT" fetch -q origin "$DEFAULT_BRANCH:$DEFAULT_BRANCH" \
+                || echo "STATUS: MAIN_NOT_UPDATED — non-fast-forward"
+        fi
+    elif [[ -n "$(git -C "$MAIN_WT" status --porcelain --untracked-files=no)" ]]; then
+        # Never auto-revert someone's edits in the main worktree (L-1347, Q5).
+        echo "STATUS: MAIN_CHECKOUT_DIRTY — $(git -C "$MAIN_WT" status --porcelain --untracked-files=no | tr '\n' ' ')"
+        exit 0
+    else
+        git -C "$MAIN_WT" merge -q --ff-only "origin/$DEFAULT_BRANCH"
+    fi
+    # why: shown for the L-1332 content check only; a missing local ref must not stop the cleanup hint
+    git -C "$MAIN_WT" diff --stat "refs/heads/$ORIGINAL_BRANCH" "refs/heads/$DEFAULT_BRANCH" -- || true
+    echo "Operator cleanup (after reviewing the diff above):"
+    printf '  git -C %q worktree remove %q\n' "$MAIN_WT" "$(git rev-parse --show-toplevel)"
+    printf '  git -C %q branch -D %q\n' "$MAIN_WT" "$ORIGINAL_BRANCH"
+    WT_NOTE=" worktree=$(git rev-parse --show-toplevel)"
+fi
 
-# 2. Fast-forward local default to the server tip.
-git pull -q --ff-only origin "$DEFAULT_BRANCH"
-
-# 3. Prune local remote-tracking refs for branches deleted server-side.
-git fetch -q --prune
-
-# 4. Best-effort local cleanup: delete the local feature branch ref if it
-#    still exists (server-side ref is already gone).
-git branch -q -D "$ORIGINAL_BRANCH" 2>/dev/null || true
-
-MERGE_SHA=$(git rev-parse --short "$DEFAULT_BRANCH")
-echo "Stage G4: cleanup OK — on $DEFAULT_BRANCH at $MERGE_SHA"
+MERGE_SHA=$(git -C "${MAIN_WT:-.}" rev-parse --short "$DEFAULT_BRANCH")
+echo "Stage G4: cleanup OK — $DEFAULT_BRANCH at $MERGE_SHA${WT_NOTE:-}"
 echo "Final: branch=$ORIGINAL_BRANCH merged into $DEFAULT_BRANCH (sha=$MERGE_SHA)${PR_URL:+ — $PR_URL}"
-echo "STATUS: OK"
+echo "STATUS: OK${WT_NOTE:-}"
 # === stage-g4-cleanup (END) ===
 ```

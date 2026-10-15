@@ -103,7 +103,7 @@ Conventions used in the criteria:
   - RED on unfixed G4: 6 not-ok (AC2.2, 2.2b, 2.3, 2.3b: `checkout main` fails in the worktree; AC2.5: the worktree is switched off `feature`; AC2.6: rc 0 with the `feature` default). AC2.4 (subdirectory, plain checkout) passes as the expected guard. Existing G4 test `:149` ok.
 
 ### Sub-step 1.4: GREEN — G4 implementation
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.3
 - Acceptance Criteria:
@@ -113,6 +113,10 @@ Conventions used in the criteria:
   - The branch-delete line has no `2>/dev/null || true`.
   - `bats --tap SDM/test_stage_g_merge.bats` gives 0 not-ok; shellcheck on the extracted G4 exits 0.
 - Result Log:
+  - Mode: AFK — auto-dispatched.
+  - G4 rewritten per plan §4 1.4: ORIGINAL_BRANCH required + check-ref-format; worktree detection via absolute `--git-dir` vs `--git-common-dir` (E7); plain checkout → checkout, `fetch --prune`, `merge --ff-only`, branch delete with rc line; worktree → `git -C <main wt>` fast-forward, MAIN_CHECKOUT_DIRTY / MAIN_NOT_UPDATED, `--stat`, `%q`-quoted cleanup commands. G4 prose updated.
+  - Greps on extracted G4: `git … pull` = 0; `else…fi` `checkout` = 0; `ORIGINAL_BRANCH:-feature` in the skill = 0; branch-delete line has no `2>/dev/null || true`; unexplained-suppression awk = 0.
+  - `bats --tap SDM/test_stage_g_merge.bats` 30 ok / 0 not-ok; shellcheck `--enable=check-set-e-suppressed` on G4 rc 0. Whole SDM 94 ok / 0 not-ok (75 + 19 new).
 
 ### Sub-step 1.5: RED — footer helper tests
 - Status: PENDING

@@ -160,7 +160,7 @@ Conventions used in the criteria:
   - Hostile probes: under `set -euo pipefail` with 2 plans and no remote → rc 0, `[ad-hoc]` + WARN; outside any repo → `[ad-hoc]`, rc 0.
 
 ### Sub-step 1.7: RED/GREEN — commit-signature trusts emit_aa_ma_footer
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.6
 - Acceptance Criteria:
@@ -174,6 +174,23 @@ Conventions used in the criteria:
   - RED: the first test fails before the fix.
   - GREEN: 0 not-ok across all 17 tests; shellcheck on the hook exits 0. The header rule table (`:13-22`) has the new rule, and TODOS has a `commit-msg`-stage entry.
 - Result Log:
+  - Mode: AFK — auto-dispatched.
+  - RED (ba8777a): 8 new @tests. The 6 planned, plus the real extracted `stage-b-commit` and `stage-d-triage` text fed through the hook. 3 not-ok before the fix: the helper accept case and the two real blocks. The 5 bypass cases already returned rc 2 (guards).
+  - GREEN: new rule 8 in `aa-ma-commit-signature.sh`, plus a header table row.
+    - It strips the skill's exact `[ad-hoc]` fallback definition. It then requires `emit_aa_ma_footer` ×1 as `FOOTER=$(emit_aa_ma_footer)`, the word `FOOTER` ×2, one `git commit`, the helper before the commit, and `-m "…${FOOTER}"` with no later message flag.
+  - `bats commit-signature.bats` 19/19 ok (11 + 8; the AC's "17" plus the 2 real-block cases). hook-headers ok. `shellcheck` rc 0 (the SC2016 literal moved into a named constant with `# why:`).
+  - Hostile matrix (L-049), 17 probes.
+    - Blocked (rc 2):
+      - a second `-m`, `--trailer` or `-c`;
+      - the helper call after the commit;
+      - a second commit;
+      - a `function`/`alias` redefinition, or a redefinition next to the fallback;
+      - `printf -v FOOTER` or `unset FOOTER`;
+      - a piped helper;
+      - a single-quoted `${FOOTER}`.
+    - Allowed (rc 0): a trailing pathspec, `--amend`, the `[ad-hoc]` fallback, `&& echo`.
+    - One finding: `git commit -am "unsigned"` passes with rc 0. It also passes on the hook at `1d760f1` (step 4 "editor form"), so it predates this change and is out of 1.7 scope. It is recorded in the new TODO.
+  - TODOS: new entry "Check the AA-MA commit signature at the `commit-msg` stage, not in the command text".
 
 ### Sub-step 1.8: RED/GREEN — pre-compact never follows a symlink
 - Status: PENDING

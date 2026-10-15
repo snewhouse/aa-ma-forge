@@ -19,7 +19,11 @@
 #   6. command contains `[ad-hoc]` line    → exit 0 (auditable bypass)
 #   7. command contains `[AA-MA Plan] <name>` where <name> is an active task
 #                                          → exit 0 (valid signature)
-#   8. otherwise                           → exit 2 with pretty stderr
+#   8. canonical helper-built footer: `FOOTER=$(emit_aa_ma_footer)` then one
+#      `git commit -m "…${FOOTER}"` (footer ends the message), no other
+#      FOOTER use, no helper redefinition but the skill's [ad-hoc] fallback
+#                                          → exit 0 (the helper is the footer)
+#   9. otherwise                           → exit 2 with pretty stderr
 #
 # Known scope limits (documented, not bugs):
 #   - Bare `git commit` / `--amend` opens the editor; PreToolUse can't see
@@ -141,7 +145,50 @@ if [ -n "$sig_names" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 8. Block. Build pretty stderr message naming the top active task.
+# 8. Helper-built footer. /sole-dev-merge's B-commit and D blocks commit with
+#    `FOOTER=$(emit_aa_ma_footer); git commit -m "…${FOOTER}"`, so the
+#    literal command never holds a signature. Trust only that exact shape, so
+#    the helper stays the only footer source. A commit-msg stage check that
+#    sees the real message is the stronger option (TODOS.md).
+# -----------------------------------------------------------------------------
+# _words WORD TEXT — how many times WORD occurs as a whole word in TEXT.
+_words() {
+    # why: grep exits 1 on no match, which is a count of 0, not an error
+    { grep -ow -- "$1" <<< "$2" || true; } | wc -l
+}
+
+helper_footer_ok() {
+    local c="$1" commit_line rest n_helper n_footer
+    # shellcheck disable=SC2016  # why: the literal command text to find, never expanded
+    local -r canon='FOOTER=$(emit_aa_ma_footer)'
+    # The skill's footer-resolve fallback defines the helper as exactly this;
+    # any other definition could print anything, so it is a bypass.
+    c=${c//"emit_aa_ma_footer() { printf '\n\n[ad-hoc]'; }"/}
+    n_helper=$(_words emit_aa_ma_footer "$c")
+    [ "$n_helper" -eq 1 ] || return 1
+    [[ "$c" == *"$canon"* ]] || return 1
+    # FOOTER appears twice only: that assignment and the ${FOOTER} in -m.
+    n_footer=$(_words FOOTER "$c")
+    [ "$n_footer" -eq 2 ] || return 1
+    # why: no match is a count of 0
+    [ "$({ grep -oE 'git commit([[:space:]]|$)' <<< "$c" || true; } | wc -l)" -eq 1 ] || return 1
+    # The helper runs before the commit.
+    [[ "${c%%git commit*}" == *"$canon"* ]] || return 1
+    commit_line=$(grep -E 'git commit([[:space:]]|$)' <<< "$c")
+    [[ "$commit_line" =~ -m\ \"[^\"]*\$\{FOOTER\}\"(.*)$ ]] || return 1
+    rest="${BASH_REMATCH[1]}"
+    # Nothing after it may add to the message, so the footer stays last.
+    [[ ! "$rest" =~ (^|[[:space:]])(-[A-Za-z]*[mFcCt]|--(message|file|reedit-message|reuse-message|template|trailer|fixup|squash))([[:space:]=]|$) ]]
+}
+
+# shellcheck disable=SC2310  # why: a predicate; its non-zero return is the answer, not an error
+if helper_footer_ok "$cmd"; then
+    aa_ma_debug "commit-signature: canonical emit_aa_ma_footer commit, passing through"
+    exit 0
+fi
+
+# -----------------------------------------------------------------------------
+# 9. Block. Build pretty stderr message naming the top active task.
 # -----------------------------------------------------------------------------
 top_name="${active_names[0]}"
 {

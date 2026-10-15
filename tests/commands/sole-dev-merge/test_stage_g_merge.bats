@@ -5,7 +5,10 @@
 # Plan §4.4.1 falsifiable AC: mocked `gh api repos/.../allow_rebase_merge`
 # returning `false` → script's merge dispatch uses `--merge` not `--rebase`.
 # Plan §4.4.3 falsifiable AC: green CI → exactly one call to
-# `pr merge --rebase --delete-branch` (counted via mock).
+# `pr merge <n> --rebase`, never with --delete-branch (L-1332: gh's local
+# step fails in a worktree and skips the remote delete). G3 then decides from
+# `gh pr view --json state`, deletes refs/heads/<branch> itself and asserts
+# with ls-remote (sole-dev-merge-fixes M1).
 # Plan §4.5 G4 cleanup: post-merge → on main, main fast-forwarded from origin,
 # `git fetch --prune` cleans deleted-branch ref.
 #
@@ -47,6 +50,8 @@ setup() {
     export PR_NUM=42
     export PR_URL="https://github.com/test/repo/pull/42"
     export REMOTE_CHOICE=github
+    # G3/G4 require ORIGINAL_BRANCH (Stage A sets it); no default any more.
+    export ORIGINAL_BRANCH=feature
 }
 
 teardown() {
@@ -97,27 +102,165 @@ _sandbox_with_pushed_feature() {
 # Stage G3 — auto-merge dispatch (incl. error paths from plan §4.4)
 # ---------------------------------------------------------------------------
 
-@test "G3: green CI + rebase → exactly 1 'pr merge ... --rebase --delete-branch' (AC §4.4.3)" {
+@test "G3: green CI + rebase → exactly 1 'pr merge <n> --rebase', no --delete-branch (AC §4.4.3, L-1332)" {
     _sandbox_with_pushed_feature
     export CI_STATE=green MERGE_STRATEGY=rebase
 
     run bash "$G3_SCRIPT"
     [ "$status" -eq 0 ]
-    # AC §4.4.3 falsifiable — the gh CLI takes PR_NUM as a positional FIRST arg
-    # (`gh pr merge 42 --rebase --delete-branch`), so we use a regex that
-    # tolerates the positional between `pr merge` and the flag pair.
-    [ "$(grep -cE 'pr merge [0-9]+ --rebase --delete-branch' "$CLI_LOG")" -eq 1 ]
+    # AC §4.4.3 falsifiable — the gh CLI takes PR_NUM as a positional FIRST arg.
+    [ "$(grep -cE 'pr merge [0-9]+ --rebase$' "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -c -- '--delete-branch' "$CLI_LOG")" -eq 0 ]
 }
 
-@test "G3: green CI + merge fallback → 'pr merge ... --merge --delete-branch' (NOT --rebase) — AC §4.4.1" {
+@test "G3: green CI + merge fallback → 'pr merge <n> --merge' (NOT --rebase), no --delete-branch — AC §4.4.1" {
     _sandbox_with_pushed_feature
     export CI_STATE=green MERGE_STRATEGY=merge
 
     run bash "$G3_SCRIPT"
     [ "$status" -eq 0 ]
-    [ "$(grep -cE 'pr merge [0-9]+ --merge --delete-branch' "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -cE 'pr merge [0-9]+ --merge$' "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -c -- '--delete-branch' "$CLI_LOG")" -eq 0 ]
     # Negative assertion: no --rebase call landed
     [ "$(grep -c -- '--rebase' "$CLI_LOG")" -eq 0 ]
+}
+
+@test "G3: green + rebase → merge without --delete-branch, then push --delete, ls-remote empty" {
+    _sandbox_with_pushed_feature
+    export CI_STATE=green MERGE_STRATEGY=rebase
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -cE '^gh pr merge 42 --rebase$' "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -c -- '--delete-branch' "$CLI_LOG")" -eq 0 ]
+    [ -z "$(git ls-remote origin refs/heads/feature)" ]
+    [[ "$output" == *"MERGE_DISPATCHED=1"* ]]
+}
+
+@test "G3: state != MERGED → STATUS: MERGE_FAILED, no push --delete" {
+    _sandbox_with_pushed_feature
+    export CI_STATE=green GH_PR_STATE=OPEN
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: MERGE_FAILED"* ]]
+    [[ "$output" == *"MERGE_DISPATCHED=0"* ]]
+    [ -n "$(git ls-remote origin refs/heads/feature)" ]
+}
+
+@test "G3: gh pr merge rc=1 but state MERGED → treated as merged (E6 either way)" {
+    _sandbox_with_pushed_feature
+    export CI_STATE=green GH_MERGE_RC=1
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"MERGE_DISPATCHED=1"* ]]
+    [ -z "$(git ls-remote origin refs/heads/feature)" ]
+}
+
+@test "G3: branch already deleted server-side → no abort, ls-remote assert passes" {
+    _sandbox_with_pushed_feature
+    git --git-dir="$BARE_REMOTE" update-ref -d refs/heads/feature
+    export CI_STATE=green
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"MERGE_DISPATCHED=1"* ]]
+    [[ "$output" != *"BRANCH_NOT_DELETED"* ]]
+}
+
+@test "G3: remote refuses delete → STATUS: BRANCH_NOT_DELETED (warning), rc 0" {
+    _sandbox_with_pushed_feature
+    printf '#!/bin/sh\nwhile read o n r; do [ "$n" = 0000000000000000000000000000000000000000 ] && exit 1; done; exit 0\n' \
+        > "$BARE_REMOTE/hooks/pre-receive"
+    chmod +x "$BARE_REMOTE/hooks/pre-receive"
+    export CI_STATE=green
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: BRANCH_NOT_DELETED — feature"* ]]
+    [ -n "$(git ls-remote origin refs/heads/feature)" ]
+}
+
+@test "G3: unknown REMOTE_CHOICE → STATUS: REMOTE_UNKNOWN, MERGE_DISPATCHED=0" {
+    _sandbox_with_pushed_feature
+    export CI_STATE=green REMOTE_CHOICE=bitbucket
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: REMOTE_UNKNOWN"* ]]
+    [[ "$output" == *"MERGE_DISPATCHED=0"* ]]
+    [[ "$output" != *"merged"* ]]
+}
+
+@test "G3: ORIGINAL_BRANCH unset → fails loud before any merge" {
+    _sandbox_with_pushed_feature
+    unset ORIGINAL_BRANCH
+    export CI_STATE=green
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -ne 0 ]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
+    [ -n "$(git ls-remote origin refs/heads/feature)" ]
+}
+
+# --- security-audit cases: refuse before any state change -----------------
+
+@test "G3: PR head ref differs from ORIGINAL_BRANCH → ABORT rc 1, no merge" {
+    _sandbox_with_pushed_feature
+    export CI_STATE=green GH_HEAD_REF=other
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT"*"head is 'other'"* ]]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
+    [ -n "$(git ls-remote origin refs/heads/feature)" ]
+}
+
+@test "G3: ORIGINAL_BRANCH is the default branch → ABORT rc 1, no merge" {
+    _sandbox_with_pushed_feature
+    export CI_STATE=green ORIGINAL_BRANCH=main GH_HEAD_REF=main
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT"* ]]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
+    [ -n "$(git ls-remote origin refs/heads/main)" ]
+}
+
+@test "G3: option-shaped ORIGINAL_BRANCH '--output=x' → ABORT rc 1, no file x, no merge" {
+    _sandbox_with_pushed_feature
+    export CI_STATE=green ORIGINAL_BRANCH='--output=x' GH_HEAD_REF='--output=x'
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT"* ]]
+    [ ! -e x ]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
+}
+
+@test "G3: a same-named tag on the remote survives the branch delete" {
+    _sandbox_with_pushed_feature
+    git tag feature-tag-src && git push -q origin "feature-tag-src:refs/tags/feature"
+    export CI_STATE=green
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ -z "$(git ls-remote origin refs/heads/feature)" ]
+    [ -n "$(git ls-remote origin refs/tags/feature)" ]
+}
+
+@test "G3: remote branch other/feature → not deleted, no false BRANCH_NOT_DELETED" {
+    _sandbox_with_pushed_feature
+    git push -q origin "feature:refs/heads/other/feature"
+    export CI_STATE=green
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"MERGE_DISPATCHED=1"* ]]
+    [[ "$output" != *"BRANCH_NOT_DELETED"* ]]
+    [ -z "$(git ls-remote origin refs/heads/feature)" ]
+    [ -n "$(git ls-remote origin refs/heads/other/feature)" ]
 }
 
 @test "G3: CI_STATE=timeout → no merge + STATUS:CI_TIMEOUT + recovery hint" {

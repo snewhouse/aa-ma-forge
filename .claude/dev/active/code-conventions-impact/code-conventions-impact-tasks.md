@@ -1371,7 +1371,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log:
 
 ## Milestone 15: Codemem freshness (report 03 T2–T9)
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 9
 - Complexity: 75%
 - Effort: 6 days
@@ -1393,6 +1393,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `~/.claude/rules/code-intel-routing.md` exists (per-language table R03-D10, `~/biorelate/**` + client repos code-only), `GRAPHIFY_QUERY_LOG_DISABLE=1` is set, and the graphify skill description no longer claims every codebase question (`grep -c 'any question about a codebase' ~/.claude/skills/graphify/SKILL.md` prints 0).
   - `TODOS.md` has the X4 entry (`grep -n X4 TODOS.md`).
   - `provenance.log` has `PROTOTYPE`, `TESTS_VERIFIED` and `CRITICAL_PATH_REVIEW` lines for Milestone 15.
+- Result Log: COMPLETE 2026-10-15 — HARD gate approved by Ste (context-log GATE APPROVAL), 10/10 ACs, 11/11 sub-steps; §7.3 authorised by Ste. Code at 31afa8a: pytest 3136 passed / 5 skipped, bats 633/633; §6.7 fences 1–3 PASS (DIAGRAM_VERIFIED edges=25 checked=25 phantom=0; TESTS_VERIFIED passed=3136). §6.3 MEDIUM, no HIGH; §6.6 fixes applied. §6.8 PASS_WITH_WARNINGS after re-runs 1–4: C1 (.codemem link overwrite) and C2 (§6.0 sidecar reader) fixed; re-run-1 regression fixed; boundary moved to `storage.db.connect`; re-run-2 embedded-repo bypass → trust-token redesign; re-run-3 planted-WAL bypass and the committed-own-index nonce leak deferred by Ste to Milestone 16 (documented known limits). Double-check Partially verified → F1 accepted, F2 re-reviewed (re-run 4), F3 fixed. §7.2.5 validator WARNINGS_BUT_USABLE, back-filled (30bfed2). Next: PR / merge via /sole-dev-merge (needs Ste's OK for main), then 16.0 (post-merge of M15).
 
 ### Sub-step 15.0: Post-merge of M9 + X4 TODOS entry (T12)
 - Status: COMPLETE

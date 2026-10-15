@@ -617,7 +617,7 @@ DECISION ruff-only () — approved by Ste
 - Evidence (code at 31afa8a, fences recorded in f0a7f2f): pytest 3136, bats 633, DIAGRAM_VERIFIED edges=25 checked=25 phantom=0, TESTS_VERIFIED passed=3136; §6.8 PASS_WITH_WARNINGS (planted-WAL and committed-own-index limits deferred to Milestone 16). Later background-review findings route to Milestone 16 / TODOS (Ste).
 
 ## [2026-10-15] Milestone Completion: Milestone 15: Codemem freshness (report 03 T2–T9)
-- Status: COMPLETE (pending §7.3 authorisation at time of writing)
+- Status: COMPLETE (§7.3 authorised by Ste 2026-10-15)
 - Key outcome: codemem refreshes itself (bounded 5 s refresh, post-commit worker, §6.0 CODE_INTEL_REFRESH, X2 freshness fields, session `Code-intel:` line) and refuses repo-controlled `.codemem/` inputs (link rule at every opener; trust token so only an index built here is read). Two repo-controlled-index limits are deferred to Milestone 16 (move the index out of the repo).
 - Artifacts: packages/codemem-mcp/src/codemem/{safety,cli,indexer,incremental}.py, storage/db.py, journal/lock.py, mcp_tools/__init__.py; claude-code/codemem/hooks/post-commit.sh; claude-code/hooks/{aa-ma-session-start.sh,lib/aa-ma-parse.sh}; claude-code/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh; src/aa_ma/render/graph.py; scripts/install.sh; docs (SECURITY.md, codemem README/commands, kill-criteria, architecture regen); tests (codemem, hooks bats, skills, render).
 - Tests: pytest 3136 passed / 5 skipped; bats 633/633; DIAGRAM_VERIFIED edges=25 checked=25 phantom=0; TESTS_VERIFIED passed=3136 (at f0a7f2f).

@@ -203,7 +203,8 @@ _assert_symlink_skipped() {
     [ "$status" -eq 0 ]
     [ "$(sha256sum < "$target")" = "$before" ]
     snap="$BATS_TMP_HOME/.claude/hooks/cache/compaction-snapshots/task-1-snapshot.md"
-    ! grep -qs 'SENTINEL-OUTSIDE-REPO' "$snap"
+    # why: `if`, not a bare `!` — bats ignores a negated command's status (test_bats_assertions)
+    if grep -qs 'SENTINEL-OUTSIDE-REPO' "$snap"; then echo "target content copied into $snap"; return 1; fi
     [ "$(grep -c 'skipped task task-1' "$BATS_TMP_HOME/.claude/logs/hooks.log")" -eq 1 ]
     printf '%s' "$output" | jq -e '.systemMessage | test("1 task")' >/dev/null
 }

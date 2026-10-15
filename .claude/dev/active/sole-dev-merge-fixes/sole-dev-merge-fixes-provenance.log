@@ -26,3 +26,5 @@
 [2026-10-15T11:48:57+01:00] RED — Sub-step 1.9 — install_dry_run.bats footer link case not-ok=1
 [2026-10-15T11:51:15+01:00] STEP_COMPLETE — Sub-step 1.9 — install link GREEN 33/33; live install+uninstall in fake HOME ok
 [2026-10-15T11:53:17+01:00] STEP_COMPLETE — Sub-step 1.10 — docs + forge lessons L-051..L-055; privacy 0/0
+[2026-10-15T11:54:54+01:00] IMPACT_ANALYSIS — Milestone 1: HIGH=0 unresolved — overall MEDIUM: commit-signature (global PreToolUse hook, one added accept path; 19 tests + 17-probe matrix) and G3/G4 now require ORIGINAL_BRANCH (fails loud until M2 state file; intended). footer/pre-compact/install LOW. Callers via grep (codemem: Python only).
+[2026-10-15T12:03:43+01:00] VERIFY — full suites at 9fbb57f: bats 625/625; pytest 3 failed → fixed: 2 bare '!' bats assertions (pre-compact sentinel check was vacuous; mutation vs 1d760f1 hook now fails 'target content copied'), plugin-surface drift (new edge hook:aa-ma-commit-signature.sh→skill:sole-dev-merge; orphan set updated; regen-generated rc 0). pytest re-run 3136 passed

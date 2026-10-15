@@ -137,7 +137,7 @@ _touch() {
 @test "footer: no origin/HEAD → falls back to origin/main" {
     _repo a b
     git remote set-head origin -d
-    ! git rev-parse -q --verify refs/remotes/origin/HEAD
+    run ! git rev-parse -q --verify refs/remotes/origin/HEAD
     _touch b
     run --separate-stderr emit_aa_ma_footer
     [ "$status" -eq 0 ]

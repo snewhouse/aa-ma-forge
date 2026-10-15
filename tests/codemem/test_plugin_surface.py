@@ -95,7 +95,8 @@ def test_orphans_are_the_named_set_and_no_errors(surface) -> None:
     assert len(surface.orphans) == len(set(surface.orphans))
     assert {o.split(":", 1)[1] for o in surface.orphans} == {
         "aa-ma-search",
-        "sole-dev-merge",
+        # sole-dev-merge left this set in sole-dev-merge-fixes M1: aa-ma-commit-signature.sh
+        # now points to it (it trusts the skill's helper-built footer commits).
         "aa-ma-execution",
         "complexity-router",
         "debugging-strategies",

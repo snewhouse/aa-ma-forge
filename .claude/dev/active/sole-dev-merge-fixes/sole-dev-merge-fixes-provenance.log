@@ -1,0 +1,10 @@
+# sole-dev-merge-fixes Provenance Log
+
+[2026-10-15T10:29:16+01:00] Task initialized via /aa-ma-plan (slug sole-dev-merge-fixes-20261015090023)
+[2026-10-15T10:29:16+01:00] Commit: 1bc3849 — Phase: Planning (branch fix/sole-dev-merge-fixes, worktree .worktrees/fix/sole-dev-merge-fixes)
+[2026-10-15T10:29:16+01:00] ENG_STANDARDS_DECLARED: themes=[1,2,3,4,5,6] prototype=M1,M2,M5
+[2026-10-15T10:29:16+01:00] AA-MA artifacts created
+[2026-10-15T11:09:08+01:00] PLAN_VERIFIED — mode=automated revision=4 verdict=PASS_WITH_WARNINGS criticals_raised=17 criticals_resolved=17 — .claude/dev/active/sole-dev-merge-fixes/sole-dev-merge-fixes-verification.md
+[2026-10-15T11:09:08+01:00] Phase 5 artifacts complete (6 files, uncommitted pending Ste review per L-030)
+[2026-10-15T11:13:55+01:00] PLAN_APPROVED — Ste — revision 4
+[2026-10-15T11:13:55+01:00] Commit of AA-MA artifacts requested by Ste (made from the planning session; Sub-step 1.0 session-root AC applies to the execution session)

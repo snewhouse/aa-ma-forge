@@ -93,6 +93,13 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** found while building the M2 state file. Every other stage now gets its inputs in a fresh shell. **Effort:** S · **Priority:** P2 · **Planned:** sole-dev-merge-fixes M4 (4.2).
 
+### sole-dev-merge: two inputs still split or defaulted (M2 §6.8 INFO)
+**What:**
+- `$CHANGED_PY`/`$CHANGED_SH` reach `ruff` and `shellcheck` unquoted (`stage-c-review-and-security.md`), and `$CHANGED_FILES` reaches `pre-commit run --files` the same way (SKILL.md Stage B). A committed name starting with `-` or containing spaces is split or read as an option. It mostly fails closed (scanner rc ≥ 2 → `NOT RUN [HIGH]`). Fix: `mapfile -t` into an array and pass `-- "${arr[@]}"`. Planned for M3, which rewrites Stage B.
+- `REMOTE_CHOICE="${REMOTE_CHOICE:-github}"` in E0, F and G1–G3 is a masking default (L-055 rule). G1 with a refused state file would save a strategy read from the wrong host. Fix: `${REMOTE_CHOICE:?}`. Planned for M4.
+
+**Why:** both predate M2 and are outside its key list; the §6.8 security and code reviews raised them as INFO. **Effort:** S · **Priority:** P3
+
 ### Check the AA-MA commit signature at the `commit-msg` stage, not in the command text
 **What:**
 - `aa-ma-commit-signature.sh` (PreToolUse) reads only the literal command, so it guesses at messages it can't see. Rule 8 (sole-dev-merge-fixes 1.7) now trusts one canonical shape, `FOOTER=$(emit_aa_ma_footer); git commit -m "…${FOOTER}"`.

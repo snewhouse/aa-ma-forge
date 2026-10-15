@@ -40,8 +40,8 @@ sdm_load() {
         dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
         _sdm[$k]=$dv                                   # why: last good write wins
     done < "$SDM_STATE"
-    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
-    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign (on a detached HEAD '' would equal '')
+    if [[ -z "${_sdm[ORIGINAL_BRANCH]:-}" || "${_sdm[ORIGINAL_BRANCH]}" != "$(git branch --show-current)" ]]; then
         echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
     fi
     for k in "${!_sdm[@]}"; do
@@ -49,7 +49,7 @@ sdm_load() {
     done
 }
 [[ -f "$SDM_STATE" ]] && sdm_load
-sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
 
 REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
 PR_BODY_FILE="${PR_BODY_FILE:-}"   # why: from Stage E3 via the state file; no shared temp-dir default
@@ -115,7 +115,7 @@ if [[ -n "$PR_NUM" && "$PR_NUM" != 0 ]]; then
     sdm_save PR_NUM "$PR_NUM"
     sdm_save PR_URL "$PR_URL"
 else
-    echo "Stage F: WARNING — no PR/MR number resolved; not saved, so Stage G will stop"
+    echo "Stage F: WARNING — no PR/MR number resolved; not saved (Stage G uses an earlier saved PR_NUM, or stops if there is none)"
 fi
 
 export PR_TITLE PR_NUM PR_URL MR_IID

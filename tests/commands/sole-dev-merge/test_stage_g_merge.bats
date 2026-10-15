@@ -52,6 +52,8 @@ setup() {
     export REMOTE_CHOICE=github
     # G3/G4 require ORIGINAL_BRANCH (Stage A sets it); no default any more.
     export ORIGINAL_BRANCH=feature
+    # G4 runs only after G3 recorded a merge (sole-dev-merge-fixes M2 §6.8); G3 sets its own.
+    export MERGE_DISPATCHED=1
 }
 
 teardown() {

@@ -11,7 +11,7 @@ Conventions used in the criteria:
 - **`[post-merge]`** marks a criterion that needs the merged state (L-037). It is verified at the next milestone's N.0 (M5: at 5.5). The HARD gate approves the other criteria; the milestone flips to COMPLETE once the `[post-merge]` ones are recorded.
 
 ## Milestone 1: Worktree-safe G3/G4, deterministic footer, lessons
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: None
 - Complexity: 65%
 - Effort: 2 days
@@ -30,6 +30,10 @@ Conventions used in the criteria:
   - PL has `PROTOTYPE — Milestone 1:`, `IMPACT_ANALYSIS — Milestone 1:` and `CRITICAL_PATH_REVIEW — Milestone 1:` (one each); CL has `GATE APPROVAL: Milestone 1` with `Decision: APPROVED`.
   - `[post-merge]` The Result Log names the PR number N. `gh pr view N --json state -q .state` = `MERGED`, and `git ls-remote origin refs/heads/fix/sole-dev-merge-fixes` exits 0 with 0 bytes.
 - Result Log:
+  - COMPLETE on 2026-10-15, recorded at Sub-step 2.0 (L-037). HARD gate APPROVED in CL (7/7 pre-merge criteria; `aa_ma_has_gate_approval` → found).
+  - `[post-merge]`: PR #42 `MERGED c3ea041`; `git ls-remote origin refs/heads/fix/sole-dev-merge-fixes` → rc 0, 0 bytes. Details in 1.12.
+  - The merged tree equals the gated tree: `git diff --name-only 240e89f c3ea041` → 0 files. Between `8ae211e` (fence 3 `TESTS_VERIFIED passed=638`) and `c3ea041`, only the 4 AA-MA files changed.
+  - `aa-ma-gate --format kv` → `pending_steps=0`, rc 0. PL has 1 each of PROTOTYPE, IMPACT_ANALYSIS and CRITICAL_PATH_REVIEW for Milestone 1.
 
 ### Sub-step 1.0: Session root, plan commit, baselines, probe E6
 - Status: COMPLETE
@@ -288,7 +292,7 @@ Conventions used in the criteria:
   - PL has IMPACT_ANALYSIS (HIGH=0 unresolved) and CRITICAL_PATH_REVIEW. CL has `GATE APPROVAL: Milestone 1`, Decision: APPROVED.
 
 ### Sub-step 1.12: PR, bootstrap merge, post-merge checks
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 1.11
 - Acceptance Criteria:
@@ -300,6 +304,20 @@ Conventions used in the criteria:
   - The M1 worktree is removed with the printed cleanup commands; `git worktree list` no longer shows it.
   - `emit_aa_ma_footer`, run in a code-conventions-impact worktree that changed its plan dir, prints a line that `grep -c '^\[AA-MA Plan\] code-conventions-impact '` counts as 1. If no such worktree exists, a scratch clone with both plans and a CCI-only touch is used, and recorded.
 - Result Log:
+  - Mode: HITL — Ste chose the "direct gh path" for the bootstrap merge. Recorded at Sub-step 2.0 on `fix/sole-dev-merge-fixes-m2` (L-037), and every check re-run live on 2026-10-15 before this was written.
+  - **PR #42.** `gh pr view 42 --json state,mergeCommit` → `MERGED c3ea041`.
+  - **Manual steps (plan §0 bootstrap), as run:**
+    1. `gh pr create`, then `gh pr checks 42 --watch` → all 9 checks passed;
+    2. `gh pr merge 42 --rebase --match-head-commit 240e89f…`, with no `--delete-branch` → rc 0, MERGED `c3ea041`;
+    3. `git push -q origin :refs/heads/fix/sole-dev-merge-fixes` → rc 0;
+    4. `git ls-remote --exit-code origin refs/heads/fix/sole-dev-merge-fixes` → rc 2;
+    5. `git -C <main> fetch -q --prune origin && git -C <main> merge -q --ff-only origin/main` → rc 0. The unfixed G4 was not run.
+  - **Remote branch gone.** Re-run: `git ls-remote origin refs/heads/fix/sole-dev-merge-fixes` → rc 0, 0 bytes.
+  - **Main checkout.** `rev-parse main` = `rev-parse origin/main` = `c3ea041`. `git -C <main> status --porcelain --untracked-files=no` gave 0 lines (read after the M1 worktree was removed, before this session was isolated in the M2 worktree).
+    - Interim state: right after the merge, main held 2 lines that the pre-compact hook wrote during a 10:58 compaction of a main-rooted CCI session (L-1347). Ste chose to leave them (L-066). That CCI session saved them to its own scratchpad diff and discarded them before running `git pull`. No commit, no stash.
+  - **Install.** Ste ran `scripts/install.sh` → rc 0 (68 links, 0 stale). `readlink -f` → `<main>/claude-code/skills/sole-dev-merge` and `<main>/claude-code/hooks/lib/aa-ma-footer.sh`.
+  - **M1 worktree removed.** An inventory came first: tree clean; `git cherry origin/main fix/sole-dev-merge-fixes` → 0 unmerged; no stash. Its only unique ignored file, the 1.0 handover, was archived to `<main>/.claude/handovers/done/`. Ste then ran `git worktree remove .worktrees/fix/sole-dev-merge-fixes && git branch -D fix/sole-dev-merge-fixes` (was `240e89f`). `git worktree list` no longer shows it.
+  - **CCI footer.** No CCI worktree exists, so a scratch clone of main `c3ea041` with both plans was used. Branch `probe-cci` appended one line to the CCI provenance.log. The installed `emit_aa_ma_footer` printed `[AA-MA Plan] code-conventions-impact .claude/dev/active/code-conventions-impact`; `grep -c '^\[AA-MA Plan\] code-conventions-impact '` = 1. The clone was deleted.
 
 ## Milestone 2: Stage state file
 - Status: PENDING

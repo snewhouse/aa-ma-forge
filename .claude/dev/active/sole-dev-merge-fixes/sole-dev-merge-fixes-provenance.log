@@ -19,3 +19,4 @@
 [2026-10-15T11:38:57+01:00] STEP_COMPLETE — Sub-step 1.4 — G4 GREEN 30/30, SDM 94/94
 [2026-10-15T11:40:56+01:00] STEP_COMPLETE — Sub-step 1.5 — RED not-ok=9 ok=4 (guards: 0-plan, 1-plan, detached, untracked)
 [2026-10-15T11:42:16+01:00] STEP_COMPLETE — Sub-step 1.6 — footer GREEN 29/29, shellcheck 0
+[2026-10-15T11:43:46+01:00] RED — Sub-step 1.7 — commit-signature.bats not-ok=3 (helper accept, real B-commit, real D); 5 bypass cases already rc 2 (guards)

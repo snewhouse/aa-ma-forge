@@ -86,6 +86,17 @@ sourced helper so the two scripts cannot drift. **Effort:** S · **Priority:** P
 
 **Why:** on PR #30 (2026-10-13) the body edit silently didn't land, and a chained `gh pr ready` never ran. Only a read-back caught it (global lesson L-1309). **Effort:** S · **Priority:** P2
 
+### Check the AA-MA commit signature at the `commit-msg` stage, not in the command text
+**What:**
+- `aa-ma-commit-signature.sh` (PreToolUse) reads only the literal command, so it guesses at messages it can't see. Rule 8 (sole-dev-merge-fixes 1.7) now trusts one canonical shape, `FOOTER=$(emit_aa_ma_footer); git commit -m "…${FOOTER}"`.
+- Gaps that remain:
+  - a helper sourced from an arbitrary file;
+  - `-m "$MSG"` and `-F file`, which still pass;
+  - combined short flags (`git commit -am "unsigned"` passes as "editor form", rc 0). This was probed 2026-10-15 on the hook at `1d760f1`, so it predates rule 8.
+- Fix: a `commit-msg` hook, installed per repo or via pre-commit's `commit-msg` stage, that reads the real message file and applies the same rule as `aa-ma-footer.sh`. Keep the PreToolUse hook as an early warning.
+
+**Why:** a check that sees the actual message has no shapes to guess, and it ends the literal-text bypasses. **Effort:** M · **Priority:** P2
+
 ### A reusable `secops-ci` template for other repos
 **What:** a drop-in set (security.yml jobs ruff-security / gitleaks / deps, `.gitleaksignore`, `.pip-audit-ignore`, `dependabot.yml`, a pre-commit gitleaks entry) plus a short install note in `Skill(secops)`.
 **Why:** M8's CI gates exist only in aa-ma-forge; new, old and inherited repos get none of them (Ste, 2026-10-13). **Effort:** M · **Priority:** P2

@@ -19,9 +19,10 @@
 #   6. command contains `[ad-hoc]` line    → exit 0 (auditable bypass)
 #   7. command contains `[AA-MA Plan] <name>` where <name> is an active task
 #                                          → exit 0 (valid signature)
-#   8. canonical helper-built footer: `FOOTER=$(emit_aa_ma_footer)` then one
-#      `git commit -m "…${FOOTER}"` (footer ends the message), no other
-#      FOOTER use, no helper redefinition but the skill's [ad-hoc] fallback
+#   8. canonical helper-built footer: after `set -e…`, a line that is only
+#      `FOOTER=$(emit_aa_ma_footer)`, then one line that is only
+#      `git commit -m "…${FOOTER}"`; no other FOOTER use, no `set +e`, no
+#      helper redefinition but the skill's [ad-hoc] fallback
 #                                          → exit 0 (the helper is the footer)
 #   9. otherwise                           → exit 2 with pretty stderr
 #
@@ -158,7 +159,7 @@ _words() {
 }
 
 helper_footer_ok() {
-    local c="$1" commit_line rest n_helper n_footer
+    local c="$1" before n_helper n_footer
     # shellcheck disable=SC2016  # why: the literal command text to find, never expanded
     local -r canon='FOOTER=$(emit_aa_ma_footer)'
     # The skill's footer-resolve fallback defines the helper as exactly this;
@@ -166,19 +167,21 @@ helper_footer_ok() {
     c=${c//"emit_aa_ma_footer() { printf '\n\n[ad-hoc]'; }"/}
     n_helper=$(_words emit_aa_ma_footer "$c")
     [ "$n_helper" -eq 1 ] || return 1
-    [[ "$c" == *"$canon"* ]] || return 1
     # FOOTER appears twice only: that assignment and the ${FOOTER} in -m.
     n_footer=$(_words FOOTER "$c")
     [ "$n_footer" -eq 2 ] || return 1
     # why: no match is a count of 0
     [ "$({ grep -oE 'git commit([[:space:]]|$)' <<< "$c" || true; } | wc -l)" -eq 1 ] || return 1
-    # The helper runs before the commit.
+    # Whole lines, so no prefix form, comment, subshell, pipe, `||`, extra
+    # option or continuation line can change what the commit gets (§6.8).
+    grep -qxE '[[:space:]]*FOOTER=\$\(emit_aa_ma_footer\)[[:space:]]*' <<< "$c" || return 1
+    grep -qxE '[[:space:]]*git commit -m "[^"]*\$\{FOOTER\}"[[:space:]]*' <<< "$c" || return 1
+    # The helper runs before the commit, after `set -e`: an undefined or failing
+    # helper then stops the shell instead of committing an empty footer.
     [[ "${c%%git commit*}" == *"$canon"* ]] || return 1
-    commit_line=$(grep -E 'git commit([[:space:]]|$)' <<< "$c")
-    [[ "$commit_line" =~ -m\ \"[^\"]*\$\{FOOTER\}\"(.*)$ ]] || return 1
-    rest="${BASH_REMATCH[1]}"
-    # Nothing after it may add to the message, so the footer stays last.
-    [[ ! "$rest" =~ (^|[[:space:]])(-[A-Za-z]*[mFcCt]|--(message|file|reedit-message|reuse-message|template|trailer|fixup|squash))([[:space:]=]|$) ]]
+    before=${c%%"$canon"*}
+    grep -qE '^[[:space:]]*set -[A-Za-z]*e' <<< "$before" || return 1
+    ! grep -qE '(^|[[:space:];&|])set (\+[A-Za-z]*e|\+o errexit)' <<< "$c"
 }
 
 # shellcheck disable=SC2310  # why: a predicate; its non-zero return is the answer, not an error

@@ -143,7 +143,7 @@ Conventions used in the criteria:
   - RED on unfixed helper/skill: 9 not-ok, 4 ok. Guards: 0-plan, 1-plan and detached (expected); untracked-dir (`find` lists the newest dir first, so the unfixed helper picks it too; it fails if the fix drops `ls-files --others`).
 
 ### Sub-step 1.6: GREEN — footer helper and skill resolution chain
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.5
 - Acceptance Criteria:
@@ -153,6 +153,11 @@ Conventions used in the criteria:
   - `bats --tap tests/hooks/aa-ma-footer.bats SDM/test_stage_b_scope.bats SDM/test_stage_d_triage.bats SDM/test_smoke_e2e.bats` gives 0 not-ok.
   - `shellcheck claude-code/hooks/lib/aa-ma-footer.sh` exits 0.
 - Result Log:
+  - Mode: AFK — auto-dispatched.
+  - `emit_aa_ma_footer` rewritten (plan §4 1.6): one plan → it; several → the one touched since `merge-base HEAD origin/HEAD|origin/main` (tracked diff incl. uncommitted, or untracked plan dir); else `[ad-hoc]` + stderr WARN. Header "Behaviour" comment rewritten. `grep -c merge-base` = 3.
+  - SKILL.md B-commit and stage-d-triage.md: hard `source` replaced by the `footer-resolve` chain (`AA_MA_FOOTER_HELPER` → repo copy → `${CLAUDE_HOME:-$HOME/.claude}/hooks/lib` → inline `[ad-hoc]` fallback with a notice). Per file: `CLAUDE_HOME:-$HOME/.claude` = 1, `footer-resolve:begin` = 1; byte-identical @test ok.
+  - `bats --tap aa-ma-footer.bats SDM/test_stage_b_scope.bats SDM/test_stage_d_triage.bats SDM/test_smoke_e2e.bats` = 29 ok / 0 not-ok. shellcheck rc 0 on the helper and on the extracted B-commit and D.
+  - Hostile probes: under `set -euo pipefail` with 2 plans and no remote → rc 0, `[ad-hoc]` + WARN; outside any repo → `[ad-hoc]`, rc 0.
 
 ### Sub-step 1.7: RED/GREEN — commit-signature trusts emit_aa_ma_footer
 - Status: PENDING

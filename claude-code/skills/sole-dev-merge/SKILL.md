@@ -246,8 +246,24 @@ set -euo pipefail
 # PreToolUse hook validates the LITERAL `-m` argument, so we MUST emit
 # the footer ourselves — the hook cannot append it retroactively.
 # Single source-of-truth: claude-code/hooks/lib/aa-ma-footer.sh.
-_HELPER_PATH="${AA_MA_FOOTER_HELPER:-$(git rev-parse --show-toplevel)/claude-code/hooks/lib/aa-ma-footer.sh}"
-source "$_HELPER_PATH"
+# footer-resolve:begin
+# Resolve the footer helper: an explicit AA_MA_FOOTER_HELPER, then this repo's
+# copy (aa-ma-forge), then the link install.sh puts under ~/.claude. Outside
+# aa-ma-forge only the link exists. None found → an [ad-hoc] footer, said aloud.
+_HELPER_PATH=""
+for _cand in "${AA_MA_FOOTER_HELPER:-}" \
+    "$(git rev-parse --show-toplevel)/claude-code/hooks/lib/aa-ma-footer.sh" \
+    "${CLAUDE_HOME:-$HOME/.claude}/hooks/lib/aa-ma-footer.sh"; do
+    if [[ -n "$_cand" && -f "$_cand" ]]; then _HELPER_PATH="$_cand"; break; fi
+done
+if [[ -n "$_HELPER_PATH" ]]; then
+    # shellcheck source=/dev/null
+    source "$_HELPER_PATH"
+else
+    echo "footer-resolve: aa-ma-footer.sh not found — using the [ad-hoc] footer"
+    emit_aa_ma_footer() { printf '\n\n[ad-hoc]'; }
+fi
+# footer-resolve:end
 
 # Post-Stage-B + L-007 guard: anything dirty here is in-scope and was
 # mutated by ruff/pre-commit on files the branch actually owns.

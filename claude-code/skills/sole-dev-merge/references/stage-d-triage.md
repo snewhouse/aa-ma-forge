@@ -23,8 +23,24 @@ routes findings by severity:
 set -euo pipefail
 
 # Single source-of-truth for the AA-MA commit footer (shared with Stage B-commit).
-_HELPER_PATH="${AA_MA_FOOTER_HELPER:-$(git rev-parse --show-toplevel)/claude-code/hooks/lib/aa-ma-footer.sh}"
-source "$_HELPER_PATH"
+# footer-resolve:begin
+# Resolve the footer helper: an explicit AA_MA_FOOTER_HELPER, then this repo's
+# copy (aa-ma-forge), then the link install.sh puts under ~/.claude. Outside
+# aa-ma-forge only the link exists. None found → an [ad-hoc] footer, said aloud.
+_HELPER_PATH=""
+for _cand in "${AA_MA_FOOTER_HELPER:-}" \
+    "$(git rev-parse --show-toplevel)/claude-code/hooks/lib/aa-ma-footer.sh" \
+    "${CLAUDE_HOME:-$HOME/.claude}/hooks/lib/aa-ma-footer.sh"; do
+    if [[ -n "$_cand" && -f "$_cand" ]]; then _HELPER_PATH="$_cand"; break; fi
+done
+if [[ -n "$_HELPER_PATH" ]]; then
+    # shellcheck source=/dev/null
+    source "$_HELPER_PATH"
+else
+    echo "footer-resolve: aa-ma-footer.sh not found — using the [ad-hoc] footer"
+    emit_aa_ma_footer() { printf '\n\n[ad-hoc]'; }
+fi
+# footer-resolve:end
 
 SLUG="${SLUG:-$(date +%s)}"
 FINDINGS="/tmp/sole-dev-merge-findings-${SLUG}.md"

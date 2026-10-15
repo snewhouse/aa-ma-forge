@@ -461,16 +461,12 @@ feat(api): add rate limiting middleware
 [AA-MA Plan] api-hardening .claude/dev/active/api-hardening
 ```
 
-**Detection Logic:**
-1. Check if `.claude/dev/active/` directory exists and contains task directories
-2. For each task, parse `[task]-tasks.md` for milestone with `Status: ACTIVE`
-3. Use the task name with an ACTIVE milestone as `{task-name}`
+**Detection rule** (implemented by `emit_aa_ma_footer`, `claude-code/hooks/lib/aa-ma-footer.sh`):
+1. No task directory under `.claude/dev/active/` → `[ad-hoc]` (no plan signature needed).
+2. Exactly one → that task's name is `{task-name}`.
+3. Several → the plan the branch changed: a tracked change (committed or not) under its `.claude/dev/active/<task>/` since the merge-base with `origin/HEAD` (`origin/main` when that is unset), or a plan directory not yet in git. If no plan or more than one plan was changed, write `[ad-hoc]` and print a warning. Never guess: parallel plans on one main are normal, and each milestone branch carries its own plan's files.
 
-**Detection Priority:**
-1. Task with `Status: ACTIVE` milestone
-2. If none active, task with `Status: PENDING` milestones (plan exists but not started)
-3. If multiple ACTIVE tasks, use alphabetically first
-4. If `.claude/dev/active/` is empty or missing, no signature needed
+**Enforcement:** the `aa-ma-commit-signature.sh` PreToolUse hook accepts the footer of **any** active plan it can see from the session's working directory. It also accepts the `[ad-hoc]` line, and a commit built as `FOOTER=$(emit_aa_ma_footer); git commit -m "…${FOOTER}"` (the helper is then the footer's only source). It does not check that the plan matches the branch; the detection rule above does that. The session-start banner lists plans alphabetically. That is display order only, a separate rule.
 
 **Applies To:**
 - All AA-MA execution commits (`/execute-aa-ma-milestone`, `/execute-aa-ma-full`)

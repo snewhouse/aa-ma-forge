@@ -151,6 +151,10 @@ _Avoid_: "NO-SECRETS rule" for the whole contract (that is one part of it).
 An output is **Fresh** when its stamped commit is the current HEAD and no tracked file has changed since. Untracked files do not make it stale. Freshness is judged by commit, never by date.
 _Avoid_: "recent", "up to date" (say fresh or stale).
 
+**Best-effort step**:
+A step that runs, prints its exit code where the operator sees it, and never stops the pipeline. A step that cannot run at all (no diff source, tool missing) is not best-effort; it is a failure to fix.
+_Avoid_: "best-effort by design" for a step that exits before doing its job (forge L-051).
+
 ## Relationships
 
 - A **Repo** has one or more **Skills** (and possibly other artifacts).
@@ -180,6 +184,7 @@ _Avoid_: "recent", "up to date" (say fresh or stale).
 
 - **"sync" / "re-sync"** was used in ADR-0011 to mean bringing the `prototype` fork current. Resolved: that is a **Re-fork**; "sync" is banned (AA-MA already uses "sync" for artifact discipline — `Sync Discipline` in `rules/aa-ma.md`).
 - **"adopt wayfinder"** was ambiguous between forking files and borrowing the concept. Resolved: charting is an **Adaptation**, not an Adoption.
+- **"best-effort"** (2026-10-15) was used for `/sole-dev-merge` Stage B's check-conventions step even though it exited 2 ("no diff source") before checking anything, on every run since 2026-10-08. Resolved: a **Best-effort step** runs and reports its rc; one that cannot run is a bug (forge L-051).
 
 ## Provenance
 

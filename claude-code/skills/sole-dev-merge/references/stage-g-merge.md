@@ -24,7 +24,16 @@ failure. G4 runs only on a successful merge.
     `.pipeline.status`. (NOT `glab ci status` — TTY UI, no scriptable exit
     codes per reference.md "WRONG SYNTAX TO NEVER USE".)
 - **G3** (auto-merge + error paths, plan §4.3 + §4.4) — branches on `CI_STATE`:
-  - `green` → `gh pr merge <num> --$MERGE_STRATEGY --delete-branch` (one call).
+  - `green` → refuses (ABORT, rc 1) unless `ORIGINAL_BRANCH` is a valid
+    branch name, is not the default branch, and is the PR's head ref. Then
+    `gh pr merge <num> --$MERGE_STRATEGY` — **no `--delete-branch`**: gh's
+    local step fails in a worktree and skips the remote delete (L-1332). G3
+    reads `gh pr view --json state`: anything but `MERGED` (including a
+    merge-queue repo, where the PR stays OPEN) → `STATUS: MERGE_FAILED`,
+    nothing deleted. On `MERGED` it pushes `:refs/heads/<branch>` (a
+    same-named tag survives) and asserts with `ls-remote`; a branch still
+    there → `STATUS: BRANCH_NOT_DELETED` (warning, rc 0). An unknown
+    `REMOTE_CHOICE` → `STATUS: REMOTE_UNKNOWN`. Prints `MERGE_DISPATCHED=0|1`.
   - `timeout` → emit `STATUS: CI_TIMEOUT — see <URL>` + recovery hint
     (`gh pr merge --auto --rebase`); skip merge.
   - `failed` → emit `STATUS: CI_FAILED — see <URL>` + diagnostic hint
@@ -154,17 +163,57 @@ CI_STATE="${CI_STATE:-unknown}"
 
 case "$CI_STATE" in
     green)
-        if [[ "$REMOTE_CHOICE" == "github" ]]; then
-            gh pr merge "$PR_NUM" --"$MERGE_STRATEGY" --delete-branch
-        elif [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
+        : "${ORIGINAL_BRANCH:?Stage G3 needs ORIGINAL_BRANCH from Stage A}"
+        DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+        case "$REMOTE_CHOICE" in
+        github)
+            # Refuse before any state change, so a wrong or hostile value can't
+            # delete another ref (rc 1, pre-flight class).
+            git check-ref-format --branch "$ORIGINAL_BRANCH" >/dev/null \
+                || { echo "ABORT: Stage G3: ORIGINAL_BRANCH '$ORIGINAL_BRANCH' is not a valid branch name"; exit 1; }
+            [[ "$ORIGINAL_BRANCH" != "$DEFAULT_BRANCH" ]] \
+                || { echo "ABORT: Stage G3: ORIGINAL_BRANCH is the default branch '$DEFAULT_BRANCH'"; exit 1; }
+            HEAD_REF=$(gh pr view "$PR_NUM" --json headRefName --jq .headRefName)
+            [[ "$HEAD_REF" == "$ORIGINAL_BRANCH" ]] \
+                || { echo "ABORT: Stage G3: PR $PR_NUM head is '$HEAD_REF', not '$ORIGINAL_BRANCH'"; exit 1; }
+            # No --delete-branch: gh's local step fails in a worktree and then
+            # skips the remote delete (L-1332). Merge, then decide from the
+            # server state, not gh's rc (E6).
+            gh pr merge "$PR_NUM" --"$MERGE_STRATEGY" \
+                || echo "Stage G3: gh pr merge rc=$? — checking PR state"
+            # why: an unreadable state counts as not merged, so the step fails safe (no delete)
+            STATE=$(gh pr view "$PR_NUM" --json state --jq .state 2>/dev/null || echo UNKNOWN)
+            if [[ "$STATE" != MERGED ]]; then
+                echo "STATUS: MERGE_FAILED — state=$STATE — see $PR_URL"
+                export MERGE_DISPATCHED=0
+                echo "MERGE_DISPATCHED=0"
+                exit 0
+            fi
+            # Full ref, so a same-named tag is never deleted. rc 1 when the
+            # branch is already gone (E12); ls-remote decides, not the rc.
+            git push -q origin ":refs/heads/$ORIGINAL_BRANCH" \
+                || echo "Stage G3: push --delete rc=$? (already gone server-side?) — checking ls-remote"
+            if [[ -n "$(git ls-remote origin "refs/heads/$ORIGINAL_BRANCH")" ]]; then
+                echo "STATUS: BRANCH_NOT_DELETED — $ORIGINAL_BRANCH"
+            fi
+            ;;
+        gitlab)
             MR_IID="${MR_IID:-$PR_NUM}"
             if [[ "$MERGE_STRATEGY" == "rebase" ]]; then
                 glab mr merge "$MR_IID" --rebase --remove-source-branch --yes
             else
                 glab mr merge "$MR_IID" --remove-source-branch --yes
             fi
-        fi
+            ;;
+        *)
+            echo "STATUS: REMOTE_UNKNOWN — REMOTE_CHOICE='$REMOTE_CHOICE'"
+            export MERGE_DISPATCHED=0
+            echo "MERGE_DISPATCHED=0"
+            exit 0
+            ;;
+        esac
         export MERGE_DISPATCHED=1
+        echo "MERGE_DISPATCHED=1"
         echo "Stage G3: merged $PR_NUM (strategy=$MERGE_STRATEGY)"
         ;;
     timeout)

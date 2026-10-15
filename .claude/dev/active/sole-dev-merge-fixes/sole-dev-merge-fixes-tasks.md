@@ -235,7 +235,7 @@ Conventions used in the criteria:
   - Live check with a fake HOME laid out like the test setup: `install.sh` rc 0, link → `<wt>/claude-code/hooks/lib/aa-ma-footer.sh`; `uninstall.sh` rc 0, link removed.
 
 ### Sub-step 1.10: Docs and lessons
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.4, Sub-step 1.9
 - Acceptance Criteria:
@@ -250,6 +250,17 @@ Conventions used in the criteria:
   - `CHANGELOG.md`: 5 new bullets under `## Unreleased → ### Fixed`, and `grep -c '^## Unreleased' CHANGELOG.md` = 1.
   - ADR-0008 `:114` no longer says "checkout main".
 - Result Log:
+  - Mode: AFK — auto-dispatched.
+  - Spec §VI: the "Detection Logic/Priority" lists are replaced by one detection rule (one plan → it; several → "the plan the branch changed"; else `[ad-hoc]` + warning), plus an Enforcement note: the hook accepts any plan and the canonical helper commit, and the banner's alphabetical order is a separate rule. `grep -c 'the plan the branch changed'` = 1.
+  - CONTEXT.md: **Best-effort step** term added (`grep -c` = 1), plus a dated Flagged-ambiguities bullet.
+  - docs/lessons.md: L-051..L-055 added at the top (`grep -cE '^## L-05[1-5] '` = 5). L-052 and L-054 carry "Fixed in: … M1"; L-051/L-053 (M3) and L-055 (M2) carry "Status: fix planned". L-007 gains a 2026-10-15 gap note naming L-053.
+  - TODOS:
+    - the G3/G4 entry moved under `## Completed` with `**Done:** sole-dev-merge-fixes M1`;
+    - the footer half of the install.sh entry is struck and marked Done;
+    - new `### Hooks resolve the active plan from $PWD` entry. Its awk range counts commit-drift 1, session-end-dirty 1, session-start 1, commit-signature 2. Anchors are re-checked at HEAD: commit-signature is now `:103`, moved by the 1.7 header rows.
+  - CHANGELOG `## Unreleased → ### Fixed`: 5 new bullets (G3, G4, footer helper, commit-signature trust, install link); `^## Unreleased` = 1. The 1.8 symlink fix went under `### Security`, not Fixed, so Fixed stays at 5.
+  - ADR-0008: the `:55` footer paragraph and the G3/G4 table rows are updated; `grep -c 'checkout main'` = 0.
+  - Privacy: denylist count 0; `/ho[m]e/|/tm[p]/claude-` count 0. By eye, plus a grep for known private names (0): the diff names no private repository.
 
 ### Sub-step 1.11: Verify, impact, gate
 - Status: PENDING

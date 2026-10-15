@@ -51,8 +51,11 @@ discipline?
   the new version. A migration banner alerts the operator on first
   invocation post-deploy.
 - **Hook compatibility.** All Stage commits must honour the
-  `aa-ma-commit-signature.sh` PreToolUse hook footer requirement. Stage F's
-  auto-fix commits use the shared `aa-ma-footer.sh` helper.
+  `aa-ma-commit-signature.sh` PreToolUse hook footer requirement. The B-commit
+  and D auto-fix commits use the shared `aa-ma-footer.sh` helper, resolved
+  through `~/.claude/hooks/lib` outside this repo; with several active plans
+  it names the plan the branch changed (spec §VI). The hook trusts the
+  canonical `FOOTER=$(emit_aa_ma_footer)` … `${FOOTER}"` commit.
 - **No skill-with-lib pattern in repo precedent.** The previous v1 plan
   proposed `claude-code/skills/sole-dev-merge/` with library code; no
   existing AA-MA skill in the repo follows this pattern. Plan v2 dropped
@@ -110,8 +113,8 @@ is a single markdown file containing 9 stage bash blocks executed in order:
 | F | `stage-f-push` | `git push` + idempotent PR/MR detection via `gh pr view`/`glab mr view` + create-or-edit |
 | G1 | `stage-g1-protect` | Branch-protection: `--rebase` fallback to `--merge` when disabled |
 | G2 | `stage-g2-poll` | 15-min CI poll (GitHub `--watch`, GitLab JSON `while`) → `CI_STATE` |
-| G3 | `stage-g3-merge` | Green CI → merge; timeout/failed → `STATUS:` line + remote-aware recovery hint |
-| G4 | `stage-g4-cleanup` | Post-merge: checkout main, fast-forward pull, fetch --prune, summary |
+| G3 | `stage-g3-merge` | Green CI → merge without `--delete-branch`, decide by PR state, delete `:refs/heads/<b>` + `ls-remote` check; timeout/failed → `STATUS:` line + remote-aware recovery hint |
+| G4 | `stage-g4-cleanup` | Post-merge: plain checkout → switch to default, `fetch` + `merge --ff-only`; worktree → fast-forward the main worktree with `git -C`, stop if it is dirty, print cleanup commands; summary |
 
 **Test harness** uses `extract_stage.sh` (fixed-string `awk index()` extract)
 to pull each stage's bash into an isolated executable for `bats` testing.

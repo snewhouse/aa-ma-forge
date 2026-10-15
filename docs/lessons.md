@@ -5,6 +5,41 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-055 (2026-10-15) — Stage blocks pass values through env vars that separate Bash calls don't keep
+**Pattern:** `/sole-dev-merge` stage blocks hand values on through exported env vars (`CHANGED_PY`, `CHANGED_SH`, `SLUG`, `PR_NUM`, `ORIGINAL_BRANCH`). Claude runs each block as its own Bash call, and nothing carries over between calls. So Stage C found no `CHANGED_PY`/`CHANGED_SH` and silently skipped Ruff S and ShellCheck on every run. `SLUG` differed between C and D, and G4's `ORIGINAL_BRANCH:-feature` default could delete an unrelated branch. The smoke E2E chains the blocks with `set -a` in one shell, so it never saw the gap.
+**Rule:** A multi-block skill never relies on the env between blocks. Values go to a state file (written by the first stage, read by the others), and a required value with no source fails loud; it never defaults. A test runs a later block in a fresh shell with an empty env.
+**Status:** fix planned in sole-dev-merge-fixes M2 (stage state file). G4's default was removed in M1.
+
+---
+
+## L-054 (2026-10-15) — `emit_aa_ma_footer` picked an arbitrary plan when two were active
+**Pattern:** the footer helper took `find .claude/dev/active … | head -1`. With two active plans on main (code-conventions-impact and sole-dev-merge-fixes), a commit could carry the other plan's signature, and the commit-signature hook accepted it because it allows any active plan.
+**Rule:** with several plans, the footer names the one the branch changed since its merge-base; anything else is `[ad-hoc]` plus a warning. Never pick by directory order or by name.
+**Fixed in:** sole-dev-merge-fixes M1 — `aa-ma-footer.sh` rule, spec §VI, `tests/hooks/aa-ma-footer.bats`.
+
+---
+
+## L-053 (2026-10-15) — The L-007 guard misses staged and untracked out-of-scope files
+**Pattern:** Stage B's guard restores out-of-scope paths with `git checkout -- <path>`. That restores from the **index**, so an out-of-scope edit that is already staged survives with rc 0. On an untracked file, `checkout` exits 1 and the guard swallows it. B-commit's `git add -A` then sweeps both into the auto-fix commit. L-007's "resolved structurally" note (2026-05-18) was stale.
+**Rule:** restore tracked rows with `git restore --source=HEAD --staged --worktree`; list untracked rows, never delete them; stage exact in-scope paths and assert the staged set before committing.
+**Status:** fix planned in sole-dev-merge-fixes M3.
+
+---
+
+## L-052 (2026-10-15) — Stage G4's `git checkout main` failed in a worktree; worked around by hand every time
+**Pattern:** G4 ran `git checkout -q "$DEFAULT_BRANCH"` then `git pull --ff-only`. In a linked worktree, `main` is checked out by the main worktree, so checkout exits 128 ("already used by worktree"), and `pull --ff-only` with `pull.rebase=true` fails on a dirty tree. Every worktree merge finished by hand. G3's `--delete-branch` failed the same way (global L-1332).
+**Rule:** detect a worktree by comparing absolute `--git-dir` and `--git-common-dir`. In a worktree, fast-forward the main worktree with `git -C`, never switch branches, stop on a tracked change there, and print the cleanup commands. Merge without `--delete-branch` and delete the remote branch explicitly, checked with `ls-remote`.
+**Fixed in:** sole-dev-merge-fixes M1 — `stage-g-merge.md` G3/G4, `test_stage_g_merge.bats` (G3 cases and G4 AC2.x).
+
+---
+
+## L-051 (2026-10-15) — check-conventions exit 2 accepted as "by design" in every `/sole-dev-merge` run since 2026-10-08
+**Pattern:** Stage B ran `pre-commit run --files … || true`. With nothing staged and no refs, `check_conventions.py` exits 2 "no diff source" before checking anything. Every run logged it as "best-effort, by design", although ADR-0018 already named the fix (refs in `PRE_COMMIT_FROM_REF`/`TO_REF`).
+**Rule:** a step that cannot run is a bug, never best-effort (CONTEXT.md **Best-effort step**; global L-1351 rule 4). A best-effort step prints its rc where the operator sees it.
+**Status:** fix planned in sole-dev-merge-fixes M3.
+
+---
+
 ## L-050 (2026-10-12) — A "real payload" test fed from a file hid a hook that never ran live
 **Pattern:** Since M2, `ruff-format.sh` read its payload with `$(</dev/stdin)`. Claude Code delivers hook stdin on a
 **socket**, and opening `/dev/stdin` on a socket fails with ENXIO. So on every live Edit/Write the hook got an empty
@@ -952,6 +987,8 @@ step can no longer escape the branch's declared scope. See
 test #2 (canonical L-007 scenario regression).
 
 **Gap (2026-09-29):** the guard is file-scoped — a touched file is still reformatted whole. See L-031.
+
+**Gap (2026-10-15):** the guard restores from the index, so a staged out-of-scope edit survives, and B-commit's `git add -A` sweeps in untracked files. See L-053.
 
 ---
 

@@ -67,16 +67,16 @@ aa-ma-forge checkout. Also bound the Pass-Regex scan (a backreference regex on l
 guards (`blocked`, slug check, provenance symlink refusal, heading read — tests-verified.sh:22-58) into one
 sourced helper so the two scripts cannot drift. **Effort:** S · **Priority:** P2
 
-### sole-dev-merge Stage G3/G4: don't break when run from a worktree
-**What:**
-- Stage G3 (`references/stage-g-merge.md:158`) always runs `gh pr merge "$PR_NUM" --"$MERGE_STRATEGY" --delete-branch`. When the branch lives in a worktree, gh's local step fails with `fatal: 'main' is already used by worktree at …`, and the remote branch is left behind.
-- Stage G4 (`:220`) runs `git checkout -q "$DEFAULT_BRANCH"` under `set -euo pipefail`, which fails the same way.
-- Fix: detect a worktree with `[ "$(git rev-parse --path-format=absolute --git-common-dir)" != "$(git rev-parse --path-format=absolute --git-dir)" ]`. Without `--path-format=absolute` the comparison reports a worktree when run from a subdirectory of the main checkout (probed 2026-10-13, git 2.53). In a worktree:
-  - G3 merges without `--delete-branch`, then runs `git push origin --delete "$ORIGINAL_BRANCH"` and asserts `git ls-remote --heads origin "$ORIGINAL_BRANCH"` prints nothing.
-  - G4 fast-forwards the main checkout (`git -C "$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")" pull --ff-only`) instead of switching branches.
-- Update `tests/commands/sole-dev-merge/test_stage_g_merge.bats:100,112` (they pin `--delete-branch`), and add worktree-case tests.
-
-**Why:** this happened on PRs #18, #19, #25, #27 and #30 (global lesson L-1332). The skill's own G3 contradicts the lesson's rule, so the lesson alone can't prevent it. **Effort:** S · **Priority:** P2
+### Hooks resolve the active plan from $PWD
+**What:** four hooks list active plans with `aa_ma_list_active_tasks`, which reads `${PWD}/.claude/dev/active`:
+- `aa-ma-commit-drift.sh:68` (and its repo root at `:110`);
+- `aa-ma-session-end-dirty.sh:59` (and `:77`);
+- `aa-ma-session-start.sh:101`;
+- `aa-ma-commit-signature.sh:103`.
+A session rooted in the main checkout that `cd`s into a worktree for each command, or one whose cwd is a subdirectory, sees the wrong plans or none. pre-compact has the same root cause (global L-1347); sole-dev-merge-fixes M5 adds an optional root argument to the helper and fixes pre-compact only. Apply the same root (stdin `cwd` → toplevel) to these four once M5 lands.
+**Why:** commit-signature blocked commits from a main-rooted session for a plan that existed only on the branch (probed rc 2, 2026-10-15).
+**Effort:** S
+**Priority:** P2
 
 ### sole-dev-merge Stage F: update an existing PR through REST, not `gh pr edit`
 **What:**
@@ -249,7 +249,7 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 
 ### install.sh: back up every `hooks/lib/` target it replaces; `lib/aa-ma-footer.sh` is never linked
 
-**What:** `scripts/install.sh:149` backs up only `~/.claude/hooks/lib/pre-compact-aa-ma.sh`; the other seven `hooks/lib/` paths it `rm -rf`s (`aa-ma-parse.sh`, `aa-ma-plan-marker.sh`, the six `AA_MA_HOOKS` scripts at :314-323 via `register_hook` :373) get no backup. Loop the same list in the backup collector (:126-155). Separately decide whether `claude-code/hooks/lib/aa-ma-footer.sh` should be installed (it has no `create_symlink` block) or removed.
+**What:** `scripts/install.sh:149` backs up only `~/.claude/hooks/lib/pre-compact-aa-ma.sh`; the other seven `hooks/lib/` paths it `rm -rf`s (`aa-ma-parse.sh`, `aa-ma-plan-marker.sh`, the six `AA_MA_HOOKS` scripts at :314-323 via `register_hook` :373) get no backup. Loop the same list in the backup collector (:126-155). ~~Separately decide whether `claude-code/hooks/lib/aa-ma-footer.sh` should be installed or removed.~~ **Done:** sole-dev-merge-fixes M1 (2026-10-15) — `install.sh` links it, because `/sole-dev-merge` resolves it there outside this repo.
 
 **Why:** Found by the M4.3 `aa-ma-researcher` live run (`docs/research/mattpocock-trio-adoption-install-backup.md`) and confirmed by hand 2026-09-21. L-016 (b) pattern: `hooks/lib` helpers are per-file, not auto-discovered.
 
@@ -415,6 +415,19 @@ path and a fixture path, before Deep is evaluated.
 **Why:** each fails closed or is a usability gap; none is a leak. **Effort:** M total · **Priority:** P3
 
 ## Completed
+
+### sole-dev-merge Stage G3/G4: don't break when run from a worktree
+**What:**
+- Stage G3 (`references/stage-g-merge.md:158`) always runs `gh pr merge "$PR_NUM" --"$MERGE_STRATEGY" --delete-branch`. When the branch lives in a worktree, gh's local step fails with `fatal: 'main' is already used by worktree at …`, and the remote branch is left behind.
+- Stage G4 (`:220`) runs `git checkout -q "$DEFAULT_BRANCH"` under `set -euo pipefail`, which fails the same way.
+- Fix: detect a worktree with `[ "$(git rev-parse --path-format=absolute --git-common-dir)" != "$(git rev-parse --path-format=absolute --git-dir)" ]`. Without `--path-format=absolute` the comparison reports a worktree when run from a subdirectory of the main checkout (probed 2026-10-13, git 2.53). In a worktree:
+  - G3 merges without `--delete-branch`, then runs `git push origin --delete "$ORIGINAL_BRANCH"` and asserts `git ls-remote --heads origin "$ORIGINAL_BRANCH"` prints nothing.
+  - G4 fast-forwards the main checkout (`git -C "$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")" pull --ff-only`) instead of switching branches.
+- Update `tests/commands/sole-dev-merge/test_stage_g_merge.bats:100,112` (they pin `--delete-branch`), and add worktree-case tests.
+
+**Why:** this happened on PRs #18, #19, #25, #27 and #30 (global lesson L-1332). The skill's own G3 contradicts the lesson's rule, so the lesson alone can't prevent it. **Effort:** S · **Priority:** P2
+
+**Done:** sole-dev-merge-fixes M1 (2026-10-15) — G3 merges without `--delete-branch`, decides by `gh pr view --json state`, deletes `:refs/heads/<b>` and asserts with `ls-remote`; G4 fast-forwards the main worktree with `git -C` and prints the cleanup commands (`test_stage_g_merge.bats`).
 
 ### Generate the milestone dependency graph from tasks.md
 

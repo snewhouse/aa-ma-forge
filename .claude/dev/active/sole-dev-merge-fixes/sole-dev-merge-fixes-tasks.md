@@ -11,7 +11,7 @@ Conventions used in the criteria:
 - **`[post-merge]`** marks a criterion that needs the merged state (L-037). It is verified at the next milestone's N.0 (M5: at 5.5). The HARD gate approves the other criteria; the milestone flips to COMPLETE once the `[post-merge]` ones are recorded.
 
 ## Milestone 1: Worktree-safe G3/G4, deterministic footer, lessons
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: None
 - Complexity: 65%
 - Effort: 2 days
@@ -32,7 +32,7 @@ Conventions used in the criteria:
 - Result Log:
 
 ### Sub-step 1.0: Session root, plan commit, baselines, probe E6
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Prototype-Required: YES
@@ -44,6 +44,12 @@ Conventions used in the criteria:
   - If approved: `gh auth status` shows the `delete_repo` scope; the repo name, gh's rc, its stderr's first line and the `ls-remote` output are in the Result Log. After `gh repo delete`, `gh repo view <owner>/sdm-e6-probe` exits ≠ 0.
   - PL has exactly one `PROTOTYPE — Milestone 1: Worktree-safe G3/G4, deterministic footer, lessons — <verdict>`. The verdict is `E6 rc=<n>` if approved, or `E6 [U] — covered by the 'gh rc=1 but MERGED' test` if declined.
 - Result Log:
+  - Mode: HITL — Ste approved proceeding at the gate (2026-10-15).
+  - Session pwd at start = `<wt>` (`.worktrees/fix/sole-dev-merge-fixes`), branch `fix/sole-dev-merge-fixes`.
+  - `git log -1 --format=%s` = `docs(aa-ma): sole-dev-merge-fixes plan` (1d760f1); `git status --porcelain <plan dir>` = 0 lines (checked before any 1.0 commit, validator W1).
+  - Baselines at 1d760f1: `bats --tap SDM` ok=75 not-ok=0; `bats --tap tests/hooks` ok=505 not-ok=0 (27 files). Test-Command baseline total = 580.
+  - E6 probe: **declined** by Ste (CL `DECISION E6 probe: declined — Ste`). Verdict `E6 [U] — covered by the 'gh rc=1 but MERGED' test` (1.1).
+  - Pre-exec validator: WARN (0 FAIL, 4 WARN: W1 1.0 commit-order, W2 some M1 paths not in reference.md, W3 install.sh anchor re-check in 1.9, W4 cosmetic).
 
 ### Sub-step 1.1: RED — G3 tests
 - Status: PENDING

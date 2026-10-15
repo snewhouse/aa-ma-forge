@@ -89,3 +89,7 @@ _This log will be updated via context compaction as the task progresses._
 - Approved by: Ste ("approve the plan, commit the AA-MA files")
 - Plan revision: 4 (verification PASS WITH WARNINGS)
 - Decision: APPROVED — execution starts at Sub-step 1.0 in a session rooted in this worktree
+
+## [2026-10-15] DECISION E6 probe: declined — Ste
+- Asked at the Sub-step 1.0 HITL gate. No throwaway repo, no `delete_repo` token scope.
+- E6 (gh's rc when `--delete-branch` fails locally in a worktree) stays [U]. G3 decides from `gh pr view --json state`, not gh's rc; the 1.1 test "gh pr merge rc=1 but state MERGED" covers the rc=1 case.

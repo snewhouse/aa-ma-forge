@@ -24,8 +24,8 @@ setup() {
 
     SCRIPT_DIR="$(tmp_script_dir)"
     BATS_TMP="$(mktemp -d)"
-    SLUG="bats-$$-$(date +%s%N | tail -c 6)"
-    export BATS_TMP SCRIPT_DIR SLUG REPO_ROOT COMMAND_MD EXTRACT
+    SDM_DIR="$(mktemp -d)"   # why: Stage A's private run dir (mode 700, like mktemp -d), fed through env
+    export BATS_TMP SCRIPT_DIR SDM_DIR REPO_ROOT COMMAND_MD EXTRACT
 
     [[ -f "$COMMAND_MD" ]] || { echo "Missing $COMMAND_MD" >&2; return 1; }
     [[ -x "$EXTRACT"   ]] || { echo "Missing $EXTRACT" >&2; return 1; }
@@ -55,8 +55,7 @@ ruff_s602_clean() {
 }
 
 teardown() {
-    rm -rf "$BATS_TMP" "$SCRIPT_DIR"
-    sweep_slug_tmp
+    rm -rf "$BATS_TMP" "$SCRIPT_DIR" "$SDM_DIR"
 }
 
 @test "Stage D auto-fixes planted Ruff S602 (AC §4.2.5)" {
@@ -73,8 +72,8 @@ teardown() {
     mkcommit "feat: vulnerable"
 
     # Mocked agent outputs (empty — focus on Ruff-driven auto-fix)
-    : > "/tmp/sole-dev-merge-review-${SLUG}.md"
-    : > "/tmp/sole-dev-merge-security-${SLUG}.md"
+    : > "${SDM_DIR}/review.md"
+    : > "${SDM_DIR}/security.md"
 
     # Run Stage C aggregator to produce findings.md including the S602 entry
     export BASE_REF=main DEFAULT_BRANCH=main \
@@ -82,7 +81,7 @@ teardown() {
     bash "$SC_SCRIPT" >/dev/null
 
     # Verify pre-Stage-D state: findings.md HAS an S602 CRITICAL
-    grep -qE '^\[CRITICAL\][[:space:]]+S602 ' "/tmp/sole-dev-merge-findings-${SLUG}.md"
+    grep -qE '^\[CRITICAL\][[:space:]]+S602 ' "${SDM_DIR}/findings.md"
     grep -qF "$SHELL_TRUE" vulnerable.py
 
     # Run Stage D
@@ -116,7 +115,7 @@ teardown() {
     mkcommit "feat: rep"
 
     local abs="${BATS_TMP}/rep.py"
-    cat > "/tmp/sole-dev-merge-ruff-${SLUG}.json" <<JSON
+    cat > "${SDM_DIR}/ruff.json" <<JSON
 [
  {"code": "S603", "message": "not S602", "filename": "${abs}", "location": {"row": 2, "column": 5}},
  {"code": "S602", "message": "`subprocess` call with `shell=True` identified, security issue", "filename": "${abs}", "location": {"row": 3, "column": 5}},
@@ -124,7 +123,7 @@ teardown() {
 ]
 JSON
     printf '[CRITICAL]     S602 `subprocess` call with `shell=True` identified, security issue — %s:3\n' "$abs" \
-        > "/tmp/sole-dev-merge-findings-${SLUG}.md"
+        > "${SDM_DIR}/findings.md"
 
     run bash "$SD_SCRIPT"
     [ "$status" -eq 0 ]
@@ -147,7 +146,7 @@ JSON
     mkcommit "docs"
 
     # Empty findings.md (or only LOW entries)
-    cat > "/tmp/sole-dev-merge-findings-${SLUG}.md" <<'EOF'
+    cat > "${SDM_DIR}/findings.md" <<'EOF'
 [LOW]      cosmetic: trailing whitespace — NOTES.md:1
 EOF
 
@@ -181,8 +180,8 @@ EOF
     git add mixed.py
     mkcommit "feat: mixed"
 
-    : > "/tmp/sole-dev-merge-review-${SLUG}.md"
-    : > "/tmp/sole-dev-merge-security-${SLUG}.md"
+    : > "${SDM_DIR}/review.md"
+    : > "${SDM_DIR}/security.md"
 
     export BASE_REF=main DEFAULT_BRANCH=main \
            CHANGED_PY="mixed.py" CHANGED_SH=""
@@ -219,7 +218,7 @@ PY
 
     # An agent-emitted CRITICAL — NOT a Ruff/ShellCheck pattern
     # Stage D should NOT auto-fix this; just tag for user review.
-    cat > "/tmp/sole-dev-merge-findings-${SLUG}.md" <<'EOF'
+    cat > "${SDM_DIR}/findings.md" <<'EOF'
 [CRITICAL] Logic error: function returns wrong value — src.py:1
 EOF
 
@@ -257,8 +256,8 @@ ruff_report() {
     local abs="${BATS_TMP}/rep.py"
     jq -n --arg f "$abs" --argjson r "$1" --arg m "$2" \
         '[{code: "S602", message: $m, filename: $f, location: {row: $r, column: 1}}]' \
-        > "/tmp/sole-dev-merge-ruff-${SLUG}.json"
-    printf '[CRITICAL]     S602 %s — %s:%s\n' "$2" "$abs" "$1" > "/tmp/sole-dev-merge-findings-${SLUG}.md"
+        > "${SDM_DIR}/ruff.json"
+    printf '[CRITICAL]     S602 %s — %s:%s\n' "$2" "$abs" "$1" > "${SDM_DIR}/findings.md"
 }
 
 @test "Stage D does not auto-fix a literal-command S602; it is tagged for review" {

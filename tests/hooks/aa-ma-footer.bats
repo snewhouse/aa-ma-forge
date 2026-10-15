@@ -192,7 +192,7 @@ _touch() {
     _repo
     bash "$EXTRACT" stage-d-triage "$D_MD" > "$BATS_TMP/d.sh"
 
-    SLUG="bats-footer-$$" run bash "$BATS_TMP/d.sh"
+    SDM_DIR="$BATS_TMP/no-run-dir" run bash "$BATS_TMP/d.sh"   # why: D needs Stage A's run dir; this one holds no findings
     [ "$status" -eq 0 ]
     [[ "$output" == *"nothing to triage"* ]]
 }

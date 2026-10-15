@@ -406,13 +406,29 @@ Conventions used in the criteria:
   - Hygiene: the RED runs of unfixed Stage C left 8 `/tmp/sole-dev-merge-findings-<epoch>.md` files. They were removed by name. The shared `/tmp/sole-dev-merge-body.md` was left alone.
 
 ### Sub-step 2.2: GREEN — loader and saver in every block
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 2.1
 - Acceptance Criteria:
   - The loader is in the 12 non-A blocks, and Stage A has `rm -f`, `umask 077` and `mkdir -m 700` (`extract stage-a-preflight | grep -cE 'rm -f .*SDM_STATE|umask 077|mkdir -m 700'` = 3). `grep -c '^## State between stages' SKILL.md` = 1.
   - `bats --tap SDM` gives 0 not-ok, and shellcheck exits 0 on all 13 extracted blocks.
 - Result Log:
+  - Mode: AFK — auto-dispatched.
+  - **Loader.** The plan §4 M2 loader text was inserted by script into the 12 non-A blocks, so it is byte-identical; the bats test enforces this. One comment was changed in all 12: `no eval anywhere` → `a value is assigned, never executed`. The plan's own AC (`grep eval | grep -c sdm` = 0) matched its verbatim comment, which also contains `_sdm`.
+  - **Stage A:** the first statement is `rm -f "$SDM_STATE"`. A then generates `SLUG` (`%Y%m%d-%H%M%S-$$`) and creates `SDM_DIR` (`mkdir -m 700`, inside a `umask 077` subshell so a sourcing caller keeps its umask). It saves 5 keys and prints `Stage state: <file> (run dir <dir>)`.
+  - **Saves:** B saves CHANGED_*; E2 REMOTE_CHOICE; E3 PR_BODY_FILE; F PR_NUM/PR_URL (never a 0); G1 MERGE_STRATEGY; G2 CI_STATE; G3 MERGE_DISPATCHED at all 7 sites.
+  - **Required values:** C, D, E2 and E3 need `SDM_DIR`; G2/G3 need `PR_NUM`. F has no body default.
+  - **Run files** moved to `$SDM_DIR/{review,security,findings,reviewer-notes,body}.md` and `{ruff,shellcheck,auq}.json`. C prints `Stage C scanned: Ruff S n file(s), ShellCheck m file(s)`.
+  - **Prose:** SKILL.md `## State between stages`; the C, D and E2 prose updated; stage-f-push.md got a Contents TOC (it grew past 100 lines).
+  - **Existing tests migrated** (CL deviation): c_dispatch, d_triage, e3_body and smoke now feed `SDM_DIR` and use the new names (45 path rewrites by script). `sweep_slug_tmp` is deleted from helpers.bash because nothing writes slug-named `/tmp` files any more. In `tests/hooks/aa-ma-footer.bats:193`, D is now fed `SDM_DIR`.
+  - **Checks:**
+    - `extract stage-a-preflight | grep -cE …` = **3**; `grep -c '^## State between stages'` = **1**;
+    - every block greps `sole-dev-merge.env` ≥1; `sdm_load` is called in the 12 non-A blocks and absent from A;
+    - masking-default grep 0; `/tmp/sole-dev-merge` 0; `eval|sdm` 0;
+    - shellcheck rc 0 on all 13 extracted blocks (one SC2174 `mkdir -m -p` was fixed on the way).
+  - **Suites:** `bats --tap SDM` → **121 ok / 0 not-ok**. Full `bats --tap SDM tests/hooks` → **660 / 0**. `uv run pytest -q` → **3136 passed**, 0 failed.
+    - The first full run had 4 failures, all from this change and all fixed at the cause: D's test input (SLUG → SDM_DIR), the 100-line TOC rule, and a `/tmp` prose mention that the plugin-surface extractor read as a dangling `/tmp` command (reworded; no golden regen).
+  - **Open finding for the gate:** E2 reads `n_github`/`n_gitlab` from E1. E1 is not one of the 13 blocks and those keys are not in the 15-key allowlist, so a fresh-shell E2 ABORTs ("only github.com and gitlab.com remotes supported") unless E1 and E2 run in one call. This is outside the decided key list, so it goes to Ste at 2.3.
 
 ### Sub-step 2.3: Docs, verify, gate, merge with the fixed skill
 - Status: PENDING

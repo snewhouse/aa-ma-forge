@@ -7,22 +7,23 @@
 ### Stage C — Code review + 3-source security pass
 
 Four parallel sources, all writing severity-tagged findings to
-`/tmp/sole-dev-merge-{review,security,ruff,shellcheck}-<slug>.{md,json}`
+`$SDM_DIR/{review,security}.md` and `$SDM_DIR/{ruff,shellcheck}.json`
 following the explicit `[CRITICAL]|[HIGH]|[MEDIUM]|[LOW]` contract from
-reference.md.
+reference.md. `SDM_DIR` is this run's private directory (mode 700), made by
+Stage A and printed on its `Stage state:` line.
 
 **Step 1 — Dispatch in parallel (instructions to Claude executor):**
 
-1. Pick a `SLUG` (e.g., `SLUG=$(date +%s)`). Export it so the bash aggregator
-   below can find the output paths.
+1. Take `SDM_DIR` from Stage A's `Stage state: … (run dir <SDM_DIR>)` line.
+   The aggregator below reads it from the stage state file itself.
 2. Dispatch **C1** and **C2** in a SINGLE message with two `Agent` tool calls:
    - **C1** — `feature-dev:code-reviewer` agent (fallback: `code-reviewer`).
      Prompt: review `git diff ${BASE_REF}...HEAD`. Emit findings using
      EXACTLY the severity-prefix contract:
      `[CRITICAL]|[HIGH]|[MEDIUM]|[LOW] <one-line> — <path>:<line>`. Write
-     output to `/tmp/sole-dev-merge-review-${SLUG}.md`.
+     output to `$SDM_DIR/review.md`.
    - **C2** — `security-auditor` agent (`~/.claude/agents/security-auditor.md`).
-     Same severity contract; output to `/tmp/sole-dev-merge-security-${SLUG}.md`.
+     Same severity contract; output to `$SDM_DIR/security.md`.
      Focus: input validation, auth/secrets, command injection, path traversal,
      hardcoded creds, OWASP top-10.
 
@@ -32,14 +33,48 @@ reference.md.
 # === stage-c-aggregate (BEGIN) ===
 set -euo pipefail
 
-SLUG="${SLUG:-$(date +%s)}"
-REVIEW_OUT="/tmp/sole-dev-merge-review-${SLUG}.md"
-SECURITY_OUT="/tmp/sole-dev-merge-security-${SLUG}.md"
-RUFF_OUT="/tmp/sole-dev-merge-ruff-${SLUG}.json"
-SHELLCHECK_OUT="/tmp/sole-dev-merge-shellcheck-${SLUG}.json"
-FINDINGS="/tmp/sole-dev-merge-findings-${SLUG}.md"
+# Stage state: load what earlier stages saved (SKILL.md "State between stages").
+SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+sdm_load() {
+    # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
+    if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
+        echo "Stage state: refusing ${SDM_STATE##*/} (symlink, not owned by you, or writable by others)"; return 0
+    fi
+    local line k v dv
+    declare -A _sdm=()
+    while IFS= read -r line; do
+        k=${line%%=*}; v=${line#*=}
+        [[ "$SDM_KEYS" == *" $k "* ]] || { echo "Stage state: ignoring unknown key '$k'"; continue; }   # why: allowlist, never a free-form name
+        # why: decode into a temp first, so a bad line never overwrites an earlier good value
+        dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
+        _sdm[$k]=$dv                                   # why: last good write wins
+    done < "$SDM_STATE"
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
+    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+        echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
+    fi
+    for k in "${!_sdm[@]}"; do
+        [[ -n "${!k:-}" ]] || printf -v "$k" '%s' "${_sdm[$k]}"   # why: a non-empty explicit env wins; a value is assigned, never executed
+    done
+}
+[[ -f "$SDM_STATE" ]] && sdm_load
+sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
+
+: "${SDM_DIR:?Stage C needs SDM_DIR from Stage A}"
+REVIEW_OUT="$SDM_DIR/review.md"
+SECURITY_OUT="$SDM_DIR/security.md"
+RUFF_OUT="$SDM_DIR/ruff.json"
+SHELLCHECK_OUT="$SDM_DIR/shellcheck.json"
+FINDINGS="$SDM_DIR/findings.md"
 
 : > "$FINDINGS"  # truncate / create
+
+# The file counts the scanners below receive, so a reader can tell "scanned,
+# clean" from "nothing to scan" (sole-dev-merge-fixes 2.3 live check).
+N_PY=$(grep -c . <<<"${CHANGED_PY:-}" || true)
+N_SH=$(grep -c . <<<"${CHANGED_SH:-}" || true)
+echo "Stage C scanned: Ruff S ${N_PY} file(s), ShellCheck ${N_SH} file(s)"
 
 # === CANONICAL severity-mapping tables (single source-of-truth) ===
 # These JSON literals are the AUTHORITATIVE mapping for unifying Ruff S and

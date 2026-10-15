@@ -3,11 +3,11 @@
 # and aggregation.
 #
 # Plan §2.1-§2.4 contract:
-#   - C1 (code-reviewer agent) writes findings to /tmp/sole-dev-merge-review-<slug>.md
-#   - C2 (security-auditor agent) writes to /tmp/sole-dev-merge-security-<slug>.md
-#   - C3 (Ruff S) writes JSON to /tmp/sole-dev-merge-ruff-<slug>.json
-#   - C4 (ShellCheck) writes JSON to /tmp/sole-dev-merge-shellcheck-<slug>.json
-#   - Aggregator consolidates all 4 sources into /tmp/sole-dev-merge-findings-<slug>.md
+#   - C1 (code-reviewer agent) writes findings to ${SDM_DIR}/review.md
+#   - C2 (security-auditor agent) writes to ${SDM_DIR}/security.md
+#   - C3 (Ruff S) writes JSON to ${SDM_DIR}/ruff.json
+#   - C4 (ShellCheck) writes JSON to ${SDM_DIR}/shellcheck.json
+#   - Aggregator consolidates all 4 sources into ${SDM_DIR}/findings.md
 #
 # Severity contract (reference.md):
 #   Agent emits: [CRITICAL]|[HIGH]|[MEDIUM]|[LOW] <one-line> — <path>:<line>
@@ -30,8 +30,8 @@ setup() {
 
     SCRIPT_DIR="$(tmp_script_dir)"
     BATS_TMP="$(mktemp -d)"
-    SLUG="bats-$$-$(date +%s%N | tail -c 6)"
-    export BATS_TMP SCRIPT_DIR SLUG REPO_ROOT COMMAND_MD EXTRACT
+    SDM_DIR="$(mktemp -d)"   # why: Stage A's private run dir (mode 700, like mktemp -d), fed through env
+    export BATS_TMP SCRIPT_DIR SDM_DIR REPO_ROOT COMMAND_MD EXTRACT
 
     [[ -f "$COMMAND_MD" ]] || { echo "Missing $COMMAND_MD" >&2; return 1; }
     [[ -x "$EXTRACT"   ]] || { echo "Missing $EXTRACT" >&2; return 1; }
@@ -44,18 +44,17 @@ setup() {
 }
 
 teardown() {
-    rm -rf "$BATS_TMP" "$SCRIPT_DIR"
-    sweep_slug_tmp
+    rm -rf "$BATS_TMP" "$SCRIPT_DIR" "$SDM_DIR"
 }
 
 @test "aggregator parses agent severity contract and consolidates" {
     # Pre-populate C1 + C2 mocked agent outputs
-    cat > "/tmp/sole-dev-merge-review-${SLUG}.md" <<'EOF'
+    cat > "${SDM_DIR}/review.md" <<'EOF'
 [CRITICAL] Hardcoded SQL — src/db.py:42
 [HIGH]     Unsafe regex backtracking risk — src/util.py:17
 [LOW]      Missing type hint on public function — src/api.py:9
 EOF
-    cat > "/tmp/sole-dev-merge-security-${SLUG}.md" <<'EOF'
+    cat > "${SDM_DIR}/security.md" <<'EOF'
 [MEDIUM]   Open redirect via user-supplied URL — src/route.py:55
 EOF
 
@@ -72,8 +71,8 @@ EOF
     run bash "$SC_SCRIPT"
     [ "$status" -eq 0 ]
 
-    [ -f "/tmp/sole-dev-merge-findings-${SLUG}.md" ]
-    FINDINGS=$(cat "/tmp/sole-dev-merge-findings-${SLUG}.md")
+    [ -f "${SDM_DIR}/findings.md" ]
+    FINDINGS=$(cat "${SDM_DIR}/findings.md")
 
     # 1 CRITICAL + 1 HIGH + 1 MEDIUM + 1 LOW from agents
     [[ "$FINDINGS" == *"[CRITICAL]"* ]]
@@ -99,8 +98,8 @@ EOF
     mkcommit "feat: vulnerable"
 
     # Mocked agent outputs (empty)
-    : > "/tmp/sole-dev-merge-review-${SLUG}.md"
-    : > "/tmp/sole-dev-merge-security-${SLUG}.md"
+    : > "${SDM_DIR}/review.md"
+    : > "${SDM_DIR}/security.md"
 
     export BASE_REF=main DEFAULT_BRANCH=main \
            CHANGED_PY="vulnerable.py" CHANGED_SH=""
@@ -109,10 +108,10 @@ EOF
     [ "$status" -eq 0 ]
 
     # The report is Ruff's, under the renamed path.
-    [ -s "/tmp/sole-dev-merge-ruff-${SLUG}.json" ]
+    [ -s "${SDM_DIR}/ruff.json" ]
     # One line carries both the severity and the code, at the flagged row.
     grep -qE '^\[CRITICAL\][[:space:]]+S602 .*vulnerable\.py:3 *$' \
-        "/tmp/sole-dev-merge-findings-${SLUG}.md"
+        "${SDM_DIR}/findings.md"
 }
 
 @test "C3 maps Ruff codes through RUFF_SEV_JSON; an unmapped code is [HIGH]" {
@@ -141,14 +140,14 @@ exit 1
 SH
     chmod +x "$stub"
 
-    : > "/tmp/sole-dev-merge-review-${SLUG}.md"
-    : > "/tmp/sole-dev-merge-security-${SLUG}.md"
+    : > "${SDM_DIR}/review.md"
+    : > "${SDM_DIR}/security.md"
 
     RUFF_BIN="$stub" BASE_REF=main DEFAULT_BRANCH=main \
         CHANGED_PY="m.py" CHANGED_SH="" run bash "$SC_SCRIPT"
     [ "$status" -eq 0 ]
 
-    local f="/tmp/sole-dev-merge-findings-${SLUG}.md"
+    local f="${SDM_DIR}/findings.md"
     grep -qE '^\[MEDIUM\][[:space:]]+S101 assert used — m\.py:1$' "$f"
     grep -qE '^\[HIGH\][[:space:]]+S608 .* — m\.py:2$' "$f"
     grep -qE '^\[HIGH\][[:space:]]+S999 .* — m\.py:3$' "$f"
@@ -180,15 +179,15 @@ SH
     git add vuln.py
     mkcommit "feat: vulnerable"
 
-    local findings="/tmp/sole-dev-merge-findings-${SLUG}.md"
+    local findings="${SDM_DIR}/findings.md"
 
     # Both scanners, all three modes. C3/ruff matters at least as much as C4:
     # $RUFF_OUT drives Stage D's S602 auto-remediation, so a silent miss would
     # disable fixing too.
     for scanner in SHELLCHECK RUFF; do
         for bin in /nonexistent/scanner true echo; do
-            : > "/tmp/sole-dev-merge-review-${SLUG}.md"
-            : > "/tmp/sole-dev-merge-security-${SLUG}.md"
+            : > "${SDM_DIR}/review.md"
+            : > "${SDM_DIR}/security.md"
 
             if [[ "$scanner" == SHELLCHECK ]]; then
                 SHELLCHECK_BIN="$bin" BASE_REF=main DEFAULT_BRANCH=main \
@@ -241,8 +240,8 @@ SH
     git add buggy.sh
     mkcommit "feat: buggy"
 
-    : > "/tmp/sole-dev-merge-review-${SLUG}.md"
-    : > "/tmp/sole-dev-merge-security-${SLUG}.md"
+    : > "${SDM_DIR}/review.md"
+    : > "${SDM_DIR}/security.md"
 
     export BASE_REF=main DEFAULT_BRANCH=main \
            CHANGED_PY="" CHANGED_SH="buggy.sh"
@@ -250,7 +249,7 @@ SH
     run bash "$SC_SCRIPT"
     [ "$status" -eq 0 ]
 
-    FINDINGS=$(cat "/tmp/sole-dev-merge-findings-${SLUG}.md")
+    FINDINGS=$(cat "${SDM_DIR}/findings.md")
     # Expect a CRITICAL or HIGH from the parse error
     [[ "$FINDINGS" == *"[CRITICAL]"* ]] || [[ "$FINDINGS" == *"[HIGH]"* ]]
     [[ "$FINDINGS" == *"buggy.sh"* ]]
@@ -258,11 +257,11 @@ SH
 
 @test "parse failure triggers safe-default all-HIGH classification" {
     # Agent emits free-form text NOT matching the severity contract
-    cat > "/tmp/sole-dev-merge-review-${SLUG}.md" <<'EOF'
+    cat > "${SDM_DIR}/review.md" <<'EOF'
 This is a random review without proper severity tagging.
 Reviewer thinks the code has issues.
 EOF
-    : > "/tmp/sole-dev-merge-security-${SLUG}.md"
+    : > "${SDM_DIR}/security.md"
 
     cd "$BATS_TMP"
     sandbox_init
@@ -280,12 +279,12 @@ EOF
     # in stdout or classify the malformed input as [HIGH] in findings.
     # Safe-default contract: classify all findings as [HIGH] on parse failure.
     [[ "$output" == *"parse"* ]] || [[ "$output" == *"safe-default"* ]] || \
-      { FINDINGS=$(cat "/tmp/sole-dev-merge-findings-${SLUG}.md"); [[ "$FINDINGS" == *"[HIGH]"* ]]; }
+      { FINDINGS=$(cat "${SDM_DIR}/findings.md"); [[ "$FINDINGS" == *"[HIGH]"* ]]; }
 }
 
 @test "all 4 sources empty → empty findings file (clean run)" {
-    : > "/tmp/sole-dev-merge-review-${SLUG}.md"
-    : > "/tmp/sole-dev-merge-security-${SLUG}.md"
+    : > "${SDM_DIR}/review.md"
+    : > "${SDM_DIR}/security.md"
 
     cd "$BATS_TMP"
     sandbox_init
@@ -299,7 +298,7 @@ EOF
     run bash "$SC_SCRIPT"
     [ "$status" -eq 0 ]
 
-    [ -f "/tmp/sole-dev-merge-findings-${SLUG}.md" ]
+    [ -f "${SDM_DIR}/findings.md" ]
     # No findings → no [SEVERITY] lines
-    run ! grep -qE '^\[(CRITICAL|HIGH|MEDIUM|LOW)\]' "/tmp/sole-dev-merge-findings-${SLUG}.md"
+    run ! grep -qE '^\[(CRITICAL|HIGH|MEDIUM|LOW)\]' "${SDM_DIR}/findings.md"
 }

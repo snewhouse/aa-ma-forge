@@ -8,7 +8,7 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 ## L-055 (2026-10-15) — Stage blocks pass values through env vars that separate Bash calls don't keep
 **Pattern:** `/sole-dev-merge` stage blocks hand values on through exported env vars (`CHANGED_PY`, `CHANGED_SH`, `SLUG`, `PR_NUM`, `ORIGINAL_BRANCH`). Claude runs each block as its own Bash call, and nothing carries over between calls. So Stage C found no `CHANGED_PY`/`CHANGED_SH` and silently skipped Ruff S and ShellCheck on every run. `SLUG` differed between C and D, and G4's `ORIGINAL_BRANCH:-feature` default could delete an unrelated branch. The smoke E2E chains the blocks with `set -a` in one shell, so it never saw the gap.
 **Rule:** A multi-block skill never relies on the env between blocks. Values go to a state file (written by the first stage, read by the others), and a required value with no source fails loud; it never defaults. A test runs a later block in a fresh shell with an empty env.
-**Fixed in:** sole-dev-merge-fixes M2 — the stage state file (SKILL.md "State between stages", all 13 blocks), `tests/commands/sole-dev-merge/test_stage_state.bats` (every block in an empty env). G4's default was removed in M1. Still open: E1's remote counts reach E2 only within one Bash call (M4).
+**Fixed in:** sole-dev-merge-fixes M2 — the stage state file (SKILL.md "State between stages", every stage block except E1), `tests/commands/sole-dev-merge/test_stage_state.bats` (every block in an empty env). G4's default was removed in M1. Still open: E1's remote counts reach E2 only within one Bash call (M4).
 
 ---
 

@@ -77,21 +77,25 @@ lives in this worktree's own git-dir, so it is untracked, never pushed, and
 separate per worktree.
 
 - **Stage A starts it.** It deletes the last run's file first (an aborted A
-  leaves none), then saves `ORIGINAL_BRANCH`, `BASE_REF`, `DEFAULT_BRANCH`,
-  `SLUG` and `SDM_DIR`. Its `Stage state:` line prints both paths.
+  leaves none) and the earlier run dirs, then saves `ORIGINAL_BRANCH`,
+  `BASE_REF`, `DEFAULT_BRANCH`, `SLUG` and `SDM_DIR`. Its `Stage state:` line
+  prints both paths.
 - **Every later block loads it** with the same loader. A non-empty explicit
   env value beats the file, and the file beats a block's own defaults. A
   required value that is still missing stops the block loudly.
 - **Saves are appended** as `KEY=<base64>` by `sdm_save`; the last write of a
   key wins. B saves `CHANGED_FILES/PY/SH`, E2 `REMOTE_CHOICE`, E3
   `PR_BODY_FILE`, F `PR_NUM`/`PR_URL`, G1 `MERGE_STRATEGY`, G2 `CI_STATE`, G3
-  `MERGE_DISPATCHED`.
+  `MERGE_DISPATCHED` (G4 runs only when it is `1`).
 - **Run files** (agent outputs, scanner reports, findings, reviewer notes, the
   AUQ bridge, the PR body) live in `SDM_DIR`, a mode-700 directory next to the
-  state file. Nothing is written to the shared temp directory.
+  state file. No run file is written to the shared temp directory.
 - **The loader trusts nothing it reads.** It ignores a file written on another
-  branch (with a message), refuses a symlinked or group/world-writable file or
-  one you don't own, accepts only the 15 known keys, and never `eval`s a value.
+  branch or with no branch (with a message), refuses a symlinked or
+  group/world-writable file or one you don't own, accepts only the keys named in
+  `SDM_KEYS`, and never `eval`s a value.
+- **Saving refuses the same files.** `sdm_save` will not write through a
+  symlinked or foreign state file; the refusal stops the block.
 - **To re-answer a question** (for example the dual-remote choice), re-run the
   block with the answer set explicitly, such as `REMOTE_CHOICE=github`. The block
   saves the explicit value.
@@ -105,15 +109,18 @@ for Stages C–G. Read each stage's reference when you reach it.
 
 ### Stage A — Pre-flight checks
 
-Captures `ORIGINAL_BRANCH` and `BASE_REF`; aborts with one of four exact
-messages on failure; otherwise prints `Pre-flight OK`.
+Captures `ORIGINAL_BRANCH` and `BASE_REF`; aborts with one of the exact
+messages below on failure; otherwise prints `Pre-flight OK`.
 
 | Branch condition | ABORT string |
 |------------------|--------------|
+| Not in a git repository | `ABORT: Not inside a git repository` |
+| Detached HEAD | `ABORT: Detached HEAD — check out the branch to merge` |
 | On `main`/`master` | `ABORT: Cannot run /sole-dev-merge from $ORIGINAL_BRANCH branch` |
 | Uncommitted changes | `ABORT: Uncommitted changes detected (commit or stash first)` |
 | No git remote | `ABORT: No git remote configured (need github.com or gitlab.com remote)` |
 | No commits ahead of base | `ABORT: No commits ahead of $DEFAULT_BRANCH (nothing to merge)` |
+| An explicit `SLUG` that is not a plain name | `ABORT: SLUG '<slug>' must be letters, digits, '.', '_' or '-'` |
 
 ABORT exits non-zero (rc=1). `Pre-flight OK` exits zero and exports
 `ORIGINAL_BRANCH`, `BASE_REF`, `DEFAULT_BRANCH` for downstream stages.
@@ -123,12 +130,18 @@ ABORT exits non-zero (rc=1). `Pre-flight OK` exits zero and exports
 set -euo pipefail
 
 # 0. Stage state file (see "State between stages"). A writes it; it never loads it.
-SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"
+# why: 2>/dev/null — git's own "fatal:" text is replaced by the ABORT line below
+_GIT_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null) || { echo "ABORT: Not inside a git repository"; exit 1; }
+SDM_STATE="$_GIT_DIR/sole-dev-merge.env"
 rm -f "$SDM_STATE"   # why: first, so an A that aborts below never leaves the last run's state behind
-sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
 
 # 1. Capture original branch
 ORIGINAL_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+if [[ -z "$ORIGINAL_BRANCH" ]]; then
+    echo "ABORT: Detached HEAD — check out the branch to merge"
+    exit 1
+fi
 
 # 2. Refuse if on default branch (main/master)
 if [[ "$ORIGINAL_BRANCH" == "main" || "$ORIGINAL_BRANCH" == "master" ]]; then
@@ -172,10 +185,17 @@ fi
 
 # 7. Start this run's state: one SLUG, a private run dir, the keys every later stage reads.
 SLUG="${SLUG:-$(date +%Y%m%d-%H%M%S)-$$}"
-SDM_DIR="$(git rev-parse --absolute-git-dir)/sdm-$SLUG"
+if [[ ! "$SLUG" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    echo "ABORT: SLUG '$SLUG' must be letters, digits, '.', '_' or '-'"
+    exit 1
+fi
+SDM_DIR="$_GIT_DIR/sdm-$SLUG"
+# why: once the state file is gone, earlier run dirs are unreachable; removing them stops
+# them piling up and means this run never inherits a dir (or a link) it did not make
+rm -rf -- "$_GIT_DIR"/sdm-*
 (   # why: a subshell, so the private umask does not leak into a caller that sources this block
     umask 077
-    [[ -d "$SDM_DIR" ]] || mkdir -m 700 "$SDM_DIR"   # why: exists only when an explicit SLUG is reused
+    mkdir -m 700 "$SDM_DIR"
     for _k in ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR; do sdm_save "$_k" "${!_k}"; done
 )
 
@@ -216,8 +236,8 @@ sdm_load() {
         dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
         _sdm[$k]=$dv                                   # why: last good write wins
     done < "$SDM_STATE"
-    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
-    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign (on a detached HEAD '' would equal '')
+    if [[ -z "${_sdm[ORIGINAL_BRANCH]:-}" || "${_sdm[ORIGINAL_BRANCH]}" != "$(git branch --show-current)" ]]; then
         echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
     fi
     for k in "${!_sdm[@]}"; do
@@ -225,7 +245,7 @@ sdm_load() {
     done
 }
 [[ -f "$SDM_STATE" ]] && sdm_load
-sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
 
 # Stage A exports BASE_REF; defensive fallback in case Stage B is run alone
 BASE_REF="${BASE_REF:-main}"
@@ -331,8 +351,8 @@ sdm_load() {
         dv=$(printf '%s' "$v" | base64 -d 2>/dev/null) || { echo "Stage state: bad value for $k — ignored"; continue; }
         _sdm[$k]=$dv                                   # why: last good write wins
     done < "$SDM_STATE"
-    # why: a missing or empty ORIGINAL_BRANCH counts as foreign — Stage A always writes it
-    if [[ "${_sdm[ORIGINAL_BRANCH]:-}" != "$(git branch --show-current)" ]]; then
+    # why: a missing or empty ORIGINAL_BRANCH counts as foreign (on a detached HEAD '' would equal '')
+    if [[ -z "${_sdm[ORIGINAL_BRANCH]:-}" || "${_sdm[ORIGINAL_BRANCH]}" != "$(git branch --show-current)" ]]; then
         echo "Stage state: ${SDM_STATE##*/} is not for this branch — ignored (run Stage A first)"; return 0
     fi
     for k in "${!_sdm[@]}"; do
@@ -340,7 +360,7 @@ sdm_load() {
     done
 }
 [[ -f "$SDM_STATE" ]] && sdm_load
-sdm_save() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: base64 has no shell metacharacters; tr keeps macOS and GNU output on one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
 
 # Source the shared AA-MA footer helper. The aa-ma-commit-signature.sh
 # PreToolUse hook validates the LITERAL `-m` argument, so we MUST emit

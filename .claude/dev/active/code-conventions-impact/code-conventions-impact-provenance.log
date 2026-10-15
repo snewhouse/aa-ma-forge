@@ -271,3 +271,4 @@
 [2026-10-15T06:39:54+01:00] FIX — Milestone 15: Codemem freshness (report 03 T2–T9) — background review: trust-store TOCTOU, one directory fd for check and use — RED 118e199 → GREEN 3b50b5b
 [2026-10-15T06:39:54+01:00] FINAL EVIDENCE — Milestone 15: Codemem freshness (report 03 T2–T9) — code at 31afa8a (fences recorded in f0a7f2f; later commits AA-MA/docs only): pytest 3136 passed / 5 skipped, bats 633/633, DIAGRAM_VERIFIED edges=25 checked=25 phantom=0, TESTS_VERIFIED passed=3136
 [2026-10-15T06:42:48+01:00] MILESTONE COMPLETE — Milestone 15: Codemem freshness (report 03 T2–T9) — Commit: 86f1b57 — Criteria: 10/10 verified
+[2026-10-15T08:17:02+01:00] sole-dev-merge Stage C/D — M15 PR @d0febe6 — C1 2 MEDIUM/5 LOW, C2 1 HIGH/2 LOW, Ruff S 0, ShellCheck 0 — Ste: HIGH + 2 MEDIUM deferred to Milestone 16 (ACs added), LOWs to TODOS + PR notes

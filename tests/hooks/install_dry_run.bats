@@ -78,6 +78,13 @@ _fake_repo() {
     [[ "${output}" == *"Would symlink:"*".claude/hooks/lib/aa-ma-log.sh"*"claude-code/hooks/lib/aa-ma-log.sh"* ]]
 }
 
+@test "install.sh --dry-run announces the hooks/lib/aa-ma-footer.sh symlink (sole-dev-merge-fixes 1.9)" {
+    # /sole-dev-merge resolves the footer helper here outside aa-ma-forge.
+    run env HOME="${BATS_FAKE_HOME}" bash "${INSTALLER}" --dry-run
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"Would symlink:"*".claude/hooks/lib/aa-ma-footer.sh"*"claude-code/hooks/lib/aa-ma-footer.sh"* ]]
+}
+
 # --- M3.2 install hygiene (real installs into the isolated HOME) -------------
 
 _settings() { printf '{}\n' > "${BATS_FAKE_HOME}/.claude/settings.json"; }

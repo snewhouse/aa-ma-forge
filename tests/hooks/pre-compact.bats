@@ -171,3 +171,59 @@ EOF
     run env -u HOME bash "$HOOK"
     [ "$status" -eq 0 ]
 }
+
+# ---------------------------------------------------------------------------
+# Symlinks (sole-dev-merge-fixes 1.8, security audit). An untrusted clone can
+# commit a symlink in place of an AA-MA file; the hook must never append to,
+# or copy from, a file outside the task dir. Each case: target unchanged, no
+# target content in the snapshot, rc 0, one hooks.log skip line, systemMessage.
+# ---------------------------------------------------------------------------
+
+_symlink_case() {   # _symlink_case <file-suffix|DIR> — link it to a sentinel target
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    task_dir="$BATS_TMP/.claude/dev/active/task-1"
+    target="$BATS_TMP_HOME/.bashrc"
+    printf 'SENTINEL-OUTSIDE-REPO\n' > "$target"
+    if [ "$1" = DIR ]; then
+        mkdir -p "$BATS_TMP_HOME/outside"
+        mv "$task_dir" "$BATS_TMP_HOME/outside/task-1"
+        printf 'SENTINEL-OUTSIDE-REPO\n' >> "$BATS_TMP_HOME/outside/task-1/task-1-reference.md"
+        ln -s "$BATS_TMP_HOME/outside/task-1" "$task_dir"
+        target="$BATS_TMP_HOME/outside/task-1/task-1-provenance.log"
+    else
+        rm "$task_dir/task-1-$1"
+        ln -s "$target" "$task_dir/task-1-$1"
+    fi
+    before=$(sha256sum < "$target")
+    cd "$BATS_TMP"
+    HOME="$BATS_TMP_HOME" run bash -c "bash '$HOOK' 2>/dev/null"
+}
+
+_assert_symlink_skipped() {
+    [ "$status" -eq 0 ]
+    [ "$(sha256sum < "$target")" = "$before" ]
+    snap="$BATS_TMP_HOME/.claude/hooks/cache/compaction-snapshots/task-1-snapshot.md"
+    ! grep -qs 'SENTINEL-OUTSIDE-REPO' "$snap"
+    [ "$(grep -c 'skipped task task-1' "$BATS_TMP_HOME/.claude/logs/hooks.log")" -eq 1 ]
+    printf '%s' "$output" | jq -e '.systemMessage | test("1 task")' >/dev/null
+}
+
+@test "symlinked provenance.log → never appended to, task skipped" {
+    _symlink_case provenance.log
+    _assert_symlink_skipped
+}
+
+@test "symlinked context-log.md → never appended to, task skipped" {
+    _symlink_case context-log.md
+    _assert_symlink_skipped
+}
+
+@test "symlinked reference.md → its target is never copied into the snapshot" {
+    _symlink_case reference.md
+    _assert_symlink_skipped
+}
+
+@test "symlinked task dir → skipped, nothing outside the repo written or copied" {
+    _symlink_case DIR
+    _assert_symlink_skipped
+}

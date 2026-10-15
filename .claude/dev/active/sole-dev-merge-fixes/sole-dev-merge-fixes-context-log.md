@@ -114,3 +114,16 @@ _This log will be updated via context compaction as the task progresses._
 - Approved by: Ste (AskUserQuestion, "Approve")
 - Criteria verified: 7/7 pre-merge (bats 638/0 at 8ae211e via fence 3; G3 --delete-branch 0; STATUS markers 7; feature default 0; 4 hook suites 0 not-ok; privacy 0/0; PROTOTYPE/IMPACT_ANALYSIS/CRITICAL_PATH_REVIEW present). The `[post-merge]` criterion is recorded at Sub-step 2.0 (L-037).
 - Decision: APPROVED
+
+## [2026-10-15] DECISION G3/G4 take ORIGINAL_BRANCH from the state file only — Ste
+- Asked in the M1 → M2 handover (§9 Q2). Ste accepted the recommendation.
+- In M2's live merge, G3/G4 read `ORIGINAL_BRANCH` from the stage state file only. It is **not** also passed explicitly.
+- Why:
+  - `sdm_load` already ignores a file whose `ORIGINAL_BRANCH` ≠ `git branch --show-current`. A second explicit value would only duplicate that check.
+  - A non-empty explicit env beats the file (plan §4 M2 contract). A stale or mistyped manual value would therefore override the correct one, and the first live run would test the operator, not M2.
+  - G3 already ABORTs when the PR head ref ≠ `ORIGINAL_BRANCH` (`stage-g-merge.md:194`), so a wrong value cannot delete another branch.
+- Visibility: before G3 in the 2.3 live merge, print the loaded `ORIGINAL_BRANCH`/`PR_NUM` as a read-only check. It is output only, never an input.
+
+## [2026-10-15] SESSION NOTE — M2 runs in a worktree-isolated session
+- This session moved into `.worktrees/fix/sole-dev-merge-fixes-m2` with EnterWorktree (decision 14 holds: the hooks' `$PWD` plan scan sees both plans from here).
+- The isolation guard refuses `. file` in commands, `git -C <main>` and complex git forms. Multi-step logic runs as `bash <scratch script>`. 2.3's G4 fast-forwards `<main>`, so that step needs the isolation lifted or Ste's `!`.

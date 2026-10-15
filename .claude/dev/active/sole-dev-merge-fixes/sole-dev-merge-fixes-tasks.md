@@ -320,7 +320,7 @@ Conventions used in the criteria:
   - **CCI footer.** No CCI worktree exists, so a scratch clone of main `c3ea041` with both plans was used. Branch `probe-cci` appended one line to the CCI provenance.log. The installed `emit_aa_ma_footer` printed `[AA-MA Plan] code-conventions-impact .claude/dev/active/code-conventions-impact`; `grep -c '^\[AA-MA Plan\] code-conventions-impact '` = 1. The clone was deleted.
 
 ## Milestone 2: Stage state file
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 1
 - Complexity: 55%
 - Effort: 1 day
@@ -341,7 +341,7 @@ Conventions used in the criteria:
 - Result Log:
 
 ### Sub-step 2.0: Post-merge of M1, and prototype the state file
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Prototype-Required: YES
@@ -357,6 +357,28 @@ Conventions used in the criteria:
     - a non-empty explicit env wins.
   - PL has `PROTOTYPE — Milestone 2: Stage state file — <verdict>`.
 - Result Log:
+  - Mode: HITL — Ste: "Proceed".
+  - **Session root.** The session was moved into `<main>/.worktrees/fix/sole-dev-merge-fixes-m2` (EnterWorktree, CL session note). Branch `fix/sole-dev-merge-fixes-m2`; `git merge-base --is-ancestor origin/main HEAD` → rc 0 at `c3ea041`. The hooks' plan scan from here sees both plans.
+  - **1.12 and Milestone 1:** recorded and flipped to COMPLETE (`cd47f93`, provenance `f78bbf9`). Before the flip, `aa-ma-gate` gave `pending_steps=0` for M1, which answers the handover ❓.
+  - **Q2 decision:** G3/G4 read `ORIGINAL_BRANCH` from the state file only (CL).
+  - **Prototype** (`<scratch>/m2proto/proof.sh`, throwaway). Scratch repo with a main checkout and a linked worktree `feat`. The plan §4 M2 loader is copied verbatim; every block runs as `env -i bash` (empty env). `grep -c '^PASS' proof.out` = **6**:
+    - separate-bash-calls: A then R in separate shells → `ORIGINAL_BRANCH=feat`, `SLUG=slug1`;
+    - cd-then-bash: saved from `<wt>/sub`, read from the root → `PR_NUM=42`;
+    - per-worktree-git-dir: main and wt hold separate files (`mainslug` / `slug1`); the absolute git-dir is `.git/worktrees/feat`;
+    - set-a-chaining: `set -a; source A; source R` → both sources rc 0, values visible, and a later fresh shell reads them too;
+    - hostile-round-trip: a value with spaces, both quote kinds, `$HOME`, backticks, `$(id)`, `;|&<>\`, a tab, an embedded newline and a trailing `=` round-trips byte-exact. Hand-written lines `PR_URL=$(touch PWN)`, ``CI_STATE=`touch PWN` ``, `GIT_SSH_COMMAND=…` and `BASH_ENV=…` give 4 messages (2 "bad value", 2 "unknown key"), and `PWN` count = 0;
+    - explicit-env-wins: `PR_NUM=99` beats the file's 42; an empty `PR_NUM=` does not mask it (→ 42).
+  - **Extras, all ok:** state file 600; `SDM_DIR` 700; a file from another branch is ignored with the message; group-writable and symlinked files are refused and nothing is loaded; a bad base64 line keeps the earlier good value; a trailing newline is dropped (documented); with no state file the block exits 0.
+  - **First run** was 5 PASS + 1 FAIL + 3 EXTRA FAIL. All 4 were harness bugs, not design bugs:
+    - check 4's Stage A had (correctly) truncated `PR_NUM`, so check 6 now re-saves it;
+    - the foreign-branch check compared output that also held the hostile lines' messages;
+    - two `cut -c1-36` checks were off by one.
+  - **Mutation (L-045):** dropping the `[[ -n "${!k:-}" ]] ||` guard → explicit-env-wins FAILs; `printf -v` → `eval` → hostile-round-trip FAILs. The checks can fail.
+  - **Notes for 2.1/2.2:**
+    - Stage A's `rm -f` wipes every later key (PR_NUM etc.) by design, so a mid-flow re-run of A starts over;
+    - loader messages go to stdout, and a file holding hostile lines repeats its messages on every load;
+    - under `set -a` sourcing, `SDM_STATE`/`SDM_KEYS` are exported too (harmless).
+  - Verdict: **PASS**.
 
 ### Sub-step 2.1: RED — state tests
 - Status: PENDING

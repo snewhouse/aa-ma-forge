@@ -93,3 +93,18 @@ _This log will be updated via context compaction as the task progresses._
 ## [2026-10-15] DECISION E6 probe: declined — Ste
 - Asked at the Sub-step 1.0 HITL gate. No throwaway repo, no `delete_repo` token scope.
 - E6 (gh's rc when `--delete-branch` fails locally in a worktree) stays [U]. G3 decides from `gh pr view --json state`, not gh's rc; the 1.1 test "gh pr merge rc=1 but state MERGED" covers the rc=1 case.
+
+## [2026-10-15] §6.8 POST_IMPL_REVIEW — Milestone 1 (window 1d760f1..6b12a9d)
+- Verdict: PASS_WITH_WARNINGS. 0 CRITICAL / 9 WARNING / 16 INFO across 5 agents; no override panel was needed.
+- **Fixed before the gate** (RED 68a02bb, then GREEN):
+  - G3: `ls-remote --exit-code` (code-reviewer W3), plus `DEFAULT_BRANCH` check-ref-format and a `MERGE_STRATEGY` allowlist (security INFO).
+  - G4: a single terminal STATUS line, never `OK` after `MAIN_NOT_UPDATED` (code-reviewer W2); `sub()` replaces the `substr` magic number (W5).
+  - commit-signature rule 8 redesigned as an exact-line allowlist after `set -e`. Two security WARNINGs found commits with an empty footer or with text after it. Under L-049 a second finding on the same mechanism means redesign, not patch. Matrix v2 passes 24/24.
+  - pre-compact: one shared `AA_MA_FILES` list (future-proofing W2).
+  - The stale TODOS install entry is rewritten (future-proofing W1).
+- **Deferred as TODOs:**
+  - pre-compact parent-dir symlinks (into M5);
+  - repo-copy helper resolution outside forge;
+  - `git -C`/`git -c` forms (in the commit-msg TODO).
+  - M4 4.2's status rows are widened to the G3/G4 ABORTs and the exit contract (code-reviewer W4).
+- **Scope note** (code-reviewer W1): `docs/architecture/{README,component,io}.md` (regen stamp) and `tests/codemem/test_plugin_surface.py` (orphan set) changed as outputs of `scripts/regen-generated.sh`. The Contract's "only if regen-generated.sh changes them" line covers them.

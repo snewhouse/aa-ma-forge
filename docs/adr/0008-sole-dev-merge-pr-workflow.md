@@ -55,7 +55,7 @@ discipline?
   and D auto-fix commits use the shared `aa-ma-footer.sh` helper, resolved
   through `~/.claude/hooks/lib` outside this repo; with several active plans
   it names the plan the branch changed (spec §VI). The hook trusts the
-  canonical `FOOTER=$(emit_aa_ma_footer)` … `${FOOTER}"` commit.
+  canonical `FOOTER=$(emit_aa_ma_footer)` … `${FOOTER}"` commit, as whole lines after `set -e`.
 - **No skill-with-lib pattern in repo precedent.** The previous v1 plan
   proposed `claude-code/skills/sole-dev-merge/` with library code; no
   existing AA-MA skill in the repo follows this pattern. Plan v2 dropped

@@ -160,3 +160,16 @@ _This log will be updated via context compaction as the task progresses._
 - **Deferred:** `$CHANGED_*` word-splitting → M3; `REMOTE_CHOICE:-github` → M4 (one TODOS entry).
 - Full record: `sole-dev-merge-fixes-impl-review.md` § Milestone 2.
 
+## [2026-10-15] GATE APPROVAL: Milestone 2: Stage state file
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion, "Approve")
+- Criteria verified: 7/7 pre-merge:
+  - 13 blocks name the state file, and only A lacks `sdm_load`;
+  - `test_stage_state.bats` 32 @tests, 0 not-ok;
+  - `eval|sdm` 0 and `/tmp/sole-dev-merge` 0; 600/700 asserted; masking grep 0;
+  - privacy 0/0 (AA-MA files and `git diff origin/main`);
+  - PROTOTYPE, IMPACT_ANALYSIS and CRITICAL_PATH_REVIEW in PL.
+- Also checked: fence 3 `TESTS_VERIFIED passed=670` at c00137f; pytest 3136 passed; §6.8 PASS_WITH_WARNINGS (all WARNINGs fixed).
+- The `[post-merge]` criterion is recorded at Sub-step 3.0 (L-037).
+- Decision: APPROVED
+

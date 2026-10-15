@@ -139,6 +139,12 @@
    "src": "hook:aa-ma-commit-signature.sh"
   },
   {
+   "dst": "skill:sole-dev-merge",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-commit-signature.sh"
+  },
+  {
    "dst": "hook:aa-ma-commit-signature.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",
@@ -1368,7 +1374,6 @@
   "skill:complexity-router",
   "skill:debugging-strategies",
   "skill:secops",
-  "skill:sole-dev-merge",
   "skill:writing-for-agents"
  ]
 }

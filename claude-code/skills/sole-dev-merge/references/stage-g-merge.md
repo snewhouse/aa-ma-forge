@@ -82,7 +82,7 @@ sdm_load() {
     done
 }
 [[ -f "$SDM_STATE" ]] && sdm_load
-sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
 # Inherits REMOTE_CHOICE from Stage E2. Defensive default to github.
 REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
@@ -140,7 +140,7 @@ sdm_load() {
     done
 }
 [[ -f "$SDM_STATE" ]] && sdm_load
-sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
 # Inputs from Stage F: PR_NUM, PR_URL, REMOTE_CHOICE.
 REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
@@ -249,7 +249,7 @@ sdm_load() {
     done
 }
 [[ -f "$SDM_STATE" ]] && sdm_load
-sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
 # Inputs from Stage F + G1 + G2: PR_NUM, PR_URL, REMOTE_CHOICE,
 # MERGE_STRATEGY (rebase|merge), CI_STATE (green|timeout|failed).
@@ -397,7 +397,7 @@ sdm_load() {
     done
 }
 [[ -f "$SDM_STATE" ]] && sdm_load
-sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
 # Runs only on a successful merge: it stops unless G3 recorded MERGE_DISPATCHED=1.
 # Inputs: ORIGINAL_BRANCH (from Stage A), PR_URL (from Stage F), MERGE_DISPATCHED (from G3).

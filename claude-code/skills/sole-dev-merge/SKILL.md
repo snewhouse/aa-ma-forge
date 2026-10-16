@@ -122,8 +122,9 @@ messages below on failure; otherwise prints `Pre-flight OK`.
 | No commits ahead of base | `ABORT: No commits ahead of $DEFAULT_BRANCH (nothing to merge)` |
 | An explicit `SLUG` that is not a plain name | `ABORT: SLUG '<slug>' must be letters, digits, '.', '_' or '-'` |
 
-ABORT exits non-zero (rc=1). `Pre-flight OK` exits zero and exports
-`ORIGINAL_BRANCH`, `BASE_REF`, `DEFAULT_BRANCH` for downstream stages.
+ABORT exits non-zero (rc=1). `Pre-flight OK` exits zero and saves
+`ORIGINAL_BRANCH`, `BASE_REF`, `DEFAULT_BRANCH`, `SLUG` and `SDM_DIR` to the
+stage state file for the later stages (exports alone don't survive a Bash call).
 
 ```bash
 # === stage-a-preflight (BEGIN) ===
@@ -134,7 +135,7 @@ set -euo pipefail
 _GIT_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null) || { echo "ABORT: Not inside a git repository"; exit 1; }
 SDM_STATE="$_GIT_DIR/sole-dev-merge.env"
 rm -f "$SDM_STATE"   # why: first, so an A that aborts below never leaves the last run's state behind
-sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
 # 1. Capture original branch
 ORIGINAL_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
@@ -193,11 +194,8 @@ SDM_DIR="$_GIT_DIR/sdm-$SLUG"
 # why: once the state file is gone, earlier run dirs are unreachable; removing them stops
 # them piling up and means this run never inherits a dir (or a link) it did not make
 rm -rf -- "$_GIT_DIR"/sdm-*
-(   # why: a subshell, so the private umask does not leak into a caller that sources this block
-    umask 077
-    mkdir -m 700 "$SDM_DIR"
-    for _k in ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR; do sdm_save "$_k" "${!_k}"; done
-)
+mkdir -m 700 "$SDM_DIR"   # why: -m sets the mode outright; sdm_save creates the state file 600 itself
+for _k in ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR; do sdm_save "$_k" "${!_k}"; done
 
 export ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR
 echo "Pre-flight OK (branch=$ORIGINAL_BRANCH, base=$BASE_REF, ahead=$AHEAD)"
@@ -245,7 +243,7 @@ sdm_load() {
     done
 }
 [[ -f "$SDM_STATE" ]] && sdm_load
-sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
 # Stage A exports BASE_REF; defensive fallback in case Stage B is run alone
 BASE_REF="${BASE_REF:-main}"
@@ -360,7 +358,7 @@ sdm_load() {
     done
 }
 [[ -f "$SDM_STATE" ]] && sdm_load
-sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
 # Source the shared AA-MA footer helper. The aa-ma-commit-signature.sh
 # PreToolUse hook validates the LITERAL `-m` argument, so we MUST emit

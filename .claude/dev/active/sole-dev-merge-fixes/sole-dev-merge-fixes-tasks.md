@@ -576,7 +576,7 @@ Conventions used in the criteria:
   - **Scanned-files AC:** N/A — PR #44 changed no `.py`/`.sh`. Carries to the next PR that does, by the AC's own wording.
 
 ## Milestone 4: Stage F REST body update, small fixes, docs drift
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 3
 - Complexity: 40%
 - Effort: 0.75 day

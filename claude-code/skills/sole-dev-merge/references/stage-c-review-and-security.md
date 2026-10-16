@@ -149,8 +149,9 @@ parse_agent_file "$SECURITY_OUT" "security-auditor"
 RUFF_BIN="${RUFF_BIN:-ruff}"
 if [[ -n "${CHANGED_PY:-}" ]]; then
     RUFF_RC=0
-    # shellcheck disable=SC2086  # intentional word-splitting for multi-file arg
-    "$RUFF_BIN" check --select S --output-format json $CHANGED_PY > "$RUFF_OUT" 2>/dev/null || RUFF_RC=$?
+    mapfile -t PY_FILES <<< "$CHANGED_PY"
+    # why: one argument per name, after '--', so '-x.py' or 'a b.py' is a file, never a flag or two words
+    "$RUFF_BIN" check --select S --output-format json -- "${PY_FILES[@]}" > "$RUFF_OUT" 2>/dev/null || RUFF_RC=$?
     if [[ "$RUFF_RC" -gt 1 || ! -s "$RUFF_OUT" ]]; then
         echo "Stage C: WARNING — '${RUFF_BIN}' produced no report" \
              "(rc=${RUFF_RC}); Python findings are UNKNOWN, not zero."
@@ -196,8 +197,9 @@ fi
 SHELLCHECK_BIN="${SHELLCHECK_BIN:-shellcheck}"
 if [[ -n "${CHANGED_SH:-}" ]]; then
     SHELLCHECK_RC=0
-    # shellcheck disable=SC2086  # intentional word-splitting for multi-file arg
-    "$SHELLCHECK_BIN" -f json $CHANGED_SH > "$SHELLCHECK_OUT" 2>/dev/null \
+    mapfile -t SH_FILES <<< "$CHANGED_SH"
+    # why: one argument per name, after '--' (probed: shellcheck keeps the name unprefixed in its report)
+    "$SHELLCHECK_BIN" -f json -- "${SH_FILES[@]}" > "$SHELLCHECK_OUT" 2>/dev/null \
         || SHELLCHECK_RC=$?
     if [[ "$SHELLCHECK_RC" -gt 1 || ! -s "$SHELLCHECK_OUT" ]]; then
         # Safe-default, same contract parse_agent_file uses above: the degraded

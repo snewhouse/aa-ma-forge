@@ -453,7 +453,7 @@ Conventions used in the criteria:
   - **Scanned-files AC:** not applicable to PR #43. Its decoded `CHANGED_PY`/`CHANGED_SH` are empty (0 `.py`, 0 `.sh`). Moved to M3 3.3 (Ste, CL 2026-10-16).
 
 ## Milestone 3: Stage B scoped commit, guard, check-conventions refs
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 2
 - Complexity: 55%
 - Effort: 1 day
@@ -474,13 +474,29 @@ Conventions used in the criteria:
 - Result Log:
 
 ### Sub-step 3.0: Post-merge of M2
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
   - `git -C <main> status --porcelain --untracked-files=no` is empty after the L-1347 check.
   - `git merge-base --is-ancestor origin/main HEAD` exits 0 on the M3 branch.
 - Result Log:
+  - Mode: HITL — Ste chose "EnterWorktree now" and approved folding the LOW prose fixes in at 3.0.
+  - **Handover evidence re-run** (from `<main>`, before EnterWorktree):
+    - E1 `MERGED 52f4fd3`; E2 0 bytes, rc 2; E3 HEAD = origin/main = `52f4fd3`; E5 9/9 pass; E6 M2 `ACTIVE`.
+    - **E4 / AC1:** `<main>` tracked changes = **0**, and `git status --porcelain` in `<main>` was empty. No L-1347 hook lines.
+  - **Worktrees:**
+    - M3 worktree added from `origin/main` `52f4fd3`. **AC2:** `merge-base --is-ancestor origin/main HEAD` rc **0**.
+    - The upstream that `worktree add -b … origin/main` set was unset; it pointed at main.
+    - M2 worktree and branch removed after cherry showed 0 `+` (branch was at `c189f92`). The run-2 evidence was backed up to `<scratch>` first.
+  - **M2 closed:**
+    - 2.3 Result Log written and flipped COMPLETE. The gate gave `pending_steps=0` for M2, then Milestone 2 was flipped COMPLETE (`6963551`). Provenance `MILESTONE COMPLETE — Milestone 2` is committed separately (`f8390c6`, L-018).
+    - Privacy 0/0 over the AA-MA files.
+  - **Docs carry-in** `4644eb7`: SKILL.md "State between stages" now says `sdm_save` refuses not-owned and g/o-writable files and creates the file 600, and that E2 is re-answered by re-running E1+E2 together.
+    - SDM bats 133/0; pytest 3136 passed.
+    - regen rc 0. Its only diff was the `generated … @ <sha> on <date>` header in 4 `docs/architecture` files, which was restored rather than committed (no content drift).
+  - **❓ 3.0's own criteria:** no probe or prototype is required; M3 has no `Prototype-Required`.
+  - **CCI note for Ste:** CCI M16's flaky post-commit test item is covered by `52f4fd3` (await_eq plus refresh.log diagnostics). Closing it is the CCI session's call.
 
 ### Sub-step 3.1: RED — Stage B tests and pre-commit stub
 - Status: PENDING

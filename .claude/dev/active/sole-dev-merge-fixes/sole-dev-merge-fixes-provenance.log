@@ -57,3 +57,5 @@
 [2026-10-16T07:00:50+01:00] TESTS_VERIFIED — Milestone 2: Stage state file — passed=672 cmd=bats --tap tests/commands/sole-dev-merge tests/hooks
 [2026-10-16T09:24:51+01:00] STEP_COMPLETE — Sub-step 2.3 — recorded at 3.0: post-merge G3 MERGE_DISPATCHED=1 / G4 STATUS: OK; ls-remote m2 0 bytes rc 2; PR 43 MERGED 52f4fd3, checks 9/9; scanned-files AC N/A (0 py/0 sh) → M3 3.3
 [2026-10-16T09:25:09+01:00] MILESTONE COMPLETE — Milestone 2: Stage state file — Commit: 6963551 — Criteria: 8/8 verified (7 pre-merge at GATE APPROVAL + [post-merge] at 3.0)
+[2026-10-16T09:30:03+01:00] MILESTONE ACTIVE — Milestone 3: Stage B scoped commit, guard, check-conventions refs — dependency advisory: none
+[2026-10-16T09:30:03+01:00] STEP_COMPLETE — Sub-step 3.0 — handover E1-E7 re-run; <main> clean; M3 wt from origin/main 52f4fd3 (ancestor rc 0, upstream unset); M2 wt+branch removed (cherry 0 +); M2 COMPLETE 6963551/f8390c6; docs carry-in 4644eb7 (SDM 133/0, pytest 3136)

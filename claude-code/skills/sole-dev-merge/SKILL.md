@@ -95,10 +95,12 @@ separate per worktree.
   group/world-writable file or one you don't own, accepts only the keys named in
   `SDM_KEYS`, and never `eval`s a value.
 - **Saving refuses the same files.** `sdm_save` will not write through a
-  symlinked or foreign state file; the refusal stops the block.
+  symlinked state file, one you don't own, or one writable by group or others;
+  the refusal stops the block. When it creates the file, the file is mode 600.
 - **To re-answer a question** (for example the dual-remote choice), re-run the
   block with the answer set explicitly, such as `REMOTE_CHOICE=github`. The block
-  saves the explicit value.
+  saves the explicit value. For E2, re-run E1 and E2 together in one Bash call:
+  E2 reads E1's remote counts, which are not in the state file.
 
 ## Workflow stages
 

@@ -77,3 +77,38 @@ All fixed test-first (RED 38d6560, then GREEN), except where noted.
 
 ### User Override Decisions
 None. No CRITICAL findings.
+
+## Milestone 3: Stage B scoped commit, guard, check-conventions refs
+
+Window `f8390c6..fa55ec4` (reviewed); remediation `6b9212d` (RED) → `10845fe` (GREEN), docs `17cb01f`. Audit-Profile: full; 5 agents in parallel.
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 3 | 3 | WARN (SDM 145/145, hooks 539/539 run read-only) |
+| security-auditor | 0 | 2 | 4 | WARN |
+| tdd-sequence-auditor | 0 | 0 | 3 | PASS (RED 04e2fd9 27 min before GREEN 21c57e9; 4644eb7 prose-only) |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS (no dependency changes) |
+| future-proofing-auditor | 0 | 1 | 2 | WARN |
+| **Total** | **0** | **6** | **12** | **PASS_WITH_WARNINGS** |
+
+### Warnings and dispositions (all fixed test-first, Ste: "Fix all 6 now")
+| # | Source | Finding | Disposition |
+|---|---|---|---|
+| 1 | code-reviewer | The staged-set assert ran only when something in scope was dirty. A pre-staged out-of-scope file then reached Stage D's pathspec-less commit; the CHANGELOG and L-053 overclaimed | Fixed in 10845fe: the check runs before staging, always. RED "AC4.4 … even when nothing in scope is dirty" |
+| 2 | security | Abort `git reset -q` cleared the operator's whole index (`add -p` hunks lost) | Fixed in 10845fe (Ste: "Check first, touch nothing"): the pre-check aborts with the index untouched; the post-add check unstages only B-commit's own paths. AC4.4 now asserts the index is unchanged |
+| 3 | code-reviewer | `${line:3}` on porcelain v1 gave C-quoted names and `old -> new`; guard and B-commit disagreed | Fixed in 10845fe: `--porcelain -z` (rename source as next NUL field); `CHANGED_FILES` with `core.quotePath=false`. RED: space-named, rename, non-ASCII cases |
+| 4 | code-reviewer | ABORT text listed one direction only, and could be empty | Fixed in 10845fe: the "missing" direction is not an error (an undone change stages nothing → "nothing to commit"); ABORT always names the extra paths. RED "undone … is not an ABORT" |
+| 5 | security (+ TODOS:98, planned for M3, missed — L-056) | `$CHANGED_FILES` unquoted into pre-commit (`--config=x` read as a flag); same for Stage C ruff/shellcheck | Fixed in 10845fe: pre-commit gets `./`-prefixed names in an array (its argparse rejects `--`, probed); ruff/shellcheck get `-- "${arr[@]}"` (probed: report names unchanged). RED in b_scope and c_dispatch |
+| 6 | future-proofing | Exit contract "(Stages A, B-commit, E2, F)" omitted G2–G4's ABORTs (`stage-g-merge.md:149…414`) | Fixed in 10845fe: "any stage's `ABORT: …` line" |
+
+### INFO dispositions
+- **Adopted (Ste):** `export GIT_LITERAL_PATHSPECS=1` in the guard and B-commit. In Stage B it is set after pytest/pre-commit, so the user's tests keep git globs. RED "glob-shaped name matches only itself"; a mutation confirms the post-add check catches a glob.
+- **Subsumed by W3:** `cut -c4-` porcelain prefix; quoted-path guard failure.
+- **Accepted:** one `git status` per changed file (KISS at branch sizes); `restore --staged --worktree` discards an out-of-scope staged edit (intended, documented); `aa-ma-footer.bats` outside the Contract list (CL deviation); `fresh`/`blk` duplicated with test_stage_state.bats (different semantics: PATH order, lazy extraction); pre-existing `source` of the branch's own footer helper (same trust as running its pytest).
+- **Probe findings, recorded:** `git restore --source=HEAD --staged --worktree` deletes a staged path HEAD lacks (rc 0); pre-commit rejects `--` (rc 1) and strips `./`; shellcheck reports `./x` names verbatim, so the scanners use `--`.
+
+### Verification after remediation
+bats SDM+hooks **692/0**; b_scope 23/23; c_dispatch 8/8; pytest **3136 passed**; shellcheck 0 on the extracted B, B-commit and C; SKILL.md 497 lines (cap 500); plugin-surface golden unchanged. Mutations: pre-check off → the clean-scope AC4.4 FAILs; literal pathspecs off → the glob case FAILs (the post-add check aborts).
+
+### User Override Decisions
+None. No CRITICAL findings.

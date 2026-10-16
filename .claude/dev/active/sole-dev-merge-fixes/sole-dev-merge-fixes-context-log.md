@@ -204,3 +204,14 @@ _This log will be updated via context compaction as the task progresses._
   - The plan postdates M2's state file. With no CHANGED_FILES, nothing is in scope, so B-commit commits nothing and lists the dirty files.
   - `tests/hooks/aa-ma-footer.bats` (2 tests, not in the M3 Contract file list) now feed `CHANGED_FILES=f.txt`, the same kind of input change M2 made for D at `:193`.
 - **SKILL.md prompt-size cap (500 lines, `tests/test_prompt_size.py`):** the new prose took the file to 506. It was tightened to 495 rather than moving inline Stage A/B detail into references/.
+
+## [2026-10-16] §6.8 POST_IMPL_REVIEW — Milestone 3 (window f8390c6..fa55ec4) — decisions, Ste
+- Verdict PASS_WITH_WARNINGS: 0 CRITICAL / 6 WARNING / 12 INFO (impl-review.md, Milestone 3).
+- "Fix all 6 now": every WARNING was fixed test-first (RED 6b9212d → GREEN 10845fe).
+- **B-commit abort semantics: "Check first, touch nothing".** This supersedes spec F4.4's "unstage with `git reset -q`", which would clear the operator's `add -p` staging.
+  - The pre-check aborts before staging, leaving the index as it was.
+  - The post-add check unstages only B-commit's own paths.
+  - AC4.4's index assertion changed from "empty" to "unchanged".
+- **`GIT_LITERAL_PATHSPECS=1`** adopted (INFO). Set after Stage B's pytest/pre-commit so the user's tests and hooks keep git globs.
+- **W5 was already scheduled for M3** (TODOS:98, CL :160) and missed at 3.1. That miss is lesson L-056.
+  - The TODO's `-- "${arr[@]}"` works for ruff and shellcheck, but not for pre-commit (argparse rc 1, probed), which gets `./`-prefixed names instead.

@@ -55,20 +55,29 @@ blk() {
 # feature (+ app.py, which ruff reformats), with a bare origin so Stage A passes.
 # NOCFG=1: no pre-commit config. EMPTY=1: feature's commit changes nothing.
 # TESTSDIR=1: main has a tests/ dir, so Stage B's pytest step runs.
+# CLEAN=1: app.py is already ruff-clean, so Stage B leaves nothing in scope dirty.
+# MAIN_EXTRA / FEATURE_EXTRA: newline-separated file names (content "keep") added on main / feature.
 b_sandbox() {
+    local f
     cd "$BATS_TMP"
     sandbox_init
     echo init > a.txt
     echo keep > out.txt
     [[ "${NOCFG:-0}" == 1 ]] || printf 'repos: []\n' > .pre-commit-config.yaml
     if [[ "${TESTSDIR:-0}" == 1 ]]; then mkdir tests && echo keep > tests/keep.txt; fi
+    while IFS= read -r f; do [[ -z "$f" ]] || echo keep > "$f"; done <<< "${MAIN_EXTRA:-}"
     git add -A && mkcommit "init"
     git init -q --bare "${BATS_TMP}.bare.git"
     git remote add origin "${BATS_TMP}.bare.git"
     git switch -q -c feature
     if [[ "${EMPTY:-0}" != 1 ]]; then
-        printf 'import os\ndef hello( ):\n    return 1\n' > app.py
+        if [[ "${CLEAN:-0}" == 1 ]]; then
+            printf 'def hello():\n    return 1\n' > app.py
+        else
+            printf 'import os\ndef hello( ):\n    return 1\n' > app.py
+        fi
         git add app.py
+        while IFS= read -r f; do [[ -z "$f" ]] || { echo keep > "$f"; git add -- "$f"; }; done <<< "${FEATURE_EXTRA:-}"
     fi
     mkcommit "feat: app"
 }
@@ -234,7 +243,17 @@ PY
     run fresh bash "$(blk stage-b-scope)"
     [ "$status" -eq 0 ]
     run pc_calls
-    [ "$output" = "pre-commit run --files app.py FROM=main TO=HEAD" ]
+    [ "$output" = "pre-commit run --files ./app.py FROM=main TO=HEAD" ]
+}
+
+@test "AC5.1: file names reach pre-commit as single ./-prefixed arguments, never as options" {
+    # why: pre-commit's argparse reads a bare '--config=x' as a flag and rejects '--' (probed)
+    FEATURE_EXTRA=$'--config=evil.yaml\nsp ace.txt' b_sandbox
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    run fresh bash "$(blk stage-b-scope)"
+    [ "$status" -eq 0 ]
+    run pc_calls
+    [ "$output" = 'pre-commit run --files ./--config=evil.yaml ./app.py ./sp\ ace.txt FROM=main TO=HEAD' ]
 }
 
 @test "AC5.2: pre-commit never gets --from-ref (it would stash unstaged fixes)" {
@@ -315,6 +334,29 @@ PY
     [[ "$output" == *"L-007 guard: untracked out-of-scope file(s) left unstaged: stray.txt"* ]]
 }
 
+@test "L-007 guard restores an out-of-scope file whose name has a space" {
+    # why: porcelain v1 C-quotes such a name, so a 3-char strip gave '"out file.txt"'
+    MAIN_EXTRA='out file.txt' b_sandbox
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    echo drifted >> 'out file.txt'
+    run fresh bash "$(blk stage-b-scope)"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"L-007 guard: reverted 1 out-of-scope file(s): out file.txt"* ]]
+    [ "$(cat 'out file.txt')" = keep ]
+}
+
+@test "L-007 guard undoes an out-of-scope staged rename without losing either file" {
+    b_sandbox
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    git mv out.txt moved.txt
+    run fresh bash "$(blk stage-b-scope)"
+    [ "$status" -eq 0 ]
+    [ "$(cat out.txt)" = keep ]
+    [ "$(cat moved.txt)" = keep ]
+    [ "$(git status --porcelain)" = "?? moved.txt" ]
+    [[ "$output" == *"left unstaged: moved.txt"* ]]
+}
+
 @test "L-007 guard unstages a staged NEW out-of-scope file but never deletes it" {
     # why: restore --source=HEAD on a path HEAD lacks deletes the file with rc 0 (probed)
     b_sandbox
@@ -366,7 +408,64 @@ PY
     BEFORE=$(git rev-parse HEAD)
     run fresh bash "$(blk stage-b-commit)"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"ABORT: Stage B-commit staged files outside the intended list"* ]]
+    [[ "$output" == *"ABORT: Stage B-commit staged files outside the intended list: out.txt"* ]]
     [ "$(git rev-parse HEAD)" = "$BEFORE" ]
-    [ -z "$(git diff --cached --name-only)" ]
+    # why: the abort comes before B-commit stages anything, so the operator's index is untouched
+    [ "$(git diff --cached --name-only)" = out.txt ]
+}
+
+@test "AC4.4: an out-of-scope staged file aborts B-commit even when nothing in scope is dirty" {
+    # why: otherwise Stage D's pathspec-less commit would sweep the staged file in
+    CLEAN=1 NOCFG=1 b_sandbox
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    fresh bash "$(blk stage-b-scope)" >/dev/null
+    [ -z "$(git status --porcelain)" ]    # why: non-vacuous — B left nothing in scope dirty
+    echo drifted >> out.txt
+    git add out.txt
+    BEFORE=$(git rev-parse HEAD)
+    run fresh bash "$(blk stage-b-commit)"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage B-commit staged files outside the intended list: out.txt"* ]]
+    [ "$(git rev-parse HEAD)" = "$BEFORE" ]
+    [ "$(git diff --cached --name-only)" = out.txt ]
+}
+
+@test "B-commit: an in-scope file whose staged change was undone is not an ABORT" {
+    b_sandbox
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    fresh bash "$(blk stage-b-scope)" >/dev/null
+    git add app.py
+    git show HEAD:app.py > app.py    # index has the fix, working tree is back at HEAD
+    BEFORE=$(git rev-parse HEAD)
+    run fresh bash "$(blk stage-b-commit)"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"ABORT"* ]]
+    [[ "$output" == *"nothing to commit"* ]]
+    [ "$(git rev-parse HEAD)" = "$BEFORE" ]
+}
+
+@test "B-commit: an in-scope name that looks like a glob matches only itself" {
+    FEATURE_EXTRA='*.txt' b_sandbox
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    fresh bash "$(blk stage-b-scope)" >/dev/null
+    echo changed > '*.txt'
+    echo drifted >> out.txt
+    run fresh bash "$(blk stage-b-commit)"
+    [ "$status" -eq 0 ]
+    run git show --name-only --format= HEAD
+    [[ "$output" == *'*.txt'* ]]
+    [[ "$output" != *"out.txt"* ]]
+    [ "$(git status --porcelain -- out.txt)" = " M out.txt" ]
+}
+
+@test "B-commit commits an in-scope file with a non-ASCII name" {
+    FEATURE_EXTRA='café.txt' b_sandbox
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    fresh bash "$(blk stage-b-scope)" >/dev/null
+    echo changed > 'café.txt'
+    run fresh bash "$(blk stage-b-commit)"
+    [ "$status" -eq 0 ]
+    run git -c core.quotePath=false show --name-only --format= HEAD
+    [[ "$output" == *"café.txt"* ]]
+    [ -z "$(git status --porcelain)" ]
 }

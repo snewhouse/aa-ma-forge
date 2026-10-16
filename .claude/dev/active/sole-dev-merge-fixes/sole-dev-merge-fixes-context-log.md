@@ -230,3 +230,18 @@ _This log will be updated via context compaction as the task progresses._
 - Recorded during the live run: the PR's own Stage B `check_conventions` line (milestone AC 3).
 - The Stage C scanned-files AC carries to the next PR that changes `.py`/`.sh`, since this one changes neither. Fence 1 and the COMPLETE flip happen at 4.0 (L-037).
 - Decision: APPROVED
+
+## [2026-10-16] Live merge run 1 (3.3): Stage C/D triage — Ste
+- **A** OK (18 ahead of main).
+- **B** (this branch's blocks, each in a separate Bash call): `check_conventions (added lines only)…Passed`, `no diff source` count 0. Also `pytest rc=0`, `pre-commit rc=0`, guard clean.
+- **B-commit** no-op. **C** scanned `Ruff S 0 file(s), ShellCheck 0 file(s)`: the PR has no `.py`/`.sh`.
+- **D:** 0C / 0H / 1M / 6L.
+- **MEDIUM** (C1): B-commit's `${CHANGED_FILES:-}` masked a missing state file → **applied** (RED d9c43be → GREEN bc2b9d5).
+- **LOW** (C1): `--no-renames` in `staged_outside` → **folded in** (Ste), same commits.
+- **Other 5 LOWs → reviewer notes:**
+  - names with `"`/`\`/control characters are still C-quoted by `--name-only`;
+  - raw names are echoed unescaped (terminal spoofing);
+  - out-of-scope files are listed only when nothing is committed;
+  - one `git status` per file;
+  - plus C2's duplicate of the quoting LOW.
+- The merge restarts from Stage A (as M2 run 1 → run 2).

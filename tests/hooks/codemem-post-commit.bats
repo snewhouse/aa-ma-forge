@@ -64,12 +64,27 @@ drain() {
     return 1
 }
 
+# Wait (≤ 30 s) until file $1 holds exactly $2. On timeout, show the worker's
+# refresh.log, so a worker that skipped or failed says why (sole-dev-merge-fixes M2:
+# this test failed twice in CI on a missing last_sha that never reproduced locally).
+await_eq() {
+    local i
+    for ((i = 0; i < 300; i++)); do
+        [[ "$(cat "$1" 2>/dev/null)" == "$2" ]] && return 0  # why: the file may not exist yet
+        sleep 0.1
+    done
+    echo "timed out: $1 != $2; .codemem/refresh.log:" >&2
+    cat .codemem/refresh.log >&2 2>/dev/null || echo "(no refresh.log)" >&2  # why: report its absence instead
+    return 1
+}
+
 @test "after a commit both sidecars equal HEAD" {
     commit_change 2
     drain
     head=$(git rev-parse HEAD)
-    [ "$(cat .codemem/last_sha)" = "$head" ]
-    [ "$(cat graphify-out/.built_sha)" = "$head" ]
+    # why: drain can return before the detached worker is visible; wait on the outcome itself
+    await_eq .codemem/last_sha "$head"
+    await_eq graphify-out/.built_sha "$head"
 }
 
 @test "the hook returns at once while the worker is held" {

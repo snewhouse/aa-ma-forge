@@ -61,3 +61,5 @@
 [2026-10-16T09:30:03+01:00] STEP_COMPLETE — Sub-step 3.0 — handover E1-E7 re-run; <main> clean; M3 wt from origin/main 52f4fd3 (ancestor rc 0, upstream unset); M2 wt+branch removed (cherry 0 +); M2 COMPLETE 6963551/f8390c6; docs carry-in 4644eb7 (SDM 133/0, pytest 3136)
 [2026-10-16T09:42:46+01:00] RED — Sub-step 3.1 — test_stage_b_scope.bats not-ok=7 ok=8 (15 @tests; 4 guards pass pre-fix by design: AC5.2, AC5.4 x2, AC4.2); SDM+hooks 676 ok + 7 not-ok; commit 04e2fd9
 [2026-10-16T09:42:46+01:00] STEP_COMPLETE — Sub-step 3.1
+[2026-10-16T10:09:46+01:00] RED — Sub-step 3.2 — extra guard case (staged NEW out-of-scope file): probe showed restore --source=HEAD deletes it rc 0; test not-ok at porcelain '?? newstaged.txt'; commit c739bb8
+[2026-10-16T10:09:46+01:00] STEP_COMPLETE — Sub-step 3.2 — GREEN 21c57e9: bats SDM+hooks 684/0; b_scope 16/16; shellcheck 0 on extracted B + B-commit; pytest 3136 passed (after prompt-size fix 506→495); regen rc 0, golden/docs clean after commit; mutations: guard-delete + staged-set-assert both caught

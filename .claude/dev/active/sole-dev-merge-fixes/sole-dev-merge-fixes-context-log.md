@@ -192,3 +192,15 @@ _This log will be updated via context compaction as the task progresses._
 - M2 worktree and branch removed after `git cherry origin/main fix/sole-dev-merge-fixes-m2` showed 0 `+` lines (branch was at `c189f92`). The run-2 run dir and state file were backed up to `<scratch>` first.
 - Handover §9 Q1: the two run-2 C1 LOW prose fixes (`sdm_save` also refuses g/o-writable files and creates the file 600; re-answering E2 means re-running E1+E2 together) go in as a docs commit at 3.0, before the 3.1 RED (Ste: "Yes").
 - Gate parser note: a Result Log bullet `- Mode: HITL. …` is read as a second `Mode:` field (rc 2, "conflicting values"). Use `Mode: HITL — …`, as 2.0 does.
+
+## [2026-10-16] M3 3.2 deviations from plan §4 M3 (within spec F4 intent)
+- **Guard: a newly staged out-of-scope file is unstaged, never restored from HEAD.**
+  - Plan §4 M3 says tracked rows use `git restore --source=HEAD --staged --worktree`.
+  - Probed: on a staged path HEAD lacks (`A `), that command exits 0 and deletes the file.
+  - Spec F4.1's reason for leaving `??` rows alone ("it may be the operator's file") applies here too.
+  - So a path absent from HEAD is unstaged with `git restore --staged`, kept, and listed on the same "left unstaged" line as `??` rows.
+  - Test-first: RED `c739bb8`, GREEN `21c57e9`, mutation-checked.
+- **B-commit reads CHANGED_FILES from the state file (plan), not by recomputing from BASE_REF (spec F4.2).**
+  - The plan postdates M2's state file. With no CHANGED_FILES, nothing is in scope, so B-commit commits nothing and lists the dirty files.
+  - `tests/hooks/aa-ma-footer.bats` (2 tests, not in the M3 Contract file list) now feed `CHANGED_FILES=f.txt`, the same kind of input change M2 made for D at `:193`.
+- **SKILL.md prompt-size cap (500 lines, `tests/test_prompt_size.py`):** the new prose took the file to 506. It was tightened to 495 rather than moving inline Stage A/B detail into references/.

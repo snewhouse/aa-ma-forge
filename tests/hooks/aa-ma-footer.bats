@@ -172,7 +172,7 @@ _touch() {
     bash "$EXTRACT" stage-b-commit "$SKILL_MD" > "$BATS_TMP/b-commit.sh"
     echo z >> f.txt
 
-    run bash "$BATS_TMP/b-commit.sh"
+    CHANGED_FILES=f.txt run bash "$BATS_TMP/b-commit.sh"   # why: B-commit stages only Stage B's in-scope files (M3)
     [ "$status" -eq 0 ]
     [ "$(git log -1 --format=%B | sed '/^$/d' | tail -1)" = "[AA-MA Plan] solo .claude/dev/active/solo" ]
 }
@@ -182,7 +182,7 @@ _touch() {
     bash "$EXTRACT" stage-b-commit "$SKILL_MD" > "$BATS_TMP/b-commit.sh"
     echo z >> f.txt
 
-    run bash "$BATS_TMP/b-commit.sh"
+    CHANGED_FILES=f.txt run bash "$BATS_TMP/b-commit.sh"   # why: B-commit stages only Stage B's in-scope files (M3)
     [ "$status" -eq 0 ]
     [[ "$output" == *"aa-ma-footer.sh not found"* ]]
     [ "$(git log -1 --format=%B | sed '/^$/d' | tail -1)" = "[ad-hoc]" ]

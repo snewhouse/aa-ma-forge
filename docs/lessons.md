@@ -5,6 +5,13 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-056 (2026-10-16) — Started a milestone without collecting the work earlier reviews deferred to it
+**Pattern:** sole-dev-merge-fixes M3 was run from plan §4 M3 and tasks.md alone. TODOS.md:96-100 and context-log:160 had scheduled the `$CHANGED_*` word-splitting fix "for M3, which rewrites Stage B", but M3's RED and GREEN went in without it. The §6.8 security review flagged it again as a WARNING, which cost a second RED/GREEN round. It also turned out that the TODO's proposed fix (`-- "${arr[@]}"`) does not work for pre-commit (argparse exits on `--`), which only a probe showed.
+**Rule:** before a milestone's first RED, grep TODOS.md, context-log.md and the last impl-review.md for the milestone's id (`M3`, `Milestone 3`) and fold every deferred item into its RED list, or record why not. Probe each deferred item's proposed fix before writing its test.
+**Status:** applied from sole-dev-merge-fixes M3 (§6.8 remediation) on.
+
+---
+
 ## L-055 (2026-10-15) — Stage blocks pass values through env vars that separate Bash calls don't keep
 **Pattern:** `/sole-dev-merge` stage blocks hand values on through exported env vars (`CHANGED_PY`, `CHANGED_SH`, `SLUG`, `PR_NUM`, `ORIGINAL_BRANCH`). Claude runs each block as its own Bash call, and nothing carries over between calls. So Stage C found no `CHANGED_PY`/`CHANGED_SH` and silently skipped Ruff S and ShellCheck on every run. `SLUG` differed between C and D, and G4's `ORIGINAL_BRANCH:-feature` default could delete an unrelated branch. The smoke E2E chains the blocks with `set -a` in one shell, so it never saw the gap.
 **Rule:** A multi-block skill never relies on the env between blocks. Values go to a state file (written by the first stage, read by the others), and a required value with no source fails loud; it never defaults. A test runs a later block in a fresh shell with an empty env.
@@ -22,7 +29,11 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 ## L-053 (2026-10-15) — The L-007 guard misses staged and untracked out-of-scope files
 **Pattern:** Stage B's guard restores out-of-scope paths with `git checkout -- <path>`. That restores from the **index**, so an out-of-scope edit that is already staged survives with rc 0. On an untracked file, `checkout` exits 1 and the guard swallows it. B-commit's `git add -A` then sweeps both into the auto-fix commit. L-007's "resolved structurally" note (2026-05-18) was stale.
 **Rule:** restore tracked rows with `git restore --source=HEAD --staged --worktree`; list untracked rows, never delete them; stage exact in-scope paths and assert the staged set before committing.
-**Fixed in:** sole-dev-merge-fixes M3 — the guard and B-commit in `SKILL.md`. Restoring from HEAD a path HEAD lacks deletes it with rc 0 (probed), so a newly staged out-of-scope file is only unstaged, kept and listed. B-commit stages `CHANGED_FILES` ∩ dirty and aborts (rc 1, index reset) when anything else is staged. Tests: `test_stage_b_scope.bats` guard cases and AC4.1/4.2/4.4.
+**Fixed in:** sole-dev-merge-fixes M3 — the guard and B-commit in `SKILL.md`.
+- Restoring from HEAD a path HEAD lacks deletes it with rc 0 (probed), so a newly staged out-of-scope file is only unstaged, kept and listed.
+- The guard reads `git status --porcelain -z`, which gives raw names and rename sources. A C-quoted name never matched.
+- B-commit checks the staged set **before** staging. Anything outside `CHANGED_FILES` → rc 1, index untouched, even when nothing in scope is dirty. It then stages `CHANGED_FILES` ∩ dirty under literal pathspecs and re-checks.
+- Tests: `test_stage_b_scope.bats` guard cases and AC4.1/4.2/4.4.
 
 ---
 

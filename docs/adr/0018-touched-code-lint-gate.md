@@ -83,7 +83,9 @@ covered `*.sh`. 19 of 31 `.bats` files fail shellcheck today; that debt is known
 - `pre-commit run --all-files` is a backfill and is not part of any gate. With nothing staged
   and no refs, `check-conventions` exits 2 ("no diff source"): it needs a diff, not a file list.
   The same holds for `pre-commit run --files X` with nothing staged; stage the change or set
-  `PRE_COMMIT_FROM_REF`/`PRE_COMMIT_TO_REF`.
+  `PRE_COMMIT_FROM_REF`/`PRE_COMMIT_TO_REF`. `/sole-dev-merge` Stage B is that case, and
+  the skill now sets the refs (base to `HEAD`, in env, with `--files`), so check-conventions
+  checks the branch (sole-dev-merge-fixes M3, forge L-051).
 
 **Neutral:**
 - Touched `.sh` files are shellchecked twice on a PR: by the all-files `shellcheck` job and

@@ -22,7 +22,7 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 ## L-053 (2026-10-15) — The L-007 guard misses staged and untracked out-of-scope files
 **Pattern:** Stage B's guard restores out-of-scope paths with `git checkout -- <path>`. That restores from the **index**, so an out-of-scope edit that is already staged survives with rc 0. On an untracked file, `checkout` exits 1 and the guard swallows it. B-commit's `git add -A` then sweeps both into the auto-fix commit. L-007's "resolved structurally" note (2026-05-18) was stale.
 **Rule:** restore tracked rows with `git restore --source=HEAD --staged --worktree`; list untracked rows, never delete them; stage exact in-scope paths and assert the staged set before committing.
-**Status:** fix planned in sole-dev-merge-fixes M3.
+**Fixed in:** sole-dev-merge-fixes M3 — the guard and B-commit in `SKILL.md`. Restoring from HEAD a path HEAD lacks deletes it with rc 0 (probed), so a newly staged out-of-scope file is only unstaged, kept and listed. B-commit stages `CHANGED_FILES` ∩ dirty and aborts (rc 1, index reset) when anything else is staged. Tests: `test_stage_b_scope.bats` guard cases and AC4.1/4.2/4.4.
 
 ---
 
@@ -36,7 +36,7 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 ## L-051 (2026-10-15) — check-conventions exit 2 accepted as "by design" in every `/sole-dev-merge` run since 2026-10-08
 **Pattern:** Stage B ran `pre-commit run --files … || true`. With nothing staged and no refs, `check_conventions.py` exits 2 "no diff source" before checking anything. Every run logged it as "best-effort, by design", although ADR-0018 already named the fix (refs in `PRE_COMMIT_FROM_REF`/`TO_REF`).
 **Rule:** a step that cannot run is a bug, never best-effort (CONTEXT.md **Best-effort step**; global L-1351 rule 4). A best-effort step prints its rc where the operator sees it.
-**Status:** fix planned in sole-dev-merge-fixes M3.
+**Fixed in:** sole-dev-merge-fixes M3 — Stage B step 5 passes the branch range as `PRE_COMMIT_FROM_REF`/`PRE_COMMIT_TO_REF` with `--files` (ADR-0018), and steps 4–5 print `Stage B: pytest|pre-commit rc=N (best-effort)`. Tests: `test_stage_b_scope.bats` AC5.1–5.4 and Q8, with a logging `fixtures/bin/pre-commit` stub.
 
 ---
 

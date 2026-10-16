@@ -95,7 +95,7 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 ### sole-dev-merge: two inputs still split or defaulted (M2 §6.8 INFO)
 **What:**
-- `$CHANGED_PY`/`$CHANGED_SH` reach `ruff` and `shellcheck` unquoted (`stage-c-review-and-security.md`), and `$CHANGED_FILES` reaches `pre-commit run --files` the same way (SKILL.md Stage B). A committed name starting with `-` or containing spaces is split or read as an option. It mostly fails closed (scanner rc ≥ 2 → `NOT RUN [HIGH]`). Fix: `mapfile -t` into an array and pass `-- "${arr[@]}"`. Planned for M3, which rewrites Stage B.
+- ~~`$CHANGED_PY`/`$CHANGED_SH` reach `ruff` and `shellcheck` unquoted, and `$CHANGED_FILES` reaches `pre-commit run --files` the same way.~~ **Done in sole-dev-merge-fixes M3.** ruff and shellcheck get `-- "${arr[@]}"`. pre-commit gets `./`-prefixed names, because its argparse rejects `--` (probed).
 - `REMOTE_CHOICE="${REMOTE_CHOICE:-github}"` in E0, F and G1–G3 is a masking default (L-055 rule). G1 with a refused state file would save a strategy read from the wrong host. Fix: `${REMOTE_CHOICE:?}`. Planned for M4.
 
 **Why:** both predate M2 and are outside its key list; the §6.8 security and code reviews raised them as INFO. **Effort:** S · **Priority:** P3

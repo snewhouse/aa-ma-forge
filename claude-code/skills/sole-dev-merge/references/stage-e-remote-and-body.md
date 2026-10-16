@@ -18,8 +18,9 @@ name; the bash blocks below follow the execution order.
   `DUAL_REMOTE_PROMPT` signal + JSON for the Claude executor to dispatch
   `AskUserQuestion` with GitLab as default; neither github+gitlab → abort.
   Saves `REMOTE_CHOICE` to the stage state file. After the dual-remote
-  question, re-run E2 with `REMOTE_CHOICE=<answer>` so the answer is saved
-  (an explicit env value beats the default).
+  question, re-run E1 and E2 together (one Bash call) with
+  `REMOTE_CHOICE=<answer>` so the answer is saved (an explicit env value beats
+  the default).
 - **E0** (auth pre-flight) — `gh auth status` / `glab auth status` for the
   chosen remote; `STATUS: AUTH_REQUIRED — run <cli> auth login` on failure
   (clean exit 0 — auth recovery is a user action, not a script failure).
@@ -91,7 +92,7 @@ sdm_load() {
     done
 }
 [[ -f "$SDM_STATE" ]] && sdm_load
-sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
 # Inherits n_github / n_gitlab from Stage E1; defensive default when E2 is
 # run standalone (e.g. in a unit test).
@@ -159,7 +160,7 @@ sdm_load() {
     done
 }
 [[ -f "$SDM_STATE" ]] && sdm_load
-sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
 # Stage E2 sets REMOTE_CHOICE; defensive default to github so the auth check
 # fires somewhere even if E0 runs standalone.
@@ -209,7 +210,7 @@ sdm_load() {
     done
 }
 [[ -f "$SDM_STATE" ]] && sdm_load
-sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && [[ ! -O "$SDM_STATE" ]]; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink or not yours)"; return 1; fi; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"; }   # why: never write through a file the loader would refuse; base64 has no shell metacharacters, tr keeps one line
+sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
 BASE_REF="${BASE_REF:-main}"
 BODY_OUT="${BODY_OUT:-${SDM_DIR:?Stage E3 needs SDM_DIR from Stage A}/body.md}"

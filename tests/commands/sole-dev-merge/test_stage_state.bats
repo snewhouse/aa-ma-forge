@@ -332,6 +332,23 @@ seed_g() {
     [ "$(cat "$target")" = precious ]
 }
 
+@test "sdm_save refuses a group-writable state file and leaves it unchanged" {
+    local st before
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    st=$(state); chmod g+w "$st"; before=$(cat "$st")
+    run fresh bash "$(blk stage-b-scope)"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Stage state: refusing to save"* ]]
+    [ "$(cat "$st")" = "$before" ]
+}
+
+@test "sdm_save creates a missing state file as 600 whatever the caller's umask" {
+    umask 022
+    run fresh BASE_REF=main bash "$(blk stage-b-scope)"
+    [ "$status" -eq 0 ]
+    [ "$(stat -c %a "$(state)")" = 600 ]
+}
+
 @test "A removes earlier run dirs (a symlinked one as a link only) and starts a fresh 700 dir" {
     local gd outside
     gd=$(git rev-parse --absolute-git-dir); outside="${SCRIPT_DIR}/outside"

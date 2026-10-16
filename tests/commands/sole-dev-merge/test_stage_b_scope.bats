@@ -430,6 +430,36 @@ PY
     [ "$(git diff --cached --name-only)" = out.txt ]
 }
 
+@test "B-commit with no CHANGED_FILES (no state file) ABORTs instead of committing nothing" {
+    # why: L-055 — a required value with no source fails loud; '${CHANGED_FILES:-}' hid Stage B's fixes
+    b_sandbox
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    fresh bash "$(blk stage-b-scope)" >/dev/null
+    rm -f "$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"
+    [ -n "$(git status --porcelain -- app.py)" ]    # why: non-vacuous — B's fix is waiting
+    BEFORE=$(git rev-parse HEAD)
+    run fresh bash "$(blk stage-b-commit)"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage B-commit needs CHANGED_FILES (run Stage B first)"* ]]
+    [ "$(git rev-parse HEAD)" = "$BEFORE" ]
+}
+
+@test "B-commit: a staged out-of-scope deletion paired by rename detection still ABORTs" {
+    # why: with renames on, --name-only names only the destination, hiding the deleted source
+    MAIN_EXTRA='gone.txt' b_sandbox
+    git rm -q gone.txt && mkcommit "feat: drop gone"    # gone.txt is in scope (deleted by the branch)
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    fresh bash "$(blk stage-b-scope)" >/dev/null
+    git rm -q out.txt
+    echo keep > gone.txt && git add gone.txt    # same content as out.txt → staged as a rename
+    [[ "$(git status --porcelain)" == *"R  out.txt -> gone.txt"* ]]    # why: non-vacuous — git pairs them
+    BEFORE=$(git rev-parse HEAD)
+    run fresh bash "$(blk stage-b-commit)"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage B-commit staged files outside the intended list: out.txt"* ]]
+    [ "$(git rev-parse HEAD)" = "$BEFORE" ]
+}
+
 @test "B-commit: an in-scope file whose staged change was undone is not an ABORT" {
     b_sandbox
     fresh bash "$(blk stage-a-preflight)" >/dev/null

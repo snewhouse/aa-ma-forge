@@ -529,13 +529,31 @@ Conventions used in the criteria:
   - **Plan vs spec:** spec F4.2 has B-commit recompute `CHANGED_FILES` from `BASE_REF`. Plan §4 M3 3.2 (written after M2's state file) reads it from the state file. The tests follow the plan, running A → B → B-commit in fresh shells.
 
 ### Sub-step 3.2: GREEN — Stage B steps 4-5, guard, B-commit
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 3.1
 - Acceptance Criteria:
   - `bats --tap SDM` gives 0 not-ok, and shellcheck on the extracted B and B-commit exits 0.
   - `scripts/regen-generated.sh` exits 0, and `git status --porcelain tests/golden docs/architecture` is empty after commit.
 - Result Log:
+  - Mode: AFK — auto-dispatched. GREEN commit `21c57e9` (explicit pathspec; staged set checked: `M SKILL.md`, `M tests/hooks/aa-ma-footer.bats`).
+  - **Extra RED first** `c739bb8`: guard case "staged NEW out-of-scope file is unstaged, kept and listed".
+    - Probe (`<scratch>/probe-restore.sh`): `git restore --source=HEAD --staged --worktree` on a staged path HEAD lacks gives **rc 0 and the file deleted**. On a `??` path it gives rc 1 with "pathspec did not match".
+    - Plan §4 M3's guard line would have deleted an operator's newly staged file. The new test failed at `status = "?? newstaged.txt"`. See CL.
+  - **SKILL.md, via single-match Edits:**
+    - Step 4 `|| PYTEST_RC=$?` plus `Stage B: pytest rc=N (best-effort)`.
+    - Step 5 `PRE_COMMIT_FROM_REF="$BASE_REF" PRE_COMMIT_TO_REF=HEAD pre-commit run --files … || PC_RC=$?` plus the rc line.
+    - Guard: `??` → listed; not in HEAD → `restore --staged` only, listed; tracked → `restore --source=HEAD --staged --worktree`. Each failure prints a line.
+    - B-commit: `INTENDED` = CHANGED_FILES ∩ dirty, then `git add -- …` and the staged-set assert (`git reset -q`, `ABORT: …`, exit 1). Out-of-scope dirt is listed.
+    - Prose says what each check sees. The exit-status table gains the B-commit ABORT row, and the contract reads "(Stages A, B-commit, E2, F)".
+  - **Milestone greps:** `--from-ref` **0**; `PRE_COMMIT_FROM_REF="\$BASE_REF"` **1**; `Stage B: (pytest|pre-commit) rc=` **3**; `git add -A` **0**. `test_stage_b_scope.bats` has **16** @tests.
+  - **AC1:** `bats --tap SDM tests/hooks` → **684 ok / 0 not-ok** (672 + 12). `test_stage_b_scope.bats` 16/16. shellcheck rc **0** on the extracted `stage-b-scope` and `stage-b-commit`.
+  - **AC2:** regen rc **0**. Its only diff was the `generated … @ <sha> on <date>` header in 4 `docs/architecture` files (non-header diff lines = 0), which was restored. `tests/golden` was unchanged. After commit, `git status --porcelain tests/golden docs/architecture` gives **0** lines.
+  - **pytest:** the first run had **1 failure**: `tests/test_prompt_size.py` "SKILL.md: 506 lines > cap 500". The new prose was tightened, not moved, and SKILL.md is now **495**. Re-run: **3136 passed**.
+  - **Mutations (L-045), each reverted:**
+    - guard's not-in-HEAD branch → full restore: the staged-NEW test FAILs at `cat newstaged.txt` (deleted);
+    - staged-set assert disabled: AC4.4 FAILs at `status -eq 1`.
+  - **Impact deviation:** `tests/hooks/aa-ma-footer.bats` (2 B-commit footer tests) now pass `CHANGED_FILES=f.txt`. B-commit stages only Stage B's files, and those tests run it alone. Checked empirically: without the input, the `[ad-hoc]` test FAILs because no commit is made. `commit-signature.bats:228` (literal `FOOTER=$(emit_aa_ma_footer)` / `-m "…${FOOTER}"`) is untouched and passes.
 
 ### Sub-step 3.3: Docs, verify, gate, merge with the fixed skill
 - Status: PENDING

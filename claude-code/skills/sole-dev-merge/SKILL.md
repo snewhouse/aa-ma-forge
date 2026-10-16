@@ -408,9 +408,11 @@ fi
 
 # In scope = CHANGED_FILES (Stage B, raw names); never the whole tree (L-007, L-048).
 export GIT_LITERAL_PATHSPECS=1   # why: a name like '*' is a file, never a pattern
+[[ -v CHANGED_FILES ]] || { echo "ABORT: Stage B-commit needs CHANGED_FILES (run Stage B first)"; exit 1; }   # why: L-055, never default to "nothing in scope"
 declare -A IN_SCOPE=()
-while IFS= read -r f; do [[ -z "$f" ]] || IN_SCOPE["$f"]=1; done <<< "${CHANGED_FILES:-}"
-staged_outside() { local f; while IFS= read -r -d '' f; do [[ -n "${IN_SCOPE[$f]:-}" ]] || printf '%s ' "$f"; done < <(git diff --cached --name-only -z); }
+while IFS= read -r f; do [[ -z "$f" ]] || IN_SCOPE["$f"]=1; done <<< "$CHANGED_FILES"
+# why: --no-renames — with renames on, --name-only names only a rename's destination, hiding a staged deletion
+staged_outside() { local f; while IFS= read -r -d '' f; do [[ -n "${IN_SCOPE[$f]:-}" ]] || printf '%s ' "$f"; done < <(git diff --cached --no-renames --name-only -z); }
 
 # why: checked before staging anything, so an abort leaves the operator's index exactly as it was
 OUTSIDE=$(staged_outside)

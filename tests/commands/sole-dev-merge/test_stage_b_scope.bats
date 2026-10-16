@@ -315,6 +315,19 @@ PY
     [[ "$output" == *"L-007 guard: untracked out-of-scope file(s) left unstaged: stray.txt"* ]]
 }
 
+@test "L-007 guard unstages a staged NEW out-of-scope file but never deletes it" {
+    # why: restore --source=HEAD on a path HEAD lacks deletes the file with rc 0 (probed)
+    b_sandbox
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    echo operator > newstaged.txt
+    git add newstaged.txt
+    run fresh bash "$(blk stage-b-scope)"
+    [ "$status" -eq 0 ]
+    [ "$(cat newstaged.txt)" = operator ]
+    [ "$(git status --porcelain -- newstaged.txt)" = "?? newstaged.txt" ]
+    [[ "$output" == *"L-007 guard: untracked out-of-scope file(s) left unstaged: newstaged.txt"* ]]
+}
+
 # --- B-commit: only in-scope paths, staged-set assert (spec F4.2-F4.4) --------
 
 @test "AC4.1: B-commit leaves an untracked out-of-scope file out of the commit and on disk" {

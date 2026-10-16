@@ -56,3 +56,4 @@
 [2026-10-16T06:57:06+01:00] TRIAGE — MEDIUM sdm_save refusal gap applied (Ste): RED 22183e3 (2 not ok) → GREEN fa98510; SDM 133/0, bats 672/0, pytest 3136; 2 LOW prose fixed, 2 LOW accepted; scanned-files AC → M3 3.3 (Ste)
 [2026-10-16T07:00:50+01:00] TESTS_VERIFIED — Milestone 2: Stage state file — passed=672 cmd=bats --tap tests/commands/sole-dev-merge tests/hooks
 [2026-10-16T09:24:51+01:00] STEP_COMPLETE — Sub-step 2.3 — recorded at 3.0: post-merge G3 MERGE_DISPATCHED=1 / G4 STATUS: OK; ls-remote m2 0 bytes rc 2; PR 43 MERGED 52f4fd3, checks 9/9; scanned-files AC N/A (0 py/0 sh) → M3 3.3
+[2026-10-16T09:25:09+01:00] MILESTONE COMPLETE — Milestone 2: Stage state file — Commit: 6963551 — Criteria: 8/8 verified (7 pre-merge at GATE APPROVAL + [post-merge] at 3.0)

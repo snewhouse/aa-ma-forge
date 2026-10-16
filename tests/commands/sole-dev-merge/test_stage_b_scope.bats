@@ -353,7 +353,7 @@ PY
     [ "$status" -eq 0 ]
     [ "$(cat out.txt)" = keep ]
     [ "$(cat moved.txt)" = keep ]
-    [ "$(git status --porcelain)" = "?? moved.txt" ]
+    [ "$(git status --porcelain -- out.txt moved.txt)" = "?? moved.txt" ]   # why: app.py is dirty with B's in-scope ruff fix
     [[ "$output" == *"left unstaged: moved.txt"* ]]
 }
 

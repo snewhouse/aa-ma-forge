@@ -215,3 +215,18 @@ _This log will be updated via context compaction as the task progresses._
 - **`GIT_LITERAL_PATHSPECS=1`** adopted (INFO). Set after Stage B's pytest/pre-commit so the user's tests and hooks keep git globs.
 - **W5 was already scheduled for M3** (TODOS:98, CL :160) and missed at 3.1. That miss is lesson L-056.
   - The TODO's `-- "${arr[@]}"` works for ruff and shellcheck, but not for pre-commit (argparse rc 1, probed), which gets `./`-prefixed names instead.
+
+## [2026-10-16] GATE APPROVAL: Milestone 3: Stage B scoped commit, guard, check-conventions refs
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion, "Approve + live merge")
+- Criteria verified: 7/7 pre-merge:
+  - SKILL.md greps: `--from-ref` 0, `PRE_COMMIT_FROM_REF="$BASE_REF"` 1, rc lines 3, `git add -A` 0;
+  - `test_stage_b_scope.bats` 23 @tests, 0 not-ok (c_dispatch 8/8);
+  - privacy 0/0 (AA-MA files and `git diff origin/main..HEAD`);
+  - IMPACT_ANALYSIS (with addendum) and CRITICAL_PATH_REVIEW in PL;
+  - 3.3 docs: ADR-0018 phrase, L-051/L-053 "Fixed in", 1 CHANGELOG bullet;
+  - fence 3 `TESTS_VERIFIED passed=692` at 17cb01f..19b6a8d, pytest 3136 passed;
+  - §6.8 PASS_WITH_WARNINGS, all 6 WARNINGs fixed test-first.
+- Recorded during the live run: the PR's own Stage B `check_conventions` line (milestone AC 3).
+- The Stage C scanned-files AC carries to the next PR that changes `.py`/`.sh`, since this one changes neither. Fence 1 and the COMPLETE flip happen at 4.0 (L-037).
+- Decision: APPROVED

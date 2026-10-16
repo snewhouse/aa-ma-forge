@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# pre-commit — PATH-shadowed stub for sole-dev-merge bats tests.
+#
+# Logs its argv and both diff-range env vars as one line to "$CLI_LOG", so a
+# test can assert what Stage B step 5 passed (plan §4 M3, spec F5 AC5.1-5.4).
+#   PRE_COMMIT_RC=0 — exit code to return.
+echo "pre-commit $* FROM=${PRE_COMMIT_FROM_REF:-} TO=${PRE_COMMIT_TO_REF:-}" >> "${CLI_LOG:-/dev/null}"
+exit "${PRE_COMMIT_RC:-0}"

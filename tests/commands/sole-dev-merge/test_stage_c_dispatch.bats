@@ -114,6 +114,32 @@ EOF
         "${SDM_DIR}/findings.md"
 }
 
+@test "C3/C4 pass each changed file as one argument after --, never as an option" {
+    # why: a committed '-x.py' or 'sp ace.py' was word-split or read as a flag (TODOS, M3)
+    cd "$BATS_TMP"
+    sandbox_init
+    echo init > a.txt && git add a.txt
+    mkcommit "init"
+    git checkout -q -b feature
+    mkcommit "feat: empty"
+
+    local s
+    for s in ruff shellcheck; do
+        printf '#!/bin/bash\nprintf "<%%s>" "$@" > "%s/%s.argv"\necho "[]"\n' "$SCRIPT_DIR" "$s" > "${SCRIPT_DIR}/argv-$s"
+        chmod +x "${SCRIPT_DIR}/argv-$s"
+    done
+    : > "${SDM_DIR}/review.md"
+    : > "${SDM_DIR}/security.md"
+
+    RUFF_BIN="${SCRIPT_DIR}/argv-ruff" SHELLCHECK_BIN="${SCRIPT_DIR}/argv-shellcheck" \
+        BASE_REF=main DEFAULT_BRANCH=main \
+        CHANGED_PY=$'-x.py\nsp ace.py' CHANGED_SH='-y.sh' run bash "$SC_SCRIPT"
+    [ "$status" -eq 0 ]
+    echo "ruff argv: $(cat "${SCRIPT_DIR}/ruff.argv")  shellcheck argv: $(cat "${SCRIPT_DIR}/shellcheck.argv")"   # why: shown on failure
+    [ "$(cat "${SCRIPT_DIR}/ruff.argv")" = '<check><--select><S><--output-format><json><--><-x.py><sp ace.py>' ]
+    [ "$(cat "${SCRIPT_DIR}/shellcheck.argv")" = '<-f><json><--><-y.sh>' ]
+}
+
 @test "C3 maps Ruff codes through RUFF_SEV_JSON; an unmapped code is [HIGH]" {
     # A stub scanner emitting a fixed Ruff-shaped report pins the mapping
     # itself, independent of which rules a given ruff release fires.

@@ -211,9 +211,16 @@ Computes `CHANGED_FILES = git diff --name-only ${BASE_REF}...HEAD` (triple-dot
 symmetric difference — only files this branch introduced); splits into
 `CHANGED_PY` / `CHANGED_SH`. Runs `ruff format` / `ruff check --fix` against
 in-scope `*.py` only (NOT whole-tree — that's the L-007 fix). Best-effort
-`mypy` / `pytest -m "not perf and not slow"` / `pre-commit run --files` only
-when their config artefacts exist. After all mutations, the **L-007 guard**
-reverts any dirty file NOT in `$CHANGED_FILES` via `git checkout --`.
+`mypy` / `pytest -m "not perf and not slow"` / `pre-commit run --files` run
+only when their config artefacts exist; best-effort means each prints its rc
+(`Stage B: pytest rc=N (best-effort)`) and a non-zero rc never stops the skill.
+ruff, mypy, pytest and pre-commit's file hooks see the working tree, ruff's
+unstaged fixes included. pre-commit gets the branch range in its env
+(`PRE_COMMIT_FROM_REF`/`PRE_COMMIT_TO_REF`, ADR-0018), never as flags (those
+stash the fixes), so check-conventions checks the committed lines base..HEAD.
+Then the **L-007 guard** restores any out-of-scope tracked file to HEAD (index
+and working tree). A file HEAD lacks (untracked, or newly staged) is never
+deleted: it is unstaged if needed, left in place, and listed.
 
 ```bash
 # === stage-b-scope (BEGIN) ===
@@ -284,38 +291,54 @@ if [[ -f pyproject.toml ]] && grep -q '^\[tool\.mypy\]' pyproject.toml; then
     uv run mypy src/ 2>&1 || true
 fi
 
-# 4. Pytest fast tier (best-effort, only when tests/ exists)
+# 4. Pytest fast tier (best-effort, only when tests/ exists): the rc is printed, never hidden
 if [[ -d tests ]]; then
-    uv run pytest -m "not perf and not slow" || true
+    PYTEST_RC=0
+    uv run pytest -m "not perf and not slow" || PYTEST_RC=$?
+    echo "Stage B: pytest rc=$PYTEST_RC (best-effort)"
 fi
 
-# 5. Pre-commit (only when configured; in-scope files only)
+# 5. Pre-commit (only when configured; in-scope files only). The range goes in env, not
+# as flags: flags make pre-commit stash ruff's unstaged fixes (ADR-0018).
 if [[ -f .pre-commit-config.yaml && -n "$CHANGED_FILES" ]]; then
+    PC_RC=0
     # shellcheck disable=SC2086  # Intentional word-splitting for multi-file arg
-    pre-commit run --files $CHANGED_FILES || true
+    PRE_COMMIT_FROM_REF="$BASE_REF" PRE_COMMIT_TO_REF=HEAD pre-commit run --files $CHANGED_FILES || PC_RC=$?
+    echo "Stage B: pre-commit rc=$PC_RC (best-effort)"
 fi
 
-# 6. L-007 GUARD — revert any out-of-scope mutations introduced by 1-5
+# 6. L-007 GUARD — undo out-of-scope changes made by 1-5; never delete a file HEAD lacks
 declare -A IN_SCOPE=()
 while IFS= read -r f; do
     [[ -n "$f" ]] && IN_SCOPE["$f"]=1
 done <<< "$CHANGED_FILES"
 
 REVERTED=()
+LEFT=()
 while IFS= read -r line; do
     [[ -z "$line" ]] && continue
     # porcelain row: "XY path" where XY is 2-char status + space; strip the 3-char prefix
     path="${line:3}"
-    if [[ -z "${IN_SCOPE[$path]:-}" ]]; then
-        if git checkout -- "$path" 2>/dev/null; then
-            REVERTED+=("$path")
-        fi
+    [[ -n "${IN_SCOPE[$path]:-}" ]] && continue
+    if [[ "${line:0:2}" == "??" ]]; then
+        LEFT+=("$path")   # why: an untracked file may be the operator's; never delete it
+    elif ! git cat-file -e "HEAD:$path" 2>/dev/null; then   # why: 2>/dev/null — "not in HEAD" is the answer, not an error
+        # why: restoring a path HEAD lacks deletes it (rc 0); unstage only and keep the file
+        if git restore --staged -- "$path"; then LEFT+=("$path"); else echo "L-007 guard: could not unstage $path"; fi
+    elif git restore --source=HEAD --staged --worktree -- "$path"; then
+        REVERTED+=("$path")   # why: --staged too — checkout -- restores from the index, so a staged edit survived
+    else
+        echo "L-007 guard: could not restore $path to HEAD"
     fi
 done < <(git status --porcelain)
 
 if [[ ${#REVERTED[@]} -gt 0 ]]; then
     echo "L-007 guard: reverted ${#REVERTED[@]} out-of-scope file(s): ${REVERTED[*]}"
-else
+fi
+if [[ ${#LEFT[@]} -gt 0 ]]; then
+    echo "L-007 guard: untracked out-of-scope file(s) left unstaged: ${LEFT[*]}"
+fi
+if [[ ${#REVERTED[@]} -eq 0 && ${#LEFT[@]} -eq 0 ]]; then
     echo "L-007 guard: clean (no out-of-scope drift)"
 fi
 
@@ -325,10 +348,12 @@ echo "Stage B OK"
 
 ### Stage B-commit — Auto-commit in-scope fixes
 
-If Stage B mutated in-scope files, commits as
-`chore(scope): pre-PR auto-fixes`. The `aa-ma-commit-signature.sh` hook
-appends the active-plan footer (`[AA-MA Plan] …`) or `[ad-hoc]` automatically.
-If `git status` is clean, this stage is a no-op.
+Commits Stage B's in-scope fixes as `chore(scope): pre-PR auto-fixes`, with the
+active-plan footer (`aa-ma-footer.sh`) or `[ad-hoc]`. It stages only the
+branch's own dirty files (`CHANGED_FILES`, from the state file) and lists any
+other dirty file, leaving it alone. If the staged set then differs from that
+list, it resets the index and exits 1 with `ABORT: Stage B-commit staged files
+outside the intended list: …`. No dirty in-scope file → no-op.
 
 ```bash
 # === stage-b-commit (BEGIN) ===
@@ -385,12 +410,27 @@ else
 fi
 # footer-resolve:end
 
-# Post-Stage-B + L-007 guard: anything dirty here is in-scope and was
-# mutated by ruff/pre-commit on files the branch actually owns.
-if [[ -z "$(git status --porcelain)" ]]; then
+# In scope = the branch's own files (CHANGED_FILES, saved by Stage B) that are dirty now.
+# Never stage the whole tree: an operator's file outside that list stays out (L-007, L-048).
+INTENDED=()
+while IFS= read -r f; do
+    if [[ -n "$f" && -n "$(git status --porcelain -- "$f")" ]]; then INTENDED+=("$f"); fi
+done <<< "${CHANGED_FILES:-}"
+
+if [[ ${#INTENDED[@]} -eq 0 ]]; then
     echo "Stage B-commit: nothing to commit (Stage B made no in-scope changes)"
+    if [[ -n "$(git status --porcelain)" ]]; then
+        echo "Stage B-commit: out-of-scope file(s) left as they are: $(git status --porcelain | cut -c4- | tr '\n' ' ')"
+    fi
 else
-    git add -A
+    git add -- "${INTENDED[@]}"
+    WANTED=$(printf '%s\n' "${INTENDED[@]}" | sort)
+    STAGED=$(git diff --cached --name-only | sort)
+    if [[ "$STAGED" != "$WANTED" ]]; then
+        git reset -q   # why: nothing half-staged survives the abort
+        echo "ABORT: Stage B-commit staged files outside the intended list: $(comm -23 <(printf '%s\n' "$STAGED") <(printf '%s\n' "$WANTED") | tr '\n' ' ')"
+        exit 1
+    fi
     FOOTER=$(emit_aa_ma_footer)
     git commit -m "chore(scope): pre-PR auto-fixes${FOOTER}"
     echo "Stage B-commit: committed in-scope auto-fixes ($(git rev-parse --short HEAD))"
@@ -428,6 +468,7 @@ See [stage-g-merge.md](references/stage-g-merge.md#stage-g--ci-poll--auto-merge-
 |-------------------|------------------------------------------------------|
 | `STATUS: OK`      | Merged to main; branch deleted; main fast-forwarded (Stage G4). |
 | `ABORT: …` (Stage A)   | Pre-flight failure: on-main, dirty tree, no remote, no commits ahead; exit non-zero. |
+| `ABORT: Stage B-commit staged files outside the intended list: …` (Stage B-commit) | Something outside the branch's files was staged; the index is reset and nothing is committed; exit 1. |
 | `ABORT: only github.com and gitlab.com remotes supported` (Stage E2) | Remote configuration unsupportable (zero github + zero gitlab remotes — semantically a pre-flight gate); exit non-zero. |
 | `ABORT: Stage F requires non-empty body file …` (Stage F) | Stage E3 skipped or body file empty; exit non-zero. |
 | `STATUS: AUTH_REQUIRED` | Auth failed (Stage E0); exit 0 + recovery hint.  |
@@ -436,7 +477,7 @@ See [stage-g-merge.md](references/stage-g-merge.md#stage-g--ci-poll--auto-merge-
 | `STATUS: CI_BLOCKED — pipeline status=<state> — see <URL>` | GitLab pipeline state is `manual` or `skipped` (Stage G2); exit 0 + diagnostic. No merge dispatched. |
 | `STATUS: CI_UNKNOWN — CI_STATE='<state>' REMOTE_CHOICE='<remote>'` | Stage G2 produced an unknown CI_STATE (Stage G3 catchall); exit 0. No merge dispatched. |
 
-Non-zero exits are reserved for **pre-flight-class aborts** (Stages A, E2, F).
+Non-zero exits are reserved for **pre-flight-class aborts** (Stages A, B-commit, E2, F).
 All runtime failures (auth, CI, merge race) exit cleanly with a `STATUS: …`
 line so the workflow is safe to run unattended.
 

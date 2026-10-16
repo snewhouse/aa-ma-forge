@@ -453,7 +453,7 @@ Conventions used in the criteria:
   - **Scanned-files AC:** not applicable to PR #43. Its decoded `CHANGED_PY`/`CHANGED_SH` are empty (0 `.py`, 0 `.sh`). Moved to M3 3.3 (Ste, CL 2026-10-16).
 
 ## Milestone 3: Stage B scoped commit, guard, check-conventions refs
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 2
 - Complexity: 55%
 - Effort: 1 day
@@ -472,6 +472,7 @@ Conventions used in the criteria:
   - The privacy check gives 0 / 0.
   - PL has the IMPACT_ANALYSIS and CRITICAL_PATH_REVIEW lines for Milestone 3; CL has the GATE APPROVAL.
 - Result Log:
+  - Merged as PR #44 (rebase, `07a8b45`) through two live `/sole-dev-merge` runs on the branch's own blocks. SKILL.md greps `--from-ref` 0 / `PRE_COMMIT_FROM_REF="$BASE_REF"` 1 / rc lines 3 / `git add -A` 0; `test_stage_b_scope.bats` 0 not-ok; live Stage B `check_conventions … Passed`, `no diff source` 0; privacy 0/0; PL + CL lines present. Detail in 3.3.
 
 ### Sub-step 3.0: Post-merge of M2
 - Status: COMPLETE
@@ -556,7 +557,7 @@ Conventions used in the criteria:
   - **Impact deviation:** `tests/hooks/aa-ma-footer.bats` (2 B-commit footer tests) now pass `CHANGED_FILES=f.txt`. B-commit stages only Stage B's files, and those tests run it alone. Checked empirically: without the input, the `[ad-hoc]` test FAILs because no commit is made. `commit-signature.bats:228` (literal `FOOTER=$(emit_aa_ma_footer)` / `-m "…${FOOTER}"`) is untouched and passes.
 
 ### Sub-step 3.3: Docs, verify, gate, merge with the fixed skill
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 3.2
 - Acceptance Criteria:
@@ -565,6 +566,14 @@ Conventions used in the criteria:
   - PL has `IMPACT_ANALYSIS — Milestone 3:` and `CRITICAL_PATH_REVIEW — Milestone 3:`; CL has `GATE APPROVAL: Milestone 3`. The live Stage B line is quoted (milestone AC 3).
   - (Moved from M2 2.3, Ste.) If the M3 PR changes any `.py` or `.sh` file, the Result Log quotes the live `Stage C scanned: Ruff S n file(s), ShellCheck m file(s)` line with n or m ≥ 1. If it changes neither, this carries to the next PR that does.
 - Result Log:
+  - Mode: HITL — recorded at Sub-step 4.0 on the M4 branch (L-037). PR #44 was rebase-merged (22 commits, `52f4fd3..07a8b45`), so pre-rebase SHAs are cited; map them by subject with `git log --format='%h %s' 52f4fd3..origin/main`.
+  - **Docs** (checked on the M4 branch at `07a8b45`): `grep -c 'the skill now sets the refs' docs/adr/0018-touched-code-lint-gate.md` = **1**; L-051 and L-053 each have **1** "Fixed in" line; CHANGELOG has the Stage B bullet (`/sole-dev-merge` Stage B: check-conventions exited 2 …).
+  - **Gate:** PL has `IMPACT_ANALYSIS — Milestone 3: HIGH=0 unresolved` (+ addendum after §6.8) and `CRITICAL_PATH_REVIEW — Milestone 3:`. CL has `GATE APPROVAL: Milestone 3` (7/7 pre-merge). Fence 3: `TESTS_VERIFIED passed=684`, then 692 after the §6.8 remediation, then **694** at `bc2b9d5`. pytest 3136 passed. §6.8 PASS_WITH_WARNINGS, 0C/6W/12I; all 6 WARNINGs fixed test-first (RED `6b9212d` → GREEN `10845fe`). Fence 2 n/a. Fence 1 was BLOCKED pre-merge by design (3.3 is the merge step) and is re-run at 4.0.
+  - **Live run 1** (from `6e952f6`): A OK. **B: `check_conventions (added lines only)…Passed`; `grep -c 'no diff source'` = 0.** `Stage B: pytest rc=0 (best-effort)`, `Stage B: pre-commit rc=0 (best-effort)`, guard clean. B-commit no-op. C: `Ruff S 0 file(s), ShellCheck 0 file(s)`. D: 0C/0H/**1M**/6L. The MEDIUM (B-commit `${CHANGED_FILES:-}` masking default, L-055) was applied (Ste) with LOW `--no-renames` in `staged_outside`: RED `d9c43be` → GREEN `bc2b9d5`. The merge restarted.
+  - **Live run 2** (from `1a122b7`): A OK (22 ahead). **B: `check_conventions … Passed`; `no diff source` 0**; pytest rc 0, pre-commit rc 0, guard clean. B-commit no-op. C: Ruff S 0 / ShellCheck 0. D: 0C/0H/0M/6L → reviewer notes. E1+E2 in one call → `REMOTE_CHOICE=github`; E0 OK; E3 body 44 lines, privacy 0/0. F: PR #44; title fixed with `gh api -X PATCH …/pulls/44 -f title=…` (cosmetic, as M2). G1 `MERGE_STRATEGY=rebase`; G2 `CI_STATE=green` (9/9).
+  - **`[post-merge]`:** G3 `MERGE_DISPATCHED=1` / `Stage G3: merged 44 (strategy=rebase)`. G4 (Ste, `!`): `Stage G4: cleanup done — main at 07a8b45 worktree=<wt>` … `STATUS: OK worktree=<wt>`. Decoded state file: `PR_NUM=44 MERGE_STRATEGY=rebase REMOTE_CHOICE=github MERGE_DISPATCHED=1`. No manual merge steps.
+  - **Re-run at 4.0** (from `<main>`): `gh pr view 44` → `MERGED 07a8b45`; `git ls-remote origin refs/heads/fix/sole-dev-merge-fixes-m3 | wc -c` = **0**, `--exit-code` rc **2**; `<main>` HEAD = origin/main = `07a8b45`; `<main>` tracked changes **0**; `git cherry origin/main fix/sole-dev-merge-fixes-m3` = 22 `-`, **0 `+`**, then the M3 worktree and branch were removed (rc 0, branch was `1a122b7`).
+  - **Scanned-files AC:** N/A — PR #44 changed no `.py`/`.sh`. Carries to the next PR that does, by the AC's own wording.
 
 ## Milestone 4: Stage F REST body update, small fixes, docs drift
 - Status: PENDING

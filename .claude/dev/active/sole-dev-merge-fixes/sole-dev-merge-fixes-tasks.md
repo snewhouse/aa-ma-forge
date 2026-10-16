@@ -498,6 +498,7 @@ Conventions used in the criteria:
   - `grep -c 'the skill now sets the refs' docs/adr/0018-touched-code-lint-gate.md` = 1.
   - L-051 and L-053 have "Fixed in" lines, and there is 1 CHANGELOG bullet.
   - PL has `IMPACT_ANALYSIS — Milestone 3:` and `CRITICAL_PATH_REVIEW — Milestone 3:`; CL has `GATE APPROVAL: Milestone 3`. The live Stage B line is quoted (milestone AC 3).
+  - (Moved from M2 2.3, Ste.) If the M3 PR changes any `.py` or `.sh` file, the Result Log quotes the live `Stage C scanned: Ruff S n file(s), ShellCheck m file(s)` line with n or m ≥ 1. If it changes neither, this carries to the next PR that does.
 - Result Log:
 
 ## Milestone 4: Stage F REST body update, small fixes, docs drift

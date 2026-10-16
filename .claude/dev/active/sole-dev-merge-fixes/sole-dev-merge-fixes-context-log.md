@@ -173,3 +173,16 @@ _This log will be updated via context compaction as the task progresses._
 - The `[post-merge]` criterion is recorded at Sub-step 3.0 (L-037).
 - Decision: APPROVED
 
+## [2026-10-16] Live merge run 1 (2.3): Stage C/D triage — Ste
+- The run used this branch's M2 blocks, each in its own Bash call, from `a589249`.
+  - A, B and B-commit were OK. B's check-conventions still exits 2 "no diff source" (L-051; M3 fixes it).
+  - C1 and C2 wrote `review.md`/`security.md` into `<git-dir>/sdm-<slug>/` with plain bash: no permission stall (closes the §6.8 INFO).
+  - A fresh-shell D read C's findings through the state file: `0 CRITICAL, 0 HIGH, 1 MEDIUM, 4 LOW`.
+- **MEDIUM** (C1): `sdm_save` checked only symlink/owner, so it appended to a g/o-writable file the loader refuses, and created a missing file under the caller's umask. **Applied** (Ste): RED 22183e3, then GREEN. `sdm_save` refuses exactly what the loader refuses and creates the file 600 (in all 13 copies). A's separate `umask 077` subshell became redundant and is gone.
+- **LOWs:**
+  - two prose fixes applied: the A "exports" sentence; "re-run E1 and E2 together";
+  - B–G outside a repo give git's raw `fatal:` (rc 128): accepted, because A already aborts there first;
+  - `SDM_DIR` is not re-checked after A (C2): it needs a co-tenant with git-dir write, the plan's residual. Left as advisory in the PR body.
+- **2.3 AC (Stage C scanned ≥1 file each): N/A for this PR** (Ste). It changes no `.py`/`.sh`, and the live line read `Stage C scanned: Ruff S 0 file(s), ShellCheck 0 file(s)`. The empty-env bats case proves C receives B's files. The live ≥1 check moved to M3 3.3.
+- After the fix the merge restarts from Stage A, with a fresh state file and run dir.
+

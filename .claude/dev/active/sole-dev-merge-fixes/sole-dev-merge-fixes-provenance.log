@@ -52,3 +52,5 @@
 [2026-10-15T19:57:18+01:00] VERIFY — after remediation at 8dce676: SDM 131/0; bats SDM+hooks 670/0; pytest 3136 passed; shellcheck 0 on 13 blocks
 [2026-10-15T20:01:19+01:00] TESTS_VERIFIED — Milestone 2: Stage state file — passed=670 cmd=bats --tap tests/commands/sole-dev-merge tests/hooks
 [2026-10-15T21:39:24+01:00] GATE_APPROVED — Milestone 2 — Ste — pre-merge criteria 7/7; next: PR + live merge with this branch's M2 skill blocks (2.3)
+[2026-10-16T06:57:06+01:00] LIVE_RUN 1 — stages A..D from a589249, each its own Bash call: A OK; B 26 files (0 py, 0 sh), check-conventions rc 2 (L-051, M3); B-commit no-op; C1/C2 wrote into <git-dir>/sdm-<slug>; C scanned Ruff S 0 / ShellCheck 0; fresh-shell D found C's findings: 0 C / 0 H / 1 M / 4 L
+[2026-10-16T06:57:06+01:00] TRIAGE — MEDIUM sdm_save refusal gap applied (Ste): RED 22183e3 (2 not ok) → GREEN fa98510; SDM 133/0, bats 672/0, pytest 3136; 2 LOW prose fixed, 2 LOW accepted; scanned-files AC → M3 3.3 (Ste)

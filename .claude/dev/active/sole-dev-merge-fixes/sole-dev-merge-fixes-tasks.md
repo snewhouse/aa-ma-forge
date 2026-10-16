@@ -320,7 +320,7 @@ Conventions used in the criteria:
   - **CCI footer.** No CCI worktree exists, so a scratch clone of main `c3ea041` with both plans was used. Branch `probe-cci` appended one line to the CCI provenance.log. The installed `emit_aa_ma_footer` printed `[AA-MA Plan] code-conventions-impact .claude/dev/active/code-conventions-impact`; `grep -c '^\[AA-MA Plan\] code-conventions-impact '` = 1. The clone was deleted.
 
 ## Milestone 2: Stage state file
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 1
 - Complexity: 55%
 - Effort: 1 day
@@ -339,6 +339,7 @@ Conventions used in the criteria:
   - The privacy check gives 0 / 0.
   - PL has PROTOTYPE, IMPACT_ANALYSIS and CRITICAL_PATH_REVIEW lines for Milestone 2; CL has a GATE APPROVAL for Milestone 2.
 - Result Log:
+  - Merged as PR #43 (rebase; main `c3ea041..52f4fd3`, 18 commits) by the branch's own M2 blocks, each stage in a separate Bash call. Pre-merge criteria 7/7 (CL GATE APPROVAL). The `[post-merge]` criterion is recorded in 2.3 (G3 `MERGE_DISPATCHED=1`, G4 `STATUS: OK`, ls-remote 0 bytes, no manual steps). Flipped to COMPLETE at Sub-step 3.0.
 
 ### Sub-step 2.0: Post-merge of M1, and prototype the state file
 - Status: COMPLETE
@@ -431,7 +432,7 @@ Conventions used in the criteria:
   - **Open finding for the gate:** E2 reads `n_github`/`n_gitlab` from E1. E1 is not one of the 13 blocks and those keys are not in the 15-key allowlist, so a fresh-shell E2 ABORTs ("only github.com and gitlab.com remotes supported") unless E1 and E2 run in one call. This is outside the decided key list, so it goes to Ste at 2.3.
 
 ### Sub-step 2.3: Docs, verify, gate, merge with the fixed skill
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 2.2
 - Acceptance Criteria:
@@ -439,6 +440,17 @@ Conventions used in the criteria:
   - PL has the IMPACT_ANALYSIS and CRITICAL_PATH_REVIEW lines; CL has the GATE APPROVAL.
   - The Result Log quotes Stage C's scanned-files line for a PR touching `.py`/`.sh`, showing ≥ 1 file each for Ruff S and ShellCheck.
 - Result Log:
+  - Mode: HITL — recorded at Sub-step 3.0 on the M3 branch (L-037). Pre-rebase SHAs are cited; map them to main with `git log --format='%h %s' c3ea041..origin/main` (18 commits).
+  - **Docs** (checked on main `52f4fd3`): `grep -c '^\*\*Stage state file\*\*' CONTEXT.md` = **1**; L-055 has a "Fixed in: sole-dev-merge-fixes M2" line; CHANGELOG has 1 bullet ("stage state file").
+  - **Gate:** PL has IMPACT_ANALYSIS and CRITICAL_PATH_REVIEW for Milestone 2. CL has `GATE APPROVAL: Milestone 2` (7/7 pre-merge). Fence 3: `TESTS_VERIFIED passed=670`, then **672** after the C1 fix (`6ebbb39`). pytest 3136 passed. §6.8 PASS_WITH_WARNINGS; 10 distinct WARNINGs were fixed test-first (RED `38d6560`).
+  - **Live run 1** (from `a589249`): A OK; B 26 files, 0 py / 0 sh; check-conventions rc 2 "no diff source" (L-051, fixed in M3); B-commit no-op. C1/C2 wrote into `<git-dir>/sdm-<slug>/`. C printed `Stage C scanned: Ruff S 0 file(s), ShellCheck 0 file(s)`. A fresh-shell D read C's findings: 0C/0H/1M/4L. The MEDIUM (`sdm_save` neither refused g/o-writable files nor set mode 600) was applied (Ste): RED `22183e3` → GREEN `fa98510`. The merge restarted.
+  - **Live run 2** (from `5a7a584`): A cleared run 1's dir, state file 600. C1: 2 LOW (prose; folded into M3 at 3.0, Ste). C2 clean. D: 0/0/0/2L → reviewer notes. E1+E2 ran in one call → `REMOTE_CHOICE=github`. E3 body came from `$SDM_DIR`. F: PR #43, title fixed with a `gh api` PATCH (F truncates at 70; cosmetic). G1 `MERGE_STRATEGY=rebase`. G2 first gave `CI_STATE=failed` (Bats, `tests/hooks/codemem-post-commit.bats` sidecar race), then `green` after the test-only fix (`c189f92`, on main as `52f4fd3`).
+  - **`[post-merge]` criterion:**
+    - G3 printed `MERGE_DISPATCHED=1` / `Stage G3: merged 43 (strategy=rebase)`.
+    - G4 printed `Stage G4: cleanup done — main at 52f4fd3` … `STATUS: OK worktree=<wt>`. Ste ran it with `!` because the isolation guard blocks `git -C <main>`.
+    - Corroborated at 3.0 from the run-2 state file (backed up to `<scratch>` before the M2 worktree was removed), decoded: `MERGE_DISPATCHED=1`, `PR_NUM=43`, `MERGE_STRATEGY=rebase`, `REMOTE_CHOICE=github`.
+    - Re-run at 3.0: `gh pr view 43` → `MERGED 52f4fd3`; `git ls-remote origin refs/heads/fix/sole-dev-merge-fixes-m2 | wc -c` = **0**, `--exit-code` rc **2**. The skill deleted the branch; no manual merge steps were needed. `gh pr checks 43` → 9/9 pass.
+  - **Scanned-files AC:** not applicable to PR #43. Its decoded `CHANGED_PY`/`CHANGED_SH` are empty (0 `.py`, 0 `.sh`). Moved to M3 3.3 (Ste, CL 2026-10-16).
 
 ## Milestone 3: Stage B scoped commit, guard, check-conventions refs
 - Status: PENDING

@@ -186,3 +186,9 @@ _This log will be updated via context compaction as the task progresses._
 - **2.3 AC (Stage C scanned ≥1 file each): N/A for this PR** (Ste). It changes no `.py`/`.sh`, and the live line read `Stage C scanned: Ruff S 0 file(s), ShellCheck 0 file(s)`. The empty-env bats case proves C receives B's files. The live ≥1 check moved to M3 3.3.
 - After the fix the merge restarts from Stage A, with a fresh state file and run dir.
 
+
+## [2026-10-16] SESSION NOTE + DECISIONS at Sub-step 3.0 — Ste
+- M3 runs in an EnterWorktree session (Ste: "EnterWorktree now") from `<main>` into `.worktrees/fix/sole-dev-merge-fixes-m3`, cut from `origin/main` `52f4fd3`. The new branch's upstream was unset straight after `worktree add` (it tracked `origin/main`, so a bare push would target main).
+- M2 worktree and branch removed after `git cherry origin/main fix/sole-dev-merge-fixes-m2` showed 0 `+` lines (branch was at `c189f92`). The run-2 run dir and state file were backed up to `<scratch>` first.
+- Handover §9 Q1: the two run-2 C1 LOW prose fixes (`sdm_save` also refuses g/o-writable files and creates the file 600; re-answering E2 means re-running E1+E2 together) go in as a docs commit at 3.0, before the 3.1 RED (Ste: "Yes").
+- Gate parser note: a Result Log bullet `- Mode: HITL. …` is read as a second `Mode:` field (rc 2, "conflicting values"). Use `Mode: HITL — …`, as 2.0 does.

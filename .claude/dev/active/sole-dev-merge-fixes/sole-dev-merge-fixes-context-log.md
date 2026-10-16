@@ -245,3 +245,10 @@ _This log will be updated via context compaction as the task progresses._
   - one `git status` per file;
   - plus C2's duplicate of the quoting LOW.
 - The merge restarts from Stage A (as M2 run 1 → run 2).
+
+## [2026-10-16] Sub-step 4.0: M3 closed on the M4 branch; carry-ins decided — Ste
+- **M3 closed (L-037):** 3.3's Result Log written from the handover evidence, re-run from `<main>` first (E1 `MERGED 07a8b45`, E2 0 bytes / rc 2, HEAD = origin/main = `07a8b45`, tracked changes 0, cherry 0 `+`). Fence 1 `pending_steps=0`; privacy 0/0; Milestone 3 flipped COMPLETE under the existing GATE APPROVAL.
+- **Worktrees:** M3 worktree and branch removed (branch was `1a122b7`). M4 worktree cut from `origin/main` `07a8b45`; the upstream `worktree add -b … origin/main` set was unset; `--is-ancestor` rc 0. Session works in the M4 worktree by absolute path (EnterWorktree declined by Ste).
+- **4.0 probe target (Ste):** an early **draft** M4 PR, not merged PR #44. Push the M4 branch, open a draft PR, PATCH its body with `-F body=@file`, read back, `cmp`. The 4.3 live Stage F then hits the existing-PR path, so the new PATCH + read-back code runs for real.
+- **Handover §9 Q1 — run 2's 6 LOW notes (Ste, as recommended):** the 2 doc-only items (the "needs CHANGED_FILES" ABORT missing from the outcomes table and B-commit prose; the post-add `git reset -q -- INTENDED` wording) fold into M4's docs-drift work. The other 4 go in one TODOS entry; probe the Y=R guard item first (L-056).
+- **Handover §9 Q2 — Stage C `${CHANGED_PY:-}`/`${CHANGED_SH:-}` defaults (Ste):** a TODOS entry with `file:line` (L-1351), not M4. The Stage C reference is outside M4's Contract files.

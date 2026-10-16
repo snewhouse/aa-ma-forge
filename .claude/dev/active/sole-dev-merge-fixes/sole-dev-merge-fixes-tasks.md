@@ -499,7 +499,7 @@ Conventions used in the criteria:
   - **CCI note for Ste:** CCI M16's flaky post-commit test item is covered by `52f4fd3` (await_eq plus refresh.log diagnostics). Closing it is the CCI session's call.
 
 ### Sub-step 3.1: RED — Stage B tests and pre-commit stub
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 3.0
 - Acceptance Criteria:
@@ -508,6 +508,25 @@ Conventions used in the criteria:
   - `git diff main -- SDM/test_stage_b_scope.bats` shows no change inside the 4 existing @test bodies.
   - RED evidence is recorded.
 - Result Log:
+  - Mode: AFK — auto-dispatched. RED commit `04e2fd9`, made with an explicit pathspec (L-1334); the staged set was checked first (`A pre-commit`, `M test_stage_b_scope.bats`).
+  - **Stub:** `SDM/fixtures/bin/pre-commit`, as plan §4 M3. `test -x` passes; shellcheck rc 0.
+  - **Setup:** setup adds `STUB_DIR`, `CLI_LOG` (outside the repo) and `export PATH="$STUB_DIR:$PATH"`, and asserts the stub is first on PATH.
+    - `grep -c 'STUB_DIR:\$PATH'` = **1**.
+    - Helpers: `fresh` (`env -i`), `blk`, `b_sandbox` (flags NOCFG / EMPTY / TESTSDIR) and `pc_calls`. Teardown also removes the bare origin.
+    - `git diff -U0 main` hunks: setup (`+25`, `+29-34`), teardown (`+41`), helpers (`+44-77`) and the appended tests (`+228-359`). **None falls inside the 4 existing @test bodies** (old lines 37–186).
+  - **Cases:** 11 new, **15 @tests** in total. A → B → B-commit run as separate fresh shells, as the skill runs them. The cases are AC5.1, AC5.2, AC5.3, AC5.4 (no config), AC5.4 (no changed files, via an empty commit), Q8, guard staged, guard untracked, AC4.1, AC4.2 and AC4.4. AC4.3 (existing cases unchanged) is a constraint, not a test (spec §5).
+    - Q8 uses a **per-test** `uv` stub under `SCRIPT_DIR`, not `fixtures/bin`, so real uv is never shadowed in other suites. The case asserts the stub ran.
+  - **RED evidence:** `bats --tap SDM/test_stage_b_scope.bats` gives **7 not-ok / 8 ok**. Each not-ok fails at the assertion under test, not at setup:
+    - AC5.1 at the exact log line (`:237`);
+    - AC5.3 at the `pre-commit rc=1` line (`:256`);
+    - Q8 at the `pytest rc=3` line (`:290`);
+    - guard staged at `git diff --cached --quiet -- out.txt` (`:303`; E16: `checkout --` restores from the index);
+    - guard untracked at the `left unstaged: stray.txt` line (`:315`);
+    - AC4.1 at `stray.txt` being in the commit (`:329`; `git add -A`);
+    - AC4.4 at `status -eq 1` (`:355`; it committed instead of aborting).
+  - **Passing before the fix (guards, by design):** AC5.2 (no `--from-ref`; asserts the stub ran), both AC5.4 cases (the existing condition) and AC4.2 ("as today", spec AC4.2). The 4 existing cases pass.
+  - **No collateral damage:** `bats --tap SDM tests/hooks` → 676 ok + 7 not-ok = 683 (672 + 11). The only not-oks are the 7 above. `tests/test_bats_assertions.py` 2 passed. No other `STUB_DIR` suite has a `.pre-commit-config.yaml`, so the new stub cannot fire there.
+  - **Plan vs spec:** spec F4.2 has B-commit recompute `CHANGED_FILES` from `BASE_REF`. Plan §4 M3 3.2 (written after M2's state file) reads it from the state file. The tests follow the plan, running A → B → B-commit in fresh shells.
 
 ### Sub-step 3.2: GREEN — Stage B steps 4-5, guard, B-commit
 - Status: PENDING

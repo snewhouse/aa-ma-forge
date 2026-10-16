@@ -59,3 +59,5 @@
 [2026-10-16T09:25:09+01:00] MILESTONE COMPLETE — Milestone 2: Stage state file — Commit: 6963551 — Criteria: 8/8 verified (7 pre-merge at GATE APPROVAL + [post-merge] at 3.0)
 [2026-10-16T09:30:03+01:00] MILESTONE ACTIVE — Milestone 3: Stage B scoped commit, guard, check-conventions refs — dependency advisory: none
 [2026-10-16T09:30:03+01:00] STEP_COMPLETE — Sub-step 3.0 — handover E1-E7 re-run; <main> clean; M3 wt from origin/main 52f4fd3 (ancestor rc 0, upstream unset); M2 wt+branch removed (cherry 0 +); M2 COMPLETE 6963551/f8390c6; docs carry-in 4644eb7 (SDM 133/0, pytest 3136)
+[2026-10-16T09:42:46+01:00] RED — Sub-step 3.1 — test_stage_b_scope.bats not-ok=7 ok=8 (15 @tests; 4 guards pass pre-fix by design: AC5.2, AC5.4 x2, AC4.2); SDM+hooks 676 ok + 7 not-ok; commit 04e2fd9
+[2026-10-16T09:42:46+01:00] STEP_COMPLETE — Sub-step 3.1

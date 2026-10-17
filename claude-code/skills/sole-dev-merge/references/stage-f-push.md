@@ -11,8 +11,10 @@ the body or create fresh. Title is derived from the topmost Conventional
 Commit subject (truncated to 70 chars) when not explicitly provided.
 
 - **GitHub** — one `gh pr view --json number,url,isCrossRepository,headRefName`
-  call finds the existing PR. Stage F updates its body only if it is this
-  branch's own (same repository, head = the current branch). It uses REST
+  call finds the existing PR. Stage F updates its body only if it is open and
+  this branch's own (same repository, head = the current branch). A closed or
+  merged PR on a reused branch name leads to a new PR, which Stage F then reads
+  by the URL `gh pr create` printed. It uses REST
   (`gh api -X PATCH repos/{owner}/{repo}/pulls/$PR_NUM -F "body=@$BODY"`) and
   reads the body back. `--jq .body` adds one newline, so the check is
   `cmp <(cat "$BODY"; echo) <(gh api … --jq .body)`. Any other outcome prints
@@ -20,8 +22,11 @@ Commit subject (truncated to 70 chars) when not explicitly provided.
   not this branch's is never saved for Stage G. The title is never touched. Never use gh's pr-edit subcommand here: it hits a
   Projects-classic GraphQL error and the body silently stays (L-1309). With no
   PR, Stage F creates one: `gh pr create --title "$TITLE" --body-file "$BODY"`.
-- **GitLab** — `glab mr view` detects existing MR; reuse via
-  `glab mr update --description "$(cat $BODY)"` or create via
+- **GitLab** — one `glab mr view -F json` lookup (iid, url, same project,
+  source branch, state) finds the existing MR. Stage F updates it only if it is
+  open and this branch's own, by iid: `glab mr update "$MR_IID" --description
+  "$(cat $BODY)"`. Otherwise it prints `STATUS: PR_BODY_NOT_UPDATED — MR !N
+  reason=<r>`, and a foreign MR is never saved. With no open MR it creates one via
   `glab mr create --title "$TITLE" --description "$(cat $BODY)"` (NOT
   `--description-file` — that flag is fabricated; see reference.md "WRONG
   SYNTAX TO NEVER USE").
@@ -83,19 +88,22 @@ PR_NUM=0
 PR_URL=""
 MR_IID=0
 
+# why: a no-arg `gh pr view` / `glab mr view` selects by branch name, so a fork's same-named
+# PR/MR can come back (§6.8 SEC-2, live run 2): only this branch's own open one is used
+NOT_OURS="is not this branch's own (a fork's, or another head branch's)"
+
 if [[ "$REMOTE_CHOICE" == "github" ]]; then
-    # One lookup for number, url and whose PR it is (gojq @tsv; gh 2.46.0), before and after create.
+    # One lookup for number, url, owner and state (gojq @tsv; gh 2.46.0). An argument picks the PR.
     # why: 2>/dev/null — "no pull requests found" is the expected answer on a first run
     pr_lookup() {
         local row
-        row=$(gh pr view --json number,url,isCrossRepository,headRefName \
-                  --jq '[.number,.url,.isCrossRepository,.headRefName]|@tsv' 2>/dev/null) || return 1
-        IFS=$'\t' read -r PR_NUM PR_URL PR_XREPO PR_HEAD <<<"$row"
+        row=$(gh pr view "$@" --json number,url,isCrossRepository,headRefName,state \
+                  --jq '[.number,.url,.isCrossRepository,.headRefName,.state]|@tsv' 2>/dev/null) || return 1
+        IFS=$'\t' read -r PR_NUM PR_URL PR_XREPO PR_HEAD PR_STATE <<<"$row"
     }
-    # why: a no-arg `gh pr view` selects by branch name, so a fork's same-named PR can come back (§6.8 SEC-2)
     pr_ours() { [[ "$PR_XREPO" == false && "$PR_HEAD" == "$(git branch --show-current)" ]]; }
-    NOT_OURS="is not this branch's own (a fork's PR, or another head branch's)"
-    if pr_lookup; then
+    # why: a closed or merged PR on a reused branch name is history, not this run's PR
+    if pr_lookup && [[ "$PR_STATE" == OPEN ]]; then
         echo "PR_OP=update"
         # why: REST, not gh's pr-edit subcommand — that hits a Projects-classic GraphQL error here and the body silently stays (L-1309)
         # why: --jq prints the body plus one newline (gh 2.46.0, 4.0 probe), so the read-back is compared with the file plus one
@@ -113,30 +121,49 @@ if [[ "$REMOTE_CHOICE" == "github" ]]; then
             "")              echo "Stage F: PR #$PR_NUM body updated (read-back matches)" ;;
             not-this-branch) echo "STATUS: PR_BODY_NOT_UPDATED — PR #$PR_NUM reason=not-this-branch (PR #$PR_NUM $NOT_OURS; open this branch's PR by hand — Stage G will stop)" ;;
             no-pr-number)    echo "STATUS: PR_BODY_NOT_UPDATED — PR #$PR_NUM reason=no-pr-number (gh pr view gave no PR number; check the PR by hand)" ;;
-            *)               echo "STATUS: PR_BODY_NOT_UPDATED — PR #$PR_NUM reason=$REASON (its body on GitHub is not $PR_BODY_FILE; set it by hand)" ;;
+            *)               echo "STATUS: PR_BODY_NOT_UPDATED — PR #$PR_NUM reason=$REASON (its body on GitHub is not $PR_BODY_FILE; set it by hand before Stage G merges)" ;;
         esac
         # why: never hand Stage G a PR that is not this branch's own
         if [[ "$REASON" == no-pr-number || "$REASON" == not-this-branch ]]; then PR_NUM=0; PR_URL=""; fi
     else
         echo "PR_OP=create"
-        gh pr create --title "$PR_TITLE" --body-file "$PR_BODY_FILE"
-        # why: the same ownership rule after create (live run 1 C2); an unreadable PR leaves PR_NUM 0, never saved below
-        if pr_lookup && ! pr_ours; then
+        CREATED=$(gh pr create --title "$PR_TITLE" --body-file "$PR_BODY_FILE")
+        echo "$CREATED"
+        PR_NUM=0; PR_URL=""
+        # why: read the new PR by the URL create printed, not by branch name (live run 2); an unreadable PR stays 0, never saved below
+        if pr_lookup "${CREATED##*$'\n'}" && ! pr_ours; then
             echo "Stage F: WARNING — PR #$PR_NUM $NOT_OURS; not saved"
             PR_NUM=0; PR_URL=""
         fi
     fi
 elif [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
-    if glab mr view >/dev/null 2>&1; then
+    # One lookup for iid, url, owner and state (glab -F json; plain jq string interpolation).
+    # why: 2>/dev/null — "no merge request" is the expected answer on a first run
+    mr_lookup() {
+        local row
+        row=$(glab mr view -F json \
+                  --jq '"\(.iid)\t\(.web_url)\t\(.source_project_id == .target_project_id)\t\(.source_branch)\t\(.state)"' 2>/dev/null) || return 1
+        IFS=$'\t' read -r MR_IID PR_URL MR_SAMEPROJ MR_SRC MR_STATE <<<"$row"
+    }
+    mr_ours() { [[ "$MR_SAMEPROJ" == true && "$MR_SRC" == "$(git branch --show-current)" ]]; }
+    if mr_lookup && [[ "$MR_STATE" == opened ]]; then
         echo "MR_OP=update"
-        glab mr update --description "$(cat "$PR_BODY_FILE")"
+        if [[ ! "$MR_IID" =~ ^[1-9][0-9]*$ ]] || ! mr_ours; then
+            echo "STATUS: PR_BODY_NOT_UPDATED — MR !$MR_IID reason=not-this-branch (MR !$MR_IID $NOT_OURS; open this branch's MR by hand — Stage G will stop)"
+            MR_IID=0; PR_URL=""
+        elif ! glab mr update "$MR_IID" --description "$(cat "$PR_BODY_FILE")"; then
+            echo "STATUS: PR_BODY_NOT_UPDATED — MR !$MR_IID reason=patch-failed (its description on GitLab is not $PR_BODY_FILE; set it by hand before Stage G merges)"
+        fi
     else
         echo "MR_OP=create"
         glab mr create --title "$PR_TITLE" --description "$(cat "$PR_BODY_FILE")"
+        MR_IID=0; PR_URL=""
+        # why: the same ownership rule after create; an unreadable MR stays 0, never saved below
+        if mr_lookup && ! mr_ours; then
+            echo "Stage F: WARNING — MR !$MR_IID $NOT_OURS; not saved"
+            MR_IID=0; PR_URL=""
+        fi
     fi
-    # §6.8 M4 CRITICAL-1 fix: GitLab MR identifiers for Stage G.
-    PR_URL=$(glab mr view --jq '.web_url' 2>/dev/null || echo "")
-    MR_IID=$(glab mr view --jq '.iid'     2>/dev/null || echo "0")
     # Stage G2/G3 also reads PR_NUM for cross-remote symmetry; alias to MR_IID
     # on the GitLab branch so downstream stages can use one variable name.
     PR_NUM="$MR_IID"

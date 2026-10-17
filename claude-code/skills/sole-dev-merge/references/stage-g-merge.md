@@ -171,7 +171,7 @@ if [[ "$REMOTE_CHOICE" == "github" ]]; then
     esac
 elif [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
     # JSON polling (NOT `glab ci status` — TTY UI without scriptable exit codes).
-    MR_IID="${MR_IID:-$PR_NUM}"
+    MR_IID="$PR_NUM"   # why: PR_NUM was checked as a number above; an env MR_IID never reaches glab argv (live run 2)
     START=$(date +%s)
     # §6.8 M4 HIGH-5 fix: parse `${CI_POLL_TIMEOUT%s}` so the env-override the
     # GitHub branch honours also applies here. Falls back to 900 when unset
@@ -317,7 +317,14 @@ case "$CI_STATE" in
             fi
             ;;
         gitlab)
-            MR_IID="${MR_IID:-$PR_NUM}"
+            MR_IID="$PR_NUM"   # why: PR_NUM was checked as a number above; an env MR_IID never reaches glab argv (live run 2)
+            # One lookup for whose MR it is: Stage F's no-arg `glab mr view` selects by branch name (live run 2)
+            MR_ROW=$(glab mr view "$MR_IID" -F json \
+                         --jq '"\(.source_project_id == .target_project_id)\t\(.source_branch)"') \
+                || { echo "ABORT: Stage G3: cannot read MR !$MR_IID (project/branch lookup failed)"; exit 1; }
+            IFS=$'\t' read -r MR_SAMEPROJ MR_SRC <<<"$MR_ROW"
+            [[ "$MR_SAMEPROJ" == true && "$MR_SRC" == "$ORIGINAL_BRANCH" ]] \
+                || { echo "ABORT: Stage G3: MR !$MR_IID is not this branch's own (same project: $MR_SAMEPROJ, source: '$MR_SRC')"; exit 1; }
             if [[ "$MERGE_STRATEGY" == "rebase" ]]; then
                 glab mr merge "$MR_IID" --rebase --remove-source-branch --yes
             else
@@ -341,7 +348,7 @@ case "$CI_STATE" in
         # hardcode `gh pr merge` when the operator chose GitLab.
         echo "STATUS: CI_TIMEOUT — see $PR_URL"
         if [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
-            echo "  recovery: glab mr merge ${MR_IID:-$PR_NUM} --when-pipeline-succeeds"
+            echo "  recovery: glab mr merge $PR_NUM --when-pipeline-succeeds"
         else
             echo "  recovery: gh pr merge $PR_NUM --auto --rebase"
         fi
@@ -351,7 +358,7 @@ case "$CI_STATE" in
         # §6.8 M4 HIGH-1 fix (failed branch): remote-aware diagnostic hint.
         echo "STATUS: CI_FAILED — see $PR_URL"
         if [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
-            echo "  diagnostic: glab ci view ${MR_IID:-$PR_NUM}"
+            echo "  diagnostic: glab ci view $PR_NUM"
         else
             echo "  diagnostic: gh pr checks $PR_NUM"
         fi

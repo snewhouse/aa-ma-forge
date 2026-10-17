@@ -84,39 +84,47 @@ PR_URL=""
 MR_IID=0
 
 if [[ "$REMOTE_CHOICE" == "github" ]]; then
-    # One lookup for number, url and whose PR it is (gojq @tsv; gh 2.46.0). A non-zero rc
-    # means no PR for this branch: the create path.
+    # One lookup for number, url and whose PR it is (gojq @tsv; gh 2.46.0), before and after create.
     # why: 2>/dev/null — "no pull requests found" is the expected answer on a first run
-    if PR_ROW=$(gh pr view --json number,url,isCrossRepository,headRefName \
-                    --jq '[.number,.url,.isCrossRepository,.headRefName]|@tsv' 2>/dev/null); then
+    pr_lookup() {
+        local row
+        row=$(gh pr view --json number,url,isCrossRepository,headRefName \
+                  --jq '[.number,.url,.isCrossRepository,.headRefName]|@tsv' 2>/dev/null) || return 1
+        IFS=$'\t' read -r PR_NUM PR_URL PR_XREPO PR_HEAD <<<"$row"
+    }
+    # why: a no-arg `gh pr view` selects by branch name, so a fork's same-named PR can come back (§6.8 SEC-2)
+    pr_ours() { [[ "$PR_XREPO" == false && "$PR_HEAD" == "$(git branch --show-current)" ]]; }
+    NOT_OURS="is not this branch's own (a fork's PR, or another head branch's)"
+    if pr_lookup; then
         echo "PR_OP=update"
-        IFS=$'\t' read -r PR_NUM PR_URL PR_XREPO PR_HEAD <<<"$PR_ROW"
-        # why: a no-arg `gh pr view` selects by branch name, so a fork's same-named PR can come back (§6.8 SEC-2)
         # why: REST, not gh's pr-edit subcommand — that hits a Projects-classic GraphQL error here and the body silently stays (L-1309)
         # why: --jq prints the body plus one newline (gh 2.46.0, 4.0 probe), so the read-back is compared with the file plus one
         REASON=""
         if [[ ! "$PR_NUM" =~ ^[1-9][0-9]*$ ]]; then
             REASON=no-pr-number
-        elif [[ "$PR_XREPO" != false || "$PR_HEAD" != "$(git branch --show-current)" ]]; then
+        elif ! pr_ours; then
             REASON=not-this-branch
         elif ! gh api -X PATCH "repos/{owner}/{repo}/pulls/$PR_NUM" -F "body=@$PR_BODY_FILE" >/dev/null; then
             REASON=patch-failed
         elif ! cmp -s <(cat "$PR_BODY_FILE"; echo) <(gh api "repos/{owner}/{repo}/pulls/$PR_NUM" --jq .body); then
             REASON=readback-differs
         fi
-        if [[ -z "$REASON" ]]; then
-            echo "Stage F: PR #$PR_NUM body updated (read-back matches)"
-        else
-            echo "STATUS: PR_BODY_NOT_UPDATED — PR #$PR_NUM reason=$REASON (its body on GitHub is not $PR_BODY_FILE; set it by hand)"
-        fi
+        case "$REASON" in
+            "")              echo "Stage F: PR #$PR_NUM body updated (read-back matches)" ;;
+            not-this-branch) echo "STATUS: PR_BODY_NOT_UPDATED — PR #$PR_NUM reason=not-this-branch (PR #$PR_NUM $NOT_OURS; open this branch's PR by hand — Stage G will stop)" ;;
+            no-pr-number)    echo "STATUS: PR_BODY_NOT_UPDATED — PR #$PR_NUM reason=no-pr-number (gh pr view gave no PR number; check the PR by hand)" ;;
+            *)               echo "STATUS: PR_BODY_NOT_UPDATED — PR #$PR_NUM reason=$REASON (its body on GitHub is not $PR_BODY_FILE; set it by hand)" ;;
+        esac
         # why: never hand Stage G a PR that is not this branch's own
         if [[ "$REASON" == no-pr-number || "$REASON" == not-this-branch ]]; then PR_NUM=0; PR_URL=""; fi
     else
         echo "PR_OP=create"
         gh pr create --title "$PR_TITLE" --body-file "$PR_BODY_FILE"
-        # why: 2>/dev/null — an unreadable PR leaves PR_NUM empty, which is reported and never saved below
-        PR_ROW=$(gh pr view --json number,url --jq '[.number,.url]|@tsv' 2>/dev/null || true)
-        IFS=$'\t' read -r PR_NUM PR_URL <<<"$PR_ROW"
+        # why: the same ownership rule after create (live run 1 C2); an unreadable PR leaves PR_NUM 0, never saved below
+        if pr_lookup && ! pr_ours; then
+            echo "Stage F: WARNING — PR #$PR_NUM $NOT_OURS; not saved"
+            PR_NUM=0; PR_URL=""
+        fi
     fi
 elif [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
     if glab mr view >/dev/null 2>&1; then

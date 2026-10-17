@@ -65,6 +65,9 @@ sdm_load() {
 [[ -f "$SDM_STATE" ]] && sdm_load
 sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
+# why: E1 saves into the run Stage A started; alone it would write a branchless state file E2 ignores
+: "${SDM_DIR:?Stage E1 needs SDM_DIR from Stage A — run Stage A first}"
+
 n_github=0
 n_gitlab=0
 n_other=0

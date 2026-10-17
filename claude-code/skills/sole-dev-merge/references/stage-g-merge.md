@@ -280,11 +280,13 @@ case "$CI_STATE" in
                 || { echo "ABORT: Stage G3: ORIGINAL_BRANCH '$ORIGINAL_BRANCH' is not a valid branch name"; exit 1; }
             [[ "$ORIGINAL_BRANCH" != "$DEFAULT_BRANCH" ]] \
                 || { echo "ABORT: Stage G3: ORIGINAL_BRANCH is the default branch '$DEFAULT_BRANCH'"; exit 1; }
-            HEAD_REF=$(gh pr view "$PR_NUM" --json headRefName --jq .headRefName)
+            # One lookup for whose PR it is: the head name alone matches a fork's same-named PR (§6.8 SEC-2)
+            OWNER_ROW=$(gh pr view "$PR_NUM" --json headRefName,isCrossRepository \
+                            --jq '[.headRefName,.isCrossRepository]|@tsv') \
+                || { echo "ABORT: Stage G3: cannot read PR $PR_NUM (head/owner lookup failed)"; exit 1; }
+            IFS=$'\t' read -r HEAD_REF XREPO <<<"$OWNER_ROW"
             [[ "$HEAD_REF" == "$ORIGINAL_BRANCH" ]] \
                 || { echo "ABORT: Stage G3: PR $PR_NUM head is '$HEAD_REF', not '$ORIGINAL_BRANCH'"; exit 1; }
-            # why: the head name alone matches a fork's same-named PR (§6.8 SEC-2)
-            XREPO=$(gh pr view "$PR_NUM" --json isCrossRepository --jq .isCrossRepository)
             [[ "$XREPO" == false ]] \
                 || { echo "ABORT: Stage G3: PR $PR_NUM is from another repository (isCrossRepository=$XREPO)"; exit 1; }
             # No --delete-branch: gh's local step fails in a worktree and then

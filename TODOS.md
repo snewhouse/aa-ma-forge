@@ -93,8 +93,17 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** Stage D LOW reviewer notes on PR #44 (sole-dev-merge-fixes M3). Ste chose 2026-10-17 to file these three here. The Y=R guard item and the two doc-only notes went into M4. **Effort:** S · **Priority:** P3
 
+### sole-dev-merge: deferred §6.8 INFOs from sole-dev-merge-fixes M4
+**What:**
+- `git check-ref-format --branch` expands `@{-N}` (rc 0, prints the previous branch). A tampered `DEFAULT_BRANCH='@{-1}'` passes G3/G4, and G4 would `git checkout '@{-1}'`. Fix: also require `git check-ref-format "refs/heads/$X"` in G3/G4. Stage A can't reach this, because `symbolic-ref` refuses such a ref.
+- `PR_BODY_FILE` is not confined to `SDM_DIR`: whatever file the state or env names is published as the PR body (pre-existing; same uid). Fix: require `realpath` of it under `realpath "$SDM_DIR"`.
+- G2/G3 check PR_NUM with `^[0-9]+$` and so accept 0, while Stage F uses `^[1-9][0-9]*$`. F never saves 0. Fix: one pattern.
+- No static check that every `sdm_save` key is in `SDM_KEYS`. An unlisted key is dropped with an "ignoring unknown key" line.
+
+**Why:** security-auditor and code-reviewer INFOs at M4 §6.8 (impl-review.md "Milestone 4"). Each needs the same uid, or is pre-existing. **Effort:** S · **Priority:** P3
+
 ### sole-dev-merge Stage C: `${CHANGED_PY:-}` / `${CHANGED_SH:-}` masking defaults
-**What:** `references/stage-c-review-and-security.md:75-76,150,198` read `${CHANGED_PY:-}` / `${CHANGED_SH:-}`. If Stage C runs in a fresh shell and the state file was refused, the scanners skip silently and C prints `Ruff S 0 file(s), ShellCheck 0 file(s)`, which looks like a clean scan (L-055 rule). Fix: tell "no state" apart from "no files", e.g. require `CHANGED_FILES` to be set (`${CHANGED_FILES?}`) before reading the subsets. Add a fresh-shell no-state case to `test_stage_c_dispatch.bats`.
+**What:** `references/stage-c-review-and-security.md` reads `${CHANGED_PY:-}` / `${CHANGED_SH:-}` in its `N_PY=`/`N_SH=` count lines and its `if [[ -n "${CHANGED_PY:-}" ]]` / `${CHANGED_SH:-}` scanner guards. If Stage C runs in a fresh shell and the state file was refused, the scanners skip silently and C prints `Ruff S 0 file(s), ShellCheck 0 file(s)`, which looks like a clean scan (L-055 rule). Fix: tell "no state" apart from "no files", e.g. require `CHANGED_FILES` to be set (`${CHANGED_FILES?}`) before reading the subsets. Add a fresh-shell no-state case to `test_stage_c_dispatch.bats`.
 **Why:** pre-existing; raised by C1 on PR #44 (run 2). Kept out of M4 (Ste, 2026-10-17) because the Stage C reference is outside M4's Contract. **Effort:** S · **Priority:** P2
 
 ### Check the AA-MA commit signature at the `commit-msg` stage, not in the command text

@@ -84,7 +84,8 @@ while IFS= read -r line; do
     esac
 done < <(git remote -v)
 
-for _k in n_github n_gitlab n_other; do sdm_save "$_k" "${!_k}"; done   # why: E2 reads them in its own shell
+# why: E2 reads n_github/n_gitlab in its own shell; n_other is kept for diagnosis (the line above, the state file)
+for _k in n_github n_gitlab n_other; do sdm_save "$_k" "${!_k}"; done
 export n_github n_gitlab n_other
 echo "Stage E1 remote: n_github=$n_github n_gitlab=$n_gitlab n_other=$n_other"
 # === stage-e1-remote (END) ===
@@ -126,6 +127,10 @@ sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$
 # "no supported remote" (L-055).
 n_github="${n_github:?Stage E2 needs n_github from Stage E1 — run E1 first}"
 n_gitlab="${n_gitlab:?Stage E2 needs n_gitlab from Stage E1 — run E1 first}"
+# why: (( )) below re-evaluates a value as an expression; a planted BASH_VERSINFO[$(cmd)0] would run (§6.8 SEC-1)
+for _k in n_github n_gitlab; do
+    [[ "${!_k}" =~ ^[0-9]+$ ]] || { echo "ABORT: Stage E2: $_k '${!_k}' is not a count — re-run E1"; exit 1; }
+done
 AUQ_LOG="${AUQ_LOG:-${SDM_DIR:?Stage E2 needs SDM_DIR from Stage A}/auq.json}"
 
 if (( n_github == 0 && n_gitlab == 0 )); then

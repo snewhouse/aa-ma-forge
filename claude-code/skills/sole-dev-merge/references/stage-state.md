@@ -13,9 +13,12 @@ separate per worktree.
   `BASE_REF`, `DEFAULT_BRANCH`, `SLUG` and `SDM_DIR`. Its `Stage state:` line
   prints both paths.
 - **Every later block loads it** with the same loader. A non-empty explicit
-  env value beats the file. A required value that is still missing (for
-  example `REMOTE_CHOICE` in E0, F and G1–G3, or E1's counts in E2) stops the
-  block loudly. It is never replaced with a default.
+  env value beats the file. A value a block marks required (`${VAR:?}` or an explicit check) stops
+  that block loudly when it is missing: `REMOTE_CHOICE` in E0, F and G1–G3,
+  E1's counts in E2 (which must also be numbers), and `SDM_DIR`,
+  `CHANGED_FILES` and `ORIGINAL_BRANCH` where they are read. A few inputs
+  still have a documented fallback: `DEFAULT_BRANCH` (`main`) in G3/G4, the
+  dual-remote answer (`gitlab`) in E2, and Stage C's file lists (TODOS).
 - **Saves are appended** as `KEY=<base64>` by `sdm_save`, and the last write of
   a key wins. B saves `CHANGED_FILES/PY/SH`, E1 `n_github`/`n_gitlab`/`n_other`,
   E2 `REMOTE_CHOICE`, E3 `PR_BODY_FILE`, F `PR_NUM`/`PR_URL`, G1

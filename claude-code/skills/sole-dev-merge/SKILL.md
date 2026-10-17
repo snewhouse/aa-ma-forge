@@ -120,7 +120,7 @@ if [[ -z "$ORIGINAL_BRANCH" ]]; then
     exit 1
 fi
 
-# 2. Refuse if on default branch (main/master)
+# 2. Refuse main/master early (step 5 also refuses the remote's default branch)
 if [[ "$ORIGINAL_BRANCH" == "main" || "$ORIGINAL_BRANCH" == "master" ]]; then
     echo "ABORT: Cannot run /sole-dev-merge from $ORIGINAL_BRANCH branch"
     exit 1
@@ -456,14 +456,15 @@ See [stage-g-merge.md](references/stage-g-merge.md#stage-g--ci-poll--auto-merge-
 | `ABORT: Stage B-commit needs CHANGED_FILES …` (Stage B-commit) | Stage B did not run, or its state was refused. Nothing is staged or committed; exit 1. |
 | `ABORT: Stage B-commit staged files outside the intended list: …` (Stage B-commit) | Something outside the branch's files is staged. Before staging, the index is left as it was. After staging, the in-scope paths are unstaged again, including in-scope content staged before B-commit (the worktree keeps it). Nothing is committed; exit 1. |
 | `ABORT: only github.com and gitlab.com remotes supported` (Stage E2) | Remote configuration unsupportable (zero github + zero gitlab remotes — semantically a pre-flight gate); exit 1. |
+| `ABORT: Stage E2: n_github '…' is not a count` (Stage E2) | A remote count from E1 (state file or env) is not a number; it is never evaluated. Re-run E1; exit 1. |
 | `STATUS: AUTH_REQUIRED` | Auth failed (Stage E0); exit 0 + recovery hint.  |
 | `ABORT: Stage F requires non-empty body file …` (Stage F) | Stage E3 skipped or body file empty; exit 1. |
-| `STATUS: PR_BODY_NOT_UPDATED — PR #N` (Stage F) | The existing PR's REST body update failed, or its read-back differs from the body file; exit 0. Stage G can continue. Set the body by hand. |
+| `STATUS: PR_BODY_NOT_UPDATED — PR #N reason=<r>` (Stage F) | The existing PR's body was not updated; exit 0. `reason=` is one of: `patch-failed` (the REST update failed), `readback-differs` (the read-back is not the body file; Stage G can continue, set the body by hand), `not-this-branch` (a fork's PR or another head branch: no PATCH, and PR_NUM is not saved, so Stage G stops) or `no-pr-number`. |
 | `STATUS: CI_TIMEOUT — see <URL>` | CI poll cap exceeded (Stage G2); exit 0 + remote-aware auto-merge recovery hint. |
 | `STATUS: CI_FAILED — see <URL>` | Required check failed (Stage G2); exit 0 + remote-aware diagnostic. |
 | `STATUS: CI_BLOCKED — pipeline status=<state> — see <URL>` | GitLab pipeline state is `manual` or `skipped` (Stage G2); exit 0 + diagnostic. No merge dispatched. |
 | `STATUS: CI_UNKNOWN — CI_STATE='<state>' REMOTE_CHOICE='<remote>'` | Stage G2 produced an unknown CI_STATE (Stage G3 catchall); exit 0. No merge dispatched. |
-| `ABORT: Stage G2: …` · `ABORT: Stage G3: …` (Stage G2, G3) | An invalid input: a non-numeric PR_NUM, an invalid branch name or merge strategy, the PR's head is not this branch, or ORIGINAL_BRANCH is the default branch. Nothing is merged; exit 1. |
+| `ABORT: Stage G2: …` · `ABORT: Stage G3: …` (Stage G2, G3) | An invalid input: a non-numeric PR_NUM, an invalid branch name or merge strategy, the PR's head is not this branch or is in another repository, or ORIGINAL_BRANCH is the default branch. Nothing is merged; exit 1. |
 | `STATUS: MERGE_FAILED — state=<state> — see <URL>` (Stage G3) | After the merge call the server does not say MERGED. G3 saves `MERGE_DISPATCHED=0`, so G4 stops; exit 0. |
 | `STATUS: BRANCH_NOT_DELETED — <branch>` (Stage G3) | Merged, but `ls-remote` still finds the remote branch or could not check; exit 0. G4 still runs. |
 | `STATUS: REMOTE_UNKNOWN — REMOTE_CHOICE='<remote>'` (Stage G3) | REMOTE_CHOICE is neither github nor gitlab. Nothing is merged and `MERGE_DISPATCHED=0`; exit 0. |

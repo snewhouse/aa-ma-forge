@@ -1,6 +1,6 @@
 # Stage state — how values travel between stage blocks
 
-### State between stages
+## State between stages
 
 Every stage block runs in its own Bash call, so a shell variable set in one
 block is gone in the next (forge L-055). The values travel in a **stage state

@@ -252,3 +252,12 @@ _This log will be updated via context compaction as the task progresses._
 - **4.0 probe target (Ste):** an early **draft** M4 PR, not merged PR #44. Push the M4 branch, open a draft PR, PATCH its body with `-F body=@file`, read back, `cmp`. The 4.3 live Stage F then hits the existing-PR path, so the new PATCH + read-back code runs for real.
 - **Handover §9 Q1 — run 2's 6 LOW notes (Ste, as recommended):** the 2 doc-only items (the "needs CHANGED_FILES" ABORT missing from the outcomes table and B-commit prose; the post-add `git reset -q -- INTENDED` wording) fold into M4's docs-drift work. The other 4 go in one TODOS entry; probe the Y=R guard item first (L-056).
 - **Handover §9 Q2 — Stage C `${CHANGED_PY:-}`/`${CHANGED_SH:-}` defaults (Ste):** a TODOS entry with `file:line` (L-1351), not M4. The Stage C reference is outside M4's Contract files.
+
+## [2026-10-17] DECISION gh-api body: -F, newline=exact+1 — Ste
+- **Method:** Stage F updates an existing PR with `gh api -X PATCH repos/{owner}/{repo}/pulls/$PR_NUM -F "body=@$PR_BODY_FILE"`. It does not use `gh pr edit` (E15/L-1309).
+- **Read-back:** `cmp -s <(cat "$PR_BODY_FILE"; echo) <(gh api repos/{owner}/{repo}/pulls/$PR_NUM --jq .body)`. On a mismatch Stage F prints `STATUS: PR_BODY_NOT_UPDATED — PR #N` and exits rc 0, as reference.md's exit contract requires.
+- **Evidence** (4.0 probe, draft PR #45): both methods round-trip byte-exact. `-F` reads the file verbatim, with no `{owner}` expansion and no `true`/`123` typing. `--jq .body` always adds one `\n`, so the "+1" is exact rather than a normalisation, and a dropped or added trailing newline is still caught.
+- **Rejected:**
+  - Stripping trailing newlines: it is blind to trailing-newline drift.
+  - `--input` + `jq -j`: it adds a `jq` binary dependency, and the skill has none today.
+- **Stub consequence (4.1):** the gh stub's `--jq .body` arm must echo the stored body plus one `\n`, as real gh does. `GH_PR_BODY_READBACK` overrides it.

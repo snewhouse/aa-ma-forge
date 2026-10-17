@@ -596,7 +596,7 @@ Conventions used in the criteria:
 - Result Log:
 
 ### Sub-step 4.0: Post-merge of M3, and live gh api probe
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
@@ -604,6 +604,16 @@ Conventions used in the criteria:
   - On this PR, the rc of `cmp body.md <(gh api repos/{owner}/{repo}/pulls/N --jq .body)` is recorded after the PATCH.
   - CL has `DECISION gh-api body: -F|--input, newline=<rule> — Ste`.
 - Result Log:
+  - Mode: HITL — Ste chose the probe target (an early draft M4 PR) and the body method/newline rule via AskUserQuestion.
+  - **M3 closed first:** 3.3 Result Log + COMPLETE, fence 1 `pending_steps=0`, privacy 0/0, Milestone 3 COMPLETE (`95d904b`); provenance `MILESTONE COMPLETE — Milestone 3` (`04b1194`, L-018). Milestone 4 ACTIVE (`69fa41b`); dependency advisory printed nothing.
+  - **AC1:** `<main>` tracked changes **0**; M4 worktree cut from `origin/main` `07a8b45`, upstream unset, `git merge-base --is-ancestor origin/main HEAD` rc **0**.
+  - **Draft PR #45** opened for the probe (branch pushed; it now tracks its own remote branch). The 4.3 live Stage F will take the existing-PR path.
+  - **AC2 probe** (`<scratch>/m4-probe/probe.sh 45`): body with backticks, Unicode, a table, literal `{owner} {repo} {branch}`, and lines `true` / `123`. 3 trailing-newline shapes (0, 1, 2) × 2 methods (`-F body=@file`; `jq -Rs '{body: .}' | gh api --input -`):
+    - every PATCH rc 0; raw read-back (`gh api … | jq -j .body`) `cmp` rc **0** in all 6 — GitHub stores the body byte-exact (216/217/218 bytes in = out, no `\r\n`);
+    - `-F` expanded no placeholder and typed nothing inside the file (`{owner}` survives, count 1);
+    - **AC literal `cmp body.md <(gh api repos/{owner}/{repo}/pulls/45 --jq .body)` rc = 1 in all 6**: `--jq .body` appends exactly one `\n` (bytes_jq = bytes_file + 1).
+    - Chosen rule, live on the restored body: `cmp -s <(cat body; echo) <(gh api …/pulls/45 --jq .body)` rc **0**; the literal form rc **1**.
+  - **AC3:** CL has `DECISION gh-api body: -F, newline=exact+1 — Ste`.
 
 ### Sub-step 4.1: RED — Stage F/A/E3 tests
 - Status: PENDING

@@ -78,25 +78,10 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 **Effort:** S
 **Priority:** P2
 
-### sole-dev-merge Stage F: update an existing PR through REST, not `gh pr edit`
-**What:**
-- Stage F (`references/stage-f-push.md:50`) updates an existing PR with `gh pr edit --body-file "$PR_BODY_FILE"`. On this repo that call hits a Projects-classic GraphQL error (`repository.pullRequest.projectCards`) and the body is not updated.
-- Fix: replace it with `gh api -X PATCH "repos/{owner}/{repo}/pulls/$PR_NUM" -F body=@"$PR_BODY_FILE"`, resolving `PR_NUM` from `gh pr view` first. Read the body back and fail loud if it's unchanged.
-- Update `tests/commands/sole-dev-merge/test_stage_f_idempotent.bats:106` (it asserts `gh pr edit` is called).
-
-**Why:** on PR #30 (2026-10-13) the body edit silently didn't land, and a chained `gh pr ready` never ran. Only a read-back caught it (global lesson L-1309). **Effort:** S · **Priority:** P2
-
-### sole-dev-merge E1 → E2: remote counts don't reach E2 in a separate Bash call
-**What:**
-- E2 reads `n_github`/`n_gitlab` from E1, but E1 has no stage-state loader and those keys are not in the 15-key allowlist. Run E2 in its own Bash call and it aborts with "only github.com and gitlab.com remotes supported". The prose says to run E1 and E2 in one call (sole-dev-merge-fixes M2).
-- Fix: E1 saves `n_github`/`n_gitlab`/`n_other` through the loader. Widen the allowlist to 18 keys, and add an empty-env E2 case to `test_stage_state.bats`.
-
-**Why:** found while building the M2 state file. Every other stage now gets its inputs in a fresh shell. **Effort:** S · **Priority:** P2 · **Planned:** sole-dev-merge-fixes M4 (4.2).
-
 ### sole-dev-merge: two inputs still split or defaulted (M2 §6.8 INFO)
 **What:**
 - ~~`$CHANGED_PY`/`$CHANGED_SH` reach `ruff` and `shellcheck` unquoted, and `$CHANGED_FILES` reaches `pre-commit run --files` the same way.~~ **Done in sole-dev-merge-fixes M3.** ruff and shellcheck get `-- "${arr[@]}"`. pre-commit gets `./`-prefixed names, because its argparse rejects `--` (probed).
-- `REMOTE_CHOICE="${REMOTE_CHOICE:-github}"` in E0, F and G1–G3 is a masking default (L-055 rule). G1 with a refused state file would save a strategy read from the wrong host. Fix: `${REMOTE_CHOICE:?}`. Planned for M4.
+- ~~`REMOTE_CHOICE="${REMOTE_CHOICE:-github}"` in E0, F and G1–G3 is a masking default (L-055 rule). G1 with a refused state file would save a strategy read from the wrong host. Fix: `${REMOTE_CHOICE:?}`.~~ **Done in sole-dev-merge-fixes M4.** E0, F and G1–G3 now use `${REMOTE_CHOICE:?…}`, and E2's `n_github`/`n_gitlab` are required too. E2's dual-remote `:-gitlab` stays: it is the prompt's default answer, not a missing input.
 
 **Why:** both predate M2 and are outside its key list; the §6.8 security and code reviews raised them as INFO. **Effort:** S · **Priority:** P3
 
@@ -451,6 +436,16 @@ path and a fixture path, before Deep is evaluated.
 **Why:** each fails closed or is a usability gap; none is a leak. **Effort:** M total · **Priority:** P3
 
 ## Completed
+
+### sole-dev-merge Stage F: update an existing PR through REST, not `gh pr edit`
+**What:**
+- Stage F (`references/stage-f-push.md:50`) updates an existing PR with `gh pr edit --body-file "$PR_BODY_FILE"`. On this repo that call hits a Projects-classic GraphQL error (`repository.pullRequest.projectCards`) and the body is not updated.
+- Fix: replace it with `gh api -X PATCH "repos/{owner}/{repo}/pulls/$PR_NUM" -F body=@"$PR_BODY_FILE"`, resolving `PR_NUM` from `gh pr view` first. Read the body back and fail loud if it's unchanged.
+- Update `tests/commands/sole-dev-merge/test_stage_f_idempotent.bats:106` (it asserts `gh pr edit` is called).
+
+**Why:** on PR #30 (2026-10-13) the body edit silently didn't land, and a chained `gh pr ready` never ran. Only a read-back caught it (global lesson L-1309). **Effort:** S · **Priority:** P2
+
+**Done:** sole-dev-merge-fixes M4 (2026-10-17). Stage F resolves `PR_NUM`, then runs `gh api -X PATCH repos/{owner}/{repo}/pulls/$PR_NUM -F "body=@$PR_BODY_FILE"` and reads the body back. `cmp <(cat body; echo) <(… --jq .body)`, because `--jq` adds one newline (probed live on PR #45). A failed PATCH or a mismatch prints `STATUS: PR_BODY_NOT_UPDATED — PR #N`, rc 0. `test_stage_f_idempotent.bats:106` now asserts 0 `pr edit` calls.
 
 ### sole-dev-merge Stage G3/G4: don't break when run from a worktree
 **What:**

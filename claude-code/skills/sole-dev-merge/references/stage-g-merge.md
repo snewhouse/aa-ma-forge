@@ -58,7 +58,7 @@ set -euo pipefail
 
 # Stage state: load what earlier stages saved (SKILL.md "State between stages").
 SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
-SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED n_github n_gitlab n_other "
 sdm_load() {
     # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
     if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
@@ -84,8 +84,8 @@ sdm_load() {
 [[ -f "$SDM_STATE" ]] && sdm_load
 sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
-# Inherits REMOTE_CHOICE from Stage E2. Defensive default to github.
-REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
+# From Stage E2 via the state file.
+REMOTE_CHOICE="${REMOTE_CHOICE:?Stage G1 needs REMOTE_CHOICE from Stage E2 — run E2 first}"   # why: a defaulted github acts on the wrong host when the state file was refused (L-055)
 MERGE_STRATEGY=rebase  # default; falls back to merge if rebase disabled
 
 if [[ "$REMOTE_CHOICE" == "github" ]]; then
@@ -116,7 +116,7 @@ set -euo pipefail
 
 # Stage state: load what earlier stages saved (SKILL.md "State between stages").
 SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
-SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED n_github n_gitlab n_other "
 sdm_load() {
     # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
     if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
@@ -143,7 +143,7 @@ sdm_load() {
 sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
 # Inputs from Stage F: PR_NUM, PR_URL, REMOTE_CHOICE.
-REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
+REMOTE_CHOICE="${REMOTE_CHOICE:?Stage G2 needs REMOTE_CHOICE from Stage E2 — run E2 first}"   # why: a defaulted github acts on the wrong host when the state file was refused (L-055)
 PR_NUM="${PR_NUM:?Stage G2 needs PR_NUM from Stage F}"
 # why: it reaches gh/glab argv; a number can never be read as an option
 [[ "$PR_NUM" =~ ^[0-9]+$ ]] || { echo "ABORT: Stage G2: PR_NUM '$PR_NUM' is not a number"; exit 1; }
@@ -225,7 +225,7 @@ set -euo pipefail
 
 # Stage state: load what earlier stages saved (SKILL.md "State between stages").
 SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
-SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED n_github n_gitlab n_other "
 sdm_load() {
     # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
     if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
@@ -253,7 +253,7 @@ sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$
 
 # Inputs from Stage F + G1 + G2: PR_NUM, PR_URL, REMOTE_CHOICE,
 # MERGE_STRATEGY (rebase|merge), CI_STATE (green|timeout|failed).
-REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
+REMOTE_CHOICE="${REMOTE_CHOICE:?Stage G3 needs REMOTE_CHOICE from Stage E2 — run E2 first}"   # why: a defaulted github acts on the wrong host when the state file was refused (L-055)
 PR_NUM="${PR_NUM:?Stage G3 needs PR_NUM from Stage F}"
 # why: it reaches gh/glab argv; a number can never be read as an option
 [[ "$PR_NUM" =~ ^[0-9]+$ ]] || { echo "ABORT: Stage G3: PR_NUM '$PR_NUM' is not a number"; exit 1; }
@@ -373,7 +373,7 @@ set -euo pipefail
 
 # Stage state: load what earlier stages saved (SKILL.md "State between stages").
 SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
-SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED n_github n_gitlab n_other "
 sdm_load() {
     # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
     if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then

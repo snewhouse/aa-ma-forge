@@ -70,37 +70,9 @@ fi
 
 ## State between stages
 
-Every block below runs in its own Bash call, so a shell variable set in one
-block is gone in the next (forge L-055). The values travel in a **stage state
-file** instead: `"$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"`. It
-lives in this worktree's own git-dir, so it is untracked, never pushed, and
-separate per worktree.
-
-- **Stage A starts it.** It deletes the last run's file first (an aborted A
-  leaves none) and the earlier run dirs, then saves `ORIGINAL_BRANCH`,
-  `BASE_REF`, `DEFAULT_BRANCH`, `SLUG` and `SDM_DIR`. Its `Stage state:` line
-  prints both paths.
-- **Every later block loads it** with the same loader. A non-empty explicit
-  env value beats the file, and the file beats a block's own defaults. A
-  required value that is still missing stops the block loudly.
-- **Saves are appended** as `KEY=<base64>` by `sdm_save`; the last write of a
-  key wins. B saves `CHANGED_FILES/PY/SH`, E2 `REMOTE_CHOICE`, E3
-  `PR_BODY_FILE`, F `PR_NUM`/`PR_URL`, G1 `MERGE_STRATEGY`, G2 `CI_STATE`, G3
-  `MERGE_DISPATCHED` (G4 runs only when it is `1`).
-- **Run files** (agent outputs, scanner reports, findings, reviewer notes, the
-  AUQ bridge, the PR body) live in `SDM_DIR`, a mode-700 directory next to the
-  state file. No run file is written to the shared temp directory.
-- **The loader trusts nothing it reads.** It ignores a file written on another
-  branch or with no branch (with a message), refuses a symlinked or
-  group/world-writable file or one you don't own, accepts only the keys named in
-  `SDM_KEYS`, and never `eval`s a value.
-- **Saving refuses the same files.** `sdm_save` will not write through a
-  symlinked state file, one you don't own, or one writable by group or others;
-  the refusal stops the block. When it creates the file, the file is mode 600.
-- **To re-answer a question** (for example the dual-remote choice), re-run the
-  block with the answer set explicitly, such as `REMOTE_CHOICE=github`. The block
-  saves the explicit value. For E2, re-run E1 and E2 together in one Bash call:
-  E2 reads E1's remote counts, which are not in the state file.
+Each block runs in its own Bash call, so values travel in a **stage state file** in this
+worktree's git-dir (forge L-055). See [stage-state.md](references/stage-state.md#state-between-stages)
+for what each stage saves and loads, and what the loader and `sdm_save` refuse.
 
 ## Workflow stages
 
@@ -118,9 +90,11 @@ messages below on failure; otherwise prints `Pre-flight OK`.
 |------------------|--------------|
 | Not in a git repository | `ABORT: Not inside a git repository` |
 | Detached HEAD | `ABORT: Detached HEAD — check out the branch to merge` |
-| On `main`/`master` | `ABORT: Cannot run /sole-dev-merge from $ORIGINAL_BRANCH branch` |
+| On `main`/`master`, or on the remote's default branch | `ABORT: Cannot run /sole-dev-merge from $ORIGINAL_BRANCH branch` |
+| The remote's default branch is not a valid branch name | `ABORT: DEFAULT_BRANCH '<name>' is not a valid branch name` |
 | Uncommitted changes | `ABORT: Uncommitted changes detected (commit or stash first)` |
 | No git remote | `ABORT: No git remote configured (need github.com or gitlab.com remote)` |
+| Neither the default branch nor `origin/<it>` resolves | `ABORT: Cannot resolve $DEFAULT_BRANCH or origin/$DEFAULT_BRANCH` |
 | No commits ahead of base | `ABORT: No commits ahead of $DEFAULT_BRANCH (nothing to merge)` |
 | An explicit `SLUG` that is not a plain name | `ABORT: SLUG '<slug>' must be letters, digits, '.', '_' or '-'` |
 
@@ -168,6 +142,11 @@ fi
 DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null \
     | sed 's@^refs/remotes/origin/@@' || true)
 DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+# origin/HEAD can name an option-shaped ref (refs/remotes/origin/-x); G3 refuses it too.
+git check-ref-format --branch "$DEFAULT_BRANCH" >/dev/null \
+    || { echo "ABORT: DEFAULT_BRANCH '$DEFAULT_BRANCH' is not a valid branch name"; exit 1; }
+[[ "$ORIGINAL_BRANCH" != "$DEFAULT_BRANCH" ]] \
+    || { echo "ABORT: Cannot run /sole-dev-merge from $ORIGINAL_BRANCH branch"; exit 1; }   # why: step 2 knows only main/master
 
 # Resolve a usable base ref (prefer local, fall back to remote tracking)
 if git rev-parse --verify -q "$DEFAULT_BRANCH" >/dev/null; then
@@ -223,7 +202,7 @@ set -euo pipefail
 
 # Stage state: load what earlier stages saved (SKILL.md "State between stages").
 SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
-SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED n_github n_gitlab n_other "
 sdm_load() {
     # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
     if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
@@ -316,7 +295,7 @@ LEFT=()
 # why: -z gives raw names (no C-quoting) and a rename's source as the next NUL field
 while IFS= read -r -d '' rec; do
     paths=("${rec:3}")   # record: "XY path"
-    if [[ "${rec:0:1}" == [RC] ]]; then IFS= read -r -d '' src; paths+=("$src"); fi
+    if [[ "${rec:0:2}" == *[RC]* ]]; then IFS= read -r -d '' src; paths+=("$src"); fi   # why: X or Y — `git add -N` gives a worktree rename " R"
     for path in "${paths[@]}"; do
         [[ -n "${IN_SCOPE[$path]:-}" ]] && continue
         if [[ "${rec:0:2}" == "??" ]]; then
@@ -351,7 +330,9 @@ echo "Stage B OK"
 Commits Stage B's in-scope fixes as `chore(scope): pre-PR auto-fixes` (plan footer
 or `[ad-hoc]`), staging only the branch's own dirty files (`CHANGED_FILES`) and
 listing any other. Anything else already staged → `ABORT: Stage B-commit staged
-files outside the intended list: …`, exit 1, index untouched. Nothing in scope → no-op.
+files outside the intended list: …`, exit 1, index untouched. No `CHANGED_FILES`
+(Stage B not run, or its state refused) → `ABORT: Stage B-commit needs CHANGED_FILES …`,
+exit 1. Nothing in scope → no-op.
 
 ```bash
 # === stage-b-commit (BEGIN) ===
@@ -359,7 +340,7 @@ set -euo pipefail
 
 # Stage state: load what earlier stages saved (SKILL.md "State between stages").
 SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
-SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED n_github n_gitlab n_other "
 sdm_load() {
     # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
     if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
@@ -425,7 +406,7 @@ if [[ ${#INTENDED[@]} -gt 0 ]]; then
     git add -- "${INTENDED[@]}"
     OUTSIDE=$(staged_outside)   # why: L-048 — assert the staged set after staging, too
     if [[ -n "$OUTSIDE" ]]; then
-        git reset -q -- "${INTENDED[@]}"   # why: undo only what this block staged
+        git reset -q -- "${INTENDED[@]}"   # why: unstage the in-scope paths again; this also unstages in-scope content staged before B-commit (the worktree keeps it)
         echo "ABORT: Stage B-commit staged files outside the intended list: ${OUTSIDE% }"
         exit 1
     fi
@@ -470,21 +451,29 @@ See [stage-g-merge.md](references/stage-g-merge.md#stage-g--ci-poll--auto-merge-
 
 | Status            | Meaning                                              |
 |-------------------|------------------------------------------------------|
-| `STATUS: OK`      | Merged to main; branch deleted; main fast-forwarded (Stage G4). |
-| `ABORT: …` (Stage A)   | Pre-flight failure: on-main, dirty tree, no remote, no commits ahead; exit non-zero. |
-| `ABORT: Stage B-commit staged files outside the intended list: …` (Stage B-commit) | Something outside the branch's files is staged; nothing is committed and the operator's index is left as it was; exit 1. |
-| `ABORT: only github.com and gitlab.com remotes supported` (Stage E2) | Remote configuration unsupportable (zero github + zero gitlab remotes — semantically a pre-flight gate); exit non-zero. |
-| `ABORT: Stage F requires non-empty body file …` (Stage F) | Stage E3 skipped or body file empty; exit non-zero. |
+| `STATUS: OK`      | Stage G4: the default branch was updated. In a plain checkout, G4 switches to it, fast-forwards it and deletes the local branch. In a linked worktree it updates the default branch in the main worktree and leaves this worktree and its local branch for the operator: it prints the cleanup commands, and the line ends ` worktree=<path>`. |
+| `ABORT: Not inside a git repository` · `ABORT: Detached HEAD …` · `ABORT: Cannot run /sole-dev-merge from <branch> branch` · `ABORT: Uncommitted changes …` · `ABORT: No git remote configured …` · `ABORT: DEFAULT_BRANCH '…' is not a valid branch name` · `ABORT: Cannot resolve …` · `ABORT: No commits ahead of …` · `ABORT: SLUG '…' must be …` (Stage A) | Pre-flight failure; exit 1. `<branch>` is main, master or the remote's default branch. |
+| `ABORT: Stage B-commit needs CHANGED_FILES …` (Stage B-commit) | Stage B did not run, or its state was refused. Nothing is staged or committed; exit 1. |
+| `ABORT: Stage B-commit staged files outside the intended list: …` (Stage B-commit) | Something outside the branch's files is staged. Before staging, the index is left as it was. After staging, the in-scope paths are unstaged again, including in-scope content staged before B-commit (the worktree keeps it). Nothing is committed; exit 1. |
+| `ABORT: only github.com and gitlab.com remotes supported` (Stage E2) | Remote configuration unsupportable (zero github + zero gitlab remotes — semantically a pre-flight gate); exit 1. |
 | `STATUS: AUTH_REQUIRED` | Auth failed (Stage E0); exit 0 + recovery hint.  |
+| `ABORT: Stage F requires non-empty body file …` (Stage F) | Stage E3 skipped or body file empty; exit 1. |
+| `STATUS: PR_BODY_NOT_UPDATED — PR #N` (Stage F) | The existing PR's REST body update failed, or its read-back differs from the body file; exit 0. Stage G can continue. Set the body by hand. |
 | `STATUS: CI_TIMEOUT — see <URL>` | CI poll cap exceeded (Stage G2); exit 0 + remote-aware auto-merge recovery hint. |
 | `STATUS: CI_FAILED — see <URL>` | Required check failed (Stage G2); exit 0 + remote-aware diagnostic. |
 | `STATUS: CI_BLOCKED — pipeline status=<state> — see <URL>` | GitLab pipeline state is `manual` or `skipped` (Stage G2); exit 0 + diagnostic. No merge dispatched. |
 | `STATUS: CI_UNKNOWN — CI_STATE='<state>' REMOTE_CHOICE='<remote>'` | Stage G2 produced an unknown CI_STATE (Stage G3 catchall); exit 0. No merge dispatched. |
+| `ABORT: Stage G2: …` · `ABORT: Stage G3: …` (Stage G2, G3) | An invalid input: a non-numeric PR_NUM, an invalid branch name or merge strategy, the PR's head is not this branch, or ORIGINAL_BRANCH is the default branch. Nothing is merged; exit 1. |
+| `STATUS: MERGE_FAILED — state=<state> — see <URL>` (Stage G3) | After the merge call the server does not say MERGED. G3 saves `MERGE_DISPATCHED=0`, so G4 stops; exit 0. |
+| `STATUS: BRANCH_NOT_DELETED — <branch>` (Stage G3) | Merged, but `ls-remote` still finds the remote branch or could not check; exit 0. G4 still runs. |
+| `STATUS: REMOTE_UNKNOWN — REMOTE_CHOICE='<remote>'` (Stage G3) | REMOTE_CHOICE is neither github nor gitlab. Nothing is merged and `MERGE_DISPATCHED=0`; exit 0. |
+| `ABORT: Stage G4: …` (Stage G4) | No successful merge was recorded (`MERGE_DISPATCHED` is not 1), or a branch name is invalid; exit 1. |
+| `STATUS: MAIN_CHECKOUT_DIRTY — <files>` (Stage G4) | Worktree run: the main worktree has tracked changes, so its default branch is not touched (never auto-reverted); exit 0. |
+| `STATUS: MAIN_NOT_UPDATED — <reason>` (Stage G4) | Worktree run: the default branch is checked out in another worktree, or the update is not a fast-forward. Printed in place of `STATUS: OK`; exit 0. |
 
-Non-zero exits are reserved for **pre-flight-class aborts**: any stage's `ABORT: …` line, printed when a required input is missing or invalid.
+Non-zero exits are reserved for **pre-flight-class aborts**: an `ABORT: …` line from Stage A, B-commit, E2, F, G2, G3 or G4, printed when an input is invalid. A required input that is missing from both the env and the state file stops its block with bash's own `VAR: Stage X needs …` message, also exit 1.
 All runtime failures (auth, CI, merge race) exit cleanly with a `STATUS: …`
 line so the workflow is safe to run unattended.
-
 ---
 
 ## Tests

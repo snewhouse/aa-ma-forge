@@ -5,6 +5,10 @@
 #   GLAB_MR_EXISTS=1  → `glab mr view ...` exits 0 (existing MR).
 #   GLAB_MR_EXISTS=0  → `glab mr view ...` exits 1 (no MR).
 #   GLAB_AUTH_OK=0   → `glab auth status` exits non-zero.
+#   GLAB_MR_SAMEPROJ=true — source_project_id == target_project_id in the JSON lookups.
+#   GLAB_MR_SOURCE   — the MR's source_branch (default: the current branch).
+#   GLAB_MR_STATE=opened — the MR's state in Stage F's lookup.
+#   STUB_PR_NUM=42   — the MR iid every arm reports (fixtures/helpers.bash).
 
 set -eu
 
@@ -15,17 +19,31 @@ case "${1:-}" in
     mr)
         case "${2:-}" in
             view)
+                # JSON lookups (`-F json --jq "\(...)\t..."`): Stage F's five fields
+                # (it asks for .state) or G3's two (by iid).
+                if [[ "$*" == *"-F json"* ]]; then
+                    if [[ "$*" == *".state"* ]]; then
+                        # an MR exists if one was planted, or after this run's `glab mr create`
+                        [[ "${GLAB_MR_EXISTS:-0}" == "1" ]] || grep -q '^glab mr create' "$LOG" || exit 1
+                        printf '%s\t%s\t%s\t%s\t%s\n' "${STUB_PR_NUM:-42}" \
+                            "https://gitlab.com/test/repo/-/merge_requests/${STUB_PR_NUM:-42}" \
+                            "${GLAB_MR_SAMEPROJ:-true}" "${GLAB_MR_SOURCE:-$(git branch --show-current)}" "${GLAB_MR_STATE:-opened}"
+                    else
+                        printf '%s\t%s\n' "${GLAB_MR_SAMEPROJ:-true}" "${GLAB_MR_SOURCE:-$(git branch --show-current)}"
+                    fi
+                    exit 0
+                fi
                 # §6.8 M4 CRITICAL-1 fix: Stage F now queries `--jq .web_url`
                 # and `--jq .iid` to extract PR_URL + MR_IID. Honour both.
                 if [[ "$*" == *"--jq .web_url"* || "$*" == *"--jq '.web_url'"* ]]; then
-                    echo "https://gitlab.com/test/repo/-/merge_requests/42"
+                    echo "https://gitlab.com/test/repo/-/merge_requests/${STUB_PR_NUM:-42}"
                     exit 0
                 elif [[ "$*" == *"--jq .iid"* || "$*" == *"--jq '.iid'"* ]]; then
-                    echo "42"
+                    echo "${STUB_PR_NUM:-42}"
                     exit 0
                 fi
                 if [[ "${GLAB_MR_EXISTS:-0}" == "1" ]]; then
-                    echo "MR !42 — test"
+                    echo "MR !${STUB_PR_NUM:-42} — test"
                     exit 0
                 else
                     exit 1
@@ -33,7 +51,7 @@ case "${1:-}" in
                 ;;
             create|update)
                 # Real glab prints the new/updated MR URL to stdout.
-                echo "https://gitlab.com/test/repo/-/merge_requests/42"
+                echo "https://gitlab.com/test/repo/-/merge_requests/${STUB_PR_NUM:-42}"
                 exit 0
                 ;;
             merge)

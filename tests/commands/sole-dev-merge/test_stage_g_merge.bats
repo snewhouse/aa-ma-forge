@@ -585,3 +585,34 @@ _fingerprint() {
     [[ "$output" == *"ABORT: Stage G3: cannot read PR ${PR_NUM}"* ]]
     [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
 }
+
+@test "G3 gitlab: MR from another project → ABORT rc 1, no merge" {
+    # why: live run 2 C2 MEDIUM — the GitHub fork guard had no GitLab counterpart
+    _sandbox_with_pushed_feature
+    export REMOTE_CHOICE=gitlab CI_STATE=green MERGE_STRATEGY=rebase GLAB_MR_SAMEPROJ=false
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage G3: MR !${PR_NUM} is not this branch's own"* ]]
+    [ "$(grep -c 'mr merge' "$CLI_LOG")" -eq 0 ]
+}
+
+@test "G3 gitlab: MR source branch is not ORIGINAL_BRANCH → ABORT rc 1, no merge" {
+    _sandbox_with_pushed_feature
+    export REMOTE_CHOICE=gitlab CI_STATE=green MERGE_STRATEGY=rebase GLAB_MR_SOURCE=other
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 1 ]
+    [ "$(grep -c 'mr merge' "$CLI_LOG")" -eq 0 ]
+}
+
+@test "G3 gitlab: an env MR_IID never overrides the PR_NUM that was checked as a number" {
+    # why: live run 2 C2 LOW — MR_IID reached glab argv unvalidated
+    _sandbox_with_pushed_feature
+    export REMOTE_CHOICE=gitlab CI_STATE=green MERGE_STRATEGY=rebase MR_IID=--yes
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -cE "^glab mr merge ${PR_NUM} --rebase" "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -c 'mr merge --yes' "$CLI_LOG")" -eq 0 ]
+}

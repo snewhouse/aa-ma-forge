@@ -18,6 +18,7 @@
 #   GH_PR_HEAD_REF       — Stage F's one-call lookup reports this head branch
 #                           (default: the current branch).
 #   GH_PR_CROSS_REPO=false — isCrossRepository in Stage F's lookup and G3's check.
+#   GH_PR_LOOKUP_STATE=OPEN — the state Stage F's lookup reports (OPEN|CLOSED|MERGED).
 #   STUB_PR_NUM=42       — the PR number every arm reports (fixtures/helpers.bash).
 #   GH_PR_LOOKUP_RC=0    — exit code for G3's head/owner lookup.
 #   GH_MERGE_RC=0        — exit code for `gh pr merge`.
@@ -46,19 +47,13 @@ case "${1:-}" in
                     [[ "${GH_PR_LOOKUP_RC:-0}" == 0 ]] || exit "${GH_PR_LOOKUP_RC}"
                     printf '%s\t%s\n' "${GH_HEAD_REF:-feature}" "${GH_PR_CROSS_REPO:-false}"
                     exit 0
-                elif [[ "$*" == *"--json headRefName"* ]]; then
-                    echo "${GH_HEAD_REF:-feature}"
-                    exit 0
-                elif [[ "$*" == *"--json isCrossRepository"* ]]; then
-                    echo "${GH_PR_CROSS_REPO:-false}"
-                    exit 0
                 fi
                 # Stage F's lookup: one call, tab-separated (gojq @tsv, as real gh).
                 if [[ "$*" == *"--json number,url,isCrossRepository,headRefName"* ]]; then
                     # a PR exists if one was planted, or after this run's `gh pr create`
                     [[ "${GH_PR_EXISTS:-0}" == "1" ]] || grep -q '^gh pr create' "$LOG" || exit 1
-                    printf '%s\t%s\t%s\t%s\n' "${STUB_PR_NUM:-42}" "https://github.com/test/repo/pull/${STUB_PR_NUM:-42}" \
-                        "${GH_PR_CROSS_REPO:-false}" "${GH_PR_HEAD_REF:-$(git branch --show-current)}"
+                    printf '%s\t%s\t%s\t%s\t%s\n' "${STUB_PR_NUM:-42}" "https://github.com/test/repo/pull/${STUB_PR_NUM:-42}" \
+                        "${GH_PR_CROSS_REPO:-false}" "${GH_PR_HEAD_REF:-$(git branch --show-current)}" "${GH_PR_LOOKUP_STATE:-OPEN}"
                     exit 0
                 fi
                 # §6.8 M4 CRITICAL-1 fix: Stage F now queries `--jq '.url'` and

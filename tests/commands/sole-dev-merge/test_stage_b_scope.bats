@@ -370,6 +370,23 @@ PY
     [[ "$output" == *"L-007 guard: untracked out-of-scope file(s) left unstaged: newstaged.txt"* ]]
 }
 
+@test "L-007 guard reads a worktree rename (Y=R, intent-to-add) as one record and loses neither file" {
+    # why: `mv` + `git add -N` gives " R moved.txt\0out.txt\0" (probed, git 2.53); reading only X
+    # made the guard parse the source "out.txt" as a record and try to restore a path ".txt"
+    b_sandbox
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    mv out.txt moved.txt
+    git add -N moved.txt
+    [[ "$(git status --porcelain -- out.txt moved.txt)" == " R out.txt -> moved.txt" ]]   # precondition: Y=R
+    run fresh bash "$(blk stage-b-scope)"
+    [ "$status" -eq 0 ]
+    [ "$(cat out.txt)" = keep ]
+    [ "$(cat moved.txt)" = keep ]
+    [ "$(git status --porcelain -- out.txt moved.txt)" = "?? moved.txt" ]
+    [[ "$output" != *"could not restore"* ]]
+    [[ "$output" == *"left unstaged: moved.txt"* ]]
+}
+
 # --- B-commit: only in-scope paths, staged-set assert (spec F4.2-F4.4) --------
 
 @test "AC4.1: B-commit leaves an untracked out-of-scope file out of the commit and on disk" {

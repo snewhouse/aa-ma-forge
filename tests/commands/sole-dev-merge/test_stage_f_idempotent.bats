@@ -103,16 +103,78 @@ _sandbox_with_commit() {
 # Stage F — push + PR/MR idempotency
 # ---------------------------------------------------------------------------
 
-@test "F-github: existing PR → gh pr edit (NOT create) — AC §4.3.4" {
+@test "F-github: existing PR → one REST PATCH of the body, never gh pr edit or create — AC §4.3.4" {
+    # why: gh pr edit hits a Projects-classic GraphQL error here and the body silently stays (L-1309, E15)
     _sandbox_with_commit
     export REMOTE_CHOICE=github GH_PR_EXISTS=1
     export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
 
     run bash "$F_SCRIPT"
     [ "$status" -eq 0 ]
-    # AC §4.3.4 falsifiable assertions
     [ "$(grep -c 'pr create' "$CLI_LOG")" -eq 0 ]
-    [ "$(grep -c 'pr edit --body-file' "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -c 'pr edit' "$CLI_LOG")" -eq 0 ]
+    [ "$(grep -cF "api -X PATCH repos/{owner}/{repo}/pulls/42 -F body=@${BODY_FILE}" "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -cF 'api repos/{owner}/{repo}/pulls/42 --jq .body' "$CLI_LOG")" -eq 1 ]
+    # PR_NUM is resolved before the PATCH that needs it
+    local n_num n_patch
+    n_num=$(grep -n 'pr view --json number' "$CLI_LOG" | head -1 | cut -d: -f1)
+    n_patch=$(grep -n 'api -X PATCH' "$CLI_LOG" | head -1 | cut -d: -f1)
+    [ -n "$n_num" ]
+    [ -n "$n_patch" ]
+    [ "$n_num" -lt "$n_patch" ]
+}
+
+@test "F-github: existing PR, read-back matches → body stored byte-exact, no STATUS line" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=1
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+    printf '## Test plan\n\n- `code`, {owner} {repo}, → ✓\n' > "$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    cmp "$BODY_FILE" "${CLI_LOG}.body"
+    [[ "$output" == *"Stage F: PR #42 body updated (read-back matches)"* ]]
+    [[ "$output" != *"PR_BODY_NOT_UPDATED"* ]]
+    [[ "$output" == *"PR_NUM=42"* ]]
+}
+
+@test "F-github: read-back mismatch → STATUS: PR_BODY_NOT_UPDATED, rc 0, PR_NUM still saved" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=1 GH_PR_BODY_READBACK="an older body"
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: PR_BODY_NOT_UPDATED — PR #42"* ]]
+    [[ "$output" == *"PR_NUM=42"* ]]
+}
+
+@test "F-github: a failing PATCH → STATUS: PR_BODY_NOT_UPDATED, rc 0 (never a set -e exit)" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=1 GH_API_PATCH_RC=1
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: PR_BODY_NOT_UPDATED — PR #42"* ]]
+}
+
+@test "F-github: no existing PR → create path unchanged: no PATCH, no read-back" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=0
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'pr create --title' "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -c -- '-X PATCH' "$CLI_LOG")" -eq 0 ]
+    [ "$(grep -c -- '--jq .body' "$CLI_LOG")" -eq 0 ]
+    [[ "$output" != *"PR_BODY_NOT_UPDATED"* ]]
+}
+
+@test "F: the shipped block never calls gh pr edit" {
+    run grep -c 'gh pr edit' "$F_SCRIPT"
+    [ "$output" = 0 ]
 }
 
 @test "F-github: no existing PR → gh pr create (NOT edit)" {

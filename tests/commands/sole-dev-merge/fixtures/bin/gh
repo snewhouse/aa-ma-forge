@@ -16,6 +16,12 @@
 #                           the server state after the merge call, E6).
 #   GH_HEAD_REF=feature  — `gh pr view ... --json headRefName` echoes this.
 #   GH_MERGE_RC=0        — exit code for `gh pr merge`.
+#   GH_API_PATCH_RC=0    — exit code for `gh api -X PATCH …` (Stage F body update);
+#                           on non-zero nothing is stored.
+#   GH_API_BODY_STORE    — where a PATCHed `-F body=@FILE` is copied
+#                           (default "$CLI_LOG.body").
+#   GH_PR_BODY_READBACK  — when set, `gh api … --jq .body` prints this instead of
+#                           the stored body.
 
 set -eu
 
@@ -85,6 +91,28 @@ case "${1:-}" in
         esac
         ;;
     api)
+        # Stage F body update (sole-dev-merge-fixes M4). These arms must come
+        # before the G1 default below, which answers every other api call.
+        if [[ "$*" == *"-X PATCH"* || "$*" == *"--jq .body"* || "$*" == *"--jq '.body'"* ]]; then
+            store="${GH_API_BODY_STORE:-${CLI_LOG:?gh stub: CLI_LOG required for the body arms}.body}"
+        fi
+        if [[ "$*" == *"-X PATCH"* ]]; then
+            [[ "${GH_API_PATCH_RC:-0}" == 0 ]] || exit "${GH_API_PATCH_RC}"
+            for a in "$@"; do
+                if [[ "$a" == body=@* ]]; then cat -- "${a#body=@}" > "$store"; fi
+            done
+            echo '{"number":42}'
+            exit 0
+        elif [[ "$*" == *"--jq .body"* || "$*" == *"--jq '.body'"* ]]; then
+            if [[ -n "${GH_PR_BODY_READBACK+x}" ]]; then
+                printf '%s\n' "$GH_PR_BODY_READBACK"
+            else
+                # why: real `gh api --jq .body` prints the body plus one newline (4.0 probe)
+                if [[ -f "$store" ]]; then cat -- "$store"; fi
+                echo
+            fi
+            exit 0
+        fi
         # M4 branch-protection check expects 'true'|'false' from --jq filter.
         # M3 idempotency tests don't depend on this output (they only check
         # PR-view behaviour), so changing default is safe.

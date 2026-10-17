@@ -261,3 +261,16 @@ _This log will be updated via context compaction as the task progresses._
   - Stripping trailing newlines: it is blind to trailing-newline drift.
   - `--input` + `jq -j`: it adds a `jq` binary dependency, and the skill has none today.
 - **Stub consequence (4.1):** the gh stub's `--jq .body` arm must echo the stored body plus one `\n`, as real gh does. `GH_PR_BODY_READBACK` overrides it.
+
+## [2026-10-17] L-056 carry-ins folded into M4; Contract widened — Ste
+- **Grep** (TODOS, CL, impl-review and verification for `M4`/`Milestone 4`) found two items missing from 4.1/4.2:
+  - `REMOTE_CHOICE:-github` → `${REMOTE_CHOICE:?}` (TODOS:99, CL:160, IR:74);
+  - the Stage A part of the `DEFAULT_BRANCH` validation (IR:33; G3 does it at `stage-g-merge.md:269`).
+  - Already covered: E1→E2 counts (4.2), G3/G4 ABORT rows (4.2).
+- **Y=R probe** (`<scratch>/yr-probe`, git 2.53.0): `mv a b; git add -N b` gives ` R b.txt\0a.txt\0`. The guard (SKILL.md stage-b-scope, `[[ "${rec:0:1}" == [RC] ]]`) reads only X. The source `a.txt` then becomes a record `XY=[a.] path=[xt]`, and the guard would `restore --source=HEAD` a path named `xt`. B-commit's porcelain use is display-only and unaffected.
+- **Decisions (Ste, AskUserQuestion):**
+  - Y=R guard fix → M4 (1 RED + `${rec:0:2} == *[RC]*`, line-neutral).
+  - `REMOTE_CHOICE` → M4 at all sites: F, E0/E3, G1–G3. `references/stage-g-merge.md` and the b_scope/g_merge/state test files are added to M4's Contract (plan §5 M4, marked "Added at 4.0").
+  - The Stage A `check-ref-format` RED is added with them.
+- **TODOS filed:** "Stage B: three LOWs from PR #44's Stage D (run 2)" (env CHANGED_FILES wins; `??` at a branch-deleted path re-added; C-quoting / unescaped echo) and "Stage C: `${CHANGED_PY:-}` / `${CHANGED_SH:-}` masking defaults" with `file:line` (L-1351).
+- **Constraint for 4.2:** SKILL.md is 499/500 lines. Adding the 7 status rows plus the doc-only LOW wording will exceed the cap, so 4.2 must move prose into `references/` (not tighten it into unreadability). Record where it moved.

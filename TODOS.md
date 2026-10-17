@@ -100,6 +100,18 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** both predate M2 and are outside its key list; the §6.8 security and code reviews raised them as INFO. **Effort:** S · **Priority:** P3
 
+### sole-dev-merge Stage B: three LOWs from PR #44's Stage D (run 2)
+**What:**
+- A non-empty env `CHANGED_FILES` overrides the state file. The loader's "a non-empty explicit env wins" rule (`SKILL.md` stage-b-commit `sdm_load`) lets a stale exported value pick B-commit's scope.
+- B-commit re-adds an untracked file at a path the branch deleted, because the path is in `CHANGED_FILES` and `git status --porcelain` shows it dirty (`??`). Suggested fix: stage only paths in HEAD or the branch diff, or skip `??` rows.
+- Names containing `"`, `\` or control characters are still C-quoted where `--name-only` runs without `-z`. Raw names are echoed unescaped in the guard and B-commit lines (terminal spoofing). Fix: `-z` + `mapfile -d ''` end to end, and `printf '%q'` when echoing.
+
+**Why:** Stage D LOW reviewer notes on PR #44 (sole-dev-merge-fixes M3). Ste chose 2026-10-17 to file these three here. The Y=R guard item and the two doc-only notes went into M4. **Effort:** S · **Priority:** P3
+
+### sole-dev-merge Stage C: `${CHANGED_PY:-}` / `${CHANGED_SH:-}` masking defaults
+**What:** `references/stage-c-review-and-security.md:75-76,150,198` read `${CHANGED_PY:-}` / `${CHANGED_SH:-}`. If Stage C runs in a fresh shell and the state file was refused, the scanners skip silently and C prints `Ruff S 0 file(s), ShellCheck 0 file(s)`, which looks like a clean scan (L-055 rule). Fix: tell "no state" apart from "no files", e.g. require `CHANGED_FILES` to be set (`${CHANGED_FILES?}`) before reading the subsets. Add a fresh-shell no-state case to `test_stage_c_dispatch.bats`.
+**Why:** pre-existing; raised by C1 on PR #44 (run 2). Kept out of M4 (Ste, 2026-10-17) because the Stage C reference is outside M4's Contract. **Effort:** S · **Priority:** P2
+
 ### Check the AA-MA commit signature at the `commit-msg` stage, not in the command text
 **What:**
 - `aa-ma-commit-signature.sh` (PreToolUse) reads only the literal command, so it guesses at messages it can't see. Rule 8 (sole-dev-merge-fixes 1.7) now trusts one canonical shape, `FOOTER=$(emit_aa_ma_footer); git commit -m "…${FOOTER}"`.

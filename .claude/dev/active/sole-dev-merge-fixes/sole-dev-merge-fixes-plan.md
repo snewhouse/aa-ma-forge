@@ -645,6 +645,9 @@ Files:
   Modify  tests/commands/sole-dev-merge/test_stage_f_idempotent.bats tests/commands/sole-dev-merge/test_stage_a_preflight.bats tests/commands/sole-dev-merge/test_stage_e3_body.bats
   Modify  tests/commands/sole-dev-merge/fixtures/bin/gh                         # api PATCH/read-back arms
   Modify  docs/adr/0008-*.md TODOS.md CHANGELOG.md
+  # Added at 4.0 (L-056 carry-ins, Ste 2026-10-17):
+  Modify  claude-code/skills/sole-dev-merge/references/stage-g-merge.md          # G1-G3 REMOTE_CHOICE:? (TODOS:99)
+  Modify  tests/commands/sole-dev-merge/test_stage_b_scope.bats tests/commands/sole-dev-merge/test_stage_g_merge.bats tests/commands/sole-dev-merge/test_stage_state.bats
 ```
 Risks:
 1. `-F body=@file` mangles the body (typed field) → the 4.0 live probe decides; fallback `--input` with `jq -Rs '{body: .}'`.

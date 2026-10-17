@@ -621,7 +621,11 @@ Conventions used in the criteria:
 - Dependencies: Sub-step 4.0
 - Acceptance Criteria:
   - There are 5 new @tests: F existing-PR PATCH plus read-back; F mismatch → STATUS; F no-PR path unchanged (`:118-128`); A `trunk` abort; E3 per-SLUG body path.
-  - The gh stub's `api)` arm branches on `-X PATCH` and `--jq .body` **before** its G1 default (`fixtures/bin/gh:74-80`).
+  - The gh stub's `api)` arm branches on `-X PATCH` and `--jq .body` **before** its G1 default (`fixtures/bin/gh:74-80`). Its `--jq .body` echoes the stored body plus one `\n`, as real gh does (4.0 DECISION).
+  - (Added at 4.0, L-056 carry-ins, Ste.) Further @tests:
+    - guard: an intent-to-add worktree rename (` R new\0old\0`) is parsed as one record, and no path built from the source name is restored (probe at 4.0);
+    - a fresh-shell F and G1 with no `REMOTE_CHOICE` (no state file) fail loudly rather than default to github (TODOS:99);
+    - Stage A aborts on an option-shaped `DEFAULT_BRANCH` (`check-ref-format`, as G3 `stage-g-merge.md:269`; IR:33).
   - RED evidence is recorded.
 - Result Log:
 
@@ -634,6 +638,8 @@ Conventions used in the criteria:
   - `bats --tap SDM` gives 0 not-ok; shellcheck exits 0 on F, A and E3.
   - `scripts/regen-generated.sh` leaves no uncommitted diff.
   - (Added at M2 2.3, Ste.) E1 saves `n_github`/`n_gitlab`/`n_other` to the stage state file (allowlist 15 → 18 keys). An empty-env E2 case in `test_stage_state.bats` passes. The E1/E2 "one Bash call" prose line and its TODOS entry are removed.
+  - (Added at 4.0, Ste.) `grep -rc 'REMOTE_CHOICE:-' claude-code/skills/sole-dev-merge/` sums to 0, and the TODOS:99 bullet is struck through with a "Done in M4" note. The guard reads a rename's source when X **or** Y is `R`/`C`. Stage A runs `check-ref-format --branch` on `DEFAULT_BRANCH`. SKILL.md stays ≤ 500 lines (`tests/test_prompt_size.py`).
+  - (Added at 4.0, Ste — run 2 doc-only LOWs.) The exit-status table and the B-commit prose name the "needs CHANGED_FILES" ABORT. The post-add `git reset -q -- INTENDED` comment and its table wording say that pre-staged in-scope content is unstaged.
 - Result Log:
 
 ### Sub-step 4.3: Verify, gate, merge with the fixed skill

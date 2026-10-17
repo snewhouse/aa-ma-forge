@@ -93,6 +93,10 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** Stage D LOW reviewer notes on PR #44 (sole-dev-merge-fixes M3). Ste chose 2026-10-17 to file these three here. The Y=R guard item and the two doc-only notes went into M4. **Effort:** S · **Priority:** P3
 
+### sole-dev-merge GitLab path: check the real `glab mr view -F json --jq` output once
+**What:** sole-dev-merge-fixes M4 gave Stage F and G3 a GitLab ownership check: `glab mr view [iid] -F json --jq '"\(.iid)\t\(.web_url)\t\(.source_project_id == .target_project_id)\t\(.source_branch)\t\(.state)"'`. The flags and fields come from the glab docs and the GitLab MR API (Context7). It was not probed, because glab is not installed on the dev machine. On the first real GitLab run, check that the line has 5 tab-separated fields and that `state` is `opened`. Then record the result here, or fix the format.
+**Why:** a format surprise fails closed (treated as not this branch's), but it would stop every GitLab merge. **Effort:** XS · **Priority:** P2
+
 ### sole-dev-merge: deferred §6.8 INFOs from sole-dev-merge-fixes M4
 **What:**
 - `git check-ref-format --branch` expands `@{-N}` (rc 0, prints the previous branch). A tampered `DEFAULT_BRANCH='@{-1}'` passes G3/G4, and G4 would `git checkout '@{-1}'`. Fix: also require `git check-ref-format "refs/heads/$X"` in G3/G4. Stage A can't reach this, because `symbolic-ref` refuses such a ref.

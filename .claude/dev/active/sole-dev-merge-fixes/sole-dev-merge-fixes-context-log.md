@@ -281,3 +281,18 @@ _This log will be updated via context compaction as the task progresses._
 - **REMOTE_CHOICE criterion narrowed:** E2's `REMOTE_CHOICE:-gitlab` is the dual-remote prompt's default answer, which the executor overrides after AskUserQuestion. It is not a missing input, so it stays. E2's `n_github`/`n_gitlab` `:-0` became required (same L-055 shape, same item).
 - **F with a non-numeric PR_NUM** goes to the STATUS path, so no PATCH reaches `pulls/0`.
 - **Exit table vs the `comm` check:** the check's `[A-Z_]+` cuts ABORT messages at the first lowercase letter, so each Stage A ABORT is named by its leading words in one row. Table and code agree (comm empty).
+
+## [2026-10-17] GATE APPROVAL: Milestone 4: Stage F REST body update, small fixes, docs drift
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion, "Approve + live merge")
+- Criteria verified: 8/8 pre-merge:
+  - `extract stage-f-push | grep -c 'gh pr edit'` = 0;
+  - @tests: read-back mismatch → `STATUS: PR_BODY_NOT_UPDATED … reason=readback-differs`, rc 0; stale `sdm-stale/body.md` not posted; Stage A aborts on `DEFAULT_BRANCH=trunk`;
+  - status-table `comm` empty, and ADR-0008 markers == code (both now bats guards);
+  - `bats --tap SDM tests/hooks` 714/0 (fence 3 `TESTS_VERIFIED passed=714`); TODOS Stage F entry under `## Completed` with `**Done:**`;
+  - PL `IMPACT_ANALYSIS — Milestone 4: HIGH=0 unresolved` (+ addendum) and `CRITICAL_PATH_REVIEW — Milestone 4`;
+  - privacy 0/0;
+  - this approval.
+- §6.8 PASS_WITH_WARNINGS (0C/11W/17I). All 11 WARNINGs fixed test-first (RED 7b22079 → GREEN b403f60); mutations 8/8 caught.
+- Recorded during the live run: 4.3's quote of this PR's live Stage F read-back. Fence 1 and the COMPLETE flip happen at 5.0 (L-037).
+- Decision: APPROVED

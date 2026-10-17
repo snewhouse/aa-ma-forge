@@ -89,3 +89,4 @@
 [2026-10-17T08:56:46+01:00] REMEDIATION — §6.8 M4 — RED 7b22079 (8 not ok) → GREEN b403f60; bats 714/0, pytest 3137, shellcheck 15/15, comm empty, mutations 8/8 caught
 [2026-10-17T08:56:46+01:00] IMPACT_ANALYSIS — Milestone 4: addendum after §6.8 remediation (b403f60) — HIGH=0 — F lookup is now one call (number,url,isCrossRepository,headRefName) and PATCHes only this branch's own same-repo PR, reason= on STATUS; G3 adds an isCrossRepository ABORT (rc 1, before merge); E2 numeric ABORT; stub gains STUB_PR_NUM + arms; consumers f_idempotent/g_merge/state bats updated; 714/0
 [2026-10-17T09:01:18+01:00] TESTS_VERIFIED — Milestone 4: Stage F REST body update, small fixes, docs drift — passed=714 cmd=bats --tap tests/commands/sole-dev-merge tests/hooks
+[2026-10-17T12:21:26+01:00] GATE_APPROVED — Milestone 4 — Ste — pre-merge criteria 8/8; next: PR #45 ready + live merge with this branch's M4 skill blocks (4.3)

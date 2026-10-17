@@ -128,3 +128,43 @@ teardown() {
     [[ "$output" == *"branch=feature"* ]]
     [[ "$output" == *"ahead=1"* ]]
 }
+
+# --- sole-dev-merge-fixes M4: the remote's default branch, not just main/master ---
+
+# _default_branch_sandbox NAME — main with one commit; origin/HEAD → origin/NAME
+# (at that commit), so Stage A's step 5 resolves DEFAULT_BRANCH=NAME.
+_default_branch_sandbox() {
+    cd "$BATS_TMP"
+    git init -q -b main
+    git config user.email t@t.com
+    git config user.name T
+    echo init > a.txt && git add a.txt
+    mkcommit "init"
+    git remote add origin https://example.com/r.git
+    git update-ref "refs/remotes/origin/$1" HEAD
+    git symbolic-ref refs/remotes/origin/HEAD "refs/remotes/origin/$1"
+}
+
+@test "ABORT on the remote's default branch when it is not main/master (DEFAULT_BRANCH=trunk)" {
+    _default_branch_sandbox trunk
+    git checkout -q -b trunk
+    echo more > c.txt && git add c.txt
+    mkcommit "work on trunk"
+
+    run bash "$SA_SCRIPT"
+    [ "$status" -ne 0 ]
+    [[ "$output" == "ABORT: Cannot run /sole-dev-merge from trunk branch" ]]
+}
+
+@test "ABORT when the remote's default branch is not a valid branch name (option-shaped)" {
+    # why: refs/remotes/origin/-x is a legal ref and can be origin/HEAD (probed); G3 already refuses it
+    _default_branch_sandbox -x
+    git checkout -q -b feature
+    echo feat > b.txt && git add b.txt
+    mkcommit "feat: real change"
+
+    run bash "$SA_SCRIPT"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"ABORT: DEFAULT_BRANCH '-x' is not a valid branch name"* ]]
+    [ ! -e "$(git rev-parse --absolute-git-dir)/sole-dev-merge.env" ]
+}

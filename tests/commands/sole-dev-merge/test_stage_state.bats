@@ -19,9 +19,9 @@ load fixtures/helpers
 
 # Every stage block in the skill, read from its markers, so a new block is
 # checked without anyone remembering to list it. NO_STATE names the blocks
-# that hold no state: the banner, and E1 (its counts reach E2 in the same
-# Bash call until sole-dev-merge-fixes M4 saves them).
-NO_STATE=" stage-banner stage-e1-remote "
+# that hold no state: the banner. (E1 left the list in sole-dev-merge-fixes M4,
+# when it started saving its remote counts for E2.)
+NO_STATE=" stage-banner "
 mapfile -t BLOCKS < <(
     grep -rhoE '=== stage-[a-z0-9-]+ \(BEGIN\)' "${BATS_TEST_DIRNAME}/../../../claude-code/skills/sole-dev-merge" \
         | sed -E 's/^=== (stage-[a-z0-9-]+) .*/\1/' \
@@ -435,4 +435,65 @@ seed_g() {
     [ "$status" -eq 1 ]
     run bash -c "grep -rn 'eval' '$SKILL_DIR' | grep sdm"
     [ "$status" -eq 1 ]
+}
+
+# --- sole-dev-merge-fixes M4: E1 → E2 counts, required REMOTE_CHOICE, per-run body ---
+
+@test "E2 in a fresh empty shell reads E1's remote counts from the state file" {
+    git remote add gh https://github.com/test/repo.git   # why: origin is a local bare repo (n_other)
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    run fresh bash "$(blk stage-e1-remote)"
+    [ "$status" -eq 0 ]
+    [ "$(get n_github)" = 1 ]
+    [ "$(get n_gitlab)" = 0 ]
+    [ "$(get n_other)" = 1 ]
+    run fresh bash "$(blk stage-e2-choice)"
+    [ "$status" -eq 0 ]
+    [ "$(get REMOTE_CHOICE)" = github ]
+}
+
+@test "E2 with no remote counts in env or file names Stage E1 instead of a misleading remote ABORT" {
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    run fresh bash "$(blk stage-e2-choice)"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Stage E1"* ]]
+    [[ "$output" != *"only github.com and gitlab.com"* ]]
+}
+
+@test "E0, F, G1, G2 and G3 refuse to run with no REMOTE_CHOICE, before calling gh or glab" {
+    # why: a defaulted github on a refused or missing state file would act on the wrong host (L-055)
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    local body; body="$(get SDM_DIR)/body.md"
+    echo "## Test plan" > "$body"
+    put PR_BODY_FILE "$body"; put PR_NUM 42; put PR_URL "https://github.com/test/repo/pull/42"
+    put MERGE_STRATEGY rebase; put CI_STATE green
+    local b
+    for b in stage-e0-auth stage-f-push stage-g1-protect stage-g2-poll stage-g3-merge; do
+        : > "$CLI_LOG"
+        run fresh bash "$(blk "$b")"
+        echo "--- $b (status $status): $output"
+        [ "$status" -ne 0 ]
+        [[ "$output" == *"REMOTE_CHOICE"* ]]
+        run grep -cE '^(gh|glab) ' "$CLI_LOG"
+        [ "$output" = 0 ]
+    done
+}
+
+@test "no REMOTE_CHOICE github default remains outside E2's dual-remote prompt" {
+    run grep -rn 'REMOTE_CHOICE:-github' "$SKILL_DIR"
+    [ "$status" -eq 1 ]
+}
+
+@test "F posts this run's body (PR_BODY_FILE), never a stale body.md from another run's dir" {
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    local stale; stale="$(git rev-parse --absolute-git-dir)/sdm-stale"
+    mkdir -m 700 "$stale" && echo STALE > "$stale/body.md"
+    fresh bash "$(blk stage-e3-body)" >/dev/null
+    put REMOTE_CHOICE github
+    run fresh GH_PR_EXISTS=1 bash "$(blk stage-f-push)"
+    [ "$status" -eq 0 ]
+    [ "$(get PR_BODY_FILE)" = "$(get SDM_DIR)/body.md" ]
+    cmp "$(get PR_BODY_FILE)" "${CLI_LOG}.body"
+    run grep -c STALE "${CLI_LOG}.body"
+    [ "$output" = 0 ]
 }

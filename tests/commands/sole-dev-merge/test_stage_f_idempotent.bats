@@ -401,5 +401,5 @@ _sandbox_with_commit() {
     [[ "$output" == *"PR_NUM=42"* ]]
     [[ "$output" == *"MR_IID=42"* ]]
     [[ "$output" == *"PR_URL=https://gitlab.com/test/repo/-/merge_requests/42"* ]]
-    [ "$(grep -c 'mr view -F json --jq' "$CLI_LOG")" -eq 1 ]   # one lookup after create
+    [ "$(grep -c 'mr view -F json --jq' "$CLI_LOG")" -eq 2 ]   # detect, then the ownership re-check after create
 }

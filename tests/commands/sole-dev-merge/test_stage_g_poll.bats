@@ -149,3 +149,15 @@ teardown() {
     [[ "$output" == *"CI_STATE=blocked"* ]]
     [[ "$output" != *"STATUS: CI_TIMEOUT"* ]]
 }
+
+@test "G2 gitlab: an env MR_IID never overrides the PR_NUM that was checked as a number" {
+    # why: live run 2 C2 LOW (G3), same shape in G2 — MR_IID reached glab argv unvalidated
+    export REMOTE_CHOICE=gitlab PR_NUM=42 MR_IID=--paginate
+    export GLAB_API_MODE=pipeline_status GLAB_PIPELINE_STATUS=success
+    export CI_POLL_INTERVAL=0
+
+    run bash "$G2_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'merge_requests/42' "$CLI_LOG")" -ge 1 ]
+    [ "$(grep -c -- 'merge_requests/--paginate' "$CLI_LOG")" -eq 0 ]
+}

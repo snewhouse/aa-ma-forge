@@ -38,7 +38,8 @@ discipline?
   `security-auditor` agent + Bandit + ShellCheck triangulates findings; one
   source missing a finding is caught by another.
 - **Idempotency on retry.** A workflow that creates duplicate PRs on every
-  re-run is unusable. `gh pr view` detection + `gh pr edit` reuse means the
+  re-run is unusable. `gh pr view` detection + reuse of the existing PR (its
+  body updated in place; over REST since sole-dev-merge-fixes M4) means the
   command is safe to re-run on the same branch (operator typo, mid-flight
   interruption, retry-after-fix).
 - **Scope discipline structural fix (L-007).** Format whole-tree was the root

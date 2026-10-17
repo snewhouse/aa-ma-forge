@@ -514,12 +514,14 @@ seed_g() {
 }
 
 @test "the exit-status table names every STATUS/ABORT token the skill prints" {
-    # why: the table drifted by ~10 rows before M4 (§6.8 FP-1); the token is the milestone AC's own regex
+    # why: the table drifted by ~10 rows before M4 (§6.8 FP-1)
     local table missing
     table=$(awk '/^## Exit-status contract/,/^Non-zero exits/' "$COMMAND_MD" | grep '^|')
     [ -n "$table" ]
-    missing=$(comm -23 <(grep -rhoE '(STATUS|ABORT): [A-Z_]+' "$SKILL_DIR" | sort -u) \
-                       <(grep -oE '(STATUS|ABORT): [A-Z_]+' <<<"$table" | sort -u))
+    # why: ABORT messages are mixed case; one or two leading words name each (live run 1 C1 MEDIUM)
+    local tok='STATUS: [A-Z_]+|ABORT: [A-Za-z_.]+( [A-Za-z0-9-]+)?'
+    missing=$(comm -23 <(grep -rhoE "$tok" "$SKILL_DIR" | sort -u) \
+                       <(grep -oE "$tok" <<<"$table" | sort -u))
     echo "missing from the table: ${missing:-none}"
     [ -z "$missing" ]
 }
@@ -530,4 +532,12 @@ seed_g() {
              <(grep -rhoE '=== stage-[a-z0-9-]+ \(BEGIN\)' "$SKILL_DIR" | sed -E 's/^=== (stage-[a-z0-9-]+) .*/\1/' | sort -u)
     echo "$output"
     [ "$status" -eq 0 ]
+}
+
+@test "E1 without Stage A stops and writes no state file" {
+    # why: live run 1 C1 LOW — E1 alone created a branchless state file that E2 then ignored
+    run fresh bash "$(blk stage-e1-remote)"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Stage E1 needs SDM_DIR from Stage A"* ]]
+    [ ! -e "$(state)" ]
 }

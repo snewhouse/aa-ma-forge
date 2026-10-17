@@ -169,6 +169,8 @@ _sandbox_with_commit() {
     [ "$status" -eq 0 ]
     [ "$(grep -c -- '-X PATCH' "$CLI_LOG")" -eq 0 ]
     [[ "$output" == *"STATUS: PR_BODY_NOT_UPDATED — PR #${STUB_PR_NUM} reason=not-this-branch"* ]]
+    [[ "$output" == *"is not this branch's own"* ]]
+    [[ "$output" != *"set it by hand"* ]]
     [[ "$output" == *"PR_NUM=0"* ]]
     [[ "$output" == *"no PR/MR number resolved; not saved"* ]]
 }
@@ -194,6 +196,19 @@ _sandbox_with_commit() {
     [ "$status" -eq 0 ]
     [ "$(grep -c '^gh pr view' "$CLI_LOG")" -eq 1 ]
     [[ "$output" == *"PR_URL=https://github.com/test/repo/pull/${STUB_PR_NUM}"* ]]
+}
+
+@test "F-github: the PR found after create is checked too — a fork's is never saved" {
+    # why: live run 1 C2 LOW — the create path saved PR_NUM without the ownership rule
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=0 GH_PR_CROSS_REPO=true
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'pr create --title' "$CLI_LOG")" -eq 1 ]
+    [[ "$output" == *"is not this branch's own"* ]]
+    [[ "$output" == *"PR_NUM=0"* ]]
 }
 
 @test "F-github: no existing PR → create path unchanged: no PATCH, no read-back" {
@@ -312,8 +327,8 @@ _sandbox_with_commit() {
     [[ "$output" == *"PR_NUM=${STUB_PR_NUM}"* ]]
     [[ "$output" == *"PR_URL=https://github.com/test/repo/pull/${STUB_PR_NUM}"* ]]
     # Stub log must include the --jq queries (proves they ran post-create).
-    # one lookup after create gives both (CR-1)
-    [ "$(grep -c 'pr view --json number,url --jq' "$CLI_LOG")" -eq 1 ]
+    # the same four-field lookup before and after create (CR-1; live run 1 C2 LOW)
+    [ "$(grep -c 'pr view --json number,url,isCrossRepository,headRefName' "$CLI_LOG")" -eq 2 ]
 }
 
 @test "F (CRITICAL-1 regression): gitlab → exports PR_NUM=MR_IID=42 + PR_URL via --jq" {

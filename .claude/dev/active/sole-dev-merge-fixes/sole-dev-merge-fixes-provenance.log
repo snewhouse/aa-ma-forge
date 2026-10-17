@@ -77,3 +77,4 @@
 [2026-10-16T15:35:42+01:00] TRIAGE — MEDIUM B-commit CHANGED_FILES masking default applied (Ste) + LOW --no-renames folded in: RED d9c43be (2 not ok) → GREEN bc2b9d5; b_scope 25/25, bats 694/0, pytest 3136, SKILL.md 499/500, golden unchanged; 5 LOW → reviewer notes
 [2026-10-16T15:39:54+01:00] TESTS_VERIFIED — Milestone 3: Stage B scoped commit, guard, check-conventions refs — passed=694 cmd=bats --tap tests/commands/sole-dev-merge tests/hooks
 [2026-10-16T22:10:20+01:00] MILESTONE COMPLETE — Milestone 3: Stage B scoped commit, guard, check-conventions refs — Commit: 95d904b — Criteria: 8/8 verified (7 pre-merge at GATE APPROVAL + [post-merge] at 4.0; PR #44 rebase-merged 07a8b45)
+[2026-10-17T05:52:26+01:00] PROBE — 4.0 gh api PR body round-trip on draft PR #45 — 6/6 raw cmp rc 0 (-F and --input, 0/1/2 trailing NL); --jq .body adds 1 NL (AC literal cmp rc 1); chosen -F + exact+1 rule rc 0 — DECISION Ste

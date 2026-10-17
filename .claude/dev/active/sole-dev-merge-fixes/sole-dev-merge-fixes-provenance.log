@@ -92,3 +92,4 @@
 [2026-10-17T12:21:26+01:00] GATE_APPROVED — Milestone 4 — Ste — pre-merge criteria 8/8; next: PR #45 ready + live merge with this branch's M4 skill blocks (4.3)
 [2026-10-17T14:58:00+01:00] LIVE_RUN 1 — stages A..D from 3e07cac, each its own Bash call: A OK (17 ahead); B 22 files (0 py, 0 sh), check_conventions Passed, no diff source 0, pytest rc=0, pre-commit rc=0, guard clean; B-commit no-op; C scanned Ruff S 0 / ShellCheck 0; D 0C/0H/1M/6L
 [2026-10-17T14:58:00+01:00] TRIAGE — MEDIUM (sync-test ABORT tokens) + 6 LOW applied (Ste): RED 7a05ad3 (6 not ok) → GREEN bfa312e; bats 718/0, pytest 3137, SKILL.md 490/500, mutations 6/6
+[2026-10-17T15:02:15+01:00] TESTS_VERIFIED — Milestone 4: Stage F REST body update, small fixes, docs drift — passed=718 cmd=bats --tap tests/commands/sole-dev-merge tests/hooks

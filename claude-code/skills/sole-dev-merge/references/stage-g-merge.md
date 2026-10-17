@@ -283,6 +283,10 @@ case "$CI_STATE" in
             HEAD_REF=$(gh pr view "$PR_NUM" --json headRefName --jq .headRefName)
             [[ "$HEAD_REF" == "$ORIGINAL_BRANCH" ]] \
                 || { echo "ABORT: Stage G3: PR $PR_NUM head is '$HEAD_REF', not '$ORIGINAL_BRANCH'"; exit 1; }
+            # why: the head name alone matches a fork's same-named PR (§6.8 SEC-2)
+            XREPO=$(gh pr view "$PR_NUM" --json isCrossRepository --jq .isCrossRepository)
+            [[ "$XREPO" == false ]] \
+                || { echo "ABORT: Stage G3: PR $PR_NUM is from another repository (isCrossRepository=$XREPO)"; exit 1; }
             # No --delete-branch: gh's local step fails in a worktree and then
             # skips the remote delete (L-1332). Merge, then decide from the
             # server state, not gh's rc (E6).

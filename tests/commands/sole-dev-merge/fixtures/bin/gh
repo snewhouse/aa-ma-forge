@@ -15,6 +15,10 @@
 #   GH_PR_STATE=MERGED   — `gh pr view ... --json state` echoes this (G3 reads
 #                           the server state after the merge call, E6).
 #   GH_HEAD_REF=feature  — `gh pr view ... --json headRefName` echoes this.
+#   GH_PR_HEAD_REF       — Stage F's one-call lookup reports this head branch
+#                           (default: the current branch).
+#   GH_PR_CROSS_REPO=false — isCrossRepository in Stage F's lookup and G3's check.
+#   STUB_PR_NUM=42       — the PR number every arm reports (fixtures/helpers.bash).
 #   GH_MERGE_RC=0        — exit code for `gh pr merge`.
 #   GH_API_PATCH_RC=0    — exit code for `gh api -X PATCH …` (Stage F body update);
 #                           on non-zero nothing is stored.
@@ -40,19 +44,32 @@ case "${1:-}" in
                 elif [[ "$*" == *"--json headRefName"* ]]; then
                     echo "${GH_HEAD_REF:-feature}"
                     exit 0
+                elif [[ "$*" == *"--json isCrossRepository"* ]]; then
+                    echo "${GH_PR_CROSS_REPO:-false}"
+                    exit 0
+                fi
+                # Stage F's lookups: one call, tab-separated (gojq @tsv, as real gh).
+                if [[ "$*" == *"--json number,url,isCrossRepository,headRefName"* ]]; then
+                    [[ "${GH_PR_EXISTS:-0}" == "1" ]] || exit 1
+                    printf '%s\t%s\t%s\t%s\n' "${STUB_PR_NUM:-42}" "https://github.com/test/repo/pull/${STUB_PR_NUM:-42}" \
+                        "${GH_PR_CROSS_REPO:-false}" "${GH_PR_HEAD_REF:-$(git branch --show-current)}"
+                    exit 0
+                elif [[ "$*" == *"--json number,url"* ]]; then
+                    printf '%s\t%s\n' "${STUB_PR_NUM:-42}" "https://github.com/test/repo/pull/${STUB_PR_NUM:-42}"
+                    exit 0
                 fi
                 # §6.8 M4 CRITICAL-1 fix: Stage F now queries `--jq '.url'` and
                 # `--jq '.number'` to extract PR_URL + PR_NUM. Honour both
                 # filters even when PR_EXISTS=0 (post-create-the-PR-exists).
                 if [[ "$*" == *"--jq .url"* || "$*" == *"--jq '.url'"* ]]; then
-                    echo "https://github.com/test/repo/pull/42"
+                    echo "https://github.com/test/repo/pull/${STUB_PR_NUM:-42}"
                     exit 0
                 elif [[ "$*" == *"--jq .number"* || "$*" == *"--jq '.number'"* ]]; then
-                    echo "42"
+                    echo "${STUB_PR_NUM:-42}"
                     exit 0
                 fi
                 if [[ "${GH_PR_EXISTS:-0}" == "1" ]]; then
-                    echo '{"url":"https://github.com/test/repo/pull/42"}'
+                    printf '{"url":"https://github.com/test/repo/pull/%s"}\n' "${STUB_PR_NUM:-42}"
                     exit 0
                 else
                     exit 1
@@ -69,7 +86,7 @@ case "${1:-}" in
             create|edit)
                 # §6.8 M4 CRITICAL-1 fix: real gh prints the new/updated PR URL
                 # to stdout (last line); Stage F captures it. Mirror that.
-                echo "https://github.com/test/repo/pull/42"
+                echo "https://github.com/test/repo/pull/${STUB_PR_NUM:-42}"
                 exit 0
                 ;;
             merge)
@@ -93,7 +110,7 @@ case "${1:-}" in
     api)
         # Stage F body update (sole-dev-merge-fixes M4). These arms must come
         # before the G1 default below, which answers every other api call.
-        if [[ "$*" == *"-X PATCH"* || "$*" == *"--jq .body"* || "$*" == *"--jq '.body'"* ]]; then
+        if [[ "$*" == *"-X PATCH"* || "$*" == *"--jq .body"* ]]; then
             store="${GH_API_BODY_STORE:-${CLI_LOG:?gh stub: CLI_LOG required for the body arms}.body}"
         fi
         if [[ "$*" == *"-X PATCH"* ]]; then
@@ -101,9 +118,9 @@ case "${1:-}" in
             for a in "$@"; do
                 if [[ "$a" == body=@* ]]; then cat -- "${a#body=@}" > "$store"; fi
             done
-            echo '{"number":42}'
+            printf '{"number":%s}\n' "${STUB_PR_NUM:-42}"
             exit 0
-        elif [[ "$*" == *"--jq .body"* || "$*" == *"--jq '.body'"* ]]; then
+        elif [[ "$*" == *"--jq .body"* ]]; then
             if [[ -n "${GH_PR_BODY_READBACK+x}" ]]; then
                 printf '%s\n' "$GH_PR_BODY_READBACK"
             else

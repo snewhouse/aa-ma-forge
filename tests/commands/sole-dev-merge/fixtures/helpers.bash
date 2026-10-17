@@ -34,3 +34,7 @@ sandbox_init() {
 tmp_script_dir() {
     mktemp -d
 }
+
+# The PR number the gh stub reports (fixtures/bin/gh reads ${STUB_PR_NUM:-42}).
+# Assert against this, never a literal, so stub and tests cannot drift apart.
+export STUB_PR_NUM=42

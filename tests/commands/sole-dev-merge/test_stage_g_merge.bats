@@ -552,3 +552,15 @@ _fingerprint() {
     [[ "$output" == *"CI_STATE='mystery_value'"* ]]
     [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
 }
+
+@test "G3: PR from another repository (isCrossRepository) → ABORT rc 1, no merge" {
+    # why: the head-name check alone accepts a fork's same-named PR (§6.8 SEC-2)
+    _sandbox_with_pushed_feature
+    export CI_STATE=green GH_PR_CROSS_REPO=true
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage G3: PR ${PR_NUM} is from another repository"* ]]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
+    [ -n "$(git ls-remote origin refs/heads/feature)" ]
+}

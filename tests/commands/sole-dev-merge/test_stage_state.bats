@@ -497,3 +497,37 @@ seed_g() {
     run grep -c STALE "${CLI_LOG}.body"
     [ "$output" = 0 ]
 }
+
+@test "E2 refuses a remote count that is not a number and never evaluates it (state file or env)" {
+    # why: (( n_github == 0 )) re-evaluates the value; BASH_VERSINFO[$(cmd)0] ran cmd (§6.8 SEC-1 probe)
+    fresh bash "$(blk stage-a-preflight)" >/dev/null
+    local pwned="${SCRIPT_DIR}/pwned" payload
+    payload="BASH_VERSINFO[\$(touch ${SCRIPT_DIR}/pwned)0]"
+    put n_github "$payload"; put n_gitlab 0; put n_other 0
+    run fresh bash "$(blk stage-e2-choice)"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"ABORT: Stage E2: n_github"*"is not a count"* ]]
+    [ ! -e "$pwned" ]
+    run fresh n_github="$payload" n_gitlab=0 bash "$(blk stage-e2-choice)"
+    [ "$status" -ne 0 ]
+    [ ! -e "$pwned" ]
+}
+
+@test "the exit-status table names every STATUS/ABORT token the skill prints" {
+    # why: the table drifted by ~10 rows before M4 (§6.8 FP-1); the token is the milestone AC's own regex
+    local table missing
+    table=$(awk '/^## Exit-status contract/,/^Non-zero exits/' "$COMMAND_MD" | grep '^|')
+    [ -n "$table" ]
+    missing=$(comm -23 <(grep -rhoE '(STATUS|ABORT): [A-Z_]+' "$SKILL_DIR" | sort -u) \
+                       <(grep -oE '(STATUS|ABORT): [A-Z_]+' <<<"$table" | sort -u))
+    echo "missing from the table: ${missing:-none}"
+    [ -z "$missing" ]
+}
+
+@test "ADR-0008's stage table names exactly the skill's block markers" {
+    local adr="${REPO_ROOT}/docs/adr/0008-sole-dev-merge-pr-workflow.md"
+    run diff <(sed -n '/^| Stage | Block/,/^$/p' "$adr" | grep -oE '`stage-[a-z0-9-]+`' | tr -d '`' | sort -u) \
+             <(grep -rhoE '=== stage-[a-z0-9-]+ \(BEGIN\)' "$SKILL_DIR" | sed -E 's/^=== (stage-[a-z0-9-]+) .*/\1/' | sort -u)
+    echo "$output"
+    [ "$status" -eq 0 ]
+}

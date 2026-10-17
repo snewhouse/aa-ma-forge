@@ -274,3 +274,10 @@ _This log will be updated via context compaction as the task progresses._
   - The Stage A `check-ref-format` RED is added with them.
 - **TODOS filed:** "Stage B: three LOWs from PR #44's Stage D (run 2)" (env CHANGED_FILES wins; `??` at a branch-deleted path re-added; C-quoting / unescaped echo) and "Stage C: `${CHANGED_PY:-}` / `${CHANGED_SH:-}` masking defaults" with `file:line` (L-1351).
 - **Constraint for 4.2:** SKILL.md is 499/500 lines. Adding the 7 status rows plus the doc-only LOW wording will exceed the cap, so 4.2 must move prose into `references/` (not tighten it into unreadability). Record where it moved.
+
+## [2026-10-17] 4.2 GREEN: scope deviations and design choices
+- **Contract deviation (mechanical):** `references/stage-c-review-and-security.md` and `stage-d-triage.md` changed on the `SDM_KEYS` line only (15 → 18 keys). `test_stage_state.bats` requires the loader to be byte-identical in every block, so widening the allowlist touches all 12 copies.
+- **New file `references/stage-state.md`:** SKILL.md was 504/500 after the code changes. The 34-line "State between stages" prose moved out, and a 3-line pointer section keeps the heading the 12 loader comments name. This was chosen over moving B-commit (`aa-ma-footer.bats:202` reads `footer-resolve` from SKILL.md) or the banner (`test_smoke_e2e.bats:54` greps SKILL.md). SKILL.md is now 488.
+- **REMOTE_CHOICE criterion narrowed:** E2's `REMOTE_CHOICE:-gitlab` is the dual-remote prompt's default answer, which the executor overrides after AskUserQuestion. It is not a missing input, so it stays. E2's `n_github`/`n_gitlab` `:-0` became required (same L-055 shape, same item).
+- **F with a non-numeric PR_NUM** goes to the STATUS path, so no PATCH reaches `pulls/0`.
+- **Exit table vs the `comm` check:** the check's `[A-Z_]+` cuts ABORT messages at the first lowercase letter, so each Stage A ABORT is named by its leading words in one row. Table and code agree (comm empty).

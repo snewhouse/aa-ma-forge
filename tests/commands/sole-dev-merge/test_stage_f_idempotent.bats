@@ -211,6 +211,66 @@ _sandbox_with_commit() {
     [[ "$output" == *"PR_NUM=0"* ]]
 }
 
+@test "F-github: the branch's only PR is merged or closed → a new PR is created, the old one is not PATCHed" {
+    # why: a reused branch name makes `gh pr view` return the old PR (live run 2 C1 LOW)
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=1 GH_PR_LOOKUP_STATE=MERGED
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'pr create --title' "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -c -- '-X PATCH' "$CLI_LOG")" -eq 0 ]
+    [[ "$output" == *"PR_OP=create"* ]]
+}
+
+@test "F-gitlab: existing MR from another project → not updated, reason=not-this-branch, PR_NUM not saved" {
+    # why: a no-arg `glab mr view` selects by branch name, like gh (live run 2 C2 MEDIUM)
+    _sandbox_with_commit
+    export REMOTE_CHOICE=gitlab GLAB_MR_EXISTS=1 GLAB_MR_SAMEPROJ=false
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'mr update' "$CLI_LOG")" -eq 0 ]
+    [[ "$output" == *"STATUS: PR_BODY_NOT_UPDATED — MR !${STUB_PR_NUM} reason=not-this-branch"* ]]
+    [[ "$output" == *"PR_NUM=0"* ]]
+}
+
+@test "F-gitlab: existing MR whose source is another branch → not updated" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=gitlab GLAB_MR_EXISTS=1 GLAB_MR_SOURCE=other
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'mr update' "$CLI_LOG")" -eq 0 ]
+    [[ "$output" == *"reason=not-this-branch"* ]]
+}
+
+@test "F-gitlab: the branch's only MR is merged → a new MR is created" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=gitlab GLAB_MR_EXISTS=1 GLAB_MR_STATE=merged
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'mr create --title' "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -c 'mr update' "$CLI_LOG")" -eq 0 ]
+}
+
+@test "F-gitlab: the MR found after create is checked too — another project's is never saved" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=gitlab GLAB_MR_EXISTS=0 GLAB_MR_SAMEPROJ=false
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'mr create --title' "$CLI_LOG")" -eq 1 ]
+    [[ "$output" == *"is not this branch's own"* ]]
+    [[ "$output" == *"PR_NUM=0"* ]]
+}
+
 @test "F-github: no existing PR → create path unchanged: no PATCH, no read-back" {
     _sandbox_with_commit
     export REMOTE_CHOICE=github GH_PR_EXISTS=0
@@ -249,7 +309,7 @@ _sandbox_with_commit() {
     run bash "$F_SCRIPT"
     [ "$status" -eq 0 ]
     [ "$(grep -c 'mr create' "$CLI_LOG")" -eq 0 ]
-    [ "$(grep -c 'mr update --description' "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -c "mr update ${STUB_PR_NUM} --description" "$CLI_LOG")" -eq 1 ]   # by iid, never the branch's guess
 }
 
 @test "F-gitlab: no existing MR → glab mr create (NOT update); --description NOT --description-file" {
@@ -327,8 +387,8 @@ _sandbox_with_commit() {
     [[ "$output" == *"PR_NUM=${STUB_PR_NUM}"* ]]
     [[ "$output" == *"PR_URL=https://github.com/test/repo/pull/${STUB_PR_NUM}"* ]]
     # Stub log must include the --jq queries (proves they ran post-create).
-    # the same four-field lookup before and after create (CR-1; live run 1 C2 LOW)
-    [ "$(grep -c 'pr view --json number,url,isCrossRepository,headRefName' "$CLI_LOG")" -eq 2 ]
+    # after create, the new PR is read by the URL `gh pr create` printed, never by branch name (live run 2)
+    [ "$(grep -cF "pr view https://github.com/test/repo/pull/${STUB_PR_NUM} --json number,url,isCrossRepository,headRefName,state" "$CLI_LOG")" -eq 1 ]
 }
 
 @test "F (CRITICAL-1 regression): gitlab → exports PR_NUM=MR_IID=42 + PR_URL via --jq" {
@@ -341,5 +401,5 @@ _sandbox_with_commit() {
     [[ "$output" == *"PR_NUM=42"* ]]
     [[ "$output" == *"MR_IID=42"* ]]
     [[ "$output" == *"PR_URL=https://gitlab.com/test/repo/-/merge_requests/42"* ]]
-    grep -q 'mr view --jq .web_url\|mr view --jq .iid' "$CLI_LOG"
+    [ "$(grep -c 'mr view -F json --jq' "$CLI_LOG")" -eq 1 ]   # one lookup after create
 }

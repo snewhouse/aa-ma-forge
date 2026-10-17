@@ -304,3 +304,18 @@ _This log will be updated via context compaction as the task progresses._
 - **All 6 LOWs applied** (Ste: "Apply MEDIUM + all 6 LOWs"): G3 one head/owner lookup with an ABORT on failure; F's ownership rule after create too (C2); a per-reason hint; E1 requires Stage A's `SDM_DIR`; the blank line before `---` restored (the table rewrite had dropped it: setext heading); stage-state.md H1→H2.
 - RED `7a05ad3` (6 not ok) → GREEN `bfa312e`; 718/0; mutations 6/6. `test_stage_e_remote.bats` setup exports `SDM_DIR` (test-only, outside the Contract): E1's unit tests run without Stage A.
 - Run 1 evidence was backed up to `<scratch>/m4-run1-evidence/` before the restart. The merge restarts from Stage A (as M2/M3 run 1 → run 2).
+
+## [2026-10-17] Live merge run 2 (4.3): Stage D triage — Ste: "Fix all incl. GitLab"
+- **A** OK (21 ahead). **B:** 23 files (0 py, 0 sh), `check_conventions … Passed`, `no diff source` 0, pytest rc 0, pre-commit rc 0, guard clean. **B-commit** no-op. **C** scanned Ruff S 0 / ShellCheck 0. **D:** 0C / 0H / 1M / 5L.
+- **MEDIUM** (C2): the GitLab F/G3 path had no ownership check matching the new GitHub fork guard (pre-existing code). **Applied.**
+  - Facts come from Context7 only, because glab isn't installed here (no live probe): `glab mr view` has `-F json` and `--jq`; MR fields include `iid`, `web_url`, `state` (`opened`), `source_branch`, `source_project_id` and `target_project_id`.
+  - The lookup uses plain jq string interpolation, not `@tsv`, because glab's jq dialect is unverified.
+- **LOWs applied:**
+  - G2/G3 take `MR_IID` from the checked PR_NUM (C2; the G2 site was found by grep, same shape);
+  - an open PR/MR only, so a reused branch name with a closed or merged PR leads to a new one (C1);
+  - after create, GitHub reads the PR by the URL `gh pr create` printed;
+  - the GitLab gap is fixed, not filed (C1);
+  - the table now says `patch-failed`/`readback-differs` keep PR_NUM and Stage G continues (C1);
+  - the dead gh stub single arms are removed (C1).
+- RED `49194f3` (17 not ok: 10 at the new assertions, 7 from the stub's 5th field that F didn't read yet) + `5d7bcdd` (G2 RED shown in-session, plus a count fix to my own test: detect + re-check = 2) → GREEN `26b43e1`. 727/0, pytest 3137, mutations 8/8.
+- **Risk:** the GitLab path is tested against the stub only. A future GitLab run should check the real `glab mr view -F json --jq` output once (TODOS).

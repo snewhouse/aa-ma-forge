@@ -10,9 +10,15 @@
 the body or create fresh. Title is derived from the topmost Conventional
 Commit subject (truncated to 70 chars) when not explicitly provided.
 
-- **GitHub** — `gh pr view --json url` detects existing PR; reuse via
-  `gh pr edit --body-file "$BODY"` or create via
-  `gh pr create --title "$TITLE" --body-file "$BODY"`.
+- **GitHub** — `gh pr view --json url` detects existing PR. To reuse it, Stage F
+  resolves `PR_NUM`, updates the body over REST
+  (`gh api -X PATCH repos/{owner}/{repo}/pulls/$PR_NUM -F "body=@$BODY"`), and
+  reads it back. `--jq .body` adds one newline, so the check is
+  `cmp <(cat "$BODY"; echo) <(gh api … --jq .body)`. A failed PATCH or a
+  mismatch prints `STATUS: PR_BODY_NOT_UPDATED — PR #N` and keeps rc 0. The
+  title is never touched. Never use gh's pr-edit subcommand here: it hits a
+  Projects-classic GraphQL error and the body silently stays (L-1309). With no
+  PR, Stage F creates one: `gh pr create --title "$TITLE" --body-file "$BODY"`.
 - **GitLab** — `glab mr view` detects existing MR; reuse via
   `glab mr update --description "$(cat $BODY)"` or create via
   `glab mr create --title "$TITLE" --description "$(cat $BODY)"` (NOT
@@ -25,7 +31,7 @@ set -euo pipefail
 
 # Stage state: load what earlier stages saved (SKILL.md "State between stages").
 SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
-SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED n_github n_gitlab n_other "
 sdm_load() {
     # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
     if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
@@ -51,7 +57,7 @@ sdm_load() {
 [[ -f "$SDM_STATE" ]] && sdm_load
 sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
-REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
+REMOTE_CHOICE="${REMOTE_CHOICE:?Stage F needs REMOTE_CHOICE from Stage E2 — run E2 first}"   # why: a defaulted github acts on the wrong host when the state file was refused (L-055)
 PR_BODY_FILE="${PR_BODY_FILE:-}"   # why: from Stage E3 via the state file; no shared temp-dir default
 
 # §6.8 MED-2 fix: guard against missing/empty body file. If Stage E3 was
@@ -78,8 +84,17 @@ MR_IID=0
 
 if [[ "$REMOTE_CHOICE" == "github" ]]; then
     if gh pr view --json url >/dev/null 2>&1; then
-        echo "PR_OP=edit"
-        gh pr edit --body-file "$PR_BODY_FILE"
+        echo "PR_OP=update"
+        PR_NUM=$(gh pr view --json number --jq '.number' 2>/dev/null || echo "0")   # why: the REST update needs the number first
+        # why: REST, not gh's pr-edit subcommand — that hits a Projects-classic GraphQL error here and the body silently stays (L-1309)
+        # why: --jq prints the body plus one newline, so the read-back is compared with the file plus one (4.0 probe)
+        if [[ "$PR_NUM" =~ ^[1-9][0-9]*$ ]] \
+            && gh api -X PATCH "repos/{owner}/{repo}/pulls/$PR_NUM" -F "body=@$PR_BODY_FILE" >/dev/null \
+            && cmp -s <(cat "$PR_BODY_FILE"; echo) <(gh api "repos/{owner}/{repo}/pulls/$PR_NUM" --jq .body); then
+            echo "Stage F: PR #$PR_NUM body updated (read-back matches)"
+        else
+            echo "STATUS: PR_BODY_NOT_UPDATED — PR #$PR_NUM (its body on GitHub is not $PR_BODY_FILE; set it by hand)"
+        fi
     else
         echo "PR_OP=create"
         gh pr create --title "$PR_TITLE" --body-file "$PR_BODY_FILE"

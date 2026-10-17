@@ -647,7 +647,7 @@ Conventions used in the criteria:
   - **Note:** "E3 per-SLUG body path": E3 already writes `$SDM_DIR/body.md` and saves PR_BODY_FILE (M2). The stale-body @test fails today only because F doesn't PATCH. Its no-stale assertion is a regression guard.
 
 ### Sub-step 4.2: GREEN — Stage F, A, E3, prose, status table, ADR-0008
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 4.1
 - Acceptance Criteria:
@@ -658,6 +658,27 @@ Conventions used in the criteria:
   - (Added at 4.0, Ste.) `grep -rn 'REMOTE_CHOICE:-' claude-code/skills/sole-dev-merge/` leaves only E2's dual-remote prompt default (`REMOTE_CHOICE:-gitlab`, the answer the executor overrides after AskUserQuestion — not a missing input). E0, F and G1–G3 use `${REMOTE_CHOICE:?…}`. E2's `n_github`/`n_gitlab` `:-0` defaults become required once E1 saves them. The TODOS:99 bullet is struck through with a "Done in M4" note. The guard reads a rename's source when X **or** Y is `R`/`C`. Stage A runs `check-ref-format --branch` on `DEFAULT_BRANCH`. SKILL.md stays ≤ 500 lines (`tests/test_prompt_size.py`).
   - (Added at 4.0, Ste — run 2 doc-only LOWs.) The exit-status table and the B-commit prose name the "needs CHANGED_FILES" ABORT. The post-add `git reset -q -- INTENDED` comment and its table wording say that pre-staged in-scope content is unstaged.
 - Result Log:
+  - Mode: AFK — auto-dispatched. GREEN commit `b30a410`, made with an explicit pathspec. The staged set was checked first: 9 files (SKILL.md, 5 stage references, `A references/stage-state.md`, ADR-0008, TODOS.md).
+  - **Code:**
+    - **F:** resolves `PR_NUM`, then runs `gh api -X PATCH "repos/{owner}/{repo}/pulls/$PR_NUM" -F "body=@$PR_BODY_FILE"` and `cmp -s <(cat body; echo) <(gh api … --jq .body)` (4.0 DECISION). On a match it prints `Stage F: PR #N body updated (read-back matches)`. A non-numeric PR_NUM, a failed PATCH or a mismatch prints `STATUS: PR_BODY_NOT_UPDATED — PR #N`, rc 0. The F prose no longer describes `gh pr edit`.
+    - **REMOTE_CHOICE:** E0, F, G1, G2 and G3 use `${REMOTE_CHOICE:?Stage X needs REMOTE_CHOICE from Stage E2 — run E2 first}`. `grep -rn 'REMOTE_CHOICE:-'` leaves only E2's dual-remote `:-gitlab` (the prompt default).
+    - **E1/E2:** E1 gets the shared loader/saver, copied programmatically from E2 so it is byte-identical, and saves `n_github`/`n_gitlab`/`n_other`. `SDM_KEYS` is 15 → 18 in all 12 copies (`sort | uniq -c` = 12 × 1 line). E2's `:-0` defaults are now `:?…from Stage E1`.
+    - **A:** after step 5, `git check-ref-format --branch "$DEFAULT_BRANCH"` → `ABORT: DEFAULT_BRANCH '…' is not a valid branch name`, then `ORIGINAL_BRANCH == DEFAULT_BRANCH` → `ABORT: Cannot run /sole-dev-merge from <b> branch`. Both run before any state is written.
+    - **Guard:** `[[ "${rec:0:2}" == *[RC]* ]]` (X or Y).
+  - **Docs:**
+    - Exit-status table: rows for every emitted token, including PR_BODY_NOT_UPDATED, MERGE_FAILED, BRANCH_NOT_DELETED, REMOTE_UNKNOWN, MAIN_CHECKOUT_DIRTY, MAIN_NOT_UPDATED, the B-commit "needs CHANGED_FILES" and staged-outside ABORTs, the G2/G3 and G4 ABORT rows, and each Stage A ABORT by its leading words. The `STATUS: OK` row is reworded (in a worktree the branch is left for the operator). The exit contract names A, B-commit, E2, F, G2, G3 and G4, plus bash's `${VAR:?}` stop.
+    - **Milestone AC4 `comm` = empty.**
+    - The B-commit prose names the needs-CHANGED_FILES ABORT. The reset comment and table say that pre-staged in-scope content is unstaged too (run 2 doc LOWs).
+    - Stage A prose table gains 3 rows. The E reference drops both "one Bash call" lines.
+    - ADR-0008: `stage-banner` row added; A/C/D/F rows updated (Ruff S, S602, REST body update); the "9 stage bash blocks" count and the `commands/` path updated; stub env list. **Milestone AC5: ADR markers == `grep -rhoE '=== stage-…'` (diff empty).**
+    - TODOS: the Stage F entry moved under `## Completed` with a `**Done:**` line (milestone AC6); the E1 → E2 entry removed; the REMOTE_CHOICE bullet struck with "Done in M4".
+  - **SKILL.md size:** 504 after the code, then **488**. The "State between stages" prose moved to `references/stage-state.md` (updated: E1 saves its counts; required inputs stop loudly). SKILL.md keeps a 3-line pointer section, so the 12 loader comments that name it stay valid.
+  - **AC1:** `bats --tap SDM tests/hooks` → **707 ok / 0 not-ok**; SDM 168/0. shellcheck rc **0** on all 11 extracted blocks (A, B-scope, B-commit, E1, E2, E0, E3, F, G1, G2, G3). `extract stage-f-push | grep -c 'gh pr edit'` = **0**.
+  - **AC2:** `scripts/regen-generated.sh` rc 0. Its only diff was the `generated … @ <sha> on <date>` header in 4 `docs/architecture` files (non-header diff lines = 0), which was restored. `tests/golden` was unchanged. pytest **3137 passed** (+1 = `test_relative_links_resolve[…/stage-state.md]`).
+  - **Mutations (L-045), 7/7 CAUGHT, each restored from HEAD** (`<scratch>/mutate.sh`): guard X-only; read-back without +1; read-back skipped; G1 `:-github`; E1 not saving; A refusal dropped; A `check-ref-format` dropped.
+  - **Contract deviations:**
+    - `references/stage-c-review-and-security.md` and `stage-d-triage.md` changed only on the `SDM_KEYS` line, because the loader must be identical in every block. `references/stage-state.md` is new.
+    - Both are recorded in CL.
 
 ### Sub-step 4.3: Verify, gate, merge with the fixed skill
 - Status: PENDING

@@ -79,3 +79,4 @@
 [2026-10-16T22:10:20+01:00] MILESTONE COMPLETE — Milestone 3: Stage B scoped commit, guard, check-conventions refs — Commit: 95d904b — Criteria: 8/8 verified (7 pre-merge at GATE APPROVAL + [post-merge] at 4.0; PR #44 rebase-merged 07a8b45)
 [2026-10-17T05:52:26+01:00] PROBE — 4.0 gh api PR body round-trip on draft PR #45 — 6/6 raw cmp rc 0 (-F and --input, 0/1/2 trailing NL); --jq .body adds 1 NL (AC literal cmp rc 1); chosen -F + exact+1 rule rc 0 — DECISION Ste
 [2026-10-17T06:12:13+01:00] RED — 4.1 a85c2cf — 13 new @tests, SDM 154 ok / 14 not ok (each at its assertion); full 693+14=707; guard: F no-PR path
+[2026-10-17T06:28:21+01:00] GREEN — 4.2 b30a410 — bats 707/0, SDM 168/0, pytest 3137, shellcheck 11/11 rc 0, comm empty, ADR markers == code, SKILL.md 488, mutations 7/7 caught

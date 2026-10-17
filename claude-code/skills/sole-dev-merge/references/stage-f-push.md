@@ -10,9 +10,16 @@
 the body or create fresh. Title is derived from the topmost Conventional
 Commit subject (truncated to 70 chars) when not explicitly provided.
 
-- **GitHub** — `gh pr view --json url` detects existing PR; reuse via
-  `gh pr edit --body-file "$BODY"` or create via
-  `gh pr create --title "$TITLE" --body-file "$BODY"`.
+- **GitHub** — one `gh pr view --json number,url,isCrossRepository,headRefName`
+  call finds the existing PR. Stage F updates its body only if it is this
+  branch's own (same repository, head = the current branch). It uses REST
+  (`gh api -X PATCH repos/{owner}/{repo}/pulls/$PR_NUM -F "body=@$BODY"`) and
+  reads the body back. `--jq .body` adds one newline, so the check is
+  `cmp <(cat "$BODY"; echo) <(gh api … --jq .body)`. Any other outcome prints
+  `STATUS: PR_BODY_NOT_UPDATED — PR #N reason=<r>` and keeps rc 0. A PR that is
+  not this branch's is never saved for Stage G. The title is never touched. Never use gh's pr-edit subcommand here: it hits a
+  Projects-classic GraphQL error and the body silently stays (L-1309). With no
+  PR, Stage F creates one: `gh pr create --title "$TITLE" --body-file "$BODY"`.
 - **GitLab** — `glab mr view` detects existing MR; reuse via
   `glab mr update --description "$(cat $BODY)"` or create via
   `glab mr create --title "$TITLE" --description "$(cat $BODY)"` (NOT
@@ -25,7 +32,7 @@ set -euo pipefail
 
 # Stage state: load what earlier stages saved (SKILL.md "State between stages").
 SDM_STATE="$(git rev-parse --absolute-git-dir)/sole-dev-merge.env"   # why: absolute, so a later cd can't break sdm_save
-SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED "
+SDM_KEYS=" ORIGINAL_BRANCH BASE_REF DEFAULT_BRANCH SLUG SDM_DIR CHANGED_FILES CHANGED_PY CHANGED_SH REMOTE_CHOICE PR_BODY_FILE PR_NUM PR_URL MERGE_STRATEGY CI_STATE MERGE_DISPATCHED n_github n_gitlab n_other "
 sdm_load() {
     # why: a planted or shared file must never be read: symlink, other owner, or group/world-writable → refuse
     if [[ -L "$SDM_STATE" || ! -O "$SDM_STATE" || -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; then
@@ -51,7 +58,7 @@ sdm_load() {
 [[ -f "$SDM_STATE" ]] && sdm_load
 sdm_save() { if [[ -L "$SDM_STATE" ]] || { [[ -e "$SDM_STATE" ]] && { [[ ! -O "$SDM_STATE" ]] || [[ -n "$(find "$SDM_STATE" \( -perm -g+w -o -perm -o+w \) -print)" ]]; }; }; then echo "Stage state: refusing to save $1 (${SDM_STATE##*/} is a symlink, not yours, or writable by others)"; return 1; fi; (umask 077; printf '%s=%s\n' "$1" "$(printf '%s' "$2" | base64 | tr -d '\n')" >> "$SDM_STATE"); }   # why: refuse exactly what the loader refuses, and create the file 600; base64 has no shell metacharacters, tr keeps one line
 
-REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
+REMOTE_CHOICE="${REMOTE_CHOICE:?Stage F needs REMOTE_CHOICE from Stage E2 — run E2 first}"   # why: a defaulted github acts on the wrong host when the state file was refused (L-055)
 PR_BODY_FILE="${PR_BODY_FILE:-}"   # why: from Stage E3 via the state file; no shared temp-dir default
 
 # §6.8 MED-2 fix: guard against missing/empty body file. If Stage E3 was
@@ -77,18 +84,48 @@ PR_URL=""
 MR_IID=0
 
 if [[ "$REMOTE_CHOICE" == "github" ]]; then
-    if gh pr view --json url >/dev/null 2>&1; then
-        echo "PR_OP=edit"
-        gh pr edit --body-file "$PR_BODY_FILE"
+    # One lookup for number, url and whose PR it is (gojq @tsv; gh 2.46.0), before and after create.
+    # why: 2>/dev/null — "no pull requests found" is the expected answer on a first run
+    pr_lookup() {
+        local row
+        row=$(gh pr view --json number,url,isCrossRepository,headRefName \
+                  --jq '[.number,.url,.isCrossRepository,.headRefName]|@tsv' 2>/dev/null) || return 1
+        IFS=$'\t' read -r PR_NUM PR_URL PR_XREPO PR_HEAD <<<"$row"
+    }
+    # why: a no-arg `gh pr view` selects by branch name, so a fork's same-named PR can come back (§6.8 SEC-2)
+    pr_ours() { [[ "$PR_XREPO" == false && "$PR_HEAD" == "$(git branch --show-current)" ]]; }
+    NOT_OURS="is not this branch's own (a fork's PR, or another head branch's)"
+    if pr_lookup; then
+        echo "PR_OP=update"
+        # why: REST, not gh's pr-edit subcommand — that hits a Projects-classic GraphQL error here and the body silently stays (L-1309)
+        # why: --jq prints the body plus one newline (gh 2.46.0, 4.0 probe), so the read-back is compared with the file plus one
+        REASON=""
+        if [[ ! "$PR_NUM" =~ ^[1-9][0-9]*$ ]]; then
+            REASON=no-pr-number
+        elif ! pr_ours; then
+            REASON=not-this-branch
+        elif ! gh api -X PATCH "repos/{owner}/{repo}/pulls/$PR_NUM" -F "body=@$PR_BODY_FILE" >/dev/null; then
+            REASON=patch-failed
+        elif ! cmp -s <(cat "$PR_BODY_FILE"; echo) <(gh api "repos/{owner}/{repo}/pulls/$PR_NUM" --jq .body); then
+            REASON=readback-differs
+        fi
+        case "$REASON" in
+            "")              echo "Stage F: PR #$PR_NUM body updated (read-back matches)" ;;
+            not-this-branch) echo "STATUS: PR_BODY_NOT_UPDATED — PR #$PR_NUM reason=not-this-branch (PR #$PR_NUM $NOT_OURS; open this branch's PR by hand — Stage G will stop)" ;;
+            no-pr-number)    echo "STATUS: PR_BODY_NOT_UPDATED — PR #$PR_NUM reason=no-pr-number (gh pr view gave no PR number; check the PR by hand)" ;;
+            *)               echo "STATUS: PR_BODY_NOT_UPDATED — PR #$PR_NUM reason=$REASON (its body on GitHub is not $PR_BODY_FILE; set it by hand)" ;;
+        esac
+        # why: never hand Stage G a PR that is not this branch's own
+        if [[ "$REASON" == no-pr-number || "$REASON" == not-this-branch ]]; then PR_NUM=0; PR_URL=""; fi
     else
         echo "PR_OP=create"
         gh pr create --title "$PR_TITLE" --body-file "$PR_BODY_FILE"
+        # why: the same ownership rule after create (live run 1 C2); an unreadable PR leaves PR_NUM 0, never saved below
+        if pr_lookup && ! pr_ours; then
+            echo "Stage F: WARNING — PR #$PR_NUM $NOT_OURS; not saved"
+            PR_NUM=0; PR_URL=""
+        fi
     fi
-    # §6.8 M4 CRITICAL-1 fix: extract PR identifiers for Stage G consumption.
-    # Real gh CLI supports `--jq` filter on the json output; tests' gh stub
-    # honours these filters explicitly.
-    PR_URL=$(gh pr view --json url    --jq '.url'    2>/dev/null || echo "")
-    PR_NUM=$(gh pr view --json number --jq '.number' 2>/dev/null || echo "0")
 elif [[ "$REMOTE_CHOICE" == "gitlab" ]]; then
     if glab mr view >/dev/null 2>&1; then
         echo "MR_OP=update"

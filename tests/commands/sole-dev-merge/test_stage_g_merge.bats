@@ -552,3 +552,36 @@ _fingerprint() {
     [[ "$output" == *"CI_STATE='mystery_value'"* ]]
     [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
 }
+
+@test "G3: PR from another repository (isCrossRepository) → ABORT rc 1, no merge" {
+    # why: the head-name check alone accepts a fork's same-named PR (§6.8 SEC-2)
+    _sandbox_with_pushed_feature
+    export CI_STATE=green GH_PR_CROSS_REPO=true
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage G3: PR ${PR_NUM} is from another repository"* ]]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
+    [ -n "$(git ls-remote origin refs/heads/feature)" ]
+}
+
+@test "G3: reads the PR's head and owner in one lookup" {
+    _sandbox_with_pushed_feature
+    export CI_STATE=green
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c "pr view ${PR_NUM} --json headRefName,isCrossRepository" "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -cE -- '--json (headRefName|isCrossRepository) --jq' "$CLI_LOG")" -eq 0 ]
+}
+
+@test "G3: an unreadable PR (head/owner lookup fails) → ABORT rc 1, no merge" {
+    # why: under set -e a failed lookup used to end G3 with no ABORT line (live run 1 C1 LOW)
+    _sandbox_with_pushed_feature
+    export CI_STATE=green GH_PR_LOOKUP_RC=1
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage G3: cannot read PR ${PR_NUM}"* ]]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
+}

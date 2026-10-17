@@ -245,3 +245,62 @@ _This log will be updated via context compaction as the task progresses._
   - one `git status` per file;
   - plus C2's duplicate of the quoting LOW.
 - The merge restarts from Stage A (as M2 run 1 → run 2).
+
+## [2026-10-16] Sub-step 4.0: M3 closed on the M4 branch; carry-ins decided — Ste
+- **M3 closed (L-037):** 3.3's Result Log written from the handover evidence, re-run from `<main>` first (E1 `MERGED 07a8b45`, E2 0 bytes / rc 2, HEAD = origin/main = `07a8b45`, tracked changes 0, cherry 0 `+`). Fence 1 `pending_steps=0`; privacy 0/0; Milestone 3 flipped COMPLETE under the existing GATE APPROVAL.
+- **Worktrees:** M3 worktree and branch removed (branch was `1a122b7`). M4 worktree cut from `origin/main` `07a8b45`; the upstream `worktree add -b … origin/main` set was unset; `--is-ancestor` rc 0. Session works in the M4 worktree by absolute path (EnterWorktree declined by Ste).
+- **4.0 probe target (Ste):** an early **draft** M4 PR, not merged PR #44. Push the M4 branch, open a draft PR, PATCH its body with `-F body=@file`, read back, `cmp`. The 4.3 live Stage F then hits the existing-PR path, so the new PATCH + read-back code runs for real.
+- **Handover §9 Q1 — run 2's 6 LOW notes (Ste, as recommended):** the 2 doc-only items (the "needs CHANGED_FILES" ABORT missing from the outcomes table and B-commit prose; the post-add `git reset -q -- INTENDED` wording) fold into M4's docs-drift work. The other 4 go in one TODOS entry; probe the Y=R guard item first (L-056).
+- **Handover §9 Q2 — Stage C `${CHANGED_PY:-}`/`${CHANGED_SH:-}` defaults (Ste):** a TODOS entry with `file:line` (L-1351), not M4. The Stage C reference is outside M4's Contract files.
+
+## [2026-10-17] DECISION gh-api body: -F, newline=exact+1 — Ste
+- **Method:** Stage F updates an existing PR with `gh api -X PATCH repos/{owner}/{repo}/pulls/$PR_NUM -F "body=@$PR_BODY_FILE"`. It does not use `gh pr edit` (E15/L-1309).
+- **Read-back:** `cmp -s <(cat "$PR_BODY_FILE"; echo) <(gh api repos/{owner}/{repo}/pulls/$PR_NUM --jq .body)`. On a mismatch Stage F prints `STATUS: PR_BODY_NOT_UPDATED — PR #N` and exits rc 0, as reference.md's exit contract requires.
+- **Evidence** (4.0 probe, draft PR #45): both methods round-trip byte-exact. `-F` reads the file verbatim, with no `{owner}` expansion and no `true`/`123` typing. `--jq .body` always adds one `\n`, so the "+1" is exact rather than a normalisation, and a dropped or added trailing newline is still caught.
+- **Rejected:**
+  - Stripping trailing newlines: it is blind to trailing-newline drift.
+  - `--input` + `jq -j`: it adds a `jq` binary dependency, and the skill has none today.
+- **Stub consequence (4.1):** the gh stub's `--jq .body` arm must echo the stored body plus one `\n`, as real gh does. `GH_PR_BODY_READBACK` overrides it.
+
+## [2026-10-17] L-056 carry-ins folded into M4; Contract widened — Ste
+- **Grep** (TODOS, CL, impl-review and verification for `M4`/`Milestone 4`) found two items missing from 4.1/4.2:
+  - `REMOTE_CHOICE:-github` → `${REMOTE_CHOICE:?}` (TODOS:99, CL:160, IR:74);
+  - the Stage A part of the `DEFAULT_BRANCH` validation (IR:33; G3 does it at `stage-g-merge.md:269`).
+  - Already covered: E1→E2 counts (4.2), G3/G4 ABORT rows (4.2).
+- **Y=R probe** (`<scratch>/yr-probe`, git 2.53.0): `mv a b; git add -N b` gives ` R b.txt\0a.txt\0`. The guard (SKILL.md stage-b-scope, `[[ "${rec:0:1}" == [RC] ]]`) reads only X. The source `a.txt` then becomes a record `XY=[a.] path=[xt]`, and the guard would `restore --source=HEAD` a path named `xt`. B-commit's porcelain use is display-only and unaffected.
+- **Decisions (Ste, AskUserQuestion):**
+  - Y=R guard fix → M4 (1 RED + `${rec:0:2} == *[RC]*`, line-neutral).
+  - `REMOTE_CHOICE` → M4 at all sites: F, E0/E3, G1–G3. `references/stage-g-merge.md` and the b_scope/g_merge/state test files are added to M4's Contract (plan §5 M4, marked "Added at 4.0").
+  - The Stage A `check-ref-format` RED is added with them.
+- **TODOS filed:** "Stage B: three LOWs from PR #44's Stage D (run 2)" (env CHANGED_FILES wins; `??` at a branch-deleted path re-added; C-quoting / unescaped echo) and "Stage C: `${CHANGED_PY:-}` / `${CHANGED_SH:-}` masking defaults" with `file:line` (L-1351).
+- **Constraint for 4.2:** SKILL.md is 499/500 lines. Adding the 7 status rows plus the doc-only LOW wording will exceed the cap, so 4.2 must move prose into `references/` (not tighten it into unreadability). Record where it moved.
+
+## [2026-10-17] 4.2 GREEN: scope deviations and design choices
+- **Contract deviation (mechanical):** `references/stage-c-review-and-security.md` and `stage-d-triage.md` changed on the `SDM_KEYS` line only (15 → 18 keys). `test_stage_state.bats` requires the loader to be byte-identical in every block, so widening the allowlist touches all 12 copies.
+- **New file `references/stage-state.md`:** SKILL.md was 504/500 after the code changes. The 34-line "State between stages" prose moved out, and a 3-line pointer section keeps the heading the 12 loader comments name. This was chosen over moving B-commit (`aa-ma-footer.bats:202` reads `footer-resolve` from SKILL.md) or the banner (`test_smoke_e2e.bats:54` greps SKILL.md). SKILL.md is now 488.
+- **REMOTE_CHOICE criterion narrowed:** E2's `REMOTE_CHOICE:-gitlab` is the dual-remote prompt's default answer, which the executor overrides after AskUserQuestion. It is not a missing input, so it stays. E2's `n_github`/`n_gitlab` `:-0` became required (same L-055 shape, same item).
+- **F with a non-numeric PR_NUM** goes to the STATUS path, so no PATCH reaches `pulls/0`.
+- **Exit table vs the `comm` check:** the check's `[A-Z_]+` cuts ABORT messages at the first lowercase letter, so each Stage A ABORT is named by its leading words in one row. Table and code agree (comm empty).
+
+## [2026-10-17] GATE APPROVAL: Milestone 4: Stage F REST body update, small fixes, docs drift
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion, "Approve + live merge")
+- Criteria verified: 8/8 pre-merge:
+  - `extract stage-f-push | grep -c 'gh pr edit'` = 0;
+  - @tests: read-back mismatch → `STATUS: PR_BODY_NOT_UPDATED … reason=readback-differs`, rc 0; stale `sdm-stale/body.md` not posted; Stage A aborts on `DEFAULT_BRANCH=trunk`;
+  - status-table `comm` empty, and ADR-0008 markers == code (both now bats guards);
+  - `bats --tap SDM tests/hooks` 714/0 (fence 3 `TESTS_VERIFIED passed=714`); TODOS Stage F entry under `## Completed` with `**Done:**`;
+  - PL `IMPACT_ANALYSIS — Milestone 4: HIGH=0 unresolved` (+ addendum) and `CRITICAL_PATH_REVIEW — Milestone 4`;
+  - privacy 0/0;
+  - this approval.
+- §6.8 PASS_WITH_WARNINGS (0C/11W/17I). All 11 WARNINGs fixed test-first (RED 7b22079 → GREEN b403f60); mutations 8/8 caught.
+- Recorded during the live run: 4.3's quote of this PR's live Stage F read-back. Fence 1 and the COMPLETE flip happen at 5.0 (L-037).
+- Decision: APPROVED
+
+## [2026-10-17] Live merge run 1 (4.3): Stage C/D triage — Ste
+- **A** OK (17 ahead). **B** (this branch's blocks, each in its own Bash call): 22 files (0 py, 0 sh), `check_conventions (added lines only)…Passed`, `no diff source` 0, `pytest rc=0`, `pre-commit rc=0`, guard clean. **B-commit** no-op.
+- **C:** C1 and C2 wrote into `<git-dir>/sdm-<slug>/`; C scanned `Ruff S 0 file(s), ShellCheck 0 file(s)`. **D:** 0C / 0H / 1M / 6L.
+- **MEDIUM** (C1): the exit-table sync test's `[A-Z_]+` token saw mixed-case ABORTs only as `ABORT: S`/`ABORT: C` → **applied**. Tokens are now `ABORT: <word>[ <word>]`; a planted `ABORT: Stage Z9:` is `ABORT: S` to the old regex and is caught by the new one (mutation).
+- **All 6 LOWs applied** (Ste: "Apply MEDIUM + all 6 LOWs"): G3 one head/owner lookup with an ABORT on failure; F's ownership rule after create too (C2); a per-reason hint; E1 requires Stage A's `SDM_DIR`; the blank line before `---` restored (the table rewrite had dropped it: setext heading); stage-state.md H1→H2.
+- RED `7a05ad3` (6 not ok) → GREEN `bfa312e`; 718/0; mutations 6/6. `test_stage_e_remote.bats` setup exports `SDM_DIR` (test-only, outside the Contract): E1's unit tests run without Stage A.
+- Run 1 evidence was backed up to `<scratch>/m4-run1-evidence/` before the restart. The merge restarts from Stage A (as M2/M3 run 1 → run 2).

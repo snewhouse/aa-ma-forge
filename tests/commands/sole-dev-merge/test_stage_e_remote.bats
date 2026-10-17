@@ -36,10 +36,12 @@ setup() {
     bash "$EXTRACT" stage-e2-choice "$COMMAND_MD" > "$E2_SCRIPT"
     chmod +x "$E1_SCRIPT" "$E2_SCRIPT"
     export E1_SCRIPT E2_SCRIPT
+    # why: E1 now requires Stage A's run dir (E1 alone used to write a branchless state file)
+    SDM_DIR="$(mktemp -d)"; export SDM_DIR
 }
 
 teardown() {
-    rm -rf "$BATS_TMP" "$SCRIPT_DIR"
+    rm -rf "$BATS_TMP" "$SCRIPT_DIR" "$SDM_DIR"
 }
 
 # ---------------------------------------------------------------------------

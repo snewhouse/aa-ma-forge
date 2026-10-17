@@ -453,7 +453,7 @@ Conventions used in the criteria:
   - **Scanned-files AC:** not applicable to PR #43. Its decoded `CHANGED_PY`/`CHANGED_SH` are empty (0 `.py`, 0 `.sh`). Moved to M3 3.3 (Ste, CL 2026-10-16).
 
 ## Milestone 3: Stage B scoped commit, guard, check-conventions refs
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 2
 - Complexity: 55%
 - Effort: 1 day
@@ -472,6 +472,7 @@ Conventions used in the criteria:
   - The privacy check gives 0 / 0.
   - PL has the IMPACT_ANALYSIS and CRITICAL_PATH_REVIEW lines for Milestone 3; CL has the GATE APPROVAL.
 - Result Log:
+  - Merged as PR #44 (rebase, `07a8b45`) through two live `/sole-dev-merge` runs on the branch's own blocks. SKILL.md greps `--from-ref` 0 / `PRE_COMMIT_FROM_REF="$BASE_REF"` 1 / rc lines 3 / `git add -A` 0; `test_stage_b_scope.bats` 0 not-ok; live Stage B `check_conventions … Passed`, `no diff source` 0; privacy 0/0; PL + CL lines present. Detail in 3.3.
 
 ### Sub-step 3.0: Post-merge of M2
 - Status: COMPLETE
@@ -556,7 +557,7 @@ Conventions used in the criteria:
   - **Impact deviation:** `tests/hooks/aa-ma-footer.bats` (2 B-commit footer tests) now pass `CHANGED_FILES=f.txt`. B-commit stages only Stage B's files, and those tests run it alone. Checked empirically: without the input, the `[ad-hoc]` test FAILs because no commit is made. `commit-signature.bats:228` (literal `FOOTER=$(emit_aa_ma_footer)` / `-m "…${FOOTER}"`) is untouched and passes.
 
 ### Sub-step 3.3: Docs, verify, gate, merge with the fixed skill
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 3.2
 - Acceptance Criteria:
@@ -565,9 +566,17 @@ Conventions used in the criteria:
   - PL has `IMPACT_ANALYSIS — Milestone 3:` and `CRITICAL_PATH_REVIEW — Milestone 3:`; CL has `GATE APPROVAL: Milestone 3`. The live Stage B line is quoted (milestone AC 3).
   - (Moved from M2 2.3, Ste.) If the M3 PR changes any `.py` or `.sh` file, the Result Log quotes the live `Stage C scanned: Ruff S n file(s), ShellCheck m file(s)` line with n or m ≥ 1. If it changes neither, this carries to the next PR that does.
 - Result Log:
+  - Mode: HITL — recorded at Sub-step 4.0 on the M4 branch (L-037). PR #44 was rebase-merged (22 commits, `52f4fd3..07a8b45`), so pre-rebase SHAs are cited; map them by subject with `git log --format='%h %s' 52f4fd3..origin/main`.
+  - **Docs** (checked on the M4 branch at `07a8b45`): `grep -c 'the skill now sets the refs' docs/adr/0018-touched-code-lint-gate.md` = **1**; L-051 and L-053 each have **1** "Fixed in" line; CHANGELOG has the Stage B bullet (`/sole-dev-merge` Stage B: check-conventions exited 2 …).
+  - **Gate:** PL has `IMPACT_ANALYSIS — Milestone 3: HIGH=0 unresolved` (+ addendum after §6.8) and `CRITICAL_PATH_REVIEW — Milestone 3:`. CL has `GATE APPROVAL: Milestone 3` (7/7 pre-merge). Fence 3: `TESTS_VERIFIED passed=684`, then 692 after the §6.8 remediation, then **694** at `bc2b9d5`. pytest 3136 passed. §6.8 PASS_WITH_WARNINGS, 0C/6W/12I; all 6 WARNINGs fixed test-first (RED `6b9212d` → GREEN `10845fe`). Fence 2 n/a. Fence 1 was BLOCKED pre-merge by design (3.3 is the merge step) and is re-run at 4.0.
+  - **Live run 1** (from `6e952f6`): A OK. **B: `check_conventions (added lines only)…Passed`; `grep -c 'no diff source'` = 0.** `Stage B: pytest rc=0 (best-effort)`, `Stage B: pre-commit rc=0 (best-effort)`, guard clean. B-commit no-op. C: `Ruff S 0 file(s), ShellCheck 0 file(s)`. D: 0C/0H/**1M**/6L. The MEDIUM (B-commit `${CHANGED_FILES:-}` masking default, L-055) was applied (Ste) with LOW `--no-renames` in `staged_outside`: RED `d9c43be` → GREEN `bc2b9d5`. The merge restarted.
+  - **Live run 2** (from `1a122b7`): A OK (22 ahead). **B: `check_conventions … Passed`; `no diff source` 0**; pytest rc 0, pre-commit rc 0, guard clean. B-commit no-op. C: Ruff S 0 / ShellCheck 0. D: 0C/0H/0M/6L → reviewer notes. E1+E2 in one call → `REMOTE_CHOICE=github`; E0 OK; E3 body 44 lines, privacy 0/0. F: PR #44; title fixed with `gh api -X PATCH …/pulls/44 -f title=…` (cosmetic, as M2). G1 `MERGE_STRATEGY=rebase`; G2 `CI_STATE=green` (9/9).
+  - **`[post-merge]`:** G3 `MERGE_DISPATCHED=1` / `Stage G3: merged 44 (strategy=rebase)`. G4 (Ste, `!`): `Stage G4: cleanup done — main at 07a8b45 worktree=<wt>` … `STATUS: OK worktree=<wt>`. Decoded state file: `PR_NUM=44 MERGE_STRATEGY=rebase REMOTE_CHOICE=github MERGE_DISPATCHED=1`. No manual merge steps.
+  - **Re-run at 4.0** (from `<main>`): `gh pr view 44` → `MERGED 07a8b45`; `git ls-remote origin refs/heads/fix/sole-dev-merge-fixes-m3 | wc -c` = **0**, `--exit-code` rc **2**; `<main>` HEAD = origin/main = `07a8b45`; `<main>` tracked changes **0**; `git cherry origin/main fix/sole-dev-merge-fixes-m3` = 22 `-`, **0 `+`**, then the M3 worktree and branch were removed (rc 0, branch was `1a122b7`).
+  - **Scanned-files AC:** N/A — PR #44 changed no `.py`/`.sh`. Carries to the next PR that does, by the AC's own wording.
 
 ## Milestone 4: Stage F REST body update, small fixes, docs drift
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 3
 - Complexity: 40%
 - Effort: 0.75 day
@@ -587,7 +596,7 @@ Conventions used in the criteria:
 - Result Log:
 
 ### Sub-step 4.0: Post-merge of M3, and live gh api probe
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
@@ -595,19 +604,50 @@ Conventions used in the criteria:
   - On this PR, the rc of `cmp body.md <(gh api repos/{owner}/{repo}/pulls/N --jq .body)` is recorded after the PATCH.
   - CL has `DECISION gh-api body: -F|--input, newline=<rule> — Ste`.
 - Result Log:
+  - Mode: HITL — Ste chose the probe target (an early draft M4 PR) and the body method/newline rule via AskUserQuestion.
+  - **M3 closed first:** 3.3 Result Log + COMPLETE, fence 1 `pending_steps=0`, privacy 0/0, Milestone 3 COMPLETE (`95d904b`); provenance `MILESTONE COMPLETE — Milestone 3` (`04b1194`, L-018). Milestone 4 ACTIVE (`69fa41b`); dependency advisory printed nothing.
+  - **AC1:** `<main>` tracked changes **0**; M4 worktree cut from `origin/main` `07a8b45`, upstream unset, `git merge-base --is-ancestor origin/main HEAD` rc **0**.
+  - **Draft PR #45** opened for the probe (branch pushed; it now tracks its own remote branch). The 4.3 live Stage F will take the existing-PR path.
+  - **AC2 probe** (`<scratch>/m4-probe/probe.sh 45`): body with backticks, Unicode, a table, literal `{owner} {repo} {branch}`, and lines `true` / `123`. 3 trailing-newline shapes (0, 1, 2) × 2 methods (`-F body=@file`; `jq -Rs '{body: .}' | gh api --input -`):
+    - every PATCH rc 0; raw read-back (`gh api … | jq -j .body`) `cmp` rc **0** in all 6 — GitHub stores the body byte-exact (216/217/218 bytes in = out, no `\r\n`);
+    - `-F` expanded no placeholder and typed nothing inside the file (`{owner}` survives, count 1);
+    - **AC literal `cmp body.md <(gh api repos/{owner}/{repo}/pulls/45 --jq .body)` rc = 1 in all 6**: `--jq .body` appends exactly one `\n` (bytes_jq = bytes_file + 1).
+    - Chosen rule, live on the restored body: `cmp -s <(cat body; echo) <(gh api …/pulls/45 --jq .body)` rc **0**; the literal form rc **1**.
+  - **AC3:** CL has `DECISION gh-api body: -F, newline=exact+1 — Ste`.
 
 ### Sub-step 4.1: RED — Stage F/A/E3 tests
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 4.0
 - Acceptance Criteria:
   - There are 5 new @tests: F existing-PR PATCH plus read-back; F mismatch → STATUS; F no-PR path unchanged (`:118-128`); A `trunk` abort; E3 per-SLUG body path.
-  - The gh stub's `api)` arm branches on `-X PATCH` and `--jq .body` **before** its G1 default (`fixtures/bin/gh:74-80`).
+  - The gh stub's `api)` arm branches on `-X PATCH` and `--jq .body` **before** its G1 default (`fixtures/bin/gh:74-80`). Its `--jq .body` echoes the stored body plus one `\n`, as real gh does (4.0 DECISION).
+  - (Added at 4.0, L-056 carry-ins, Ste.) Further @tests:
+    - guard: an intent-to-add worktree rename (` R new\0old\0`) is parsed as one record, and no path built from the source name is restored (probe at 4.0);
+    - a fresh-shell F and G1 with no `REMOTE_CHOICE` (no state file) fail loudly rather than default to github (TODOS:99);
+    - Stage A aborts on an option-shaped `DEFAULT_BRANCH` (`check-ref-format`, as G3 `stage-g-merge.md:269`; IR:33).
   - RED evidence is recorded.
 - Result Log:
+  - Mode: AFK — auto-dispatched. RED commit `a85c2cf`, made with an explicit pathspec (L-1334). The staged set was checked first: 5 `M` files (the gh stub plus the a_preflight, b_scope, f_idempotent and state bats files).
+  - **Baseline** at `33cd37c`: `bats --tap SDM tests/hooks` → **694 ok / 0 not-ok**.
+  - **gh stub** (AC2): the `api)` arm branches on `-X PATCH` (copies the `-F body=@FILE` file to `$CLI_LOG.body`; `GH_API_PATCH_RC`) and on `--jq .body` (the stored body plus one `\n`, or `GH_PR_BODY_READBACK`), **before** the G1 `GH_ALLOW_REBASE` default. `store` is computed only inside those arms, so G1 callers without `CLI_LOG` are unaffected. shellcheck rc 0.
+  - **13 new @tests**; the `:106` pr-edit case is rewritten in place (TODOS:85):
+    - **F** (`test_stage_f_idempotent.bats`): existing PR → 0 `pr edit`/`pr create`, 1 `api -X PATCH repos/{owner}/{repo}/pulls/42 -F body=@…`, 1 `--jq .body` read-back, with PR_NUM resolved before the PATCH (rewritten `:106`); read-back match → byte-exact store + `Stage F: PR #42 body updated (read-back matches)`; mismatch → `STATUS: PR_BODY_NOT_UPDATED — PR #42`, rc 0; failing PATCH → the same STATUS, rc 0; no-PR create path → 0 PATCH / 0 read-back; the shipped block has 0 `gh pr edit` (milestone AC1).
+    - **A** (`test_stage_a_preflight.bats`): `DEFAULT_BRANCH=trunk` + HEAD on trunk → `ABORT: Cannot run /sole-dev-merge from trunk branch`; origin/HEAD → `origin/-x` → `ABORT: DEFAULT_BRANCH '-x' is not a valid branch name` and no state file.
+    - **B guard** (`test_stage_b_scope.bats`): `mv out.txt moved.txt; git add -N moved.txt` (precondition asserted: ` R out.txt -> moved.txt`) → out.txt restored, moved.txt left `??`, no "could not restore".
+    - **State** (`test_stage_state.bats`, fresh `env -i` shells): E1 → E2 counts via the state file; E2 with no counts names Stage E1; E0/F/G1/G2/G3 with no REMOTE_CHOICE fail naming it, with 0 gh/glab calls; static grep for `REMOTE_CHOICE:-github`; F posts PR_BODY_FILE's body, not a planted `sdm-stale/body.md`. `NO_STATE` loses `stage-e1-remote`, so the loader-coverage test now spans E1.
+  - **RED evidence:** SDM → **154 ok / 14 not-ok**. Each not-ok fails at the assertion under test, not in setup:
+    - A trunk at the exact message (`:156`; today it says "No commits ahead of trunk");
+    - A `-x` at `status -ne 0` (`:167`; A accepts it);
+    - Y=R at `cat out.txt` (`:383`; the source was misparsed);
+    - F `:115` (`pr edit` count), `:134` (cmp: nothing stored), `:147`/`:158` (no STATUS), `:176` (`gh pr edit` count);
+    - state `:414` (E1 has no state file), `:447` (`n_github` not saved), `:459` (no "Stage E1"), `:475` (E0 ran, status 0), `:484` (grep found the defaults), `:496` (cmp: nothing stored).
+  - **Passing before the fix (guard, by design):** F no-PR create path unchanged.
+  - **Collateral:** `bats --tap SDM tests/hooks` → **693 ok + 14 not-ok = 707** (694 + 13). ok = 694 − 2 (the rewritten `:106` and the loader test) + 1 (the guard). The only not-oks are the 14 above. `tests/test_bats_assertions.py` 2 passed. One L-045 `a && b` line in my own new F test was split before commit.
+  - **Note:** "E3 per-SLUG body path": E3 already writes `$SDM_DIR/body.md` and saves PR_BODY_FILE (M2). The stale-body @test fails today only because F doesn't PATCH. Its no-stale assertion is a regression guard.
 
 ### Sub-step 4.2: GREEN — Stage F, A, E3, prose, status table, ADR-0008
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 4.1
 - Acceptance Criteria:
@@ -615,7 +655,30 @@ Conventions used in the criteria:
   - `bats --tap SDM` gives 0 not-ok; shellcheck exits 0 on F, A and E3.
   - `scripts/regen-generated.sh` leaves no uncommitted diff.
   - (Added at M2 2.3, Ste.) E1 saves `n_github`/`n_gitlab`/`n_other` to the stage state file (allowlist 15 → 18 keys). An empty-env E2 case in `test_stage_state.bats` passes. The E1/E2 "one Bash call" prose line and its TODOS entry are removed.
+  - (Added at 4.0, Ste.) `grep -rn 'REMOTE_CHOICE:-' claude-code/skills/sole-dev-merge/` leaves only E2's dual-remote prompt default (`REMOTE_CHOICE:-gitlab`, the answer the executor overrides after AskUserQuestion — not a missing input). E0, F and G1–G3 use `${REMOTE_CHOICE:?…}`. E2's `n_github`/`n_gitlab` `:-0` defaults become required once E1 saves them. The TODOS:99 bullet is struck through with a "Done in M4" note. The guard reads a rename's source when X **or** Y is `R`/`C`. Stage A runs `check-ref-format --branch` on `DEFAULT_BRANCH`. SKILL.md stays ≤ 500 lines (`tests/test_prompt_size.py`).
+  - (Added at 4.0, Ste — run 2 doc-only LOWs.) The exit-status table and the B-commit prose name the "needs CHANGED_FILES" ABORT. The post-add `git reset -q -- INTENDED` comment and its table wording say that pre-staged in-scope content is unstaged.
 - Result Log:
+  - Mode: AFK — auto-dispatched. GREEN commit `b30a410`, made with an explicit pathspec. The staged set was checked first: 9 files (SKILL.md, 5 stage references, `A references/stage-state.md`, ADR-0008, TODOS.md).
+  - **Code:**
+    - **F:** resolves `PR_NUM`, then runs `gh api -X PATCH "repos/{owner}/{repo}/pulls/$PR_NUM" -F "body=@$PR_BODY_FILE"` and `cmp -s <(cat body; echo) <(gh api … --jq .body)` (4.0 DECISION). On a match it prints `Stage F: PR #N body updated (read-back matches)`. A non-numeric PR_NUM, a failed PATCH or a mismatch prints `STATUS: PR_BODY_NOT_UPDATED — PR #N`, rc 0. The F prose no longer describes `gh pr edit`.
+    - **REMOTE_CHOICE:** E0, F, G1, G2 and G3 use `${REMOTE_CHOICE:?Stage X needs REMOTE_CHOICE from Stage E2 — run E2 first}`. `grep -rn 'REMOTE_CHOICE:-'` leaves only E2's dual-remote `:-gitlab` (the prompt default).
+    - **E1/E2:** E1 gets the shared loader/saver, copied programmatically from E2 so it is byte-identical, and saves `n_github`/`n_gitlab`/`n_other`. `SDM_KEYS` is 15 → 18 in all copies. The count was misreported here as 12: it was taken before E1's loader was added, and there are **13** (corrected at 4.3 after §6.8 FP INFO-5). The loader-identity test covers all of them. E2's `:-0` defaults are now `:?…from Stage E1`.
+    - **A:** after step 5, `git check-ref-format --branch "$DEFAULT_BRANCH"` → `ABORT: DEFAULT_BRANCH '…' is not a valid branch name`, then `ORIGINAL_BRANCH == DEFAULT_BRANCH` → `ABORT: Cannot run /sole-dev-merge from <b> branch`. Both run before any state is written.
+    - **Guard:** `[[ "${rec:0:2}" == *[RC]* ]]` (X or Y).
+  - **Docs:**
+    - Exit-status table: rows for every emitted token, including PR_BODY_NOT_UPDATED, MERGE_FAILED, BRANCH_NOT_DELETED, REMOTE_UNKNOWN, MAIN_CHECKOUT_DIRTY, MAIN_NOT_UPDATED, the B-commit "needs CHANGED_FILES" and staged-outside ABORTs, the G2/G3 and G4 ABORT rows, and each Stage A ABORT by its leading words. The `STATUS: OK` row is reworded (in a worktree the branch is left for the operator). The exit contract names A, B-commit, E2, F, G2, G3 and G4, plus bash's `${VAR:?}` stop.
+    - **Milestone AC4 `comm` = empty.**
+    - The B-commit prose names the needs-CHANGED_FILES ABORT. The reset comment and table say that pre-staged in-scope content is unstaged too (run 2 doc LOWs).
+    - Stage A prose table gains 3 rows. The E reference drops both "one Bash call" lines.
+    - ADR-0008: `stage-banner` row added; A/C/D/F rows updated (Ruff S, S602, REST body update); the "9 stage bash blocks" count and the `commands/` path updated; stub env list. **Milestone AC5: ADR markers == `grep -rhoE '=== stage-…'` (diff empty).**
+    - TODOS: the Stage F entry moved under `## Completed` with a `**Done:**` line (milestone AC6); the E1 → E2 entry removed; the REMOTE_CHOICE bullet struck with "Done in M4".
+  - **SKILL.md size:** 504 after the code, then **488**. The "State between stages" prose moved to `references/stage-state.md` (updated: E1 saves its counts; required inputs stop loudly). SKILL.md keeps a 3-line pointer section, so the 12 loader comments that name it stay valid.
+  - **AC1:** `bats --tap SDM tests/hooks` → **707 ok / 0 not-ok**; SDM 168/0. shellcheck rc **0** on all 11 extracted blocks (A, B-scope, B-commit, E1, E2, E0, E3, F, G1, G2, G3). `extract stage-f-push | grep -c 'gh pr edit'` = **0**.
+  - **AC2:** `scripts/regen-generated.sh` rc 0. Its only diff was the `generated … @ <sha> on <date>` header in 4 `docs/architecture` files (non-header diff lines = 0), which was restored. `tests/golden` was unchanged. pytest **3137 passed** (+1 = `test_relative_links_resolve[…/stage-state.md]`).
+  - **Mutations (L-045), 7/7 CAUGHT, each restored from HEAD** (`<scratch>/mutate.sh`): guard X-only; read-back without +1; read-back skipped; G1 `:-github`; E1 not saving; A refusal dropped; A `check-ref-format` dropped.
+  - **Contract deviations:**
+    - `references/stage-c-review-and-security.md` and `stage-d-triage.md` changed only on the `SDM_KEYS` line, because the loader must be identical in every block. `references/stage-state.md` is new.
+    - Both are recorded in CL.
 
 ### Sub-step 4.3: Verify, gate, merge with the fixed skill
 - Status: PENDING

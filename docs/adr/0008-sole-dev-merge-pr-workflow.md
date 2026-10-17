@@ -33,12 +33,13 @@ discipline?
 
 - **CI must run before merge.** The 15-minute `gh pr checks --watch` is the
   workflow's load-bearing trust anchor. No merge unless required checks pass.
-- **3-source security pass.** A single source (e.g., just Bandit, just an
+- **3-source security pass.** A single source (e.g., just Ruff S, just an
   agent) creates a single point of failure. Combining `code-reviewer` agent +
-  `security-auditor` agent + Bandit + ShellCheck triangulates findings; one
+  `security-auditor` agent + Ruff S (Bandit until ADR-0022) + ShellCheck triangulates findings; one
   source missing a finding is caught by another.
 - **Idempotency on retry.** A workflow that creates duplicate PRs on every
-  re-run is unusable. `gh pr view` detection + `gh pr edit` reuse means the
+  re-run is unusable. `gh pr view` detection + reuse of the existing PR (its
+  body updated in place; over REST since sole-dev-merge-fixes M4) means the
   command is safe to re-run on the same branch (operator typo, mid-flight
   interruption, retry-after-fix).
 - **Scope discipline structural fix (L-007).** Format whole-tree was the root
@@ -72,8 +73,8 @@ must be the gate, not a post-hoc audit.
 ### Alternative 2 — Manual PR creation with `gh pr create` plus a docs note
 
 **Rejected.** Three-source security pass (code review + security-auditor +
-Bandit + ShellCheck) cannot be invoked manually each time without drift.
-Auto-dispatching the four sources with a unified severity contract is the
+Ruff S + ShellCheck) cannot be invoked manually each time without drift.
+Auto-dispatching these sources with a unified severity contract is the
 load-bearing differentiator vs `gh pr create` alone.
 
 ### Alternative 3 — Command + skill + lib pattern (plan v1)
@@ -96,21 +97,23 @@ architectural response.
 ## Decision
 
 Replace the legacy fast-merge `/sole-dev-merge` with a command-only PR/MR
-workflow living at `claude-code/commands/sole-dev-merge.md`. The new command
-is a single markdown file containing 9 stage bash blocks executed in order:
+workflow living at `claude-code/commands/sole-dev-merge.md` (now the skill
+`claude-code/skills/sole-dev-merge/`, ADR-0020: Stages A–B in `SKILL.md`, C–G in
+`references/stage-*.md`). It is made of named stage bash blocks executed in order:
 
 | Stage | Block | Purpose |
 |-------|-------|---------|
-| A | `stage-a-preflight` | 4 abort conditions: on-main, dirty, no-remote, no-commits-ahead |
+| — | `stage-banner` | Migration banner, once per session; `AA_MA_SUPPRESS_MIGRATION_BANNER=1` silences it |
+| A | `stage-a-preflight` | Pre-flight aborts (listed once, in the SKILL.md Stage A table); starts the stage state file |
 | B | `stage-b-scope` | In-scope ruff/mypy/pytest + L-007 guard (porcelain walk + reversion) |
 | B-commit | `stage-b-commit` | Auto-fix commit if Stage B mutated tracked files |
-| C | `stage-c-aggregate` | Parallel dispatch of 4 sources (code-reviewer + security-auditor agents, Bandit, ShellCheck); unified severity contract |
-| D | `stage-d-triage` | Auto-fix CRITICAL Bandit B602; HITL panel for HIGH/MEDIUM (Claude executor) |
+| C | `stage-c-aggregate` | Parallel dispatch of code-reviewer + security-auditor agents, Ruff S and ShellCheck; unified severity contract |
+| D | `stage-d-triage` | Auto-fix CRITICAL S602; HITL panel for HIGH/MEDIUM (Claude executor) |
 | E1 | `stage-e1-remote` | `git remote -v` classification → `n_github` / `n_gitlab` / `n_other` |
 | E2 | `stage-e2-choice` | Single → use it; dual → AUQ bridge with GitLab default; neither → abort |
 | E0 | `stage-e0-auth` | `gh`/`glab auth status` for chosen remote → `STATUS: AUTH_REQUIRED` on failure |
 | E3 | `stage-e3-body` | Deterministic PR/MR body generator + optional Haiku enrichment |
-| F | `stage-f-push` | `git push` + idempotent PR/MR detection via `gh pr view`/`glab mr view` + create-or-edit |
+| F | `stage-f-push` | `git push` + idempotent PR/MR detection via `gh pr view`/`glab mr view`; create, or update an existing PR's body over REST (`gh api -X PATCH …/pulls/N -F body=@file`) and read it back → `STATUS: PR_BODY_NOT_UPDATED` on mismatch |
 | G1 | `stage-g1-protect` | Branch-protection: `--rebase` fallback to `--merge` when disabled |
 | G2 | `stage-g2-poll` | 15-min CI poll (GitHub `--watch`, GitLab JSON `while`) → `CI_STATE` |
 | G3 | `stage-g3-merge` | Green CI → merge without `--delete-branch`, decide by PR state, delete `:refs/heads/<b>` + `ls-remote` check; timeout/failed → `STATUS:` line + remote-aware recovery hint |
@@ -119,10 +122,9 @@ is a single markdown file containing 9 stage bash blocks executed in order:
 **Test harness** uses `extract_stage.sh` (fixed-string `awk index()` extract)
 to pull each stage's bash into an isolated executable for `bats` testing.
 PATH-shadowed `gh`/`glab` stubs at `tests/commands/sole-dev-merge/fixtures/bin/`
-log every invocation to `$CLI_LOG`; behaviour is env-controlled (`GH_PR_EXISTS`,
-`GLAB_MR_EXISTS`, `GH_WATCH_HANG`, `GH_CHECKS_RC`, `GH_ALLOW_REBASE`,
-`GH_AUTH_OK`, `GLAB_AUTH_OK`, `GLAB_API_MODE`, `GLAB_PIPELINE_STATUS`,
-`GLAB_MERGE_METHOD`, `GLAB_MR_EXISTS`).
+log every invocation to `$CLI_LOG`; behaviour is env-controlled. The env
+vars each stub honours are listed in its header comment (`fixtures/bin/gh`,
+`fixtures/bin/glab`), which is their single source.
 
 **Migration strategy:** `scripts/install.sh` `create_symlink` helper
 auto-backs up the legacy user-local `~/.claude/commands/sole-dev-merge.md`

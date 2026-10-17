@@ -103,16 +103,130 @@ _sandbox_with_commit() {
 # Stage F — push + PR/MR idempotency
 # ---------------------------------------------------------------------------
 
-@test "F-github: existing PR → gh pr edit (NOT create) — AC §4.3.4" {
+@test "F-github: existing PR → one REST PATCH of the body, never gh pr edit or create — AC §4.3.4" {
+    # why: gh pr edit hits a Projects-classic GraphQL error here and the body silently stays (L-1309, E15)
     _sandbox_with_commit
     export REMOTE_CHOICE=github GH_PR_EXISTS=1
     export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
 
     run bash "$F_SCRIPT"
     [ "$status" -eq 0 ]
-    # AC §4.3.4 falsifiable assertions
     [ "$(grep -c 'pr create' "$CLI_LOG")" -eq 0 ]
-    [ "$(grep -c 'pr edit --body-file' "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -c 'pr edit' "$CLI_LOG")" -eq 0 ]
+    [ "$(grep -cF "api -X PATCH repos/{owner}/{repo}/pulls/${STUB_PR_NUM} -F body=@${BODY_FILE}" "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -cF "api repos/{owner}/{repo}/pulls/${STUB_PR_NUM} --jq .body" "$CLI_LOG")" -eq 1 ]
+    # PR_NUM is resolved before the PATCH that needs it
+    local n_num n_patch
+    n_num=$(grep -n 'pr view --json number' "$CLI_LOG" | head -1 | cut -d: -f1)
+    n_patch=$(grep -n 'api -X PATCH' "$CLI_LOG" | head -1 | cut -d: -f1)
+    [ -n "$n_num" ]
+    [ -n "$n_patch" ]
+    [ "$n_num" -lt "$n_patch" ]
+}
+
+@test "F-github: existing PR, read-back matches → body stored byte-exact, no STATUS line" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=1
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+    printf '## Test plan\n\n- `code`, {owner} {repo}, → ✓\n' > "$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    cmp "$BODY_FILE" "${CLI_LOG}.body"
+    [[ "$output" == *"Stage F: PR #${STUB_PR_NUM} body updated (read-back matches)"* ]]
+    [[ "$output" != *"PR_BODY_NOT_UPDATED"* ]]
+    [[ "$output" == *"PR_NUM=${STUB_PR_NUM}"* ]]
+}
+
+@test "F-github: read-back mismatch → STATUS: PR_BODY_NOT_UPDATED, rc 0, PR_NUM still saved" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=1 GH_PR_BODY_READBACK="an older body"
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: PR_BODY_NOT_UPDATED — PR #${STUB_PR_NUM} reason=readback-differs"* ]]
+    [[ "$output" == *"PR_NUM=${STUB_PR_NUM}"* ]]
+}
+
+@test "F-github: a failing PATCH → STATUS: PR_BODY_NOT_UPDATED, rc 0 (never a set -e exit)" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=1 GH_API_PATCH_RC=1
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: PR_BODY_NOT_UPDATED — PR #${STUB_PR_NUM} reason=patch-failed"* ]]
+}
+
+@test "F-github: existing PR from a fork (isCrossRepository) → no PATCH, reason=not-this-branch, PR_NUM not saved" {
+    # why: a no-arg `gh pr view` selects by branch name; a fork's same-named PR is not this branch's (§6.8 SEC-2)
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=1 GH_PR_CROSS_REPO=true
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c -- '-X PATCH' "$CLI_LOG")" -eq 0 ]
+    [[ "$output" == *"STATUS: PR_BODY_NOT_UPDATED — PR #${STUB_PR_NUM} reason=not-this-branch"* ]]
+    [[ "$output" == *"is not this branch's own"* ]]
+    [[ "$output" != *"set it by hand"* ]]
+    [[ "$output" == *"PR_NUM=0"* ]]
+    [[ "$output" == *"no PR/MR number resolved; not saved"* ]]
+}
+
+@test "F-github: existing PR whose head is another branch → no PATCH, reason=not-this-branch" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=1 GH_PR_HEAD_REF=other
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c -- '-X PATCH' "$CLI_LOG")" -eq 0 ]
+    [[ "$output" == *"reason=not-this-branch"* ]]
+    [[ "$output" == *"PR_NUM=0"* ]]
+}
+
+@test "F-github: existing PR is looked up once (number, url and owner in one call)" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=1
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c '^gh pr view' "$CLI_LOG")" -eq 1 ]
+    [[ "$output" == *"PR_URL=https://github.com/test/repo/pull/${STUB_PR_NUM}"* ]]
+}
+
+@test "F-github: the PR found after create is checked too — a fork's is never saved" {
+    # why: live run 1 C2 LOW — the create path saved PR_NUM without the ownership rule
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=0 GH_PR_CROSS_REPO=true
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'pr create --title' "$CLI_LOG")" -eq 1 ]
+    [[ "$output" == *"is not this branch's own"* ]]
+    [[ "$output" == *"PR_NUM=0"* ]]
+}
+
+@test "F-github: no existing PR → create path unchanged: no PATCH, no read-back" {
+    _sandbox_with_commit
+    export REMOTE_CHOICE=github GH_PR_EXISTS=0
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'pr create --title' "$CLI_LOG")" -eq 1 ]
+    [ "$(grep -c -- '-X PATCH' "$CLI_LOG")" -eq 0 ]
+    [ "$(grep -c -- '--jq .body' "$CLI_LOG")" -eq 0 ]
+    [[ "$output" != *"PR_BODY_NOT_UPDATED"* ]]
+}
+
+@test "F: the shipped block never calls gh pr edit" {
+    run grep -c 'gh pr edit' "$F_SCRIPT"
+    [ "$output" = 0 ]
 }
 
 @test "F-github: no existing PR → gh pr create (NOT edit)" {
@@ -210,11 +324,11 @@ _sandbox_with_commit() {
 
     run bash "$F_SCRIPT"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"PR_NUM=42"* ]]
-    [[ "$output" == *"PR_URL=https://github.com/test/repo/pull/42"* ]]
+    [[ "$output" == *"PR_NUM=${STUB_PR_NUM}"* ]]
+    [[ "$output" == *"PR_URL=https://github.com/test/repo/pull/${STUB_PR_NUM}"* ]]
     # Stub log must include the --jq queries (proves they ran post-create).
-    grep -q 'pr view --json url --jq' "$CLI_LOG"
-    grep -q 'pr view --json number --jq' "$CLI_LOG"
+    # the same four-field lookup before and after create (CR-1; live run 1 C2 LOW)
+    [ "$(grep -c 'pr view --json number,url,isCrossRepository,headRefName' "$CLI_LOG")" -eq 2 ]
 }
 
 @test "F (CRITICAL-1 regression): gitlab → exports PR_NUM=MR_IID=42 + PR_URL via --jq" {

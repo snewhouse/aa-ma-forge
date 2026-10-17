@@ -78,27 +78,33 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 **Effort:** S
 **Priority:** P2
 
-### sole-dev-merge Stage F: update an existing PR through REST, not `gh pr edit`
-**What:**
-- Stage F (`references/stage-f-push.md:50`) updates an existing PR with `gh pr edit --body-file "$PR_BODY_FILE"`. On this repo that call hits a Projects-classic GraphQL error (`repository.pullRequest.projectCards`) and the body is not updated.
-- Fix: replace it with `gh api -X PATCH "repos/{owner}/{repo}/pulls/$PR_NUM" -F body=@"$PR_BODY_FILE"`, resolving `PR_NUM` from `gh pr view` first. Read the body back and fail loud if it's unchanged.
-- Update `tests/commands/sole-dev-merge/test_stage_f_idempotent.bats:106` (it asserts `gh pr edit` is called).
-
-**Why:** on PR #30 (2026-10-13) the body edit silently didn't land, and a chained `gh pr ready` never ran. Only a read-back caught it (global lesson L-1309). **Effort:** S · **Priority:** P2
-
-### sole-dev-merge E1 → E2: remote counts don't reach E2 in a separate Bash call
-**What:**
-- E2 reads `n_github`/`n_gitlab` from E1, but E1 has no stage-state loader and those keys are not in the 15-key allowlist. Run E2 in its own Bash call and it aborts with "only github.com and gitlab.com remotes supported". The prose says to run E1 and E2 in one call (sole-dev-merge-fixes M2).
-- Fix: E1 saves `n_github`/`n_gitlab`/`n_other` through the loader. Widen the allowlist to 18 keys, and add an empty-env E2 case to `test_stage_state.bats`.
-
-**Why:** found while building the M2 state file. Every other stage now gets its inputs in a fresh shell. **Effort:** S · **Priority:** P2 · **Planned:** sole-dev-merge-fixes M4 (4.2).
-
 ### sole-dev-merge: two inputs still split or defaulted (M2 §6.8 INFO)
 **What:**
 - ~~`$CHANGED_PY`/`$CHANGED_SH` reach `ruff` and `shellcheck` unquoted, and `$CHANGED_FILES` reaches `pre-commit run --files` the same way.~~ **Done in sole-dev-merge-fixes M3.** ruff and shellcheck get `-- "${arr[@]}"`. pre-commit gets `./`-prefixed names, because its argparse rejects `--` (probed).
-- `REMOTE_CHOICE="${REMOTE_CHOICE:-github}"` in E0, F and G1–G3 is a masking default (L-055 rule). G1 with a refused state file would save a strategy read from the wrong host. Fix: `${REMOTE_CHOICE:?}`. Planned for M4.
+- ~~`REMOTE_CHOICE="${REMOTE_CHOICE:-github}"` in E0, F and G1–G3 is a masking default (L-055 rule). G1 with a refused state file would save a strategy read from the wrong host. Fix: `${REMOTE_CHOICE:?}`.~~ **Done in sole-dev-merge-fixes M4.** E0, F and G1–G3 now use `${REMOTE_CHOICE:?…}`, and E2's `n_github`/`n_gitlab` are required too. E2's dual-remote `:-gitlab` stays: it is the prompt's default answer, not a missing input.
 
 **Why:** both predate M2 and are outside its key list; the §6.8 security and code reviews raised them as INFO. **Effort:** S · **Priority:** P3
+
+### sole-dev-merge Stage B: three LOWs from PR #44's Stage D (run 2)
+**What:**
+- A non-empty env `CHANGED_FILES` overrides the state file. The loader's "a non-empty explicit env wins" rule (`SKILL.md` stage-b-commit `sdm_load`) lets a stale exported value pick B-commit's scope.
+- B-commit re-adds an untracked file at a path the branch deleted, because the path is in `CHANGED_FILES` and `git status --porcelain` shows it dirty (`??`). Suggested fix: stage only paths in HEAD or the branch diff, or skip `??` rows.
+- Names containing `"`, `\` or control characters are still C-quoted where `--name-only` runs without `-z`. Raw names are echoed unescaped in the guard and B-commit lines (terminal spoofing). Fix: `-z` + `mapfile -d ''` end to end, and `printf '%q'` when echoing.
+
+**Why:** Stage D LOW reviewer notes on PR #44 (sole-dev-merge-fixes M3). Ste chose 2026-10-17 to file these three here. The Y=R guard item and the two doc-only notes went into M4. **Effort:** S · **Priority:** P3
+
+### sole-dev-merge: deferred §6.8 INFOs from sole-dev-merge-fixes M4
+**What:**
+- `git check-ref-format --branch` expands `@{-N}` (rc 0, prints the previous branch). A tampered `DEFAULT_BRANCH='@{-1}'` passes G3/G4, and G4 would `git checkout '@{-1}'`. Fix: also require `git check-ref-format "refs/heads/$X"` in G3/G4. Stage A can't reach this, because `symbolic-ref` refuses such a ref.
+- `PR_BODY_FILE` is not confined to `SDM_DIR`: whatever file the state or env names is published as the PR body (pre-existing; same uid). Fix: require `realpath` of it under `realpath "$SDM_DIR"`.
+- G2/G3 check PR_NUM with `^[0-9]+$` and so accept 0, while Stage F uses `^[1-9][0-9]*$`. F never saves 0. Fix: one pattern.
+- No static check that every `sdm_save` key is in `SDM_KEYS`. An unlisted key is dropped with an "ignoring unknown key" line.
+
+**Why:** security-auditor and code-reviewer INFOs at M4 §6.8 (impl-review.md "Milestone 4"). Each needs the same uid, or is pre-existing. **Effort:** S · **Priority:** P3
+
+### sole-dev-merge Stage C: `${CHANGED_PY:-}` / `${CHANGED_SH:-}` masking defaults
+**What:** `references/stage-c-review-and-security.md` reads `${CHANGED_PY:-}` / `${CHANGED_SH:-}` in its `N_PY=`/`N_SH=` count lines and its `if [[ -n "${CHANGED_PY:-}" ]]` / `${CHANGED_SH:-}` scanner guards. If Stage C runs in a fresh shell and the state file was refused, the scanners skip silently and C prints `Ruff S 0 file(s), ShellCheck 0 file(s)`, which looks like a clean scan (L-055 rule). Fix: tell "no state" apart from "no files", e.g. require `CHANGED_FILES` to be set (`${CHANGED_FILES?}`) before reading the subsets. Add a fresh-shell no-state case to `test_stage_c_dispatch.bats`.
+**Why:** pre-existing; raised by C1 on PR #44 (run 2). Kept out of M4 (Ste, 2026-10-17) because the Stage C reference is outside M4's Contract. **Effort:** S · **Priority:** P2
 
 ### Check the AA-MA commit signature at the `commit-msg` stage, not in the command text
 **What:**
@@ -439,6 +445,16 @@ path and a fixture path, before Deep is evaluated.
 **Why:** each fails closed or is a usability gap; none is a leak. **Effort:** M total · **Priority:** P3
 
 ## Completed
+
+### sole-dev-merge Stage F: update an existing PR through REST, not `gh pr edit`
+**What:**
+- Stage F (`references/stage-f-push.md:50`) updates an existing PR with `gh pr edit --body-file "$PR_BODY_FILE"`. On this repo that call hits a Projects-classic GraphQL error (`repository.pullRequest.projectCards`) and the body is not updated.
+- Fix: replace it with `gh api -X PATCH "repos/{owner}/{repo}/pulls/$PR_NUM" -F body=@"$PR_BODY_FILE"`, resolving `PR_NUM` from `gh pr view` first. Read the body back and fail loud if it's unchanged.
+- Update `tests/commands/sole-dev-merge/test_stage_f_idempotent.bats:106` (it asserts `gh pr edit` is called).
+
+**Why:** on PR #30 (2026-10-13) the body edit silently didn't land, and a chained `gh pr ready` never ran. Only a read-back caught it (global lesson L-1309). **Effort:** S · **Priority:** P2
+
+**Done:** sole-dev-merge-fixes M4 (2026-10-17). Stage F resolves `PR_NUM`, then runs `gh api -X PATCH repos/{owner}/{repo}/pulls/$PR_NUM -F "body=@$PR_BODY_FILE"` and reads the body back. `cmp <(cat body; echo) <(… --jq .body)`, because `--jq` adds one newline (probed live on PR #45). A failed PATCH or a mismatch prints `STATUS: PR_BODY_NOT_UPDATED — PR #N`, rc 0. `test_stage_f_idempotent.bats:106` now asserts 0 `pr edit` calls.
 
 ### sole-dev-merge Stage G3/G4: don't break when run from a worktree
 **What:**

@@ -296,3 +296,11 @@ _This log will be updated via context compaction as the task progresses._
 - §6.8 PASS_WITH_WARNINGS (0C/11W/17I). All 11 WARNINGs fixed test-first (RED 7b22079 → GREEN b403f60); mutations 8/8 caught.
 - Recorded during the live run: 4.3's quote of this PR's live Stage F read-back. Fence 1 and the COMPLETE flip happen at 5.0 (L-037).
 - Decision: APPROVED
+
+## [2026-10-17] Live merge run 1 (4.3): Stage C/D triage — Ste
+- **A** OK (17 ahead). **B** (this branch's blocks, each in its own Bash call): 22 files (0 py, 0 sh), `check_conventions (added lines only)…Passed`, `no diff source` 0, `pytest rc=0`, `pre-commit rc=0`, guard clean. **B-commit** no-op.
+- **C:** C1 and C2 wrote into `<git-dir>/sdm-<slug>/`; C scanned `Ruff S 0 file(s), ShellCheck 0 file(s)`. **D:** 0C / 0H / 1M / 6L.
+- **MEDIUM** (C1): the exit-table sync test's `[A-Z_]+` token saw mixed-case ABORTs only as `ABORT: S`/`ABORT: C` → **applied**. Tokens are now `ABORT: <word>[ <word>]`; a planted `ABORT: Stage Z9:` is `ABORT: S` to the old regex and is caught by the new one (mutation).
+- **All 6 LOWs applied** (Ste: "Apply MEDIUM + all 6 LOWs"): G3 one head/owner lookup with an ABORT on failure; F's ownership rule after create too (C2); a per-reason hint; E1 requires Stage A's `SDM_DIR`; the blank line before `---` restored (the table rewrite had dropped it: setext heading); stage-state.md H1→H2.
+- RED `7a05ad3` (6 not ok) → GREEN `bfa312e`; 718/0; mutations 6/6. `test_stage_e_remote.bats` setup exports `SDM_DIR` (test-only, outside the Contract): E1's unit tests run without Stage A.
+- Run 1 evidence was backed up to `<scratch>/m4-run1-evidence/` before the restart. The merge restarts from Stage A (as M2/M3 run 1 → run 2).

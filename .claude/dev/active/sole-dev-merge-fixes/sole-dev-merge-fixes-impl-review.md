@@ -112,3 +112,56 @@ bats SDM+hooks **692/0**; b_scope 23/23; c_dispatch 8/8; pytest **3136 passed**;
 
 ### User Override Decisions
 None. No CRITICAL findings.
+
+## Milestone 4: Stage F REST body update, small fixes, docs drift
+
+Window `07a8b45..701d9a7` (reviewed). Audit-Profile: full; 5 agents in parallel.
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 5 | 6 | WARN (6 SDM bats files, 133/133, run read-only) |
+| security-auditor | 0 | 2 | 3 | WARN (probes in mktemp dirs) |
+| tdd-sequence-auditor | 0 | 0 | 1 | PASS (RED a85c2cf 15 min before GREEN b30a410; RED touches no skill file) |
+| context7-evidence-auditor | 0 | 0 | 2 | PASS (no dependency changes; gh `-F @file` from Context7, `--jq` +1 NL from the 4.0 live probe) |
+| future-proofing-auditor | 0 | 4 | 5 | WARN |
+| **Total** | **0** | **11** | **17** | **PASS_WITH_WARNINGS** |
+
+### Warnings and dispositions (Ste: "Fix all 11", test-first)
+| # | Source | Finding | Disposition |
+|---|---|---|---|
+| SEC-1 | security | Loading E1's counts from the state file let `(( n_github … ))` evaluate a planted value such as `BASH_VERSINFO[$(cmd)0]` (probed: code ran). This breaks "the loader never evals a value". Same uid only. | Fix: `^[0-9]+$` check on `n_github`/`n_gitlab` in E2 before any arithmetic; RED with the probe payload, via the state file and via env |
+| SEC-2 | security | `gh pr view` (no args) selects by branch. A same-named fork PR could be picked, and then F PATCHes it and G3 merges it (G3 checks only `headRefName`). Unverified gh selection. | Fix: F's one lookup also reads `isCrossRepository,headRefName`; it PATCHes only a same-repo PR whose head is ORIGINAL_BRANCH. Otherwise `STATUS: PR_BODY_NOT_UPDATED … reason=not-this-branch` and PR_NUM is not saved. G3 also requires `isCrossRepository=false`. `headRefOid` was rejected because GitHub updates it asynchronously after a push |
+| CR-1 | code-reviewer | F looked the PR up 4 times on the existing path (url, number, url, number), and the two number reads could disagree | Fix: one `gh pr view --json number,url,isCrossRepository,headRefName --jq '[…]\|@tsv'` (probed on gh 2.46.0, PR #45); the create path does one lookup after `pr create` |
+| CR-2 | code-reviewer | `PR_BODY_NOT_UPDATED` covered 3 causes and could print `PR #0` | Fix: `reason=no-pr-number\|not-this-branch\|patch-failed\|readback-differs`; documented in the table row |
+| CR-3 | code-reviewer | `n_other` is saved and allowed but never read | Fix: a `# why:` comment (kept for diagnosis: it appears in E1's line and in the state file; the 4.2 AC names it) |
+| CR-4 | code-reviewer | Stub `*"--jq '.body'"*` alternatives can never match (the shell strips the quotes) | Fix: deleted |
+| CR-5 | code-reviewer | stage-state.md: "a missing required value … is never replaced with a default" overclaims (`DEFAULT_BRANCH:-main`, Stage C `:-`, E2 `:-gitlab`) | Fix: sentence narrowed to the values marked required, with the known defaults named |
+| FP-1 | future-proofing | The exit-status table is synced by hand with no test; it had already drifted by ~10 rows | Fix: a bats test asserting the table ⊇ every emitted `(STATUS\|ABORT): [A-Z_]+`, and one asserting ADR-0008's backticked block names == the block markers |
+| FP-2 | future-proofing | Stage A's aborts are listed in 3 places | Fix: the ADR row points at the SKILL.md Stage A table |
+| FP-3 | future-proofing | The ADR stub env list was stale when written (no `GH_API_BODY_STORE`, `GH_PR_STATE`, `GH_HEAD_REF`, `GH_MERGE_RC`; `GLAB_MR_EXISTS` twice) | Fix: replaced with a pointer to the stubs' header comments |
+| FP-4 | future-proofing | Magic `42` in the stub (`{"number":42}`, pr view arms) and the F/state tests that read it | Fix: `STUB_PR_NUM` (default 42) read by the stub, exported once in `fixtures/helpers.bash`; the stub-derived assertions use it |
+
+### INFO dispositions
+- **Fixed with the WARNINGs (cheap, same files):**
+  - ADR-0008 :36/:38/:76 still say Bandit → Ruff S;
+  - the gh version (2.46.0) is named on Stage F's newline-rule comment and the PROBE line (C7 INFO-2);
+  - Stage A step-2 comment "(main/master)" now points to the default-branch check;
+  - ADR "4 sources" count dropped;
+  - TODOS Stage C entry cites symbols, not line numbers;
+  - 4.2 Result Log corrected: 13 `SDM_KEYS` copies, not 12 (counted before E1's loader was added).
+- **Accepted:** git's `fatal:` text before Stage A's new ABORT line (same as G3/G4); `PR_OP=edit` → `update` (no reader); C7 INFO-1 (the citation is prose, not a `CONTEXT7` line).
+- **Deferred to TODOS (one entry):**
+  - `check-ref-format --branch` expands `@{-N}` (add `refs/heads/$X` validation in G3/G4; Stage A unreachable);
+  - PR_BODY_FILE not confined to SDM_DIR (pre-existing; same uid);
+  - G2/G3 `^[0-9]+$` accepts PR_NUM 0 (pre-existing; F never saves 0);
+  - a static check that every `sdm_save` key is in `SDM_KEYS`.
+
+### Verification after remediation
+- RED `7b22079`: 8 not-ok, each at the assertion under test. SEC-1 (status 0, the payload was evaluated), SEC-2 F ×2 (PATCH count), CR-1 ×2 (lookup count; the post-create `number,url` lookup), CR-2 ×2 (no `reason=`), SEC-2 G3 (status 0). The 2 FP-1 sync guards passed, as guards should.
+- GREEN `b403f60`: `bats --tap SDM tests/hooks` → **714 ok / 0 not-ok** (707 + 7). The first run had 1 failure: the existing "no masking defaults" test caught a `PR_NUM:-0` this fix had introduced, and it was removed.
+- Other checks: shellcheck rc 0 on all 15 extracted blocks; status-table `comm` empty; ADR markers == code; SKILL.md 489 lines; `gh pr edit` in F = 0; pytest 3137 passed; regen header-only (restored).
+- **Mutations (L-045), 8/8 CAUGHT, restored from backups and checked with `cmp`:** E2 numeric check dropped; F ownership check dropped; F head-branch half dropped; foreign PR_NUM still saved; G3 cross-repo check dropped; reason dropped; a table row removed (FP-1 guard); an ADR row removed (FP-1 guard).
+- Live: the one-call `@tsv` lookup was probed on gh 2.46.0 against PR #45: `45\t<url>\tfalse\tfix/sole-dev-merge-fixes-m4`.
+
+### User Override Decisions
+None. No CRITICAL findings.

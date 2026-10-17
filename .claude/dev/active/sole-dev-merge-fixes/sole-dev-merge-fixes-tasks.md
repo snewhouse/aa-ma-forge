@@ -662,7 +662,7 @@ Conventions used in the criteria:
   - **Code:**
     - **F:** resolves `PR_NUM`, then runs `gh api -X PATCH "repos/{owner}/{repo}/pulls/$PR_NUM" -F "body=@$PR_BODY_FILE"` and `cmp -s <(cat body; echo) <(gh api … --jq .body)` (4.0 DECISION). On a match it prints `Stage F: PR #N body updated (read-back matches)`. A non-numeric PR_NUM, a failed PATCH or a mismatch prints `STATUS: PR_BODY_NOT_UPDATED — PR #N`, rc 0. The F prose no longer describes `gh pr edit`.
     - **REMOTE_CHOICE:** E0, F, G1, G2 and G3 use `${REMOTE_CHOICE:?Stage X needs REMOTE_CHOICE from Stage E2 — run E2 first}`. `grep -rn 'REMOTE_CHOICE:-'` leaves only E2's dual-remote `:-gitlab` (the prompt default).
-    - **E1/E2:** E1 gets the shared loader/saver, copied programmatically from E2 so it is byte-identical, and saves `n_github`/`n_gitlab`/`n_other`. `SDM_KEYS` is 15 → 18 in all 12 copies (`sort | uniq -c` = 12 × 1 line). E2's `:-0` defaults are now `:?…from Stage E1`.
+    - **E1/E2:** E1 gets the shared loader/saver, copied programmatically from E2 so it is byte-identical, and saves `n_github`/`n_gitlab`/`n_other`. `SDM_KEYS` is 15 → 18 in all copies. The count was misreported here as 12: it was taken before E1's loader was added, and there are **13** (corrected at 4.3 after §6.8 FP INFO-5). The loader-identity test covers all of them. E2's `:-0` defaults are now `:?…from Stage E1`.
     - **A:** after step 5, `git check-ref-format --branch "$DEFAULT_BRANCH"` → `ABORT: DEFAULT_BRANCH '…' is not a valid branch name`, then `ORIGINAL_BRANCH == DEFAULT_BRANCH` → `ABORT: Cannot run /sole-dev-merge from <b> branch`. Both run before any state is written.
     - **Guard:** `[[ "${rec:0:2}" == *[RC]* ]]` (X or Y).
   - **Docs:**

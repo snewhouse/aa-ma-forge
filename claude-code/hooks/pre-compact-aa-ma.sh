@@ -143,16 +143,17 @@ fi
 # Linked-worktree guard (L-1347). Under MAINTAIN=1 a session rooted in the main
 # checkout that `cd`s into a worktree for each command shows only the main root.
 # Plan dirs are tracked, so every worktree has them; a task is being worked in a
-# linked worktree only when its branch carries plan commits that ROOT's HEAD lacks
-# (checked per task below). Appending here would then dirty main's tracked files.
-linked=()   # "<path>\t<branch ref>" of each linked worktree that is on a branch
+# linked worktree only when its HEAD carries plan commits that ROOT's HEAD lacks
+# (checked per task below). HEAD, not the branch: a rebase detaches it. Appending
+# here would then dirty main's tracked files.
+linked=()   # "<path>\t<HEAD sha>" of each linked worktree
 if [ "$IN_REPO" -eq 1 ]; then
     if wt_list=$(git -C "$ROOT" worktree list --porcelain 2>/dev/null); then   # why: a failure is reported below
         main_wt="" wt=""
         while IFS= read -r line; do
             case "$line" in
                 "worktree "*) wt=${line#worktree }; [ -n "$main_wt" ] || main_wt=$wt ;;
-                "branch "*)   [ "$wt" = "$main_wt" ] || linked+=("$wt"$'\t'"${line#branch }") ;;
+                "HEAD "*)     [ "$wt" = "$main_wt" ] || linked+=("$wt"$'\t'"${line#HEAD }") ;;
             esac
         done <<<"$wt_list"
         [ "$main_wt" = "$ROOT" ] || linked=()   # ROOT is itself a linked worktree: write there

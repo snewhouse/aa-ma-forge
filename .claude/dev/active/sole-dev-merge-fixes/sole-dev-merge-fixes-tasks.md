@@ -704,7 +704,7 @@ Conventions used in the criteria:
   - **Scanned-files AC (M2/M3 carry):** still N/A — PR #45 changed no `.py`/`.sh`.
 
 ## Milestone 5: pre-compact writes into the worktree
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 4
 - Complexity: 65%
 - Effort: 1 day

@@ -628,3 +628,16 @@ _fingerprint() {
     [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
     [ -n "$(git ls-remote origin refs/heads/feature)" ]
 }
+
+@test "G3: this run's own PR already merged at HEAD (e.g. by the --auto hint) → no merge call, branch deleted, cleanup proceeds" {
+    # why: live run 4 C1 LOW — the OPEN check alone refused it, and G4 cleanup never ran
+    _sandbox_with_pushed_feature
+    export CI_STATE=green GH_PR_LOOKUP_STATE=MERGED GH_PR_HEAD_OID="$(git rev-parse HEAD)"
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
+    [[ "$output" == *"already merged at HEAD"* ]]
+    [[ "$output" == *"MERGE_DISPATCHED=1"* ]]
+    [ -z "$(git ls-remote origin refs/heads/feature)" ]
+}

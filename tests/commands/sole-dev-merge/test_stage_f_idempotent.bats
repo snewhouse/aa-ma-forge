@@ -3,9 +3,10 @@
 # PR/MR creation, idempotent).
 #
 # Plan §3.7 acceptance: mock `gh pr view` returning success → assert
-# `gh pr create` NOT called, `gh pr edit` IS called.
-# Plan §4.3.4 falsifiable AC (PR idempotency, GitHub):
-#   planted prior PR → `pr create` count = 0 AND `pr edit --body-file` count = 1
+# `gh pr create` NOT called. Since sole-dev-merge-fixes M4 the body is updated
+# over REST, never with `gh pr edit` (L-1309):
+#   planted prior PR → `pr create` count = 0, `pr edit` count = 0 AND one
+#   `api -X PATCH …/pulls/N -F body=@…` followed by one `--jq .body` read-back
 # Plan §4.3.5 falsifiable AC (auth pre-flight):
 #   mocked non-zero gh auth status → command exits within 5 seconds with stdout
 #   containing `STATUS: AUTH_REQUIRED`.
@@ -269,6 +270,35 @@ _sandbox_with_commit() {
     [ "$(grep -c 'mr create --title' "$CLI_LOG")" -eq 1 ]
     [[ "$output" == *"is not this branch's own"* ]]
     [[ "$output" == *"PR_NUM=0"* ]]
+}
+
+@test "F: REMOTE_CHOICE=github while origin is on gitlab.com → ABORT before any push or gh call" {
+    # why: F pushes to and G3 deletes on origin; a choice of the other host would split them (live run 4 C1 MEDIUM)
+    _sandbox_with_commit
+    # why: a reserved .invalid host (RFC 2606) never resolves, so no test can reach a real forge;
+    # no prompt, so a regressed F fails fast instead of waiting for credentials
+    git remote set-url origin https://gitlab.com.invalid/x/y.git
+    export GIT_TERMINAL_PROMPT=0
+    export REMOTE_CHOICE=github GH_PR_EXISTS=0
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage F: REMOTE_CHOICE=github but origin is on gitlab.com"* ]]
+    [ "$(grep -cE '^(gh|glab) ' "$CLI_LOG")" -eq 0 ]
+}
+
+@test "F: REMOTE_CHOICE=gitlab while origin is on github.com → ABORT before any push" {
+    _sandbox_with_commit
+    git remote set-url origin https://github.com.invalid/a/b.git   # why: reserved host, never resolves (see above)
+    export GIT_TERMINAL_PROMPT=0
+    export REMOTE_CHOICE=gitlab GLAB_MR_EXISTS=0
+    export PR_TITLE="feat: real change" PR_BODY_FILE="$BODY_FILE"
+
+    run bash "$F_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage F: REMOTE_CHOICE=gitlab but origin is on github.com"* ]]
+    [ "$(grep -cE '^(gh|glab) ' "$CLI_LOG")" -eq 0 ]
 }
 
 @test "F-github: no existing PR → create path unchanged: no PATCH, no read-back" {

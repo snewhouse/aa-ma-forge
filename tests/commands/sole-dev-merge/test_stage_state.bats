@@ -440,7 +440,7 @@ seed_g() {
 # --- sole-dev-merge-fixes M4: E1 → E2 counts, required REMOTE_CHOICE, per-run body ---
 
 @test "E2 in a fresh empty shell reads E1's remote counts from the state file" {
-    git remote add gh https://github.com/test/repo.git   # why: origin is a local bare repo (n_other)
+    git remote add gh https://github.com.invalid/test/repo.git   # why: origin is a local bare repo (n_other)
     fresh bash "$(blk stage-a-preflight)" >/dev/null
     run fresh bash "$(blk stage-e1-remote)"
     [ "$status" -eq 0 ]

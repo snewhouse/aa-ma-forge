@@ -52,7 +52,7 @@ teardown() {
 @test "E1: github-only origin → n_github=1, n_gitlab=0 (AC §4.3.1)" {
     cd "$BATS_TMP"
     sandbox_init
-    git remote add origin https://github.com/foo/bar.git
+    git remote add origin https://github.com.invalid/foo/bar.git
 
     run bash "$E1_SCRIPT"
     [ "$status" -eq 0 ]
@@ -63,7 +63,7 @@ teardown() {
 @test "E1: gitlab-only origin → n_github=0, n_gitlab=1 (AC §4.3.1)" {
     cd "$BATS_TMP"
     sandbox_init
-    git remote add origin https://gitlab.com/x/y.git
+    git remote add origin https://gitlab.com.invalid/x/y.git
 
     run bash "$E1_SCRIPT"
     [ "$status" -eq 0 ]
@@ -74,8 +74,8 @@ teardown() {
 @test "E1: dual remotes (gitlab origin + github named) → n_github=1, n_gitlab=1 (AC §4.3.1)" {
     cd "$BATS_TMP"
     sandbox_init
-    git remote add origin https://gitlab.com/x/y.git
-    git remote add github https://github.com/a/b.git
+    git remote add origin https://gitlab.com.invalid/x/y.git
+    git remote add github https://github.com.invalid/a/b.git
 
     run bash "$E1_SCRIPT"
     [ "$status" -eq 0 ]
@@ -88,7 +88,7 @@ teardown() {
     # double-count. Verified by single-remote case yielding count=1, not 2.
     cd "$BATS_TMP"
     sandbox_init
-    git remote add origin https://github.com/foo/bar.git
+    git remote add origin https://github.com.invalid/foo/bar.git
     # Confirm git-remote-v emits both rows (canary for the regression):
     [ "$(git remote -v | wc -l)" -eq 2 ]
 
@@ -102,11 +102,12 @@ teardown() {
 # Stage E2 — dual-remote choice + AUQ bridge
 # ---------------------------------------------------------------------------
 
-@test "E2: dual remotes → AUQ_LOG JSON has options[0].label ^GitHub, includes GitLab; GitHub saved until answered (AC §4.3.2)" {
+@test "E2: dual remotes, origin on GitHub → AUQ_LOG JSON has options[0].label ^GitHub, includes GitLab; GitHub saved until answered (AC §4.3.2)" {
+    # why: F pushes to and G3 deletes on origin, so the default follows origin's host (live run 4 C1 MEDIUM)
     cd "$BATS_TMP"
     sandbox_init
-    git remote add origin https://gitlab.com/x/y.git
-    git remote add github https://github.com/a/b.git
+    git remote add origin https://github.com.invalid/a/b.git
+    git remote add gitlab https://gitlab.com.invalid/x/y.git
 
     # E2 depends on E1's exports (n_github, n_gitlab). Source rather than run
     # to inherit env, then run E2 in the same shell.
@@ -138,7 +139,7 @@ teardown() {
 @test "E2: single github remote → no AUQ_DISPATCH, REMOTE_CHOICE=github" {
     cd "$BATS_TMP"
     sandbox_init
-    git remote add origin https://github.com/foo/bar.git
+    git remote add origin https://github.com.invalid/foo/bar.git
 
     run bash -c "source '$E1_SCRIPT' >/dev/null; export AUQ_LOG='$AUQ_LOG'; bash '$E2_SCRIPT'"
     [ "$status" -eq 0 ]
@@ -151,7 +152,7 @@ teardown() {
 @test "E2: single gitlab remote → no AUQ_DISPATCH, REMOTE_CHOICE=gitlab" {
     cd "$BATS_TMP"
     sandbox_init
-    git remote add origin https://gitlab.com/x/y.git
+    git remote add origin https://gitlab.com.invalid/x/y.git
 
     run bash -c "source '$E1_SCRIPT' >/dev/null; export AUQ_LOG='$AUQ_LOG'; bash '$E2_SCRIPT'"
     [ "$status" -eq 0 ]
@@ -168,4 +169,19 @@ teardown() {
     run bash -c "source '$E1_SCRIPT' >/dev/null; export AUQ_LOG='$AUQ_LOG'; bash '$E2_SCRIPT'"
     [ "$status" -ne 0 ]
     [[ "$output" == *"only github.com and gitlab.com remotes supported"* ]]
+}
+
+@test "E2: dual remotes, origin on GitLab → the default follows origin: GitLab first, gitlab saved until answered" {
+    cd "$BATS_TMP"
+    sandbox_init
+    git remote add origin https://gitlab.com.invalid/x/y.git
+    git remote add github https://github.com.invalid/a/b.git
+
+    run bash -c "source '$E1_SCRIPT' >/dev/null; export AUQ_LOG='$AUQ_LOG'; bash '$E2_SCRIPT'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"DUAL_REMOTE_PROMPT default=GitLab"* ]]
+    grep -qE '"default"\s*:\s*"GitLab[^"]*"' "$AUQ_LOG"
+    local saved
+    saved=$(grep '^REMOTE_CHOICE=' "$(git rev-parse --absolute-git-dir)/sole-dev-merge.env" | tail -n 1 | cut -d= -f2- | base64 -d)
+    [ "$saved" = gitlab ]
 }

@@ -108,10 +108,9 @@ class SecretRedactingFormatter(logging.Formatter):
                 if record.stack_info:
                     body["stack"] = mask_secrets(self.formatStack(record.stack_info))
                 return json.dumps(body)
-            # Indent exception/stack lines: one whose text holds LF must not start a forged record.
-            text = _CONTROL_CHARS_BUT_LF.sub(
-                " ", super().format(record)
-            )  # traceback text is untrusted too
+            # Traceback text is untrusted too: only its LFs survive, then each continuation
+            # line is indented so one whose text holds LF cannot start a forged record.
+            text = _CONTROL_CHARS_BUT_LF.sub(" ", super().format(record))
             return mask_secrets(text.replace("\n", "\n    "))
         except Exception:  # noqa: BLE001  # why: any failure must turn into the fixed message, never a leak or a dropped record
             record.msg, record.args = _FAILED, None

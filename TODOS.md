@@ -137,10 +137,14 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 **What:**
 - Extract the root resolution (`root_of` + stdin `cwd`) into `aa_ma_project_root` in `aa-ma-parse.sh` before the "Hooks resolve the active plan from $PWD" entry copies it into four hooks.
 - Read `git worktree list --porcelain -z` (git ≥ 2.36) with `mapfile -d ''`, so a worktree path holding a newline cannot misparse.
-- Pass `-c core.fsmonitor=false` on the hook's git calls, as `aa-ma-session-start.sh` does (git 2.53 runs no fsmonitor for `rev-parse`, `worktree list` or `log`; tested at §6.8).
+- Pass `-c core.fsmonitor=false` on the hook's git calls, as `aa-ma-session-start.sh` does (git 2.53 runs no fsmonitor for `rev-parse` or `worktree list`; tested at §6.8).
 - Compare the `$HOME` exemption against `$(cd "$HOME" && pwd -P)`, since ROOT is a realpath.
 - The symlink checks and the appends are check-then-use; an O_NOFOLLOW append helper would close the race (needs a process racing the compaction).
 **Why:** sole-dev-merge-fixes M5 §6.8 INFOs (code-reviewer, security-auditor), deferred by Ste 2026-10-18. **Effort:** S · **Priority:** P3
+
+### /sole-dev-merge Stage D: only CRITICAL/HIGH block and restart a merge run
+**What:** in `references/stage-d-triage.md`, route MEDIUM and LOW findings to reviewer notes and TODOS, and ask the operator (AskUserQuestion) only for CRITICAL and HIGH. Only an applied CRITICAL/HIGH fix restarts the run from Stage A. Update the Stage D row in ADR-0008 and the d_triage bats tests.
+**Why:** each run sends fresh reviewers at new code, so a gate that stops on MEDIUM never converges: M4 took 5 live runs and M5 3, every one with new MEDIUMs in the previous round's fix (forge L-060). Ste decided the rule 2026-10-18; M5 used it by hand from run 3. **Effort:** S · **Priority:** P1
 
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.

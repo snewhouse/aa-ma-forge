@@ -158,6 +158,18 @@ EOF
     [ "${#tasks[@]}" -eq 2 ]
 }
 
+@test "aa_ma_list_active_tasks <root> lists <root>/.claude/dev/active, not \$PWD's (sole-dev-merge-fixes M5)" {
+    "$FIXTURE" "$BATS_TMP/root/.claude/dev/active" 1 plain
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 2 plain
+    load_helper
+    cd "$BATS_TMP"
+    HOME="$BATS_TMP_HOME"
+    export HOME
+    mapfile -t tasks < <(aa_ma_list_active_tasks "$BATS_TMP/root")
+    [ "${#tasks[@]}" -eq 1 ]
+    [ "${tasks[0]}" = "$BATS_TMP/root/.claude/dev/active/task-1" ]
+}
+
 @test "aa_ma_list_active_tasks emits nothing when no task dirs exist" {
     load_helper
     cd "$BATS_TMP"

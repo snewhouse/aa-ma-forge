@@ -228,3 +228,160 @@ _assert_symlink_skipped() {
     _symlink_case DIR
     _assert_symlink_skipped
 }
+
+# ---------------------------------------------------------------------------
+# Worktree root (sole-dev-merge-fixes M5, global L-1347). The 5.0 probe showed
+# stdin `cwd` always equals the hook's pwd: under MAINTAIN=1 a `cd` into a
+# worktree is invisible (main root); under MAINTAIN=0 it is the worktree or a
+# subdirectory of it. A: ROOT = git toplevel of stdin cwd. C: when ROOT is the
+# main checkout and a linked worktree holds the same task, write nothing there.
+# ---------------------------------------------------------------------------
+
+_snaps() { printf '%s' "$BATS_TMP_HOME/.claude/hooks/cache/compaction-snapshots"; }
+
+_main_and_worktree() {   # MAIN: a repo with task-1 committed; WT: a linked worktree of it
+    MAIN="$BATS_TMP/main"
+    "$FIXTURE" "$MAIN/.claude/dev/active" 1 plain
+    printf '.worktrees/\n' > "$MAIN/.gitignore"
+    git -C "$MAIN" init -q -b main
+    git -C "$MAIN" add -A
+    git -C "$MAIN" -c user.name=t -c user.email=t@example.invalid commit -q -m init
+    WT="$MAIN/.worktrees/x"
+    git -C "$MAIN" worktree add -q -b x "$WT"
+}
+
+_run_with_cwd() {   # _run_with_cwd <cwd> [VAR=value...] — the hook with that stdin cwd, stderr dropped
+    local c="$1"; shift
+    HOME="$BATS_TMP_HOME" run env "$@" bash -c 'bash "$1" 2>/dev/null <<<"$2"' _ "$HOOK" \
+        "$(payload PreCompact --arg c "$c" '.cwd = $c')"
+}
+
+_git_wrapper() {   # _git_wrapper <word|-> — a git on GITBIN that logs its args and fails when they hold <word>
+    GITBIN="$BATS_TMP/gitbin"; GITLOG="$BATS_TMP/git.log"
+    mkdir -p "$GITBIN"
+    cat > "$GITBIN/git" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> '$GITLOG'
+[[ " \$* " == *" $1 "* ]] && exit 1
+exec '$(command -v git)' "\$@"
+EOF
+    chmod +x "$GITBIN/git"
+}
+
+@test "(i) stdin cwd in a worktree subdirectory → the CHECKPOINT lands in the worktree's provenance.log" {
+    _main_and_worktree
+    mkdir -p "$WT/sub"
+    cd "$WT/sub"
+    _run_with_cwd "$WT/sub"
+    [ "$status" -eq 0 ]
+    grep -q 'CHECKPOINT — ActiveStep' "$WT/.claude/dev/active/task-1/task-1-provenance.log"
+    [ -f "$(_snaps)/task-1-snapshot.md" ]
+    [ -z "$(git -C "$MAIN" status --porcelain)" ]
+}
+
+@test "(ii) cwd = main checkout while a linked worktree holds the task → main untouched, snapshot kept, systemMessage names the worktree" {
+    _main_and_worktree
+    cd "$MAIN"
+    _run_with_cwd "$MAIN"
+    [ "$status" -eq 0 ]
+    [ -z "$(git -C "$MAIN" status --porcelain)" ]
+    [ -z "$(git -C "$WT" status --porcelain)" ]
+    [ -f "$(_snaps)/task-1-snapshot.md" ]
+    printf '%s' "$output" | jq -e --arg w "$WT" '.systemMessage | contains("CHECKPOINT") and contains($w)' >/dev/null
+}
+
+@test "(iii) a single checkout with no linked worktree → CHECKPOINT appended there, stdout empty" {
+    MAIN="$BATS_TMP/main"
+    "$FIXTURE" "$MAIN/.claude/dev/active" 1 plain
+    git -C "$MAIN" init -q -b main
+    cd "$MAIN"
+    _run_with_cwd "$MAIN"
+    [ "$status" -eq 0 ]
+    grep -q 'CHECKPOINT — ActiveStep' "$MAIN/.claude/dev/active/task-1/task-1-provenance.log"
+    [ -z "$output" ]
+}
+
+@test "stdin cwd relative or nonexistent → pwd fallback, never git -C on it, systemMessage" {
+    _git_wrapper -
+    local bad
+    for bad in 'rel/dir' '/nonexistent-aa-ma-probe/x'; do
+        rm -rf "$BATS_TMP/.claude" "$GITLOG"
+        "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+        cd "$BATS_TMP"
+        _run_with_cwd "$bad" PATH="$GITBIN:$PATH"
+        [ "$status" -eq 0 ]
+        grep -q 'CHECKPOINT — ActiveStep' "$BATS_TMP/.claude/dev/active/task-1/task-1-provenance.log"
+        # why: `if`, not a bare `!` — bats ignores a negated command's status (test_bats_assertions)
+        if grep -qsF -- "-C $bad" "$GITLOG"; then echo "git -C ran on '$bad'"; return 1; fi
+        printf '%s' "$output" | jq -e '.systemMessage | test("cwd")' >/dev/null
+    done
+}
+
+@test "fail-open: jq missing → pwd fallback, hooks.log line, systemMessage" {
+    _main_and_worktree
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    local b="$BATS_TMP/nojq" t
+    mkdir -p "$b"
+    for t in bash cat dirname basename date mkdir grep head tail stat sort awk git timeout sed; do
+        ln -sf "$(command -v "$t")" "$b/$t"
+    done
+    cd "$BATS_TMP"
+    _run_with_cwd "$WT" PATH="$b"
+    [ "$status" -eq 0 ]
+    grep -q 'CHECKPOINT — ActiveStep' "$BATS_TMP/.claude/dev/active/task-1/task-1-provenance.log"
+    grep -qF 'WARN pre-compact-aa-ma: jq not on PATH' "$BATS_TMP_HOME/.claude/logs/hooks.log"
+    [[ "$output" == *'"systemMessage"'* ]]
+}
+
+@test "fail-open: stdin cwd not in a git repo → pwd fallback, hooks.log line, systemMessage" {
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    mkdir -p "$BATS_TMP/plain"
+    cd "$BATS_TMP"
+    _run_with_cwd "$BATS_TMP/plain"
+    [ "$status" -eq 0 ]
+    grep -q 'CHECKPOINT — ActiveStep' "$BATS_TMP/.claude/dev/active/task-1/task-1-provenance.log"
+    grep -qF 'not in a git repo' "$BATS_TMP_HOME/.claude/logs/hooks.log"
+    printf '%s' "$output" | jq -e '.systemMessage | test("git repo")' >/dev/null
+}
+
+@test "fail-open: git worktree list fails → writes as before, hooks.log line, systemMessage" {
+    MAIN="$BATS_TMP/main"
+    "$FIXTURE" "$MAIN/.claude/dev/active" 1 plain
+    git -C "$MAIN" init -q -b main
+    _git_wrapper worktree
+    cd "$MAIN"
+    _run_with_cwd "$MAIN" PATH="$GITBIN:$PATH"
+    [ "$status" -eq 0 ]
+    grep -q 'worktree list' "$GITLOG"
+    grep -q 'CHECKPOINT — ActiveStep' "$MAIN/.claude/dev/active/task-1/task-1-provenance.log"
+    grep -qF 'worktree list failed' "$BATS_TMP_HOME/.claude/logs/hooks.log"
+    printf '%s' "$output" | jq -e '.systemMessage | test("worktree")' >/dev/null
+}
+
+@test "symlinked .claude, .claude/dev or .claude/dev/active under ROOT → its tasks skipped (TODOS carry-in)" {
+    local parent
+    for parent in .claude .claude/dev .claude/dev/active; do
+        rm -rf "$BATS_TMP/.claude" "$BATS_TMP_HOME/outside" "$BATS_TMP_HOME/.claude/logs"
+        "$FIXTURE" "$BATS_TMP_HOME/outside/.claude/dev/active" 1 plain
+        printf 'SENTINEL-OUTSIDE-REPO\n' >> "$BATS_TMP_HOME/outside/.claude/dev/active/task-1/task-1-reference.md"
+        mkdir -p "$(dirname "$BATS_TMP/$parent")"
+        ln -s "$BATS_TMP_HOME/outside/$parent" "$BATS_TMP/$parent"
+        target="$BATS_TMP_HOME/outside/.claude/dev/active/task-1/task-1-provenance.log"
+        before=$(sha256sum < "$target")
+        rm -f "$(_snaps)/task-1-snapshot.md"
+        cd "$BATS_TMP"
+        HOME="$BATS_TMP_HOME" run bash -c "bash '$HOOK' 2>/dev/null"
+        _assert_symlink_skipped
+    done
+}
+
+@test "ROOT = \$HOME with ~/.claude a dotfiles symlink → its tasks are still written (exempt)" {
+    mv "$BATS_TMP_HOME/.claude" "$BATS_TMP/dotclaude"
+    ln -s "$BATS_TMP/dotclaude" "$BATS_TMP_HOME/.claude"
+    "$FIXTURE" "$BATS_TMP/dotclaude/dev/active" 1 plain
+    cd "$BATS_TMP_HOME"
+    HOME="$BATS_TMP_HOME" run bash -c "bash '$HOOK' 2>/dev/null"
+    [ "$status" -eq 0 ]
+    grep -q 'CHECKPOINT — ActiveStep' "$BATS_TMP/dotclaude/dev/active/task-1/task-1-provenance.log"
+    [ -z "$output" ]
+}

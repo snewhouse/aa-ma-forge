@@ -234,6 +234,15 @@ G splits into G1/G2/G3/G4 sub-stages; banner runs before A) — all clean,
 pytest regression (0 failures across 782 tests), and 5-agent §6.8
 post-impl audit at each milestone close.
 
+## Amendment note (2026-10-18): Stage D stop rule — pending
+
+Decided by Ste during sole-dev-merge-fixes M5: only CRITICAL and HIGH findings
+block a merge run and restart it from Stage A; MEDIUM and LOW go to reviewer
+notes and TODOS. Fresh reviewers each run always find something in the last
+round's fix, so a gate that stops on MEDIUM does not converge (forge L-060).
+The skill change is tracked in TODOS ("/sole-dev-merge Stage D: only
+CRITICAL/HIGH block"); until it lands the operator applies the rule by hand.
+
 ## References
 
 - Plan: `.claude/dev/completed/sole-dev-merge-pr-workflow/sole-dev-merge-pr-workflow-plan.md`

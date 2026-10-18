@@ -9,6 +9,8 @@
 # Row: event|matcher|source_basename|timeout|statusMessage. A matcher is a regex and may
 # itself hold `|` (`Edit|Write`), so a row is split by anchoring on the
 # `<name>.sh|<timeout>|` field. Empty matcher = no tool-name restriction (SessionStart, …).
+# PreCompact's 5 s covers pre-compact-aa-ma.sh's stdin read (STDIN_READ_TIMEOUT_S there):
+# keep that read well under this timeout if either changes.
 
 AA_MA_HOOKS=(
     "SessionStart||aa-ma-session-start.sh|5|Loading AA-MA context..."

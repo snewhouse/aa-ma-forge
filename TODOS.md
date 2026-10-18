@@ -133,6 +133,15 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** a check that sees the actual message has no shapes to guess, and it ends the literal-text bypasses. **Effort:** M · **Priority:** P2
 
+### pre-compact: deferred §6.8 M5 INFOs
+**What:**
+- Extract the root resolution (`root_of` + stdin `cwd`) into `aa_ma_project_root` in `aa-ma-parse.sh` before the "Hooks resolve the active plan from $PWD" entry copies it into four hooks.
+- Read `git worktree list --porcelain -z` (git ≥ 2.36) with `mapfile -d ''`, so a worktree path holding a newline cannot misparse.
+- Pass `-c core.fsmonitor=false` on the hook's git calls, as `aa-ma-session-start.sh` does (git 2.53 runs no fsmonitor for `rev-parse`, `worktree list` or `log`; tested at §6.8).
+- Compare the `$HOME` exemption against `$(cd "$HOME" && pwd -P)`, since ROOT is a realpath.
+- The symlink checks and the appends are check-then-use; an O_NOFOLLOW append helper would close the race (needs a process racing the compaction).
+**Why:** sole-dev-merge-fixes M5 §6.8 INFOs (code-reviewer, security-auditor), deferred by Ste 2026-10-18. **Effort:** S · **Priority:** P3
+
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.
 **Why:** sole-dev-merge-fixes plan 5.3 (DRY). Not on main yet: `grep -rn aa_ma_milestone_base claude-code src` is empty (2026-10-18). **Effort:** S · **Priority:** P3

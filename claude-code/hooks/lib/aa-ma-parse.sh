@@ -252,6 +252,12 @@ aa_ma_list_active_tasks() {
         for dir in "$source_dir"/*/; do
             [ -d "$dir" ] || continue
             task_name=$(basename "$dir")
+            # A control character (e.g. $'x\n0\t..') would split the mtime/path rows below
+            # and print a path outside the active dir.
+            if [[ "$task_name" == *[[:cntrl:]]* ]]; then
+                log_warn aa-ma-parse "skipped a task dir under $source_dir whose name holds a control character"
+                continue
+            fi
             # Collision: project-local wins (project is first in the outer loop).
             if [ -n "${seen_names[$task_name]:-}" ]; then
                 continue

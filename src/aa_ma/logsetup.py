@@ -23,6 +23,8 @@ MAX_CHARS = 8192
 # Extra characters masked past the cap before truncating, so a secret that straddles
 # the cut is masked whole instead of leaving an unmatched fragment in the log.
 _CAP_OVERLAP = 256
+# C0, DEL and C1 (U+0080-U+009F): a terminal reads ESC (0x1B) and CSI (U+009B) as commands.
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
 _VERBOSITY_LEVELS = {
     -2: logging.CRITICAL,
@@ -82,8 +84,12 @@ class SecretRedactingFormatter(logging.Formatter):
         self.as_json = as_json
 
     def formatMessage(self, record: logging.LogRecord) -> str:
-        """The record's line with CR/LF flattened: untrusted input must not forge a log line."""
-        return super().formatMessage(record).replace("\r", " ").replace("\n", " ")
+        """The record's line with every C0/C1 control character (CR, LF, ESC, CSI, …) as a space.
+
+        Untrusted input must not forge a log line or send an escape sequence to a terminal;
+        the bash twin (`hooks/lib/aa-ma-log.sh` `_aa_ma_log_oneline`) does the same.
+        """
+        return _CONTROL_CHARS.sub(" ", super().formatMessage(record))
 
     def format(self, record: logging.LogRecord) -> str:
         """Render the record, then mask it; fail closed by replacing the record's message."""

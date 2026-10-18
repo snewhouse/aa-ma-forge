@@ -328,3 +328,10 @@ _This log will be updated via context compaction as the task progresses._
 - **Dead gh stub arms** (`--jq .url`/`.number`, C1) removed in `245e676`.
 - **M2 (C1) and the glab merge-failure LOW** → TODOS (GitLab entry).
 - **Dual-remote default (Ste: "Default to GitHub"):** E2's GitLab default, a Biorelate-era "project convention (bk_<project>.md)", flipped to GitHub: labels, default and the pre-answer value. RED `4117467` → guard tweak `591282a` → GREEN `2addbba`; mutations 2/2.
+
+## [2026-10-18] Live merge run 4 (4.3): Stage D triage; an outbound push attempt from a test — Ste
+- **A** OK (33 ahead). **B:** 26 files (0 py, 0 sh), `check_conventions … Passed`, `no diff source` 0, rc 0/0, guard clean. **B-commit** no-op. **C** Ruff S 0 / ShellCheck 0. **D:** 0C / 0H / 1M / 6L.
+- **MEDIUM** (C1): my `2addbba` GitHub default was inconsistent in dual-remote repos where origin is GitLab (F pushes to origin, G3 deletes on origin). **Ste: "Default = origin's host + guard".** E2 defaults to the host origin pushes to (GitHub if neither); F ABORTs before any push when REMOTE_CHOICE names the other forge.
+- **LOWs (Ste: "Fix 1–4 now, 5 → TODOS"):** G3 accepts this run's own PR when it is MERGED at the local HEAD (headRefOid) and skips the merge call; MERGED at another commit ABORTs. G3 prose lists the OPEN/cross-repo refusals. The stale TODOS line and the F test header are fixed. `--match-head-commit` → TODOS.
+- **Incident (L-058):** the first RED draft set a sandbox origin to `https://gitlab.com/x/y.git`. With no guard yet, F ran a real `git push` that hung at the credential prompt (600 s timeout); I stopped it. Verified: no GitLab credentials (git's helpers are only for github.com/gist.github.com; no `~/.git-credentials`), so nothing was sent, and the github.com twin never ran. All SDM test remotes now use `.invalid` hosts and `GIT_TERMINAL_PROMPT=0`.
+- RED `bd2973a` (4 not ok, each at its assertion, offline) → `e3311a4` (test tweaks) → GREEN `4a53a0d`. 732/0, pytest 3137, mutations 4/4. A first "MISSED" came from an invalid-regex bats filter (0 tests ran) and was re-run with a valid one.

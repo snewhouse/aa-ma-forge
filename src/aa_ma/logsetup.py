@@ -25,6 +25,8 @@ MAX_CHARS = 8192
 _CAP_OVERLAP = 256
 # C0, DEL and C1 (U+0080-U+009F): a terminal reads ESC (0x1B) and CSI (U+009B) as commands.
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+# The same without LF, for a whole text record: its traceback lines are LF-separated.
+_CONTROL_CHARS_BUT_LF = re.compile(r"[\x00-\x09\x0b-\x1f\x7f-\x9f]")
 
 _VERBOSITY_LEVELS = {
     -2: logging.CRITICAL,
@@ -107,7 +109,10 @@ class SecretRedactingFormatter(logging.Formatter):
                     body["stack"] = mask_secrets(self.formatStack(record.stack_info))
                 return json.dumps(body)
             # Indent exception/stack lines: one whose text holds LF must not start a forged record.
-            return mask_secrets(super().format(record).replace("\n", "\n    "))
+            text = _CONTROL_CHARS_BUT_LF.sub(
+                " ", super().format(record)
+            )  # traceback text is untrusted too
+            return mask_secrets(text.replace("\n", "\n    "))
         except Exception:  # noqa: BLE001  # why: any failure must turn into the fixed message, never a leak or a dropped record
             record.msg, record.args = _FAILED, None
             record.exc_info = record.exc_text = record.stack_info = None

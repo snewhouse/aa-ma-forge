@@ -16,7 +16,7 @@ name; the bash blocks below follow the execution order.
   stops, naming E1, if they are missing.
 - **E2** (remote choice) — one remote → use it; both → emit
   `DUAL_REMOTE_PROMPT` signal + JSON for the Claude executor to dispatch
-  `AskUserQuestion` with GitLab as default; neither github+gitlab → abort.
+  `AskUserQuestion` with GitHub as default; neither github+gitlab → abort.
   Saves `REMOTE_CHOICE` to the stage state file. After the dual-remote
   question, re-run E2 with `REMOTE_CHOICE=<answer>` so the answer is saved
   (an explicit env value beats the default).
@@ -143,16 +143,16 @@ fi
 
 if (( n_github >= 1 && n_gitlab >= 1 )); then
     # Dual remote — write AUQ-bridge JSON for the Claude executor to dispatch
-    # the real AskUserQuestion. GitLab is the default per project convention
-    # (see plan §3.2 + your project's per-repo bk_<project>.md backup-rules file).
+    # the real AskUserQuestion. GitHub is the default (sole-dev-merge-fixes M4,
+    # Ste); the old GitLab default was a Biorelate-era convention.
     cat > "$AUQ_LOG" <<'JSON'
-{"call":1,"n_options":2,"labels":["GitLab (recommended)","GitHub"],"default":"GitLab (recommended)"}
+{"call":1,"n_options":2,"labels":["GitHub (recommended)","GitLab"],"default":"GitHub (recommended)"}
 JSON
-    echo "DUAL_REMOTE_PROMPT default=GitLab labels=GitLab,GitHub"
+    echo "DUAL_REMOTE_PROMPT default=GitHub labels=GitHub,GitLab"
     # Until the Claude executor updates REMOTE_CHOICE post-AUQ, default to
-    # gitlab (matches the default option). Tests that don't simulate the
+    # github (matches the default option). Tests that don't simulate the
     # AUQ dispatch read this as the chosen remote.
-    REMOTE_CHOICE="${REMOTE_CHOICE:-gitlab}"
+    REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
 elif (( n_github >= 1 )); then
     REMOTE_CHOICE=github
     echo "REMOTE_CHOICE=github"

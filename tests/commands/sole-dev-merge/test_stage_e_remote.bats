@@ -8,7 +8,8 @@
 #   origin → gitlab.com/x/y + github → github.com/a/b → n_github=1, n_gitlab=1
 # Plan §4.3.2 falsifiable AC (dual-remote prompt):
 #   n_github=1 AND n_gitlab=1 → AskUserQuestion args have options[0].label
-#   matching ^GitLab and an option matching ^GitHub elsewhere.
+#   matching ^GitHub and an option matching ^GitLab elsewhere. The default is
+#   GitHub (sole-dev-merge-fixes M4, Ste; it was GitLab, a Biorelate-era convention).
 #
 # The Stage E2 bash cannot invoke AskUserQuestion (that's a Claude tool); it
 # logs the would-be-AUQ args as JSON to "$AUQ_LOG" per the test harness
@@ -101,7 +102,7 @@ teardown() {
 # Stage E2 — dual-remote choice + AUQ bridge
 # ---------------------------------------------------------------------------
 
-@test "E2: dual remotes → AUQ_LOG JSON has options[0].label ^GitLab, includes GitHub (AC §4.3.2)" {
+@test "E2: dual remotes → AUQ_LOG JSON has options[0].label ^GitHub, includes GitLab; GitHub saved until answered (AC §4.3.2)" {
     cd "$BATS_TMP"
     sandbox_init
     git remote add origin https://gitlab.com/x/y.git
@@ -111,23 +112,27 @@ teardown() {
     # to inherit env, then run E2 in the same shell.
     run bash -c "source '$E1_SCRIPT' >/dev/null; export AUQ_LOG='$AUQ_LOG'; bash '$E2_SCRIPT'"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"DUAL_REMOTE_PROMPT"* ]]
+    [[ "$output" == *"DUAL_REMOTE_PROMPT default=GitHub"* ]]
 
     [ -f "$AUQ_LOG" ]
-    # Default label is GitLab (project convention).
-    grep -qE '"default"\s*:\s*"GitLab[^"]*"' "$AUQ_LOG"
-    # options[0].label matches ^GitLab — single source-of-truth: the labels
+    # Default label is GitHub (Ste, M4: aa-ma-forge work lives on GitHub).
+    grep -qE '"default"\s*:\s*"GitHub[^"]*"' "$AUQ_LOG"
+    # options[0].label matches ^GitHub — single source-of-truth: the labels
     # array order. Using jq if present, fall back to grep.
     if command -v jq >/dev/null 2>&1; then
         first_label="$(jq -r '.labels[0]' "$AUQ_LOG")"
-        [[ "$first_label" == GitLab* ]]
-        # Some option (any index) matches ^GitHub
-        jq -e '.labels | any(. | startswith("GitHub"))' "$AUQ_LOG" >/dev/null
+        [[ "$first_label" == GitHub* ]]
+        # Some option (any index) matches ^GitLab
+        jq -e '.labels | any(. | startswith("GitLab"))' "$AUQ_LOG" >/dev/null
     else
         # Fallback: order-preserving grep on the labels array literal
-        head -c 1000 "$AUQ_LOG" | grep -qE '"labels"\s*:\s*\[\s*"GitLab[^"]*"'
-        grep -qE '"GitHub[^"]*"' "$AUQ_LOG"
+        head -c 1000 "$AUQ_LOG" | grep -qE '"labels"\s*:\s*\[\s*"GitHub[^"]*"'
+        grep -qE '"GitLab[^"]*"' "$AUQ_LOG"
     fi
+    # Until the operator answers, the value saved for E0/F/G is github, never gitlab
+    local saved
+    saved=$(grep '^REMOTE_CHOICE=' "$(git rev-parse --absolute-git-dir)/sole-dev-merge.env" | tail -n 1 | cut -d= -f2- | base64 -d)
+    [ "$saved" = github ]
 }
 
 @test "E2: single github remote → no AUQ_DISPATCH, REMOTE_CHOICE=github" {

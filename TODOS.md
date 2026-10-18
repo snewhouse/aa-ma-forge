@@ -81,7 +81,7 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 ### sole-dev-merge: two inputs still split or defaulted (M2 §6.8 INFO)
 **What:**
 - ~~`$CHANGED_PY`/`$CHANGED_SH` reach `ruff` and `shellcheck` unquoted, and `$CHANGED_FILES` reaches `pre-commit run --files` the same way.~~ **Done in sole-dev-merge-fixes M3.** ruff and shellcheck get `-- "${arr[@]}"`. pre-commit gets `./`-prefixed names, because its argparse rejects `--` (probed).
-- ~~`REMOTE_CHOICE="${REMOTE_CHOICE:-github}"` in E0, F and G1–G3 is a masking default (L-055 rule). G1 with a refused state file would save a strategy read from the wrong host. Fix: `${REMOTE_CHOICE:?}`.~~ **Done in sole-dev-merge-fixes M4.** E0, F and G1–G3 now use `${REMOTE_CHOICE:?…}`, and E2's `n_github`/`n_gitlab` are required too. E2's dual-remote `:-gitlab` stays: it is the prompt's default answer, not a missing input.
+- ~~`REMOTE_CHOICE="${REMOTE_CHOICE:-github}"` in E0, F and G1–G3 is a masking default (L-055 rule). G1 with a refused state file would save a strategy read from the wrong host. Fix: `${REMOTE_CHOICE:?}`.~~ **Done in sole-dev-merge-fixes M4.** E0, F and G1–G3 now use `${REMOTE_CHOICE:?…}`, and E2's `n_github`/`n_gitlab` are required too. E2's dual-remote `:-$DUAL_DEFAULT` (the host origin pushes to) stays: it is the prompt's default answer, not a missing input.
 
 **Why:** both predate M2 and are outside its key list; the §6.8 security and code reviews raised them as INFO. **Effort:** S · **Priority:** P3
 
@@ -103,6 +103,7 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 ### sole-dev-merge: deferred §6.8 INFOs from sole-dev-merge-fixes M4
 **What:**
+- G3 does not pin the merge to the reviewed head SHA: a commit pushed after G2 goes green is merged unreviewed, and the lease-less `git push origin :refs/heads/<b>` drops a commit pushed after the merge. Fix: `gh pr merge --match-head-commit "$(git rev-parse HEAD)"` (gh 2.46 supports it), and `--force-with-lease=<b>:<sha>` on the delete (live run 4 C2 LOW).
 - `git check-ref-format --branch` expands `@{-N}` (rc 0, prints the previous branch). A tampered `DEFAULT_BRANCH='@{-1}'` passes G3/G4, and G4 would `git checkout '@{-1}'`. Fix: also require `git check-ref-format "refs/heads/$X"` in G3/G4. Stage A can't reach this, because `symbolic-ref` refuses such a ref.
 - `PR_BODY_FILE` is not confined to `SDM_DIR`: whatever file the state or env names is published as the PR body (pre-existing; same uid). Fix: require `realpath` of it under `realpath "$SDM_DIR"`.
 - G2/G3 check PR_NUM with `^[0-9]+$` and so accept 0, while Stage F uses `^[1-9][0-9]*$`. F never saves 0. Fix: one pattern.

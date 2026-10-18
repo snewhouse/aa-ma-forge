@@ -384,3 +384,12 @@ Findings:
 - Fence 3 `TESTS_VERIFIED passed=750`; pytest 3137. §6.8 PASS_WITH_WARNINGS, 0 open CRITICAL.
 - `[post-merge]`: live compaction in a worktree session (recorded at 5.5).
 - Decision: APPROVED
+
+## [2026-10-18] Live merge run 1 (5.4) — Stage D triage — Ste
+- A OK (26 ahead). B: `check_conventions … Passed`, `no diff source` 0, pytest rc 0 (3137), pre-commit rc 0, guard clean; B-commit no-op. C: Ruff S 0 file(s), ShellCheck 4 file(s); 8 findings.
+- D: 0C/1H/1M/6L. Ste: **Apply HIGH, Apply MEDIUM, fix all 6 LOWs.**
+  - HIGH (C1, verified): a rebase-merged plan commit has a new SHA on main, so `git log HEAD..<sha>` still lists it (prototype `04d1870` == main `9b6df5d`). Fix: `--cherry-pick --right-only HEAD...<sha>` (0 for the prototype, 14 for M5). My §6.8 measurement had counted that prototype branch as a real candidate; it was not.
+  - MEDIUM (C2, reproduced by the agent): the guard's `git log` runs repo-config programs (`log.showSignature` + `gpg.program`; partial-clone lazy fetch via `core.sshCommand`). Fix: `GIT_NO_LAZY_FETCH=1`, `-c log.showSignature=false --no-show-signature`; same env on rev-parse / worktree list.
+  - LOWs: 3 stale comments (hook header, `worked=()`, `mask_secrets` doc); `[[:cntrl:]]` misses C1 (U+009B CSI); a task dir name with newline+TAB injects a relative path through `aa_ma_list_active_tasks`; `src/aa_ma/logsetup.py` text formatter strips only CR/LF.
+- **Contract widened (Ste, "Fix all 6"):** `src/aa_ma/logsetup.py` + `tests/test_logsetup.py`.
+- The merge restarts from Stage A after the fix (as M3/M4).

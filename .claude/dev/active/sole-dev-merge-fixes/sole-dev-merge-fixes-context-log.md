@@ -364,3 +364,9 @@ Findings:
 - A: ROOT = `git -C <stdin .cwd> rev-parse --show-toplevel`, falling back to `pwd` when `.cwd` is relative, missing or not a repo. C: the linked-worktree guard (no writes to main's tracked files when a linked worktree holds the same task dir; cache snapshot kept; systemMessage). Basis: the 5.0 probe table above.
 - **L-056 carry-in (Ste):** TODOS "pre-compact: also skip a project whose `.claude`, `.claude/dev` or `.claude/dev/active` is a symlink" folds into 5.2/5.3 (one more RED test; `$HOME/.claude` exempt). Its TODOS entry moves to `## Completed` at 5.4.
 - Not carried in: the four-hook `$PWD` TODO (plan 5.4 keeps it a TODO) and the M4 TODOS entries (Ste, 5.0: leave for a follow-up).
+
+## [2026-10-18] §6.8 M5 decisions — Ste
+- C1 accepted: guard C keyed on "worktree has the task dir" fires for every worktree (plan dirs are tracked; here the detached `codemem-plugin-wt` would be named). New rule: a candidate is a linked worktree on a branch whose branch has commits touching `.claude/dev/active/<task>` that ROOT's HEAD lacks. 0 → write ROOT; ≥ 1 → nothing written, all named. Residual: a freshly cut worktree is not detected until its first plan commit (N.0 commits the plan first, so the window is minutes).
+- Test (ii) changes with the spec: its worktree now carries a plan commit.
+- **Contract deviations (accepted):** `claude-code/skills/sole-dev-merge/references/stage-state.md` (M4 drift carry-in, Ste at 5.0); `claude-code/hooks/lib/aa-ma-log.sh` + `tests/hooks/aa-ma-log.bats` (W7: control characters stripped in the shared one-line helper, the root cause of escape bytes reaching the systemMessage); one comment line in `scripts/lib/aa-ma-install-lib.sh` (W4: the 5 s PreCompact timeout names the hook's stdin read).
+- WARNINGs W2–W9 fixed in the same RED → GREEN; INFOs → TODOS.

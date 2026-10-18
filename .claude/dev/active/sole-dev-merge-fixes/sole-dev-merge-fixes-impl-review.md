@@ -210,3 +210,11 @@ None. No CRITICAL findings.
 - C2: **Accept as a Contract deviation** (CL entry).
 - WARNINGs fixed in the same round: W2/W3/W5 (root + notices), W4/W8/W9 (hygiene), W6/W7 (security; W7 widens the Contract to `claude-code/hooks/lib/aa-ma-log.sh` + `tests/hooks/aa-ma-log.bats`).
 - INFOs → TODOS (deferred §6.8 M5 INFOs).
+
+## Remediation (test-first)
+- RED `76d7067` (7 new @tests + (ii) updated to the new spec + no-jq PATH rebuilt from PATH minus jq), GREEN `d6eaba2`; one refinement RED `6fb6054` → GREEN `c879f07`.
+- **C1:** the worked-worktree check compares each linked worktree's **HEAD** (not its branch) with ROOT's: `git log -1 HEAD..<sha> -- .claude/dev/active/<task>`. 0 → write ROOT; ≥ 1 → nothing written, all named. Refinement over the approved "on a branch" wording: the mutation that counted detached worktrees was MISSED, because the ahead check already excludes a detached worktree at ROOT's commit; and a rebase detaches HEAD, so the branch filter would have re-opened L-1347 mid-rebase. Pinned by the mid-rebase @test.
+- **W2/W5:** with no stdin, no jq or an unusable `cwd`, ROOT is pwd's git toplevel, so the guard still runs; the notices are accurate again. **W3:** a failed stdin read logs `stdin read failed (rc N; 124 = timed out …)`. **W4:** `STDIN_READ_TIMEOUT_S=2` with its link to the 5 s timeout, and a note at the install table. **W6:** `root_of` refuses a toplevel that does not contain the directory (rc 2 → pwd, guard skipped, notice). **W7:** `_aa_ma_log_oneline` replaces every `[[:cntrl:]]`. **W8:** comment fixed. **W9:** the no-jq test removes only jq.
+- C2: CL Contract deviation entry. INFOs → TODOS "pre-compact: deferred §6.8 M5 INFOs" (`e081430`).
+- Mutations (L-1214, each filter matched 1 test): 7/7 CAUGHT — branch rule back, ahead check off, only first named, no pwd toplevel, containment off, stdin rc not logged, control chars CR/LF only.
+- The 5.3 AC literal `grep -c 'timeout 2 cat'` = 1 now reads `timeout "$STDIN_READ_TIMEOUT_S" cat` with `STDIN_READ_TIMEOUT_S=2` (W4, Ste).

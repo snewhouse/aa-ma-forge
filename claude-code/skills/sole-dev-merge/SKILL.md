@@ -9,7 +9,7 @@ disable-model-invocation: true
 PR/MR-based merge workflow for sole developers. Runs scope-aware local CI
 (closing L-007), dispatches code review + 3-source security pass
 (security-auditor agent + Ruff S + ShellCheck), opens a PR via `gh` or MR via
-`glab` (default GitLab when both remotes present), polls CI to green, then
+`glab` (default GitHub when both remotes present), polls CI to green, then
 auto-merges with `--rebase` for linear history, then deletes the remote branch
 itself and checks it is gone (worktree-safe, L-1332).
 

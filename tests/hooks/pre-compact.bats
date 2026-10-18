@@ -279,21 +279,15 @@ EOF
     [ -z "$(git -C "$MAIN" status --porcelain)" ]
 }
 
-_plan_commit() {   # _plan_commit <worktree> — a commit on its branch that touches task-1's plan
-    printf -- '- worked here\n' >> "$1/.claude/dev/active/task-1/task-1-tasks.md"
-    git -C "$1" -c user.name=t -c user.email=t@example.invalid commit -q -am "plan: worked in $1"
-}
-
-@test "(ii) cwd = main checkout while a linked worktree's branch carries plan commits → main untouched, snapshot kept, systemMessage names the worktree" {
+@test "(ii) cwd = main checkout while a linked worktree holds the task → main untouched, snapshot kept, systemMessage names the worktree" {
     _main_and_worktree
-    _plan_commit "$WT"
     cd "$MAIN"
     _run_with_cwd "$MAIN"
     [ "$status" -eq 0 ]
     [ -z "$(git -C "$MAIN" status --porcelain)" ]
     [ -z "$(git -C "$WT" status --porcelain)" ]
     [ -f "$(_snaps)/task-1-snapshot.md" ]
-    printf '%s' "$output" | jq -e --arg w "$WT" '.systemMessage | contains("CHECKPOINT") and contains($w)' >/dev/null
+    printf '%s' "$output" | jq -e --arg w "$WT" '.systemMessage | contains("CHECKPOINT") and contains($w) and contains("git worktree remove")' >/dev/null
 }
 
 @test "(iii) a single checkout with no linked worktree → CHECKPOINT appended there, stdout empty" {
@@ -399,34 +393,25 @@ _plan_commit() {   # _plan_commit <worktree> — a commit on its branch that tou
     [ -z "$output" ]
 }
 
-# §6.8 M5 (code-reviewer C1): plan dirs are tracked, so every worktree cut from a
-# commit that carries the plan has the task dir. Only a branch that carries plan
-# commits ROOT lacks shows the task is being worked there.
+# The guard is a plain rule (Ste, 2026-10-18; forge L-060): a linked worktree that
+# holds the task means nothing is appended in the main checkout. Guessing which
+# worktree is being worked from git history had no end of edge cases.
 
-@test "C1: a detached linked worktree holding the task → main gets the CHECKPOINT, stdout empty" {
+@test "a detached linked worktree holding the task (a tool checkout) → main untouched, named in the notice" {
     _main_and_worktree
     git -C "$MAIN" worktree add -q --detach "$BATS_TMP/tool-wt"
     git -C "$MAIN" worktree remove "$WT"
     cd "$MAIN"
     _run_with_cwd "$MAIN"
     [ "$status" -eq 0 ]
-    grep -q 'CHECKPOINT — ActiveStep' "$MAIN/.claude/dev/active/task-1/task-1-provenance.log"
-    [ -z "$output" ]
-}
-
-@test "C1: a detached worktree whose HEAD carries plan commits (a rebase in progress) → main untouched" {
-    _main_and_worktree
-    _plan_commit "$WT"
-    git -C "$WT" checkout -q --detach
-    cd "$MAIN"
-    _run_with_cwd "$MAIN"
-    [ "$status" -eq 0 ]
     [ -z "$(git -C "$MAIN" status --porcelain)" ]
-    printf '%s' "$output" | jq -e --arg w "$WT" '.systemMessage | contains($w)' >/dev/null
+    printf '%s' "$output" | jq -e --arg w "$BATS_TMP/tool-wt" '.systemMessage | contains($w)' >/dev/null
 }
 
-@test "C1: a linked worktree on a branch with no plan commits ahead → main gets the CHECKPOINT" {
+@test "a linked worktree whose branch dropped the task dir → main gets the CHECKPOINT, stdout empty" {
     _main_and_worktree
+    git -C "$WT" rm -rq .claude/dev/active/task-1
+    git -C "$WT" -c user.name=t -c user.email=t@example.invalid commit -qm "drop the plan"
     cd "$MAIN"
     _run_with_cwd "$MAIN"
     [ "$status" -eq 0 ]
@@ -434,12 +419,10 @@ _plan_commit() {   # _plan_commit <worktree> — a commit on its branch that tou
     [ -z "$output" ]
 }
 
-@test "C1: two branches carry plan commits → main untouched, both worktrees named" {
+@test "two linked worktrees hold the task → main untouched, both named" {
     _main_and_worktree
     WT2="$MAIN/.worktrees/y"
     git -C "$MAIN" worktree add -q -b y "$WT2"
-    _plan_commit "$WT"
-    _plan_commit "$WT2"
     cd "$MAIN"
     _run_with_cwd "$MAIN"
     [ "$status" -eq 0 ]
@@ -447,9 +430,8 @@ _plan_commit() {   # _plan_commit <worktree> — a commit on its branch that tou
     printf '%s' "$output" | jq -e --arg a "$WT" --arg b "$WT2" '.systemMessage | contains($a) and contains($b)' >/dev/null
 }
 
-@test "W2: no stdin, pwd = main checkout with a worked linked worktree → main still untouched" {
+@test "W2: no stdin, pwd = main checkout with a linked worktree holding the task → main still untouched" {
     _main_and_worktree
-    _plan_commit "$WT"
     cd "$MAIN"
     HOME="$BATS_TMP_HOME" run bash -c "bash '$HOOK' 2>/dev/null </dev/null"
     [ "$status" -eq 0 ]
@@ -480,98 +462,7 @@ _plan_commit() {   # _plan_commit <worktree> — a commit on its branch that tou
     grep -qF 'outside' "$BATS_TMP_HOME/.claude/logs/hooks.log"
 }
 
-# Live merge run 1 (5.4) Stage D: the default merge is a rebase, so a merged plan
-# commit is on main under another SHA; and git log must not run repo-config programs.
-
-_sentinel_script() {   # _sentinel_script <path> — a program that only records that it ran
-    printf '#!/bin/sh\ntouch "%s.ran"\nexit 1\n' "$1" > "$1"
-    chmod +x "$1"
-}
-
-@test "D-HIGH: the worktree's plan commit is already on main by rebase (another SHA) → main gets the CHECKPOINT" {
-    _main_and_worktree
-    _plan_commit "$WT"
-    # why: another committer date, so main gets the same patch under another SHA (as a rebase merge does)
-    GIT_COMMITTER_DATE='2001-01-01T00:00:00Z' git -C "$MAIN" -c user.name=t -c user.email=t@example.invalid cherry-pick x >/dev/null
-    [ "$(git -C "$MAIN" rev-parse HEAD)" != "$(git -C "$MAIN" rev-parse x)" ]
-    cd "$MAIN"
-    _run_with_cwd "$MAIN"
-    [ "$status" -eq 0 ]
-    grep -q 'CHECKPOINT — ActiveStep' "$MAIN/.claude/dev/active/task-1/task-1-provenance.log"
-    [ -z "$output" ]
-}
-
-@test "D-MEDIUM: log.showSignature + gpg.program in the repo's config never run" {
-    _main_and_worktree
-    _plan_commit "$WT"
-    # A gpgsig header on the worktree's plan commit; no gpg needed to write it.
-    signed=$(git -C "$WT" cat-file commit HEAD \
-        | awk '/^committer /{print; print "gpgsig -----BEGIN PGP SIGNATURE-----"; print " x"; print " -----END PGP SIGNATURE-----"; next} 1' \
-        | git -C "$WT" hash-object -t commit -w --stdin)
-    git -C "$WT" update-ref refs/heads/x "$signed"
-    _sentinel_script "$BATS_TMP/fakegpg"
-    git -C "$MAIN" config log.showSignature true
-    git -C "$MAIN" config gpg.program "$BATS_TMP/fakegpg"
-    cd "$MAIN"
-    _run_with_cwd "$MAIN"
-    [ "$status" -eq 0 ]
-    [ ! -e "$BATS_TMP/fakegpg.ran" ]
-    [ -z "$(git -C "$MAIN" status --porcelain)" ]
-}
-
-@test "D-MEDIUM: a partial-clone lazy fetch (core.sshCommand) never runs" {
-    _main_and_worktree
-    _sentinel_script "$BATS_TMP/fakessh"
-    git -C "$MAIN" config core.repositoryformatversion 1
-    git -C "$MAIN" config extensions.partialclone origin
-    git -C "$MAIN" config remote.origin.url "ssh://git@example.invalid/x.git"   # L-058: never a real host
-    git -C "$MAIN" config remote.origin.promisor true
-    git -C "$MAIN" config core.sshCommand "$BATS_TMP/fakessh"
-    # A commit on x whose tree is missing: reading its paths needs a lazy fetch.
-    missing=$(printf 'tree %s\nparent %s\nauthor t <t@example.invalid> 0 +0000\ncommitter t <t@example.invalid> 0 +0000\n\nmissing tree\n' \
-        0123456789abcdef0123456789abcdef01234567 "$(git -C "$WT" rev-parse HEAD)" \
-        | git -C "$WT" hash-object -t commit -w --stdin --literally)
-    git -C "$WT" update-ref refs/heads/x "$missing"
-    cd "$MAIN"
-    GIT_TERMINAL_PROMPT=0 _run_with_cwd "$MAIN"
-    [ "$status" -eq 0 ]
-    [ ! -e "$BATS_TMP/fakessh.ran" ]
-}
-
-@test "D2-MEDIUM: the lazy fetch stays off on a git that ignores GIT_NO_LAZY_FETCH (< 2.45)" {
-    # Same repo as above; a git shim drops the env var, as git 2.43 (Ubuntu 24.04) does.
-    _main_and_worktree
-    _sentinel_script "$BATS_TMP/fakessh"
-    git -C "$MAIN" config core.repositoryformatversion 1
-    git -C "$MAIN" config extensions.partialclone origin
-    git -C "$MAIN" config remote.origin.url "ssh://git@example.invalid/x.git"   # L-058: never a real host
-    git -C "$MAIN" config remote.origin.promisor true
-    git -C "$MAIN" config core.sshCommand "$BATS_TMP/fakessh"
-    missing=$(printf 'tree %s\nparent %s\nauthor t <t@example.invalid> 0 +0000\ncommitter t <t@example.invalid> 0 +0000\n\nmissing tree\n' \
-        0123456789abcdef0123456789abcdef01234567 "$(git -C "$WT" rev-parse HEAD)" \
-        | git -C "$WT" hash-object -t commit -w --stdin --literally)
-    git -C "$WT" update-ref refs/heads/x "$missing"
-    mkdir -p "$BATS_TMP/oldgit"
-    printf '#!/usr/bin/env bash\nunset GIT_NO_LAZY_FETCH\nexec %q "$@"\n' "$(command -v git)" > "$BATS_TMP/oldgit/git"
-    chmod +x "$BATS_TMP/oldgit/git"
-    cd "$MAIN"
-    GIT_TERMINAL_PROMPT=0 _run_with_cwd "$MAIN" PATH="$BATS_TMP/oldgit:$PATH"
-    [ "$status" -eq 0 ]
-    [ ! -e "$BATS_TMP/fakessh.ran" ]
-}
-
-@test "D2-MEDIUM: a squash-merged worktree branch still counts, and the notice says how to clear it" {
-    _main_and_worktree
-    _plan_commit "$WT"
-    _plan_commit "$WT"
-    git -C "$MAIN" merge -q --squash x
-    git -C "$MAIN" -c user.name=t -c user.email=t@example.invalid commit -q -m "squash x"
-    cd "$MAIN"
-    _run_with_cwd "$MAIN"
-    [ "$status" -eq 0 ]
-    [ -z "$(git -C "$MAIN" status --porcelain)" ]
-    printf '%s' "$output" | jq -e --arg w "$WT" '.systemMessage | contains("git worktree remove") and contains($w)' >/dev/null
-}
+# Live merge run 2 (5.4) Stage D.
 
 @test "D2-LOW: an embedded gitdir whose core.worktree names an ancestor never roots the hook there" {
     PROJ="$BATS_TMP/proj"

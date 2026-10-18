@@ -253,6 +253,15 @@ def test_text_format_keeps_one_record_on_one_line(stderr_logs, capsys) -> None:
     assert "\r" not in err
 
 
+def test_text_format_replaces_terminal_control_characters(stderr_logs, capsys) -> None:
+    """ESC, BEL and the C1 CSI in untrusted input must not reach a terminal (sole-dev-merge-fixes M5)."""
+    logsetup.configure_logging()
+    logging.getLogger("aa_ma.t").warning("name %s", "t\x1b]0;OWNED\x07 \x9b31m é")
+    err = capsys.readouterr().err
+    assert not re.search(r"[\x00-\x09\x0b-\x1f\x7f-\x9f]", err)
+    assert "OWNED" in err and "é" in err
+
+
 def test_exception_text_cannot_forge_a_record_line(stderr_logs, capsys) -> None:
     """Traceback lines are indented, so an exception message with LF cannot start a record."""
     logsetup.configure_logging()

@@ -479,3 +479,61 @@ _plan_commit() {   # _plan_commit <worktree> — a commit on its branch that tou
     [ "$(sha256sum < "$VICTIM/.claude/dev/active/task-1/task-1-provenance.log")" = "$before" ]
     grep -qF 'outside' "$BATS_TMP_HOME/.claude/logs/hooks.log"
 }
+
+# Live merge run 1 (5.4) Stage D: the default merge is a rebase, so a merged plan
+# commit is on main under another SHA; and git log must not run repo-config programs.
+
+_sentinel_script() {   # _sentinel_script <path> — a program that only records that it ran
+    printf '#!/bin/sh\ntouch "%s.ran"\nexit 1\n' "$1" > "$1"
+    chmod +x "$1"
+}
+
+@test "D-HIGH: the worktree's plan commit is already on main by rebase (another SHA) → main gets the CHECKPOINT" {
+    _main_and_worktree
+    _plan_commit "$WT"
+    # why: another committer date, so main gets the same patch under another SHA (as a rebase merge does)
+    GIT_COMMITTER_DATE='2001-01-01T00:00:00Z' git -C "$MAIN" -c user.name=t -c user.email=t@example.invalid cherry-pick x >/dev/null
+    [ "$(git -C "$MAIN" rev-parse HEAD)" != "$(git -C "$MAIN" rev-parse x)" ]
+    cd "$MAIN"
+    _run_with_cwd "$MAIN"
+    [ "$status" -eq 0 ]
+    grep -q 'CHECKPOINT — ActiveStep' "$MAIN/.claude/dev/active/task-1/task-1-provenance.log"
+    [ -z "$output" ]
+}
+
+@test "D-MEDIUM: log.showSignature + gpg.program in the repo's config never run" {
+    _main_and_worktree
+    _plan_commit "$WT"
+    # A gpgsig header on the worktree's plan commit; no gpg needed to write it.
+    signed=$(git -C "$WT" cat-file commit HEAD \
+        | awk '/^committer /{print; print "gpgsig -----BEGIN PGP SIGNATURE-----"; print " x"; print " -----END PGP SIGNATURE-----"; next} 1' \
+        | git -C "$WT" hash-object -t commit -w --stdin)
+    git -C "$WT" update-ref refs/heads/x "$signed"
+    _sentinel_script "$BATS_TMP/fakegpg"
+    git -C "$MAIN" config log.showSignature true
+    git -C "$MAIN" config gpg.program "$BATS_TMP/fakegpg"
+    cd "$MAIN"
+    _run_with_cwd "$MAIN"
+    [ "$status" -eq 0 ]
+    [ ! -e "$BATS_TMP/fakegpg.ran" ]
+    [ -z "$(git -C "$MAIN" status --porcelain)" ]
+}
+
+@test "D-MEDIUM: a partial-clone lazy fetch (core.sshCommand) never runs" {
+    _main_and_worktree
+    _sentinel_script "$BATS_TMP/fakessh"
+    git -C "$MAIN" config core.repositoryformatversion 1
+    git -C "$MAIN" config extensions.partialclone origin
+    git -C "$MAIN" config remote.origin.url "ssh://git@example.invalid/x.git"   # L-058: never a real host
+    git -C "$MAIN" config remote.origin.promisor true
+    git -C "$MAIN" config core.sshCommand "$BATS_TMP/fakessh"
+    # A commit on x whose tree is missing: reading its paths needs a lazy fetch.
+    missing=$(printf 'tree %s\nparent %s\nauthor t <t@example.invalid> 0 +0000\ncommitter t <t@example.invalid> 0 +0000\n\nmissing tree\n' \
+        0123456789abcdef0123456789abcdef01234567 "$(git -C "$WT" rev-parse HEAD)" \
+        | git -C "$WT" hash-object -t commit -w --stdin --literally)
+    git -C "$WT" update-ref refs/heads/x "$missing"
+    cd "$MAIN"
+    GIT_TERMINAL_PROMPT=0 _run_with_cwd "$MAIN"
+    [ "$status" -eq 0 ]
+    [ ! -e "$BATS_TMP/fakessh.ran" ]
+}

@@ -170,6 +170,20 @@ EOF
     [ "${tasks[0]}" = "$BATS_TMP/root/.claude/dev/active/task-1" ]
 }
 
+@test "aa_ma_list_active_tasks skips a task dir whose name holds a control character, and logs it" {
+    # A name like $'x\n0\t..' would otherwise print `..` as a task path (live run 1, Stage D).
+    mkdir -p "$BATS_TMP/.claude/dev/active/x"$'\n'"0"$'\t'".."
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    load_helper
+    cd "$BATS_TMP"
+    HOME="$BATS_TMP_HOME"
+    export HOME
+    mapfile -t tasks < <(aa_ma_list_active_tasks)
+    [ "${#tasks[@]}" -eq 1 ]
+    [ "${tasks[0]}" = "$BATS_TMP/.claude/dev/active/task-1" ]
+    grep -qF 'control character' "$CLAUDE_HOOK_LOG"
+}
+
 @test "aa_ma_list_active_tasks emits nothing when no task dirs exist" {
     load_helper
     cd "$BATS_TMP"

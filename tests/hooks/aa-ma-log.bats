@@ -82,6 +82,21 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
     [[ "$msg" == *"OWNED"*"is active"* ]]
 }
 
+@test "C1 control characters (U+009B CSI) reach neither the log nor the systemMessage in any locale; é is kept" {
+    # [[:cntrl:]] matches U+009B in some UTF-8 locales but not in C or C.UTF-8 (live run 1, Stage D).
+    local loc
+    for loc in C C.UTF-8; do
+        rm -f "$CLAUDE_HOOK_LOG"
+        run --separate-stderr env LC_ALL="$loc" bash -c '. "$1"; fail_open_notice h "$2"' _ "$LIB" $'a\xc2\x9b31mb é'
+        [ "$status" -eq 0 ]
+        msg=$(printf '%s' "$output" | jq -r '.systemMessage')
+        # why: `if`, not a bare `!` — bats ignores a negated command's status (test_bats_assertions)
+        if printf '%s' "$msg" | LC_ALL=C grep -qF $'\xc2\x9b'; then echo "CSI in ($loc): $msg"; return 1; fi
+        if LC_ALL=C grep -qF $'\xc2\x9b' "$CLAUDE_HOOK_LOG"; then echo "CSI in log ($loc)"; return 1; fi
+        [[ "$msg" == *"é"* ]]
+    done
+}
+
 @test "log_* masks secrets with their rule id" {
     . "$LIB"
     log_warn h "aws=$AWS gh=$GHP key=$ANT"

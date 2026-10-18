@@ -164,7 +164,7 @@ teardown() {
 @test "E2: zero github+gitlab remotes → abort with actionable error" {
     cd "$BATS_TMP"
     sandbox_init
-    git remote add origin https://bitbucket.org/x/y.git
+    git remote add origin https://bitbucket.org.invalid/x/y.git   # why: reserved host, never resolves (L-058)
 
     run bash -c "source '$E1_SCRIPT' >/dev/null; export AUQ_LOG='$AUQ_LOG'; bash '$E2_SCRIPT'"
     [ "$status" -ne 0 ]

@@ -103,6 +103,11 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 ### sole-dev-merge: deferred §6.8 INFOs from sole-dev-merge-fixes M4
 **What:**
+- Stage F's origin-host guard (live run 5 LOWs):
+  - It is a deny-list. An origin on neither forge (a mirror or a self-hosted server) next to a github/gitlab remote passes it, so F pushes to origin while gh/glab resolve the PR on the other remote.
+  - It substring-matches the whole push URL, so `https://github.com/org/gitlab.com-tools.git` is refused for both choices. E1 and E2 also classify that URL differently.
+  - Fix: extract the host (scp `user@host:` or `scheme://[user@]host[:port]/`), compare it exactly in one shared pattern, and require a positive match, with a test seam for local bare remotes.
+- E2's dual-remote prompt still offers the non-origin host as an equal second option, which Stage F now always refuses. Fix: drop that option, or label it "refused by Stage F: origin is on <host>" (live run 5 LOW).
 - G3 does not pin the merge to the reviewed head SHA: a commit pushed after G2 goes green is merged unreviewed, and the lease-less `git push origin :refs/heads/<b>` drops a commit pushed after the merge. Fix: `gh pr merge --match-head-commit "$(git rev-parse HEAD)"` (gh 2.46 supports it), and `--force-with-lease=<b>:<sha>` on the delete (live run 4 C2 LOW).
 - `git check-ref-format --branch` expands `@{-N}` (rc 0, prints the previous branch). A tampered `DEFAULT_BRANCH='@{-1}'` passes G3/G4, and G4 would `git checkout '@{-1}'`. Fix: also require `git check-ref-format "refs/heads/$X"` in G3/G4. Stage A can't reach this, because `symbolic-ref` refuses such a ref.
 - `PR_BODY_FILE` is not confined to `SDM_DIR`: whatever file the state or env names is published as the PR body (pre-existing; same uid). Fix: require `realpath` of it under `realpath "$SDM_DIR"`.

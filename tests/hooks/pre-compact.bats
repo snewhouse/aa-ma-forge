@@ -537,3 +537,53 @@ _sentinel_script() {   # _sentinel_script <path> — a program that only records
     [ "$status" -eq 0 ]
     [ ! -e "$BATS_TMP/fakessh.ran" ]
 }
+
+@test "D2-MEDIUM: the lazy fetch stays off on a git that ignores GIT_NO_LAZY_FETCH (< 2.45)" {
+    # Same repo as above; a git shim drops the env var, as git 2.43 (Ubuntu 24.04) does.
+    _main_and_worktree
+    _sentinel_script "$BATS_TMP/fakessh"
+    git -C "$MAIN" config core.repositoryformatversion 1
+    git -C "$MAIN" config extensions.partialclone origin
+    git -C "$MAIN" config remote.origin.url "ssh://git@example.invalid/x.git"   # L-058: never a real host
+    git -C "$MAIN" config remote.origin.promisor true
+    git -C "$MAIN" config core.sshCommand "$BATS_TMP/fakessh"
+    missing=$(printf 'tree %s\nparent %s\nauthor t <t@example.invalid> 0 +0000\ncommitter t <t@example.invalid> 0 +0000\n\nmissing tree\n' \
+        0123456789abcdef0123456789abcdef01234567 "$(git -C "$WT" rev-parse HEAD)" \
+        | git -C "$WT" hash-object -t commit -w --stdin --literally)
+    git -C "$WT" update-ref refs/heads/x "$missing"
+    mkdir -p "$BATS_TMP/oldgit"
+    printf '#!/usr/bin/env bash\nunset GIT_NO_LAZY_FETCH\nexec %q "$@"\n' "$(command -v git)" > "$BATS_TMP/oldgit/git"
+    chmod +x "$BATS_TMP/oldgit/git"
+    cd "$MAIN"
+    GIT_TERMINAL_PROMPT=0 _run_with_cwd "$MAIN" PATH="$BATS_TMP/oldgit:$PATH"
+    [ "$status" -eq 0 ]
+    [ ! -e "$BATS_TMP/fakessh.ran" ]
+}
+
+@test "D2-MEDIUM: a squash-merged worktree branch still counts, and the notice says how to clear it" {
+    _main_and_worktree
+    _plan_commit "$WT"
+    _plan_commit "$WT"
+    git -C "$MAIN" merge -q --squash x
+    git -C "$MAIN" -c user.name=t -c user.email=t@example.invalid commit -q -m "squash x"
+    cd "$MAIN"
+    _run_with_cwd "$MAIN"
+    [ "$status" -eq 0 ]
+    [ -z "$(git -C "$MAIN" status --porcelain)" ]
+    printf '%s' "$output" | jq -e --arg w "$WT" '.systemMessage | contains("git worktree remove") and contains($w)' >/dev/null
+}
+
+@test "D2-LOW: an embedded gitdir whose core.worktree names an ancestor never roots the hook there" {
+    PROJ="$BATS_TMP/proj"
+    "$FIXTURE" "$PROJ/.claude/dev/active" 1 plain
+    before=$(sha256sum < "$PROJ/.claude/dev/active/task-1/task-1-provenance.log")
+    FX="$PROJ/vendor/clone/fx.git"
+    git init -q --bare "$FX"
+    # why: --git-dir — ~/.gitconfig may set safe.bareRepository=explicit, which refuses -C on a bare dir
+    git --git-dir="$FX" config core.bare false
+    git --git-dir="$FX" config core.worktree ../../..
+    cd "$FX"
+    _run_with_cwd "$FX"
+    [ "$status" -eq 0 ]
+    [ "$(sha256sum < "$PROJ/.claude/dev/active/task-1/task-1-provenance.log")" = "$before" ]
+}

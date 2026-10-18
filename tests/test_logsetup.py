@@ -262,6 +262,20 @@ def test_text_format_replaces_terminal_control_characters(stderr_logs, capsys) -
     assert "OWNED" in err and "é" in err
 
 
+def test_exception_text_carries_no_terminal_control_characters(
+    stderr_logs, capsys
+) -> None:
+    """Traceback text is untrusted too: only its LFs survive (live merge run 2, Stage D)."""
+    logsetup.configure_logging()
+    try:
+        raise ValueError("bad task \x1b]0;OWNED\x07 \x9b31m\r")
+    except ValueError:
+        logging.getLogger("aa_ma.t").exception("failed")
+    err = capsys.readouterr().err
+    assert not re.search(r"[\x00-\x09\x0b-\x1f\x7f-\x9f]", err)
+    assert "OWNED" in err and "\n    " in err
+
+
 def test_exception_text_cannot_forge_a_record_line(stderr_logs, capsys) -> None:
     """Traceback lines are indented, so an exception message with LF cannot start a record."""
     logsetup.configure_logging()

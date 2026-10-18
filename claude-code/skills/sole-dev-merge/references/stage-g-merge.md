@@ -281,10 +281,14 @@ case "$CI_STATE" in
             [[ "$ORIGINAL_BRANCH" != "$DEFAULT_BRANCH" ]] \
                 || { echo "ABORT: Stage G3: ORIGINAL_BRANCH is the default branch '$DEFAULT_BRANCH'"; exit 1; }
             # One lookup for whose PR it is: the head name alone matches a fork's same-named PR (§6.8 SEC-2)
-            OWNER_ROW=$(gh pr view "$PR_NUM" --json headRefName,isCrossRepository \
-                            --jq '[.headRefName,.isCrossRepository]|@tsv') \
+            OWNER_ROW=$(gh pr view "$PR_NUM" --json headRefName,isCrossRepository,state \
+                            --jq '[.headRefName,.isCrossRepository,.state]|@tsv') \
                 || { echo "ABORT: Stage G3: cannot read PR $PR_NUM (head/owner lookup failed)"; exit 1; }
-            IFS=$'\t' read -r HEAD_REF XREPO <<<"$OWNER_ROW"
+            IFS=$'\t' read -r HEAD_REF XREPO PR_STATE <<<"$OWNER_ROW"
+            # why: a stale PR_NUM of an earlier merged PR on a reused branch name would read MERGED after
+            # the merge call, and the branch delete below would drop unmerged commits (live run 3)
+            [[ "$PR_STATE" == OPEN ]] \
+                || { echo "ABORT: Stage G3: PR $PR_NUM is $PR_STATE, not OPEN"; exit 1; }
             [[ "$HEAD_REF" == "$ORIGINAL_BRANCH" ]] \
                 || { echo "ABORT: Stage G3: PR $PR_NUM head is '$HEAD_REF', not '$ORIGINAL_BRANCH'"; exit 1; }
             [[ "$XREPO" == false ]] \

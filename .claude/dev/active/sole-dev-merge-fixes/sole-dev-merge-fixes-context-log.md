@@ -319,3 +319,12 @@ _This log will be updated via context compaction as the task progresses._
   - the dead gh stub single arms are removed (C1).
 - RED `49194f3` (17 not ok: 10 at the new assertions, 7 from the stub's 5th field that F didn't read yet) + `5d7bcdd` (G2 RED shown in-session, plus a count fix to my own test: detect + re-check = 2) → GREEN `26b43e1`. 727/0, pytest 3137, mutations 8/8.
 - **Risk:** the GitLab path is tested against the stub only. A future GitLab run should check the real `glab mr view -F json --jq` output once (TODOS).
+
+## [2026-10-18] Live merge run 3 (4.3): Stage D triage; scope back to GitHub; dual-remote default — Ste
+- **A** OK (26 ahead). **B:** 25 files (0 py, 0 sh), `check_conventions … Passed`, `no diff source` 0, rc 0/0, guard clean. **B-commit** no-op. **C** Ruff S 0 / ShellCheck 0. **D:** 0C / 0H / 2M / 3L.
+- Ste chose "Fix all, run 4", then asked **"why glab? we use GitHub"**. aa-ma-forge has one remote (`origin` → github.com), glab is not installed, and the GitLab branch never runs here. **Decision (Ste): GitHub only in M4.** The GitLab items go to TODOS; `26b43e1`'s GitLab checks stay (tested on the stub, fail closed).
+- Ste asked **"did you push to any biorelate glab?"** No, verified: the only remote is github.com, git config has 0 gitlab/biorelate URLs, glab is absent, every push went to `origin/fix/sole-dev-merge-fixes-m4` on GitHub, and the live runs stopped at Stage D (Stage F never ran). Lesson L-057.
+- **M1 (C2), applied:** G3 (GitHub) requires `state=OPEN` in its one owner lookup before merging. A stale PR_NUM from an earlier merged PR could otherwise lead to deleting a branch that holds unmerged commits. RED `547cecf` → GREEN `245e676`; mutation caught.
+- **Dead gh stub arms** (`--jq .url`/`.number`, C1) removed in `245e676`.
+- **M2 (C1) and the glab merge-failure LOW** → TODOS (GitLab entry).
+- **Dual-remote default (Ste: "Default to GitHub"):** E2's GitLab default, a Biorelate-era "project convention (bk_<project>.md)", flipped to GitHub: labels, default and the pre-answer value. RED `4117467` → guard tweak `591282a` → GREEN `2addbba`; mutations 2/2.

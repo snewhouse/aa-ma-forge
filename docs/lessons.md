@@ -5,6 +5,13 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-057 (2026-10-18) — Widened a milestone into a code path the repo never runs, and left a Biorelate-era default unflagged
+**Pattern:** in sole-dev-merge-fixes M4 live run 2, a reviewer flagged the GitLab branch of `/sole-dev-merge` (F, G3). I offered "Fix all incl. GitLab" as an equal option and implemented it from Context7 docs alone: glab is not installed, and aa-ma-forge has one GitHub remote. Run 3 then found more GitLab gaps. Ste asked "why glab? we use GitHub", then whether anything had been pushed to a Biorelate GitLab. Nothing had (one `origin` → github.com, glab absent), but I had never said so up front. I also never flagged E2's dual-remote **GitLab default** ("per project convention, bk_<project>.md"), a Biorelate-era rule, until Ste asked.
+**Rule:** before scoping a fix to a code path, check that this repo exercises it (`git remote -v`, the tool on PATH, config). If it doesn't, say so in the question ("dormant here, untestable live") and recommend a TODOS entry, not an equal "fix it too" option. When reviewed code holds a default or convention that names Biorelate, a client or another org (GitLab default, `bk_<project>.md`, `~/biorelate/**`), surface it to Ste at once. Whenever a remote or host is involved, state which remote every push and API call went to.
+**Status:** applied from sole-dev-merge-fixes M4 (live run 3 triage) on. The E2 default was flipped to GitHub (`2addbba`); the GitLab follow-ups are in TODOS.
+
+---
+
 ## L-056 (2026-10-16) — Started a milestone without collecting the work earlier reviews deferred to it
 **Pattern:** sole-dev-merge-fixes M3 was run from plan §4 M3 and tasks.md alone. TODOS.md:96-100 and context-log:160 had scheduled the `$CHANGED_*` word-splitting fix "for M3, which rewrites Stage B", but M3's RED and GREEN went in without it. The §6.8 security review flagged it again as a WARNING, which cost a second RED/GREEN round. It also turned out that the TODO's proposed fix (`-- "${arr[@]}"`) does not work for pre-commit (argparse exits on `--`), which only a probe showed.
 **Rule:** before a milestone's first RED, grep TODOS.md, context-log.md and the last impl-review.md for the milestone's id (`M3`, `Milestone 3`) and fold every deferred item into its RED list, or record why not. Probe each deferred item's proposed fix before writing its test.

@@ -279,8 +279,14 @@ EOF
     [ -z "$(git -C "$MAIN" status --porcelain)" ]
 }
 
-@test "(ii) cwd = main checkout while a linked worktree holds the task → main untouched, snapshot kept, systemMessage names the worktree" {
+_plan_commit() {   # _plan_commit <worktree> — a commit on its branch that touches task-1's plan
+    printf -- '- worked here\n' >> "$1/.claude/dev/active/task-1/task-1-tasks.md"
+    git -C "$1" -c user.name=t -c user.email=t@example.invalid commit -q -am "plan: worked in $1"
+}
+
+@test "(ii) cwd = main checkout while a linked worktree's branch carries plan commits → main untouched, snapshot kept, systemMessage names the worktree" {
     _main_and_worktree
+    _plan_commit "$WT"
     cd "$MAIN"
     _run_with_cwd "$MAIN"
     [ "$status" -eq 0 ]
@@ -320,11 +326,18 @@ EOF
 @test "fail-open: jq missing → pwd fallback, hooks.log line, systemMessage" {
     _main_and_worktree
     "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
-    local b="$BATS_TMP/nojq" t
+    local b="$BATS_TMP/nojq" d
     mkdir -p "$b"
-    for t in bash cat dirname basename date mkdir grep head tail stat sort awk git timeout sed; do
-        ln -sf "$(command -v "$t")" "$b/$t"
+    # Every tool on PATH except jq, so a new command in the hook cannot break this test.
+    # why: 2>/dev/null || true — cp -s skips (and reports) the subdirectories some PATH dirs
+    # hold; -n keeps the first hit, as PATH lookup would
+    IFS=: read -ra dirs <<<"$PATH"
+    for d in "${dirs[@]}"; do
+        [[ -d "$d" ]] || continue
+        cp -sn "$d"/* "$b"/ 2>/dev/null || true
     done
+    rm -f "$b/jq"
+    [ ! -e "$b/jq" ]
     cd "$BATS_TMP"
     _run_with_cwd "$WT" PATH="$b"
     [ "$status" -eq 0 ]
@@ -384,4 +397,74 @@ EOF
     [ "$status" -eq 0 ]
     grep -q 'CHECKPOINT — ActiveStep' "$BATS_TMP/dotclaude/dev/active/task-1/task-1-provenance.log"
     [ -z "$output" ]
+}
+
+# §6.8 M5 (code-reviewer C1): plan dirs are tracked, so every worktree cut from a
+# commit that carries the plan has the task dir. Only a branch that carries plan
+# commits ROOT lacks shows the task is being worked there.
+
+@test "C1: a detached linked worktree holding the task → main gets the CHECKPOINT, stdout empty" {
+    _main_and_worktree
+    git -C "$MAIN" worktree add -q --detach "$BATS_TMP/tool-wt"
+    git -C "$MAIN" worktree remove "$WT"
+    cd "$MAIN"
+    _run_with_cwd "$MAIN"
+    [ "$status" -eq 0 ]
+    grep -q 'CHECKPOINT — ActiveStep' "$MAIN/.claude/dev/active/task-1/task-1-provenance.log"
+    [ -z "$output" ]
+}
+
+@test "C1: a linked worktree on a branch with no plan commits ahead → main gets the CHECKPOINT" {
+    _main_and_worktree
+    cd "$MAIN"
+    _run_with_cwd "$MAIN"
+    [ "$status" -eq 0 ]
+    grep -q 'CHECKPOINT — ActiveStep' "$MAIN/.claude/dev/active/task-1/task-1-provenance.log"
+    [ -z "$output" ]
+}
+
+@test "C1: two branches carry plan commits → main untouched, both worktrees named" {
+    _main_and_worktree
+    WT2="$MAIN/.worktrees/y"
+    git -C "$MAIN" worktree add -q -b y "$WT2"
+    _plan_commit "$WT"
+    _plan_commit "$WT2"
+    cd "$MAIN"
+    _run_with_cwd "$MAIN"
+    [ "$status" -eq 0 ]
+    [ -z "$(git -C "$MAIN" status --porcelain)" ]
+    printf '%s' "$output" | jq -e --arg a "$WT" --arg b "$WT2" '.systemMessage | contains($a) and contains($b)' >/dev/null
+}
+
+@test "W2: no stdin, pwd = main checkout with a worked linked worktree → main still untouched" {
+    _main_and_worktree
+    _plan_commit "$WT"
+    cd "$MAIN"
+    HOME="$BATS_TMP_HOME" run bash -c "bash '$HOOK' 2>/dev/null </dev/null"
+    [ "$status" -eq 0 ]
+    [ -z "$(git -C "$MAIN" status --porcelain)" ]
+    printf '%s' "$output" | jq -e --arg w "$WT" '.systemMessage | contains($w)' >/dev/null
+}
+
+@test "W3: stdin left open with no data → exit 0 after the read timeout, hooks.log says so" {
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    cd "$BATS_TMP"
+    HOME="$BATS_TMP_HOME" run bash -c "sleep 4 | bash '$HOOK' 2>/dev/null"
+    [ "$status" -eq 0 ]
+    grep -q 'CHECKPOINT — ActiveStep' "$BATS_TMP/.claude/dev/active/task-1/task-1-provenance.log"
+    grep -qF 'stdin read' "$BATS_TMP_HOME/.claude/logs/hooks.log"
+}
+
+@test "W6: a repo whose core.worktree points at another project → that project is never written" {
+    VICTIM="$BATS_TMP/victim"
+    "$FIXTURE" "$VICTIM/.claude/dev/active" 1 plain
+    before=$(sha256sum < "$VICTIM/.claude/dev/active/task-1/task-1-provenance.log")
+    mkdir -p "$BATS_TMP/tarball/sub"
+    git init -q "$BATS_TMP/tarball"
+    git -C "$BATS_TMP/tarball" config core.worktree "$VICTIM"
+    cd "$BATS_TMP/tarball/sub"
+    _run_with_cwd "$BATS_TMP/tarball/sub"
+    [ "$status" -eq 0 ]
+    [ "$(sha256sum < "$VICTIM/.claude/dev/active/task-1/task-1-provenance.log")" = "$before" ]
+    grep -qF 'outside' "$BATS_TMP_HOME/.claude/logs/hooks.log"
 }

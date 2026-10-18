@@ -576,7 +576,7 @@ Conventions used in the criteria:
   - **Scanned-files AC:** N/A — PR #44 changed no `.py`/`.sh`. Carries to the next PR that does, by the AC's own wording.
 
 ## Milestone 4: Stage F REST body update, small fixes, docs drift
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 3
 - Complexity: 40%
 - Effort: 0.75 day
@@ -594,6 +594,7 @@ Conventions used in the criteria:
   - PL has `IMPACT_ANALYSIS — Milestone 4: HIGH=0 unresolved` and `CRITICAL_PATH_REVIEW — Milestone 4:`; CL has `GATE APPROVAL: Milestone 4` with `Decision: APPROVED`.
   - The privacy check gives 0 / 0.
 - Result Log:
+  - Merged as PR #45 (rebase, `4ec32db`) after five live `/sole-dev-merge` runs on the branch's own blocks. `extract stage-f-push | grep -c 'gh pr edit'` 0; read-back mismatch, stale body and `trunk` @tests pass; status-table `comm` empty and ADR markers == code (bats guards); bats 732/0; TODOS F entry under `## Completed`; PL + CL lines present; privacy 0/0. Live Stage F: `Stage F: PR #45 body updated (read-back matches)`. Detail in 4.3.
 
 ### Sub-step 4.0: Post-merge of M3, and live gh api probe
 - Status: COMPLETE

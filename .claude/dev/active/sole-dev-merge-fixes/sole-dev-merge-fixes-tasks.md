@@ -756,7 +756,7 @@ Conventions used in the criteria:
   - L-056 grep (TODOS, CL, impl-review for M5): one carry-in, the pre-compact parent-dir symlink skip (TODOS "pre-compact: also skip a project whose `.claude` … is a symlink"; impl-review INFO "into M5") → folded into 5.2/5.3 (Ste). The four-hook `$PWD` TODO stays a TODO (plan 5.4).
 
 ### Sub-step 5.2: RED — parse and pre-compact tests
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 5.1
 - Acceptance Criteria:
@@ -765,6 +765,21 @@ Conventions used in the criteria:
   - (Added at 5.1, Ste — L-056 carry-in.) An @test shows a project whose `.claude/dev/active` (or `.claude`, `.claude/dev`) under ROOT is a symlink gets no CHECKPOINT/compaction appends.
   - RED evidence is recorded.
 - Result Log:
+  - Mode: AFK — auto-dispatched. RED commit `7d69ea0`, explicit pathspec (L-1334); the diff only adds lines (0 removed), so the existing no-stdin tests are unchanged.
+  - **Baseline** at `a530c3f`: `bats --tap SDM tests/hooks` → **732 ok / 0 not-ok**.
+  - `grep -c '^@test' tests/hooks/pre-compact.bats` = **26** (17 + 9); `aa-ma-parse.bats` 27 → **28**.
+  - **New @tests** (pre-compact cases use `payload PreCompact --arg c … '.cwd = $c'`): (i) worktree subdir; (ii) main + linked worktree holding the task; (iii) single checkout; cwd relative / nonexistent (a logging git wrapper proves no `git -C` on it); fail-open: no jq, cwd not a repo, `worktree list` fails; parent symlink `.claude` / `.claude/dev` / `.claude/dev/active` (carry-in); ROOT = `$HOME` with a symlinked `~/.claude` (exempt). parse: `aa_ma_list_active_tasks <root>`.
+  - **RED evidence** (2 files, 46 ok / 8 not-ok), each at the assertion under test:
+    - (i) `grep CHECKPOINT` in the worktree's provenance (today `$PWD` = subdir → silent miss);
+    - (ii) `git -C "$MAIN" status --porcelain` empty (today main's tracked files are appended — L-1347);
+    - cwd relative/nonexistent: no `systemMessage` naming cwd;
+    - no jq: no `jq not on PATH` line (first run failed at `status`: the test PATH lacked `sed`; fixed before commit, then RED at the log grep);
+    - cwd not a repo: no `not in a git repo` line;
+    - worktree list fails: `git` never called (no `worktree list` in the wrapper log);
+    - parent symlinks: `_assert_symlink_skipped` (target appended through the link);
+    - parse `<root>`: 2 tasks from `$PWD`, not 1 from root.
+  - **Passing before the fix (guards, by design):** (iii) single checkout; the `$HOME` exemption.
+  - `tests/test_bats_assertions.py` 2 passed. Privacy 0/0.
 
 ### Sub-step 5.3: GREEN — helper root argument and pre-compact guard
 - Status: PENDING

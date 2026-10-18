@@ -8,7 +8,7 @@
 #     aa_ma_is_disabled                       -> 0 if AA_MA_HOOKS_DISABLE=1 set, else 1
 #     aa_ma_extract_active_milestone <file>   -> stdout: active milestone heading text   (DISPLAY)
 #     aa_ma_extract_active_step <file>        -> stdout: active step heading text        (DISPLAY)
-#     aa_ma_list_active_tasks                 -> stdout: mtime-sorted task-dir paths, one per line
+#     aa_ma_list_active_tasks [root]          -> stdout: mtime-sorted task-dir paths, one per line (root defaults to $PWD)
 #     aa_ma_debug <msg...>                    -> log_debug line (hooks.log + stderr) iff HOOK_DEBUG=1
 #     aa_ma_debug_cmd <label> <command>       -> aa_ma_debug "<label> (<n> chars, first word '<word>')"; never the arguments
 #     AA_MA_PARSE_SH_LOADED                   -> set to 1 once sourced (re-source guard)
@@ -228,19 +228,20 @@ aa_ma_extract_active_step() {
 }
 
 # -----------------------------------------------------------------------------
-# aa_ma_list_active_tasks
+# aa_ma_list_active_tasks [root]
 #   Emits absolute paths to active task directories, one per line,
 #   sorted newest-first by their tasks.md mtime.
 #
 #   Sources (checked in this order):
-#     1. <cwd>/.claude/dev/active/
+#     1. <root>/.claude/dev/active/  (root: $1, default $PWD — a hook passes
+#        the git toplevel of its stdin cwd; sole-dev-merge-fixes M5, L-1347)
 #     2. $HOME/.claude/dev/active/
 #
 #   Collision rule: if the same task name appears in both sources, the
 #   project-local version wins (home version is suppressed).
 # -----------------------------------------------------------------------------
 aa_ma_list_active_tasks() {
-    local project_dir="${PWD}/.claude/dev/active"
+    local project_dir="${1:-$PWD}/.claude/dev/active"
     local home_dir="${HOME}/.claude/dev/active"
     local -A seen_names=()
     local -a rows=()

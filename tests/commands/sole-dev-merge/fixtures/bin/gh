@@ -18,7 +18,7 @@
 #   GH_PR_HEAD_REF       — Stage F's one-call lookup reports this head branch
 #                           (default: the current branch).
 #   GH_PR_CROSS_REPO=false — isCrossRepository in Stage F's lookup and G3's check.
-#   GH_PR_LOOKUP_STATE=OPEN — the state Stage F's lookup reports (OPEN|CLOSED|MERGED).
+#   GH_PR_LOOKUP_STATE=OPEN — the pre-merge state Stage F's and G3's lookups report (OPEN|CLOSED|MERGED).
 #   STUB_PR_NUM=42       — the PR number every arm reports (fixtures/helpers.bash).
 #   GH_PR_LOOKUP_RC=0    — exit code for G3's head/owner lookup.
 #   GH_MERGE_RC=0        — exit code for `gh pr merge`.
@@ -45,7 +45,11 @@ case "${1:-}" in
                     exit 0
                 elif [[ "$*" == *"--json headRefName,isCrossRepository"* ]]; then
                     [[ "${GH_PR_LOOKUP_RC:-0}" == 0 ]] || exit "${GH_PR_LOOKUP_RC}"
-                    printf '%s\t%s\n' "${GH_HEAD_REF:-feature}" "${GH_PR_CROSS_REPO:-false}"
+                    if [[ "$*" == *",state"* ]]; then
+                        printf '%s\t%s\t%s\n' "${GH_HEAD_REF:-feature}" "${GH_PR_CROSS_REPO:-false}" "${GH_PR_LOOKUP_STATE:-OPEN}"
+                    else
+                        printf '%s\t%s\n' "${GH_HEAD_REF:-feature}" "${GH_PR_CROSS_REPO:-false}"
+                    fi
                     exit 0
                 fi
                 # Stage F's lookup: one call, tab-separated (gojq @tsv, as real gh).

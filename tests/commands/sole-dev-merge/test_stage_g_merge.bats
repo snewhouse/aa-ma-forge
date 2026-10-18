@@ -616,3 +616,15 @@ _fingerprint() {
     [ "$(grep -cE "^glab mr merge ${PR_NUM} --rebase" "$CLI_LOG")" -eq 1 ]
     [ "$(grep -c 'mr merge --yes' "$CLI_LOG")" -eq 0 ]
 }
+
+@test "G3: a PR that is not OPEN (stale PR_NUM of an earlier merged PR) → ABORT rc 1, no merge, remote branch kept" {
+    # why: live run 3 C2 MEDIUM — the post-merge read said MERGED and G3 deleted a branch holding unmerged commits
+    _sandbox_with_pushed_feature
+    export CI_STATE=green GH_PR_LOOKUP_STATE=MERGED
+
+    run bash "$G3_SCRIPT"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"ABORT: Stage G3: PR ${PR_NUM} is MERGED, not OPEN"* ]]
+    [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
+    [ -n "$(git ls-remote origin refs/heads/feature)" ]
+}

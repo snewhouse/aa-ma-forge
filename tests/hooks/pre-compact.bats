@@ -414,6 +414,17 @@ _plan_commit() {   # _plan_commit <worktree> — a commit on its branch that tou
     [ -z "$output" ]
 }
 
+@test "C1: a detached worktree whose HEAD carries plan commits (a rebase in progress) → main untouched" {
+    _main_and_worktree
+    _plan_commit "$WT"
+    git -C "$WT" checkout -q --detach
+    cd "$MAIN"
+    _run_with_cwd "$MAIN"
+    [ "$status" -eq 0 ]
+    [ -z "$(git -C "$MAIN" status --porcelain)" ]
+    printf '%s' "$output" | jq -e --arg w "$WT" '.systemMessage | contains($w)' >/dev/null
+}
+
 @test "C1: a linked worktree on a branch with no plan commits ahead → main gets the CHECKPOINT" {
     _main_and_worktree
     cd "$MAIN"

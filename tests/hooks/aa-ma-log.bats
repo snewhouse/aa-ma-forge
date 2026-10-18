@@ -69,6 +69,19 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
     grep -q ' INFO ho ok: a b c$' "$CLAUDE_HOOK_LOG"
 }
 
+@test "terminal control characters (ESC, BEL) reach neither the log nor the systemMessage (§6.8 M5 W7)" {
+    # A repo-controlled name such as $'t\e]0;OWNED\a' would otherwise retitle the
+    # terminal, or write the clipboard (OSC 52), when the notice is shown.
+    . "$LIB"
+    run --separate-stderr fail_open_notice $'h\e[31m' $'t\e]0;OWNED\a is active'
+    [ "$status" -eq 0 ]
+    msg=$(printf '%s' "$output" | jq -r '.systemMessage')
+    # why: `if`, not a bare `!` — bats ignores a negated command's status (test_bats_assertions)
+    if printf '%s' "$msg" | LC_ALL=C grep -q '[[:cntrl:]]'; then echo "control char in: $msg"; return 1; fi
+    if LC_ALL=C grep -q $'[\x01-\x08\x0b-\x1f\x7f]' "$CLAUDE_HOOK_LOG"; then echo "control char in log"; return 1; fi
+    [[ "$msg" == *"OWNED"*"is active"* ]]
+}
+
 @test "log_* masks secrets with their rule id" {
     . "$LIB"
     log_warn h "aws=$AWS gh=$GHP key=$ANT"

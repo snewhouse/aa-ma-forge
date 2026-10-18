@@ -359,3 +359,8 @@ Findings:
 - `CLAUDE_PROJECT_DIR` is always the launch root, never the worktree: not usable as ROOT.
 - Verdict: **A+C confirmed**. "MAINTAIN=0 + A" would also fix (b) but needs a global settings change and leaves (a) unguarded for anyone on MAINTAIN=1. Decision at 5.1.
 - Temporary hook removed: `jq '.hooks.PreCompact // null' <probe>/proj/.claude/settings.json` → `null`.
+
+## [2026-10-18] DECISION L-1347 design: A+C — approved by Ste
+- A: ROOT = `git -C <stdin .cwd> rev-parse --show-toplevel`, falling back to `pwd` when `.cwd` is relative, missing or not a repo. C: the linked-worktree guard (no writes to main's tracked files when a linked worktree holds the same task dir; cache snapshot kept; systemMessage). Basis: the 5.0 probe table above.
+- **L-056 carry-in (Ste):** TODOS "pre-compact: also skip a project whose `.claude`, `.claude/dev` or `.claude/dev/active` is a symlink" folds into 5.2/5.3 (one more RED test; `$HOME/.claude` exempt). Its TODOS entry moves to `## Completed` at 5.4.
+- Not carried in: the four-hook `$PWD` TODO (plan 5.4 keeps it a TODO) and the M4 TODOS entries (Ste, 5.0: leave for a follow-up).

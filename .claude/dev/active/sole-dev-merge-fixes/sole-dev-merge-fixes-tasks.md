@@ -745,12 +745,15 @@ Conventions used in the criteria:
   - **AC4:** PL `PROTOTYPE — Milestone 5: pre-compact writes into the worktree — CONFIRMED A+C`.
 
 ### Sub-step 5.1: Design decision
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 5.0
 - Acceptance Criteria:
   - CL has `DECISION L-1347 design: A+C | MAINTAIN=0+A — approved by Ste`.
 - Result Log:
+  - Mode: HITL — Ste chose via AskUserQuestion.
+  - CL has `DECISION L-1347 design: A+C — approved by Ste` (basis: the 5.0 probe table).
+  - L-056 grep (TODOS, CL, impl-review for M5): one carry-in, the pre-compact parent-dir symlink skip (TODOS "pre-compact: also skip a project whose `.claude` … is a symlink"; impl-review INFO "into M5") → folded into 5.2/5.3 (Ste). The four-hook `$PWD` TODO stays a TODO (plan 5.4).
 
 ### Sub-step 5.2: RED — parse and pre-compact tests
 - Status: PENDING
@@ -759,6 +762,7 @@ Conventions used in the criteria:
 - Acceptance Criteria:
   - `grep -c '^@test' tests/hooks/pre-compact.bats` ≥ 24.
   - The cases use `payload PreCompact '.cwd = …'`, and the existing 16 no-stdin tests are unchanged.
+  - (Added at 5.1, Ste — L-056 carry-in.) An @test shows a project whose `.claude/dev/active` (or `.claude`, `.claude/dev`) under ROOT is a symlink gets no CHECKPOINT/compaction appends.
   - RED evidence is recorded.
 - Result Log:
 

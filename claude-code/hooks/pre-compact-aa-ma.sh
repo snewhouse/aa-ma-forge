@@ -81,8 +81,8 @@ notices=()
 # and with CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=0 it can be a subdirectory,
 # which `$PWD/.claude/dev/active` misses; its git toplevel finds the task. Stdin is
 # read only when it is not a terminal (most tests give none), and with a timeout.
-# why: seconds; must stay well under the 5 s PreCompact timeout that
-# scripts/lib/aa-ma-install-lib.sh registers, leaving time for git and the task loop
+# why: seconds; must stay well under the 5 s PreCompact timeout in the installer's
+# AA_MA_HOOKS table, leaving time for git and the task loop
 readonly STDIN_READ_TIMEOUT_S=2
 
 # root_of <dir> — the git toplevel that contains <dir>: rc 0, or 1 when <dir> is not

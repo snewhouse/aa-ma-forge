@@ -393,3 +393,11 @@ Findings:
   - LOWs: 3 stale comments (hook header, `worked=()`, `mask_secrets` doc); `[[:cntrl:]]` misses C1 (U+009B CSI); a task dir name with newline+TAB injects a relative path through `aa_ma_list_active_tasks`; `src/aa_ma/logsetup.py` text formatter strips only CR/LF.
 - **Contract widened (Ste, "Fix all 6"):** `src/aa_ma/logsetup.py` + `tests/test_logsetup.py`.
 - The merge restarts from Stage A after the fix (as M3/M4).
+
+## [2026-10-18] Live merge run 2 (5.4) — Stage D triage — Ste
+- A OK (31 ahead). B: `check_conventions … Passed`, `no diff source` 0, pytest rc 0 (3138), pre-commit rc 0, guard clean; B-commit no-op. C: Ruff S 2 file(s), ShellCheck 4 file(s); 7 findings. D: 0C/0H/2M/5L. C1 and C2 both confirmed run 1's fixes (patch-id check, no config-run programs on git 2.53, C1 strip, locale restore).
+- Ste: **apply both MEDIUMs, fix LOWs 1–3; from run 3 on only CRITICAL/HIGH block the merge (MEDIUM/LOW → reviewer notes + TODOS).**
+  - M (C2): git < 2.45 ignores `GIT_NO_LAZY_FETCH` → `git --no-lazy-fetch` on the log call (old git: rc 129 → "not worked", nothing runs).
+  - M (C1): a squash-merged / context-shifted branch still counts as worked (fails safe) → actionable notice (`git worktree remove`) + the limit named in comment and CHANGELOG.
+  - L1: a task name ending in LF escapes the skip (`$(basename)` strips it) → parameter expansion. L2: Python exception/stack text keeps controls → strip all but LF on the whole text record. L3: `root_of` accepts an ancestor toplevel from an embedded gitdir → require `$top/.git`.
+  - L4/L5 (git-version notes, comment) → reviewer notes.

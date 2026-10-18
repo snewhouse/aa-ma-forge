@@ -2,15 +2,18 @@
 # Event: PreCompact
 # Mode: Advisory — never blocks compaction
 # Exit: 0 always
-# Fail-open: a failed audit-trail append or a task skipped for a symlink is logged to hooks.log, counted, and reported in one systemMessage; helper missing → systemMessage
+# Fail-open: a failed audit-trail append, a task skipped for a symlink, no jq, an unusable stdin cwd or a failed `git worktree list` is logged to hooks.log and reported in one systemMessage; helper missing → systemMessage
 #
 # PreCompact hook: snapshot AA-MA state before auto-compaction.
 #
-# Iterates ALL active task dirs (project-local .claude/dev/active/ first, then
+# Iterates ALL active task dirs (<root>/.claude/dev/active/ first, then
 # $HOME/.claude/dev/active/, with project-first collision resolution) via the
-# shared aa-ma-parse helper. For each task, writes a snapshot file to
+# shared aa-ma-parse helper. <root> is the git toplevel of stdin's `cwd`, else
+# pwd. For each task, writes a snapshot file to
 # $HOME/.claude/hooks/cache/compaction-snapshots/ and appends checkpoint
-# entries to the task's provenance.log and context-log.md.
+# entries to the task's provenance.log and context-log.md — except when <root>
+# is the main checkout and a linked worktree holds the same task: then nothing
+# is appended there, and a systemMessage names the worktree (L-1347).
 #
 # Honours AA_MA_HOOKS_DISABLE=1 (master kill switch). Always exits 0.
 
@@ -70,8 +73,68 @@ if aa_ma_is_disabled; then
     exit 0
 fi
 
+# Notices for the one systemMessage at exit (see end of file).
+notices=()
+
+# Project root (sole-dev-merge-fixes M5, L-1347). The 5.0 probe showed stdin `cwd`
+# equals this hook's pwd, and under CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=0 it
+# can be a worktree subdirectory, which `$PWD/.claude/dev/active` misses. Its git
+# toplevel finds the task. Read stdin only when it is not a terminal, with a
+# timeout: most tests give none, and compaction must never wait on it.
+ROOT=$PWD
+IN_REPO=0
+INPUT=""
+[[ -t 0 ]] || INPUT=$(timeout 2 cat || true)   # why: a slow or failed stdin read falls back to pwd
+if [[ -n "$INPUT" ]]; then
+    # why: `command -v` prints the path on success; only its status is wanted
+    if ! command -v jq >/dev/null 2>&1; then
+        log_warn "$HOOK" "jq not on PATH; stdin cwd ignored, using pwd"
+        notices+=("jq not on PATH, so pwd was used as the project root")
+    else
+        cwd=$(jq -r '.cwd // empty' <<<"$INPUT" 2>/dev/null || true)   # why: unparsable stdin → empty, reported below
+        if [[ "$cwd" != /* || ! -d "$cwd" ]]; then
+            log_warn "$HOOK" "stdin cwd '$cwd' is not an absolute directory; using pwd"
+            notices+=("stdin cwd '$cwd' is not an absolute directory, so pwd was used")
+        elif top=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null); then   # why: not a repo is reported below
+            ROOT=$top
+            IN_REPO=1
+        else
+            log_warn "$HOOK" "stdin cwd $cwd is not in a git repo; using pwd"
+            notices+=("stdin cwd is not in a git repo, so pwd was used")
+        fi
+    fi
+fi
+
+# Linked-worktree guard (design C). Under MAINTAIN=1 a session rooted in the main
+# checkout that `cd`s into a worktree for each command shows only the main root,
+# so a task that a linked worktree also holds is being worked there; appending
+# here would dirty main's tracked files (L-1347).
+linked=()
+if [ "$IN_REPO" -eq 1 ]; then
+    if wt_list=$(git -C "$ROOT" worktree list --porcelain 2>/dev/null); then   # why: a failure is reported below
+        mapfile -t wts < <(sed -n 's/^worktree //p' <<<"$wt_list")
+        [[ "${wts[0]:-}" == "$ROOT" ]] && linked=("${wts[@]:1}")
+    else
+        log_warn "$HOOK" "git worktree list failed in $ROOT; linked-worktree check skipped"
+        notices+=("git worktree list failed, so $ROOT was written without the linked-worktree check")
+    fi
+fi
+
+# A symlinked .claude, .claude/dev or .claude/dev/active under ROOT can point every
+# append at another project (security audit, M1 §6.8). $HOME/.claude is exempt:
+# it is often a legitimate dotfiles symlink.
+project_link=""
+if [[ "$ROOT" != "$HOME" ]]; then
+    for p in .claude .claude/dev .claude/dev/active; do
+        if [[ -L "$ROOT/$p" ]]; then
+            project_link="$p is a symlink"
+            break
+        fi
+    done
+fi
+
 # Collect all active task dirs (project-first, mtime-sorted, collision-resolved).
-mapfile -t TASKS < <(aa_ma_list_active_tasks)
+mapfile -t TASKS < <(aa_ma_list_active_tasks "$ROOT")
 
 if [ "${#TASKS[@]}" -eq 0 ]; then
     log_info "$HOOK" "no active AA-MA tasks"
@@ -85,10 +148,13 @@ for task_dir in "${TASKS[@]}"; do
     # untrusted clone can commit one in place of a task dir or an AA-MA file,
     # and the appends below would then write into, and the snapshot copy from,
     # any file outside the repo. A regular file in a non-symlinked task dir is
-    # inside that dir, so these checks are enough; a symlinked parent (.claude
-    # itself) is not checked.
+    # inside that dir; a symlinked parent under ROOT is caught by project_link.
+    in_project=0
+    [[ "$task_dir" == "$ROOT/.claude/dev/active/"* ]] && in_project=1
     skip_why=""
-    if [[ -L "$task_dir" ]]; then
+    if [ "$in_project" -eq 1 ] && [ -n "$project_link" ]; then
+        skip_why="project $project_link"
+    elif [[ -L "$task_dir" ]]; then
         skip_why="task dir is a symlink"
     else
         for f in "${AA_MA_FILES[@]}"; do
@@ -138,6 +204,21 @@ for task_dir in "${TASKS[@]}"; do
 
     log_info "$HOOK" "snapshot saved: $task_name"
 
+    elsewhere=""
+    if [ "$in_project" -eq 1 ]; then
+        for wt in "${linked[@]}"; do
+            if [[ -d "$wt/.claude/dev/active/$task_name" ]]; then
+                elsewhere=$wt
+                break
+            fi
+        done
+    fi
+    if [ -n "$elsewhere" ]; then
+        log_info "$HOOK" "$task_name is also in linked worktree $elsewhere; nothing appended in $ROOT"
+        notices+=("$task_name is active in worktree $elsewhere: nothing written to $ROOT; log the CHECKPOINT in $elsewhere")
+        continue
+    fi
+
     # Best-effort: extract active step for CHECKPOINT entry.
     active_step="unknown"
     if [ -f "${task_dir}/${task_name}-tasks.md" ]; then
@@ -181,7 +262,12 @@ done
 # systemMessage is the one channel the user actually sees; the paths are in hooks.log.
 # One notice for both kinds: stdout carries a single JSON object.
 notice=""
-[ "$skipped_tasks" -gt 0 ] && notice="$skipped_tasks task(s) skipped: a symlinked AA-MA file or task dir"
+for n in "${notices[@]}"; do
+    notice="${notice:+$notice; }$n"
+done
+if [ "$skipped_tasks" -gt 0 ]; then
+    notice="${notice:+$notice; }$skipped_tasks task(s) skipped: a symlinked AA-MA file, task dir or project .claude dir"
+fi
 if [ "$append_failures" -gt 0 ]; then
     notice="${notice:+$notice; }$append_failures audit-trail append(s) failed"
 fi

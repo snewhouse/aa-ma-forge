@@ -681,13 +681,26 @@ Conventions used in the criteria:
     - Both are recorded in CL.
 
 ### Sub-step 4.3: Verify, gate, merge with the fixed skill
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 4.2
 - Acceptance Criteria:
   - PL has `IMPACT_ANALYSIS — Milestone 4:` and `CRITICAL_PATH_REVIEW — Milestone 4:`; CL has `GATE APPROVAL: Milestone 4`.
   - The Result Log quotes this PR's live Stage F read-back: a match, or the STATUS line.
 - Result Log:
+  - Mode: HITL — Ste approved the gate ("Approve + live merge"), each live-run triage, the GitHub-only scope ("why glab? we use GitHub") and the final merge ("Merge now"). Recorded at 5.0 on the M5 branch (L-037).
+  - SHAs below are main's. The rebase merge rewrote them; the branch→main map is subject- and tree-identical for all 17 (SHA MAP in PL).
+  - **Gate (AC1):** PL has `IMPACT_ANALYSIS — Milestone 4: HIGH=0 unresolved` (+ addendum after §6.8) and `CRITICAL_PATH_REVIEW — Milestone 4:`. CL has `GATE APPROVAL: Milestone 4` (8/8 pre-merge, `Decision: APPROVED`). §6.8: PASS_WITH_WARNINGS 0C/11W/17I; all 11 WARNINGs fixed test-first (RED `cc8b397` → GREEN `2f8ffec`), mutations 8/8. Fence 3 last `TESTS_VERIFIED passed=732` (`4b65099`). Fence 2 n/a. Fence 1 was BLOCKED pre-merge by design and is re-run at 5.0.
+  - **Live runs** (one CL entry each, "Live merge run N (4.3)"):
+    - Run 1: D 1M/6L → applied: RED `08f1e43` → GREEN `120cd9b`.
+    - Run 2: D 1M/5L (GitLab ownership) → applied: `4cccaec`, `50acd6b` → `4494c55`.
+    - Run 3: D 2M/3L. Ste: "why glab? we use GitHub" → GitHub only (L-057). G3 OPEN check `71cb878` → `7a29b03`; dual-remote default `09ecf1b`, `12a95c7` → `8087233`.
+    - Run 4: D 1M/6L. The default follows origin's host, F refuses another host, G3 accepts its own PR merged at HEAD: `cd7edf0`, `ff840b4` → `dc2a19d`. **Incident (L-058):** a RED test sandbox origin pointed at a real GitLab URL, so unguarded F attempted a push. It hung at the credential prompt and was stopped; no GitLab credentials exist, nothing was sent. All test remotes now use `.invalid` hosts.
+    - **Run 5:** A OK (38 ahead). B: `check_conventions … Passed`, `no diff source` 0, pytest/pre-commit rc 0, guard clean; B-commit no-op. C: Ruff S 0 / ShellCheck 0. D: 0C/0H/0M/4L → reviewer notes; the bitbucket test URL fixed (`4ec32db`), 3 LOWs → TODOS. E1 → E2 in separate Bash calls → `REMOTE_CHOICE=github`. E0 OK. E3 body 59 lines, privacy 0/0.
+  - **Live Stage F read-back (AC2):** `PR_OP=update` / `Stage F: PR #45 body updated (read-back matches)`. Independent `cmp <(cat body; echo) <(gh api …/pulls/45 --jq .body)` rc **0**. Pushed only to `https://github.com/snewhouse/aa-ma-forge.git`.
+  - **Merge:** PR #45 marked ready (a 4.0 draft). G1 `MERGE_STRATEGY=rebase`; G2 `CI_STATE=green` 9/9; Ste approved. G3 `MERGE_DISPATCHED=1` / `Stage G3: merged 45 (strategy=rebase)`. G4 `Stage G4: cleanup done — main at 4ec32db worktree=<wt>` … `STATUS: OK worktree=<wt>`.
+  - **Re-run at 5.0** (from `<main>`): `gh pr view 45` → `MERGED 4ec32db`; `git ls-remote origin refs/heads/fix/sole-dev-merge-fixes-m4 | wc -c` = **0**, `--exit-code` rc **2**; `<main>` HEAD = origin/main = `4ec32db`; `gh pr checks 45` 9/9 pass; `git cherry origin/main fix/sole-dev-merge-fixes-m4` **0 `+`**, then the M4 worktree and branch were removed (branch was `59b48df`). `<main>` had 4 hook-written compaction lines; saved to `<scratch>` and reset (Ste, L-1347), tracked changes **0**.
+  - **Scanned-files AC (M2/M3 carry):** still N/A — PR #45 changed no `.py`/`.sh`.
 
 ## Milestone 5: pre-compact writes into the worktree
 - Status: PENDING

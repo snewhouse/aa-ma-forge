@@ -102,3 +102,4 @@
 [2026-10-18T08:25:13+01:00] LIVE_RUN 4 — stages A..D from bb908ca: A OK (33 ahead); B 26 files (0 py, 0 sh), check_conventions Passed, no diff source 0, pytest rc=0, pre-commit rc=0, guard clean; B-commit no-op; C Ruff S 0 / ShellCheck 0; D 0C/0H/1M/6L
 [2026-10-18T08:25:13+01:00] INCIDENT — a RED test sandbox origin=https://gitlab.com/x/y.git let unguarded Stage F attempt a real push (hung at the credential prompt; task stopped). No GitLab credentials on the machine, nothing sent; github.com twin never ran. Test remotes moved to .invalid hosts + GIT_TERMINAL_PROMPT=0 (L-058)
 [2026-10-18T08:25:13+01:00] TRIAGE — MEDIUM (dual-remote default vs origin) + LOWs 1-4 applied, LOW 5 → TODOS (Ste): RED bd2973a → e3311a4 → GREEN 4a53a0d; bats 732/0, pytest 3137, mutations 4/4
+[2026-10-18T08:29:29+01:00] TESTS_VERIFIED — Milestone 4: Stage F REST body update, small fixes, docs drift — passed=732 cmd=bats --tap tests/commands/sole-dev-merge tests/hooks

@@ -195,7 +195,6 @@ None. No CRITICAL findings.
 - W7 (security, A03, reproduced): `_aa_ma_log_oneline`/`mask_secrets` strip only CR/LF; ESC/BEL in a repo-controlled task name reach the systemMessage (new in M5) and hooks.log (pre-M5). Fix in the shared lib: replace every `[[:cntrl:]]`.
 - W8 (future-proofing): the final-notice comment still says "both kinds" (three sources now).
 - W9 (future-proofing): the no-jq test keeps a fixed tool list (already broke once on `sed`).
-- W10 (code-reviewer W listed as notice accuracy merged into W5) — n/a.
 
 ## INFO
 - code-reviewer: DRY — extract `aa_ma_project_root` before the four-hook TODO copies it; `$HOME` vs realpath ROOT in the exemption.
@@ -205,3 +204,9 @@ None. No CRITICAL findings.
 - future-proofing: plan-local labels ("5.0 probe", "design C") in shipped comments.
 
 ## Probed facts (security-auditor, git 2.53): `rev-parse --show-toplevel` and `worktree list --porcelain` do not run `core.fsmonitor`; `git status` does.
+
+## User Override Decisions (Ste, AskUserQuestion, 2026-10-18)
+- C1: **Accept — fix test-first.** Candidate = linked worktree on a branch whose branch has commits touching `.claude/dev/active/<task>` that ROOT's HEAD lacks; 0 → write ROOT, ≥ 1 → write nothing, name all. W1 is covered by its RED cases.
+- C2: **Accept as a Contract deviation** (CL entry).
+- WARNINGs fixed in the same round: W2/W3/W5 (root + notices), W4/W8/W9 (hygiene), W6/W7 (security; W7 widens the Contract to `claude-code/hooks/lib/aa-ma-log.sh` + `tests/hooks/aa-ma-log.bats`).
+- INFOs → TODOS (deferred §6.8 M5 INFOs).

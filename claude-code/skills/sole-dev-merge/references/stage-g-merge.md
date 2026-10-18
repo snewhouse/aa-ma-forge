@@ -25,7 +25,9 @@ failure. G4 runs only on a successful merge.
     codes per reference.md "WRONG SYNTAX TO NEVER USE".)
 - **G3** (auto-merge + error paths, plan §4.3 + §4.4) — branches on `CI_STATE`:
   - `green` → refuses (ABORT, rc 1) unless `ORIGINAL_BRANCH` is a valid
-    branch name, is not the default branch, and is the PR's head ref. Then
+    branch name, is not the default branch, and is the PR's head ref, the PR is
+    from this repository, and it is OPEN. A PR already MERGED at the local HEAD
+    (this run's own, merged outside the skill) skips the merge call. Then
     `gh pr merge <num> --$MERGE_STRATEGY` — **no `--delete-branch`**: gh's
     local step fails in a worktree and skips the remote delete (L-1332). G3
     reads `gh pr view --json state`: anything but `MERGED` (including a
@@ -281,23 +283,31 @@ case "$CI_STATE" in
             [[ "$ORIGINAL_BRANCH" != "$DEFAULT_BRANCH" ]] \
                 || { echo "ABORT: Stage G3: ORIGINAL_BRANCH is the default branch '$DEFAULT_BRANCH'"; exit 1; }
             # One lookup for whose PR it is: the head name alone matches a fork's same-named PR (§6.8 SEC-2)
-            OWNER_ROW=$(gh pr view "$PR_NUM" --json headRefName,isCrossRepository,state \
-                            --jq '[.headRefName,.isCrossRepository,.state]|@tsv') \
+            OWNER_ROW=$(gh pr view "$PR_NUM" --json headRefName,isCrossRepository,state,headRefOid \
+                            --jq '[.headRefName,.isCrossRepository,.state,.headRefOid]|@tsv') \
                 || { echo "ABORT: Stage G3: cannot read PR $PR_NUM (head/owner lookup failed)"; exit 1; }
-            IFS=$'\t' read -r HEAD_REF XREPO PR_STATE <<<"$OWNER_ROW"
-            # why: a stale PR_NUM of an earlier merged PR on a reused branch name would read MERGED after
-            # the merge call, and the branch delete below would drop unmerged commits (live run 3)
-            [[ "$PR_STATE" == OPEN ]] \
-                || { echo "ABORT: Stage G3: PR $PR_NUM is $PR_STATE, not OPEN"; exit 1; }
+            IFS=$'\t' read -r HEAD_REF XREPO PR_STATE PR_OID <<<"$OWNER_ROW"
             [[ "$HEAD_REF" == "$ORIGINAL_BRANCH" ]] \
                 || { echo "ABORT: Stage G3: PR $PR_NUM head is '$HEAD_REF', not '$ORIGINAL_BRANCH'"; exit 1; }
             [[ "$XREPO" == false ]] \
                 || { echo "ABORT: Stage G3: PR $PR_NUM is from another repository (isCrossRepository=$XREPO)"; exit 1; }
-            # No --delete-branch: gh's local step fails in a worktree and then
-            # skips the remote delete (L-1332). Merge, then decide from the
-            # server state, not gh's rc (E6).
-            gh pr merge "$PR_NUM" --"$MERGE_STRATEGY" \
-                || echo "Stage G3: gh pr merge rc=$? — checking PR state"
+            # why: a stale PR_NUM of an earlier merged PR on a reused branch name would read MERGED after
+            # the merge call, and the branch delete below would drop unmerged commits (live run 3).
+            # This run's own PR merged outside the skill (e.g. the --auto hint) has head = local HEAD (live run 4).
+            case "$PR_STATE" in
+                OPEN)
+                    # No --delete-branch: gh's local step fails in a worktree and then
+                    # skips the remote delete (L-1332). Merge, then decide from the
+                    # server state, not gh's rc (E6).
+                    gh pr merge "$PR_NUM" --"$MERGE_STRATEGY" \
+                        || echo "Stage G3: gh pr merge rc=$? — checking PR state" ;;
+                MERGED)
+                    [[ "$PR_OID" == "$(git rev-parse HEAD)" ]] \
+                        || { echo "ABORT: Stage G3: PR $PR_NUM is MERGED at $PR_OID, not this branch's HEAD"; exit 1; }
+                    echo "Stage G3: PR $PR_NUM already merged at HEAD — no merge call; continuing to the branch delete" ;;
+                *)
+                    echo "ABORT: Stage G3: PR $PR_NUM is $PR_STATE, not OPEN"; exit 1 ;;
+            esac
             # why: an unreadable state counts as not merged, so the step fails safe (no delete)
             STATE=$(gh pr view "$PR_NUM" --json state --jq .state 2>/dev/null || echo UNKNOWN)
             if [[ "$STATE" != MERGED ]]; then

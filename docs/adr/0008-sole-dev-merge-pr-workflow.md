@@ -110,7 +110,7 @@ workflow living at `claude-code/commands/sole-dev-merge.md` (now the skill
 | C | `stage-c-aggregate` | Parallel dispatch of code-reviewer + security-auditor agents, Ruff S and ShellCheck; unified severity contract |
 | D | `stage-d-triage` | Auto-fix CRITICAL S602; HITL panel for HIGH/MEDIUM (Claude executor) |
 | E1 | `stage-e1-remote` | `git remote -v` classification → `n_github` / `n_gitlab` / `n_other` |
-| E2 | `stage-e2-choice` | Single → use it; dual → AUQ bridge with GitHub default (GitLab until sole-dev-merge-fixes M4); neither → abort |
+| E2 | `stage-e2-choice` | Single → use it; dual → AUQ bridge defaulting to the host `origin` pushes to (a fixed GitLab default until sole-dev-merge-fixes M4); neither → abort |
 | E0 | `stage-e0-auth` | `gh`/`glab auth status` for chosen remote → `STATUS: AUTH_REQUIRED` on failure |
 | E3 | `stage-e3-body` | Deterministic PR/MR body generator + optional Haiku enrichment |
 | F | `stage-f-push` | `git push` + idempotent PR/MR detection via `gh pr view`/`glab mr view`; create, or update an existing PR's body over REST (`gh api -X PATCH …/pulls/N -F body=@file`) and read it back → `STATUS: PR_BODY_NOT_UPDATED` on mismatch |
@@ -154,7 +154,7 @@ suppresses it.
   hint (`gh pr merge --auto --rebase`), letting the user re-trigger merge
   out-of-band when CI exceeds 15 minutes.
 - **Remote-aware** — single-github, single-gitlab, and dual-remote cases
-  all handled; GitHub default when both remotes exist (GitLab until sole-dev-merge-fixes M4); AUQ bridge logs
+  all handled; with both remotes the default is origin's host (a fixed GitLab default until sole-dev-merge-fixes M4); AUQ bridge logs
   args for the Claude executor to dispatch real `AskUserQuestion`.
 - **Backward-compatible install** — `scripts/install.sh` auto-discovers
   via `for f in claude-code/commands/*.md` (lines 257-260); zero edit

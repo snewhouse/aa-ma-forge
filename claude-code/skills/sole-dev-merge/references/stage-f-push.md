@@ -80,6 +80,17 @@ fi
 PR_TITLE="${PR_TITLE:0:70}"
 echo "PR_TITLE=$PR_TITLE"
 
+# Push, PR/MR and G3's branch delete all go through origin, so the chosen host must be
+# origin's (live run 4): refuse before any push when origin is on the other forge.
+# why: 2>/dev/null — no origin is caught by the push below, as before
+ORIGIN_PUSH=$(git remote get-url --push origin 2>/dev/null || true)
+if [[ "$REMOTE_CHOICE" == github && "$ORIGIN_PUSH" == *gitlab.com* ]] \
+    || [[ "$REMOTE_CHOICE" == gitlab && "$ORIGIN_PUSH" == *github.com* ]]; then
+    OTHER_HOST=github.com; [[ "$REMOTE_CHOICE" == github ]] && OTHER_HOST=gitlab.com
+    echo "ABORT: Stage F: REMOTE_CHOICE=$REMOTE_CHOICE but origin is on $OTHER_HOST — re-run E2 with REMOTE_CHOICE matching origin"
+    exit 1
+fi
+
 # Idempotent push — first invocation creates the remote-tracking ref;
 # subsequent invocations fast-forward.
 git push -u origin HEAD

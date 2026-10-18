@@ -16,7 +16,7 @@ name; the bash blocks below follow the execution order.
   stops, naming E1, if they are missing.
 - **E2** (remote choice) — one remote → use it; both → emit
   `DUAL_REMOTE_PROMPT` signal + JSON for the Claude executor to dispatch
-  `AskUserQuestion` with GitHub as default; neither github+gitlab → abort.
+  `AskUserQuestion`, defaulting to the host `origin` pushes to (GitHub if neither); neither github+gitlab → abort.
   Saves `REMOTE_CHOICE` to the stage state file. After the dual-remote
   question, re-run E2 with `REMOTE_CHOICE=<answer>` so the answer is saved
   (an explicit env value beats the default).
@@ -143,16 +143,25 @@ fi
 
 if (( n_github >= 1 && n_gitlab >= 1 )); then
     # Dual remote — write AUQ-bridge JSON for the Claude executor to dispatch
-    # the real AskUserQuestion. GitHub is the default (sole-dev-merge-fixes M4,
-    # Ste); the old GitLab default was a Biorelate-era convention.
-    cat > "$AUQ_LOG" <<'JSON'
-{"call":1,"n_options":2,"labels":["GitHub (recommended)","GitLab"],"default":"GitHub (recommended)"}
-JSON
-    echo "DUAL_REMOTE_PROMPT default=GitHub labels=GitHub,GitLab"
+    # the real AskUserQuestion. The default is the host origin pushes to, because
+    # Stage F pushes to and G3 deletes on origin (live run 4); GitHub when origin
+    # is neither. The old fixed GitLab default was a Biorelate-era convention.
+    # why: 2>/dev/null — no origin falls through to the GitHub default
+    case "$(git remote get-url --push origin 2>/dev/null)" in
+        *gitlab.com*) DUAL_DEFAULT=gitlab ;;
+        *)            DUAL_DEFAULT=github ;;
+    esac
+    if [[ "$DUAL_DEFAULT" == gitlab ]]; then
+        printf '%s\n' '{"call":1,"n_options":2,"labels":["GitLab (recommended)","GitHub"],"default":"GitLab (recommended)"}' > "$AUQ_LOG"
+        echo "DUAL_REMOTE_PROMPT default=GitLab labels=GitLab,GitHub"
+    else
+        printf '%s\n' '{"call":1,"n_options":2,"labels":["GitHub (recommended)","GitLab"],"default":"GitHub (recommended)"}' > "$AUQ_LOG"
+        echo "DUAL_REMOTE_PROMPT default=GitHub labels=GitHub,GitLab"
+    fi
     # Until the Claude executor updates REMOTE_CHOICE post-AUQ, default to
-    # github (matches the default option). Tests that don't simulate the
+    # origin's host (matches the default option). Tests that don't simulate the
     # AUQ dispatch read this as the chosen remote.
-    REMOTE_CHOICE="${REMOTE_CHOICE:-github}"
+    REMOTE_CHOICE="${REMOTE_CHOICE:-$DUAL_DEFAULT}"
 elif (( n_github >= 1 )); then
     REMOTE_CHOICE=github
     echo "REMOTE_CHOICE=github"

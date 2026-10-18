@@ -335,3 +335,9 @@ _This log will be updated via context compaction as the task progresses._
 - **LOWs (Ste: "Fix 1–4 now, 5 → TODOS"):** G3 accepts this run's own PR when it is MERGED at the local HEAD (headRefOid) and skips the merge call; MERGED at another commit ABORTs. G3 prose lists the OPEN/cross-repo refusals. The stale TODOS line and the F test header are fixed. `--match-head-commit` → TODOS.
 - **Incident (L-058):** the first RED draft set a sandbox origin to `https://gitlab.com/x/y.git`. With no guard yet, F ran a real `git push` that hung at the credential prompt (600 s timeout); I stopped it. Verified: no GitLab credentials (git's helpers are only for github.com/gist.github.com; no `~/.git-credentials`), so nothing was sent, and the github.com twin never ran. All SDM test remotes now use `.invalid` hosts and `GIT_TERMINAL_PROMPT=0`.
 - RED `bd2973a` (4 not ok, each at its assertion, offline) → `e3311a4` (test tweaks) → GREEN `4a53a0d`. 732/0, pytest 3137, mutations 4/4. A first "MISSED" came from an invalid-regex bats filter (0 tests ran) and was re-run with a valid one.
+
+## [2026-10-18] Live merge run 5 (4.3): Stage D clean of MEDIUM+ — Ste: "Fix bitbucket test, then merge"
+- **A** OK (38 ahead). **B:** 26 files (0 py, 0 sh), `check_conventions … Passed`, `no diff source` 0, rc 0/0, guard clean. **B-commit** no-op. **C** Ruff S 0 / ShellCheck 0. **D:** 0C / 0H / 0M / 4L → reviewer notes.
+- The L-058 breach (an E2 test origin at `https://bitbucket.org/x/y.git`; it reads `git remote -v` only, never pushes) was fixed to `.invalid`. This is a test-only change, so the e_remote suite was re-run and passes (9/9). The skill blocks reviewed in run 5 are unchanged.
+- The other 3 LOWs (F guard: deny-list and substring match; the E2 prompt's second option) → TODOS ("deferred §6.8 INFOs").
+- Run 5 continues E1 → G4 with no restart.

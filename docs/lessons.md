@@ -5,6 +5,12 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-059 (2026-10-18) — A mutation script restored files from HEAD and wiped the uncommitted GREEN it was testing
+**Pattern:** in sole-dev-merge-fixes 5.3 I reused the M4 mutation pattern ("each restored from HEAD", `git checkout -- <file>`) before committing GREEN. The first mutation's restore put `pre-compact-aa-ma.sh` back to the RED commit, the second mutation then aborted on a missing anchor, and the GREEN edits were gone. They were re-applied from the session's own Edit calls; nothing else was lost.
+**Rule:** commit GREEN (or copy each file to a backup) before any mutation run, and assert `git status --porcelain` is empty first. A mutation script restores from that commit or backup, never from an unverified HEAD, and re-checks porcelain = 0 at the end. Cross-ref: global L-1214 (mutation-test every guard; assert the filter matched).
+
+---
+
 ## L-058 (2026-10-18) — A RED test pointed a sandbox remote at a real forge, so the unguarded code tried to push there
 **Pattern:** for the sole-dev-merge-fixes M4 "F refuses a host other than origin's" RED, I ran `git remote set-url origin https://gitlab.com/x/y.git` in a bats sandbox. The guard did not exist yet (that is what RED means), so Stage F ran `git push -u origin HEAD` for real. Git opened an HTTPS connection to gitlab.com and hung at the credential prompt; the suite hit its 600 s limit. Nothing was sent, because no GitLab credentials exist on the machine. The twin test (`https://github.com/a/b.git`) had not run yet. It would have gone through the gh credential helper and attempted an authenticated push to someone else's repo.
 **Rule:** a test remote is a local bare repo, or a reserved host that never resolves: `https://github.com.invalid/…`, `https://gitlab.com.invalid/…` (RFC 2606). Never use a real forge URL, even in tests that only read `git remote -v`: the next edit may run a push against it. Run any test that can reach `git push`/`gh`/`glab` with `GIT_TERMINAL_PROMPT=0` under an outer `timeout`, so a regression fails fast instead of waiting on a prompt. Before running a RED for a guard that blocks a network action, ask what the unguarded code does with the test's inputs.

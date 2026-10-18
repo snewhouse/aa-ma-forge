@@ -7,7 +7,7 @@
 #     log_info|log_warn|log_error <hook-name> <msg> -> append "<date -Is> LEVEL <hook-name>: <msg>"
 #     log_debug <hook-name> <msg>                   -> the same at DEBUG, only when HOOK_DEBUG=1; also to stderr
 #     fail_open_notice <hook-name> <msg>            -> stdout {"systemMessage": "<hook-name>: <msg>"} + a WARN line
-#     mask_secrets <text>                           -> stdout: <text> capped, CR/LF → space, secrets → [REDACTED:<rule id>]
+#     mask_secrets <text>                           -> stdout: <text> capped, control characters → space, secrets → [REDACTED:<rule id>]
 #     AA_MA_LOG_SH_LOADED                           -> set to 1 once sourced (re-source guard)
 #
 # Log file: ${CLAUDE_HOOK_LOG:-$HOME/.claude/logs/hooks.log} (the logging-and-comments contract);
@@ -64,12 +64,17 @@ _aa_ma_log_load_patterns() {
 }
 
 # _aa_ma_log_oneline <text> — <text> cut to the masking window, every control character
-# (CR, LF, ESC, BEL, …) turned into a space. Hook messages quote repo-controlled names;
-# an ESC sequence in one would otherwise reach the terminal from the log or a systemMessage.
+# (CR, LF, ESC, BEL, …, and the C1 range such as U+009B CSI) turned into a space. Hook
+# messages quote repo-controlled names; an escape sequence in one would otherwise reach
+# the terminal from the log or a systemMessage.
 _aa_ma_log_oneline() {
     local text="${1-}"
-    text="${text:0:$((_AA_MA_LOG_MAX_CHARS + _AA_MA_LOG_CAP_OVERLAP))}"
-    printf '%s\n' "${text//[[:cntrl:]]/ }"
+    text="${text:0:$((_AA_MA_LOG_MAX_CHARS + _AA_MA_LOG_CAP_OVERLAP))}"   # chars, in the caller's locale
+    # why: bytes from here on — [[:cntrl:]] matches U+009B in some UTF-8 locales only;
+    # C1 in UTF-8 is 0xC2 0x80-0x9F, and a lone 0x80-0x9F byte may be part of a valid character
+    local LC_ALL=C
+    text="${text//[[:cntrl:]]/ }"
+    printf '%s\n' "${text//$'\xc2'[$'\x80'-$'\x9f']/ }"
 }
 
 mask_secrets() {

@@ -73,7 +73,7 @@ sourced helper so the two scripts cannot drift. **Effort:** S · **Priority:** P
 - `aa-ma-session-end-dirty.sh:59` (and `:77`);
 - `aa-ma-session-start.sh:101`;
 - `aa-ma-commit-signature.sh:103`.
-A session rooted in the main checkout that `cd`s into a worktree for each command, or one whose cwd is a subdirectory, sees the wrong plans or none. pre-compact has the same root cause (global L-1347); sole-dev-merge-fixes M5 adds an optional root argument to the helper and fixes pre-compact only. Apply the same root (stdin `cwd` → toplevel) to these four once M5 lands.
+A session rooted in the main checkout that `cd`s into a worktree for each command, or one whose cwd is a subdirectory, sees the wrong plans or none. pre-compact has the same root cause (global L-1347); sole-dev-merge-fixes M5 adds an optional root argument to the helper and fixes pre-compact only. Apply the same root (stdin `cwd` → toplevel, now `aa_ma_list_active_tasks "$ROOT"`) to these four. pre-compact's version (sole-dev-merge-fixes M5) is the pattern, including its fail-open notices.
 **Why:** commit-signature blocked commits from a main-rooted session for a plan that existed only on the branch (probed rc 2, 2026-10-15).
 **Effort:** S
 **Priority:** P2
@@ -133,9 +133,9 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** a check that sees the actual message has no shapes to guess, and it ends the literal-text bypasses. **Effort:** M · **Priority:** P2
 
-### pre-compact: also skip a project whose `.claude`, `.claude/dev` or `.claude/dev/active` is a symlink
-**What:** sole-dev-merge-fixes 1.8 skips a task whose dir or AA-MA file is a symlink. A cloned repo can still commit `.claude/dev/active` as a symlink to another project's active dir. The hook would then append CHECKPOINT lines to that project's `<task>-provenance.log` and `<task>-context-log.md` and copy its reference.md into the snapshot. Only AA-MA-shaped files are reachable. Skip project tasks when any of the three parents under the project root is `-L`. Don't apply this to `$HOME/.claude`, which is often a legitimate dotfiles symlink. Fold it into M5, which reworks this hook's roots anyway.
-**Why:** §6.8 security review of M1 (INFO, 2026-10-15). **Effort:** S · **Priority:** P3
+### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
+**What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.
+**Why:** sole-dev-merge-fixes plan 5.3 (DRY). Not on main yet: `grep -rn aa_ma_milestone_base claude-code src` is empty (2026-10-18). **Effort:** S · **Priority:** P3
 
 ### /sole-dev-merge: source the repo's own `aa-ma-footer.sh` only inside aa-ma-forge
 **What:** the `footer-resolve` chain tries `<toplevel>/claude-code/hooks/lib/aa-ma-footer.sh` in **any** repo, and the commit-signature hook then trusts that helper's output. Check that the repo is aa-ma-forge (plugin manifest name) before taking the repo copy; otherwise use the installed `~/.claude/hooks/lib` link.
@@ -459,6 +459,11 @@ path and a fixture path, before Deep is evaluated.
 **Why:** each fails closed or is a usability gap; none is a leak. **Effort:** M total · **Priority:** P3
 
 ## Completed
+
+### pre-compact: also skip a project whose `.claude`, `.claude/dev` or `.claude/dev/active` is a symlink
+**What:** sole-dev-merge-fixes 1.8 skips a task whose dir or AA-MA file is a symlink. A cloned repo can still commit `.claude/dev/active` as a symlink to another project's active dir. The hook would then append CHECKPOINT lines to that project's `<task>-provenance.log` and `<task>-context-log.md` and copy its reference.md into the snapshot. Only AA-MA-shaped files are reachable. Skip project tasks when any of the three parents under the project root is `-L`. Don't apply this to `$HOME/.claude`, which is often a legitimate dotfiles symlink. Fold it into M5, which reworks this hook's roots anyway.
+**Why:** §6.8 security review of M1 (INFO, 2026-10-15). **Effort:** S · **Priority:** P3
+**Done:** sole-dev-merge-fixes M5 (`3d800b9`, 2026-10-18): the hook skips ROOT's tasks when any of the three parents is a symlink, `$HOME` exempt; tested in `tests/hooks/pre-compact.bats`.
 
 ### sole-dev-merge Stage F: update an existing PR through REST, not `gh pr edit`
 **What:**

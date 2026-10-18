@@ -479,9 +479,10 @@ seed_g() {
     done
 }
 
-@test "no REMOTE_CHOICE github default remains outside E2's dual-remote prompt" {
-    run grep -rn 'REMOTE_CHOICE:-github' "$SKILL_DIR"
-    [ "$status" -eq 1 ]
+@test "no REMOTE_CHOICE default remains outside E2's dual-remote prompt" {
+    # why: E2's prompt default is the operator's pre-answer; anywhere else a default masks a refused state file (L-055)
+    [ "$(grep -rho 'REMOTE_CHOICE:-' "$SKILL_DIR" | wc -l)" -eq 1 ]
+    [ "$(grep -c 'REMOTE_CHOICE:-github' "$(blk stage-e2-choice)")" -eq 1 ]
 }
 
 @test "F posts this run's body (PR_BODY_FILE), never a stale body.md from another run's dir" {

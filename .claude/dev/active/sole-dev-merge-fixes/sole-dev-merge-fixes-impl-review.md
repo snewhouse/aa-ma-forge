@@ -165,3 +165,43 @@ Window `07a8b45..701d9a7` (reviewed). Audit-Profile: full; 5 agents in parallel.
 
 ### User Override Decisions
 None. No CRITICAL findings.
+
+---
+
+# Milestone 5: pre-compact writes into the worktree — §6.8 (2026-10-18)
+
+- Audit-Profile: full · window `4ec32db..3802ecf` · budget normal · dispatch parallel (5 agents)
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 2 | 5 | 2 | CRITICAL panel |
+| security-auditor | 0 | 2 | 4 | WARN |
+| tdd-sequence-auditor | 0 | 0 | 3 | PASS (RED `7d69ea0` 195 s before GREEN `3d800b9`; re-run reproduced the 8 RED) |
+| context7-evidence-auditor | 0 | 0 | 2 | PASS (no deps; stdin `cwd` contract backed by the live 5.0 probe + captured fixture) |
+| future-proofing-auditor | 0 | 3 | 1 | WARN |
+| **TOTAL** | **2** | **10** | **12** | pending Ste's CRITICAL decisions |
+
+## CRITICAL
+- **C1 (code-reviewer, verified by the orchestrator):** guard C treats "a linked worktree has the task dir" as "the task is worked there". Plan dirs are tracked, so every worktree cut from a commit that carries the plan has it. Here, `git worktree list` puts the detached `codemem-plugin-wt` (holding both plans) first: a main-rooted compaction would skip the CHECKPOINT and say "log the CHECKPOINT in <codemem-plugin-wt>". Plan Risk 3 does not hold. Fix proposed: a candidate is a linked worktree **on a branch** whose branch has commits touching `.claude/dev/active/<task>` that ROOT's HEAD lacks (`git log HEAD..<branch> -- <taskdir>`); 0 → write ROOT, ≥1 → write nothing and name every candidate. Measured here: m5 branch 10 commits for sole-dev-merge-fixes (candidate), prototype branch 1 for code-conventions-impact (candidate), detached tool worktree excluded.
+- **C2 (code-reviewer):** `references/stage-state.md` is outside the M5 Contract `Files:`. Prose-only M4 drift carry-in (`e536836`), recorded in tasks.md but not as a CL deviation.
+
+## WARNING
+- W1 (code-reviewer): no test has a linked worktree without the task, or a detached/unrelated one with it; the `-d` check mutated to `true` survives.
+- W2 (code-reviewer, KISS): stdin `cwd` == pwd (probe), so roots from `$PWD`'s toplevel would also work and keep the guard on in the no-stdin / no-jq paths (today IN_REPO=0 there → main dirtied, L-1347 itself).
+- W3 (code-reviewer): `INPUT=$(timeout 2 cat || true)` swallows rc 124/127 silently.
+- W4 (code-reviewer + future-proofing): `timeout 2` unnamed, no unit, no link to the 5 s PreCompact timeout in `scripts/lib/aa-ma-install-lib.sh`.
+- W5 (code-reviewer): fallback notices don't say the linked-worktree check was skipped.
+- W6 (security, A01, reproduced): `rev-parse --show-toplevel` follows a repo-local `core.worktree`, so a tarball/shared-dir repo can root the hook in another project and append there; no containment check of cwd in ROOT. Fix: `cwd_real=$(cd "$cwd" && pwd -P)`, require `"$cwd_real/" == "$top/"*`.
+- W7 (security, A03, reproduced): `_aa_ma_log_oneline`/`mask_secrets` strip only CR/LF; ESC/BEL in a repo-controlled task name reach the systemMessage (new in M5) and hooks.log (pre-M5). Fix in the shared lib: replace every `[[:cntrl:]]`.
+- W8 (future-proofing): the final-notice comment still says "both kinds" (three sources now).
+- W9 (future-proofing): the no-jq test keeps a fixed tool list (already broke once on `sed`).
+- W10 (code-reviewer W listed as notice accuracy merged into W5) — n/a.
+
+## INFO
+- code-reviewer: DRY — extract `aa_ma_project_root` before the four-hook TODO copies it; `$HOME` vs realpath ROOT in the exemption.
+- security: no `-c core.fsmonitor=false` on the new git calls (they don't run it on git 2.53, tested); porcelain without `-z`; check-then-append race (theoretical); clean checks listed.
+- tdd: docs commit is M4 carry-over; literal `src/` rule vacuous; per-file pairing OK.
+- context7: probe lacks the Claude Code version (2.1.302 at 5.0); fixture predates the window, still valid.
+- future-proofing: plan-local labels ("5.0 probe", "design C") in shipped comments.
+
+## Probed facts (security-auditor, git 2.53): `rev-parse --show-toplevel` and `worktree list --porcelain` do not run `core.fsmonitor`; `git status` does.

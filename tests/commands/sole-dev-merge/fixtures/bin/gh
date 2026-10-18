@@ -45,11 +45,7 @@ case "${1:-}" in
                     exit 0
                 elif [[ "$*" == *"--json headRefName,isCrossRepository"* ]]; then
                     [[ "${GH_PR_LOOKUP_RC:-0}" == 0 ]] || exit "${GH_PR_LOOKUP_RC}"
-                    if [[ "$*" == *",state"* ]]; then
-                        printf '%s\t%s\t%s\n' "${GH_HEAD_REF:-feature}" "${GH_PR_CROSS_REPO:-false}" "${GH_PR_LOOKUP_STATE:-OPEN}"
-                    else
-                        printf '%s\t%s\n' "${GH_HEAD_REF:-feature}" "${GH_PR_CROSS_REPO:-false}"
-                    fi
+                    printf '%s\t%s\t%s\n' "${GH_HEAD_REF:-feature}" "${GH_PR_CROSS_REPO:-false}" "${GH_PR_LOOKUP_STATE:-OPEN}"
                     exit 0
                 fi
                 # Stage F's lookup: one call, tab-separated (gojq @tsv, as real gh).
@@ -58,16 +54,6 @@ case "${1:-}" in
                     [[ "${GH_PR_EXISTS:-0}" == "1" ]] || grep -q '^gh pr create' "$LOG" || exit 1
                     printf '%s\t%s\t%s\t%s\t%s\n' "${STUB_PR_NUM:-42}" "https://github.com/test/repo/pull/${STUB_PR_NUM:-42}" \
                         "${GH_PR_CROSS_REPO:-false}" "${GH_PR_HEAD_REF:-$(git branch --show-current)}" "${GH_PR_LOOKUP_STATE:-OPEN}"
-                    exit 0
-                fi
-                # §6.8 M4 CRITICAL-1 fix: Stage F now queries `--jq '.url'` and
-                # `--jq '.number'` to extract PR_URL + PR_NUM. Honour both
-                # filters even when PR_EXISTS=0 (post-create-the-PR-exists).
-                if [[ "$*" == *"--jq .url"* || "$*" == *"--jq '.url'"* ]]; then
-                    echo "https://github.com/test/repo/pull/${STUB_PR_NUM:-42}"
-                    exit 0
-                elif [[ "$*" == *"--jq .number"* || "$*" == *"--jq '.number'"* ]]; then
-                    echo "${STUB_PR_NUM:-42}"
                     exit 0
                 fi
                 if [[ "${GH_PR_EXISTS:-0}" == "1" ]]; then

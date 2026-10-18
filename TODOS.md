@@ -93,9 +93,13 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** Stage D LOW reviewer notes on PR #44 (sole-dev-merge-fixes M3). Ste chose 2026-10-17 to file these three here. The Y=R guard item and the two doc-only notes went into M4. **Effort:** S · **Priority:** P3
 
-### sole-dev-merge GitLab path: check the real `glab mr view -F json --jq` output once
+### sole-dev-merge GitLab path: probe the real `glab mr view -F json --jq` output; close three gaps
 **What:** sole-dev-merge-fixes M4 gave Stage F and G3 a GitLab ownership check: `glab mr view [iid] -F json --jq '"\(.iid)\t\(.web_url)\t\(.source_project_id == .target_project_id)\t\(.source_branch)\t\(.state)"'`. The flags and fields come from the glab docs and the GitLab MR API (Context7). It was not probed, because glab is not installed on the dev machine. On the first real GitLab run, check that the line has 5 tab-separated fields and that `state` is `opened`. Then record the result here, or fix the format.
-**Why:** a format surprise fails closed (treated as not this branch's), but it would stop every GitLab merge. **Effort:** XS · **Priority:** P2
+- Two more GitLab gaps, from live run 3 (Ste, 2026-10-18: "we use GitHub", so the GitHub path only in M4):
+  - Stage F's create path re-reads the new MR with a no-arg `glab mr view`, which selects by branch, and does not check `opened`. Fix: take the iid from the URL `glab mr create` prints (`${url##*/}`, checked numeric), run `glab mr view "$iid"`, and require `opened`.
+  - G3's GitLab branch has no `opened` check before `glab mr merge`, the counterpart of GitHub's new `OPEN` check. A failed `glab mr merge` ends G3 through `set -e` with no `STATUS:` line and no `MERGE_DISPATCHED=0`. Fix: read the MR state after the merge, as GitHub does, then `STATUS: MERGE_FAILED`.
+
+**Why:** a format surprise fails closed (treated as not this branch's), but it would stop every GitLab merge. aa-ma-forge itself is GitHub-only, so none of this runs here. **Effort:** S · **Priority:** P2
 
 ### sole-dev-merge: deferred §6.8 INFOs from sole-dev-merge-fixes M4
 **What:**

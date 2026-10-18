@@ -10,7 +10,7 @@
 the body or create fresh. Title is derived from the topmost Conventional
 Commit subject (truncated to 70 chars) when not explicitly provided.
 
-- **GitHub** — one `gh pr view --json number,url,isCrossRepository,headRefName`
+- **GitHub** — one `gh pr view --json number,url,isCrossRepository,headRefName,state`
   call finds the existing PR. Stage F updates its body only if it is open and
   this branch's own (same repository, head = the current branch). A closed or
   merged PR on a reused branch name leads to a new PR, which Stage F then reads

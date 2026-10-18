@@ -624,7 +624,7 @@ _fingerprint() {
 
     run bash "$G3_SCRIPT"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"ABORT: Stage G3: PR ${PR_NUM} is MERGED, not OPEN"* ]]
+    [[ "$output" == *"ABORT: Stage G3: PR ${PR_NUM} is MERGED at "*", not this branch's HEAD"* ]]
     [ "$(grep -c 'pr merge' "$CLI_LOG")" -eq 0 ]
     [ -n "$(git ls-remote origin refs/heads/feature)" ]
 }

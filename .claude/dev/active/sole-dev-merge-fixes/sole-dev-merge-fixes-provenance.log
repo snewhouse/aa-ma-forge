@@ -98,3 +98,4 @@
 [2026-10-17T22:04:42+01:00] TESTS_VERIFIED — Milestone 4: Stage F REST body update, small fixes, docs drift — passed=727 cmd=bats --tap tests/commands/sole-dev-merge tests/hooks
 [2026-10-18T06:56:37+01:00] LIVE_RUN 3 — stages A..D from df30ae1: A OK (26 ahead); B 25 files (0 py, 0 sh), check_conventions Passed, no diff source 0, pytest rc=0, pre-commit rc=0, guard clean; B-commit no-op; C Ruff S 0 / ShellCheck 0; D 0C/0H/2M/3L
 [2026-10-18T06:56:37+01:00] TRIAGE — Ste: GitHub only. M1 G3 OPEN check (RED 547cecf → GREEN 245e676) + dead gh stub arms; GitLab M2 + merge-failure LOW → TODOS; dual-remote default → GitHub (RED 4117467, 591282a → GREEN 2addbba); bats 728/0; no GitLab/Biorelate push (only remote: github.com; glab not installed)
+[2026-10-18T07:03:23+01:00] TESTS_VERIFIED — Milestone 4: Stage F REST body update, small fixes, docs drift — passed=728 cmd=bats --tap tests/commands/sole-dev-merge tests/hooks

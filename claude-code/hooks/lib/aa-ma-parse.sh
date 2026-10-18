@@ -251,7 +251,7 @@ aa_ma_list_active_tasks() {
         [ -d "$source_dir" ] || continue
         for dir in "$source_dir"/*/; do
             [ -d "$dir" ] || continue
-            task_name=$(basename "$dir")
+            task_name=${dir%/}; task_name=${task_name##*/}   # not $(basename): it strips a trailing LF
             # A control character (e.g. $'x\n0\t..') would split the mtime/path rows below
             # and print a path outside the active dir.
             if [[ "$task_name" == *[[:cntrl:]]* ]]; then

@@ -12,9 +12,8 @@
 # pwd. For each task, writes a snapshot file to
 # $HOME/.claude/hooks/cache/compaction-snapshots/ and appends checkpoint
 # entries to the task's provenance.log and context-log.md — except when <root>
-# is the main checkout and a linked worktree's HEAD carries plan commits <root>'s
-# HEAD lacks: then nothing is appended there, and a systemMessage names the
-# worktree(s) (L-1347).
+# is the main checkout and a linked worktree holds the same task: then nothing is
+# appended there, and a systemMessage names the worktree(s) (L-1347).
 #
 # Honours AA_MA_HOOKS_DISABLE=1 (master kill switch). Always exits 0.
 
@@ -87,14 +86,15 @@ notices=()
 readonly STDIN_READ_TIMEOUT_S=2
 
 # root_of <dir> — the git toplevel that contains <dir>: rc 0, or 1 when <dir> is not
-# in a repo. rc 2 when the toplevel does not contain <dir>: a repo-local
-# core.worktree (a tarball or shared directory, not a clone) can point it at
-# another project, whose AA-MA files this hook would then append to.
+# in a repo. rc 2 when that toplevel does not contain <dir> or has no .git of its
+# own: a repo-local core.worktree (in a tarball, or an embedded gitdir committed to
+# a clone) can point it at another project, whose AA-MA files this hook would
+# then append to.
 root_of() {
     local top real
-    top=$(GIT_NO_LAZY_FETCH=1 git -C "$1" rev-parse --show-toplevel 2>/dev/null) || return 1   # why: not a repo is the caller's case
+    top=$(git -C "$1" rev-parse --show-toplevel 2>/dev/null) || return 1   # why: not a repo is the caller's case
     real=$(cd "$1" 2>/dev/null && pwd -P) || return 1   # why: an unreadable dir reads as not a repo
-    [[ "$real/" == "$top/"* ]] || return 2
+    [[ "$real/" == "$top/"* && -e "$top/.git" ]] || return 2
     printf '%s\n' "$top"
 }
 
@@ -134,8 +134,8 @@ if [ "$rc" -eq 0 ]; then
     ROOT=$top
     IN_REPO=1
 elif [ "$rc" -eq 2 ]; then
-    log_warn "$HOOK" "the git toplevel of $base is outside it (core.worktree?); using pwd, linked-worktree check skipped"
-    notices+=("the git toplevel of $base is outside it, so pwd was used and the linked-worktree check was skipped")
+    log_warn "$HOOK" "the git toplevel of $base is outside it or not a checkout (core.worktree?); using pwd, linked-worktree check skipped"
+    notices+=("the git toplevel of $base is outside it or not a checkout, so pwd was used and the linked-worktree check was skipped")
 elif [ "$from_stdin" -eq 1 ]; then
     log_warn "$HOOK" "stdin cwd $cwd is not in a git repo; using pwd"
     notices+=("stdin cwd is not in a git repo, so pwd was used")
@@ -143,21 +143,14 @@ fi
 
 # Linked-worktree guard (L-1347). Under MAINTAIN=1 a session rooted in the main
 # checkout that `cd`s into a worktree for each command shows only the main root.
-# Plan dirs are tracked, so every worktree has them; a task is being worked in a
-# linked worktree only when its HEAD carries plan commits that ROOT's HEAD lacks
-# (checked per task below). HEAD, not the branch: a rebase detaches it. Appending
-# here would then dirty main's tracked files.
-linked=()   # "<path>\t<HEAD sha>" of each linked worktree
+# Plain rule (forge L-060): when ROOT is the main checkout and a linked worktree
+# holds the same task, append nothing in ROOT — the work may be there, and main's
+# AA-MA files are tracked. No guessing from git history which worktree is worked.
+linked=()   # linked worktree paths, when ROOT is the main checkout
 if [ "$IN_REPO" -eq 1 ]; then
-    if wt_list=$(GIT_NO_LAZY_FETCH=1 git -C "$ROOT" worktree list --porcelain 2>/dev/null); then   # why: a failure is reported below
-        main_wt="" wt=""
-        while IFS= read -r line; do
-            case "$line" in
-                "worktree "*) wt=${line#worktree }; [ -n "$main_wt" ] || main_wt=$wt ;;
-                "HEAD "*)     [ "$wt" = "$main_wt" ] || linked+=("$wt"$'\t'"${line#HEAD }") ;;
-            esac
-        done <<<"$wt_list"
-        [ "$main_wt" = "$ROOT" ] || linked=()   # ROOT is itself a linked worktree: write there
+    if wt_list=$(git -C "$ROOT" worktree list --porcelain 2>/dev/null); then   # why: a failure is reported below
+        mapfile -t wts < <(sed -n 's/^worktree //p' <<<"$wt_list")
+        [[ "${wts[0]:-}" == "$ROOT" ]] && linked=("${wts[@]:1}")   # ROOT is itself a linked worktree: write there
     else
         log_warn "$HOOK" "git worktree list failed in $ROOT; linked-worktree check skipped"
         notices+=("git worktree list failed, so $ROOT was written without the linked-worktree check")
@@ -248,25 +241,17 @@ for task_dir in "${TASKS[@]}"; do
 
     log_info "$HOOK" "snapshot saved: $task_name"
 
-    worked=()   # linked worktrees whose HEAD carries plan commits ROOT's HEAD lacks
+    worked=()   # linked worktrees that hold this task
     if [ "$in_project" -eq 1 ]; then
-        for entry in "${linked[@]}"; do
-            wt=${entry%%$'\t'*}
-            [[ -d "$wt/.claude/dev/active/$task_name" ]] || continue
-            # Patch-ids, not SHAs: the default merge is a rebase, so a merged plan commit
-            # is on ROOT under another SHA. The repo's own config must run no program
-            # here (a gpg.program for signatures, a lazy fetch's core.sshCommand).
-            range="HEAD...${entry#*$'\t'}"
-            # why: a failed log (a ref gone mid-run) reads as "not worked there": append here as before
-            ahead=$(GIT_NO_LAZY_FETCH=1 git -C "$ROOT" -c log.showSignature=false log --no-show-signature --cherry-pick --right-only -1 --format=%h "$range" -- ".claude/dev/active/$task_name" 2>/dev/null || true)
-            [ -n "$ahead" ] && worked+=("$wt")
+        for wt in "${linked[@]}"; do
+            [[ -d "$wt/.claude/dev/active/$task_name" ]] && worked+=("$wt")
         done
     fi
     if [ "${#worked[@]}" -gt 0 ]; then
         where=$(printf '%s, ' "${worked[@]}")
         where=${where%, }
-        log_info "$HOOK" "$task_name has plan commits in linked worktree(s) $where; nothing appended in $ROOT"
-        notices+=("$task_name is active in worktree(s) $where: nothing written to $ROOT; log the CHECKPOINT in the one you are working in")
+        log_info "$HOOK" "$task_name is also in linked worktree(s) $where; nothing appended in $ROOT"
+        notices+=("$task_name is also in worktree(s) $where: nothing written to $ROOT; log the CHECKPOINT in the one you are working in (a merged one: git worktree remove <path>)")
         continue
     fi
 

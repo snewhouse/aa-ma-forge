@@ -341,3 +341,21 @@ _This log will be updated via context compaction as the task progresses._
 - The L-058 breach (an E2 test origin at `https://bitbucket.org/x/y.git`; it reads `git remote -v` only, never pushes) was fixed to `.invalid`. This is a test-only change, so the e_remote suite was re-run and passes (9/9). The skill blocks reviewed in run 5 are unchanged.
 - The other 3 LOWs (F guard: deny-list and substring match; the E2 prompt's second option) → TODOS ("deferred §6.8 INFOs").
 - Run 5 continues E1 → G4 with no restart.
+
+## [2026-10-18] PreCompact probe (5.0) — Ste ran /compact in each case
+Scratch repo `<probe>/proj` with a linked worktree `.worktrees/x` (subdir `sub/`) and a temporary project-level PreCompact hook that logged the hook's `pwd`, stdin `.cwd`, `CLAUDE_PROJECT_DIR`, the MAINTAIN value it saw, and `git -C .cwd rev-parse --show-toplevel`. All triggers `manual`.
+
+| Case | `pwd` (hook) | `.cwd` (stdin) | `CLAUDE_PROJECT_DIR` | toplevel(`.cwd`) |
+|---|---|---|---|---|
+| (a) `cd .worktrees/x/sub`, MAINTAIN=1 | `<probe>/proj` | `<probe>/proj` | `<probe>/proj` | `<probe>/proj` |
+| (b) `cd .worktrees/x/sub`, MAINTAIN=0 (`--settings`; hook saw `0`) | `<probe>/proj/.worktrees/x/sub` | same | `<probe>/proj` | `<probe>/proj/.worktrees/x` |
+| (c) EnterWorktree `probe-c` (MAINTAIN=1) | `<probe>/proj/.claude/worktrees/probe-c` | same | `<probe>/proj` | `<probe>/proj/.claude/worktrees/probe-c` |
+
+Findings:
+- `.cwd` equals the hook's `pwd` in every case: stdin adds no information beyond `$PWD`, but resolving it to the git toplevel does.
+- (a) is the L-1347 setup (Ste's default): neither `pwd` nor `.cwd` shows the `cd`, so the hook can only protect main with the linked-worktree guard (C).
+- (b) `.cwd` follows the `cd` into a subdirectory. Today's `${PWD}/.claude/dev/active` misses it silently; the toplevel resolution (A) finds the worktree.
+- (c) EnterWorktree already moves `pwd` into the worktree, so today's hook writes there; A keeps that.
+- `CLAUDE_PROJECT_DIR` is always the launch root, never the worktree: not usable as ROOT.
+- Verdict: **A+C confirmed**. "MAINTAIN=0 + A" would also fix (b) but needs a global settings change and leaves (a) unguarded for anyone on MAINTAIN=1. Decision at 5.1.
+- Temporary hook removed: `jq '.hooks.PreCompact // null' <probe>/proj/.claude/settings.json` → `null`.

@@ -727,7 +727,7 @@ Conventions used in the criteria:
 - Result Log:
 
 ### Sub-step 5.0: Post-merge of M4, and PreCompact probe
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Prototype-Required: YES
@@ -737,6 +737,12 @@ Conventions used in the criteria:
   - After removal, `jq '.hooks.PreCompact // null' <scratch>/.claude/settings.json` prints `null`.
   - PL has `PROTOTYPE — Milestone 5: pre-compact writes into the worktree — <verdict>`.
 - Result Log:
+  - Mode: HITL — Ste chose the live `/compact` table (AskUserQuestion) and ran `/compact` in each case.
+  - **M4 closed first:** 4.3 Result Log + COMPLETE + SHA MAP (`49a84fe`); fence 1 `pending_steps=0`, CPR and approval present; Milestone 4 COMPLETE (`30749af`, Ste approved); provenance `MILESTONE COMPLETE — Milestone 4` (`dd84607`, L-018). Drift fix `stage-state.md` E2 fallback (`e536836`). Milestone 5 ACTIVE (`512ca1a`); advisory printed nothing.
+  - **AC1:** M5 worktree cut from `origin/main` `4ec32db`, upstream unset; `--is-ancestor` rc **0**.
+  - **AC2:** CL "PreCompact probe (5.0)" has the 3-row table: (a) MAINTAIN=1 + `cd` → `pwd` = `.cwd` = `CLAUDE_PROJECT_DIR` = main root; (b) MAINTAIN=0 + `cd` → `pwd` = `.cwd` = worktree subdir, toplevel = worktree, CPD = root; (c) EnterWorktree → `pwd` = `.cwd` = worktree, CPD = root.
+  - **AC3:** `jq '.hooks.PreCompact // null' <probe>/proj/.claude/settings.json` → `null`.
+  - **AC4:** PL `PROTOTYPE — Milestone 5: pre-compact writes into the worktree — CONFIRMED A+C`.
 
 ### Sub-step 5.1: Design decision
 - Status: PENDING

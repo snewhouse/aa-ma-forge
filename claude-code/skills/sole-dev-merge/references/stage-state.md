@@ -18,7 +18,8 @@ separate per worktree.
   E1's counts in E2 (which must also be numbers), and `SDM_DIR`,
   `CHANGED_FILES` and `ORIGINAL_BRANCH` where they are read. A few inputs
   still have a documented fallback: `DEFAULT_BRANCH` (`main`) in G3/G4, the
-  dual-remote answer (`gitlab`) in E2, and Stage C's file lists (TODOS).
+  dual-remote answer in E2 (the host `origin` pushes to; `github` when it is
+  neither), and Stage C's file lists (TODOS).
 - **Saves are appended** as `KEY=<base64>` by `sdm_save`, and the last write of
   a key wins. B saves `CHANGED_FILES/PY/SH`, E1 `n_github`/`n_gitlab`/`n_other`,
   E2 `REMOTE_CHOICE`, E3 `PR_BODY_FILE`, F `PR_NUM`/`PR_URL`, G1

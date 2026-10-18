@@ -184,6 +184,19 @@ EOF
     grep -qF 'control character' "$CLAUDE_HOOK_LOG"
 }
 
+@test "aa_ma_list_active_tasks skips names that END in a newline (\$(basename) would strip it)" {
+    mkdir -p "$BATS_TMP/.claude/dev/active/"$'\n' "$BATS_TMP/.claude/dev/active/evil"$'\n'
+    "$FIXTURE" "$BATS_TMP/.claude/dev/active" 1 plain
+    load_helper
+    cd "$BATS_TMP"
+    HOME="$BATS_TMP_HOME"
+    export HOME
+    mapfile -t tasks < <(aa_ma_list_active_tasks)
+    [ "${#tasks[@]}" -eq 1 ]
+    [ "${tasks[0]}" = "$BATS_TMP/.claude/dev/active/task-1" ]
+    [ "$(grep -cF 'control character' "$CLAUDE_HOOK_LOG")" -eq 2 ]
+}
+
 @test "aa_ma_list_active_tasks emits nothing when no task dirs exist" {
     load_helper
     cd "$BATS_TMP"

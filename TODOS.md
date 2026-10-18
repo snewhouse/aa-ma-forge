@@ -142,6 +142,18 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 - The symlink checks and the appends are check-then-use; an O_NOFOLLOW append helper would close the race (needs a process racing the compaction).
 **Why:** sole-dev-merge-fixes M5 §6.8 INFOs (code-reviewer, security-auditor), deferred by Ste 2026-10-18. **Effort:** S · **Priority:** P3
 
+### pre-compact: deferred M5 live-run-3 findings (MEDIUM/LOW, stop rule)
+**What:**
+- MEDIUM: ROOT is always the git toplevel, so a plan under `<repo>/sub/.claude/dev/active` (session launched in `sub/`) gets no snapshot or CHECKPOINT, and only an INFO log line says so. Use `$base` when `$base/.claude/dev/active` exists, else walk up to the toplevel. No such layout exists in ~/projects or ~/dev today (code-reviewer scan).
+- The early "no active AA-MA tasks" exit drops the collected notices; emit them before `exit 0`.
+- No `timeout` binary (macOS without coreutils) → the stdin read fails (rc 127) every run; add a notice or use `read -t`.
+- The "stdin cwd is not in a git repo" notice also fires when git refuses the repo (safe.directory); word it "git could not resolve a toplevel".
+- A TAB/LF in the root path itself splits `aa_ma_list_active_tasks` rows (needs a tar-extracted dir; `git clone` turns them into spaces): skip a `source_dir` holding a control character, or emit NUL-delimited rows.
+- `root_of` accepts an ancestor checkout reached through a committed embedded gitdir whose `core.worktree` names the enclosing repo (the user's own project; not an escalation over fsmonitor): compare `--absolute-git-dir` with `$top/.git` or its gitfile target.
+- Unicode bidi/line-separator characters (U+202E, U+2028/2029) survive both log writers.
+- Comment at the `linked=` assignment reads as its failure case; reword.
+**Why:** sole-dev-merge-fixes M5 live run 3, Stage C (code-reviewer 1M/5L, security-auditor 3L); deferred under Ste's stop rule (only CRITICAL/HIGH block). **Effort:** S · **Priority:** P3
+
 ### /sole-dev-merge Stage D: only CRITICAL/HIGH block and restart a merge run
 **What:** in `references/stage-d-triage.md`, route MEDIUM and LOW findings to reviewer notes and TODOS, and ask the operator (AskUserQuestion) only for CRITICAL and HIGH. Only an applied CRITICAL/HIGH fix restarts the run from Stage A. Update the Stage D row in ADR-0008 and the d_triage bats tests.
 **Why:** each run sends fresh reviewers at new code, so a gate that stops on MEDIUM never converges: M4 took 5 live runs and M5 3, every one with new MEDIUMs in the previous round's fix (forge L-060). Ste decided the rule 2026-10-18; M5 used it by hand from run 3. **Effort:** S · **Priority:** P1

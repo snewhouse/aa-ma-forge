@@ -63,12 +63,13 @@ _aa_ma_log_load_patterns() {
     _AA_MA_SECRET_PATTERNS_OK=1
 }
 
-# _aa_ma_log_oneline <text> — <text> cut to the masking window, CR and LF turned into spaces.
+# _aa_ma_log_oneline <text> — <text> cut to the masking window, every control character
+# (CR, LF, ESC, BEL, …) turned into a space. Hook messages quote repo-controlled names;
+# an ESC sequence in one would otherwise reach the terminal from the log or a systemMessage.
 _aa_ma_log_oneline() {
     local text="${1-}"
     text="${text:0:$((_AA_MA_LOG_MAX_CHARS + _AA_MA_LOG_CAP_OVERLAP))}"
-    text="${text//$'\r'/ }"
-    printf '%s\n' "${text//$'\n'/ }"
+    printf '%s\n' "${text//[[:cntrl:]]/ }"
 }
 
 mask_secrets() {

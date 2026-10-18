@@ -76,15 +76,37 @@ fi
 # Notices for the one systemMessage at exit (see end of file).
 notices=()
 
-# Project root (sole-dev-merge-fixes M5, L-1347). The 5.0 probe showed stdin `cwd`
-# equals this hook's pwd, and under CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=0 it
-# can be a worktree subdirectory, which `$PWD/.claude/dev/active` misses. Its git
-# toplevel finds the task. Read stdin only when it is not a terminal, with a
-# timeout: most tests give none, and compaction must never wait on it.
-ROOT=$PWD
-IN_REPO=0
+# Project root (global L-1347). A live /compact probe (sole-dev-merge-fixes
+# context-log, "PreCompact probe (5.0)") showed stdin `cwd` equals this hook's pwd,
+# and with CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=0 it can be a subdirectory,
+# which `$PWD/.claude/dev/active` misses; its git toplevel finds the task. Stdin is
+# read only when it is not a terminal (most tests give none), and with a timeout.
+# why: seconds; must stay well under the 5 s PreCompact timeout that
+# scripts/lib/aa-ma-install-lib.sh registers, leaving time for git and the task loop
+readonly STDIN_READ_TIMEOUT_S=2
+
+# root_of <dir> — the git toplevel that contains <dir>: rc 0, or 1 when <dir> is not
+# in a repo. rc 2 when the toplevel does not contain <dir>: a repo-local
+# core.worktree (a tarball or shared directory, not a clone) can point it at
+# another project, whose AA-MA files this hook would then append to.
+root_of() {
+    local top real
+    top=$(git -C "$1" rev-parse --show-toplevel 2>/dev/null) || return 1   # why: not a repo is the caller's case
+    real=$(cd "$1" 2>/dev/null && pwd -P) || return 1   # why: an unreadable dir reads as not a repo
+    [[ "$real/" == "$top/"* ]] || return 2
+    printf '%s\n' "$top"
+}
+
+base=$PWD   # the directory whose toplevel becomes ROOT
+from_stdin=0
 INPUT=""
-[[ -t 0 ]] || INPUT=$(timeout 2 cat || true)   # why: a slow or failed stdin read falls back to pwd
+if [[ ! -t 0 ]]; then
+    INPUT=$(timeout "$STDIN_READ_TIMEOUT_S" cat) || {
+        rc=$?
+        log_warn "$HOOK" "stdin read failed (rc $rc; 124 = timed out after ${STDIN_READ_TIMEOUT_S}s); using pwd"
+        INPUT=""
+    }
+fi
 if [[ -n "$INPUT" ]]; then
     # why: `command -v` prints the path on success; only its status is wanted
     if ! command -v jq >/dev/null 2>&1; then
@@ -95,25 +117,45 @@ if [[ -n "$INPUT" ]]; then
         if [[ "$cwd" != /* || ! -d "$cwd" ]]; then
             log_warn "$HOOK" "stdin cwd '$cwd' is not an absolute directory; using pwd"
             notices+=("stdin cwd '$cwd' is not an absolute directory, so pwd was used")
-        elif top=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null); then   # why: not a repo is reported below
-            ROOT=$top
-            IN_REPO=1
         else
-            log_warn "$HOOK" "stdin cwd $cwd is not in a git repo; using pwd"
-            notices+=("stdin cwd is not in a git repo, so pwd was used")
+            base=$cwd
+            from_stdin=1
         fi
     fi
 fi
 
-# Linked-worktree guard (design C). Under MAINTAIN=1 a session rooted in the main
-# checkout that `cd`s into a worktree for each command shows only the main root,
-# so a task that a linked worktree also holds is being worked there; appending
-# here would dirty main's tracked files (L-1347).
-linked=()
+ROOT=$PWD
+IN_REPO=0
+rc=0
+# shellcheck disable=SC2310  # why: root_of's rc is the answer (0/1/2), so set -e must not act on it
+top=$(root_of "$base") || rc=$?
+if [ "$rc" -eq 0 ]; then
+    ROOT=$top
+    IN_REPO=1
+elif [ "$rc" -eq 2 ]; then
+    log_warn "$HOOK" "the git toplevel of $base is outside it (core.worktree?); using pwd, linked-worktree check skipped"
+    notices+=("the git toplevel of $base is outside it, so pwd was used and the linked-worktree check was skipped")
+elif [ "$from_stdin" -eq 1 ]; then
+    log_warn "$HOOK" "stdin cwd $cwd is not in a git repo; using pwd"
+    notices+=("stdin cwd is not in a git repo, so pwd was used")
+fi
+
+# Linked-worktree guard (L-1347). Under MAINTAIN=1 a session rooted in the main
+# checkout that `cd`s into a worktree for each command shows only the main root.
+# Plan dirs are tracked, so every worktree has them; a task is being worked in a
+# linked worktree only when its branch carries plan commits that ROOT's HEAD lacks
+# (checked per task below). Appending here would then dirty main's tracked files.
+linked=()   # "<path>\t<branch ref>" of each linked worktree that is on a branch
 if [ "$IN_REPO" -eq 1 ]; then
     if wt_list=$(git -C "$ROOT" worktree list --porcelain 2>/dev/null); then   # why: a failure is reported below
-        mapfile -t wts < <(sed -n 's/^worktree //p' <<<"$wt_list")
-        [[ "${wts[0]:-}" == "$ROOT" ]] && linked=("${wts[@]:1}")
+        main_wt="" wt=""
+        while IFS= read -r line; do
+            case "$line" in
+                "worktree "*) wt=${line#worktree }; [ -n "$main_wt" ] || main_wt=$wt ;;
+                "branch "*)   [ "$wt" = "$main_wt" ] || linked+=("$wt"$'\t'"${line#branch }") ;;
+            esac
+        done <<<"$wt_list"
+        [ "$main_wt" = "$ROOT" ] || linked=()   # ROOT is itself a linked worktree: write there
     else
         log_warn "$HOOK" "git worktree list failed in $ROOT; linked-worktree check skipped"
         notices+=("git worktree list failed, so $ROOT was written without the linked-worktree check")
@@ -204,18 +246,22 @@ for task_dir in "${TASKS[@]}"; do
 
     log_info "$HOOK" "snapshot saved: $task_name"
 
-    elsewhere=""
+    worked=()   # linked worktrees whose branch carries plan commits ROOT's HEAD lacks
     if [ "$in_project" -eq 1 ]; then
-        for wt in "${linked[@]}"; do
-            if [[ -d "$wt/.claude/dev/active/$task_name" ]]; then
-                elsewhere=$wt
-                break
-            fi
+        for entry in "${linked[@]}"; do
+            wt=${entry%%$'\t'*}
+            [[ -d "$wt/.claude/dev/active/$task_name" ]] || continue
+            range="HEAD..${entry#*$'\t'}"
+            # why: a failed log (a ref gone mid-run) reads as "not worked there": append here as before
+            ahead=$(git -C "$ROOT" log -1 --format=%h "$range" -- ".claude/dev/active/$task_name" 2>/dev/null || true)
+            [ -n "$ahead" ] && worked+=("$wt")
         done
     fi
-    if [ -n "$elsewhere" ]; then
-        log_info "$HOOK" "$task_name is also in linked worktree $elsewhere; nothing appended in $ROOT"
-        notices+=("$task_name is active in worktree $elsewhere: nothing written to $ROOT; log the CHECKPOINT in $elsewhere")
+    if [ "${#worked[@]}" -gt 0 ]; then
+        where=$(printf '%s, ' "${worked[@]}")
+        where=${where%, }
+        log_info "$HOOK" "$task_name has plan commits in linked worktree(s) $where; nothing appended in $ROOT"
+        notices+=("$task_name is active in worktree(s) $where: nothing written to $ROOT; log the CHECKPOINT in the one you are working in")
         continue
     fi
 
@@ -260,7 +306,7 @@ done
 
 # Hook stderr on exit 0 reaches only the debug log (code.claude.com/docs/en/hooks), so a
 # systemMessage is the one channel the user actually sees; the paths are in hooks.log.
-# One notice for both kinds: stdout carries a single JSON object.
+# Every notice goes into one systemMessage: stdout carries a single JSON object.
 notice=""
 for n in "${notices[@]}"; do
     notice="${notice:+$notice; }$n"

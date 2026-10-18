@@ -5,6 +5,13 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-060 (2026-10-18) — A review loop with no exit turned a 15-line hook fix into 140 lines and three merge runs
+**Pattern:** sole-dev-merge-fixes M5. Each `/sole-dev-merge` run sent fresh reviewers at the diff; I recommended "Apply" for nearly every MEDIUM/LOW; every applied fix restarted the run and added code for the next run to review. The linked-worktree guard inferred where the session works from git history, so each round found another edge (tracked plan dirs, detached tool worktrees, rebase-merged SHAs, squash merges), and the hardening crept to hostile `.git` dirs and git < 2.45 for an advisory 2-line append. `pre-compact-aa-ma.sh` went 192 → 329 lines, its tests 17 → 39. Ste: "have we over engineered … why do we never get to the end of it??"
+**Rule:** before recommending "Apply" on a review finding, weigh it against what the code is for (an advisory log append is not a security boundary) and say so in the option. When a second round finds new defects in the previous round's fix, stop and ask whether a simpler rule removes the whole class instead of patching the next edge. Prefer a plain, conservative rule (skip and say why) over a heuristic that guesses intent. Only CRITICAL/HIGH findings restart a merge run; MEDIUM/LOW go to notes + TODOS.
+**Status:** applied in M5 (guard simplified); the Stage D rule is a TODO for the skill.
+
+---
+
 ## L-059 (2026-10-18) — A mutation script restored files from HEAD and wiped the uncommitted GREEN it was testing
 **Pattern:** in sole-dev-merge-fixes 5.3 I reused the M4 mutation pattern ("each restored from HEAD", `git checkout -- <file>`) before committing GREEN. The first mutation's restore put `pre-compact-aa-ma.sh` back to the RED commit, the second mutation then aborted on a missing anchor, and the GREEN edits were gone. They were re-applied from the session's own Edit calls; nothing else was lost.
 **Rule:** commit GREEN (or copy each file to a backup) before any mutation run, and assert `git status --porcelain` is empty first. A mutation script restores from that commit or backup, never from an unverified HEAD, and re-checks porcelain = 0 at the end. Cross-ref: global L-1214 (mutation-test every guard; assert the filter matched).

@@ -370,3 +370,17 @@ Findings:
 - Test (ii) changes with the spec: its worktree now carries a plan commit.
 - **Contract deviations (accepted):** `claude-code/skills/sole-dev-merge/references/stage-state.md` (M4 drift carry-in, Ste at 5.0); `claude-code/hooks/lib/aa-ma-log.sh` + `tests/hooks/aa-ma-log.bats` (W7: control characters stripped in the shared one-line helper, the root cause of escape bytes reaching the systemMessage); one comment line in `scripts/lib/aa-ma-install-lib.sh` (W4: the 5 s PreCompact timeout names the hook's stdin read).
 - WARNINGs W2–W9 fixed in the same RED → GREEN; INFOs → TODOS.
+
+## [2026-10-18] GATE APPROVAL: Milestone 5: pre-compact writes into the worktree
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion, "Approve + live merge")
+- Criteria verified: 6/6 pre-merge:
+  - `aa_ma_list_active_tasks <root>` @test + the 5 list tests (aa-ma-parse 28/28);
+  - `pre-compact.bats` 0 not-ok, 33 @tests (≥ 24);
+  - case (ii): main porcelain empty, snapshot exists, `jq -e .systemMessage` 0;
+  - relative / nonexistent stdin cwd → pwd fallback, no `git -C` on it;
+  - privacy 0/0;
+  - PL PROTOTYPE, IMPACT_ANALYSIS (HIGH=0 + addendum), CRITICAL_PATH_REVIEW.
+- Fence 3 `TESTS_VERIFIED passed=750`; pytest 3137. §6.8 PASS_WITH_WARNINGS, 0 open CRITICAL.
+- `[post-merge]`: live compaction in a worktree session (recorded at 5.5).
+- Decision: APPROVED

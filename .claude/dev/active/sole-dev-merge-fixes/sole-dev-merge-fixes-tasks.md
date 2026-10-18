@@ -782,7 +782,7 @@ Conventions used in the criteria:
   - `tests/test_bats_assertions.py` 2 passed. Privacy 0/0.
 
 ### Sub-step 5.3: GREEN — helper root argument and pre-compact guard
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 5.2
 - Acceptance Criteria:
@@ -790,6 +790,16 @@ Conventions used in the criteria:
   - `grep -c 'timeout 2 cat' claude-code/hooks/pre-compact-aa-ma.sh` = 1.
   - `bats --tap tests/hooks` gives 0 not-ok, and shellcheck exits 0 on both files.
 - Result Log:
+  - Mode: AFK — auto-dispatched. GREEN commit `3d800b9`, explicit pathspec (2 files).
+  - **Helper:** `aa_ma_list_active_tasks [root]` — `local project_dir="${1:-$PWD}/.claude/dev/active"`; the `$HOME` scan unchanged; Exports header and doc comment updated. `grep -c '\${1:-\$PWD}'` = **1**.
+  - **Hook** (`pre-compact-aa-ma.sh`):
+    - `[[ -t 0 ]] || INPUT=$(timeout 2 cat || true)` (`grep -c 'timeout 2 cat'` = **1**). With stdin: no jq → pwd + notice; `.cwd` not absolute or not a dir → pwd + notice, and no `git -C` on it; else `ROOT=$(git -C "$cwd" rev-parse --show-toplevel)`; not a repo → pwd + notice. No stdin → pwd, silent (legacy tests).
+    - Guard C: only when ROOT came from git. `git -C "$ROOT" worktree list --porcelain`; if ROOT is the first (main) entry, each later entry holding `.claude/dev/active/<task>` makes the hook keep the snapshot, append nothing in ROOT, and add `<task> is active in worktree <wt>: nothing written to <ROOT>; log the CHECKPOINT in <wt>`. A failed `worktree list` → writes as before + notice (fail open).
+    - Carry-in: a symlinked `.claude`, `.claude/dev` or `.claude/dev/active` under ROOT skips ROOT's tasks (counted with the other symlink skips); ROOT = `$HOME` exempt.
+    - Every notice is logged and joined into the one systemMessage at exit. A run with no active tasks still exits silently (its log lines stay).
+  - **AC:** `bats --tap tests/commands/sole-dev-merge tests/hooks` → **742 ok / 0 not-ok** (732 + 10); the two changed files 54/54. shellcheck rc **0** on both files. pytest **3137 passed**.
+  - **Mutations (L-045, L-1214: each filter matched ≥ 1 test), 10/10 caught after one fix to the run itself:** root not passed; guard off; cwd validation off; parent-symlink skip off; `$HOME` exemption off; not-a-repo notice off; worktree-list notice off; helper root ignored; jq notice (systemMessage) off. The first jq mutation removed only the separate `log_warn` and was MISSED: `fail_open_notice` writes the same `WARN … jq not on PATH, so pwd …` line, so it was a duplicate log line, not a gap; the notice mutation is CAUGHT.
+  - **Incident (L-059):** the first mutation run restored files with `git checkout --` before GREEN was committed and reverted the hook to RED. The edits were re-applied from this session, re-verified (54/54, shellcheck 0), committed, and only then mutated. L-059 added (`e24ce1f`).
 
 ### Sub-step 5.4: Verify, gate, merge, live compaction check
 - Status: PENDING

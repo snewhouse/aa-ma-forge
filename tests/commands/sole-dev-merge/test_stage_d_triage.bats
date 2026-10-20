@@ -296,3 +296,28 @@ subprocess.run(cmd, ${SHELL_TRUE})"
     [ "$(git show --name-only --format= HEAD)" = "rep.py" ]
     [ -z "$(git ls-files stray.env)" ]
 }
+
+# Stop rule (Ste, 2026-10-18; forge L-060): only CRITICAL/HIGH go to the operator.
+@test "Stage D routes MEDIUM with LOW to reviewer notes; only HIGH needs the operator" {
+    cd "$BATS_TMP"
+    sandbox_init
+    echo init > a.txt && git add a.txt
+    mkcommit "init"
+    git checkout -q -b feature
+    echo "## d" > NOTES.md && git add NOTES.md
+    mkcommit "docs"
+
+    cat > "${SDM_DIR}/findings.md" <<'EOF2'
+[HIGH]     merge deletes main — NOTES.md:1
+[MEDIUM]   hardening: old git — NOTES.md:1
+[LOW]      cosmetic: wording — NOTES.md:1
+EOF2
+
+    run bash "$SD_SCRIPT"
+    [ "$status" -eq 0 ]
+    grep -qF '[MEDIUM]   hardening: old git' "${SDM_DIR}/reviewer-notes.md"
+    grep -qF '[LOW]      cosmetic: wording' "${SDM_DIR}/reviewer-notes.md"
+    ! grep -qF '[HIGH]' "${SDM_DIR}/reviewer-notes.md" || false
+    [[ "$output" == *"1 HIGH finding(s) need the operator"* ]]
+    [[ "$output" != *"MEDIUM finding(s) require"* ]]
+}

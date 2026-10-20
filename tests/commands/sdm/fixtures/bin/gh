@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# gh — PATH-shadowed stub for tests/commands/sdm (sdm.sh). Logs each call as one line to "$CLI_LOG".
+#
+# PR fields (answered for whatever --jq list sdm.sh asks, in its order; field-order-free):
+#   STUB_PR_NUM=42            number (url is https://github.com/test/repo/pull/<n>)
+#   GH_PR_EXISTS=0            `pr view <branch>` finds a PR (=1), or one was made by `pr create` in this test
+#   GH_PR_LOOKUP_RC=0         rc of `pr view <number>` (finish's lookup)
+#   GH_PR_LOOKUP_STATE=OPEN   state in the lookups (OPEN|CLOSED|MERGED)
+#   GH_PR_HEAD_REF            headRefName (default: the current branch)
+#   GH_PR_CROSS_REPO=false    isCrossRepository
+#   GH_PR_HEAD_OID            headRefOid (default: local HEAD)
+#   GH_PR_STATE=MERGED        state read back after the merge call (`--jq .state` alone)
+# Other arms:
+#   GH_AUTH_OK=1              `auth status` rc 0; =0 → rc 1
+#   GH_CREATE_RC=0            rc of `pr create` (non-zero prints nothing on stdout); its --body-file is copied to the body store
+#   GH_API_PATCH_RC=0         rc of the body PATCH; GH_API_BODY_STORE (default "$CLI_LOG.body") keeps the body
+#   GH_PR_BODY_READBACK       when set, the `--jq .body` read-back prints this
+#   GH_ALLOW_REBASE=true      `api repos/<o>/<r> --jq .allow_rebase_merge` prints this; GH_API_REPO_RC=0 its rc
+#   GH_CHECKS_NONE_CALLS=0    the first N `pr checks` calls say "no checks reported" (rc 1)
+#   GH_WATCH_HANG=0           =1: `pr checks --watch` sleeps until the outer timeout
+#   GH_CHECKS_RC=0            rc of `pr checks`
+#   GH_CHECKS_ROWS            rows a non-watch `pr checks` prints (tab-separated: name, bucket, …)
+#   GH_CHECK_RUNS             check-runs at the head: one "status conclusion" pair per line
+#   GH_CHECK_RUNS_TOTAL       total_count (default: the number of GH_CHECK_RUNS lines); GH_CHECK_RUNS_RC=0
+#   GH_MERGE_RC=0             rc of `pr merge`; GH_MERGE_HEAD_MISMATCH=1 → GraphQL error, rc 1
+set -eu
+LOG="${CLI_LOG:-/dev/null}"
+echo "gh $*" >> "$LOG"
+
+# JQ = the --jq argument (set once, so no helper runs inside $(...) with set -e off)
+JQ=""; prev=""
+for a in "$@"; do [[ "$prev" != --jq ]] || JQ=$a; prev=$a; done
+pr_field() {   # sets V to the value of PR field $1
+    local n="${STUB_PR_NUM:-42}"
+    case "$1" in
+        number) V=$n ;;
+        url) V="https://github.com/test/repo/pull/$n" ;;
+        isCrossRepository) V="${GH_PR_CROSS_REPO:-false}" ;;
+        headRefName) V="${GH_PR_HEAD_REF:-$(git branch --show-current)}" ;;
+        state) V="${GH_PR_LOOKUP_STATE:-OPEN}" ;;
+        headRefOid) V="${GH_PR_HEAD_OID:-$(git rev-parse HEAD)}" ;;
+        *) echo "gh stub: unknown field $1" >&2; exit 3 ;;
+    esac
+}
+print_pr() {   # --jq '[.a,.b]|@tsv' → the fields, tab-separated, in the order asked
+    local f list out=()
+    list=${JQ#[}; list=${list%%]*}
+    IFS=',' read -r -a fs <<<"$list"
+    for f in "${fs[@]}"; do pr_field "${f#.}"; out+=("$V"); done
+    (IFS=$'\t'; echo "${out[*]}")
+}
+
+case "${1:-} ${2:-}" in
+    "auth status")
+        [[ "${GH_AUTH_OK:-1}" == 1 ]] || { echo "You are not logged in" >&2; exit 1; }
+        exit 0 ;;
+    "pr view")
+        if [[ "$JQ" == .state ]]; then echo "${GH_PR_STATE:-MERGED}"; exit 0; fi
+        if [[ "${3:-}" =~ ^[0-9]+$ ]]; then
+            [[ "${GH_PR_LOOKUP_RC:-0}" == 0 ]] || exit "$GH_PR_LOOKUP_RC"
+        else
+            [[ "${GH_PR_EXISTS:-0}" == 1 ]] || grep -q '^gh pr create' "$LOG" \
+                || { echo "no pull requests found for branch \"${3:-}\"" >&2; exit 1; }
+        fi
+        print_pr; exit 0 ;;
+    "pr create")
+        [[ "${GH_CREATE_RC:-0}" == 0 ]] || { echo "pull request create failed" >&2; exit "$GH_CREATE_RC"; }
+        prev=""; for a in "$@"; do [[ "$prev" != --body-file ]] || cat -- "$a" > "${GH_API_BODY_STORE:-$LOG.body}"; prev=$a; done
+        echo "https://github.com/test/repo/pull/${STUB_PR_NUM:-42}"; exit 0 ;;
+    "pr checks")
+        f="${BATS_TEST_TMPDIR:?}/gh-checks-calls"
+        n=$(( $(cat "$f" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$f"   # why: no file yet = 0 calls
+        if [[ "$n" -le "${GH_CHECKS_NONE_CALLS:-0}" ]]; then
+            echo "no checks reported on the '$(git branch --show-current)' branch" >&2; exit 1
+        fi
+        if [[ " $* " == *" --watch "* ]]; then
+            [[ "${GH_WATCH_HANG:-0}" != 1 ]] || sleep 999
+        elif [[ -n "${GH_CHECKS_ROWS:-}" ]]; then
+            printf '%s\n' "$GH_CHECKS_ROWS"
+        fi
+        exit "${GH_CHECKS_RC:-0}" ;;
+    "pr merge")
+        if [[ "${GH_MERGE_HEAD_MISMATCH:-0}" == 1 ]]; then
+            echo "GraphQL: Head branch was modified. Review and try the merge again. (mergePullRequest)" >&2; exit 1
+        fi
+        exit "${GH_MERGE_RC:-0}" ;;
+esac
+
+if [[ "${1:-}" == api ]]; then
+    store="${GH_API_BODY_STORE:-$LOG.body}"
+    if [[ "$*" == *"-X PATCH"* ]]; then
+        [[ "${GH_API_PATCH_RC:-0}" == 0 ]] || exit "$GH_API_PATCH_RC"
+        for a in "$@"; do [[ "$a" != body=@* ]] || cat -- "${a#body=@}" > "$store"; done
+        exit 0
+    elif [[ "$JQ" == .body ]]; then
+        if [[ -n "${GH_PR_BODY_READBACK+x}" ]]; then printf '%s\n' "$GH_PR_BODY_READBACK"
+        else { [[ ! -f "$store" ]] || cat -- "$store"; echo; }; fi   # why: real --jq adds one newline
+        exit 0
+    elif [[ "$*" == *"/check-runs"* ]]; then
+        [[ "${GH_CHECK_RUNS_RC:-0}" == 0 ]] || exit "$GH_CHECK_RUNS_RC"
+        runs="${GH_CHECK_RUNS-completed success}"
+        echo "${GH_CHECK_RUNS_TOTAL:-$(grep -c . <<<"$runs" || true)}"   # why: grep -c exits 1 on zero lines
+        [[ -z "$runs" ]] || printf '%s\n' "$runs"
+        exit 0
+    elif [[ "$JQ" == .allow_rebase_merge ]]; then
+        [[ "${GH_API_REPO_RC:-0}" == 0 ]] || exit "$GH_API_REPO_RC"
+        echo "${GH_ALLOW_REBASE:-true}"; exit 0
+    fi
+fi
+echo "gh stub: unhandled call: gh $*" >&2
+exit 3

@@ -43,7 +43,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - Findings: CL `PROTOTYPE FINDINGS: n=6`.
 
 ### Sub-step 1.1: RED — fixtures and tests
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 1.0
 - Acceptance Criteria:
@@ -55,6 +55,20 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - A RED log here lists each new test with its failure line.
   - The RED commit precedes any GREEN.
 - Result Log:
+  - Mode: AFK — auto-dispatched; 3 parallel port agents (check, ship, finish), lead wrote fixtures, spec and 4 gap tests.
+  - Fixtures: `tests/commands/sdm/fixtures/{bin/gh,bin/pre-commit,helpers.bash}` (old fixtures untouched). gh stub: field-order-free `--json/--jq`, check-runs arm (`GH_CHECK_RUNS`, `_TOTAL`, `_RC`), G1 rc (`GH_API_REPO_RC`), `pr checks` rows (`GH_CHECKS_ROWS`), GraphQL mismatch arm (`GH_MERGE_HEAD_MISMATCH`), unmodelled call → rc 3. pre-commit stub: `PRE_COMMIT_RUN` plays a fixer. helpers: local bare forge + `GIT_CONFIG_*` rewrite of `https://github.com/` (no test git call reaches GitHub), empty `CLAUDE_HOME`, `SDM_UNDER_TEST` override. Smoke-tested end to end against the prototype before the port.
+  - `bats --count tests/commands/sdm` = **N = 147** (check 42, ship 56, finish 49) = 102 ported (35 + 39 + 28) + 45 new ≥ 115.
+  - RED log 1 (this commit, no sdm.sh on the branch): 147/147 `not ok`, each `run` rc 127 (script missing).
+  - RED log 2 (`SDM_UNDER_TEST=` prototype `ca5aaff9`): 136 ok, 11 not ok — the GREEN gaps:
+    - check.bats:443 `b_scope:480` — commits with nothing staged (set -e death);
+    - check.bats:558 new 9 exit table — the prototype's table is empty;
+    - finish.bats:365 `g_merge:556` / :387 `:578` — missing `(isCrossRepository=…)` / `(head/owner lookup failed)`;
+    - finish.bats:398 `g_merge:620` and :617 new 12 — the oid is checked before the state, generic text;
+    - ship.bats:397 `g_poll:134` — interval not validated;
+    - ship.bats:417/:425 `g_merge:82/:91` — no `ship: strategy=` line;
+    - ship.bats:548/:559 — `CI_APPEAR_TIMEOUT_S=09/010` read as octal.
+  - New tests 1–16 present: 1 (ship cancel/fail rows), 2, 3 (finish check-runs), 4 (recovery hint), 5 (ship + finish G1), 6 (G4 plain checkout ×2), 7 (GraphQL mismatch), 8 (subdir: check + finish), 9 (help table), 10 (PR_NUM patterns), 11 (null), 12 (oid ≠ HEAD), 13 (merge fails ×2), 14 (MERGED at HEAD: no strategy, no check-runs, no merge), 15 (lease keeps a moved branch), 16 (insteadOf seam). Mutation-checked by the finish agent: lease, MAIN_NOT_UPDATED guard and `--match-head-commit` each turn a test red.
+  - Open TODOs from 1.0: as tests — 88#3 C-quoted names (check.bats ×2), G2 leading zero (ship.bats `02`/`09`/`010`), review-notes test 1 and lease. Carried, not tested here: `baseRefName` not pinned (LOW), G2 first-check race (P3), commit-msg-stage signature, `emit_aa_ma_footer` merge-base helper, footer-only-inside-forge, install.sh backup, MERGED-arm "re-run only from the feature branch" note (→ M2 SKILL.md), 1.4 review output path (→ 1.4).
 
 ### Sub-step 1.2: GREEN — complete sdm.sh
 - Status: PENDING
@@ -62,7 +76,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
 - Dependencies: Sub-step 1.1
 - Acceptance Criteria:
   - `bats --formatter pretty tests/commands/sdm` prints `N tests, 0 failures` (N from 1.1).
-  - `pre-commit run --files claude-code/skills/sole-dev-merge/scripts/sdm.sh $(find tests/commands/sdm -type f)` passes.
+  - `PRE_COMMIT_FROM_REF=main PRE_COMMIT_TO_REF=HEAD pre-commit run --files claude-code/skills/sole-dev-merge/scripts/sdm.sh $(find tests/commands/sdm -type f)` passes (the range env, else check-conventions exits 2 "no diff source"; TODOS review notes MEDIUM).
   - `git ls-files -s` shows mode 100755 for sdm.sh.
   - `wc -l sdm.sh` ≤ 400.
   - `grep -c '^sdm_footer()' sdm.sh` = 1.

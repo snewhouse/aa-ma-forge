@@ -183,6 +183,16 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** /sole-dev-merge on fix/auditor-threat-model-scope, round 1, 2026-10-20: 0C/0H, 3 MEDIUM + 6 LOW, so nothing blocked. The PR improves on main, which had a tooling-only default with the same list. **Effort:** S · **Priority:** P3. The P1 severity-list item is done in `fix/auditor-authz-g2-wait` (2026-10-20): unauthorized access is in the CRITICAL/HIGH list.
 
+### Stage G2 appear-wait: review notes (fix/auditor-authz-g2-wait)
+**What:**
+- Validate `CI_APPEAR_TIMEOUT_S` as `^[0-9]+$` and `CI_APPEAR_INTERVAL_S` as `^[1-9][0-9]*$` (else use the defaults), as G2 already does for `PR_NUM` and the GitLab `TIMEOUT_S`. An interval of 0 or a non-number spins forever.
+- Wrap the probe in `timeout 30s`, so one stalled gh call cannot hold G2 past its caps.
+- Say in the Stage G summary that the real cap is now 120 s + 900 s.
+- Add a test that drives a real wait (TIMEOUT=2, INTERVAL=1 → "after 2s").
+- Pre-existing: the wait ends at the first registered check, so a fast first check can end `--watch` green before a later workflow registers. Branch protection's required checks are the backstop.
+
+**Why:** /sole-dev-merge on fix/auditor-authz-g2-wait, round 1, 2026-10-20: 0C/0H, 1 MEDIUM + 6 LOW (operator-set env only, so no normal-use path). **Effort:** S · **Priority:** P3
+
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.
 **Why:** sole-dev-merge-fixes plan 5.3 (DRY). Not on main yet: `grep -rn aa_ma_milestone_base claude-code src` is empty (2026-10-18). **Effort:** S · **Priority:** P3

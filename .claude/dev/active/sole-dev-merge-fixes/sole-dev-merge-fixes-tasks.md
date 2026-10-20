@@ -802,7 +802,7 @@ Conventions used in the criteria:
   - **Incident (L-059):** the first mutation run restored files with `git checkout --` before GREEN was committed and reverted the hook to RED. The edits were re-applied from this session, re-verified (54/54, shellcheck 0), committed, and only then mutated. L-059 added (`e24ce1f`).
 
 ### Sub-step 5.4: Verify, gate, merge, live compaction check
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 5.3
 - Acceptance Criteria:
@@ -811,6 +811,10 @@ Conventions used in the criteria:
   - The global L-1347 has a "Fixed in" line (`grep -c 'Fixed in' ~/.claude/docs/lessons.md` grows by 1).
   - A forge TODO for the DRY merge-base reuse with CCI's `aa_ma_milestone_base` exists, and there is 1 CHANGELOG bullet.
 - Result Log:
+  - **Merged:** PR #46 rebase-merged at `d834563` (2026-10-18) by the skill, 3 live runs; the stop rule was applied by hand from run 3. Verified: PR MERGED, remote branch gone (ls-remote rc 2), main = origin/main, 0 tracked changes, cherry `+` 0. SHA MAP in PL (40/40, tip trees identical).
+  - **L-1347:** the "Fixed in" line is present in the global lessons; it now cites main `d2168fe` (was branch `3d800b9`).
+  - **TODO + CHANGELOG:** "`emit_aa_ma_footer`: reuse CCI's milestone merge-base helper" in TODOS.md; 1 pre-compact bullet under CHANGELOG Unreleased/Fixed.
+  - **Live compaction evidence moved to 5.5**, as planned.
 
 ### Sub-step 5.5: Finalize and archive
 - Status: PENDING

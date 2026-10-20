@@ -91,6 +91,26 @@ teardown() {
     [[ "$output" == *"$PR_URL"* ]]
 }
 
+# Live, PR #49 (2026-10-20): polled straight after Stage F, GitHub had no checks yet,
+# `gh pr checks` exited 1 and G2 reported CI_FAILED for a run that went green.
+@test "G2: checks not registered yet → waits for them, then CI_STATE=green" {
+    export GH_WATCH_HANG=0 GH_CHECKS_RC=0 GH_CHECKS_NONE_CALLS=2 CI_APPEAR_INTERVAL_S=0
+
+    run bash "$G2_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"CI_STATE=green"* ]]
+    [ "$(grep -c 'pr checks' "$CLI_LOG")" -ge 3 ]
+}
+
+@test "G2: no check ever registers → says so, then CI_STATE=failed" {
+    export GH_WATCH_HANG=0 GH_CHECKS_RC=0 GH_CHECKS_NONE_CALLS=99 CI_APPEAR_TIMEOUT_S=0 CI_APPEAR_INTERVAL_S=0
+
+    run bash "$G2_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"no checks registered after 0s"* ]]
+    [[ "$output" == *"CI_STATE=failed"* ]]
+}
+
 @test "G2: gh pr checks invoked with --watch + --interval 30 + --fail-fast" {
     export GH_WATCH_HANG=0 GH_CHECKS_RC=0
 

@@ -10,6 +10,9 @@
 #                           999s) so an outer `timeout Ns` triggers RC=124.
 #   GH_CHECKS_RC=0       — exit code for `gh pr checks` (when not hanging).
 #                           Use 0 for green, 1+ for failure. Ignored when HANG=1.
+#   GH_CHECKS_NONE_CALLS=0 — the first N `gh pr checks` calls print gh's real
+#                           "no checks reported on the '<branch>' branch" and exit 1,
+#                           as right after a PR is created (counter in $BATS_TMP).
 #   GH_ALLOW_REBASE=true — `gh api repos/.../allow_rebase_merge` echoes this.
 #                           Set to "false" to simulate rebase-merge disabled.
 #   GH_PR_STATE=MERGED   — `gh pr view ... --json state` echoes this (G3 reads
@@ -71,6 +74,12 @@ case "${1:-}" in
                 ;;
             checks)
                 # CI poll path — supports never-return mode for timeout tests.
+                _none_f="${BATS_TMP:?}/gh-checks-calls"
+                _n=$(( $(cat "$_none_f" 2>/dev/null || echo 0) + 1 )); echo "$_n" > "$_none_f"   # why: no file yet = 0 calls
+                if [[ "$_n" -le "${GH_CHECKS_NONE_CALLS:-0}" ]]; then
+                    echo "no checks reported on the 'feature' branch" >&2
+                    exit 1
+                fi
                 if [[ "${GH_WATCH_HANG:-0}" == "1" ]]; then
                     # Block until outer `timeout` kills us (RC=124).
                     sleep 999

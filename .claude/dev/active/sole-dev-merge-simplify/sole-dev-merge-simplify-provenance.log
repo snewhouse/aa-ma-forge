@@ -1,0 +1,7 @@
+# sole-dev-merge-simplify Provenance Log
+
+[2026-10-20T13:34:11+01:00] Task initialized via /aa-ma-plan
+[2026-10-20T13:34:11+01:00] Commit: 04d2490 — Phase: Planning
+[2026-10-20T13:34:11+01:00] ENG_STANDARDS_DECLARED: themes=[1,2,3,4,5,6] prototype=M1
+[2026-10-20T13:34:11+01:00] PLAN_VERIFIED — rev 4 — PASS WITH WARNINGS — criticals=0 open (6 resolved)
+[2026-10-20T13:34:11+01:00] AA-MA artifacts created

@@ -154,9 +154,9 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 - Comment at the `linked=` assignment reads as its failure case; reword.
 **Why:** sole-dev-merge-fixes M5 live run 3, Stage C (code-reviewer 1M/5L, security-auditor 3L); deferred under Ste's stop rule (only CRITICAL/HIGH block). **Effort:** S · **Priority:** P3
 
-### /sole-dev-merge Stage D: only CRITICAL/HIGH block and restart a merge run
-**What:** in `references/stage-d-triage.md`, route MEDIUM and LOW findings to reviewer notes and TODOS, and ask the operator (AskUserQuestion) only for CRITICAL and HIGH. Only an applied CRITICAL/HIGH fix restarts the run from Stage A. Update the Stage D row in ADR-0008 and the d_triage bats tests.
-**Why:** each run sends fresh reviewers at new code, so a gate that stops on MEDIUM never converges: M4 took 5 live runs and M5 3, every one with new MEDIUMs in the previous round's fix (forge L-060). Ste decided the rule 2026-10-18; M5 used it by hand from run 3. **Effort:** S · **Priority:** P1
+### install.sh links a clone pinned to main; then work on plain branches
+**What:** the 67 links `install.sh` puts in `~/.claude` point into the main checkout, so switching branches there would make work-in-progress (RED hooks included) live for every session. Point the links at a separate clone that stays on main and is fast-forwarded after each merge (like `codemem-plugin-wt`). Then drop linked worktrees for plan work.
+**Why:** Ste asked (2026-10-20) whether worktrees caused problems. Measured: L-1332, L-052 and L-1347 were worktree-only (6 PRs, by-hand G4 merges, all of M5); L-141 is false (worktrees share `origin/HEAD`). Plain branches avoid that class, but not while the live links point at the checkout being switched. **Effort:** S–M · **Priority:** P2
 
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.
@@ -484,6 +484,11 @@ path and a fixture path, before Deep is evaluated.
 **Why:** each fails closed or is a usability gap; none is a leak. **Effort:** M total · **Priority:** P3
 
 ## Completed
+
+### /sole-dev-merge Stage D: only CRITICAL/HIGH block and restart a merge run
+**What:** in `references/stage-d-triage.md`, route MEDIUM and LOW findings to reviewer notes and TODOS, and ask the operator (AskUserQuestion) only for CRITICAL and HIGH. Only an applied CRITICAL/HIGH fix restarts the run from Stage A. Update the Stage D row in ADR-0008 and the d_triage bats tests.
+**Why:** each run sends fresh reviewers at new code, so a gate that stops on MEDIUM never converges: M4 took 5 live runs and M5 3, every one with new MEDIUMs in the previous round's fix (forge L-060). Ste decided the rule 2026-10-18; M5 used it by hand from run 3. **Effort:** S · **Priority:** P1
+**Done:** `fix/sdm-stop-rule` (2026-10-20): `stage-d-triage.md` routes MEDIUM with LOW to reviewer notes and asks only for CRITICAL/HIGH. At most 2 review rounds; round 2 reviews only the fix. Reviewers apply `security-auditor.md` § Threat model. Tested in `test_stage_d_triage.bats`.
 
 ### pre-compact: also skip a project whose `.claude`, `.claude/dev` or `.claude/dev/active` is a symlink
 **What:** sole-dev-merge-fixes 1.8 skips a task whose dir or AA-MA file is a symlink. A cloned repo can still commit `.claude/dev/active` as a symlink to another project's active dir. The hook would then append CHECKPOINT lines to that project's `<task>-provenance.log` and `<task>-context-log.md` and copy its reference.md into the snapshot. Only AA-MA-shaped files are reachable. Skip project tasks when any of the three parents under the project root is `-L`. Don't apply this to `$HOME/.claude`, which is often a legitimate dotfiles symlink. Fold it into M5, which reworks this hook's roots anyway.

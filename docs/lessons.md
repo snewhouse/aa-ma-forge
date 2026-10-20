@@ -5,10 +5,21 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-062 (2026-10-20) — 13 copies of the state loader, and a test that keeps them identical
+**Pattern:** /sole-dev-merge runs each stage by having the model copy a bash block out of markdown, so every block carries its own 26-line `SDM_KEYS`/`sdm_load`/`sdm_save` (13 copies, 35% of the skill's code bytes). `test_stage_state.bats` asserts the copies are byte-identical. A one-line `sdm_save` fix (`39fbac7`) touched 6 files, and each copy gave reviewers more to find. Of the skill's 1,963 lines, 1,526 are bash in fences.
+**Rule:** code needed by two or more stage blocks goes in one sourced script with its own bats tests, and the skill calls it. A test that asserts copies are identical means extract the code; never accept the copies. Add a stage block only when the work truly needs the model between steps.
+**Cross-ref:** retro 2026-10-20 (sole-dev-merge-fixes plan dir); TODOS "install.sh links a clone pinned to main".
+
+## L-061 (2026-10-20) — 0 of 255 review findings bit in real use; using the tool found every real bug
+**Pattern:** across sole-dev-merge-pr-workflow and sole-dev-merge-fixes, 17 review rounds produced findings that were 51% docs/style, 33% hypothetical hardening (hostile `.git`, old git, locales) and 9% bugs made by an earlier fix. None was a bug that hit in use. The bugs that did hit, `--delete-branch` from a worktree (6 PRs), check-conventions rc 2, `gh pr edit` failing silently and pre-compact writing into main, were all found by running the tool. The predecessor's stub test even asserted the buggy call. Meanwhile 61% of code commits rewrote code from earlier in the same PR.
+**Rule:** for tooling, the first acceptance gate is a live run of the smallest working version on the real environment; stub tests alone never certify it. Then review at most 2 rounds per PR. Round 2 reads only the fix. Only CRITICAL/HIGH with a failure path under the stated threat model block (`security-auditor.md` § Threat model); everything else goes to notes and TODOS.
+**Cross-ref:** L-060; global L-1299, L-1294, L-1358.
+
 ## L-060 (2026-10-18) — A review loop with no exit turned a 15-line hook fix into 140 lines and three merge runs
 **Pattern:** sole-dev-merge-fixes M5. Each `/sole-dev-merge` run sent fresh reviewers at the diff; I recommended "Apply" for nearly every MEDIUM/LOW; every applied fix restarted the run and added code for the next run to review. The linked-worktree guard inferred where the session works from git history, so each round found another edge (tracked plan dirs, detached tool worktrees, rebase-merged SHAs, squash merges), and the hardening crept to hostile `.git` dirs and git < 2.45 for an advisory 2-line append. `pre-compact-aa-ma.sh` went 192 → 329 lines, its tests 17 → 39. Ste: "have we over engineered … why do we never get to the end of it??"
 **Rule:** before recommending "Apply" on a review finding, weigh it against what the code is for (an advisory log append is not a security boundary) and say so in the option. When a second round finds new defects in the previous round's fix, stop and ask whether a simpler rule removes the whole class instead of patching the next edge. Prefer a plain, conservative rule (skip and say why) over a heuristic that guesses intent. Only CRITICAL/HIGH findings restart a merge run; MEDIUM/LOW go to notes + TODOS.
-**Status:** applied in M5 (guard simplified); the Stage D rule is a TODO for the skill.
+**Status:** applied in M5 (guard simplified); the Stage D rule landed 2026-10-20 (`fix/sdm-stop-rule`).
+**Repeat (2026-10-20 retro):** the rule to stop already existed. Global L-1299 (2026-09-29: at round 3, set the threat model and agree how the loop ends) and L-1294 (no third patch) fit exactly, and I had read both, yet M4 ran 5 merge runs and M5 3. A lesson that is not wired into the step where the decision is made does not fire. **Stricter:** set the threat model at plan time (a Contract `Threat-Model:` line), not at round 3, and put limits in the skill, agent or gate, not only here.
 
 ---
 

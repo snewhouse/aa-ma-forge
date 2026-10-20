@@ -42,7 +42,7 @@ CLI (sdm.sh, bash, set -euo pipefail; sourceable: main runs only when "${BASH_SO
   sdm.sh ship [--notes FILE]      # origin on github.com, gh auth, body, push, PR create or REST update + read-back, G1, G2.
                                   # prints three lines PR_NUM=<n>, PR_URL=<u>, CI_STATE=green|failed|timeout; STATUS lines exit 0; ABORT exit 1
                                   # body in a mktemp file removed by an EXIT trap; PATCH with `gh api -F body=@file`, read-back trims trailing newlines
-                                  # repo slug from origin's URL, passed as -R/explicit path; origin not on github.com -> ABORT naming the host only (never the URL)
+                                  # repo slug from origin's configured URL (pushurl, else url; no insteadOf expansion — 1.0 finding 1), passed as -R/explicit path; origin not on github.com -> ABORT naming the host only (never the URL)
                                   # the PR is used only if OPEN, isCrossRepository=false and headRefOid == local HEAD; decide on gh's rc, never on stdout
                                   # `pr checks --watch` output goes to /dev/null; only the three lines reach stdout
   sdm.sh finish <PR_NUM>          # PR_NUM must match ^[1-9][0-9]*$ before any gh argv; SHA=$(git rev-parse HEAD), used for check-runs and --match-head-commit;
@@ -51,7 +51,7 @@ CLI (sdm.sh, bash, set -euo pipefail; sourceable: main runs only when "${BASH_SO
                                   # check-runs at SHA: total_count == runs read (else ABORT), all completed, >=1 success, all in success|skipped|neutral,
                                   #   else STATUS: CI_NOT_DONE / CI_FAILED;
                                   # merge --<strategy> --match-head-commit "$SHA"; re-read state, MERGED required before any delete;
-                                  # push origin :refs/heads/<b> (rc captured, not acted on); ls-remote --exit-code decides: 2 gone, 0 BRANCH_NOT_DELETED, else error; G4
+                                  # push --force-with-lease=refs/heads/<b>:$SHA origin :refs/heads/<b> (rc captured, not acted on; 1.0 PROTOTYPE FINDINGS 2); ls-remote --exit-code decides: 2 gone, 0 BRANCH_NOT_DELETED, else error; G4
                                   # exit: 0 = STATUS lines, 1 = ABORT
   sdm.sh help                     # usage + the exit-status table
 Functions: sdm_footer (the one footer resolver: AA_MA_FOOTER_HELPER, repo copy, ~/.claude link, else [ad-hoc])
@@ -62,6 +62,14 @@ Exit table: in sdm.sh between the comment lines "# exit-table:begin" and "# exit
 - Check-runs endpoint (fixture arm): `repos/{o}/{r}/commits/<sha>/check-runs?filter=latest&per_page=100`; fixture env `GH_CHECK_RUNS` (one `status conclusion` pair per line).
 - G2 watch: `timeout $CI_POLL_TIMEOUT gh pr checks N --watch --interval 30 --fail-fast`; `timeout 30` per appear-wait look.
 - CI_TIMEOUT hint: `sdm.sh finish <n>` once CI completes, never `gh pr merge --auto`.
+
+### Prototype facts (Sub-step 1.0, live run on PR #53, 2026-10-20)
+- `git push --force-with-lease=refs/heads/<b>:<sha> origin :refs/heads/<b>` deletes the branch on GitHub (live: ls-remote rc 2 after). A stale lease is refused, rc 1, and the branch survives (probed locally).
+- `git remote get-url --push` expands `insteadOf`; `git config --get remote.origin.pushurl || … remote.origin.url` does not. sdm.sh reads the configured URL; tests rewrite `https://github.com/` to a local forge with `GIT_CONFIG_COUNT/KEY_0/VALUE_0`, so no test git call reaches GitHub.
+- This machine sets `safe.bareRepository=explicit`: tests read a bare repo with `git --git-dir=<bare>`, never `-C`.
+- `gh pr checks` non-TTY rows: `NAME<TAB>BUCKET<TAB>ELAPSED…`; buckets seen: `pass`, `pending`.
+- `gh pr view <branch> -R <slug>` finds the PR by head name even when the branch's upstream is `origin/main` (worktree cut with `-b … origin/main`).
+- A rebase merge rewrites the SHA (head `99d0c845` → `6ad8ad38` on main), so G4's `branch -D` is required, never `-d`.
 
 ### Constants and limits
 - sdm.sh ≤ 400 lines (design audit sized it at 150–200); SKILL.md ≤ 150 lines (M2), ≤ 500 hard limit (`tests/test_prompt_size.py`); no SKILL.md fenced block > 3 lines.

@@ -94,7 +94,7 @@ teardown() {
 # Live, PR #49 (2026-10-20): polled straight after Stage F, GitHub had no checks yet,
 # `gh pr checks` exited 1 and G2 reported CI_FAILED for a run that went green.
 @test "G2: checks not registered yet → waits for them, then CI_STATE=green" {
-    export GH_WATCH_HANG=0 GH_CHECKS_RC=0 GH_CHECKS_NONE_CALLS=2 CI_APPEAR_INTERVAL_S=0
+    export GH_WATCH_HANG=0 GH_CHECKS_RC=0 GH_CHECKS_NONE_CALLS=2 CI_APPEAR_INTERVAL_S=1
 
     run bash "$G2_SCRIPT"
     [ "$status" -eq 0 ]
@@ -103,12 +103,40 @@ teardown() {
 }
 
 @test "G2: no check ever registers → says so, then CI_STATE=failed" {
-    export GH_WATCH_HANG=0 GH_CHECKS_RC=0 GH_CHECKS_NONE_CALLS=99 CI_APPEAR_TIMEOUT_S=0 CI_APPEAR_INTERVAL_S=0
+    export GH_WATCH_HANG=0 GH_CHECKS_RC=0 GH_CHECKS_NONE_CALLS=99 CI_APPEAR_TIMEOUT_S=0 CI_APPEAR_INTERVAL_S=1
 
     run bash "$G2_SCRIPT"
     [ "$status" -eq 0 ]
     [[ "$output" == *"no checks registered after 0s"* ]]
     [[ "$output" == *"CI_STATE=failed"* ]]
+}
+
+@test "G2: a real wait counts its seconds and gives up at the cap" {
+    export GH_WATCH_HANG=0 GH_CHECKS_RC=0 GH_CHECKS_NONE_CALLS=99 CI_APPEAR_TIMEOUT_S=2 CI_APPEAR_INTERVAL_S=1
+
+    run bash "$G2_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"no checks registered after 2s"* ]]
+    [ "$(grep -c 'pr checks' "$CLI_LOG")" -ge 3 ]
+}
+
+@test "G2: a non-numeric wait cap is ignored, never evaluated" {
+    export GH_WATCH_HANG=0 GH_CHECKS_RC=0 GH_CHECKS_NONE_CALLS=1 CI_APPEAR_INTERVAL_S=1
+    export CI_APPEAR_TIMEOUT_S='PR_NUM[$(touch "$BATS_TMP/evaluated")]'   # why: a set name, so bash really evaluates the subscript (probed)
+
+    run bash "$G2_SCRIPT"
+    [ "$status" -eq 0 ]
+    [ ! -e "$BATS_TMP/evaluated" ]
+    [[ "$output" == *"ignoring CI_APPEAR_TIMEOUT_S"* ]]
+    [[ "$output" == *"CI_STATE=green"* ]]
+}
+
+@test "G2: an interval of 0 is ignored (the wait would never advance)" {
+    export GH_WATCH_HANG=0 GH_CHECKS_RC=0 GH_CHECKS_NONE_CALLS=99 CI_APPEAR_TIMEOUT_S=0 CI_APPEAR_INTERVAL_S=0
+
+    run bash "$G2_SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"ignoring CI_APPEAR_INTERVAL_S='0'"* ]]
 }
 
 @test "G2: gh pr checks invoked with --watch + --interval 30 + --fail-fast" {

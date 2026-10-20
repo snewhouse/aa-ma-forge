@@ -183,6 +183,16 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 **What:** G2's appear-wait stops once any check registers, so a fast first check going green before a later workflow registers can end `--watch` green on partial CI. Older than the wait; branch protection's required checks are the backstop. Fix: re-read the check count once after the watch, or rely on required checks.
 **Why:** PR #50 review (2026-10-20), LOW, both reviewers. **Effort:** S · **Priority:** P3
 
+### Stage G2 appear-wait: leading-zero cap and counting (fix/g2-appear-wait-hardening review)
+**What:**
+- `^[0-9]+$` accepts `08`/`09`, which `[[ -ge ]]` rejects as invalid octal on every pass, so the cap never fires. Fails safe; operator env only. Use `^(0|[1-9][0-9]*)$`.
+- LOW:
+  - the "about 17 minutes" and "after Ns" figures count only the sleeps (each look can add up to 30 s);
+  - the defaults 120/10 are written twice;
+  - the real-wait test's `-ge 3` also counts the `--watch` call.
+
+**Why:** /sole-dev-merge on fix/g2-appear-wait-hardening, round 1, 2026-10-20: 0C/0H, 1 MEDIUM + 4 LOW, operator-set env only. Hardening an input outside the threat model keeps turning up the next edge (forge L-060), so leave this until the variables are used for real. **Effort:** S · **Priority:** P3
+
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.
 **Why:** sole-dev-merge-fixes plan 5.3 (DRY). Not on main yet: `grep -rn aa_ma_milestone_base claude-code src` is empty (2026-10-18). **Effort:** S · **Priority:** P3

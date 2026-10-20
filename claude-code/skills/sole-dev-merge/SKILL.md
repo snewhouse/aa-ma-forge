@@ -429,9 +429,9 @@ See [stage-c-review-and-security.md](references/stage-c-review-and-security.md#s
 
 ### Stage D — Findings triage
 
-See [stage-d-triage.md](references/stage-d-triage.md#stage-d--findings-triage) — how findings are routed by severity: the S602 auto-fix, user panels for HIGH/MEDIUM, LOW to reviewer notes.
+See [stage-d-triage.md](references/stage-d-triage.md#stage-d--findings-triage) — how findings are routed by severity: the S602 auto-fix, user panels for CRITICAL/HIGH, MEDIUM and LOW to reviewer notes.
 
-**HIGH and MEDIUM findings go to the user (`AskUserQuestion`: Apply / Dispute / Defer) before Stage E starts.**
+**Only CRITICAL and HIGH findings go to the user (`AskUserQuestion`: Apply / Dispute / Defer) before Stage E starts. MEDIUM and LOW go to reviewer notes and TODOS and never restart the run. At most 2 review rounds per PR; round 2 reviews only the fix (stop rule).**
 
 ### Stage E — Remote detection, choice, auth, AI body generation
 

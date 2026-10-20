@@ -26,6 +26,10 @@ Stage A and printed on its `Stage state:` line.
      Same severity contract; output to `$SDM_DIR/security.md`.
      Focus: input validation, auth/secrets, command injection, path traversal,
      hardcoded creds, OWASP top-10.
+   - **Both prompts:** apply the threat model and severity bar in
+     `security-auditor.md` § Threat model: HIGH or above needs a concrete failure
+     path reachable under it. In round 2 (Stage D stop rule), review only the fix:
+     `git diff <HEAD reviewed in round 1>..HEAD`.
 
 **Step 2 — C3 (Ruff S) + C4 (ShellCheck) + aggregation (single bash block):**
 

@@ -234,14 +234,16 @@ G splits into G1/G2/G3/G4 sub-stages; banner runs before A) — all clean,
 pytest regression (0 failures across 782 tests), and 5-agent §6.8
 post-impl audit at each milestone close.
 
-## Amendment note (2026-10-18): Stage D stop rule — pending
+## Amendment note (2026-10-18): Stage D stop rule — landed 2026-10-20
 
 Decided by Ste during sole-dev-merge-fixes M5: only CRITICAL and HIGH findings
 block a merge run and restart it from Stage A; MEDIUM and LOW go to reviewer
 notes and TODOS. Fresh reviewers each run always find something in the last
 round's fix, so a gate that stops on MEDIUM does not converge (forge L-060).
-The skill change is tracked in TODOS ("/sole-dev-merge Stage D: only
-CRITICAL/HIGH block"); until it lands the operator applies the rule by hand.
+Landed 2026-10-20 (`stage-d-triage.md`): an applied CRITICAL/HIGH fix gets one
+more round that reviews only the fix, never a restart from Stage A; at most 2
+rounds per PR, after which an open CRITICAL/HIGH stops the merge for a re-plan.
+Severity follows the threat model in `security-auditor.md` (forge L-061).
 
 ## References
 

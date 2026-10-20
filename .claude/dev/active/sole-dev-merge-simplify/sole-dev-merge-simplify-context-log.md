@@ -63,3 +63,11 @@ Prototype `1fdfd468` merged PR #53 end to end on its first run (check → ship �
 4. **Tests:** `safe.bareRepository=explicit` on this machine means `git --git-dir=` for the bare forge. The commit-signature hook reads `git commit` in any Bash command, so fixtures keep plumbing commits (`mkcommit`).
 5. **Stdout discipline works:** `ship` printed only `PR_NUM`/`PR_URL`/`CI_STATE`; git's `remote:` lines went to stderr. bats `run` merges streams, so exact-output tests use `run --separate-stderr`.
 6. **Upstream config is irrelevant:** both worktrees were cut with `-b … origin/main` (upstream origin/main). The lookup by explicit branch with `-R` found nothing before create and the right PR after, so no no-arg gh call remains.
+
+## [2026-10-20] Sub-step 1.1 — RED design decisions
+- **Output spec fixed before the port** (session scratch `sdm-spec.md`; GREEN's exit table becomes its canonical home): stdout carries STATUS/ABORT, `check OK`, `check: pre-commit rc=`, the three ship lines, hints, cleanup and `Final:`; everything else goes to stderr. Exit 0 = success or STATUS, 1 = ABORT.
+- **Dropped as unreachable (YAGNI):**
+  - the L-048 post-staging "staged outside" assert. The clean-start ABORT plus the pre-staging dirt check catch every out-of-scope staged path first (the check agent showed no test can reach it).
+  - `finish`'s branch-name `check-ref-format`: the branch comes from `git branch --show-current`, and git cannot create a name that check rejects.
+- **No `--untracked-files=all`:** a fixer-recreated file the branch deleted reads as `?? d/`, out of scope, so check ABORTs. With `-uall`, check would commit the re-added file (the old TODO 88 bullet 2 bug). Aborting is the safer default.
+- **Old tests re-expressed:** `check` now refuses a dirty tree at start, so every drift scenario is created during check by the pre-commit stub (`PRE_COMMIT_RUN`). `:392`/`:494` now expect the out-of-scope ABORT; `:419`/`:434`/`:464` assert the earlier ABORT with the index unchanged. `g_poll:69`'s `--auto` hint is replaced by the `sdm.sh finish` hint (new 4).

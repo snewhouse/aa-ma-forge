@@ -12,3 +12,4 @@
 [2026-10-20T14:57:22+01:00] Sub-step 1.0: PR #53 MERGED (6ad8ad38, rebase); ls-remote refs/heads/chore/sdm-todo-triage rc=2; main=origin/main=6ad8ad38; merge runs=1
 [2026-10-20T14:57:22+01:00] PROTOTYPE — Milestone 1: sdm.sh beside the old skill, proven live — PASS: the happy-path prototype merged real PR #53 on its first run, with the lease delete confirmed live; 6 findings in CL (seam, lease, G4 diff, test env, stdout, upstream)
 [2026-10-20T14:57:22+01:00] Branch refactor/sdm-script cut from main 6ad8ad38 (L-037)
+[2026-10-20T15:12:31+01:00] Sub-step 1.1 RED: N=147 (102 ported + 45 new); no-script run 0/147 ok; prototype run 136 ok / 11 not ok (GREEN gaps in tasks.md); 3 port agents dispatched (check, ship, finish)

@@ -46,7 +46,7 @@ CLI (sdm.sh, bash, set -euo pipefail; sourceable: main runs only when "${BASH_SO
                                   # the PR is used only if OPEN, isCrossRepository=false and headRefOid == local HEAD; decide on gh's rc, never on stdout
                                   # `pr checks --watch` output goes to /dev/null; only the three lines reach stdout
   sdm.sh finish <PR_NUM>          # PR_NUM must match ^[1-9][0-9]*$ before any gh argv; SHA=$(git rev-parse HEAD), used for check-runs and --match-head-commit;
-                                  # one lookup: headRefName == current branch (not the default; check-ref-format), isCrossRepository=false, state OPEN, headRefOid == SHA;
+                                  # one lookup: headRefName == current branch (not the default; check-ref-format), isCrossRepository=false, headRefOid == SHA; state OPEN → merge; MERGED → no merge call, go to the delete (a re-run after BRANCH_NOT_DELETED or a cleanup failure); any other state ABORTs;
                                   # strategy re-read from allow_rebase_merge: only literal true/false; null or an API failure ABORTs;
                                   # check-runs at SHA: total_count == runs read (else ABORT), all completed, >=1 success, all in success|skipped|neutral,
                                   #   else STATUS: CI_NOT_DONE / CI_FAILED;

@@ -193,6 +193,22 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** /sole-dev-merge on fix/g2-appear-wait-hardening, round 1, 2026-10-20: 0C/0H, 1 MEDIUM + 4 LOW, operator-set env only. Hardening an input outside the threat model keeps turning up the next edge (forge L-060), so leave this until the variables are used for real. **Effort:** S · **Priority:** P3
 
+### sole-dev-merge-simplify plan: review notes for M1 (docs/sole-dev-merge-simplify-plan review)
+**What:** fix each in the plan text when its sub-step starts.
+- MEDIUM: 1.2's `pre-commit run --files …` AC needs `PRE_COMMIT_FROM_REF=main PRE_COMMIT_TO_REF=HEAD` in env, or check-conventions exits 2 "no diff source" (`scripts/check_conventions.py:108`, ADR-0018) once nothing is staged (tasks.md:57).
+- LOW:
+  - 1.4 names no output path for the C1/C2 reviews; `sdm.sh check` makes no `$SDM_DIR` (tasks.md:82).
+  - new test 1 ("a cancelled check is not green") is `ship`'s CI_STATE rule, not `finish.bats`'s, and the `ship` contract does not state it (plan.md:291);
+  - 2.3's `glab|gitlab` grep counts comments; 1.2's DROP grep skips them (tasks.md:159);
+  - 2.0's `aa-ma-gate` AC uses a bare relative path (tasks.md:116, plan.md:152);
+  - the `finish`/`ship` lookup does not pin `baseRefName` to the default branch (plan.md:233).
+- Round 2 (the MERGED arm, plan.md:233 / reference.md:49):
+  - MEDIUM: the branch delete has no lease, so commits pushed to the remote branch after the merge are deleted with it. Use `--force-with-lease=refs/heads/<b>:$SHA`.
+  - LOW: say the MERGED arm skips the strategy re-read and the check-runs gate.
+  - LOW: "a cleanup failure" re-run works only from the feature branch.
+
+**Why:** /sole-dev-merge on docs/sole-dev-merge-simplify-plan, 2026-10-20. Round 1: 0C, 1 HIGH applied (`finish` accepts MERGED at HEAD), 1 MEDIUM + 5 LOW deferred. Round 2 (fix only): 0C/0H, 1 MEDIUM + 2 LOW deferred under the stop rule. **Effort:** S · **Priority:** P2 (before M1 1.1)
+
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.
 **Why:** sole-dev-merge-fixes plan 5.3 (DRY). Not on main yet: `grep -rn aa_ma_milestone_base claude-code src` is empty (2026-10-18). **Effort:** S · **Priority:** P3

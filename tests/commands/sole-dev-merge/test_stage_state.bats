@@ -521,7 +521,8 @@ seed_g() {
     [ -n "$table" ]
     # why: ABORT messages are mixed case; one or two leading words name each (live run 1 C1 MEDIUM)
     local tok='STATUS: [A-Z_]+|ABORT: [A-Za-z_.]+( [A-Za-z0-9-]+)?'
-    missing=$(comm -23 <(grep -rhoE "$tok" "$SKILL_DIR" | sort -u) \
+    # why: --exclude-dir=scripts — sdm.sh (sole-dev-merge-simplify M1) has its own exit table and sync test
+    missing=$(comm -23 <(grep -rhoE "$tok" --exclude-dir=scripts "$SKILL_DIR" | sort -u) \
                        <(grep -oE "$tok" <<<"$table" | sort -u))
     echo "missing from the table: ${missing:-none}"
     [ -z "$missing" ]

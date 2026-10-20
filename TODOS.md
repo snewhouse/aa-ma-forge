@@ -175,14 +175,13 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 ### security-auditor threat model: severity list and coverage (fix/auditor-threat-model-scope review)
 **What:**
-- (P1) The CRITICAL/HIGH failure-path list in § Threat model ("data loss, a leaked secret, untrusted content executed, or a broken merge") omits unauthorized access. Now that A01 is in scope for code that serves users, add "unauthorized access to or change of another user's data or privileges", so an IDOR cannot be capped at MEDIUM and deferred by the stop rule. Both reviewers raised it independently.
 - Libraries and infra/CI (Audit-Profile `infra`) fit neither default. When in doubt, or when a file is reachable from user-facing code, use the user-facing model.
 - Judge each finding by the model of the code its failure path runs in, not by file.
 - Write the model used ("Threat model: contract|user-facing|tooling") in the output.
 - In the tooling bucket, drop "(not the end users of any code under review)" and narrow "requests and data from the reviewed code's own users" to network peers and other users' data the tool processes.
 - The spec line says "its default" (now two). The Priority wording in the entry above.
 
-**Why:** /sole-dev-merge on fix/auditor-threat-model-scope, round 1, 2026-10-20: 0C/0H, 3 MEDIUM + 6 LOW, so nothing blocked. The PR improves on main, which had a tooling-only default with the same list. **Effort:** S · **Priority:** P1 (the severity list), P3 (the rest)
+**Why:** /sole-dev-merge on fix/auditor-threat-model-scope, round 1, 2026-10-20: 0C/0H, 3 MEDIUM + 6 LOW, so nothing blocked. The PR improves on main, which had a tooling-only default with the same list. **Effort:** S · **Priority:** P3. The P1 severity-list item is done in `fix/auditor-authz-g2-wait` (2026-10-20): unauthorized access is in the CRITICAL/HIGH list.
 
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.

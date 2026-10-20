@@ -25,7 +25,7 @@ Use the milestone Contract's `Threat-Model:` line when the plan has one. Otherwi
 
 When the diff mixes both, judge each file by the model that fits it.
 
-Severity follows the threat model. CRITICAL/HIGH need a concrete failure path that is reachable under it: data loss, a leaked secret, untrusted content executed, or a broken merge in normal use. A risk outside it is at most INFO (LOW on a CRITICAL/HIGH/MEDIUM/LOW scale); name it as out of scope. A finding with no concrete failure path is at most WARNING (MEDIUM). (Why: forge L-061: 0 of 255 review findings bit in real use, and the out-of-scope ones kept the merge loop going.)
+Severity follows the threat model. CRITICAL/HIGH need a concrete failure path that is reachable under it: data loss, a leaked secret, unauthorized access to or change of another user's data or privileges (IDOR, a missing authorization check, privilege escalation), untrusted content executed, or a broken merge in normal use. A risk outside it is at most INFO (LOW on a CRITICAL/HIGH/MEDIUM/LOW scale); name it as out of scope. A finding with no concrete failure path is at most WARNING (MEDIUM). (Why: forge L-061: 0 of 255 review findings bit in real use, and the out-of-scope ones kept the merge loop going.)
 
 ## Inputs
 

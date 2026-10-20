@@ -160,7 +160,6 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 ### stop-rule PR (fix/sdm-stop-rule) review: 4 MEDIUM + 7 LOW, deferred under the stop rule
 **What:**
-- (P1) `security-auditor.md` § Threat model: the default fits tooling repos but the agent reviews every project in §6.8. Say "the operator running the tool (not end users of the code under review)", add "requests and data from the reviewed code's own users or network" to Untrusted, and say the default is for tooling repos.
 - Round 2 runs Ruff S and ShellCheck over the whole branch again, so a HIGH already disputed or deferred in round 1 comes back. Count only findings in the fix diff, or not yet decided, as "open after round 2".
 - Round 2 reuses `SDM_DIR`, and Stage D writes `reviewer-notes.md` with `>`, so round-1 notes drop out. Append instead, or keep one file per round.
 - The round cap and the round-1 HEAD exist only in prose. `sdm_save` a `REVIEW_ROUND` / `ROUND1_HEAD` and have Stage D refuse a round 3 (the L-1358 "wire it in" point).
@@ -172,7 +171,7 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
   - security MEDIUMs now reach the PR body word for word;
   - nothing gates Stage F on an open HIGH.
 
-**Why:** /sole-dev-merge run on fix/sdm-stop-rule, round 1, 2026-10-20: 0 CRITICAL / 0 HIGH, so nothing blocked. **Effort:** S · **Priority:** P1 (the threat-model wording), P3 (the rest)
+**Why:** /sole-dev-merge run on fix/sdm-stop-rule, round 1, 2026-10-20: 0 CRITICAL / 0 HIGH, so nothing blocked. **Effort:** S · **Priority:** P3 (the threat-model wording, P1, done in `fix/auditor-threat-model-scope` 2026-10-20: a user-facing-code default and a local-tooling default)
 
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.

@@ -418,3 +418,11 @@ Findings:
 - Active step at compaction: Sub-step 5.4: Verify, gate, merge, live compaction check
 - Snapshot saved to: ~/.claude/hooks/cache/compaction-snapshots/sole-dev-merge-fixes-snapshot.md
 - Note: Context compacted. Reload AA-MA files to resume.
+
+## [2026-10-20] FINALIZATION: sole-dev-merge-fixes
+- Approved by: Ste (AskUserQuestion, 2026-10-20)
+- Integrity check: M1–M4 COMPLETE. M5: GATE APPROVAL, TESTS_VERIFIED, CRITICAL_PATH_REVIEW, PROTOTYPE and §6.8 entries present; PR #46 merged `d834563` (SHA map 40/40); [post-merge] live compaction passed worktree-rooted and main-rooted; 5.5 is the last sub-step.
+- Outcome: all targeted bugs fixed and live (G3/G4 in worktrees, deterministic footer, stage state file, Stage B scope, Stage F REST body update, pre-compact roots). Cost: 144 commits over 5 PRs and 12 merge runs; see `sole-dev-merge-fixes-retro-2026-10-20.md`.
+- Follow-up landed: PR #47 `57897d3` (Stage D stop rule + security-auditor threat model).
+- Carried to TODOS: the threat-model wording for non-tooling repos (P1), install.sh pinned to a live clone then plain branches (P2), PR #47's deferred MEDIUM/LOW, the M5 run-3 deferrals, and the /sole-dev-merge simplification (retro §4 item 6).
+- Decision: APPROVED — archive.

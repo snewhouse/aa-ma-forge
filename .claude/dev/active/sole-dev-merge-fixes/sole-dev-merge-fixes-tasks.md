@@ -704,7 +704,7 @@ Conventions used in the criteria:
   - **Scanned-files AC (M2/M3 carry):** still N/A — PR #45 changed no `.py`/`.sh`.
 
 ## Milestone 5: pre-compact writes into the worktree
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 4
 - Complexity: 65%
 - Effort: 1 day
@@ -817,7 +817,7 @@ Conventions used in the criteria:
   - **Live compaction evidence moved to 5.5**, as planned.
 
 ### Sub-step 5.5: Finalize and archive
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 5.4
 - Acceptance Criteria:
@@ -825,3 +825,6 @@ Conventions used in the criteria:
   - `test -d .claude/dev/completed/sole-dev-merge-fixes` passes, and `! test -d .claude/dev/active/sole-dev-merge-fixes` passes.
   - CL has a FINALIZATION entry approved by Ste.
 - Result Log:
+  - **[post-merge] live compaction:** installed hook (→ main `57897d3`) with a PreCompact payload. Worktree-rooted: CHECKPOINT 0→1 in the worktree's provenance.log. Main-rooted: main 0 tracked changes, 0 CHECKPOINTs, systemMessage names the linked worktrees. Plus the real main-rooted /compact of 2026-10-18 (systemMessage only, main clean). PL `[post-merge] LIVE COMPACTION`.
+  - **Milestone 5 COMPLETE;** FINALIZATION in CL, approved by Ste. The M5 worktree and branch were removed (cherry `+` 0). The retro is `sole-dev-merge-fixes-retro-2026-10-20.md`.
+  - **Archive:** `/archive-aa-ma sole-dev-merge-fixes` on `chore/sole-dev-merge-fixes-finalize` moves the dir to `.claude/dev/completed/`; merged by /sole-dev-merge.

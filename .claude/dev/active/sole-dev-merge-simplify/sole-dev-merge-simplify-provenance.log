@@ -8,3 +8,7 @@
 [2026-10-20T14:49:01+01:00] Plan merged to main: 8d27da91 (plan, PR via /sole-dev-merge), 19c86147 (finish accepts MERGED at HEAD; review notes to TODOS)
 [2026-10-20T14:49:01+01:00] Pre-execution validation (aa-ma-validator): WARN — 0 FAIL, 4 WARN (CL 2026-10-20)
 [2026-10-20T14:49:01+01:00] Milestone 1 ACTIVE; Sub-step 1.0 IN_PROGRESS (HITL proceed, Ste) — worktrees prototype/sdm-script, chore/sdm-todo-triage cut from 19c86147
+[2026-10-20T14:57:22+01:00] Sub-step 1.0: prototype 1fdfd468 (prototype/sdm-script, local, never merged) — check OK; ship PR_NUM=53 CI_STATE=green; finish: "STATUS: OK worktree=/home/sjnewhouse/projects/github_private/aa-ma-forge/.worktrees/chore/sdm-todo-triage"
+[2026-10-20T14:57:22+01:00] Sub-step 1.0: PR #53 MERGED (6ad8ad38, rebase); ls-remote refs/heads/chore/sdm-todo-triage rc=2; main=origin/main=6ad8ad38; merge runs=1
+[2026-10-20T14:57:22+01:00] PROTOTYPE — Milestone 1: sdm.sh beside the old skill, proven live — PASS: the happy-path prototype merged real PR #53 on its first run, with the lease delete confirmed live; 6 findings in CL (seam, lease, G4 diff, test env, stdout, upstream)
+[2026-10-20T14:57:22+01:00] Branch refactor/sdm-script cut from main 6ad8ad38 (L-037)

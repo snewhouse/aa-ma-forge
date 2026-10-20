@@ -54,3 +54,12 @@ _This log captures architectural decisions, trade-offs, and unresolved issues._
   - 157: notes and round-cap items carried to an M2 SKILL.md entry.
   - Each closure line says where its bullets went.
 - **Inventory line refs shifted:** the "still apply" 196/200/354 (at `04d2490`) are now the `emit_aa_ma_footer` helper, footer-only-inside-forge and install.sh-backup entries. The new "review notes for M1" entry (P2, before 1.1) is deferred work for this milestone (L-056).
+
+## [2026-10-20] Sub-step 1.0 — PROTOTYPE FINDINGS: n=6
+Prototype `1fdfd468` merged PR #53 end to end on its first run (check → ship → finish, 1 merge run). Verdict: the design holds; no plan risk falsified.
+1. **Test seam (changes sdm.sh):** `sdm_slug` must read origin's configured URL (`pushurl`, else `url`). `get-url --push` expands `insteadOf`, so the tests' local-forge rewrite would hide `github.com`. A real-config `insteadOf` alias is then refused as "not github.com"; there is none on this machine (`git config --get-regexp ^url\.` is empty).
+2. **Lease delete (changes contract):** `--force-with-lease=refs/heads/<b>:$SHA` worked live; a stale lease is refused and `ls-remote` rc 0 → `BRANCH_NOT_DELETED`. M1 Contract line "push origin :refs/heads/<b>" now reads with the lease; 1.1 new test 15: a remote branch moved after the merge is kept and reported.
+3. **G4 diff --stat dropped in the prototype:** the old G4 printed `git diff --stat <branch> <default>` before the cleanup commands (L-1332 content check). Restore it in 1.2 if a ported G4 test asserts it; otherwise keep it out (KISS).
+4. **Tests:** `safe.bareRepository=explicit` on this machine means `git --git-dir=` for the bare forge. The commit-signature hook reads `git commit` in any Bash command, so fixtures keep plumbing commits (`mkcommit`).
+5. **Stdout discipline works:** `ship` printed only `PR_NUM`/`PR_URL`/`CI_STATE`; git's `remote:` lines went to stderr. bats `run` merges streams, so exact-output tests use `run --separate-stderr`.
+6. **Upstream config is irrelevant:** both worktrees were cut with `-b … origin/main` (upstream origin/main). The lookup by explicit branch with `-R` found nothing before create and the right PR after, so no no-arg gh call remains.

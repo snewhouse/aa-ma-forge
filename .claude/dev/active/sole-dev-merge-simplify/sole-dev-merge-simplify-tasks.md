@@ -22,7 +22,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
 - Result Log:
 
 ### Sub-step 1.0: Prototype + deferred work
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Prototype-Required: YES
@@ -35,6 +35,12 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - PL has `PROTOTYPE — Milestone 1: sdm.sh beside the old skill, proven live — <verdict>`.
   - The prototype branch `prototype/sdm-script` is not merged.
 - Result Log:
+  - Mode: HITL — Ste: Proceed; lease probe: yes (CL 2026-10-20).
+  - Prototype `1fdfd468` on `prototype/sdm-script` (272 lines, 100755, local only). Run by path from the chore worktree, one Bash call each: `check` → `check OK (branch=chore/sdm-todo-triage, base=main, ahead=1)`, pre-commit rc=0; `ship` → `PR_NUM=53`, `PR_URL=…/pull/53`, `CI_STATE=green` (9/9 checks pass), rc 0; `finish 53` → `STATUS: OK worktree=…/.worktrees/chore/sdm-todo-triage`, rc 0.
+  - AC: `gh pr view 53 --json state` = MERGED (merge commit `6ad8ad38`); `ls-remote --exit-code origin refs/heads/chore/sdm-todo-triage` rc 2; main = origin/main = `6ad8ad38`; 7 `**Closed:** sole-dev-merge-simplify 1.0` lines under Completed; `prototype/sdm-script` not on origin (ls-remote rc 2) and not an ancestor of main.
+  - Merge runs: 1. Chore worktree removed after `git diff chore/sdm-todo-triage main` was empty.
+  - Carried to 1.1 (L-056): TODOS "review notes for M1" (1.2 pre-commit env AC, 1.4 review output path, test 1 belongs in ship.bats, `baseRefName` not pinned, lease → test 15, MERGED-arm notes); TODO 88 bullet 3 (C-quoted names) → check.bats; still-open entries `emit_aa_ma_footer` helper, footer-only-inside-forge, install.sh backup, G2 first-check race, G2 appear-wait leading zero, commit-msg-stage signature: each a test or named as carried in 1.1's Result Log.
+  - Findings: CL `PROTOTYPE FINDINGS: n=6`.
 
 ### Sub-step 1.1: RED — fixtures and tests
 - Status: PENDING
@@ -44,6 +50,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - New fixtures `tests/commands/sdm/fixtures/{bin/gh,bin/pre-commit,helpers.bash}` (check-runs arm from `GH_CHECK_RUNS`, G1 rc control, `pr checks` rows, GraphQL-error arm, field-order-free `pr view`); old fixtures untouched.
   - The 102 KEEP/CHANGE tests ported to `tests/commands/sdm/{check,ship,finish}.bats` per the inventory's per-test map, plus the 13 new tests in plan §5 1.1; each open TODO from 1.0 is a test or named as carried.
   - Added at 1.0 (CL 2026-10-20): new test 14, `finish` on a PR already MERGED at HEAD makes no merge call and goes to the delete (validator W2).
+  - Added at 1.0: new test 15, a remote branch moved after the merge is not deleted (lease refused) and `STATUS: BRANCH_NOT_DELETED` is printed (PROTOTYPE FINDINGS 2); new test 16, `ship` sees a github.com origin through the tests' `insteadOf` rewrite (finding 1).
   - `bats --count tests/commands/sdm` = N, recorded here; N = 102 + the new tests ≥ 115.
   - A RED log here lists each new test with its failure line.
   - The RED commit precedes any GREEN.

@@ -22,19 +22,14 @@
 **What:** run the Ruff S subset and the secret/path regexes from the repo's pre-commit framework (inside git, on the real index, for every commit form), and shrink `security-static-check.sh` to a nudge.
 **Why:** the PreToolUse hook only sees the Bash command text, so env-var commits, aliases, `cd && git commit` and scripts bypass it by design (six review rounds, 2026-10-12/13). **Effort:** M · **Priority:** P2
 
-### sole-dev-merge C3/D and security-static-check LOWs (PR #30 Stage C, 2026-10-13)
+### security-static-check LOWs (split from the PR #30 Stage C entry, 2026-10-13)
 **What:**
-- C3 runs `ruff check --select S` without `--force-exclude`, so it reports the deliberate `shell=True` fixtures under `extend-exclude` (`tests/fixtures/canary/`, `tests/fixtures/evals/py-secops/`) as CRITICAL. Stage D's S602 auto-fix would then rewrite them and break the canary tests. Add `--force-exclude`, and never let Stage D edit an excluded path.
-- C3 is not `--isolated`, so a PR can mute its own findings through per-file-ignores or `noqa`. Flag S ignores the PR adds.
-- Stage D reads its findings from predictable `/tmp` paths; use a `mktemp -d` per run.
-- `"${FIXED_KEYS[@]}"` aborts under `set -u` on bash < 4.4 when the array is empty.
-- security-static-check:
-  - The header doesn't document that unstaged-modified (and now untracked) `.py` are scanned on a plain commit, which can false-block.
-  - The bypass marker can't override a `-C` refusal.
-  - Only the first `-C` is entered.
-  - A text hunk in one diff hides a `Binary files` line in the other.
+- The header doesn't document that unstaged-modified (and now untracked) `.py` are scanned on a plain commit, which can false-block.
+- The bypass marker can't override a `-C` refusal.
+- Only the first `-C` is entered.
+- A text hunk in one diff hides a `Binary files` line in the other.
 
-**Why:** the Stage C1/C2 review of PR #30 found 7 LOWs and 2 disputed CRITICALs (Ste: notes + TODOS). **Effort:** S · **Priority:** P3
+**Why:** the Stage C1/C2 review of PR #30 (2026-10-13); split out at sole-dev-merge-simplify 1.0 when the sole-dev-merge half went moot. **Effort:** S · **Priority:** P3
 
 ### Refuse to append AA-MA records through a symlink (all writers, not just fence 3)
 **What:** fence 3 (`execute-aa-ma-milestone/scripts/tests-verified.sh`) now refuses to append when `provenance.log`, or any directory on its path, is a symlink. The other appenders have no such check (each needs a probe):
@@ -78,48 +73,6 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 **Effort:** S
 **Priority:** P2
 
-### sole-dev-merge: two inputs still split or defaulted (M2 §6.8 INFO)
-**What:**
-- ~~`$CHANGED_PY`/`$CHANGED_SH` reach `ruff` and `shellcheck` unquoted, and `$CHANGED_FILES` reaches `pre-commit run --files` the same way.~~ **Done in sole-dev-merge-fixes M3.** ruff and shellcheck get `-- "${arr[@]}"`. pre-commit gets `./`-prefixed names, because its argparse rejects `--` (probed).
-- ~~`REMOTE_CHOICE="${REMOTE_CHOICE:-github}"` in E0, F and G1–G3 is a masking default (L-055 rule). G1 with a refused state file would save a strategy read from the wrong host. Fix: `${REMOTE_CHOICE:?}`.~~ **Done in sole-dev-merge-fixes M4.** E0, F and G1–G3 now use `${REMOTE_CHOICE:?…}`, and E2's `n_github`/`n_gitlab` are required too. E2's dual-remote `:-$DUAL_DEFAULT` (the host origin pushes to) stays: it is the prompt's default answer, not a missing input.
-
-**Why:** both predate M2 and are outside its key list; the §6.8 security and code reviews raised them as INFO. **Effort:** S · **Priority:** P3
-
-### sole-dev-merge Stage B: three LOWs from PR #44's Stage D (run 2)
-**What:**
-- A non-empty env `CHANGED_FILES` overrides the state file. The loader's "a non-empty explicit env wins" rule (`SKILL.md` stage-b-commit `sdm_load`) lets a stale exported value pick B-commit's scope.
-- B-commit re-adds an untracked file at a path the branch deleted, because the path is in `CHANGED_FILES` and `git status --porcelain` shows it dirty (`??`). Suggested fix: stage only paths in HEAD or the branch diff, or skip `??` rows.
-- Names containing `"`, `\` or control characters are still C-quoted where `--name-only` runs without `-z`. Raw names are echoed unescaped in the guard and B-commit lines (terminal spoofing). Fix: `-z` + `mapfile -d ''` end to end, and `printf '%q'` when echoing.
-
-**Why:** Stage D LOW reviewer notes on PR #44 (sole-dev-merge-fixes M3). Ste chose 2026-10-17 to file these three here. The Y=R guard item and the two doc-only notes went into M4. **Effort:** S · **Priority:** P3
-
-### sole-dev-merge GitLab path: probe the real `glab mr view -F json --jq` output; close three gaps
-**What:** sole-dev-merge-fixes M4 gave Stage F and G3 a GitLab ownership check: `glab mr view [iid] -F json --jq '"\(.iid)\t\(.web_url)\t\(.source_project_id == .target_project_id)\t\(.source_branch)\t\(.state)"'`. The flags and fields come from the glab docs and the GitLab MR API (Context7). It was not probed, because glab is not installed on the dev machine. On the first real GitLab run, check that the line has 5 tab-separated fields and that `state` is `opened`. Then record the result here, or fix the format.
-- Two more GitLab gaps, from live run 3 (Ste, 2026-10-18: "we use GitHub", so the GitHub path only in M4):
-  - Stage F's create path re-reads the new MR with a no-arg `glab mr view`, which selects by branch, and does not check `opened`. Fix: take the iid from the URL `glab mr create` prints (`${url##*/}`, checked numeric), run `glab mr view "$iid"`, and require `opened`.
-  - G3's GitLab branch has no `opened` check before `glab mr merge`, the counterpart of GitHub's new `OPEN` check. A failed `glab mr merge` ends G3 through `set -e` with no `STATUS:` line and no `MERGE_DISPATCHED=0`. Fix: read the MR state after the merge, as GitHub does, then `STATUS: MERGE_FAILED`.
-
-**Why:** a format surprise fails closed (treated as not this branch's), but it would stop every GitLab merge. aa-ma-forge itself is GitHub-only, so none of this runs here. **Effort:** S · **Priority:** P2
-
-### sole-dev-merge: deferred §6.8 INFOs from sole-dev-merge-fixes M4
-**What:**
-- Stage F's origin-host guard (live run 5 LOWs):
-  - It is a deny-list. An origin on neither forge (a mirror or a self-hosted server) next to a github/gitlab remote passes it, so F pushes to origin while gh/glab resolve the PR on the other remote.
-  - It substring-matches the whole push URL, so `https://github.com/org/gitlab.com-tools.git` is refused for both choices. E1 and E2 also classify that URL differently.
-  - Fix: extract the host (scp `user@host:` or `scheme://[user@]host[:port]/`), compare it exactly in one shared pattern, and require a positive match, with a test seam for local bare remotes.
-- E2's dual-remote prompt still offers the non-origin host as an equal second option, which Stage F now always refuses. Fix: drop that option, or label it "refused by Stage F: origin is on <host>" (live run 5 LOW).
-- G3 does not pin the merge to the reviewed head SHA: a commit pushed after G2 goes green is merged unreviewed, and the lease-less `git push origin :refs/heads/<b>` drops a commit pushed after the merge. Fix: `gh pr merge --match-head-commit "$(git rev-parse HEAD)"` (gh 2.46 supports it), and `--force-with-lease=<b>:<sha>` on the delete (live run 4 C2 LOW).
-- `git check-ref-format --branch` expands `@{-N}` (rc 0, prints the previous branch). A tampered `DEFAULT_BRANCH='@{-1}'` passes G3/G4, and G4 would `git checkout '@{-1}'`. Fix: also require `git check-ref-format "refs/heads/$X"` in G3/G4. Stage A can't reach this, because `symbolic-ref` refuses such a ref.
-- `PR_BODY_FILE` is not confined to `SDM_DIR`: whatever file the state or env names is published as the PR body (pre-existing; same uid). Fix: require `realpath` of it under `realpath "$SDM_DIR"`.
-- G2/G3 check PR_NUM with `^[0-9]+$` and so accept 0, while Stage F uses `^[1-9][0-9]*$`. F never saves 0. Fix: one pattern.
-- No static check that every `sdm_save` key is in `SDM_KEYS`. An unlisted key is dropped with an "ignoring unknown key" line.
-
-**Why:** security-auditor and code-reviewer INFOs at M4 §6.8 (impl-review.md "Milestone 4"). Each needs the same uid, or is pre-existing. **Effort:** S · **Priority:** P3
-
-### sole-dev-merge Stage C: `${CHANGED_PY:-}` / `${CHANGED_SH:-}` masking defaults
-**What:** `references/stage-c-review-and-security.md` reads `${CHANGED_PY:-}` / `${CHANGED_SH:-}` in its `N_PY=`/`N_SH=` count lines and its `if [[ -n "${CHANGED_PY:-}" ]]` / `${CHANGED_SH:-}` scanner guards. If Stage C runs in a fresh shell and the state file was refused, the scanners skip silently and C prints `Ruff S 0 file(s), ShellCheck 0 file(s)`, which looks like a clean scan (L-055 rule). Fix: tell "no state" apart from "no files", e.g. require `CHANGED_FILES` to be set (`${CHANGED_FILES?}`) before reading the subsets. Add a fresh-shell no-state case to `test_stage_c_dispatch.bats`.
-**Why:** pre-existing; raised by C1 on PR #44 (run 2). Kept out of M4 (Ste, 2026-10-17) because the Stage C reference is outside M4's Contract. **Effort:** S · **Priority:** P2
-
 ### Check the AA-MA commit signature at the `commit-msg` stage, not in the command text
 **What:**
 - `aa-ma-commit-signature.sh` (PreToolUse) reads only the literal command, so it guesses at messages it can't see. Rule 8 (sole-dev-merge-fixes 1.7) now trusts one canonical shape, `FOOTER=$(emit_aa_ma_footer); git commit -m "…${FOOTER}"`.
@@ -154,20 +107,15 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 - Comment at the `linked=` assignment reads as its failure case; reword.
 **Why:** sole-dev-merge-fixes M5 live run 3, Stage C (code-reviewer 1M/5L, security-auditor 3L); deferred under Ste's stop rule (only CRITICAL/HIGH block). **Effort:** S · **Priority:** P3
 
-### stop-rule PR (fix/sdm-stop-rule) review: 4 MEDIUM + 7 LOW, deferred under the stop rule
-**What:**
-- Round 2 runs Ruff S and ShellCheck over the whole branch again, so a HIGH already disputed or deferred in round 1 comes back. Count only findings in the fix diff, or not yet decided, as "open after round 2".
-- Round 2 reuses `SDM_DIR`, and Stage D writes `reviewer-notes.md` with `>`, so round-1 notes drop out. Append instead, or keep one file per round.
-- The round cap and the round-1 HEAD exist only in prose. `sdm_save` a `REVIEW_ROUND` / `ROUND1_HEAD` and have Stage D refuse a round 3 (the L-1358 "wire it in" point).
-- LOW:
-  - "file the MEDIUMs in TODOS" has no fallback for repos without TODOS.md and no commit point;
-  - the Stage E3 comment still says "LOW";
-  - a bare-negation output check in the new test (L-045);
-  - the TODO's hardcoded "67 links";
-  - security MEDIUMs now reach the PR body word for word;
-  - nothing gates Stage F on an open HIGH.
+### /sole-dev-merge M2 SKILL.md: review-step items (from the stop-rule PR review)
+**What:** for sole-dev-merge-simplify 2.2, where the C1/C2 review steps and the stop rule move into SKILL.md:
+- A round-2 notes write must not drop round-1 notes: append to the notes file, or keep one per round.
+- The round cap and the round-1 HEAD exist only in prose; say in SKILL.md how round 3 is refused (L-1358).
+- "File the MEDIUMs in TODOS" has no fallback for a repo without TODOS.md and no commit point.
+- Security MEDIUMs reach the PR body word for word.
+- Nothing stops `ship` while a HIGH is open.
 
-**Why:** /sole-dev-merge run on fix/sdm-stop-rule, round 1, 2026-10-20: 0 CRITICAL / 0 HIGH, so nothing blocked. **Effort:** S · **Priority:** P3 (the threat-model wording, P1, done in `fix/auditor-threat-model-scope` 2026-10-20: a user-facing-code default and a local-tooling default)
+**Why:** /sole-dev-merge on fix/sdm-stop-rule, round 1, 2026-10-20 (0C/0H); carried at sole-dev-merge-simplify 1.0. **Effort:** S · **Priority:** P3
 
 ### security-auditor threat model: severity list and coverage (fix/auditor-threat-model-scope review)
 **What:**
@@ -535,6 +483,84 @@ path and a fixture path, before Deep is evaluated.
 **Why:** each fails closed or is a usability gap; none is a leak. **Effort:** M total · **Priority:** P3
 
 ## Completed
+
+### sole-dev-merge C3/D and security-static-check LOWs (PR #30 Stage C, 2026-10-13)
+**What:**
+- C3 runs `ruff check --select S` without `--force-exclude`, so it reports the deliberate `shell=True` fixtures under `extend-exclude` (`tests/fixtures/canary/`, `tests/fixtures/evals/py-secops/`) as CRITICAL. Stage D's S602 auto-fix would then rewrite them and break the canary tests. Add `--force-exclude`, and never let Stage D edit an excluded path.
+- C3 is not `--isolated`, so a PR can mute its own findings through per-file-ignores or `noqa`. Flag S ignores the PR adds.
+- Stage D reads its findings from predictable `/tmp` paths; use a `mktemp -d` per run.
+- `"${FIXED_KEYS[@]}"` aborts under `set -u` on bash < 4.4 when the array is empty.
+- security-static-check:
+  - The header doesn't document that unstaged-modified (and now untracked) `.py` are scanned on a plain commit, which can false-block.
+  - The bypass marker can't override a `-C` refusal.
+  - Only the first `-C` is entered.
+  - A text hunk in one diff hides a `Binary files` line in the other.
+
+**Why:** the Stage C1/C2 review of PR #30 found 7 LOWs and 2 disputed CRITICALs (Ste: notes + TODOS). **Effort:** S · **Priority:** P3
+**Closed:** sole-dev-merge-simplify 1.0 (2026-10-20). The C3/Stage D bullets are moot: sdm.sh drops C3/C4 and the Stage D bash (AD-003, AD-008). The four security-static-check bullets are still open, moved to "security-static-check LOWs" above.
+
+### sole-dev-merge: two inputs still split or defaulted (M2 §6.8 INFO)
+**What:**
+- ~~`$CHANGED_PY`/`$CHANGED_SH` reach `ruff` and `shellcheck` unquoted, and `$CHANGED_FILES` reaches `pre-commit run --files` the same way.~~ **Done in sole-dev-merge-fixes M3.** ruff and shellcheck get `-- "${arr[@]}"`. pre-commit gets `./`-prefixed names, because its argparse rejects `--` (probed).
+- ~~`REMOTE_CHOICE="${REMOTE_CHOICE:-github}"` in E0, F and G1–G3 is a masking default (L-055 rule). G1 with a refused state file would save a strategy read from the wrong host. Fix: `${REMOTE_CHOICE:?}`.~~ **Done in sole-dev-merge-fixes M4.** E0, F and G1–G3 now use `${REMOTE_CHOICE:?…}`, and E2's `n_github`/`n_gitlab` are required too. E2's dual-remote `:-$DUAL_DEFAULT` (the host origin pushes to) stays: it is the prompt's default answer, not a missing input.
+
+**Why:** both predate M2 and are outside its key list; the §6.8 security and code reviews raised them as INFO. **Effort:** S · **Priority:** P3
+**Closed:** sole-dev-merge-simplify 1.0 (2026-10-20). Both bullets were already done; the stage blocks they name are deleted in M2.
+
+### sole-dev-merge Stage B: three LOWs from PR #44's Stage D (run 2)
+**What:**
+- A non-empty env `CHANGED_FILES` overrides the state file. The loader's "a non-empty explicit env wins" rule (`SKILL.md` stage-b-commit `sdm_load`) lets a stale exported value pick B-commit's scope.
+- B-commit re-adds an untracked file at a path the branch deleted, because the path is in `CHANGED_FILES` and `git status --porcelain` shows it dirty (`??`). Suggested fix: stage only paths in HEAD or the branch diff, or skip `??` rows.
+- Names containing `"`, `\` or control characters are still C-quoted where `--name-only` runs without `-z`. Raw names are echoed unescaped in the guard and B-commit lines (terminal spoofing). Fix: `-z` + `mapfile -d ''` end to end, and `printf '%q'` when echoing.
+
+**Why:** Stage D LOW reviewer notes on PR #44 (sole-dev-merge-fixes M3). Ste chose 2026-10-17 to file these three here. The Y=R guard item and the two doc-only notes went into M4. **Effort:** S · **Priority:** P3
+**Closed:** sole-dev-merge-simplify 1.0 (2026-10-20). 1: moot, no state file or env scope. 2: moot, `sdm.sh check` aborts on any dirty tree before it runs. 3 (C-quoted, unescaped names): carried to sole-dev-merge-simplify 1.1 as a `check.bats` test.
+
+### sole-dev-merge GitLab path: probe the real `glab mr view -F json --jq` output; close three gaps
+**What:** sole-dev-merge-fixes M4 gave Stage F and G3 a GitLab ownership check: `glab mr view [iid] -F json --jq '"\(.iid)\t\(.web_url)\t\(.source_project_id == .target_project_id)\t\(.source_branch)\t\(.state)"'`. The flags and fields come from the glab docs and the GitLab MR API (Context7). It was not probed, because glab is not installed on the dev machine. On the first real GitLab run, check that the line has 5 tab-separated fields and that `state` is `opened`. Then record the result here, or fix the format.
+- Two more GitLab gaps, from live run 3 (Ste, 2026-10-18: "we use GitHub", so the GitHub path only in M4):
+  - Stage F's create path re-reads the new MR with a no-arg `glab mr view`, which selects by branch, and does not check `opened`. Fix: take the iid from the URL `glab mr create` prints (`${url##*/}`, checked numeric), run `glab mr view "$iid"`, and require `opened`.
+  - G3's GitLab branch has no `opened` check before `glab mr merge`, the counterpart of GitHub's new `OPEN` check. A failed `glab mr merge` ends G3 through `set -e` with no `STATUS:` line and no `MERGE_DISPATCHED=0`. Fix: read the MR state after the merge, as GitHub does, then `STATUS: MERGE_FAILED`.
+
+**Why:** a format surprise fails closed (treated as not this branch's), but it would stop every GitLab merge. aa-ma-forge itself is GitHub-only, so none of this runs here. **Effort:** S · **Priority:** P2
+**Closed:** sole-dev-merge-simplify 1.0 (2026-10-20). GitLab support is dropped (AD-002); CHANGELOG "Removed" in M2.
+
+### sole-dev-merge: deferred §6.8 INFOs from sole-dev-merge-fixes M4
+**What:**
+- Stage F's origin-host guard (live run 5 LOWs):
+  - It is a deny-list. An origin on neither forge (a mirror or a self-hosted server) next to a github/gitlab remote passes it, so F pushes to origin while gh/glab resolve the PR on the other remote.
+  - It substring-matches the whole push URL, so `https://github.com/org/gitlab.com-tools.git` is refused for both choices. E1 and E2 also classify that URL differently.
+  - Fix: extract the host (scp `user@host:` or `scheme://[user@]host[:port]/`), compare it exactly in one shared pattern, and require a positive match, with a test seam for local bare remotes.
+- E2's dual-remote prompt still offers the non-origin host as an equal second option, which Stage F now always refuses. Fix: drop that option, or label it "refused by Stage F: origin is on <host>" (live run 5 LOW).
+- G3 does not pin the merge to the reviewed head SHA: a commit pushed after G2 goes green is merged unreviewed, and the lease-less `git push origin :refs/heads/<b>` drops a commit pushed after the merge. Fix: `gh pr merge --match-head-commit "$(git rev-parse HEAD)"` (gh 2.46 supports it), and `--force-with-lease=<b>:<sha>` on the delete (live run 4 C2 LOW).
+- `git check-ref-format --branch` expands `@{-N}` (rc 0, prints the previous branch). A tampered `DEFAULT_BRANCH='@{-1}'` passes G3/G4, and G4 would `git checkout '@{-1}'`. Fix: also require `git check-ref-format "refs/heads/$X"` in G3/G4. Stage A can't reach this, because `symbolic-ref` refuses such a ref.
+- `PR_BODY_FILE` is not confined to `SDM_DIR`: whatever file the state or env names is published as the PR body (pre-existing; same uid). Fix: require `realpath` of it under `realpath "$SDM_DIR"`.
+- G2/G3 check PR_NUM with `^[0-9]+$` and so accept 0, while Stage F uses `^[1-9][0-9]*$`. F never saves 0. Fix: one pattern.
+- No static check that every `sdm_save` key is in `SDM_KEYS`. An unlisted key is dropped with an "ignoring unknown key" line.
+
+**Why:** security-auditor and code-reviewer INFOs at M4 §6.8 (impl-review.md "Milestone 4"). Each needs the same uid, or is pre-existing. **Effort:** S · **Priority:** P3
+**Closed:** sole-dev-merge-simplify 1.0 (2026-10-20). Host guard: `ship` matches origin's host exactly (1.1 tests). E2 prompt, `@{-N}`, `PR_BODY_FILE`, `SDM_KEYS`: moot (no E2, no state file, mktemp body). `--match-head-commit` and the lease on the delete: in `finish` (contract; lease probed live at 1.0). PR_NUM: one `^[1-9][0-9]*$` pattern (1.1 new test 10).
+
+### sole-dev-merge Stage C: `${CHANGED_PY:-}` / `${CHANGED_SH:-}` masking defaults
+**What:** `references/stage-c-review-and-security.md` reads `${CHANGED_PY:-}` / `${CHANGED_SH:-}` in its `N_PY=`/`N_SH=` count lines and its `if [[ -n "${CHANGED_PY:-}" ]]` / `${CHANGED_SH:-}` scanner guards. If Stage C runs in a fresh shell and the state file was refused, the scanners skip silently and C prints `Ruff S 0 file(s), ShellCheck 0 file(s)`, which looks like a clean scan (L-055 rule). Fix: tell "no state" apart from "no files", e.g. require `CHANGED_FILES` to be set (`${CHANGED_FILES?}`) before reading the subsets. Add a fresh-shell no-state case to `test_stage_c_dispatch.bats`.
+**Why:** pre-existing; raised by C1 on PR #44 (run 2). Kept out of M4 (Ste, 2026-10-17) because the Stage C reference is outside M4's Contract. **Effort:** S · **Priority:** P2
+**Closed:** sole-dev-merge-simplify 1.0 (2026-10-20). Stage C's scanners are dropped (AD-003).
+
+### stop-rule PR (fix/sdm-stop-rule) review: 4 MEDIUM + 7 LOW, deferred under the stop rule
+**What:**
+- Round 2 runs Ruff S and ShellCheck over the whole branch again, so a HIGH already disputed or deferred in round 1 comes back. Count only findings in the fix diff, or not yet decided, as "open after round 2".
+- Round 2 reuses `SDM_DIR`, and Stage D writes `reviewer-notes.md` with `>`, so round-1 notes drop out. Append instead, or keep one file per round.
+- The round cap and the round-1 HEAD exist only in prose. `sdm_save` a `REVIEW_ROUND` / `ROUND1_HEAD` and have Stage D refuse a round 3 (the L-1358 "wire it in" point).
+- LOW:
+  - "file the MEDIUMs in TODOS" has no fallback for repos without TODOS.md and no commit point;
+  - the Stage E3 comment still says "LOW";
+  - a bare-negation output check in the new test (L-045);
+  - the TODO's hardcoded "67 links";
+  - security MEDIUMs now reach the PR body word for word;
+  - nothing gates Stage F on an open HIGH.
+
+**Why:** /sole-dev-merge run on fix/sdm-stop-rule, round 1, 2026-10-20: 0 CRITICAL / 0 HIGH, so nothing blocked. **Effort:** S · **Priority:** P3 (the threat-model wording, P1, done in `fix/auditor-threat-model-scope` 2026-10-20: a user-facing-code default and a local-tooling default)
+**Closed:** sole-dev-merge-simplify 1.0 (2026-10-20). The scanner bullet and the E3-comment/L-045/"67 links" LOWs are moot (code deleted in M2). The notes, round-cap, TODOS-fallback, PR-body and open-HIGH items are still open, moved to "/sole-dev-merge M2 SKILL.md: review-step items" above.
 
 ### Stage G2 appear-wait: review notes (fix/auditor-authz-g2-wait)
 **What:**

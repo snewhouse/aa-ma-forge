@@ -37,3 +37,20 @@ _This log captures architectural decisions, trade-offs, and unresolved issues._
 
 **Remaining Questions / Unresolved Issues:**
 - None blocking. Prototype findings are recorded at Sub-step 1.0 (`PROTOTYPE FINDINGS: n=<k>`).
+
+## [2026-10-20] Milestone 1 started — pre-execution validation and Sub-step 1.0 decisions
+- **Validator (pre-execution): WARN, 0 FAIL.**
+  - W1: plan.md:233 / reference.md:49 changed after verification rev 4 (`19c86147`, "finish accepts MERGED at HEAD"). That change was the Round-1 HIGH from the plan's own /sole-dev-merge run; it is recorded here, not as a rev 5.
+  - W2: the MERGED-at-start path had no test. Added to 1.1 as new test 14.
+  - W3: provenance now records the plan-merge commits `8d27da91` and `19c86147`.
+  - W4: M2 has no RED step and no TDD-Waiver. Decide at M2 start.
+- **1.0 HITL (Ste): Proceed.** Live push / PR / rebase-merge of the TODOS-only chore PR on public `snewhouse/aa-ma-forge`.
+- **Lease probe (Ste): yes.** The prototype's `finish` deletes the remote branch with `--force-with-lease=refs/heads/<b>:<sha>` (TODOS "review notes for M1", round 2 MEDIUM). If it holds live, the contract line and a 1.1 test follow.
+- **Where M1 tracking lives:** 1.0's start sync rides the chore PR (docs only). 1.0's Result Log, and everything after it, goes on `refactor/sdm-script`, cut from main after the chore merge (L-037).
+- **TODOS triage correction:** the inventory called entries 25, 81, 88, 96, 104, 119 and 157 moot. All 7 are closed, but only 81, 96 and 119 were wholly moot:
+  - 25: the 4 security-static-check bullets stay open, split into their own entry.
+  - 88 bullet 3 (C-quoted, unescaped names): carried to 1.1.
+  - 104: folded into the sdm.sh contract (host match, `--match-head-commit`, lease, PR_NUM pattern).
+  - 157: notes and round-cap items carried to an M2 SKILL.md entry.
+  - Each closure line says where its bullets went.
+- **Inventory line refs shifted:** the "still apply" 196/200/354 (at `04d2490`) are now the `emit_aa_ma_footer` helper, footer-only-inside-forge and install.sh-backup entries. The new "review notes for M1" entry (P2, before 1.1) is deferred work for this milestone (L-056).

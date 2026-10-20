@@ -10,8 +10,8 @@
 #   - For CRITICAL findings from Ruff/ShellCheck with deterministic patterns:
 #     attempt auto-fix (S602 → s/shell=True/shell=False/) and commit
 #   - For agent-emitted CRITICALs: tag for user-review (no auto-fix)
-#   - For HIGH/MEDIUM: AskUserQuestion panel (not testable in bats; skipped here)
-#   - For LOW: append to Reviewer notes section (advisory)
+#   - For CRITICAL (not auto-fixed)/HIGH: AskUserQuestion panel (not testable in bats; skipped here)
+#   - For MEDIUM/LOW: append to Reviewer notes section (advisory; stop rule)
 
 bats_require_minimum_version 1.5.0
 

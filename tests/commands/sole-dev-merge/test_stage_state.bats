@@ -433,7 +433,7 @@ seed_g() {
     [ "$status" -eq 1 ]
     run grep -rn '/tmp/sole-dev-merge' "$SKILL_DIR"
     [ "$status" -eq 1 ]
-    run bash -c "grep -rn 'eval' '$SKILL_DIR' | grep sdm"
+    run bash -c "grep -rhn 'eval' '$SKILL_DIR' | grep sdm"
     [ "$status" -eq 1 ]
 }
 

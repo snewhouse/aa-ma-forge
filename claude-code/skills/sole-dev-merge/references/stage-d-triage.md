@@ -1,4 +1,4 @@
-# Stage D: findings triage — how findings are routed by severity: the S602 auto-fix, user panels for HIGH/MEDIUM, LOW to reviewer notes.
+# Stage D: findings triage — how findings are routed by severity: the S602 auto-fix, user panels for CRITICAL/HIGH, MEDIUM and LOW to reviewer notes.
 
 ## Contents
 
@@ -13,10 +13,21 @@ routes findings by severity:
   → `s/shell=True/shell=False/`); other CRITICALs (ShellCheck, agent-emitted)
   are tagged for user review. Auto-fix lands as a single commit:
   `fix(review): apply CRITICAL ruff findings`.
-- **HIGH / MEDIUM** — Claude executor invokes `AskUserQuestion` panels
+- **HIGH** (and tagged CRITICALs) — Claude executor invokes `AskUserQuestion` panels
   (4-per-call max) with Apply / Dispute / Defer options. Bash logs only.
-- **LOW** — appended to `$SDM_DIR/reviewer-notes.md`
-  for inclusion in the PR/MR body's "Reviewer notes" section (advisory).
+- **MEDIUM / LOW** — appended to `$SDM_DIR/reviewer-notes.md`
+  for the PR/MR body's "Reviewer notes" section. The operator files the MEDIUMs
+  as one TODOS.md entry. No panel, and they never restart the run.
+
+**Stop rule** (Ste, 2026-10-18; forge L-060, L-061): fresh reviewers find something
+in every round, so only CRITICAL/HIGH can hold a merge.
+- An applied CRITICAL/HIGH fix gets **one** more round: Stages B–D again, with the
+  reviewers given only the fix (`git diff <HEAD reviewed in round 1>..HEAD`).
+  Never restart from Stage A.
+- **At most 2 review rounds per PR.** A CRITICAL/HIGH still open after round 2 stops
+  the merge: tell the user and re-plan. There is no round 3.
+- A finding with no concrete failure path under the threat model
+  (`security-auditor.md` § Threat model) is at most MEDIUM.
 
 ```bash
 # === stage-d-triage (BEGIN) ===
@@ -153,11 +164,11 @@ if [[ "${#TAGGED_FOR_REVIEW[@]}" -gt 0 ]]; then
     printf '  %s\n' "${TAGGED_FOR_REVIEW[@]}"
 fi
 
-# LOW → reviewer notes (advisory; surfaced in PR/MR body by Stage E3)
-if [[ "$N_LOW" -gt 0 ]]; then
+# MEDIUM/LOW → reviewer notes (advisory; surfaced in PR/MR body by Stage E3). Stop rule above.
+if [[ $((N_MEDIUM + N_LOW)) -gt 0 ]]; then
     REVIEWER_NOTES="$SDM_DIR/reviewer-notes.md"
-    grep -E '^\[LOW\]' "$FINDINGS" > "$REVIEWER_NOTES"
-    echo "Stage D: $N_LOW LOW finding(s) → $REVIEWER_NOTES (advisory)"
+    grep -E '^\[(MEDIUM|LOW)\]' "$FINDINGS" > "$REVIEWER_NOTES"
+    echo "Stage D: $N_MEDIUM MEDIUM + $N_LOW LOW finding(s) → $REVIEWER_NOTES (advisory; file the MEDIUMs in TODOS)"
 fi
 
 # Commit auto-fixes if any (footer from shared helper for drift-resistance)
@@ -168,9 +179,9 @@ if [[ "$AUTO_FIXED" -gt 0 ]]; then
     echo "Stage D: committed $AUTO_FIXED auto-fix(es) ($(git rev-parse --short HEAD))"
 fi
 
-# HIGH/MEDIUM — Claude executor handles via AskUserQuestion. Bash logs only.
-if [[ "$N_HIGH" -gt 0 || "$N_MEDIUM" -gt 0 ]]; then
-    echo "Stage D: $N_HIGH HIGH + $N_MEDIUM MEDIUM finding(s) require AskUserQuestion triage (HITL)"
+# HIGH — Claude executor handles via AskUserQuestion. Bash logs only.
+if [[ "$N_HIGH" -gt 0 ]]; then
+    echo "Stage D: $N_HIGH HIGH finding(s) need the operator (AskUserQuestion; stop rule: at most 2 rounds)"
 fi
 # === stage-d-triage (END) ===
 ```

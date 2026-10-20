@@ -317,7 +317,7 @@ EOF2
     [ "$status" -eq 0 ]
     grep -qF '[MEDIUM]   hardening: old git' "${SDM_DIR}/reviewer-notes.md"
     grep -qF '[LOW]      cosmetic: wording' "${SDM_DIR}/reviewer-notes.md"
-    ! grep -qF '[HIGH]' "${SDM_DIR}/reviewer-notes.md" || false
+    [ "$(grep -c '^\[HIGH\]' "${SDM_DIR}/reviewer-notes.md")" -eq 0 ]
     [[ "$output" == *"1 HIGH finding(s) need the operator"* ]]
     [[ "$output" != *"MEDIUM finding(s) require"* ]]
 }

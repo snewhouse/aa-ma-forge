@@ -157,6 +157,17 @@ CI_STATE=unknown
 
 if [[ "$REMOTE_CHOICE" == "github" ]]; then
     RC=0
+    # why: right after Stage F creates the PR, GitHub has registered no checks yet and
+    # `gh pr checks` exits 1 ("no checks reported …"), which read as CI_FAILED (PR #49, 2026-10-20)
+    CI_APPEAR_TIMEOUT_S="${CI_APPEAR_TIMEOUT_S:-120}"   # seconds; checks usually register within 30 s of the push
+    CI_APPEAR_INTERVAL_S="${CI_APPEAR_INTERVAL_S:-10}"  # seconds between looks
+    WAITED=0
+    while CHECKS_OUT=$(gh pr checks "$PR_NUM" 2>&1); [[ "$CHECKS_OUT" == *"no checks reported"* ]]; do
+        if [[ "$WAITED" -ge "$CI_APPEAR_TIMEOUT_S" ]]; then
+            echo "Stage G2: no checks registered after ${WAITED}s"; break   # why: the watch below then reports CI_FAILED
+        fi
+        sleep "$CI_APPEAR_INTERVAL_S"; WAITED=$((WAITED + CI_APPEAR_INTERVAL_S))
+    done
     # `--watch` blocks until checks complete; `timeout` enforces the cap.
     timeout "$CI_POLL_TIMEOUT" gh pr checks "$PR_NUM" \
         --watch --interval 30 --fail-fast || RC=$?

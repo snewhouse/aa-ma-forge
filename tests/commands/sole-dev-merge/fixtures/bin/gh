@@ -80,8 +80,8 @@ case "${1:-}" in
                     echo "no checks reported on the 'feature' branch" >&2
                     exit 1
                 fi
-                if [[ "${GH_WATCH_HANG:-0}" == "1" ]]; then
-                    # Block until outer `timeout` kills us (RC=124).
+                if [[ "${GH_WATCH_HANG:-0}" == "1" && " $* " == *" --watch "* ]]; then
+                    # Block until outer `timeout` kills us (RC=124). Only --watch blocks, as documented above.
                     sleep 999
                 fi
                 exit "${GH_CHECKS_RC:-0}"

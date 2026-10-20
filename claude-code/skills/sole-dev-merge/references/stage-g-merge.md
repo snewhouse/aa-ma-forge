@@ -7,8 +7,9 @@
 ### Stage G — CI poll + auto-merge + cleanup
 
 Execution order: **G1 → G2 → G3 → G4**. G1 picks the merge strategy up-front
-so G3 doesn't hit a "rebase merging is disabled" runtime error. G2 polls with
-a 15-minute timeout (overridable via `CI_POLL_TIMEOUT` for tests). G3 dispatches
+so G3 doesn't hit a "rebase merging is disabled" runtime error. G2 waits up to 2 minutes for the PR's checks to register
+(`CI_APPEAR_TIMEOUT_S`), then polls them with a 15-minute timeout (`CI_POLL_TIMEOUT`;
+both overridable for tests), so its worst case is about 17 minutes. G3 dispatches
 the merge on green CI or emits a clean recovery `STATUS: …` line on timeout /
 failure. G4 runs only on a successful merge.
 
@@ -161,8 +162,12 @@ if [[ "$REMOTE_CHOICE" == "github" ]]; then
     # `gh pr checks` exits 1 ("no checks reported …"), which read as CI_FAILED (PR #49, 2026-10-20)
     CI_APPEAR_TIMEOUT_S="${CI_APPEAR_TIMEOUT_S:-120}"   # seconds; checks usually register within 30 s of the push
     CI_APPEAR_INTERVAL_S="${CI_APPEAR_INTERVAL_S:-10}"  # seconds between looks
+    # why: both reach [[ -ge ]] and $(( )), which evaluate a subscript such as 'X[$(cmd)]'; 0 never advances the wait
+    [[ "$CI_APPEAR_TIMEOUT_S" =~ ^[0-9]+$ ]] || { echo "Stage G2: ignoring CI_APPEAR_TIMEOUT_S='$CI_APPEAR_TIMEOUT_S' (not a number) — using 120"; CI_APPEAR_TIMEOUT_S=120; }
+    [[ "$CI_APPEAR_INTERVAL_S" =~ ^[1-9][0-9]*$ ]] || { echo "Stage G2: ignoring CI_APPEAR_INTERVAL_S='$CI_APPEAR_INTERVAL_S' (not a whole number of seconds ≥ 1) — using 10"; CI_APPEAR_INTERVAL_S=10; }
     WAITED=0
-    while CHECKS_OUT=$(gh pr checks "$PR_NUM" 2>&1); [[ "$CHECKS_OUT" == *"no checks reported"* ]]; do
+    # why: timeout 30 — one stalled gh call must not hold G2 past its caps; a timed-out look ends the wait and the watch decides
+    while CHECKS_OUT=$(timeout 30 gh pr checks "$PR_NUM" 2>&1); [[ "$CHECKS_OUT" == *"no checks reported"* ]]; do
         if [[ "$WAITED" -ge "$CI_APPEAR_TIMEOUT_S" ]]; then
             echo "Stage G2: no checks registered after ${WAITED}s"; break   # why: the watch below then reports CI_FAILED
         fi

@@ -3,7 +3,7 @@
 _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = provenance.log, CL = context-log.md (this dir)._
 
 ## Milestone 1: sdm.sh beside the old skill, proven live
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: None
 - Complexity: 55%
 - Effort: 1.75 days
@@ -22,7 +22,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
 - Result Log:
 
 ### Sub-step 1.0: Prototype + deferred work
-- Status: PENDING
+- Status: IN_PROGRESS
 - Mode: HITL
 - Dependencies: None
 - Prototype-Required: YES
@@ -43,6 +43,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
 - Acceptance Criteria:
   - New fixtures `tests/commands/sdm/fixtures/{bin/gh,bin/pre-commit,helpers.bash}` (check-runs arm from `GH_CHECK_RUNS`, G1 rc control, `pr checks` rows, GraphQL-error arm, field-order-free `pr view`); old fixtures untouched.
   - The 102 KEEP/CHANGE tests ported to `tests/commands/sdm/{check,ship,finish}.bats` per the inventory's per-test map, plus the 13 new tests in plan §5 1.1; each open TODO from 1.0 is a test or named as carried.
+  - Added at 1.0 (CL 2026-10-20): new test 14, `finish` on a PR already MERGED at HEAD makes no merge call and goes to the delete (validator W2).
   - `bats --count tests/commands/sdm` = N, recorded here; N = 102 + the new tests ≥ 115.
   - A RED log here lists each new test with its failure line.
   - The RED commit precedes any GREEN.

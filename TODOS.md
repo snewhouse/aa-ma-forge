@@ -154,10 +154,6 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 - Comment at the `linked=` assignment reads as its failure case; reword.
 **Why:** sole-dev-merge-fixes M5 live run 3, Stage C (code-reviewer 1M/5L, security-auditor 3L); deferred under Ste's stop rule (only CRITICAL/HIGH block). **Effort:** S · **Priority:** P3
 
-### install.sh links a clone pinned to main; then work on plain branches
-**What:** the 67 links `install.sh` puts in `~/.claude` point into the main checkout, so switching branches there would make work-in-progress (RED hooks included) live for every session. Point the links at a separate clone that stays on main and is fast-forwarded after each merge (like `codemem-plugin-wt`). Then drop linked worktrees for plan work.
-**Why:** Ste asked (2026-10-20) whether worktrees caused problems. Measured: L-1332, L-052 and L-1347 were worktree-only (6 PRs, by-hand G4 merges, all of M5); L-141 is false (worktrees share `origin/HEAD`). Plain branches avoid that class, but not while the live links point at the checkout being switched. **Effort:** S–M · **Priority:** P2
-
 ### stop-rule PR (fix/sdm-stop-rule) review: 4 MEDIUM + 7 LOW, deferred under the stop rule
 **What:**
 - Round 2 runs Ruff S and ShellCheck over the whole branch again, so a HIGH already disputed or deferred in round 1 comes back. Count only findings in the fix diff, or not yet decided, as "open after round 2".
@@ -183,15 +179,9 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** /sole-dev-merge on fix/auditor-threat-model-scope, round 1, 2026-10-20: 0C/0H, 3 MEDIUM + 6 LOW, so nothing blocked. The PR improves on main, which had a tooling-only default with the same list. **Effort:** S · **Priority:** P3. The P1 severity-list item is done in `fix/auditor-authz-g2-wait` (2026-10-20): unauthorized access is in the CRITICAL/HIGH list.
 
-### Stage G2 appear-wait: review notes (fix/auditor-authz-g2-wait)
-**What:**
-- Validate `CI_APPEAR_TIMEOUT_S` as `^[0-9]+$` and `CI_APPEAR_INTERVAL_S` as `^[1-9][0-9]*$` (else use the defaults), as G2 already does for `PR_NUM` and the GitLab `TIMEOUT_S`. An interval of 0 or a non-number spins forever.
-- Wrap the probe in `timeout 30s`, so one stalled gh call cannot hold G2 past its caps.
-- Say in the Stage G summary that the real cap is now 120 s + 900 s.
-- Add a test that drives a real wait (TIMEOUT=2, INTERVAL=1 → "after 2s").
-- Pre-existing: the wait ends at the first registered check, so a fast first check can end `--watch` green before a later workflow registers. Branch protection's required checks are the backstop.
-
-**Why:** /sole-dev-merge on fix/auditor-authz-g2-wait, round 1, 2026-10-20: 0C/0H, 1 MEDIUM + 6 LOW (operator-set env only, so no normal-use path). **Effort:** S · **Priority:** P3
+### Stage G2: the wait ends at the first registered check
+**What:** G2's appear-wait stops once any check registers, so a fast first check going green before a later workflow registers can end `--watch` green on partial CI. Older than the wait; branch protection's required checks are the backstop. Fix: re-read the check count once after the watch, or rely on required checks.
+**Why:** PR #50 review (2026-10-20), LOW, both reviewers. **Effort:** S · **Priority:** P3
 
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.
@@ -519,6 +509,22 @@ path and a fixture path, before Deep is evaluated.
 **Why:** each fails closed or is a usability gap; none is a leak. **Effort:** M total · **Priority:** P3
 
 ## Completed
+
+### Stage G2 appear-wait: review notes (fix/auditor-authz-g2-wait)
+**What:**
+- Validate `CI_APPEAR_TIMEOUT_S` as `^[0-9]+$` and `CI_APPEAR_INTERVAL_S` as `^[1-9][0-9]*$` (else use the defaults), as G2 already does for `PR_NUM` and the GitLab `TIMEOUT_S`. An interval of 0 or a non-number spins forever.
+- Wrap the probe in `timeout 30s`, so one stalled gh call cannot hold G2 past its caps.
+- Say in the Stage G summary that the real cap is now 120 s + 900 s.
+- Add a test that drives a real wait (TIMEOUT=2, INTERVAL=1 → "after 2s").
+- Pre-existing: the wait ends at the first registered check, so a fast first check can end `--watch` green before a later workflow registers. Branch protection's required checks are the backstop.
+
+**Why:** /sole-dev-merge on fix/auditor-authz-g2-wait, round 1, 2026-10-20: 0C/0H, 1 MEDIUM + 6 LOW (operator-set env only, so no normal-use path). **Effort:** S · **Priority:** P3
+**Done:** `fix/g2-appear-wait-hardening` (2026-10-20): both settings are validated and fall back to the default with a message; each look runs under `timeout 30`; the Stage G summary gives the ~17-minute worst case; a real-wait test was added (`test_stage_g_poll.bats`). The first-check race is its own TODO above.
+
+### install.sh links a clone pinned to main; then work on plain branches
+**What:** the 67 links `install.sh` puts in `~/.claude` point into the main checkout, so switching branches there would make work-in-progress (RED hooks included) live for every session. Point the links at a separate clone that stays on main and is fast-forwarded after each merge (like `codemem-plugin-wt`). Then drop linked worktrees for plan work.
+**Why:** Ste asked (2026-10-20) whether worktrees caused problems. Measured: L-1332, L-052 and L-1347 were worktree-only (6 PRs, by-hand G4 merges, all of M5); L-141 is false (worktrees share `origin/HEAD`). Plain branches avoid that class, but not while the live links point at the checkout being switched. **Effort:** S–M · **Priority:** P2
+**Dropped (Ste, 2026-10-20):** the worktree failures (L-1332, L-052, L-1347) are fixed and worktrees ran cleanly through PRs #47–#50, so plain branches are now mainly a convenience. A pinned worktree would also repeat the `codemem-plugin-wt` side effect: any linked worktree holding the task stops pre-compact writing a CHECKPOINT in main-rooted sessions. Keep worktrees for plan work.
 
 ### /sole-dev-merge Stage D: only CRITICAL/HIGH block and restart a merge run
 **What:** in `references/stage-d-triage.md`, route MEDIUM and LOW findings to reviewer notes and TODOS, and ask the operator (AskUserQuestion) only for CRITICAL and HIGH. Only an applied CRITICAL/HIGH fix restarts the run from Stage A. Update the Stage D row in ADR-0008 and the d_triage bats tests.

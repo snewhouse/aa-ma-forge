@@ -102,7 +102,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - The PR's `Bats` check passing with the new count in its log is observed at 1.4, after `ship` pushes.
 - Result Log:
   - Mode: AFK — auto-dispatched (lead). New step "Run bats on tests/commands/sdm/" in the `bats` job, after the old suite's step (M2 removes the old step and the stale comments at 145-158, "60+").
-  - `grep -c 'tests/commands/sdm' .github/workflows/security.yml` = 1; YAML parses. No `${{ }}` input in the step. The live `Bats` check is observed at 1.4.
+  - `grep -c 'tests/commands/sdm' .github/workflows/security.yml` = 2 (step name + run; AC ≥ 1); YAML parses. No `${{ }}` input in the step. The live `Bats` check is observed at 1.4.
 
 ### Sub-step 1.4: Verify, gate, merge by the new script
 - Status: PENDING

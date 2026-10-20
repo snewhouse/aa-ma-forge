@@ -1,3 +1,8 @@
+<!-- ARCHIVED: 2026-10-20 10:09 -->
+<!-- Plan: sole-dev-merge-fixes - COMPLETE -->
+<!-- Total Milestones: 5 | Duration: 2026-10-15 to 2026-10-20 -->
+
+
 # sole-dev-merge-fixes Plan
 
 **Objective:** Fix the `/sole-dev-merge` defects that keep recurring and are worked around by hand (L-1332, L-1309, L-1347, L-048, check-conventions "no diff source"), plus the defects a fresh re-check found. Log each as a lesson before fixing it.

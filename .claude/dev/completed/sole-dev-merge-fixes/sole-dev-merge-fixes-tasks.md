@@ -1,3 +1,8 @@
+<!-- ARCHIVED: 2026-10-20 10:09 -->
+<!-- Plan: sole-dev-merge-fixes - COMPLETE -->
+<!-- Total Milestones: 5 | Duration: 2026-10-15 to 2026-10-20 -->
+
+
 # sole-dev-merge-fixes Tasks (HTP)
 
 Conventions used in the criteria:

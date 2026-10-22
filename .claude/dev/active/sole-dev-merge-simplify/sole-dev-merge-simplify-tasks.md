@@ -3,7 +3,7 @@
 _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = provenance.log, CL = context-log.md (this dir)._
 
 ## Milestone 1: sdm.sh beside the old skill, proven live
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: None
 - Complexity: 55%
 - Effort: 1.75 days
@@ -20,6 +20,8 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - The M1 PR is merged by the branch's `sdm.sh` (`check` / reviews / `ship` / `finish` as separate Bash calls), with `STATUS: OK` quoted in PL.
   - CRITICAL_PATH_REVIEW, TESTS_VERIFIED and GATE APPROVAL lines are present.
 - Result Log:
+  - COMPLETE 2026-10-22, HARD gate approved by Ste (CL `GATE APPROVAL: Milestone 1`). PR #55 merged as `c612620b` by the branch's own sdm.sh (3 merge runs); deps PR #56 (`4eb03c7f`) and the 1.0 chore PR #53 (`6ad8ad38`) also merged by sdm.sh — 3 live merges.
+  - All 6 ACs verified on main `c612620b`: PL PROTOTYPE line; N = 150 ≥ 115, RED first (tdd-sequence-auditor PASS); `150 tests, 0 failures`, 100755, 352 lines, 1 `sdm_footer()`, DROP 0, old suite `199 tests, 0 failures`, old SKILL.md/references diff 0; security.yml runs the suite (grep 2, live in PR #55); `STATUS: OK` in PL; CRITICAL_PATH_REVIEW, TESTS_VERIFIED (962), GATE APPROVAL present.
 
 ### Sub-step 1.0: Prototype + deferred work
 - Status: COMPLETE
@@ -105,7 +107,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - `grep -c 'tests/commands/sdm' .github/workflows/security.yml` = 2 (step name + run; AC ≥ 1); YAML parses. No `${{ }}` input in the step. The live `Bats` check is observed at 1.4.
 
 ### Sub-step 1.4: Verify, gate, merge by the new script
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 1.3
 - Acceptance Criteria:
@@ -116,6 +118,16 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - main = origin/main.
   - This Result Log has the PR number and the number of merge runs (target 1).
 - Result Log:
+  - Mode: HITL — Ste: Proceed (boundary checks + live merge).
+  - §6.0 CODE_INTEL_REFRESH at `90dbf97a`; §6.3 impact LOW (sdm.sh has no callers yet; old skill byte-identical); §6.6 skipped by rule (bash only); CRITICAL_PATH_REVIEW: 7 merge-gate guards mutation-tested (each turns ≥ 1 test red).
+  - §6.7: fence 1 PASS (4 conditions); fence 2 not applicable (`edges=0`, lint clean); fence 3 TESTS_VERIFIED 959 → 960 → **962** (re-run after each code change; final on `ae90cd2b`).
+  - §6.8 (5 agents): 1 CRITICAL accepted by Ste and fixed test-first (ruff `--force-exclude`: RED `49143045`, GREEN `e70f156f`), fix re-checked 0C/0W/1I; 14 WARNING + 15 INFO → TODOS. `…-impl-review.md` written.
+  - Merge reviews C1 0C/0H/1M/3L, C2 0/0/0/0 (round 1); notes file in a private `mktemp -d` run dir (closes the "1.4 names no output path" TODO); MEDIUM/LOW → TODOS.
+  - **PR #55, 3 merge runs** (target 1):
+    1. `ship` → `CI_STATE=failed`: pip-audit only, 3 advisories published that week against locked certifi/virtualenv (unrelated). Ste: separate deps PR → #56 merged by this branch's sdm.sh (`STATUS: OK`, `4eb03c7f`). No rebase/force-push: pull_request CI tests the merge ref.
+    2. `ship` → `STATUS: PR_BODY_NOT_UPDATED — PR #55 reason=not-this-branch`: GitHub's headRefOid lagged the re-push (the §6.8 WARNING at sdm.sh:151, proven live). Ste: fix now → RED `1e0b52d2`, GREEN `ae90cd2b` (150/150), fix re-checked 0C/0H/1M/4L → TODOS.
+    3. `check OK` → `ship`: `PR #55 body updated (read-back matches)`, `CI_STATE=green` (9/9) → `finish 55`: `STATUS: OK worktree=/home/sjnewhouse/projects/github_private/aa-ma-forge/.worktrees/refactor/sdm-script`.
+  - AC: PR #55 MERGED (`c612620b`); `ls-remote --exit-code origin refs/heads/refactor/sdm-script` rc 2; main = origin/main = `c612620b`; `git diff --name-only refactor/sdm-script main` = `uv.lock` only (#56). PR #55's CI ran `tests/commands/sdm` (`1..148` run 1; green run 3) — 1.3's live AC.
 
 ---
 

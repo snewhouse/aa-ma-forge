@@ -71,3 +71,19 @@ Prototype `1fdfd468` merged PR #53 end to end on its first run (check → ship �
   - `finish`'s branch-name `check-ref-format`: the branch comes from `git branch --show-current`, and git cannot create a name that check rejects.
 - **No `--untracked-files=all`:** a fixer-recreated file the branch deleted reads as `?? d/`, out of scope, so check ABORTs. With `-uall`, check would commit the re-added file (the old TODO 88 bullet 2 bug). Aborting is the safer default.
 - **Old tests re-expressed:** `check` now refuses a dirty tree at start, so every drift scenario is created during check by the pre-commit stub (`PRE_COMMIT_RUN`). `:392`/`:494` now expect the out-of-scope ABORT; `:419`/`:434`/`:464` assert the earlier ABORT with the index unchanged. `g_poll:69`'s `--auto` hint is replaced by the `sdm.sh finish` hint (new 4).
+
+## [2026-10-22] GATE APPROVAL: Milestone 1: sdm.sh beside the old skill, proven live
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 6/6
+- Decision: APPROVED
+
+## [2026-10-22] Milestone Completion: Milestone 1: sdm.sh beside the old skill, proven live
+- Status: COMPLETE
+- Key outcome: `claude-code/skills/sole-dev-merge/scripts/sdm.sh` (352 lines, 150 bats tests) merged three real PRs (#53 prototype, #56 deps, #55 itself); the old skill is unchanged and still the fallback until M2.
+- Artifacts: sdm.sh; tests/commands/sdm/{check,ship,finish}.bats + fixtures; security.yml step; impl-review.md; TODOS entries ("sdm.sh M1 §6.8 review notes", "sdm.sh M1 PR review (C1/C2, round 1)").
+- Tests: sdm 150/150, old suite 199/199, `bats -r tests` 962 (TESTS_VERIFIED), pytest 3142 passed.
+- Decisions this milestone (Ste): §6.8 CRITICAL accepted and fixed; pip-audit advisories fixed in a separate deps PR (#56), no force-push; the live head-lag bug fixed now (merge run 3).
+- Evidence for L-061: the one bug that bit in live use (head lag) had been rated WARNING by §6.8; the stub suite could not show it. Merge runs: 3 vs target 1 — one external (advisories), one real bug.
+- Sub-step 2.0's ACs (SHA map in reference.md, M1 `pending_steps=0`, this GATE APPROVAL, recorded on `refactor/sdm-switch-over`) are met by this commit; M2 marks 2.0 when it starts.
+- Next: Milestone 2 — Dependencies: Milestone 1. Open before M2 (P2): the failure-line items in TODOS "sdm.sh M1 §6.8 review notes" (M2's SKILL.md relies on ABORT lines), and validator W4 (M2 has no RED step and no TDD-Waiver).

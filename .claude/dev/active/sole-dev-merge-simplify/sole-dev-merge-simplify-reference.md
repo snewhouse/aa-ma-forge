@@ -41,7 +41,7 @@ CLI (sdm.sh, bash, set -euo pipefail; sourceable: main runs only when "${BASH_SO
                                   # pre-commit stays best-effort: prints "check: pre-commit rc=<n>" and goes on
   sdm.sh ship [--notes FILE]      # origin on github.com, gh auth, body, push, PR create or REST update + read-back, G1, G2.
                                   # prints three lines PR_NUM=<n>, PR_URL=<u>, CI_STATE=green|failed|timeout; STATUS lines exit 0; ABORT exit 1
-                                  # body in a mktemp file removed by an EXIT trap; PATCH with `gh api -F body=@file`, read-back trims trailing newlines
+                                  # body in a mktemp file removed by an EXIT trap; PATCH with `gh api -F body=@file`, read-back compared with the file plus one newline (gh `--jq` adds one; impl-review W)
                                   # repo slug from origin's configured URL (pushurl, else url; no insteadOf expansion — 1.0 finding 1), passed as -R/explicit path; origin not on github.com -> ABORT naming the host only (never the URL)
                                   # the PR is used only if OPEN, isCrossRepository=false and headRefOid == local HEAD; decide on gh's rc, never on stdout
                                   # `pr checks --watch` output goes to /dev/null; only the three lines reach stdout
@@ -70,6 +70,33 @@ Exit table: in sdm.sh between the comment lines "# exit-table:begin" and "# exit
 - `gh pr checks` non-TTY rows: `NAME<TAB>BUCKET<TAB>ELAPSED…`; buckets seen: `pass`, `pending`.
 - `gh pr view <branch> -R <slug>` finds the PR by head name even when the branch's upstream is `origin/main` (worktree cut with `-b … origin/main`).
 - A rebase merge rewrites the SHA (head `99d0c845` → `6ad8ad38` on main), so G4's `branch -D` is required, never `-d`.
+
+### Milestone 1 SHA map (PR #55 → main, rebase merge, 2026-10-22)
+PR commits from `gh api repos/snewhouse/aa-ma-forge/pulls/55/commits`, matched by full subject to `git log 4eb03c7f..c612620b` on origin/main (16/16).
+| PR #55 | main | subject |
+|---|---|---|
+| `6c4521ea` | `3cb8808b` | docs(aa-ma): sole-dev-merge-simplify 1.0 complete — prototype merged PR #53 |
+| `2c3e2c86` | `00c14858` | test(sdm): RED — 147 bats tests and fixtures for sdm.sh check/ship/finish |
+| `1cd01f0d` | `6adbcbe5` | feat(sole-dev-merge): GREEN — sdm.sh check/ship/finish, one tested script |
+| `d13faa48` | `86dc14b0` | ci(security): run the sdm.sh bats suite in the bats job |
+| `90dbf97a` | `9310510f` | docs(aa-ma): 1.3 Result Log — the security.yml grep counts 2, not 1 |
+| `7e203bde` | `2877e5c7` | docs(aa-ma): M1 boundary — CODE_INTEL_REFRESH at 90dbf97a |
+| `639d3593` | `f759c95c` | docs(aa-ma): M1 CRITICAL_PATH_REVIEW — merge gate mutation-tested |
+| `05718b5d` | `4ced5c29` | docs(aa-ma): 1.4 in progress — boundary checks |
+| `49143045` | `8cb583b5` | test(sdm): RED — check must leave a ruff-excluded .py untouched (§6.8 CRITICAL) |
+| `e70f156f` | `4fc2e277` | fix(sole-dev-merge): check passes --force-exclude to ruff (§6.8 CRITICAL) |
+| `3974d428` | `25f9677b` | docs(aa-ma): M1 §6.8 — impl-review, 1 CRITICAL fixed, warnings to TODOS |
+| `6a8afdc9` | `42b8f2eb` | docs(todos): M1 PR review notes (C1 1 MEDIUM + 3 LOW); TESTS_VERIFIED 960 |
+| `e90370a3` | `dd21068f` | docs(aa-ma): 1.4 — pip-audit unblocked by #56 (no rebase needed) |
+| `1e0b52d2` | `32085606` | test(sdm): RED — ship re-reads a lagging PR head instead of calling it not-this-branch |
+| `ae90cd2b` | `b2909213` | fix(sole-dev-merge): ship waits for GitHub to show the pushed head before judging the PR |
+| `6474936a` | `c612620b` | docs(aa-ma): merge run 3 — head-lag fix re-checked; TESTS_VERIFIED on ae90cd2b |
+
+### Milestone 1 live facts (2026-10-22)
+- Right after a push to an open PR, `gh pr view` can still report the old `headRefOid` for seconds (live, PR #55). sdm.sh re-reads within the CI appear-wait caps; a head that never catches up is `reason=head-not-updated`.
+- `pull_request` CI checks out `refs/pull/N/merge`, so a new push re-tests the PR against current main: a base-branch fix (PR #56) unblocks an open PR without a rebase or force-push.
+- A file named on ruff's command line skips `extend-exclude` unless `--force-exclude` (sdm.sh `check` passes it).
+- Local pip-audit on this machine fails `import venv` (the interpreter has no venv module); CI's pip-audit is authoritative.
 
 ### Constants and limits
 - sdm.sh ≤ 400 lines (design audit sized it at 150–200); SKILL.md ≤ 150 lines (M2), ≤ 500 hard limit (`tests/test_prompt_size.py`); no SKILL.md fenced block > 3 lines.
@@ -109,4 +136,4 @@ Exit table: in sdm.sh between the comment lines "# exit-table:begin" and "# exit
 ### Release
 - No release cut by this plan; changes ship in v0.18.0, cut by code-conventions-impact M14. CHANGELOG Removed: "GitLab/glab support; last in v0.17.0".
 
-_Last Updated: 2026-10-20_
+_Last Updated: 2026-10-22 (M1 SHA map and live facts)_

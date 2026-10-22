@@ -688,3 +688,51 @@ merge_line() { grep '^gh pr merge ' "$CLI_LOG" || true; }   # why: no merge call
     [[ "$line" != *"--delete-branch"* ]]
     [[ "$line" != *"--auto"* ]]
 }
+
+# ---------------------------------------------------------------------------
+# fix/sdm-failure-lines (TODOS "sdm.sh M1 §6.8 review notes", "sdm.sh M1 PR review")
+# ---------------------------------------------------------------------------
+
+# Fetches (url) fail; pushes (pushurl, still github.com → the forge) work. A local path: no network.
+break_fetch() {
+    git config remote.origin.pushurl https://github.com/test/repo.git
+    git config remote.origin.url "$BATS_TEST_TMPDIR/no-such-remote.git"
+}
+
+@test "fix: worktree cleanup fetch fails after the merge → STATUS: MAIN_NOT_UPDATED, rc 0, never a silent exit" {
+    wt_setup
+    break_fetch
+    local before; before=$(git -C "$MAIN" rev-parse main)
+
+    run --separate-stderr "$SDM" finish "$STUB_PR_NUM"
+    [ "$status" -eq 0 ]
+    [ -n "$(merge_line)" ]
+    [ "${lines[-1]}" = "STATUS: MAIN_NOT_UPDATED — fetch from origin failed" ]
+    [ "$(git -C "$MAIN" rev-parse main)" = "$before" ]
+    [[ "$output" == *"Operator cleanup:"* ]]
+}
+
+@test "fix: worktree cleanup with no local default branch and no fetch → says so, rc 0, never a silent exit" {
+    wt_setup
+    git -C "$MAIN" checkout -q -b other
+    git -C "$MAIN" branch -q -D main
+    break_fetch
+
+    run --separate-stderr "$SDM" finish "$STUB_PR_NUM"
+    [ "$status" -eq 0 ]
+    [ "${lines[-1]}" = "STATUS: MAIN_NOT_UPDATED — fetch from origin failed" ]
+    [[ "$output" == *"finish: cleanup done — main at (none)"* ]]
+}
+
+@test "fix: plain checkout with a tracked change → STATUS: MAIN_CHECKOUT_DIRTY, still on the branch, change kept" {
+    pushed_and_merged
+    echo dirty >> a.txt
+    local before; before=$(fingerprint "$WORK")
+
+    run --separate-stderr "$SDM" finish "$STUB_PR_NUM"
+    [ "$status" -eq 0 ]
+    [[ "${lines[-1]}" == "STATUS: MAIN_CHECKOUT_DIRTY — "*"a.txt"* ]]
+    [[ "$output" != *"STATUS: OK"* ]]
+    [ "$(git branch --show-current)" = feature ]
+    [ "$(fingerprint "$WORK")" = "$before" ]
+}

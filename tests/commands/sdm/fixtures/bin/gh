@@ -10,6 +10,7 @@
 #   GH_PR_CROSS_REPO=false    isCrossRepository
 #   GH_PR_HEAD_OID            headRefOid (default: local HEAD)
 #   GH_PR_STALE_OID_CALLS=0   the first N `pr view <branch>` lookups report a stale headRefOid (GitHub lagging a push)
+#   GH_PR_CLOSED_AFTER_CALLS  after N `pr view <branch>` lookups, state reads CLOSED (the PR closed during a wait)
 #   GH_PR_STATE=MERGED        state read back after the merge call (`--jq .state` alone)
 # Other arms:
 #   GH_AUTH_OK=1              `auth status` rc 0; =0 → rc 1
@@ -19,7 +20,7 @@
 #   GH_ALLOW_REBASE=true      `api repos/<o>/<r> --jq .allow_rebase_merge` prints this; GH_API_REPO_RC=0 its rc
 #   GH_CHECKS_NONE_CALLS=0    the first N `pr checks` calls say "no checks reported" (rc 1)
 #   GH_WATCH_HANG=0           =1: `pr checks --watch` sleeps until the outer timeout
-#   GH_CHECKS_RC=0            rc of `pr checks`
+#   GH_CHECKS_RC=0            rc of `pr checks`; GH_CHECKS_REREAD_RC overrides it for non-watch calls only
 #   GH_CHECKS_ROWS            rows a non-watch `pr checks` prints (tab-separated: name, bucket, …)
 #   GH_CHECK_RUNS             check-runs at the head: one "status conclusion" pair per line
 #   GH_CHECK_RUNS_TOTAL       total_count (default: the number of GH_CHECK_RUNS lines); GH_CHECK_RUNS_RC=0
@@ -39,7 +40,12 @@ pr_field() {   # sets V to the value of PR field $1
         url) V="https://github.com/test/repo/pull/$n" ;;
         isCrossRepository) V="${GH_PR_CROSS_REPO:-false}" ;;
         headRefName) V="${GH_PR_HEAD_REF:-$(git branch --show-current)}" ;;
-        state) V="${GH_PR_LOOKUP_STATE:-OPEN}" ;;
+        state)
+            V="${GH_PR_LOOKUP_STATE:-OPEN}"
+            if [[ -n "${GH_PR_CLOSED_AFTER_CALLS:-}" ]] \
+                && [[ "$(grep -c "^gh pr view $SEL " "$LOG" || true)" -gt "$GH_PR_CLOSED_AFTER_CALLS" ]]; then   # why: grep -c exits 1 on 0 matches
+                V=CLOSED
+            fi ;;
         headRefOid)
             # GH_PR_STALE_OID_CALLS=N: the first N branch lookups report a stale head (GitHub lagging a push)
             if [[ "$SEL" =~ ^[0-9]+$ ]] || [[ "$(grep -c "^gh pr view $SEL " "$LOG" || true)" -gt "${GH_PR_STALE_OID_CALLS:-0}" ]]; then   # why: grep -c exits 1 on 0 matches
@@ -83,10 +89,10 @@ case "${1:-} ${2:-}" in
         fi
         if [[ " $* " == *" --watch "* ]]; then
             [[ "${GH_WATCH_HANG:-0}" != 1 ]] || sleep 999
-        elif [[ -n "${GH_CHECKS_ROWS:-}" ]]; then
-            printf '%s\n' "$GH_CHECKS_ROWS"
+            exit "${GH_CHECKS_RC:-0}"
         fi
-        exit "${GH_CHECKS_RC:-0}" ;;
+        [[ -z "${GH_CHECKS_ROWS:-}" ]] || printf '%s\n' "$GH_CHECKS_ROWS"
+        exit "${GH_CHECKS_REREAD_RC:-${GH_CHECKS_RC:-0}}" ;;
     "pr merge")
         if [[ "${GH_MERGE_HEAD_MISMATCH:-0}" == 1 ]]; then
             echo "GraphQL: Head branch was modified. Review and try the merge again. (mergePullRequest)" >&2; exit 1

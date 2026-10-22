@@ -95,3 +95,9 @@ Prototype `1fdfd468` merged PR #53 end to end on its first run (check → ship �
 - **Q2 = D:** validator W4 closed by a RED step: 2.1 revived as "RED — a test of SKILL.md's shape" (`tests/skills/test_sole_dev_merge_skill.py`); 2.2 now depends on 2.1. plan.md 2.1 carries a dated amendment note.
 - **Q3 = delete:** `.worktrees/prototype/sdm-script` removed and local branch `prototype/sdm-script` deleted (was `ca5aaff9`; never pushed, `ls-remote` rc 2; no keep decision recorded, L-1350). PROTOTYPE line and findings stay in provenance and this log.
 - TODOS "review notes for M1": 4 items marked done after checking each (tasks.md 1.2 AC, 1.4 Result Log, `ship.bats` "new: 1" + exit table, lease + `finish.bats` "new 15").
+
+## [2026-10-22] Pre-M2 fix PR #57 merged
+- Q1=A delivered: all 5 P2 items and the 4 Q4 extra groups in one PR, each with a RED test that failed on the unfixed script (16 new tests; 3 pre-commit `FROM=` expectations were missed in RED and updated in GREEN, disclosed in the GREEN commit). "Named constants" had no RED: a refactor, guarded by the existing suite.
+- Review triage (Ste): the one MEDIUM was a regression this PR introduced (gh's rc 8 "pending" on the post-watch re-read read as CI_FAILED). Ste chose "fix now, round 2"; round 2 reviewed only that fix and found one shared LOW. Stop rule held: 2 rounds, 7 LOWs → TODOS "sdm.sh fix/sdm-failure-lines PR #57 review".
+- Not taken in the PR (TODOS stay open): PR title after an auto-fix commit, pre-commit's `./` prefix vs anchored patterns, `ssh.github.com:443`, help's 2 × CI_APPEAR_TIMEOUT_S note, stub/test LOWs.
+- TODOS closures recorded here on the M2 branch, not in PR #57 (the M2 branch already edits the same entry; L-037).

@@ -7,6 +7,8 @@
 #   g_merge:<line>  tests/commands/sole-dev-merge/test_stage_g_merge.bats
 #   state:<line>    tests/commands/sole-dev-merge/test_stage_state.bats
 # New tests are prefixed `new <n>:`.
+# The old suite was deleted in sole-dev-merge-simplify M2; its file:line citations refer to
+# it as of c612620b (`git show c612620b:tests/commands/sole-dev-merge/<file>`).
 #
 # Sandbox (fixtures/helpers.bash): $WORK on `feature`, 1 commit ahead of main; origin is
 # https://github.com/test/repo.git, rewritten to the bare forge $FORGE, so the branch delete

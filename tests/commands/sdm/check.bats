@@ -3,6 +3,8 @@
 #
 # Ported from tests/commands/sole-dev-merge/ (test_stage_a_preflight, test_stage_b_scope,
 # test_smoke_e2e, test_stage_state); the old suite's file:line is in each test's comment.
+# The old suite was deleted in sole-dev-merge-simplify M2; its file:line citations refer to
+# it as of c612620b (`git show c612620b:tests/commands/sole-dev-merge/<file>`).
 # Old Stage B restored out-of-scope files; `check` instead ABORTs naming them and leaves them
 # exactly as they are. `check` also refuses a dirty tree at START, so every drift here is made
 # DURING check, by the pre-commit stub's PRE_COMMIT_RUN (it runs after ruff, before the scope check).

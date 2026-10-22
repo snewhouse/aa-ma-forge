@@ -27,7 +27,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0005](0005-post-impl-adversarial-review.md) | Post-Impl Adversarial Review (Phase 6.8 + /verify-impl) | Implemented | 2026-05-11 |
 | [0006](0006-understand-codebase-adoption.md) | Adopt `understand-codebase` onboarding skill + 4 worker agents + `/understand-codebase` into the AA-MA Forge ecosystem | Implemented | 2026-05-12 |
 | [0007](0007-aa-ma-tui-tracker.md) | `aa-ma-tui` — Read-Only Textual TUI + Rich Snapshot for AA-MA Task Tracking | Implemented | 2026-05-18 |
-| [0008](0008-sole-dev-merge-pr-workflow.md) | `/sole-dev-merge` — PR/MR Workflow with 3-Source Security + Idempotent Auto-Merge | Implemented | 2026-05-18 |
+| [0008](0008-sole-dev-merge-pr-workflow.md) | `/sole-dev-merge` — PR/MR Workflow with 3-Source Security + Idempotent Auto-Merge | Implemented; partly superseded by 0024 | 2026-05-18 |
 | [0009](0009-gate-enforcement-python-ssot.md) | Gate enforcement reads the Python SSoT; bash keeps display readers only | Implemented | 2026-09-11 |
 | [0010](0010-architecture-views-and-render.md) | Architecture Views (element #13), Contract blocks, mermaid lint, Artifact Share and HTML Render | Implemented | 2026-09-11 |
 | [0011](0011-prototype-resync-and-planning-gate.md) | Re-sync `prototype` to upstream 1.2.3 and make the prototype decision explicit in planning | Implemented | 2026-09-20 |
@@ -43,6 +43,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0021](0021-writing-for-agents-fork.md) | Fork `writing-for-agents`; retire `write-a-skill` | Accepted | 2026-10-09 |
 | [0022](0022-secops-baseline.md) | SecOps baseline: Ruff S, gitleaks, hashed dependency audit, whole-file commit hook | Accepted | 2026-10-12 |
 | [0023](0023-tests-verified-gate.md) | Tests-verified gate: §6.7 fence 3 runs the merge-base `Test-Command:` | Accepted | 2026-10-13 |
+| [0024](0024-sole-dev-merge-one-script.md) | `/sole-dev-merge` is one tested script, GitHub only | Accepted | 2026-10-22 |
 
 ## Statuses
 

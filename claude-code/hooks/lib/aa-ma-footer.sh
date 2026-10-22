@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # aa-ma-footer.sh — emit the canonical AA-MA commit footer.
 #
-# Sourced by stage-b-commit (`claude-code/skills/sole-dev-merge/SKILL.md`) and
-# stage-d-triage (`claude-code/skills/sole-dev-merge/references/stage-d-triage.md`). Single source-of-truth for the
+# Sourced by `sdm_footer` in `claude-code/skills/sole-dev-merge/scripts/sdm.sh` (the
+# auto-fix commit in `sdm.sh check`). Single source-of-truth for the
 # footer format used in plan-active commits; eliminates the drift risk
 # flagged by the M2 §6.8 future-proofing-auditor (HIGH finding: "AA-MA
 # footer convention duplicated inline").

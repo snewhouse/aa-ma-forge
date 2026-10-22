@@ -1,6 +1,6 @@
 # 0008. `/sole-dev-merge` — PR/MR Workflow with 3-Source Security + Idempotent Auto-Merge
 
-**Status:** Implemented
+**Status:** Implemented; partly superseded by [0024](0024-sole-dev-merge-one-script.md) (2026-10-22: the stage blocks, stage state file, GitLab support, local scanner pass and migration banner)
 **Date:** 2026-05-18
 **Deciders:** Stephen Newhouse + AI
 **Tags:** `command`, `pr-mr`, `security`, `idempotency`, `auto-merge`, `backward-compat`
@@ -257,3 +257,12 @@ Severity follows the threat model in `security-auditor.md` (forge L-061).
 ---
 
 *Editorial note (2026-08-09): employer/product names genericized post-departure. Technical rationale unchanged.*
+
+## Amendment 2026-10-22 — partly superseded by ADR-0024
+
+`/sole-dev-merge` is now `claude-code/skills/sole-dev-merge/scripts/sdm.sh` (`check` / `ship` /
+`finish`) called from a short SKILL.md ([ADR-0024](0024-sole-dev-merge-one-script.md),
+sole-dev-merge-simplify). The stage blocks, `references/stage-*.md`, the stage state file, GitLab
+support, the local Ruff S/ShellCheck pass and the migration banner described above are gone. This
+ADR's goals stand: a CI gate before merge, review before push, idempotent PR handling and
+worktree-safe cleanup.

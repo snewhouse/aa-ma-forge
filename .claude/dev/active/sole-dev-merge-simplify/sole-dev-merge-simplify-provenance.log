@@ -37,3 +37,4 @@
 [2026-10-22T15:55:06+01:00] Sub-step 2.0 COMPLETE (HITL proceed, Ste) — ACs met by 55e6dfc8: SHA map 16/16, M1 pending_steps=0, GATE APPROVAL M1 APPROVED; AC path made repo-relative
 [2026-10-22T15:56:07+01:00] Sub-step 2.1 RED: tests/skills/test_sole_dev_merge_skill.py — 6 failed / 1 passed on the old SKILL.md (491 lines); L-056 sweep folded 8 deferred items into 2.2
 [2026-10-22T16:08:51+01:00] Sub-step 2.2 COMPLETE — switch commit befb8bf6: SKILL.md 125 lines, references + old suite deleted, hook tests re-pointed/dropped, security.yml cleaned; pytest 3143 passed; bats -r tests 776/0 (1 opt-in skip) on befb8bf6; regen stamp-only
+[2026-10-22T16:14:23+01:00] Sub-step 2.3 COMPLETE — ADR-0024 + amendments (0008/0018/0022), INDEX, CONTEXT Stop rule, README/spec/quick-ref, CHANGELOG Changed+Removed, lessons pointers + L-063, TODOS re-homed; 7/7 grep ACs; pytest 3143 passed; measure.py comment deferred to TODOS (20 pre-existing ruff D errors under ADR-0018)

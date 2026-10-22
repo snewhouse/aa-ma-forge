@@ -208,7 +208,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - Slip (disclosed): a `git stash` for a test-count comparison ran while a background `bats -r tests` used this worktree; that run was stopped and discarded, and the suite re-run on the committed `befb8bf6` (lesson added in 2.3).
 
 ### Sub-step 2.3: Docs
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 2.2
 - Acceptance Criteria:
@@ -222,6 +222,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - `uv run pytest` passes.
   - Also done (no grep AC): ADR-0022/ADR-0018 amendment notes; README.md:226, `docs/spec/claude-code-foundations.md:91`, `docs/spec/aa-ma-quick-reference.md:156-157`; comments in `scripts/install.sh:385`, `src/aa_ma/analysis/measure.py:5`; lessons "Fixed in" pointers; TODOS re-homed.
 - Result Log:
+  - Mode: AFK — auto-dispatched. ACs: ADR-0024 exists ✓; `grep -c 0024 INDEX.md` 2 ✓; `grep -ci supersed` ADR-0008 2 ✓; CONTEXT `Stage state file` 0 / `Stop rule` 1 ✓ (first draft quoted the retired term → 1; re-worded); CHANGELOG exact Removed line 1 ✓; `stage-d-triage` in aa-ma-footer.sh 0 ✓; `glab|gitlab` in the skill dir 0 ✓; `uv run pytest` 3143 passed, 5 skipped ✓.
+  - Also done: ADR-0024 (one script, GitHub only; AD-001–AD-008; accepted risks: closing keywords in notes, commit statuses not gated); ADR-0008 status + dated Amendment; ADR-0022 and ADR-0018 dated Amendments (no local Ruff S; Stage B is now `sdm.sh check` with base `origin/<d>`); README.md:226, `claude-code-foundations.md:91`, `aa-ma-quick-reference.md:156-157` (anchors re-verified, unchanged from the plan); comments in `aa-ma-footer.sh:4-5`, `install.sh:385-386`; CHANGELOG Unreleased Changed + Removed (also the stage blocks, state file, local scanners, migration banner).
+  - Lessons: Fixed-in/Superseded/Applied pointers on L-052, L-053, L-055, L-060, L-061, L-062; new L-063 (no stash/edit in a worktree a background suite is reading).
+  - TODOS re-homed: M2 review-step items Done; "first registered check" re-worded to `sdm.sh ship` (finish is the backstop; PR #57 narrowed it); G2 leading-zero Closed (moot); footer-only-inside-forge re-worded to `sdm_footer`; 3 "review notes for M1" LOWs Done (2.3 grep moot; MERGED-arm notes in SKILL.md).
+  - **Not done (disclosed):** `src/aa_ma/analysis/measure.py:5` — any edit puts the file under ADR-0018's touched-file gate, which finds 20 pre-existing ruff D-rule errors (same 20 at HEAD). Reverted and filed as a TODOS entry (P3) rather than turn a comment edit into a docstring refactor.
 
 ### Sub-step 2.4: Verify, gate, merge, finalize
 - Status: PENDING

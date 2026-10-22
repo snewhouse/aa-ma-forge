@@ -116,6 +116,7 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 - Nothing stops `ship` while a HIGH is open.
 
 **Why:** /sole-dev-merge on fix/sdm-stop-rule, round 1, 2026-10-20 (0C/0H); carried at sole-dev-merge-simplify 1.0. **Effort:** S · **Priority:** P3
+**Done:** sole-dev-merge-simplify M2 2.2 (2026-10-22) — SKILL.md step 2: notes appended per round under `### Round <n>`; round 3 refused (an open CRITICAL/HIGH after round 2 stops `ship`, re-plan); no TODOS.md → the final report; security notes name the class and `path:line`, no exploit steps, no closing keywords; never `ship` with an accepted CRITICAL/HIGH unfixed.
 
 ### security-auditor threat model: severity list and coverage (fix/auditor-threat-model-scope review)
 **What:**
@@ -127,8 +128,8 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** /sole-dev-merge on fix/auditor-threat-model-scope, round 1, 2026-10-20: 0C/0H, 3 MEDIUM + 6 LOW, so nothing blocked. The PR improves on main, which had a tooling-only default with the same list. **Effort:** S · **Priority:** P3. The P1 severity-list item is done in `fix/auditor-authz-g2-wait` (2026-10-20): unauthorized access is in the CRITICAL/HIGH list.
 
-### Stage G2: the wait ends at the first registered check
-**What:** G2's appear-wait stops once any check registers, so a fast first check going green before a later workflow registers can end `--watch` green on partial CI. Older than the wait; branch protection's required checks are the backstop. Fix: re-read the check count once after the watch, or rely on required checks.
+### `sdm.sh ship`: the CI wait ends at the first registered check
+**What:** `ship`'s appear-wait stops once any check registers, so a fast first check going green before a later workflow registers can end `--watch` green on partial CI and print `CI_STATE=green`. Re-homed from the old Stage G2 (sole-dev-merge-simplify M2): still true of `sdm.sh`. Narrowed by PR #57 (a check registered after the watch makes the re-read exit 8 → `CI_STATE=timeout`). The merge is safe either way: `finish` requires every check-run at HEAD completed, ≥ 1 success and none failed. Fix if it matters: re-read the check-run count once after the watch.
 **Why:** PR #50 review (2026-10-20), LOW, both reviewers. **Effort:** S · **Priority:** P3
 
 ### Stage G2 appear-wait: leading-zero cap and counting (fix/g2-appear-wait-hardening review)
@@ -140,6 +141,7 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
   - the real-wait test's `-ge 3` also counts the `--watch` call.
 
 **Why:** /sole-dev-merge on fix/g2-appear-wait-hardening, round 1, 2026-10-20: 0C/0H, 1 MEDIUM + 4 LOW, operator-set env only. Hardening an input outside the threat model keeps turning up the next edge (forge L-060), so leave this until the variables are used for real. **Effort:** S · **Priority:** P3
+**Closed:** sole-dev-merge-simplify M2 (2026-10-22) — moot: the old G2 is deleted. `sdm.sh` decodes the caps with `10#` (tests `09`, `010`), names the 120/10 defaults once (PR #57), and the stage-block test is gone.
 
 ### sole-dev-merge-simplify plan: review notes for M1 (docs/sole-dev-merge-simplify-plan review)
 **What:** fix each in the plan text when its sub-step starts.
@@ -147,13 +149,13 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 - LOW:
   - ~~1.4 names no output path for the C1/C2 reviews; `sdm.sh check` makes no `$SDM_DIR` (tasks.md:82).~~ **Done:** private `mktemp -d` run dir (1.4 Result Log).
   - ~~new test 1 ("a cancelled check is not green") is `ship`'s CI_STATE rule, not `finish.bats`'s, and the `ship` contract does not state it (plan.md:291);~~ **Done:** `ship.bats` "new: 1"; the exit table states it (`sdm.sh` STATUS: CI_FAILED row).
-  - 2.3's `glab|gitlab` grep counts comments; 1.2's DROP grep skips them (tasks.md:159);
+  - ~~2.3's `glab|gitlab` grep counts comments; 1.2's DROP grep skips them (tasks.md:159);~~ **Done:** moot — the skill dir has no `glab|gitlab` at all, comments included (2.3 AC: 0).
   - ~~2.0's `aa-ma-gate` AC uses a bare relative path (tasks.md:116, plan.md:152);~~ **Done:** tasks.md 2.0 AC uses the repo-relative path (plan.md keeps its historical text).
   - the `finish`/`ship` lookup does not pin `baseRefName` to the default branch (plan.md:233).
 - Round 2 (the MERGED arm, plan.md:233 / reference.md:49):
   - ~~MEDIUM: the branch delete has no lease, so commits pushed to the remote branch after the merge are deleted with it. Use `--force-with-lease=refs/heads/<b>:$SHA`.~~ **Done:** `sdm.sh` delete uses the lease; `finish.bats` "new 15".
-  - LOW: say the MERGED arm skips the strategy re-read and the check-runs gate.
-  - LOW: "a cleanup failure" re-run works only from the feature branch.
+  - ~~LOW: say the MERGED arm skips the strategy re-read and the check-runs gate.~~ **Done:** sole-dev-merge-simplify M2 2.2 (2026-10-22), SKILL.md `BRANCH_NOT_DELETED` row.
+  - ~~LOW: "a cleanup failure" re-run works only from the feature branch.~~ **Done:** sole-dev-merge-simplify M2 2.2 (2026-10-22), SKILL.md says "from the feature branch's worktree".
 
 **Why:** /sole-dev-merge on docs/sole-dev-merge-simplify-plan, 2026-10-20. Round 1: 0C, 1 HIGH applied (`finish` accepts MERGED at HEAD), 1 MEDIUM + 5 LOW deferred. Round 2 (fix only): 0C/0H, 1 MEDIUM + 2 LOW deferred under the stop rule. **Effort:** S · **Priority:** P2 (before M1 1.1)
 
@@ -190,12 +192,16 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** `sdm.sh`'s own merge of PR #57, 2026-10-22: round 1 C1 0C/0H/1M/6L, C2 0/0/0/2L; the MEDIUM (rc 8 read as CI_FAILED) fixed test-first (`5de1e8ed`→`0ca6a5fa`); round 2 (fix only) C1 1L, C2 1L (the same one). **Effort:** S · **Priority:** P3
 
+### `measure.py` docstring: "the report-based rule of /sole-dev-merge Stage C" is history
+**What:** `src/aa_ma/analysis/measure.py:4-5` cites "/sole-dev-merge Stage C", which sole-dev-merge-simplify M2 deleted (ADR-0024). Re-word it to "the former … Stage C (ADR-0008)". Any edit puts the file under the touched-file gate (ADR-0018 file-level compliance), which finds 20 existing ruff D-rule errors (10 auto-fixable), so do the re-word together with that docstring cleanup.
+**Why:** sole-dev-merge-simplify 2.3 (2026-10-22) listed this comment; left out to keep a docs step from becoming a 20-error docstring refactor. **Effort:** S · **Priority:** P3
+
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.
 **Why:** sole-dev-merge-fixes plan 5.3 (DRY). Not on main yet: `grep -rn aa_ma_milestone_base claude-code src` is empty (2026-10-18). **Effort:** S · **Priority:** P3
 
 ### /sole-dev-merge: source the repo's own `aa-ma-footer.sh` only inside aa-ma-forge
-**What:** the `footer-resolve` chain tries `<toplevel>/claude-code/hooks/lib/aa-ma-footer.sh` in **any** repo, and the commit-signature hook then trusts that helper's output. Check that the repo is aa-ma-forge (plugin manifest name) before taking the repo copy; otherwise use the installed `~/.claude/hooks/lib` link.
+**What:** `sdm_footer` in `sdm.sh` (was the `footer-resolve` chain; re-homed in sole-dev-merge-simplify M2) tries `<toplevel>/claude-code/hooks/lib/aa-ma-footer.sh` in **any** repo and sources it for the auto-fix commit's footer. Check that the repo is aa-ma-forge (plugin manifest name) before taking the repo copy; otherwise use the installed `~/.claude/hooks/lib` link.
 **Why:** §6.8 security review of M1 (INFO, A08). Low risk, because Stage B already runs the repo's own pre-commit and pytest. **Effort:** S · **Priority:** P3
 
 ### A reusable `secops-ci` template for other repos

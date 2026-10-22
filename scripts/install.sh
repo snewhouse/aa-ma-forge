@@ -382,8 +382,8 @@ if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-log.sh" ]; then
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-log.sh"
 fi
 
-# Commit-footer helper, sourced by /sole-dev-merge's B-commit and D blocks. In
-# any repo but this one they find it only here (the `footer-resolve` chain).
+# Commit-footer helper, sourced by /sole-dev-merge's `sdm_footer` (sdm.sh). In
+# any repo but this one it is found only here.
 if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh" ]; then
     create_symlink "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh" \
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-footer.sh"

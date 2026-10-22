@@ -153,7 +153,7 @@ synthesis. Protocol toggles: `--no-goal` on `/execute-aa-ma-full`; omit
 # Assess a whole repo: measured + judged findings, refuter on Critical/High (tiered)
 /assess-codebase [path] [--quick | --standard | --deep]
 
-# PR/MR-based merge workflow with 3-source security pass + auto-merge
+# GitHub PR merge: sdm.sh check → review (stop rule) → ship → finish
 /sole-dev-merge
 ```
 

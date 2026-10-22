@@ -83,10 +83,11 @@ cmd_check() {
     if ((${#py[@]})) && ! command -v ruff >/dev/null; then
         say "check: ruff not found — Python files not formatted"
     elif ((${#py[@]})); then
-        # why: best-effort; unfixable lint is the reviewers' and CI's job
-        ruff format -- "${py[@]}" >&2 || true
-        # why: best-effort; unfixable lint is the reviewers' and CI's job
-        ruff check --fix -- "${py[@]}" >&2 || true
+        # why: best-effort; unfixable lint is the reviewers' and CI's job. --force-exclude: a named
+        # file skips extend-exclude otherwise, and planted eval fixtures would be "fixed" (ADR-0021)
+        ruff format --force-exclude -- "${py[@]}" >&2 || true
+        # why: best-effort, as above
+        ruff check --fix --force-exclude -- "${py[@]}" >&2 || true
     fi
     if [[ -f .pre-commit-config.yaml ]] && ((${#files[@]})) && ! command -v pre-commit >/dev/null; then
         say "check: pre-commit not found — hooks not run"

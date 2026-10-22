@@ -77,8 +77,7 @@ the CI bats job.
 
 ## Consequences
 
-**Positive:** SKILL.md 491 → 125 lines; the old suite (199 tests) is replaced by 167 tests of the
-script; GitLab code paths that this repo never ran are gone (L-057).
+**Positive:** SKILL.md 491 → 125 lines; the old suite (199 tests) is replaced by the script's own suite (167 tests at the switch); GitLab code paths that this repo never ran are gone (L-057).
 
 **Accepted risks:**
 - A GitHub closing keyword (`Closes #N`) in model-written reviewer notes would close an issue on

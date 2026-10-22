@@ -109,3 +109,7 @@ Prototype `1fdfd468` merged PR #53 end to end on its first run (check → ship �
 
 ## [2026-10-22] M2 boundary: install.sh must run from the main checkout
 `scripts/install.sh --dry-run` from `.worktrees/refactor/sdm-switch-over` would re-link `~/.claude/skills/sole-dev-merge` to the worktree. 2.4 runs install.sh from the main checkout after the merge, so the link stays on main.
+
+## [2026-10-22] M2 §6.8 — Ste: fix the wrong instructions now; scope deviations recorded
+- §6.8 PASS_WITH_WARNINGS (0C/10W/16I). Ste chose "fix text + drift test": SKILL.md wording (BRANCH_NOT_DELETED in a plain checkout, MERGE_FAILED without force-push, several STATUS lines, pre-commit rc, non-ABORT exits, no secrets in notes, no merge/delete outside sdm.sh), the hook's two stale comments, and 6 drift/content tests (RED `f3e6176c`; mutation-checked: 6/6 mutants caught after making the quote capture case-insensitive). No §6.8 re-run: plan §3 re-checks only CRITICAL fixes.
+- Scope deviations (outside the M2 Contract file list, comment-only, justified): `tests/commands/sdm/{check,ship,finish}.bats` headers name the port base `c612620b` (impl-review M1 INFO); `tests/codemem/test_plugin_surface.py:99` comment follows the hook comment. `docs/architecture/{README,component,io}.md` are regen stamps.

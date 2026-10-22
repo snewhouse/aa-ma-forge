@@ -19,10 +19,12 @@ says when to run each step and what to do with its output. The full list of `STA
 - **One Bash call per step.** `ship` pushes the branch and opens or updates the PR.
   `finish` merges the PR and deletes the remote branch. Run `check`, `ship` and `finish` as
   three separate Bash calls, never chained, so each side effect is visible to the operator.
-- **Exit codes.** Exit 1 prints one `ABORT: …` line: stop, report it, fix the cause, start
-  again at step 1. Exit 0 with a `STATUS: …` line: stop and act on it (table below).
-- **No hand-made merges.** Never run `gh pr merge`, `gh pr edit` or
-  `git push --delete` yourself. A failed step is re-run through `sdm.sh`.
+- **Exit codes.** Exit 1 with an `ABORT: …` line: stop, report it, fix the cause, start
+  again at step 1. Exit 0 with `STATUS: …` lines: act on each one, not only the last (table
+  below). Any other non-zero exit (git or gh failed with no ABORT line): stop and report stderr.
+- **No merge or delete outside sdm.sh.** Never run `gh pr merge`, `gh api …/merge`,
+  `gh pr edit`, `git push --delete` or `git push origin :<branch>`, and never force-push.
+  A failed step is re-run through `sdm.sh`.
 
 ## Step 1 — check
 
@@ -33,8 +35,9 @@ sdm.sh check
 It formats in-scope Python with ruff, runs the repo's pre-commit hooks on the branch's files,
 and commits any in-scope fixes as `chore(scope): pre-PR auto-fixes`. Success prints
 `check OK (branch=<b>, base=<ref>, ahead=<n>)`; keep `<ref>` for the review diff. A file
-outside the branch changed by a fixer stops it with `ABORT: check: files outside the branch
-changed: …`; those files are left as they are.
+outside the branch changed by a fixer stops it with
+`ABORT: check: files outside the branch changed: …`; those files are left as they are.
+A non-zero `check: pre-commit rc=<n>` is reported, not fatal: give it to C1; CI gates it.
 
 ## Step 2 — review (C1 + C2) and the stop rule
 
@@ -61,7 +64,7 @@ changed: …`; those files are left as they are.
 Notes file rules (it becomes the PR body's "Reviewer notes"):
 - Append; never overwrite. Start each round with a `### Round <n>` line.
 - One line per finding, plus the rounds' totals. For a security finding, name the class and
-  `path:line`, not the steps to exploit it.
+  `path:line`, not the steps to exploit it. Never quote a secret, token or credential value.
 - No GitHub closing keywords (`Closes #12`, `Fixes #12`): they would close an issue on
   merge (accepted risk, ADR-0024).
 
@@ -89,7 +92,8 @@ sdm.sh finish <PR_NUM>
 `finish` merges only when every check-run at HEAD has completed, at least one succeeded and
 none failed. It merges with `--match-head-commit`, deletes the remote branch under a lease,
 checks with `ls-remote` that the branch is gone, then fast-forwards the default branch.
-`STATUS: OK` ends the run. In a linked worktree the line ends ` worktree=<path>`, and
+It can print more than one STATUS line (for example `BRANCH_NOT_DELETED`, then `STATUS: OK`
+for the cleanup); act on each. In a linked worktree `STATUS: OK` ends ` worktree=<path>`, and
 `finish` prints "Operator cleanup" commands (`worktree remove`, `branch -D`). Show them to
 the user; do not run them unasked.
 
@@ -102,8 +106,8 @@ the user; do not run them unasked.
 | `STATUS: PR_BODY_NOT_UPDATED … reason=not-this-branch`, `no-pr-number`, `not-open` or `head-not-updated` | `ship` stopped. Report it; never edit another branch's or a closed PR. |
 | `STATUS: CI_FAILED` | Nothing is merged. Report the URL and `gh pr checks <n>`. |
 | `STATUS: CI_TIMEOUT`, `STATUS: CI_NOT_DONE` | Nothing is merged. Run `sdm.sh finish <n>` later. |
-| `STATUS: MERGE_FAILED` | Nothing is deleted. If the head moved, push and run `ship` again. |
-| `STATUS: BRANCH_NOT_DELETED` | Merged, but the remote branch is still there. If it moved after the merge, it holds commits that are not on the default branch: report them; the user decides. If the delete failed, run `sdm.sh finish <n>` again from the feature branch's worktree: a PR already MERGED at HEAD gets no merge call and no strategy or check-runs read, only the delete and cleanup. |
+| `STATUS: MERGE_FAILED` | Nothing is deleted. Report the state and URL. If the remote head moved, fetch, review what changed and start again at step 1; never force-push. A conflict or branch protection goes to the user. |
+| `STATUS: BRANCH_NOT_DELETED` | Merged, but the remote branch is still there. If it moved after the merge, it holds commits not on the default branch: report them; the user decides. If only the delete failed: from a linked worktree, run `sdm.sh finish <n>` again (a PR already MERGED at HEAD gets no merge call, no strategy or check-runs read, only the delete and cleanup); from a plain checkout the local branch is gone, so tell the user to delete the remote branch. |
 | `STATUS: MAIN_NOT_UPDATED`, `STATUS: MAIN_CHECKOUT_DIRTY` | Merged. The default branch was not updated: report the reason; the user updates it. |
 
 Any other line: read `sdm.sh help`.
@@ -115,11 +119,12 @@ default branch, or on the active plan's next branch (L-037).
 
 ## Settings
 
-Environment variables, all optional, operator-set:
-- `CI_POLL_TIMEOUT` (900s): the CI watch cap.
-- `CI_APPEAR_TIMEOUT_S` (120) and `CI_APPEAR_INTERVAL_S` (10): the wait for checks to appear.
+Environment variables, all optional, operator-set (defaults and validation: the top of
+`sdm.sh`):
+- `CI_POLL_TIMEOUT`: the CI watch cap.
+- `CI_APPEAR_TIMEOUT_S` and `CI_APPEAR_INTERVAL_S`: the wait for checks to appear.
 - `AA_MA_PLAN_DIR`: adds the plan context line.
 - `AA_MA_FOOTER_HELPER`: the footer helper for the auto-fix commit; else the repo's copy,
-  else `~/.claude/hooks/lib/aa-ma-footer.sh`, else `[ad-hoc]`.
+  else `${CLAUDE_HOME:-~/.claude}/hooks/lib/aa-ma-footer.sh`, else `[ad-hoc]`.
 
 History: the stage-block design this replaces is ADR-0008; why one script is ADR-0024.

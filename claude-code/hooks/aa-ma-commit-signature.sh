@@ -22,7 +22,8 @@
 #   8. canonical helper-built footer: after `set -e…`, a line that is only
 #      `FOOTER=$(emit_aa_ma_footer)`, then one line that is only
 #      `git commit -m "…${FOOTER}"`; no other FOOTER use, no `set +e`, no
-#      helper redefinition but the skill's [ad-hoc] fallback
+#      helper redefinition but the old [ad-hoc] fallback (no shipped caller
+#      since sole-dev-merge-simplify M2; TODOS: retire or justify rule 8)
 #                                          → exit 0 (the helper is the footer)
 #   9. otherwise                           → exit 2 with pretty stderr
 #
@@ -164,8 +165,8 @@ helper_footer_ok() {
     local c="$1" before n_helper n_footer
     # shellcheck disable=SC2016  # why: the literal command text to find, never expanded
     local -r canon='FOOTER=$(emit_aa_ma_footer)'
-    # The skill's footer-resolve fallback defines the helper as exactly this;
-    # any other definition could print anything, so it is a bypass.
+    # The retired /sole-dev-merge footer-resolve fallback defined the helper as
+    # exactly this; any other definition could print anything, so it is a bypass.
     c=${c//"emit_aa_ma_footer() { printf '\n\n[ad-hoc]'; }"/}
     n_helper=$(_words emit_aa_ma_footer "$c")
     [ "$n_helper" -eq 1 ] || return 1

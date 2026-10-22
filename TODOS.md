@@ -192,8 +192,16 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** `sdm.sh`'s own merge of PR #57, 2026-10-22: round 1 C1 0C/0H/1M/6L, C2 0/0/0/2L; the MEDIUM (rc 8 read as CI_FAILED) fixed test-first (`5de1e8ed`→`0ca6a5fa`); round 2 (fix only) C1 1L, C2 1L (the same one). **Effort:** S · **Priority:** P3
 
+### sole-dev-merge-simplify M2 §6.8 notes: 10 WARNING + 16 INFO (wrong instructions fixed; the rest here)
+**What:** full list in the plan's archived `impl-review.md` (Milestone 2). Fixed in M2 (Ste): SKILL.md BRANCH_NOT_DELETED/MERGE_FAILED/several-STATUS/pre-commit rc/no-ABORT exit/no secrets/no force-push wording, the hook's stale comments, and a drift test tying SKILL.md's STATUS/reason/quoted lines to `sdm.sh`. Open:
+- Rule 8 of `aa-ma-commit-signature.sh` (helper-built footer) has no shipped caller since `/sole-dev-merge` moved into `sdm.sh`, yet still widens the signature bypass: retire it with its tests, or record why it stays.
+- `test_says_which_calls_push_and_merge` matches any `ship…push` / `finish…merge` line (shape only).
+- A08 (out of scope): inside aa-ma-forge the branch's own `sdm.sh check` runs before review; fine for own branches only.
+
+**Why:** §6.8 of sole-dev-merge-simplify M2, 2026-10-22: 0 CRITICAL; plan §3 sends WARNING/INFO here. **Effort:** S · **Priority:** P3
+
 ### `measure.py` docstring: "the report-based rule of /sole-dev-merge Stage C" is history
-**What:** `src/aa_ma/analysis/measure.py:4-5` cites "/sole-dev-merge Stage C", which sole-dev-merge-simplify M2 deleted (ADR-0024). Re-word it to "the former … Stage C (ADR-0008)". Any edit puts the file under the touched-file gate (ADR-0018 file-level compliance), which finds 20 existing ruff D-rule errors (10 auto-fixable), so do the re-word together with that docstring cleanup.
+**What:** `src/aa_ma/analysis/measure.py:4-5` cites "/sole-dev-merge Stage C", which sole-dev-merge-simplify M2 deleted (ADR-0024). Re-word it to "the former … Stage C (ADR-0008)". Any edit puts the file under the touched-file gate (ADR-0018 file-level compliance), which reports the file's existing ruff D-rule errors (`uv run ruff check src/aa_ma/analysis/measure.py`; 20 on 2026-10-22), so do the re-word together with that docstring cleanup.
 **Why:** sole-dev-merge-simplify 2.3 (2026-10-22) listed this comment; left out to keep a docs step from becoming a 20-error docstring refactor. **Effort:** S · **Priority:** P3
 
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper

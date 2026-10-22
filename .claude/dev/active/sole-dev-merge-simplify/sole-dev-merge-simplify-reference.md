@@ -98,6 +98,15 @@ PR commits from `gh api repos/snewhouse/aa-ma-forge/pulls/55/commits`, matched b
 - A file named on ruff's command line skips `extend-exclude` unless `--force-exclude` (sdm.sh `check` passes it).
 - Local pip-audit on this machine fails `import venv` (the interpreter has no venv module); CI's pip-audit is authoritative.
 
+### Pre-M2 fix PR #57 (`fix/sdm-failure-lines`, rebase merge `0ca6a5fa`, 2026-10-22)
+SHA map (branch → main): `ee9dce3d`→`0e1bb4d1` RED · `9c81f9bf`→`ea649ad6` GREEN · `bc9aac40`→`5de1e8ed` RED (rc 8) · `f14891f1`→`0ca6a5fa` GREEN.
+What M2's SKILL.md can now rely on (the exit table in `sdm.sh help` is canonical; the M1 Contract above is the historical text):
+- Every failure prints a line: `ABORT: ship: git push failed (rc=<n>)`, `ABORT: check: auto-fix commit failed (rc=<n>); the fixes are staged`, `ABORT: ship: --notes needs a FILE`, `ABORT: ship: notes file '<f>' is not a readable file`; post-merge cleanup reports `STATUS: MAIN_NOT_UPDATED — fetch from origin failed` and `main at (none)` instead of a silent exit.
+- `BASE_REF` is `origin/<d>` when it exists, else `<d>` (check's `check OK (… base=origin/main …)`, pre-commit `FROM=origin/main`).
+- ship: `reason=not-open` when the PR closes during the head wait; PR_NUM/PR_URL print before the strategy read; a post-watch re-read rc 8 (pending) → `CI_STATE=timeout` + finish hint, any other non-zero → `failed`; `CI_POLL_TIMEOUT` must match `^[0-9]+[smhd]?$` and be > 0, else 900s with a stderr line; `--notes` relative paths resolve from the caller's cwd.
+- finish: a plain checkout with tracked changes → `STATUS: MAIN_CHECKOUT_DIRTY` before any checkout.
+- Named constants in sdm.sh: POLL_DEFAULT 900s, APPEAR_DEFAULT_S 120, INTERVAL_DEFAULT_S 10, GH_CALL_TIMEOUT_S 30, WATCH_INTERVAL_S 30, PR_TITLE_MAX 70, CHECK_RUNS_PER_PAGE 100. sdm.sh 384 lines; sdm suite 167 tests.
+
 ### Constants and limits
 - sdm.sh ≤ 400 lines (design audit sized it at 150–200); SKILL.md ≤ 150 lines (M2), ≤ 500 hard limit (`tests/test_prompt_size.py`); no SKILL.md fenced block > 3 lines.
 - Old skill: 1,994 lines, 77% bash; 1,541 bash lines, ~62% DROP; old prose 317 lines.

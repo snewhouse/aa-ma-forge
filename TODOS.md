@@ -159,25 +159,36 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 ### sdm.sh M1 §6.8 review notes: 14 WARNING + 15 INFO, deferred under the exit contract
 **What:** the full list with `sdm.sh:line` is in `.claude/dev/active/sole-dev-merge-simplify/sole-dev-merge-simplify-impl-review.md` (archived with the plan). The ones worth doing first:
-- Every failure prints a line: a rejected `git push` in `ship` and a hook-refused auto-fix commit in `check` exit 1 with no `ABORT:` line; the worktree cleanup `fetch`/`rev-parse` after a merge are unguarded.
-- `ship`: `--notes` with a missing path silently becomes `(none)`; a failed `gh pr checks` re-read reports green; the PR title is `chore(scope): pre-PR auto-fixes` after an auto-fix commit; ~~a lagging `headRefOid` right after a re-push reads as `not-this-branch`~~ **Done:** `ae90cd2b` (proven live on PR #55, merge run 2).
-- Inputs: validate `CI_POLL_TIMEOUT` (0 disables the timeout); cut the URL userinfo at the last `@` (a raw `@` in a password leaks its tail).
-- Constants: name `70`, `timeout 30`, `--interval 30`, `per_page=100` and the `120`/`10` fallbacks once, each with a unit and reason.
+- ~~Every failure prints a line: a rejected `git push` in `ship` and a hook-refused auto-fix commit in `check` exit 1 with no `ABORT:` line; the worktree cleanup `fetch`/`rev-parse` after a merge are unguarded.~~ **Done:** PR #57 (`0ca6a5fa`).
+- `ship`: ~~`--notes` with a missing path silently becomes `(none)`; a failed `gh pr checks` re-read reports green;~~ **Done:** PR #57 (`0ca6a5fa`). Still open: the PR title is `chore(scope): pre-PR auto-fixes` after an auto-fix commit; ~~a lagging `headRefOid` right after a re-push reads as `not-this-branch`~~ **Done:** `ae90cd2b` (proven live on PR #55, merge run 2).
+- ~~Inputs: validate `CI_POLL_TIMEOUT` (0 disables the timeout); cut the URL userinfo at the last `@` (a raw `@` in a password leaks its tail).~~ **Done:** PR #57 (`0ca6a5fa`).
+- ~~Constants: name `70`, `timeout 30`, `--interval 30`, `per_page=100` and the `120`/`10` fallbacks once, each with a unit and reason.~~ **Done:** PR #57 (`0ca6a5fa`).
 - pre-commit's `./` prefix stops anchored `files:`/`exclude:` patterns matching (ported from the old Stage B).
 
 **Why:** §6.8 of sole-dev-merge-simplify M1, 2026-10-22: 1 CRITICAL fixed (ruff `--force-exclude`), 0 HIGH; plan §3 sends WARNING/INFO here. **Effort:** S · **Priority:** P2 (the failure-line items before M2's SKILL.md relies on ABORT parsing)
 
 ### sdm.sh M1 PR review (C1/C2, round 1): 1 MEDIUM + 3 LOW, deferred under the stop rule
 **What:**
-- MEDIUM: `BASE_REF` prefers the local default branch even when it lags origin (after a web-UI merge, with the branch rebased onto origin/main). `check` then widens scope to upstream files and auto-commits fixes to them; `ship`'s body lists commits already on main. Prefer `origin/<d>` when it exists (`sdm.sh:43`; inherited from the old Stage A).
-- LOW: `ship` reads the merge strategy after the PR create and before `PR_NUM=`, so a failed settings read ABORTs with an open PR and no number; move it after the result lines or drop it (`finish` re-reads) (`sdm.sh:166`).
-- LOW: plain-checkout `finish` cleanup checks out the default branch with no clean-tree check (the worktree path has `MAIN_CHECKOUT_DIRTY`) (`sdm.sh:251`).
+- ~~MEDIUM: `BASE_REF` prefers the local default branch even when it lags origin (after a web-UI merge, with the branch rebased onto origin/main). `check` then widens scope to upstream files and auto-commits fixes to them; `ship`'s body lists commits already on main. Prefer `origin/<d>` when it exists (`sdm.sh:43`; inherited from the old Stage A).~~ **Done:** PR #57 (`0ca6a5fa`).
+- ~~LOW: `ship` reads the merge strategy after the PR create and before `PR_NUM=`, so a failed settings read ABORTs with an open PR and no number; move it after the result lines or drop it (`finish` re-reads) (`sdm.sh:166`).~~ **Done:** PR #57 (`0ca6a5fa`).
+- ~~LOW: plain-checkout `finish` cleanup checks out the default branch with no clean-tree check (the worktree path has `MAIN_CHECKOUT_DIRTY`) (`sdm.sh:251`).~~ **Done:** PR #57 (`0ca6a5fa`).
 - LOW: `ssh://git@ssh.github.com:443/…` (GitHub's SSH-over-443) ABORTs as not github.com; fails closed (`sdm.sh:58`).
 - Re-check of the head-lag fix (`ae90cd2b`, merge run 3):
-  - MEDIUM: the state is not re-read after the head wait, so a PR closed during it (head = HEAD) gets its body PATCHed and its CI watched; add `state == OPEN` to the loop and a `not-open` reason (`sdm.sh:165`).
-  - LOW: the re-read `gh pr view` calls have no `timeout 30`; the worst case before the CI result is now 2 × `CI_APPEAR_TIMEOUT_S` and help does not say so; the stub's lookup count is 0 when `CLI_LOG` is unset (latent); the "fork or another head branch" test covers only the fork (add `GH_PR_HEAD_REF=other`).
+  - ~~MEDIUM: the state is not re-read after the head wait, so a PR closed during it (head = HEAD) gets its body PATCHed and its CI watched; add `state == OPEN` to the loop and a `not-open` reason (`sdm.sh:165`).~~ **Done:** PR #57 (`0ca6a5fa`).
+  - LOW: ~~the re-read `gh pr view` calls have no `timeout 30`;~~ **Done:** PR #57 (`0ca6a5fa`). Still open: the worst case before the CI result is now 2 × `CI_APPEAR_TIMEOUT_S` and help does not say so; the stub's lookup count is 0 when `CLI_LOG` is unset (latent); the "fork or another head branch" test covers only the fork (add `GH_PR_HEAD_REF=other`).
 
 **Why:** the branch's own `sdm.sh` merge of refactor/sdm-script (sole-dev-merge-simplify 1.4), 2026-10-22: C1 0C/0H/1M/3L, C2 0/0/0/0; fix re-check 0C/0H/1M/4L. **Effort:** S · **Priority:** P2 (the BASE_REF and closed-during-wait items)
+
+### sdm.sh fix/sdm-failure-lines PR #57 review (C1/C2, 2 rounds): 0 CRITICAL/HIGH, 1 MEDIUM fixed, 7 LOW deferred under the stop rule
+**What:**
+- LOW: a re-read rc 8 (pending) skips the cancel/fail row scan, so a cancelled check plus a pending one reads CI_TIMEOUT, not CI_FAILED; status text only, `finish` blocks the merge (`sdm.sh` re-read after the watch; C1+C2 round 2).
+- LOW: `footer=$(sdm_footer)` hands a failing footer helper's rc to `set -e`, so `check` exits with no ABORT line (operator-set `AA_MA_FOOTER_HELPER` only).
+- LOW: fractional `CI_POLL_TIMEOUT` (`1.5m`, accepted by timeout(1)) is replaced by 900s with a stderr line; say "whole numbers" in help or accept `[0-9]+(\.[0-9]+)?`.
+- LOW: the head-wait loop's `state == OPEN` early exit has no test of its own (the `not-open` outcome is tested); keep the oid stale for all calls and assert fewer `pr view` calls than cap/step.
+- LOW: DRY: the MAIN_CHECKOUT_DIRTY check-and-emit is in two places (plain and worktree cleanup); one helper.
+- LOW (out of scope): a raw `/` in URL userinfo prints the userinfo up to `/` as the host in the ABORT (invalid URL, git cannot use it); and the scp form still cuts at the first `@` (no password field).
+
+**Why:** `sdm.sh`'s own merge of PR #57, 2026-10-22: round 1 C1 0C/0H/1M/6L, C2 0/0/0/2L; the MEDIUM (rc 8 read as CI_FAILED) fixed test-first (`5de1e8ed`→`0ca6a5fa`); round 2 (fix only) C1 1L, C2 1L (the same one). **Effort:** S · **Priority:** P3
 
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.

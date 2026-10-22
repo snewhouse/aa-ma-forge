@@ -61,4 +61,5 @@
 | 1 | [CRITICAL] ruff without `--force-exclude` (sdm.sh:87,89) | Accept — fixed now (`49143045`, `e70f156f`) | Ste | 2026-10-22 |
 
 ## Revision History
+- 2026-10-22: merge run 2 proved the code-reviewer WARNING at `sdm.sh:151` live (GitHub's headRefOid lagged a re-push → `reason=not-this-branch`); Ste: fix now → RED `1e0b52d2`, GREEN `ae90cd2b` (re-read within the appear-wait caps, `reason=head-not-updated`); fix re-check 0C/0H/1M/4L → TODOS. That WARNING is fixed.
 - 2026-10-22: run 1 (5 agents); CRITICAL fixed (`49143045`, `e70f156f`); fix re-check (code-reviewer, fix only): 0 CRITICAL, 0 WARNING, 1 INFO — both ruff calls fixed, in-scope formatting intact, test fails with the flags removed.

@@ -26,3 +26,6 @@
 [2026-10-22T11:08:03+01:00] Sub-step 1.4 merge run 2: ship on PR #55 → 'STATUS: PR_BODY_NOT_UPDATED — PR #55 reason=not-this-branch' (GitHub's headRefOid lagged the re-push; seconds later it read e90370a3 = HEAD). §6.8 WARNING sdm.sh:151 proven in real use (L-061); Ste: fix now, merge run 3
 [2026-10-22T11:16:04+01:00] TESTS_VERIFIED — Milestone 1: sdm.sh beside the old skill, proven live — passed=962 cmd=bats --formatter pretty -r tests
 [2026-10-22T11:16:10+01:00] Sub-step 1.4 merge run 3: head-lag fix RED 1e0b52d2 / GREEN ae90cd2b (150/150); fix re-check 0C/0H/1M/4L → TODOS + notes (stop rule)
+[2026-10-22T11:44:58+01:00] Sub-step 1.4: PR #55 merged by sdm.sh finish — 'STATUS: OK worktree=/home/sjnewhouse/projects/github_private/aa-ma-forge/.worktrees/refactor/sdm-script' — MERGED c612620b; ls-remote rc=2; main=origin/main=c612620b; merge runs=3
+[2026-10-22T11:44:58+01:00] GATE APPROVAL — Milestone 1: sdm.sh beside the old skill, proven live — HARD — Ste — APPROVED
+[2026-10-22T11:46:33+01:00] MILESTONE COMPLETE — Milestone 1: sdm.sh beside the old skill, proven live — Commit: c612620b (merge of PR #55; this record on refactor/sdm-switch-over, L-037) — Criteria: 6/6 verified — post-completion validator WARNINGS_BUT_USABLE (5 WARN back-filled inline)

@@ -111,11 +111,14 @@ def test_quoted_output_lines_exist_in_sdm() -> None:
     """A quoted result/ABORT line's literal prefix (up to its first placeholder) is in sdm.sh."""
     source = SDM.read_text("utf-8")
     quoted = re.findall(
-        r"`((?:check OK|ABORT: |PR_NUM=|PR_URL=|CI_STATE=)[^`]*)`", _text()
+        r"`((?:check OK|ABORT: |PR_NUM=|PR_URL=|CI_STATE=)[^`]*)`",
+        _text(),
+        re.IGNORECASE,
     )
     assert quoted
     for q in quoted:
-        prefix = re.split(r"<|…", q.removeprefix("ABORT: "), maxsplit=1)[0]
+        # `<x>`, `…` and `a|b|c` (one of) are placeholders; the literal text before them must match
+        prefix = re.split(r"<|…|\w+\|", q.removeprefix("ABORT: "), maxsplit=1)[0]
         assert prefix in source, q
 
 

@@ -1045,12 +1045,6 @@
    "src": "skill:secops"
   },
   {
-   "dst": "hook:aa-ma-commit-signature.sh",
-   "kind": "hook",
-   "ref_class": "ON_DISK",
-   "src": "skill:sole-dev-merge"
-  },
-  {
    "dst": "hook:aa-ma-footer.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",

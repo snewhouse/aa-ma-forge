@@ -142,19 +142,19 @@ jobs:
 
       - uses: bats-core/bats-action@77d6fb60505b4d0d1d73e48bd035b55074bbfb43 # 4.0.0
 
-      # ubuntu-latest currently ships shellcheck, but C4 in
-      # tests/commands/sole-dev-merge/test_stage_c_dispatch.bats now skips
-      # rather than fails when it is missing — so an image change would turn
-      # a security assertion green-by-skipping instead of red.
+      # ubuntu-latest currently ships shellcheck, but the shellcheck case in
+      # tests/hooks/security-static-check.bats skips rather than fails when it
+      # is missing — so an image change would turn a security assertion
+      # green-by-skipping instead of red.
       #
       # Conditional: the common path costs nothing, and an apt outage still
       # reds the job rather than silently proceeding to a skip.
-      - name: Install shellcheck (required by Stage C / C4)
+      - name: Install shellcheck (required by the security-static-check hook tests)
         run: command -v shellcheck || (sudo apt-get update && sudo apt-get install -y shellcheck)
 
       # Assert the guarantee the step above only claims. `bats` reports a
       # skipped test as `ok N # skip` and exits 0, so without this a stray
-      # SHELLCHECK_BIN or a PATH change would let C4 evaporate while the job
+      # PATH change would let that case evaporate while the job
       # stayed green — the same green-by-skipping failure, one level up.
       - name: Verify shellcheck is usable
         run: shellcheck --version
@@ -181,18 +181,13 @@ jobs:
       - name: Run bats on tests/hooks/
         run: bats --recursive tests/hooks/
 
-      - name: Run bats on tests/commands/sole-dev-merge/
-        # M5.6: adds the M1-M5 sole-dev-merge bats suite to CI so the 60+
-        # stage-level + smoke-E2E tests block PRs that regress the workflow.
-        run: bats tests/commands/sole-dev-merge/
-
       - name: Run bats on tests/commands/sdm/
         # sole-dev-merge-simplify M1: sdm.sh, the one-script /sole-dev-merge (ADR-0024).
         run: bats tests/commands/sdm/
 
       - name: Run bats on tests/commands/*.bats
         # aa-ma-share-allow.bats (M3) and release.bats (scripts/release.sh) — top-level
-        # command/script suites were not covered by the two steps above.
+        # command/script suites were not covered by the steps above.
         run: bats tests/commands/*.bats
 
   codemem-smoke:

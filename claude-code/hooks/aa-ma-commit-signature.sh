@@ -146,9 +146,11 @@ if [ -n "$sig_names" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 8. Helper-built footer. /sole-dev-merge's B-commit and D blocks commit with
+# 8. Helper-built footer. A Bash call may commit with
 #    `FOOTER=$(emit_aa_ma_footer); git commit -m "…${FOOTER}"`, so the
-#    literal command never holds a signature. Trust only that exact shape, so
+#    literal command never holds a signature. (/sole-dev-merge no longer does:
+#    its auto-fix commit runs inside sdm.sh, which this hook never sees.)
+#    Trust only that exact shape, so
 #    the helper stays the only footer source. A commit-msg stage check that
 #    sees the real message is the stronger option (TODOS.md).
 # -----------------------------------------------------------------------------

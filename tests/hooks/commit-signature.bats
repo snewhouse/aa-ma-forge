@@ -141,7 +141,7 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# Helper-built footers (sole-dev-merge-fixes 1.7). The skill commits with
+# Helper-built footers (sole-dev-merge-fixes 1.7). A caller commits with
 # `FOOTER=$(emit_aa_ma_footer); git commit -m "…${FOOTER}"`, so the literal
 # command never holds a signature. Only that canonical shape is trusted.
 # ---------------------------------------------------------------------------
@@ -223,18 +223,4 @@ _run_hook_with_plan() {
 @test "helper footer: FOOTER reassigned after the helper call → exit 2" {
     _run_hook_with_plan 'FOOTER=$(emit_aa_ma_footer); FOOTER=x; git commit -m "y${FOOTER}"'
     [ "$status" -eq 2 ]
-}
-
-@test "helper footer: the skill's real stage-b-commit block → exit 0" {
-    local root; root="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
-    _run_hook_with_plan "$(bash "$root/tests/commands/sole-dev-merge/fixtures/extract_stage.sh" \
-        stage-b-commit "$root/claude-code/skills/sole-dev-merge/SKILL.md")"
-    [ "$status" -eq 0 ]
-}
-
-@test "helper footer: the skill's real stage-d-triage block → exit 0" {
-    local root; root="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
-    _run_hook_with_plan "$(bash "$root/tests/commands/sole-dev-merge/fixtures/extract_stage.sh" \
-        stage-d-triage "$root/claude-code/skills/sole-dev-merge/references/stage-d-triage.md")"
-    [ "$status" -eq 0 ]
 }

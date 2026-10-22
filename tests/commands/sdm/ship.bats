@@ -3,6 +3,8 @@
 #
 # Ported from tests/commands/sole-dev-merge/ (stages E, E3, F, G1, G2), re-targeted to "$SDM" ship:
 # no state files, no REMOTE_CHOICE, no glab. Old `PR_NUM=`/`PR_URL=` exports are now printed lines.
+# The old suite was deleted in sole-dev-merge-simplify M2; its file:line citations refer to
+# it as of c612620b (`git show c612620b:tests/commands/sole-dev-merge/<file>`).
 # Each test names its origin as "<old file>:<line>"; tests new to sdm.sh are prefixed "new:".
 #
 # The gh stub (fixtures/bin/gh) logs argv to $CLI_LOG and keeps the PR body (PATCHed or

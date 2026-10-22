@@ -1,23 +1,20 @@
 #!/usr/bin/env bats
-# aa-ma-footer.bats — tests for claude-code/hooks/lib/aa-ma-footer.sh and the
-# skill's `footer-resolve` snippet (sole-dev-merge-fixes M1, forge L-054).
+# aa-ma-footer.bats — tests for claude-code/hooks/lib/aa-ma-footer.sh and
+# sdm.sh's `sdm_footer` resolver (sole-dev-merge-fixes M1, forge L-054).
 #
 # Rule under test: one active plan → that plan; several → the one plan the
 # branch changed since its merge-base with origin/HEAD (origin/main when
 # origin/HEAD is unset); anything else → [ad-hoc] plus a stderr WARN.
 #
-# Cross-directory dependency: the helper-path cases extract the skill's
-# stage-b-commit and stage-d-triage blocks with
-# tests/commands/sole-dev-merge/fixtures/extract_stage.sh.
+# Cross-directory dependency: the helper-path cases source
+# claude-code/skills/sole-dev-merge/scripts/sdm.sh (it is sourceable).
 
 bats_require_minimum_version 1.5.0
 
 setup() {
     REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     HELPER="$REPO_ROOT/claude-code/hooks/lib/aa-ma-footer.sh"
-    SKILL_MD="$REPO_ROOT/claude-code/skills/sole-dev-merge/SKILL.md"
-    D_MD="$REPO_ROOT/claude-code/skills/sole-dev-merge/references/stage-d-triage.md"
-    EXTRACT="$REPO_ROOT/tests/commands/sole-dev-merge/fixtures/extract_stage.sh"
+    SDM="$REPO_ROOT/claude-code/skills/sole-dev-merge/scripts/sdm.sh"
     BATS_TMP="$(mktemp -d)"
     # why: never let a real ~/.claude link leak into the helper-path cases
     export CLAUDE_HOME="$BATS_TMP/claude-home"
@@ -162,45 +159,25 @@ _touch() {
     [ "$output" = $'\n\n[AA-MA Plan] a .claude/dev/active/a' ]
 }
 
-# --- the skill's footer-resolve snippet (B-commit, D) ----------------------
+# --- sdm.sh's footer resolver (the auto-fix commit in `sdm.sh check`) -------
+# A fresh bash: the helper sourced in setup() must not satisfy these cases.
 
-@test "footer-resolve: B-commit outside forge, helper under CLAUDE_HOME → commits with the plan footer" {
+@test "sdm_footer: outside forge, helper under CLAUDE_HOME → the plan footer" {
     _repo solo
     mkdir -p "$CLAUDE_HOME/hooks/lib"
     ln -s "$HELPER" "$CLAUDE_HOME/hooks/lib/aa-ma-footer.sh"
     [ ! -e claude-code/hooks/lib/aa-ma-footer.sh ]
-    bash "$EXTRACT" stage-b-commit "$SKILL_MD" > "$BATS_TMP/b-commit.sh"
-    echo z >> f.txt
 
-    CHANGED_FILES=f.txt run bash "$BATS_TMP/b-commit.sh"   # why: B-commit stages only Stage B's in-scope files (M3)
+    run --separate-stderr bash -c '. "$1"; sdm_footer' _ "$SDM"
     [ "$status" -eq 0 ]
-    [ "$(git log -1 --format=%B | sed '/^$/d' | tail -1)" = "[AA-MA Plan] solo .claude/dev/active/solo" ]
+    [ "$output" = $'\n\n[AA-MA Plan] solo .claude/dev/active/solo' ]
 }
 
-@test "footer-resolve: B-commit outside forge, no helper anywhere → [ad-hoc] footer and a notice" {
+@test "sdm_footer: outside forge, no helper anywhere → [ad-hoc] footer and a stderr notice" {
     _repo solo
-    bash "$EXTRACT" stage-b-commit "$SKILL_MD" > "$BATS_TMP/b-commit.sh"
-    echo z >> f.txt
 
-    CHANGED_FILES=f.txt run bash "$BATS_TMP/b-commit.sh"   # why: B-commit stages only Stage B's in-scope files (M3)
+    run --separate-stderr bash -c '. "$1"; sdm_footer' _ "$SDM"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"aa-ma-footer.sh not found"* ]]
-    [ "$(git log -1 --format=%B | sed '/^$/d' | tail -1)" = "[ad-hoc]" ]
-}
-
-@test "footer-resolve: D outside forge, no helper anywhere → runs (no findings), rc 0" {
-    _repo
-    bash "$EXTRACT" stage-d-triage "$D_MD" > "$BATS_TMP/d.sh"
-
-    SDM_DIR="$BATS_TMP/no-run-dir" run bash "$BATS_TMP/d.sh"   # why: D needs Stage A's run dir; this one holds no findings
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"nothing to triage"* ]]
-}
-
-@test "footer-resolve: the B-commit and D snippets are byte-identical" {
-    local b d
-    b=$(sed -n '/# footer-resolve:begin/,/# footer-resolve:end/p' "$SKILL_MD")
-    d=$(sed -n '/# footer-resolve:begin/,/# footer-resolve:end/p' "$D_MD")
-    [ -n "$b" ]
-    [ "$b" = "$d" ]
+    [ "$output" = $'\n\n[ad-hoc]' ]
+    [[ "$stderr" == *"aa-ma-footer.sh not found"* ]]
 }

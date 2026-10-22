@@ -303,17 +303,17 @@ Merge this plan (docs only) with the current `/sole-dev-merge`. Then cut `protot
 Seed note: `codemem draw --level L2` over the files this plan modifies returned 0 nodes / 0 edges after `codemem build`. codemem indexes Python, and these are shell, YAML and markdown. The edges are prose and carry no sigils.
 
 ### Component view
+_Updated in M2 2.2 (2026-10-22): the deleted `references/stage-g-merge.md` node is gone; `sdm.sh` exists (no `(new)`)._
 ```mermaid
 flowchart LR
   SK["claude-code/skills/sole-dev-merge/SKILL.md"]
-  SD["claude-code/skills/sole-dev-merge/scripts/sdm.sh (new)"]
+  SD["claude-code/skills/sole-dev-merge/scripts/sdm.sh"]
   FT["claude-code/hooks/lib/aa-ma-footer.sh"]
   SIG["claude-code/hooks/aa-ma-commit-signature.sh"]
   PC["pre-commit hooks"]
   AG["review agents: code-reviewer, security-auditor"]
-  TS["tests/commands/sdm (new)"]
+  TS["tests/commands/sdm"]
   CI[".github/workflows/security.yml"]
-  OLD["claude-code/skills/sole-dev-merge/references/stage-g-merge.md"]
   GH["gh CLI and GitHub REST"]
   REM[("origin on github.com")]
   TD["TODOS.md"]
@@ -329,7 +329,6 @@ flowchart LR
   SD -->|"push, delete ref, ls-remote"| REM
   CI -->|"runs"| TS
   SIG -.->|"comment names the skill (non-orphan)"| SK
-  OLD -.->|"deleted in M2"| SK
   SK -.->|"deferred review findings filed in"| TD
 ```
 

@@ -143,15 +143,15 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 ### sole-dev-merge-simplify plan: review notes for M1 (docs/sole-dev-merge-simplify-plan review)
 **What:** fix each in the plan text when its sub-step starts.
-- MEDIUM: 1.2's `pre-commit run --files …` AC needs `PRE_COMMIT_FROM_REF=main PRE_COMMIT_TO_REF=HEAD` in env, or check-conventions exits 2 "no diff source" (`scripts/check_conventions.py:108`, ADR-0018) once nothing is staged (tasks.md:57).
+- ~~MEDIUM: 1.2's `pre-commit run --files …` AC needs `PRE_COMMIT_FROM_REF=main PRE_COMMIT_TO_REF=HEAD` in env, or check-conventions exits 2 "no diff source" (`scripts/check_conventions.py:108`, ADR-0018) once nothing is staged (tasks.md:57).~~ **Done:** tasks.md 1.2 AC and Result Log carry the env.
 - LOW:
-  - 1.4 names no output path for the C1/C2 reviews; `sdm.sh check` makes no `$SDM_DIR` (tasks.md:82).
-  - new test 1 ("a cancelled check is not green") is `ship`'s CI_STATE rule, not `finish.bats`'s, and the `ship` contract does not state it (plan.md:291);
+  - ~~1.4 names no output path for the C1/C2 reviews; `sdm.sh check` makes no `$SDM_DIR` (tasks.md:82).~~ **Done:** private `mktemp -d` run dir (1.4 Result Log).
+  - ~~new test 1 ("a cancelled check is not green") is `ship`'s CI_STATE rule, not `finish.bats`'s, and the `ship` contract does not state it (plan.md:291);~~ **Done:** `ship.bats` "new: 1"; the exit table states it (`sdm.sh` STATUS: CI_FAILED row).
   - 2.3's `glab|gitlab` grep counts comments; 1.2's DROP grep skips them (tasks.md:159);
   - 2.0's `aa-ma-gate` AC uses a bare relative path (tasks.md:116, plan.md:152);
   - the `finish`/`ship` lookup does not pin `baseRefName` to the default branch (plan.md:233).
 - Round 2 (the MERGED arm, plan.md:233 / reference.md:49):
-  - MEDIUM: the branch delete has no lease, so commits pushed to the remote branch after the merge are deleted with it. Use `--force-with-lease=refs/heads/<b>:$SHA`.
+  - ~~MEDIUM: the branch delete has no lease, so commits pushed to the remote branch after the merge are deleted with it. Use `--force-with-lease=refs/heads/<b>:$SHA`.~~ **Done:** `sdm.sh` delete uses the lease; `finish.bats` "new 15".
   - LOW: say the MERGED arm skips the strategy re-read and the check-runs gate.
   - LOW: "a cleanup failure" re-run works only from the feature branch.
 

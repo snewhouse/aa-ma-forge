@@ -151,15 +151,17 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
 - Result Log:
 
 ### Sub-step 2.0: Post-merge record of M1
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
   - reference.md has a SHA map: the PR's commit subjects (`gh pr view <n> --json commits`) matched against `git log` of the merged range on origin/main.
-  - `uv run aa-ma-gate sole-dev-merge-simplify-tasks.md --milestone 1 --format kv` shows `pending_steps=0`.
+  - `uv run aa-ma-gate .claude/dev/active/sole-dev-merge-simplify/sole-dev-merge-simplify-tasks.md --milestone 1 --format kv` shows `pending_steps=0`.
   - CL has `GATE APPROVAL: Milestone 1`.
   - Recorded on the M2 branch `refactor/sdm-switch-over` (L-037).
 - Result Log:
+  - HITL: Ste "Proceed" (2026-10-22). Met by `55e6dfc8` (in this branch): reference.md "Milestone 1 SHA map" 16/16 rows; `aa-ma-gate … --milestone 1` → `status=COMPLETE`, `pending_steps=0`; context-log:75 `GATE APPROVAL: Milestone 1` with `Decision: APPROVED`; branch `refactor/sdm-switch-over` (L-037).
+  - AC path fixed: the gate command now names the repo-relative tasks.md path (TODOS "review notes for M1" LOW).
 
 ### Sub-step 2.1: RED — a test of SKILL.md's shape (Ste 2026-10-22, validator W4 option D)
 - Status: PENDING

@@ -178,7 +178,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - L-056 sweep before RED: TODOS "/sole-dev-merge M2 SKILL.md: review-step items" (5 bullets), TODOS "review notes for M1" MERGED-arm notes (2), impl-review INFO "state the port base once per bats header" → all folded into 2.2.
 
 ### Sub-step 2.2: The switch, as one commit
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 2.1
 - Acceptance Criteria:
@@ -197,6 +197,15 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - `scripts/regen-generated.sh` leaves `git diff --exit-code` clean.
   - The commit subject does not start with `refactor(skills): split sole-dev-merge `.
 - Result Log:
+  - Mode: AFK — auto-dispatched. The switch is one commit, `befb8bf6` (subject `refactor(sole-dev-merge): switch the skill to sdm.sh; …`, not `refactor(skills): split …`).
+  - SKILL.md 491 → 125 lines: check → C1/C2 + stop rule (notes appended per round, round 3 refused, TODOS fallback, no closing keywords, security notes name class + path:line) → ship → finish → a STATUS-action table; points at `sdm.sh help`, no table copy. `tests/skills/test_sole_dev_merge_skill.py` 7/7 (2.1 RED → GREEN).
+  - Hook tests: `aa-ma-footer.bats` 2 cases re-pointed at `sdm_footer` (fresh `bash -c '. sdm.sh; sdm_footer'`), D-block and byte-identical cases dropped, setup's `SKILL_MD/D_MD/EXTRACT` removed (11/11); `commit-signature.bats` 2 block-shape cases dropped (25/25).
+  - Deleted: 6 `references/*.md`, `tests/commands/sole-dev-merge/` (22 paths). `security.yml`: old-suite step and "60+" gone, shellcheck comments now name `security-static-check.bats`; YAML parses. Hook rule-8 comment keeps `/sole-dev-merge`.
+  - Folded (L-056): TODOS M2 review-step items (5), MERGED-arm notes (2), sdm bats headers name the port base `c612620b` (impl-review INFO). §13 view: deleted node removed, `(new)` labels dropped; `aa-ma-lint-views` rc 0, render PASS.
+  - ACs: `test ! -e references && test ! -e tests/commands/sole-dev-merge` ✓; security.yml grep 0 ✓; `extract_stage|sole-dev-merge.env|SDM_KEYS` grep 0 ✓; hook token 1 ✓; `sdm.sh (check|ship|finish)` 5 ✓; fences ≤ 3 ✓; `disable-model-invocation: true` ✓.
+  - Tests: `uv run pytest` 3143 passed, 5 skipped (−6 = the deleted references' link-resolve cases; +7 new); `bats -r tests` on `befb8bf6`: **776 tests, 0 failures, 1 skipped** (the paid LIVE eval, opt-in) = 962 + 17 (PR #57) − 199 (old suite) − 4 (hook cases).
+  - Regen: run before the commit (golden lost the skill→commit-signature edge; the hook→skill edge keeps the skill off the orphan list, `test_plugin_surface.py` comment updated). Re-run after: only the 4 stamp lines change (reverted, as in M1).
+  - Slip (disclosed): a `git stash` for a test-count comparison ran while a background `bats -r tests` used this worktree; that run was stopped and discarded, and the suite re-run on the committed `befb8bf6` (lesson added in 2.3).
 
 ### Sub-step 2.3: Docs
 - Status: PENDING

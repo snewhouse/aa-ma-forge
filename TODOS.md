@@ -157,6 +157,16 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** /sole-dev-merge on docs/sole-dev-merge-simplify-plan, 2026-10-20. Round 1: 0C, 1 HIGH applied (`finish` accepts MERGED at HEAD), 1 MEDIUM + 5 LOW deferred. Round 2 (fix only): 0C/0H, 1 MEDIUM + 2 LOW deferred under the stop rule. **Effort:** S · **Priority:** P2 (before M1 1.1)
 
+### sdm.sh M1 §6.8 review notes: 14 WARNING + 15 INFO, deferred under the exit contract
+**What:** the full list with `sdm.sh:line` is in `.claude/dev/active/sole-dev-merge-simplify/sole-dev-merge-simplify-impl-review.md` (archived with the plan). The ones worth doing first:
+- Every failure prints a line: a rejected `git push` in `ship` and a hook-refused auto-fix commit in `check` exit 1 with no `ABORT:` line; the worktree cleanup `fetch`/`rev-parse` after a merge are unguarded.
+- `ship`: `--notes` with a missing path silently becomes `(none)`; a failed `gh pr checks` re-read reports green; the PR title is `chore(scope): pre-PR auto-fixes` after an auto-fix commit; a lagging `headRefOid` right after a re-push reads as `not-this-branch`.
+- Inputs: validate `CI_POLL_TIMEOUT` (0 disables the timeout); cut the URL userinfo at the last `@` (a raw `@` in a password leaks its tail).
+- Constants: name `70`, `timeout 30`, `--interval 30`, `per_page=100` and the `120`/`10` fallbacks once, each with a unit and reason.
+- pre-commit's `./` prefix stops anchored `files:`/`exclude:` patterns matching (ported from the old Stage B).
+
+**Why:** §6.8 of sole-dev-merge-simplify M1, 2026-10-22: 1 CRITICAL fixed (ruff `--force-exclude`), 0 HIGH; plan §3 sends WARNING/INFO here. **Effort:** S · **Priority:** P2 (the failure-line items before M2's SKILL.md relies on ABORT parsing)
+
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.
 **Why:** sole-dev-merge-fixes plan 5.3 (DRY). Not on main yet: `grep -rn aa_ma_milestone_base claude-code src` is empty (2026-10-18). **Effort:** S · **Priority:** P3

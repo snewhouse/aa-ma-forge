@@ -215,7 +215,9 @@ cmd_ship() {
         local rr=0
         # why: gh exits 0 for a cancelled check; the non-TTY row says fail. 2>/dev/null: the rc is reported below
         out=$(timeout "$GH_CALL_TIMEOUT_S" gh pr checks "$num" -R "$SLUG" 2>/dev/null) || rr=$?
-        if ((rr)); then say "ship: could not re-read the checks (rc=$rr) — not calling CI green"; ci=failed
+        # why: gh's rc 8 is "pending" — a check registered after the watch ended; finish gates it
+        if ((rr == 8)); then say "ship: a check is still pending after the watch"; ci=timeout
+        elif ((rr)); then say "ship: could not re-read the checks (rc=$rr) — not calling CI green"; ci=failed
         elif awk -F'\t' '$2=="fail" || $2=="cancel" {f=1} END {exit !f}' <<<"$out"; then ci=failed; fi
     elif ((rc == 124)); then ci=timeout; else ci=failed; fi
     case "$ci" in
@@ -349,7 +351,7 @@ cmd_help() {
 # ABORT: ship: gh pr create printed no PR URL | ship: create gave no PR number
 # ABORT: <cmd>: cannot read allow_rebase_merge | ship/finish: the repo settings call failed (ship: after PR_NUM/PR_URL)
 # ABORT: <cmd>: allow_rebase_merge is '<v>', not true or false | ship/finish: the repo settings value is unusable
-# STATUS: CI_TIMEOUT — see <url> | ship: CI did not finish within CI_POLL_TIMEOUT; run sdm.sh finish <n> once it completes
+# STATUS: CI_TIMEOUT — see <url> | ship: CI did not finish within CI_POLL_TIMEOUT, or a check registered after the watch; run sdm.sh finish <n> once it completes
 # STATUS: CI_FAILED — see <url> | ship: a check failed or was cancelled, or the checks re-read failed; finish: a check-run did not pass, or none succeeded
 # ABORT: finish: PR_NUM '<x>' is not a PR number | finish: the argument is not a positive integer; nothing called
 # ABORT: finish: cannot read PR <n> (head/owner lookup failed) | finish: gh pr view failed

@@ -164,7 +164,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - AC path fixed: the gate command now names the repo-relative tasks.md path (TODOS "review notes for M1" LOW).
 
 ### Sub-step 2.1: RED — a test of SKILL.md's shape (Ste 2026-10-22, validator W4 option D)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 2.0
 - Acceptance Criteria:
@@ -172,6 +172,10 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - Committed on its own before 2.2 and failing on the old SKILL.md (`uv run pytest tests/skills/test_sole_dev_merge_skill.py` rc 1, the failing assertions quoted in the Result Log).
   - CI never sees it red: CI runs on `pull_request` only and the M2 PR opens at 2.4, after 2.2 (validator W1, 2026-10-22).
 - Result Log:
+  - Mode: AFK — auto-dispatched. `tests/skills/test_sole_dev_merge_skill.py`, 7 tests. RED on the old 491-line SKILL.md: `uv run pytest tests/skills/test_sole_dev_merge_skill.py` rc 1, **6 failed, 1 passed**:
+    - `assert 491 <= 150`; `sdm\.sh check` not found; a 4+-line fence (`# === stage-banner (BEGIN) ===` …); `glab` at offset 486; `'sdm.sh help' in` SKILL.md false; no `ship … push` line.
+    - Passes already (a guard that must stay true): `disable-model-invocation: true`.
+  - L-056 sweep before RED: TODOS "/sole-dev-merge M2 SKILL.md: review-step items" (5 bullets), TODOS "review notes for M1" MERGED-arm notes (2), impl-review INFO "state the port base once per bats header" → all folded into 2.2.
 
 ### Sub-step 2.2: The switch, as one commit
 - Status: PENDING

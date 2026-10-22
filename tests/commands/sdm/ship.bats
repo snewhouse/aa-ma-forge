@@ -461,7 +461,8 @@ NOTES
     [ "$status" -eq 1 ]
     [[ "$output" == *"ABORT: ship: cannot read allow_rebase_merge"* ]]
     [[ "$output$stderr" != *"strategy=rebase"* ]]
-    [[ "$output" != *"PR_NUM="* ]]
+    [ "${lines[0]}" = "PR_NUM=$STUB_PR_NUM" ]   # the PR exists by now: its number comes before the ABORT
+    [ "${lines[1]}" = "PR_URL=$PR_URL_EXPECTED" ]
     [ "$(gh_calls 'pr checks')" -eq 0 ]
 }
 
@@ -471,7 +472,7 @@ NOTES
     [ "$status" -eq 1 ]
     [[ "$output" == *"ABORT: ship: allow_rebase_merge is 'null', not true or false"* ]]
     [[ "$output$stderr" != *"strategy=rebase"* ]]
-    [[ "$output" != *"PR_NUM="* ]]
+    [ "${lines[0]}" = "PR_NUM=$STUB_PR_NUM" ]
 }
 
 @test "new: 16 — ship sees github.com through the insteadOf rewrite; push lands in the forge; gh gets -R test/repo" {
@@ -602,4 +603,114 @@ NOTES
     [ "$status" -eq 1 ]
     [ -s "$BODY_STORE" ]
     [ -z "$(ls -A "$tmp")" ]
+}
+
+# ---------------------------------------------------------------------------
+# fix/sdm-failure-lines (TODOS "sdm.sh M1 §6.8 review notes", "sdm.sh M1 PR review")
+# ---------------------------------------------------------------------------
+
+@test "fix: the forge rejects the push → ABORT: ship: git push failed (rc=1), no gh pr call" {
+    printf '#!/bin/sh\necho "rejected by test hook" >&2\nexit 1\n' > "$FORGE/hooks/pre-receive"
+    chmod +x "$FORGE/hooks/pre-receive"
+    ship
+    [ "$status" -eq 1 ]
+    [ "${lines[-1]}" = "ABORT: ship: git push failed (rc=1)" ]
+    assert_no_push
+    [ "$(count '^gh pr ')" -eq 0 ]
+}
+
+@test "fix: the PR is closed during the head wait → reason=not-open, no PATCH, no PR_NUM, rc 0" {
+    # first lookup: OPEN at the old head; the re-read: CLOSED at the pushed head
+    export GH_PR_EXISTS=1 GH_PR_STALE_OID_CALLS=1 GH_PR_CLOSED_AFTER_CALLS=1
+    ship
+    [ "$status" -eq 0 ]
+    [ "${lines[0]}" = "STATUS: PR_BODY_NOT_UPDATED — PR #${STUB_PR_NUM} reason=not-open" ]
+    [ "$(count '-X PATCH')" -eq 0 ]
+    [[ "$output" != *"PR_NUM="* ]]
+}
+
+@test "fix: --notes with a missing file → ABORT before any push" {
+    ship --notes "$BATS_TEST_TMPDIR/no-such-notes.md"
+    [ "$status" -eq 1 ]
+    [ "${lines[-1]}" = "ABORT: ship: notes file '$BATS_TEST_TMPDIR/no-such-notes.md' is not a readable file" ]
+    assert_no_push
+}
+
+@test "fix: --notes with no FILE → ABORT before any push" {
+    ship --notes
+    [ "$status" -eq 1 ]
+    [ "${lines[-1]}" = "ABORT: ship: --notes needs a FILE" ]
+    assert_no_push
+}
+
+@test "fix: a relative --notes path from a subdirectory is read from there, not from the toplevel" {
+    mkdir -p sub && echo "[LOW] from sub" > sub/n.md
+    cd sub
+    ship --notes n.md
+    [ "$status" -eq 0 ]
+    grep -qxF '[LOW] from sub' "$BODY_STORE"
+}
+
+@test "fix: watch rc 0 but the checks re-read fails → never green: STATUS: CI_FAILED, stderr says why" {
+    export GH_CHECKS_RC=0 GH_CHECKS_REREAD_RC=1
+    ship
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: CI_FAILED — see ${PR_URL_EXPECTED}"* ]]
+    [ "${lines[-1]}" = "CI_STATE=failed" ]
+    [[ "$stderr" == *"ship: could not re-read the checks (rc=1)"* ]]
+}
+
+@test "fix: CI_POLL_TIMEOUT=0 (no timeout at all) is ignored with a stderr line" {
+    export CI_POLL_TIMEOUT=0
+    ship
+    [ "$status" -eq 0 ]
+    [[ "$stderr" == *"ship: ignoring CI_POLL_TIMEOUT='0'"* ]]
+    [ "${lines[-1]}" = "CI_STATE=green" ]
+}
+
+@test "fix: CI_POLL_TIMEOUT=abc is ignored with a stderr line, never a failed watch" {
+    export CI_POLL_TIMEOUT=abc
+    ship
+    [ "$status" -eq 0 ]
+    [[ "$stderr" == *"ship: ignoring CI_POLL_TIMEOUT='abc'"* ]]
+    [ "${lines[-1]}" = "CI_STATE=green" ]
+}
+
+@test "fix: a raw '@' in the URL password → host read after the last '@', slug test/repo" {
+    git config remote.origin.url 'https://u:p@ss@github.com/test/repo.git'
+    run bash -c 'source "$SDM"; sdm_slug ship; echo "$SLUG"'
+    [ "$status" -eq 0 ]
+    [ "$output" = test/repo ]
+}
+
+@test "fix: a raw '@' in the URL password never shows in the ABORT (non-github host)" {
+    git config remote.origin.url 'https://u:p@ss@gitlab.com.invalid/x/y.git'
+    ship
+    [ "$status" -eq 1 ]
+    [ "${lines[-1]}" = "ABORT: ship: origin is on gitlab.com.invalid, not github.com" ]
+    assert_no_push
+}
+
+@test "fix: every PR lookup by branch runs under timeout 30" {
+    # why: a logging wrapper in front of the real timeout shows each call's argv
+    local real; real=$(command -v timeout)
+    mkdir -p "$BATS_TEST_TMPDIR/tbin"
+    printf '#!/usr/bin/env bash\n{ printf timeout; printf " %%s" "$@"; echo; } >> "$CLI_LOG"\nexec %q "$@"\n' "$real" \
+        > "$BATS_TEST_TMPDIR/tbin/timeout"
+    chmod +x "$BATS_TEST_TMPDIR/tbin/timeout"
+    export PATH="$BATS_TEST_TMPDIR/tbin:$PATH" GH_PR_EXISTS=1 GH_PR_STALE_OID_CALLS=1
+    ship
+    [ "$status" -eq 0 ]
+    [ "$(count '^gh pr view feature')" -eq 2 ]
+    [ "$(count '^timeout 30 gh pr view feature')" -eq 2 ]
+}
+
+@test "fix (round 2): a check registers after the watch (re-read rc 8, pending) → CI_TIMEOUT + finish hint, never CI_FAILED" {
+    export GH_CHECKS_RC=0 GH_CHECKS_REREAD_RC=8
+    ship
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: CI_TIMEOUT — see ${PR_URL_EXPECTED}"$'\n'"  recovery: sdm.sh finish ${STUB_PR_NUM} once CI completes"* ]]
+    [[ "$output" != *CI_FAILED* ]]
+    [ "${lines[-1]}" = "CI_STATE=timeout" ]
+    [[ "$stderr" == *"ship: a check is still pending after the watch"* ]]
 }

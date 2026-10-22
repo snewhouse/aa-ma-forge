@@ -68,7 +68,7 @@ b_sandbox() {
 pc_calls() { grep '^pre-commit ' "$CLI_LOG" || true; }      # why: grep exits 1 on no match
 ruff_calls() { grep '^ruff ' "$CLI_LOG" || true; }          # why: grep exits 1 on no match
 outside() { printf 'ABORT: check: files outside the branch changed: %s(left as they are)' "$(printf '%q ' "$@")"; }
-check_ok() { printf 'check OK (branch=feature, base=main, ahead=%s)' "$1"; }
+check_ok() { printf 'check OK (branch=feature, base=origin/main, ahead=%s)' "$1"; }
 
 # =============================================================================
 # Shared preflight (old test_stage_a_preflight.bats, test_stage_state.bats)
@@ -266,7 +266,7 @@ _default_branch() {
     run --separate-stderr "$SDM" check
     [ "$status" -eq 0 ]
     run pc_calls
-    [ "$output" = "pre-commit run --files ./app.py FROM=main TO=HEAD" ]
+    [ "$output" = "pre-commit run --files ./app.py FROM=origin/main TO=HEAD" ]
 }
 
 @test "file names reach pre-commit as single ./-prefixed arguments, never as options (b_scope:249)" {
@@ -275,7 +275,7 @@ _default_branch() {
     run --separate-stderr "$SDM" check
     [ "$status" -eq 0 ]
     run pc_calls
-    [ "$output" = 'pre-commit run --files ./--config=evil.yaml ./app.py ./sp\ ace.txt FROM=main TO=HEAD' ]
+    [ "$output" = 'pre-commit run --files ./--config=evil.yaml ./app.py ./sp\ ace.txt FROM=origin/main TO=HEAD' ]
 }
 
 @test "pre-commit never gets --from-ref or --to-ref (b_scope:259)" {
@@ -537,7 +537,7 @@ _default_branch() {
     run --separate-stderr "$SDM" check
     [ "$status" -eq 0 ]
     [ "${lines[-1]}" = "$(check_ok 2)" ]
-    [ "$(pc_calls)" = "pre-commit run --files ./src/app.py FROM=main TO=HEAD" ]
+    [ "$(pc_calls)" = "pre-commit run --files ./src/app.py FROM=origin/main TO=HEAD" ]
     [ -n "$(ruff_calls)" ]
     [ -z "$(ruff_calls | grep -v ' src/app\.py$')" ]     # every ruff call names src/app.py, from the top
     [ "$(git show --name-only --format= HEAD)" = src/app.py ]
@@ -698,4 +698,39 @@ frag_key() {
     run grep -E '^(pytest|mypy|shellcheck|uv)( |$)' "$CLI_LOG"
     [ "$status" -eq 1 ]
     [ -z "$(ruff_calls | grep -e '--select' -e '--extend-select')" ]
+}
+
+# =============================================================================
+# fix/sdm-failure-lines (TODOS "sdm.sh M1 §6.8 review notes", "sdm.sh M1 PR review")
+# =============================================================================
+
+@test "fix: a git hook refusing the auto-fix commit → ABORT naming the rc, fixes left staged, nothing committed" {
+    b_sandbox
+    local before; before=$(git rev-parse HEAD)
+    mkdir -p "$BATS_TEST_TMPDIR/hooks"
+    printf '#!/bin/sh\necho "hook: refused" >&2\nexit 1\n' > "$BATS_TEST_TMPDIR/hooks/pre-commit"
+    chmod +x "$BATS_TEST_TMPDIR/hooks/pre-commit"
+    git config core.hooksPath "$BATS_TEST_TMPDIR/hooks"
+
+    run --separate-stderr "$SDM" check
+    [ "$status" -eq 1 ]
+    [ "${lines[-1]}" = "ABORT: check: auto-fix commit failed (rc=1); the fixes are staged" ]
+    [ "$(git rev-parse HEAD)" = "$before" ]
+    [ "$(git diff --cached --name-only)" = app.py ]
+}
+
+@test "fix: local main lags origin/main → base is origin/main, scope is the branch's own file only" {
+    # a web-UI merge moved origin/main; the branch was cut from origin/main, local main never pulled
+    git checkout -q main
+    echo up > up.txt; git add up.txt; mkcommit "feat: merged upstream"
+    git push -q origin main
+    git reset -q --hard HEAD~1
+    git checkout -q -B feature origin/main
+    echo mine > mine.txt; git add mine.txt; mkcommit "feat: mine"
+    [ "$(git rev-list --count main..origin/main)" -eq 1 ]   # why: non-vacuous — local main really lags
+
+    run --separate-stderr "$SDM" check
+    [ "$status" -eq 0 ]
+    [ "$output" = "$(check_ok 1)" ]
+    [[ "$stderr" == *"check: 1 file(s) in scope"* ]]
 }

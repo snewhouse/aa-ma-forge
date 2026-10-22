@@ -15,3 +15,4 @@
 [2026-10-20T15:12:31+01:00] Sub-step 1.1 RED: N=147 (102 ported + 45 new); no-script run 0/147 ok; prototype run 136 ok / 11 not ok (GREEN gaps in tasks.md); 3 port agents dispatched (check, ship, finish)
 [2026-10-20T15:23:21+01:00] Sub-step 1.2 GREEN: sdm.sh 338 lines, 147/147 sdm tests, old suite 199/199 (scoped :517), pytest 3142 passed, regen stamps only
 [2026-10-20T15:23:43+01:00] Sub-step 1.3: security.yml bats job runs tests/commands/sdm/ (grep=2)
+[2026-10-22T09:34:59+01:00] CODE_INTEL_REFRESH — Milestone 1: sdm.sh beside the old skill, proven live — codemem=90dbf97acdc4ae30eadd89901e0b5cc84217e280 graphify=90dbf97acdc4ae30eadd89901e0b5cc84217e280

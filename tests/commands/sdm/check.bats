@@ -184,6 +184,28 @@ _default_branch() {
     [ -z "$(ruff_calls | grep -e foo.py -e already_there)" ]
 }
 
+@test "new (§6.8 CRITICAL): a ruff-excluded .py the branch touches is left byte-identical, nothing committed" {
+    # why: a named file bypasses extend-exclude unless --force-exclude; planted eval fixtures must survive (ADR-0021)
+    git checkout -q main
+    printf '[tool.ruff]\nextend-exclude = ["fixtures"]\n' > pyproject.toml
+    base_and_branch
+    mkdir -p fixtures
+    printf 'import os\nimport subprocess\ndef run( cmd ):\n    return subprocess.run(cmd)\n' > fixtures/planted.py   # planted: F401 + format
+    git add fixtures/planted.py
+    mkcommit "test: planted fixture"
+    BEFORE=$(git rev-parse HEAD)
+    run ruff check --diff -- fixtures/planted.py
+    [ "$status" -ne 0 ]                                          # why: non-vacuous — ruff would rewrite it if named
+    run ruff format --check -- fixtures/planted.py
+    [ "$status" -ne 0 ]
+
+    run --separate-stderr "$SDM" check
+    [ "$status" -eq 0 ]
+    [ "$(git rev-parse HEAD)" = "$BEFORE" ]
+    [ "$(git show HEAD:fixtures/planted.py)" = "$(cat fixtures/planted.py)" ]
+    [ -z "$(git status --porcelain)" ]
+}
+
 @test "out-of-scope drift from a fixer ABORTs, left as it is, nothing committed (b_scope:130, changed)" {
     git checkout -q main
     mkdir -p tests/codemem src

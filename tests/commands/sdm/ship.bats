@@ -704,3 +704,13 @@ NOTES
     [ "$(count '^gh pr view feature')" -eq 2 ]
     [ "$(count '^timeout 30 gh pr view feature')" -eq 2 ]
 }
+
+@test "fix (round 2): a check registers after the watch (re-read rc 8, pending) → CI_TIMEOUT + finish hint, never CI_FAILED" {
+    export GH_CHECKS_RC=0 GH_CHECKS_REREAD_RC=8
+    ship
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"STATUS: CI_TIMEOUT — see ${PR_URL_EXPECTED}"$'\n'"  recovery: sdm.sh finish ${STUB_PR_NUM} once CI completes"* ]]
+    [[ "$output" != *CI_FAILED* ]]
+    [ "${lines[-1]}" = "CI_STATE=timeout" ]
+    [[ "$stderr" == *"ship: a check is still pending after the watch"* ]]
+}

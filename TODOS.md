@@ -148,7 +148,7 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
   - ~~1.4 names no output path for the C1/C2 reviews; `sdm.sh check` makes no `$SDM_DIR` (tasks.md:82).~~ **Done:** private `mktemp -d` run dir (1.4 Result Log).
   - ~~new test 1 ("a cancelled check is not green") is `ship`'s CI_STATE rule, not `finish.bats`'s, and the `ship` contract does not state it (plan.md:291);~~ **Done:** `ship.bats` "new: 1"; the exit table states it (`sdm.sh` STATUS: CI_FAILED row).
   - 2.3's `glab|gitlab` grep counts comments; 1.2's DROP grep skips them (tasks.md:159);
-  - 2.0's `aa-ma-gate` AC uses a bare relative path (tasks.md:116, plan.md:152);
+  - ~~2.0's `aa-ma-gate` AC uses a bare relative path (tasks.md:116, plan.md:152);~~ **Done:** tasks.md 2.0 AC uses the repo-relative path (plan.md keeps its historical text).
   - the `finish`/`ship` lookup does not pin `baseRefName` to the default branch (plan.md:233).
 - Round 2 (the MERGED arm, plan.md:233 / reference.md:49):
   - ~~MEDIUM: the branch delete has no lease, so commits pushed to the remote branch after the merge are deleted with it. Use `--force-with-lease=refs/heads/<b>:$SHA`.~~ **Done:** `sdm.sh` delete uses the lease; `finish.bats` "new 15".

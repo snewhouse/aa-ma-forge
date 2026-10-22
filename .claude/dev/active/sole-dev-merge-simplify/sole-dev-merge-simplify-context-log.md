@@ -106,3 +106,6 @@ Prototype `1fdfd468` merged PR #53 end to end on its first run (check → ship �
 - W1 (2.1 RED red in CI): moot by design — CI runs on `pull_request` only and the M2 PR opens at 2.4; stated in 2.1's ACs.
 - W2 (exit table copy in SKILL.md): SKILL.md points at `sdm.sh help` and lists only the STATUS lines the model acts on (DRY; a 42-row copy would drift and take ~28% of the 150-line budget). Added to 2.1/2.2 ACs. Deviation from plan.md:159 "then the exit-status table" — the table stays one command away.
 - W3: `tests/skills/test_sole_dev_merge_skill.py` added to the M2 Contract and reference.md Create list. W4: 2.1's glab rule has no comment exemption (matches 2.3). W5/W6: reference.md contract heading and Last Updated corrected. W7: rollback names the 2.1 commit; plan.md's §10 Next Action left as the historical record.
+
+## [2026-10-22] M2 boundary: install.sh must run from the main checkout
+`scripts/install.sh --dry-run` from `.worktrees/refactor/sdm-switch-over` would re-link `~/.claude/skills/sole-dev-merge` to the worktree. 2.4 runs install.sh from the main checkout after the merge, so the link stays on main.

@@ -266,7 +266,7 @@ _default_branch() {
     run --separate-stderr "$SDM" check
     [ "$status" -eq 0 ]
     run pc_calls
-    [ "$output" = "pre-commit run --files ./app.py FROM=main TO=HEAD" ]
+    [ "$output" = "pre-commit run --files ./app.py FROM=origin/main TO=HEAD" ]
 }
 
 @test "file names reach pre-commit as single ./-prefixed arguments, never as options (b_scope:249)" {
@@ -275,7 +275,7 @@ _default_branch() {
     run --separate-stderr "$SDM" check
     [ "$status" -eq 0 ]
     run pc_calls
-    [ "$output" = 'pre-commit run --files ./--config=evil.yaml ./app.py ./sp\ ace.txt FROM=main TO=HEAD' ]
+    [ "$output" = 'pre-commit run --files ./--config=evil.yaml ./app.py ./sp\ ace.txt FROM=origin/main TO=HEAD' ]
 }
 
 @test "pre-commit never gets --from-ref or --to-ref (b_scope:259)" {
@@ -537,7 +537,7 @@ _default_branch() {
     run --separate-stderr "$SDM" check
     [ "$status" -eq 0 ]
     [ "${lines[-1]}" = "$(check_ok 2)" ]
-    [ "$(pc_calls)" = "pre-commit run --files ./src/app.py FROM=main TO=HEAD" ]
+    [ "$(pc_calls)" = "pre-commit run --files ./src/app.py FROM=origin/main TO=HEAD" ]
     [ -n "$(ruff_calls)" ]
     [ -z "$(ruff_calls | grep -v ' src/app\.py$')" ]     # every ruff call names src/app.py, from the top
     [ "$(git show --name-only --format= HEAD)" = src/app.py ]

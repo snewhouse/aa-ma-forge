@@ -20,3 +20,5 @@
 [2026-10-22T09:42:15+01:00] Sub-step 1.4 IN_PROGRESS (HITL proceed, Ste); §6.0 refresh, §6.3 impact LOW, §6.6 skipped by rule (bash only; C1/C2 + §6.8 review it)
 [2026-10-22T09:48:22+01:00] TESTS_VERIFIED — Milestone 1: sdm.sh beside the old skill, proven live — passed=959 cmd=bats --formatter pretty -r tests
 [2026-10-22T10:35:25+01:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: full — agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 1 CRITICAL (accepted by Ste, fixed 49143045/e70f156f, fix re-checked 0C/0W/1I) / 14 WARNING / 15 INFO (→ TODOS)
+[2026-10-22T10:41:26+01:00] TESTS_VERIFIED — Milestone 1: sdm.sh beside the old skill, proven live — passed=960 cmd=bats --formatter pretty -r tests
+[2026-10-22T10:41:42+01:00] Sub-step 1.4: sdm.sh check → 'check OK (branch=refactor/sdm-script, base=main, ahead=11)' (no auto-fix); C1 0C/0H/1M/3L, C2 0/0/0/0 (round 1, stop rule: nothing blocks; notes + TODOS)

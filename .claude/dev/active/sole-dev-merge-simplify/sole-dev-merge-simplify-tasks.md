@@ -105,7 +105,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - `grep -c 'tests/commands/sdm' .github/workflows/security.yml` = 2 (step name + run; AC ≥ 1); YAML parses. No `${{ }}` input in the step. The live `Bats` check is observed at 1.4.
 
 ### Sub-step 1.4: Verify, gate, merge by the new script
-- Status: PENDING
+- Status: IN_PROGRESS
 - Mode: HITL
 - Dependencies: Sub-step 1.3
 - Acceptance Criteria:

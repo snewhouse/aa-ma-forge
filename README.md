@@ -223,7 +223,7 @@ Each is a skill in `claude-code/skills/<name>/` (ADR-0020); type `/name` to run 
 - `/aa-ma-chart` — Chart a pre-plan decision map (`chart <effort> "<idea>"`), resolve its typed tickets one per session (`work <effort> [ticket-N]`), then hand off with `/aa-ma-plan --from-map <effort>` — concept adapted from mattpocock/skills `wayfinder`, see [ADR-0013](docs/adr/0013-charting-wayfinder-lite.md)
 - `/understand-codebase` — Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered: `--quick` / `--standard` / `--deep`); optionally authors or reviews `AGENTS.md`
 - `/assess-codebase` — Whole-repo quality and risk assessment (tiered: `--quick` / `--standard` / `--deep`) — tools measure, model judges cite `file:line`, a refuter checks every Critical/High claim; per-dimension ratings, no overall grade; SARIF + `report.md` under `.claude/reports/assess-codebase/`
-- `/sole-dev-merge` — PR/MR-based merge workflow with scope-aware CI checks, 3-source security pass, idempotent PR/MR creation, 15-min CI poll, auto-merge + cleanup — see [ADR-0008](docs/adr/0008-sole-dev-merge-pr-workflow.md)
+- `/sole-dev-merge` — GitHub PR merge through one tested script (`sdm.sh check` / `ship` / `finish`): local fixes and pre-commit on the branch's files, code + security review under the stop rule, PR create/update, CI watch, gated merge and worktree-safe cleanup — see [ADR-0024](docs/adr/0024-sole-dev-merge-one-script.md)
 - `/aa-ma-share` — Publish a plan, ADR or spec page as a private Artifact link — mermaid Architecture Views render natively; allowlisted paths only (never context-log/provenance/reference/tasks) — see [ADR-0010](docs/adr/0010-architecture-views-and-render.md)
 
 ### Skills

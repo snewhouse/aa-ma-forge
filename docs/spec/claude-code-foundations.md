@@ -88,7 +88,7 @@ Each is a skill under `claude-code/skills/<name>/` (ADR-0020), counted in Skills
 | `/aa-ma-share` | Publish a plan, ADR or spec doc as a private Artifact link (allowlisted paths only — context-log, provenance, reference and tasks are never shared) |
 | `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered Quick/Standard/Deep); optionally authors/reviews `AGENTS.md`. Thin wrapper around `Skill(understand-codebase)`; see ADR-0006 |
 | `/assess-codebase` | Whole-repo quality and risk assessment (tiered Quick/Standard/Deep): tools measure, sonnet judges cite `file:line`, a refuter attacks every Critical/High claim; per-dimension ratings with inputs and confidence (no overall grade) → SHA-stamped, secret-gated `summary.json` + `findings.jsonl` + SARIF + `report.md` under `.claude/reports/assess-codebase/`. Thin wrapper around `Skill(assess-codebase)` |
-| `/sole-dev-merge` | PR/MR-based merge workflow: scope-aware CI checks (L-007 guard) + 3-source security pass + idempotent PR/MR creation + 15-min CI poll + auto-merge + cleanup. See ADR-0008 |
+| `/sole-dev-merge` | GitHub PR merge via `sdm.sh check` / `ship` / `finish`: in-scope fixes and pre-commit, code + security review under the stop rule, PR create/update, CI watch, check-run-gated merge, worktree-safe cleanup. See ADR-0024 |
 
 ### Skills (39)
 

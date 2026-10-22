@@ -103,3 +103,9 @@ covered `*.sh`. 19 of 31 `.bats` files fail shellcheck today; that debt is known
 - `.github/workflows/security.yml` — job `touched` (pull_request only, `fetch-depth: 0`,
   `persist-credentials: false`, uv pinned in the job) replaces job `ruff`.
 - Tests: `tests/scripts/test_check_conventions.py`, `tests/test_precommit_config.py`.
+
+## Amendment 2026-10-22 — `/sole-dev-merge` Stage B is now `sdm.sh check`
+
+The Stage B example above now lives in `sdm.sh check` ([ADR-0024](0024-sole-dev-merge-one-script.md)): it runs
+`pre-commit run --files <branch files>` with `PRE_COMMIT_FROM_REF=<base>` and `PRE_COMMIT_TO_REF=HEAD` in env,
+where `<base>` is `origin/<default>` when it exists (PR #57).

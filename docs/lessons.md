@@ -5,20 +5,27 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-063 (2026-10-22) — A `git stash` ran in the worktree a background test suite was reading
+**Pattern:** in sole-dev-merge-simplify 2.2 I started `bats -r tests` in the background on the M2 worktree, then ran `git stash` / `git stash pop` there to compare pytest collection before and after a deletion. For a few seconds the worktree held the old, deleted files, so the background run's result could no longer be trusted. I caught it, stopped the run, committed, and re-ran the suite on the commit.
+**Rule:** while a background run reads a worktree, that worktree is read-only: no stash, checkout, reset, edit or regen. Run comparisons in a throwaway `git worktree add --detach <tmp> <sha>`, or wait. Start a long suite only on a committed tree and record the SHA it ran on (`git rev-parse HEAD` written beside the log).
+
 ## L-062 (2026-10-20) — 13 copies of the state loader, and a test that keeps them identical
 **Pattern:** /sole-dev-merge runs each stage by having the model copy a bash block out of markdown, so every block carries its own 26-line `SDM_KEYS`/`sdm_load`/`sdm_save` (13 copies, 35% of the skill's code bytes). `test_stage_state.bats` asserts the copies are byte-identical. A one-line `sdm_save` fix (`39fbac7`) touched 6 files, and each copy gave reviewers more to find. Of the skill's 1,963 lines, 1,526 are bash in fences.
 **Rule:** code needed by two or more stage blocks goes in one sourced script with its own bats tests, and the skill calls it. A test that asserts copies are identical means extract the code; never accept the copies. Add a stage block only when the work truly needs the model between steps.
 **Cross-ref:** retro 2026-10-20 (sole-dev-merge-fixes plan dir); TODOS "install.sh links a clone pinned to main".
+**Fixed in:** sole-dev-merge-simplify M2 (ADR-0024) — the stage blocks became `claude-code/skills/sole-dev-merge/scripts/sdm.sh` (one copy of each rule, `tests/commands/sdm/`); the identical-copies test went with them.
 
 ## L-061 (2026-10-20) — 0 of 255 review findings bit in real use; using the tool found every real bug
 **Pattern:** across sole-dev-merge-pr-workflow and sole-dev-merge-fixes, 17 review rounds produced findings that were 51% docs/style, 33% hypothetical hardening (hostile `.git`, old git, locales) and 9% bugs made by an earlier fix. None was a bug that hit in use. The bugs that did hit, `--delete-branch` from a worktree (6 PRs), check-conventions rc 2, `gh pr edit` failing silently and pre-compact writing into main, were all found by running the tool. The predecessor's stub test even asserted the buggy call. Meanwhile 61% of code commits rewrote code from earlier in the same PR.
 **Rule:** for tooling, the first acceptance gate is a live run of the smallest working version on the real environment; stub tests alone never certify it. Then review at most 2 rounds per PR. Round 2 reads only the fix. Only CRITICAL/HIGH with a failure path under the stated threat model block (`security-auditor.md` § Threat model); everything else goes to notes and TODOS.
 **Cross-ref:** L-060; global L-1299, L-1294, L-1358.
+**Applied in:** sole-dev-merge-simplify M2 (ADR-0024) — SKILL.md step 2 carries the stop rule (2 rounds, only CRITICAL/HIGH with a failure path block); every sdm.sh milestone and PR #57 was gated by a live merge run.
 
 ## L-060 (2026-10-18) — A review loop with no exit turned a 15-line hook fix into 140 lines and three merge runs
 **Pattern:** sole-dev-merge-fixes M5. Each `/sole-dev-merge` run sent fresh reviewers at the diff; I recommended "Apply" for nearly every MEDIUM/LOW; every applied fix restarted the run and added code for the next run to review. The linked-worktree guard inferred where the session works from git history, so each round found another edge (tracked plan dirs, detached tool worktrees, rebase-merged SHAs, squash merges), and the hardening crept to hostile `.git` dirs and git < 2.45 for an advisory 2-line append. `pre-compact-aa-ma.sh` went 192 → 329 lines, its tests 17 → 39. Ste: "have we over engineered … why do we never get to the end of it??"
 **Rule:** before recommending "Apply" on a review finding, weigh it against what the code is for (an advisory log append is not a security boundary) and say so in the option. When a second round finds new defects in the previous round's fix, stop and ask whether a simpler rule removes the whole class instead of patching the next edge. Prefer a plain, conservative rule (skip and say why) over a heuristic that guesses intent. Only CRITICAL/HIGH findings restart a merge run; MEDIUM/LOW go to notes + TODOS.
 **Status:** applied in M5 (guard simplified); the Stage D rule landed 2026-10-20 (`fix/sdm-stop-rule`).
+**Wired in:** sole-dev-merge-simplify M2 (ADR-0024) — the stop rule is a SKILL.md step (round 3 refused), not only this lesson.
 **Repeat (2026-10-20 retro):** the rule to stop already existed. Global L-1299 (2026-09-29: at round 3, set the threat model and agree how the loop ends) and L-1294 (no third patch) fit exactly, and I had read both, yet M4 ran 5 merge runs and M5 3. A lesson that is not wired into the step where the decision is made does not fire. **Stricter:** set the threat model at plan time (a Contract `Threat-Model:` line), not at round 3, and put limits in the skill, agent or gate, not only here.
 
 ---
@@ -54,6 +61,7 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 **Pattern:** `/sole-dev-merge` stage blocks hand values on through exported env vars (`CHANGED_PY`, `CHANGED_SH`, `SLUG`, `PR_NUM`, `ORIGINAL_BRANCH`). Claude runs each block as its own Bash call, and nothing carries over between calls. So Stage C found no `CHANGED_PY`/`CHANGED_SH` and silently skipped Ruff S and ShellCheck on every run. `SLUG` differed between C and D, and G4's `ORIGINAL_BRANCH:-feature` default could delete an unrelated branch. The smoke E2E chains the blocks with `set -a` in one shell, so it never saw the gap.
 **Rule:** A multi-block skill never relies on the env between blocks. Values go to a state file (written by the first stage, read by the others), and a required value with no source fails loud; it never defaults. A test runs a later block in a fresh shell with an empty env.
 **Fixed in:** sole-dev-merge-fixes M2 — the stage state file (SKILL.md "State between stages", every stage block except E1), `tests/commands/sole-dev-merge/test_stage_state.bats` (every block in an empty env). G4's default was removed in M1. Still open: E1's remote counts reach E2 only within one Bash call (M4).
+**Superseded by:** sole-dev-merge-simplify M2 (ADR-0024) — no state file: each `sdm.sh` subcommand is one process that derives its inputs from git/gh, so nothing crosses Bash calls.
 
 ---
 
@@ -68,6 +76,7 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 **Pattern:** Stage B's guard restores out-of-scope paths with `git checkout -- <path>`. That restores from the **index**, so an out-of-scope edit that is already staged survives with rc 0. On an untracked file, `checkout` exits 1 and the guard swallows it. B-commit's `git add -A` then sweeps both into the auto-fix commit. L-007's "resolved structurally" note (2026-05-18) was stale.
 **Rule:** restore tracked rows with `git restore --source=HEAD --staged --worktree`; list untracked rows, never delete them; stage exact in-scope paths and assert the staged set before committing.
 **Fixed in:** sole-dev-merge-fixes M3 — the guard and B-commit in `SKILL.md`.
+**Superseded by:** sole-dev-merge-simplify M2 (ADR-0024) — `sdm.sh check` refuses a dirty tree at the start and ABORTs naming any out-of-scope change, never restoring or committing it.
 - Restoring from HEAD a path HEAD lacks deletes it with rc 0 (probed), so a newly staged out-of-scope file is only unstaged, kept and listed.
 - The guard reads `git status --porcelain -z`, which gives raw names and rename sources. A C-quoted name never matched.
 - B-commit checks the staged set **before** staging. Anything outside `CHANGED_FILES` → rc 1, index untouched, even when nothing in scope is dirty. It then stages `CHANGED_FILES` ∩ dirty under literal pathspecs and re-checks.
@@ -79,6 +88,7 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 **Pattern:** G4 ran `git checkout -q "$DEFAULT_BRANCH"` then `git pull --ff-only`. In a linked worktree, `main` is checked out by the main worktree, so checkout exits 128 ("already used by worktree"), and `pull --ff-only` with `pull.rebase=true` fails on a dirty tree. Every worktree merge finished by hand. G3's `--delete-branch` failed the same way (global L-1332).
 **Rule:** detect a worktree by comparing absolute `--git-dir` and `--git-common-dir`. In a worktree, fast-forward the main worktree with `git -C`, never switch branches, stop on a tracked change there, and print the cleanup commands. Merge without `--delete-branch` and delete the remote branch explicitly, checked with `ls-remote`.
 **Fixed in:** sole-dev-merge-fixes M1 — `stage-g-merge.md` G3/G4, `test_stage_g_merge.bats` (G3 cases and G4 AC2.x).
+**Superseded by:** sole-dev-merge-simplify M2 (ADR-0024) — `sdm.sh finish` cleanup (`sdm_cleanup`), `tests/commands/sdm/finish.bats` worktree cases; the files named above are deleted.
 
 ---
 

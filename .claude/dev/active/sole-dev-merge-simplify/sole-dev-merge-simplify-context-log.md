@@ -101,3 +101,8 @@ Prototype `1fdfd468` merged PR #53 end to end on its first run (check → ship �
 - Review triage (Ste): the one MEDIUM was a regression this PR introduced (gh's rc 8 "pending" on the post-watch re-read read as CI_FAILED). Ste chose "fix now, round 2"; round 2 reviewed only that fix and found one shared LOW. Stop rule held: 2 rounds, 7 LOWs → TODOS "sdm.sh fix/sdm-failure-lines PR #57 review".
 - Not taken in the PR (TODOS stay open): PR title after an auto-fix commit, pre-commit's `./` prefix vs anchored patterns, `ssh.github.com:443`, help's 2 × CI_APPEAR_TIMEOUT_S note, stub/test LOWs.
 - TODOS closures recorded here on the M2 branch, not in PR #57 (the M2 branch already edits the same entry; L-037).
+
+## [2026-10-22] Milestone 2 pre-execution validation: WARN (0 FAIL, 7 WARN) — fixed before 2.1
+- W1 (2.1 RED red in CI): moot by design — CI runs on `pull_request` only and the M2 PR opens at 2.4; stated in 2.1's ACs.
+- W2 (exit table copy in SKILL.md): SKILL.md points at `sdm.sh help` and lists only the STATUS lines the model acts on (DRY; a 42-row copy would drift and take ~28% of the 150-line budget). Added to 2.1/2.2 ACs. Deviation from plan.md:159 "then the exit-status table" — the table stays one command away.
+- W3: `tests/skills/test_sole_dev_merge_skill.py` added to the M2 Contract and reference.md Create list. W4: 2.1's glab rule has no comment exemption (matches 2.3). W5/W6: reference.md contract heading and Last Updated corrected. W7: rollback names the 2.1 commit; plan.md's §10 Next Action left as the historical record.

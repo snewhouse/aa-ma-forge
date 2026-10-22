@@ -132,7 +132,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
 ---
 
 ## Milestone 2: switch over and delete
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 1
 - Complexity: 40%
 - Effort: 1.1 days
@@ -166,8 +166,9 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
 - Mode: AFK
 - Dependencies: Sub-step 2.0
 - Acceptance Criteria:
-  - `tests/skills/test_sole_dev_merge_skill.py` asserts on `claude-code/skills/sole-dev-merge/SKILL.md`: ≤ 150 lines; `sdm.sh check`, `sdm.sh ship` and `sdm.sh finish` each named; no fenced block longer than 3 lines; front-matter `disable-model-invocation: true`; no `glab|gitlab` outside comments.
+  - `tests/skills/test_sole_dev_merge_skill.py` asserts on `claude-code/skills/sole-dev-merge/SKILL.md`: ≤ 150 lines; `sdm.sh check`, `sdm.sh ship` and `sdm.sh finish` each named; no fenced block longer than 3 lines; front-matter `disable-model-invocation: true`; no `glab|gitlab` anywhere (case-insensitive, same rule as 2.3); no copy of the exit table (it points at `sdm.sh help`).
   - Committed on its own before 2.2 and failing on the old SKILL.md (`uv run pytest tests/skills/test_sole_dev_merge_skill.py` rc 1, the failing assertions quoted in the Result Log).
+  - CI never sees it red: CI runs on `pull_request` only and the M2 PR opens at 2.4, after 2.2 (validator W1, 2026-10-22).
 - Result Log:
 
 ### Sub-step 2.2: The switch, as one commit
@@ -177,6 +178,8 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
 - Acceptance Criteria:
   - Hook tests: `tests/hooks/aa-ma-footer.bats:167-206` — 2 B-commit footer tests re-pointed at `sdm_footer` (source sdm.sh), the D-block run and "snippets byte-identical" tests dropped; `tests/hooks/commit-signature.bats:228-240` — 2 block-shape tests dropped (156-226 stay).
   - `disable-model-invocation: true` is kept.
+  - SKILL.md points at `sdm.sh help` for the full exit table and lists only the STATUS lines the model acts on (validator W2: a 42-row copy would drift and cost ~28% of the budget).
+  - `uv run pytest tests/skills/test_sole_dev_merge_skill.py` passes (2.1's RED goes GREEN).
   - `grep -cE 'sdm\.sh (check|ship|finish)' SKILL.md` ≥ 3.
   - No fenced block in SKILL.md is longer than 3 lines.
   - `wc -l SKILL.md` ≤ 150.

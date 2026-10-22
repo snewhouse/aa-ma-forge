@@ -229,7 +229,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - **Not done (disclosed):** `src/aa_ma/analysis/measure.py:5` — any edit puts the file under ADR-0018's touched-file gate, which finds 20 pre-existing ruff D-rule errors (same 20 at HEAD). Reverted and filed as a TODOS entry (P3) rather than turn a comment edit into a docstring refactor.
 
 ### Sub-step 2.4: Verify, gate, merge, finalize
-- Status: PENDING
+- Status: IN_PROGRESS
 - Mode: HITL
 - Dependencies: Sub-step 2.3
 - Acceptance Criteria:

@@ -153,6 +153,7 @@ Goal: SKILL.md is ≤ 150 lines that call `sdm.sh`; the old blocks, state-file d
     - CL has `GATE APPROVAL: Milestone 1`.
   - Recorded on the M2 branch (L-037).
 - **2.1 (merged into 2.2)**: kept as a number so the IDs stay stable; `Status: SKIPPED — folded into 2.2` in tasks.md.
+  - *Amended 2026-10-22 (Ste, validator W4 option D):* 2.1 is now "RED — a test of SKILL.md's shape", `tests/skills/test_sole_dev_merge_skill.py`, committed failing before 2.2 (§2 "RED before GREEN in both milestones"). ACs in tasks.md.
 - **2.2 The switch, as one commit** (AFK, 0.5 d, 45%)
   - Hook tests: in `tests/hooks/aa-ma-footer.bats:167-206`, re-point the 2 tests that run the B-commit footer at `sdm_footer` (source sdm.sh). Drop the D-block run and the "snippets byte-identical" test, which have nothing left to test. In `tests/hooks/commit-signature.bats:228-240`, drop the 2 block-shape tests; the generic rule-8 tests at 156-226 stay.
   - Rewrite SKILL.md: `sdm.sh check`, then reviews C1+C2 (prompts, threat model, stop rule, notes file), then `ship --notes <file>`, then `finish <PR>`, then the exit-status table. It says which steps push or merge.

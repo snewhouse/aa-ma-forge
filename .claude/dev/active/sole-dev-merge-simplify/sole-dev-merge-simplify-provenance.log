@@ -29,3 +29,4 @@
 [2026-10-22T11:44:58+01:00] Sub-step 1.4: PR #55 merged by sdm.sh finish — 'STATUS: OK worktree=/home/sjnewhouse/projects/github_private/aa-ma-forge/.worktrees/refactor/sdm-script' — MERGED c612620b; ls-remote rc=2; main=origin/main=c612620b; merge runs=3
 [2026-10-22T11:44:58+01:00] GATE APPROVAL — Milestone 1: sdm.sh beside the old skill, proven live — HARD — Ste — APPROVED
 [2026-10-22T11:46:33+01:00] MILESTONE COMPLETE — Milestone 1: sdm.sh beside the old skill, proven live — Commit: c612620b (merge of PR #55; this record on refactor/sdm-switch-over, L-037) — Criteria: 6/6 verified — post-completion validator WARNINGS_BUT_USABLE (5 WARN back-filled inline)
+[2026-10-22T12:14:45+01:00] Pre-M2 decisions (Ste): Q1=A fix/sdm-failure-lines PR first; Q2=D 2.1 revived as RED SKILL.md shape test; Q3 prototype/sdm-script worktree+branch deleted (was ca5aaff9, never pushed); Q4 extras added to the fix PR — handover evidence E1–E14 all match

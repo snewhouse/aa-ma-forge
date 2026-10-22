@@ -161,18 +161,19 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - Recorded on the M2 branch `refactor/sdm-switch-over` (L-037).
 - Result Log:
 
-### Sub-step 2.1: (merged into 2.2)
-- Status: SKIPPED — folded into 2.2
+### Sub-step 2.1: RED — a test of SKILL.md's shape (Ste 2026-10-22, validator W4 option D)
+- Status: PENDING
 - Mode: AFK
 - Dependencies: Sub-step 2.0
 - Acceptance Criteria:
-  - None: the number is kept so step IDs stay stable; the work is in 2.2.
+  - `tests/skills/test_sole_dev_merge_skill.py` asserts on `claude-code/skills/sole-dev-merge/SKILL.md`: ≤ 150 lines; `sdm.sh check`, `sdm.sh ship` and `sdm.sh finish` each named; no fenced block longer than 3 lines; front-matter `disable-model-invocation: true`; no `glab|gitlab` outside comments.
+  - Committed on its own before 2.2 and failing on the old SKILL.md (`uv run pytest tests/skills/test_sole_dev_merge_skill.py` rc 1, the failing assertions quoted in the Result Log).
 - Result Log:
 
 ### Sub-step 2.2: The switch, as one commit
 - Status: PENDING
 - Mode: AFK
-- Dependencies: Sub-step 2.0
+- Dependencies: Sub-step 2.1
 - Acceptance Criteria:
   - Hook tests: `tests/hooks/aa-ma-footer.bats:167-206` — 2 B-commit footer tests re-pointed at `sdm_footer` (source sdm.sh), the D-block run and "snippets byte-identical" tests dropped; `tests/hooks/commit-signature.bats:228-240` — 2 block-shape tests dropped (156-226 stay).
   - `disable-model-invocation: true` is kept.

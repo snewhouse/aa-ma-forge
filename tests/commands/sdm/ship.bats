@@ -560,13 +560,34 @@ NOTES
     [ "$(non_watch_checks)" -ge 11 ]
 }
 
-@test "new: existing OPEN PR at another head commit → reason=not-this-branch, no PATCH, no PR_NUM, rc 0" {
+@test "new: existing OPEN PR whose head never reaches the push → re-read, then reason=head-not-updated, no PATCH, no PR_NUM, rc 0" {
     export GH_PR_EXISTS=1 GH_PR_HEAD_OID=0000000000000000000000000000000000000000
     ship
     [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "STATUS: PR_BODY_NOT_UPDATED — PR #${STUB_PR_NUM} reason=not-this-branch" ]
+    [ "${lines[0]}" = "STATUS: PR_BODY_NOT_UPDATED — PR #${STUB_PR_NUM} reason=head-not-updated" ]
     [ "$(count '-X PATCH')" -eq 0 ]
     [[ "$output" != *"PR_NUM="* ]]
+    [ "$(count '^gh pr view feature')" -ge 2 ]   # why: it re-read before giving up (bounded by CI_APPEAR_TIMEOUT_S)
+}
+
+@test "new (live, PR #55): GitHub's head lags the push once → ship re-reads, updates the body and waits for CI" {
+    # why: right after a re-push GitHub still reported the old headRefOid; ship called its own PR not-this-branch
+    export GH_PR_EXISTS=1 GH_PR_STALE_OID_CALLS=1
+    ship
+    [ "$status" -eq 0 ]
+    [[ "$output" != *PR_BODY_NOT_UPDATED* ]]
+    [ "$(count '-X PATCH')" -eq 1 ]
+    [ "${lines[0]}" = "PR_NUM=$STUB_PR_NUM" ]
+    [ "${lines[-1]}" = "CI_STATE=green" ]
+    [ "$(count '^gh pr view feature')" -eq 2 ]
+}
+
+@test "new: a fork's PR or another head branch is refused at once, never re-read (reason=not-this-branch)" {
+    export GH_PR_EXISTS=1 GH_PR_CROSS_REPO=true
+    ship
+    [ "$status" -eq 0 ]
+    [ "${lines[0]}" = "STATUS: PR_BODY_NOT_UPDATED — PR #${STUB_PR_NUM} reason=not-this-branch" ]
+    [ "$(count '^gh pr view feature')" -eq 1 ]
 }
 
 @test "new: the body temp file is removed after ship (success and ABORT paths)" {

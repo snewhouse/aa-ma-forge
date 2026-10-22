@@ -9,6 +9,7 @@
 #   GH_PR_HEAD_REF            headRefName (default: the current branch)
 #   GH_PR_CROSS_REPO=false    isCrossRepository
 #   GH_PR_HEAD_OID            headRefOid (default: local HEAD)
+#   GH_PR_STALE_OID_CALLS=0   the first N `pr view <branch>` lookups report a stale headRefOid (GitHub lagging a push)
 #   GH_PR_STATE=MERGED        state read back after the merge call (`--jq .state` alone)
 # Other arms:
 #   GH_AUTH_OK=1              `auth status` rc 0; =0 → rc 1
@@ -28,6 +29,7 @@ LOG="${CLI_LOG:-/dev/null}"
 echo "gh $*" >> "$LOG"
 
 # JQ = the --jq argument (set once, so no helper runs inside $(...) with set -e off)
+SEL="${3:-}"   # the pr view selector (a number or a branch)
 JQ=""; prev=""
 for a in "$@"; do [[ "$prev" != --jq ]] || JQ=$a; prev=$a; done
 pr_field() {   # sets V to the value of PR field $1
@@ -38,7 +40,13 @@ pr_field() {   # sets V to the value of PR field $1
         isCrossRepository) V="${GH_PR_CROSS_REPO:-false}" ;;
         headRefName) V="${GH_PR_HEAD_REF:-$(git branch --show-current)}" ;;
         state) V="${GH_PR_LOOKUP_STATE:-OPEN}" ;;
-        headRefOid) V="${GH_PR_HEAD_OID:-$(git rev-parse HEAD)}" ;;
+        headRefOid)
+            # GH_PR_STALE_OID_CALLS=N: the first N branch lookups report a stale head (GitHub lagging a push)
+            if [[ "$SEL" =~ ^[0-9]+$ ]] || [[ "$(grep -c "^gh pr view $SEL " "$LOG" || true)" -gt "${GH_PR_STALE_OID_CALLS:-0}" ]]; then   # why: grep -c exits 1 on 0 matches
+                V="${GH_PR_HEAD_OID:-$(git rev-parse HEAD)}"
+            else
+                V=1111111111111111111111111111111111111111
+            fi ;;
         *) echo "gh stub: unknown field $1" >&2; exit 3 ;;
     esac
 }

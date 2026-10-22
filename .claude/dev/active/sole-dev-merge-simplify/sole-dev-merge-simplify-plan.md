@@ -260,6 +260,7 @@ Complexity: 40%
 Effort: 1.1 days
 Files:
   Modify  claude-code/skills/sole-dev-merge/SKILL.md
+  Create  tests/skills/test_sole_dev_merge_skill.py   # 2.1 RED (amended 2026-10-22, Ste: validator W4 option D)
   Delete  claude-code/skills/sole-dev-merge/references/stage-c-review-and-security.md stage-d-triage.md stage-e-remote-and-body.md stage-f-push.md stage-g-merge.md stage-state.md
   Delete  tests/commands/sole-dev-merge/            # 11 bats files and their fixtures (glab, extract_stage.sh included)
   Modify  tests/hooks/aa-ma-footer.bats tests/hooks/commit-signature.bats .github/workflows/security.yml
@@ -277,7 +278,7 @@ Risks:
 
 ## 7. Rollback Strategy (element #7)
 - **M1** adds files and one CI step. Revert its merge commits; the old skill keeps working throughout.
-- **M2:** `git revert` the switch commit and the docs commits, which restores SKILL.md, the references and the tests; `scripts/install.sh` re-links. No release depends on it until code-conventions-impact M14 cuts v0.18.0.
+- **M2:** `git revert` the switch commit, the 2.1 RED test commit and the docs commits, which restores SKILL.md, the references and the tests; `scripts/install.sh` re-links. No release depends on it until code-conventions-impact M14 cuts v0.18.0.
 - **A live run that fails mid-merge:** each `STATUS:` line has a manual recovery (inventory); the remote branch delete is checked with ls-remote.
 
 ## 8. Effort & Complexity Summary (element #9)

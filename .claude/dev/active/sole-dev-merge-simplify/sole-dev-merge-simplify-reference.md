@@ -33,7 +33,7 @@ docs/research/sole-dev-merge-simplify-behaviour-inventory.md — v2 skill behavi
 - `git push origin --delete <absent>` exits 1 like a real failure; probe with `git ls-remote --exit-code origin refs/heads/<b>` (0 present, 2 absent, else error). `--heads` pattern `<b>` also matches `*/<b>`.
 - Not used: `gh pr merge --auto` (with no protection it merges at once, without CI).
 
-### sdm.sh CLI contract (M1 Contract, verbatim)
+### sdm.sh CLI contract (M1 Contract, as amended in M1's implementation review; superseded by `sdm.sh help`)
 ```
 CLI (sdm.sh, bash, set -euo pipefail; sourceable: main runs only when "${BASH_SOURCE[0]}" == "$0"):
   sdm.sh check                    # A + B + B-commit. 0 = "check OK (branch=<b>, base=<ref>, ahead=<n>)"; 1 = ABORT: <reason>
@@ -100,7 +100,7 @@ PR commits from `gh api repos/snewhouse/aa-ma-forge/pulls/55/commits`, matched b
 
 ### Pre-M2 fix PR #57 (`fix/sdm-failure-lines`, rebase merge `0ca6a5fa`, 2026-10-22)
 SHA map (branch → main): `ee9dce3d`→`0e1bb4d1` RED · `9c81f9bf`→`ea649ad6` GREEN · `bc9aac40`→`5de1e8ed` RED (rc 8) · `f14891f1`→`0ca6a5fa` GREEN.
-What M2's SKILL.md can now rely on (the exit table in `sdm.sh help` is canonical; the M1 Contract above is the historical text):
+What M2's SKILL.md can now rely on (the exit table in `sdm.sh help` is canonical; the M1 Contract above predates this PR):
 - Every failure prints a line: `ABORT: ship: git push failed (rc=<n>)`, `ABORT: check: auto-fix commit failed (rc=<n>); the fixes are staged`, `ABORT: ship: --notes needs a FILE`, `ABORT: ship: notes file '<f>' is not a readable file`; post-merge cleanup reports `STATUS: MAIN_NOT_UPDATED — fetch from origin failed` and `main at (none)` instead of a silent exit.
 - `BASE_REF` is `origin/<d>` when it exists, else `<d>` (check's `check OK (… base=origin/main …)`, pre-commit `FROM=origin/main`).
 - ship: `reason=not-open` when the PR closes during the head wait; PR_NUM/PR_URL print before the strategy read; a post-watch re-read rc 8 (pending) → `CI_STATE=timeout` + finish hint, any other non-zero → `failed`; `CI_POLL_TIMEOUT` must match `^[0-9]+[smhd]?$` and be > 0, else 900s with a stderr line; `--notes` relative paths resolve from the caller's cwd.
@@ -120,7 +120,7 @@ What M2's SKILL.md can now rely on (the exit table in `sdm.sh help` is canonical
 - Modify (M1): `.github/workflows/security.yml`; `TODOS.md`; `tests/golden/plugin-surface.json`, `docs/architecture/plugin-surface.md` (only via `scripts/regen-generated.sh`).
 - Modify (M2): `claude-code/skills/sole-dev-merge/SKILL.md`; `tests/hooks/aa-ma-footer.bats:167-206`; `tests/hooks/commit-signature.bats:228-240`; `.github/workflows/security.yml` (comments 145-158, "60+"); `claude-code/hooks/aa-ma-commit-signature.sh:149-153` (rule-8 comment, keeps `/sole-dev-merge`).
 - Delete (M2): `claude-code/skills/sole-dev-merge/references/{stage-c-review-and-security,stage-d-triage,stage-e-remote-and-body,stage-f-push,stage-g-merge,stage-state}.md`; `tests/commands/sole-dev-merge/` (11 bats files + fixtures, glab, extract_stage.sh).
-- Create (M2): `docs/adr/0024-sole-dev-merge-one-script.md`.
+- Create (M2): `docs/adr/0024-sole-dev-merge-one-script.md`; `tests/skills/test_sole_dev_merge_skill.py` (2.1 RED).
 - Modify (M2 docs): `docs/adr/0008-sole-dev-merge-pr-workflow.md`, `docs/adr/0022-secops-baseline.md`, `docs/adr/0018-touched-code-lint-gate.md`, `docs/adr/INDEX.md`, `CONTEXT.md`, `README.md:226`, `docs/spec/claude-code-foundations.md:91`, `docs/spec/aa-ma-quick-reference.md:156-157`, `CHANGELOG.md`, `TODOS.md`, `docs/lessons.md`; comments only in `claude-code/hooks/lib/aa-ma-footer.sh:4-5`, `scripts/install.sh:385`, `src/aa_ma/analysis/measure.py:5`.
 - Constraint tests: `tests/skills/test_model_invocation_list.py`, `tests/test_prompt_size.py`, `tests/skills/test_skill_links_resolve.py`, `tests/codemem/test_plugin_surface.py:94-106`.
 - Frozen (keep old strings): `tests/fixtures/draw-node-ids.json`, `tests/fixtures/draw-prototype-graph.json`.
@@ -145,4 +145,4 @@ What M2's SKILL.md can now rely on (the exit table in `sdm.sh help` is canonical
 ### Release
 - No release cut by this plan; changes ship in v0.18.0, cut by code-conventions-impact M14. CHANGELOG Removed: "GitLab/glab support; last in v0.17.0".
 
-_Last Updated: 2026-10-22 (M1 SHA map and live facts)_
+_Last Updated: 2026-10-22 (M1 SHA map and live facts; pre-M2 PR #57 facts; M2 pre-execution validator fixes)_

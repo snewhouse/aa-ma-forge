@@ -167,6 +167,15 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** §6.8 of sole-dev-merge-simplify M1, 2026-10-22: 1 CRITICAL fixed (ruff `--force-exclude`), 0 HIGH; plan §3 sends WARNING/INFO here. **Effort:** S · **Priority:** P2 (the failure-line items before M2's SKILL.md relies on ABORT parsing)
 
+### sdm.sh M1 PR review (C1/C2, round 1): 1 MEDIUM + 3 LOW, deferred under the stop rule
+**What:**
+- MEDIUM: `BASE_REF` prefers the local default branch even when it lags origin (after a web-UI merge, with the branch rebased onto origin/main). `check` then widens scope to upstream files and auto-commits fixes to them; `ship`'s body lists commits already on main. Prefer `origin/<d>` when it exists (`sdm.sh:43`; inherited from the old Stage A).
+- LOW: `ship` reads the merge strategy after the PR create and before `PR_NUM=`, so a failed settings read ABORTs with an open PR and no number; move it after the result lines or drop it (`finish` re-reads) (`sdm.sh:166`).
+- LOW: plain-checkout `finish` cleanup checks out the default branch with no clean-tree check (the worktree path has `MAIN_CHECKOUT_DIRTY`) (`sdm.sh:251`).
+- LOW: `ssh://git@ssh.github.com:443/…` (GitHub's SSH-over-443) ABORTs as not github.com; fails closed (`sdm.sh:58`).
+
+**Why:** the branch's own `sdm.sh` merge of refactor/sdm-script (sole-dev-merge-simplify 1.4), 2026-10-22: C1 0C/0H/1M/3L, C2 0/0/0/0. **Effort:** S · **Priority:** P2 (the BASE_REF item)
+
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.
 **Why:** sole-dev-merge-fixes plan 5.3 (DRY). Not on main yet: `grep -rn aa_ma_milestone_base claude-code src` is empty (2026-10-18). **Effort:** S · **Priority:** P3

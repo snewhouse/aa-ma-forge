@@ -173,8 +173,11 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 - LOW: `ship` reads the merge strategy after the PR create and before `PR_NUM=`, so a failed settings read ABORTs with an open PR and no number; move it after the result lines or drop it (`finish` re-reads) (`sdm.sh:166`).
 - LOW: plain-checkout `finish` cleanup checks out the default branch with no clean-tree check (the worktree path has `MAIN_CHECKOUT_DIRTY`) (`sdm.sh:251`).
 - LOW: `ssh://git@ssh.github.com:443/…` (GitHub's SSH-over-443) ABORTs as not github.com; fails closed (`sdm.sh:58`).
+- Re-check of the head-lag fix (`ae90cd2b`, merge run 3):
+  - MEDIUM: the state is not re-read after the head wait, so a PR closed during it (head = HEAD) gets its body PATCHed and its CI watched; add `state == OPEN` to the loop and a `not-open` reason (`sdm.sh:165`).
+  - LOW: the re-read `gh pr view` calls have no `timeout 30`; the worst case before the CI result is now 2 × `CI_APPEAR_TIMEOUT_S` and help does not say so; the stub's lookup count is 0 when `CLI_LOG` is unset (latent); the "fork or another head branch" test covers only the fork (add `GH_PR_HEAD_REF=other`).
 
-**Why:** the branch's own `sdm.sh` merge of refactor/sdm-script (sole-dev-merge-simplify 1.4), 2026-10-22: C1 0C/0H/1M/3L, C2 0/0/0/0. **Effort:** S · **Priority:** P2 (the BASE_REF item)
+**Why:** the branch's own `sdm.sh` merge of refactor/sdm-script (sole-dev-merge-simplify 1.4), 2026-10-22: C1 0C/0H/1M/3L, C2 0/0/0/0; fix re-check 0C/0H/1M/4L. **Effort:** S · **Priority:** P2 (the BASE_REF and closed-during-wait items)
 
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.

@@ -74,6 +74,7 @@ def _insert_file(conn: sqlite3.Connection, path: str) -> int:
 # Schema version
 # ---------------------------------------------------------------------
 
+
 class TestVersion:
     def test_current_schema_version_is_3(self) -> None:
         assert db.CURRENT_SCHEMA_VERSION == 3
@@ -142,6 +143,7 @@ class TestDowngradeGuard:
 # Table constraints
 # ---------------------------------------------------------------------
 
+
 class TestConstraints:
     def test_resolved_edge_deduplicated(self, v3_db) -> None:
         a, b = _insert_file(v3_db, "a.py"), _insert_file(v3_db, "b.py")
@@ -189,6 +191,7 @@ class TestConstraints:
 # ---------------------------------------------------------------------
 # Persistence through the indexer + incremental refresh
 # ---------------------------------------------------------------------
+
 
 @pytest.fixture
 def import_repo(tmp_path: Path) -> tuple[Path, Path]:
@@ -282,7 +285,9 @@ class TestDrawSeamParity:
         h = open_graph(root)
         c = cut(h.conn, Level.L2, include_tests=True)
         drawn = {(c.nodes[a], c.nodes[b], k) for a, b, k in c.edges}
-        seam = {(a, b, "import") for a, b in import_edges(h)} | {(a, b, "call") for a, b in call_edges(h)}
+        seam = {(a, b, "import") for a, b in import_edges(h)} | {
+            (a, b, "call") for a, b in call_edges(h)
+        }
         h.conn.close()
         assert drawn == seam
 
@@ -293,6 +298,7 @@ class TestDrawSeamParity:
 # `from . import resolver` / `from .storage import db` resolved only to the package's
 # __init__.py (or to nothing), so a TRUE `@import` claim read as PHANTOM_EDGE.
 # ---------------------------------------------------------------------
+
 
 def _submodule_repo(root: Path) -> Path:
     (root / ".gitignore").write_text(".codemem/\n")
@@ -313,7 +319,9 @@ def _submodule_repo(root: Path) -> Path:
     return root / ".codemem/index.db"
 
 
-def test_from_package_import_submodule_yields_the_submodule_edge(tmp_path: Path) -> None:
+def test_from_package_import_submodule_yields_the_submodule_edge(
+    tmp_path: Path,
+) -> None:
     rows = {(s, d) for s, d, _, k in _file_edge_rows(_submodule_repo(tmp_path)) if d}
     assert ("pkg/a.py", "pkg/sub.py") in rows  # from . import sub
     assert ("pkg/a.py", "pkg/store/db.py") in rows  # from .store import db
@@ -321,18 +329,26 @@ def test_from_package_import_submodule_yields_the_submodule_edge(tmp_path: Path)
     assert ("main.py", "pkg/__init__.py") in rows  # the package edge is kept
 
 
-def test_a_bare_relative_name_never_suffix_matches_another_package(tmp_path: Path) -> None:
+def test_a_bare_relative_name_never_suffix_matches_another_package(
+    tmp_path: Path,
+) -> None:
     rows = _file_edge_rows(_submodule_repo(tmp_path))
     assert not any(s == "pkg/a.py" and d == "lib/elsewhere.py" for s, d, _, _ in rows)
 
 
-def test_an_imported_function_adds_no_edge_and_no_unresolved_row(tmp_path: Path) -> None:
+def test_an_imported_function_adds_no_edge_and_no_unresolved_row(
+    tmp_path: Path,
+) -> None:
     rows = _file_edge_rows(_submodule_repo(tmp_path))
     assert not any(u and "helper" in u for _, _, u, _ in rows)
-    assert {d for s, d, _, _ in rows if s == "main.py"} == {"pkg/__init__.py", "pkg/other.py"}
+    assert {d for s, d, _, _ in rows if s == "main.py"} == {
+        "pkg/__init__.py",
+        "pkg/other.py",
+    }
 
 
 # §6.8 M8 fixes (Ste: CRITICAL accepted, "fix all now")
+
 
 def _repo(root: Path, files: dict[str, str]) -> Path:
     (root / ".gitignore").write_text(".codemem/\n")
@@ -346,37 +362,59 @@ def _repo(root: Path, files: dict[str, str]) -> Path:
 
 def _calls(db_path: Path) -> set[tuple[str, str]]:
     with db.connect(db_path, read_only=True) as conn:
-        return set(conn.execute(
-            "SELECT sf.path || ':' || ss.name, df.path || ':' || ds.name FROM edges e "
-            "JOIN symbols ss ON ss.id = e.src_symbol_id JOIN symbols ds ON ds.id = e.dst_symbol_id "
-            "JOIN files sf ON sf.id = ss.file_id JOIN files df ON df.id = ds.file_id WHERE e.kind = 'call'"
-        ))
+        return set(
+            conn.execute(
+                "SELECT sf.path || ':' || ss.name, df.path || ':' || ds.name FROM edges e "
+                "JOIN symbols ss ON ss.id = e.src_symbol_id JOIN symbols ds ON ds.id = e.dst_symbol_id "
+                "JOIN files sf ON sf.id = ss.file_id JOIN files df ON df.id = ds.file_id WHERE e.kind = 'call'"
+            )
+        )
 
 
-def test_a_call_through_a_submodule_alias_binds_only_in_that_module(tmp_path: Path) -> None:
+def test_a_call_through_a_submodule_alias_binds_only_in_that_module(
+    tmp_path: Path,
+) -> None:
     """code-reviewer: `from . import x, y; y.run()` also bound to x.py:run."""
-    dbp = _repo(tmp_path, {
-        "a/__init__.py": "", "a/b/__init__.py": "",
-        "a/b/x.py": "def run():\n    return 1\n", "a/b/y.py": "def run():\n    return 2\n",
-        "a/b/c.py": "from . import x, y\n\ndef f():\n    return y.run()\n",
-    })
-    assert {c for c in _calls(dbp) if c[0] == "a/b/c.py:f"} == {("a/b/c.py:f", "a/b/y.py:run")}
+    dbp = _repo(
+        tmp_path,
+        {
+            "a/__init__.py": "",
+            "a/b/__init__.py": "",
+            "a/b/x.py": "def run():\n    return 1\n",
+            "a/b/y.py": "def run():\n    return 2\n",
+            "a/b/c.py": "from . import x, y\n\ndef f():\n    return y.run()\n",
+        },
+    )
+    assert {c for c in _calls(dbp) if c[0] == "a/b/c.py:f"} == {
+        ("a/b/c.py:f", "a/b/y.py:run")
+    }
 
 
 def test_from_parent_import_climbs_one_level(tmp_path: Path) -> None:
-    dbp = _repo(tmp_path, {
-        "a/__init__.py": "", "a/b/__init__.py": "", "a/x.py": "X = 1\n", "a/b/x.py": "X = 2\n",
-        "a/b/c.py": "from .. import x\n",
-    })
+    dbp = _repo(
+        tmp_path,
+        {
+            "a/__init__.py": "",
+            "a/b/__init__.py": "",
+            "a/x.py": "X = 1\n",
+            "a/b/x.py": "X = 2\n",
+            "a/b/c.py": "from .. import x\n",
+        },
+    )
     dsts = {d for s, d, _, _ in _file_edge_rows(dbp) if s == "a/b/c.py"}
     assert "a/x.py" in dsts and "a/b/x.py" not in dsts
 
 
-def test_an_imported_name_never_suffix_matches_an_unrelated_file(tmp_path: Path) -> None:
+def test_an_imported_name_never_suffix_matches_an_unrelated_file(
+    tmp_path: Path,
+) -> None:
     """A submodule edge inherits the module's own resolution; it never suffix-matches on
     its own (`typing` resolves to nothing here, so `typing.Any` must not hit lib/typing/Any.py)."""
-    dbp = _repo(tmp_path, {
-        "lib/typing/Any.py": "A = 1\n",
-        "main.py": "from typing import Any\n",
-    })
+    dbp = _repo(
+        tmp_path,
+        {
+            "lib/typing/Any.py": "A = 1\n",
+            "main.py": "from typing import Any\n",
+        },
+    )
     assert not any(d and d.endswith("Any.py") for _, d, _, _ in _file_edge_rows(dbp))

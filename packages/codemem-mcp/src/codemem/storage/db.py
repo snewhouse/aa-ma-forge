@@ -35,6 +35,18 @@ from ..safety import UnsafeDbPath, UntrustedIndex, check_db_path, is_trusted, st
 # journal survive a rebuild (M15 pre-merge HIGH).
 SQLITE_SUFFIXES = ("", "-wal", "-shm", "-journal")
 
+
+def db_files(path: Path) -> list[Path]:
+    """The SQLite file and every sidecar beside it, main file first."""
+    return [path.with_name(path.name + s) for s in SQLITE_SUFFIXES]
+
+
+def remove_db_files(path: Path) -> None:
+    """Unlink the SQLite file and every sidecar; absent ones are fine."""
+    for f in db_files(path):
+        f.unlink(missing_ok=True)
+
+
 logger = logging.getLogger(__name__)
 
 __all__ = [
@@ -210,8 +222,7 @@ def connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
         except Exception:
             # Leave no unstamped file behind: it would read as "not built here".
             conn.close()
-            for suffix in SQLITE_SUFFIXES:
-                path.with_name(path.name + suffix).unlink(missing_ok=True)
+            remove_db_files(path)
             raise
     elif read_only and not is_trusted(conn, path.parent):
         conn.close()

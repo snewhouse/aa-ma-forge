@@ -34,7 +34,7 @@ import sys
 import time
 from pathlib import Path
 
-from codemem.paths import resolve_db_path
+from codemem.paths import default_db_path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -53,6 +53,8 @@ def _time(fn) -> float:
 
 def _run(args: list[str], cwd: Path, env_extra: dict | None = None) -> None:
     env = {**os.environ, **(env_extra or {})}
+    # The bench measures the default index location; never one CODEMEM_DB names.
+    env.pop("CODEMEM_DB", None)
     subprocess.run(  # noqa: S603  # why: benchmark harness: argv from fixed tool names, shell=False
         args,
         cwd=cwd,
@@ -71,7 +73,7 @@ def bench_codemem_build_cold(repo: Path) -> float:
     """Cold build: remove the index dir `codemem build` writes (cwd = REPO_ROOT) first."""
 
     def do():
-        shutil.rmtree(resolve_db_path(REPO_ROOT).parent, ignore_errors=True)
+        shutil.rmtree(default_db_path(REPO_ROOT).parent, ignore_errors=True)
         _run(
             ["uv", "run", "codemem", "build"],
             cwd=REPO_ROOT,

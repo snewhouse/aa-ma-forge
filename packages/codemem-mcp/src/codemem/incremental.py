@@ -408,17 +408,12 @@ def _rebuild_and_swap(repo_root: Path, db_path: Path, *, package: str) -> None:
     of replaying the old DB's WAL frames into it.
     """
     tmp = db_path.with_name(db_path.name + ".rebuild")
-    for leftover in _db_files(tmp):  # a rebuild killed mid-run
+    for leftover in db.db_files(tmp):  # a rebuild killed mid-run
         leftover.unlink(missing_ok=True)
     build_index(repo_root, tmp, package=package, write_sidecars=False)
-    for side in _db_files(tmp)[1:] + _db_files(db_path)[1:]:
+    for side in db.db_files(tmp)[1:] + db.db_files(db_path)[1:]:
         side.unlink(missing_ok=True)
     os.replace(tmp, db_path)
-
-
-def _db_files(path: Path) -> list[Path]:
-    """The SQLite file and its sidecars, main file first."""
-    return [path.with_name(path.name + s) for s in db.SQLITE_SUFFIXES]
 
 
 def _git(repo_root: Path, *args: str) -> str | None:

@@ -428,6 +428,7 @@ aa_ma_codemem_dir() {
     local top="$1" db="${CODEMEM_DB:-}" real cache key
     if [[ -n "$db" ]]; then
         [[ "$db" == /* ]] || db="$(pwd -P)/${db}"  # pwd -P: os.getcwd() in the Python twins
+        while [[ "$db" == ?*/ ]]; do db="${db%/}"; done  # pathlib drops a trailing /
         db="${db%/*}"
         printf '%s' "${db:-/}"  # /index.db lives in /
         return 0

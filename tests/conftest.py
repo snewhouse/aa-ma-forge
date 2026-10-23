@@ -17,3 +17,7 @@ def pytest_configure(config) -> None:
     state = tempfile.mkdtemp(prefix="codemem-test-state-")
     os.environ["XDG_STATE_HOME"] = state
     atexit.register(shutil.rmtree, state, True)
+    # M16: the default index lives in $XDG_CACHE_HOME/codemem; keep tests out of ~/.cache.
+    cache = tempfile.mkdtemp(prefix="codemem-test-cache-")
+    os.environ["XDG_CACHE_HOME"] = cache
+    atexit.register(shutil.rmtree, cache, True)

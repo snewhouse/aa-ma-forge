@@ -116,11 +116,11 @@ def _trust_problem(conn: sqlite3.Connection, db_dir: Path) -> str | None:
     return None if hmac.compare_digest(stored, nonce.encode()) else not_built
 
 
-def _default_db_path(repo_root: Path) -> Path:
+def _resolve_db_path(repo_root: Path) -> Path:
     """Twin of ``codemem.paths.resolve_db_path`` (aa_ma never imports codemem, ADR-0014).
 
-    ``$CODEMEM_DB``, else ``${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath
-    root)>/index.db`` (M16); pinned by tests/codemem/test_safety_parity.py.
+    ``$CODEMEM_DB``, else ``$XDG_CACHE_HOME/codemem/<sha256(realpath root)>/index.db``
+    (``~/.cache`` when unset or relative; M16); pinned by tests/codemem/test_safety_parity.py.
     """
     env = os.environ.get("CODEMEM_DB")
     if env:
@@ -132,10 +132,10 @@ def _default_db_path(repo_root: Path) -> Path:
 
 
 def open_graph(repo_root: Path) -> GraphHandle:
-    """Open the codemem index of ``repo_root`` (``_default_db_path``) read-only and classify it."""
+    """Open the codemem index of ``repo_root`` (``_resolve_db_path``) read-only and classify it."""
     db = conn = None
     try:
-        db = _default_db_path(Path(repo_root))
+        db = _resolve_db_path(Path(repo_root))
         unsafe = _unsafe_reason(db.parent)
         if unsafe is not None:
             return GraphHandle(

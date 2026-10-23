@@ -43,13 +43,6 @@ export PATH
 SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"  # why: readlink -f is absent on old macOS; the invoked path still works
 FORGE_ROOT="$(cd "$(dirname "${SELF}")/../../.." && pwd)"
 SHA_RE='^([0-9a-f]{40}|[0-9a-f]{64})$'
-# This forge's resolver, never the target repo's copy (it would run inside the hook).
-# shellcheck source=/dev/null
-if ! . "${FORGE_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh"; then
-    # No resolver means no index dir to log into; say so once, never fail the commit.
-    printf 'codemem post-commit: %s missing — index not refreshed\n' "${FORGE_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" >&2
-    exit 0
-fi
 # The slowest measured step is a cold `graphify update` (11.5 s on aa-ma-forge,
 # M15.4); 300 s is ~25x that. A worker waits for one predecessor's three
 # capped steps (codemem refresh, refresh-commits, graphify update) plus a
@@ -60,8 +53,8 @@ LOCK_WAIT_S=$((CAPPED_STEPS * STEP_TIMEOUT_S + 60))
 
 log_line() {
     # One line to <index dir>/refresh.log, never through a symlink ($CODEMEM_DB may name a repo dir).
-    local dir log
-    dir="$(aa_ma_codemem_dir "${REPO_ROOT}")" || return 0  # why: no realpath/sha256 tool → nowhere to log
+    local dir="${CM:-}" log
+    [[ -n "${dir}" ]] || return 0  # no index dir (no realpath/sha256 tool): nowhere to log
     log="${dir}/refresh.log"
     [[ -L "${dir}" || -L "${log}" ]] && return 0
     mkdir -p "${dir}" 2>/dev/null || return 0  # why: an unwritable repo is not a reason to fail a commit
@@ -169,6 +162,14 @@ run_worker() {
 if [[ "${1:-}" == "--worker" ]]; then
     REPO_ROOT="${3:-}"
     [[ -n "${REPO_ROOT}" && -d "${REPO_ROOT}" ]] || exit 0
+    # This forge's helpers, never the target repo's copy (it would run inside the hook).
+    # Loaded here, not at the top: the committing user never waits for them.
+    # shellcheck source=/dev/null
+    if ! . "${FORGE_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh"; then
+        printf 'codemem post-commit: %s missing — index not refreshed\n' "${FORGE_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" >&2
+        exit 0
+    fi
+    CM="$(aa_ma_codemem_dir "${REPO_ROOT}")" || CM=""
     run_worker "${2:-}"
 fi
 

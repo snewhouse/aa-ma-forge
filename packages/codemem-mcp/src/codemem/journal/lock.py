@@ -46,7 +46,8 @@ def acquire_writer_lock(path: Path) -> Iterator[bool]:
     # O_CREAT so the lock file exists; O_WRONLY because we need a
     # write fd to lock on POSIX (shared-read fds can only take
     # shared-read locks). O_NOFOLLOW: `db.lock` is repo-controlled when
-    # CODEMEM_DB points into a repo, and O_CREAT through a planted link would create or open its target.
+    # CODEMEM_DB points into a repo, and O_CREAT through a planted link would
+    # create or open its target.
     fd = os.open(path, os.O_CREAT | os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0), 0o644)
 
     try:

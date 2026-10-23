@@ -18,6 +18,7 @@
 #     aa_ma_has_gate_approval <log> <title>  -> rc 0 iff the LAST "GATE APPROVAL: <title>" block says Decision: APPROVED  (ENFORCING)
 #     aa_ma_deps <graph|check|advisory> <tasks.md> -> `python -m aa_ma.deps` output; rc passed through  (ADVISORY — never a gate)
 #     aa_ma_lint_views <plan.md> [args...] -> `aa-ma-lint-views` output; rc 0/1 passed through, 127 if it cannot run  (read by the §6.7 diagram item)
+#     aa_ma_codemem_bin <forge-root>     -> stdout: the codemem binary to run ($CODEMEM_BIN, else the forge venv's, else PATH) (rc 0), nothing when none is executable (rc 1)
 #     aa_ma_codemem_dir <repo-top>       -> stdout: the codemem index dir ($CODEMEM_DB's, else the XDG cache dir; M16) (rc 0), nothing when it cannot be computed (rc 1)
 #     aa_ma_read_sidecar_sha <file>      -> stdout: the 40/64-hex SHA in a repo-controlled sidecar (rc 0), nothing for anything else (rc 1)
 #     aa_ma_sha_behind <repo> <sidecar>  -> stdout: commits from the sidecar's SHA to HEAD (rc 0), or a reason: bad sha | not in history | git timeout | git failed (rc 1)
@@ -445,6 +446,22 @@ aa_ma_codemem_dir() {
     cache="${XDG_CACHE_HOME:-}"
     [[ "$cache" == /* ]] || cache="${HOME}/.cache"
     printf '%s/codemem/%s' "$cache" "$key"
+}
+
+# aa_ma_codemem_bin <forge-root>
+#   The codemem binary the post-commit worker and §6.0 run: $CODEMEM_BIN (no
+#   fallback when set), else <forge-root>/.venv/bin/codemem, else an absolute
+#   `codemem` on PATH. Prints it (rc 0) only when executable; else nothing, rc 1.
+aa_ma_codemem_bin() {
+    local bin
+    if [[ -n "${CODEMEM_BIN:-}" ]]; then
+        bin="${CODEMEM_BIN}"
+    else
+        bin="$1/.venv/bin/codemem"
+        [[ -x "${bin}" ]] || bin="$(command -v codemem || true)"  # why: absent → rc 1 below
+    fi
+    [[ -n "${bin}" && -x "${bin}" ]] || return 1
+    printf '%s' "${bin}"
 }
 
 # aa_ma_read_sidecar_sha <file>

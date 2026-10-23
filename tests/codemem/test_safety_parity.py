@@ -169,7 +169,16 @@ def _shell_dir(root: Path, env: dict[str, str]) -> str:
 
 
 @pytest.mark.parametrize(
-    "case", ["plain", "with spaces", "symlinked root", "CODEMEM_DB", "relative XDG"]
+    "case",
+    [
+        "plain",
+        "with spaces",
+        "symlinked root",
+        "CODEMEM_DB",
+        "CODEMEM_DB at /",
+        "relative XDG",
+        "XDG trailing slash",
+    ],
 )
 def test_every_twin_resolves_the_same_index_dir(tmp_path, monkeypatch, case):
     import os
@@ -184,16 +193,17 @@ def test_every_twin_resolves_the_same_index_dir(tmp_path, monkeypatch, case):
         root = tmp_path / "link"
         root.symlink_to(real)
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
-    monkeypatch.setenv(
-        "XDG_CACHE_HOME", "rel" if case == "relative XDG" else str(tmp_path / "cache")
-    )
+    xdg = {"relative XDG": "rel", "XDG trailing slash": f"{tmp_path / 'cache'}/"}
+    monkeypatch.setenv("XDG_CACHE_HOME", xdg.get(case, str(tmp_path / "cache")))
     monkeypatch.delenv("CODEMEM_DB", raising=False)
     if case == "CODEMEM_DB":
         monkeypatch.setenv("CODEMEM_DB", str(tmp_path / "explicit" / "index.db"))
+    if case == "CODEMEM_DB at /":
+        monkeypatch.setenv("CODEMEM_DB", "/index.db")  # never opened: names only
     monkeypatch.chdir(root)
 
     py = resolve_db_path(root).parent
     assert _default_db_path(root).parent == py
     assert _shell_dir(root, dict(os.environ)) == str(py)
-    if case != "CODEMEM_DB":
+    if not case.startswith("CODEMEM_DB"):
         assert py.parent.name == "codemem" and real not in py.parents

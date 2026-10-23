@@ -133,7 +133,7 @@ def _cmd_refresh_commits(args: argparse.Namespace) -> int:
     choke-point users can run after install (or post-commit) to light
     up the M3 git-mining tools.
 
-    Acquires the same writer lock (``.codemem/db.lock``) that
+    Acquires the same writer lock (``db.lock`` in the index dir) that
     ``incremental.py`` and ``mcp_tools`` use to serialise writers, so
     running this concurrently with ``codemem build`` or a post-commit
     refresh no-ops cleanly rather than racing on SQLite.

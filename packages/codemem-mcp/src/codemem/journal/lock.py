@@ -7,7 +7,7 @@ no-op (not queue) with an informative log line.
 
 Usage::
 
-    with acquire_writer_lock(Path(".codemem/db.lock")) as acquired:
+    with acquire_writer_lock(db_path.parent / "db.lock") as acquired:
         if not acquired:
             return  # another writer is active; we no-op
 
@@ -45,8 +45,8 @@ def acquire_writer_lock(path: Path) -> Iterator[bool]:
     path.parent.mkdir(parents=True, exist_ok=True)
     # O_CREAT so the lock file exists; O_WRONLY because we need a
     # write fd to lock on POSIX (shared-read fds can only take
-    # shared-read locks). O_NOFOLLOW: `.codemem/db.lock` is repo-controllable,
-    # and O_CREAT through a planted link would create or open its target.
+    # shared-read locks). O_NOFOLLOW: `db.lock` is repo-controlled when
+    # CODEMEM_DB points into a repo, and O_CREAT through a planted link would create or open its target.
     fd = os.open(path, os.O_CREAT | os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0), 0o644)
 
     try:

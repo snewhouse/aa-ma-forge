@@ -30,8 +30,7 @@ cat > <your-repo>/.mcp.json <<'EOF'
       "args": ["--directory", "${PWD}", "run", "python",
                "/path/to/aa-ma-forge/claude-code/codemem/mcp/server.py"],
       "env": {
-        "CODEMEM_REPO_ROOT": "${PWD}",
-        "CODEMEM_DB": "${PWD}/.codemem/index.db"
+        "CODEMEM_REPO_ROOT": "${PWD}"
       }
     }
   }
@@ -95,12 +94,17 @@ Minified, ~100 KB on aa-ma-forge; auto-compressed if it exceeds a target size.
 
 ### codemem produces
 
-- `<repo>/.codemem/index.db` — SQLite database with tables `files`, `symbols`, `edges` (v1 schema), plus `commits`, `commit_files`, `ownership`, `co_change_pairs` (v2, added with the git-mining tools), plus `file_edges` (v3, file-level import edges). `user_version` tracks `CURRENT_SCHEMA_VERSION` in `storage/db.py`.
-- `<repo>/.codemem/wal.jsonl` — JSONL write-ahead journal (written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14)). Rotates at 10 MB with 3 compressed archives retained.
-- `<repo>/.codemem/last_sha` — HEAD commit SHA at last refresh (used for `git log $last..HEAD` on incremental refresh).
+In its index dir, `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo root)>/` (outside the repo since M16; `--db`/`CODEMEM_DB` override it):
+
+- `index.db` — SQLite database with tables `files`, `symbols`, `edges` (v1 schema), plus `commits`, `commit_files`, `ownership`, `co_change_pairs` (v2, added with the git-mining tools), plus `file_edges` (v3, file-level import edges). `user_version` tracks `CURRENT_SCHEMA_VERSION` in `storage/db.py`.
+- `wal.jsonl` — JSONL write-ahead journal (written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14)). Rotates at 10 MB with 3 compressed archives retained.
+- `last_sha` — HEAD commit SHA at last refresh (used for `git log $last..HEAD` on incremental refresh).
+
+In the repo:
+
 - `<repo>/PROJECT_INTEL.json` (optional) — a PageRank-ranked 1024-token symbol index suitable for `@`-loading as model context.
 
-`.codemem/` is git-ignored by default. `PROJECT_INTEL.json` is committable if you want it to be.
+The index never lands in the repo, so there is nothing to git-ignore. `PROJECT_INTEL.json` is committable if you want it to be.
 
 The two data models don't interoperate. codemem cannot read `PROJECT_INDEX.json`; `/index` can't read SQLite. You can run both and maintain two indexes, or pick one — there's no converter.
 
@@ -117,7 +121,7 @@ codemem uses one hook, opt-in:
 
 ### Running both at once is fine
 
-`/index`'s hooks and codemem's hook don't conflict — they run in different places (`~/.claude/settings.json` vs `<repo>/.git/hooks/post-commit`) and touch different files (`PROJECT_INDEX.json` vs `.codemem/index.db`). Neither tool reads the other's output.
+`/index`'s hooks and codemem's hook don't conflict — they run in different places (`~/.claude/settings.json` vs `<repo>/.git/hooks/post-commit`) and touch different files (`PROJECT_INDEX.json` vs codemem's `index.db`). Neither tool reads the other's output.
 
 ### Disabling `/index` later
 
@@ -125,7 +129,7 @@ If you decide to turn off `/index` once you've migrated, Eric's uninstaller is `
 
 ## There is no `codemem import-from-index` command
 
-The plan that bootstrapped this project had a placeholder for a `codemem import-from-index` command that would read `PROJECT_INDEX.json` and materialise it into `.codemem/index.db`. We didn't build it. Reason:
+The plan that bootstrapped this project had a placeholder for a `codemem import-from-index` command that would read `PROJECT_INDEX.json` and materialise it into codemem's `index.db`. We didn't build it. Reason:
 
 On aa-ma-forge, a cold `codemem build` takes **0.172 seconds** versus `/index`'s 0.235 seconds (measured, five trials, median — see [`docs/benchmarks/codemem-vs-index.md`](../benchmarks/codemem-vs-index.md)). Even on a 10k-LOC Python repo it's well under 10 seconds. A format-converter would be more code to write, more code to maintain, and — because the two schemas don't line up 1:1 (codemem stores git-mining data that isn't in PROJECT_INDEX.json) — a partial import would produce a degraded codemem DB that the git-mining tools would silently return empty results against.
 
@@ -137,7 +141,7 @@ If your repo is large enough that `codemem build` doesn't feel fast, file an iss
 
 **Q: Will codemem modify or read my `PROJECT_INDEX.json`?**
 
-No. codemem ignores `PROJECT_INDEX.json` entirely. It reads source files via `git ls-files` and writes only under `<repo>/.codemem/`.
+No. codemem ignores `PROJECT_INDEX.json` entirely. It reads source files via `git ls-files` and writes only under its index dir in the cache (plus `PROJECT_INTEL.json` if you ask for it).
 
 **Q: Can I disable the git post-commit hook after installing?**
 
@@ -157,7 +161,7 @@ No. codemem doesn't hook `UserPromptSubmit`. Once the MCP server is registered, 
 
 **Q: What if I want both tools' output available to Claude at once?**
 
-That's the default state after migrating. Both MCP servers can be connected simultaneously and Claude will route to whichever tool is named. `/mcp` will list both; `project-index` keeps answering queries against `PROJECT_INDEX.json` and `codemem` answers against `.codemem/index.db`.
+That's the default state after migrating. Both MCP servers can be connected simultaneously and Claude will route to whichever tool is named. `/mcp` will list both; `project-index` keeps answering queries against `PROJECT_INDEX.json` and `codemem` answers against its `index.db` in the cache dir.
 
 **Q: Are the kill-criteria and benchmarks actually public?**
 

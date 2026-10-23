@@ -6,10 +6,10 @@ metadata to handle moves and history rewrites correctly.
 
 Dirty-detection order of precedence:
 
-1. If ``.codemem/last_sha`` is absent OR
+1. If ``last_sha`` (in the index dir) is absent OR
    ``git cat-file -e <last_sha>`` fails (history rewrite orphaned it),
    fall back to a FULL REBUILD via :func:`codemem.indexer.build_index`.
-   A warning is written to ``.codemem/refresh.log``.
+   A warning is written to ``refresh.log`` in the index dir.
 2. Otherwise, content-hash every currently-tracked file and compare
    against the DB's ``files`` table.
 3. Files with a hash matching a DB row at a **different path** are
@@ -73,8 +73,8 @@ EXIT_LOCKED = 75
 
 logger = logging.getLogger(__name__)
 
-# `.codemem/last_sha` and `tree_sig` are repo-controlled (a clone can commit
-# them): only a full SHA-1 (40-hex) or SHA-256 (64-hex) is ever passed to git.
+# `last_sha` and `tree_sig` are repo-controlled when CODEMEM_DB points into a
+# repo (a clone can commit them): only a full SHA-1 (40-hex) or SHA-256 (64-hex) is ever passed to git.
 _SHA_RE = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 
 
@@ -375,8 +375,9 @@ def _hash(p: Path) -> str:
 def _log(log_file: Path, message: str) -> None:
     """Append one line to ``log_file``; never through a symlink; never raises.
 
-    ``.codemem/`` is repo-controllable (a clone can commit
-    ``refresh.log -> ~/.bashrc``, or ``.codemem`` itself as a link), and
+    The index dir is repo-controlled when ``CODEMEM_DB`` points into a repo
+    (a clone can commit ``refresh.log -> ~/.bashrc``, or the dir itself as a
+    link), and
     messages can carry repo-controlled text such as file names in exception
     messages: newlines are folded so one call is one line, and a symlinked
     log or log directory is refused.

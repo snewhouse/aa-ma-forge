@@ -1,6 +1,7 @@
 """codemem's rules for repo-controlled inputs (M15 §6.8).
 
-``.codemem/`` is repo-controllable. A clone can commit it, or any entry in it,
+The index dir is repo-controlled when ``CODEMEM_DB`` points into a repo (the
+default is outside it, M16). A clone can then commit it, or any entry in it,
 as a link to a user file: one refresh would overwrite the target with SQLite,
 and even a read-only open of a WAL-mode target creates ``-wal``/``-shm`` beside
 it. :func:`check_db_path` refuses such a dir. A clone (or a zip) can also ship a
@@ -76,7 +77,7 @@ def check_db_path(db_path: Path) -> None:
 
     Refused when the dir, or ANY entry in it, is a symlink (a list of names
     goes stale: SQLite alone adds ``-journal``), or when it cannot be listed
-    (e.g. a regular file named ``.codemem``). A missing dir is fine (the
+    (e.g. a regular file where the dir should be). A missing dir is fine (the
     caller creates it). The message names only the dir, never a repo-chosen
     entry. Point ``CODEMEM_DB`` at a dedicated dir.
     """

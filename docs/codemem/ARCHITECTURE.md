@@ -62,7 +62,10 @@ analysis can't reach it).
 codemem runs two write-ahead logs side by side. They solve different
 failure modes and must be reasoned about separately.
 
-**Log 1 — SQLite's built-in WAL (`.codemem/index.db-wal`).** Enabled by
+Both live in the index dir, `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo root)>/`
+(outside the repo since code-conventions-impact M16; `--db`/`CODEMEM_DB` override it).
+
+**Log 1 — SQLite's built-in WAL (`<index dir>/index.db-wal`).** Enabled by
 `PRAGMA journal_mode = WAL` (persistent across connections per
 `storage/db.py:41` and pinned in [`codemem-reference.md §SQLite PRAGMA Values`](../../.claude/dev/active/codemem/codemem-reference.md)).
 Gives us concurrent readers during a writer transaction and
@@ -70,7 +73,7 @@ crash-survivable atomic commits at the SQLite-row level. Truncated by
 `PRAGMA wal_checkpoint(TRUNCATE)` at the end of every `build_index` and
 `refresh_index` (Task 2.6) so the `-wal` file does not grow unbounded.
 
-**Log 2 — codemem's JSONL journal (`.codemem/wal.jsonl`).** Sits
+**Log 2 — codemem's JSONL journal (`<index dir>/wal.jsonl`).** Sits
 one layer above SQLite and makes codemem's per-file mutation sequence
 replayable from scratch. Implemented in
 [`codemem/journal/wal.py`](../../packages/codemem-mcp/src/codemem/journal/wal.py).
@@ -257,14 +260,14 @@ read-only connection ignores FK enforcement (no-op on read paths) but
 otherwise gets the same per-connection PRAGMAs (busy_timeout,
 cache_size, mmap_size).
 
-### Primitive 2 — Process-level writer lock (`.codemem/db.lock`)
+### Primitive 2 — Process-level writer lock (`<index dir>/db.lock`)
 
 Implemented in
 [`codemem/journal/lock.py`](../../packages/codemem-mcp/src/codemem/journal/lock.py)
 as a context manager:
 
 ```python
-with acquire_writer_lock(Path(".codemem/db.lock")) as acquired:
+with acquire_writer_lock(db_path.parent / "db.lock") as acquired:
     if not acquired:
         return  # another writer is active; no-op, do NOT queue
     ...  # do the write
@@ -282,7 +285,7 @@ The implementation is cross-platform by branching on `sys.platform`:
 **Policy: second invocation no-ops, does not queue.** If process B
 calls `refresh_index` while process A holds the lock, B logs
 `refresh: skipped (another refresh holds db.lock)` to
-`.codemem/refresh.log`, returns `RefreshStats(skipped_locked=True)`
+`<index dir>/refresh.log`, returns `RefreshStats(skipped_locked=True)`
 and exits. It does not wait. Rationale: whatever change triggered B's
 refresh is already on disk, so when A's in-flight refresh finishes it
 will pick up B's changes naturally via the same file-discovery pass.
@@ -319,7 +322,7 @@ HEAD).
 
 ### Why the two locks are separate
 
-`.codemem/db.lock` is about the DB and owned by the indexer process that
+`<index dir>/db.lock` is about the DB and owned by the indexer process that
 happens to be writing. The post-commit lock is about the hook's queue: a
 worker waits on it for the whole refresh-then-graphify sequence, which
 would otherwise hold the DB lock across graphify's run.

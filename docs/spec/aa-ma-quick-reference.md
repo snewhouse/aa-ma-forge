@@ -160,7 +160,7 @@ synthesis. Protocol toggles: `--no-goal` on `/execute-aa-ma-full`; omit
 ### Diagrams & architecture (CLI)
 
 ```bash
-codemem build                                   # index the repo (.codemem/index.db)
+codemem build                                   # index the repo (~/.cache/codemem/<hash>/index.db)
 codemem draw --level L0|L1|L2|L3 [--scope P]... # mermaid cut: dirs, dirs, files, symbols
 codemem draw --write | --check                  # the living doc in docs/architecture/ (CI runs --check)
 aa-ma-lint-views <plan.md> --repo-root . [--coverage]  # §13 lint: STALE_PATH, PHANTOM_EDGE, sigils: line

@@ -178,8 +178,8 @@ def _write_build_sidecars(repo_root: Path, db_dir: Path, signature: str) -> None
 def write_sidecar(path: Path, text: str) -> None:
     """Replace ``path`` atomically; a planted symlink is replaced, never followed.
 
-    ``.codemem/`` is repo-controllable: a clone can commit
-    ``.codemem/last_sha -> ~/.bashrc``.
+    The index dir is repo-controlled when ``CODEMEM_DB`` points into a repo:
+    a clone can commit ``last_sha -> ~/.bashrc`` there.
     """
     tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     tmp.unlink(missing_ok=True)

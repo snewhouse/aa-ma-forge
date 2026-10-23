@@ -26,7 +26,7 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 
 | Artifact (relative to target repo root) | Produced by | If present, absorb as | Freshness check |
 |---|---|---|---|
-| `.codemem/index.db` | `codemem build` (codemem's MCP tools also build it on first query) | Symbols, call + import graph, `layers`, `diagram` (L0–L3 mermaid). **Query this first** for dimensions 1, 3, 4. | files changed since the build → run `codemem build`. |
+| codemem index (`index.db` in codemem's cache dir, `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath root)>/`; not in the repo) | `codemem build` (codemem's MCP tools also build it on first query) | Symbols, call + import graph, `layers`, `diagram` (L0–L3 mermaid). **Query this first** for dimensions 1, 3, 4. | files changed since the build → run `codemem build`. |
 | `PROJECT_INDEX.json` | the external `claude-code-project-index` generator (not shipped) — codemem's equivalent fallback when present | Directory purposes (`dir_purposes`), ASCII tree, file summaries, `symbol_importance`, call graph, import deps. | mtime vs last commit; the file has its own metadata. |
 | `.planning/codebase/STACK.md` | `gsd-map-codebase` (tech) | Dimension 2 (tech stack) + 12-integrations partial. Authoritative. | date header in the file vs last commit. |
 | `.planning/codebase/INTEGRATIONS.md` | `gsd-map-codebase` (tech) | Dimension 12 integrations. | " |
@@ -44,7 +44,8 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 
 **Step-0 pseudo-procedure:**
 ```
-1. ls .codemem/index.db PROJECT_INDEX.json .planning/codebase/ .planning/intel/ .claude/reports/ ONBOARDING.md .claude/onboarding/ 2>/dev/null
+1. uv run --project "$AA_MA_ROOT" codemem status; ls PROJECT_INDEX.json .planning/codebase/ .planning/intel/ .claude/reports/ ONBOARDING.md .claude/onboarding/ 2>/dev/null
+   (codemem status exits 0 when a codemem index exists and prints its path)
 2. For each found: check freshness. Fresh → read & absorb. Stale → note "stale, refreshing" and queue a re-run (only if tier permits) — except assess reports are never re-run from here: stale → note it; Deep asks once (SKILL.md Deep).
 3. If no codemem index and tier >= Standard and repo not huge → run `codemem build` (PROJECT_INDEX.json, if present, is codemem's fallback).
 4. Record absorbed-vs-stale in a scratchpad for the Provenance block.
@@ -55,12 +56,12 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 ## B. Tool invocation recipes (when you DO need to run them)
 
 ### `codemem build` — structural index
-- **When:** no `.codemem/index.db`, tier ≥ Standard, repo not pathologically huge. Not needed when
+- **When:** no codemem index (`codemem status` exits 1), tier ≥ Standard, repo not pathologically huge. Not needed when
   you query through codemem's MCP tools — they build the index on first query.
 - **How:** from the target repo's root, `uv run --project "$AA_MA_ROOT" codemem build` (`AA_MA_ROOT`
   = the aa-ma-forge checkout; see SKILL.md "Living architecture doc"). Python natively; TS/TSX/JS, Go,
   Rust, Java, Ruby, Bash via ast-grep. ~0.5 s on 175 files, ~30 s on 2 500.
-- **Output:** `.codemem/index.db`. Query it via the MCP tools or `codemem query` / `codemem draw`.
+- **Output:** `index.db` in codemem's cache dir (`codemem status` prints the path). Query it via the MCP tools or `codemem query` / `codemem draw`.
 - **Fallback:** if `PROJECT_INDEX.json` exists (from the external `claude-code-project-index` generator), read it instead of codemem — it answers
   the same structural questions. Otherwise agents discover structure with `find`/`sg`/`Grep`. Note in Provenance.
 
@@ -133,7 +134,7 @@ by mature tools in this `~/.claude/` install. The rules below are mandatory:
 
 - `<repo>/ONBOARDING.md` — always.
 - `<repo>/.claude/onboarding/**` — Standard & Deep.
-- Deep tier, the living architecture doc: `<repo>/docs/architecture/**`, `<repo>/.codemem/` (the index), and one `.codemem/` line appended to `<repo>/.gitignore` if absent.
+- Deep tier, the living architecture doc: `<repo>/docs/architecture/**` and one `.codemem/` line appended to `<repo>/.gitignore` if absent (the index itself goes to codemem's cache dir, outside the repo).
 - via reused tools: `<repo>/.planning/codebase/**` (`gsd-map-codebase`, Deep).
 - It never edits the target repo's source code.
 - Team artifacts (Deep): `~/.claude/teams/understand-codebase-<slug>/` and `~/.claude/tasks/understand-codebase-<slug>/` — cleaned up at team shutdown.

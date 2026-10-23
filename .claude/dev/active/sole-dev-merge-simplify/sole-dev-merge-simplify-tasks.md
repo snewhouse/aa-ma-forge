@@ -132,7 +132,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
 ---
 
 ## Milestone 2: switch over and delete
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 1
 - Complexity: 40%
 - Effort: 1.1 days
@@ -149,6 +149,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - The M2 PR is merged by the new skill with `STATUS: OK` in PL; `scripts/install.sh` links an executable sdm.sh; FINALIZATION approved by Ste; plan dir archived.
   - CRITICAL_PATH_REVIEW, TESTS_VERIFIED and GATE APPROVAL lines are present.
 - Result Log:
+  - COMPLETE 2026-10-23: all 7 criteria verified (2.0–2.4 Result Logs); PR #58 `STATUS: OK` → `7a904f72`; pytest 3149, bats 776/0; GATE APPROVAL (Ste). measure.py comment deferred to TODOS (disclosed in 2.3).
 
 ### Sub-step 2.0: Post-merge record of M1
 - Status: COMPLETE
@@ -229,7 +230,7 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - **Not done (disclosed):** `src/aa_ma/analysis/measure.py:5` — any edit puts the file under ADR-0018's touched-file gate, which finds 20 pre-existing ruff D-rule errors (same 20 at HEAD). Reverted and filed as a TODOS entry (P3) rather than turn a comment edit into a docstring refactor.
 
 ### Sub-step 2.4: Verify, gate, merge, finalize
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 2.3
 - Acceptance Criteria:
@@ -245,5 +246,5 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - Merge run (the new SKILL.md, branch's own sdm.sh): `check OK` → C1/C2 round 1 (C1 0C/0H/1M/2L; C2 none; stop rule, no round 2) → `ship` CI_STATE=failed on pip-audit only (CVE-2026-114603, opentelemetry-api) → Ste: separate deps PR #59 (`66f9c610`, lock-only, merged by sdm.sh, STATUS: OK) → AA-MA record commit `98b40bfc` → `check` → `ship` CI_STATE=green (body read-back matched) → `finish 58`: **`STATUS: OK worktree=/home/sjnewhouse/projects/github_private/aa-ma-forge/.worktrees/refactor/sdm-switch-over`**, MERGED `7a904f72`, remote branch gone (ls-remote rc 2).
   - `scripts/install.sh` from the main checkout rc 0; `test -x "$(readlink -f ~/.claude/skills/sole-dev-merge/scripts/sdm.sh)"` ✓ (link → main checkout).
   - Post-merge record on `chore/sdm-simplify-finalize`: reference.md M2 SHA map 15/16 + live facts; CHANGELOG/ADR-0024 count corrected to 130 lines; TODOS for PR #58's MEDIUM/LOWs.
-  - Pending: Ste's HARD-gate/FINALIZATION approval; archive to `.claude/dev/completed/`.
+  - Ste: HARD gate + FINALIZATION APPROVED (2026-10-23, context-log GATE APPROVAL: Milestone 2); archived on `chore/sdm-simplify-finalize`.
 

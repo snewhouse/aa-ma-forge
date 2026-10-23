@@ -113,3 +113,19 @@ Prototype `1fdfd468` merged PR #53 end to end on its first run (check → ship �
 ## [2026-10-22] M2 §6.8 — Ste: fix the wrong instructions now; scope deviations recorded
 - §6.8 PASS_WITH_WARNINGS (0C/10W/16I). Ste chose "fix text + drift test": SKILL.md wording (BRANCH_NOT_DELETED in a plain checkout, MERGE_FAILED without force-push, several STATUS lines, pre-commit rc, non-ABORT exits, no secrets in notes, no merge/delete outside sdm.sh), the hook's two stale comments, and 6 drift/content tests (RED `f3e6176c`; mutation-checked: 6/6 mutants caught after making the quote capture case-insensitive). No §6.8 re-run: plan §3 re-checks only CRITICAL fixes.
 - Scope deviations (outside the M2 Contract file list, comment-only, justified): `tests/commands/sdm/{check,ship,finish}.bats` headers name the port base `c612620b` (impl-review M1 INFO); `tests/codemem/test_plugin_surface.py:99` comment follows the hook comment. `docs/architecture/{README,component,io}.md` are regen stamps.
+
+## [2026-10-23] GATE APPROVAL: Milestone 2: switch over and delete
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 7/7 (FINALIZATION approved with this; archive follows)
+- Decision: APPROVED
+
+## [2026-10-23] Milestone Completion: Milestone 2: switch over and delete
+- Status: COMPLETE
+- Key outcome: `/sole-dev-merge` is a 130-line SKILL.md that runs `scripts/sdm.sh check|ship|finish`; the 2,000-line stage-block skill, its 6 references and 199-test suite are gone. The new skill merged its own PR (#58) with `STATUS: OK`.
+- Artifacts: SKILL.md; `tests/skills/test_sole_dev_merge_skill.py` (13 shape + drift tests); hook test edits; security.yml; ADR-0024 + amendments to 0008/0018/0022; CHANGELOG, CONTEXT, README, specs, lessons (L-063), TODOS; impl-review.md (M2).
+- Tests: pytest 3149 passed; `bats -r tests` 776/0 (TESTS_VERIFIED on `96adf285`).
+- PRs in this milestone's run: #57 (pre-M2 P2 fixes), #59 (deps: opentelemetry-api), #58 (M2) — all merged by sdm.sh, STATUS: OK. Merge runs for #58: 2 (one external pip-audit block), 1 review round.
+- Decisions (Ste): Q1–Q4 pre-M2; validator W1–W7 fixes; §6.8 "fix text + drift test"; deps PR #59; HARD gate approved.
+- Deferred (TODOS): measure.py docstring re-word (ADR-0018 file gate); rule 8 retirement; PR #58 C1 MEDIUM (out-of-scope ABORT recovery) + LOW; §6.8 M2 notes; PR #57 LOWs.
+- Next: none — final milestone; plan archived to `.claude/dev/completed/`.

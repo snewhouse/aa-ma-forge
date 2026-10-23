@@ -168,16 +168,24 @@ def test_capped_refresh_gets_absolute_paths(cache, repo, monkeypatch):
 
 
 def _forged_wal(tmp_path: Path, target: Path) -> None:
-    src = tmp_path / "attacker" / "index.db"
-    src.parent.mkdir()
-    keep = sqlite3.connect(src)
-    keep.execute("PRAGMA journal_mode=WAL")
-    keep.execute("PRAGMA wal_autocheckpoint=0")
-    keep.execute("CREATE TABLE planted (x TEXT)")
-    keep.execute("INSERT INTO planted VALUES ('forged')")
-    keep.commit()
-    shutil.copy(src.with_name("index.db-wal"), target / "index.db-wal")
-    keep.close()
+    """Re-run 3: WAL frames for the stamped index itself; its stamp page is untouched."""
+    db_file = target / "index.db"
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    shutil.copy(db_file, snap / "index.db")  # clean, stamped main file
+    conn = sqlite3.connect(db_file)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA wal_autocheckpoint=0")
+    conn.execute("CREATE TABLE planted (x TEXT)")
+    conn.execute("INSERT INTO planted VALUES ('forged')")
+    conn.commit()
+    shutil.copy(
+        target / "index.db-wal", snap / "index.db-wal"
+    )  # before close checkpoints
+    conn.close()
+    for name in ("index.db", "index.db-wal"):
+        shutil.copy(snap / name, target / name)
+    (target / "index.db-shm").unlink(missing_ok=True)
 
 
 def _forged_journal(tmp_path: Path, target: Path) -> None:
@@ -200,10 +208,11 @@ def test_a_committed_codemem_dir_is_never_read_by_default(cache, repo, tmp_path,
     # The victim's own stamped index, as if committed and then forged upstream
     # with the stamp kept (F1): worst case, the nonce matches this machine.
     build_index(repo, planted / "index.db")
-    _plant_phantom(planted / "index.db")
     if plant == "wal":
         _forged_wal(tmp_path, planted)
-    elif plant == "journal":
+    else:
+        _plant_phantom(planted / "index.db")
+    if plant == "journal":
         _forged_journal(tmp_path, planted)
     _git(repo, "add", "-f", ".codemem")
     _git(repo, "commit", "-qm", "plant")

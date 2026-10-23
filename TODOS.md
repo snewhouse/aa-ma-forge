@@ -200,6 +200,14 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** §6.8 of sole-dev-merge-simplify M2, 2026-10-22: 0 CRITICAL; plan §3 sends WARNING/INFO here. **Effort:** S · **Priority:** P3
 
+### /sole-dev-merge M2 PR #58 review (C1/C2, round 1): 1 MEDIUM + 2 LOW, deferred under the stop rule
+**What:**
+- MEDIUM: SKILL.md step 1 gives no recovery for `ABORT: check: files outside the branch changed`. `check` exits before `git add`, so the tree is left dirty and a re-run hits "Uncommitted changes"; the shortcut (commit everything) brings back the L-007 scope widening. Add: the tree was clean at the start, so `git restore --staged --worktree -- <listed files>`, then step 1 again (the in-scope fixes are re-made).
+- LOW: `tests/codemem/test_plugin_surface.py:99` keeps `sole-dev-merge` off the orphan list only because hook comments name it; retiring rule 8 (entry above) or re-wording those comments makes the skill an orphan and fails the test unexpectedly. Give the skill a non-comment edge or name it in the expected set.
+- ~~LOW: CHANGELOG/ADR-0024 said SKILL.md is 125 lines; it is 130 after the §6.8 fixes.~~ **Done:** chore/sdm-simplify-finalize.
+
+**Why:** `/sole-dev-merge` (the new SKILL.md, first live run) on refactor/sdm-switch-over, 2026-10-22: C1 0C/0H/1M/2L, C2 0/0/0/0; one round. **Effort:** S · **Priority:** P2 (the MEDIUM: the model needs it the first time a fixer touches an out-of-scope file)
+
 ### `measure.py` docstring: "the report-based rule of /sole-dev-merge Stage C" is history
 **What:** `src/aa_ma/analysis/measure.py:4-5` cites "/sole-dev-merge Stage C", which sole-dev-merge-simplify M2 deleted (ADR-0024). Re-word it to "the former … Stage C (ADR-0008)". Any edit puts the file under the touched-file gate (ADR-0018 file-level compliance), which reports the file's existing ruff D-rule errors (`uv run ruff check src/aa_ma/analysis/measure.py`; 20 on 2026-10-22), so do the re-word together with that docstring cleanup.
 **Why:** sole-dev-merge-simplify 2.3 (2026-10-22) listed this comment; left out to keep a docs step from becoming a 20-error docstring refactor. **Effort:** S · **Priority:** P3

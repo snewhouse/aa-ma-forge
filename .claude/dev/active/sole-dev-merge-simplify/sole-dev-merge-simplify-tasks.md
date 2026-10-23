@@ -239,3 +239,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking. PL = p
   - FINALIZATION approved by Ste.
   - The plan dir is under `.claude/dev/completed/` (finalized on `chore/sdm-simplify-finalize`).
 - Result Log:
+  - HITL: Ste "Proceed" (2026-10-22).
+  - Boundary: CODE_INTEL_REFRESH (codemem + graphify at `62955e26`); §6.3 impact LOW (0 code readers of the deleted paths; hook comment-only); §6.6 skipped (only a 68-line test file; §6.8 covers it); CRITICAL_PATH_REVIEW written; §6.7 fence 1 PASS (3 conditions), fence 2 n/a (no sigil edges), fence 3 TESTS_VERIFIED 776 on `61423024` and again on `96adf285`.
+  - §6.8 once: PASS_WITH_WARNINGS 0C/10W/16I. Ste: fix the SKILL.md wrong instructions + hook comments + a drift test now — RED `f3e6176c` (4 fail), GREEN `96adf285` (13/13; 6/6 drift mutants caught); pytest 3149; the rest to TODOS.
+  - Merge run (the new SKILL.md, branch's own sdm.sh): `check OK` → C1/C2 round 1 (C1 0C/0H/1M/2L; C2 none; stop rule, no round 2) → `ship` CI_STATE=failed on pip-audit only (CVE-2026-114603, opentelemetry-api) → Ste: separate deps PR #59 (`66f9c610`, lock-only, merged by sdm.sh, STATUS: OK) → AA-MA record commit `98b40bfc` → `check` → `ship` CI_STATE=green (body read-back matched) → `finish 58`: **`STATUS: OK worktree=/home/sjnewhouse/projects/github_private/aa-ma-forge/.worktrees/refactor/sdm-switch-over`**, MERGED `7a904f72`, remote branch gone (ls-remote rc 2).
+  - `scripts/install.sh` from the main checkout rc 0; `test -x "$(readlink -f ~/.claude/skills/sole-dev-merge/scripts/sdm.sh)"` ✓ (link → main checkout).
+  - Post-merge record on `chore/sdm-simplify-finalize`: reference.md M2 SHA map 15/16 + live facts; CHANGELOG/ADR-0024 count corrected to 130 lines; TODOS for PR #58's MEDIUM/LOWs.
+  - Pending: Ste's HARD-gate/FINALIZATION approval; archive to `.claude/dev/completed/`.
+

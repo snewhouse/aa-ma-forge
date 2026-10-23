@@ -2,7 +2,7 @@
 
 Tools measure, the model judges, and this module never guesses. A tool that is not installed is
 `absent`; one that fails, times out, or leaves no readable report is `unknown` (the report-based
-rule of the former /sole-dev-merge Stage C, ADR-0008) and its metrics stay None — never zero.
+rule of ADR-0022, once applied by /sole-dev-merge Stage C) and its metrics stay None — never zero.
 Rows, argv and parse shapes are the ones the 2.1 prototype confirmed on the forge (plan §5a,
 amended 2026-09-28).
 

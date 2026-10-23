@@ -13,6 +13,8 @@ import subprocess
 import time
 from pathlib import Path
 
+from codemem.paths import default_db_path
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 HOOK = REPO_ROOT / "claude-code" / "codemem" / "hooks" / "post-commit.sh"
 
@@ -83,5 +85,5 @@ def test_five_rapid_amends_exit_zero_fast_and_end_at_head(tmp_path: Path):
 
     assert _drained(root), "post-commit workers did not drain"
     head = _git(root, "rev-parse", "HEAD").stdout.strip()
-    assert (root / ".codemem" / "last_sha").read_text().strip() == head
+    assert (default_db_path(root).parent / "last_sha").read_text().strip() == head
     assert (root / "graphify-out" / ".built_sha").read_text().strip() == head

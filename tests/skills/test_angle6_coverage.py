@@ -232,8 +232,9 @@ def seed_repo(tmp_path: Path) -> Path:
     _git(root, "add", ".")
     _git(root, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "init")
     from codemem.indexer import build_index
+    from codemem.paths import default_db_path
 
-    build_index(root, root / ".codemem/index.db", package=".")
+    build_index(root, default_db_path(root), package=".")
     return root
 
 

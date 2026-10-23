@@ -1532,7 +1532,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ### Sub-step 16.1: codemem default location + shared SQLite sidecar list + absolute env paths (TDD)
 - Status: PENDING
 - Mode: AFK
-- Dependencies: 16.0
+- Dependencies: Sub-step 16.0
 - Acceptance Criteria:
   - RED first (tests/codemem/test_location.py, tests/codemem/test_trust.py): default DB (cli + MCP server) is `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath root)>/index.db`; `CODEMEM_DB` overrides; a relative `CODEMEM_DB` / `CODEMEM_REPO_ROOT` is made absolute before the capped refresh subprocess (cwd = DB dir) gets it; planted-WAL, planted rollback-journal and committed-own-index (stamped `.codemem/` + forged rows) reproductions in a repo: no forged row is served by the default path.
   - One shared SQLite sidecar-suffix tuple (`''`, `-wal`, `-shm`, `-journal`) used by `storage/db.py`, `_rebuild_and_swap`/`_db_files` and `_discard_untrusted`.
@@ -1543,7 +1543,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ### Sub-step 16.2: shell + aa_ma consumers resolve the same location (TDD)
 - Status: PENDING
 - Mode: AFK
-- Dependencies: 16.1
+- Dependencies: Sub-step 16.1
 - Acceptance Criteria:
   - RED first: a parity test pins codemem (Python), `aa_ma.render.graph` (twin, no codemem import) and `aa_ma_codemem_dir` (aa-ma-parse.sh) to the same dir for one root, incl. a path with spaces and a symlinked root.
   - post-commit worker (`log_line`), session-start `Code-intel:` line, `code-intel-refresh.sh` and `graph.py` use the resolver; `.mcp.json` drops `CODEMEM_DB`; `measure.py` comment updated. bats + pytest cover each consumer; `CODEMEM_DB` overrides in every twin.
@@ -1552,7 +1552,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ### Sub-step 16.3: §6.0 never records `skipped(no index)` after a failed build (TDD)
 - Status: PENDING
 - Mode: AFK
-- Dependencies: 16.2
+- Dependencies: Sub-step 16.2
 - Acceptance Criteria:
   - RED first (tests/hooks/code-intel-refresh.bats): no index + working codemem → built, `codemem=<HEAD>`; no index + failing build → BLOCKED rc 1, nothing appended; no codemem binary → `codemem=skipped(codemem not installed)` rc 0. `references/boundary-checks.md` §6.0 matches.
 - Result Log:
@@ -1560,7 +1560,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ### Sub-step 16.4: docs + known limits
 - Status: PENDING
 - Mode: AFK
-- Dependencies: 16.3
+- Dependencies: Sub-step 16.3
 - Acceptance Criteria:
   - SECURITY.md known-limit paragraph replaced by one line (trust token kept; a `CODEMEM_DB` inside a repo is repo-controlled); codemem README, commands doc, skills/agents mentions and CHANGELOG Unreleased name the new location; per-file actions in reference.md "M16 Facts" all done; TODOS: session-start mislabel entry (Ste, 16.0); doc-drift Tier 6 counts unchanged or updated.
 - Result Log:
@@ -1568,7 +1568,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ### Sub-step 16.5: CRITICAL_PATH_REVIEW (hook-modification)
 - Status: PENDING
 - Mode: AFK
-- Dependencies: 16.1, 16.2, 16.3, 16.4
+- Dependencies: Sub-step 16.1, Sub-step 16.2, Sub-step 16.3, Sub-step 16.4
 - Acceptance Criteria:
   - Diff `main...HEAD` over `claude-code/hooks/**`, `claude-code/codemem/hooks/**`, `claude-code/skills/execute-aa-ma-milestone/**` reviewed against the pre-M16 baseline (pytest 3155 / bats 776); `[ts] CRITICAL_PATH_REVIEW — Milestone 16: … — hook-modification — <evidence>` in provenance.log.
 - Result Log:

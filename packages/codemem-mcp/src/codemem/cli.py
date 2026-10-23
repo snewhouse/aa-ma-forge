@@ -31,14 +31,19 @@ import sys
 from pathlib import Path
 
 
-def _default_db_path() -> Path:
-    return Path.cwd() / ".codemem" / "index.db"
+def _db_path(args: argparse.Namespace) -> Path:
+    """``--db``, else ``$CODEMEM_DB``, else the cache dir of ``--repo-root`` (or cwd)."""
+    from .paths import resolve_db_path
+
+    return resolve_db_path(
+        Path(getattr(args, "repo_root", None) or Path.cwd()), args.db
+    )
 
 
 def _cmd_build(args: argparse.Namespace) -> int:
     from .indexer import build_index
 
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
     repo_root = Path(args.repo_root) if args.repo_root else Path.cwd()
     stats = build_index(repo_root, db_path, package=args.package or ".")
     print(
@@ -54,7 +59,7 @@ def _cmd_build(args: argparse.Namespace) -> int:
 def _cmd_status(args: argparse.Namespace) -> int:
     from .storage import db
 
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
     if not db_path.exists():
         print(f"codemem status: no DB at {db_path}", file=sys.stderr)
         return 1
@@ -89,7 +94,7 @@ def _cmd_refresh(args: argparse.Namespace) -> int:
     from .incremental import EXIT_LOCKED, log_refresh, refresh_index
     from .safety import UnsafeDbPath
 
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
     repo_root = Path(args.repo_root) if args.repo_root else Path.cwd()
     try:
         stats = refresh_index(repo_root, db_path)
@@ -140,7 +145,7 @@ def _cmd_refresh_commits(args: argparse.Namespace) -> int:
     from .journal.lock import acquire_writer_lock
     from .storage import db as storage_db
 
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
     repo_root = Path(args.repo_root) if args.repo_root else Path.cwd()
     check_db_path(db_path)
 
@@ -210,7 +215,7 @@ def _cmd_replay(args: argparse.Namespace) -> int:
         )
         return 2
 
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
     wal_path = Path(args.wal) if args.wal else db_path.parent / "wal.jsonl"
     # Refuse before reading the journal through a link (M15 §6.8).
     check_db_path(db_path)
@@ -247,7 +252,7 @@ QUERY_TOOLS = (
 def _cmd_query(args: argparse.Namespace) -> int:  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down; touched for M15.2 refresh only)
     from . import mcp_tools
 
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
     kwargs: dict = {"budget": args.budget}
     if args.max_depth is not None:
         kwargs["max_depth"] = args.max_depth
@@ -300,7 +305,7 @@ def _cmd_query(args: argparse.Namespace) -> int:  # noqa: C901  # why: pre-exist
 def _cmd_intel(args: argparse.Namespace) -> int:
     from .pagerank import write_project_intel
 
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
     out = Path(args.out) if args.out else Path.cwd() / "PROJECT_INTEL.json"
     stats = write_project_intel(db_path, out, budget=args.budget)
     print(
@@ -352,7 +357,7 @@ def _cmd_draw(args: argparse.Namespace) -> int:
             "--write/--check regenerate the registered views; cut options do not apply"
         )
     who = "codemem draw --check" if args.check else "codemem draw"
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
 
     def no_graph(reason: str) -> int:
         return _no_graph(who, args.check, f"{reason}; run `codemem build`")
@@ -428,7 +433,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--db",
-        help="Path to codemem SQLite DB (default: .codemem/index.db)",
+        help="Path to codemem SQLite DB (default: $CODEMEM_DB, else $XDG_CACHE_HOME/codemem/<sha256(realpath repo)>/index.db)",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 

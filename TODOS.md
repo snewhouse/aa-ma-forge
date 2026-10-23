@@ -208,6 +208,14 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 **Why:** `/sole-dev-merge` (the new SKILL.md, first live run) on refactor/sdm-switch-over, 2026-10-22: C1 0C/0H/1M/2L, C2 0/0/0/0; one round. **Effort:** S · **Priority:** P2 (the MEDIUM: the model needs it the first time a fixer touches an out-of-scope file)
 
+### /sole-dev-merge SKILL.md recovery (fix/sdm-skill-recovery review, round 2): 1 MEDIUM + 2 LOW, deferred under the stop rule
+**What:**
+- MEDIUM: the out-of-scope ABORT recovery restores all-or-nothing (`git restore --staged --worktree -- .`). When the user keeps some changed files (e.g. an edit saved while `check` ran), say to restore only the paths the user agrees to (`git restore --staged --worktree -- <paths>`) (`SKILL.md:53`).
+- LOW: step 3 "commit that change on the branch" comes after step 2 has undone it; say to decide before restoring, or that the fixer must re-make it (`SKILL.md:55`).
+- LOW: `test_abort_recovery_discards_or_commits_nothing_without_asking` counts "only with the user's yes" ≥ 2 but does not tie it to the commit step (`tests/skills/test_sole_dev_merge_skill.py:169`).
+
+**Why:** `/sole-dev-merge` on fix/sdm-skill-recovery, 2026-10-23: round 1 C1 0C/0H/1M/1L and C2 0C/0H/2M/1L (all fixed in round 2, Ste); round 2 C2 none, C1 0C/0H/1M/2L. Stop rule: no round 3. **Effort:** S · **Priority:** P2 (the MEDIUM)
+
 ### `measure.py` docstring: "the report-based rule of /sole-dev-merge Stage C" is history
 **What:** `src/aa_ma/analysis/measure.py:4-5` cites "/sole-dev-merge Stage C", which sole-dev-merge-simplify M2 deleted (ADR-0024). Re-word it to "the former … Stage C (ADR-0008)". Any edit puts the file under the touched-file gate (ADR-0018 file-level compliance), which reports the file's existing ruff D-rule errors (`uv run ruff check src/aa_ma/analysis/measure.py`; 20 on 2026-10-22), so do the re-word together with that docstring cleanup.
 **Why:** sole-dev-merge-simplify 2.3 (2026-10-22) listed this comment; left out to keep a docs step from becoming a 20-error docstring refactor. **Effort:** S · **Priority:** P3

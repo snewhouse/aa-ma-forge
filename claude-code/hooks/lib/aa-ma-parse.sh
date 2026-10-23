@@ -421,14 +421,15 @@ aa_ma_lint_views() {
 #   The dir holding <repo-top>'s codemem index and sidecars (M16): that of
 #   $CODEMEM_DB when set, else ${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath
 #   repo-top)> (a relative XDG_CACHE_HOME is ignored, as the XDG spec says).
-#   Python twins: codemem.paths.resolve_db_path, aa_ma.render.graph._default_db_path
+#   Python twins: codemem.paths.resolve_db_path, aa_ma.render.graph._resolve_db_path
 #   (tests/codemem/test_safety_parity.py). Prints nothing, rc 1, when it cannot
 #   be computed (no realpath/readlink -f, no sha256sum/shasum).
 aa_ma_codemem_dir() {
     local top="$1" db="${CODEMEM_DB:-}" real cache key
     if [[ -n "$db" ]]; then
         [[ "$db" == /* ]] || db="$(pwd -P)/${db}"  # pwd -P: os.getcwd() in the Python twins
-        printf '%s' "${db%/*}"
+        db="${db%/*}"
+        printf '%s' "${db:-/}"  # /index.db lives in /
         return 0
     fi
     # why: readlink -f is the fallback where realpath is missing; neither → rc 1
@@ -445,6 +446,7 @@ aa_ma_codemem_dir() {
     [[ "$key" =~ ^[0-9a-f]{64}$ ]] || return 1
     cache="${XDG_CACHE_HOME:-}"
     [[ "$cache" == /* ]] || cache="${HOME}/.cache"
+    while [[ "$cache" == ?*/ ]]; do cache="${cache%/}"; done  # pathlib drops a trailing /
     printf '%s/codemem/%s' "$cache" "$key"
 }
 
@@ -459,6 +461,8 @@ aa_ma_codemem_bin() {
     else
         bin="$1/.venv/bin/codemem"
         [[ -x "${bin}" ]] || bin="$(command -v codemem || true)"  # why: absent → rc 1 below
+        # Absolute only: the worker drops relative PATH entries, so §6.0 must not count one.
+        [[ "${bin}" == /* ]] || bin=""
     fi
     [[ -n "${bin}" && -x "${bin}" ]] || return 1
     printf '%s' "${bin}"

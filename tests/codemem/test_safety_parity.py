@@ -183,7 +183,7 @@ def _shell_dir(root: Path, env: dict[str, str]) -> str:
 def test_every_twin_resolves_the_same_index_dir(tmp_path, monkeypatch, case):
     import os
 
-    from aa_ma.render.graph import _default_db_path
+    from aa_ma.render.graph import _resolve_db_path
     from codemem.paths import resolve_db_path
 
     real = tmp_path / ("my repo" if case == "with spaces" else "repo")
@@ -203,7 +203,7 @@ def test_every_twin_resolves_the_same_index_dir(tmp_path, monkeypatch, case):
     monkeypatch.chdir(root)
 
     py = resolve_db_path(root).parent
-    assert _default_db_path(root).parent == py
+    assert _resolve_db_path(root).parent == py
     assert _shell_dir(root, dict(os.environ)) == str(py)
     if not case.startswith("CODEMEM_DB"):
         assert py.parent.name == "codemem" and real not in py.parents

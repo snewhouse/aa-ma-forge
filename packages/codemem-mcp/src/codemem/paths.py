@@ -6,7 +6,7 @@ replay (M15 §6.8 re-run 3). The index is derived data, so it goes to the XDG
 cache, one dir per checkout: ``$XDG_CACHE_HOME/codemem/<sha256(realpath root)>/``.
 
 Twins (same formula, pinned by tests/codemem/test_safety_parity.py):
-``aa_ma.render.graph._default_db_path`` and ``aa_ma_codemem_dir`` in
+``aa_ma.render.graph._resolve_db_path`` and ``aa_ma_codemem_dir`` in
 ``claude-code/hooks/lib/aa-ma-parse.sh``.
 """
 

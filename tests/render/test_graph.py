@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 from aa_ma.render.graph import (
-    _default_db_path,
+    _resolve_db_path,
     GraphStatus,
     call_edges,
     import_edges,
@@ -47,7 +47,7 @@ def _repo(tmp_path: Path, *, version: int = 3) -> Path:
     """
     for name in ("a", "b", "c"):
         (tmp_path / f"{name}.py").write_text(f"# {name}\n")
-    db = _default_db_path(tmp_path)
+    db = _resolve_db_path(tmp_path)
     db.parent.mkdir()
     conn = sqlite3.connect(db)
     conn.executescript(_DDL + (_DDL_V3 if version >= 3 else ""))
@@ -108,7 +108,7 @@ def _stamp(db: Path) -> None:
 
 
 def _add_file_row(root: Path, path: str | None, mtime: int | str = 0) -> None:
-    conn = sqlite3.connect(_default_db_path(root))
+    conn = sqlite3.connect(_resolve_db_path(root))
     conn.execute("INSERT INTO files(path, mtime) VALUES (?, ?)", (path, mtime))
     conn.commit()
     conn.close()
@@ -158,7 +158,7 @@ class TestOpenGraph:
         assert "c.py" in h.reason
 
     def test_unreadable_db_never_raises(self, tmp_path: Path) -> None:
-        db = _default_db_path(tmp_path)
+        db = _resolve_db_path(tmp_path)
         db.parent.mkdir()
         db.write_bytes(b"not a sqlite database" * 64)
         h = open_graph(tmp_path)
@@ -236,11 +236,11 @@ class TestOpenGraph:
     @pytest.mark.skipif(os.geteuid() == 0, reason="root ignores permissions")
     def test_unreadable_codemem_dir_never_raises(self, tmp_path: Path) -> None:
         root = _repo(tmp_path)
-        (_default_db_path(root).parent).chmod(0)
+        (_resolve_db_path(root).parent).chmod(0)
         try:
             h = open_graph(root)
         finally:
-            (_default_db_path(root).parent).chmod(0o755)
+            (_resolve_db_path(root).parent).chmod(0o755)
         assert h.status is GraphStatus.MISSING
         assert h.conn is None
 
@@ -251,7 +251,7 @@ class TestOpenGraph:
 
     def test_open_does_not_create_db(self, tmp_path: Path) -> None:
         open_graph(tmp_path)
-        assert not (_default_db_path(tmp_path).parent).exists()
+        assert not (_resolve_db_path(tmp_path).parent).exists()
 
 
 # ---------------------------------------------------------------------
@@ -309,8 +309,8 @@ def test_a_linked_index_is_refused_and_never_opened(tmp_path: Path) -> None:
     c.commit()
     c.close()
     repo = tmp_path / "r"
-    (_default_db_path(repo).parent).mkdir(parents=True)
-    (_default_db_path(repo)).symlink_to(victim)
+    (_resolve_db_path(repo).parent).mkdir(parents=True)
+    (_resolve_db_path(repo)).symlink_to(victim)
     h = open_graph(repo)
     assert h.status is GraphStatus.MISSING and h.conn is None
     assert "symlink" in h.reason
@@ -320,7 +320,7 @@ def test_a_linked_index_is_refused_and_never_opened(tmp_path: Path) -> None:
 def test_any_link_in_codemem_is_refused(tmp_path: Path) -> None:
     """Same rule as codemem's check_db_path: any symlink in .codemem/ (background review)."""
     repo = _repo(tmp_path)
-    (_default_db_path(repo).parent / "index.db-wal").symlink_to(tmp_path / "victim")
+    (_resolve_db_path(repo).parent / "index.db-wal").symlink_to(tmp_path / "victim")
     h = open_graph(repo)
     assert h.status is GraphStatus.MISSING and "symlink" in h.reason
 
@@ -328,7 +328,7 @@ def test_any_link_in_codemem_is_refused(tmp_path: Path) -> None:
 def test_an_index_not_built_here_is_refused(tmp_path: Path) -> None:
     """Trust token: a committed or copied index has no stamp for this user and dir."""
     repo = _repo(tmp_path)
-    conn = sqlite3.connect(_default_db_path(repo))
+    conn = sqlite3.connect(_resolve_db_path(repo))
     conn.execute("DELETE FROM meta")
     conn.commit()
     conn.close()

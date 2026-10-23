@@ -31,20 +31,23 @@ import sys
 from pathlib import Path
 
 
+def _repo_root(args: argparse.Namespace) -> Path:
+    """``--repo-root``, else cwd: the root indexed and the key of its default DB."""
+    return Path(getattr(args, "repo_root", None) or Path.cwd())
+
+
 def _db_path(args: argparse.Namespace) -> Path:
-    """``--db``, else ``$CODEMEM_DB``, else the cache dir of ``--repo-root`` (or cwd)."""
+    """``--db``, else ``$CODEMEM_DB``, else the cache dir of ``_repo_root(args)``."""
     from .paths import resolve_db_path
 
-    return resolve_db_path(
-        Path(getattr(args, "repo_root", None) or Path.cwd()), args.db
-    )
+    return resolve_db_path(_repo_root(args), args.db)
 
 
 def _cmd_build(args: argparse.Namespace) -> int:
     from .indexer import build_index
 
     db_path = _db_path(args)
-    repo_root = Path(args.repo_root) if args.repo_root else Path.cwd()
+    repo_root = _repo_root(args)
     stats = build_index(repo_root, db_path, package=args.package or ".")
     print(
         f"codemem build: {stats.files_indexed} files, "
@@ -95,7 +98,7 @@ def _cmd_refresh(args: argparse.Namespace) -> int:
     from .safety import UnsafeDbPath
 
     db_path = _db_path(args)
-    repo_root = Path(args.repo_root) if args.repo_root else Path.cwd()
+    repo_root = _repo_root(args)
     try:
         stats = refresh_index(repo_root, db_path)
     except UnsafeDbPath:
@@ -146,7 +149,7 @@ def _cmd_refresh_commits(args: argparse.Namespace) -> int:
     from .storage import db as storage_db
 
     db_path = _db_path(args)
-    repo_root = Path(args.repo_root) if args.repo_root else Path.cwd()
+    repo_root = _repo_root(args)
     check_db_path(db_path)
 
     if not db_path.exists():
@@ -433,7 +436,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--db",
-        help="Path to codemem SQLite DB (default: $CODEMEM_DB, else $XDG_CACHE_HOME/codemem/<sha256(realpath repo)>/index.db)",
+        help="Path to codemem SQLite DB (default: $CODEMEM_DB, else $XDG_CACHE_HOME — ~/.cache when unset or relative — /codemem/<sha256(realpath repo)>/index.db)",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 

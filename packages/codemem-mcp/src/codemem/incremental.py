@@ -74,7 +74,8 @@ EXIT_LOCKED = 75
 logger = logging.getLogger(__name__)
 
 # `last_sha` and `tree_sig` are repo-controlled when CODEMEM_DB points into a
-# repo (a clone can commit them): only a full SHA-1 (40-hex) or SHA-256 (64-hex) is ever passed to git.
+# repo (a clone can commit them): only a full SHA-1 (40-hex) or SHA-256 (64-hex)
+# is ever passed to git.
 _SHA_RE = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 
 
@@ -377,10 +378,9 @@ def _log(log_file: Path, message: str) -> None:
 
     The index dir is repo-controlled when ``CODEMEM_DB`` points into a repo
     (a clone can commit ``refresh.log -> ~/.bashrc``, or the dir itself as a
-    link), and
-    messages can carry repo-controlled text such as file names in exception
-    messages: newlines are folded so one call is one line, and a symlinked
-    log or log directory is refused.
+    link), and messages can carry repo-controlled text such as file names in
+    exception messages: newlines are folded so one call is one line, and a
+    symlinked log or log directory is refused.
     """
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime())
     line = " ".join(message.splitlines())

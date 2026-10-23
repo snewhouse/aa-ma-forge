@@ -274,3 +274,10 @@
 [2026-10-15T08:17:02+01:00] sole-dev-merge Stage C/D — M15 PR @d0febe6 — C1 2 MEDIUM/5 LOW, C2 1 HIGH/2 LOW, Ruff S 0, ShellCheck 0 — Ste: HIGH + 2 MEDIUM deferred to Milestone 16 (ACs added), LOWs to TODOS + PR notes
 [2026-10-15T09:50:59+01:00] sole-dev-merge Stage G — PR #41 rebase-merged at 6ae8974 (2026-10-15T07:21:33Z; head 4ad1eb6 pinned via --match-head-commit, tree identical); CI run 38697841996 9/9 green; remote branch deleted by hand (L-1332, ls-remote empty), local branch + worktree removed; main ff; main-checkout hook lines saved to scratchpad and reset (L-1347).
 [2026-10-15T09:50:59+01:00] SHA MAP — Milestone 15: Codemem freshness (report 03 T2–T9) — rebase-merge rewrote branch SHAs (subject match, unique, identical trees): 778259f→fed6551, 30bfed2→0129233, 86f1b57→fed4091, d0febe6→ed267e9, 4ad1eb6→6ae8974, 31afa8a→63b38b8, f0a7f2f→011c96e. Branch SHAs in earlier M15 lines read as these main SHAs.
+[2026-10-23T11:53:56+01:00] SESSION RESUME — handover 2026-10-23 — E1–E10 re-run (E1 command form fixed, E3 worktree gone); preconditions hold; Ste: option A (M16)
+[2026-10-23T11:53:56+01:00] VALIDATOR — pre-exec M16 — WARN 0 FAIL / 6 WARN (W1–W5 folded at 16.0; W6 plan Next Action stale, historical)
+[2026-10-23T11:53:56+01:00] INSTALL — scripts/install.sh live from main @ 7d3c1265 — rc 0; 68 links, 5 copies, 5 backups; codemem-plugin-wt ddc87f26 → 7d3c1265; --wire-git-hook deferred to 10.0 (Ste)
+[2026-10-23T11:53:56+01:00] PROBE — user-scope codemem MCP (stdio) search_symbols — index_sha=head_sha=7d3c1265 stale=false
+[2026-10-23T11:53:56+01:00] BASELINE — Milestone 16 @ 7d3c12658b2fe45423391ea1ee1a4ffc330f3140 — pytest 3155 passed / 5 skipped rc 0; bats 776 ok rc 0
+[2026-10-23T11:53:56+01:00] MILESTONE START — Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral) — ACTIVE; branch feat/cci-m16-codemem-index-location; dependency advisory: none
+[2026-10-23T11:53:56+01:00] STEP COMPLETE — 16.0 — HITL; decisions in context-log 2026-10-23; sub-steps 16.1–16.5 written

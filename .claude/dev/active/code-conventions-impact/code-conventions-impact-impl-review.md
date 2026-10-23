@@ -579,3 +579,32 @@ Fold-ins (standing "fold them in"): RED 30e7f8d → GREEN c1df21f. Accepted know
 ### Verification at 31afa8a (final)
 - pytest 3136 passed (5 skipped); bats 633/633; no test writes `~/.local/state`; real `codemem build`/`status` work against the 0700 trust dir.
 - §6.7: fence 1 PASS (0 pending, AA-MA clean); fence 2 DIAGRAM_VERIFIED edges=25 checked=25 phantom=0; fence 3 TESTS_VERIFIED passed=3136.
+
+---
+
+# Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral) — post-impl review (§6.8)
+
+Audit-Profile: full. Window 45d08ba0 (origin/main) .. e21e9bf1; round 2 on the fix e21e9bf1..5c4c9f9d. Threat model: local tooling (security-auditor.md). §6.6 had already run (24 findings, fix set 08c1b97b).
+
+## Summary
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 1 | 5 | 5 | BLOCKED → fixed |
+| security-auditor | 0 | 1 | 3 | WARN → fixed |
+| tdd-sequence-auditor | 0 | 1 | 0 | PASS (rebase gave 11 commits one committer time; parentage + author dates order RED before GREEN in 16.1, 16.2, 16.3, §6.6) |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS (no dependency change) |
+| future-proofing-auditor | 0 | 0 | 2 | PASS |
+| **Round 1 total** | **1** | **7** | **10** | BLOCKED |
+| Round 2 (fix only): code-reviewer / security-auditor | 0 / 0 | 0 / 0 | 2 / 0 | PASS |
+
+Root fix confirmed by security-auditor: no default path reads repo-controlled files; the three resolvers agree.
+
+## User Override Decisions
+
+- [CRITICAL] `scripts/bench_codemem.py:74` cold build `rmtree`'d the parent of `$CODEMEM_DB` (introduced by the §6.6 fix set; `CODEMEM_DB=~/index.db` → `rmtree(~)`). Ste: **Accept**. RED cd6b695c (the RED run really deleted a tmp "home") → GREEN 5c4c9f9d: removes only `default_db_path(REPO_ROOT).parent`; `CODEMEM_DB` popped from the child env.
+- WARNINGs folded (Ste): shell twin `CODEMEM_DB` trailing `/` (parity case); post-commit stderr line with no index dir; boundary-checks.md first-build step cap; `storage.db.db_files` / `remove_db_files` for every sidecar cleanup.
+- Disputed: cli/server key on cwd vs shell on git toplevel — Ste chose cwd at 16.0 (pre-M16 also keyed on cwd); an MCP server started in a subdir reports "no DB" by path.
+- Acknowledged (INFO): formula spelled out in 15 doc lines; deliberate twins (ADR-0014); `CODEMEM_DB` inside a repo keeps the M15 limits (documented); cache dir mode (TODOS P3); relative `CODEMEM_DB` resolved before the worker's `cd` (same dir in practice: both are the repo top); token value change `skipped(no index)` (no reader); AC names test_trust.py but the reproductions live in test_location.py; lessons edit vs the "frozen" list (additions only); no test for the post-commit no-index-dir stderr branch; `db_files` not in `__all__`.
+
+## Verdict: PASS_WITH_WARNINGS (round 2 clean; stop rule: 2 rounds)

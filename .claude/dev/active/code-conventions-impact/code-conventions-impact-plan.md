@@ -1025,10 +1025,13 @@ Effort: 1.5 days
 Files:
   Modify  packages/codemem-mcp/src/codemem/{cli,indexer,incremental,safety}.py, packages/codemem-mcp/src/codemem/mcp_tools/__init__.py, packages/codemem-mcp/src/codemem/storage/db.py   # default index under ${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo)>/
   Modify  claude-code/codemem/mcp/server.py, claude-code/codemem/hooks/post-commit.sh, claude-code/hooks/aa-ma-session-start.sh, claude-code/hooks/lib/aa-ma-parse.sh, claude-code/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh, src/aa_ma/render/graph.py, src/aa_ma/analysis/measure.py   # one shared location resolver per language
-  Modify  SECURITY.md, claude-code/codemem/README.md, claude-code/codemem/commands/codemem.md, docs (53 files name .codemem)   # remove the known-limit paragraph
-  Test    tests/codemem/test_trust.py (planted-WAL reproduction; committed-own-index nonce leak, M15 double-check F1), tests/hooks/*.bats (location)
+  Modify  .mcp.json, packages/codemem-mcp/src/codemem/journal/lock.py, scripts/bench_codemem.py, claude-code/skills/execute-aa-ma-milestone/references/boundary-checks.md   # added at 16.0: .mcp.json pins CODEMEM_DB in the repo; §6.0 text
+  Modify  SECURITY.md, CHANGELOG.md, TODOS.md, claude-code/codemem/README.md, claude-code/codemem/commands/codemem.md, claude-code/agents/codebase-onboarding-{conventions,runbook,synthesizer}.md, claude-code/skills/{aa-ma-plan/SKILL.md,aa-ma-plan/references/phase-1-context.md,impact-analysis/SKILL.md,understand-codebase/SKILL.md,understand-codebase/references/REUSE-MAP.md,understand-codebase/templates/onboarding-team.md}, docs/codemem/{ARCHITECTURE,install-zero-config,migration-from-index,performance-slo}.md, docs/spec/aa-ma-quick-reference.md   # per-file actions: reference.md "M16 Facts" (16.0)
+  Test    tests/conftest.py, tests/codemem/test_location.py (new), tests/codemem/test_trust.py (planted-WAL, rollback-journal, committed-own-index reproductions), tests/codemem/test_safety_parity.py, tests/render/test_graph.py, tests/hooks/{code-intel-refresh,codemem-post-commit,session-start-code-intel}.bats (location)
 ```
-Steps: **16.0** plan the move (HITL). Further steps are written at 16.0.
+Steps (written at 16.0, 2026-10-23): **16.0** post-merge of M15 + plan the move (HITL). **16.1** codemem default location, shared SQLite sidecar list, absolute env paths (AFK, TDD). **16.2** shell + aa_ma twins resolve the same location, `.mcp.json` (AFK, TDD). **16.3** §6.0 never records `skipped(no index)` after a failed build (AFK, TDD). **16.4** docs + known limits (AFK). **16.5** CRITICAL_PATH_REVIEW (AFK).
+
+Risks (top 3): (1) a consumer left on the old path silently reads a stale in-repo index → parity test across the three twins + `git grep '\.codemem'` re-run at 16.4; (2) tests write into the real `~/.cache` → `tests/conftest.py` and bats setups export a throwaway `XDG_CACHE_HOME`; (3) the realpath hash differs between Python and shell for odd paths (spaces, symlinked roots, non-UTF-8) → parity cases for each.
 
 ## 5a. Review Focus (writing-plans)
 
@@ -1067,6 +1070,7 @@ The five input classes the spec implies that are most likely to bite. Each has a
 |---|---|
 | Any milestone | One PR per milestone, rebase-merged. Rebase rewrites SHAs, so revert the commits **as they landed on main** (`git log --oneline --grep '(#<PR>)' main` or the PR's merge range), not the branch SHAs in provenance. |
 | Outside-repo moves (M15: 15.8, 15.9) | Restore `~/.claude` from `~/.claude/backups/cci-m15-<ts>.tgz` (count-verified); `rm ~/.local/share/codemem-plugin` and `git worktree remove` its worktree; `claude mcp remove --scope user codemem`; restore the global excludes file and the shell rc (`GRAPHIFY_QUERY_LOG_DISABLE`) from their timestamped copies; delete `~/.claude/rules/code-intel-routing.md`. |
+| Index location (M16) | Revert the M16 commits as landed; the old in-repo `.codemem/` is read again after a `codemem build`. Cache dirs under `${XDG_CACHE_HOME:-~/.cache}/codemem/` are derived data: `rm -rf` is safe. `CODEMEM_DB=<repo>/.codemem/index.db` restores the old location without a revert. |
 | Outside-repo moves (M2, M8, M12) | Restore from `~/.claude/backups/cci-mN-<ts>.tgz` (count-verified) + `install.sh` backups; timestamped `settings.json` backups in BACKUP_DIR (§0 v2). |
 | commands → skills (M3) | Revert M3; `uninstall.sh` then `install.sh` restores the command links (the stale-link logic removes skill links whose source is gone). |
 | New gate fences (M9, M11) | Revert the fence commit; tokens are additive provenance lines. Emergency: `AA_MA_HOOKS_DISABLE=1`, stated to Ste. |

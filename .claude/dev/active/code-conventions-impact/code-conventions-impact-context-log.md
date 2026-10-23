@@ -639,3 +639,12 @@ DECISION ruff-only () — approved by Ste
 - Rebase-merge rewrote SHAs; the M15 records name branch SHAs. Map (branch→main): 778259f→fed6551, 30bfed2→0129233, 86f1b57→fed4091, d0febe6→ed267e9, 4ad1eb6→6ae8974, 31afa8a→63b38b8, f0a7f2f→011c96e.
 
 - Next: Sub-step 16.0 (install.sh from main, optional --wire-git-hook, M16 worktree, codemem build, plan the move). Not started.
+
+## [2026-10-23] M16.0 — resume + plan the move (Ste decisions)
+- Resumed from `.claude/handovers/2026-10-23-code-conventions-impact-resume.md`; E1–E10 re-run: all held except E1's command as written (`git rev-parse --short` takes one rev; run per ref, both 7d3c1265) and E3 (the merged fix/sdm-skill-recovery worktree is gone). Ste chose option A (M16 before M10). Session-start "AA-MA ACTIVE … Milestone 10" is the first-PENDING fallback; the gate is the source of truth.
+- Location: `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath root)>/` (cache, not state: the index is rebuildable). Rejected: XDG_STATE_HOME (survives wipes, wrong class of data); git-toplevel in Python (an extra git call and a no-git fallback for no gain — cwd is codemem's default today).
+- Migration: ignore and rebuild. Rejected: move-on-first-run (new code reading a repo-controlled dir — the trust problem M16 removes); a one-time notice (YAGNI; only this repo has a `.codemem/`).
+- Trust token: kept. Out of the repo, a repo can no longer plant a WAL/journal/stamp beside the default index; the token still guards a `CODEMEM_DB` pointed into a repo. Rejected: drop (300+ lines of Critical-Path churn); refuse CODEMEM_DB inside a repo (git detection, retired by L-049). Deviation from the M16 AC wording: SECURITY.md's known-limit paragraph is replaced by one line, not removed outright, because the CODEMEM_DB-in-repo case remains.
+- §6.0 (`code-intel-refresh.sh`, M15 pre-merge MEDIUM): always build/refresh; `skipped(codemem not installed)` only with no codemem binary; otherwise last_sha ≠ HEAD is BLOCKED (Ste agreed).
+- Deferred: `--wire-git-hook` → 10.0 (`.git/hooks` is shared by all worktrees). Kept: `prototype/codemem-refresh-cap`. TODOS: session-start mislabel. sole-dev-merge TODOS stay out of M16.
+- Found at 16.0: `.mcp.json` pins `CODEMEM_DB=${PWD}/.codemem/index.db` (Contract row added); `measure.py` uses an explicit `--db` (comment only); re-count 17 code / 31 test / 56 doc (was 14/31/53). Pre-exec validator WARN (W1–W5) folded: CODE_INTEL_REFRESH in the M16 AC, Contract paths listed, risks + rollback row, CPR sub-step 16.5, reference.md M16 Facts.

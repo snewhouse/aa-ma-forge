@@ -138,3 +138,19 @@ def test_notes_never_quote_a_secret() -> None:
 
 def test_bans_force_push() -> None:
     assert re.search(r"never force-push", _text(), re.IGNORECASE)
+
+
+def test_inspects_the_auto_fix_commit() -> None:
+    """L-031: `check` formats whole files, so its commit can change lines the branch did not."""
+    text = _text()
+    assert "git show --stat HEAD" in text
+    assert "chore(format)" in text
+
+
+def test_recovers_from_the_out_of_scope_abort() -> None:
+    """PR #58 review: the ABORT leaves the tree dirty, so a bare re-run stops at the start."""
+    text = _text()
+    assert "git restore --staged --worktree -- ." in text
+    assert re.search(
+        r"untracked[^\n]*\bask\b|\bask\b[^\n]*untracked", text, re.IGNORECASE
+    )

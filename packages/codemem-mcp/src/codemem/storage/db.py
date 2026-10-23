@@ -30,6 +30,11 @@ from typing import Iterator
 
 from ..safety import UnsafeDbPath, UntrustedIndex, check_db_path, is_trusted, stamp
 
+# The main file and every sidecar SQLite may create or replay beside it. One
+# list for every cleanup: a copy that missed `-journal` let a planted rollback
+# journal survive a rebuild (M15 pre-merge HIGH).
+SQLITE_SUFFIXES = ("", "-wal", "-shm", "-journal")
+
 logger = logging.getLogger(__name__)
 
 __all__ = [
@@ -205,7 +210,7 @@ def connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
         except Exception:
             # Leave no unstamped file behind: it would read as "not built here".
             conn.close()
-            for suffix in ("", "-wal", "-shm", "-journal"):
+            for suffix in SQLITE_SUFFIXES:
                 path.with_name(path.name + suffix).unlink(missing_ok=True)
             raise
     elif read_only and not is_trusted(conn, path.parent):

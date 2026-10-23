@@ -28,6 +28,7 @@ from typing import Any, Callable
 from fastmcp import FastMCP
 
 from codemem import mcp_tools
+from codemem.paths import resolve_db_path
 
 logger = logging.getLogger(__name__)
 
@@ -78,18 +79,13 @@ _registered_names: list[str] = []
 
 
 def _default_db_path() -> Path:
-    """Default codemem DB location. Override via ``CODEMEM_DB`` env var."""
-    env = os.environ.get("CODEMEM_DB")
-    if env:
-        return Path(env)
-    return Path.cwd() / ".codemem" / "index.db"
+    """``CODEMEM_DB``, else the repo root's dir in the XDG cache (M16); always absolute."""
+    return resolve_db_path(_default_repo_root())
 
 
 def _default_repo_root() -> Path:
-    env = os.environ.get("CODEMEM_REPO_ROOT")
-    if env:
-        return Path(env)
-    return Path.cwd()
+    """``CODEMEM_REPO_ROOT``, else cwd; always absolute (the refresh runs elsewhere)."""
+    return Path(os.environ.get("CODEMEM_REPO_ROOT") or Path.cwd()).absolute()
 
 
 def build_server() -> FastMCP:  # noqa: C901  # why: pre-existing (21 before M15.3); refactor tracked in TODOS.md (M8.2 D8 pay-down)

@@ -416,12 +416,8 @@ def _rebuild_and_swap(repo_root: Path, db_path: Path, *, package: str) -> None:
 
 
 def _db_files(path: Path) -> list[Path]:
-    """The SQLite file and its WAL-mode sidecars, main file first."""
-    return [
-        path,
-        path.with_name(path.name + "-wal"),
-        path.with_name(path.name + "-shm"),
-    ]
+    """The SQLite file and its sidecars, main file first."""
+    return [path.with_name(path.name + s) for s in db.SQLITE_SUFFIXES]
 
 
 def _git(repo_root: Path, *args: str) -> str | None:

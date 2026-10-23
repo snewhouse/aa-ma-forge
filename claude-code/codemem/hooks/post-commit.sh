@@ -45,7 +45,11 @@ FORGE_ROOT="$(cd "$(dirname "${SELF}")/../../.." && pwd)"
 SHA_RE='^([0-9a-f]{40}|[0-9a-f]{64})$'
 # This forge's resolver, never the target repo's copy (it would run inside the hook).
 # shellcheck source=/dev/null
-. "${FORGE_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" || exit 0  # why: no resolver → no log dir; the commit is never failed
+if ! . "${FORGE_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh"; then
+    # No resolver means no index dir to log into; say so once, never fail the commit.
+    printf 'codemem post-commit: %s missing — index not refreshed\n' "${FORGE_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" >&2
+    exit 0
+fi
 # The slowest measured step is a cold `graphify update` (11.5 s on aa-ma-forge,
 # M15.4); 300 s is ~25x that. A worker waits for one predecessor's three
 # capped steps (codemem refresh, refresh-commits, graphify update) plus a

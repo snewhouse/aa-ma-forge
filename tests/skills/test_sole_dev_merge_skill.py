@@ -165,7 +165,7 @@ def test_recovers_from_the_out_of_scope_abort() -> None:
 def test_abort_recovery_discards_or_commits_nothing_without_asking() -> None:
     """A change saved while `check` ran is not a fixer's; only the user can tell (round-1 review)."""
     sec = _abort_section()
-    assert "ask the user before discarding anything" in sec
+    assert "ask the user before discarding anything" in sec.lower()
     assert (
         sec.count("only with the user's yes") >= 2
     )  # removing untracked files; committing

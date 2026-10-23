@@ -38,20 +38,22 @@ and commits any in-scope fixes as `chore(scope): pre-PR auto-fixes`. Success pri
 A non-zero `check: pre-commit rc=<n>` is reported, not fatal: give it to C1; CI gates it.
 
 **Inspect the auto-fix commit (L-031).** When `check` says it committed in-scope auto-fixes,
-compare `git show --stat HEAD` with the branch's own changes (`git diff --stat <ref>...HEAD~1`).
-ruff formats whole files, so the commit can change lines the branch never touched. If it does,
-stop and ask the user: that drift belongs in its own `chore(format)` PR from the default branch.
-Re-running `check` would only make the same commit again.
+compare `git show --stat HEAD` with the branch's own changes (`git diff --stat <ref>...HEAD~1`),
+and read `git show HEAD -- <file>` for any file the branch only partly changed. ruff formats
+whole files, so the commit can change lines the branch never touched. If it does, stop and ask
+the user: that drift belongs in its own `chore(format)` PR from the default branch. Re-running
+`check` would only make the same commit again.
 
 **Out-of-scope ABORT.** `ABORT: check: files outside the branch changed: …` means a fixer changed
 files the branch does not touch. Nothing is committed, so the tree is left dirty and a bare re-run
-stops at "Uncommitted changes". The tree was clean when `check` started, so every change in it
-came from a fixer:
-1. Report the listed files to the user.
-2. From the toplevel, `git restore --staged --worktree -- .` undoes the tracked changes.
-3. List the untracked files left (`git status --porcelain`) and ask the user before removing any.
-4. Fix the cause (the hook that touched other files), or commit that change on the branch on
-   purpose: the same fixer makes the same ABORT again. Then start again at step 1.
+stops at "Uncommitted changes". Work in the checkout `check` ran in (its toplevel), never another:
+1. Show the user the listed files, `git status --porcelain` and `git diff --stat`. The tree was
+   clean when `check` started, so these should all be a fixer's; an edit saved while `check` ran
+   is not. Ask the user before discarding anything.
+2. Once the user agrees, `git restore --staged --worktree -- .` from that toplevel undoes the
+   tracked changes. Remove an untracked file only with the user's yes.
+3. Fix the cause (the hook that touched other files), or commit that change on the branch, but
+   only with the user's yes: the same fixer makes the same ABORT again. Then start again at step 1.
 
 ## Step 2 — review (C1 + C2) and the stop rule
 

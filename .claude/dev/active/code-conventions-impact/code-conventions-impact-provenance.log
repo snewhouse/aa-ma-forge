@@ -298,3 +298,4 @@
 [2026-10-23T14:41:40+01:00] CODE_INTEL_REFRESH — Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral) — codemem=4066fca81414ca1f2123aa9553cd5256c65d6982 graphify=4066fca81414ca1f2123aa9553cd5256c65d6982
 [2026-10-23T14:41:44+01:00] DIAGRAM_VERIFIED — Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral) — edges=25 checked=25 phantom=0 unknown=0
 [2026-10-23T14:44:04+01:00] TESTS_VERIFIED — Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral) — passed=3177 cmd=uv run pytest
+[2026-10-23T16:01:52+01:00] MILESTONE COMPLETE — Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral) — HARD gate APPROVED (Ste); code 4066fca8; pytest 3177 / bats 781

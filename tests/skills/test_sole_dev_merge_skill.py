@@ -144,13 +144,28 @@ def test_inspects_the_auto_fix_commit() -> None:
     """L-031: `check` formats whole files, so its commit can change lines the branch did not."""
     text = _text()
     assert "git show --stat HEAD" in text
+    assert (
+        "git show HEAD -- <file>" in text
+    )  # the per-file read, not only the stat counts
     assert "chore(format)" in text
+
+
+def _abort_section() -> str:
+    text = _text()
+    return text[text.index("**Out-of-scope ABORT.**") : text.index("## Step 2")]
 
 
 def test_recovers_from_the_out_of_scope_abort() -> None:
     """PR #58 review: the ABORT leaves the tree dirty, so a bare re-run stops at the start."""
-    text = _text()
-    assert "git restore --staged --worktree -- ." in text
-    assert re.search(
-        r"untracked[^\n]*\bask\b|\bask\b[^\n]*untracked", text, re.IGNORECASE
-    )
+    sec = _abort_section()
+    assert "git restore --staged --worktree -- ." in sec
+    assert "the checkout `check` ran in" in sec  # never another checkout's tree
+
+
+def test_abort_recovery_discards_or_commits_nothing_without_asking() -> None:
+    """A change saved while `check` ran is not a fixer's; only the user can tell (round-1 review)."""
+    sec = _abort_section()
+    assert "ask the user before discarding anything" in sec
+    assert (
+        sec.count("only with the user's yes") >= 2
+    )  # removing untracked files; committing

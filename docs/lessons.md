@@ -5,6 +5,10 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-066 (2026-10-23) — CI's architecture-drift job caught a view the milestone gates never ran
+**Pattern:** M16 added `codemem/paths.py` and new import/call edges. pytest, bats, all three §6.7 fences, §6.6 and two §6.8 rounds passed, but PR #65's `architecture-drift` job failed: `docs/architecture/{component,io}.md` differed from the code. None of the local gates runs `codemem draw --check`.
+**Rule:** when a milestone adds, moves or rewires a source file, run `bash scripts/regen-generated.sh` (it ends with `codemem draw --check`) before `sdm.sh check`, and commit the regenerated views with the milestone.
+
 ## L-065 (2026-10-23) — Format drift on main surfaced one file at a time, mid-milestone
 **Pattern:** code-conventions-impact M16 had to edit test files that were already unformatted on main. The pre-commit `ruff format --check` and CI's `touched` job check whole files, so each one blocked a commit, and L-031 sends the drift to its own PR from main. It happened twice (`test_explorer_fixture.py` as #63, then `test_file_edges.py`), and each time meant a separate PR, review and merge, and a rebase of the milestone branch.
 **Rule:** at step N.0, run `uv run ruff format --check` and `ruff check` over every Python file the plan expects to touch (the Contract `Files:` rows plus the test files named in the blast radius). Ship any drift in one `style(tests)` PR from main before the milestone branch is cut. Format only files the milestone will touch: a wider pass moves `# noqa` comments and wakes unrelated lint debt.

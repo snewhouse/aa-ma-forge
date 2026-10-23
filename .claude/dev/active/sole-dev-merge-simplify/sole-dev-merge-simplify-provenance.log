@@ -51,3 +51,4 @@
 [2026-10-23T08:44:58+01:00] Sub-step 2.4: scripts/install.sh from the main checkout rc 0 (68 links, 5 copied, 5 backed up); readlink ~/.claude/skills/sole-dev-merge → main checkout; test -x sdm.sh via the link ✓
 [2026-10-23T08:44:58+01:00] Post-merge record on chore/sdm-simplify-finalize (L-037): M2 SHA map 15/16 (merge commit not replayed), live facts; CHANGELOG/ADR-0024 line count 125 → 130 (C1 LOW); TODOS entry for PR #58 C1 MEDIUM/LOWs
 [2026-10-23T09:39:44+01:00] GATE APPROVAL — Milestone 2: switch over and delete — HARD — Ste — APPROVED
+[2026-10-23T09:39:56+01:00] MILESTONE COMPLETE — Milestone 2: switch over and delete — Commit: 27e0081a (M2 code merged as 7a904f72 via PR #58) — Criteria: 7/7 verified

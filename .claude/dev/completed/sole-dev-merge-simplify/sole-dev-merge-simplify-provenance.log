@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-10-23 09:41 -->
+<!-- Plan: sole-dev-merge-simplify - COMPLETE -->
+<!-- Total Milestones: 2 | Duration: 2026-10-20 to 2026-10-23 -->
+
 # sole-dev-merge-simplify Provenance Log
 
 [2026-10-20T13:34:11+01:00] Task initialized via /aa-ma-plan
@@ -52,3 +56,4 @@
 [2026-10-23T08:44:58+01:00] Post-merge record on chore/sdm-simplify-finalize (L-037): M2 SHA map 15/16 (merge commit not replayed), live facts; CHANGELOG/ADR-0024 line count 125 → 130 (C1 LOW); TODOS entry for PR #58 C1 MEDIUM/LOWs
 [2026-10-23T09:39:44+01:00] GATE APPROVAL — Milestone 2: switch over and delete — HARD — Ste — APPROVED
 [2026-10-23T09:39:56+01:00] MILESTONE COMPLETE — Milestone 2: switch over and delete — Commit: 27e0081a (M2 code merged as 7a904f72 via PR #58) — Criteria: 7/7 verified
+[2026-10-23T09:41:32+01:00] §6.8 record note — Milestone 2: switch over and delete — the §6.8 POST_IMPL_REVIEW line above (PASS_WITH_WARNINGS 0C/10W/16I) is this milestone's; details in impl-review.md (Milestone 2). Post-completion validator: WARNINGS_BUT_USABLE (0F/3W/3I), back-filled; archive move in the same commit as the 'archived' claims

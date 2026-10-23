@@ -160,7 +160,7 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 **Why:** /sole-dev-merge on docs/sole-dev-merge-simplify-plan, 2026-10-20. Round 1: 0C, 1 HIGH applied (`finish` accepts MERGED at HEAD), 1 MEDIUM + 5 LOW deferred. Round 2 (fix only): 0C/0H, 1 MEDIUM + 2 LOW deferred under the stop rule. **Effort:** S · **Priority:** P2 (before M1 1.1)
 
 ### sdm.sh M1 §6.8 review notes: 14 WARNING + 15 INFO, deferred under the exit contract
-**What:** the full list with `sdm.sh:line` is in `.claude/dev/active/sole-dev-merge-simplify/sole-dev-merge-simplify-impl-review.md` (archived with the plan). The ones worth doing first:
+**What:** the full list with `sdm.sh:line` is in `.claude/dev/completed/sole-dev-merge-simplify/sole-dev-merge-simplify-impl-review.md`. The ones worth doing first:
 - ~~Every failure prints a line: a rejected `git push` in `ship` and a hook-refused auto-fix commit in `check` exit 1 with no `ABORT:` line; the worktree cleanup `fetch`/`rev-parse` after a merge are unguarded.~~ **Done:** PR #57 (`0ca6a5fa`).
 - `ship`: ~~`--notes` with a missing path silently becomes `(none)`; a failed `gh pr checks` re-read reports green;~~ **Done:** PR #57 (`0ca6a5fa`). Still open: the PR title is `chore(scope): pre-PR auto-fixes` after an auto-fix commit; ~~a lagging `headRefOid` right after a re-push reads as `not-this-branch`~~ **Done:** `ae90cd2b` (proven live on PR #55, merge run 2).
 - ~~Inputs: validate `CI_POLL_TIMEOUT` (0 disables the timeout); cut the URL userinfo at the last `@` (a raw `@` in a password leaks its tail).~~ **Done:** PR #57 (`0ca6a5fa`).

@@ -423,11 +423,13 @@ already upstream: `git reset --hard origin/main` on a clean tree, then re-run G4
 touched. The L-007 guard passed it — it reverts out-of-scope *files*, and these files were in
 scope. Caught by reading `git show --stat` of the auto-commit before pushing; dropped with a
 reset of that one unpushed commit.
-**Rule:** After Stage B-commit, always inspect the auto-fix commit (`git show --stat HEAD`, then the
-diff of any file with more changed lines than the branch itself changed there). If it touches
-lines the branch did not, drop it before Stage F (unpushed: `git reset --hard HEAD~1`; pushed:
-`git revert`). Pre-existing format drift in a touched file ships as its own `chore(format)` PR,
-never inside a feature merge. The Stage B guard is file-scoped; line scope is on the operator.
+**Rule:** After `sdm.sh check` makes its auto-fix commit (`chore(scope): pre-PR auto-fixes`), always
+inspect it (`git show --stat HEAD`, then the diff of any file with more changed lines than the
+branch itself changed there). If it touches lines the branch did not, do not ship it: pre-existing
+format drift in a touched file ships as its own `chore(format)` PR from the default branch, never
+inside a feature merge. `check`'s scope guard is file-scoped; line scope is on the operator.
+**Applied in:** `/sole-dev-merge` SKILL.md step 1 (2026-10-23). The rule above first named the old
+Stage B-commit and Stage F, which sole-dev-merge-simplify M2 replaced with `sdm.sh` (ADR-0024).
 ---
 ## L-030 (2026-09-28) — AA-MA artifacts committed and pushed before the user saw the final plan
 **Pattern:** In `/aa-ma-plan --from-map codebase-analysis-skills` I took Ste's approvals of the

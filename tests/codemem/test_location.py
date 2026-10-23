@@ -21,7 +21,6 @@ from pathlib import Path
 import pytest
 
 from codemem import mcp_tools, paths
-from codemem.incremental import _db_files
 from codemem.indexer import build_index
 from codemem.storage import db
 
@@ -234,7 +233,15 @@ def test_a_committed_codemem_dir_is_never_read_by_default(cache, repo, tmp_path,
 def test_every_cleanup_uses_one_suffix_list_with_journal():
     assert db.SQLITE_SUFFIXES == ("", "-wal", "-shm", "-journal")
     p = Path("/x/index.db")
-    assert _db_files(p) == [p.with_name("index.db" + s) for s in db.SQLITE_SUFFIXES]
+    assert db.db_files(p) == [p.with_name("index.db" + s) for s in db.SQLITE_SUFFIXES]
+
+
+def test_remove_db_files_removes_every_sidecar(tmp_path):
+    p = tmp_path / "index.db"
+    for f in db.db_files(p):
+        f.write_bytes(b"x")
+    db.remove_db_files(p)
+    assert not any(f.exists() for f in db.db_files(p))
 
 
 def test_a_build_over_an_untrusted_db_removes_its_journal(

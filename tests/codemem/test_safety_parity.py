@@ -176,6 +176,7 @@ def _shell_dir(root: Path, env: dict[str, str]) -> str:
         "symlinked root",
         "CODEMEM_DB",
         "CODEMEM_DB at /",
+        "CODEMEM_DB trailing slash",
         "relative XDG",
         "XDG trailing slash",
     ],
@@ -198,6 +199,8 @@ def test_every_twin_resolves_the_same_index_dir(tmp_path, monkeypatch, case):
     monkeypatch.delenv("CODEMEM_DB", raising=False)
     if case == "CODEMEM_DB":
         monkeypatch.setenv("CODEMEM_DB", str(tmp_path / "explicit" / "index.db"))
+    if case == "CODEMEM_DB trailing slash":
+        monkeypatch.setenv("CODEMEM_DB", f"{tmp_path / 'explicit'}/")
     if case == "CODEMEM_DB at /":
         monkeypatch.setenv("CODEMEM_DB", "/index.db")  # never opened: names only
     monkeypatch.chdir(root)

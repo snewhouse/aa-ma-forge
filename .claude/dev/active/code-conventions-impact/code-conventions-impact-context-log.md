@@ -652,3 +652,16 @@ DECISION ruff-only () — approved by Ste
 ## [2026-10-23] Milestone 16 boundary: §6.0 + §6.3 impact analysis
 - §6.0 (installed copy = main's pre-M16 script): first live `CODE_INTEL_REFRESH` for M16, codemem = graphify = 6b6e4396. The installed gate refreshed the old in-repo index; the new-location index was built separately (`codemem build`, 341 files) for the §13 fence. From 10.0's install on, §6.0 runs the M16 script.
 - §6.3 overall MEDIUM, no HIGH. Intended contract changes: codemem default DB → XDG cache (cli + MCP server), cli honours `CODEMEM_DB`, `.mcp.json` drops it, `open_graph` reads the cache dir, §6.0 value `skipped(no index)` → `skipped(codemem not installed)` (no reader). All in-repo callers cascaded; signatures of `_capped_refresh`, `_discard_untrusted`, `open_graph` unchanged. Downstream: other repos need one `codemem build` after merge before their §13 fence passes (BLOCKED names the remedy); the user-scope MCP picks up M16 at 10.0's install.
+
+## [2026-10-23] GATE APPROVAL: Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral)
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 9/9
+- Decision: APPROVED
+- Evidence (code at 4066fca8, fences recorded in 25242b1f): pytest 3177 passed / 5 skipped; bats 781 ok; DIAGRAM_VERIFIED edges=25 checked=25 phantom=0; TESTS_VERIFIED passed=3177; CRITICAL_PATH_REVIEW; CODE_INTEL_REFRESH (first live 6b6e4396, final 4066fca8); §6.8 PASS_WITH_WARNINGS (CRITICAL bench rmtree accepted + fixed cd6b695c→5c4c9f9d; round 2 clean).
+
+## [2026-10-23] Milestone Completion: Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral)
+- Status: COMPLETE (§7.3 authorised by Ste 2026-10-23)
+- Key outcome: codemem's default index lives in `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath root)>/`, so a repo can no longer plant a WAL, rollback journal or stamped index beside it (M15 §6.8 re-run 3, double-check F1, pre-merge HIGH). One resolver per language (codemem.paths, aa_ma.render.graph twin, aa_ma_codemem_dir) pinned by a parity test; trust token kept for a CODEMEM_DB inside a repo; §6.0 blocks a failed build.
+- Side work: format-only PRs #63, #64 (L-031); lessons L-064, L-065; TODOS P3 ×3.
+- Next: Milestone 10 — Dependencies: Milestone 9, Milestone 15, Milestone 16. 10.0 = post-merge of M16 (install.sh from main, --wire-git-hook per Ste's 16.0 deferral).

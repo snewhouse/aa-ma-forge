@@ -1499,7 +1499,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode AFK — auto-dispatched. CRITICAL_PATH_REVIEW line appended (heading verbatim) naming the 6 critical-path commits and the bats/test names: codemem-post-commit 12/12 (mutations 5/5), session-start-code-intel 18/18, code-intel-refresh 11/11, install-codemem-plugin 6/6, storm test; header claims corrected (7ea1228). Boundary fixes after this get a CRITICAL_PATH_REVIEW addendum (M8/M9 precedent).
 
 ## Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral)
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 15
 - Complexity: 60%
 - Effort: 1.5 days

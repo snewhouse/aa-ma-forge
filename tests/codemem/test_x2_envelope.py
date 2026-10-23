@@ -164,14 +164,14 @@ def test_shared_fixture_sha_vs_head(tmp_path):
     root = tmp_path / "fx"
     fixture = REPO_ROOT / "tests" / "fixtures" / "code-intel" / "make-repo.sh"
     subprocess.run(["bash", str(fixture), str(root)], check=True)
+    from codemem.paths import default_db_path
     from codemem.safety import stamp
 
-    conn = sqlite3.connect(
-        root / ".codemem" / "index.db"
-    )  # the shell fixture's index, as if built here
-    stamp(conn, root / ".codemem")
+    db_path = default_db_path(root)  # where the shell fixture put it (M16)
+    conn = sqlite3.connect(db_path)  # the shell fixture's index, as if built here
+    stamp(conn, db_path.parent)
     conn.close()
-    f = check_freshness(root, root / ".codemem" / "index.db")
+    f = check_freshness(root, db_path)
     assert (f.stale, f.reason) == (True, "behind")
     assert f.index_sha == _git(root, "rev-parse", "HEAD~2")
     assert f.head_sha == _git(root, "rev-parse", "HEAD")

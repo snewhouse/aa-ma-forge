@@ -281,3 +281,4 @@
 [2026-10-23T11:53:56+01:00] BASELINE — Milestone 16 @ 7d3c12658b2fe45423391ea1ee1a4ffc330f3140 — pytest 3155 passed / 5 skipped rc 0; bats 776 ok rc 0
 [2026-10-23T11:53:56+01:00] MILESTONE START — Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral) — ACTIVE; branch feat/cci-m16-codemem-index-location; dependency advisory: none
 [2026-10-23T11:53:56+01:00] STEP COMPLETE — 16.0 — HITL; decisions in context-log 2026-10-23; sub-steps 16.1–16.5 written
+[2026-10-23T12:08:20+01:00] STEP COMPLETE — 16.1 — RED 9514c7da → GREEN bd2095d5, e49cc7c8, 86a44fdc; pytest 3167 passed / 5 skipped; mutation: in-repo default fails 3/3 reproductions

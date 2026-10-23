@@ -135,3 +135,60 @@ def test_twins_agree_on_store_faults(tmp_path, fault):
     finally:
         os.chmod(rec.parent, 0o700)
     assert "trust store" in reason and "not built" not in reason
+
+
+# --- the index location (M16): codemem, aa_ma.render.graph and the shell agree ---
+
+_FORGE = Path(__file__).resolve().parents[2]
+
+
+def _shell_dir(root: Path, env: dict[str, str]) -> str:
+    import subprocess
+
+    r = subprocess.run(
+        [
+            "bash",
+            "-c",
+            '. "$1/claude-code/hooks/lib/aa-ma-parse.sh"; aa_ma_codemem_dir "$2"',
+            "_",
+            str(_FORGE),
+            str(root),
+        ],
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=root,
+    )
+    assert r.returncode == 0, r.stderr
+    return r.stdout
+
+
+@pytest.mark.parametrize(
+    "case", ["plain", "with spaces", "symlinked root", "CODEMEM_DB", "relative XDG"]
+)
+def test_every_twin_resolves_the_same_index_dir(tmp_path, monkeypatch, case):
+    import os
+
+    from aa_ma.render.graph import _default_db_path
+    from codemem.paths import resolve_db_path
+
+    real = tmp_path / ("my repo" if case == "with spaces" else "repo")
+    real.mkdir()
+    root = real
+    if case == "symlinked root":
+        root = tmp_path / "link"
+        root.symlink_to(real)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv(
+        "XDG_CACHE_HOME", "rel" if case == "relative XDG" else str(tmp_path / "cache")
+    )
+    monkeypatch.delenv("CODEMEM_DB", raising=False)
+    if case == "CODEMEM_DB":
+        monkeypatch.setenv("CODEMEM_DB", str(tmp_path / "explicit" / "index.db"))
+    monkeypatch.chdir(root)
+
+    py = resolve_db_path(root).parent
+    assert _default_db_path(root).parent == py
+    assert _shell_dir(root, dict(os.environ)) == str(py)
+    if case != "CODEMEM_DB":
+        assert py.parent.name == "codemem" and real not in py.parents

@@ -211,6 +211,7 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 ### `measure.py` docstring: "the report-based rule of /sole-dev-merge Stage C" is history
 **What:** `src/aa_ma/analysis/measure.py:4-5` cites "/sole-dev-merge Stage C", which sole-dev-merge-simplify M2 deleted (ADR-0024). Re-word it to "the former … Stage C (ADR-0008)". Any edit puts the file under the touched-file gate (ADR-0018 file-level compliance), which reports the file's existing ruff D-rule errors (`uv run ruff check src/aa_ma/analysis/measure.py`; 20 on 2026-10-22), so do the re-word together with that docstring cleanup.
 **Why:** sole-dev-merge-simplify 2.3 (2026-10-22) listed this comment; left out to keep a docs step from becoming a 20-error docstring refactor. **Effort:** S · **Priority:** P3
+**Done:** fix/measure-docstrings (2026-10-23). Comment re-worded; the 20 were 18 docstring errors (10 D209 auto-fixed, 8 D205 summaries rewritten) plus PLR0913 on `_tool` and C901 on `_job_codemem`, both pre-existing and suppressed with the D8 pay-down `# why:` (listed in the entry below). `ruff check` on the file: 0.
 
 ### `emit_aa_ma_footer`: reuse CCI's milestone merge-base helper
 **What:** `aa-ma-footer.sh` computes the branch's merge-base itself (`git merge-base HEAD "$ref"`). code-conventions-impact M11 plans `aa_ma_milestone_base` in `aa-ma-parse.sh` for the same question. Once both are on main, make the footer call that helper so the two cannot disagree.
@@ -252,6 +253,7 @@ Dependabot bumps the setup-uv SHA itself.
 - `cli.py::_cmd_query` (12; touched by M15.2)
 - `claude-code/codemem/mcp/server.py::build_server` (22; touched by M15.3)
 - `bench_codemem_vs_aider.py::_build_report` (PLR0913, 7 args)
+- `src/aa_ma/analysis/measure.py::_tool` (PLR0913, 8 args), `::_job_codemem` (12; both touched by the 2026-10-23 docstring fix)
 
 Find them with `grep -rn "M8.2 D8 pay-down"`.
 **Why:** M8.2 had to add security `noqa`s to these files, which made them touched files (D8). Refactoring codemem and render logic inside a security milestone was out of scope (Ste, 2026-10-12). **Effort:** M · **Priority:** P3

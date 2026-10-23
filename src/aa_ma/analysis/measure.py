@@ -2,8 +2,9 @@
 
 Tools measure, the model judges, and this module never guesses. A tool that is not installed is
 `absent`; one that fails, times out, or leaves no readable report is `unknown` (the report-based
-rule of /sole-dev-merge Stage C) and its metrics stay None — never zero. Rows, argv and parse
-shapes are the ones the 2.1 prototype confirmed on the forge (plan §5a, amended 2026-09-28).
+rule of the former /sole-dev-merge Stage C, ADR-0008) and its metrics stay None — never zero.
+Rows, argv and parse shapes are the ones the 2.1 prototype confirmed on the forge (plan §5a,
+amended 2026-09-28).
 
 Scanners never see the target itself: they run in a staging dir (a system temp dir, outside
 any git work tree, so no `.gitignore` hides it) of hard links or copies of its tracked regular files, without the scanner config and ignore files the target ships (those are recorded,
@@ -11,7 +12,8 @@ not obeyed). So an untracked `.env` or `node_modules/` is never scanned, a track
 never followed, and no file name can become a tool option. codemem always builds a fresh index in
 the work dir, with cwd = the target; the target's own `.codemem/` is never read or written. Tools
 run concurrently, each into its own context, merged in a fixed order so the output is
-deterministic."""
+deterministic.
+"""
 
 from __future__ import annotations
 
@@ -196,8 +198,11 @@ class _Ctx:
         return st.st_dev, st.st_ino
 
     def merge(self, other: _Ctx) -> None:
-        """Jobs write disjoint metric keys, except counts several tools share (deps.vulns), which
-        `add` sums — or leaves unknown when any contributing run missed."""
+        """Fold another job's results into this one; jobs write disjoint metric keys.
+
+        The exception is a count several tools share (deps.vulns), which `add` sums — or leaves
+        unknown when any contributing run missed.
+        """
         for name, status in other.tools.items():
             self._status(name, status)
         self.partial |= other.partial
@@ -304,7 +309,7 @@ def _version_ok(ctx: _Ctx, name: str, binary: str) -> bool:
     return version is not None and int(version.split(".")[0]) == TOOL_MAJOR[name]
 
 
-def _tool(
+def _tool(  # noqa: PLR0913  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down; touched for a docstring/comment fix only)
     ctx: _Ctx,
     name: str,
     args: list[str],
@@ -315,8 +320,10 @@ def _tool(
     ok: tuple[int, ...] = (0, 1),
     empty_ok: tuple[int, ...] = (),
 ) -> bool:
-    """Run one optional tool in the staging dir; its findings and metrics count only if its
-    report parses."""
+    """Run one optional tool in the staging dir.
+
+    Its findings and metrics count only if its report parses.
+    """
     ctx.metrics.update({k: ctx.metrics.get(k) for k in metric_keys})
     binary = find_binary(name)
     if binary is None:
@@ -438,10 +445,12 @@ _NON_SHIPPED_NAME = re.compile(
 
 def _secret_severity(path: str, rule: str) -> Severity:
     """HIGH only for a precise provider rule in shipped code — it may never reach a judge (Quick).
+
     Everything else is MEDIUM: only judged critical/high reach the refuter, and the security judge
     escalates a live-looking hit (AGENT-PROMPTS.md).
     ponytail: path heuristic — a real key committed under tests/ or docs ships MEDIUM; the judge
-    is the net."""
+    is the net.
+    """
     *dirs, name = path.replace("\\", "/").lower().split("/")
     generic = rule in GENERIC_SECRET_RULES or rule.startswith("generic")
     shipped = not (NON_SHIPPED_DIRS & set(dirs) or _NON_SHIPPED_NAME.search(name))
@@ -562,7 +571,8 @@ def _tracked_regular_files(repo: Path) -> tuple[dict[str, os.stat_result], int]:
     lstat and O_NOFOLLOW only guard the last component: a tracked `p/x` whose `p` was swapped
     for a symlink resolves outside the repo, so every parent is checked against its real path
     (a tracked symlink itself is not a regular file and is simply left out). Every later read
-    checks the listed (st_dev, st_ino), so a parent swapped after this listing is caught too."""
+    checks the listed (st_dev, st_ino), so a parent swapped after this listing is caught too.
+    """
     listed = run_git(repo, "ls-files", "-z", "--end-of-options")
     root, files, escaping = os.path.realpath(repo), {}, 0
     for rel in filter(None, listed.stdout.split("\0")):
@@ -579,9 +589,12 @@ def _tracked_regular_files(repo: Path) -> tuple[dict[str, os.stat_result], int]:
 
 
 def _stage_root(repo: Path) -> Path | None:
-    """`$XDG_CACHE_HOME/aa-ma` (or ~/.cache/aa-ma) when it is ours, on the repo's filesystem (so
-    staging hard-links rather than copies) and outside any git work tree (whose .gitignore the
-    scanners would obey); else None. Stale stages from killed runs are removed from it."""
+    """Return the staging root, `$XDG_CACHE_HOME/aa-ma` (or ~/.cache/aa-ma), or None.
+
+    The root is used only when it is ours, on the repo's filesystem (so staging hard-links rather
+    than copies) and outside any git work tree (whose .gitignore the scanners would obey). Stale
+    stages from killed runs are removed from it.
+    """
     base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
     root = Path(base) / STAGE_DIR
     try:
@@ -624,9 +637,11 @@ def _without_jscpd_key(src: Path, identity: tuple[int, int]) -> str | None:
 
 
 def _stage(ctx: _Ctx) -> None:
-    """Hard-link every tracked regular file (copy across filesystems) into the staging dir, minus
-    the scanner configs the target ships, which are recorded as present and not obeyed. A file
-    that changed or vanished since it was listed is skipped and counted."""
+    """Hard-link every tracked regular file (copy across filesystems) into the staging dir.
+
+    The scanner configs the target ships are left out: recorded as present, not obeyed. A file
+    that changed or vanished since it was listed is skipped and counted.
+    """
     t0, overrides, done = time.monotonic(), 0, Counter()
     for rel in ctx.files:
         name, src, dst = Path(rel).name, ctx.repo / rel, ctx.stage / rel
@@ -820,8 +835,11 @@ def _is_test(path: str, name: str) -> bool:
 
 
 class _Codemem:
-    """Every call: `codemem --db <work>/codemem.db …` with cwd = the target (AC12). codemem ships
-    with the forge, so a missing or failing one leaves its inputs `unknown`, never `absent`."""
+    """Runs codemem as `codemem --db <work>/codemem.db …` with cwd = the target (AC12).
+
+    codemem ships with the forge, so a missing or failing one leaves its inputs `unknown`, never
+    `absent`.
+    """
 
     def __init__(self, ctx: _Ctx, binary: str) -> None:
         self.ctx, self.binary, self.db = ctx, binary, str(ctx.work / "codemem.db")
@@ -881,7 +899,7 @@ def _co_changes(
     return {f"co_change:{target}|{f['path']}": f["count"] for f in doc["files"]}  # type: ignore[index]
 
 
-def _job_codemem(ctx: _Ctx) -> None:
+def _job_codemem(ctx: _Ctx) -> None:  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down; touched for a docstring/comment fix only)
     ctx.tools.update(dict.fromkeys(CODEMEM_INPUTS, ToolStatus.UNKNOWN))
     ctx.metrics.update(
         dict.fromkeys([*(f"layers.{k}" for k in LAYERS), "dead_code.candidates"])
@@ -945,8 +963,10 @@ def _skip_network(ctx: _Ctx) -> None:
 
 
 def _regex_pass(ctx: _Ctx) -> None:
-    """The built-in secret patterns over every tracked file (after gitleaks, which wins a line),
-    counting inline suppression markers on the way."""
+    """Scan every tracked file with the built-in secret patterns (gitleaks wins a shared line).
+
+    Inline suppression markers are counted on the way.
+    """
     seen = {(c.path, c.line) for c in ctx.found if c.rule == "security.secret"}
     found, markers = [], Counter()
     for rel in ctx.files:
@@ -980,8 +1000,11 @@ def _regex_pass(ctx: _Ctx) -> None:
 
 
 def _findings(ctx: _Ctx) -> list[Finding]:
-    """Findings with ids; one whose path the model refuses (a hostile file name) is dropped and
-    counted, never allowed to crash the run."""
+    """Return the findings with ids.
+
+    One whose path the model refuses (a hostile file name) is dropped and counted, never allowed
+    to crash the run.
+    """
     found = sorted(ctx.found, key=lambda c: (c.rule, c.path, c.line or 0, c.anchor))
     ids = assign_ids((c.dimension, c.rule, c.path, c.anchor) for c in found)
     out = []

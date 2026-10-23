@@ -25,6 +25,7 @@ from aa_ma.render.cli import render_main
 from codemem.draw.cut import MAX_EDGES, Level, collapse, is_test_path
 from codemem.draw.mermaid import escape_label
 from codemem.indexer import build_index
+from aa_ma.render.graph import _default_db_path
 
 REPO = Path(__file__).resolve().parents[2]
 FIXTURE = REPO / "tests/fixtures/draw-node-ids.json"
@@ -122,7 +123,7 @@ def repo(tmp_path: Path) -> Path:
     subprocess.run(["git", "init", "-q", "-b", "main", str(root)], check=True)
     _git(root, "add", "-A")
     _git(root, "commit", "-qm", "init")
-    build_index(root, root / ".codemem/index.db", package=".")
+    build_index(root, _default_db_path(root), package=".")
     return root
 
 
@@ -176,7 +177,7 @@ def test_a_hostile_file_name_cannot_end_the_island(repo: Path) -> None:
     (repo / "src/app/x</script><!--.py").write_text("from app.b import helper\n")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-qm", "hostile")
-    build_index(repo, repo / ".codemem/index.db", package=".")
+    build_index(repo, _default_db_path(repo), package=".")
     page, _ = explorer.build_explorer(repo)
     assert page.count("</script>") == page.count("<script")
     assert any("x</script><!--.py" in e[0] for e in _island(page)["edges"])
@@ -203,7 +204,7 @@ def test_mermaid_version_is_defined_once_and_never_in_the_js() -> None:
 
 
 def test_no_index_refuses_naming_the_remedy(repo: Path, capsys, monkeypatch) -> None:
-    shutil.rmtree(repo / ".codemem")
+    shutil.rmtree(_default_db_path(repo).parent)
     monkeypatch.chdir(repo)
     assert render_main(["--explorer"]) == 2
     assert "codemem build" in capsys.readouterr().err
@@ -211,7 +212,7 @@ def test_no_index_refuses_naming_the_remedy(repo: Path, capsys, monkeypatch) -> 
 
 
 def test_a_too_old_index_refuses(repo: Path, capsys) -> None:
-    conn = sqlite3.connect(repo / ".codemem/index.db")
+    conn = sqlite3.connect(_default_db_path(repo))
     conn.execute("PRAGMA user_version = 2")
     conn.commit()
     conn.close()
@@ -227,7 +228,7 @@ def test_a_too_old_index_refuses(repo: Path, capsys) -> None:
 
 def test_an_unreadable_index_refuses_not_a_traceback(repo: Path, capsys) -> None:
     """§6.8: a schema-v3 file missing tables is 'unreadable' — exit 2, nothing written."""
-    db = repo / ".codemem/index.db"
+    db = _default_db_path(repo)
     db.unlink()
     conn = sqlite3.connect(db)
     conn.executescript(

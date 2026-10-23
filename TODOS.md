@@ -202,7 +202,7 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 ### /sole-dev-merge M2 PR #58 review (C1/C2, round 1): 1 MEDIUM + 2 LOW, deferred under the stop rule
 **What:**
-- MEDIUM: SKILL.md step 1 gives no recovery for `ABORT: check: files outside the branch changed`. `check` exits before `git add`, so the tree is left dirty and a re-run hits "Uncommitted changes"; the shortcut (commit everything) brings back the L-007 scope widening. Add: the tree was clean at the start, so `git restore --staged --worktree -- <listed files>`, then step 1 again (the in-scope fixes are re-made).
+- ~~MEDIUM: SKILL.md step 1 gives no recovery for `ABORT: check: files outside the branch changed`. `check` exits before `git add`, so the tree is left dirty and a re-run hits "Uncommitted changes"; the shortcut (commit everything) brings back the L-007 scope widening. Add: the tree was clean at the start, so `git restore --staged --worktree -- <listed files>`, then step 1 again (the in-scope fixes are re-made).~~ **Done:** fix/sdm-skill-recovery (2026-10-23): SKILL.md step 1 "Out-of-scope ABORT" (restore tracked fixer changes, ask before removing untracked ones, fix the cause or take the file on purpose); prototyped live in a sandbox.
 - LOW: `tests/codemem/test_plugin_surface.py:99` keeps `sole-dev-merge` off the orphan list only because hook comments name it; retiring rule 8 (entry above) or re-wording those comments makes the skill an orphan and fails the test unexpectedly. Give the skill a non-comment edge or name it in the expected set.
 - ~~LOW: CHANGELOG/ADR-0024 said SKILL.md is 125 lines; it is 130 after the §6.8 fixes.~~ **Done:** chore/sdm-simplify-finalize.
 
@@ -219,7 +219,7 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 
 ### /sole-dev-merge: source the repo's own `aa-ma-footer.sh` only inside aa-ma-forge
 **What:** `sdm_footer` in `sdm.sh` (was the `footer-resolve` chain; re-homed in sole-dev-merge-simplify M2) tries `<toplevel>/claude-code/hooks/lib/aa-ma-footer.sh` in **any** repo and sources it for the auto-fix commit's footer. Check that the repo is aa-ma-forge (plugin manifest name) before taking the repo copy; otherwise use the installed `~/.claude/hooks/lib` link.
-**Why:** §6.8 security review of M1 (INFO, A08). Low risk, because Stage B already runs the repo's own pre-commit and pytest. **Effort:** S · **Priority:** P3
+**Why:** §6.8 security review of M1 (INFO, A08). Low risk, because `sdm.sh check` already runs the repo's own pre-commit hooks (repo code) on the branch's files. **Effort:** S · **Priority:** P3
 
 ### A reusable `secops-ci` template for other repos
 **What:** a drop-in set (security.yml jobs ruff-security / gitleaks / deps, `.gitleaksignore`, `.pip-audit-ignore`, `dependabot.yml`, a pre-commit gitleaks entry) plus a short install note in `Skill(secops)`.

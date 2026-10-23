@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-10-23 09:41 -->
+<!-- Plan: sole-dev-merge-simplify - COMPLETE -->
+<!-- Total Milestones: 2 | Duration: 2026-10-20 to 2026-10-23 -->
+
 # sole-dev-merge-simplify Plan
 
 **Objective:** Replace `/sole-dev-merge`'s ~2,000 lines of markdown-embedded bash with one bats-tested script, `sdm.sh` (`check` / `ship` / `finish`). GitHub only, with no stage state file, keeping every behaviour that real use proved necessary.

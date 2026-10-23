@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-10-23 09:41 -->
+<!-- Plan: sole-dev-merge-simplify - COMPLETE -->
+<!-- Total Milestones: 2 | Duration: 2026-10-20 to 2026-10-23 -->
+
 # sole-dev-merge-simplify Reference
 
 Test-Command: bats --formatter pretty -r tests
@@ -107,7 +111,7 @@ What M2's SKILL.md can now rely on (the exit table in `sdm.sh help` is canonical
 - finish: a plain checkout with tracked changes → `STATUS: MAIN_CHECKOUT_DIRTY` before any checkout.
 - Named constants in sdm.sh: POLL_DEFAULT 900s, APPEAR_DEFAULT_S 120, INTERVAL_DEFAULT_S 10, GH_CALL_TIMEOUT_S 30, WATCH_INTERVAL_S 30, PR_TITLE_MAX 70, CHECK_RUNS_PER_PAGE 100. sdm.sh 384 lines; sdm suite 167 tests.
 
-### Milestone 2 SHA map (PR #58 → main, rebase merge `7a904f72`, 2026-10-22)
+### Milestone 2 SHA map (PR #58 → main, rebase merge `7a904f72`, 2026-10-23)
 PR commits from `gh api repos/snewhouse/aa-ma-forge/pulls/58/commits`, matched by full subject to `git log 66f9c610..7a904f72` (15/16; the 16th, `f74d80db` "chore: merge origin/main (PR #57 …)", is a merge commit that a rebase merge does not replay).
 | PR #58 | main | subject |
 |---|---|---|
@@ -127,7 +131,7 @@ PR commits from `gh api repos/snewhouse/aa-ma-forge/pulls/58/commits`, matched b
 | `9d704c08` | `43b32388` | docs(aa-ma): M2 TESTS_VERIFIED 776 on 96adf285; pytest 3149 |
 | `98b40bfc` | `7a904f72` | docs(aa-ma): 2.4 — pip-audit on #58 unblocked by deps PR #59 (no rebase) |
 
-### Milestone 2 live facts (2026-10-22)
+### Milestone 2 live facts (2026-10-22 to 2026-10-23)
 - The new SKILL.md merged its own PR (#58): `check` → C1/C2 (round 1: C1 0C/0H/1M/2L, C2 none) → `ship` → `finish` → `STATUS: OK worktree=…`. pip-audit blocked the first `ship` (CVE-2026-114603, opentelemetry-api, transitive dev dep) → deps PR #59 (`66f9c610`) → re-`ship` (a new AA-MA commit re-tests the merge ref; no rebase) → green.
 - The re-`ship` updated #58's body with read-back match right after a push (the M1 head-lag fix, live again).
 - `scripts/install.sh` from a linked worktree re-links the skill to that worktree; run it from the main checkout (done after the merge: rc 0, 68 links; `~/.claude/skills/sole-dev-merge` → the main checkout).

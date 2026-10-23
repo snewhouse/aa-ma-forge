@@ -23,6 +23,15 @@ def _built(d: Path) -> Path:
     return d
 
 
+def _graph_at(d: Path):
+    """open_graph on the index in ``d``: since M16 that dir is chosen by CODEMEM_DB."""
+    from aa_ma.render.graph import open_graph
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("CODEMEM_DB", str(d / "index.db"))
+        return open_graph(d.parent)
+
+
 def _case(name: str, tmp: Path) -> Path:
     d = tmp / "r" / ".codemem"
     victim = tmp / "victim"
@@ -62,11 +71,10 @@ def test_twin_refuses_iff_codemem_refuses(tmp_path, name):
 
 def test_twin_trust_matches_codemem_trust(tmp_path):
     """Built here → both read it; plain sqlite → both refuse."""
-    from aa_ma.render.graph import open_graph
 
     here = _built(tmp_path / "a" / ".codemem")
     db.connect(here / "index.db", read_only=True).close()
-    assert "not built" not in (open_graph(here.parent).reason or "")
+    assert "not built" not in (_graph_at(here).reason or "")
 
     foreign = tmp_path / "c" / ".codemem"
     foreign.mkdir(parents=True)
@@ -75,18 +83,17 @@ def test_twin_trust_matches_codemem_trust(tmp_path):
     )  # another dir's stamp
     with pytest.raises(db.UntrustedIndex):
         db.connect(foreign / "index.db", read_only=True)
-    assert "not built" in open_graph(foreign.parent).reason
+    assert "not built" in _graph_at(foreign).reason
 
     plain = tmp_path / "b" / ".codemem"
     plain.mkdir(parents=True)
     sqlite3.connect(plain / "index.db").close()
     with pytest.raises(db.UntrustedIndex):
         db.connect(plain / "index.db", read_only=True)
-    assert "codemem build" in open_graph(plain.parent).reason
+    assert "codemem build" in _graph_at(plain).reason
 
 
 def test_twins_agree_a_non_ascii_stamp_is_untrusted(tmp_path):
-    from aa_ma.render.graph import open_graph
 
     d = _built(tmp_path / "n" / ".codemem")
     conn = sqlite3.connect(d / "index.db")
@@ -94,7 +101,7 @@ def test_twins_agree_a_non_ascii_stamp_is_untrusted(tmp_path):
     conn.commit()
     conn.close()
     assert db.index_trusted(d / "index.db") is False
-    assert "not built" in open_graph(d.parent).reason
+    assert "not built" in _graph_at(d).reason
 
 
 def test_twins_name_a_broken_trust_store_not_a_hostile_index(tmp_path, monkeypatch):
@@ -102,7 +109,6 @@ def test_twins_name_a_broken_trust_store_not_a_hostile_index(tmp_path, monkeypat
 
     The store is broken by pointing XDG_STATE_HOME at a file (chmod 0 does not stop root).
     """
-    from aa_ma.render.graph import open_graph
     from codemem.safety import TrustStoreError
 
     d = _built(tmp_path / "s" / ".codemem")
@@ -111,7 +117,7 @@ def test_twins_name_a_broken_trust_store_not_a_hostile_index(tmp_path, monkeypat
     monkeypatch.setenv("XDG_STATE_HOME", str(blocker))
     with pytest.raises(TrustStoreError):
         db.connect(d / "index.db", read_only=True)
-    reason = open_graph(d.parent).reason
+    reason = _graph_at(d).reason
     assert "trust store" in reason and "not built" not in reason
 
 
@@ -119,7 +125,6 @@ def test_twins_name_a_broken_trust_store_not_a_hostile_index(tmp_path, monkeypat
 def test_twins_agree_on_store_faults(tmp_path, fault):
     import os
 
-    from aa_ma.render.graph import open_graph
     from codemem.safety import TrustStoreError, trust_record
 
     d = _built(tmp_path / "f" / ".codemem")
@@ -131,7 +136,7 @@ def test_twins_agree_on_store_faults(tmp_path, fault):
     try:
         with pytest.raises(TrustStoreError):
             db.connect(d / "index.db", read_only=True)
-        reason = open_graph(d.parent).reason
+        reason = _graph_at(d).reason
     finally:
         os.chmod(rec.parent, 0o700)
     assert "trust store" in reason and "not built" not in reason

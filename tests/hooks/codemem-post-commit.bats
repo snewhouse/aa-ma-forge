@@ -12,6 +12,9 @@ setup() {
     TMP="$(mktemp -d)"
     # codemem keeps trust records under XDG_STATE_HOME (M15 §6.8): never the user's.
     export XDG_STATE_HOME="${TMP}/state"
+    # ... and its default index under XDG_CACHE_HOME (M16)
+    export XDG_CACHE_HOME="${TMP}/cache"
+    unset CODEMEM_DB
     REPO="${TMP}/repo"
     STUBS="${TMP}/stubs"
     export STUB_LOG="${TMP}/stub.log"
@@ -30,6 +33,8 @@ EOF
     chmod +x "${STUBS}/graphify"
     export PATH="${STUBS}:/usr/local/bin:/usr/bin:/bin"
     cd "$REPO" || return 1
+    CM="$(bash -c '. "$1"; aa_ma_codemem_dir "$2"' _ "${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh" "$REPO")"
+    [[ "$CM" == "${XDG_CACHE_HOME}/codemem/"* ]] || return 1
     git init -q -b main
     git config user.email t@example.invalid
     git config user.name t
@@ -73,8 +78,8 @@ await_eq() {
         [[ "$(cat "$1" 2>/dev/null)" == "$2" ]] && return 0  # why: the file may not exist yet
         sleep 0.1
     done
-    echo "timed out: $1 != $2; .codemem/refresh.log:" >&2
-    cat .codemem/refresh.log >&2 2>/dev/null || echo "(no refresh.log)" >&2  # why: report its absence instead
+    echo "timed out: $1 != $2; ${CM}/refresh.log:" >&2
+    cat "${CM}/refresh.log" >&2 2>/dev/null || echo "(no refresh.log)" >&2  # why: report its absence instead
     return 1
 }
 
@@ -83,7 +88,7 @@ await_eq() {
     drain
     head=$(git rev-parse HEAD)
     # why: drain can return before the detached worker is visible; wait on the outcome itself
-    await_eq .codemem/last_sha "$head"
+    await_eq "${CM}/last_sha" "$head"
     await_eq graphify-out/.built_sha "$head"
 }
 
@@ -104,7 +109,7 @@ await_eq() {
     STUB_FAIL=1 commit_change 3
     drain
     [ "$(cat graphify-out/.built_sha)" = "$old" ]
-    [ "$(grep -c 'graphify update failed' .codemem/refresh.log)" -eq 1 ]
+    [ "$(grep -c 'graphify update failed' "${CM}/refresh.log")" -eq 1 ]
 }
 
 @test "a killed graphify run keeps the previous .built_sha" {
@@ -146,9 +151,9 @@ await_eq() {
     rm -f "${STUBS}/graphify"
     commit_change 2
     drain
-    [ "$(cat .codemem/last_sha)" = "$(git rev-parse HEAD)" ]
+    [ "$(cat "${CM}/last_sha")" = "$(git rev-parse HEAD)" ]
     [ ! -e graphify-out/.built_sha ]
-    [ "$(grep -c 'graphify not found' .codemem/refresh.log)" -eq 1 ]
+    [ "$(grep -c 'graphify not found' "${CM}/refresh.log")" -eq 1 ]
 }
 
 @test "a relative PATH entry cannot run a repo-planted graphify" {
@@ -168,13 +173,13 @@ await_eq() {
     drain
     [ "$(cat "${TMP}/victim")" = "original" ]
     [ ! -s "$STUB_LOG" ]
-    grep -q 'graphify-out holds a symlink' .codemem/refresh.log
+    grep -q 'graphify-out holds a symlink' "${CM}/refresh.log"
 }
 
 @test "a symlinked refresh.log is never appended to" {
-    mkdir -p .codemem
+    mkdir -p "$CM"
     printf 'original\n' > "${TMP}/victim"
-    ln -s "${TMP}/victim" .codemem/refresh.log
+    ln -s "${TMP}/victim" "${CM}/refresh.log"
     STUB_FAIL=1 commit_change 2
     drain
     [ "$(cat "${TMP}/victim")" = "original" ]
@@ -211,9 +216,9 @@ await_eq() {
     done
     PATH="${STUBS}:${nf}" commit_change 2
     drain
-    [ "$(cat .codemem/last_sha)" = "$(git rev-parse HEAD)" ]
+    [ "$(cat "${CM}/last_sha")" = "$(git rev-parse HEAD)" ]
     [ ! -e graphify-out/.built_sha ]
-    grep -q 'flock not found' .codemem/refresh.log
+    grep -q 'flock not found' "${CM}/refresh.log"
 }
 
 @test "§6.6: a .built_sha write that fails is logged" {
@@ -223,7 +228,7 @@ await_eq() {
     commit_change 3
     drain
     chmod 755 graphify-out
-    grep -q 'post-commit: .*built_sha' .codemem/refresh.log
+    grep -q 'post-commit: .*built_sha' "${CM}/refresh.log"
 }
 
 # --- §6.8 (M15): repo-controlled dirs, SHA-256, and bounded steps -----------
@@ -234,13 +239,14 @@ await_eq() {
     commit_change 2
     drain
     [ -z "$(ls -A "${TMP}/victim-dir")" ]
-    grep -q 'graphify-out is a symlink' .codemem/refresh.log
+    grep -q 'graphify-out is a symlink' "${CM}/refresh.log"
 }
 
-@test "§6.8: a symlinked .codemem/ is never refreshed through" {
+@test "§6.8: a symlinked index dir is never refreshed through" {
     mkdir -p "${TMP}/victim-dir"
     printf 'keep\n' > "${TMP}/victim-dir/index.db"
-    ln -s "${TMP}/victim-dir" .codemem
+    mkdir -p "${CM%/*}"
+    ln -s "${TMP}/victim-dir" "$CM"
     commit_change 2
     drain
     [ "$(ls -A "${TMP}/victim-dir")" = "index.db" ]
@@ -273,7 +279,7 @@ await_eq() {
     commit_change 2
     drain
     [ ! -e graphify-out/.built_sha ]
-    grep -q 'graphify update timed out after [0-9]*s' .codemem/refresh.log
+    grep -q 'graphify update timed out after [0-9]*s' "${CM}/refresh.log"
 }
 
 @test "§6.8 re-run: a link inside graphify-out skips graphify" {
@@ -284,5 +290,13 @@ await_eq() {
     drain
     [ "$(cat "${TMP}/victim")" = "original" ]
     [ ! -s "$STUB_LOG" ]
-    grep -q 'graphify-out holds a symlink' .codemem/refresh.log
+    grep -q 'graphify-out holds a symlink' "${CM}/refresh.log"
+}
+
+@test "M16: the index, its sidecars and refresh.log land in the cache dir, never the repo" {
+    STUB_FAIL=1 commit_change 2
+    drain
+    [ ! -e .codemem ]
+    [ "$(cat "${CM}/last_sha")" = "$(git rev-parse HEAD)" ]
+    [ -f "${CM}/index.db" ] && [ -f "${CM}/refresh.log" ]
 }

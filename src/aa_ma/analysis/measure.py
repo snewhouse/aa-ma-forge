@@ -10,9 +10,9 @@ Scanners never see the target itself: they run in a staging dir (a system temp d
 any git work tree, so no `.gitignore` hides it) of hard links or copies of its tracked regular files, without the scanner config and ignore files the target ships (those are recorded,
 not obeyed). So an untracked `.env` or `node_modules/` is never scanned, a tracked symlink is
 never followed, and no file name can become a tool option. codemem always builds a fresh index in
-the work dir, with cwd = the target; the target's own `.codemem/` is never read or written. Tools
-run concurrently, each into its own context, merged in a fixed order so the output is
-deterministic.
+the work dir (`--db`), with cwd = the target; neither the target's `.codemem/` nor codemem's cache
+dir for it is read or written. Tools run concurrently, each into its own context, merged in a
+fixed order so the output is deterministic.
 """
 
 from __future__ import annotations

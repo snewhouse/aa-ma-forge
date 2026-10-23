@@ -16,6 +16,9 @@ setup() {
     WORK="$(mktemp -d)"
     # codemem keeps trust records under XDG_STATE_HOME (M15 §6.8): never the user's.
     export XDG_STATE_HOME="${WORK}/state"
+    # ... and its default index under XDG_CACHE_HOME (M16)
+    export XDG_CACHE_HOME="${WORK}/cache"
+    unset CODEMEM_DB
     R="${WORK}/r"
     T="${R}/.claude/dev/active/t"
     PROV="${T}/t-provenance.log"
@@ -42,6 +45,8 @@ EOF
     git -C "$R" -c user.name=t -c user.email=t@t -c commit.gpgsign=false add -A
     git -C "$R" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -q -m init
     cd "$R" || return 1
+    CM="$(bash -c '. "$1"; aa_ma_codemem_dir "$2"' _ "${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh" "$R")"
+    [[ "$CM" == "${XDG_CACHE_HOME}/codemem/"* ]] || return 1
     "${FORGE}/.venv/bin/codemem" build > /dev/null
 }
 
@@ -58,7 +63,7 @@ line_count() { grep -c 'CODE_INTEL_REFRESH' "$PROV" || true; }
     [ "$status" -eq 0 ]
     [ "$(line_count)" -eq 1 ]
     grep -qE "^\[[^]]+\] CODE_INTEL_REFRESH — ${HEADING} — codemem=${head} graphify=${head}$" "$PROV"
-    [ "$(cat .codemem/last_sha)" = "$head" ]
+    [ "$(cat "${CM}/last_sha")" = "$head" ]
     [ "$(cat graphify-out/.built_sha)" = "$head" ]
 }
 
@@ -86,7 +91,7 @@ line_count() { grep -c 'CODE_INTEL_REFRESH' "$PROV" || true; }
 
 @test "an existing codemem index that fails to refresh is BLOCKED, nothing appended" {
     # A refresh error on an index built here (a garbage file is untrusted and rebuilt, §6.8).
-    "${FORGE}/.venv/bin/python" -I -c 'import sqlite3; c = sqlite3.connect(".codemem/index.db"); c.execute("DROP TABLE files"); c.commit()'
+    "${FORGE}/.venv/bin/python" -I -c 'import sqlite3, sys; c = sqlite3.connect(sys.argv[1]); c.execute("DROP TABLE files"); c.commit()' "${CM}/index.db"
     git -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -q --allow-empty -m next
     run bash "$SCRIPT" t
     [ "$status" -eq 1 ]
@@ -95,7 +100,7 @@ line_count() { grep -c 'CODE_INTEL_REFRESH' "$PROV" || true; }
 }
 
 @test "no codemem index and no codemem → codemem=skipped(no index)" {
-    rm -rf .codemem
+    rm -rf "$CM"
     head=$(git rev-parse HEAD)
     CODEMEM_BIN=/nonexistent run bash "$SCRIPT" t
     [ "$status" -eq 0 ]
@@ -143,8 +148,8 @@ line_count() { grep -c 'CODE_INTEL_REFRESH' "$PROV" || true; }
 
 @test "§6.8: a symlinked last_sha naming HEAD is BLOCKED" {
     git rev-parse HEAD > "${WORK}/fake-sha"
-    rm -f .codemem/last_sha
-    ln -s "${WORK}/fake-sha" .codemem/last_sha
+    rm -f "${CM}/last_sha"
+    ln -s "${WORK}/fake-sha" "${CM}/last_sha"
     run bash "$SCRIPT" t
     [ "$status" -eq 1 ]
     [[ "$output" == *"BLOCKED"* ]]
@@ -160,35 +165,35 @@ line_count() { grep -c 'CODE_INTEL_REFRESH' "$PROV" || true; }
     grep -qE "graphify=WARN " "$PROV"
 }
 
-@test "§6.8: a symlinked .codemem/ is BLOCKED and named" {
-    mv .codemem "${WORK}/elsewhere"
-    ln -s "${WORK}/elsewhere" .codemem
+@test "§6.8: a symlinked index dir is BLOCKED and named" {
+    mv "$CM" "${WORK}/elsewhere"
+    ln -s "${WORK}/elsewhere" "$CM"
     run bash "$SCRIPT" t
     [ "$status" -eq 1 ]
-    [[ "$output" == *"BLOCKED"*".codemem"*"symlink"* ]]
+    [[ "$output" == *"BLOCKED"*"index dir"*"symlink"* ]]
     [ "$(line_count)" -eq 0 ]
 }
 
-@test "§6.8 re-run: a link inside .codemem/ is BLOCKED and named" {
+@test "§6.8 re-run: a link inside the index dir is BLOCKED and named" {
     printf 'x\n' > "${WORK}/victim"
-    rm -f .codemem/index.db
-    ln -s "${WORK}/victim" .codemem/index.db
+    rm -f "${CM}/index.db"
+    ln -s "${WORK}/victim" "${CM}/index.db"
     run bash "$SCRIPT" t
     [ "$status" -eq 1 ]
-    [[ "$output" == *"BLOCKED"*".codemem"*"symlink"* ]]
+    [[ "$output" == *"BLOCKED"*"index dir"*"symlink"* ]]
     [ "$(line_count)" -eq 0 ]
 }
 
 @test "§6.8 re-run: a dangling index.db link is BLOCKED, not skipped(no index)" {
-    rm -f .codemem/index.db
-    ln -s "${WORK}/nowhere" .codemem/index.db
+    rm -f "${CM}/index.db"
+    ln -s "${WORK}/nowhere" "${CM}/index.db"
     run bash "$SCRIPT" t
     [ "$status" -eq 1 ]
     [ "$(line_count)" -eq 0 ]
 }
 
 @test "§6.8 trust: an index not built here is rebuilt, and §6.0 records HEAD" {
-    printf 'garbage%.0s' {1..64} > .codemem/index.db
+    printf 'garbage%.0s' {1..64} > "${CM}/index.db"
     head=$(git rev-parse HEAD)
     run bash "$SCRIPT" t
     [ "$status" -eq 0 ]

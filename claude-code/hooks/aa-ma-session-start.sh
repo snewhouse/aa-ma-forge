@@ -65,13 +65,15 @@ _code_intel_part() {
 }
 
 _code_intel_line() {
-    local top has_cm=0 has_gf=0
+    local top cm has_cm=0 has_gf=0
     top="$(git rev-parse --show-toplevel 2>/dev/null)" || return 0  # why: not a repo → no line, by rule
-    [[ -e "${top}/.codemem/index.db" ]] && has_cm=1
+    # M16: the index lives in the codemem cache dir, not the repo; no dir → "not built"
+    cm="$(aa_ma_codemem_dir "$top")" || cm=""
+    [[ -n "$cm" && -e "${cm}/index.db" ]] && has_cm=1
     [[ -d "${top}/graphify-out" ]] && has_gf=1
     [[ "$has_cm" -eq 0 && "$has_gf" -eq 0 ]] && return 0
     printf 'Code-intel: %s · %s\n' \
-        "$(_code_intel_part codemem "$has_cm" "$top" "${top}/.codemem/last_sha")" \
+        "$(_code_intel_part codemem "$has_cm" "$top" "${cm}/last_sha")" \
         "$(_code_intel_part graphify "$has_gf" "$top" "${top}/graphify-out/.built_sha")"
 }
 

@@ -18,12 +18,13 @@
 #        graphify-out/.built_sha (R03-D12). A failed or killed run leaves the
 #        previous .built_sha, so the sidecar never claims a graph it lacks.
 # - No-op during rebase / cherry-pick / revert / merge.
-# - Every log line goes to .codemem/refresh.log; graphify absent = one notice.
+# - Every log line goes to refresh.log in the codemem index dir (aa_ma_codemem_dir:
+#   the XDG cache, or $CODEMEM_DB's dir; M16); graphify absent = one notice.
 # - Repo-controlled inputs stay inert: PATH keeps absolute entries only (a
 #   relative entry would run a repo's ./graphify), codemem comes from this
 #   forge's venv before PATH, and refresh.log / .built_sha are never written
 #   through a symlink. A graphify-out that is or holds a symlink skips
-#   graphify (it could write through the link); codemem refuses a .codemem
+#   graphify (it could write through the link); codemem refuses an index dir
 #   that is or holds one itself. A stray
 #   refresh.pid is no longer read: killing a PID from a repo-writable file
 #   could kill any process of the user.
@@ -42,6 +43,9 @@ export PATH
 SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"  # why: readlink -f is absent on old macOS; the invoked path still works
 FORGE_ROOT="$(cd "$(dirname "${SELF}")/../../.." && pwd)"
 SHA_RE='^([0-9a-f]{40}|[0-9a-f]{64})$'
+# This forge's resolver, never the target repo's copy (it would run inside the hook).
+# shellcheck source=/dev/null
+. "${FORGE_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" || exit 0  # why: no resolver → no log dir; the commit is never failed
 # The slowest measured step is a cold `graphify update` (11.5 s on aa-ma-forge,
 # M15.4); 300 s is ~25x that. A worker waits for one predecessor's three
 # capped steps (codemem refresh, refresh-commits, graphify update) plus a
@@ -51,8 +55,9 @@ CAPPED_STEPS=3
 LOCK_WAIT_S=$((CAPPED_STEPS * STEP_TIMEOUT_S + 60))
 
 log_line() {
-    # One line to .codemem/refresh.log, never through a symlink (the dir is repo-controlled).
-    local dir="${REPO_ROOT}/.codemem" log
+    # One line to <index dir>/refresh.log, never through a symlink ($CODEMEM_DB may name a repo dir).
+    local dir log
+    dir="$(aa_ma_codemem_dir "${REPO_ROOT}")" || return 0  # why: no realpath/sha256 tool → nowhere to log
     log="${dir}/refresh.log"
     [[ -L "${dir}" || -L "${log}" ]] && return 0
     mkdir -p "${dir}" 2>/dev/null || return 0  # why: an unwritable repo is not a reason to fail a commit

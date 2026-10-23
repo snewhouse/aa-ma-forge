@@ -3,7 +3,8 @@
 #
 # Usage: make-repo.sh <dir>
 # Creates <dir> as a git repo with three commits C1..C3 and both sidecars:
-#   .codemem/index.db (empty) + .codemem/last_sha = C1   → codemem 2 behind
+#   <codemem dir>/index.db (empty) + last_sha = C1        → codemem 2 behind
+#   (<codemem dir> = aa_ma_codemem_dir <dir>: $CODEMEM_DB's dir, else the XDG cache; M16)
 #   graphify-out/.built_sha = C3                         → graphify 0 behind
 # Read by tests/hooks/session-start-code-intel.bats (shell) and
 # tests/codemem/test_x2_envelope.py (Python) so both compute against one repo.
@@ -21,7 +22,10 @@ for i in 1 2 3; do
     git add -A
     git commit -q -m "c$i"
 done
-mkdir -p .codemem graphify-out
-: > .codemem/index.db
-git rev-parse HEAD~2 > .codemem/last_sha
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/claude-code/hooks/lib/aa-ma-parse.sh"
+cm="$(aa_ma_codemem_dir "$PWD")"
+mkdir -p "$cm" graphify-out
+: > "$cm/index.db"
+git rev-parse HEAD~2 > "$cm/last_sha"
 git rev-parse HEAD > graphify-out/.built_sha

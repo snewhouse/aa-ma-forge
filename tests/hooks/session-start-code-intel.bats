@@ -12,8 +12,13 @@ setup() {
     export HOME="${TMP}/home"
     export CLAUDE_HOOK_LOG="${TMP}/hooks.log"
     mkdir -p "$HOME"
+    export XDG_CACHE_HOME="${TMP}/cache"
+    unset CODEMEM_DB
     bash "${FORGE}/tests/fixtures/code-intel/make-repo.sh" "$REPO"
     cd "$REPO" || return 1
+    # M16: the codemem index and its sidecar live in the cache dir, not the repo
+    CM="$(bash -c '. "$1"; aa_ma_codemem_dir "$2"' _ "${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh" "$REPO")"
+    [[ "$CM" == "${XDG_CACHE_HOME}/codemem/"* ]] || return 1
 }
 
 teardown() {
@@ -29,7 +34,7 @@ code_intel() { printf '%s\n' "$output" | grep '^Code-intel:' || true; }
 }
 
 @test "neither index exists → nothing at all" {
-    rm -rf .codemem graphify-out
+    rm -rf "$CM" graphify-out
     run bash "$HOOK"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
@@ -42,9 +47,25 @@ code_intel() { printf '%s\n' "$output" | grep '^Code-intel:' || true; }
 }
 
 @test "codemem missing → 'codemem not built'" {
-    rm -rf .codemem
+    rm -rf "$CM"
     run bash "$HOOK"
     [ "$(code_intel)" = "Code-intel: codemem not built · graphify 0 behind (code layer)" ]
+}
+
+@test "M16: an in-repo .codemem/ is never read → 'codemem not built'" {
+    rm -rf "$CM"
+    mkdir -p .codemem && : > .codemem/index.db
+    git rev-parse HEAD > .codemem/last_sha
+    run bash "$HOOK"
+    [ "$status" -eq 0 ]
+    [ "$(code_intel)" = "Code-intel: codemem not built · graphify 0 behind (code layer)" ]
+}
+
+@test "M16: CODEMEM_DB moves the index dir the line reads" {
+    mkdir -p "${TMP}/explicit"
+    mv "$CM"/* "${TMP}/explicit/"
+    CODEMEM_DB="${TMP}/explicit/index.db" run bash "$HOOK"
+    [ "$(code_intel)" = "Code-intel: codemem 2 behind · graphify 0 behind (code layer)" ]
 }
 
 @test "graphify-out without .built_sha → 'graphify: no sha'" {
@@ -54,7 +75,7 @@ code_intel() { printf '%s\n' "$output" | grep '^Code-intel:' || true; }
 }
 
 @test "a '-'-leading sidecar is never passed to git nor echoed" {
-    printf -- '--output=%s/pwned\n' "$TMP" > .codemem/last_sha
+    printf -- '--output=%s/pwned\n' "$TMP" > "$CM/last_sha"
     run bash "$HOOK"
     [ "$(code_intel)" = "Code-intel: codemem unknown (bad sha) · graphify 0 behind (code layer)" ]
     [[ "$output" != *"--output"* ]]
@@ -62,7 +83,7 @@ code_intel() { printf '%s\n' "$output" | grep '^Code-intel:' || true; }
 }
 
 @test "a 39-char sidecar is 'bad sha'" {
-    git rev-parse HEAD | cut -c1-39 > .codemem/last_sha
+    git rev-parse HEAD | cut -c1-39 > "$CM/last_sha"
     run bash "$HOOK"
     [ "$(code_intel)" = "Code-intel: codemem unknown (bad sha) · graphify 0 behind (code layer)" ]
 }
@@ -75,7 +96,7 @@ code_intel() { printf '%s\n' "$output" | grep '^Code-intel:' || true; }
 }
 
 @test "a SHA not in history → unknown, and one WARN line logged" {
-    printf '%s\n' 0123456789abcdef0123456789abcdef01234567 > .codemem/last_sha
+    printf '%s\n' 0123456789abcdef0123456789abcdef01234567 > "$CM/last_sha"
     run bash "$HOOK"
     [ "$(code_intel)" = "Code-intel: codemem unknown (not in history) · graphify 0 behind (code layer)" ]
     [ "$(grep -c 'WARN aa-ma-session-start: code-intel' "$CLAUDE_HOOK_LOG")" -eq 1 ]
@@ -105,7 +126,7 @@ code_intel() { printf '%s\n' "$output" | grep '^Code-intel:' || true; }
 
 @test "the shared function: aa_ma_sha_behind" {
     . "${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh"
-    run aa_ma_sha_behind . .codemem/last_sha
+    run aa_ma_sha_behind . "$CM/last_sha"
     [ "$output" = "2" ]
     run aa_ma_sha_behind . graphify-out/.built_sha
     [ "$output" = "0" ]
@@ -171,14 +192,14 @@ plugin_line() { printf '%s\n' "$output" | grep 'codemem plugin' || true; }
 @test "§6.6: aa_ma_sha_behind says 'git failed' outside a repo" {
     . "${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh"
     mkdir -p "${TMP}/plain"
-    run aa_ma_sha_behind "${TMP}/plain" .codemem/last_sha
+    run aa_ma_sha_behind "${TMP}/plain" "$CM/last_sha"
     [ "$status" -eq 1 ]
     [ "$output" = "git failed" ]
 }
 
 @test "§6.6: aa_ma_sha_behind prints its reason under set -e" {
-    printf '%s\n' 0123456789abcdef0123456789abcdef01234567 > .codemem/last_sha
-    run bash -ec ". '${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh'; aa_ma_sha_behind . .codemem/last_sha"
+    printf '%s\n' 0123456789abcdef0123456789abcdef01234567 > "$CM/last_sha"
+    run bash -ec ". '${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh'; aa_ma_sha_behind . '${CM}/last_sha'"
     [ "$output" = "not in history" ]
 }
 
@@ -202,11 +223,11 @@ plugin_line() { printf '%s\n' "$output" | grep 'codemem plugin' || true; }
     [ "$status" -eq 1 ] && [ -z "$output" ]
 }
 
-@test "§6.8: a sidecar inside a symlinked .codemem/ is 'bad sha'" {
+@test "§6.8: a sidecar inside a symlinked index dir is 'bad sha'" {
     . "${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh"
-    mv .codemem "${TMP}/elsewhere"
-    ln -s "${TMP}/elsewhere" .codemem
-    run aa_ma_sha_behind . .codemem/last_sha
+    mv "$CM" "${TMP}/elsewhere"
+    ln -s "${TMP}/elsewhere" "$CM"
+    run aa_ma_sha_behind . "$CM/last_sha"
     [ "$status" -eq 1 ]
     [ "$output" = "bad sha" ]
 }

@@ -20,6 +20,9 @@ setup() {
     WORK="$(mktemp -d "${BATS_TMPDIR}/diagram-verified.XXXXXX")"
     # codemem keeps trust records under XDG_STATE_HOME (M15 §6.8): never the user's.
     export XDG_STATE_HOME="${WORK}/state"
+    # ... and its default index under XDG_CACHE_HOME (M16)
+    export XDG_CACHE_HOME="${WORK}/cache"
+    unset CODEMEM_DB
     # The fence resolves the lib from the git toplevel (the throwaway repo has none),
     # else ${CLAUDE_HOME:-~/.claude}: point that at the in-repo lib.
     CLAUDE_HOME="$WORK/claude-home"
@@ -53,7 +56,7 @@ _mkrepo() {
 }
 
 _build() {
-    uv run --quiet --project "$REPO_ROOT" codemem --db "$R/.codemem/index.db" build --repo-root "$R" >/dev/null
+    uv run --quiet --project "$REPO_ROOT" codemem build --repo-root "$R" >/dev/null
 }
 
 _plan() {  # <mermaid edge line>
@@ -110,9 +113,9 @@ _run_fence() {
     [[ "$output" == *"sigils: edges=1 checked=1 phantom=1 unknown=0 invalid=0 index-unknown=0"* ]]
 }
 
-@test "AC3: with .codemem removed the output names codemem build and the tier is UNKNOWN" {
+@test "AC3: with the index removed the output names codemem build and the tier is UNKNOWN" {
     _plan '    A -->|"@import"| B'
-    rm -rf "$R/.codemem"
+    rm -rf "$(bash -c '. "$1"; aa_ma_codemem_dir "$2"' _ "$HELPER" "$R")"
     run _lint
     [ "$status" -eq 0 ]   # the lint's own exit stays non-blocking (map Ticket 2)
     [[ "$output" == *": UNKNOWN: "*"codemem build"* ]]
@@ -162,7 +165,7 @@ _run_fence() {
 
 @test "no index refuses and names the remedy (L-012)" {
     _plan '    A -->|"@import"| B'
-    rm -rf "$R/.codemem"
+    rm -rf "$(bash -c '. "$1"; aa_ma_codemem_dir "$2"' _ "$HELPER" "$R")"
     run _run_fence
     [ "$status" -eq 1 ]
     [[ "$output" == *BLOCKED* && "$output" == *"codemem build"* ]]

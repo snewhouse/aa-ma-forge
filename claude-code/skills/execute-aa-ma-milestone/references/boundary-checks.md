@@ -32,7 +32,9 @@ bash "${CIR}" "${TASK_NAME:-}"
 - codemem installed: a missing index is built first, and an index that does not
   reach HEAD (a failed build included) is **BLOCKED** (exit 1) — run `codemem build`
   and re-run; gates must not read a stale index. No codemem binary at all:
-  `codemem=skipped(codemem not installed)`. The index lives in codemem's cache dir
+  `codemem=skipped(codemem not installed)`. A first build runs under the worker's
+  300 s per-step cap; on a repo too large for that, run `codemem build` once by hand.
+  The index lives in codemem's cache dir
   (`${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo)>/`, or `$CODEMEM_DB`'s
   dir), not the repo (M16).
 - `--dry-run` refreshes and prints the line without appending it.

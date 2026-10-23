@@ -149,8 +149,7 @@ def tree_signature(files: list[Path]) -> str:
 def _discard_untrusted(db_path: Path) -> None:
     """Delete an existing DB (and its WAL files) that codemem did not build here."""
     if db_path.exists() and not db.index_trusted(db_path):
-        for suffix in db.SQLITE_SUFFIXES:
-            db_path.with_name(db_path.name + suffix).unlink(missing_ok=True)
+        db.remove_db_files(db_path)
 
 
 def _write_build_sidecars(repo_root: Path, db_dir: Path, signature: str) -> None:

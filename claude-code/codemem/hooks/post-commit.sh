@@ -54,7 +54,11 @@ LOCK_WAIT_S=$((CAPPED_STEPS * STEP_TIMEOUT_S + 60))
 log_line() {
     # One line to <index dir>/refresh.log, never through a symlink ($CODEMEM_DB may name a repo dir).
     local dir="${CM:-}" log
-    [[ -n "${dir}" ]] || return 0  # no index dir (no realpath/sha256 tool): nowhere to log
+    if [[ -z "${dir}" ]]; then
+        # No index dir (no realpath/sha256 tool): stderr is the only place left (§6.0 shows it).
+        printf 'codemem post-commit: %s (no index dir to log to)\n' "$1" >&2
+        return 0
+    fi
     log="${dir}/refresh.log"
     [[ -L "${dir}" || -L "${log}" ]] && return 0
     mkdir -p "${dir}" 2>/dev/null || return 0  # why: an unwritable repo is not a reason to fail a commit

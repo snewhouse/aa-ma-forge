@@ -99,12 +99,31 @@ line_count() { grep -c 'CODE_INTEL_REFRESH' "$PROV" || true; }
     [ "$(line_count)" -eq 0 ]
 }
 
-@test "no codemem index and no codemem → codemem=skipped(no index)" {
+@test "M16: no codemem binary → codemem=skipped(codemem not installed)" {
     rm -rf "$CM"
     head=$(git rev-parse HEAD)
     CODEMEM_BIN=/nonexistent run bash "$SCRIPT" t
     [ "$status" -eq 0 ]
-    grep -qE "— codemem=skipped\(no index\) graphify=${head}$" "$PROV"
+    grep -qE "— codemem=skipped\(codemem not installed\) graphify=${head}$" "$PROV"
+}
+
+@test "M16: no index + a working codemem → built, codemem=<HEAD>" {
+    rm -rf "$CM"
+    head=$(git rev-parse HEAD)
+    run bash "$SCRIPT" t
+    [ "$status" -eq 0 ]
+    grep -qE "— codemem=${head} graphify=${head}$" "$PROV"
+    [ "$(cat "${CM}/last_sha")" = "$head" ]
+}
+
+@test "M16: no index + a build that fails → BLOCKED, never skipped(no index)" {
+    rm -rf "$CM"
+    printf '#!/usr/bin/env bash\nexit 1\n' > "${STUBS}/codemem-broken"
+    chmod +x "${STUBS}/codemem-broken"
+    CODEMEM_BIN="${STUBS}/codemem-broken" run bash "$SCRIPT" t
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"BLOCKED"*"codemem"* ]]
+    [ "$(line_count)" -eq 0 ]
 }
 
 @test "a symlinked provenance log is refused" {

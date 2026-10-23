@@ -107,6 +107,32 @@ What M2's SKILL.md can now rely on (the exit table in `sdm.sh help` is canonical
 - finish: a plain checkout with tracked changes → `STATUS: MAIN_CHECKOUT_DIRTY` before any checkout.
 - Named constants in sdm.sh: POLL_DEFAULT 900s, APPEAR_DEFAULT_S 120, INTERVAL_DEFAULT_S 10, GH_CALL_TIMEOUT_S 30, WATCH_INTERVAL_S 30, PR_TITLE_MAX 70, CHECK_RUNS_PER_PAGE 100. sdm.sh 384 lines; sdm suite 167 tests.
 
+### Milestone 2 SHA map (PR #58 → main, rebase merge `7a904f72`, 2026-10-22)
+PR commits from `gh api repos/snewhouse/aa-ma-forge/pulls/58/commits`, matched by full subject to `git log 66f9c610..7a904f72` (15/16; the 16th, `f74d80db` "chore: merge origin/main (PR #57 …)", is a merge commit that a rebase merge does not replay).
+| PR #58 | main | subject |
+|---|---|---|
+| `55e6dfc8` | `8f75c23c` | docs(aa-ma): Milestone 1 COMPLETE — gate approved, PR #55 SHA map |
+| `adb8c6b9` | `b0bbad19` | docs(aa-ma): pre-M2 decisions — fix PR first, 2.1 RED step, prototype deleted |
+| `0efa790c` | `af88a8a0` | docs(aa-ma): record pre-M2 fix PR #57 — SHA map, review triage, TODOS closed |
+| `fa7516ab` | `4ba91108` | docs(aa-ma): Milestone 2 ACTIVE — pre-execution validator WARN fixed |
+| `1b17e55d` | `5313fa32` | docs(aa-ma): 2.0 complete — M1 post-merge record verified on the M2 branch |
+| `18e277c2` | `d0de518b` | test(skills): RED — SKILL.md for /sole-dev-merge is a short sdm.sh caller |
+| `befb8bf6` | `30a234d3` | refactor(sole-dev-merge): switch the skill to sdm.sh; delete the stage blocks and their tests |
+| `4af64389` | `686171c0` | docs(aa-ma): 2.2 complete — the switch, bats 776/0 on befb8bf6 |
+| `62955e26` | `f4228e35` | docs(sole-dev-merge): ADR-0024 one script, GitHub only; CHANGELOG, CONTEXT, lessons, TODOS |
+| `61423024` | `8507d3b1` | docs(aa-ma): M2 boundary — code-intel refresh, impact analysis, critical-path review |
+| `f4660491` | `461d1008` | docs(aa-ma): M2 TESTS_VERIFIED 776 and §6.8 PASS_WITH_WARNINGS |
+| `f3e6176c` | `f6118a1d` | test(skills): RED — SKILL.md's copies of sdm.sh output are tied to the script; no secrets, no force-push |
+| `96adf285` | `45e537ae` | fix(sole-dev-merge): SKILL.md instructions match what sdm.sh does (§6.8 M2) |
+| `9d704c08` | `43b32388` | docs(aa-ma): M2 TESTS_VERIFIED 776 on 96adf285; pytest 3149 |
+| `98b40bfc` | `7a904f72` | docs(aa-ma): 2.4 — pip-audit on #58 unblocked by deps PR #59 (no rebase) |
+
+### Milestone 2 live facts (2026-10-22)
+- The new SKILL.md merged its own PR (#58): `check` → C1/C2 (round 1: C1 0C/0H/1M/2L, C2 none) → `ship` → `finish` → `STATUS: OK worktree=…`. pip-audit blocked the first `ship` (CVE-2026-114603, opentelemetry-api, transitive dev dep) → deps PR #59 (`66f9c610`) → re-`ship` (a new AA-MA commit re-tests the merge ref; no rebase) → green.
+- The re-`ship` updated #58's body with read-back match right after a push (the M1 head-lag fix, live again).
+- `scripts/install.sh` from a linked worktree re-links the skill to that worktree; run it from the main checkout (done after the merge: rc 0, 68 links; `~/.claude/skills/sole-dev-merge` → the main checkout).
+- The commit-signature hook's `[ad-hoc]` rule needs the marker alone on its own line of the message (`^\s*\[ad-hoc\]["'`]*$`), not just last on the command line.
+
 ### Constants and limits
 - sdm.sh ≤ 400 lines (design audit sized it at 150–200); SKILL.md ≤ 150 lines (M2), ≤ 500 hard limit (`tests/test_prompt_size.py`); no SKILL.md fenced block > 3 lines.
 - Old skill: 1,994 lines, 77% bash; 1,541 bash lines, ~62% DROP; old prose 317 lines.
@@ -145,4 +171,4 @@ What M2's SKILL.md can now rely on (the exit table in `sdm.sh help` is canonical
 ### Release
 - No release cut by this plan; changes ship in v0.18.0, cut by code-conventions-impact M14. CHANGELOG Removed: "GitLab/glab support; last in v0.17.0".
 
-_Last Updated: 2026-10-22 (M1 SHA map and live facts; pre-M2 PR #57 facts; M2 pre-execution validator fixes)_
+_Last Updated: 2026-10-23 (M1 SHA map and live facts; pre-M2 PR #57 facts; M2 pre-execution validator fixes; M2 SHA map and live facts)_

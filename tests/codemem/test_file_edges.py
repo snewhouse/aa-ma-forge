@@ -19,6 +19,7 @@ from codemem.incremental import refresh_index
 from codemem.indexer import build_index
 from codemem.storage import db
 from codemem.storage.db import apply_schema, connect, ensure_schema, migrate
+from codemem.paths import default_db_path
 
 
 def _git(root: Path, *args: str) -> None:
@@ -202,7 +203,7 @@ def import_repo(tmp_path: Path) -> tuple[Path, Path]:
     (tmp_path / "b.py").write_text("def helper():\n    return 1\n")
     (tmp_path / "c.py").write_text("def other():\n    return 2\n")
     _init_commit(tmp_path)
-    db_path = tmp_path / ".codemem" / "index.db"
+    db_path = default_db_path(tmp_path)
     build_index(tmp_path, db_path, package=".")
     return tmp_path, db_path
 
@@ -315,8 +316,8 @@ def _submodule_repo(root: Path) -> Path:
     )
     (root / "main.py").write_text("from pkg import other\nfrom pkg import helper\n")
     _init_commit(root)
-    build_index(root, root / ".codemem/index.db", package=".")
-    return root / ".codemem/index.db"
+    build_index(root, default_db_path(root), package=".")
+    return default_db_path(root)
 
 
 def test_from_package_import_submodule_yields_the_submodule_edge(
@@ -356,8 +357,8 @@ def _repo(root: Path, files: dict[str, str]) -> Path:
         (root / rel).parent.mkdir(parents=True, exist_ok=True)
         (root / rel).write_text(text)
     _init_commit(root)
-    build_index(root, root / ".codemem/index.db", package=".")
-    return root / ".codemem/index.db"
+    build_index(root, default_db_path(root), package=".")
+    return default_db_path(root)
 
 
 def _calls(db_path: Path) -> set[tuple[str, str]]:

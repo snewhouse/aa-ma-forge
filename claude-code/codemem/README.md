@@ -23,8 +23,7 @@ cat > <your-repo>/.mcp.json <<'EOF'
       "args": ["--directory", "${PWD}", "run", "python",
                "/path/to/aa-ma-forge/claude-code/codemem/mcp/server.py"],
       "env": {
-        "CODEMEM_REPO_ROOT": "${PWD}",
-        "CODEMEM_DB": "${PWD}/.codemem/index.db"
+        "CODEMEM_REPO_ROOT": "${PWD}"
       }
     }
   }
@@ -148,7 +147,7 @@ claude mcp add --scope user codemem uv \
   run python claude-code/codemem/mcp/server.py
 ```
 
-Writes to `~/.claude.json` → top-level `mcpServers.codemem`. Loaded for every Claude Code session regardless of which repo you're in. Environment variables `CODEMEM_REPO_ROOT` and `CODEMEM_DB` default to `$PWD/.codemem/index.db` if unset, so the server uses whichever repo you happen to be working in.
+Writes to `~/.claude.json` → top-level `mcpServers.codemem`. Loaded for every Claude Code session regardless of which repo you're in. If unset, `CODEMEM_REPO_ROOT` defaults to `$PWD` and `CODEMEM_DB` to that repo's index dir in the cache (see below), so the server uses whichever repo you happen to be working in.
 
 ### The post-commit hook (opt-in)
 
@@ -156,18 +155,20 @@ Writes to `~/.claude.json` → top-level `mcpServers.codemem`. Loaded for every 
 
 Not installed by default — modifying `.git/hooks/` in a repo that isn't aa-ma-forge's is opt-in. Disable later by deleting the sentinel-marked line from the hook file.
 
-Auto-build on first MCP query (delivered by M3.5 Task 3.5.3) means the hook isn't strictly necessary — `.codemem/index.db` will be built the first time Claude Code queries any codemem tool. The hook is useful when you want queries to be sub-second instead of waiting for a cold build.
+Auto-build on first MCP query (delivered by M3.5 Task 3.5.3) means the hook isn't strictly necessary — the index will be built the first time Claude Code queries any codemem tool. The hook is useful when you want queries to be sub-second instead of waiting for a cold build.
 
 ### What gets written where
 
-- `<repo>/.codemem/index.db` — SQLite database. Git-ignored by default.
-- `<repo>/.codemem/wal.jsonl` — codemem's JSONL write-ahead journal, replayable with `codemem replay --from-wal`; written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14). Rotates at 10 MB with 3 compressed archives retained.
-- `<repo>/.codemem/db.lock` — single-writer advisory lock. Harmless if left over from a crashed indexer.
-- `<repo>/.codemem/last_sha`, `<repo>/.codemem/tree_sig` — the commit and tracked-file state the index reflects; a query compares them with HEAD and refreshes (capped at 5 s) when they differ.
-- `<repo>/.codemem/refresh.log` — structured log line per refresh invocation.
+The index dir is `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo root)>/`, outside the repo (one per checkout; a relative `XDG_CACHE_HOME` is ignored). `--db` or `CODEMEM_DB` overrides it; `codemem status` prints the path. Before M16 it was `<repo>/.codemem/`, which is now ignored and safe to delete.
+
+- `<index dir>/index.db` (+ `-wal`, `-shm`, `-journal`) — SQLite database.
+- `<index dir>/wal.jsonl` — codemem's JSONL write-ahead journal, replayable with `codemem replay --from-wal`; written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14). Rotates at 10 MB with 3 compressed archives retained.
+- `<index dir>/db.lock` — single-writer advisory lock. Harmless if left over from a crashed indexer.
+- `<index dir>/last_sha`, `<index dir>/tree_sig` — the commit and tracked-file state the index reflects; a query compares them with HEAD and refreshes (capped at 5 s) when they differ.
+- `<index dir>/refresh.log` — structured log line per refresh invocation.
 - `<repo>/PROJECT_INTEL.json` *(optional)* — PageRank-ranked 1024-token symbol index. Commit this one if you want it.
 
-codemem never writes outside `<repo>/.codemem/` or `<repo>/PROJECT_INTEL.json`, except one 33-byte trust record per index directory in `$XDG_STATE_HOME/codemem/trust/`, and `aa_ma_context(write=True)`, which appends to `.claude/dev/active/<task>/<task>-reference.md` (refused if any part of that path is a symlink). `.codemem/` must be codemem's own: every command and MCP tool refuses it when it is or holds a symlink or cannot be listed (`stale_reason: unsafe_db_path`, CLI exit 1). An index codemem did not build for this user and this directory (committed, copied, unzipped, or the repo moved) is not read: a refresh rebuilds it (`stale_reason: untrusted` until it finishes). Processes that see different `XDG_STATE_HOME` values (say an MCP server and a hook) each stamp their own record and rebuild each other's index; keep it the same everywhere. Known limits until Milestone 16 moves the index out of the repo: a committed `index.db-wal` beside an index built here is still replayed by SQLite; and committing your own `.codemem/` publishes its stamp, so keep `.codemem/` ignored. The trust record lives in `$XDG_STATE_HOME/codemem/trust/` (default `~/.local/state`). Point `CODEMEM_DB` at a dedicated directory. The optional post-commit step (`scripts/install.sh --wire-git-hook`) also writes `<git-dir>/codemem-post-commit.lock` and, after a successful `graphify update .`, `<repo>/graphify-out/.built_sha` — see [`SECURITY.md`](../../SECURITY.md) for the full contract.
+codemem never writes outside the index dir or `<repo>/PROJECT_INTEL.json`, except one 33-byte trust record per index directory in `$XDG_STATE_HOME/codemem/trust/`, and `aa_ma_context(write=True)`, which appends to `.claude/dev/active/<task>/<task>-reference.md` (refused if any part of that path is a symlink). The index dir must be codemem's own: every command and MCP tool refuses it when it is or holds a symlink or cannot be listed (`stale_reason: unsafe_db_path`, CLI exit 1). An index codemem did not build for this user and this directory (committed, copied, unzipped, or the repo moved) is not read: a refresh rebuilds it (`stale_reason: untrusted` until it finishes). Processes that see different `XDG_STATE_HOME` values (say an MCP server and a hook) each stamp their own record and rebuild each other's index; keep it the same everywhere. A `CODEMEM_DB` pointed inside a repo is repo-controlled and keeps the pre-M16 limits (a committed `index.db-wal` or `index.db-journal` is replayed into an index built here; committing your own index publishes its stamp). The trust record lives in `$XDG_STATE_HOME/codemem/trust/` (default `~/.local/state`). Point `CODEMEM_DB` at a dedicated directory. The optional post-commit step (`scripts/install.sh --wire-git-hook`) also writes `<git-dir>/codemem-post-commit.lock` and, after a successful `graphify update .`, `<repo>/graphify-out/.built_sha` — see [`SECURITY.md`](../../SECURITY.md) for the full contract.
 
 ## Performance
 

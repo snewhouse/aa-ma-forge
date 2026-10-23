@@ -76,7 +76,7 @@ Check for user context in this priority order:
 pwd
 git rev-parse --short HEAD 2>/dev/null || echo "Not a git repo"
 ls -la .claude/dev/active/ 2>/dev/null || echo "No active tasks"
-if [[ -f .codemem/index.db ]]; then echo "codemem index available"
+if codemem status >/dev/null 2>&1; then echo "codemem index available"  # the index lives in codemem's cache dir, not the repo
 elif [[ -f PROJECT_INDEX.json ]]; then echo "PROJECT_INDEX.json available (codemem's fallback)"
 else echo "No index yet: codemem's MCP tools build one on first query (CLI: codemem build)"; fi
 ```

@@ -43,8 +43,7 @@ cat > .mcp.json <<'EOF'
         "/ABSOLUTE/PATH/TO/aa-ma-forge/claude-code/codemem/mcp/server.py"
       ],
       "env": {
-        "CODEMEM_REPO_ROOT": "${PWD}",
-        "CODEMEM_DB": "${PWD}/.codemem/index.db"
+        "CODEMEM_REPO_ROOT": "${PWD}"
       }
     }
   }
@@ -78,7 +77,7 @@ uv --directory /ABSOLUTE/PATH/TO/aa-ma-forge run codemem refresh-commits
 
 Output:
 ```
-codemem refresh-commits: inserted 128 commits (cap=500) — /path/to/your-target-repo/.codemem/index.db
+codemem refresh-commits: inserted 128 commits (cap=500) — /home/you/.cache/codemem/<sha256 of the repo path>/index.db
 ```
 
 The cache caps at the most recent 500 commits by `author_time` (`--limit N` to override). Subsequent runs are incremental — they pick up only commits added since the last call.

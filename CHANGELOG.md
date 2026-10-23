@@ -31,6 +31,9 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - `aa-ma-analysis` measure: a tool report that failed to parse, or a tool that could not be spawned, left the input `unknown` with the cause lost. `run.log` now records why (`unknown: parse ValueError`, or a `spawn` line with `spawn failed: PermissionError`). Only the exception type is kept, because the message can quote tool output. The five-field line format is unchanged.
 - `aa-ma-gate`: the last-resort `except Exception` kept only `exc!r`. The traceback now also goes to the `aa_ma.gate` logger at DEBUG. stdout, the JSON/kv envelope and exit codes are unchanged.
 - `pre-compact-aa-ma.sh`: a failed append to a task's `provenance.log` or `context-log.md` was swallowed by `2>/dev/null || true`. The hook still exits 0, but now logs one `WARN could not append … to <file>` line per file to `~/.claude/logs/hooks.log` (its old `compaction.log` folded in) and emits a JSON `systemMessage` with the failure count, because hook stderr on exit 0 reaches only the debug log and is never shown.
+- §6.0 `code-intel-refresh.sh`: with codemem installed, a missing index is built and must reach HEAD; a failed build is BLOCKED instead of recorded as `codemem=skipped(no index)`. `skipped(codemem not installed)` is recorded only when there is no codemem binary.
+- codemem: every SQLite cleanup (rebuild swap, discarding an untrusted index, a failed first open) now removes `-journal` as well as `-wal`/`-shm`, from one `SQLITE_SUFFIXES` list; a copy that missed `-journal` let a planted rollback journal survive a rebuild.
+- codemem: a relative `CODEMEM_DB` or `CODEMEM_REPO_ROOT` is made absolute; the capped refresh runs with cwd = the DB dir, where a relative path named another file.
 
 ### Added
 
@@ -87,6 +90,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - `pre-compact-aa-ma.sh` logs through `aa-ma-log.sh` to `hooks.log`; `~/.claude/hooks/cache/compaction.log` is no longer written.
 - `aa_ma_debug` is now a thin wrapper over `log_debug`: its line is `<ts> DEBUG <hook>: <msg>` (was `[aa-ma-debug] <msg>`) and also lands in `hooks.log`.
 - `aa-ma-plan-skip-warn.sh` debug output is enabled by `HOOK_DEBUG=1`; `AA_MA_PLAN_MARKER_DEBUG=1` still works for one release and prints a deprecation notice.
+- **codemem keeps its index outside the repo** (code-conventions-impact M16). The default index dir is `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo root)>/` (index.db and its sidecars, `last_sha`, `tree_sig`, `db.lock`, `refresh.log`, `wal.jsonl`); a relative `XDG_CACHE_HOME` is ignored. `--db` > `$CODEMEM_DB` > default, resolved by `codemem.paths.resolve_db_path`, with twins `aa_ma_codemem_dir` (hooks) and `aa_ma.render.graph`. The `codemem` CLI now honours `CODEMEM_DB`, and `.mcp.json` no longer sets it. **Upgrade note:** an existing `<repo>/.codemem/` is ignored and safe to delete; the next query or `codemem build` rebuilds the index in the cache.
 
 ### Removed
 
@@ -100,6 +104,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 - `ruff-format.sh` ran whatever `command -v ruff` returned, so a relative `PATH` entry such as `.venv/bin` resolved inside the edited repo and ran that repo's committed `.venv/bin/ruff`. ruff now comes only from the forge's `.venv` or an absolute `PATH` entry (bats: a hostile repo's stub is never run).
 - `understand-codebase`: the frontmatter fix would have activated a dormant `allowed-tools` list that pre-approves `Bash`, `Write`, `Edit`, `WebFetch`, `Agent` and others with no prompt, on a skill that reads untrusted repos. It is narrowed to read-only (`Read`, `Glob`, `Grep`, `AskUserQuestion`), so everything else still prompts. See the ADR-0006 amendment.
+- codemem: the M15 known limits (a planted `index.db-wal` replayed into a stamped index, a planted `index.db-journal` rolled back into it, and committing one's own stamped `.codemem/` publishing the nonce) are closed for the default index location. They remain only for a `CODEMEM_DB` pointed inside a repo, where the trust token still refuses a foreign DB.
 
 ## v0.17.0 (2026-10-01)
 

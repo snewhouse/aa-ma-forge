@@ -1558,12 +1558,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-23. Mode: AFK — auto-dispatched. RED 06b9d82b (code-intel-refresh.bats: "no codemem binary → skipped(codemem not installed)" and "no index + failing build → BLOCKED" fail; "no index + working codemem → built" passes as characterisation) → GREEN (this commit). `aa_ma_codemem_bin <forge>` (aa-ma-parse.sh; Exports header) is the one binary lookup ($CODEMEM_BIN no fallback, else forge venv, else PATH), used by the post-commit worker and §6.0. `code-intel-refresh.sh`: codemem installed → last_sha must equal HEAD (the worker cold-builds a missing index) else BLOCKED; no binary → `codemem=skipped(codemem not installed)`; `skipped(no index)` is gone. `references/boundary-checks.md` §6.0 matches (line format, the rule, the cache location). bats: code-intel-refresh 19/19, codemem-post-commit 0 fail, aa-ma-parse 0 fail; shellcheck clean.
 
 ### Sub-step 16.4: docs + known limits
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 16.3
 - Acceptance Criteria:
   - SECURITY.md known-limit paragraph replaced by one line (trust token kept; a `CODEMEM_DB` inside a repo is repo-controlled); codemem README, commands doc, skills/agents mentions and CHANGELOG Unreleased name the new location; per-file actions in reference.md "M16 Facts" all done; TODOS: session-start mislabel entry (Ste, 16.0); doc-drift Tier 6 counts unchanged or updated.
-- Result Log:
+- Result Log: COMPLETE 2026-10-23. Mode: AFK — dispatched to one general-purpose agent, diff reviewed by the lead. 26 files, +128/−91: SECURITY.md (known-limit paragraph → one sentence: default index outside the repo; a CODEMEM_DB inside a repo keeps the M15 limits, trust token still refuses a foreign DB; replay limit kept; location/lock/WAL-flush wording now "index dir"), CHANGELOG Unreleased (Changed/Fixed/Security), TODOS (two "P1 → Milestone 16" items struck Done; new P3: session-start mislabel (Ste 16.0), cache-dir owner/mode check (security review MEDIUM; names `safety._open_store`), orphaned cache dirs), codemem README + commands doc, 3 onboarding agents, aa-ma-plan SKILL + phase-1-context (probe now `codemem status`, verified: rc 1 + DB path with no index), impact-analysis, understand-codebase ×3 (pinned fence code kept; prose covers a pre-M16/in-repo CODEMEM_DB index), docs/codemem ×4, quick-reference; docstrings/comments only in codemem {cli,incremental,indexer,safety,journal/lock,mcp_tools} (AST-identical with docstrings stripped; all 6 formatted at HEAD and after). Frozen history untouched. Remaining `.codemem` hits each justified (gitignore entry, history lines, pinned fence, regex false hits). Doc-pinned tests 653 passed / 4 skipped; code-intel-refresh + aa-ma-parse bats 0 fail. Full suites: see 16.5.
 
 ### Sub-step 16.5: CRITICAL_PATH_REVIEW (hook-modification)
 - Status: PENDING

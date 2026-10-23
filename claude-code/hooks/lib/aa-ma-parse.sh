@@ -465,7 +465,7 @@ aa_ma_codemem_bin() {
 }
 
 # aa_ma_read_sidecar_sha <file>
-#   The one shell reader of a repo-controlled sidecar (.codemem/last_sha,
+#   The one shell reader of a repo-controlled sidecar (<codemem index dir>/last_sha,
 #   graphify-out/.built_sha; M15 §6.8 C2). Prints the SHA only when <file> is
 #   a regular file, neither it nor its directory a symlink, holding exactly one
 #   SHA-1 (40-hex) or SHA-256 (64-hex) line; else prints nothing, rc 1. Python

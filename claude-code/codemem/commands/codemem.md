@@ -24,8 +24,9 @@ current repo.
   Defaults to `.` (repo-root). See
   [`symbol-id-grammar.md`](../../../docs/codemem/symbol-id-grammar.md)
   for examples.
-- `--db PATH` — output DB location. Defaults to `.codemem/index.db`
-  relative to repo root.
+- `--db PATH` — output DB location. Defaults to `$CODEMEM_DB`, else
+  `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo root)>/index.db`
+  (the index dir, outside the repo; M16).
 
 **Behaviour (M1):**
 1. Discovers tracked files via `git ls-files` (respects `.gitignore`).
@@ -90,14 +91,14 @@ Incremental refresh of the index (`codemem.incremental.refresh_index`): content-
 dirty detection, `git mv` detection, symbol-level deltas. With `last_sha` missing,
 malformed or orphaned by a history rewrite it does a full rebuild into a sibling file
 and swaps it in with `os.replace`, so readers never see a half-built DB. Records
-`.codemem/last_sha` and `.codemem/tree_sig`. Exit 0 refreshed, 75 another refresh holds
-`.codemem/db.lock`, 1 error (one line in `.codemem/refresh.log`). Run by the post-commit
+`last_sha` and `tree_sig` in the index dir. Exit 0 refreshed, 75 another refresh holds
+`db.lock`, 1 error (one line in `refresh.log`). Run by the post-commit
 step and, capped at 5 s, by any MCP query that finds the index stale; responses then
 carry `index_sha`, `head_sha`, `stale` and `stale_reason`.
 
 ### `codemem replay --from-wal [--wal PATH]`
 
-Reconstruct SQLite state from a JSONL write-ahead journal (default `.codemem/wal.jsonl`).
+Reconstruct SQLite state from a JSONL write-ahead journal (default `wal.jsonl` in the index dir).
 Idempotent via `(op, prev_user_version, content_sha)` keys. The journal is written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14).
 
 ---
@@ -113,11 +114,11 @@ unless `--include-tests`. Edges carry their kind as a quoted sigil —
 mermaid 11 parse error). Over 500 edges (mermaid's `maxEdges`) the rest are dropped
 and reported. Exit 0 ok, 1 no/old/unreadable index (run `codemem build`), 2 usage.
 
-### A refused `.codemem/`
+### A refused index dir
 
-Every subcommand and MCP tool refuses a `.codemem/` (or the `CODEMEM_DB` directory)
-that is or holds a symlink or cannot be listed: a repo controls that directory, and a
-link would be written through. The CLI prints `codemem <cmd>: refused: …` and exits 1;
+Every subcommand and MCP tool refuses an index dir (the cache dir, or the `CODEMEM_DB`
+directory) that is or holds a symlink or cannot be listed: a link would be written
+through, and a `CODEMEM_DB` inside a repo is a directory the repo controls. The CLI prints `codemem <cmd>: refused: …` and exits 1;
 an MCP response carries `stale: "unknown"`, `stale_reason: "unsafe_db_path"` and an
 `error`. Remove the link, run `codemem build`, and keep `CODEMEM_DB` in a dedicated
 directory.
@@ -133,9 +134,10 @@ response is an `error` with `stale_reason: "trust_store"`: fix the state dir; a 
 not help. `codemem draw --check` reports it as UNKNOWN (exit 0).
 `codemem replay --from-wal` trusts its journal: replay only one codemem wrote here.
 Keep `XDG_STATE_HOME` the same for every process that runs codemem, or each rebuilds the
-other's index. Known limit until Milestone 16 moves the index out of the repo: a
-committed `index.db-wal` beside an index built here is still replayed by SQLite, and committing
-your own `.codemem/` publishes its stamp: keep `.codemem/` ignored.
+other's index. The default index dir is outside the repo (M16). A `CODEMEM_DB` pointed inside a repo
+is repo-controlled and keeps the pre-M16 limits: a committed `index.db-wal` or
+`index.db-journal` beside an index built here is replayed by SQLite, and committing your
+own index publishes its stamp.
 
 ## Related documents
 

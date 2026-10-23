@@ -73,6 +73,12 @@ A session rooted in the main checkout that `cd`s into a worktree for each comman
 **Effort:** S
 **Priority:** P2
 
+### session-start says "AA-MA ACTIVE" for a milestone that is only next PENDING
+**What:** when no milestone is ACTIVE, `aa_ma_extract_active_milestone` (`claude-code/hooks/lib/aa-ma-parse.sh`) returns the first PENDING milestone in file order, and `aa-ma-session-start.sh` prints it as `AA-MA ACTIVE: … milestone=[…]`. Print it as "next PENDING", or honour `Dependencies:` when choosing it.
+**Why:** Ste, 2026-10-23: the session line names a milestone as active that nobody started (and may not be the next runnable one). DISPLAY reader only; no gate reads it.
+**Effort:** S
+**Priority:** P3
+
 ### Check the AA-MA commit signature at the `commit-msg` stage, not in the command text
 **What:**
 - `aa-ma-commit-signature.sh` (PreToolUse) reads only the literal command, so it guesses at messages it can't see. Rule 8 (sole-dev-merge-fixes 1.7) now trusts one canonical shape, `FOOTER=$(emit_aa_ma_footer); git commit -m "…${FOOTER}"`.
@@ -343,14 +349,28 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 - `server.py` `_with_autobuild` returns `query failed: <class>: <message>`; the message can carry repo-controlled text such as paths. Return the class name only and log the rest.
 - Add a test for the `_rebuild_and_swap` claim that readers of the new DB never replay the old DB's WAL frames.
 - Label every M15 measurement in the docs with date, machine and repo; some are unlabelled.
-- **P1 → code-conventions-impact Milestone 16:** move the default index out of the repo; a committed regular `index.db-wal` beside a stamped index replays forged pages (M15 §6.8 re-run 3, reproduced).
-- **P1 → Milestone 16 (M15 pre-merge review, 2026-10-15):** a planted `index.db-journal` is rolled back into a stamped index (reproduced); a relative `CODEMEM_DB`/`CODEMEM_REPO_ROOT` misdirects the capped refresh; the §6.0 gate cold-builds where it documents `skipped(no index)`. All three are M16 acceptance criteria.
-- Pre-merge review LOWs (P3): a FIFO at `.codemem/refresh.log` blocks `_log`'s `O_WRONLY` open and the worker's `>>` (open `O_NONBLOCK`, require `S_ISREG`); a tracked symlink to a file outside the repo fails every build (drop resolved candidates outside `repo_root`, `indexer.py:94`); `_ls_files` on the query path has no `GIT_TIMEOUT_S`; a `TrustStoreError` in the first-query cold build reports `no_index`, not `trust_store`; `ensure_built` has no production caller; `scripts/install.sh:592` `readlink -f` under `set -e` aborts on a missing parent.
-- `codemem replay --from-wal` trusts `wal.jsonl`, which a repo can commit: a replayed DB is created (so stamped) by codemem. Stamp the journal too, or refuse a journal codemem did not write here (§6.8 re-run 2 limit).
+- ~~**P1 → code-conventions-impact Milestone 16:** move the default index out of the repo; a committed regular `index.db-wal` beside a stamped index replays forged pages (M15 §6.8 re-run 3, reproduced).~~ **Done:** code-conventions-impact M16 (2026-10-23): the default index is `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath root)>/`; only a `CODEMEM_DB` inside a repo keeps the limit.
+- ~~**P1 → Milestone 16 (M15 pre-merge review, 2026-10-15):** a planted `index.db-journal` is rolled back into a stamped index (reproduced); a relative `CODEMEM_DB`/`CODEMEM_REPO_ROOT` misdirects the capped refresh; the §6.0 gate cold-builds where it documents `skipped(no index)`. All three are M16 acceptance criteria.~~ **Done:** code-conventions-impact M16 (2026-10-23): index outside the repo, every SQLite cleanup includes `-journal`, both env paths made absolute, §6.0 blocks a failed build (`skipped(codemem not installed)` only with no binary).
+- Pre-merge review LOWs (P3): a FIFO at `refresh.log` in the index dir (repo-controlled only when `CODEMEM_DB` points into a repo, M16) blocks `_log`'s `O_WRONLY` open and the worker's `>>` (open `O_NONBLOCK`, require `S_ISREG`); a tracked symlink to a file outside the repo fails every build (drop resolved candidates outside `repo_root`, `indexer.py:94`); `_ls_files` on the query path has no `GIT_TIMEOUT_S`; a `TrustStoreError` in the first-query cold build reports `no_index`, not `trust_store`; `ensure_built` has no production caller; `scripts/install.sh:592` `readlink -f` under `set -e` aborts on a missing parent.
+- `codemem replay --from-wal` trusts `wal.jsonl`, which a repo can commit when `--wal` or `CODEMEM_DB` points into it (M16): a replayed DB is created (so stamped) by codemem. Stamp the journal too, or refuse a journal codemem did not write here (§6.8 re-run 2 limit).
 - Trust records (`$XDG_STATE_HOME/codemem/trust/`) accumulate one 33-byte file per index dir ever built; add a `codemem trust --prune` (drop records whose dir is gone) if the count ever matters.
 - `codemem refresh` skips a file whose content hash is unchanged without updating its stored `mtime`, so `aa-ma-lint-views` (`render/graph.py::_stale_paths`) reports a touched-but-unchanged file (e.g. after `git checkout -- f`) as changed since indexing until a full `codemem build`. Pre-existing (M2 refresh, M8 lint); found in the §6.8 fix pass. Update `mtime`/`size` on a hash match.
 
 **Why:** These are M15 §6.8 WARNING/INFO findings that Ste recorded rather than fixed in the milestone.
+**Effort:** S
+**Priority:** P3
+
+### codemem index dir: owner/mode check on the cache dir (M16 background security review, 2026-10-23)
+
+**What:** codemem creates `$XDG_CACHE_HOME/codemem/` and the per-repo `<sha256>/` dir with the default umask and checks neither's owner or mode. If `XDG_CACHE_HOME` is set to a dir another account can write, that account could plant WAL frames beside the index. Create `codemem/` and the per-repo dir 0700 and apply the trust store's checks (`safety._open_store`: owned by this user, not group/other-writable, opened `O_NOFOLLOW`) before opening the index.
+**Why:** Background security review MEDIUM (2026-10-23). Not reachable via repo content: it needs a misconfigured `XDG_CACHE_HOME` or a shared cache dir.
+**Effort:** S
+**Priority:** P3
+
+### codemem index dir: orphaned cache dirs (M16, 2026-10-23)
+
+**What:** a removed worktree or clone leaves `~/.cache/codemem/<hash>/` behind. A `codemem gc` could prune dirs whose repo realpath no longer exists. The hash cannot be reversed, so each dir would need a recorded root file (written at build) for gc to check.
+**Why:** Cache dirs accumulate one per checkout ever indexed (M16 moved the index out of the repo, so deleting a checkout no longer deletes its index).
 **Effort:** S
 **Priority:** P3
 

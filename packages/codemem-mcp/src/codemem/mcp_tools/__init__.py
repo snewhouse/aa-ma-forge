@@ -110,7 +110,7 @@ def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) 
     - ``no_git`` / ``no_head``: ``stale`` is ``"unknown"``;
     - ``no_index``: the build failed, nothing to serve;
     - ``unsafe_db_path``: refused per ``codemem.safety.check_db_path``
-      (repo-controlled ``.codemem/``; M15 §6.8). Nothing is served or written;
+      (a linked index dir; M15 §6.8). Nothing is served or written;
     - ``trust_store``: this user's trust store (``$XDG_STATE_HOME/codemem/trust``)
       cannot be used; no refresh ran. Nothing is served; fix the state dir;
     - ``untrusted``: an index codemem did not build here (``codemem.safety``)

@@ -415,6 +415,37 @@ aa_ma_lint_views() {
     return "$rc"
 }
 
+# aa_ma_codemem_dir <repo-top>
+#   The dir holding <repo-top>'s codemem index and sidecars (M16): that of
+#   $CODEMEM_DB when set, else ${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath
+#   repo-top)> (a relative XDG_CACHE_HOME is ignored, as the XDG spec says).
+#   Python twins: codemem.paths.resolve_db_path, aa_ma.render.graph._default_db_path
+#   (tests/codemem/test_safety_parity.py). Prints nothing, rc 1, when it cannot
+#   be computed (no realpath/readlink -f, no sha256sum/shasum).
+aa_ma_codemem_dir() {
+    local top="$1" db="${CODEMEM_DB:-}" real cache key
+    if [[ -n "$db" ]]; then
+        [[ "$db" == /* ]] || db="$(pwd -P)/${db}"  # pwd -P: os.getcwd() in the Python twins
+        printf '%s' "${db%/*}"
+        return 0
+    fi
+    # why: readlink -f is the fallback where realpath is missing; neither → rc 1
+    real="$(realpath -- "$top" 2>/dev/null || readlink -f -- "$top" 2>/dev/null)" || return 1
+    [[ -n "$real" ]] || return 1
+    if command -v sha256sum > /dev/null 2>&1; then  # why: a presence probe
+        key="$(printf '%s' "$real" | sha256sum)"
+    elif command -v shasum > /dev/null 2>&1; then  # why: as above (macOS)
+        key="$(printf '%s' "$real" | shasum -a 256)"
+    else
+        return 1
+    fi
+    key="${key%% *}"
+    [[ "$key" =~ ^[0-9a-f]{64}$ ]] || return 1
+    cache="${XDG_CACHE_HOME:-}"
+    [[ "$cache" == /* ]] || cache="${HOME}/.cache"
+    printf '%s/codemem/%s' "$cache" "$key"
+}
+
 # aa_ma_read_sidecar_sha <file>
 #   The one shell reader of a repo-controlled sidecar (.codemem/last_sha,
 #   graphify-out/.built_sha; M15 §6.8 C2). Prints the SHA only when <file> is

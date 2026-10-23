@@ -4,7 +4,7 @@
 # Usage: code-intel-refresh.sh <task-name> [--dry-run]     (run from the repo top)
 # Exit:  0 refreshed; the line is appended (or, with --dry-run, printed)
 #        1 BLOCKED: bad task name, unsafe provenance path, unreadable milestone,
-#          a symlinked .codemem/, or a codemem index that exists but did not reach HEAD
+#          a symlinked codemem index dir, or a codemem index that exists but did not reach HEAD
 #
 # Runs the 15.4 post-commit worker synchronously (same flock as post-commit runs;
 # codemem refresh + refresh-commits, `graphify update .` code-only, start-SHA
@@ -56,20 +56,22 @@ GATE_KV=$(aa_ma_gate "${TASK_DIR}/${TASK_NAME}-tasks.md") || {
 HEADING=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field heading)
 [[ -n "${HEADING}" ]] || blocked "empty milestone heading."
 
-# Repo-controlled: codemem refuses a .codemem that is or holds a symlink, so its
-# sidecar could only lie, and "run codemem build" would not help. A dangling
-# index.db link is one too (it fails -e and would read as "no index").
-if [[ -L "${TOP}/.codemem" ]] || { [[ -d "${TOP}/.codemem" ]] && [[ -n "$(find "${TOP}/.codemem" -maxdepth 1 -type l -print -quit 2>/dev/null)" ]]; }; then  # why: find errors on an unreadable dir; codemem then refuses it too, caught below
-    blocked ".codemem is or holds a symlink; codemem refuses to index through one. Remove the link, run \`codemem build\`, then re-run."
+# The index dir (M16): the XDG cache, or $CODEMEM_DB's dir — which may be a repo dir.
+CM="$(aa_ma_codemem_dir "${TOP}")" || blocked "cannot compute the codemem index dir (needs realpath or readlink -f, and sha256sum or shasum)."
+# codemem refuses an index dir that is or holds a symlink, so its sidecar could
+# only lie, and "run codemem build" would not help. A dangling index.db link is
+# one too (it fails -e and would read as "no index").
+if [[ -L "${CM}" ]] || { [[ -d "${CM}" ]] && [[ -n "$(find "${CM}" -maxdepth 1 -type l -print -quit 2>/dev/null)" ]]; }; then  # why: find errors on an unreadable dir; codemem then refuses it too, caught below
+    blocked "the codemem index dir ${CM} is or holds a symlink; codemem refuses to index through one. Remove the link, run \`codemem build\`, then re-run."
 fi
 
 # The worker always exits 0; the sidecars say what it achieved.
 bash "${WORKER}" --worker "${HEAD_SHA}" "${TOP}"
 
 # Sidecars are read only through aa_ma_read_sidecar_sha: never through a link (§6.8 C2).
-if [[ -e "${TOP}/.codemem/index.db" ]]; then
-    [[ "$(aa_ma_read_sidecar_sha "${TOP}/.codemem/last_sha")" == "${HEAD_SHA}" ]] \
-        || blocked "the codemem index did not reach HEAD ${HEAD_SHA:0:12}. If .codemem/refresh.log says another refresh held db.lock (exit 75), wait and re-run; if it names an error, run \`codemem build\`, then re-run."
+if [[ -e "${CM}/index.db" ]]; then
+    [[ "$(aa_ma_read_sidecar_sha "${CM}/last_sha")" == "${HEAD_SHA}" ]] \
+        || blocked "the codemem index did not reach HEAD ${HEAD_SHA:0:12}. If ${CM}/refresh.log says another refresh held db.lock (exit 75), wait and re-run; if it names an error, run \`codemem build\`, then re-run."
     CODEMEM="${HEAD_SHA}"
 else
     CODEMEM="skipped(no index)"
@@ -80,7 +82,7 @@ if [[ "$(aa_ma_read_sidecar_sha "${TOP}/graphify-out/.built_sha")" == "${HEAD_SH
 elif ! command -v graphify > /dev/null 2>&1; then  # why: a presence probe
     GRAPHIFY="WARN graphify not found"
 else
-    GRAPHIFY="WARN not refreshed (see .codemem/refresh.log)"
+    GRAPHIFY="WARN not refreshed (see ${CM}/refresh.log)"
 fi
 
 LINE="[$(date -Iseconds)] CODE_INTEL_REFRESH — ${HEADING} — codemem=${CODEMEM} graphify=${GRAPHIFY}"

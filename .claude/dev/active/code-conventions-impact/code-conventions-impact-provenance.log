@@ -285,3 +285,4 @@
 [2026-10-23T14:04:05+01:00] MERGE — PR #63 style(tests) test_explorer_fixture.py format → main 8ce73388; PR #64 style(tests) test_file_edges.py format → main 45d08ba0 (L-031, Ste; C1/C2 clean, CI green, sdm.sh STATUS OK)
 [2026-10-23T14:04:05+01:00] SHA MAP — Milestone 16 branch rebased onto 45d08ba0 (force-with-lease, Ste): 1d4c4c45→7c025c1d, 9514c7da→8df58b37, bd2095d5→fe804cc0, e49cc7c8→4dff02b1, 86a44fdc→c3286bd9, 166a280d→65128d07, 432424b2→229878d6, 97167ded→5d77f804, 9749981f→468d689a, 7618337f→45428d74. Older SHAs in M16 records read as these.
 [2026-10-23T14:04:05+01:00] STEP COMPLETE — 16.2 — RED 65128d07 → GREEN 229878d6..f91b161a; pytest 3172 passed / 5 skipped; bats 779 ok
+[2026-10-23T14:05:59+01:00] STEP COMPLETE — 16.3 — RED 06b9d82b → GREEN; code-intel-refresh.bats 19/19; §6.0 skipped only with no codemem binary

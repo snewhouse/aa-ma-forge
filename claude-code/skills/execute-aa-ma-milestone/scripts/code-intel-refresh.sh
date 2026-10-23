@@ -4,12 +4,13 @@
 # Usage: code-intel-refresh.sh <task-name> [--dry-run]     (run from the repo top)
 # Exit:  0 refreshed; the line is appended (or, with --dry-run, printed)
 #        1 BLOCKED: bad task name, unsafe provenance path, unreadable milestone,
-#          a symlinked codemem index dir, or a codemem index that exists but did not reach HEAD
+#          a symlinked codemem index dir, or (codemem installed) an index that did not
+#          reach HEAD — a missing index is built first, so a failed build blocks too
 #
 # Runs the 15.4 post-commit worker synchronously (same flock as post-commit runs;
 # codemem refresh + refresh-commits, `graphify update .` code-only, start-SHA
 # .built_sha) for the PRE-commit HEAD, then records
-#   [ts] CODE_INTEL_REFRESH — <milestone heading> — codemem=<sha|skipped(no index)> graphify=<sha|WARN reason>
+#   [ts] CODE_INTEL_REFRESH — <milestone heading> — codemem=<sha|skipped(codemem not installed)> graphify=<sha|WARN reason>
 # A file cannot name the commit that contains it, so the line names the HEAD the
 # milestone commit will sit on. graphify is leads-only: it WARNs, never blocks (R03-D7).
 
@@ -69,12 +70,14 @@ fi
 bash "${WORKER}" --worker "${HEAD_SHA}" "${TOP}"
 
 # Sidecars are read only through aa_ma_read_sidecar_sha: never through a link (§6.8 C2).
-if [[ -e "${CM}/index.db" ]]; then
+# M16: the worker builds a missing index, so with codemem installed the index
+# must reach HEAD whether or not it existed; only a missing binary is a skip.
+if aa_ma_codemem_bin "${FORGE}" > /dev/null; then
     [[ "$(aa_ma_read_sidecar_sha "${CM}/last_sha")" == "${HEAD_SHA}" ]] \
         || blocked "the codemem index did not reach HEAD ${HEAD_SHA:0:12}. If ${CM}/refresh.log says another refresh held db.lock (exit 75), wait and re-run; if it names an error, run \`codemem build\`, then re-run."
     CODEMEM="${HEAD_SHA}"
 else
-    CODEMEM="skipped(no index)"
+    CODEMEM="skipped(codemem not installed)"
 fi
 
 if [[ "$(aa_ma_read_sidecar_sha "${TOP}/graphify-out/.built_sha")" == "${HEAD_SHA}" ]]; then

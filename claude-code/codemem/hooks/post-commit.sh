@@ -98,13 +98,7 @@ capped() {
 refresh_codemem() {
     # CODEMEM_BIN (user env, like RUFF_BIN) pins the binary with no fallback.
     local codemem
-    if [[ -n "${CODEMEM_BIN:-}" ]]; then
-        codemem="${CODEMEM_BIN}"
-    else
-        codemem="${FORGE_ROOT}/.venv/bin/codemem"
-        [[ -x "${codemem}" ]] || codemem="$(command -v codemem || true)"  # why: absent is handled (and logged) below
-    fi
-    if [[ -z "${codemem}" || ! -x "${codemem}" ]]; then
+    if ! codemem="$(aa_ma_codemem_bin "${FORGE_ROOT}")"; then
         log_line "codemem not found: index not refreshed"
         return 0
     fi

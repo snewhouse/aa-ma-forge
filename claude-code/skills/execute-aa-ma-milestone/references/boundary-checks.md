@@ -18,7 +18,7 @@ flock-serialised worker as the post-commit step, then appends one line naming
 the **pre-commit** HEAD — a file cannot name the commit that contains it:
 
 ```
-[ts] CODE_INTEL_REFRESH — <milestone heading> — codemem=<sha|skipped(no index)> graphify=<sha|WARN reason>
+[ts] CODE_INTEL_REFRESH — <milestone heading> — codemem=<sha|skipped(codemem not installed)> graphify=<sha|WARN reason>
 ```
 
 ```bash
@@ -29,9 +29,12 @@ bash "${CIR}" "${TASK_NAME:-}"
 ```
 
 - graphify failing or absent: `graphify=WARN …`, never blocks (graphify is leads-only).
-- A codemem index that exists but does not reach HEAD: **BLOCKED** (exit 1) — run
-  `codemem build` and re-run; gates must not read a stale index. No index at all:
-  `codemem=skipped(no index)`.
+- codemem installed: a missing index is built first, and an index that does not
+  reach HEAD (a failed build included) is **BLOCKED** (exit 1) — run `codemem build`
+  and re-run; gates must not read a stale index. No codemem binary at all:
+  `codemem=skipped(codemem not installed)`. The index lives in codemem's cache dir
+  (`${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo)>/`, or `$CODEMEM_DB`'s
+  dir), not the repo (M16).
 - `--dry-run` refreshes and prints the line without appending it.
 
 ### 6.1 Acceptance Criteria Verification

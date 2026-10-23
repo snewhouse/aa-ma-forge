@@ -4,7 +4,7 @@
 #
 # At the milestone boundary: refresh codemem (refresh + refresh-commits) and the
 # graphify code graph through the 15.4 post-commit worker, then record
-#   CODE_INTEL_REFRESH — <heading> — codemem=<sha|skipped(no index)> graphify=<sha|WARN reason>
+#   CODE_INTEL_REFRESH — <heading> — codemem=<sha|skipped(codemem not installed)> graphify=<sha|WARN reason>
 # naming the PRE-commit HEAD. graphify never blocks; a codemem index that exists
 # and fails to refresh is BLOCKED. graphify is a stub; codemem is the forge's.
 

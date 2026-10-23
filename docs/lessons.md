@@ -5,6 +5,14 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-065 (2026-10-23) — Format drift on main surfaced one file at a time, mid-milestone
+**Pattern:** code-conventions-impact M16 had to edit test files that were already unformatted on main. The pre-commit `ruff format --check` and CI's `touched` job check whole files, so each one blocked a commit, and L-031 sends the drift to its own PR from main. It happened twice (`test_explorer_fixture.py` as #63, then `test_file_edges.py`), and each time meant a separate PR, review and merge, and a rebase of the milestone branch.
+**Rule:** at step N.0, run `uv run ruff format --check` and `ruff check` over every Python file the plan expects to touch (the Contract `Files:` rows plus the test files named in the blast radius). Ship any drift in one `style(tests)` PR from main before the milestone branch is cut. Format only files the milestone will touch: a wider pass moves `# noqa` comments and wakes unrelated lint debt.
+
+## L-064 (2026-10-23) — Rebased a pushed feature branch before counting the force-push it needed
+**Pattern:** in M16.2 I ran `git rebase origin/main` on the milestone branch to pick up a format PR. Six of the rebased commits were already on origin, so the push needed a force-push, which git-conventions and sdm.sh both forbid without an explicit OK. I caught it before pushing (`git branch -r --contains`), asked Ste (force-with-lease approved) and recorded a SHA map.
+**Rule:** before any history rewrite (rebase, amend, reset), run `git fetch -q && git log --oneline origin/<branch>..` and `git branch -r --contains <oldest rewritten sha>` in the same turn. If anything rewritten is on a remote, ask first and name the force-push. Prefer picking up main's changes before the first push of the branch.
+
 ## L-063 (2026-10-22) — A `git stash` ran in the worktree a background test suite was reading
 **Pattern:** in sole-dev-merge-simplify 2.2 I started `bats -r tests` in the background on the M2 worktree, then ran `git stash` / `git stash pop` there to compare pytest collection before and after a deletion. For a few seconds the worktree held the old, deleted files, so the background run's result could no longer be trusted. I caught it, stopped the run, committed, and re-ran the suite on the commit.
 **Rule:** while a background run reads a worktree, that worktree is read-only: no stash, checkout, reset, edit or regen. Run comparisons in a throwaway `git worktree add --detach <tmp> <sha>`, or wait. Start a long suite only on a committed tree and record the SHA it ran on (`git rev-parse HEAD` written beside the log).

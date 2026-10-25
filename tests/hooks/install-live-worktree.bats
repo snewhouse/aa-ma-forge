@@ -92,6 +92,23 @@ links() { find "${HOME}/.claude" -type l -exec readlink -f {} \; ; }
     [ -z "$(links)" ]
 }
 
+@test "no jq → the install stops before the checkout-link sweep; existing links survive" {
+    run "${FORGE}/scripts/install.sh"
+    [ "$status" -eq 0 ]
+    before="$(links | sort)"
+    [ -n "$(printf '%s\n' "$before" | grep '/hooks/')" ]
+    nojq="${WORK}/nojq"
+    mkdir -p "$nojq"
+    for f in /usr/bin/* /bin/*; do
+        [ "$(basename "$f")" = jq ] || ln -sfn "$f" "${nojq}/$(basename "$f")"
+    done
+    ln -sfn "${WORK}/wt" "$LINK"
+    PATH="${STUBS}:${nojq}" run "${FORGE}/scripts/install.sh"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"jq is required"* ]]
+    [ "$(links | sort)" = "$before" ]
+}
+
 @test "a link into the checkout with no counterpart in the live worktree is removed" {
     git -C "$FORGE" checkout -q -b feat
     mkdir -p "${FORGE}/claude-code/skills/branch-only" "${FORGE}/claude-code/agents"

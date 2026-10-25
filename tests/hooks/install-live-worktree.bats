@@ -8,6 +8,8 @@
 # never live. Without it, install.sh links into the checkout it runs from, as before.
 # Same throwaway-forge fixture as install-codemem-plugin.bats.
 
+bats_require_minimum_version 1.5.0
+
 setup() {
     REAL="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
     WORK="$(mktemp -d "${BATS_TMPDIR}/install-live-wt.XXXXXX")"
@@ -48,7 +50,7 @@ links() { find "${HOME}/.claude" -type l -exec readlink -f {} \; ; }
     ln -sfn "${WORK}/wt" "$LINK"
     run "${FORGE}/scripts/install.sh"
     [ "$status" -eq 0 ]
-    ! grep -qF "${FORGE}/" "${HOME}/.claude/settings.json"
+    run ! grep -qF "${FORGE}/" "${HOME}/.claude/settings.json"
 }
 
 @test "re-pointing links from the checkout to the live worktree records nothing as foreign" {
@@ -69,16 +71,53 @@ links() { find "${HOME}/.claude" -type l -exec readlink -f {} \; ; }
     [ "$status" -eq 0 ]
     hook="$(git -C "$FORGE" rev-parse --path-format=absolute --git-common-dir)/hooks/post-commit"
     grep -qF "${WORK}/wt/claude-code/codemem/hooks/post-commit.sh" "$hook"
-    ! grep -qF "${FORGE}/claude-code" "$hook"
+    run ! grep -qF "${FORGE}/claude-code" "$hook"
 }
 
-@test "a dirty live worktree is still the link target (refresh skipped, warned)" {
+@test "a dirty live worktree aborts the install before any link changes (fail closed)" {
     printf 'local edit\n' >> "${WORK}/wt/scripts/install.sh"
     ln -sfn "${WORK}/wt" "$LINK"
     run "${FORGE}/scripts/install.sh"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" == *"uncommitted changes"* ]]
+    [ -z "$(links)" ]
+}
+
+@test "a failed live-worktree refresh aborts the install before any link changes" {
+    printf '#!/usr/bin/env bash\nexit 1\n' > "${STUBS}/uv"
+    ln -sfn "${WORK}/wt" "$LINK"
+    run "${FORGE}/scripts/install.sh"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"refresh failed"* ]]
+    [ -z "$(links)" ]
+}
+
+@test "a link into the checkout with no counterpart in the live worktree is removed" {
+    git -C "$FORGE" checkout -q -b feat
+    mkdir -p "${FORGE}/claude-code/skills/branch-only" "${FORGE}/claude-code/agents"
+    printf -- '---\nname: branch-only\n---\n' > "${FORGE}/claude-code/skills/branch-only/SKILL.md"
+    printf -- '---\nname: branch-agent\n---\n' > "${FORGE}/claude-code/agents/branch-agent.md"
+    run "${FORGE}/scripts/install.sh"
+    [ "$status" -eq 0 ]
+    [ -L "${HOME}/.claude/skills/branch-only" ]
+    [ -L "${HOME}/.claude/agents/branch-agent.md" ]
+    ln -sfn "${WORK}/wt" "$LINK"
+    run "${FORGE}/scripts/install.sh"
+    [ "$status" -eq 0 ]
+    [ ! -L "${HOME}/.claude/skills/branch-only" ]
+    [ ! -L "${HOME}/.claude/agents/branch-agent.md" ]
     [ -z "$(links | grep -v "^${WORK}/wt/")" ]
+}
+
+@test "aa_ma_live_worktree: a link whose parent directory is gone is not a live worktree" {
+    ln -sfn "${WORK}/gone/wt" "$LINK"
+    cd "$FORGE"
+    REPO_ROOT="$FORGE"
+    # shellcheck source=/dev/null
+    . "${FORGE}/scripts/lib/aa-ma-install-lib.sh"
+    run aa_ma_live_worktree
+    [ "$status" -ne 0 ]
+    [ -z "$output" ]
 }
 
 @test "no live worktree → links resolve into the checkout, as before" {

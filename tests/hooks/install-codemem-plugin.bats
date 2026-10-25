@@ -69,11 +69,11 @@ teardown() { rm -rf "$WORK"; }
     [ "$(git -C "$FORGE" symbolic-ref --short HEAD)" = "main" ]
 }
 
-@test "a dirty plugin worktree is warned about, not clobbered, and install still succeeds" {
+@test "a dirty plugin worktree is not clobbered and stops the install (ADR-0025: fail closed)" {
     printf 'local edit\n' >> "${WORK}/wt/scripts/install.sh"
     ln -sfn "${WORK}/wt" "$LINK"
     run "${FORGE}/scripts/install.sh"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" == *"codemem plugin worktree"*"uncommitted changes"* ]]
     grep -q 'local edit' "${WORK}/wt/scripts/install.sh"
 }

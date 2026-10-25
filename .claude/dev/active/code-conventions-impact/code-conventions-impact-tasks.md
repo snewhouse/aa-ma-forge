@@ -980,13 +980,13 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-25 (Mode: AFK — auto-dispatched to a general-purpose agent; diff, tests and live checks verified by the orchestrator). RED 8b4b91cb (40 failing; defect 1 asserted: count 0 → 1) → GREEN c5ec9ffc. callees() + blast_radius alias (downstream + deprecated, TODO(ADR-0026)); aa_ma_context reads callees() (defect 1 fixed); co_changes min_ratio / max_commit_files / ratio + target_commits; CO_CHANGE_MAX_COMMIT_FILES=10; file_impact (not an MCP tool); server registers callees → 14 MCP tools; CLI `query callees`, multi-path `co_changes --threshold --min-ratio` (one path = old shape; several = object keyed by path), `codemem impact --format brief|json`; git_mining rename + delete mapping. Counts: 14 tools in 6 docs + test; 11 query tools in docs/codemem/migration-from-index.md (forced by test_query_tool_counts_in_docs_match_the_cli). Tests: test_callees, test_file_impact (new); test_co_changes, test_aa_ma_context, test_git_mining, test_install_and_cli, test_mcp_server(+_integration) extended. pytest 3218/2/7, bats 793/0. Rename AC live: proven at refresh limit 2000 (38 = git --follow; pre-move partners); at the default 500 the M3 rename is out of window (known limit).
 
 ### Sub-step 10.3: Plugin-surface edges into the index (TDD)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 10.2
 - Acceptance Criteria:
   - New table `plugin_edges(src TEXT, dst TEXT, kind TEXT, ref_class TEXT)` (schema v4 migration in storage/db.py), filled at build from `plugin_surface.extract()`; `.md` is NOT indexed into `files`; `who_calls`/`file_impact` consult `plugin_edges` for skill/command/agent/hook names and `.md` paths.
   - `codemem query who_calls impact-analysis` lists skill callers; `test_plugin_surface_index.py` passes; `uv run pytest -m perf` stays within budget.
-- Result Log:
+- Result Log: COMPLETE 2026-10-25 (Mode: AFK — auto-dispatched to a general-purpose agent; orchestrator-verified). RED 189ff456 → GREEN 6b5028b6 → views 8a7cde9b. Schema v4 `plugin_edges(src,dst,kind,ref_class)` + dst index, filled by build and every incremental refresh (rewrite only on change) from plugin_surface.extract(); new public `plugin_surface.owner_of(rel_path)` = the one ownership rule. who_calls(skill stem | `<kind>:<stem>`) and file_impact(plugin path) add plugin callers `{name, kind, file=<node id>, via: plugin_edges}` after code callers. .md not indexed into files. Live: who_calls impact-analysis → 8 callers (rule:engineering-standards + 7 skills); impact on its SKILL.md → 8 callers. tests/codemem/test_plugin_surface_index.py (30). pytest 3248/2/7, bats 793/0, perf 4/4 (who_calls 0.58→0.65 ms; builds within budget). Limits: an uncommitted .md edit does not mark the index stale; brief says "files" for plugin nodes.
 
 ### Sub-step 10.4: gitutil x2 + contract test (TDD)
 - Status: PENDING

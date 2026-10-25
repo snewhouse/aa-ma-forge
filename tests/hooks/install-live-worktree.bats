@@ -160,3 +160,16 @@ links() { find "${HOME}/.claude" -type l -exec readlink -f {} \; ; }
     [ "$status" -eq 0 ]
     [ -z "$(links | grep "^${WORK}/wt/")" ]
 }
+
+@test "impact-preedit (10.6): registered exactly once after two installs; hooks/lib linked; uninstall removes it" {
+    count='[.. | .command? | select(. != null and test("impact-preedit"))] | length'
+    "${FORGE}/scripts/install.sh" >/dev/null
+    run "${FORGE}/scripts/install.sh"
+    [ "$status" -eq 0 ]
+    [ "$(jq "$count" "${HOME}/.claude/settings.json")" -eq 1 ]
+    [ "$(jq -r '.hooks.PreToolUse[] | select(any(.hooks[]; .command | test("impact-preedit"))) | .matcher' "${HOME}/.claude/settings.json")" = "Edit|Write" ]
+    [ -L "${HOME}/.claude/hooks/aa-ma-impact-preedit.sh" ]
+    [ -e "${HOME}/.claude/hooks/lib/aa-ma-parse.sh" ]
+    "${FORGE}/scripts/uninstall.sh" >/dev/null
+    [ "$(jq "$count" "${HOME}/.claude/settings.json")" -eq 0 ]
+}

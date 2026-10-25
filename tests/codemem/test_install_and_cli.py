@@ -498,11 +498,84 @@ class TestQueryRoundTrips:
         r = _cli("--db", str(db), "impact", "a.py", cwd=repo)
         assert r.returncode == 0, r.stderr
         lines = r.stdout.strip().splitlines()
-        assert len(lines) <= 5
-        assert "callers: 0 files + 0 test files" in lines
+        assert len(lines) == 4
+        assert lines[0] == "impact: a.py"
+        assert "callers: 0 files + 0 plugin nodes + 0 test files; top: -" in lines
         assert any(
             ln.startswith("co-changed (of 3 commits): notes.md") for ln in lines
         ), lines
+
+    def test_impact_brief_names_one_caller_file(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "impact", "b.py", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        lines = r.stdout.strip().splitlines()
+        assert lines[1] == "callers: 1 file + 0 plugin nodes + 0 test files; top: a.py"
+
+    def test_impact_brief_prints_nothing_without_callers_or_co_changes(
+        self, indexed_repo
+    ):
+        """No callers of any kind and no co-changes: empty stdout, exit 0 (the hook stays one call)."""
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "impact", "never_indexed.py", cwd=repo)
+        assert (r.returncode, r.stdout) == (0, "")
+
+    def test_impact_help_documents_the_silent_case(self, indexed_repo):
+        repo, _ = indexed_repo
+        r = _cli("impact", "--help", cwd=repo)
+        assert r.returncode == 0
+        assert "prints nothing" in " ".join(r.stdout.split())
+        assert "--repo-root" in r.stdout
+
+    def test_impact_repo_root_and_double_dash(self, indexed_repo, tmp_path):
+        """--repo-root picks the default (XDG cache) index; `--` ends the options."""
+        repo, _ = indexed_repo
+        env = {
+            **os.environ,
+            "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src"),
+            "XDG_CACHE_HOME": str(tmp_path / "cache"),
+            "XDG_STATE_HOME": str(tmp_path / "state"),
+        }
+        env.pop("CODEMEM_DB", None)
+
+        def run(*a: str) -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                [sys.executable, "-m", "codemem.cli", *a],
+                cwd=tmp_path,
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+
+        assert run("build", "--repo-root", str(repo)).returncode == 0
+        r = run("impact", "--format", "brief", "--repo-root", str(repo), "--", "b.py")
+        assert r.returncode == 0, r.stderr
+        assert r.stdout.splitlines()[0] == "impact: b.py"
+        # After `--`, "--format" is a (never indexed) path, not an option: argparse
+        # would exit 2 on an option missing its value; a path prints nothing, exit 0.
+        r = run("impact", "--repo-root", str(repo), "--", "--format")
+        assert (r.returncode, r.stdout) == (0, ""), r.stderr
+
+    def test_impact_brief_sanitizes_every_line(self):
+        """Paths and node ids from the index are repo-controlled: one clean line each."""
+        from codemem.cli import _impact_brief
+
+        evil = "x\n\x1b[2J$(touch pwned)\u202e.py"
+        out = _impact_brief(
+            {
+                "file": "t.py",
+                "external_callers": [{"file": evil, "name": "f"}],
+                "test_callers": [{"file": "tests/" + evil, "name": "g"}],
+                "co_changes": [{"path": evil + "\r", "count": 2, "ratio": 0.5}],
+                "target_commits": 4,
+            }
+        )
+        lines = out.split("\n")
+        assert len(lines) == 4
+        for ln in lines:
+            assert "\x1b" not in ln and "\r" not in ln and "\u202e" not in ln
+            assert len(ln) <= 200
+        assert "$(touch pwned)" in lines[1]  # kept as inert text
 
     def test_impact_bad_path_exits_one(self, indexed_repo):
         repo, db = indexed_repo

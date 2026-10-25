@@ -102,7 +102,8 @@ def test_orphans_are_the_named_set_and_no_errors(surface) -> None:
         "debugging-strategies",
         # ADR-0021: model-invoked on skill/CLAUDE.md edits; nothing in the forge calls it.
         "writing-for-agents",
-        "aa-ma-session-end-dirty.sh",
+        # (aa-ma-session-end-dirty.sh left this set in code-conventions-impact 10.6:
+        # aa-ma-impact-preedit.sh names it as the SessionEnd cleaner of its markers.)
         # code-conventions-impact M8.7 (ADR-0022): model-invoked; nothing in the forge calls it
         # yet. (llm-output-safety left this set in M8.7: secops now points to it, as
         # bash-defensive-patterns left it in M7.6 when logging-and-comments pointed to it.)

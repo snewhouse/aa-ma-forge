@@ -5,7 +5,7 @@ Regex over ``claude-code/{commands,skills,agents,hooks,rules}`` (Ticket 4:
 
 * Node identity is the dir/file STEM, never frontmatter ``name:`` (fork-provenance
   SKILL.md files open with an HTML comment; ``name:`` can differ from the dir).
-  ``_owner`` is the ONE rule: the node set is exactly the owners of the files walked.
+  ``owner_of`` is the ONE rule: the node set is exactly the owners of the files walked.
 * Four syntaxes: ``Skill(x)``, ``/x``, ``subagent_type: x``, and a hook literal (the
   ``aa-ma-*.sh`` naming convention, so a missing hook reads DANGLING, plus every
   on-disk hook by name).
@@ -33,7 +33,15 @@ from pathlib import Path
 from .cut import MAX_EDGES, Cut, Level, from_edges
 from .surface_allowlist import EXTERNAL, HOOK_TABLE
 
-__all__ = ["NodeKind", "RefClass", "Surface", "SurfaceEdge", "as_json", "extract"]
+__all__ = [
+    "NodeKind",
+    "RefClass",
+    "Surface",
+    "SurfaceEdge",
+    "as_json",
+    "extract",
+    "owner_of",
+]
 
 _DIRS = {
     "commands": "command",
@@ -210,25 +218,32 @@ def _stem(node: str) -> str:
     return node.split(":", 1)[1]
 
 
-def _owner(cc: Path, f: Path) -> str | None:
-    """The node a file belongs to — the single definition of node identity.
+def owner_of(rel_path: str) -> str | None:
+    """The node a repo-relative path belongs to — the single definition of node identity.
 
     Commands, agents and rules are top-level ``*.md``; a skill owns every ``.md``/``.sh``
-    under its dir; a hook is any ``*.sh`` under ``hooks/``. Symlinks are never followed.
+    under its dir; a hook is any ``*.sh`` under ``hooks/``. Path-only: it reads no file,
+    so ``file_impact`` maps a path to its node without the tree on disk.
     """
-    if f.is_symlink() or not f.is_file():
+    parts = Path(rel_path).parts
+    if len(parts) < 3 or parts[0] != "claude-code" or parts[1] not in _DIRS:
         return None
-    parts = f.relative_to(cc).parts
-    kind = _DIRS[parts[0]]
+    kind, rest, name = _DIRS[parts[1]], parts[2:], parts[-1]
+    suffix = Path(name).suffix
     if kind == "skill":
         return (
-            f"skill:{parts[1]}"
-            if len(parts) > 2 and f.suffix in (".md", ".sh")
-            else None
+            f"skill:{rest[0]}" if len(rest) > 1 and suffix in (".md", ".sh") else None
         )
     if kind == "hook":
-        return f"hook:{f.name}" if f.suffix == ".sh" else None
-    return f"{kind}:{f.stem}" if len(parts) == 2 and f.suffix == ".md" else None
+        return f"hook:{name}" if suffix == ".sh" else None
+    return f"{kind}:{Path(name).stem}" if len(rest) == 1 and suffix == ".md" else None
+
+
+def _owner(cc: Path, f: Path) -> str | None:
+    """:func:`owner_of` for a walked file; symlinks and non-files own nothing."""
+    if f.is_symlink() or not f.is_file():
+        return None
+    return owner_of(f"claude-code/{f.relative_to(cc).as_posix()}")
 
 
 def _resolve(

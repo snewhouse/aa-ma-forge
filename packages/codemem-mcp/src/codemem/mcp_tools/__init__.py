@@ -39,6 +39,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal
 
+from ..draw.plugin_surface import NodeKind, owner_of
 from ..storage import db
 from .queries import BLAST_RADIUS_CTE, WHO_CALLS_CTE
 from .sanitizers import ValidationError, sanitize_path_arg, sanitize_symbol_arg
@@ -320,6 +321,46 @@ def _symbol_info_row(row: sqlite3.Row) -> dict:
 # ---------------------------------------------------------------------
 
 
+_PLUGIN_KINDS: tuple[str, ...] = tuple(k.value for k in NodeKind)
+_PLUGIN_SRCS_SQL = (
+    "SELECT DISTINCT src FROM plugin_edges WHERE dst IN ({}) ORDER BY src"
+)
+
+
+def _plugin_target(name: str) -> tuple[str, list[str]]:
+    """Sanitize a who_calls target; return it and the plugin node ids it may name.
+
+    A bare name (``impact-analysis``) may be any kind's stem; ``<kind>:<stem>``
+    names one node. Each part passes :func:`sanitize_symbol_arg` (``:`` itself
+    is outside its allow-list). Raises :class:`ValidationError`.
+    """
+    kind, sep, stem = name.partition(":") if isinstance(name, str) else ("", "", "")
+    if not sep:
+        clean = sanitize_symbol_arg(name)
+        return clean, [f"{k}:{clean}" for k in _PLUGIN_KINDS]
+    if kind not in _PLUGIN_KINDS:
+        raise ValidationError(
+            f"kind before ':' must be one of {', '.join(_PLUGIN_KINDS)}"
+        )
+    clean = f"{kind}:{sanitize_symbol_arg(stem)}"
+    return clean, [clean]
+
+
+def _plugin_callers(conn: sqlite3.Connection, node_ids: list[str]) -> list[str]:
+    """Plugin nodes (``<kind>:<stem>``) with an edge into any of ``node_ids``.
+
+    An index built before schema v4 has no ``plugin_edges``: logged, and empty.
+    """
+    if not conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='plugin_edges'"
+    ).fetchone():
+        logger.warning("index predates plugin_edges (schema < 4): run `codemem build`")
+        return []
+    marks = ", ".join("?" * len(node_ids))
+    sql = _PLUGIN_SRCS_SQL.format(marks)  # only "?" marks go in; values are bound
+    return [r[0] for r in conn.execute(sql, node_ids)]
+
+
 def who_calls(
     db_path: Path,
     name: str,
@@ -327,17 +368,20 @@ def who_calls(
     max_depth: int = 3,
     budget: int = _DEFAULT_BUDGET,
 ) -> dict:
-    """Return upstream callers of ``name`` (by unqualified symbol name)."""
+    """Return upstream callers of ``name`` (by unqualified symbol name).
+
+    ``name`` may also be a plugin node — a skill/command/agent/rule/hook stem
+    or ``<kind>:<stem>``. Its callers from ``plugin_edges`` follow the code
+    callers as ``{"name", "kind", "file", "via": "plugin_edges"}``, where
+    ``kind`` is the caller's node kind and ``file`` its node id.
+    """
     try:
-        clean = sanitize_symbol_arg(name)
+        clean, plugin_ids = _plugin_target(name)
     except ValidationError as exc:
         return {"error": str(exc), "target": name, "callers": []}
 
     with _open_ro(db_path) as conn:
-        target_ids = _resolve_symbol_ids_by_name(conn, clean)
-        if not target_ids:
-            return {"target": clean, "callers": [], "truncated": False, "error": None}
-
+        target_ids = [] if ":" in clean else _resolve_symbol_ids_by_name(conn, clean)
         caller_ids: set[int] = set()
         for tid in target_ids:
             rows = conn.execute(
@@ -357,8 +401,18 @@ def who_calls(
             ).fetchone()
             if row:
                 callers.append(_symbol_info_row(row))
+        plugin_srcs = _plugin_callers(conn, plugin_ids)
 
     callers.sort(key=lambda c: (c["file"], c["line"], c["name"]))
+    callers += [
+        {
+            "name": src.split(":", 1)[1],
+            "kind": src.split(":", 1)[0],
+            "file": src,
+            "via": "plugin_edges",
+        }
+        for src in plugin_srcs
+    ]
     return _truncate(
         {"target": clean, "callers": callers, "error": None},
         list_key="callers",
@@ -880,7 +934,10 @@ def file_impact(
 
     ``external_callers`` are symbols in other non-test files with an edge
     into any symbol defined in ``file_path``; ``test_callers`` are the same
-    from test files. ``co_changes`` comes from :func:`co_changes` with
+    from test files. A ``claude-code/`` plugin file adds the plugin nodes that
+    reference its owner (:func:`~codemem.draw.plugin_surface.owner_of`) to
+    ``external_callers`` as ``{"file": "<kind>:<stem>", "name": "<stem>"}``.
+    ``co_changes`` comes from :func:`co_changes` with
     ``max_commit_files=CO_CHANGE_MAX_COMMIT_FILES``; ``target_commits`` is
     its denominator. Lists are trimmed (co-changes first) to fit ``budget``.
     """
@@ -890,9 +947,13 @@ def file_impact(
     except ValidationError as exc:
         return {"file": file_path, **empty, "error": str(exc), "truncated": False}
 
+    node = owner_of(clean)
     with _open_ro(db_path) as conn:
         rows = conn.execute(_FILE_CALLERS_SQL, (clean, clean)).fetchall()
+        plugin_srcs = _plugin_callers(conn, [node]) if node else []
     callers = [{"file": r["file"], "name": r["name"]} for r in rows]
+    # Plugin nodes have no single source file: "file" is the node id.
+    callers += [{"file": src, "name": src.split(":", 1)[1]} for src in plugin_srcs]
     co = co_changes(
         db_path, clean, max_commit_files=CO_CHANGE_MAX_COMMIT_FILES, budget=budget
     )

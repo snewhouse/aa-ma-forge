@@ -2,6 +2,14 @@
 
 ## AA-MA Tooling
 
+### PR #65 (M16 codemem index location) review notes: 1 MEDIUM + 2 LOW, deferred under the stop rule
+**What:**
+- MEDIUM: §6.0 probes codemem with the caller's full PATH while the post-commit worker drops relative PATH entries; with no forge venv and only a relative-PATH `codemem`, §6.0 can record `skipped(codemem not installed)` (`claude-code/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh:76`). Resolve with `aa_ma_codemem_bin` in both.
+- LOW: shell twin vs pathlib disagree for a `CODEMEM_DB` ending in `/.` (`claude-code/hooks/lib/aa-ma-parse.sh:431`); add the case to `tests/codemem/test_safety_parity.py`.
+- LOW (PR #63): ruff split a short `.mkdir()` across three lines (`tests/render/test_explorer_fixture.py:173`); join when the file is next touched.
+
+**Why:** sdm.sh C1/C2 on PR #65 (2026-10-23), filed at code-conventions-impact 10.0 (L-037). **Effort:** S · **Priority:** P3
+
 ### Hook hot-path and helper tidy-ups (M7 §6.6 review, deferred)
 
 **What:**

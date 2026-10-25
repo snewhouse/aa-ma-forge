@@ -15,6 +15,7 @@
 - Repo `~/projects/github_private/aa-ma-forge` — **PUBLIC** (`snewhouse/aa-ma-forge`). No client-derived code, names or paths enter it.
 - Plan authored on `feature/engineering-standards` @ `14ae44c`. One branch + PR per milestone, cut from fresh `main` (L-032: check `git status -sb` on `main` first), merged via `/sole-dev-merge` (rebase-merge).
 - **Each milestone executes in its own worktree** `.worktrees/<branch>` (`superpowers:using-git-worktrees`, L-066; Ste D7 2026-10-08). `install.sh` symlinks `~/.claude` into the MAIN checkout, so branch edits must never go live mid-session. The main checkout changes only by `git pull` after a merge, followed by `scripts/install.sh`. As a result, a new gate fence is first exercised by the milestone **after** the one that ships it. Caveats (Verification v1): (a) the `_cand` lookup prefers `$(git rev-parse --show-toplevel)/claude-code/hooks/lib/…`, so inside a worktree the fence TEXT comes from main but the launcher and gate Python come from the branch. That is accepted, because the gate runs after the branch's own tests pass. (b) Each worktree's first action is `uv sync && uv run codemem build`: `.venv` and `.codemem/index.db` are gitignored and per-checkout, and without the index DIAGRAM_VERIFIED and fence 4 fail closed. (c) A live `scripts/install.sh` runs ONLY from the main checkout after merge, because install.sh derives REPO_ROOT from its own location and would otherwise point `~/.claude` into a worktree. In-milestone install proofs use a fake `CLAUDE_HOME`.
+  - **Amended 2026-10-25 (Ste; ADR-0025; scope change at 10.0):** from M10 on, milestones run on **plain branches in the main checkout**. `install.sh` links `~/.claude` into the **live worktree** (the detached `codemem-plugin-wt` on main, R03-D13), refreshed to main before it links, so a branch in the main checkout is never live. Caveat (a) is unchanged in effect (fence text = installed skill = main; launcher and gate Python = the branch). Caveat (b): one `uv sync && uv run codemem build` in the main checkout, not per milestone; since M16 the index lives in `${XDG_CACHE_HOME:-~/.cache}/codemem/<hash>/`. Caveat (c): a live `install.sh` may run from any checkout after merge; the links land on the live worktree.
 - Executor: `/execute-aa-ma-milestone`. From M3 on it is a skill at `claude-code/skills/execute-aa-ma-milestone/SKILL.md` (same `/name`).
 - Baseline at plan time: `uv run pytest -q` → **2429 passed, 5 skipped, 7 deselected in 112.5 s** (2026-10-08; sizes the TESTS_VERIFIED timeout); ruff 0.15.9 (uv.lock); uv 0.12.3; gitleaks 8.18.0, shellcheck 0.11.0, pre-commit 4.5.1 (conda, not in the venv); bandit 1.9.4 resolves to **conda**, not the venv; griffe and osv-scanner absent.
 - **Security hardening (Verification v2, Security specialist; binding across milestones):**
@@ -54,7 +55,7 @@
     - validates `session_id` against `^[A-Za-z0-9_-]{1,64}$`;
     - checks out-of-repo paths with `realpath -m` plus a trailing-slash prefix;
     - wraps codemem in `timeout -k`;
-    - opens the index.db with `mode=ro`, `trusted_schema=OFF`, and ignores a git-tracked `.codemem/index.db`;
+    - opens the index.db with `mode=ro`, `trusted_schema=OFF`, and ignores a git-tracked `.codemem/index.db`; (amended 10.0, validator W2: since M16 the index is resolved with `aa_ma_codemem_dir <top>` in the XDG cache, never in the edited repo, so the git-tracked case cannot arise for the default location; a `CODEMEM_DB` override stays guarded by the M15 trust token);
     - cleans the runtime markers at SessionEnd.
   - Git refs (`PRE_COMMIT_*_REF`, `--base`) are verified with `git rev-parse --verify --end-of-options <ref>^{commit}`. Paths go after `--` and output is parsed with `-z` (gitutil + check_conventions).
   - install.sh:
@@ -113,7 +114,7 @@ Lessons applied: L-1319 (no silent fail-open; hook stderr on exit 0 is invisible
 - D4 **Retire forge `/grill-me`.** The forge ships `grilling` + `grill-with-docs`, and an external `~/.claude/skills/grill-me → ~/.agents/skills/grill-me` exists. So 13 commands convert.
 - D5 **Milestone order approved** with commands→skills early (M3).
 - D6 **Prototypes:** M3 install path, M10 hook UX, M11 co-change threshold.
-- D7 **Worktree per milestone** (CEO review F17): the live symlinks point at the main checkout.
+- D7 **Worktree per milestone** (CEO review F17): the live symlinks point at the main checkout. **Amended 2026-10-25 by ADR-0025 (Ste):** from M10, plain branches in the main checkout; `~/.claude` links into the live worktree.
 - D8 **Touched files comply in full** (Verification v1): file-level, not line-level; measured debt is ≤11 findings per planned file.
 - D9 (superseded by "D9 revised" below): originally no `disable-model-invocation` on any converted skill.
 - D9 **revised again (2026-10-09, M3 §6.8 security review, Ste):** also `execute-aa-ma-full` and `archive-aa-ma` → 4 skills. The Wave 2 lines below (and the M3 Contract/amendments) record the earlier 2-skill decision.
@@ -797,7 +798,7 @@ Files:
   Create  claude-code/hooks/aa-ma-impact-preedit.sh
             PreToolUse(Edit|Write) — no MultiEdit tool exists in Claude Code 2.1.294 (Verification v1); NotebookEdit ignored; reads .tool_input.file_path (real payload); once per file per session (~/.claude/runtime/impact-seen-<session_id>)
             no codemem index → ONE systemMessage per session ("no codemem index — run `codemem build`"), never silent
-            codemem resolution (recorded by M15.8, R03-D13): `CODEMEM_BIN` → `<forge>/.venv/bin/codemem` (readlink -f on the hook) → `~/.local/share/codemem-plugin/.venv/bin/codemem` (the user-scope plugin worktree on main) → absolute-PATH `codemem`; never the edited repo; none → the same one systemMessage
+            codemem resolution: the shipped `aa_ma_codemem_bin <forge>` (M16) — `CODEMEM_BIN` → `<forge>/.venv/bin/codemem` (readlink -f on the hook; since ADR-0025 the forge IS the live worktree, so the former `~/.local/share/codemem-plugin/.venv` step is the same binary and is dropped, validator W3) → absolute-PATH `codemem`; never the edited repo; none → the same one systemMessage
             0 external callers and 0 co-changes → silent; else ≤5 lines via additionalContext (A1); never blocks (exit 0 always)
             injected strings pass a NEW never-raising `sanitize_context_line(text, max_len=200)` added to codemem mcp_tools/sanitizers.py (strip C0/C1 controls, cap) — the existing sanitize_*_arg validators raise and reject spaces, so they are NOT used here (Verification v1); framed as "codemem data (untrusted):" (CEO F8, L-1314)
             file_path: quoted, passed after `--`; paths outside the repo root are ignored (CEO F9)
@@ -815,7 +816,14 @@ Files:
   Modify  scripts/install.sh   # AA_MA_HOOKS += impact-preedit
   Modify  scripts/uninstall.sh
   Modify  pyproject.toml   # dev group += griffe (pinned)
-  Create  docs/adr/NNNN-impact-preedit-hook-and-callees.md
+  Create  docs/adr/NNNN-impact-preedit-hook-and-callees.md   # NNNN = 0026 (0025 = live worktree, 10.0)
+  Modify  packages/codemem-mcp/src/codemem/mcp_tools/sanitizers.py   # sanitize_context_line (10.6) — rows below added at 10.0 (validator W4)
+  Modify  packages/codemem-mcp/src/codemem/analysis/git_mining.py   # rename detection (amendment)
+  Modify  .importlinter   # aa_ma.gitutil leaf (amendment)
+  Modify  SECURITY.md, claude-code/codemem/README.md, claude-code/codemem/commands/codemem.md, packages/codemem-mcp/README.md, packages/codemem-mcp/pyproject.toml, docs/codemem/install-zero-config.md   # 14 MCP tools
+  Modify  claude-code/skills/impact-analysis/SKILL.md, claude-code/skills/system-mapping/SKILL.md   # blast_radius → callees wording
+  Modify  claude-code/hooks/aa-ma-session-end-dirty.sh   # SessionEnd cleans impact-seen markers (§0 v2)
+  Test    tests/codemem/test_mcp_server.py   # test_thirteen_exact → 14
   Test    tests/codemem/test_callees.py, test_co_changes.py (+min_ratio), test_aa_ma_context.py (asserts the count, not just keys — catches defect 1), test_file_impact.py, test_plugin_surface_index.py
   Test    tests/test_gitutil_contract.py, tests/codemem/test_critical_path_globs.py (globs ⇔ engineering-standards table)
   Test    tests/hooks/aa-ma-impact-preedit.bats   # real captured PreToolUse payloads (Edit, Write; NotebookEdit + out-of-repo path → exit 0, empty stdout; codemem absent from PATH → one notice); once-per-file; no-index notice once; silent at 0; symbol named with an injection string is sanitized; file_path with spaces and `$(touch x)` executes nothing; two concurrent invocations print once
@@ -1082,7 +1090,7 @@ The five input classes the spec implies that are most likely to bite. Each has a
 **Prerequisite (HITL, Verification v1):** the chart and this plan live on `feature/engineering-standards` (12 commits ahead of main, plus the Phase 5 artifact commit). Merge it into `main` via `/sole-dev-merge` before M1. The main push needs Ste's explicit OK. Then switch the main checkout (the `install.sh` symlink target) to `main`.
 
 **Standing rules (Verification v2, binding):**
-- **Post-merge work is step N.0 of the NEXT milestone.** A HARD milestone completes before its PR merges, so a live `install.sh`, `pre-commit install`, a live probe, or a check that needs merged state can never be a sub-step of the milestone that ships it. Step N.0 pulls main and runs `scripts/install.sh` from the main checkout when M(N-1) changed install.sh, hooks, rules or the skill set. It then runs the deferred verification. Mapping:
+- **Post-merge work is step N.0 of the NEXT milestone.** A HARD milestone completes before its PR merges, so a live `install.sh`, `pre-commit install`, a live probe, or a check that needs merged state can never be a sub-step of the milestone that ships it. Step N.0 pulls main and runs `scripts/install.sh` from the main checkout (from 10.0 on: from any checkout — the links land on the live worktree, ADR-0025) when M(N-1) changed install.sh, hooks, rules or the skill set. It then runs the deferred verification. Mapping:
   - 2.0 ← `pre-commit install` (post-merge of M1)
   - 3.0 ← 2.4 live install + 2.6 probe
   - 4.0 ← 3.6 live probes
@@ -1090,7 +1098,7 @@ The five input classes the spec implies that are most likely to bite. Each has a
   - 9.0 ← M8 hook install
   - 15.0 ← M9 install (scope change 2026-10-13: M15 runs before M10)
   - 16.0 ← M15 install (scope change 2026-10-14: M16 runs before M10); the first live `CODE_INTEL_REFRESH` is M16's, at its own gate
-  - 10.0 ← M16 install, plus `TESTS_VERIFIED` and `CODE_INTEL_REFRESH` must appear for M10 at its own gate
+  - 10.0 ← M16 install, plus `TESTS_VERIFIED` and `CODE_INTEL_REFRESH` must appear for M10 at its own gate; scope change 2026-10-25: the live-worktree switch (ADR-0025) ships and is installed here, plus `--wire-git-hook` (deferred from 16.0)
   - 11.0 ← 10.6 live install
   - 12.0 ← M11 install
   - 13.0 ← 12.6 live install

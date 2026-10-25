@@ -665,3 +665,16 @@ DECISION ruff-only () — approved by Ste
 - Key outcome: codemem's default index lives in `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath root)>/`, so a repo can no longer plant a WAL, rollback journal or stamped index beside it (M15 §6.8 re-run 3, double-check F1, pre-merge HIGH). One resolver per language (codemem.paths, aa_ma.render.graph twin, aa_ma_codemem_dir) pinned by a parity test; trust token kept for a CODEMEM_DB inside a repo; §6.0 blocks a failed build.
 - Side work: format-only PRs #63, #64 (L-031); lessons L-064, L-065; TODOS P3 ×3.
 - Next: Milestone 10 — Dependencies: Milestone 9, Milestone 15, Milestone 16. 10.0 = post-merge of M16 (install.sh from main, --wire-git-hook per Ste's 16.0 deferral).
+
+## [2026-10-25] SCOPE CHANGE: Milestone 10 / Sub-step 10.0 — live worktree replaces worktree-per-milestone (amends D7; ADR-0025)
+- Source: handover `2026-10-23-cci-m10-resume.md` §9 Q3 (Ste, 2026-10-23: "sole developer, milestones sequential").
+- Decision (Ste, 2026-10-25): option C. `~/.claude` links into the live worktree (the existing `codemem-plugin-wt`, not a second one), refreshed to main by `install.sh` before linking; milestones from M10 run on plain branches in the main checkout. Rejected: A keep worktrees (per-milestone `uv sync`/`codemem build`/cleanup); B plain branches with links on the checkout (a half-edited hook is live in every session); a second live worktree (two to refresh).
+- Sequence (Ste approved at the 10.0 checkpoint): style PR (L-065) → 10.0 PR from a worktree (old D7 holds until it merges) → install from main switches the links → `--wire-git-hook` → M10 branch in the main checkout.
+- Also (Ste): wire `--wire-git-hook` in 10.0 (deferred from 16.0), from the live worktree after the switch, because the stanza bakes in its checkout's absolute path. Remove the merged worktrees feat/cci-m16, style ×2 (done; `git cherry` showed none held commits off main). Ste: force-with-lease OK for style/m10-contract-lint (rebase onto 9d51aaa4); operator cleanup after each sdm finish this session.
+- Validator W1–W5 folded into plan/tasks/reference (10.0 AC, 10.6 index + binary lookup, Contract rows, ADR 0026 for 10.8). W6: gate semantics unchanged.
+- Side fix: filelock CVEs broke every PR's deps job → PR #67 (merged 9d51aaa4).
+- Approved by: Ste
+
+## [2026-10-25] M16 merged to main (PR #65) — post-merge record (L-037)
+- PR #65 rebase-merged 2026-10-23 at 38a5f179 via sdm.sh (STATUS OK); 29 branch SHAs rewritten — SHA MAP line in provenance (2026-10-23T16:07). Format PRs #63 (8ce73388), #64 (45d08ba0).
+- PR #65 MEDIUM/LOW notes → one P3 TODOS entry ("PR #65 review notes").

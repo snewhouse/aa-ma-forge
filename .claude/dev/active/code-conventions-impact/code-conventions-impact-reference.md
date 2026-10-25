@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-23 (M16 COMPLETE: as-built location resolvers, §6.0 rule, §6.8 fixes)_
+_Last Updated: 2026-10-25 (10.0: ADR-0025 live worktree amends D7; M16 post-merge)_
 
 Test-Command: uv run pytest
 
@@ -21,14 +21,16 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | Plan authored on | branch `feature/engineering-standards` @ `14ae44c` (12 commits ahead of main + Phase 5 artifact commit) | [valid: 2026-10-08] |
 | Default branch | `main` | [valid: 2026-10-08] |
 | Branch model | one branch + PR per milestone, cut from fresh `main` (L-032: `git status -sb` on main first); merged via `/sole-dev-merge` (rebase-merge) | [valid: 2026-10-08] |
-| Worktree per milestone | `.worktrees/<branch>` (D7, L-066); first action `uv sync && uv run codemem build` (`.venv`, `.codemem/index.db` are gitignored, per-checkout) | [valid: 2026-10-08] |
-| Live install | `scripts/install.sh` runs ONLY from the main checkout after merge (install.sh derives REPO_ROOT from its own location); in-milestone install proofs use a fake `CLAUDE_HOME` | [valid: 2026-10-08] |
+| Worktree per milestone | `.worktrees/<branch>` (D7, L-066); first action `uv sync && uv run codemem build` (`.venv`, `.codemem/index.db` are gitignored, per-checkout) | [valid: 2026-10-08 to 2026-10-25] |
+| Branch model from M10 (ADR-0025, amends D7) | plain branch in the main checkout, cut from fresh main; `~/.claude` links into the live worktree `~/.local/share/codemem-plugin-wt` (target of `~/.local/share/codemem-plugin`), refreshed to main + `uv sync` by `install.sh` §0 before linking; one `uv sync && uv run codemem build` in the main checkout (index in `${XDG_CACHE_HOME:-~/.cache}/codemem/<hash>/`) | [valid: 2026-10-25] |
+| Live install | `scripts/install.sh` runs ONLY from the main checkout after merge (install.sh derives REPO_ROOT from its own location); in-milestone install proofs use a fake `CLAUDE_HOME` | [valid: 2026-10-08 to 2026-10-25] |
+| Live install (ADR-0025) | after merge, `git pull` then `scripts/install.sh` from any checkout of the forge: links and spec copies come from the live worktree (`SRC_ROOT`); no plugin link → the running checkout, as before. Fake-home proofs: install.sh reads `CLAUDE_HOME=${HOME}/.claude`, so tests override `HOME` | [valid: 2026-10-25] |
 | M14 exception | M14 runs on the main checkout after M13 merges (D7 exception, D11); main pushes need Ste's explicit OK | [valid: 2026-10-08] |
 | First branch name | `feat/cci-m1-touched-harness` | [valid: 2026-10-08] |
 | Canary branch (M1.4) | `canary/cci-m1-touched` (DRAFT PR, closed + deleted after) | [valid: 2026-10-08] |
 | Prototype branches | `prototype/cmd-to-skill` (M3.1), `prototype/impact-hook` (M10.1) | [valid: 2026-10-08] |
 | Release target | v0.18.0 (minor), single release in M14 (D11) | [valid: 2026-10-08] |
-| Next free ADR number | 0023 (0022 = M8 secops baseline; 0018 = M1 lint gate, 0019 = M2 skill migration, 0020 = M3 commands → skills, 0021 = M4 writing-for-agents); eight ADRs planned | [valid: 2026-10-13] |
+| Next free ADR number | 0026 (0023 = M9 tests-verified, 0024 = sole-dev-merge one script, 0025 = live worktree / D7 amendment at 10.0); M10.8 takes 0026 | [valid: 2026-10-25] |
 | Session rules | `/rigor` (`~/.claude/skills/rigor/SKILL.md`), ≤5 concurrent sub-agents, `Skill(double-check)` before any COMPLETE | [valid: 2026-10-08] |
 
 ## Baseline Numbers (plan §0, 2026-10-08)
@@ -294,7 +296,8 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 
 ### Key Directories
 - `.claude/dev/active/code-conventions-impact/` — this task's AA-MA files [valid: 2026-10-08]
-- `.worktrees/<branch>` — per-milestone worktrees
+- `.worktrees/<branch>` — per-milestone worktrees (to M16; from M10 only for a PR that must not go live before merge, e.g. 10.0's own)
+- `~/.local/share/codemem-plugin-wt` — the live worktree (ADR-0025): `~/.claude` links + user-scope codemem MCP
 - `~/.claude/backups/cci-mN-<ts>.tgz` — outside-repo backups (M2, M8, M12), count-verified (L-1300)
 - `~/.claude/runtime/impact-seen-<session_id>/` — pre-edit hook once-per-file markers
 - `~/.claude/logs/hooks.log` — single hook log
@@ -330,7 +333,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - D4 Retire forge `/grill-me`; 13 commands convert.
 - D5 Milestone order approved, commands→skills early (M3).
 - D6 Prototypes: M3 install path, M10 hook UX, M11 co-change threshold.
-- D7 Worktree per milestone (live symlinks point at the main checkout).
+- D7 Worktree per milestone (live symlinks point at the main checkout). **Amended 2026-10-25 (ADR-0025):** from M10, plain branches; `~/.claude` links into the live worktree.
 - D8 Touched files comply in full (file-level, not line-level).
 - D9 (superseded) no `disable-model-invocation`; **D9 revised** (2026-10-08): `disable-model-invocation: true` on `sole-dev-merge` and `aa-ma-share`; **revised again** (2026-10-09, M3 §6.8 security): also `execute-aa-ma-full` and `archive-aa-ma` (commit/tag/push with no per-step gate) — 4 skills.
 - D10 `Test-Command: none — <reason>` opt-out for TESTS_VERIFIED.
@@ -464,3 +467,9 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
   - Tests (31) — keep where they pass an explicit `db_path` (most build `root/.codemem/index.db` on purpose); change those that rely on the default or assert the in-repo location (expected: test_install_and_cli, test_mcp_server_integration, test_freshness, test_x2_envelope, the three hook bats, make-repo.sh, test_graph, test_safety_parity, test_diagram_verified.bats); decided per test at 16.1–16.3 by the RED/GREEN runs.
   - Docs — change: SECURITY.md, CHANGELOG.md (Unreleased), TODOS.md, `claude-code/codemem/{README.md,commands/codemem.md}`, `claude-code/agents/codebase-onboarding-{conventions,runbook,synthesizer}.md`, `claude-code/skills/{aa-ma-plan/SKILL.md,aa-ma-plan/references/phase-1-context.md,impact-analysis/SKILL.md,understand-codebase/SKILL.md,understand-codebase/references/REUSE-MAP.md,understand-codebase/templates/onboarding-team.md}`, `claude-code/skills/execute-aa-ma-milestone/references/boundary-checks.md` (no `.codemem` hit; §6.0 text), `docs/codemem/{ARCHITECTURE,install-zero-config,migration-from-index,performance-slo}.md`, `docs/spec/aa-ma-quick-reference.md`. Frozen (no action): `docs/adr/0014,0017`, `docs/research/*` (4), `docs/benchmarks/codemem-vs-index.md`, `docs/demo/codemem-co-changes-transcript.md`, `docs/lessons.md`, `.claude/dev/**` (28). [valid: 2026-10-23]
 - As built M16 (2026-10-23): `codemem.paths` — `cache_home()` (relative `XDG_CACHE_HOME` ignored), `default_db_path(root)`, `resolve_db_path(root, db)` (`--db` > `CODEMEM_DB` > default, `.absolute()`); cli `_repo_root(args)` + `_db_path(args)` (cli now honours `CODEMEM_DB`); server `_default_db_path`/`_default_repo_root` absolute; `_capped_refresh` absolutes argv. `storage.db.SQLITE_SUFFIXES = ("", "-wal", "-shm", "-journal")`, `db_files(path)`, `remove_db_files(path)` — the only sidecar cleanup. Twins: `aa_ma.render.graph._resolve_db_path` (no codemem import), shell `aa_ma_codemem_dir <top>` (strips trailing `/` like pathlib; `/index.db` → `/`), `aa_ma_codemem_bin <forge>` (CODEMEM_BIN, else forge venv, else absolute PATH hit) — parity: tests/codemem/test_safety_parity.py (8 cases). post-commit loads aa-ma-parse.sh only in the worker, resolves `CM` once, stderr when no dir. §6.0: `codemem=skipped(codemem not installed)` only with no binary; else last_sha ≠ HEAD BLOCKED. `.mcp.json` sets only `CODEMEM_REPO_ROOT`. Reproductions: tests/codemem/test_location.py (not test_trust.py). [valid: 2026-10-23]
+
+## 10.0 Facts (2026-10-25)
+- ADR-0025 `docs/adr/0025-live-worktree-install-target.md` Accepted (Ste): `aa_ma_live_worktree` in `scripts/lib/aa-ma-install-lib.sh` → the plugin-link target when it is a linked worktree of this forge (same `--git-common-dir`) and not the checkout; `points_into_repo` also accepts `${LIVE_ROOT}/`; install.sh §0 refreshes it (checkout `--detach main` + `uv sync --locked`) BEFORE linking; `SRC_ROOT=${LIVE_ROOT:-REPO_ROOT}` feeds every link, spec copy and `--wire-git-hook` `SOURCE_HOOK`; a dirty live worktree is linked unrefreshed (warn); a sentinel stanza naming another copy → warn. Tests: `tests/hooks/install-live-worktree.bats` (8). [valid: 2026-10-25]
+- Validator (pre-exec, WARN) W2/W3 resolved in plan + tasks: the 10.6 hook resolves the index with `aa_ma_codemem_dir` and the binary with `aa_ma_codemem_bin` (no separate plugin-link step: the forge IS the live worktree). W4: Contract rows added. W5: next ADR 0026. W6: gate semantics unchanged (fence text = installed skill; launcher/gate Python = branch toplevel). [valid: 2026-10-25]
+- Baseline at main 38a5f179 (2026-10-25): pytest 3180 passed / 2 skipped / 7 deselected; bats 781 ok / 0 not ok. [valid: 2026-10-25]
+- Side PRs at 10.0: #66 style (L-065: 2 tests formatted, 7 lint findings in Contract files), #67 `fix(deps)` filelock 4.0.12→4.2.4 (CVE-2026-112940/-112913/-112907; locked with CI's uv 0.12.3 — local uv 0.13.5 bumps the lock `revision`). [valid: 2026-10-25]

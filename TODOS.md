@@ -10,8 +10,12 @@
 - LOW: install.sh run from inside the live worktree prints "not a worktree of this forge" (wt == REPO_ROOT); say so with an info line instead.
 - LOW: uninstall.sh counts live-worktree links as ours only while the plugin link still targets it; also accept any linked worktree with the forge's common dir.
 - LOW (C2): `SOURCE_HOOK` is written into the post-commit stanza in double quotes; a path with `"`, `$` or a backtick would expand on each commit (same as before ADR-0025); write it with `printf %q`.
+- LOW (round 2): the hooks/lib sweep removes a branch-only hook's link but its settings.json entry stays (register_hook only adds), so that event errors until the hook reaches main; deregister rows whose source is absent from `SRC_ROOT`.
+- LOW (round 2): the dirty / failed-refresh abort tests start from an empty `~/.claude`; install from the checkout first and assert the links are unchanged after the abort.
+- LOW (round 2): the branch-only sweep test covers skills and agents only; add a rules/ and hooks/lib case, and one asserting a link outside the forge is kept.
+- (round 2 restates the first LOW: the empty-path guard in `aa_ma_live_worktree` is not reached from install.sh while `plugin_wt="$(readlink -f …)"` runs first under set -e.)
 
-**Why:** sdm.sh C1/C2 round 1 on the 10.0 PR (2026-10-25): C1 2 MEDIUM (fixed test-first) + 5 LOW, C2 2 LOW (dirty fallback fixed as fail-closed, Ste). **Effort:** S · **Priority:** P3
+**Why:** sdm.sh C1/C2 round 1 on the 10.0 PR (2026-10-25): C1 2 MEDIUM (fixed test-first) + 5 LOW, C2 2 LOW (dirty fallback fixed as fail-closed, Ste); round 2 (fix only) C1 1 MEDIUM (jq preflight order; fixed test-first, Ste: no round 3) + 4 LOW, C2 0 (1 INFO). **Effort:** S · **Priority:** P3
 
 ### PR #65 (M16 codemem index location) review notes: 1 MEDIUM + 2 LOW, deferred under the stop rule
 **What:**

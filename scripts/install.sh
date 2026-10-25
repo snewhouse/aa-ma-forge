@@ -79,6 +79,18 @@ if ! aa_ma_hooks_validate; then
 fi
 
 # ---------------------------------------------------------------------------
+# Preflight: jq is required for settings.json registration (step 5a). Checked before
+# step 0, so a missing jq stops the install before any link is removed or replaced.
+# ---------------------------------------------------------------------------
+# why: &>/dev/null — only the exit status matters; the error lines below say what is missing
+if ! command -v jq &>/dev/null; then
+    error "jq is required for hook registration but was not found in PATH."
+    error "  Ubuntu/WSL:  sudo apt-get install -y jq"
+    error "  macOS:       brew install jq"
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
 # 0. The live worktree (ADR-0025, amending D7; R03-D13)
 # ---------------------------------------------------------------------------
 # ~/.local/share/codemem-plugin links to a dedicated, detached worktree of this forge: the
@@ -392,16 +404,6 @@ create_symlink "${SRC_ROOT}/claude-code/rules/aa-ma.md" \
                "${CLAUDE_HOME}/rules/aa-ma.md"
 create_symlink "${SRC_ROOT}/claude-code/rules/engineering-standards.md" \
                "${CLAUDE_HOME}/rules/engineering-standards.md"
-
-# ---------------------------------------------------------------------------
-# 5. Preflight: jq is required for settings.json registration
-# ---------------------------------------------------------------------------
-if ! command -v jq &>/dev/null; then
-    error "jq is required for hook registration but was not found in PATH."
-    error "  Ubuntu/WSL:  sudo apt-get install -y jq"
-    error "  macOS:       brew install jq"
-    exit 1
-fi
 
 # ---------------------------------------------------------------------------
 # 5a. Symlink hooks + register in settings.json (idempotent, conditional)

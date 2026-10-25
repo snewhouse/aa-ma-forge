@@ -1,6 +1,6 @@
 """Tests for claude-code/codemem/mcp/server.py — Task 1.10.
 
-Verifies the FastMCP server registers all 13 tool slots, exposes the
+Verifies the FastMCP server registers all 14 tool slots, exposes the
 M1 subset as callable handlers, and carries the required aliases
 (`dead_code` ↔ `find_dead_code`, `who_calls` ↔ `find_references`)
 for Anthropic Tool Search discoverability.
@@ -42,6 +42,8 @@ class TestCanonicalSlots:
             "dependency_chain",
             "search_symbols",
             "file_summary",
+            # M10.2 — callees; blast_radius stays as its deprecated alias
+            "callees",
             # M3 git-mining (7–11) — stubbed in M1
             "hot_spots",
             "co_changes",
@@ -55,8 +57,16 @@ class TestCanonicalSlots:
         }
         assert set(server_mod.CANONICAL_TOOL_NAMES) == expected
 
-    def test_thirteen_exact(self, server_mod):
-        assert len(server_mod.CANONICAL_TOOL_NAMES) == 13
+    def test_fourteen_exact(self, server_mod):
+        assert len(server_mod.CANONICAL_TOOL_NAMES) == 14
+
+    def test_blast_radius_described_as_deprecated(self, server_mod):
+        import asyncio
+
+        server = server_mod.build_server()
+        desc = asyncio.run(server.get_tool("blast_radius")).description or ""
+        assert "deprecated" in desc.lower()
+        assert "callees" in desc
 
 
 class TestAliases:

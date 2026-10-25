@@ -220,3 +220,28 @@ class TestLinkedTaskFiles:
             fh.write(f"\n`../outside.py` `{tmp_path}/outside.py` `escape.py`\n")
         files = aa_ma_context(db_path, "sample-task", repo_root=repo_root)["files"]
         assert not [f for f in files if "outside" in f or f == "escape.py"]
+
+
+class TestCalleeCount:
+    """Carried defect 1 (M10.2): the per-symbol count read ``callees`` from a
+    ``blast_radius`` payload keyed ``downstream``, so it was always 0."""
+
+    def test_callee_count_is_non_zero_for_a_symbol_with_callees(
+        self, repo_with_task
+    ) -> None:
+        from codemem.mcp_tools import aa_ma_context
+
+        repo_root, db_path = repo_with_task
+        conn = connect(db_path)
+        with transaction(conn):
+            # load_config (symbol 1) calls parse_yaml (symbol 2).
+            conn.execute(
+                "INSERT INTO edges (src_symbol_id, dst_symbol_id, kind) "
+                "VALUES (1, 2, 'call')"
+            )
+        conn.close()
+
+        result = aa_ma_context(db_path, "sample-task", repo_root=repo_root)
+        assert "`load_config` (blast-radius: 1 downstream)" in result["markdown"]
+        entry = result["blast_radius_by_symbol"]["load_config"]
+        assert [c["name"] for c in entry["callees"]] == ["parse_yaml"]

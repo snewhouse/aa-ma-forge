@@ -5,6 +5,18 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-069 (2026-10-25) — `uv lock` with a newer local uv rewrote the lock header CI cannot pin to
+**Pattern:** for the filelock CVE fix (PR #67) I ran `uv lock --upgrade-package filelock` with local uv 0.13.5. The diff also bumped `uv.lock`'s `revision = 3` → `5`, while CI pins uv 0.12.3 and runs `uv sync --locked`. I caught it reading the diff, and re-locked with `uvx --from 'uv==0.12.3' uv lock --upgrade-package filelock` (3-line diff).
+**Rule:** lock with the uv version CI pins (`grep -n "version:" .github/workflows/*.yml` next to `setup-uv`): `uvx --from 'uv==<pin>' uv lock …`, then `uvx --from 'uv==<pin>' uv sync --locked`. Any change to the lock header lines means the wrong uv.
+
+## L-068 (2026-10-25) — A new bats file used bare `! cmd`, which never fails a test
+**Pattern:** `tests/hooks/install-live-worktree.bats` asserted absence with `! grep -qF …` in two places. bats ignores a non-final bare `!`, so both checks were vacuous. `tests/test_bats_assertions.py` caught it in the full run, not in the bats run itself.
+**Rule:** in bats, write negated asserts as `run ! cmd` (with `bats_require_minimum_version 1.5.0` at the top). Run `uv run pytest -q tests/test_bats_assertions.py` right after writing any new `.bats` file, before its RED commit.
+
+## L-067 (2026-10-25) — The `[ad-hoc]` / plan-signature marker was not on its own line in the command text
+**Pattern:** two `git commit` calls were blocked by `aa-ma-commit-signature.sh`: the marker went in as a separate `-m "[ad-hoc]"` followed by `2>&1 | …`, or as the last message line with `" && git log …` after the closing quote. The hook reads the raw command text and needs the marker on a line by itself (optionally followed by a closing quote only). In one case the blocked command also held the `git add`, so the retry committed nothing (and a later commit swept up a file still staged from it).
+**Rule:** put the footer as the last line of a multi-line `-m "…"` and end that command line with the closing quote; run anything else (`git log`, pipes) on the next line. After a blocked commit, run `git status --short` before retrying: stage again, and check nothing unintended is still staged.
+
 ## L-066 (2026-10-23) — CI's architecture-drift job caught a view the milestone gates never ran
 **Pattern:** M16 added `codemem/paths.py` and new import/call edges. pytest, bats, all three §6.7 fences, §6.6 and two §6.8 rounds passed, but PR #65's `architecture-drift` job failed: `docs/architecture/{component,io}.md` differed from the code. None of the local gates runs `codemem draw --check`.
 **Rule:** when a milestone adds, moves or rewires a source file, run `bash scripts/regen-generated.sh` (it ends with `codemem draw --check`) before `sdm.sh check`, and commit the regenerated views with the milestone.

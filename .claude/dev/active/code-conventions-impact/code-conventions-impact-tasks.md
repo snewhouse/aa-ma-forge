@@ -945,7 +945,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 10.
 
 ### Sub-step 10.0: Post-merge of M16 + live-worktree switch (scope change 2026-10-25, ADR-0025)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
@@ -954,7 +954,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - (Scope change 2026-10-25, Ste) L-065: Contract Python files format/lint-clean on main before the milestone branch (style PR). ADR-0025 Accepted + INDEX row; `install.sh` links `~/.claude` into the live worktree (`tests/hooks/install-live-worktree.bats` passes; existing install bats green); shipped in its own PR from a worktree (old D7 applies until it merges). After merge: live install from main → every `readlink -f ~/.claude/{skills/*,agents/*.md,rules/*,hooks/lib/*}` resolves under `~/.local/share/codemem-plugin-wt/`; `--wire-git-hook` wired to the live worktree's `post-commit.sh` (deferred from 16.0); the user-scope codemem MCP returns the X2 fields (`index_sha`, `head_sha`, `stale`, `stale_reason`) from the M16 cache location.
   - M16 post-merge record (SHA map, PR #65) in provenance + context-log; PR #65 MEDIUM/LOW notes as one P3 TODOS entry (L-037).
   - Branch `feat/cci-m10-impact-tooling` cut in the main checkout from fresh main (ADR-0025, no worktree); `uv sync && uv run codemem build` exit 0 there.
-- Result Log:
+- Result Log: COMPLETE 2026-10-25 (Mode HITL; Ste at each checkpoint). Handover E1–E8 held; Q3=C, Q1 wire, Q2 3 merged worktrees removed (git cherry 0 off main). Baseline main 38a5f179: pytest 3180/2/7, bats 781/0. Validator WARN W1–W6 folded (W6 no change). L-065 → style PR #66 (3a4fcfcf). Side fix: filelock CVEs → PR #67 (9d51aaa4). ADR-0025 + install.sh live worktree → PR #68 (f0bfbd8b; tests/hooks/install-live-worktree.bats 12 cases; 3 MEDIUM fixed over 2 review rounds; 11 LOW → TODOS); final tests pytest 3177/5, bats 793/0. Live install: 67/67 links → ~/.local/share/codemem-plugin-wt @ f0bfbd8b, 0 into checkout; fence 3 + CODE_INTEL_REFRESH live. --wire-git-hook → live worktree post-commit.sh. MCP X2: index_sha=head_sha=f0bfbd8b, stale=false, from the XDG cache index. M16 post-merge record + SHA map + PR #65 TODOS in 7e886a03→80f92d3f. Branch feat/cci-m10-impact-tooling in the main checkout; uv sync + codemem build (342 files) exit 0.
 
 ### Sub-step 10.1: PROTOTYPE — impact hook UX
 - Status: PENDING

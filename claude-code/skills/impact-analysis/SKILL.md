@@ -224,12 +224,13 @@ When editing code that later milestones depend on:
 
 Use codemem's MCP tools for checks 1-4 instead of manual Grep — they build the index on first
 query. When codemem is not configured and `PROJECT_INDEX.json` exists, its project-index MCP tools are
-the equivalent fallback (same names; its `blast_radius` returns callers by depth, codemem's returns callees).
+the equivalent fallback (same names; project-index has no `callees`, and its `blast_radius` returns callers by depth).
+codemem's own `blast_radius` is a deprecated alias of `callees` (removed after v0.18.x).
 
 | Check | codemem (default) | Fallback |
 |-------|-------------------|----------|
 | 1. UPSTREAM | `who_calls(name, max_depth=2)` → transitive callers | Grep for imports/calls |
-| 2. DOWNSTREAM | `blast_radius(name, max_depth=3)` → transitive callees; `diagram(level="L2", scope=file)` → the file's import/call neighbourhood | Read imports in file |
+| 2. DOWNSTREAM | `callees(name, max_depth=3)` → transitive callees; `diagram(level="L2", scope=file)` → the file's import/call neighbourhood | Read imports in file |
 | 3. CONTRACTS | `file_summary(path)` → symbols for comparison | Compare before/after |
 | 4. TEST COVERAGE | `search_symbols("test_<target>")` (substring match) → test functions | Find test files |
 | 5. SIDE EFFECTS | *(manual — not in the index)* | Read function body |

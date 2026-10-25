@@ -2,7 +2,7 @@
 
 Structured code memory for [AA-MA](../../docs/spec/aa-ma-specification.md) workflows in Claude Code. Pure Python + SQLite. No embeddings, no graph DB, no cloud.
 
-codemem parses your repo, indexes symbols and call edges into a local SQLite database, and exposes 13 MCP tools so Claude Code can answer questions like *"who calls this?"*, *"what changes together with `CLAUDE.md`?"*, and *"show me the context for this AA-MA task."* A fresh build on a 70-file repo takes 0.2 seconds.
+codemem parses your repo, indexes symbols and call edges into a local SQLite database, and exposes 14 MCP tools so Claude Code can answer questions like *"who calls this?"*, *"what changes together with `CLAUDE.md`?"*, and *"show me the context for this AA-MA task."* A fresh build on a 70-file repo takes 0.2 seconds.
 
 **Positioning (post-v2 benchmark, 2026-05-08):** codemem's role is the data tier underneath AA-MA, not a "better aider repo-map." See [`docs/codemem/positioning.md`](../../docs/codemem/positioning.md) for the v2-empirical-driven decision. The 5-tool benchmark at [`docs/benchmarks/codemem-vs-aider-v2.md`](../../docs/benchmarks/codemem-vs-aider-v2.md) found that codemem and aider serve different consumer profiles (programmatic structured-data vs LLM prompt injection). Reaching per-symbol parity with aider on fastapi (1.07× at budget=1024) was the M1-fix payoff that closed the v2 chapter.
 
@@ -50,16 +50,17 @@ claude mcp add --scope user codemem uv \
 
 After install, `/mcp` in a fresh session lists `codemem` as connected.
 
-## The 13 MCP tools
+## The 14 MCP tools
 
-Six are ports of Eric Buess's `/index` tools with the same names and closely-related semantics. Seven are new.
+Six are ports of Eric Buess's `/index` tools with the same names and closely-related semantics. Eight are new.
 
 ### Ported from `/index` (M1)
 
 | Tool | What it answers |
 |------|-----------------|
 | `who_calls(name, max_depth=3)` | Upstream callers of a symbol. Also registered as alias `find_references`. |
-| `blast_radius(name, max_depth=3)` | Downstream transitive callees — what breaks if you change `name`. |
+| `callees(name, max_depth=3)` | Downstream transitive callees — what `name` reaches. |
+| `blast_radius(name, max_depth=3)` | Deprecated alias of `callees` (same payload plus `downstream`); removed after v0.18.x. |
 | `dead_code()` | Function and method symbols with zero incoming call edges. Also `find_dead_code`. |
 | `dependency_chain(source, target, max_depth=5)` | Shortest call-graph path from `source` to `target`. *Semantics differ from `/index` — see [migration guide](../../docs/codemem/migration-from-index.md).* |
 | `search_symbols(query)` | Substring match, ranked exact > prefix > contains. *`/index` uses regex; codemem uses substring.* |
@@ -194,7 +195,8 @@ codemem build                   # full index
 codemem refresh                 # incremental refresh since last SHA
 codemem refresh-commits         # populate git-mining cache (commits + commit_files)
 codemem status                  # counts + DB path + user_version
-codemem query <tool> [args...]  # invoke 10 of the MCP tools directly
+codemem query <tool> [args...]  # invoke 11 of the MCP tools directly
+codemem impact <path>           # callers, test callers and co-changes of one file (--format brief|json)
 codemem intel                   # write PROJECT_INTEL.json
 codemem replay --from-wal       # rebuild DB from the JSONL WAL
 ```

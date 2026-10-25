@@ -1,4 +1,4 @@
-"""codemem MCP tools — 6 ported from /index, public surface for the MCP server.
+"""codemem MCP tools — public surface for the MCP server and the CLI.
 
 Each tool is a plain Python function returning a JSON-serialisable dict
 so the MCP server layer (Task 1.10) can register them via FastMCP with
@@ -8,12 +8,20 @@ inputs return structured ``{"error": "..."}`` dicts, not exceptions.
 
 Tools:
     who_calls         — upstream callers (BFS via canonical CTE)
-    blast_radius      — downstream callees (transitive)
+    callees           — downstream callees (transitive)
+    blast_radius      — deprecated alias of callees (removed after v0.18.x)
     dead_code         — symbols with zero incoming call edges
     dependency_chain  — shortest path from source to target
     search_symbols    — substring name search
     file_summary      — per-file symbol listing
+    hot_spots         — files ranked by recent churn × function count
+    co_changes        — files that change with a file but share no edge
+    owners            — per-author line share from git blame
+    symbol_history    — git log -L history of a symbol
+    layers            — core / middle / periphery by in-degree
+    aa_ma_context     — code-intel context pack for an AA-MA task
     diagram           — mermaid cut of the graph, sized to the budget (M13)
+    file_impact       — external and test callers + co-changes of one file (CLI only)
 """
 
 from __future__ import annotations
@@ -44,6 +52,8 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "aa_ma_context",
     "blast_radius",
+    "callees",
+    "CO_CHANGE_MAX_COMMIT_FILES",
     "co_changes",
     "dead_code",
     "dependency_chain",
@@ -51,6 +61,7 @@ __all__ = [
     "REFRESH_CAP_S",
     "ensure_built",
     "ensure_fresh",
+    "file_impact",
     "file_summary",
     "hot_spots",
     "layers",
@@ -61,6 +72,13 @@ __all__ = [
 ]
 
 _DEFAULT_CO_CHANGES_EXCLUDE: tuple[str, ...] = ("CHANGELOG.md", "README.md")
+
+# Files per commit. file_impact ignores commits touching more than this:
+# sweep commits in this repo (format passes, lint pay-downs, gate swaps)
+# touch 12-19 files and drowned the co-change signal in the 10.1 prototype.
+CO_CHANGE_MAX_COMMIT_FILES = 10
+_RATIO_DP = 3  # decimal places of a co-change ratio: enough to rank, short to read
+_BLAST_RADIUS_DEPRECATION = "use callees; removed after v0.18.x"
 
 
 _DEFAULT_BUDGET = 8_000
@@ -349,33 +367,25 @@ def who_calls(
 
 
 # ---------------------------------------------------------------------
-# blast_radius
+# callees (blast_radius is its deprecated alias)
 # ---------------------------------------------------------------------
 
 
-def blast_radius(
+def callees(
     db_path: Path,
     name: str,
     *,
     max_depth: int = 3,
     budget: int = _DEFAULT_BUDGET,
 ) -> dict:
-    """Return downstream callees of ``name`` transitively."""
+    """Return the symbols ``name`` calls, transitively, up to ``max_depth`` hops."""
     try:
         clean = sanitize_symbol_arg(name)
     except ValidationError as exc:
-        return {"error": str(exc), "target": name, "downstream": []}
+        return {"error": str(exc), "target": name, "callees": [], "truncated": False}
 
     with _open_ro(db_path) as conn:
         target_ids = _resolve_symbol_ids_by_name(conn, clean)
-        if not target_ids:
-            return {
-                "target": clean,
-                "downstream": [],
-                "truncated": False,
-                "error": None,
-            }
-
         dst_ids: set[int] = set()
         for tid in target_ids:
             rows = conn.execute(
@@ -383,7 +393,7 @@ def blast_radius(
             ).fetchall()
             dst_ids.update(r["sid"] for r in rows)
 
-        downstream: list[dict] = []
+        found: list[dict] = []
         for did in dst_ids:
             row = conn.execute(
                 """
@@ -394,14 +404,33 @@ def blast_radius(
                 (did,),
             ).fetchone()
             if row:
-                downstream.append(_symbol_info_row(row))
+                found.append(_symbol_info_row(row))
 
-    downstream.sort(key=lambda d: (d["file"], d["line"], d["name"]))
+    found.sort(key=lambda d: (d["file"], d["line"], d["name"]))
     return _truncate(
-        {"target": clean, "downstream": downstream, "error": None},
-        list_key="downstream",
+        {"target": clean, "callees": found, "error": None},
+        list_key="callees",
         budget=budget,
     )
+
+
+def blast_radius(
+    db_path: Path,
+    name: str,
+    *,
+    max_depth: int = 3,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """Deprecated alias of :func:`callees`; the list is also under ``downstream``.
+
+    TODO(ADR-0026): remove after v0.18.x.
+    """
+    result = callees(db_path, name, max_depth=max_depth, budget=budget)
+    return {
+        **result,
+        "downstream": result["callees"],
+        "deprecated": _BLAST_RADIUS_DEPRECATION,
+    }
 
 
 # ---------------------------------------------------------------------
@@ -661,7 +690,7 @@ def hot_spots(
 # ---------------------------------------------------------------------
 
 
-def co_changes(
+def co_changes(  # noqa: PLR0913  # why: each knob is a keyword-only filter the CLI and file_impact set; a config object would only rename them
     db_path: Path,
     file_path: str,
     *,
@@ -669,21 +698,30 @@ def co_changes(
     exclude: tuple[str, ...] | None = None,
     top_n: int = 50,
     budget: int = _DEFAULT_BUDGET,
+    min_ratio: float = 0.0,
+    max_commit_files: int | None = None,
 ) -> dict:
     """Return files co-changing with ``file_path`` that lack an import edge.
 
-    Two filters on top of commit-co-occurrence:
+    Filters on top of commit-co-occurrence:
 
     1. Must share at least ``threshold`` commits with ``file_path``.
-    2. Must NOT be linked by an import/call edge in either direction — the
+    2. Must have changed in at least ``min_ratio`` of ``file_path``'s
+       commits (``>=``; ratio = shared commits / the target's commits).
+    3. Must NOT be linked by an import/call edge in either direction — the
        whole point of this tool is to surface *implicit* coupling that the
        AST misses.
+
+    ``max_commit_files`` drops every commit touching more than that many
+    files before counting (``None``, the default, keeps them all); see
+    :data:`CO_CHANGE_MAX_COMMIT_FILES`.
 
     ``exclude`` defaults to :data:`_DEFAULT_CO_CHANGES_EXCLUDE`
     (``("CHANGELOG.md", "README.md")``) which users routinely touch alongside
     everything else; pass an empty tuple to disable.
 
-    Result order: ``count`` DESC, ``path`` ASC for deterministic tie-break.
+    Each entry is ``{"path", "count", "ratio"}``; ``target_commits`` is the
+    ratio's denominator. Order: ``count`` DESC, ``path`` ASC.
     """
     try:
         clean = sanitize_symbol_arg(file_path)
@@ -691,7 +729,65 @@ def co_changes(
         return {"error": str(exc), "target": file_path, "files": []}
 
     excludes = _DEFAULT_CO_CHANGES_EXCLUDE if exclude is None else tuple(exclude)
+    query, params = _co_changes_sql(
+        clean, threshold, min_ratio, max_commit_files, excludes, top_n
+    )
+    with _open_ro(db_path) as conn:
+        rows = conn.execute(query, params).fetchall()
+        target_commits = conn.execute(
+            _TARGET_COMMITS_COUNT_SQL,
+            (max_commit_files, max_commit_files, clean),
+        ).fetchone()[0]
 
+    files = [
+        {
+            "path": r["path"],
+            "count": r["count"],
+            "ratio": round(r["count"] / target_commits, _RATIO_DP),
+        }
+        for r in rows
+    ]
+    return _truncate(
+        {
+            "files": files,
+            "target": clean,
+            "threshold": threshold,
+            "target_commits": target_commits,
+            "error": None,
+        },
+        list_key="files",
+        budget=budget,
+    )
+
+
+# Commits that touched the target, minus those over ``max_commit_files``
+# (bound twice: ``? IS NULL OR n <= ?``) — the ratio's denominator.
+_TARGET_COMMITS_CTE = """
+    WITH kept_commits AS (
+        SELECT commit_sha FROM commit_files
+         GROUP BY commit_sha
+        HAVING ? IS NULL OR COUNT(*) <= ?
+    ),
+    target_commits AS (
+        SELECT commit_sha FROM commit_files
+         WHERE file_path = ?
+           AND commit_sha IN (SELECT commit_sha FROM kept_commits)
+    )
+"""
+_TARGET_COMMITS_COUNT_SQL = (
+    _TARGET_COMMITS_CTE + "SELECT COUNT(*) FROM target_commits"  # noqa: S608  # why: two module literals joined; every value is bound
+)
+
+
+def _co_changes_sql(
+    clean: str,
+    threshold: int,
+    min_ratio: float,
+    max_commit_files: int | None,
+    excludes: tuple[str, ...],
+    top_n: int,
+) -> tuple[str, list[object]]:
+    """The co_changes query and its bound parameters; no value is interpolated."""
     # Parameterised `NOT IN (?, ?, ...)` — build conditionally so empty
     # excludes produces NO clause at all (a bare `NOT IN (NULL)` evaluates
     # to NULL/unknown and filters out everything, SQL three-valued-logic gotcha).
@@ -699,9 +795,7 @@ def co_changes(
     if excludes:
         exclude_clause = "AND co.path NOT IN (" + ",".join("?" for _ in excludes) + ")"
     query = f"""
-        WITH target_commits AS (
-            SELECT commit_sha FROM commit_files WHERE file_path = ?
-        ),
+        {_TARGET_COMMITS_CTE},
         co_counts AS (
             SELECT cf.file_path AS path,
                    COUNT(DISTINCT cf.commit_sha) AS c
@@ -710,6 +804,8 @@ def co_changes(
                AND cf.file_path != ?
              GROUP BY cf.file_path
             HAVING COUNT(DISTINCT cf.commit_sha) >= ?
+               AND COUNT(DISTINCT cf.commit_sha)
+                   >= ? * (SELECT COUNT(*) FROM target_commits)
         ),
         linked AS (
             SELECT f2.path AS path
@@ -734,26 +830,91 @@ def co_changes(
            {exclude_clause}
          ORDER BY co.c DESC, co.path ASC
          LIMIT ?
-    """  # noqa: S608  # why: exclude_clause is literals + `?` placeholders; values are bound
-    params: list[object] = [clean, clean, threshold, clean, clean, clean, clean]
-    if excludes:
-        params.extend(excludes)
+    """  # noqa: S608  # why: the CTE and exclude_clause are literals + `?` placeholders; values are bound
+    params: list[object] = [
+        max_commit_files,
+        max_commit_files,
+        clean,
+        clean,
+        threshold,
+        min_ratio,
+        clean,
+        clean,
+        clean,
+        clean,
+    ]
+    params.extend(excludes)
     params.append(top_n)
+    return query, params
+
+
+# ---------------------------------------------------------------------
+# file_impact (M10.2)
+# ---------------------------------------------------------------------
+
+_FILE_CALLERS_SQL = """
+    SELECT DISTINCT fs.path AS file, ss.name AS name
+      FROM edges e
+      JOIN symbols sd ON sd.id = e.dst_symbol_id
+      JOIN files   fd ON fd.id = sd.file_id
+      JOIN symbols ss ON ss.id = e.src_symbol_id
+      JOIN files   fs ON fs.id = ss.file_id
+     WHERE fd.path = ? AND fs.path != ?
+     ORDER BY fs.path, ss.name
+"""
+
+
+def _is_test_path(path: str) -> bool:
+    """True for a file under a ``tests``/``test`` dir or named ``test_*``."""
+    p = Path(path)
+    return bool({"tests", "test"} & set(p.parts[:-1])) or p.name.startswith("test_")
+
+
+def file_impact(
+    db_path: Path,
+    file_path: str,
+    *,
+    budget: int = 2_000,
+) -> dict:
+    """Who outside ``file_path`` depends on it, and what changes with it.
+
+    ``external_callers`` are symbols in other non-test files with an edge
+    into any symbol defined in ``file_path``; ``test_callers`` are the same
+    from test files. ``co_changes`` comes from :func:`co_changes` with
+    ``max_commit_files=CO_CHANGE_MAX_COMMIT_FILES``; ``target_commits`` is
+    its denominator. Lists are trimmed (co-changes first) to fit ``budget``.
+    """
+    empty = {"external_callers": [], "test_callers": [], "co_changes": []}
+    try:
+        clean = sanitize_symbol_arg(file_path)
+    except ValidationError as exc:
+        return {"file": file_path, **empty, "error": str(exc), "truncated": False}
 
     with _open_ro(db_path) as conn:
-        rows = conn.execute(query, params).fetchall()
-
-    files = [{"path": r["path"], "count": r["count"]} for r in rows]
-    return _truncate(
-        {
-            "files": files,
-            "target": clean,
-            "threshold": threshold,
-            "error": None,
-        },
-        list_key="files",
-        budget=budget,
+        rows = conn.execute(_FILE_CALLERS_SQL, (clean, clean)).fetchall()
+    callers = [{"file": r["file"], "name": r["name"]} for r in rows]
+    co = co_changes(
+        db_path, clean, max_commit_files=CO_CHANGE_MAX_COMMIT_FILES, budget=budget
     )
+    if co["error"]:
+        return {"file": clean, **empty, "error": co["error"], "truncated": False}
+
+    payload: dict[str, Any] = {
+        "file": clean,
+        "external_callers": [c for c in callers if not _is_test_path(c["file"])],
+        "test_callers": [c for c in callers if _is_test_path(c["file"])],
+        "co_changes": [
+            {"path": f["path"], "count": f["count"], "ratio": f["ratio"]}
+            for f in co["files"]
+        ],
+        "target_commits": co["target_commits"],
+        "error": None,
+    }
+    truncated = co["truncated"]
+    for key in ("co_changes", "test_callers", "external_callers"):
+        payload = _truncate(payload, list_key=key, budget=budget)
+        truncated = truncated or payload["truncated"]
+    return {**payload, "truncated": truncated}
 
 
 # ---------------------------------------------------------------------
@@ -1321,7 +1482,7 @@ def aa_ma_context(
 
     Walks ``<repo_root>/.claude/dev/active/<task_name>/<task_name>-{tasks,reference}.md``,
     extracts file + symbol mentions per the pinned extraction rules, then
-    enriches via :func:`owners` for files and :func:`blast_radius` for symbols.
+    enriches via :func:`owners` for files and :func:`callees` for symbols.
 
     With ``write=True`` the same content is appended to the task's
     reference.md as an ``## aa_ma_context snapshot [<ISO>]`` section.
@@ -1356,10 +1517,10 @@ def aa_ma_context(
     for fp in files:
         owners_by_file[fp] = owners(db_path, fp)
 
-    # Blast radius per symbol.
+    # Callees per symbol (the payload key keeps its historical name).
     blast_by_symbol: dict[str, dict] = {}
     for sym in symbols:
-        blast_by_symbol[sym] = blast_radius(db_path, sym)
+        blast_by_symbol[sym] = callees(db_path, sym)
 
     # hot_spots filtered to just the mentioned files (intersection, preserving
     # hot_spots' own ranking order).

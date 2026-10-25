@@ -2,6 +2,17 @@
 
 ## AA-MA Tooling
 
+### PR for code-conventions-impact 10.0 (live worktree, ADR-0025) review notes: 5 LOW + 1 LOW (C2), deferred under the stop rule
+**What:**
+- LOW: a dangling `codemem-plugin` link whose parent dir is gone stops install.sh at `plugin_wt="$(readlink -f …)"` (set -e) with exit 1 and no message (`scripts/install.sh` §0); use `readlink -f … || readlink …` plus a warning.
+- LOW: the hook table, `aa_ma_hooks_validate` and the `collect_backup_target` hooks/lib list come from the RUNNING install.sh while sources come from `SRC_ROOT` (main): a branch-added hook logs "source not present (future milestone?)"; document, or re-exec `${SRC_ROOT}/scripts/install.sh` when it differs.
+- LOW: the `--wire-git-hook` "runs another copy" warn branch has no bats case (pre-wire to the checkout; assert the warning and an unchanged file).
+- LOW: install.sh run from inside the live worktree prints "not a worktree of this forge" (wt == REPO_ROOT); say so with an info line instead.
+- LOW: uninstall.sh counts live-worktree links as ours only while the plugin link still targets it; also accept any linked worktree with the forge's common dir.
+- LOW (C2): `SOURCE_HOOK` is written into the post-commit stanza in double quotes; a path with `"`, `$` or a backtick would expand on each commit (same as before ADR-0025); write it with `printf %q`.
+
+**Why:** sdm.sh C1/C2 round 1 on the 10.0 PR (2026-10-25): C1 2 MEDIUM (fixed test-first) + 5 LOW, C2 2 LOW (dirty fallback fixed as fail-closed, Ste). **Effort:** S · **Priority:** P3
+
 ### PR #65 (M16 codemem index location) review notes: 1 MEDIUM + 2 LOW, deferred under the stop rule
 **What:**
 - MEDIUM: §6.0 probes codemem with the caller's full PATH while the post-commit worker drops relative PATH entries; with no forge venv and only a relative-PATH `codemem`, §6.0 can record `skipped(codemem not installed)` (`claude-code/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh:76`). Resolve with `aa_ma_codemem_bin` in both.

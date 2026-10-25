@@ -77,8 +77,9 @@ def _insert_file(conn: sqlite3.Connection, path: str) -> int:
 
 
 class TestVersion:
-    def test_current_schema_version_is_3(self) -> None:
-        assert db.CURRENT_SCHEMA_VERSION == 3
+    def test_current_schema_version_is_at_least_3(self) -> None:
+        # The exact pin lives with the newest migration (v4: test_plugin_surface_index).
+        assert db.CURRENT_SCHEMA_VERSION >= 3
 
     def test_apply_schema_alone_still_v1(self, tmp_path: Path) -> None:
         conn = connect(tmp_path / "t.db")

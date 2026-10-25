@@ -49,6 +49,8 @@ from .indexer import (
     check_db_path,
     discover_files,
     parse_files,
+    plugin_edge_rows,
+    replace_plugin_edges,
     tree_signature,
     write_sidecar,
 )
@@ -200,6 +202,8 @@ def refresh_index(
             t0=t0,
             disk_files=disk_files,
         )
+        if not stats.full_rebuild:  # build_index already filled it
+            _refresh_plugin_edges(repo_root, db_path, log_file)
         write_sidecar(db_path.parent / "tree_sig", sig + "\n")
         return stats
 
@@ -359,6 +363,28 @@ def _refresh_locked(  # noqa: C901  # why: pre-existing; refactor tracked in TOD
 # ---------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------
+
+
+def _refresh_plugin_edges(repo_root: Path, db_path: Path, log_file: Path) -> None:
+    """Rebuild ``plugin_edges`` from the tree; writes only when the rows differ.
+
+    Runs on every incremental refresh, not only when indexed files changed: a
+    commit that touches only ``claude-code/**/*.md`` changes no ``files`` row.
+    """
+    rows = plugin_edge_rows(repo_root)
+    conn = db.connect(db_path, read_only=False)
+    try:
+        if (
+            conn.execute("PRAGMA user_version").fetchone()[0]
+            < db.CURRENT_SCHEMA_VERSION
+        ):
+            db.ensure_schema(conn)  # a pre-v4 index reached the no-change path
+        with db.transaction(conn):
+            changed = replace_plugin_edges(conn, rows)
+    finally:
+        conn.close()
+    if changed:
+        _log(log_file, f"refresh: plugin_edges rebuilt ({len(rows)} rows)")
 
 
 def _hash(p: Path) -> str:

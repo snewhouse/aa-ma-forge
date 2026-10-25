@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import resolver as _resolver
+from .draw.plugin_surface import extract as _extract_plugin_surface
 from .journal import wal as _wal
 from .parser import ast_grep, python_ast
 from .parser.python_ast import ParseResult
@@ -44,6 +45,8 @@ __all__ = [
     "check_db_path",
     "discover_files",
     "parse_files",
+    "plugin_edge_rows",
+    "replace_plugin_edges",
     "tree_signature",
     "write_sidecar",
 ]
@@ -458,6 +461,51 @@ def _parse_result_to_wal_args(fp) -> dict:
     }
 
 
+# ---------------------------------------------------------------------
+# Plugin surface (M10.3)
+# ---------------------------------------------------------------------
+
+PluginEdgeRow = tuple[str, str, str, str]  # (src, dst, kind, ref_class)
+
+
+def plugin_edge_rows(repo_root: Path) -> set[PluginEdgeRow]:
+    """Every classified plugin-surface reference under ``repo_root``, as table rows.
+
+    Empty, with one debug line, when the repo has no ``claude-code/`` tree.
+    """
+    if not (repo_root / "claude-code").is_dir():
+        logger.debug("no claude-code/ under %s: plugin_edges left empty", repo_root)
+        return set()
+    surface = _extract_plugin_surface(repo_root)
+    if surface.errors:
+        # why debug: the same errors are reported by `codemem draw --check` and the
+        # plugin-surface golden; the index still takes every edge that did parse.
+        logger.debug(
+            "plugin surface: %d extraction errors (first: %s)",
+            len(surface.errors),
+            surface.errors[0],
+        )
+    return {(e.src, e.dst, e.kind.value, e.ref_class.value) for e in surface.edges}
+
+
+def replace_plugin_edges(conn, rows: set[PluginEdgeRow]) -> bool:
+    """Make ``plugin_edges`` hold exactly ``rows``; True when anything changed.
+
+    The table is small (hundreds of rows), so it is rebuilt whole rather than
+    diffed. Unchanged rows write nothing, so a no-op refresh leaves the DB alone.
+    The caller owns the transaction.
+    """
+    current = set(conn.execute("SELECT src, dst, kind, ref_class FROM plugin_edges"))
+    if current == rows:
+        return False
+    conn.execute("DELETE FROM plugin_edges")
+    conn.executemany(
+        "INSERT INTO plugin_edges (src, dst, kind, ref_class) VALUES (?, ?, ?, ?)",
+        sorted(rows),
+    )
+    return True
+
+
 def build_index(
     repo_root: Path,
     db_path: Path,
@@ -491,6 +539,7 @@ def build_index(
     # Taken before parsing: a file edited mid-build changes the signature.
     signature = tree_signature(files)
     parses, py_errors = parse_files(files, repo_root=repo_root, package=package)
+    plugin_rows = plugin_edge_rows(repo_root)
 
     conn = db.connect(db_path, read_only=False)
     try:
@@ -521,6 +570,7 @@ def build_index(
             _resolve_parent_ids(conn, parses)
             edges_inserted = _bulk_insert_edges(conn, parses)
             resolver_stats = _resolver.resolve_cross_file_edges(conn, parses=parses)
+            replace_plugin_edges(conn, plugin_rows)
 
             # Append WAL entries for every file we just indexed — these
             # serve as the bootstrap record for `codemem replay --from-wal`.

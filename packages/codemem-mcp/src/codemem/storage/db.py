@@ -63,9 +63,9 @@ __all__ = [
 ]
 
 APPLICATION_ID = 0x434D454D  # 'CMEM' ASCII = 1129209165 (within signed int32, per SQLite application_id spec)
-CURRENT_SCHEMA_VERSION = (
-    3  # v2: git-mining tables; v3: file_edges (diagram-generation M1)
-)
+# v2: git-mining tables; v3: file_edges (diagram-generation M1);
+# v4: plugin_edges (code-conventions-impact M10.3)
+CURRENT_SCHEMA_VERSION = 4
 
 # Forward-only migrations. Each entry: (target_version, SQL_script_string).
 # The initial schema (v1) is provided by schema.sql; migrations here start at v2.
@@ -151,9 +151,23 @@ CREATE INDEX IF NOT EXISTS file_edges_dst ON file_edges(dst_file_id, kind, src_f
 CREATE INDEX IF NOT EXISTS file_edges_src ON file_edges(src_file_id, kind, dst_file_id);
 """
 
+_MIGRATION_V4_PLUGIN_EDGES = """
+-- code-conventions-impact M10.3: the plugin surface (Skill(x), /x, subagent_type,
+-- hook names) from codemem.draw.plugin_surface.extract(). Node ids, not file ids:
+-- .md files are not in `files`. Rebuilt whole at every build and refresh.
+CREATE TABLE IF NOT EXISTS plugin_edges (
+    src       TEXT NOT NULL,   -- "<kind>:<stem>" of the referring node
+    dst       TEXT NOT NULL,   -- "<kind>:<stem>" referenced
+    kind      TEXT NOT NULL,   -- the DESTINATION's kind
+    ref_class TEXT NOT NULL    -- ON_DISK | DECLARED_EXTERNAL | DANGLING
+);
+CREATE INDEX IF NOT EXISTS plugin_edges_dst ON plugin_edges(dst);
+"""
+
 MIGRATIONS: list[tuple[int, str]] = [
     (2, _MIGRATION_V2_GIT_MINING),
     (3, _MIGRATION_V3_FILE_EDGES),
+    (4, _MIGRATION_V4_PLUGIN_EDGES),
 ]
 
 

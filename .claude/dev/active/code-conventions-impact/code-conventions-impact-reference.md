@@ -195,6 +195,8 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 | Redaction input cap | 8 KB before matching; 100 KB adversarial timing test per pattern | logsetup / aa-ma-log.sh | [valid: 2026-10-08] |
 | `callees` defaults | `max_depth=3, budget=8000` | codemem mcp_tools | [valid: 2026-10-08] |
 | `file_impact` default budget | 2000 | codemem mcp_tools | [valid: 2026-10-08] |
+| `CO_CHANGE_MAX_COMMIT_FILES` | 10 files/commit | hook + `file_impact` co-change filter; 10.1 verdict (sweep commits here are 12–19 files) | [valid: 2026-10-25] |
+| Pre-edit hook measured latency | p95 72–77 ms (prototype, 20 runs × 4 files, forge .venv python direct) | 10.1 | [valid: 2026-10-25] |
 | gitutil timeout | 10.0 s | `git(args, repo, timeout=10.0)` | [valid: 2026-10-08] |
 | Dependabot cooldown | 7 days | `.github/dependabot.yml` | [valid: 2026-10-08] |
 | codemem schema | v4 (adds `plugin_edges(src TEXT, dst TEXT, kind TEXT, ref_class TEXT)`) | storage/db.py, M10.3 | [valid: 2026-10-08] |

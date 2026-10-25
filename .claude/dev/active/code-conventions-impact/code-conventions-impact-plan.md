@@ -788,7 +788,9 @@ Files:
             blast_radius(...) → deprecated alias: returns callees() payload + {"downstream": same list, "deprecated": "use callees; removed after v0.18.x"}
             aa_ma_context: reads "callees" from callees()   # carried defect 1 (:1287)
             co_changes(..., min_ratio: float = 0.0)   # partner changed in ≥ min_ratio of the target file's commits
-            file_impact(db_path, file_path, *, budget=2000) -> dict  {"file","external_callers":[{file,name}],"test_callers":[...],"co_changes":[{path,count,ratio}],"error"}
+            co_changes(..., max_commit_files: int | None = None)   # 10.1 verdict (YES, Ste 2026-10-25): ignore commits touching > N files; None = no filter (MCP default unchanged)
+            CO_CHANGE_MAX_COMMIT_FILES = 10   # files/commit; sweep commits (format, lint, gate swaps) here are 12–19 files and drowned the signal in the prototype
+            file_impact(db_path, file_path, *, budget=2000) -> dict  {"file","external_callers":[{file,name}],"test_callers":[...],"co_changes":[{path,count,ratio}],"error"}   # co_changes with max_commit_files=CO_CHANGE_MAX_COMMIT_FILES
   Modify  claude-code/codemem/mcp/server.py   # register callees; blast_radius alias with deprecation notice
   Modify  packages/codemem-mcp/src/codemem/cli.py   # `codemem query callees`, `codemem query co_changes <path>... --threshold N --min-ratio R` (JSON already; several paths in one process for simplicity — measured `uv run` cost is only 0.06 s, Verification v1), `codemem impact <path> --format brief|json`
   Modify  packages/codemem-mcp/src/codemem/{draw/plugin_surface.py,storage/db.py,indexer.py}   # load Skill()/command/agent/hook edges into the NEW plugin_edges table (M10 amendment; .md is not indexed into files) so who_calls/file_impact answer for markdown

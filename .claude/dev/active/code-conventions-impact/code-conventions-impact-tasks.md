@@ -957,7 +957,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-25 (Mode HITL; Ste at each checkpoint). Handover E1–E8 held; Q3=C, Q1 wire, Q2 3 merged worktrees removed (git cherry 0 off main). Baseline main 38a5f179: pytest 3180/2/7, bats 781/0. Validator WARN W1–W6 folded (W6 no change). L-065 → style PR #66 (3a4fcfcf). Side fix: filelock CVEs → PR #67 (9d51aaa4). ADR-0025 + install.sh live worktree → PR #68 (f0bfbd8b; tests/hooks/install-live-worktree.bats 12 cases; 3 MEDIUM fixed over 2 review rounds; 11 LOW → TODOS); final tests pytest 3177/5, bats 793/0. Live install: 67/67 links → ~/.local/share/codemem-plugin-wt @ f0bfbd8b, 0 into checkout; fence 3 + CODE_INTEL_REFRESH live. --wire-git-hook → live worktree post-commit.sh. MCP X2: index_sha=head_sha=f0bfbd8b, stale=false, from the XDG cache index. M16 post-merge record + SHA map + PR #65 TODOS in 7e886a03→80f92d3f. Branch feat/cci-m10-impact-tooling in the main checkout; uv sync + codemem build (342 files) exit 0.
 
 ### Sub-step 10.1: PROTOTYPE — impact hook UX
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 10.0
 - Acceptance Criteria:
@@ -965,18 +965,18 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - A1 verified live (PreToolUse `hookSpecificOutput.additionalContext`, else `systemMessage` fallback); result logged.
   - Hook latency over 20 runs: p95 ≤1.5 s; if `uv run` startup breaks that budget, call the FORGE's `.venv/bin/codemem` directly, never the edited repo's (CEO F14; Security v2).
   - `provenance.log` has `[ts] PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES|NO`, where the heading is verbatim (backticks included): Milestone 10: Impact tooling: codemem `callees`, pre-edit hook, wiring (T6, T13 git helper)
-- Result Log:
+- Result Log: COMPLETE 2026-10-25 (HITL, Ste). prototype/impact-hook @ 576cd693 (throwaway hook + notes + scrubbed real Edit payload). 4 files: grammar.py 6 callers + 6 tests (useful); mermaid_lint.py 2 + 7 tests, co-changes noise; session-start.sh / impact-analysis SKILL.md no callers (need 10.3 plugin edges). p95 72–77 ms / 20 runs (forge .venv python direct; budget 1.5 s). A1 confirmed live (additionalContext delivered). Verdict-changes-plan: YES — co_changes max_commit_files, N=10 (measured: noise = 12–19-file sweep commits; N=20 filtered none, corrected with Ste); 10.6 adds real Edit/Write payload fixtures. PROTOTYPE line in provenance.
 
 ### Sub-step 10.2: codemem callees, alias, defect-1 fix, min_ratio, file_impact, CLI (TDD)
 - Status: PENDING
 - Mode: AFK
 - Dependencies: Sub-step 10.1
 - Acceptance Criteria:
-  - `mcp_tools/__init__.py`: `callees(db_path, name, *, max_depth=3, budget=8000) -> dict` {"target","callees","error","truncated"}; `blast_radius` deprecated alias returns the callees payload + {"downstream": same list, "deprecated": "use callees; removed after v0.18.x"}; `aa_ma_context` reads "callees" (carried defect 1, :1287); `co_changes(..., min_ratio: float = 0.0)`; `file_impact(db_path, file_path, *, budget=2000) -> dict`.
+  - `mcp_tools/__init__.py`: `callees(db_path, name, *, max_depth=3, budget=8000) -> dict` {"target","callees","error","truncated"}; `blast_radius` deprecated alias returns the callees payload + {"downstream": same list, "deprecated": "use callees; removed after v0.18.x"}; `aa_ma_context` reads "callees" (carried defect 1, :1287); `co_changes(..., min_ratio: float = 0.0, max_commit_files: int | None = None)` (commits touching more files are ignored; None = no filter, MCP default unchanged — 10.1 verdict, Ste 2026-10-25); `CO_CHANGE_MAX_COMMIT_FILES = 10` with unit + rationale; `file_impact(db_path, file_path, *, budget=2000) -> dict` uses it.
   - `claude-code/codemem/mcp/server.py` registers `callees` + the alias with a deprecation notice; `cli.py`: `codemem query callees`, `codemem query co_changes <path>... --threshold N --min-ratio R` (several paths in one process), `codemem impact <path> --format brief|json`.
   - `git_mining.py:207-210` adds rename detection (`--name-status -M`, old→new mapping); partners absent at HEAD filtered.
   - 14 MCP tools: `tests/codemem/test_mcp_server.py` (`test_thirteen_exact`) and counts in SECURITY.md, claude-code/codemem/README.md:63, claude-code/codemem/commands/codemem.md:57, packages/codemem-mcp/README.md, packages/codemem-mcp/pyproject.toml, docs/codemem/install-zero-config.md updated; `blast_radius` → `callees` wording in skills/impact-analysis/SKILL.md:227-232 and skills/system-mapping/SKILL.md:140.
-  - `test_callees.py`, `test_co_changes.py` (+min_ratio), `test_aa_ma_context.py` (asserts the count, not just keys), `test_file_impact.py` pass; after the M3 renames, `co_changes claude-code/skills/execute-aa-ma-milestone/SKILL.md` returns its pre-move partners.
+  - `test_callees.py`, `test_co_changes.py` (+min_ratio), `test_aa_ma_context.py` (asserts the count, not just keys), `test_file_impact.py` pass (test_co_changes covers max_commit_files: a 12-file sweep commit drops its partners at N=10, kept at None); after the M3 renames, `co_changes claude-code/skills/execute-aa-ma-milestone/SKILL.md` returns its pre-move partners.
 - Result Log:
 
 ### Sub-step 10.3: Plugin-surface edges into the index (TDD)
@@ -1017,7 +1017,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - Injected strings pass a new never-raising `sanitize_context_line(text, max_len=200)` in codemem `mcp_tools/sanitizers.py`, framed as "codemem data (untrusted):"; file_path quoted, passed after `--`; out-of-repo paths ignored via `realpath -m` + trailing-slash prefix.
   - §0 v2: `session_id` validated against `^[A-Za-z0-9_-]{1,64}$`; codemem wrapped in `timeout -k`; index.db opened `mode=ro`, `trusted_schema=OFF`; the index resolved with `aa_ma_codemem_dir <top>` (M16 XDG cache; validator W2), never a `.codemem/` in the edited repo; runtime markers cleaned at SessionEnd; codemem resolved with `aa_ma_codemem_bin <forge>`, never the edited repo.
   - `install.sh` AA_MA_HOOKS += impact-preedit; `uninstall.sh` updated; hooks count 9→10.
-  - `tests/hooks/aa-ma-impact-preedit.bats` passes: real captured Edit/Write payloads; NotebookEdit + out-of-repo path → exit 0, empty stdout; codemem absent from PATH → one notice; once-per-file; no-index notice once; silent at 0; injection-named symbol sanitized; file_path with spaces and `$(touch x)` executes nothing; two concurrent invocations print once.
+  - `tests/hooks/aa-ma-impact-preedit.bats` passes: real captured Edit/Write payloads (new `tests/fixtures/hook-payloads/PreToolUse-Edit.json` / `-Write.json` from live captures — none existed; 10.1 captured Edit on prototype/impact-hook); NotebookEdit + out-of-repo path → exit 0, empty stdout; codemem absent from PATH → one notice; once-per-file; no-index notice once; silent at 0; injection-named symbol sanitized; file_path with spaces and `$(touch x)` executes nothing; two concurrent invocations print once.
   - Fake-`CLAUDE_HOME` install shows exactly one impact-preedit registration; the live install is deferred to Sub-step 11.0.
   - codemem is resolved by the shipped `aa_ma_codemem_bin <forge>`: `CODEMEM_BIN` → forge `.venv/bin/codemem` (the forge is the live worktree, ADR-0025; the former plugin-link step was the same binary — validator W3) → absolute PATH; never from the edited repo.
 - Result Log:

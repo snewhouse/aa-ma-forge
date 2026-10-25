@@ -926,7 +926,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 10: Impact tooling: codemem `callees`, pre-edit hook, wiring (T6, T13 git helper)
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 9, Milestone 15, Milestone 16
 - Complexity: 75%
 - Effort: 3 days
@@ -944,14 +944,16 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `docs/adr/NNNN-impact-preedit-hook-and-callees.md` has `Status: Accepted` + INDEX row + context-log approval.
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 10.
 
-### Sub-step 10.0: Post-merge of M16
+### Sub-step 10.0: Post-merge of M16 + live-worktree switch (scope change 2026-10-25, ADR-0025)
 - Status: PENDING
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
   - M16 merged (M15's post-merge runs in 16.0; 2026-10-14 scope change); `git pull` on main; live `scripts/install.sh` from main; the live `~/.claude/skills/execute-aa-ma-milestone/` carries fence 3 (`grep -rl TESTS_VERIFIED` over SKILL.md and references/ non-empty) and the M15 boundary step (`grep -rl CODE_INTEL_REFRESH ~/.claude/skills/execute-aa-ma-milestone/references/` non-empty).
   - Recorded: `TESTS_VERIFIED` and `CODE_INTEL_REFRESH` must appear for Milestone 10 at its own gate (checked by the milestone acceptance criteria).
-  - Worktree for M10 cut from fresh main; `uv sync && uv run codemem build` exit 0.
+  - (Scope change 2026-10-25, Ste) L-065: Contract Python files format/lint-clean on main before the milestone branch (style PR). ADR-0025 Accepted + INDEX row; `install.sh` links `~/.claude` into the live worktree (`tests/hooks/install-live-worktree.bats` passes; existing install bats green); shipped in its own PR from a worktree (old D7 applies until it merges). After merge: live install from main → every `readlink -f ~/.claude/{skills/*,agents/*.md,rules/*,hooks/lib/*}` resolves under `~/.local/share/codemem-plugin-wt/`; `--wire-git-hook` wired to the live worktree's `post-commit.sh` (deferred from 16.0); the user-scope codemem MCP returns the X2 fields (`index_sha`, `head_sha`, `stale`, `stale_reason`) from the M16 cache location.
+  - M16 post-merge record (SHA map, PR #65) in provenance + context-log; PR #65 MEDIUM/LOW notes as one P3 TODOS entry (L-037).
+  - Branch `feat/cci-m10-impact-tooling` cut in the main checkout from fresh main (ADR-0025, no worktree); `uv sync && uv run codemem build` exit 0 there.
 - Result Log:
 
 ### Sub-step 10.1: PROTOTYPE — impact hook UX
@@ -1013,11 +1015,11 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Acceptance Criteria:
   - `claude-code/hooks/aa-ma-impact-preedit.sh`: PreToolUse(Edit|Write) (no MultiEdit tool in 2.1.294; NotebookEdit ignored); reads `.tool_input.file_path`; once per file per session via atomic `mkdir ~/.claude/runtime/impact-seen-<session_id>/<sha1(path)>`; no index → ONE systemMessage per session; 0 external callers and 0 co-changes → silent; else ≤5 lines via additionalContext; exit 0 always; JSON via `jq -n --arg`.
   - Injected strings pass a new never-raising `sanitize_context_line(text, max_len=200)` in codemem `mcp_tools/sanitizers.py`, framed as "codemem data (untrusted):"; file_path quoted, passed after `--`; out-of-repo paths ignored via `realpath -m` + trailing-slash prefix.
-  - §0 v2: `session_id` validated against `^[A-Za-z0-9_-]{1,64}$`; codemem wrapped in `timeout -k`; index.db opened `mode=ro`, `trusted_schema=OFF`; a git-tracked `.codemem/index.db` ignored; runtime markers cleaned at SessionEnd; codemem resolved from the forge root or PATH, never the edited repo.
+  - §0 v2: `session_id` validated against `^[A-Za-z0-9_-]{1,64}$`; codemem wrapped in `timeout -k`; index.db opened `mode=ro`, `trusted_schema=OFF`; the index resolved with `aa_ma_codemem_dir <top>` (M16 XDG cache; validator W2), never a `.codemem/` in the edited repo; runtime markers cleaned at SessionEnd; codemem resolved with `aa_ma_codemem_bin <forge>`, never the edited repo.
   - `install.sh` AA_MA_HOOKS += impact-preedit; `uninstall.sh` updated; hooks count 9→10.
   - `tests/hooks/aa-ma-impact-preedit.bats` passes: real captured Edit/Write payloads; NotebookEdit + out-of-repo path → exit 0, empty stdout; codemem absent from PATH → one notice; once-per-file; no-index notice once; silent at 0; injection-named symbol sanitized; file_path with spaces and `$(touch x)` executes nothing; two concurrent invocations print once.
   - Fake-`CLAUDE_HOME` install shows exactly one impact-preedit registration; the live install is deferred to Sub-step 11.0.
-  - codemem is resolved as M15.8 recorded in the M10 Contract: `CODEMEM_BIN` → forge `.venv/bin/codemem` → `~/.local/share/codemem-plugin/.venv/bin/codemem` → absolute PATH; never from the edited repo.
+  - codemem is resolved by the shipped `aa_ma_codemem_bin <forge>`: `CODEMEM_BIN` → forge `.venv/bin/codemem` (the forge is the live worktree, ADR-0025; the former plugin-link step was the same binary — validator W3) → absolute PATH; never from the edited repo.
 - Result Log:
 
 ### Sub-step 10.7: §6.3 / §6.8 / Angle-3 / writers wiring + ad-hoc advisory
@@ -1084,7 +1086,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Acceptance Criteria:
   - M10 merged; `git pull` on main; live `scripts/install.sh` from main (deferred from 10.6); `~/.claude/settings.json` has exactly one `aa-ma-impact-preedit.sh` registration.
   - A live Edit in a session shows either ≤5 lines of impact context or exactly one no-index notice.
-  - Worktree for M11 cut from fresh main; `uv sync && uv run codemem build` exit 0.
+  - Branch for M11 cut in the main checkout from fresh main (ADR-0025); `uv sync && uv run codemem build` exit 0.
 - Result Log:
 
 ### Sub-step 11.1: PROTOTYPE — co-change threshold
@@ -1205,7 +1207,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Dependencies: None
 - Acceptance Criteria:
   - M11 merged; `git pull` on main; live `scripts/install.sh` from main; the live execute-aa-ma-milestone SKILL.md contains fence 4; `uv run aa-ma-impact --help` exits 0 on main.
-  - Worktree for M12 cut from fresh main; `uv sync && uv run codemem build` exit 0.
+  - Branch for M12 cut in the main checkout from fresh main (ADR-0025); `uv sync && uv run codemem build` exit 0.
 - Result Log:
 
 ### Sub-step 12.1: language-conventions (eval-first)
@@ -1295,9 +1297,9 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
-  - M12 merged; `git pull` on main; live `scripts/install.sh` from main (12.6's live part); `readlink -f ~/.claude/rules/coding-standards.md` resolves into the main checkout.
+  - M12 merged; `git pull` on main; live `scripts/install.sh` from main (12.6's live part); `readlink -f ~/.claude/rules/coding-standards.md` resolves into the live worktree (ADR-0025).
   - L-1315 isolated probe asks for one coding-standards line verbatim and gets it (the rule loads at session start).
-  - Worktree for M13 cut from fresh main; `uv sync && uv run codemem build` exit 0.
+  - Branch for M13 cut in the main checkout from fresh main (ADR-0025); `uv sync && uv run codemem build` exit 0.
 - Result Log:
 
 ### Sub-step 13.1: Counts and docs

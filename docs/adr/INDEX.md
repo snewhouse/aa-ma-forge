@@ -44,6 +44,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0022](0022-secops-baseline.md) | SecOps baseline: Ruff S, gitleaks, hashed dependency audit, whole-file commit hook | Accepted | 2026-10-12 |
 | [0023](0023-tests-verified-gate.md) | Tests-verified gate: §6.7 fence 3 runs the merge-base `Test-Command:` | Accepted | 2026-10-13 |
 | [0024](0024-sole-dev-merge-one-script.md) | `/sole-dev-merge` is one tested script, GitHub only | Accepted | 2026-10-22 |
+| [0025](0025-live-worktree-install-target.md) | `~/.claude` links into a live worktree; milestones use plain branches (amends D7) | Accepted | 2026-10-25 |
 
 ## Statuses
 

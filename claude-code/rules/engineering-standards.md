@@ -61,9 +61,9 @@ rejected by `Skill(plan-verification)`. Add new values via plan + ADR.):
 | `auth-flow`        | Authentication, authorization, session, token handling              |
 | `data-xform`       | Data transformations, schema migrations, format conversions         |
 | `external-api`     | Third-party API calls (rate limits, error handling, contract surface) |
-| `version-pipeline` | Release, version-bump, tag-and-push, CHANGELOG mechanics            |
+| `version-pipeline` | Release, version-bump, tag-and-push, CHANGELOG mechanics — `scripts/release.sh`, `VERSION` |
 | `doc-count-drift`  | Hardcoded counts in docs (Tier 6 detector domain)                   |
-| `hook-modification`| Changes to the shipped enforcement surface: `claude-code/hooks/**` (incl. `lib/`), the CI workflows `.github/workflows/**`, the gate/scan logic inside `claude-code/skills/**`, and the Python the gate reads — `src/aa_ma/{gate,enforce,grammar,plan_parsers}.py` (ADR-0009) (affect all sessions) |
+| `hook-modification`| Changes to the shipped enforcement surface: `claude-code/hooks/**` (incl. `lib/`), the CI workflows `.github/workflows/**`, the gate/scan logic inside `claude-code/skills/**` (`claude-code/skills/execute-aa-ma-*/**`, `claude-code/skills/sole-dev-merge/**`), and the Python the gate reads — `src/aa_ma/{gate,enforce,grammar,plan_parsers}.py` (ADR-0009) (affect all sessions); also `src/aa_ma/{impact,gitutil}.py`, `scripts/{check_conventions.py,install.sh,uninstall.sh}`, `scripts/lib/aa-ma-install-lib.sh`, `.pre-commit-config.yaml`, `.gitleaksignore`, `.github/dependabot.yml` |
 
 **Diagram-Waiver canonical values** (plan-level front-matter; planning-time only —
 read by `Skill(plan-verification)`, never by the milestone gate; novel values are

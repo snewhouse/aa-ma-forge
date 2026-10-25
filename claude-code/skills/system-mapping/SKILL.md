@@ -132,10 +132,11 @@ sg run -p 'def $NAME($$$PARAMS):' -l python src/[module]/
 ```
 codemem MCP:
   - who_calls(target_function, max_depth=3) → transitive callers (upstream)
-  - blast_radius(target_function, max_depth=3) → transitive callees (downstream)
+  - callees(target_function, max_depth=3) → transitive callees (downstream)
+    (codemem's blast_radius is a deprecated alias of callees, removed after v0.18.x)
   - dependency_chain(source, target) → shortest call path between two symbols
   This gives the complete call graph without manual Grep.
-  Fallback: PROJECT_INDEX.json's tools of the same names (not codemem; its blast_radius = callers by depth).
+  Fallback: PROJECT_INDEX.json's tools (not codemem; it has no callees, and its blast_radius = callers by depth).
 ```
 
 **Tools (fallback when no index):**

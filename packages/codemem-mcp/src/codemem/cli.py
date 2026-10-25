@@ -12,7 +12,9 @@ Minimal argparse dispatcher composing the M1 modules:
                                   (M4 Task 4.8 / L-254 — the production
                                   wiring missing from M3)
 * ``codemem replay``          — rebuild SQLite from the WAL JSONL journal
-* ``codemem query``           — calls one of 10 MCP tools via stdlib JSON
+* ``codemem query``           — calls one of 11 MCP tools via stdlib JSON
+* ``codemem impact``          — who depends on a file and what changes with
+                                  it (:func:`codemem.mcp_tools.file_impact`)
 * ``codemem intel``           — writes PROJECT_INTEL.json via the PageRank
                                   projection
 
@@ -240,6 +242,7 @@ def _cmd_replay(args: argparse.Namespace) -> int:
 
 QUERY_TOOLS = (
     "who_calls",
+    "callees",
     "blast_radius",
     "dead_code",
     "dependency_chain",
@@ -263,6 +266,8 @@ def _cmd_query(args: argparse.Namespace) -> int:  # noqa: C901  # why: pre-exist
     tool = args.tool
     if tool == "who_calls":
         result = mcp_tools.who_calls(db_path, args.positional[0], **kwargs)
+    elif tool == "callees":
+        result = mcp_tools.callees(db_path, args.positional[0], **kwargs)
     elif tool == "blast_radius":
         result = mcp_tools.blast_radius(db_path, args.positional[0], **kwargs)
     elif tool == "dead_code":
@@ -284,7 +289,7 @@ def _cmd_query(args: argparse.Namespace) -> int:  # noqa: C901  # why: pre-exist
     elif tool == "hot_spots":
         result = mcp_tools.hot_spots(db_path, budget=args.budget)
     elif tool == "co_changes":
-        result = mcp_tools.co_changes(db_path, args.positional[0], budget=args.budget)
+        return _query_co_changes(args, db_path)
     elif tool == "owners":
         # With --repo-root the blame is computed (and cached); without it only the cache is read.
         repo_root = Path(args.repo_root) if args.repo_root else None
@@ -303,6 +308,74 @@ def _cmd_query(args: argparse.Namespace) -> int:  # noqa: C901  # why: pre-exist
 
     print(json.dumps(result, indent=2, default=str))
     return 0 if not result.get("error") else 1
+
+
+def _query_co_changes(args: argparse.Namespace, db_path: Path) -> int:
+    """``co_changes`` for one path (its dict) or several (an object keyed by path).
+
+    Exit 1 when any path's result carries an error.
+    """
+    from . import mcp_tools
+
+    results = {
+        path: mcp_tools.co_changes(
+            db_path,
+            path,
+            threshold=args.threshold,
+            min_ratio=args.min_ratio,
+            budget=args.budget,
+        )
+        for path in args.positional
+    }
+    single = len(args.positional) == 1
+    out = results[args.positional[0]] if single else results
+    print(json.dumps(out, indent=2, default=str))
+    return 1 if any(r.get("error") for r in results.values()) else 0
+
+
+_BRIEF_TOP = 3  # entries named per line of `codemem impact --format brief`
+
+
+def _names(items: list[dict], key: str) -> str:
+    """The first ``_BRIEF_TOP`` distinct values of ``key``, comma-joined, or ``-``."""
+    seen = list(dict.fromkeys(i[key] for i in items))
+    more = f" (+{len(seen) - _BRIEF_TOP} more)" if len(seen) > _BRIEF_TOP else ""
+    return (", ".join(seen[:_BRIEF_TOP]) + more) if seen else "-"
+
+
+def _impact_brief(r: dict) -> str:
+    """At most five plain lines summarising a :func:`file_impact` result."""
+    ext_files = {c["file"] for c in r["external_callers"]}
+    test_files = {c["file"] for c in r["test_callers"]}
+    co = ", ".join(
+        f"{c['path']} {c['count']}x ({c['ratio']:.0%})"
+        for c in r["co_changes"][:_BRIEF_TOP]
+    )
+    lines = [
+        f"impact: {r['file']}",
+        f"callers: {len(ext_files)} files + {len(test_files)} test files",
+        f"top: {_names(r['external_callers'], 'file')}",
+        f"tests: {_names(r['test_callers'], 'file')}",
+        f"co-changed (of {r['target_commits']} commits): {co or '-'}",
+    ]
+    return "\n".join(lines)
+
+
+def _cmd_impact(args: argparse.Namespace) -> int:
+    """Print :func:`codemem.mcp_tools.file_impact` as five lines or as JSON."""
+    from . import mcp_tools
+
+    result = mcp_tools.file_impact(_db_path(args), args.path, budget=args.budget)
+    if result.get("error"):
+        print(f"codemem impact: {result['error']}", file=sys.stderr)
+        if args.format == "json":
+            print(json.dumps(result, indent=2, default=str))
+        return 1
+    if args.format == "json":
+        print(json.dumps(result, indent=2, default=str))
+    else:
+        print(_impact_brief(result))
+    return 0
 
 
 def _cmd_intel(args: argparse.Namespace) -> int:
@@ -477,6 +550,38 @@ def build_parser() -> argparse.ArgumentParser:
     pq.add_argument(
         "--repo-root", default=None, help="owners: compute blame from this repo"
     )
+    pq.add_argument(
+        "--threshold",
+        type=int,
+        default=3,
+        help="co_changes: minimum shared commits (default 3)",
+    )
+    pq.add_argument(
+        "--min-ratio",
+        type=float,
+        default=0.0,
+        help="co_changes: minimum share of the file's commits, 0-1 (default 0)",
+    )
+    pq.epilog = (
+        "co_changes takes one or more paths: one path prints its result object; "
+        "several print one JSON object keyed by path. Exit 1 if any has an error."
+    )
+
+    pim = sub.add_parser(
+        "impact",
+        help="Who depends on a file and what changes with it",
+        description="External and test callers of the symbols in PATH, and the "
+        "files that change with it (commits touching more than "
+        "CO_CHANGE_MAX_COMMIT_FILES files are ignored).",
+    )
+    pim.add_argument("path", help="Repo-relative file path")
+    pim.add_argument(
+        "--format",
+        choices=("brief", "json"),
+        default="brief",
+        help="brief: five plain lines (default); json: the file_impact dict",
+    )
+    pim.add_argument("--budget", type=int, default=2000)
 
     pi = sub.add_parser("intel", help="Write PROJECT_INTEL.json")
     pi.add_argument("--out", help="Output path (default: PROJECT_INTEL.json)")
@@ -537,6 +642,7 @@ _CMD_DISPATCH = {
     "refresh-commits": _cmd_refresh_commits,
     "replay": _cmd_replay,
     "query": _cmd_query,
+    "impact": _cmd_impact,
     "intel": _cmd_intel,
     "draw": _cmd_draw,
 }

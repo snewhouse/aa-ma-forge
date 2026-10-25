@@ -92,11 +92,12 @@ This appends a single sentinel-marked line to your repo's `.git/hooks/post-commi
 
 ## What you get
 
-After the four steps above, Claude Code has access to **13 codemem MCP tools** in any session opened from your target repo:
+After the four steps above, Claude Code has access to **14 codemem MCP tools** in any session opened from your target repo:
 
 - 6 ports of `/index` semantics (`who_calls`, `blast_radius`, `dead_code`, `dependency_chain`, `search_symbols`, `file_summary`)
 - 6 git-mining + AA-MA-native (`hot_spots`, `co_changes`, `owners`, `symbol_history`, `layers`, `aa_ma_context`)
 - 1 diagram tool (`diagram`) — a mermaid cut of the code graph, sized to the token budget
+- `callees` — downstream callees; `blast_radius` is now its deprecated alias (removed after v0.18.x)
 
 For a real example of what `co_changes` returns and how to read the output, see [`docs/demo/codemem-co-changes-transcript.md`](../demo/codemem-co-changes-transcript.md).
 

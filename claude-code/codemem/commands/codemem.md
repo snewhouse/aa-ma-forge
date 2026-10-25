@@ -47,7 +47,7 @@ lands):**
 
 ### `codemem query <tool> [args...]`
 
-Call 10 of the MCP tools directly. No MCP server required. (`symbol_history`, `aa_ma_context` and
+Call 11 of the MCP tools directly. No MCP server required. (`symbol_history`, `aa_ma_context` and
 `diagram` are MCP-only; `codemem draw` renders diagrams.)
 
 **Tools:**
@@ -55,13 +55,14 @@ Call 10 of the MCP tools directly. No MCP server required. (`symbol_history`, `a
 | Tool | Usage | Returns |
 |------|-------|---------|
 | `who_calls` | `codemem query who_calls NAME [--max-depth N] [--budget TOKENS]` | upstream callers via canonical CTE |
-| `blast_radius` | `codemem query blast_radius NAME [--max-depth N] [--budget TOKENS]` | downstream callees transitively |
+| `callees` | `codemem query callees NAME [--max-depth N] [--budget TOKENS]` | downstream callees transitively |
+| `blast_radius` | `codemem query blast_radius NAME [--max-depth N] [--budget TOKENS]` | deprecated alias of `callees` (removed after v0.18.x) |
 | `dead_code` | `codemem query dead_code [--budget TOKENS]` | functions/methods with zero inbound call edges |
 | `dependency_chain` | `codemem query dependency_chain SOURCE TARGET [--max-depth N] [--budget TOKENS]` | shortest call-path |
 | `search_symbols` | `codemem query search_symbols QUERY [--budget TOKENS]` | name-substring match with exact/prefix/contains ranking |
 | `file_summary` | `codemem query file_summary PATH [--budget TOKENS]` | symbols in a file, ordered by line |
 | `hot_spots` | `codemem query hot_spots [--budget TOKENS]` | files ranked by commits in the last 90 days × function count (needs `refresh-commits`) |
-| `co_changes` | `codemem query co_changes FILE [--budget TOKENS]` | files that change with FILE but lack an import edge (needs `refresh-commits`) |
+| `co_changes` | `codemem query co_changes FILE... [--threshold N] [--min-ratio R] [--budget TOKENS]` | files that change with FILE but lack an import edge, each with its `ratio` of FILE's commits (needs `refresh-commits`); several FILEs print one object keyed by path |
 | `owners` | `codemem query owners PATH [--repo-root R] [--budget TOKENS]` | per-author line share; a directory needs a trailing `/`; `--repo-root` computes the blame, otherwise only the cache is read |
 | `layers` | `codemem query layers [--budget TOKENS]` | files bucketed core / middle / periphery by in-degree |
 

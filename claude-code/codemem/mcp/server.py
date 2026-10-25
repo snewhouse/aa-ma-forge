@@ -1,10 +1,12 @@
 """codemem MCP server (M1 Task 1.10).
 
-Registers 13 canonical tool slots on a FastMCP instance. M1 lights up
+Registers 14 canonical tool slots on a FastMCP instance. M1 lights up
 the first six (``who_calls``, ``blast_radius``, ``dead_code``,
 ``dependency_chain``, ``search_symbols``, ``file_summary``); M3 adds
 six more (``hot_spots``, ``co_changes``, ``owners``, ``symbol_history``,
-``layers``, ``aa_ma_context``); diagram-generation M13 adds ``diagram``.
+``layers``, ``aa_ma_context``); diagram-generation M13 adds ``diagram``;
+code-conventions-impact M10.2 adds ``callees``, and ``blast_radius``
+becomes its deprecated alias (removed after v0.18.x).
 
 The server is a thin adapter: every handler delegates straight to the
 matching function in :mod:`codemem.mcp_tools`, which is where the
@@ -41,7 +43,7 @@ __all__ = [
 ]
 
 
-# 13 canonical slots — see codemem-reference.md §MCP Tools (+ diagram, diagram-generation M13).
+# 14 canonical slots — see codemem-reference.md §MCP Tools (+ diagram, M13; + callees, M10.2).
 CANONICAL_TOOL_NAMES: tuple[str, ...] = (
     # M1 — ported from /index
     "who_calls",
@@ -50,6 +52,8 @@ CANONICAL_TOOL_NAMES: tuple[str, ...] = (
     "dependency_chain",
     "search_symbols",
     "file_summary",
+    # code-conventions-impact M10.2 — blast_radius under its honest name
+    "callees",
     # M3 — git mining
     "hot_spots",
     "co_changes",
@@ -120,10 +124,18 @@ def build_server() -> FastMCP:  # noqa: C901  # why: pre-existing (21 before M15
             db_path_factory(), name, max_depth=max_depth, budget=budget
         )
 
+    def callees(
+        name: str, max_depth: int = 3, budget: int = mcp_tools._DEFAULT_BUDGET
+    ) -> dict:
+        """Return the symbols a symbol calls, transitively (downstream)."""
+        return mcp_tools.callees(
+            db_path_factory(), name, max_depth=max_depth, budget=budget
+        )
+
     def blast_radius(
         name: str, max_depth: int = 3, budget: int = mcp_tools._DEFAULT_BUDGET
     ) -> dict:
-        """Return everything a symbol reaches (downstream transitive)."""
+        """Deprecated: use callees; removed after v0.18.x. Same payload, plus ``downstream``."""
         return mcp_tools.blast_radius(
             db_path_factory(), name, max_depth=max_depth, budget=budget
         )
@@ -253,6 +265,7 @@ def build_server() -> FastMCP:  # noqa: C901  # why: pre-existing (21 before M15
     m1_handlers: dict[str, Callable[..., dict]] = {
         "who_calls": who_calls,
         "blast_radius": blast_radius,
+        "callees": callees,
         "dead_code": dead_code,
         "dependency_chain": dependency_chain,
         "search_symbols": search_symbols,

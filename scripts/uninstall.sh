@@ -46,6 +46,10 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
 # shellcheck disable=SC1090,SC1091
 . "${SCRIPT_DIR}/lib/aa-ma-install-lib.sh"
 CLAUDE_HOME="${HOME}/.claude"
+# Links into the live worktree (ADR-0025) are ours too; points_into_repo reads LIVE_ROOT.
+# why: || true — no live worktree is the common case: LIVE_ROOT stays empty.
+# shellcheck disable=SC2034  # read by points_into_repo in the sourced lib
+LIVE_ROOT="$(aa_ma_live_worktree || true)"
 
 # ---------------------------------------------------------------------------
 # Parse flags

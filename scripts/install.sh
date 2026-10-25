@@ -79,6 +79,38 @@ if ! aa_ma_hooks_validate; then
 fi
 
 # ---------------------------------------------------------------------------
+# 0. The live worktree (ADR-0025, amending D7; R03-D13)
+# ---------------------------------------------------------------------------
+# ~/.local/share/codemem-plugin links to a dedicated, detached worktree of this forge: the
+# user-scope codemem MCP runs from it, and every ~/.claude link below resolves into it.
+# Refresh it to main's tip (and its venv) FIRST, so the links land on merged code and a
+# branch checked out in the forge checkout is never live. Only a linked worktree of THIS
+# forge is used — never the checkout itself, never anything else — and one with
+# uncommitted changes is linked as it stands, not refreshed. No link: link into this
+# checkout, as before.
+LIVE_ROOT=""
+if [[ -L "${CODEMEM_PLUGIN_LINK}" ]]; then
+    header "Refreshing the codemem plugin worktree..."
+    plugin_wt="$(readlink -f "${CODEMEM_PLUGIN_LINK}")"
+    if ! LIVE_ROOT="$(aa_ma_live_worktree)"; then
+        LIVE_ROOT=""
+        warn "codemem plugin link targets ${plugin_wt}: not a worktree of this forge — left alone"
+    elif [[ -n "$(git -C "${LIVE_ROOT}" status --porcelain --untracked-files=no)" ]]; then
+        warn "codemem plugin worktree ${LIVE_ROOT} has uncommitted changes — left alone"
+    elif ${DRY_RUN}; then
+        info "Would refresh codemem plugin worktree ${LIVE_ROOT} to main and run uv sync there"
+    elif git -C "${LIVE_ROOT}" checkout -q --detach main \
+            && (cd "${LIVE_ROOT}" && uv sync --locked --quiet); then
+        info "codemem plugin worktree ${LIVE_ROOT} → main $(git -C "${LIVE_ROOT}" rev-parse --short HEAD)"
+    else
+        warn "codemem plugin worktree ${LIVE_ROOT}: refresh failed — run: git -C ${LIVE_ROOT} checkout --detach main && (cd ${LIVE_ROOT} && uv sync)"
+    fi
+fi
+# Where every link and copy below comes from.
+SRC_ROOT="${LIVE_ROOT:-${REPO_ROOT}}"
+info "Installing from ${SRC_ROOT}"
+
+# ---------------------------------------------------------------------------
 # Counters for summary
 # ---------------------------------------------------------------------------
 LINKS_CREATED=0
@@ -138,13 +170,13 @@ collect_backup_target() {
 
 
 # Skills directories (auto-discover all)
-for d in "${REPO_ROOT}/claude-code/skills/"*/; do
+for d in "${SRC_ROOT}/claude-code/skills/"*/; do
     [ -d "${d}" ] || continue
     collect_backup_target "${CLAUDE_HOME}/skills/$(basename "${d}")"
 done
 
 # Agents
-for f in "${REPO_ROOT}/claude-code/agents/"*.md; do
+for f in "${SRC_ROOT}/claude-code/agents/"*.md; do
     [ -e "${f}" ] || continue
     collect_backup_target "${CLAUDE_HOME}/agents/$(basename "${f}")"
 done
@@ -158,7 +190,7 @@ collect_backup_target "${CLAUDE_HOME}/hooks/lib/pre-compact-aa-ma.sh"
 collect_backup_target "${CLAUDE_HOME}/hooks/lib/ruff-format.sh"
 
 # Spec docs (copies, not symlinks)
-for f in "${REPO_ROOT}/docs/spec/"*.md; do
+for f in "${SRC_ROOT}/docs/spec/"*.md; do
     [ -e "${f}" ] || continue
     collect_backup_target "${CLAUDE_HOME}/docs/$(basename "${f}")"
 done
@@ -316,7 +348,7 @@ done
 # 2. Symlink skills directories (auto-discover all)
 # ---------------------------------------------------------------------------
 header "Linking skills..."
-for d in "${REPO_ROOT}/claude-code/skills/"*/; do
+for d in "${SRC_ROOT}/claude-code/skills/"*/; do
     [ -d "${d}" ] || continue
     create_symlink "${d%/}" "${CLAUDE_HOME}/skills/$(basename "${d}")"
 done
@@ -325,7 +357,7 @@ done
 # 3. Symlink agents (each file individually)
 # ---------------------------------------------------------------------------
 header "Linking agents..."
-for f in "${REPO_ROOT}/claude-code/agents/"*.md; do
+for f in "${SRC_ROOT}/claude-code/agents/"*.md; do
     [ -e "${f}" ] || continue
     create_symlink "${f}" "${CLAUDE_HOME}/agents/$(basename "${f}")"
 done
@@ -334,9 +366,9 @@ done
 # 4. Symlink rules
 # ---------------------------------------------------------------------------
 header "Linking rules..."
-create_symlink "${REPO_ROOT}/claude-code/rules/aa-ma.md" \
+create_symlink "${SRC_ROOT}/claude-code/rules/aa-ma.md" \
                "${CLAUDE_HOME}/rules/aa-ma.md"
-create_symlink "${REPO_ROOT}/claude-code/rules/engineering-standards.md" \
+create_symlink "${SRC_ROOT}/claude-code/rules/engineering-standards.md" \
                "${CLAUDE_HOME}/rules/engineering-standards.md"
 
 # ---------------------------------------------------------------------------
@@ -370,22 +402,22 @@ header "Linking hooks + registering in settings.json..."
 # Helper library must be symlinked so hooks can source it from their
 # installed location (~/.claude/hooks/lib/<hook>.sh finds ./aa-ma-parse.sh
 # as a sibling).
-if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" ]; then
-    create_symlink "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" \
+if [ -f "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" ]; then
+    create_symlink "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" \
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-parse.sh"
 fi
 
 # Logging library, sourced by aa-ma-parse.sh from its real directory; linked as a sibling
 # too so a hook outside this repo can source ~/.claude/hooks/lib/aa-ma-log.sh directly.
-if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-log.sh" ]; then
-    create_symlink "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-log.sh" \
+if [ -f "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-log.sh" ]; then
+    create_symlink "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-log.sh" \
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-log.sh"
 fi
 
 # Commit-footer helper, sourced by /sole-dev-merge's `sdm_footer` (sdm.sh). In
 # any repo but this one it is found only here.
-if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh" ]; then
-    create_symlink "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh" \
+if [ -f "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh" ]; then
+    create_symlink "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh" \
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-footer.sh"
 fi
 
@@ -393,16 +425,16 @@ fi
 # command bodies via the `_cand` resolution (repo-local first, then
 # ${CLAUDE_HOME}/hooks/lib). Not a registered hook event; L-005 — helpers
 # are never auto-linked, so it gets its own block like aa-ma-parse.sh.
-if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-chart-guard.sh" ]; then
-    create_symlink "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-chart-guard.sh" \
+if [ -f "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-chart-guard.sh" ]; then
+    create_symlink "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-chart-guard.sh" \
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-chart-guard.sh"
 fi
 
 # Marker-writer helper is invoked from the /aa-ma-plan command body — not a
 # registered hook event, but needs to live at the installed location so the
 # command's `bash ~/.claude/hooks/lib/aa-ma-plan-marker.sh ...` works.
-if [ -f "${REPO_ROOT}/claude-code/hooks/aa-ma-plan-marker.sh" ]; then
-    create_symlink "${REPO_ROOT}/claude-code/hooks/aa-ma-plan-marker.sh" \
+if [ -f "${SRC_ROOT}/claude-code/hooks/aa-ma-plan-marker.sh" ]; then
+    create_symlink "${SRC_ROOT}/claude-code/hooks/aa-ma-plan-marker.sh" \
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-plan-marker.sh"
 fi
 
@@ -423,7 +455,7 @@ backup_settings_once() {
 
 register_hook() {
     local event="$1" matcher="$2" src_base="$3" timeout="$4" status_msg="$5"
-    local src_path="${REPO_ROOT}/claude-code/hooks/${src_base}"
+    local src_path="${SRC_ROOT}/claude-code/hooks/${src_base}"
     local link_path="${CLAUDE_HOME}/hooks/lib/${src_base}"
     local hook_cmd="bash ${link_path}"
 
@@ -513,7 +545,7 @@ done
 # 6. Copy spec docs (NOT symlinks — shared directory with non-AA-MA files)
 # ---------------------------------------------------------------------------
 header "Copying spec docs..."
-for f in "${REPO_ROOT}/docs/spec/"*.md; do
+for f in "${SRC_ROOT}/docs/spec/"*.md; do
     [ -e "${f}" ] || continue
     copy_file "${f}" "${CLAUDE_HOME}/docs/$(basename "${f}")"
 done
@@ -554,11 +586,14 @@ if ${WIRE_GIT_HOOK}; then
             *)  ABS_GIT_DIR="${REPO_ROOT}/${GIT_DIR}" ;;
         esac
         HOOK_FILE="${ABS_GIT_DIR}/hooks/post-commit"
-        SOURCE_HOOK="${REPO_ROOT}/claude-code/codemem/hooks/post-commit.sh"
+        SOURCE_HOOK="${SRC_ROOT}/claude-code/codemem/hooks/post-commit.sh"
         SENTINEL="# codemem-post-commit-installed"
 
         if [ ! -f "${SOURCE_HOOK}" ]; then
             warn "Source hook missing: ${SOURCE_HOOK}"
+        elif [ -f "${HOOK_FILE}" ] && grep -qF "${SENTINEL}" "${HOOK_FILE}" \
+                && ! grep -qF "\"${SOURCE_HOOK}\"" "${HOOK_FILE}"; then
+            warn "codemem post-commit hook in ${HOOK_FILE} runs another copy — edit its path to ${SOURCE_HOOK}"
         elif [ -f "${HOOK_FILE}" ] && grep -qF "${SENTINEL}" "${HOOK_FILE}"; then
             info "codemem post-commit hook already wired — ${HOOK_FILE}"
         else
@@ -583,35 +618,6 @@ EOF
                 info "Wired codemem post-commit hook → ${HOOK_FILE}"
             fi
         fi
-    fi
-fi
-
-# ---------------------------------------------------------------------------
-# 8. codemem user-scope plugin worktree (code-conventions-impact M15.8, R03-D13)
-# ---------------------------------------------------------------------------
-# ~/.local/share/codemem-plugin links to a dedicated, detached worktree of this forge
-# that the user-scope codemem MCP runs from. Keep it on main's tip and its venv in sync.
-# Only a linked worktree of THIS forge is touched — never the checkout itself (its branch
-# changes under review), never anything else, and never one with uncommitted changes.
-CODEMEM_PLUGIN_LINK="${HOME}/.local/share/codemem-plugin"
-if [[ -L "${CODEMEM_PLUGIN_LINK}" ]]; then
-    header "Refreshing the codemem plugin worktree..."
-    plugin_wt="$(readlink -f "${CODEMEM_PLUGIN_LINK}")"
-    # why: a target that is not a git worktree has no common dir → empty → refused below
-    plugin_common="$(git -C "${plugin_wt}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
-    # why: a forge that is not a git checkout → empty → the link is refused below
-    forge_common="$(git -C "${REPO_ROOT}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
-    if [[ -z "${plugin_common}" || -z "${forge_common}" || "${plugin_common}" != "${forge_common}" || "${plugin_wt}" == "${REPO_ROOT}" ]]; then
-        warn "codemem plugin link targets ${plugin_wt}: not a worktree of this forge — left alone"
-    elif [[ -n "$(git -C "${plugin_wt}" status --porcelain --untracked-files=no)" ]]; then
-        warn "codemem plugin worktree ${plugin_wt} has uncommitted changes — left alone"
-    elif ${DRY_RUN}; then
-        info "Would refresh codemem plugin worktree ${plugin_wt} to main and run uv sync there"
-    elif git -C "${plugin_wt}" checkout -q --detach main \
-            && (cd "${plugin_wt}" && uv sync --locked --quiet); then
-        info "codemem plugin worktree ${plugin_wt} → main $(git -C "${plugin_wt}" rev-parse --short HEAD)"
-    else
-        warn "codemem plugin worktree ${plugin_wt}: refresh failed — run: git -C ${plugin_wt} checkout --detach main && (cd ${plugin_wt} && uv sync)"
     fi
 fi
 

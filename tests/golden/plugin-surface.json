@@ -154,6 +154,30 @@
    "dst": "hook:aa-ma-parse.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-impact-preedit.sh"
+  },
+  {
+   "dst": "hook:aa-ma-session-end-dirty.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-impact-preedit.sh"
+  },
+  {
+   "dst": "hook:ruff-format.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-impact-preedit.sh"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-impact-preedit.sh"
+  },
+  {
+   "dst": "hook:aa-ma-parse.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
    "src": "hook:aa-ma-log.sh"
   },
   {
@@ -191,6 +215,12 @@
    "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "hook:aa-ma-plan-skip-warn.sh"
+  },
+  {
+   "dst": "hook:aa-ma-impact-preedit.sh",
+   "kind": "hook",
+   "ref_class": "ON_DISK",
+   "src": "hook:aa-ma-session-end-dirty.sh"
   },
   {
    "dst": "hook:aa-ma-parse.sh",
@@ -1341,6 +1371,9 @@
   "aa-ma-commit-signature.sh": [
    "PreToolUse:Bash"
   ],
+  "aa-ma-impact-preedit.sh": [
+   "PreToolUse:Edit|Write"
+  ],
   "aa-ma-plan-skip-warn.sh": [
    "PreToolUse:ExitPlanMode",
    "SessionEnd"
@@ -1362,7 +1395,6 @@
   ]
  },
  "orphans": [
-  "hook:aa-ma-session-end-dirty.sh",
   "skill:aa-ma-execution",
   "skill:aa-ma-search",
   "skill:complexity-router",

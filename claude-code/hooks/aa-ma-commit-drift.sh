@@ -20,6 +20,12 @@
 #     active task directory
 #   - The commit message does NOT contain `[no-sync-check]` on its own line
 #
+# Ad-hoc commits — no active AA-MA plan, or `[ad-hoc]` on its own line in the message —
+# instead get ONE co-change line (code-conventions-impact 10.7): the codemem co_changes
+# partners of the committed files (>= 5 shared commits, >= 50% of the file's commits —
+# the T7 constants) that the commit left out. codemem via aa_ma_codemem_bin, index via
+# aa_ma_codemem_dir, 2 s timeout; no codemem, no index, a slow or failed query → silent.
+#
 # Always exits 0 (advisory).
 
 set -euo pipefail
@@ -63,13 +69,39 @@ fi
 aa_ma_debug_cmd "commit-drift: examining last commit after" "$cmd"
 
 # -----------------------------------------------------------------------------
-# Active plans?
+# Ad-hoc co-change advisory (10.7). Prints at most one line; never fails the hook.
 # -----------------------------------------------------------------------------
-mapfile -t TASKS < <(aa_ma_list_active_tasks)
-if [ "${#TASKS[@]}" -eq 0 ]; then
-    aa_ma_debug "commit-drift: no active AA-MA plans, skipping"
-    exit 0
-fi
+COCHANGE_MIN_SHARED=5     # T7: shared commits
+COCHANGE_MIN_RATIO=0.5    # T7: share of the file's commits
+COCHANGE_TIMEOUT_S=2      # the advisory must never slow a commit noticeably
+COCHANGE_MAX_NAMES=10     # the line stays one readable line
+
+cochange_advisory() {
+    local real forge top db_dir bin out partners
+    local -a files=() missed=()
+    # why: no `readlink -f` (old macOS) → the path as invoked, then the lib lookups decide
+    real="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null)" || real="${BASH_SOURCE[0]}"
+    forge="${real%/*}"; forge="${forge%/*/*}"   # <forge>/claude-code/hooks/<this>
+    top=$(git rev-parse --show-toplevel 2>/dev/null) || return 0   # why: not a repo → silent
+    db_dir=$(aa_ma_codemem_dir "$top") || return 0
+    [ -f "${db_dir}/index.db" ] || return 0
+    bin=$(aa_ma_codemem_bin "$forge") || return 0
+    command -v timeout >/dev/null 2>&1 || return 0   # why: a presence probe; no timeout → no unbounded call
+    mapfile -t files < <(git log -1 --name-only --format= HEAD 2>/dev/null | awk 'NF')  # why: no HEAD → no files → silent
+    [ "${#files[@]}" -gt 0 ] || return 0
+    # why: codemem's stderr, a timeout or a non-JSON answer all mean "no advisory" (fail open)
+    out=$(timeout -k 1 "$COCHANGE_TIMEOUT_S" "$bin" query co_changes --repo-root "$top" --threshold "$COCHANGE_MIN_SHARED" --min-ratio "$COCHANGE_MIN_RATIO" -- "${files[@]}" 2>/dev/null) || return 0
+    # why: jq's parse error on a non-JSON answer is the same fail-open case
+    partners=$(jq -r 'if has("files") then [.] else [.[]] end | .[] | .files[]?.path' <<< "$out" 2>/dev/null) || return 0
+    mapfile -t missed < <(printf '%s\n' "$partners" | awk 'NF' | sort -u \
+                             | grep -Fvx -f <(printf '%s\n' "${files[@]}"))
+    [ "${#missed[@]}" -gt 0 ] || return 0
+    local shown more=""
+    shown=$(printf '%s\n' "${missed[@]:0:COCHANGE_MAX_NAMES}" | paste -sd ',' - | sed 's/,/, /g')
+    [ "${#missed[@]}" -gt "$COCHANGE_MAX_NAMES" ] && more=" (+$(( ${#missed[@]} - COCHANGE_MAX_NAMES )) more)"
+    printf 'ℹ️  co-change advisory (codemem; shared>=%s, ratio>=%s): often changed with these files but not in this commit: %s%s\n' \
+        "$COCHANGE_MIN_SHARED" "$COCHANGE_MIN_RATIO" "${shown//[[:cntrl:]]/?}" "$more" >&2
+}
 
 # -----------------------------------------------------------------------------
 # Inspect the last commit in the current working directory's repo.
@@ -87,6 +119,20 @@ fi
 
 commit_files=$(git log -1 --name-only --format= HEAD 2>/dev/null | awk 'NF')
 commit_msg=$(git log -1 --format=%B HEAD 2>/dev/null)
+
+# -----------------------------------------------------------------------------
+# Active plans? None, or an [ad-hoc] commit: the co-change advisory.
+# -----------------------------------------------------------------------------
+mapfile -t TASKS < <(aa_ma_list_active_tasks)
+if [ "${#TASKS[@]}" -eq 0 ] \
+    || printf '%s\n' "$commit_msg" | grep -Eq '^[[:space:]]*\[ad-hoc\][[:space:]]*$'; then
+    # shellcheck disable=SC2310  # why: set -e off inside it is the point — any failure there is "no advisory"
+    cochange_advisory || true   # why: advisory only; a failure inside must never fail the hook
+fi
+if [ "${#TASKS[@]}" -eq 0 ]; then
+    aa_ma_debug "commit-drift: no active AA-MA plans, skipping"
+    exit 0
+fi
 
 # Below-threshold skip.
 file_count=$(printf '%s\n' "$commit_files" | awk 'NF' | wc -l)

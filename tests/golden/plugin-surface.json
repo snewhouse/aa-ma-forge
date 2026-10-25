@@ -703,6 +703,12 @@
    "src": "skill:assess-codebase"
   },
   {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:defense-in-depth"
+  },
+  {
    "dst": "skill:llm-output-safety",
    "kind": "skill",
    "ref_class": "ON_DISK",
@@ -848,6 +854,12 @@
   },
   {
    "dst": "skill:execute-aa-ma-milestone",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:execute-aa-ma-step"
+  },
+  {
+   "dst": "skill:impact-analysis",
    "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "skill:execute-aa-ma-step"
@@ -1042,6 +1054,12 @@
    "dst": "command:settings",
    "kind": "command",
    "ref_class": "DANGLING",
+   "src": "skill:prototype"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
    "src": "skill:prototype"
   },
   {

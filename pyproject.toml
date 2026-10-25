@@ -154,4 +154,5 @@ dev = [
     "codemem-mcp",             # OBS-001 fix (2026-04-20): workspace member must be an explicit dep for `uv sync` to install it into .venv. Resolved via [tool.uv.sources] codemem-mcp = { workspace = true }. Required so `uv run codemem intel ...` resolves (M3 prerequisite).
     "pre-commit>=4.5",         # code-conventions-impact M1: the touched-files lint harness (ADR-0018).
     "pip-audit>=2.10.1",       # code-conventions-impact M8.4: CI deps job (uv audit is experimental in uv 0.12.3, A6)
+    "griffe==2.4.1",           # code-conventions-impact 10.7: M11.4's public-API diff (aa-ma-impact); exact pin, PyPI current 2026-10-25
 ]

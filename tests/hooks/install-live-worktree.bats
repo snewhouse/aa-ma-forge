@@ -168,7 +168,7 @@ links() { find "${HOME}/.claude" -type l -exec readlink -f {} \; ; }
     [ "$status" -eq 0 ]
     [ "$(jq "$count" "${HOME}/.claude/settings.json")" -eq 1 ]
     [ "$(jq -r '.hooks.PreToolUse[] | select(any(.hooks[]; .command | test("impact-preedit"))) | .matcher' "${HOME}/.claude/settings.json")" = "Edit|Write" ]
-    [ -L "${HOME}/.claude/hooks/aa-ma-impact-preedit.sh" ]
+    [ -L "${HOME}/.claude/hooks/lib/aa-ma-impact-preedit.sh" ]
     [ -e "${HOME}/.claude/hooks/lib/aa-ma-parse.sh" ]
     "${FORGE}/scripts/uninstall.sh" >/dev/null
     [ "$(jq "$count" "${HOME}/.claude/settings.json")" -eq 0 ]

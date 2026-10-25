@@ -22,6 +22,7 @@ AA_MA_HOOKS=(
     "PreToolUse|ExitPlanMode|aa-ma-plan-skip-warn.sh|5|"
     "SessionEnd||aa-ma-plan-skip-warn.sh|5|"
     "PostToolUse|Edit|Write|ruff-format.sh|10|"
+    "PreToolUse|Edit|Write|aa-ma-impact-preedit.sh|5|"
 )
 
 # aa_ma_hook_parse ROW — set HOOK_EVENT HOOK_MATCHER HOOK_SRC HOOK_TIMEOUT HOOK_STATUS;

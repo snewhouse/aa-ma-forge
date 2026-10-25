@@ -191,12 +191,12 @@ NO_INDEX='codemem: no index for this repo — run `codemem build`'
     [ ! -e "${FILE_TMP}/repo/x" ]
 }
 
-@test "two concurrent invocations for one file print once" {
+@test "concurrent invocations for one file print once" {
+    # Four racers, not two: a non-atomic marker (uutils mkdir 0.10.0) lost 2-way races ~1 in 3.
     payload PreToolUse-Edit --arg f "${FILE_TMP}/repo/b.py" '.tool_input.file_path = $f' > "${WORK}/p.json"
-    "$HOOK" < "${WORK}/p.json" > "${WORK}/o1" &
-    "$HOOK" < "${WORK}/p.json" > "${WORK}/o2" &
+    for i in 1 2 3 4; do "$HOOK" < "${WORK}/p.json" > "${WORK}/o${i}" & done
     wait
-    [ "$(cat "${WORK}/o1" "${WORK}/o2" | grep -c hookSpecificOutput)" -eq 1 ]
+    [ "$(cat "${WORK}"/o[1-4] | grep -c hookSpecificOutput)" -eq 1 ]
 }
 
 @test "an invalid session_id → silent, no marker, one log line" {

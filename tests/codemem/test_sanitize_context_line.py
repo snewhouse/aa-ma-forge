@@ -7,6 +7,8 @@ line, no control characters, bounded length, and it never raises.
 
 from __future__ import annotations
 
+import unicodedata
+
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -19,8 +21,35 @@ CONTROLS = [chr(c) for c in (*range(0x00, 0x20), 0x7F, *range(0x80, 0xA0))]
 INVISIBLES = [" ", " ", "‮", "⁦", "⁩", "﻿"]
 
 
+# Unicode categories that must never reach the model: controls, format (zero-width, bidi,
+# BOM, tag characters), private use, surrogates, line and paragraph separators.
+UNSAFE_CATEGORIES = {"Cc", "Cf", "Co", "Cs", "Zl", "Zp"}
+
+
 def _clean(s: str) -> bool:
-    return not any(ch in s for ch in CONTROLS + INVISIBLES)
+    return not any(
+        ch in CONTROLS + INVISIBLES or unicodedata.category(ch) in UNSAFE_CATEGORIES
+        for ch in s
+    )
+
+
+@pytest.mark.parametrize(
+    "ch",
+    [
+        "\u200b",  # zero-width space
+        "\u200d",  # zero-width joiner
+        "\u2060",  # word joiner
+        "\U000e0041",  # tag character 'A' (hidden-text smuggling)
+        "\U000e007f",  # cancel tag
+        "\u2028",  # line separator
+        "\u202e",  # right-to-left override
+        "\ue000",  # private use
+        "\U000f0000",  # supplementary private use
+        "\u00ad",  # soft hyphen (Cf)
+    ],
+)
+def test_invisible_and_format_characters_become_one_space(ch: str) -> None:
+    assert sanitize_context_line(f"a{ch}b{ch}{ch}c") == "a b c"
 
 
 @pytest.mark.parametrize(
@@ -84,6 +113,8 @@ def test_never_raises_and_is_one_clean_bounded_line(text: str, max_len: int) -> 
     out.encode("utf-8")
 
 
-@given(st.text(alphabet=st.sampled_from(CONTROLS + INVISIBLES + ["a", " "])))
+@given(
+    st.text(alphabet=st.characters(categories=sorted(UNSAFE_CATEGORIES)) | st.just("a"))
+)
 def test_control_heavy_input_is_clean(text: str) -> None:
     assert _clean(sanitize_context_line(text))

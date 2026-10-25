@@ -106,3 +106,23 @@ setup_committed_tasks() {
     [ "$status" -eq 0 ]
     [[ "$output" == *"task-1-tasks.md"* ]]
 }
+
+@test "impact-preedit markers (10.6): this session's dir removed, others and an invalid sid untouched" {
+    cd "$BATS_TMP"
+    rt="$BATS_TMP_HOME/.claude/runtime"
+    sid="$(jq -r .session_id "$HOOK_PAYLOADS/SessionEnd.json")"
+    mkdir -p "$rt/impact-seen-${sid}/abc" "$rt/impact-seen-other-session" "$rt/keep"
+    HOME="$BATS_TMP_HOME" run bash -c 'bash "$1" < "$2"' _ "$HOOK" "$HOOK_PAYLOADS/SessionEnd.json"
+    [ "$status" -eq 0 ]
+    [ ! -e "$rt/impact-seen-${sid}" ]
+    [ -d "$rt/impact-seen-other-session" ]
+    [ -d "$rt/keep" ]
+    # an invalid session_id never reaches rm
+    # "impact-seen-../../victim" would resolve to $rt/victim
+    mkdir -p "$rt/impact-seen-.." "$rt/victim"
+    jq '.session_id = "../../victim"' "$HOOK_PAYLOADS/SessionEnd.json" > "$BATS_TMP/p.json"
+    HOME="$BATS_TMP_HOME" run bash -c 'bash "$1" < "$2"' _ "$HOOK" "$BATS_TMP/p.json"
+    [ "$status" -eq 0 ]
+    [ -d "$rt/victim" ]
+    [ -d "$rt/keep" ]
+}

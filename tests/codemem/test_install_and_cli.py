@@ -332,6 +332,7 @@ class TestCLI:
 
 QUERY_TOOLS_PINNED = [
     "who_calls",
+    "callees",
     "blast_radius",
     "dead_code",
     "dependency_chain",
@@ -435,7 +436,80 @@ class TestQueryRoundTrips:
         assert r.returncode == 0, r.stderr
         assert set(json.loads(r.stdout)["layers"]) == {"core", "middle", "periphery"}
 
-    def test_query_exposes_exactly_ten_tools(self, indexed_repo):
+    def test_callees(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "query", "callees", "main", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        assert [c["name"] for c in json.loads(r.stdout)["callees"]] == ["helper"]
+
+    def test_co_changes_single_path_keeps_its_shape(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli(
+            "--db",
+            str(db),
+            "query",
+            "co_changes",
+            "a.py",
+            "--min-ratio",
+            "1.0",
+            cwd=repo,
+        )
+        assert r.returncode == 0, r.stderr
+        out = json.loads(r.stdout)
+        assert out["target"] == "a.py"
+        assert [(f["path"], f["ratio"]) for f in out["files"]] == [("notes.md", 1.0)]
+
+    def test_co_changes_several_paths_one_process(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli(
+            "--db",
+            str(db),
+            "query",
+            "co_changes",
+            "a.py",
+            "notes.md",
+            "--threshold",
+            "2",
+            cwd=repo,
+        )
+        assert r.returncode == 0, r.stderr
+        out = json.loads(r.stdout)
+        assert set(out) == {"a.py", "notes.md"}
+        assert "notes.md" in {f["path"] for f in out["a.py"]["files"]}
+        assert "a.py" in {f["path"] for f in out["notes.md"]["files"]}
+
+    def test_co_changes_several_paths_exit_one_on_any_error(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "query", "co_changes", "a.py", "../x", cwd=repo)
+        assert r.returncode == 1
+        assert json.loads(r.stdout)["../x"]["error"]
+
+    def test_impact_json(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "impact", "b.py", "--format", "json", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        out = json.loads(r.stdout)
+        assert out["file"] == "b.py"
+        assert out["external_callers"] == [{"file": "a.py", "name": "main"}]
+        assert out["test_callers"] == []
+
+    def test_impact_brief(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "impact", "a.py", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        lines = r.stdout.strip().splitlines()
+        assert len(lines) <= 5
+        assert "callers: 0 files + 0 test files" in lines
+        assert any(
+            ln.startswith("co-changed (of 3 commits): notes.md") for ln in lines
+        ), lines
+
+    def test_impact_bad_path_exits_one(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "impact", "../x", cwd=repo)
+        assert r.returncode == 1
+
+    def test_query_exposes_exactly_eleven_tools(self, indexed_repo):
         repo, _ = indexed_repo
         r = _cli("query", "--help", cwd=repo)
         assert r.returncode == 0
@@ -443,7 +517,7 @@ class TestQueryRoundTrips:
             re.search(r"\{([a-z_,]+)\}", r.stdout).group(1).split(",")
             == QUERY_TOOLS_PINNED
         )
-        assert "10 MCP tools" in _cli("--help", cwd=repo).stdout
+        assert "11 MCP tools" in _cli("--help", cwd=repo).stdout
 
 
 QUERY_DOCS = [

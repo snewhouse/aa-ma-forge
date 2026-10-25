@@ -194,3 +194,114 @@ class TestInvariants:
 
         result = co_changes(populated_db, "X.md")
         assert "X.md" not in [f["path"] for f in result["files"]]
+
+
+# ---------------------------------------------------------------------
+# M10.2: min_ratio, ratio field, max_commit_files
+# ---------------------------------------------------------------------
+
+_FILLERS = [f"f{i}.md" for i in range(10)]
+
+
+@pytest.fixture
+def ratio_db(tmp_path: Path) -> Path:
+    """T.md changes in 4 small commits plus one 12-file sweep commit.
+
+    P.md shares 3 of the small commits (0.75 of 4) and the sweep;
+    Q.md shares 2 of the small commits (0.5 of 4). The sweep commit touches
+    T, P and ten fillers.
+    """
+    db_path = tmp_path / "ratio.db"
+    conn = connect(db_path)
+    apply_schema(conn)
+    migrate(conn)
+    with transaction(conn):
+        _add_commit_touching(conn, "s1", ["T.md", "P.md", "Q.md"], 1700000001)
+        _add_commit_touching(conn, "s2", ["T.md", "P.md", "Q.md"], 1700000002)
+        _add_commit_touching(conn, "s3", ["T.md", "P.md"], 1700000003)
+        _add_commit_touching(conn, "s4", ["T.md"], 1700000004)
+        _add_commit_touching(conn, "big", ["T.md", "P.md", *_FILLERS], 1700000005)
+    conn.close()
+    return db_path
+
+
+class TestRatio:
+    def test_each_entry_carries_ratio_of_target_commits(self, ratio_db: Path) -> None:
+        from codemem.mcp_tools import co_changes
+
+        result = co_changes(ratio_db, "T.md", threshold=1)
+        by_path = {f["path"]: f for f in result["files"]}
+        # 5 target commits: P in 4 of them, Q in 2.
+        assert by_path["P.md"]["ratio"] == 0.8
+        assert by_path["Q.md"]["ratio"] == 0.4
+
+    def test_ratio_is_rounded_to_three_places(self, populated_db: Path) -> None:
+        from codemem.mcp_tools import co_changes
+
+        y = next(
+            f for f in co_changes(populated_db, "X.md")["files"] if f["path"] == "Y.md"
+        )
+        assert y["ratio"] == 0.429  # 3 of X's 7 commits
+
+    def test_min_ratio_boundary_is_inclusive(self, ratio_db: Path) -> None:
+        from codemem.mcp_tools import co_changes
+
+        paths = [
+            f["path"]
+            for f in co_changes(ratio_db, "T.md", threshold=1, min_ratio=0.8)["files"]
+        ]
+        assert "P.md" in paths  # exactly 0.8: >= keeps it
+        assert "Q.md" not in paths
+
+    def test_min_ratio_just_above_excludes(self, ratio_db: Path) -> None:
+        from codemem.mcp_tools import co_changes
+
+        result = co_changes(ratio_db, "T.md", threshold=1, min_ratio=0.81)
+        assert "P.md" not in [f["path"] for f in result["files"]]
+
+    def test_default_min_ratio_keeps_everything(self, ratio_db: Path) -> None:
+        from codemem.mcp_tools import co_changes
+
+        paths = {f["path"] for f in co_changes(ratio_db, "T.md", threshold=1)["files"]}
+        assert {"P.md", "Q.md", *_FILLERS} <= paths
+
+
+class TestMaxCommitFiles:
+    def test_sweep_commit_contributes_nothing_at_n(self, ratio_db: Path) -> None:
+        from codemem.mcp_tools import co_changes
+
+        result = co_changes(ratio_db, "T.md", threshold=1, max_commit_files=10)
+        by_path = {f["path"]: f for f in result["files"]}
+        assert not set(_FILLERS) & set(by_path)
+        assert by_path["P.md"]["count"] == 3
+        # The sweep leaves the denominator too: 3 of T's 4 small commits.
+        assert by_path["P.md"]["ratio"] == 0.75
+
+    def test_sweep_commit_counts_with_no_filter(self, ratio_db: Path) -> None:
+        from codemem.mcp_tools import co_changes
+
+        result = co_changes(ratio_db, "T.md", threshold=1, max_commit_files=None)
+        by_path = {f["path"]: f for f in result["files"]}
+        assert set(_FILLERS) <= set(by_path)
+        assert by_path["P.md"]["count"] == 4
+
+    def test_commit_of_exactly_n_files_is_kept(self, ratio_db: Path) -> None:
+        from codemem.mcp_tools import co_changes
+
+        kept = co_changes(ratio_db, "T.md", threshold=1, max_commit_files=12)
+        dropped = co_changes(ratio_db, "T.md", threshold=1, max_commit_files=11)
+        assert "f0.md" in [f["path"] for f in kept["files"]]
+        assert "f0.md" not in [f["path"] for f in dropped["files"]]
+
+    def test_default_matches_no_filter(self, ratio_db: Path) -> None:
+        """The default stays unfiltered, so the MCP tool's behaviour is unchanged."""
+        from codemem.mcp_tools import co_changes
+
+        assert co_changes(ratio_db, "T.md", threshold=1) == co_changes(
+            ratio_db, "T.md", threshold=1, max_commit_files=None
+        )
+
+    def test_module_constant_is_ten(self) -> None:
+        from codemem.mcp_tools import CO_CHANGE_MAX_COMMIT_FILES
+
+        assert CO_CHANGE_MAX_COMMIT_FILES == 10

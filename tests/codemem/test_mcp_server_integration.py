@@ -1,6 +1,6 @@
 """Integration tests for the FastMCP server — M3.5 Task 3.5.2.
 
-Unit tests in ``test_mcp_server.py`` verify that the 13 canonical tools
+Unit tests in ``test_mcp_server.py`` verify that the 14 canonical tools
 (plus aliases) are *registered* on ``build_server()``. This module
 verifies they are *callable end-to-end* — i.e. an MCP client looking up
 each tool via ``server.get_tool(name)`` and invoking ``tool.run(args)``
@@ -181,6 +181,7 @@ _TOOL_CASES: list[tuple[str, dict[str, Any]]] = [
     # M1 — ported from /index
     ("who_calls", {"name": "bar"}),
     ("blast_radius", {"name": "foo"}),
+    ("callees", {"name": "foo"}),
     ("dead_code", {}),
     ("dependency_chain", {"source": "foo", "target": "bar"}),
     ("search_symbols", {"query": "foo"}),

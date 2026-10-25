@@ -27,6 +27,10 @@
 # 5. aa_ma.analysis is a leaf both ways (codebase-analysis-skills M1): nothing in aa_ma imports it,
 #    and it imports no other aa_ma module (stdlib + pydantic only). Both lists are explicit and
 #    pinned by tests/render/test_leaf_contract.py.
+#
+# 6. aa_ma.gitutil imports no other aa_ma module (code-conventions-impact 10.4): it is the
+#    stdlib-only twin of codemem.gitutil, so either can be read without the rest of its package.
+#    Pinned by tests/render/test_leaf_contract.py.
 
 [importlinter]
 root_packages =
@@ -67,6 +71,7 @@ source_modules =
     aa_ma.enforce
     aa_ma.forks
     aa_ma.gate
+    aa_ma.gitutil
     aa_ma.goal_synthesis
     aa_ma.grammar
     aa_ma.logsetup
@@ -95,6 +100,7 @@ source_modules =
     aa_ma.enforce
     aa_ma.forks
     aa_ma.gate
+    aa_ma.gitutil
     aa_ma.goal_synthesis
     aa_ma.grammar
     aa_ma.logsetup
@@ -113,6 +119,29 @@ type = forbidden
 source_modules =
     aa_ma.analysis
 forbidden_modules =
+    aa_ma.cli
+    aa_ma.deps
+    aa_ma.enforce
+    aa_ma.forks
+    aa_ma.gate
+    aa_ma.gitutil
+    aa_ma.goal_synthesis
+    aa_ma.grammar
+    aa_ma.logsetup
+    aa_ma.plan_markers
+    aa_ma.plan_parsers
+    aa_ma.render
+    aa_ma.schemas
+    aa_ma.tui
+    aa_ma.validators
+
+[importlinter:contract:gitutil-is-self-contained]
+name = gitutil-is-self-contained: aa_ma.gitutil imports no other aa_ma module
+type = forbidden
+source_modules =
+    aa_ma.gitutil
+forbidden_modules =
+    aa_ma.analysis
     aa_ma.cli
     aa_ma.deps
     aa_ma.enforce

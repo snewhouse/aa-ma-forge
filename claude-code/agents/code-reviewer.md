@@ -22,6 +22,7 @@ The orchestrator's invocation prompt will provide:
 - The milestone's `Required Artefacts` list (verbatim from tasks.md)
 - The milestone's `Audit-Profile` (so you know if scope is full / code-only / infra)
 - Path to the active task's reference.md (immutable facts) — read for context
+- `<unpredicted-files>` — changed files that neither the milestone's Contract nor their codemem co-change partners predicted (§6.3 predicted-vs-actual), or `none`
 
 ## Mandatory pattern checks (each ALWAYS evaluated)
 
@@ -73,6 +74,19 @@ Any added commented-out code blocks (>= 3 lines of `# ` prefix):
 For numeric literals > 1 in the added lines (excluding 0, 1, common offsets) that are not
 bound to a named constant: WARNING at any count — extract to a named constant with its unit
 and rationale. One unexplained `540` is as opaque as three.
+
+## Unpredicted files from §6.3 (R6)
+
+Evaluated whenever the list is not `none`, in every budget mode (it is diff-local).
+§6.3 lists the changed files the plan did not predict but does not judge them: you do.
+For each path in `<unpredicted-files>`, read its change (`git diff <base>..<head> -- <path>`, or
+the working-tree diff if uncommitted) and decide which it is:
+- **Missed impact** — a caller, test or config the change forced: fine, but INFO
+  `unpredicted: <path> — needed because <reason>` so the Contract can be corrected next time.
+- **Scope creep** — a change the milestone did not need: WARNING
+  `scope creep: <path> — <what changed>, not required by <milestone>`; CRITICAL when it alters
+  behaviour other code relies on (cite file:line, impact and fix as usual).
+Say `unpredicted: none` when the list is `none`.
 
 ## KISS / SOLID / SOC / DRY (subjective, evidence-required)
 

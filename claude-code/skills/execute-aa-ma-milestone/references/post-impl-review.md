@@ -54,7 +54,9 @@ fi
    tasks.md block, OR fall back to `git rev-parse HEAD~N` heuristic if commit
    markers are missing.
 3. Invoke the `verify-impl` skill: `Skill(verify-impl)` with parameters
-   `--task <task-name> --milestone <milestone-id>`. The skill orchestrator
+   `--task <task-name> --milestone <milestone-id>`. Its Step 1 re-runs §6.3's
+   `predicted-vs-actual.sh` and passes the `UNPREDICTED` list to `code-reviewer`
+   as `<unpredicted-files>` (R6). The skill orchestrator
    handles per-Audit-Profile agent dispatch (full/code-only/docs-only/infra/
    custom) per the matrix in `claude-code/skills/verify-impl/SKILL.md`. The
    5 audit agents are:

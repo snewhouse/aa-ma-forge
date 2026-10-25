@@ -968,7 +968,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-25 (HITL, Ste). prototype/impact-hook @ 576cd693 (throwaway hook + notes + scrubbed real Edit payload). 4 files: grammar.py 6 callers + 6 tests (useful); mermaid_lint.py 2 + 7 tests, co-changes noise; session-start.sh / impact-analysis SKILL.md no callers (need 10.3 plugin edges). p95 72–77 ms / 20 runs (forge .venv python direct; budget 1.5 s). A1 confirmed live (additionalContext delivered). Verdict-changes-plan: YES — co_changes max_commit_files, N=10 (measured: noise = 12–19-file sweep commits; N=20 filtered none, corrected with Ste); 10.6 adds real Edit/Write payload fixtures. PROTOTYPE line in provenance.
 
 ### Sub-step 10.2: codemem callees, alias, defect-1 fix, min_ratio, file_impact, CLI (TDD)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 10.1
 - Acceptance Criteria:
@@ -977,7 +977,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `git_mining.py:207-210` adds rename detection (`--name-status -M`, old→new mapping); partners absent at HEAD filtered.
   - 14 MCP tools: `tests/codemem/test_mcp_server.py` (`test_thirteen_exact`) and counts in SECURITY.md, claude-code/codemem/README.md:63, claude-code/codemem/commands/codemem.md:57, packages/codemem-mcp/README.md, packages/codemem-mcp/pyproject.toml, docs/codemem/install-zero-config.md updated; `blast_radius` → `callees` wording in skills/impact-analysis/SKILL.md:227-232 and skills/system-mapping/SKILL.md:140.
   - `test_callees.py`, `test_co_changes.py` (+min_ratio), `test_aa_ma_context.py` (asserts the count, not just keys), `test_file_impact.py` pass (test_co_changes covers max_commit_files: a 12-file sweep commit drops its partners at N=10, kept at None); after the M3 renames, `co_changes claude-code/skills/execute-aa-ma-milestone/SKILL.md` returns its pre-move partners.
-- Result Log:
+- Result Log: COMPLETE 2026-10-25 (Mode: AFK — auto-dispatched to a general-purpose agent; diff, tests and live checks verified by the orchestrator). RED 8b4b91cb (40 failing; defect 1 asserted: count 0 → 1) → GREEN c5ec9ffc. callees() + blast_radius alias (downstream + deprecated, TODO(ADR-0026)); aa_ma_context reads callees() (defect 1 fixed); co_changes min_ratio / max_commit_files / ratio + target_commits; CO_CHANGE_MAX_COMMIT_FILES=10; file_impact (not an MCP tool); server registers callees → 14 MCP tools; CLI `query callees`, multi-path `co_changes --threshold --min-ratio` (one path = old shape; several = object keyed by path), `codemem impact --format brief|json`; git_mining rename + delete mapping. Counts: 14 tools in 6 docs + test; 11 query tools in docs/codemem/migration-from-index.md (forced by test_query_tool_counts_in_docs_match_the_cli). Tests: test_callees, test_file_impact (new); test_co_changes, test_aa_ma_context, test_git_mining, test_install_and_cli, test_mcp_server(+_integration) extended. pytest 3218/2/7, bats 793/0. Rename AC live: proven at refresh limit 2000 (38 = git --follow; pre-move partners); at the default 500 the M3 rename is out of window (known limit).
 
 ### Sub-step 10.3: Plugin-surface edges into the index (TDD)
 - Status: PENDING

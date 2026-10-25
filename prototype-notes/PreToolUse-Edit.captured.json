@@ -1,0 +1,20 @@
+{
+  "session_id": "00000000-0000-4000-8000-000000000001",
+  "transcript_path": "/home/capture/.claude/projects/x/transcript.jsonl",
+  "cwd": "/home/capture/forge",
+  "scratchpad_dir": "/tmp/claude-1000/-home-sjnewhouse-projects-github-private-aa-ma-forge/fec3d71d-7b5f-4fb2-a58d-0db9c6d90c62/scratchpad",
+  "prompt_id": "00000000-0000-4000-8000-000000000002",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/home/capture/forge/src/aa_ma/grammar.py",
+    "old_string": "Single source of truth for \"what is a milestone/step heading\", shared by the",
+    "new_string": "Single source of truth for \"what is a milestone/step heading\" (A1 probe), shared by the",
+    "replace_all": false
+  },
+  "tool_use_id": "toolu_01"
+}

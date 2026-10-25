@@ -678,3 +678,9 @@ DECISION ruff-only () — approved by Ste
 ## [2026-10-25] M16 merged to main (PR #65) — post-merge record (L-037)
 - PR #65 rebase-merged 2026-10-23 at 38a5f179 via sdm.sh (STATUS OK); 29 branch SHAs rewritten — SHA MAP line in provenance (2026-10-23T16:07). Format PRs #63 (8ce73388), #64 (45d08ba0).
 - PR #65 MEDIUM/LOW notes → one P3 TODOS entry ("PR #65 review notes").
+
+## [2026-10-25] 10.1 PROTOTYPE verdict — impact pre-edit hook (verdict-changes-plan: YES)
+- Evidence: prototype/impact-hook @ 576cd693 (`prototype-notes/impact-hook-10.1.md`). p95 72–77 ms; A1 live; callers carry the signal; co-changes noisy; skills/hooks blank until 10.3.
+- Decision (Ste): add a large-commit filter to `co_changes` — `max_commit_files`, used by the hook and `file_impact` at `CO_CHANGE_MAX_COMMIT_FILES = 10`; the MCP tool default stays unfiltered. First proposed N=20; measured before writing the delta: the noise came from 12–19-file sweep commits (format, lint pay-down, Ruff-S swap), so N=20 filtered none — Ste chose N=10 (rejected: 1/size weighting, a new scoring rule to design).
+- Angle-3 check on the delta (R3): callers of `mcp_tools.co_changes` are `codemem/cli.py:287` and `claude-code/codemem/mcp/server.py:181`; the new keyword-only arg defaults to None (no filter), so neither changes behaviour. `aa_ma.analysis.measure._co_changes` is a separate function (unaffected). No per-commit file cap exists in git_mining (max seen 37 files/commit), so the filter sees true commit sizes. Risk: a real coupling inside an 11+-file commit is hidden from the hook — accepted (callers still shown; `Skill(impact-analysis)` uses the unfiltered tool).
+- Also: no captured PreToolUse Edit/Write fixture existed — 10.6 adds them from live captures.

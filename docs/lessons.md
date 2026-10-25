@@ -5,6 +5,10 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-070 (2026-10-25) — `mkdir` is not a lock on Ubuntu 26.04 (uutils coreutils)
+**Pattern:** the 10.6 pre-edit hook used `mkdir <marker>` as test-and-set for "once per file per session" (as the plan specified). Its concurrency bats failed: uutils coreutils mkdir 0.10.0 (`/usr/bin/mkdir` on Ubuntu 26.04) let two racing `mkdir`s of one path both succeed in 119/300 runs; GNU mkdir 9.7 (`gnumkdir`) 0/300. `mkdir -p` succeeding for both is by design.
+**Rule:** never use the `mkdir` command as a lock or claim in shell. Use bash `( set -C; : > "$marker" ) 2>/dev/null` (O_CREAT|O_EXCL in the shell itself), or `flock`. When a plan names `mkdir` as test-and-set, flag it. Concurrency tests must race ≥4 invocations many times, not once.
+
 ## L-069 (2026-10-25) — `uv lock` with a newer local uv rewrote the lock header CI cannot pin to
 **Pattern:** for the filelock CVE fix (PR #67) I ran `uv lock --upgrade-package filelock` with local uv 0.13.5. The diff also bumped `uv.lock`'s `revision = 3` → `5`, while CI pins uv 0.12.3 and runs `uv sync --locked`. I caught it reading the diff, and re-locked with `uvx --from 'uv==0.12.3' uv lock --upgrade-package filelock` (3-line diff).
 **Rule:** lock with the uv version CI pins (`grep -n "version:" .github/workflows/*.yml` next to `setup-uv`): `uvx --from 'uv==<pin>' uv lock …`, then `uvx --from 'uv==<pin>' uv sync --locked`. Any change to the lock header lines means the wrong uv.

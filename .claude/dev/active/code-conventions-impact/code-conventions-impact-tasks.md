@@ -1009,7 +1009,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-25 (Mode: AFK — auto-dispatched; orchestrator-verified). RED d5fcf0a6 → GREEN fd30f9e3. `CRITICAL_PATH_GLOBS` (fnmatchcase; `*` crosses `/`, so `**` ≡ `*` — commented) incl. the plan list + `scripts/lib/aa-ma-install-lib.sh` (holds AA_MA_HOOKS; agent decision); `derive_critical_paths`. tests/codemem/test_critical_path_globs.py: real files match (src/aa_ma/impact.py allowed missing until M11 via NOT_YET_CREATED); globs ⇔ engineering-standards table with the extras pinned as PLAN_EXTENSIONS. OPEN (Ste): the shipped doctrine table's hook-modification row does not list the extras (impact.py, gitutil.py, .gitleaksignore, .pre-commit-config.yaml, check_conventions.py, install.sh, uninstall.sh, aa-ma-install-lib.sh, dependabot.yml) and version-pipeline names no paths. pytest 3344/2/7.
 
 ### Sub-step 10.6: Pre-edit hook + install (TDD)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 10.5
 - Acceptance Criteria:
@@ -1020,7 +1020,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `tests/hooks/aa-ma-impact-preedit.bats` passes: real captured Edit/Write payloads (new `tests/fixtures/hook-payloads/PreToolUse-Edit.json` / `-Write.json` from live captures — none existed; 10.1 captured Edit on prototype/impact-hook); NotebookEdit + out-of-repo path → exit 0, empty stdout; codemem absent from PATH → one notice; once-per-file; no-index notice once; silent at 0; injection-named symbol sanitized; file_path with spaces and `$(touch x)` executes nothing; two concurrent invocations print once.
   - Fake-`CLAUDE_HOME` install shows exactly one impact-preedit registration; the live install is deferred to Sub-step 11.0.
   - codemem is resolved by the shipped `aa_ma_codemem_bin <forge>`: `CODEMEM_BIN` → forge `.venv/bin/codemem` (the forge is the live worktree, ADR-0025; the former plugin-link step was the same binary — validator W3) → absolute PATH; never from the edited repo.
-- Result Log:
+- Result Log: COMPLETE 2026-10-25 (HITL: Ste approved after outputs + read-through). RED 47f75c94 → GREEN b98d9ad2 (+2e8357ab docs hooks 9→10, 462969a9 view, 8e1ea2c1 orphan set, 364bea3d → 8cd260aa Unicode-category sanitizer after the automated security review). `aa-ma-impact-preedit.sh`: Edit|Write only; one `codemem impact --format brief --repo-root <top> -- <rel>` under `timeout -k 1 2`; header `codemem data (untrusted): impact of …` + ≤3 sanitized lines + Skill(impact-analysis) pointer; silent when no callers/co-changes; once per file per session via `set -C` marker (deviation from mkdir: uutils mkdir is not atomic — measured); one no-index / timeout notice per session; sid regex; index via aa_ma_codemem_dir, bin via aa_ma_codemem_bin; exit 0 always. SessionEnd removes impact-seen-<valid sid>. AA_MA_HOOKS row `PreToolUse|Edit|Write|aa-ma-impact-preedit.sh|5|`; fake-HOME install 1 registration / 0 after uninstall. Fixtures PreToolUse-Edit.json / -Write.json (live captures, scrubbed). `sanitize_context_line` drops Cc/Cf/Co/Cs/Zl/Zp. p95 133–160 ms. pytest 3383/2/7, bats 811/0. Live A1 of the shipped hook at 11.0. §6.6 nits: "(of 1 commits)"; marker set before the index check.
 
 ### Sub-step 10.7: §6.3 / §6.8 / Angle-3 / writers wiring + ad-hoc advisory
 - Status: PENDING

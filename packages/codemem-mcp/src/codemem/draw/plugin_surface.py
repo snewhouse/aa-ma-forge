@@ -65,6 +65,8 @@ _HOOK_ROW = re.compile(r'"([A-Za-z]+)\|([^"]*?)\|([A-Za-z0-9_.-]+\.sh)\|')
 
 
 class NodeKind(StrEnum):
+    """Kind of a plugin-surface node; node ids are ``"<kind>:<stem>"``."""
+
     COMMAND = "command"
     SKILL = "skill"
     AGENT = "agent"
@@ -73,6 +75,8 @@ class NodeKind(StrEnum):
 
 
 class RefClass(StrEnum):
+    """Three-valued reference class (engineering-standards §1); only DANGLING is a defect."""
+
     ON_DISK = "ON_DISK"
     DECLARED_EXTERNAL = "DECLARED_EXTERNAL"
     DANGLING = "DANGLING"
@@ -80,6 +84,8 @@ class RefClass(StrEnum):
 
 @dataclass(frozen=True, order=True)
 class SurfaceEdge:
+    """One classified reference from a plugin-surface node to another."""
+
     src: str  # "<kind>:<stem>"
     dst: str
     kind: NodeKind  # the DESTINATION's kind
@@ -88,6 +94,8 @@ class SurfaceEdge:
 
 @dataclass(frozen=True)
 class Surface:
+    """Result of :func:`extract`: the drawable cut plus every classified edge."""
+
     cut: Cut  # DANGLING edges are not drawn; orphans are, as isolated nodes
     edges: list[SurfaceEdge]  # every classified reference, sorted
     orphans: list[
@@ -98,6 +106,7 @@ class Surface:
 
 
 def extract(repo_root: Path) -> Surface:
+    """Walk ``claude-code/`` under *repo_root* and classify every plugin reference."""
     cc = repo_root / "claude-code"
     errors: list[str] = [] if cc.is_dir() else ["claude-code/: not found"]
     walked = [f for top in _DIRS for f in sorted((cc / top).rglob("*"))]

@@ -148,17 +148,18 @@ Each is a skill under `claude-code/skills/<name>/` (ADR-0020), counted in Skills
 | `aa-ma.md` | Operational rules governing sync discipline, commit signatures, task modes, gate classification |
 | `engineering-standards.md` | 6-theme engineering doctrine (Verification & Truth, Development Principles, Reasoning & Planning, Safety & Continuity, Execution Checklist, Sync & Commit Discipline) — auto-loaded; defines `Critical-Path:` canonical enum |
 
-### Hooks (9)
+### Hooks (10)
 
 | Hook | Purpose |
 |------|---------|
 | `pre-compact-aa-ma.sh` | Snapshots AA-MA state before auto-compaction and writes compaction entries to task provenance.log and context-log.md |
 | `aa-ma-session-start.sh` | Auto-detects active AA-MA tasks on session start and emits hidden context (task name, milestone, step) |
-| `aa-ma-session-end-dirty.sh` | SessionEnd — warns when the session ends with uncommitted changes while an AA-MA plan is active |
+| `aa-ma-session-end-dirty.sh` | SessionEnd — warns when the session ends with uncommitted changes while an AA-MA plan is active; also removes the session's `impact-seen-<session_id>` markers (valid ids only) |
 | `aa-ma-commit-signature.sh` | PreToolUse(Bash) — when an AA-MA plan is active, requires every `git commit` to carry the `[AA-MA Plan] {task} .claude/dev/active/{task}` footer (or an `[ad-hoc]` bypass marker); **BLOCKING** |
 | `aa-ma-commit-drift.sh` | post-commit — advisory; flags commits that land without touching any `tasks.md`/`provenance.log` in an active task dir (`[no-sync-check]` overrides). Always exits 0 |
 | `aa-ma-plan-skip-warn.sh` | PreToolUse(ExitPlanMode) + SessionEnd — advisory; checks the `/aa-ma-plan` runtime log for skipped phase markers. Never blocks |
 | `ruff-format.sh` | PostToolUse(Edit\|Write) — advisory; runs `ruff check --fix` + `ruff format` on an edited `.py`, then returns what `ruff check` still finds as `additionalContext` (≤10 lines); logs a format failure to `$CLAUDE_HOOK_LOG` (default `~/.claude/logs/hooks.log`). ruff comes only from the forge `.venv` or an absolute `PATH` entry, never the edited repo; if none is found, one `systemMessage` per session. Always exits 0 (adopted — ADR-0019) |
+| `aa-ma-impact-preedit.sh` | PreToolUse(Edit\|Write) — advisory; once per file per session, returns up to 5 lines of `codemem impact --format brief` (callers, plugin callers, tests, co-changes) as `additionalContext`, marked untrusted and pointing to `Skill(impact-analysis)`. codemem only from the forge, index only from the XDG cache, 2 s timeout; no index/codemem or a timeout → one `systemMessage` per session. Markers in `~/.claude/runtime/impact-seen-<session_id>/`, removed at SessionEnd. Always exits 0 |
 | `aa-ma-plan-marker.sh` | Library helper invoked by the `/aa-ma-plan` workflow to append phase markers to `~/.claude/runtime/aa-ma-plan-<slug>.log` (not a standalone event hook) |
 
 Two further `hooks/lib/` helpers are symlinked by `install.sh` but are not event hooks and not counted above: `aa-ma-parse.sh` (sourced by every hook; launches `aa-ma-gate`, the advisory `aa_ma_deps`, and `aa_ma_lint_views` for the §6.7 diagram item) and `aa-ma-chart-guard.sh` (charting checks `fog | claim | reclaim | from-map | import`, invoked from `/aa-ma-chart` and `/aa-ma-plan --from-map`).

@@ -14,7 +14,8 @@ Minimal argparse dispatcher composing the M1 modules:
 * ``codemem replay``          — rebuild SQLite from the WAL JSONL journal
 * ``codemem query``           — calls one of 11 MCP tools via stdlib JSON
 * ``codemem impact``          — who depends on a file and what changes with
-                                  it (:func:`codemem.mcp_tools.file_impact`)
+                                  it (:func:`codemem.mcp_tools.file_impact`);
+                                  feeds the PreToolUse impact hook
 * ``codemem intel``           — writes PROJECT_INTEL.json via the PageRank
                                   projection
 
@@ -334,6 +335,8 @@ def _query_co_changes(args: argparse.Namespace, db_path: Path) -> int:
 
 
 _BRIEF_TOP = 3  # entries named per line of `codemem impact --format brief`
+# Characters per brief line: room for three repo paths, short enough for hook context.
+_BRIEF_LINE_MAX = 200
 
 
 def _names(items: list[dict], key: str) -> str:
@@ -343,9 +346,32 @@ def _names(items: list[dict], key: str) -> str:
     return (", ".join(seen[:_BRIEF_TOP]) + more) if seen else "-"
 
 
+def _is_plugin_node(caller_file: str) -> bool:
+    """Whether a ``file_impact`` caller is a plugin node id (``<kind>:<stem>``), not a file."""
+    from .draw.plugin_surface import NodeKind
+
+    kind, sep, _ = caller_file.partition(":")
+    return bool(sep) and "/" not in caller_file and kind in {k.value for k in NodeKind}
+
+
+def _count(n: int, noun: str) -> str:
+    """``1 file`` / ``2 files``."""
+    return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
+
+
 def _impact_brief(r: dict) -> str:
-    """At most five plain lines summarising a :func:`file_impact` result."""
-    ext_files = {c["file"] for c in r["external_callers"]}
+    """At most four lines summarising a :func:`file_impact` result; ``""`` when it is empty.
+
+    Empty means no callers of any kind and no co-changes. Every line passes
+    :func:`sanitize_context_line`: paths and node ids come from the index, and
+    the PreToolUse impact hook hands these lines to the model.
+    """
+    from .mcp_tools.sanitizers import sanitize_context_line
+
+    if not (r["external_callers"] or r["test_callers"] or r["co_changes"]):
+        return ""
+    ext = {c["file"] for c in r["external_callers"]}
+    plugin = {f for f in ext if _is_plugin_node(f)}
     test_files = {c["file"] for c in r["test_callers"]}
     co = ", ".join(
         f"{c['path']} {c['count']}x ({c['ratio']:.0%})"
@@ -353,16 +379,17 @@ def _impact_brief(r: dict) -> str:
     )
     lines = [
         f"impact: {r['file']}",
-        f"callers: {len(ext_files)} files + {len(test_files)} test files",
+        f"callers: {_count(len(ext - plugin), 'file')} + "
+        f"{_count(len(plugin), 'plugin node')} + {_count(len(test_files), 'test file')}; "
         f"top: {_names(r['external_callers'], 'file')}",
         f"tests: {_names(r['test_callers'], 'file')}",
         f"co-changed (of {r['target_commits']} commits): {co or '-'}",
     ]
-    return "\n".join(lines)
+    return "\n".join(sanitize_context_line(ln, _BRIEF_LINE_MAX) for ln in lines)
 
 
 def _cmd_impact(args: argparse.Namespace) -> int:
-    """Print :func:`codemem.mcp_tools.file_impact` as five lines or as JSON."""
+    """Print :func:`codemem.mcp_tools.file_impact` as four lines (or nothing) or as JSON."""
     from . import mcp_tools
 
     result = mcp_tools.file_impact(_db_path(args), args.path, budget=args.budget)
@@ -374,7 +401,9 @@ def _cmd_impact(args: argparse.Namespace) -> int:
     if args.format == "json":
         print(json.dumps(result, indent=2, default=str))
     else:
-        print(_impact_brief(result))
+        brief = _impact_brief(result)
+        if brief:
+            print(brief)
     return 0
 
 
@@ -570,16 +599,24 @@ def build_parser() -> argparse.ArgumentParser:
     pim = sub.add_parser(
         "impact",
         help="Who depends on a file and what changes with it",
-        description="External and test callers of the symbols in PATH, and the "
-        "files that change with it (commits touching more than "
-        "CO_CHANGE_MAX_COMMIT_FILES files are ignored).",
+        description="External, plugin and test callers of the symbols in PATH, "
+        "and the files that change with it (commits touching more than "
+        "CO_CHANGE_MAX_COMMIT_FILES files are ignored). brief prints nothing "
+        "(exit 0) when PATH has no callers and no co-changes.",
+        epilog="Put PATH after `--` when it may start with '-': "
+        "codemem impact --repo-root DIR -- PATH",
     )
     pim.add_argument("path", help="Repo-relative file path")
+    pim.add_argument(
+        "--repo-root",
+        help="Repo whose default index to read (default: cwd); --db/CODEMEM_DB win",
+    )
     pim.add_argument(
         "--format",
         choices=("brief", "json"),
         default="brief",
-        help="brief: five plain lines (default); json: the file_impact dict",
+        help="brief: four one-line summaries, or nothing when empty (default); "
+        "json: the file_impact dict",
     )
     pim.add_argument("--budget", type=int, default=2000)
 

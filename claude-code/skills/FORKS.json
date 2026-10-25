@@ -26,9 +26,9 @@
     "upstream_sha": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
     "forked_at": "2026-09-21",
     "adr": "docs/adr/0003-prototype-adoption.md",
-    "state": "current",
+    "state": "derived",
     "files": {
-      "SKILL.md": "5c68a2867eb3b9b4cb3e9ad4ba2b5299",
+      "SKILL.md": "67e5fdc78ef20e1b3dae99c70463714d",
       "LOGIC.md": "0c6daa140ef3e83ba9e6b5bfa5161408",
       "UI.md": "e3c841746676a0e604c72b5cd459e7ba"
     },

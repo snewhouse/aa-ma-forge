@@ -99,7 +99,7 @@ When you find a bug:
 
 1. **Trace the data flow** - Where does bad value originate? Where used?
 2. **Map all checkpoints** - List every point data passes through
-3. **Parse at the boundary, assert inside** - one validating parse where data enters; cheap asserts, guards and debug logging further in
+3. **Parse at the boundary, assert inside** - one validating parse where data enters; cheap asserts, guards and debug logging further in. Before adding them to existing code, run `Skill(impact-analysis)` on it: a new guard changes what its callers may pass
 4. **Test each layer** - Try to bypass layer 1, verify layer 2 catches it
 
 ## Example from Session

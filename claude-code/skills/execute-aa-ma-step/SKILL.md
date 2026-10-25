@@ -177,7 +177,7 @@ These principles apply DURING execution. Each has a trigger and skip condition.
 - Execute all sub-tasks (### nodes) within the target task
 
 **Impact awareness** (lightweight, no blocking):
-- Consider upstream callers before modifying existing code
+- **Before editing existing code**, run `Skill(impact-analysis)` on it (callers, contracts, tests)
 - Be aware of contract changes (function signatures, return types)
 - Full impact analysis verification runs at **milestone boundary** (not step level)
 - If editing shared/core modules, note potential impacts in Result Log

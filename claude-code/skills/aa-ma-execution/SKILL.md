@@ -174,6 +174,7 @@ Parse `[task-name]-tasks.md` to find the current ACTIVE task:
 **REQUIRED at milestone boundaries** (integrated into validation):
 
 - Use the `impact-analysis` skill at milestone completion
+- Before editing existing code in any step, run `Skill(impact-analysis)` on it (pre-edit, not only at the boundary)
 - Output consolidated impact analysis for all modified files
 - Verify no unresolved HIGH risk impacts before marking milestone COMPLETE
 

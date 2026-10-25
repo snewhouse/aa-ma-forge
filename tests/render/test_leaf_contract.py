@@ -47,3 +47,11 @@ def test_analysis_imports_no_other_aa_ma_module() -> None:
     assert _contract_list(
         "analysis-is-self-contained", "forbidden_modules"
     ) == _all_but("aa_ma.analysis")
+
+
+def test_gitutil_imports_no_other_aa_ma_module() -> None:
+    """code-conventions-impact 10.4: aa_ma.gitutil is a leaf (stdlib only), like its codemem twin."""
+    assert _contract_list("gitutil-is-self-contained") == {"aa_ma.gitutil"}
+    assert _contract_list("gitutil-is-self-contained", "forbidden_modules") == _all_but(
+        "aa_ma.gitutil"
+    )

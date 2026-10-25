@@ -28,6 +28,7 @@ Three trigger paths:
 - `<milestone-id>` — `M1` / `M2` / ... — matches the heading in `tasks.md`
 - Computed: `<milestone-base-sha>` and `<milestone-head-sha>` — commits at milestone boundaries
 - Computed: `<audit-profile>` — read from the milestone block in `tasks.md`
+- Computed: `<unpredicted-files>` — the `UNPREDICTED <path>` lines of §6.3's predicted-vs-actual (changed files neither the Contract nor its co-change partners predicted); handed to `code-reviewer` so §6.3 does not grade its own misses (R6)
 
 ## Audit-Profile dispatch matrix
 
@@ -94,6 +95,17 @@ MILESTONE_BASE_SHA=$(git log --format=%H --grep="^M$((N-1)) COMPLETE\|^Milestone
                             -1 -- "$TASK_DIR/$TASK_NAME-tasks.md" 2>/dev/null \
                        || git rev-parse HEAD~10)
 MILESTONE_HEAD_SHA=$(git rev-parse HEAD)
+
+# Unpredicted files: the script §6.3 ran (it reads the ACTIVE milestone, which this one
+# still is before §7), re-run so the reviewer gets its list unedited. Advisory (M10): a
+# failure is one WARN and an empty list, never an abort.
+PVA="${CLAUDE_HOME:-${HOME}/.claude}/skills/execute-aa-ma-milestone/scripts/predicted-vs-actual.sh"
+if PVA_OUT=$(bash "$PVA" "$TASK_NAME"); then
+  UNPREDICTED_FILES=$(printf '%s\n' "$PVA_OUT" | sed -n 's/^UNPREDICTED //p')
+else
+  UNPREDICTED_FILES=""
+  echo "WARN: predicted-vs-actual did not run (rc $?); code-reviewer gets no unpredicted-file list"
+fi
 ```
 
 ### Step 2: Budget check
@@ -123,6 +135,7 @@ For each agent in the profile's slate, build a prompt with:
 - Path to reference.md, provenance.log
 - The milestone's `Required Artefacts` list
 - `AA_MA_AUDIT_BUDGET` mode
+- For `code-reviewer` only: `<unpredicted-files>` — `$UNPREDICTED_FILES`, one path per line, or `none`
 
 **Parallel dispatch (DISPATCH_MODE=parallel):**
 

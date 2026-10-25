@@ -155,7 +155,7 @@ e.g. `Next: Milestone 3 — Dependencies: Milestone 2` (canonical form).
 
 ### 6.3 Impact Analysis Verification (REQUIRED)
 
-See [boundary-checks.md](references/boundary-checks.md#63-impact-analysis-verification-required) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
+See [boundary-checks.md](references/boundary-checks.md#63-impact-analysis-verification-required) — the index pre-check, `scripts/predicted-vs-actual.sh` (one `UNPREDICTED <path>` per changed file the Contract and its co-change partners did not predict; the list goes to §6.8's code-reviewer, never self-graded) and `Skill(impact-analysis)`.
 
 ### 6.4 Test Execution (if specified)
 

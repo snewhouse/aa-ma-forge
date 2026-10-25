@@ -72,6 +72,29 @@ Before invoking the full impact-analysis skill, run a quick pre-check using the 
 - This pre-check is **advisory only** — never blocks, just surfaces risk earlier
 - Skip silently if no index is available
 
+**Predicted vs actual (advisory in M10; M11's gate-computed `IMPACT_VERIFIED` enforces it):**
+which changed files did the plan not predict?
+
+```bash
+# The installed copy only, as in §6.0.
+PVA="${CLAUDE_HOME:-${HOME}/.claude}/skills/execute-aa-ma-milestone/scripts/predicted-vs-actual.sh"
+if [[ -f "${PVA}" ]]; then bash "${PVA}" "${TASK_NAME:-}"; else echo "WARN: ${PVA} not found — run scripts/install.sh."; fi
+```
+
+- **Changed:** `git diff --name-only $(git merge-base origin/<default> HEAD)..HEAD` ∪ staged ∪
+  unstaged ∪ untracked-not-ignored, minus AA-MA artefacts and generated files (`.claude/dev/**`,
+  `docs/architecture/**`, `tests/golden/**`, `uv.lock`, `CHANGELOG.md`).
+- **Predicted:** this milestone's Contract paths — every row verb (`Create`, `Modify`, `Test`, …),
+  nothing exempt, a directory row covers what is under it
+  (`aa_ma.render.coverage.milestone_contract_paths`, not `contract_paths`, which drops
+  `tests/`/`docs/` and `Test` rows and would read every test as unpredicted) — plus their
+  codemem `co_changes` partners at the T7 constants (≥5 shared commits, ≥50% ratio).
+- It prints one `UNPREDICTED <path>` line per changed, unpredicted file and a summary line.
+  **Do not grade them here** (R6): §6.8 hands the list to the `code-reviewer` (verify-impl
+  re-runs this script), which judges each one as missed impact or scope creep. Name the count
+  as `Unpredicted: N` in the output below. No codemem index or binary: a `NOTE:` and the
+  Contract alone predicts. Exit 2 (cannot run): report it and continue — advisory.
+
 1. **Invoke the impact-analysis skill** (`Skill(impact-analysis)`)
 2. **Output consolidated impact analysis** for ALL files modified in this milestone
 3. **Verify no unresolved cascade effects**
@@ -79,7 +102,7 @@ Before invoking the full impact-analysis skill, run a quick pre-check using the 
 **Required output format** (consolidated for milestone):
 ```
 📊 Impact Analysis: Milestone "[Milestone Title]"
-┌─ Files Modified: [N]
+┌─ Files Modified: [N]   Unpredicted: [N] (→ §6.8 code-reviewer)
 │
 ├─ [file_path_1]
 │  ├─ Upstream: [N] callers

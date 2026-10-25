@@ -44,13 +44,35 @@ aa_ma_hooks_validate() {
     return "${bad}"
 }
 
-# points_into_repo LINK — true when LINK resolves into this checkout. A relative link
-# resolves against its own directory; one whose source directory is gone falls back to
-# its raw destination. Another checkout under .worktrees/ is not this one.
+# points_into_repo LINK — true when LINK resolves into this checkout, or into the live
+# worktree when the caller set LIVE_ROOT. A relative link resolves against its own
+# directory; one whose source directory is gone falls back to its raw destination.
+# Another checkout under .worktrees/ is not this one.
 points_into_repo() {
     local dest
     # why: 2>/dev/null — readlink -f fails when the source directory is gone; the raw
     # destination below is the answer then, not an error.
     dest="$(readlink -f "$1" 2>/dev/null || readlink "$1")"
+    [[ -n "${LIVE_ROOT:-}" && "${dest}" == "${LIVE_ROOT}/"* ]] && return 0
     [[ "${dest}" == "${REPO_ROOT}/"* && "${dest}" != "${REPO_ROOT}/.worktrees/"* ]]
+}
+
+# The live worktree (ADR-0025, amending D7): the detached worktree of this forge that
+# ~/.local/share/codemem-plugin links to (R03-D13). install.sh keeps it on main and links
+# ~/.claude into it, so a branch checked out in the forge checkout is never live.
+CODEMEM_PLUGIN_LINK="${HOME}/.local/share/codemem-plugin"
+
+# aa_ma_live_worktree — print the live worktree and return 0, or return 1 when the link is
+# absent or does not target a linked worktree of this forge (the checkout itself is not one).
+aa_ma_live_worktree() {
+    local wt wt_common forge_common
+    [[ -L "${CODEMEM_PLUGIN_LINK}" ]] || return 1
+    wt="$(readlink -f "${CODEMEM_PLUGIN_LINK}")"
+    # why: 2>/dev/null — a target that is not a git worktree, or a forge that is not a git
+    # checkout, has no common dir: that is the "not ours" answer, not an error.
+    wt_common="$(git -C "${wt}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || return 1
+    # why: 2>/dev/null — as above, for the forge
+    forge_common="$(git -C "${REPO_ROOT}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || return 1
+    [[ "${wt_common}" == "${forge_common}" && "${wt}" != "${REPO_ROOT}" ]] || return 1
+    printf '%s\n' "${wt}"
 }

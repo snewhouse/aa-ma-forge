@@ -107,8 +107,9 @@ milestone gate, ADR-0011) in tasks.md, then write the single
 list names the milestone a flagged sub-step rolls up to (`M2,M4`), or
 `prototype=none` when nothing is flagged. Never write the field with an empty
 value — the gate refuses it (exit 2). Milestones flagged YES run `Skill(prototype)` during execution and
-must leave a `[ts] PROTOTYPE — <milestone heading> — <verdict>` provenance
-entry before COMPLETE (§6.7 condition 5). This is a step inside Phase 2 —
+must leave a `[ts] PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES|NO`
+provenance entry before COMPLETE (§6.7 condition 5); YES triggers a plan-verification
+Angle-3 check on the decision delta. This is a step inside Phase 2 —
 it writes no `PHASE_2.5` marker.
 
 Display summary:

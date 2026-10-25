@@ -23,8 +23,9 @@ materially apply to its work and how.
   `Prototype-Required: YES`, invoke `Skill(prototype)` (forked from
   mattpocock/skills — see [ADR-0003](../../docs/adr/0003-prototype-adoption.md))
   which routes between **LOGIC** (a single self-contained HTML demo — state panel, free-play buttons, tabbed guided walkthroughs — for state/business-logic questions) and **UI** (structurally different variants on an existing route, switchable via `?variant=`) branches based on the question, and captures the result on a `prototype/<name>` branch — main keeps only the decision.
-  Then write a `[ts] PROTOTYPE — <milestone heading> — <verdict>` entry to
-  `provenance.log` before milestone COMPLETE. A sub-step's `Prototype-Required:
+  Then write a `[ts] PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES|NO`
+  entry to `provenance.log` before milestone COMPLETE; `YES` (the verdict changes the plan)
+  triggers a `Skill(plan-verification)` Angle-3 impact check on the decision delta. A sub-step's `Prototype-Required:
   YES` rolls up to its milestone's gate (ADR-0011). A UI-branch throwaway route
   sits behind the host app's existing auth middleware and reads stubs or
   fixtures, never live records — the fork's "throwaway branch" rule is not an
@@ -146,7 +147,7 @@ checklist. The HARD/SOFT column indicates milestone-level enforcement:
 | Non-breaking constraint verified                | HARD | `Skill(impact-analysis)` run; tests still pass                          |
 | AA-MA artifacts in sync; git clean              | HARD | `git status` clean for AA-MA files; zero `Status: PENDING` in milestone |
 | `Critical-Path:` evidence (when field present)  | HARD | `CRITICAL_PATH_REVIEW` entry in `provenance.log`                        |
-| `Prototype-Required:` evidence (when YES)       | HARD | `PROTOTYPE — <milestone heading> — <verdict>` entry in `provenance.log` |
+| `Prototype-Required:` evidence (when YES)       | HARD | `PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES\|NO` entry in `provenance.log` |
 | `@kind` sigil edges verified (when §13 carries any) | HARD | §6.7 diagram fence passes; it records `DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K` in `provenance.log` (ADR-0015) |
 | No assumptions left unvalidated                 | SOFT | Declared in `context-log.md`                                            |
 | Relevant skills/subagents consulted             | SOFT | `provenance.log` shows skill invocations                                |

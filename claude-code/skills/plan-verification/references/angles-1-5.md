@@ -134,6 +134,12 @@ Agent tool:
     Also flag: files the plan SHOULD modify but doesn't mention (discovered via
     upstream/downstream analysis).
 
+    PROTOTYPE DECISION DELTAS: for each provenance.log line
+    `PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES`, run the
+    5-point check above on the decision delta — the files, contracts and steps the verdict
+    adds, drops or changes against the plan as written — and flag any milestone, Contract
+    row or acceptance criterion the plan has not yet updated for it. `NO` needs no check.
+
     Do NOT write any code. Only analyze impact.
 ```
 

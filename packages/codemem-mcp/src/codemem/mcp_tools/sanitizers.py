@@ -23,6 +23,7 @@ as one line of hook context (code-conventions-impact 10.6).
 from __future__ import annotations
 
 import re
+import unicodedata
 from pathlib import Path
 
 
@@ -37,13 +38,11 @@ __all__ = [
 _ALLOWED = re.compile(r"^[A-Za-z0-9_./\-]{1,256}$")
 
 
-# C0 controls (incl. CR, LF, ESC), DEL, C1 controls (incl. U+0085 NEL, U+009B CSI),
-# the Unicode line/paragraph separators, bidi embeddings/overrides/isolates (they
-# reorder what a reader sees), and the BOM / zero-width no-break space.
-_CONTEXT_UNSAFE = re.compile(
-    "[\x00-\x1f\x7f-\x9f\u2028\u2029\u202a-\u202e\u2066-\u2069\ufeff]"
-)
-_LONE_SURROGATE = re.compile("[\ud800-\udfff]")
+# Unicode categories never handed to the model: Cc (C0/C1 controls incl. CR, LF, ESC,
+# DEL), Cf (format: zero-width, bidi controls, BOM, soft hyphen, tag characters that can
+# smuggle hidden text), Co (private use), Cs (lone surrogates), Zl/Zp (line/paragraph
+# separators). A category test, not a hand list: a list misses whatever it forgot.
+_CONTEXT_UNSAFE_CATEGORIES = frozenset({"Cc", "Cf", "Co", "Cs", "Zl", "Zp"})
 _ELLIPSIS = "\u2026"
 
 
@@ -95,9 +94,9 @@ def sanitize_path_arg(value: object, repo_root: Path) -> Path:
 def sanitize_context_line(text: str, max_len: int = 200) -> str:
     """``text`` as one printable line of at most ``max_len`` characters; never raises.
 
-    Control and invisible layout characters become spaces, a lone surrogate
-    becomes U+FFFD, whitespace runs collapse to one space, and the ends are
-    trimmed. A longer result is cut to ``max_len - 1`` characters plus ``…``;
+    Every character in a Cc, Cf, Co, Cs, Zl or Zp Unicode category becomes a
+    space, whitespace runs collapse to one space, and the ends are trimmed. A
+    longer result is cut to ``max_len - 1`` characters plus ``…``;
     ``max_len <= 0`` gives ``""``. Shell syntax such as ``$(…)`` is kept: the
     result is data, never interpreted.
     """
@@ -105,8 +104,11 @@ def sanitize_context_line(text: str, max_len: int = 200) -> str:
         if max_len <= 0:
             return ""
         s = text if isinstance(text, str) else str(text)
-        s = _LONE_SURROGATE.sub("\ufffd", s)
-        s = " ".join(_CONTEXT_UNSAFE.sub(" ", s).split())
+        s = "".join(
+            " " if unicodedata.category(ch) in _CONTEXT_UNSAFE_CATEGORIES else ch
+            for ch in s
+        )
+        s = " ".join(s.split())
         if len(s) > max_len:
             s = s[: max_len - 1].rstrip() + _ELLIPSIS
         return s

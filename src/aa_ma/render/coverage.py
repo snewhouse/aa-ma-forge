@@ -10,6 +10,11 @@ dropped, backticks and ``:12-40`` line ranges stripped — because a dropped pat
 silently. ``{a,b}`` lists expand, bounded: past ``MAX_EXPANSIONS`` the token stays whole. Exempt: ``Test``/``Verify`` rows, ``tests/`` and ``docs/``, root docs, and
 dependency manifests / lockfiles. A node covers its own path and — when it names a
 directory — everything beneath it; a ``(new)`` node covers the path it plans.
+
+``milestone_contract_paths`` is the other reader (code-conventions-impact 10.7): the
+predicted set of ``/execute-aa-ma-milestone`` §6.3 predicted-vs-actual, ONE milestone's
+Contract, every row verb, nothing exempt (a test the Contract names is predicted).
+M11's ``aa_ma.contract_rows`` takes it over (plan, Milestone 11 Contract).
 """
 
 from __future__ import annotations
@@ -26,14 +31,30 @@ from aa_ma.render.mermaid_lint import (
 )
 
 __all__ = [
-    "COVERAGE_CUTOVER", "EXEMPT_DIRS", "MANIFESTS", "MAX_EXPANSIONS", "ROOT_DOCS",
-    "contract_paths", "coverage_findings", "drawn_paths",
+    "COVERAGE_CUTOVER",
+    "EXEMPT_DIRS",
+    "MANIFESTS",
+    "MAX_EXPANSIONS",
+    "ROOT_DOCS",
+    "contract_paths",
+    "coverage_findings",
+    "drawn_paths",
+    "milestone_contract_paths",
 ]
 
 COVERAGE_CUTOVER = "2026-09-11"  # spec §XI item 13's cutover; a literal date, not a tag
-_CREATED_RE = re.compile(r"^(?:\*\*Created:\*\*|Created:)[ \t]*(\d{4}-\d{2}-\d{2})", re.M)
+_CREATED_RE = re.compile(
+    r"^(?:\*\*Created:\*\*|Created:)[ \t]*(\d{4}-\d{2}-\d{2})", re.M
+)
 _CONTRACT_RE = re.compile(r"^#### Contract[ \t]*$")
 _ROW_RE = re.compile(r"^[ \t]*(?:[-*|][ \t]*)?(?:Create|Modify)[ \t]*:?[ \t|]+([^#]*)")
+_ANY_ROW_RE = re.compile(
+    r"^[ \t]*(?:[-*|][ \t]*)?(?:Create|Modify|Test|Move|Merge|Delete)[ \t]*:?[ \t|]+([^#]*)"
+)
+_HEADING_RE = re.compile(r"^(#{1,6})[ \t]")
+_MILESTONE_RE = re.compile(
+    r"^(#{2,4})[ \t]+Milestone[ \t]+([0-9]+[a-z]?)(?![0-9A-Za-z])"
+)
 _FILE_RE = re.compile(r"^[ \t]*#[ \t]*file:[ \t]*(\S+)")
 _PAREN_RE = re.compile(r"\([^()]*\)")
 _LINES_RE = re.compile(r":\d+(?:-\d+)?$")
@@ -58,7 +79,8 @@ def coverage_findings(plan_text: str) -> list[Finding]:
         return []
     return [
         Finding(
-            "UNDRAWN_PATH", line,
+            "UNDRAWN_PATH",
+            line,
             f"{path}: named by a Contract but drawn by no §13 node "
             "(draw it, a directory node above it, or `(new)` if planned)",
         )
@@ -69,7 +91,43 @@ def coverage_findings(plan_text: str) -> list[Finding]:
 
 def contract_paths(plan_text: str, stripped: str) -> list[tuple[int, str]]:
     """(1-based line, path) per non-exempt Create/Modify/``# file:`` path, in order."""
-    lines, bare = plan_text.split("\n"), stripped.split("\n")
+    return [
+        (n, p)
+        for n, p in _contract_rows(plan_text.split("\n"), stripped.split("\n"), _ROW_RE)
+        if not _exempt(p)
+    ]
+
+
+def milestone_contract_paths(plan_text: str, milestone: str) -> list[str]:
+    """Every path Milestone ``milestone``'s Contract names: all row verbs, none exempt, deduped.
+
+    The milestone is the ``##``-``####`` ``Milestone <id>`` heading up to the next heading
+    of the same or a higher level; ``[]`` when it is absent, has no Contract, or the plan
+    has an unterminated fence.
+    """
+    scan = scan_fences(plan_text)
+    if scan.unterminated:
+        return []
+    lines, bare = plan_text.split("\n"), scan.stripped.split("\n")
+    start = end = None
+    for i, line in enumerate(bare):
+        if start is None:
+            m = _MILESTONE_RE.match(line)
+            if m and m.group(2) == milestone:
+                start, level = i, len(m.group(1))
+        elif (h := _HEADING_RE.match(line)) and len(h.group(1)) <= level:
+            end = i
+            break
+    if start is None:
+        return []
+    rows = _contract_rows(lines[start:end], bare[start:end], _ANY_ROW_RE)
+    return list(dict.fromkeys(p for _, p in rows))
+
+
+def _contract_rows(
+    lines: list[str], bare: list[str], row_re: re.Pattern[str]
+) -> list[tuple[int, str]]:
+    """(1-based line, path) per row path in the fences right under each ``#### Contract``."""
     out: list[tuple[int, str]] = []
     k = 0
     while k < len(bare):
@@ -80,8 +138,9 @@ def contract_paths(plan_text: str, stripped: str) -> list[tuple[int, str]]:
         # The Contract is the fences right under the heading: stop at the first line outside
         # a fence (prose or a heading), so a later example fence is never read as one.
         while k < len(bare) and not bare[k].strip():
-            if lines[k].strip():  # blank in `stripped` but not in the text: inside a fence
-                out += [(k + 1, p) for p in _row_paths(lines[k]) if not _exempt(p)]
+            # Blank in `stripped` but not in the text: inside a fence.
+            if lines[k].strip():
+                out += [(k + 1, p) for p in _row_paths(lines[k], row_re)]
             k += 1
     return out
 
@@ -109,10 +168,10 @@ def _in_force(stripped: str) -> bool:
     return m is not None and m.group(1) >= COVERAGE_CUTOVER
 
 
-def _row_paths(line: str) -> list[str]:
+def _row_paths(line: str, row_re: re.Pattern[str] = _ROW_RE) -> list[str]:
     if m := _FILE_RE.match(line):
         tokens = [m.group(1)]
-    elif m := _ROW_RE.match(line):
+    elif m := row_re.match(line):
         tokens = _split(_PAREN_RE.sub(" ", m.group(1)).replace("|", " "))
     else:
         return []
@@ -145,12 +204,17 @@ def _expand(token: str) -> list[str]:
         steps += 1
         alts = m.group(1).split(",")
         if steps > MAX_EXPANSIONS or len(done) + len(todo) + len(alts) > MAX_EXPANSIONS:
-            return [token]  # unreadable as a path list: flag the token itself (fail closed)
-        todo += [cur[: m.start()] + a.strip() + cur[m.end():] for a in reversed(alts)]
+            # Unreadable as a path list: flag the token itself (fail closed).
+            return [token]
+        todo += [cur[: m.start()] + a.strip() + cur[m.end() :] for a in reversed(alts)]
     return done
-
 
 
 def _exempt(path: str) -> bool:
     name = path.rsplit("/", 1)[-1]
-    return path.startswith(EXEMPT_DIRS) or path in ROOT_DOCS or name in MANIFESTS or name.endswith(".lock")
+    return (
+        path.startswith(EXEMPT_DIRS)
+        or path in ROOT_DOCS
+        or name in MANIFESTS
+        or name.endswith(".lock")
+    )

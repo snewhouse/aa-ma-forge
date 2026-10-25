@@ -36,8 +36,10 @@ How do we work on plain branches without a half-edited hook going live?
 `install.sh` resolves the live worktree with `aa_ma_live_worktree` (`scripts/lib/aa-ma-install-lib.sh`):
 the target of `~/.local/share/codemem-plugin` when it is a linked worktree of this forge and
 not the checkout itself. It refreshes it to `main` and `uv sync`s it FIRST (§0), then takes every
-link, spec copy and the `--wire-git-hook` path from it (`SRC_ROOT`). A dirty live worktree is
-linked as it stands, with a warning. With no link, or a link to anything else, install.sh links
+link, spec copy and the `--wire-git-hook` path from it (`SRC_ROOT`). A dirty live worktree, or a
+failed refresh, stops the install before any link changes (fail closed: falling back to the
+checkout would make its branch live). Links into the checkout are removed before relinking, so a
+skill or agent only a branch has does not stay live. With no link, or a link to anything else, install.sh links
 into the checkout it runs from, as before. `points_into_repo` counts links into the live worktree
 as ours, so re-pointing records nothing in the foreign-link manifest and `uninstall.sh` removes
 them. Tests: `tests/hooks/install-live-worktree.bats` (fake `HOME`).

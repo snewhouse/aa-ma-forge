@@ -357,7 +357,7 @@ The full story is in [how we got here](docs/narrative/how-we-got-here.md), and t
 
 ## AA-MA hook troubleshooting
 
-AA-MA Forge ships 9 hooks. All honour a single master kill switch and carry explicit bypass mechanisms for the edge cases where they get in the way.
+AA-MA Forge ships 10 hooks. All honour a single master kill switch and carry explicit bypass mechanisms for the edge cases where they get in the way.
 
 **Master kill switch.** Something misbehaving? This disables every AA-MA hook immediately:
 

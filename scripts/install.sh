@@ -85,9 +85,10 @@ fi
 # user-scope codemem MCP runs from it, and every ~/.claude link below resolves into it.
 # Refresh it to main's tip (and its venv) FIRST, so the links land on merged code and a
 # branch checked out in the forge checkout is never live. Only a linked worktree of THIS
-# forge is used — never the checkout itself, never anything else — and one with
-# uncommitted changes is linked as it stands, not refreshed. No link: link into this
-# checkout, as before.
+# forge is used — never the checkout itself, never anything else. One with uncommitted
+# changes, or whose refresh fails, stops the install before any link changes (fail
+# closed: neither unrefreshed code nor the checkout's branch goes live). No link: link
+# into this checkout, as before.
 LIVE_ROOT=""
 if [[ -L "${CODEMEM_PLUGIN_LINK}" ]]; then
     header "Refreshing the codemem plugin worktree..."
@@ -96,14 +97,16 @@ if [[ -L "${CODEMEM_PLUGIN_LINK}" ]]; then
         LIVE_ROOT=""
         warn "codemem plugin link targets ${plugin_wt}: not a worktree of this forge — left alone"
     elif [[ -n "$(git -C "${LIVE_ROOT}" status --porcelain --untracked-files=no)" ]]; then
-        warn "codemem plugin worktree ${LIVE_ROOT} has uncommitted changes — left alone"
+        error "codemem plugin worktree ${LIVE_ROOT} has uncommitted changes — commit or stash them there, then re-run. Nothing was changed."
+        exit 1
     elif ${DRY_RUN}; then
         info "Would refresh codemem plugin worktree ${LIVE_ROOT} to main and run uv sync there"
     elif git -C "${LIVE_ROOT}" checkout -q --detach main \
             && (cd "${LIVE_ROOT}" && uv sync --locked --quiet); then
         info "codemem plugin worktree ${LIVE_ROOT} → main $(git -C "${LIVE_ROOT}" rev-parse --short HEAD)"
     else
-        warn "codemem plugin worktree ${LIVE_ROOT}: refresh failed — run: git -C ${LIVE_ROOT} checkout --detach main && (cd ${LIVE_ROOT} && uv sync)"
+        error "codemem plugin worktree ${LIVE_ROOT}: refresh failed — run: git -C ${LIVE_ROOT} checkout --detach main && (cd ${LIVE_ROOT} && uv sync), then re-run. No link was changed."
+        exit 1
     fi
 fi
 # Where every link and copy below comes from.
@@ -343,6 +346,25 @@ for link in "${CLAUDE_HOME}/commands/"*.md "${CLAUDE_HOME}/skills/"* "${CLAUDE_H
     fi
     STALE_REMOVED=$((STALE_REMOVED + 1))
 done
+
+# With a live worktree, a link into the checkout is a branch's copy: drop every one. The
+# steps below re-link what main has from the live worktree; what only a branch has (an
+# added skill, one main retired) must not stay live (ADR-0025).
+if [ "${SRC_ROOT}" != "${REPO_ROOT}" ]; then
+    for link in "${CLAUDE_HOME}/commands/"*.md "${CLAUDE_HOME}/skills/"* "${CLAUDE_HOME}/agents/"*.md \
+                "${CLAUDE_HOME}/rules/"* "${CLAUDE_HOME}/hooks/lib/"*; do
+        [ -L "${link}" ] || continue
+        # why: 2>/dev/null — a dangling link's source dir may be gone; raw target then
+        dest="$(readlink -f "${link}" 2>/dev/null || readlink "${link}")"
+        [[ "${dest}" == "${REPO_ROOT}/"* && "${dest}" != "${REPO_ROOT}/.worktrees/"* ]] || continue
+        if ${DRY_RUN}; then
+            info "Would remove checkout link: ${link} -> ${dest}"
+        else
+            rm "${link}"
+            info "Removed checkout link: ${link} -> ${dest}"
+        fi
+    done
+fi
 
 # ---------------------------------------------------------------------------
 # 2. Symlink skills directories (auto-discover all)

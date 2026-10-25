@@ -67,7 +67,10 @@ CODEMEM_PLUGIN_LINK="${HOME}/.local/share/codemem-plugin"
 aa_ma_live_worktree() {
     local wt wt_common forge_common
     [[ -L "${CODEMEM_PLUGIN_LINK}" ]] || return 1
-    wt="$(readlink -f "${CODEMEM_PLUGIN_LINK}")"
+    # why: 2>/dev/null — a link whose parent directory is gone has no target: not ours.
+    wt="$(readlink -f "${CODEMEM_PLUGIN_LINK}" 2>/dev/null)" || return 1
+    # An empty path would make `git -C ""` answer for the current directory.
+    [[ -n "${wt}" ]] || return 1
     # why: 2>/dev/null — a target that is not a git worktree, or a forge that is not a git
     # checkout, has no common dir: that is the "not ours" answer, not an error.
     wt_common="$(git -C "${wt}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || return 1

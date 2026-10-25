@@ -25,6 +25,8 @@ parsers (in the plan-verification Angle 6 structural check).
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
+from fnmatch import fnmatchcase
 
 # -----------------------------------------------------------------------------
 # Canonical enums (mirror Critical-Path enum in engineering-standards.md §1)
@@ -91,6 +93,61 @@ novel value passed silently.
 
 Adding a value requires a plan + ADR, per engineering-standards.md §1.
 """
+
+# One fnmatch glob per path, repo-relative POSIX, matched with fnmatchcase. No braces:
+# fnmatch does not expand them. fnmatch's `*` also matches `/`, so `dir/**` behaves
+# like `dir/*` — every file anywhere under dir. Values with no path signal (auth-flow,
+# data-xform, external-api, doc-count-drift) have no globs: they stay a human call.
+CRITICAL_PATH_GLOBS: dict[str, tuple[str, ...]] = {
+    "hook-modification": (
+        "claude-code/hooks/**",
+        ".github/workflows/**",
+        "src/aa_ma/gate.py",
+        "src/aa_ma/enforce.py",
+        "src/aa_ma/grammar.py",
+        "src/aa_ma/plan_parsers.py",
+        "src/aa_ma/impact.py",
+        "src/aa_ma/gitutil.py",
+        "claude-code/skills/execute-aa-ma-*/**",
+        "claude-code/skills/sole-dev-merge/**",
+        ".gitleaksignore",
+        ".pre-commit-config.yaml",
+        "scripts/check_conventions.py",
+        "scripts/install.sh",
+        "scripts/uninstall.sh",
+        "scripts/lib/aa-ma-install-lib.sh",
+        ".github/dependabot.yml",
+    ),
+    "version-pipeline": (
+        "scripts/release.sh",
+        "VERSION",
+    ),
+}
+"""Changed-file globs per `Critical-Path:` value; tests/codemem/test_critical_path_globs.py
+pins them to the engineering-standards.md table."""
+
+
+def derive_critical_paths(paths: Iterable[str]) -> dict[str, list[str]]:
+    """Map each `Critical-Path:` value to the changed files that trigger it.
+
+    Args:
+        paths: Repo-relative POSIX paths (as `git diff --name-only` prints them).
+
+    Returns:
+        {value: sorted unique triggering paths}, keys sorted; values no path
+        triggers are omitted, so no hits gives {}.
+
+    Example:
+        >>> derive_critical_paths(["VERSION", "README.md"])
+        {'version-pipeline': ['VERSION']}
+    """
+    unique = set(paths)
+    hits = {
+        value: sorted(p for p in unique if any(fnmatchcase(p, g) for g in globs))
+        for value, globs in sorted(CRITICAL_PATH_GLOBS.items())
+    }
+    return {value: files for value, files in hits.items() if files}
+
 
 CANONICAL_DIAGRAM_WAIVERS: frozenset[str] = frozenset(
     {"none", "docs-only", "config-only", "single-file"}

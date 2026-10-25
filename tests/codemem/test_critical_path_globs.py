@@ -2,9 +2,9 @@
 
 The globs turn a changed-file list into the `Critical-Path:` values it should
 carry. They are checked three ways: every glob is valid and points at real
-files; the hook-modification globs correspond to the engineering-standards
-Critical-Path table cell by cell; and derive_critical_paths maps a mixed list
-correctly. (Lives under tests/codemem/ because the plan names it there; that
+files; the globs correspond EXACTLY to the paths the engineering-standards
+Critical-Path table names (Ste, 2026-10-25: the doctrine table names every glob,
+so neither side can drift); and derive_critical_paths maps a mixed list correctly. (Lives under tests/codemem/ because the plan names it there; that
 conftest only puts scripts/ on sys.path, so an aa_ma-only test is unaffected.)
 """
 
@@ -31,20 +31,6 @@ NOT_YET_CREATED = {"src/aa_ma/impact.py"}
 # The table names `claude-code/skills/**` only as "the gate/scan logic inside" it,
 # so the code carries narrower per-skill globs instead of the whole tree.
 QUALIFIED_IN_TABLE = "claude-code/skills/**"
-# Code globs the table cell does not name: the plan (M10, 10.5) extends the row
-# with files that change what every session enforces. Pinned so a change on either
-# side is a visible decision, not drift; reported for the doctrine table.
-PLAN_EXTENSIONS = {
-    "src/aa_ma/impact.py",
-    "src/aa_ma/gitutil.py",
-    ".gitleaksignore",
-    ".pre-commit-config.yaml",
-    "scripts/check_conventions.py",
-    "scripts/install.sh",
-    "scripts/uninstall.sh",
-    "scripts/lib/aa-ma-install-lib.sh",
-    ".github/dependabot.yml",
-}
 _WILDCARDS = re.compile(r"[*?\[]")
 
 
@@ -77,11 +63,9 @@ def _expand_braces(token: str) -> list[str]:
 
 
 def _table_globs(value: str) -> set[str]:
-    """Backticked paths in the row, braces expanded; `lib/` is a qualifier, not a path."""
+    """Backticked paths in the row's scope cell, braces expanded; `lib/` is a qualifier."""
     tokens = re.findall(r"`([^`]+)`", _table_cell(value))
-    return {
-        g for t in tokens if "/" in t and not t.endswith("/") for g in _expand_braces(t)
-    }
+    return {g for t in tokens if not t.endswith("/") for g in _expand_braces(t)}
 
 
 def test_keys_are_canonical() -> None:
@@ -125,17 +109,17 @@ def test_hook_modification_globs_correspond_to_the_table() -> None:
     table = _table_globs("hook-modification")
     code = set(CRITICAL_PATH_GLOBS["hook-modification"])
     assert QUALIFIED_IN_TABLE in table
-    # 1. Every unqualified path the table names is a glob in code.
-    assert table - {QUALIFIED_IN_TABLE} <= code, sorted(
-        table - {QUALIFIED_IN_TABLE} - code
-    )
-    # 2. The qualified one is narrowed, never carried whole: each skill glob sits inside it.
+    # 1. The qualified `claude-code/skills/**` is narrowed, never carried whole: each
+    #    skill glob sits inside it.
     assert QUALIFIED_IN_TABLE not in code
     skill_globs = {g for g in code if g.startswith("claude-code/skills/")}
     assert skill_globs, "the table's gate/scan skills have no glob"
     assert all(fnmatch.fnmatchcase(g, QUALIFIED_IN_TABLE) for g in skill_globs)
-    # 3. Everything else in code is the pinned plan extension set.
-    assert code - table - skill_globs == PLAN_EXTENSIONS
+    # 2. Exact: every other path the table names is a glob in code, and nothing more.
+    assert table - {QUALIFIED_IN_TABLE} == code, (
+        sorted(table - {QUALIFIED_IN_TABLE} - code),
+        sorted(code - table),
+    )
 
 
 def test_hook_glob_covers_hooks_lib() -> None:
@@ -145,14 +129,19 @@ def test_hook_glob_covers_hooks_lib() -> None:
     }
 
 
-def test_version_pipeline_globs() -> None:
-    assert _table_globs("version-pipeline") == set(), (
-        "the table names no paths for this row"
+def test_version_pipeline_globs_correspond_to_the_table() -> None:
+    assert _table_globs("version-pipeline") == set(
+        CRITICAL_PATH_GLOBS["version-pipeline"]
     )
     assert set(CRITICAL_PATH_GLOBS["version-pipeline"]) == {
         "scripts/release.sh",
         "VERSION",
     }
+
+
+def test_every_value_with_globs_has_a_table_row() -> None:
+    for value in CRITICAL_PATH_GLOBS:
+        assert _table_cell(value)
 
 
 def test_derive_critical_paths_mixed_list() -> None:

@@ -36,11 +36,18 @@ class TestCanonicalSlots:
         # The canonical names: codemem-reference.md §12 MCP Tools + diagram (diagram-generation M13).
         expected = {
             # M1 (1–6)
-            "who_calls", "blast_radius", "dead_code",
-            "dependency_chain", "search_symbols", "file_summary",
+            "who_calls",
+            "blast_radius",
+            "dead_code",
+            "dependency_chain",
+            "search_symbols",
+            "file_summary",
             # M3 git-mining (7–11) — stubbed in M1
-            "hot_spots", "co_changes", "owners",
-            "symbol_history", "layers",
+            "hot_spots",
+            "co_changes",
+            "owners",
+            "symbol_history",
+            "layers",
             # M3 AA-MA-native (12)
             "aa_ma_context",
             # diagram-generation M13 (13)
@@ -67,8 +74,12 @@ class TestToolRegistration:
         each declared alias."""
         registered = server_mod.list_registered_tool_names()
         m1_canonical = {
-            "who_calls", "blast_radius", "dead_code",
-            "dependency_chain", "search_symbols", "file_summary",
+            "who_calls",
+            "blast_radius",
+            "dead_code",
+            "dependency_chain",
+            "search_symbols",
+            "file_summary",
         }
         assert m1_canonical.issubset(registered)
 
@@ -87,8 +98,12 @@ class TestToolRegistration:
         """
         registered = server_mod.list_registered_tool_names()
         m3_canonical = {
-            "hot_spots", "co_changes", "owners",
-            "symbol_history", "layers", "aa_ma_context",
+            "hot_spots",
+            "co_changes",
+            "owners",
+            "symbol_history",
+            "layers",
+            "aa_ma_context",
         }
         missing = m3_canonical - registered
         assert not missing, (
@@ -126,9 +141,16 @@ class TestBudgetDefault:
 
         async def _defaults():
             tools = await server_mod.build_server().get_tools()
-            return {n: t.parameters["properties"]["budget"].get("default") for n, t in tools.items()
-                    if "budget" in t.parameters["properties"]}
+            return {
+                n: t.parameters["properties"]["budget"].get("default")
+                for n, t in tools.items()
+                if "budget" in t.parameters["properties"]
+            }
+
         defaults = asyncio.run(_defaults())
         assert len(defaults) == len(server_mod.list_registered_tool_names())
         assert set(defaults.values()) == {mcp_tools._DEFAULT_BUDGET}
-        assert "_DEFAULT_BUDGET" in Path(server_mod.__file__).read_text() and "8_000" not in Path(server_mod.__file__).read_text()
+        assert (
+            "_DEFAULT_BUDGET" in Path(server_mod.__file__).read_text()
+            and "8_000" not in Path(server_mod.__file__).read_text()
+        )

@@ -13,7 +13,9 @@ import pytest
 from codemem.storage import apply_schema, connect, migrate, transaction
 
 
-def _add_commit_touching(conn, sha: str, files: list[str], at: int = 1700000000) -> None:
+def _add_commit_touching(
+    conn, sha: str, files: list[str], at: int = 1700000000
+) -> None:
     conn.execute(
         "INSERT INTO commits (sha, author_email, author_time, message) "
         "VALUES (?, 'dev@x.y', ?, 'msg')",
@@ -154,9 +156,8 @@ class TestCoChangeLogic:
         from codemem.mcp_tools import co_changes
 
         result = co_changes(populated_db, "X.md", threshold=1, exclude=())
-        # Expected order:
-        # - CHANGELOG (3), Y (3) — tied at 3, path ASC: CHANGELOG.md < Y.md
-        # - W (1)
+        # Expected order: CHANGELOG and Y tie at 3 shared commits (path ASC
+        # breaks the tie: CHANGELOG.md < Y.md), then W at 1.
         paths = [f["path"] for f in result["files"]]
         assert paths == ["CHANGELOG.md", "Y.md", "W.md"]
 

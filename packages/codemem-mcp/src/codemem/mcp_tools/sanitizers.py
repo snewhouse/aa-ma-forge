@@ -1,4 +1,4 @@
-"""Input sanitization for MCP tools (M1 Task 1.7).
+r"""Input sanitization for MCP tools (M1 Task 1.7).
 
 Every tool arg that becomes part of a SQL query or filesystem lookup
 passes through a validator here FIRST. Rejection happens before any SQL
@@ -10,7 +10,7 @@ Contract (per ``codemem-reference.md``):
   to catch canonicalized traversal (``foo/../../bar`` becomes absolute
   and is rejected when it escapes the repo).
 * Symbol / file string args → allow-list regex
-  ``^[A-Za-z0-9_./\\-]{1,256}$`` PLUS explicit rejection of ``..``
+  ``^[A-Za-z0-9_./\-]{1,256}$`` PLUS explicit rejection of ``..``
   substring. The explicit ``..`` check is defense-in-depth — the regex
   already rules it out, but a future widening of the allow-list won't
   silently re-introduce traversal.

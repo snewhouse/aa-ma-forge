@@ -85,7 +85,7 @@ See [angles-1-5.md](references/angles-1-5.md#angle-2-assumption-extraction--chal
 
 #### Angle 3: Impact Analysis on Proposed Changes
 
-See [angles-1-5.md](references/angles-1-5.md#angle-3-impact-analysis-on-proposed-changes) — what each Wave 1 agent (ground truth, assumptions, impact, falsifiability) and the Wave 2 fresh-agent simulation checks, and how it reports.
+See [angles-1-5.md](references/angles-1-5.md#angle-3-impact-analysis-on-proposed-changes) — what each Wave 1 agent (ground truth, assumptions, impact, falsifiability) and the Wave 2 fresh-agent simulation checks, and how it reports. Angle 3 also checks the decision delta of every `PROTOTYPE — … — verdict-changes-plan: YES` provenance entry.
 
 ---
 

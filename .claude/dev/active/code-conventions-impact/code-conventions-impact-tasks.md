@@ -989,24 +989,24 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-25 (Mode: AFK — auto-dispatched to a general-purpose agent; orchestrator-verified). RED 189ff456 → GREEN 6b5028b6 → views 8a7cde9b. Schema v4 `plugin_edges(src,dst,kind,ref_class)` + dst index, filled by build and every incremental refresh (rewrite only on change) from plugin_surface.extract(); new public `plugin_surface.owner_of(rel_path)` = the one ownership rule. who_calls(skill stem | `<kind>:<stem>`) and file_impact(plugin path) add plugin callers `{name, kind, file=<node id>, via: plugin_edges}` after code callers. .md not indexed into files. Live: who_calls impact-analysis → 8 callers (rule:engineering-standards + 7 skills); impact on its SKILL.md → 8 callers. tests/codemem/test_plugin_surface_index.py (30). pytest 3248/2/7, bats 793/0, perf 4/4 (who_calls 0.58→0.65 ms; builds within budget). Limits: an uncommitted .md edit does not mark the index stale; brief says "files" for plugin nodes.
 
 ### Sub-step 10.4: gitutil x2 + contract test (TDD)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 10.3
 - Acceptance Criteria:
   - `src/aa_ma/gitutil.py` and `packages/codemem-mcp/src/codemem/gitutil.py`: `git(args: list[str], repo: Path, timeout: float = 10.0) -> str`; env scrubbed (GIT_*), LC_ALL=C, check=True; refs verified with `git rev-parse --verify --end-of-options <ref>^{commit}`; paths after `--`; `-z` parsing.
   - `.importlinter` + test_leaf_contract gain `aa_ma.gitutil`.
   - `tests/test_gitutil_contract.py` (one test parametrised over both) passes; `lint-imports` clean.
-- Result Log:
+- Result Log: COMPLETE 2026-10-25 (Mode: AFK — auto-dispatched; orchestrator-verified). RED 4e21c915 → GREEN ac70a34b. `git(args, repo, timeout=10.0, *, paths=())`: GIT_* scrubbed, LC_ALL=C, `-c core.fsmonitor=false -c core.hooksPath=/dev/null --literal-pathspecs`, paths after `--`, str args → TypeError; `GitError(RuntimeError)` (.returncode/.stderr; None on timeout / no git); `verify_ref` via `rev-parse --verify --end-of-options <ref>^{commit}`; `split_z`. Twins differ only in the docstring (contract test compares AST). `.importlinter`: aa_ma.gitutil in the 3 aa_ma lists + new `gitutil-is-self-contained`; lint-imports 7/0. tests/test_gitutil_contract.py 48 pass. No callers moved (candidates: check_conventions _git/_verify_commit; codemem indexer subprocess git at 1 s timeout).
 
 ### Sub-step 10.5: CRITICAL_PATH_GLOBS + derive_critical_paths (TDD)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 10.4
 - Acceptance Criteria:
   - `src/aa_ma/plan_parsers.py`, next to `CANONICAL_CRITICAL_PATHS`: `CRITICAL_PATH_GLOBS: dict[str, tuple[str, ...]]`, one fnmatch glob per path and no braces. hook-modification → `claude-code/hooks/**`, `.github/workflows/**`, `src/aa_ma/gate.py`, `src/aa_ma/enforce.py`, `src/aa_ma/grammar.py`, `src/aa_ma/plan_parsers.py`, `src/aa_ma/impact.py`, `src/aa_ma/gitutil.py`, `claude-code/skills/execute-aa-ma-*/**`, `claude-code/skills/sole-dev-merge/**`, `.gitleaksignore`, `.pre-commit-config.yaml`, `scripts/check_conventions.py`, `scripts/install.sh`, `scripts/uninstall.sh`, `.github/dependabot.yml`; version-pipeline → `scripts/release.sh`, `VERSION`.
   - `derive_critical_paths(paths: Iterable[str]) -> dict[str, list[str]]` (value → triggering files).
   - `tests/codemem/test_critical_path_globs.py` passes: every listed real file matches its glob; globs ⇔ engineering-standards table; every glob is fnmatch-valid.
-- Result Log:
+- Result Log: COMPLETE 2026-10-25 (Mode: AFK — auto-dispatched; orchestrator-verified). RED d5fcf0a6 → GREEN fd30f9e3. `CRITICAL_PATH_GLOBS` (fnmatchcase; `*` crosses `/`, so `**` ≡ `*` — commented) incl. the plan list + `scripts/lib/aa-ma-install-lib.sh` (holds AA_MA_HOOKS; agent decision); `derive_critical_paths`. tests/codemem/test_critical_path_globs.py: real files match (src/aa_ma/impact.py allowed missing until M11 via NOT_YET_CREATED); globs ⇔ engineering-standards table with the extras pinned as PLAN_EXTENSIONS. OPEN (Ste): the shipped doctrine table's hook-modification row does not list the extras (impact.py, gitutil.py, .gitleaksignore, .pre-commit-config.yaml, check_conventions.py, install.sh, uninstall.sh, aa-ma-install-lib.sh, dependabot.yml) and version-pipeline names no paths. pytest 3344/2/7.
 
 ### Sub-step 10.6: Pre-edit hook + install (TDD)
 - Status: PENDING

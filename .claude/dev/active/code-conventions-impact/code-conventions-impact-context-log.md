@@ -690,3 +690,8 @@ DECISION ruff-only () — approved by Ste
 - griffe pinned 2.3.2, the newest release past the repo's 7-day Dependabot cooldown (2.4.1 was 3 days old). Rejected: latest.
 - commit-drift's co-change advisory also fires on `[ad-hoc]` commits during an active plan (agent extension, kept): the unplanned commit is the one most likely to miss a co-changing file.
 - 10.6 marker deviation accepted: `set -C` (O_EXCL) instead of `mkdir` — uutils mkdir 0.10.0 is not test-and-set (119/300 races doubled; GNU 0/300). L-070.
+
+## [2026-10-26] ADR APPROVAL: ADR-0026 — impact pre-edit hook, callees, plugin edges
+- Approved by: Ste
+- Decision: APPROVED (Status: Accepted)
+- Scope: hook (once per file per session, ≤5 lines, untrusted framing, fail-open), trust model + Unicode-category sanitizer, `set -C` marker (L-070), `callees` + deprecated `blast_radius` alias (TODO(ADR-0026)), defect-1 fix, co_changes min_ratio / max_commit_files (N=10), plugin_edges (schema v4). Rejected: skill wording only; a blocking per-edit gate.

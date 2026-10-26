@@ -1023,7 +1023,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-25 (HITL: Ste approved after outputs + read-through). RED 47f75c94 → GREEN b98d9ad2 (+2e8357ab docs hooks 9→10, 462969a9 view, 8e1ea2c1 orphan set, 364bea3d → 8cd260aa Unicode-category sanitizer after the automated security review). `aa-ma-impact-preedit.sh`: Edit|Write only; one `codemem impact --format brief --repo-root <top> -- <rel>` under `timeout -k 1 2`; header `codemem data (untrusted): impact of …` + ≤3 sanitized lines + Skill(impact-analysis) pointer; silent when no callers/co-changes; once per file per session via `set -C` marker (deviation from mkdir: uutils mkdir is not atomic — measured); one no-index / timeout notice per session; sid regex; index via aa_ma_codemem_dir, bin via aa_ma_codemem_bin; exit 0 always. SessionEnd removes impact-seen-<valid sid>. AA_MA_HOOKS row `PreToolUse|Edit|Write|aa-ma-impact-preedit.sh|5|`; fake-HOME install 1 registration / 0 after uninstall. Fixtures PreToolUse-Edit.json / -Write.json (live captures, scrubbed). `sanitize_context_line` drops Cc/Cf/Co/Cs/Zl/Zp. p95 133–160 ms. pytest 3383/2/7, bats 811/0. Live A1 of the shipped hook at 11.0. §6.6 nits: "(of 1 commits)"; marker set before the index check.
 
 ### Sub-step 10.7: §6.3 / §6.8 / Angle-3 / writers wiring + ad-hoc advisory
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 10.6
 - Acceptance Criteria:
@@ -1033,7 +1033,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `aa-ma-commit-drift.sh`: ad-hoc commits (no active plan) get an advisory co_changes-at-commit line.
   - `pyproject.toml` dev group += griffe (pinned).
   - The Contract-named tests for this wiring pass (standing rule), shown in the Result Log.
-- Result Log:
+- Result Log: COMPLETE 2026-10-26 (Mode: AFK — auto-dispatched; orchestrator-verified; 2 Ste decisions). §6.3 runs `scripts/predicted-vs-actual.sh <task>` (changed = merge-base..HEAD ∪ working tree, minus IMPACT_EXCLUDE-style paths; predicted = Contract rows of the ACTIVE milestone via new `coverage.milestone_contract_paths` ∪ co_changes(shared≥5, ratio≥0.5); one `UNPREDICTED <path>` line each; exit 0 advisory / 2 cannot run; NOTE + Contract-only when codemem/index missing); verify-impl passes the list to code-reviewer (`<unpredicted-files>`: missed impact vs scope creep). PROTOTYPE entry gains `verdict-changes-plan: YES|NO` (spec, template, Angle 3; §6.7 fence unchanged so old entries pass). Skill(impact-analysis) at pre-edit in execute-aa-ma-step/-full, prototype (FORKS.json → derived), defense-in-depth, aa-ma-execution. commit-drift: ad-hoc co-change advisory (no active plan OR an `[ad-hoc]` line — Ste kept the extension). griffe==2.3.2 (Ste: newest past the 7-day cooldown; 2.4.1 was 3 days old). Doctrine: engineering-standards Critical-Path table = CRITICAL_PATH_GLOBS (exact-equality test; Ste decision). Live: unpredicted=31 on this branch. pytest 3390/2/7, bats 829/0; Contract-named tests 191 + 42 bats pass.
 
 ### Sub-step 10.8: ADR — impact pre-edit hook and callees
 - Status: PENDING

@@ -608,3 +608,55 @@ Root fix confirmed by security-auditor: no default path reads repo-controlled fi
 - Acknowledged (INFO): formula spelled out in 15 doc lines; deliberate twins (ADR-0014); `CODEMEM_DB` inside a repo keeps the M15 limits (documented); cache dir mode (TODOS P3); relative `CODEMEM_DB` resolved before the worker's `cd` (same dir in practice: both are the repo top); token value change `skipped(no index)` (no reader); AC names test_trust.py but the reproductions live in test_location.py; lessons edit vs the "frozen" list (additions only); no test for the post-commit no-index-dir stderr branch; `db_files` not in `__all__`.
 
 ## Verdict: PASS_WITH_WARNINGS (round 2 clean; stop rule: 2 rounds)
+
+---
+
+# Milestone 10: Impact tooling: codemem `callees`, pre-edit hook, wiring (T6, T13 git helper) — post-impl review (§6.8)
+
+- Date: 2026-10-26 · Audit-Profile: full · Budget: normal (parallel) · Window: f0bfbd8b..e762e06b (48 commits, 91 files)
+- Preceded by §6.6 (3 agents, 7 WARNING; W1–W5, W7 fixed a8830ad4..b21ad499; deferred items in TODOS.md "M10 §6.6 review: deferred …").
+- code-reviewer received the §6.3 `<unpredicted-files>` list (38) per 10.7.
+
+## Summary
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 8 | 4 | WARN |
+| security-auditor | 0 | 0 | 3 | PASS |
+| tdd-sequence-auditor | 0 | 0 | 0 | PASS |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS |
+| future-proofing-auditor | 0 | 0 | 9 | PASS |
+| **TOTAL** | **0** | **8** | **16** | **PASS_WITH_WARNINGS** |
+
+## code-reviewer (0 / 8 / 4)
+- [WARNING] schema: `who_calls` plugin entries `{name, kind, file, via}` lack `line` (code callers have it) — mcp_tools/__init__.py:413-421.
+- [WARNING] dead code until M11: `derive_critical_paths` / `CRITICAL_PATH_GLOBS` have no non-test caller — plan_parsers.py:131.
+- [WARNING] magic number: `file_impact` budget 2000 in cli.py:616 and mcp_tools:931, unnamed.
+- [WARNING] DRY: `--threshold default=3` restates co_changes' default — cli.py:575-578.
+- [WARNING] DRY: `_ANY_ROW_RE` copies `_ROW_RE` + 3 verbs — render/coverage.py:50-52.
+- [WARNING] scope (L-007): ruff-format reflowed untouched lines in render/coverage.py.
+- [WARNING] threat model: predicted-vs-actual.sh / commit-drift.sh strip only `[[:cntrl:]]`; repo paths reach §6.8 prompts unframed (vs the hook's Cc/Cf filter + "untrusted" framing).
+- [WARNING] docstring: `aa_ma_cochange_partners` rc 4 reads as "timeout" (means timeout(1) missing) — aa-ma-parse.sh:305.
+- [INFO] tests-verified base chain now prefers origin/main without origin/HEAD (intended, §6.6 W5).
+- [INFO] git_mining stores HEAD names and drops deleted paths → hot_spots/symbol_history/owners counts change for renamed/deleted files (intended; say so in CHANGELOG).
+- [INFO] `PluginEdgeRow` alias without docstring. [INFO] pre-edit hook clean on injection framing, jq --arg, sid regex, `--`, exit 0.
+- Unpredicted files: 38, all missed impact (Contract too narrow: tests, aa-ma-parse.sh, aa-ma-install-lib.sh, doc-count files), none scope creep.
+
+## security-auditor (0 / 0 / 3)
+- [INFO] untrusted repo filenames can reach the model via the hook — bounded (sanitized, ≤3×200 chars, framed untrusted, jq --arg; same names visible via ls).
+- [INFO] base refs never start with `-`; shell git without the gitutil prefix only matters with a hostile local config (out of scope).
+- [INFO] session-scoped `rm -rf --` and markers bounded (sid regex, umask 077, set -C).
+
+## tdd-sequence-auditor — PASS
+- Every implementation commit has a preceding RED within its sub-step (10.2–10.7, §6.6); first tests 8b4b91cb precedes first src ac70a34b by 38 min.
+
+## context7-evidence-auditor — PASS
+- New dep griffe==2.3.2 (dev): rationale in reference/provenance/context-log. Advice: log a Context7 lookup of the griffe 2.x API before M11.4.
+
+## future-proofing-auditor (0 / 0 / 9)
+- All new counts (hooks 10, MCP tools 14, query tools 11) match their sources and are test-guarded; ADR-0026's "(14 MCP tools)" is a dated record.
+- Carry to M11: a contract test that shell `AA_MA_COCHANGE_*` equals the Python twin; an AC that the gitutil twins and `derive_critical_paths` get a production caller or are removed.
+- Nits: name the 200-char sanitize default; `CODEMEM_TIMEOUT_S` means 2 s and 30 s in two scripts; relax griffe to `>=2.3.2,<3` after cooldown.
+
+## User Override Decisions
+- None required (0 CRITICAL).

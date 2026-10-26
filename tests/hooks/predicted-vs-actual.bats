@@ -176,6 +176,15 @@ EOF
     [ "$(_unpredicted)" = "evil?[2Jname.txt" ]
 }
 
+@test "Unicode format characters in a changed path are neutralised (§6.8 W7)" {
+    # U+202E RLO, U+200B ZWSP, U+E0041 TAG LATIN CAPITAL LETTER A: invisible or reordering.
+    printf 'n\n' > "$R/"$'a\u202eb\u200bc\U000e0041d.txt'
+    _run t
+    [ "$status" -eq 0 ]
+    [ "$(_unpredicted)" = "a?b?c?d.txt" ]
+    [[ "$output" != *$'\u202e'* && "$output" != *$'\u200b'* && "$output" != *$'\U000e0041'* ]]
+}
+
 @test "real codemem: a 5-commit co-change partner is predicted (keys contract)" {
     local cm="${FORGE}/.venv/bin/codemem"
     [ -x "$cm" ] || skip "no ${cm} — run uv sync"

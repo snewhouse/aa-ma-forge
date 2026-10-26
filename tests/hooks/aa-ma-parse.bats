@@ -551,3 +551,38 @@ _base_repo() {
     [ "$status" -eq 1 ]
     [ -z "$output" ]
 }
+
+# ---------------------------------------------------------------------------
+# aa_ma_sanitize_lines (code-conventions-impact §6.8 W7): repo-controlled lines lose the
+# Unicode categories codemem's sanitize_context_line drops (Cc Cf Co Cs Zl Zp), as `?`.
+# ---------------------------------------------------------------------------
+
+@test "aa_ma_sanitize_lines: Cc/Cf/Co/Zl/Zp characters and bad UTF-8 become ?, the rest is kept" {
+    load_helper
+    run aa_ma_sanitize_lines < <(printf '%s\n' $'a‮b​c\U000e0041d' $'e\033[2Jf' $'gh i j' $'café ok' $'bad\xffbyte')
+    [ "$status" -eq 0 ]
+    [ "${#lines[@]}" -eq 5 ]
+    [ "${lines[0]}" = "a?b?c?d" ]
+    [ "${lines[1]}" = "e?[2Jf" ]
+    [ "${lines[2]}" = "g?h?i?j" ]
+    [ "${lines[3]}" = $'café ok' ]
+    [ "${lines[4]}" = "bad?byte" ]
+}
+
+@test "aa_ma_sanitize_lines: empty input prints nothing" {
+    load_helper
+    run aa_ma_sanitize_lines < /dev/null
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}
+
+@test "aa_ma_sanitize_lines: no working python3 → every non-ASCII byte is ?, one WARN line" {
+    load_helper
+    python3() { return 127; }
+    run aa_ma_sanitize_lines < <(printf '%s\n' $'a‮b' $'café' 'plain.txt')
+    [ "$status" -eq 0 ]
+    [ "${lines[0]}" = "a???b" ]
+    [ "${lines[1]}" = "caf??" ]
+    [ "${lines[2]}" = "plain.txt" ]
+    [ "$(grep -c 'WARN .*aa_ma_sanitize_lines' "$CLAUDE_HOOK_LOG")" -eq 1 ]
+}

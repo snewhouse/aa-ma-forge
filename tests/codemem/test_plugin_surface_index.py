@@ -264,3 +264,22 @@ def test_file_impact_on_code_is_unchanged(built) -> None:
     r = mcp_tools.file_impact(db_path, "src/app.py")
     assert r["error"] is None
     assert r["external_callers"] == []
+
+
+def test_who_calls_plugin_callers_carry_a_null_line(built) -> None:
+    """§6.8 W1: a plugin caller has every key a code caller has; ``line`` is None."""
+    _, db_path = built
+    r = mcp_tools.who_calls(db_path, "alpha")
+    plugin = [c for c in r["callers"] if c.get("via") == "plugin_edges"]
+    assert plugin
+    for c in plugin:
+        assert list(c) == ["name", "kind", "file", "line", "via"]
+        assert c["line"] is None
+
+
+def test_who_calls_callers_sort_by_file_and_line(built) -> None:
+    """§6.8 W1: a consumer sorting by ``(file, line or 0)`` must not raise KeyError."""
+    _, db_path = built
+    for target in ("alpha", "main"):
+        callers = mcp_tools.who_calls(db_path, target)["callers"]
+        sorted(callers, key=lambda c: (c["file"], c["line"] or 0))

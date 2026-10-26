@@ -660,3 +660,11 @@ Root fix confirmed by security-auditor: no default path reads repo-controlled fi
 
 ## User Override Decisions
 - None required (0 CRITICAL).
+
+## §6.8 round 2 (fix only, window 9b8152c0..f8783074, 2026-10-26)
+- Fixes (Ste: W1, W7, W8; rest deferred to TODOS "M10 §6.8: 5 deferred WARNINGs + carry-overs"): RED d350019b → a0bf2fd9 (who_calls plugin callers `line: null` + tool text), f8783074 (`aa_ma_sanitize_lines` — stdlib python3 -I -S, Cc/Cf/Co/Cs/Zl/Zp + invalid UTF-8 → `?`, stricter ASCII fallback + WARN; used by predicted-vs-actual and commit-drift; `<unpredicted-files>` framed untrusted in verify-impl + code-reviewer; rc-4 docstring).
+- code-reviewer: 0 / 0 / 3 INFO (sanitising is output-only — comparison uses raw paths; `$(cat)` drops trailing blank lines/NUL; redundant `[[:cntrl:]]` pass; no test pins raw-path comparison).
+- security-auditor: 0 / 0 / 5 INFO (fixed code string, paths only on stdin; no bypass found live incl. fallback; combining marks/homoglyphs out of scope; log line has no path content).
+- Tests at f8783074: TESTS_VERIFIED passed=3401; bats 855/0.
+
+## Verdict: PASS_WITH_WARNINGS (round 2 clean; stop rule: 2 rounds)

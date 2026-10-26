@@ -2,6 +2,19 @@
 
 ## AA-MA Tooling
 
+### code-conventions-impact M10 §6.6 review: deferred W6 + efficiency/reuse INFOs
+**What:**
+- W6: three test-path predicates disagree — `codemem.mcp_tools._is_test_path` (`tests/`, `test/`, `test_*`), `codemem.draw.cut.is_test_path` (`tests/` only), `aa_ma.analysis.measure._is_test`; a diagram and `file_impact` classify one file differently. One shared predicate (changes draw output → regen + golden).
+- Every incremental refresh re-extracts the whole plugin surface (~68 ms, 230 rows) even when no `claude-code/` file changed (`codemem/incremental.py` `_refresh_plugin_edges`); gate on a claude-code/ signature.
+- `co_changes` builds `kept_commits` (GROUP BY over commit_files) twice even when `max_commit_files` is None; omit the CTE then.
+- Multi-path `query co_changes` opens one connection per path (~50 for a Contract); share one.
+- `callees` / `who_calls` resolve result ids with one SELECT each (N+1, pre-M10); one `WHERE id IN (…)`.
+- `git_mining._apply_moves_to_cached_rows`: 2 statements per rename re-parse the batch SHA JSON; skip on a full refresh.
+- `codemem.gitutil._SAFE_PREFIX` restates `codemem.safety.SAFE_GIT`; no production caller of either gitutil yet — adopt in M11 (`check_conventions._git`, codemem indexer/git_mining, `aa_ma.analysis.stamp.run_git`).
+- `sdm.sh:45` and `aa-ma-footer.sh:43` keep their own default-base logic (different semantics); move to `aa_ma_default_base_ref` when those scripts are next touched.
+
+**Why:** M10 §6.6 (2026-10-26), 3 review agents: 0 CRITICAL; Ste fixed W1–W5, W7 + 4 INFOs and deferred these. **Effort:** M · **Priority:** P3
+
 ### run-evals: case discovery walks nested worktrees under the repo
 **What:** `scripts/run-evals.sh` (`claude plugin eval . --eval-dir evals`) also ran the cases under `.worktrees/<branch>/evals/` — at 10.9 each `--case '<skill>-*'` run doubled (6 runs for 3 cases) with stale copies from `.worktrees/prototype/codemem-refresh-cap`. Exclude `.worktrees/` (or point the run at a path that cannot contain them) and add a bats case.
 **Why:** code-conventions-impact 10.9 (2026-10-26): doubled cost and results mixing branch copies. **Effort:** S · **Priority:** P3

@@ -1044,12 +1044,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-26 (HITL: Ste approved). ADR-0026 `docs/adr/0026-impact-preedit-hook-and-callees.md` Status: Accepted + INDEX row 48; context-log approval entry; alias removal tracked as `TODO(ADR-0026)` at `packages/codemem-mcp/src/codemem/mcp_tools/__init__.py:480`.
 
 ### Sub-step 10.9: Re-run impact-analysis + execute-aa-ma-milestone evals
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 10.8
 - Acceptance Criteria:
   - M4 evals for impact-analysis and execute-aa-ma-milestone re-run (advisory); delta logged (CEO F13).
-- Result Log:
+- Result Log: COMPLETE 2026-10-26 (Mode: AFK — auto-dispatched; advisory). `scripts/run-evals.sh --case '<skill>-*' -j 3` (sonnet, plan usage): impact-analysis 3/3, execute-aa-ma-milestone 3/3, all score 1, failed=[]. Delta vs M4 baseline of record (both 3/3): 0 — no regression from the pre-edit wiring, §6.3 script or reviewer input. Results .claude/evals/2026-10-26.jsonl (gitignored). Note: case discovery also ran 6 duplicate cases from the nested `.worktrees/prototype/codemem-refresh-cap/evals` (cost doubled) → TODOS.
 
 ### Sub-step 10.10: CRITICAL_PATH_REVIEW
 - Status: PENDING

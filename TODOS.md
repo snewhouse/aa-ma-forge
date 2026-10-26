@@ -2,6 +2,10 @@
 
 ## AA-MA Tooling
 
+### run-evals: case discovery walks nested worktrees under the repo
+**What:** `scripts/run-evals.sh` (`claude plugin eval . --eval-dir evals`) also ran the cases under `.worktrees/<branch>/evals/` — at 10.9 each `--case '<skill>-*'` run doubled (6 runs for 3 cases) with stale copies from `.worktrees/prototype/codemem-refresh-cap`. Exclude `.worktrees/` (or point the run at a path that cannot contain them) and add a bats case.
+**Why:** code-conventions-impact 10.9 (2026-10-26): doubled cost and results mixing branch copies. **Effort:** S · **Priority:** P3
+
 ### PR for code-conventions-impact 10.0 (live worktree, ADR-0025) review notes: 5 LOW + 1 LOW (C2), deferred under the stop rule
 **What:**
 - LOW: a dangling `codemem-plugin` link whose parent dir is gone stops install.sh at `plugin_wt="$(readlink -f …)"` (set -e) with exit 1 and no message (`scripts/install.sh` §0); use `readlink -f … || readlink …` plus a warning.

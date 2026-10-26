@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import re
 
-from aa_ma.grammar import H2_RE, scan_fences
+from aa_ma.grammar import H2_RE, PLAN_MILESTONE_RE, scan_fences
 from aa_ma.render.mermaid_lint import (
     NEW_RE,
     Finding,
@@ -52,9 +52,6 @@ _ANY_ROW_RE = re.compile(
     r"^[ \t]*(?:[-*|][ \t]*)?(?:Create|Modify|Test|Move|Merge|Delete)[ \t]*:?[ \t|]+([^#]*)"
 )
 _HEADING_RE = re.compile(r"^(#{1,6})[ \t]")
-_MILESTONE_RE = re.compile(
-    r"^(#{2,4})[ \t]+Milestone[ \t]+([0-9]+[a-z]?)(?![0-9A-Za-z])"
-)
 _FILE_RE = re.compile(r"^[ \t]*#[ \t]*file:[ \t]*(\S+)")
 _PAREN_RE = re.compile(r"\([^()]*\)")
 _LINES_RE = re.compile(r":\d+(?:-\d+)?$")
@@ -101,9 +98,10 @@ def contract_paths(plan_text: str, stripped: str) -> list[tuple[int, str]]:
 def milestone_contract_paths(plan_text: str, milestone: str) -> list[str]:
     """Every path Milestone ``milestone``'s Contract names: all row verbs, none exempt, deduped.
 
-    The milestone is the ``##``-``####`` ``Milestone <id>`` heading up to the next heading
-    of the same or a higher level; ``[]`` when it is absent, has no Contract, or the plan
-    has an unterminated fence.
+    The milestone is the ``##``-``####`` heading :data:`aa_ma.grammar.PLAN_MILESTONE_RE`
+    reads as ``milestone`` (the gate's number + separator grammar) up to the next heading of
+    the same or a higher level; ``[]`` when it is absent, has no Contract, or the plan has an
+    unterminated fence.
     """
     scan = scan_fences(plan_text)
     if scan.unterminated:
@@ -112,9 +110,9 @@ def milestone_contract_paths(plan_text: str, milestone: str) -> list[str]:
     start = end = None
     for i, line in enumerate(bare):
         if start is None:
-            m = _MILESTONE_RE.match(line)
-            if m and m.group(2) == milestone:
-                start, level = i, len(m.group(1))
+            m = PLAN_MILESTONE_RE.match(line)
+            if m and m.group("number") == milestone:
+                start, level = i, len(m.group("hashes"))
         elif (h := _HEADING_RE.match(line)) and len(h.group(1)) <= level:
             end = i
             break

@@ -21,7 +21,9 @@
 # under `set -C` is test-and-set (bash opens it O_CREAT|O_EXCL), so of any number of concurrent
 # runs only the one that creates it goes on. Not `mkdir`: uutils coreutils mkdir (0.10.0, the
 # Ubuntu 26.04 default) let two racing mkdirs of one dir both succeed, measured 2026-10-25.
-# aa-ma-session-end-dirty.sh removes the session's dir at SessionEnd.
+# aa-ma-session-end-dirty.sh removes the session's dir at SessionEnd. The marker is claimed as
+# soon as the absolute path is known, before any git call, so a repeat edit costs one realpath,
+# one sha1 and one open; an out-of-repo path claims one too and stays silent all the same.
 #
 # Trust (plan §0 v2): codemem comes only from this forge (CODEMEM_BIN, its .venv, an absolute
 # PATH entry — aa_ma_codemem_bin), never from the edited repo; the index is the XDG cache dir
@@ -37,8 +39,8 @@ HOOK="aa-ma-impact-preedit"
 # 2 + 1 leaves room for the git and jq calls around it. 10.1 measured p95 ≈ 75 ms.
 CODEMEM_TIMEOUT_S=2
 CODEMEM_KILL_AFTER_S=1
-NO_INDEX_MSG="no index for this repo — run \`codemem build\`"
-TIMEOUT_MSG="impact lookup timed out after ${CODEMEM_TIMEOUT_S} s — pre-edit impact notes may be missing this session"
+NO_INDEX_MSG="codemem: no index for this repo — run \`codemem build\`"
+TIMEOUT_MSG="codemem: impact lookup timed out after ${CODEMEM_TIMEOUT_S} s — pre-edit impact notes may be missing this session"
 
 # cat, not $(<…) or `read`: see ruff-format.sh (stdin is a socket; an Edit payload is large).
 payload=$(cat)
@@ -73,17 +75,9 @@ if [[ ! "${sid}" =~ ^[A-Za-z0-9_-]{1,64}$ ]]; then
     exit 0
 fi
 
-# The repo: the nearest existing ancestor of the path (a Write may create dirs), then git.
 abs="$(realpath -m -- "${fp}")" || exit 0
-dir="${abs%/*}"
-while [[ -n "${dir}" && ! -d "${dir}" ]]; do dir="${dir%/*}"; done
-[[ -n "${dir}" ]] || exit 0
-# why: not in a git repo is the common silent case; GIT_* from the caller must not redirect git
-top="$(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR git -C "${dir}" rev-parse --show-toplevel 2>/dev/null)" || exit 0
-top="$(realpath -m -- "${top}")" || exit 0
-[[ "${abs}" == "${top}/"* ]] || exit 0   # outside the repo (../, a symlink out): not ours
-rel="${abs#"${top}"/}"
 
+# Once per file per session, first: a repeat edit stops here, before any git call.
 rt="${HOME}/.claude/runtime/impact-seen-${sid}"
 # umask 077: the marker dirs are this user's only
 if ! ( umask 077 && mkdir -p -- "${rt}" ); then
@@ -105,13 +99,21 @@ claim() {
 }
 claim "${key}" || exit 0   # this file was already noted this session
 
-# notice_once <marker> <msg> — one systemMessage per session per marker.
+# The repo: the nearest existing ancestor of the path (a Write may create dirs), then git.
+dir="${abs%/*}"
+while [[ -n "${dir}" && ! -d "${dir}" ]]; do dir="${dir%/*}"; done
+[[ -n "${dir}" ]] || exit 0
+# why: not in a git repo is the common silent case; GIT_* from the caller must not redirect git
+top="$(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR git -C "${dir}" rev-parse --show-toplevel 2>/dev/null)" || exit 0
+top="$(realpath -m -- "${top}")" || exit 0
+[[ "${abs}" == "${top}/"* ]] || exit 0   # outside the repo (../, a symlink out): not ours
+rel="${abs#"${top}"/}"
+
+# notice_once <marker> <msg> — one systemMessage per session per marker, through fail_open_notice
+# (masks secrets, writes the WARN line and the {"systemMessage": "<hook>: <msg>"} JSON).
 notice_once() {
     claim "$1" || return 0   # already shown this session
-    log_warn "${HOOK}" "$2"
-    # why: jq's EPIPE message is replaced by the log_error line on failure
-    jq -cn --arg m "codemem: $2" '{systemMessage: $m}' 2>/dev/null \
-        || log_error "${HOOK}" "could not write the systemMessage (stdout closed?)"
+    fail_open_notice "${HOOK}" "$2"
 }
 
 db_dir="$(aa_ma_codemem_dir "${top}")" || exit 0

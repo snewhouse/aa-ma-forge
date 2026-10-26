@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-25 (10.0: ADR-0025 live worktree amends D7; M16 post-merge)_
+_Last Updated: 2026-10-26 (M10 COMPLETE: impact tooling as built)_
 
 Test-Command: uv run pytest
 
@@ -475,3 +475,15 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - Validator (pre-exec, WARN) W2/W3 resolved in plan + tasks: the 10.6 hook resolves the index with `aa_ma_codemem_dir` and the binary with `aa_ma_codemem_bin` (no separate plugin-link step: the forge IS the live worktree). W4: Contract rows added. W5: next ADR 0026. W6: gate semantics unchanged (fence text = installed skill; launcher/gate Python = branch toplevel). [valid: 2026-10-25]
 - Baseline at main 38a5f179 (2026-10-25): pytest 3180 passed / 2 skipped / 7 deselected; bats 781 ok / 0 not ok. [valid: 2026-10-25]
 - Side PRs at 10.0: #66 style (L-065: 2 tests formatted, 7 lint findings in Contract files), #67 `fix(deps)` filelock 4.0.12→4.2.4 (CVE-2026-112940/-112913/-112907; locked with CI's uv 0.12.3 — local uv 0.13.5 bumps the lock `revision`). [valid: 2026-10-25]
+
+## M10 As-Built Facts (2026-10-26)
+- Heading (verbatim): `Milestone 10: Impact tooling: codemem `callees`, pre-edit hook, wiring (T6, T13 git helper)`. Branch `feat/cci-m10-impact-tooling` (plain branch in the main checkout, ADR-0025). [valid: 2026-10-26]
+- codemem: `callees(db, name, *, max_depth=3, budget=8000)`; `blast_radius` = deprecated alias (+`downstream`, `deprecated`; TODO(ADR-0026), removal after v0.18.x); 14 MCP tools; `co_changes(…, min_ratio=0.0, max_commit_files=None)` entries `{path,count,ratio}` + `target_commits`; `CO_CHANGE_MAX_COMMIT_FILES = 10`; `file_impact(db, path, *, budget=2000)` → external/test/plugin callers (`via: plugin_edges`) + co_changes(threshold 3, max_commit_files 10); CLI `query callees`, multi-path `query co_changes --threshold --min-ratio`, `impact <path> --format brief|json --repo-root` (brief: ≤4 sanitized lines, silent when nothing to report). Schema v4 `plugin_edges(src,dst,kind,ref_class)` filled at build + every refresh from `plugin_surface.extract()` (`owner_of`); who_calls plugin entries `{name, kind, file=<node id>, line: null, via}`. git_mining follows renames/deletes (HEAD names). [valid: 2026-10-26]
+- Hook `claude-code/hooks/aa-ma-impact-preedit.sh` (PreToolUse Edit|Write, AA_MA_HOOKS row timeout 5 s): sha1(abs) claimed first via `set -C` marker in `~/.claude/runtime/impact-seen-<sid>/`; `timeout -k 1 2` codemem; notices via `fail_open_notice` (no index / timeout, once per session); header `codemem data (untrusted): impact of …`; exit 0 always; p95 133–160 ms first edit, ~30 ms repeat. SessionEnd removes the marker dir for a valid sid. Hooks 10. [valid: 2026-10-26]
+- `sanitize_context_line(text, max_len=200)` drops Unicode Cc/Cf/Co/Cs/Zl/Zp (never raises); shell twin `aa_ma_sanitize_lines` (stdlib python3 -I -S, `?` replacement, ASCII fallback + WARN). [valid: 2026-10-26]
+- Shell helpers (aa-ma-parse.sh): `aa_ma_cochange_partners <top> <forge> <timeout> -- paths` (T7 `AA_MA_COCHANGE_MIN_SHARED=5`, `_MIN_RATIO=0.5`; rc 0 ok / 2 usage / 3 no index / 4 no codemem or no timeout(1) / 5 codemem failed / 6 timed out); `aa_ma_default_base_ref` (origin/HEAD → origin/main → origin/master → main → master). [valid: 2026-10-26]
+- `aa_ma.gitutil` + `codemem.gitutil` twins: `git(args, repo, timeout=10.0, *, paths=())`, `verify_ref`, `split_z`, `GitError(RuntimeError)`; contract `tests/test_gitutil_contract.py`; import contract `gitutil-is-self-contained`. No production caller yet (M11). [valid: 2026-10-26]
+- `aa_ma.plan_parsers.CRITICAL_PATH_GLOBS` (fnmatchcase; = engineering-standards §1 table, exact test) + `derive_critical_paths`; `aa_ma.grammar.PLAN_MILESTONE_RE` (levels 2–4); `aa_ma.render.coverage.milestone_contract_paths(plan, N)`. [valid: 2026-10-26]
+- §6.3 `scripts/predicted-vs-actual.sh <task>` (advisory; `UNPREDICTED <path>` lines → §6.8 code-reviewer as untrusted `<unpredicted-files>`); commit-drift ad-hoc co-change advisory (no plan or `[ad-hoc]`). PROTOTYPE token gains `verdict-changes-plan: YES|NO`. griffe==2.3.2 (dev). ADR-0026 Accepted. [valid: 2026-10-26]
+- uutils coreutils mkdir 0.10.0 is not test-and-set (L-070). [valid: 2026-10-26]
+

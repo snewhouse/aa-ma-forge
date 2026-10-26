@@ -100,3 +100,19 @@ def test_angle6_contract_paths_unchanged() -> None:
     assert "tests/test_two.py" not in got and "docs/spec/x.md" not in got
     assert "old/gone.py" not in got  # Delete is not a Create/Modify row
     assert {"src/one.py", "src/two.py", "src/twenty.py", "scripts/new.sh"} <= set(got)
+
+
+def test_headings_the_grammar_ssot_accepts_are_read() -> None:
+    """§6.6 W3: the heading grammar is aa_ma.grammar's, at any level ``##``-``####``.
+
+    The old private regex took ``Milestone <n>`` only, so ``### M10: …`` and
+    ``## Milestone M10 — …`` (both accepted by the gate's grammar) read as no Contract.
+    """
+    for heading in ("### M10: Short form", "## Milestone M10 — Prefixed"):
+        plan = f"{heading}\n#### Contract\n```\n  Modify src/ten.py\n```\n"
+        assert milestone_contract_paths(plan, "10") == ["src/ten.py"], heading
+
+
+def test_a_prose_heading_is_not_a_milestone() -> None:
+    plan = "### Milestone graph\n#### Contract\n```\n  Modify src/x.py\n```\n"
+    assert milestone_contract_paths(plan, "1") == []

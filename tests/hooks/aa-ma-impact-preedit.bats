@@ -74,7 +74,9 @@ hook() {
 
 ctx() { jq -r '.hookSpecificOutput.additionalContext' <<<"$output"; }
 
-NO_INDEX='codemem: no index for this repo — run `codemem build`'
+# §6.6 W4: notices go through fail_open_notice, which prefixes the hook's name (as every AA-MA
+# hook's notice does) and masks secrets; the `codemem:` part follows it.
+NO_INDEX='aa-ma-impact-preedit: codemem: no index for this repo — run `codemem build`'
 
 @test "fixtures are real PreToolUse(Edit) and PreToolUse(Write) payloads" {
     run jq -r '[.hook_event_name, .tool_name, (.tool_input | keys | join(","))] | @tsv' "${HOOK_PAYLOADS}/PreToolUse-Edit.json"
@@ -129,7 +131,8 @@ NO_INDEX='codemem: no index for this repo — run `codemem build`'
     hook Edit "${FILE_TMP}/repo/../outside.py"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
-    [ ! -e "$RT" ]
+    # §6.6 W7: the marker is claimed before the repo check, so an out-of-repo path leaves one
+    # (no RT assertion any more); it stays silent all the same.
 }
 
 @test "0 callers and 0 co-changes → silent" {
@@ -164,7 +167,7 @@ NO_INDEX='codemem: no index for this repo — run `codemem build`'
     CODEMEM_BIN="${WORK}/slow-codemem" hook Edit "${FILE_TMP}/repo/b.py"
     (( SECONDS < 5 ))
     [ "$status" -eq 0 ]
-    [[ "$(jq -r .systemMessage <<<"$output")" == "codemem: impact lookup timed out"* ]]
+    [[ "$(jq -r .systemMessage <<<"$output")" == "aa-ma-impact-preedit: codemem: impact lookup timed out"* ]]
     CODEMEM_BIN="${WORK}/slow-codemem" hook Edit "${FILE_TMP}/repo/a.py"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
@@ -218,4 +221,22 @@ NO_INDEX='codemem: no index for this repo — run `codemem build`'
     run bash -c 'printf "not json" | "$1"' _ "$HOOK"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
+}
+
+@test "no-index notice also leaves its WARN line in hooks.log (fail_open_notice, §6.6 W4)" {
+    hook Edit "${FILE_TMP}/bare/b.py"
+    [ "$status" -eq 0 ]
+    grep -q 'WARN aa-ma-impact-preedit: codemem: no index for this repo' "$CLAUDE_HOOK_LOG"
+}
+
+@test "a repeat edit of a file short-circuits before git runs (§6.6 W7)" {
+    hook Edit "${FILE_TMP}/repo/b.py"
+    [ -n "$output" ]
+    mkdir -p "${WORK}/fakebin"
+    printf '#!/usr/bin/env bash\n: > "%s/git-ran"\nexec %s "$@"\n' "$WORK" "$(command -v git)" > "${WORK}/fakebin/git"
+    chmod +x "${WORK}/fakebin/git"
+    PATH="${WORK}/fakebin:${PATH}" hook Edit "${FILE_TMP}/repo/b.py"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    [ ! -e "${WORK}/git-ran" ]
 }

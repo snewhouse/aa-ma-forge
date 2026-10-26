@@ -292,3 +292,58 @@ PARTNERS='{"src-1.txt": {"files": [{"path": "partner.py", "count": 7, "ratio": 0
     [[ "$output" != *"co-change"* ]]
     [[ "$output" == *"task-1"* ]]
 }
+
+# §6.6 W1: every fail-open path of the advisory leaves one hooks.log line (never stdout/stderr
+# noise; the hook still exits 0). A missing index or binary is the common case: DEBUG.
+_hooks_log() { cat "$BATS_TMP_HOME/.claude/logs/hooks.log" 2>/dev/null || :; }   # why: no log yet reads as empty
+
+@test "ad-hoc commit, no codemem index → one DEBUG line (HOOK_DEBUG=1)" {
+    _adhoc_repo
+    _cochange_stub "$PARTNERS"
+    rm "$BATS_TMP_HOME/cm/index.db"
+    cd "$BATS_TMP"
+    HOOK_DEBUG=1 run_hook 'git commit -m "chore: ad-hoc"'
+    [ "$status" -eq 0 ]
+    [ "$(_hooks_log | grep -c 'DEBUG aa-ma-commit-drift: co-change advisory skipped: no codemem index')" -eq 1 ]
+}
+
+@test "ad-hoc commit, no codemem binary → one DEBUG line (HOOK_DEBUG=1)" {
+    _adhoc_repo
+    _cochange_stub "$PARTNERS"
+    export CODEMEM_BIN="$BATS_TMP_HOME/absent-codemem"
+    cd "$BATS_TMP"
+    HOOK_DEBUG=1 run_hook 'git commit -m "chore: ad-hoc"'
+    [ "$status" -eq 0 ]
+    [ "$(_hooks_log | grep -c 'DEBUG aa-ma-commit-drift: co-change advisory skipped: no codemem binary')" -eq 1 ]
+}
+
+@test "ad-hoc commit, codemem garbage → one WARN line, empty output" {
+    _adhoc_repo
+    _cochange_stub 'not json'
+    cd "$BATS_TMP"
+    run_hook 'git commit -m "chore: ad-hoc"'
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    [ "$(_hooks_log | grep -c 'WARN aa-ma-commit-drift: co-change advisory skipped: codemem co_changes failed')" -eq 1 ]
+}
+
+@test "ad-hoc commit, codemem exits non-zero → one WARN line, empty output" {
+    _adhoc_repo
+    _cochange_stub "$PARTNERS"
+    printf 'exit 3\n' >> "$BATS_TMP_HOME/codemem"
+    cd "$BATS_TMP"
+    run_hook 'git commit -m "chore: ad-hoc"'
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    [ "$(_hooks_log | grep -c 'WARN aa-ma-commit-drift: co-change advisory skipped: codemem co_changes failed')" -eq 1 ]
+}
+
+@test "ad-hoc commit, codemem timeout → one WARN line naming the timeout" {
+    _adhoc_repo
+    _cochange_stub "$PARTNERS" 10
+    cd "$BATS_TMP"
+    run_hook 'git commit -m "chore: ad-hoc"'
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    [ "$(_hooks_log | grep -c 'WARN aa-ma-commit-drift: co-change advisory skipped: codemem co_changes timed out')" -eq 1 ]
+}

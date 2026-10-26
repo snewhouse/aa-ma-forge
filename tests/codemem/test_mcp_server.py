@@ -68,6 +68,16 @@ class TestCanonicalSlots:
         assert "deprecated" in desc.lower()
         assert "callees" in desc
 
+    def test_who_calls_describes_plugin_callers(self, server_mod):
+        """§6.8 W1: the tool text names the plugin-caller shape."""
+        import asyncio
+
+        server = server_mod.build_server()
+        desc = asyncio.run(server.get_tool("who_calls")).description or ""
+        assert 'via: "plugin_edges"' in desc
+        assert "line: null" in desc
+        assert "node id" in desc
+
 
 class TestAliases:
     def test_dead_code_find_dead_code(self, server_mod):

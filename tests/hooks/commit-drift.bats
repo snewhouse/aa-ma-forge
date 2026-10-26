@@ -221,6 +221,17 @@ PARTNERS='{"src-1.txt": {"files": [{"path": "partner.py", "count": 7, "ratio": 0
     [[ "$output" == *$'--\nsrc-1.txt\nsrc-2.txt'* ]]
 }
 
+@test "ad-hoc advisory: Unicode format characters in a partner path are neutralised (§6.8 W7)" {
+    _adhoc_repo
+    # U+202E RLO, U+200B ZWSP, U+E0041 (a tag character, a surrogate pair in JSON).
+    _cochange_stub '{"src-1.txt": {"files": [{"path": "a\u202eb\u200bc\udb40\udc41d.py", "count": 7, "ratio": 0.7}]}, "src-2.txt": {"files": []}}'
+    cd "$BATS_TMP"
+    run_hook 'git commit -m "chore: ad-hoc"'
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"co-change"*"a?b?c?d.py"* ]]
+    [[ "$output" != *$'\u202e'* && "$output" != *$'\u200b'* && "$output" != *$'\U000e0041'* ]]
+}
+
 @test "ad-hoc commit whose partners are all in it → silent" {
     _adhoc_repo
     _cochange_stub '{"src-1.txt": {"files": [{"path": "src-2.txt", "count": 6, "ratio": 0.6}]}, "src-2.txt": {"files": []}}'

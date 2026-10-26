@@ -97,7 +97,8 @@ cochange_advisory() {
     mapfile -t missed < <(grep -Fvx -f <(printf '%s\n' "$@") <<< "$partners")
     [ "${#missed[@]}" -gt 0 ] || return 0
     local shown more=""
-    shown=$(printf '%s\n' "${missed[@]:0:COCHANGE_MAX_NAMES}" | paste -sd ',' - | sed 's/,/, /g')
+    # Partner paths are repo-controlled: aa_ma_sanitize_lines turns bidi/zero-width/tag characters into `?`.
+    shown=$(printf '%s\n' "${missed[@]:0:COCHANGE_MAX_NAMES}" | aa_ma_sanitize_lines | paste -sd ',' - | sed 's/,/, /g')
     [ "${#missed[@]}" -gt "$COCHANGE_MAX_NAMES" ] && more=" (+$(( ${#missed[@]} - COCHANGE_MAX_NAMES )) more)"
     printf 'ℹ️  co-change advisory (codemem; shared>=%s, ratio>=%s): often changed with these files but not in this commit: %s%s\n' \
         "$AA_MA_COCHANGE_MIN_SHARED" "$AA_MA_COCHANGE_MIN_RATIO" "${shown//[[:cntrl:]]/?}" "$more" >&2

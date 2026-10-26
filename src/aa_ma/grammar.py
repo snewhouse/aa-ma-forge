@@ -78,6 +78,16 @@ MILESTONE_RE = re.compile(
     re.MULTILINE,
 )
 
+# The same milestone heading at `##`-`####`: a plan nests its milestones under a
+# `## Milestones` section (`### Milestone 3 — …`, `### M3: …`), where a tasks.md has
+# them at H2. `hashes` gives the level, so a reader can close the block at the next
+# heading of the same or a higher level. One number + separator grammar for both files.
+PLAN_MILESTONE_RE = re.compile(
+    rf"^(?P<hashes>#{{2,4}})[ \t]+(?:Milestone[ \t]+M?|M)(?P<number>{_NUM_M}){_SEP}"
+    rf"[ \t]*(?P<title>.*[^ \t\n])[ \t]*$",
+    re.MULTILINE,
+)
+
 STEP_RE = re.compile(
     rf"^###[ \t]+(?:Sub-step|Step|Task)[ \t]+(?P<number>{_NUM_S})"
     rf"{_SEP}[ \t]*(?P<title>.*[^ \t\n])[ \t]*$",

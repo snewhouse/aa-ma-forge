@@ -1052,12 +1052,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-26 (Mode: AFK — auto-dispatched; advisory). `scripts/run-evals.sh --case '<skill>-*' -j 3` (sonnet, plan usage): impact-analysis 3/3, execute-aa-ma-milestone 3/3, all score 1, failed=[]. Delta vs M4 baseline of record (both 3/3): 0 — no regression from the pre-edit wiring, §6.3 script or reviewer input. Results .claude/evals/2026-10-26.jsonl (gitignored). Note: case discovery also ran 6 duplicate cases from the nested `.worktrees/prototype/codemem-refresh-cap/evals` (cost doubled) → TODOS.
 
 ### Sub-step 10.10: CRITICAL_PATH_REVIEW
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 10.9
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — <milestone heading> — hook-modification — <evidence>`, naming the bats/test names, where the heading is verbatim (backticks included): Milestone 10: Impact tooling: codemem `callees`, pre-edit hook, wiring (T6, T13 git helper)
-- Result Log:
+- Result Log: COMPLETE 2026-10-26 (Mode: AFK). CRITICAL_PATH_REVIEW written to provenance with the verbatim heading: derive_critical_paths over the M10 diff → 12 hook-modification files, each mapped to its tests; re-run at 15890d3f: 131 bats ok / 0 and 198 pytest passed; full suites pytest 3390/2/7, bats 829/0.
 
 ---
 

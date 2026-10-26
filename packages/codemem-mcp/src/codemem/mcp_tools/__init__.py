@@ -372,8 +372,9 @@ def who_calls(
 
     ``name`` may also be a plugin node — a skill/command/agent/rule/hook stem
     or ``<kind>:<stem>``. Its callers from ``plugin_edges`` follow the code
-    callers as ``{"name", "kind", "file", "via": "plugin_edges"}``, where
-    ``kind`` is the caller's node kind and ``file`` its node id.
+    callers as ``{"name", "kind", "file", "line": None, "via": "plugin_edges"}``,
+    where ``kind`` is the caller's node kind and ``file`` its node id; ``line`` is
+    None (a plugin node has no line) so every caller has the same keys.
     """
     try:
         clean, plugin_ids = _plugin_target(name)
@@ -409,6 +410,7 @@ def who_calls(
             "name": src.split(":", 1)[1],
             "kind": src.split(":", 1)[0],
             "file": src,
+            "line": None,
             "via": "plugin_edges",
         }
         for src in plugin_srcs

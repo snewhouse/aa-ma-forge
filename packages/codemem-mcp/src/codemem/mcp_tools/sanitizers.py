@@ -22,10 +22,13 @@ as one line of hook context (code-conventions-impact 10.6).
 
 from __future__ import annotations
 
+import logging
 import re
 import unicodedata
 from pathlib import Path
 
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "ValidationError",
@@ -113,4 +116,5 @@ def sanitize_context_line(text: str, max_len: int = 200) -> str:
             s = s[: max_len - 1].rstrip() + _ELLIPSIS
         return s
     except Exception:  # noqa: BLE001  # why: the contract is "never raises"; a str() that raises yields ""
+        logger.debug("sanitize_context_line: unprintable input dropped", exc_info=True)
         return ""

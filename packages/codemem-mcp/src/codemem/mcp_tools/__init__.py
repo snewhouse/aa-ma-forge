@@ -936,7 +936,7 @@ def file_impact(
     into any symbol defined in ``file_path``; ``test_callers`` are the same
     from test files. A ``claude-code/`` plugin file adds the plugin nodes that
     reference its owner (:func:`~codemem.draw.plugin_surface.owner_of`) to
-    ``external_callers`` as ``{"file": "<kind>:<stem>", "name": "<stem>"}``.
+    ``external_callers`` as ``{"file": "<kind>:<stem>", "name": "<stem>", "via": "plugin_edges"}``.
     ``co_changes`` comes from :func:`co_changes` with
     ``max_commit_files=CO_CHANGE_MAX_COMMIT_FILES``; ``target_commits`` is
     its denominator. Lists are trimmed (co-changes first) to fit ``budget``.
@@ -952,8 +952,14 @@ def file_impact(
         rows = conn.execute(_FILE_CALLERS_SQL, (clean, clean)).fetchall()
         plugin_srcs = _plugin_callers(conn, [node]) if node else []
     callers = [{"file": r["file"], "name": r["name"]} for r in rows]
-    # Plugin nodes have no single source file: "file" is the node id.
-    callers += [{"file": src, "name": src.split(":", 1)[1]} for src in plugin_srcs]
+    # Plugin nodes have no single source file: "file" is the node id, and "via" says so.
+    callers += [
+        {"file": src, "name": src.split(":", 1)[1], "via": "plugin_edges"}
+        for src in plugin_srcs
+    ]
+    # Looser than the gate-side T7 check (shared >= 5, ratio >= 0.5): this brief is an
+    # early pre-edit hint, so it shows any co-change (threshold 3, sweep commits of more
+    # than CO_CHANGE_MAX_COMMIT_FILES files dropped); the gate is the enforcement.
     co = co_changes(
         db_path, clean, max_commit_files=CO_CHANGE_MAX_COMMIT_FILES, budget=budget
     )
@@ -964,10 +970,7 @@ def file_impact(
         "file": clean,
         "external_callers": [c for c in callers if not _is_test_path(c["file"])],
         "test_callers": [c for c in callers if _is_test_path(c["file"])],
-        "co_changes": [
-            {"path": f["path"], "count": f["count"], "ratio": f["ratio"]}
-            for f in co["files"]
-        ],
+        "co_changes": co["files"],
         "target_commits": co["target_commits"],
         "error": None,
     }

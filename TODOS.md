@@ -2,6 +2,18 @@
 
 ## AA-MA Tooling
 
+### code-conventions-impact M10 §6.8: 5 deferred WARNINGs + carry-overs for M11
+**What:**
+- WARNING: `derive_critical_paths` / `CRITICAL_PATH_GLOBS`, and both gitutil twins, have no non-test caller — M11 AC: each gets a production caller (aa_ma.impact, §6.7 fence 4; check_conventions/_git, codemem git_mining) or is removed.
+- WARNING: `file_impact` budget 2000 is unnamed in `codemem/cli.py:616` and `mcp_tools/__init__.py:931` — one `FILE_IMPACT_BUDGET` with unit + rationale.
+- WARNING: `codemem query co_changes --threshold default=3` restates the library default (`cli.py:575-578`) — a shared constant or `default=None`.
+- WARNING: `render/coverage.py` `_ANY_ROW_RE` copies `_ROW_RE` + 3 verbs — build both from one verb tuple.
+- WARNING (process): ruff-format reflowed untouched lines of render/coverage.py inside a feature commit (L-007/L-065) — format-only churn goes in its own style commit.
+- M11 carry-overs: a contract test that shell `AA_MA_COCHANGE_MIN_SHARED/_RATIO` (aa-ma-parse.sh) equal the Python `aa_ma.impact` twin; log a Context7 lookup of the griffe 2.x API before M11.4; the M11 Contract must name its tests, `claude-code/hooks/lib/aa-ma-parse.sh`, `scripts/lib/aa-ma-install-lib.sh` and doc-count files (M10 had 38 unpredicted, all missed-impact).
+- INFO nits: name sanitize_context_line's 200-char default and import it in cli.py; `CODEMEM_TIMEOUT_S` is 2 s in the hook and 30 s in predicted-vs-actual (rename one); relax `griffe==2.3.2` to `>=2.3.2,<3` once 2.4.x clears the cooldown; CHANGELOG note that git_mining now stores HEAD names and drops deleted paths (hot_spots/symbol_history/owners counts change for renamed files).
+
+**Why:** M10 §6.8 (2026-10-26): 0 CRITICAL, 8 WARNING — W1/W7/W8 fixed (d350019b..f8783074, Ste), these deferred. **Effort:** M · **Priority:** P2 (M11 items) / P3
+
 ### code-conventions-impact M10 §6.6 review: deferred W6 + efficiency/reuse INFOs
 **What:**
 - W6: three test-path predicates disagree — `codemem.mcp_tools._is_test_path` (`tests/`, `test/`, `test_*`), `codemem.draw.cut.is_test_path` (`tests/` only), `aa_ma.analysis.measure._is_test`; a diagram and `file_impact` classify one file differently. One shared predicate (changes draw output → regen + golden).

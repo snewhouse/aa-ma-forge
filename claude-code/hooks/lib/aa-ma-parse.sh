@@ -21,7 +21,8 @@
 #     aa_ma_codemem_bin <forge-root>     -> stdout: the codemem binary to run ($CODEMEM_BIN, else the forge venv's, else PATH) (rc 0), nothing when none is executable (rc 1)
 #     aa_ma_codemem_dir <repo-top>       -> stdout: the codemem index dir ($CODEMEM_DB's, else the XDG cache dir; M16) (rc 0), nothing when it cannot be computed (rc 1)
 #     AA_MA_COCHANGE_MIN_SHARED / AA_MA_COCHANGE_MIN_RATIO -> the T7 co-change constants (5 commits, 0.5 share)
-#     aa_ma_cochange_partners <top> <forge> <timeout-s> -- <path>... -> stdout: codemem co_changes partners at T7, sorted, unique; rc 0 ok | 2 usage | 3 no index | 4 no codemem/timeout | 5 codemem failed | 6 timed out
+#     aa_ma_cochange_partners <top> <forge> <timeout-s> -- <path>... -> stdout: codemem co_changes partners at T7, sorted, unique; rc 0 ok | 2 usage | 3 no index | 4 no codemem binary or no timeout(1) | 5 codemem failed | 6 timed out
+#     aa_ma_sanitize_lines  (stdin: lines) -> stdout: the same lines, every Cc/Cf/Co/Cs/Zl/Zp character (and bad UTF-8) as `?`; rc 0 always
 #     aa_ma_default_base_ref             -> stdout: the merge-base ref (origin/HEAD, origin/main, origin/master, main, master) (rc 0), nothing (rc 1)
 #     aa_ma_read_sidecar_sha <file>      -> stdout: the 40/64-hex SHA in a repo-controlled sidecar (rc 0), nothing for anything else (rc 1)
 #     aa_ma_sha_behind <repo> <sidecar>  -> stdout: commits from the sidecar's SHA to HEAD (rc 0), or a reason: bad sha | not in history | git timeout | git failed (rc 1)
@@ -507,6 +508,37 @@ aa_ma_cochange_partners() {
     partners="$(jq -r 'if has("files") then [.] else [.[]] end | .[] | .files[]?.path' <<< "${out}" 2>/dev/null)" || return 5
     [[ -n "${partners}" ]] || return 0
     printf '%s\n' "${partners}" | awk 'NF' | LC_ALL=C sort -u
+}
+
+# aa_ma_sanitize_lines   (stdin: lines; stdout: the same lines, made safe to print)
+#   For repo-controlled text (file names, codemem partner paths) about to reach a terminal or
+#   an agent prompt. Every character in a Cc, Cf, Co, Cs, Zl or Zp Unicode category — the set
+#   codemem's sanitize_context_line drops: controls, bidi overrides such as U+202E, zero-width
+#   and tag characters — becomes `?`, as do bytes that are not UTF-8. `?`, not codemem's space:
+#   a path keeps one visible mark per removed character. Stdlib-only `python3 -I -S` (aa_ma
+#   must not need codemem). Fails open, never silent: with no working python3, every byte
+#   outside printable ASCII becomes `?` (stricter, never looser) and one WARN line goes to
+#   hooks.log. Empty input prints nothing. Always rc 0. A line's own newline is its end:
+#   callers replace an embedded newline first (`${p//[[:cntrl:]]/?}`) when a value may hold one.
+_AA_MA_SANITIZE_PY='
+import sys, unicodedata
+bad = frozenset(("Cc", "Cf", "Co", "Cs", "Zl", "Zp"))
+text = sys.stdin.buffer.read().decode("utf-8", "surrogateescape")
+lines = text[:-1].split("\n") if text.endswith("\n") else text.split("\n")
+out = ["".join("?" if unicodedata.category(c) in bad else c for c in ln) for ln in lines]
+sys.stdout.buffer.write(("\n".join(out) + "\n").encode("utf-8"))
+'
+aa_ma_sanitize_lines() {
+    local input out
+    input="$(cat)"
+    [[ -n "${input}" ]] || return 0
+    # why: python's traceback is replaced by the one WARN line below
+    if out="$(printf '%s\n' "${input}" | python3 -I -S -c "${_AA_MA_SANITIZE_PY}" 2>/dev/null)"; then
+        printf '%s\n' "${out}"
+        return 0
+    fi
+    log_warn "${0##*/}" "aa_ma_sanitize_lines: python3 missing or failed; non-ASCII bytes printed as ?"
+    printf '%s\n' "${input}" | LC_ALL=C sed 's/[^ -~]/?/g'
 }
 
 # aa_ma_default_base_ref

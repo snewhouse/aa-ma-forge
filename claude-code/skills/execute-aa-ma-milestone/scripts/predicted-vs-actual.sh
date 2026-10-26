@@ -16,7 +16,8 @@
 #             is under it) ∪ their codemem co_changes partners at the T7 constants
 #             (aa_ma_cochange_partners, aa-ma-parse.sh)
 # Output: `NOTE: …` lines, then one `UNPREDICTED <path>` per changed, unpredicted file
-# (sorted; control characters shown as `?`), then the summary
+# (sorted; Unicode control, format and private-use characters shown as `?` — aa_ma_sanitize_lines),
+# then the summary
 #   predicted-vs-actual — <milestone heading> — changed=N predicted=P cochange=C unpredicted=U
 # No codemem binary or index, a failed or timed-out query: a NOTE, and the Contract alone predicts.
 # §6.0 refreshed the index to HEAD just before, so this script does not refresh it.
@@ -129,7 +130,8 @@ for _p in "${!CHANGED[@]}"; do
     predicted_by "${_p}" || UNPREDICTED+=("${_p//[[:cntrl:]]/?}")
 done
 if (( ${#UNPREDICTED[@]} > 0 )); then
-    printf 'UNPREDICTED %s\n' "${UNPREDICTED[@]}" | LC_ALL=C sort
+    # Paths are repo-controlled: aa_ma_sanitize_lines turns bidi/zero-width/tag characters into `?`.
+    printf 'UNPREDICTED %s\n' "${UNPREDICTED[@]}" | aa_ma_sanitize_lines | LC_ALL=C sort
 fi
 echo "predicted-vs-actual — ${HEADING} — changed=${#CHANGED[@]} predicted=${#PREDICTED[@]} cochange=${#COCHANGE[@]} unpredicted=${#UNPREDICTED[@]}"
 exit 0

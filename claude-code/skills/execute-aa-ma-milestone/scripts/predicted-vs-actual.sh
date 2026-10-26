@@ -6,17 +6,19 @@
 # Usage: predicted-vs-actual.sh <task-name>    (cwd: the repository top level)
 # Exit:  0 — the lines below were printed (an empty UNPREDICTED list included)
 #        2 — cannot run: bad task name, plan/tasks file missing, no ACTIVE milestone, not a
-#            git repo, or no default branch (origin/HEAD, main, master) for the merge-base
+#            git repo, or no default branch for the merge-base (aa_ma_default_base_ref:
+#            origin/HEAD, origin/main, origin/master, main, master)
 #
 # changed   = git diff merge-base(<default>, HEAD)..HEAD ∪ staged ∪ unstaged
 #             ∪ untracked-not-ignored, minus EXCLUDE (AA-MA artefacts and generated files)
 # predicted = the ACTIVE milestone's Contract paths (every row verb, nothing exempt;
 #             aa_ma.render.coverage.milestone_contract_paths — a directory row covers what
 #             is under it) ∪ their codemem co_changes partners at the T7 constants
+#             (aa_ma_cochange_partners, aa-ma-parse.sh)
 # Output: `NOTE: …` lines, then one `UNPREDICTED <path>` per changed, unpredicted file
 # (sorted; control characters shown as `?`), then the summary
 #   predicted-vs-actual — <milestone heading> — changed=N predicted=P cochange=C unpredicted=U
-# No codemem binary or index, or a failed query: a NOTE, and the Contract alone predicts.
+# No codemem binary or index, a failed or timed-out query: a NOTE, and the Contract alone predicts.
 # §6.0 refreshed the index to HEAD just before, so this script does not refresh it.
 set -uo pipefail
 
@@ -25,10 +27,7 @@ usage_error() {
     exit 2
 }
 
-# T7 (plan Milestone 11 Contract): COCHANGE_MIN_SHARED / COCHANGE_MIN_RATIO. A partner counts
-# when it shared >= 5 of the file's commits and >= 50% of them.
-COCHANGE_MIN_SHARED=5
-COCHANGE_MIN_RATIO=0.5
+# The T7 constants live in aa-ma-parse.sh (AA_MA_COCHANGE_MIN_SHARED / _RATIO).
 # why: 30 s bounds a hung codemem; a query over ~50 paths takes well under 1 s (measured 0.06 s)
 CODEMEM_TIMEOUT_S=30
 # Never "unpredicted": AA-MA artefacts and regenerated output (M11's IMPACT_EXCLUDE).
@@ -64,14 +63,8 @@ HEADING=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field heading)
 [[ -n "${NUMBER}" ]] || usage_error "the gate named no milestone number."
 
 # -- changed ---------------------------------------------------------------------------------
-# why: stderr dropped — a missing origin/HEAD falls through to the local candidates
-BASE_REF=$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null) || BASE_REF=""
-if [[ -z "${BASE_REF}" ]]; then
-    for _c in main master; do
-        git rev-parse --verify -q "${_c}" >/dev/null && BASE_REF="${_c}" && break
-    done
-fi
-[[ -n "${BASE_REF}" ]] || usage_error "no default branch (origin/HEAD, main, master) to take the merge-base from."
+BASE_REF=$(aa_ma_default_base_ref) \
+    || usage_error "no default branch (origin/HEAD, origin/main, origin/master, main, master) to take the merge-base from."
 BASE=$(git merge-base "${BASE_REF}" HEAD) || usage_error "no merge-base between ${BASE_REF} and HEAD."
 [[ "${BASE}" == "$(git rev-parse HEAD)" ]] \
     && echo "NOTE: the merge-base with ${BASE_REF} is HEAD; only working-tree changes count."
@@ -111,28 +104,15 @@ fi
 
 COCHANGE=()
 TOP=$(git rev-parse --show-toplevel)
-if ! CM_DIR=$(aa_ma_codemem_dir "${TOP}") || [[ ! -f "${CM_DIR}/index.db" ]]; then
-    echo "NOTE: co_changes skipped (no codemem index for this repo — run \`codemem build\`); the Contract alone predicts."
-elif ! CM_BIN=$(aa_ma_codemem_bin "${FORGE}"); then
-    echo "NOTE: co_changes skipped (no codemem binary); the Contract alone predicts."
-else
-    # Several paths print one object keyed by path; one path prints its result object.
-    CM_OUT="" PARTNERS=""
-    # why: codemem's stderr is replaced by the NOTE below
-    CM_OUT=$(timeout -k 1 "${CODEMEM_TIMEOUT_S}" "${CM_BIN}" query co_changes --repo-root "${TOP}" --threshold "${COCHANGE_MIN_SHARED}" --min-ratio "${COCHANGE_MIN_RATIO}" -- "${PREDICTED[@]}" 2>/dev/null)
-    CM_RC=$?
-    JQ_RC=1
-    if (( CM_RC == 0 )); then
-        # why: jq's parse error on a non-JSON answer becomes the NOTE below
-        PARTNERS=$(jq -r 'if has("files") then [.] else [.[]] end | .[] | .files[]?.path' <<< "${CM_OUT}" 2>/dev/null)
-        JQ_RC=$?
-    fi
-    if (( JQ_RC == 0 )); then
-        [[ -n "${PARTNERS}" ]] && mapfile -t COCHANGE < <(sort -u <<< "${PARTNERS}")
-    else
-        echo "NOTE: co_changes skipped (codemem query failed or printed no JSON); the Contract alone predicts."
-    fi
-fi
+CM_RC=0
+PARTNERS=$(aa_ma_cochange_partners "${TOP}" "${FORGE}" "${CODEMEM_TIMEOUT_S}" -- "${PREDICTED[@]}") || CM_RC=$?
+case "${CM_RC}" in
+    0) [[ -n "${PARTNERS}" ]] && mapfile -t COCHANGE <<< "${PARTNERS}" ;;
+    3) echo "NOTE: co_changes skipped (no codemem index for this repo — run \`codemem build\`); the Contract alone predicts." ;;
+    4) echo "NOTE: co_changes skipped (no codemem binary); the Contract alone predicts." ;;
+    6) echo "NOTE: co_changes skipped (codemem timed out after ${CODEMEM_TIMEOUT_S} s); the Contract alone predicts." ;;
+    *) echo "NOTE: co_changes skipped (codemem query failed or printed no JSON, rc ${CM_RC}); the Contract alone predicts." ;;
+esac
 
 # predicted_by <path>: rc 0 when a Contract path is it or a directory above it, or it is a partner.
 predicted_by() {

@@ -926,7 +926,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 10: Impact tooling: codemem `callees`, pre-edit hook, wiring (T6, T13 git helper)
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 9, Milestone 15, Milestone 16
 - Complexity: 75%
 - Effort: 3 days

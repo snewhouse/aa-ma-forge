@@ -707,3 +707,17 @@ DECISION ruff-only () — approved by Ste
 - 3 agents (reuse, quality, efficiency): 0 CRITICAL, 7 WARNING, 13 INFO. Ste: fix W1–W5, W7 + small INFOs; W6 and efficiency/reuse INFOs → TODOS.
 - Fixes (test-first, a8830ad4 → b21ad499): W1 commit-drift logs every fail-open path; W2 `aa_ma_cochange_partners` (T7 constants + query + jq in one helper, rc 0/2/3/4/5/6); W3 coverage reads `aa_ma.grammar.PLAN_MILESTONE_RE` (new constant, levels 2–4, same number/separator rules as MILESTONE_RE; one completed-plan heading "### Milestone 5 (Optional polish…)" no longer read); W4 hook notices via `fail_open_notice` (masked; text now prefixed `aa-ma-impact-preedit:`); W5 `aa_ma_default_base_ref` (adds origin/main to tests-verified's base chain — intended); W7 claim before git (repeat edit ~40 → ~30 ms); INFOs: plural, `via` tag, sanitizer debug log, threshold comment.
 - Pyright "possibly unbound" on coverage.py:116 is a false positive (level set with start); cli.py:493 and mcp_tools:255 are pre-M10.
+
+## [2026-10-26] GATE APPROVAL: Milestone 10: Impact tooling: codemem `callees`, pre-edit hook, wiring (T6, T13 git helper)
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 7/7
+- Decision: APPROVED
+- Evidence (code at f8783074): pytest 3401 passed / 2 skipped; bats 855 ok; perf 4/4; CODE_INTEL_REFRESH f8e91e0c; DIAGRAM_VERIFIED edges=25 checked=25 phantom=0; TESTS_VERIFIED passed=3401; PROTOTYPE (verdict-changes-plan: YES); CRITICAL_PATH_REVIEW (12 hook-modification files); §6.8 PASS_WITH_WARNINGS (round 1 0C/8W/16I → W1/W7/W8 fixed; round 2 clean).
+
+## [2026-10-26] Milestone Completion: Milestone 10: Impact tooling: codemem `callees`, pre-edit hook, wiring (T6, T13 git helper)
+- Status: COMPLETE (HARD gate approved by Ste 2026-10-26)
+- Key outcome: before the first Edit/Write of a file, the model now sees ≤5 sanitized lines of who depends on it (code, plugin and test callers; filtered co-changes), from a codemem that knows `callees`, plugin edges and renames; §6.3 lists unpredicted files for the §6.8 reviewer. Live from 11.0's install.
+- Artifacts: hook aa-ma-impact-preedit.sh; codemem mcp_tools/cli/git_mining/storage (schema v4)/plugin_surface/sanitizers/gitutil; aa_ma gitutil/plan_parsers/grammar/render.coverage; predicted-vs-actual.sh; aa-ma-parse.sh helpers; commit-drift + session-end hooks; install-lib row; ADR-0025, ADR-0026; doctrine table; 5 skills name Skill(impact-analysis).
+- Tests: pytest 3401 passed / 2 skipped; bats 855 ok; perf 4/4. Side PRs merged before the branch: #66 style, #67 filelock CVEs, #68 live worktree (10.0).
+- Next: Milestone 11 — Dependencies: Milestone 10. 11.0 = post-merge of M10 (git pull, live install → hook live; verify A1 with the shipped hook).

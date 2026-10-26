@@ -695,3 +695,10 @@ DECISION ruff-only () — approved by Ste
 - Approved by: Ste
 - Decision: APPROVED (Status: Accepted)
 - Scope: hook (once per file per session, ≤5 lines, untrusted framing, fail-open), trust model + Unicode-category sanitizer, `set -C` marker (L-070), `callees` + deprecated `blast_radius` alias (TODO(ADR-0026)), defect-1 fix, co_changes min_ratio / max_commit_files (N=10), plugin_edges (schema v4). Rejected: skill wording only; a blocking per-edit gate.
+
+## [2026-10-26] Milestone 10 boundary: §6.0 + §6.3 impact analysis
+- §6.0: CODE_INTEL_REFRESH codemem = graphify = f8e91e0c (installed copy, M16 script).
+- §6.3 predicted-vs-actual (new 10.7 script, advisory): changed=72 predicted=47 cochange=10 unpredicted=31 — tests named in shorthand Contract rows, doc-count sites (README, foundations, migration-from-index), 10.0-era files (docs/lessons.md, aa-ma-install-lib.sh), regenerated views; no unpredicted production module.
+- Contract changes (all intended, cascaded in-repo): (1) codemem `blast_radius` payload gains `callees` + `deprecated` (its `downstream` kept) — MCP/CLI/skill wording updated; removal after v0.18.x (TODO(ADR-0026)). (2) `co_changes` entries gain `ratio`, payload gains `target_commits` (additive; new kwargs default to old behaviour). (3) `who_calls` gains plugin entries `{name, kind, file=<node id>, via}` after code callers — consumers are the CLI and MCP server passthrough only. (4) codemem schema v3 → v4 (`plugin_edges`): forward migration; `aa_ma.render.graph` requires `user_version >= 3` (unaffected; §13 lint PASS edges=25); a pre-v4 index logs a warning and returns no plugin callers until `codemem build`. (5) `AA_MA_HOOKS` +1 row (hooks 9→10); uninstall table-driven. (6) commit-drift prints one advisory line on ad-hoc commits. (7) engineering-standards §1 table text (auto-loaded doctrine) lists the glob paths.
+- Downstream outside the repo: other repos' codemem indexes upgrade on next build; the live MCP server and hooks pick up M10 only at 11.0's install (ADR-0025).
+- Overall risk: MEDIUM (additive contract changes + one forward schema migration); no HIGH; cascades done in-branch.

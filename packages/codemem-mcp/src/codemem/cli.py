@@ -346,14 +346,6 @@ def _names(items: list[dict], key: str) -> str:
     return (", ".join(seen[:_BRIEF_TOP]) + more) if seen else "-"
 
 
-def _is_plugin_node(caller_file: str) -> bool:
-    """Whether a ``file_impact`` caller is a plugin node id (``<kind>:<stem>``), not a file."""
-    from .draw.plugin_surface import NodeKind
-
-    kind, sep, _ = caller_file.partition(":")
-    return bool(sep) and "/" not in caller_file and kind in {k.value for k in NodeKind}
-
-
 def _count(n: int, noun: str) -> str:
     """``1 file`` / ``2 files``."""
     return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
@@ -371,7 +363,10 @@ def _impact_brief(r: dict) -> str:
     if not (r["external_callers"] or r["test_callers"] or r["co_changes"]):
         return ""
     ext = {c["file"] for c in r["external_callers"]}
-    plugin = {f for f in ext if _is_plugin_node(f)}
+    # file_impact tags plugin callers, as who_calls does; a file named like a node id is a file.
+    plugin = {
+        c["file"] for c in r["external_callers"] if c.get("via") == "plugin_edges"
+    }
     test_files = {c["file"] for c in r["test_callers"]}
     co = ", ".join(
         f"{c['path']} {c['count']}x ({c['ratio']:.0%})"
@@ -383,7 +378,7 @@ def _impact_brief(r: dict) -> str:
         f"{_count(len(plugin), 'plugin node')} + {_count(len(test_files), 'test file')}; "
         f"top: {_names(r['external_callers'], 'file')}",
         f"tests: {_names(r['test_callers'], 'file')}",
-        f"co-changed (of {r['target_commits']} commits): {co or '-'}",
+        f"co-changed (of {_count(r['target_commits'], 'commit')}): {co or '-'}",
     ]
     return "\n".join(sanitize_context_line(ln, _BRIEF_LINE_MAX) for ln in lines)
 

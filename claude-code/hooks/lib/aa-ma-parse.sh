@@ -20,6 +20,9 @@
 #     aa_ma_lint_views <plan.md> [args...] -> `aa-ma-lint-views` output; rc 0/1 passed through, 127 if it cannot run  (read by the §6.7 diagram item)
 #     aa_ma_codemem_bin <forge-root>     -> stdout: the codemem binary to run ($CODEMEM_BIN, else the forge venv's, else PATH) (rc 0), nothing when none is executable (rc 1)
 #     aa_ma_codemem_dir <repo-top>       -> stdout: the codemem index dir ($CODEMEM_DB's, else the XDG cache dir; M16) (rc 0), nothing when it cannot be computed (rc 1)
+#     AA_MA_COCHANGE_MIN_SHARED / AA_MA_COCHANGE_MIN_RATIO -> the T7 co-change constants (5 commits, 0.5 share)
+#     aa_ma_cochange_partners <top> <forge> <timeout-s> -- <path>... -> stdout: codemem co_changes partners at T7, sorted, unique; rc 0 ok | 2 usage | 3 no index | 4 no codemem/timeout | 5 codemem failed | 6 timed out
+#     aa_ma_default_base_ref             -> stdout: the merge-base ref (origin/HEAD, origin/main, origin/master, main, master) (rc 0), nothing (rc 1)
 #     aa_ma_read_sidecar_sha <file>      -> stdout: the 40/64-hex SHA in a repo-controlled sidecar (rc 0), nothing for anything else (rc 1)
 #     aa_ma_sha_behind <repo> <sidecar>  -> stdout: commits from the sidecar's SHA to HEAD (rc 0), or a reason: bad sha | not in history | git timeout | git failed (rc 1)
 #
@@ -467,6 +470,68 @@ aa_ma_codemem_bin() {
     fi
     [[ -n "${bin}" && -x "${bin}" ]] || return 1
     printf '%s' "${bin}"
+}
+
+# T7 (plan Milestone 11 Contract; M11's aa_ma.impact COCHANGE_MIN_SHARED / _RATIO): a
+# co_changes partner counts when it changed in >= 5 of the file's commits (unit: commits — fewer
+# is chance) and in >= 0.5 of them (unit: share of the file's commits, 0-1 — "at least half
+# the time"). Read by aa_ma_cochange_partners; callers print them in their advisory lines.
+AA_MA_COCHANGE_MIN_SHARED=5
+AA_MA_COCHANGE_MIN_RATIO=0.5
+
+# aa_ma_cochange_partners <repo-top> <forge-root> <timeout-s> -- <path>...
+#   The one shell co_changes reader (commit-drift's ad-hoc advisory, predicted-vs-actual.sh): the
+#   codemem co_changes partners of <path>... at the T7 constants, one per line, sorted (C locale)
+#   and unique; nothing when there are none. Index: aa_ma_codemem_dir; binary: aa_ma_codemem_bin
+#   (from <forge-root>, never the repo); codemem runs under `timeout -k 1 <timeout-s>`, the paths
+#   after `--`. codemem's stderr is dropped — the rc is the report, and the caller logs or
+#   prints it. Safe under `set -e` as `x=$(aa_ma_cochange_partners …) || rc=$?`.
+#   rc 0 ok | 2 usage (no `--`, no path, <timeout-s> not a positive integer) | 3 no index |
+#   4 no codemem binary, or no timeout(1) to bound it | 5 codemem exited non-zero, or printed
+#   no JSON (or jq is missing) | 6 timed out (timeout's 124, or 137 after the -k SIGKILL)
+aa_ma_cochange_partners() {
+    local top="${1-}" forge="${2-}" secs="${3-}" db_dir bin out partners rc=0
+    [[ $# -ge 5 && "${4-}" == "--" && "${secs}" =~ ^[1-9][0-9]*$ ]] || return 2
+    shift 4
+    db_dir="$(aa_ma_codemem_dir "${top}")" || return 3
+    [[ -f "${db_dir}/index.db" ]] || return 3
+    bin="$(aa_ma_codemem_bin "${forge}")" || return 4
+    command -v timeout > /dev/null 2>&1 || return 4   # why: a presence probe; no timeout → no unbounded call
+    out="$(timeout -k 1 "${secs}" "${bin}" query co_changes --repo-root "${top}" \
+        --threshold "${AA_MA_COCHANGE_MIN_SHARED}" --min-ratio "${AA_MA_COCHANGE_MIN_RATIO}" \
+        -- "$@" 2>/dev/null)" || rc=$?   # why: codemem's stderr is replaced by the rc
+    (( rc == 124 || rc == 137 )) && return 6
+    (( rc == 0 )) || return 5
+    # Several paths print one object keyed by path; one path prints its bare result object.
+    # why: jq's parse error on a non-JSON answer is rc 5
+    partners="$(jq -r 'if has("files") then [.] else [.[]] end | .[] | .files[]?.path' <<< "${out}" 2>/dev/null)" || return 5
+    [[ -n "${partners}" ]] || return 0
+    printf '%s\n' "${partners}" | awk 'NF' | LC_ALL=C sort -u
+}
+
+# aa_ma_default_base_ref
+#   The ref a branch's merge-base is taken from, in the current repo: origin/HEAD's target
+#   (short, e.g. origin/main), else the first of origin/main, origin/master, main, master that
+#   names a commit. Remote-tracking first: a local default branch can lag upstream, and this
+#   session can move it. Callers tell a local fallback by the missing `origin/` prefix. Prints
+#   the ref (rc 0), or nothing when none resolves (rc 1).
+aa_ma_default_base_ref() {
+    local ref
+    # why: no origin/HEAD is normal (a `git remote add`, no set-head); the candidates take over
+    ref="$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null)" || ref=""
+    if [[ -n "${ref}" ]]; then
+        printf '%s' "${ref}"
+        return 0
+    fi
+    for ref in refs/remotes/origin/main refs/remotes/origin/master refs/heads/main refs/heads/master; do
+        # why: a probe — only the exit status is read
+        if git rev-parse --verify -q "${ref}^{commit}" > /dev/null 2>&1; then
+            ref="${ref#refs/remotes/}"
+            printf '%s' "${ref#refs/heads/}"
+            return 0
+        fi
+    done
+    return 1
 }
 
 # aa_ma_read_sidecar_sha <file>

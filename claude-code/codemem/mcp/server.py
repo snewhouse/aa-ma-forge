@@ -119,7 +119,13 @@ def build_server() -> FastMCP:  # noqa: C901  # why: pre-existing (21 before M15
     def who_calls(
         name: str, max_depth: int = 3, budget: int = mcp_tools._DEFAULT_BUDGET
     ) -> dict:
-        """Return callers of a symbol (upstream traversal)."""
+        """Return callers of a symbol (upstream traversal).
+
+        ``name`` may also be a plugin node (skill/command/agent/rule/hook stem, or
+        ``<kind>:<stem>``). Code callers come first as ``{name, kind, file, line}``;
+        plugin callers follow with ``via: "plugin_edges"``, ``file`` = the caller's
+        node id (e.g. ``skill:gamma``) and ``line: null``.
+        """
         return mcp_tools.who_calls(
             db_path_factory(), name, max_depth=max_depth, budget=budget
         )

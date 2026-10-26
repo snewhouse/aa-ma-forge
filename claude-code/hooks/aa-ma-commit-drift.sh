@@ -2,7 +2,7 @@
 # Event: PostToolUse(Bash)
 # Mode: Advisory — warns, never blocks
 # Exit: 0 always
-# Fail-open: every skip path (kill switch, no active plan, not a commit) exits 0 silently
+# Fail-open: every skip path (kill switch, no active plan, not a commit) exits 0 silently; each skip of the co-change advisory leaves one hooks.log line (DEBUG: no index / no codemem; WARN: codemem failed or timed out)
 #
 # PostToolUse(Bash) hook — warn when a commit lands without touching any
 # AA-MA task's tasks.md or provenance.log.
@@ -22,9 +22,10 @@
 #
 # Ad-hoc commits — no active AA-MA plan, or `[ad-hoc]` on its own line in the message —
 # instead get ONE co-change line (code-conventions-impact 10.7): the codemem co_changes
-# partners of the committed files (>= 5 shared commits, >= 50% of the file's commits —
-# the T7 constants) that the commit left out. codemem via aa_ma_codemem_bin, index via
-# aa_ma_codemem_dir, 2 s timeout; no codemem, no index, a slow or failed query → silent.
+# partners of the committed files (aa_ma_cochange_partners: the T7 constants, >= 5 shared
+# commits and >= 50% of the file's commits) that the commit left out, under a 2 s timeout.
+# No codemem or no index → a DEBUG hooks.log line; a failed or slow query → a WARN line;
+# nothing is printed either way.
 #
 # Always exits 0 (advisory).
 
@@ -71,36 +72,35 @@ aa_ma_debug_cmd "commit-drift: examining last commit after" "$cmd"
 # -----------------------------------------------------------------------------
 # Ad-hoc co-change advisory (10.7). Prints at most one line; never fails the hook.
 # -----------------------------------------------------------------------------
-COCHANGE_MIN_SHARED=5     # T7: shared commits
-COCHANGE_MIN_RATIO=0.5    # T7: share of the file's commits
 COCHANGE_TIMEOUT_S=2      # the advisory must never slow a commit noticeably
 COCHANGE_MAX_NAMES=10     # the line stays one readable line
+DRIFT_HOOK="aa-ma-commit-drift"
 
+# cochange_advisory <committed-file>... — at most one stderr line; every skip logs one line.
 cochange_advisory() {
-    local real forge top db_dir bin out partners
-    local -a files=() missed=()
+    local real forge top partners rc=0 skip="co-change advisory skipped"
+    local -a missed=()
     # why: no `readlink -f` (old macOS) → the path as invoked, then the lib lookups decide
     real="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null)" || real="${BASH_SOURCE[0]}"
     forge="${real%/*}"; forge="${forge%/*/*}"   # <forge>/claude-code/hooks/<this>
-    top=$(git rev-parse --show-toplevel 2>/dev/null) || return 0   # why: not a repo → silent
-    db_dir=$(aa_ma_codemem_dir "$top") || return 0
-    [ -f "${db_dir}/index.db" ] || return 0
-    bin=$(aa_ma_codemem_bin "$forge") || return 0
-    command -v timeout >/dev/null 2>&1 || return 0   # why: a presence probe; no timeout → no unbounded call
-    mapfile -t files < <(git log -1 --name-only --format= HEAD 2>/dev/null | awk 'NF')  # why: no HEAD → no files → silent
-    [ "${#files[@]}" -gt 0 ] || return 0
-    # why: codemem's stderr, a timeout or a non-JSON answer all mean "no advisory" (fail open)
-    out=$(timeout -k 1 "$COCHANGE_TIMEOUT_S" "$bin" query co_changes --repo-root "$top" --threshold "$COCHANGE_MIN_SHARED" --min-ratio "$COCHANGE_MIN_RATIO" -- "${files[@]}" 2>/dev/null) || return 0
-    # why: jq's parse error on a non-JSON answer is the same fail-open case
-    partners=$(jq -r 'if has("files") then [.] else [.[]] end | .[] | .files[]?.path' <<< "$out" 2>/dev/null) || return 0
-    mapfile -t missed < <(printf '%s\n' "$partners" | awk 'NF' | sort -u \
-                             | grep -Fvx -f <(printf '%s\n' "${files[@]}"))
+    # why: git's own message is replaced by the debug line
+    top=$(git rev-parse --show-toplevel 2>/dev/null) || { log_debug "$DRIFT_HOOK" "${skip}: not in a git work tree"; return 0; }
+    partners=$(aa_ma_cochange_partners "$top" "$forge" "$COCHANGE_TIMEOUT_S" -- "$@") || rc=$?
+    case "$rc" in
+        0) ;;
+        3) log_debug "$DRIFT_HOOK" "${skip}: no codemem index for this repo"; return 0 ;;
+        4) log_debug "$DRIFT_HOOK" "${skip}: no codemem binary (or no timeout(1))"; return 0 ;;
+        6) log_warn "$DRIFT_HOOK" "${skip}: codemem co_changes timed out after ${COCHANGE_TIMEOUT_S} s"; return 0 ;;
+        *) log_warn "$DRIFT_HOOK" "${skip}: codemem co_changes failed or printed no JSON (rc ${rc})"; return 0 ;;
+    esac
+    [ -n "$partners" ] || return 0
+    mapfile -t missed < <(grep -Fvx -f <(printf '%s\n' "$@") <<< "$partners")
     [ "${#missed[@]}" -gt 0 ] || return 0
     local shown more=""
     shown=$(printf '%s\n' "${missed[@]:0:COCHANGE_MAX_NAMES}" | paste -sd ',' - | sed 's/,/, /g')
     [ "${#missed[@]}" -gt "$COCHANGE_MAX_NAMES" ] && more=" (+$(( ${#missed[@]} - COCHANGE_MAX_NAMES )) more)"
     printf 'ℹ️  co-change advisory (codemem; shared>=%s, ratio>=%s): often changed with these files but not in this commit: %s%s\n' \
-        "$COCHANGE_MIN_SHARED" "$COCHANGE_MIN_RATIO" "${shown//[[:cntrl:]]/?}" "$more" >&2
+        "$AA_MA_COCHANGE_MIN_SHARED" "$AA_MA_COCHANGE_MIN_RATIO" "${shown//[[:cntrl:]]/?}" "$more" >&2
 }
 
 # -----------------------------------------------------------------------------
@@ -126,8 +126,11 @@ commit_msg=$(git log -1 --format=%B HEAD 2>/dev/null)
 mapfile -t TASKS < <(aa_ma_list_active_tasks)
 if [ "${#TASKS[@]}" -eq 0 ] \
     || printf '%s\n' "$commit_msg" | grep -Eq '^[[:space:]]*\[ad-hoc\][[:space:]]*$'; then
-    # shellcheck disable=SC2310  # why: set -e off inside it is the point — any failure there is "no advisory"
-    cochange_advisory || true   # why: advisory only; a failure inside must never fail the hook
+    if [ -n "$commit_files" ]; then
+        mapfile -t _committed <<< "$commit_files"
+        # shellcheck disable=SC2310  # why: set -e off inside it is the point — any failure there is "no advisory"
+        cochange_advisory "${_committed[@]}" || true   # why: advisory only; a failure inside must never fail the hook
+    fi
 fi
 if [ "${#TASKS[@]}" -eq 0 ]; then
     aa_ma_debug "commit-drift: no active AA-MA plans, skipping"

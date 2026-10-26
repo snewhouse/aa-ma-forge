@@ -577,6 +577,42 @@ class TestQueryRoundTrips:
             assert len(ln) <= 200
         assert "$(touch pwned)" in lines[1]  # kept as inert text
 
+    def test_impact_brief_singular_commit(self):
+        """§6.6 INFO a: "(of 1 commit)", not "(of 1 commits)"."""
+        from codemem.cli import _impact_brief
+
+        out = _impact_brief(
+            {
+                "file": "t.py",
+                "external_callers": [],
+                "test_callers": [],
+                "co_changes": [{"path": "u.py", "count": 1, "ratio": 1.0}],
+                "target_commits": 1,
+            }
+        )
+        assert "co-changed (of 1 commit): u.py 1x (100%)" in out.split("\n")
+
+    def test_impact_brief_counts_plugin_nodes_by_their_via_tag(self):
+        """§6.6 INFO b: a plugin node is a caller tagged ``via: plugin_edges``, not an id shape."""
+        from codemem.cli import _impact_brief
+
+        out = _impact_brief(
+            {
+                "file": "t.py",
+                "external_callers": [
+                    {"file": "skill:gamma", "name": "gamma", "via": "plugin_edges"},
+                    {
+                        "file": "skill:lookalike",
+                        "name": "f",
+                    },  # a file named like a node id
+                ],
+                "test_callers": [],
+                "co_changes": [],
+                "target_commits": 0,
+            }
+        )
+        assert "callers: 1 file + 1 plugin node + 0 test files;" in out
+
     def test_impact_bad_path_exits_one(self, indexed_repo):
         repo, db = indexed_repo
         r = _cli("--db", str(db), "impact", "../x", cwd=repo)

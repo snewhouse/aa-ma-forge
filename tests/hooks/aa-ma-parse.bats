@@ -385,3 +385,169 @@ EOF
     [ "$(grep -c "first word '?'" "$CLAUDE_HOOK_LOG")" -eq 2 ]
     run ! grep -qE 'ghp_a|sk-ant' "$CLAUDE_HOOK_LOG"
 }
+
+# ---------------------------------------------------------------------------
+# aa_ma_cochange_partners (§6.6 W2): the one shell co_changes reader at the T7 constants.
+# rc 0 ok | 2 usage | 3 no index | 4 no codemem binary (or no timeout(1)) | 5 codemem failed
+# or printed no JSON | 6 timed out.
+# ---------------------------------------------------------------------------
+
+# _cm_stub <json-or-text> [sleep-s] [exit-rc]: an index file + a CODEMEM_BIN that records argv.
+_cm_stub() {
+    mkdir -p "$BATS_TMP/cm"
+    : > "$BATS_TMP/cm/index.db"
+    printf '%s\n' "$1" > "$BATS_TMP/cm.out"
+    cat > "$BATS_TMP/codemem" <<STUB
+#!/usr/bin/env bash
+printf '%s\n' "\$@" > "$BATS_TMP/codemem.args"
+sleep ${2:-0}
+cat "$BATS_TMP/cm.out"
+exit ${3:-0}
+STUB
+    chmod +x "$BATS_TMP/codemem"
+    export CODEMEM_DB="$BATS_TMP/cm/index.db" CODEMEM_BIN="$BATS_TMP/codemem"
+}
+
+CM_MULTI='{"a.py": {"files": [{"path": "z.py"}, {"path": "b.py"}]}, "c.py": {"files": [{"path": "b.py"}]}}'
+
+@test "aa_ma_cochange_partners: several paths → partners sorted, unique, at the T7 constants" {
+    load_helper
+    _cm_stub "$CM_MULTI"
+    run aa_ma_cochange_partners "$BATS_TMP" "$BATS_TMP" 5 -- a.py c.py
+    [ "$status" -eq 0 ]
+    [ "$output" = $'b.py\nz.py' ]
+    run cat "$BATS_TMP/codemem.args"
+    [[ "$output" == *$'query\nco_changes\n--repo-root\n'"$BATS_TMP"$'\n--threshold\n5\n--min-ratio\n0.5\n--\na.py\nc.py'* ]]
+    [ "$AA_MA_COCHANGE_MIN_SHARED" = 5 ]
+    [ "$AA_MA_COCHANGE_MIN_RATIO" = 0.5 ]
+}
+
+@test "aa_ma_cochange_partners: one path (a bare result object) → its partners" {
+    load_helper
+    _cm_stub '{"files": [{"path": "q.py"}], "error": null}'
+    run aa_ma_cochange_partners "$BATS_TMP" "$BATS_TMP" 5 -- a.py
+    [ "$status" -eq 0 ]
+    [ "$output" = "q.py" ]
+}
+
+@test "aa_ma_cochange_partners: no partners → rc 0, nothing printed" {
+    load_helper
+    _cm_stub '{"a.py": {"files": []}}'
+    run aa_ma_cochange_partners "$BATS_TMP" "$BATS_TMP" 5 -- a.py
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}
+
+@test "aa_ma_cochange_partners: no index → rc 3, codemem never run" {
+    load_helper
+    _cm_stub "$CM_MULTI"
+    rm "$BATS_TMP/cm/index.db"
+    run aa_ma_cochange_partners "$BATS_TMP" "$BATS_TMP" 5 -- a.py
+    [ "$status" -eq 3 ]
+    [ -z "$output" ]
+    [ ! -e "$BATS_TMP/codemem.args" ]
+}
+
+@test "aa_ma_cochange_partners: no codemem binary → rc 4" {
+    load_helper
+    _cm_stub "$CM_MULTI"
+    export CODEMEM_BIN="$BATS_TMP/absent"
+    run aa_ma_cochange_partners "$BATS_TMP" "$BATS_TMP" 5 -- a.py
+    [ "$status" -eq 4 ]
+    [ -z "$output" ]
+}
+
+@test "aa_ma_cochange_partners: codemem exits non-zero → rc 5" {
+    load_helper
+    _cm_stub "$CM_MULTI" 0 3
+    run aa_ma_cochange_partners "$BATS_TMP" "$BATS_TMP" 5 -- a.py
+    [ "$status" -eq 5 ]
+    [ -z "$output" ]
+}
+
+@test "aa_ma_cochange_partners: codemem prints no JSON → rc 5" {
+    load_helper
+    _cm_stub 'not json'
+    run aa_ma_cochange_partners "$BATS_TMP" "$BATS_TMP" 5 -- a.py
+    [ "$status" -eq 5 ]
+    [ -z "$output" ]
+}
+
+@test "aa_ma_cochange_partners: codemem slower than the timeout → killed, rc 6" {
+    load_helper
+    _cm_stub "$CM_MULTI" 10
+    SECONDS=0
+    run aa_ma_cochange_partners "$BATS_TMP" "$BATS_TMP" 1 -- a.py
+    [ "$status" -eq 6 ]
+    [ -z "$output" ]
+    (( SECONDS < 5 ))
+}
+
+@test "aa_ma_cochange_partners: usage errors → rc 2 (no --, no path, bad timeout)" {
+    load_helper
+    _cm_stub "$CM_MULTI"
+    run aa_ma_cochange_partners "$BATS_TMP" "$BATS_TMP" 5 a.py
+    [ "$status" -eq 2 ]
+    run aa_ma_cochange_partners "$BATS_TMP" "$BATS_TMP" 5 --
+    [ "$status" -eq 2 ]
+    run aa_ma_cochange_partners "$BATS_TMP" "$BATS_TMP" 1s -- a.py
+    [ "$status" -eq 2 ]
+}
+
+# ---------------------------------------------------------------------------
+# aa_ma_default_base_ref (§6.6 W5): origin/HEAD → origin/main → origin/master → main → master.
+# ---------------------------------------------------------------------------
+
+# _base_repo <local-branch>: a one-commit repo on <local-branch>, cwd set to it.
+_base_repo() {
+    cd "$BATS_TMP"
+    git init -q -b "$1"
+    git -c user.email=t@e.i -c user.name=t -c commit.gpgsign=false \
+        commit -q --allow-empty -m one
+}
+
+@test "aa_ma_default_base_ref: origin/HEAD wins" {
+    load_helper
+    _base_repo main
+    git update-ref refs/remotes/origin/trunk HEAD
+    git update-ref refs/remotes/origin/main HEAD
+    git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/trunk
+    run aa_ma_default_base_ref
+    [ "$status" -eq 0 ]
+    [ "$output" = "origin/trunk" ]
+}
+
+@test "aa_ma_default_base_ref: no origin/HEAD → origin/main before local main" {
+    load_helper
+    _base_repo main
+    git update-ref refs/remotes/origin/main HEAD
+    run aa_ma_default_base_ref
+    [ "$status" -eq 0 ]
+    [ "$output" = "origin/main" ]
+}
+
+@test "aa_ma_default_base_ref: origin/master when there is no origin/main" {
+    load_helper
+    _base_repo main
+    git update-ref refs/remotes/origin/master HEAD
+    run aa_ma_default_base_ref
+    [ "$output" = "origin/master" ]
+}
+
+@test "aa_ma_default_base_ref: no remote → local main, then local master" {
+    load_helper
+    _base_repo master
+    run aa_ma_default_base_ref
+    [ "$output" = "master" ]
+    git branch main
+    run aa_ma_default_base_ref
+    [ "$output" = "main" ]
+}
+
+@test "aa_ma_default_base_ref: nothing to use → rc 1, nothing printed" {
+    load_helper
+    _base_repo feature
+    run aa_ma_default_base_ref
+    [ "$status" -eq 1 ]
+    [ -z "$output" ]
+}

@@ -247,7 +247,16 @@ def test_file_impact_reports_plugin_callers(built, path: str) -> None:
 def test_file_impact_on_an_agent(built) -> None:
     _, db_path = built
     r = mcp_tools.file_impact(db_path, "claude-code/agents/checker.md")
-    assert r["external_callers"] == [{"file": "rule:house", "name": "house"}]
+    assert r["external_callers"] == [
+        {"file": "rule:house", "name": "house", "via": "plugin_edges"}
+    ]
+
+
+def test_file_impact_tags_plugin_callers_like_who_calls(built) -> None:
+    """§6.6 INFO b: a plugin caller says so (``via``), as ``who_calls`` does."""
+    _, db_path = built
+    r = mcp_tools.file_impact(db_path, "claude-code/skills/alpha/SKILL.md")
+    assert {c.get("via") for c in r["external_callers"]} == {"plugin_edges"}
 
 
 def test_file_impact_on_code_is_unchanged(built) -> None:

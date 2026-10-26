@@ -101,6 +101,20 @@ def test_lone_surrogate_does_not_raise() -> None:
     out.encode("utf-8")  # safe to print and to JSON-encode
 
 
+def test_the_catch_all_logs_one_debug_line(caplog: pytest.LogCaptureFixture) -> None:
+    """§6.6 INFO c: the never-raises fallback is not silent."""
+
+    class Unprintable:
+        def __str__(self) -> str:
+            raise RuntimeError("boom")
+
+    with caplog.at_level("DEBUG", logger="codemem.mcp_tools.sanitizers"):
+        # why: a non-str argument is the point — the fallback must swallow its str() error
+        assert sanitize_context_line(Unprintable()) == ""  # type: ignore[arg-type]
+    assert len(caplog.records) == 1
+    assert caplog.records[0].levelname == "DEBUG"
+
+
 @given(st.text(), st.integers(min_value=-3, max_value=400))
 @settings(max_examples=300, deadline=None)
 def test_never_raises_and_is_one_clean_bounded_line(text: str, max_len: int) -> None:

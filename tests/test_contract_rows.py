@@ -83,9 +83,10 @@ def test_absent_milestone_no_contract_or_unterminated_fence_is_empty() -> None:
     assert milestone_contract_rows(PLAN + "```\n", "2") == []
 
 
-def test_coverage_builds_both_row_regexes_from_the_one_verb_tuple() -> None:
-    assert coverage._ROW_RE.pattern == row_re(("Create", "Modify")).pattern
-    assert coverage._ANY_ROW_RE.pattern == row_re(ROW_VERBS).pattern
+def test_coverage_builds_its_row_regex_from_the_verb_tuple() -> None:
+    """Angle 6 check 8 reads Create/Modify only; both readers share :func:`row_re`."""
+    assert coverage._ROW_RE.pattern == row_re(ROW_VERBS[:2]).pattern
+    assert ROW_VERBS[:2] == ("Create", "Modify")
 
 
 def test_milestone_contract_paths_is_the_rows_paths() -> None:

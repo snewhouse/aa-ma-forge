@@ -9,7 +9,8 @@
 # Usage (cwd: the repository top level):
 #   . "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/fence-common.sh"
 #   fence_init <task-name> <what this fence verifies>
-# Sets TASK_NAME TASK_DIR PROV GATE_KV MILESTONE_TITLE MILESTONE_NUMBER, or BLOCKs (exit 1).
+# Sets TASK_NAME TASK_DIR PROV GATE_KV MILESTONE_TITLE MILESTONE_TITLE_LOG MILESTONE_NUMBER,
+# or BLOCKs (exit 1).
 
 blocked() {
     printf 'BLOCKED: %s\n' "$*"
@@ -50,4 +51,8 @@ fence_init() {
     MILESTONE_NUMBER=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field number)
     [[ -n "${MILESTONE_TITLE}" ]] || blocked "empty milestone heading."
     [[ -n "${MILESTONE_NUMBER}" ]] || blocked "empty milestone number."
+    # The heading is repo-controlled: provenance lines carry it sanitised (bidi, zero-width → ?,
+    # §6.8 r2). Approval titles keep MILESTONE_TITLE raw, since §7.1 matches them verbatim.
+    # shellcheck disable=SC2034  # why: read by the fence scripts that source this file
+    MILESTONE_TITLE_LOG=$(printf '%s\n' "${MILESTONE_TITLE}" | aa_ma_sanitize_lines)
 }

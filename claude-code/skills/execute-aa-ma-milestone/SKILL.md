@@ -366,7 +366,7 @@ bash "${TV:?tests-verified.sh not found — run scripts/install.sh}" "${TASK_NAM
 ```
 
 **Impact verified — HARD** (fence 4): every change predicted by the Contract, or explained;
-appends `[ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0`.
+appends `[ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0 api_diff=<summary>`.
 See [gate-fences.md](references/gate-fences.md#fence-4--impact_verified) and [impact-gate.md](references/impact-gate.md) (how to read a BLOCKED report).
 
 ```bash

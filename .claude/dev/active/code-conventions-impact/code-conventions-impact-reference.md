@@ -154,7 +154,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | BASELINE | `[ts] BASELINE — pytest=<passed>/<skipped>/<deselected> ruff_src_packages=<N> ruff_S=<N> shellcheck=<N> rules_chars=<N>` | M1.1 | [valid: 2026-10-08] |
 | TESTS_VERIFIED | `[ts] TESTS_VERIFIED — <milestone heading> — passed=N cmd=<TEST_CMD>` | §6.7 fence 3 (live from M10's gate) | [valid: 2026-10-08] |
 | TESTS_VERIFIED (opt-out) | `[ts] TESTS_VERIFIED — <milestone heading> — skipped: <reason>` (needs `Test-Command: none — <reason>` + GATE APPROVAL) | fence 3 | [valid: 2026-10-08] |
-| IMPACT_VERIFIED | `[ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0` | §6.7 fence 4 (post-cutover plans only) | [valid: 2026-10-08] |
+| IMPACT_VERIFIED | `[ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0 api_diff=<summary>` | §6.7 fence 4 (post-cutover plans only) | [valid: 2026-10-08] |
 | IMPACT-GATE n/a | `IMPACT-GATE: not applicable (grandfathered)` — printed, never silent | fence 4 | [valid: 2026-10-08] |
 | CRITICAL_PATH_REVIEW | `[ts] CRITICAL_PATH_REVIEW — <milestone heading> — <value> — <evidence>` | last sub-step of each Critical-Path milestone | [valid: 2026-10-08] |
 | PROTOTYPE | `[ts] PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES\|NO` | M3.1, M10.1, M11.1 | [valid: 2026-10-08] |

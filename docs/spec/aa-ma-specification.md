@@ -332,7 +332,7 @@ The `[task]-provenance.log` file is an **immutable, append-only** log providing 
 [ts] PROTOTYPE — <milestone heading> — <verdict>[; branch=prototype/<name>] — verdict-changes-plan: YES|NO
 [ts] CRITICAL_PATH_REVIEW — <milestone heading> — <Critical-Path value> — <evidence>
 # Written by §6.7 fence 4 (plans Created: >= IMPACT_CUTOVER; ADR-0027); grandfathered plans print "not applicable"
-[ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0
+[ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0 api_diff=<summary>
 # Advisory (not gate-read): evidence for a HITL live criterion
 [ts] LIVE_CHECK — <milestone heading> — <key>=<value>…
 # Advisory: written only by `aa-ma-chart-guard.sh import` when /aa-ma-plan --from-map moves a charting map in

@@ -23,6 +23,7 @@ __all__ = [
     "MAX_EXPANSIONS",
     "ROW_VERBS",
     "contract_rows",
+    "milestone_contract_lines",
     "milestone_contract_rows",
     "row_re",
 ]
@@ -36,6 +37,7 @@ _FILE_RE = re.compile(r"^[ \t]*#[ \t]*file:[ \t]*(\S+)")
 _PAREN_RE = re.compile(r"\([^()]*\)")
 _LINES_RE = re.compile(r":\d+(?:-\d+)?$")
 _BRACES_RE = re.compile(r"\{([^{}]*)\}")  # innermost group
+_FENCE_MARK_RE = re.compile(r"^(?:`{3,}|~{3,})")  # a fence's own open/close line
 _ARROWS = frozenset({"→", "->"})  # Move/Merge `old → new`: a separator, never a path
 
 
@@ -57,9 +59,34 @@ def milestone_contract_rows(plan_text: str, milestone: str) -> list[tuple[str, s
     nothing exempt. ``[]`` when it is absent, has no Contract, or the plan has an
     unterminated fence.
     """
+    sliced = _milestone_slice(plan_text, milestone)
+    if sliced is None:
+        return []
+    rows = contract_rows(*sliced, _ALL_ROWS_RE)
+    return list(dict.fromkeys((verb, path) for _, verb, path in rows))
+
+
+def milestone_contract_lines(plan_text: str, milestone: str) -> list[str]:
+    """Every non-blank line of Milestone ``milestone``'s Contract fences, stripped, in order.
+
+    For readers of the Contract's non-row lines (``API-Break: <dotted.path> — <reason>``,
+    fence 4). Same slice and same "fences right under ``#### Contract``" rule as the rows.
+    """
+    sliced = _milestone_slice(plan_text, milestone)
+    if sliced is None:
+        return []
+    lines, bare = sliced
+    text = (lines[n - 1].strip() for n in _contract_line_numbers(lines, bare))
+    return [t for t in text if not _FENCE_MARK_RE.match(t)]
+
+
+def _milestone_slice(
+    plan_text: str, milestone: str
+) -> tuple[list[str], list[str]] | None:
+    """(text lines, fence-blanked lines) of the milestone's section; None when unreadable."""
     scan = scan_fences(plan_text)
     if scan.unterminated:
-        return []
+        return None
     lines, bare = plan_text.split("\n"), scan.stripped.split("\n")
     start = end = None
     for i, line in enumerate(bare):
@@ -71,20 +98,13 @@ def milestone_contract_rows(plan_text: str, milestone: str) -> list[tuple[str, s
             end = i
             break
     if start is None:
-        return []
-    rows = contract_rows(lines[start:end], bare[start:end], _ALL_ROWS_RE)
-    return list(dict.fromkeys((verb, path) for _, verb, path in rows))
+        return None
+    return lines[start:end], bare[start:end]
 
 
-def contract_rows(
-    lines: list[str], bare: list[str], pattern: re.Pattern[str]
-) -> list[tuple[int, str, str]]:
-    """(1-based line, verb, path) per row path in the fences right under each ``#### Contract``.
-
-    ``lines`` is the text, ``bare`` the same lines with fenced content blanked
-    (``scan_fences(...).stripped``); ``pattern`` comes from :func:`row_re`.
-    """
-    out: list[tuple[int, str, str]] = []
+def _contract_line_numbers(lines: list[str], bare: list[str]) -> list[int]:
+    """1-based numbers of the non-blank lines in the fences right under each ``#### Contract``."""
+    out: list[int] = []
     k = 0
     while k < len(bare):
         if not _CONTRACT_RE.match(bare[k]):
@@ -96,9 +116,24 @@ def contract_rows(
         while k < len(bare) and not bare[k].strip():
             # Blank in `stripped` but not in the text: inside a fence.
             if lines[k].strip():
-                out += [(k + 1, v, p) for v, p in _row_paths(lines[k], pattern)]
+                out.append(k + 1)
             k += 1
     return out
+
+
+def contract_rows(
+    lines: list[str], bare: list[str], pattern: re.Pattern[str]
+) -> list[tuple[int, str, str]]:
+    """(1-based line, verb, path) per row path in the fences right under each ``#### Contract``.
+
+    ``lines`` is the text, ``bare`` the same lines with fenced content blanked
+    (``scan_fences(...).stripped``); ``pattern`` comes from :func:`row_re`.
+    """
+    return [
+        (n, v, p)
+        for n in _contract_line_numbers(lines, bare)
+        for v, p in _row_paths(lines[n - 1], pattern)
+    ]
 
 
 def _row_paths(line: str, pattern: re.Pattern[str]) -> list[tuple[str, str]]:

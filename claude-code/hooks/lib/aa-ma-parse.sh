@@ -566,6 +566,61 @@ aa_ma_default_base_ref() {
     return 1
 }
 
+# aa_ma_milestone_base
+#   The milestone window's base for §6.7 fence 4 and verify-impl (R1): `git merge-base
+#   origin/<default> HEAD`, where <default> is origin/HEAD's target, else origin/main, else
+#   origin/master — origin only, never a local branch this session can move. Prints the SHA
+#   (rc 0). rc 2, one line naming the reason, when there is no window to certify: no origin
+#   default branch, no merge-base, or HEAD is the default branch tip (merge-base == HEAD).
+aa_ma_milestone_base() {
+    local ref="" base head cand
+    # why: no origin/HEAD is normal (no `remote set-head`); the candidates take over
+    ref="$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null)" || ref=""
+    if [[ -z "${ref}" ]]; then
+        for cand in origin/main origin/master; do
+            # why: a probe — only the exit status is read
+            if git rev-parse --verify -q "refs/remotes/${cand}^{commit}" > /dev/null 2>&1; then
+                ref="${cand}"
+                break
+            fi
+        done
+    fi
+    if [[ -z "${ref}" ]]; then
+        echo "aa_ma_milestone_base: no origin default branch (origin/HEAD, origin/main, origin/master)"
+        return 2
+    fi
+    # why: stderr dropped — no merge-base is reported as the named error below
+    base="$(git merge-base "${ref}" HEAD 2>/dev/null)" || base=""
+    head="$(git rev-parse -q --verify HEAD)" || head=""
+    if [[ -z "${base}" || "${base}" == "${head}" ]]; then
+        echo "aa_ma_milestone_base: no milestone window (merge-base of ${ref} and HEAD is ${base:-empty}; HEAD ${head:0:12})"
+        return 2
+    fi
+    printf '%s\n' "${base}"
+}
+
+# aa_ma_impact <plan.md> <tasks.md> --milestone N [--base SHA] [...]
+#   Launcher for the Python aa-ma-impact (§6.7 fence 4), the aa_ma_gate pattern: runs it from
+#   the forge that ships this file, prints its kv output and returns its rc (0/1/2/3/5).
+#   127, with a BLOCKED line, when uv is missing or the CLI printed no `exit_code=` line —
+#   a gate that cannot run must not pass.
+aa_ma_impact() {
+    local root out rc
+    root="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)"
+    if ! command -v uv > /dev/null 2>&1; then  # why: a presence probe; the BLOCKED line says it
+        echo "BLOCKED: aa-ma-impact needs uv on PATH and it is missing — refusing, not skipping" >&2
+        return 127
+    fi
+    out=$(uv run --quiet --project "$root" aa-ma-impact --format kv "$@")
+    rc=$?
+    if ! printf '%s\n' "$out" | grep -q '^exit_code='; then
+        echo "BLOCKED: aa-ma-impact did not run (uv rc ${rc}, project ${root}) — refusing, not skipping" >&2
+        return 127
+    fi
+    printf '%s\n' "$out"
+    return "$rc"
+}
+
 # aa_ma_read_sidecar_sha <file>
 #   The one shell reader of a repo-controlled sidecar (<codemem index dir>/last_sha,
 #   graphify-out/.built_sha; M15 §6.8 C2). Prints the SHA only when <file> is

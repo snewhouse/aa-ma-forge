@@ -158,7 +158,7 @@ def compute(  # why: the AC signature plus the 11.7 retro flag, all keyword-able
     plan_md: Path,
     tasks_md: Path,
     milestone: int,
-    base: str,
+    base: str | None,
     head: str = "HEAD",
     *,
     ignore_cutover: bool = False,
@@ -181,13 +181,17 @@ def _compute(  # noqa: PLR0913  # why: one private step carrying compute's argum
     plan_md: Path,
     tasks_md: Path,
     milestone: str,
-    base: str,
+    base: str | None,
     head: str,
     ignore_cutover: bool,
 ) -> None:
     plan_text = _read(plan_md)
     if not ignore_cutover:
         _check_cutover(plan_text)
+    if base is None:
+        raise _Stop(
+            EXIT_USAGE, "--base is required for a plan in force (no milestone window)"
+        )
     repo = _toplevel(tasks_md.parent)
     try:
         gitutil.verify_ref(base, repo)
@@ -603,7 +607,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("plan", type=Path)
     parser.add_argument("tasks", type=Path)
     parser.add_argument("--milestone", type=int, required=True)
-    parser.add_argument("--base", required=True, help="the milestone's merge-base SHA")
+    parser.add_argument(
+        "--base",
+        help="the milestone's merge-base SHA; omitted, only the grandfather check runs",
+    )
     parser.add_argument(
         "--head", default="HEAD", help="default HEAD: the working tree too"
     )

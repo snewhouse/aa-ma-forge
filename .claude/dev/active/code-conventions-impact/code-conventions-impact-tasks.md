@@ -1180,12 +1180,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: 2026-10-27 — Mode AFK (step) — auto-dispatched. `scripts/run-evals.sh --case 'execute-aa-ma-milestone-*' -j 3` at 43d1148d (sonnet, $1.23, 9 runs): HEAD copy 3/3 pass (hitl-pause, next-milestone, not-complete); delta vs M4 baseline / 10.9 = 0. 6 duplicate runs from the two prototype worktrees (older skill text, 2/3 each) — known TODOS run-evals worktree-walk defect; excluded from the delta.
 
 ### Sub-step 11.9: CRITICAL_PATH_REVIEW
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 11.8
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — <milestone heading> — hook-modification — <evidence>`, naming the bats/test names, where the heading is verbatim (backticks included): Milestone 11: Gate-computed `IMPACT_VERIFIED` (T7)
-- Result Log:
+- Result Log: 2026-10-27 — Mode AFK (step) — auto-dispatched. provenance CRITICAL_PATH_REVIEW line with the verbatim heading names the 7 derived hook-modification files (aa-ma-impact derived_cp on M11: aa-ma-parse.sh, execute-aa-ma-milestone SKILL.md, gate-fences.md, impact-gate.md, impact-verified.sh, src/aa_ma/enforce.py, src/aa_ma/impact.py) by repo path, each with its tests (bats test_impact_verified 8, aa-ma-milestone-base 9, aa-ma-parse, fence bats; pytest test_impact 46, codemem contract 2, gate_parity approval 14, enforce, leaf contract). grep -F heading count = 1.
 
 ---
 

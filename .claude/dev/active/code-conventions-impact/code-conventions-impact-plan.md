@@ -873,11 +873,11 @@ Files:
   Modify  claude-code/hooks/lib/aa-ma-parse.sh   # aa_ma_impact launcher (aa_ma_gate pattern; 127 when uv missing)
             + aa_ma_milestone_base: git merge-base origin/<default> HEAD; empty or == HEAD → exit 2 "no milestone window" (fail closed) — Ste D2/R1 (Eng review)
   Modify  claude-code/skills/verify-impl/SKILL.md   # Step 1 window → aa_ma_milestone_base (fixes :93-96: `git log -1` exits 0 on no match, so the HEAD~10 fallback never fires)
-  Modify  claude-code/skills/execute-aa-ma-milestone/SKILL.md §6.7   # fence 4 after TESTS_VERIFIED; base SHA = aa_ma_milestone_base (merge-base; R1); derived Critical-Path values need CRITICAL_PATH_REVIEW naming the triggering files
+  Modify  claude-code/skills/execute-aa-ma-milestone/SKILL.md   # §6.7 fence 4 after TESTS_VERIFIED; base SHA = aa_ma_milestone_base (merge-base; R1); derived Critical-Path values need CRITICAL_PATH_REVIEW naming the triggering files
             on pass: "[ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0"
   Modify  claude-code/rules/engineering-standards.md   # §5 Impact row → gate-computed; Tests row → TESTS_VERIFIED; §1 Critical-Path table → derived-globs pointer
   Modify  docs/templates/tasks-template.md, docs/spec/aa-ma-specification.md   # Impact-Explained:, API-Break: in Contract
-  Create  docs/adr/NNNN-gate-computed-impact-verified.md   # ADR-0009 scope
+  Create  docs/adr/0027-gate-computed-impact-verified.md   # ADR-0009 scope (number assigned at 11.6; was NNNN)
   # rows below added 2026-10-27 (validator W2 + M10 §6.8 carry-overs, Ste) — paths tasks.md 11.2–11.6 already change
   Modify  .importlinter   # leaf contracts gain aa_ma.contract_rows, aa_ma.impact
   Modify  docs/templates/plan-template.md   # API-Break: in Contract
@@ -889,13 +889,17 @@ Files:
   Modify  claude-code/skills/execute-aa-ma-milestone/references/gate-fences.md   # Fence 4 section; §6.7 rationale moved out of SKILL.md (500-line cap)
   Modify  docs/adr/INDEX.md   # ADR row
   Modify  packages/codemem-mcp/src/codemem/cli.py, packages/codemem-mcp/src/codemem/mcp_tools/__init__.py   # named FILE_IMPACT_BUDGET; co_changes --threshold default not restated (M10 §6.8 WARNINGs, folded into 11.3)
-  Test    tests/test_contract_rows.py (new; 11.2)
-  Test    tests/render/test_leaf_contract.py (extended; 11.2/11.3)
-  Test    tests/test_impact.py (fixture repos: unpredicted file; predicted-unchanged; co-change miss at 5/50% boundary (4 shared → ignored, 5 → counted; 49% → ignored); explained passes; rename counted as old+new; grandfathered → exit 5; index missing → exit 3)
-  Test    tests/hooks/test_impact_verified.bats (fence: pass writes line; fail exits 1; grandfathered prints not-applicable)
-  Test    tests/hooks/aa-ma-milestone-base.bats (new; R1): branched milestone → merge-base SHA; branch == main → exit 2; rebased branch → new merge-base; no origin → exit 2 with a named error
-  Test    tests/test_gate_parity.py (extended)
-  Test    tests/test_impact_codemem_contract.py (new): calls the REAL `codemem query co_changes` (always JSON; there is no --json flag) on a fixture repo and validates the keys aa-ma-impact reads (CEO F2)
+  Test    tests/test_contract_rows.py   # new; 11.2
+  Test    tests/render/test_leaf_contract.py   # extended; 11.2/11.3
+  Test    tests/test_impact.py   # fixture repos: unpredicted file; predicted-unchanged; co-change miss at the 5/50% boundary — 4 shared ignored, 5 counted, 49% ignored; explained passes; rename counted as old+new; grandfathered exit 5; index missing exit 3
+  Test    tests/hooks/test_impact_verified.bats   # fence: pass writes line; fail exits 1; grandfathered prints not-applicable
+  Test    tests/hooks/aa-ma-milestone-base.bats   # new; R1: branched milestone → merge-base SHA; branch == main → exit 2; rebased branch → new merge-base; no origin → exit 2 with a named error
+  Test    tests/test_gate_parity.py   # extended
+  Test    tests/test_impact_codemem_contract.py   # new: calls the REAL `codemem query co_changes` (always JSON; no --json flag) on a fixture repo and validates the keys aa-ma-impact reads (CEO F2)
+  # rows below added 2026-10-27 at the boundary (Ste: dogfood fence 4 on M11) — planned work the rows above missed
+  Test    tests/test_enforce.py   # 11.2/11.3: read_text_field_lines, has_gate_approval
+  Test    tests/skills/test_fence_scaffolding_shared.py   # §6.6: fences 3/4 share fence-common.sh
+API-Break: codemem.mcp_tools.file_impact — default now names FILE_IMPACT_BUDGET (same value 2_000; griffe compares expressions)
 ```
 Steps: **11.1 PROTOTYPE (HITL).** Run the threshold on this repo's history: list the pairs that fire at 5/50%, 3/50% and 5/30% over the last 3 completed plans' milestones, and estimate how many `Impact-Explained:` lines each would have needed. Ste picks the threshold. AC: a PROTOTYPE line with the chosen values. **11.2** `enforce.read_text_field_lines` + `contract_rows.milestone_contract_rows` (AFK, TDD). **11.3** `impact.compute` + CLI (AFK, TDD; fixture repos). **11.4** griffe API diff (AFK, TDD). AC: removing a public function from a fixture package without `API-Break:` → exit 1; with it → pass. **11.5** Fence 4 + launcher + bats (AFK, TDD). **11.6** Rule/spec/template updates + ADR (HITL), plus the runbook `claude-code/skills/execute-aa-ma-milestone/references/impact-gate.md`: how to read a block, write `Impact-Explained:`, declare `API-Break:` (CEO F15). **11.8** Re-run the M4 evals for execute-aa-ma-milestone (advisory) and log the delta (CEO F13). **11.7** Retro-check (AFK): run `aa-ma-impact --format kv` with the cutover forced off against this plan's M10. AC: the output is logged; unexplained files are reviewed (evidence only, not a gate on this grandfathered plan).
 Risks: (1) Too noisy, so it gets bypassed. Mitigation: the 11.1 prototype and the overridable threshold. (2) The base SHA heuristic picks the wrong window. Mitigation: shared with verify-impl, plus a fixture test. (3) codemem is missing in a consumer repo. Mitigation: fails closed with exit 3 and the exact `codemem build` instruction, and only for post-cutover plans.

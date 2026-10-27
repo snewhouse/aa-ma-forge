@@ -1078,6 +1078,9 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `docs/adr/NNNN-gate-computed-impact-verified.md` has `Status: Accepted` + INDEX row + context-log approval; the runbook `claude-code/skills/execute-aa-ma-milestone/references/impact-gate.md` exists.
   - The 11.7 retro-check output is logged, and every unexplained file has a one-line disposition in context-log.
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 11.
+- Impact-Explained: TODOS.md — M11 deferred findings recorded and the M10 carry-overs M11 closed (§6.3/§6.6, e7c11012)
+- Impact-Explained: docs/lessons.md — L-071 written during M11 (a Result Log logged before its output was read)
+- Impact-Explained: tests/codemem/test_critical_path_globs.py — M10 tripwire: NOT_YET_CREATED emptied once src/aa_ma/impact.py existed (11.3)
 
 ### Sub-step 11.0: Post-merge of M10
 - Status: COMPLETE

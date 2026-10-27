@@ -14,6 +14,8 @@ from pathlib import Path
 from aa_ma import contract_rows
 from aa_ma.contract_rows import (
     ROW_VERBS,
+    covers,
+    plan_created,
     milestone_contract_lines,
     milestone_contract_rows,
     row_re,
@@ -123,3 +125,26 @@ def test_contract_lines_are_the_raw_fence_lines_of_one_milestone() -> None:
     assert lines == ["# file: src/three.py", "def f(): ..."]
     assert "Audit-Profile: full" in milestone_contract_lines(PLAN, "2")
     assert milestone_contract_lines(PLAN, "9") == []
+
+
+def test_plan_created_reads_the_front_matter_outside_fences() -> None:
+    assert (
+        plan_created("# P\nCreated: 2026-10-08\n\n## One\nCreated: 2027-01-01\n")
+        == "2026-10-08"
+    )
+    assert plan_created("# P\n**Created:** 2026-10-08\n") == "2026-10-08"
+    assert plan_created("# P\n```\nCreated: 2026-10-08\n```\n## One\n") is None
+    assert plan_created("# P\n## One\nCreated: 2026-10-08\n") is None
+
+
+def test_covers_is_exact_or_beneath_a_directory_row() -> None:
+    assert (
+        covers("src/a.py", "src/a.py")
+        and covers("src/", "src/a.py")
+        and covers("src", "src/a.py")
+    )
+    assert not covers("src/a", "src/ab.py") and not covers("src/a.py", "src/a.py.orig")
+
+
+def test_coverage_uses_the_shared_created_reader_and_covers() -> None:
+    assert coverage.plan_created is plan_created and coverage.covers is covers

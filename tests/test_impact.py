@@ -394,10 +394,12 @@ if cmd == "refresh-commits":
     sys.exit(0)
 if cmd == "query":
     paths = sys.argv[sys.argv.index("--") + 1:]
+    if os.environ.get("STUB_DROP"):
+        paths = paths[:-1]
     stale = json.loads(os.environ.get("STUB_STALE", "false"))
     out = {{p: {{"files": [], "target": p, "target_commits": 1, "error": None,
                  "stale": stale, "stale_reason": None if stale is False else "dirty"}} for p in paths}}
-    print(json.dumps(out if len(paths) > 1 else out[paths[0]]))
+    print(json.dumps(out if len(paths) != 1 else out[paths[0]]))
 sys.exit(0)
 """
 
@@ -667,3 +669,175 @@ def test_cli_without_base_still_answers_grandfathered_first(fx) -> None:
         text=True,
     )
     assert q.returncode == 2 and "--base" in q.stdout
+
+
+# --- §6.6 fixes (M11 boundary) -------------------------------------------------------------
+
+
+def test_lettered_milestone_number_is_read(tmp_path, db) -> None:
+    """The grammar admits `2a`; --milestone must not be an int (quality W1)."""
+    fx = Fixture(tmp_path, ROWS)
+    fx.plan.write_text(
+        PLAN.format(rows=ROWS).replace("Milestone 1 — Thing", "Milestone 1a — Thing")
+    )
+    fx.tasks.write_text(
+        TASKS.format(extra="").replace(
+            "## Milestone 1: Thing", "## Milestone 1a: Thing"
+        )
+    )
+    _commit(fx.repo, "lettered")
+    fx.base = _git(fx.repo, "rev-parse", "HEAD")
+    _build(fx)
+    _write(fx.repo, "src/a.py", "A = 2\n")
+    _write(fx.repo, "tests/test_a.py", "def test_a():\n    assert 1\n")
+    assert compute(fx.plan, fx.tasks, "1a", fx.base, ignore_cutover=True).exit_code == 0
+    p = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "aa_ma.impact",
+            str(fx.plan),
+            str(fx.tasks),
+            "--milestone",
+            "1a",
+            "--base",
+            fx.base,
+            "--ignore-cutover",
+        ],
+        cwd=fx.repo,
+        capture_output=True,
+        text=True,
+    )
+    assert p.returncode == 0, p.stdout + p.stderr
+
+
+def _hook_fixture(tmp_path: Path) -> Fixture:
+    fx = Fixture(tmp_path, "  Modify  claude-code/hooks/x.sh")
+    _build(fx)
+    _write(fx.repo, "claude-code/hooks/x.sh", "#!/bin/sh\n")
+    return fx
+
+
+def test_review_is_matched_on_the_verbatim_heading(tmp_path, db) -> None:
+    """A non-canonical `## M1 — Thing` heading is what the gate prints and the review names (W2)."""
+    fx = _hook_fixture(tmp_path)
+    fx.tasks.write_text(
+        TASKS.format(extra="").replace("## Milestone 1: Thing", "## M1 — Thing")
+    )
+    fx.append(
+        "provenance.log",
+        "[ts] CRITICAL_PATH_REVIEW — M1 — Thing — hook-modification — claude-code/hooks/x.sh\n",
+    )
+    assert fx.run().exit_code == 0
+
+
+def test_a_review_for_a_longer_heading_does_not_count(tmp_path, db) -> None:
+    fx = _hook_fixture(tmp_path)
+    fx.append(
+        "provenance.log",
+        f"[ts] CRITICAL_PATH_REVIEW — {HEADING} extra — hook-modification — claude-code/hooks/x.sh\n",
+    )
+    assert fx.run().exit_code == 1
+
+
+def test_a_review_naming_a_longer_path_does_not_cover_the_file(tmp_path, db) -> None:
+    fx = _hook_fixture(tmp_path)
+    fx.append(
+        "provenance.log",
+        f"[ts] CRITICAL_PATH_REVIEW — {HEADING} — hook-modification — claude-code/hooks/x.sh.orig\n",
+    )
+    assert fx.run().exit_code == 1
+
+
+def test_unreadable_provenance_is_usage_not_a_traceback(tmp_path, db) -> None:
+    fx = _hook_fixture(tmp_path)
+    (fx.repo / TASK / "t-provenance.log").write_bytes(b"\xff\xfe not utf-8")
+    r = fx.run()
+    assert r.exit_code == 2 and "provenance" in r.reason
+
+
+def test_a_codemem_answer_missing_a_path_is_3(fx, stub, monkeypatch) -> None:
+    monkeypatch.setenv("STUB_DROP", "1")
+    r = fx.run()
+    assert r.exit_code == 3 and "tests/test_a.py" in r.reason
+
+
+def test_a_task_dir_linked_outside_the_repo_is_usage(tmp_path, db) -> None:
+    fx = Fixture(tmp_path, ROWS, reference="x\n")
+    outside = tmp_path / "elsewhere"
+    (fx.repo / TASK).rename(outside)
+    (fx.repo / TASK).symlink_to(outside)
+    r = compute(
+        fx.repo / TASK / "t-plan.md",
+        fx.repo / TASK / "t-tasks.md",
+        1,
+        fx.base,
+        ignore_cutover=True,
+    )
+    assert r.exit_code == 2
+
+
+def test_a_directory_row_is_satisfied_by_an_excluded_change_beneath_it(
+    tmp_path, db
+) -> None:
+    fx = Fixture(tmp_path, "  Modify  docs/")
+    _build(fx)
+    _write(fx.repo, "docs/architecture/c.md", "x\n")
+    r = fx.run()
+    assert (r.exit_code, r.predicted_unchanged) == (0, [])
+
+
+def test_created_inside_a_fence_is_not_the_plan_date(fx) -> None:
+    fx.plan.write_text(
+        fx.plan.read_text().replace(
+            "Created: 2027-01-01\n", "```\nCreated: 2027-01-01\n```\n"
+        )
+    )
+    r = fx.run(ignore_cutover=False)
+    assert r.exit_code == 5 and "no Created:" in r.reason
+
+
+def test_a_non_executable_codemem_bin_is_3(fx, tmp_path, monkeypatch) -> None:
+    bad = tmp_path / "codemem-not-x"
+    bad.write_text("#!/bin/sh\n")
+    monkeypatch.setenv("CODEMEM_BIN", str(bad))
+    r = fx.run()
+    assert r.exit_code == 3 and "CODEMEM_BIN" in r.reason
+    sh = subprocess.run(
+        [
+            "bash",
+            "-c",
+            '. "$1"; aa_ma_codemem_bin "$2"',
+            "_",
+            str(ROOT / "claude-code/hooks/lib/aa-ma-parse.sh"),
+            str(ROOT),
+        ],
+        capture_output=True,
+        text=True,
+        env={**__import__("os").environ, "CODEMEM_BIN": str(bad)},
+    )
+    assert sh.returncode != 0  # the shell twin refuses it too
+
+
+def test_api_diff_leaves_no_worktree_or_branch_behind(tmp_path, db) -> None:
+    fx = _api_fixture(tmp_path)
+    before = (
+        _git(fx.repo, "worktree", "list"),
+        _git(fx.repo, "branch", "--list", "--all"),
+    )
+    _write(
+        fx.repo,
+        "src/aa_ma/__init__.py",
+        PKG.replace("def gone():\n    return 2\n\n\n", ""),
+    )
+    assert fx.run().api_diff == "aa_ma"
+    assert (
+        _git(fx.repo, "worktree", "list"),
+        _git(fx.repo, "branch", "--list", "--all"),
+    ) == before
+
+
+def test_kv_has_one_line_per_derived_critical_path_file(tmp_path, db) -> None:
+    fx = _hook_fixture(tmp_path)
+    kv = fx.run().to_kv().splitlines()
+    assert "derived_cp_file=hook-modification:claude-code/hooks/x.sh" in kv

@@ -129,6 +129,22 @@ def read_enforced_field(
     )
 
 
+def read_text_field_lines(block: str, field: str) -> list[str]:
+    """Every value of a free-text, repeating field (e.g. ``Impact-Explained: <path> — <reason>``).
+
+    Full values, not first tokens, in order, from the same markup :func:`read_enforced_field`
+    reads (no fences, no HTML comments, field name first on the line). Fail closed the other
+    way round: a value explains something, so a line the reader cannot trust — a
+    non-canonical bullet, an empty value — is dropped and explains nothing.
+    """
+    return [
+        value
+        for m in _candidate_re(field).finditer(sanitize(block))
+        if _CANONICAL_LEAD_RE.match(m.group("lead"))
+        and (value := m.group("raw").strip().strip("*").strip())
+    ]
+
+
 class Unreadable(Exception):
     """The file cannot be read as a tasks.md — always exit 2, never a guess."""
 

@@ -31,6 +31,10 @@
 # 6. aa_ma.gitutil imports no other aa_ma module (code-conventions-impact 10.4): it is the
 #    stdlib-only twin of codemem.gitutil, so either can be read without the rest of its package.
 #    Pinned by tests/render/test_leaf_contract.py.
+#
+# 7. aa_ma.contract_rows imports aa_ma.grammar and no other aa_ma module (code-conventions-impact
+#    11.2). Direct imports only: grammar imports plan_parsers, which is exactly why the row grammar
+#    could not live in plan_parsers. Pinned by tests/render/test_leaf_contract.py.
 
 [importlinter]
 root_packages =
@@ -67,6 +71,7 @@ type = forbidden
 source_modules =
     aa_ma.analysis
     aa_ma.cli
+    aa_ma.contract_rows
     aa_ma.deps
     aa_ma.enforce
     aa_ma.forks
@@ -96,6 +101,7 @@ name = analysis-is-leaf: aa_ma.analysis is a leaf package
 type = forbidden
 source_modules =
     aa_ma.cli
+    aa_ma.contract_rows
     aa_ma.deps
     aa_ma.enforce
     aa_ma.forks
@@ -120,6 +126,7 @@ source_modules =
     aa_ma.analysis
 forbidden_modules =
     aa_ma.cli
+    aa_ma.contract_rows
     aa_ma.deps
     aa_ma.enforce
     aa_ma.forks
@@ -143,12 +150,36 @@ source_modules =
 forbidden_modules =
     aa_ma.analysis
     aa_ma.cli
+    aa_ma.contract_rows
     aa_ma.deps
     aa_ma.enforce
     aa_ma.forks
     aa_ma.gate
     aa_ma.goal_synthesis
     aa_ma.grammar
+    aa_ma.logsetup
+    aa_ma.plan_markers
+    aa_ma.plan_parsers
+    aa_ma.render
+    aa_ma.schemas
+    aa_ma.tui
+    aa_ma.validators
+
+[importlinter:contract:contract-rows-reads-grammar-only]
+name = contract-rows-reads-grammar-only: aa_ma.contract_rows imports only aa_ma.grammar from aa_ma
+type = forbidden
+allow_indirect_imports = True
+source_modules =
+    aa_ma.contract_rows
+forbidden_modules =
+    aa_ma.analysis
+    aa_ma.cli
+    aa_ma.deps
+    aa_ma.enforce
+    aa_ma.forks
+    aa_ma.gate
+    aa_ma.gitutil
+    aa_ma.goal_synthesis
     aa_ma.logsetup
     aa_ma.plan_markers
     aa_ma.plan_parsers

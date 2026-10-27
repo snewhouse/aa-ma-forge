@@ -105,3 +105,56 @@ def test_audit_profile_bold_value_is_the_one_deliberate_divergence(
 def test_parity_is_not_vacuous() -> None:
     assert len(FIELD_ROWS) == 14
     assert sum(1 for _, f, _ in FIELD_ROWS if f == "Status") == 11
+
+
+# --- code-conventions-impact 11.3: the Python approval reader aa_ma.impact uses ------------
+# (Cochange-Threshold override) answers exactly as the shell `aa_ma_has_gate_approval`
+# that §7.1 and fence 3 use, over the cases tests/hooks/aa-ma-gate-approval.bats pins.
+
+ROOT = Path(__file__).resolve().parents[1]
+TITLE = "Milestone 1: T `x` (y)"
+APPROVAL_CASES = [
+    f"## [d] GATE APPROVAL: {TITLE}\n- Decision: APPROVED\n",
+    "",
+    f"## [d] GATE APPROVAL: {TITLE}\n- Decision: REJECTED\n## [d] GATE APPROVAL: Milestone 2: U\n- Decision: APPROVED\n",
+    f"## [d] GATE APPROVAL: {TITLE}\n- Decision: REJECTED\n## [e] GATE APPROVAL: {TITLE}\n- Decision: APPROVED\n",
+    f"## [d] GATE APPROVAL: {TITLE}\n- Decision: APPROVED\n## [e] GATE APPROVAL: {TITLE}\n- Decision: REJECTED\n",
+    f"## [d] GATE APPROVAL: {TITLE}\n- Approved by: Ste\n",
+    f"## [d] GATE APPROVAL: {TITLE} extra\n- Decision: APPROVED\n",
+    "## [d] GATE APPROVAL: Milestone 1: T .x. .y.\n- Decision: APPROVED\n",
+    f"## [d] GATE APPROVAL: {TITLE}\n- Gate: HARD\n- **Decision:** APPROVED\n",
+    f"```\n## [d] GATE APPROVAL: {TITLE}\n- Decision: APPROVED\n```\n",
+    f"````\n```\n## [d] GATE APPROVAL: {TITLE}\n- Decision: APPROVED\n```\n````\n",
+    f"```\n~~~\n## [d] GATE APPROVAL: {TITLE}\n- Decision: APPROVED\n```\n",
+    f"```\nx\n```\n## [d] GATE APPROVAL: {TITLE}\n- Decision: APPROVED\n",
+    f"## [d] GATE APPROVAL: {TITLE}   \n- Decision:   APPROVED (Ste)\n",
+]
+
+
+@pytest.mark.parametrize("log", APPROVAL_CASES)
+def test_python_gate_approval_reader_matches_the_shell(
+    tmp_path: Path, log: str
+) -> None:
+    import subprocess
+
+    path = tmp_path / "context-log.md"
+    path.write_text(log, encoding="utf-8")
+    lib = ROOT / "claude-code/hooks/lib/aa-ma-parse.sh"
+    rc = subprocess.run(
+        [
+            "bash",
+            "-c",
+            '. "$1"; aa_ma_has_gate_approval "$2" "$3"',
+            "_",
+            str(lib),
+            str(path),
+            TITLE,
+        ],
+        capture_output=True,
+    ).returncode
+    assert enforce.has_gate_approval(log, TITLE) is (rc == 0)
+
+
+def test_approval_parity_is_not_vacuous() -> None:
+    answers = {enforce.has_gate_approval(log, TITLE) for log in APPROVAL_CASES}
+    assert answers == {True, False}

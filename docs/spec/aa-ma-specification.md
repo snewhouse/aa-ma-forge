@@ -184,7 +184,7 @@ Generated: [ISO-8601 timestamp] | Audit-Profile: [profile] | Budget: [normal|low
 
 | Phase | Location | What runs |
 |---|---|---|
-| §6.7 Engineering Standards HARD Gate | heading `### 6.7 Engineering Standards HARD Gate` | Fence 1: git-clean, zero-PENDING, Critical-Path / Prototype evidence — every reading from `aa-ma-gate` (ADR-0009). Fence 2: §13 sigil edges hold in the code (ADR-0015). Fence 3: runs the merge-base `Test-Command:` (optional `Test-Command-Pass-Regex:`) and writes `TESTS_VERIFIED` (ADR-0023) |
+| §6.7 Engineering Standards HARD Gate | heading `### 6.7 Engineering Standards HARD Gate` | Fence 1: git-clean, zero-PENDING, Critical-Path / Prototype evidence — every reading from `aa-ma-gate` (ADR-0009). Fence 2: §13 sigil edges hold in the code (ADR-0015). Fence 3: runs the merge-base `Test-Command:` (optional `Test-Command-Pass-Regex:`) and writes `TESTS_VERIFIED` (ADR-0023). Fence 4: `aa-ma-impact` — every changed file predicted by the Contract or `Impact-Explained:`, every API break `API-Break:`, every derived Critical-Path reviewed; writes `IMPACT_VERIFIED` (ADR-0027) |
 | **§6.8 Post-Impl Adversarial Review** | (NEW — inserted between §6.7 and §7.1) | Invoke `/verify-impl` with current milestone's `Audit-Profile`; aggregate findings; surface CRITICAL via AskUserQuestion |
 | §7.1 Integrity Check | heading `### 7.1 Integrity Check` | HARD-gate approval artifact check (asks `aa-ma-gate` itself; requires `Decision: APPROVED`) |
 | §7.3 User Authorization | heading `### 7.3 User Authorization` | Existing approval gate (now post-§6.8) |
@@ -331,6 +331,8 @@ The `[task]-provenance.log` file is an **immutable, append-only** log providing 
 # triggers a plan-verification Angle-3 impact check on the decision delta before work goes on.
 [ts] PROTOTYPE — <milestone heading> — <verdict>[; branch=prototype/<name>] — verdict-changes-plan: YES|NO
 [ts] CRITICAL_PATH_REVIEW — <milestone heading> — <Critical-Path value> — <evidence>
+# Written by §6.7 fence 4 (plans Created: >= IMPACT_CUTOVER; ADR-0027); grandfathered plans print "not applicable"
+[ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0
 # Advisory (not gate-read): evidence for a HITL live criterion
 [ts] LIVE_CHECK — <milestone heading> — <key>=<value>…
 # Advisory: written only by `aa-ma-chart-guard.sh import` when /aa-ma-plan --from-map moves a charting map in

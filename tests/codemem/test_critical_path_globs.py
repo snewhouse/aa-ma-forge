@@ -25,9 +25,9 @@ from aa_ma.plan_parsers import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ENG_STANDARDS = REPO_ROOT / "claude-code" / "rules" / "engineering-standards.md"
-# Literal globs whose file does not exist yet: M11 creates src/aa_ma/impact.py.
+# Literal globs whose file does not exist yet (empty: src/aa_ma/impact.py landed in M11).
 # Any other missing literal path is a typo and fails.
-NOT_YET_CREATED: set[str] = set()  # src/aa_ma/impact.py landed in M11 11.3
+NOT_YET_CREATED: set[str] = set()
 # The table names `claude-code/skills/**` only as "the gate/scan logic inside" it,
 # so the code carries narrower per-skill globs instead of the whole tree.
 QUALIFIED_IN_TABLE = "claude-code/skills/**"

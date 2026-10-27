@@ -66,6 +66,9 @@ rejected by `Skill(plan-verification)`. Add new values via plan + ADR.):
 | `doc-count-drift`  | Hardcoded counts in docs (Tier 6 detector domain)                   |
 | `hook-modification`| Changes to the shipped enforcement surface: `claude-code/hooks/**` (incl. `lib/`), the CI workflows `.github/workflows/**`, the gate/scan logic inside `claude-code/skills/**` (`claude-code/skills/execute-aa-ma-*/**`, `claude-code/skills/sole-dev-merge/**`), and the Python the gate reads — `src/aa_ma/{gate,enforce,grammar,plan_parsers}.py` (ADR-0009) (affect all sessions); also `src/aa_ma/{impact,gitutil}.py`, `scripts/check_conventions.py`, `scripts/{install,uninstall,lib/aa-ma-install-lib}.sh`, `.pre-commit-config.yaml`, `.gitleaksignore`, `.github/dependabot.yml` |
 
+§6.7 fence 4 derives these values from a milestone's changed files (`aa_ma.plan_parsers.CRITICAL_PATH_GLOBS`,
+equal to this table by test): each derived value needs a `CRITICAL_PATH_REVIEW` naming its files (ADR-0027).
+
 **Diagram-Waiver canonical values** (plan-level front-matter; planning-time only —
 read by `Skill(plan-verification)`, never by the milestone gate; novel values are
 rejected):
@@ -144,7 +147,7 @@ checklist. The HARD/SOFT column indicates milestone-level enforcement:
 |-------------------------------------------------|------|-------------------------------------------------------------------------|
 | Implementation tested with running code/API     | HARD | `provenance.log` shows live execution evidence                          |
 | Tests written and passing                       | HARD | §6.7 fence 3 runs `Test-Command:` and records `TESTS_VERIFIED — <milestone heading> — passed=N` in `provenance.log` (ADR-0023) |
-| Non-breaking constraint verified                | HARD | `Skill(impact-analysis)` run; tests still pass                          |
+| Non-breaking constraint verified                | HARD | §6.7 fence 4 computes `IMPACT_VERIFIED — <milestone heading> — … unexplained=0` (plans `Created:` ≥ `IMPACT_CUTOVER`, ADR-0027); `Skill(impact-analysis)` at §6.3 for callers |
 | AA-MA artifacts in sync; git clean              | HARD | `git status` clean for AA-MA files; zero `Status: PENDING` in milestone |
 | `Critical-Path:` evidence (when field present)  | HARD | `CRITICAL_PATH_REVIEW` entry in `provenance.log`                        |
 | `Prototype-Required:` evidence (when YES)       | HARD | `PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES\|NO` entry in `provenance.log` |

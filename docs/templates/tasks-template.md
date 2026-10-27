@@ -90,6 +90,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
   - [Criterion 1 — must be testable and specific]
   - [Criterion 2]
 
+<!-- Impact-Explained: added during execution, one line per file §6.7 fence 4 (IMPACT_VERIFIED,
+     ADR-0027) reports as unpredicted, predicted-unchanged or a missed co-change partner:
+     `- Impact-Explained: <path> — <reason>`. No reason, no explanation. Runbook:
+     claude-code/skills/execute-aa-ma-milestone/references/impact-gate.md -->
+
 ### Sub-step 1.1: [Action description]
 
 <!-- Sub-step = a concrete, atomic action that produces a verifiable result.

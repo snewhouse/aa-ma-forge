@@ -748,3 +748,9 @@ DECISION ruff-only () — approved by Ste
 - W3: 11.3 AC — `COCHANGE_WINDOW_COMMITS = 500`; `refresh-commits --limit` receives it (test asserts the argv).
 - Carry-over placement: aa_ma.gitutil + derive_critical_paths callers in impact.py (11.3); shell↔Python T7 constant contract test (11.3); coverage row regexes from one verb tuple (11.2); griffe Context7 lookup (11.4); codemem FILE_IMPACT_BUDGET + co_changes threshold default (11.3, Ste "fold in"); codemem.gitutil adoption deferred (TODOS, Ste).
 - W4 (reference facts) applied at 11.0; W5 (§13 edges for milestone_base/verify-impl) and W6 (cosmetic step order) left as recorded.
+
+## [2026-10-27] 11.2 decisions (agent, within AC)
+- `# file:` template lines read as `Modify` (AC lists row verbs only; the verb only matters to fence 4 for Delete/Move).
+- `→` / `->` in Move/Merge rows are separators, not paths (the M3 Contract writes `old → new`); prose after a Merge arrow still reads as paths — fail closed, kept.
+- Explanations fail closed the other way: `read_text_field_lines` drops non-canonical-bullet and empty lines (an untrusted line explains nothing → the gate reports the file).
+- coverage's all-verb `_ANY_ROW_RE` removed (no reader after delegation) rather than kept as a dead twin.

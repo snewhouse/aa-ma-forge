@@ -1101,7 +1101,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: 2026-10-27 — Mode HITL (step), Ste: Proceed. complexity-router: weighted 57%, auto-triggers (contract change for post-cutover plans; hook-modification) → 85% Critical, deep review (context-log). Prototype `prototype/m11-cochange-threshold` @ a51abd50 (scripts/prototype_m11_cochange_threshold.py; results docs/prototypes/m11-cochange-threshold-results.txt): replays codemem co_changes at each milestone PR head (rename-following, deletes dropped, linked pairs excluded via today's index, IMPACT_EXCLUDE + codemem excludes). Co-change `Impact-Explained:` lines, last 3 completed plans (codebase-analysis-skills #4–11, sole-dev-merge-fixes #42–46, sole-dev-merge-simplify #55/#58; 15 milestones) | this plan (12 milestone PRs): window 500 — 5/50% 5|11, 3/50% 29|43, 5/30% 16|15; window 2000 (= all 1778 commits) — 14|14, 48|46, 36|55; ≤10-file sweep filter @500 — 2|6, 11|25, 11|7. 5/50%@500 hits look real (install.sh↔uninstall.sh ×3, codemem storage/db.py↔aa_ma render/graph.py twin, analysis models↔cli/secrets, test_prompt_size↔test_split_preserves_content); looser settings add churn/stale pairs. Ste: 5/50%, window 500 (`COCHANGE_WINDOW_COMMITS`, reference.md), no sweep filter (CLI unchanged) → verdict-changes-plan: NO. Validator W2/W3 amendments (Ste): plan Contract rows + 11.2/11.3/11.4 ACs below; carry-over placement (Ste): codemem.gitutil deferred (TODOS), codemem nits folded into 11.3.
 
 ### Sub-step 11.2: read_text_field_lines + contract_rows (TDD)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 11.1
 - Acceptance Criteria:
@@ -1110,7 +1110,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `.importlinter` + test_leaf_contract gain `aa_ma.contract_rows`.
   - [added 2026-10-27, M10 §6.8 carry-over] coverage's Create|Modify `_ROW_RE` and all-verb `_ANY_ROW_RE` are built from one verb tuple owned by `aa_ma.contract_rows`.
   - `tests/test_contract_rows.py` passes; `lint-imports` clean (no grammar↔plan_parsers cycle).
-- Result Log:
+- Result Log: 2026-10-27 — Mode AFK (step) — auto-dispatched. RED 5bec8ac8; GREEN 341d15ca + test pin. `src/aa_ma/contract_rows.py`: `ROW_VERBS` (6), `row_re(verbs)` (named groups verb/text), `milestone_contract_rows(plan, "N") -> [(verb, path)]` (in order, deduped; `# file:` → Modify; `→`/`->` separators dropped; brace expansion capped), `contract_rows(lines, bare, pattern)`; imports `aa_ma.grammar` only. coverage: `_ROW_RE = row_re(("Create","Modify"))`, `milestone_contract_paths` delegates; dead `_ANY_ROW_RE` removed. `enforce.read_text_field_lines` (every full value; non-canonical bullet / empty / fenced / commented lines dropped). `.importlinter`: contract_rows added to 4 lists + new `contract-rows-reads-grammar-only` (allow_indirect_imports — grammar→plan_parsers). Evidence: tests/test_contract_rows.py 6 + test_enforce 2 new + test_leaf_contract 1 new — 241 passed (render+enforce+contract_rows); gate/skills/plugin-surface 548 passed; predicted-vs-actual.bats 11/11; lint-imports 8 kept 0 broken; §13 lint edges=25 checked=25 phantom=0 render PASS. Bug caught GREEN-side by the tests: named `verb` group shifted group(1).
 
 ### Sub-step 11.3: impact.compute + aa-ma-impact CLI (TDD)
 - Status: PENDING

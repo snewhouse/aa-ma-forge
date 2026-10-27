@@ -183,6 +183,9 @@ def test_post_cutover_plan_is_checked(fx, monkeypatch) -> None:
 
 def test_plan_without_created_is_not_applicable(fx) -> None:
     fx.plan.write_text(fx.plan.read_text().replace("Created: 2027-01-01\n", ""))
+    fx.base = _commit(
+        fx.repo, "plan date at the base"
+    )  # the merge-base copy dates the plan
     r = fx.run(ignore_cutover=False)
     assert r.exit_code == 5 and "no Created:" in r.reason
 
@@ -793,6 +796,9 @@ def test_created_inside_a_fence_is_not_the_plan_date(fx) -> None:
             "Created: 2027-01-01\n", "```\nCreated: 2027-01-01\n```\n"
         )
     )
+    fx.base = _commit(
+        fx.repo, "plan date at the base"
+    )  # the merge-base copy dates the plan
     r = fx.run(ignore_cutover=False)
     assert r.exit_code == 5 and "no Created:" in r.reason
 

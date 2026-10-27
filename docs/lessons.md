@@ -5,6 +5,10 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-071 (2026-10-27) — A Result Log claimed a test result the same command had not yet shown
+**Pattern:** in code-conventions-impact 11.5 one Bash call ran `bats aa-ma-parse.bats | grep -c '^not ok'` AND wrote the Result Log, which I had pre-filled with "aa-ma-parse 0 failing". The count printed `1` (the Exports header lacked two new helpers). I caught it reading the output after the commit and logged a CORRECTION.
+**Rule:** never write a number or verdict into tasks.md / provenance.log in the same call that produces it. Run the evidence command, read its output, then write the log from what it printed. A suite named in a Result Log must have been run, and read, in an earlier call.
+
 ## L-070 (2026-10-25) — `mkdir` is not a lock on Ubuntu 26.04 (uutils coreutils)
 **Pattern:** the 10.6 pre-edit hook used `mkdir <marker>` as test-and-set for "once per file per session" (as the plan specified). Its concurrency bats failed: uutils coreutils mkdir 0.10.0 (`/usr/bin/mkdir` on Ubuntu 26.04) let two racing `mkdir`s of one path both succeed in 119/300 runs; GNU mkdir 9.7 (`gnumkdir`) 0/300. `mkdir -p` succeeding for both is by design.
 **Rule:** never use the `mkdir` command as a lock or claim in shell. Use bash `( set -C; : > "$marker" ) 2>/dev/null` (O_CREAT|O_EXCL in the shell itself), or `flock`. When a plan names `mkdir` as test-and-set, flag it. Concurrency tests must race ≥4 invocations many times, not once.

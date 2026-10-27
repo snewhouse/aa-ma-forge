@@ -1062,7 +1062,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 11: Gate-computed `IMPACT_VERIFIED` (T7)
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 10
 - Complexity: 85% ⚠️ HIGH COMPLEXITY
 - Effort: 3 days

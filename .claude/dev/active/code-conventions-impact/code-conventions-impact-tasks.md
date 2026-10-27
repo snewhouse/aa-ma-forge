@@ -1090,7 +1090,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: 2026-10-27 — Mode HITL (step), Ste: Proceed. M10 = PR #69 → main 169e4e81 (= origin/main, CI success). Branch `feat/cci-m11-impact-gate` cut from 169e4e81; pending AA-MA files committed there. L-065: ruff over Contract .py files → enforce.py D205/D209 ×3 only (format clean, shellcheck aa-ma-parse.sh + aa-ma-install-lib.sh clean) → own `style(enforce)` commit (Ste). install.sh --dry-run rc 0 (preedit "source not present": dry-run reads the unrefreshed live wt f0bfbd8b), live rc 0: live wt f0bfbd8b → 169e4e81, 69 links, `Registered PreToolUse [aa-ma-impact-preedit.sh]`; settings.json registrations = 1 (Edit|Write, timeout 5); link → live wt; ~/.claude/docs/aa-ma-specification.md has `verdict-changes-plan` (2); backup aa-ma-forge-20261027-140425. `uv sync` rc 0; `codemem build` rc 0 (354 files, 3591 symbols, 9706 edges, 1.20 s). A1 live in THIS session (settings picked up without restart): Edit of src/aa_ma/grammar.py → 5 lines `codemem data (untrusted): impact of src/aa_ma/grammar.py` (callers 6 files + 7 test files; co-changed -); second Edit of the same file silent; file reverted (git diff clean). Prototype branches kept (Ste).
 
 ### Sub-step 11.1: PROTOTYPE — co-change threshold
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 11.0
 - Acceptance Criteria:
@@ -1098,7 +1098,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - On this repo's history, the pairs that fire at 5/50%, 3/50% and 5/30% over the last 3 completed plans' milestones are listed, with an estimate of the `Impact-Explained:` lines each would have needed; Ste picks the threshold.
   - The co-change commit window (`refresh-commits --limit`) the gate reads is declared with the threshold and recorded in reference.md; at the default 500 the M3 renames (660 commits back) are out of range (M10 F1/W4, accepted 2026-10-26).
   - `provenance.log` has `[ts] PROTOTYPE — <milestone heading> — <verdict, chosen n/ratio> — verdict-changes-plan: YES|NO`, where the heading is verbatim (backticks included): Milestone 11: Gate-computed `IMPACT_VERIFIED` (T7)
-- Result Log:
+- Result Log: 2026-10-27 — Mode HITL (step), Ste: Proceed. complexity-router: weighted 57%, auto-triggers (contract change for post-cutover plans; hook-modification) → 85% Critical, deep review (context-log). Prototype `prototype/m11-cochange-threshold` @ a51abd50 (scripts/prototype_m11_cochange_threshold.py; results docs/prototypes/m11-cochange-threshold-results.txt): replays codemem co_changes at each milestone PR head (rename-following, deletes dropped, linked pairs excluded via today's index, IMPACT_EXCLUDE + codemem excludes). Co-change `Impact-Explained:` lines, last 3 completed plans (codebase-analysis-skills #4–11, sole-dev-merge-fixes #42–46, sole-dev-merge-simplify #55/#58; 15 milestones) | this plan (12 milestone PRs): window 500 — 5/50% 5|11, 3/50% 29|43, 5/30% 16|15; window 2000 (= all 1778 commits) — 14|14, 48|46, 36|55; ≤10-file sweep filter @500 — 2|6, 11|25, 11|7. 5/50%@500 hits look real (install.sh↔uninstall.sh ×3, codemem storage/db.py↔aa_ma render/graph.py twin, analysis models↔cli/secrets, test_prompt_size↔test_split_preserves_content); looser settings add churn/stale pairs. Ste: 5/50%, window 500 (`COCHANGE_WINDOW_COMMITS`, reference.md), no sweep filter (CLI unchanged) → verdict-changes-plan: NO. Validator W2/W3 amendments (Ste): plan Contract rows + 11.2/11.3/11.4 ACs below; carry-over placement (Ste): codemem.gitutil deferred (TODOS), codemem nits folded into 11.3.
 
 ### Sub-step 11.2: read_text_field_lines + contract_rows (TDD)
 - Status: PENDING
@@ -1108,6 +1108,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `src/aa_ma/enforce.py`: `read_text_field_lines(block, field) -> list[str]` (full value, not first token) for `Impact-Explained: <path> — <reason>`.
   - New `src/aa_ma/contract_rows.py`: `milestone_contract_rows(plan_text, milestone) -> list[tuple[verb, path]]` with verbs Create|Modify|Test|Move|Merge|Delete, no exemptions, sliced per `### Milestone N`, reusing `_split/_expand`; imports `aa_ma.grammar` only; `src/aa_ma/render/coverage.py` imports the shared row helpers (its `--coverage` behaviour unchanged).
   - `.importlinter` + test_leaf_contract gain `aa_ma.contract_rows`.
+  - [added 2026-10-27, M10 §6.8 carry-over] coverage's Create|Modify `_ROW_RE` and all-verb `_ANY_ROW_RE` are built from one verb tuple owned by `aa_ma.contract_rows`.
   - `tests/test_contract_rows.py` passes; `lint-imports` clean (no grammar↔plan_parsers cycle).
 - Result Log:
 
@@ -1124,6 +1125,8 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `[project.scripts] aa-ma-impact = "aa_ma.impact:main"`; CLI `aa-ma-impact <plan.md> <tasks.md> --milestone N --base SHA [--format kv|json]`; kv keys `changed= predicted= cochange= unexplained= api_breaks= derived_cp=<value:file,…>`; imports only plan_parsers/enforce/grammar/contract_rows/gitutil/logsetup; the entrypoint calls `configure_logging`; `.importlinter` + test_leaf_contract gain `aa_ma.impact`.
   - `tests/test_impact.py` passes: unpredicted file; predicted-unchanged; co-change 4 vs 5 shared commits and 49% vs 50% (≥ semantics); explained passes; rename counted as old+new; a deleted predicted file counts as changed; grandfathered → exit 5; index missing → exit 3; a diff touching `claude-code/hooks/x.sh` with no CRITICAL_PATH_REVIEW → exit 1.
   - `tests/test_impact_codemem_contract.py` calls the REAL `codemem query co_changes` on a fixture repo and validates the keys aa-ma-impact reads.
+  - [added 2026-10-27, validator W3 / F1] `COCHANGE_WINDOW_COMMITS = 500` (11.1, Ste); `compute` runs `codemem refresh-commits --limit <COCHANGE_WINDOW_COMMITS>` and a test asserts the limit reaches the codemem argv.
+  - [added 2026-10-27, M10 §6.8 carry-overs] production callers: `impact.py` uses `aa_ma.gitutil` for its git calls and `plan_parsers.derive_critical_paths` for derived Critical-Path; a contract test asserts shell `AA_MA_COCHANGE_MIN_SHARED` / `AA_MA_COCHANGE_MIN_RATIO` (aa-ma-parse.sh) equal `impact.COCHANGE_MIN_SHARED` / `COCHANGE_MIN_RATIO`; codemem `FILE_IMPACT_BUDGET` named once (unit + rationale) in cli.py + mcp_tools, and `query co_changes --threshold` no longer restates the library default.
 - Result Log:
 
 ### Sub-step 11.4: griffe API diff (TDD)
@@ -1131,6 +1134,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Mode: AFK
 - Dependencies: Sub-step 11.3
 - Acceptance Criteria:
+  - [added 2026-10-27, M10 §6.8 carry-over] a Context7 lookup of the griffe 2.x API (pinned 2.3.2) is logged in provenance before any 11.4 code.
   - griffe for `aa_ma` and `codemem` only (P6); no Python package / not importable statically → prints `api_diff=skipped(<reason>)`, never silent.
   - Removing a public function from a fixture package without `API-Break:` → exit 1; with it → pass.
 - Result Log:

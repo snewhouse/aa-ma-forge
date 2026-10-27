@@ -1062,7 +1062,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 11: Gate-computed `IMPACT_VERIFIED` (T7)
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 10
 - Complexity: 85% ⚠️ HIGH COMPLEXITY
 - Effort: 3 days
@@ -1096,6 +1096,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Acceptance Criteria:
   - `Skill(complexity-router)` run first (85% milestone); its verdict logged in context-log.
   - On this repo's history, the pairs that fire at 5/50%, 3/50% and 5/30% over the last 3 completed plans' milestones are listed, with an estimate of the `Impact-Explained:` lines each would have needed; Ste picks the threshold.
+  - The co-change commit window (`refresh-commits --limit`) the gate reads is declared with the threshold and recorded in reference.md; at the default 500 the M3 renames (660 commits back) are out of range (M10 F1/W4, accepted 2026-10-26).
   - `provenance.log` has `[ts] PROTOTYPE — <milestone heading> — <verdict, chosen n/ratio> — verdict-changes-plan: YES|NO`, where the heading is verbatim (backticks included): Milestone 11: Gate-computed `IMPACT_VERIFIED` (T7)
 - Result Log:
 

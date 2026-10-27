@@ -37,6 +37,8 @@ aa-ma-lint-views = "aa_ma.render.cli:lint_main"
 aa-ma-render = "aa_ma.render.cli:render_main"
 # Codebase-analysis core (assess-codebase / understand-codebase) — created in codebase-analysis-skills M1 (2026-09-28).
 aa-ma-analysis = "aa_ma.analysis.cli:main"
+# Gate-computed IMPACT_VERIFIED (§6.7 fence 4) — created in code-conventions-impact M11 (2026-10-27).
+aa-ma-impact = "aa_ma.impact:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -100,6 +102,7 @@ max-args = 6  # why: one over ruff's 5 — leaves room for a keyword-only flag (
 "**/__main__.py" = ["T20"]
 "src/aa_ma/forks.py" = ["T20"]  # run as `python -m aa_ma.forks`; stdout is its report
 "src/aa_ma/deps.py" = ["T20"]   # run as `python -m aa_ma.deps` (aa_ma_deps helper); stdout is its report
+"src/aa_ma/impact.py" = ["T20"] # aa-ma-impact CLI (§6.7 fence 4); stdout is its kv/json report
 "scripts/**" = ["T20"]
 # tests run git/bash on purpose (S603/S607), write tmp fixtures (S108) and assert (S101) — approved M8.2.
 "tests/**" = ["D", "T20", "S101", "S108", "S110", "S603", "S607"]

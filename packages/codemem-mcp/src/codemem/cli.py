@@ -314,20 +314,26 @@ def _cmd_query(args: argparse.Namespace) -> int:  # noqa: C901  # why: pre-exist
 def _query_co_changes(args: argparse.Namespace, db_path: Path) -> int:
     """``co_changes`` for one path (its dict) or several (an object keyed by path).
 
-    Exit 1 when any path's result carries an error.
+    Every result carries ``stale`` (true/false/"unknown") and ``stale_reason`` from
+    :func:`codemem.incremental.check_freshness`. Exit 1 when any path's result carries
+    an error.
     """
     from . import mcp_tools
+    from .incremental import check_freshness
 
+    knobs = {} if args.threshold is None else {"threshold": args.threshold}
     results = {
         path: mcp_tools.co_changes(
-            db_path,
-            path,
-            threshold=args.threshold,
-            min_ratio=args.min_ratio,
-            budget=args.budget,
+            db_path, path, min_ratio=args.min_ratio, budget=args.budget, **knobs
         )
         for path in args.positional
     }
+    # Each answer says whether the index it came from matches the tree (the MCP envelope's
+    # X2 fields): aa-ma-impact must not pass a gate on a stale index (M11, G13).
+    fresh = check_freshness(_repo_root(args), db_path)
+    for result in results.values():
+        result["stale"] = "unknown" if fresh.stale is None else fresh.stale
+        result["stale_reason"] = fresh.reason
     single = len(args.positional) == 1
     out = results[args.positional[0]] if single else results
     print(json.dumps(out, indent=2, default=str))
@@ -387,7 +393,8 @@ def _cmd_impact(args: argparse.Namespace) -> int:
     """Print :func:`codemem.mcp_tools.file_impact` as four lines (or nothing) or as JSON."""
     from . import mcp_tools
 
-    result = mcp_tools.file_impact(_db_path(args), args.path, budget=args.budget)
+    knobs = {} if args.budget is None else {"budget": args.budget}
+    result = mcp_tools.file_impact(_db_path(args), args.path, **knobs)
     if result.get("error"):
         print(f"codemem impact: {result['error']}", file=sys.stderr)
         if args.format == "json":
@@ -577,8 +584,8 @@ def build_parser() -> argparse.ArgumentParser:
     pq.add_argument(
         "--threshold",
         type=int,
-        default=3,
-        help="co_changes: minimum shared commits (default 3)",
+        default=None,
+        help="co_changes: minimum shared commits (default: mcp_tools.co_changes's)",
     )
     pq.add_argument(
         "--min-ratio",
@@ -613,7 +620,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="brief: four one-line summaries, or nothing when empty (default); "
         "json: the file_impact dict",
     )
-    pim.add_argument("--budget", type=int, default=2000)
+    pim.add_argument(
+        "--budget", type=int, default=None, help="default: mcp_tools.FILE_IMPACT_BUDGET"
+    )
 
     pi = sub.add_parser("intel", help="Write PROJECT_INTEL.json")
     pi.add_argument("--out", help="Output path (default: PROJECT_INTEL.json)")

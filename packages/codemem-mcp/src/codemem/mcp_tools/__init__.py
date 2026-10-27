@@ -78,6 +78,9 @@ _DEFAULT_CO_CHANGES_EXCLUDE: tuple[str, ...] = ("CHANGELOG.md", "README.md")
 # sweep commits in this repo (format passes, lint pay-downs, gate swaps)
 # touch 12-19 files and drowned the co-change signal in the 10.1 prototype.
 CO_CHANGE_MAX_COMMIT_FILES = 10
+# Characters of file_impact output (~500 tokens at _CHARS_PER_TOKEN): the pre-edit hook
+# prints at most four brief lines from it, so this only bounds the json form.
+FILE_IMPACT_BUDGET = 2_000
 _RATIO_DP = 3  # decimal places of a co-change ratio: enough to rank, short to read
 _BLAST_RADIUS_DEPRECATION = "use callees; removed after v0.18.x"
 
@@ -930,7 +933,7 @@ def file_impact(
     db_path: Path,
     file_path: str,
     *,
-    budget: int = 2_000,
+    budget: int = FILE_IMPACT_BUDGET,
 ) -> dict:
     """Who outside ``file_path`` depends on it, and what changes with it.
 

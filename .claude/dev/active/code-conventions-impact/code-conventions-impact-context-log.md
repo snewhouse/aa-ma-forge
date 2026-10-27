@@ -754,3 +754,12 @@ DECISION ruff-only () — approved by Ste
 - `→` / `->` in Move/Merge rows are separators, not paths (the M3 Contract writes `old → new`); prose after a Merge arrow still reads as paths — fail closed, kept.
 - Explanations fail closed the other way: `read_text_field_lines` drops non-canonical-bullet and empty lines (an untrusted line explains nothing → the gate reports the file).
 - coverage's all-verb `_ANY_ROW_RE` removed (no reader after delegation) rather than kept as a dead twin.
+
+## [2026-10-27] 11.3 decisions
+- Staleness source (agent, within AC 11.5 / G13): the codemem CLI had no `stale` — only the MCP envelope did. `codemem query co_changes` now adds per-path `stale` (true/false/"unknown") + `stale_reason` from `check_freshness` (additive; `aa_ma_cochange_partners` reads `.files` only). aa-ma-impact runs `codemem refresh` first, so a stale answer means a race or an untrusted index → exit 1. Rejected: a Python freshness twin in aa_ma (third copy of tree_sig logic).
+- Index required even with nothing changed (agent): `status`/`refresh`/`refresh-commits` always run; an unindexed repo never passes fence 4.
+- Cochange-Threshold override approval title (agent): `GATE APPROVAL: Cochange-Threshold <n> <ratio> — <milestone heading>` (binds the values, like `Test-Command none — <heading>`); Python reader `enforce.has_gate_approval` is pinned to the shell `aa_ma_has_gate_approval` by 14 parity cases.
+- Derived Critical-Path review (agent): a CRITICAL_PATH_REVIEW line for the milestone covers a triggering file when it names the file or a `CRITICAL_PATH_GLOBS` glob the file matches.
+- `--head` (agent): non-HEAD compares `base..head` only, for the 11.7 retro on merged history; HEAD includes the working tree.
+- Contract row prose (Ste, after the live run on M11: ~55 prose tokens read as predicted-unchanged): keep the fail-closed "every token is a path" grammar (one grammar with coverage); 11.6 runbook/templates/scribe tell authors paths only, prose after `#`. Rejected: gate-only stop-at-first-non-path (drops a 2nd extensionless root path); changing coverage too (reverses the diagram-generation §6.8 decision).
+- Live findings for M11 itself (grandfathered, informational): tests/test_enforce.py unpredicted; codemem incremental.py/indexer.py co-change with cli.py; enforce.py/impact.py derive hook-modification — 11.9's CRITICAL_PATH_REVIEW names them.

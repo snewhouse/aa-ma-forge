@@ -12,7 +12,12 @@ import ast
 from pathlib import Path
 
 from aa_ma import contract_rows
-from aa_ma.contract_rows import ROW_VERBS, milestone_contract_rows, row_re
+from aa_ma.contract_rows import (
+    ROW_VERBS,
+    milestone_contract_lines,
+    milestone_contract_rows,
+    row_re,
+)
 from aa_ma.render import coverage
 
 PLAN = """\
@@ -110,3 +115,11 @@ def test_module_imports_only_the_grammar_from_aa_ma() -> None:
         if alias.name.startswith("aa_ma")
     }
     assert from_aa_ma == {"aa_ma.grammar"}
+
+
+def test_contract_lines_are_the_raw_fence_lines_of_one_milestone() -> None:
+    """Non-row Contract lines (`API-Break:`, field lines) for fence 4's own readers."""
+    lines = milestone_contract_lines(PLAN, "3")
+    assert lines == ["# file: src/three.py", "def f(): ..."]
+    assert "Audit-Profile: full" in milestone_contract_lines(PLAN, "2")
+    assert milestone_contract_lines(PLAN, "9") == []

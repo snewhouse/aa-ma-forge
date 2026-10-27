@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-26 (M10 COMPLETE: impact tooling as built)_
+_Last Updated: 2026-10-27 (M11 11.0: post-merge of M10)_
 
 Test-Command: uv run pytest
 
@@ -487,3 +487,8 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - §6.3 `scripts/predicted-vs-actual.sh <task>` (advisory; `UNPREDICTED <path>` lines → §6.8 code-reviewer as untrusted `<unpredicted-files>`); commit-drift ad-hoc co-change advisory (no plan or `[ad-hoc]`). PROTOTYPE token gains `verdict-changes-plan: YES|NO`. griffe==2.3.2 (dev). ADR-0026 Accepted. [valid: 2026-10-26]
 - uutils coreutils mkdir 0.10.0 is not test-and-set (L-070). [valid: 2026-10-26]
 
+## 11.0 Facts (2026-10-27)
+- Heading (verbatim): `Milestone 11: Gate-computed `IMPACT_VERIFIED` (T7)`. Branch `feat/cci-m11-impact-gate` (plain branch, main checkout, cut from 169e4e81). [valid: 2026-10-27]
+- Live: `~/.local/share/codemem-plugin-wt` at main 169e4e81; `aa-ma-impact-preedit.sh` registered once (PreToolUse Edit|Write, timeout 5); A1 shown live in-session (no restart needed). codemem index 354 files / 3591 symbols / 9706 edges. [valid: 2026-10-27]
+- Co-change window baseline: `codemem refresh-commits` default `--limit` 500; the M3 renames sit ~660 commits back (out of the default window; M10 F1/W4). 11.1 declares the gate's window. [valid: 2026-10-26]
+- Reuse candidate (validator W4): shell `aa_ma_cochange_partners <top> <forge> <timeout> -- paths` (aa-ma-parse.sh; T7 `AA_MA_COCHANGE_MIN_SHARED=5`, `_MIN_RATIO=0.5`; rc 0/2/3/4/5/6) — the Python `aa_ma.impact` twin must match it (contract test, M11 carry-over). [valid: 2026-10-26]

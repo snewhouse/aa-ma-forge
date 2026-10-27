@@ -84,7 +84,7 @@ _line() { grep -F "IMPACT_VERIFIED — ${HEADING} — " "$T/t-provenance.log"; }
     [[ "$output" == *"IMPACT-GATE: PASS"* ]]
     run _line
     [ "$status" -eq 0 ] || { echo "$output"; false; }
-    [[ "$output" == *"— changed=1 predicted=1 cochange=0 unexplained=0" ]]
+    [[ "$output" == *"— changed=1 predicted=1 cochange=0 unexplained=0 api_diff=skipped(no aa_ma or codemem file changed)" ]]
 }
 
 @test "fail: an unpredicted file → exit 1, names it, writes no line" {
@@ -145,3 +145,14 @@ STUB
     [ "$status" -eq 1 ]
     [[ "$output" == *"hook-modification:claude-code/hooks/x.sh"* ]]
 }
+
+@test "repo-controlled file names reach the terminal sanitised (bidi / ESC become ?)" {
+    echo 'A = 2' > "$R/src/a.py"
+    bad=$'src/b\u202eevil\x1b[31m.py'
+    echo 'B = 1' > "$R/$bad"
+    _run_fence
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"unpredicted:src/b?evil?[31m.py"* ]]
+    run ! grep -q $'\x1b' <<< "$output"
+}
+

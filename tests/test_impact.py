@@ -543,3 +543,92 @@ def test_kv_puts_every_value_on_one_line() -> None:
         impact.ImpactReport(exit_code=2, reason="bad\nexit_code=0").to_kv().splitlines()
     )
     assert [ln for ln in lines if ln.startswith("exit_code=")] == ["exit_code=2"]
+
+
+# --- API diff (griffe, 11.4) ---------------------------------------------------------------
+
+PKG = "def keep():\n    return 1\n\n\ndef gone():\n    return 2\n\n\ndef _private():\n    return 3\n"
+
+
+def _api_fixture(tmp_path: Path, extra_rows: str = "") -> Fixture:
+    fx = Fixture(tmp_path, "  Modify  src/aa_ma/__init__.py" + extra_rows)
+    _write(fx.repo, "src/aa_ma/__init__.py", PKG)
+    fx.base = _commit(fx.repo, "pkg")
+    _build(fx)
+    return fx
+
+
+def test_removing_a_public_function_without_api_break_fails(tmp_path, db) -> None:
+    fx = _api_fixture(tmp_path)
+    _write(
+        fx.repo,
+        "src/aa_ma/__init__.py",
+        PKG.replace("def gone():\n    return 2\n\n\n", ""),
+    )
+    r = fx.run()
+    assert r.exit_code == 1
+    assert r.api_breaks_undeclared == ["aa_ma.gone: Public object was removed"]
+    assert r.api_diff == "aa_ma"
+
+
+def test_a_declared_api_break_passes(tmp_path, db) -> None:
+    fx = _api_fixture(tmp_path, "\nAPI-Break: aa_ma.gone — no caller left (who_calls)")
+    _write(
+        fx.repo,
+        "src/aa_ma/__init__.py",
+        PKG.replace("def gone():\n    return 2\n\n\n", ""),
+    )
+    r = fx.run()
+    assert (r.exit_code, r.api_breaks_undeclared) == (0, [])
+
+
+def test_declaring_a_module_covers_its_members(tmp_path, db) -> None:
+    fx = _api_fixture(tmp_path, "\nAPI-Break: aa_ma — package reshaped")
+    _write(fx.repo, "src/aa_ma/__init__.py", "def keep():\n    return 1\n")
+    assert fx.run().exit_code == 0
+
+
+def test_private_changes_are_not_breaks(tmp_path, db) -> None:
+    fx = _api_fixture(tmp_path)
+    _write(
+        fx.repo,
+        "src/aa_ma/__init__.py",
+        PKG.replace("def _private():\n    return 3\n", ""),
+    )
+    r = fx.run()
+    assert (r.exit_code, r.api_breaks_undeclared, r.api_diff) == (0, [], "aa_ma")
+
+
+def test_no_api_package_touched_is_skipped_with_a_reason(fx) -> None:
+    _write(fx.repo, "src/a.py", "A = 2\n")
+    _write(fx.repo, "tests/test_a.py", "def test_a():\n    assert 1\n")
+    r = fx.run()
+    assert r.api_diff == "skipped(no aa_ma or codemem file changed)"
+
+
+def test_unloadable_package_is_skipped_never_silent(tmp_path, db) -> None:
+    fx = _api_fixture(tmp_path)
+    _write(fx.repo, "src/aa_ma/__init__.py", "def keep(:\n")  # not parseable
+    r = fx.run()
+    assert r.api_diff.startswith("skipped(aa_ma: ") and r.api_breaks_undeclared == []
+
+
+def test_package_new_at_head_has_nothing_to_break(tmp_path, db) -> None:
+    fx = Fixture(tmp_path, "  Create  src/aa_ma/__init__.py")
+    _build(fx)
+    _write(fx.repo, "src/aa_ma/__init__.py", PKG)
+    r = fx.run()
+    assert r.exit_code == 0 and r.api_diff == "skipped(aa_ma: absent at base)"
+
+
+def test_cli_lists_each_undeclared_break(tmp_path, db) -> None:
+    fx = _api_fixture(tmp_path)
+    _write(
+        fx.repo,
+        "src/aa_ma/__init__.py",
+        PKG.replace("def gone():\n    return 2\n\n\n", ""),
+    )
+    p = _cli(fx, "--ignore-cutover")
+    assert p.returncode == 1
+    assert "api_break=aa_ma.gone: Public object was removed" in p.stdout
+    assert "api_breaks=1" in p.stdout

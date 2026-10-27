@@ -727,3 +727,7 @@ DECISION ruff-only () — approved by Ste
 - Validator (§7.2.5): WARNINGS_BUT_USABLE (0 FAIL, 4 WARN). Back-filled: this entry (W1); CRITICAL_PATH_REVIEW addendum for hook-path files changed after 15890d3f (W2); CODE_INTEL_REFRESH addendum at b48859fc (W3, manual — the script needs an ACTIVE milestone).
 - W4 (recorded, not fixed): the 10.2 AC "co_changes … returns its pre-move partners" holds only with `refresh-commits --limit 2000`; at the default 500-commit window the M3 rename (660 commits back) is out of range. Accepted as a known limit (Result Log 10.2, ADR-0026 Consequences); M11's co-change gate should state its window.
 - I2 (recorded): 10.6's "out-of-repo path ignored" and "codemem absent → one notice" are covered by tests/hooks/aa-ma-impact-preedit.bats cases of those names (bats 855/0).
+
+## [2026-10-26] M10 double-check F1 — decision (Ste)
+- F1: the 10.2 AC "co_changes returns pre-move partners" holds only at `refresh-commits --limit 2000`; at the default 500-commit window the M3 rename (660 commits back) is out of range.
+- Decision: accepted as a known limit of M10 (ADR-0026 Consequences already states it). M11 declares the window: Sub-step 11.1 AC now requires the gate's `--limit` to be chosen with the threshold and recorded in reference.md.

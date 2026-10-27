@@ -157,6 +157,10 @@ def has_gate_approval(context_log: str, title: str) -> bool:
     counts when it ends with ``GATE APPROVAL: <title>`` (compared as a string); lines inside
     a ``` / ~~~ fence are skipped, a fence closing only on its own character at >= its own
     length with nothing after it.
+
+    Deliberately not :func:`aa_ma.grammar.scan_fences`: this reader must answer exactly as the
+    awk it mirrors (any indent opens a fence; a closer with trailing text does not close),
+    and the parity test pins it to that, not to CommonMark.
     """
     want = f"GATE APPROVAL: {title}"
     found = in_block = False

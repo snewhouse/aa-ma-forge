@@ -580,8 +580,9 @@ aa_ma_default_base_ref() {
 # aa_ma_milestone_base
 #   The milestone window's base for §6.7 fence 4 and verify-impl (R1): `git merge-base
 #   origin/<default> HEAD`, where <default> is origin/HEAD's target (a refs/remotes/origin/<name>
-#   ref that is not this branch's own), else origin/main, else origin/master — origin only,
-#   never a local branch this session can move. Prints the SHA
+#   ref that is not this branch's own), else origin/main, else origin/master — remote-tracking
+#   refs only (moved by a fetch, not by committing on a branch; `git update-ref` can still move
+#   them — a discipline check, not a security boundary, ADR-0022). Prints the SHA
 #   (rc 0). rc 2, one line naming the reason, when there is no window to certify: no origin
 #   default branch, no merge-base, or HEAD is the default branch tip (merge-base == HEAD).
 aa_ma_milestone_base() {

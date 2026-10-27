@@ -24,6 +24,8 @@
 #     aa_ma_cochange_partners <top> <forge> <timeout-s> -- <path>... -> stdout: codemem co_changes partners at T7, sorted, unique; rc 0 ok | 2 usage | 3 no index | 4 no codemem binary or no timeout(1) | 5 codemem failed | 6 timed out
 #     aa_ma_sanitize_lines  (stdin: lines) -> stdout: the same lines, every Cc/Cf/Co/Cs/Zl/Zp character (and bad UTF-8) as `?`; rc 0 always
 #     aa_ma_default_base_ref             -> stdout: the merge-base ref (origin/HEAD, origin/main, origin/master, main, master) (rc 0), nothing (rc 1)
+#     aa_ma_milestone_base               -> stdout: merge-base of origin's default branch and HEAD (rc 0); rc 2 + a reason line: no origin default branch | no milestone window
+#     aa_ma_impact <plan> <tasks> --milestone N [--base SHA] -> aa-ma-impact kv lines; rc 0/1/2/3/5 passed through, 127 if it cannot run  (ENFORCING, §6.7 fence 4)
 #     aa_ma_read_sidecar_sha <file>      -> stdout: the 40/64-hex SHA in a repo-controlled sidecar (rc 0), nothing for anything else (rc 1)
 #     aa_ma_sha_behind <repo> <sidecar>  -> stdout: commits from the sidecar's SHA to HEAD (rc 0), or a reason: bad sha | not in history | git timeout | git failed (rc 1)
 #
@@ -568,14 +570,27 @@ aa_ma_default_base_ref() {
 
 # aa_ma_milestone_base
 #   The milestone window's base for §6.7 fence 4 and verify-impl (R1): `git merge-base
-#   origin/<default> HEAD`, where <default> is origin/HEAD's target, else origin/main, else
-#   origin/master — origin only, never a local branch this session can move. Prints the SHA
+#   origin/<default> HEAD`, where <default> is origin/HEAD's target (a refs/remotes/origin/<name>
+#   ref that is not this branch's own), else origin/main, else origin/master — origin only,
+#   never a local branch this session can move. Prints the SHA
 #   (rc 0). rc 2, one line naming the reason, when there is no window to certify: no origin
 #   default branch, no merge-base, or HEAD is the default branch tip (merge-base == HEAD).
 aa_ma_milestone_base() {
-    local ref="" base head cand
+    local ref="" full base head cand branch
+    # origin/HEAD is a local, mutable symref: trust only a full refs/remotes/origin/<name>
+    # target, and never this branch's own remote copy (that would narrow the window to
+    # nothing and certify an empty milestone — commit security review, M11).
     # why: no origin/HEAD is normal (no `remote set-head`); the candidates take over
-    ref="$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null)" || ref=""
+    full="$(git symbolic-ref -q refs/remotes/origin/HEAD 2>/dev/null)" || full=""
+    if [[ "${full}" =~ ^refs/remotes/origin/[^/]+$ ]]; then
+        ref="${full#refs/remotes/}"
+        # why: detached HEAD has no branch name; then there is no self copy to compare
+        branch="$(git symbolic-ref -q --short HEAD 2>/dev/null)" || branch=""
+        if [[ -n "${branch}" && "${ref}" == "origin/${branch}" ]]; then
+            echo "aa_ma_milestone_base: origin/HEAD points at this branch (${ref}); no milestone window to certify"
+            return 2
+        fi
+    fi
     if [[ -z "${ref}" ]]; then
         for cand in origin/main origin/master; do
             # why: a probe — only the exit status is read

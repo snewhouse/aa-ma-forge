@@ -632,3 +632,38 @@ def test_cli_lists_each_undeclared_break(tmp_path, db) -> None:
     assert p.returncode == 1
     assert "api_break=aa_ma.gone: Public object was removed" in p.stdout
     assert "api_breaks=1" in p.stdout
+
+
+def test_cli_without_base_still_answers_grandfathered_first(fx) -> None:
+    """Fence 4 on the default branch has no milestone window; a grandfathered plan is still 5."""
+    p = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "aa_ma.impact",
+            str(fx.plan),
+            str(fx.tasks),
+            "--milestone",
+            "1",
+        ],
+        cwd=fx.repo,
+        capture_output=True,
+        text=True,
+    )
+    assert p.returncode == 5
+    q = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "aa_ma.impact",
+            str(fx.plan),
+            str(fx.tasks),
+            "--milestone",
+            "1",
+            "--ignore-cutover",
+        ],
+        cwd=fx.repo,
+        capture_output=True,
+        text=True,
+    )
+    assert q.returncode == 2 and "--base" in q.stdout

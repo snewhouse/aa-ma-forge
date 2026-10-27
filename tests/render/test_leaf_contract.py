@@ -55,3 +55,20 @@ def test_gitutil_imports_no_other_aa_ma_module() -> None:
     assert _contract_list("gitutil-is-self-contained", "forbidden_modules") == _all_but(
         "aa_ma.gitutil"
     )
+
+
+def test_contract_rows_imports_only_the_grammar() -> None:
+    """code-conventions-impact 11.2: aa_ma.contract_rows reads aa_ma.grammar and nothing else
+    from aa_ma (grammar imports plan_parsers, so fence scanning cannot live in plan_parsers)."""
+    assert _contract_list("contract-rows-reads-grammar-only") == {"aa_ma.contract_rows"}
+    assert _contract_list(
+        "contract-rows-reads-grammar-only", "forbidden_modules"
+    ) == _all_but("aa_ma.contract_rows") - {"aa_ma.grammar"}
+    cfg = configparser.ConfigParser()
+    cfg.read(ROOT / ".importlinter")
+    assert (
+        cfg["importlinter:contract:contract-rows-reads-grammar-only"][
+            "allow_indirect_imports"
+        ]
+        == "True"
+    )

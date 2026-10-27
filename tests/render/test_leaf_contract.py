@@ -72,3 +72,22 @@ def test_contract_rows_imports_only_the_grammar() -> None:
         ]
         == "True"
     )
+
+
+def test_impact_imports_only_the_gate_modules() -> None:
+    """code-conventions-impact 11.3: aa_ma.impact reads plan_parsers, enforce, grammar,
+    contract_rows, gitutil and logsetup — nothing else from aa_ma (direct imports)."""
+    allowed = {
+        "aa_ma.plan_parsers",
+        "aa_ma.enforce",
+        "aa_ma.grammar",
+        "aa_ma.contract_rows",
+        "aa_ma.gitutil",
+        "aa_ma.logsetup",
+    }
+    contract = "impact-reads-only-the-gate-modules"
+    assert _contract_list(contract) == {"aa_ma.impact"}
+    assert (
+        _contract_list(contract, "forbidden_modules")
+        == _all_but("aa_ma.impact") - allowed
+    )

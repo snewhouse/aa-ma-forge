@@ -71,11 +71,15 @@ def test_co_changes_payload_has_the_keys_impact_reads(tmp_path, monkeypatch) -> 
     assert x["stale"] is False and x["stale_reason"] is None
 
 
-def test_a_dirty_tree_reads_stale(tmp_path, monkeypatch) -> None:
+def test_an_edited_tracked_code_file_reads_stale(tmp_path, monkeypatch) -> None:
+    """tree_sig covers tracked, indexable files (`git ls-files`): an edit to one is `dirty`."""
     monkeypatch.setenv("CODEMEM_DB", str(tmp_path / "cm" / "index.db"))
     repo = _repo(tmp_path)
+    (repo / "z.py").write_text("Z = 1\n")
+    subprocess.run(["git", "add", "z.py"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "z"], cwd=repo, check=True)
     assert _run(repo, "build").returncode == 0
-    (repo / "z.md").write_text("new\n")
+    (repo / "z.py").write_text("Z = 2\n")
     p = _run(repo, "query", "co_changes", "--repo-root", str(repo), "--", "x.md")
     out = json.loads(p.stdout)
     assert out["stale"] is True and out["stale_reason"] == "dirty"

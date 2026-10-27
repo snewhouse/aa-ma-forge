@@ -863,21 +863,82 @@ def test_created_is_read_from_the_merge_base_plan(fx, monkeypatch) -> None:
     assert r.exit_code != 5, r.reason
 
 
-def test_a_plan_new_on_the_branch_uses_its_working_copy_date(
-    tmp_path, db, monkeypatch
-) -> None:
-    monkeypatch.setattr(impact, "IMPACT_CUTOVER", "2026-01-01")
+def _plan_new_on_branch(tmp_path: Path, created: str, base_date: str | None) -> Fixture:
+    """A fixture whose plan is absent at the base commit (dated ``base_date``) and untracked."""
     fx = Fixture(tmp_path, ROWS)
     _git(fx.repo, "rm", "-q", "--cached", f"{TASK}/t-plan.md")
-    _git(
-        fx.repo, "commit", "-q", "-m", "plan not at base"
-    )  # no `add -A`: the plan stays untracked
+    env = {**__import__("os").environ}
+    if base_date:
+        env["GIT_COMMITTER_DATE"] = f"{base_date}T12:00:00Z"
+    subprocess.run(  # no `add -A`: the plan stays untracked
+        ["git", "commit", "-q", "-m", "plan not at base"],
+        cwd=fx.repo,
+        check=True,
+        env=env,
+    )
     fx.base = _git(fx.repo, "rev-parse", "HEAD")
     _build(fx)
     fx.plan.write_text(
-        fx.plan.read_text().replace("Created: 2027-01-01", "Created: 2020-01-01")
+        fx.plan.read_text().replace("Created: 2027-01-01", f"Created: {created}")
     )
-    assert fx.run(ignore_cutover=False).exit_code == 5
+    return fx
+
+
+@pytest.mark.parametrize(
+    ("created", "base_date", "applicable"),
+    [
+        ("2027-01-01", "2020-06-01", True),  # the working copy dates a new plan
+        ("2020-01-01", "2020-06-01", False),  # before the cutover, at or after the base
+        (
+            "2020-01-01",
+            None,
+            True,
+        ),  # back-dated before its base commit: base date counts
+    ],
+)
+def test_a_plan_new_on_the_branch_is_dated_no_earlier_than_its_base(
+    tmp_path, db, monkeypatch, created, base_date, applicable
+) -> None:
+    """A renamed task dir or a new plan cannot back-date itself past its base (§6.8 r2)."""
+    monkeypatch.setattr(impact, "IMPACT_CUTOVER", "2026-01-01")
+    fx = _plan_new_on_branch(tmp_path, created, base_date)
+    assert (fx.run(ignore_cutover=False).exit_code != 5) is applicable
+
+
+def test_a_plan_new_on_the_branch_without_created_is_dated_by_its_base(
+    tmp_path, db, monkeypatch
+) -> None:
+    monkeypatch.setattr(impact, "IMPACT_CUTOVER", "2026-01-01")
+    fx = _plan_new_on_branch(tmp_path, "2027-01-01", None)
+    fx.plan.write_text(fx.plan.read_text().replace("Created: 2027-01-01\n", ""))
+    assert fx.run(ignore_cutover=False).exit_code != 5
+
+
+def test_a_git_failure_reading_the_base_plan_is_usage(fx, monkeypatch) -> None:
+    """Only "absent at the base" falls back to the working copy; any other error stops."""
+    real = impact.gitutil.git
+
+    def failing_show(args, repo, *a, **kw):
+        if args[0] == "show":
+            raise impact.gitutil.GitError("boom", args, 128, "boom")
+        return real(args, repo, *a, **kw)
+
+    monkeypatch.setattr(impact.gitutil, "git", failing_show)
+    r = fx.run(ignore_cutover=False)
+    assert r.exit_code == 2 and "boom" in r.reason
+
+
+def test_a_skipped_api_diff_logs_its_reason_sanitised(tmp_path, caplog) -> None:
+    class Griffe:
+        @staticmethod
+        def load(*_a, **_kw):
+            raise ValueError("bad \x1b[31mname\u202e here")
+
+    with caplog.at_level("WARNING", logger="aa_ma.impact"):
+        reason = impact._breaks(Griffe, "aa_ma", tmp_path, tmp_path)
+    assert "\x1b" in reason  # the kv value is sanitised by its consumer, not here
+    assert "\x1b" not in caplog.text and "\u202e" not in caplog.text
+    assert "bad ?[31mname? here" in caplog.text
 
 
 def test_a_review_marker_quoted_mid_line_does_not_count(tmp_path, db) -> None:

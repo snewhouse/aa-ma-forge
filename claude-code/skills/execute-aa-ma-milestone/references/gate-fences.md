@@ -112,6 +112,14 @@ files, minus `IMPACT_EXCLUDE` (`.claude/dev/**`, `docs/architecture/**`, `tests/
 `uv.lock`, `CHANGELOG.md`). No window (on the default branch tip, no origin) is BLOCKED for a
 plan in force; the grandfather check runs first, so an older plan still reads "not applicable".
 
+**Why fence 3 and fence 4 take different bases** (Ste, M11 §6.6): fence 3 reads its *inputs*
+(`Test-Command:`) from the merge-base with `aa_ma_default_base_ref`, which falls back to a local
+`main`/`master` with a NOTE and an `inputs: local …` segment — the command is what matters, and a
+self-authored plan on `main` still runs its tests. Fence 4 certifies a *window*, so its base must
+be one this session cannot move: `aa_ma_milestone_base` reads origin only and refuses an
+`origin/HEAD` that points at the branch itself. Both fences share their scaffolding
+(`scripts/fence-common.sh`).
+
 | Check | Needs |
 |-------|-------|
 | Changed, no Contract row names it (a directory row covers beneath) | `Impact-Explained: <path> — <reason>` in the milestone's tasks.md block |

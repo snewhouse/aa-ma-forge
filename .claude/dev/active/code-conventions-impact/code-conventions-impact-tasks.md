@@ -1080,14 +1080,14 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 11.
 
 ### Sub-step 11.0: Post-merge of M10
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
   - M10 merged; `git pull` on main; live `scripts/install.sh` from main (deferred from 10.6); `~/.claude/settings.json` has exactly one `aa-ma-impact-preedit.sh` registration.
   - A live Edit in a session shows either ≤5 lines of impact context or exactly one no-index notice.
   - Branch for M11 cut in the main checkout from fresh main (ADR-0025); `uv sync && uv run codemem build` exit 0.
-- Result Log:
+- Result Log: 2026-10-27 — Mode HITL (step), Ste: Proceed. M10 = PR #69 → main 169e4e81 (= origin/main, CI success). Branch `feat/cci-m11-impact-gate` cut from 169e4e81; pending AA-MA files committed there. L-065: ruff over Contract .py files → enforce.py D205/D209 ×3 only (format clean, shellcheck aa-ma-parse.sh + aa-ma-install-lib.sh clean) → own `style(enforce)` commit (Ste). install.sh --dry-run rc 0 (preedit "source not present": dry-run reads the unrefreshed live wt f0bfbd8b), live rc 0: live wt f0bfbd8b → 169e4e81, 69 links, `Registered PreToolUse [aa-ma-impact-preedit.sh]`; settings.json registrations = 1 (Edit|Write, timeout 5); link → live wt; ~/.claude/docs/aa-ma-specification.md has `verdict-changes-plan` (2); backup aa-ma-forge-20261027-140425. `uv sync` rc 0; `codemem build` rc 0 (354 files, 3591 symbols, 9706 edges, 1.20 s). A1 live in THIS session (settings picked up without restart): Edit of src/aa_ma/grammar.py → 5 lines `codemem data (untrusted): impact of src/aa_ma/grammar.py` (callers 6 files + 7 test files; co-changed -); second Edit of the same file silent; file reverted (git diff clean). Prototype branches kept (Ste).
 
 ### Sub-step 11.1: PROTOTYPE — co-change threshold
 - Status: PENDING

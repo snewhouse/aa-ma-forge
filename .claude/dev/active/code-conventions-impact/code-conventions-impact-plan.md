@@ -883,6 +883,8 @@ Files:
   Modify  docs/templates/plan-template.md   # API-Break: in Contract
   Modify  claude-code/agents/aa-ma-scribe.md   # Impact-Explained:
   Create  claude-code/skills/execute-aa-ma-milestone/references/impact-gate.md   # runbook (CEO F15)
+  Create  claude-code/skills/execute-aa-ma-milestone/scripts/impact-verified.sh   # fence 4 logic (fence-3 shape; 11.5)
+  Modify  claude-code/skills/execute-aa-ma-milestone/references/gate-fences.md   # Fence 4 section; §6.7 rationale moved out of SKILL.md (500-line cap)
   Modify  docs/adr/INDEX.md   # ADR row
   Modify  packages/codemem-mcp/src/codemem/cli.py, packages/codemem-mcp/src/codemem/mcp_tools/__init__.py   # named FILE_IMPACT_BUDGET; co_changes --threshold default not restated (M10 §6.8 WARNINGs, folded into 11.3)
   Test    tests/test_contract_rows.py (new; 11.2)

@@ -101,7 +101,7 @@ if [[ "${TEST_CMD}" == none || "${TEST_CMD}" == none[[:space:]]* ]]; then
         echo "  - Decision: APPROVED"
         blocked "'Test-Command: none' without a GATE APPROVAL."
     fi
-    append "[$(date -Iseconds)] TESTS_VERIFIED — ${MILESTONE_TITLE} — skipped: ${REASON}"
+    append "[$(date -Iseconds)] TESTS_VERIFIED — ${MILESTONE_TITLE_LOG} — skipped: ${REASON}"
     echo "TESTS-GATE: SKIPPED (approved opt-out) — ${REASON}"
     exit 0
 fi
@@ -203,5 +203,5 @@ else
     fi
 fi
 
-append "[$(date -Iseconds)] TESTS_VERIFIED — ${MILESTONE_TITLE} — ${LOCAL_BASE}passed=${N} cmd=${TEST_CMD}"
+append "[$(date -Iseconds)] TESTS_VERIFIED — ${MILESTONE_TITLE_LOG} — ${LOCAL_BASE}passed=${N} cmd=${TEST_CMD}"
 echo "TESTS-GATE: PASS — passed=${N} cmd=${TEST_CMD}"

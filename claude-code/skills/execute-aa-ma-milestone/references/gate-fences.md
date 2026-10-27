@@ -130,8 +130,8 @@ be one this session cannot move: `aa_ma_milestone_base` reads origin only and re
 
 | `aa-ma-impact` rc | Fence |
 |------|-------|
-| 0 | PASS — appends `[ts] IMPACT_VERIFIED — <heading> — changed=N predicted=P cochange=C unexplained=0` |
-| 5 | `IMPACT-GATE: not applicable (grandfathered)` — plan `Created:` before `IMPACT_CUTOVER` |
+| 0 | PASS — appends `[ts] IMPACT_VERIFIED — <heading> — changed=N predicted=P cochange=C unexplained=0 api_diff=<summary>` |
+| 5 | `IMPACT-GATE: not applicable (grandfathered)` — plan `Created:` before `IMPACT_CUTOVER`, read from the merge-base plan (a plan new on the branch: its own date, never before the base commit) |
 | 1 | BLOCKED — lists `unexplained_file=`, `api_break=`, `unreviewed_cp=`; also a stale codemem answer |
 | 2 | BLOCKED — usage, unreadable input, git error, no milestone window |
 | 3 | BLOCKED — codemem index missing, or a refresh failed or was skipped (`codemem build`) |

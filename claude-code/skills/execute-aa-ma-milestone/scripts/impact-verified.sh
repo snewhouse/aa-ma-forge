@@ -9,8 +9,9 @@
 # compares what the milestone changed (that window plus the working tree: §8.1 commits after
 # the gate) with its Contract rows and codemem co-change partners, diffs the public API
 # (griffe), and checks derived Critical-Path reviews; every difference needs an
-# `Impact-Explained:` line or an `API-Break:` declaration. The grandfather check runs first,
-# so a plan created before IMPACT_CUTOVER is "not applicable" even with no milestone window.
+# `Impact-Explained:` line or an `API-Break:` declaration. Applicability is decided first: a plan
+# created before IMPACT_CUTOVER is "not applicable" even with no milestone window. With a window
+# the merge-base copy dates the plan, and an unreadable base is BLOCKED, never grandfathered.
 # How to read a BLOCKED report: references/impact-gate.md.
 set -uo pipefail
 
@@ -38,7 +39,7 @@ case "${IMPACT_RC}" in
     0)
         COUNTS="changed=$(field changed) predicted=$(field predicted) cochange=$(field cochange) unexplained=$(field unexplained)"
         # api_diff is recorded too: a skipped API diff must not read as a clean pass (§6.8 A04).
-        echo "[$(date -Iseconds)] IMPACT_VERIFIED — ${MILESTONE_TITLE} — ${COUNTS} api_diff=$(field api_diff)" >> "${PROV}"
+        echo "[$(date -Iseconds)] IMPACT_VERIFIED — ${MILESTONE_TITLE_LOG} — ${COUNTS} api_diff=$(field api_diff)" >> "${PROV}"
         echo "IMPACT-GATE: PASS — ${COUNTS} api_diff=$(field api_diff)"
         ;;
     5)  # = aa_ma.impact.EXIT_NOT_APPLICABLE

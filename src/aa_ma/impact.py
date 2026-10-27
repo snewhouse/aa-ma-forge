@@ -78,9 +78,8 @@ IMPACT_EXCLUDE: tuple[str, ...] = (
     "CHANGELOG.md",
 )
 CODEMEM_TIMEOUT_S = 300.0  # one refresh can rebuild the index; ~1 s on this repo
-GIT_ARCHIVE_TIMEOUT_S = (
-    60.0  # seconds: `git archive` of the API package trees (~0.1 s here)
-)
+# seconds: `git archive` of the API package trees (~0.1 s here)
+GIT_ARCHIVE_TIMEOUT_S = 60.0
 
 # P6: the packages whose public API fence 4 diffs (griffe, static), and their search path.
 API_PACKAGES: dict[str, str] = {"aa_ma": "src", "codemem": "packages/codemem-mcp/src"}
@@ -214,7 +213,7 @@ def compute(
 def _compute(report: ImpactReport, run: _Run) -> None:
     plan_text = _read(run.plan_md)
     if not run.ignore_cutover:
-        _check_cutover(_dated_plan(run, plan_text))
+        _check_cutover(_plan_date(run, plan_text))
     if run.base is None:
         raise _Stop(
             EXIT_USAGE, "--base is required for a plan in force (no milestone window)"
@@ -282,32 +281,33 @@ def _read(path: Path, *, missing_ok: bool = False) -> str:
         raise _Stop(EXIT_USAGE, f"{path}: unreadable ({exc})") from exc
 
 
-def _dated_plan(run: _Run, plan_text: str) -> str:
-    """The plan text whose ``Created:`` decides applicability: the merge-base copy.
+def _plan_date(run: _Run, plan_text: str) -> str | None:
+    """The ``Created:`` date that decides applicability.
 
-    A branch must not back-date its own plan out of fence 4 (§6.8 security, A04). The working
-    copy counts only when there is no window yet (no ``--base``) or the plan is new on the
-    branch (absent at the base).
+    A branch must not back-date its own plan out of fence 4 (§6.8 security, A04), so with a
+    ``--base`` the merge-base copy dates the plan. A plan absent at the base (new on the
+    branch, or its task dir renamed) is dated by its working copy, but never earlier than the
+    base commit, nor left undated: it cannot predate the history it branched from.
     """
     if run.base is None:
-        return plan_text
+        return plan_created(plan_text)
     repo = _toplevel(run.tasks_md.parent)
     try:
         gitutil.verify_ref(run.base, repo)
         rel = run.plan_md.resolve().relative_to(repo).as_posix()
+        if gitutil.git(["ls-tree", "--name-only", run.base], repo, paths=[rel]):
+            return plan_created(gitutil.git(["show", f"{run.base}:{rel}"], repo))
+        floor = gitutil.git(["show", "-s", "--format=%cs", run.base], repo).strip()
     except gitutil.GitError as exc:
-        raise _Stop(EXIT_USAGE, f"bad --base: {exc}") from exc
+        raise _Stop(EXIT_USAGE, f"cannot read the plan at --base: {exc}") from exc
     except ValueError as exc:
         raise _Stop(EXIT_USAGE, f"{run.plan_md} resolves outside {repo}") from exc
-    try:
-        return gitutil.git(["show", f"{run.base}:{rel}"], repo)
-    except gitutil.GitError:
-        log.info("plan %s is new on this branch; its working copy dates it", rel)
-        return plan_text
-
-
-def _check_cutover(plan_text: str) -> None:
     created = plan_created(plan_text)
+    log.info("plan %s is new on this branch; dated %s, floor %s", rel, created, floor)
+    return max(created or floor, floor)
+
+
+def _check_cutover(created: str | None) -> None:
     if created is None:
         raise _Stop(
             EXIT_NOT_APPLICABLE,
@@ -644,7 +644,7 @@ def _breaks(
     except Exception as exc:  # noqa: BLE001  # why: griffe raises many types on code it cannot load; reported as skipped(reason)
         first = str(exc).splitlines()[0] if str(exc) else ""
         reason = f"{name}: {type(exc).__name__}: {first}".rstrip(": ")
-        log.warning("api diff of %s skipped: %s", name, reason)
+        log.warning("api diff of %s skipped: %s", name, _printable(reason))
         return reason
 
 

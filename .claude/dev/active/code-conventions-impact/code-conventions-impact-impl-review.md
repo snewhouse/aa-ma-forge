@@ -716,3 +716,13 @@ Root fix confirmed by security-auditor: no default path reads repo-controlled fi
 | 1 | tdd-sequence CRITICAL (733069a3) | dispute | Ste 2026-10-27: style-only pre-RED commit to a Contract file, approved at 11.0; convention learned: a pre-RED style-only commit is not a TDD breach (land it before the base next time) |
 
 WARNING fixes chosen (Ste): security 3 (+ CPR anchor, Python ≥ 3.11.4 / TypeError), small hygiene (timeout constant, why comments, has_gate_approval docstring, reference.md kv line, regex comments), `_api_diff` split, API_PACKAGES pinned to the workspace. To TODOS: impact.py module split (SRP), §6.3 override parity.
+
+## §6.8 round 2 (fix only, window a360c80c..e10760a8, 2026-10-27)
+- Round-1 fixes reviewed: RED 5a4b75fa → efece88f, c4cb3d4f (merge-base `Created:`, api_diff in IMPACT_VERIFIED, sanitised fence 4 output, line-anchored CPR marker, TypeError skip, API_PACKAGES pinned), e10760a8 regen.
+- code-reviewer: 0 / 2 / 3 — W `MILESTONE_TITLE` written raw into fence provenance lines; W IMPACT_VERIFIED format in gate-fences.md, SKILL.md, spec, engineering-standards, reference.md lacks ` api_diff=`; I usage rc 5 → 2 for a bad --base; I `GIT_ARCHIVE_TIMEOUT_S` comment placement; I untyped `griffe` parameter.
+- security-auditor: 0 / 2 / 2 — W a plan absent at the base (renamed task dir, new plan) is still dated by its working copy; W `_breaks` logs the skip reason raw; I impact-verified.sh header "grandfather check runs first" holds only with a valid --base; I any `git show` error read as "new on the branch".
+- Fixes (Ste: all 4 WARNINGs + INFOs, then stop): RED f3fdb172 → GREEN 525083b6 — `_plan_date`: presence via `ls-tree` (literal pathspecs), a plan absent at the base is dated no earlier than the base commit (`%cs`) and never undated, any other git error is usage 2; `_breaks` logs `_printable(reason)`; `fence_init` sets `MILESTONE_TITLE_LOG` (sanitised) for fence 3 and 4 provenance lines, raw title kept for approval lookups; ` api_diff=<summary>` in all five format statements; header reworded; constant comment moved. Regen c41c89a5 (header only); CPR addendum 4a49e871.
+- Verification at 4a49e871: pytest 3504 passed / 2 skipped; bats 655/655 (at 525083b6); fence 1 PASS (4 conditions); fence 2 DIAGRAM PASS edges=25; fence 3 TESTS_VERIFIED passed=3504; fence 4 dogfood (--ignore-cutover) rc 1 → named tests/hooks/test_tests_verified.bats unpredicted → one Impact-Explained line → rc 0 unexplained=0.
+- Not re-reviewed by agents (stop rule: 2 rounds).
+
+## Verdict: PASS_WITH_WARNINGS (round 2 fixes applied; stop rule: 2 rounds)

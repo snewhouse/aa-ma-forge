@@ -1081,6 +1081,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Impact-Explained: TODOS.md — M11 deferred findings recorded and the M10 carry-overs M11 closed (§6.3/§6.6, e7c11012)
 - Impact-Explained: docs/lessons.md — L-071 written during M11 (a Result Log logged before its output was read)
 - Impact-Explained: tests/codemem/test_critical_path_globs.py — M10 tripwire: NOT_YET_CREATED emptied once src/aa_ma/impact.py existed (11.3)
+- Impact-Explained: tests/hooks/test_tests_verified.bats — §6.8 round 2: bidi-heading case for fence 3, which shares MILESTONE_TITLE_LOG from fence-common.sh (f3fdb172)
 
 ### Sub-step 11.0: Post-merge of M10
 - Status: COMPLETE

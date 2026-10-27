@@ -105,3 +105,24 @@ _verify_impl_window() {
     [ "$(grep -c WARN <<< "$output")" -eq 1 ]
     [[ "$output" == *"BASE=$want"* ]]
 }
+
+@test "origin/HEAD pointed at this branch's own remote copy is refused (no narrowed window)" {
+    git checkout -q -b feat
+    _commit one
+    git push -q origin feat
+    _commit two
+    git remote set-head origin feat > /dev/null
+    run aa_ma_milestone_base
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"origin/HEAD points at this branch"* ]]
+}
+
+@test "an origin/HEAD symref outside refs/remotes/origin is ignored; origin/main is used" {
+    want=$(git rev-parse HEAD)
+    git checkout -q -b feat
+    _commit one
+    git symbolic-ref refs/remotes/origin/HEAD refs/heads/feat
+    run aa_ma_milestone_base
+    [ "$status" -eq 0 ]
+    [ "$output" = "$want" ]
+}

@@ -1,0 +1,182 @@
+plan	PR	changed	5/50%@500	3/50%@500	5/30%@500	5/50%@500/mcf10	3/50%@500/mcf10	5/30%@500/mcf10	5/50%@2000	3/50%@2000	5/30%@2000	5/50%@2000/mcf10	3/50%@2000/mcf10	5/30%@2000/mcf10
+codebase-analysis-skills	#4	61	0	1	1	0	0	1	0	2	1	1	1	1
+codebase-analysis-skills	#5	24	0	0	0	0	0	0	0	0	0	0	0	0
+codebase-analysis-skills	#6	23	3	4	6	1	1	4	3	6	5	1	1	2
+codebase-analysis-skills	#7	16	0	0	1	0	0	1	0	0	1	0	0	1
+codebase-analysis-skills	#8	17	0	1	3	0	0	2	1	4	4	0	0	2
+codebase-analysis-skills	#9	10	0	3	0	0	0	0	4	9	5	0	0	0
+codebase-analysis-skills	#10	18	0	3	2	0	0	2	4	9	7	0	0	2
+codebase-analysis-skills	#11	6	0	2	0	0	0	0	0	0	3	0	0	1
+sole-dev-merge-fixes	#42	19	1	3	1	1	1	1	0	1	3	0	1	1
+sole-dev-merge-fixes	#43	18	0	0	0	0	0	0	0	0	0	0	0	0
+sole-dev-merge-fixes	#44	9	1	7	2	0	4	0	2	11	2	0	8	0
+sole-dev-merge-fixes	#45	20	0	0	0	0	0	0	0	1	0	0	0	0
+sole-dev-merge-fixes	#46	13	0	4	0	0	4	0	0	4	2	0	4	1
+sole-dev-merge-simplify	#55	10	0	0	0	0	0	0	0	0	0	0	0	0
+sole-dev-merge-simplify	#58	45	0	1	0	0	1	0	0	1	3	0	5	3
+(ref) code-conventions-impact	#18	10	0	0	0	0	1	0	0	0	1	1	1	1
+(ref) code-conventions-impact	#19	39	0	1	0	0	3	0	0	1	1	0	1	0
+(ref) code-conventions-impact	#20	74	1	3	3	2	4	3	2	4	6	3	3	4
+(ref) code-conventions-impact	#21	192	1	4	1	1	1	1	2	6	7	1	1	2
+(ref) code-conventions-impact	#24	51	0	3	0	0	0	0	1	1	5	1	1	2
+(ref) code-conventions-impact	#27	17	0	0	0	0	0	0	0	0	1	1	1	1
+(ref) code-conventions-impact	#28	54	2	6	2	0	4	0	1	4	4	1	5	2
+(ref) code-conventions-impact	#30	71	2	6	2	1	1	1	1	2	3	1	2	2
+(ref) code-conventions-impact	#37	21	2	3	2	0	0	0	2	5	8	0	0	3
+(ref) code-conventions-impact	#41	48	2	2	3	1	3	1	1	2	7	0	0	5
+(ref) code-conventions-impact	#65	55	0	9	0	0	2	0	3	7	6	2	3	5
+(ref) code-conventions-impact	#69	80	1	6	2	1	6	1	1	14	6	0	5	3
+
+TOTAL Impact-Explained lines (last 3 completed plans, 15 milestones | this plan, 12 milestones):
+  5/50% window=500 mcf=None:    5 |   11
+  3/50% window=500 mcf=None:   29 |   43
+  5/30% window=500 mcf=None:   16 |   15
+  5/50% window=500 mcf=10:    2 |    6
+  3/50% window=500 mcf=10:   11 |   25
+  5/30% window=500 mcf=10:   11 |    7
+  5/50% window=2000 mcf=None:   14 |   14
+  3/50% window=2000 mcf=None:   48 |   46
+  5/30% window=2000 mcf=None:   36 |   55
+  5/50% window=2000 mcf=10:    2 |   11
+  3/50% window=2000 mcf=10:   20 |   23
+  5/30% window=2000 mcf=10:   14 |   30
+
+MISSES ref=False 5/50% window=500 mcf=None (partner <- changed files):
+  #6 src/aa_ma/analysis/cli.py <- src/aa_ma/analysis/models.py
+  #6 src/aa_ma/analysis/measure.py <- src/aa_ma/analysis/finalize.py
+  #6 src/aa_ma/analysis/secrets.py <- src/aa_ma/analysis/models.py
+  #42 scripts/uninstall.sh <- scripts/install.sh
+  #44 claude-code/skills/sole-dev-merge/references/stage-d-triage.md <- claude-code/skills/sole-dev-merge/references/stage-c-review-and-security.md
+
+MISSES ref=False 5/50% window=2000 mcf=None (partner <- changed files):
+  #6 src/aa_ma/analysis/cli.py <- src/aa_ma/analysis/models.py
+  #6 src/aa_ma/analysis/measure.py <- src/aa_ma/analysis/finalize.py
+  #6 src/aa_ma/analysis/secrets.py <- src/aa_ma/analysis/models.py
+  #8 claude-code/skills/understand-codebase/references/REUSE-MAP.md <- claude-code/skills/understand-codebase/references/DIMENSIONS.md
+  #9 claude-code/commands/execute-aa-ma-full.md <- claude-code/skills/aa-ma-execution/SKILL.md
+  #9 claude-code/commands/execute-aa-ma-milestone.md <- claude-code/skills/aa-ma-execution/SKILL.md
+  #9 claude-code/skills/understand-codebase/SKILL.md <- claude-code/skills/understand-codebase/references/REUSE-MAP.md
+  #9 claude-code/skills/understand-codebase/references/DIMENSIONS.md <- claude-code/skills/understand-codebase/references/REUSE-MAP.md
+  #10 claude-code/commands/execute-aa-ma-full.md <- claude-code/skills/aa-ma-execution/SKILL.md
+  #10 claude-code/commands/execute-aa-ma-milestone.md <- claude-code/skills/aa-ma-execution/SKILL.md
+  #10 claude-code/skills/understand-codebase/SKILL.md <- claude-code/skills/understand-codebase/references/REUSE-MAP.md
+  #10 claude-code/skills/understand-codebase/references/DIMENSIONS.md <- claude-code/skills/understand-codebase/references/REUSE-MAP.md
+  #44 claude-code/skills/sole-dev-merge/references/stage-d-triage.md <- claude-code/skills/sole-dev-merge/references/stage-c-review-and-security.md
+  #44 tests/commands/sole-dev-merge/test_stage_d_triage.bats <- tests/commands/sole-dev-merge/test_stage_c_dispatch.bats
+
+MISSES ref=False 3/50% window=500 mcf=None (partner <- changed files):
+  #4 claude-code/skills/system-mapping/SKILL.md <- claude-code/skills/understand-codebase/SKILL.md
+  #6 claude-code/skills/system-mapping/SKILL.md <- claude-code/skills/understand-codebase/SKILL.md
+  #6 src/aa_ma/analysis/cli.py <- src/aa_ma/analysis/models.py
+  #6 src/aa_ma/analysis/measure.py <- src/aa_ma/analysis/finalize.py
+  #6 src/aa_ma/analysis/secrets.py <- src/aa_ma/analysis/models.py
+  #8 claude-code/skills/understand-codebase/references/REUSE-MAP.md <- claude-code/agents/codebase-onboarding-synthesizer.md
+  #9 claude-code/agents/codebase-onboarding-synthesizer.md <- claude-code/skills/understand-codebase/references/REUSE-MAP.md
+  #9 claude-code/skills/understand-codebase/SKILL.md <- claude-code/skills/understand-codebase/references/REUSE-MAP.md
+  #9 claude-code/skills/understand-codebase/references/DIMENSIONS.md <- claude-code/skills/understand-codebase/references/REUSE-MAP.md
+  #10 claude-code/agents/codebase-onboarding-synthesizer.md <- claude-code/skills/understand-codebase/references/REUSE-MAP.md
+  #10 claude-code/skills/understand-codebase/SKILL.md <- claude-code/skills/understand-codebase/references/REUSE-MAP.md
+  #10 claude-code/skills/understand-codebase/references/DIMENSIONS.md <- claude-code/skills/understand-codebase/references/REUSE-MAP.md
+  #11 docs/spec/aa-ma-specification.md <- docs/spec/aa-ma-quick-reference.md
+  #11 docs/spec/claude-code-foundations.md <- docs/spec/aa-ma-quick-reference.md
+  #42 SECURITY.md <- tests/codemem/test_plugin_surface.py
+  #42 docs/spec/claude-code-foundations.md <- tests/codemem/test_plugin_surface.py
+  #42 scripts/uninstall.sh <- scripts/install.sh
+  #44 claude-code/skills/sole-dev-merge/references/stage-d-triage.md <- claude-code/skills/sole-dev-merge/references/stage-c-review-and-security.md
+  #44 claude-code/skills/sole-dev-merge/references/stage-e-remote-and-body.md <- claude-code/skills/sole-dev-merge/references/stage-c-review-and-security.md
+  #44 claude-code/skills/sole-dev-merge/references/stage-f-push.md <- claude-code/skills/sole-dev-merge/references/stage-c-review-and-security.md
+  #44 claude-code/skills/sole-dev-merge/references/stage-g-merge.md <- claude-code/skills/sole-dev-merge/references/stage-c-review-and-security.md
+  #44 tests/commands/sole-dev-merge/test_smoke_e2e.bats <- tests/commands/sole-dev-merge/test_stage_c_dispatch.bats
+  #44 tests/commands/sole-dev-merge/test_stage_d_triage.bats <- tests/commands/sole-dev-merge/test_stage_c_dispatch.bats
+  #44 tests/commands/sole-dev-merge/test_stage_e3_body.bats <- tests/commands/sole-dev-merge/test_stage_c_dispatch.bats
+  #46 claude-code/skills/sole-dev-merge/SKILL.md <- claude-code/skills/sole-dev-merge/references/stage-state.md, docs/adr/0008-sole-dev-merge-pr-workflow.md
+  #46 claude-code/skills/sole-dev-merge/references/stage-e-remote-and-body.md <- claude-code/skills/sole-dev-merge/references/stage-state.md, docs/adr/0008-sole-dev-merge-pr-workflow.md
+  #46 claude-code/skills/sole-dev-merge/references/stage-f-push.md <- claude-code/skills/sole-dev-merge/references/stage-state.md
+  #46 claude-code/skills/sole-dev-merge/references/stage-g-merge.md <- claude-code/skills/sole-dev-merge/references/stage-state.md
+  #58 tests/commands/sdm/fixtures/bin/gh <- tests/commands/sdm/ship.bats
+
+MISSES ref=False 5/50% window=500 mcf=10 (partner <- changed files):
+  #6 src/aa_ma/analysis/measure.py <- src/aa_ma/analysis/finalize.py
+  #42 scripts/uninstall.sh <- scripts/install.sh
+
+MISSES ref=True 5/50% window=500 mcf=None (partner <- changed files):
+  #20 claude-code/skills/understand-codebase/references/DIMENSIONS.md <- claude-code/skills/understand-codebase/SKILL.md
+  #21 scripts/uninstall.sh <- scripts/install.sh
+  #28 claude-code/skills/writing-for-agents/SKILL.md <- claude-code/skills/FORKS.json
+  #28 tests/test_split_preserves_content.py <- tests/test_prompt_size.py
+  #30 claude-code/skills/writing-for-agents/SKILL.md <- claude-code/skills/FORKS.json
+  #30 tests/scripts/test_check_conventions.py <- scripts/check_conventions.py
+  #37 claude-code/skills/aa-ma-plan/SKILL.md <- claude-code/skills/execute-aa-ma-full/SKILL.md, claude-code/skills/execute-aa-ma-milestone/SKILL.md
+  #37 tests/test_split_preserves_content.py <- tests/test_prompt_size.py
+  #41 claude-code/skills/aa-ma-plan/SKILL.md <- claude-code/skills/execute-aa-ma-milestone/SKILL.md
+  #41 scripts/uninstall.sh <- scripts/install.sh
+  #69 src/aa_ma/render/graph.py <- packages/codemem-mcp/src/codemem/storage/db.py
+
+MISSES ref=True 5/50% window=2000 mcf=None (partner <- changed files):
+  #20 claude-code/hooks/lib/aa-ma-parse.sh <- tests/hooks/aa-ma-gate-scans.bats
+  #20 claude-code/skills/understand-codebase/references/DIMENSIONS.md <- claude-code/skills/understand-codebase/SKILL.md
+  #21 claude-code/skills/aa-ma-plan-workflow/references/PHASE_4_PLAN_GENERATION.md <- claude-code/skills/aa-ma-plan-workflow/SKILL.md
+  #21 claude-code/skills/execute-aa-ma-full/SKILL.md <- claude-code/skills/aa-ma-execution/SKILL.md, claude-code/skills/execute-aa-ma-step/SKILL.md, claude-code/skills/verify-p
+  #24 claude-code/hooks/lib/aa-ma-parse.sh <- tests/hooks/aa-ma-gate-scans.bats
+  #28 tests/test_split_preserves_content.py <- tests/test_prompt_size.py
+  #30 tests/scripts/test_check_conventions.py <- scripts/check_conventions.py
+  #37 claude-code/skills/aa-ma-plan/SKILL.md <- claude-code/agents/aa-ma-scribe.md, claude-code/skills/execute-aa-ma-full/SKILL.md
+  #37 tests/test_split_preserves_content.py <- tests/test_prompt_size.py
+  #41 tests/analysis/test_finalize.py <- tests/analysis/test_measure.py
+  #65 claude-code/agents/codebase-onboarding-health.md <- claude-code/agents/codebase-onboarding-synthesizer.md
+  #65 claude-code/skills/understand-codebase/references/DIMENSIONS.md <- claude-code/agents/codebase-onboarding-synthesizer.md, claude-code/skills/understand-codebase/SKILL.md, claude-code/skil
+  #65 docs/spec/claude-code-foundations.md <- docs/spec/aa-ma-quick-reference.md
+  #69 claude-code/skills/aa-ma-plan/SKILL.md <- claude-code/skills/execute-aa-ma-full/SKILL.md, claude-code/skills/execute-aa-ma-step/SKILL.md
+
+MISSES ref=True 3/50% window=500 mcf=None (partner <- changed files):
+  #19 packages/codemem-mcp/src/codemem/draw/plugin_surface.py <- packages/codemem-mcp/src/codemem/draw/surface_allowlist.py
+  #20 claude-code/skills/assess-codebase/references/AGENT-PROMPTS.md <- claude-code/skills/assess-codebase/SKILL.md
+  #20 claude-code/skills/assess-codebase/references/RATING.md <- claude-code/skills/assess-codebase/SKILL.md
+  #20 claude-code/skills/understand-codebase/references/DIMENSIONS.md <- claude-code/skills/understand-codebase/SKILL.md
+  #21 claude-code/skills/understand-codebase/SKILL.md <- claude-code/skills/system-mapping/SKILL.md
+  #21 scripts/uninstall.sh <- scripts/install.sh
+  #21 src/aa_ma/render/cli.py <- claude-code/skills/plan-verification/SKILL.md
+  #21 src/aa_ma/render/mermaid_lint.py <- claude-code/skills/plan-verification/SKILL.md
+  #24 claude-code/skills/aa-ma-chart/SKILL.md <- claude-code/skills/execute-aa-ma-full/SKILL.md, claude-code/skills/sole-dev-merge/SKILL.md
+  #24 claude-code/skills/aa-ma-share/SKILL.md <- claude-code/skills/execute-aa-ma-full/SKILL.md, claude-code/skills/sole-dev-merge/SKILL.md
+  #24 claude-code/skills/archive-aa-ma/SKILL.md <- claude-code/skills/execute-aa-ma-full/SKILL.md, claude-code/skills/sole-dev-merge/SKILL.md
+  #28 claude-code/skills/writing-for-agents/SKILL.md <- claude-code/skills/FORKS.json
+  #28 docs/adr/0018-touched-code-lint-gate.md <- tests/test_precommit_config.py
+  #28 docs/adr/INDEX.md <- SECURITY.md
+  #28 scripts/check_conventions.py <- .pre-commit-config.yaml, tests/test_precommit_config.py
+  #28 tests/scripts/test_check_conventions.py <- tests/test_precommit_config.py
+  #28 tests/test_split_preserves_content.py <- tests/test_prompt_size.py
+  #30 claude-code/skills/aa-ma-plan/SKILL.md <- claude-code/skills/sole-dev-merge/SKILL.md
+  #30 claude-code/skills/execute-aa-ma-full/SKILL.md <- claude-code/skills/sole-dev-merge/SKILL.md
+  #30 claude-code/skills/execute-aa-ma-milestone/SKILL.md <- claude-code/skills/sole-dev-merge/SKILL.md
+  #30 claude-code/skills/writing-for-agents/SKILL.md <- claude-code/skills/FORKS.json
+  #30 scripts/install.sh <- README.md
+  #30 tests/scripts/test_check_conventions.py <- scripts/check_conventions.py
+  #37 claude-code/skills/aa-ma-plan/SKILL.md <- claude-code/skills/execute-aa-ma-full/SKILL.md, claude-code/skills/execute-aa-ma-milestone/SKILL.md
+  #37 claude-code/skills/sole-dev-merge/SKILL.md <- claude-code/skills/execute-aa-ma-full/SKILL.md
+  #37 tests/test_split_preserves_content.py <- tests/test_prompt_size.py
+  #41 claude-code/skills/aa-ma-plan/SKILL.md <- claude-code/skills/execute-aa-ma-milestone/SKILL.md
+  #41 scripts/uninstall.sh <- scripts/install.sh
+  #65 packages/codemem-mcp/src/codemem/analysis/git_mining.py <- scripts/bench_codemem.py
+  #65 packages/codemem-mcp/src/codemem/draw/views.py <- scripts/bench_codemem.py
+  #65 packages/codemem-mcp/src/codemem/parser/ast_grep.py <- scripts/bench_codemem.py
+  #65 scripts/bench_codemem_vs_aider.py <- scripts/bench_codemem.py
+  #65 scripts/bench_sweep.py <- scripts/bench_codemem.py
+  #65 scripts/check_codemem_doc_drift.py <- scripts/bench_codemem.py
+  #65 src/aa_ma/render/mermaid_lint.py <- scripts/bench_codemem.py
+  #65 tests/codemem/test_freshness.py <- tests/render/test_graph.py
+  #65 tests/codemem/test_trust.py <- packages/codemem-mcp/src/codemem/safety.py
+  #69 claude-code/codemem/hooks/post-commit.sh <- claude-code/skills/execute-aa-ma-milestone/references/boundary-checks.md
+  #69 claude-code/skills/execute-aa-ma-milestone/references/gate-fences.md <- claude-code/skills/execute-aa-ma-milestone/scripts/tests-verified.sh
+  #69 claude-code/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh <- claude-code/skills/execute-aa-ma-milestone/references/boundary-checks.md
+  #69 src/aa_ma/render/graph.py <- packages/codemem-mcp/src/codemem/storage/db.py
+  #69 tests/hooks/pre-compact.bats <- tests/hooks/aa-ma-parse.bats
+  #69 tests/render/test_graph.py <- tests/codemem/test_aa_ma_context.py
+
+MISSES ref=True 5/50% window=500 mcf=10 (partner <- changed files):
+  #20 claude-code/agents/codebase-onboarding-health.md <- claude-code/skills/understand-codebase/SKILL.md
+  #20 claude-code/skills/understand-codebase/references/DIMENSIONS.md <- claude-code/skills/understand-codebase/SKILL.md
+  #21 scripts/uninstall.sh <- scripts/install.sh
+  #30 tests/scripts/test_check_conventions.py <- scripts/check_conventions.py
+  #41 scripts/uninstall.sh <- scripts/install.sh
+  #69 src/aa_ma/render/graph.py <- packages/codemem-mcp/src/codemem/storage/db.py

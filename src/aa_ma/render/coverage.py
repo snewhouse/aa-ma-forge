@@ -19,15 +19,16 @@ grammar itself lives in :mod:`aa_ma.contract_rows` (11.2), shared with ``aa_ma.i
 
 from __future__ import annotations
 
-import re
 
 from aa_ma.contract_rows import (
     MAX_EXPANSIONS,
     contract_rows,
+    covers,
     milestone_contract_rows,
+    plan_created,
     row_re,
 )
-from aa_ma.grammar import H2_RE, scan_fences
+from aa_ma.grammar import scan_fences
 from aa_ma.render.mermaid_lint import (
     NEW_RE,
     Finding,
@@ -49,9 +50,6 @@ __all__ = [
 ]
 
 COVERAGE_CUTOVER = "2026-09-11"  # spec §XI item 13's cutover; a literal date, not a tag
-_CREATED_RE = re.compile(
-    r"^(?:\*\*Created:\*\*|Created:)[ \t]*(\d{4}-\d{2}-\d{2})", re.M
-)
 _ROW_RE = row_re(("Create", "Modify"))
 EXEMPT_DIRS = ("tests/", "docs/")
 ROOT_DOCS = frozenset({"README.md", "CHANGELOG.md", "SECURITY.md", "CONTEXT.md"})
@@ -65,7 +63,7 @@ def coverage_findings(plan_text: str) -> list[Finding]:
     lint reports it), or no §13 (check 6's ``NO_SECTION``).
     """
     scan = scan_fences(plan_text)
-    if scan.unterminated or not _in_force(scan.stripped):
+    if scan.unterminated or not _in_force(plan_text):
         return []
     drawn = drawn_paths(plan_text, scan.stripped)
     if drawn is None:
@@ -78,7 +76,7 @@ def coverage_findings(plan_text: str) -> list[Finding]:
             "(draw it, a directory node above it, or `(new)` if planned)",
         )
         for line, path in contract_paths(plan_text, scan.stripped)
-        if not any(path == n or path.startswith(n + "/") for n in drawn)
+        if not any(covers(n, path) for n in drawn)
     ]
 
 
@@ -120,10 +118,9 @@ def drawn_paths(plan_text: str, stripped: str) -> set[str] | None:
     }
 
 
-def _in_force(stripped: str) -> bool:
-    first_h2 = H2_RE.search(stripped)
-    m = _CREATED_RE.search(stripped[: first_h2.start()] if first_h2 else stripped)
-    return m is not None and m.group(1) >= COVERAGE_CUTOVER
+def _in_force(plan_text: str) -> bool:
+    created = plan_created(plan_text)
+    return created is not None and created >= COVERAGE_CUTOVER
 
 
 def _exempt(path: str) -> bool:

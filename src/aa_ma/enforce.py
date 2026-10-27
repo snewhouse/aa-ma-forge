@@ -145,6 +145,45 @@ def read_text_field_lines(block: str, field: str) -> list[str]:
     ]
 
 
+_DECISION_RE = re.compile(r"^-[ \t]+(?:\*\*)?Decision:(?:\*\*)?[ \t]+")
+_APPROVED_RE = re.compile(r"^-[ \t]+(?:\*\*)?Decision:(?:\*\*)?[ \t]+APPROVED")
+
+
+def has_gate_approval(context_log: str, title: str) -> bool:
+    """True when the LAST ``GATE APPROVAL: <title>`` block in ``context_log`` says APPROVED.
+
+    The Python twin of the shell ``aa_ma_has_gate_approval`` (aa-ma-parse.sh), which §7.1
+    and fence 3 use; ``tests/test_gate_parity.py`` drives both over the same logs. A heading
+    counts when it ends with ``GATE APPROVAL: <title>`` (compared as a string); lines inside
+    a ``` / ~~~ fence are skipped, a fence closing only on its own character at >= its own
+    length with nothing after it.
+    """
+    want = f"GATE APPROVAL: {title}"
+    found = in_block = False
+    fence: tuple[str, int] | None = None
+    decision = ""
+    for line in context_log.split("\n"):
+        s = line.lstrip(" \t")
+        c = s[:1]
+        if c in ("`", "~") and s[:3] == c * 3:
+            n = len(s) - len(s.lstrip(c))
+            if fence is None:
+                fence = (c, n)
+            elif c == fence[0] and n >= fence[1] and not s[n:].strip(" \t"):
+                fence = None
+            continue
+        if fence is not None:
+            continue
+        if re.match(r"#+[ \t]", line):
+            in_block = line.rstrip(" \t").endswith(want)
+            if in_block:
+                found, decision = True, ""
+            continue
+        if in_block and _DECISION_RE.match(line):
+            decision = line
+    return found and _APPROVED_RE.match(decision) is not None
+
+
 class Unreadable(Exception):
     """The file cannot be read as a tasks.md — always exit 2, never a guess."""
 

@@ -159,3 +159,13 @@ STUB
     run ! grep -q $'\x1b' <<< "$output"
 }
 
+@test "a heading with a bidi control reaches the IMPACT_VERIFIED line sanitised" {
+    sed -i $'s/^## Milestone 2: The one being gated/## Milestone 2: The one ‮being gated/' "$T/t-tasks.md"
+    echo 'A = 2' > "$R/src/a.py"
+    _run_fence
+    [ "$status" -eq 0 ] || { echo "$output"; false; }
+    run grep -F "IMPACT_VERIFIED — Milestone 2: The one ?being gated — " "$T/t-provenance.log"
+    [ "$status" -eq 0 ] || { cat "$T/t-provenance.log"; false; }
+    run ! grep -q $'‮' "$T/t-provenance.log"
+}
+

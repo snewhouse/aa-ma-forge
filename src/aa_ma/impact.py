@@ -39,7 +39,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from aa_ma import gitutil
-from aa_ma.contract_rows import milestone_contract_rows
+from aa_ma.contract_rows import milestone_contract_lines, milestone_contract_rows
 from aa_ma.enforce import (
     Unreadable,
     has_gate_approval,
@@ -71,6 +71,9 @@ IMPACT_EXCLUDE: tuple[str, ...] = (
 )
 CODEMEM_TIMEOUT_S = 300.0  # one refresh can rebuild the index; ~1 s on this repo
 
+# P6: the packages whose public API fence 4 diffs (griffe, static), and their search path.
+API_PACKAGES: dict[str, str] = {"aa_ma": "src", "codemem": "packages/codemem-mcp/src"}
+
 EXIT_PASS, EXIT_FAIL, EXIT_USAGE, EXIT_NO_INDEX, EXIT_NOT_APPLICABLE = 0, 1, 2, 3, 5
 
 _CREATED_RE = re.compile(
@@ -79,6 +82,9 @@ _CREATED_RE = re.compile(
 _H2_RE = re.compile(r"^##(?:[ \t]|$)", re.M)
 _THRESHOLD_RE = re.compile(
     r"^[ \t]*(?:-[ \t]+)?Cochange-Threshold:[ \t]*(\S+)[ \t]+(\S+)[ \t]*$", re.M
+)
+_API_BREAK_RE = re.compile(
+    r"^(?:-[ \t]+)?API-Break:[ \t]*`?([A-Za-z_][\w.]*)`?[ \t]+[—–-]+[ \t]*\S"
 )
 _EXPLAINED_RE = re.compile(r"^`?([^`\s]+)`?(?:[ \t]+[—–-]+[ \t]*(.*))?$")
 
@@ -103,7 +109,7 @@ class ImpactReport:
     predicted_unchanged: list[str] = field(default_factory=list)
     cochange_missing: dict[str, list[str]] = field(default_factory=dict)
     api_breaks_undeclared: list[str] = field(default_factory=list)
-    api_diff: str = "skipped(griffe API diff lands in 11.4)"
+    api_diff: str = ""
     derived_critical_paths: dict[str, list[str]] = field(default_factory=dict)
     unreviewed_critical_paths: dict[str, list[str]] = field(default_factory=dict)
     explained: dict[str, str] = field(default_factory=dict)
@@ -132,6 +138,7 @@ class ImpactReport:
         lines += [
             kv("unexplained_file", f"{self._kind(p)}:{p}") for p in self.unexplained
         ]
+        lines += [kv("api_break", b) for b in self.api_breaks_undeclared]
         lines += [
             kv("unreviewed_cp", f"{v}:{f}")
             for v, fs in self.unreviewed_critical_paths.items()
@@ -144,9 +151,7 @@ class ImpactReport:
             return "unpredicted"
         if path in self.predicted_unchanged:
             return "predicted-unchanged"
-        if path in self.cochange_missing:
-            return "cochange"
-        return "api-break"
+        return "cochange"
 
 
 def compute(  # why: the AC signature plus the 11.7 retro flag, all keyword-able
@@ -200,6 +205,10 @@ def _compute(  # noqa: PLR0913  # why: one private step carrying compute's argum
     report.explained = _explanations(block)
     partners = _cochanges(repo, report.changed, shared, ratio)
     _classify(report, partners)
+    declared = _declared_breaks(plan_text, milestone)
+    report.api_diff, report.api_breaks_undeclared = _api_diff(
+        repo, base, head, report.changed, declared
+    )
     report.derived_critical_paths = derive_critical_paths(report.changed)
     report.unreviewed_critical_paths = _unreviewed(
         report.derived_critical_paths, tasks_md, heading
@@ -211,6 +220,10 @@ def _verdict(report: ImpactReport, milestone: str) -> None:
     problems = []
     if report.unexplained:
         problems.append(f"{len(report.unexplained)} unexplained file(s)")
+    if report.api_breaks_undeclared:
+        problems.append(
+            f"{len(report.api_breaks_undeclared)} public API break(s) without API-Break:"
+        )
     if report.unreviewed_critical_paths:
         problems.append(
             "derived Critical-Path without a CRITICAL_PATH_REVIEW naming its files: "
@@ -442,6 +455,84 @@ def _cochanges(
 def _last(p: subprocess.CompletedProcess[str]) -> str:
     lines = (p.stderr or p.stdout).strip().splitlines()
     return lines[-1] if lines else "(no output)"
+
+
+# --- public API (griffe, P6) ------------------------------------------------------------
+
+
+def _declared_breaks(plan_text: str, milestone: str) -> list[str]:
+    """Dotted paths the milestone's Contract declares with ``API-Break: <path> — <reason>``."""
+    return [
+        m.group(1)
+        for line in milestone_contract_lines(plan_text, milestone)
+        if (m := _API_BREAK_RE.match(line))
+    ]
+
+
+def _api_diff(
+    repo: Path, base: str, head: str, changed: list[str], declared: list[str]
+) -> tuple[str, list[str]]:
+    """(``api_diff`` summary, undeclared breaks) for each API package the change touches.
+
+    Static loads only (the code under review is never imported). Anything griffe cannot
+    load is reported as ``skipped(<package>: <reason>)`` — never silent.
+    """
+    touched = [
+        (name, root)
+        for name, root in API_PACKAGES.items()
+        if any(p.startswith(f"{root}/{name}/") for p in changed)
+    ]
+    if not touched:
+        return f"skipped(no {' or '.join(API_PACKAGES)} file changed)", []
+    try:
+        import griffe  # lazy: a dev dependency; absent -> skipped(reason), never ImportError
+    except ImportError:
+        return "skipped(griffe not installed)", []
+    done, skipped, breaks = [], [], []
+    for name, root in touched:
+        try:
+            gitutil.git(["cat-file", "-e", f"{base}:{root}/{name}"], repo)
+        except gitutil.GitError:
+            skipped.append(f"{name}: absent at base")
+            continue
+        try:
+            old = griffe.load_git(
+                name, ref=base, repo=repo, search_paths=[root], allow_inspection=False
+            )
+            if head == "HEAD":
+                new = griffe.load(
+                    name,
+                    search_paths=[repo / root],
+                    allow_inspection=False,
+                    try_relative_path=False,
+                )
+            else:
+                new = griffe.load_git(
+                    name,
+                    ref=head,
+                    repo=repo,
+                    search_paths=[root],
+                    allow_inspection=False,
+                )
+            found = [
+                (b.obj.path, b.kind.value)
+                for b in griffe.find_breaking_changes(old, new)
+            ]
+        except Exception as exc:  # noqa: BLE001  # why: griffe raises many types on code it cannot load; reported as skipped(reason)
+            first = str(exc).splitlines()[0] if str(exc) else ""
+            skipped.append(f"{name}: {type(exc).__name__}: {first}".rstrip(": "))
+            log.warning("api diff of %s skipped: %s", name, skipped[-1])
+            continue
+        done.append(name)
+        breaks += [
+            f"{path}: {kind}"
+            for path, kind in found
+            if not any(path == d or path.startswith(d + ".") for d in declared)
+        ]
+    summary = ",".join(done)
+    if skipped:
+        summary += ("; " if summary else "") + f"skipped({'; '.join(skipped)})"
+    return summary, sorted(dict.fromkeys(breaks))
 
 
 # --- classification ------------------------------------------------------------------------

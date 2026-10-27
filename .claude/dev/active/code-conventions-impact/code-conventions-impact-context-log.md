@@ -838,3 +838,10 @@ DECISION ruff-only () — approved by Ste
 - Forced run before: unexplained=64 (58 predicted-unchanged prose tokens from M11's own Contract Test rows + `SKILL.md §6.7` + `NNNN` ADR, 6 unpredicted), 1 API break, 3 unreviewed Critical-Path files.
 - Fixes (scope clarification of the plan Contract, no new work): rows paths-only (prose after `#`), ADR row → 0027, `Test` rows for tests/test_enforce.py and tests/skills/test_fence_scaffolding_shared.py, `API-Break: codemem.mcp_tools.file_impact — …`; tasks.md `Impact-Explained:` for TODOS.md, docs/lessons.md, tests/codemem/test_critical_path_globs.py; CRITICAL_PATH_REVIEW addendum naming impact-gate.md, fence-common.sh, tests-verified.sh by repo path.
 - After: exit 0, changed=35 predicted=32 cochange=0 unexplained=0 api_breaks=0 → `IMPACT_VERIFIED … via --ignore-cutover` in provenance. The gate's first real run did its job on the milestone that built it: the cost of a clean pass was one Contract tidy-up and three one-line explanations.
+
+## [2026-10-27] GATE APPROVAL: Milestone 11: Gate-computed `IMPACT_VERIFIED` (T7)
+- Gate: HARD
+- Approved by: Ste
+- Criteria verified: 6/6
+- Evidence: pytest 3504 passed (fence 3 TESTS_VERIFIED); bats 655/655; fence 1 PASS; DIAGRAM_VERIFIED edges=25; IMPACT_VERIFIED unexplained=0 (--ignore-cutover dogfood); §6.8 PASS_WITH_WARNINGS (2 rounds); lint-imports 9/0; branch at f93be576
+- Decision: APPROVED

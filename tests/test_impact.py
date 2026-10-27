@@ -841,3 +841,78 @@ def test_kv_has_one_line_per_derived_critical_path_file(tmp_path, db) -> None:
     fx = _hook_fixture(tmp_path)
     kv = fx.run().to_kv().splitlines()
     assert "derived_cp_file=hook-modification:claude-code/hooks/x.sh" in kv
+
+
+# --- §6.8 fixes (M11 boundary) -------------------------------------------------------------
+
+
+def test_created_is_read_from_the_merge_base_plan(fx, monkeypatch) -> None:
+    """A branch cannot back-date its own plan to skip fence 4 (security A04)."""
+    monkeypatch.setattr(impact, "IMPACT_CUTOVER", "2026-01-01")
+    fx.plan.write_text(
+        fx.plan.read_text().replace("Created: 2027-01-01", "Created: 2020-01-01")
+    )
+    _write(fx.repo, "src/a.py", "A = 2\n")
+    r = fx.run(ignore_cutover=False)
+    assert r.exit_code != 5, r.reason
+
+
+def test_a_plan_new_on_the_branch_uses_its_working_copy_date(
+    tmp_path, db, monkeypatch
+) -> None:
+    monkeypatch.setattr(impact, "IMPACT_CUTOVER", "2026-01-01")
+    fx = Fixture(tmp_path, ROWS)
+    _git(fx.repo, "rm", "-q", "--cached", f"{TASK}/t-plan.md")
+    _git(
+        fx.repo, "commit", "-q", "-m", "plan not at base"
+    )  # no `add -A`: the plan stays untracked
+    fx.base = _git(fx.repo, "rev-parse", "HEAD")
+    _build(fx)
+    fx.plan.write_text(
+        fx.plan.read_text().replace("Created: 2027-01-01", "Created: 2020-01-01")
+    )
+    assert fx.run(ignore_cutover=False).exit_code == 5
+
+
+def test_a_review_marker_quoted_mid_line_does_not_count(tmp_path, db) -> None:
+    fx = _hook_fixture(tmp_path)
+    fx.append(
+        "provenance.log",
+        f"note: see [ts] CRITICAL_PATH_REVIEW — {HEADING} — hook-modification — claude-code/hooks/x.sh\n",
+    )
+    assert fx.run().exit_code == 1
+
+
+def test_tarfile_without_the_data_filter_is_skipped_not_a_crash(
+    tmp_path, db, monkeypatch
+) -> None:
+    """Python 3.11.0–3.11.3 has no extractall(filter=): TypeError → skipped(reason)."""
+    fx = _api_fixture(tmp_path)
+    _write(
+        fx.repo,
+        "src/aa_ma/__init__.py",
+        PKG.replace("def gone():\n    return 2\n\n\n", ""),
+    )
+
+    def old_extractall(self, path=".", members=None, *, numeric_owner=False):
+        raise TypeError("extractall() got an unexpected keyword argument 'filter'")
+
+    monkeypatch.setattr(impact.tarfile.TarFile, "extractall", old_extractall)
+    r = fx.run()
+    assert r.api_diff.startswith("skipped(") and "TypeError" in r.api_diff
+
+
+def test_api_packages_are_the_workspace_packages() -> None:
+    """A new workspace member must not silently escape the public-API diff (P6)."""
+    import tomllib
+
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    want = {"aa_ma": "src"}
+    for member in project["tool"]["uv"]["workspace"]["members"]:
+        src = ROOT / member / "src"
+        want |= {
+            p.name: f"{member}/src"
+            for p in src.iterdir()
+            if (p / "__init__.py").is_file()
+        }
+    assert impact.API_PACKAGES == want

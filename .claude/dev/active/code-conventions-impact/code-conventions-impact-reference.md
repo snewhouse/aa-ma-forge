@@ -30,7 +30,7 @@ Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engi
 | Canary branch (M1.4) | `canary/cci-m1-touched` (DRAFT PR, closed + deleted after) | [valid: 2026-10-08] |
 | Prototype branches | `prototype/cmd-to-skill` (M3.1), `prototype/impact-hook` (M10.1) | [valid: 2026-10-08] |
 | Release target | v0.18.0 (minor), single release in M14 (D11) | [valid: 2026-10-08] |
-| Next free ADR number | 0026 (0023 = M9 tests-verified, 0024 = sole-dev-merge one script, 0025 = live worktree / D7 amendment at 10.0); M10.8 takes 0026 | [valid: 2026-10-25] |
+| Next free ADR number | 0028 (0026 = M10 impact pre-edit hook; 0027 = M11 gate-computed IMPACT_VERIFIED, Accepted 2026-10-27) | [valid: 2026-10-27] |
 | Session rules | `/rigor` (`~/.claude/skills/rigor/SKILL.md`), ≤5 concurrent sub-agents, `Skill(double-check)` before any COMPLETE | [valid: 2026-10-08] |
 
 ## Baseline Numbers (plan §0, 2026-10-08)
@@ -498,4 +498,4 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - Baseline before M11 code (653b4f85): pytest 3401 passed / 2 skipped / 7 deselected; bats 855 ok / 0. [valid: 2026-10-27]
 - As built 11.4: `impact.API_PACKAGES = {"aa_ma": "src", "codemem": "packages/codemem-mcp/src"}` (P6); Contract line `API-Break: <dotted.path> — <reason>`; kv `api_diff=<pkgs>[; skipped(<pkg>: <reason>; …)]` or `skipped(<reason>)`, `api_break=<path>: <BreakageKind value>`; `contract_rows.milestone_contract_lines(plan, "N")`. griffe 2.3.2: `load_git` uses a temporary git worktree (search_paths relative to the repo root); `LoadingError` on syntax errors. [valid: 2026-10-27]
 - As built 11.5: `aa_ma_milestone_base` (stdout SHA rc 0; rc 2 + one reason line: `no origin default branch (…)` / `no milestone window (…)`); `aa_ma_impact` launcher (uv run --project <forge> aa-ma-impact --format kv; 127 BLOCKED); fence 4 = `claude-code/skills/execute-aa-ma-milestone/scripts/impact-verified.sh <task>` (cwd repo top), 4th bash block of §6.7; prints `IMPACT-GATE: PASS — …` / `IMPACT-GATE: not applicable (grandfathered) — <reason>` / `BLOCKED: …`. `aa-ma-impact --base` optional. verify-impl Step 1 window = aa_ma_milestone_base, else WARN + heuristic, `${…:-HEAD~10}`. [valid: 2026-10-27]
-
+- ADR-0027 `docs/adr/0027-gate-computed-impact-verified.md` Accepted (Ste, 2026-10-27); runbook `claude-code/skills/execute-aa-ma-milestone/references/impact-gate.md`. [valid: 2026-10-27]

@@ -775,3 +775,8 @@ DECISION ruff-only () — approved by Ste
 - `aa_ma_milestone_base` reads origin only (origin/HEAD → origin/main → origin/master); `aa_ma_default_base_ref`'s local main/master fallback is not used: a branch this session can move is not a certifiable base.
 - SKILL.md 500-line cap: fence-1 rationale comments moved verbatim-in-substance to references/gate-fences.md rather than raising the ratchet.
 - Bats fixtures make a plan "in force" with `Created: 9999-12-31` (= the sentinel), not an env knob — a cutover override env var would be a bypass.
+
+## [2026-10-27] ADR APPROVAL: ADR-0027 — gate-computed IMPACT_VERIFIED (§6.7 fence 4)
+- Approved by: Ste
+- Decision: APPROVED (Status: Accepted)
+- Scope: fence 4 via `aa-ma-impact` (window = merge-base with origin's default; Contract rows paths-only; Impact-Explained for unpredicted / predicted-unchanged / co-change 5/50%@500; griffe API-Break for aa_ma + codemem; derived Critical-Path reviews; fail closed; post-cutover plans only, grandfather check first). Callers are who_calls/§6.3/§6.8's domain, not fence 4. Rejected: advisory only; block on callers.

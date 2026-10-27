@@ -668,3 +668,51 @@ Root fix confirmed by security-auditor: no default path reads repo-controlled fi
 - Tests at f8783074: TESTS_VERIFIED passed=3401; bats 855/0.
 
 ## Verdict: PASS_WITH_WARNINGS (round 2 clean; stop rule: 2 rounds)
+
+# Milestone 11: Gate-computed `IMPACT_VERIFIED` (T7) — post-impl review (§6.8)
+
+- Date: 2026-10-27 · Audit-Profile: full · budget normal · window 169e4e81..a360c80c (45 commits, base = aa_ma_milestone_base)
+- Unpredicted (§6.3, to code-reviewer as untrusted paths): TODOS.md, docs/lessons.md, tests/codemem/test_critical_path_globs.py — each has an `Impact-Explained:` line.
+
+## Summary
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 7 | 5 | WARN |
+| security-auditor | 0 | 3 | 5 | WARN |
+| tdd-sequence-auditor | 1 | 0 | 1 | FAIL (mechanical) → disputed |
+| context7-evidence-auditor | 0 | 0 | 1 | PASS |
+| future-proofing-auditor | 0 | 1 | 8 | WARN |
+| **Total** | **1** | **11** | **20** | |
+
+## code-reviewer (0 / 7 / 5)
+- W `enforce.has_gate_approval` is a second Python fence scanner beside `grammar.scan_fences` (they differ on indent and closer text) — doc why (shell parity) or align.
+- W `impact.py` `git archive` timeout 60.0 unnamed.
+- W KISS: `_api_diff` 67 lines, five jobs — split.
+- W SRP: impact.py holds codemem adapter + API diff + classification + CLI — split when next touched (non-blocking).
+- W reference.md As-built 11.3 kv line lists `api-break` kind (never emitted); misses `api_break=`, `derived_cp_file=`.
+- W missing why: absolute-PATH-only codemem; T7 constant comment unreadable.
+- I `_ARROWS` behaviour fix for coverage's milestone_contract_paths (note it); I §6.3 shell co-change ignores an approved Cochange-Threshold override (document); I 3 unpredicted files = process artefacts / forced tripwire.
+
+## security-auditor (0 / 3 / 5)
+- W A04 grandfathering read from the branch's own plan `Created:` → a back-dated plan skips fence 4 once IMPACT_CUTOVER is real; read it from the merge-base plan.
+- W A04 API diff skipped still passes and the IMPACT_VERIFIED provenance line omits `api_diff=` — record it.
+- W A03 fence 4 prints repo file names and `reason` raw — sanitize with `aa_ma_sanitize_lines`.
+- I CRITICAL_PATH_REVIEW marker matched anywhere in a line — anchor to the line start; I IMPACT_CUTOVER sentinel (M14.1); I repo-local lib sourced first (out of scope); I `origin/*` refs movable by `update-ref` (reword comment); I `extractall(filter=)` needs Python ≥ 3.11.4 (TypeError on 3.11.0–3.11.3; fails closed via 127).
+
+## tdd-sequence-auditor — FAIL (mechanical), disputed
+- C 733069a3 `style(enforce)` (src/, 14:04) precedes the first tests/ commit 5bec8ac8 (14:17). Style-only (3 docstrings, Ste-approved L-065 at 11.0). Without it: PASS — every RED/GREEN pair test-first (11.2–11.5, §6.6).
+
+## context7-evidence-auditor — PASS (0 / 0 / 1)
+- No new deps; griffe Context7 evidence at provenance CONTEXT7 (11.4). I tarfile `filter="data"` (stdlib, PEP 706, 3.11.4+).
+
+## future-proofing-auditor (0 / 1 / 8)
+- W git archive timeout unnamed (same as code-reviewer).
+- I "fences 2–4" / "FOURTH" ordinals; I shell `5)` mirrors EXIT_NOT_APPLICABLE; I API_PACKAGES not derived from the workspace; I IMPACT_CUTOVER sentinel → M14.1 AC; I regex purpose comments; M13 to list `aa-ma-impact` / IMPACT_VERIFIED / CHANGELOG.
+
+## User Override Decisions
+| # | Finding | Decision | Note |
+|---|---|---|---|
+| 1 | tdd-sequence CRITICAL (733069a3) | dispute | Ste 2026-10-27: style-only pre-RED commit to a Contract file, approved at 11.0; convention learned: a pre-RED style-only commit is not a TDD breach (land it before the base next time) |
+
+WARNING fixes chosen (Ste): security 3 (+ CPR anchor, Python ≥ 3.11.4 / TypeError), small hygiene (timeout constant, why comments, has_gate_approval docstring, reference.md kv line, regex comments), `_api_diff` split, API_PACKAGES pinned to the workspace. To TODOS: impact.py module split (SRP), §6.3 override parity.

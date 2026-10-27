@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-27 (M11 11.1: co-change threshold 5/50%, window 500)_
+_Last Updated: 2026-10-27 (M11 complete: 11.0–11.9 as-built, §6.8 rounds 1–2)_
 
 Test-Command: uv run pytest
 

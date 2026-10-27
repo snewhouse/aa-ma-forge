@@ -726,3 +726,4 @@ WARNING fixes chosen (Ste): security 3 (+ CPR anchor, Python ≥ 3.11.4 / TypeEr
 - Not re-reviewed by agents (stop rule: 2 rounds).
 
 ## Verdict: PASS_WITH_WARNINGS (round 2 fixes applied; stop rule: 2 rounds)
+- Correction (§7.2.5 validator W2): "bats 655/655" above was `bats tests/hooks/` without `--recursive`. Full bats at 3517241b: 875 ok / 0 not ok (661 + 214). Fence 2 re-run after a fresh CODE_INTEL_REFRESH (3517241b): PASS edges=25.

@@ -845,3 +845,10 @@ DECISION ruff-only () — approved by Ste
 - Criteria verified: 6/6
 - Evidence: pytest 3504 passed (fence 3 TESTS_VERIFIED); bats 655/655; fence 1 PASS; DIAGRAM_VERIFIED edges=25; IMPACT_VERIFIED unexplained=0 (--ignore-cutover dogfood); §6.8 PASS_WITH_WARNINGS (2 rounds); lint-imports 9/0; branch at f93be576
 - Decision: APPROVED
+- [2026-10-27] Note to the M11 GATE APPROVAL above: its "bats 655/655" was a non-recursive tests/hooks run; the full suite at 3517241b is 875 ok / 0 not ok (provenance CORRECTION). §7.2.5 validator: PASS_WITH_WARNINGS (W1 heading-less §6.8 lines → addendum; W2 → corrected; W3 refresh re-run at 3517241b + fence 2 PASS).
+
+## [2026-10-27] Milestone Completion: Milestone 11: Gate-computed `IMPACT_VERIFIED` (T7)
+- Delivered: `aa-ma-impact` CLI (src/aa_ma/impact.py) + §6.7 fence 4 (impact-verified.sh, fence-common.sh), `contract_rows.py`, codemem co_changes `stale`, `aa_ma_milestone_base`, ADR-0027 Accepted, runbook impact-gate.md.
+- Evidence at 3517241b+: pytest 3504 passed (TESTS_VERIFIED); bats 875/0; DIAGRAM_VERIFIED edges=25; IMPACT_VERIFIED unexplained=0 (dogfood --ignore-cutover; shipped fence: not applicable until M14.1 sets IMPACT_CUTOVER); §6.8 PASS_WITH_WARNINGS; HARD gate approved (Ste); §7.2.5 validator PASS_WITH_WARNINGS (3 W addressed).
+- Deferred: TODOS "M11" (impact.py SRP split, §6.3 override parity, codemem arg allowlist rc 3, codemem.gitutil).
+- Next: Milestone 12 (handover to be written after the sdm merge).

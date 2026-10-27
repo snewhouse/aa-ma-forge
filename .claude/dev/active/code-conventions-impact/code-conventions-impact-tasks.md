@@ -1172,12 +1172,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: 2026-10-27 — Mode AFK (step) — auto-dispatched. `aa-ma-impact … --milestone 10 --base f0bfbd8b --head 169e4e81 --ignore-cutover --format kv` rc 1: changed=80 predicted=47 cochange=1 unexplained=48 (40 unpredicted / 7 predicted-unchanged / 1 co-change) api_breaks=3 (codemem QUERY_TOOLS, CURRENT_SCHEMA_VERSION, MIGRATIONS — intended) api_diff=aa_ma,codemem; 11 hook-modification files unreviewed (M10 CPR used basenames). Every one of the 48 has a one-line disposition in context-log "11.7 retro-check" (40 Contract-writing defects, 2 real missed impact: aa-ma-parse.sh helpers + codemem incremental.py, 1 true-negative co-change render/graph.py, rest process/doc-count).
 
 ### Sub-step 11.8: Re-run execute-aa-ma-milestone evals
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 11.7
 - Acceptance Criteria:
   - M4 evals for execute-aa-ma-milestone re-run (advisory); delta logged (CEO F13).
-- Result Log:
+- Result Log: 2026-10-27 — Mode AFK (step) — auto-dispatched. `scripts/run-evals.sh --case 'execute-aa-ma-milestone-*' -j 3` at 43d1148d (sonnet, $1.23, 9 runs): HEAD copy 3/3 pass (hitl-pause, next-milestone, not-complete); delta vs M4 baseline / 10.9 = 0. 6 duplicate runs from the two prototype worktrees (older skill text, 2/3 each) — known TODOS run-evals worktree-walk defect; excluded from the delta.
 
 ### Sub-step 11.9: CRITICAL_PATH_REVIEW
 - Status: PENDING

@@ -38,6 +38,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import unicodedata
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -61,7 +62,9 @@ from aa_ma.plan_parsers import CRITICAL_PATH_GLOBS, derive_critical_paths
 log = logging.getLogger(__name__)
 
 IMPACT_CUTOVER: str = "9999-12-31"  # sentinel until M14.1 sets the v0.18.0 release date
-COCHANGE_MIN_SHARED: int = 5  # T7; 11.1 replay: 5 | 11 lines over 15 | 12 milestones
+# T7 (Ste, 11.1): commits shared with a changed file; the replay needed 5 Impact-Explained
+# lines over the last 3 plans' 15 milestones (11 over this plan's 12) at 5 / 50%.
+COCHANGE_MIN_SHARED: int = 5
 COCHANGE_MIN_RATIO: float = 0.5  # >= semantics (codemem co_changes)
 # Commits `refresh-commits --limit` keeps; 2000 tripled the lines with stale pairs (11.1).
 COCHANGE_WINDOW_COMMITS: int = 500
@@ -75,6 +78,9 @@ IMPACT_EXCLUDE: tuple[str, ...] = (
     "CHANGELOG.md",
 )
 CODEMEM_TIMEOUT_S = 300.0  # one refresh can rebuild the index; ~1 s on this repo
+GIT_ARCHIVE_TIMEOUT_S = (
+    60.0  # seconds: `git archive` of the API package trees (~0.1 s here)
+)
 
 # P6: the packages whose public API fence 4 diffs (griffe, static), and their search path.
 API_PACKAGES: dict[str, str] = {"aa_ma": "src", "codemem": "packages/codemem-mcp/src"}
@@ -83,12 +89,15 @@ EXIT_PASS, EXIT_FAIL, EXIT_USAGE, EXIT_NO_INDEX, EXIT_NOT_APPLICABLE = 0, 1, 2, 
 
 _HEADING_PREFIX_RE = re.compile(r"^#+[ \t]+")
 _TOKEN_SPLIT_RE = re.compile(r"[\s,;()`]+")  # a review names a file as one whole token
+# reference.md `Cochange-Threshold: <n> <ratio>` (an approved override of the T7 pair)
 _THRESHOLD_RE = re.compile(
     r"^[ \t]*(?:-[ \t]+)?Cochange-Threshold:[ \t]*(\S+)[ \t]+(\S+)[ \t]*$", re.M
 )
+# Contract `API-Break: <dotted.path> — <reason>`; the reason is required
 _API_BREAK_RE = re.compile(
     r"^(?:-[ \t]+)?API-Break:[ \t]*`?([A-Za-z_][\w.]*)`?[ \t]+[—–-]+[ \t]*\S"
 )
+# tasks.md `Impact-Explained: <path> — <reason>` value; group 2 empty → explains nothing
 _EXPLAINED_RE = re.compile(r"^`?([^`\s]+)`?(?:[ \t]+[—–-]+[ \t]*(.*))?$")
 
 
@@ -205,7 +214,7 @@ def compute(
 def _compute(report: ImpactReport, run: _Run) -> None:
     plan_text = _read(run.plan_md)
     if not run.ignore_cutover:
-        _check_cutover(plan_text)
+        _check_cutover(_dated_plan(run, plan_text))
     if run.base is None:
         raise _Stop(
             EXIT_USAGE, "--base is required for a plan in force (no milestone window)"
@@ -271,6 +280,30 @@ def _read(path: Path, *, missing_ok: bool = False) -> str:
         return path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
         raise _Stop(EXIT_USAGE, f"{path}: unreadable ({exc})") from exc
+
+
+def _dated_plan(run: _Run, plan_text: str) -> str:
+    """The plan text whose ``Created:`` decides applicability: the merge-base copy.
+
+    A branch must not back-date its own plan out of fence 4 (§6.8 security, A04). The working
+    copy counts only when there is no window yet (no ``--base``) or the plan is new on the
+    branch (absent at the base).
+    """
+    if run.base is None:
+        return plan_text
+    repo = _toplevel(run.tasks_md.parent)
+    try:
+        gitutil.verify_ref(run.base, repo)
+        rel = run.plan_md.resolve().relative_to(repo).as_posix()
+    except gitutil.GitError as exc:
+        raise _Stop(EXIT_USAGE, f"bad --base: {exc}") from exc
+    except ValueError as exc:
+        raise _Stop(EXIT_USAGE, f"{run.plan_md} resolves outside {repo}") from exc
+    try:
+        return gitutil.git(["show", f"{run.base}:{rel}"], repo)
+    except gitutil.GitError:
+        log.info("plan %s is new on this branch; its working copy dates it", rel)
+        return plan_text
 
 
 def _check_cutover(plan_text: str) -> None:
@@ -405,6 +438,8 @@ def _codemem_bin() -> str:
     if beside.is_file() and os.access(beside, os.X_OK):
         return str(beside)
     found = shutil.which("codemem")
+    # why: a relative PATH entry (`.`) resolves inside the repo under review; never run a
+    # binary that repo could plant
     if found and os.path.isabs(found):
         return found
     raise _Stop(
@@ -532,54 +567,31 @@ def _api_diff(
     Static loads only (the code under review is never imported). Anything griffe cannot
     load is reported as ``skipped(<package>: <reason>)`` — never silent.
     """
-    touched = [
-        (name, root)
-        for name, root in API_PACKAGES.items()
-        if any(p.startswith(f"{root}/{name}/") for p in changed)
-    ]
+    touched = _touched_packages(changed)
     if not touched:
         return f"skipped(no {' or '.join(API_PACKAGES)} file changed)", []
     try:
         import griffe  # lazy: a dev dependency; absent -> skipped(reason), never ImportError
     except ImportError:
         return "skipped(griffe not installed)", []
-    done, skipped, breaks = [], [], []
-    present = []
-    for name, root in touched:
-        try:
-            gitutil.git(["cat-file", "-e", f"{base}:{root}/{name}"], repo)
-            present.append((name, root))
-        except gitutil.GitError:
-            skipped.append(f"{name}: absent at base")
+    present, skipped = _present_at(repo, base, touched)
+    done, breaks = [], []
     with tempfile.TemporaryDirectory(prefix="aa-ma-impact-") as tmp:
+        roots = [r for _, r in present]
         try:
-            old_root = _extract(repo, base, [r for _, r in present], Path(tmp) / "base")
-            new_root = (
+            old_top = _extract(repo, base, roots, Path(tmp) / "base")
+            new_top = (
                 repo
                 if head == "HEAD"
-                else _extract(repo, head, [r for _, r in present], Path(tmp) / "head")
+                else _extract(repo, head, roots, Path(tmp) / "head")
             )
-        except (gitutil.GitError, tarfile.TarError, OSError) as exc:
-            return f"skipped(git archive failed: {exc})", []
+        except (gitutil.GitError, tarfile.TarError, OSError, TypeError) as exc:
+            # TypeError: Python < 3.11.4 has no extractall(filter=) (PEP 706)
+            return f"skipped(git archive failed: {type(exc).__name__}: {exc})", []
         for name, root in present:
-            try:
-                old, new = (
-                    griffe.load(
-                        name,
-                        search_paths=[top / root],
-                        allow_inspection=False,
-                        try_relative_path=False,
-                    )
-                    for top in (old_root, new_root)
-                )
-                found = [
-                    (b.obj.path, b.kind.value)
-                    for b in griffe.find_breaking_changes(old, new)
-                ]
-            except Exception as exc:  # noqa: BLE001  # why: griffe raises many types on code it cannot load; reported as skipped(reason)
-                first = str(exc).splitlines()[0] if str(exc) else ""
-                skipped.append(f"{name}: {type(exc).__name__}: {first}".rstrip(": "))
-                log.warning("api diff of %s skipped: %s", name, skipped[-1])
+            found = _breaks(griffe, name, old_top / root, new_top / root)
+            if isinstance(found, str):
+                skipped.append(found)
                 continue
             done.append(name)
             breaks += [
@@ -587,17 +599,72 @@ def _api_diff(
                 for path, kind in found
                 if not any(path == d or path.startswith(d + ".") for d in declared)
             ]
+    return _summary(done, skipped), sorted(dict.fromkeys(breaks))
+
+
+def _touched_packages(changed: list[str]) -> list[tuple[str, str]]:
+    return [
+        (name, root)
+        for name, root in API_PACKAGES.items()
+        if any(p.startswith(f"{root}/{name}/") for p in changed)
+    ]
+
+
+def _present_at(
+    repo: Path, base: str, touched: list[tuple[str, str]]
+) -> tuple[list[tuple[str, str]], list[str]]:
+    """(packages that exist at ``base``, skip reasons for those that do not)."""
+    present, skipped = [], []
+    for name, root in touched:
+        try:
+            gitutil.git(["cat-file", "-e", f"{base}:{root}/{name}"], repo)
+            present.append((name, root))
+        except gitutil.GitError:
+            skipped.append(f"{name}: absent at base")
+    return present, skipped
+
+
+def _breaks(
+    griffe, name: str, old_root: Path, new_root: Path
+) -> list[tuple[str, str]] | str:
+    """The griffe breakages ``(object path, kind)`` of ``name``, or a skip reason."""
+    try:
+        old, new = (
+            griffe.load(
+                name,
+                search_paths=[root],
+                allow_inspection=False,
+                try_relative_path=False,
+            )
+            for root in (old_root, new_root)
+        )
+        return [
+            (b.obj.path, b.kind.value) for b in griffe.find_breaking_changes(old, new)
+        ]
+    except Exception as exc:  # noqa: BLE001  # why: griffe raises many types on code it cannot load; reported as skipped(reason)
+        first = str(exc).splitlines()[0] if str(exc) else ""
+        reason = f"{name}: {type(exc).__name__}: {first}".rstrip(": ")
+        log.warning("api diff of %s skipped: %s", name, reason)
+        return reason
+
+
+def _summary(done: list[str], skipped: list[str]) -> str:
     summary = ",".join(done)
     if skipped:
         summary += ("; " if summary else "") + f"skipped({'; '.join(skipped)})"
-    return summary, sorted(dict.fromkeys(breaks))
+    return summary
 
 
 def _extract(repo: Path, ref: str, roots: list[str], dest: Path) -> Path:
     """``git archive <ref> -- <roots>`` unpacked into ``dest``: no worktree, no branch."""
     if not roots:
         return dest
-    raw = gitutil.git(["archive", "--format=tar", ref], repo, timeout=60.0, paths=roots)
+    raw = gitutil.git(
+        ["archive", "--format=tar", ref],
+        repo,
+        timeout=GIT_ARCHIVE_TIMEOUT_S,
+        paths=roots,
+    )
     # gitutil decodes with surrogateescape, so the round trip gives back the exact bytes.
     with tarfile.open(
         fileobj=io.BytesIO(raw.encode("utf-8", "surrogateescape"))
@@ -641,11 +708,13 @@ def _unreviewed(
     A line counts only when its heading field is exactly ``heading``; a file is named by the
     whole token or by one of its value's globs.
     """
-    marker = f"CRITICAL_PATH_REVIEW — {heading} — "
+    marker = re.compile(
+        rf"^\[[^\]\n]+\] CRITICAL_PATH_REVIEW — {re.escape(heading)} — "
+    )
     tokens = {
         tok
         for line in provenance.splitlines()
-        if marker in line
+        if marker.match(line)
         for tok in _TOKEN_SPLIT_RE.split(line)
     }
     out = {}
@@ -702,8 +771,18 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(report.to_kv())
     if report.exit_code != EXIT_PASS:
-        print(f"aa-ma-impact: {report.reason}", file=sys.stderr)
+        print(f"aa-ma-impact: {_printable(report.reason)}", file=sys.stderr)
     return report.exit_code
+
+
+# Unicode categories never printed raw: controls (incl. ESC), format (bidi, zero-width, tag),
+# private use, surrogates, line/paragraph separators — the codemem sanitizer's rule.
+_UNPRINTABLE = frozenset({"Cc", "Cf", "Co", "Cs", "Zl", "Zp"})
+
+
+def _printable(text: str) -> str:
+    """``text`` with every unprintable character as ``?`` — a reason can carry a file name."""
+    return "".join("?" if unicodedata.category(c) in _UNPRINTABLE else c for c in text)
 
 
 if __name__ == "__main__":

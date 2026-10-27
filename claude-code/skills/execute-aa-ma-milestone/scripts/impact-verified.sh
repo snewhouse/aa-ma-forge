@@ -30,23 +30,27 @@ fi
 
 IMPACT_KV=$(aa_ma_impact "${PLAN}" "${TASKS}" --milestone "${MILESTONE_NUMBER}" "${BASE_ARGS[@]}")
 IMPACT_RC=$?
-field() { printf '%s\n' "${IMPACT_KV}" | aa_ma_gate_field "$1"; }
+# Values carry repo-controlled text (file names, a heading); every printed or logged one passes
+# aa_ma_sanitize_lines, so bidi, zero-width and ESC characters arrive as `?` (§6.8 security A03).
+field() { printf '%s\n' "${IMPACT_KV}" | aa_ma_gate_field "$1" | aa_ma_sanitize_lines; }
 
 case "${IMPACT_RC}" in
     0)
         COUNTS="changed=$(field changed) predicted=$(field predicted) cochange=$(field cochange) unexplained=$(field unexplained)"
-        echo "[$(date -Iseconds)] IMPACT_VERIFIED — ${MILESTONE_TITLE} — ${COUNTS}" >> "${PROV}"
+        # api_diff is recorded too: a skipped API diff must not read as a clean pass (§6.8 A04).
+        echo "[$(date -Iseconds)] IMPACT_VERIFIED — ${MILESTONE_TITLE} — ${COUNTS} api_diff=$(field api_diff)" >> "${PROV}"
         echo "IMPACT-GATE: PASS — ${COUNTS} api_diff=$(field api_diff)"
         ;;
-    5)
+    5)  # = aa_ma.impact.EXIT_NOT_APPLICABLE
         echo "IMPACT-GATE: not applicable (grandfathered) — $(field reason)"
         ;;
     127)
         blocked "aa-ma-impact could not run (see the line above)."
         ;;
     *)
-        [[ -n "${BASE_ERROR:-}" ]] && blocked "${BASE_ERROR}"
-        printf '%s\n' "${IMPACT_KV}" | grep -E '^(unexplained_file|api_break|unreviewed_cp)=' | sed 's/^/  - /'
+        [[ -n "${BASE_ERROR:-}" ]] && blocked "$(printf '%s\n' "${BASE_ERROR}" | aa_ma_sanitize_lines)"
+        printf '%s\n' "${IMPACT_KV}" | grep -E '^(unexplained_file|api_break|unreviewed_cp)=' \
+            | aa_ma_sanitize_lines | sed 's/^/  - /'
         blocked "aa-ma-impact rc ${IMPACT_RC}: $(field reason). See references/impact-gate.md."
         ;;
 esac

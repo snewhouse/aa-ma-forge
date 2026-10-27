@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-27 (M11 11.0: post-merge of M10)_
+_Last Updated: 2026-10-27 (M11 11.1: co-change threshold 5/50%, window 500)_
 
 Test-Command: uv run pytest
 
@@ -173,6 +173,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 |----------|-------|---------|--------|
 | `COCHANGE_MIN_SHARED` | 5 | `src/aa_ma/impact.py`; a pair counts only with ≥5 shared commits (T7) | [valid: 2026-10-08] |
 | `COCHANGE_MIN_RATIO` | 0.5 | partner changed in ≥50% of the file's commits (≥ semantics) | [valid: 2026-10-08] |
+| `COCHANGE_WINDOW_COMMITS` | 500 | `src/aa_ma/impact.py`; `codemem refresh-commits --limit` for fence 4 (11.1 Ste; 2000 = 3× lines, stale pairs; M3 renames out of range, F1 accepted); no sweep filter (gate counts every commit, unlike the hook's `CO_CHANGE_MAX_COMMIT_FILES`) | [valid: 2026-10-27] |
 | Cochange-Threshold override bounds | n ≤ 20, ratio ≤ 0.9 | `Cochange-Threshold: <n> <ratio>` in reference.md merge-base copy; needs GATE APPROVAL | [valid: 2026-10-08] |
 | `IMPACT_CUTOVER` | `"9999-12-31"` (sentinel) | set to the v0.18.0 release date in M14.1 | [valid: 2026-10-08 to M14.1] |
 | `IMPACT_EXCLUDE` | `(".claude/dev/**", "docs/architecture/**", "tests/golden/**", "uv.lock", "CHANGELOG.md")` | impact.py | [valid: 2026-10-08] |

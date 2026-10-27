@@ -857,13 +857,14 @@ Files:
             IMPACT_CUTOVER: str = "9999-12-31"   # sentinel literal until M14.1 sets the v0.18.0 release date (COVERAGE_CUTOVER precedent); a test asserts it parses as an ISO date
             COCHANGE_MIN_SHARED: int = 5 ; COCHANGE_MIN_RATIO: float = 0.5   # T7; overridable via reference.md "Cochange-Threshold: <n> <ratio>"
             IMPACT_EXCLUDE: tuple[str, ...] = (".claude/dev/**", "docs/architecture/**", "tests/golden/**", "uv.lock", "CHANGELOG.md")
+            COCHANGE_WINDOW_COMMITS: int = 500   # 11.1 (Ste, 2026-10-27): `codemem refresh-commits --limit` the gate passes; 2000 tripled the lines with stale pairs; the M3 renames stay out of range (F1 accepted). [amended 2026-10-27, validator W3]
             @dataclass ImpactReport: changed, predicted, unpredicted, predicted_unchanged, cochange_missing, api_breaks_undeclared, derived_critical_paths: dict[str, list[str]], explained: dict[str,str], unexplained: list[str]
             compute(plan_md: Path, tasks_md: Path, milestone: int, base: str, head: str = "HEAD") -> ImpactReport
             runs `codemem refresh-commits` before any co_changes query; refresh failure → exit 3 (stale commit_files would undercount co-change misses = silent pass — CEO F1)
             milestone has no Contract Files rows (post-cutover) → exit 1 "no Contract Files for Milestone N" (CEO F3)
             griffe: no Python package / not importable statically → prints api_diff=skipped(<reason>), never silent (CEO F6)
   Modify  src/aa_ma/enforce.py   # read_text_field_lines(block, field) -> list[str]  (full value, not first token) for "Impact-Explained: <path> — <reason>"
-  Create  src/aa_ma/contract_rows.py   # milestone_contract_rows(plan_text, milestone) + shared row helpers — a new module, because grammar.py:49 imports plan_parsers (putting fence scanning in plan_parsers would cycle). It imports aa_ma.grammar only; NOT in render/ because .importlinter `render-is-leaf` (ADR-0010) forbids aa_ma modules importing aa_ma.render; coverage.py imports the shared helpers from plan_parsers (Verification v1)
+  Create  src/aa_ma/contract_rows.py   # milestone_contract_rows(plan_text, milestone) + shared row helpers — a new module, because grammar.py:49 imports plan_parsers (putting fence scanning in plan_parsers would cycle). It imports aa_ma.grammar only; NOT in render/ because .importlinter `render-is-leaf` (ADR-0010) forbids aa_ma modules importing aa_ma.render; coverage.py imports the shared helpers from aa_ma.contract_rows (Verification v1; "plan_parsers" corrected 2026-10-27, validator W1)
   Modify  src/aa_ma/render/coverage.py   # imports the row helpers from aa_ma.contract_rows (its --coverage behaviour is unchanged). milestone_contract_rows returns list[tuple[verb, path]]: rows Create|Modify|Test|Move|Merge|Delete, NO exemptions, sliced per `### Milestone N` (Eng P2: today _ROW_RE :36 matches Create|Modify only and contract_paths :70 drops tests/docs, so every test file would read as unpredicted); reuses _split/_expand; --coverage behaviour unchanged
   Modify  pyproject.toml   # [project.scripts] aa-ma-impact = "aa_ma.impact:main"
             CLI: aa-ma-impact <plan.md> <tasks.md> --milestone N --base SHA [--format kv|json]
@@ -877,6 +878,15 @@ Files:
   Modify  claude-code/rules/engineering-standards.md   # §5 Impact row → gate-computed; Tests row → TESTS_VERIFIED; §1 Critical-Path table → derived-globs pointer
   Modify  docs/templates/tasks-template.md, docs/spec/aa-ma-specification.md   # Impact-Explained:, API-Break: in Contract
   Create  docs/adr/NNNN-gate-computed-impact-verified.md   # ADR-0009 scope
+  # rows below added 2026-10-27 (validator W2 + M10 §6.8 carry-overs, Ste) — paths tasks.md 11.2–11.6 already change
+  Modify  .importlinter   # leaf contracts gain aa_ma.contract_rows, aa_ma.impact
+  Modify  docs/templates/plan-template.md   # API-Break: in Contract
+  Modify  claude-code/agents/aa-ma-scribe.md   # Impact-Explained:
+  Create  claude-code/skills/execute-aa-ma-milestone/references/impact-gate.md   # runbook (CEO F15)
+  Modify  docs/adr/INDEX.md   # ADR row
+  Modify  packages/codemem-mcp/src/codemem/cli.py, packages/codemem-mcp/src/codemem/mcp_tools/__init__.py   # named FILE_IMPACT_BUDGET; co_changes --threshold default not restated (M10 §6.8 WARNINGs, folded into 11.3)
+  Test    tests/test_contract_rows.py (new; 11.2)
+  Test    tests/render/test_leaf_contract.py (extended; 11.2/11.3)
   Test    tests/test_impact.py (fixture repos: unpredicted file; predicted-unchanged; co-change miss at 5/50% boundary (4 shared → ignored, 5 → counted; 49% → ignored); explained passes; rename counted as old+new; grandfathered → exit 5; index missing → exit 3)
   Test    tests/hooks/test_impact_verified.bats (fence: pass writes line; fail exits 1; grandfathered prints not-applicable)
   Test    tests/hooks/aa-ma-milestone-base.bats (new; R1): branched milestone → merge-base SHA; branch == main → exit 2; rebased branch → new merge-base; no origin → exit 2 with a named error

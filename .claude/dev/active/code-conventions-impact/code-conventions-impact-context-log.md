@@ -731,3 +731,20 @@ DECISION ruff-only () — approved by Ste
 ## [2026-10-26] M10 double-check F1 — decision (Ste)
 - F1: the 10.2 AC "co_changes returns pre-move partners" holds only at `refresh-commits --limit 2000`; at the default 500-commit window the M3 rename (660 commits back) is out of range.
 - Decision: accepted as a known limit of M10 (ADR-0026 Consequences already states it). M11 declares the window: Sub-step 11.1 AC now requires the gate's `--limit` to be chosen with the threshold and recorded in reference.md.
+
+## [2026-10-27] 11.1 complexity-router verdict — Milestone 11
+- Factors: scope 62, architectural 65, technical risk 55, dependencies 50, uncertainty 45 → weighted 57%.
+- Auto-triggers: contract change for every post-cutover plan (`Impact-Explained:`, `API-Break:`); shipped enforcement surface (hook-modification). Final 85% (Critical) = plan estimate.
+- Routing: deep review — Ste at the HITL points (11.1 threshold/window, 11.6 ADR, §7.1), Chain-of-Thought on 11.3/11.5, §6.8 with 5 agents.
+
+## [2026-10-27] 11.1 PROTOTYPE verdict — co-change threshold (verdict-changes-plan: NO)
+- Data: `prototype/m11-cochange-threshold` @ a51abd50; replay of codemem co_changes at each milestone PR head over the last 3 completed plans (15 milestones) and this plan (12, reference). Co-change Impact-Explained lines at window 500: 5/50% 5|11, 3/50% 29|43, 5/30% 16|15; window 2000: 14|14, 48|46, 36|55; ≤10-file sweep filter @500: 2|6, 11|25, 11|7.
+- Decision (Ste): **5 shared / 50%** (T7 default), **window 500** (`COCHANGE_WINDOW_COMMITS`, passed as `refresh-commits --limit`), **no sweep filter**. Why: hits at 5/50%@500 are real couplings; looser thresholds add churn pairs, 2000 adds stale ones; the sweep filter needs a new codemem CLI flag and drops real signal. Rejected: 3/50%, 5/30%, 2000, max-commit-files 10.
+- Limits stated: counts cover the co-change component only (unpredicted files come on top; M10 had 31); "linked" exclusion used today's index; the M3 renames stay outside the 500 window (F1, accepted 2026-10-26).
+
+## [2026-10-27] SCOPE CLARIFICATION: Milestone 11 — validator W1–W3 + M10 carry-overs (Ste)
+- W1: plan.md M11 Contract text corrected — coverage.py imports the row helpers from `aa_ma.contract_rows` (tasks.md already said so).
+- W2: Contract rows added for paths tasks 11.2–11.6 already change: `.importlinter`, `docs/templates/plan-template.md`, `claude-code/agents/aa-ma-scribe.md`, `references/impact-gate.md`, `docs/adr/INDEX.md`, `tests/test_contract_rows.py`, `tests/render/test_leaf_contract.py`; plus codemem cli.py + mcp_tools (nits folded into 11.3). install-lib/doc-count rows NOT added pre-emptively: a predicted-unchanged row is itself an explanation cost; add one when 11.x actually touches it.
+- W3: 11.3 AC — `COCHANGE_WINDOW_COMMITS = 500`; `refresh-commits --limit` receives it (test asserts the argv).
+- Carry-over placement: aa_ma.gitutil + derive_critical_paths callers in impact.py (11.3); shell↔Python T7 constant contract test (11.3); coverage row regexes from one verb tuple (11.2); griffe Context7 lookup (11.4); codemem FILE_IMPACT_BUDGET + co_changes threshold default (11.3, Ste "fold in"); codemem.gitutil adoption deferred (TODOS, Ste).
+- W4 (reference facts) applied at 11.0; W5 (§13 edges for milestone_base/verify-impl) and W6 (cosmetic step order) left as recorded.

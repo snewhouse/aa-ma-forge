@@ -1,6 +1,6 @@
 # 0027. Gate-Computed `IMPACT_VERIFIED`: §6.7 Fence 4
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-10-27
 **Deciders:** Ste
 **Tags:** `gate`, `impact-analysis`, `codemem`

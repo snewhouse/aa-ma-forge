@@ -309,16 +309,25 @@ aa_ma_list_active_tasks() {
 #   whichever repo the gate is being run from.
 # -----------------------------------------------------------------------------
 aa_ma_gate() {
-    local root out rc
+    _aa_ma_uv_kv_cli aa-ma-gate "$@"
+}
+
+# _aa_ma_uv_kv_cli <program> [args...]   (private; aa_ma_gate and aa_ma_impact)
+#   Runs a kv-printing gate CLI from the forge that ships this file (`uv run --project`),
+#   prints its output and returns its rc. 127, with a BLOCKED line on stderr, when uv is
+#   missing or the CLI printed no `exit_code=` line — a gate that cannot run must not pass.
+_aa_ma_uv_kv_cli() {
+    local prog="$1" root out rc
+    shift
     root="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)"
-    if ! command -v uv >/dev/null 2>&1; then
-        echo "BLOCKED: aa-ma-gate needs uv on PATH and it is missing — refusing, not skipping" >&2
+    if ! command -v uv > /dev/null 2>&1; then  # why: a presence probe; the BLOCKED line says it
+        echo "BLOCKED: ${prog} needs uv on PATH and it is missing — refusing, not skipping" >&2
         return 127
     fi
-    out=$(uv run --quiet --project "$root" aa-ma-gate --format kv "$@")
+    out=$(uv run --quiet --project "$root" "$prog" --format kv "$@")
     rc=$?
     if ! printf '%s\n' "$out" | grep -q '^exit_code='; then
-        echo "BLOCKED: aa-ma-gate did not run (uv rc ${rc}, project ${root}) — refusing, not skipping" >&2
+        echo "BLOCKED: ${prog} did not run (uv rc ${rc}, project ${root}) — refusing, not skipping" >&2
         return 127
     fi
     printf '%s\n' "$out"
@@ -615,25 +624,10 @@ aa_ma_milestone_base() {
 }
 
 # aa_ma_impact <plan.md> <tasks.md> --milestone N [--base SHA] [...]
-#   Launcher for the Python aa-ma-impact (§6.7 fence 4), the aa_ma_gate pattern: runs it from
-#   the forge that ships this file, prints its kv output and returns its rc (0/1/2/3/5).
-#   127, with a BLOCKED line, when uv is missing or the CLI printed no `exit_code=` line —
-#   a gate that cannot run must not pass.
+#   Launcher for the Python aa-ma-impact (§6.7 fence 4), via _aa_ma_uv_kv_cli like aa_ma_gate:
+#   prints its kv output and returns its rc (0/1/2/3/5); 127 when it cannot run.
 aa_ma_impact() {
-    local root out rc
-    root="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)"
-    if ! command -v uv > /dev/null 2>&1; then  # why: a presence probe; the BLOCKED line says it
-        echo "BLOCKED: aa-ma-impact needs uv on PATH and it is missing — refusing, not skipping" >&2
-        return 127
-    fi
-    out=$(uv run --quiet --project "$root" aa-ma-impact --format kv "$@")
-    rc=$?
-    if ! printf '%s\n' "$out" | grep -q '^exit_code='; then
-        echo "BLOCKED: aa-ma-impact did not run (uv rc ${rc}, project ${root}) — refusing, not skipping" >&2
-        return 127
-    fi
-    printf '%s\n' "$out"
-    return "$rc"
+    _aa_ma_uv_kv_cli aa-ma-impact "$@"
 }
 
 # aa_ma_read_sidecar_sha <file>

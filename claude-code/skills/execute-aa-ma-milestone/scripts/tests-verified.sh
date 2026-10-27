@@ -19,43 +19,11 @@
 # references/gate-fences.md.
 set -uo pipefail
 
-blocked() {
-    printf 'BLOCKED: %s\n' "$*"
-    exit 1
-}
-
-TASK_NAME="${1:-}"
-if ! [[ "${TASK_NAME}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "${TASK_NAME}" != *..* ]]; then
-    blocked "TASK_NAME must be a plain task slug (got '${TASK_NAME}')."
-fi
-TASK_DIR=".claude/dev/active/${TASK_NAME}"
-REF="${TASK_DIR}/${TASK_NAME}-reference.md"
-PROV="${TASK_DIR}/${TASK_NAME}-provenance.log"
-
-# The append target must be a regular file reached through no symlink. A committed link
-# would redirect the line — which carries the repo's own heading text — into, say, ~/.bashrc.
-for _p in .claude .claude/dev .claude/dev/active "${TASK_DIR}" "${PROV}"; do
-    [[ -L "${_p}" ]] && blocked "${_p} is a symlink; refusing to write provenance through it."
-done
-[[ ! -e "${PROV}" || -f "${PROV}" ]] || blocked "${PROV} is not a regular file."
-
-# -- The milestone being certified (Python SSoT, like the other §6.7 fences) ------------
-_top=$(git rev-parse --show-toplevel 2>/dev/null)  # why: outside a repo the first candidate is simply absent
-for _cand in \
-    "${_top}/claude-code/hooks/lib/aa-ma-parse.sh" \
-    "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
-    [[ -f "${_cand}" ]] && AA_MA_LIB="${_cand}" && break
-done
-[[ -n "${AA_MA_LIB:-}" ]] || blocked "aa-ma-parse.sh not found — run scripts/install.sh."
+# Slug check, symlink guards, aa-ma-parse.sh, and the milestone this run certifies.
 # shellcheck source=/dev/null
-. "${AA_MA_LIB}"
-GATE_KV=$(aa_ma_gate "${TASK_DIR}/${TASK_NAME}-tasks.md") || {
-    _rc=$?
-    printf '%s\n' "${GATE_KV:-}" | sed -n 's/^error=/  - /p'
-    blocked "cannot read the milestone to verify its tests (gate rc ${_rc})."
-}
-MILESTONE_TITLE=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field heading)
-[[ -n "${MILESTONE_TITLE}" ]] || blocked "empty milestone heading."
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/fence-common.sh"
+fence_init "${1:-}" "its tests"
+REF="${TASK_DIR}/${TASK_NAME}-reference.md"
 
 # -- Inputs from the merge-base copy -------------------------------------------------------
 BASE_REF=$(aa_ma_default_base_ref) \

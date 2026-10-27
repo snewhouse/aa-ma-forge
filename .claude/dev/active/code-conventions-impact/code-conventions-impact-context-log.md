@@ -768,3 +768,10 @@ DECISION ruff-only () — approved by Ste
 - `API-Break:` lives in the plan's milestone Contract (as the 11.6 template AC says), read by `contract_rows.milestone_contract_lines`; `<dotted.path> — <reason>`, reason required; a module path covers its members.
 - Every griffe BreakageKind counts (incl. attribute value and parameter-default changes): griffe compares source expressions, so `2_000` → `FILE_IMPACT_BUDGET` (same value) is a break to declare. Fail closed; the runbook (11.6) says so. Rejected: a kind allowlist (a silent hole).
 - Only packages the change touches are loaded (cost: ~0.5 s per package); griffe failures are `skipped(<pkg>: <type>: <first line>)` + a WARNING log, never a pass by silence.
+
+## [2026-10-27] 11.5 decisions (agent, within AC)
+- Fence 4 logic lives in `scripts/impact-verified.sh` (bats-tested), the SKILL.md block only locates it — fence 3's shape. Contract rows added for it and for gate-fences.md (scope clarification, no new work).
+- Grandfather-first with no window: `aa-ma-impact --base` is optional; the fence passes `--base` only when `aa_ma_milestone_base` succeeds, so a grandfathered plan on main (M14) reads "not applicable" and a plan in force reports the window error.
+- `aa_ma_milestone_base` reads origin only (origin/HEAD → origin/main → origin/master); `aa_ma_default_base_ref`'s local main/master fallback is not used: a branch this session can move is not a certifiable base.
+- SKILL.md 500-line cap: fence-1 rationale comments moved verbatim-in-substance to references/gate-fences.md rather than raising the ratchet.
+- Bats fixtures make a plan "in force" with `Created: 9999-12-31` (= the sentinel), not an env knob — a cutover override env var would be a bypass.

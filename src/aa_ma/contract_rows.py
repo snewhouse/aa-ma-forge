@@ -17,14 +17,16 @@ from __future__ import annotations
 
 import re
 
-from aa_ma.grammar import PLAN_MILESTONE_RE, scan_fences
+from aa_ma.grammar import H2_RE, PLAN_MILESTONE_RE, scan_fences
 
 __all__ = [
     "MAX_EXPANSIONS",
     "ROW_VERBS",
     "contract_rows",
+    "covers",
     "milestone_contract_lines",
     "milestone_contract_rows",
+    "plan_created",
     "row_re",
 ]
 
@@ -38,7 +40,28 @@ _PAREN_RE = re.compile(r"\([^()]*\)")
 _LINES_RE = re.compile(r":\d+(?:-\d+)?$")
 _BRACES_RE = re.compile(r"\{([^{}]*)\}")  # innermost group
 _FENCE_MARK_RE = re.compile(r"^(?:`{3,}|~{3,})")  # a fence's own open/close line
+_CREATED_RE = re.compile(
+    r"^(?:\*\*Created:\*\*|Created:)[ \t]*(\d{4}-\d{2}-\d{2})", re.M
+)
 _ARROWS = frozenset({"→", "->"})  # Move/Merge `old → new`: a separator, never a path
+
+
+def plan_created(plan_text: str) -> str | None:
+    """The plan's ``Created: YYYY-MM-DD`` front matter (before the first H2), or None.
+
+    Fenced text does not count: a pasted example is not the plan's date. Read by the
+    cutovers of Angle 6 check 8 (``render.coverage``) and §6.7 fence 4 (``impact``).
+    """
+    stripped = scan_fences(plan_text).stripped
+    first_h2 = H2_RE.search(stripped)
+    m = _CREATED_RE.search(stripped[: first_h2.start()] if first_h2 else stripped)
+    return m.group(1) if m else None
+
+
+def covers(row: str, path: str) -> bool:
+    """True when Contract row (or §13 node) ``row`` names ``path``, or a directory above it."""
+    row = row.rstrip("/")
+    return path == row or path.startswith(row + "/")
 
 
 def row_re(verbs: tuple[str, ...]) -> re.Pattern[str]:

@@ -763,3 +763,8 @@ DECISION ruff-only () — approved by Ste
 - `--head` (agent): non-HEAD compares `base..head` only, for the 11.7 retro on merged history; HEAD includes the working tree.
 - Contract row prose (Ste, after the live run on M11: ~55 prose tokens read as predicted-unchanged): keep the fail-closed "every token is a path" grammar (one grammar with coverage); 11.6 runbook/templates/scribe tell authors paths only, prose after `#`. Rejected: gate-only stop-at-first-non-path (drops a 2nd extensionless root path); changing coverage too (reverses the diagram-generation §6.8 decision).
 - Live findings for M11 itself (grandfathered, informational): tests/test_enforce.py unpredicted; codemem incremental.py/indexer.py co-change with cli.py; enforce.py/impact.py derive hook-modification — 11.9's CRITICAL_PATH_REVIEW names them.
+
+## [2026-10-27] 11.4 decisions (agent, within AC)
+- `API-Break:` lives in the plan's milestone Contract (as the 11.6 template AC says), read by `contract_rows.milestone_contract_lines`; `<dotted.path> — <reason>`, reason required; a module path covers its members.
+- Every griffe BreakageKind counts (incl. attribute value and parameter-default changes): griffe compares source expressions, so `2_000` → `FILE_IMPACT_BUDGET` (same value) is a break to declare. Fail closed; the runbook (11.6) says so. Rejected: a kind allowlist (a silent hole).
+- Only packages the change touches are loaded (cost: ~0.5 s per package); griffe failures are `skipped(<pkg>: <type>: <first line>)` + a WARNING log, never a pass by silence.

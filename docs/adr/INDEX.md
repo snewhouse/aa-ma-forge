@@ -46,6 +46,7 @@ Copy [`TEMPLATE.md`](TEMPLATE.md) to `NNNN-short-title.md` (zero-padded, sequent
 | [0024](0024-sole-dev-merge-one-script.md) | `/sole-dev-merge` is one tested script, GitHub only | Accepted | 2026-10-22 |
 | [0025](0025-live-worktree-install-target.md) | `~/.claude` links into a live worktree; milestones use plain branches (amends D7) | Accepted | 2026-10-25 |
 | [0026](0026-impact-preedit-hook-and-callees.md) | Impact pre-edit hook, `callees`, and plugin edges in the codemem index | Accepted | 2026-10-26 |
+| [0027](0027-gate-computed-impact-verified.md) | Gate-computed `IMPACT_VERIFIED`: §6.7 fence 4 | Proposed | 2026-10-27 |
 
 ## Statuses
 

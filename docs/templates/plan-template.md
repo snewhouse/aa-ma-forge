@@ -79,8 +79,16 @@
 <!-- Element 13: Contract block — REQUIRED for every milestone with Audit-Profile in {full, code-only, infra}. -->
 <!-- Pins file paths, signatures, CLI shapes, exit codes and field grammar a fresh agent must not guess. Illustrative snippets are not Contract blocks. -->
 
+<!-- Rows (`Create|Modify|Test|Move|Merge|Delete <path>…`) hold paths only — prose after `#`:
+     §6.7 fence 4 reads every row token as a predicted file (ADR-0027). A planned public-API
+     break in aa_ma/codemem is declared here: `API-Break: <dotted.path> — <reason>`. -->
+
 #### Contract
 ```text
+Files:
+  Modify  path/to/module.py      # why it changes
+  Test    tests/test_module.py   # what it covers
+API-Break: package.module.old_function — removed; its callers updated in this milestone
 # file: path/to/module.py
 def function(arg: Type) -> ReturnType
 # CLI: tool <arg> [--flag]   exit 0 ok / 1 findings / 2 usage

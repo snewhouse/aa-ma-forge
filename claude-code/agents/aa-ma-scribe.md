@@ -171,6 +171,8 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - Always include: Status, Result Log at step level
 - All statuses start as `PENDING`
 - Complexity ≥ 80% gets the `⚠️ HIGH COMPLEXITY` flag
+- Never pre-fill `Impact-Explained:` lines: they are written during execution, one per file §6.7 fence 4 reports (`- Impact-Explained: <path> — <reason>`, ADR-0027)
+- Copy Contract rows verbatim; they hold paths only (prose after `#`), because fence 4 reads every row token as a predicted file. Copy `API-Break: <dotted.path> — <reason>` lines with the Contract
 
 ### File 5: `[task-name]-provenance.log`
 

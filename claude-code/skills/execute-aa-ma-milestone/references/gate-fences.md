@@ -5,6 +5,7 @@
 - [Absent-field semantic (fence 1)](#absent-field-semantic-fence-1)
 - [Fence 2 — §13 sigil edges verified](#fence-2--13-sigil-edges-verified)
 - [Fence 3 — TESTS_VERIFIED](#fence-3--tests_verified)
+- [Fence 4 — IMPACT_VERIFIED](#fence-4--impact_verified)
 
 ## Absent-field semantic (fence 1)
 
@@ -12,6 +13,20 @@
 `Prototype-Required:` is **absent** from a task, the corresponding check is
 **skipped (no failure)**. Only present-but-without-evidence triggers a HALT.
 This preserves backward compat with `examples/` plans authored before v0.5.0.
+
+**Why fence 1 asks Python** (moved from the fence's comments, M11): the awk that once read the
+milestone was a hand-written markdown parser whose accepted-string set was decided by reasoning,
+not measurement; ADR-0009 records what three reviews found in it. So bash asks, Python answers:
+`aa_ma_gate` is a launcher, not a parser; `aa-ma-gate` (`src/aa_ma/gate.py`) answers all seven
+questions over `grammar.py` + `enforce.py` + `plan_parsers.py` and refuses on ambiguity rather
+than choosing. The lib resolves repo-local first, so a clone that has not run install.sh works.
+Exit codes fail closed: 0 one ACTIVE and every enforced field readable · 1 no ACTIVE ·
+2 unreadable (missing file, unclosed fence, invalid field, orphan sub-step) · 3 ambiguous
+(2+ ACTIVE, duplicate heading) · 127 the gate could not run (`aa_ma_gate` then prints only a
+BLOCKED line, so `error=` lines are always the Python gate's own words). The dirty-artifacts
+check `exit 1`s: it once was a `# HALT` comment that printed BLOCKED and then PASS with exit 0.
+The Critical-Path / Prototype evidence greps are milestone-scoped: a bare
+`grep -q CRITICAL_PATH_REVIEW` over the whole log is pre-satisfied once any milestone writes it.
 
 ## Fence 2 — §13 sigil edges verified
 
@@ -83,3 +98,37 @@ Why the LAST matching line, not the final line: real testthat 3.2.3 run through 
 praise line after its `[ FAIL 0 | WARN 0 | SKIP 0 | PASS 2 ]` summary in 1 of 8 passing runs.
 Residual risk: a runner that exits 0 on failure AND prints an earlier line matching the regex.
 Write the regex to require zero failures, as `\[ FAIL 0 \| … PASS ([0-9]+) \]` does.
+
+## Fence 4 — IMPACT_VERIFIED
+
+Implemented by `scripts/impact-verified.sh` (the Python is `aa-ma-impact`, `src/aa_ma/impact.py`);
+tested by `tests/hooks/test_impact_verified.bats` and `tests/test_impact.py`. It is the FOURTH
+```bash fence in §6.7, after fence 3 (ticket T7; ADR-0009 scope). How to read a BLOCKED report
+and fix it: [impact-gate.md](impact-gate.md).
+
+**Window**: `aa_ma_milestone_base` = `git merge-base origin/<default> HEAD` (origin only); the
+changed set is that base against the working tree (committed, staged, unstaged) plus untracked
+files, minus `IMPACT_EXCLUDE` (`.claude/dev/**`, `docs/architecture/**`, `tests/golden/**`,
+`uv.lock`, `CHANGELOG.md`). No window (on the default branch tip, no origin) is BLOCKED for a
+plan in force; the grandfather check runs first, so an older plan still reads "not applicable".
+
+| Check | Needs |
+|-------|-------|
+| Changed, no Contract row names it (a directory row covers beneath) | `Impact-Explained: <path> — <reason>` in the milestone's tasks.md block |
+| A Contract row whose path did not change | the same |
+| codemem co-change partner (≥5 shared commits and ≥50% of the file's, last 500 commits; import/call-linked files excluded) that did not change | the same |
+| griffe public-API break in `aa_ma` / `codemem` | `API-Break: <dotted.path> — <reason>` in the Contract |
+| A derived Critical-Path value (`CRITICAL_PATH_GLOBS`) | a `CRITICAL_PATH_REVIEW` line for the milestone naming each file or its glob |
+
+| `aa-ma-impact` rc | Fence |
+|------|-------|
+| 0 | PASS — appends `[ts] IMPACT_VERIFIED — <heading> — changed=N predicted=P cochange=C unexplained=0` |
+| 5 | `IMPACT-GATE: not applicable (grandfathered)` — plan `Created:` before `IMPACT_CUTOVER` |
+| 1 | BLOCKED — lists `unexplained_file=`, `api_break=`, `unreviewed_cp=`; also a stale codemem answer |
+| 2 | BLOCKED — usage, unreadable input, git error, no milestone window |
+| 3 | BLOCKED — codemem index missing, or a refresh failed or was skipped (`codemem build`) |
+| 127 | BLOCKED — uv missing or the CLI did not run |
+
+Overrides: `Cochange-Threshold: <n> <ratio>` in the merge-base reference.md (n ≤ 20, ratio ≤ 0.9)
+with `## [date] GATE APPROVAL: Cochange-Threshold <n> <ratio> — <milestone heading>`.
+

@@ -270,7 +270,7 @@ if [[ "${PROTOTYPE_TASKS}" == "YES" ]]; then
   fi
 fi
 
-echo "ENG-STANDARDS-GATE: PASS (${CONDITIONS} conditions checked; fences 2 and 3 follow)"
+echo "ENG-STANDARDS-GATE: PASS (${CONDITIONS} conditions checked; fences 2–4 follow)"
 ```
 
 See [gate-fences.md](references/gate-fences.md#absent-field-semantic-fence-1) — absent `Critical-Path:` / `Prototype-Required:` fields skip their check.

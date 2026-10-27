@@ -143,8 +143,10 @@ _INVISIBLE_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f\u2028\u2029]")
 
 
 def read_tasks_text(path: Path) -> str:
-    """Read `tasks.md` with line endings normalised (contract row 14), refusing
-    binary, oversized or control-character-bearing input outright."""
+    """Read `tasks.md` with line endings normalised (contract row 14).
+
+    Refuses binary, oversized or control-character-bearing input outright.
+    """
     try:
         raw = path.read_bytes()
     except OSError as exc:
@@ -169,12 +171,18 @@ def read_tasks_text(path: Path) -> str:
 
 
 def read_milestone_status(own_block: str) -> FieldRead:
-    """`Status:` of a milestone. Pass the milestone's *own* text (before its
-    first `###`) so a sub-step's status cannot stand in for the milestone's."""
+    """`Status:` of a milestone.
+
+    Pass the milestone's *own* text (before its first `###`) so a sub-step's
+    status cannot stand in for the milestone's.
+    """
     return read_enforced_field(own_block, "Status", MILESTONE_STATUSES)
 
 
 def read_step_status(step_block: str) -> FieldRead:
-    """`Status:` of a step. Separate from the milestone read: `StepStatus` has no
-    `ACTIVE`, so one parser cannot serve both."""
+    """`Status:` of a step.
+
+    Separate from the milestone read: `StepStatus` has no `ACTIVE`, so one
+    parser cannot serve both.
+    """
     return read_enforced_field(step_block, "Status", STEP_STATUSES)

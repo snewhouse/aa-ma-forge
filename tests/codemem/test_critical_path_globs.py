@@ -27,7 +27,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 ENG_STANDARDS = REPO_ROOT / "claude-code" / "rules" / "engineering-standards.md"
 # Literal globs whose file does not exist yet: M11 creates src/aa_ma/impact.py.
 # Any other missing literal path is a typo and fails.
-NOT_YET_CREATED = {"src/aa_ma/impact.py"}
+NOT_YET_CREATED: set[str] = set()  # src/aa_ma/impact.py landed in M11 11.3
 # The table names `claude-code/skills/**` only as "the gate/scan logic inside" it,
 # so the code carries narrower per-skill globs instead of the whole tree.
 QUALIFIED_IN_TABLE = "claude-code/skills/**"

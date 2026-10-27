@@ -2,17 +2,14 @@
 
 ## AA-MA Tooling
 
-### code-conventions-impact M10 §6.8: 5 deferred WARNINGs + carry-overs for M11
+### code-conventions-impact M11 §6.3/§6.6: deferred findings (fence 4)
 **What:**
-- WARNING: `derive_critical_paths` / `CRITICAL_PATH_GLOBS`, and both gitutil twins, have no non-test caller — M11 AC: each gets a production caller (aa_ma.impact, §6.7 fence 4; check_conventions/_git, codemem git_mining) or is removed.
-- WARNING: `file_impact` budget 2000 is unnamed in `codemem/cli.py:616` and `mcp_tools/__init__.py:931` — one `FILE_IMPACT_BUDGET` with unit + rationale.
-- WARNING: `codemem query co_changes --threshold default=3` restates the library default (`cli.py:575-578`) — a shared constant or `default=None`.
-- WARNING: `render/coverage.py` `_ANY_ROW_RE` copies `_ROW_RE` + 3 verbs — build both from one verb tuple.
-- WARNING (process): ruff-format reflowed untouched lines of render/coverage.py inside a feature commit (L-007/L-065) — format-only churn goes in its own style commit.
-- M11 carry-overs: a contract test that shell `AA_MA_COCHANGE_MIN_SHARED/_RATIO` (aa-ma-parse.sh) equal the Python `aa_ma.impact` twin; log a Context7 lookup of the griffe 2.x API before M11.4; the M11 Contract must name its tests, `claude-code/hooks/lib/aa-ma-parse.sh`, `scripts/lib/aa-ma-install-lib.sh` and doc-count files (M10 had 38 unpredicted, all missed-impact).
-- INFO nits: name sanitize_context_line's 200-char default and import it in cli.py; `CODEMEM_TIMEOUT_S` is 2 s in the hook and 30 s in predicted-vs-actual (rename one); relax `griffe==2.3.2` to `>=2.3.2,<3` once 2.4.x clears the cooldown; CHANGELOG note that git_mining now stores HEAD names and drops deleted paths (hot_spots/symbol_history/owners counts change for renamed files).
+- codemem's `sanitize_symbol_arg` allowlist `[A-Za-z0-9_./-]` (≤256, no `..`) rejects legal paths (spaces, `+`, `@`); a changed file like that makes `aa-ma-impact` exit 3 with no fix but a rename. Skip-and-report such paths (kv `cochange_skipped=`), or widen the allowlist for co_changes paths. 0 such tracked files in the forge.
+- Efficiency INFO: aa-ma-impact starts codemem 4 times (status, refresh, refresh-commits, query); `query co_changes` opens one read-only connection per path. ~1.1 s per milestone today; fold into one codemem subcommand if it grows.
+- `codemem.gitutil` has no production caller (aa_ma.gitutil now does: aa_ma.impact) — adopt in git_mining/indexer when next touched, or drop the twin.
+- From M10 §6.8 (still open): ruff-format reflow of untouched lines in feature commits (process); name sanitize_context_line's 200-char default; `CODEMEM_TIMEOUT_S` 2 s vs 30 s naming; relax `griffe==2.3.2` to `>=2.3.2,<3` after the cooldown; CHANGELOG note on git_mining HEAD names.
 
-**Why:** M10 §6.8 (2026-10-26): 0 CRITICAL, 8 WARNING — W1/W7/W8 fixed (d350019b..f8783074, Ste), these deferred. **Effort:** M · **Priority:** P2 (M11 items) / P3
+**Why:** M11 boundary (2026-10-27): §6.6 0 CRITICAL / 9 WARNING / 18 INFO — Ste fixed the four groups (7b9cc4d1, 58e7cdbc) and left these; §6.3 found the allowlist limit. Closed by M11: derive_critical_paths + aa_ma.gitutil callers (aa_ma.impact), FILE_IMPACT_BUDGET, co_changes --threshold default, one verb tuple for coverage rows, shell↔Python T7 constants test, griffe Context7 lookup, M11 Contract rows. **Effort:** S–M · **Priority:** P3
 
 ### code-conventions-impact M10 §6.6 review: deferred W6 + efficiency/reuse INFOs
 **What:**

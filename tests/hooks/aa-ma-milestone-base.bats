@@ -76,3 +76,32 @@ _commit() {
     [ "$status" -eq 0 ]
     [ "$output" = "$want" ]
 }
+
+# verify-impl Step 1 (Phase 6.8): its milestone window, executed as shipped. From the
+# `# Milestone window` comment to MILESTONE_HEAD_SHA, with N and the task paths stubbed.
+_verify_impl_window() {
+    awk '/^# Milestone window/{f=1} f; /^MILESTONE_HEAD_SHA=/{exit}' \
+        "${REPO_ROOT}/claude-code/skills/verify-impl/SKILL.md" > "$WORK/window.sh"
+    run bash -c '. "$1"; N=2 TASK_DIR=x TASK_NAME=x; . "$2"; echo "BASE=$MILESTONE_BASE_SHA"' \
+        _ "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" "$WORK/window.sh"
+}
+
+@test "verify-impl Step 1 takes the window from aa_ma_milestone_base" {
+    want=$(git rev-parse HEAD)
+    git checkout -q -b feat
+    _commit one
+    _verify_impl_window
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"BASE=$want"* ]]
+    [[ "$output" != *WARN* ]]
+}
+
+@test "verify-impl Step 1 without a window: one WARN, and HEAD~10 really applies" {
+    for i in 1 2 3 4 5 6 7 8 9 10 11; do _commit "c$i"; done
+    git push -q origin main
+    want=$(git rev-parse HEAD~10)
+    _verify_impl_window
+    [ "$status" -eq 0 ]
+    [ "$(grep -c WARN <<< "$output")" -eq 1 ]
+    [[ "$output" == *"BASE=$want"* ]]
+}

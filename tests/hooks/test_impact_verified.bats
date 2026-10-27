@@ -48,6 +48,11 @@ _mkrepo() {
     _git push -q origin main
     git -C "$R" remote set-head origin -a > /dev/null
     _git checkout -q -b feat
+    # A milestone branch opens with its own AA-MA commit (§5.1 sets ACTIVE), so the
+    # merge-base is behind HEAD; .claude/dev/** is IMPACT_EXCLUDE, so it changes nothing.
+    echo started >> "$T/t-provenance.log"
+    _git add -A
+    _git commit -qm start
     (cd "$R" && "${REPO_ROOT}/.venv/bin/codemem" build --repo-root "$R" > /dev/null)
 }
 
@@ -75,10 +80,10 @@ _line() { grep -F "IMPACT_VERIFIED — ${HEADING} — " "$T/t-provenance.log"; }
 @test "pass: every change predicted → IMPACT_VERIFIED line with the counts" {
     echo 'A = 2' > "$R/src/a.py"
     _run_fence
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 0 ] || { echo "$output"; false; }
     [[ "$output" == *"IMPACT-GATE: PASS"* ]]
     run _line
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 0 ] || { echo "$output"; false; }
     [[ "$output" == *"— changed=1 predicted=1 cochange=0 unexplained=0" ]]
 }
 
@@ -95,7 +100,7 @@ _line() { grep -F "IMPACT_VERIFIED — ${HEADING} — " "$T/t-provenance.log"; }
 @test "grandfathered plan → prints not applicable, exit 0, no line" {
     sed -i 's/^Created: .*/Created: 2026-10-08/' "$T/t-plan.md"
     _run_fence
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 0 ] || { echo "$output"; false; }
     [[ "$output" == *"IMPACT-GATE: not applicable (grandfathered)"* ]]
     run ! _line
 }
@@ -104,7 +109,7 @@ _line() { grep -F "IMPACT_VERIFIED — ${HEADING} — " "$T/t-provenance.log"; }
     sed -i 's/^Created: .*/Created: 2026-10-08/' "$T/t-plan.md"
     _git checkout -q main
     _run_fence
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 0 ] || { echo "$output"; false; }
     [[ "$output" == *"not applicable"* ]]
 }
 

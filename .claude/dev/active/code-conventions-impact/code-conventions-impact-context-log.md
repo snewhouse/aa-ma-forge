@@ -780,3 +780,42 @@ DECISION ruff-only () — approved by Ste
 - Approved by: Ste
 - Decision: APPROVED (Status: Accepted)
 - Scope: fence 4 via `aa-ma-impact` (window = merge-base with origin's default; Contract rows paths-only; Impact-Explained for unpredicted / predicted-unchanged / co-change 5/50%@500; griffe API-Break for aa_ma + codemem; derived Critical-Path reviews; fail closed; post-cutover plans only, grandfather check first). Callers are who_calls/§6.3/§6.8's domain, not fence 4. Rejected: advisory only; block on callers.
+
+## [2026-10-27] 11.7 retro-check: aa-ma-impact on Milestone 10 (evidence only; grandfathered plan)
+- Command: `aa-ma-impact <plan> <tasks> --milestone 10 --base f0bfbd8b --head 169e4e81 --ignore-cutover` (PR #69 window, 56 commits). rc 1: changed=80 predicted=47 cochange=1 unexplained=48 (40 unpredicted, 7 predicted-unchanged, 1 co-change) api_breaks=3 api_diff=aa_ma,codemem; 11 unreviewed hook-modification files. Co-change and linked-file exclusion use today's index (approximation).
+- Dispositions (one line per file):
+  - README.md — doc-count site (MCP tools 13→14, hooks 9→10); Contract should name doc-count files (TODOS carry-over, now runbook).
+  - TODOS.md — §6.6/§6.8 deferrals recorded; process file, should be named or explained.
+  - claude-code/hooks/lib/aa-ma-parse.sh — §6.6 W2/W5 helpers (aa_ma_cochange_partners, aa_ma_default_base_ref, aa_ma_sanitize_lines): real missed impact.
+  - claude-code/rules/engineering-standards.md — 10.5 doctrine: §1 table lists every CRITICAL_PATH_GLOBS path (Ste); missed in Contract.
+  - claude-code/skills/FORKS.json — md5 refresh of forked skills edited by 10.8 wording; mechanical cascade.
+  - claude-code/skills/aa-ma-plan/references/phase-2-brainstorm.md — PROTOTYPE `verdict-changes-plan` token cascade (10.7).
+  - claude-code/skills/execute-aa-ma-milestone/references/boundary-checks.md — §6.3 predicted-vs-actual step (10.7): planned work, row missing.
+  - claude-code/skills/execute-aa-ma-milestone/references/post-impl-review.md — `<unpredicted-files>` to the §6.8 reviewer (10.7): planned, row missing.
+  - claude-code/skills/execute-aa-ma-milestone/scripts/predicted-vs-actual.sh — new 10.7 script: planned, row missing.
+  - claude-code/skills/execute-aa-ma-milestone/scripts/tests-verified.sh — §6.6 W5 (aa_ma_default_base_ref): fix-pass impact.
+  - claude-code/skills/plan-verification/references/angles-1-5.md — `verdict-changes-plan: YES` → Angle-3 check (10.7 doctrine): cascade.
+  - docs/adr/0026-impact-preedit-hook-and-callees.md — the ADR the Contract named as `NNNN-…` (placeholder; same file).
+  - docs/adr/INDEX.md — ADR row; always changes with an ADR (runbook: name it).
+  - docs/adr/NNNN-impact-preedit-hook-and-callees.md (predicted-unchanged) — placeholder for 0026; same file.
+  - docs/codemem/migration-from-index.md — doc-count site (14 MCP tools).
+  - docs/lessons.md — L-067..L-070 written during M10: process file.
+  - docs/spec/claude-code-foundations.md — doc-count site (hooks 10).
+  - packages/codemem-mcp/src/codemem/incremental.py — `_refresh_plugin_edges` on every refresh (10.3): real missed impact.
+  - scripts/install.sh (predicted-unchanged) — the hook row lives in the AA_MA_HOOKS table (M3, scripts/lib/aa-ma-install-lib.sh); Contract named the wrong file.
+  - scripts/lib/aa-ma-install-lib.sh — the file the row actually needed (see install.sh).
+  - scripts/uninstall.sh (predicted-unchanged) — table-driven since M3; no change needed; wrong Contract row.
+  - src/aa_ma/grammar.py — §6.6 W3 `PLAN_MILESTONE_RE`: fix-pass impact.
+  - src/aa_ma/render/coverage.py — `milestone_contract_paths` (10.7): planned, row missing.
+  - src/aa_ma/render/graph.py (co-change with codemem storage/db.py) — schema v4 needs no change here (graph requires user_version ≥ 3; §13 lint PASS): explained, true negative.
+  - test_aa_ma_context.py / test_co_changes.py / test_file_impact.py / test_plugin_surface_index.py (predicted-unchanged, 4) — Contract shorthand names; the real files are the tests/codemem/ entries below (row-writing defect).
+  - tests/codemem/test_aa_ma_context.py, test_co_changes.py, test_file_impact.py, test_plugin_surface_index.py — the same 4 tests under their real paths.
+  - tests/codemem/test_file_edges.py, test_git_mining.py, test_install_and_cli.py, test_mcp_server_integration.py, test_plugin_surface.py, test_sanitize_context_line.py — tests of the codemem changes (schema v4, renames, 14 tools, sanitizer); Contract named only new tests.
+  - tests/fixtures/hook-payloads/PreToolUse-Edit.json, PreToolUse-Write.json — real payload fixtures for the new PreToolUse hook (M7 convention): planned, rows missing.
+  - tests/hooks/aa-ma-parse.bats, commit-drift.bats, install-live-worktree.bats, predicted-vs-actual.bats, session-end-dirty.bats — bats for the hook-lib helpers, commit-drift advisory, install row, 10.7 script, SessionEnd marker cleanup.
+  - tests/render/test_leaf_contract.py — gitutil-is-self-contained contract (10.4).
+  - tests/render/test_milestone_contract_paths.py — 10.7 coverage reader tests.
+  - tests/skills/test_unpredicted_files_untrusted.py — §6.8 W7 untrusted framing test.
+- API breaks (3), all intended and listed in the M10 §6.3 contract changes: codemem.cli.QUERY_TOOLS (+callees), codemem.storage.db.CURRENT_SCHEMA_VERSION (3→4), codemem.storage.db.MIGRATIONS (+v4).
+- Unreviewed derived Critical-Path (11 files): M10's CRITICAL_PATH_REVIEW lines named files by basename (`aa-ma-commit-drift.sh`, `hooks/lib/aa-ma-parse.sh`) — fence 4 requires the repo path or a glob; reviews did happen (provenance 15890d3f + addendum). Runbook covers it.
+- Reading: 40 of 48 are Contract-writing defects (missing rows, shorthand names, placeholders, wrong file), 2 real missed impact (aa-ma-parse.sh helpers, codemem incremental.py), 1 true-negative co-change, the rest process/doc-count files. Fence 4 would have forced each to be named or explained — the intended pressure; the threshold (1 co-change line) did not add noise.

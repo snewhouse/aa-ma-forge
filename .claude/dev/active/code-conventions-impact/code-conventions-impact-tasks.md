@@ -1164,12 +1164,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: 2026-10-27 — Mode HITL (step), Ste: Proceed. febe926f: engineering-standards §5 "Non-breaking constraint verified" → fence 4 IMPACT_VERIFIED (ADR-0027) + §6.3 impact-analysis for callers; §5 Tests row already TESTS_VERIFIED (ADR-0023, unchanged); §1 pointer: fence 4 derives Critical-Path from CRITICAL_PATH_GLOBS (table = globs by test). Spec: §6.7 fence 4 row + `IMPACT_VERIFIED` provenance token. tasks-template: `Impact-Explained:` comment block. plan-template: Contract rows paths-only + `API-Break:` example. aa-ma-scribe: never pre-fill Impact-Explained; rows verbatim, paths only; copy API-Break. Runbook `references/impact-gate.md` (reading the block table, Impact-Explained, API-Break, rows readable). ADR-0027 Proposed → Ste approved → Accepted 281e935a; INDEX row 0027 Accepted; ADR APPROVAL in context-log. Also: 11.3 tripwire `tests/codemem/test_critical_path_globs.py` NOT_YET_CREATED emptied (impact.py exists). Evidence: tests/skills + prompt_size + frontmatter + doc_counts + plugin_surface 660 passed; critical_path_globs 48 passed.
 
 ### Sub-step 11.7: Retro-check on M10
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 11.6
 - Acceptance Criteria:
   - `aa-ma-impact --format kv --ignore-cutover` run against this plan's Milestone 10; output logged; each unexplained file listed in context-log with a one-line disposition (evidence only, not a gate on this grandfathered plan).
-- Result Log:
+- Result Log: 2026-10-27 — Mode AFK (step) — auto-dispatched. `aa-ma-impact … --milestone 10 --base f0bfbd8b --head 169e4e81 --ignore-cutover --format kv` rc 1: changed=80 predicted=47 cochange=1 unexplained=48 (40 unpredicted / 7 predicted-unchanged / 1 co-change) api_breaks=3 (codemem QUERY_TOOLS, CURRENT_SCHEMA_VERSION, MIGRATIONS — intended) api_diff=aa_ma,codemem; 11 hook-modification files unreviewed (M10 CPR used basenames). Every one of the 48 has a one-line disposition in context-log "11.7 retro-check" (40 Contract-writing defects, 2 real missed impact: aa-ma-parse.sh helpers + codemem incremental.py, 1 true-negative co-change render/graph.py, rest process/doc-count).
 
 ### Sub-step 11.8: Re-run execute-aa-ma-milestone evals
 - Status: PENDING

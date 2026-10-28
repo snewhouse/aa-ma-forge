@@ -1,15 +1,9 @@
 # Engineering Standards (auto-loaded)
 
-Doctrine governing how AA-MA plans are authored and executed in this plugin.
-Principles only — procedures live in skills (`Skill(operational-constraints)`,
-`Skill(plan-verification)`, `Skill(impact-analysis)`) and commands (`/aa-ma-plan`,
-`/execute-aa-ma-step`, `/execute-aa-ma-milestone`). Companion rule:
-[`aa-ma.md`](aa-ma.md). Architectural rationale: ADR-0001
-([`docs/adr/0001-engineering-standards-architecture.md`](../../docs/adr/0001-engineering-standards-architecture.md)).
-
-The 6 themes below are referenced by name in plan element #12
-("Engineering Standards Declaration"). A plan must declare which themes
-materially apply to its work and how.
+How AA-MA plans are authored and executed: principles only; procedures live in the skills
+(`Skill(plan-verification)`, `Skill(impact-analysis)`, `/execute-aa-ma-milestone`).
+Companions: [`aa-ma.md`](aa-ma.md), [`coding-standards.md`](coding-standards.md); rationale ADR-0001.
+A plan declares which of the 6 themes below apply (plan element #12).
 
 ### 1. Verification & Truth
 
@@ -18,20 +12,12 @@ materially apply to its work and how.
 - Test empirically — validate with running code and live API/tool calls before
   drawing conclusions. The output of an in-memory model of the system does not
   count as evidence.
-- Prototype first on uncertain changes. Throwaway proofs-of-concept are cheap;
-  shipping the wrong abstraction is expensive. When a task carries
-  `Prototype-Required: YES`, invoke `Skill(prototype)` (forked from
-  mattpocock/skills — see [ADR-0003](../../docs/adr/0003-prototype-adoption.md))
-  which routes between **LOGIC** (a single self-contained HTML demo — state panel, free-play buttons, tabbed guided walkthroughs — for state/business-logic questions) and **UI** (structurally different variants on an existing route, switchable via `?variant=`) branches based on the question, and captures the result on a `prototype/<name>` branch — main keeps only the decision.
-  Then write a `[ts] PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES|NO`
-  entry to `provenance.log` before milestone COMPLETE; `YES` (the verdict changes the plan)
-  triggers a `Skill(plan-verification)` Angle-3 impact check on the decision delta. A sub-step's `Prototype-Required:
-  YES` rolls up to its milestone's gate (ADR-0011). A UI-branch throwaway route
-  sits behind the host app's existing auth middleware and reads stubs or
-  fixtures, never live records — the fork's "throwaway branch" rule is not an
-  access control. The skill provides the *how*; this rule provides the
-  *when* — both must align before the gate (Section 6.7 condition 5) accepts
-  evidence.
+- Prototype first on uncertain changes. When a task carries `Prototype-Required: YES`,
+  use `Skill(prototype)` (ADR-0003; the result lives on a `prototype/<name>` branch), then
+  write `[ts] PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES|NO`
+  to `provenance.log` before milestone COMPLETE; `YES` triggers a `Skill(plan-verification)`
+  Angle-3 check. A sub-step's `YES` rolls up to its milestone (ADR-0011). A UI throwaway
+  route stays behind the app's auth and reads stubs or fixtures, never live records.
 - Double-check critical paths. When a task carries `Critical-Path: <value>`,
   write a `[ts] CRITICAL_PATH_REVIEW — <evidence>` entry to `provenance.log`
   before milestone COMPLETE.
@@ -39,23 +25,13 @@ materially apply to its work and how.
   plugin content is **on disk** (shipped by this repo), **declared-external**
   (resolvable in `~/.claude/skills`, gstack, or another ecosystem — a
   legitimate cross-ecosystem edge), or **dangling** (resolvable nowhere).
-  Only *dangling* is a defect; an external dependency is a design choice and
-  must be declared, not silently tolerated. A binary "everything referenced
-  must exist on disk" rule cannot be enforced: measured 2026-09-22 over 41
-  distinct `Skill()` targets in `claude-code/`, the split was 17 on disk, **20
-  declared-external**, 4 dangling — a binary rule is false in 20 places on day
-  one. Nor can a name-grep find a dangling reference, since the name *is*
-  mentioned; that is precisely the defect. (Those figures are the dated
-  measurement that motivated this rule, not a current count: the live split is
-  regenerated, never written here — `tests/golden/plugin-surface.json` and
-  `docs/architecture/plugin-surface.md`, via `scripts/regen-generated.sh`.)
-  Classification belongs to the
-  plugin-surface extractor, which resolves all three classes in one pass
-  (`docs/research/diagram-generation-plugin-surface-extraction.md`), against an
-  explicit allowlist declaring the external set.
+  Only *dangling* is a defect; an external dependency is declared, not silently
+  tolerated. The plugin-surface extractor classifies all three against an explicit
+  allowlist; the live split is regenerated (`docs/architecture/plugin-surface.md`), and
+  the 2026-09-22 measurement that motivated the rule is in
+  `docs/research/diagram-generation-plugin-surface-extraction.md`.
 
-**Critical-Path canonical values** (the only accepted values; novel values are
-rejected by `Skill(plan-verification)`. Add new values via plan + ADR.):
+**Critical-Path canonical values** (novel values are rejected; add one via plan + ADR):
 
 | Value              | Applies to                                                          |
 |--------------------|---------------------------------------------------------------------|
@@ -69,9 +45,8 @@ rejected by `Skill(plan-verification)`. Add new values via plan + ADR.):
 §6.7 fence 4 derives these values from a milestone's changed files (`aa_ma.plan_parsers.CRITICAL_PATH_GLOBS`,
 equal to this table by test): each derived value needs a `CRITICAL_PATH_REVIEW` naming its files (ADR-0027).
 
-**Diagram-Waiver canonical values** (plan-level front-matter; planning-time only —
-read by `Skill(plan-verification)`, never by the milestone gate; novel values are
-rejected):
+**Diagram-Waiver canonical values** (plan front-matter, read at planning time only;
+novel values are rejected):
 
 | Value          | Meaning                                                                  |
 |----------------|--------------------------------------------------------------------------|
@@ -94,54 +69,33 @@ A waiver is invalid when any milestone declares `Audit-Profile ∈ {full, code-o
   - `refactor` — behaviour-preserving; the existing tests must stay green.
   - `tooling-config` — `pyproject.toml`, CI config or a Dockerfile only.
 <!-- END GENERATED tdd-waivers -->
-- **KISS** — simple, obvious solutions by default; complexity requires
-  justification recorded in `context-log.md`.
-- **DRY** — extract shared logic; document why duplication is intentional when
-  it is.
-- **SOLID** — single responsibility per module; depend on abstractions; favor
-  composition over inheritance.
-- **SOC** — separate business logic, data access, API integration, and
-  presentation concerns.
+- **KISS, DRY, YAGNI, SoC, SOLID**, the testing floor and the conflict policy:
+  [`coding-standards.md`](coding-standards.md).
 
 ### 3. Reasoning & Planning
 
-- **First-principles thinking** — break problems to fundamental truths; challenge
-  inherited assumptions. (Invoke `Skill(first-principles-framework)` if
-  available in your environment.)
-- **Socratic questioning** — repeated "why?"; surface hidden dependencies and
-  false constraints.
-- **Skill assessment** — before implementing, list which skills should fire and
-  why. Record decisions in `context-log.md`.
-- **Strategic subagent use** — delegate bounded specialist work (security audit,
-  test generation, code review). Record dispatches in `provenance.log`.
+- **First principles and Socratic questioning** — challenge inherited assumptions;
+  surface hidden dependencies (`Skill(first-principles-framework)` if available).
+- **Skill assessment** — list the skills that should fire, and why, in `context-log.md`.
+- **Strategic subagent use** — delegate bounded specialist work; record dispatches in
+  `provenance.log`.
 
 ### 4. Safety & Continuity
 
-- **Non-breaking constraint** — changes preserve existing behavior unless the
-  change is explicitly intended. Verified at milestone HARD gate via
-  `Skill(impact-analysis)`.
-- **Apply lessons learned** — Phase 1 of `/aa-ma-plan` runs an inline lessons
-  scan: `docs/lessons.md` (if present) + `git log --grep="revert\|fix\|hotfix"`
-  (last 6 months) + top-3 most-recent completed `context-log.md` files.
-  Hard 30s timeout via `timeout 30s ...`; on timeout, emit notice and continue
-  without scan results.
-- **Avoid repeated mistakes** — same scan; declare relevance in element #12 of
-  the plan output.
+- **Non-breaking constraint** — changes preserve existing behaviour unless the change
+  is intended; verified at the milestone gate (`Skill(impact-analysis)`, fence 4).
+- **Apply lessons learned; avoid repeated mistakes** — `/aa-ma-plan` Phase 1 scans
+  `docs/lessons.md`, fix/revert history and recent context-logs; the plan declares
+  their relevance in element #12.
 - **Diagram maintenance is part of the change** — when a step changes a file
-  named in the Architecture View, update the View in the same commit; stale
-  diagrams mislead more than absent ones (`aa-ma-lint-views`, M2 of
-  plan-architecture-views, reports `STALE_PATH`; a sigil edge the code no longer
-  holds is `PHANTOM_EDGE`, a mistyped sigil `LABEL_UNKNOWN`, and an uncheckable one
-  `UNKNOWN` — diagram-generation M8, ADR-0015).
-- **Incremental validation** — verify each step before proceeding. The
-  `aa-ma-commit-drift.sh` post-commit hook (advisory) flags drift between code
-  and AA-MA artifacts; the milestone HARD gate refuses COMPLETE while git is
-  dirty or any `Status: PENDING` remains within the milestone.
+  named in the Architecture View, update the View in the same commit
+  (`aa-ma-lint-views` reports stale paths and phantom edges; ADR-0015).
+- **Incremental validation** — verify each step before the next; the advisory
+  `aa-ma-commit-drift.sh` hook flags code/artifact drift after each commit.
 
 ### 5. Execution Checklist
 
-Per task, before flipping to COMPLETE, the agent self-reports against this
-checklist. The HARD/SOFT column indicates milestone-level enforcement:
+Before COMPLETE, the agent self-reports against this checklist (Tier = milestone enforcement):
 
 | Item                                            | Tier | Verification                                                            |
 |-------------------------------------------------|------|-------------------------------------------------------------------------|
@@ -156,42 +110,16 @@ checklist. The HARD/SOFT column indicates milestone-level enforcement:
 | Relevant skills/subagents consulted             | SOFT | `provenance.log` shows skill invocations                                |
 | Changes reviewed against past mistakes          | SOFT | Declared in plan element #12                                            |
 
-When `Critical-Path:` or `Prototype-Required:` is **absent** from a task, or §13
-carries no sigil edge, the corresponding HARD check is skipped (no failure). Only present-but-without-
-evidence triggers a refusal — preserves backward-compatibility with plans
-authored before v0.5.0.
+An absent `Critical-Path:` or `Prototype-Required:`, or a §13 with no sigil edge, skips
+that HARD check; only a field present without its evidence refuses.
 
 ### 6. Sync & Commit Discipline
 
-- **Sub-step sync rule** (L-080–L-082, see [`aa-ma.md`](aa-ma.md) lines 47-66) —
-  write `Status: COMPLETE` and a concrete `Result Log:` immediately per
-  sub-step. Never batch updates to "end of milestone".
-- **Milestone HARD gate** refuses to mark COMPLETE while git is dirty for AA-MA
-  files or while any `Status: PENDING` remains within the milestone. Pre-COMPLETE
-  refusal complements the post-commit `aa-ma-commit-drift.sh` hook (advisory,
-  always exits 0).
-- **Conventional Commits** with `[AA-MA Plan]` footer when a plan is active —
-  see [`aa-ma.md`](aa-ma.md) "Commit Signature" section.
-
-**See also:** [`aa-ma.md`](aa-ma.md); ADR-0001; doc-drift Tier 6 detector.
+- [`aa-ma.md`](aa-ma.md) owns the Sub-Step Sync Rule and the Commit Signature; the HARD
+  gate refuses COMPLETE while AA-MA files are dirty or a sub-step is PENDING.
 
 ## Opt-out
 
-These standards are opinionated. The plugin ships them as defaults to encourage
-discipline; consumers may opt out at any layer:
-
-- **Master kill switch:** `export AA_MA_HOOKS_DISABLE=1` disables all AA-MA
-  hooks and gate enforcement (the same env var that already controls
-  `aa-ma-commit-drift.sh` and the milestone HARD gate's Engineering Standards
-  Section 6.7).
-- **Per-rule removal:** delete the symlink at `~/.claude/rules/engineering-standards.md`
-  (created by `scripts/install.sh`) to stop auto-loading this rule on session
-  start. The plan-verification structural check still runs on `Created:`
-  on-or-after v0.5.0 plans; remove the engineering-standards section from
-  `claude-code/skills/plan-verification/SKILL.md` Angle 6 to fully disable.
-- **Project-local override:** projects with their own `claude-code/rules/`
-  may ship a stricter or laxer engineering-standards.md; the project-local
-  copy takes precedence over the plugin-shipped one when both are loaded.
-
-Pre-v0.5.0 plans are grandfathered automatically (no opt-out needed) — see
-the grandfathering note in [`aa-ma.md`](aa-ma.md) Planning Standard section.
+`AA_MA_HOOKS_DISABLE=1` disables all AA-MA hooks and gate enforcement. Deleting a
+`~/.claude/rules/*.md` symlink stops that rule auto-loading; a project's own rule copy
+takes precedence. Details: `docs/spec/aa-ma-specification.md` §XI element 12.

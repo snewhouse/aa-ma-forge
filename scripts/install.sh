@@ -199,6 +199,7 @@ done
 # Rules
 collect_backup_target "${CLAUDE_HOME}/rules/aa-ma.md"
 collect_backup_target "${CLAUDE_HOME}/rules/engineering-standards.md"
+collect_backup_target "${CLAUDE_HOME}/rules/coding-standards.md"
 
 # Hooks
 collect_backup_target "${CLAUDE_HOME}/hooks/lib/pre-compact-aa-ma.sh"
@@ -404,6 +405,8 @@ create_symlink "${SRC_ROOT}/claude-code/rules/aa-ma.md" \
                "${CLAUDE_HOME}/rules/aa-ma.md"
 create_symlink "${SRC_ROOT}/claude-code/rules/engineering-standards.md" \
                "${CLAUDE_HOME}/rules/engineering-standards.md"
+create_symlink "${SRC_ROOT}/claude-code/rules/coding-standards.md" \
+               "${CLAUDE_HOME}/rules/coding-standards.md"
 
 # ---------------------------------------------------------------------------
 # 5a. Symlink hooks + register in settings.json (idempotent, conditional)

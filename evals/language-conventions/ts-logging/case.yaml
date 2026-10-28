@@ -1,0 +1,17 @@
+schema_version: '1.1'
+name: language-conventions-ts-logging
+tags:
+- language-conventions
+plugins:
+- ../../../claude-code
+context:
+  scaffold_script: fixture.sh
+execution:
+  max_turns: 12
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  prompt: 'cli/main.ts is a command-line tool whose stdout is JSON data. What logging should it use, set up how, to follow good TypeScript conventions?
+    Tools here are read-only: do not try to change files.'

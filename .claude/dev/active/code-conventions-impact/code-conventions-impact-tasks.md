@@ -1240,7 +1240,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `scripts/install.sh`: coding-standards.md added to the rules backup list (:200-201) and the rules symlink list (:403-406); counts rules 2→3.
   - `surface_allowlist.py` adds `deslop-shared-libs` / `ponytail` only if coding-standards.md references them (`test_every_allowlisted_external_is_still_referenced`).
   - context-log has a `GATE APPROVAL` naming the coding-standards.md blob SHA (Ste reviews the wording).
-- Result Log: COMPLETE 2026-10-28 (HITL; Ste approved the wording). d2301da0: `claude-code/rules/coding-standards.md` 4,416 chars (blob 086b7291): non-negotiables; KISS/DRY/YAGNI/SoC/SOLID table (configured checks only: C901 ≤ 10, PLR0913 ≤ 6 on touched files, import-linter in CI); T11 §1 policy verbatim (script-checked); T8 ponytail reconciliation; testing floor; routing table (9 skills, all ON_DISK, 0 DANGLING). engineering-standards §2 → pointer (the generated TDD-waiver block stays). install.sh: backup list +1, symlink list +1; rules 2→3 (SECURITY.md, foundations, local CLAUDE.md). surface_allowlist unchanged (no Skill(deslop-shared-libs)/Skill(ponytail) refs). Rules trimmed per Ste: 21,671 → 20,066 chars (≤ M1 20,249). Orphan set: −language-conventions. Full pytest at d2301da0: 3518 passed / 2 skipped; bats (hooks recursive, commands/sdm, commands/*.bats, integration, scripts) at d2301da0: 875 ok / 0 not ok. GATE APPROVAL in context-log 2026-10-28.
+- Result Log: COMPLETE 2026-10-28 (HITL; Ste approved the wording). d2301da0: `claude-code/rules/coding-standards.md` 4,416 chars (blob 086b7291): non-negotiables; KISS/DRY/YAGNI/SoC/SOLID table (configured checks only: C901 ≤ 10, PLR0913 ≤ 6 on touched files, import-linter in CI); T11 §1 policy verbatim (script-checked); T8 ponytail reconciliation; testing floor; routing table (9 skills, all ON_DISK, 0 DANGLING). engineering-standards §2 → pointer (the generated TDD-waiver block stays). install.sh: backup list +1, symlink list +1; rules 2→3 (SECURITY.md, foundations, local CLAUDE.md). surface_allowlist unchanged (no Skill(deslop-shared-libs)/Skill(ponytail) refs). Rules trimmed per Ste: 21,671 → 20,076 bytes (≤ M1 20,249 bytes; CORRECTION 2026-10-28: first logged as 20,066 — measured before the 10-byte routing-heading rename). Orphan set: −language-conventions. Full pytest at d2301da0: 3518 passed / 2 skipped; bats (hooks recursive, commands/sdm, commands/*.bats, integration, scripts) at d2301da0: 875 ok / 0 not ok. GATE APPROVAL in context-log 2026-10-28.
 
 ### Sub-step 12.3: Dedupe operational-constraints
 - Status: COMPLETE
@@ -1251,14 +1251,14 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-28. Mode: AFK. operational-constraints §4: the Core Principles list (KISS/DRY/SOLID/SOC/12-factor), the TDD Mandate and "Comments explain WHY" were replaced by one pointer to rules/coding-standards.md (+ engineering-standards.md for process); the quick-ref "KISS, DRY, SOLID, SOC" line became "coding-standards.md (principles, TDD floor)". Impact Analysis kept (process). `grep -cE 'KISS|DRY|SOLID'` = 1 (≤ 2). Skill(test-driven-development) still linked (:224), so the golden file is unchanged; the regen diff was header-only and dropped. pytest plugin_surface + tests/skills + frontmatter: 604 passed / 1 skipped.
 
 ### Sub-step 12.4: Budget + rule-reference tests (TDD)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 12.3
 - Acceptance Criteria:
   - `tests/test_autoload_budget.py`: sum(chars) of `claude-code/rules/*.md` ≤ RATCHET (= measured after this milestone; may only fall); coding-standards.md ≤ 6,000 chars; compared with the M1 rules-only baseline (like-for-like).
   - `tests/test_rule_references.py`: every `Skill(x)` in coding-standards.md is on disk or declared-external (no dangling).
   - Both pass; the auto-loaded rules-only total ≤ the M1 `rules_chars` baseline (before/after logged).
-- Result Log:
+- Result Log: COMPLETE 2026-10-28. Mode: AFK. bb2ab41e: `tests/test_autoload_budget.py` (rules/*.md ≤ RATCHET 20,076 bytes ≤ M1 baseline 20,249; coding-standards.md ≤ 6,000; helper self-test) and `tests/test_rule_references.py` (every Skill(x) in each rule is on disk or in surface_allowlist.EXTERNAL; coding-standards routes to ≥ 5 skills; a planted dangling name is found). Unit is bytes: the M1 baseline was `cat claude-code/rules/*.md | wc -c` (1.1 Result Log), so the comparison is like-for-like. RED against the pre-12.2 tree (d2301da0~1, throwaway worktree): 3 failed (rules 21,671 bytes; coding-standards.md absent), 5 passed. GREEN at HEAD: 9 passed. Before/after: rules 21,671 → 20,076 bytes (M1 20,249). Full pytest at bb2ab41e: 3527 passed / 2 skipped.
 
 ### Sub-step 12.5: Global CLAUDE.md pointer
 - Status: PENDING

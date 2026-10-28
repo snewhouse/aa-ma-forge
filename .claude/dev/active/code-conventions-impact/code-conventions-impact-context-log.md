@@ -862,3 +862,4 @@ DECISION ruff-only () — approved by Ste
   - W2: plan step 12.6 still says the live install + L-1315 probe; tasks.md (newer) defers both to 13.0 — tasks.md governs.
   - W3: plan.md:938 tags `tests/test_rule_references.py` as Test, but it does not exist yet (Create). Matters for the §6.8 Contract coverage, not fence 4 (grandfathered).
   - W4: context-log:149 pins llm-output-safety / bash-defensive-patterns as orphans "until M12"; no sub-step un-pins them — decide in 12.2 (routing table), then update pin/golden.
+- Ste (2026-10-28, AskUserQuestion): 12.2's AC install.sh line refs updated to :200-201 / :403-406 (line numbers only; the requirement is unchanged). The 10 foreign claude-checkpoint-* tags are left untouched. 12.1 approved; stop before 12.2.

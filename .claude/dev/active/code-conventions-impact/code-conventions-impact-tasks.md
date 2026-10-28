@@ -1237,7 +1237,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Acceptance Criteria:
   - `claude-code/rules/coding-standards.md` ≤ 6,000 chars: non-negotiables; T11 principles table (KISS, DRY, YAGNI, SoC, SOLID — heuristic | configured automated check with scope | reviewer rule); T11 §1 conflict-resolution policy verbatim; T8 ponytail reconciliation; testing floor; "when X → Skill(Y)" routing table.
   - `claude-code/rules/engineering-standards.md` §2 → pointer to coding-standards.md (AA-MA process doctrine stays).
-  - `scripts/install.sh`: coding-standards.md added to the rules backup list (:145-146) and the rules symlink list (:284-287); counts rules 2→3.
+  - `scripts/install.sh`: coding-standards.md added to the rules backup list (:200-201) and the rules symlink list (:403-406); counts rules 2→3.
   - `surface_allowlist.py` adds `deslop-shared-libs` / `ponytail` only if coding-standards.md references them (`test_every_allowlisted_external_is_still_referenced`).
   - context-log has a `GATE APPROVAL` naming the coding-standards.md blob SHA (Ste reviews the wording).
 - Result Log:

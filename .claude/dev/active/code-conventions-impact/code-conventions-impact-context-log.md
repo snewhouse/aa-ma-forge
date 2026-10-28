@@ -907,3 +907,6 @@ DECISION ruff-only () — approved by Ste
 - Artifacts: claude-code/rules/coding-standards.md; claude-code/skills/language-conventions/**; evals/language-conventions/**; tests/test_autoload_budget.py; tests/test_rule_references.py; scripts/install.sh (+3); trims to aa-ma.md, engineering-standards.md, operational-constraints SKILL.md; counts (README, SECURITY, foundations).
 - Tests: 3525 passed (fence 3, e3624425); bats 875 ok (d2301da0).
 - Carry-over to 13.0: live install + L-1315 probe; apply staged ~/.claude/CLAUDE.md behind the sha256 guard.
+
+## [2026-10-28] 13.0 — global CLAUDE.md applied (Ste: "yes, apply it")
+- Guard held: live `~/.claude/CLAUDE.md` sha256 91355a68… = backup `~/.claude/backups/CLAUDE.md.20261028T135203`. Applied staged `CLAUDE.md.proposed-20261028T135203` (9f87a7f6…, 8,078 bytes). Rollback: `cp ~/.claude/backups/CLAUDE.md.20261028T135203 ~/.claude/CLAUDE.md`.

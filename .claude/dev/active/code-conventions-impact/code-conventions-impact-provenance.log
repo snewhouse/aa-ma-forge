@@ -414,3 +414,4 @@
 [2026-10-28T16:39:39+00:00] MERGED — M12 PR #71 → main b5ec8706 (sdm rebase; check OK, C1 0/0/1/3, C2 0/0/0/0, CI green; remote branch deleted)
 [2026-10-28T16:39:39+00:00] MILESTONE_ACTIVE — Milestone 13
 [2026-10-28T16:39:39+00:00] PROBE — L-1315 coding-standards.md: isolated claude -p (no file tools) quoted line 10 verbatim from ~/.local/share/codemem-plugin-wt/claude-code/rules/coding-standards.md — rule loads at session start
+[2026-10-28T16:42:17+00:00] STEP_COMPLETE — 13.0 — live install + L-1315 probe + M13 branch; ~/.claude/CLAUDE.md applied behind sha256 guard (91355a68 → 9f87a7f6)

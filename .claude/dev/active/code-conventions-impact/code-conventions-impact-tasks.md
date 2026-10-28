@@ -1315,13 +1315,13 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: PARTIAL 2026-10-28 (HITL; Ste: stop before the CLAUDE.md apply). M12 merged: PR #71 → main b5ec8706 (sdm rebase, CI green); local main = origin/main. Live `scripts/install.sh` from main rc 0 (plugin worktree refreshed → b5ec8706; 71 links; 5 copied spec docs backed up to `~/.claude/backups/aa-ma-forge-20261028-163846/`); `readlink -f ~/.claude/rules/coding-standards.md` → `~/.local/share/codemem-plugin-wt/claude-code/rules/coding-standards.md` (ADR-0025). L-1315 probe (isolated `claude -p` from scratchpad, `--strict-mcp-config`, file tools disallowed) quoted `coding-standards.md:10` verbatim and named the live-worktree file. Branch `feat/cci-m13-docs-counts` cut from b5ec8706; `uv sync` rc 0; `codemem build` rc 0 (369 files). CLAUDE.md apply (Ste: "yes, apply it"): guard held (live sha256 = backup 91355a68…), staged 9f87a7f6… copied over `~/.claude/CLAUDE.md`; now 9f87a7f6…, 8,078 bytes; diff = 4 "Coding & Architecture" bullets → 1 coding-standards.md pointer. Backup `~/.claude/backups/CLAUDE.md.20261028T135203` kept for rollback.
 
 ### Sub-step 13.1: Counts and docs
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 13.0
 - Acceptance Criteria:
   - README.md, CHANGELOG.md (Unreleased + upgrade note), SECURITY.md, docs/spec/claude-code-foundations.md, docs/spec/aa-ma-quick-reference.md, docs/spec/aa-ma-specification.md, docs/adr/INDEX.md updated; CLAUDE.md (gitignored) is a local edit.
   - `test_doc_counts` passes; `Skill(doc-drift-detection)` is clean.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. 31907f81: CHANGELOG Unreleased opens with the upgrade-note headline (re-run `scripts/install.sh`; CEO F16) and gains Added entries for M8 (ADR-0022), M9 fence 3 (ADR-0023), M11 fence 4 (ADR-0027), M10 `callees`/plugin edges (ADR-0026), M15 freshness, M12 `coding-standards.md` + `language-conventions`, and Changed entries for ADR-0025 and the M12 dedupe (claims checked against ADRs/code: `secops` new in M8, `defense-in-depth` pre-existing; command count dropped — v0.17.0 had 14 command files). README: "Upgrading" line under install (the "Current version" line is release.sh-owned, left). Spec provenance grammar + CODE_INTEL_REFRESH / DIAGRAM_VERIFIED / TESTS_VERIFIED lines; quick-reference §6.7 fence table; SECURITY.md "Security scanning" section. foundations.md and docs/adr/INDEX.md already current (40 skills, 3 rules; 27/27 ADRs indexed) — no change. CLAUDE.md (gitignored, local): measurement pointer → docs/research/diagram-generation-plugin-surface-extraction.md. `test_doc_counts` 6 passed. doc-drift (full; LAST_TAG pinned to v0.17.0, `git describe` returns a claude-checkpoint tag): T1 0 real (5 hits are fork-provenance `aa-ma-forge v0.13.0` lines and a Bandit-version research heading; README names 0.17.0); T2 Unreleased present, 0 BREAKING; T3 install section present; T5 27 ADRs / 27 index rows; T6 no doc-counts.sh (test_doc_counts covers counts); AA-MA tasks.md newer than last src/scripts commit — clean.
 
 ### Sub-step 13.2: TODOS
 - Status: PENDING

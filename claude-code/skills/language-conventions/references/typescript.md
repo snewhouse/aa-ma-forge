@@ -10,7 +10,7 @@ Source: `docs/research/code-conventions-impact-language-cards.md` (Card 1, state
 | Security lint | `eslint-plugin-security` as review prompts only — it is false-positive heavy; never a hard gate. |
 | Doc comments | `/** … */` with `@param`, `@returns`, `@throws` on exported symbols; TSDoc syntax in `.ts`, the JSDoc tags TS understands in `.js` with `// @ts-check`. Do not repeat types in tags. |
 | Suppressions | `// eslint-disable-next-line <rule> -- why: …`; prefer `// @ts-expect-error -- why: …` over `@ts-ignore`. |
-| Logging | pino. It defaults to **stdout**, so a CLI or hook must log to stderr: `pino(pino.destination(2))`. Log errors as `logger.error({ err }, "msg")`; `redact: [...]` for secrets and PII; never pass an untrusted object as the first argument — nest it under a key. |
+| Logging | pino. It defaults to **stdout**, so a CLI or hook must log to stderr: `pino(pino.destination(2))`. Log errors as `logger.error({ err }, "msg")`; `redact: [...]` for secrets and PII; never pass an untrusted object as the first argument — nest it under a key. A library takes a logger (or a child of its caller's); only the entrypoint creates and configures pino. |
 | Tests | Vitest 5; `node:test` for zero-dependency libraries and scripts. |
 | Supply chain | Commit the lockfile. CI runs `npm audit --audit-level=high` (or `pnpm audit --prod --audit-level=high`) and `npm audit signatures`. Add a release-age delay (`min-release-age` / pnpm `minimumReleaseAge`); on npm set `ignore-scripts=true`. |
 | Secrets | Env only; `node --env-file=.env` in dev with `.env` git-ignored. |

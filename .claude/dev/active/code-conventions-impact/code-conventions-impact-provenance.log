@@ -410,3 +410,4 @@
 [2026-10-28T15:14:34+00:00] §6.8 POST_IMPL_REVIEW round 2 — Audit-Profile: full — agents: code-reviewer (fix-only) — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 1 WARNING (fixed 47e7dd55) / 3 INFO
 [2026-10-28T15:17:27+00:00] TESTS_VERIFIED — Milestone 12: Doctrine packaging: `coding-standards.md`, `language-conventions`, dedupe, budget (T11 §4, T12) — passed=3525 cmd=uv run pytest
 [2026-10-28T15:36:09+00:00] MILESTONE COMPLETE — Milestone 12 — Commit: 6911f14c — Criteria: 7/7 verified
+[2026-10-28T15:38:42+00:00] NOTE — M12 §6.8 round 2 (b9343617) changed coding-standards.md blob 086b7291 → ba8125089b84d82bab7f9bcdefd552458c94916c (4,412 bytes) and RATCHET 20,076 → 20,072 bytes; §7.2.5 validator WARNINGS_BUT_USABLE back-filled (reference.md 12.x facts, superseded notes on 12.2/12.4)

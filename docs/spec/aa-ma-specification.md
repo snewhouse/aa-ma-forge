@@ -331,6 +331,12 @@ The `[task]-provenance.log` file is an **immutable, append-only** log providing 
 # triggers a plan-verification Angle-3 impact check on the decision delta before work goes on.
 [ts] PROTOTYPE — <milestone heading> — <verdict>[; branch=prototype/<name>] — verdict-changes-plan: YES|NO
 [ts] CRITICAL_PATH_REVIEW — <milestone heading> — <Critical-Path value> — <evidence>
+# Written by §6.0 at each milestone boundary; names the pre-commit HEAD (a file cannot name its own commit)
+[ts] CODE_INTEL_REFRESH — <milestone heading> — codemem=<sha|skipped(codemem not installed)> graphify=<sha|WARN reason>
+# Written by §6.7 fence 2 when §13 carries a sigil edge (ADR-0015)
+[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K
+# Written by §6.7 fence 3 on rc 0 plus a readable pass count (ADR-0023); `none` needs a GATE APPROVAL
+[ts] TESTS_VERIFIED — <milestone heading> — passed=N cmd=<TEST_CMD>
 # Written by §6.7 fence 4 (plans Created: >= IMPACT_CUTOVER; ADR-0027); grandfathered plans print "not applicable"
 [ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0 api_diff=<summary>
 # Advisory (not gate-read): evidence for a HITL live criterion

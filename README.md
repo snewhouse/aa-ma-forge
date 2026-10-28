@@ -58,6 +58,8 @@ scripts/install.sh            # deploy to ~/.claude/
 
 The installer creates symlinks from this repo into your `~/.claude/` directory. It backs up any existing files before touching them. Run `scripts/uninstall.sh` to reverse everything.
 
+**Upgrading:** re-run `scripts/install.sh` after every update. New skills, rules and hooks are only linked when it runs, and links to removed ones are swept (see the upgrade note in [CHANGELOG.md](CHANGELOG.md)).
+
 Once installed, open Claude Code in any project directory and type:
 
 ```

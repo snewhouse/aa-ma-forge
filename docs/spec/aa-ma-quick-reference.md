@@ -71,6 +71,15 @@ Multi-Session/Team  │   AA-MA     │   AA-MA
 | `SOFT` (default) | Convention-based — agent warned |
 | `HARD` | Artifact-enforced — blocked without signed approval in context-log.md |
 
+Every milestone, either gate, passes the §6.7 fences in order (`/execute-aa-ma-milestone`):
+
+| Fence | Checks | Writes to provenance.log |
+|-------|--------|--------------------------|
+| 1 | AA-MA files clean, 0 PENDING, `Critical-Path:` / `Prototype-Required:` evidence | — (reads `CRITICAL_PATH_REVIEW`, `PROTOTYPE`) |
+| 2 | §13 sigil edges hold in the code | `DIAGRAM_VERIFIED` |
+| 3 | merge-base `Test-Command:` passes | `TESTS_VERIFIED` |
+| 4 | changed files predicted by the Contract or explained | `IMPACT_VERIFIED` (or prints "not applicable (grandfathered)") |
+
 ### `/goal` Integration (Claude Code `/goal`, opt-in)
 
 | Surface | Mode | Skill |

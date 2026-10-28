@@ -910,3 +910,10 @@ DECISION ruff-only () — approved by Ste
 
 ## [2026-10-28] 13.0 — global CLAUDE.md applied (Ste: "yes, apply it")
 - Guard held: live `~/.claude/CLAUDE.md` sha256 91355a68… = backup `~/.claude/backups/CLAUDE.md.20261028T135203`. Applied staged `CLAUDE.md.proposed-20261028T135203` (9f87a7f6…, 8,078 bytes). Rollback: `cp ~/.claude/backups/CLAUDE.md.20261028T135203 ~/.claude/CLAUDE.md`.
+
+## [2026-10-28] Milestone Completion: Milestone 13: Docs, counts, TODOS (pre-release)
+- Status: COMPLETE (SOFT gate; Ste: "Approve")
+- Key outcome: CHANGELOG Unreleased opens with the re-run-install upgrade note and now covers M8–M15; spec/quick-ref/SECURITY document the gate fences and security scanning; TODOS carries the reuse-kit seed and the blast_radius / IMPACT_CUTOVER debt.
+- Artifacts: CHANGELOG.md, README.md, SECURITY.md, docs/spec/aa-ma-quick-reference.md, docs/spec/aa-ma-specification.md, TODOS.md; project CLAUDE.md (gitignored, local).
+- Tests: 3525 passed (fence 3, 593e718c).
+- Next: M14 — release v0.18.0 + IMPACT_CUTOVER (on main; release.sh, tag, push — needs Ste's explicit OK).

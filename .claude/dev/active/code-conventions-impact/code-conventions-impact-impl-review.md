@@ -771,3 +771,22 @@ Ste chose "Fix warnings, then approve". code-reviewer re-review of b9343617: W1,
 Rules after fixes: 20,072 bytes (RATCHET lowered 20,076 → 20,072); coding-standards.md 4,412 bytes, blob ba8125089b84d82bab7f9bcdefd552458c94916c (supersedes the 12.2-approved 086b7291).
 
 ## Verdict (after round 2): PASS_WITH_WARNINGS — 0 CRITICAL; open: TDD-W1 (history), 2 INFO deferred
+
+---
+
+# Milestone 13 — §6.8 post-impl review (window b5ec8706..bad56edc, 2026-10-28)
+
+Audit-Profile: docs-only → future-proofing-auditor, check #1 (hardcoded counts) only.
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| future-proofing-auditor (#1) | 0 | 1 | 7 | PASS_WITH_WARNINGS |
+
+- FP-W1 — CHANGELOG.md:61 put the 5 s cap on `codemem refresh`; the cap (`REFRESH_CAP_S = 5.0`) is the MCP query path's wait. Fixed in 593e718c.
+- FP-I (fixed in 593e718c) — TODOS fence-4 review entry restated `COCHANGE_*` values; now names the constants.
+- FP-I (accepted) — every other number verified at HEAD: 14 MCP tools (incl. the alias), 9 routed skills, rules 2→3, 20,072 / 20,249 bytes, 540 s, 3 eval cases, skills 39→40; quick-ref fence table and spec grammar lines have no count test (accepted drift).
+
+## User Override Decisions
+None — 0 CRITICAL.
+
+## Verdict: PASS_WITH_WARNINGS (warning fixed)

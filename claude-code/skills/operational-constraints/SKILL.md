@@ -129,20 +129,7 @@ OR use Skill(dispatching-parallel-agents) for structured dispatch.
 
 ### 4. Development Discipline
 
-**Full doctrine:** [`claude-code/rules/engineering-standards.md`](../../rules/engineering-standards.md) (auto-loaded). The 6-theme doctrine is the source of truth; this section names it without duplicating content.
-
-**Core Principles:**
-- **KISS** - Keep It Simple, Stupid
-- **DRY** - Don't Repeat Yourself
-- **SOLID** - Single responsibility, Open-closed, Liskov substitution, Interface segregation, Dependency inversion
-- **SOC** - Separation of Concerns
-- **12 Factor App** - For application architecture
-
-**TDD Mandate:**
-- Follow Test-Driven Development via `Skill(test-driven-development)`
-- RED → GREEN → REFACTOR cycle
-- Write test BEFORE implementation
-- No rationalizations for skipping tests
+**Full doctrine (auto-loaded, stated once):** the principles (KISS, DRY, YAGNI, SoC, SOLID), the testing floor, comments and suppressions are in [`claude-code/rules/coding-standards.md`](../../rules/coding-standards.md); the AA-MA process doctrine is in [`claude-code/rules/engineering-standards.md`](../../rules/engineering-standards.md). This section names them without restating them.
 
 **Impact Analysis:**
 - Use `Skill(impact-analysis)` for ALL code changes
@@ -151,8 +138,6 @@ OR use Skill(dispatching-parallel-agents) for structured dispatch.
 
 **Code Quality:**
 - Functional working code over perfection
-- Self-documenting code with intention-revealing names
-- Comments explain WHY, not WHAT
 - Follow existing codebase patterns
 
 ---
@@ -266,8 +251,7 @@ PARALLEL
 └── Use Task tool with multiple calls
 
 DISCIPLINE
-├── TDD: RED → GREEN → REFACTOR
-├── KISS, DRY, SOLID, SOC
+├── coding-standards.md (principles, TDD floor)
 ├── Impact analysis for all changes
 └── System mapping for unfamiliar code
 

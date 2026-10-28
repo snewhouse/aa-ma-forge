@@ -727,3 +727,41 @@ WARNING fixes chosen (Ste): security 3 (+ CPR anchor, Python ≥ 3.11.4 / TypeEr
 
 ## Verdict: PASS_WITH_WARNINGS (round 2 fixes applied; stop rule: 2 rounds)
 - Correction (§7.2.5 validator W2): "bats 655/655" above was `bats tests/hooks/` without `--recursive`. Full bats at 3517241b: 875 ok / 0 not ok (661 + 214). Fence 2 re-run after a fresh CODE_INTEL_REFRESH (3517241b): PASS edges=25.
+
+---
+
+# Milestone 12 — §6.8 post-impl review (window 01acbcea..db5ddff0, 2026-10-28)
+
+Audit-Profile: full. Budget: normal. Agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor (parallel). Unpredicted files handed to code-reviewer: 26.
+
+| Agent                     | CRITICAL | WARNING | INFO | Verdict |
+|---------------------------|:--------:|:-------:|:----:|---------|
+| code-reviewer             | 0 | 6 | 11 | PASS_WITH_WARNINGS |
+| security-auditor          | 0 | 0 | 2  | PASS |
+| tdd-sequence-auditor      | 0 | 1 | 2  | PASS (no src/ in window) |
+| context7-evidence-auditor | 0 | 0 | 4  | PASS |
+| future-proofing-auditor   | 0 | 1 | 9  | PASS_WITH_WARNINGS |
+| TOTAL                     | 0 | 8 | 28 | PASS_WITH_WARNINGS |
+
+## Warnings
+- CR-W1 mechanism duplication — tests/test_rule_references.py:18-34 re-implements Skill() parsing; its regex `Skill\(([A-Za-z0-9_:-]+)\)` misses `Skill("x")` / `Skill( x )`, which the extractor (`packages/codemem-mcp/src/codemem/draw/plugin_surface.py:54`) catches; the "extractor's form" comment is false (verified). Fix: build on `plugin_surface.extract()` edges from `rule:` nodes.
+- CR-W2 magic number — tests/test_rule_references.py:38 `>= 5` has no rationale (live: 9).
+- CR-W3 doctrine conflict — language-conventions/references/python.md:5 says `TODO(owner/issue)`; coding-standards.md:10 and check_conventions TODO001 accept only `TODO(#N)` / `TODO(ADR-NNNN)` (verified).
+- CR-W4 DRY — language-conventions SKILL.md:21-25 restates coding-standards.md non-negotiables.
+- CR-W5 dropped routes — operational-constraints SKILL.md:132 pointer: 12-Factor and `Skill(test-driven-development)` route gone, not in coding-standards.md.
+- CR-W6 unexplained imperatives — language-conventions SKILL.md:26 (line length), coding-standards.md:8 ("never a blanket form").
+- TDD-W1 — 12.4 fixed-limit tests (cap, routing floor, no-dangling) committed after coding-standards.md (d2301da0 → bb2ab41e); RED shown retroactively. Plan-ordering, advisory.
+- FP-W1 DRY — coding-standards.md:17 restates Ruff C901 ≤ 10 / PLR0913 ≤ 6 from pyproject.toml:94,97.
+
+## Notable INFO
+- SEC-I1 engineering-standards.md:15-20 dropped "a throwaway branch is not an access control" (the auth/stubs line kept).
+- SEC-I2 Opt-out "project-local copy takes precedence" could let a repo relax non-negotiables (pre-existing).
+- FP: RATCHET = live total (zero headroom, intended); foundations.md:151 "6,000 chars" vs test's bytes; TODOS.md line refs will drift.
+- CR: gitignored project CLAUDE.md says the 2026-09-22 measurement lives in engineering-standards §1 — it moved to the research doc.
+- CR: all 26 unpredicted files are missed impact (counts, eval-first paths, aa-ma.md trim approved by Ste, 12.0 carry-overs), none scope creep.
+- C7: no dependency changes; pino/Air/lintr/SQLFluff claims cited to primary sources; ESLint `-- why` description syntax uncited.
+
+## User Override Decisions
+None — 0 CRITICAL.
+
+## Verdict: PASS_WITH_WARNINGS

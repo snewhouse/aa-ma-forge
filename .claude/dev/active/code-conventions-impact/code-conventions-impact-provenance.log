@@ -397,3 +397,4 @@
 [2026-10-28T13:29:27+00:00] STEP_COMPLETE — 12.3 operational-constraints dedupe — KISS|DRY|SOLID lines 4→1; golden unchanged
 [2026-10-28T13:34:15+00:00] CORRECTION — 12.2 rules total was logged as 20,066; the committed total at d2301da0 is 20,076 bytes (the routing-heading rename added 10 after the measurement). Unit is bytes, like the M1 baseline (cat | wc -c). Still ≤ 20,249.
 [2026-10-28T13:34:15+00:00] STEP_COMPLETE — 12.4 budget + rule-reference tests — bb2ab41e; RED at d2301da0~1: 3 failed / 5 passed; GREEN 9 passed; RULES_BYTES before=21671 after=20076 m1=20249; pytest 3527 passed / 2 skipped
+[2026-10-28T13:55:52+00:00] STEP_COMPLETE — 12.5 global CLAUDE.md pointer — backup ~/.claude/backups/CLAUDE.md.20261028T135203; staged proposed (sha256 9f87a7f6); Ste OK, apply at merge (13.0 AC, sha256-guarded); live file unchanged

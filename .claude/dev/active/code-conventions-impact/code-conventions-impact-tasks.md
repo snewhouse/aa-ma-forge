@@ -1261,13 +1261,13 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-28. Mode: AFK. bb2ab41e: `tests/test_autoload_budget.py` (rules/*.md ≤ RATCHET 20,076 bytes ≤ M1 baseline 20,249; coding-standards.md ≤ 6,000; helper self-test) and `tests/test_rule_references.py` (every Skill(x) in each rule is on disk or in surface_allowlist.EXTERNAL; coding-standards routes to ≥ 5 skills; a planted dangling name is found). Unit is bytes: the M1 baseline was `cat claude-code/rules/*.md | wc -c` (1.1 Result Log), so the comparison is like-for-like. RED against the pre-12.2 tree (d2301da0~1, throwaway worktree): 3 failed (rules 21,671 bytes; coding-standards.md absent), 5 passed. GREEN at HEAD: 9 passed. Before/after: rules 21,671 → 20,076 bytes (M1 20,249). Full pytest at bb2ab41e: 3527 passed / 2 skipped.
 
 ### Sub-step 12.5: Global CLAUDE.md pointer
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 12.4
 - Acceptance Criteria:
   - `~/.claude/CLAUDE.md` "Coding & Architecture" (:58-69) → pointer; backup taken first; diff shown to Ste; applied only on OK.
   - Backup path + diff in context-log; Ste's OK recorded.
-- Result Log:
+- Result Log: COMPLETE 2026-10-28 (HITL). Backup first: `~/.claude/backups/CLAUDE.md.20261028T135203` (8,475 bytes, cmp identical, sha256 91355a68…). Diff shown to Ste: "Coding & Architecture" 4 bullets → 1 pointer to rules/coding-standards.md (8,475 → 8,078 bytes); staged as `~/.claude/backups/CLAUDE.md.proposed-20261028T135203` (sha256 9f87a7f6…). Ste's OK recorded (context-log 2026-10-28) with his choice to apply at merge, not now: the rule is not live until M12 merges + install.sh, so applying now would drop the conventions from every session in between. The live file is unchanged (sha256 = backup); the apply is a 13.0 AC behind a sha256 guard. Disclosed: "Keep documentation light and code-derived" has no other home.
 
 ### Sub-step 12.6: Install proof (fake CLAUDE_HOME)
 - Status: PENDING
@@ -1310,6 +1310,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - M12 merged; `git pull` on main; live `scripts/install.sh` from main (12.6's live part); `readlink -f ~/.claude/rules/coding-standards.md` resolves into the live worktree (ADR-0025).
   - L-1315 isolated probe asks for one coding-standards line verbatim and gets it (the rule loads at session start).
   - Branch for M13 cut in the main checkout from fresh main (ADR-0025); `uv sync && uv run codemem build` exit 0.
+  - 12.5 carry-over (Ste, 2026-10-28): after the live install, apply `~/.claude/backups/CLAUDE.md.proposed-20261028T135203` (sha256 9f87a7f6…) over `~/.claude/CLAUDE.md` only if the live file's sha256 still equals the backup's (91355a68…); otherwise re-diff against the live file and ask Ste again.
 - Result Log:
 
 ### Sub-step 13.1: Counts and docs

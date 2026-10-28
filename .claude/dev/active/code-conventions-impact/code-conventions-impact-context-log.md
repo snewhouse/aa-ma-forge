@@ -877,3 +877,12 @@ DECISION ruff-only () — approved by Ste
 - Result: 21,671 → 20,066 (183 under). Plugin-surface edges dropped from the rules: engineering-standards → operational-constraints, execute-aa-ma-step; aa-ma → aa-ma-plan (all still reached elsewhere; no new orphan).
 - Routing heading renamed from "When X, load Skill(Y)" to "Routing: when X, load the skill": the extractor read `Skill(Y)` as a DANGLING ref.
 - CORRECTION (2026-10-28, 12.4): the 12.2 total is 20,076 bytes, not 20,066 (the heading rename came after the measurement). All rules sizes are bytes, like M1's `cat | wc -c`; Python `len(str)` gives fewer (chars), so test_autoload_budget counts bytes.
+
+## [2026-10-28] 12.5 Global CLAUDE.md pointer — Ste's OK (apply at merge)
+- Backup: `~/.claude/backups/CLAUDE.md.20261028T135203` (8,475 bytes; `cmp` identical; sha256 91355a68ccc81e7f7b5afe202e816f09006345fc156360db8f11efe8a6469de0).
+- Staged: `~/.claude/backups/CLAUDE.md.proposed-20261028T135203` (8,078 bytes; sha256 9f87a7f6d0cd46c1dad524b247b3146c3b3efd3098b2176a5e1759b16ecb008c).
+- Diff ("Coding & Architecture", :60-63): 4 bullets → 1.
+  - removed: "Code is the ultimate source of truth…" (→ engineering-standards §1); "Development principles (TDD, KISS, DRY, SOLID, SoC) live in … §2; also follow 12-Factor App"; "Self-documenting code … `# why:` on every noqa/|| true/2>/dev/null"; "No silent failures … getLogger(__name__) … Skill(logging-and-comments)" (→ coding-standards.md; getLogger detail → logging-and-comments).
+  - added: "- **Coding standards are auto-loaded from `~/.claude/rules/coding-standards.md`** (principles, conflict policy, testing floor, comments, suppressions, no silent failures, skill routing); AA-MA process doctrine from `~/.claude/rules/engineering-standards.md`. Also follow **12-Factor App**."
+  - kept: Context7, Galactic, sg/ast-grep, implementation pre-flight. Dropped with no other home: "Keep documentation light and code-derived" (disclosed to Ste).
+- Decision (Ste, AskUserQuestion): "Approve; apply at merge" — `~/.claude/rules/coding-standards.md` is not live until M12 merges and install.sh runs, so applying now would leave sessions without these conventions. Applied in 13.0 behind a sha256 guard (13.0 AC added, Ste-approved).

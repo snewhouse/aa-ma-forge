@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-28 (M12 complete: 12.0–12.7 as-built, §6.8 rounds 1–2)_
+_Last Updated: 2026-10-28 (M13 complete: 13.0–13.2 as-built)_
 
 Test-Command: uv run pytest
 
@@ -507,4 +507,11 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - `tests/test_rule_references.py` classifies via `codemem.draw.plugin_surface.extract()` (no local regex); `CODING_STANDARDS_ROUTES` = the 9 routed skills. [valid: 2026-10-28]
 - `scripts/install.sh`: coding-standards.md backup :202, symlink :408-409 (locate by content). [valid: 2026-10-28]
 - Skills 40 (+language-conventions); eval cases `evals/language-conventions/{ts-logging,r-style,sql-review}` with `evals/_lib/polyglot.sh` → `tests/fixtures/evals/polyglot/`. [valid: 2026-10-28]
-- 13.0 carry-overs: live install + L-1315 probe; apply `~/.claude/backups/CLAUDE.md.proposed-20261028T135203` (sha256 9f87a7f6…) only if live `~/.claude/CLAUDE.md` sha256 = 91355a68…. [valid: 2026-10-28]
+- (Superseded — done in 13.0, see 13.x Facts.) 13.0 carry-overs: live install + L-1315 probe; apply `~/.claude/backups/CLAUDE.md.proposed-20261028T135203` (sha256 9f87a7f6…) only if live `~/.claude/CLAUDE.md` sha256 = 91355a68…. [valid: 2026-10-28]
+
+## 13.x Facts (2026-10-28)
+- Heading (verbatim): `Milestone 13: Docs, counts, TODOS (pre-release)`. Branch `feat/cci-m13-docs-counts` (main checkout, cut from main b5ec8706 = M12 PR #71). [valid: 2026-10-28]
+- Live: `~/.local/share/codemem-plugin-wt` at main b5ec8706; install.sh 71 links; spec-doc backups in `~/.claude/backups/aa-ma-forge-20261028-163846/`; `readlink -f ~/.claude/rules/coding-standards.md` → the live worktree (ADR-0025); L-1315 probe quoted coding-standards.md:10. [valid: 2026-10-28]
+- `~/.claude/CLAUDE.md` now sha256 9f87a7f6…, 8,078 bytes (was 91355a68…). Rollback: `cp ~/.claude/backups/CLAUDE.md.20261028T135203 ~/.claude/CLAUDE.md`. [valid: 2026-10-28]
+- Commits: 31907f81 (docs), 21b7bfa2 (TODOS), 593e718c (§6.8 fix). Tests at M13 end: pytest 3525 passed. [valid: 2026-10-28]
+- `git describe --tags` returns a `claude-checkpoint-*` tag (not ours; Ste: leave them) — use `v0.17.0` explicitly as the last release for doc-drift / CHANGELOG ranges (M14). [valid: 2026-10-28]

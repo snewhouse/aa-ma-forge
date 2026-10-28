@@ -91,6 +91,12 @@ They run with whatever permissions your Claude Code session already has. Install
 
 Every file is plain text. You can read the lot in under an hour. I'd encourage you to do that before installing.
 
+## Security scanning
+
+- **Commit time:** `security-static-check.sh` (PreToolUse, blocking) runs the forge-pinned Ruff S on each whole staged `.py` file, plus two regex classes on added lines. It is a best-effort guardrail; CI is the enforcement (ADR-0022).
+- **CI (`.github/workflows/security.yml`):** `ruff-security` (Ruff S over `src/`, `packages/`, `scripts/`), `gitleaks` (full history; `.gitleaksignore` holds fingerprints only), `deps` (pip-audit over the hashed `uv export`; `.pip-audit-ignore` entries expire), ShellCheck, and a weekly scheduled run. Dependabot updates actions and uv weekly.
+- A scanner that did not run reports UNKNOWN, never zero findings.
+
 ## Reporting vulnerabilities
 
 If you find a security issue:

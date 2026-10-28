@@ -90,7 +90,7 @@ Each is a skill under `claude-code/skills/<name>/` (ADR-0020), counted in Skills
 | `/assess-codebase` | Whole-repo quality and risk assessment (tiered Quick/Standard/Deep): tools measure, sonnet judges cite `file:line`, a refuter attacks every Critical/High claim; per-dimension ratings with inputs and confidence (no overall grade) → SHA-stamped, secret-gated `summary.json` + `findings.jsonl` + SARIF + `report.md` under `.claude/reports/assess-codebase/`. Thin wrapper around `Skill(assess-codebase)` |
 | `/sole-dev-merge` | GitHub PR merge via `sdm.sh check` / `ship` / `finish`: in-scope fixes and pre-commit, code + security review under the stop rule, PR create/update, CI watch, check-run-gated merge, worktree-safe cleanup. See ADR-0024 |
 
-### Skills (39)
+### Skills (40)
 
 | Skill | Purpose |
 |-------|---------|
@@ -120,6 +120,7 @@ Each is a skill under `claude-code/skills/<name>/` (ADR-0020), counted in Skills
 | `python-quality-gates` | Zero tolerance for failing tests and the pre-commit documentation-maintenance checklist (adopted — ADR-0019) |
 | `llm-output-safety` | Safety requirements for pipelines that put LLM text into client-facing outputs: non-Latin sanitisation, programmatic citation integrity (adopted — ADR-0019) |
 | `secops` | Security router: which scanner (Ruff S, gitleaks, pip-audit, osv-scanner, ShellCheck) runs at which layer (edit, commit, CI); M8 / ADR-0022 |
+| `language-conventions` | Per-language convention cards: full TS/JS, R and SQL cards (formatter, linter, doc comments, logging, tests, audit, secrets, pitfalls); Python, Bash and Markdown cards point to their topic skills; M12 |
 | `secrets-management` | Secrets handling in CI/CD with Vault, AWS Secrets Manager and native platform stores (derived from wshobson/agents @ 46891e7, MIT — ADR-0019) |
 | `bash-defensive-patterns` | Defensive Bash: strict mode, error traps, safe temp files, input validation, idempotency (derived from wshobson/agents @ 5d65aa1, MIT — ADR-0019) |
 

@@ -258,6 +258,7 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `python-quality-gates` | Zero-tolerance test gate and pre-commit documentation checklist |
 | `llm-output-safety` | Safety rules for LLM text in client-facing outputs (sanitisation, citation integrity) |
 | `secops` | Security router: which scanner runs at which layer (Ruff S, gitleaks, pip-audit, osv-scanner, ShellCheck) |
+| `language-conventions` | Per-language convention cards: TS/JS, R and SQL in full; Python, Bash and Markdown point to their topic skills |
 | `secrets-management` | Secrets handling in CI/CD (derived from wshobson/agents @ 46891e7, MIT) |
 | `bash-defensive-patterns` | Defensive Bash patterns (derived from wshobson/agents @ 5d65aa1, MIT) |
 

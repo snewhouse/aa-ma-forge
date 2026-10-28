@@ -1290,7 +1290,8 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 13: Docs, counts, TODOS (pre-release)
-- Status: ACTIVE
+- Status: COMPLETE
+- Result Log: 3/3 AC verified (test_doc_counts 6 passed + doc-drift full clean; CHANGELOG upgrade headline + README line; TODOS has blast_radius/AA_MA_PLAN_MARKER_DEBUG/IMPACT_CUTOVER/reuse-kit). §6.3 LOW (docs only, unpredicted=0); fences 1–2 PASS, fence 3 TESTS_VERIFIED passed=3525 at 593e718c, fence 4 grandfathered; §6.8 docs-only PASS_WITH_WARNINGS (FP-W1 fixed 593e718c). SOFT gate: Ste approved. Head at finalisation da1cd734.
 - Dependencies: Milestone 12
 - Complexity: 30%
 - Effort: 0.5 day

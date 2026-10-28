@@ -2,6 +2,9 @@
 
 ## AA-MA Tooling
 
+### pyproject.toml:74 TODO-format comment (M12 §6.8 INFO)
+**What:** the comment says `TODO(owner/issue): text`; check_conventions TODO001 and coding-standards.md accept only `TODO(#N)` / `TODO(ADR-NNNN)`. One-line comment fix.
+
 ### M11 sdm C1/C2 review: deferred (2 MEDIUM + 8 LOW)
 **What:**
 - C2 [MEDIUM] A04 design: a symlinked `<task>-plan.md` is followed, so the merge-base date is read from the link target — `src/aa_ma/impact.py:297` (refuse symlinked plan/tasks/reference).

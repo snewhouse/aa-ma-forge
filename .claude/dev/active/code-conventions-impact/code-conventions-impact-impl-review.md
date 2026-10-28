@@ -765,3 +765,9 @@ Audit-Profile: full. Budget: normal. Agents: code-reviewer, security-auditor, td
 None — 0 CRITICAL.
 
 ## Verdict: PASS_WITH_WARNINGS
+
+## M12 §6.8 round 2 (fix only, b9343617 + 47e7dd55, 2026-10-28)
+Ste chose "Fix warnings, then approve". code-reviewer re-review of b9343617: W1, W2, W3, W4, W5, W6, W8 FIXED, none regressed; TDD-W1 is history (not fixable). One new WARNING (TS card lost "only the entrypoint configures logging" when SKILL.md's shared list was cut) → fixed in 47e7dd55 (typescript.md Logging row). Remaining INFO: lockfile bullet placement in SKILL.md; `pyproject.toml:74` comment still says `TODO(owner/issue)` (pre-existing, out of M12 scope → TODOS).
+Rules after fixes: 20,072 bytes (RATCHET lowered 20,076 → 20,072); coding-standards.md 4,412 bytes, blob ba8125089b84d82bab7f9bcdefd552458c94916c (supersedes the 12.2-approved 086b7291).
+
+## Verdict (after round 2): PASS_WITH_WARNINGS — 0 CRITICAL; open: TDD-W1 (history), 2 INFO deferred

@@ -886,3 +886,9 @@ DECISION ruff-only () — approved by Ste
   - added: "- **Coding standards are auto-loaded from `~/.claude/rules/coding-standards.md`** (principles, conflict policy, testing floor, comments, suppressions, no silent failures, skill routing); AA-MA process doctrine from `~/.claude/rules/engineering-standards.md`. Also follow **12-Factor App**."
   - kept: Context7, Galactic, sg/ast-grep, implementation pre-flight. Dropped with no other home: "Keep documentation light and code-derived" (disclosed to Ste).
 - Decision (Ste, AskUserQuestion): "Approve; apply at merge" — `~/.claude/rules/coding-standards.md` is not live until M12 merges and install.sh runs, so applying now would leave sessions without these conventions. Applied in 13.0 behind a sha256 guard (13.0 AC added, Ste-approved).
+
+## [2026-10-28] M12 §6.8 — Ste: "Fix warnings, then approve"
+- Round 1: 0 CRITICAL / 8 WARNING / 28 INFO (PASS_WITH_WARNINGS). Fixed W1–W6, W8 in b9343617; round-2 WARNING (TS logging rule) fixed in 47e7dd55. TDD-W1 (12.4 fixed-limit tests after the rule) is history; lesson for future plans: write fixed-limit tests first, set only the ratchet constant after.
+- coding-standards.md changed after its 12.2 approval (blob 086b7291 → ba8125089b84d82bab7f9bcdefd552458c94916c): Ruff limits now point at pyproject.toml; blanket-suppression reason; two wording trims for the byte budget. The M12 HARD-gate approval must name the new blob.
+- RATCHET 20,076 → 20,072 bytes (rules shrank; it may only fall).
+- Deferred to TODOS: pyproject.toml:74 comment `TODO(owner/issue)` vs TODO001.

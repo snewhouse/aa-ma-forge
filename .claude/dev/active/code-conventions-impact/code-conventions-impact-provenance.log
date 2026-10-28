@@ -416,3 +416,4 @@
 [2026-10-28T16:39:39+00:00] PROBE — L-1315 coding-standards.md: isolated claude -p (no file tools) quoted line 10 verbatim from ~/.local/share/codemem-plugin-wt/claude-code/rules/coding-standards.md — rule loads at session start
 [2026-10-28T16:42:17+00:00] STEP_COMPLETE — 13.0 — live install + L-1315 probe + M13 branch; ~/.claude/CLAUDE.md applied behind sha256 guard (91355a68 → 9f87a7f6)
 [2026-10-28T16:48:49+00:00] STEP_COMPLETE — 13.1 — 31907f81 docs (CHANGELOG upgrade headline + M8–M15 entries, README, spec, quick-ref, SECURITY); test_doc_counts 6 passed; doc-drift full clean (5 T1 false positives)
+[2026-10-28T16:56:00+00:00] STEP_COMPLETE — 13.2 — 21b7bfa2 TODOS: reuse-kit seed, blast_radius alias removal, IMPACT_CUTOVER fence-4 review

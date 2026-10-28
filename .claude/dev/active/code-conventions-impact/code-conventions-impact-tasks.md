@@ -1324,13 +1324,13 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: Mode: AFK — auto-dispatched. 31907f81: CHANGELOG Unreleased opens with the upgrade-note headline (re-run `scripts/install.sh`; CEO F16) and gains Added entries for M8 (ADR-0022), M9 fence 3 (ADR-0023), M11 fence 4 (ADR-0027), M10 `callees`/plugin edges (ADR-0026), M15 freshness, M12 `coding-standards.md` + `language-conventions`, and Changed entries for ADR-0025 and the M12 dedupe (claims checked against ADRs/code: `secops` new in M8, `defense-in-depth` pre-existing; command count dropped — v0.17.0 had 14 command files). README: "Upgrading" line under install (the "Current version" line is release.sh-owned, left). Spec provenance grammar + CODE_INTEL_REFRESH / DIAGRAM_VERIFIED / TESTS_VERIFIED lines; quick-reference §6.7 fence table; SECURITY.md "Security scanning" section. foundations.md and docs/adr/INDEX.md already current (40 skills, 3 rules; 27/27 ADRs indexed) — no change. CLAUDE.md (gitignored, local): measurement pointer → docs/research/diagram-generation-plugin-surface-extraction.md. `test_doc_counts` 6 passed. doc-drift (full; LAST_TAG pinned to v0.17.0, `git describe` returns a claude-checkpoint tag): T1 0 real (5 hits are fork-provenance `aa-ma-forge v0.13.0` lines and a Bandit-version research heading; README names 0.17.0); T2 Unreleased present, 0 BREAKING; T3 install section present; T5 27 ADRs / 27 index rows; T6 no doc-counts.sh (test_doc_counts covers counts); AA-MA tasks.md newer than last src/scripts commit — clean.
 
 ### Sub-step 13.2: TODOS
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 13.1
 - Acceptance Criteria:
   - TODOS.md records the companion `reuse-kit` plan seed (T13/T14 answers + the map path, including T14's "reuse-first while coding" rule, which needs the router skill) and the debt items: remove the `blast_radius` alias, remove the `AA_MA_PLAN_MARKER_DEBUG` alias, review `IMPACT_CUTOVER`.
   - TODOS.md contains `blast_radius`, `AA_MA_PLAN_MARKER_DEBUG`, `IMPACT_CUTOVER` and `reuse-kit`.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. 21b7bfa2 TODOS.md (AA-MA Tooling, beside the existing `AA_MA_PLAN_MARKER_DEBUG` alias entry, which already covered that item): new "Remove the codemem `blast_radius` alias" (after v0.18.x per server.py; keep project-index's `blast_radius`), "Review fence 4 once `IMPACT_CUTOVER` is live" (after M14.1's cutover: noise vs the 11.1 measure, co-change thresholds, ADR-0027 amendment; C2 impact-verified.sh:84 goes live), and "Companion plan seed: `reuse-kit`" (map T13/T14 answers + map path + reuse-prior-art doc; T14 reuse-first rule needs the router skill; two new repos are HITL; scope ref = plan D1 :9/:111 and P7, not the map's Out-of-scope list — corrected before commit). Committed TODOS.md term counts: blast_radius=3, AA_MA_PLAN_MARKER_DEBUG=1, IMPACT_CUTOVER=3, reuse-kit=1 (all ≥1).
 
 ---
 

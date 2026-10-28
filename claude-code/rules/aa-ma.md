@@ -12,10 +12,10 @@ Full specification: [docs/aa-ma-specification.md](../docs/aa-ma-specification.md
 | `[task]-context-log.md` | Decision history, trade-offs, compaction summaries, **gate approvals** |
 | `[task]-tasks.md` | HTP execution roadmap, dependencies, state tracking |
 | `[task]-provenance.log` | Execution telemetry, commit history, **session checkpoints** |
-| `[task]-verification.md` | **Optional** — adversarial verification audit trail (via `/verify-plan` or Phase 4.5) |
-| `[task]-tests.yaml` | **Optional** — machine-executable test definitions linked to milestone acceptance criteria |
-| `[task]-impl-review.md` | **Optional** — post-impl adversarial review report (Phase 6.8 of `/execute-aa-ma-milestone`, v0.8.0+) |
-| `[task]-map.md` | **Optional** — pre-plan charting map (`/aa-ma-chart`), imported by `/aa-ma-plan --from-map <effort>` (ADR-0013) |
+| `[task]-verification.md` | **Optional** — plan verification report (`/verify-plan`, Phase 4.5) |
+| `[task]-tests.yaml` | **Optional** — machine-executable tests for acceptance criteria |
+| `[task]-impl-review.md` | **Optional** — post-impl review (milestone Phase 6.8) |
+| `[task]-map.md` | **Optional** — charting map (`/aa-ma-chart`, ADR-0013) |
 
 **Task directory:** `.claude/dev/active/[task-name]/`
 
@@ -28,15 +28,7 @@ After completing every task and milestone, **immediately**:
 
 **Never proceed to next task until current task is fully synced and pushed.**
 
-> **Note:** `plan.md` is NOT part of the post-task sync. It is a historical record set once during planning. Only 4 files are synced: `tasks.md`, `reference.md`, `context-log.md`, and `provenance.log`. Update `plan.md` only for scope changes.
-
-### Verification Report (Optional)
-
-When plan verification is run (via Phase 4.5 or `/verify-plan`), persist results as `[task]-verification.md`. This file:
-- Documents all findings from the 6 adversarial verification angles
-- Tracks CRITICAL/WARNING/INFO severity classifications
-- Records revision history if plan was revised based on findings
-- Is **optional** — only created when user chooses automated or interactive verification (not skip)
+> **Note:** `plan.md` is a historical record, not part of the sync; update it only for scope changes.
 
 ### Sub-Step Sync Rule (L-080, L-081, L-082)
 
@@ -47,7 +39,7 @@ When the lead orchestrator executes steps directly (not via agent dispatch):
 2. **Before marking any milestone COMPLETE**: verify zero `Status: PENDING` sub-steps remain within that milestone. Ask the gate, not grep (prose quoting the field over-counts, bold/indented forms under-count): `uv run aa-ma-gate <task>-tasks.md --format kv | grep ^pending_steps=`.
 3. **NEVER batch Result Log updates** to "end of milestone" — this is the #1 cause of sub-step drift.
 
-**Why this matters:** Agents auto-populate Result Logs via their prompt contract. The lead orchestrator has no forcing function — results exist in conversation context but never reach tasks.md unless explicitly written. Direct-execution steps are the high-risk ones for drift.
+**Why:** agents write Result Logs by prompt contract; the lead orchestrator has no forcing function, so its direct-execution steps drift.
 
 ## Commit Signature
 
@@ -82,9 +74,6 @@ Every task entry in `tasks.md` MUST include a `Mode:` field:
 - Mode: AFK
 - Acceptance Criteria: [...]
 ```
-
-The `/execute-aa-ma-milestone` command uses this field to auto-dispatch AFK tasks while pausing for HITL tasks.
-
 ## Milestone Gate Classification (HARD / SOFT)
 
 Every milestone in `tasks.md` SHOULD include a `Gate:` field:
@@ -109,9 +98,6 @@ When context compaction occurs or a session ends mid-task, write a CHECKPOINT to
 ```
 [TIMESTAMP] CHECKPOINT — ActiveStep: [step-id] — NextAction: "[description]" — ContextLoaded: [files] — TokenUsage: [%]
 ```
-
-This enables reliable session resume without relying solely on context-log.md summaries.
-
 ## Planning Standard
 
 Every plan **MUST** include these 13 outputs:
@@ -120,7 +106,7 @@ Every plan **MUST** include these 13 outputs:
 
 Steps with **Complexity >= 80%** require human review or Chain-of-Thought deep reasoning.
 
-**Grandfathering (v0.5.0 introduced element #12):** Plans authored before v0.5.0 (i.e., without an `Engineering Standards Declaration` and without a `Created: YYYY-MM-DD` front-matter on-or-after the v0.5.0 release date) are valid as-is — `Skill(plan-verification)` Angle 6 only flags missing element #12 for plans `Created:` on-or-after v0.5.0. Pre-v0.5.0 plans remain conformant under the prior standard (without element #12) they were authored against.
+**Grandfathering (v0.5.0 introduced element #12):** Angle 6 flags a missing #12 only for plans `Created:` on-or-after v0.5.0.
 
 **Grandfathering (v0.12.0 introduced element #13):** `Skill(plan-verification)` Angle 6 checks #6 (Architecture View or valid `Diagram-Waiver`), #7 (Contract block per code milestone) and #8 (Contract paths drawn in §13, WARNING) fire only for plans `Created:` on-or-after the literal date **2026-09-11**; earlier plans are conformant without element #13.
 

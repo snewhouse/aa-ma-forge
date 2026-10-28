@@ -277,12 +277,6 @@
    "src": "rule:aa-ma"
   },
   {
-   "dst": "skill:aa-ma-plan",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "rule:aa-ma"
-  },
-  {
    "dst": "skill:archive-aa-ma",
    "kind": "skill",
    "ref_class": "ON_DISK",
@@ -307,6 +301,60 @@
    "src": "rule:aa-ma"
   },
   {
+   "dst": "skill:bash-defensive-patterns",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:coding-standards"
+  },
+  {
+   "dst": "skill:impact-analysis",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:coding-standards"
+  },
+  {
+   "dst": "skill:language-conventions",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:coding-standards"
+  },
+  {
+   "dst": "skill:llm-output-safety",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:coding-standards"
+  },
+  {
+   "dst": "skill:logging-and-comments",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:coding-standards"
+  },
+  {
+   "dst": "skill:python-quality-gates",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:coding-standards"
+  },
+  {
+   "dst": "skill:secops",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:coding-standards"
+  },
+  {
+   "dst": "skill:secrets-management",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:coding-standards"
+  },
+  {
+   "dst": "skill:writing-for-agents",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "rule:coding-standards"
+  },
+  {
    "dst": "hook:aa-ma-commit-drift.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",
@@ -325,12 +373,6 @@
    "src": "rule:engineering-standards"
   },
   {
-   "dst": "skill:execute-aa-ma-step",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "rule:engineering-standards"
-  },
-  {
    "dst": "skill:first-principles-framework",
    "kind": "skill",
    "ref_class": "DECLARED_EXTERNAL",
@@ -338,12 +380,6 @@
   },
   {
    "dst": "skill:impact-analysis",
-   "kind": "skill",
-   "ref_class": "ON_DISK",
-   "src": "rule:engineering-standards"
-  },
-  {
-   "dst": "skill:operational-constraints",
    "kind": "skill",
    "ref_class": "ON_DISK",
    "src": "rule:engineering-standards"
@@ -1446,7 +1482,6 @@
   "skill:aa-ma-execution",
   "skill:aa-ma-search",
   "skill:complexity-router",
-  "skill:debugging-strategies",
-  "skill:language-conventions"
+  "skill:debugging-strategies"
  ]
 }

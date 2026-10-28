@@ -142,12 +142,13 @@ Each is a skill under `claude-code/skills/<name>/` (ADR-0020), counted in Skills
 | `codebase-onboarding-runbook` | Worker agent for `understand-codebase` (Deep tier; reusable standalone): how the repo is built/run/debugged/tested locally, CI gates, env & config (names only — no secrets), external integrations, observability, data model & migrations → writes `.claude/onboarding/04-build-run-debug.md`, `05-tests-ci.md`, `08-integrations-observability-security.md` |
 | `codebase-onboarding-synthesizer` | Synthesis agent for `understand-codebase` (Deep tier; reusable standalone): reads every per-dimension deep-dive + absorbed prior artifacts → writes the root `ONBOARDING.md`, `00-index.md`, the structural deep-dives (01-stack/02-architecture/03-structure), the pros/cons verdict, both playbooks, glossary, Provenance; handles the `AGENTS.md` decision (consent-gated; never overwrites an existing `AGENTS.md` or `CLAUDE.md`) |
 
-### Rules (2)
+### Rules (3)
 
 | Rule | Purpose |
 |------|---------|
 | `aa-ma.md` | Operational rules governing sync discipline, commit signatures, task modes, gate classification |
 | `engineering-standards.md` | 6-theme engineering doctrine (Verification & Truth, Development Principles, Reasoning & Planning, Safety & Continuity, Execution Checklist, Sync & Commit Discipline) — auto-loaded; defines `Critical-Path:` canonical enum |
+| `coding-standards.md` | Coding doctrine (M12): non-negotiables, the KISS/DRY/YAGNI/SoC/SOLID table with configured checks, the conflict-resolution policy, the testing floor and a skill routing table — auto-loaded; ≤ 6,000 chars |
 
 ### Hooks (10)
 

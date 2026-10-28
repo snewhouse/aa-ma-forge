@@ -104,9 +104,9 @@ def test_orphans_are_the_named_set_and_no_errors(surface) -> None:
         # aa-ma-impact-preedit.sh names it as the SessionEnd cleaner of its markers.)
         # (llm-output-safety left this set in M8.7: secops now points to it, as
         # bash-defensive-patterns left it in M7.6 when logging-and-comments pointed to it.)
-        # code-conventions-impact M12.1: model-invoked; nothing in the forge calls it yet.
-        # (secops and writing-for-agents left this set in M12.1: its cards point to them.)
-        "language-conventions",
+        # (secops and writing-for-agents left this set in M12.1, when the language-conventions
+        # cards pointed to them; language-conventions left it in M12.2, when
+        # rules/coding-standards.md routed to it.)
     }
     assert surface.errors == []
 

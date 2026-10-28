@@ -892,3 +892,18 @@ DECISION ruff-only () — approved by Ste
 - coding-standards.md changed after its 12.2 approval (blob 086b7291 → ba8125089b84d82bab7f9bcdefd552458c94916c): Ruff limits now point at pyproject.toml; blanket-suppression reason; two wording trims for the byte budget. The M12 HARD-gate approval must name the new blob.
 - RATCHET 20,076 → 20,072 bytes (rules shrank; it may only fall).
 - Deferred to TODOS: pyproject.toml:74 comment `TODO(owner/issue)` vs TODO001.
+
+## [2026-10-28] GATE APPROVAL: Milestone 12: Doctrine packaging: `coding-standards.md`, `language-conventions`, dedupe, budget (T11 §4, T12)
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion: "Approve (Recommended)")
+- Criteria verified: 7/7
+- Evidence: fences 1–2 PASS; fence 3 TESTS_VERIFIED passed=3525 at e3624425; fence 4 `IMPACT-GATE: not applicable (grandfathered)`; §6.3 impact LOW; §6.8 PASS_WITH_WARNINGS (0 CRITICAL; round-2 fixes b9343617, 47e7dd55)
+- coding-standards.md blob: ba8125089b84d82bab7f9bcdefd552458c94916c (supersedes the 12.2-approved 086b7291)
+- Decision: APPROVED
+
+## [2026-10-28] Milestone Completion: Milestone 12: Doctrine packaging: `coding-standards.md`, `language-conventions`, dedupe, budget (T11 §4, T12)
+- Status: COMPLETE
+- Key outcome: coding-standards.md is the auto-loaded home of the principles, conflict policy and testing floor; engineering-standards §2 and operational-constraints point to it; language-conventions ships TS/R/SQL cards eval-first; rules shrank to 20,072 bytes under a ratchet test.
+- Artifacts: claude-code/rules/coding-standards.md; claude-code/skills/language-conventions/**; evals/language-conventions/**; tests/test_autoload_budget.py; tests/test_rule_references.py; scripts/install.sh (+3); trims to aa-ma.md, engineering-standards.md, operational-constraints SKILL.md; counts (README, SECURITY, foundations).
+- Tests: 3525 passed (fence 3, e3624425); bats 875 ok (d2301da0).
+- Carry-over to 13.0: live install + L-1315 probe; apply staged ~/.claude/CLAUDE.md behind the sha256 guard.

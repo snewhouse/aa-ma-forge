@@ -1194,7 +1194,8 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 12: Doctrine packaging: `coding-standards.md`, `language-conventions`, dedupe, budget (T11 §4, T12)
-- Status: ACTIVE
+- Status: COMPLETE
+- Result Log: 7/7 AC verified; fences 1–2 PASS, fence 3 TESTS_VERIFIED passed=3525 at e3624425, fence 4 `IMPACT-GATE: not applicable (grandfathered)`; §6.3 impact LOW (changed=40, unpredicted=26 → all missed-impact, none scope creep); §6.8 PASS_WITH_WARNINGS (0 CRITICAL; round 1 8 WARNING, 7 fixed in b9343617 + round-2 WARNING fixed in 47e7dd55; TDD-W1 history). Rules 20,072 bytes (M1 20,249), RATCHET 20,072; coding-standards.md 4,412 bytes, blob ba812508. GATE APPROVAL (Ste) in context-log. Branch head at finalisation 6911f14c.
 - Dependencies: Milestone 11
 - Complexity: 60%
 - Effort: 2 days

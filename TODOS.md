@@ -2,6 +2,13 @@
 
 ## AA-MA Tooling
 
+### M12 sdm C1 review (PR #71): deferred (1 MEDIUM + 3 LOW)
+**What:**
+- [MEDIUM] language-conventions shared suppression forms for R/SQL name no rule code and drop the cards' "syntax not verified" caveat — `claude-code/skills/language-conventions/SKILL.md:23` (cards: `references/sql.md:12`, `references/r.md:12`).
+- [LOW] Opt-out pointer uses the repo path `docs/spec/aa-ma-specification.md`, unreachable from `~/.claude/rules/` (use `../docs/aa-ma-specification.md`) — `claude-code/rules/engineering-standards.md:125`.
+- [LOW] `[task]-map.md` row no longer names `/aa-ma-plan --from-map` (doc loss; ADR-0013 keeps it) — `claude-code/rules/aa-ma.md:18`.
+- [LOW] "may only fall" is not enforced: RATCHET can be raised up to 20,249 and stay green — `tests/test_autoload_budget.py:19,34`.
+
 ### pyproject.toml:74 TODO-format comment (M12 §6.8 INFO)
 **What:** the comment says `TODO(owner/issue): text`; check_conventions TODO001 and coding-standards.md accept only `TODO(#N)` / `TODO(ADR-NNNN)`. One-line comment fix.
 

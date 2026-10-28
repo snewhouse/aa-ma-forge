@@ -417,3 +417,5 @@
 [2026-10-28T16:42:17+00:00] STEP_COMPLETE — 13.0 — live install + L-1315 probe + M13 branch; ~/.claude/CLAUDE.md applied behind sha256 guard (91355a68 → 9f87a7f6)
 [2026-10-28T16:48:49+00:00] STEP_COMPLETE — 13.1 — 31907f81 docs (CHANGELOG upgrade headline + M8–M15 entries, README, spec, quick-ref, SECURITY); test_doc_counts 6 passed; doc-drift full clean (5 T1 false positives)
 [2026-10-28T16:56:00+00:00] STEP_COMPLETE — 13.2 — 21b7bfa2 TODOS: reuse-kit seed, blast_radius alias removal, IMPACT_CUTOVER fence-4 review
+[2026-10-28T17:05:25+00:00] CODE_INTEL_REFRESH — Milestone 13: Docs, counts, TODOS (pre-release) — codemem=c99855b4e862d0782d055102d46a1051e612e810 graphify=c99855b4e862d0782d055102d46a1051e612e810
+[2026-10-28T17:06:00+00:00] IMPACT_ANALYSIS — Milestone 13 — §6.3: changed=5 (CHANGELOG excluded by design) predicted=8 cochange=3 unpredicted=0; docs only, no src/scripts/hooks change; Overall Risk LOW

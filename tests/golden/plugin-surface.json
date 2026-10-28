@@ -901,6 +901,36 @@
    "src": "skill:goal-condition-synthesis"
   },
   {
+   "dst": "skill:bash-defensive-patterns",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:language-conventions"
+  },
+  {
+   "dst": "skill:logging-and-comments",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:language-conventions"
+  },
+  {
+   "dst": "skill:python-quality-gates",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:language-conventions"
+  },
+  {
+   "dst": "skill:secops",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:language-conventions"
+  },
+  {
+   "dst": "skill:writing-for-agents",
+   "kind": "skill",
+   "ref_class": "ON_DISK",
+   "src": "skill:language-conventions"
+  },
+  {
    "dst": "hook:aa-ma-log.sh",
    "kind": "hook",
    "ref_class": "ON_DISK",
@@ -1417,7 +1447,6 @@
   "skill:aa-ma-search",
   "skill:complexity-router",
   "skill:debugging-strategies",
-  "skill:secops",
-  "skill:writing-for-agents"
+  "skill:language-conventions"
  ]
 }

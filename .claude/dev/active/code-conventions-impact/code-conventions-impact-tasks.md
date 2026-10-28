@@ -1304,7 +1304,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - TODOS.md contains `blast_radius`, `AA_MA_PLAN_MARKER_DEBUG`, `IMPACT_CUTOVER` and `reuse-kit`.
 
 ### Sub-step 13.0: Post-merge of M12
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
@@ -1312,7 +1312,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - L-1315 isolated probe asks for one coding-standards line verbatim and gets it (the rule loads at session start).
   - Branch for M13 cut in the main checkout from fresh main (ADR-0025); `uv sync && uv run codemem build` exit 0.
   - 12.5 carry-over (Ste, 2026-10-28): after the live install, apply `~/.claude/backups/CLAUDE.md.proposed-20261028T135203` (sha256 9f87a7f6…) over `~/.claude/CLAUDE.md` only if the live file's sha256 still equals the backup's (91355a68…); otherwise re-diff against the live file and ask Ste again.
-- Result Log: PARTIAL 2026-10-28 (HITL; Ste: stop before the CLAUDE.md apply). M12 merged: PR #71 → main b5ec8706 (sdm rebase, CI green); local main = origin/main. Live `scripts/install.sh` from main rc 0 (plugin worktree refreshed → b5ec8706; 71 links; 5 copied spec docs backed up to `~/.claude/backups/aa-ma-forge-20261028-163846/`); `readlink -f ~/.claude/rules/coding-standards.md` → `~/.local/share/codemem-plugin-wt/claude-code/rules/coding-standards.md` (ADR-0025). L-1315 probe (isolated `claude -p` from scratchpad, `--strict-mcp-config`, file tools disallowed) quoted `coding-standards.md:10` verbatim and named the live-worktree file. Branch `feat/cci-m13-docs-counts` cut from b5ec8706; `uv sync` rc 0; `codemem build` rc 0 (369 files). OPEN: CLAUDE.md apply (live sha256 still 91355a68… at 16:38 — guard holds; awaiting Ste).
+- Result Log: PARTIAL 2026-10-28 (HITL; Ste: stop before the CLAUDE.md apply). M12 merged: PR #71 → main b5ec8706 (sdm rebase, CI green); local main = origin/main. Live `scripts/install.sh` from main rc 0 (plugin worktree refreshed → b5ec8706; 71 links; 5 copied spec docs backed up to `~/.claude/backups/aa-ma-forge-20261028-163846/`); `readlink -f ~/.claude/rules/coding-standards.md` → `~/.local/share/codemem-plugin-wt/claude-code/rules/coding-standards.md` (ADR-0025). L-1315 probe (isolated `claude -p` from scratchpad, `--strict-mcp-config`, file tools disallowed) quoted `coding-standards.md:10` verbatim and named the live-worktree file. Branch `feat/cci-m13-docs-counts` cut from b5ec8706; `uv sync` rc 0; `codemem build` rc 0 (369 files). CLAUDE.md apply (Ste: "yes, apply it"): guard held (live sha256 = backup 91355a68…), staged 9f87a7f6… copied over `~/.claude/CLAUDE.md`; now 9f87a7f6…, 8,078 bytes; diff = 4 "Coding & Architecture" bullets → 1 coding-standards.md pointer. Backup `~/.claude/backups/CLAUDE.md.20261028T135203` kept for rollback.
 
 ### Sub-step 13.1: Counts and docs
 - Status: PENDING

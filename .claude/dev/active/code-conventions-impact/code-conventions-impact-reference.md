@@ -181,7 +181,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 | Fence 3 pass regex | final non-empty line after `sed -E 's/^=+ //; s/ =+$//'` matches `(^|, )([0-9]+) passed` | earlier "2 snapshots passed." lines ignored | [valid: 2026-10-08] |
 | Fence 3 rejected chars | `;` `\|` `&` `$` backtick `<` `>` | TEST_CMD run as shlex argv, no `bash -c` | [valid: 2026-10-08] |
 | `coding-standards.md` budget | ≤ 6,000 chars (~1.5k tokens) | `tests/test_autoload_budget.py` | [valid: 2026-10-08] |
-| Rules RATCHET | measured after M12; may only fall; ≤ M1 rules-only `rules_chars` baseline | `tests/test_autoload_budget.py` | [valid: 2026-10-08] |
+| Rules RATCHET | 20,072 bytes after M12 (M1 rules-only baseline 20,249 bytes, `cat claude-code/rules/*.md \| wc -c`); may only fall | `tests/test_autoload_budget.py` | [valid: 2026-10-08] |
 | Prompt body cap | ≤500 lines | `tests/test_prompt_size.py` | [valid: 2026-10-08] |
 | TOC threshold | references >100 lines (new/modified only) | `tests/test_prompt_size.py` | [valid: 2026-10-08] |
 | assess-codebase SKILL.md cap | ≤250 lines (220 now) | `test_assess_codebase.py:73` | [valid: 2026-10-08] |

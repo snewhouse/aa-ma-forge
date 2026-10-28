@@ -1231,7 +1231,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-28. Mode: AFK (Ste approved the start). RED 0bf9c6c2: 3 cases (ts-logging, r-style, sql-review) + polyglot fixture + EVAL_SKILLS entry; test_case_shape failed 3 (FileNotFoundError on SKILL.md), 30 passed. GREEN 65f0013a: SKILL.md + references/{python,bash,markdown,typescript,r,sql}.md; TS/R/SQL from the language-cards research; python/bash/markdown point to python-quality-gates, logging-and-comments, bash-defensive-patterns, writing-for-agents, secops. `git log --diff-filter=A`: cases 0bf9c6c2 before SKILL.md 65f0013a. Counts 39→40 (SECURITY.md, foundations, README; 40 dirs on disk). Golden regenerated (5 new ON_DISK edges); orphan set: +language-conventions, −secops, −writing-for-agents. Full pytest at 0bf9c6c2 + working tree: 3518 passed / 2 skipped. Eval cases not run live (advisory suite, ADR-0021).
 
 ### Sub-step 12.2: coding-standards.md + §2 pointer
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 12.1
 - Acceptance Criteria:
@@ -1240,7 +1240,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `scripts/install.sh`: coding-standards.md added to the rules backup list (:200-201) and the rules symlink list (:403-406); counts rules 2→3.
   - `surface_allowlist.py` adds `deslop-shared-libs` / `ponytail` only if coding-standards.md references them (`test_every_allowlisted_external_is_still_referenced`).
   - context-log has a `GATE APPROVAL` naming the coding-standards.md blob SHA (Ste reviews the wording).
-- Result Log:
+- Result Log: COMPLETE 2026-10-28 (HITL; Ste approved the wording). d2301da0: `claude-code/rules/coding-standards.md` 4,416 chars (blob 086b7291): non-negotiables; KISS/DRY/YAGNI/SoC/SOLID table (configured checks only: C901 ≤ 10, PLR0913 ≤ 6 on touched files, import-linter in CI); T11 §1 policy verbatim (script-checked); T8 ponytail reconciliation; testing floor; routing table (9 skills, all ON_DISK, 0 DANGLING). engineering-standards §2 → pointer (the generated TDD-waiver block stays). install.sh: backup list +1, symlink list +1; rules 2→3 (SECURITY.md, foundations, local CLAUDE.md). surface_allowlist unchanged (no Skill(deslop-shared-libs)/Skill(ponytail) refs). Rules trimmed per Ste: 21,671 → 20,066 chars (≤ M1 20,249). Orphan set: −language-conventions. Full pytest at d2301da0: 3518 passed / 2 skipped; bats (hooks recursive, commands/sdm, commands/*.bats, integration, scripts) at d2301da0: 875 ok / 0 not ok. GATE APPROVAL in context-log 2026-10-28.
 
 ### Sub-step 12.3: Dedupe operational-constraints
 - Status: PENDING

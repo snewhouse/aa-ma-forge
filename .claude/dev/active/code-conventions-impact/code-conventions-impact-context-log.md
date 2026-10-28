@@ -863,3 +863,16 @@ DECISION ruff-only () — approved by Ste
   - W3: plan.md:938 tags `tests/test_rule_references.py` as Test, but it does not exist yet (Create). Matters for the §6.8 Contract coverage, not fence 4 (grandfathered).
   - W4: context-log:149 pins llm-output-safety / bash-defensive-patterns as orphans "until M12"; no sub-step un-pins them — decide in 12.2 (routing table), then update pin/golden.
 - Ste (2026-10-28, AskUserQuestion): 12.2's AC install.sh line refs updated to :200-201 / :403-406 (line numbers only; the requirement is unchanged). The 10 foreign claude-checkpoint-* tags are left untouched. 12.1 approved; stop before 12.2.
+
+## [2026-10-28] GATE APPROVAL: Sub-step 12.2: coding-standards.md wording
+- Gate: HITL (12.2 AC: GATE APPROVAL naming the coding-standards.md blob SHA)
+- Approved by: Ste (AskUserQuestion, "Approve as drafted")
+- Blob: `claude-code/rules/coding-standards.md` 086b72917083b13d6eddcd2a9d2001d9d0ef5737 (commit d2301da0, 4,416 chars)
+- Scope: the rule text and the rule trims in d2301da0 (engineering-standards.md, aa-ma.md)
+- Decision: APPROVED
+
+## [2026-10-28] Decision: rules budget met by trimming, not by moving the baseline (Ste)
+- 12.4 AC (rules-only total ≤ M1 `rules_chars` 20,249) was unreachable as scoped: rules were already 21,671 (+1,422 from M9–M11 gate doctrine), and the new rule adds ~4.4k.
+- Ste chose "Trim existing rules" (AskUserQuestion) over re-basing the ratchet or counting global CLAUDE.md. Rule text already held by the spec, a skill or a research doc became a pointer: Opt-out detail → spec §XI element 12; the 2026-09-22 Skill() measurement → research doc; Prototype routing → Skill(prototype) (the auth/live-records line kept: the skill lacks it); aa-ma.md Verification Report + v0.5.0 grandfathering → spec. Test-pinned text kept (Critical-Path + Diagram-Waiver tables, Audit-Profile sets, "these 13 outputs:", v0.12.0 grandfathering, the heading template).
+- Result: 21,671 → 20,066 (183 under). Plugin-surface edges dropped from the rules: engineering-standards → operational-constraints, execute-aa-ma-step; aa-ma → aa-ma-plan (all still reached elsewhere; no new orphan).
+- Routing heading renamed from "When X, load Skill(Y)" to "Routing: when X, load the skill": the extractor read `Skill(Y)` as a DANGLING ref.

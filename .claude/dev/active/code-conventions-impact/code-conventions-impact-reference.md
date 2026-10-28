@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-27 (M11 complete: 11.0–11.9 as-built, §6.8 rounds 1–2)_
+_Last Updated: 2026-10-28 (M12 complete: 12.0–12.7 as-built, §6.8 rounds 1–2)_
 
 Test-Command: uv run pytest
 
@@ -272,7 +272,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 ### Files to Modify (with plan line citations)
 - `pyproject.toml` (:49, :56, :68, :81-83, :121, :129) [valid: 2026-10-08]
 - `.github/workflows/security.yml` (:39 Bandit `|| true` = carried defect 3; bats job Bandit :103-107)
-- `scripts/install.sh` (REQUIRED_DIRS :80; rules backup list :200-201 (was :145-146; locate by `collect_backup_target …rules/`); pre-compact backup :149; foreign-symlink/stale-link logic; symlink target :257-269; rules symlinks :403-406 (was :284-287; locate by `create_symlink …claude-code/rules/`); other line numbers here pre-date M10 — locate by content; AA_MA_HOOKS table :314-323; hooks/lib per-file list :331-346); `scripts/uninstall.sh`
+- `scripts/install.sh` (REQUIRED_DIRS :80; rules backup list :200-202 (was :145-146; locate by `collect_backup_target …rules/`); pre-compact backup :149; foreign-symlink/stale-link logic; symlink target :257-269; rules symlinks :404-409 (was :284-287; locate by `create_symlink …claude-code/rules/`); other line numbers here pre-date M10 — locate by content; AA_MA_HOOKS table :314-323; hooks/lib per-file list :331-346); `scripts/uninstall.sh`
 - `claude-code/skills/FORKS.json`; `src/aa_ma/forks.py`; `scripts/fork-drift.sh` (:4, :39 hard-code `repos/mattpocock/skills`)
 - `packages/codemem-mcp/src/codemem/draw/surface_allowlist.py`; `packages/codemem-mcp/src/codemem/draw/plugin_surface.py`
 - `claude-code/skills/understand-codebase/references/PLAYBOOK-CONTRIBUTE.md:46`; `claude-code/skills/python-quality-gates/SKILL.md:42`
@@ -499,3 +499,12 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - As built 11.4: `impact.API_PACKAGES = {"aa_ma": "src", "codemem": "packages/codemem-mcp/src"}` (P6); Contract line `API-Break: <dotted.path> — <reason>`; kv `api_diff=<pkgs>[; skipped(<pkg>: <reason>; …)]` or `skipped(<reason>)`, `api_break=<path>: <BreakageKind value>`; `contract_rows.milestone_contract_lines(plan, "N")`. griffe 2.3.2: `load_git` uses a temporary git worktree (search_paths relative to the repo root); `LoadingError` on syntax errors. [valid: 2026-10-27]
 - As built 11.5: `aa_ma_milestone_base` (stdout SHA rc 0; rc 2 + one reason line: `no origin default branch (…)` / `no milestone window (…)`); `aa_ma_impact` launcher (uv run --project <forge> aa-ma-impact --format kv; 127 BLOCKED); fence 4 = `claude-code/skills/execute-aa-ma-milestone/scripts/impact-verified.sh <task>` (cwd repo top), 4th bash block of §6.7; prints `IMPACT-GATE: PASS — …` / `IMPACT-GATE: not applicable (grandfathered) — <reason>` / `BLOCKED: …`. `aa-ma-impact --base` optional. verify-impl Step 1 window = aa_ma_milestone_base, else WARN + heuristic, `${…:-HEAD~10}`. [valid: 2026-10-27]
 - ADR-0027 `docs/adr/0027-gate-computed-impact-verified.md` Accepted (Ste, 2026-10-27); runbook `claude-code/skills/execute-aa-ma-milestone/references/impact-gate.md`. [valid: 2026-10-27]
+
+## 12.x Facts (2026-10-28)
+- Heading (verbatim): `Milestone 12: Doctrine packaging: `coding-standards.md`, `language-conventions`, dedupe, budget (T11 §4, T12)`. Branch `feat/cci-m12-doctrine-packaging` (main checkout, cut from main 01acbcea). [valid: 2026-10-28]
+- `claude-code/rules/coding-standards.md`: 4,412 bytes, blob `ba8125089b84d82bab7f9bcdefd552458c94916c` (b9343617; supersedes the 12.2-approved 086b7291). The "When principles conflict" paragraph is the T11 §1 policy verbatim. [valid: 2026-10-28]
+- Rules: 3 files (aa-ma.md 6,459 + engineering-standards.md 9,201 + coding-standards.md 4,412 = 20,072 bytes); M1 baseline 20,249 bytes; `tests/test_autoload_budget.py` RATCHET = 20,072 (bytes, may only fall). [valid: 2026-10-28]
+- `tests/test_rule_references.py` classifies via `codemem.draw.plugin_surface.extract()` (no local regex); `CODING_STANDARDS_ROUTES` = the 9 routed skills. [valid: 2026-10-28]
+- `scripts/install.sh`: coding-standards.md backup :202, symlink :408-409 (locate by content). [valid: 2026-10-28]
+- Skills 40 (+language-conventions); eval cases `evals/language-conventions/{ts-logging,r-style,sql-review}` with `evals/_lib/polyglot.sh` → `tests/fixtures/evals/polyglot/`. [valid: 2026-10-28]
+- 13.0 carry-overs: live install + L-1315 probe; apply `~/.claude/backups/CLAUDE.md.proposed-20261028T135203` (sha256 9f87a7f6…) only if live `~/.claude/CLAUDE.md` sha256 = 91355a68…. [valid: 2026-10-28]

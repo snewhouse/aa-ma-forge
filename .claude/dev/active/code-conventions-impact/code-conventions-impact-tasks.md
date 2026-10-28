@@ -1270,21 +1270,21 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-28 (HITL). Backup first: `~/.claude/backups/CLAUDE.md.20261028T135203` (8,475 bytes, cmp identical, sha256 91355a68…). Diff shown to Ste: "Coding & Architecture" 4 bullets → 1 pointer to rules/coding-standards.md (8,475 → 8,078 bytes); staged as `~/.claude/backups/CLAUDE.md.proposed-20261028T135203` (sha256 9f87a7f6…). Ste's OK recorded (context-log 2026-10-28) with his choice to apply at merge, not now: the rule is not live until M12 merges + install.sh, so applying now would drop the conventions from every session in between. The live file is unchanged (sha256 = backup); the apply is a 13.0 AC behind a sha256 guard. Disclosed: "Keep documentation light and code-derived" has no other home.
 
 ### Sub-step 12.6: Install proof (fake CLAUDE_HOME)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 12.5
 - Acceptance Criteria:
   - Fake-`CLAUDE_HOME` install: `rules/coding-standards.md` symlink present and resolving into this checkout.
   - The live install + L-1315 probe (rule loads at session start) are deferred to Sub-step 13.0.
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. At cceb17f7, `HOME=<scratchpad>/fakehome-12.6 bash scripts/install.sh` (pre-created `.claude/{skills,agents,rules,hooks,docs}`; no `~/.local/share/codemem-plugin` link, so SRC_ROOT = this checkout) → rc 0. `rules/coding-standards.md` is a symlink → `/home/sjnewhouse/projects/github_private/aa-ma-forge/claude-code/rules/coding-standards.md`; target exists; `cmp` identical. `skills/language-conventions` also resolves into this checkout. Live `~/.claude` untouched: no `rules/coding-standards.md`, `CLAUDE.md` sha256 still 91355a68…. Live install + L-1315 probe stay in 13.0.
 
 ### Sub-step 12.7: CRITICAL_PATH_REVIEW
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 12.6
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — <milestone heading> — hook-modification — <evidence>`, naming the install.sh change and the test names, where the heading is verbatim (backticks included): Milestone 12: Doctrine packaging: `coding-standards.md`, `language-conventions`, dedupe, budget (T11 §4, T12)
-- Result Log:
+- Result Log: Mode: AFK — auto-dispatched. CRITICAL_PATH_REVIEW appended to provenance.log with the verbatim heading, value `hook-modification`, naming the install.sh change (`:202` collect_backup_target, `:408-409` create_symlink) and the tests (tests/test_autoload_budget.py, tests/test_rule_references.py, bats tests/scripts/ + 12.6 fake-HOME proof).
 
 ---
 

@@ -356,6 +356,38 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 **Priority:** P3
 **Depends on:** the release after v0.18.0
 
+### Remove the codemem `blast_radius` alias
+
+**What:** Delete the `blast_radius` MCP tool alias in `claude-code/codemem/mcp/server.py` (and its `mcp_tools` entry) after v0.18.x, as its docstring says; move its tests in `tests/codemem/` to `callees`. Before deleting, re-point the skills that still name codemem's `blast_radius` (`grep -rn blast_radius claude-code/`), but leave project-index's `blast_radius`, which is a different server's tool.
+
+**Why:** M10.2 of code-conventions-impact renamed the downstream query to `callees` (ADR-0026); the old name returns callees, not callers, which misleads anyone who reads it as "what breaks". It stays one release so existing prompts keep working.
+
+**Effort:** S
+**Priority:** P3
+
+### Review fence 4 once `IMPACT_CUTOVER` is live
+
+**What:** M14.1 sets `IMPACT_CUTOVER` (`src/aa_ma/impact.py`) to the v0.18.0 release date. After the first 2–3 plans `Created:` on or after it finish, review `IMPACT_VERIFIED`: `Impact-Explained:` lines per milestone against the 11.1 prototype's measure (5 co-change lines over 15 milestones), any BLOCKED that was noise, and whether `COCHANGE_MIN_SHARED = 5`, `COCHANGE_MIN_RATIO = 0.5` and the 500-commit window still fit. Amend ADR-0027 if a threshold moves. The deferred C2 finding at `impact-verified.sh:84` (M11 sdm entry above) becomes live at the same time.
+
+**Why:** Every plan so far is grandfathered (sentinel `9999-12-31`), so fence 4 has never gated a real milestone. ADR-0027's driver is "quiet enough not to be bypassed"; that needs live data.
+
+**Effort:** S
+**Priority:** P2
+
+### Companion plan seed: `reuse-kit`
+
+**What:** Plan the reusable-code collection decided in code-conventions-impact map Tickets 13 and 14 (`.claude/dev/active/code-conventions-impact/code-conventions-impact-map.md`, moves to `completed/` at archive; evidence `docs/research/code-conventions-impact-reuse-prior-art.md`). Answers to carry in:
+- **Where (T13):** library tier in a **private** repo in the company org (uv package, consumed by git source pinned to a tag; the public forge never depends on it); snippet tier as PEP 723 scripts with a test each, in the kit's `snippets/`; a **public** copier project template in the Carmen org carrying the T10 SecOps baseline (CI, pre-commit, gitleaks, Dependabot). Generic helpers the forge itself uses stay canonical in the forge and are vendored into the kit with a FORKS.json-style pin.
+- **Confidentiality gate (T13):** every entry has a provenance header (`origin: generic | biomedical | client-derived`, source, date) that CI checks; client-derived entries also pass a genericization checklist, a client-term denylist grep (denylist outside every repo), gitleaks and `approved-by: Ste YYYY-MM-DD`.
+- **Graduation (T14):** snippet → module (`kit._experimental`) at evidenced reuse (about the third occurrence, or 2 repos) with one contract; module → library after 2 minor releases and ≥2 consuming repos; library gets SemVer via commitizen and `griffe check` in CI. Rot: weekly CI opens an issue on a failing test; fix in 30 days or delete.
+- **Reuse-first while coding (T14):** before writing a generic helper, Claude consults a forge **router skill** (reads the kit index at runtime from `*_KIT_PATH`, ships no entry names in the public forge, prints a notice when the checkout is missing), then reuses or vendors an entry or records "none fits" in one line; the §6.8 code-reviewer WARNs on a helper written twice. This rule needs the router skill, so it lands with the kit, not before.
+- **Outward-facing (HITL):** the plan creates two new GitHub repos (private kit, public template); confirm with Ste at execution time.
+
+**Why:** code-conventions-impact plan decision D1 (plan.md:9, :111) moved reuse to this later plan, with T10's "rollout via template" and the P7 YAGNI items (osv-scanner, npm release-age, eslint-plugin-security) for the template. The answers were decided with Ste on 2026-10-08; recording them keeps the next plan from re-grilling them.
+
+**Effort:** L (its own AA-MA plan)
+**Priority:** P2
+
 ### Fail the build on a dangling plugin reference
 
 **What:** Generating `docs/architecture/plugin-surface.md` exits non-zero when a reference from `claude-code/` resolves nowhere — on disk or in the declared-external allowlist.

@@ -5,6 +5,10 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-072 (2026-10-28) — `git rev-parse --short A B` in one call fails: one revision per call
+**Pattern:** the M11 handover's E1 check was `git rev-parse --short HEAD origin/main`. It failed (`fatal: Needed a single revision`) in M11, and I repeated it during the M11 double-check (`git rev-parse --short main origin/main`) after I had already noted the fix.
+**Rule:** one `git rev-parse` per revision, each as its own command (`git rev-parse --short HEAD; git rev-parse --short origin/main`). The same applies to every handover evidence table: an E-check must be a command that has run once and printed the result recorded beside it.
+
 ## L-071 (2026-10-27) — A Result Log claimed a test result the same command had not yet shown
 **Pattern:** in code-conventions-impact 11.5 one Bash call ran `bats aa-ma-parse.bats | grep -c '^not ok'` AND wrote the Result Log, which I had pre-filled with "aa-ma-parse 0 failing". The count printed `1` (the Exports header lacked two new helpers). I caught it reading the output after the commit and logged a CORRECTION.
 **Rule:** never write a number or verdict into tasks.md / provenance.log in the same call that produces it. Run the evidence command, read its output, then write the log from what it printed. A suite named in a Result Log must have been run, and read, in an earlier call. **Tightened (same day, repeated once):** a per-file count must come from a run of that file alone — never split a combined total by estimate. If the number in the log is not on screen in an earlier tool result, run it first. **Tightened again (same day, third repeat):** at the M11 boundary I logged `bats tests/hooks/` (655, no `--recursive`) as "FULL_BATS"; the full suite is 875 (the §7.2.5 validator caught it). A "full" count is the CI command set verbatim (`grep -n 'run: bats' .github/workflows/*.yml`), and a total that drops versus the previous log is a stop-and-explain, not a log line.

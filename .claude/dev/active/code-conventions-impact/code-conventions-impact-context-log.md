@@ -852,3 +852,13 @@ DECISION ruff-only () — approved by Ste
 - Evidence at 3517241b+: pytest 3504 passed (TESTS_VERIFIED); bats 875/0; DIAGRAM_VERIFIED edges=25; IMPACT_VERIFIED unexplained=0 (dogfood --ignore-cutover; shipped fence: not applicable until M14.1 sets IMPACT_CUTOVER); §6.8 PASS_WITH_WARNINGS; HARD gate approved (Ste); §7.2.5 validator PASS_WITH_WARNINGS (3 W addressed).
 - Deferred: TODOS "M11" (impact.py SRP split, §6.3 override parity, codemem arg allowlist rc 3, codemem.gitutil).
 - Next: Milestone 12 (handover to be written after the sdm merge).
+
+## [2026-10-28] M12 start: 12.0 post-merge + pre-execution validator (WARN)
+- Handover `.claude/handovers/2026-10-28-cci-m12-resume.md` E1–E7 re-run: all as recorded except E5. The live worktree was already at 01acbcea, not the expected 169e4e81. That difference was allowed, and install.sh was re-run anyway.
+- `git pull` refused (pull.rebase + dirty tree); used `git fetch` + `git merge --ff-only origin/main` ("Already up to date"), the same result without touching the two by-design uncommitted files.
+- HITL 12.0: proceeded on Ste's session brief ("do sub-step 12.0 only"); no separate panel.
+- Pre-execution aa-ma-validator: WARN, 0 FAIL.
+  - W1 (verified): install.sh rules lines moved (backup :200-201, symlinks :403-406). reference.md:275 corrected; 12.2's AC text still says :145-146/:284-287 — locate by content, AC wording left for Ste.
+  - W2: plan step 12.6 still says the live install + L-1315 probe; tasks.md (newer) defers both to 13.0 — tasks.md governs.
+  - W3: plan.md:938 tags `tests/test_rule_references.py` as Test, but it does not exist yet (Create). Matters for the §6.8 Contract coverage, not fence 4 (grandfathered).
+  - W4: context-log:149 pins llm-output-safety / bash-defensive-patterns as orphans "until M12"; no sub-step un-pins them — decide in 12.2 (routing table), then update pin/golden.

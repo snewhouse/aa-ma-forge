@@ -2,6 +2,21 @@
 
 ## AA-MA Tooling
 
+### M11 sdm C1/C2 review: deferred (2 MEDIUM + 8 LOW)
+**What:**
+- C2 [MEDIUM] A04 design: a symlinked `<task>-plan.md` is followed, so the merge-base date is read from the link target — `src/aa_ma/impact.py:297` (refuse symlinked plan/tasks/reference).
+- C2 [LOW] A04 design: with no milestone window, the working-copy `Created:` dates the plan — `claude-code/skills/execute-aa-ma-milestone/scripts/impact-verified.sh:84` (inert until M14.1 sets `IMPACT_CUTOVER`).
+- C2 [LOW] A09 logging: `rel`, `REASON`, `TEST_CMD` not sanitised beside the sanitised heading — `src/aa_ma/impact.py:306`, `tests-verified.sh:104,206`.
+- C1 [MEDIUM] the milestone window (merge-base) assumes one milestone per branch; undocumented — `claude-code/hooks/lib/aa-ma-parse.sh:588`.
+- C1 [LOW] `_partners` ignores codemem `truncated` / top_n=50 cap (fail-open) — `src/aa_ma/impact.py:539`.
+- C1 [LOW] the 500-commit co-change window is not enforced when the cache is already wider — `src/aa_ma/impact.py:518`.
+- C1 [LOW] a co-change partner may be a path gone from the tree — `src/aa_ma/impact.py:692`.
+- C1 [LOW] `Impact-Explained:` cannot name a path with whitespace — `src/aa_ma/impact.py:100`.
+- C1 [LOW] DRY: `_plan_date` repeats toplevel/verify_ref — `src/aa_ma/impact.py:294`.
+- C1 [LOW] `--head` retro-checks use today's index and cache; undocumented — `src/aa_ma/impact.py:471`.
+
+**Why:** PR #70 (M11, merged 01acbcea, 2026-10-28) sdm review round 1 on 1202cb58: 0 CRITICAL, 0 HIGH, 2 MEDIUM, 8 LOW; none blocks under the stop rule (L-061), no round 2. **Effort:** S–M · **Priority:** P3
+
 ### code-conventions-impact M11 §6.3/§6.6: deferred findings (fence 4)
 **What:**
 - codemem's `sanitize_symbol_arg` allowlist `[A-Za-z0-9_./-]` (≤256, no `..`) rejects legal paths (spaces, `+`, `@`); a changed file like that makes `aa-ma-impact` exit 3 with no fix but a rename. Skip-and-report such paths (kv `cochange_skipped=`), or widen the allowlist for co_changes paths. 0 such tracked files in the forge.

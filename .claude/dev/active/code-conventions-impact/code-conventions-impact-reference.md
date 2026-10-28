@@ -272,7 +272,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 ### Files to Modify (with plan line citations)
 - `pyproject.toml` (:49, :56, :68, :81-83, :121, :129) [valid: 2026-10-08]
 - `.github/workflows/security.yml` (:39 Bandit `|| true` = carried defect 3; bats job Bandit :103-107)
-- `scripts/install.sh` (REQUIRED_DIRS :80; rules backup list :145-146; pre-compact backup :149; foreign-symlink/stale-link logic; symlink target :257-269; rules symlinks :284-287; AA_MA_HOOKS table :314-323; hooks/lib per-file list :331-346); `scripts/uninstall.sh`
+- `scripts/install.sh` (REQUIRED_DIRS :80; rules backup list :200-201 (was :145-146; locate by `collect_backup_target …rules/`); pre-compact backup :149; foreign-symlink/stale-link logic; symlink target :257-269; rules symlinks :403-406 (was :284-287; locate by `create_symlink …claude-code/rules/`); other line numbers here pre-date M10 — locate by content; AA_MA_HOOKS table :314-323; hooks/lib per-file list :331-346); `scripts/uninstall.sh`
 - `claude-code/skills/FORKS.json`; `src/aa_ma/forks.py`; `scripts/fork-drift.sh` (:4, :39 hard-code `repos/mattpocock/skills`)
 - `packages/codemem-mcp/src/codemem/draw/surface_allowlist.py`; `packages/codemem-mcp/src/codemem/draw/plugin_surface.py`
 - `claude-code/skills/understand-codebase/references/PLAYBOOK-CONTRIBUTE.md:46`; `claude-code/skills/python-quality-gates/SKILL.md:42`

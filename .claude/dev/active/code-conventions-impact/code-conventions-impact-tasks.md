@@ -1243,12 +1243,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-28 (HITL; Ste approved the wording). d2301da0: `claude-code/rules/coding-standards.md` 4,416 chars (blob 086b7291): non-negotiables; KISS/DRY/YAGNI/SoC/SOLID table (configured checks only: C901 ≤ 10, PLR0913 ≤ 6 on touched files, import-linter in CI); T11 §1 policy verbatim (script-checked); T8 ponytail reconciliation; testing floor; routing table (9 skills, all ON_DISK, 0 DANGLING). engineering-standards §2 → pointer (the generated TDD-waiver block stays). install.sh: backup list +1, symlink list +1; rules 2→3 (SECURITY.md, foundations, local CLAUDE.md). surface_allowlist unchanged (no Skill(deslop-shared-libs)/Skill(ponytail) refs). Rules trimmed per Ste: 21,671 → 20,066 chars (≤ M1 20,249). Orphan set: −language-conventions. Full pytest at d2301da0: 3518 passed / 2 skipped; bats (hooks recursive, commands/sdm, commands/*.bats, integration, scripts) at d2301da0: 875 ok / 0 not ok. GATE APPROVAL in context-log 2026-10-28.
 
 ### Sub-step 12.3: Dedupe operational-constraints
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 12.2
 - Acceptance Criteria:
   - Restated KISS/DRY/SOLID/comments text replaced by a pointer; `grep -cE 'KISS|DRY|SOLID' claude-code/skills/operational-constraints/SKILL.md` ≤ 2.
-- Result Log:
+- Result Log: COMPLETE 2026-10-28. Mode: AFK. operational-constraints §4: the Core Principles list (KISS/DRY/SOLID/SOC/12-factor), the TDD Mandate and "Comments explain WHY" were replaced by one pointer to rules/coding-standards.md (+ engineering-standards.md for process); the quick-ref "KISS, DRY, SOLID, SOC" line became "coding-standards.md (principles, TDD floor)". Impact Analysis kept (process). `grep -cE 'KISS|DRY|SOLID'` = 1 (≤ 2). Skill(test-driven-development) still linked (:224), so the golden file is unchanged; the regen diff was header-only and dropped. pytest plugin_surface + tests/skills + frontmatter: 604 passed / 1 skipped.
 
 ### Sub-step 12.4: Budget + rule-reference tests (TDD)
 - Status: PENDING

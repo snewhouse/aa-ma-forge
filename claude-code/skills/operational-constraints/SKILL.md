@@ -129,7 +129,7 @@ OR use Skill(dispatching-parallel-agents) for structured dispatch.
 
 ### 4. Development Discipline
 
-**Full doctrine (auto-loaded, stated once):** the principles (KISS, DRY, YAGNI, SoC, SOLID), the testing floor, comments and suppressions are in [`claude-code/rules/coding-standards.md`](../../rules/coding-standards.md); the AA-MA process doctrine is in [`claude-code/rules/engineering-standards.md`](../../rules/engineering-standards.md). This section names them without restating them.
+**Full doctrine (auto-loaded, stated once):** the principles (KISS, DRY, YAGNI, SoC, SOLID), the testing floor, comments and suppressions are in [`claude-code/rules/coding-standards.md`](../../rules/coding-standards.md); the AA-MA process doctrine is in [`claude-code/rules/engineering-standards.md`](../../rules/engineering-standards.md). This section names them without restating them. Also: 12-Factor for services; TDD via `Skill(test-driven-development)`.
 
 **Impact Analysis:**
 - Use `Skill(impact-analysis)` for ALL code changes

@@ -15,8 +15,8 @@ RULES = REPO_ROOT / "claude-code" / "rules"
 
 # bytes; M1 BASELINE `rules_chars`, 2026-10-08 (aa-ma.md + engineering-standards.md)
 M1_RULES_BYTES = 20_249
-# bytes; measured after M12.2 (3 rules). Lower it when rules shrink; never raise it.
-RATCHET = 20_076
+# bytes; measured after the M12 §6.8 fixes (3 rules). Lower it when rules shrink; never raise it.
+RATCHET = 20_072
 # bytes (≥ chars, so this is at least as strict as the T12 cap of 6,000 chars ≈ 1.5k tokens)
 CODING_STANDARDS_MAX = 6_000
 

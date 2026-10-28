@@ -5,7 +5,7 @@ New and modified code complies; existing code is not backfilled. Detail lives in
 ## Non-negotiables
 
 - No silent failures: every `except`, skip or fail-open path logs one line or bumps a reported counter. Logs go to stderr, data to stdout.
-- `# why:` on every deliberate suppression (`noqa`, `type: ignore`, `|| true`, `2>/dev/null`) in maintained source. Name the code; never a blanket form. Remove an unneeded suppression rather than document it.
+- `# why:` on every deliberate suppression (`noqa`, `type: ignore`, `|| true`, `2>/dev/null`) in maintained source. Name the code; blanket forms hide errors. Remove an unneeded suppression, don't document it.
 - Public API carries a doc block in its language's native format; comments say why, not what.
 - `TODO(#N): …` or `TODO(ADR-NNNN): …`; no ownerless TODOs.
 - Secrets come from the environment; input is validated at trust boundaries; model output is untrusted input.
@@ -14,7 +14,7 @@ New and modified code complies; existing code is not backfilled. Detail lives in
 
 | Principle | Heuristic | Automated check (configured) | Reviewer rule |
 |-----------|-----------|------------------------------|---------------|
-| KISS | the simplest concrete code that meets current requirements | Ruff `C901` (≤ 10) and `PLR0913` (≤ 6 args) on touched files; exceeding needs `# noqa: <code>  # why: …` | could it be simpler? |
+| KISS | the simplest concrete code that meets current requirements | Ruff `C901`/`PLR0913` (`pyproject.toml` limits) on touched files; exceeding needs `# noqa: <code>  # why: …` | could it be simpler? |
 | DRY | one authoritative source per fact (schema, grammar, constant, count); code duplication tolerated until about the third occurrence; prefer duplication to a parameter-and-conditional abstraction | none | a duplicated fact is a defect at once |
 | YAGNI | build for current requirements | none | never a reason to reject tests, refactoring or maintainability work |
 | SoC | separate logic, data access, integration and presentation, without a file per responsibility | import-linter contracts in CI (`.importlinter`, where configured) | is each unit cohesive? |
@@ -26,7 +26,7 @@ Default to the simplest concrete implementation that meets current requirements.
 
 ## Code documentation and ponytail
 
-Docstrings, why-comments, constant rationale (name, unit, reason) and `ponytail:` ceiling notes are required documentation. They are exempt from ponytail's "no unrequested prose" rule, but stay proportionate: a summary and the needed sections, no tutorials.
+Docstrings, why-comments, constant rationale (name, unit, reason) and `ponytail:` ceiling notes are required documentation. They are exempt from ponytail's "no unrequested prose" rule, but stay proportionate: a summary and needed sections, no tutorials.
 
 ## Testing floor
 

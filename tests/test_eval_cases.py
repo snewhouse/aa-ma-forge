@@ -34,6 +34,7 @@ EVAL_SKILLS = {
     "logging-and-comments",
     "writing-for-agents",
     "secops",
+    "language-conventions",
 }
 EVAL_AGENTS = {"code-reviewer"}
 AGENTS = REPO_ROOT / "claude-code" / "agents"

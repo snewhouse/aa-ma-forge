@@ -395,3 +395,5 @@
 [2026-10-28T11:45:45+00:00] STEP_COMPLETE — 12.1 language-conventions (eval-first) — RED 0bf9c6c2 → GREEN 65f0013a; counts skills 39→40; golden regenerated; pytest 3518 passed / 2 skipped
 [2026-10-28T13:10:29+00:00] STEP_COMPLETE — 12.2 coding-standards.md + §2 pointer — d2301da0; blob 086b7291 approved by Ste; rules_chars 21671→20066 (M1 baseline 20249); pytest 3518/2; bats 875 ok / 0 not ok at d2301da0
 [2026-10-28T13:29:27+00:00] STEP_COMPLETE — 12.3 operational-constraints dedupe — KISS|DRY|SOLID lines 4→1; golden unchanged
+[2026-10-28T13:34:15+00:00] CORRECTION — 12.2 rules total was logged as 20,066; the committed total at d2301da0 is 20,076 bytes (the routing-heading rename added 10 after the measurement). Unit is bytes, like the M1 baseline (cat | wc -c). Still ≤ 20,249.
+[2026-10-28T13:34:15+00:00] STEP_COMPLETE — 12.4 budget + rule-reference tests — bb2ab41e; RED at d2301da0~1: 3 failed / 5 passed; GREEN 9 passed; RULES_BYTES before=21671 after=20076 m1=20249; pytest 3527 passed / 2 skipped

@@ -367,7 +367,7 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 
 ### Review fence 4 once `IMPACT_CUTOVER` is live
 
-**What:** M14.1 sets `IMPACT_CUTOVER` (`src/aa_ma/impact.py`) to the v0.18.0 release date. After the first 2–3 plans `Created:` on or after it finish, review `IMPACT_VERIFIED`: `Impact-Explained:` lines per milestone against the 11.1 prototype's measure (5 co-change lines over 15 milestones), any BLOCKED that was noise, and whether `COCHANGE_MIN_SHARED = 5`, `COCHANGE_MIN_RATIO = 0.5` and the 500-commit window still fit. Amend ADR-0027 if a threshold moves. The deferred C2 finding at `impact-verified.sh:84` (M11 sdm entry above) becomes live at the same time.
+**What:** M14.1 sets `IMPACT_CUTOVER` (`src/aa_ma/impact.py`) to the v0.18.0 release date. After the first 2–3 plans `Created:` on or after it finish, review `IMPACT_VERIFIED`: `Impact-Explained:` lines per milestone against the 11.1 prototype's measure (5 co-change lines over 15 milestones), any BLOCKED that was noise, and whether `COCHANGE_MIN_SHARED`, `COCHANGE_MIN_RATIO` and `COCHANGE_WINDOW_COMMITS` (`src/aa_ma/impact.py`) still fit. Amend ADR-0027 if a threshold moves. The deferred C2 finding at `impact-verified.sh:84` (M11 sdm entry above) becomes live at the same time.
 
 **Why:** Every plan so far is grandfathered (sentinel `9999-12-31`), so fence 4 has never gated a real milestone. ADR-0027's driver is "quiet enough not to be bypassed"; that needs live data.
 

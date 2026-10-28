@@ -18,12 +18,12 @@ Read the card for the file's language, then apply it to touched code only (no ba
 
 ## Rules every card shares
 
-- Comments say *why*, not *what*. Every suppression carries its reason: `# noqa: X  # why: …`, `// eslint-disable-next-line rule -- why: …`, `# nolint: why: …`, `-- noqa: why: …`.
-- Logs go to stderr and data to stdout. A library never configures logging; the entrypoint does.
-- Public API is documented in the language-native format (Google `Args:` in Python, TSDoc/JSDoc `@param` in TS/JS, roxygen2 in R). The shared rule is *which* symbols need a doc block (exported/public), not one syntax.
-- No silent failures: every caught error logs one line or bumps a reported counter.
-- Commit the lockfile and audit it in CI; secrets come from the environment, never from source, comments or logs.
-- One formatter per repo. Do not state a cross-language line length; use each formatter's default.
+The non-negotiables in `coding-standards.md` (auto-loaded) apply to every language. What differs per language:
+
+- Suppression syntax, each with its reason: `# noqa: X  # why: …`, `// eslint-disable-next-line rule -- why: …`, `# nolint: why: …`, `-- noqa: why: …`.
+- Doc-block format for public API: Google `Args:` in Python, TSDoc/JSDoc `@param` in TS/JS, roxygen2 in R.
+- Lockfile and its audit: commit it and audit it in CI (see each card).
+- Formatter: one per repo, at its default line length; a shared cross-language length makes formatters fight over every file.
 
 ## Related
 

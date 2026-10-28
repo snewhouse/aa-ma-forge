@@ -424,3 +424,4 @@
 [2026-10-28T17:09:29+00:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: docs-only — agents: future-proofing-auditor (check #1) — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 1 WARNING (fixed 593e718c) / 7 INFO
 [2026-10-28T17:11:43+00:00] TESTS_VERIFIED — Milestone 13: Docs, counts, TODOS (pre-release) — passed=3525 cmd=uv run pytest
 [2026-10-28T18:55:04+00:00] MILESTONE COMPLETE — Milestone 13 — Commit: da1cd734 — Criteria: 3/3 verified
+[2026-10-28T18:56:19+00:00] NOTE — M13 TESTS_VERIFIED: first line (17:08:57) at bad56edc, second (17:11:43) at 593e718c after the §6.8 fix; §7.2.5 validator WARNINGS_BUT_USABLE back-filled (13.0 Result Log prefix, reference 13.x Facts)

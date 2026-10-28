@@ -1221,14 +1221,14 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-28. M11 PR #70 MERGED 01acbcea (gh). main = origin/main 01acbcea (fetch + merge --ff-only; `git pull` refused by pull.rebase on the dirty tree, same result). install.sh --dry-run rc 0, then live rc 0 (live worktree → main 01acbcea; it was already 01acbcea before). `grep -c impact-verified.sh` on the live execute-aa-ma-milestone SKILL.md = 3. `uv run aa-ma-impact --help` rc 0 (the branch is at 01acbcea; no code diff from main). Branch feat/cci-m12-doctrine-packaging cut from 01acbcea in the main checkout. uv sync rc 0; codemem build rc 0 (362 files, 3746 symbols, 10177 edges). Carry-overs: TODOS entry "M11 sdm C1/C2 review: deferred (2 MEDIUM + 8 LOW)"; provenance MERGED + adb26d45 lock note; DOUBLE_CHECK line + L-072 committed here. Pre-exec validator WARN (W1–W4, context-log 2026-10-28).
 
 ### Sub-step 12.1: language-conventions (eval-first)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 12.0
 - Acceptance Criteria:
   - `claude-code/skills/language-conventions/{SKILL.md, references/{python,bash,markdown,typescript,r,sql}.md}`; TS/R/SQL cards from `docs/research/code-conventions-impact-language-cards.md`; python/bash/markdown cards point to topic skills.
   - `git log --diff-filter=A` shows the 3 eval cases committed before SKILL.md.
   - Counts skills +1; golden regenerated.
-- Result Log:
+- Result Log: COMPLETE 2026-10-28. Mode: AFK (Ste approved the start). RED 0bf9c6c2: 3 cases (ts-logging, r-style, sql-review) + polyglot fixture + EVAL_SKILLS entry; test_case_shape failed 3 (FileNotFoundError on SKILL.md), 30 passed. GREEN 65f0013a: SKILL.md + references/{python,bash,markdown,typescript,r,sql}.md; TS/R/SQL from the language-cards research; python/bash/markdown point to python-quality-gates, logging-and-comments, bash-defensive-patterns, writing-for-agents, secops. `git log --diff-filter=A`: cases 0bf9c6c2 before SKILL.md 65f0013a. Counts 39→40 (SECURITY.md, foundations, README; 40 dirs on disk). Golden regenerated (5 new ON_DISK edges); orphan set: +language-conventions, −secops, −writing-for-agents. Full pytest at 0bf9c6c2 + working tree: 3518 passed / 2 skipped. Eval cases not run live (advisory suite, ADR-0021).
 
 ### Sub-step 12.2: coding-standards.md + §2 pointer
 - Status: PENDING

@@ -18,7 +18,12 @@
 #     calls cannot run. This replaces the `claude -p --disallowedTools` plan (M4.3 context-log).
 #   - Permissions are never bypassed; the report is never published (the repo is public).
 #
-# Env: RUN_EVALS_DIR (eval dir below the repo root, default evals), RUN_EVALS_MODEL
+# What is evaluated: a clean, detached checkout of RUN_EVALS_REF (default HEAD) in a temp
+# dir outside the repo, removed afterwards. `claude plugin eval` also runs the suites of
+# nested worktrees (`.worktrees/*/evals`, gitignored), which once crowded out the repo's
+# own cases (v0.18.0: 46 prototype cases, 0 of main's). Uncommitted edits are not evaluated.
+#
+# Env: RUN_EVALS_REF (commit or tag to evaluate, default HEAD), RUN_EVALS_DIR (eval dir below the repo root, default evals), RUN_EVALS_MODEL
 # (default sonnet), RUN_EVALS_MAX_COST_USD (default 5), RUN_EVALS_RESULTS (default
 # <repo>/.claude/evals), RUN_EVALS_ALLOW_API_KEY (1 forwards ANTHROPIC_API_KEY),
 # CLAUDE_BIN (default claude; tests stub it).
@@ -32,9 +37,20 @@ MODEL="${RUN_EVALS_MODEL:-sonnet}"
 MAX_COST="${RUN_EVALS_MAX_COST_USD:-5}"  # USD list-price estimate; the full suite on sonnet costs well under this
 RESULTS="${RUN_EVALS_RESULTS:-${REPO_ROOT}/.claude/evals}"
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+REF="${RUN_EVALS_REF:-HEAD}"
 
 OUT="$(mktemp -d "${TMPDIR:-/tmp}/run-evals.XXXXXX")"
-trap 'rm -rf "${OUT}"' EXIT
+TREE="${OUT}/tree"
+# why: stderr dropped, rc ignored — the checkout may not exist (bad ref); rm -rf follows either way
+trap 'git -C "${REPO_ROOT}" worktree remove --force "${TREE}" 2>/dev/null || true; rm -rf "${OUT}"' EXIT
+
+if ! git -C "${REPO_ROOT}" worktree add --detach --quiet "${TREE}" "${REF}" >"${OUT}/worktree.log" 2>&1; then
+    echo "run-evals: cannot check out '${REF}':" >&2
+    cat "${OUT}/worktree.log" >&2
+    echo "run-evals: no result (no checkout of ${REF})"
+    echo "run-evals: rc=128"
+    exit 0
+fi
 
 clean_env=(PATH="${PATH}" HOME="${HOME}" LANG="${LANG:-C.UTF-8}")
 forward=(CLAUDE_CODE_OAUTH_TOKEN CLAUDE_CONFIG_DIR)
@@ -46,7 +62,7 @@ forward=(CLAUDE_CODE_OAUTH_TOKEN CLAUDE_CONFIG_DIR)
 # is world-readable in /proc/<pid>/cmdline.
 # shellcheck disable=SC2016  # why: the inner bash expands "$@" and kv, not this one
 (
-    cd "${REPO_ROOT}" || exit 127
+    cd "${TREE}" || exit 127
     for var in "${forward[@]}"; do
         if [[ -n "${!var:-}" ]]; then printf '%s=%s\0' "${var}" "${!var}"; fi
     done | env -i "${clean_env[@]}" "${BASH}" -c \
@@ -84,5 +100,7 @@ jq -r --arg jsonl "${jsonl}" '
     [.cases[] | .aggregates.score >= 1] as $p
     | "run-evals: \($p | length) cases, \($p | map(select(.)) | length) pass, \($p | map(select(. | not)) | length) fail, cost $\((.costUsd // 0) * 100 | round / 100) → \($jsonl)"' \
     "${OUT}/result.json"
+outside=$(jq --arg d "${EVAL_DIR}/" '[.cases[] | select(.dir | startswith($d) | not)] | length' "${OUT}/result.json")
+[[ "${outside}" -eq 0 ]] || echo "run-evals: WARNING ${outside} case(s) outside ${EVAL_DIR}/ — the summary covers more than this suite"
 echo "run-evals: rc=${rc}"
 exit 0

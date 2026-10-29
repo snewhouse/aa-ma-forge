@@ -52,10 +52,6 @@
 
 **Why:** M10 §6.6 (2026-10-26), 3 review agents: 0 CRITICAL; Ste fixed W1–W5, W7 + 4 INFOs and deferred these. **Effort:** M · **Priority:** P3
 
-### run-evals: case discovery walks nested worktrees under the repo
-**What:** `scripts/run-evals.sh` (`claude plugin eval . --eval-dir evals`) also ran the cases under `.worktrees/<branch>/evals/` — at 10.9 each `--case '<skill>-*'` run doubled (6 runs for 3 cases) with stale copies from `.worktrees/prototype/codemem-refresh-cap`. Exclude `.worktrees/` (or point the run at a path that cannot contain them) and add a bats case.
-**Why:** code-conventions-impact 10.9 (2026-10-26): doubled cost and results mixing branch copies. **It recurred at the v0.18.0 release (M14.2, 2026-10-29):** 46 cases, 28 from `prototype/codemem-refresh-cap` and 18 from `prototype/m11-cochange-threshold`, and 0 from main's `evals/`. The `$5` cap ran out at $5.04, so the release eval summary is invalid. After the fix, re-run main's full `evals/` suite against v0.18.0. **Effort:** S · **Priority:** P1 (raised from P3: it now invalidates release evals)
-
 ### PR for code-conventions-impact 10.0 (live worktree, ADR-0025) review notes: 5 LOW + 1 LOW (C2), deferred under the stop rule
 **What:**
 - LOW: a dangling `codemem-plugin` link whose parent dir is gone stops install.sh at `plugin_wt="$(readlink -f …)"` (set -e) with exit 1 and no message (`scripts/install.sh` §0); use `readlink -f … || readlink …` plus a warning.
@@ -677,6 +673,10 @@ path and a fixture path, before Deep is evaluated.
 **Why:** each fails closed or is a usability gap; none is a leak. **Effort:** M total · **Priority:** P3
 
 ## Completed
+
+### run-evals: case discovery walks nested worktrees under the repo
+**What:** `scripts/run-evals.sh` (`claude plugin eval . --eval-dir evals`) also ran the cases under `.worktrees/<branch>/evals/` — at 10.9 each `--case '<skill>-*'` run doubled (6 runs for 3 cases) with stale copies from `.worktrees/prototype/codemem-refresh-cap`. Exclude `.worktrees/` (or point the run at a path that cannot contain them) and add a bats case.
+**Why:** code-conventions-impact 10.9 (2026-10-26): doubled cost and results mixing branch copies. **It recurred at the v0.18.0 release (M14.2, 2026-10-29):** 46 cases, 28 from `prototype/codemem-refresh-cap` and 18 from `prototype/m11-cochange-threshold`, and 0 from main's `evals/`. The `$5` cap ran out at $5.04, so the release eval summary is invalid. After the fix, re-run main's full `evals/` suite against v0.18.0. **Effort:** S · **Priority:** P1 — **Done 2026-10-29** (`fix/run-evals-nested-worktrees`: run-evals evaluates a clean checkout outside the repo; 4 bats cases)
 
 ### sole-dev-merge C3/D and security-static-check LOWs (PR #30 Stage C, 2026-10-13)
 **What:**

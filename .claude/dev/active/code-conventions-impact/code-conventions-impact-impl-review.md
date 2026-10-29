@@ -790,3 +790,32 @@ Audit-Profile: docs-only → future-proofing-auditor, check #1 (hardcoded counts
 None — 0 CRITICAL.
 
 ## Verdict: PASS_WITH_WARNINGS (warning fixed)
+
+## M14 §6.8 (window 697c2d86..337f1572, Audit-Profile code-only, 2026-10-29)
+
+| Agent | CRITICAL | WARNING | INFO | Verdict |
+|---|:-:|:-:|:-:|---|
+| code-reviewer | 0 | 2 | 5 | WARN |
+| security-auditor | 0 | 0 | 3 | PASS |
+| tdd-sequence-auditor | 0 | 0 | 0 | PASS (RED 4a541216 failed at its commit, verified in a throwaway worktree; GREEN d3402b53 +381 s) |
+| context7-evidence-auditor | 0 | 0 | 0 | PASS (only the project's own 0.17.0 → 0.18.0) |
+| future-proofing-auditor | 0 | 1 | 3 | WARN |
+| TOTAL | 0 | 3 (2 distinct) | 14 | PASS_WITH_WARNINGS |
+
+Warnings, both confirmed against the code:
+- W1 (code-reviewer + future-proofing): `tests/test_impact.py` repeats the post-cutover fixture date `"2027-01-01"` about 9 times (:79 default, :316, :714, and `.replace()` matches at :205, :828, :891, :914, :945) without a named constant. `GRANDFATHERED` names the other side. Fix: add `POST_CUTOVER`.
+- W2 (code-reviewer): `tests/hooks/test_impact_verified.bats:7` says the fixture's `Created: 9999-12-31` is "equal to the IMPACT_CUTOVER sentinel"; after M14.1 there is no sentinel. The test is still correct (9999-12-31 > 2026-10-29); the stated reason is wrong.
+
+INFO (selected):
+- `%cs` is the committer's local date while release.sh uses local `date +%F`; the two match here.
+- The test skip message hides git's stderr.
+- CI pytest checkouts carry no tags, so the tag-date check runs only locally.
+- The context-log pointer says `impact.py:290`; the correct line is :292.
+- The deferred M11 C2 LOW (back-dating on main with no window) is now live and tracked in TODOS.
+- SECURITY.md:96 understates the hook scope (it also scans untracked `.py` files) and leaves out the repo pre-commit for terminal commits.
+- An undated pre-existing plan stays grandfathered (by design).
+- TODOS "31 cases" goes stale when cases are added.
+- Unpredicted TODOS.md was needed and is in Required Artefacts.
+
+## User Override Decisions (M14)
+None (0 CRITICAL).

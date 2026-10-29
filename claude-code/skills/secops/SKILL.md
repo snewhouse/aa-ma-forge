@@ -1,6 +1,6 @@
 ---
 name: secops
-description: "Security review, dependency audit and scanner choice: names each finding's class and rule (e.g. `shell=True` with interpolated input is Ruff S602, CWE-78), the scanner that catches it (Ruff S for Python, gitleaks for secrets, pip-audit for the Python lock, osv-scanner for JS/R lockfiles, ShellCheck for shell) and the layer it runs at (edit, commit, CI). Use when reviewing code or a file for security problems (load it before reading the code), auditing dependencies for known vulnerabilities, or choosing a repo's security checks."
+description: "Security review, dependency audit and scanner choice: routes each artifact to its scanner (Ruff S for Python, gitleaks for secrets, pip-audit for the Python lock, osv-scanner for JS, R and other lockfiles, ShellCheck for shell), names each finding's rule and CWE, and sets the layer each check runs at (edit, commit, CI). Use when reviewing code or a file for security problems (load it before reading the code), auditing dependencies for known vulnerabilities, or choosing a repo's security checks."
 ---
 
 # SecOps router
@@ -18,7 +18,11 @@ Pick the check for the artifact, run it at the earliest layer that can block, an
 | Shell scripts | ShellCheck | `shellcheck --enable=check-set-e-suppressed <files>` |
 | GitHub Actions and the lock itself | Dependabot | `github-actions` + the package ecosystem, weekly, with a cooldown |
 
-A Python finding names its rule: `subprocess.run(cmd, shell=True)` with interpolated input is S602 (CWE-78, command injection). The fix is an argv list without a shell, not an escape.
+## Reviewing a file
+
+1. Run the scanner for the file's type from the table above. If it cannot run here, say so (UNKNOWN) and review by reading.
+2. Report each finding with its rule and CWE, the line, and the fix at the source. For example, `subprocess.run(cmd, shell=True)` with interpolated input is Ruff S602 (CWE-78, command injection); the fix is an argv list without a shell, not an escape.
+3. Then check what scanners miss: validation at trust boundaries (`Skill(defense-in-depth)`), secret handling (`Skill(secrets-management)`) and model output used as input (`Skill(llm-output-safety)`).
 
 ## Which layer
 

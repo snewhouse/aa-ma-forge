@@ -238,9 +238,11 @@ def test_there_are_completed_plans_to_check() -> None:
 def test_sigil_bearing_completed_plans_are_the_named_set() -> None:
     """The exclusion stays deliberate: a newly archived sigil plan must be named here."""
     # codebase-analysis-skills: archived 2026-10-01 with 10× DIAGRAM_VERIFIED (phantom=0).
+    # code-conventions-impact: archived 2026-10-29; M14's DIAGRAM_VERIFIED edges=25 phantom=0.
     assert {p.parent.name for p in _completed_plans(with_sigils=True)} == {
         "diagram-generation",
         "codebase-analysis-skills",
+        "code-conventions-impact",
     }
 
 

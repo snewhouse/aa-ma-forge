@@ -441,3 +441,6 @@
 [2026-10-29T09:14:27+00:00] IMPACT_GATE — Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main) — not applicable (grandfathered): plan Created: 2026-10-08 is before IMPACT_CUTOVER 2026-10-29 (the live cutover read, not the sentinel)
 [2026-10-29T09:14:27+00:00] §6.3 PREDICTED_VS_ACTUAL — Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main) — changed=1 predicted=6 cochange=4 unpredicted=1 (TODOS.md); window origin/main..HEAD only (M14 on main, D7); §6.8 reviewed the full window 697c2d86..337f1572 (13 files)
 [2026-10-29T09:14:27+00:00] §6.8 POST_IMPL_REVIEW — Audit-Profile: code-only — agents: code-reviewer, security-auditor, tdd-sequence-auditor, context7-evidence-auditor, future-proofing-auditor — verdict: PASS_WITH_WARNINGS — findings: 0 CRITICAL / 3 WARNING (2 distinct) / 14 INFO
+[2026-10-29T09:19:22+00:00] TESTS_VERIFIED — Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main) — passed=3526 cmd=uv run pytest
+[2026-10-29T09:19:51+00:00] GATE_APPROVED — Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main) — HARD — Ste: fix warnings, then approve; W1+W2 fixed fa579c09, TESTS_VERIFIED passed=3526
+[2026-10-29T09:19:51+00:00] MILESTONE_COMPLETE — Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main)

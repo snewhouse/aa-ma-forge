@@ -929,3 +929,18 @@ DECISION ruff-only () — approved by Ste
 - The real cut ran at 07:10 UTC on 2026-10-29, so the tag date equals `IMPACT_CUTOVER` and 14.1 did not need redoing.
 - The advisory eval summary covered the wrong tree. `claude plugin eval .` ran the suites of the gitignored `.worktrees/prototype/*` trees, and the $5 cap ran out before main's `evals/` (0 of 31 run). Seen mid-run and investigated on Ste's instruction; the run finished before it could be stopped. Nothing was pushed until Ste decided.
 - Decision (Ste): push and publish now, fix `run-evals.sh` afterwards, and re-run main's 31 cases against v0.18.0. Rationale: evals never gate a release (ADR-0021), and the release content is unaffected. Recorded in TODOS.md.
+
+## [2026-10-29] GATE APPROVAL: Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main)
+- Gate: HARD
+- Approved by: Ste (AskUserQuestion: "Fix warnings, then approve (Recommended)")
+- Criteria verified: 4/4
+- Evidence:
+  - Release: v0.18.0 at 6ca20981, tag dated 2026-10-29 == IMPACT_CUTOVER; https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.18.0
+  - CRITICAL_PATH_REVIEW: version-pipeline
+  - Fences: 1 clean; 2 DIAGRAM_VERIFIED edges=25 phantom=0; 3 TESTS_VERIFIED passed=3526 at fa579c09; 4 not applicable (grandfathered, read from the live cutover)
+  - §6.8 PASS_WITH_WARNINGS: 0 CRITICAL; W1 and W2 fixed in fa579c09
+- Known gap: the advisory evals ran the .worktrees/ suites (TODOS.md)
+- Decision: APPROVED
+
+## [2026-10-29] Milestone Completion: Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main)
+- M14 COMPLETE. Every milestone of code-conventions-impact is now COMPLETE; next is archive (/archive-aa-ma), which needs Ste's OK.

@@ -1336,7 +1336,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main)
-- Status: ACTIVE
+- Status: COMPLETE
 - Dependencies: Milestone 13
 - Complexity: 40%
 - Effort: 0.5 day
@@ -1349,6 +1349,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `gh release view v0.18.0` exits 0, and the tag's commit contains the cutover.
   - `git status --porcelain` is empty after the cutover commit and after the release's advisory evals.
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 14 (version-pipeline).
+- Result Log: COMPLETE 2026-10-29. HARD gate approved by Ste after the warnings were fixed. 4/4 ACs; 4/4 sub-steps (plus 14.0b, logged in provenance). v0.18.0 released (6ca20981; tag date == IMPACT_CUTOVER 2026-10-29). Fences: 1 clean; 2 edges=25, phantom=0; 3 passed=3526 at fa579c09; 4 not applicable (grandfathered). §6.8 code-only, 5 agents: 0 CRITICAL; W1 (POST_CUTOVER) and W2 (stale bats comment) fixed in fa579c09; 14 INFO in impl-review.md. Known gap: the advisory eval summary covered .worktrees/, not main (TODOS.md). Next: archive the plan (needs Ste's OK).
 
 ### Sub-step 14.0: Post-merge of M13
 - Status: COMPLETE

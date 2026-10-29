@@ -819,3 +819,5 @@ INFO (selected):
 
 ## User Override Decisions (M14)
 None (0 CRITICAL).
+
+## Verdict (M14): PASS_WITH_WARNINGS → both warnings fixed (fa579c09); fence 3 re-run passed=3526

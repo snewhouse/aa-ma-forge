@@ -2,8 +2,9 @@
 
 ## AA-MA Tooling
 
-### PR #76 (secops trigger) review notes: 3 MEDIUM + 4 LOW, deferred under the stop rule
+### PR #76 (secops trigger) review notes: 3 MEDIUM (fixed) + 4 LOW, deferred under the stop rule
 **What:**
+- **Fixed (041ddaf5, `fix/secops-review-mediums`, 2026-10-29):** all three MEDIUMs. The description drops the S602/CWE-78 example; a "Reviewing a file" section in the body now holds it (scanner, then rule + CWE + fix per finding, then the related skills). Re-run with `--runs 6`: shell-true 12/12, js-lockfile 12/12, scanner-map 11/12 in two batches. In the second batch, traces show `secops` loaded in 6/6 runs and every reply names Ruff S, gitleaks, pip-audit, ShellCheck for deploy.sh and CI, so the miss is the `result` judge; which run it failed is not recorded (PR #75 first-run-only LOW).
 - [MEDIUM] The description's example (`shell=True` with interpolated input is S602, CWE-78) is the `shell-true` result grader's answer, so that grader can now pass without the body loading; only `skill-fired` measures the skill. Fix: use a description example that no grader checks, or add a case whose answer lives only in the body — `claude-code/skills/secops/SKILL.md:3`, `evals/secops/shell-true/graders/result.md:4`.
 - [MEDIUM] "Security review … names each finding's class and rule" promises more than the body, a scanner router whose only review line is S602. Add a short "Reviewing a file" section (run the matching scanner; name the rule and CWE per finding), or narrow the claim — `claude-code/skills/secops/SKILL.md:3, :21`.
 - [MEDIUM] The S602/CWE-78 fact is now in the description and the body (DRY). Settle it together with the first MEDIUM — `claude-code/skills/secops/SKILL.md:3, :21`.

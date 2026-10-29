@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-10-29 09:25 -->
+<!-- Plan: code-conventions-impact - COMPLETE -->
+<!-- Total Milestones: 16 | Duration: 2026-10-08 to 2026-10-29 -->
+
 # code-conventions-impact Plan
 
 **Objective:** Make the forge's coding conventions (comments, docstrings, logging, SecOps, design principles, testing, prompt-as-code) stated once and mechanically enforced on touched code, and wire impact analysis into authoring (pre-edit hook) and the milestone gate (gate-computed `IMPACT_VERIFIED`, `TESTS_VERIFIED`).

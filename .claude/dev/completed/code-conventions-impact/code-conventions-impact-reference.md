@@ -1,3 +1,7 @@
+<!-- ARCHIVED: 2026-10-29 09:25 -->
+<!-- Plan: code-conventions-impact - COMPLETE -->
+<!-- Total Milestones: 16 | Duration: 2026-10-08 to 2026-10-29 -->
+
 # code-conventions-impact Reference
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.

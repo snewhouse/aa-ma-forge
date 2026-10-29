@@ -143,7 +143,7 @@ def fx(tmp_path, db) -> Fixture:
 
 
 def test_constants_are_the_t7_and_11_1_decisions() -> None:
-    assert dt.date.fromisoformat(IMPACT_CUTOVER)  # sentinel until M14.1, still a date
+    assert dt.date.fromisoformat(IMPACT_CUTOVER)
     assert (COCHANGE_MIN_SHARED, COCHANGE_MIN_RATIO) == (5, 0.5)
     assert COCHANGE_WINDOW_COMMITS == 500
     assert IMPACT_EXCLUDE == (
@@ -168,10 +168,28 @@ def test_shell_twin_constants_match() -> None:
 # --- applicability -------------------------------------------------------------------------
 
 
-def test_grandfathered_plan_is_not_applicable(fx) -> None:
+def test_grandfathered_plan_is_not_applicable(fx, monkeypatch) -> None:
+    # why: pinned — the fixture plan is Created 2027-01-01, so the live cutover cannot decide it
+    monkeypatch.setattr(impact, "IMPACT_CUTOVER", "2028-01-01")
     r = fx.run(ignore_cutover=False)
     assert r.exit_code == 5
-    assert "Created: 2027-01-01" in r.reason and IMPACT_CUTOVER in r.reason
+    assert "Created: 2027-01-01" in r.reason and "2028-01-01" in r.reason
+
+
+def test_cutover_is_release_date() -> None:
+    """M14.1: fence 4 applies from the v0.18.0 release date (ADR-0027 P4), not the sentinel."""
+    assert IMPACT_CUTOVER != "9999-12-31"
+    assert dt.date.fromisoformat(IMPACT_CUTOVER)
+    tag = subprocess.run(
+        ["git", "-C", str(ROOT), "log", "-1", "--format=%cs", "v0.18.0", "--"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if tag.returncode != 0:
+        # why: before 14.2 tags it, or in a clone without tags (CI checkout), only the sentinel check applies
+        pytest.skip("tag v0.18.0 not present")
+    assert tag.stdout.strip() == IMPACT_CUTOVER
 
 
 def test_post_cutover_plan_is_checked(fx, monkeypatch) -> None:

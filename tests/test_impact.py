@@ -28,6 +28,9 @@ from aa_ma.impact import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+# why: fixture plan dates either side of every real cutover; the CLI runs in a subprocess, so no monkeypatch
+GRANDFATHERED = "2020-01-01"
+POST_CUTOVER = "2027-01-01"
 TASK = ".claude/dev/active/t"
 HEADING = "Milestone 1: Thing"
 
@@ -76,7 +79,7 @@ def _commit(repo: Path, msg: str) -> str:
 
 class Fixture:
     def __init__(
-        self, tmp: Path, rows: str, *, reference: str = "", created: str = "2027-01-01"
+        self, tmp: Path, rows: str, *, reference: str = "", created: str = POST_CUTOVER
     ) -> None:
         self.repo = tmp / "repo"
         self.repo.mkdir()
@@ -171,16 +174,17 @@ def test_shell_twin_constants_match() -> None:
 
 
 def test_grandfathered_plan_is_not_applicable(fx, monkeypatch) -> None:
-    # why: pinned — the fixture plan is Created 2027-01-01, so the live cutover cannot decide it
+    # why: pinned — the fixture plan is dated POST_CUTOVER, so the live cutover cannot decide it
     monkeypatch.setattr(impact, "IMPACT_CUTOVER", "2028-01-01")
     r = fx.run(ignore_cutover=False)
     assert r.exit_code == 5
-    assert "Created: 2027-01-01" in r.reason and "2028-01-01" in r.reason
+    assert f"Created: {POST_CUTOVER}" in r.reason and "2028-01-01" in r.reason
 
 
 def test_cutover_is_release_date() -> None:
     """M14.1: fence 4 applies from the v0.18.0 release date (ADR-0027 P4), not the sentinel."""
     assert IMPACT_CUTOVER != "9999-12-31"
+    assert POST_CUTOVER >= IMPACT_CUTOVER  # why: the fixtures rely on it to be in force
     assert dt.date.fromisoformat(IMPACT_CUTOVER)
     tag = subprocess.run(
         ["git", "-C", str(ROOT), "log", "-1", "--format=%cs", "v0.18.0", "--"],
@@ -202,7 +206,7 @@ def test_post_cutover_plan_is_checked(fx, monkeypatch) -> None:
 
 
 def test_plan_without_created_is_not_applicable(fx) -> None:
-    fx.plan.write_text(fx.plan.read_text().replace("Created: 2027-01-01\n", ""))
+    fx.plan.write_text(fx.plan.read_text().replace(f"Created: {POST_CUTOVER}\n", ""))
     fx.base = _commit(
         fx.repo, "plan date at the base"
     )  # the merge-base copy dates the plan
@@ -313,7 +317,7 @@ def _cochange_history(fx: Fixture, shared: int, alone: int) -> None:
         _write(fx.repo, "notes/x.md", f"x-alone{i}\n")
         _commit(fx.repo, f"x alone {i}")
     fx.plan.write_text(
-        PLAN.format(rows="  Modify  notes/x.md", created="2027-01-01"), encoding="utf-8"
+        PLAN.format(rows="  Modify  notes/x.md", created=POST_CUTOVER), encoding="utf-8"
     )
     _commit(fx.repo, "plan")
     fx.base = _git(fx.repo, "rev-parse", "HEAD")
@@ -545,10 +549,6 @@ def test_cli_kv_keys_and_exit_code(fx) -> None:
     assert "unexplained_file=unpredicted:src/b.py" in p.stdout
 
 
-# why: a plan dated before every real cutover; the CLI runs in a subprocess, so no monkeypatch
-GRANDFATHERED = "2020-01-01"
-
-
 def test_cli_json_and_grandfathered(tmp_path, db) -> None:
     fx = Fixture(tmp_path, ROWS, created=GRANDFATHERED)
     _build(fx)
@@ -711,7 +711,7 @@ def test_lettered_milestone_number_is_read(tmp_path, db) -> None:
     """The grammar admits `2a`; --milestone must not be an int (quality W1)."""
     fx = Fixture(tmp_path, ROWS)
     fx.plan.write_text(
-        PLAN.format(rows=ROWS, created="2027-01-01").replace(
+        PLAN.format(rows=ROWS, created=POST_CUTOVER).replace(
             "Milestone 1 — Thing", "Milestone 1a — Thing"
         )
     )
@@ -825,7 +825,7 @@ def test_a_directory_row_is_satisfied_by_an_excluded_change_beneath_it(
 def test_created_inside_a_fence_is_not_the_plan_date(fx) -> None:
     fx.plan.write_text(
         fx.plan.read_text().replace(
-            "Created: 2027-01-01\n", "```\nCreated: 2027-01-01\n```\n"
+            f"Created: {POST_CUTOVER}\n", f"```\nCreated: {POST_CUTOVER}\n```\n"
         )
     )
     fx.base = _commit(
@@ -888,7 +888,9 @@ def test_created_is_read_from_the_merge_base_plan(fx, monkeypatch) -> None:
     """A branch cannot back-date its own plan to skip fence 4 (security A04)."""
     monkeypatch.setattr(impact, "IMPACT_CUTOVER", "2026-01-01")
     fx.plan.write_text(
-        fx.plan.read_text().replace("Created: 2027-01-01", "Created: 2020-01-01")
+        fx.plan.read_text().replace(
+            f"Created: {POST_CUTOVER}", f"Created: {GRANDFATHERED}"
+        )
     )
     _write(fx.repo, "src/a.py", "A = 2\n")
     r = fx.run(ignore_cutover=False)
@@ -911,7 +913,7 @@ def _plan_new_on_branch(tmp_path: Path, created: str, base_date: str | None) -> 
     fx.base = _git(fx.repo, "rev-parse", "HEAD")
     _build(fx)
     fx.plan.write_text(
-        fx.plan.read_text().replace("Created: 2027-01-01", f"Created: {created}")
+        fx.plan.read_text().replace(f"Created: {POST_CUTOVER}", f"Created: {created}")
     )
     return fx
 
@@ -919,7 +921,7 @@ def _plan_new_on_branch(tmp_path: Path, created: str, base_date: str | None) -> 
 @pytest.mark.parametrize(
     ("created", "base_date", "applicable"),
     [
-        ("2027-01-01", "2020-06-01", True),  # the working copy dates a new plan
+        (POST_CUTOVER, "2020-06-01", True),  # the working copy dates a new plan
         ("2020-01-01", "2020-06-01", False),  # before the cutover, at or after the base
         (
             "2020-01-01",
@@ -941,8 +943,8 @@ def test_a_plan_new_on_the_branch_without_created_is_dated_by_its_base(
     tmp_path, db, monkeypatch
 ) -> None:
     monkeypatch.setattr(impact, "IMPACT_CUTOVER", "2026-01-01")
-    fx = _plan_new_on_branch(tmp_path, "2027-01-01", None)
-    fx.plan.write_text(fx.plan.read_text().replace("Created: 2027-01-01\n", ""))
+    fx = _plan_new_on_branch(tmp_path, POST_CUTOVER, None)
+    fx.plan.write_text(fx.plan.read_text().replace(f"Created: {POST_CUTOVER}\n", ""))
     assert fx.run(ignore_cutover=False).exit_code != 5
 
 

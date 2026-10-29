@@ -4,7 +4,7 @@
 # The fence is the FOURTH ```bash block in §6.7 (gate, diagram, tests, impact). It runs
 # scripts/impact-verified.sh: base = aa_ma_milestone_base, then aa-ma-impact (the real CLI,
 # the real codemem) on a throwaway repo with an origin. The fixture plan is `Created:
-# 9999-12-31` — equal to the IMPACT_CUTOVER sentinel, so it is in force without any knob.
+# 9999-12-31` — after IMPACT_CUTOVER (2026-10-29), so fence 4 applies without any knob.
 # Like test_tests_verified.bats, the fence is EXECUTED as shipped, never grepped.
 
 bats_require_minimum_version 1.5.0

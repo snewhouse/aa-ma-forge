@@ -27,6 +27,8 @@ _stub_claude() {
 printf '%s\n' "$@" > "$STUB_DIR/argv"
 env > "$STUB_DIR/env"
 pwd > "$STUB_DIR/pwd"
+git rev-parse HEAD > "$STUB_DIR/head" 2>&1
+[ -e .worktrees ] && touch "$STUB_DIR/has_worktrees"
 json=""; prev=""
 for a in "$@"; do [[ "$prev" == "--json" ]] && json="$a"; prev="$a"; done
 cat > "$json" <<JSON
@@ -46,11 +48,10 @@ EOF2
   [ "$status" -eq 1 ]
 }
 
-@test "runs claude plugin eval from the repo root with the fixed advisory flags" {
+@test "runs claude plugin eval with the fixed advisory flags" {
   _stub_claude
   run "$RUN_EVALS"
   [ "$status" -eq 0 ]
-  [ "$(cat "$WORK/pwd")" = "$REPO_ROOT" ]
   argv="$(cat "$WORK/argv")"
   [[ "$argv" == plugin$'\n'eval$'\n'.* ]]
   for flag in --no-publish --scaffold --trust-plugin; do grep -qx -- "$flag" "$WORK/argv"; done
@@ -58,6 +59,46 @@ EOF2
   [ "$(grep -A1 -x -- '--runs' "$WORK/argv" | tail -1)" = 1 ]
   grep -A1 -x -- '--ablation' "$WORK/argv" | tail -1 | grep -qx none
   grep -qx -- '--max-cost-usd' "$WORK/argv"
+}
+
+# claude plugin eval also runs the suites of nested worktrees (.worktrees/*/evals, gitignored):
+# at v0.18.0 it ran 46 prototype cases and none of the repo's own (TODOS P1, L-1360).
+@test "runs from a clean checkout of HEAD outside the repo, so no nested worktree suite is seen" {
+  _stub_claude
+  run "$RUN_EVALS"
+  [ "$status" -eq 0 ]
+  pwd_run="$(cat "$WORK/pwd")"
+  [ "$pwd_run" != "$REPO_ROOT" ]
+  [[ "$pwd_run" != "$REPO_ROOT"/* ]]
+  [ "$(cat "$WORK/head")" = "$(git -C "$REPO_ROOT" rev-parse HEAD)" ]
+  [ ! -e "$WORK/has_worktrees" ]
+  [ ! -e "$pwd_run" ]   # removed afterwards
+  run git -C "$REPO_ROOT" worktree list --porcelain
+  [[ "$output" != *"$pwd_run"* ]]
+}
+
+@test "RUN_EVALS_REF picks the commit evaluated" {
+  _stub_claude
+  RUN_EVALS_REF=HEAD~1 run "$RUN_EVALS"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$WORK/head")" = "$(git -C "$REPO_ROOT" rev-parse HEAD~1)" ]
+}
+
+@test "an unknown RUN_EVALS_REF is reported, never evaluated, still exit 0" {
+  _stub_claude
+  RUN_EVALS_REF=no-such-ref-xyz run "$RUN_EVALS"
+  [ "$status" -eq 0 ]
+  [ ! -e "$WORK/argv" ]
+  [[ "$output" == *"no-such-ref-xyz"* ]]
+  [[ "${lines[-1]}" == "run-evals: rc="* ]]
+}
+
+@test "a case from outside the eval dir is flagged in the summary" {
+  _stub_claude
+  sed -i 's#"dir": "evals/x/b-fail"#"dir": ".worktrees/p/evals/x/b-fail"#' "$WORK/bin/claude"
+  run "$RUN_EVALS"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"run-evals: WARNING 1 case(s) outside evals/"* ]]
 }
 
 @test "grants no shell, write, network or gh tool to the agent" {

@@ -5,6 +5,18 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-076 (2026-10-29) — A constant pinned to a future release date depends on the UTC clock
+**Pattern:** `IMPACT_CUTOVER` was planned as 2026-10-28. UTC passed midnight before 14.1, and `release.sh` dates the tag with `date +%F`, so a cut on a later day would have mismatched the constant (`test_cutover_is_release_date`).
+**Rule:** Set a release-date constant in the same session as the cut. Run `date -u +%F` immediately before `release.sh`; if it differs from the constant, stop and redo the constant before tagging.
+
+## L-075 (2026-10-29) — On main, §6.3 predicted-vs-actual sees only the unpushed commits
+**Pattern:** M14 ran on the main checkout. The merge-base with origin/main was origin/main itself, so §6.3 measured `changed=1` (TODOS.md) and missed the 13-file milestone (697c2d86..HEAD).
+**Rule:** When a milestone runs on main, give §6.3 and §6.8 the previous milestone's merge commit as base, and record in provenance which window was reviewed.
+
+## L-074 (2026-10-29) — A known open TODOS defect went into the release unchecked
+**Pattern:** TODOS.md had logged the run-evals nested-worktree bug at 10.9 (P3, 2026-10-26). M14's plan never checked it, the release eval summary scored 0 of main's 31 cases, and I reported it as a new finding until the §7.2.5 validator found the old entry.
+**Rule:** Before a release step (or any step that runs a script), grep TODOS.md for open entries naming each script the step runs, and list them in the plan step. An open entry the step depends on gets fixed or re-prioritised first.
+
 ## L-073 (2026-10-29) — Wrote a sub-step's Result Log but left its `Status: PENDING`
 **Pattern:** in M14 I appended Result Logs to 14.2 and 14.3 with Edit calls that matched only the `Result Log:` line, and committed. Both kept `Status: PENDING`; the gate (`pending_steps=2`) caught it, which cost a fix-up commit.
 **Rule:** a sub-step's COMPLETE is one Edit whose `old_string` covers `- Status: PENDING` through `- Result Log:`, so the status flips in the same change as the log. Before committing a Result Log, run `uv run aa-ma-gate <tasks.md> --format kv | grep ^pending_steps=` and check the count dropped by one.

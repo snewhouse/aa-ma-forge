@@ -16,7 +16,7 @@ members = [
 
 [[package]]
 name = "aa-ma"
-version = "0.17.0"
+version = "0.18.0"
 source = { editable = "." }
 dependencies = [
     { name = "markdown-it-py" },

@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## v0.18.0 (2026-10-29)
 
 > **Upgrade note: re-run `scripts/install.sh` after you update.** This release changes what `~/.claude` links to: the slash commands are now skills, a third auto-loaded rule (`rules/coding-standards.md`) and new skills and hooks are linked, and with a `~/.local/share/codemem-plugin` link every link moves into that live worktree (ADR-0025). Until you re-run it, old command links dangle and the new rule, skills and hooks are missing.
 

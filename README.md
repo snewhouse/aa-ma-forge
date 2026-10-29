@@ -16,7 +16,7 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-**Current version:** v0.17.0 — Codebase analysis: assess-codebase, understand-codebase v1, aa-ma-analysis CLI
+**Current version:** v0.18.0 — Code conventions: coding-standards rule, SecOps CI, tests and impact gates
 
 ## The problem
 

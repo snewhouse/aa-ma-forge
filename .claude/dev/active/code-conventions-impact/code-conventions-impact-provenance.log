@@ -425,3 +425,6 @@
 [2026-10-28T17:11:43+00:00] TESTS_VERIFIED — Milestone 13: Docs, counts, TODOS (pre-release) — passed=3525 cmd=uv run pytest
 [2026-10-28T18:55:04+00:00] MILESTONE COMPLETE — Milestone 13 — Commit: da1cd734 — Criteria: 3/3 verified
 [2026-10-28T18:56:19+00:00] NOTE — M13 TESTS_VERIFIED: first line (17:08:57) at bad56edc, second (17:11:43) at 593e718c after the §6.8 fix; §7.2.5 validator WARNINGS_BUT_USABLE back-filled (13.0 Result Log prefix, reference 13.x Facts)
+[2026-10-29T01:17:03+00:00] MERGED — M13 PR #72 → main 697c2d86 (sdm rebase; check OK; C1 0/0/0/2, C2 0/0/0/2; CI green; remote branch deleted)
+[2026-10-29T01:17:03+00:00] MILESTONE_ACTIVE — Milestone 14
+[2026-10-29T01:17:03+00:00] STEP_COMPLETE — 14.0 — main 697c2d86 pytest 3525 passed; release.sh --dry-run → v0.18.0

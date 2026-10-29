@@ -1336,7 +1336,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 ---
 
 ## Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main)
-- Status: PENDING
+- Status: ACTIVE
 - Dependencies: Milestone 13
 - Complexity: 40%
 - Effort: 0.5 day
@@ -1351,12 +1351,12 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
   - `provenance.log` has a `CRITICAL_PATH_REVIEW` line for Milestone 14 (version-pipeline).
 
 ### Sub-step 14.0: Post-merge of M13
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: None
 - Acceptance Criteria:
   - M13 merged; `git pull` on main; `uv run pytest -q` green. M14 runs on the main checkout (D7 exception, D11); main pushes need Ste's explicit OK.
-- Result Log:
+- Result Log: COMPLETE 2026-10-29 (HITL; Ste: authorised main pushes for 14.0/14.0b/14.1). M13 merged: PR #72 → main 697c2d86 (sdm rebase; C1 0/0/0/2, C2 0/0/0/2, CI green); local main = origin/main, clean. `uv run pytest -q` on main: 3525 passed, 2 skipped, 7 deselected. `release.sh minor --dry-run` rc 0: would cut v0.18.0. Working on the main checkout (D7 exception, D11).
 
 ### Sub-step 14.1: Cutover (TDD)
 - Status: PENDING

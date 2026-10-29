@@ -917,3 +917,10 @@ DECISION ruff-only () — approved by Ste
 - Artifacts: CHANGELOG.md, README.md, SECURITY.md, docs/spec/aa-ma-quick-reference.md, docs/spec/aa-ma-specification.md, TODOS.md; project CLAUDE.md (gitignored, local).
 - Tests: 3525 passed (fence 3, 593e718c).
 - Next: M14 — release v0.18.0 + IMPACT_CUTOVER (on main; release.sh, tag, push — needs Ste's explicit OK).
+
+## [2026-10-29] M14 plan — Ste's decisions
+- Main pushes authorised for 14.0, 14.0b (new: pre-release doc fixes for PR #72's 4 LOWs — SECURITY.md UNKNOWN/Claude-Code-only claims, spec TESTS_VERIFIED forms, TODOS `impact-verified.sh:84` → `src/aa_ma/impact.py:290`) and 14.1. Tag + release (14.2) need a separate OK.
+- Publish: `release.sh minor --no-push` (evals advisory, local tag) → cutover test against the local tag → `git push --follow-tags origin main` + `gh release create v0.18.0 --notes-file <section>` (release.sh's own last steps; no reset).
+- Headline: "Code conventions: coding-standards rule, SecOps CI, tests and impact gates".
+- Date: planned 2026-10-28, but UTC rolled to 2026-10-29 before 14.1 → `IMPACT_CUTOVER = "2026-10-29"`; 14.1 and 14.2 must both land on 2026-10-29 UTC (release.sh dates the heading/tag with `date +%F`), else 14.1 is redone.
+- 14.1 also fixes `tests/test_impact.py::test_grandfathered_plan_is_not_applicable` (its `Created: 2027-01-01` fixture is only grandfathered under the 9999-12-31 sentinel).

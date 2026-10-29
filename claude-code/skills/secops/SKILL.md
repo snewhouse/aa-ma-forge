@@ -1,6 +1,6 @@
 ---
 name: secops
-description: "Security review and scanner routing: names each finding's class and rule (e.g. `shell=True` with interpolated input is Ruff S602, CWE-78), the scanner that catches it (Ruff S, gitleaks, pip-audit, osv-scanner, ShellCheck) and the layer it runs at (edit, commit, CI). Use when reviewing code or a file for security problems, choosing a repo's security checks, or auditing dependencies."
+description: "Security review, dependency audit and scanner choice: names each finding's class and rule (e.g. `shell=True` with interpolated input is Ruff S602, CWE-78), the scanner that catches it (Ruff S for Python, gitleaks for secrets, pip-audit for the Python lock, osv-scanner for JS/R lockfiles, ShellCheck for shell) and the layer it runs at (edit, commit, CI). Use when reviewing code or a file for security problems, auditing dependencies for known vulnerabilities, or choosing a repo's security checks."
 ---
 
 # SecOps router

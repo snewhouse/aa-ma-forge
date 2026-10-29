@@ -1,6 +1,6 @@
 ---
 name: secops
-description: "Routes a security question to the right scanner and layer: Ruff S for Python, gitleaks for secrets, pip-audit for the Python lock, osv-scanner for JS/R lockfiles, ShellCheck for shell, and says where each runs (edit, commit, CI). Use when asked which security checks a repo should run, how to audit dependencies, or to review code for security problems."
+description: "Security review and scanner routing: names each finding's class and rule (e.g. `shell=True` with interpolated input is Ruff S602, CWE-78), the scanner that catches it (Ruff S, gitleaks, pip-audit, osv-scanner, ShellCheck) and the layer it runs at (edit, commit, CI). Use when reviewing code or a file for security problems, choosing a repo's security checks, or auditing dependencies."
 ---
 
 # SecOps router

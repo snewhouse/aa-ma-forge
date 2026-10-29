@@ -2,9 +2,9 @@
 
 ## AA-MA Tooling
 
-### PR #74 (run-evals clean checkout) review notes: 1 MEDIUM + 9 LOW, deferred under the stop rule
+### PR #74 (run-evals clean checkout) review notes: 1 MEDIUM (fixed) + 9 LOW, deferred under the stop rule
 **What:**
-- [MEDIUM] The new outside-case WARNING pushes the summary line out of `release.sh`'s `tail -n 2`, which happens exactly when the warning matters. Print it before the summary or on stderr — `scripts/run-evals.sh:104` (consumer `scripts/release.sh:73`).
+- [MEDIUM, fixed 2026-10-29 on `fix/run-evals-warning-order`: the warning is now on the summary line] The new outside-case WARNING pushed the summary line out of `release.sh`'s `tail -n 2`, which happens exactly when the warning matters. Print it before the summary or on stderr — `scripts/run-evals.sh:104` (consumer `scripts/release.sh:73`).
 - [LOW] `RUN_EVALS_REF` reaches `git worktree add` without `--end-of-options`, so a value starting with `-` is read as an option — `scripts/run-evals.sh:47`.
 - [LOW] The header and runbook don't say the chosen ref must be trusted: its scaffolds and plugin run as you — `scripts/run-evals.sh:21-26`, `docs/runbooks/release.md:23-25`.
 - [LOW] The bad-ref path prints `rc=128`, which is not claude's exit code as the header promises — `scripts/run-evals.sh:51`.

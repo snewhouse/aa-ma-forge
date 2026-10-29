@@ -7,7 +7,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ## Unreleased
 
 ### Fixed
-- `scripts/run-evals.sh` now evaluates a clean, detached checkout of `RUN_EVALS_REF` (default `HEAD`), placed outside the repo and removed afterwards. Before, `claude plugin eval .` also ran the suites inside gitignored `.worktrees/*/evals`: the v0.18.0 release evals ran 46 prototype cases and none of the repo's own. A summary that includes a case from outside `evals/` now prints a WARNING. Uncommitted edits are no longer evaluated.
+- `scripts/run-evals.sh` now evaluates a clean, detached checkout of `RUN_EVALS_REF` (default `HEAD`), placed outside the repo and removed afterwards. Before, `claude plugin eval .` also ran the suites inside gitignored `.worktrees/*/evals`: the v0.18.0 release evals ran 46 prototype cases and none of the repo's own. If a case comes from outside `evals/`, the summary line itself carries a WARNING, so `release.sh` (which shows the last two lines) still shows it. Uncommitted edits are no longer evaluated.
 
 ## v0.18.0 (2026-10-29)
 

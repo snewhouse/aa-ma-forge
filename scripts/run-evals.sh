@@ -96,11 +96,13 @@ jq -c --arg ts "$(date -Iseconds)" --arg model "${MODEL}" --argjson rc "${rc}" '
                 score: .aggregates.score, rc: $rc, model: $model, error: .arms.with[0].error,
                 failed: [.arms.with[0].graders[]? | select(.passed | not) | .name]}' \
     "${OUT}/result.json" >>"${jsonl}"
-jq -r --arg jsonl "${jsonl}" '
-    [.cases[] | .aggregates.score >= 1] as $p
-    | "run-evals: \($p | length) cases, \($p | map(select(.)) | length) pass, \($p | map(select(. | not)) | length) fail, cost $\((.costUsd // 0) * 100 | round / 100) → \($jsonl)"' \
-    "${OUT}/result.json"
+# The warning rides on the summary line: release.sh shows only the last two lines.
+warn=""
 outside=$(jq --arg d "${EVAL_DIR}/" '[.cases[] | select(.dir | startswith($d) | not)] | length' "${OUT}/result.json")
-[[ "${outside}" -eq 0 ]] || echo "run-evals: WARNING ${outside} case(s) outside ${EVAL_DIR}/ — the summary covers more than this suite"
+[[ "${outside}" -eq 0 ]] || warn=" — WARNING ${outside} case(s) outside ${EVAL_DIR}/: the summary covers more than this suite"
+jq -r --arg jsonl "${jsonl}" --arg warn "${warn}" '
+    [.cases[] | .aggregates.score >= 1] as $p
+    | "run-evals: \($p | length) cases, \($p | map(select(.)) | length) pass, \($p | map(select(. | not)) | length) fail, cost $\((.costUsd // 0) * 100 | round / 100) → \($jsonl)\($warn)"' \
+    "${OUT}/result.json"
 echo "run-evals: rc=${rc}"
 exit 0

@@ -944,3 +944,7 @@ DECISION ruff-only () — approved by Ste
 
 ## [2026-10-29] Milestone Completion: Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main)
 - M14 COMPLETE. Every milestone of code-conventions-impact is now COMPLETE; next is archive (/archive-aa-ma), which needs Ste's OK.
+
+## [2026-10-29] Correction: the eval mis-targeting was a known defect
+- The 14.2 entry says it was "seen mid-run". In fact TODOS.md had logged it at 10.9 (2026-10-26, P3, unfixed). M14's plan did not check it before the release; the §7.2.5 validator found the earlier entry. The two TODOS entries are merged into the 10.9 one and raised to P1.
+- Pointer fix: the M14 plan entry's `src/aa_ma/impact.py:290` should read :292 (`_plan_date`).

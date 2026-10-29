@@ -2,7 +2,7 @@
 
 **Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
 
-_Last Updated: 2026-10-28 (M13 complete: 13.0–13.2 as-built)_
+_Last Updated: 2026-10-29 (M14 complete: v0.18.0 released, IMPACT_CUTOVER live; all milestones COMPLETE)_
 
 Test-Command: uv run pytest
 
@@ -175,7 +175,7 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 | `COCHANGE_MIN_RATIO` | 0.5 | partner changed in ≥50% of the file's commits (≥ semantics) | [valid: 2026-10-08] |
 | `COCHANGE_WINDOW_COMMITS` | 500 | `src/aa_ma/impact.py`; `codemem refresh-commits --limit` for fence 4 (11.1 Ste; 2000 = 3× lines, stale pairs; M3 renames out of range, F1 accepted); no sweep filter (gate counts every commit, unlike the hook's `CO_CHANGE_MAX_COMMIT_FILES`) | [valid: 2026-10-27] |
 | Cochange-Threshold override bounds | n ≤ 20, ratio ≤ 0.9 | `Cochange-Threshold: <n> <ratio>` in reference.md merge-base copy; needs GATE APPROVAL | [valid: 2026-10-08] |
-| `IMPACT_CUTOVER` | `"9999-12-31"` (sentinel) | set to the v0.18.0 release date in M14.1 | [valid: 2026-10-08 to M14.1] |
+| `IMPACT_CUTOVER` | `"2026-10-29"` | `src/aa_ma/impact.py:64`; the v0.18.0 release date (the `9999-12-31` sentinel until M14.1, d3402b53) | [valid: 2026-10-29] |
 | `IMPACT_EXCLUDE` | `(".claude/dev/**", "docs/architecture/**", "tests/golden/**", "uv.lock", "CHANGELOG.md")` | impact.py | [valid: 2026-10-08] |
 | Fence 3 timeout | `${AA_MA_TEST_TIMEOUT:-540}` s | Bash tool max is 600 s; baseline suite 112.5 s | [valid: 2026-10-08] |
 | Fence 3 pass regex | final non-empty line after `sed -E 's/^=+ //; s/ =+$//'` matches `(^|, )([0-9]+) passed` | earlier "2 snapshots passed." lines ignored | [valid: 2026-10-08] |
@@ -515,3 +515,10 @@ The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md
 - `~/.claude/CLAUDE.md` now sha256 9f87a7f6…, 8,078 bytes (was 91355a68…). Rollback: `cp ~/.claude/backups/CLAUDE.md.20261028T135203 ~/.claude/CLAUDE.md`. [valid: 2026-10-28]
 - Commits: 31907f81 (docs), 21b7bfa2 (TODOS), 593e718c (§6.8 fix). Tests at M13 end: pytest 3525 passed. [valid: 2026-10-28]
 - `git describe --tags` returns a `claude-checkpoint-*` tag (not ours; Ste: leave them) — use `v0.17.0` explicitly as the last release for doc-drift / CHANGELOG ranges (M14). [valid: 2026-10-28]
+
+## 14.x Facts (2026-10-29)
+- Heading (verbatim): `Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main)`. Ran on the main checkout (D7 exception, D11). [valid: 2026-10-29]
+- `IMPACT_CUTOVER = "2026-10-29"` at `src/aa_ma/impact.py:64` (RED 4a541216 → GREEN d3402b53; the planned 2026-10-28 moved because UTC passed midnight first). Plans `Created:` on or after 2026-10-29 get fence 4. [valid: 2026-10-29]
+- v0.18.0: bump commit 6ca20981 (`[ad-hoc]`; CHANGELOG, README, VERSION, pyproject.toml, uv.lock); annotated tag dated 2026-10-29; https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.18.0 (published 2026-10-29T09:09:07Z). CHANGELOG now has no `## Unreleased`; the next release needs one. [valid: 2026-10-29]
+- Tests: `test_cutover_is_release_date` compares against `git log -1 --format=%cs v0.18.0` and skips with no tag (CI has none, so the check runs locally only). Constants `GRANDFATHERED = "2020-01-01"`, `POST_CUTOVER = "2027-01-01"` at `tests/test_impact.py:32-33` (fa579c09). pytest 3526 passed at fa579c09. [valid: 2026-10-29]
+- Known defect, P1: `scripts/run-evals.sh` runs the nested `.worktrees/` suites (first seen at 10.9; recurred at the release, when 0 of main's 31 cases ran). See TODOS.md "run-evals: case discovery walks nested worktrees". [valid: 2026-10-29]

@@ -2,9 +2,6 @@
 
 ## AA-MA Tooling
 
-### `run-evals.sh` scores nested `.worktrees/` suites, not this repo's `evals/`
-**What:** `claude plugin eval .` (`scripts/run-evals.sh`) treats each gitignored `.worktrees/*/claude-code` as a plugin and runs its suite. The v0.18.0 release run (2026-10-29) scored 46 cases: 28 from `prototype/codemem-refresh-cap` and 18 from `prototype/m11-cochange-threshold`. It scored 0 of main's 31; the `$5` cap ran out at $5.04 before main's suite. The 2026-10-27 run mixed 3 + 3 worktree cases in. **Fix:** run against an isolated tree (e.g. `git worktree add` of HEAD outside the repo) or exclude `.worktrees/`, then add a bats test that a nested suite is not run. **Then:** re-run main's 31 cases against v0.18.0.
-
 ### M13 sdm review (PR #72): 4 LOW — fixed before v0.18.0 (M14.0b)
 **What:** SECURITY.md "UNKNOWN, never zero" scope and "Claude Code sessions only"; spec TESTS_VERIFIED `skipped:` form and `inputs: local` prefix; TODOS pointers `impact-verified.sh:84` → `src/aa_ma/impact.py:292`. All fixed on main in M14.0b; kept here as the PR's review record.
 
@@ -57,7 +54,7 @@
 
 ### run-evals: case discovery walks nested worktrees under the repo
 **What:** `scripts/run-evals.sh` (`claude plugin eval . --eval-dir evals`) also ran the cases under `.worktrees/<branch>/evals/` — at 10.9 each `--case '<skill>-*'` run doubled (6 runs for 3 cases) with stale copies from `.worktrees/prototype/codemem-refresh-cap`. Exclude `.worktrees/` (or point the run at a path that cannot contain them) and add a bats case.
-**Why:** code-conventions-impact 10.9 (2026-10-26): doubled cost and results mixing branch copies. **Effort:** S · **Priority:** P3
+**Why:** code-conventions-impact 10.9 (2026-10-26): doubled cost and results mixing branch copies. **It recurred at the v0.18.0 release (M14.2, 2026-10-29):** 46 cases, 28 from `prototype/codemem-refresh-cap` and 18 from `prototype/m11-cochange-threshold`, and 0 from main's `evals/`. The `$5` cap ran out at $5.04, so the release eval summary is invalid. After the fix, re-run main's full `evals/` suite against v0.18.0. **Effort:** S · **Priority:** P1 (raised from P3: it now invalidates release evals)
 
 ### PR for code-conventions-impact 10.0 (live worktree, ADR-0025) review notes: 5 LOW + 1 LOW (C2), deferred under the stop rule
 **What:**

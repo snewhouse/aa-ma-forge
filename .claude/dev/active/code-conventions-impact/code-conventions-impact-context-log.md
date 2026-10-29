@@ -924,3 +924,8 @@ DECISION ruff-only () — approved by Ste
 - Headline: "Code conventions: coding-standards rule, SecOps CI, tests and impact gates".
 - Date: planned 2026-10-28, but UTC rolled to 2026-10-29 before 14.1 → `IMPACT_CUTOVER = "2026-10-29"`; 14.1 and 14.2 must both land on 2026-10-29 UTC (release.sh dates the heading/tag with `date +%F`), else 14.1 is redone.
 - 14.1 also fixes `tests/test_impact.py::test_grandfathered_plan_is_not_applicable` (its `Created: 2027-01-01` fixture is only grandfathered under the 9999-12-31 sentinel).
+
+## [2026-10-29] 14.2 — v0.18.0 released; advisory evals mis-targeted
+- The real cut ran at 07:10 UTC on 2026-10-29, so the tag date equals `IMPACT_CUTOVER` and 14.1 did not need redoing.
+- The advisory eval summary covered the wrong tree. `claude plugin eval .` ran the suites of the gitignored `.worktrees/prototype/*` trees, and the $5 cap ran out before main's `evals/` (0 of 31 run). Seen mid-run and investigated on Ste's instruction; the run finished before it could be stopped. Nothing was pushed until Ste decided.
+- Decision (Ste): push and publish now, fix `run-evals.sh` afterwards, and re-run main's 31 cases against v0.18.0. Rationale: evals never gate a release (ADR-0021), and the release content is unaffected. Recorded in TODOS.md.

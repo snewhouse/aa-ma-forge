@@ -2,6 +2,9 @@
 
 ## AA-MA Tooling
 
+### `run-evals.sh` scores nested `.worktrees/` suites, not this repo's `evals/`
+**What:** `claude plugin eval .` (`scripts/run-evals.sh`) treats each gitignored `.worktrees/*/claude-code` as a plugin and runs its suite. The v0.18.0 release run (2026-10-29) scored 46 cases: 28 from `prototype/codemem-refresh-cap` and 18 from `prototype/m11-cochange-threshold`. It scored 0 of main's 31; the `$5` cap ran out at $5.04 before main's suite. The 2026-10-27 run mixed 3 + 3 worktree cases in. **Fix:** run against an isolated tree (e.g. `git worktree add` of HEAD outside the repo) or exclude `.worktrees/`, then add a bats test that a nested suite is not run. **Then:** re-run main's 31 cases against v0.18.0.
+
 ### M13 sdm review (PR #72): 4 LOW — fixed before v0.18.0 (M14.0b)
 **What:** SECURITY.md "UNKNOWN, never zero" scope and "Claude Code sessions only"; spec TESTS_VERIFIED `skipped:` form and `inputs: local` prefix; TODOS pointers `impact-verified.sh:84` → `src/aa_ma/impact.py:292`. All fixed on main in M14.0b; kept here as the PR's review record.
 

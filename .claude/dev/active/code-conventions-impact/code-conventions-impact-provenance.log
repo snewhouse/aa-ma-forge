@@ -430,3 +430,6 @@
 [2026-10-29T01:17:03+00:00] STEP_COMPLETE — 14.0 — main 697c2d86 pytest 3525 passed; release.sh --dry-run → v0.18.0
 [2026-10-29T01:25:35+00:00] STEP_COMPLETE — 14.0b — ad77d39d pre-release doc fixes (PR #72 LOWs) on main
 [2026-10-29T01:25:35+00:00] STEP_COMPLETE — 14.1 — RED 4a541216 → GREEN d3402b53 IMPACT_CUTOVER=2026-10-29; pytest 3525 passed/3 skipped; pushed to main
+[2026-10-29T09:09:50+00:00] EVALS_MISTARGETED — release.sh advisory evals: 46 cases (43 pass/3 fail, $5.04) all from .worktrees/prototype/{codemem-refresh-cap,m11-cochange-threshold}; 0 of main's 31 evals/ cases — Ste: push now, fix after (TODOS.md)
+[2026-10-29T09:09:50+00:00] RELEASED — v0.18.0 — bump 6ca20981, annotated tag dated 2026-10-29 == IMPACT_CUTOVER (test_cutover_is_release_date 2 passed, 0 skipped); pushed 499c7a27..6ca20981 + tag; https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.18.0 published 2026-10-29T09:09:07Z
+[2026-10-29T09:09:50+00:00] STEP_COMPLETE — 14.2 — v0.18.0 released (Ste OK)

@@ -2,7 +2,16 @@
 
 ## AA-MA Tooling
 
-### PR #76 (secops trigger) review notes: 3 MEDIUM (fixed) + 4 LOW, deferred under the stop rule
+### PR #77 (secops review steps in the body) review notes: 1 MEDIUM + 4 LOW, deferred under the stop rule
+**What:**
+- [MEDIUM] "Reviewing a file" step 1 runs the table's scanner commands, which obey the scanned repo's own config and inline suppressions (pyproject `per-file-ignores`, `# noqa`, `.gitleaks.toml`, `.shellcheckrc`), so untrusted code can report a false zero. For code the operator did not write, use `ruff check --isolated --ignore-noqa --select S`, `gitleaks --config <operator's config>`, `shellcheck --norc`, and treat any added suppression or scanner-config change as a finding (C2 reproduced both Ruff bypasses on ruff 0.15.4) — `claude-code/skills/secops/SKILL.md:14, :23`.
+- [LOW] Step 1 says "the scanner for the file's type"; gitleaks covers any file, so a literal reading skips the secret scan. Say "each scanner the table routes the file to" — `claude-code/skills/secops/SKILL.md:23`.
+- [LOW] Step 3 repeats the Related list's three skills and glosses (DRY) — `claude-code/skills/secops/SKILL.md:25, :44-46`.
+- [LOW] Step 3's "what scanners miss" list omits authorization/IDOR and crypto choice; mark it non-exhaustive or add them — `claude-code/skills/secops/SKILL.md:25`.
+- [LOW, fixed in this entry's commit] TODOS still listed the osv-scanner LOW as open.
+**Evidence:** at 041ddaf5, `--runs 6`: shell-true 12/12, js-lockfile 12/12, scanner-map 11/12 in two batches (secops loaded 6/6 by trace; every reply met the rubric, so the miss is the `result` judge). **Re-run** the 3 secops cases with `--runs 6` after fixing. **Why:** sole-dev-merge round 1 on PR #77 (2026-10-29). **Effort:** S · **Priority:** P2 (the MEDIUM); the rest P3
+
+### PR #76 (secops trigger) review notes: 3 MEDIUM (fixed, PR #77) + 4 LOW (1 fixed), deferred under the stop rule
 **What:**
 - **Fixed (041ddaf5, `fix/secops-review-mediums`, 2026-10-29):** all three MEDIUMs. The description drops the S602/CWE-78 example; a "Reviewing a file" section in the body now holds it (scanner, then rule + CWE + fix per finding, then the related skills). Re-run with `--runs 6`: shell-true 12/12, js-lockfile 12/12, scanner-map 11/12 in two batches. In the second batch, traces show `secops` loaded in 6/6 runs and every reply names Ruff S, gitleaks, pip-audit, ShellCheck for deploy.sh and CI, so the miss is the `result` judge; which run it failed is not recorded (PR #75 first-run-only LOW).
 - [MEDIUM] The description's example (`shell=True` with interpolated input is S602, CWE-78) is the `shell-true` result grader's answer, so that grader can now pass without the body loading; only `skill-fired` measures the skill. Fix: use a description example that no grader checks, or add a case whose answer lives only in the body — `claude-code/skills/secops/SKILL.md:3`, `evals/secops/shell-true/graders/result.md:4`.
@@ -10,7 +19,7 @@
 - [MEDIUM] The S602/CWE-78 fact is now in the description and the body (DRY). Settle it together with the first MEDIUM — `claude-code/skills/secops/SKILL.md:3, :21`.
 - [LOW] The routing row in `claude-code/rules/coding-standards.md:43` ("security checks or a dependency audit") has no review branch. Note that the rules budget ratchet applies to that file.
 - [LOW] "(load it before reading the code)" is a new pattern (it took shell-true from 4–5 of 6 runs to 12 of 12). If another skill copies it, record it with that evidence in writing-for-agents "In this repo".
-- [LOW] The description scopes osv-scanner to "JS/R lockfiles", while the body also covers Go, Rust, Java, Ruby, PHP and .NET (C1 and C2) — `claude-code/skills/secops/SKILL.md:3, :15`.
+- [LOW, fixed PR #77: "JS, R and other lockfiles"] The description scopes osv-scanner to "JS/R lockfiles", while the body also covers Go, Rust, Java, Ruby, PHP and .NET (C1 and C2) — `claude-code/skills/secops/SKILL.md:3, :15`.
 **Evidence:** at 2149ff4c, shell-true scored 24/24 over 12 runs (Skill called first in all 12), js-lockfile 12/12 and scanner-map 12/12 over 6 runs each. **Re-run** all 3 secops cases with `--runs 6` after any of these fixes. **Why:** sole-dev-merge round 1 on PR #76. **Effort:** S · **Priority:** P3
 
 ### PR #75 (run-evals warning on the summary line) review notes + eval re-check findings

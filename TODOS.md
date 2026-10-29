@@ -2,6 +2,14 @@
 
 ## AA-MA Tooling
 
+### PR #75 (run-evals warning on the summary line) review notes + eval re-check findings
+**What:**
+- [LOW] The outside-case count fails open: if jq errors (no `.cases`, or a `.dir` that isn't a string), `outside` is empty, `[[ "" -eq 0 ]]` is true, and the warning disappears silently. This predates PR #75; C1 and C2 both raised it. Fix: `outside=$(jq …) || outside="?"` and a string compare — `scripts/run-evals.sh:100-102`.
+- `secops/shell-true`: across 3 runs against v0.18.0, `skill-fired` failed every time and `result` passed every time. Sonnet answers correctly but never loads `secops` for this prompt. Check the trigger wording in `claude-code/skills/secops/SKILL.md` against `evals/secops/shell-true/case.yaml`.
+- `execute-aa-ma-step/next-step` is flaky: 5 of 6 grader passes over 3 runs.
+- `run-evals.sh` writes `failed` from the first run only (`.arms.with[0].graders`), so with `--runs > 1` a later failing run shows `failed: []` (next-step did) — `scripts/run-evals.sh:93-94`.
+**Why:** PR #75 sole-dev-merge round 1 and the `--runs 3` re-check (2026-10-29). **Effort:** S · **Priority:** P2 (the secops trigger); the rest P3
+
 ### PR #74 (run-evals clean checkout) review notes: 1 MEDIUM (fixed) + 9 LOW, deferred under the stop rule
 **What:**
 - [MEDIUM, fixed 2026-10-29 on `fix/run-evals-warning-order`: the warning is now on the summary line] The new outside-case WARNING pushed the summary line out of `release.sh`'s `tail -n 2`, which happens exactly when the warning matters. Print it before the summary or on stderr — `scripts/run-evals.sh:104` (consumer `scripts/release.sh:73`).
@@ -14,7 +22,7 @@
 - [LOW] A relative `CLAUDE_BIN` (or relative extra argument) now resolves against the temp checkout — `scripts/run-evals.sh:65`.
 - [LOW] The `HEAD~1` test fails on a shallow clone, and `tests/scripts/` is not run in CI at all — `tests/scripts/test_run_evals_sandbox.bats:82-84`, `.github/workflows/security.yml`.
 - [LOW] The "no result" exit block appears 3 times; use one helper — `scripts/run-evals.sh:48-52, 78-81, 85-89`.
-**Also:** the first valid eval run against v0.18.0 (2026-10-29: 31 cases, 27 pass) failed `execute-aa-ma-step/next-step` (result), `impact-analysis/private-helper` (skill-fired; it passed 2026-10-26), `plan-verification/missing-criteria` (result) and `secops/shell-true` (skill-fired). Each ran once: re-run them with `--runs 3` before treating any as a regression.
+**Also:** the first valid eval run against v0.18.0 (2026-10-29: 31 cases, 27 pass) failed `execute-aa-ma-step/next-step` (result), `impact-analysis/private-helper` (skill-fired; it passed 2026-10-26), `plan-verification/missing-criteria` (result) and `secops/shell-true` (skill-fired). Each ran once. **Re-checked with `--runs 3` (2026-10-29):** private-helper and missing-criteria pass, so those single-run failures were noise. next-step and secops-shell-true are tracked in the PR #75 entry.
 **Why:** sole-dev-merge C1/C2 round 1 on PR #74 (2026-10-29). **Effort:** S · **Priority:** P2 (the MEDIUM and the CI gap); the rest P3
 
 ### M13 sdm review (PR #72): 4 LOW — fixed before v0.18.0 (M14.0b)

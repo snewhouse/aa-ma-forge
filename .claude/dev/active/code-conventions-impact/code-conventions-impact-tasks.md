@@ -1359,13 +1359,13 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-29 (HITL; Ste: authorised main pushes for 14.0/14.0b/14.1). M13 merged: PR #72 → main 697c2d86 (sdm rebase; C1 0/0/0/2, C2 0/0/0/2, CI green); local main = origin/main, clean. `uv run pytest -q` on main: 3525 passed, 2 skipped, 7 deselected. `release.sh minor --dry-run` rc 0: would cut v0.18.0. Working on the main checkout (D7 exception, D11).
 
 ### Sub-step 14.1: Cutover (TDD)
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 14.0
 - Acceptance Criteria:
   - Failing test first: `test_cutover_is_release_date` in `tests/test_impact.py`; then `IMPACT_CUTOVER` in `src/aa_ma/impact.py` set to the planned release date; committed on main with the plan footer.
   - The test passes; `test_doc_counts` re-run passes (M13 Risk 1); `git status --porcelain` is empty.
-- Result Log:
+- Result Log: COMPLETE 2026-10-29. Mode: AFK. 14.0b first (Ste's scope addition): ad77d39d fixes PR #72's 4 LOWs (SECURITY.md commit-hook scope + missing-scanner wording, spec TESTS_VERIFIED `skipped:` form + `inputs: local` prefix, TODOS `impact-verified.sh:84` → `src/aa_ma/impact.py:292`). RED 4a541216: `test_cutover_is_release_date` (ISO date, != 9999-12-31; == `git log -1 --format=%cs v0.18.0` once the tag exists, else pytest.skip with reason) failed on the sentinel. GREEN d3402b53: `IMPACT_CUTOVER = "2026-10-29"` (UTC date rolled from the planned 2026-10-28 before 14.1). The sentinel had masked 3 tests: `test_grandfathered_plan_is_not_applicable` now pins cutover 2028-01-01; `test_cli_json_and_grandfathered` and `test_cli_without_base_still_answers_grandfathered_first` build a fixture plan `Created: 2020-01-01` (`Fixture(created=)`, default unchanged). CHANGELOG fence-4 entry and TODOS reworded for the live cutover. Tests: full pytest 3525 passed / 3 skipped (the tag check skips until 14.2); bats test_impact_verified 10/10; test_doc_counts re-run passes. Pushed to main (Ste's OK); origin/main = d3402b53; `git status --porcelain` empty.
 
 ### Sub-step 14.2: Release v0.18.0
 - Status: PENDING

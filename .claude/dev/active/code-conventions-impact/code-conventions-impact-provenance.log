@@ -428,3 +428,5 @@
 [2026-10-29T01:17:03+00:00] MERGED — M13 PR #72 → main 697c2d86 (sdm rebase; check OK; C1 0/0/0/2, C2 0/0/0/2; CI green; remote branch deleted)
 [2026-10-29T01:17:03+00:00] MILESTONE_ACTIVE — Milestone 14
 [2026-10-29T01:17:03+00:00] STEP_COMPLETE — 14.0 — main 697c2d86 pytest 3525 passed; release.sh --dry-run → v0.18.0
+[2026-10-29T01:25:35+00:00] STEP_COMPLETE — 14.0b — ad77d39d pre-release doc fixes (PR #72 LOWs) on main
+[2026-10-29T01:25:35+00:00] STEP_COMPLETE — 14.1 — RED 4a541216 → GREEN d3402b53 IMPACT_CUTOVER=2026-10-29; pytest 3525 passed/3 skipped; pushed to main

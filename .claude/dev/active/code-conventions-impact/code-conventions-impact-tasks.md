@@ -1383,7 +1383,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Dependencies: Sub-step 14.2
 - Acceptance Criteria:
   - `provenance.log` has `[ts] CRITICAL_PATH_REVIEW — Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main) — version-pipeline — <evidence>`, naming the dry-run output and the release URL.
-- Result Log:
+- Result Log: COMPLETE 2026-10-29 (AFK). `provenance.log` has a `CRITICAL_PATH_REVIEW — Milestone 14: … — version-pipeline` line. It names the 14.0 dry-run output ("bump 0.17.0 → 0.18.0", heading dated 2026-10-28 because it ran before UTC midnight) and the release URL. Review of `git show 6ca20981`: exactly 5 one-line changes (CHANGELOG heading, README Current version, VERSION, pyproject.toml, uv.lock), all commitizen- or release.sh-owned. The tag is annotated and contains d3402b53 (`IMPACT_CUTOVER = "2026-10-29"`, `src/aa_ma/impact.py:64`). Known gap carried: the advisory eval summary is invalid (TODOS.md).
 
 ## Milestone 15: Codemem freshness (report 03 T2–T9)
 - Status: COMPLETE

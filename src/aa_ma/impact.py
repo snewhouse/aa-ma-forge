@@ -61,7 +61,7 @@ from aa_ma.plan_parsers import CRITICAL_PATH_GLOBS, derive_critical_paths
 
 log = logging.getLogger(__name__)
 
-IMPACT_CUTOVER: str = "9999-12-31"  # sentinel until M14.1 sets the v0.18.0 release date
+IMPACT_CUTOVER: str = "2026-10-29"  # the v0.18.0 release date (M14.1); plans Created: before it are grandfathered
 # T7 (Ste, 11.1): commits shared with a changed file; the replay needed 5 Impact-Explained
 # lines over the last 3 plans' 15 milestones (11 over this plan's 12) at 5 / 50%.
 COCHANGE_MIN_SHARED: int = 5

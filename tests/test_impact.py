@@ -33,7 +33,7 @@ HEADING = "Milestone 1: Thing"
 
 PLAN = """\
 # t Plan
-Created: 2027-01-01
+Created: {created}
 
 ### Milestone 1 — Thing
 #### Contract
@@ -75,7 +75,9 @@ def _commit(repo: Path, msg: str) -> str:
 
 
 class Fixture:
-    def __init__(self, tmp: Path, rows: str, *, reference: str = "") -> None:
+    def __init__(
+        self, tmp: Path, rows: str, *, reference: str = "", created: str = "2027-01-01"
+    ) -> None:
         self.repo = tmp / "repo"
         self.repo.mkdir()
         _git(self.repo, "init", "-q", "-b", "main")
@@ -84,7 +86,7 @@ class Fixture:
         _write(self.repo, "src/a.py", "A = 1\n")
         _write(self.repo, "tests/test_a.py", "def test_a():\n    pass\n")
         _write(self.repo, "src/b.py", "B = 1\n")
-        _write(self.repo, f"{TASK}/t-plan.md", PLAN.format(rows=rows))
+        _write(self.repo, f"{TASK}/t-plan.md", PLAN.format(rows=rows, created=created))
         _write(self.repo, f"{TASK}/t-tasks.md", TASKS.format(extra=""))
         _write(self.repo, f"{TASK}/t-reference.md", f"# ref\n{reference}")
         _write(self.repo, f"{TASK}/t-context-log.md", "# log\n")
@@ -310,7 +312,9 @@ def _cochange_history(fx: Fixture, shared: int, alone: int) -> None:
     for i in range(alone):
         _write(fx.repo, "notes/x.md", f"x-alone{i}\n")
         _commit(fx.repo, f"x alone {i}")
-    fx.plan.write_text(PLAN.format(rows="  Modify  notes/x.md"), encoding="utf-8")
+    fx.plan.write_text(
+        PLAN.format(rows="  Modify  notes/x.md", created="2027-01-01"), encoding="utf-8"
+    )
     _commit(fx.repo, "plan")
     fx.base = _git(fx.repo, "rev-parse", "HEAD")
     _write(fx.repo, "notes/x.md", "milestone\n")
@@ -541,7 +545,13 @@ def test_cli_kv_keys_and_exit_code(fx) -> None:
     assert "unexplained_file=unpredicted:src/b.py" in p.stdout
 
 
-def test_cli_json_and_grandfathered(fx) -> None:
+# why: a plan dated before every real cutover; the CLI runs in a subprocess, so no monkeypatch
+GRANDFATHERED = "2020-01-01"
+
+
+def test_cli_json_and_grandfathered(tmp_path, db) -> None:
+    fx = Fixture(tmp_path, ROWS, created=GRANDFATHERED)
+    _build(fx)
     p = _cli(fx, "--format", "json")
     assert p.returncode == 5
     assert json.loads(p.stdout)["exit_code"] == 5
@@ -657,8 +667,10 @@ def test_cli_lists_each_undeclared_break(tmp_path, db) -> None:
     assert "api_breaks=1" in p.stdout
 
 
-def test_cli_without_base_still_answers_grandfathered_first(fx) -> None:
+def test_cli_without_base_still_answers_grandfathered_first(tmp_path, db) -> None:
     """Fence 4 on the default branch has no milestone window; a grandfathered plan is still 5."""
+    fx = Fixture(tmp_path, ROWS, created=GRANDFATHERED)
+    _build(fx)
     p = subprocess.run(
         [
             sys.executable,
@@ -699,7 +711,9 @@ def test_lettered_milestone_number_is_read(tmp_path, db) -> None:
     """The grammar admits `2a`; --milestone must not be an int (quality W1)."""
     fx = Fixture(tmp_path, ROWS)
     fx.plan.write_text(
-        PLAN.format(rows=ROWS).replace("Milestone 1 — Thing", "Milestone 1a — Thing")
+        PLAN.format(rows=ROWS, created="2027-01-01").replace(
+            "Milestone 1 — Thing", "Milestone 1a — Thing"
+        )
     )
     fx.tasks.write_text(
         TASKS.format(extra="").replace(

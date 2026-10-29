@@ -2,6 +2,21 @@
 
 ## AA-MA Tooling
 
+### PR #74 (run-evals clean checkout) review notes: 1 MEDIUM + 9 LOW, deferred under the stop rule
+**What:**
+- [MEDIUM] The new outside-case WARNING pushes the summary line out of `release.sh`'s `tail -n 2`, which happens exactly when the warning matters. Print it before the summary or on stderr — `scripts/run-evals.sh:104` (consumer `scripts/release.sh:73`).
+- [LOW] `RUN_EVALS_REF` reaches `git worktree add` without `--end-of-options`, so a value starting with `-` is read as an option — `scripts/run-evals.sh:47`.
+- [LOW] The header and runbook don't say the chosen ref must be trusted: its scaffolds and plugin run as you — `scripts/run-evals.sh:21-26`, `docs/runbooks/release.md:23-25`.
+- [LOW] The bad-ref path prints `rc=128`, which is not claude's exit code as the header promises — `scripts/run-evals.sh:51`.
+- [LOW] A failed `worktree remove` is silent and leaves a stale `.git/worktrees/` entry; add `git worktree prune` to the trap — `scripts/run-evals.sh:45`.
+- [LOW] The outside-case check fails open when `.dir` is missing, and a trailing `/` in `RUN_EVALS_DIR` flags every case — `scripts/run-evals.sh:103-104`.
+- [LOW] One test assumes TMPDIR is outside the repo — `tests/scripts/test_run_evals_sandbox.bats:72`.
+- [LOW] A relative `CLAUDE_BIN` (or relative extra argument) now resolves against the temp checkout — `scripts/run-evals.sh:65`.
+- [LOW] The `HEAD~1` test fails on a shallow clone, and `tests/scripts/` is not run in CI at all — `tests/scripts/test_run_evals_sandbox.bats:82-84`, `.github/workflows/security.yml`.
+- [LOW] The "no result" exit block appears 3 times; use one helper — `scripts/run-evals.sh:48-52, 78-81, 85-89`.
+**Also:** the first valid eval run against v0.18.0 (2026-10-29: 31 cases, 27 pass) failed `execute-aa-ma-step/next-step` (result), `impact-analysis/private-helper` (skill-fired; it passed 2026-10-26), `plan-verification/missing-criteria` (result) and `secops/shell-true` (skill-fired). Each ran once: re-run them with `--runs 3` before treating any as a regression.
+**Why:** sole-dev-merge C1/C2 round 1 on PR #74 (2026-10-29). **Effort:** S · **Priority:** P2 (the MEDIUM and the CI gap); the rest P3
+
 ### M13 sdm review (PR #72): 4 LOW — fixed before v0.18.0 (M14.0b)
 **What:** SECURITY.md "UNKNOWN, never zero" scope and "Claude Code sessions only"; spec TESTS_VERIFIED `skipped:` form and `inputs: local` prefix; TODOS pointers `impact-verified.sh:84` → `src/aa_ma/impact.py:292`. All fixed on main in M14.0b; kept here as the PR's review record.
 

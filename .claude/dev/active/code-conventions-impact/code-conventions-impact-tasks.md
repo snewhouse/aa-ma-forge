@@ -1368,7 +1368,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-29. Mode: AFK. 14.0b first (Ste's scope addition): ad77d39d fixes PR #72's 4 LOWs (SECURITY.md commit-hook scope + missing-scanner wording, spec TESTS_VERIFIED `skipped:` form + `inputs: local` prefix, TODOS `impact-verified.sh:84` → `src/aa_ma/impact.py:292`). RED 4a541216: `test_cutover_is_release_date` (ISO date, != 9999-12-31; == `git log -1 --format=%cs v0.18.0` once the tag exists, else pytest.skip with reason) failed on the sentinel. GREEN d3402b53: `IMPACT_CUTOVER = "2026-10-29"` (UTC date rolled from the planned 2026-10-28 before 14.1). The sentinel had masked 3 tests: `test_grandfathered_plan_is_not_applicable` now pins cutover 2028-01-01; `test_cli_json_and_grandfathered` and `test_cli_without_base_still_answers_grandfathered_first` build a fixture plan `Created: 2020-01-01` (`Fixture(created=)`, default unchanged). CHANGELOG fence-4 entry and TODOS reworded for the live cutover. Tests: full pytest 3525 passed / 3 skipped (the tag check skips until 14.2); bats test_impact_verified 10/10; test_doc_counts re-run passes. Pushed to main (Ste's OK); origin/main = d3402b53; `git status --porcelain` empty.
 
 ### Sub-step 14.2: Release v0.18.0
-- Status: PENDING
+- Status: COMPLETE
 - Mode: HITL
 - Dependencies: Sub-step 14.1
 - Acceptance Criteria:
@@ -1378,7 +1378,7 @@ Before executing any milestone: `uv run aa-ma-gate .claude/dev/active/code-conve
 - Result Log: COMPLETE 2026-10-29 (HITL; Ste: OK to cut, then "push and publish once the tag checks out"). `--dry-run` rc 0 at 14.0 (it printed 2026-10-28, before UTC midnight; the real run dated 2026-10-29). Ran `release.sh minor --headline "Code conventions: coding-standards rule, SecOps CI, tests and impact gates" --no-push` from 07:10 UTC, rc 0: bump 0.17.0 → 0.18.0 at 6ca20981 (`[ad-hoc]`, 5 files), annotated tag v0.18.0, pre-commit Passed; tree clean afterwards. Against the local tag `pytest tests/test_impact.py -k cutover` gave 2 passed, 0 skipped: the tag date is 2026-10-29, equal to `IMPACT_CUTOVER`. Pushed `--follow-tags` 499c7a27..6ca20981 + v0.18.0. `gh release create` then `gh release view v0.18.0`: published 2026-10-29T09:09:07Z, not draft or prerelease; https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.18.0; notes are the CHANGELOG `## v0.18.0 (2026-10-29)` section (114 lines). **The advisory evals were mis-targeted:** 46 cases (43 pass, 3 fail, $5.04), all from `.worktrees/prototype/*`, 0 of main's 31. Ste chose "push now, fix evals after"; logged in TODOS.md (`run-evals.sh` nested-worktree entry). The release content is unaffected, since evals never gate.
 
 ### Sub-step 14.3: Archive readiness — CRITICAL_PATH_REVIEW
-- Status: PENDING
+- Status: COMPLETE
 - Mode: AFK
 - Dependencies: Sub-step 14.2
 - Acceptance Criteria:

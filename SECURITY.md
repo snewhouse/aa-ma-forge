@@ -93,9 +93,9 @@ Every file is plain text. You can read the lot in under an hour. I'd encourage y
 
 ## Security scanning
 
-- **Commit time:** `security-static-check.sh` (PreToolUse, blocking) runs the forge-pinned Ruff S on each whole staged `.py` file, plus two regex classes on added lines. It is a best-effort guardrail; CI is the enforcement (ADR-0022).
+- **Commit time (Claude Code sessions only):** `security-static-check.sh` (PreToolUse, blocking) runs the forge-pinned Ruff S on each whole `.py` file the commit can contain (staged, or modified for `-a`), plus two regex classes on added lines. A plain `git commit` in a terminal is not screened. It is a best-effort guardrail; CI is the enforcement (ADR-0022).
 - **CI (`.github/workflows/security.yml`):** `ruff-security` (Ruff S over `src/`, `packages/`, `scripts/`), `gitleaks` (full history; `.gitleaksignore` holds fingerprints only), `deps` (pip-audit over the hashed `uv export`; `.pip-audit-ignore` entries expire), ShellCheck, and a weekly scheduled run. Dependabot updates actions and uv weekly.
-- A scanner that did not run reports UNKNOWN, never zero findings.
+- A missing scanner is never silent: a CI job fails, `/sole-dev-merge` reports it as UNKNOWN, and at commit time a missing ruff prints a warning (the commit still goes through; CI still runs Ruff S).
 
 ## Reporting vulnerabilities
 

@@ -2,6 +2,9 @@
 
 ## AA-MA Tooling
 
+### M13 sdm review (PR #72): 4 LOW — fixed before v0.18.0 (M14.0b)
+**What:** SECURITY.md "UNKNOWN, never zero" scope and "Claude Code sessions only"; spec TESTS_VERIFIED `skipped:` form and `inputs: local` prefix; TODOS pointers `impact-verified.sh:84` → `src/aa_ma/impact.py:292`. All fixed on main in M14.0b; kept here as the PR's review record.
+
 ### M12 sdm C1 review (PR #71): deferred (1 MEDIUM + 3 LOW)
 **What:**
 - [MEDIUM] language-conventions shared suppression forms for R/SQL name no rule code and drop the cards' "syntax not verified" caveat — `claude-code/skills/language-conventions/SKILL.md:23` (cards: `references/sql.md:12`, `references/r.md:12`).
@@ -15,7 +18,7 @@
 ### M11 sdm C1/C2 review: deferred (2 MEDIUM + 8 LOW)
 **What:**
 - C2 [MEDIUM] A04 design: a symlinked `<task>-plan.md` is followed, so the merge-base date is read from the link target — `src/aa_ma/impact.py:297` (refuse symlinked plan/tasks/reference).
-- C2 [LOW] A04 design: with no milestone window, the working-copy `Created:` dates the plan — `claude-code/skills/execute-aa-ma-milestone/scripts/impact-verified.sh:84` (inert until M14.1 sets `IMPACT_CUTOVER`).
+- C2 [LOW] A04 design: with no milestone window, the working-copy `Created:` dates the plan — `src/aa_ma/impact.py:292` (`_plan_date`, the `run.base is None` branch) (inert until M14.1 sets `IMPACT_CUTOVER`).
 - C2 [LOW] A09 logging: `rel`, `REASON`, `TEST_CMD` not sanitised beside the sanitised heading — `src/aa_ma/impact.py:306`, `tests-verified.sh:104,206`.
 - C1 [MEDIUM] the milestone window (merge-base) assumes one milestone per branch; undocumented — `claude-code/hooks/lib/aa-ma-parse.sh:588`.
 - C1 [LOW] `_partners` ignores codemem `truncated` / top_n=50 cap (fail-open) — `src/aa_ma/impact.py:539`.
@@ -367,7 +370,7 @@ Find them with `grep -rn "M8.2 D8 pay-down"`.
 
 ### Review fence 4 once `IMPACT_CUTOVER` is live
 
-**What:** M14.1 sets `IMPACT_CUTOVER` (`src/aa_ma/impact.py`) to the v0.18.0 release date. After the first 2–3 plans `Created:` on or after it finish, review `IMPACT_VERIFIED`: `Impact-Explained:` lines per milestone against the 11.1 prototype's measure (5 co-change lines over 15 milestones), any BLOCKED that was noise, and whether `COCHANGE_MIN_SHARED`, `COCHANGE_MIN_RATIO` and `COCHANGE_WINDOW_COMMITS` (`src/aa_ma/impact.py`) still fit. Amend ADR-0027 if a threshold moves. The deferred C2 finding at `impact-verified.sh:84` (M11 sdm entry above) becomes live at the same time.
+**What:** M14.1 sets `IMPACT_CUTOVER` (`src/aa_ma/impact.py`) to the v0.18.0 release date. After the first 2–3 plans `Created:` on or after it finish, review `IMPACT_VERIFIED`: `Impact-Explained:` lines per milestone against the 11.1 prototype's measure (5 co-change lines over 15 milestones), any BLOCKED that was noise, and whether `COCHANGE_MIN_SHARED`, `COCHANGE_MIN_RATIO` and `COCHANGE_WINDOW_COMMITS` (`src/aa_ma/impact.py`) still fit. Amend ADR-0027 if a threshold moves. The deferred C2 finding at `src/aa_ma/impact.py:292` (`_plan_date`) (M11 sdm entry above) becomes live at the same time.
 
 **Why:** Every plan so far is grandfathered (sentinel `9999-12-31`), so fence 4 has never gated a real milestone. ADR-0027's driver is "quiet enough not to be bypassed"; that needs live data.
 

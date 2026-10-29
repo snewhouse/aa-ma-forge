@@ -335,8 +335,10 @@ The `[task]-provenance.log` file is an **immutable, append-only** log providing 
 [ts] CODE_INTEL_REFRESH — <milestone heading> — codemem=<sha|skipped(codemem not installed)> graphify=<sha|WARN reason>
 # Written by §6.7 fence 2 when §13 carries a sigil edge (ADR-0015)
 [ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K
-# Written by §6.7 fence 3 on rc 0 plus a readable pass count (ADR-0023); `none` needs a GATE APPROVAL
+# Written by §6.7 fence 3 on rc 0 plus a readable pass count (ADR-0023); with no origin/HEAD the
+# value is prefixed `inputs: local <ref> (no origin/HEAD) — `; `Test-Command: none` with its GATE APPROVAL writes the second form
 [ts] TESTS_VERIFIED — <milestone heading> — passed=N cmd=<TEST_CMD>
+[ts] TESTS_VERIFIED — <milestone heading> — skipped: <reason>
 # Written by §6.7 fence 4 (plans Created: >= IMPACT_CUTOVER; ADR-0027); grandfathered plans print "not applicable"
 [ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0 api_diff=<summary>
 # Advisory (not gate-read): evidence for a HITL live criterion

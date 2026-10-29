@@ -93,12 +93,22 @@ EOF2
   [[ "${lines[-1]}" == "run-evals: rc="* ]]
 }
 
-@test "a case from outside the eval dir is flagged in the summary" {
+# release.sh shows only `tail -n 2` (summary, then rc), so the warning rides on the summary line.
+@test "a case from outside the eval dir is flagged on the summary line, which stays second to last" {
   _stub_claude
   sed -i 's#"dir": "evals/x/b-fail"#"dir": ".worktrees/p/evals/x/b-fail"#' "$WORK/bin/claude"
   run "$RUN_EVALS"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"run-evals: WARNING 1 case(s) outside evals/"* ]]
+  [[ "${lines[-2]}" == "run-evals: 2 cases, 1 pass, 1 fail, cost "* ]]
+  [[ "${lines[-2]}" == *" — WARNING 1 case(s) outside evals/"* ]]
+  [[ "${lines[-1]}" == "run-evals: rc="* ]]
+}
+
+@test "no warning when every case is inside the eval dir" {
+  _stub_claude
+  run "$RUN_EVALS"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *WARNING* ]]
 }
 
 @test "grants no shell, write, network or gh tool to the agent" {

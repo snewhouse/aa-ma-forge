@@ -2,10 +2,20 @@
 
 ## AA-MA Tooling
 
+### PR #76 (secops trigger) review notes: 3 MEDIUM + 4 LOW, deferred under the stop rule
+**What:**
+- [MEDIUM] The description's example (`shell=True` with interpolated input is S602, CWE-78) is the `shell-true` result grader's answer, so that grader can now pass without the body loading; only `skill-fired` measures the skill. Fix: use a description example that no grader checks, or add a case whose answer lives only in the body — `claude-code/skills/secops/SKILL.md:3`, `evals/secops/shell-true/graders/result.md:4`.
+- [MEDIUM] "Security review … names each finding's class and rule" promises more than the body, a scanner router whose only review line is S602. Add a short "Reviewing a file" section (run the matching scanner; name the rule and CWE per finding), or narrow the claim — `claude-code/skills/secops/SKILL.md:3, :21`.
+- [MEDIUM] The S602/CWE-78 fact is now in the description and the body (DRY). Settle it together with the first MEDIUM — `claude-code/skills/secops/SKILL.md:3, :21`.
+- [LOW] The routing row in `claude-code/rules/coding-standards.md:43` ("security checks or a dependency audit") has no review branch. Note that the rules budget ratchet applies to that file.
+- [LOW] "(load it before reading the code)" is a new pattern (it took shell-true from 4–5 of 6 runs to 12 of 12). If another skill copies it, record it with that evidence in writing-for-agents "In this repo".
+- [LOW] The description scopes osv-scanner to "JS/R lockfiles", while the body also covers Go, Rust, Java, Ruby, PHP and .NET (C1 and C2) — `claude-code/skills/secops/SKILL.md:3, :15`.
+**Evidence:** at 2149ff4c, shell-true scored 24/24 over 12 runs (Skill called first in all 12), js-lockfile 12/12 and scanner-map 12/12 over 6 runs each. **Re-run** all 3 secops cases with `--runs 6` after any of these fixes. **Why:** sole-dev-merge round 1 on PR #76. **Effort:** S · **Priority:** P3
+
 ### PR #75 (run-evals warning on the summary line) review notes + eval re-check findings
 **What:**
 - [LOW] The outside-case count fails open: if jq errors (no `.cases`, or a `.dir` that isn't a string), `outside` is empty, `[[ "" -eq 0 ]]` is true, and the warning disappears silently. This predates PR #75; C1 and C2 both raised it. Fix: `outside=$(jq …) || outside="?"` and a string compare — `scripts/run-evals.sh:100-102`.
-- `secops/shell-true`: across 3 runs against v0.18.0, `skill-fired` failed every time and `result` passed every time. Sonnet answers correctly but never loads `secops` for this prompt. Check the trigger wording in `claude-code/skills/secops/SKILL.md` against `evals/secops/shell-true/case.yaml`.
+- **Fixed (PR #76, 2026-10-29):** `secops/shell-true`: across 3 runs against v0.18.0, `skill-fired` failed every time and `result` passed every time. Sonnet answers correctly but never loads `secops` for this prompt. Check the trigger wording in `claude-code/skills/secops/SKILL.md` against `evals/secops/shell-true/case.yaml`.
 - `execute-aa-ma-step/next-step` is flaky: 5 of 6 grader passes over 3 runs.
 - `run-evals.sh` writes `failed` from the first run only (`.arms.with[0].graders`), so with `--runs > 1` a later failing run shows `failed: []` (next-step did) — `scripts/run-evals.sh:93-94`.
 **Why:** PR #75 sole-dev-merge round 1 and the `--runs 3` re-check (2026-10-29). **Effort:** S · **Priority:** P2 (the secops trigger); the rest P3

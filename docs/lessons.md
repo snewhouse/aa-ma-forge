@@ -5,6 +5,10 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-079 (2026-10-30) — A security check that re-implements another tool's parser loses to it
+**Pattern:** scan-untrusted.sh copied how CPython picks a PEP 263 coding cookie, how ShellCheck spots a directive, how gitleaks sniffs file types and how the kernel resolves symlinks. Reviews and the commit hook reproduced a bypass at each copy, and the cookie check alone failed five ways (greedy match, form feed, CR-only, CRLF, a 4 KiB cap) before it called `tokenize.detect_encoding`.
+**Rule:** when a check must agree with how another program reads input, call that program's own code for it (CPython's tokenize, the tool's own output or flag). Where that is impossible, fail closed (UNKNOWN on anything not plainly safe) and plant one test per case that program handles, never only the case you thought of. Cross-ref: L-078.
+
 ## L-078 (2026-10-30) — I claimed a scanner override worked after testing one of its config inputs
 **Pattern:** for the PR #77 MEDIUM I wrote that gitleaks `-c`/`-i` makes it ignore the scanned repo's suppressions, and TODOS said "each override brings back a finding the repo's config hid". I had tested `.gitleaks.toml` only. Both sdm reviewers then showed the repo's `.gitleaksignore` still applies under `-i` (reproduced on 8.18.0), and that Ruff skips gitignored files on a directory scan.
 **Rule:** before claiming a tool ignores repo-controlled input, list every input it reads (config files, ignore files, inline comments, the VCS ignore files it honours, default excludes), plant a finding behind each one in a scratch repo, and record the result for each. A claim covers only the inputs in that list.

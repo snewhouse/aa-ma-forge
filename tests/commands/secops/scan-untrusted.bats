@@ -433,3 +433,42 @@ BASH_UNQUOTED='#!/bin/bash\necho $1\n'
     [ "${status}" -eq 3 ]
     [[ "${output}" == *"UNKNOWN ruff did not select a.py"* ]]
 }
+
+@test "ruff: a coding cookie other than utf-8/latin-1 is UNKNOWN (CPython decodes what Ruff reads as a comment)" {
+    put b.py '# coding: unicode_escape\nimport sys\n# \\x0aeval(sys.argv[1])\n'
+    put ok.py '# -*- coding: utf-8 -*-\nx = 1\n'
+    commit "pr"
+    scan
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN ruff cannot read b.py (coding: unicode_escape)"* ]]
+    [[ "${output}" != *"ok.py (coding"* ]]
+}
+
+@test "gitleaks: a text file that starts like a PDF or RTF is still scanned" {
+    put a.env "%PDF-1.4\naws=${KEY}\n"
+    put b.env "{\\\\rtf1 x\naws=${KEY}\n"
+    commit "pr"
+    scan
+    [ "${status}" -eq 1 ]
+    [[ "${output}" == *"FINDING gitleaks a.env:2 aws-access-token"* ]]
+    [[ "${output}" == *"FINDING gitleaks b.env:2 aws-access-token"* ]]
+}
+
+@test "shellcheck: a mid-word #shellcheck is not a directive and blanking keeps the code" {
+    put a.sh '#!/bin/bash\necho a#shellcheck x=; eval $1\n'
+    commit "pr"
+    scan
+    [[ "${output}" == *"FINDING shellcheck a.sh:2 SC2086"* ]]
+}
+
+@test "a changed submodule pointer and .gitmodules are UNKNOWN" {
+    SUB="${BATS_TEST_TMPDIR}/sub"
+    git init -q -b main "${SUB}"
+    (cd "${SUB}" && git -c user.email=t@t -c user.name=t commit -q --allow-empty -m s)
+    (cd "${REPO}" && git -c protocol.file.allow=always submodule add -q "${SUB}" vendor/lib)
+    commit "pr"
+    scan
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN not scanned vendor/lib (submodule)"* ]]
+    [[ "${output}" == *"UNKNOWN not scanned .gitmodules (submodule config)"* ]]
+}

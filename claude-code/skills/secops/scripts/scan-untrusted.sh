@@ -21,6 +21,8 @@
 # SUPPRESSOR <path>[:<line>] <marker>, UNKNOWN <scanner> <reason>; last line
 # `scan-untrusted: findings=N suppressors=M unknown=K`. Secrets are redacted.
 # Exit: 0 clean, 1 findings or suppressors, 2 usage or git error, 3 a scanner could not run.
+# Exit 0 covers Python, shell, the lockfiles osv-scanner reads, and secrets in every blob. Other
+# languages (JS/TS, workflow YAML, Dockerfiles, …) are not scanned unless a shebang names them.
 # Env: RUFF_BIN, SHELLCHECK_BIN, GITLEAKS_BIN, OSV_SCANNER_BIN (operator-trusted; defaults
 # on PATH). Needs git and jq.
 
@@ -153,7 +155,8 @@ for i in "${!c_path[@]}"; do
         120000) resolve "${path}"
                 if [[ -n "${R_ERR}" ]]; then unknown "symlink ${path}: ${R_ERR}"; else write_tree "${path}" "${R_SHA}"; fi ;;
         100*)   write_tree "${path}" "${c_blob[i]}" ;;
-        *)      ;;                                 # submodules: no content in this repo
+        160000) unknown "not scanned ${path} (submodule)" ;;
+        *)      unknown "not scanned ${path} (mode ${c_mode[i]})" ;;
     esac
 done
 
@@ -181,6 +184,8 @@ for path in "${changed[@]}"; do
     case "${name}" in
         package-lock.json|pnpm-lock.yaml|yarn.lock|bun.lock|renv.lock|go.mod|Cargo.lock|pom.xml|gradle.lockfile|Gemfile.lock|composer.lock|packages.lock.json)
             locks+=("${path}"); continue ;;
+        .gitmodules)
+            unknown "not scanned ${path} (submodule config)"; continue ;;
         uv.lock|poetry.lock|Pipfile.lock|requirements*.txt)
             unknown "pip-audit ${path} (run the table's hashed pip-audit command on the operator's export)"; continue ;;
         .gitleaksignore|.gitleaks.toml|.gitattributes|.shellcheckrc|osv-scanner.toml|pyproject.toml|ruff.toml|.ruff.toml)
@@ -201,7 +206,7 @@ done
 # --- inline suppressions --------------------------------------------------------------------
 # Each marker counts where its scanner reads it, in the whole head version of the file (a
 # directive already on the base still covers new lines): Ruff markers in the files sent to
-# Ruff, ShellCheck's in those sent to ShellCheck. ShellCheck directives are then blanked in
+# Ruff, ShellCheck's in those sent to ShellCheck. ShellCheck directive keywords are then blanked in
 # the copies, since no flag turns them off. gitleaks:allow is checked in every blob below.
 py_re='(noqa|ruff:[[:space:]]*(noqa|disable)|nosec)'
 # Any directive (`# shellcheck key=value …`): one directive can carry several keys.
@@ -217,7 +222,8 @@ for path in "${sh[@]}"; do
     while IFS=: read -r n _; do
         suppressor "${path}:${n} shellcheck directive"
     done < <(grep -a -n -E -- "${sh_re}" "${work}/tree/${path}" || true)  # why: grep exits 1 when a file has no marker
-    sed -i -E 's/#[[:space:]]*shellcheck[[:space:]]+[a-z-]+=.*$//' -- "${work}/tree/${path}"
+    # Only the keyword is replaced: the rest of the line may be code (`echo a#shellcheck x=; eval $1`).
+    sed -i -E 's/(#[[:space:]]*)shellcheck([[:space:]]+[a-z-]+=)/\1blanked\2/g' -- "${work}/tree/${path}"
 done
 
 # assert (S101) is how tests check things; it is a finding only in shipped code.
@@ -235,6 +241,19 @@ if [[ ${#py[@]} -gt 0 ]]; then
         declare -A rmap=()
         declare -a rpy=()
         for path in "${py[@]}"; do
+            # PEP 263: CPython decodes with the codec a coding cookie on line 1 or 2 names; Ruff
+            # always reads UTF-8. Only codecs that agree with UTF-8 on every byte Ruff accepts
+            # (UTF-8, ASCII, Latin-1; normalised as tokenize does) can be trusted to Ruff.
+            # No pipe here: a reader that quits early SIGPIPEs its writer under pipefail.
+            l1="" l2="" cookie=""
+            { IFS= read -r l1 || true; IFS= read -r l2 || true; } < "${work}/tree/${path}"  # why: a short file ends the reads early
+            for l in "${l1}" "${l2}"; do
+                if [[ "${l}" =~ ^[[:space:]]*#.*coding[:=][[:space:]]*([-_.[:alnum:]]+) ]]; then cookie="${BASH_REMATCH[1]}"; break; fi
+            done
+            codec="${cookie,,}"; codec="${codec//_/-}"
+            if [[ -n "${codec}" && ! "${codec}" =~ ^(utf-8|utf8|ascii|us-ascii|latin-1|iso-8859-1|iso-latin-1)(-.*)?$ ]]; then
+                unknown "ruff cannot read ${path} (coding: ${cookie})"; continue
+            fi
             rpath="${path}"
             [[ "${path}" == *.py || "${path}" == *.pyi ]] || rpath="${path}.scan-untrusted.py"
             if [[ -n "${rmap[${rpath}]:-}" ]]; then unknown "ruff name clash ${path}"; continue; fi
@@ -324,11 +343,13 @@ declare -A blob_path=() allow_seen=()
 while read -r sha type rest; do
     [[ "${type}" == blob ]] || continue
     [[ -n "${blob_path[${sha}]:-}" ]] || blob_path["${sha}"]="${rest}"
-    g cat-file blob "${sha}" > "${work}/blobs/${sha}"
+    # One neutral first line: gitleaks --no-git skips a file whose first bytes look like a binary
+    # format (%PDF-, {\rtf1, …), and these files have no name to say otherwise. Lines shift by 1.
+    { echo scan-untrusted; g cat-file blob "${sha}"; } > "${work}/blobs/${sha}"
     while IFS=: read -r n _; do
         [[ -z "${allow_seen[${rest}:${n}]:-}" ]] || continue   # same line in several versions
         allow_seen["${rest}:${n}"]=1
-        suppressor "${rest}:${n} gitleaks:allow"
+        suppressor "${rest}:$((n - 1)) gitleaks:allow"
     done < <(grep -a -n -F -- 'gitleaks:allow' "${work}/blobs/${sha}" || true)  # why: grep exits 1 when a file has no marker
 done < "${work}/objects.txt"
 
@@ -344,7 +365,7 @@ if [[ ${#blob_path[@]} -gt 0 ]]; then
             unknown "gitleaks exited ${rc}: $(head -c 200 "${work}/gitleaks.err")"
         else
             while IFS=$'\t' read -r file line rule; do
-                finding "gitleaks ${blob_path[${file##*/}]:-${file}}:${line} ${rule}"
+                finding "gitleaks ${blob_path[${file##*/}]:-${file}}:$((line - 1)) ${rule}"
             done < <(jq -r '.[] | [.File, .StartLine, .RuleID] | @tsv' "${work}/report.json")
         fi
     fi

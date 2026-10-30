@@ -8,8 +8,8 @@
 # so this script never lets any of them decide what is scanned:
 #   - gitleaks reads every blob version the range introduces (git rev-list --objects), each
 #     written under its blob id: commits added then reverted are seen, .gitattributes is never
-#     applied, and the default path allowlist never matches. -i points at that empty dir, so
-#     no .gitleaksignore applies, and there is no repo .gitleaks.toml to load.
+#     applied, and the default path allowlist never matches. -s and -i point at gl/, whose only
+#     files are named by blob id, so no .gitleaksignore or .gitleaks.toml from the repo applies.
 #   - Ruff, ShellCheck and osv-scanner run on the head version of each changed file, passed
 #     by name after `--`, with Ruff --isolated --ignore-noqa, ShellCheck --norc and
 #     osv-scanner --config <empty>. Files are chosen by extension or shebang.
@@ -23,7 +23,7 @@
 # Exit: 0 clean, 1 findings or suppressors, 2 usage or git error, 3 a scanner could not run.
 # Exit 0 covers Python, shell, the lockfiles osv-scanner reads, and secrets in every blob. Other
 # languages (JS/TS, workflow YAML, Dockerfiles, …) are not scanned unless a shebang names them.
-# Env: RUFF_BIN, SHELLCHECK_BIN, GITLEAKS_BIN, OSV_SCANNER_BIN (operator-trusted; defaults
+# Env: RUFF_BIN, SHELLCHECK_BIN, GITLEAKS_BIN, OSV_SCANNER_BIN, PYTHON_BIN (operator-trusted; defaults
 # on PATH). Needs git, jq and python3 (its tokenize decides Python file encodings).
 
 set -Eeuo pipefail
@@ -37,6 +37,7 @@ RUFF_BIN="${RUFF_BIN:-ruff}"
 SHELLCHECK_BIN="${SHELLCHECK_BIN:-shellcheck}"
 GITLEAKS_BIN="${GITLEAKS_BIN:-gitleaks}"
 OSV_SCANNER_BIN="${OSV_SCANNER_BIN:-osv-scanner}"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 usage() { echo "usage: scan-untrusted.sh --base <ref> [--head <ref>] <repo>" >&2; exit 2; }
 
@@ -76,6 +77,12 @@ finding()    { printf 'FINDING %s\n' "$*"; findings=$((findings + 1)); }
 suppressor() { printf 'SUPPRESSOR %s\n' "$*"; suppressors=$((suppressors + 1)); }
 unknown()    { printf 'UNKNOWN %s\n' "$*"; unknown=$((unknown + 1)); }
 
+# A shallow clone holds only some commits of the range, so a secret added and removed in the
+# missing ones is never read (GitHub Actions checks out depth 1 by default).
+if [[ "$(git -C "${repo}" rev-parse --is-shallow-repository)" == true ]]; then
+    unknown "shallow clone: commits outside it are not scanned (fetch full history first)"
+fi
+
 # --- head tree lookups and kernel-style symlink resolution ---------------------------------
 # lookup <path>: sets L_MODE / L_SHA for that entry at head (empty when there is none).
 lookup() {
@@ -93,7 +100,7 @@ declare -A changed_set=()
 resolve() {
     local -a todo=() parts=()
     local cur="" comp cand target hops=0
-    R_SHA="" R_ERR="" R_TOUCH=0
+    R_SHA="" R_MODE="" R_ERR="" R_TOUCH=0
     IFS=/ read -r -a todo <<<"$1"
     while [[ ${#todo[@]} -gt 0 ]]; do
         comp="${todo[0]}"; todo=("${todo[@]:1}")
@@ -122,7 +129,7 @@ resolve() {
             040000) cur="${cand}"
                     if [[ ${#todo[@]} -eq 0 ]]; then R_ERR="resolves to a directory"; return 0; fi ;;
             100*)   if [[ ${#todo[@]} -gt 0 ]]; then R_ERR="passes through a file"; return 0; fi
-                    R_SHA="${L_SHA}"; return 0 ;;
+                    R_SHA="${L_SHA}" R_MODE="${L_MODE}"; return 0 ;;
             '')     R_ERR="target missing at head"; return 0 ;;
             *)      R_ERR="resolves to a submodule"; return 0 ;;
         esac
@@ -148,13 +155,20 @@ while IFS= read -r -d '' meta && IFS= read -r -d '' path; do
     changed_set["${path}"]=1
 done < "${work}/changed.z"
 
-write_tree() { mkdir -p -- "${work}/tree/$(dirname -- "$1")"; g cat-file blob "$2" > "${work}/tree/$1"; changed+=("$1"); }
+declare -A exec_bit=()
+# write_tree <path> <blob> <mode>: the head content under its own name; remembers executables.
+write_tree() {
+    mkdir -p -- "${work}/tree/$(dirname -- "$1")"
+    g cat-file blob "$2" > "${work}/tree/$1"
+    changed+=("$1")
+    [[ "$3" != 100755 ]] || exec_bit["$1"]=1
+}
 for i in "${!c_path[@]}"; do
     path="${c_path[i]}"
     case "${c_mode[i]}" in
         120000) resolve "${path}"
-                if [[ -n "${R_ERR}" ]]; then unknown "symlink ${path}: ${R_ERR}"; else write_tree "${path}" "${R_SHA}"; fi ;;
-        100*)   write_tree "${path}" "${c_blob[i]}" ;;
+                if [[ -n "${R_ERR}" ]]; then unknown "symlink ${path}: ${R_ERR}"; else write_tree "${path}" "${R_SHA}" "${R_MODE}"; fi ;;
+        100*)   write_tree "${path}" "${c_blob[i]}" "${c_mode[i]}" ;;
         160000) unknown "not scanned ${path} (submodule)" ;;
         *)      unknown "not scanned ${path} (mode ${c_mode[i]})" ;;
     esac
@@ -168,7 +182,7 @@ while IFS= read -r -d '' e; do
     [[ -z "${changed_set[${path}]:-}" && "${path}" != *[[:cntrl:]]* ]] || continue
     resolve "${path}"
     [[ ${R_TOUCH} -eq 1 ]] || continue
-    if [[ -n "${R_ERR}" ]]; then unknown "symlink ${path}: ${R_ERR}"; else write_tree "${path}" "${R_SHA}"; fi
+    if [[ -n "${R_ERR}" ]]; then unknown "symlink ${path}: ${R_ERR}"; else write_tree "${path}" "${R_SHA}" "${R_MODE}"; fi
 done < "${work}/head.z"
 
 # First line, NUL bytes dropped (binary files), control characters shown as ?.
@@ -195,11 +209,14 @@ for path in "${changed[@]}"; do
         *.py|*.pyi|*.pyw) py+=("${path}"); continue ;;
         *.sh|*.bash|*.ksh|*.dash|*.bats) sh+=("${path}"); continue ;;
         *.ipynb|*.pth) unknown "not scanned ${path} (no scanner reads this type)"; continue ;;
+        *.pyc|*.pyo|*.so|*.pyd) unknown "not scanned ${path} (compiled code)"; continue ;;
     esac
     first=$(shebang "${path}")
     if [[ "${first}" =~ ^#!.*(python|pypy|uv[[:space:]]+run) ]]; then py+=("${path}")
     elif [[ "${first}" =~ ^#!.*(/|[[:space:]])(sh|bash|dash|ksh|bats)([[:space:]]|$) ]]; then sh+=("${path}")
     elif [[ "${first}" == '#!'* ]]; then unknown "not scanned ${path} (${first//[[:cntrl:]]/?})"
+    # bash and sh run an executable with no usable shebang (none, or a BOM before #!) as shell.
+    elif [[ -n "${exec_bit[${path}]:-}" ]]; then unknown "not scanned ${path} (executable, no recognised interpreter)"
     fi
 done
 
@@ -243,10 +260,13 @@ if [[ ${#py[@]} -gt 0 ]]; then
         # would use — every re-implementation of its line splitting and cookie rules missed a
         # case — and trust Ruff only with UTF-8, ASCII or Latin-1. No python3, or an error, is UNKNOWN.
         declare -A codec_of=() codec_raw=()
-        if command -v python3 >/dev/null 2>&1; then  # why: output dropped — absence leaves every codec unknown
+        # why: output dropped — a missing interpreter is one UNKNOWN line below
+        if ! command -v -- "${PYTHON_BIN}" >/dev/null 2>&1; then
+            unknown "python3 not runnable (${PYTHON_BIN}): Python files not linted"; py=()
+        else
             while IFS=$'\t' read -r raw path; do
                 codec_raw["${path}"]="${raw}"; c="${raw,,}"; codec_of["${path}"]="${c//_/-}"
-            done < <(cd "${work}/tree" && python3 -I -c '
+            done < <(cd "${work}/tree" && "${PYTHON_BIN}" -I -c '
 import sys, tokenize
 for p in sys.argv[1:]:
     try:
@@ -271,40 +291,42 @@ for p in sys.argv[1:]:
             cp -- "${work}/tree/${path}" "${work}/ruff/${rpath}"
             rmap["${rpath}"]="${path}"; rpy+=("${rpath}")
         done
-        ruff_args=(check --isolated --no-respect-gitignore --select S --config "${RUFF_TEST_ASSERTS}" --no-cache)
-        # Every file handed over must be one Ruff selects (--show-files rejects --ignore-noqa;
-        # noqa does not affect selection).
-        rc=0
-        (cd "${work}/ruff" && "${RUFF_BIN}" "${ruff_args[@]}" --show-files -- "${rpy[@]}" \
-            > "${work}/ruff.files" 2>&1) || rc=$?
-        if [[ ${rc} -ne 0 ]]; then unknown "ruff --show-files exited ${rc}: $(head -c 200 "${work}/ruff.files")"; fi
-        declare -A rseen=()
-        while IFS= read -r line; do [[ -z "${line}" ]] || rseen["${line#"${work}/ruff/"}"]=1; done < "${work}/ruff.files"
-        for rpath in "${rpy[@]}"; do
-            [[ -n "${rseen[${rpath}]:-}" ]] || unknown "ruff did not select ${rmap[${rpath}]}"
-        done
-        rc=0
-        (cd "${work}/ruff" && "${RUFF_BIN}" "${ruff_args[@]}" --ignore-noqa --output-format json -- "${rpy[@]}" \
-            > "${work}/ruff.json" 2> "${work}/ruff.err") || rc=$?
-        # why: jq output dropped — a missing or malformed report is reported as UNKNOWN
-        if [[ ${rc} -gt 1 ]] || ! jq -e 'type == "array"' "${work}/ruff.json" >/dev/null 2>&1; then
-            unknown "ruff exited ${rc}: $(head -c 200 "${work}/ruff.err")"
-        else
-            before=$((findings + unknown))
-            declare -A unparsed=()
-            while IFS=$'\t' read -r file row code msg; do
-                file="${file#"${work}/ruff/"}"; file="${rmap[${file}]:-${file}}"
-                if [[ "${code}" == invalid-syntax ]]; then
-                    [[ -n "${unparsed[${file}]:-}" ]] || unknown "ruff could not parse ${file}"
-                    unparsed["${file}"]=1
-                else
-                    finding "ruff ${file}:${row} ${code} ${msg}"
-                fi
-            done < <(jq -r '.[] | [.filename, .location.row, (.code // "invalid-syntax"), .message] | @tsv' "${work}/ruff.json")
-            while IFS= read -r line; do
-                [[ "${line}" =~ Failed\ to\ lint\ (.+):\  ]] && unknown "ruff could not lint ${rmap[${BASH_REMATCH[1]}]:-${BASH_REMATCH[1]}}"
-            done < "${work}/ruff.err"
-            if [[ ${rc} -eq 1 && $((findings + unknown)) -eq ${before} ]]; then unknown "ruff exited 1 with no finding parsed"; fi
+        if [[ ${#rpy[@]} -gt 0 ]]; then   # every file may already be UNKNOWN
+            ruff_args=(check --isolated --no-respect-gitignore --select S --config "${RUFF_TEST_ASSERTS}" --no-cache)
+            # Every file handed over must be one Ruff selects (--show-files rejects --ignore-noqa;
+            # noqa does not affect selection).
+            rc=0
+            (cd "${work}/ruff" && "${RUFF_BIN}" "${ruff_args[@]}" --show-files -- "${rpy[@]}" \
+                > "${work}/ruff.files" 2>&1) || rc=$?
+            if [[ ${rc} -ne 0 ]]; then unknown "ruff --show-files exited ${rc}: $(head -c 200 "${work}/ruff.files")"; fi
+            declare -A rseen=()
+            while IFS= read -r line; do [[ -z "${line}" ]] || rseen["${line#"${work}/ruff/"}"]=1; done < "${work}/ruff.files"
+            for rpath in "${rpy[@]}"; do
+                [[ -n "${rseen[${rpath}]:-}" ]] || unknown "ruff did not select ${rmap[${rpath}]}"
+            done
+            rc=0
+            (cd "${work}/ruff" && "${RUFF_BIN}" "${ruff_args[@]}" --ignore-noqa --output-format json -- "${rpy[@]}" \
+                > "${work}/ruff.json" 2> "${work}/ruff.err") || rc=$?
+            # why: jq output dropped — a missing or malformed report is reported as UNKNOWN
+            if [[ ${rc} -gt 1 ]] || ! jq -e 'type == "array"' "${work}/ruff.json" >/dev/null 2>&1; then
+                unknown "ruff exited ${rc}: $(head -c 200 "${work}/ruff.err")"
+            else
+                before=$((findings + unknown))
+                declare -A unparsed=()
+                while IFS=$'\t' read -r file row code msg; do
+                    file="${file#"${work}/ruff/"}"; file="${rmap[${file}]:-${file}}"
+                    if [[ "${code}" == invalid-syntax ]]; then
+                        [[ -n "${unparsed[${file}]:-}" ]] || unknown "ruff could not parse ${file}"
+                        unparsed["${file}"]=1
+                    else
+                        finding "ruff ${file}:${row} ${code} ${msg}"
+                    fi
+                done < <(jq -r '.[] | [.filename, .location.row, (.code // "invalid-syntax"), .message] | @tsv' "${work}/ruff.json")
+                while IFS= read -r line; do
+                    [[ "${line}" =~ Failed\ to\ lint\ (.+):\  ]] && unknown "ruff could not lint ${rmap[${BASH_REMATCH[1]}]:-${BASH_REMATCH[1]}}"
+                done < "${work}/ruff.err"
+                if [[ ${rc} -eq 1 && $((findings + unknown)) -eq ${before} ]]; then unknown "ruff exited 1 with no finding parsed"; fi
+            fi
         fi
     fi
 fi

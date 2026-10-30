@@ -242,18 +242,25 @@ if [[ ${#py[@]} -gt 0 ]]; then
         declare -a rpy=()
         for path in "${py[@]}"; do
             # PEP 263: CPython decodes with the codec a coding cookie on line 1 or 2 names; Ruff
-            # always reads UTF-8. Only codecs that agree with UTF-8 on every byte Ruff accepts
-            # (UTF-8, ASCII, Latin-1; normalised as tokenize does) can be trusted to Ruff.
-            # No pipe here: a reader that quits early SIGPIPEs its writer under pipefail.
-            l1="" l2="" cookie=""
-            { IFS= read -r l1 || true; IFS= read -r l2 || true; } < "${work}/tree/${path}"  # why: a short file ends the reads early
+            # always reads UTF-8. Rather than re-implement CPython's choice of cookie, fail closed:
+            # on the first two lines (split on CR as well as LF, as CPython does), every
+            # `coding[:=]` in a comment must name UTF-8, ASCII or Latin-1 (normalised as tokenize
+            # does), or the file is UNKNOWN. This over-reports odd but harmless headers, never under.
+            head -c 4096 -- "${work}/tree/${path}" | tr '\r' '\n' > "${work}/head2"
+            l1="" l2="" bad=""
+            { IFS= read -r l1 || true; IFS= read -r l2 || true; } < "${work}/head2"  # why: a short file ends the reads early
             for l in "${l1}" "${l2}"; do
-                if [[ "${l}" =~ ^[[:space:]]*#.*coding[:=][[:space:]]*([-_.[:alnum:]]+) ]]; then cookie="${BASH_REMATCH[1]}"; break; fi
+                [[ "${l}" =~ ^[[:space:]]*# ]] || continue
+                rest="${l}"
+                while [[ "${rest}" =~ coding[:=][[:space:]]*([-_.[:alnum:]]*)(.*)$ ]]; do
+                    name="${BASH_REMATCH[1]}"; rest="${BASH_REMATCH[2]}"
+                    codec="${name,,}"; codec="${codec//_/-}"
+                    if [[ -n "${codec}" && ! "${codec}" =~ ^(utf-8|utf8|ascii|us-ascii|latin-1|iso-8859-1|iso-latin-1)(-.*)?$ ]]; then
+                        bad="${name}"; break 2
+                    fi
+                done
             done
-            codec="${cookie,,}"; codec="${codec//_/-}"
-            if [[ -n "${codec}" && ! "${codec}" =~ ^(utf-8|utf8|ascii|us-ascii|latin-1|iso-8859-1|iso-latin-1)(-.*)?$ ]]; then
-                unknown "ruff cannot read ${path} (coding: ${cookie})"; continue
-            fi
+            if [[ -n "${bad}" ]]; then unknown "ruff cannot read ${path} (coding: ${bad})"; continue; fi
             rpath="${path}"
             [[ "${path}" == *.py || "${path}" == *.pyi ]] || rpath="${path}.scan-untrusted.py"
             if [[ -n "${rmap[${rpath}]:-}" ]]; then unknown "ruff name clash ${path}"; continue; fi
@@ -335,21 +342,28 @@ for lock in "${locks[@]}"; do
 done
 
 # --- gitleaks: every blob the range introduces, named by blob id ---------------------------
-# ponytail: one cat-file per blob; switch to `cat-file --batch` if PR ranges get large.
+# `--no-git` skips a file whose bytes match a binary format signature, at offset 0 or later (tar
+# at 257, ISO at 32769), so a text file can be made to look binary. Each copy gitleaks reads
+# starts with one 64 KiB line of spaces, which moves every byte the blob controls past the
+# furthest signature offset gitleaks checks; reported lines are shifted back by 1. (`--pipe`
+# skips the sniff but numbers lines per internal chunk, so findings cannot be mapped back.)
+# ponytail: 64 KiB per blob on disk and one cat-file per blob; batch if PR ranges get large.
 # ponytail: rev-list prints paths newline-separated, so a path with a newline is misnamed in output.
 declare -A blob_path=() allow_seen=()
 { git -C "${repo}" rev-list --objects "${base_sha}..${head_sha}" | git -C "${repo}" cat-file --batch-check='%(objectname) %(objecttype) %(rest)'; } \
     > "${work}/objects.txt" || { echo "scan-untrusted: git rev-list failed" >&2; exit 2; }
+mkdir "${work}/gl"
+printf '%65536s\n' '' > "${work}/pad"
 while read -r sha type rest; do
     [[ "${type}" == blob ]] || continue
-    [[ -n "${blob_path[${sha}]:-}" ]] || blob_path["${sha}"]="${rest}"
-    # One neutral first line: gitleaks --no-git skips a file whose first bytes look like a binary
-    # format (%PDF-, {\rtf1, …), and these files have no name to say otherwise. Lines shift by 1.
-    { echo scan-untrusted; g cat-file blob "${sha}"; } > "${work}/blobs/${sha}"
+    [[ -z "${blob_path[${sha}]:-}" ]] || continue          # same content seen under another path
+    blob_path["${sha}"]="${rest}"
+    g cat-file blob "${sha}" > "${work}/blobs/${sha}"
+    cat -- "${work}/pad" "${work}/blobs/${sha}" > "${work}/gl/${sha}"
     while IFS=: read -r n _; do
         [[ -z "${allow_seen[${rest}:${n}]:-}" ]] || continue   # same line in several versions
         allow_seen["${rest}:${n}"]=1
-        suppressor "${rest}:$((n - 1)) gitleaks:allow"
+        suppressor "${rest}:${n} gitleaks:allow"
     done < <(grep -a -n -F -- 'gitleaks:allow' "${work}/blobs/${sha}" || true)  # why: grep exits 1 when a file has no marker
 done < "${work}/objects.txt"
 
@@ -358,7 +372,7 @@ if [[ ${#blob_path[@]} -gt 0 ]]; then
     if ! command -v -- "${GITLEAKS_BIN}" >/dev/null 2>&1; then unknown "gitleaks not runnable (${GITLEAKS_BIN})"
     else
         rc=0
-        (cd "${work}" && "${GITLEAKS_BIN}" detect --no-git --no-banner --redact -s blobs -i blobs \
+        (cd "${work}" && "${GITLEAKS_BIN}" detect --no-git --no-banner --redact -s gl -i gl \
             --report-format json --report-path report.json --exit-code 0 >/dev/null 2>"${work}/gitleaks.err") || rc=$?
         # why: jq output dropped — a missing or malformed report is reported as UNKNOWN
         if [[ ${rc} -ne 0 ]] || ! jq -e 'type == "array"' "${work}/report.json" >/dev/null 2>&1; then

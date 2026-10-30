@@ -65,7 +65,8 @@ head_sha=$(resolve "${head}")
 work=""
 trap 'if [[ -n "${work}" ]]; then rm -rf -- "${work}"; fi' EXIT
 work=$(mktemp -d "${TMPDIR:-/tmp}/scan-untrusted.XXXXXX")
-mkdir "${work}/blobs" "${work}/tree"
+work=$(cd -- "${work}" && pwd -P)      # physical path: scanners report it, so prefixes match
+mkdir "${work}/blobs" "${work}/tree" "${work}/ruff"
 : > "${work}/osv.toml"
 
 findings=0 suppressors=0 unknown=0
@@ -73,55 +74,99 @@ finding()    { printf 'FINDING %s\n' "$*"; findings=$((findings + 1)); }
 suppressor() { printf 'SUPPRESSOR %s\n' "$*"; suppressors=$((suppressors + 1)); }
 unknown()    { printf 'UNKNOWN %s\n' "$*"; unknown=$((unknown + 1)); }
 
-# Resolve a symlink's target against its own directory; prints nothing if it leaves the repo.
-link_target() {
-    local dir="" part
-    local -a parts=() stack=()
-    [[ "$1" != */* ]] || dir="${1%/*}/"
-    [[ "$2" != /* ]] || return 0
-    IFS=/ read -r -a parts <<<"${dir}$2"
-    for part in "${parts[@]}"; do
-        case "${part}" in
-            ''|.) ;;
-            ..) [[ ${#stack[@]} -gt 0 ]] || return 0; unset 'stack[-1]' ;;
-            *) stack+=("${part}") ;;
+# --- head tree lookups and kernel-style symlink resolution ---------------------------------
+# lookup <path>: sets L_MODE / L_SHA for that entry at head (empty when there is none).
+lookup() {
+    local e=""
+    # why: || true — no entry (or a failed ls-tree) leaves e empty, which callers treat as missing
+    IFS= read -r -d '' e < <(git --literal-pathspecs -C "${repo}" ls-tree -z "${head_sha}" -- "$1") || true
+    L_MODE="" L_SHA=""
+    [[ -z "${e}" ]] || read -r L_MODE _ L_SHA <<<"${e%%$'\t'*}"
+}
+
+# resolve <path>: follows the path one component at a time as the kernel would — a symlink is
+# read and spliced in, `..` steps up from the physical directory reached so far. Sets
+# R_SHA (the regular file reached) or R_ERR, and R_TOUCH=1 when any entry on the way changed in the range.
+declare -A changed_set=()
+resolve() {
+    local -a todo=() parts=()
+    local cur="" comp cand target hops=0
+    R_SHA="" R_ERR="" R_TOUCH=0
+    IFS=/ read -r -a todo <<<"$1"
+    while [[ ${#todo[@]} -gt 0 ]]; do
+        comp="${todo[0]}"; todo=("${todo[@]:1}")
+        case "${comp}" in
+            ''|.) continue ;;
+            ..) if [[ -z "${cur}" ]]; then R_ERR="points outside the repo"; return 0; fi
+                if [[ "${cur}" == */* ]]; then cur="${cur%/*}"; else cur=""; fi
+                continue ;;
+        esac
+        cand="${cur:+${cur}/}${comp}"
+        lookup "${cand}"
+        [[ -z "${changed_set[${cand}]:-}" ]] || R_TOUCH=1
+        case "${L_MODE}" in
+            120000)
+                hops=$((hops + 1))
+                if [[ ${hops} -gt 40 ]]; then R_ERR="too many levels of symlinks"; return 0; fi
+                g cat-file blob "${L_SHA}" > "${work}/link"
+                # Counted with tr, not grep: grep is line-based, so it never sees a newline.
+                if [[ $(tr -d -c '[:cntrl:]' < "${work}/link" | wc -c) -gt 0 ]]; then
+                    R_ERR="target has control characters"; return 0
+                fi
+                target=$(<"${work}/link")
+                if [[ "${target}" == /* ]]; then R_ERR="points outside the repo"; return 0; fi
+                IFS=/ read -r -a parts <<<"${target}"
+                todo=("${parts[@]}" "${todo[@]}") ;;      # cur stays: the link's own directory
+            040000) cur="${cand}"
+                    if [[ ${#todo[@]} -eq 0 ]]; then R_ERR="resolves to a directory"; return 0; fi ;;
+            100*)   if [[ ${#todo[@]} -gt 0 ]]; then R_ERR="passes through a file"; return 0; fi
+                    R_SHA="${L_SHA}"; return 0 ;;
+            '')     R_ERR="target missing at head"; return 0 ;;
+            *)      R_ERR="resolves to a submodule"; return 0 ;;
         esac
     done
-    [[ ${#stack[@]} -eq 0 ]] || (IFS=/; printf '%s\n' "${stack[*]}")
+    R_ERR="resolves to a directory"
 }
 
 # --- changed files at head: write each by name under tree/ --------------------------------
-# A symlink is written under its own name with its target's content, so it is classified by
-# the name an importer or caller uses. Producers write to files first: a git error inside a
-# process substitution would otherwise be ignored and read as an empty, clean range.
+# A symlink is written under its own name with the content the kernel would open, so it is
+# classified by the name an importer or caller uses. A symlink already on the base is handled
+# the same way when anything on its route changed. Producers write to files first: a git error
+# inside a process substitution would otherwise be ignored and read as an empty, clean range.
 git -C "${repo}" diff-tree -r -z --no-renames --diff-filter=AMT "${base_sha}" "${head_sha}" > "${work}/changed.z" \
     || { echo "scan-untrusted: git diff-tree failed" >&2; exit 2; }
-declare -a changed=()
+declare -a c_path=() c_mode=() c_blob=() changed=()
 while IFS= read -r -d '' meta && IFS= read -r -d '' path; do
     read -r _ mode _ blob _ <<<"${meta#:}"
     if [[ "${path}" == *[[:cntrl:]]* ]]; then
         unknown "path with control characters not scanned: $(printf '%q' "${path}")"; continue
     fi
     case "/${path}/" in */../*|*/./*) echo "scan-untrusted: refusing path ${path}" >&2; exit 2 ;; esac
-    if [[ "${mode}" == 120000 ]]; then
-        target=$(g cat-file blob "${blob}")
-        resolved=$(link_target "${path}" "${target}")
-        if [[ -z "${resolved}" ]]; then
-            unknown "symlink ${path} -> $(printf '%q' "${target}") points outside the repo"; continue
-        fi
-        entry=""
-        IFS= read -r -d '' entry < <(git --literal-pathspecs -C "${repo}" ls-tree -z "${head_sha}" -- "${resolved}") || true  # why: no entry means the target is missing; handled next
-        if [[ "${entry}" != 100* ]]; then
-            unknown "symlink ${path} -> $(printf '%q' "${target}") is not a regular file at head"; continue
-        fi
-        read -r _ _ blob <<<"${entry%%$'\t'*}"
-    elif [[ "${mode}" != 100* ]]; then
-        continue                                   # submodules: no content in this repo
-    fi
-    mkdir -p -- "${work}/tree/$(dirname -- "${path}")"
-    g cat-file blob "${blob}" > "${work}/tree/${path}"
-    changed+=("${path}")
+    c_path+=("${path}") c_mode+=("${mode}") c_blob+=("${blob}")
+    changed_set["${path}"]=1
 done < "${work}/changed.z"
+
+write_tree() { mkdir -p -- "${work}/tree/$(dirname -- "$1")"; g cat-file blob "$2" > "${work}/tree/$1"; changed+=("$1"); }
+for i in "${!c_path[@]}"; do
+    path="${c_path[i]}"
+    case "${c_mode[i]}" in
+        120000) resolve "${path}"
+                if [[ -n "${R_ERR}" ]]; then unknown "symlink ${path}: ${R_ERR}"; else write_tree "${path}" "${R_SHA}"; fi ;;
+        100*)   write_tree "${path}" "${c_blob[i]}" ;;
+        *)      ;;                                 # submodules: no content in this repo
+    esac
+done
+
+git -C "${repo}" ls-tree -r -z "${head_sha}" > "${work}/head.z" \
+    || { echo "scan-untrusted: git ls-tree failed" >&2; exit 2; }
+while IFS= read -r -d '' e; do
+    [[ "${e}" == 120000* ]] || continue
+    path="${e#*$'\t'}"
+    [[ -z "${changed_set[${path}]:-}" && "${path}" != *[[:cntrl:]]* ]] || continue
+    resolve "${path}"
+    [[ ${R_TOUCH} -eq 1 ]] || continue
+    if [[ -n "${R_ERR}" ]]; then unknown "symlink ${path}: ${R_ERR}"; else write_tree "${path}" "${R_SHA}"; fi
+done < "${work}/head.z"
 
 # First line, NUL bytes dropped (binary files), control characters shown as ?.
 shebang() {
@@ -142,7 +187,7 @@ for path in "${changed[@]}"; do
             suppressor "${path} scanner config changed" ;;
     esac
     case "${name}" in
-        *.py|*.pyi) py+=("${path}"); continue ;;
+        *.py|*.pyi|*.pyw) py+=("${path}"); continue ;;
         *.sh|*.bash|*.ksh|*.dash|*.bats) sh+=("${path}"); continue ;;
         *.ipynb|*.pth) unknown "not scanned ${path} (no scanner reads this type)"; continue ;;
     esac
@@ -185,9 +230,32 @@ if [[ ${#py[@]} -gt 0 ]]; then
     # why: output dropped — a scanner that is not on PATH becomes an UNKNOWN line, never a skip
     if ! command -v -- "${RUFF_BIN}" >/dev/null 2>&1; then unknown "ruff not runnable (${RUFF_BIN})"
     else
+        # Ruff lints only Python file names, so each file is copied under one (`run.toml`,
+        # a python-shebang script, would otherwise be skipped without a word).
+        declare -A rmap=()
+        declare -a rpy=()
+        for path in "${py[@]}"; do
+            rpath="${path}"
+            [[ "${path}" == *.py || "${path}" == *.pyi ]] || rpath="${path}.scan-untrusted.py"
+            if [[ -n "${rmap[${rpath}]:-}" ]]; then unknown "ruff name clash ${path}"; continue; fi
+            mkdir -p -- "${work}/ruff/$(dirname -- "${rpath}")"
+            cp -- "${work}/tree/${path}" "${work}/ruff/${rpath}"
+            rmap["${rpath}"]="${path}"; rpy+=("${rpath}")
+        done
+        ruff_args=(check --isolated --no-respect-gitignore --select S --config "${RUFF_TEST_ASSERTS}" --no-cache)
+        # Every file handed over must be one Ruff selects (--show-files rejects --ignore-noqa;
+        # noqa does not affect selection).
         rc=0
-        (cd "${work}/tree" && "${RUFF_BIN}" check --isolated --ignore-noqa --no-respect-gitignore \
-            --select S --config "${RUFF_TEST_ASSERTS}" --output-format json --no-cache -- "${py[@]}" \
+        (cd "${work}/ruff" && "${RUFF_BIN}" "${ruff_args[@]}" --show-files -- "${rpy[@]}" \
+            > "${work}/ruff.files" 2>&1) || rc=$?
+        if [[ ${rc} -ne 0 ]]; then unknown "ruff --show-files exited ${rc}: $(head -c 200 "${work}/ruff.files")"; fi
+        declare -A rseen=()
+        while IFS= read -r line; do [[ -z "${line}" ]] || rseen["${line#"${work}/ruff/"}"]=1; done < "${work}/ruff.files"
+        for rpath in "${rpy[@]}"; do
+            [[ -n "${rseen[${rpath}]:-}" ]] || unknown "ruff did not select ${rmap[${rpath}]}"
+        done
+        rc=0
+        (cd "${work}/ruff" && "${RUFF_BIN}" "${ruff_args[@]}" --ignore-noqa --output-format json -- "${rpy[@]}" \
             > "${work}/ruff.json" 2> "${work}/ruff.err") || rc=$?
         # why: jq output dropped — a missing or malformed report is reported as UNKNOWN
         if [[ ${rc} -gt 1 ]] || ! jq -e 'type == "array"' "${work}/ruff.json" >/dev/null 2>&1; then
@@ -196,7 +264,7 @@ if [[ ${#py[@]} -gt 0 ]]; then
             before=$((findings + unknown))
             declare -A unparsed=()
             while IFS=$'\t' read -r file row code msg; do
-                file="${file#"${work}/tree/"}"
+                file="${file#"${work}/ruff/"}"; file="${rmap[${file}]:-${file}}"
                 if [[ "${code}" == invalid-syntax ]]; then
                     [[ -n "${unparsed[${file}]:-}" ]] || unknown "ruff could not parse ${file}"
                     unparsed["${file}"]=1
@@ -205,7 +273,7 @@ if [[ ${#py[@]} -gt 0 ]]; then
                 fi
             done < <(jq -r '.[] | [.filename, .location.row, (.code // "invalid-syntax"), .message] | @tsv' "${work}/ruff.json")
             while IFS= read -r line; do
-                [[ "${line}" =~ Failed\ to\ lint\ (.+):\  ]] && unknown "ruff could not lint ${BASH_REMATCH[1]}"
+                [[ "${line}" =~ Failed\ to\ lint\ (.+):\  ]] && unknown "ruff could not lint ${rmap[${BASH_REMATCH[1]}]:-${BASH_REMATCH[1]}}"
             done < "${work}/ruff.err"
             if [[ ${rc} -eq 1 && $((findings + unknown)) -eq ${before} ]]; then unknown "ruff exited 1 with no finding parsed"; fi
         fi

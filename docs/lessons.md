@@ -5,6 +5,10 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-078 (2026-10-30) — I claimed a scanner override worked after testing one of its config inputs
+**Pattern:** for the PR #77 MEDIUM I wrote that gitleaks `-c`/`-i` makes it ignore the scanned repo's suppressions, and TODOS said "each override brings back a finding the repo's config hid". I had tested `.gitleaks.toml` only. Both sdm reviewers then showed the repo's `.gitleaksignore` still applies under `-i` (reproduced on 8.18.0), and that Ruff skips gitignored files on a directory scan.
+**Rule:** before claiming a tool ignores repo-controlled input, list every input it reads (config files, ignore files, inline comments, the VCS ignore files it honours, default excludes), plant a finding behind each one in a scratch repo, and record the result for each. A claim covers only the inputs in that list.
+
 ## L-077 (2026-10-29) — An archive commit made main red; I pushed it without running the suite
 **Pattern:** `chore: archive AA-MA plan code-conventions-impact` (a91be2ce) went to main as "docs-only". `tests/render/test_phantom_edge.py` pins the set of completed plans that have §13 sigil edges, and the archive added one, so main's CI failed. It surfaced only when the next PR's (#74) CI ran.
 **Rule:** Moving files under `.claude/dev/completed/` is not docs-only: tests read that tree. Run `uv run pytest -q` before pushing an archive, and check main's CI (`gh run list --branch main --limit 1`) after every push to main before starting the next task.

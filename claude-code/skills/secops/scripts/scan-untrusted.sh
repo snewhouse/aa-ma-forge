@@ -25,6 +25,9 @@
 # on PATH). Needs git and jq.
 
 set -euo pipefail
+# why: byte-wise matching everywhere, so an invalid UTF-8 byte cannot make grep, sed and
+# [[ =~ ]] disagree about a line (e.g. reported as a directive but not blanked).
+export LC_ALL=C
 
 RUFF_BIN="${RUFF_BIN:-ruff}"
 SHELLCHECK_BIN="${SHELLCHECK_BIN:-shellcheck}"

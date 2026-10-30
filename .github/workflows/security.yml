@@ -178,6 +178,19 @@ jobs:
       - name: Verify project tools are runnable
         run: aa-ma-gate --help >/dev/null && ruff --version && cz version
 
+      # tests/commands/secops/ runs the real gitleaks: a missing binary makes the script
+      # report UNKNOWN and the cases fail, never skip. Same pinned tarball as the gitleaks job.
+      - name: Install gitleaks v8.18.4 (sha256-verified release tarball)
+        run: |
+          curl -fsSLO https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz
+          echo "ba6dbb656933921c775ee5a2d1c13a91046e7952e9d919f9bac4cec61d628e7d  gitleaks_8.18.4_linux_x64.tar.gz" | sha256sum -c
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xzf gitleaks_8.18.4_linux_x64.tar.gz -C "$RUNNER_TEMP/bin" gitleaks
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Verify gitleaks and jq are usable
+        run: gitleaks version && jq --version
+
       - name: Run bats on tests/hooks/
         run: bats --recursive tests/hooks/
 
@@ -189,6 +202,10 @@ jobs:
         # aa-ma-share-allow.bats (M3) and release.bats (scripts/release.sh) — top-level
         # command/script suites were not covered by the steps above.
         run: bats tests/commands/*.bats
+
+      - name: Run bats on tests/commands/secops/
+        # secops scan-untrusted.sh: one case per way a scanned repo can hide a finding.
+        run: bats tests/commands/secops/
 
   codemem-smoke:
     name: codemem smoke test

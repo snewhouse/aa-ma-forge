@@ -24,7 +24,7 @@
 # Exit 0 covers Python, shell, the lockfiles osv-scanner reads, and secrets in every blob. Other
 # languages (JS/TS, workflow YAML, Dockerfiles, …) are not scanned unless a shebang names them.
 # Env: RUFF_BIN, SHELLCHECK_BIN, GITLEAKS_BIN, OSV_SCANNER_BIN (operator-trusted; defaults
-# on PATH). Needs git and jq.
+# on PATH). Needs git, jq and python3 (its tokenize decides Python file encodings).
 
 set -Eeuo pipefail
 # Any unexpected failure is exit 2 with its line, never a silent death or an undocumented code.
@@ -238,29 +238,32 @@ if [[ ${#py[@]} -gt 0 ]]; then
     else
         # Ruff lints only Python file names, so each file is copied under one (`run.toml`,
         # a python-shebang script, would otherwise be skipped without a word).
+        # PEP 263: CPython decodes with the codec a coding cookie names (unicode_escape turns a
+        # comment into code); Ruff always reads UTF-8. Ask CPython's own tokenize which codec it
+        # would use — every re-implementation of its line splitting and cookie rules missed a
+        # case — and trust Ruff only with UTF-8, ASCII or Latin-1. No python3, or an error, is UNKNOWN.
+        declare -A codec_of=() codec_raw=()
+        if command -v python3 >/dev/null 2>&1; then  # why: output dropped — absence leaves every codec unknown
+            while IFS=$'\t' read -r raw path; do
+                codec_raw["${path}"]="${raw}"; c="${raw,,}"; codec_of["${path}"]="${c//_/-}"
+            done < <(cd "${work}/tree" && python3 -I -c '
+import sys, tokenize
+for p in sys.argv[1:]:
+    try:
+        with open(p, "rb") as f:
+            enc = tokenize.detect_encoding(f.readline)[0]
+    except Exception as e:
+        enc = "error: " + type(e).__name__
+    print(enc + "\t" + p)
+' "${py[@]}" || true)  # why: a python3 failure leaves codecs unset, so every file is UNKNOWN
+        fi
         declare -A rmap=()
         declare -a rpy=()
         for path in "${py[@]}"; do
-            # PEP 263: CPython decodes with the codec a coding cookie on line 1 or 2 names; Ruff
-            # always reads UTF-8. Rather than re-implement CPython's choice of cookie, fail closed:
-            # on the first two lines (split on CR as well as LF, as CPython does), every
-            # `coding[:=]` in a comment must name UTF-8, ASCII or Latin-1 (normalised as tokenize
-            # does), or the file is UNKNOWN. This over-reports odd but harmless headers, never under.
-            head -c 4096 -- "${work}/tree/${path}" | tr '\r' '\n' > "${work}/head2"
-            l1="" l2="" bad=""
-            { IFS= read -r l1 || true; IFS= read -r l2 || true; } < "${work}/head2"  # why: a short file ends the reads early
-            for l in "${l1}" "${l2}"; do
-                [[ "${l}" =~ ^[[:space:]]*# ]] || continue
-                rest="${l}"
-                while [[ "${rest}" =~ coding[:=][[:space:]]*([-_.[:alnum:]]*)(.*)$ ]]; do
-                    name="${BASH_REMATCH[1]}"; rest="${BASH_REMATCH[2]}"
-                    codec="${name,,}"; codec="${codec//_/-}"
-                    if [[ -n "${codec}" && ! "${codec}" =~ ^(utf-8|utf8|ascii|us-ascii|latin-1|iso-8859-1|iso-latin-1)(-.*)?$ ]]; then
-                        bad="${name}"; break 2
-                    fi
-                done
-            done
-            if [[ -n "${bad}" ]]; then unknown "ruff cannot read ${path} (coding: ${bad})"; continue; fi
+            codec="${codec_of[${path}]:-?}"
+            if [[ ! "${codec}" =~ ^(utf-8|utf8|utf-8-sig|ascii|iso-8859-1)$ ]]; then
+                unknown "ruff cannot read ${path} (coding: ${codec_raw[${path}]:-unknown})"; continue
+            fi
             rpath="${path}"
             [[ "${path}" == *.py || "${path}" == *.pyi ]] || rpath="${path}.scan-untrusted.py"
             if [[ -n "${rmap[${rpath}]:-}" ]]; then unknown "ruff name clash ${path}"; continue; fi

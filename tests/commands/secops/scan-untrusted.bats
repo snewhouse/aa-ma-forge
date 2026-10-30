@@ -264,3 +264,10 @@ BASH_UNQUOTED='#!/bin/bash\necho $1\n'
     [[ "${output}" == *"SUPPRESSOR a.sh:2 shellcheck directive"* ]]
     [[ "${output}" == *"SUPPRESSOR b.sh:2 shellcheck directive"* ]]
 }
+
+@test "shellcheck: an invalid byte after a directive does not stop it being blanked" {
+    put a.sh '#!/bin/bash\n# shellcheck disable=SC2086 \xff\necho $1\n'
+    commit "pr"
+    LC_ALL=C.UTF-8 scan
+    [[ "${output}" == *"FINDING shellcheck a.sh:3 SC2086"* ]]
+}

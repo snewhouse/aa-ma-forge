@@ -15,7 +15,7 @@
 #     osv-scanner --config <empty>. Files are chosen by extension or shebang.
 #   - Inline suppressions (in the head version of each scanned file, and gitleaks:allow in
 #     every blob of the range) and changed scanner config files are SUPPRESSOR lines. No flag
-#     turns off `# shellcheck disable=`, so those are blanked in the copies before ShellCheck.
+#     turns off a `# shellcheck …` directive, so those are blanked in the copies before ShellCheck.
 #
 # Output (stdout), one line each: FINDING <scanner> <path>[:<line>] <rule> …,
 # SUPPRESSOR <path>[:<line>] <marker>, UNKNOWN <scanner> <reason>; last line
@@ -107,7 +107,8 @@ done
 # Ruff, ShellCheck's in those sent to ShellCheck. ShellCheck directives are then blanked in
 # the copies, since no flag turns them off. gitleaks:allow is checked in every blob below.
 py_re='(noqa|ruff:[[:space:]]*(noqa|disable)|nosec)'
-sh_re='shellcheck[[:space:]]+disable'
+# Any directive (`# shellcheck key=value …`): one directive can carry several keys.
+sh_re='#[[:space:]]*shellcheck[[:space:]]+[a-z-]+='
 for path in "${py[@]}"; do
     while IFS=: read -r n text; do
         [[ "${text}" =~ ${py_re} ]] || continue
@@ -117,9 +118,9 @@ for path in "${py[@]}"; do
 done
 for path in "${sh[@]}"; do
     while IFS=: read -r n _; do
-        suppressor "${path}:${n} shellcheck disable"
+        suppressor "${path}:${n} shellcheck directive"
     done < <(grep -a -n -E -- "${sh_re}" "${work}/tree/${path}" || true)  # why: grep exits 1 when a file has no marker
-    sed -i -E 's/#[[:space:]]*shellcheck[[:space:]]+disable=[^[:space:]]*//' -- "${work}/tree/${path}"
+    sed -i -E 's/#[[:space:]]*shellcheck[[:space:]]+[a-z-]+=.*$//' -- "${work}/tree/${path}"
 done
 
 # assert (S101) is how tests check things; it is a finding only in shipped code.

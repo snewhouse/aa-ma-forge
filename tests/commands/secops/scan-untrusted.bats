@@ -472,3 +472,39 @@ BASH_UNQUOTED='#!/bin/bash\necho $1\n'
     [[ "${output}" == *"UNKNOWN not scanned vendor/lib (submodule)"* ]]
     [[ "${output}" == *"UNKNOWN not scanned .gitmodules (submodule config)"* ]]
 }
+
+@test "ruff: every coding name in the first two lines must be safe (greedy, form feed, CR-only)" {
+    put a.py '# coding: unicode_escape  coding: utf-8\nimport sys\n'
+    put b.py '# coding:\fUTF-8\n# coding: unicode_escape\nimport sys\n'
+    put c.py '#!/x\r# coding: unicode_escape\rimport sys\r# coding: utf-8\n'
+    put ok.py 'import io\nio.open("f", encoding="utf-16")\n'
+    commit "pr"
+    scan
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN ruff cannot read a.py (coding: unicode_escape)"* ]]
+    [[ "${output}" == *"UNKNOWN ruff cannot read b.py (coding: unicode_escape)"* ]]
+    [[ "${output}" == *"UNKNOWN ruff cannot read c.py (coding: unicode_escape)"* ]]
+    [[ "${output}" != *"ok.py (coding"* ]]
+}
+
+@test "gitleaks: a format signature at a later offset (tar, DICOM, ISO) does not hide a secret" {
+    python3 - "${REPO}" "${KEY}" <<'PY'
+import sys, os
+repo, key = sys.argv[1], sys.argv[2]
+for name, magic, off in [("tar.env", b"ustar", 257), ("dcm.env", b"DICM", 128), ("iso.env", b"CD001", 32769)]:
+    for shift in (0, 15, 65537):          # compensating for any fixed-length prefix
+        body = bytearray(b"a" * (off + 10))
+        if off - shift >= 0:
+            body[off - shift:off - shift + len(magic)] = magic
+        with open(os.path.join(repo, f"{shift}-{name}"), "wb") as f:
+            f.write(bytes(body) + b"\naws=" + key.encode() + b"\n")
+PY
+    commit "pr"
+    scan
+    [ "${status}" -eq 1 ]
+    for n in tar dcm iso; do
+        for shift in 0 15; do
+            [[ "${output}" == *"FINDING gitleaks ${shift}-${n}.env:2 aws-access-token"* ]]
+        done
+    done
+}

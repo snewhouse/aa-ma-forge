@@ -5,6 +5,8 @@
 # Needs git, ruff, shellcheck and gitleaks on PATH; osv-scanner is stubbed.
 
 SCRIPT="${BATS_TEST_DIRNAME}/../../../claude-code/skills/secops/scripts/scan-untrusted.sh"
+# A hang (e.g. a symlink loop with no hop limit) fails the case instead of stalling CI.
+export BATS_TEST_TIMEOUT=60
 
 setup() {
     REPO="${BATS_TEST_TMPDIR}/repo"
@@ -342,6 +344,7 @@ BASH_UNQUOTED='#!/bin/bash\necho $1\n'
     rm -f "${REPO}/.git/objects/${tree:0:2}/${tree:2}"
     scan
     [ "${status}" -eq 2 ]
+    [[ "${output}" == *"scan-untrusted: git diff-tree failed"* ]]
 }
 
 @test "shellcheck: bats files are scanned" {
@@ -349,4 +352,84 @@ BASH_UNQUOTED='#!/bin/bash\necho $1\n'
     commit "pr"
     scan
     [[ "${output}" == *"FINDING shellcheck t.bats:3 SC2086"* ]]
+}
+
+@test "symlinks resolve like the kernel: through a directory symlink already on the base" {
+    git -C "${REPO}" switch -q main
+    mkdir -p "${REPO}/sub/deep"
+    put sub/deep/keep 'x\n'
+    ln -s sub/deep "${REPO}/d"
+    commit "base dir symlink"
+    git -C "${REPO}" switch -q pr
+    git -C "${REPO}" merge -q main -m merge
+    put payload 'x = 1\n'
+    put sub/payload "${S602}"
+    ln -s d/../payload "${REPO}/evil.py"
+    commit "pr"
+    scan
+    [ "${status}" -eq 1 ]
+    [[ "${output}" == *"FINDING ruff evil.py:2"*"S602"* ]]
+}
+
+@test "a symlink on the base is scanned when its target changes" {
+    git -C "${REPO}" switch -q main
+    put payload 'x = 1\n'
+    ln -s payload "${REPO}/evil.py"
+    commit "base link"
+    git -C "${REPO}" switch -q pr
+    git -C "${REPO}" merge -q main -m merge
+    put payload "${S602}"
+    commit "pr"
+    scan
+    [ "${status}" -eq 1 ]
+    [[ "${output}" == *"FINDING ruff evil.py:2"*"S602"* ]]
+}
+
+@test "symlink chains resolve; loops, dangling links and links to directories are UNKNOWN" {
+    put c "${S602}"
+    ln -s c "${REPO}/b"
+    ln -s b "${REPO}/a.py"
+    ln -s loop2 "${REPO}/loop1.py"
+    ln -s loop1.py "${REPO}/loop2"
+    ln -s missing "${REPO}/dangling.py"
+    mkdir -p "${REPO}/pkgdir" && put pkgdir/m.txt 'x\n'
+    ln -s pkgdir "${REPO}/pkg"
+    commit "pr"
+    scan
+    [[ "${output}" == *"FINDING ruff a.py:2"*"S602"* ]]
+    [[ "${output}" == *"UNKNOWN symlink loop1.py"* ]]
+    [[ "${output}" == *"UNKNOWN symlink dangling.py"* ]]
+    [[ "${output}" == *"UNKNOWN symlink pkg"*"directory"* ]]
+}
+
+@test "ruff: python-shebang files with a non-Python extension are scanned" {
+    put run.toml "#!/usr/bin/env python3\n${S602}"
+    put run.md "#!/usr/bin/env python3\n${S602}"
+    put w.pyw "${S602}"
+    commit "pr"
+    scan
+    [[ "${output}" == *"FINDING ruff run.toml:3"*"S602"* ]]
+    [[ "${output}" == *"FINDING ruff run.md:3"*"S602"* ]]
+    [[ "${output}" == *"FINDING ruff w.pyw:2"*"S602"* ]]
+}
+
+@test "a symlink whose target has a control character is UNKNOWN" {
+    put ok.py 'x = 1\n'
+    ln -s "ok.py"$'\n' "${REPO}/x.py"
+    commit "pr"
+    scan
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN symlink x.py: target has control characters"* ]]
+}
+
+@test "ruff: a file Ruff does not select is UNKNOWN" {
+    stub="${BATS_TEST_TMPDIR}/ruff"
+    # Real ruff, except --show-files lists nothing: as if a default exclude had dropped the file.
+    printf '#!/bin/sh\nfor a in "$@"; do [ "$a" = --show-files ] && exit 0; done\nexec ruff "$@"\n' > "${stub}"
+    chmod +x "${stub}"
+    put a.py 'print(1)\n'
+    commit "pr"
+    RUFF_BIN="${stub}" scan
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN ruff did not select a.py"* ]]
 }

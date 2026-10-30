@@ -487,6 +487,16 @@ BASH_UNQUOTED='#!/bin/bash\necho $1\n'
     [[ "${output}" != *"ok.py (coding"* ]]
 }
 
+@test "ruff: CRLF line endings and a long first line do not hide a line-2 cookie" {
+    put crlf.py '# hi\r\n# coding: unicode_escape\r\nimport sys\r\n'
+    printf '#%5000s\n# coding: unicode_escape\nimport sys\n' '' > "${REPO}/long.py"
+    commit "pr"
+    scan
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN ruff cannot read crlf.py (coding: unicode_escape)"* ]]
+    [[ "${output}" == *"UNKNOWN ruff cannot read long.py (coding: unicode_escape)"* ]]
+}
+
 @test "gitleaks: a format signature at a later offset (tar, DICOM, ISO) does not hide a secret" {
     python3 - "${REPO}" "${KEY}" <<'PY'
 import sys, os

@@ -271,3 +271,82 @@ BASH_UNQUOTED='#!/bin/bash\necho $1\n'
     LC_ALL=C.UTF-8 scan
     [[ "${output}" == *"FINDING shellcheck a.sh:3 SC2086"* ]]
 }
+
+@test "a file name with a control character is UNKNOWN, never a silent clean" {
+    printf '#!/usr/bin/env python3\n%b' "${S602}" > "${REPO}/run"$'\n'
+    commit "pr"
+    scan
+    [ "${status}" -ne 0 ]
+    [[ "${output}" == *"UNKNOWN path with control characters"* ]]
+}
+
+@test "ruff: a file it cannot decode is UNKNOWN" {
+    put lat.py '# -*- coding: latin-1 -*-\nx = "\xe9"\nimport subprocess\nsubprocess.run(input(), shell=True)\n'
+    commit "pr"
+    scan
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN ruff could not lint lat.py"* ]]
+}
+
+@test "ruff: a file it cannot parse is UNKNOWN" {
+    put s.py "${S602}x = (\n"
+    commit "pr"
+    scan
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN ruff could not parse s.py"* ]]
+}
+
+@test "ruff: a uv run --script shebang is scanned" {
+    put tool "#!/usr/bin/env -S uv run --script\n${S602}"
+    commit "pr"
+    scan
+    [[ "${output}" == *"FINDING ruff tool:3"*"S602"* ]]
+}
+
+@test "symlinks are scanned by their own name with their target's content" {
+    put data/blob "${S602}"
+    put data/steps "${BASH_UNQUOTED}"
+    mkdir -p "${REPO}/pkg"
+    ln -s ../data/blob "${REPO}/pkg/mod.py"
+    ln -s data/steps "${REPO}/setup.sh"
+    commit "pr"
+    scan
+    [[ "${output}" == *"FINDING ruff pkg/mod.py:2"*"S602"* ]]
+    [[ "${output}" == *"FINDING shellcheck setup.sh:2"*"SC2086"* ]]
+}
+
+@test "a symlink pointing outside the repo is UNKNOWN" {
+    ln -s /etc/passwd "${REPO}/x.py"
+    commit "pr"
+    scan
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN symlink x.py"* ]]
+}
+
+@test "scripts no scanner reads (other interpreters, notebooks, .pth) are UNKNOWN" {
+    put bin/run '#!/usr/bin/env node\nrequire("child_process").exec(process.argv[2])\n'
+    put nb.ipynb '{}\n'
+    put hook.pth 'import os\n'
+    commit "pr"
+    scan
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN not scanned bin/run"* ]]
+    [[ "${output}" == *"UNKNOWN not scanned nb.ipynb"* ]]
+    [[ "${output}" == *"UNKNOWN not scanned hook.pth"* ]]
+}
+
+@test "a git error while reading the range exits 2, not clean" {
+    put sub/a.txt 'x\n'
+    commit "pr"
+    tree=$(git -C "${REPO}" rev-parse HEAD:sub)
+    rm -f "${REPO}/.git/objects/${tree:0:2}/${tree:2}"
+    scan
+    [ "${status}" -eq 2 ]
+}
+
+@test "shellcheck: bats files are scanned" {
+    put t.bats '#!/usr/bin/env bats\n@test "x" {\n    echo $1\n}\n'
+    commit "pr"
+    scan
+    [[ "${output}" == *"FINDING shellcheck t.bats:3 SC2086"* ]]
+}

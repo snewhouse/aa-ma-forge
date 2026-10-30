@@ -2,6 +2,22 @@
 
 ## AA-MA Tooling
 
+### PR #79 (secops: scan-untrusted script) review notes: 2 MEDIUM + 10 LOW (2026-10-30)
+**What:**
+- [MEDIUM] A non-executable file with no extension or shebang, run as `bash ./tool` or `python3 ./helper`, is not scanned and the run exits 0, against the header's "exit 0 covers Python, shell". Either document the limit or report such files as UNKNOWN (an allowlist of known non-code names) — `claude-code/skills/secops/scripts/scan-untrusted.sh` classification block.
+- [MEDIUM, deferred] Symlink resolution is slow: one `ls-tree` per path component, so 2,000 links take about 36 s. Batch the lookups (`git cat-file --batch`) if a real repo hits it — `scan-untrusted.sh` `lookup`/`resolve`.
+- [LOW] `refs/replace` objects can change what git shows; set `GIT_NO_REPLACE_OBJECTS=1` — `scan-untrusted.sh` setup.
+- [LOW] A lockfile name with mode 100755 skips the executable check — `scan-untrusted.sh` classification.
+- [LOW] `rev-parse --is-shallow-repository` needs git ≥ 2.15; on older git the check errors (exit 2, fails closed) — `scan-untrusted.sh` shallow check.
+- [LOW] A deep shallow clone that holds the whole range is still UNKNOWN; check `base` is reachable instead — `scan-untrusted.sh` shallow check.
+- [LOW] `.pyo` is handled as compiled code but missing from CHANGELOG and the bats cases — `CHANGELOG.md`, `tests/commands/secops/scan-untrusted.bats`.
+- [LOW] Two functions are named `resolve` (refs and symlinks); rename one — `scan-untrusted.sh`.
+- [LOW] Each blob is written twice (raw and padded); write once and pad on copy — `scan-untrusted.sh` gitleaks block.
+- [LOW] The `gitleaks:allow` grep swallows rc 2 (read error) as "no match" — `scan-untrusted.sh` gitleaks block.
+- [LOW] jq `@tsv` doubles backslashes in reported paths — `scan-untrusted.sh` output.
+- [LOW] The "rc 1 with nothing parsed → UNKNOWN" paths for Ruff/ShellCheck have no bats case — `scan-untrusted.bats`.
+**Why:** sole-dev-merge run 3 on PR #79, rounds 1–2, plus deferred items from runs 1–2 (2026-10-30). CI also found SC2015 (fixed, 8ce0a927) and joserfc CVE-2026-119284 (fixed by PR #80). PR #80's review had no findings. **Effort:** S–M · **Priority:** P3
+
 ### PR #78 (secops: untrusted-code scans are advisory) review notes: 1 MEDIUM + 4 LOW: all fixed or superseded on `feat/secops-scan-untrusted` (2026-10-30)
 **What:**
 - **Superseded:** step 1 now points to `scripts/scan-untrusted.sh` for untrusted code, so the `--`/osv wording (MEDIUM) and the noisy config/attribute reporting (LOW) are gone from the prose; the script reports only scanner config files *changed* in the range and markers only in the file types their scanner reads. Step 1 now says to read each commit (`git log -p <base>..<head>`) (LOW).

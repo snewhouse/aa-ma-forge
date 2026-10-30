@@ -90,7 +90,7 @@ BASH_UNQUOTED='#!/bin/bash\necho $1\n'
     put b.py 'x = 1  # noqa: S105\n'
     commit "pr"
     scan
-    [[ "${output}" == *"SUPPRESSOR a.sh:2 shellcheck disable"* ]]
+    [[ "${output}" == *"SUPPRESSOR a.sh:2 shellcheck directive"* ]]
     [[ "${output}" == *"SUPPRESSOR b.py:1 noqa"* ]]
 }
 
@@ -251,5 +251,16 @@ BASH_UNQUOTED='#!/bin/bash\necho $1\n'
     commit "pr"
     scan
     [[ "${output}" == *"FINDING shellcheck a.sh:4 SC2086"* ]]
-    [[ "${output}" == *"SUPPRESSOR a.sh:2 shellcheck disable"* ]]
+    [[ "${output}" == *"SUPPRESSOR a.sh:2 shellcheck directive"* ]]
+}
+
+@test "shellcheck: a multi-key directive (source=… disable=…) is reported and blanked" {
+    put a.sh '#!/bin/bash\n# shellcheck source=/dev/null disable=SC2086\necho $1\n'
+    put b.sh '#!/bin/bash\n#shellcheck enable=all disable=SC2086\necho $1\n'
+    commit "pr"
+    scan
+    [[ "${output}" == *"FINDING shellcheck a.sh:3 SC2086"* ]]
+    [[ "${output}" == *"FINDING shellcheck b.sh:3 SC2086"* ]]
+    [[ "${output}" == *"SUPPRESSOR a.sh:2 shellcheck directive"* ]]
+    [[ "${output}" == *"SUPPRESSOR b.sh:2 shellcheck directive"* ]]
 }

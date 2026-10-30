@@ -13,8 +13,9 @@
 #   - Ruff, ShellCheck and osv-scanner run on the head version of each changed file, passed
 #     by name after `--`, with Ruff --isolated --ignore-noqa, ShellCheck --norc and
 #     osv-scanner --config <empty>. Files are chosen by extension or shebang.
-#   - Inline suppressions on added lines and changed scanner config files are SUPPRESSOR
-#     lines: no flag turns off `# gitleaks:allow` or `# shellcheck disable=`.
+#   - Inline suppressions (in the head version of each scanned file, and gitleaks:allow in
+#     every blob of the range) and changed scanner config files are SUPPRESSOR lines. No flag
+#     turns off `# shellcheck disable=`, so those are blanked in the copies before ShellCheck.
 #
 # Output (stdout), one line each: FINDING <scanner> <path>[:<line>] <rule> …,
 # SUPPRESSOR <path>[:<line>] <marker>, UNKNOWN <scanner> <reason>; last line
@@ -100,6 +101,27 @@ for path in "${changed[@]}"; do
     fi
 done
 
+# --- inline suppressions --------------------------------------------------------------------
+# Each marker counts where its scanner reads it, in the whole head version of the file (a
+# directive already on the base still covers new lines): Ruff markers in the files sent to
+# Ruff, ShellCheck's in those sent to ShellCheck. ShellCheck directives are then blanked in
+# the copies, since no flag turns them off. gitleaks:allow is checked in every blob below.
+py_re='(noqa|ruff:[[:space:]]*(noqa|disable)|nosec)'
+sh_re='shellcheck[[:space:]]+disable'
+for path in "${py[@]}"; do
+    while IFS=: read -r n text; do
+        [[ "${text}" =~ ${py_re} ]] || continue
+        m="${BASH_REMATCH[1]}"; [[ "${m}" == ruff:* ]] && m="ruff directive"
+        suppressor "${path}:${n} ${m}"
+    done < <(grep -a -n -E -- "${py_re}" "${work}/tree/${path}" || true)  # why: grep exits 1 when a file has no marker
+done
+for path in "${sh[@]}"; do
+    while IFS=: read -r n _; do
+        suppressor "${path}:${n} shellcheck disable"
+    done < <(grep -a -n -E -- "${sh_re}" "${work}/tree/${path}" || true)  # why: grep exits 1 when a file has no marker
+    sed -i -E 's/#[[:space:]]*shellcheck[[:space:]]+disable=[^[:space:]]*//' -- "${work}/tree/${path}"
+done
+
 # assert (S101) is how tests check things; it is a finding only in shipped code.
 RUFF_TEST_ASSERTS="lint.per-file-ignores = {'**/tests/**' = ['S101'], '**/test_*.py' = ['S101'], '**/*_test.py' = ['S101'], '**/conftest.py' = ['S101']}"
 
@@ -154,11 +176,16 @@ done
 # --- gitleaks: every blob the range introduces, named by blob id ---------------------------
 # ponytail: one cat-file per blob; switch to `cat-file --batch` if PR ranges get large.
 # ponytail: rev-list prints paths newline-separated, so a path with a newline is misnamed in output.
-declare -A blob_path=()
+declare -A blob_path=() allow_seen=()
 while read -r sha type rest; do
     [[ "${type}" == blob ]] || continue
     [[ -n "${blob_path[${sha}]:-}" ]] || blob_path["${sha}"]="${rest}"
     g cat-file blob "${sha}" > "${work}/blobs/${sha}"
+    while IFS=: read -r n _; do
+        [[ -z "${allow_seen[${rest}:${n}]:-}" ]] || continue   # same line in several versions
+        allow_seen["${rest}:${n}"]=1
+        suppressor "${rest}:${n} gitleaks:allow"
+    done < <(grep -a -n -F -- 'gitleaks:allow' "${work}/blobs/${sha}" || true)  # why: grep exits 1 when a file has no marker
 done < <(g rev-list --objects "${base_sha}..${head_sha}" | g cat-file --batch-check='%(objectname) %(objecttype) %(rest)')
 
 if [[ ${#blob_path[@]} -gt 0 ]]; then
@@ -178,32 +205,6 @@ if [[ ${#blob_path[@]} -gt 0 ]]; then
         fi
     fi
 fi
-
-# --- inline suppressions on added lines ---------------------------------------------------
-# why: --text and no textconv/external diff, so the scanned repo's .gitattributes cannot
-# turn a file into "Binary files differ" or route it through a driver.
-# Each marker counts only where its scanner reads it: Ruff markers in the files sent to Ruff,
-# ShellCheck's in those sent to ShellCheck, gitleaks:allow anywhere (gitleaks reads every blob).
-declare -A kind=()
-for path in "${py[@]}"; do kind["${path}"]="py"; done
-for path in "${sh[@]}"; do kind["${path}"]="sh"; done
-py_re='(noqa|ruff:[[:space:]]*(noqa|disable)|nosec)'
-sh_re='shellcheck[[:space:]]+disable'
-file="" n=0
-while IFS= read -r line; do
-    case "${line}" in
-        '+++ '*) file="${line#+++ }"; file="${file#b/}" ;;
-        '@@ '*) [[ "${line}" =~ \+([0-9]+) ]] && n=$((BASH_REMATCH[1] - 1)) ;;
-        '+'*) n=$((n + 1))
-              m=""
-              if [[ "${line}" == *gitleaks:allow* ]]; then m="gitleaks:allow"
-              elif [[ "${kind[${file}]:-}" == py && "${line}" =~ ${py_re} ]]; then
-                  m="${BASH_REMATCH[1]}"; [[ "${m}" == ruff:* ]] && m="ruff directive"
-              elif [[ "${kind[${file}]:-}" == sh && "${line}" =~ ${sh_re} ]]; then m="shellcheck disable"
-              fi
-              [[ -z "${m}" ]] || suppressor "${file}:${n} ${m}" ;;
-    esac
-done < <(g diff-tree -r -p -U0 --text --no-textconv --no-ext-diff --no-renames "${base_sha}" "${head_sha}")
 
 echo "scan-untrusted: findings=${findings} suppressors=${suppressors} unknown=${unknown}"
 if [[ $((findings + suppressors)) -gt 0 ]]; then exit 1; fi

@@ -266,7 +266,7 @@ if [[ ${#py[@]} -gt 0 ]]; then
         else
             while IFS=$'\t' read -r raw path; do
                 codec_raw["${path}"]="${raw}"; c="${raw,,}"; codec_of["${path}"]="${c//_/-}"
-            done < <(cd "${work}/tree" && "${PYTHON_BIN}" -I -c '
+            done < <(cd "${work}/tree" && { "${PYTHON_BIN}" -I -c '
 import sys, tokenize
 for p in sys.argv[1:]:
     try:
@@ -275,7 +275,7 @@ for p in sys.argv[1:]:
     except Exception as e:
         enc = "error: " + type(e).__name__
     print(enc + "\t" + p)
-' "${py[@]}" || true)  # why: a python3 failure leaves codecs unset, so every file is UNKNOWN
+' "${py[@]}" || true; })  # why: a python3 failure leaves codecs unset, so every file is UNKNOWN
         fi
         declare -A rmap=()
         declare -a rpy=()

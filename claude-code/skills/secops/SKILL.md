@@ -20,7 +20,8 @@ Pick the check for the artifact, run it at the earliest layer that can block, an
 
 ## Reviewing a file
 
-1. Run the scanner for the file's type from the table above. If it cannot run here, say so (UNKNOWN) and review by reading.
+1. Run each scanner the table routes the file to: its language scanner, plus gitleaks. If one cannot run here, say so (UNKNOWN) and review by reading.
+   For code you did not write, use your config, not the repo's: its config and inline suppressions can hide its own findings. Ruff: `ruff check --isolated --ignore-noqa --select S`. gitleaks: `-c <your config> -i <your ignore dir>`. ShellCheck: `--norc`. No flag turns off an inline `# gitleaks:allow` or `# shellcheck disable=`, so report each one the change adds, and any edit to scanner config, as a finding.
 2. Report each finding with its rule and CWE, the line, and the fix at the source. For example, `subprocess.run(cmd, shell=True)` with interpolated input is Ruff S602 (CWE-78, command injection); the fix is an argv list without a shell, not an escape.
 3. Then check what scanners miss: validation at trust boundaries (`Skill(defense-in-depth)`), secret handling (`Skill(secrets-management)`) and model output used as input (`Skill(llm-output-safety)`).
 

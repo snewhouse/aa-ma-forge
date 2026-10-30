@@ -2,10 +2,11 @@
 
 ## AA-MA Tooling
 
-### PR #77 (secops review steps in the body) review notes: 1 MEDIUM + 4 LOW, deferred under the stop rule
+### PR #77 (secops review steps in the body) review notes: 1 MEDIUM (fixed) + 4 LOW (2 fixed), deferred under the stop rule
 **What:**
-- [MEDIUM] "Reviewing a file" step 1 runs the table's scanner commands, which obey the scanned repo's own config and inline suppressions (pyproject `per-file-ignores`, `# noqa`, `.gitleaks.toml`, `.shellcheckrc`), so untrusted code can report a false zero. For code the operator did not write, use `ruff check --isolated --ignore-noqa --select S`, `gitleaks --config <operator's config>`, `shellcheck --norc`, and treat any added suppression or scanner-config change as a finding (C2 reproduced both Ruff bypasses on ruff 0.15.4) — `claude-code/skills/secops/SKILL.md:14, :23`.
-- [LOW] Step 1 says "the scanner for the file's type"; gitleaks covers any file, so a literal reading skips the secret scan. Say "each scanner the table routes the file to" — `claude-code/skills/secops/SKILL.md:23`.
+- **Fixed (90c8d63f, `fix/secops-untrusted-config`, 2026-10-30):** the MEDIUM and the step-1 gitleaks LOW. Step 1 now runs the language scanner plus gitleaks; for code the operator did not write it uses `ruff check --isolated --ignore-noqa --select S`, gitleaks `-c`/`-i` on the operator's files and `shellcheck --norc`, and reports added `# gitleaks:allow` / `# shellcheck disable=` lines and scanner-config edits as findings. Checked on ruff 0.15.4, gitleaks 8.18.0 and ShellCheck 0.11.0: each override brings back a finding the repo's config hid; inline gitleaks and ShellCheck allows survive every flag. Evals at 90c8d63f, `--runs 6`: shell-true, js-lockfile and scanner-map 12/12 each.
+- [MEDIUM, fixed above] "Reviewing a file" step 1 runs the table's scanner commands, which obey the scanned repo's own config and inline suppressions (pyproject `per-file-ignores`, `# noqa`, `.gitleaks.toml`, `.shellcheckrc`), so untrusted code can report a false zero. For code the operator did not write, use `ruff check --isolated --ignore-noqa --select S`, `gitleaks --config <operator's config>`, `shellcheck --norc`, and treat any added suppression or scanner-config change as a finding (C2 reproduced both Ruff bypasses on ruff 0.15.4) — `claude-code/skills/secops/SKILL.md:14, :23`.
+- [LOW, fixed above] Step 1 says "the scanner for the file's type"; gitleaks covers any file, so a literal reading skips the secret scan. Say "each scanner the table routes the file to" — `claude-code/skills/secops/SKILL.md:23`.
 - [LOW] Step 3 repeats the Related list's three skills and glosses (DRY) — `claude-code/skills/secops/SKILL.md:25, :44-46`.
 - [LOW] Step 3's "what scanners miss" list omits authorization/IDOR and crypto choice; mark it non-exhaustive or add them — `claude-code/skills/secops/SKILL.md:25`.
 - [LOW, fixed in this entry's commit] TODOS still listed the osv-scanner LOW as open.

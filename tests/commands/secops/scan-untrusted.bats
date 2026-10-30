@@ -518,3 +518,52 @@ PY
         done
     done
 }
+
+@test "an executable no scanner was given (no shebang, BOM before #!) is UNKNOWN" {
+    put run 'eval $1\n'
+    put bom '\xEF\xBB\xBF#!/bin/sh\neval $1\n'
+    put notes 'plain data, not executable\n'
+    chmod +x "${REPO}/run" "${REPO}/bom"
+    commit "pr"
+    scan
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN not scanned run (executable, no recognised interpreter)"* ]]
+    [[ "${output}" == *"UNKNOWN not scanned bom (executable, no recognised interpreter)"* ]]
+    [[ "${output}" != *"not scanned notes"* ]]
+}
+
+@test "compiled Python (.pyc, .so, .pyd) is UNKNOWN" {
+    put evil.pyc '\x00\x01'
+    put ext.so '\x7fELF'
+    put ext.pyd 'MZ'
+    commit "pr"
+    scan
+    [ "${status}" -eq 3 ]
+    for f in evil.pyc ext.so ext.pyd; do
+        [[ "${output}" == *"UNKNOWN not scanned ${f} (compiled code)"* ]]
+    done
+}
+
+@test "a missing python3 is one clear UNKNOWN, not a per-file reason" {
+    put a.py "${S602}"
+    commit "pr"
+    PYTHON_BIN=/nonexistent scan
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN python3 not runnable (/nonexistent)"* ]]
+    [[ "${output}" != *"coding: unknown"* ]]
+}
+
+@test "a shallow clone is UNKNOWN: commits outside it are not scanned" {
+    put k.txt "aws=${KEY}\n"
+    commit "add"
+    git -C "${REPO}" rm -q k.txt
+    commit "remove"
+    put ok.txt 'x\n'
+    commit "more"
+    SH="${BATS_TEST_TMPDIR}/shallow"
+    git clone -q --depth=1 --branch pr "file://${REPO}" "${SH}"
+    (cd "${SH}" && git fetch -q --depth=1 origin main:main)
+    run "${SCRIPT}" --base main "${SH}"
+    [ "${status}" -eq 3 ]
+    [[ "${output}" == *"UNKNOWN shallow clone"* ]]
+}

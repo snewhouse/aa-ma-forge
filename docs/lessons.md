@@ -25,10 +25,11 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 **Pattern:** in M14 I appended Result Logs to 14.2 and 14.3 with Edit calls that matched only the `Result Log:` line, and committed. Both kept `Status: PENDING`; the gate (`pending_steps=2`) caught it, which cost a fix-up commit.
 **Rule:** a sub-step's COMPLETE is one Edit whose `old_string` covers `- Status: PENDING` through `- Result Log:`, so the status flips in the same change as the log. Before committing a Result Log, run `uv run aa-ma-gate <tasks.md> --format kv | grep ^pending_steps=` and check the count dropped by one.
 
-## L-072 (2026-10-28, repeated 2026-10-29) — `git rev-parse --short A B` in one call fails: one revision per call
+## L-072 (2026-10-28, repeated 2026-10-29 twice) — `git rev-parse --short A B` in one call fails: one revision per call
 **Pattern:** the M11 handover's E1 check was `git rev-parse --short HEAD origin/main`. It failed (`fatal: Needed a single revision`) in M11, and I repeated it during the M11 double-check (`git rev-parse --short main origin/main`) after I had already noted the fix.
 **Repeated 2026-10-29** (M14 boundary, `git rev-parse --short HEAD origin/main`): never put two revisions in one `rev-parse`, not even in a throwaway status check.
-**Rule:** one `git rev-parse` per revision, each as its own command (`git rev-parse --short HEAD; git rev-parse --short origin/main`). The same applies to every handover evidence table: an E-check must be a command that has run once and printed the result recorded beside it.
+**Repeated again 2026-10-29** (post-PR #77 push to main, same command, the third time). Prose has not stopped it, so the rule is now a fixed snippet.
+**Rule:** to compare local and remote, type `git status -sb | head -1` (it prints `ahead N` / `behind N`), or `git rev-parse --short HEAD && git rev-parse --short origin/main`. Never write `rev-parse` followed by two revisions. Otherwise, one `git rev-parse` per revision, each as its own command (`git rev-parse --short HEAD; git rev-parse --short origin/main`). The same applies to every handover evidence table: an E-check must be a command that has run once and printed the result recorded beside it.
 
 ## L-071 (2026-10-27) — A Result Log claimed a test result the same command had not yet shown
 **Pattern:** in code-conventions-impact 11.5 one Bash call ran `bats aa-ma-parse.bats | grep -c '^not ok'` AND wrote the Result Log, which I had pre-filled with "aa-ma-parse 0 failing". The count printed `1` (the Exports header lacked two new helpers). I caught it reading the output after the commit and logged a CORRECTION.

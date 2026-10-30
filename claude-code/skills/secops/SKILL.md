@@ -21,11 +21,7 @@ Pick the check for the artifact, run it at the earliest layer that can block, an
 ## Reviewing a file
 
 1. Run each scanner the file's table row names, plus gitleaks. If one cannot run here, say so (UNKNOWN) and review by reading.
-   For code you did not write, its config and inline suppressions can hide its own findings, so add these to the table's commands:
-   - Ruff: `--isolated --ignore-noqa --no-respect-gitignore`, with the changed files passed by name (`git diff --name-only <base>`): a directory scan skips Ruff's default excludes and scripts without a `.py` extension.
-   - gitleaks: `-c <your config>`, run `--no-git` on a copy of the tree with every `.gitleaksignore` removed: `-i` adds an ignore file, and the repo's own still applies. A config with `useDefault = true` also skips `vendor/` and `node_modules/`; read those by hand.
-   - ShellCheck: `--norc`. osv-scanner: `--config <your config>`, which replaces every `osv-scanner.toml`.
-   No flag turns off an inline `# gitleaks:allow` or `# shellcheck disable=`. Report each one, and each scanner config file in the tree (`.gitleaksignore`, `.gitleaks.toml`, `.shellcheckrc`, `osv-scanner.toml`, Ruff settings), as a finding to check.
+   For code you did not write, scanner output is advisory and the diff is read in full: the repo controls its scanner config, ignore files, inline suppressions, file names and history, and each can hide a finding. When you run Ruff, ShellCheck or osv-scanner on it, add `--isolated --ignore-noqa --no-respect-gitignore`, `--norc` and `--config <your config>` respectively, and put `--` before the file names. Report as a finding each inline suppression (`# noqa`, `# gitleaks:allow`, `# shellcheck disable=`) and each scanner config or ignore file (`.gitleaksignore`, `.gitleaks.toml`, `.gitattributes`, `.shellcheckrc`, `osv-scanner.toml`, Ruff settings) the code carries.
 2. Report each finding with its rule and CWE, the line, and the fix at the source. For example, `subprocess.run(cmd, shell=True)` with interpolated input is Ruff S602 (CWE-78, command injection); the fix is an argv list without a shell, not an escape.
 3. Then check what scanners miss: validation at trust boundaries (`Skill(defense-in-depth)`), secret handling (`Skill(secrets-management)`) and model output used as input (`Skill(llm-output-safety)`).
 

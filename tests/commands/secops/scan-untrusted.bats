@@ -223,3 +223,33 @@ BASH_UNQUOTED='#!/bin/bash\necho $1\n'
     [[ "${output}" != *"SUPPRESSOR notes.md"* ]]
     [[ "${output}" == *"SUPPRESSOR creds.txt:1 gitleaks:allow"* ]]
 }
+
+@test "gitleaks:allow in an earlier commit's version of a file is reported" {
+    put creds.txt "aws=${KEY} # gitleaks:allow\n"
+    commit "add allowed"
+    put creds.txt "nothing here\n"
+    commit "edit"
+    scan
+    [ "${status}" -eq 1 ]
+    [[ "${output}" == *"SUPPRESSOR creds.txt:1 gitleaks:allow"* ]]
+}
+
+@test "an added line that looks like a diff header cannot re-target marker detection" {
+    put a.py 'x = 1\n++ b/notes.md\ny = "s"  # noqa: S105\n'
+    commit "pr"
+    scan
+    [[ "${output}" == *"SUPPRESSOR a.py:3 noqa"* ]]
+}
+
+@test "shellcheck: a disable directive already on the base does not hide new code" {
+    git -C "${REPO}" switch -q main
+    put a.sh '#!/bin/bash\n# shellcheck disable=SC2086\ntrue\n'
+    commit "base directive"
+    git -C "${REPO}" switch -q pr
+    git -C "${REPO}" merge -q main -m merge
+    put a.sh '#!/bin/bash\n# shellcheck disable=SC2086\ntrue\necho $1\n'
+    commit "pr"
+    scan
+    [[ "${output}" == *"FINDING shellcheck a.sh:4 SC2086"* ]]
+    [[ "${output}" == *"SUPPRESSOR a.sh:2 shellcheck disable"* ]]
+}

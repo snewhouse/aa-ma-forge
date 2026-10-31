@@ -2,6 +2,17 @@
 
 ## AA-MA Tooling
 
+### PR #81 (scan-untrusted: extensionless files UNKNOWN) + PR #82 (CI runner image) review notes: 7 LOW (2026-10-31)
+**What:**
+- [LOW] Names ending in `..` or `. ` count as having an extension, so they are not UNKNOWN. This falls inside the documented "extension no scanner reads" limit. Fix: strip trailing dots and spaces, or require an alphanumeric character after the dot (C1 + C2) — `claude-code/skills/secops/scripts/scan-untrusted.sh:239`.
+- [LOW] The allowlist lists in CHANGELOG and SKILL.md leave out Containerfile, GNUmakefile, COPYING, NOTICE and licence; the header leaves out licence and GNUmakefile — `CHANGELOG.md:10`, `claude-code/skills/secops/SKILL.md:24`.
+- [LOW] In the CHANGELOG, the "unless named as … README" clause sits inside the "so are …" list, so the next item reads as one of the exceptions. Give the extensionless rule its own sentence — `CHANGELOG.md:10`.
+- [LOW] The PR #79 entry below cites "F1–F4" and "12 mutations" without defining them. F1–F4 are the findings in the gitignored double-check report `2026-10-31T062214Z-pr-79-medium-fix-on-fix-secops.md`; inline them or drop the reference — `TODOS.md` PR #79 entry.
+- [LOW] In the no-flock bats case, a dangling first link for a name shadows a real binary later on the PATH. Skip dangling sources with `[[ -e "$f" ]] || continue` (PR #82, C1) — `tests/hooks/codemem-post-commit.bats:215`.
+- [LOW] The pin test only checks `*.yml` workflows; also glob `*.yaml` (PR #82, C1) — `tests/security/test_ci_python_pin.py:17`.
+- [LOW] The pin test checks that the key exists, not that its value is set, so `python-version: ''` passes (PR #82, C1) — `tests/security/test_ci_python_pin.py:28`.
+**Why:** sole-dev-merge round 1 on PR #81 and PR #82 (2026-10-31). Neither PR had a CRITICAL, HIGH or MEDIUM. **Effort:** S · **Priority:** P3
+
 ### PR #79 (secops: scan-untrusted script) review notes: 2 MEDIUM (1 fixed) + 11 LOW (2026-10-30)
 **What:**
 - [MEDIUM, fixed on `fix/secops-extensionless-unknown`] A non-executable file with no extension or shebang, run as `bash ./tool` or `python3 ./helper`, was not scanned and exited 0. Now UNKNOWN (also `tool.`) unless empty, a build file or data dotfile (any depth), legal file (LICENSE, COPYING, NOTICE, any depth), or a doc name (README, VERSION, …) at the repo root only (per Ste). Double-check F1–F4 fixed; bats cases + 12 mutations killed.

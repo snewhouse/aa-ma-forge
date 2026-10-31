@@ -17,6 +17,7 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 ## L-077 (2026-10-29) — An archive commit made main red; I pushed it without running the suite
 **Pattern:** `chore: archive AA-MA plan code-conventions-impact` (a91be2ce) went to main as "docs-only". `tests/render/test_phantom_edge.py` pins the set of completed plans that have §13 sigil edges, and the archive added one, so main's CI failed. It surfaced only when the next PR's (#74) CI ran.
 **Rule:** Moving files under `.claude/dev/completed/` is not docs-only: tests read that tree. Run `uv run pytest -q` before pushing an archive, and check main's CI (`gh run list --branch main --limit 1`) after every push to main before starting the next task.
+**Repeated 2026-10-31:** I pushed `ae0c24a2` (TODOS only) and started the next task without checking. A runner-image change (default Python 3.14) had turned main red, and I only found out when PR #81's CI failed. The check is not optional for docs-only pushes: after `git push origin main`, wait for that SHA's run (`gh run watch $(gh run list --branch main --limit 1 --json databaseId -q '.[0].databaseId')`) and report its conclusion before going on.
 
 ## L-076 (2026-10-29) — A constant pinned to a future release date depends on the UTC clock
 **Pattern:** `IMPACT_CUTOVER` was planned as 2026-10-28. UTC passed midnight before 14.1, and `release.sh` dates the tag with `date +%F`, so a cut on a later day would have mismatched the constant (`test_cutover_is_release_date`).

@@ -26,9 +26,9 @@
 # Dockerfile, Containerfile, Makefile, justfile, Procfile (shell), Gemfile, Rakefile, Vagrantfile
 # (Ruby) and Jenkinsfile (Groovy). A non-empty file with no extension or shebang is UNKNOWN, since
 # `bash ./f` runs it anyway, unless its name is one of those build files, a dotfile known to hold
-# data (.gitignore, .python-version, …) or, at the repo root only, a doc (README, VERSION, LICENSE,
-# …). Not read: those names wherever allowed, and a file with an extension no scanner reads
-# (`bash tool.txt`).
+# data (.gitignore, .python-version, …), a legal file (LICENSE, COPYING, NOTICE) or, at the repo
+# root only, a doc (README, VERSION, CHANGELOG, …). Not read: those names wherever allowed, and
+# a file with an extension no scanner reads (`bash tool.txt`).
 # Env: RUFF_BIN, SHELLCHECK_BIN, GITLEAKS_BIN, OSV_SCANNER_BIN, PYTHON_BIN (operator-trusted; defaults
 # on PATH). Needs git, jq and python3 (its tokenize decides Python file encodings).
 
@@ -199,11 +199,13 @@ shebang() {
     printf '%s\n' "${first%%$'\n'*}"
 }
 # Extensionless names that hold data, or a language the header lists as not scanned. Doc names
-# count only at the repo root: a README or VERSION deep in a tree is as likely a script.
+# count only at the repo root: a README or VERSION deep in a tree is as likely a script. Legal
+# files count anywhere, since forks and vendored code keep their own LICENSE.
 declare -A known_root=() known_any=()
-for n in license licence copying notice authors contributors codeowners readme changelog changes \
-    history version; do known_root["${n}"]=1; done
-for n in .gitignore .gitattributes .gitkeep .keep .dockerignore .npmignore .gitleaksignore \
+for n in authors contributors codeowners readme changelog changes history version; do
+    known_root["${n}"]=1
+done
+for n in license licence copying notice .gitignore .gitattributes .gitkeep .keep .dockerignore .npmignore .gitleaksignore \
     .shellcheckrc .editorconfig .mailmap .python-version .node-version .nvmrc .ruby-version \
     .tool-versions makefile gnumakefile dockerfile containerfile gemfile rakefile jenkinsfile \
     vagrantfile procfile justfile; do known_any["${n}"]=1; done

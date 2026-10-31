@@ -4,8 +4,8 @@
 
 ### PR #79 (secops: scan-untrusted script) review notes: 2 MEDIUM (1 fixed) + 11 LOW (2026-10-30)
 **What:**
-- [MEDIUM, fixed on `fix/secops-extensionless-unknown`] A non-executable file with no extension or shebang, run as `bash ./tool` or `python3 ./helper`, was not scanned and exited 0. Now UNKNOWN unless empty or a known data name (allowlist incl. Makefile/Dockerfile, per Ste); bats case + 6 mutations killed.
-- [LOW] Still unscanned: a file with an extension no scanner reads, run as `bash tool.txt`; documented in the header and SKILL.md — `scan-untrusted.sh` classification.
+- [MEDIUM, fixed on `fix/secops-extensionless-unknown`] A non-executable file with no extension or shebang, run as `bash ./tool` or `python3 ./helper`, was not scanned and exited 0. Now UNKNOWN (also `tool.`) unless empty, a build file or data dotfile (any depth), or a doc name (README, VERSION, LICENSE, …) at the repo root only (per Ste). Double-check F1–F4 fixed; bats cases + 12 mutations killed.
+- [LOW] Still not read, and documented in the header and SKILL.md: a file with an extension no scanner reads (`bash tool.txt`), and an allowlisted name holding code (`bash ./Makefile`, a root `README`) — `scan-untrusted.sh` classification.
 - [MEDIUM, deferred] Symlink resolution is slow: one `ls-tree` per path component, so 2,000 links take about 36 s. Batch the lookups (`git cat-file --batch`) if a real repo hits it — `scan-untrusted.sh` `lookup`/`resolve`.
 - [LOW] `refs/replace` objects can change what git shows; set `GIT_NO_REPLACE_OBJECTS=1` — `scan-untrusted.sh` setup.
 - [LOW] A lockfile name with mode 100755 skips the executable check — `scan-untrusted.sh` classification.

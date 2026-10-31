@@ -22,9 +22,13 @@
 # `scan-untrusted: findings=N suppressors=M unknown=K`. Secrets are redacted.
 # Exit: 0 clean, 1 findings or suppressors, 2 usage or git error, 3 a scanner could not run.
 # Exit 0 covers Python, shell, the lockfiles osv-scanner reads, and secrets in every blob. Other
-# languages (JS/TS, workflow YAML, Dockerfiles, Makefiles, …) are not scanned unless a shebang names
-# them. A non-empty file with no extension, shebang or known data name is UNKNOWN, since `bash ./f`
-# runs it anyway; a file with an extension no scanner reads (`bash tool.txt`) is not scanned.
+# languages are not scanned unless a shebang names them: JS/TS, workflow YAML, and the build files
+# Dockerfile, Containerfile, Makefile, justfile, Procfile (shell), Gemfile, Rakefile, Vagrantfile
+# (Ruby) and Jenkinsfile (Groovy). A non-empty file with no extension or shebang is UNKNOWN, since
+# `bash ./f` runs it anyway, unless its name is one of those build files, a dotfile known to hold
+# data (.gitignore, .python-version, …) or, at the repo root only, a doc (README, VERSION, LICENSE,
+# …). Not read: those names wherever allowed, and a file with an extension no scanner reads
+# (`bash tool.txt`).
 # Env: RUFF_BIN, SHELLCHECK_BIN, GITLEAKS_BIN, OSV_SCANNER_BIN, PYTHON_BIN (operator-trusted; defaults
 # on PATH). Needs git, jq and python3 (its tokenize decides Python file encodings).
 
@@ -194,13 +198,15 @@ shebang() {
     first=$(head -c 256 -- "${work}/tree/$1" | tr -d '\0')
     printf '%s\n' "${first%%$'\n'*}"
 }
-# Extensionless names known to hold data, or a language the header lists as not scanned.
-declare -A known_data=()
+# Extensionless names that hold data, or a language the header lists as not scanned. Doc names
+# count only at the repo root: a README or VERSION deep in a tree is as likely a script.
+declare -A known_root=() known_any=()
 for n in license licence copying notice authors contributors codeowners readme changelog changes \
-    history version .gitignore .gitattributes .gitkeep .keep .dockerignore .npmignore .gitleaksignore \
+    history version; do known_root["${n}"]=1; done
+for n in .gitignore .gitattributes .gitkeep .keep .dockerignore .npmignore .gitleaksignore \
     .shellcheckrc .editorconfig .mailmap .python-version .node-version .nvmrc .ruby-version \
     .tool-versions makefile gnumakefile dockerfile containerfile gemfile rakefile jenkinsfile \
-    vagrantfile procfile justfile; do known_data["${n}"]=1; done
+    vagrantfile procfile justfile; do known_any["${n}"]=1; done
 declare -a py=() sh=() locks=()
 for path in "${changed[@]}"; do
     name="${path##*/}"
@@ -226,9 +232,10 @@ for path in "${changed[@]}"; do
     elif [[ "${first}" == '#!'* ]]; then unknown "not scanned ${path} (${first//[[:cntrl:]]/?})"
     # bash and sh run an executable with no usable shebang (none, or a BOM before #!) as shell.
     elif [[ -n "${exec_bit[${path}]:-}" ]]; then unknown "not scanned ${path} (executable, no recognised interpreter)"
-    # `bash ./tool` and `python3 ./helper` run any file, so an extensionless one is UNKNOWN
-    # unless empty or a name known to hold data or a documented-unscanned language.
-    elif [[ "${name:1}" != *.* && -s "${work}/tree/${path}" && -z "${known_data[${name,,}]:-}" ]]; then
+    # `bash ./tool` and `python3 ./helper` run any file, so one with no extension (`tool`,
+    # `tool.`) is UNKNOWN unless empty or a known name above.
+    elif [[ "${name:1}" != *.?* && -s "${work}/tree/${path}" && -z "${known_any[${name,,}]:-}" &&
+            ( "${path}" == */* || -z "${known_root[${name,,}]:-}" ) ]]; then
         unknown "not scanned ${path} (no extension or shebang)"
     fi
 done

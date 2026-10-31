@@ -152,6 +152,7 @@ BASH_UNQUOTED='#!/bin/bash\necho $1\n'
     [[ "${output}" == *"FINDING gitleaks creds.cfg"* ]]
     [[ "${output}" == *"SUPPRESSOR b.py:1 noqa"* ]]
     [[ "${output}" == *"SUPPRESSOR .gitattributes scanner config changed"* ]]
+    [[ "${output}" != *"not scanned .gitattributes"* ]]   # a SUPPRESSOR, not also UNKNOWN
 }
 
 @test "gitleaks: an inline gitleaks:allow is reported as a suppressor" {
@@ -533,20 +534,24 @@ PY
 @test "a non-executable file with no extension or shebang is UNKNOWN unless its name is known data" {
     # bash ./tool and python3 ./helper run a file whatever its mode or name.
     put tool 'eval $1\n'
+    put tool. 'eval $1\n'
     put sub/helper 'import os\nos.system(input())\n'
     put .envrc 'eval "$1"\n'
-    for n in LICENSE license .gitignore .gitkeep VERSION Makefile Dockerfile .python-version .gitattributes; do
+    # Doc names (README, VERSION, LICENSE, …) are known data only at the repo root.
+    put sub/README 'eval $1\n'
+    put docs/VERSION 'import os\nos.system(input())\n'
+    for n in LICENSE license VERSION .gitignore sub/.gitignore .gitkeep Makefile sub/Makefile Dockerfile .python-version; do
         put "${n}" 'data\n'
     done
     put empty ''
     put notes.txt 'eval $1\n'
     commit "pr"
     scan
-    [ "${status}" -eq 1 ]   # .gitattributes changed is a SUPPRESSOR
-    for p in tool sub/helper .envrc; do
+    [ "${status}" -eq 3 ]
+    for p in tool tool. sub/helper .envrc sub/README docs/VERSION; do
         [[ "${output}" == *"UNKNOWN not scanned ${p} (no extension or shebang)"* ]]
     done
-    [[ "${output}" == *"unknown=3" ]]
+    [[ "${output}" == *"unknown=6" ]]
 }
 
 @test "compiled Python (.pyc, .so, .pyd) is UNKNOWN" {

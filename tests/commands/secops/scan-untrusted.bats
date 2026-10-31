@@ -522,14 +522,31 @@ PY
 @test "an executable no scanner was given (no shebang, BOM before #!) is UNKNOWN" {
     put run 'eval $1\n'
     put bom '\xEF\xBB\xBF#!/bin/sh\neval $1\n'
-    put notes 'plain data, not executable\n'
     chmod +x "${REPO}/run" "${REPO}/bom"
     commit "pr"
     scan
     [ "${status}" -eq 3 ]
     [[ "${output}" == *"UNKNOWN not scanned run (executable, no recognised interpreter)"* ]]
     [[ "${output}" == *"UNKNOWN not scanned bom (executable, no recognised interpreter)"* ]]
-    [[ "${output}" != *"not scanned notes"* ]]
+}
+
+@test "a non-executable file with no extension or shebang is UNKNOWN unless its name is known data" {
+    # bash ./tool and python3 ./helper run a file whatever its mode or name.
+    put tool 'eval $1\n'
+    put sub/helper 'import os\nos.system(input())\n'
+    put .envrc 'eval "$1"\n'
+    for n in LICENSE license .gitignore .gitkeep VERSION Makefile Dockerfile .python-version .gitattributes; do
+        put "${n}" 'data\n'
+    done
+    put empty ''
+    put notes.txt 'eval $1\n'
+    commit "pr"
+    scan
+    [ "${status}" -eq 1 ]   # .gitattributes changed is a SUPPRESSOR
+    for p in tool sub/helper .envrc; do
+        [[ "${output}" == *"UNKNOWN not scanned ${p} (no extension or shebang)"* ]]
+    done
+    [[ "${output}" == *"unknown=3" ]]
 }
 
 @test "compiled Python (.pyc, .so, .pyd) is UNKNOWN" {

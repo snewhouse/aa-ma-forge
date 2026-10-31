@@ -537,10 +537,10 @@ PY
     put tool. 'eval $1\n'
     put sub/helper 'import os\nos.system(input())\n'
     put .envrc 'eval "$1"\n'
-    # Doc names (README, VERSION, LICENSE, …) are known data only at the repo root.
+    # Doc names (README, VERSION, …) are known data only at the repo root; legal files anywhere.
     put sub/README 'eval $1\n'
     put docs/VERSION 'import os\nos.system(input())\n'
-    for n in LICENSE license VERSION .gitignore sub/.gitignore .gitkeep Makefile sub/Makefile Dockerfile .python-version; do
+    for n in LICENSE license sub/LICENSE sub/COPYING VERSION .gitignore sub/.gitignore .gitkeep Makefile sub/Makefile Dockerfile .python-version; do
         put "${n}" 'data\n'
     done
     put empty ''

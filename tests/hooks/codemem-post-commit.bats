@@ -211,7 +211,8 @@ await_eq() {
     for d in /usr/local/bin /usr/bin /bin; do
         for f in "$d"/*; do
             b="${f##*/}"
-            [[ "$b" == flock || -e "${nf}/${b}" ]] || ln -s "$f" "${nf}/${b}"
+            # -L too: -e is false for a dangling link, and a runner can carry one name twice
+            [[ "$b" == flock || -e "${nf}/${b}" || -L "${nf}/${b}" ]] || ln -s "$f" "${nf}/${b}"
         done
     done
     PATH="${STUBS}:${nf}" commit_change 2

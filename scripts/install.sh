@@ -79,6 +79,53 @@ if ! aa_ma_hooks_validate; then
 fi
 
 # ---------------------------------------------------------------------------
+# Preflight: jq is required for settings.json registration (step 5a). Checked before
+# step 0, so a missing jq stops the install before any link is removed or replaced.
+# ---------------------------------------------------------------------------
+# why: &>/dev/null — only the exit status matters; the error lines below say what is missing
+if ! command -v jq &>/dev/null; then
+    error "jq is required for hook registration but was not found in PATH."
+    error "  Ubuntu/WSL:  sudo apt-get install -y jq"
+    error "  macOS:       brew install jq"
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 0. The live worktree (ADR-0025, amending D7; R03-D13)
+# ---------------------------------------------------------------------------
+# ~/.local/share/codemem-plugin links to a dedicated, detached worktree of this forge: the
+# user-scope codemem MCP runs from it, and every ~/.claude link below resolves into it.
+# Refresh it to main's tip (and its venv) FIRST, so the links land on merged code and a
+# branch checked out in the forge checkout is never live. Only a linked worktree of THIS
+# forge is used — never the checkout itself, never anything else. One with uncommitted
+# changes, or whose refresh fails, stops the install before any link changes (fail
+# closed: neither unrefreshed code nor the checkout's branch goes live). No link: link
+# into this checkout, as before.
+LIVE_ROOT=""
+if [[ -L "${CODEMEM_PLUGIN_LINK}" ]]; then
+    header "Refreshing the codemem plugin worktree..."
+    plugin_wt="$(readlink -f "${CODEMEM_PLUGIN_LINK}")"
+    if ! LIVE_ROOT="$(aa_ma_live_worktree)"; then
+        LIVE_ROOT=""
+        warn "codemem plugin link targets ${plugin_wt}: not a worktree of this forge — left alone"
+    elif [[ -n "$(git -C "${LIVE_ROOT}" status --porcelain --untracked-files=no)" ]]; then
+        error "codemem plugin worktree ${LIVE_ROOT} has uncommitted changes — commit or stash them there, then re-run. Nothing was changed."
+        exit 1
+    elif ${DRY_RUN}; then
+        info "Would refresh codemem plugin worktree ${LIVE_ROOT} to main and run uv sync there"
+    elif git -C "${LIVE_ROOT}" checkout -q --detach main \
+            && (cd "${LIVE_ROOT}" && uv sync --locked --quiet); then
+        info "codemem plugin worktree ${LIVE_ROOT} → main $(git -C "${LIVE_ROOT}" rev-parse --short HEAD)"
+    else
+        error "codemem plugin worktree ${LIVE_ROOT}: refresh failed — run: git -C ${LIVE_ROOT} checkout --detach main && (cd ${LIVE_ROOT} && uv sync), then re-run. No link was changed."
+        exit 1
+    fi
+fi
+# Where every link and copy below comes from.
+SRC_ROOT="${LIVE_ROOT:-${REPO_ROOT}}"
+info "Installing from ${SRC_ROOT}"
+
+# ---------------------------------------------------------------------------
 # Counters for summary
 # ---------------------------------------------------------------------------
 LINKS_CREATED=0
@@ -138,13 +185,13 @@ collect_backup_target() {
 
 
 # Skills directories (auto-discover all)
-for d in "${REPO_ROOT}/claude-code/skills/"*/; do
+for d in "${SRC_ROOT}/claude-code/skills/"*/; do
     [ -d "${d}" ] || continue
     collect_backup_target "${CLAUDE_HOME}/skills/$(basename "${d}")"
 done
 
 # Agents
-for f in "${REPO_ROOT}/claude-code/agents/"*.md; do
+for f in "${SRC_ROOT}/claude-code/agents/"*.md; do
     [ -e "${f}" ] || continue
     collect_backup_target "${CLAUDE_HOME}/agents/$(basename "${f}")"
 done
@@ -152,13 +199,14 @@ done
 # Rules
 collect_backup_target "${CLAUDE_HOME}/rules/aa-ma.md"
 collect_backup_target "${CLAUDE_HOME}/rules/engineering-standards.md"
+collect_backup_target "${CLAUDE_HOME}/rules/coding-standards.md"
 
 # Hooks
 collect_backup_target "${CLAUDE_HOME}/hooks/lib/pre-compact-aa-ma.sh"
 collect_backup_target "${CLAUDE_HOME}/hooks/lib/ruff-format.sh"
 
 # Spec docs (copies, not symlinks)
-for f in "${REPO_ROOT}/docs/spec/"*.md; do
+for f in "${SRC_ROOT}/docs/spec/"*.md; do
     [ -e "${f}" ] || continue
     collect_backup_target "${CLAUDE_HOME}/docs/$(basename "${f}")"
 done
@@ -312,11 +360,30 @@ for link in "${CLAUDE_HOME}/commands/"*.md "${CLAUDE_HOME}/skills/"* "${CLAUDE_H
     STALE_REMOVED=$((STALE_REMOVED + 1))
 done
 
+# With a live worktree, a link into the checkout is a branch's copy: drop every one. The
+# steps below re-link what main has from the live worktree; what only a branch has (an
+# added skill, one main retired) must not stay live (ADR-0025).
+if [ "${SRC_ROOT}" != "${REPO_ROOT}" ]; then
+    for link in "${CLAUDE_HOME}/commands/"*.md "${CLAUDE_HOME}/skills/"* "${CLAUDE_HOME}/agents/"*.md \
+                "${CLAUDE_HOME}/rules/"* "${CLAUDE_HOME}/hooks/lib/"*; do
+        [ -L "${link}" ] || continue
+        # why: 2>/dev/null — a dangling link's source dir may be gone; raw target then
+        dest="$(readlink -f "${link}" 2>/dev/null || readlink "${link}")"
+        [[ "${dest}" == "${REPO_ROOT}/"* && "${dest}" != "${REPO_ROOT}/.worktrees/"* ]] || continue
+        if ${DRY_RUN}; then
+            info "Would remove checkout link: ${link} -> ${dest}"
+        else
+            rm "${link}"
+            info "Removed checkout link: ${link} -> ${dest}"
+        fi
+    done
+fi
+
 # ---------------------------------------------------------------------------
 # 2. Symlink skills directories (auto-discover all)
 # ---------------------------------------------------------------------------
 header "Linking skills..."
-for d in "${REPO_ROOT}/claude-code/skills/"*/; do
+for d in "${SRC_ROOT}/claude-code/skills/"*/; do
     [ -d "${d}" ] || continue
     create_symlink "${d%/}" "${CLAUDE_HOME}/skills/$(basename "${d}")"
 done
@@ -325,7 +392,7 @@ done
 # 3. Symlink agents (each file individually)
 # ---------------------------------------------------------------------------
 header "Linking agents..."
-for f in "${REPO_ROOT}/claude-code/agents/"*.md; do
+for f in "${SRC_ROOT}/claude-code/agents/"*.md; do
     [ -e "${f}" ] || continue
     create_symlink "${f}" "${CLAUDE_HOME}/agents/$(basename "${f}")"
 done
@@ -334,20 +401,12 @@ done
 # 4. Symlink rules
 # ---------------------------------------------------------------------------
 header "Linking rules..."
-create_symlink "${REPO_ROOT}/claude-code/rules/aa-ma.md" \
+create_symlink "${SRC_ROOT}/claude-code/rules/aa-ma.md" \
                "${CLAUDE_HOME}/rules/aa-ma.md"
-create_symlink "${REPO_ROOT}/claude-code/rules/engineering-standards.md" \
+create_symlink "${SRC_ROOT}/claude-code/rules/engineering-standards.md" \
                "${CLAUDE_HOME}/rules/engineering-standards.md"
-
-# ---------------------------------------------------------------------------
-# 5. Preflight: jq is required for settings.json registration
-# ---------------------------------------------------------------------------
-if ! command -v jq &>/dev/null; then
-    error "jq is required for hook registration but was not found in PATH."
-    error "  Ubuntu/WSL:  sudo apt-get install -y jq"
-    error "  macOS:       brew install jq"
-    exit 1
-fi
+create_symlink "${SRC_ROOT}/claude-code/rules/coding-standards.md" \
+               "${CLAUDE_HOME}/rules/coding-standards.md"
 
 # ---------------------------------------------------------------------------
 # 5a. Symlink hooks + register in settings.json (idempotent, conditional)
@@ -370,32 +429,39 @@ header "Linking hooks + registering in settings.json..."
 # Helper library must be symlinked so hooks can source it from their
 # installed location (~/.claude/hooks/lib/<hook>.sh finds ./aa-ma-parse.sh
 # as a sibling).
-if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" ]; then
-    create_symlink "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" \
+if [ -f "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" ]; then
+    create_symlink "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-parse.sh" \
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-parse.sh"
 fi
 
 # Logging library, sourced by aa-ma-parse.sh from its real directory; linked as a sibling
 # too so a hook outside this repo can source ~/.claude/hooks/lib/aa-ma-log.sh directly.
-if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-log.sh" ]; then
-    create_symlink "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-log.sh" \
+if [ -f "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-log.sh" ]; then
+    create_symlink "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-log.sh" \
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-log.sh"
+fi
+
+# Commit-footer helper, sourced by /sole-dev-merge's `sdm_footer` (sdm.sh). In
+# any repo but this one it is found only here.
+if [ -f "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh" ]; then
+    create_symlink "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-footer.sh" \
+                   "${CLAUDE_HOME}/hooks/lib/aa-ma-footer.sh"
 fi
 
 # Charting guard is invoked from the /aa-ma-chart and /aa-ma-plan --from-map
 # command bodies via the `_cand` resolution (repo-local first, then
 # ${CLAUDE_HOME}/hooks/lib). Not a registered hook event; L-005 — helpers
 # are never auto-linked, so it gets its own block like aa-ma-parse.sh.
-if [ -f "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-chart-guard.sh" ]; then
-    create_symlink "${REPO_ROOT}/claude-code/hooks/lib/aa-ma-chart-guard.sh" \
+if [ -f "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-chart-guard.sh" ]; then
+    create_symlink "${SRC_ROOT}/claude-code/hooks/lib/aa-ma-chart-guard.sh" \
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-chart-guard.sh"
 fi
 
 # Marker-writer helper is invoked from the /aa-ma-plan command body — not a
 # registered hook event, but needs to live at the installed location so the
 # command's `bash ~/.claude/hooks/lib/aa-ma-plan-marker.sh ...` works.
-if [ -f "${REPO_ROOT}/claude-code/hooks/aa-ma-plan-marker.sh" ]; then
-    create_symlink "${REPO_ROOT}/claude-code/hooks/aa-ma-plan-marker.sh" \
+if [ -f "${SRC_ROOT}/claude-code/hooks/aa-ma-plan-marker.sh" ]; then
+    create_symlink "${SRC_ROOT}/claude-code/hooks/aa-ma-plan-marker.sh" \
                    "${CLAUDE_HOME}/hooks/lib/aa-ma-plan-marker.sh"
 fi
 
@@ -416,7 +482,7 @@ backup_settings_once() {
 
 register_hook() {
     local event="$1" matcher="$2" src_base="$3" timeout="$4" status_msg="$5"
-    local src_path="${REPO_ROOT}/claude-code/hooks/${src_base}"
+    local src_path="${SRC_ROOT}/claude-code/hooks/${src_base}"
     local link_path="${CLAUDE_HOME}/hooks/lib/${src_base}"
     local hook_cmd="bash ${link_path}"
 
@@ -506,7 +572,7 @@ done
 # 6. Copy spec docs (NOT symlinks — shared directory with non-AA-MA files)
 # ---------------------------------------------------------------------------
 header "Copying spec docs..."
-for f in "${REPO_ROOT}/docs/spec/"*.md; do
+for f in "${SRC_ROOT}/docs/spec/"*.md; do
     [ -e "${f}" ] || continue
     copy_file "${f}" "${CLAUDE_HOME}/docs/$(basename "${f}")"
 done
@@ -547,11 +613,14 @@ if ${WIRE_GIT_HOOK}; then
             *)  ABS_GIT_DIR="${REPO_ROOT}/${GIT_DIR}" ;;
         esac
         HOOK_FILE="${ABS_GIT_DIR}/hooks/post-commit"
-        SOURCE_HOOK="${REPO_ROOT}/claude-code/codemem/hooks/post-commit.sh"
+        SOURCE_HOOK="${SRC_ROOT}/claude-code/codemem/hooks/post-commit.sh"
         SENTINEL="# codemem-post-commit-installed"
 
         if [ ! -f "${SOURCE_HOOK}" ]; then
             warn "Source hook missing: ${SOURCE_HOOK}"
+        elif [ -f "${HOOK_FILE}" ] && grep -qF "${SENTINEL}" "${HOOK_FILE}" \
+                && ! grep -qF "\"${SOURCE_HOOK}\"" "${HOOK_FILE}"; then
+            warn "codemem post-commit hook in ${HOOK_FILE} runs another copy — edit its path to ${SOURCE_HOOK}"
         elif [ -f "${HOOK_FILE}" ] && grep -qF "${SENTINEL}" "${HOOK_FILE}"; then
             info "codemem post-commit hook already wired — ${HOOK_FILE}"
         else

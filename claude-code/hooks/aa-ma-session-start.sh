@@ -2,7 +2,7 @@
 # Event: SessionStart
 # Mode: Advisory — adds context, never blocks
 # Exit: 0 always
-# Fail-open: kill switch or no active task → exit 0 with no output
+# Fail-open: kill switch → exit 0 with no output; no active task → only the Code-intel lines (if any)
 #
 # SessionStart hook: surface the most-recently-touched active AA-MA task.
 #
@@ -11,6 +11,9 @@
 #   - Picks the task whose `*-tasks.md` has the newest mtime (ties → alphabetical)
 #   - Emits a single hidden-context line describing the top task + its absolute path
 #   - Appends "(N other active tasks: a, b, c [and M more])" when there are 2+ active tasks
+#   - First, a `Code-intel:` line (report 03 X1) when the repo has a codemem index or a
+#     graphify-out/, and a codemem plugin-link line when ~/.claude.json names the link
+#     and it is missing or off main (R03-D13)
 #
 # Honours AA_MA_HOOKS_DISABLE=1 (master kill switch).
 # Always exits 0 — never blocks session start.
@@ -35,6 +38,66 @@ fi
 if aa_ma_is_disabled; then
     exit 0
 fi
+
+# -----------------------------------------------------------------------------
+# X1 (report 03; code-conventions-impact M15.5): one `Code-intel:` line on how
+# far the codemem index and the graphify code graph lag HEAD. Printed whether
+# or not an AA-MA task is active — it describes the repo. Reads the sidecars
+# directly (no `uv run`): one `git rev-list --count` per index, < 200 ms.
+# Rules: neither index → nothing; one missing → "<name> not built"; an index
+# without its sidecar → "<name>: no sha"; a bad sidecar or git failure →
+# "<name> unknown (<reason>)", logged once. Never blocks.
+# -----------------------------------------------------------------------------
+_code_intel_part() {
+    local name="$1" present="$2" top="$3" sidecar="$4" n
+    if [[ "$present" -eq 0 ]]; then
+        printf '%s not built' "$name"
+    elif [[ ! -e "$sidecar" && ! -L "$sidecar" ]]; then
+        printf '%s: no sha' "$name"
+    elif n="$(aa_ma_sha_behind "$top" "$sidecar")"; then
+        printf '%s %s behind' "$name" "$n"
+        [[ "$name" == "graphify" ]] && printf ' (code layer)'
+    else
+        log_warn "aa-ma-session-start" "code-intel ${name}: ${n}"
+        printf '%s unknown (%s)' "$name" "$n"
+    fi
+    return 0
+}
+
+_code_intel_line() {
+    local top cm has_cm=0 has_gf=0
+    top="$(git rev-parse --show-toplevel 2>/dev/null)" || return 0  # why: not a repo → no line, by rule
+    # M16: the index lives in the codemem cache dir, not the repo; no dir → "not built"
+    cm="$(aa_ma_codemem_dir "$top")" || cm=""
+    [[ -n "$cm" && -e "${cm}/index.db" ]] && has_cm=1
+    [[ -d "${top}/graphify-out" ]] && has_gf=1
+    [[ "$has_cm" -eq 0 && "$has_gf" -eq 0 ]] && return 0
+    printf 'Code-intel: %s · %s\n' \
+        "$(_code_intel_part codemem "$has_cm" "$top" "${cm}/last_sha")" \
+        "$(_code_intel_part graphify "$has_gf" "$top" "${top}/graphify-out/.built_sha")"
+}
+
+# R03-D13: the user-scope codemem MCP runs from ~/.local/share/codemem-plugin, a link to a
+# dedicated forge worktree on main (updated by scripts/install.sh). Checked only when
+# ~/.claude.json names the link, so machines without it see nothing.
+_code_intel_plugin_check() {
+    local link="${HOME}/.local/share/codemem-plugin" head main
+    grep -qF '.local/share/codemem-plugin' "${HOME}/.claude.json" 2>/dev/null || return 0  # why: no config → not set up here
+    if [[ ! -e "$link" ]]; then
+        printf 'Code-intel: codemem plugin link missing (~/.local/share/codemem-plugin) — the user-scope codemem MCP cannot start\n'
+        return 0
+    fi
+    head="$(git -C "$link" -c core.fsmonitor=false rev-parse --verify -q HEAD 2>/dev/null)" || head=""  # why: not a repo → empty → reported below
+    main="$(git -C "$link" -c core.fsmonitor=false rev-parse --verify -q refs/heads/main 2>/dev/null)" || main=""  # why: as above
+    if [[ -z "$head" || "$head" != "$main" ]]; then
+        printf 'Code-intel: codemem plugin worktree is not on main — re-run scripts/install.sh\n'
+    fi
+    return 0
+}
+
+# Every path in these functions returns 0: the lines are advisory.
+_code_intel_line
+_code_intel_plugin_check
 
 # Collect active task dirs (mtime-sorted, project-first collision).
 mapfile -t TASKS < <(aa_ma_list_active_tasks)

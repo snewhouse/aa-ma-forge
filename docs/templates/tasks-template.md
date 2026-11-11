@@ -73,7 +73,9 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
      value is a gate error (exit 2). -->
 
 <!-- Prototype-Required: OPTIONAL flag. When set to YES, the milestone HARD gate
-     requires a [ts] PROTOTYPE — <milestone heading> — <verdict> provenance entry before COMPLETE.
+     requires a [ts] PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES|NO
+     provenance entry before COMPLETE; YES (the verdict changes the plan) triggers a
+     plan-verification Angle-3 impact check on the decision delta.
      Use for milestones with material implementation uncertainty where a throwaway
      POC is the right de-risking step. Add `- Prototype-Required: YES` only when
      it applies; an empty value is a gate error (exit 2). A sub-step's YES rolls
@@ -87,6 +89,11 @@ _Hierarchical Task Planning roadmap with dependencies and state tracking._
 - **Acceptance Criteria:**
   - [Criterion 1 — must be testable and specific]
   - [Criterion 2]
+
+<!-- Impact-Explained: added during execution, one line per file §6.7 fence 4 (IMPACT_VERIFIED,
+     ADR-0027) reports as unpredicted, predicted-unchanged or a missed co-change partner:
+     `- Impact-Explained: <path> — <reason>`. No reason, no explanation. Runbook:
+     claude-code/skills/execute-aa-ma-milestone/references/impact-gate.md -->
 
 ### Sub-step 1.1: [Action description]
 

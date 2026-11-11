@@ -1,6 +1,6 @@
 """Tests for claude-code/codemem/mcp/server.py — Task 1.10.
 
-Verifies the FastMCP server registers all 13 tool slots, exposes the
+Verifies the FastMCP server registers all 14 tool slots, exposes the
 M1 subset as callable handlers, and carries the required aliases
 (`dead_code` ↔ `find_dead_code`, `who_calls` ↔ `find_references`)
 for Anthropic Tool Search discoverability.
@@ -36,11 +36,20 @@ class TestCanonicalSlots:
         # The canonical names: codemem-reference.md §12 MCP Tools + diagram (diagram-generation M13).
         expected = {
             # M1 (1–6)
-            "who_calls", "blast_radius", "dead_code",
-            "dependency_chain", "search_symbols", "file_summary",
+            "who_calls",
+            "blast_radius",
+            "dead_code",
+            "dependency_chain",
+            "search_symbols",
+            "file_summary",
+            # M10.2 — callees; blast_radius stays as its deprecated alias
+            "callees",
             # M3 git-mining (7–11) — stubbed in M1
-            "hot_spots", "co_changes", "owners",
-            "symbol_history", "layers",
+            "hot_spots",
+            "co_changes",
+            "owners",
+            "symbol_history",
+            "layers",
             # M3 AA-MA-native (12)
             "aa_ma_context",
             # diagram-generation M13 (13)
@@ -48,8 +57,26 @@ class TestCanonicalSlots:
         }
         assert set(server_mod.CANONICAL_TOOL_NAMES) == expected
 
-    def test_thirteen_exact(self, server_mod):
-        assert len(server_mod.CANONICAL_TOOL_NAMES) == 13
+    def test_fourteen_exact(self, server_mod):
+        assert len(server_mod.CANONICAL_TOOL_NAMES) == 14
+
+    def test_blast_radius_described_as_deprecated(self, server_mod):
+        import asyncio
+
+        server = server_mod.build_server()
+        desc = asyncio.run(server.get_tool("blast_radius")).description or ""
+        assert "deprecated" in desc.lower()
+        assert "callees" in desc
+
+    def test_who_calls_describes_plugin_callers(self, server_mod):
+        """§6.8 W1: the tool text names the plugin-caller shape."""
+        import asyncio
+
+        server = server_mod.build_server()
+        desc = asyncio.run(server.get_tool("who_calls")).description or ""
+        assert 'via: "plugin_edges"' in desc
+        assert "line: null" in desc
+        assert "node id" in desc
 
 
 class TestAliases:
@@ -67,8 +94,12 @@ class TestToolRegistration:
         each declared alias."""
         registered = server_mod.list_registered_tool_names()
         m1_canonical = {
-            "who_calls", "blast_radius", "dead_code",
-            "dependency_chain", "search_symbols", "file_summary",
+            "who_calls",
+            "blast_radius",
+            "dead_code",
+            "dependency_chain",
+            "search_symbols",
+            "file_summary",
         }
         assert m1_canonical.issubset(registered)
 
@@ -87,8 +118,12 @@ class TestToolRegistration:
         """
         registered = server_mod.list_registered_tool_names()
         m3_canonical = {
-            "hot_spots", "co_changes", "owners",
-            "symbol_history", "layers", "aa_ma_context",
+            "hot_spots",
+            "co_changes",
+            "owners",
+            "symbol_history",
+            "layers",
+            "aa_ma_context",
         }
         missing = m3_canonical - registered
         assert not missing, (
@@ -126,9 +161,16 @@ class TestBudgetDefault:
 
         async def _defaults():
             tools = await server_mod.build_server().get_tools()
-            return {n: t.parameters["properties"]["budget"].get("default") for n, t in tools.items()
-                    if "budget" in t.parameters["properties"]}
+            return {
+                n: t.parameters["properties"]["budget"].get("default")
+                for n, t in tools.items()
+                if "budget" in t.parameters["properties"]
+            }
+
         defaults = asyncio.run(_defaults())
         assert len(defaults) == len(server_mod.list_registered_tool_names())
         assert set(defaults.values()) == {mcp_tools._DEFAULT_BUDGET}
-        assert "_DEFAULT_BUDGET" in Path(server_mod.__file__).read_text() and "8_000" not in Path(server_mod.__file__).read_text()
+        assert (
+            "_DEFAULT_BUDGET" in Path(server_mod.__file__).read_text()
+            and "8_000" not in Path(server_mod.__file__).read_text()
+        )

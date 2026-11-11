@@ -25,7 +25,7 @@ dimension coverage.
 | `mapper-arch` | `gsd-codebase-mapper` | focus `arch` | `.planning/codebase/ARCHITECTURE.md`, `STRUCTURE.md` |
 | `mapper-quality` | `gsd-codebase-mapper` | focus `quality` | `.planning/codebase/CONVENTIONS.md`, `TESTING.md` |
 | `mapper-concerns` | `gsd-codebase-mapper` | focus `concerns` | `.planning/codebase/CONCERNS.md` |
-| `living-doc` | the orchestrator (SKILL.md "Living architecture doc" fence) | architecture diagrams, generated from the code | `docs/architecture/*`, `.codemem/`, one `.gitignore` line |
+| `living-doc` | the orchestrator (SKILL.md "Living architecture doc" fence) | architecture diagrams, generated from the code | `docs/architecture/*`, one `.gitignore` line (the index goes to codemem's cache dir) |
 | `conventions` | `codebase-onboarding-conventions` | dims 9, 10, 11, 17 | `.claude/onboarding/06-conventions-versioning-git.md`, `07-rules-and-agent-instructions.md` |
 | `runbook` | `codebase-onboarding-runbook` | dims 5, 6, 7, 8, 12-observability, 3-datamodel | `.claude/onboarding/04-build-run-debug.md`, `05-tests-ci.md`, `08-integrations-observability-security.md` |
 | `health` | `codebase-onboarding-health` | dims 13, 14-evidence, 12-vuln, 2-currency | `.claude/onboarding/09-repo-health-and-verdict.md` (evidence part); adds "Version currency" to `01-stack.md` |
@@ -35,7 +35,7 @@ dimension coverage.
 ## Task list (create with `TaskCreate`, wire deps with `TaskUpdate addBlockedBy`)
 ```
 T0  incremental      — orchestrator: the incremental re-run check (SKILL.md Checked output); cancel the mapper and worker tasks (T2–T9) that own no listed section — the index, currency, synthesis, gate, review, checks and shutdown tasks always run [no deps]
-T1  index            — orchestrator: `codemem build` then `codemem refresh-commits`, once; no worker writes `.codemem/` (PROJECT_INDEX.json, if present, is codemem's fallback) [blockedBy: T0]
+T1  index            — orchestrator: `codemem build` then `codemem refresh-commits`, once; no worker writes the codemem index (PROJECT_INDEX.json, if present, is codemem's fallback) [blockedBy: T0]
 T2  map-tech         — mapper-tech writes STACK.md, INTEGRATIONS.md                      [blockedBy: T1]
 T3  map-arch         — mapper-arch writes ARCHITECTURE.md, STRUCTURE.md                  [blockedBy: T1]
 T4  map-quality      — mapper-quality writes CONVENTIONS.md, TESTING.md                  [blockedBy: T1]
@@ -80,7 +80,7 @@ T2–T8 run in parallel once T1 is done. Spawn the mapper/worker agents with `Ag
 ## 7-phase mapping (for cross-reference with `Skill(agent-teams)`)
 1. **ANALYZE** — Step 0 absorb; detect languages; size the repo; decide which heavy tools to run vs absorb.
 2. **COMPOSE** — pick the roles above (drop some mappers if their output is being absorbed; `living-doc` always runs).
-3. **APPROVE** — `AskUserQuestion`: confirm Deep tier, target path, "OK to run `gsd-map-codebase` + `codemem draw --write` (writes to `.planning/`, `docs/architecture/`, `.codemem/` and one `.gitignore` line; a hand-authored `docs/architecture/` file is never overwritten — the living doc is skipped instead)?".
+3. **APPROVE** — `AskUserQuestion`: confirm Deep tier, target path, "OK to run `gsd-map-codebase` + `codemem draw --write` (writes to `.planning/`, `docs/architecture/` and one `.gitignore` line, plus codemem's index in its cache dir outside the repo; a hand-authored `docs/architecture/` file is never overwritten — the living doc is skipped instead)?".
 4. **SPAWN** — `TeamCreate` → `TaskCreate` per task above + deps → `Agent(... run_in_background)` for T2–T9.
 5. **COORDINATE** — poll `TaskList`; as tasks complete, unblock T11; run T10 enrichment; collect confirmations.
 6. **SHUTDOWN** — T10b currency → T11 synth → T12 AGENTS.md gate → T13 review + fixes → T14 checked output → T15 shutdown + final chat summary.

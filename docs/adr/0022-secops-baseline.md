@@ -105,3 +105,9 @@ The work is code-conventions-impact Milestone 8 (8.1–8.8): `.github/workflows/
 
 - [docs/research/code-conventions-impact-ruff-vs-bandit.md](../research/code-conventions-impact-ruff-vs-bandit.md) — comparison and §deps triage
 - [ADR-0018](0018-touched-code-lint-gate.md) — the touched-files harness Ruff S runs inside
+
+## Amendment 2026-10-22 — no Ruff S in `/sole-dev-merge`
+
+`/sole-dev-merge` no longer runs Ruff S or ShellCheck locally ([ADR-0024](0024-sole-dev-merge-one-script.md),
+sole-dev-merge-simplify AD-003). The "Stage C" mentions above are history: Ruff S runs at commit
+(`security-static-check.sh`) and in CI (`ruff-security`), and ShellCheck in CI.

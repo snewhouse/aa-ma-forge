@@ -18,19 +18,38 @@ Bulk-insert strategy (per AC):
 from __future__ import annotations
 
 import hashlib
+import logging
+import os
 import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
 
 from . import resolver as _resolver
+from .draw.plugin_surface import extract as _extract_plugin_surface
 from .journal import wal as _wal
 from .parser import ast_grep, python_ast
 from .parser.python_ast import ParseResult
+from .safety import GIT_TIMEOUT_S, SAFE_GIT, UnsafeDbPath, check_db_path
 from .storage import db
 
 
-__all__ = ["BuildStats", "build_index", "discover_files", "parse_files"]
+logger = logging.getLogger(__name__)
+
+__all__ = [
+    "GIT_TIMEOUT_S",
+    "SAFE_GIT",
+    "BuildStats",
+    "UnsafeDbPath",
+    "build_index",
+    "check_db_path",
+    "discover_files",
+    "parse_files",
+    "plugin_edge_rows",
+    "replace_plugin_edges",
+    "tree_signature",
+    "write_sidecar",
+]
 
 
 # Extensions we recognise. Files with any other extension are skipped —
@@ -71,9 +90,15 @@ def discover_files(repo_root: Path) -> list[Path]:
     can't index what we can't read.
     """
     repo_root = repo_root.resolve()
-    tracked = git_tracked_files(repo_root)
+    tracked = _ls_files(repo_root)
     if tracked is not None:
-        candidates = tracked
+        # Filter by name before resolve(): resolve() is ~40 µs a file and runs
+        # on every MCP query's freshness check (M15 §6.6: 52 ms → ~13 ms here).
+        candidates = [
+            (repo_root / rel).resolve()
+            for rel in tracked
+            if Path(rel).suffix.lower() in _INDEXABLE_EXTENSIONS
+        ]
     else:
         candidates = [p for p in repo_root.rglob("*") if p.is_file()]
 
@@ -86,22 +111,84 @@ def discover_files(repo_root: Path) -> list[Path]:
 
 def git_tracked_files(repo_root: Path) -> list[Path] | None:
     """Return git-tracked files (absolute paths), or ``None`` if not a git repo."""
+    tracked = _ls_files(repo_root)
+    if tracked is None:
+        return None
+    return [(repo_root / rel).resolve() for rel in tracked]
+
+
+def _ls_files(repo_root: Path) -> list[str] | None:
+    """Repo-relative tracked paths from ``git ls-files -z``, or None without git/repo."""
     try:
         result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-            ["git", "-C", str(repo_root), "ls-files"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
+            [*SAFE_GIT, "-C", str(repo_root), "ls-files", "-z"],
             capture_output=True,
-            text=True,
             check=False,
         )
     except FileNotFoundError:
         return None
     if result.returncode != 0:
         return None
-    return [
-        (repo_root / line).resolve()
-        for line in result.stdout.splitlines()
-        if line.strip()
-    ]
+    return [os.fsdecode(raw) for raw in result.stdout.split(b"\0") if raw]
+
+
+def tree_signature(files: list[Path]) -> str:
+    """Hash of every indexed file's path, mtime and size.
+
+    Equal signatures mean no indexed file was added, removed or touched.
+    Stat-only on purpose: ``git status`` would run the repo's fsmonitor and
+    clean filters.
+    """
+    h = hashlib.sha256()
+    for p in sorted(files):
+        try:
+            st = p.stat()
+        except OSError:
+            continue  # vanished since discovery: its absence changes the hash
+        h.update(os.fsencode(p) + f"\0{st.st_mtime_ns}\0{st.st_size}\n".encode())
+    return h.hexdigest()
+
+
+def _discard_untrusted(db_path: Path) -> None:
+    """Delete an existing DB (and its WAL files) that codemem did not build here."""
+    if db_path.exists() and not db.index_trusted(db_path):
+        db.remove_db_files(db_path)
+
+
+def _write_build_sidecars(repo_root: Path, db_dir: Path, signature: str) -> None:
+    try:
+        result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+            [*SAFE_GIT, "-C", str(repo_root), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=GIT_TIMEOUT_S,
+        )
+    except FileNotFoundError:
+        return  # no git: the next refresh full-rebuilds
+    except subprocess.TimeoutExpired:
+        logger.warning(
+            "git rev-parse timed out after %gs; last_sha/tree_sig not written",
+            GIT_TIMEOUT_S,
+        )
+        return
+    if result.returncode == 0:
+        write_sidecar(db_dir / "last_sha", result.stdout.strip() + "\n")
+        write_sidecar(db_dir / "tree_sig", signature + "\n")
+
+
+def write_sidecar(path: Path, text: str) -> None:
+    """Replace ``path`` atomically; a planted symlink is replaced, never followed.
+
+    The index dir is repo-controlled when ``CODEMEM_DB`` points into a repo:
+    a clone can commit ``last_sha -> ~/.bashrc`` there.
+    """
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    tmp.unlink(missing_ok=True)
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(text)
+    os.replace(tmp, path)
 
 
 # ---------------------------------------------------------------------
@@ -374,26 +461,85 @@ def _parse_result_to_wal_args(fp) -> dict:
     }
 
 
+# ---------------------------------------------------------------------
+# Plugin surface (M10.3)
+# ---------------------------------------------------------------------
+
+PluginEdgeRow = tuple[str, str, str, str]  # (src, dst, kind, ref_class)
+
+
+def plugin_edge_rows(repo_root: Path) -> set[PluginEdgeRow]:
+    """Every classified plugin-surface reference under ``repo_root``, as table rows.
+
+    Empty, with one debug line, when the repo has no ``claude-code/`` tree.
+    """
+    if not (repo_root / "claude-code").is_dir():
+        logger.debug("no claude-code/ under %s: plugin_edges left empty", repo_root)
+        return set()
+    surface = _extract_plugin_surface(repo_root)
+    if surface.errors:
+        # why debug: the same errors are reported by `codemem draw --check` and the
+        # plugin-surface golden; the index still takes every edge that did parse.
+        logger.debug(
+            "plugin surface: %d extraction errors (first: %s)",
+            len(surface.errors),
+            surface.errors[0],
+        )
+    return {(e.src, e.dst, e.kind.value, e.ref_class.value) for e in surface.edges}
+
+
+def replace_plugin_edges(conn, rows: set[PluginEdgeRow]) -> bool:
+    """Make ``plugin_edges`` hold exactly ``rows``; True when anything changed.
+
+    The table is small (hundreds of rows), so it is rebuilt whole rather than
+    diffed. Unchanged rows write nothing, so a no-op refresh leaves the DB alone.
+    The caller owns the transaction.
+    """
+    current = set(conn.execute("SELECT src, dst, kind, ref_class FROM plugin_edges"))
+    if current == rows:
+        return False
+    conn.execute("DELETE FROM plugin_edges")
+    conn.executemany(
+        "INSERT INTO plugin_edges (src, dst, kind, ref_class) VALUES (?, ?, ?, ?)",
+        sorted(rows),
+    )
+    return True
+
+
 def build_index(
     repo_root: Path,
     db_path: Path,
     *,
     package: str = ".",
     wal_path: Path | None = None,
+    write_sidecars: bool = True,
 ) -> BuildStats:
     """Full build pipeline: discover → parse → bulk insert.
 
     Idempotent: re-running against the same source state leaves the DB
-    in the same shape (INSERT ON CONFLICT updates in place).
+    in the same shape (INSERT ON CONFLICT updates in place). With
+    ``write_sidecars=False`` the caller records ``last_sha``/``tree_sig``
+    itself: a DB built aside must not claim HEAD before it is swapped in.
+    (So two writers record the sidecars: this one for a standalone build,
+    ``refresh_index`` after its swap. One shared writer is a TODOS item.)
+    Raises :class:`UnsafeDbPath` per :func:`codemem.safety.check_db_path`. An
+    existing DB codemem did not build here is deleted first, not reused: its
+    git-mining tables survive a build, so none of its rows may.
     """
     t0 = time.monotonic()
     repo_root = repo_root.resolve()
-    db_path = db_path.resolve()
+    # Never resolve db_path: following a planted link is the attack.
+    db_path = db_path.absolute()
+    check_db_path(db_path)
+    _discard_untrusted(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     _pending_wal_acks: list[str] = []
 
     files = discover_files(repo_root)
+    # Taken before parsing: a file edited mid-build changes the signature.
+    signature = tree_signature(files)
     parses, py_errors = parse_files(files, repo_root=repo_root, package=package)
+    plugin_rows = plugin_edge_rows(repo_root)
 
     conn = db.connect(db_path, read_only=False)
     try:
@@ -424,6 +570,7 @@ def build_index(
             _resolve_parent_ids(conn, parses)
             edges_inserted = _bulk_insert_edges(conn, parses)
             resolver_stats = _resolver.resolve_cross_file_edges(conn, parses=parses)
+            replace_plugin_edges(conn, plugin_rows)
 
             # Append WAL entries for every file we just indexed — these
             # serve as the bootstrap record for `codemem replay --from-wal`.
@@ -484,18 +631,8 @@ def build_index(
     # git repo (rglob fallback in discover_files), `git rev-parse HEAD`
     # fails and we skip — next refresh will still do a full rebuild,
     # which is acceptable for non-git trees.
-    try:
-        result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-            ["git", "-C", str(repo_root), "rev-parse", "HEAD"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            last_sha_file = db_path.parent / "last_sha"
-            last_sha_file.write_text(result.stdout.strip() + "\n")
-    except FileNotFoundError:
-        pass  # git not on PATH — first refresh will full-rebuild too
+    if write_sidecars:
+        _write_build_sidecars(repo_root, db_path.parent, signature)
 
     return BuildStats(
         files_indexed=len(parses),

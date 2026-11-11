@@ -62,7 +62,10 @@ analysis can't reach it).
 codemem runs two write-ahead logs side by side. They solve different
 failure modes and must be reasoned about separately.
 
-**Log 1 — SQLite's built-in WAL (`.codemem/index.db-wal`).** Enabled by
+Both live in the index dir, `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo root)>/`
+(outside the repo since code-conventions-impact M16; `--db`/`CODEMEM_DB` override it).
+
+**Log 1 — SQLite's built-in WAL (`<index dir>/index.db-wal`).** Enabled by
 `PRAGMA journal_mode = WAL` (persistent across connections per
 `storage/db.py:41` and pinned in [`codemem-reference.md §SQLite PRAGMA Values`](../../.claude/dev/active/codemem/codemem-reference.md)).
 Gives us concurrent readers during a writer transaction and
@@ -70,11 +73,11 @@ crash-survivable atomic commits at the SQLite-row level. Truncated by
 `PRAGMA wal_checkpoint(TRUNCATE)` at the end of every `build_index` and
 `refresh_index` (Task 2.6) so the `-wal` file does not grow unbounded.
 
-**Log 2 — codemem's JSONL journal (`.codemem/wal.jsonl`).** Sits
+**Log 2 — codemem's JSONL journal (`<index dir>/wal.jsonl`).** Sits
 one layer above SQLite and makes codemem's per-file mutation sequence
 replayable from scratch. Implemented in
 [`codemem/journal/wal.py`](../../packages/codemem-mcp/src/codemem/journal/wal.py).
-This is what we mean when we say "the WAL" in the codemem sense.
+This is what we mean when we say "the WAL" in the codemem sense. It is written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14).
 
 ### Ordering contract (intent → commit → ack)
 
@@ -257,14 +260,14 @@ read-only connection ignores FK enforcement (no-op on read paths) but
 otherwise gets the same per-connection PRAGMAs (busy_timeout,
 cache_size, mmap_size).
 
-### Primitive 2 — Process-level writer lock (`.codemem/db.lock`)
+### Primitive 2 — Process-level writer lock (`<index dir>/db.lock`)
 
 Implemented in
 [`codemem/journal/lock.py`](../../packages/codemem-mcp/src/codemem/journal/lock.py)
 as a context manager:
 
 ```python
-with acquire_writer_lock(Path(".codemem/db.lock")) as acquired:
+with acquire_writer_lock(db_path.parent / "db.lock") as acquired:
     if not acquired:
         return  # another writer is active; no-op, do NOT queue
     ...  # do the write
@@ -282,7 +285,7 @@ The implementation is cross-platform by branching on `sys.platform`:
 **Policy: second invocation no-ops, does not queue.** If process B
 calls `refresh_index` while process A holds the lock, B logs
 `refresh: skipped (another refresh holds db.lock)` to
-`.codemem/refresh.log`, returns `RefreshStats(skipped_locked=True)`
+`<index dir>/refresh.log`, returns `RefreshStats(skipped_locked=True)`
 and exits. It does not wait. Rationale: whatever change triggered B's
 refresh is already on disk, so when A's in-flight refresh finishes it
 will pick up B's changes naturally via the same file-discovery pass.
@@ -292,38 +295,37 @@ uses `multiprocessing.Process` + `multiprocessing.Event` to verify the
 contention path deterministically (holder process acquires, second
 process fails to acquire, succeeds once holder releases).
 
-### Primitive 3 — Post-commit hook PID tracking (`.codemem/refresh.pid`)
+### Primitive 3 — Post-commit step serialised by flock (M15.4)
 
 Separate from `db.lock` and with a different job. Lives in
-`claude-code/codemem/hooks/post-commit.sh` (M2 Task 2.5). Its
-responsibilities:
+`claude-code/codemem/hooks/post-commit.sh` (M2 Task 2.5, rewritten in
+code-conventions-impact M15.4). Its responsibilities:
 
 - Skip during `rebase`, `cherry-pick`, `revert`, `merge` via
   `GIT_REFLOG_ACTION` prefix check.
-- On every commit, check whether `.codemem/refresh.pid` names a live
-  process; if so, kill the **entire process group** (`kill -- -<pgid>`)
-  with a 50 ms sleep for clean shutdown. The leading minus is load-
-  bearing: `codemem refresh` spawns `sg scan` and `python` subprocesses
-  and we need all of them gone.
-- Spawn the new refresh under `setsid` so its PGID equals its PID —
-  this is what makes the `kill -- -<pgid>` in the next commit hit the
-  whole subprocess tree. On macOS where `setsid` isn't in the default
-  shell, fall back to plain `&` background spawn.
-- Write the new PID to `.codemem/refresh.pid`; redirect stdout + stderr
-  to `.codemem/refresh.log`; close stdin.
-- `exit 0` unconditionally. The hook must NEVER fail a commit.
+- Capture HEAD, spawn a detached worker (`setsid`, plain `&` on macOS) and
+  `exit 0` — the hook must NEVER fail or slow a commit.
+- Workers queue on `flock` over `<git-dir>/codemem-post-commit.lock` (the
+  git dir is never committed content). Each runs `codemem refresh`, then
+  `graphify update .` (code-only), then writes the SHA captured at commit
+  time to `graphify-out/.built_sha` — only when graphify exits 0, so a
+  failed or killed run leaves the previous sidecar (report 03 R03-D12).
+- The M2 design killed the previous refresh's process group by the PID in
+  `.codemem/refresh.pid`. That file is repo-writable, so the PID could name
+  any process of the user; queueing on the lock replaced it.
 
-Storm-test gate: `tests/codemem/test_post_commit_storm.py` rapid-fires
-five `git commit --amend` calls in under two seconds and asserts
-`pgrep -af codemem | wc -l == 1` after quiesce.
+Test evidence: `tests/hooks/codemem-post-commit.bats` (race with a held
+worker released last, failed and killed graphify runs, repo-controlled PATH
+and symlinks) and `tests/codemem/test_post_commit_storm.py` (five rapid
+amends: every commit exits 0 in under two seconds and both sidecars end at
+HEAD).
 
-### Why the two files are separate
+### Why the two locks are separate
 
-`.codemem/db.lock` is about the DB and owned by the indexer process
-that happens to be writing. `.codemem/refresh.pid` is about the hook
-and owned by whatever process the post-commit spawned. Merging them
-would couple the hook's liveness to the DB-write contract — a hook
-killed between commits shouldn't look like a writer who vanished.
+`<index dir>/db.lock` is about the DB and owned by the indexer process that
+happens to be writing. The post-commit lock is about the hook's queue: a
+worker waits on it for the whole refresh-then-graphify sequence, which
+would otherwise hold the DB lock across graphify's run.
 
 ### Reads never touch either file
 

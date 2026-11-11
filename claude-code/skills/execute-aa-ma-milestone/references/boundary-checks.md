@@ -1,12 +1,43 @@
-# Milestone boundary checks — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
+# Milestone boundary checks — code-intel refresh, acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.0, §6.1, §6.3–§6.6).
 
 ## Contents
 
+  - [6.0 Code-intel refresh (CODE_INTEL_REFRESH)](#60-code-intel-refresh-code_intel_refresh)
   - [6.1 Acceptance Criteria Verification](#61-acceptance-criteria-verification)
   - [6.3 Impact Analysis Verification (REQUIRED)](#63-impact-analysis-verification-required)
   - [6.4 Test Execution (if specified)](#64-test-execution-if-specified)
   - [6.5 Optional Web Verification (gstack integration)](#65-optional-web-verification-gstack-integration)
   - [6.6 Post-Milestone Simplification Review](#66-post-milestone-simplification-review)
+
+### 6.0 Code-intel refresh (CODE_INTEL_REFRESH)
+
+Run first, so §6.3's impact analysis and §6.7's diagram fence read indexes that
+match the code (report 03 T6). It refreshes codemem (`refresh` + `refresh-commits`)
+and the graphify code graph (`graphify update .`, code-only) through the same
+flock-serialised worker as the post-commit step, then appends one line naming
+the **pre-commit** HEAD — a file cannot name the commit that contains it:
+
+```
+[ts] CODE_INTEL_REFRESH — <milestone heading> — codemem=<sha|skipped(codemem not installed)> graphify=<sha|WARN reason>
+```
+
+```bash
+# The installed copy only: a repo-committed claude-code/ must never run as the gate.
+CIR="${CLAUDE_HOME:-${HOME}/.claude}/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh"
+[[ -f "${CIR}" ]] || { echo "BLOCKED: ${CIR} not found — run scripts/install.sh."; exit 1; }
+bash "${CIR}" "${TASK_NAME:-}"
+```
+
+- graphify failing or absent: `graphify=WARN …`, never blocks (graphify is leads-only).
+- codemem installed: a missing index is built first, and an index that does not
+  reach HEAD (a failed build included) is **BLOCKED** (exit 1) — run `codemem build`
+  and re-run; gates must not read a stale index. No codemem binary at all:
+  `codemem=skipped(codemem not installed)`. A first build runs under the worker's
+  300 s per-step cap; on a repo too large for that, run `codemem build` once by hand.
+  The index lives in codemem's cache dir
+  (`${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo)>/`, or `$CODEMEM_DB`'s
+  dir), not the repo (M16).
+- `--dry-run` refreshes and prints the line without appending it.
 
 ### 6.1 Acceptance Criteria Verification
 
@@ -41,6 +72,29 @@ Before invoking the full impact-analysis skill, run a quick pre-check using the 
 - This pre-check is **advisory only** — never blocks, just surfaces risk earlier
 - Skip silently if no index is available
 
+**Predicted vs actual (advisory in M10; M11's gate-computed `IMPACT_VERIFIED` enforces it):**
+which changed files did the plan not predict?
+
+```bash
+# The installed copy only, as in §6.0.
+PVA="${CLAUDE_HOME:-${HOME}/.claude}/skills/execute-aa-ma-milestone/scripts/predicted-vs-actual.sh"
+if [[ -f "${PVA}" ]]; then bash "${PVA}" "${TASK_NAME:-}"; else echo "WARN: ${PVA} not found — run scripts/install.sh."; fi
+```
+
+- **Changed:** `git diff --name-only $(git merge-base origin/<default> HEAD)..HEAD` ∪ staged ∪
+  unstaged ∪ untracked-not-ignored, minus AA-MA artefacts and generated files (`.claude/dev/**`,
+  `docs/architecture/**`, `tests/golden/**`, `uv.lock`, `CHANGELOG.md`).
+- **Predicted:** this milestone's Contract paths — every row verb (`Create`, `Modify`, `Test`, …),
+  nothing exempt, a directory row covers what is under it
+  (`aa_ma.render.coverage.milestone_contract_paths`, not `contract_paths`, which drops
+  `tests/`/`docs/` and `Test` rows and would read every test as unpredicted) — plus their
+  codemem `co_changes` partners at the T7 constants (≥5 shared commits, ≥50% ratio).
+- It prints one `UNPREDICTED <path>` line per changed, unpredicted file and a summary line.
+  **Do not grade them here** (R6): §6.8 hands the list to the `code-reviewer` (verify-impl
+  re-runs this script), which judges each one as missed impact or scope creep. Name the count
+  as `Unpredicted: N` in the output below. No codemem index or binary: a `NOTE:` and the
+  Contract alone predicts. Exit 2 (cannot run): report it and continue — advisory.
+
 1. **Invoke the impact-analysis skill** (`Skill(impact-analysis)`)
 2. **Output consolidated impact analysis** for ALL files modified in this milestone
 3. **Verify no unresolved cascade effects**
@@ -48,7 +102,7 @@ Before invoking the full impact-analysis skill, run a quick pre-check using the 
 **Required output format** (consolidated for milestone):
 ```
 📊 Impact Analysis: Milestone "[Milestone Title]"
-┌─ Files Modified: [N]
+┌─ Files Modified: [N]   Unpredicted: [N] (→ §6.8 code-reviewer)
 │
 ├─ [file_path_1]
 │  ├─ Upstream: [N] callers

@@ -1,4 +1,4 @@
-"""codemem MCP tools — 6 ported from /index, public surface for the MCP server.
+"""codemem MCP tools — public surface for the MCP server and the CLI.
 
 Each tool is a plain Python function returning a JSON-serialisable dict
 so the MCP server layer (Task 1.10) can register them via FastMCP with
@@ -8,12 +8,20 @@ inputs return structured ``{"error": "..."}`` dicts, not exceptions.
 
 Tools:
     who_calls         — upstream callers (BFS via canonical CTE)
-    blast_radius      — downstream callees (transitive)
+    callees           — downstream callees (transitive)
+    blast_radius      — deprecated alias of callees (removed after v0.18.x)
     dead_code         — symbols with zero incoming call edges
     dependency_chain  — shortest path from source to target
     search_symbols    — substring name search
     file_summary      — per-file symbol listing
+    hot_spots         — files ranked by recent churn × function count
+    co_changes        — files that change with a file but share no edge
+    owners            — per-author line share from git blame
+    symbol_history    — git log -L history of a symbol
+    layers            — core / middle / periphery by in-degree
+    aa_ma_context     — code-intel context pack for an AA-MA task
     diagram           — mermaid cut of the graph, sized to the budget (M13)
+    file_impact       — external and test callers + co-changes of one file (CLI only)
 """
 
 from __future__ import annotations
@@ -23,15 +31,21 @@ import logging
 import os
 import re
 import sqlite3
+import subprocess
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
+from ..draw.plugin_surface import NodeKind, owner_of
 from ..storage import db
 from .queries import BLAST_RADIUS_CTE, WHO_CALLS_CTE
 from .sanitizers import ValidationError, sanitize_path_arg, sanitize_symbol_arg
+
+if TYPE_CHECKING:
+    from ..incremental import Freshness
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +53,16 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "aa_ma_context",
     "blast_radius",
+    "callees",
+    "CO_CHANGE_MAX_COMMIT_FILES",
     "co_changes",
     "dead_code",
     "dependency_chain",
     "diagram",
+    "REFRESH_CAP_S",
     "ensure_built",
+    "ensure_fresh",
+    "file_impact",
     "file_summary",
     "hot_spots",
     "layers",
@@ -54,6 +73,16 @@ __all__ = [
 ]
 
 _DEFAULT_CO_CHANGES_EXCLUDE: tuple[str, ...] = ("CHANGELOG.md", "README.md")
+
+# Files per commit. file_impact ignores commits touching more than this:
+# sweep commits in this repo (format passes, lint pay-downs, gate swaps)
+# touch 12-19 files and drowned the co-change signal in the 10.1 prototype.
+CO_CHANGE_MAX_COMMIT_FILES = 10
+# Characters of file_impact output (~500 tokens at _CHARS_PER_TOKEN): the pre-edit hook
+# prints at most four brief lines from it, so this only bounds the json form.
+FILE_IMPACT_BUDGET = 2_000
+_RATIO_DP = 3  # decimal places of a co-change ratio: enough to rank, short to read
+_BLAST_RADIUS_DEPRECATION = "use callees; removed after v0.18.x"
 
 
 _DEFAULT_BUDGET = 8_000
@@ -70,58 +99,193 @@ _CHARS_PER_TOKEN = 4
 # ---------------------------------------------------------------------
 
 
+# The refresh step of a query is capped at this: the aa-ma-forge cold-build
+# SLO (report 03 R03-D6). Past it, results are served with stale=true and the
+# refresh keeps running in the background. A missing index is cold-built
+# unbounded (nothing to serve without it); see ensure_fresh.
+REFRESH_CAP_S = 5.0
+
+
 def ensure_built(db_path: Path, repo_root: Path) -> dict | None:
-    """Ensure the codemem index DB exists, building it if missing.
+    """Make the index servable: build it if missing, refresh it if stale.
 
-    Callers (typically the MCP server's first-query path, M3.5 Task
-    3.5.3) use this to transparently provision the index before
-    dispatching to a tool. Returns ``None`` when the DB is ready, or a
-    structured ``{"error": ...}`` dict on failure — ANY exception
-    (invalid repo root, lockfile mkdir failure, indexer crash) is
-    caught so the caller's contract of "no raises, only error dicts"
-    is preserved.
+    Returns ``None`` when there is a DB to serve (fresh or, past the cap,
+    stale), or a structured ``{"error": ...}`` dict when there is none.
+    Never raises. :func:`ensure_fresh` returns the freshness fields too.
+    """
+    result = ensure_fresh(db_path, repo_root)
+    return {"error": result["error"]} if "error" in result else None
 
-    Concurrency: guarded by the M2 single-writer advisory lock
-    (:func:`codemem.journal.lock.acquire_writer_lock`). If another
-    process holds the lock, polls for DB existence up to 10 seconds
-    (>2× the aa-ma-forge cold-build SLO of 5s). A timeout surfaces as
-    a "build in progress; timed out" error rather than stalling the
-    RPC call indefinitely.
 
-    This lives in :mod:`codemem.mcp_tools` (the declared public-API
-    layer) so ``claude-code/codemem/mcp/server.py`` doesn't have to
-    import from restricted layers (:mod:`codemem.indexer`,
-    :mod:`codemem.journal`) — the plugin-surface layering contract
-    forbids those direct imports.
+def ensure_fresh(db_path: Path, repo_root: Path, *, cap: float = REFRESH_CAP_S) -> dict:
+    """Build if missing, then refresh if stale with the refresh capped at ``cap`` s.
+
+    Returns the X2 fields ``index_sha``, ``head_sha``, ``stale`` and
+    ``stale_reason``; with no DB to serve, an ``error`` too. ``stale`` is
+    True, False or ``"unknown"``, as it stands AFTER the refresh attempt (D6).
+    ``stale_reason`` is None when fresh, else one of:
+
+    - ``locked`` / ``error`` / ``timeout``: the refresh did not finish (the
+      pre-check cause, behind or dirty, goes in the refresh.log line);
+    - ``behind`` / ``dirty`` / ``no_index_sha``: still stale after a
+      refresh that finished (the tree moved meanwhile);
+    - ``no_git`` / ``no_head``: ``stale`` is ``"unknown"``;
+    - ``no_index``: the build failed, nothing to serve;
+    - ``unsafe_db_path``: refused per ``codemem.safety.check_db_path``
+      (a linked index dir; M15 §6.8). Nothing is served or written;
+    - ``trust_store``: this user's trust store (``$XDG_STATE_HOME/codemem/trust``)
+      cannot be used; no refresh ran. Nothing is served; fix the state dir;
+    - ``untrusted``: an index codemem did not build here (``codemem.safety``)
+      whose rebuild did not finish within ``cap``. Nothing is served.
+
+    A missing DB is cold-built in-process and unbounded (nothing can be
+    served without it); only the wait for another process's build is capped.
+    The refresh runs as a ``codemem refresh`` subprocess (M15.1 verdict): the
+    writer lock is per-process, a thread cannot be stopped, and a subprocess
+    that outlives the cap keeps running on its own.
+    """
+    from ..safety import TrustStoreError, UnsafeDbPath, check_db_path
+
+    try:
+        check_db_path(db_path)
+    except UnsafeDbPath as exc:
+        return {"error": str(exc), **_unknown_freshness("unsafe_db_path")}
+    err = _build_if_missing(db_path, repo_root, cap)
+    if err is not None:
+        return {**err, **_unknown_freshness("no_index")}
+    try:
+        from ..incremental import check_freshness, log_refresh
+
+        before = check_freshness(repo_root, db_path)
+        if before.stale is not True:
+            return _freshness_fields(before)
+        outcome = _capped_refresh(db_path, repo_root, cap)
+        after = check_freshness(repo_root, db_path) if outcome == "ok" else before
+        fields = _freshness_fields(after)
+        if after.reason == "untrusted":
+            # Never serve an index codemem did not build here (M15 §6.8).
+            log_refresh(
+                db_path.parent,
+                f"ensure_fresh: not served (untrusted); rebuild {outcome}",
+            )
+            return {
+                "error": _UNTRUSTED_ERROR[outcome].format(
+                    log=db_path.parent / "refresh.log"
+                ),
+                **fields,
+            }
+        if outcome != "ok":
+            log_refresh(
+                db_path.parent,
+                f"ensure_fresh: serving a stale index ({before.reason}); refresh {outcome}",
+            )
+            fields["stale_reason"] = outcome
+        return fields
+    except TrustStoreError as exc:
+        logger.warning("ensure_fresh: %s", exc)
+        return {
+            "error": f"codemem trust store unusable: {exc}",
+            **_unknown_freshness("trust_store"),
+        }
+    except Exception as exc:  # noqa: BLE001  # why: tool-surface contract — never raise, return fields
+        logger.warning("ensure_fresh: freshness check failed: %s", type(exc).__name__)
+        return _unknown_freshness("error")
+
+
+# What a capped `codemem refresh` came to; every value has an _UNTRUSTED_ERROR entry.
+RefreshOutcome = Literal["ok", "locked", "error", "timeout"]
+
+# Why nothing is served for an untrusted index, by rebuild outcome: a caller
+# should retry while it runs, and stop retrying when it failed.
+_UNTRUSTED_ERROR: dict[str, str] = {
+    "timeout": "the index was not built by codemem here; its rebuild is still running, retry shortly",
+    "locked": "the index was not built by codemem here; another refresh holds the lock, retry shortly",
+    "ok": "the index was not built by codemem here and its rebuild did not take; run `codemem build`",
+    "error": "the index was not built by codemem here and its rebuild failed; see {log}, then run `codemem build`",
+}
+
+
+def _unknown_freshness(reason: str) -> dict:
+    return {
+        "index_sha": None,
+        "head_sha": None,
+        "stale": "unknown",
+        "stale_reason": reason,
+    }
+
+
+def _freshness_fields(f: Freshness) -> dict:
+    return {
+        "index_sha": f.index_sha,
+        "head_sha": f.head_sha,
+        "stale": "unknown" if f.stale is None else f.stale,
+        "stale_reason": f.reason,
+    }
+
+
+def _capped_refresh(db_path: Path, repo_root: Path, cap: float) -> RefreshOutcome:
+    """Run ``codemem refresh``; return ok, locked, error or timeout within ``cap``."""
+    from ..incremental import EXIT_LOCKED
+
+    # cwd is the DB dir below: a relative path there names another file.
+    db_path, repo_root = db_path.absolute(), repo_root.absolute()
+    # -I: `-m` would otherwise put the cwd first on sys.path, and a repo
+    # that ships its own codemem/cli.py would run inside the refresh.
+    proc = subprocess.Popen(  # noqa: S603  # why: fixed argv (this interpreter + codemem.cli), no shell
+        [
+            sys.executable,
+            "-I",
+            "-m",
+            "codemem.cli",
+            "--db",
+            str(db_path),
+            "refresh",
+            "--repo-root",
+            str(repo_root),
+        ],
+        cwd=db_path.parent,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    try:
+        rc = proc.wait(timeout=cap)
+    except subprocess.TimeoutExpired:
+        # ponytail: left running, detached; it holds db.lock, so queries
+        # until it ends see "locked". Kill-safe either way (M15.1).
+        return "timeout"
+    return {0: "ok", EXIT_LOCKED: "locked"}.get(rc, "error")
+
+
+def _build_if_missing(db_path: Path, repo_root: Path, cap: float) -> dict | None:
+    """Cold-build a missing DB, or wait up to ``cap`` for another process's build.
+
+    The build goes through ``refresh_index``: the same writer lock (beside
+    the DB, so ``CODEMEM_DB`` elsewhere is still one lock), a DB built aside
+    and swapped in whole (a poller never sees a half-built file), and
+    ``last_sha`` + ``tree_sig`` recorded. Lives in :mod:`codemem.mcp_tools`
+    so the plugin server never imports the indexer or journal itself.
     """
     if db_path.exists():
         return None
-
+    if not repo_root.is_dir():
+        return {"error": f"build failed: repo root is not a directory: {repo_root}"}
     try:
-        # Lazy imports: keep mcp_tools' cold-start cheap when the DB
-        # already exists (the common case after the first query).
-        from ..indexer import build_index
-        from ..journal.lock import acquire_writer_lock
+        # Lazy import: keep mcp_tools' cold-start cheap when the DB exists.
+        from ..incremental import refresh_index
 
-        lock_path = repo_root / ".codemem" / "db.lock"
-        with acquire_writer_lock(lock_path) as got_lock:
-            # Re-check inside the lock — another process may have built
-            # while we waited to open the lock file.
-            if db_path.exists():
-                return None
-            if got_lock:
-                build_index(repo_root, db_path)
-                return None
-            # Lock contended — exit context so we don't starve the
-            # real builder, then poll outside.
-
-        # Another process holds the lock; wait for them to finish.
-        for _ in range(100):
+        if not refresh_index(repo_root, db_path).skipped_locked:
+            return None
+        deadline = time.monotonic() + cap
+        while time.monotonic() < deadline:
             time.sleep(0.1)
             if db_path.exists():
                 return None
-        return {"error": ("build in progress by another process; timed out after 10s")}
-    except Exception as exc:  # noqa: BLE001 — tool-surface contract
+        return {
+            "error": f"build in progress by another process; timed out after {cap:g}s"
+        }
+    except Exception as exc:  # noqa: BLE001  # why: tool-surface contract — an error dict, never a raise
         return {"error": f"build failed: {exc.__class__.__name__}: {exc}"}
 
 
@@ -160,6 +324,46 @@ def _symbol_info_row(row: sqlite3.Row) -> dict:
 # ---------------------------------------------------------------------
 
 
+_PLUGIN_KINDS: tuple[str, ...] = tuple(k.value for k in NodeKind)
+_PLUGIN_SRCS_SQL = (
+    "SELECT DISTINCT src FROM plugin_edges WHERE dst IN ({}) ORDER BY src"
+)
+
+
+def _plugin_target(name: str) -> tuple[str, list[str]]:
+    """Sanitize a who_calls target; return it and the plugin node ids it may name.
+
+    A bare name (``impact-analysis``) may be any kind's stem; ``<kind>:<stem>``
+    names one node. Each part passes :func:`sanitize_symbol_arg` (``:`` itself
+    is outside its allow-list). Raises :class:`ValidationError`.
+    """
+    kind, sep, stem = name.partition(":") if isinstance(name, str) else ("", "", "")
+    if not sep:
+        clean = sanitize_symbol_arg(name)
+        return clean, [f"{k}:{clean}" for k in _PLUGIN_KINDS]
+    if kind not in _PLUGIN_KINDS:
+        raise ValidationError(
+            f"kind before ':' must be one of {', '.join(_PLUGIN_KINDS)}"
+        )
+    clean = f"{kind}:{sanitize_symbol_arg(stem)}"
+    return clean, [clean]
+
+
+def _plugin_callers(conn: sqlite3.Connection, node_ids: list[str]) -> list[str]:
+    """Plugin nodes (``<kind>:<stem>``) with an edge into any of ``node_ids``.
+
+    An index built before schema v4 has no ``plugin_edges``: logged, and empty.
+    """
+    if not conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='plugin_edges'"
+    ).fetchone():
+        logger.warning("index predates plugin_edges (schema < 4): run `codemem build`")
+        return []
+    marks = ", ".join("?" * len(node_ids))
+    sql = _PLUGIN_SRCS_SQL.format(marks)  # only "?" marks go in; values are bound
+    return [r[0] for r in conn.execute(sql, node_ids)]
+
+
 def who_calls(
     db_path: Path,
     name: str,
@@ -167,17 +371,21 @@ def who_calls(
     max_depth: int = 3,
     budget: int = _DEFAULT_BUDGET,
 ) -> dict:
-    """Return upstream callers of ``name`` (by unqualified symbol name)."""
+    """Return upstream callers of ``name`` (by unqualified symbol name).
+
+    ``name`` may also be a plugin node — a skill/command/agent/rule/hook stem
+    or ``<kind>:<stem>``. Its callers from ``plugin_edges`` follow the code
+    callers as ``{"name", "kind", "file", "line": None, "via": "plugin_edges"}``,
+    where ``kind`` is the caller's node kind and ``file`` its node id; ``line`` is
+    None (a plugin node has no line) so every caller has the same keys.
+    """
     try:
-        clean = sanitize_symbol_arg(name)
+        clean, plugin_ids = _plugin_target(name)
     except ValidationError as exc:
         return {"error": str(exc), "target": name, "callers": []}
 
     with _open_ro(db_path) as conn:
-        target_ids = _resolve_symbol_ids_by_name(conn, clean)
-        if not target_ids:
-            return {"target": clean, "callers": [], "truncated": False, "error": None}
-
+        target_ids = [] if ":" in clean else _resolve_symbol_ids_by_name(conn, clean)
         caller_ids: set[int] = set()
         for tid in target_ids:
             rows = conn.execute(
@@ -197,8 +405,19 @@ def who_calls(
             ).fetchone()
             if row:
                 callers.append(_symbol_info_row(row))
+        plugin_srcs = _plugin_callers(conn, plugin_ids)
 
     callers.sort(key=lambda c: (c["file"], c["line"], c["name"]))
+    callers += [
+        {
+            "name": src.split(":", 1)[1],
+            "kind": src.split(":", 1)[0],
+            "file": src,
+            "line": None,
+            "via": "plugin_edges",
+        }
+        for src in plugin_srcs
+    ]
     return _truncate(
         {"target": clean, "callers": callers, "error": None},
         list_key="callers",
@@ -207,33 +426,25 @@ def who_calls(
 
 
 # ---------------------------------------------------------------------
-# blast_radius
+# callees (blast_radius is its deprecated alias)
 # ---------------------------------------------------------------------
 
 
-def blast_radius(
+def callees(
     db_path: Path,
     name: str,
     *,
     max_depth: int = 3,
     budget: int = _DEFAULT_BUDGET,
 ) -> dict:
-    """Return downstream callees of ``name`` transitively."""
+    """Return the symbols ``name`` calls, transitively, up to ``max_depth`` hops."""
     try:
         clean = sanitize_symbol_arg(name)
     except ValidationError as exc:
-        return {"error": str(exc), "target": name, "downstream": []}
+        return {"error": str(exc), "target": name, "callees": [], "truncated": False}
 
     with _open_ro(db_path) as conn:
         target_ids = _resolve_symbol_ids_by_name(conn, clean)
-        if not target_ids:
-            return {
-                "target": clean,
-                "downstream": [],
-                "truncated": False,
-                "error": None,
-            }
-
         dst_ids: set[int] = set()
         for tid in target_ids:
             rows = conn.execute(
@@ -241,7 +452,7 @@ def blast_radius(
             ).fetchall()
             dst_ids.update(r["sid"] for r in rows)
 
-        downstream: list[dict] = []
+        found: list[dict] = []
         for did in dst_ids:
             row = conn.execute(
                 """
@@ -252,14 +463,33 @@ def blast_radius(
                 (did,),
             ).fetchone()
             if row:
-                downstream.append(_symbol_info_row(row))
+                found.append(_symbol_info_row(row))
 
-    downstream.sort(key=lambda d: (d["file"], d["line"], d["name"]))
+    found.sort(key=lambda d: (d["file"], d["line"], d["name"]))
     return _truncate(
-        {"target": clean, "downstream": downstream, "error": None},
-        list_key="downstream",
+        {"target": clean, "callees": found, "error": None},
+        list_key="callees",
         budget=budget,
     )
+
+
+def blast_radius(
+    db_path: Path,
+    name: str,
+    *,
+    max_depth: int = 3,
+    budget: int = _DEFAULT_BUDGET,
+) -> dict:
+    """Deprecated alias of :func:`callees`; the list is also under ``downstream``.
+
+    TODO(ADR-0026): remove after v0.18.x.
+    """
+    result = callees(db_path, name, max_depth=max_depth, budget=budget)
+    return {
+        **result,
+        "downstream": result["callees"],
+        "deprecated": _BLAST_RADIUS_DEPRECATION,
+    }
 
 
 # ---------------------------------------------------------------------
@@ -519,7 +749,7 @@ def hot_spots(
 # ---------------------------------------------------------------------
 
 
-def co_changes(
+def co_changes(  # noqa: PLR0913  # why: each knob is a keyword-only filter the CLI and file_impact set; a config object would only rename them
     db_path: Path,
     file_path: str,
     *,
@@ -527,21 +757,30 @@ def co_changes(
     exclude: tuple[str, ...] | None = None,
     top_n: int = 50,
     budget: int = _DEFAULT_BUDGET,
+    min_ratio: float = 0.0,
+    max_commit_files: int | None = None,
 ) -> dict:
     """Return files co-changing with ``file_path`` that lack an import edge.
 
-    Two filters on top of commit-co-occurrence:
+    Filters on top of commit-co-occurrence:
 
     1. Must share at least ``threshold`` commits with ``file_path``.
-    2. Must NOT be linked by an import/call edge in either direction — the
+    2. Must have changed in at least ``min_ratio`` of ``file_path``'s
+       commits (``>=``; ratio = shared commits / the target's commits).
+    3. Must NOT be linked by an import/call edge in either direction — the
        whole point of this tool is to surface *implicit* coupling that the
        AST misses.
+
+    ``max_commit_files`` drops every commit touching more than that many
+    files before counting (``None``, the default, keeps them all); see
+    :data:`CO_CHANGE_MAX_COMMIT_FILES`.
 
     ``exclude`` defaults to :data:`_DEFAULT_CO_CHANGES_EXCLUDE`
     (``("CHANGELOG.md", "README.md")``) which users routinely touch alongside
     everything else; pass an empty tuple to disable.
 
-    Result order: ``count`` DESC, ``path`` ASC for deterministic tie-break.
+    Each entry is ``{"path", "count", "ratio"}``; ``target_commits`` is the
+    ratio's denominator. Order: ``count`` DESC, ``path`` ASC.
     """
     try:
         clean = sanitize_symbol_arg(file_path)
@@ -549,7 +788,65 @@ def co_changes(
         return {"error": str(exc), "target": file_path, "files": []}
 
     excludes = _DEFAULT_CO_CHANGES_EXCLUDE if exclude is None else tuple(exclude)
+    query, params = _co_changes_sql(
+        clean, threshold, min_ratio, max_commit_files, excludes, top_n
+    )
+    with _open_ro(db_path) as conn:
+        rows = conn.execute(query, params).fetchall()
+        target_commits = conn.execute(
+            _TARGET_COMMITS_COUNT_SQL,
+            (max_commit_files, max_commit_files, clean),
+        ).fetchone()[0]
 
+    files = [
+        {
+            "path": r["path"],
+            "count": r["count"],
+            "ratio": round(r["count"] / target_commits, _RATIO_DP),
+        }
+        for r in rows
+    ]
+    return _truncate(
+        {
+            "files": files,
+            "target": clean,
+            "threshold": threshold,
+            "target_commits": target_commits,
+            "error": None,
+        },
+        list_key="files",
+        budget=budget,
+    )
+
+
+# Commits that touched the target, minus those over ``max_commit_files``
+# (bound twice: ``? IS NULL OR n <= ?``) — the ratio's denominator.
+_TARGET_COMMITS_CTE = """
+    WITH kept_commits AS (
+        SELECT commit_sha FROM commit_files
+         GROUP BY commit_sha
+        HAVING ? IS NULL OR COUNT(*) <= ?
+    ),
+    target_commits AS (
+        SELECT commit_sha FROM commit_files
+         WHERE file_path = ?
+           AND commit_sha IN (SELECT commit_sha FROM kept_commits)
+    )
+"""
+_TARGET_COMMITS_COUNT_SQL = (
+    _TARGET_COMMITS_CTE + "SELECT COUNT(*) FROM target_commits"  # noqa: S608  # why: two module literals joined; every value is bound
+)
+
+
+def _co_changes_sql(
+    clean: str,
+    threshold: int,
+    min_ratio: float,
+    max_commit_files: int | None,
+    excludes: tuple[str, ...],
+    top_n: int,
+) -> tuple[str, list[object]]:
+    """The co_changes query and its bound parameters; no value is interpolated."""
     # Parameterised `NOT IN (?, ?, ...)` — build conditionally so empty
     # excludes produces NO clause at all (a bare `NOT IN (NULL)` evaluates
     # to NULL/unknown and filters out everything, SQL three-valued-logic gotcha).
@@ -557,9 +854,7 @@ def co_changes(
     if excludes:
         exclude_clause = "AND co.path NOT IN (" + ",".join("?" for _ in excludes) + ")"
     query = f"""
-        WITH target_commits AS (
-            SELECT commit_sha FROM commit_files WHERE file_path = ?
-        ),
+        {_TARGET_COMMITS_CTE},
         co_counts AS (
             SELECT cf.file_path AS path,
                    COUNT(DISTINCT cf.commit_sha) AS c
@@ -568,6 +863,8 @@ def co_changes(
                AND cf.file_path != ?
              GROUP BY cf.file_path
             HAVING COUNT(DISTINCT cf.commit_sha) >= ?
+               AND COUNT(DISTINCT cf.commit_sha)
+                   >= ? * (SELECT COUNT(*) FROM target_commits)
         ),
         linked AS (
             SELECT f2.path AS path
@@ -592,26 +889,101 @@ def co_changes(
            {exclude_clause}
          ORDER BY co.c DESC, co.path ASC
          LIMIT ?
-    """  # noqa: S608  # why: exclude_clause is literals + `?` placeholders; values are bound
-    params: list[object] = [clean, clean, threshold, clean, clean, clean, clean]
-    if excludes:
-        params.extend(excludes)
+    """  # noqa: S608  # why: the CTE and exclude_clause are literals + `?` placeholders; values are bound
+    params: list[object] = [
+        max_commit_files,
+        max_commit_files,
+        clean,
+        clean,
+        threshold,
+        min_ratio,
+        clean,
+        clean,
+        clean,
+        clean,
+    ]
+    params.extend(excludes)
     params.append(top_n)
+    return query, params
 
+
+# ---------------------------------------------------------------------
+# file_impact (M10.2)
+# ---------------------------------------------------------------------
+
+_FILE_CALLERS_SQL = """
+    SELECT DISTINCT fs.path AS file, ss.name AS name
+      FROM edges e
+      JOIN symbols sd ON sd.id = e.dst_symbol_id
+      JOIN files   fd ON fd.id = sd.file_id
+      JOIN symbols ss ON ss.id = e.src_symbol_id
+      JOIN files   fs ON fs.id = ss.file_id
+     WHERE fd.path = ? AND fs.path != ?
+     ORDER BY fs.path, ss.name
+"""
+
+
+def _is_test_path(path: str) -> bool:
+    """True for a file under a ``tests``/``test`` dir or named ``test_*``."""
+    p = Path(path)
+    return bool({"tests", "test"} & set(p.parts[:-1])) or p.name.startswith("test_")
+
+
+def file_impact(
+    db_path: Path,
+    file_path: str,
+    *,
+    budget: int = FILE_IMPACT_BUDGET,
+) -> dict:
+    """Who outside ``file_path`` depends on it, and what changes with it.
+
+    ``external_callers`` are symbols in other non-test files with an edge
+    into any symbol defined in ``file_path``; ``test_callers`` are the same
+    from test files. A ``claude-code/`` plugin file adds the plugin nodes that
+    reference its owner (:func:`~codemem.draw.plugin_surface.owner_of`) to
+    ``external_callers`` as ``{"file": "<kind>:<stem>", "name": "<stem>", "via": "plugin_edges"}``.
+    ``co_changes`` comes from :func:`co_changes` with
+    ``max_commit_files=CO_CHANGE_MAX_COMMIT_FILES``; ``target_commits`` is
+    its denominator. Lists are trimmed (co-changes first) to fit ``budget``.
+    """
+    empty = {"external_callers": [], "test_callers": [], "co_changes": []}
+    try:
+        clean = sanitize_symbol_arg(file_path)
+    except ValidationError as exc:
+        return {"file": file_path, **empty, "error": str(exc), "truncated": False}
+
+    node = owner_of(clean)
     with _open_ro(db_path) as conn:
-        rows = conn.execute(query, params).fetchall()
-
-    files = [{"path": r["path"], "count": r["count"]} for r in rows]
-    return _truncate(
-        {
-            "files": files,
-            "target": clean,
-            "threshold": threshold,
-            "error": None,
-        },
-        list_key="files",
-        budget=budget,
+        rows = conn.execute(_FILE_CALLERS_SQL, (clean, clean)).fetchall()
+        plugin_srcs = _plugin_callers(conn, [node]) if node else []
+    callers = [{"file": r["file"], "name": r["name"]} for r in rows]
+    # Plugin nodes have no single source file: "file" is the node id, and "via" says so.
+    callers += [
+        {"file": src, "name": src.split(":", 1)[1], "via": "plugin_edges"}
+        for src in plugin_srcs
+    ]
+    # Looser than the gate-side T7 check (shared >= 5, ratio >= 0.5): this brief is an
+    # early pre-edit hint, so it shows any co-change (threshold 3, sweep commits of more
+    # than CO_CHANGE_MAX_COMMIT_FILES files dropped); the gate is the enforcement.
+    co = co_changes(
+        db_path, clean, max_commit_files=CO_CHANGE_MAX_COMMIT_FILES, budget=budget
     )
+    if co["error"]:
+        return {"file": clean, **empty, "error": co["error"], "truncated": False}
+
+    payload: dict[str, Any] = {
+        "file": clean,
+        "external_callers": [c for c in callers if not _is_test_path(c["file"])],
+        "test_callers": [c for c in callers if _is_test_path(c["file"])],
+        "co_changes": co["files"],
+        "target_commits": co["target_commits"],
+        "error": None,
+    }
+    truncated = co["truncated"]
+    for key in ("co_changes", "test_callers", "external_callers"):
+        payload = _truncate(payload, list_key=key, budget=budget)
+        truncated = truncated or payload["truncated"]
+    return {**payload, "truncated": truncated}
 
 
 # ---------------------------------------------------------------------
@@ -1179,7 +1551,7 @@ def aa_ma_context(
 
     Walks ``<repo_root>/.claude/dev/active/<task_name>/<task_name>-{tasks,reference}.md``,
     extracts file + symbol mentions per the pinned extraction rules, then
-    enriches via :func:`owners` for files and :func:`blast_radius` for symbols.
+    enriches via :func:`owners` for files and :func:`callees` for symbols.
 
     With ``write=True`` the same content is appended to the task's
     reference.md as an ``## aa_ma_context snapshot [<ISO>]`` section.
@@ -1193,14 +1565,12 @@ def aa_ma_context(
         return {"error": "repo_root is required for aa_ma_context", "task": clean}
 
     task_dir = Path(repo_root) / ".claude" / "dev" / "active" / clean
-    if not task_dir.is_dir():
-        return {
-            "error": f"task not found: {clean} (expected at {task_dir})",
-            "task": clean,
-        }
-
     tasks_md = task_dir / f"{clean}-tasks.md"
     ref_md = task_dir / f"{clean}-reference.md"
+    problem = _task_path_problem(task_dir, tasks_md, ref_md)
+    if problem is not None:
+        return {"error": problem, "task": clean}
+
     text_blobs: list[str] = []
     for p in (tasks_md, ref_md):
         if p.is_file():
@@ -1216,10 +1586,10 @@ def aa_ma_context(
     for fp in files:
         owners_by_file[fp] = owners(db_path, fp)
 
-    # Blast radius per symbol.
+    # Callees per symbol (the payload key keeps its historical name).
     blast_by_symbol: dict[str, dict] = {}
     for sym in symbols:
-        blast_by_symbol[sym] = blast_radius(db_path, sym)
+        blast_by_symbol[sym] = callees(db_path, sym)
 
     # hot_spots filtered to just the mentioned files (intersection, preserving
     # hot_spots' own ranking order).
@@ -1258,14 +1628,18 @@ def aa_ma_context(
 def _extract_file_mentions(corpus: str, *, repo_root: Path) -> list[str]:
     """Backticked path tokens that also exist on disk under repo_root.
 
-    Deduplicates and preserves first-appearance order.
+    Deduplicates and preserves first-appearance order. The corpus is repo
+    text: an absolute or ``..`` token, or one whose link leaves the repo, is
+    never probed (M15 §6.8 background review).
     """
+    root = repo_root.resolve()
     seen: dict[str, None] = {}
     for match in _FILE_MENTION_RE.findall(corpus):
-        if match in seen:
+        rel = Path(match)
+        if match in seen or rel.is_absolute() or ".." in rel.parts:
             continue
-        candidate = repo_root / match
-        if candidate.is_file():
+        candidate = (root / rel).resolve()
+        if candidate.is_relative_to(root) and candidate.is_file():
             seen[match] = None
     return list(seen.keys())
 
@@ -1340,14 +1714,30 @@ def _render_context_markdown(
     return "\n".join(parts) + "\n"
 
 
+def _task_path_problem(task_dir: Path, *files: Path) -> str | None:
+    """Why the task path cannot be used, or None.
+
+    The task path is repo-controlled: a committed link at ``.claude``,
+    ``dev``, ``active``, the task dir or ``files`` would make
+    ``aa_ma_context(write=True)`` append repo-chosen text to any user file
+    (M15 §6.8 re-run 1).
+    """
+    chain = [task_dir.parents[2], task_dir.parents[1], task_dir.parent, task_dir]
+    if any(p.is_symlink() for p in [*chain, *files]):
+        return f"task path for {task_dir.name} contains a symlink; refusing to read or write it"
+    if not task_dir.is_dir():
+        return f"task not found: {task_dir.name} (expected at {task_dir})"
+    return None
+
+
 def _append_snapshot_to_reference(ref_md: Path, markdown: str) -> None:
     """Append ``## aa_ma_context snapshot [<ISO>]`` + content to reference.md."""
     ts = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     block = f"\n\n## aa_ma_context snapshot [{ts}]\n\n{markdown}"
-    if ref_md.exists():
-        ref_md.write_text(ref_md.read_text(encoding="utf-8") + block, encoding="utf-8")
-    else:
-        ref_md.write_text(block, encoding="utf-8")
+    # O_NOFOLLOW: a link planted after aa_ma_context's check is still refused.
+    flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+    with os.fdopen(os.open(ref_md, flags, 0o644), "a", encoding="utf-8") as fh:
+        fh.write(block)
 
 
 # ---------------------------------------------------------------------

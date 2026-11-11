@@ -6,10 +6,10 @@ metadata to handle moves and history rewrites correctly.
 
 Dirty-detection order of precedence:
 
-1. If ``.codemem/last_sha`` is absent OR
+1. If ``last_sha`` (in the index dir) is absent OR
    ``git cat-file -e <last_sha>`` fails (history rewrite orphaned it),
    fall back to a FULL REBUILD via :func:`codemem.indexer.build_index`.
-   A warning is written to ``.codemem/refresh.log``.
+   A warning is written to ``refresh.log`` in the index dir.
 2. Otherwise, content-hash every currently-tracked file and compare
    against the DB's ``files`` table.
 3. Files with a hash matching a DB row at a **different path** are
@@ -31,6 +31,9 @@ actually changed (cheap import-set-diff check).
 from __future__ import annotations
 
 import hashlib
+import logging
+import os
+import re
 import subprocess
 import time
 from dataclasses import dataclass
@@ -38,13 +41,44 @@ from pathlib import Path
 
 from . import resolver as _resolver
 from .diff.symbol_diff import ChangeKind, diff_symbols
-from .indexer import build_index, parse_files, discover_files
+from .indexer import (
+    GIT_TIMEOUT_S,
+    SAFE_GIT,
+    UnsafeDbPath,
+    build_index,
+    check_db_path,
+    discover_files,
+    parse_files,
+    plugin_edge_rows,
+    replace_plugin_edges,
+    tree_signature,
+    write_sidecar,
+)
 from .journal.lock import acquire_writer_lock
 from .parser.python_ast import Symbol
 from .storage import db
 
 
-__all__ = ["RefreshStats", "refresh_index"]
+__all__ = [
+    "EXIT_LOCKED",
+    "Freshness",
+    "RefreshStats",
+    "UnsafeDbPath",
+    "check_freshness",
+    "log_refresh",
+    "refresh_index",
+]
+
+# `codemem refresh` exit code when another refresh holds db.lock: EX_TEMPFAIL
+# (sysexits.h), "try again later". Read by mcp_tools.ensure_fresh.
+EXIT_LOCKED = 75
+
+logger = logging.getLogger(__name__)
+
+# `last_sha` and `tree_sig` are repo-controlled when CODEMEM_DB points into a
+# repo (a clone can commit them): only a full SHA-1 (40-hex) or SHA-256 (64-hex)
+# is ever passed to git.
+_SHA_RE = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 
 
 @dataclass
@@ -66,6 +100,51 @@ class RefreshStats:
     elapsed_seconds: float = 0.0
 
 
+@dataclass(frozen=True)
+class Freshness:
+    """How the index at a DB path relates to the working tree (report 03 X2).
+
+    ``stale`` is True, False, or None when it cannot be known (no git).
+    ``reason`` names why it is stale or unknown: ``behind``, ``dirty``,
+    ``no_index_sha``, ``no_git`` or ``no_head``.
+    """
+
+    index_sha: str | None
+    head_sha: str | None
+    stale: bool | None
+    reason: str | None
+
+
+def check_freshness(repo_root: Path, db_path: Path) -> Freshness:
+    """Cheap in-process staleness check (~15 ms on aa-ma-forge when fresh, M15 §6.6).
+
+    First, an index codemem did not build here is stale ``untrusted`` whatever
+    its sidecars say (M15 §6.8). Then compares ``last_sha`` with HEAD, then the
+    working tree's signature with the one the last refresh recorded. Runs no
+    refresh itself.
+    """
+    head = _git(repo_root, "rev-parse", "--verify", "-q", "HEAD")
+    if not db.index_trusted(db_path):
+        return Freshness(None, head, True, "untrusted")
+    index_sha = _read_sha(db_path.parent / "last_sha")
+    if head is None:
+        inside = _git(repo_root, "rev-parse", "--git-dir") is not None
+        return Freshness(index_sha, None, None, "no_head" if inside else "no_git")
+    if index_sha is None:
+        return Freshness(None, head, True, "no_index_sha")
+    if index_sha != head:
+        return Freshness(index_sha, head, True, "behind")
+    stored = _read_text(db_path.parent / "tree_sig")
+    if stored is None or tree_signature(discover_files(repo_root)) != stored:
+        return Freshness(index_sha, head, True, "dirty")
+    return Freshness(index_sha, head, False, None)
+
+
+def log_refresh(db_dir: Path, message: str) -> None:
+    """Append one timestamped line to ``<db_dir>/refresh.log``."""
+    _log(db_dir / "refresh.log", message)
+
+
 # ---------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------
@@ -80,7 +159,9 @@ def refresh_index(
     """Refresh the index at ``db_path`` to match the working tree under ``repo_root``.
 
     Holds the single-writer lock; if another refresh holds it, returns at once
-    with ``skipped_locked`` set.
+    with ``skipped_locked`` set. Raises :class:`UnsafeDbPath` per
+    :func:`codemem.safety.check_db_path`. An index codemem did not build here
+    is rebuilt in full.
 
     Args:
         repo_root: Root of the repository to index.
@@ -93,11 +174,12 @@ def refresh_index(
     """
     t0 = time.monotonic()
     repo_root = repo_root.resolve()
-    db_path = db_path.resolve()
+    # Never resolve db_path: following a planted link is the attack.
+    db_path = db_path.absolute()
+    check_db_path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     log_file = db_path.parent / "refresh.log"
-    last_sha_file = db_path.parent / "last_sha"
     lock_file = db_path.parent / "db.lock"
 
     # M2 Task 2.7: single-writer lock. If another refresh holds it,
@@ -109,14 +191,21 @@ def refresh_index(
             return RefreshStats(
                 skipped_locked=True, elapsed_seconds=time.monotonic() - t0
             )
-        return _refresh_locked(
+        # Taken before reading the tree: an edit made during the refresh
+        # leaves the stored signature behind, so the next check re-runs.
+        disk_files = discover_files(repo_root)
+        sig = tree_signature(disk_files)
+        stats = _refresh_locked(
             repo_root,
             db_path,
             package=package,
-            log_file=log_file,
-            last_sha_file=last_sha_file,
             t0=t0,
+            disk_files=disk_files,
         )
+        if not stats.full_rebuild:  # build_index already filled it
+            _refresh_plugin_edges(repo_root, db_path, log_file)
+        write_sidecar(db_path.parent / "tree_sig", sig + "\n")
+        return stats
 
 
 def _refresh_locked(  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down, no logic change in a security milestone)
@@ -124,36 +213,35 @@ def _refresh_locked(  # noqa: C901  # why: pre-existing; refactor tracked in TOD
     db_path: Path,
     *,
     package: str,
-    log_file: Path,
-    last_sha_file: Path,
     t0: float,
+    disk_files: list[Path],
 ) -> RefreshStats:
+    log_file = db_path.parent / "refresh.log"
+    last_sha_file = db_path.parent / "last_sha"
     # ---- Fallback: no DB yet, no last_sha, or orphaned SHA ----------
     if (
         not db_path.exists()
+        or not db.index_trusted(db_path)
         or not last_sha_file.exists()
         or _sha_orphaned(repo_root, last_sha_file)
     ):
         reason = _fallback_reason(db_path, last_sha_file, repo_root)
         _log(log_file, f"full rebuild: {reason}")
-        # Wipe the DB before rebuild so stale rows from prior states
-        # don't leak through. ``build_index``'s DELETE is scoped to
-        # paths in the current parse set and won't clean up files
-        # whose paths disappeared between runs.
-        if db_path.exists():
-            db_path.unlink()
-        build_index(repo_root, db_path, package=package)
+        # Build from empty so stale rows from prior states don't leak
+        # through (``build_index``'s DELETE is scoped to the current parse
+        # set). Never in place: readers keep the old DB until the swap.
+        _rebuild_and_swap(repo_root, db_path, package=package)
         _write_last_sha(repo_root, last_sha_file)
         return RefreshStats(full_rebuild=True, elapsed_seconds=time.monotonic() - t0)
 
     stats = RefreshStats()
 
-    disk_files = discover_files(repo_root)
-    # Map from repo-relative path → absolute path + hash for every disk file.
+    # Map from repo-relative path → absolute path + hash for every disk file
+    # (discover_files already returns resolved paths).
     disk_by_path: dict[str, tuple[Path, str]] = {}
     for p in disk_files:
-        rel = p.resolve().relative_to(repo_root).as_posix()
-        disk_by_path[rel] = (p.resolve(), _hash(p))
+        rel = p.relative_to(repo_root).as_posix()
+        disk_by_path[rel] = (p, _hash(p))
 
     # Map from DB-stored path → (id, content_hash) so we can diff.
     with db.connect(db_path, read_only=True) as conn:
@@ -277,6 +365,28 @@ def _refresh_locked(  # noqa: C901  # why: pre-existing; refactor tracked in TOD
 # ---------------------------------------------------------------------
 
 
+def _refresh_plugin_edges(repo_root: Path, db_path: Path, log_file: Path) -> None:
+    """Rebuild ``plugin_edges`` from the tree; writes only when the rows differ.
+
+    Runs on every incremental refresh, not only when indexed files changed: a
+    commit that touches only ``claude-code/**/*.md`` changes no ``files`` row.
+    """
+    rows = plugin_edge_rows(repo_root)
+    conn = db.connect(db_path, read_only=False)
+    try:
+        if (
+            conn.execute("PRAGMA user_version").fetchone()[0]
+            < db.CURRENT_SCHEMA_VERSION
+        ):
+            db.ensure_schema(conn)  # a pre-v4 index reached the no-change path
+        with db.transaction(conn):
+            changed = replace_plugin_edges(conn, rows)
+    finally:
+        conn.close()
+    if changed:
+        _log(log_file, f"refresh: plugin_edges rebuilt ({len(rows)} rows)")
+
+
 def _hash(p: Path) -> str:
     """SHA-256 of file contents.
 
@@ -290,47 +400,120 @@ def _hash(p: Path) -> str:
 
 
 def _log(log_file: Path, message: str) -> None:
-    log_file.parent.mkdir(parents=True, exist_ok=True)
+    """Append one line to ``log_file``; never through a symlink; never raises.
+
+    The index dir is repo-controlled when ``CODEMEM_DB`` points into a repo
+    (a clone can commit ``refresh.log -> ~/.bashrc``, or the dir itself as a
+    link), and messages can carry repo-controlled text such as file names in
+    exception messages: newlines are folded so one call is one line, and a
+    symlinked log or log directory is refused.
+    """
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime())
-    with log_file.open("a", encoding="utf-8") as fh:
-        fh.write(f"[{timestamp}] {message}\n")
+    line = " ".join(message.splitlines())
+    flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        if log_file.parent.is_symlink():
+            raise OSError(f"{log_file.parent.name} is a symlink")
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(log_file, flags, 0o644)
+    except OSError as exc:
+        logger.warning("refresh.log not written (%s): %s", type(exc).__name__, log_file)
+        return
+    with os.fdopen(fd, "a", encoding="utf-8") as fh:
+        fh.write(f"[{timestamp}] {line}\n")
+
+
+def _rebuild_and_swap(repo_root: Path, db_path: Path, *, package: str) -> None:
+    """Full build into a sibling file, then ``os.replace`` it over the live DB.
+
+    The caller holds db.lock. An in-place unlink made every concurrent
+    reader raise for the whole rebuild (M15.1: ~23k errors on aa-ma-forge);
+    the swap is atomic for readers. The old DB's ``-wal``/``-shm`` are
+    unlinked first: a reader still holding them keeps its own (now
+    nameless) copies, and new readers of the new DB start clean instead
+    of replaying the old DB's WAL frames into it.
+    """
+    tmp = db_path.with_name(db_path.name + ".rebuild")
+    for leftover in db.db_files(tmp):  # a rebuild killed mid-run
+        leftover.unlink(missing_ok=True)
+    build_index(repo_root, tmp, package=package, write_sidecars=False)
+    for side in db.db_files(tmp)[1:] + db.db_files(db_path)[1:]:
+        side.unlink(missing_ok=True)
+    os.replace(tmp, db_path)
+
+
+def _git(repo_root: Path, *args: str) -> str | None:
+    """Stdout of a git command, or None when git fails or is missing."""
+    try:
+        result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
+            [*SAFE_GIT, "-C", str(repo_root), *args],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=GIT_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        logger.warning(
+            "git %s timed out after %gs; freshness unknown", args[0], GIT_TIMEOUT_S
+        )
+        return None
+    except OSError:
+        return None
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+# A sidecar is one SHA or signature line; bounds the read of a planted huge file.
+_SIDECAR_MAX_BYTES = 128
+
+
+def _read_text(path: Path) -> str | None:
+    """A sidecar's one line; None if absent, unreadable, empty or a symlink.
+
+    Python twin of the shell's ``aa_ma_read_sidecar_sha`` (aa-ma-parse.sh):
+    same byte bound, only trailing newlines dropped. The DB dir itself is
+    checked by ``indexer.check_db_path`` before any refresh.
+    """
+    if path.is_symlink():
+        return None
+    try:
+        with path.open("rb") as fh:
+            text = fh.read(_SIDECAR_MAX_BYTES).decode("ascii")
+    except (OSError, UnicodeDecodeError):
+        return None
+    return text.rstrip("\n") or None
+
+
+def _read_sha(path: Path) -> str | None:
+    """A 40- or 64-hex SHA from ``path``, or None for anything else (repo-controlled file)."""
+    text = _read_text(path)
+    return text if text is not None and _SHA_RE.fullmatch(text) else None
 
 
 def _sha_orphaned(repo_root: Path, last_sha_file: Path) -> bool:
-    try:
-        sha = last_sha_file.read_text().strip()
-    except OSError:
-        return True
-    if not sha:
-        return True
-    result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-        ["git", "-C", str(repo_root), "cat-file", "-e", sha],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
-        capture_output=True,
-        check=False,
-    )
-    return result.returncode != 0
+    sha = _read_sha(last_sha_file)
+    return sha is None or _git(repo_root, "cat-file", "-e", sha) is None
 
 
 def _fallback_reason(db_path: Path, last_sha_file: Path, repo_root: Path) -> str:
     if not db_path.exists():
         return "no DB (first refresh)"
+    if not db.index_trusted(db_path):
+        return "index not built by codemem here (untrusted)"
     if not last_sha_file.exists():
         return "no last_sha file"
+    sha = _read_sha(last_sha_file)
+    if sha is None:
+        return "last_sha malformed (not a 40/64-hex SHA)"  # never echo repo-controlled text
     if _sha_orphaned(repo_root, last_sha_file):
-        return f"last_sha orphaned by git history rewrite ({last_sha_file.read_text().strip()[:12]}...)"
+        return f"last_sha orphaned by git history rewrite ({sha[:12]}...)"
     return "unknown"
 
 
 def _write_last_sha(repo_root: Path, last_sha_file: Path) -> None:
-    result = subprocess.run(  # noqa: S603  # why: fixed `git` argv, no shell
-        ["git", "-C", str(repo_root), "rev-parse", "HEAD"],  # noqa: S607  # why: `git` from PATH by design, as in every git helper here
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode == 0:
+    head = _git(repo_root, "rev-parse", "HEAD")
+    if head is not None:
         last_sha_file.parent.mkdir(parents=True, exist_ok=True)
-        last_sha_file.write_text(result.stdout.strip() + "\n")
+        write_sidecar(last_sha_file, head + "\n")
 
 
 def _rewrite_scip_paths(conn, old_path: str, new_path: str) -> None:

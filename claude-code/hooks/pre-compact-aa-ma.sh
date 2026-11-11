@@ -2,15 +2,18 @@
 # Event: PreCompact
 # Mode: Advisory — never blocks compaction
 # Exit: 0 always
-# Fail-open: a failed audit-trail append is logged to hooks.log, counted, and reported in one systemMessage; helper missing → systemMessage
+# Fail-open: a failed audit-trail append, a task skipped for a symlink, no jq, an unusable stdin cwd or a failed `git worktree list` is logged to hooks.log and reported in one systemMessage; helper missing → systemMessage
 #
 # PreCompact hook: snapshot AA-MA state before auto-compaction.
 #
-# Iterates ALL active task dirs (project-local .claude/dev/active/ first, then
+# Iterates ALL active task dirs (<root>/.claude/dev/active/ first, then
 # $HOME/.claude/dev/active/, with project-first collision resolution) via the
-# shared aa-ma-parse helper. For each task, writes a snapshot file to
+# shared aa-ma-parse helper. <root> is the git toplevel of stdin's `cwd`, else
+# pwd. For each task, writes a snapshot file to
 # $HOME/.claude/hooks/cache/compaction-snapshots/ and appends checkpoint
-# entries to the task's provenance.log and context-log.md.
+# entries to the task's provenance.log and context-log.md — except when <root>
+# is the main checkout and a linked worktree holds the same task: then nothing is
+# appended there, and a systemMessage names the worktree(s) (L-1347).
 #
 # Honours AA_MA_HOOKS_DISABLE=1 (master kill switch). Always exits 0.
 
@@ -49,8 +52,13 @@ mkdir -p "$SNAPSHOT_DIR" 2>/dev/null || {   # why: the notice below replaces mkd
     exit 0   # PreCompact must never block compaction
 }
 
-# Audit-trail append failures, reported once at exit (see end of file).
+# The AA-MA files this hook reads or appends to, per task. Every file named in
+# the loop below must be in this list, so the symlink guard covers it.
+readonly AA_MA_FILES=(tasks.md reference.md context-log.md provenance.log)
+
+# Audit-trail append failures and skipped tasks, reported once at exit (see end of file).
 append_failures=0
+skipped_tasks=0
 
 # warn_append <what> <file> — record one failed append in hooks.log and count it.
 # log_warn never fails, so this cannot abort compaction under set -e.
@@ -65,8 +73,105 @@ if aa_ma_is_disabled; then
     exit 0
 fi
 
+# Notices for the one systemMessage at exit (see end of file).
+notices=()
+
+# Project root (global L-1347). A live /compact probe (sole-dev-merge-fixes
+# context-log, "PreCompact probe (5.0)") showed stdin `cwd` equals this hook's pwd,
+# and with CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=0 it can be a subdirectory,
+# which `$PWD/.claude/dev/active` misses; its git toplevel finds the task. Stdin is
+# read only when it is not a terminal (most tests give none), and with a timeout.
+# why: seconds; must stay well under the 5 s PreCompact timeout in the installer's
+# AA_MA_HOOKS table, leaving time for git and the task loop
+readonly STDIN_READ_TIMEOUT_S=2
+
+# root_of <dir> — the git toplevel that contains <dir>: rc 0, or 1 when <dir> is not
+# in a repo. rc 2 when that toplevel does not contain <dir> or has no .git of its
+# own: a repo-local core.worktree (in a tarball, or an embedded gitdir committed to
+# a clone) can point it at another project, whose AA-MA files this hook would
+# then append to.
+root_of() {
+    local top real
+    top=$(git -C "$1" rev-parse --show-toplevel 2>/dev/null) || return 1   # why: not a repo is the caller's case
+    real=$(cd "$1" 2>/dev/null && pwd -P) || return 1   # why: an unreadable dir reads as not a repo
+    [[ "$real/" == "$top/"* && -e "$top/.git" ]] || return 2
+    printf '%s\n' "$top"
+}
+
+base=$PWD   # the directory whose toplevel becomes ROOT
+from_stdin=0
+INPUT=""
+if [[ ! -t 0 ]]; then
+    INPUT=$(timeout "$STDIN_READ_TIMEOUT_S" cat) || {
+        rc=$?
+        log_warn "$HOOK" "stdin read failed (rc $rc; 124 = timed out after ${STDIN_READ_TIMEOUT_S}s); using pwd"
+        INPUT=""
+    }
+fi
+if [[ -n "$INPUT" ]]; then
+    # why: `command -v` prints the path on success; only its status is wanted
+    if ! command -v jq >/dev/null 2>&1; then
+        log_warn "$HOOK" "jq not on PATH; stdin cwd ignored, using pwd"
+        notices+=("jq not on PATH, so pwd was used as the project root")
+    else
+        cwd=$(jq -r '.cwd // empty' <<<"$INPUT" 2>/dev/null || true)   # why: unparsable stdin → empty, reported below
+        if [[ "$cwd" != /* || ! -d "$cwd" ]]; then
+            log_warn "$HOOK" "stdin cwd '$cwd' is not an absolute directory; using pwd"
+            notices+=("stdin cwd '$cwd' is not an absolute directory, so pwd was used")
+        else
+            base=$cwd
+            from_stdin=1
+        fi
+    fi
+fi
+
+ROOT=$PWD
+IN_REPO=0
+rc=0
+# shellcheck disable=SC2310  # why: root_of's rc is the answer (0/1/2), so set -e must not act on it
+top=$(root_of "$base") || rc=$?
+if [ "$rc" -eq 0 ]; then
+    ROOT=$top
+    IN_REPO=1
+elif [ "$rc" -eq 2 ]; then
+    log_warn "$HOOK" "the git toplevel of $base is outside it or not a checkout (core.worktree?); using pwd, linked-worktree check skipped"
+    notices+=("the git toplevel of $base is outside it or not a checkout, so pwd was used and the linked-worktree check was skipped")
+elif [ "$from_stdin" -eq 1 ]; then
+    log_warn "$HOOK" "stdin cwd $cwd is not in a git repo; using pwd"
+    notices+=("stdin cwd is not in a git repo, so pwd was used")
+fi
+
+# Linked-worktree guard (L-1347). Under MAINTAIN=1 a session rooted in the main
+# checkout that `cd`s into a worktree for each command shows only the main root.
+# Plain rule (forge L-060): when ROOT is the main checkout and a linked worktree
+# holds the same task, append nothing in ROOT — the work may be there, and main's
+# AA-MA files are tracked. No guessing from git history which worktree is worked.
+linked=()   # linked worktree paths, when ROOT is the main checkout
+if [ "$IN_REPO" -eq 1 ]; then
+    if wt_list=$(git -C "$ROOT" worktree list --porcelain 2>/dev/null); then   # why: a failure is reported below
+        mapfile -t wts < <(sed -n 's/^worktree //p' <<<"$wt_list")
+        [[ "${wts[0]:-}" == "$ROOT" ]] && linked=("${wts[@]:1}")   # ROOT is itself a linked worktree: write there
+    else
+        log_warn "$HOOK" "git worktree list failed in $ROOT; linked-worktree check skipped"
+        notices+=("git worktree list failed, so $ROOT was written without the linked-worktree check")
+    fi
+fi
+
+# A symlinked .claude, .claude/dev or .claude/dev/active under ROOT can point every
+# append at another project (security audit, M1 §6.8). $HOME/.claude is exempt:
+# it is often a legitimate dotfiles symlink.
+project_link=""
+if [[ "$ROOT" != "$HOME" ]]; then
+    for p in .claude .claude/dev .claude/dev/active; do
+        if [[ -L "$ROOT/$p" ]]; then
+            project_link="$p is a symlink"
+            break
+        fi
+    done
+fi
+
 # Collect all active task dirs (project-first, mtime-sorted, collision-resolved).
-mapfile -t TASKS < <(aa_ma_list_active_tasks)
+mapfile -t TASKS < <(aa_ma_list_active_tasks "$ROOT")
 
 if [ "${#TASKS[@]}" -eq 0 ]; then
     log_info "$HOOK" "no active AA-MA tasks"
@@ -75,6 +180,33 @@ fi
 
 for task_dir in "${TASKS[@]}"; do
     task_name=$(basename "$task_dir")
+
+    # Never follow a symlink (security audit, sole-dev-merge-fixes 1.8): an
+    # untrusted clone can commit one in place of a task dir or an AA-MA file,
+    # and the appends below would then write into, and the snapshot copy from,
+    # any file outside the repo. A regular file in a non-symlinked task dir is
+    # inside that dir; a symlinked parent under ROOT is caught by project_link.
+    in_project=0
+    [[ "$task_dir" == "$ROOT/.claude/dev/active/"* ]] && in_project=1
+    skip_why=""
+    if [ "$in_project" -eq 1 ] && [ -n "$project_link" ]; then
+        skip_why="project $project_link"
+    elif [[ -L "$task_dir" ]]; then
+        skip_why="task dir is a symlink"
+    else
+        for f in "${AA_MA_FILES[@]}"; do
+            if [[ -L "${task_dir}/${task_name}-${f}" ]]; then
+                skip_why="${task_name}-${f} is a symlink"
+                break
+            fi
+        done
+    fi
+    if [ -n "$skip_why" ]; then
+        log_warn "$HOOK" "skipped task $task_name: $skip_why; nothing read or written"
+        skipped_tasks=$((skipped_tasks + 1))
+        continue
+    fi
+
     snapshot_file="${SNAPSHOT_DIR}/${task_name}-snapshot.md"
 
     {
@@ -108,6 +240,20 @@ for task_dir in "${TASKS[@]}"; do
     } > "$snapshot_file"
 
     log_info "$HOOK" "snapshot saved: $task_name"
+
+    worked=()   # linked worktrees that hold this task
+    if [ "$in_project" -eq 1 ]; then
+        for wt in "${linked[@]}"; do
+            [[ -d "$wt/.claude/dev/active/$task_name" ]] && worked+=("$wt")
+        done
+    fi
+    if [ "${#worked[@]}" -gt 0 ]; then
+        where=$(printf '%s, ' "${worked[@]}")
+        where=${where%, }
+        log_info "$HOOK" "$task_name is also in linked worktree(s) $where; nothing appended in $ROOT"
+        notices+=("$task_name is also in worktree(s) $where: nothing written to $ROOT; log the CHECKPOINT in the one you are working in (a merged one: git worktree remove <path>)")
+        continue
+    fi
 
     # Best-effort: extract active step for CHECKPOINT entry.
     active_step="unknown"
@@ -150,8 +296,19 @@ done
 
 # Hook stderr on exit 0 reaches only the debug log (code.claude.com/docs/en/hooks), so a
 # systemMessage is the one channel the user actually sees; the paths are in hooks.log.
+# Every notice goes into one systemMessage: stdout carries a single JSON object.
+notice=""
+for n in "${notices[@]}"; do
+    notice="${notice:+$notice; }$n"
+done
+if [ "$skipped_tasks" -gt 0 ]; then
+    notice="${notice:+$notice; }$skipped_tasks task(s) skipped: a symlinked AA-MA file, task dir or project .claude dir"
+fi
 if [ "$append_failures" -gt 0 ]; then
-    fail_open_notice "$HOOK" "$append_failures audit-trail append(s) failed; see ~/.claude/logs/hooks.log"
+    notice="${notice:+$notice; }$append_failures audit-trail append(s) failed"
+fi
+if [ -n "$notice" ]; then
+    fail_open_notice "$HOOK" "$notice; see ~/.claude/logs/hooks.log"
 fi
 
 exit 0

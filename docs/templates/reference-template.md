@@ -18,6 +18,9 @@
 
 _Last Updated: [YYYY-MM-DD HH:MM]_
 
+Test-Command: [command that runs this task's tests, e.g. uv run pytest | none — <reason>]
+<!-- Test-Command-Pass-Regex: [ERE, group 1 = pass count, for a non-pytest runner; e.g. \[ FAIL 0 \| WARN [0-9]+ \| SKIP [0-9]+ \| PASS ([0-9]+) \]] -->
+
 ---
 
 ## API Endpoints

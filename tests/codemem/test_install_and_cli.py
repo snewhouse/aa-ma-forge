@@ -19,6 +19,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 # import-linter contract — AC gate
 # ---------------------------------------------------------------------
 
+
 class TestImportLinterContract:
     def test_contracts_kept(self):
         """Run `lint-imports` against the .importlinter config. Must pass."""
@@ -55,6 +56,7 @@ class TestImportLinterContract:
 # ---------------------------------------------------------------------
 # Post-commit hook script
 # ---------------------------------------------------------------------
+
 
 class TestPostCommitHook:
     def test_hook_file_exists_and_executable(self):
@@ -95,13 +97,18 @@ class TestPostCommitHook:
 # install.sh --wire-git-hook
 # ---------------------------------------------------------------------
 
+
 class TestInstallScriptWiring:
     def test_dry_run_flag_accepts_wire_git_hook(self, tmp_path):
         # Accept the new flag without error (in dry-run so no side
         # effects land in ~/.claude/).
         result = subprocess.run(
-            ["bash", str(REPO_ROOT / "scripts" / "install.sh"),
-             "--dry-run", "--wire-git-hook"],
+            [
+                "bash",
+                str(REPO_ROOT / "scripts" / "install.sh"),
+                "--dry-run",
+                "--wire-git-hook",
+            ],
             capture_output=True,
             text=True,
             env={**os.environ, "HOME": str(tmp_path)},
@@ -158,15 +165,25 @@ class TestCLI:
         )
 
         db_path = tmp_path / ".codemem" / "index.db"
-        env = {**os.environ, "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src")}
+        env = {
+            **os.environ,
+            "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src"),
+        }
 
         # Build — --db is a global flag (before subcommand).
         r = subprocess.run(
-            [sys.executable, "-m", "codemem.cli",
-             "--db", str(db_path),
-             "build",
-             "--repo-root", str(tmp_path),
-             "--package", "."],
+            [
+                sys.executable,
+                "-m",
+                "codemem.cli",
+                "--db",
+                str(db_path),
+                "build",
+                "--repo-root",
+                str(tmp_path),
+                "--package",
+                ".",
+            ],
             capture_output=True,
             text=True,
             env=env,
@@ -186,24 +203,12 @@ class TestCLI:
         assert "files:" in r.stdout
         assert "symbols:" in r.stdout
 
-    def test_refresh_is_no_op_m1_placeholder(self, tmp_path):
-        r = subprocess.run(
-            [sys.executable, "-m", "codemem.cli",
-             "--db", str(tmp_path / "x.db"),
-             "refresh"],
-            capture_output=True,
-            text=True,
-            cwd=REPO_ROOT,
-        )
-        assert r.returncode == 0
-        assert "placeholder" in r.stdout.lower() or "m2" in r.stdout.lower()
-
     def test_refresh_commits_populates_git_mining_cache(self, tmp_path):
         """RED → GREEN gate for L-254 fix: ``codemem refresh-commits``
         must populate ``commits`` + ``commit_files`` from ``git log``.
 
-        The default ``codemem refresh`` is an M2 placeholder and does NOT
-        populate the git-mining cache, so out of the box ``co_changes`` /
+        ``codemem refresh`` (the incremental driver; tests in
+        test_freshness.py) does NOT populate the git-mining cache, so out of the box ``co_changes`` /
         ``hot_spots`` / cached portions of ``owners``+``symbol_history``
         return empty until a production code path runs
         ``GitMiner.refresh_commits_cache``. This test pins that path.
@@ -222,30 +227,39 @@ class TestCLI:
         (tmp_path / "a.py").write_text("def a(): return 1\n")
         subprocess.run(
             ["git", "init", "-q", "-b", "main", str(tmp_path)],
-            check=True, env=hermetic,
+            check=True,
+            env=hermetic,
         )
         subprocess.run(
             ["git", "-C", str(tmp_path), "config", "user.email", "t@x"],
-            check=True, env=hermetic,
+            check=True,
+            env=hermetic,
         )
         subprocess.run(
             ["git", "-C", str(tmp_path), "config", "user.name", "T"],
-            check=True, env=hermetic,
+            check=True,
+            env=hermetic,
         )
         subprocess.run(
-            ["git", "-C", str(tmp_path), "add", "-A"], check=True, env=hermetic,
+            ["git", "-C", str(tmp_path), "add", "-A"],
+            check=True,
+            env=hermetic,
         )
         subprocess.run(
             ["git", "-C", str(tmp_path), "commit", "-qm", "first"],
-            check=True, env=hermetic,
+            check=True,
+            env=hermetic,
         )
         (tmp_path / "b.py").write_text("def b(): return 2\n")
         subprocess.run(
-            ["git", "-C", str(tmp_path), "add", "-A"], check=True, env=hermetic,
+            ["git", "-C", str(tmp_path), "add", "-A"],
+            check=True,
+            env=hermetic,
         )
         subprocess.run(
             ["git", "-C", str(tmp_path), "commit", "-qm", "second"],
-            check=True, env=hermetic,
+            check=True,
+            env=hermetic,
         )
 
         db_path = tmp_path / ".codemem" / "index.db"
@@ -256,26 +270,48 @@ class TestCLI:
 
         # Build → DB exists at v2 but commits cache empty.
         r = subprocess.run(
-            [sys.executable, "-m", "codemem.cli", "--db", str(db_path),
-             "build", "--repo-root", str(tmp_path), "--package", "."],
-            capture_output=True, text=True, env=env, cwd=tmp_path,
+            [
+                sys.executable,
+                "-m",
+                "codemem.cli",
+                "--db",
+                str(db_path),
+                "build",
+                "--repo-root",
+                str(tmp_path),
+                "--package",
+                ".",
+            ],
+            capture_output=True,
+            text=True,
+            env=env,
+            cwd=tmp_path,
         )
         assert r.returncode == 0, r.stderr
 
         conn = sqlite3.connect(db_path)
         try:
             assert conn.execute("SELECT COUNT(*) FROM commits").fetchone()[0] == 0
-            assert conn.execute(
-                "SELECT COUNT(*) FROM commit_files"
-            ).fetchone()[0] == 0
+            assert conn.execute("SELECT COUNT(*) FROM commit_files").fetchone()[0] == 0
         finally:
             conn.close()
 
         # refresh-commits → cache populated.
         r = subprocess.run(
-            [sys.executable, "-m", "codemem.cli", "--db", str(db_path),
-             "refresh-commits", "--repo-root", str(tmp_path)],
-            capture_output=True, text=True, env=env, cwd=tmp_path,
+            [
+                sys.executable,
+                "-m",
+                "codemem.cli",
+                "--db",
+                str(db_path),
+                "refresh-commits",
+                "--repo-root",
+                str(tmp_path),
+            ],
+            capture_output=True,
+            text=True,
+            env=env,
+            cwd=tmp_path,
         )
         assert r.returncode == 0, r.stderr
         assert "inserted" in r.stdout.lower()
@@ -283,9 +319,7 @@ class TestCLI:
         conn = sqlite3.connect(db_path)
         try:
             n_commits = conn.execute("SELECT COUNT(*) FROM commits").fetchone()[0]
-            n_files = conn.execute(
-                "SELECT COUNT(*) FROM commit_files"
-            ).fetchone()[0]
+            n_files = conn.execute("SELECT COUNT(*) FROM commit_files").fetchone()[0]
         finally:
             conn.close()
         assert n_commits == 2, f"expected 2 commits cached, got {n_commits}"
@@ -298,6 +332,7 @@ class TestCLI:
 
 QUERY_TOOLS_PINNED = [
     "who_calls",
+    "callees",
     "blast_radius",
     "dead_code",
     "dependency_chain",
@@ -401,12 +436,197 @@ class TestQueryRoundTrips:
         assert r.returncode == 0, r.stderr
         assert set(json.loads(r.stdout)["layers"]) == {"core", "middle", "periphery"}
 
-    def test_query_exposes_exactly_ten_tools(self, indexed_repo):
+    def test_callees(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "query", "callees", "main", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        assert [c["name"] for c in json.loads(r.stdout)["callees"]] == ["helper"]
+
+    def test_co_changes_single_path_keeps_its_shape(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli(
+            "--db",
+            str(db),
+            "query",
+            "co_changes",
+            "a.py",
+            "--min-ratio",
+            "1.0",
+            cwd=repo,
+        )
+        assert r.returncode == 0, r.stderr
+        out = json.loads(r.stdout)
+        assert out["target"] == "a.py"
+        assert [(f["path"], f["ratio"]) for f in out["files"]] == [("notes.md", 1.0)]
+
+    def test_co_changes_several_paths_one_process(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli(
+            "--db",
+            str(db),
+            "query",
+            "co_changes",
+            "a.py",
+            "notes.md",
+            "--threshold",
+            "2",
+            cwd=repo,
+        )
+        assert r.returncode == 0, r.stderr
+        out = json.loads(r.stdout)
+        assert set(out) == {"a.py", "notes.md"}
+        assert "notes.md" in {f["path"] for f in out["a.py"]["files"]}
+        assert "a.py" in {f["path"] for f in out["notes.md"]["files"]}
+
+    def test_co_changes_several_paths_exit_one_on_any_error(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "query", "co_changes", "a.py", "../x", cwd=repo)
+        assert r.returncode == 1
+        assert json.loads(r.stdout)["../x"]["error"]
+
+    def test_impact_json(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "impact", "b.py", "--format", "json", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        out = json.loads(r.stdout)
+        assert out["file"] == "b.py"
+        assert out["external_callers"] == [{"file": "a.py", "name": "main"}]
+        assert out["test_callers"] == []
+
+    def test_impact_brief(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "impact", "a.py", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        lines = r.stdout.strip().splitlines()
+        assert len(lines) == 4
+        assert lines[0] == "impact: a.py"
+        assert "callers: 0 files + 0 plugin nodes + 0 test files; top: -" in lines
+        assert any(
+            ln.startswith("co-changed (of 3 commits): notes.md") for ln in lines
+        ), lines
+
+    def test_impact_brief_names_one_caller_file(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "impact", "b.py", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        lines = r.stdout.strip().splitlines()
+        assert lines[1] == "callers: 1 file + 0 plugin nodes + 0 test files; top: a.py"
+
+    def test_impact_brief_prints_nothing_without_callers_or_co_changes(
+        self, indexed_repo
+    ):
+        """No callers of any kind and no co-changes: empty stdout, exit 0 (the hook stays one call)."""
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "impact", "never_indexed.py", cwd=repo)
+        assert (r.returncode, r.stdout) == (0, "")
+
+    def test_impact_help_documents_the_silent_case(self, indexed_repo):
+        repo, _ = indexed_repo
+        r = _cli("impact", "--help", cwd=repo)
+        assert r.returncode == 0
+        assert "prints nothing" in " ".join(r.stdout.split())
+        assert "--repo-root" in r.stdout
+
+    def test_impact_repo_root_and_double_dash(self, indexed_repo, tmp_path):
+        """--repo-root picks the default (XDG cache) index; `--` ends the options."""
+        repo, _ = indexed_repo
+        env = {
+            **os.environ,
+            "PYTHONPATH": str(REPO_ROOT / "packages" / "codemem-mcp" / "src"),
+            "XDG_CACHE_HOME": str(tmp_path / "cache"),
+            "XDG_STATE_HOME": str(tmp_path / "state"),
+        }
+        env.pop("CODEMEM_DB", None)
+
+        def run(*a: str) -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                [sys.executable, "-m", "codemem.cli", *a],
+                cwd=tmp_path,
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+
+        assert run("build", "--repo-root", str(repo)).returncode == 0
+        r = run("impact", "--format", "brief", "--repo-root", str(repo), "--", "b.py")
+        assert r.returncode == 0, r.stderr
+        assert r.stdout.splitlines()[0] == "impact: b.py"
+        # After `--`, "--format" is a (never indexed) path, not an option: argparse
+        # would exit 2 on an option missing its value; a path prints nothing, exit 0.
+        r = run("impact", "--repo-root", str(repo), "--", "--format")
+        assert (r.returncode, r.stdout) == (0, ""), r.stderr
+
+    def test_impact_brief_sanitizes_every_line(self):
+        """Paths and node ids from the index are repo-controlled: one clean line each."""
+        from codemem.cli import _impact_brief
+
+        evil = "x\n\x1b[2J$(touch pwned)\u202e.py"
+        out = _impact_brief(
+            {
+                "file": "t.py",
+                "external_callers": [{"file": evil, "name": "f"}],
+                "test_callers": [{"file": "tests/" + evil, "name": "g"}],
+                "co_changes": [{"path": evil + "\r", "count": 2, "ratio": 0.5}],
+                "target_commits": 4,
+            }
+        )
+        lines = out.split("\n")
+        assert len(lines) == 4
+        for ln in lines:
+            assert "\x1b" not in ln and "\r" not in ln and "\u202e" not in ln
+            assert len(ln) <= 200
+        assert "$(touch pwned)" in lines[1]  # kept as inert text
+
+    def test_impact_brief_singular_commit(self):
+        """§6.6 INFO a: "(of 1 commit)", not "(of 1 commits)"."""
+        from codemem.cli import _impact_brief
+
+        out = _impact_brief(
+            {
+                "file": "t.py",
+                "external_callers": [],
+                "test_callers": [],
+                "co_changes": [{"path": "u.py", "count": 1, "ratio": 1.0}],
+                "target_commits": 1,
+            }
+        )
+        assert "co-changed (of 1 commit): u.py 1x (100%)" in out.split("\n")
+
+    def test_impact_brief_counts_plugin_nodes_by_their_via_tag(self):
+        """§6.6 INFO b: a plugin node is a caller tagged ``via: plugin_edges``, not an id shape."""
+        from codemem.cli import _impact_brief
+
+        out = _impact_brief(
+            {
+                "file": "t.py",
+                "external_callers": [
+                    {"file": "skill:gamma", "name": "gamma", "via": "plugin_edges"},
+                    {
+                        "file": "skill:lookalike",
+                        "name": "f",
+                    },  # a file named like a node id
+                ],
+                "test_callers": [],
+                "co_changes": [],
+                "target_commits": 0,
+            }
+        )
+        assert "callers: 1 file + 1 plugin node + 0 test files;" in out
+
+    def test_impact_bad_path_exits_one(self, indexed_repo):
+        repo, db = indexed_repo
+        r = _cli("--db", str(db), "impact", "../x", cwd=repo)
+        assert r.returncode == 1
+
+    def test_query_exposes_exactly_eleven_tools(self, indexed_repo):
         repo, _ = indexed_repo
         r = _cli("query", "--help", cwd=repo)
         assert r.returncode == 0
-        assert re.search(r"\{([a-z_,]+)\}", r.stdout).group(1).split(",") == QUERY_TOOLS_PINNED
-        assert "10 MCP tools" in _cli("--help", cwd=repo).stdout
+        assert (
+            re.search(r"\{([a-z_,]+)\}", r.stdout).group(1).split(",")
+            == QUERY_TOOLS_PINNED
+        )
+        assert "11 MCP tools" in _cli("--help", cwd=repo).stdout
 
 
 QUERY_DOCS = [
@@ -440,6 +660,7 @@ def test_query_tool_counts_in_docs_match_the_cli() -> None:
 # Plugin-surface no-bypass (grep-based — supplements import-linter
 # since claude-code/codemem/ isn't a Python package)
 # ---------------------------------------------------------------------
+
 
 class TestPluginSurfaceNoBypass:
     def test_mcp_server_only_imports_mcp_tools(self):

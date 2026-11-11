@@ -1,0 +1,303 @@
+#!/usr/bin/env bats
+# codemem-post-commit.bats — claude-code/codemem/hooks/post-commit.sh (M15.4, report 03 T4).
+#
+# Our own post-commit step: `codemem refresh` + `graphify update .` in a
+# detached worker under flock; graphify-out/.built_sha gets the SHA captured
+# at commit time, and only when graphify exits 0 (R03-D12). graphify is a
+# stub here: it records start/end, can be held on a gate file, or fail.
+
+setup() {
+    FORGE="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
+    HOOK="${FORGE}/claude-code/codemem/hooks/post-commit.sh"
+    TMP="$(mktemp -d)"
+    # codemem keeps trust records under XDG_STATE_HOME (M15 §6.8): never the user's.
+    export XDG_STATE_HOME="${TMP}/state"
+    # ... and its default index under XDG_CACHE_HOME (M16)
+    export XDG_CACHE_HOME="${TMP}/cache"
+    unset CODEMEM_DB
+    REPO="${TMP}/repo"
+    STUBS="${TMP}/stubs"
+    export STUB_LOG="${TMP}/stub.log"
+    mkdir -p "$REPO" "$STUBS"
+    cat > "${STUBS}/graphify" <<'EOF'
+#!/usr/bin/env bash
+echo "start $$" >> "$STUB_LOG"
+if [[ -n "${STUB_GATE:-}" ]]; then
+    while [[ -e "$STUB_GATE" ]]; do sleep 0.05; done
+fi
+[[ -n "${STUB_FAIL:-}" ]] && { echo "fail $$" >> "$STUB_LOG"; exit 3; }
+mkdir -p graphify-out
+git rev-parse HEAD > graphify-out/graph.json
+echo "end $$" >> "$STUB_LOG"
+EOF
+    chmod +x "${STUBS}/graphify"
+    export PATH="${STUBS}:/usr/local/bin:/usr/bin:/bin"
+    cd "$REPO" || return 1
+    CM="$(bash -c '. "$1"; aa_ma_codemem_dir "$2"' _ "${FORGE}/claude-code/hooks/lib/aa-ma-parse.sh" "$REPO")"
+    [[ "$CM" == "${XDG_CACHE_HOME}/codemem/"* ]] || return 1
+    git init -q -b main
+    git config user.email t@example.invalid
+    git config user.name t
+    git config commit.gpgsign false
+    printf '.codemem/\ngraphify-out/\n' > .gitignore
+    printf 'def a():\n    return 1\n' > a.py
+    git add -A
+    git commit -qm seed
+    mkdir -p .git/hooks
+    printf '#!/usr/bin/env bash\n"%s" || true\n' "$HOOK" > .git/hooks/post-commit
+    chmod +x .git/hooks/post-commit
+}
+
+teardown() {
+    pkill -f "post-commit.sh --worker [0-9a-f]* ${REPO}" 2>/dev/null || true  # why: a gated test worker must not outlive its repo
+    [[ -n "${TMP:-}" ]] && rm -rf "$TMP"
+}
+
+commit_change() {
+    printf 'def a():\n    return %s\n' "$1" > a.py
+    git add a.py
+    git commit -qm "c$1"
+}
+
+# Wait (≤ 30 s) until no worker for this repo is running.
+drain() {
+    local i
+    for ((i = 0; i < 300; i++)); do
+        pgrep -f "post-commit.sh --worker [0-9a-f]* ${REPO}" > /dev/null || return 0
+        sleep 0.1
+    done
+    return 1
+}
+
+# Wait (≤ 30 s) until file $1 holds exactly $2. On timeout, show the worker's
+# refresh.log, so a worker that skipped or failed says why (sole-dev-merge-fixes M2:
+# this test failed twice in CI on a missing last_sha that never reproduced locally).
+await_eq() {
+    local i
+    for ((i = 0; i < 300; i++)); do
+        [[ "$(cat "$1" 2>/dev/null)" == "$2" ]] && return 0  # why: the file may not exist yet
+        sleep 0.1
+    done
+    echo "timed out: $1 != $2; ${CM}/refresh.log:" >&2
+    cat "${CM}/refresh.log" >&2 2>/dev/null || echo "(no refresh.log)" >&2  # why: report its absence instead
+    return 1
+}
+
+@test "after a commit both sidecars equal HEAD" {
+    commit_change 2
+    drain
+    head=$(git rev-parse HEAD)
+    # why: drain can return before the detached worker is visible; wait on the outcome itself
+    await_eq "${CM}/last_sha" "$head"
+    await_eq graphify-out/.built_sha "$head"
+}
+
+@test "the hook returns at once while the worker is held" {
+    touch "${TMP}/gate"
+    start=$(date +%s%N)
+    STUB_GATE="${TMP}/gate" commit_change 2
+    elapsed_ms=$(( ($(date +%s%N) - start) / 1000000 ))
+    [ "$elapsed_ms" -lt 2000 ]
+    rm -f "${TMP}/gate"
+    drain
+}
+
+@test "graphify failing keeps the previous .built_sha and logs one line" {
+    commit_change 2
+    drain
+    old=$(cat graphify-out/.built_sha)
+    STUB_FAIL=1 commit_change 3
+    drain
+    [ "$(cat graphify-out/.built_sha)" = "$old" ]
+    [ "$(grep -c 'graphify update failed' "${CM}/refresh.log")" -eq 1 ]
+}
+
+@test "a killed graphify run keeps the previous .built_sha" {
+    commit_change 2
+    drain
+    old=$(cat graphify-out/.built_sha)
+    touch "${TMP}/gate"
+    STUB_GATE="${TMP}/gate" commit_change 3
+    for ((i = 0; i < 50; i++)); do grep -q start "$STUB_LOG" && [ "$(grep -c start "$STUB_LOG")" -ge 2 ] && break; sleep 0.1; done
+    pkill -9 -f "post-commit.sh --worker [0-9a-f]* ${REPO}"
+    pkill -9 -f "${STUBS}/graphify"
+    rm -f "${TMP}/gate"
+    [ "$(cat graphify-out/.built_sha)" = "$old" ]
+}
+
+@test "race: two workers, A released last → .built_sha == A (flock + start SHA)" {
+    commit_change 2
+    sha_a=$(git rev-parse HEAD)
+    commit_change 3
+    sha_b=$(git rev-parse HEAD)
+    drain
+    : > "$STUB_LOG"
+    touch "${TMP}/gate"
+    STUB_GATE="${TMP}/gate" bash "$HOOK" --worker "$sha_b" "$REPO" &
+    for ((i = 0; i < 100; i++)); do grep -q start "$STUB_LOG" && break; sleep 0.05; done
+    bash "$HOOK" --worker "$sha_a" "$REPO" &
+    sleep 0.5
+    # A is queued on the lock: graphify ran once (B, held), nothing finished.
+    [ "$(grep -c start "$STUB_LOG")" -eq 1 ]
+    rm -f "${TMP}/gate"
+    wait
+    [ "$(cat graphify-out/.built_sha)" = "$sha_a" ]
+    # Serialised: no start between a start and its end.
+    run awk '/^start/ { if (open) bad = 1; open = 1 } /^end/ { open = 0 } END { exit bad }' "$STUB_LOG"
+    [ "$status" -eq 0 ]
+}
+
+@test "graphify absent → one notice, codemem still refreshed, exit 0" {
+    rm -f "${STUBS}/graphify"
+    commit_change 2
+    drain
+    [ "$(cat "${CM}/last_sha")" = "$(git rev-parse HEAD)" ]
+    [ ! -e graphify-out/.built_sha ]
+    [ "$(grep -c 'graphify not found' "${CM}/refresh.log")" -eq 1 ]
+}
+
+@test "a relative PATH entry cannot run a repo-planted graphify" {
+    printf '#!/bin/sh\ntouch "%s/planted-ran"\n' "$TMP" > graphify
+    chmod +x graphify
+    rm -f "${STUBS}/graphify"
+    PATH=".:${PATH}" commit_change 2
+    drain
+    [ ! -e "${TMP}/planted-ran" ]
+}
+
+@test "a symlinked .built_sha is never followed (§6.8 re-run: graphify skipped; 15.4 replaced it)" {
+    mkdir -p graphify-out
+    printf 'original\n' > "${TMP}/victim"
+    ln -s "${TMP}/victim" graphify-out/.built_sha
+    commit_change 2
+    drain
+    [ "$(cat "${TMP}/victim")" = "original" ]
+    [ ! -s "$STUB_LOG" ]
+    grep -q 'graphify-out holds a symlink' "${CM}/refresh.log"
+}
+
+@test "a symlinked refresh.log is never appended to" {
+    mkdir -p "$CM"
+    printf 'original\n' > "${TMP}/victim"
+    ln -s "${TMP}/victim" "${CM}/refresh.log"
+    STUB_FAIL=1 commit_change 2
+    drain
+    [ "$(cat "${TMP}/victim")" = "original" ]
+}
+
+@test "a worker refuses a SHA that is not 40-hex" {
+    run bash "$HOOK" --worker "--output=/tmp/x" "$REPO"
+    [ "$status" -eq 0 ]
+    [ ! -e graphify-out/.built_sha ]
+    [ ! -s "$STUB_LOG" ]
+}
+
+@test "rebase / cherry-pick / merge commits spawn no worker" {
+    GIT_REFLOG_ACTION=rebase run bash "$HOOK"
+    [ "$status" -eq 0 ]
+    sleep 0.3
+    [ ! -s "$STUB_LOG" ]
+}
+
+@test "the hook never fails a commit (exit 0 outside a repo)" {
+    cd "$TMP"
+    run bash "$HOOK"
+    [ "$status" -eq 0 ]
+}
+
+@test "§6.6: no flock (stock macOS) still refreshes codemem; only the graph step is skipped" {
+    nf="${TMP}/noflock-bin"
+    mkdir -p "$nf"
+    for d in /usr/local/bin /usr/bin /bin; do
+        for f in "$d"/*; do
+            b="${f##*/}"
+            # -L too: -e is false for a dangling link, and a runner can carry one name twice
+            [[ "$b" == flock || -e "${nf}/${b}" || -L "${nf}/${b}" ]] || ln -s "$f" "${nf}/${b}"
+        done
+    done
+    PATH="${STUBS}:${nf}" commit_change 2
+    drain
+    [ "$(cat "${CM}/last_sha")" = "$(git rev-parse HEAD)" ]
+    [ ! -e graphify-out/.built_sha ]
+    grep -q 'flock not found' "${CM}/refresh.log"
+}
+
+@test "§6.6: a .built_sha write that fails is logged" {
+    commit_change 2
+    drain
+    chmod 555 graphify-out
+    commit_change 3
+    drain
+    chmod 755 graphify-out
+    grep -q 'post-commit: .*built_sha' "${CM}/refresh.log"
+}
+
+# --- §6.8 (M15): repo-controlled dirs, SHA-256, and bounded steps -----------
+
+@test "§6.8: a symlinked graphify-out is never written through" {
+    mkdir -p "${TMP}/victim-dir"
+    ln -s "${TMP}/victim-dir" graphify-out
+    commit_change 2
+    drain
+    [ -z "$(ls -A "${TMP}/victim-dir")" ]
+    grep -q 'graphify-out is a symlink' "${CM}/refresh.log"
+}
+
+@test "§6.8: a symlinked index dir is never refreshed through" {
+    mkdir -p "${TMP}/victim-dir"
+    printf 'keep\n' > "${TMP}/victim-dir/index.db"
+    mkdir -p "${CM%/*}"
+    ln -s "${TMP}/victim-dir" "$CM"
+    commit_change 2
+    drain
+    [ "$(ls -A "${TMP}/victim-dir")" = "index.db" ]
+    [ "$(cat "${TMP}/victim-dir/index.db")" = "keep" ]
+}
+
+@test "§6.8: a worker accepts a 64-hex (SHA-256) SHA" {
+    sha=$(printf 'a%.0s' {1..64})
+    run bash "$HOOK" --worker "$sha" "$REPO"
+    [ "$status" -eq 0 ]
+    [ "$(cat graphify-out/.built_sha)" = "$sha" ]
+}
+
+@test "§6.8: each step runs under timeout and the queue waits with flock -w" {
+    real_flock=$(command -v flock)
+    printf '#!/usr/bin/env bash\necho "timeout $*" >> "$STUB_LOG"\nshift\nexec "$@"\n' > "${STUBS}/timeout"
+    printf '#!/usr/bin/env bash\necho "flock $*" >> "$STUB_LOG"\nexec %s "$@"\n' "$real_flock" > "${STUBS}/flock"
+    chmod +x "${STUBS}/timeout" "${STUBS}/flock"
+    commit_change 2
+    drain
+    grep -qE '^timeout [0-9]+ .*/graphify update \.$' "$STUB_LOG"
+    grep -qE '^timeout [0-9]+ .*codemem refresh$' "$STUB_LOG"
+    grep -qE '^timeout [0-9]+ .*codemem refresh-commits$' "$STUB_LOG"
+    grep -qE '^flock -w [0-9]+ 9$' "$STUB_LOG"
+    [ "$(cat graphify-out/.built_sha)" = "$(git rev-parse HEAD)" ]
+}
+
+@test "§6.8: a timed-out graphify (rc 124) keeps .built_sha and says so" {
+    printf '#!/usr/bin/env bash\nexit 124\n' > "${STUBS}/graphify"
+    commit_change 2
+    drain
+    [ ! -e graphify-out/.built_sha ]
+    grep -q 'graphify update timed out after [0-9]*s' "${CM}/refresh.log"
+}
+
+@test "§6.8 re-run: a link inside graphify-out skips graphify" {
+    mkdir -p graphify-out
+    printf 'original\n' > "${TMP}/victim"
+    ln -s "${TMP}/victim" graphify-out/graph.json
+    commit_change 2
+    drain
+    [ "$(cat "${TMP}/victim")" = "original" ]
+    [ ! -s "$STUB_LOG" ]
+    grep -q 'graphify-out holds a symlink' "${CM}/refresh.log"
+}
+
+@test "M16: the index, its sidecars and refresh.log land in the cache dir, never the repo" {
+    STUB_FAIL=1 commit_change 2
+    drain
+    [ ! -e .codemem ]
+    [ "$(cat "${CM}/last_sha")" = "$(git rev-parse HEAD)" ]
+    [ -f "${CM}/index.db" ] && [ -f "${CM}/refresh.log" ]
+}

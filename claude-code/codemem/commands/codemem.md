@@ -24,8 +24,9 @@ current repo.
   Defaults to `.` (repo-root). See
   [`symbol-id-grammar.md`](../../../docs/codemem/symbol-id-grammar.md)
   for examples.
-- `--db PATH` — output DB location. Defaults to `.codemem/index.db`
-  relative to repo root.
+- `--db PATH` — output DB location. Defaults to `$CODEMEM_DB`, else
+  `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo root)>/index.db`
+  (the index dir, outside the repo; M16).
 
 **Behaviour (M1):**
 1. Discovers tracked files via `git ls-files` (respects `.gitignore`).
@@ -46,7 +47,7 @@ lands):**
 
 ### `codemem query <tool> [args...]`
 
-Call 10 of the MCP tools directly. No MCP server required. (`symbol_history`, `aa_ma_context` and
+Call 11 of the MCP tools directly. No MCP server required. (`symbol_history`, `aa_ma_context` and
 `diagram` are MCP-only; `codemem draw` renders diagrams.)
 
 **Tools:**
@@ -54,13 +55,14 @@ Call 10 of the MCP tools directly. No MCP server required. (`symbol_history`, `a
 | Tool | Usage | Returns |
 |------|-------|---------|
 | `who_calls` | `codemem query who_calls NAME [--max-depth N] [--budget TOKENS]` | upstream callers via canonical CTE |
-| `blast_radius` | `codemem query blast_radius NAME [--max-depth N] [--budget TOKENS]` | downstream callees transitively |
+| `callees` | `codemem query callees NAME [--max-depth N] [--budget TOKENS]` | downstream callees transitively |
+| `blast_radius` | `codemem query blast_radius NAME [--max-depth N] [--budget TOKENS]` | deprecated alias of `callees` (removed after v0.18.x) |
 | `dead_code` | `codemem query dead_code [--budget TOKENS]` | functions/methods with zero inbound call edges |
 | `dependency_chain` | `codemem query dependency_chain SOURCE TARGET [--max-depth N] [--budget TOKENS]` | shortest call-path |
 | `search_symbols` | `codemem query search_symbols QUERY [--budget TOKENS]` | name-substring match with exact/prefix/contains ranking |
 | `file_summary` | `codemem query file_summary PATH [--budget TOKENS]` | symbols in a file, ordered by line |
 | `hot_spots` | `codemem query hot_spots [--budget TOKENS]` | files ranked by commits in the last 90 days × function count (needs `refresh-commits`) |
-| `co_changes` | `codemem query co_changes FILE [--budget TOKENS]` | files that change with FILE but lack an import edge (needs `refresh-commits`) |
+| `co_changes` | `codemem query co_changes FILE... [--threshold N] [--min-ratio R] [--budget TOKENS]` | files that change with FILE but lack an import edge, each with its `ratio` of FILE's commits (needs `refresh-commits`); several FILEs print one object keyed by path |
 | `owners` | `codemem query owners PATH [--repo-root R] [--budget TOKENS]` | per-author line share; a directory needs a trailing `/`; `--repo-root` computes the blame, otherwise only the cache is read |
 | `layers` | `codemem query layers [--budget TOKENS]` | files bucketed core / middle / periphery by in-degree |
 
@@ -84,18 +86,21 @@ populated and the list is empty. No tool raises under untrusted input.
 Print a summary of the current index: file count, symbol count, edge
 count (resolved vs unresolved), last build time, schema version.
 
-### `codemem refresh` — _M2 placeholder_
+### `codemem refresh [--repo-root PATH]`
 
-Incremental rebuild for dirty files (mtime+size → SHA-256 fallback).
-Writes to `.codemem/wal.jsonl` BEFORE mutating SQLite; crash-safe
-replay via `codemem replay --from-wal`. Not yet implemented — shipped
-in Milestone M2.
+Incremental refresh of the index (`codemem.incremental.refresh_index`): content-hash
+dirty detection, `git mv` detection, symbol-level deltas. With `last_sha` missing,
+malformed or orphaned by a history rewrite it does a full rebuild into a sibling file
+and swaps it in with `os.replace`, so readers never see a half-built DB. Records
+`last_sha` and `tree_sig` in the index dir. Exit 0 refreshed, 75 another refresh holds
+`db.lock`, 1 error (one line in `refresh.log`). Run by the post-commit
+step and, capped at 5 s, by any MCP query that finds the index stale; responses then
+carry `index_sha`, `head_sha`, `stale` and `stale_reason`.
 
-### `codemem replay --from-wal` — _M2 placeholder_
+### `codemem replay --from-wal [--wal PATH]`
 
-Reconstruct SQLite state from the WAL JSONL journal. Idempotent via
-`(op, prev_user_version, content_sha)` keys. Not yet implemented —
-shipped in Milestone M2.
+Reconstruct SQLite state from a JSONL write-ahead journal (default `wal.jsonl` in the index dir).
+Idempotent via `(op, prev_user_version, content_sha)` keys. The journal is written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14).
 
 ---
 
@@ -109,6 +114,31 @@ unless `--include-tests`. Edges carry their kind as a quoted sigil —
 `A -->|"@import"| B` — the form PHANTOM_EDGE checks read (a bare `|@import|` is a
 mermaid 11 parse error). Over 500 edges (mermaid's `maxEdges`) the rest are dropped
 and reported. Exit 0 ok, 1 no/old/unreadable index (run `codemem build`), 2 usage.
+
+### A refused index dir
+
+Every subcommand and MCP tool refuses an index dir (the cache dir, or the `CODEMEM_DB`
+directory) that is or holds a symlink or cannot be listed: a link would be written
+through, and a `CODEMEM_DB` inside a repo is a directory the repo controls. The CLI prints `codemem <cmd>: refused: …` and exits 1;
+an MCP response carries `stale: "unknown"`, `stale_reason: "unsafe_db_path"` and an
+`error`. Remove the link, run `codemem build`, and keep `CODEMEM_DB` in a dedicated
+directory.
+
+codemem also reads only an index it built for this user and this directory. A
+committed, copied or unzipped `index.db` (or one in a moved repo) carries no stamp for you (the nonce lives in
+`$XDG_STATE_HOME/codemem/trust/`, default `~/.local/state`): read-only commands refuse
+it (`run codemem build`), `codemem refresh` and any MCP query rebuild it, and until the
+rebuild finishes an MCP response is an `error` with `stale_reason: "untrusted"`.
+If the trust store itself cannot be used (unreadable, not a private directory of this user,
+a record that is not a nonce), the CLI prints `codemem <cmd>: trust store error: …` and an MCP
+response is an `error` with `stale_reason: "trust_store"`: fix the state dir; a rebuild will
+not help. `codemem draw --check` reports it as UNKNOWN (exit 0).
+`codemem replay --from-wal` trusts its journal: replay only one codemem wrote here.
+Keep `XDG_STATE_HOME` the same for every process that runs codemem, or each rebuilds the
+other's index. The default index dir is outside the repo (M16). A `CODEMEM_DB` pointed inside a repo
+is repo-controlled and keeps the pre-M16 limits: a committed `index.db-wal` or
+`index.db-journal` beside an index built here is replayed by SQLite, and committing your
+own index publishes its stamp.
 
 ## Related documents
 

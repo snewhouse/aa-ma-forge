@@ -22,9 +22,9 @@ These budgets are the *floor* agent UX needs. Breaking them means the tool is sl
 import pytest
 
 @pytest.mark.perf
-def test_cold_build(benchmark, index_repo):
+def test_cold_build(benchmark, index_repo, tmp_path):
     def _run():
-        build_index(index_repo, index_repo / ".codemem" / "index.db", package=".")
+        build_index(index_repo, tmp_path / "cold.db", package=".")
 
     result = benchmark.pedantic(_run, rounds=3, iterations=1, warmup_rounds=0)
     assert result < 30.0, f"cold build exceeded 30s budget: {result:.2f}s"
@@ -53,7 +53,7 @@ These aren't enforced in M1 tests — the subjects haven't shipped yet. The M3 a
 ## Measurement methodology
 
 * **Hardware assumption**: developer-class hardware (WSL / macOS / Linux laptop with SSD). CI runs on GitHub Actions Linux runners.
-* **Cold cache**: fresh clone, `.codemem/` absent, system page cache NOT warmed. Simulated in tests by deleting the DB + walking the file tree fresh.
+* **Cold cache**: fresh clone, no codemem index, system page cache NOT warmed. Simulated in tests by deleting the DB + walking the file tree fresh.
 * **Warm cache**: second consecutive run after a cold build. System page cache contains the source files; SQLite PRAGMA mmap_size (256MB) is already populated.
 * **Anchor symbol**: `extract_python_signatures` at `~/.claude-code-project-index/scripts/index_utils.py#extract_python_signatures`. This is the ported function; the anchor verifies the full pipeline — parser emits the symbol, indexer persists it, `who_calls` finds it via the canonical CTE.
 

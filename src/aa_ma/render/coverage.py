@@ -10,13 +10,25 @@ dropped, backticks and ``:12-40`` line ranges stripped — because a dropped pat
 silently. ``{a,b}`` lists expand, bounded: past ``MAX_EXPANSIONS`` the token stays whole. Exempt: ``Test``/``Verify`` rows, ``tests/`` and ``docs/``, root docs, and
 dependency manifests / lockfiles. A node covers its own path and — when it names a
 directory — everything beneath it; a ``(new)`` node covers the path it plans.
+
+``milestone_contract_paths`` is the other reader (code-conventions-impact 10.7): the
+predicted set of ``/execute-aa-ma-milestone`` §6.3 predicted-vs-actual, ONE milestone's
+Contract, every row verb, nothing exempt (a test the Contract names is predicted). The row
+grammar itself lives in :mod:`aa_ma.contract_rows` (11.2), shared with ``aa_ma.impact``.
 """
 
 from __future__ import annotations
 
-import re
 
-from aa_ma.grammar import H2_RE, scan_fences
+from aa_ma.contract_rows import (
+    MAX_EXPANSIONS,
+    contract_rows,
+    covers,
+    milestone_contract_rows,
+    plan_created,
+    row_re,
+)
+from aa_ma.grammar import scan_fences
 from aa_ma.render.mermaid_lint import (
     NEW_RE,
     Finding,
@@ -26,19 +38,19 @@ from aa_ma.render.mermaid_lint import (
 )
 
 __all__ = [
-    "COVERAGE_CUTOVER", "EXEMPT_DIRS", "MANIFESTS", "MAX_EXPANSIONS", "ROOT_DOCS",
-    "contract_paths", "coverage_findings", "drawn_paths",
+    "COVERAGE_CUTOVER",
+    "EXEMPT_DIRS",
+    "MANIFESTS",
+    "MAX_EXPANSIONS",
+    "ROOT_DOCS",
+    "contract_paths",
+    "coverage_findings",
+    "drawn_paths",
+    "milestone_contract_paths",
 ]
 
 COVERAGE_CUTOVER = "2026-09-11"  # spec §XI item 13's cutover; a literal date, not a tag
-_CREATED_RE = re.compile(r"^(?:\*\*Created:\*\*|Created:)[ \t]*(\d{4}-\d{2}-\d{2})", re.M)
-_CONTRACT_RE = re.compile(r"^#### Contract[ \t]*$")
-_ROW_RE = re.compile(r"^[ \t]*(?:[-*|][ \t]*)?(?:Create|Modify)[ \t]*:?[ \t|]+([^#]*)")
-_FILE_RE = re.compile(r"^[ \t]*#[ \t]*file:[ \t]*(\S+)")
-_PAREN_RE = re.compile(r"\([^()]*\)")
-_LINES_RE = re.compile(r":\d+(?:-\d+)?$")
-_BRACES_RE = re.compile(r"\{([^{}]*)\}")  # innermost group
-MAX_EXPANSIONS = 256  # `{a,b}` x 25 is 2**25 paths; past this the token is kept whole
+_ROW_RE = row_re(("Create", "Modify"))
 EXEMPT_DIRS = ("tests/", "docs/")
 ROOT_DOCS = frozenset({"README.md", "CHANGELOG.md", "SECURITY.md", "CONTEXT.md"})
 MANIFESTS = frozenset({"pyproject.toml", "package.json"})  # and every *.lock
@@ -51,39 +63,42 @@ def coverage_findings(plan_text: str) -> list[Finding]:
     lint reports it), or no §13 (check 6's ``NO_SECTION``).
     """
     scan = scan_fences(plan_text)
-    if scan.unterminated or not _in_force(scan.stripped):
+    if scan.unterminated or not _in_force(plan_text):
         return []
     drawn = drawn_paths(plan_text, scan.stripped)
     if drawn is None:
         return []
     return [
         Finding(
-            "UNDRAWN_PATH", line,
+            "UNDRAWN_PATH",
+            line,
             f"{path}: named by a Contract but drawn by no §13 node "
             "(draw it, a directory node above it, or `(new)` if planned)",
         )
         for line, path in contract_paths(plan_text, scan.stripped)
-        if not any(path == n or path.startswith(n + "/") for n in drawn)
+        if not any(covers(n, path) for n in drawn)
     ]
 
 
 def contract_paths(plan_text: str, stripped: str) -> list[tuple[int, str]]:
     """(1-based line, path) per non-exempt Create/Modify/``# file:`` path, in order."""
-    lines, bare = plan_text.split("\n"), stripped.split("\n")
-    out: list[tuple[int, str]] = []
-    k = 0
-    while k < len(bare):
-        if not _CONTRACT_RE.match(bare[k]):
-            k += 1
-            continue
-        k += 1
-        # The Contract is the fences right under the heading: stop at the first line outside
-        # a fence (prose or a heading), so a later example fence is never read as one.
-        while k < len(bare) and not bare[k].strip():
-            if lines[k].strip():  # blank in `stripped` but not in the text: inside a fence
-                out += [(k + 1, p) for p in _row_paths(lines[k]) if not _exempt(p)]
-            k += 1
-    return out
+    return [
+        (n, p)
+        for n, _, p in contract_rows(
+            plan_text.split("\n"), stripped.split("\n"), _ROW_RE
+        )
+        if not _exempt(p)
+    ]
+
+
+def milestone_contract_paths(plan_text: str, milestone: str) -> list[str]:
+    """Every path Milestone ``milestone``'s Contract names: all row verbs, none exempt, deduped.
+
+    The milestone slice and the row grammar are :func:`aa_ma.contract_rows.milestone_contract_rows`'s.
+    """
+    return list(
+        dict.fromkeys(p for _, p in milestone_contract_rows(plan_text, milestone))
+    )
 
 
 def drawn_paths(plan_text: str, stripped: str) -> set[str] | None:
@@ -103,54 +118,16 @@ def drawn_paths(plan_text: str, stripped: str) -> set[str] | None:
     }
 
 
-def _in_force(stripped: str) -> bool:
-    first_h2 = H2_RE.search(stripped)
-    m = _CREATED_RE.search(stripped[: first_h2.start()] if first_h2 else stripped)
-    return m is not None and m.group(1) >= COVERAGE_CUTOVER
-
-
-def _row_paths(line: str) -> list[str]:
-    if m := _FILE_RE.match(line):
-        tokens = [m.group(1)]
-    elif m := _ROW_RE.match(line):
-        tokens = _split(_PAREN_RE.sub(" ", m.group(1)).replace("|", " "))
-    else:
-        return []
-    paths = (_LINES_RE.sub("", tok.strip("`")) for tok in tokens)
-    return [p for path in paths if path for p in _expand(path)]
-
-
-def _split(text: str) -> list[str]:
-    """Whitespace/comma separated, except inside `{...}` (a brace list is one token)."""
-    out, cur, depth = [], [], 0
-    for ch in text:
-        depth += (ch == "{") - (ch == "}" and depth > 0)
-        if depth == 0 and (ch.isspace() or ch == ","):
-            out.append("".join(cur))
-            cur = []
-        else:
-            cur.append(ch)
-    return [t for t in (*out, "".join(cur)) if t]
-
-
-def _expand(token: str) -> list[str]:
-    """`a/{b,c}.py` -> both paths; iterative (no recursion depth) and capped at MAX_EXPANSIONS."""
-    done, todo, steps = [], [token], 0
-    while todo:
-        cur = todo.pop()
-        m = _BRACES_RE.search(cur)
-        if m is None:
-            done.append(cur)
-            continue
-        steps += 1
-        alts = m.group(1).split(",")
-        if steps > MAX_EXPANSIONS or len(done) + len(todo) + len(alts) > MAX_EXPANSIONS:
-            return [token]  # unreadable as a path list: flag the token itself (fail closed)
-        todo += [cur[: m.start()] + a.strip() + cur[m.end():] for a in reversed(alts)]
-    return done
-
+def _in_force(plan_text: str) -> bool:
+    created = plan_created(plan_text)
+    return created is not None and created >= COVERAGE_CUTOVER
 
 
 def _exempt(path: str) -> bool:
     name = path.rsplit("/", 1)[-1]
-    return path.startswith(EXEMPT_DIRS) or path in ROOT_DOCS or name in MANIFESTS or name.endswith(".lock")
+    return (
+        path.startswith(EXEMPT_DIRS)
+        or path in ROOT_DOCS
+        or name in MANIFESTS
+        or name.endswith(".lock")
+    )

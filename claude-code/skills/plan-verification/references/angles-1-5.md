@@ -107,8 +107,12 @@ Agent tool:
     For EACH file, run the 5-point impact check:
 
     1. UPSTREAM: Who imports or calls this file?
-       - Use Grep to search for imports of this module
+       - Use Grep to search for imports of this module (or codemem's
+         `who_calls` when its MCP tools are available)
        - Count callers
+       - A codemem response with `stale` other than false is leads only:
+         confirm by Grep/Read, and add a line
+         `CODE_INTEL_STALE — <tool> — <stale_reason>` to your output.
     2. DOWNSTREAM: What does this file depend on?
        - Read imports in the file
     3. CONTRACTS: What function signatures or class interfaces would change?
@@ -129,6 +133,12 @@ Agent tool:
 
     Also flag: files the plan SHOULD modify but doesn't mention (discovered via
     upstream/downstream analysis).
+
+    PROTOTYPE DECISION DELTAS: for each provenance.log line
+    `PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES`, run the
+    5-point check above on the decision delta — the files, contracts and steps the verdict
+    adds, drops or changes against the plan as written — and flag any milestone, Contract
+    row or acceptance criterion the plan has not yet updated for it. `NO` needs no check.
 
     Do NOT write any code. Only analyze impact.
 ```

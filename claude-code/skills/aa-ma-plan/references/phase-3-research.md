@@ -17,7 +17,7 @@ If library/API documentation is needed:
 ```
 # Primary attempt: Context7 MCP
 mcp__context7__resolve-library-id for relevant libraries
-mcp__context7__get-library-docs with resolved IDs
+mcp__context7__query-docs with resolved IDs
 
 # Fallback if MCP unavailable (connection error, protocol error):
 # 1. Retry once

@@ -2,9 +2,10 @@
 # Event: SessionEnd
 # Mode: Advisory — warns on stderr, never blocks
 # Exit: 0 always
-# Fail-open: kill switch, no active task, CLAUDE_CODE unset, not a git repo → exit 0 silently
+# Fail-open: kill switch, no active task, CLAUDE_CODE unset, not a git repo → exit 0 silently; an unreadable payload or invalid session_id → no marker cleanup
 #
-# SessionEnd hook — warn when AA-MA artifacts are git-dirty at session end.
+# SessionEnd hook — warn when AA-MA artifacts are git-dirty at session end, and remove this
+# session's aa-ma-impact-preedit.sh markers (~/.claude/runtime/impact-seen-<session_id>).
 #
 # Enforces the CLAUDE.md rule: "never leave uncommitted work at session end".
 # Scans every active task directory (project-local + $HOME); for each, runs
@@ -44,6 +45,23 @@ fi
 if aa_ma_is_disabled; then
     aa_ma_debug "session-end-dirty: AA_MA_HOOKS_DISABLE=1, skipping"
     exit 0
+fi
+
+# -----------------------------------------------------------------------------
+# Remove this session's impact-preedit markers. Before the CLAUDE_CODE guard: the
+# markers exist whenever the PreToolUse hook ran, whatever the environment says.
+# Only a session_id matching the marker hook's own regex reaches rm, so the path
+# is always exactly ~/.claude/runtime/impact-seen-<id> — never anything else.
+# -----------------------------------------------------------------------------
+if [ ! -t 0 ] && [ -n "${HOME:-}" ] && command -v jq > /dev/null 2>&1; then  # why: a presence probe
+    # why: 2 s bounds a stdin that never closes; a jq parse error just means no session_id
+    sid="$(timeout 2 cat | jq -r '.session_id // empty' 2>/dev/null || true)"
+    if [[ "${sid}" =~ ^[A-Za-z0-9_-]{1,64}$ ]]; then
+        rm -rf -- "${HOME}/.claude/runtime/impact-seen-${sid}" \
+            || log_warn session-end-dirty "could not remove impact-seen-${sid}"
+    elif [ -n "${sid}" ]; then
+        log_warn session-end-dirty "invalid session_id; impact-preedit markers not removed"
+    fi
 fi
 
 # CI / non-Claude-Code context: CLAUDE_CODE env var absent → exit silently.

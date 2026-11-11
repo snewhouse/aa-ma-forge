@@ -69,6 +69,34 @@ ts_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{
     grep -q ' INFO ho ok: a b c$' "$CLAUDE_HOOK_LOG"
 }
 
+@test "terminal control characters (ESC, BEL) reach neither the log nor the systemMessage (§6.8 M5 W7)" {
+    # A repo-controlled name such as $'t\e]0;OWNED\a' would otherwise retitle the
+    # terminal, or write the clipboard (OSC 52), when the notice is shown.
+    . "$LIB"
+    run --separate-stderr fail_open_notice $'h\e[31m' $'t\e]0;OWNED\a is active'
+    [ "$status" -eq 0 ]
+    msg=$(printf '%s' "$output" | jq -r '.systemMessage')
+    # why: `if`, not a bare `!` — bats ignores a negated command's status (test_bats_assertions)
+    if printf '%s' "$msg" | LC_ALL=C grep -q '[[:cntrl:]]'; then echo "control char in: $msg"; return 1; fi
+    if LC_ALL=C grep -q $'[\x01-\x08\x0b-\x1f\x7f]' "$CLAUDE_HOOK_LOG"; then echo "control char in log"; return 1; fi
+    [[ "$msg" == *"OWNED"*"is active"* ]]
+}
+
+@test "C1 control characters (U+009B CSI) reach neither the log nor the systemMessage in any locale; é is kept" {
+    # [[:cntrl:]] matches U+009B in some UTF-8 locales but not in C or C.UTF-8 (live run 1, Stage D).
+    local loc
+    for loc in C C.UTF-8; do
+        rm -f "$CLAUDE_HOOK_LOG"
+        run --separate-stderr env LC_ALL="$loc" bash -c '. "$1"; fail_open_notice h "$2"' _ "$LIB" $'a\xc2\x9b31mb é'
+        [ "$status" -eq 0 ]
+        msg=$(printf '%s' "$output" | jq -r '.systemMessage')
+        # why: `if`, not a bare `!` — bats ignores a negated command's status (test_bats_assertions)
+        if printf '%s' "$msg" | LC_ALL=C grep -qF $'\xc2\x9b'; then echo "CSI in ($loc): $msg"; return 1; fi
+        if LC_ALL=C grep -qF $'\xc2\x9b' "$CLAUDE_HOOK_LOG"; then echo "CSI in log ($loc)"; return 1; fi
+        [[ "$msg" == *"é"* ]]
+    done
+}
+
 @test "log_* masks secrets with their rule id" {
     . "$LIB"
     log_warn h "aws=$AWS gh=$GHP key=$ANT"

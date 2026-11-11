@@ -71,6 +71,15 @@ Multi-Session/Team  │   AA-MA     │   AA-MA
 | `SOFT` (default) | Convention-based — agent warned |
 | `HARD` | Artifact-enforced — blocked without signed approval in context-log.md |
 
+Every milestone, either gate, passes the §6.7 fences in order (`/execute-aa-ma-milestone`):
+
+| Fence | Checks | Writes to provenance.log |
+|-------|--------|--------------------------|
+| 1 | AA-MA files clean, 0 PENDING, `Critical-Path:` / `Prototype-Required:` evidence | — (reads `CRITICAL_PATH_REVIEW`, `PROTOTYPE`) |
+| 2 | §13 sigil edges hold in the code | `DIAGRAM_VERIFIED` |
+| 3 | merge-base `Test-Command:` passes | `TESTS_VERIFIED` |
+| 4 | changed files predicted by the Contract or explained | `IMPACT_VERIFIED` (or prints "not applicable (grandfathered)") |
+
 ### `/goal` Integration (Claude Code `/goal`, opt-in)
 
 | Surface | Mode | Skill |
@@ -153,14 +162,14 @@ synthesis. Protocol toggles: `--no-goal` on `/execute-aa-ma-full`; omit
 # Assess a whole repo: measured + judged findings, refuter on Critical/High (tiered)
 /assess-codebase [path] [--quick | --standard | --deep]
 
-# PR/MR-based merge workflow with 3-source security pass + auto-merge
+# GitHub PR merge: sdm.sh check → review (stop rule) → ship → finish
 /sole-dev-merge
 ```
 
 ### Diagrams & architecture (CLI)
 
 ```bash
-codemem build                                   # index the repo (.codemem/index.db)
+codemem build                                   # index the repo (~/.cache/codemem/<hash>/index.db)
 codemem draw --level L0|L1|L2|L3 [--scope P]... # mermaid cut: dirs, dirs, files, symbols
 codemem draw --write | --check                  # the living doc in docs/architecture/ (CI runs --check)
 aa-ma-lint-views <plan.md> --repo-root . [--coverage]  # §13 lint: STALE_PATH, PHANTOM_EDGE, sigils: line

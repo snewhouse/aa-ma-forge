@@ -4,13 +4,18 @@ Minimal argparse dispatcher composing the M1 modules:
 
 * ``codemem build``           — :func:`codemem.indexer.build_index`
 * ``codemem status``          — prints file/symbol/edge counts from the DB
-* ``codemem refresh``         — M2 placeholder; logs and exits 0
+* ``codemem refresh``         — :func:`codemem.incremental.refresh_index`
+                                  (exit 75 when another refresh holds
+                                  the writer lock, 1 on error)
 * ``codemem refresh-commits`` — populate git-mining cache via
                                   :meth:`GitMiner.refresh_commits_cache`
                                   (M4 Task 4.8 / L-254 — the production
                                   wiring missing from M3)
-* ``codemem replay``          — M2 placeholder; logs and exits 0
-* ``codemem query``           — calls one of 10 MCP tools via stdlib JSON
+* ``codemem replay``          — rebuild SQLite from the WAL JSONL journal
+* ``codemem query``           — calls one of 11 MCP tools via stdlib JSON
+* ``codemem impact``          — who depends on a file and what changes with
+                                  it (:func:`codemem.mcp_tools.file_impact`);
+                                  feeds the PreToolUse impact hook
 * ``codemem intel``           — writes PROJECT_INTEL.json via the PageRank
                                   projection
 
@@ -29,15 +34,23 @@ import sys
 from pathlib import Path
 
 
-def _default_db_path() -> Path:
-    return Path.cwd() / ".codemem" / "index.db"
+def _repo_root(args: argparse.Namespace) -> Path:
+    """``--repo-root``, else cwd: the root indexed and the key of its default DB."""
+    return Path(getattr(args, "repo_root", None) or Path.cwd())
+
+
+def _db_path(args: argparse.Namespace) -> Path:
+    """``--db``, else ``$CODEMEM_DB``, else the cache dir of ``_repo_root(args)``."""
+    from .paths import resolve_db_path
+
+    return resolve_db_path(_repo_root(args), args.db)
 
 
 def _cmd_build(args: argparse.Namespace) -> int:
     from .indexer import build_index
 
-    db_path = Path(args.db) if args.db else _default_db_path()
-    repo_root = Path(args.repo_root) if args.repo_root else Path.cwd()
+    db_path = _db_path(args)
+    repo_root = _repo_root(args)
     stats = build_index(repo_root, db_path, package=args.package or ".")
     print(
         f"codemem build: {stats.files_indexed} files, "
@@ -52,7 +65,7 @@ def _cmd_build(args: argparse.Namespace) -> int:
 def _cmd_status(args: argparse.Namespace) -> int:
     from .storage import db
 
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
     if not db_path.exists():
         print(f"codemem status: no DB at {db_path}", file=sys.stderr)
         return 1
@@ -78,21 +91,39 @@ def _cmd_status(args: argparse.Namespace) -> int:
 
 
 def _cmd_refresh(args: argparse.Namespace) -> int:
-    # M2 replaces this with the incremental refresh driver (Task 2.2).
-    # M1 logs and exits 0 — the post-commit hook calls it, so the
-    # wiring is verifiable without shipping an incomplete implementation.
-    db_path = Path(args.db) if args.db else _default_db_path()
-    log_dir = db_path.parent
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / "refresh.log"
-    with log_file.open("a", encoding="utf-8") as fh:
-        fh.write(
-            "codemem refresh: M2 placeholder — post-commit hook fired, "
-            "no-op in M1\n"
+    """Incremental refresh of the index (what the post-commit hook runs).
+
+    Exit 0 refreshed, ``EXIT_LOCKED`` (75) when another refresh holds the
+    writer lock, 1 on error. Errors go to ``refresh.log`` (the hook's
+    stderr is discarded) and to stderr, never as a traceback.
+    """
+    from .incremental import EXIT_LOCKED, log_refresh, refresh_index
+    from .safety import UnsafeDbPath
+
+    db_path = _db_path(args)
+    repo_root = _repo_root(args)
+    try:
+        stats = refresh_index(repo_root, db_path)
+    except UnsafeDbPath:
+        raise  # main reports it; nothing is logged into a refused dir
+    except Exception as exc:  # noqa: BLE001  # why: CLI boundary — one logged line + exit 1, never a traceback into a hook
+        log_refresh(db_path.parent, f"refresh: error {exc.__class__.__name__}: {exc}")
+        print(
+            f"codemem refresh: error: {exc.__class__.__name__}: {exc}", file=sys.stderr
         )
+        return 1
+    if stats.skipped_locked:
+        print("codemem refresh: skipped (another refresh holds db.lock)")
+        return EXIT_LOCKED
+    kind = (
+        "full rebuild"
+        if stats.full_rebuild
+        else (
+            f"dirty={stats.files_dirty} moved={stats.files_moved} deleted={stats.files_deleted}"
+        )
+    )
     print(
-        "codemem refresh: M1 placeholder (real incremental refresh "
-        "ships in M2)"
+        f"codemem refresh: {kind} in {stats.elapsed_seconds * 1000:.0f}ms — db={db_path}"
     )
     return 0
 
@@ -100,15 +131,15 @@ def _cmd_refresh(args: argparse.Namespace) -> int:
 def _cmd_refresh_commits(args: argparse.Namespace) -> int:
     """Populate ``commits`` + ``commit_files`` cache from ``git log``.
 
-    The default ``codemem refresh`` is an M2 placeholder that does NOT
-    populate the git-mining cache, so out of the box ``co_changes`` /
+    ``codemem refresh`` re-indexes code only and does NOT populate the
+    git-mining cache, so out of the box ``co_changes`` /
     ``hot_spots`` / cached portions of ``owners``+``symbol_history``
     return empty until this command runs once. Same minimal-wiring
     pattern as L-253's ``db.ensure_schema``: a single named CLI
     choke-point users can run after install (or post-commit) to light
     up the M3 git-mining tools.
 
-    Acquires the same writer lock (``.codemem/db.lock``) that
+    Acquires the same writer lock (``db.lock`` in the index dir) that
     ``incremental.py`` and ``mcp_tools`` use to serialise writers, so
     running this concurrently with ``codemem build`` or a post-commit
     refresh no-ops cleanly rather than racing on SQLite.
@@ -116,16 +147,17 @@ def _cmd_refresh_commits(args: argparse.Namespace) -> int:
     import sqlite3
 
     from .analysis.git_mining import GitMiner
+    from .safety import check_db_path
     from .journal.lock import acquire_writer_lock
     from .storage import db as storage_db
 
-    db_path = Path(args.db) if args.db else _default_db_path()
-    repo_root = Path(args.repo_root) if args.repo_root else Path.cwd()
+    db_path = _db_path(args)
+    repo_root = _repo_root(args)
+    check_db_path(db_path)
 
     if not db_path.exists():
         print(
-            f"codemem refresh-commits: no DB at {db_path}; "
-            f"run `codemem build` first",
+            f"codemem refresh-commits: no DB at {db_path}; run `codemem build` first",
             file=sys.stderr,
         )
         return 1
@@ -175,10 +207,12 @@ def _cmd_refresh_commits(args: argparse.Namespace) -> int:
 
 
 def _cmd_replay(args: argparse.Namespace) -> int:
-    """M2 Task 2.4: codemem replay --from-wal reconstructs SQLite from
-    the WAL JSONL journal using idempotency keys.
+    """Rebuild SQLite from the WAL JSONL journal (``--from-wal``; M2 Task 2.4).
+
+    Replays entries by idempotency key, so a re-run applies nothing twice.
     """
     from .journal.wal import replay_wal
+    from .safety import UnsafeDbPath, check_db_path
 
     if not args.from_wal:
         print(
@@ -187,8 +221,12 @@ def _cmd_replay(args: argparse.Namespace) -> int:
         )
         return 2
 
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
     wal_path = Path(args.wal) if args.wal else db_path.parent / "wal.jsonl"
+    # Refuse before reading the journal through a link (M15 §6.8).
+    check_db_path(db_path)
+    if wal_path.is_symlink():
+        raise UnsafeDbPath(f"{wal_path} is a symlink; codemem refuses it")
     if not wal_path.exists():
         print(f"codemem replay: no WAL at {wal_path}", file=sys.stderr)
         return 1
@@ -204,15 +242,24 @@ def _cmd_replay(args: argparse.Namespace) -> int:
 
 
 QUERY_TOOLS = (
-    "who_calls", "blast_radius", "dead_code", "dependency_chain", "search_symbols",
-    "file_summary", "hot_spots", "co_changes", "owners", "layers",
+    "who_calls",
+    "callees",
+    "blast_radius",
+    "dead_code",
+    "dependency_chain",
+    "search_symbols",
+    "file_summary",
+    "hot_spots",
+    "co_changes",
+    "owners",
+    "layers",
 )
 
 
-def _cmd_query(args: argparse.Namespace) -> int:
+def _cmd_query(args: argparse.Namespace) -> int:  # noqa: C901  # why: pre-existing; refactor tracked in TODOS.md (M8.2 D8 pay-down; touched for M15.2 refresh only)
     from . import mcp_tools
 
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
     kwargs: dict = {"budget": args.budget}
     if args.max_depth is not None:
         kwargs["max_depth"] = args.max_depth
@@ -220,6 +267,8 @@ def _cmd_query(args: argparse.Namespace) -> int:
     tool = args.tool
     if tool == "who_calls":
         result = mcp_tools.who_calls(db_path, args.positional[0], **kwargs)
+    elif tool == "callees":
+        result = mcp_tools.callees(db_path, args.positional[0], **kwargs)
     elif tool == "blast_radius":
         result = mcp_tools.blast_radius(db_path, args.positional[0], **kwargs)
     elif tool == "dead_code":
@@ -237,19 +286,20 @@ def _cmd_query(args: argparse.Namespace) -> int:
             db_path, args.positional[0], budget=args.budget
         )
     elif tool == "file_summary":
-        result = mcp_tools.file_summary(
-            db_path, args.positional[0], budget=args.budget
-        )
+        result = mcp_tools.file_summary(db_path, args.positional[0], budget=args.budget)
     elif tool == "hot_spots":
         result = mcp_tools.hot_spots(db_path, budget=args.budget)
     elif tool == "co_changes":
-        result = mcp_tools.co_changes(db_path, args.positional[0], budget=args.budget)
+        return _query_co_changes(args, db_path)
     elif tool == "owners":
         # With --repo-root the blame is computed (and cached); without it only the cache is read.
         repo_root = Path(args.repo_root) if args.repo_root else None
         result = mcp_tools.owners(
-            db_path, args.positional[0], repo_root=repo_root,
-            refresh=repo_root is not None, budget=args.budget,
+            db_path,
+            args.positional[0],
+            repo_root=repo_root,
+            refresh=repo_root is not None,
+            budget=args.budget,
         )
     elif tool == "layers":
         result = mcp_tools.layers(db_path, budget=args.budget)
@@ -261,10 +311,108 @@ def _cmd_query(args: argparse.Namespace) -> int:
     return 0 if not result.get("error") else 1
 
 
+def _query_co_changes(args: argparse.Namespace, db_path: Path) -> int:
+    """``co_changes`` for one path (its dict) or several (an object keyed by path).
+
+    Every result carries ``stale`` (true/false/"unknown") and ``stale_reason`` from
+    :func:`codemem.incremental.check_freshness`. Exit 1 when any path's result carries
+    an error.
+    """
+    from . import mcp_tools
+    from .incremental import check_freshness
+
+    knobs = {} if args.threshold is None else {"threshold": args.threshold}
+    results = {
+        path: mcp_tools.co_changes(
+            db_path, path, min_ratio=args.min_ratio, budget=args.budget, **knobs
+        )
+        for path in args.positional
+    }
+    # Each answer says whether the index it came from matches the tree (the MCP envelope's
+    # X2 fields): aa-ma-impact must not pass a gate on a stale index (M11, G13).
+    fresh = check_freshness(_repo_root(args), db_path)
+    for result in results.values():
+        result["stale"] = "unknown" if fresh.stale is None else fresh.stale
+        result["stale_reason"] = fresh.reason
+    single = len(args.positional) == 1
+    out = results[args.positional[0]] if single else results
+    print(json.dumps(out, indent=2, default=str))
+    return 1 if any(r.get("error") for r in results.values()) else 0
+
+
+_BRIEF_TOP = 3  # entries named per line of `codemem impact --format brief`
+# Characters per brief line: room for three repo paths, short enough for hook context.
+_BRIEF_LINE_MAX = 200
+
+
+def _names(items: list[dict], key: str) -> str:
+    """The first ``_BRIEF_TOP`` distinct values of ``key``, comma-joined, or ``-``."""
+    seen = list(dict.fromkeys(i[key] for i in items))
+    more = f" (+{len(seen) - _BRIEF_TOP} more)" if len(seen) > _BRIEF_TOP else ""
+    return (", ".join(seen[:_BRIEF_TOP]) + more) if seen else "-"
+
+
+def _count(n: int, noun: str) -> str:
+    """``1 file`` / ``2 files``."""
+    return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
+
+
+def _impact_brief(r: dict) -> str:
+    """At most four lines summarising a :func:`file_impact` result; ``""`` when it is empty.
+
+    Empty means no callers of any kind and no co-changes. Every line passes
+    :func:`sanitize_context_line`: paths and node ids come from the index, and
+    the PreToolUse impact hook hands these lines to the model.
+    """
+    from .mcp_tools.sanitizers import sanitize_context_line
+
+    if not (r["external_callers"] or r["test_callers"] or r["co_changes"]):
+        return ""
+    ext = {c["file"] for c in r["external_callers"]}
+    # file_impact tags plugin callers, as who_calls does; a file named like a node id is a file.
+    plugin = {
+        c["file"] for c in r["external_callers"] if c.get("via") == "plugin_edges"
+    }
+    test_files = {c["file"] for c in r["test_callers"]}
+    co = ", ".join(
+        f"{c['path']} {c['count']}x ({c['ratio']:.0%})"
+        for c in r["co_changes"][:_BRIEF_TOP]
+    )
+    lines = [
+        f"impact: {r['file']}",
+        f"callers: {_count(len(ext - plugin), 'file')} + "
+        f"{_count(len(plugin), 'plugin node')} + {_count(len(test_files), 'test file')}; "
+        f"top: {_names(r['external_callers'], 'file')}",
+        f"tests: {_names(r['test_callers'], 'file')}",
+        f"co-changed (of {_count(r['target_commits'], 'commit')}): {co or '-'}",
+    ]
+    return "\n".join(sanitize_context_line(ln, _BRIEF_LINE_MAX) for ln in lines)
+
+
+def _cmd_impact(args: argparse.Namespace) -> int:
+    """Print :func:`codemem.mcp_tools.file_impact` as four lines (or nothing) or as JSON."""
+    from . import mcp_tools
+
+    knobs = {} if args.budget is None else {"budget": args.budget}
+    result = mcp_tools.file_impact(_db_path(args), args.path, **knobs)
+    if result.get("error"):
+        print(f"codemem impact: {result['error']}", file=sys.stderr)
+        if args.format == "json":
+            print(json.dumps(result, indent=2, default=str))
+        return 1
+    if args.format == "json":
+        print(json.dumps(result, indent=2, default=str))
+    else:
+        brief = _impact_brief(result)
+        if brief:
+            print(brief)
+    return 0
+
+
 def _cmd_intel(args: argparse.Namespace) -> int:
     from .pagerank import write_project_intel
 
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
     out = Path(args.out) if args.out else Path.cwd() / "PROJECT_INTEL.json"
     stats = write_project_intel(db_path, out, budget=args.budget)
     print(
@@ -281,31 +429,51 @@ def _non_negative_int(text: str) -> int:
     return value
 
 
+def _no_graph(who: str, check: bool, reason: str) -> int:
+    """No graph to draw: UNKNOWN under --check, never PASS and never a block (ADR-0016)."""
+    if check:
+        print(f"{who}: UNKNOWN — {reason}")
+        return 0
+    print(f"{who}: {reason}", file=sys.stderr)
+    return 1
+
+
+def _draw_connect(db_path: Path, who: str, check: bool):
+    """The index for ``draw``, or the exit code when there is no graph to draw."""
+    from .safety import TrustStoreError, UnsafeDbPath
+    from .storage.db import connect
+
+    try:
+        return connect(db_path, read_only=True)
+    except UnsafeDbPath as exc:  # refused or untrusted
+        return _no_graph(who, check, f"{exc}; run `codemem build`")
+    except TrustStoreError as exc:  # a broken state dir: a rebuild would not help
+        return _no_graph(who, check, str(exc))
+
+
 def _cmd_draw(args: argparse.Namespace) -> int:
     import sqlite3
 
     from .draw.cut import MIN_SCHEMA_VERSION, Level, cut
     from .draw.mermaid import to_mermaid
-    from .storage.db import connect
 
     views_mode = args.write or args.check
     cut_options = (args.level, args.scope, args.hops, args.direction, args.kind)
     if views_mode and (any(o is not None for o in cut_options) or args.include_tests):
-        args._draw_parser.error("--write/--check regenerate the registered views; cut options do not apply")
+        args._draw_parser.error(
+            "--write/--check regenerate the registered views; cut options do not apply"
+        )
     who = "codemem draw --check" if args.check else "codemem draw"
-    db_path = Path(args.db) if args.db else _default_db_path()
+    db_path = _db_path(args)
 
     def no_graph(reason: str) -> int:
-        # --check cannot run without a graph: UNKNOWN, never PASS, and never a block (ADR-0016).
-        if args.check:
-            print(f"{who}: UNKNOWN — {reason}; run `codemem build`")
-            return 0
-        print(f"{who}: {reason}; run `codemem build`", file=sys.stderr)
-        return 1
+        return _no_graph(who, args.check, f"{reason}; run `codemem build`")
 
     if not db_path.is_file():
         return no_graph(f"no index at {db_path}")
-    conn = connect(db_path, read_only=True)
+    conn = _draw_connect(db_path, who, args.check)
+    if isinstance(conn, int):
+        return conn
     try:
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version < MIN_SCHEMA_VERSION:
@@ -315,8 +483,12 @@ def _cmd_draw(args: argparse.Namespace) -> int:
         level = Level[args.level or Level.L0.name]
         try:
             c = cut(
-                conn, level, scope=tuple(args.scope) if args.scope else None, hops=1 if args.hops is None else args.hops,
-                include_tests=args.include_tests, direction=args.direction or "both",
+                conn,
+                level,
+                scope=tuple(args.scope) if args.scope else None,
+                hops=1 if args.hops is None else args.hops,
+                include_tests=args.include_tests,
+                direction=args.direction or "both",
                 kind=args.kind or "both",
             )
         except ValueError as exc:
@@ -327,8 +499,10 @@ def _cmd_draw(args: argparse.Namespace) -> int:
         conn.close()
     sys.stdout.write(to_mermaid(c))
     dropped = f", {c.dropped} dropped over maxEdges" if c.dropped else ""
-    print(f"codemem draw: {level.name} {len(c.nodes)} nodes / {len(c.edges)} edges{dropped}",
-          file=sys.stderr)
+    print(
+        f"codemem draw: {level.name} {len(c.nodes)} nodes / {len(c.edges)} edges{dropped}",
+        file=sys.stderr,
+    )
     return 0
 
 
@@ -340,10 +514,13 @@ def _draw_views(args: argparse.Namespace, conn) -> int:
     try:
         if args.write:
             for p in views.write_views(repo_root, conn):
-                print(f"codemem draw: wrote {p.relative_to(repo_root)}", file=sys.stderr)
+                print(
+                    f"codemem draw: wrote {p.relative_to(repo_root)}", file=sys.stderr
+                )
             return 0
         findings = views.check_views(repo_root, conn)
-    except ValueError as exc:  # malformed sidecar, a refused write target, or an ill-formed view
+    # A malformed sidecar, a refused write target, or an ill-formed view.
+    except ValueError as exc:
         print(f"{who}: {exc}", file=sys.stderr)
         return 1
     for f in findings:
@@ -356,31 +533,33 @@ def _draw_views(args: argparse.Namespace, conn) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """The ``codemem`` argparse tree: one subparser per subcommand."""
     parser = argparse.ArgumentParser(
         prog="codemem",
         description="codemem — structural code intelligence",
     )
     parser.add_argument(
         "--db",
-        help="Path to codemem SQLite DB (default: .codemem/index.db)",
+        help="Path to codemem SQLite DB (default: $CODEMEM_DB, else $XDG_CACHE_HOME — ~/.cache when unset or relative — /codemem/<sha256(realpath repo)>/index.db)",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     pb = sub.add_parser("build", help="Index the current repo (full build)")
-    pb.add_argument(
-        "--package", default=".", help="SCIP <package> prefix (default: .)"
-    )
+    pb.add_argument("--package", default=".", help="SCIP <package> prefix (default: .)")
     pb.add_argument("--repo-root", help="Repo root to index (default: cwd)")
 
     sub.add_parser("status", help="Print current index summary")
-    sub.add_parser("refresh", help="Incremental refresh (M2 placeholder)")
+    pf = sub.add_parser("refresh", help="Incremental refresh of the index")
+    pf.add_argument("--repo-root", help="Repo root to index (default: cwd)")
 
     prc = sub.add_parser(
         "refresh-commits",
         help="Populate git-mining cache (commits + commit_files) from git log",
     )
     prc.add_argument(
-        "--limit", type=int, default=500,
+        "--limit",
+        type=int,
+        default=500,
         help="Max commits to keep in cache (newest by author_time, default 500)",
     )
     prc.add_argument("--repo-root", help="Repo root (default: cwd)")
@@ -396,12 +575,54 @@ def build_parser() -> argparse.ArgumentParser:
         "query", help=f"Invoke one of {len(QUERY_TOOLS)} MCP tools from the CLI"
     )
     pq.add_argument("tool", choices=QUERY_TOOLS)
-    pq.add_argument(
-        "positional", nargs="*", help="Positional args for the tool"
-    )
+    pq.add_argument("positional", nargs="*", help="Positional args for the tool")
     pq.add_argument("--max-depth", type=int, default=None)
     pq.add_argument("--budget", type=int, default=8000)
-    pq.add_argument("--repo-root", default=None, help="owners: compute blame from this repo")
+    pq.add_argument(
+        "--repo-root", default=None, help="owners: compute blame from this repo"
+    )
+    pq.add_argument(
+        "--threshold",
+        type=int,
+        default=None,
+        help="co_changes: minimum shared commits (default: mcp_tools.co_changes's)",
+    )
+    pq.add_argument(
+        "--min-ratio",
+        type=float,
+        default=0.0,
+        help="co_changes: minimum share of the file's commits, 0-1 (default 0)",
+    )
+    pq.epilog = (
+        "co_changes takes one or more paths: one path prints its result object; "
+        "several print one JSON object keyed by path. Exit 1 if any has an error."
+    )
+
+    pim = sub.add_parser(
+        "impact",
+        help="Who depends on a file and what changes with it",
+        description="External, plugin and test callers of the symbols in PATH, "
+        "and the files that change with it (commits touching more than "
+        "CO_CHANGE_MAX_COMMIT_FILES files are ignored). brief prints nothing "
+        "(exit 0) when PATH has no callers and no co-changes.",
+        epilog="Put PATH after `--` when it may start with '-': "
+        "codemem impact --repo-root DIR -- PATH",
+    )
+    pim.add_argument("path", help="Repo-relative file path")
+    pim.add_argument(
+        "--repo-root",
+        help="Repo whose default index to read (default: cwd); --db/CODEMEM_DB win",
+    )
+    pim.add_argument(
+        "--format",
+        choices=("brief", "json"),
+        default="brief",
+        help="brief: four one-line summaries, or nothing when empty (default); "
+        "json: the file_impact dict",
+    )
+    pim.add_argument(
+        "--budget", type=int, default=None, help="default: mcp_tools.FILE_IMPACT_BUDGET"
+    )
 
     pi = sub.add_parser("intel", help="Write PROJECT_INTEL.json")
     pi.add_argument("--out", help="Output path (default: PROJECT_INTEL.json)")
@@ -411,47 +632,81 @@ def build_parser() -> argparse.ArgumentParser:
 
     pd = sub.add_parser("draw", help="Emit a mermaid diagram of the graph")
     mode = pd.add_mutually_exclusive_group()
-    mode.add_argument("--write", action="store_true",
-                      help="Regenerate every registered view under docs/architecture/")
-    mode.add_argument("--check", action="store_true",
-                      help="Exit 1 if docs/architecture/ drifted from the code (UNKNOWN + 0 with no index)")
-    pd.add_argument("--level", choices=[lv.name for lv in Level], default=None,
-                    help="L0 top dirs, L1 dirs depth 2, L2 files, L3 symbols (default L0)")
+    mode.add_argument(
+        "--write",
+        action="store_true",
+        help="Regenerate every registered view under docs/architecture/",
+    )
+    mode.add_argument(
+        "--check",
+        action="store_true",
+        help="Exit 1 if docs/architecture/ drifted from the code (UNKNOWN + 0 with no index)",
+    )
     pd.add_argument(
-        "--scope", action="append",
+        "--level",
+        choices=[lv.name for lv in Level],
+        default=None,
+        help="L0 top dirs, L1 dirs depth 2, L2 files, L3 symbols (default L0)",
+    )
+    pd.add_argument(
+        "--scope",
+        action="append",
         help="Path prefix to centre the cut on; repeat for several (their union)",
     )
-    pd.add_argument("--hops", type=_non_negative_int, default=None,
-                    help="Neighbourhood radius for --scope (default 1)")
-    pd.add_argument("--include-tests", action="store_true", help="Keep tests/ (excluded by default)")
-    pd.add_argument("--direction", choices=DIRECTIONS, default=None, help="default both")
-    pd.add_argument("--kind", choices=KINDS, default=None,
-                    help="Edge kinds at L0-L2, default both (L3 is calls only; --kind import is refused there)")
+    pd.add_argument(
+        "--hops",
+        type=_non_negative_int,
+        default=None,
+        help="Neighbourhood radius for --scope (default 1)",
+    )
+    pd.add_argument(
+        "--include-tests", action="store_true", help="Keep tests/ (excluded by default)"
+    )
+    pd.add_argument(
+        "--direction", choices=DIRECTIONS, default=None, help="default both"
+    )
+    pd.add_argument(
+        "--kind",
+        choices=KINDS,
+        default=None,
+        help="Edge kinds at L0-L2, default both (L3 is calls only; --kind import is refused there)",
+    )
     pd.set_defaults(_draw_parser=pd)
 
     return parser
 
 
 _CMD_DISPATCH = {
-    "build":            _cmd_build,
-    "status":           _cmd_status,
-    "refresh":          _cmd_refresh,
-    "refresh-commits":  _cmd_refresh_commits,
-    "replay":           _cmd_replay,
-    "query":            _cmd_query,
-    "intel":            _cmd_intel,
-    "draw":             _cmd_draw,
+    "build": _cmd_build,
+    "status": _cmd_status,
+    "refresh": _cmd_refresh,
+    "refresh-commits": _cmd_refresh_commits,
+    "replay": _cmd_replay,
+    "query": _cmd_query,
+    "impact": _cmd_impact,
+    "intel": _cmd_intel,
+    "draw": _cmd_draw,
 }
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse ``argv`` and run the subcommand; returns its exit code."""
     parser = build_parser()
     args = parser.parse_args(argv)
     handler = _CMD_DISPATCH.get(args.cmd)
     if handler is None:
         parser.print_help()
         return 2
-    return handler(args)
+    from .safety import TrustStoreError, UnsafeDbPath
+
+    try:
+        return handler(args)
+    except UnsafeDbPath as exc:  # one refusal point for every subcommand (M15 §6.8)
+        print(f"codemem {args.cmd}: refused: {exc}", file=sys.stderr)
+        return 1
+    except TrustStoreError as exc:  # a local fault: name it, never "refused"
+        print(f"codemem {args.cmd}: trust store error: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

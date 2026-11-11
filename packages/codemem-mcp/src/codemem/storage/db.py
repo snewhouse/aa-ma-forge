@@ -1,5 +1,4 @@
-"""
-SQLite connection + schema management for codemem.
+"""SQLite connection + schema management for codemem.
 
 Single entry point: `connect(path, read_only=False)` returns a configured
 connection with per-connection PRAGMAs applied (WAL + busy_timeout +
@@ -21,24 +20,52 @@ Design notes (per Task 1.0 + Task 1.2):
 
 from __future__ import annotations
 
+import logging
+import os
 import sqlite3
 from contextlib import contextmanager
 from importlib.resources import files as _pkg_files
 from pathlib import Path
 from typing import Iterator
 
+from ..safety import UnsafeDbPath, UntrustedIndex, check_db_path, is_trusted, stamp
+
+# The main file and every sidecar SQLite may create or replay beside it. One
+# list for every cleanup: a copy that missed `-journal` let a planted rollback
+# journal survive a rebuild (M15 pre-merge HIGH).
+SQLITE_SUFFIXES = ("", "-wal", "-shm", "-journal")
+
+
+def db_files(path: Path) -> list[Path]:
+    """The SQLite file and every sidecar beside it, main file first."""
+    return [path.with_name(path.name + s) for s in SQLITE_SUFFIXES]
+
+
+def remove_db_files(path: Path) -> None:
+    """Unlink the SQLite file and every sidecar; absent ones are fine."""
+    for f in db_files(path):
+        f.unlink(missing_ok=True)
+
+
+logger = logging.getLogger(__name__)
+
 __all__ = [
     "APPLICATION_ID",
     "CURRENT_SCHEMA_VERSION",
     "MIGRATIONS",
+    "UnsafeDbPath",
+    "UntrustedIndex",
     "apply_schema",
     "connect",
+    "index_trusted",
     "ensure_schema",
     "migrate",
 ]
 
 APPLICATION_ID = 0x434D454D  # 'CMEM' ASCII = 1129209165 (within signed int32, per SQLite application_id spec)
-CURRENT_SCHEMA_VERSION = 3  # v2: git-mining tables; v3: file_edges (diagram-generation M1)
+# v2: git-mining tables; v3: file_edges (diagram-generation M1);
+# v4: plugin_edges (code-conventions-impact M10.3)
+CURRENT_SCHEMA_VERSION = 4
 
 # Forward-only migrations. Each entry: (target_version, SQL_script_string).
 # The initial schema (v1) is provided by schema.sql; migrations here start at v2.
@@ -124,9 +151,23 @@ CREATE INDEX IF NOT EXISTS file_edges_dst ON file_edges(dst_file_id, kind, src_f
 CREATE INDEX IF NOT EXISTS file_edges_src ON file_edges(src_file_id, kind, dst_file_id);
 """
 
+_MIGRATION_V4_PLUGIN_EDGES = """
+-- code-conventions-impact M10.3: the plugin surface (Skill(x), /x, subagent_type,
+-- hook names) from codemem.draw.plugin_surface.extract(). Node ids, not file ids:
+-- .md files are not in `files`. Rebuilt whole at every build and refresh.
+CREATE TABLE IF NOT EXISTS plugin_edges (
+    src       TEXT NOT NULL,   -- "<kind>:<stem>" of the referring node
+    dst       TEXT NOT NULL,   -- "<kind>:<stem>" referenced
+    kind      TEXT NOT NULL,   -- the DESTINATION's kind
+    ref_class TEXT NOT NULL    -- ON_DISK | DECLARED_EXTERNAL | DANGLING
+);
+CREATE INDEX IF NOT EXISTS plugin_edges_dst ON plugin_edges(dst);
+"""
+
 MIGRATIONS: list[tuple[int, str]] = [
     (2, _MIGRATION_V2_GIT_MINING),
     (3, _MIGRATION_V3_FILE_EDGES),
+    (4, _MIGRATION_V4_PLUGIN_EDGES),
 ]
 
 
@@ -137,9 +178,12 @@ def _apply_per_connection_pragmas(conn: sqlite3.Connection, *, read_only: bool) 
     re-issued on every new connection. journal_mode, user_version,
     application_id are persisted at DB level and do NOT need re-issue.
     """
+    # The file may be repo-controlled: never run SQL functions from its schema
+    # (views, triggers, defaults) with this connection's privileges.
+    conn.execute("PRAGMA trusted_schema = OFF")
     conn.execute("PRAGMA busy_timeout = 5000")
-    conn.execute("PRAGMA cache_size = -65536")       # 64 MB per conn
-    conn.execute("PRAGMA mmap_size = 268435456")     # 256 MB; up to DB size
+    conn.execute("PRAGMA cache_size = -65536")  # 64 MB per conn
+    conn.execute("PRAGMA mmap_size = 268435456")  # 256 MB; up to DB size
     conn.execute("PRAGMA temp_store = MEMORY")
     if not read_only:
         # FK constraints only enforced on write paths; mode=ro ignores them.
@@ -156,16 +200,72 @@ def connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
         Path to the DB file (created if absent and not read_only).
     read_only : bool
         If True, open via `file:...?mode=ro` URI.
+
+    Raises :class:`UnsafeDbPath` per :func:`codemem.safety.check_db_path`, and
+    :class:`UntrustedIndex` for a read-only open of an index codemem did not
+    build here. A DB file this call creates is stamped as built here.
     """
     path = Path(path)
+    # Every reader and writer passes here: readers refuse exactly what writers
+    # refuse (codemem.safety, M15 §6.8).
+    check_db_path(path)
+    created = False
     if read_only:
         uri = f"file:{path}?mode=ro"
         conn = sqlite3.connect(uri, uri=True, timeout=5.0)
     else:
         path.parent.mkdir(parents=True, exist_ok=True)
+        # "Created by this call" is decided atomically: an exists() check could
+        # be beaten by another writer, and the cleanup below would delete theirs.
+        try:
+            os.close(
+                os.open(
+                    path,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                    0o644,
+                )
+            )
+            created = True
+        except FileExistsError:
+            pass
         conn = sqlite3.connect(path, timeout=5.0)
     _apply_per_connection_pragmas(conn, read_only=read_only)
+    if created:
+        try:
+            stamp(conn, path.parent)
+        except Exception:
+            # Leave no unstamped file behind: it would read as "not built here".
+            conn.close()
+            remove_db_files(path)
+            raise
+    elif read_only and not is_trusted(conn, path.parent):
+        conn.close()
+        raise UntrustedIndex(
+            f"{path} was not built by codemem here; run `codemem build`"
+        )
     return conn
+
+
+def index_trusted(path: str | Path) -> bool:
+    """Whether ``path`` is an index codemem built here.
+
+    False for an unstamped, foreign, absent or unreadable index (logged when
+    SQLite fails). A refused dir (:class:`UnsafeDbPath`) and a broken trust
+    store (``TrustStoreError``) propagate: their remedy is not a rebuild.
+    """
+    try:
+        connect(path, read_only=True).close()
+    except UntrustedIndex:
+        return False
+    except sqlite3.Error as exc:
+        if Path(path).exists():
+            logger.info(
+                "index %s unreadable (%s): treated as untrusted",
+                path,
+                type(exc).__name__,
+            )
+        return False
+    return True
 
 
 def _load_initial_schema_sql() -> str:

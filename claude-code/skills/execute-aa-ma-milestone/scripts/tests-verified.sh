@@ -19,61 +19,23 @@
 # references/gate-fences.md.
 set -uo pipefail
 
-blocked() {
-    printf 'BLOCKED: %s\n' "$*"
-    exit 1
-}
-
-TASK_NAME="${1:-}"
-if ! [[ "${TASK_NAME}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "${TASK_NAME}" != *..* ]]; then
-    blocked "TASK_NAME must be a plain task slug (got '${TASK_NAME}')."
-fi
-TASK_DIR=".claude/dev/active/${TASK_NAME}"
-REF="${TASK_DIR}/${TASK_NAME}-reference.md"
-PROV="${TASK_DIR}/${TASK_NAME}-provenance.log"
-
-# The append target must be a regular file reached through no symlink. A committed link
-# would redirect the line — which carries the repo's own heading text — into, say, ~/.bashrc.
-for _p in .claude .claude/dev .claude/dev/active "${TASK_DIR}" "${PROV}"; do
-    [[ -L "${_p}" ]] && blocked "${_p} is a symlink; refusing to write provenance through it."
-done
-[[ ! -e "${PROV}" || -f "${PROV}" ]] || blocked "${PROV} is not a regular file."
-
-# -- The milestone being certified (Python SSoT, like the other §6.7 fences) ------------
-_top=$(git rev-parse --show-toplevel 2>/dev/null)  # why: outside a repo the first candidate is simply absent
-for _cand in \
-    "${_top}/claude-code/hooks/lib/aa-ma-parse.sh" \
-    "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
-    [[ -f "${_cand}" ]] && AA_MA_LIB="${_cand}" && break
-done
-[[ -n "${AA_MA_LIB:-}" ]] || blocked "aa-ma-parse.sh not found — run scripts/install.sh."
+# Slug check, symlink guards, aa-ma-parse.sh, and the milestone this run certifies.
 # shellcheck source=/dev/null
-. "${AA_MA_LIB}"
-GATE_KV=$(aa_ma_gate "${TASK_DIR}/${TASK_NAME}-tasks.md") || {
-    _rc=$?
-    printf '%s\n' "${GATE_KV:-}" | sed -n 's/^error=/  - /p'
-    blocked "cannot read the milestone to verify its tests (gate rc ${_rc})."
-}
-MILESTONE_TITLE=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field heading)
-[[ -n "${MILESTONE_TITLE}" ]] || blocked "empty milestone heading."
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/fence-common.sh"
+fence_init "${1:-}" "its tests"
+REF="${TASK_DIR}/${TASK_NAME}-reference.md"
 
 # -- Inputs from the merge-base copy -------------------------------------------------------
-# why: stderr dropped — a missing origin/HEAD falls through to the local candidates
-BASE_REF=$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null) || BASE_REF=""
+BASE_REF=$(aa_ma_default_base_ref) \
+    || blocked "no default branch (origin/HEAD, origin/main, origin/master, main, master) to take the merge-base from."
 LOCAL_BASE=""
-if [[ -z "${BASE_REF}" ]]; then
-    for _c in main master; do
-        git rev-parse --verify -q "${_c}" >/dev/null && BASE_REF="${_c}" && break
-    done
-    # A local ref is no upstream guard: this session can commit to it or move it (on main itself,
-    # merge-base == HEAD and the plan is self-authored). Say so, and record it in the line.
-    if [[ -n "${BASE_REF}" ]]; then
-        LOCAL_BASE="inputs: local ${BASE_REF} (no origin/HEAD) — "
-        echo "NOTE: no origin/HEAD; inputs come from local ${BASE_REF}, which this session can change." \
-             "For an upstream guard: git remote set-head origin --auto"
-    fi
+# A local ref is no upstream guard: this session can commit to it or move it (on main itself,
+# merge-base == HEAD and the plan is self-authored). Say so, and record it in the line.
+if [[ "${BASE_REF}" != origin/* ]]; then
+    LOCAL_BASE="inputs: local ${BASE_REF} (no origin/HEAD) — "
+    echo "NOTE: no origin/HEAD; inputs come from local ${BASE_REF}, which this session can change." \
+         "For an upstream guard: git remote set-head origin --auto"
 fi
-[[ -n "${BASE_REF}" ]] || blocked "no default branch (origin/HEAD, main, master) to take the merge-base from."
 BASE=$(git merge-base "${BASE_REF}" HEAD) || blocked "no merge-base between ${BASE_REF} and HEAD."
 
 REF_TEXT=""
@@ -139,7 +101,7 @@ if [[ "${TEST_CMD}" == none || "${TEST_CMD}" == none[[:space:]]* ]]; then
         echo "  - Decision: APPROVED"
         blocked "'Test-Command: none' without a GATE APPROVAL."
     fi
-    append "[$(date -Iseconds)] TESTS_VERIFIED — ${MILESTONE_TITLE} — skipped: ${REASON}"
+    append "[$(date -Iseconds)] TESTS_VERIFIED — ${MILESTONE_TITLE_LOG} — skipped: ${REASON}"
     echo "TESTS-GATE: SKIPPED (approved opt-out) — ${REASON}"
     exit 0
 fi
@@ -241,5 +203,5 @@ else
     fi
 fi
 
-append "[$(date -Iseconds)] TESTS_VERIFIED — ${MILESTONE_TITLE} — ${LOCAL_BASE}passed=${N} cmd=${TEST_CMD}"
+append "[$(date -Iseconds)] TESTS_VERIFIED — ${MILESTONE_TITLE_LOG} — ${LOCAL_BASE}passed=${N} cmd=${TEST_CMD}"
 echo "TESTS-GATE: PASS — passed=${N} cmd=${TEST_CMD}"

@@ -49,9 +49,7 @@ def git_repo(tmp_path: Path) -> Path:
         ["git", "-C", str(root), "config", "user.email", "miner@codemem.local"],
         check=True,
     )
-    subprocess.run(
-        ["git", "-C", str(root), "config", "user.name", "miner"], check=True
-    )
+    subprocess.run(["git", "-C", str(root), "config", "user.name", "miner"], check=True)
     # Seed commit — author_time pinned so each subsequent commit is strictly newer.
     (root / "a.py").write_text("def foo(): pass\n")
     (root / "b.py").write_text("def bar(): pass\n")
@@ -190,9 +188,7 @@ class TestLimitEnforcement:
         cur = db.execute("SELECT COUNT(*) FROM commits")
         assert cur.fetchone()[0] == 2
         # The remaining ones must be the two newest (feat + refactor), ordered desc.
-        cur = db.execute(
-            "SELECT message FROM commits ORDER BY author_time DESC"
-        )
+        cur = db.execute("SELECT message FROM commits ORDER BY author_time DESC")
         msgs = [r[0] for r in cur.fetchall()]
         assert msgs == ["refactor: 42", "feat: flesh out"]
 
@@ -222,7 +218,9 @@ class TestSanitization:
 
         non_git = tmp_path / "not-a-repo"
         non_git.mkdir()
-        with pytest.raises(Exception):  # OSError or CalledProcessError — any git-side reject
+        with pytest.raises(
+            Exception
+        ):  # OSError or CalledProcessError — any git-side reject
             GitMiner(repo_root=non_git).refresh_commits_cache(
                 connect(tmp_path / "x.db")
             )
@@ -241,9 +239,7 @@ class TestSanitization:
         with pytest.raises(ValidationError):
             miner.get_blame("../../etc/passwd")
 
-    def test_path_outside_repo_rejected(
-        self, git_repo: Path, tmp_path: Path
-    ) -> None:
+    def test_path_outside_repo_rejected(self, git_repo: Path, tmp_path: Path) -> None:
         """A path that would canonicalise outside repo_root must be rejected."""
         from codemem.analysis.git_mining import GitMiner
         from codemem.mcp_tools.sanitizers import ValidationError
@@ -259,9 +255,7 @@ class TestSanitization:
 
 
 class TestGetBlame:
-    def test_blame_returns_author_percentages(
-        self, git_repo: Path
-    ) -> None:
+    def test_blame_returns_author_percentages(self, git_repo: Path) -> None:
         """With a single author, blame must attribute 100.0% to that email."""
         from codemem.analysis.git_mining import GitMiner
 
@@ -296,3 +290,111 @@ class TestShellFalseDiscipline:
         # shell=True is banned. shell=False is either explicit or (correctly) the
         # default — so we just need to ensure the True form never appears.
         assert "shell=True" not in src
+
+
+# ---------------------------------------------------------------------------
+# Rename detection (M10.2): co-change history survives `git mv`
+# ---------------------------------------------------------------------------
+
+
+def _git(root: Path, *args: str) -> None:
+    subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True)
+
+
+def _write_commit(root: Path, files: dict[str, str], message: str, at: int) -> None:
+    for name, text in files.items():
+        (root / name).write_text(text)
+    _git(root, "add", "-A")
+    _commit(root, message, at)
+
+
+@pytest.fixture
+def rename_repo(tmp_path: Path) -> Path:
+    """old.py and partner.md change together twice, then old.py is renamed
+    to new.py, then new.py and partner.md change together once more.
+    gone.md co-changes with old.py twice and is then deleted."""
+    root = tmp_path / "rrepo"
+    root.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main", str(root)], check=True)
+    _git(root, "config", "user.email", "miner@codemem.local")
+    _git(root, "config", "user.name", "miner")
+    body = "def f():\n    return {}\n" + "".join(f"# line {i}\n" for i in range(20))
+    for i in range(2):
+        _write_commit(
+            root,
+            {"old.py": body.format(i), "partner.md": f"v{i}\n", "gone.md": f"g{i}\n"},
+            f"c{i}",
+            1700000100 + i,
+        )
+    return root
+
+
+def _rename_and_continue(root: Path) -> None:
+    _git(root, "mv", "old.py", "new.py")
+    _commit(root, "rename", 1700000200)
+    _git(root, "rm", "-q", "gone.md")
+    _commit(root, "delete gone", 1700000201)
+    text = (root / "new.py").read_text() + "# more\n"
+    _write_commit(root, {"new.py": text, "partner.md": "v9\n"}, "c9", 1700000300)
+
+
+def _paths(db: sqlite3.Connection) -> dict[str, int]:
+    return dict(
+        db.execute(
+            "SELECT file_path, COUNT(*) FROM commit_files GROUP BY file_path"
+        ).fetchall()
+    )
+
+
+class TestRenameDetection:
+    def test_old_path_history_moves_to_new_path(
+        self, db: sqlite3.Connection, rename_repo: Path
+    ) -> None:
+        from codemem.analysis.git_mining import GitMiner
+
+        _rename_and_continue(rename_repo)
+        GitMiner(repo_root=rename_repo).refresh_commits_cache(db)
+        paths = _paths(db)
+        assert "old.py" not in paths
+        assert paths["new.py"] == 4  # c0, c1, rename, c9
+
+    def test_renamed_file_keeps_co_change_partners(
+        self, db: sqlite3.Connection, rename_repo: Path, tmp_path: Path
+    ) -> None:
+        from codemem.analysis.git_mining import GitMiner
+        from codemem.mcp_tools import co_changes
+
+        _rename_and_continue(rename_repo)
+        GitMiner(repo_root=rename_repo).refresh_commits_cache(db)
+        db.commit()
+        result = co_changes(tmp_path / "test.db", "new.py", threshold=1)
+        by_path = {f["path"]: f["count"] for f in result["files"]}
+        assert by_path.get("partner.md") == 3
+
+    def test_partner_absent_at_head_is_filtered(
+        self, db: sqlite3.Connection, rename_repo: Path, tmp_path: Path
+    ) -> None:
+        from codemem.analysis.git_mining import GitMiner
+        from codemem.mcp_tools import co_changes
+
+        _rename_and_continue(rename_repo)
+        GitMiner(repo_root=rename_repo).refresh_commits_cache(db)
+        db.commit()
+        result = co_changes(tmp_path / "test.db", "new.py", threshold=1)
+        assert "gone.md" not in {f["path"] for f in result["files"]}
+
+    def test_incremental_refresh_remaps_cached_rows(
+        self, db: sqlite3.Connection, rename_repo: Path
+    ) -> None:
+        """Rows cached before the rename are moved when a later refresh sees it."""
+        from codemem.analysis.git_mining import GitMiner
+
+        miner = GitMiner(repo_root=rename_repo)
+        miner.refresh_commits_cache(db)
+        assert _paths(db)["old.py"] == 2
+        _rename_and_continue(rename_repo)
+        assert miner.refresh_commits_cache(db) == 3
+        paths = _paths(db)
+        assert "old.py" not in paths
+        assert "gone.md" not in paths
+        assert paths["new.py"] == 4

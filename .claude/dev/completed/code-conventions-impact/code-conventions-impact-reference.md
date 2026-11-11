@@ -1,0 +1,528 @@
+<!-- ARCHIVED: 2026-10-29 09:25 -->
+<!-- Plan: code-conventions-impact - COMPLETE -->
+<!-- Total Milestones: 16 | Duration: 2026-10-08 to 2026-10-29 -->
+
+# code-conventions-impact Reference
+
+**Immutable facts and constants for this task.** Source: `code-conventions-impact-plan.md` (approved 2026-10-08), `code-conventions-impact-map.md` (15/15 RESOLVED), `code-conventions-impact-verification.md` (Revision 3, PASS WITH WARNINGS). All facts below are `[valid: 2026-10-08]` unless marked otherwise.
+
+_Last Updated: 2026-10-29 (M14 complete: v0.18.0 released, IMPACT_CUTOVER live; all milestones COMPLETE)_
+
+Test-Command: uv run pytest
+
+Architecture View: see plan.md §13
+
+Prerequisite: see tasks.md "Prerequisite (not a milestone)" (merge `feature/engineering-standards` into `main` via `/sole-dev-merge`, Ste's explicit OK, before M1).
+
+---
+
+## Repository and Branch
+
+| Fact | Value | Marker |
+|------|-------|--------|
+| Repo path | `~/projects/github_private/aa-ma-forge` | [valid: 2026-10-08] |
+| GitHub repo | `snewhouse/aa-ma-forge` — **PUBLIC**; no client-derived code, names or paths may enter it | [valid: 2026-10-08] |
+| Plan authored on | branch `feature/engineering-standards` @ `14ae44c` (12 commits ahead of main + Phase 5 artifact commit) | [valid: 2026-10-08] |
+| Default branch | `main` | [valid: 2026-10-08] |
+| Branch model | one branch + PR per milestone, cut from fresh `main` (L-032: `git status -sb` on main first); merged via `/sole-dev-merge` (rebase-merge) | [valid: 2026-10-08] |
+| Worktree per milestone | `.worktrees/<branch>` (D7, L-066); first action `uv sync && uv run codemem build` (`.venv`, `.codemem/index.db` are gitignored, per-checkout) | [valid: 2026-10-08 to 2026-10-25] |
+| Branch model from M10 (ADR-0025, amends D7) | plain branch in the main checkout, cut from fresh main; `~/.claude` links into the live worktree `~/.local/share/codemem-plugin-wt` (target of `~/.local/share/codemem-plugin`), refreshed to main + `uv sync` by `install.sh` §0 before linking; one `uv sync && uv run codemem build` in the main checkout (index in `${XDG_CACHE_HOME:-~/.cache}/codemem/<hash>/`) | [valid: 2026-10-25] |
+| Live install | `scripts/install.sh` runs ONLY from the main checkout after merge (install.sh derives REPO_ROOT from its own location); in-milestone install proofs use a fake `CLAUDE_HOME` | [valid: 2026-10-08 to 2026-10-25] |
+| Live install (ADR-0025) | after merge, `git pull` then `scripts/install.sh` from any checkout of the forge: links and spec copies come from the live worktree (`SRC_ROOT`); no plugin link → the running checkout, as before. Fake-home proofs: install.sh reads `CLAUDE_HOME=${HOME}/.claude`, so tests override `HOME` | [valid: 2026-10-25] |
+| M14 exception | M14 runs on the main checkout after M13 merges (D7 exception, D11); main pushes need Ste's explicit OK | [valid: 2026-10-08] |
+| First branch name | `feat/cci-m1-touched-harness` | [valid: 2026-10-08] |
+| Canary branch (M1.4) | `canary/cci-m1-touched` (DRAFT PR, closed + deleted after) | [valid: 2026-10-08] |
+| Prototype branches | `prototype/cmd-to-skill` (M3.1), `prototype/impact-hook` (M10.1) | [valid: 2026-10-08] |
+| Release target | v0.18.0 (minor), single release in M14 (D11) | [valid: 2026-10-08] |
+| Next free ADR number | 0028 (0026 = M10 impact pre-edit hook; 0027 = M11 gate-computed IMPACT_VERIFIED, Accepted 2026-10-27) | [valid: 2026-10-27] |
+| Session rules | `/rigor` (`~/.claude/skills/rigor/SKILL.md`), ≤5 concurrent sub-agents, `Skill(double-check)` before any COMPLETE | [valid: 2026-10-08] |
+
+## Baseline Numbers (plan §0, 2026-10-08)
+
+| Measure | Value | Marker |
+|---------|-------|--------|
+| `uv run pytest -q` | 2429 passed, 5 skipped, 7 deselected in 112.5 s | [valid: 2026-10-08] |
+| M1 BASELINE (provenance) | pytest 2429/5/7, ruff src+packages 4, Ruff S 34, shellcheck 0 (24 .sh), rules_chars 20249 | [valid: 2026-10-08] |
+| Touched-file debt, repo-wide (2026-10-08, /sole-dev-merge C1) | `ruff format --check .` 113 files to reformat (35 src/packages/scripts, 77 tests); `ruff check .` 39 findings; 19 of 31 `.bats` fail shellcheck (excluded from the hook via `exclude_types: [bats]`) | [valid: 2026-10-08] |
+| Ruff S findings (`ruff check --isolated --select S src packages scripts`) | 34 | [valid: 2026-10-08] |
+| Oversized prompt files (lines) | aa-ma-execution 1295, execute-aa-ma-milestone 1244, aa-ma-plan 1154, sole-dev-merge 1057, execute-aa-ma-full 758, plan-verification 608 (re-measured at bc177e5; plan time said 1054/757) | [valid: 2026-10-11] |
+| Existing >100-line references without a TOC | 23 (go into `TOC_ALLOWLIST (23 at plan time; 24 after M2 imports logging-and-comments/references/python.md)`) | [valid: 2026-10-08] |
+| Test files referencing `commands/` paths | 31 | [valid: 2026-10-08] |
+| Touched-file debt | ≤11 strict findings per planned file | [valid: 2026-10-08] |
+| `uv audit` (uv 0.12.3) | experimental; exits 1 with 13 vulnerable packages (12 with `--no-dev`: pyjwt, starlette, urllib3, mcp, fastmcp, cryptography…) | [valid: 2026-10-08] |
+| gitleaks current hits | 3, all test fixtures (`tests/analysis/test_measure.py`, `tests/hooks/security-static-check.bats`) | [valid: 2026-10-08] |
+| Bandit B404 | fires 10× on this repo; Ruff `S404` is preview-only at 0.15.9 | [valid: 2026-10-08] |
+| Auto-loaded rule cost (map T1) | ~8.8k tokens (7 files); ~12.2k with project CLAUDE.md + ponytail injection | [valid: 2026-10-08] |
+| Counts before plan | skills 22, top-level hooks 8, rules 2, MCP tools 13, commands 14 | [valid: 2026-10-08] |
+| Counts after plan | skills 22→27 (M2) → 38 after M3 (+11 new dirs: 2 commands merge into existing skills, grill-me deleted) → −write-a-skill +writing-for-agents (M4) → +1 secops (M8) → +1 language-conventions (M12) = 40 at end; hooks 8→9 (M2) →10 (M10); rules 2→3 (M12); MCP tools 13→14 (M10); commands 14→0 (M3) | [valid: 2026-10-08] |
+| codemem index at verification | 239 files after `codemem build` (was 7 files stale) | [valid: 2026-10-08] |
+
+## Tool Versions
+
+| Tool | Version | Source / note | Marker |
+|------|---------|---------------|--------|
+| ruff | 0.15.9 | uv.lock (PATH ruff is conda 0.15.4 — never used; pre-commit hook runs `uv run ruff`) | [valid: 2026-10-08] |
+| uv | 0.12.3 | CI pins via `astral-sh/setup-uv@<sha>` `version: 0.12.3` | [valid: 2026-10-08] |
+| gitleaks (local) | 8.18.0 | conda, not in venv; 8.18 has no `git` subcommand (use `detect` / `protect`) | [valid: 2026-10-08] |
+| gitleaks (CI + pre-commit) | v8.18.4 | tarball, sha256 verified | [valid: 2026-10-08] |
+| shellcheck | 0.11.0 | conda/system; pre-commit `language: system` | [valid: 2026-10-08] |
+| pre-commit | 4.6.2 (uv.lock; conda has 4.5.1 — never used) | added to `[dependency-groups] dev` in M1.2 (`pre-commit>=4.5`) | [valid: 2026-10-08] |
+| bandit | 1.9.4 | resolves to conda today; pinned `bandit==1.9.4` in dev group in M1.2 | [valid: 2026-10-08] |
+| griffe | absent | added (pinned) to dev group in M10.7 | [valid: 2026-10-08] |
+| osv-scanner | absent | YAGNI for the forge (P7) | [valid: 2026-10-08] |
+| Claude Code | 2.1.294 | no MultiEdit tool; `claude plugin eval` exists | [valid: 2026-10-08] |
+| writing-for-agents upstream | mattpocock/skills @ c55ee46 | fetch via `gh api …?ref=<40-hex>` | [valid: 2026-10-08] |
+
+## API Endpoints
+
+| Endpoint | URL / form | Auth | Notes |
+|----------|-----------|------|-------|
+| GitHub repo | https://github.com/snewhouse/aa-ma-forge | gh CLI | PUBLIC [valid: 2026-10-08] |
+| Fork fetch (M4.4) | `gh api repos/mattpocock/skills/contents/…?ref=<40-hex of c55ee46>` | gh CLI | never from the plugin cache (lags upstream); record sha256 [valid: 2026-10-08] |
+| Hook docs (A1, M10.1) | code.claude.com hook docs | none | PreToolUse/PostToolUse `hookSpecificOutput.additionalContext` [valid: 2026-10-08] |
+| Skills docs (M4.1) | code.claude.com skills docs | none | source of the allowed frontmatter key list; cite in test docstring [valid: 2026-10-08] |
+| Release check (M14.2) | `gh release view v0.18.0` | gh CLI | must exit 0 [valid: 2026-10-08] |
+
+## Gate Fields (plan §2a — transcribed to tasks.md)
+
+| Milestone | Gate | Audit-Profile | Critical-Path | Prototype-Required | TDD-Waiver |
+|---|---|---|---|---|---|
+| M1 | HARD | full | hook-modification | — | — |
+| M2 | HARD | full | hook-modification | — | — |
+| M3 | HARD | full | hook-modification | YES | — |
+| M4 | SOFT | full | version-pipeline | — | — |
+| M5 | HARD | code-only | hook-modification | — | refactor |
+| M6 | HARD | full | hook-modification | — | — |
+| M7 | HARD | full | hook-modification | — | — |
+| M8 | HARD | full | hook-modification | — | — |
+| M9 | HARD | full | hook-modification | — | — |
+| M10 | HARD | full | hook-modification | YES | — |
+| M11 | HARD | full | hook-modification | YES | — |
+| M12 | HARD | full | hook-modification | — | — |
+| M13 | SOFT | docs-only | — | — | docs-only |
+| M14 | HARD | code-only | version-pipeline | — | — |
+
+`[valid: 2026-10-08]` — "—" means the field is omitted in tasks.md; never written empty (gate exit 2).
+
+## Canonical Enum Values Used (`src/aa_ma/plan_parsers.py`, `src/aa_ma/enforce.py`)
+
+| Field | Canonical set | Used here | Marker |
+|-------|---------------|-----------|--------|
+| Audit-Profile | full, code-only, docs-only, infra, custom | full, code-only, docs-only | [valid: 2026-10-08] |
+| TDD-Waiver | refactor, docs-only, prototype, hotfix-emergency, tooling-config | refactor (M5), docs-only (M13) | [valid: 2026-10-08] |
+| Critical-Path | auth-flow, data-xform, external-api, version-pipeline, doc-count-drift, hook-modification | hook-modification, version-pipeline | [valid: 2026-10-08] |
+| Diagram-Waiver (plan-level) | none, docs-only, config-only, single-file | none | [valid: 2026-10-08] |
+| Gate | SOFT, HARD | both | [valid: 2026-10-08] |
+| Mode | HITL, AFK | both | [valid: 2026-10-08] |
+| Prototype-Required | YES, NO | YES (M3, M10, M11) | [valid: 2026-10-08] |
+| Milestone Status | PENDING, ACTIVE, IN_PROGRESS, COMPLETE, BLOCKED | PENDING, COMPLETE (M1–M4) | [valid: 2026-10-09] |
+| Step Status | PENDING, IN_PROGRESS, COMPLETE, BLOCKED, SKIPPED, DEFERRED | PENDING, COMPLETE | [valid: 2026-10-09] |
+| Plan heading grammar (strict writer) | `^## Milestone (\d+): ` / `^### Sub-step (\d+\.\d+): ` (`grammar.CANONICAL_*_RE`) | step `8.4a` renumbered to 8.5 for that reason | [valid: 2026-10-08] |
+
+## CLI Contracts
+
+### `scripts/check_conventions.py` (new, M1; rules in M6)
+- Usage: `scripts/check_conventions.py [--from-ref REF --to-ref REF] [FILE...]` [valid: 2026-10-08]
+- Exit codes: `0` clean | `1` findings (one line each: `path:line: CODE message`) | `2` usage/git error, including "no diff source" (no refs, nothing staged). [valid: 2026-10-08]
+- Precedence: `--from-ref/--to-ref` flags > `PRE_COMMIT_FROM_REF`/`PRE_COMMIT_TO_REF` env > staged mode; three-dot diff `from...to`; `FILE...` filters the diff. [valid: 2026-10-08]
+- M1 ships zero checks: prints `check_conventions: 0 checks enabled`. M6 adds `WHY001`, `TODO001` (added/modified lines only). [valid: 2026-10-08]
+- `TODO001` reference regex: `#\d+|ADR-\d{4}`. [valid: 2026-10-08]
+- As built (M1, d3b6bc4): every diff runs from `git rev-parse --show-toplevel` with `--literal-pathspecs`, `--no-textconv`, `--no-ext-diff`; FILE args are repo-root-relative (normalised with `os.path.normpath`); name-status `-z` walk mirrors `src/aa_ma/analysis/changed.py` (R/C take two paths); summary line goes to stderr, findings to stdout; `CHECKS` is a list of `(path, {line: text}) -> [(path, line, code, message)]`. [valid: 2026-10-08]
+- Deferred to M6: escape control characters in printed findings (security I1) and print non-UTF-8 paths safely (`errors="backslashreplace"` on output; /sole-dev-merge C1 LOW); one-call diff if per-file latency shows (code-review I2). [valid: 2026-10-08]
+- Format on touch: a `git mv`/`sed`/manual edit bypasses the edit-time ruff-format hook, so format the file in the same change (M3 renames). [valid: 2026-10-08]
+
+### `aa-ma-impact` (new, M11; `[project.scripts] aa-ma-impact = "aa_ma.impact:main"`)
+- Usage: `aa-ma-impact <plan.md> <tasks.md> --milestone N --base SHA [--format kv|json] [--ignore-cutover]` [valid: 2026-10-08]
+- Exit codes: `0` pass | `1` unexplained / undeclared API break / no Contract Files (post-cutover) / derived Critical-Path without review | `2` usage / unreadable / git error | `3` codemem index unavailable or `refresh-commits` failed (fails closed) | `5` not applicable (grandfathered; prints why). [valid: 2026-10-08]
+- kv keys: `changed= predicted= cochange= unexplained= api_breaks= derived_cp=<value:file,…>`; `api_diff=skipped(<reason>)` when griffe cannot run. [valid: 2026-10-08]
+- Order: cutover/grandfather check FIRST (exit 5) before `aa_ma_milestone_base`. [valid: 2026-10-08]
+
+### `aa_ma_milestone_base` (bash, `claude-code/hooks/lib/aa-ma-parse.sh`, M11)
+- `git merge-base origin/<default> HEAD`; empty or == HEAD → exit 2 "no milestone window"; no origin → exit 2 with a named error. [valid: 2026-10-08]
+- `aa_ma_impact` launcher returns 127 when uv is missing (aa_ma_gate pattern). [valid: 2026-10-08]
+
+### `aa-ma-gate` (existing)
+- `uv run aa-ma-gate <tasks.md> [--milestone N] [--step N.M] [--format kv]`; exit 0/1/2/3/4; empty field value → exit 2. [valid: 2026-10-08]
+
+### codemem CLI additions (M10)
+- `codemem query callees`; `codemem query co_changes <path>... --threshold N --min-ratio R` (JSON; no `--json` flag exists; exit 1 on `error`); `codemem impact <path> --format brief|json`; `codemem refresh-commits`. [valid: 2026-10-08]
+
+### `scripts/run-evals.sh` (new, M4)
+- Exit 0 always (advisory); rc in the last line; results → `.claude/evals/<YYYY-MM-DD>.jsonl` (gitignored) + one summary line; `claude plugin eval` always with `--no-publish`, `--runs 1`, no ablation arm. [valid: 2026-10-08]
+- As built (M4; scrub reworked at sole-dev-merge Stage D): `env -i PATH HOME LANG` starts a clean inner bash, which reads the forwarded credentials NUL-separated on stdin and execs claude (no token in argv — `/proc/<pid>/cmdline` is world-readable; an `export -n` scrub was tried and let exported functions and unparseable names through); forwarded (+ CLAUDE_CODE_OAUTH_TOKEN, CLAUDE_CONFIG_DIR if set; ANTHROPIC_API_KEY only with RUN_EVALS_ALLOW_API_KEY=1); `claude plugin eval . --eval-dir evals --no-publish --runs 1 --ablation none --scaffold --trust-plugin --model sonnet --max-cost-usd 5`, temp `--output-dir`; extra args pass through (e.g. `-j 4`, `--case`); JSONL fields ts, case, verdict, score, rc, model, error, failed. `scripts/release.sh --skip-evals` skips the advisory run; `--dry-run` never runs it. [valid: 2026-10-09]
+
+## Provenance Token Formats
+
+| Token | Exact format | Written by | Marker |
+|-------|--------------|-----------|--------|
+| BASELINE | `[ts] BASELINE — pytest=<passed>/<skipped>/<deselected> ruff_src_packages=<N> ruff_S=<N> shellcheck=<N> rules_chars=<N>` | M1.1 | [valid: 2026-10-08] |
+| TESTS_VERIFIED | `[ts] TESTS_VERIFIED — <milestone heading> — passed=N cmd=<TEST_CMD>` | §6.7 fence 3 (live from M10's gate) | [valid: 2026-10-08] |
+| TESTS_VERIFIED (opt-out) | `[ts] TESTS_VERIFIED — <milestone heading> — skipped: <reason>` (needs `Test-Command: none — <reason>` + GATE APPROVAL) | fence 3 | [valid: 2026-10-08] |
+| IMPACT_VERIFIED | `[ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0 api_diff=<summary>` | §6.7 fence 4 (post-cutover plans only) | [valid: 2026-10-08] |
+| IMPACT-GATE n/a | `IMPACT-GATE: not applicable (grandfathered)` — printed, never silent | fence 4 | [valid: 2026-10-08] |
+| CRITICAL_PATH_REVIEW | `[ts] CRITICAL_PATH_REVIEW — <milestone heading> — <value> — <evidence>` | last sub-step of each Critical-Path milestone | [valid: 2026-10-08] |
+| PROTOTYPE | `[ts] PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES\|NO` | M3.1, M10.1, M11.1 | [valid: 2026-10-08] |
+| DIAGRAM_VERIFIED | `DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K` | existing §6.7 fence 2 | [valid: 2026-10-08] |
+| PAYLOAD_CAPTURED | `PAYLOAD_CAPTURED <event>` (one per registered hook event) | M7.5 | [valid: 2026-10-08] |
+| COMMANDS | `COMMANDS pre=N post=N-14` | M4.0 | [valid: 2026-10-08] |
+| EVAL_PROOF | `[ts] EVAL_PROOF — {json: case, rc, verdict, score, cost_usd, claude, mechanism}` | M4.3 | [valid: 2026-10-09] |
+| EVAL_BASELINE / EVAL_RERUN | `[ts] EVAL_BASELINE — <N> cases <model>: <P> pass/<F> fail …` | M4.5, M4.7, eval re-runs | [valid: 2026-10-09] |
+| Ruff/Bandit decision (context-log) | `DECISION ruff-only\|fallback (<ids>) — approved by Ste` | M8.1 | [valid: 2026-10-08] |
+
+The §6.7 gate matches `<milestone heading>` with `grep -F` against the tasks.md heading (without `## `, backticks included). [valid: 2026-10-08]
+
+## Constants
+
+| Constant | Value | Context | Marker |
+|----------|-------|---------|--------|
+| `COCHANGE_MIN_SHARED` | 5 | `src/aa_ma/impact.py`; a pair counts only with ≥5 shared commits (T7) | [valid: 2026-10-08] |
+| `COCHANGE_MIN_RATIO` | 0.5 | partner changed in ≥50% of the file's commits (≥ semantics) | [valid: 2026-10-08] |
+| `COCHANGE_WINDOW_COMMITS` | 500 | `src/aa_ma/impact.py`; `codemem refresh-commits --limit` for fence 4 (11.1 Ste; 2000 = 3× lines, stale pairs; M3 renames out of range, F1 accepted); no sweep filter (gate counts every commit, unlike the hook's `CO_CHANGE_MAX_COMMIT_FILES`) | [valid: 2026-10-27] |
+| Cochange-Threshold override bounds | n ≤ 20, ratio ≤ 0.9 | `Cochange-Threshold: <n> <ratio>` in reference.md merge-base copy; needs GATE APPROVAL | [valid: 2026-10-08] |
+| `IMPACT_CUTOVER` | `"2026-10-29"` | `src/aa_ma/impact.py:64`; the v0.18.0 release date (the `9999-12-31` sentinel until M14.1, d3402b53) | [valid: 2026-10-29] |
+| `IMPACT_EXCLUDE` | `(".claude/dev/**", "docs/architecture/**", "tests/golden/**", "uv.lock", "CHANGELOG.md")` | impact.py | [valid: 2026-10-08] |
+| Fence 3 timeout | `${AA_MA_TEST_TIMEOUT:-540}` s | Bash tool max is 600 s; baseline suite 112.5 s | [valid: 2026-10-08] |
+| Fence 3 pass regex | final non-empty line after `sed -E 's/^=+ //; s/ =+$//'` matches `(^|, )([0-9]+) passed` | earlier "2 snapshots passed." lines ignored | [valid: 2026-10-08] |
+| Fence 3 rejected chars | `;` `\|` `&` `$` backtick `<` `>` | TEST_CMD run as shlex argv, no `bash -c` | [valid: 2026-10-08] |
+| `coding-standards.md` budget | ≤ 6,000 chars (~1.5k tokens) | `tests/test_autoload_budget.py` | [valid: 2026-10-08] |
+| Rules RATCHET | 20,072 bytes after M12 (M1 rules-only baseline 20,249 bytes, `cat claude-code/rules/*.md \| wc -c`); may only fall | `tests/test_autoload_budget.py` | [valid: 2026-10-08] |
+| Prompt body cap | ≤500 lines | `tests/test_prompt_size.py` | [valid: 2026-10-08] |
+| TOC threshold | references >100 lines (new/modified only) | `tests/test_prompt_size.py` | [valid: 2026-10-08] |
+| assess-codebase SKILL.md cap | ≤250 lines (220 now) | `test_assess_codebase.py:73` | [valid: 2026-10-08] |
+| mccabe max-complexity | 10 | Ruff C901 | [valid: 2026-10-08] |
+| pylint max-args | 6 | Ruff PLR0913 | [valid: 2026-10-08] |
+| Frontmatter limits | name ≤64 `[a-z0-9-]`; description ≤1024, no `<`; description + `when_to_use` ≤1536 | `tests/test_frontmatter_at_top.py` | [valid: 2026-10-08] |
+| Eval cases | 24 (3 × 8 skills) | `evals/<skill>/<case>/case.yaml` | [valid: 2026-10-08] |
+| Pre-edit hook output cap | ≤5 lines; `sanitize_context_line(text, max_len=200)` | aa-ma-impact-preedit.sh | [valid: 2026-10-08] |
+| Pre-edit hook latency budget | p95 ≤1.5 s over 20 runs; 2 s timeout fails open with notice | M10.1 | [valid: 2026-10-08] |
+| ruff hook additionalContext cap | ≤10 lines | ruff-format.sh | [valid: 2026-10-08] |
+| `session_id` pattern | `^[A-Za-z0-9_-]{1,64}$` | pre-edit hook | [valid: 2026-10-08] |
+| Redaction input cap | 8 KB before matching; 100 KB adversarial timing test per pattern | logsetup / aa-ma-log.sh | [valid: 2026-10-08] |
+| `callees` defaults | `max_depth=3, budget=8000` | codemem mcp_tools | [valid: 2026-10-08] |
+| `file_impact` default budget | 2000 | codemem mcp_tools | [valid: 2026-10-08] |
+| `CO_CHANGE_MAX_COMMIT_FILES` | 10 files/commit | hook + `file_impact` co-change filter; 10.1 verdict (sweep commits here are 12–19 files) | [valid: 2026-10-25] |
+| Pre-edit hook measured latency | p95 72–77 ms (prototype, 20 runs × 4 files, forge .venv python direct) | 10.1 | [valid: 2026-10-25] |
+| gitutil timeout | 10.0 s | `git(args, repo, timeout=10.0)` | [valid: 2026-10-08] |
+| Dependabot cooldown | 7 days | `.github/dependabot.yml` | [valid: 2026-10-08] |
+| codemem schema | v4 (adds `plugin_edges(src TEXT, dst TEXT, kind TEXT, ref_class TEXT)`) | storage/db.py, M10.3 | [valid: 2026-10-08] |
+| Security-static-check Ruff selection | `S102,S301,S307,S602,S604,S608`, `--isolated --ignore-noqa`, whole file | D12, M8.6 (S102 added) | [valid: 2026-10-13] |
+| Ruff S ignores | `tests/**` S101, S108, S110, S603, S607 (Ste-approved deviation, M8.2) | pyproject.toml | [valid: 2026-10-13] |
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `AA_MA_TEST_TIMEOUT` | 540 | no | fence 3 timeout, seconds [valid: 2026-10-08] |
+| `AA_MA_TEST_KILL_AFTER` | 30 | no | fence 3 SIGKILL grace after the timeout (`timeout -k`), seconds [valid: 2026-10-13] |
+| `HOOK_DEBUG` | unset | no | `=1` enables `log_debug` (also stderr) in hooks [valid: 2026-10-08] |
+| `AA_MA_PLAN_MARKER_DEBUG` | unset | no | deprecated alias for one release (prints notice) — removal recorded in TODOS.md [valid: 2026-10-08] |
+| `CLAUDE_HOOK_LOG` | `~/.claude/logs/hooks.log` | no | hook log path (compaction.log folds in); the name already shipped in ruff-format.sh, its bats, logging-and-comments and ADR-0019 — the plan's `AA_MA_HOOK_LOG` is not used (Ste, M7.0) [valid: 2026-10-11] |
+| `LOG_LEVEL` | — | no | Python CLI log level (with `-v`/`-q`) [valid: 2026-10-08] |
+| `LOG_FORMAT` | text | no | `json` opt-in for CLIs; required for services [valid: 2026-10-08] |
+| `PRE_COMMIT_FROM_REF` / `PRE_COMMIT_TO_REF` | unset | no | read by check_conventions.py (pre-commit cannot template refs into args) [valid: 2026-10-08] |
+| `AA_MA_HOOKS_DISABLE` | unset | no | master kill switch (emergency rollback for new fences, stated to Ste) [valid: 2026-10-08] |
+| `CLAUDE_HOME` | `~/.claude` | no | fake home for in-milestone install proofs [valid: 2026-10-08] |
+| `RUFF_BIN` | `ruff` | no | scanner override; `/nonexistent` exercises the UNKNOWN path [valid: 2026-10-08] |
+| `BANDIT_BIN` | — | no | RETIRED in M8 (Stage C3 uses `RUFF_BIN`) [valid: 2026-10-08 to 2026-10-13] |
+| `SHELLCHECK_BIN` | `shellcheck` | no | scanner override (existing) [valid: 2026-10-08] |
+| `CODEMEM_BIN` | — | no | pins the codemem binary for the post-commit worker / §6.0 (no fallback); `/nonexistent` exercises codemem-absent [valid: 2026-10-14] |
+| `GH_TOKEN`, `GITHUB_TOKEN`, `SSH_AUTH_SOCK` | — | no | unset inside the eval sandbox (`env -i`; credentials forwarded on stdin, not argv) [valid: 2026-10-08] |
+| `RUN_EVALS_ALLOW_API_KEY` | 0 | no | `1` forwards `ANTHROPIC_API_KEY` into run-evals; otherwise dropped so evals stay on plan usage [valid: 2026-10-09] |
+| `RUN_EVALS_MODEL` / `RUN_EVALS_MAX_COST_USD` / `RUN_EVALS_DIR` / `RUN_EVALS_RESULTS` | sonnet / 5 / evals / `.claude/evals` | no | run-evals.sh knobs [valid: 2026-10-09] |
+| `AA_MA_EVAL_LIVE` | 0 | no | `1` runs the paid LIVE sandbox bats case [valid: 2026-10-09] |
+| `EVALS` | `scripts/run-evals.sh` | no | release.sh seam (tests stub it) [valid: 2026-10-09] |
+
+### Config Files and keys
+- `pyproject.toml` [valid: 2026-10-08]:
+  - `[dependency-groups] dev` (`:129`) — gains `pre-commit`, `bandit==1.9.4` (M1), pip-audit (M8), griffe pinned (M10); `tool.uv.dev-dependencies` removed.
+  - `:49` "≥90% coverage gate" and `:121` "CI perf job" claims deleted (M9.3, P5); `:68` comment "CI runs `ruff check src/`" updated (M1).
+  - `[tool.ruff.lint]` `:81-83` D101–D104 parked list + `TODO(logging-std)` deleted (M6); extend-select += D, RUF100, PGH003, PGH004, C901, PLR0913 (M6), S (M8); extend-ignore D107, TD003; convention google.
+  - `[project.scripts] aa-ma-impact = "aa_ma.impact:main"` (M11).
+- `.pre-commit-config.yaml` hook ids (all `repo: local`): `ruff-check`, `ruff-format`, `shellcheck`, `check-conventions` (+ gitleaks M8). [valid: 2026-10-08]
+- `~/.claude/settings.json`: `:561` existing ruff-format.sh command string; `:295 "off"` senior-secops override left alone (L-1210). [valid: 2026-10-08]
+- `.importlinter`: `:80-86` forbids `aa_ma` importing `codemem`; leaf contracts `render-is-leaf`, `analysis-is-leaf`, `analysis-is-self-contained` gain `aa_ma.logsetup`, `aa_ma.gitutil`, `aa_ma.impact`, `aa_ma.contract_rows`. [valid: 2026-10-08]
+
+## Dependencies
+
+| Package | Version | Class | Purpose |
+|---------|---------|-------|---------|
+| pre-commit | (locked in uv.lock) | Dev-only | touched-files harness (P1) [valid: 2026-10-08] |
+| bandit | — | removed | dropped from the dev group in M8.6 (db3c46a); ruff-only [valid: 2026-10-08 to 2026-10-13] |
+| ruff | 0.15.9 (uv.lock) | Dev-only | lint, format, Ruff S [valid: 2026-10-08] |
+| pip-audit | >=2.10.1 (2.10.1 locked) | Dev-only | hashed dependency audit (A6 fallback) [valid: 2026-10-13] |
+| griffe | pinned in M10.7 | Dev-only | API diff for `aa_ma` and `codemem` (P6) [valid: 2026-10-08] |
+| codemem-mcp | workspace member | Dev-only for `aa_ma` | `pyproject.toml:56`; aa_ma shells out to its CLI, never imports it [valid: 2026-10-08] |
+| GitHub Actions | `astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7` (v10.2.0), `actions/checkout@11d5960…` (v4.4.0) | CI | SHA-pinned; `persist-credentials: false` [valid: 2026-10-08] |
+
+## File Paths
+
+### Files to Create
+- `.pre-commit-config.yaml`; `scripts/check_conventions.py` (stdlib-only) — M1 [valid: 2026-10-08]
+- `tests/scripts/test_check_conventions.py`, `tests/test_precommit_config.py` — M1
+- `docs/adr/NNNN-touched-code-lint-gate.md` — M1
+- `claude-code/skills/{logging-and-comments,python-quality-gates,llm-output-safety,secrets-management,bash-defensive-patterns}/…`; `claude-code/hooks/ruff-format.sh`; `tests/hooks/ruff-format.bats`; `docs/adr/NNNN-coding-doctrine-skill-migration.md` — M2
+- `claude-code/skills/<11 moved commands>/SKILL.md`; `tests/skills/test_no_command_skill_collision.py`, `tests/skills/test_model_invocation_list.py`; `docs/adr/NNNN-commands-become-skills.md` — M3
+- `tests/test_prompt_size.py`; `claude-code/skills/writing-for-agents/`; `evals/<skill>/<case>/case.yaml` (24); `scripts/run-evals.sh`; `tests/scripts/test_run_evals_sandbox.bats`; `docs/adr/NNNN-writing-for-agents-fork.md` — M4
+- `tests/test_split_preserves_content.py`; `references/` dirs for the 6 split skills — M5
+- `claude-code/hooks/lib/aa-ma-log.sh`; `src/aa_ma/logsetup.py`; `tests/hooks/aa-ma-log.bats`; `tests/test_logsetup.py`; `tests/fixtures/hook-payloads/` — M7
+- `docs/research/code-conventions-impact-ruff-vs-bandit.md`; `.github/dependabot.yml`; `.gitleaksignore`; `claude-code/skills/secops/SKILL.md`; `tests/security/test_canary.py`; `tests/fixtures/canary/`; `docs/adr/0022-secops-baseline.md` — M8
+- `tests/hooks/test_tests_verified.bats`; `tests/test_tdd_waiver_doc_sync.py`; `docs/adr/NNNN-tests-verified-gate.md` — M9
+- `packages/codemem-mcp/src/codemem/gitutil.py`; `src/aa_ma/gitutil.py`; `claude-code/hooks/aa-ma-impact-preedit.sh`; `tests/codemem/{test_callees,test_file_impact,test_plugin_surface_index,test_critical_path_globs}.py`; `tests/test_gitutil_contract.py`; `tests/hooks/aa-ma-impact-preedit.bats`; `docs/adr/NNNN-impact-preedit-hook-and-callees.md` — M10
+- `src/aa_ma/impact.py`; `src/aa_ma/contract_rows.py`; `tests/test_impact.py`; `tests/test_contract_rows.py`; `tests/test_impact_codemem_contract.py`; `tests/hooks/test_impact_verified.bats`; `tests/hooks/aa-ma-milestone-base.bats`; `claude-code/skills/execute-aa-ma-milestone/references/impact-gate.md`; `docs/adr/NNNN-gate-computed-impact-verified.md` — M11
+- `claude-code/rules/coding-standards.md`; `claude-code/skills/language-conventions/{SKILL.md,references/{python,bash,markdown,typescript,r,sql}.md}`; `tests/test_autoload_budget.py`; `tests/test_rule_references.py` — M12
+
+### Files to Modify (with plan line citations)
+- `pyproject.toml` (:49, :56, :68, :81-83, :121, :129) [valid: 2026-10-08]
+- `.github/workflows/security.yml` (:39 Bandit `|| true` = carried defect 3; bats job Bandit :103-107)
+- `scripts/install.sh` (REQUIRED_DIRS :80; rules backup list :200-202 (was :145-146; locate by `collect_backup_target …rules/`); pre-compact backup :149; foreign-symlink/stale-link logic; symlink target :257-269; rules symlinks :404-409 (was :284-287; locate by `create_symlink …claude-code/rules/`); other line numbers here pre-date M10 — locate by content; AA_MA_HOOKS table :314-323; hooks/lib per-file list :331-346); `scripts/uninstall.sh`
+- `claude-code/skills/FORKS.json`; `src/aa_ma/forks.py`; `scripts/fork-drift.sh` (:4, :39 hard-code `repos/mattpocock/skills`)
+- `packages/codemem-mcp/src/codemem/draw/surface_allowlist.py`; `packages/codemem-mcp/src/codemem/draw/plugin_surface.py`
+- `claude-code/skills/understand-codebase/references/PLAYBOOK-CONTRIBUTE.md:46`; `claude-code/skills/python-quality-gates/SKILL.md:42`
+- `claude-code/commands/aa-ma-plan.md:579`, `claude-code/commands/aa-ma-share.md:30` (readlink fix → `/../../..`)
+- `claude-code/rules/engineering-standards.md` (:66 hook-modification scope; §2 TDD block; §5 rows; §1 Critical-Path table)
+- `docs/spec/aa-ma-specification.md` (:145, :183-188, :911); `docs/spec/claude-code-foundations.md` (:34, :73, :92, :113, :157); `README.md` (:255, "### All commands"); `SECURITY.md` (:11-12)
+- `examples/**/aa-ma-team-guide-reference.md:69`; `claude-code/hooks/lib/aa-ma-footer.sh:5`; `claude-code/hooks/lib/aa-ma-chart-guard.sh:18` (comments)
+- `tests/test_frontmatter_at_top.py`; `tests/test_doc_counts.py`; `tests/fixtures/draw-node-ids.json`; `tests/skills/test_assess_codebase.py:73`; `tests/test_plugin_surface.py:113-119`; 31 test files referencing `commands/`
+- `claude-code/skills/dispatching-parallel-agents/SKILL.md` (:6 `languages:`, :7 `context:`); operational-constraints and system-mapping (`triggers`)
+- `docs/adr/0004-write-a-skill-adoption.md` (→ Superseded); `docs/adr/INDEX.md` (every ADR step)
+- Bats pinning prompt text (M5): `execute_aa_ma_milestone_phase_6_8.bats` (10 greps), `aa-ma-deps.bats`, `aa-ma-gate-scans.bats:155`, `aa-ma-gate-python.bats:45`, `test_diagram_verified.bats:127`, sole-dev-merge `fixtures/extract_stage.sh`
+- Readers of the six SKILL.md files (M5, `git grep` 2026-10-11 @ bc177e5): bats — `tests/commands/sole-dev-merge/*.bats` (10) via `fixtures/extract_stage.sh`, `aa-ma-deps.bats` (:58 aa-ma-plan, :86 execute-aa-ma-full, + execute-aa-ma-milestone), `aa-ma-gate-python.bats` (:45, :421 plan-verification), `aa-ma-gate-scans.bats:155`, `execute_aa_ma_milestone_phase_6_8.bats`, `test_diagram_verified.bats:127`; pytest — `test_planning_standard_count.py`, `test_plan_verification_angle6.py`, `tests/skills/test_angle6_coverage.py`, `tests/skills/test_understand_codebase_rewire.py`, `tests/test_active_plans_canonical.py`, `tests/test_prompt_size.py`. codemem `plugin_surface.extract` owns every file under `skills/<name>/` (references included) as `skill:<name>`, so moving text inside a skill dir keeps its edge set. [valid: 2026-10-11]
+- Content-preservation base (M5): each split is its own commit `refactor(skills): split <skill> …`; `tests/test_split_preserves_content.py` finds it by subject (rebase-merge keeps messages, not SHAs) and compares the commit with its parent (pre-split = parent; worktree cut from main bc177e5). Before that commit exists it compares the working tree with HEAD. A fixed base SHA vs HEAD was rejected: M7–M11 edit these files and would break it. [valid: 2026-10-11]
+- Split layout (M5, as built): six skills = SKILL.md + references/*.md (flat); moved sections keep their top heading in SKILL.md + `See [<file>](references/<file>#<anchor>) — <purpose>`; safety steps restated inline (execute-aa-ma-milestone §6.8 BLOCKED, §7.3 approval, §8→§9–§11; execute-aa-ma-full §8.1; sole-dev-merge Stage D; aa-ma-plan phase order). Gate fences stay inline. Readers of a split skill use `tests/skills/_helpers.py` skill_files/skill_text or `tests/lib/skill_files.bash`; `extract_stage.sh` reads SKILL.md + references and refuses duplicate markers. `tests/test_prompt_size.py` ALLOWLIST = {} (asserted). [valid: 2026-10-11]
+- Deferred from M5 §6.8: execute-aa-ma-milestone and execute-aa-ma-full ship byte-identical `references/pre-execution-validation.md` (74 lines) — consolidate when a milestone edits these skills (M7–M11). [valid: 2026-10-11]
+- `claude-code/hooks/lib/aa-ma-parse.sh` (`aa_ma_debug`, `HOOK_DEBUG` read at :68; `aa_ma_gate` launcher :261); `claude-code/hooks/aa-ma-plan-skip-warn.sh`; `claude-code/hooks/pre-compact-aa-ma.sh`; `tests/hooks/pre-compact.bats:110`; `docs/spec/plan-marker-grammar.md:207`
+- `claude-code/hooks/security-static-check.sh`; `claude-code/agents/security-auditor.md:3,7`; verify-impl SKILL.md (:93-96 window, :205/:211); execute-aa-ma-milestone (:604, :605 conditions 3/4; :611-630 CRITICAL_PATH_REVIEW grep; :661-731 DIAGRAM_VERIFIED fence; :793/:857); sole-dev-merge Stage D (:443-531) [line numbers pre-M5: since the split the §6.7/§7.1 fences remain in execute-aa-ma-milestone/SKILL.md, §6.8 is in references/post-impl-review.md, Stage D in sole-dev-merge/references/stage-d-triage.md], `test_stage_d_triage.bats`, `test_smoke_e2e.bats:209`
+- `claude-code/agents/code-reviewer.md` (:91 style-nit ban kept)
+- `packages/codemem-mcp/src/codemem/mcp_tools/__init__.py` (`blast_radius` returns key `downstream` :252; `aa_ma_context` reads `callees` :1287 = carried defect 1); `mcp_tools/sanitizers.py`; `cli.py` (`_cmd_query`; co_changes passed only path+budget :246); `packages/codemem-mcp/src/codemem/analysis/git_mining.py:207-210`; `storage/db.py`; `indexer.py`; `claude-code/codemem/mcp/server.py`
+- 14-MCP-tool count sites: `tests/codemem/test_mcp_server.py` (`test_thirteen_exact`), SECURITY.md, `claude-code/codemem/README.md:63`, `claude-code/codemem/commands/codemem.md:57`, `packages/codemem-mcp/README.md`, `packages/codemem-mcp/pyproject.toml`, `docs/codemem/install-zero-config.md`; wording in `skills/impact-analysis/SKILL.md:227-232`, `skills/system-mapping/SKILL.md:140`
+- `src/aa_ma/plan_parsers.py`; `src/aa_ma/enforce.py`; `src/aa_ma/render/coverage.py` (`_ROW_RE` :36 Create|Modify only; `contract_paths` :70 drops tests/docs); `src/aa_ma/grammar.py:49` imports plan_parsers (hence new `contract_rows` module)
+- `docs/templates/{reference-template,tasks-template,plan-template}.md`; `claude-code/agents/aa-ma-scribe.md`; `claude-code/hooks/aa-ma-commit-drift.sh`; `scripts/regen-generated.sh`; `scripts/release.sh`
+- Outside repo (HITL): `~/.claude/skills/<5>` + `~/.claude/hooks/lib/ruff-format.sh` (M2); `~/.claude/skills/senior-secops` (M8); `~/.claude/CLAUDE.md` "Coding & Architecture" :58-69 (M12); `~/.claude/settings.json` via install.sh. Project `CLAUDE.md` (gitignored; :51-52) is a local edit.
+
+### Key Directories
+- `.claude/dev/active/code-conventions-impact/` — this task's AA-MA files [valid: 2026-10-08]
+- `.worktrees/<branch>` — per-milestone worktrees (to M16; from M10 only for a PR that must not go live before merge, e.g. 10.0's own)
+- `~/.local/share/codemem-plugin-wt` — the live worktree (ADR-0025): `~/.claude` links + user-scope codemem MCP
+- `~/.claude/backups/cci-mN-<ts>.tgz` — outside-repo backups (M2, M8, M12), count-verified (L-1300)
+- `~/.claude/runtime/impact-seen-<session_id>/` — pre-edit hook once-per-file markers
+- `~/.claude/logs/hooks.log` — single hook log
+- `.claude/evals/` — eval results (gitignored)
+
+## M2 As-Built Facts (2026-10-09)
+
+- ADR-0019 `docs/adr/0019-coding-doctrine-skill-migration.md` — Accepted, INDEX row 41. [valid: 2026-10-09]
+- Fork pins (`claude-code/skills/FORKS.json`): `secrets-management` = wshobson/agents `plugins/cicd-automation/skills/secrets-management` @ `46891e7e60da0e52baf1050b7b6391b64e84c6d9`, state **derived** (no secret echo; trufflehog `--fail`), local md5 `ea0799c2`, upstream md5 `5273fb73`; `bash-defensive-patterns` = `plugins/shell-scripting/skills/bash-defensive-patterns` @ `5d65aa10638bcc1b390738e11f9bff213f61955a`, derived, upstream md5 `8280da5a`; `references/advanced-patterns.md` is local-only and kept out of `files`. [valid: 2026-10-09]
+- LICENSE in every fork dir: wshobson MIT md5 `0e1b4dd9`; mattpocock MIT @ c55ee46 md5 `a1d7928c` (also added to the 5 pre-existing forks). [valid: 2026-10-09]
+- `src/aa_ma/forks.py` ForkEntry required fields now include `upstream_repo` and `licence`; `python -m aa_ma.forks files` prints 4 columns (skill, repo, upstream, file); `scripts/fork-drift.sh` pre-flights and fetches each row's own repo; `--sha` applies to every row. [valid: 2026-10-09]
+- Outside-repo backup: `~/.claude/backups/cci-m2-20261009T073602Z.tgz`, 11 files, sha256 `dfe5f8f9…4ec4c5` (restore fallback). [valid: 2026-10-09]
+- `claude-code/hooks/ruff-format.sh` = Adoption, adapted: honours `AA_MA_HOOKS_DISABLE`, logs to `${CLAUDE_HOOK_LOG:-~/.claude/logs/hooks.log}`, passes `--` before the path. Not cmp-identical to the live `~/.claude/hooks/lib/ruff-format.sh` (until 3.0 relinks it). [valid: 2026-10-09]
+- `scripts/install.sh`: row `PostToolUse|Edit|Write|ruff-format.sh|10|`; rows parsed by a regex anchored on `<name>.sh|<timeout>|` (same grammar as codemem `_HOOK_ROW`); settings backups are sibling files `~/.claude/backups/settings-aa-ma-forge-<ts>.json`; `--force` still backs up real dirs. `scripts/uninstall.sh --restore` walks every `aa-ma-forge-*` backup newest-first (newest copy per path wins); deregisters ruff-format only without `--restore`. [valid: 2026-10-09] [Superseded by M3 (2f2de1a, 41d8288): uninstall deregisters every AA_MA_HOOKS row, with or without `--restore`; the table lives in scripts/lib/aa-ma-install-lib.sh.]
+- Real hook payload fixtures, one per registered event+matcher: `tests/fixtures/hook-payloads/<Event>[-<Matcher>].json` (captured 2026-10-12; ids → `00000000-0000-4000-8000-NNNNNNNNNNNN` / `toolu_0…N`, home → `/home/capture`); bats read them via `load ../lib/hook_payloads` + `payload <name> <jq filter>`; guarded by `tests/test_hook_payloads.py`. Supersedes the M2.4 `tests/hooks/fixtures/ruff-format/posttooluse-edit.json`. [valid: 2026-10-12]
+- Counts after M2: skills 27, top-level hooks 9. Orphans pinned in `test_plugin_surface.py` until M12: `llm-output-safety`, `bash-defensive-patterns`. [valid: 2026-10-09]
+- Convention (TDD dispute, 2026-10-09): RED tests get their own `test(...)` commit before the GREEN commit. [valid: 2026-10-09]
+
+## M3 As-Built Facts (2026-10-09)
+- Slash entry points are skills: `claude-code/commands/` is gone; 13 former commands live at `claude-code/skills/<name>/SKILL.md` (11 git mv + assess-codebase, understand-codebase merged); skills 38, commands 0. [valid: 2026-10-09]
+- `disable-model-invocation: true` on exactly `sole-dev-merge`, `aa-ma-share`, `execute-aa-ma-full`, `archive-aa-ma` (`tests/skills/test_model_invocation_list.py`). [valid: 2026-10-09]
+- Checkout from an installed skill: `readlink -f ~/.claude/skills/<x>/SKILL.md` then `/../../..` (aa-ma-plan, aa-ma-share). [valid: 2026-10-09]
+- The one hook table: `AA_MA_HOOKS` in `scripts/lib/aa-ma-install-lib.sh` (+ `aa_ma_hook_parse`, `aa_ma_hooks_validate`, `points_into_repo`); sourced by install.sh/uninstall.sh; codemem `surface_allowlist.HOOK_TABLE` points at it. [valid: 2026-10-09]
+- Foreign-symlink manifest: `~/.claude/backups/aa-ma-forge-<ts>/foreign-symlinks.tsv` (`<link>\t<dest>`), replayed by `uninstall.sh --restore`. [valid: 2026-10-09]
+- `/grill-me` is declared external (`surface_allowlist.EXTERNAL["command"]`), the user-level mattpocock skill. [valid: 2026-10-09]
+- ADR-0020 Accepted; next ADR is 0021. [valid: 2026-10-09]
+
+## Decisions (one line each; full text in plan §3)
+
+- D1 Two plans: this plan = map groups 1–12, forge only; reuse (T13/T14) → later `reuse-kit` plan; T13's in-repo git-HEAD helper stays (M10). [valid: 2026-10-08]
+- D2 `deslop-shared-libs` → declared-external (gstack-owned); migration is 5 skills, not 7.
+- D3 `senior-secops` → new forge skill `secops` (thin router); global copy backed up and removed (deletes stub scanner, defect 2); `"off"` override left alone.
+- D4 Retire forge `/grill-me`; 13 commands convert.
+- D5 Milestone order approved, commands→skills early (M3).
+- D6 Prototypes: M3 install path, M10 hook UX, M11 co-change threshold.
+- D7 Worktree per milestone (live symlinks point at the main checkout). **Amended 2026-10-25 (ADR-0025):** from M10, plain branches; `~/.claude` links into the live worktree.
+- D8 Touched files comply in full (file-level, not line-level).
+- D9 (superseded) no `disable-model-invocation`; **D9 revised** (2026-10-08): `disable-model-invocation: true` on `sole-dev-merge` and `aa-ma-share`; **revised again** (2026-10-09, M3 §6.8 security): also `execute-aa-ma-full` and `archive-aa-ma` (commit/tag/push with no per-step gate) — 4 skills.
+- D10 `Test-Command: none — <reason>` opt-out for TESTS_VERIFIED.
+- D11 One release (v0.18.0) in its own milestone M14; interim releases dropped.
+- D12 Commit scan keeps blocking: forge-pinned `ruff check --isolated --select S602,S604,S307,S608,S301` + secret-literal/path-traversal regexes, exit 2 in any repo.
+- P1 Touched-files harness = pre-commit (staged locally; `--from-ref/--to-ref` in CI). P2 Expected-Blast-Radius = Contract `Files:` rows. P3 IMPACT_VERIFIED via `aa-ma-impact` CLI shelling out to codemem. P4 TESTS_VERIFIED for every plan; IMPACT_VERIFIED only for plans `Created:` ≥ IMPACT_CUTOVER. P5 delete unbacked pyproject claims. P6 griffe for aa_ma + codemem only. P7 Dependabot = github-actions + uv. P8 split-on-touch is M5. P9 evals advisory via run-evals.sh (release + weekly local).
+
+## Map Tickets (all RESOLVED; source `code-conventions-impact-map.md`)
+
+- Ticket 1: Where is every coding convention stated today, and where is it enforced? — ~8.8k auto-loaded tokens; real standard is global-only; enforcement thin (bandit `|| true`, D1xx ignored); ponytail↔SOLID/TDD and debug-env-var contradictions. [valid: 2026-10-08]
+- Ticket 2: How do our Python, Bash and Markdown-skill conventions compare with best practice? — text strong, enforcement weak: 4 silent-pass security checks, no supply-chain layer, 6 oversized skills, no skill evals; 19 prioritised actions. [valid: 2026-10-08]
+- Ticket 3: What should the TS/JS, R and SQL convention cards contain? — TS strict + typescript-eslint + pino (stderr); R Air/lintr/roxygen2/logger/renv; SQLFluff + dbt style; conflicts noted (pino stdout, `@param` vs `Args:`, SQL keyword case). [valid: 2026-10-08]
+- Ticket 4: What is the state of impact analysis, and which code-writing skills invoke it? — most gaps open; `aa_ma_context` callees/downstream key bug; no general coding skill invokes it; cheapest wins = co_changes, who_calls pre-edit, path tagging. [valid: 2026-10-08]
+- Ticket 5: What reusable code exists, and how do others curate and graduate it? — nothing packaged; ~3k untested snippet fences; git-HEAD helper ×6 is the first graduation candidate; copier + uv workspaces viable. [valid: 2026-10-08]
+- Ticket 6: Should impact analysis be an explicit step in the coding skills? — global index-gated PreToolUse hook (once/file/session) + forge skills name it; R1/R3/R4/R6; plugin-surface edges into codemem; `callees` rename + alias. [valid: 2026-10-08]
+- Ticket 7: Is the impact check HARD-enforced in the gate? — HARD, gate-computed (DIAGRAM_VERIFIED pattern); unpredicted / predicted-unchanged / co-change (≥5 & ≥50%) misses need `Impact-Explained:`; undeclared API breaks block; derived path tags; new plans only. [valid: 2026-10-08]
+- Ticket 8: What is the comments and docstrings standard per language? — native doc format for public API; full Ruff D (google, D417) on touched files; `# why:` on justified suppressions, RUF100 removes the rest; `TODO(#N|ADR-NNNN)`; reviewer WARNs on substance. [valid: 2026-10-08]
+- Ticket 9: Is `logging-and-comments` adopted as the logging standard? — moves into forge as one revised skill; NullHandler optional; JSON for services; ruff hook feeds findings back; `LOG_LEVEL` + `HOOK_DEBUG`; one hook log + shared log lib. [valid: 2026-10-08]
+- Ticket 10: What is the SecOps baseline, and where does each check run? — 4-layer fail-loud baseline (edit/commit/CI/gate); gitleaks, `uv sync --locked` + audit, Dependabot; Ruff S replaces Bandit after a pinned comparison (gap fallback); secops router; redaction helpers. [valid: 2026-10-08]
+- Ticket 11: How are design principles stated so they are checkable? — start concrete, earn abstractions by evidence (Ste's policy); knowledge-DRY now, code ~3rd occurrence; C901/PLR0913 + `# why:`; risk-proportionate TDD; gate runs tests (TESTS_VERIFIED). [valid: 2026-10-08]
+- Ticket 12: How is the coding doctrine packaged within an auto-load budget? — thin auto-loaded `coding-standards.md` (≤~1.5k tok) + topic skills + `language-conventions`; state-once dedupe incl. global CLAUDE.md (HITL); budget ratchet; global skills migrate; ponytail declared-external. [valid: 2026-10-08]
+- Ticket 13: Where does the reusable-code collection live? — private Carmen uv repo + PEP 723 snippets; public-forge router skill; public copier template; confidentiality gate — deferred to the `reuse-kit` plan (D1), except the in-repo git-HEAD helper (M10). [valid: 2026-10-08]
+- Ticket 14: When does shared code graduate from snippet to module to library? — evidenced same-contract reuse → `_experimental`; public API after 2 stable minors + 2 repos; griffe at library; SemVer 0.y→1.0 — deferred to `reuse-kit` (D1). [valid: 2026-10-08]
+- Ticket 15: What conventions govern Markdown skills and commands as prompt-as-code? — fold writing-for-agents-eval in; 500-line cap + ratchet; strict frontmatter schema test; ≥3 eval cases for gate skills (advisory); commands → skills; why-or-pointer on MUST rules; hook contracts + real-payload bats. [valid: 2026-10-08]
+
+## Research Files
+
+- `docs/research/code-conventions-impact-inventory.md` — T1: where is every coding convention stated, and where is each enforced? [valid: 2026-10-08]
+- `docs/research/code-conventions-impact-best-practice.md` — T2: how do our Python, Bash and Markdown-skill conventions compare with current best practice? [valid: 2026-10-08]
+- `docs/research/code-conventions-impact-language-cards.md` — T3: what should the TS/JS, R and SQL convention cards contain? [valid: 2026-10-08]
+- `docs/research/code-conventions-impact-impact-status.md` — T4: state of impact analysis now, and which code-writing skills invoke it? [valid: 2026-10-08]
+- `docs/research/code-conventions-impact-reuse-prior-art.md` — T5: what reusable code exists, and how do others curate and graduate it? [valid: 2026-10-08]
+- `docs/research/code-conventions-impact-ruff-vs-bandit.md` — (created in M8.1) does Ruff S at 0.15.9 cover every Bandit 1.9.4 test that fires here; plus §deps triage of the 13 vulnerable packages. [valid: 2026-10-08]
+- Prior evidence: `docs/research/impact-analysis-lifecycle-review.md` (2026-09-24; gaps 1–7, R1–R6).
+
+## Folded-in Inputs
+
+- `.claude/dev/charting/writing-for-agents-eval/writing-for-agents-eval-map.md` — 4/4 RESOLVED; executed by M4. [valid: 2026-10-08]
+- Imported map: `.claude/dev/active/code-conventions-impact/code-conventions-impact-map.md` (moved from `.claude/dev/charting/code-conventions-impact/`). [valid: 2026-10-08]
+- Eng-review test plan: `~/.gstack/projects/snewhouse-aa-ma-forge/sjnewhouse-feature-engineering-standards-eng-review-test-plan-20261008-132258.md`. [valid: 2026-10-08]
+
+## Carried Defects (fixed by this plan)
+
+1. `packages/codemem-mcp/src/codemem/mcp_tools/__init__.py:1287` — `aa_ma_context` reads `callees` but `blast_radius` returns `downstream` (:252) → count always 0. Fixed M10.2. [valid: 2026-10-08]
+2. `~/.claude/skills/senior-secops/scripts/security_scanner.py` — stub `analyze()` always returns no findings. Removed M8.7 (D3). [valid: 2026-10-08]
+3. `.github/workflows/security.yml:39` — Bandit `|| true` can never fail CI. Fixed M8.2. [valid: 2026-10-08]
+
+## Glossary
+
+| Term | Definition |
+|------|-----------|
+| Touched file | A file in the staged set (local) or the PR diff (CI); must comply in full (D8). Untouched files are never checked against new rules. |
+| Fence 3 / fence 4 | New §6.7 gate blocks in execute-aa-ma-milestone: TESTS_VERIFIED (M9) and IMPACT_VERIFIED (M11), each its own bash block after DIAGRAM_VERIFIED. |
+| Step N.0 | Post-merge work of milestone N-1 (live install, pre-commit install, live probes), run from the main checkout. |
+| Grandfathered | A plan `Created:` before `IMPACT_CUTOVER`; fence 4 prints "not applicable". This plan (Created 2026-10-08) is grandfathered. |
+| Expected-Blast-Radius | The milestone's Contract `Files:` rows (Create/Modify/Test/Move/Merge/Delete), via `contract_rows.milestone_contract_rows`. |
+
+## M4 As-Built Facts (2026-10-09)
+- Skill frontmatter schema lives in `tests/test_frontmatter_at_top.py` (`SKILL_KEYS`, `skill_schema_errors`, `UNSCOPED_TOOLS_ALLOWLIST` = assess-codebase, retro). Per-skill versions are `metadata.version`. [valid: 2026-10-09]
+- Size ratchet `tests/test_prompt_size.py`: whole-file lines, `ALLOWLIST` ceilings aa-ma-execution 1295, execute-aa-ma-milestone 1244, aa-ma-plan 1154, sole-dev-merge 1057, execute-aa-ma-full 758, plan-verification 608; `TOC_ALLOWLIST` 24 references. [valid: 2026-10-09]
+- Eval fixtures live in `tests/fixtures/evals/<name>/` (scaffolds `evals/_lib/`); baseline 14/24 (pre-4.7) → 22/24 with skill-fired 24/24 (single run after 4.7 + §6.8 fixes); failing cases vary between n=1 runs. [valid: 2026-10-09]
+- Eval mechanism: `claude plugin eval <repo-root> --no-publish --runs 1 --ablation none --trust-plugin --max-cost-usd <cap> --json <f>`; cases `evals/<skill>/<case>/case.yaml` with `plugins: ["../../../claude-code"]`; skills load as `claude-code:<skill>`; model-invoked cases have a `tool_used: Skill` grader; user-invoked (execute-aa-ma-full) cases prompt `/claude-code:<skill>` with result + regex graders. One haiku case ≈ $0.0034. [valid: 2026-10-09]
+- `writing-for-agents` fork: mattpocock/skills @ c55ee46, state derived, upstream md5 SKILL.md 9663b04e / SKILL-MECHANICS.md f3648a8f; ADR-0021 Accepted; next ADR 0022. [valid: 2026-10-09]
+- install.sh stale sweep covers `commands/*.md`, `skills/*`, `agents/*.md` links dangling into the repo. [valid: 2026-10-09]
+
+## M6 As-Built Facts (2026-10-11)
+- Ruff (`pyproject.toml [tool.ruff.lint]`): extend-select += D, RUF100, PGH003, PGH004, C901, PLR0913; extend-ignore = {D107, TD003} (ratchet, `tests/test_ruff_config.py`); mccabe max-complexity 10, pylint max-args 6; PLR2004 not selected. Fixtures must use a public module path — pydocstyle hides D103 in `_private` modules. [valid: 2026-10-11]
+- `scripts/check_conventions.py`: `Check = (path, {lineno: added text}, new-side text)`; `CHECKS = [check_why, check_todo]`; new side read with `git show :0:<path>` (staged) or `<to>:<path>`, only for scannable paths (`.py/.pyi/.sh/.bash`, or extensionless with a shell shebang; `.bats` never) with added lines; repo top resolved once. Shell scanner: context stack with one `_CONTEXTS` opener/closer table (`$(`/backtick are code inside `"…"`, `$((…))` arithmetic, `$'…'` escapes), heredocs `<<`, `<<-`, quoted/backslash delimiters starting `[A-Za-z_]`; unbalanced context at EOF logs a warning. `# why:` = same line or anywhere in the contiguous comment block above (one forward pass). [valid: 2026-10-11]
+- WHY001 suppressions: Python comments `# noqa`, `# ruff: noqa`, `# flake8: noqa`, `# type: ignore`, `# pyright: ignore`, `# nosec`; shell code `|| true`, `|| :`, `2>/dev/null`, `&>/dev/null`, `>/dev/null 2>&1`. TODO001: `#\s*(TODO|FIXME)` (case-insensitive) without `(?<![\w#])(#\d+|ADR-\d{4})(?!\w)`. Repo-wide (all lines as added) 131 WHY001 / 1 TODO001 — paid when touched. [valid: 2026-10-11]
+- `.pre-commit-config.yaml`: shellcheck `args: ["--enable=check-set-e-suppressed"]` (SC2312 dropped in M7.0, a22106d; SC2310 sites: 0, swept in e175676); check-conventions `args: ["--"]`. ruff-check / ruff-format hooks still lack `--` → M8. [valid: 2026-10-11 (M7.0)]
+- `tests/test_eval_cases.py` `EVAL_AGENTS = {"code-reviewer"}`: an agent case may grant `Agent` and needs a `tool_used: Agent` grader matching `subagent_type`. [valid: 2026-10-11]
+- Canary PRs: #25 (canary commit 54d08cd on 994ed35, run 38140041890), #26 (canary commit 2cdb3f6 on 79e83cb — the final scanner + hook config, run 38142145243) — both closed, branches deleted. `gh pr close --delete-branch` fails from a worktree (main is checked out elsewhere); delete the remote with `git push origin --delete`. [valid: 2026-10-11]
+
+## M7 As-Built Facts (2026-10-12)
+- `claude-code/hooks/lib/aa-ma-log.sh`: `log_info|warn|error|debug <hook> <msg>` → `<date -Is> LEVEL <hook>: <msg>` to `${CLAUDE_HOOK_LOG:-$HOME/.claude/logs/hooks.log}`. With neither set: stderr only, never a shared dir (4544060). `fail_open_notice` = stdout systemMessage + WARN line. Patterns load lazily on first mask. Cap 8192 + overlap 256. Every function returns 0. [valid: 2026-10-12]
+- `src/aa_ma/secret_patterns.tsv`: 16 rule lines, `<id><TAB><regex>`, ERE ≡ Python `re`, bounded runs only (no O(n²)). Ids are the report gate's (`analysis/secrets.py`) except the log-only `bearer-token`. `generic-env` repeats (KEY=v, `--key v`, `*SECRET*=` env names). Bad line → fail closed in both readers. [valid: 2026-10-12]
+- `aa_ma_debug_cmd <label> <cmd>` (aa-ma-parse.sh) logs `<label> (<n> chars, first word '<w>')`, skipping leading `NAME=value`. No command argument is ever logged; a bats guard rejects `aa_ma_debug … $cmd` in hooks. [valid: 2026-10-12]
+- `readlink -f` falls back to the invoked path (macOS < 12.3) at the top-level sites in aa-ma-parse.sh, plan-skip-warn, ruff-format. The gate-function sites (pre-M7) are unchanged. [valid: 2026-10-12]
+- `aa_ma.logsetup.configure_logging(verbosity, fmt)`: `LOG_LEVEL` / `LOG_FORMAT=text|json`; stderr handler with `SecretRedactingFormatter`. Text mode flattens CR/LF; JSON keeps masked exc/stack; the fail-closed record keeps `ts`, `level`, `logger`, `message`. First non-test caller planned in M10. [valid: 2026-10-12]
+- Hook payload fixtures: `tests/fixtures/hook-payloads/<Event>[-<Matcher>].json` (7), loaded via `load ../lib/hook_payloads` and `payload <name> <jq filter>`, guarded by `tests/test_hook_payloads.py`. [valid: 2026-10-12]
+- Hook-path cost vs main (50 runs, real payloads): Bash-call hooks +2–4 ms each; ruff-format on a non-.py edit 1.8 ms (main 4.7). [valid: 2026-10-12]
+
+## M8 As-Built Facts (2026-10-13)
+- CI `security.yml` jobs: shellcheck, ruff-security, deps, gitleaks, touched (`SKIP: gitleaks-system`), bats, codemem-smoke, architecture-drift, explorer-contract; weekly cron `17 6 * * 1`; bandit job removed. [valid: 2026-10-13]
+- uv in CI: `astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7`, uv 0.12.3, python 3.13, `uv sync --locked`, `persist-credentials: false`; tests assert pins are SHA-shaped and uniform, not literal (Dependabot bumps them). [valid: 2026-10-13]
+- deps job: `uv export --frozen --no-emit-workspace --no-emit-project -o req.txt` → `uv run pip-audit --disable-pip --require-hashes --strict -r req.txt`; it runs `tests/security/test_deps_audit.py` so an expired ignore fails it. [valid: 2026-10-13]
+- `.pip-audit-ignore`: `<ID>  # expires: YYYY-MM-DD — why`; PYSEC-2026-2475, PYSEC-2026-2476 (fastmcp <3.2), PYSEC-2026-2447 (diskcache), all expire 2027-01-12; fix is the fastmcp-3 migration (TODOS). [valid: 2026-10-13]
+- gitleaks v8.18.4 (tarball sha256 `ba6dbb65…628e7d`); pre-commit rev `02808f45…7ff9`, hook `gitleaks-system`; `.gitleaksignore` = 8 fingerprints, each with `# why:`; a test asserts pre-commit and CI name the same version. [valid: 2026-10-13]
+- `.github/dependabot.yml`: github-actions + uv, weekly, `cooldown.default-days: 7`. [valid: 2026-10-13]
+- `security-static-check.sh` contract: best-effort guardrail, NOT a security boundary (ADR-0022 amendment, Ste). Scans staged ∪ unstaged-modified tracked `.py` (index blob + working copy) from the repo top level; recognises `git [-c k=v|-C dir|--opt]… commit`; named non-goals: env-var commits, `--git-dir`, aliases, `cd && git commit`, `sh -c`/eval/scripts, commits outside Claude. No ruff → notice, exit 0. 61 bats. [valid: 2026-10-13]
+- sole-dev-merge Stage C3: `"${RUFF_BIN:-ruff}" check --select S --output-format json`, 72-code severity map, unknown code → HIGH, missing scanner → `[HIGH] C3 NOT RUN … UNKNOWN`; Stage D auto-fixes only non-literal S602 and stages only edited files. [valid: 2026-10-13]
+- Skills 38 → 39 (secops router added; senior-secops removed from `~/.claude/skills`, backup tgz 7 files). ADR-0022 Accepted. [valid: 2026-10-13]
+
+## M9 As-Built Facts (2026-10-13)
+- Fence 3 = third bash block of §6.7; it locates and runs `claude-code/skills/execute-aa-ma-milestone/scripts/tests-verified.sh` (repo copy, then `${CLAUDE_HOME:-~/.claude}`); details in `references/gate-fences.md`; ADR-0023 Accepted. [valid: 2026-10-13]
+- Test-Command source order: merge-base reference.md → default-branch copy (early fork) → HEAD copy → working tree → default `uv run pytest`. Split by `python3 -I` shlex into an argv; `; | & $ \` < >` rejected; no auto-rerun (Ste). [valid: 2026-10-13]
+- PASS = rc 0 AND a pass count (pytest final line, or last line matching `Test-Command-Pass-Regex:` with an all-digit group 1). rc 124/137 timeout; 126/127 could not run; rc 5 names the opt-out. [valid: 2026-10-13]
+- Opt-out `Test-Command: none — <reason>` needs `## [date] GATE APPROVAL: Test-Command none — <heading>` + `- Decision: APPROVED`. [valid: 2026-10-13]
+- `aa_ma_has_gate_approval <log> <title>` (aa-ma-parse.sh): block-scoped, exact title via ENVIRON, last block decides, code fences skipped; used by §7.1 and fence 3. [valid: 2026-10-13]
+- Canonical TDD waivers: `TDD_WAIVER_RULES` in `src/aa_ma/plan_parsers.py` is the SSoT; engineering-standards §2 block regenerated by `tests/test_tdd_waiver_doc_sync.py` (via `scripts/regen-generated.sh`). [valid: 2026-10-13]
+
+## M15 Facts (2026-10-14, from plan §M15 + report 03; as-built facts appended per sub-step)
+- Heading (verbatim, gate + tokens): `Milestone 15: Codemem freshness (report 03 T2–T9)` — renamed from "T2–T6" at 15.0 (Ste), before any token was written. [valid: 2026-10-14]
+- `R03-Dn` = decision n of report 03's CEO-review ledger (`~/projects/github_private/ooh_ideas/research/03-codemem-graphify-report.md`), never this plan's Dn: R03-D6 bounded refresh + flag; R03-D7 code-only graphify per milestone until the X3 verdict; R03-D10 per-language routing table; R03-D12 flock + start-SHA; R03-D13 one stable symlink for the user-scope MCP; R03-D14 biorelate + client repos code-only, `GRAPHIFY_QUERY_LOG_DISABLE=1`. [valid: 2026-10-14]
+- Refresh cap: 5 s (= the codemem cold-build SLO); replaces the 10 s other-process wait in `mcp_tools/__init__.py` (:86, poll :120). `refresh_index` at `incremental.py:74` is synchronous, no timeout. [valid: 2026-10-14]
+- X2 envelope fields (every codemem MCP response, added once in `_with_autobuild`, `claude-code/codemem/mcp/server.py:266`): `index_sha`, `head_sha`, `stale` ∈ {true, false, unknown}, `stale_reason`. `stale` = stale after the refresh attempt. Reasons per report 03: `locked`, `error`, `timeout`, `dirty`, `no_git`. [valid: 2026-10-14]
+- Sidecars: `.codemem/last_sha` (written by a cold build, `indexer.py:474-486`); `graphify-out/.built_sha` (new; start-SHA, written only when `graphify update .` exits 0, under `flock`). A sidecar is repo-controlled: only `^[0-9a-f]{40}$` (superseded §6.8: 40- or 64-hex via `aa_ma_read_sidecar_sha`) is trusted, passed to git after `--end-of-options`. [valid: 2026-10-14]
+- Tokens: `[ts] CODE_INTEL_REFRESH — <milestone heading> — codemem=<sha> graphify=<sha|WARN reason>` (pre-commit HEAD; 15.6); `CODE_INTEL_STALE` in impact-analysis / plan-verification output when they proceed on a stale result (15.3). [valid: 2026-10-14]
+- X1 briefing line: `Code-intel: …` from `claude-code/hooks/aa-ma-session-start.sh` (installed at `~/.claude/hooks/lib/aa-ma-session-start.sh`), < 200 ms, no `uv run`; prints nothing when neither index exists; `not built`; `graphify: no sha`; `unknown (<reason>)`. [valid: 2026-10-14]
+- Outside repo (15.8/15.9, HITL): `~/.local/share/codemem-plugin` → dedicated forge worktree on `main` (`ln -sfn`); codemem MCP at user scope; global git excludes `.codemem/`, `graphify-out/`; `~/.claude/rules/code-intel-routing.md`; backup `~/.claude/backups/cci-m15-<ts>.tgz`. [valid: 2026-10-14]
+- Worktree: `.worktrees/feat/cci-m15-codemem-freshness` on `feat/cci-m15-codemem-freshness` @ 9546a2e; `codemem build` 329 files / 3136 symbols / 8353 edges in 0.87 s. [valid: 2026-10-14]
+- As built 15.2 (2026-10-14): `incremental.check_freshness(repo_root, db_path) -> Freshness(index_sha, head_sha, stale: bool|None, reason)`; reasons behind|dirty|no_index_sha|no_git|no_head. `.codemem/tree_sig` = `indexer.tree_signature(discover_files(root))` (sha256 over sorted path, mtime_ns, size; no `git status`), written with `last_sha` by `build_index` and every non-skipped `refresh_index`; absent → stale `dirty`. Sidecars written by `indexer.write_sidecar` (temp + os.replace). Index-path git = `indexer.SAFE_GIT` (`-c core.fsmonitor=false -c core.hooksPath=/dev/null`). Refresh subprocess: `python -I -m codemem.cli … refresh`, cwd `.codemem/`. `mcp_tools.ensure_fresh(db, root, cap=REFRESH_CAP_S)` → `{index_sha, head_sha, stale: True|False|"unknown", stale_reason}` or `{error}`; failure reasons locked|error|timeout; one `ensure_fresh:` refresh.log line per stale serve. `codemem refresh [--repo-root]` exit 0 / `EXIT_LOCKED`=75 / 1. Full rebuild = `index.db.rebuild` + unlink old `-wal`/`-shm` + `os.replace`. `_log` is O_NOFOLLOW, one line per call. [valid: 2026-10-14]
+- As built §6.8 fix pass (2026-10-14): `indexer.check_db_path(db_path)` raises `UnsafeDbPath` (re-exported by `codemem.incremental`) when the DB dir or ANY entry in it is a symlink — no list of names. Called by `build_index`, `refresh_index`, `ensure_fresh` (→ `{error, stale: "unknown", stale_reason: "unsafe_db_path"}`), `cli build` / `refresh-commits` (exit 1). `db_path` is never `resolve()`d (`absolute()` only). `db.lock` opened O_NOFOLLOW. A symlinked sidecar reads as absent. SHA-1 and SHA-256 sidecars accepted everywhere (`_SHA_RE`, `SHA_RE`, `aa_ma_read_sidecar_sha`). `build_index(write_sidecars=False)` on the rebuild-aside path. `_git` timeout `GIT_TIMEOUT_S`=5.0 → None (superseded re-run 1: 1.0, in `codemem.safety`). Shell: `aa_ma_read_sidecar_sha <file>` is the only reader of `last_sha`/`.built_sha`; post-commit worker `STEP_TIMEOUT_S`=300 (`timeout` when present, rc 124 logged), `flock -w LOCK_WAIT_S`=900, skips graphify on a linked `graphify-out`; §6.0 BLOCKS on a linked `.codemem`. [valid: 2026-10-14]
+- As built §6.8 re-run 1 (2026-10-14): the rule moved to `codemem.safety.check_db_path` (with `SAFE_GIT`, `GIT_TIMEOUT_S`=1.0, `UnsafeDbPath`; re-exported by `indexer`, `incremental`, `storage.db`) and is applied by `storage.db.connect` for EVERY reader and writer: refuse a DB dir that is or holds a symlink, is tracked by git (`git ls-files -- .` non-empty), cannot be listed (e.g. `.codemem` is a regular file), or git cannot answer (LC_ALL=C; only "not a git repository" passes; no git binary passes). Messages name only the dir. `connect` sets `PRAGMA trusted_schema=OFF`. `cli.main` is the one refusal point (exit 1, `codemem <cmd>: refused: …`). `aa_ma.render.graph._unsafe_reason` is the twin (aa_ma never imports codemem). `aa_ma_context` refuses a linked `.claude/dev/active/<task>` path, appends O_NOFOLLOW, and `_extract_file_mentions` never probes absolute/`..`/escaping tokens. `_read_text` reads ≤128 bytes, strips only trailing newlines. Shell: post-commit skips graphify when `graphify-out` is or holds a link; `LOCK_WAIT_S=CAPPED_STEPS(3)*STEP_TIMEOUT_S+60`; §6.0 BLOCKS on any link in `.codemem/`. [valid: 2026-10-14]
+- As built §6.8 re-run 2 (2026-10-14, supersedes the git-tracked part of re-run 1): codemem trusts only an index it built here. `codemem.safety`: `check_db_path` (dir is/holds a symlink, or cannot be listed → `UnsafeDbPath`); `trust_record(db_dir)` = `${XDG_STATE_HOME:-~/.local/state}/codemem/trust/<sha256(realpath db_dir)>` (0600, O_EXCL, one nonce per dir, `secrets.token_hex(16)`); `stamp(conn, db_dir)` writes `meta(key='trust_nonce')`; `is_trusted` compares with `hmac.compare_digest`. `storage.db.connect` stamps a DB file it creates, and a read-only open of an unstamped/foreign DB raises `UntrustedIndex(UnsafeDbPath)`; `db.index_trusted(path)` → bool. `check_freshness` → stale `untrusted` first; `refresh_index` rebuilds it; `build_index` deletes it first (`_discard_untrusted`); `ensure_fresh` returns `{error, stale_reason: "untrusted"}` until rebuilt. The git `ls-files` check is gone. Twin: `aa_ma.render.graph._unsafe_reason` + `_built_here`, pinned by `tests/codemem/test_safety_parity.py`. Tests: `tests/conftest.py` sets a throwaway `XDG_STATE_HOME`; codemem bats setups export one. Known limit: `replay --from-wal` trusts its journal. [valid: 2026-10-14]
+- As built §6.8 re-run 3 (2026-10-14): `codemem.safety.TrustStoreError(OSError)` for an unusable state dir (not an `UnsafeDbPath`; CLI prints `trust store error`, `ensure_fresh` → `{error: "codemem trust store unusable: …", stale_reason: "error"}`); nonce file written temp + `os.link` (never seen empty); `NONCE_BYTES=16`; stamps compared as bytes (`surrogatepass`) in both twins; `connect` removes a DB it could not stamp; `index_trusted` returns False only for untrusted/unreadable (logged) — `UnsafeDbPath` and `TrustStoreError` propagate, so `check_freshness` raises on a refused dir. `ensure_fresh` untrusted errors follow the rebuild outcome (`_UNTRUSTED_ERROR`). Known limit → Milestone 16: a committed `index.db-wal` beside a stamped index is replayed by SQLite. [valid: 2026-10-14]
+- As built §6.8 re-run 4 + double-check (2026-10-14): `storage.db.connect` decides `created` with `O_CREAT|O_EXCL|O_NOFOLLOW` (cleanup only of what it created; suffixes `''`, `-wal`, `-shm`, `-journal`). `codemem.safety`: `_check_store_dir` (trust dir must be `S_ISDIR`, owned by `getuid()`, no g/o write bits); `_read_record` (O_NOFOLLOW, ≤256 bytes, ASCII, else `TrustStoreError`); writes via `mkstemp` + `fsync` + `os.link` (`_publish`; EPERM/ENOTSUP/EOPNOTSUPP/EXDEV → direct O_EXCL write); an empty record is replaced. `ensure_fresh`: `stale_reason: "trust_store"` for a broken store; `RefreshOutcome = Literal[ok, locked, error, timeout]` keys `_UNTRUSTED_ERROR` (error text names `<db dir>/refresh.log`). `cli._draw_connect`/`_no_graph`: a broken store is UNKNOWN under `--check`. `aa_ma.render.graph._trust_problem` returns the reason (missing/foreign → not built; broken store → `cannot be checked`). Accepted known limits → Milestone 16: planted `index.db-wal`; committing one's own `.codemem/` publishes the stamp. [valid: 2026-10-14]
+- As built background-review TOCTOU fix (2026-10-15): `safety._open_store` opens the trust dir `O_DIRECTORY|O_NOFOLLOW` and `fstat`s that fd; `_read_at`/`_write_at` read, write (random temp name), link, replace and unlink with `dir_fd`, so the dir cannot be swapped between check and use; `graph._trust_problem` reads the same way (RED 118e199 → GREEN 3b50b5b). [valid: 2026-10-15]
+- As built 15.4–15.6 (2026-10-14): post-commit worker `claude-code/codemem/hooks/post-commit.sh --worker <sha> <repo>` under `flock` on `<git-dir>/codemem-post-commit.lock`: `codemem refresh` + `refresh-commits` → `graphify update .` → `.built_sha` on rc 0. codemem binary: `CODEMEM_BIN` (no fallback) else `<forge>/.venv/bin/codemem` else absolute-PATH `codemem`. Shell SHA-vs-HEAD: `aa_ma_sha_behind <repo> <sidecar>` (aa-ma-parse.sh). Boundary: `execute-aa-ma-milestone/scripts/code-intel-refresh.sh <task> [--dry-run]`, §6.0 of references/boundary-checks.md; exit 0 / 1 BLOCKED. [valid: 2026-10-14]
+- Outside repo as of 15.8 (2026-10-14): `~/.local/share/codemem-plugin` → `~/.local/share/codemem-plugin-wt` (detached worktree of the forge at main; refreshed by `scripts/install.sh` §8); user-scope MCP `codemem` = `<link>/.venv/bin/python <link>/claude-code/codemem/mcp/server.py`; `~/.config/git/ignore` has `.codemem/`, `graphify-out/`; backup `~/.claude/backups/cci-m15-20261014T100926Z.tgz` (20 files). Rollback: plan §7 M15 row. [valid: 2026-10-14]
+
+## M16 Facts (2026-10-23, 16.0)
+- Heading (verbatim): `Milestone 16: Move the codemem index out of the repo (M15b; §6.8 re-run 3 deferral)`. Branch/worktree `feat/cci-m16-codemem-index-location` @ 7d3c1265 (`.worktrees/feat/cci-m16-codemem-index-location`). Baseline @ 7d3c1265: pytest 3155 passed / 5 skipped; bats 776 ok. [valid: 2026-10-23]
+- Location (Ste): default index dir `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath root)>/` holding `index.db` (+ `-wal`/`-shm`/`-journal`), `last_sha`, `tree_sig`, `db.lock`, `refresh.log`, `wal.jsonl`. Python root = `CODEMEM_REPO_ROOT` / `--repo-root`, else cwd; shell twins hash `git rev-parse --show-toplevel`. `CODEMEM_DB` overrides everywhere and is made absolute. `.mcp.json` drops its `CODEMEM_DB=${PWD}/.codemem/index.db`. [valid: 2026-10-23]
+- Migration (Ste): ignore and rebuild. Nothing reads an old `.codemem/`; `rm -rf .codemem` is safe (globally gitignored since 15.8). No migration code. [valid: 2026-10-23]
+- Trust token (Ste): kept (`$XDG_STATE_HOME/codemem/trust`, unchanged). It still guards a `CODEMEM_DB` pointed into a repo. SECURITY.md's known-limit paragraph becomes one line. [valid: 2026-10-23]
+- §6.0 (Ste agreed): `code-intel-refresh.sh` always builds/refreshes; `codemem=skipped(codemem not installed)` rc 0 only with no codemem binary; any other `last_sha` ≠ HEAD is BLOCKED. [valid: 2026-10-23]
+- Deferred (Ste): `install.sh --wire-git-hook` → 10.0. Kept: `prototype/codemem-refresh-cap`. TODOS: session-start mislabel. sole-dev-merge TODOS stay out of M16. [valid: 2026-10-23]
+- `.codemem` re-count (`git grep -l '\.codemem' -- ':!docs/plans'`, 7d3c1265): 104 = 17 code / 31 test / 56 doc (28 of them `.claude/dev` records). Actions:
+  - Code — change: `packages/codemem-mcp/src/codemem/{cli,incremental,indexer,safety,mcp_tools/__init__}.py`, `storage/db.py` (shared suffix list), `journal/lock.py` (docstring), `claude-code/codemem/mcp/server.py`, `claude-code/codemem/hooks/post-commit.sh`, `claude-code/hooks/aa-ma-session-start.sh`, `claude-code/hooks/lib/aa-ma-parse.sh`, `claude-code/skills/execute-aa-ma-milestone/scripts/code-intel-refresh.sh`, `src/aa_ma/render/graph.py`, `src/aa_ma/analysis/measure.py` (comment), `scripts/bench_codemem.py`, `.mcp.json`. Keep: `.gitignore` (old dirs stay ignored), `mcp_tools/queries.py` (false hit: `tests.codemem…` in a docstring).
+  - Tests (31) — keep where they pass an explicit `db_path` (most build `root/.codemem/index.db` on purpose); change those that rely on the default or assert the in-repo location (expected: test_install_and_cli, test_mcp_server_integration, test_freshness, test_x2_envelope, the three hook bats, make-repo.sh, test_graph, test_safety_parity, test_diagram_verified.bats); decided per test at 16.1–16.3 by the RED/GREEN runs.
+  - Docs — change: SECURITY.md, CHANGELOG.md (Unreleased), TODOS.md, `claude-code/codemem/{README.md,commands/codemem.md}`, `claude-code/agents/codebase-onboarding-{conventions,runbook,synthesizer}.md`, `claude-code/skills/{aa-ma-plan/SKILL.md,aa-ma-plan/references/phase-1-context.md,impact-analysis/SKILL.md,understand-codebase/SKILL.md,understand-codebase/references/REUSE-MAP.md,understand-codebase/templates/onboarding-team.md}`, `claude-code/skills/execute-aa-ma-milestone/references/boundary-checks.md` (no `.codemem` hit; §6.0 text), `docs/codemem/{ARCHITECTURE,install-zero-config,migration-from-index,performance-slo}.md`, `docs/spec/aa-ma-quick-reference.md`. Frozen (no action): `docs/adr/0014,0017`, `docs/research/*` (4), `docs/benchmarks/codemem-vs-index.md`, `docs/demo/codemem-co-changes-transcript.md`, `docs/lessons.md`, `.claude/dev/**` (28). [valid: 2026-10-23]
+- As built M16 (2026-10-23): `codemem.paths` — `cache_home()` (relative `XDG_CACHE_HOME` ignored), `default_db_path(root)`, `resolve_db_path(root, db)` (`--db` > `CODEMEM_DB` > default, `.absolute()`); cli `_repo_root(args)` + `_db_path(args)` (cli now honours `CODEMEM_DB`); server `_default_db_path`/`_default_repo_root` absolute; `_capped_refresh` absolutes argv. `storage.db.SQLITE_SUFFIXES = ("", "-wal", "-shm", "-journal")`, `db_files(path)`, `remove_db_files(path)` — the only sidecar cleanup. Twins: `aa_ma.render.graph._resolve_db_path` (no codemem import), shell `aa_ma_codemem_dir <top>` (strips trailing `/` like pathlib; `/index.db` → `/`), `aa_ma_codemem_bin <forge>` (CODEMEM_BIN, else forge venv, else absolute PATH hit) — parity: tests/codemem/test_safety_parity.py (8 cases). post-commit loads aa-ma-parse.sh only in the worker, resolves `CM` once, stderr when no dir. §6.0: `codemem=skipped(codemem not installed)` only with no binary; else last_sha ≠ HEAD BLOCKED. `.mcp.json` sets only `CODEMEM_REPO_ROOT`. Reproductions: tests/codemem/test_location.py (not test_trust.py). [valid: 2026-10-23]
+
+## 10.0 Facts (2026-10-25)
+- ADR-0025 `docs/adr/0025-live-worktree-install-target.md` Accepted (Ste): `aa_ma_live_worktree` in `scripts/lib/aa-ma-install-lib.sh` → the plugin-link target when it is a linked worktree of this forge (same `--git-common-dir`) and not the checkout; `points_into_repo` also accepts `${LIVE_ROOT}/`; install.sh §0 refreshes it (checkout `--detach main` + `uv sync --locked`) BEFORE linking; `SRC_ROOT=${LIVE_ROOT:-REPO_ROOT}` feeds every link, spec copy and `--wire-git-hook` `SOURCE_HOOK`; a dirty live worktree or a failed refresh → error, exit 1, no link changed (Ste, C2 round 1); with a live worktree every link into the checkout (commands, skills, agents, rules, hooks/lib) is removed before relinking (C1 MEDIUM); `aa_ma_live_worktree` refuses an empty `readlink -f` (C1 MEDIUM); a sentinel stanza naming another copy → warn. Tests: `tests/hooks/install-live-worktree.bats` (11). [valid: 2026-10-25]
+- Validator (pre-exec, WARN) W2/W3 resolved in plan + tasks: the 10.6 hook resolves the index with `aa_ma_codemem_dir` and the binary with `aa_ma_codemem_bin` (no separate plugin-link step: the forge IS the live worktree). W4: Contract rows added. W5: next ADR 0026. W6: gate semantics unchanged (fence text = installed skill; launcher/gate Python = branch toplevel). [valid: 2026-10-25]
+- Baseline at main 38a5f179 (2026-10-25): pytest 3180 passed / 2 skipped / 7 deselected; bats 781 ok / 0 not ok. [valid: 2026-10-25]
+- Side PRs at 10.0: #66 style (L-065: 2 tests formatted, 7 lint findings in Contract files), #67 `fix(deps)` filelock 4.0.12→4.2.4 (CVE-2026-112940/-112913/-112907; locked with CI's uv 0.12.3 — local uv 0.13.5 bumps the lock `revision`). [valid: 2026-10-25]
+
+## M10 As-Built Facts (2026-10-26)
+- Heading (verbatim): `Milestone 10: Impact tooling: codemem `callees`, pre-edit hook, wiring (T6, T13 git helper)`. Branch `feat/cci-m10-impact-tooling` (plain branch in the main checkout, ADR-0025). [valid: 2026-10-26]
+- codemem: `callees(db, name, *, max_depth=3, budget=8000)`; `blast_radius` = deprecated alias (+`downstream`, `deprecated`; TODO(ADR-0026), removal after v0.18.x); 14 MCP tools; `co_changes(…, min_ratio=0.0, max_commit_files=None)` entries `{path,count,ratio}` + `target_commits`; `CO_CHANGE_MAX_COMMIT_FILES = 10`; `file_impact(db, path, *, budget=2000)` → external/test/plugin callers (`via: plugin_edges`) + co_changes(threshold 3, max_commit_files 10); CLI `query callees`, multi-path `query co_changes --threshold --min-ratio`, `impact <path> --format brief|json --repo-root` (brief: ≤4 sanitized lines, silent when nothing to report). Schema v4 `plugin_edges(src,dst,kind,ref_class)` filled at build + every refresh from `plugin_surface.extract()` (`owner_of`); who_calls plugin entries `{name, kind, file=<node id>, line: null, via}`. git_mining follows renames/deletes (HEAD names). [valid: 2026-10-26]
+- Hook `claude-code/hooks/aa-ma-impact-preedit.sh` (PreToolUse Edit|Write, AA_MA_HOOKS row timeout 5 s): sha1(abs) claimed first via `set -C` marker in `~/.claude/runtime/impact-seen-<sid>/`; `timeout -k 1 2` codemem; notices via `fail_open_notice` (no index / timeout, once per session); header `codemem data (untrusted): impact of …`; exit 0 always; p95 133–160 ms first edit, ~30 ms repeat. SessionEnd removes the marker dir for a valid sid. Hooks 10. [valid: 2026-10-26]
+- `sanitize_context_line(text, max_len=200)` drops Unicode Cc/Cf/Co/Cs/Zl/Zp (never raises); shell twin `aa_ma_sanitize_lines` (stdlib python3 -I -S, `?` replacement, ASCII fallback + WARN). [valid: 2026-10-26]
+- Shell helpers (aa-ma-parse.sh): `aa_ma_cochange_partners <top> <forge> <timeout> -- paths` (T7 `AA_MA_COCHANGE_MIN_SHARED=5`, `_MIN_RATIO=0.5`; rc 0 ok / 2 usage / 3 no index / 4 no codemem or no timeout(1) / 5 codemem failed / 6 timed out); `aa_ma_default_base_ref` (origin/HEAD → origin/main → origin/master → main → master). [valid: 2026-10-26]
+- `aa_ma.gitutil` + `codemem.gitutil` twins: `git(args, repo, timeout=10.0, *, paths=())`, `verify_ref`, `split_z`, `GitError(RuntimeError)`; contract `tests/test_gitutil_contract.py`; import contract `gitutil-is-self-contained`. No production caller yet (M11). [valid: 2026-10-26]
+- `aa_ma.plan_parsers.CRITICAL_PATH_GLOBS` (fnmatchcase; = engineering-standards §1 table, exact test) + `derive_critical_paths`; `aa_ma.grammar.PLAN_MILESTONE_RE` (levels 2–4); `aa_ma.render.coverage.milestone_contract_paths(plan, N)`. [valid: 2026-10-26]
+- §6.3 `scripts/predicted-vs-actual.sh <task>` (advisory; `UNPREDICTED <path>` lines → §6.8 code-reviewer as untrusted `<unpredicted-files>`); commit-drift ad-hoc co-change advisory (no plan or `[ad-hoc]`). PROTOTYPE token gains `verdict-changes-plan: YES|NO`. griffe==2.3.2 (dev). ADR-0026 Accepted. [valid: 2026-10-26]
+- uutils coreutils mkdir 0.10.0 is not test-and-set (L-070). [valid: 2026-10-26]
+
+## 11.0 Facts (2026-10-27)
+- Heading (verbatim): `Milestone 11: Gate-computed `IMPACT_VERIFIED` (T7)`. Branch `feat/cci-m11-impact-gate` (plain branch, main checkout, cut from 169e4e81). [valid: 2026-10-27]
+- Live: `~/.local/share/codemem-plugin-wt` at main 169e4e81; `aa-ma-impact-preedit.sh` registered once (PreToolUse Edit|Write, timeout 5); A1 shown live in-session (no restart needed). codemem index 354 files / 3591 symbols / 9706 edges. [valid: 2026-10-27]
+- Co-change window baseline: `codemem refresh-commits` default `--limit` 500; the M3 renames sit ~660 commits back (out of the default window; M10 F1/W4). 11.1 declares the gate's window. [valid: 2026-10-26]
+- Reuse candidate (validator W4): shell `aa_ma_cochange_partners <top> <forge> <timeout> -- paths` (aa-ma-parse.sh; T7 `AA_MA_COCHANGE_MIN_SHARED=5`, `_MIN_RATIO=0.5`; rc 0/2/3/4/5/6) — the Python `aa_ma.impact` twin must match it (contract test, M11 carry-over). [valid: 2026-10-26]
+- As built 11.2: `aa_ma.contract_rows` — `ROW_VERBS = ("Create","Modify","Test","Move","Merge","Delete")`, `row_re(verbs)` (groups `verb`, `text`), `milestone_contract_rows(plan_text, milestone: str) -> list[tuple[verb, path]]` (deduped, `# file:` → Modify, arrows dropped), `contract_rows(lines, bare, pattern) -> [(line, verb, path)]`, `MAX_EXPANSIONS` (re-exported by coverage). `aa_ma.enforce.read_text_field_lines(block, field) -> list[str]`. Import contract `contract-rows-reads-grammar-only` (direct imports; `allow_indirect_imports = True`). [valid: 2026-10-27]
+- As built 11.3: `aa-ma-impact <plan> <tasks> --milestone N --base SHA [--head REF] [--format kv|json] [--ignore-cutover] [-v]`; kv lines `exit_code= reason= changed= predicted= cochange= unexplained= api_breaks= api_diff= derived_cp=<value:f,…;…>` then `unexplained_file=<kind>:<path>` (kind unpredicted|predicted-unchanged|cochange), `api_break=<path>: <kind>`, `derived_cp_file=<value>:<path>` and `unreviewed_cp=<value>:<path>` (corrected at §6.8); stderr `aa-ma-impact: <reason>` when rc ≠ 0. codemem binary: `CODEMEM_BIN` > venv-adjacent `codemem` > absolute PATH; calls `status` (cwd = repo; no --repo-root flag), `refresh`, `refresh-commits --limit 500`, `query co_changes`, each ≤ `CODEMEM_TIMEOUT_S` 300 s. `enforce.has_gate_approval(text, title)` = shell `aa_ma_has_gate_approval`. codemem `query co_changes` results carry `stale` (bool or "unknown") + `stale_reason`; `mcp_tools.FILE_IMPACT_BUDGET = 2_000`. [valid: 2026-10-27]
+- Baseline before M11 code (653b4f85): pytest 3401 passed / 2 skipped / 7 deselected; bats 855 ok / 0. [valid: 2026-10-27]
+- As built 11.4: `impact.API_PACKAGES = {"aa_ma": "src", "codemem": "packages/codemem-mcp/src"}` (P6); Contract line `API-Break: <dotted.path> — <reason>`; kv `api_diff=<pkgs>[; skipped(<pkg>: <reason>; …)]` or `skipped(<reason>)`, `api_break=<path>: <BreakageKind value>`; `contract_rows.milestone_contract_lines(plan, "N")`. griffe 2.3.2: `load_git` uses a temporary git worktree (search_paths relative to the repo root); `LoadingError` on syntax errors. [valid: 2026-10-27]
+- As built 11.5: `aa_ma_milestone_base` (stdout SHA rc 0; rc 2 + one reason line: `no origin default branch (…)` / `no milestone window (…)`); `aa_ma_impact` launcher (uv run --project <forge> aa-ma-impact --format kv; 127 BLOCKED); fence 4 = `claude-code/skills/execute-aa-ma-milestone/scripts/impact-verified.sh <task>` (cwd repo top), 4th bash block of §6.7; prints `IMPACT-GATE: PASS — …` / `IMPACT-GATE: not applicable (grandfathered) — <reason>` / `BLOCKED: …`. `aa-ma-impact --base` optional. verify-impl Step 1 window = aa_ma_milestone_base, else WARN + heuristic, `${…:-HEAD~10}`. [valid: 2026-10-27]
+- ADR-0027 `docs/adr/0027-gate-computed-impact-verified.md` Accepted (Ste, 2026-10-27); runbook `claude-code/skills/execute-aa-ma-milestone/references/impact-gate.md`. [valid: 2026-10-27]
+
+## 12.x Facts (2026-10-28)
+- Heading (verbatim): `Milestone 12: Doctrine packaging: `coding-standards.md`, `language-conventions`, dedupe, budget (T11 §4, T12)`. Branch `feat/cci-m12-doctrine-packaging` (main checkout, cut from main 01acbcea). [valid: 2026-10-28]
+- `claude-code/rules/coding-standards.md`: 4,412 bytes, blob `ba8125089b84d82bab7f9bcdefd552458c94916c` (b9343617; supersedes the 12.2-approved 086b7291). The "When principles conflict" paragraph is the T11 §1 policy verbatim. [valid: 2026-10-28]
+- Rules: 3 files (aa-ma.md 6,459 + engineering-standards.md 9,201 + coding-standards.md 4,412 = 20,072 bytes); M1 baseline 20,249 bytes; `tests/test_autoload_budget.py` RATCHET = 20,072 (bytes, may only fall). [valid: 2026-10-28]
+- `tests/test_rule_references.py` classifies via `codemem.draw.plugin_surface.extract()` (no local regex); `CODING_STANDARDS_ROUTES` = the 9 routed skills. [valid: 2026-10-28]
+- `scripts/install.sh`: coding-standards.md backup :202, symlink :408-409 (locate by content). [valid: 2026-10-28]
+- Skills 40 (+language-conventions); eval cases `evals/language-conventions/{ts-logging,r-style,sql-review}` with `evals/_lib/polyglot.sh` → `tests/fixtures/evals/polyglot/`. [valid: 2026-10-28]
+- (Superseded — done in 13.0, see 13.x Facts.) 13.0 carry-overs: live install + L-1315 probe; apply `~/.claude/backups/CLAUDE.md.proposed-20261028T135203` (sha256 9f87a7f6…) only if live `~/.claude/CLAUDE.md` sha256 = 91355a68…. [valid: 2026-10-28]
+
+## 13.x Facts (2026-10-28)
+- Heading (verbatim): `Milestone 13: Docs, counts, TODOS (pre-release)`. Branch `feat/cci-m13-docs-counts` (main checkout, cut from main b5ec8706 = M12 PR #71). [valid: 2026-10-28]
+- Live: `~/.local/share/codemem-plugin-wt` at main b5ec8706; install.sh 71 links; spec-doc backups in `~/.claude/backups/aa-ma-forge-20261028-163846/`; `readlink -f ~/.claude/rules/coding-standards.md` → the live worktree (ADR-0025); L-1315 probe quoted coding-standards.md:10. [valid: 2026-10-28]
+- `~/.claude/CLAUDE.md` now sha256 9f87a7f6…, 8,078 bytes (was 91355a68…). Rollback: `cp ~/.claude/backups/CLAUDE.md.20261028T135203 ~/.claude/CLAUDE.md`. [valid: 2026-10-28]
+- Commits: 31907f81 (docs), 21b7bfa2 (TODOS), 593e718c (§6.8 fix). Tests at M13 end: pytest 3525 passed. [valid: 2026-10-28]
+- `git describe --tags` returns a `claude-checkpoint-*` tag (not ours; Ste: leave them) — use `v0.17.0` explicitly as the last release for doc-drift / CHANGELOG ranges (M14). [valid: 2026-10-28]
+
+## 14.x Facts (2026-10-29)
+- Heading (verbatim): `Milestone 14: Release v0.18.0 + IMPACT_CUTOVER (on main)`. Ran on the main checkout (D7 exception, D11). [valid: 2026-10-29]
+- `IMPACT_CUTOVER = "2026-10-29"` at `src/aa_ma/impact.py:64` (RED 4a541216 → GREEN d3402b53; the planned 2026-10-28 moved because UTC passed midnight first). Plans `Created:` on or after 2026-10-29 get fence 4. [valid: 2026-10-29]
+- v0.18.0: bump commit 6ca20981 (`[ad-hoc]`; CHANGELOG, README, VERSION, pyproject.toml, uv.lock); annotated tag dated 2026-10-29; https://github.com/snewhouse/aa-ma-forge/releases/tag/v0.18.0 (published 2026-10-29T09:09:07Z). CHANGELOG now has no `## Unreleased`; the next release needs one. [valid: 2026-10-29]
+- Tests: `test_cutover_is_release_date` compares against `git log -1 --format=%cs v0.18.0` and skips with no tag (CI has none, so the check runs locally only). Constants `GRANDFATHERED = "2020-01-01"`, `POST_CUTOVER = "2027-01-01"` at `tests/test_impact.py:32-33` (fa579c09). pytest 3526 passed at fa579c09. [valid: 2026-10-29]
+- Known defect, P1: `scripts/run-evals.sh` runs the nested `.worktrees/` suites (first seen at 10.9; recurred at the release, when 0 of main's 31 cases ran). See TODOS.md "run-evals: case discovery walks nested worktrees". [valid: 2026-10-29]

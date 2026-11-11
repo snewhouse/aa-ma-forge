@@ -126,7 +126,7 @@ else
 PATHS
   if (( ${#SCOPES[@]} == 0 )); then
     echo "No existing path to Modify: seed skipped (a scope-less draw is the whole repo)."
-  # Run from the project root: codemem reads ./.codemem/index.db.
+  # Run from the project root: codemem reads the index dir it keys by this root (XDG cache).
   elif ! uv run --project "${AA_MA_ROOT}" codemem draw --level L2 "${SCOPES[@]}" --hops 1 --direction both; then
     # codemem has printed why (no index / schema too old / unreadable) on stderr.
     echo "§13 seed unavailable (reason above): run \`codemem build\` in the project root and re-seed."

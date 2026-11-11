@@ -47,3 +47,47 @@ def test_analysis_imports_no_other_aa_ma_module() -> None:
     assert _contract_list(
         "analysis-is-self-contained", "forbidden_modules"
     ) == _all_but("aa_ma.analysis")
+
+
+def test_gitutil_imports_no_other_aa_ma_module() -> None:
+    """code-conventions-impact 10.4: aa_ma.gitutil is a leaf (stdlib only), like its codemem twin."""
+    assert _contract_list("gitutil-is-self-contained") == {"aa_ma.gitutil"}
+    assert _contract_list("gitutil-is-self-contained", "forbidden_modules") == _all_but(
+        "aa_ma.gitutil"
+    )
+
+
+def test_contract_rows_imports_only_the_grammar() -> None:
+    """code-conventions-impact 11.2: aa_ma.contract_rows reads aa_ma.grammar and nothing else
+    from aa_ma (grammar imports plan_parsers, so fence scanning cannot live in plan_parsers)."""
+    assert _contract_list("contract-rows-reads-grammar-only") == {"aa_ma.contract_rows"}
+    assert _contract_list(
+        "contract-rows-reads-grammar-only", "forbidden_modules"
+    ) == _all_but("aa_ma.contract_rows") - {"aa_ma.grammar"}
+    cfg = configparser.ConfigParser()
+    cfg.read(ROOT / ".importlinter")
+    assert (
+        cfg["importlinter:contract:contract-rows-reads-grammar-only"][
+            "allow_indirect_imports"
+        ]
+        == "True"
+    )
+
+
+def test_impact_imports_only_the_gate_modules() -> None:
+    """code-conventions-impact 11.3: aa_ma.impact reads plan_parsers, enforce, grammar,
+    contract_rows, gitutil and logsetup — nothing else from aa_ma (direct imports)."""
+    allowed = {
+        "aa_ma.plan_parsers",
+        "aa_ma.enforce",
+        "aa_ma.grammar",
+        "aa_ma.contract_rows",
+        "aa_ma.gitutil",
+        "aa_ma.logsetup",
+    }
+    contract = "impact-reads-only-the-gate-modules"
+    assert _contract_list(contract) == {"aa_ma.impact"}
+    assert (
+        _contract_list(contract, "forbidden_modules")
+        == _all_but("aa_ma.impact") - allowed
+    )

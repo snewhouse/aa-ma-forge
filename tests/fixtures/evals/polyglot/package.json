@@ -1,0 +1,7 @@
+{
+  "name": "polyglot-cli",
+  "private": true,
+  "type": "module",
+  "bin": { "polyglot": "dist/cli/main.js" },
+  "devDependencies": { "typescript": "^6.0.0" }
+}

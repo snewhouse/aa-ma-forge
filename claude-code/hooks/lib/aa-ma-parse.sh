@@ -8,7 +8,7 @@
 #     aa_ma_is_disabled                       -> 0 if AA_MA_HOOKS_DISABLE=1 set, else 1
 #     aa_ma_extract_active_milestone <file>   -> stdout: active milestone heading text   (DISPLAY)
 #     aa_ma_extract_active_step <file>        -> stdout: active step heading text        (DISPLAY)
-#     aa_ma_list_active_tasks                 -> stdout: mtime-sorted task-dir paths, one per line
+#     aa_ma_list_active_tasks [root]          -> stdout: mtime-sorted task-dir paths, one per line (root defaults to $PWD)
 #     aa_ma_debug <msg...>                    -> log_debug line (hooks.log + stderr) iff HOOK_DEBUG=1
 #     aa_ma_debug_cmd <label> <command>       -> aa_ma_debug "<label> (<n> chars, first word '<word>')"; never the arguments
 #     AA_MA_PARSE_SH_LOADED                   -> set to 1 once sourced (re-source guard)
@@ -18,6 +18,16 @@
 #     aa_ma_has_gate_approval <log> <title>  -> rc 0 iff the LAST "GATE APPROVAL: <title>" block says Decision: APPROVED  (ENFORCING)
 #     aa_ma_deps <graph|check|advisory> <tasks.md> -> `python -m aa_ma.deps` output; rc passed through  (ADVISORY — never a gate)
 #     aa_ma_lint_views <plan.md> [args...] -> `aa-ma-lint-views` output; rc 0/1 passed through, 127 if it cannot run  (read by the §6.7 diagram item)
+#     aa_ma_codemem_bin <forge-root>     -> stdout: the codemem binary to run ($CODEMEM_BIN, else the forge venv's, else PATH) (rc 0), nothing when none is executable (rc 1)
+#     aa_ma_codemem_dir <repo-top>       -> stdout: the codemem index dir ($CODEMEM_DB's, else the XDG cache dir; M16) (rc 0), nothing when it cannot be computed (rc 1)
+#     AA_MA_COCHANGE_MIN_SHARED / AA_MA_COCHANGE_MIN_RATIO -> the T7 co-change constants (5 commits, 0.5 share)
+#     aa_ma_cochange_partners <top> <forge> <timeout-s> -- <path>... -> stdout: codemem co_changes partners at T7, sorted, unique; rc 0 ok | 2 usage | 3 no index | 4 no codemem binary or no timeout(1) | 5 codemem failed | 6 timed out
+#     aa_ma_sanitize_lines  (stdin: lines) -> stdout: the same lines, every Cc/Cf/Co/Cs/Zl/Zp character (and bad UTF-8) as `?`; rc 0 always
+#     aa_ma_default_base_ref             -> stdout: the merge-base ref (origin/HEAD, origin/main, origin/master, main, master) (rc 0), nothing (rc 1)
+#     aa_ma_milestone_base               -> stdout: merge-base of origin's default branch and HEAD (rc 0); rc 2 + a reason line: no origin default branch | no milestone window
+#     aa_ma_impact <plan> <tasks> --milestone N [--base SHA] -> aa-ma-impact kv lines; rc 0/1/2/3/5 passed through, 127 if it cannot run  (ENFORCING, §6.7 fence 4)
+#     aa_ma_read_sidecar_sha <file>      -> stdout: the 40/64-hex SHA in a repo-controlled sidecar (rc 0), nothing for anything else (rc 1)
+#     aa_ma_sha_behind <repo> <sidecar>  -> stdout: commits from the sidecar's SHA to HEAD (rc 0), or a reason: bad sha | not in history | git timeout | git failed (rc 1)
 #
 # Also sources aa-ma-log.sh from this file's real directory, so every hook that sources this
 # library has log_info|log_warn|log_error|log_debug, fail_open_notice and mask_secrets.
@@ -226,19 +236,20 @@ aa_ma_extract_active_step() {
 }
 
 # -----------------------------------------------------------------------------
-# aa_ma_list_active_tasks
+# aa_ma_list_active_tasks [root]
 #   Emits absolute paths to active task directories, one per line,
 #   sorted newest-first by their tasks.md mtime.
 #
 #   Sources (checked in this order):
-#     1. <cwd>/.claude/dev/active/
+#     1. <root>/.claude/dev/active/  (root: $1, default $PWD — a hook passes
+#        the git toplevel of its stdin cwd; sole-dev-merge-fixes M5, L-1347)
 #     2. $HOME/.claude/dev/active/
 #
 #   Collision rule: if the same task name appears in both sources, the
 #   project-local version wins (home version is suppressed).
 # -----------------------------------------------------------------------------
 aa_ma_list_active_tasks() {
-    local project_dir="${PWD}/.claude/dev/active"
+    local project_dir="${1:-$PWD}/.claude/dev/active"
     local home_dir="${HOME}/.claude/dev/active"
     local -A seen_names=()
     local -a rows=()
@@ -248,7 +259,13 @@ aa_ma_list_active_tasks() {
         [ -d "$source_dir" ] || continue
         for dir in "$source_dir"/*/; do
             [ -d "$dir" ] || continue
-            task_name=$(basename "$dir")
+            task_name=${dir%/}; task_name=${task_name##*/}   # not $(basename): it strips a trailing LF
+            # A control character (e.g. $'x\n0\t..') would split the mtime/path rows below
+            # and print a path outside the active dir.
+            if [[ "$task_name" == *[[:cntrl:]]* ]]; then
+                log_warn aa-ma-parse "skipped a task dir under $source_dir whose name holds a control character"
+                continue
+            fi
             # Collision: project-local wins (project is first in the outer loop).
             if [ -n "${seen_names[$task_name]:-}" ]; then
                 continue
@@ -292,16 +309,25 @@ aa_ma_list_active_tasks() {
 #   whichever repo the gate is being run from.
 # -----------------------------------------------------------------------------
 aa_ma_gate() {
-    local root out rc
+    _aa_ma_uv_kv_cli aa-ma-gate "$@"
+}
+
+# _aa_ma_uv_kv_cli <program> [args...]   (private; aa_ma_gate and aa_ma_impact)
+#   Runs a kv-printing gate CLI from the forge that ships this file (`uv run --project`),
+#   prints its output and returns its rc. 127, with a BLOCKED line on stderr, when uv is
+#   missing or the CLI printed no `exit_code=` line — a gate that cannot run must not pass.
+_aa_ma_uv_kv_cli() {
+    local prog="$1" root out rc
+    shift
     root="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)"
-    if ! command -v uv >/dev/null 2>&1; then
-        echo "BLOCKED: aa-ma-gate needs uv on PATH and it is missing — refusing, not skipping" >&2
+    if ! command -v uv > /dev/null 2>&1; then  # why: a presence probe; the BLOCKED line says it
+        echo "BLOCKED: ${prog} needs uv on PATH and it is missing — refusing, not skipping" >&2
         return 127
     fi
-    out=$(uv run --quiet --project "$root" aa-ma-gate --format kv "$@")
+    out=$(uv run --quiet --project "$root" "$prog" --format kv "$@")
     rc=$?
     if ! printf '%s\n' "$out" | grep -q '^exit_code='; then
-        echo "BLOCKED: aa-ma-gate did not run (uv rc ${rc}, project ${root}) — refusing, not skipping" >&2
+        echo "BLOCKED: ${prog} did not run (uv rc ${rc}, project ${root}) — refusing, not skipping" >&2
         return 127
     fi
     printf '%s\n' "$out"
@@ -406,6 +432,255 @@ aa_ma_lint_views() {
     return "$rc"
 }
 
+# aa_ma_codemem_dir <repo-top>
+#   The dir holding <repo-top>'s codemem index and sidecars (M16): that of
+#   $CODEMEM_DB when set, else ${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath
+#   repo-top)> (a relative XDG_CACHE_HOME is ignored, as the XDG spec says).
+#   Python twins: codemem.paths.resolve_db_path, aa_ma.render.graph._resolve_db_path
+#   (tests/codemem/test_safety_parity.py). Prints nothing, rc 1, when it cannot
+#   be computed (no realpath/readlink -f, no sha256sum/shasum).
+aa_ma_codemem_dir() {
+    local top="$1" db="${CODEMEM_DB:-}" real cache key
+    if [[ -n "$db" ]]; then
+        [[ "$db" == /* ]] || db="$(pwd -P)/${db}"  # pwd -P: os.getcwd() in the Python twins
+        while [[ "$db" == ?*/ ]]; do db="${db%/}"; done  # pathlib drops a trailing /
+        db="${db%/*}"
+        printf '%s' "${db:-/}"  # /index.db lives in /
+        return 0
+    fi
+    # why: readlink -f is the fallback where realpath is missing; neither → rc 1
+    real="$(realpath -- "$top" 2>/dev/null || readlink -f -- "$top" 2>/dev/null)" || return 1
+    [[ -n "$real" ]] || return 1
+    if command -v sha256sum > /dev/null 2>&1; then  # why: a presence probe
+        key="$(printf '%s' "$real" | sha256sum)"
+    elif command -v shasum > /dev/null 2>&1; then  # why: as above (macOS)
+        key="$(printf '%s' "$real" | shasum -a 256)"
+    else
+        return 1
+    fi
+    key="${key%% *}"
+    [[ "$key" =~ ^[0-9a-f]{64}$ ]] || return 1
+    cache="${XDG_CACHE_HOME:-}"
+    [[ "$cache" == /* ]] || cache="${HOME}/.cache"
+    while [[ "$cache" == ?*/ ]]; do cache="${cache%/}"; done  # pathlib drops a trailing /
+    printf '%s/codemem/%s' "$cache" "$key"
+}
+
+# aa_ma_codemem_bin <forge-root>
+#   The codemem binary the post-commit worker and §6.0 run: $CODEMEM_BIN (no
+#   fallback when set), else <forge-root>/.venv/bin/codemem, else an absolute
+#   `codemem` on PATH. Prints it (rc 0) only when executable; else nothing, rc 1.
+aa_ma_codemem_bin() {
+    local bin
+    if [[ -n "${CODEMEM_BIN:-}" ]]; then
+        bin="${CODEMEM_BIN}"
+    else
+        bin="$1/.venv/bin/codemem"
+        [[ -x "${bin}" ]] || bin="$(command -v codemem || true)"  # why: absent → rc 1 below
+        # Absolute only: the worker drops relative PATH entries, so §6.0 must not count one.
+        [[ "${bin}" == /* ]] || bin=""
+    fi
+    [[ -n "${bin}" && -x "${bin}" ]] || return 1
+    printf '%s' "${bin}"
+}
+
+# T7 (plan Milestone 11 Contract; M11's aa_ma.impact COCHANGE_MIN_SHARED / _RATIO): a
+# co_changes partner counts when it changed in >= 5 of the file's commits (unit: commits — fewer
+# is chance) and in >= 0.5 of them (unit: share of the file's commits, 0-1 — "at least half
+# the time"). Read by aa_ma_cochange_partners; callers print them in their advisory lines.
+AA_MA_COCHANGE_MIN_SHARED=5
+AA_MA_COCHANGE_MIN_RATIO=0.5
+
+# aa_ma_cochange_partners <repo-top> <forge-root> <timeout-s> -- <path>...
+#   The one shell co_changes reader (commit-drift's ad-hoc advisory, predicted-vs-actual.sh): the
+#   codemem co_changes partners of <path>... at the T7 constants, one per line, sorted (C locale)
+#   and unique; nothing when there are none. Index: aa_ma_codemem_dir; binary: aa_ma_codemem_bin
+#   (from <forge-root>, never the repo); codemem runs under `timeout -k 1 <timeout-s>`, the paths
+#   after `--`. codemem's stderr is dropped — the rc is the report, and the caller logs or
+#   prints it. Safe under `set -e` as `x=$(aa_ma_cochange_partners …) || rc=$?`.
+#   rc 0 ok | 2 usage (no `--`, no path, <timeout-s> not a positive integer) | 3 no index |
+#   4 no codemem binary, or no timeout(1) to bound it | 5 codemem exited non-zero, or printed
+#   no JSON (or jq is missing) | 6 timed out (timeout's 124, or 137 after the -k SIGKILL)
+aa_ma_cochange_partners() {
+    local top="${1-}" forge="${2-}" secs="${3-}" db_dir bin out partners rc=0
+    [[ $# -ge 5 && "${4-}" == "--" && "${secs}" =~ ^[1-9][0-9]*$ ]] || return 2
+    shift 4
+    db_dir="$(aa_ma_codemem_dir "${top}")" || return 3
+    [[ -f "${db_dir}/index.db" ]] || return 3
+    bin="$(aa_ma_codemem_bin "${forge}")" || return 4
+    command -v timeout > /dev/null 2>&1 || return 4   # why: a presence probe; no timeout → no unbounded call
+    out="$(timeout -k 1 "${secs}" "${bin}" query co_changes --repo-root "${top}" \
+        --threshold "${AA_MA_COCHANGE_MIN_SHARED}" --min-ratio "${AA_MA_COCHANGE_MIN_RATIO}" \
+        -- "$@" 2>/dev/null)" || rc=$?   # why: codemem's stderr is replaced by the rc
+    (( rc == 124 || rc == 137 )) && return 6
+    (( rc == 0 )) || return 5
+    # Several paths print one object keyed by path; one path prints its bare result object.
+    # why: jq's parse error on a non-JSON answer is rc 5
+    partners="$(jq -r 'if has("files") then [.] else [.[]] end | .[] | .files[]?.path' <<< "${out}" 2>/dev/null)" || return 5
+    [[ -n "${partners}" ]] || return 0
+    printf '%s\n' "${partners}" | awk 'NF' | LC_ALL=C sort -u
+}
+
+# aa_ma_sanitize_lines   (stdin: lines; stdout: the same lines, made safe to print)
+#   For repo-controlled text (file names, codemem partner paths) about to reach a terminal or
+#   an agent prompt. Every character in a Cc, Cf, Co, Cs, Zl or Zp Unicode category — the set
+#   codemem's sanitize_context_line drops: controls, bidi overrides such as U+202E, zero-width
+#   and tag characters — becomes `?`, as do bytes that are not UTF-8. `?`, not codemem's space:
+#   a path keeps one visible mark per removed character. Stdlib-only `python3 -I -S` (aa_ma
+#   must not need codemem). Fails open, never silent: with no working python3, every byte
+#   outside printable ASCII becomes `?` (stricter, never looser) and one WARN line goes to
+#   hooks.log. Empty input prints nothing. Always rc 0. A line's own newline is its end:
+#   callers replace an embedded newline first (`${p//[[:cntrl:]]/?}`) when a value may hold one.
+_AA_MA_SANITIZE_PY='
+import sys, unicodedata
+bad = frozenset(("Cc", "Cf", "Co", "Cs", "Zl", "Zp"))
+text = sys.stdin.buffer.read().decode("utf-8", "surrogateescape")
+lines = text[:-1].split("\n") if text.endswith("\n") else text.split("\n")
+out = ["".join("?" if unicodedata.category(c) in bad else c for c in ln) for ln in lines]
+sys.stdout.buffer.write(("\n".join(out) + "\n").encode("utf-8"))
+'
+aa_ma_sanitize_lines() {
+    local input out
+    input="$(cat)"
+    [[ -n "${input}" ]] || return 0
+    # why: python's traceback is replaced by the one WARN line below
+    if out="$(printf '%s\n' "${input}" | python3 -I -S -c "${_AA_MA_SANITIZE_PY}" 2>/dev/null)"; then
+        printf '%s\n' "${out}"
+        return 0
+    fi
+    log_warn "${0##*/}" "aa_ma_sanitize_lines: python3 missing or failed; non-ASCII bytes printed as ?"
+    printf '%s\n' "${input}" | LC_ALL=C sed 's/[^ -~]/?/g'
+}
+
+# aa_ma_default_base_ref
+#   The ref a branch's merge-base is taken from, in the current repo: origin/HEAD's target
+#   (short, e.g. origin/main), else the first of origin/main, origin/master, main, master that
+#   names a commit. Remote-tracking first: a local default branch can lag upstream, and this
+#   session can move it. Callers tell a local fallback by the missing `origin/` prefix. Prints
+#   the ref (rc 0), or nothing when none resolves (rc 1).
+aa_ma_default_base_ref() {
+    local ref
+    # why: no origin/HEAD is normal (a `git remote add`, no set-head); the candidates take over
+    ref="$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null)" || ref=""
+    if [[ -n "${ref}" ]]; then
+        printf '%s' "${ref}"
+        return 0
+    fi
+    for ref in refs/remotes/origin/main refs/remotes/origin/master refs/heads/main refs/heads/master; do
+        # why: a probe — only the exit status is read
+        if git rev-parse --verify -q "${ref}^{commit}" > /dev/null 2>&1; then
+            ref="${ref#refs/remotes/}"
+            printf '%s' "${ref#refs/heads/}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# aa_ma_milestone_base
+#   The milestone window's base for §6.7 fence 4 and verify-impl (R1): `git merge-base
+#   origin/<default> HEAD`, where <default> is origin/HEAD's target (a refs/remotes/origin/<name>
+#   ref that is not this branch's own), else origin/main, else origin/master — remote-tracking
+#   refs only (moved by a fetch, not by committing on a branch; `git update-ref` can still move
+#   them — a discipline check, not a security boundary, ADR-0022). Prints the SHA
+#   (rc 0). rc 2, one line naming the reason, when there is no window to certify: no origin
+#   default branch, no merge-base, or HEAD is the default branch tip (merge-base == HEAD).
+aa_ma_milestone_base() {
+    local ref="" full base head cand branch
+    # origin/HEAD is a local, mutable symref: trust only a full refs/remotes/origin/<name>
+    # target, and never this branch's own remote copy (that would narrow the window to
+    # nothing and certify an empty milestone — commit security review, M11).
+    # why: no origin/HEAD is normal (no `remote set-head`); the candidates take over
+    full="$(git symbolic-ref -q refs/remotes/origin/HEAD 2>/dev/null)" || full=""
+    if [[ "${full}" =~ ^refs/remotes/origin/[^/]+$ ]]; then
+        ref="${full#refs/remotes/}"
+        # why: detached HEAD has no branch name; then there is no self copy to compare
+        branch="$(git symbolic-ref -q --short HEAD 2>/dev/null)" || branch=""
+        if [[ -n "${branch}" && "${ref}" == "origin/${branch}" ]]; then
+            echo "aa_ma_milestone_base: origin/HEAD points at this branch (${ref}); no milestone window to certify"
+            return 2
+        fi
+    fi
+    if [[ -z "${ref}" ]]; then
+        for cand in origin/main origin/master; do
+            # why: a probe — only the exit status is read
+            if git rev-parse --verify -q "refs/remotes/${cand}^{commit}" > /dev/null 2>&1; then
+                ref="${cand}"
+                break
+            fi
+        done
+    fi
+    if [[ -z "${ref}" ]]; then
+        echo "aa_ma_milestone_base: no origin default branch (origin/HEAD, origin/main, origin/master)"
+        return 2
+    fi
+    # why: stderr dropped — no merge-base is reported as the named error below
+    base="$(git merge-base "${ref}" HEAD 2>/dev/null)" || base=""
+    head="$(git rev-parse -q --verify HEAD)" || head=""
+    if [[ -z "${base}" || "${base}" == "${head}" ]]; then
+        echo "aa_ma_milestone_base: no milestone window (merge-base of ${ref} and HEAD is ${base:-empty}; HEAD ${head:0:12})"
+        return 2
+    fi
+    printf '%s\n' "${base}"
+}
+
+# aa_ma_impact <plan.md> <tasks.md> --milestone N [--base SHA] [...]
+#   Launcher for the Python aa-ma-impact (§6.7 fence 4), via _aa_ma_uv_kv_cli like aa_ma_gate:
+#   prints its kv output and returns its rc (0/1/2/3/5); 127 when it cannot run.
+aa_ma_impact() {
+    _aa_ma_uv_kv_cli aa-ma-impact "$@"
+}
+
+# aa_ma_read_sidecar_sha <file>
+#   The one shell reader of a repo-controlled sidecar (<codemem index dir>/last_sha,
+#   graphify-out/.built_sha; M15 §6.8 C2). Prints the SHA only when <file> is
+#   a regular file, neither it nor its directory a symlink, holding exactly one
+#   SHA-1 (40-hex) or SHA-256 (64-hex) line; else prints nothing, rc 1. Python
+#   twin: codemem.incremental._read_sha.
+aa_ma_read_sidecar_sha() {
+    local file="$1" sha
+    [[ -f "$file" && ! -L "$file" && ! -L "${file%/*}" ]] || return 1
+    # why: a sidecar is one SHA line; 128 bytes bounds the read of a planted huge file; unreadable → empty → rc 1
+    sha="$(head -c 128 -- "$file" 2>/dev/null)" || return 1
+    [[ "$sha" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]] || return 1
+    printf '%s' "$sha"
+}
+
+# aa_ma_sha_behind <repo> <sidecar-file>
+#   The one shell "SHA vs HEAD" computation (report 03 X1; X2 does the same in
+#   Python, codemem.incremental.check_freshness — both are tested against
+#   tests/fixtures/code-intel/make-repo.sh). The sidecar is read by
+#   aa_ma_read_sidecar_sha, and the SHA reaches git after --end-of-options.
+#   The value itself is never printed. Safe to call under `set -e`: it prints
+#   its reason before returning 1.
+aa_ma_sha_behind() {
+    local repo="$1" file="$2" sha n rc=0
+    if ! sha="$(aa_ma_read_sidecar_sha "$file")"; then
+        printf 'bad sha'
+        return 1
+    fi
+    # why: 1 s caps a hung git well inside the SessionStart hook's 5 s timeout; a healthy call takes ~5 ms
+    if command -v timeout > /dev/null 2>&1; then  # why: a presence probe (absent on stock macOS)
+        n="$(timeout 1 git -C "$repo" -c core.fsmonitor=false rev-list --count --end-of-options "${sha}..HEAD" 2>/dev/null)" || rc=$?  # why: git's own error text is replaced by the reason below
+    else
+        n="$(git -C "$repo" -c core.fsmonitor=false rev-list --count --end-of-options "${sha}..HEAD" 2>/dev/null)" || rc=$?  # why: as above
+    fi
+    if [[ "$rc" -eq 124 ]]; then
+        printf 'git timeout'
+        return 1
+    fi
+    if [[ "$rc" -ne 0 || ! "$n" =~ ^[0-9]+$ ]]; then
+        if git -C "$repo" rev-parse --git-dir > /dev/null 2>&1; then  # why: a probe — only its exit status is read
+            printf 'not in history'
+        else
+            printf 'git failed'
+        fi
+        return 1
+    fi
+    printf '%s' "$n"
+}
+
 # -----------------------------------------------------------------------------
 # End of aa-ma-parse.sh
 # -----------------------------------------------------------------------------
+

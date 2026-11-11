@@ -23,6 +23,10 @@ MAX_CHARS = 8192
 # Extra characters masked past the cap before truncating, so a secret that straddles
 # the cut is masked whole instead of leaving an unmatched fragment in the log.
 _CAP_OVERLAP = 256
+# C0, DEL and C1 (U+0080-U+009F): a terminal reads ESC (0x1B) and CSI (U+009B) as commands.
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+# The same without LF, for a whole text record: its traceback lines are LF-separated.
+_CONTROL_CHARS_BUT_LF = re.compile(r"[\x00-\x09\x0b-\x1f\x7f-\x9f]")
 
 _VERBOSITY_LEVELS = {
     -2: logging.CRITICAL,
@@ -82,8 +86,12 @@ class SecretRedactingFormatter(logging.Formatter):
         self.as_json = as_json
 
     def formatMessage(self, record: logging.LogRecord) -> str:
-        """The record's line with CR/LF flattened: untrusted input must not forge a log line."""
-        return super().formatMessage(record).replace("\r", " ").replace("\n", " ")
+        """The record's line with every C0/C1 control character (CR, LF, ESC, CSI, …) as a space.
+
+        Untrusted input must not forge a log line or send an escape sequence to a terminal;
+        the bash twin (`hooks/lib/aa-ma-log.sh` `_aa_ma_log_oneline`) does the same.
+        """
+        return _CONTROL_CHARS.sub(" ", super().formatMessage(record))
 
     def format(self, record: logging.LogRecord) -> str:
         """Render the record, then mask it; fail closed by replacing the record's message."""
@@ -100,8 +108,10 @@ class SecretRedactingFormatter(logging.Formatter):
                 if record.stack_info:
                     body["stack"] = mask_secrets(self.formatStack(record.stack_info))
                 return json.dumps(body)
-            # Indent exception/stack lines: one whose text holds LF must not start a forged record.
-            return mask_secrets(super().format(record).replace("\n", "\n    "))
+            # Traceback text is untrusted too: only its LFs survive, then each continuation
+            # line is indented so one whose text holds LF cannot start a forged record.
+            text = _CONTROL_CHARS_BUT_LF.sub(" ", super().format(record))
+            return mask_secrets(text.replace("\n", "\n    "))
         except Exception:  # noqa: BLE001  # why: any failure must turn into the fixed message, never a leak or a dropped record
             record.msg, record.args = _FAILED, None
             record.exc_info = record.exc_text = record.stack_info = None

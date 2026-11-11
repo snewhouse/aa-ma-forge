@@ -545,3 +545,12 @@ PASS_RE='Test-Command-Pass-Regex: \[ FAIL 0 \| WARN [0-9]+ \| SKIP [0-9]+ \| PAS
     run _line
     [[ "$output" == *"— ${HEADING} — passed=12 cmd=./stub.sh" ]]
 }
+
+@test "a heading with a bidi control reaches the TESTS_VERIFIED line sanitised" {
+    sed -i $'s/^## Milestone 2: The one being gated/## Milestone 2: The one ‮being gated/' "$T/t-tasks.md"
+    _run_fence
+    [ "$status" -eq 0 ] || { echo "$output"; false; }
+    run grep -F "TESTS_VERIFIED — Milestone 2: The one ?being gated — " "$T/t-provenance.log"
+    [ "$status" -eq 0 ] || { cat "$T/t-provenance.log"; false; }
+    run ! grep -q $'‮' "$T/t-provenance.log"
+}

@@ -7,15 +7,15 @@ no-op (not queue) with an informative log line.
 
 Usage::
 
-    with acquire_writer_lock(Path(".codemem/db.lock")) as acquired:
+    with acquire_writer_lock(db_path.parent / "db.lock") as acquired:
         if not acquired:
             return  # another writer is active; we no-op
 
         # ... do the write ...
 
-Separate from ``refresh.pid`` (Task 2.5 — the post-commit hook's
-process-tracking file). ``db.lock`` is ABOUT THE DB; ``refresh.pid``
-is ABOUT THE HOOK. Read MCP connections use ``mode=ro`` on the SQLite
+Separate from the post-commit step's queue lock
+(``<git-dir>/codemem-post-commit.lock``, M15.4). ``db.lock`` is ABOUT THE
+DB; the post-commit lock is ABOUT THE HOOK. Read MCP connections use ``mode=ro`` on the SQLite
 URI and never touch either file.
 """
 
@@ -45,8 +45,10 @@ def acquire_writer_lock(path: Path) -> Iterator[bool]:
     path.parent.mkdir(parents=True, exist_ok=True)
     # O_CREAT so the lock file exists; O_WRONLY because we need a
     # write fd to lock on POSIX (shared-read fds can only take
-    # shared-read locks).
-    fd = os.open(path, os.O_CREAT | os.O_WRONLY, 0o644)
+    # shared-read locks). O_NOFOLLOW: `db.lock` is repo-controlled when
+    # CODEMEM_DB points into a repo, and O_CREAT through a planted link would
+    # create or open its target.
+    fd = os.open(path, os.O_CREAT | os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0), 0o644)
 
     try:
         acquired = _try_lock(fd)
@@ -60,8 +62,10 @@ def acquire_writer_lock(path: Path) -> Iterator[bool]:
 
 
 def _try_lock(fd: int) -> bool:
-    """Return True if we got the exclusive lock, False if another
-    process holds it. Never raises on contention (uses non-blocking)."""
+    """Return True if we got the exclusive lock, False if another process holds it.
+
+    Never raises on contention (uses non-blocking).
+    """
     if _IS_WINDOWS:
         return _try_lock_windows(fd)
     return _try_lock_posix(fd)
@@ -77,6 +81,7 @@ def _unlock(fd: int) -> None:
 # ---------------------------------------------------------------------
 # POSIX implementation — fcntl.lockf with LOCK_EX | LOCK_NB
 # ---------------------------------------------------------------------
+
 
 def _try_lock_posix(fd: int) -> bool:
     import fcntl
@@ -101,6 +106,7 @@ def _unlock_posix(fd: int) -> None:
 # ---------------------------------------------------------------------
 # Windows implementation — msvcrt.locking
 # ---------------------------------------------------------------------
+
 
 def _try_lock_windows(fd: int) -> bool:  # pragma: no cover — POSIX CI
     import msvcrt

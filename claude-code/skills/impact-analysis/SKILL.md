@@ -224,17 +224,23 @@ When editing code that later milestones depend on:
 
 Use codemem's MCP tools for checks 1-4 instead of manual Grep — they build the index on first
 query. When codemem is not configured and `PROJECT_INDEX.json` exists, its project-index MCP tools are
-the equivalent fallback (same names; its `blast_radius` returns callers by depth, codemem's returns callees).
+the equivalent fallback (same names; project-index has no `callees`, and its `blast_radius` returns callers by depth).
+codemem's own `blast_radius` is a deprecated alias of `callees` (removed after v0.18.x).
 
 | Check | codemem (default) | Fallback |
 |-------|-------------------|----------|
 | 1. UPSTREAM | `who_calls(name, max_depth=2)` → transitive callers | Grep for imports/calls |
-| 2. DOWNSTREAM | `blast_radius(name, max_depth=3)` → transitive callees; `diagram(level="L2", scope=file)` → the file's import/call neighbourhood | Read imports in file |
+| 2. DOWNSTREAM | `callees(name, max_depth=3)` → transitive callees; `diagram(level="L2", scope=file)` → the file's import/call neighbourhood | Read imports in file |
 | 3. CONTRACTS | `file_summary(path)` → symbols for comparison | Compare before/after |
 | 4. TEST COVERAGE | `search_symbols("test_<target>")` (substring match) → test functions | Find test files |
 | 5. SIDE EFFECTS | *(manual — not in the index)* | Read function body |
 
-**Freshness gate:** codemem — if any tracked file is newer than `.codemem/index.db` (`git status --porcelain`, or a commit after the index's mtime), rebuild (sub-second on a small repo, tens of seconds on thousands of files) or say the answer is stale; `PROJECT_INDEX.json` (codemem's fallback) — check `_meta.at`, and if >24h old prepend a warning but still use the data.
+**Freshness gate:** codemem refreshes its index before answering (capped at 5 s) and every response carries `index_sha`, `head_sha`, `stale` and `stale_reason`.
+- `stale: false` — use the result.
+- `stale: true` or `"unknown"` (the refresh was locked, failed or timed out, or there is no git) — the result is leads only. Confirm each caller or callee you rely on by reading the file, and add one line to your output: `CODE_INTEL_STALE — <tool> — <stale_reason> — index <first 8 of index_sha> head <first 8 of head_sha>`.
+- An `error` with `stale_reason` `unsafe_db_path` (a symlink in codemem's index dir), `untrusted` (an index codemem did not build here, still rebuilding) or `trust_store` (codemem's state dir is broken) — no result at all; fall back to Grep/Read, and remove the link, retry, or fix the state dir.
+
+`PROJECT_INDEX.json` (codemem's fallback): check `_meta.at`; if it is more than 24 h old, prepend a warning but still use the data.
 
 ## Quick Reference
 

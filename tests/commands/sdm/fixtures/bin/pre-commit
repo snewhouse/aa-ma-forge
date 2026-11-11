@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# pre-commit — PATH-shadowed stub for tests/commands/sdm. Logs its argv (each argument %q-quoted,
+# so a split name shows) and the diff-range env as one line to "$CLI_LOG".
+#   PRE_COMMIT_RUN — shell text run in the repo first, to play a fixer that changes files
+#   PRE_COMMIT_RC=0 — exit code to return
+{ printf 'pre-commit'; printf ' %q' "$@"; printf ' FROM=%s TO=%s\n' "${PRE_COMMIT_FROM_REF:-}" "${PRE_COMMIT_TO_REF:-}"; } >> "${CLI_LOG:-/dev/null}"
+if [[ -n "${PRE_COMMIT_RUN:-}" ]]; then eval "$PRE_COMMIT_RUN"; fi
+exit "${PRE_COMMIT_RC:-0}"

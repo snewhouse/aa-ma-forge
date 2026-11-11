@@ -223,7 +223,9 @@ def test_regex_secret_finding_never_carries_the_secret(
     assert FAKE_TOKEN not in (work / "measure.json").read_text()
 
 
-def test_only_a_provider_rule_outside_tests_is_high(tmp_path: Path, tools: Path) -> None:
+def test_only_a_provider_rule_outside_tests_is_high(
+    tmp_path: Path, tools: Path
+) -> None:
     """A precise provider pattern in shipped code is a likely leak: HIGH, even in Quick with no
     judge to escalate it. A generic match, or any match in a test or fixture path, is MEDIUM —
     only judged critical/high reach the refuter, so a HIGH there would ship unrefuted noise."""
@@ -558,7 +560,8 @@ def test_real_codemem_run_measures_and_never_touches_a_committed_index(
     fake = target / ".codemem" / "index.db"
     fake.parent.mkdir()
     fake.write_bytes(b"PLANTED - not a database")
-    git(target, "add", "-A")
+    # -f: a global excludes file may ignore .codemem/ (M15.8 adds it); the plant must commit.
+    git(target, "add", "-f", ".codemem/index.db")
     git(target, "commit", "-q", "-m", "planted index")
     before = (fake.read_bytes(), fake.stat().st_mtime_ns)
     work = measure(target, "quick")

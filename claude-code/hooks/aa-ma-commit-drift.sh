@@ -2,7 +2,7 @@
 # Event: PostToolUse(Bash)
 # Mode: Advisory — warns, never blocks
 # Exit: 0 always
-# Fail-open: every skip path (kill switch, no active plan, not a commit) exits 0 silently
+# Fail-open: every skip path (kill switch, no active plan, not a commit) exits 0 silently; each skip of the co-change advisory leaves one hooks.log line (DEBUG: no index / no codemem; WARN: codemem failed or timed out)
 #
 # PostToolUse(Bash) hook — warn when a commit lands without touching any
 # AA-MA task's tasks.md or provenance.log.
@@ -19,6 +19,13 @@
 #   - None of the committed files is a tasks.md or provenance.log under an
 #     active task directory
 #   - The commit message does NOT contain `[no-sync-check]` on its own line
+#
+# Ad-hoc commits — no active AA-MA plan, or `[ad-hoc]` on its own line in the message —
+# instead get ONE co-change line (code-conventions-impact 10.7): the codemem co_changes
+# partners of the committed files (aa_ma_cochange_partners: the T7 constants, >= 5 shared
+# commits and >= 50% of the file's commits) that the commit left out, under a 2 s timeout.
+# No codemem or no index → a DEBUG hooks.log line; a failed or slow query → a WARN line;
+# nothing is printed either way.
 #
 # Always exits 0 (advisory).
 
@@ -63,13 +70,39 @@ fi
 aa_ma_debug_cmd "commit-drift: examining last commit after" "$cmd"
 
 # -----------------------------------------------------------------------------
-# Active plans?
+# Ad-hoc co-change advisory (10.7). Prints at most one line; never fails the hook.
 # -----------------------------------------------------------------------------
-mapfile -t TASKS < <(aa_ma_list_active_tasks)
-if [ "${#TASKS[@]}" -eq 0 ]; then
-    aa_ma_debug "commit-drift: no active AA-MA plans, skipping"
-    exit 0
-fi
+COCHANGE_TIMEOUT_S=2      # the advisory must never slow a commit noticeably
+COCHANGE_MAX_NAMES=10     # the line stays one readable line
+DRIFT_HOOK="aa-ma-commit-drift"
+
+# cochange_advisory <committed-file>... — at most one stderr line; every skip logs one line.
+cochange_advisory() {
+    local real forge top partners rc=0 skip="co-change advisory skipped"
+    local -a missed=()
+    # why: no `readlink -f` (old macOS) → the path as invoked, then the lib lookups decide
+    real="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null)" || real="${BASH_SOURCE[0]}"
+    forge="${real%/*}"; forge="${forge%/*/*}"   # <forge>/claude-code/hooks/<this>
+    # why: git's own message is replaced by the debug line
+    top=$(git rev-parse --show-toplevel 2>/dev/null) || { log_debug "$DRIFT_HOOK" "${skip}: not in a git work tree"; return 0; }
+    partners=$(aa_ma_cochange_partners "$top" "$forge" "$COCHANGE_TIMEOUT_S" -- "$@") || rc=$?
+    case "$rc" in
+        0) ;;
+        3) log_debug "$DRIFT_HOOK" "${skip}: no codemem index for this repo"; return 0 ;;
+        4) log_debug "$DRIFT_HOOK" "${skip}: no codemem binary (or no timeout(1))"; return 0 ;;
+        6) log_warn "$DRIFT_HOOK" "${skip}: codemem co_changes timed out after ${COCHANGE_TIMEOUT_S} s"; return 0 ;;
+        *) log_warn "$DRIFT_HOOK" "${skip}: codemem co_changes failed or printed no JSON (rc ${rc})"; return 0 ;;
+    esac
+    [ -n "$partners" ] || return 0
+    mapfile -t missed < <(grep -Fvx -f <(printf '%s\n' "$@") <<< "$partners")
+    [ "${#missed[@]}" -gt 0 ] || return 0
+    local shown more=""
+    # Partner paths are repo-controlled: aa_ma_sanitize_lines turns bidi/zero-width/tag characters into `?`.
+    shown=$(printf '%s\n' "${missed[@]:0:COCHANGE_MAX_NAMES}" | aa_ma_sanitize_lines | paste -sd ',' - | sed 's/,/, /g')
+    [ "${#missed[@]}" -gt "$COCHANGE_MAX_NAMES" ] && more=" (+$(( ${#missed[@]} - COCHANGE_MAX_NAMES )) more)"
+    printf 'ℹ️  co-change advisory (codemem; shared>=%s, ratio>=%s): often changed with these files but not in this commit: %s%s\n' \
+        "$AA_MA_COCHANGE_MIN_SHARED" "$AA_MA_COCHANGE_MIN_RATIO" "${shown//[[:cntrl:]]/?}" "$more" >&2
+}
 
 # -----------------------------------------------------------------------------
 # Inspect the last commit in the current working directory's repo.
@@ -87,6 +120,23 @@ fi
 
 commit_files=$(git log -1 --name-only --format= HEAD 2>/dev/null | awk 'NF')
 commit_msg=$(git log -1 --format=%B HEAD 2>/dev/null)
+
+# -----------------------------------------------------------------------------
+# Active plans? None, or an [ad-hoc] commit: the co-change advisory.
+# -----------------------------------------------------------------------------
+mapfile -t TASKS < <(aa_ma_list_active_tasks)
+if [ "${#TASKS[@]}" -eq 0 ] \
+    || printf '%s\n' "$commit_msg" | grep -Eq '^[[:space:]]*\[ad-hoc\][[:space:]]*$'; then
+    if [ -n "$commit_files" ]; then
+        mapfile -t _committed <<< "$commit_files"
+        # shellcheck disable=SC2310  # why: set -e off inside it is the point — any failure there is "no advisory"
+        cochange_advisory "${_committed[@]}" || true   # why: advisory only; a failure inside must never fail the hook
+    fi
+fi
+if [ "${#TASKS[@]}" -eq 0 ]; then
+    aa_ma_debug "commit-drift: no active AA-MA plans, skipping"
+    exit 0
+fi
 
 # Below-threshold skip.
 file_count=$(printf '%s\n' "$commit_files" | awk 'NF' | wc -l)

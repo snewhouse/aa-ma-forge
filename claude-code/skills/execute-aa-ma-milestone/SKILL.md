@@ -139,6 +139,8 @@ true
 
 **When all sub-tasks complete, REQUIRED validation before marking milestone COMPLETE:**
 
+**First, §6.0:** run `scripts/code-intel-refresh.sh` (CODE_INTEL_REFRESH) — see [boundary-checks.md](references/boundary-checks.md#60-code-intel-refresh-code_intel_refresh); BLOCKED stops here.
+
 ### 6.1 Acceptance Criteria Verification
 
 See [boundary-checks.md](references/boundary-checks.md#61-acceptance-criteria-verification) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
@@ -153,7 +155,7 @@ e.g. `Next: Milestone 3 — Dependencies: Milestone 2` (canonical form).
 
 ### 6.3 Impact Analysis Verification (REQUIRED)
 
-See [boundary-checks.md](references/boundary-checks.md#63-impact-analysis-verification-required) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
+See [boundary-checks.md](references/boundary-checks.md#63-impact-analysis-verification-required) — the index pre-check, `scripts/predicted-vs-actual.sh` (one `UNPREDICTED <path>` per changed file the Contract and its co-change partners did not predict; the list goes to §6.8's code-reviewer, never self-graded) and `Skill(impact-analysis)`.
 
 ### 6.4 Test Execution (if specified)
 
@@ -174,11 +176,11 @@ See [boundary-checks.md](references/boundary-checks.md#66-post-milestone-simplif
 ### 6.7 Engineering Standards HARD Gate
 
 Reference: `claude-code/rules/engineering-standards.md` (Themes 1, 4, 5, 6).
-This gate is structural — it refuses to mark COMPLETE when any of 5 conditions
+This gate is structural — it refuses to mark COMPLETE when any condition
 fails. Independent of `Gate: SOFT|HARD` in tasks.md (that controls the approval
 artifact in 7.1; THIS gate enforces engineering posture for every milestone).
 
-**Five conditions, evaluated in order:**
+**Conditions, evaluated in order** (two more fences follow: §13 diagram edges, then tests):
 
 ```bash
 TASK_DIR=".claude/dev/active/${TASK_NAME}"
@@ -189,22 +191,11 @@ DIRTY_AA_MA=$(git status --porcelain "${TASK_DIR}/" | wc -l | tr -d ' ')
 if [[ "${DIRTY_AA_MA}" -ne 0 ]]; then
   echo "BLOCKED: AA-MA artifacts have uncommitted changes."
   echo "Run sub-step Result Log discipline (L-080-082); commit and re-run."
-  # Was `# HALT` — a comment. Measured against a dirty task dir: printed
-  # BLOCKED and then PASS with exit 0. The gate contradicted itself and passed.
   exit 1
 fi
 
-# --- Gate preamble: every reading below comes from the Python SSoT -----------
-#
-# The awk that used to live here was a hand-written markdown parser whose
-# accepted-string set was decided by reasoning, not measurement; ADR-0009
-# records what three reviews found in it. So: bash asks, Python answers.
-# `aa_ma_gate` is a launcher, not a parser; `aa-ma-gate` (src/aa_ma/gate.py)
-# answers all seven questions over grammar.py + enforce.py + plan_parsers.py
-# and refuses on ambiguity rather than choosing. Exit codes: `aa-ma-gate --help`.
-#
-# Resolution order matches the shipped hooks: repo-local first so a clone that
-# has not run install.sh still works.
+# --- Gate preamble: every reading below comes from the Python SSoT (ADR-0009) ---
+# bash asks, Python answers; repo-local lib first. Rationale: references/gate-fences.md.
 for _cand in \
   "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
   "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
@@ -219,12 +210,8 @@ fi
 # shellcheck source=/dev/null
 . "${AA_MA_LIB}"
 
-# One call answers every question. Exit codes are the contract's and fail
-# closed: 0 one ACTIVE and every enforced field readable · 1 no ACTIVE ·
-# 2 unreadable (missing file, unclosed fence, invalid field, orphan sub-step) ·
-# 3 ambiguous (2+ ACTIVE, duplicate heading) · 127 the gate could not run.
-# `aa_ma_gate` prints nothing but a BLOCKED line for 127, so the `error=`
-# lines below are only ever the Python gate's own words.
+# One call answers every question; exit codes fail closed (0 ok · 1 no ACTIVE ·
+# 2 unreadable · 3 ambiguous · 127 could not run — references/gate-fences.md).
 GATE_KV=$(aa_ma_gate "${TASKS_MD}")
 GATE_RC=$?
 if [[ "${GATE_RC}" -ne 0 ]]; then
@@ -254,19 +241,16 @@ if [[ "${PENDING_IN_MILESTONE}" -gt 0 ]]; then
   exit 1
 fi
 
-# 3. Tests-pass evidence (already enforced in 6.4; double-check Result Log mentions)
-# 4. Impact-analysis evidence (already enforced in 6.3; double-check Result Log mentions)
+# 3. Tests pass: fence 3 below runs Test-Command and writes TESTS_VERIFIED.
+# 4. Impact: fence 4 below runs aa-ma-impact and writes IMPACT_VERIFIED.
+CONDITIONS=2   # conditions 1 and 2 above
 
 # 5. Critical-Path / Prototype-Required provenance evidence (CONDITIONAL)
-# Absent-field semantic: the gate reports an empty value when the field is
-# absent, and the check is skipped. Only present-but-without-evidence fires.
-#
-# The evidence greps are MILESTONE-SCOPED. A bare `grep -q CRITICAL_PATH_REVIEW`
-# over the whole provenance.log means that once ANY milestone writes the token,
-# every later milestone's check is pre-satisfied. Entries must name the milestone:
+# Absent field → skipped. Evidence greps are milestone-scoped (references/gate-fences.md):
 #   [ts] CRITICAL_PATH_REVIEW — <milestone-title> — <value> — <evidence>
 CRITICAL_PATH_TASKS=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field critical_path)
 if [[ -n "${CRITICAL_PATH_TASKS}" ]]; then
+  CONDITIONS=$((CONDITIONS + 1))
   if ! grep -F -- "CRITICAL_PATH_REVIEW" "${TASK_DIR}/${TASK_NAME}-provenance.log" \
        | grep -qF -- "${MILESTONE_TITLE}"; then
     echo "BLOCKED: Milestone declares Critical-Path: ${CRITICAL_PATH_TASKS} but"
@@ -277,49 +261,29 @@ fi
 
 PROTOTYPE_TASKS=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field prototype_required)
 if [[ "${PROTOTYPE_TASKS}" == "YES" ]]; then
+  CONDITIONS=$((CONDITIONS + 1))
   if ! grep -F -- "PROTOTYPE —" "${TASK_DIR}/${TASK_NAME}-provenance.log" \
        | grep -qF -- "${MILESTONE_TITLE}"; then
     echo "BLOCKED: the milestone or one of its sub-steps declares Prototype-Required: YES"
-    echo "but provenance.log has no PROTOTYPE — <milestone heading> — <verdict> entry naming this milestone."
+    echo "but provenance.log has no PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES|NO entry naming this milestone."
     exit 1
   fi
 fi
 
-echo "ENG-STANDARDS-GATE: PASS (all 5 conditions satisfied)"
+echo "ENG-STANDARDS-GATE: PASS (${CONDITIONS} conditions checked; fences 2–4 follow)"
 ```
 
-**Absent-field semantic** (M2.5 verification finding): when `Critical-Path:` or
-`Prototype-Required:` is **absent** from a task, the corresponding check is
-**skipped (no failure)**. Only present-but-without-evidence triggers a HALT.
-This preserves backward compat with `examples/` plans authored before v0.5.0.
+See [gate-fences.md](references/gate-fences.md#absent-field-semantic-fence-1) — absent `Critical-Path:` / `Prototype-Required:` fields skip their check.
 
 **Bypass:** to override this gate (e.g. for diagnostic runs), set
 `AA_MA_HOOKS_DISABLE=1` in the environment. The gate honors the master kill
 switch but logs the override to provenance.log:
 `[ts] ENG_STANDARDS_GATE: BYPASSED via AA_MA_HOOKS_DISABLE`.
 
-**§13 sigil edges verified — HARD, opt-in** (ADR-0015; Execution Checklist row in
-`engineering-standards.md` §5). HARD ≠ `gate.py`: `aa-ma-gate` reads only `tasks.md`,
-while §13 lives in `plan.md`, so this item is enforced here and the gate CLI, its kv
-envelope and the fence above are unchanged. It applies only when the plan's §13 carries
-a sigil edge (`-->|"@import"|`, `-->|"@call"|`, …); a plan without one is a no-op.
+**§13 sigil edges verified — HARD, opt-in** (fence 2, ADR-0015): a plan whose §13 carries a sigil edge
+must have every edge hold in the code. It stays the second fence (`test_diagram_verified.bats`).
 
-| Lint says | Verdict |
-|-----------|---------|
-| `edges=0` | not applicable — no evidence written |
-| `phantom>0` (`PHANTOM_EDGE` / `LABEL_UNKNOWN`) | BLOCKED — the diagram claims an edge the code does not hold |
-| `invalid>0` — an edge to a missing file, a stale `(new)` on a file that exists, a path-less label, an unparsed edge form, a path outside the repo | BLOCKED — an authoring error the diagram can fix now |
-| `index-unknown>0` (no, stale, too-old or unreadable index) | BLOCKED — the check did not run (L-012); run `codemem build` and re-run |
-| no `sigils:` line / `sigils: UNKNOWN` (a sigil edge outside §13's views, an unterminated fence) / the lint did not run | BLOCKED — not every sigil edge could be read |
-| otherwise | PASS — appends `[ts] DIAGRAM_VERIFIED — <milestone heading> — edges=N checked=C phantom=0 unknown=K` |
-
-What still passes, counted in `unknown=K`: a claim that cannot be checked *yet* — a
-genuinely planned `(new)` file, a plugin sigil (`@skill`/`@command`/`@agent`/`@hook`), a
-language the graph does not model. `checked=C` is how many edges were actually compared
-with the code. The fence run is the check; the `DIAGRAM_VERIFIED` line is its record.
-This fence must stay AFTER the gate fence above: `tests/hooks/aa-ma-gate-python.bats`
-(`_gate_fence`) executes the *first* ```bash fence after the `### 6.7 ` heading, and
-`tests/hooks/test_diagram_verified.bats` asserts the order.
+See [gate-fences.md](references/gate-fences.md#fence-2--13-sigil-edges-verified) — the lint verdicts, what still passes, and why the fence order is fixed.
 
 ```bash
 # Self-sufficient, like §7.1's fence: a fresh shell has none of the variables above.
@@ -383,6 +347,40 @@ else
 fi
 ```
 
+**Tests verified — HARD** (fence 3): runs the merge-base `Test-Command:` (default `uv run pytest`);
+appends `[ts] TESTS_VERIFIED — <milestone heading> — passed=N cmd=<TEST_CMD>` only on rc 0 plus a
+pass-count summary. A failure is BLOCKED, never retried. Long suite: raise `AA_MA_TEST_TIMEOUT` (540 s), run in background.
+
+See [gate-fences.md](references/gate-fences.md#fence-3--tests_verified) — inputs, PASS rules, `Test-Command-Pass-Regex:`, the `none` opt-out and its approval.
+
+```bash
+# Fence 3 — TESTS_VERIFIED. All logic is in the skill's scripts/tests-verified.sh (bats-tested).
+_s=skills/execute-aa-ma-milestone/scripts/tests-verified.sh
+TV=""   # never run an inherited TV
+# why: stderr dropped — outside a repo the first candidate is simply absent
+for _tv in "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/${_s}" \
+           "${CLAUDE_HOME:-${HOME}/.claude}/${_s}"; do
+  [[ -f "${_tv}" ]] && TV="${_tv}" && break
+done
+bash "${TV:?tests-verified.sh not found — run scripts/install.sh}" "${TASK_NAME:-}"
+```
+
+**Impact verified — HARD** (fence 4): every change predicted by the Contract, or explained;
+appends `[ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0 api_diff=<summary>`.
+See [gate-fences.md](references/gate-fences.md#fence-4--impact_verified) and [impact-gate.md](references/impact-gate.md) (how to read a BLOCKED report).
+
+```bash
+# Fence 4 — IMPACT_VERIFIED. All logic is in the skill's scripts/impact-verified.sh (bats-tested).
+_s=skills/execute-aa-ma-milestone/scripts/impact-verified.sh
+IV=""   # never run an inherited IV
+# why: stderr dropped — outside a repo the first candidate is simply absent
+for _iv in "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/${_s}" \
+           "${CLAUDE_HOME:-${HOME}/.claude}/${_s}"; do
+  [[ -f "${_iv}" ]] && IV="${_iv}" && break
+done
+bash "${IV:?impact-verified.sh not found — run scripts/install.sh}" "${TASK_NAME:-}"
+```
+
 ---
 
 ### 6.8 Post-Impl Adversarial Review (NEW in v0.8.0)
@@ -431,14 +429,10 @@ if [[ -z "${MILESTONE_TITLE}" || -z "${GATE}" ]]; then
   exit 1
 fi
 if [[ "$GATE" == "HARD" ]]; then
-  # -F: the title is data, not a pattern. Titles routinely contain '.' (version
-  # numbers), so a BRE match let "GATE APPROVAL: M4 v0X8X0" satisfy the gate for
-  # "M4 v0.8.0". A leading '-' would make grep misparse its own argument.
-  # The heading alone is not an approval: the artifact's `Decision:` line may
-  # say REJECTED, and a heading-only grep waved that through. Require
-  # `Decision: APPROVED` within the block (the spec's artifact is 4 lines).
-  if ! grep -A8 -F -- "GATE APPROVAL: ${MILESTONE_TITLE}" \
-       "${TASK_DIR}/${TASK_NAME}-context-log.md" | grep -qE '^-[[:blank:]]+(\*\*)?Decision:(\*\*)?[[:blank:]]+APPROVED'; then
+  # Block-scoped and exact (aa-ma-parse.sh): the title is a string, never a pattern
+  # ("M4 v0X8X0" is not "M4 v0.8.0"); the LAST block for it must say Decision: APPROVED,
+  # and a REJECTED block can no longer borrow the next block's APPROVED (M9 §6.6).
+  if ! aa_ma_has_gate_approval "${TASK_DIR}/${TASK_NAME}-context-log.md" "${MILESTONE_TITLE}"; then
     echo "BLOCKED: Gate: HARD requires signed approval in context-log.md"
     echo "Required format: ## [date] GATE APPROVAL: ${MILESTONE_TITLE}"
     echo "                 ... followed by a line: - Decision: APPROVED"

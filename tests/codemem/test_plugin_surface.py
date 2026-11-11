@@ -95,17 +95,18 @@ def test_orphans_are_the_named_set_and_no_errors(surface) -> None:
     assert len(surface.orphans) == len(set(surface.orphans))
     assert {o.split(":", 1)[1] for o in surface.orphans} == {
         "aa-ma-search",
-        "sole-dev-merge",
+        # sole-dev-merge left this set in sole-dev-merge-fixes M1: aa-ma-commit-signature.sh
+        # names it in its rule-8 comment (kept in sole-dev-merge-simplify M2 for that reason).
         "aa-ma-execution",
         "complexity-router",
         "debugging-strategies",
-        # ADR-0021: model-invoked on skill/CLAUDE.md edits; nothing in the forge calls it.
-        "writing-for-agents",
-        "aa-ma-session-end-dirty.sh",
-        # code-conventions-impact M8.7 (ADR-0022): model-invoked; nothing in the forge calls it
-        # yet. (llm-output-safety left this set in M8.7: secops now points to it, as
+        # (aa-ma-session-end-dirty.sh left this set in code-conventions-impact 10.6:
+        # aa-ma-impact-preedit.sh names it as the SessionEnd cleaner of its markers.)
+        # (llm-output-safety left this set in M8.7: secops now points to it, as
         # bash-defensive-patterns left it in M7.6 when logging-and-comments pointed to it.)
-        "secops",
+        # (secops and writing-for-agents left this set in M12.1, when the language-conventions
+        # cards pointed to them; language-conventions left it in M12.2, when
+        # rules/coding-standards.md routed to it.)
     }
     assert surface.errors == []
 

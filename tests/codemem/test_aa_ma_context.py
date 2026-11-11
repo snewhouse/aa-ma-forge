@@ -163,7 +163,11 @@ class TestWriteMode:
 
         repo_root, db_path = repo_with_task
         ref_path = (
-            repo_root / ".claude" / "dev" / "active" / "sample-task"
+            repo_root
+            / ".claude"
+            / "dev"
+            / "active"
+            / "sample-task"
             / "sample-task-reference.md"
         )
         before = ref_path.read_text()
@@ -171,3 +175,73 @@ class TestWriteMode:
         after = ref_path.read_text()
         assert after.startswith(before)
         assert "## aa_ma_context snapshot" in after
+
+
+class TestLinkedTaskFiles:
+    """§6.8 re-run 1: a committed link in the task path must not be read or appended to."""
+
+    def test_a_linked_reference_md_is_never_appended_to(
+        self, repo_with_task, tmp_path
+    ) -> None:
+        from codemem.mcp_tools import aa_ma_context
+
+        repo_root, db_path = repo_with_task
+        victim = tmp_path / "victim-rc"
+        victim.write_text("precious\n")
+        ref = repo_root / ".claude/dev/active/sample-task/sample-task-reference.md"
+        ref.unlink()
+        ref.symlink_to(victim)
+        r = aa_ma_context(db_path, "sample-task", repo_root=repo_root, write=True)
+        assert r["error"] and "symlink" in r["error"]
+        assert victim.read_text() == "precious\n"
+
+    def test_a_linked_task_dir_is_refused(self, repo_with_task, tmp_path) -> None:
+        from codemem.mcp_tools import aa_ma_context
+
+        repo_root, db_path = repo_with_task
+        active = repo_root / ".claude/dev/active"
+        elsewhere = tmp_path / "elsewhere"
+        (active / "sample-task").rename(elsewhere)
+        (active / "sample-task").symlink_to(elsewhere)
+        before = (elsewhere / "sample-task-reference.md").read_text()
+        r = aa_ma_context(db_path, "sample-task", repo_root=repo_root, write=True)
+        assert r["error"] and "symlink" in r["error"]
+        assert (elsewhere / "sample-task-reference.md").read_text() == before
+
+    def test_file_mentions_never_leave_the_repo(self, repo_with_task, tmp_path) -> None:
+        """§6.8 re-run 1 (background review): mentions are repo text; no `..`, absolute or escaping link."""
+        from codemem.mcp_tools import aa_ma_context
+
+        repo_root, db_path = repo_with_task
+        (tmp_path / "outside.py").write_text("x = 1\n")
+        (repo_root / "escape.py").symlink_to(tmp_path / "outside.py")
+        ref = repo_root / ".claude/dev/active/sample-task/sample-task-reference.md"
+        with ref.open("a") as fh:
+            fh.write(f"\n`../outside.py` `{tmp_path}/outside.py` `escape.py`\n")
+        files = aa_ma_context(db_path, "sample-task", repo_root=repo_root)["files"]
+        assert not [f for f in files if "outside" in f or f == "escape.py"]
+
+
+class TestCalleeCount:
+    """Carried defect 1 (M10.2): the per-symbol count read ``callees`` from a
+    ``blast_radius`` payload keyed ``downstream``, so it was always 0."""
+
+    def test_callee_count_is_non_zero_for_a_symbol_with_callees(
+        self, repo_with_task
+    ) -> None:
+        from codemem.mcp_tools import aa_ma_context
+
+        repo_root, db_path = repo_with_task
+        conn = connect(db_path)
+        with transaction(conn):
+            # load_config (symbol 1) calls parse_yaml (symbol 2).
+            conn.execute(
+                "INSERT INTO edges (src_symbol_id, dst_symbol_id, kind) "
+                "VALUES (1, 2, 'call')"
+            )
+        conn.close()
+
+        result = aa_ma_context(db_path, "sample-task", repo_root=repo_root)
+        assert "`load_config` (blast-radius: 1 downstream)" in result["markdown"]
+        entry = result["blast_radius_by_symbol"]["load_config"]
+        assert [c["name"] for c in entry["callees"]] == ["parse_yaml"]

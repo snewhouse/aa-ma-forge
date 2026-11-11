@@ -88,9 +88,9 @@ Each is a skill under `claude-code/skills/<name>/` (ADR-0020), counted in Skills
 | `/aa-ma-share` | Publish a plan, ADR or spec doc as a private Artifact link (allowlisted paths only — context-log, provenance, reference and tasks are never shared) |
 | `/understand-codebase` | Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered Quick/Standard/Deep); optionally authors/reviews `AGENTS.md`. Thin wrapper around `Skill(understand-codebase)`; see ADR-0006 |
 | `/assess-codebase` | Whole-repo quality and risk assessment (tiered Quick/Standard/Deep): tools measure, sonnet judges cite `file:line`, a refuter attacks every Critical/High claim; per-dimension ratings with inputs and confidence (no overall grade) → SHA-stamped, secret-gated `summary.json` + `findings.jsonl` + SARIF + `report.md` under `.claude/reports/assess-codebase/`. Thin wrapper around `Skill(assess-codebase)` |
-| `/sole-dev-merge` | PR/MR-based merge workflow: scope-aware CI checks (L-007 guard) + 3-source security pass + idempotent PR/MR creation + 15-min CI poll + auto-merge + cleanup. See ADR-0008 |
+| `/sole-dev-merge` | GitHub PR merge via `sdm.sh check` / `ship` / `finish`: in-scope fixes and pre-commit, code + security review under the stop rule, PR create/update, CI watch, check-run-gated merge, worktree-safe cleanup. See ADR-0024 |
 
-### Skills (39)
+### Skills (40)
 
 | Skill | Purpose |
 |-------|---------|
@@ -120,6 +120,7 @@ Each is a skill under `claude-code/skills/<name>/` (ADR-0020), counted in Skills
 | `python-quality-gates` | Zero tolerance for failing tests and the pre-commit documentation-maintenance checklist (adopted — ADR-0019) |
 | `llm-output-safety` | Safety requirements for pipelines that put LLM text into client-facing outputs: non-Latin sanitisation, programmatic citation integrity (adopted — ADR-0019) |
 | `secops` | Security router: which scanner (Ruff S, gitleaks, pip-audit, osv-scanner, ShellCheck) runs at which layer (edit, commit, CI); M8 / ADR-0022 |
+| `language-conventions` | Per-language convention cards: full TS/JS, R and SQL cards (formatter, linter, doc comments, logging, tests, audit, secrets, pitfalls); Python, Bash and Markdown cards point to their topic skills; M12 |
 | `secrets-management` | Secrets handling in CI/CD with Vault, AWS Secrets Manager and native platform stores (derived from wshobson/agents @ 46891e7, MIT — ADR-0019) |
 | `bash-defensive-patterns` | Defensive Bash: strict mode, error traps, safe temp files, input validation, idempotency (derived from wshobson/agents @ 5d65aa1, MIT — ADR-0019) |
 
@@ -141,24 +142,26 @@ Each is a skill under `claude-code/skills/<name>/` (ADR-0020), counted in Skills
 | `codebase-onboarding-runbook` | Worker agent for `understand-codebase` (Deep tier; reusable standalone): how the repo is built/run/debugged/tested locally, CI gates, env & config (names only — no secrets), external integrations, observability, data model & migrations → writes `.claude/onboarding/04-build-run-debug.md`, `05-tests-ci.md`, `08-integrations-observability-security.md` |
 | `codebase-onboarding-synthesizer` | Synthesis agent for `understand-codebase` (Deep tier; reusable standalone): reads every per-dimension deep-dive + absorbed prior artifacts → writes the root `ONBOARDING.md`, `00-index.md`, the structural deep-dives (01-stack/02-architecture/03-structure), the pros/cons verdict, both playbooks, glossary, Provenance; handles the `AGENTS.md` decision (consent-gated; never overwrites an existing `AGENTS.md` or `CLAUDE.md`) |
 
-### Rules (2)
+### Rules (3)
 
 | Rule | Purpose |
 |------|---------|
 | `aa-ma.md` | Operational rules governing sync discipline, commit signatures, task modes, gate classification |
 | `engineering-standards.md` | 6-theme engineering doctrine (Verification & Truth, Development Principles, Reasoning & Planning, Safety & Continuity, Execution Checklist, Sync & Commit Discipline) — auto-loaded; defines `Critical-Path:` canonical enum |
+| `coding-standards.md` | Coding doctrine (M12): non-negotiables, the KISS/DRY/YAGNI/SoC/SOLID table with configured checks, the conflict-resolution policy, the testing floor and a skill routing table — auto-loaded; ≤ 6,000 chars |
 
-### Hooks (9)
+### Hooks (10)
 
 | Hook | Purpose |
 |------|---------|
 | `pre-compact-aa-ma.sh` | Snapshots AA-MA state before auto-compaction and writes compaction entries to task provenance.log and context-log.md |
 | `aa-ma-session-start.sh` | Auto-detects active AA-MA tasks on session start and emits hidden context (task name, milestone, step) |
-| `aa-ma-session-end-dirty.sh` | SessionEnd — warns when the session ends with uncommitted changes while an AA-MA plan is active |
+| `aa-ma-session-end-dirty.sh` | SessionEnd — warns when the session ends with uncommitted changes while an AA-MA plan is active; also removes the session's `impact-seen-<session_id>` markers (valid ids only) |
 | `aa-ma-commit-signature.sh` | PreToolUse(Bash) — when an AA-MA plan is active, requires every `git commit` to carry the `[AA-MA Plan] {task} .claude/dev/active/{task}` footer (or an `[ad-hoc]` bypass marker); **BLOCKING** |
 | `aa-ma-commit-drift.sh` | post-commit — advisory; flags commits that land without touching any `tasks.md`/`provenance.log` in an active task dir (`[no-sync-check]` overrides). Always exits 0 |
 | `aa-ma-plan-skip-warn.sh` | PreToolUse(ExitPlanMode) + SessionEnd — advisory; checks the `/aa-ma-plan` runtime log for skipped phase markers. Never blocks |
 | `ruff-format.sh` | PostToolUse(Edit\|Write) — advisory; runs `ruff check --fix` + `ruff format` on an edited `.py`, then returns what `ruff check` still finds as `additionalContext` (≤10 lines); logs a format failure to `$CLAUDE_HOOK_LOG` (default `~/.claude/logs/hooks.log`). ruff comes only from the forge `.venv` or an absolute `PATH` entry, never the edited repo; if none is found, one `systemMessage` per session. Always exits 0 (adopted — ADR-0019) |
+| `aa-ma-impact-preedit.sh` | PreToolUse(Edit\|Write) — advisory; once per file per session, returns up to 5 lines of `codemem impact --format brief` (callers, plugin callers, tests, co-changes) as `additionalContext`, marked untrusted and pointing to `Skill(impact-analysis)`. codemem only from the forge, index only from the XDG cache, 2 s timeout; no index/codemem or a timeout → one `systemMessage` per session. Markers in `~/.claude/runtime/impact-seen-<session_id>/`, removed at SessionEnd. Always exits 0 |
 | `aa-ma-plan-marker.sh` | Library helper invoked by the `/aa-ma-plan` workflow to append phase markers to `~/.claude/runtime/aa-ma-plan-<slug>.log` (not a standalone event hook) |
 
 Two further `hooks/lib/` helpers are symlinked by `install.sh` but are not event hooks and not counted above: `aa-ma-parse.sh` (sourced by every hook; launches `aa-ma-gate`, the advisory `aa_ma_deps`, and `aa_ma_lint_views` for the §6.7 diagram item) and `aa-ma-chart-guard.sh` (charting checks `fog | claim | reclaim | from-map | import`, invoked from `/aa-ma-chart` and `/aa-ma-plan --from-map`).

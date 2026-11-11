@@ -1,10 +1,12 @@
 """codemem MCP server (M1 Task 1.10).
 
-Registers 13 canonical tool slots on a FastMCP instance. M1 lights up
+Registers 14 canonical tool slots on a FastMCP instance. M1 lights up
 the first six (``who_calls``, ``blast_radius``, ``dead_code``,
 ``dependency_chain``, ``search_symbols``, ``file_summary``); M3 adds
 six more (``hot_spots``, ``co_changes``, ``owners``, ``symbol_history``,
-``layers``, ``aa_ma_context``); diagram-generation M13 adds ``diagram``.
+``layers``, ``aa_ma_context``); diagram-generation M13 adds ``diagram``;
+code-conventions-impact M10.2 adds ``callees``, and ``blast_radius``
+becomes its deprecated alias (removed after v0.18.x).
 
 The server is a thin adapter: every handler delegates straight to the
 matching function in :mod:`codemem.mcp_tools`, which is where the
@@ -20,6 +22,7 @@ for ``find_dead_code`` hit ``dead_code``.
 from __future__ import annotations
 
 import functools
+import logging
 import os
 from pathlib import Path
 from typing import Any, Callable
@@ -27,6 +30,9 @@ from typing import Any, Callable
 from fastmcp import FastMCP
 
 from codemem import mcp_tools
+from codemem.paths import resolve_db_path
+
+logger = logging.getLogger(__name__)
 
 
 __all__ = [
@@ -37,7 +43,7 @@ __all__ = [
 ]
 
 
-# 13 canonical slots — see codemem-reference.md §MCP Tools (+ diagram, diagram-generation M13).
+# 14 canonical slots — see codemem-reference.md §MCP Tools (+ diagram, M13; + callees, M10.2).
 CANONICAL_TOOL_NAMES: tuple[str, ...] = (
     # M1 — ported from /index
     "who_calls",
@@ -46,6 +52,8 @@ CANONICAL_TOOL_NAMES: tuple[str, ...] = (
     "dependency_chain",
     "search_symbols",
     "file_summary",
+    # code-conventions-impact M10.2 — blast_radius under its honest name
+    "callees",
     # M3 — git mining
     "hot_spots",
     "co_changes",
@@ -75,21 +83,16 @@ _registered_names: list[str] = []
 
 
 def _default_db_path() -> Path:
-    """Default codemem DB location. Override via ``CODEMEM_DB`` env var."""
-    env = os.environ.get("CODEMEM_DB")
-    if env:
-        return Path(env)
-    return Path.cwd() / ".codemem" / "index.db"
+    """``CODEMEM_DB``, else the repo root's dir in the XDG cache (M16); always absolute."""
+    return resolve_db_path(_default_repo_root())
 
 
 def _default_repo_root() -> Path:
-    env = os.environ.get("CODEMEM_REPO_ROOT")
-    if env:
-        return Path(env)
-    return Path.cwd()
+    """``CODEMEM_REPO_ROOT``, else cwd; always absolute (the refresh runs elsewhere)."""
+    return Path(os.environ.get("CODEMEM_REPO_ROOT") or Path.cwd()).absolute()
 
 
-def build_server() -> FastMCP:
+def build_server() -> FastMCP:  # noqa: C901  # why: pre-existing (21 before M15.3); refactor tracked in TODOS.md (M8.2 D8 pay-down)
     """Construct a FastMCP server with the M1 tools + aliases registered."""
     server = FastMCP(name="codemem")
     _registered_names.clear()
@@ -98,30 +101,47 @@ def build_server() -> FastMCP:
     repo_root_factory = _default_repo_root
 
     # ------------------------------------------------------------------
-    # Auto-build-on-first-query (M3.5 Task 3.5.3, 2026-04-17).
-    #
-    # The actual "build if missing" logic lives in
-    # :func:`codemem.mcp_tools.ensure_built` so the plugin surface
-    # (claude-code/codemem/mcp/server.py) stays on the mcp_tools-only
-    # layering contract. Every handler below runs this check first; on
-    # failure it returns the mcp_tools error dict unchanged.
+    # Build-if-missing + bounded refresh before every query (M3.5 Task
+    # 3.5.3; M15.2-15.3). The logic lives in
+    # :func:`codemem.mcp_tools.ensure_fresh` so the plugin surface stays on
+    # the mcp_tools-only layering contract. Its freshness fields are added
+    # to every response (X2); with no DB to serve, the error dict is
+    # returned with them.
     # ------------------------------------------------------------------
 
-    def _ensure_built() -> dict | None:
-        return mcp_tools.ensure_built(db_path_factory(), repo_root_factory())
+    def _ensure_fresh() -> dict:
+        return mcp_tools.ensure_fresh(db_path_factory(), repo_root_factory())
 
     # ------------------------------------------------------------------
     # M1 tool handlers — each a thin wrapper over codemem.mcp_tools.*
     # ------------------------------------------------------------------
 
-    def who_calls(name: str, max_depth: int = 3, budget: int = mcp_tools._DEFAULT_BUDGET) -> dict:
-        """Return callers of a symbol (upstream traversal)."""
+    def who_calls(
+        name: str, max_depth: int = 3, budget: int = mcp_tools._DEFAULT_BUDGET
+    ) -> dict:
+        """Return callers of a symbol (upstream traversal).
+
+        ``name`` may also be a plugin node (skill/command/agent/rule/hook stem, or
+        ``<kind>:<stem>``). Code callers come first as ``{name, kind, file, line}``;
+        plugin callers follow with ``via: "plugin_edges"``, ``file`` = the caller's
+        node id (e.g. ``skill:gamma``) and ``line: null``.
+        """
         return mcp_tools.who_calls(
             db_path_factory(), name, max_depth=max_depth, budget=budget
         )
 
-    def blast_radius(name: str, max_depth: int = 3, budget: int = mcp_tools._DEFAULT_BUDGET) -> dict:
-        """Return everything a symbol reaches (downstream transitive)."""
+    def callees(
+        name: str, max_depth: int = 3, budget: int = mcp_tools._DEFAULT_BUDGET
+    ) -> dict:
+        """Return the symbols a symbol calls, transitively (downstream)."""
+        return mcp_tools.callees(
+            db_path_factory(), name, max_depth=max_depth, budget=budget
+        )
+
+    def blast_radius(
+        name: str, max_depth: int = 3, budget: int = mcp_tools._DEFAULT_BUDGET
+    ) -> dict:
+        """Deprecated: use callees; removed after v0.18.x. Same payload, plus ``downstream``."""
         return mcp_tools.blast_radius(
             db_path_factory(), name, max_depth=max_depth, budget=budget
         )
@@ -131,7 +151,10 @@ def build_server() -> FastMCP:
         return mcp_tools.dead_code(db_path_factory(), budget=budget)
 
     def dependency_chain(
-        source: str, target: str, max_depth: int = 5, budget: int = mcp_tools._DEFAULT_BUDGET
+        source: str,
+        target: str,
+        max_depth: int = 5,
+        budget: int = mcp_tools._DEFAULT_BUDGET,
     ) -> dict:
         """Shortest call-graph path from ``source`` to ``target``."""
         return mcp_tools.dependency_chain(
@@ -140,9 +163,7 @@ def build_server() -> FastMCP:
 
     def search_symbols(query: str, budget: int = mcp_tools._DEFAULT_BUDGET) -> dict:
         """Substring name search (exact > prefix > contains ranking)."""
-        return mcp_tools.search_symbols(
-            db_path_factory(), query, budget=budget
-        )
+        return mcp_tools.search_symbols(db_path_factory(), query, budget=budget)
 
     def file_summary(path: str, budget: int = mcp_tools._DEFAULT_BUDGET) -> dict:
         """List symbols in a file, ordered by source line."""
@@ -230,7 +251,10 @@ def build_server() -> FastMCP:
         )
 
     def diagram(
-        level: str = "L2", scope: str | None = None, hops: int = 1, budget: int = mcp_tools._DEFAULT_BUDGET
+        level: str = "L2",
+        scope: str | None = None,
+        hops: int = 1,
+        budget: int = mcp_tools._DEFAULT_BUDGET,
     ) -> dict:
         """Mermaid flowchart of the code graph at L0-L3, sized to ``budget`` tokens.
 
@@ -247,6 +271,7 @@ def build_server() -> FastMCP:
     m1_handlers: dict[str, Callable[..., dict]] = {
         "who_calls": who_calls,
         "blast_radius": blast_radius,
+        "callees": callees,
         "dead_code": dead_code,
         "dependency_chain": dependency_chain,
         "search_symbols": search_symbols,
@@ -264,19 +289,28 @@ def build_server() -> FastMCP:
     }
 
     def _with_autobuild(handler: Callable[..., dict]) -> Callable[..., dict]:
-        """Decorator: run ``_ensure_built`` before the handler.
+        """Decorator: run ``_ensure_fresh`` first, then add its X2 fields.
 
+        Every response gains ``index_sha``, ``head_sha``, ``stale``
+        (true|false|"unknown") and ``stale_reason`` (report 03 X2).
         ``functools.wraps`` propagates the original signature via
         ``__wrapped__`` so FastMCP's introspection (which uses
         ``inspect.signature``) still sees the tool's real parameter list
         — the ``**kwargs`` in the wrapper is the runtime dispatch surface.
         """
+
         @functools.wraps(handler)
         def wrapper(**kwargs: Any) -> dict:
-            err = _ensure_built()
-            if err is not None:
-                return err
-            return handler(**kwargs)
+            fresh = _ensure_fresh()
+            if "error" in fresh:
+                return fresh
+            try:
+                result = handler(**kwargs)
+            except Exception as exc:  # noqa: BLE001  # why: tool-surface contract — an error dict, never a raise (e.g. a corrupt index)
+                logger.warning("codemem tool failed: %s", type(exc).__name__)
+                result = {"error": f"query failed: {exc.__class__.__name__}: {exc}"}
+            return {**result, **fresh}
+
         return wrapper
 
     for handlers in (m1_handlers, m3_handlers):

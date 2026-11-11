@@ -1,5 +1,13 @@
 # Skill Integration Guide
 
+## Contents
+
+- [Integration Philosophy](#integration-philosophy)
+- [Integration Matrix](#integration-matrix)
+- [Detailed Integration Points](#detailed-integration-points)
+- [Fallback Handling](#fallback-handling)
+- [Integration Best Practices](#integration-best-practices)
+
 ## Integration Philosophy
 
 Skills are integrated into the aa-ma-plan workflow at specific decision points where specialized expertise adds value. Integration follows the "commands compose skills" pattern - the aa-ma-plan workflow orchestrates skill invocation based on context.
@@ -197,7 +205,7 @@ Pass:
   - Test framework (from project context)
   - Code-producing task list
 
-Skip: docs-only, config-only, infrastructure-only milestones
+Skip: only with a canonical `TDD-Waiver:` value (engineering-standards.md §2)
 
 Note: During execution, the execute-aa-ma-* commands will also
 invoke this skill for code-producing milestones. This Phase 4

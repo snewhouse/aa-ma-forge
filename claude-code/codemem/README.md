@@ -2,7 +2,7 @@
 
 Structured code memory for [AA-MA](../../docs/spec/aa-ma-specification.md) workflows in Claude Code. Pure Python + SQLite. No embeddings, no graph DB, no cloud.
 
-codemem parses your repo, indexes symbols and call edges into a local SQLite database, and exposes 13 MCP tools so Claude Code can answer questions like *"who calls this?"*, *"what changes together with `CLAUDE.md`?"*, and *"show me the context for this AA-MA task."* A fresh build on a 70-file repo takes 0.2 seconds.
+codemem parses your repo, indexes symbols and call edges into a local SQLite database, and exposes 14 MCP tools so Claude Code can answer questions like *"who calls this?"*, *"what changes together with `CLAUDE.md`?"*, and *"show me the context for this AA-MA task."* A fresh build on a 70-file repo takes 0.2 seconds.
 
 **Positioning (post-v2 benchmark, 2026-05-08):** codemem's role is the data tier underneath AA-MA, not a "better aider repo-map." See [`docs/codemem/positioning.md`](../../docs/codemem/positioning.md) for the v2-empirical-driven decision. The 5-tool benchmark at [`docs/benchmarks/codemem-vs-aider-v2.md`](../../docs/benchmarks/codemem-vs-aider-v2.md) found that codemem and aider serve different consumer profiles (programmatic structured-data vs LLM prompt injection). Reaching per-symbol parity with aider on fastapi (1.07× at budget=1024) was the M1-fix payoff that closed the v2 chapter.
 
@@ -23,8 +23,7 @@ cat > <your-repo>/.mcp.json <<'EOF'
       "args": ["--directory", "${PWD}", "run", "python",
                "/path/to/aa-ma-forge/claude-code/codemem/mcp/server.py"],
       "env": {
-        "CODEMEM_REPO_ROOT": "${PWD}",
-        "CODEMEM_DB": "${PWD}/.codemem/index.db"
+        "CODEMEM_REPO_ROOT": "${PWD}"
       }
     }
   }
@@ -51,16 +50,17 @@ claude mcp add --scope user codemem uv \
 
 After install, `/mcp` in a fresh session lists `codemem` as connected.
 
-## The 13 MCP tools
+## The 14 MCP tools
 
-Six are ports of Eric Buess's `/index` tools with the same names and closely-related semantics. Seven are new.
+Six are ports of Eric Buess's `/index` tools with the same names and closely-related semantics. Eight are new.
 
 ### Ported from `/index` (M1)
 
 | Tool | What it answers |
 |------|-----------------|
 | `who_calls(name, max_depth=3)` | Upstream callers of a symbol. Also registered as alias `find_references`. |
-| `blast_radius(name, max_depth=3)` | Downstream transitive callees — what breaks if you change `name`. |
+| `callees(name, max_depth=3)` | Downstream transitive callees — what `name` reaches. |
+| `blast_radius(name, max_depth=3)` | Deprecated alias of `callees` (same payload plus `downstream`); removed after v0.18.x. |
 | `dead_code()` | Function and method symbols with zero incoming call edges. Also `find_dead_code`. |
 | `dependency_chain(source, target, max_depth=5)` | Shortest call-graph path from `source` to `target`. *Semantics differ from `/index` — see [migration guide](../../docs/codemem/migration-from-index.md).* |
 | `search_symbols(query)` | Substring match, ranked exact > prefix > contains. *`/index` uses regex; codemem uses substring.* |
@@ -148,7 +148,7 @@ claude mcp add --scope user codemem uv \
   run python claude-code/codemem/mcp/server.py
 ```
 
-Writes to `~/.claude.json` → top-level `mcpServers.codemem`. Loaded for every Claude Code session regardless of which repo you're in. Environment variables `CODEMEM_REPO_ROOT` and `CODEMEM_DB` default to `$PWD/.codemem/index.db` if unset, so the server uses whichever repo you happen to be working in.
+Writes to `~/.claude.json` → top-level `mcpServers.codemem`. Loaded for every Claude Code session regardless of which repo you're in. If unset, `CODEMEM_REPO_ROOT` defaults to `$PWD` and `CODEMEM_DB` to that repo's index dir in the cache (see below), so the server uses whichever repo you happen to be working in.
 
 ### The post-commit hook (opt-in)
 
@@ -156,18 +156,20 @@ Writes to `~/.claude.json` → top-level `mcpServers.codemem`. Loaded for every 
 
 Not installed by default — modifying `.git/hooks/` in a repo that isn't aa-ma-forge's is opt-in. Disable later by deleting the sentinel-marked line from the hook file.
 
-Auto-build on first MCP query (delivered by M3.5 Task 3.5.3) means the hook isn't strictly necessary — `.codemem/index.db` will be built the first time Claude Code queries any codemem tool. The hook is useful when you want queries to be sub-second instead of waiting for a cold build.
+Auto-build on first MCP query (delivered by M3.5 Task 3.5.3) means the hook isn't strictly necessary — the index will be built the first time Claude Code queries any codemem tool. The hook is useful when you want queries to be sub-second instead of waiting for a cold build.
 
 ### What gets written where
 
-- `<repo>/.codemem/index.db` — SQLite database. Git-ignored by default.
-- `<repo>/.codemem/wal.jsonl` — codemem's JSONL write-ahead log for crash-safe incremental refresh. Rotates at 10 MB with 3 compressed archives retained.
-- `<repo>/.codemem/db.lock` — single-writer advisory lock. Harmless if left over from a crashed indexer.
-- `<repo>/.codemem/refresh.pid` — PID of the most-recent post-commit refresh. Only exists if the git hook is installed.
-- `<repo>/.codemem/refresh.log` — structured log line per refresh invocation.
+The index dir is `${XDG_CACHE_HOME:-~/.cache}/codemem/<sha256(realpath repo root)>/`, outside the repo (one per checkout; a relative `XDG_CACHE_HOME` is ignored). `--db` or `CODEMEM_DB` overrides it; `codemem status` prints the path. Before M16 it was `<repo>/.codemem/`, which is now ignored and safe to delete.
+
+- `<index dir>/index.db` (+ `-wal`, `-shm`, `-journal`) — SQLite database.
+- `<index dir>/wal.jsonl` — codemem's JSONL write-ahead journal, replayable with `codemem replay --from-wal`; written only when a caller passes `build_index(wal_path=…)` from Python; `codemem build` and `codemem refresh` do not write it (checked 2026-10-14). Rotates at 10 MB with 3 compressed archives retained.
+- `<index dir>/db.lock` — single-writer advisory lock. Harmless if left over from a crashed indexer.
+- `<index dir>/last_sha`, `<index dir>/tree_sig` — the commit and tracked-file state the index reflects; a query compares them with HEAD and refreshes (capped at 5 s) when they differ.
+- `<index dir>/refresh.log` — structured log line per refresh invocation.
 - `<repo>/PROJECT_INTEL.json` *(optional)* — PageRank-ranked 1024-token symbol index. Commit this one if you want it.
 
-codemem never writes outside `<repo>/.codemem/` or `<repo>/PROJECT_INTEL.json` — see [`SECURITY.md`](../../SECURITY.md) for the full contract.
+codemem never writes outside the index dir or `<repo>/PROJECT_INTEL.json`, except one 33-byte trust record per index directory in `$XDG_STATE_HOME/codemem/trust/`, and `aa_ma_context(write=True)`, which appends to `.claude/dev/active/<task>/<task>-reference.md` (refused if any part of that path is a symlink). The index dir must be codemem's own: every command and MCP tool refuses it when it is or holds a symlink or cannot be listed (`stale_reason: unsafe_db_path`, CLI exit 1). An index codemem did not build for this user and this directory (committed, copied, unzipped, or the repo moved) is not read: a refresh rebuilds it (`stale_reason: untrusted` until it finishes). Processes that see different `XDG_STATE_HOME` values (say an MCP server and a hook) each stamp their own record and rebuild each other's index; keep it the same everywhere. A `CODEMEM_DB` pointed inside a repo is repo-controlled and keeps the pre-M16 limits (a committed `index.db-wal` or `index.db-journal` is replayed into an index built here; committing your own index publishes its stamp). The trust record lives in `$XDG_STATE_HOME/codemem/trust/` (default `~/.local/state`). Point `CODEMEM_DB` at a dedicated directory. The optional post-commit step (`scripts/install.sh --wire-git-hook`) also writes `<git-dir>/codemem-post-commit.lock` and, after a successful `graphify update .`, `<repo>/graphify-out/.built_sha` — see [`SECURITY.md`](../../SECURITY.md) for the full contract.
 
 ## Performance
 
@@ -193,7 +195,8 @@ codemem build                   # full index
 codemem refresh                 # incremental refresh since last SHA
 codemem refresh-commits         # populate git-mining cache (commits + commit_files)
 codemem status                  # counts + DB path + user_version
-codemem query <tool> [args...]  # invoke 10 of the MCP tools directly
+codemem query <tool> [args...]  # invoke 11 of the MCP tools directly
+codemem impact <path>           # callers, test callers and co-changes of one file (--format brief|json)
 codemem intel                   # write PROJECT_INTEL.json
 codemem replay --from-wal       # rebuild DB from the JSONL WAL
 ```

@@ -3,9 +3,12 @@
 Provides a single ``GitMiner`` class that wraps the two ``git`` subprocess
 calls every M3 feature needs:
 
-* ``git log --name-only --pretty=format:<sentinel-fenced>`` — populates the
-  ``commits`` + ``commit_files`` tables (used by :mod:`codemem.analysis`
-  downstream: ``hot_spots``, ``co_changes``, ``symbol_history``).
+* ``git log --name-status -M --pretty=format:<sentinel-fenced>`` — populates
+  the ``commits`` + ``commit_files`` tables (used by :mod:`codemem.analysis`
+  downstream: ``hot_spots``, ``co_changes``, ``symbol_history``). Renames
+  are followed: every path is stored under its name at HEAD, so co-change
+  history survives a ``git mv``; a path whose newest change is a delete
+  (absent at HEAD) is dropped, so it is never reported as a partner.
 * ``git blame --line-porcelain`` — per-file author attribution for the
   ``owners`` tool (cached in the ``ownership`` table).
 
@@ -26,10 +29,11 @@ recent commits (by ``author_time``) and relies on the ``commit_files``
 
 from __future__ import annotations
 
+import json
 import re
 import sqlite3
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from codemem.mcp_tools.sanitizers import sanitize_path_arg
@@ -60,6 +64,22 @@ class _CommitRecord:
     author_email: str
     message: str
     files: tuple[str, ...]
+
+
+@dataclass
+class _History:
+    """Commits read in one batch, newest first, with paths as named at HEAD.
+
+    ``renames`` maps each path renamed in the batch to its name at HEAD;
+    ``deleted`` holds paths whose newest change in the batch is a delete.
+    Both are applied to rows cached by earlier refreshes too. ``seen`` is
+    the parse state: paths already met in a newer commit.
+    """
+
+    records: list[_CommitRecord] = field(default_factory=list)
+    renames: dict[str, str] = field(default_factory=dict)
+    deleted: set[str] = field(default_factory=set)
+    seen: set[str] = field(default_factory=set)
 
 
 class GitMiner:
@@ -134,7 +154,8 @@ class GitMiner:
             range_expr = None
             full_refresh = True
 
-        records = self._read_commits(range_expr=range_expr, limit=limit)
+        history = self._read_commits(range_expr=range_expr, limit=limit)
+        records = history.records
         if not records:
             return 0
 
@@ -153,6 +174,7 @@ class GitMiner:
                     "(commit_sha, file_path) VALUES (?, ?)",
                     junction_rows,
                 )
+            _apply_moves_to_cached_rows(conn, history)
             # Enforce cap. Full-refresh respects limit directly; incremental
             # also trims so a repo that outgrew the cap gets pruned.
             conn.execute(
@@ -197,12 +219,13 @@ class GitMiner:
         *,
         range_expr: str | None,
         limit: int,
-    ) -> list[_CommitRecord]:
+    ) -> _History:
         args = [
             "log",
             f"-n{limit}",
             f"--pretty=format:{_PRETTY_FORMAT}",
-            "--name-only",
+            "--name-status",
+            "-M",  # follow renames, so history is stored under the HEAD name
         ]
         if range_expr is not None:
             args.append(range_expr)
@@ -245,21 +268,17 @@ class GitMiner:
 # ---------------------------------------------------------------------------
 
 
-def _parse_git_log_output(stdout: str) -> list[_CommitRecord]:
-    r"""Parse fence-delimited ``git log --pretty=format:<_PRETTY_FORMAT> --name-only`` output.
+def _parse_git_log_output(stdout: str) -> _History:
+    r"""Parse fence-delimited ``git log --pretty=format:<_PRETTY_FORMAT> --name-status -M`` output.
 
-    Layout: each commit is ``sha<US>time<US>email<US>subject<RS>\nfile_a\nfile_b\n\n``.
-    We split on the record separator first, then on field separator inside
-    each record. The trailing block after the last RS contains the files
-    of the last commit; git emits files separated by newlines with a blank
-    terminator when ``--name-only`` is combined with ``--pretty=format:``.
+    Layout: each commit is ``<RS>sha<US>time<US>email<US>subject\n`` then one
+    ``STATUS\tpath`` line per file (``R<score>\told\tnew`` for a rename).
+    git lists commits newest first, so a rename is seen before the older
+    commits that use the old name, and a path's first status is its newest.
     """
+    history = _History()
     if not stdout:
-        return []
-    # The RS appears at the END of each record, so split and drop the empty
-    # tail. In the incremental case there may be a trailing newline before
-    # the final RS; both strip below.
-    records: list[_CommitRecord] = []
+        return history
     for block in stdout.split(_COMMIT_RECORD_SEP):
         block = block.strip()
         if not block:
@@ -274,17 +293,65 @@ def _parse_git_log_output(stdout: str) -> list[_CommitRecord]:
             author_time = int(at)
         except ValueError:
             continue
-        files = tuple(f.strip() for f in files_blob.splitlines() if f.strip())
-        records.append(
+        history.records.append(
             _CommitRecord(
                 sha=sha,
                 author_time=author_time,
                 author_email=ae,
                 message=subject,
-                files=files,
+                files=_walk_files(files_blob, history),
             )
         )
-    return records
+    return history
+
+
+def _walk_files(files_blob: str, history: _History) -> tuple[str, ...]:
+    """One commit's paths as named at HEAD; records its renames and deletes.
+
+    Deleted-at-HEAD paths are left out; only a path's newest status counts.
+    """
+    seen = history.seen
+    files: dict[str, None] = {}
+    for line in files_blob.splitlines():
+        status, _, rest = line.strip().partition("\t")
+        if not rest:
+            continue
+        paths = rest.split("\t")
+        path = paths[-1]
+        current = history.renames.get(path, path)
+        if path not in seen:
+            seen.add(path)
+            if status == "D":
+                history.deleted.add(path)
+        if status.startswith("R") and len(paths) == 2:
+            history.renames[paths[0]] = current
+        if current not in history.deleted:
+            files[current] = None
+    return tuple(files)
+
+
+def _apply_moves_to_cached_rows(conn: sqlite3.Connection, history: _History) -> None:
+    """Carry this batch's renames and deletes onto rows from earlier refreshes.
+
+    Rows of this batch already use HEAD names; only older commits are moved.
+    A row whose new name already exists for that commit is a duplicate and
+    is dropped.
+    """
+    batch = json.dumps([r.sha for r in history.records])
+    older = "commit_sha NOT IN (SELECT value FROM json_each(?))"
+    for old, new in history.renames.items():
+        conn.execute(
+            f"UPDATE OR IGNORE commit_files SET file_path = ? WHERE file_path = ? AND {older}",  # noqa: S608  # why: `older` is a literal with a `?`; values are bound
+            (new, old, batch),
+        )
+        conn.execute(
+            f"DELETE FROM commit_files WHERE file_path = ? AND {older}",  # noqa: S608  # why: `older` is a literal with a `?`; values are bound
+            (old, batch),
+        )
+    conn.executemany(
+        "DELETE FROM commit_files WHERE file_path = ?",
+        [(p,) for p in sorted(history.deleted)],
+    )
 
 
 _BLAME_AUTHOR_MAIL_RE = re.compile(r"^author-mail <([^>]+)>")

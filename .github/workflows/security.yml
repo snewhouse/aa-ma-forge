@@ -19,7 +19,7 @@ jobs:
     name: ShellCheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -33,13 +33,14 @@ jobs:
     name: Ruff S (Python security)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: '0.12.3'
+          python-version: '3.13'
 
       - name: Sync locked deps
         run: uv sync --locked
@@ -54,11 +55,11 @@ jobs:
     name: Dependency audit (pip-audit)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: '0.12.3'
           python-version: '3.13'
@@ -84,7 +85,7 @@ jobs:
     name: gitleaks (secrets, full history)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0              # --log-opts=--all needs every commit
           persist-credentials: false
@@ -108,14 +109,15 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0              # --from-ref needs the base branch's history
           persist-credentials: false
 
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: '0.12.3'
+          python-version: '3.13'
 
       - name: Install shellcheck (the shellcheck hook is language system)
         run: command -v shellcheck || (sudo apt-get update && sudo apt-get install -y shellcheck)
@@ -136,25 +138,25 @@ jobs:
     name: Bats (Hook + Command Tests)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - uses: bats-core/bats-action@77d6fb60505b4d0d1d73e48bd035b55074bbfb43 # 4.0.0
 
-      # ubuntu-latest currently ships shellcheck, but C4 in
-      # tests/commands/sole-dev-merge/test_stage_c_dispatch.bats now skips
-      # rather than fails when it is missing — so an image change would turn
-      # a security assertion green-by-skipping instead of red.
+      # ubuntu-latest currently ships shellcheck, but the shellcheck case in
+      # tests/hooks/security-static-check.bats skips rather than fails when it
+      # is missing — so an image change would turn a security assertion
+      # green-by-skipping instead of red.
       #
       # Conditional: the common path costs nothing, and an apt outage still
       # reds the job rather than silently proceeding to a skip.
-      - name: Install shellcheck (required by Stage C / C4)
+      - name: Install shellcheck (required by the security-static-check hook tests)
         run: command -v shellcheck || (sudo apt-get update && sudo apt-get install -y shellcheck)
 
       # Assert the guarantee the step above only claims. `bats` reports a
       # skipped test as `ok N # skip` and exits 0, so without this a stray
-      # SHELLCHECK_BIN or a PATH change would let C4 evaporate while the job
+      # PATH change would let that case evaporate while the job
       # stayed green — the same green-by-skipping failure, one level up.
       - name: Verify shellcheck is usable
         run: shellcheck --version
@@ -162,7 +164,7 @@ jobs:
       # aa-ma-gate-python.bats (milestone-grammar-ssot M5) drives the shipped §6.7/§7.1
       # fences, which call `uv run --project <root> aa-ma-gate`. Without uv the
       # launcher returns 127 and 17 cases fail — the job had been red since 2026-09-11.
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: '0.12.3'
           python-version: '3.13'
@@ -178,18 +180,34 @@ jobs:
       - name: Verify project tools are runnable
         run: aa-ma-gate --help >/dev/null && ruff --version && cz version
 
+      # tests/commands/secops/ runs the real gitleaks: a missing binary makes the script
+      # report UNKNOWN and the cases fail, never skip. Same pinned tarball as the gitleaks job.
+      - name: Install gitleaks v8.18.4 (sha256-verified release tarball)
+        run: |
+          curl -fsSLO https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz
+          echo "ba6dbb656933921c775ee5a2d1c13a91046e7952e9d919f9bac4cec61d628e7d  gitleaks_8.18.4_linux_x64.tar.gz" | sha256sum -c
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xzf gitleaks_8.18.4_linux_x64.tar.gz -C "$RUNNER_TEMP/bin" gitleaks
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Verify gitleaks and jq are usable
+        run: gitleaks version && jq --version
+
       - name: Run bats on tests/hooks/
         run: bats --recursive tests/hooks/
 
-      - name: Run bats on tests/commands/sole-dev-merge/
-        # M5.6: adds the M1-M5 sole-dev-merge bats suite to CI so the 60+
-        # stage-level + smoke-E2E tests block PRs that regress the workflow.
-        run: bats tests/commands/sole-dev-merge/
+      - name: Run bats on tests/commands/sdm/
+        # sole-dev-merge-simplify M1: sdm.sh, the one-script /sole-dev-merge (ADR-0024).
+        run: bats tests/commands/sdm/
 
       - name: Run bats on tests/commands/*.bats
         # aa-ma-share-allow.bats (M3) and release.bats (scripts/release.sh) — top-level
-        # command/script suites were not covered by the two steps above.
+        # command/script suites were not covered by the steps above.
         run: bats tests/commands/*.bats
+
+      - name: Run bats on tests/commands/secops/
+        # secops scan-untrusted.sh: one case per way a scanned repo can hide a finding.
+        run: bats tests/commands/secops/
 
   codemem-smoke:
     name: codemem smoke test
@@ -199,12 +217,12 @@ jobs:
     # exceeds a minute, gate this job behind a `paths` filter targeting
     # packages/codemem-mcp/** and tests/codemem/**.
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0    # git-mining tools need real history
           persist-credentials: false
 
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: '0.12.3'
           python-version: '3.13'
@@ -258,11 +276,11 @@ jobs:
     name: Architecture drift (docs/architecture)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: '0.12.3'
           python-version: '3.13'
@@ -285,11 +303,11 @@ jobs:
     name: Explorer contract (node --test)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: '0.12.3'
           python-version: '3.13'
@@ -300,7 +318,7 @@ jobs:
       - name: Build the codemem index and the explorer page
         run: uv run codemem build && uv run aa-ma-render --explorer --out build
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           package-manager-cache: false    # no package.json; nothing to cache

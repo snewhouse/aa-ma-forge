@@ -5,7 +5,7 @@ Runs 5 trials of each measurement, reports MEDIAN wall-clock time. Emits
 a Markdown block suitable for appending to docs/benchmarks/codemem-vs-index.md.
 
 Measurements (per repo):
-  1. codemem build cold   — rm -rf .codemem/ then `codemem build`
+  1. codemem build cold   — rm -rf the cached index dir, then `codemem build`
   2. codemem build warm   — `codemem build` on an already-built index (noop-ish)
   3. /index generate cold — rm -f PROJECT_INDEX.json then project_index.py
   4. codemem who_calls    — one representative MCP query via CLI
@@ -34,6 +34,8 @@ import sys
 import time
 from pathlib import Path
 
+from codemem.paths import default_db_path
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INDEX_SCRIPT = (
@@ -51,6 +53,8 @@ def _time(fn) -> float:
 
 def _run(args: list[str], cwd: Path, env_extra: dict | None = None) -> None:
     env = {**os.environ, **(env_extra or {})}
+    # The bench measures the default index location; never one CODEMEM_DB names.
+    env.pop("CODEMEM_DB", None)
     subprocess.run(  # noqa: S603  # why: benchmark harness: argv from fixed tool names, shell=False
         args,
         cwd=cwd,
@@ -66,10 +70,10 @@ def _median(ts: list[float]) -> float:
 
 
 def bench_codemem_build_cold(repo: Path) -> float:
-    """Cold build: remove .codemem/ first."""
+    """Cold build: remove the index dir `codemem build` writes (cwd = REPO_ROOT) first."""
 
     def do():
-        shutil.rmtree(repo / ".codemem", ignore_errors=True)
+        shutil.rmtree(default_db_path(REPO_ROOT).parent, ignore_errors=True)
         _run(
             ["uv", "run", "codemem", "build"],
             cwd=REPO_ROOT,

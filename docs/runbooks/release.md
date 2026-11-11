@@ -20,7 +20,9 @@ scripts/release.sh <major|minor|patch> --headline "<one-line theme>" [--dry-run]
    `gh auth status` (unless `--no-push`/`--dry-run`).
 1a. **Advisory evals** (not under `--dry-run` or `--skip-evals`): `scripts/run-evals.sh` runs the
    skill evals under `evals/` (ADR-0021) and the script prints its summary line. A failing case never blocks the
-   release; read `.claude/evals/<date>.jsonl` if the pass count dropped. With a claude.ai login the
+   release; read `.claude/evals/<date>.jsonl` if the pass count dropped. The suite runs on a clean
+   checkout of `HEAD` outside the repo, never on the working tree or nested `.worktrees/`. To evaluate a
+   past release, use `RUN_EVALS_REF=vX.Y.Z scripts/run-evals.sh`. With a claude.ai login the
    run counts against plan usage, not an API bill.
 2. `## Unreleased` → `## vX.Y.Z (YYYY-MM-DD)`; README line → `**Current version:** vX.Y.Z — <headline>`.
 3. `uv run cz bump --increment <INC> --yes` — commitizen updates `pyproject.toml` + `VERSION`, runs

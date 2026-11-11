@@ -129,6 +129,65 @@ def read_enforced_field(
     )
 
 
+def read_text_field_lines(block: str, field: str) -> list[str]:
+    """Every value of a free-text, repeating field (e.g. ``Impact-Explained: <path> — <reason>``).
+
+    Full values, not first tokens, in order, from the same markup :func:`read_enforced_field`
+    reads (no fences, no HTML comments, field name first on the line). Fail closed the other
+    way round: a value explains something, so a line the reader cannot trust — a
+    non-canonical bullet, an empty value — is dropped and explains nothing.
+    """
+    return [
+        value
+        for m in _candidate_re(field).finditer(sanitize(block))
+        if _CANONICAL_LEAD_RE.match(m.group("lead"))
+        and (value := m.group("raw").strip().strip("*").strip())
+    ]
+
+
+_DECISION_RE = re.compile(r"^-[ \t]+(?:\*\*)?Decision:(?:\*\*)?[ \t]+")
+_APPROVED_RE = re.compile(r"^-[ \t]+(?:\*\*)?Decision:(?:\*\*)?[ \t]+APPROVED")
+
+
+def has_gate_approval(context_log: str, title: str) -> bool:
+    """True when the LAST ``GATE APPROVAL: <title>`` block in ``context_log`` says APPROVED.
+
+    The Python twin of the shell ``aa_ma_has_gate_approval`` (aa-ma-parse.sh), which §7.1
+    and fence 3 use; ``tests/test_gate_parity.py`` drives both over the same logs. A heading
+    counts when it ends with ``GATE APPROVAL: <title>`` (compared as a string); lines inside
+    a ``` / ~~~ fence are skipped, a fence closing only on its own character at >= its own
+    length with nothing after it.
+
+    Deliberately not :func:`aa_ma.grammar.scan_fences`: this reader must answer exactly as the
+    awk it mirrors (any indent opens a fence; a closer with trailing text does not close),
+    and the parity test pins it to that, not to CommonMark.
+    """
+    want = f"GATE APPROVAL: {title}"
+    found = in_block = False
+    fence: tuple[str, int] | None = None
+    decision = ""
+    for line in context_log.split("\n"):
+        s = line.lstrip(" \t")
+        c = s[:1]
+        if c in ("`", "~") and s[:3] == c * 3:
+            n = len(s) - len(s.lstrip(c))
+            if fence is None:
+                fence = (c, n)
+            elif c == fence[0] and n >= fence[1] and not s[n:].strip(" \t"):
+                fence = None
+            continue
+        if fence is not None:
+            continue
+        if re.match(r"#+[ \t]", line):
+            in_block = line.rstrip(" \t").endswith(want)
+            if in_block:
+                found, decision = True, ""
+            continue
+        if in_block and _DECISION_RE.match(line):
+            decision = line
+    return found and _APPROVED_RE.match(decision) is not None
+
+
 class Unreadable(Exception):
     """The file cannot be read as a tasks.md — always exit 2, never a guess."""
 
@@ -143,8 +202,10 @@ _INVISIBLE_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f\u2028\u2029]")
 
 
 def read_tasks_text(path: Path) -> str:
-    """Read `tasks.md` with line endings normalised (contract row 14), refusing
-    binary, oversized or control-character-bearing input outright."""
+    """Read `tasks.md` with line endings normalised (contract row 14).
+
+    Refuses binary, oversized or control-character-bearing input outright.
+    """
     try:
         raw = path.read_bytes()
     except OSError as exc:
@@ -169,12 +230,18 @@ def read_tasks_text(path: Path) -> str:
 
 
 def read_milestone_status(own_block: str) -> FieldRead:
-    """`Status:` of a milestone. Pass the milestone's *own* text (before its
-    first `###`) so a sub-step's status cannot stand in for the milestone's."""
+    """`Status:` of a milestone.
+
+    Pass the milestone's *own* text (before its first `###`) so a sub-step's
+    status cannot stand in for the milestone's.
+    """
     return read_enforced_field(own_block, "Status", MILESTONE_STATUSES)
 
 
 def read_step_status(step_block: str) -> FieldRead:
-    """`Status:` of a step. Separate from the milestone read: `StepStatus` has no
-    `ACTIVE`, so one parser cannot serve both."""
+    """`Status:` of a step.
+
+    Separate from the milestone read: `StepStatus` has no `ACTIVE`, so one
+    parser cannot serve both.
+    """
     return read_enforced_field(step_block, "Status", STEP_STATUSES)

@@ -139,6 +139,8 @@ true
 
 **When all sub-tasks complete, REQUIRED validation before marking milestone COMPLETE:**
 
+**First, §6.0:** run `scripts/code-intel-refresh.sh` (CODE_INTEL_REFRESH) — see [boundary-checks.md](references/boundary-checks.md#60-code-intel-refresh-code_intel_refresh); BLOCKED stops here.
+
 ### 6.1 Acceptance Criteria Verification
 
 See [boundary-checks.md](references/boundary-checks.md#61-acceptance-criteria-verification) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
@@ -153,7 +155,7 @@ e.g. `Next: Milestone 3 — Dependencies: Milestone 2` (canonical form).
 
 ### 6.3 Impact Analysis Verification (REQUIRED)
 
-See [boundary-checks.md](references/boundary-checks.md#63-impact-analysis-verification-required) — acceptance-criteria verification, impact analysis, test execution, optional web verification and the simplification review (§6.1, §6.3–§6.6).
+See [boundary-checks.md](references/boundary-checks.md#63-impact-analysis-verification-required) — the index pre-check, `scripts/predicted-vs-actual.sh` (one `UNPREDICTED <path>` per changed file the Contract and its co-change partners did not predict; the list goes to §6.8's code-reviewer, never self-graded) and `Skill(impact-analysis)`.
 
 ### 6.4 Test Execution (if specified)
 
@@ -189,22 +191,11 @@ DIRTY_AA_MA=$(git status --porcelain "${TASK_DIR}/" | wc -l | tr -d ' ')
 if [[ "${DIRTY_AA_MA}" -ne 0 ]]; then
   echo "BLOCKED: AA-MA artifacts have uncommitted changes."
   echo "Run sub-step Result Log discipline (L-080-082); commit and re-run."
-  # Was `# HALT` — a comment. Measured against a dirty task dir: printed
-  # BLOCKED and then PASS with exit 0. The gate contradicted itself and passed.
   exit 1
 fi
 
-# --- Gate preamble: every reading below comes from the Python SSoT -----------
-#
-# The awk that used to live here was a hand-written markdown parser whose
-# accepted-string set was decided by reasoning, not measurement; ADR-0009
-# records what three reviews found in it. So: bash asks, Python answers.
-# `aa_ma_gate` is a launcher, not a parser; `aa-ma-gate` (src/aa_ma/gate.py)
-# answers all seven questions over grammar.py + enforce.py + plan_parsers.py
-# and refuses on ambiguity rather than choosing. Exit codes: `aa-ma-gate --help`.
-#
-# Resolution order matches the shipped hooks: repo-local first so a clone that
-# has not run install.sh still works.
+# --- Gate preamble: every reading below comes from the Python SSoT (ADR-0009) ---
+# bash asks, Python answers; repo-local lib first. Rationale: references/gate-fences.md.
 for _cand in \
   "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/hooks/lib/aa-ma-parse.sh" \
   "${CLAUDE_HOME:-${HOME}/.claude}/hooks/lib/aa-ma-parse.sh"; do
@@ -219,12 +210,8 @@ fi
 # shellcheck source=/dev/null
 . "${AA_MA_LIB}"
 
-# One call answers every question. Exit codes are the contract's and fail
-# closed: 0 one ACTIVE and every enforced field readable · 1 no ACTIVE ·
-# 2 unreadable (missing file, unclosed fence, invalid field, orphan sub-step) ·
-# 3 ambiguous (2+ ACTIVE, duplicate heading) · 127 the gate could not run.
-# `aa_ma_gate` prints nothing but a BLOCKED line for 127, so the `error=`
-# lines below are only ever the Python gate's own words.
+# One call answers every question; exit codes fail closed (0 ok · 1 no ACTIVE ·
+# 2 unreadable · 3 ambiguous · 127 could not run — references/gate-fences.md).
 GATE_KV=$(aa_ma_gate "${TASKS_MD}")
 GATE_RC=$?
 if [[ "${GATE_RC}" -ne 0 ]]; then
@@ -255,16 +242,11 @@ if [[ "${PENDING_IN_MILESTONE}" -gt 0 ]]; then
 fi
 
 # 3. Tests pass: fence 3 below runs Test-Command and writes TESTS_VERIFIED.
-# 4. Impact analysis: §6.3 (not checked by any fence yet).
+# 4. Impact: fence 4 below runs aa-ma-impact and writes IMPACT_VERIFIED.
 CONDITIONS=2   # conditions 1 and 2 above
 
 # 5. Critical-Path / Prototype-Required provenance evidence (CONDITIONAL)
-# Absent-field semantic: the gate reports an empty value when the field is
-# absent, and the check is skipped. Only present-but-without-evidence fires.
-#
-# The evidence greps are MILESTONE-SCOPED. A bare `grep -q CRITICAL_PATH_REVIEW`
-# over the whole provenance.log means that once ANY milestone writes the token,
-# every later milestone's check is pre-satisfied. Entries must name the milestone:
+# Absent field → skipped. Evidence greps are milestone-scoped (references/gate-fences.md):
 #   [ts] CRITICAL_PATH_REVIEW — <milestone-title> — <value> — <evidence>
 CRITICAL_PATH_TASKS=$(printf '%s\n' "${GATE_KV}" | aa_ma_gate_field critical_path)
 if [[ -n "${CRITICAL_PATH_TASKS}" ]]; then
@@ -283,12 +265,12 @@ if [[ "${PROTOTYPE_TASKS}" == "YES" ]]; then
   if ! grep -F -- "PROTOTYPE —" "${TASK_DIR}/${TASK_NAME}-provenance.log" \
        | grep -qF -- "${MILESTONE_TITLE}"; then
     echo "BLOCKED: the milestone or one of its sub-steps declares Prototype-Required: YES"
-    echo "but provenance.log has no PROTOTYPE — <milestone heading> — <verdict> entry naming this milestone."
+    echo "but provenance.log has no PROTOTYPE — <milestone heading> — <verdict> — verdict-changes-plan: YES|NO entry naming this milestone."
     exit 1
   fi
 fi
 
-echo "ENG-STANDARDS-GATE: PASS (${CONDITIONS} conditions checked; fences 2 and 3 follow)"
+echo "ENG-STANDARDS-GATE: PASS (${CONDITIONS} conditions checked; fences 2–4 follow)"
 ```
 
 See [gate-fences.md](references/gate-fences.md#absent-field-semantic-fence-1) — absent `Critical-Path:` / `Prototype-Required:` fields skip their check.
@@ -381,6 +363,22 @@ for _tv in "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/${_s}" \
   [[ -f "${_tv}" ]] && TV="${_tv}" && break
 done
 bash "${TV:?tests-verified.sh not found — run scripts/install.sh}" "${TASK_NAME:-}"
+```
+
+**Impact verified — HARD** (fence 4): every change predicted by the Contract, or explained;
+appends `[ts] IMPACT_VERIFIED — <milestone heading> — changed=N predicted=P cochange=C unexplained=0 api_diff=<summary>`.
+See [gate-fences.md](references/gate-fences.md#fence-4--impact_verified) and [impact-gate.md](references/impact-gate.md) (how to read a BLOCKED report).
+
+```bash
+# Fence 4 — IMPACT_VERIFIED. All logic is in the skill's scripts/impact-verified.sh (bats-tested).
+_s=skills/execute-aa-ma-milestone/scripts/impact-verified.sh
+IV=""   # never run an inherited IV
+# why: stderr dropped — outside a repo the first candidate is simply absent
+for _iv in "$(git rev-parse --show-toplevel 2>/dev/null)/claude-code/${_s}" \
+           "${CLAUDE_HOME:-${HOME}/.claude}/${_s}"; do
+  [[ -f "${_iv}" ]] && IV="${_iv}" && break
+done
+bash "${IV:?impact-verified.sh not found — run scripts/install.sh}" "${TASK_NAME:-}"
 ```
 
 ---

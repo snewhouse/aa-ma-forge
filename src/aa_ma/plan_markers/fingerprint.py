@@ -159,7 +159,8 @@ def _phase_3(tcs: list[ToolCall]) -> bool:
     return (
         _has(tcs, "WebFetch")
         or _has(tcs, "WebSearch")
-        or _has(tcs, "^mcp__.*context7.*")
+        # The claude.ai connector spells it "Context7"; not "(?i)", which _has reads as a literal.
+        or _has(tcs, "^mcp__.*[Cc]ontext7.*")
         or _has(tcs, "Agent", subagent_type=r"^Explore$")
     )
 

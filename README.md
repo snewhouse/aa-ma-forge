@@ -16,7 +16,7 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-**Current version:** v0.17.0 — Codebase analysis: assess-codebase, understand-codebase v1, aa-ma-analysis CLI
+**Current version:** v0.18.0 — Code conventions: coding-standards rule, SecOps CI, tests and impact gates
 
 ## The problem
 
@@ -39,7 +39,8 @@ docs/narrative/     The origin story (how and why AA-MA exists)
 docs/templates/     Ready-to-use templates for all 9 AA-MA file types (5 standard + 4 optional)
 claude-code/        Skills (incl. the slash commands), agents, rules, hooks
                     (the operational layer that plugs into Claude Code)
-src/aa_ma/          Python package (package skeleton only, logic planned)
+src/aa_ma/          Python tooling: the gate CLI (aa-ma-gate), plan parsers,
+                    the TUI, view lint/render, analysis, logging setup
 examples/           Real completed task artefacts (five files plus optional tests)
 scripts/            install.sh / uninstall.sh
 ```
@@ -56,6 +57,8 @@ scripts/install.sh            # deploy to ~/.claude/
 ```
 
 The installer creates symlinks from this repo into your `~/.claude/` directory. It backs up any existing files before touching them. Run `scripts/uninstall.sh` to reverse everything.
+
+**Upgrading:** re-run `scripts/install.sh` after every update. New skills, rules and hooks are only linked when it runs, and links to removed ones are swept (see the upgrade note in [CHANGELOG.md](CHANGELOG.md)).
 
 Once installed, open Claude Code in any project directory and type:
 
@@ -222,7 +225,7 @@ Each is a skill in `claude-code/skills/<name>/` (ADR-0020); type `/name` to run 
 - `/aa-ma-chart` — Chart a pre-plan decision map (`chart <effort> "<idea>"`), resolve its typed tickets one per session (`work <effort> [ticket-N]`), then hand off with `/aa-ma-plan --from-map <effort>` — concept adapted from mattpocock/skills `wayfinder`, see [ADR-0013](docs/adr/0013-charting-wayfinder-lite.md)
 - `/understand-codebase` — Onboard to a new/inherited/shared codebase — produces `ONBOARDING.md` + `.claude/onboarding/` deep-dives (tiered: `--quick` / `--standard` / `--deep`); optionally authors or reviews `AGENTS.md`
 - `/assess-codebase` — Whole-repo quality and risk assessment (tiered: `--quick` / `--standard` / `--deep`) — tools measure, model judges cite `file:line`, a refuter checks every Critical/High claim; per-dimension ratings, no overall grade; SARIF + `report.md` under `.claude/reports/assess-codebase/`
-- `/sole-dev-merge` — PR/MR-based merge workflow with scope-aware CI checks, 3-source security pass, idempotent PR/MR creation, 15-min CI poll, auto-merge + cleanup — see [ADR-0008](docs/adr/0008-sole-dev-merge-pr-workflow.md)
+- `/sole-dev-merge` — GitHub PR merge through one tested script (`sdm.sh check` / `ship` / `finish`): local fixes and pre-commit on the branch's files, code + security review under the stop rule, PR create/update, CI watch, gated merge and worktree-safe cleanup — see [ADR-0024](docs/adr/0024-sole-dev-merge-one-script.md)
 - `/aa-ma-share` — Publish a plan, ADR or spec page as a private Artifact link — mermaid Architecture Views render natively; allowlisted paths only (never context-log/provenance/reference/tasks) — see [ADR-0010](docs/adr/0010-architecture-views-and-render.md)
 
 ### Skills
@@ -257,6 +260,7 @@ Skills are reusable procedures that plug into the planning and execution workflo
 | `python-quality-gates` | Zero-tolerance test gate and pre-commit documentation checklist |
 | `llm-output-safety` | Safety rules for LLM text in client-facing outputs (sanitisation, citation integrity) |
 | `secops` | Security router: which scanner runs at which layer (Ruff S, gitleaks, pip-audit, osv-scanner, ShellCheck) |
+| `language-conventions` | Per-language convention cards: TS/JS, R and SQL in full; Python, Bash and Markdown point to their topic skills |
 | `secrets-management` | Secrets handling in CI/CD (derived from wshobson/agents @ 46891e7, MIT) |
 | `bash-defensive-patterns` | Defensive Bash patterns (derived from wshobson/agents @ 5d65aa1, MIT) |
 
@@ -356,7 +360,7 @@ The full story is in [how we got here](docs/narrative/how-we-got-here.md), and t
 
 ## AA-MA hook troubleshooting
 
-AA-MA Forge ships 9 hooks. All honour a single master kill switch and carry explicit bypass mechanisms for the edge cases where they get in the way.
+AA-MA Forge ships 10 hooks. All honour a single master kill switch and carry explicit bypass mechanisms for the edge cases where they get in the way.
 
 **Master kill switch.** Something misbehaving? This disables every AA-MA hook immediately:
 

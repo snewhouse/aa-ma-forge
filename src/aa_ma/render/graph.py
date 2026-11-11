@@ -9,12 +9,23 @@ plus a reason naming the remedy.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import os
 import sqlite3
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-__all__ = ["GraphHandle", "GraphStatus", "call_edges", "file_langs", "import_edges", "open_graph", "printable"]
+__all__ = [
+    "GraphHandle",
+    "GraphStatus",
+    "call_edges",
+    "file_langs",
+    "import_edges",
+    "open_graph",
+    "printable",
+]
 
 MIN_SCHEMA_VERSION = 3  # file_edges arrived in codemem schema v3
 _REMEDY = "run `codemem build`"
@@ -22,6 +33,8 @@ _MAX_SHOWN = 3  # stale paths quoted in a reason
 
 
 class GraphStatus(StrEnum):
+    """Whether a codemem index can answer: usable, absent, too old or stale."""
+
     OK = "ok"
     MISSING = "missing"
     SCHEMA_TOO_OLD = "schema_too_old"
@@ -30,20 +43,116 @@ class GraphStatus(StrEnum):
 
 @dataclass(frozen=True)
 class GraphHandle:
+    """The result of :func:`open_graph`: a status, its reason, and the connection if any."""
+
     status: GraphStatus
     reason: str | None
     conn: sqlite3.Connection | None  # read-only; the caller owns it and closes it
 
 
+def _unsafe_reason(db_dir: Path) -> str | None:
+    """Why ``db_dir`` must not be opened, or None: twin of ``codemem.safety.check_db_path``.
+
+    Repo-controlled (M15 §6.8): a linked target opened read-only still gets
+    -wal/-shm beside it. aa_ma never imports codemem (ADR-0014), so the rule
+    is repeated here; ``tests/codemem/test_safety_parity.py`` keeps the two
+    in step.
+    """
+    if db_dir.is_symlink():
+        return "is a symlink"
+    try:
+        linked = any(p.is_symlink() for p in db_dir.iterdir())
+    except FileNotFoundError:
+        return None  # absent: open_graph reports MISSING with the build remedy
+    except OSError:
+        return "cannot be listed"
+    return "holds a symlink" if linked else None
+
+
+def _trust_problem(conn: sqlite3.Connection, db_dir: Path) -> str | None:
+    """Why the index must not be read, or None: twin of ``codemem.safety.is_trusted``.
+
+    A committed or copied index would otherwise let DIAGRAM_VERIFIED vouch for
+    a graph that is not the code's (M15 §6.8 re-run 2). A broken trust store
+    (unreadable, not a private dir of this user, a record that is not a
+    nonce) is named as such, never as "not built here" (SECURITY.md).
+    ``tests/codemem/test_safety_parity.py`` keeps the two in step.
+    """
+    not_built = f"was not built by codemem here; {_REMEDY}"
+    state = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
+    key = hashlib.sha256(os.fsencode(os.path.realpath(db_dir))).hexdigest()
+    rec = Path(state) / "codemem" / "trust" / key
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    try:
+        # One directory fd for the check and the read: no swap in between (TOCTOU).
+        dfd = os.open(rec.parent, os.O_RDONLY | os.O_DIRECTORY | nofollow)
+    except FileNotFoundError:
+        return not_built
+    except OSError as exc:
+        return f"cannot be checked: trust store {rec.parent} unusable ({type(exc).__name__})"
+    try:
+        st = os.fstat(dfd)
+        if st.st_uid != os.getuid() or st.st_mode & 0o022:
+            return f"cannot be checked: trust store {rec.parent} is not a private directory of this user"
+        fd = os.open(rec.name, os.O_RDONLY | nofollow, dir_fd=dfd)
+        with os.fdopen(fd, "rb") as fh:
+            nonce = fh.read(256).decode("ascii").strip()
+    except FileNotFoundError:
+        return not_built
+    except (OSError, UnicodeDecodeError) as exc:
+        return f"cannot be checked: trust store {rec.parent} unreadable ({type(exc).__name__})"
+    finally:
+        os.close(dfd)
+    try:
+        row = conn.execute(
+            "SELECT value FROM meta WHERE key = 'trust_nonce'"
+        ).fetchone()
+    except sqlite3.Error:
+        return not_built
+    if not nonce or row is None:
+        return not_built
+    # bytes: compare_digest raises TypeError on a non-ASCII str
+    stored = str(row[0]).encode("utf-8", "surrogatepass")
+    return None if hmac.compare_digest(stored, nonce.encode()) else not_built
+
+
+def _resolve_db_path(repo_root: Path) -> Path:
+    """Twin of ``codemem.paths.resolve_db_path`` (aa_ma never imports codemem, ADR-0014).
+
+    ``$CODEMEM_DB``, else ``$XDG_CACHE_HOME/codemem/<sha256(realpath root)>/index.db``
+    (``~/.cache`` when unset or relative; M16); pinned by tests/codemem/test_safety_parity.py.
+    """
+    env = os.environ.get("CODEMEM_DB")
+    if env:
+        return Path(env).absolute()
+    xdg = os.environ.get("XDG_CACHE_HOME", "")
+    cache = Path(xdg) if os.path.isabs(xdg) else Path.home() / ".cache"
+    key = hashlib.sha256(os.fsencode(os.path.realpath(repo_root))).hexdigest()
+    return (cache / "codemem" / key / "index.db").absolute()
+
+
 def open_graph(repo_root: Path) -> GraphHandle:
-    """Open ``<repo_root>/.codemem/index.db`` read-only and classify it."""
+    """Open the codemem index of ``repo_root`` (``_resolve_db_path``) read-only and classify it."""
     db = conn = None
     try:
-        db = Path(repo_root) / ".codemem" / "index.db"
+        db = _resolve_db_path(Path(repo_root))
+        unsafe = _unsafe_reason(db.parent)
+        if unsafe is not None:
+            return GraphHandle(
+                GraphStatus.MISSING, f"{db.parent} {unsafe}; refusing to open it", None
+            )
         if not db.is_file():
-            return GraphHandle(GraphStatus.MISSING, f"no codemem index at {db}; {_REMEDY}", None)
-        conn = sqlite3.connect(f"{db.resolve().as_uri()}?mode=ro", uri=True)
+            return GraphHandle(
+                GraphStatus.MISSING, f"no codemem index at {db}; {_REMEDY}", None
+            )
+        conn = sqlite3.connect(f"{db.absolute().as_uri()}?mode=ro", uri=True)
         conn.execute("PRAGMA trusted_schema = OFF")  # the file is data, not code
+        problem = _trust_problem(conn, db.parent)
+        if problem is not None:
+            conn.close()
+            return GraphHandle(
+                GraphStatus.MISSING, f"codemem index at {db} {problem}", None
+            )
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version < MIN_SCHEMA_VERSION:
             conn.close()
@@ -57,10 +166,14 @@ def open_graph(repo_root: Path) -> GraphHandle:
         if conn is not None:
             conn.close()
         return GraphHandle(
-            GraphStatus.MISSING, f"codemem index at {db} is unreadable ({exc}); {_REMEDY}", None
+            GraphStatus.MISSING,
+            f"codemem index at {db} is unreadable ({printable(str(exc))}); {_REMEDY}",
+            None,
         )
     if stale:
-        shown = ", ".join(printable(p) for p in stale[:_MAX_SHOWN]) + (", ..." if len(stale) > _MAX_SHOWN else "")
+        shown = ", ".join(printable(p) for p in stale[:_MAX_SHOWN]) + (
+            ", ..." if len(stale) > _MAX_SHOWN else ""
+        )
         return GraphHandle(
             GraphStatus.STALE,
             f"{len(stale)} file(s) changed since indexing ({shown}); {_REMEDY}",

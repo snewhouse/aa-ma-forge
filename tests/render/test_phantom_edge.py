@@ -20,6 +20,7 @@ import pytest
 from aa_ma.render import cli, mermaid_lint
 from aa_ma.render.mermaid_lint import lint_text
 from codemem.indexer import build_index
+from aa_ma.render.graph import _resolve_db_path
 
 REPO = Path(__file__).resolve().parents[2]
 _LINEAR_BUDGET_S = 1.0  # generous: the quadratic forms measured 15 s at the same sizes
@@ -36,7 +37,7 @@ def _git(root: Path, *args: str) -> None:
 
 
 def _build(root: Path) -> None:
-    build_index(root, root / ".codemem/index.db", package=".")
+    build_index(root, _resolve_db_path(root), package=".")
 
 
 @pytest.fixture
@@ -116,7 +117,7 @@ def test_unlabelled_and_prose_edges_are_never_reported(repo: Path, state: str) -
         (repo / "src/app/a.py").write_text("def run():\n    return 1\n")
         _build(repo)
     elif state == "no-index":
-        shutil.rmtree(repo / ".codemem")
+        shutil.rmtree(_resolve_db_path(repo).parent)
     report = lint_text(FIXTURE, repo)
     lines = {_line_of(FIXTURE, "A -->|fork| B"), _line_of(FIXTURE, "    A --> B")}
     assert not [f for f in (*report.findings, *report.unknowns) if f.line in lines]
@@ -148,7 +149,7 @@ def test_unevaluable_claims_are_unknown_with_a_reason(repo: Path) -> None:
 
 def test_no_index_makes_every_sigil_edge_unknown_with_the_remedy(repo: Path) -> None:
     """AC6: exit is decided by the other tiers alone."""
-    shutil.rmtree(repo / ".codemem")
+    shutil.rmtree(_resolve_db_path(repo).parent)
     report = lint_text(FIXTURE, repo)
     assert not {"PHANTOM_EDGE"} & set(_codes(report))
     checked = [
@@ -237,9 +238,11 @@ def test_there_are_completed_plans_to_check() -> None:
 def test_sigil_bearing_completed_plans_are_the_named_set() -> None:
     """The exclusion stays deliberate: a newly archived sigil plan must be named here."""
     # codebase-analysis-skills: archived 2026-10-01 with 10× DIAGRAM_VERIFIED (phantom=0).
+    # code-conventions-impact: archived 2026-10-29; M14's DIAGRAM_VERIFIED edges=25 phantom=0.
     assert {p.parent.name for p in _completed_plans(with_sigils=True)} == {
         "diagram-generation",
         "codebase-analysis-skills",
+        "code-conventions-impact",
     }
 
 
@@ -383,7 +386,7 @@ def test_terminal_escapes_never_reach_the_cli_output(
 def test_a_partial_index_is_unknown_not_a_crash(repo: Path) -> None:
     import sqlite3
 
-    db = repo / ".codemem/index.db"
+    db = _resolve_db_path(repo)
     db.unlink()
     conn = sqlite3.connect(db)
     conn.executescript(
@@ -455,7 +458,7 @@ def test_summary_without_an_index_counts_index_unknowns(
     repo: Path, tmp_path: Path, capsys
 ) -> None:
     """Only claims that reach the graph are index-unknown; `(new)`/plugin/path-less stay per-claim."""
-    shutil.rmtree(repo / ".codemem")
+    shutil.rmtree(_resolve_db_path(repo).parent)
     assert (
         _summary(repo, tmp_path, capsys)
         == "sigils: edges=7 checked=0 phantom=1 unknown=6 invalid=1 index-unknown=3"
@@ -477,7 +480,7 @@ def test_summary_counts_a_partial_index_as_index_unknown(
 ) -> None:
     import sqlite3
 
-    db = repo / ".codemem/index.db"
+    db = _resolve_db_path(repo)
     db.unlink()
     conn = sqlite3.connect(db)
     conn.executescript(

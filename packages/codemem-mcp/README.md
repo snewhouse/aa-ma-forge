@@ -2,7 +2,7 @@
 
 Structured code-memory tier for AA-MA workflows. Ships as a Claude Code MCP server.
 
-**Status: pre-alpha.** This is the standalone distribution of [aa-ma-forge](https://github.com/snewhouse/aa-ma-forge)'s `codemem` tool. Codemem's primary role is the data layer underneath AA-MA's memory architecture; the same SQLite index also answers structural code questions via 13 MCP tools, so it works as a drop-in code-intel server in repos that don't use AA-MA.
+**Status: pre-alpha.** This is the standalone distribution of [aa-ma-forge](https://github.com/snewhouse/aa-ma-forge)'s `codemem` tool. Codemem's primary role is the data layer underneath AA-MA's memory architecture; the same SQLite index also answers structural code questions via 14 MCP tools, so it works as a drop-in code-intel server in repos that don't use AA-MA.
 
 See [`docs/codemem/positioning.md`](../../docs/codemem/positioning.md) for the v2-empirical-driven positioning decision (2026-05-08): codemem is not competing with aider's repo-map for LLM prompt injection. The two tools serve different consumer profiles.
 
@@ -13,9 +13,9 @@ Codemem is two things in one binary:
 1. **The structured memory tier under AA-MA** (`aa_ma_context` plus the git-mining tools). This is the durable value. Deeply integrated with the memory architecture and not easily substituted.
 2. **A general code-intelligence MCP server** (call-graph + symbol-search tools). This is the optional surface, useful in any repo, but consumers who only want LLM prompt injection should pair codemem with aider's repo-map rather than substitute one for the other.
 
-The 13 tools:
+The 14 tools:
 
-- **Call graph:** `who_calls`, `blast_radius`, `dead_code`, `dependency_chain`
+- **Call graph:** `who_calls`, `callees`, `blast_radius` (deprecated alias of `callees`), `dead_code`, `dependency_chain`
 - **Symbol search:** `search_symbols`, `file_summary`
 - **Git mining:** `hot_spots`, `co_changes`, `owners`, `symbol_history`, `layers`
 - **Diagram:** `diagram` (mermaid L0–L3, collapses or truncates to the token budget)
@@ -26,17 +26,14 @@ The 13 tools:
 - Pure Python + stdlib (no NetworkX, no scipy, no embeddings)
 - `ast-grep-cli` as the only external binary dep (via pip wheel)
 - SQLite-canonical storage with PageRank-budgeted JSON projection (cl100k_base honest-budget enforcement post-M1, 2026-05-05)
-- AA-MA coupling (`aa_ma_context`) is the durable moat. The git-mining tools are commoditisable per kill-criteria Signal 4 (next watch: 2026-08-06).
+- AA-MA coupling (`aa_ma_context`) is the durable moat. The git-mining tools are commoditisable per kill-criteria Signal 4 (see `docs/codemem/kill-criteria.md` for the current watch).
 
-## Install (standalone)
+## Install
 
-```bash
-pip install codemem-mcp
-```
-
-## Install (with aa-ma-forge integration)
-
-See the parent [aa-ma-forge](https://github.com/snewhouse/aa-ma-forge) README.
+codemem is not published to PyPI: `pip install codemem-mcp` does not work. It ships
+inside [aa-ma-forge](https://github.com/snewhouse/aa-ma-forge) as a uv workspace member
+(plugin-only distribution, AD-Q15). Clone the forge, run `uv sync`, then
+`scripts/install.sh`; see the parent README.
 
 ## Docs
 

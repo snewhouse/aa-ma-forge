@@ -1,6 +1,6 @@
 """Integration tests for the FastMCP server — M3.5 Task 3.5.2.
 
-Unit tests in ``test_mcp_server.py`` verify that the 13 canonical tools
+Unit tests in ``test_mcp_server.py`` verify that the 14 canonical tools
 (plus aliases) are *registered* on ``build_server()``. This module
 verifies they are *callable end-to-end* — i.e. an MCP client looking up
 each tool via ``server.get_tool(name)`` and invoking ``tool.run(args)``
@@ -51,10 +51,12 @@ def _run_tool(server, name: str, kwargs: dict[str, Any]) -> dict:
     Returns the tool's ``structured_content`` dict (the JSON our tools
     actually emit). Wraps FastMCP's async API via ``asyncio.run`` so the
     test stays sync."""
+
     async def _call() -> dict:
         tool = await server.get_tool(name)
         result = await tool.run(kwargs)
         return result.structured_content
+
     return asyncio.run(_call())
 
 
@@ -119,21 +121,48 @@ def populated_env(tmp_path: Path, monkeypatch) -> Path:
     (repo_root / "b.py").write_text("def bar():\n    pass\n")
     subprocess.run(["git", "init", "-q"], cwd=repo_root, check=True)
     subprocess.run(
-        ["git", "-c", "user.email=t@t.dev", "-c", "user.name=t",
-         "add", "a.py", "b.py"], cwd=repo_root, check=True,
+        ["git", "-c", "user.email=t@t.dev", "-c", "user.name=t", "add", "a.py", "b.py"],
+        cwd=repo_root,
+        check=True,
     )
     subprocess.run(
-        ["git", "-c", "user.email=t@t.dev", "-c", "user.name=t",
-         "commit", "-q", "-m", "seed"],
-        cwd=repo_root, check=True,
+        [
+            "git",
+            "-c",
+            "user.email=t@t.dev",
+            "-c",
+            "user.name=t",
+            "commit",
+            "-q",
+            "-m",
+            "seed",
+        ],
+        cwd=repo_root,
+        check=True,
     )
+    # The seeded DB stands for this commit and tree: record both, or the
+    # bounded refresh (M15.2) treats the index as unverifiable and rebuilds it.
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    (db_path.parent / "last_sha").write_text(head + "\n")
+    from codemem.indexer import discover_files, tree_signature
+
+    sig = tree_signature(discover_files(repo_root))
+    (db_path.parent / "tree_sig").write_text(sig + "\n")
 
     # --- AA-MA task dir for aa_ma_context. Adversarial-safe mentions:
     #     a.py exists on disk; "foo" exists in the symbols table.
     task_dir = repo_root / ".claude" / "dev" / "active" / "demo"
     task_dir.mkdir(parents=True)
     (task_dir / "demo-tasks.md").write_text("# demo\n\n`a.py` — work here on `foo`.\n")
-    (task_dir / "demo-reference.md").write_text("# ref\n\nThe `foo` function is the anchor.\n")
+    (task_dir / "demo-reference.md").write_text(
+        "# ref\n\nThe `foo` function is the anchor.\n"
+    )
 
     # --- Wire env vars — the server's _default_db_path + _default_repo_root
     #     honour these.
@@ -150,32 +179,36 @@ def populated_env(tmp_path: Path, monkeypatch) -> Path:
 # minimal keyword set needed to return a valid payload against the fixture.
 _TOOL_CASES: list[tuple[str, dict[str, Any]]] = [
     # M1 — ported from /index
-    ("who_calls",        {"name": "bar"}),
-    ("blast_radius",     {"name": "foo"}),
-    ("dead_code",        {}),
+    ("who_calls", {"name": "bar"}),
+    ("blast_radius", {"name": "foo"}),
+    ("callees", {"name": "foo"}),
+    ("dead_code", {}),
     ("dependency_chain", {"source": "foo", "target": "bar"}),
-    ("search_symbols",   {"query": "foo"}),
-    ("file_summary",     {"path": "a.py"}),
+    ("search_symbols", {"query": "foo"}),
+    ("file_summary", {"path": "a.py"}),
     # M3 — git mining (wired in Task 3.5.1)
-    ("hot_spots",        {}),
-    ("co_changes",       {"file_path": "a.py", "threshold": 1}),
-    ("owners",           {"path": "a.py"}),
-    ("symbol_history",   {"name": "foo", "file_path": "a.py"}),
-    ("layers",           {}),
+    ("hot_spots", {}),
+    ("co_changes", {"file_path": "a.py", "threshold": 1}),
+    ("owners", {"path": "a.py"}),
+    ("symbol_history", {"name": "foo", "file_path": "a.py"}),
+    ("layers", {}),
     # M3 — AA-MA-native moat
-    ("aa_ma_context",    {"task_name": "demo"}),
+    ("aa_ma_context", {"task_name": "demo"}),
     # diagram-generation M13 — the MCP door onto `codemem draw`
-    ("diagram",          {}),
+    ("diagram", {}),
     # Aliases (same handler wired under an alternate discoverability name)
-    ("find_references",  {"name": "bar"}),   # → who_calls
-    ("find_dead_code",   {}),                # → dead_code
+    ("find_references", {"name": "bar"}),  # → who_calls
+    ("find_dead_code", {}),  # → dead_code
 ]
 
 
 class TestAllToolsCallableViaFastMCP:
-    @pytest.mark.parametrize("tool_name,kwargs", _TOOL_CASES,
-                             ids=[t[0] for t in _TOOL_CASES])
-    def test_tool_returns_non_error_dict(self, server_mod, populated_env, tool_name, kwargs):
+    @pytest.mark.parametrize(
+        "tool_name,kwargs", _TOOL_CASES, ids=[t[0] for t in _TOOL_CASES]
+    )
+    def test_tool_returns_non_error_dict(
+        self, server_mod, populated_env, tool_name, kwargs
+    ):
         server = server_mod.build_server()
         payload = _run_tool(server, tool_name, kwargs)
 
@@ -191,6 +224,11 @@ class TestAllToolsCallableViaFastMCP:
         assert err in (None, ""), (
             f"{tool_name} returned error: {err!r} (payload keys: {list(payload)})"
         )
+        # X2 (M15.3): every response carries the index freshness, additively.
+        assert payload["stale"] is False, payload.get("stale_reason")
+        assert payload["stale_reason"] is None
+        assert payload["index_sha"] == payload["head_sha"]
+        assert len(payload["head_sha"]) == 40
 
 
 class TestAutoBuildOnFirstQuery:
@@ -198,7 +236,9 @@ class TestAutoBuildOnFirstQuery:
     first tool call, the server triggers ``build_index`` synchronously
     so the very first query gets a real answer."""
 
-    def test_first_query_builds_db(self, tmp_path: Path, monkeypatch, server_mod) -> None:
+    def test_first_query_builds_db(
+        self, tmp_path: Path, monkeypatch, server_mod
+    ) -> None:
         """Fresh git repo with no ``.codemem/`` dir → first tool call
         must produce both (a) a non-error response and (b) a
         populated DB on disk."""
@@ -211,13 +251,32 @@ class TestAutoBuildOnFirstQuery:
         (repo_root / "sample.py").write_text("def sample():\n    return 1\n")
         subprocess.run(["git", "init", "-q"], cwd=repo_root, check=True)
         subprocess.run(
-            ["git", "-c", "user.email=t@t.dev", "-c", "user.name=t",
-             "add", "sample.py"], cwd=repo_root, check=True,
+            [
+                "git",
+                "-c",
+                "user.email=t@t.dev",
+                "-c",
+                "user.name=t",
+                "add",
+                "sample.py",
+            ],
+            cwd=repo_root,
+            check=True,
         )
         subprocess.run(
-            ["git", "-c", "user.email=t@t.dev", "-c", "user.name=t",
-             "commit", "-q", "-m", "seed"],
-            cwd=repo_root, check=True,
+            [
+                "git",
+                "-c",
+                "user.email=t@t.dev",
+                "-c",
+                "user.name=t",
+                "commit",
+                "-q",
+                "-m",
+                "seed",
+            ],
+            cwd=repo_root,
+            check=True,
         )
 
         monkeypatch.setenv("CODEMEM_DB", str(db_path))
@@ -293,4 +352,6 @@ class TestCanonicalSurfaceCoverage:
         covered = {name for name, _ in _TOOL_CASES}
         aliases = {a for lst in server_mod.ALIASES.values() for a in lst}
         missing = aliases - covered
-        assert not missing, f"Integration test missing alias entries for: {sorted(missing)}"
+        assert not missing, (
+            f"Integration test missing alias entries for: {sorted(missing)}"
+        )

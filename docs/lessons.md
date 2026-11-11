@@ -5,6 +5,169 @@ Newest at top. See also: `~/.claude/rules/self-improvement-loop.md`.
 
 ---
 
+## L-079 (2026-10-30) — A security check that re-implements another tool's parser loses to it
+**Pattern:** scan-untrusted.sh copied how CPython picks a PEP 263 coding cookie, how ShellCheck spots a directive, how gitleaks sniffs file types and how the kernel resolves symlinks. Reviews and the commit hook reproduced a bypass at each copy, and the cookie check alone failed five ways (greedy match, form feed, CR-only, CRLF, a 4 KiB cap) before it called `tokenize.detect_encoding`.
+**Rule:** when a check must agree with how another program reads input, call that program's own code for it (CPython's tokenize, the tool's own output or flag). Where that is impossible, fail closed (UNKNOWN on anything not plainly safe) and plant one test per case that program handles, never only the case you thought of. Cross-ref: L-078.
+
+## L-078 (2026-10-30) — I claimed a scanner override worked after testing one of its config inputs
+**Pattern:** for the PR #77 MEDIUM I wrote that gitleaks `-c`/`-i` makes it ignore the scanned repo's suppressions, and TODOS said "each override brings back a finding the repo's config hid". I had tested `.gitleaks.toml` only. Both sdm reviewers then showed the repo's `.gitleaksignore` still applies under `-i` (reproduced on 8.18.0), and that Ruff skips gitignored files on a directory scan.
+**Rule:** before claiming a tool ignores repo-controlled input, list every input it reads (config files, ignore files, inline comments, the VCS ignore files it honours, default excludes), plant a finding behind each one in a scratch repo, and record the result for each. A claim covers only the inputs in that list.
+**Also (same day):** the corrected recipe was broken again in the next review round (file names as options, history, `.gitattributes`, the default allowlist). When a second review round finds new bypasses in a prose recipe, stop patching it: state the limit in the skill and move the recipe into a tested script.
+
+## L-077 (2026-10-29) — An archive commit made main red; I pushed it without running the suite
+**Pattern:** `chore: archive AA-MA plan code-conventions-impact` (a91be2ce) went to main as "docs-only". `tests/render/test_phantom_edge.py` pins the set of completed plans that have §13 sigil edges, and the archive added one, so main's CI failed. It surfaced only when the next PR's (#74) CI ran.
+**Rule:** Moving files under `.claude/dev/completed/` is not docs-only: tests read that tree. Run `uv run pytest -q` before pushing an archive, and check main's CI (`gh run list --branch main --limit 1`) after every push to main before starting the next task.
+**Repeated 2026-10-31:** I pushed `ae0c24a2` (TODOS only) and started the next task without checking. A runner-image change (default Python 3.14) had turned main red, and I only found out when PR #81's CI failed. The check is not optional for docs-only pushes: after `git push origin main`, wait for that SHA's run (`gh run watch $(gh run list --branch main --limit 1 --json databaseId -q '.[0].databaseId')`) and report its conclusion before going on.
+
+## L-076 (2026-10-29) — A constant pinned to a future release date depends on the UTC clock
+**Pattern:** `IMPACT_CUTOVER` was planned as 2026-10-28. UTC passed midnight before 14.1, and `release.sh` dates the tag with `date +%F`, so a cut on a later day would have mismatched the constant (`test_cutover_is_release_date`).
+**Rule:** Set a release-date constant in the same session as the cut. Run `date -u +%F` immediately before `release.sh`; if it differs from the constant, stop and redo the constant before tagging.
+
+## L-075 (2026-10-29) — On main, §6.3 predicted-vs-actual sees only the unpushed commits
+**Pattern:** M14 ran on the main checkout. The merge-base with origin/main was origin/main itself, so §6.3 measured `changed=1` (TODOS.md) and missed the 13-file milestone (697c2d86..HEAD).
+**Rule:** When a milestone runs on main, give §6.3 and §6.8 the previous milestone's merge commit as base, and record in provenance which window was reviewed.
+
+## L-074 (2026-10-29) — A known open TODOS defect went into the release unchecked
+**Pattern:** TODOS.md had logged the run-evals nested-worktree bug at 10.9 (P3, 2026-10-26). M14's plan never checked it, the release eval summary scored 0 of main's 31 cases, and I reported it as a new finding until the §7.2.5 validator found the old entry.
+**Rule:** Before a release step (or any step that runs a script), grep TODOS.md for open entries naming each script the step runs, and list them in the plan step. An open entry the step depends on gets fixed or re-prioritised first.
+
+## L-073 (2026-10-29) — Wrote a sub-step's Result Log but left its `Status: PENDING`
+**Pattern:** in M14 I appended Result Logs to 14.2 and 14.3 with Edit calls that matched only the `Result Log:` line, and committed. Both kept `Status: PENDING`; the gate (`pending_steps=2`) caught it, which cost a fix-up commit.
+**Rule:** a sub-step's COMPLETE is one Edit whose `old_string` covers `- Status: PENDING` through `- Result Log:`, so the status flips in the same change as the log. Before committing a Result Log, run `uv run aa-ma-gate <tasks.md> --format kv | grep ^pending_steps=` and check the count dropped by one.
+
+## L-072 (2026-10-28, repeated 2026-10-29 twice) — `git rev-parse --short A B` in one call fails: one revision per call
+**Pattern:** the M11 handover's E1 check was `git rev-parse --short HEAD origin/main`. It failed (`fatal: Needed a single revision`) in M11, and I repeated it during the M11 double-check (`git rev-parse --short main origin/main`) after I had already noted the fix.
+**Repeated 2026-10-29** (M14 boundary, `git rev-parse --short HEAD origin/main`): never put two revisions in one `rev-parse`, not even in a throwaway status check.
+**Repeated again 2026-10-29** (post-PR #77 push to main, same command, the third time). Prose has not stopped it, so the rule is now a fixed snippet.
+**Rule:** to compare local and remote, type `git status -sb | head -1` (it prints `ahead N` / `behind N`), or `git rev-parse --short HEAD && git rev-parse --short origin/main`. Never write `rev-parse` followed by two revisions. Otherwise, one `git rev-parse` per revision, each as its own command (`git rev-parse --short HEAD; git rev-parse --short origin/main`). The same applies to every handover evidence table: an E-check must be a command that has run once and printed the result recorded beside it.
+
+## L-071 (2026-10-27) — A Result Log claimed a test result the same command had not yet shown
+**Pattern:** in code-conventions-impact 11.5 one Bash call ran `bats aa-ma-parse.bats | grep -c '^not ok'` AND wrote the Result Log, which I had pre-filled with "aa-ma-parse 0 failing". The count printed `1` (the Exports header lacked two new helpers). I caught it reading the output after the commit and logged a CORRECTION.
+**Rule:** never write a number or verdict into tasks.md / provenance.log in the same call that produces it. Run the evidence command, read its output, then write the log from what it printed. A suite named in a Result Log must have been run, and read, in an earlier call. **Tightened (same day, repeated once):** a per-file count must come from a run of that file alone — never split a combined total by estimate. If the number in the log is not on screen in an earlier tool result, run it first. **Tightened again (same day, third repeat):** at the M11 boundary I logged `bats tests/hooks/` (655, no `--recursive`) as "FULL_BATS"; the full suite is 875 (the §7.2.5 validator caught it). A "full" count is the CI command set verbatim (`grep -n 'run: bats' .github/workflows/*.yml`), and a total that drops versus the previous log is a stop-and-explain, not a log line. **Tightened again (2026-10-28, fourth repeat):** in 12.2 I logged rules = 20,066, measured before a later 10-byte heading edit; the committed total was 20,076 (12.4's test caught it). A size or count goes in the log only from a measurement taken *after the last edit*, ideally of the commit itself (`git show <sha>:<path> \| wc -c`), and in the same unit as its baseline (bytes vs `len(str)` chars differ on any em-dash).
+
+## L-070 (2026-10-25) — `mkdir` is not a lock on Ubuntu 26.04 (uutils coreutils)
+**Pattern:** the 10.6 pre-edit hook used `mkdir <marker>` as test-and-set for "once per file per session" (as the plan specified). Its concurrency bats failed: uutils coreutils mkdir 0.10.0 (`/usr/bin/mkdir` on Ubuntu 26.04) let two racing `mkdir`s of one path both succeed in 119/300 runs; GNU mkdir 9.7 (`gnumkdir`) 0/300. `mkdir -p` succeeding for both is by design.
+**Rule:** never use the `mkdir` command as a lock or claim in shell. Use bash `( set -C; : > "$marker" ) 2>/dev/null` (O_CREAT|O_EXCL in the shell itself), or `flock`. When a plan names `mkdir` as test-and-set, flag it. Concurrency tests must race ≥4 invocations many times, not once.
+
+## L-069 (2026-10-25) — `uv lock` with a newer local uv rewrote the lock header CI cannot pin to
+**Pattern:** for the filelock CVE fix (PR #67) I ran `uv lock --upgrade-package filelock` with local uv 0.13.5. The diff also bumped `uv.lock`'s `revision = 3` → `5`, while CI pins uv 0.12.3 and runs `uv sync --locked`. I caught it reading the diff, and re-locked with `uvx --from 'uv==0.12.3' uv lock --upgrade-package filelock` (3-line diff).
+**Rule:** lock with the uv version CI pins (`grep -n "version:" .github/workflows/*.yml` next to `setup-uv`): `uvx --from 'uv==<pin>' uv lock …`, then `uvx --from 'uv==<pin>' uv sync --locked`. Any change to the lock header lines means the wrong uv.
+
+## L-068 (2026-10-25) — A new bats file used bare `! cmd`, which never fails a test
+**Pattern:** `tests/hooks/install-live-worktree.bats` asserted absence with `! grep -qF …` in two places. bats ignores a non-final bare `!`, so both checks were vacuous. `tests/test_bats_assertions.py` caught it in the full run, not in the bats run itself.
+**Rule:** in bats, write negated asserts as `run ! cmd` (with `bats_require_minimum_version 1.5.0` at the top). Run `uv run pytest -q tests/test_bats_assertions.py` right after writing any new `.bats` file, before its RED commit.
+
+## L-067 (2026-10-25) — The `[ad-hoc]` / plan-signature marker was not on its own line in the command text
+**Pattern:** two `git commit` calls were blocked by `aa-ma-commit-signature.sh`: the marker went in as a separate `-m "[ad-hoc]"` followed by `2>&1 | …`, or as the last message line with `" && git log …` after the closing quote. The hook reads the raw command text and needs the marker on a line by itself (optionally followed by a closing quote only). In one case the blocked command also held the `git add`, so the retry committed nothing (and a later commit swept up a file still staged from it).
+**Rule:** put the footer as the last line of a multi-line `-m "…"` and end that command line with the closing quote; run anything else (`git log`, pipes) on the next line. After a blocked commit, run `git status --short` before retrying: stage again, and check nothing unintended is still staged.
+**Repeat (2026-10-25, 10.1):** a prototype commit was blocked by pre-commit (shellcheck, WHY001) and the same command went on to `git push` and `git checkout` another branch, carrying the staged files into the M10 branch's index and pushing the wrong head. **Stricter rule:** a `git commit` is always the LAST command of its Bash call — never chain `push`, `checkout`, `switch` or `rebase` after it, even with `&&` (pre-commit output does not stop a `;` or newline chain). Check `git log -1` and `git status --short` in the next call, then push or switch.
+
+## L-066 (2026-10-23) — CI's architecture-drift job caught a view the milestone gates never ran
+**Pattern:** M16 added `codemem/paths.py` and new import/call edges. pytest, bats, all three §6.7 fences, §6.6 and two §6.8 rounds passed, but PR #65's `architecture-drift` job failed: `docs/architecture/{component,io}.md` differed from the code. None of the local gates runs `codemem draw --check`.
+**Rule:** when a milestone adds, moves or rewires a source file, run `bash scripts/regen-generated.sh` (it ends with `codemem draw --check`) before `sdm.sh check`, and commit the regenerated views with the milestone.
+
+## L-065 (2026-10-23) — Format drift on main surfaced one file at a time, mid-milestone
+**Pattern:** code-conventions-impact M16 had to edit test files that were already unformatted on main. The pre-commit `ruff format --check` and CI's `touched` job check whole files, so each one blocked a commit, and L-031 sends the drift to its own PR from main. It happened twice (`test_explorer_fixture.py` as #63, then `test_file_edges.py`), and each time meant a separate PR, review and merge, and a rebase of the milestone branch.
+**Rule:** at step N.0, run `uv run ruff format --check` and `ruff check` over every Python file the plan expects to touch (the Contract `Files:` rows plus the test files named in the blast radius). Ship any drift in one `style(tests)` PR from main before the milestone branch is cut. Format only files the milestone will touch: a wider pass moves `# noqa` comments and wakes unrelated lint debt.
+
+## L-064 (2026-10-23) — Rebased a pushed feature branch before counting the force-push it needed
+**Pattern:** in M16.2 I ran `git rebase origin/main` on the milestone branch to pick up a format PR. Six of the rebased commits were already on origin, so the push needed a force-push, which git-conventions and sdm.sh both forbid without an explicit OK. I caught it before pushing (`git branch -r --contains`), asked Ste (force-with-lease approved) and recorded a SHA map.
+**Rule:** before any history rewrite (rebase, amend, reset), run `git fetch -q && git log --oneline origin/<branch>..` and `git branch -r --contains <oldest rewritten sha>` in the same turn. If anything rewritten is on a remote, ask first and name the force-push. Prefer picking up main's changes before the first push of the branch.
+
+## L-063 (2026-10-22) — A `git stash` ran in the worktree a background test suite was reading
+**Pattern:** in sole-dev-merge-simplify 2.2 I started `bats -r tests` in the background on the M2 worktree, then ran `git stash` / `git stash pop` there to compare pytest collection before and after a deletion. For a few seconds the worktree held the old, deleted files, so the background run's result could no longer be trusted. I caught it, stopped the run, committed, and re-ran the suite on the commit.
+**Rule:** while a background run reads a worktree, that worktree is read-only: no stash, checkout, reset, edit or regen. Run comparisons in a throwaway `git worktree add --detach <tmp> <sha>`, or wait. Start a long suite only on a committed tree and record the SHA it ran on (`git rev-parse HEAD` written beside the log).
+
+## L-062 (2026-10-20) — 13 copies of the state loader, and a test that keeps them identical
+**Pattern:** /sole-dev-merge runs each stage by having the model copy a bash block out of markdown, so every block carries its own 26-line `SDM_KEYS`/`sdm_load`/`sdm_save` (13 copies, 35% of the skill's code bytes). `test_stage_state.bats` asserts the copies are byte-identical. A one-line `sdm_save` fix (`39fbac7`) touched 6 files, and each copy gave reviewers more to find. Of the skill's 1,963 lines, 1,526 are bash in fences.
+**Rule:** code needed by two or more stage blocks goes in one sourced script with its own bats tests, and the skill calls it. A test that asserts copies are identical means extract the code; never accept the copies. Add a stage block only when the work truly needs the model between steps.
+**Cross-ref:** retro 2026-10-20 (sole-dev-merge-fixes plan dir); TODOS "install.sh links a clone pinned to main".
+**Fixed in:** sole-dev-merge-simplify M2 (ADR-0024) — the stage blocks became `claude-code/skills/sole-dev-merge/scripts/sdm.sh` (one copy of each rule, `tests/commands/sdm/`); the identical-copies test went with them.
+
+## L-061 (2026-10-20) — 0 of 255 review findings bit in real use; using the tool found every real bug
+**Pattern:** across sole-dev-merge-pr-workflow and sole-dev-merge-fixes, 17 review rounds produced findings that were 51% docs/style, 33% hypothetical hardening (hostile `.git`, old git, locales) and 9% bugs made by an earlier fix. None was a bug that hit in use. The bugs that did hit, `--delete-branch` from a worktree (6 PRs), check-conventions rc 2, `gh pr edit` failing silently and pre-compact writing into main, were all found by running the tool. The predecessor's stub test even asserted the buggy call. Meanwhile 61% of code commits rewrote code from earlier in the same PR.
+**Rule:** for tooling, the first acceptance gate is a live run of the smallest working version on the real environment; stub tests alone never certify it. Then review at most 2 rounds per PR. Round 2 reads only the fix. Only CRITICAL/HIGH with a failure path under the stated threat model block (`security-auditor.md` § Threat model); everything else goes to notes and TODOS.
+**Cross-ref:** L-060; global L-1299, L-1294, L-1358.
+**Applied in:** sole-dev-merge-simplify M2 (ADR-0024) — SKILL.md step 2 carries the stop rule (2 rounds, only CRITICAL/HIGH with a failure path block); every sdm.sh milestone and PR #57 was gated by a live merge run.
+
+## L-060 (2026-10-18) — A review loop with no exit turned a 15-line hook fix into 140 lines and three merge runs
+**Pattern:** sole-dev-merge-fixes M5. Each `/sole-dev-merge` run sent fresh reviewers at the diff; I recommended "Apply" for nearly every MEDIUM/LOW; every applied fix restarted the run and added code for the next run to review. The linked-worktree guard inferred where the session works from git history, so each round found another edge (tracked plan dirs, detached tool worktrees, rebase-merged SHAs, squash merges), and the hardening crept to hostile `.git` dirs and git < 2.45 for an advisory 2-line append. `pre-compact-aa-ma.sh` went 192 → 329 lines, its tests 17 → 39. Ste: "have we over engineered … why do we never get to the end of it??"
+**Rule:** before recommending "Apply" on a review finding, weigh it against what the code is for (an advisory log append is not a security boundary) and say so in the option. When a second round finds new defects in the previous round's fix, stop and ask whether a simpler rule removes the whole class instead of patching the next edge. Prefer a plain, conservative rule (skip and say why) over a heuristic that guesses intent. Only CRITICAL/HIGH findings restart a merge run; MEDIUM/LOW go to notes + TODOS.
+**Status:** applied in M5 (guard simplified); the Stage D rule landed 2026-10-20 (`fix/sdm-stop-rule`).
+**Wired in:** sole-dev-merge-simplify M2 (ADR-0024) — the stop rule is a SKILL.md step (round 3 refused), not only this lesson.
+**Repeat (2026-10-20 retro):** the rule to stop already existed. Global L-1299 (2026-09-29: at round 3, set the threat model and agree how the loop ends) and L-1294 (no third patch) fit exactly, and I had read both, yet M4 ran 5 merge runs and M5 3. A lesson that is not wired into the step where the decision is made does not fire. **Stricter:** set the threat model at plan time (a Contract `Threat-Model:` line), not at round 3, and put limits in the skill, agent or gate, not only here.
+
+---
+
+## L-059 (2026-10-18) — A mutation script restored files from HEAD and wiped the uncommitted GREEN it was testing
+**Pattern:** in sole-dev-merge-fixes 5.3 I reused the M4 mutation pattern ("each restored from HEAD", `git checkout -- <file>`) before committing GREEN. The first mutation's restore put `pre-compact-aa-ma.sh` back to the RED commit, the second mutation then aborted on a missing anchor, and the GREEN edits were gone. They were re-applied from the session's own Edit calls; nothing else was lost.
+**Rule:** commit GREEN (or copy each file to a backup) before any mutation run, and assert `git status --porcelain` is empty first. A mutation script restores from that commit or backup, never from an unverified HEAD, and re-checks porcelain = 0 at the end. Cross-ref: global L-1214 (mutation-test every guard; assert the filter matched).
+
+---
+
+## L-058 (2026-10-18) — A RED test pointed a sandbox remote at a real forge, so the unguarded code tried to push there
+**Pattern:** for the sole-dev-merge-fixes M4 "F refuses a host other than origin's" RED, I ran `git remote set-url origin https://gitlab.com/x/y.git` in a bats sandbox. The guard did not exist yet (that is what RED means), so Stage F ran `git push -u origin HEAD` for real. Git opened an HTTPS connection to gitlab.com and hung at the credential prompt; the suite hit its 600 s limit. Nothing was sent, because no GitLab credentials exist on the machine. The twin test (`https://github.com/a/b.git`) had not run yet. It would have gone through the gh credential helper and attempted an authenticated push to someone else's repo.
+**Rule:** a test remote is a local bare repo, or a reserved host that never resolves: `https://github.com.invalid/…`, `https://gitlab.com.invalid/…` (RFC 2606). Never use a real forge URL, even in tests that only read `git remote -v`: the next edit may run a push against it. Run any test that can reach `git push`/`gh`/`glab` with `GIT_TERMINAL_PROMPT=0` under an outer `timeout`, so a regression fails fast instead of waiting on a prompt. Before running a RED for a guard that blocks a network action, ask what the unguarded code does with the test's inputs.
+**Status:** applied from sole-dev-merge-fixes M4 `bd2973a` on. All SDM test remotes were moved to `.invalid` hosts.
+
+---
+
+## L-057 (2026-10-18) — Widened a milestone into a code path the repo never runs, and left a Biorelate-era default unflagged
+**Pattern:** in sole-dev-merge-fixes M4 live run 2, a reviewer flagged the GitLab branch of `/sole-dev-merge` (F, G3). I offered "Fix all incl. GitLab" as an equal option and implemented it from Context7 docs alone: glab is not installed, and aa-ma-forge has one GitHub remote. Run 3 then found more GitLab gaps. Ste asked "why glab? we use GitHub", then whether anything had been pushed to a Biorelate GitLab. Nothing had (one `origin` → github.com, glab absent), but I had never said so up front. I also never flagged E2's dual-remote **GitLab default** ("per project convention, bk_<project>.md"), a Biorelate-era rule, until Ste asked.
+**Rule:** before scoping a fix to a code path, check that this repo exercises it (`git remote -v`, the tool on PATH, config). If it doesn't, say so in the question ("dormant here, untestable live") and recommend a TODOS entry, not an equal "fix it too" option. When reviewed code holds a default or convention that names Biorelate, a client or another org (GitLab default, `bk_<project>.md`, `~/biorelate/**`), surface it to Ste at once. Whenever a remote or host is involved, state which remote every push and API call went to.
+**Status:** applied from sole-dev-merge-fixes M4 (live run 3 triage) on. The E2 default was flipped to GitHub (`2addbba`); the GitLab follow-ups are in TODOS.
+
+---
+
+## L-056 (2026-10-16) — Started a milestone without collecting the work earlier reviews deferred to it
+**Pattern:** sole-dev-merge-fixes M3 was run from plan §4 M3 and tasks.md alone. TODOS.md:96-100 and context-log:160 had scheduled the `$CHANGED_*` word-splitting fix "for M3, which rewrites Stage B", but M3's RED and GREEN went in without it. The §6.8 security review flagged it again as a WARNING, which cost a second RED/GREEN round. It also turned out that the TODO's proposed fix (`-- "${arr[@]}"`) does not work for pre-commit (argparse exits on `--`), which only a probe showed.
+**Rule:** before a milestone's first RED, grep TODOS.md, context-log.md and the last impl-review.md for the milestone's id (`M3`, `Milestone 3`) and fold every deferred item into its RED list, or record why not. Probe each deferred item's proposed fix before writing its test.
+**Status:** applied from sole-dev-merge-fixes M3 (§6.8 remediation) on.
+
+---
+
+## L-055 (2026-10-15) — Stage blocks pass values through env vars that separate Bash calls don't keep
+**Pattern:** `/sole-dev-merge` stage blocks hand values on through exported env vars (`CHANGED_PY`, `CHANGED_SH`, `SLUG`, `PR_NUM`, `ORIGINAL_BRANCH`). Claude runs each block as its own Bash call, and nothing carries over between calls. So Stage C found no `CHANGED_PY`/`CHANGED_SH` and silently skipped Ruff S and ShellCheck on every run. `SLUG` differed between C and D, and G4's `ORIGINAL_BRANCH:-feature` default could delete an unrelated branch. The smoke E2E chains the blocks with `set -a` in one shell, so it never saw the gap.
+**Rule:** A multi-block skill never relies on the env between blocks. Values go to a state file (written by the first stage, read by the others), and a required value with no source fails loud; it never defaults. A test runs a later block in a fresh shell with an empty env.
+**Fixed in:** sole-dev-merge-fixes M2 — the stage state file (SKILL.md "State between stages", every stage block except E1), `tests/commands/sole-dev-merge/test_stage_state.bats` (every block in an empty env). G4's default was removed in M1. Still open: E1's remote counts reach E2 only within one Bash call (M4).
+**Superseded by:** sole-dev-merge-simplify M2 (ADR-0024) — no state file: each `sdm.sh` subcommand is one process that derives its inputs from git/gh, so nothing crosses Bash calls.
+
+---
+
+## L-054 (2026-10-15) — `emit_aa_ma_footer` picked an arbitrary plan when two were active
+**Pattern:** the footer helper took `find .claude/dev/active … | head -1`. With two active plans on main (code-conventions-impact and sole-dev-merge-fixes), a commit could carry the other plan's signature, and the commit-signature hook accepted it because it allows any active plan.
+**Rule:** with several plans, the footer names the one the branch changed since its merge-base; anything else is `[ad-hoc]` plus a warning. Never pick by directory order or by name.
+**Fixed in:** sole-dev-merge-fixes M1 — `aa-ma-footer.sh` rule, spec §VI, `tests/hooks/aa-ma-footer.bats`.
+
+---
+
+## L-053 (2026-10-15) — The L-007 guard misses staged and untracked out-of-scope files
+**Pattern:** Stage B's guard restores out-of-scope paths with `git checkout -- <path>`. That restores from the **index**, so an out-of-scope edit that is already staged survives with rc 0. On an untracked file, `checkout` exits 1 and the guard swallows it. B-commit's `git add -A` then sweeps both into the auto-fix commit. L-007's "resolved structurally" note (2026-05-18) was stale.
+**Rule:** restore tracked rows with `git restore --source=HEAD --staged --worktree`; list untracked rows, never delete them; stage exact in-scope paths and assert the staged set before committing.
+**Fixed in:** sole-dev-merge-fixes M3 — the guard and B-commit in `SKILL.md`.
+**Superseded by:** sole-dev-merge-simplify M2 (ADR-0024) — `sdm.sh check` refuses a dirty tree at the start and ABORTs naming any out-of-scope change, never restoring or committing it.
+- Restoring from HEAD a path HEAD lacks deletes it with rc 0 (probed), so a newly staged out-of-scope file is only unstaged, kept and listed.
+- The guard reads `git status --porcelain -z`, which gives raw names and rename sources. A C-quoted name never matched.
+- B-commit checks the staged set **before** staging. Anything outside `CHANGED_FILES` → rc 1, index untouched, even when nothing in scope is dirty. It then stages `CHANGED_FILES` ∩ dirty under literal pathspecs and re-checks.
+- Tests: `test_stage_b_scope.bats` guard cases and AC4.1/4.2/4.4.
+
+---
+
+## L-052 (2026-10-15) — Stage G4's `git checkout main` failed in a worktree; worked around by hand every time
+**Pattern:** G4 ran `git checkout -q "$DEFAULT_BRANCH"` then `git pull --ff-only`. In a linked worktree, `main` is checked out by the main worktree, so checkout exits 128 ("already used by worktree"), and `pull --ff-only` with `pull.rebase=true` fails on a dirty tree. Every worktree merge finished by hand. G3's `--delete-branch` failed the same way (global L-1332).
+**Rule:** detect a worktree by comparing absolute `--git-dir` and `--git-common-dir`. In a worktree, fast-forward the main worktree with `git -C`, never switch branches, stop on a tracked change there, and print the cleanup commands. Merge without `--delete-branch` and delete the remote branch explicitly, checked with `ls-remote`.
+**Fixed in:** sole-dev-merge-fixes M1 — `stage-g-merge.md` G3/G4, `test_stage_g_merge.bats` (G3 cases and G4 AC2.x).
+**Superseded by:** sole-dev-merge-simplify M2 (ADR-0024) — `sdm.sh finish` cleanup (`sdm_cleanup`), `tests/commands/sdm/finish.bats` worktree cases; the files named above are deleted.
+
+---
+
+## L-051 (2026-10-15) — check-conventions exit 2 accepted as "by design" in every `/sole-dev-merge` run since 2026-10-08
+**Pattern:** Stage B ran `pre-commit run --files … || true`. With nothing staged and no refs, `check_conventions.py` exits 2 "no diff source" before checking anything. Every run logged it as "best-effort, by design", although ADR-0018 already named the fix (refs in `PRE_COMMIT_FROM_REF`/`TO_REF`).
+**Rule:** a step that cannot run is a bug, never best-effort (CONTEXT.md **Best-effort step**; global L-1351 rule 4). A best-effort step prints its rc where the operator sees it.
+**Fixed in:** sole-dev-merge-fixes M3 — Stage B step 5 passes the branch range as `PRE_COMMIT_FROM_REF`/`PRE_COMMIT_TO_REF` with `--files` (ADR-0018), and steps 4–5 print `Stage B: pytest|pre-commit rc=N (best-effort)`. Tests: `test_stage_b_scope.bats` AC5.1–5.4 and Q8, with a logging `fixtures/bin/pre-commit` stub.
+
+---
+
 ## L-050 (2026-10-12) — A "real payload" test fed from a file hid a hook that never ran live
 **Pattern:** Since M2, `ruff-format.sh` read its payload with `$(</dev/stdin)`. Claude Code delivers hook stdin on a
 **socket**, and opening `/dev/stdin` on a socket fails with ENXIO. So on every live Edit/Write the hook got an empty
@@ -68,6 +231,21 @@ textconv), argv size, renames, and lines that look like diff syntax.
 1. a glob-like name (`x[1].py`, `*.py`), with git pathspecs taken literally (`GIT_LITERAL_PATHSPECS=1`);
 2. a count large enough to hit the timeout, so a refusal replaces the timeout;
 3. an ignored file.
+**Recurrence 4 (2026-10-14, M15.2, codemem bounded refresh):** I ran the matrix (symlinked log, newline injection,
+option-shaped SHA, git absent, read-only dir) and still shipped three holes a background review found in minutes:
+`python -m pkg` with cwd = the target repo imports the repo's own `pkg/` (code execution); a sidecar `write_text`
+follows a committed symlink; `git status` (and, measured, `git ls-files`) runs the repo's `core.fsmonitor`.
+**Stricter:** when code runs against a repo it did not author, list every input the repo controls before writing it:
+its tree (module names on `sys.path`, file names in messages), its `.git/config` (fsmonitor, filters, hooks), and
+every file under its tool dirs (`.codemem/`, `graphify-out/`: symlinks, contents). Subprocesses of Python get `-I`;
+git on a foreign repo gets command-scope pins (`-c core.fsmonitor=false -c core.hooksPath=/dev/null`) or the
+`stamp.py` allowlist; files in a repo-controlled dir are written by temp + `os.replace`, appended with `O_NOFOLLOW`.
+Each gets a test that plants the hostile thing and a mutation that removes the pin.
+**Recurrence 5 (same day, M15.6):** I copied the forge's `$(git rev-parse --show-toplevel)/claude-code/…`-first
+lookup into a new gate script, so a repo committing `claude-code/hooks/lib/aa-ma-parse.sh` ran inside the gate
+(TODOS already tracked the class for the old fences). **Stricter:** new code never sources or runs a file found
+under the target repo's tree; it uses its own location (`readlink -f "${BASH_SOURCE[0]}"`) or the installed copy.
+Copying an existing pattern does not make it safe: check the TODOS for a known flaw in the pattern first.
 **Cross-ref:** L-1319 (stderr on exit 0 is invisible), L-047 (sweep every reader)
 
 ---
@@ -89,6 +267,15 @@ s.count(old) == 1`), not `sed`, when the pattern carries quotes or escapes.
 **Recurrence 2 (2026-10-12, M7):** a leftover `sed` line I meant to delete still ran. Its `.` matched
 an apostrophe and replaced a `def` line in logsetup.py with `X`; ruff caught it before commit. **Stricter:**
 no `sed -i` on source files at all. Use asserting Python edits, and never leave a superseded edit command in a chain.
+**Recurrence 3 (2026-10-14, M15 §6.8 fix pass):** both rules broken in one pass. `ruff format -q
+packages/codemem-mcp/src` (a directory) reformatted 11 untouched files; `git status` caught it before
+staging and they were reverted. A `sed -i` added an import to `test_writer_lock.py`. **Stricter:** the
+only formatter form allowed is the changed-file list: `uv run ruff format $(git diff --name-only
+--diff-filter=AM -- '*.py')`. Typing a directory after `ruff format` is the error itself, whatever
+happens next. When the pre-commit hook forces format-on-touch of a file with old drift, the drift
+goes in its own `style:` commit first (eddfd3f is the pattern).
+**Recurrence 4 (same day, §6.8 re-run 2):** `sed -i` again, on `test_trust.py`, to fix one key name. **Stricter:** before any shell edit of a file under `tests/`, `src/`, `packages/` or `claude-code/`, the edit goes through an asserting Python `sub()` (count == 1) — a `sed -i` on those trees is the error, however small the change.
+**Recurrence 5 (same day):** `pytest … | tail -1 && git add … && git commit … && git push` committed and pushed a red test (3d014c5): a pipe's exit status is the last command's, so `tail` gated the commit. **Stricter:** in any chain that commits, pytest/bats run unpiped as the condition — `if uv run pytest <files> -q; then git commit …; fi` — never `| tail`, `| grep` or `| head` before `&&`.
 **Cross-ref:** L-007 (format pass outside scope), global L-1334 (pathspec-less commit)
 
 ---
@@ -305,11 +492,13 @@ already upstream: `git reset --hard origin/main` on a clean tree, then re-run G4
 touched. The L-007 guard passed it — it reverts out-of-scope *files*, and these files were in
 scope. Caught by reading `git show --stat` of the auto-commit before pushing; dropped with a
 reset of that one unpushed commit.
-**Rule:** After Stage B-commit, always inspect the auto-fix commit (`git show --stat HEAD`, then the
-diff of any file with more changed lines than the branch itself changed there). If it touches
-lines the branch did not, drop it before Stage F (unpushed: `git reset --hard HEAD~1`; pushed:
-`git revert`). Pre-existing format drift in a touched file ships as its own `chore(format)` PR,
-never inside a feature merge. The Stage B guard is file-scoped; line scope is on the operator.
+**Rule:** After `sdm.sh check` makes its auto-fix commit (`chore(scope): pre-PR auto-fixes`), always
+inspect it (`git show --stat HEAD`, then the diff of any file with more changed lines than the
+branch itself changed there). If it touches lines the branch did not, do not ship it: pre-existing
+format drift in a touched file ships as its own `chore(format)` PR from the default branch, never
+inside a feature merge. `check`'s scope guard is file-scoped; line scope is on the operator.
+**Applied in:** `/sole-dev-merge` SKILL.md step 1 (2026-10-23). The rule above first named the old
+Stage B-commit and Stage F, which sole-dev-merge-simplify M2 replaced with `sdm.sh` (ADR-0024).
 ---
 ## L-030 (2026-09-28) — AA-MA artifacts committed and pushed before the user saw the final plan
 **Pattern:** In `/aa-ma-plan --from-map codebase-analysis-skills` I took Ste's approvals of the
@@ -928,6 +1117,8 @@ step can no longer escape the branch's declared scope. See
 test #2 (canonical L-007 scenario regression).
 
 **Gap (2026-09-29):** the guard is file-scoped — a touched file is still reformatted whole. See L-031.
+
+**Gap (2026-10-15):** the guard restores from the index, so a staged out-of-scope edit survives, and B-commit's `git add -A` sweeps in untracked files. See L-053.
 
 ---
 
